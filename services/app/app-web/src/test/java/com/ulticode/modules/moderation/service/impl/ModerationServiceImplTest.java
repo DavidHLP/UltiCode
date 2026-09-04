@@ -35,7 +35,7 @@ import com.ulticode.modules.moderation.mapper.UserWarningMapper;
 import com.ulticode.modules.moderation.port.ContentModerationPort;
 import com.ulticode.modules.moderation.projection.ModerationProjection;
 import com.ulticode.modules.event.outbox.IntegrationEventPublisher;
-import com.ulticode.app.api.service.ModerationAccountPort;
+import com.ulticode.modules.moderation.port.ModerationAccountPort;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;

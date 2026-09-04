@@ -1,6 +1,6 @@
 package com.ulticode.modules.edgeoperations.inspector;
 
-import com.ulticode.app.api.service.BookmarkReadPort;
+import com.ulticode.modules.bookmark.port.BookmarkReadPort;
 import com.ulticode.modules.edgeoperations.dto.EdgeOperationResponseVO;
 import com.ulticode.modules.vote.dto.VoteResultVO;
 import com.ulticode.modules.vote.entity.enums.EdgeOperationTargetType;

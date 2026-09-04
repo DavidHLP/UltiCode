@@ -160,5 +160,6 @@ done
 [[ "$(devstack_app_port ulticode-submission)" == 9106 ]]
 [[ "$(devstack_app_port ulticode-judge)" == 9104 ]]
 [[ "$(devstack_app_port ulticode-search)" == 9107 ]]
+[[ "$(devstack_app_port ulticode-core)" == 9108 ]]
 
 printf 'DevStack lifecycle control contract: PASS\n'

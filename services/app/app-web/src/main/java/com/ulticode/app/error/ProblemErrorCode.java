@@ -22,7 +22,8 @@ public enum ProblemErrorCode implements NamespacedErrorCode {
     NOTE_FORBIDDEN(30014, "Cannot access another user's note", HttpStatus.FORBIDDEN),
     TEST_CASE_NOT_FOUND(30020, "Test case not found", HttpStatus.NOT_FOUND),
     TEST_CASE_INVALID_SCOPE(30021, "Test case scope must be exactly one of SAMPLE or HIDDEN", HttpStatus.BAD_REQUEST),
-    CODE_EXECUTION_UNAVAILABLE(30022, "Code execution is unavailable", HttpStatus.SERVICE_UNAVAILABLE);
+    CODE_EXECUTION_UNAVAILABLE(30022, "Code execution is unavailable", HttpStatus.SERVICE_UNAVAILABLE),
+    CODE_EXECUTION_INVALID_REQUEST(30023, "Invalid code execution request", HttpStatus.BAD_REQUEST);
 
     private final int code;
     private final String message;

@@ -2,7 +2,6 @@ package com.ulticode.auth.account;
 
 import com.ulticode.auth.account.entity.AuthAccountEntity;
 import com.ulticode.auth.account.mapper.AuthAccountMapper;
-import com.ulticode.auth.permission.mapper.UserRoleMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -28,9 +27,6 @@ class AuthAccountPersistenceIT {
 
     @Autowired
     private AuthAccountMapper mapper;
-
-    @Autowired
-    private UserRoleMapper userRoleMapper;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -98,16 +94,4 @@ class AuthAccountPersistenceIT {
         assertThat(afterStale.getAuthzVersion()).isEqualTo(6L);
     }
 
-    @Test
-    @DisplayName("role update increments authz_version only when the role changes")
-    void updateRoleBumpsAuthorizationVersion() {
-        assertThat(userRoleMapper.updateRole("user-100", "ADMIN")).isOne();
-
-        AuthAccountEntity changed = mapper.findById("user-100");
-        assertThat(changed.getRole()).isEqualTo("ADMIN");
-        assertThat(changed.getAuthzVersion()).isEqualTo(6L);
-
-        assertThat(userRoleMapper.updateRole("user-100", "ADMIN")).isZero();
-        assertThat(mapper.findById("user-100").getAuthzVersion()).isEqualTo(6L);
-    }
 }

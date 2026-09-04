@@ -1,6 +1,6 @@
 package com.ulticode.app.architecture;
 
-import com.ulticode.app.api.service.CodeExecutionPort;
+import com.ulticode.judge.api.JudgeRunService;
 import com.ulticode.common.rpc.RpcPolicy;
 import com.tngtech.archunit.core.domain.JavaField;
 import com.tngtech.archunit.core.importer.ImportOption;
@@ -47,7 +47,7 @@ class RpcPolicyArchTest {
                 int retries = reference.retries();
                 boolean queryPolicy = timeout == RpcPolicy.QUERY_TIMEOUT_MS && retries == RpcPolicy.QUERY_RETRIES;
                 boolean writePolicy = timeout == RpcPolicy.WRITE_TIMEOUT_MS && retries == RpcPolicy.WRITE_RETRIES;
-                boolean executionPolicy = field.getRawType().isEquivalentTo(CodeExecutionPort.class)
+                boolean executionPolicy = field.getRawType().isEquivalentTo(JudgeRunService.class)
                         && timeout == RpcPolicy.EXECUTION_TIMEOUT_MS
                         && retries == RpcPolicy.EXECUTION_RETRIES;
                 if (!queryPolicy && !writePolicy && !executionPolicy) {

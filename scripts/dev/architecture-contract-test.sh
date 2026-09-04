@@ -38,6 +38,7 @@ run_child() {
         |scripts/test/dubbo-provider-reference-contract.sh \
         |scripts/dev/docs-contract-test.sh \
         |scripts/test/devlite-minimal-contract.sh \
+        |scripts/test/core-profile-contract.sh \
         |scripts/test/devstack-control-contract.sh \
       )
         printf 'Architecture child %s: running static-safe checks\n' "$child"
@@ -123,7 +124,9 @@ for file in \
   services/api/submission-api/src/main/java/com/ulticode/submission/api/service/SubmissionVerdictWritePort.java \
   services/api/submission-api/src/main/java/com/ulticode/submission/api/service/SubmissionReconciliationReadPort.java \
   services/api/notification-api/src/main/java/com/ulticode/notification/api/service/NotificationReconciliationReadPort.java \
-  services/api/app-api/src/main/java/com/ulticode/app/api/service/CodeExecutionPort.java \
+  services/api/judge-api/src/main/java/com/ulticode/judge/api/JudgeRunService.java \
+  services/api/judge-api/src/main/java/com/ulticode/judge/api/JudgeRunCommand.java \
+  services/api/judge-api/src/main/java/com/ulticode/judge/api/JudgeRunResult.java \
   services/api/app-api/src/main/java/com/ulticode/app/api/service/ProblemTitleLookupPort.java \
   services/app/app-web/src/main/java/com/ulticode/modules/submission/port/adapter/RemoteCodeExecutionPort.java \
   services/judge/src/main/java/com/ulticode/judge/provider/CodeExecutionProvider.java \
@@ -156,6 +159,7 @@ not_contains services/admin/src/main/java/com/ulticode/modules/admin/projection/
   'private UserProfileQueryService'
 
 run_child scripts/dev/devstack-manifest-test.sh
+run_child scripts/test/core-profile-contract.sh
 run_child scripts/test/devlite-minimal-contract.sh
 run_child scripts/test/devstack-control-contract.sh
 
@@ -181,13 +185,15 @@ contains services/app/app-web/src/test/resources/application.yml 'use-port: true
 # SVC-001: synchronous preview execution is a real App -> Judge seam. App
 # controllers must not regain a concrete Docker runtime dependency.
 contains services/app/app-web/src/main/java/com/ulticode/modules/submission/controller/ProblemSubmissionController.java \
-  'private final CodeExecutionPort codeExecutionPort;'
+  'private final InteractiveCodeRunner codeExecutionPort;'
 not_contains services/app/app-web/src/main/java/com/ulticode/modules/submission/controller/ProblemSubmissionController.java \
   'CodeExecutionService'
 contains services/app/app-web/src/main/java/com/ulticode/BackendAppApplication.java \
   '@SpringBootApplication(scanBasePackages = {'
 contains services/app/app-web/src/main/java/com/ulticode/modules/submission/port/adapter/RemoteCodeExecutionPort.java \
   '@DubboReference(group = "backend-judge"'
+contains services/api/judge-api/src/main/java/com/ulticode/judge/api/JudgeRunService.java \
+  'RpcResult<JudgeRunResult> execute(JudgeRunCommand command);'
 contains services/judge/src/main/java/com/ulticode/judge/provider/CodeExecutionProvider.java \
   '@DubboService(group = "backend-judge"'
 contains services/judge-runtime/src/main/java/com/ulticode/modules/submission/service/CodeExecutionService.java \

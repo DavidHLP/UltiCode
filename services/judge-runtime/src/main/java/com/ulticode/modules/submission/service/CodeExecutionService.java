@@ -5,9 +5,8 @@ import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.submission.codec.SubmissionStatusCodec;
 import com.ulticode.modules.submission.config.DockerSandboxConfig;
-import com.ulticode.app.api.dto.RunResultDTO;
-import com.ulticode.app.api.service.CodeExecutionPort;
-import com.ulticode.app.api.dto.RunSubmissionDTO;
+import com.ulticode.modules.submission.runtime.JudgeRunResponse;
+import com.ulticode.modules.submission.runtime.JudgeRunRequest;
 import com.ulticode.modules.submission.sandbox.RunCaseResult;
 import com.ulticode.modules.submission.sandbox.SandboxExecutor;
 import com.ulticode.modules.submission.sandbox.SandboxJob;
@@ -52,15 +51,16 @@ import java.util.stream.Collectors;
  *       cache + starter-code lookup, the per-input OJ-type enrichment, and
  *       the per-problem resource limits ({@link ProblemFactsPort#findLimits}
  *       override → global {@link DockerSandboxConfig} default).</li>
- *   <li><em>Sandbox translation</em> — the one place the wire
- *       {@link RunSubmissionDTO} shape meets the port-owned
- *       {@link TestCase} / {@link SandboxJob} shape, so both the sandbox
- *       and the controller layers stay decoupled from each other.</li>
+ *   <li><em>Sandbox translation</em> — the one place the runtime-private
+ *       {@link com.ulticode.modules.submission.runtime.JudgeRunRequest} shape
+ *       meets the port-owned {@link TestCase} / {@link SandboxJob} shape, so
+ *       the sandbox remains decoupled from transport DTOs.</li>
  *   <li><em>Dispatch</em> — single-case vs. batch routing into
  *       {@link SandboxExecutor}, preserving positional alignment.</li>
- *   <li><em>Result projection</em> — per-case port result → wire
- *       {@link RunResultDTO.RunCaseResult}, then overall verdict via the
- *       shared {@link VerdictResolver} and runtime / memory aggregation.</li>
+ *   <li><em>Result projection</em> — per-case port result → runtime-private
+ *       {@link com.ulticode.modules.submission.runtime.JudgeRunResponse}, then
+ *       overall verdict via the shared {@link VerdictResolver} and runtime /
+ *       memory aggregation.</li>
  * </ul>
  *
  * <p>{@link SandboxExecutor} remains the hexagonal seam this module talks
@@ -72,7 +72,7 @@ import java.util.stream.Collectors;
 @ConditionalOnExpression("'${app.runtime.role:app}' == 'judge' or "
         + "'${app.runtime.mode:dev-lite}' == 'legacy-rollback'")
 @RequiredArgsConstructor
-public class CodeExecutionService implements CodeExecutionPort {
+public class CodeExecutionService {
 
     private final SandboxExecutor sandboxExecutor;
     private final SandboxOutputFormatter sandboxOutputFormatter;
@@ -103,34 +103,14 @@ public class CodeExecutionService implements CodeExecutionPort {
      */
     private final Map<String, List<String>> signatureCache = new ConcurrentHashMap<>();
 
-    @Override
-    public RunResultDTO execute(RunSubmissionDTO request, Long problemId, String userId) {
-        String language = request.getLanguage() == null
-                ? ""
-                : request.getLanguage().toLowerCase().trim();
+    public JudgeRunResponse execute(JudgeRunRequest request, Long problemId, String userId) {
+        preparePreview(request, problemId);
+        String language = request.getLanguage();
 
-        // CR fix (Phase 5.5 #1): validate against the actual
-        // executable language set, not the API-advertised
-        // advertisedLanguages(). After Form A was deleted, the
-        // dispatcher can only run java + python (plus cpp).
-        // Architecture-review candidate #1: cross the
-        // JudgingLanguageSupport seam.
-        if (!languageSupport.isExecutable(language)) {
-            throw new BusinessException(BaseErrorCode.BAD_REQUEST,
-                    "Unsupported language: " + language + ". Supported: "
-                            + languageSupport.executableLanguages());
-        }
-
-        List<RunSubmissionDTO.RunTestCase> testCases = request.getTestCases();
+        List<JudgeRunRequest.TestCase> testCases = request.getTestCases();
         if (testCases == null || testCases.isEmpty()) {
             return sandboxOutputFormatter.emptyResult(problemId, userId);
         }
-
-        // 链表/树题:从题目 starter_code 推断参数 OJ 类型(ListNode/TreeNode),
-        // 回填到每个 input 的 type。用户代码无类型注解时,这是 harness 把
-        // [2,4,3] 反序列化成 ListNode 的唯一信号。详见 OJSignatureParser。
-        List<String> paramTypes = resolveParamTypes(problemId, language);
-        enrichInputTypes(testCases, paramTypes);
 
         // Map the wire DTO to the port-owned sandbox test-case shape
         // at the seam; the sandbox never sees the DTO type.
@@ -158,7 +138,7 @@ public class CodeExecutionService implements CodeExecutionPort {
                 /* memoryMb */ memoryMb
         );
 
-        List<RunResultDTO.RunCaseResult> dtoResults = new ArrayList<>(sandboxCases.size());
+        List<JudgeRunResponse.RunCaseResult> dtoResults = new ArrayList<>(sandboxCases.size());
         if (sandboxCases.size() == 1) {
             RunCaseResult one = sandboxExecutor.run(job, sandboxCases.get(0));
             dtoResults.add(toDtoCaseResult(one, runId, userId, testCases.get(0)));
@@ -174,7 +154,7 @@ public class CodeExecutionService implements CodeExecutionPort {
                 .count();
         String verdict = verdictResolver.reduceWire(
                 dtoResults.stream()
-                        .map(RunResultDTO.RunCaseResult::getStatus)
+                        .map(JudgeRunResponse.RunCaseResult::getStatus)
                         .collect(Collectors.toList())
         ).wireValue();
         long totalRuntimeMs = dtoResults.stream()
@@ -188,13 +168,13 @@ public class CodeExecutionService implements CodeExecutionPort {
                 .mapToLong(r -> r.getCpuMs() != null ? r.getCpuMs() : 0L)
                 .sum();
         double maxMemoryMb = dtoResults.stream()
-                .map(RunResultDTO.RunCaseResult::getMemoryMb)
+                .map(JudgeRunResponse.RunCaseResult::getMemoryMb)
                 .filter(java.util.Objects::nonNull)
                 .mapToDouble(Double::doubleValue)
                 .max()
                 .orElse(0.0);
 
-        return RunResultDTO.builder()
+        return JudgeRunResponse.builder()
                 .id(runId)
                 .problemId(problemId)
                 .userId(userId)
@@ -211,6 +191,30 @@ public class CodeExecutionService implements CodeExecutionPort {
                 .passedCases(passedCases)
                 .totalCases(testCases.size())
                 .build();
+    }
+
+    /**
+     * Validates and enriches a public preview before an execution adapter
+     * receives it. The provider calls this on its freshly mapped request so
+     * async and sync execution share language and OJ type preparation.
+     */
+    public void preparePreview(JudgeRunRequest request, Long problemId) {
+        String language = request.getLanguage() == null
+                ? ""
+                : request.getLanguage().toLowerCase().trim();
+        if (!languageSupport.isExecutable(language)) {
+            throw new BusinessException(BaseErrorCode.BAD_REQUEST,
+                    "Unsupported language: " + language + ". Supported: "
+                            + languageSupport.executableLanguages());
+        }
+        request.setLanguage(language);
+        List<JudgeRunRequest.TestCase> testCases = request.getTestCases();
+        if (testCases == null || testCases.isEmpty()) {
+            return;
+        }
+        // Chain/tree problems need the starter-code signature to supply OJ
+        // type hints when user code omits language-level annotations.
+        enrichInputTypes(testCases, resolveParamTypes(problemId, language));
     }
 
     // ── 参数类型推断(链表/树题)──────────────────────────────────────────────
@@ -254,17 +258,18 @@ public class CodeExecutionService implements CodeExecutionPort {
      * 所有 test case 共享同一份 paramTypes(方法级参数类型),位置与 harness 的
      * 位置绑定语义一致。
      */
-    private void enrichInputTypes(List<RunSubmissionDTO.RunTestCase> testCases, List<String> paramTypes) {
+    private void enrichInputTypes(
+            List<JudgeRunRequest.TestCase> testCases, List<String> paramTypes) {
         if (paramTypes == null || paramTypes.isEmpty()) {
             return;
         }
-        for (RunSubmissionDTO.RunTestCase tc : testCases) {
-            List<RunSubmissionDTO.RunInput> inputs = tc.getInputs();
+        for (JudgeRunRequest.TestCase tc : testCases) {
+            List<JudgeRunRequest.Input> inputs = tc.getInputs();
             if (inputs == null) {
                 continue;
             }
             for (int i = 0; i < inputs.size(); i++) {
-                RunSubmissionDTO.RunInput in = inputs.get(i);
+                JudgeRunRequest.Input in = inputs.get(i);
                 String hint = i < paramTypes.size() ? paramTypes.get(i) : null;
                 if (hint == null) {
                     continue;
@@ -278,7 +283,7 @@ public class CodeExecutionService implements CodeExecutionPort {
 
     // ── DTO ↔ port translation at the seam ──────────────────────────────────
 
-    private static TestCase toSandboxTestCase(RunSubmissionDTO.RunTestCase rtc) {
+    private static TestCase toSandboxTestCase(JudgeRunRequest.TestCase rtc) {
         List<TestCase.Input> inputs = Optional.ofNullable(rtc.getInputs())
                 .orElse(List.of())
                 .stream()
@@ -289,11 +294,11 @@ public class CodeExecutionService implements CodeExecutionPort {
         return new TestCase(rtc.getId(), rtc.getLabel(), inputs, rtc.getOutput());
     }
 
-    private static RunResultDTO.RunCaseResult toDtoCaseResult(
+    private static JudgeRunResponse.RunCaseResult toDtoCaseResult(
             RunCaseResult port,
             String runId,
             String userId,
-            RunSubmissionDTO.RunTestCase original) {
+            JudgeRunRequest.TestCase original) {
         String wireStatus = SubmissionStatusCodec.toWire(port.status());
         long memoryMb = port.memoryBytes() <= 0
                 ? 0L
@@ -307,10 +312,10 @@ public class CodeExecutionService implements CodeExecutionPort {
         // "lists = …" / "expected = …" pair; previously these three
         // fields were silently dropped, so /run responses showed
         // "此用例未返回可展示的输入输出详情" for every case.
-        List<RunResultDTO.RunCaseResult.InputParam> dtoInputs = null;
+        List<JudgeRunResponse.RunCaseResult.InputParam> dtoInputs = null;
         if (port.inputs() != null) {
             dtoInputs = port.inputs().stream()
-                    .map(i -> RunResultDTO.RunCaseResult.InputParam.builder()
+                    .map(i -> JudgeRunResponse.RunCaseResult.InputParam.builder()
                             .id(i.id()).label(i.label()).name(i.name()).value(i.value())
                             .build())
                     .toList();
@@ -321,7 +326,7 @@ public class CodeExecutionService implements CodeExecutionPort {
         String runtimeStr = port.elapsedUs() > 0
                 ? String.format("%.2fms", port.elapsedUs() / 1000.0)
                 : port.elapsedMs() + "ms";
-        return RunResultDTO.RunCaseResult.builder()
+        return JudgeRunResponse.RunCaseResult.builder()
                 .id(original == null ? null : original.getId())
                 .runId(runId)
                 .submissionTestId(original == null ? null : original.getId())
@@ -346,6 +351,16 @@ public class CodeExecutionService implements CodeExecutionPort {
     // When present they override the global default; when NULL the global
     // default still applies, preserving backwards compatibility.
 
+    public ExecutionLimits resolveExecutionLimits(Long problemId) {
+        if (problemId == null || problemId < 1) {
+            throw new BusinessException(BaseErrorCode.BAD_REQUEST, "problemId must be positive");
+        }
+        return new ExecutionLimits(
+                resolveTimeoutSeconds(problemId), resolveMemoryMb(problemId));
+    }
+
+    public record ExecutionLimits(int timeoutSeconds, int memoryMb) {
+    }
     private int resolveTimeoutSeconds(Long problemId) {
         Integer limit = readProblemLimit(problemId, true);
         return limit != null ? Math.max(1, limit) : deriveDefaultTimeoutSeconds();

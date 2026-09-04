@@ -13,11 +13,13 @@ DEVSTACK_OWNER_APPS=(
   ulticode-notification
 )
 DEVSTACK_WORKER_APPS=(ulticode-judge ulticode-search)
+DEVSTACK_CORE_APPS=(ulticode-core ulticode-judge)
 DEVSTACK_FRONTEND_APPS=(ulticode-9002 ulticode-9003)
 DEVSTACK_READINESS_APPS=(
   ulticode-auth
   ulticode-admin
   ulticode-app
+  ulticode-core
   ulticode-notification
   ulticode-submission
   ulticode-judge
@@ -50,7 +52,7 @@ DEVSTACK_DEV_FULL_APPS=(
 #                    management
 #   submission-judge app submission judge                       mysql redis nacos
 #   search           auth app search console                    mysql redis nacos meilisearch
-#   full-stack       nine existing apps                         mysql redis nacos meilisearch
+#   core            ulticode-core + ulticode-judge                  mysql redis nacos meilisearch
 #
 # Observability is never part of a scope's default infra. Use the explicit
 # --observability lifecycle flag to append its Compose services.
@@ -60,8 +62,13 @@ DEVSTACK_SCOPES=(
   app-journey
   admin
   submission-judge
+  core
   search
   full-stack
+)
+DEVSTACK_SCOPE_CORE_APPS=(
+  ulticode-core
+  ulticode-judge
 )
 DEVSTACK_SCOPE_APP_JOURNEY_APPS=(
   ulticode-auth
@@ -155,7 +162,8 @@ devstack_mode_for_scope() {
   devstack_validate_scope_name "$1" || return $?
   case "$1" in
     dev-full|search|full-stack) printf 'dev-full' ;;
-    *) printf 'dev-lite' ;;
+    core)                        printf 'dev-lite' ;;
+    *)                          printf 'dev-lite' ;;
   esac
 }
 
@@ -166,6 +174,7 @@ devstack_scope_apps() {
     dev-full|full-stack) devstack_apps_csv "${DEVSTACK_DEV_FULL_APPS[@]}" ;;
     app-journey)      devstack_apps_csv "${DEVSTACK_SCOPE_APP_JOURNEY_APPS[@]}" ;;
     admin)            devstack_apps_csv "${DEVSTACK_SCOPE_ADMIN_APPS[@]}" ;;
+    core)             devstack_apps_csv "${DEVSTACK_SCOPE_CORE_APPS[@]}" ;;
     submission-judge) devstack_apps_csv "${DEVSTACK_SCOPE_SUBMISSION_JUDGE_APPS[@]}" ;;
     search)           devstack_apps_csv "${DEVSTACK_SCOPE_SEARCH_APPS[@]}" ;;
   esac
@@ -226,6 +235,7 @@ devstack_app_port() {
     ulticode-notification) printf '9105' ;;
     ulticode-submission)   printf '9106' ;;
     ulticode-search)       printf '9107' ;;
+    ulticode-core)         printf '9108' ;;
     ulticode-9002)         printf '9002' ;;
     ulticode-9003)         printf '9003' ;;
     *)
@@ -244,6 +254,7 @@ devstack_app_label() {
     ulticode-notification) printf 'Notification Backend' ;;
     ulticode-submission)   printf 'Submission Owner' ;;
     ulticode-search)       printf 'Search Worker' ;;
+    ulticode-core)         printf 'Core Backend' ;;
     ulticode-9002)         printf 'Console Frontend (Vite)' ;;
     ulticode-9003)         printf 'Management Frontend (Vite)' ;;
     *)
@@ -262,6 +273,7 @@ devstack_normalize_app() {
     notification|backend-notification|ulticode-notification|9105) printf 'ulticode-notification' ;;
     submission|backend-submission|ulticode-submission|9106) printf 'ulticode-submission' ;;
     search|backend-search|ulticode-search|9107) printf 'ulticode-search' ;;
+    core|backend-core|ulticode-core|9108) printf 'ulticode-core' ;;
     console|ulticode-9002|9002) printf 'ulticode-9002' ;;
     management|ulticode-9003|9003) printf 'ulticode-9003' ;;
     *)
@@ -331,6 +343,7 @@ devstack_scope_features() {
     app-journey)      printf 'search=off;meili=off;judge=on;notification=on;frontend=console;observability=off' ;;
     admin)            printf 'search=off;meili=off;judge=off;notification=on;frontend=management;observability=off' ;;
     submission-judge) printf 'search=off;meili=off;judge=on;notification=off;frontend=off;observability=off' ;;
+    core)            printf 'search=on;meili=on;judge=on;notification=on;frontend=off;observability=off' ;;
     search)           printf 'search=on;meili=on;judge=off;notification=off;frontend=console;observability=off' ;;
     full-stack)       printf 'search=on;meili=on;judge=on;notification=on;frontend=console,management;observability=off' ;;
   esac
@@ -356,7 +369,7 @@ devstack_scope_infra() {
   devstack_validate_scope_name "$1" || return $?
   case "$1" in
     dev-lite|app-journey|admin|submission-judge) printf 'mysql,redis,nacos' ;;
-    dev-full|search|full-stack) printf 'mysql,redis,nacos,meilisearch' ;;
+    core|dev-full|search|full-stack) printf 'mysql,redis,nacos,meilisearch' ;;
   esac
 }
 
@@ -372,7 +385,7 @@ devstack_infra_for_selection() {
       continue
     fi
     has_backend=true
-    [[ "$app" == ulticode-search ]] && has_search=true
+    [[ "$app" == ulticode-search || "$app" == ulticode-core ]] && has_search=true
   done
   if [[ "$has_backend" == true ]]; then
     out='mysql,redis,nacos'
@@ -402,6 +415,7 @@ devstack_readiness() {
     ulticode-admin)        printf 'http|9102|/api/v1/admin/health/ready' ;;
     ulticode-app)          printf 'http|9103|/api/v1/app/health/ready' ;;
     ulticode-notification) printf 'http|9105|/api/v1/notification/health/ready' ;;
+    ulticode-core)         printf 'http|9108|/api/v1/core/health/ready' ;;
     ulticode-submission|ulticode-judge|ulticode-search) printf 'pm2' ;;
     ulticode-9002)         printf 'http|9002|/' ;;
     ulticode-9003)         printf 'http|9003|/' ;;
@@ -518,7 +532,8 @@ devstack_validate_environment() {
 
 devstack_apply_mode() {
   devstack_validate_mode_name "$1" || return $?
-
+  CORE_OWNER_CONTEXTS_ENABLED=false
+  CORE_JUDGE_REQUIRED=false
   case "$1" in
     dev-lite)
       APP_RUNTIME_MODE=dev-lite
@@ -568,6 +583,15 @@ devstack_apply_scope() {
   # Scope-specific app capability overrides keep the mode adapters intact while
   # preventing a named journey from silently enabling an optional worker.
   case "$scope" in
+    core)
+      CORE_OWNER_CONTEXTS_ENABLED=true
+      CORE_JUDGE_REQUIRED=false
+      SEARCH_WORKER_ENABLED=false
+      APP_SEARCH_READ_MODE=indexed
+      APP_SEARCH_FALLBACK_TO_DATABASE=false
+      MEILISEARCH_ENABLED=true
+      APP_SEARCH_BACKFILL_ENABLED=false
+      ;;
     admin|submission-judge)
       SEARCH_WORKER_ENABLED=false
       APP_SEARCH_READ_MODE=database
@@ -590,12 +614,14 @@ devstack_apply_scope() {
       ;;
   esac
   export APP_SEARCH_READ_MODE APP_SEARCH_FALLBACK_TO_DATABASE \
-    MEILISEARCH_ENABLED APP_SEARCH_BACKFILL_ENABLED SEARCH_WORKER_ENABLED
+    MEILISEARCH_ENABLED APP_SEARCH_BACKFILL_ENABLED SEARCH_WORKER_ENABLED \
+    CORE_OWNER_CONTEXTS_ENABLED CORE_JUDGE_REQUIRED
 }
 
 devstack_readiness_banner() {
   case "$1" in
     ulticode-judge) printf 'Started BackendJudgeApplication' ;;
+    ulticode-core) printf 'Started CoreApplication' ;;
     *) printf '' ;;
   esac
 }

@@ -7,6 +7,7 @@ import com.meilisearch.sdk.Config;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import com.ulticode.common.event.SearchDocumentChangedEventContract;
+import com.ulticode.search.adapter.MeiliSearchIndexAdapter;
 import com.ulticode.search.config.SearchWorkerProperties;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -87,7 +88,7 @@ class SearchWorkerEndToEndIT {
         props = new SearchWorkerProperties();
         props.setEnabled(true);
         props.setConsumerName("search-worker-it");
-        worker = new SearchDocumentIndexWorker(redis, meiliClient,
+        worker = new SearchDocumentIndexWorker(redis, new MeiliSearchIndexAdapter(meiliClient),
                 new com.fasterxml.jackson.databind.ObjectMapper(), props,
                 new io.micrometer.core.instrument.simple.SimpleMeterRegistry());
     }

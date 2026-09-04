@@ -83,8 +83,8 @@ contains services/docs/GRACEFUL_DRAIN_RUNBOOK.md 'P3-GRACE-001'
 [[ "$(grep -Fc 'stop_grace_period: ${FRONTEND_STOP_GRACE_PERIOD:-30s}' \
   "$ROOT_DIR/docker-compose.prod.yml")" == 2 ]] \
   || fail 'production frontend stop grace is not configured for both gateways'
-[[ "$(grep -Fc 'kill_timeout:' "$ROOT_DIR/ecosystem.config.cjs")" == 9 ]] \
-  || fail 'PM2 kill_timeout is not configured for all nine local processes'
+[[ "$(grep -Fc 'kill_timeout:' "$ROOT_DIR/ecosystem.config.cjs")" == 10 ]] \
+  || fail 'PM2 kill_timeout is not configured for all ten local processes'
 printf 'graceful shutdown/lifecycle/worker wiring contract: PASS\n'
 
 (

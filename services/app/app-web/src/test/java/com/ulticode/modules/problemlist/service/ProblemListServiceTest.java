@@ -16,7 +16,7 @@ import com.ulticode.modules.problemlist.mapper.ProblemListBookmarkMapper;
 import com.ulticode.modules.problemlist.mapper.ProblemListCategoryMapper;
 import com.ulticode.modules.problemlist.mapper.ProblemListMapper;
 import com.ulticode.modules.problemlist.mapper.ProblemListProblemMapper;
-import com.ulticode.app.api.service.ProblemExistencePort;
+import com.ulticode.modules.problem.port.ProblemExistencePort;
 import com.ulticode.modules.problemlist.projection.ProblemListProjection;
 import com.ulticode.modules.problemlist.service.impl.ProblemListServiceImpl;
 import org.junit.jupiter.api.BeforeEach;

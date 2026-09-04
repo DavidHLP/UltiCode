@@ -3,7 +3,7 @@ package com.ulticode.modules.forum.port;
 import com.ulticode.app.api.command.ForumPostModerationCommand;
 import com.ulticode.app.api.dto.ForumPostModerationResultDTO;
 import com.ulticode.app.api.error.AppErrorCode;
-import com.ulticode.app.api.service.ForumOwnerPort;
+import com.ulticode.modules.forum.port.ForumOwnerPort;
 import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.rpc.RpcResult;

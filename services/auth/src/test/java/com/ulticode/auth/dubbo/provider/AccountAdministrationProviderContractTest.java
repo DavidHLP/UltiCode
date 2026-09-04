@@ -2,9 +2,7 @@ package com.ulticode.auth.dubbo.provider;
 
 import com.ulticode.auth.api.command.ActorDelegation;
 import com.ulticode.auth.api.command.ChangeAccountStateCommand;
-import com.ulticode.auth.api.command.ChangeAuthorizationCommand;
 import com.ulticode.auth.api.dto.AccountStateDTO;
-import com.ulticode.auth.api.dto.AuthorizationSnapshotDTO;
 import com.ulticode.auth.idempotency.CommandReceiptExecutor;
 import com.ulticode.auth.security.InternalDelegationAssertionVerifier;
 import com.ulticode.auth.security.ProviderActorTrustGate;
@@ -68,32 +66,6 @@ class AccountAdministrationProviderContractTest {
                 org.mockito.ArgumentMatchers.any());
     }
 
-    @Test
-    void changeAuthorizationDelegatesWorkflowThroughReceiptBoundary() {
-        ChangeAuthorizationCommand command = authorizationCommand();
-        RpcResult<AuthorizationSnapshotDTO> expected = RpcResult.success(
-                new AuthorizationSnapshotDTO(
-                        "user-1", "ADMIN", Set.of("READ:PROBLEM"), 3L), "t-1");
-        when(workflow.changeAuthorization(command)).thenReturn(expected);
-        when(receiptExecutor.execute(
-                eq("AccountAdministrationService"),
-                eq("changeAuthorization"),
-                same(command),
-                eq(AuthorizationSnapshotDTO.class),
-                org.mockito.ArgumentMatchers.any()))
-                .thenAnswer(invocation -> invokeMutation(invocation.getArgument(4)));
-
-        RpcResult<AuthorizationSnapshotDTO> actual = provider.changeAuthorization(command);
-
-        assertThat(actual).isSameAs(expected);
-        verify(workflow).changeAuthorization(command);
-        verify(receiptExecutor).execute(
-                eq("AccountAdministrationService"),
-                eq("changeAuthorization"),
-                same(command),
-                eq(AuthorizationSnapshotDTO.class),
-                org.mockito.ArgumentMatchers.any());
-    }
 
     @SuppressWarnings("unchecked")
     private static <T> RpcResult<T> invokeMutation(Object mutation) {
@@ -112,16 +84,4 @@ class AccountAdministrationProviderContractTest {
                 "test");
     }
 
-    private static ChangeAuthorizationCommand authorizationCommand() {
-        return new ChangeAuthorizationCommand(
-                "cmd-auth",
-                IdMetadata.mint(),
-                new ActorDelegation("ADMIN", "admin-1", "org-1", "test"),
-                new TraceMetadata("t-1", "span-1", null, null),
-                "user-1",
-                2L,
-                "ADMIN",
-                Set.of("READ:PROBLEM"),
-                "test");
-    }
 }

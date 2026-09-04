@@ -2,7 +2,7 @@ package com.ulticode.modules.queue.processor;
 
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.lifecycle.DrainGate;
-import com.ulticode.app.api.service.JudgeFeatureFlagsPort;
+import com.ulticode.modules.submission.port.JudgeFeatureFlagsPort;
 import com.ulticode.modules.queue.config.QueueConfig;
 import com.ulticode.modules.queue.constants.QueueConstants;
 import com.ulticode.modules.queue.dto.JobStatusDTO;
@@ -35,7 +35,7 @@ import java.util.Map;
  * <ol>
  *   <li>Poll job from Redis queue
  *   <li>Set submission status to "Judging"
- *   <li>Load test cases, build RunSubmissionDTO, execute via Docker sandbox
+ *   <li>Load test cases, build the runtime-private JudgeRunRequest, execute via Docker sandbox
  *   <li>Determine verdict via {@link VerdictResolver#reduceWire} aggregating each case's wire value
  *       into a single {@code SubmissionStatus} (ADR-001; severity priority encoded in
  *       {@code SubmissionStatus#getSeverity()}, replacing the old stringly-typed priority comparison)

@@ -8,7 +8,7 @@ spring:
   lifecycle:
     timeout-per-shutdown-phase: ${SPRING_LIFECYCLE_TIMEOUT_PER_SHUTDOWN_PHASE:45s}
   datasource:
-    url: jdbc:mysql://${SUBMISSION_DB_HOST}:${SUBMISSION_DB_PORT}/${SUBMISSION_DB_NAME}?useUnicode=true&characterEncoding=UTF-8&characterSetResults=utf8mb4&connectionCollation=utf8mb4_unicode_ci&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false&useAffectedRows=true
+    url: ${SUBMISSION_DB_URL:jdbc:mysql://${SUBMISSION_DB_HOST}:${SUBMISSION_DB_PORT}/${SUBMISSION_DB_NAME}?useUnicode=true&characterEncoding=UTF-8&characterSetResults=utf8mb4&connectionCollation=utf8mb4_unicode_ci&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&sslMode=${SUBMISSION_DB_SSL_MODE:REQUIRED}&useAffectedRows=true}
     username: ${SUBMISSION_DB_USER}
     password: ${SUBMISSION_DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -17,6 +17,10 @@ spring:
       minimum-idle: 2
   data:
     redis:
+      url: ${SUBMISSION_REDIS_URL:redis://${REDIS_USERNAME:}:${REDIS_PASSWORD:}@${REDIS_HOST:localhost}:${REDIS_PORT:26379}/${REDIS_DB:0}}
+      ssl:
+        enabled: ${SUBMISSION_REDIS_SSL_ENABLED:false}
+        bundle: ${SUBMISSION_REDIS_SSL_BUNDLE:}
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:26379}
       # Per-owner Redis ACL user (review 2026-08-25). Empty default keeps
@@ -71,10 +75,12 @@ management:
       application: ${spring.application.name}
   tracing:
     sampling:
-      probability: 1.0
+      probability: ${MANAGEMENT_TRACING_SAMPLING_PROBABILITY:1.0}
   otlp:
     tracing:
       endpoint: ${MANAGEMENT_OTLP_TRACING_ENDPOINT:http://localhost:4318/v1/traces}
+      headers:
+        Authorization: ${MANAGEMENT_OTLP_AUTHORIZATION:}
       timeout: 5s
     metrics:
       export:

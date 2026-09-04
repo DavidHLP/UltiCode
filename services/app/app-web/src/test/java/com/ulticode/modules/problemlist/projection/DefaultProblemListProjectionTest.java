@@ -17,7 +17,7 @@ import com.ulticode.modules.problemlist.mapper.ProblemListMapper;
 import com.ulticode.modules.problemlist.mapper.ProblemListProblemMapper;
 import com.ulticode.modules.problem.port.ProblemListReadPort;
 import com.ulticode.app.api.dto.NotificationUserInfo;
-import com.ulticode.app.api.service.UserReadPort;
+import com.ulticode.modules.user.port.UserReadPort;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

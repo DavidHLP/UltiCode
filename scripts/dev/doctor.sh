@@ -7,7 +7,7 @@
 #
 # Usage:
 #   scripts/dev/doctor.sh                         # default dev-lite scope
-#   scripts/dev/doctor.sh --scope full-stack      # all nine PM2 apps + Meili
+#   scripts/dev/doctor.sh --scope full-stack      # all nine distributed PM2 apps + Meili
 #   scripts/dev/doctor.sh --scope app-journey
 #   scripts/dev/doctor.sh --json --scope full-stack
 #   scripts/dev/doctor.sh --ports | --pm2 | --quiet
@@ -39,7 +39,7 @@ Options:
   --mode <dev-lite|dev-full>
                        deprecated compatibility alias for --scope
   --only <apps>        inspect a validated subset of the selected scope
-  --all                inspect all nine PM2 apps and all local infra
+  --all                inspect all known PM2 apps and all local infra
   --observability      include the explicit observability Compose profile
   --json               emit secret-free machine-readable output
   --ports              show only selected port occupancy

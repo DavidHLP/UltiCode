@@ -33,6 +33,7 @@ import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.admin.service.UserManagementService;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.admin.service.UserPermissionService;
+import com.ulticode.auth.api.dto.AuthorizationMutationDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -133,7 +134,7 @@ public class AdminUserController {
     @RateLimit(key = "admin:user-permission-grant", limit = 30, period = 60)
     @PostMapping("/{id}/permissions")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-    public Result<AdminUserVO> grantUserPermission(
+    public Result<AuthorizationMutationDTO> grantUserPermission(
             @PathVariable String id,
             @Valid @RequestBody GrantPermissionRequest request) {
         return Result.success(userPermissionService.assignUserPermission(
@@ -142,14 +143,14 @@ public class AdminUserController {
 
     @Operation(summary = "Revoke direct permission from a user",
                description = "Removes a previously granted action:resource permission. " +
-                             "Returns 200 with updated VO even if the permission did not exist. " +
+                             "Returns 200 with the Auth mutation acknowledgement even if the permission did not exist. " +
                              "Supports both query string (?action=X&resource=Y) and request body " +
                              "(Spring proxies / some curl wrappers drop DELETE bodies). " +
                              "Query params take precedence when both are provided.")
     @RateLimit(key = "admin:user-permission-revoke", limit = 30, period = 60)
     @DeleteMapping("/{id}/permissions")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-    public Result<AdminUserVO> revokeUserPermission(
+    public Result<AuthorizationMutationDTO> revokeUserPermission(
             @PathVariable String id,
             @RequestParam(required = false) String action,
             @RequestParam(required = false) String resource,

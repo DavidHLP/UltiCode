@@ -5,14 +5,11 @@ import com.ulticode.auth.account.AuthAccountPort;
 import com.ulticode.auth.account.AuthAccountRecord;
 import com.ulticode.auth.api.command.ActorDelegation;
 import com.ulticode.auth.api.command.ChangeAccountStateCommand;
-import com.ulticode.auth.api.command.ChangeAuthorizationCommand;
 import com.ulticode.auth.api.dto.AccountStateDTO;
-import com.ulticode.auth.api.dto.AuthorizationSnapshotDTO;
 import com.ulticode.auth.api.error.AuthErrorCode;
 import com.ulticode.auth.idempotency.CommandReceiptExecutor;
 import com.ulticode.auth.idempotency.entity.AuthCommandReceiptEntity;
 import com.ulticode.auth.idempotency.mapper.AuthCommandReceiptMapper;
-import com.ulticode.auth.permission.service.PermissionService;
 import com.ulticode.auth.service.AccountAdministrationWorkflow;
 import com.ulticode.auth.security.InternalDelegationAssertionVerifier;
 import com.ulticode.auth.security.ProviderActorTrustGate;
@@ -27,9 +24,7 @@ import org.junit.jupiter.api.Test;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
-import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -44,7 +39,6 @@ import static org.mockito.Mockito.when;
 class AccountAdministrationProviderTest {
 
     private AuthAccountPort authAccountPort;
-    private PermissionService permissionService;
     private AuthCommandReceiptMapper receiptMapper;
     private InternalDelegationAssertionVerifier delegationVerifier;
     private AccountAdministrationProvider provider;
@@ -55,12 +49,11 @@ class AccountAdministrationProviderTest {
     @BeforeEach
     void setUp() {
         authAccountPort = mock(AuthAccountPort.class);
-        permissionService = mock(PermissionService.class);
         receiptMapper = mock(AuthCommandReceiptMapper.class);
         ObjectMapper objectMapper = new ObjectMapper();
         Clock clock = Clock.fixed(Instant.parse("2026-08-03T10:00:00Z"), ZoneOffset.UTC);
         AccountAdministrationWorkflow workflow =
-                new DefaultAccountAdministrationWorkflow(authAccountPort, permissionService);
+                new DefaultAccountAdministrationWorkflow(authAccountPort);
         CommandReceiptExecutor receiptExecutor =
                 new CommandReceiptExecutor(receiptMapper, objectMapper, clock);
         delegationVerifier = mock(InternalDelegationAssertionVerifier.class);
@@ -220,46 +213,6 @@ class AccountAdministrationProviderTest {
     }
 
 
-    @Test
-    @DisplayName("bootstrap actor cannot change authorization")
-    void bootstrapActorCannotChangeAuthorization() {
-        ActorDelegation bootstrap = new ActorDelegation(
-                "BOOTSTRAP", "bootstrap", "bootstrap", "one-shot");
-        ChangeAuthorizationCommand command = new ChangeAuthorizationCommand(
-                "cmd-bootstrap-authz", IdMetadata.mint(), bootstrap, trace,
-                "user-1", 1L, "ADMIN", Set.of(), "bootstrap scope test");
-
-        RpcResult<AuthorizationSnapshotDTO> result = provider.changeAuthorization(command);
-
-        assertThat(result.success()).isFalse();
-        assertThat(result.error().code()).isEqualTo(40300);
-        verify(authAccountPort, never()).updateAccountIfVersion(
-                anyString(), anyBoolean(), anyBoolean(), anyString(), anyLong());
-    }
-    @Test
-    @DisplayName("changeAuthorization updates role, synchronizes permissions and bumps version")
-    void changeAuthorizationSuccess() {
-        when(authAccountPort.findById("user-1"))
-                .thenReturn(Optional.of(account("user-1", "USER", true, false, 1L)));
-        when(authAccountPort.updateAccountIfVersion("user-1", true, false, "ADMIN", 1L))
-                .thenReturn(true);
-        when(permissionService.getUserPermissions("user-1")).thenReturn(List.of());
-        when(permissionService.getUserPermissionStrings("user-1"))
-                .thenReturn(List.of("READ:PROBLEM", "WRITE:PROBLEM"));
-
-        ChangeAuthorizationCommand command = new ChangeAuthorizationCommand(
-                "cmd-2", IdMetadata.mint(), actor, trace, "user-1", 1L,
-                "ADMIN", Set.of("READ:PROBLEM", "WRITE:PROBLEM"), "promote to admin");
-
-        RpcResult<AuthorizationSnapshotDTO> result = provider.changeAuthorization(command);
-
-        assertThat(result.success()).isTrue();
-        assertThat(result.data().role()).isEqualTo("ADMIN");
-        assertThat(result.data().version()).isEqualTo(2L);
-        assertThat(result.data().permissions())
-                .containsExactlyInAnyOrder("READ:PROBLEM", "WRITE:PROBLEM");
-        verify(receiptMapper).insert(any(AuthCommandReceiptEntity.class));
-    }
 
     @Test
     @DisplayName("receipt insert failure is returned as auth failure")

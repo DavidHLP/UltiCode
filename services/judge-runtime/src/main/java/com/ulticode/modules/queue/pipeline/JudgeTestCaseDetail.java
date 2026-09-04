@@ -1,6 +1,6 @@
 package com.ulticode.modules.queue.pipeline;
 
-import com.ulticode.app.api.dto.RunResultDTO;
+import com.ulticode.modules.submission.runtime.JudgeRunResponse;
 import com.ulticode.domain.submission.enums.CaseScope;
 
 import java.util.List;
@@ -20,7 +20,7 @@ public record JudgeTestCaseDetail(
         String detail,
         String output,
         String expectedOutput,
-        List<RunResultDTO.RunCaseResult.InputParam> inputs,
+        List<JudgeRunResponse.RunCaseResult.InputParam> inputs,
         String caseId,
         CaseScope caseScope
 ) {

@@ -80,9 +80,11 @@ assert_file_contains services/platform/judge-config/src/main/java/com/ulticode/m
 [[ "$(devstack_apps_for_mode dev-full)" == \
   "ulticode-auth,ulticode-admin,ulticode-app,ulticode-submission,ulticode-notification,ulticode-judge,ulticode-search,ulticode-9002,ulticode-9003" ]]
 [[ "$(devstack_readiness ulticode-auth)" == "http|9101|/api/v1/auth/health/ready" ]]
+[[ "$(devstack_readiness ulticode-core)" == "http|9108|/api/v1/core/health/ready" ]]
 [[ "$(devstack_readiness ulticode-submission)" == "pm2" ]]
 [[ "$(devstack_readiness ulticode-9003)" == "http|9003|/" ]]
 [[ "$(devstack_readiness_banner ulticode-judge)" == "Started BackendJudgeApplication" ]]
+[[ "$(devstack_readiness_banner ulticode-core)" == "Started CoreApplication" ]]
 [[ -z "$(devstack_readiness_banner ulticode-submission)" ]]
 [[ "$DEVSTACK_SERVICE_READINESS_ATTEMPTS" == 90 ]]
 [[ "$DEVSTACK_READINESS_INTERVAL_SECONDS" == 2 ]]
@@ -100,6 +102,7 @@ assert_scope_rejected() {
 
 [[ "$(devstack_mode_for_scope app-journey)" == dev-lite ]]
 [[ "$(devstack_mode_for_scope admin)" == dev-lite ]]
+[[ "$(devstack_mode_for_scope core)" == dev-lite ]]
 [[ "$(devstack_mode_for_scope submission-judge)" == dev-lite ]]
 [[ "$(devstack_mode_for_scope search)" == dev-full ]]
 [[ "$(devstack_mode_for_scope full-stack)" == dev-full ]]
@@ -107,6 +110,7 @@ assert_scope_rejected() {
   "ulticode-auth,ulticode-app,ulticode-notification,ulticode-submission,ulticode-judge,ulticode-9002" ]]
 [[ "$(devstack_apps_for_scope admin)" == \
   "ulticode-auth,ulticode-admin,ulticode-app,ulticode-notification,ulticode-submission,ulticode-9003" ]]
+[[ "$(devstack_apps_for_scope core)" == "ulticode-core,ulticode-judge" ]]
 [[ "$(devstack_apps_for_scope submission-judge)" == \
   "ulticode-app,ulticode-submission,ulticode-judge" ]]
 [[ "$(devstack_apps_for_scope search)" == \
@@ -114,6 +118,7 @@ assert_scope_rejected() {
 [[ "$(devstack_infra_for_scope dev-lite)" == "mysql,redis,nacos" ]]
 [[ "$(devstack_infra_for_scope app-journey)" == "mysql,redis,nacos" ]]
 [[ "$(devstack_infra_for_scope admin)" == "mysql,redis,nacos" ]]
+[[ "$(devstack_infra_for_scope core)" == "mysql,redis,nacos,meilisearch" ]]
 [[ "$(devstack_infra_for_scope submission-judge)" == "mysql,redis,nacos" ]]
 [[ "$(devstack_infra_for_scope search)" == "mysql,redis,nacos,meilisearch" ]]
 [[ "$(devstack_infra_for_scope full-stack)" == "mysql,redis,nacos,meilisearch" ]]
@@ -135,6 +140,7 @@ resolved_scope="$(devstack_resolve_scope full-stack)"
 [[ "$resolved_scope" == *$'apps=ulticode-auth,ulticode-admin,ulticode-app,ulticode-submission,ulticode-notification,ulticode-judge,ulticode-search,ulticode-9002,ulticode-9003\n'* ]]
 [[ "$resolved_scope" == *$'infra=mysql,redis,nacos,meilisearch\n'* ]]
 [[ "$resolved_scope" == *'features=search=on;meili=on;judge=on;notification=on;frontend=console,management;observability=off' ]]
+[[ "$(devstack_scope_features core)" == 'search=on;meili=on;judge=on;notification=on;frontend=off;observability=off' ]]
 mapfile -t full_readiness < <(devstack_readiness_for_scope full-stack)
 mapfile -t full_ports < <(devstack_ports_for_scope full-stack)
 [[ "${#full_readiness[@]}" -eq 9 ]]
@@ -142,6 +148,8 @@ mapfile -t full_ports < <(devstack_ports_for_scope full-stack)
 [[ "${full_ports[3]}" == "ulticode-submission|9106|Submission Owner" ]]
 [[ "${full_ports[5]}" == "ulticode-judge|9104|Judge Worker" ]]
 [[ "${full_ports[6]}" == "ulticode-search|9107|Search Worker" ]]
+[[ "$(devstack_app_port ulticode-core)" == 9108 ]]
+assert_file_contains ecosystem.config.cjs "name: 'ulticode-core'"
 assert_file_contains scripts/dev/up.sh '--scope <name>'
 assert_file_contains scripts/dev/stop.sh '--all'
 assert_file_contains scripts/dev/doctor.sh 'devstack_ports_for_selection'

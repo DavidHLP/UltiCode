@@ -12,7 +12,10 @@
 | `services/judge` | Worker | 消费 Judge Stream、读取 Problem facts、执行 Docker 沙箱、回写 verdict | 业务表与业务 HTTP |
 | `services/search` | Worker | 消费 `SearchDocumentChanged`、维护 MeiliSearch 派生索引 | 业务表与业务 HTTP |
 
-`services/judge-runtime` 是共享 Judge 执行依赖，不是进程；`services/platform/*` 是共享平台层；`services/api/*` 只包含 implementation-free contract。
+`services/judge-runtime` 是共享 Judge 执行依赖，不是进程；`services/platform/*` 是共享平台层；`services/api/*` 只包含 implementation-free contract。`app-api` 只保留跨 Owner contract；App-only Seam 位于 `app-web` 对应逻辑 Module。
+
+`services/platform/observability` 是所有 Owner/Worker 共用的 OTLP
+credential-to-endpoint security guard：配置 authorization 时只允许 HTTPS。
 
 ## 服务边界
 
@@ -45,9 +48,9 @@ Judge 通过 Redis Streams 异步接收 Submission outbox，使用 Problem facts
 ```text
 platform/common <- api/* <- Owner/Worker provider 或 adapter
 backend-admin -> auth-api + app-api + submission-api + notification-api
-backend-app -> auth-api + submission-api + notification-api
+backend-app -> auth-api + submission-api + notification-api + judge-api
 backend-notification -> auth-api + app-api + notification-api
-backend-judge -> judge-runtime + submission-api
+backend-judge -> judge-api + judge-runtime + app-api + submission-api
 backend-search -> platform/common + search event contract
 backend-auth -X-> app/admin API
 ```

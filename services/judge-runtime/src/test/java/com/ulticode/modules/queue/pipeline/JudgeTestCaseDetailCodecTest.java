@@ -1,6 +1,6 @@
 package com.ulticode.modules.queue.pipeline;
 
-import com.ulticode.app.api.dto.RunResultDTO;
+import com.ulticode.modules.submission.runtime.JudgeRunResponse;
 import com.ulticode.domain.submission.enums.CaseScope;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -15,7 +15,7 @@ class JudgeTestCaseDetailCodecTest {
     @Test
     @DisplayName("serializes the entity-free detail with the persisted field names")
     void serializesWireShape() {
-        RunResultDTO.RunCaseResult.InputParam input = RunResultDTO.RunCaseResult.InputParam.builder()
+        JudgeRunResponse.RunCaseResult.InputParam input = JudgeRunResponse.RunCaseResult.InputParam.builder()
                 .id("input-1")
                 .label("n")
                 .name("n")

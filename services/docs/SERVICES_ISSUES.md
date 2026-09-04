@@ -1,6 +1,6 @@
 # `services/` 问题清单
 
-更新时间：2026-09-03
+更新时间：2026-09-04
 
 本文件是 `services/` 微服务架构问题、评审 Finding、修复状态与可选外部运行触发条件的唯一入口。其他文档只能链接到本文件，不得复制问题正文或维护第二份状态。
 
@@ -12,25 +12,84 @@
 - `DEFERRED`：问题存在，但必须等明确的运行指标、生产环境或外部授权触发。
 - `CLOSED`：修复机制已落地；后续回归应由测试或可执行门禁阻止。
 - `ACCEPTED`：已裁决为当前阶段可接受的取舍，不应重复报为缺陷。
+- `OPTIONAL_PROFILE`：仓库提供可选实现或配置面，但它不是本项目默认开发验收的一部分。
+- `OUT_OF_SCOPE`：只适用于未来部署方的生产、合规或运营证据，不计入本开源仓库当前完成度。
+- `BLOCKED_EXTERNAL`：仅用于已经明确要求执行、但当前缺少 endpoint、凭据、证书或部署权限的外部验证；可选能力不应仅因未启用而标记为此状态。
 
 ## 当前结论
 
-当前拓扑为五个 Data Owner（Auth、Admin、App、Submission、Notification）与两个 Worker（Judge、Search）。仓库范围内的服务边界、Submission 单写者、Contract 收敛、验证层级（`static/unit/quick/full-local/full/integration`）、DevStack 场景化（`--scope` + 统一 lifecycle resolver）、Admin 用户详情深 Module（`AdminUserDetailQuery`，权限写 fail closed、Submission 单次 snapshot）、协调发布控制面（matrix 分类、`describe`、GitLab 直连路径退役）与 App interface locality（10 个 App-only interface 移出 `app-api`）已闭环；后端零基础设施 unit 门禁（SVC-020/U-03）已以 `-Punit` profile + deny 环境实证关闭，剩余 DEFERRED 项触发条件明确（见下）。
+当前默认拓扑为五个 Data Owner（Auth、Admin、App、Submission、Notification）
+与两个 Worker（Judge、Search）。`backend-core` 是新增的 opt-in parent profile：
+它显式组装 Owner child contexts，不改变默认发布拓扑，也不取得业务表写入权。
+服务边界、Submission 单写者、Contract 收敛、验证层级、DevStack 场景化、
+Admin 用户详情深 Module、协调发布控制面和 App interface locality 已闭环；
+Core 的边界与未完成门禁见 SVC-025。
 
 项目当前没有生产环境，是正在开发的开源项目。仓库内的生产 profile 只描述安全边界；凡是可复现的运行行为统一使用短时、隔离、可销毁的 disposable 模拟环境验证，不把模拟结果写成生产证据。不为形式上的“企业级”提前引入 Kubernetes、Service Mesh、新 MQ 或分布式事务框架。
 
 ## OPEN
 
-当前没有剩余的仓库可执行 OPEN 项。
+Core profile 仍有一个仓库可执行 OPEN 项：SVC-025 的完整 local Adapter parity、
+同进程业务路由和启用 Owner 的 disposable journey 尚未闭环；不得切换默认拓扑。
+
+### SVC-025 Core profile local parity（OPEN）
+
+现状：`services/core` 已提供显式 Core parent、五组 Owner 数据源/事务/
+MapperScan、非 Web Owner child contexts、9108 readiness 和独立 Judge
+classpath 边界。G1/G2、parent smoke、readiness fail-closed 和本地断言
+载体已有仓库证据；Auth direct-permission 是当前唯一实现的 Core local
+Adapter。Admin/App/Submission/Notification 其余跨 Owner consumer 仍使用
+Dubbo Adapter，Core 尚未提供完整业务 HTTP 路由和启用 Owner 的 disposable
+journey，因此不能宣称 Core 与 distributed profile 同构。
+
+证据：[`services/core`](../core/)、[`core-profile-contract.sh`](../../scripts/test/core-profile-contract.sh)、
+[`CoreApplicationSmokeTest`](../core/src/test/java/com/ulticode/core/CoreApplicationSmokeTest.java)、
+[`LocalDelegationAssertionContext`](../platform/common/src/main/java/com/ulticode/common/security/LocalDelegationAssertionContext.java)。
+
+运行时证据（2026-09-04）：启用 Owner child contexts 的 exec-jar smoke
+（`CORE_OWNER_CONTEXTS_ENABLED=true`，无基础设施）显示六个 child context
+全部在 bean 装配阶段失败——早于任何 DB/Redis 交互，与基础设施无关。
+根因是六个 Owner jar 处于同一 classpath，而 child 的包扫描根
+（`com.ulticode.common`、`com.ulticode.modules.event.inbox`、
+`com.ulticode.modules.submission.*`、`com.ulticode.modules.notification.*`
+等）在多个 jar 中同时存在：Auth/Search child 拉入
+`backend-admin` 的 `DefaultAuditRecorder`（缺 `AuditSinkPort`）；Admin
+child 拉入 `backend-app-web` 的 `SubmissionJudgedInboxBridge`（缺
+Achievement consumer）；Submission child 把 `BackendSubmissionApplication`
+（位于被扫描的 `com.ulticode.submission` 根下）作为配置类注册，产生
+重复 mapper 跳过与跨 jar `SubmissionUserReadPort` 歧义；
+App/Notification child 同类泄漏。包扫描排除无法根治（同包跨 jar 类只能
+按类型逐一排除），因此启用 Owner 的 journey 需先实现按 Owner jar 隔离的
+类加载（或等价隔离），仅排除启动类不够。parent boot、DISABLED/FAILED
+fail-closed readiness（503）与 Judge `OPTIONAL` 判定均已 smoke 验证。
+`CoreOwnerContextManager` 现在对每个 child 启动使用有界 timeout，且
+timeout/cancel 与 child 启动完成之间通过单 CAS ownership handoff 协议
+交接：每个已创建的 child context 必然由 startAll 调用方、timeout 关闭
+路径或迟到完成的 callable 三者之一唯一接管，close 至多一次（此前
+expired-boolean 检查存在"已创建 context 无人接管"的丢结果窗口，已由
+`CoreOwnerContextManagerLifecycleTest` 的确定性交错回归覆盖：正常发布、
+超时 claim 后迟到完成、lost-result 超时、中断交接、取消中断观察、
+停止与发布并发，并断言 startup/slot executor 线程退出与 FAILED 不变为
+READY）。parent 关闭期间的 stopping 守卫继续阻止 queued/running
+startup 创建后续 child；数据 Owner child 的 DB URL/credentials 与
+Redis host/password 仍强制非空（缺失即 fail closed，Search child 不注入
+datasource 属性）。
+
+关闭条件：为每个实际跨 Owner consumer 提供 owner-local Adapter 或明确
+保留 Dubbo 的理由；先实现并证明 child context 的按 Owner jar 类加载隔离
+（或等价机制），再完成同进程 HTTP/WS 路由、Auth/App/Submission/
+Notification contract parity、启用所有 Owner 的 disposable smoke，并由
+Core profile gate 与 distributed profile 对比验证。外部 Judge remote TLS、
+生产 HA 和真实流量属于当前项目范围外，不阻塞本开源仓库的开发验收。
 
 
 ## CLOSED
 
-### SVC-019 Admin 用户详情权限丢失与空集回写风险（CLOSED）
+### SVC-019 Admin 用户详情深 Module（CLOSED）
 
-现状：Admin 用户详情路径原在权限读取失败（null/transport/exception）时把 permissions 当作空集返回，写路径可将空集构造成全量替换 `ChangeAuthorizationCommand`，造成授权数据丢失；详情聚合对 Submission 逐项三次 RPC 且 nullable 伪装为 0。现已收口为单 use-case `AdminUserDetailQuery` 深 Module：第一轮 Auth account 权威判定（不可用 → UNAVAILABLE），第二轮在有界 executor 与共同 wall budget 内并行获取 Auth `AuthorizationSnapshotService`（删除冗余 RoleTemplate RPC）、App profile/solution facts 与 Submission 单次 stats snapshot（`SubmissionUserDetailStatsPort`，一次返回 submission count/accepted count/streak）；顶层 `OK/PARTIAL/UNAVAILABLE` + 区块状态/原因；权限写前要求 permission section=OK 且 snapshot 版本完整，读取失败零写入，proven-empty grant 与 proven-absent revoke no-op 保持合法；旧 `AdminUserStatsReadPort`/`AdminUserStatsReadAdapter` 及其测试已删除（全仓库无 consumer）。REST wire shape 加性扩展，Management `User` 类型与详情 UI 消费区块状态，权限写控件在 permission section 不可证明时禁用。
+现状：Admin 用户详情由单一 `AdminUserDetailQuery` 深 Module 负责 Auth account 权威判定、授权快照、App profile/solution facts 与 Submission 单次 stats snapshot，并显式表达 `OK/PARTIAL/UNAVAILABLE`。详情读取失败不会被伪装成空权限成功值；权限写入已经独立到 SVC-024 的 Auth delta Seam。
 
-证据：[`AdminUserDetailQuery.java`](../admin/src/main/java/com/ulticode/modules/admin/query/AdminUserDetailQuery.java)、[`DefaultAdminUserDetailQuery.java`](../admin/src/main/java/com/ulticode/modules/admin/query/DefaultAdminUserDetailQuery.java)、[`UserPermissionServiceImpl.java`](../admin/src/main/java/com/ulticode/modules/admin/service/impl/UserPermissionServiceImpl.java)、[`AdminUserVO.java`](../admin/src/main/java/com/ulticode/modules/admin/dto/AdminUserVO.java)、[`SubmissionUserDetailStatsPort.java`](../api/submission-api/src/main/java/com/ulticode/submission/api/service/SubmissionUserDetailStatsPort.java)、[`gate-admin-rpc-budget.sh`](../../scripts/test/gate-admin-rpc-budget.sh)；回归见 `AdminUserDetailQueryTest`/`UserPermissionServiceImplTest`/`AdminUserProjectionTest`（权限 null/failure/exception 零写入断言）。事件化用户读模型仍是 No-Go（触发条件见 SVC-006）。残余验证缺口：optional 扇出在 executor 拒绝时取消兄弟任务的查询级回归测试无法从外部确定性构造（account 与 optional 共用同一 executor，worker 启动竞态使预占不可复现）；生产实现按 allOf 语义在任何子任务异常时即抛并进入取消分支，executor 级拒绝/取消语义由 `CancellableQueryExecutorCrTest` 覆盖。
+证据：[`AdminUserDetailQuery.java`](../admin/src/main/java/com/ulticode/modules/admin/query/AdminUserDetailQuery.java)、[`DefaultAdminUserDetailQuery.java`](../admin/src/main/java/com/ulticode/modules/admin/query/DefaultAdminUserDetailQuery.java)、[`AdminUserVO.java`](../admin/src/main/java/com/ulticode/modules/admin/dto/AdminUserVO.java)、[`gate-admin-rpc-budget.sh`](../../scripts/test/gate-admin-rpc-budget.sh)；回归见 `AdminUserDetailQueryTest`。
 
 ### SVC-020 后端零基础设施 unit allowlist（U-03）（CLOSED）
 
@@ -38,7 +97,7 @@
 
 ### SVC-021 GitLab runner 使用 authority（CLOSED）
 
-决策已执行：`.gitlab-ci.yml` 旧直连部署 job 于 2026-09-03 退役禁用（`stages: []`，无 reset/build/up 路径），U-01 的 fail-closed 分支（无 active 证据 → 禁用）已完成；任何保留路径必须消费 canonical preflight/descriptor，`deployment-integrity.sh describe/verify-registry` 为只读现状入口。仓库内无 runner 仍被外部使用的证据（属部署 authority 的外部事实，非仓库可收敛项，记为 `BLOCKED_EXTERNAL` 备注而非缺陷）。
+决策已执行：`.gitlab-ci.yml` 旧直连部署 job 于 2026-09-03 退役禁用（`stages: []`，无 reset/build/up 路径），U-01 的 fail-closed 分支（无 active 证据 → 禁用）已完成；任何保留路径必须消费 canonical preflight/descriptor，`deployment-integrity.sh describe/verify-registry` 为只读现状入口。仓库内无 runner 仍被外部使用的证据（属部署 authority 的外部事实，当前项目范围外，不计为开源仓库缺陷）。
 
 重开条件：部署 authority 提供 runner/pipeline 使用证据；有 active 使用则只能通过 canonical 控制面接回，不得恢复 reset/build/up 捷径。
 
@@ -50,9 +109,14 @@ P2-DEVLITE-005 的计划退出分支为“默认 journey 通过 → flip；否�
 
 ### SVC-023 Forum/Solution 内部 Module pilot 决策（CLOSED/NO-GO）
 
-条件式 pilot 的判定已完成（U-04）：无真实业务/缺陷变更触发，准入 scorecard（`AppModuleSplitAdmissionGateTest`：deletion test、consumer、事务/数据、依赖方向、测试面、真实变更）必备维度未满足 → NO-GO。App locality 部分已收敛：71-interface consumer catalog（45 cross-process/26 internal），10 个 App-only seam 迁入私有 Module/内部包并由 `api-contract-boundary-contract.sh` 锁定单一权威位置。
+条件式 pilot 的判定已完成（U-04）：无真实业务/缺陷变更触发，准入 scorecard（`AppModuleSplitAdmissionGateTest`：deletion test、consumer、事务/数据、依赖方向、测试面、真实变更）必备维度未满足 → NO-GO。App-only seams 已迁入对应私有 Module/内部包，并由 `api-contract-boundary-contract.sh` 锁定唯一权威位置。
 
 重开条件：下一次真实 Forum/Solution 业务或缺陷变更发生时重跑 scorecard；任一必备维度失败即继续 NO-GO。
+### SVC-024 Auth direct-permission delta mutation（CLOSED）
+
+Admin 权限写入现在通过 Auth-owned `AuthorizationMutationService.mutatePermission(PermissionMutationCommand)`；角色编辑通过独立的 `RoleMutationService.changeRole(ChangeRoleCommand)`。Auth 在 receipt 事务中验证账号、expectedVersion、认证 actor 和幂等键，只改 direct `user_permissions`，保留 granted provenance/expiry，并在语义变更后执行 `authz_version` CAS、审计 outbox 与事件记录。角色继承权限不会被全量物化或 revoke。
+
+证据：[`PermissionMutationCommand.java`](../api/auth-api/src/main/java/com/ulticode/auth/api/command/PermissionMutationCommand.java)、[`DefaultAuthorizationMutationWorkflow.java`](../auth/src/main/java/com/ulticode/auth/authorization/DefaultAuthorizationMutationWorkflow.java)、[`AuthorizationMutationProvider.java`](../auth/src/main/java/com/ulticode/auth/dubbo/provider/AuthorizationMutationProvider.java)、[`UserPermissionServiceImpl.java`](../admin/src/main/java/com/ulticode/modules/admin/service/impl/UserPermissionServiceImpl.java)；回归见 `DefaultAuthorizationMutationWorkflowTest`、`AuthorizationMutationProviderTest` 与 `UserPermissionServiceImplTest`。
 
 ### SVC-003 P1 Submission ownership contraction (CLOSED)
 
@@ -94,25 +158,25 @@ The repository-side SVC-003 gate is closed by source inventory, major-version co
 
 触发条件：Admin 用户列表延迟明确归因于跨 Owner RPC、Owner 故障使管理面不可用超出目标，或 RPC 补偿成本高于本地 projection 维护成本。深 Module 前置条件已完成；触发前不建设事件表。
 
-### SVC-007 生产多主机 HA
+### SVC-007 生产多主机 HA（OUT_OF_SCOPE）
 
-现状：生产 Compose 是单机 reference topology；base/prod/HA 不使用固定 `container_name`，MySQL、Redis、MeiliSearch 默认仍是单点，Nacos 的 cluster profile 需要外部节点与故障演练。HA Compose 不等于已完成生产 failover。
+现状：生产 Compose 是单机 reference topology；base/prod/HA 不使用固定 `container_name`，MySQL、Redis、MeiliSearch 默认仍是单点，Nacos 的 cluster profile 需要外部节点与故障演练。HA Compose 不等于已完成生产 failover；本仓库没有生产环境，因此该证据不属于当前开源开发验收。
 
 触发条件：出现真实多节点生产环境、明确可用性 SLO，且单机维护窗口不再可接受。届时再实施无状态多副本、反向代理和有状态组件 HA。
 
-### SVC-008 可观测的 Judge 节点隔离
+### SVC-008 可观测的 Judge 节点隔离（OUT_OF_SCOPE）
 
 现状：生产 Compose 已禁止 `docker.sock`、`DOCKER_GID` 与本机 socket fallback，要求 `JUDGE_DOCKER_HOST` 指向专用 remote/rootless Docker daemon、`DOCKER_TLS_VERIFY=1`、只读 client certificate bundle 与共享 sandbox workspace；开发 socket 仅在显式 `docker-compose.judge-dev.yml --profile judge-socket` 下启用。
 
-触发条件：需要真实生产远程 daemon/证书轮换/节点故障演练时，由部署 authority 提供 endpoint、TLS material、rootless 证明和 shared workspace，并运行 `JUDGE_REMOTE_SMOKE=1`。仓库只证明配置边界、沙箱约束和 disposable contract，不替代生产节点授权。
+触发条件：未来部署方需要真实生产远程 daemon/证书轮换/节点故障演练时，再由部署 authority 提供 endpoint、TLS material、rootless 证明和 shared workspace，并运行 `JUDGE_REMOTE_SMOKE=1`。这不属于当前开源仓库的完成条件。
 
-### SVC-009 可观测运营证据
+### SVC-009 可观测运营证据（OPTIONAL_PROFILE）
 
 现状：OTel、Prometheus、Worker SLO 指标、告警规则、Runbook 和故障演练入口已接线；可选 `docker-compose.observability.yml` 提供固定镜像的 Collector、Prometheus、Alertmanager、Grafana、Tempo、Loki overlay，生产 Compose 要求为全部 backend 显式提供外部 OTLP collector 地址。仓库可以验证配置、scrape、规则、路由、dashboard 和 release annotation 接线，但不能替代真实生产 telemetry storage/receiver、阈值调优和 SLO 报表。
 
-触发条件：首次真实生产流量可用于 HTTP → Dubbo → Redis Streams 链路验证，并能执行积压、PEL、DLQ 与 last-success 恢复演练。操作入口见 [`WORKER_SLO_RUNBOOK.md`](WORKER_SLO_RUNBOOK.md)。
+触发条件：未来需要真实生产流量、托管 telemetry storage 或 SLO 报表时，由部署方启用该 profile 并执行 HTTP → Dubbo → Redis Streams 链路、积压、PEL、DLQ 与 last-success 恢复演练。当前本地 observability 配置和 disposable contract 已足够，不阻塞本项目开发验收。操作入口见 [`WORKER_SLO_RUNBOOK.md`](WORKER_SLO_RUNBOOK.md)。
 
-### SVC-010 混合版本运行历史
+### SVC-010 混合版本运行历史（OUT_OF_SCOPE）
 
 现状：per-service version/digest manifest、选择性 host deploy 与 Contract 兼容门禁已经存在；尚未积累真实混合版本并存和独立回滚证据。
 
@@ -129,13 +193,33 @@ The repository-side SVC-003 gate is closed by source inventory, major-version co
 
 触发条件：`P5-GATE-001` 最终基线刷新（`evidence` 重建）时统一替换上述冻结快照；触发前以 `Amendment` 与本条目为准，不重复报为缺陷。`CONTEXT.md` 与 `archive/contest/README` 的 `1 行` 现行性修正已随 `c0f79f2`/`68cbbdc` 落地，无需再触发。
 
+### SVC-026 Meilisearch Cloud 试点（OPTIONAL_PROFILE）
+
+现状：Search Worker 已通过小型 `SearchIndex` Seam 使用 Meili Adapter；本地与未来 hosted endpoint 共用该 Adapter，索引仍是可由 Owner 事实重建的派生数据（`meilisearch-recovery-contract.sh` 锁定重建语义）。没有已测搜索负载、Cloud 实例或在线 demo 证据。
+
+触发条件：只有在项目需要公开 demo、真实持续搜索负载或明确托管搜索时才启用；部署方提供 Cloud 项目与凭据。接入必须保留本地 Meili 与数据库 fallback，索引仍从 Owner 事实重建，禁止把 Cloud 当作唯一事实源。未启用不计为当前仓库缺陷。
+
+### SVC-027 Judge0 试点（OPTIONAL_PROFILE）
+
+现状：Judge-owned `JudgeRunService` 现在同时提供同步 `execute` 与受约束的异步 `submit/poll/cancel`；runtime 通过 `AsyncSandboxExecutor` Seam 提供默认 `DockerAsyncSandboxAdapter`，可选 `Judge0AsyncSandboxAdapter`。两者都只接受 `PUBLIC_PREVIEW`，保留 bounded timeout、输出上限与进程内幂等 receipt；App `/run` 当前继续走同步 `execute`，runtime validation failure 在 provider 处映射为 typed 400。
+
+Judge0 仍默认关闭，当前没有 endpoint/凭据或真实实例，因此没有外部执行、配额、回调认证和混合版本 drain 证据；生产路径仍是本地 Docker Adapter。Judge0 的供应商 status、language ID、polling 和 token 仅停在 Adapter 内，私有/隐藏测试在进入外部 Adapter 前拒绝。跨 Judge 副本与重启的幂等尚未实现，启用前必须补 durable receipt 或明确单实例路由边界。
+
+触发条件：只有在项目需要公开、非敏感 preview 或 shadow execution 时才启用；部署方提供 endpoint/凭据后，再运行 HTTPS/TLS、语言映射、资源限制、结果语义、回调认证（若启用 webhook）、幂等、配额、取消/超时、回滚和 mixed-version drain 验证。默认关闭且未配置不阻塞当前开源开发验收；不得宣称已接入生产。
+
+### SVC-028 托管 MySQL / Redis / Valkey（OPTIONAL_PROFILE）
+
+现状：自托管默认可用；Owner JDBC URL、`sslMode`、Redis `rediss`/SSL bundle/hostname verification 均有配置入口，静态 TLS contract 已覆盖每个 Owner；Auth 的 Redisson locks/OAuth state 另需 `rediss://` URL、hostname verification 和专用 truststore；公网托管实例、最小权限 ACL 复核与 dump/restore/Flyway checksum 恢复演练尚未完成。
+
+触发条件：只有在项目需要托管数据层时才启用；部署方提供实例后，先完成 JDBC TLS + CA/hostname 验证、Redis TLS/CA/主机名校验、Auth Redisson truststore 验证、每 Owner 独立账号与最小权限 ACL、Streams/PEL/Lua/lease/session/OAuth state 语义验证、dump/restore 与 Flyway checksum 验证，明确 RPO/RTO 并完成恢复演练。默认自托管路径不受影响，未启用不计为当前仓库缺陷。
+
 ## CLOSED (historical findings)
 
 下列历史 Finding 已有代码、配置或可执行门禁承接，不应在其他文档重复维护正文：
 
 | 历史问题 | 当前承接证据 |
 | --- | --- |
-| SVC-001 App 直接复用 Judge Docker 执行实现 | 正常/生产 `/run` 通过 `CodeExecutionPort` 调用 `backend-judge` provider；真实 HTTP→Dubbo→provider IT 覆盖成功与无 provider 时 HTTP 503/code 30022；当前 App 不包含本地 Judge execution/compatibility poller，旧模式由当前 binary fail closed |
+| SVC-001 App 直接复用 Judge Docker 执行实现 | `/run` 通过 App-private `InteractiveCodeRunner` → Judge-owned `JudgeRunService`；Judge runtime 只使用 `SandboxExecutor` 与 runtime-private request/result model，App 不加载 sandbox implementation；provider absent 时映射 HTTP 503/code 30022 |
 | SVC-002 跨进程 Contract Interface 过宽 | `SubmissionIntakePort`、`SubmissionVerdictWritePort` 与 `ProblemTitleLookupPort` 按消费语义拆分；旧 composite `SubmissionWritePort`/provider 和无消费者的 analytics contract 已在 2.0.0 major contract release 中删除 |
 | SVC-005 Search 选择性发布/回滚入口不完整 | Search 已进入 deploy choice、rollback whitelist/all 与共享 `host-health`；架构门禁从 services matrix 解析全部 backend 并逐项校验三个控制面 |
 | Owner 假健康 | `ReadinessChecks`、各 Owner readiness controller、Compose/host health |
@@ -168,8 +252,9 @@ The repository-side SVC-003 gate is closed by source inventory, major-version co
 | 验证入口层级与 `quick` 语义漂移 | `test.sh static/unit/quick/full-local/full/integration` 六模式 + `--describe`；`quick` 弃用别名映射 static+unit；零基础设施 deny-shim 自证 `scripts/test/zero-infra-validation-contract.sh`；后端零基础设施 unit 门禁由根 POM `unit` profile + deny 环境实证关闭（见 CLOSED SVC-020），`unit` 不再 fail closed |
 | DevStack 服务集合漂移 | `devstack-manifest.sh` 场景 resolver（apps/infra/readiness/ports/features）；up/stop/status/logs/health/doctor 消费同一集合；显式 Compose targets，Search off 不启动 Meili；契约见 `devlite-minimal-contract.sh`/`devstack-control-contract.sh` |
 | 旧 GitLab 直连部署控制面 | `.gitlab-ci.yml` 退役禁用（无 reset/build/up 路径）；canonical 控制面唯一；只读 `deployment-integrity.sh describe` + matrix/Compose `verify-registry`；runner authority 见 CLOSED SVC-021 |
-| app-api 收纳纯 App 内部 interface | 71-interface consumer catalog；10 个 App-only seam 迁入私有 Module/内部包（contest push/subscription、problem 内部 read ports）；`api-contract-boundary-contract.sh` 校验单一权威位置；内部 Module 准入由 `AppModuleSplitAdmissionGateTest` 固守 |
-| Auth `RoleTemplateService` provider 无消费者 | Admin 详情切至 `AuthorizationSnapshotService` 后无剩余 consumer；Auth provider 与其测试已删除，contract interface 保留（无 provider 引用） |
+| app-api 收纳纯 App 内部 interface | App-only seam 迁入对应私有 Module/内部包；`api-contract-boundary-contract.sh` 校验单一权威位置；跨 Owner contract 仍留在 `app-api` |
+| Auth `RoleTemplateService` contract 无消费者 | Admin 详情切至 `AuthorizationSnapshotService` 后无剩余 consumer；Auth provider、测试与 contract interface 已删除 |
+| 可选外部 Adapter 配置面（S3/R2、SMTP、OTLP） | App `FileStoragePort` 已有 LocalStorage（自托管默认）与 S3Storage，`APP_STORAGE_S3_*` 只配置 endpoint/bucket/TLS/凭据；Notification `SmtpSenderPort` 保留 Logging 与 JavaMail 两个 Adapter；OTLP 仅标准 endpoint/headers/sampling 配置，`platform/observability` 在配置 authorization 时 fail closed 拒绝非 HTTPS，可选 `docker-compose.observability-managed.yml` 从 secret/env 读 endpoint。Meilisearch Cloud、Judge0、托管数据层分别见 OPTIONAL_PROFILE SVC-026/027/028 |
 
 ## ACCEPTED
 

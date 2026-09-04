@@ -1,6 +1,6 @@
 package com.ulticode.modules.follow.service.impl;
 
-import com.ulticode.app.api.event.FollowEventPublisher;
+import com.ulticode.modules.follow.port.FollowEventPublisher;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.follow.dto.FollowStatsDTO;
 import com.ulticode.modules.follow.inspector.FollowInspector;

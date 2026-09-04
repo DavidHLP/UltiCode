@@ -4,7 +4,7 @@ import com.ulticode.modules.achievement.entity.Achievement;
 import com.ulticode.modules.achievement.entity.UserAchievement;
 import com.ulticode.modules.achievement.mapper.AchievementMapper;
 import com.ulticode.modules.achievement.mapper.UserAchievementMapper;
-import com.ulticode.app.api.service.AchievementBadgeReadPort;
+import com.ulticode.modules.achievement.port.AchievementBadgeReadPort;
 import org.springframework.stereotype.Component;
 
 import java.util.Collections;

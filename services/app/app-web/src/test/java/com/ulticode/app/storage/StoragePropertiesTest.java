@@ -59,4 +59,35 @@ class StoragePropertiesTest {
         assertThat(complete.isS3()).isTrue();
         assertThatCode(complete::validate).doesNotThrowAnyException();
     }
+
+    @Test
+    @DisplayName("managed S3 TLS rejects a non-HTTPS endpoint")
+    void managedS3RequiresHttps() {
+        StorageProperties properties = new StorageProperties();
+        properties.setType("s3");
+        properties.getS3().setEndpoint("http://localhost:9000");
+        properties.getS3().setBucket("ulticode");
+        properties.getS3().setAccessKey("ak");
+        properties.getS3().setSecretKey("sk");
+        properties.getS3().setTlsEnabled(true);
+
+        assertThatThrownBy(properties::validate)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("https");
+    }
+
+    @Test
+    @DisplayName("remote HTTP S3 endpoint is rejected even when TLS is not explicitly enabled")
+    void remoteHttpS3RequiresTls() {
+        StorageProperties properties = new StorageProperties();
+        properties.setType("s3");
+        properties.getS3().setEndpoint("http://storage.example");
+        properties.getS3().setBucket("ulticode");
+        properties.getS3().setAccessKey("ak");
+        properties.getS3().setSecretKey("sk");
+
+        assertThatThrownBy(properties::validate)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("loopback HTTP");
+    }
 }

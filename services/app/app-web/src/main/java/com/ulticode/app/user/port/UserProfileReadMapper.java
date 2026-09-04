@@ -26,12 +26,6 @@ public interface UserProfileReadMapper {
             + "</script>")
     List<UserProfileDTO> findByAccountIds(@Param("accountIds") Set<String> accountIds);
 
-    /** Return all profiles whose display name matches the search query. */
-    @Select("SELECT " + SEARCH_COLUMNS
-            + " FROM user_profiles"
-            + " WHERE name LIKE CONCAT('%', #{query}, '%')"
-            + " ORDER BY account_id ASC")
-    List<UserProfileReadRow> findSearchCandidates(@Param("query") String query);
 
     /** Return a bounded, deterministic profile-name search page. */
     @Select("SELECT " + SEARCH_COLUMNS
@@ -46,7 +40,7 @@ public interface UserProfileReadMapper {
             + " FROM user_profiles"
             + " WHERE name LIKE CONCAT('%', #{query}, '%')"
             + " ORDER BY account_id ASC LIMIT #{offset}, #{limit}")
-    List<UserProfileReadRow> findSearchCandidates(
+    List<UserProfileReadRow> findSearchCandidatesPage(
             @Param("query") String query,
             @Param("offset") int offset,
             @Param("limit") int limit);

@@ -10,11 +10,13 @@
 | 比赛提交 | Contest eligibility → Submission `submitContest` → created/judge outbox → Contest inbox | 资格同步校验；关联最终一致 |
 | 判题结果 | Judge Stream → sandbox → Submission verdict/fence → result outbox | generation/attempt CAS；下游 Inbox |
 | 通知投递 | App intent outbox → Notification Inbox → delivery ledger → SMTP/Redis relay | intent 本地事务；投递可重试 |
+| 权限写入 | Admin account/version query → Auth `AuthorizationMutationService` delta | Auth 本地事务；direct row + CAS + audit/outbox + receipt |
+| 公开代码运行 | App `InteractiveCodeRunner` → Judge `JudgeRunService` → Judge runtime `SandboxExecutor`；异步 preview 另走 `submit/poll/cancel` → `AsyncSandboxExecutor` | Judge 独立进程；只运行显式 public cases，缺 provider 映射 503；Judge0 默认关闭且外部证据未验证 |
 | 搜索 | Owner event → Search worker → version ledger → MeiliSearch | 派生索引；旧事件按版本丢弃 |
 
 ## Contract 与 Dubbo
 
-`services/api/` 当前包含 `auth-api`、`app-api`、`submission-api`、`notification-api` 四个 provider-owned 模块。Contract 只能包含接口、DTO、错误码、事件和无状态元数据，不得依赖 Entity、Mapper 或实现模块。Submission mutation 已拆成 `SubmissionIntakePort`、`SubmissionVerdictWritePort`；Submission read 使用窄的 facts/title lookup contract。四个 contract artifacts 使用 reactor revision `2.0.0`；wire-incompatible 的 Submission read 方法使用 `1.1.0`，同主版本变更由 japicmp 门禁保护。
+`services/api/` 当前包含 `auth-api`、`app-api`、`submission-api`、`notification-api` 和 `judge-api` 五个 provider-owned 模块。Contract 只能包含接口、DTO、错误码、事件和无状态元数据，不得依赖 Entity、Mapper 或实现模块。Submission mutation 已拆成 `SubmissionIntakePort`、`SubmissionVerdictWritePort`；权限 mutation 使用 Auth-owned 单条 delta；Judge preview 使用 `JudgeRunService`，其 App HTTP DTO 只在 App Adapter 侧映射。Contract artifacts 使用 reactor revision `2.0.0`；wire-incompatible 的 Submission read 方法使用 `1.1.0`，同主版本变更由 japicmp 门禁保护。
 
 - 写调用自动 retry 为 0；query/execution 使用 `RpcPolicy` 的有界 timeout 与重试预算。
 - Provider 验证签名、audience、deadline、jti/replay 和 actor；Dubbo attachment 不是信任边界。

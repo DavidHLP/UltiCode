@@ -97,6 +97,17 @@ export interface GrantPermissionDto {
   expiresAt?: Date | null
 }
 
+export interface AuthorizationMutationAck {
+  accountId: string
+  operation: 'GRANT' | 'REVOKE'
+  action: string
+  resource: string
+  source: 'direct'
+  expiresAt?: string | null
+  version: number
+  changed: boolean
+}
+
 export interface BulkActionDto {
   ids: string[]
   reason?: string
@@ -132,12 +143,16 @@ export const usersApi = {
     return apiPost<User>(`/admin/users/${id}/unban`)
   },
 
-  async grantPermission(id: string, data: GrantPermissionDto): Promise<void> {
-    await apiPost(`/admin/users/${id}/permissions`, data)
+  async grantPermission(id: string, data: GrantPermissionDto): Promise<AuthorizationMutationAck> {
+    return apiPost<AuthorizationMutationAck>(`/admin/users/${id}/permissions`, data)
   },
 
-  async revokePermission(id: string, action: string, resource: string): Promise<void> {
-    await apiDelete(`/admin/users/${id}/permissions`, {
+  async revokePermission(
+    id: string,
+    action: string,
+    resource: string,
+  ): Promise<AuthorizationMutationAck> {
+    return apiDelete<AuthorizationMutationAck>(`/admin/users/${id}/permissions`, {
       data: { action, resource },
     })
   },

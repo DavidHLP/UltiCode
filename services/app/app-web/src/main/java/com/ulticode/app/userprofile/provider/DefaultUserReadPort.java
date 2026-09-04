@@ -1,7 +1,7 @@
 package com.ulticode.app.userprofile.provider;
 
 import com.ulticode.app.api.dto.NotificationUserInfo;
-import com.ulticode.app.api.service.UserReadPort;
+import com.ulticode.modules.user.port.UserReadPort;
 import com.ulticode.app.userprofile.entity.UserProfile;
 import com.ulticode.app.userprofile.mapper.UserProfileMapper;
 import com.ulticode.auth.api.dto.UserIdentityDTO;

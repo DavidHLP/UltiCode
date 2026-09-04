@@ -12,6 +12,7 @@ import com.ulticode.modules.search.dto.SearchResponseVO;
 import com.ulticode.modules.search.config.SearchReadProperties;
 import com.ulticode.modules.search.source.SearchSource;
 import com.ulticode.search.SearchDocumentIndexWorker;
+import com.ulticode.search.adapter.MeiliSearchIndexAdapter;
 import com.ulticode.search.config.SearchWorkerProperties;
 import java.time.Duration;
 import java.util.LinkedHashMap;
@@ -95,7 +96,7 @@ class SearchEventToQueryE2EIT {
         props.setDlqKey("search:stream:dlq:" + suffix);
         props.setVersionKeyPrefix("search:doc-version:" + suffix);
         worker = new SearchDocumentIndexWorker(
-                redis, meili, JSON, props,
+                redis, new MeiliSearchIndexAdapter(meili), JSON, props,
                 new io.micrometer.core.instrument.simple.SimpleMeterRegistry());
 
         problemSource = new StubSearchSource();

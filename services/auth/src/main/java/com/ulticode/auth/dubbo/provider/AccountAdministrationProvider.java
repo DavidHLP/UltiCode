@@ -1,9 +1,7 @@
 package com.ulticode.auth.dubbo.provider;
 
 import com.ulticode.auth.api.command.ChangeAccountStateCommand;
-import com.ulticode.auth.api.command.ChangeAuthorizationCommand;
 import com.ulticode.auth.api.dto.AccountStateDTO;
-import com.ulticode.auth.api.dto.AuthorizationSnapshotDTO;
 import com.ulticode.auth.api.error.AuthErrorCode;
 import com.ulticode.auth.api.service.AccountAdministrationService;
 import com.ulticode.auth.idempotency.CommandReceiptExecutor;
@@ -47,16 +45,6 @@ public class AccountAdministrationProvider implements AccountAdministrationServi
                 command,
                 AccountStateDTO.class,
                 traceId -> workflow.changeState(command));
-    }
-
-    @Override
-    public RpcResult<AuthorizationSnapshotDTO> changeAuthorization(
-            ChangeAuthorizationCommand command) {
-        return execute(
-                "changeAuthorization",
-                command,
-                AuthorizationSnapshotDTO.class,
-                traceId -> workflow.changeAuthorization(command));
     }
 
     private <T> RpcResult<T> execute(

@@ -95,7 +95,7 @@ class DefaultProblemProjectionTest {
                 problemLanguageMapper, problemTagMapper, problemTagRelationMapper,
                 problemSubmissionStats, solutionQueryPort, interactionQueryPort,
                 new ObjectMapper(), currentUserProvider,
-                mock(com.ulticode.app.api.service.JudgingLanguageSupport.class));
+                mock(com.ulticode.modules.problem.port.ProblemLanguageCatalog.class));
     }
 
     // ------------------------------------------------------------------

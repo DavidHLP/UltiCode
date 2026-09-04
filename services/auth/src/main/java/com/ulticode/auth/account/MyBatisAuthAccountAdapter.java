@@ -100,6 +100,13 @@ public class MyBatisAuthAccountAdapter implements AuthAccountPort {
         }
         return mapper.updateAccountIfVersion(userId.trim(), active, banned, role.trim().toUpperCase(), expectedVersion) > 0;
     }
+    @Override
+    public boolean bumpAuthzVersionIfExpected(String userId, long expectedVersion) {
+        if (userId == null || userId.isBlank()) {
+            return false;
+        }
+        return mapper.bumpAuthzVersionIfExpected(userId.trim(), expectedVersion) > 0;
+    }
 
     @Override
     public Optional<PasswordResetRecord> findPasswordReset(String userId) {

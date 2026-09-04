@@ -1,8 +1,9 @@
 package com.ulticode.modules.submission.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ulticode.app.api.dto.RunResultDTO;
-import com.ulticode.app.api.dto.RunSubmissionDTO;
+import com.ulticode.modules.submission.runtime.JudgeRunResponse;
+import com.ulticode.modules.submission.runtime.JudgeRunRequest;
+import com.ulticode.modules.submission.runtime.PerCaseResult;
 import com.ulticode.modules.submission.service.DFormEnvelopeCodec;
 import com.ulticode.modules.submission.service.SandboxOutputFormatter;
 import lombok.RequiredArgsConstructor;
@@ -48,14 +49,14 @@ public class DFormEnvelopeCodecImpl implements DFormEnvelopeCodec {
     private final SandboxOutputFormatter sandboxOutputFormatter;
 
     @Override
-    public String buildDInputsJson(RunSubmissionDTO.RunTestCase testCase,
+    public String buildDInputsJson(JudgeRunRequest.TestCase testCase,
                                    long perCaseTimeoutMs, long memoryLimitBytes) {
-        List<RunSubmissionDTO.RunTestCase> one = List.of(testCase);
+        List<JudgeRunRequest.TestCase> one = List.of(testCase);
         return buildDBatchInputsJson(one, perCaseTimeoutMs, memoryLimitBytes);
     }
 
     @Override
-    public String buildDBatchInputsJson(List<RunSubmissionDTO.RunTestCase> testCases,
+    public String buildDBatchInputsJson(List<JudgeRunRequest.TestCase> testCases,
                                         long perCaseTimeoutMs, long memoryLimitBytes) {
         LinkedHashMap<String, Object> root = new LinkedHashMap<>();
         root.put("per_case_timeout_ms", perCaseTimeoutMs);
@@ -67,7 +68,7 @@ public class DFormEnvelopeCodecImpl implements DFormEnvelopeCodec {
             root.put("memory_limit_bytes", memoryLimitBytes);
         }
         List<Map<String, Object>> cases = new ArrayList<>();
-        for (RunSubmissionDTO.RunTestCase tc : testCases) {
+        for (JudgeRunRequest.TestCase tc : testCases) {
             LinkedHashMap<String, Object> c = new LinkedHashMap<>();
             c.put("case_id", String.valueOf(tc.getId() != null ? tc.getId() : ""));
             c.put("label", tc.getLabel() != null ? tc.getLabel() : c.get("case_id"));
@@ -85,9 +86,10 @@ public class DFormEnvelopeCodecImpl implements DFormEnvelopeCodec {
 
     @Override
     @SuppressWarnings("unchecked")
-    public List<RunResultDTO.RunCaseResult> parseDEnvelope(String stdout,
-                                                          List<RunSubmissionDTO.RunTestCase> testCases,
-                                                          String runId, String userId) {
+    public List<JudgeRunResponse.RunCaseResult> parseDEnvelope(
+            String stdout,
+            List<JudgeRunRequest.TestCase> testCases,
+            String runId, String userId) {
         if (stdout == null || stdout.isBlank()) {
             return testCases.stream()
                 .map(tc -> sandboxOutputFormatter.buildCaseResult(tc, runId, userId, "Runtime Error",
@@ -111,8 +113,8 @@ public class DFormEnvelopeCodecImpl implements DFormEnvelopeCodec {
                     0L, null, detail, 0.0, 0L, 0L))
                 .collect(Collectors.toList());
         }
-        com.ulticode.app.api.dto.EnvelopeDTO envelope =
-            com.ulticode.app.api.dto.EnvelopeDTO.fromMap(env);
+        com.ulticode.modules.submission.runtime.JudgeEnvelope envelope =
+            com.ulticode.modules.submission.runtime.JudgeEnvelope.fromMap(env);
         if (envelope.exitCode() != 0) {
             // Harness itself panicked (parse failure, javac failure, ambiguous
             // Solution, etc.). Surface a single Runtime Error for the whole batch.
@@ -123,11 +125,11 @@ public class DFormEnvelopeCodecImpl implements DFormEnvelopeCodec {
                     0L, null, detail, 0.0, 0L, 0L))
                 .collect(Collectors.toList());
         }
-        List<com.ulticode.app.api.dto.PerCaseResultDTO> parsed = envelope.results();
-        List<RunResultDTO.RunCaseResult> out = new ArrayList<>();
+        List<PerCaseResult> parsed = envelope.results();
+        List<JudgeRunResponse.RunCaseResult> out = new ArrayList<>();
         for (int i = 0; i < testCases.size(); i++) {
-            RunSubmissionDTO.RunTestCase tc = testCases.get(i);
-            com.ulticode.app.api.dto.PerCaseResultDTO pr = i < parsed.size() ? parsed.get(i) : null;
+            JudgeRunRequest.TestCase tc = testCases.get(i);
+            PerCaseResult pr = i < parsed.size() ? parsed.get(i) : null;
             if (pr == null) {
                 out.add(sandboxOutputFormatter.buildCaseResult(tc, runId, userId, "Runtime Error",
                     0L, null, "D-form envelope missing per-case result for index " + i,
@@ -171,13 +173,13 @@ public class DFormEnvelopeCodecImpl implements DFormEnvelopeCodec {
      * @return list of input spec maps; empty when the case has no inputs
      */
     @SuppressWarnings("unchecked")
-    private List<Map<String, Object>> buildDInputSpecs(RunSubmissionDTO.RunTestCase tc) {
-        List<RunSubmissionDTO.RunInput> inputs = tc.getInputs();
+    private List<Map<String, Object>> buildDInputSpecs(JudgeRunRequest.TestCase tc) {
+        List<JudgeRunRequest.Input> inputs = tc.getInputs();
         if (inputs == null || inputs.isEmpty()) {
             return List.of();
         }
         List<Map<String, Object>> specs = new ArrayList<>();
-        for (RunSubmissionDTO.RunInput in : inputs) {
+        for (JudgeRunRequest.Input in : inputs) {
             LinkedHashMap<String, Object> spec = new LinkedHashMap<>();
             spec.put("name", in.getName());
             // value is stored on the backend as a JSON-encoded literal; ship as-is

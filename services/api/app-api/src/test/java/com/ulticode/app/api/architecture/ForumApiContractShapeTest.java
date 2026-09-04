@@ -5,11 +5,9 @@ import com.ulticode.app.api.command.ForumTagMutationCommand;
 import com.ulticode.app.api.service.AdminForumReadPort;
 import com.ulticode.app.api.service.ForumCommentAdministrationService;
 import com.ulticode.app.api.service.ForumCommentReadPort;
-import com.ulticode.app.api.service.ForumOwnerPort;
 import com.ulticode.app.api.service.ForumPostVoteCountReadPort;
 import com.ulticode.app.api.service.ForumTagAdministrationService;
 import com.ulticode.app.api.service.ForumTagReadPort;
-import com.ulticode.app.api.service.ForumVoteReadPort;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Method;
@@ -26,9 +24,7 @@ class ForumApiContractShapeTest {
             ForumCommentReadPort.class,
             ForumPostVoteCountReadPort.class,
             ForumTagAdministrationService.class,
-            ForumTagReadPort.class,
-            ForumVoteReadPort.class,
-            ForumOwnerPort.class);
+            ForumTagReadPort.class);
 
     @Test
     void forumContractsExposeNoAppPrivateEntityOrMapperTypes() {

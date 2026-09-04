@@ -85,7 +85,7 @@ public class VerdictResolver implements VerdictResolvePort {
 
     /**
      * String-overload bridge for callers that still hold wire strings (e.g.
-     * {@code RunResultDTO.RunCaseResult.getStatus()}). Strict decode — unknown
+     * {@code JudgeRunResponse.RunCaseResult.getStatus()}). Strict decode —
      * values are logged, counted, and mapped to
      * {@link SubmissionStatus#SYSTEM_ERROR} rather than failing the whole
      * reduction, so a single malformed case cannot crash the judge loop.
@@ -105,7 +105,7 @@ public class VerdictResolver implements VerdictResolvePort {
 
     /**
      * String-overload bridge for callers that still hold wire strings (e.g.
-     * {@code RunResultDTO.RunCaseResult.getStatus()}). Strict decode — unknown
+     * {@code JudgeRunResponse.RunCaseResult.getStatus()}). Strict decode —
      * values are logged, counted, and mapped to
      * {@link SubmissionStatus#SYSTEM_ERROR} rather than failing the whole
      * reduction, so a single malformed case cannot crash the judge loop.

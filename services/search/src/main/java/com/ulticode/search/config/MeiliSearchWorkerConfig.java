@@ -30,4 +30,8 @@ public class MeiliSearchWorkerConfig {
         log.info("Initializing search-worker MeiliSearch client for host: {}", host);
         return new Client(new Config(host, apiKey));
     }
+    @Bean
+    public com.ulticode.search.adapter.SearchIndex searchIndex(Client client) {
+        return new com.ulticode.search.adapter.MeiliSearchIndexAdapter(client);
+    }
 }

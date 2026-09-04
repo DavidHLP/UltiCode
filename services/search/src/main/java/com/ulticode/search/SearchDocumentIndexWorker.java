@@ -2,8 +2,8 @@ package com.ulticode.search;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.meilisearch.sdk.Client;
-import com.meilisearch.sdk.exceptions.MeilisearchException;
+import com.ulticode.search.adapter.SearchIndex;
+import com.ulticode.search.adapter.SearchIndexUnavailableException;
 import com.ulticode.common.event.IntegrationEventEnvelopeContract;
 import com.ulticode.common.event.SearchDocumentChangedEventContract;
 import com.ulticode.common.lifecycle.DrainGate;
@@ -75,7 +75,7 @@ public class SearchDocumentIndexWorker {
     private static final String DOCUMENT_VERSION_FIELD = "_aggregateVersion";
     private static final String DELETE_LEDGER_PREFIX = "D:";
     private final StringRedisTemplate redisTemplate;
-    private final Client meiliSearchClient;
+    private final SearchIndex searchIndex;
     private final ObjectMapper objectMapper;
     private final SearchWorkerProperties props;
     private final io.micrometer.core.instrument.MeterRegistry meterRegistry;
@@ -154,12 +154,12 @@ public class SearchDocumentIndexWorker {
 
     public SearchDocumentIndexWorker(
             StringRedisTemplate redisTemplate,
-            Client meiliSearchClient,
+            SearchIndex searchIndex,
             ObjectMapper objectMapper,
             SearchWorkerProperties props,
             io.micrometer.core.instrument.MeterRegistry meterRegistry) {
         this.redisTemplate = redisTemplate;
-        this.meiliSearchClient = meiliSearchClient;
+        this.searchIndex = searchIndex;
         this.objectMapper = objectMapper;
         this.props = props;
         this.meterRegistry = meterRegistry;
@@ -550,12 +550,11 @@ public class SearchDocumentIndexWorker {
                         objectMapper.writeValueAsString(document), payloadType);
                 doc.put(DOCUMENT_VERSION_FIELD, incomingVersion);
                 String serializedDocument = objectMapper.writeValueAsString(doc);
-                executeMeili(() -> meiliSearchClient.index(index)
-                        .addDocuments(serializedDocument));
+                executeMeili(() -> searchIndex.index(index).upsert(serializedDocument));
                 writeLedgerIfStillOwner(lockKey, lockToken, versionKey, documentId,
                         String.valueOf(incomingVersion));
             } else if (SearchDocumentChangedEventContract.DELETE.equals(operation)) {
-                executeMeili(() -> meiliSearchClient.index(index).deleteDocument(documentId));
+                executeMeili(() -> searchIndex.index(index).delete(documentId));
                 writeLedgerIfStillOwner(lockKey, lockToken, versionKey, documentId,
                         DELETE_LEDGER_PREFIX + incomingVersion);
             } else {
@@ -573,7 +572,7 @@ public class SearchDocumentIndexWorker {
             try {
                 operation.run();
                 permit.success();
-            } catch (MeilisearchException unavailable) {
+            } catch (SearchIndexUnavailableException unavailable) {
                 permit.failure();
                 throw unavailable;
             } catch (RuntimeException failure) {

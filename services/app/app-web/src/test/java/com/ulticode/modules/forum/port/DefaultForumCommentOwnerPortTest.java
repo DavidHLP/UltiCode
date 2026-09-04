@@ -1,6 +1,6 @@
 package com.ulticode.modules.forum.port;
 
-import com.ulticode.app.api.service.ForumCommentOwnerPort;
+import com.ulticode.modules.forum.port.ForumCommentOwnerPort;
 import com.ulticode.modules.forum.entity.ForumComment;
 import com.ulticode.modules.forum.mapper.ForumCommentMapper;
 import org.junit.jupiter.api.BeforeEach;

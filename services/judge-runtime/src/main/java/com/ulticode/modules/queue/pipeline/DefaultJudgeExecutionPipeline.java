@@ -3,10 +3,9 @@ package com.ulticode.modules.queue.pipeline;
 import com.ulticode.modules.queue.port.JudgingCase;
 import com.ulticode.modules.queue.port.JudgingCaseSource;
 import com.ulticode.modules.queue.port.VerdictMetricsParser;
-import com.ulticode.app.api.dto.RunResultDTO;
-import com.ulticode.app.api.dto.RunSubmissionDTO;
+import com.ulticode.modules.submission.runtime.JudgeRunResponse;
+import com.ulticode.modules.submission.runtime.JudgeRunRequest;
 import com.ulticode.domain.submission.enums.CaseScope;
-import com.ulticode.app.api.service.CodeExecutionPort;
 import com.ulticode.modules.submission.port.VerdictResolvePort;
 import com.ulticode.domain.submission.enums.SubmissionStatus;
 import lombok.RequiredArgsConstructor;
@@ -40,7 +39,7 @@ import java.util.stream.Collectors;
 public class DefaultJudgeExecutionPipeline implements JudgeExecutionPipeline {
 
     private final JudgingCaseSource judgingCaseSource;
-    private final CodeExecutionPort codeExecutionService;
+    private final com.ulticode.modules.submission.service.CodeExecutionService codeExecutionService;
     private final VerdictResolvePort verdictResolver;
     private final VerdictMetricsParser verdictMetricsParser;
 
@@ -57,13 +56,13 @@ public class DefaultJudgeExecutionPipeline implements JudgeExecutionPipeline {
         Map<String, JudgingCase> byId = cases.stream().collect(
                 Collectors.toMap(JudgingCase::getId, Function.identity(), (a, b) -> a));
 
-        RunSubmissionDTO runDto = buildRunSubmissionDTO(language, code, cases);
-        RunResultDTO result = codeExecutionService.execute(runDto, problemId, userId);
+        JudgeRunRequest runDto = buildJudgeRunRequest(language, code, cases);
+        JudgeRunResponse result = codeExecutionService.execute(runDto, problemId, userId);
 
         SubmissionStatus status = determineVerdict(result.getCases());
         long maxRuntimeMs = 0;
         double maxMemoryMb = 0.0;
-        for (RunResultDTO.RunCaseResult caseResult : result.getCases()) {
+        for (JudgeRunResponse.RunCaseResult caseResult : result.getCases()) {
             maxRuntimeMs = Math.max(maxRuntimeMs, verdictMetricsParser.parseRuntimeMs(caseResult.getRuntime()));
             maxMemoryMb = Math.max(maxMemoryMb, verdictMetricsParser.parseMemoryMb(caseResult.getMemory()));
         }
@@ -78,12 +77,12 @@ public class DefaultJudgeExecutionPipeline implements JudgeExecutionPipeline {
     // Verdict resolution
     // -----------------------------------------------------------------------
 
-    SubmissionStatus determineVerdict(List<RunResultDTO.RunCaseResult> cases) {
+    SubmissionStatus determineVerdict(List<JudgeRunResponse.RunCaseResult> cases) {
         if (cases == null || cases.isEmpty()) {
             return SubmissionStatus.SYSTEM_ERROR;
         }
         List<String> caseWireValues = new ArrayList<>(cases.size());
-        for (RunResultDTO.RunCaseResult caseResult : cases) {
+        for (JudgeRunResponse.RunCaseResult caseResult : cases) {
             caseWireValues.add(caseResult.getStatus());
         }
         return verdictResolver.reduceWire(caseWireValues);
@@ -94,12 +93,12 @@ public class DefaultJudgeExecutionPipeline implements JudgeExecutionPipeline {
     // -----------------------------------------------------------------------
 
     private List<JudgeTestCaseDetail> buildTestCaseDetails(
-            List<RunResultDTO.RunCaseResult> caseResults,
+            List<JudgeRunResponse.RunCaseResult> caseResults,
             Map<String, JudgingCase> byId,
             String submissionId,
             String problemId) {
         List<JudgeTestCaseDetail> details = new ArrayList<>(caseResults.size());
-        for (RunResultDTO.RunCaseResult cr : caseResults) {
+        for (JudgeRunResponse.RunCaseResult cr : caseResults) {
             String caseId = null;
             CaseScope caseScope = null;
             String tcId = cr.getTestCaseId();
@@ -137,15 +136,16 @@ public class DefaultJudgeExecutionPipeline implements JudgeExecutionPipeline {
     }
 
     // -----------------------------------------------------------------------
-    // RunSubmissionDTO building
+    // JudgeRunRequest building
     // -----------------------------------------------------------------------
 
-    private RunSubmissionDTO buildRunSubmissionDTO(String language, String code, List<JudgingCase> cases) {
-        RunSubmissionDTO runDto = new RunSubmissionDTO();
+    private JudgeRunRequest buildJudgeRunRequest(
+            String language, String code, List<JudgingCase> cases) {
+        JudgeRunRequest runDto = new JudgeRunRequest();
         runDto.setLanguage(language);
         runDto.setCode(code);
         runDto.setTestCases(cases.stream().map(tc -> {
-            RunSubmissionDTO.RunTestCase rtc = new RunSubmissionDTO.RunTestCase();
+            JudgeRunRequest.TestCase rtc = new JudgeRunRequest.TestCase();
             rtc.setId(tc.getId());
             rtc.setLabel(tc.getLabel());
             rtc.setOutput(tc.getOutputText());

@@ -1,6 +1,6 @@
 # 架构总览
 
-更新时间：2026-09-02。当前实现以源码、Maven POM、`application.yml`、Compose 和启动脚本为准；本页只提供稳定地图。
+更新时间：2026-09-04。当前实现以源码、Maven POM、`application.yml`、Compose 和启动脚本为准；本页只提供稳定地图。
 ## 当前结论
 
 UltiCode 已形成五个 Data Owner 与两个不持有业务表的 Worker：
@@ -16,8 +16,28 @@ UltiCode 已形成五个 Data Owner 与两个不持有业务表的 Worker：
 | Owner | `backend-notification` | 通知 Inbox、投递 ledger、邮件和重试 |
 | Worker | `backend-judge` | 消费 Judge Streams，执行沙箱，回写 Submission verdict |
 | Worker | `backend-search` | 消费 `SearchDocumentChanged`，维护 MeiliSearch 派生索引 |
+| Profile | `backend-core` | opt-in parent process; assembles Owner child contexts and does not own business tables |
 
 `judge-runtime` 是共享执行依赖，不是进程。Contract modules 在 `services/api/`；共享平台能力在 `services/platform/`。跨 Owner 通过 provider-owned contract 或 consumer-owned port 协作，不共享 Entity、Mapper 或业务 Service。
+
+授权写入的外部 `Seam` 是 Auth-owned `AuthorizationMutationService`：
+Admin 只提交单条 direct delta，角色编辑使用独立的 `RoleMutationService`。
+`AuthorizationSnapshotService` 仅服务读取，返回的 `PermissionEntry` 保留
+role/direct provenance 与 expiry。App `/run` 使用 App-private
+`InteractiveCodeRunner`，由 Adapter 映射到 Judge-owned `JudgeRunService`；
+同步 `execute` 保持现行 preview 路径，Judge provider 将 runtime validation
+failure 映射为 typed 400。异步 `submit/poll/cancel` 位于同一 Judge contract
+之后，runtime 以 `AsyncSandboxExecutor` 承载默认 Docker 与可选 Judge0 Adapter；
+Judge0 默认关闭且没有外部实例验证；async receipt 当前仅进程内有界，跨副本/
+重启 durable 幂等仍未完成。
+
+默认七进程 topology 仍保持为 distributed profile 与回滚路径；另有 opt-in
+`core` profile（Core 9108 + 独立 Judge）用于同进程 owner assembly 验证。
+Core 已通过显式扫描、多数据源/事务、readiness 和 judge-runtime classpath
+静态段测试；但 enabled Owner child assembly 的 exec-jar smoke 当前因同一
+classpath 的跨 Owner package leakage 在 bean wiring 阶段失败。完整 local
+Adapter parity、同进程业务路由、远端 Judge TLS 和生产性能/HA 仍未证明，
+不得切换默认或推断生产可用性。
 
 ## 运行拓扑
 
@@ -49,7 +69,7 @@ flowchart LR
 2. **单写者**：Submission 和 Notification 的持久化 writer 分别只在对应 Owner；App 只保留 Submission remote adapter、Notification intent 发布和 WebSocket relay。
 3. **单跳同步调用**：Admin 可调用 Auth/App/Notification 的一个 Provider；Provider 不为同一命令同步调用第三个 Provider。跨边界副作用使用 Outbox/Inbox/Streams。
 4. **本地事务**：强一致 invariant 留在一个 Owner 的 MySQL 事务内；Redis、SMTP、WebSocket、对象存储、搜索和审计使用 outbox、inbox、lease、fence 或补偿。
-5. **安全边界**：共享 `platform/web-security` 负责 JWT/JWKS、Cookie CSRF、委托断言和 replay guard；各 Owner 只保留路由与策略包装。访问令牌只来自 HttpOnly cookie；WebSocket 只接受 `access_token` cookie。
+5. **安全边界**：共享 `platform/web-security` 负责 JWT/JWKS、Cookie CSRF、委托断言和 replay guard；`platform/observability` 在 OTLP authorization 配置时 fail closed，拒绝非 HTTPS endpoint；各 Owner 只保留路由与策略包装。访问令牌只来自 HttpOnly cookie；WebSocket 只接受 `access_token` cookie。
 
 ## 查找入口
 

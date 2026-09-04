@@ -63,13 +63,14 @@ dev-admin bootstrap (经 Dubbo RPC) → pnpm install → PM2 服务 → 就绪�
 # 不自动 copy/revoke 数据。完成 runbook 观察并设置 SUBMISSION_CUTOVER_COMPLETE=true 后再启动。
 
 Scopes (the resolver is shared by up/stop/doctor):
-  dev-lite         六后端兼容默认 (DB search, no Meili, no frontend)
-  dev-full         九进程兼容全栈 (indexed Search + both frontends)
+  dev-lite         six backend compatibility default (DB search, no Meili, no frontend)
+  dev-full         nine-process compatibility full stack (indexed Search + both frontends)
   app-journey      Auth/App/Notification/Submission/Judge + Console
   admin            Auth/Admin/App/Notification/Submission + Management
   submission-judge App/Submission/Judge only
-  search           Auth/App/Search + Console + MeiliSearch
-  full-stack       九进程 + MeiliSearch; observability remains opt-in
+  core             Core single-process Owner assembly + independent Judge
+  search           Auth/App/Search + Console + Meili
+  full-stack       nine-process + MeiliSearch; observability remains opt-in
 
 Options:
   --scope <name>       select one named scope (defaults to dev-lite)
@@ -97,6 +98,7 @@ Examples:
   ./scripts/dev/up.sh --scope app-journey     # ordinary user journey
   ./scripts/dev/up.sh --scope admin            # admin API + management UI
   ./scripts/dev/up.sh --scope submission-judge # judge path without Search
+  ./scripts/dev/up.sh --scope core             # Core + independent Judge
   ./scripts/dev/up.sh --scope full-stack       # explicit Search/full process set
   ./scripts/dev/up.sh --scope full-stack --observability
   ./scripts/dev/up.sh status --scope app-journey
@@ -340,15 +342,6 @@ compose=(
   -f "$ROOT_DIR/docker-compose.yml"
   -f "$ROOT_DIR/docker-compose.dev.yml"
 )
-
-JUDGE_ENABLED=false
-[[ ",$PM2_APPS," == *,ulticode-judge,* ]] && JUDGE_ENABLED=true
-if [[ "$JUDGE_ENABLED" == true ]]; then
-  # The local Judge path is opt-in. Keep the host-socket overlay out of
-  # non-Judge scopes; explicit infra targets still prevent backend-judge from
-  # being created as a second worker.
-  compose+=(-f "$ROOT_DIR/docker-compose.judge-dev.yml" --profile judge-socket)
-fi
 
 INFRA_TARGETS=""
 if [[ "$FRONTEND_ONLY" != true ]]; then

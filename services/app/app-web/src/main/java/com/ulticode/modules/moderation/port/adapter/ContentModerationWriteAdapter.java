@@ -4,7 +4,7 @@ import com.ulticode.app.api.command.ApplyModerationCommand;
 import com.ulticode.app.api.command.ApplyModerationCommand.ModerationAction;
 import com.ulticode.app.api.dto.ContentLifecycleState;
 import com.ulticode.app.api.dto.ModerationApplyResultDTO;
-import com.ulticode.app.api.service.ForumOwnerPort;
+import com.ulticode.modules.forum.port.ForumOwnerPort;
 import com.ulticode.app.api.service.SolutionOwnerPort;
 import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.exception.BusinessException;

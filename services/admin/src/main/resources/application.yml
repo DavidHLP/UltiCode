@@ -14,13 +14,17 @@ spring:
       - org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://${ADMIN_DB_HOST}:${ADMIN_DB_PORT}/${ADMIN_DB_NAME}?useUnicode=true&characterEncoding=UTF-8&characterSetResults=utf8mb4&connectionCollation=utf8mb4_unicode_ci&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+    url: ${ADMIN_DB_URL:jdbc:mysql://${ADMIN_DB_HOST}:${ADMIN_DB_PORT}/${ADMIN_DB_NAME}?useUnicode=true&characterEncoding=UTF-8&characterSetResults=utf8mb4&connectionCollation=utf8mb4_unicode_ci&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&sslMode=${ADMIN_DB_SSL_MODE:REQUIRED}}
     username: ${ADMIN_DB_USER}
     password: ${ADMIN_DB_PASSWORD}
   # The Admin shell keeps shared Redis wiring for its own integrations; App-owned
   # queue/sandbox components are outside BackendAdminApplication's bounded scan.
   data:
     redis:
+      url: ${ADMIN_REDIS_URL:redis://${REDIS_USERNAME:}:${REDIS_PASSWORD:}@${REDIS_HOST:localhost}:${REDIS_PORT:26379}/${REDIS_DB:0}}
+      ssl:
+        enabled: ${ADMIN_REDIS_SSL_ENABLED:false}
+        bundle: ${ADMIN_REDIS_SSL_BUNDLE:}
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:26379}
       # Per-owner Redis ACL user (review 2026-08-25). Empty default keeps
@@ -90,10 +94,12 @@ management:
       application: ${spring.application.name}
   tracing:
     sampling:
-      probability: 1.0
+      probability: ${MANAGEMENT_TRACING_SAMPLING_PROBABILITY:1.0}
   otlp:
     tracing:
       endpoint: ${MANAGEMENT_OTLP_TRACING_ENDPOINT:http://localhost:4318/v1/traces}
+      headers:
+        Authorization: ${MANAGEMENT_OTLP_AUTHORIZATION:}
       timeout: 5s
 
 security:

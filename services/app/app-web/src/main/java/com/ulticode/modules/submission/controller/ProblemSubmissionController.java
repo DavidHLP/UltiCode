@@ -8,9 +8,9 @@ import com.ulticode.common.response.PaginationRequest;
 import com.ulticode.common.response.Result;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.submission.api.dto.CreateSubmissionDTO;
-import com.ulticode.app.api.dto.RunResultDTO;
-import com.ulticode.app.api.dto.RunSubmissionDTO;
-import com.ulticode.app.api.service.CodeExecutionPort;
+import com.ulticode.modules.submission.controller.RunResultDTO;
+import com.ulticode.modules.submission.controller.RunSubmissionDTO;
+import com.ulticode.modules.submission.port.InteractiveCodeRunner;
 import com.ulticode.submission.api.dto.SubmissionListItemVO;
 import com.ulticode.submission.api.dto.SubmissionQueryDTO;
 import com.ulticode.submission.api.dto.SubmissionVO;
@@ -36,7 +36,7 @@ public class ProblemSubmissionController {
 
     private final SubmissionUserQueryPort submissionUserQuery;
     private final SubmissionIntakePort submissionWritePort;
-    private final CodeExecutionPort codeExecutionPort;
+    private final InteractiveCodeRunner codeExecutionPort;
     private final Validator validator;
     private final CurrentUserProvider currentUserProvider;
 
@@ -163,7 +163,7 @@ public class ProblemSubmissionController {
             @Valid @RequestBody RunSubmissionDTO runDTO) {
 
         String userId = currentUserProvider.getCurrentUserId();
-        RunResultDTO result = codeExecutionPort.execute(runDTO, problemId, userId);
+        RunResultDTO result = codeExecutionPort.run(runDTO, problemId, userId);
         return Result.success(result);
     }
 }

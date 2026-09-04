@@ -12,15 +12,19 @@ The overlay is opt-in. It keeps Prometheus, Alertmanager, Grafana, Tempo, Loki,
 and the OpenTelemetry Collector off by default and binds their host ports to
 loopback.
 
+For the supported host-PM2 path, start the selected journey with the
+observability profile and make the owner processes use the host-published
+Collector ports:
+
 ```bash
-mkdir -p .local/observability/logs
-MANAGEMENT_OTLP_TRACING_ENDPOINT=http://otel-collector:4318/v1/traces \
+MANAGEMENT_OTLP_TRACING_ENDPOINT=http://127.0.0.1:4318/v1/traces \
 MANAGEMENT_OTLP_METRICS_ENABLED=true \
-MANAGEMENT_OTLP_METRICS_ENDPOINT=http://otel-collector:4318/v1/metrics \
-GRAFANA_ADMIN_PASSWORD="$GRAFANA_ADMIN_PASSWORD" \
-docker compose -f docker-compose.yml -f docker-compose.dev.yml \
-  -f docker-compose.observability.yml --profile observability up -d
+MANAGEMENT_OTLP_METRICS_ENDPOINT=http://127.0.0.1:4318/v1/metrics \
+./scripts/dev/up.sh --scope full-stack --observability
 ```
+
+For a containerized owner deployment, use the deployment-owned Compose files
+instead. Do not pass the Docker-only `otel-collector` hostname to host PM2.
 
 The production invocation uses `docker-compose.prod.yml` and all of its
 required owner/registry/TLS/image-ref variables. Do not put the Grafana
@@ -28,7 +32,9 @@ password or a production webhook in this repository.
 
 Endpoints are `http://127.0.0.1:9090` (Prometheus),
 `http://127.0.0.1:9093` (Alertmanager), `http://127.0.0.1:3000` (Grafana),
-and OTLP on loopback `4317/4318`. Prometheus scrapes owner Actuator endpoints;
+and OTLP on loopback `4317/4318`. The Prometheus config contains both
+host-PM2 targets (`host.docker.internal`) and Compose-network targets
+(`backend-*`); the active owner deployment supplies the reachable set.
 Search and Judge emit Micrometer metrics over OTLP because they intentionally
 have no HTTP surface. The Collector exposes those metrics at `:9464` for the
 Prometheus scrape.

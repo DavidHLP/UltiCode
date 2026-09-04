@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.ulticode</groupId>
+        <artifactId>ulticode-backend</artifactId>
+        <version>${revision}</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>backend-core</artifactId>
+    <name>UltiCode Backend (Core profile)</name>
+    <description>Single-process Core module assembly with isolated Owner child contexts and independent Judge.</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.ulticode</groupId>
+            <artifactId>backend-common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.ulticode</groupId>
+            <artifactId>backend-observability</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.ulticode</groupId>
+            <artifactId>backend-web-security</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.ulticode</groupId>
+            <artifactId>backend-auth</artifactId>
+            <version>${service.version.auth}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-jdbc</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
+            <version>${mybatis-plus.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.ulticode</groupId>
+            <artifactId>backend-admin</artifactId>
+            <version>${service.version.admin}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.ulticode</groupId>
+            <artifactId>backend-app-web</artifactId>
+            <version>${service.version.app}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.ulticode</groupId>
+            <artifactId>backend-submission</artifactId>
+            <version>${service.version.submission}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.ulticode</groupId>
+            <artifactId>backend-notification</artifactId>
+            <version>${service.version.notification}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.ulticode</groupId>
+            <artifactId>backend-search</artifactId>
+            <version>${service.version.search}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <finalName>core</finalName>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <mainClass>com.ulticode.core.CoreApplication</mainClass>
+                    <classifier>exec</classifier>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine>-Djdk.attach.allowAttachSelf=true</argLine>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

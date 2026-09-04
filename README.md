@@ -19,6 +19,13 @@ UltiCode 是一个全栈在线编程平台，提供题库、竞赛、在线评�
 
 前置条件：Docker Compose v2、mise、Node.js `^20.19.0 || >=22.12.0`、pnpm 10+、PM2，以及 `curl`、`timeout`、`openssl`。后端启动由仓库内 `services/mvnw` 和 mise 管理的 Zulu Java 17 执行。
 
+贡献者也可以直接使用 Dev Containers/Codespaces；创建容器只安装依赖，
+随后默认执行 unit 验证，不自动启动全栈：
+
+```bash
+./ulticode doctor --json
+```
+
 ```bash
 ./scripts/dev/init-env.sh
 ./scripts/dev/up.sh --mode dev-lite
@@ -37,6 +44,16 @@ UltiCode 是一个全栈在线编程平台，提供题库、竞赛、在线评�
 ```bash
 ./scripts/dev/up.sh --mode dev-full
 ```
+
+Core 收敛试点使用显式 scope，保持 Judge 独立进程：
+
+```bash
+./scripts/dev/up.sh --scope core
+./scripts/dev/test.sh core
+```
+
+Core parent 监听 `9108`，readiness 为 `/api/v1/core/health/ready`；该 profile
+当前用于 owner assembly 和边界验证，尚未替代默认 distributed topology。
 
 当前版本不再支持 `legacy-rollback`；`up.sh` 对该旧模式和未知 mode fail closed。生产回滚只能使用部署方保留并校验的上一份完整 release descriptor，不能通过当前二进制恢复旧实现（见[部署、发布与回滚](docs/operations/deployment.md)）。
 

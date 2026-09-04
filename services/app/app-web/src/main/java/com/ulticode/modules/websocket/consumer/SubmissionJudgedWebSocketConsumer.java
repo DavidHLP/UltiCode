@@ -1,7 +1,7 @@
 package com.ulticode.modules.websocket.consumer;
 
 import com.ulticode.submission.api.dto.SubmissionResultPayload;
-import com.ulticode.app.api.service.SubmissionResultPushPort;
+import com.ulticode.modules.websocket.port.SubmissionResultPushPort;
 import com.ulticode.domain.submission.enums.SubmissionStatus;
 import com.ulticode.modules.submission.codec.SubmissionStatusCodec;
 import lombok.RequiredArgsConstructor;

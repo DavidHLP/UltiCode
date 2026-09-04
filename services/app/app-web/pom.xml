@@ -34,6 +34,10 @@
 		</dependency>
 		<dependency>
 			<groupId>com.ulticode</groupId>
+			<artifactId>backend-observability</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.ulticode</groupId>
 			<artifactId>backend-rpc-resilience</artifactId>
 		</dependency>
 		<dependency>
@@ -64,6 +68,10 @@
 			<artifactId>backend-judge</artifactId>
 			<version>${service.version.judge}</version>
 			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.ulticode</groupId>
+			<artifactId>backend-judge-api</artifactId>
 		</dependency>
 		<!-- P7-SEARCH-RELOCATE-001: full-text search backend (optional, gated by meilisearch.enabled). -->
 		<dependency>

@@ -93,8 +93,7 @@ public class OwnerUserSearchReadAdapter implements UserDirectoryQueryPort {
         long total = usernameMatchCount(query);
         long profileTotal = profileReadMapper.countSearchCandidates(query);
         for (long offset = 0; offset < profileTotal;) {
-            List<UserProfileReadRow> candidates = profileReadMapper.findSearchCandidates(
-                    query, Math.toIntExact(offset), ACCOUNT_PAGE_SIZE);
+            List<UserProfileReadRow> candidates = profileReadMapper.findSearchCandidatesPage(query, Math.toIntExact(offset), ACCOUNT_PAGE_SIZE);
             if (candidates == null || candidates.isEmpty()) {
                 break;
             }
@@ -365,8 +364,7 @@ public class OwnerUserSearchReadAdapter implements UserDirectoryQueryPort {
 
         @Override
         protected PageBatch loadPage() {
-            List<UserProfileReadRow> candidates = profileReadMapper.findSearchCandidates(
-                    query, offset, ACCOUNT_PAGE_SIZE);
+            List<UserProfileReadRow> candidates = profileReadMapper.findSearchCandidatesPage(query, offset, ACCOUNT_PAGE_SIZE);
             if (candidates == null || candidates.isEmpty()) {
                 return new PageBatch(List.of(), true);
             }

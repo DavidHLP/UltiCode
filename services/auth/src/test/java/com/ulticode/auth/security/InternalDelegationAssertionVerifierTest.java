@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.ulticode.auth.api.command.ActorDelegation;
 import com.ulticode.common.security.DelegationAssertionContract;
+import com.ulticode.common.security.LocalDelegationAssertionContext;
 import io.jsonwebtoken.Jwts;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -53,6 +54,20 @@ class InternalDelegationAssertionVerifierTest {
         putAssertion(ACTOR_ID, Instant.now().plusSeconds(20), "backend-auth");
 
         assertThat(verifier.isTrusted(actor("ADMIN", ACTOR_ID))).isTrue();
+    }
+
+    @Test
+    void acceptsScopedAssertionWhenDubboAttachmentIsAbsent() {
+        putAssertion(ACTOR_ID, Instant.now().plusSeconds(20), "backend-auth");
+        String assertion = RpcContext.getServerAttachment().getAttachment(
+                DelegationAssertionContract.ATTACHMENT_KEY);
+        RpcContext.getServerAttachment().removeAttachment(
+                DelegationAssertionContract.ATTACHMENT_KEY);
+
+        try (LocalDelegationAssertionContext.Scope ignored =
+                     LocalDelegationAssertionContext.install(assertion)) {
+            assertThat(verifier.isTrusted(actor("ADMIN", ACTOR_ID))).isTrue();
+        }
     }
 
     @Test

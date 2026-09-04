@@ -1,8 +1,8 @@
 package com.ulticode.modules.submission.sandbox.executor;
 
 import com.ulticode.modules.submission.config.DockerSandboxConfig;
-import com.ulticode.app.api.dto.RunResultDTO;
-import com.ulticode.app.api.dto.RunSubmissionDTO;
+import com.ulticode.modules.submission.runtime.JudgeRunResponse;
+import com.ulticode.modules.submission.runtime.JudgeRunRequest;
 import com.ulticode.domain.submission.enums.SubmissionStatus;
 import com.ulticode.modules.submission.sandbox.BatchRunResult;
 import com.ulticode.modules.submission.sandbox.LanguageProfile;
@@ -200,10 +200,10 @@ public class SandboxExecutorImpl implements SandboxExecutor {
 
             // Happy path: parse the harness envelope into one
             // RunCaseResult per case. Translate at the DTO boundary.
-            List<RunSubmissionDTO.RunTestCase> runCases = cases.stream()
+            List<JudgeRunRequest.TestCase> runCases = cases.stream()
                     .map(resultTranslator::toRunTestCase)
                     .toList();
-            List<RunResultDTO.RunCaseResult> parsedDto = dFormEnvelopeCodec.parseDEnvelope(
+            List<JudgeRunResponse.RunCaseResult> parsedDto = dFormEnvelopeCodec.parseDEnvelope(
                     outcome.stdout(), runCases, job.runId(), job.userId());
             // F3: zip with the original port-owned cases so each
             // toPortResult call can preserve the original input
@@ -274,7 +274,7 @@ public class SandboxExecutorImpl implements SandboxExecutor {
             // The pre-existing CodeExecutionHelper still speaks
             // RunSubmissionDTO.RunTestCase; we map at the boundary so
             // the sandbox port stays decoupled from the DTO package.
-            List<RunSubmissionDTO.RunTestCase> runCases = cases.stream()
+            List<JudgeRunRequest.TestCase> runCases = cases.stream()
                     .map(resultTranslator::toRunTestCase)
                     .toList();
             String inputJson = runCases.size() == 1

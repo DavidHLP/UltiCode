@@ -52,6 +52,7 @@ implementation_artifacts=(
   backend-rpc-resilience backend-judge-config backend-problem-domain
   backend-contest-domain backend-submission-domain backend-moderation-domain
   backend-integration-inbox backend-judge-runtime backend-web-security
+  backend-observability
   backend-app-web
 )
 
@@ -86,12 +87,6 @@ for source in root.rglob("*.java"):
             raise SystemExit(
                 f"{source} imports or exposes forbidden Submission implementation seam: {name}"
             )
-allowed = root / "com/ulticode/app/api/service/SubmissionResultPushPort.java"
-if not allowed.is_file():
-    raise SystemExit("app-api is missing the documented Submission result push seam: SubmissionResultPushPort")
-allowed_text = allowed.read_text(encoding="utf-8")
-if "SubmissionResultPushPort" not in allowed_text or "SubmissionResultPayload" not in allowed_text:
-    raise SystemExit("app-api is missing the documented Submission result push seam")
 print("app-api Submission seam boundary: PASS")
 PY
 
@@ -133,6 +128,22 @@ source_root = Path(sys.argv[1])
 catalog = Path(sys.argv[2]).read_text(encoding="utf-8")
 internal_root = Path(sys.argv[3])
 internalized = {
+    "AchievementBadgeReadPort": "achievement/port/AchievementBadgeReadPort.java",
+    "BookmarkReadPort": "bookmark/port/BookmarkReadPort.java",
+    "FollowCountPort": "follow/port/FollowCountPort.java",
+    "FollowEventPublisher": "follow/port/FollowEventPublisher.java",
+    "ForumCommentOwnerPort": "forum/port/ForumCommentOwnerPort.java",
+    "ForumOwnerPort": "forum/port/ForumOwnerPort.java",
+    "ForumPostReadPort": "forum/port/ForumPostReadPort.java",
+    "ForumVoteReadPort": "forum/port/ForumVoteReadPort.java",
+    "ModerationAccountPort": "moderation/port/ModerationAccountPort.java",
+    "ModerationContentActionPort": "moderation/port/ModerationContentActionPort.java",
+    "ProblemExistencePort": "problem/port/ProblemExistencePort.java",
+    "ProblemTagReadPort": "solution/port/ProblemTagReadPort.java",
+    "SolutionVoteReadPort": "solution/port/SolutionVoteReadPort.java",
+    "SubmissionResultPushPort": "websocket/port/SubmissionResultPushPort.java",
+    "UserReadPort": "user/port/UserReadPort.java",
+    "UserSearchReadPort": "search/port/UserSearchReadPort.java",
     "ContestAchievementPort": "achievement/port/ContestAchievementPort.java",
     "ContestNotificationPort": "notification/port/ContestNotificationPort.java",
     "ContestRankingMarkDirtyPort": "websocket/port/ContestRankingMarkDirtyPort.java",

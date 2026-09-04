@@ -8,6 +8,7 @@ import com.ulticode.auth.api.dto.AccountMutationDTO;
 import com.ulticode.auth.api.error.AuthErrorCode;
 import com.ulticode.auth.idempotency.entity.AuthCommandReceiptEntity;
 import com.ulticode.auth.idempotency.mapper.AuthCommandReceiptMapper;
+import com.ulticode.auth.security.InternalDelegationAssertionVerifier;
 import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
@@ -16,6 +17,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -29,6 +31,8 @@ import java.nio.file.Path;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 @SpringBootTest
 @Testcontainers
@@ -54,11 +58,15 @@ class AccountManagementTransactionalIT {
     @Autowired
     private AuthCommandReceiptMapper receiptMapper;
 
+    @MockBean
+    private InternalDelegationAssertionVerifier delegationVerifier;
+
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
     @BeforeEach
     void setUpDatabaseSchemaAndData() throws IOException {
+        when(delegationVerifier.isTrusted(any())).thenReturn(true);
         jdbcTemplate.execute("DROP TABLE IF EXISTS search_document_changed_outbox");
         jdbcTemplate.execute("DROP TABLE IF EXISTS auth_command_receipt");
         jdbcTemplate.execute("DROP TABLE IF EXISTS users");

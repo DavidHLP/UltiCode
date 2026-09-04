@@ -43,6 +43,43 @@ grep -Fq 'JWT_COOKIE_SECURE=true' "$ROOT_DIR/docker-compose.prod.yml"
 grep -Fq 'CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:?CORS_ALLOWED_ORIGINS is required for production}' "$ROOT_DIR/docker-compose.prod.yml"
 grep -Fq 'FRONTEND_URL=${FRONTEND_URL:?FRONTEND_URL is required for production}' "$ROOT_DIR/docker-compose.prod.yml"
 grep -Fq 'JWT_JWKS_URI=https://backend-auth:9101/auth/jwks' "$ROOT_DIR/docker-compose.prod.yml"
+for config in \
+  services/auth/src/main/resources/application.yml \
+  services/admin/src/main/resources/application.yml \
+  services/app/app-web/src/main/resources/application.yml \
+  services/submission/src/main/resources/application.yml \
+  services/notification/src/main/resources/application.yml; do
+  grep -Fq 'sslMode=${' "$ROOT_DIR/$config"
+  grep -Fq 'DB_URL:' "$ROOT_DIR/$config"
+done
+for prefix in AUTH ADMIN APP SUBMISSION NOTIFICATION; do
+  grep -Fq "${prefix}_DB_SSL_MODE:-VERIFY_IDENTITY" "$ROOT_DIR/docker-compose.prod.yml"
+done
+for spec in \
+  "services/auth/src/main/resources/application.yml AUTH" \
+  "services/admin/src/main/resources/application.yml ADMIN" \
+  "services/app/app-web/src/main/resources/application.yml APP" \
+  "services/submission/src/main/resources/application.yml SUBMISSION" \
+  "services/notification/src/main/resources/application.yml NOTIFICATION" \
+  "services/search/src/main/resources/application.yml SEARCH" \
+  "services/judge/src/main/resources/application.yml JUDGE"; do
+  read -r config prefix <<< "$spec"
+  url_key="url: \${${prefix}_REDIS_URL:"
+  enabled_key="enabled: \${${prefix}_REDIS_SSL_ENABLED:false}"
+  bundle_key="bundle: \${${prefix}_REDIS_SSL_BUNDLE:"
+  grep -Fq "$url_key" "$ROOT_DIR/$config"
+  grep -Fq "$enabled_key" "$ROOT_DIR/$config"
+  grep -Fq "$bundle_key" "$ROOT_DIR/$config"
+done
+grep -Fq 'address: "${AUTH_REDIS_URL:' "$ROOT_DIR/services/auth/src/main/resources/application.yml"
+grep -Fq 'sslEnableEndpointIdentification:' "$ROOT_DIR/services/auth/src/main/resources/application.yml"
+grep -Fq 'AUTH_REDIS_SSL_TRUSTSTORE=${AUTH_REDIS_SSL_TRUSTSTORE:-}' "$ROOT_DIR/docker-compose.prod.yml"
+grep -Fq 'AUTH_REDIS_SSL_TRUSTSTORE_PASSWORD=${AUTH_REDIS_SSL_TRUSTSTORE_PASSWORD:-}' "$ROOT_DIR/docker-compose.prod.yml"
+grep -Fq 'sslTruststore:' "$ROOT_DIR/services/auth/src/main/resources/application.yml"
+grep -Fq 'sslTruststorePassword:' "$ROOT_DIR/services/auth/src/main/resources/application.yml"
+printf 'managed MySQL/Redis URL, TLS, CA-bundle, and hostname-verification bindings: PASS\n'
+! grep -Fq '${REDIS_URL' "$ROOT_DIR/docker-compose.prod.yml"
+! grep -Fq '#REDIS_URL=' "$ROOT_DIR/.env.example"
 ! grep -Fq 'docker/redis/users.acl' "$ROOT_DIR/docker-compose.prod.yml"
 printf 'TLS certificate mount, HTTPS listener, HSTS, cookie, and JWKS static contract: PASS\n'
 

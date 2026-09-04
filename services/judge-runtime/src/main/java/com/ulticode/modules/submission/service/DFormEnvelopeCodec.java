@@ -1,7 +1,7 @@
 package com.ulticode.modules.submission.service;
 
-import com.ulticode.app.api.dto.RunResultDTO;
-import com.ulticode.app.api.dto.RunSubmissionDTO;
+import com.ulticode.modules.submission.runtime.JudgeRunResponse;
+import com.ulticode.modules.submission.runtime.JudgeRunRequest;
 
 import java.util.List;
 
@@ -44,7 +44,7 @@ public interface DFormEnvelopeCodec {
      *                          enforces via docker {@code --memory}).
      * @return JSON-encoded payload string for {@code /job/input.json}
      */
-    String buildDInputsJson(RunSubmissionDTO.RunTestCase testCase,
+    String buildDInputsJson(JudgeRunRequest.TestCase testCase,
                             long perCaseTimeoutMs, long memoryLimitBytes);
 
     /**
@@ -56,12 +56,12 @@ public interface DFormEnvelopeCodec {
      * @param memoryLimitBytes  per-case memory ceiling
      * @return JSON-encoded payload string for {@code /job/input.json}
      */
-    String buildDBatchInputsJson(List<RunSubmissionDTO.RunTestCase> testCases,
+    String buildDBatchInputsJson(List<JudgeRunRequest.TestCase> testCases,
                                  long perCaseTimeoutMs, long memoryLimitBytes);
 
     /**
      * Parse the JSON envelope the harness wrote to stdout. Returns one
-     * {@link RunResultDTO.RunCaseResult} per test case (in the same order
+     * {@link JudgeRunResponse.RunCaseResult} per test case (in the same order
      * as {@code testCases}). On envelope parse failure, returns one
      * Runtime Error per test case so the caller still gets a
      * well-formed list back.
@@ -73,7 +73,7 @@ public interface DFormEnvelopeCodec {
      * @param userId     user id stamped on each per-case result
      * @return list of per-case results, one per test case
      */
-    List<RunResultDTO.RunCaseResult> parseDEnvelope(String stdout,
-                                                     List<RunSubmissionDTO.RunTestCase> testCases,
+    List<JudgeRunResponse.RunCaseResult> parseDEnvelope(String stdout,
+                                                     List<JudgeRunRequest.TestCase> testCases,
                                                      String runId, String userId);
 }

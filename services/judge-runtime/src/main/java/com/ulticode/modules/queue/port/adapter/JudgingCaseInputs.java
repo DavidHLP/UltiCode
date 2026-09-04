@@ -3,7 +3,7 @@ package com.ulticode.modules.queue.port.adapter;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ulticode.app.api.dto.RunSubmissionDTO;
+import com.ulticode.modules.submission.runtime.JudgeRunRequest;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
@@ -27,16 +27,16 @@ public final class JudgingCaseInputs {
      * back to wrapping inputText as a single input if JSON is absent or
      * malformed.
      */
-    public static List<RunSubmissionDTO.RunInput> parse(
+    public static List<JudgeRunRequest.Input> parse(
             ObjectMapper objectMapper, String inputsJson, String inputText, Object entityId) {
-        List<RunSubmissionDTO.RunInput> runInputs = new ArrayList<>();
+        List<JudgeRunRequest.Input> runInputs = new ArrayList<>();
         if (inputsJson != null && !inputsJson.isBlank()) {
             try {
                 List<Map<String, Object>> inputs = objectMapper.readValue(
                         inputsJson, new TypeReference<List<Map<String, Object>>>() {});
                 for (int i = 0; i < inputs.size(); i++) {
                     Map<String, Object> item = inputs.get(i);
-                    RunSubmissionDTO.RunInput ri = new RunSubmissionDTO.RunInput();
+                    JudgeRunRequest.Input ri = new JudgeRunRequest.Input();
                     ri.setId(String.valueOf(i));
                     Object nameObj = item.get("name");
                     Object labelObj = item.get("label");
@@ -56,7 +56,7 @@ public final class JudgingCaseInputs {
             }
         }
         if (runInputs.isEmpty() && inputText != null) {
-            RunSubmissionDTO.RunInput ri = new RunSubmissionDTO.RunInput();
+            JudgeRunRequest.Input ri = new JudgeRunRequest.Input();
             ri.setId("0");
             ri.setLabel("input");
             ri.setName("input");

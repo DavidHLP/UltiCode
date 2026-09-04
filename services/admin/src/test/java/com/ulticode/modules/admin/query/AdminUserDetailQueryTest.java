@@ -312,7 +312,7 @@ class AdminUserDetailQueryTest {
     @Test
     @DisplayName("caller interruption cancels optional calls and exposes interrupt reason")
     void callerInterruptIsObservable() throws InterruptedException {
-        stubHealthyDetail();
+        when(userEnricher.findAccountAuthoritatively("user-123")).thenReturn(account());
         CountDownLatch started = new CountDownLatch(1);
         CountDownLatch interrupted = new CountDownLatch(1);
         when(submissionStatsReadPort.loadUserDetailStats("user-123"))

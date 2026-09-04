@@ -8,9 +8,9 @@ import java.util.Map;
  * {@code edge_operations} table for forum-post vote counts, without
  * importing {@code EdgeOperationMapper} directly.
  *
- * <p>Mirrors {@link SolutionVoteReadPort}: the port is forum-post-scoped —
- * the {@code target_type = 'FORUM_POST'} filter is owned by the adapter in
- * the vote module, never threaded through the seam as a String.
+ * <p>The solution vote implementation follows the same typed port shape:
+ * the target-type filter is owned by each App-private adapter and never
+ * threaded through this seam as a String.
  *
  * @author ulticode
  */

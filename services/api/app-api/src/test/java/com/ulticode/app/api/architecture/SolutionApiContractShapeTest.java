@@ -5,7 +5,6 @@ import com.ulticode.app.api.service.SolutionCommentOwnerPort;
 import com.ulticode.app.api.service.SolutionCommentReadPort;
 import com.ulticode.app.api.service.SolutionOwnerPort;
 import com.ulticode.app.api.service.SolutionReadPort;
-import com.ulticode.app.api.service.SolutionVoteReadPort;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Method;
@@ -22,8 +21,7 @@ class SolutionApiContractShapeTest {
             SolutionCommentReadPort.class,
             SolutionOwnerPort.class,
             SolutionCommentOwnerPort.class,
-            SolutionReadPort.class,
-            SolutionVoteReadPort.class);
+            SolutionReadPort.class);
 
     @Test
     void contracts_are_entity_free_and_expose_typed_solution_seams() {

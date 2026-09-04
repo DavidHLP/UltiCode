@@ -8,7 +8,7 @@ import com.ulticode.modules.queue.pipeline.JudgeTestCaseDetailCodec;
 import com.ulticode.submission.api.queue.JudgeJobHandle;
 import com.ulticode.submission.api.queue.JudgeJobEnvelope;
 import com.ulticode.submission.api.queue.JudgeQueue;
-import com.ulticode.app.api.service.JudgeFeatureFlagsPort;
+import com.ulticode.modules.submission.port.JudgeFeatureFlagsPort;
 import com.ulticode.domain.submission.enums.SubmissionStatus;
 import com.ulticode.submission.api.service.SubmissionFencePort;
 import com.ulticode.submission.api.service.SubmissionVerdictWritePort;

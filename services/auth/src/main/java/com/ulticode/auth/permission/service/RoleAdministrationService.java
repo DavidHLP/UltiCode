@@ -5,10 +5,9 @@ import java.time.LocalDateTime;
 /**
  * P2-RBAC-001 owner-only write surface for the Auth-owned
  * {@code users.role} / {@code user_permissions} tables.
- *
- * <p>The HTTP compatibility adapter and the Dubbo administration workflow
- * both terminate at Auth-owned services; neither caller receives persistence
- * entities or mapper types.</p>
+ * <p>The HTTP compatibility Adapter delegates to the same receipt-backed
+ * Auth mutation workflows used by the cross-process Providers; it does not
+ * own a second persistence write path.</p>
  */
 
 public interface RoleAdministrationService {

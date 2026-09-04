@@ -2,9 +2,9 @@ package com.ulticode;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.ulticode.app.api.event.FollowEventPublisher;
-import com.ulticode.app.api.service.BookmarkReadPort;
-import com.ulticode.app.api.service.FollowCountPort;
+import com.ulticode.modules.follow.port.FollowEventPublisher;
+import com.ulticode.modules.bookmark.port.BookmarkReadPort;
+import com.ulticode.modules.follow.port.FollowCountPort;
 import com.ulticode.app.api.service.SubscriptionReadPort;
 import com.ulticode.app.i18n.service.I18nService;
 import com.ulticode.app.security.AppTestSecurityConfig;
@@ -53,7 +53,7 @@ class BackendAppApplicationTest {
 
 
     @Autowired
-    private com.ulticode.app.api.service.JudgeFeatureFlagsPort judgeFeatureFlagsPort;
+    private com.ulticode.modules.submission.port.JudgeFeatureFlagsPort judgeFeatureFlagsPort;
 
     @Autowired
     private com.ulticode.common.audit.AuditSinkPort auditSinkPort;
@@ -106,7 +106,7 @@ class BackendAppApplicationTest {
     private com.ulticode.modules.solution.mapper.SolutionCommentMapper solutionCommentMapper;
 
     @MockBean
-    private com.ulticode.app.api.service.ProblemExistencePort problemExistencePort;
+    private com.ulticode.modules.problem.port.ProblemExistencePort problemExistencePort;
 
     @MockBean
     private com.ulticode.app.api.service.SolutionOwnerPort solutionOwnerPort;
@@ -115,13 +115,13 @@ class BackendAppApplicationTest {
     private com.ulticode.app.api.service.SolutionCommentOwnerPort solutionCommentOwnerPort;
 
     @MockBean
-    private com.ulticode.app.api.service.AchievementBadgeReadPort achievementBadgeReadPort;
+    private com.ulticode.modules.achievement.port.AchievementBadgeReadPort achievementBadgeReadPort;
 
     @MockBean
-    private com.ulticode.app.api.service.ProblemTagReadPort problemTagReadPort;
+    private com.ulticode.modules.solution.port.ProblemTagReadPort problemTagReadPort;
 
     @MockBean
-    private com.ulticode.app.api.service.SolutionVoteReadPort solutionVoteReadPort;
+    private com.ulticode.modules.solution.port.SolutionVoteReadPort solutionVoteReadPort;
 
     @MockBean
     private com.ulticode.modules.solution.port.SolutionUserReadPort solutionUserReadPort;
@@ -180,10 +180,10 @@ class BackendAppApplicationTest {
     private com.ulticode.modules.forum.mapper.ForumUserMapper forumUserMapper;
 
     @MockBean
-    private com.ulticode.app.api.service.ForumVoteReadPort forumVoteReadPort;
+    private com.ulticode.modules.forum.port.ForumVoteReadPort forumVoteReadPort;
 
     @MockBean
-    private com.ulticode.app.api.service.ForumPostReadPort forumPostReadPort;
+    private com.ulticode.modules.forum.port.ForumPostReadPort forumPostReadPort;
 
     // ==================== Submission family (P7-RELOCATE-SUBMISSION-001) ====================
 
@@ -203,7 +203,7 @@ class BackendAppApplicationTest {
     @MockBean
     private com.ulticode.app.api.service.SubmissionUserReadPort submissionUserReadPort;
     @MockBean
-    private com.ulticode.app.api.service.CodeExecutionPort codeExecutionPort;
+    private com.ulticode.modules.submission.port.InteractiveCodeRunner codeExecutionPort;
     @MockBean
     private com.ulticode.submission.api.service.SubmissionReadPort submissionReadPort;
     @MockBean
@@ -252,7 +252,7 @@ class BackendAppApplicationTest {
     @MockBean
     private com.ulticode.app.api.service.ProblemAnalyticsReadPort problemAnalyticsReadPort;
     @MockBean
-    private com.ulticode.app.api.service.JudgingLanguageSupport problemJudgingLanguageSupport;
+    private com.ulticode.modules.problem.port.ProblemLanguageCatalog problemJudgingLanguageSupport;
     // P7-RELOCATE-CONTEST-001: contest mappers + app-api ports
     @MockBean private com.ulticode.modules.contest.mapper.ContestMapper contestMapper;
     @MockBean private com.ulticode.modules.contest.mapper.ContestAnnouncementMapper contestAnnouncementMapper;
@@ -285,14 +285,14 @@ class BackendAppApplicationTest {
     @MockBean(name = "emailQueue") private org.redisson.api.RQueue<Object> emailQueueBean;
     @MockBean(name = "notificationQueue") private org.redisson.api.RQueue<Object> notificationQueueBean;
     @MockBean private org.springframework.data.redis.core.RedisTemplate<String, Object> redisTemplate;
-    @MockBean private com.ulticode.app.api.service.SubmissionResultPushPort submissionResultPushPort;
+    @MockBean private com.ulticode.modules.websocket.port.SubmissionResultPushPort submissionResultPushPort;
     @MockBean private com.ulticode.modules.moderation.port.ModerationUserReadPort moderationUserReadPort;
-    @MockBean private com.ulticode.app.api.service.ModerationAccountPort moderationAccountPort;
-    @MockBean private com.ulticode.app.api.service.ModerationContentActionPort moderationContentActionPort;
+    @MockBean private com.ulticode.modules.moderation.port.ModerationAccountPort moderationAccountPort;
+    @MockBean private com.ulticode.modules.moderation.port.ModerationContentActionPort moderationContentActionPort;
     // P7-INFRA-S4: achievement (notification delivery is owned by backend-notification)
     @MockBean private com.ulticode.modules.achievement.mapper.AchievementMapper achievementMapper;
     @MockBean private com.ulticode.modules.achievement.mapper.UserAchievementMapper userAchievementMapper;
-    @MockBean private com.ulticode.app.api.service.UserReadPort userReadPortBean;
+    @MockBean private com.ulticode.modules.user.port.UserReadPort userReadPortBean;
     @MockBean private com.ulticode.modules.notification.port.NotificationPushPort notificationPushPortBean;
     @MockBean private com.ulticode.modules.achievement.port.BadgePushPort badgePushPortBean;
     // P7-RELOCATE-WEBSOCKET-001

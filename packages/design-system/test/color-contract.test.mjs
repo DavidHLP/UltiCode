@@ -103,8 +103,9 @@ test("re-exports the runtime palette bridge from the package entry", () => {
 
 const SCAN_EXTENSIONS = /\.(ts|tsx|vue|js|mjs|jsx|glsl|css|svg)$/;
 const TEST_FILE = /\.(test|spec)\.[cm]?[jt]sx?$/;
-// Third-party bundles and generated output are out of contract scope.
-const EXCLUDED_SEGMENTS = ["node_modules", "dist", "__tests__", "vendor"];
+// Third-party bundles and generated output are out of contract scope
+// (coverage/lcov reports are tooling output, never first-party source).
+const EXCLUDED_SEGMENTS = ["node_modules", "dist", "coverage", "__tests__", "vendor"];
 
 const HEX_RE = /#[0-9a-fA-F]{3,4}\b|#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{8}\b/g;
 const NUM_HEX_RE = /\b0x[0-9a-fA-F]{6}\b/g;

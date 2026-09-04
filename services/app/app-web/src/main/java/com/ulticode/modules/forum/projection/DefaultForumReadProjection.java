@@ -49,7 +49,7 @@ import java.util.stream.Collectors;
  * <p>P7-RELOCATE-FORUM-001: {@code User} replaced with
  * {@link ForumUserReadPort.UserSummary}; dead {@code VoteService} field
  * removed (vote state is enriched in {@link ForumPostProjection} via
- * {@link com.ulticode.app.api.service.ForumVoteReadPort}).
+ * {@link com.ulticode.modules.forum.port.ForumVoteReadPort}).
  *
  * @author ulticode
  */

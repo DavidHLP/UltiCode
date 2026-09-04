@@ -45,6 +45,11 @@ public interface AuthAccountMapper {
     /** Atomically advance the authorization version after a direct permission change. */
     @Update("UPDATE users SET authz_version = authz_version + 1 WHERE id = #{id} AND is_deleted = 0")
     int bumpAuthzVersion(@Param("id") String id);
+    /** Atomically increment authzVersion only for the expected account version. */
+    @Update("UPDATE users SET authz_version = authz_version + 1 "
+            + "WHERE id = #{id} AND is_deleted = 0 AND authz_version = #{expectedVersion}")
+    int bumpAuthzVersionIfExpected(@Param("id") String id,
+                                    @Param("expectedVersion") long expectedVersion);
 
     @Update("UPDATE users SET password = #{password} WHERE id = #{id} AND is_deleted = 0")
     int updatePassword(@Param("id") String id, @Param("password") String password);

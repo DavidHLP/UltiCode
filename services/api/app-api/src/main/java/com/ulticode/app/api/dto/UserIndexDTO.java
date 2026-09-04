@@ -10,9 +10,8 @@ import java.io.Serializable;
  * owned by Auth; name/avatar live in the App-owned profile row
  * (migration state: App Q-reads the shared users table).
  *
- * <p>P7-LEAF-PLAN-001: added for {@link com.ulticode.app.api.service.UserSearchReadPort}.
- *
- * @param accountId user account id (users.id)
+ * <p>P7-LEAF-PLAN-001: consumed by App's private user-search read
+ * port; the implementation remains outside this cross-owner DTO.</p>
  * @param username  account username (Auth-owned column)
  * @param name      display name (may be {@code null})
  * @param avatar    avatar URL (may be {@code null})

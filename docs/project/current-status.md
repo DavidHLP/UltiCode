@@ -1,6 +1,6 @@
 # 当前状态
 
-更新时间：2026-09-03
+更新时间：2026-09-04
 
 ## 总体状态
 
@@ -9,37 +9,49 @@
 [`history/architecture-remediation-20260830.md`](history/architecture-remediation-20260830.md)，
 历史快照保持历史时态，不作为当前事实）。
 
-本轮运行/验证/Admin 深化收敛（2026-09-03，仓库内完成）：
+本轮架构收敛与验证边界（2026-09-03 起）：
 
-- 验证入口分为 `static` / `unit` / `quick` / `full-local` / `full` /
-  `integration` 六层：`static` 零基础设施并可用 deny-shim 自证；
-  `quick` 是 `static + unit` 的弃用兼容别名；原 `quick` 重型语义更名为
-  `full-local`。后端 `unit` 走根 POM `unit` profile 与 deny 环境门禁（无 Docker/DB/Redis/Nacos/Meili，`*IT`/`*IntegrationTest` 含嵌套类排除；deny 运行 5786 测试零失败、零 Testcontainers/IT），由 `zero-infra-validation-contract.sh` 的 unit deny 阶段自证。
-- `dev-lite` 兼容默认保留，新增 `app-journey`/`admin`/`submission-judge`/
-  `search`/`full-stack` 场景与 `--scope`；`up`/`stop`/`status`/`logs`/
-  `health`/`doctor` 消费同一 resolver；Search off 时不创建 Meili 容器。
-- Admin 用户详情收口为单 use-case `AdminUserDetailQuery` 深 Module：Auth
-  account 权威判定、Auth snapshot 复用、Submission 单次 stats snapshot、
-  ≤5 逻辑 RPC / ≤2 轮、区块级 `OK/PARTIAL/UNAVAILABLE`；权限写 fail closed
-  （读取失败零写入，不再把空集当全量回写）；旧逐项 stats path 已删除。
-- 发布控制面：九个 deployable 为默认协调发布 set（services matrix 带
-  role/release_group/health 分类）；`deployment-integrity.sh` 新增只读
-  `describe` 与 `verify-registry`；`.gitlab-ci.yml` 旧直连部署路径已退役
-  禁用（仓库内无 GitLab runner 授权证据，U-01）。
-- 单机 reference topology 接受风险与 HA 重开触发器记录于
-  [`ADR-0001`](../architecture/decisions/0001-deferred-platform-expansion.md)；
-  共享 MySQL/Redis/Nacos 是共同故障域，schema/ACL 隔离不等于物理故障隔离。
-- App locality：`app-api` 71 个 interface 完成 consumer catalog，10 个
-  App-only internal seam 迁入对应私有 Module/内部包（contest push/
-  subscription、problem 内部 read ports），app-api 不再收纳纯内部
-  interface；Forum/Solution 内部 Module pilot 无真实业务变更触发，
-  记录 NO-GO（触发条件见问题注册表）。
-
-当前拓扑保持五个 Data Owner（Auth、Admin、App、Submission、Notification）
-与两个 Worker（Judge、Search）。`judge-runtime` 是 Judge worker 使用的共享
-执行依赖，不进入 App 的 compile tree。本轮没有新增物理进程、数据 Owner、
-事件读模型、Kubernetes/Kafka/Service Mesh/Seata 或第五套基础设施；没有
-生产部署、流量、HA failover、SLO 或外部运维证据被制造或声称。
+- Auth 权限写入改为 Auth-owned `AuthorizationMutationService` 的单条
+  direct grant/revoke delta；`expectedVersion`、`expiresAt`、认证 actor 和
+  idempotency key 均跨 Seam 传递。Auth 在本地事务中执行 direct-row 变更、
+  `authz_version` CAS、审计 outbox 和 receipt；角色权限不会被物化或误删。
+- 角色编辑改用独立的 Auth-owned `RoleMutationService` + `ChangeRoleCommand`；
+  旧的全量 `ChangeAuthorizationCommand` 已删除，Admin 不再以完整
+  `AdminUserDetailQuery` 作为权限写入前置条件。
+- App-only 的接口已移到对应 App 逻辑 Module 的私有 Seam；`app-api`
+  ownership catalog 与 gate 已同步。跨 Owner contract 仍保留在
+  `services/api/`，未共享 Entity、Mapper 或事务。
+- App `/run` 继续通过 `InteractiveCodeRunner` → Judge `execute` 走同步
+  public preview；Judge provider 将 runtime validation `BusinessException`
+  映射为 typed 400。Judge runtime 同时提供受约束的异步
+  `submit/poll/cancel`，默认 Docker Adapter；可选 Judge0 Adapter 默认关闭，
+  endpoint、凭据、回调认证和外部实例尚未验证。当前 receipt 仅进程内有界；
+  跨 Judge 副本与重启的 durable 幂等未完成。Judge0 属于可选开发 profile，
+  未配置不阻塞本项目的仓库验收。
+- Search Worker 已接入小型 `SearchIndex` Seam；本地/未来 hosted Meili
+  使用同一 Adapter，Cloud 实例与负载证据仍缺失。Owner JDBC URL、
+  `sslMode` 与每 Owner Redis TLS/CA 配置入口及静态 contract 已补齐；
+  托管实例、ACL 复核和恢复演练仍未完成；托管数据层属于可选开发 profile，
+  自托管默认路径不受影响。
+- 已加入 `.devcontainer/devcontainer.json`：Java 17、Node 22、pnpm、
+  mise、PM2、Maven wrapper、Docker-in-Docker 和固定端口。postCreate
+  只准备依赖，postStart 只运行 unit gate，不自动启动全栈。
+- Core + Judge 已提供 opt-in `core` profile：`services/core` 使用显式
+  Core parent、五组 Owner DataSource/SqlSessionFactory/TransactionManager
+  与互斥 MapperScan；既有 Owner Implementation 在非 Web child context
+  中尝试启动，Core readiness 为 `/api/v1/core/health/ready`，端口为 9108。
+  Core parent 不依赖 `backend-judge-runtime`；Judge 仍是独立进程。
+  child 启动的 timeout/cancel 交接使用单 CAS ownership handoff 协议，
+  每个已创建 context 由调用方、timeout 关闭路径或迟到完成 callable
+  三者之一唯一接管（`CoreOwnerContextManagerLifecycleTest` 确定性回归）。
+- Core 已落地同进程断言载体与 Auth direct-permission local Adapter：
+  signed delegation assertion 在受限 ThreadLocal scope 中传递，Auth
+  verifier 缺失断言仍 fail closed。G1/G2 与 parent/readiness/classpath
+  静态段已通过本地 smoke；但 enabled-owner exec-jar smoke 在 bean wiring
+  阶段因同一 classpath 的跨 Owner package leakage 使六个 child context
+  失败。Admin/App/Submission/Notification 的完整 consumer local Adapter
+  parity、同进程业务路由、Judge readiness 与 mixed-version/remote TLS
+  仍未验证，不能切换默认拓扑。
 
 ## 验证入口
 
@@ -51,20 +63,23 @@ sandbox 的具体门禁由脚本与对应 runbook 维护；零基础设施自证
 历史，不作为当前工作树证据。
 
 验证状态使用 `Repository Implemented`、`Locally Validated`、
-`Staging Validated`、`Production Applied` 和 `BLOCKED_EXTERNAL` 等明确语义；
+`Staging Validated`、`Production Applied`、`OPTIONAL_PROFILE`、`OUT_OF_SCOPE`
+和 `BLOCKED_EXTERNAL` 等明确语义；
 不以文档删除或 disposable 通过推断生产状态。Graphify 的
 `tree_sitter_sql` 缺失只表示工具覆盖缺口，不是 SQL 通过证明。
 
 ## 外部边界
 
-本开源项目没有生产环境。以下事项仍需要未来部署方的环境、授权和证据：真实
-生产 migration/backfill/cutover/traffic drain；Nacos/Dubbo 生产注册与证书
-轮换；HA promotion/failover；外部 telemetry storage、threshold tuning、
-SLO 报表；remote Judge endpoint/cert/workspace/image；生产
-firewall/DNS/ingress；off-host backup、密钥托管和 restore authority；真实
-mixed-version drain；GitLab runner 仍被外部使用的部署 authority 确认
-（U-01）。可选脚本缺少 disposable 输入时输出 `BLOCKED_EXTERNAL` 是有意的
-fail-closed 行为。
+本开源项目没有生产环境，当前验收边界是仓库代码、可复现的本地/容器
+disposable 验证和自托管默认路径。以下事项属于 `OUT_OF_SCOPE` 或
+`OPTIONAL_PROFILE`，不阻塞当前开发完成度：真实生产
+migration/backfill/cutover/traffic drain；Nacos/Dubbo 生产注册与证书轮换；
+HA promotion/failover；外部 telemetry storage、threshold tuning、SLO 报表；
+remote Judge endpoint/cert/workspace/image；生产 firewall/DNS/ingress；
+off-host backup、密钥托管和 restore authority；真实 mixed-version drain；
+GitLab runner 仍被外部使用的部署 authority 确认（U-01）。只有部署方明确
+要求执行某项外部验证、但缺少输入时，才使用 `BLOCKED_EXTERNAL`；可选脚本
+缺少 disposable 输入时仍应 fail closed，但不代表仓库存在未完成缺陷。
 
 ## 权威入口
 
@@ -74,4 +89,5 @@ fail-closed 行为。
 - Architecture map：[`../architecture/overview.md`](../architecture/overview.md)
 - Operational procedures：[`../operations/`](../operations/deployment.md)
 - HA/reference topology 决策：[`../architecture/decisions/0001-deferred-platform-expansion.md`](../architecture/decisions/0001-deferred-platform-expansion.md)
+- Core + Judge 收敛阻塞证据：[`ADR-0010`](../architecture/decisions/0010-core-judge-convergence-blockers.md)（SVC-025 仍 OPEN，Core 不是默认拓扑）。
 - Follow-up plan：[`../architecture/plans/ulticode-architecture-followup-plan.md`](../architecture/plans/ulticode-architecture-followup-plan.md)（历史规划快照，`COMPLETED`）与 [`../architecture/evidence/P5-GATE-004-final-integration-matrix.md`](../architecture/evidence/P5-GATE-004-final-integration-matrix.md)（已提交证据矩阵）；本轮深化计划的机器任务正本不在仓库内（规划 artifact 位于本机 harness 会话目录 `~/.codex/visualizations/2026/09/02/`，只读，不提交）

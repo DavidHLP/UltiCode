@@ -1,7 +1,7 @@
 package com.ulticode.app.bookmark.provider;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.ulticode.app.api.service.BookmarkReadPort;
+import com.ulticode.modules.bookmark.port.BookmarkReadPort;
 import com.ulticode.modules.bookmark.entity.Bookmark;
 import com.ulticode.modules.bookmark.entity.enums.BookmarkType;
 import com.ulticode.modules.bookmark.mapper.BookmarkMapper;

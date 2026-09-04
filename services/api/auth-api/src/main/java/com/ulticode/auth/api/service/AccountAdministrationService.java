@@ -1,9 +1,7 @@
 package com.ulticode.auth.api.service;
 
 import com.ulticode.auth.api.command.ChangeAccountStateCommand;
-import com.ulticode.auth.api.command.ChangeAuthorizationCommand;
 import com.ulticode.auth.api.dto.AccountStateDTO;
-import com.ulticode.auth.api.dto.AuthorizationSnapshotDTO;
 import com.ulticode.common.rpc.RpcResult;
 
 /**
@@ -33,17 +31,4 @@ public interface AccountAdministrationService {
      */
     RpcResult<AccountStateDTO> changeState(ChangeAccountStateCommand command);
 
-    /**
-     * Change an account's authoritative role / permission assignment.
-     *
-     * @param command carries commandId, idempotency key, actor
-     *                delegation, trace metadata, the new role +
-     *                permissions set and the optimistic-lock expected
-     *                version
-     * @return success with the post-write
-     *         {@link AuthorizationSnapshotDTO}; failure codes as
-     *         documented on {@link #changeState}
-     */
-    RpcResult<AuthorizationSnapshotDTO> changeAuthorization(
-            ChangeAuthorizationCommand command);
 }

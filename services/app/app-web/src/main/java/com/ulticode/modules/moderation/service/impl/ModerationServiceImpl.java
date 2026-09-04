@@ -30,7 +30,7 @@ import com.ulticode.modules.moderation.port.ContentModerationPort;
 import com.ulticode.modules.moderation.projection.ModerationProjection;
 import com.ulticode.modules.moderation.service.ModerationService;
 import com.ulticode.app.api.dto.ModerationUserInfo;
-import com.ulticode.app.api.service.ModerationAccountPort;
+import com.ulticode.modules.moderation.port.ModerationAccountPort;
 import com.ulticode.modules.event.outbox.IntegrationEventPublisher;
 import com.ulticode.common.util.TraceIdUtil;
 import java.time.Clock;

@@ -1,7 +1,7 @@
 package com.ulticode.modules.search.source;
 
 import com.ulticode.app.api.dto.ForumPostIndexDTO;
-import com.ulticode.app.api.service.ForumPostReadPort;
+import com.ulticode.modules.forum.port.ForumPostReadPort;
 import com.ulticode.modules.search.dto.SearchIndexType;
 import com.ulticode.modules.search.dto.SearchResponseVO;
 import lombok.RequiredArgsConstructor;

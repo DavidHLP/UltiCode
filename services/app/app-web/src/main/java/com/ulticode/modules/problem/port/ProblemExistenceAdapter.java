@@ -2,7 +2,7 @@ package com.ulticode.modules.problem.port;
 
 import com.ulticode.modules.problem.entity.Problem;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
-import com.ulticode.app.api.service.ProblemExistencePort;
+import com.ulticode.modules.problem.port.ProblemExistencePort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 

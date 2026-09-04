@@ -2,7 +2,7 @@ package com.ulticode.modules.forum.port;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.ulticode.app.api.dto.ForumPostIndexDTO;
-import com.ulticode.app.api.service.ForumPostReadPort;
+import com.ulticode.modules.forum.port.ForumPostReadPort;
 import com.ulticode.modules.forum.entity.ForumPost;
 import com.ulticode.modules.forum.mapper.ForumPostMapper;
 import java.util.List;

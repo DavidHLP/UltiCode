@@ -16,7 +16,7 @@ MAVEN=()
 
 usage() {
   cat >&2 <<'USAGE'
-Usage: ./scripts/dev/test.sh [--describe|quick|full-local|full|integration|static|unit]
+Usage: ./scripts/dev/test.sh [--describe|quick|full-local|full|integration|core|static|unit]
 
 Modes:
   static       Read-only zero-infrastructure guardrails and contracts.
@@ -27,6 +27,7 @@ Modes:
                coverage checks.
   full         full-local plus production builds, audits, and i18n checks.
   integration  full-local plus sandbox/Testcontainers and migration drills.
+  core         Core boot assembly and readiness smoke without Owner side effects.
 USAGE
 }
 
@@ -39,6 +40,7 @@ quick|same as static + unit|existing node_modules only|same -Punit backend gate|
 full-local|MySQL + Redis Compose|pnpm install allowed|Maven verify|migration and coverage
 full|MySQL + Redis Compose|pnpm install allowed|Maven verify|build, audit, i18n
 integration|MySQL + Redis + sandbox/Testcontainers|pnpm install allowed|Maven verify + *IT|migration safety drill
+core|MySQL + Redis + local Owner contexts|none|Core module assembly smoke|explicit scan, transaction factories, readiness
 TABLE
 }
 
@@ -59,7 +61,7 @@ if [[ "$#" -gt 1 ]]; then
 fi
 
 case "$MODE" in
-  static|unit|quick|full-local|full|integration)
+  static|unit|quick|full-local|full|integration|core)
     ;;
   *)
     die_usage "unknown mode: $MODE"
@@ -270,6 +272,13 @@ run_unit_checks() {
   run_frontend_unit_checks
   run_backend_unit_checks
 }
+run_core_checks() {
+  require_maven_toolchain
+  echo "Building Core dependency reactor without running Owner tests..."
+  (cd "$ROOT_DIR/services" && "${MAVEN[@]}" -pl core -am -DskipTests -Djacoco.skip=true install -B)
+  echo "Running Core context smoke..."
+  (cd "$ROOT_DIR/services" && "${MAVEN[@]}" -Punit -pl core test -B)
+}
 
 run_full_local() {
   require_static_toolchain
@@ -287,6 +296,7 @@ run_full_local() {
   # shellcheck disable=SC1090
   source "$ENV_FILE"
   set +a
+  [[ -n "${JAVA_TOOL_OPTIONS:-}" ]] || unset JAVA_TOOL_OPTIONS
 
   # Compose validates the Meili service even when the full-local gate does not
   # start it. Keep missing values disposable and in-memory.
@@ -447,9 +457,15 @@ run_full_local() {
 run_full_extras() {
   echo "Running production builds and dependency audits..."
   # pnpm audit is best-effort because some registries do not implement the
-  # audit endpoint; warn and continue on that environment limitation.
-  (cd "$ROOT_DIR/apps/console" && pnpm build && { pnpm audit --prod --audit-level high || echo "WARN: pnpm audit unavailable; skipped" >&2; })
-  (cd "$ROOT_DIR/apps/management" && pnpm validate:i18n-keys && pnpm build && { pnpm audit --prod --audit-level high || echo "WARN: pnpm audit unavailable; skipped" >&2; })
+  # audit endpoint; bound the call so this gate cannot hang on a dead registry.
+  (cd "$ROOT_DIR/apps/console" && pnpm build && {
+    timeout --foreground --kill-after=5 90 pnpm audit --prod --audit-level high \
+      || echo "WARN: pnpm audit unavailable; skipped" >&2
+  })
+  (cd "$ROOT_DIR/apps/management" && pnpm validate:i18n-keys && pnpm build && {
+    timeout --foreground --kill-after=5 90 pnpm audit --prod --audit-level high \
+      || echo "WARN: pnpm audit unavailable; skipped" >&2
+  })
 }
 
 run_integration_extras() {
@@ -485,6 +501,9 @@ case "$MODE" in
   integration)
     run_full_local
     run_integration_extras
+    ;;
+  core)
+    run_core_checks
     ;;
 esac
 

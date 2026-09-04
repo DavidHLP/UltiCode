@@ -15,11 +15,15 @@ spring:
   # P7-MIGRATE-PROBLEM-001: enable datasource for problem domain
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://${APP_DB_HOST}:${APP_DB_PORT}/${APP_DB_NAME}?useUnicode=true&characterEncoding=UTF-8&characterSetResults=utf8mb4&connectionCollation=utf8mb4_unicode_ci&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false&useAffectedRows=true
+    url: ${APP_DB_URL:jdbc:mysql://${APP_DB_HOST}:${APP_DB_PORT}/${APP_DB_NAME}?useUnicode=true&characterEncoding=UTF-8&characterSetResults=utf8mb4&connectionCollation=utf8mb4_unicode_ci&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&sslMode=${APP_DB_SSL_MODE:REQUIRED}&useAffectedRows=true}
     username: ${APP_DB_USER}
     password: ${APP_DB_PASSWORD}
   data:
     redis:
+      url: ${APP_REDIS_URL:redis://${REDIS_USERNAME:}:${REDIS_PASSWORD:}@${REDIS_HOST:localhost}:${REDIS_PORT:26379}/${REDIS_DB:0}}
+      ssl:
+        enabled: ${APP_REDIS_SSL_ENABLED:false}
+        bundle: ${APP_REDIS_SSL_BUNDLE:}
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:26379}
       username: ${REDIS_USERNAME:}
@@ -102,6 +106,8 @@ app:
       bucket: ${APP_STORAGE_S3_BUCKET:}
       access-key: ${APP_STORAGE_S3_ACCESS_KEY:}
       secret-key: ${APP_STORAGE_S3_SECRET_KEY:}
+      # Managed S3/R2 connections can require HTTPS; local MinIO may remain HTTP.
+      tls-enabled: ${APP_STORAGE_S3_TLS_ENABLED:false}
       # Optional public base URL returned to clients (CDN/fronting host);
       # defaults to {endpoint}/{bucket}.
       public-base-url: ${APP_STORAGE_S3_PUBLIC_BASE_URL:}
@@ -152,10 +158,12 @@ management:
       application: ${spring.application.name}
   tracing:
     sampling:
-      probability: 1.0
+      probability: ${MANAGEMENT_TRACING_SAMPLING_PROBABILITY:1.0}
   otlp:
     tracing:
       endpoint: ${MANAGEMENT_OTLP_TRACING_ENDPOINT:http://localhost:4318/v1/traces}
+      headers:
+        Authorization: ${MANAGEMENT_OTLP_AUTHORIZATION:}
       timeout: 5s
 
 security:

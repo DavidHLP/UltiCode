@@ -5,11 +5,10 @@ import java.util.List;
 /**
  * Port-level test-case descriptor.
  *
- * <p>Decoupled from the wire DTO {@code RunSubmissionDTO.RunTestCase}
- * so the sandbox package does not depend on the controller layer and
- * so the executor can be unit-tested without the DTO class on the
- * classpath. The code-execution facade maps {@code RunTestCase →
- * TestCase} at the boundary.
+ * <p>Decoupled from the runtime-private {@code JudgeRunRequest.TestCase} so
+ * the sandbox package does not depend on transport DTOs and the executor can
+ * be unit-tested through the {@link SandboxExecutor} seam. The runtime facade
+ * maps {@code JudgeRunRequest.TestCase} to this port-owned type.
  *
  * <h2>Field contract</h2>
  * <ul>

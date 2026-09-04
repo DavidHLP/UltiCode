@@ -8,7 +8,7 @@ import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.PaginationRequest;
 import com.ulticode.common.auth.CurrentUserProvider;
-import com.ulticode.app.api.service.FollowCountPort;
+import com.ulticode.modules.follow.port.FollowCountPort;
 import com.ulticode.modules.problem.port.ProblemDifficultyReadPort;
 import com.ulticode.modules.problem.port.ProblemTagStatsReadPort;
 import com.ulticode.submission.api.dto.SubmissionDateCountDTO;

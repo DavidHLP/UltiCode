@@ -10,8 +10,8 @@ import com.ulticode.common.tracing.TraceMetadata;
  * ADMIN-007: command for App-owned forum-post moderation fields.
  *
  * <p>The provider validates the delegated admin actor and applies the
- * mutation inside the App-owned transaction. The raw {@code ForumOwnerPort}
- * remains an internal App port and is not exported over Dubbo.
+ * mutation inside the App-owned transaction. The App-private forum owner
+ * port remains internal and is not exported over Dubbo.
  *
  * @param postId target forum post
  * @param action field mutation to apply

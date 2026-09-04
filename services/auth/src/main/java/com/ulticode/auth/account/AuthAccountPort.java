@@ -17,6 +17,8 @@ public interface AuthAccountPort {
     void updatePassword(String userId, String hashedPassword);
     /** Unified atomic CAS update for active, banned, and role. Bumps authzVersion once. */
     boolean updateAccountIfVersion(String userId, boolean active, boolean banned, String role, long expectedVersion);
+    /** Atomically increments authzVersion only when expectedVersion matches. */
+    boolean bumpAuthzVersionIfExpected(String userId, long expectedVersion);
     Optional<PasswordResetRecord> findPasswordReset(String userId);
     void savePasswordReset(String userId, String hashedToken, long expiresAtEpochMs);
     void clearPasswordReset(String userId);

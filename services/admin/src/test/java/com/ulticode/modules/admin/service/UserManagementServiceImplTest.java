@@ -7,6 +7,7 @@ import com.ulticode.auth.api.error.AuthErrorCode;
 import com.ulticode.auth.api.service.AccountAdministrationService;
 import com.ulticode.auth.api.service.AccountManagementService;
 import com.ulticode.auth.api.service.AccountQueryService;
+import com.ulticode.auth.api.service.RoleMutationService;
 import com.ulticode.common.audit.AuditRecorder;
 import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.modules.admin.dto.AdminCreateUserDTO;
@@ -47,6 +48,7 @@ class UserManagementServiceImplTest {
     @Mock private AccountManagementService accountManagementService;
     @Mock private AccountQueryService accountQueryService;
     @Mock private AccountAdministrationService accountAdministrationService;
+    @Mock private RoleMutationService roleMutationService;
     @Mock private UserProfilePort userProfilePort;
     @Mock private AuditRecorder auditRecorder;
     @Mock private AdminUserDetailQuery adminUserDetailQuery;
@@ -63,6 +65,7 @@ class UserManagementServiceImplTest {
         ReflectionTestUtils.setField(service, "accountManagementService", accountManagementService);
         ReflectionTestUtils.setField(service, "accountQueryService", accountQueryService);
         ReflectionTestUtils.setField(service, "accountAdministrationService", accountAdministrationService);
+        ReflectionTestUtils.setField(service, "roleMutationService", roleMutationService);
         when(currentUserProvider.getCurrentUserId()).thenReturn("admin-1");
 
         sampleAccount = new AuthAccountDTO(
@@ -172,7 +175,7 @@ class UserManagementServiceImplTest {
         when(userProfilePort.updateProfile(any()))
                 .thenReturn(new ProfileWriteResult("user-100", null, null, null, null,
                         null, null, null, null, null));
-        when(accountAdministrationService.changeAuthorization(any()))
+        when(roleMutationService.changeRole(any()))
                 .thenReturn(RpcResult.failure(AuthErrorCode.AUTHORIZATION_VERSION_CONFLICT, "t-123"));
 
         AdminUpdateUserDTO dto = new AdminUpdateUserDTO();

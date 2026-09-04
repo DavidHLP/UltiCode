@@ -7,6 +7,25 @@
 - 后端使用仓库内的 `services/mvnw`；不要用裸 Maven/Java 绕过启动入口。
 - 从仓库根目录执行脚本。`.env` 由 `scripts/dev/init-env.sh` 生成，不能提交。
 
+
+## Dev Container / Codespaces
+
+仓库提供 `.devcontainer/devcontainer.json`，固定 Java 17、Node 22、pnpm、
+mise、PM2、Maven wrapper 和 Docker-in-Docker。创建容器时只安装依赖和
+Maven 离线缓存，不启动全栈；容器启动后的默认检查仅执行
+`./scripts/dev/test.sh unit`。运行真实 journey 必须显式选择 scope。
+
+统一入口是根目录的薄脚本：
+
+```bash
+./ulticode dev
+./ulticode host --config ulticode.yml
+./ulticode doctor --json
+```
+
+`host` 配置只接受 `scope` 和 `observability` 两个无密钥键；启动和
+生命周期逻辑仍由 `scripts/dev/*` 与 `devstack-manifest.sh` 所有。
+
 ## 推荐启动
 
 ```bash
@@ -23,9 +42,9 @@
 ./scripts/dev/up.sh --scope admin            # 管理：auth/admin/app/notification/submission + management
 ./scripts/dev/up.sh --scope submission-judge # judge 路径：app/submission/judge，无 Search
 ./scripts/dev/up.sh --scope search           # indexed Search：auth/app/search + console + meili
+./scripts/dev/up.sh --scope core             # Core parent 9108 + independent Judge
 ./scripts/dev/up.sh --scope full-stack       # 显式全量进程集
 ./scripts/dev/up.sh --scope full-stack --observability  # 显式选择 observability overlay
-```
 
 兼容命令（等价于对应 scope）保留可用：
 
@@ -35,6 +54,18 @@
 ```
 
 Search/Meili、Judge、observability 与前端只在被选中 scope 需要时才启动；`dev-lite` 默认不创建 Meili 容器。生命周期操作消费同一集合：`./scripts/dev/up.sh status|logs|health --scope <name>`，`./scripts/dev/stop.sh --scope <name>`（`--all` 停止全部）。`up.sh` 对已退役的 `legacy-rollback` 和未知 mode/scope fail closed。生产回滚使用部署方保留并校验的上一份完整 release descriptor，不能通过当前二进制恢复旧实现（见[部署、发布与回滚](../operations/deployment.md)）。`up.sh` 消费 `scripts/dev/devstack-manifest.sh` 的 route、flag、worker、readiness 和 failure policy，不要直接用 Maven 或 PM2 启动 runtime。
+
+`core` scope 会启动 `ulticode-core`（9108）和独立 `ulticode-judge`；
+Core 的 owner contexts 默认启用，启动失败会使 readiness 保持非 200。
+当前 exec-jar 的 enabled-owner smoke 会在 bean wiring 阶段暴露同一
+classpath 的跨 Owner package leakage；只验证 parent/readiness 时可设置
+`CORE_OWNER_CONTEXTS_ENABLED=false`。该 profile 当前用于显式组装和边界
+验证，完整 local Adapter parity 尚未替代 distributed profile。Core 专用门禁：
+
+```bash
+./scripts/dev/test.sh core
+./ulticode doctor --scope core --json
+```
 
 常用变体：
 
@@ -53,6 +84,7 @@ pm2 logs ulticode-auth --nostream --lines 200
 
 | 表面 | 地址/端口 |
 | --- | --- |
+| Core parent | `9108`，`/api/v1/core/health/ready`，不直接持有业务表 |
 | Console | <http://localhost:9002> |
 | Management | <http://localhost:9003> |
 | Auth/Admin/App/Notification | `9101/9102/9103/9105` |
@@ -68,11 +100,24 @@ Base Compose 不发布基础设施或 backend 端口；开发覆盖层只绑定 
 ```bash
 pnpm --dir apps/console install
 pnpm --dir apps/management install
+
 pnpm --dir apps/console dev
 pnpm --dir apps/management dev
 pnpm --dir packages/auth-core type-check
 pnpm --dir packages/auth-core test:coverage
 ```
+
+## Optional external Adapters
+
+- `FileStoragePort` 默认使用 `LocalStorage`；S3-compatible/R2 通过
+  `APP_STORAGE_TYPE=s3`、endpoint、bucket 和 secret-store credentials
+  开启。远程 HTTP endpoint 总是拒绝；HTTP 仅允许 loopback 本地开发，
+  `APP_STORAGE_S3_TLS_ENABLED=true` 时任何 HTTP endpoint 都拒绝。
+- Notification 保留 `LoggingSmtpSenderAdapter` 默认路径；真实 SMTP 只通过
+  `SMTP_*`/`APP_EMAIL_ENABLED` 配置，不让业务 Module 依赖厂商 SDK。
+- 本地 observability 使用 `docker-compose.observability.yml`。托管 OTLP
+  仅通过部署环境提供 HTTPS endpoint/header，并显式叠加
+  `docker-compose.observability-managed.yml`；仓库不创建外部账户或凭据。
 
 修改共享包或认证代码时，按 [测试与质量](testing.md) 在 Console、Management 和对应 package 分别验证。
 

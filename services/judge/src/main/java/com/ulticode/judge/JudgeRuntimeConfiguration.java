@@ -46,7 +46,8 @@ import org.springframework.context.annotation.Import;
 @EnableAutoConfiguration
 @ComponentScan(basePackages = {
         "com.ulticode.judge",
-        "com.ulticode.modules.submission.sandbox"
+        "com.ulticode.modules.submission.sandbox",
+        "com.ulticode.modules.submission.runtime.async"
 })
 @Import({
         AppClockConfig.class,

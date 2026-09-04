@@ -1,6 +1,6 @@
 package com.ulticode.modules.queue.port;
 
-import com.ulticode.app.api.dto.RunSubmissionDTO;
+import com.ulticode.modules.submission.runtime.JudgeRunRequest;
 
 import java.util.List;
 
@@ -18,12 +18,12 @@ public final class JudgingCase {
     private final String id;
     private final String label;
     private final String outputText;
-    private final List<RunSubmissionDTO.RunInput> inputs;
+    private final List<JudgeRunRequest.Input> inputs;
     private final Boolean hidden;
     private final Boolean sample;
 
     public JudgingCase(String id, String label, String outputText,
-                       List<RunSubmissionDTO.RunInput> inputs,
+                       List<JudgeRunRequest.Input> inputs,
                        Boolean hidden, Boolean sample) {
         this.id = id;
         this.label = label;
@@ -45,7 +45,7 @@ public final class JudgingCase {
         return outputText;
     }
 
-    public List<RunSubmissionDTO.RunInput> getInputs() {
+    public List<JudgeRunRequest.Input> getInputs() {
         return inputs;
     }
 

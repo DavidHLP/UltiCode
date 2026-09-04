@@ -69,18 +69,21 @@ public class StorageProperties {
         }
     }
 
-    public static class S3 {
+        public static class S3 {
 
-        /** Base endpoint; path-style addressing is used ({endpoint}/{bucket}/{key}). */
-        private String endpoint;
+            /** Base endpoint; path-style addressing is used ({endpoint}/{bucket}/{key}). */
+            private String endpoint;
 
-        private String region = "us-east-1";
+            private String region = "us-east-1";
 
-        private String bucket;
+            private String bucket;
 
-        private String accessKey;
+            private String accessKey;
 
-        private String secretKey;
+            private String secretKey;
+
+            /** Require an HTTPS endpoint for managed/public object storage. */
+            private boolean tlsEnabled;
 
         /**
          * Public base URL returned to clients; defaults to {endpoint}/{bucket}.
@@ -133,6 +136,13 @@ public class StorageProperties {
         public void setSecretKey(String secretKey) {
             this.secretKey = secretKey;
         }
+        public boolean isTlsEnabled() {
+            return tlsEnabled;
+        }
+
+        public void setTlsEnabled(boolean tlsEnabled) {
+            this.tlsEnabled = tlsEnabled;
+        }
 
         public String getPublicBaseUrl() {
             return publicBaseUrl;
@@ -177,6 +187,25 @@ public class StorageProperties {
             if (s3.endpoint == null || s3.endpoint.isBlank()) {
                 throw new IllegalStateException("app.storage.s3.endpoint is required when app.storage.type=s3.");
             }
+            String endpoint = s3.endpoint.trim();
+            java.net.URI endpointUri;
+            try {
+                endpointUri = java.net.URI.create(endpoint);
+            } catch (IllegalArgumentException exception) {
+                throw new IllegalStateException("app.storage.s3.endpoint must be a valid URI.", exception);
+            }
+            String scheme = endpointUri.getScheme();
+            boolean https = "https".equalsIgnoreCase(scheme);
+            boolean loopbackHttp = "http".equalsIgnoreCase(scheme)
+                    && isLoopbackHost(endpointUri.getHost());
+            if (s3.tlsEnabled && !https) {
+                throw new IllegalStateException(
+                        "app.storage.s3.endpoint must use https when tls-enabled=true.");
+            }
+            if (!https && !loopbackHttp) {
+                throw new IllegalStateException(
+                        "app.storage.s3.endpoint must use https unless it is loopback HTTP for local development.");
+            }
             if (s3.bucket == null || s3.bucket.isBlank()) {
                 throw new IllegalStateException("app.storage.s3.bucket is required when app.storage.type=s3.");
             }
@@ -193,5 +222,15 @@ public class StorageProperties {
                 throw new IllegalStateException("S3 max concurrent requests must be between 1 and 128.");
             }
         }
+    }
+
+    private static boolean isLoopbackHost(String host) {
+        if (host == null) {
+            return false;
+        }
+        String normalized = host.toLowerCase(java.util.Locale.ROOT);
+        return "localhost".equals(normalized)
+                || "127.0.0.1".equals(normalized)
+                || "::1".equals(normalized);
     }
 }

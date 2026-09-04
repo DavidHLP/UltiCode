@@ -28,13 +28,19 @@ public interface PermissionService {
     List<String> getUserPermissionStrings(String userId);
 
     /**
-     * Assign a direct permission to a user (idempotent).
+     * Compatibility helper for in-process callers. It resolves the current
+     * authenticated actor and fails closed when no actor is present.
      */
     UserPermission assignPermission(String userId, String action, String resource,
                                     LocalDateTime expiresAt);
 
     /**
-     * Revoke a direct permission from a user.
+     * Assign a direct permission using the authenticated actor supplied by
+     * the Auth-owned mutation command.
      */
+    UserPermission assignPermission(String userId, String action, String resource,
+                                    LocalDateTime expiresAt, String grantedBy);
+
+    /** Revoke a direct permission from a user. */
     boolean revokePermission(String userId, String action, String resource);
 }

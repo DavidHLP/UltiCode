@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+usage() {
+  cat <<'EOF'
+Usage:
+  ./ulticode dev [up.sh options]
+  ./ulticode host --config <ulticode.yml>
+  ./ulticode doctor [doctor.sh options]
+
+The host config accepts only the thin resolver keys `scope` and
+`observability`; service startup remains owned by scripts/dev/up.sh.
+EOF
+}
+
+read_host_config() {
+  local config="$1" key value
+  [[ -r "$config" ]] || { echo "host config is not readable: $config" >&2; exit 2; }
+  HOST_SCOPE="dev-lite"
+  HOST_OBSERVABILITY=false
+  while IFS=':' read -r key value; do
+    key="${key#"${key%%[![:space:]]*}"}"
+    key="${key%"${key##*[![:space:]]}"}"
+    value="${value#"${value%%[![:space:]]*}"}"
+    value="${value%"${value##*[![:space:]]}"}"
+    [[ -z "$key" || "$key" == \#* ]] && continue
+    case "$key" in
+      scope) HOST_SCOPE="$value" ;;
+      observability) [[ "$value" == true ]] && HOST_OBSERVABILITY=true ;;
+      *) echo "unsupported host config key: $key" >&2; exit 2 ;;
+    esac
+  done < "$config"
+}
+
+case "${1:-}" in
+  dev)
+    shift
+    exec "$ROOT_DIR/scripts/dev/up.sh" --mode dev-lite "$@"
+    ;;
+  host)
+    [[ "${2:-}" == "--config" && -n "${3:-}" ]] || { usage >&2; exit 2; }
+    read_host_config "$3"
+    shift 3
+    args=(--scope "$HOST_SCOPE")
+    [[ "$HOST_OBSERVABILITY" == true ]] && args+=(--observability)
+    exec "$ROOT_DIR/scripts/dev/up.sh" "${args[@]}" "$@"
+    ;;
+  doctor)
+    shift
+    exec "$ROOT_DIR/scripts/dev/doctor.sh" "$@"
+    ;;
+  -h|--help)
+    usage
+    ;;
+  *)
+    usage >&2
+    exit 2
+    ;;
+esac

@@ -27,12 +27,12 @@ public interface FollowCountPort {
      * @return number of users following {@code userId}, or 0 if user
      *         does not exist or has no followers
      */
-    int countFollowers(String userId);
+    long countFollowers(String userId);
 
     /**
      * @param userId the user whose following count is requested
      * @return number of users {@code userId} follows, or 0 if user
      *         does not exist or follows no one
      */
-    int countFollowing(String userId);
+    long countFollowing(String userId);
 }

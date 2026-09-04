@@ -26,11 +26,15 @@ spring:
     allow-bean-definition-overriding: true
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://${AUTH_DB_HOST}:${AUTH_DB_PORT}/${AUTH_DB_NAME}?useUnicode=true&characterEncoding=UTF-8&characterSetResults=utf8mb4&connectionCollation=utf8mb4_unicode_ci&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false&useDBAuthPlugin=mysql_native_password
+    url: ${AUTH_DB_URL:jdbc:mysql://${AUTH_DB_HOST}:${AUTH_DB_PORT}/${AUTH_DB_NAME}?useUnicode=true&characterEncoding=UTF-8&characterSetResults=utf8mb4&connectionCollation=utf8mb4_unicode_ci&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&sslMode=${AUTH_DB_SSL_MODE:REQUIRED}&useDBAuthPlugin=mysql_native_password}
     username: ${AUTH_DB_USER}
     password: ${AUTH_DB_PASSWORD}
   data:
     redis:
+      url: ${AUTH_REDIS_URL:redis://${REDIS_USERNAME:}:${REDIS_PASSWORD:}@${REDIS_HOST:localhost}:${REDIS_PORT:26379}/${REDIS_DB:0}}
+      ssl:
+        enabled: ${AUTH_REDIS_SSL_ENABLED:false}
+        bundle: ${AUTH_REDIS_SSL_BUNDLE:}
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:26379}
       # Per-owner Redis ACL user (review 2026-08-25). Empty default keeps
@@ -95,7 +99,13 @@ auth:
     redisson:
       config: |
         singleServerConfig:
-          address: "redis://${REDIS_HOST:localhost}:${REDIS_PORT:26379}"
+          # Redisson consumes the URL scheme and dedicated truststore below;
+          # Spring's SSL bundle only configures the primary Redis client.
+          address: "${AUTH_REDIS_URL:redis://${REDIS_HOST:localhost}:${REDIS_PORT:26379}}"
+          sslEnableEndpointIdentification: ${AUTH_REDIS_SSL_ENDPOINT_IDENTIFICATION_ENABLED:true}
+          sslProtocols: [TLSv1.3, TLSv1.2]
+          sslTruststore: ${AUTH_REDIS_SSL_TRUSTSTORE:}
+          sslTruststorePassword: ${AUTH_REDIS_SSL_TRUSTSTORE_PASSWORD:}
           # Per-owner Redis ACL user (review 2026-08-25); empty default keeps
           # no-auth local dev working.
           username: ${REDIS_USERNAME:}
@@ -178,10 +188,12 @@ management:
       application: ${spring.application.name}
   tracing:
     sampling:
-      probability: 1.0
+      probability: ${MANAGEMENT_TRACING_SAMPLING_PROBABILITY:1.0}
   otlp:
     tracing:
       endpoint: ${MANAGEMENT_OTLP_TRACING_ENDPOINT:http://localhost:4318/v1/traces}
+      headers:
+        Authorization: ${MANAGEMENT_OTLP_AUTHORIZATION:}
       timeout: 5s
 security:
   internal-delegation:

@@ -1,8 +1,8 @@
 package com.ulticode.modules.submission.service.impl;
 
 import com.ulticode.common.uuid.UuidGenerator;
-import com.ulticode.app.api.dto.RunResultDTO;
-import com.ulticode.app.api.dto.RunSubmissionDTO;
+import com.ulticode.modules.submission.runtime.JudgeRunResponse;
+import com.ulticode.modules.submission.runtime.JudgeRunRequest;
 import com.ulticode.modules.submission.service.SandboxOutputFormatter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -68,8 +68,8 @@ public class SandboxOutputFormatterImpl implements SandboxOutputFormatter {
     }
 
     @Override
-    public RunResultDTO emptyResult(Long problemId, String userId) {
-        return RunResultDTO.builder()
+    public JudgeRunResponse emptyResult(Long problemId, String userId) {
+        return JudgeRunResponse.builder()
             .id(uuidGenerator.newId())
             .problemId(problemId)
             .userId(userId)
@@ -83,16 +83,17 @@ public class SandboxOutputFormatterImpl implements SandboxOutputFormatter {
     }
 
     @Override
-    public RunResultDTO.RunCaseResult buildCaseResult(RunSubmissionDTO.RunTestCase testCase,
-                                                      String runId, String userId,
-                                                      String status, long runtimeMs,
-                                                      String output, String detail,
-                                                      double memoryMb,
-                                                      long elapsedUs, long cpuMs) {
-        List<RunResultDTO.RunCaseResult.InputParam> inputs = null;
+    public JudgeRunResponse.RunCaseResult buildCaseResult(
+            JudgeRunRequest.TestCase testCase,
+            String runId, String userId,
+            String status, long runtimeMs,
+            String output, String detail,
+            double memoryMb,
+            long elapsedUs, long cpuMs) {
+        List<JudgeRunResponse.RunCaseResult.InputParam> inputs = null;
         if (testCase.getInputs() != null) {
             inputs = testCase.getInputs().stream()
-                .map(i -> RunResultDTO.RunCaseResult.InputParam.builder()
+                .map(i -> JudgeRunResponse.RunCaseResult.InputParam.builder()
                     .id(i.getId()).label(i.getLabel()).name(i.getName()).value(i.getValue())
                     .build())
                 .toList();
@@ -103,7 +104,7 @@ public class SandboxOutputFormatterImpl implements SandboxOutputFormatter {
         String runtimeStr = elapsedUs > 0
             ? String.format("%.2fms", elapsedUs / 1000.0)
             : runtimeMs + "ms";
-        return RunResultDTO.RunCaseResult.builder()
+        return JudgeRunResponse.RunCaseResult.builder()
             .id(uuidGenerator.newId()).runId(runId)
             .submissionTestId(testCase.getId()).testCaseId(testCase.getId())
             .caseLabel(testCase.getLabel() != null ? testCase.getLabel() : testCase.getId())

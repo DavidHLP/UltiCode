@@ -44,6 +44,10 @@
 !/docker-compose.observability.yml
 !/docker-compose.ha.yml
 !/docker-compose.judge-dev.yml
+!/docker-compose.observability-managed.yml
+!/.devcontainer/
+!/.devcontainer/**
+!/ulticode
 !/.env.example
 !/.env.test.example
 

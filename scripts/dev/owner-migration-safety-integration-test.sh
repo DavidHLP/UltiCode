@@ -18,6 +18,13 @@ ROOT_PASSWORD="$(openssl rand -hex 16)"
 MIGRATION_PASSWORD="$(openssl rand -hex 16)"
 RUNTIME_PASSWORD="$(openssl rand -hex 16)"
 
+# Integration gates export MIGRATION_DB_* for their own Maven runs; this
+# drill must stay hermetic against those ambient values because its
+# disposable container/password pair is the only authoritative target.
+unset MIGRATION_DB_USER MIGRATION_DB_PASSWORD MIGRATION_DB_HOST \
+  MIGRATION_DB_PORT MIGRATION_DB_NAME MIGRATION_SCHEMA \
+  MIGRATION_MYSQL_CONTAINER MIGRATION_MYSQL_CONTAINER_PORT 2>/dev/null || true
+
 cleanup() {
   docker rm -f "$MYSQL_TEST_CONTAINER" "$REDIS_TEST_CONTAINER" >/dev/null 2>&1 || true
   rm -rf "$TEST_DIR"

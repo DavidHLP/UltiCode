@@ -1,6 +1,6 @@
 package com.ulticode.app.follow.provider;
 
-import com.ulticode.app.api.event.FollowEventPublisher;
+import com.ulticode.modules.follow.port.FollowEventPublisher;
 import com.ulticode.modules.notification.event.NotificationIntentEventPublisher;
 import com.ulticode.modules.notification.intent.FollowReceivedIntent;
 import lombok.RequiredArgsConstructor;

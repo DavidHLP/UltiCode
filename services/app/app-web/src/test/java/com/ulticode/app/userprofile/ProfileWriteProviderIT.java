@@ -2,6 +2,8 @@ package com.ulticode.app.userprofile;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -9,10 +11,12 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -33,6 +37,7 @@ import com.ulticode.app.idempotency.mapper.AppCommandReceiptMapper;
 import com.ulticode.app.userprofile.entity.UserProfile;
 import com.ulticode.app.userprofile.mapper.UserProfileMapper;
 import com.ulticode.app.userprofile.provider.ProfileWriteProvider;
+import com.ulticode.app.security.AdminActorAuthorizer;
 import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
@@ -109,6 +114,14 @@ class ProfileWriteProviderIT {
 
     @Autowired
     private ProfileWriteService profileWriteService;
+
+    @MockBean
+    private AdminActorAuthorizer adminActorAuthorizer;
+
+    @BeforeEach
+    void configureActorAuthorizer() {
+        when(adminActorAuthorizer.isAuthorized(any())).thenReturn(true);
+    }
 
     @Autowired
     private UserProfileMapper userProfileMapper;

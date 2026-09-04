@@ -2,12 +2,9 @@ package com.ulticode.modules.submission.port;
 
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.core.importer.ImportOption;
-import com.ulticode.app.api.service.CodeExecutionPort;
-import com.ulticode.app.api.service.JudgeFeatureFlagsPort;
 import com.ulticode.modules.submission.port.VerdictResolvePort;
 import com.ulticode.modules.submission.config.FeatureFlagsProperties;
 import com.ulticode.modules.submission.port.adapter.RemoteSubmissionWritePort;
-import com.ulticode.modules.submission.service.CodeExecutionService;
 import com.ulticode.modules.submission.service.VerdictResolver;
 import com.ulticode.submission.api.service.SubmissionFencePort;
 import com.ulticode.submission.api.service.SubmissionIntakePort;
@@ -68,18 +65,12 @@ class SubmissionPortWiringTest {
                 "VerdictResolver must implement the judge-runtime private VerdictResolvePort");
     }
 
-    @Test
-    @DisplayName("CodeExecutionService implements app-api CodeExecutionPort")
-    void codeExecutionPortWiring() {
-        assertTrue(CodeExecutionPort.class.isAssignableFrom(CodeExecutionService.class),
-                "CodeExecutionService must implement com.ulticode.app.api.service.CodeExecutionPort");
-    }
 
     @Test
     @DisplayName("DefaultJudgeFeatureFlagsPort implements app-api JudgeFeatureFlagsPort")
     void judgeFeatureFlagsPortWiring() {
         assertTrue(JudgeFeatureFlagsPort.class.isAssignableFrom(DefaultJudgeFeatureFlagsPort.class),
-                "DefaultJudgeFeatureFlagsPort must implement com.ulticode.app.api.service.JudgeFeatureFlagsPort");
+                "DefaultJudgeFeatureFlagsPort must implement the Judge-runtime-private JudgeFeatureFlagsPort");
     }
 
     @Test

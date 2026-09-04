@@ -2,6 +2,7 @@ package com.ulticode.auth.security;
 
 import com.ulticode.auth.api.command.ActorDelegation;
 import com.ulticode.common.security.DelegationAssertionContract;
+import com.ulticode.common.security.LocalDelegationAssertionContext;
 import com.ulticode.websecurity.jwt.DelegationAssertionReplayGuard;
 import com.ulticode.websecurity.jwt.DelegationAssertionVerifierSupport;
 import com.ulticode.websecurity.jwt.RsaKeyMaterial;
@@ -58,10 +59,13 @@ public class InternalDelegationAssertionVerifier {
         this.clock = clock;
     }
 
-    /** Verify the current Dubbo caller's assertion for the requested actor. */
+    /** Verify a Dubbo attachment or a scoped same-process assertion. */
     public boolean isTrusted(ActorDelegation actor) {
-        String assertion = RpcContext.getServerAttachment().getAttachment(
-                DelegationAssertionContract.ATTACHMENT_KEY);
+        String assertion = LocalDelegationAssertionContext.current();
+        if (assertion == null) {
+            assertion = RpcContext.getServerAttachment().getAttachment(
+                    DelegationAssertionContract.ATTACHMENT_KEY);
+        }
         return DelegationAssertionVerifierSupport.verifyTrusted(
                 actor == null ? null : actor.actorType(),
                 actor == null ? null : actor.actorId(),

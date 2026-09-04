@@ -38,8 +38,6 @@ capture_compose_up() {
     -f "$ROOT_DIR/docker-compose.yml"
     -f "$ROOT_DIR/docker-compose.dev.yml"
   )
-  [[ ",$selected," == *,ulticode-judge,* ]] \
-    && compose_targets+=(-f "$ROOT_DIR/docker-compose.judge-dev.yml" --profile judge-socket)
   [[ "$observability" == true ]] \
     && compose_targets+=(-f "$ROOT_DIR/docker-compose.observability.yml" --profile observability)
   local -a infra_array=()
@@ -63,7 +61,7 @@ assert_capture_not_contains() {
 
 : > "$CAPTURE"
 capture_compose_up submission-judge
-assert_capture_contains 'judge-dev.yml --profile judge-socket up -d mysql redis nacos'
+assert_capture_not_contains 'judge-dev.yml'
 assert_capture_not_contains 'meilisearch'
 assert_capture_not_contains 'observability.yml'
 
@@ -79,6 +77,10 @@ assert_capture_not_contains otel-collector
 
 : > "$CAPTURE"
 capture_compose_up search
+assert_capture_contains 'up -d mysql redis nacos meilisearch'
+: > "$CAPTURE"
+capture_compose_up core
+assert_capture_not_contains 'judge-dev.yml'
 assert_capture_contains 'up -d mysql redis nacos meilisearch'
 
 : > "$CAPTURE"

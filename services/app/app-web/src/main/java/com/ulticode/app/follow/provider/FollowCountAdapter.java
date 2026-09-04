@@ -1,6 +1,6 @@
 package com.ulticode.app.follow.provider;
 
-import com.ulticode.app.api.service.FollowCountPort;
+import com.ulticode.modules.follow.port.FollowCountPort;
 import com.ulticode.modules.follow.mapper.FollowMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;

@@ -1,6 +1,6 @@
 package com.ulticode.modules.admin.service;
 
-import com.ulticode.modules.admin.dto.AdminUserVO;
+import com.ulticode.auth.api.dto.AuthorizationMutationDTO;
 
 import java.time.LocalDateTime;
 
@@ -29,17 +29,19 @@ public interface UserPermissionService {
      * @param action     {@code user_permissions.action} 的 ENUM 值
      * @param resource   {@code user_permissions.resource} 的 ENUM 值
      * @param expiresAt  过期时间，{@code null} 表示永久；非 {@code null} 必须严格晚于当前时间
-     * @return 含最新 permissions 列表的 {@link AdminUserVO}
+     * @return an authoritative mutation acknowledgement from Auth, including
+     *         the resulting authorization version and changed flag
      */
-    AdminUserVO assignUserPermission(String id, String action, String resource,
-                                      LocalDateTime expiresAt);
+    AuthorizationMutationDTO assignUserPermission(String id, String action, String resource,
+                                                  LocalDateTime expiresAt);
 
     /**
      * 撤销用户一条直接权限。
      *
      * <p>不存在该权限时正常返回（符合 REST DELETE 幂等语义）。
      *
-     * @return 含最新 permissions 列表的 {@link AdminUserVO}
+     * @return an authoritative mutation acknowledgement from Auth, including
+     *         the resulting authorization version and changed flag
      */
-    AdminUserVO revokeUserPermission(String id, String action, String resource);
+    AuthorizationMutationDTO revokeUserPermission(String id, String action, String resource);
 }

@@ -1,13 +1,15 @@
 package com.ulticode.app.dubbo.provider;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
 import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.common.command.ActorDelegation;
 import com.ulticode.app.api.command.DeleteProblemListCommand;
-import com.ulticode.app.api.service.ProblemExistencePort;
+import com.ulticode.modules.problem.port.ProblemExistencePort;
 import com.ulticode.app.config.MybatisPlusConfig;
 import com.ulticode.app.idempotency.entity.AppCommandReceiptEntity;
 import com.ulticode.app.idempotency.mapper.AppCommandReceiptMapper;
@@ -18,6 +20,7 @@ import com.ulticode.modules.problemlist.entity.ProblemList;
 import com.ulticode.modules.problemlist.mapper.ProblemListMapper;
 import com.ulticode.modules.problemlist.projection.ProblemListProjection;
 import com.ulticode.modules.problemlist.service.impl.ProblemListServiceImpl;
+import com.ulticode.app.security.AdminActorAuthorizer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
@@ -33,6 +36,7 @@ import org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerA
 import org.springframework.boot.autoconfigure.transaction.TransactionAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Bean;
@@ -102,6 +106,13 @@ class ProblemListAdministrationWiringIT {
 
     @MockBean
     private ProblemExistencePort problemExistencePort;
+    @MockBean
+    private AdminActorAuthorizer adminActorAuthorizer;
+
+    @BeforeEach
+    void configureActorAuthorizer() {
+        when(adminActorAuthorizer.isAuthorized(any())).thenReturn(true);
+    }
 
     @Test
     void keyedDeleteReplaysAfterOwnerRowHasBeenDeleted() {

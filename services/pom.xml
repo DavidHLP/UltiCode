@@ -25,10 +25,12 @@
 		<module>platform/web-security</module>
 		<module>platform/integration-inbox</module>
 		<module>platform/judge-config</module>
+		<module>platform/observability</module>
 		<module>api/auth-api</module>
 		<module>api/submission-api</module>
 		<module>api/notification-api</module>
 		<module>api/app-api</module>
+		<module>api/judge-api</module>
 		<module>judge-runtime</module>
 		<module>auth</module>
 		<module>admin</module>
@@ -37,6 +39,7 @@
 		<module>submission</module>
 		<module>notification</module>
 		<module>judge</module>
+		<module>core</module>
 	</modules>
 
 	<properties>
@@ -106,6 +109,11 @@
 			</dependency>
 			<dependency>
 				<groupId>com.ulticode</groupId>
+				<artifactId>backend-judge-api</artifactId>
+				<version>${revision}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.ulticode</groupId>
 				<artifactId>backend-submission-api</artifactId>
 				<version>${revision}</version>
 			</dependency>
@@ -167,6 +175,11 @@
 			<dependency>
 				<groupId>com.ulticode</groupId>
 				<artifactId>backend-judge-config</artifactId>
+				<version>${revision}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.ulticode</groupId>
+				<artifactId>backend-observability</artifactId>
 				<version>${revision}</version>
 			</dependency>
 			<dependency>

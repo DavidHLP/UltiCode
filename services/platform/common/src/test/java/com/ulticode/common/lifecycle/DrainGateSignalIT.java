@@ -27,16 +27,37 @@ class DrainGateSignalIT {
                 marker.toString())
                 .redirectErrorStream(true)
                 .start();
+        // Bounds the scan below: if the child emits preamble lines but never
+        // reaches readiness and never exits, the watchdog kills it so
+        // readLine() sees EOF and the assertion fails instead of hanging.
+        Thread watchdog = new Thread(() -> {
+            try {
+                Thread.sleep(10_000);
+                process.destroyForcibly();
+            } catch (InterruptedException ignored) {
+                Thread.currentThread().interrupt();
+            }
+        }, "drain-signal-watchdog");
+        watchdog.start();
         try {
             try (BufferedReader output = new BufferedReader(
                     new InputStreamReader(process.getInputStream()))) {
-                assertThat(output.readLine()).isEqualTo("READY");
+                // The child JVM may print preamble lines first (e.g.
+                // "Picked up JAVA_TOOL_OPTIONS: ..." or agent warnings);
+                // readiness is the harness's own READY line, not the first
+                // line of merged output.
+                String line = output.readLine();
+                while (line != null && !"READY".equals(line)) {
+                    line = output.readLine();
+                }
+                assertThat(line).isEqualTo("READY");
             }
             process.destroy();
             assertThat(process.waitFor(10, TimeUnit.SECONDS)).isTrue();
             assertThat(Files.readString(marker))
                     .isEqualTo("draining=true inFlight=1 drained=true");
         } finally {
+            watchdog.interrupt();
             if (process.isAlive()) {
                 process.destroyForcibly();
                 process.waitFor(5, TimeUnit.SECONDS);

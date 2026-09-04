@@ -20,7 +20,7 @@ import com.ulticode.modules.problemlist.mapper.ProblemListProblemMapper;
 import com.ulticode.app.api.dto.ProblemListItemDTO;
 import com.ulticode.modules.problem.port.ProblemListReadPort;
 import com.ulticode.app.api.dto.NotificationUserInfo;
-import com.ulticode.app.api.service.UserReadPort;
+import com.ulticode.modules.user.port.UserReadPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

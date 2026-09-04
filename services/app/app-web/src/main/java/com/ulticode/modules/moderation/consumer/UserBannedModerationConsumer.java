@@ -1,6 +1,6 @@
 package com.ulticode.modules.moderation.consumer;
 
-import com.ulticode.app.api.service.ModerationAccountPort;
+import com.ulticode.modules.moderation.port.ModerationAccountPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;

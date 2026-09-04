@@ -31,11 +31,19 @@
         </dependency>
         <dependency>
             <groupId>com.ulticode</groupId>
+            <artifactId>backend-observability</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.ulticode</groupId>
             <artifactId>backend-app-api</artifactId>
         </dependency>
         <dependency>
             <groupId>com.ulticode</groupId>
             <artifactId>backend-submission-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.ulticode</groupId>
+            <artifactId>backend-judge-api</artifactId>
         </dependency>
         <dependency>
             <groupId>com.ulticode</groupId>

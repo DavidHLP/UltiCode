@@ -1,0 +1,69 @@
+spring:
+  application:
+    name: ${CORE_APPLICATION_NAME:ulticode-core}
+  main:
+    banner-mode: off
+  lifecycle:
+    timeout-per-shutdown-phase: ${CORE_SHUTDOWN_TIMEOUT:60s}
+
+dubbo:
+  enabled: false
+  registry:
+    address: N/A
+  protocol:
+    port: -1
+  application:
+    register-mode: none
+
+server:
+  port: ${CORE_SERVER_PORT:9108}
+  shutdown: graceful
+
+core:
+  owner-contexts:
+    enabled: ${CORE_OWNER_CONTEXTS_ENABLED:true}
+    startup-timeout-ms: ${CORE_OWNER_STARTUP_TIMEOUT_MS:120000}
+  judge:
+    readiness-url: ${CORE_JUDGE_READINESS_URL:}
+    required: ${CORE_JUDGE_REQUIRED:true}
+  datasource:
+    auth:
+      url: ${AUTH_DB_URL:jdbc:mysql://${AUTH_DB_HOST:localhost}:${AUTH_DB_PORT:3306}/${AUTH_DB_NAME:auth}?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&sslMode=${AUTH_DB_SSL_MODE:REQUIRED}}
+      username: ${AUTH_DB_USER:}
+      password: ${AUTH_DB_PASSWORD:}
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      hikari:
+        pool-name: core-auth
+        maximum-pool-size: ${AUTH_DB_POOL_SIZE:8}
+    admin:
+      url: ${ADMIN_DB_URL:jdbc:mysql://${ADMIN_DB_HOST:localhost}:${ADMIN_DB_PORT:3306}/${ADMIN_DB_NAME:admin}?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&sslMode=${ADMIN_DB_SSL_MODE:REQUIRED}}
+      username: ${ADMIN_DB_USER:}
+      password: ${ADMIN_DB_PASSWORD:}
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      hikari:
+        pool-name: core-admin
+        maximum-pool-size: ${ADMIN_DB_POOL_SIZE:8}
+    app:
+      url: ${APP_DB_URL:jdbc:mysql://${APP_DB_HOST:localhost}:${APP_DB_PORT:3306}/${APP_DB_NAME:app}?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&sslMode=${APP_DB_SSL_MODE:REQUIRED}}
+      username: ${APP_DB_USER:}
+      password: ${APP_DB_PASSWORD:}
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      hikari:
+        pool-name: core-app
+        maximum-pool-size: ${APP_DB_POOL_SIZE:8}
+    submission:
+      url: ${SUBMISSION_DB_URL:jdbc:mysql://${SUBMISSION_DB_HOST:localhost}:${SUBMISSION_DB_PORT:3306}/${SUBMISSION_DB_NAME:submission}?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&sslMode=${SUBMISSION_DB_SSL_MODE:REQUIRED}}
+      username: ${SUBMISSION_DB_USER:}
+      password: ${SUBMISSION_DB_PASSWORD:}
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      hikari:
+        pool-name: core-submission
+        maximum-pool-size: ${SUBMISSION_DB_POOL_SIZE:8}
+    notification:
+      url: ${NOTIFICATION_DB_URL:jdbc:mysql://${NOTIFICATION_DB_HOST:localhost}:${NOTIFICATION_DB_PORT:3306}/${NOTIFICATION_DB_NAME:notification}?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&sslMode=${NOTIFICATION_DB_SSL_MODE:REQUIRED}}
+      username: ${NOTIFICATION_DB_USER:}
+      password: ${NOTIFICATION_DB_PASSWORD:}
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      hikari:
+        pool-name: core-notification
+        maximum-pool-size: ${NOTIFICATION_DB_POOL_SIZE:8}

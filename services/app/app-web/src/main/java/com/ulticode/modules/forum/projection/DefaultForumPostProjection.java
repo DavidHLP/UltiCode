@@ -2,7 +2,7 @@ package com.ulticode.modules.forum.projection;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.app.api.dto.VoteStatusDTO;
-import com.ulticode.app.api.service.ForumVoteReadPort;
+import com.ulticode.modules.forum.port.ForumVoteReadPort;
 import com.ulticode.modules.forum.dto.ForumPostVO;
 import com.ulticode.modules.forum.entity.ForumCommunity;
 import com.ulticode.modules.forum.entity.ForumPost;

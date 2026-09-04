@@ -42,7 +42,10 @@ done < <(grep -E '^[[:space:]]+image:' "$COMPOSE_FILE" | sed 's/^[[:space:]]*ima
 contains docker-compose.observability.yml 'profiles: [observability]'
 contains docker-compose.observability.yml 'GRAFANA_ADMIN_PASSWORD is required'
 contains infrastructure/observability/prometheus.yml '/etc/prometheus/rules/worker-slo-alerts.yml'
+contains infrastructure/observability/prometheus.yml 'host.docker.internal:9101'
 contains infrastructure/observability/prometheus.yml 'backend-auth:9101'
+contains infrastructure/observability/observability-alerts.yml 'ulticode-owners|ulticode-owners-compose'
+contains docker-compose.observability.yml 'host.docker.internal:host-gateway'
 contains infrastructure/observability/prometheus.yml 'otel-collector:9464'
 contains infrastructure/observability/otel-collector.yml 'otlp/tempo'
 contains infrastructure/observability/otel-collector.yml 'otlphttp/loki'
@@ -51,7 +54,40 @@ contains infrastructure/observability/grafana/provisioning/datasources/datasourc
 contains infrastructure/observability/grafana/provisioning/datasources/datasources.yml "matcherRegex: 'traceId=([A-Za-z0-9_-]+)'"
 contains docker-compose.prod.yml 'MANAGEMENT_OTLP_METRICS_ENABLED=${MANAGEMENT_OTLP_METRICS_ENABLED:-false}'
 contains docker-compose.prod.yml 'MANAGEMENT_OTLP_METRICS_ENDPOINT=${MANAGEMENT_OTLP_METRICS_ENDPOINT:-http://otel-collector:4318/v1/metrics}'
-contains services/search/pom.xml '<finalName>backend-search</finalName>'
+contains docker-compose.observability-managed.yml 'MANAGED_OTLP_TRACING_ENDPOINT is required'
+contains docker-compose.observability-managed.yml 'MANAGED_OTLP_SAMPLING_PROBABILITY:-0.1'
+contains services/platform/observability/src/main/java/com/ulticode/observability/config/OtlpSecurityAutoConfiguration.java 'must use https when authorization is configured'
+contains services/auth/src/main/resources/application.yml 'MANAGEMENT_TRACING_SAMPLING_PROBABILITY:1.0'
+contains services/admin/src/main/resources/application.yml 'MANAGEMENT_OTLP_AUTHORIZATION'
+for pom in \
+  services/auth/pom.xml services/admin/pom.xml services/app/app-web/pom.xml \
+  services/submission/pom.xml services/notification/pom.xml \
+  services/search/pom.xml services/judge/pom.xml; do
+  contains "$pom" '<artifactId>backend-observability</artifactId>'
+done
+
+python3 - "$ROOT_DIR" <<'PY'
+import re
+import sys
+from pathlib import Path
+
+root = Path(sys.argv[1])
+services = ("auth", "admin", "app/app-web", "submission", "notification", "search", "judge")
+pattern = re.compile(
+    r"probability:\s+\$\{MANAGEMENT_TRACING_SAMPLING_PROBABILITY:([0-9]+(?:\.[0-9]+)?)\}"
+)
+for service in services:
+    path = root / "services" / service / "src/main/resources/application.yml"
+    text = path.read_text(encoding="utf-8")
+    matches = pattern.findall(text)
+    if len(matches) != 1:
+        raise SystemExit(f"{path}: expected one tracing sampling override")
+    if not 0 <= float(matches[0]) <= 1:
+        raise SystemExit(f"{path}: sampling default must be between 0 and 1")
+    if "Authorization: ${MANAGEMENT_OTLP_AUTHORIZATION:}" not in text:
+        raise SystemExit(f"{path}: OTLP authorization header mapping is missing")
+PY
+printf 'owner OTLP sampling and authorization bindings: PASS\n'
 contains .github/services-matrix.json '"artifact": "backend-search-exec.jar"'
 contains scripts/runbooks/observability-release-annotation.sh '/api/annotations'
 contains scripts/runbooks/observability-release-annotation.sh 'image-reference-policy.sh'

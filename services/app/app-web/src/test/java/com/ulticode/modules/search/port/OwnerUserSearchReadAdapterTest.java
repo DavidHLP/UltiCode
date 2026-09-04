@@ -51,7 +51,7 @@ class OwnerUserSearchReadAdapterTest {
         AuthAccountDTO account = account("u-1", "alice", "2026-08-01T00:00:00", null);
         when(accountQueryService.queryAccounts(any()))
                 .thenReturn(RpcResult.page(List.of(account), 1, 1, 100, "t-search"));
-        when(profileReadMapper.findSearchCandidates("ali", 0, 100)).thenReturn(List.of());
+        when(profileReadMapper.findSearchCandidatesPage("ali", 0, 100)).thenReturn(List.of());
         when(profileReadMapper.findSearchRowsByAccountIds(Set.of("u-1")))
                 .thenReturn(List.of(profile("u-1", "Alice", "/alice.png", null)));
 
@@ -71,7 +71,7 @@ class OwnerUserSearchReadAdapterTest {
         AuthAccountDTO alice = account("u-1", "alice", "2026-08-01T00:00:00", null);
         when(accountQueryService.queryAccounts(any()))
                 .thenReturn(RpcResult.page(List.of(alice), 1, 1, 100, "t-search"));
-        when(profileReadMapper.findSearchCandidates("ali", 0, 100))
+        when(profileReadMapper.findSearchCandidatesPage("ali", 0, 100))
                 .thenReturn(List.of(profile("u-1", "Alice", "/a.png", null),
                         profile("u-2", "Alice Cooper", "/b.png", null)));
         when(accountQueryService.getAccountsByIds(Set.of("u-1", "u-2")))
@@ -95,7 +95,7 @@ class OwnerUserSearchReadAdapterTest {
         AuthAccountDTO bob = account("u-2", "bob", "2026-08-01T00:00:00", null);
         when(accountQueryService.queryAccounts(any()))
                 .thenReturn(RpcResult.page(List.of(alice, carol), 2, 1, 100, "t-search"));
-        when(profileReadMapper.findSearchCandidates("a", 0, 100))
+        when(profileReadMapper.findSearchCandidatesPage("a", 0, 100))
                 .thenReturn(List.of(profile("u-2", "Alice Bob", null, null)));
         when(accountQueryService.getAccountsByIds(Set.of("u-2")))
                 .thenReturn(RpcResult.success(List.of(bob), "t-search"));
@@ -114,7 +114,7 @@ class OwnerUserSearchReadAdapterTest {
         when(accountQueryService.queryAccounts(any()))
                 .thenReturn(RpcResult.page(List.of(alice, bob), 2, 1, 100, "t-search"));
         when(profileReadMapper.countSearchCandidates("ali")).thenReturn(2L);
-        when(profileReadMapper.findSearchCandidates("ali", 0, 100))
+        when(profileReadMapper.findSearchCandidatesPage("ali", 0, 100))
                 .thenReturn(List.of(profile("u-1", "Alice", null, null),
                         profile("u-3", "Alice Carol", null, null)));
         when(accountQueryService.countAccountsByIdsExcludingUsernameMatch(Set.of("u-1", "u-3"), "ali"))
@@ -129,7 +129,7 @@ class OwnerUserSearchReadAdapterTest {
         when(accountQueryService.queryAccounts(any()))
                 .thenReturn(RpcResult.page(List.of(jose), 1, 1, 100, "t-search"));
         when(profileReadMapper.countSearchCandidates("e")).thenReturn(1L);
-        when(profileReadMapper.findSearchCandidates("e", 0, 100))
+        when(profileReadMapper.findSearchCandidatesPage("e", 0, 100))
                 .thenReturn(List.of(profile("u-1", "Elena", null, null)));
         when(accountQueryService.countAccountsByIdsExcludingUsernameMatch(Set.of("u-1"), "e"))
                 .thenReturn(RpcResult.success(0L, "t-search"));
@@ -142,7 +142,7 @@ class OwnerUserSearchReadAdapterTest {
         AuthAccountDTO account = account("u-1", "alice", "2026-08-01T00:00:00", null);
         when(accountQueryService.queryAccounts(any()))
                 .thenReturn(RpcResult.page(List.of(account), 1, 1, 100, "t-search"));
-        when(profileReadMapper.findSearchCandidates("ali", 0, 100))
+        when(profileReadMapper.findSearchCandidatesPage("ali", 0, 100))
                 .thenReturn(List.of(profile("gone", "Alice", null, null)));
         when(accountQueryService.getAccountsByIds(Set.of("gone")))
                 .thenReturn(RpcResult.success(List.of(), "t-search"));
@@ -274,7 +274,7 @@ class OwnerUserSearchReadAdapterTest {
     void unavailableIdentityFailsClosedForProfileSearch() {
         when(accountQueryService.queryAccounts(any()))
                 .thenReturn(RpcResult.page(List.of(), 0, 1, 100, "t-search"));
-        when(profileReadMapper.findSearchCandidates("alice", 0, 100))
+        when(profileReadMapper.findSearchCandidatesPage("alice", 0, 100))
                 .thenReturn(List.of(profile("u-1", "Alice", null, null)));
         when(accountQueryService.getAccountsByIds(Set.of("u-1")))
                 .thenThrow(new RuntimeException("account query unavailable"));

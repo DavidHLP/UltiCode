@@ -1,6 +1,6 @@
 package com.ulticode.modules.moderation.consumer;
 
-import com.ulticode.app.api.service.ModerationAccountPort;
+import com.ulticode.modules.moderation.port.ModerationAccountPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

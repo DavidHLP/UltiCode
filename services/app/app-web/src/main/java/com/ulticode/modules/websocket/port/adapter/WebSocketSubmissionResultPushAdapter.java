@@ -1,6 +1,6 @@
 package com.ulticode.modules.websocket.port.adapter;
 
-import com.ulticode.app.api.service.SubmissionResultPushPort;
+import com.ulticode.modules.websocket.port.SubmissionResultPushPort;
 import com.ulticode.modules.websocket.constants.WebSocketConstants;
 import com.ulticode.submission.api.dto.SubmissionResultPayload;
 import com.ulticode.modules.websocket.broadcast.WebSocketBroadcastBridge;

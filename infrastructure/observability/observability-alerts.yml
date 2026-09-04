@@ -3,7 +3,9 @@ groups:
     interval: 30s
     rules:
       - alert: OwnerMetricsTargetDown
-        expr: up{job="ulticode-owners"} == 0
+        # One owner can be reached through host-PM2 or the Compose network;
+        # alert only when every configured deployment path is down.
+        expr: max by (owner) (up{job=~"ulticode-owners|ulticode-owners-compose"}) == 0
         for: 5m
         labels:
           severity: critical

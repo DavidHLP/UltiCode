@@ -123,44 +123,61 @@ public class PermissionServiceImpl implements PermissionService {
 
     @Override
     public UserPermission assignPermission(String userId, String action, String resource,
-                                            LocalDateTime expiresAt) {
+                                           LocalDateTime expiresAt) {
+        String actorId = currentUserProvider == null
+                ? null : currentUserProvider.getCurrentUserId();
+        if (!StringUtils.hasText(actorId)) {
+            throw new AuthBusinessException(
+                    BaseErrorCode.UNAUTHORIZED, "Authenticated actor is required");
+        }
+        return assignPermission(userId, action, resource, expiresAt, actorId);
+
+    }
+
+    @Override
+    public UserPermission assignPermission(String userId, String action, String resource,
+                                           LocalDateTime expiresAt, String grantedBy) {
         validatePermissionArgs(userId, action, resource);
 
         if (expiresAt != null && expiresAt.isBefore(LocalDateTime.now(clock))) {
-            throw new AuthBusinessException(BaseErrorCode.VALIDATION_FAILED, "expiresAt cannot be in the past");
+            throw new AuthBusinessException(
+                    BaseErrorCode.VALIDATION_FAILED, "expiresAt cannot be in the past");
         }
 
         String normUserId = userId.trim();
-        String normAction = action.trim().toUpperCase();
-        String normResource = resource.trim().toUpperCase();
-
+        String normAction = action.trim().toUpperCase(java.util.Locale.ROOT);
+        String normResource = resource.trim().toUpperCase(java.util.Locale.ROOT);
         UserPermission existing = userPermissionMapper.selectOne(
                 new LambdaQueryWrapper<UserPermission>()
                         .eq(UserPermission::getUserId, normUserId)
                         .eq(UserPermission::getAction, normAction)
-                        .eq(UserPermission::getResource, normResource)
-        );
+                        .eq(UserPermission::getResource, normResource));
 
         if (existing != null) {
-            existing.setExpiresAt(expiresAt);
-            userPermissionMapper.updateById(existing);
-            return existing;
+            UserPermission updated = new UserPermission();
+            updated.setId(existing.getId());
+            updated.setUserId(existing.getUserId());
+            updated.setAction(existing.getAction());
+            updated.setResource(existing.getResource());
+            updated.setGrantedBy(existing.getGrantedBy());
+            updated.setGrantedAt(existing.getGrantedAt());
+            updated.setExpiresAt(expiresAt);
+            userPermissionMapper.updateById(updated);
+            return updated;
         }
 
-        String actorId = currentUserProvider.getCurrentUserId();
-        String grantedBy = StringUtils.hasText(actorId) ? actorId : SYSTEM_GRANTOR;
-
-        UserPermission perm = new UserPermission();
-        perm.setId(uuidGenerator.newId());
-        perm.setUserId(normUserId);
-        perm.setAction(normAction);
-        perm.setResource(normResource);
-        perm.setGrantedBy(grantedBy);
-        perm.setGrantedAt(LocalDateTime.now(clock));
-        perm.setExpiresAt(expiresAt);
-
-        userPermissionMapper.insert(perm);
-        return perm;
+        String actor = grantedBy == null || grantedBy.isBlank()
+                ? SYSTEM_GRANTOR : grantedBy.trim();
+        UserPermission permission = new UserPermission();
+        permission.setId(uuidGenerator.newId());
+        permission.setUserId(normUserId);
+        permission.setAction(normAction);
+        permission.setResource(normResource);
+        permission.setGrantedBy(actor);
+        permission.setGrantedAt(LocalDateTime.now(clock));
+        permission.setExpiresAt(expiresAt);
+        userPermissionMapper.insert(permission);
+        return permission;
     }
 
     @Override

@@ -111,16 +111,10 @@ public class AuthSingleHopArchTest {
                             "com.ulticode.auth.adapter.in.web.RoleAdministrationController..",
                             "com.ulticode.auth.permission.service.RoleAdministrationService",
                             "com.ulticode.auth.permission.service.RoleAdministrationService..",
-                            "com.ulticode.auth.permission.mapper.UserRoleMapper",
-                            "com.ulticode.auth.permission.mapper.UserRoleMapper..",
                             "com.ulticode.auth.permission.mapper.UserPermissionMapper",
                             "com.ulticode.auth.permission.mapper.UserPermissionMapper..",
                             "com.ulticode.auth.permission.mapper.RolePermissionMapper",
-                            "com.ulticode.auth.permission.mapper.RolePermissionMapper..",
-                            "com.ulticode.auth.permission.port.UserRoleWritePort",
-                            "com.ulticode.auth.permission.port.UserRoleWritePort..",
-                            "com.ulticode.auth.permission.adapter.UserRoleWriteAdapter",
-                            "com.ulticode.auth.permission.adapter.UserRoleWriteAdapter..")
+                            "com.ulticode.auth.permission.mapper.RolePermissionMapper..")
                     .because("P2-RBAC-001: backend-auth is the sole owner of the "
                             + "users.role / user_permissions / role_permissions write "
                             + "path. Foreign modules must use AccountAdministrationService "

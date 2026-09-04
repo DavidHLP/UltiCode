@@ -4,9 +4,9 @@ package com.ulticode.modules.submission.sandbox;
  * Immutable descriptor of a single sandbox execution request.
  *
  * <p>This is the input to {@link SandboxExecutor#run} and
- * {@link SandboxExecutor#runBatch}. It is built by the code-execution
- * facade from the upstream {@code RunSubmissionDTO} plus submission
- * state, then handed to the port — the port never sees the wire DTO.
+ * {@link SandboxExecutor#runBatch}. It is built by the runtime-private
+ * JudgeRunRequest plus submission state, then handed to the port; the port
+ * never sees transport DTOs.
  *
  * <h2>Field contract</h2>
  * <ul>

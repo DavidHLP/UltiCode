@@ -1,7 +1,7 @@
 package com.ulticode.modules.search.port;
 
 import com.ulticode.app.api.dto.UserIndexDTO;
-import com.ulticode.app.api.service.UserSearchReadPort;
+import com.ulticode.modules.search.port.UserSearchReadPort;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;

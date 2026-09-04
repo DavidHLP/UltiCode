@@ -1,0 +1,57 @@
+{
+  "name": "UltiCode",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
+  "features": {
+    "ghcr.io/devcontainers/features/java:1": {
+      "version": "17",
+      "installMaven": false
+    },
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "22",
+      "nodeGypDependencies": true
+    },
+    "ghcr.io/devcontainers-contrib/features/mise:1": {},
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "version": "26.1"
+    }
+  },
+  "remoteUser": "vscode",
+  "containerEnv": {
+    "COREPACK_HOME": "/home/vscode/.cache/node/corepack",
+    "MAVEN_USER_HOME": "/home/vscode/.m2",
+    "PNPM_STORE_DIR": "/tmp/ulticode-pnpm-store"
+  },
+  "forwardPorts": [9002, 9003, 9101, 9102, 9103, 9105, 9106, 20884, 20886, 28848],
+  "portsAttributes": {
+    "9002": { "label": "Console" },
+    "9003": { "label": "Management" },
+    "9101": { "label": "Auth" },
+    "9102": { "label": "Admin" },
+    "9103": { "label": "App" },
+    "9105": { "label": "Notification" },
+    "9106": { "label": "Submission" },
+    "20884": { "label": "Judge Dubbo" },
+    "20886": { "label": "Submission Dubbo" },
+    "28848": { "label": "Nacos" }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "vscjava.vscode-java-pack",
+        "redhat.vscode-yaml",
+        "dbaeumer.vscode-eslint",
+        "vue.volar",
+        "ms-azuretools.vscode-docker",
+        "tamasfe.even-better-toml"
+      ],
+      "settings": {
+        "java.configuration.runtimes": [
+          { "name": "JavaSE-17", "default": true }
+        ],
+        "editor.formatOnSave": false
+      }
+    }
+  },
+  "postCreateCommand": "sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends python3 >/dev/null && git config --global --add safe.directory \"$(pwd)\" && corepack enable && corepack prepare pnpm@10.15.1 --activate && npm install --global pm2@6.0.8 && CI=true pnpm --store-dir ${PNPM_STORE_DIR:-/tmp/ulticode-pnpm-store} install --frozen-lockfile --child-concurrency=2 --network-concurrency=8 && ./services/mvnw -f services/pom.xml -DskipTests dependency:go-offline",
+  "postStartCommand": "./scripts/dev/test.sh unit"
+}

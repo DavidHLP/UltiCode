@@ -2,7 +2,8 @@ package com.ulticode.auth.idempotency;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.auth.api.command.ChangeAccountStateCommand;
-import com.ulticode.auth.api.command.ChangeAuthorizationCommand;
+import com.ulticode.auth.api.command.PermissionMutationCommand;
+import com.ulticode.auth.api.command.ChangeRoleCommand;
 import com.ulticode.auth.api.command.ChangePasswordCommand;
 import com.ulticode.auth.api.command.CreateAccountCommand;
 import com.ulticode.auth.api.command.DeleteAccountCommand;
@@ -187,16 +188,26 @@ public class CommandReceiptExecutor {
             payload = includeExpectedVersion
                     ? join(value.accountId(), value.expectedVersion(), value.action(), value.rationale())
                     : join(value.accountId(), value.action(), value.rationale());
-        } else if (command instanceof ChangeAuthorizationCommand value) {
-            String permissions = value.permissions().stream()
-                    .sorted()
-                    .map(CommandReceiptExecutor::encode)
-                    .collect(Collectors.joining("|"));
+        } else if (command instanceof PermissionMutationCommand value) {
             payload = includeExpectedVersion
-                    ? join(value.accountId(), value.expectedVersion(), value.role(), permissions, value.rationale())
-                    : join(value.accountId(), value.role(), permissions, value.rationale());
+                    ? join(value.accountId(), value.operation(), value.action(),
+                    value.resource(), value.expiresAt(), value.expectedVersion(),
+                    value.actor().actorType(), value.actorId(), value.actor().delegatorId(),
+                    value.rationale())
+                    : join(value.accountId(), value.operation(), value.action(),
+                    value.resource(), value.expiresAt(), value.actor().actorType(),
+                    value.actorId(), value.actor().delegatorId(), value.rationale());
+        } else if (command instanceof ChangeRoleCommand value) {
+            payload = includeExpectedVersion
+                    ? join(value.accountId(), value.role(), value.expectedVersion(),
+                    value.actor().actorType(), value.actor().actorId(),
+                    value.actor().delegatorId(), value.rationale())
+                    : join(value.accountId(), value.role(), value.actor().actorType(),
+                    value.actor().actorId(), value.actor().delegatorId(), value.rationale());
         } else {
-            payload = command.getClass().getName();
+            throw new IllegalArgumentException(
+                    "Unsupported write command for idempotency fingerprint: "
+                            + command.getClass().getName());
         }
         return sha256(command.getClass().getName() + FIELD_SEPARATOR + payload);
     }

@@ -28,6 +28,10 @@
         </dependency>
         <dependency>
             <groupId>com.ulticode</groupId>
+            <artifactId>backend-observability</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.ulticode</groupId>
             <artifactId>backend-rpc-resilience</artifactId>
         </dependency>
         <dependency>

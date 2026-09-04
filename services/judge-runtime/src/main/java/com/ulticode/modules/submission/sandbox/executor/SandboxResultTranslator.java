@@ -1,8 +1,8 @@
 package com.ulticode.modules.submission.sandbox.executor;
 
 import com.ulticode.modules.submission.codec.SubmissionStatusCodec;
-import com.ulticode.app.api.dto.RunResultDTO;
-import com.ulticode.app.api.dto.RunSubmissionDTO;
+import com.ulticode.modules.submission.runtime.JudgeRunResponse;
+import com.ulticode.modules.submission.runtime.JudgeRunRequest;
 import com.ulticode.domain.submission.enums.SubmissionStatus;
 import com.ulticode.modules.submission.sandbox.RunCaseResult;
 import com.ulticode.modules.submission.sandbox.SandboxOutcomeClassifier;
@@ -18,12 +18,13 @@ import java.util.List;
  * <p>Concentrates the two pure DTO ↔ port-type translations that used to live
  * as private methods on the executor:
  * <ul>
- *   <li>{@link #toRunTestCase(TestCase)} — port {@code TestCase} → the legacy
- *       {@code RunSubmissionDTO.RunTestCase} the harness speaks; and</li>
- *   <li>{@link #toPortResult(RunResultDTO.RunCaseResult, TestCase, long)} —
- *       the wire-string {@code RunCaseResult} DTO back into the port-owned
+ *   <li>{@link #toRunTestCase(TestCase)} — port {@code TestCase} → the
+ *       runtime-private {@code JudgeRunRequest.TestCase} the harness speaks;
+ *       and</li>
+ *   <li>{@link #toPortResult(JudgeRunResponse.RunCaseResult, TestCase, long)}
+ *       — runtime result DTO back into the port-owned
  *       {@link RunCaseResult} carrying the typed {@link SubmissionStatus}
- *       (ADR-001), including the ADR-002 §8 Layer-B memory-ceiling backstop
+ *       enum, including the ADR-002 §8 Layer-B memory-ceiling backstop
  *       delegated to {@link SandboxOutcomeClassifier#applyMemoryCeiling}.</li>
  * </ul>
  *
@@ -49,23 +50,22 @@ class SandboxResultTranslator {
     }
 
     /**
-     * Translate the port-owned {@link TestCase} into the DTO the D-form
-     * envelope codec speaks. Lives here (not in the port) so {@code sandbox}
-     * stays decoupled from the {@code submission.dto} package in the public
-     * type signatures; only this translator &mdash; which is the seam &mdash;
-     * touches the DTO type.
+     * envelope codec speaks. Lives here (not in the port) so the {@code sandbox}
+     * stays decoupled from transport DTO packages in the public type
+     * signatures; only this translator &mdash; which is the seam &mdash;
+     * touches the runtime-private DTO type.
      *
      * @param tc the port test case
      * @return the DTO test case, never {@code null}
      */
-    RunSubmissionDTO.RunTestCase toRunTestCase(TestCase tc) {
-        RunSubmissionDTO.RunTestCase rtc = new RunSubmissionDTO.RunTestCase();
+    JudgeRunRequest.TestCase toRunTestCase(TestCase tc) {
+        JudgeRunRequest.TestCase rtc = new JudgeRunRequest.TestCase();
         rtc.setId(tc.id());
         rtc.setLabel(tc.label());
         rtc.setOutput(tc.expectedOutput());
-        List<RunSubmissionDTO.RunInput> inputs = new ArrayList<>(tc.inputs().size());
+        List<JudgeRunRequest.Input> inputs = new ArrayList<>(tc.inputs().size());
         for (TestCase.Input in : tc.inputs()) {
-            RunSubmissionDTO.RunInput ri = new RunSubmissionDTO.RunInput();
+            JudgeRunRequest.Input ri = new JudgeRunRequest.Input();
             ri.setId(in.id());
             ri.setLabel(in.label());
             ri.setName(in.name());
@@ -78,10 +78,9 @@ class SandboxResultTranslator {
     }
 
     /**
-     * Translate the DTO-level {@link RunResultDTO.RunCaseResult} (which carries
-     * a wire-string status) into the port-owned {@link RunCaseResult} (which
-     * carries a {@link SubmissionStatus} enum, per ADR-001).
-     *
+     * <p>Translate the runtime-private {@link JudgeRunResponse.RunCaseResult}
+     * (which carries a wire-string status) into the port-owned
+     * {@link RunCaseResult} (which carries a {@link SubmissionStatus} enum).</p>
      * <p>The helper writes the pre-formatted runtime / memory strings (e.g.
      * {@code "12ms"} / {@code "22.0MB"}) AND the numeric v2 fields (e.g.
      * {@code runtimeMs} / {@code memoryMb}). We prefer the numeric fields when
@@ -93,7 +92,7 @@ class SandboxResultTranslator {
      * @param memoryLimitBytes the per-run memory ceiling for the Layer-B backstop
      * @return the port-owned result, never {@code null}
      */
-    RunCaseResult toPortResult(RunResultDTO.RunCaseResult dto,
+    RunCaseResult toPortResult(JudgeRunResponse.RunCaseResult dto,
                                TestCase originalCase, long memoryLimitBytes) {
         SubmissionStatus status = SubmissionStatusCodec.fromWire(dto.getStatus());
         long elapsedMs = dto.getRuntimeMs() != null

@@ -14,28 +14,65 @@ scrape_configs:
     metrics_path: /actuator/prometheus
     static_configs:
       - targets:
+          - host.docker.internal:9101
+        labels:
+          owner: auth
+          deployment: host-pm2
+      - targets:
+          - host.docker.internal:9102
+        labels:
+          owner: admin
+          deployment: host-pm2
+      - targets:
+          - host.docker.internal:9103
+        labels:
+          owner: app
+          deployment: host-pm2
+      - targets:
+          - host.docker.internal:9106
+        labels:
+          owner: submission
+          deployment: host-pm2
+      - targets:
+          - host.docker.internal:9105
+        labels:
+          owner: notification
+          deployment: host-pm2
+
+
+  # Containerized owners are reachable through the Compose network, not
+  # host-published ports (production deliberately publishes none).
+  - job_name: ulticode-owners-compose
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets:
           - backend-auth:9101
         labels:
           owner: auth
+          deployment: compose
       - targets:
           - backend-admin:9102
         labels:
           owner: admin
+          deployment: compose
       - targets:
           - backend-app:9103
         labels:
           owner: app
+          deployment: compose
       - targets:
           - backend-submission:9106
         labels:
           owner: submission
+          deployment: compose
       - targets:
           - backend-notification:9105
         labels:
           owner: notification
-
+          deployment: compose
   # Search and Judge are web-application-type=none workers. Their OTLP
   # Micrometer metrics are converted to a scrape endpoint by the Collector.
+
   - job_name: ulticode-otel-metrics
     static_configs:
       - targets:

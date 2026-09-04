@@ -112,6 +112,20 @@ public class DefaultAuthAccountAdapter implements AuthAccountPort {
         replace(existing, updated);
         return true;
     }
+    @Override
+    public synchronized boolean bumpAuthzVersionIfExpected(
+            String userId, long expectedVersion) {
+        AuthAccountRecord existing = accountsById.get(userId);
+        if (existing == null || existing.authzVersion() != expectedVersion) {
+            return false;
+        }
+        AuthAccountRecord updated = new AuthAccountRecord(
+                existing.id(), existing.username(), existing.email(), existing.password(),
+                existing.role(), existing.isActive(), existing.isBanned(),
+                existing.bannedUntil(), existing.joinedAt(), expectedVersion + 1);
+        replace(existing, updated);
+        return true;
+    }
 
     private void replace(AuthAccountRecord existing, AuthAccountRecord updated) {
         accountsById.put(existing.id(), updated);

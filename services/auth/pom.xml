@@ -26,6 +26,10 @@
 			<groupId>com.ulticode</groupId>
 			<artifactId>backend-common</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>com.ulticode</groupId>
+			<artifactId>backend-observability</artifactId>
+		</dependency>
 
 		<dependency>
 			<groupId>com.ulticode</groupId>

@@ -2,7 +2,8 @@ package com.ulticode.auth.api.architecture;
 
 import com.ulticode.auth.api.command.ActorDelegation;
 import com.ulticode.auth.api.command.ChangeAccountStateCommand;
-import com.ulticode.auth.api.command.ChangeAuthorizationCommand;
+import com.ulticode.auth.api.command.ChangeRoleCommand;
+import com.ulticode.auth.api.command.PermissionMutationCommand;
 import com.ulticode.auth.api.command.ChangePasswordCommand;
 import com.ulticode.auth.api.command.CreateAccountCommand;
 import com.ulticode.auth.api.command.DeleteAccountCommand;
@@ -13,6 +14,7 @@ import com.ulticode.auth.api.dto.AccountMutationDTO;
 import com.ulticode.auth.api.dto.AuthAccountDTO;
 import com.ulticode.auth.api.dto.AuthorizationSnapshotDTO;
 import com.ulticode.auth.api.dto.UserIdentityDTO;
+import com.ulticode.auth.api.dto.AuthorizationMutationDTO;
 import com.ulticode.auth.api.dto.AuthUserTrendAggregateQuery;
 import com.ulticode.auth.api.dto.AuthUserTrendBucketDTO;
 import com.ulticode.auth.api.dto.AccountStateDTO;
@@ -22,6 +24,8 @@ import com.ulticode.auth.api.service.AccountManagementService;
 import com.ulticode.auth.api.service.AccountQueryService;
 import com.ulticode.auth.api.service.AuthorizationSnapshotService;
 import com.ulticode.auth.api.service.IdentityQueryService;
+import com.ulticode.auth.api.service.AuthorizationMutationService;
+import com.ulticode.auth.api.service.RoleMutationService;
 import com.ulticode.common.error.NamespacedErrorCode;
 import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.common.tracing.IdMetadata;
@@ -90,8 +94,11 @@ class BackendAuthApiContractShapeTest {
                 "com.ulticode.auth.api.dto.AuthorizationSnapshotDTO",
                 "com.ulticode.auth.api.command.ActorDelegation",
                 "com.ulticode.auth.api.command.WriteCommand",
-                "com.ulticode.auth.api.command.ChangeAccountStateCommand",
-                "com.ulticode.auth.api.command.ChangeAuthorizationCommand",
+                "com.ulticode.auth.api.command.ChangeRoleCommand",
+                "com.ulticode.auth.api.command.PermissionMutationCommand",
+                "com.ulticode.auth.api.dto.AuthorizationMutationDTO",
+                "com.ulticode.auth.api.service.AuthorizationMutationService",
+                "com.ulticode.auth.api.service.RoleMutationService",
                 "com.ulticode.auth.api.command.CreateAccountCommand",
                 "com.ulticode.auth.api.command.UpdateAccountCredentialsCommand",
                 "com.ulticode.auth.api.command.ChangePasswordCommand",
@@ -103,9 +110,11 @@ class BackendAuthApiContractShapeTest {
                 AccountStateDTO.class,
                 AccountMutationDTO.class,
                 AuthorizationSnapshotDTO.class,
+                AuthorizationMutationDTO.class,
                 ActorDelegation.class,
                 ChangeAccountStateCommand.class,
-                ChangeAuthorizationCommand.class,
+                ChangeRoleCommand.class,
+                PermissionMutationCommand.class,
                 CreateAccountCommand.class,
                 UpdateAccountCredentialsCommand.class,
                 ChangePasswordCommand.class,
@@ -152,9 +161,8 @@ class BackendAuthApiContractShapeTest {
     /**
      * Reflectively scans every command / DTO field whose name ends in
      * {@code Id} (or the obvious variants used in this contract) and
-     * asserts the declared type is {@link String}. This guards
-     * against an accidental {@code Long} regression: the project
-     * already declared "IDs are UUID String" in &sect;6.2.
+     * asserts the declared type is {@link String}. This guards against an
+     * accidental {@code Long} regression.
      */
     @Test
     void id_typed_fields_are_String_on_every_command_and_dto() {
@@ -164,9 +172,11 @@ class BackendAuthApiContractShapeTest {
                 AccountMutationDTO.class,
                 AuthAccountDTO.class,
                 AuthorizationSnapshotDTO.class,
+                AuthorizationMutationDTO.class,
                 ActorDelegation.class,
                 ChangeAccountStateCommand.class,
-                ChangeAuthorizationCommand.class);
+                ChangeRoleCommand.class,
+                PermissionMutationCommand.class);
         Set<String> violations = new HashSet<>();
         for (Class<?> type : scanned) {
             for (Field field : type.getDeclaredFields()) {
@@ -180,9 +190,7 @@ class BackendAuthApiContractShapeTest {
             }
         }
         assertThat(violations)
-                .as("every Id-typed field on auth-api DTOs / commands "
-                        + "must be String (UUID); Long/BigInteger are "
-                        + "forbidden by &sect;6.2")
+                .as("every Id-typed field on auth-api DTOs / commands must be String")
                 .isEmpty();
     }
 
@@ -212,7 +220,7 @@ class BackendAuthApiContractShapeTest {
                         1L,
                         ChangeAccountStateCommand.AccountStateAction.BAN,
                         "test"),
-                new ChangeAuthorizationCommand(
+                new ChangeRoleCommand(
                         UUID.randomUUID().toString(),
                         IdMetadata.mint(),
                         new ActorDelegation(
@@ -222,9 +230,24 @@ class BackendAuthApiContractShapeTest {
                                 "role test"),
                         TraceMetadata.EMPTY,
                         UUID.randomUUID().toString(),
-                        1L,
                         "MODERATOR",
-                        Set.of("PROBLEM_EDIT"),
+                        1L,
+                        "test"),
+                new PermissionMutationCommand(
+                        UUID.randomUUID().toString(),
+                        IdMetadata.mint(),
+                        new ActorDelegation(
+                                "ADMIN",
+                                UUID.randomUUID().toString(),
+                                UUID.randomUUID().toString(),
+                                "permission test"),
+                        TraceMetadata.EMPTY,
+                        UUID.randomUUID().toString(),
+                        PermissionMutationCommand.Operation.GRANT,
+                        "READ",
+                        "PROBLEM",
+                        null,
+                        1L,
                         "test"));
         for (WriteCommand cmd : samples) {
             assertThat(cmd.commandId())
@@ -364,78 +387,100 @@ class BackendAuthApiContractShapeTest {
     }
 
     @Test
-    void change_authorization_command_rejects_null_expected_version() {
+    void change_role_command_rejects_null_expected_version() {
         String uuid = UUID.randomUUID().toString();
         ThrowingCallable ctor = () ->
-                new ChangeAuthorizationCommand(
+                new ChangeRoleCommand(
                         UUID.randomUUID().toString(),
                         IdMetadata.mint(),
                         new ActorDelegation("ADMIN", uuid, uuid, "test"),
                         TraceMetadata.EMPTY,
                         uuid,
-                        null,
                         "MODERATOR",
-                        Set.of("PROBLEM_EDIT"),
+                        null,
                         "test");
         assertThatThrownBy(ctor)
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("expectedVersion");
     }
 
-    /* ===== permissions Set.copyOf + null/blank rejection ============== */
+    @Test
+    void permission_mutation_rejects_null_expected_version() {
+        String uuid = UUID.randomUUID().toString();
+        ThrowingCallable ctor = () ->
+                new PermissionMutationCommand(
+                        UUID.randomUUID().toString(),
+                        IdMetadata.mint(),
+                        new ActorDelegation("ADMIN", uuid, uuid, "test"),
+                        TraceMetadata.EMPTY,
+                        uuid,
+                        PermissionMutationCommand.Operation.GRANT,
+                        "READ",
+                        "PROBLEM",
+                        null,
+                        null,
+                        "test");
+        assertThatThrownBy(ctor)
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("expectedVersion");
+    }
 
     @Test
-    void change_authorization_command_permissions_are_defensively_copied() {
+    void permission_mutation_rejects_expiry_on_revoke() {
         String uuid = UUID.randomUUID().toString();
-        HashSet<String> mutable = new HashSet<>();
-        mutable.add("PROBLEM_EDIT");
-        ChangeAuthorizationCommand cmd = new ChangeAuthorizationCommand(
+        assertThatThrownBy(() -> new PermissionMutationCommand(
                 UUID.randomUUID().toString(),
                 IdMetadata.mint(),
                 new ActorDelegation("ADMIN", uuid, uuid, "test"),
                 TraceMetadata.EMPTY,
                 uuid,
+                PermissionMutationCommand.Operation.REVOKE,
+                "READ",
+                "PROBLEM",
+                java.time.OffsetDateTime.now(java.time.ZoneOffset.UTC),
                 1L,
-                "MODERATOR",
-                mutable,
-                "test");
-        assertThat(cmd.permissions())
-                .as("Set.copyOf must replace the caller's mutable set")
-                .isUnmodifiable();
-        mutable.add("PROBLEM_DELETE");
-        assertThat(cmd.permissions())
-                .as("post-construction caller mutation must not leak in")
-                .doesNotContain("PROBLEM_DELETE");
+                "test"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("expiresAt");
     }
 
     @Test
-    void change_authorization_command_rejects_null_and_blank_permissions() {
+    void permission_mutation_rejects_blank_action() {
         String uuid = UUID.randomUUID().toString();
-        ActorDelegation actor = new ActorDelegation("ADMIN", uuid, uuid, "t");
-        // Build sets that contain a null / blank element; Set.of(...) rejects
-        // null so we construct each via new HashSet + add().
-        Set<String> withNull = new HashSet<>();
-        withNull.add("PROBLEM_EDIT");
-        withNull.add(null);
-        Set<String> withBlank = new HashSet<>();
-        withBlank.add("PROBLEM_EDIT");
-        withBlank.add("  ");
-        Set<String> onlyBlank = new HashSet<>();
-        onlyBlank.add("");
-        for (Set<String> bad : List.of(withNull, withBlank, onlyBlank)) {
-            assertThatThrownBy(() -> new ChangeAuthorizationCommand(
-                    UUID.randomUUID().toString(),
-                    IdMetadata.mint(),
-                    actor,
-                    TraceMetadata.EMPTY,
-                    uuid,
-                    1L,
-                    "MODERATOR",
-                    bad,
-                    "test"))
-                    .as("null / blank element rejected")
-                    .isInstanceOf(IllegalArgumentException.class);
-        }
+        assertThatThrownBy(() -> new PermissionMutationCommand(
+                UUID.randomUUID().toString(),
+                IdMetadata.mint(),
+                new ActorDelegation("ADMIN", uuid, uuid, "test"),
+                TraceMetadata.EMPTY,
+                uuid,
+                PermissionMutationCommand.Operation.GRANT,
+                " ",
+                "PROBLEM",
+                null,
+                1L,
+                "test"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("action");
+    }
+
+    @Test
+    void permission_mutation_canonicalizes_action_and_resource() {
+        String uuid = UUID.randomUUID().toString();
+        PermissionMutationCommand command = new PermissionMutationCommand(
+                UUID.randomUUID().toString(),
+                IdMetadata.mint(),
+                new ActorDelegation("ADMIN", uuid, uuid, "test"),
+                TraceMetadata.EMPTY,
+                uuid,
+                PermissionMutationCommand.Operation.GRANT,
+                " read ",
+                " problem ",
+                null,
+                1L,
+                "test");
+
+        assertThat(command.action()).isEqualTo("READ");
+        assertThat(command.resource()).isEqualTo("PROBLEM");
     }
 
     @Test

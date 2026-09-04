@@ -1,6 +1,7 @@
 package com.ulticode.app.dubbo.provider;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import java.nio.file.Files;
@@ -30,6 +31,7 @@ import com.ulticode.modules.contest.mapper.ContestProblemMapper;
 import com.ulticode.modules.contest.port.ContestOwnerPort;
 import com.ulticode.modules.contest.port.DefaultContestOwnerPort;
 import com.ulticode.modules.contest.port.adapter.DefaultContestAdminReadAdapter;
+import com.ulticode.app.security.AdminActorAuthorizer;
 import com.ulticode.modules.contest.service.ContestLifecycleService;
 import com.ulticode.app.config.MybatisPlusConfig;
 import org.junit.jupiter.api.BeforeEach;
@@ -119,9 +121,12 @@ class ContestAdministrationWiringIT {
     @MockBean
     private UuidGenerator uuidGenerator;
 
+    @MockBean
+    private AdminActorAuthorizer adminActorAuthorizer;
     @BeforeEach
     void configureUuidGenerator() {
         when(uuidGenerator.newId()).thenAnswer(invocation -> UUID.randomUUID().toString());
+        when(adminActorAuthorizer.isAuthorized(any())).thenReturn(true);
     }
 
     @Test

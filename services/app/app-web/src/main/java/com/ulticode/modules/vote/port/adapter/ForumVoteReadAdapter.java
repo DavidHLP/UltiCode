@@ -1,7 +1,7 @@
 package com.ulticode.modules.vote.port.adapter;
 
 import com.ulticode.app.api.dto.VoteStatusDTO;
-import com.ulticode.app.api.service.ForumVoteReadPort;
+import com.ulticode.modules.forum.port.ForumVoteReadPort;
 import com.ulticode.modules.vote.entity.enums.EdgeOperationTargetType;
 import com.ulticode.modules.vote.service.VoteService;
 import lombok.RequiredArgsConstructor;

@@ -1,12 +1,12 @@
 package com.ulticode.modules.moderation.port;
 
 import com.ulticode.app.api.dto.ContentLifecycleState;
-import com.ulticode.app.api.service.ForumCommentOwnerPort;
-import com.ulticode.app.api.service.ModerationContentActionPort;
+import com.ulticode.modules.forum.port.ForumCommentOwnerPort;
+import com.ulticode.modules.moderation.port.ModerationContentActionPort;
 import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.exception.BusinessException;
 import java.time.LocalDateTime;
-import com.ulticode.app.api.service.ForumOwnerPort;
+import com.ulticode.modules.forum.port.ForumOwnerPort;
 import com.ulticode.app.api.service.ProblemOwnerPort;
 import com.ulticode.app.api.service.SolutionCommentOwnerPort;
 import com.ulticode.app.api.service.SolutionOwnerPort;

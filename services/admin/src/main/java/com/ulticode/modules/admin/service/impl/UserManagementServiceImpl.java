@@ -1,7 +1,7 @@
 package com.ulticode.modules.admin.service.impl;
 
 import com.ulticode.auth.api.command.ChangeAccountStateCommand;
-import com.ulticode.auth.api.command.ChangeAuthorizationCommand;
+import com.ulticode.auth.api.command.ChangeRoleCommand;
 import com.ulticode.auth.api.command.CreateAccountCommand;
 import com.ulticode.auth.api.command.DeleteAccountCommand;
 import com.ulticode.auth.api.command.ResetPasswordCommand;
@@ -11,6 +11,7 @@ import com.ulticode.auth.api.dto.AccountStateDTO;
 import com.ulticode.auth.api.dto.AuthAccountDTO;
 import com.ulticode.auth.api.service.AccountAdministrationService;
 import com.ulticode.auth.api.service.AccountManagementService;
+import com.ulticode.auth.api.service.RoleMutationService;
 import com.ulticode.auth.api.service.AccountQueryService;
 import com.ulticode.common.annotation.Audited;
 import com.ulticode.common.audit.AuditRecorder;
@@ -58,10 +59,13 @@ public class UserManagementServiceImpl implements UserManagementService {
     @Autowired(required = false)
     @DubboReference(group = "backend-auth", version = "1.0.0", timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
     private AccountQueryService accountQueryService;
-
     @Autowired(required = false)
     @DubboReference(group = "backend-auth", version = "1.0.0", timeout = RpcPolicy.WRITE_TIMEOUT_MS, retries = RpcPolicy.WRITE_RETRIES, check = false)
     private AccountAdministrationService accountAdministrationService;
+
+    @Autowired(required = false)
+    @DubboReference(group = "backend-auth", version = "1.0.0", timeout = RpcPolicy.WRITE_TIMEOUT_MS, retries = RpcPolicy.WRITE_RETRIES, check = false)
+    private RoleMutationService roleMutationService;
 
     private final UserProfilePort userProfilePort;
     private final AuditRecorder auditRecorder;
@@ -185,17 +189,19 @@ public class UserManagementServiceImpl implements UserManagementService {
         userProfilePort.updateProfile(profileCmd);
 
         if (StringUtils.hasText(dto.getRole()) && !dto.getRole().equals(current.role())) {
-            if (accountAdministrationService == null) {
+            if (roleMutationService == null) {
                 throw new BusinessException(AdminErrorCode.UNKNOWN_ERROR,
-                        "AccountAdministrationService unavailable");
+                        "RoleMutationService unavailable");
             }
-            String stableKey = "auth-role-update-" + currentTrace().traceId() + "-" + id;
-            String commandId = UUID.nameUUIDFromBytes(stableKey.getBytes()).toString();
-            ChangeAuthorizationCommand command = new ChangeAuthorizationCommand(
-                    commandId, IdMetadata.of(stableKey, null), authActor("admin user update"), currentTrace(),
-                    id, current.authzVersion(), dto.getRole(), Collections.emptySet(), "update user role"
-            );
-            requireSuccessful(accountAdministrationService.changeAuthorization(command),
+            TraceMetadata trace = currentTrace();
+            String stableKey = "auth-role-update-" + trace.traceId() + "-" + id;
+            String commandId = UUID.nameUUIDFromBytes(
+                    stableKey.getBytes(java.nio.charset.StandardCharsets.UTF_8)).toString();
+            ChangeRoleCommand command = new ChangeRoleCommand(
+                    commandId, IdMetadata.of(stableKey, null),
+                    authActor("admin user update"), trace,
+                    id, dto.getRole(), current.authzVersion(), "update user role");
+            requireSuccessful(roleMutationService.changeRole(command),
                     "Account role update failed");
         }
 

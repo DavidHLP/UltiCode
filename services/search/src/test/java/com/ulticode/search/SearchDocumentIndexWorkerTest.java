@@ -8,10 +8,11 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doThrow;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.meilisearch.sdk.Client;
-import com.meilisearch.sdk.Index;
+import com.ulticode.search.adapter.SearchIndex;
+import com.ulticode.search.adapter.SearchIndex.IndexWriter;
 import com.ulticode.common.event.SearchDocumentChangedEventContract;
 import com.ulticode.search.config.SearchWorkerProperties;
 import java.time.Duration;
@@ -50,8 +51,8 @@ class SearchDocumentIndexWorkerTest {
     @Mock private StreamOperations<String, Object, Object> streamOps;
     @Mock private HashOperations<String, Object, Object> hashOps;
     @Mock private ValueOperations<String, String> valueOps;
-    @Mock private Client meiliSearchClient;
-    @Mock private Index meiliIndex;
+    @Mock private SearchIndex searchIndex;
+    @Mock private IndexWriter meiliIndex;
 
     private SearchDocumentIndexWorker worker;
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -60,7 +61,7 @@ class SearchDocumentIndexWorkerTest {
     void setUp() {
         SearchWorkerProperties props = new SearchWorkerProperties();
         props.setEnabled(true);
-        worker = new SearchDocumentIndexWorker(redisTemplate, meiliSearchClient, objectMapper, props,
+        worker = new SearchDocumentIndexWorker(redisTemplate, searchIndex, objectMapper, props,
                 new io.micrometer.core.instrument.simple.SimpleMeterRegistry());
         when(redisTemplate.opsForStream()).thenReturn(streamOps);
         when(redisTemplate.opsForHash()).thenReturn(hashOps);
@@ -70,7 +71,7 @@ class SearchDocumentIndexWorkerTest {
                 any(org.springframework.data.redis.core.script.RedisScript.class),
                 anyList(), any(Object[].class))).thenReturn(1L);
         when(valueOps.setIfAbsent(anyString(), anyString(), any(Duration.class))).thenReturn(true);
-        when(meiliSearchClient.index(anyString())).thenReturn(meiliIndex);
+        when(searchIndex.index(anyString())).thenReturn(meiliIndex);
     }
 
     private MapRecord<String, String, String> record(String id, String eventType, String payload) {
@@ -138,7 +139,7 @@ class SearchDocumentIndexWorkerTest {
 
         assertThat(processed).isEqualTo(1);
         verify(streamOps).acknowledge("stream:integration", "search-worker", RecordId.of("evt-1"));
-        verify(meiliSearchClient, never()).index(anyString());
+        verify(searchIndex, never()).index(anyString());
     }
 
     @Test
@@ -148,7 +149,7 @@ class SearchDocumentIndexWorkerTest {
 
         assertThat(worker.consume()).isZero();
         verify(redisTemplate, never()).opsForStream();
-        verify(meiliSearchClient, never()).index(anyString());
+        verify(searchIndex, never()).index(anyString());
     }
 
     @Test
@@ -163,7 +164,7 @@ class SearchDocumentIndexWorkerTest {
         int processed = worker.consume();
 
         assertThat(processed).isZero();
-        verify(meiliSearchClient, never()).index(anyString());
+        verify(searchIndex, never()).index(anyString());
         verify(streamOps, never()).acknowledge(anyString(), anyString(), any(RecordId.class));
     }
     @Test
@@ -178,7 +179,7 @@ class SearchDocumentIndexWorkerTest {
         int processed = worker.consume();
 
         assertThat(processed).isZero();
-        verify(meiliSearchClient, never()).index(anyString());
+        verify(searchIndex, never()).index(anyString());
         verify(streamOps, never()).acknowledge(anyString(), anyString(), any(RecordId.class));
     }
     @Test
@@ -193,7 +194,7 @@ class SearchDocumentIndexWorkerTest {
         int processed = worker.consume();
 
         assertThat(processed).isZero();
-        verify(meiliSearchClient, never()).index(anyString());
+        verify(searchIndex, never()).index(anyString());
         verify(streamOps, never()).acknowledge(anyString(), anyString(), any(RecordId.class));
     }
 
@@ -208,7 +209,7 @@ class SearchDocumentIndexWorkerTest {
         int processed = worker.consume();
 
         assertThat(processed).isEqualTo(1);
-        verify(meiliIndex).addDocuments("{\"id\":\"doc-1\",\"title\":\"T\",\"_aggregateVersion\":100}");
+        verify(meiliIndex).upsert("{\"id\":\"doc-1\",\"title\":\"T\",\"_aggregateVersion\":100}");
         verify(hashOps).put("search:doc-version:problems", "doc-1", "100");
         verify(streamOps).acknowledge("stream:integration", "search-worker", RecordId.of("evt-1"));
     }
@@ -225,7 +226,7 @@ class SearchDocumentIndexWorkerTest {
         int processed = worker.consume();
 
         assertThat(processed).isEqualTo(1);
-        verify(meiliSearchClient, never()).index(anyString());
+        verify(searchIndex, never()).index(anyString());
         verify(hashOps, never()).put(anyString(), any(), any());
         verify(streamOps).acknowledge("stream:integration", "search-worker", RecordId.of("evt-1"));
     }
@@ -241,7 +242,7 @@ class SearchDocumentIndexWorkerTest {
 
         worker.consume();
 
-        verify(meiliIndex).addDocuments("{\"id\":\"doc-1\",\"title\":\"T\",\"_aggregateVersion\":100}");
+        verify(meiliIndex).upsert("{\"id\":\"doc-1\",\"title\":\"T\",\"_aggregateVersion\":100}");
         verify(hashOps).put("search:doc-version:posts", "doc-1", "100");
     }
 
@@ -256,7 +257,7 @@ class SearchDocumentIndexWorkerTest {
 
         worker.consume();
 
-        verify(meiliIndex).addDocuments("{\"id\":\"doc-1\",\"title\":\"T\",\"_aggregateVersion\":100}");
+        verify(meiliIndex).upsert("{\"id\":\"doc-1\",\"title\":\"T\",\"_aggregateVersion\":100}");
         verify(hashOps).put("search:doc-version:problems", "doc-1", "100");
     }
 
@@ -271,7 +272,7 @@ class SearchDocumentIndexWorkerTest {
 
         worker.consume();
 
-        verify(meiliIndex).deleteDocument("doc-2");
+        verify(meiliIndex).delete("doc-2");
         verify(hashOps).put("search:doc-version:users", "doc-2", "D:200");
         verify(streamOps).acknowledge("stream:integration", "search-worker", RecordId.of("evt-2"));
     }
@@ -289,7 +290,7 @@ class SearchDocumentIndexWorkerTest {
         int processed = worker.consume();
 
         assertThat(processed).isEqualTo(1);
-        verify(meiliSearchClient, never()).index(anyString());
+        verify(searchIndex, never()).index(anyString());
         verify(hashOps, never()).put(anyString(), any(), any());
         verify(streamOps).acknowledge("stream:integration", "search-worker", RecordId.of("evt-zero"));
     }
@@ -307,7 +308,7 @@ class SearchDocumentIndexWorkerTest {
         int processed = worker.consume();
 
         assertThat(processed).isEqualTo(1);
-        verify(meiliSearchClient, never()).index(anyString());
+        verify(searchIndex, never()).index(anyString());
         verify(hashOps, never()).put(anyString(), any(), any());
         verify(streamOps).acknowledge("stream:integration", "search-worker", RecordId.of("evt-3"));
     }
@@ -325,7 +326,7 @@ class SearchDocumentIndexWorkerTest {
         int processed = worker.consume();
 
         assertThat(processed).isZero();
-        verify(meiliSearchClient, never()).index(anyString());
+        verify(searchIndex, never()).index(anyString());
         verify(hashOps, never()).put(anyString(), any(), any());
         verify(streamOps, never()).acknowledge(anyString(), anyString(), any(RecordId.class));
     }
@@ -356,7 +357,7 @@ class SearchDocumentIndexWorkerTest {
 
         verify(redisTemplate, never()).execute(
                 any(org.springframework.data.redis.core.script.RedisScript.class), anyList(), any(Object[].class));
-        verify(meiliSearchClient, never()).index(anyString());
+        verify(searchIndex, never()).index(anyString());
     }
 
     @Test
@@ -374,7 +375,7 @@ class SearchDocumentIndexWorkerTest {
         int processed = worker.consume();
 
         assertThat(processed).isEqualTo(1);
-        verify(meiliIndex).addDocuments("{\"id\":\"doc-1\",\"title\":\"T\",\"_aggregateVersion\":100}");
+        verify(meiliIndex).upsert("{\"id\":\"doc-1\",\"title\":\"T\",\"_aggregateVersion\":100}");
         // Lease was lost (renewal answered 0): the ledger must not be clobbered.
         verify(hashOps, never()).put(anyString(), any(), any());
         verify(streamOps).acknowledge("stream:integration", "search-worker", RecordId.of("evt-8"));
@@ -393,7 +394,7 @@ class SearchDocumentIndexWorkerTest {
         int processed = worker.consume();
 
         assertThat(processed).isEqualTo(1);
-        verify(meiliSearchClient, never()).index(anyString());
+        verify(searchIndex, never()).index(anyString());
         verify(hashOps, never()).put(anyString(), any(), any());
         verify(streamOps).acknowledge("stream:integration", "search-worker", RecordId.of("evt-5"));
     }
@@ -409,7 +410,7 @@ class SearchDocumentIndexWorkerTest {
 
         worker.consume();
 
-        verify(meiliSearchClient, never()).index(anyString());
+        verify(searchIndex, never()).index(anyString());
         verify(streamOps).acknowledge("stream:integration", "search-worker", RecordId.of("evt-1"));
     }
 
@@ -425,7 +426,7 @@ class SearchDocumentIndexWorkerTest {
 
         worker.consume();
 
-        verify(meiliIndex).addDocuments("{\"id\":\"doc-1\",\"title\":\"T\",\"_aggregateVersion\":250}");
+        verify(meiliIndex).upsert("{\"id\":\"doc-1\",\"title\":\"T\",\"_aggregateVersion\":250}");
         verify(hashOps).put("search:doc-version:problems", "doc-1", "250");
     }
 
@@ -450,8 +451,8 @@ class SearchDocumentIndexWorkerTest {
         stubEmptyReads();
         when(streamOps.read(any(Consumer.class), any(StreamReadOptions.class), any(StreamOffset.class)))
                 .thenReturn(List.of(record("4", SearchDocumentChangedEventContract.EVENT_TYPE, upsertPayload("posts"))));
-        when(meiliIndex.addDocuments(anyString()))
-                .thenThrow(new RuntimeException("MeiliSearch unreachable"));
+        doThrow(new RuntimeException("MeiliSearch unreachable"))
+                .when(meiliIndex).upsert(anyString());
 
         worker.consume();
 
@@ -466,7 +467,7 @@ class SearchDocumentIndexWorkerTest {
         stubBusyGroup();
         SearchWorkerProperties props = new SearchWorkerProperties();
         props.setMaxAttempts(3);
-        worker = new SearchDocumentIndexWorker(redisTemplate, meiliSearchClient, objectMapper, props,
+        worker = new SearchDocumentIndexWorker(redisTemplate, searchIndex, objectMapper, props,
                 new io.micrometer.core.instrument.simple.SimpleMeterRegistry());
         when(redisTemplate.opsForStream()).thenReturn(streamOps);
         PendingMessage stale = new PendingMessage(
@@ -506,7 +507,7 @@ class SearchDocumentIndexWorkerTest {
                         upsertPayload("problems"), "100", "App", "2")));
 
         assertThat(worker.consume()).isZero();
-        verify(meiliSearchClient, never()).index(anyString());
+        verify(searchIndex, never()).index(anyString());
         verify(streamOps, never()).acknowledge(anyString(), anyString(), any(RecordId.class));
     }
 
@@ -521,7 +522,7 @@ class SearchDocumentIndexWorkerTest {
                         upsertPayload("problems"), "not-a-number", "App", "1")));
 
         assertThat(worker.consume()).isZero();
-        verify(meiliSearchClient, never()).index(anyString());
+        verify(searchIndex, never()).index(anyString());
         verify(streamOps, never()).acknowledge(anyString(), anyString(), any(RecordId.class));
     }
 

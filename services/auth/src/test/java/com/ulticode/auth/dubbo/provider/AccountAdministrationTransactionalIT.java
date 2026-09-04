@@ -1,7 +1,7 @@
 package com.ulticode.auth.dubbo.provider;
 
 import com.ulticode.auth.api.command.ActorDelegation;
-import com.ulticode.auth.api.command.ChangeAuthorizationCommand;
+import com.ulticode.auth.api.command.PermissionMutationCommand;
 import com.ulticode.auth.idempotency.entity.AuthCommandReceiptEntity;
 import com.ulticode.auth.idempotency.mapper.AuthCommandReceiptMapper;
 import com.ulticode.common.tracing.IdMetadata;
@@ -21,9 +21,8 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Map;
-import java.util.Set;
 
+import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
@@ -45,7 +44,7 @@ class AccountAdministrationTransactionalIT {
     }
 
     @Autowired
-    private AccountAdministrationProvider provider;
+    private AuthorizationMutationProvider provider;
 
     @Autowired
     private AuthCommandReceiptMapper receiptMapper;
@@ -108,30 +107,28 @@ class AccountAdministrationTransactionalIT {
     }
 
     @Test
-    @DisplayName("real Testcontainers MySQL database transaction rolls back role and version when permission validation fails, and persists no receipt")
+    @DisplayName("permission validation rollback leaves direct grant and receipt absent")
     void transactionRollbackOnPermissionValidationFailure() {
         ActorDelegation actor = new ActorDelegation("ADMIN", "admin-1", "org-1", "reason");
         TraceMetadata trace = new TraceMetadata("t-123", "span-1", null, null);
 
-        // Wildcard action "*:USER" triggers AuthBusinessException in real PermissionServiceImpl
-        ChangeAuthorizationCommand command = new ChangeAuthorizationCommand(
-                "cmd-tx-1", IdMetadata.of("key-tx-1", null), actor, trace, "user-10", 1L,
-                "ADMIN", Set.of("*:USER"), "invalid permission attempt"
-        );
+        PermissionMutationCommand command = new PermissionMutationCommand(
+                "cmd-tx-1", IdMetadata.of("key-tx-1", null), actor, trace,
+                "user-10", PermissionMutationCommand.Operation.GRANT,
+                "*", "USER", null, 1L, "invalid permission attempt");
 
-        // Execute provider operation
-        var result = provider.changeAuthorization(command);
+        var result = provider.mutatePermission(command);
 
-        // 1. Result should indicate failure
         assertThat(result.success()).isFalse();
-
-        // 2. Query real database: user role must still be 'USER' and authz_version must still be 1
-        Map<String, Object> userRow = jdbcTemplate.queryForMap("SELECT role, authz_version FROM users WHERE id = 'user-10'");
+        Map<String, Object> userRow = jdbcTemplate.queryForMap(
+                "SELECT role, authz_version FROM users WHERE id = 'user-10'");
         assertThat(userRow.get("role")).isEqualTo("USER");
         assertThat(((Number) userRow.get("authz_version")).longValue()).isEqualTo(1L);
-
-        // 3. Query real database: no command receipt stored for key-tx-1
-        AuthCommandReceiptEntity receipt = receiptMapper.findByReceiptKey("AccountAdministrationService", "changeAuthorization", "key-tx-1");
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM user_permissions WHERE user_id = 'user-10'",
+                Integer.class)).isZero();
+        AuthCommandReceiptEntity receipt = receiptMapper.findByReceiptKey(
+                "AuthorizationMutationService", "mutatePermission", "key-tx-1");
         assertThat(receipt).isNull();
     }
 }

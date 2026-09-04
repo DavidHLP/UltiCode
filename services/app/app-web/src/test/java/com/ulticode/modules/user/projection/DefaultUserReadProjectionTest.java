@@ -6,7 +6,7 @@ import com.ulticode.app.user.port.UserSummaryView;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.app.api.service.FollowCountPort;
+import com.ulticode.modules.follow.port.FollowCountPort;
 import com.ulticode.submission.api.service.SubmissionUserStatsPort;
 import com.ulticode.submission.api.service.SubmissionStreakPort;
 import com.ulticode.modules.problem.port.ProblemDifficultyReadPort;

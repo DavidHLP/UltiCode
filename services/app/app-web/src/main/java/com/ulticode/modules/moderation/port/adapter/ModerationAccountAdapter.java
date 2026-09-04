@@ -1,7 +1,7 @@
 package com.ulticode.modules.moderation.port.adapter;
 
 import com.ulticode.app.api.dto.ModerationUserInfo;
-import com.ulticode.app.api.service.ModerationAccountPort;
+import com.ulticode.modules.moderation.port.ModerationAccountPort;
 import com.ulticode.app.user.port.UserFactView;
 import com.ulticode.app.user.port.UserFactsProjection;
 import com.ulticode.auth.api.command.ActorDelegation;

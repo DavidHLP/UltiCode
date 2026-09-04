@@ -1,6 +1,6 @@
 package com.ulticode.modules.vote.port.adapter;
 
-import com.ulticode.app.api.service.SolutionVoteReadPort;
+import com.ulticode.modules.solution.port.SolutionVoteReadPort;
 import com.ulticode.modules.vote.entity.enums.EdgeOperationTargetType;
 import com.ulticode.modules.vote.entity.enums.EdgeOperationType;
 import com.ulticode.modules.vote.mapper.EdgeOperationMapper;

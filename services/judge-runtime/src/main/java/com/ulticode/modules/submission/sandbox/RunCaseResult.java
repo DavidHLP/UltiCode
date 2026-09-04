@@ -7,10 +7,9 @@ import java.util.List;
 /**
  * Per-test-case result produced by {@link SandboxExecutor}.
  *
- * <p>This is the <b>port</b>'s output type. The wire DTO
- * {@code RunResultDTO.RunCaseResult} is mapped from this record at the
- * facade boundary (see {@code CodeExecutionService}); the sandbox
- * itself never ships these bytes to the frontend.
+ * <p>This is the sandbox port's output type. The runtime-private
+ * {@code JudgeRunResponse.RunCaseResult} is mapped from this record at the
+ * runtime facade seam; the sandbox itself never ships bytes to the frontend.
  *
  * <h2>Field contract</h2>
  * <ul>

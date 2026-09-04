@@ -1,7 +1,7 @@
 package com.ulticode.modules.submission.service;
 
-import com.ulticode.app.api.dto.RunResultDTO;
-import com.ulticode.app.api.dto.RunSubmissionDTO;
+import com.ulticode.modules.submission.runtime.JudgeRunResponse;
+import com.ulticode.modules.submission.runtime.JudgeRunRequest;
 
 /**
  * Display and DTO-construction helpers for the D-form sandbox pipeline.
@@ -15,8 +15,9 @@ import com.ulticode.app.api.dto.RunSubmissionDTO;
  *       free of infrastructure noise.</li>
  *   <li>{@link #emptyResult} — produce a {@code System Error} result shell
  *       for the dispatcher when nothing ran.</li>
- *   <li>{@link #buildCaseResult} — assemble a single {@link RunResultDTO.RunCaseResult}
- *       from harness-reported values plus the original test-case.</li>
+ *   <li>{@link #buildCaseResult} — assemble a single
+ *       {@link JudgeRunResponse.RunCaseResult} from harness-reported values
+ *       plus the original test-case.</li>
  *   <li>{@link #parseRuntimeMs} — parse the raw sandbox runtime wire formats
  *       ({@code "Nms"}, {@code "N.Ns"}, bare numbers) the dispatcher and
  *       sandbox executor see.</li>
@@ -60,7 +61,7 @@ public interface SandboxOutputFormatter {
     String sanitizeSandboxOutput(String output);
 
     /**
-     * Build an empty {@link RunResultDTO} carrying the {@code System Error}
+     * Build an empty {@link JudgeRunResponse} carrying the {@code System Error}
      * verdict. Used by the dispatcher when the harness never produced a
      * result envelope.
      *
@@ -68,7 +69,7 @@ public interface SandboxOutputFormatter {
      * @param userId    user id stamped on the result
      * @return empty result DTO with verdict {@code "System Error"}
      */
-    RunResultDTO emptyResult(Long problemId, String userId);
+    JudgeRunResponse emptyResult(Long problemId, String userId);
 
     /**
      * Build a single per-case result from harness-reported values plus the
@@ -87,10 +88,10 @@ public interface SandboxOutputFormatter {
      * @param cpuMs      CPU time in milliseconds (0 means harness didn't report)
      * @return assembled per-case result
      */
-    RunResultDTO.RunCaseResult buildCaseResult(RunSubmissionDTO.RunTestCase testCase,
-                                               String runId, String userId,
-                                               String status, long runtimeMs,
-                                               String output, String detail,
-                                               double memoryMb,
-                                               long elapsedUs, long cpuMs);
+    JudgeRunResponse.RunCaseResult buildCaseResult(JudgeRunRequest.TestCase testCase,
+                                                   String runId, String userId,
+                                                   String status, long runtimeMs,
+                                                   String output, String detail,
+                                                   double memoryMb,
+                                                   long elapsedUs, long cpuMs);
 }

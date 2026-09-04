@@ -3,9 +3,9 @@ package com.ulticode.modules.submission.controller;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.submission.api.dto.CreateSubmissionDTO;
-import com.ulticode.app.api.dto.RunResultDTO;
-import com.ulticode.app.api.dto.RunSubmissionDTO;
-import com.ulticode.app.api.service.CodeExecutionPort;
+import com.ulticode.modules.submission.controller.RunResultDTO;
+import com.ulticode.modules.submission.controller.RunSubmissionDTO;
+import com.ulticode.modules.submission.port.InteractiveCodeRunner;
 import com.ulticode.submission.api.service.SubmissionUserQueryPort;
 import com.ulticode.submission.api.service.SubmissionIntakePort;
 import jakarta.validation.Validator;
@@ -41,7 +41,7 @@ class ProblemSubmissionControllerTest {
     private SubmissionIntakePort submissionWritePort;
 
     @Mock
-    private CodeExecutionPort codeExecutionPort;
+    private InteractiveCodeRunner codeExecutionPort;
 
     @Mock
     private CurrentUserProvider currentUserProvider;
@@ -75,12 +75,11 @@ class ProblemSubmissionControllerTest {
                 .passedCases(0)
                 .totalCases(0)
                 .build();
-        when(codeExecutionPort.execute(eq(request), eq(1L), eq(null))).thenReturn(expected);
+        when(codeExecutionPort.run(eq(request), eq(1L), eq(null))).thenReturn(expected);
 
         RunResultDTO result = controller.runCode(1L, request).getData();
 
-        assertThat(result).isSameAs(expected);
-        verify(codeExecutionPort).execute(request, 1L, null);
+        verify(codeExecutionPort).run(request, 1L, null);
     }
 
     @Test

@@ -1,9 +1,8 @@
 package com.ulticode.search;
 
-import com.meilisearch.sdk.Client;
-import com.meilisearch.sdk.exceptions.MeilisearchException;
 import com.ulticode.common.lifecycle.DrainGate;
 import com.ulticode.common.resilience.DependencyGuard;
+import com.ulticode.search.adapter.SearchIndex;
 import com.ulticode.search.config.SearchWorkerProperties;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -41,7 +40,7 @@ import org.springframework.stereotype.Component;
 public class SearchWorkerReadinessHeartbeat {
 
     private final StringRedisTemplate redisTemplate;
-    private final Client meiliSearchClient;
+    private final SearchIndex searchIndex;
     private final Path readyFile;
     private final DrainGate drainGate = new DrainGate();
     private final DependencyGuard meiliSearchGuard =
@@ -49,10 +48,10 @@ public class SearchWorkerReadinessHeartbeat {
 
     public SearchWorkerReadinessHeartbeat(
             StringRedisTemplate redisTemplate,
-            Client meiliSearchClient,
+            SearchIndex searchIndex,
             @Value("${search.worker.ready-file:}") String readyFile) {
         this.redisTemplate = redisTemplate;
-        this.meiliSearchClient = meiliSearchClient;
+        this.searchIndex = searchIndex;
         this.readyFile = readyFile == null || readyFile.isBlank() ? null : Path.of(readyFile);
     }
 
@@ -115,10 +114,10 @@ public class SearchWorkerReadinessHeartbeat {
         }
         try (permit) {
             try {
-                meiliSearchClient.health();
+                searchIndex.health();
                 permit.success();
                 return true;
-            } catch (MeilisearchException unavailable) {
+            } catch (com.ulticode.search.adapter.SearchIndexUnavailableException unavailable) {
                 permit.failure();
                 log.debug("MeiliSearch health check failed: {}", unavailable.getMessage());
                 return false;

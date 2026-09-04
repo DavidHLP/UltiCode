@@ -93,6 +93,18 @@ class PermissionServiceTest {
         }
 
         @Test
+        @DisplayName("fails closed when the compatibility grant has no actor")
+        void compatibilityGrantRequiresActor() {
+            when(currentUserProvider.getCurrentUserId()).thenReturn(null);
+
+            assertThatThrownBy(() -> permissionService.assignPermission(
+                    "user-1", "CREATE", "PROBLEM", null))
+                    .isInstanceOf(AuthBusinessException.class)
+                    .satisfies(ex -> assertThat(((AuthBusinessException) ex).getErrorCode())
+                            .isEqualTo(BaseErrorCode.UNAUTHORIZED));
+        }
+
+        @Test
         @DisplayName("updates existing row when (userId, action, resource) collides")
         void updatesExistingRow() {
             UserPermission existing = new UserPermission();

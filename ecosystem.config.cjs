@@ -103,6 +103,28 @@ module.exports = {
       max_memory_restart: '1G',
     },
     {
+      // Core uses explicit Owner child contexts in one JVM. The independent
+      // Judge remains a separate PM2 process in the core scope.
+      name: 'ulticode-core',
+      cwd: BACKEND_CWD,
+      script: 'mise',
+      args: 'exec java@zulu-17.68.203.0 -- ./mvnw -f core/pom.xml spring-boot:run -Dspring-boot.run.profiles=core',
+      interpreter: 'none',
+      env_file: BACKEND_ENV_FILE,
+      env: {
+        CORE_SERVER_PORT: '9108',
+        CORE_OWNER_CONTEXTS_ENABLED: process.env.CORE_OWNER_CONTEXTS_ENABLED || 'true',
+        CORE_JUDGE_REQUIRED: process.env.CORE_JUDGE_REQUIRED || 'true',
+        CORE_JUDGE_READINESS_URL: process.env.CORE_JUDGE_READINESS_URL,
+      },
+      out_file: path.join(ROOT, 'logs', 'backend-core.out.log'),
+      error_file: path.join(ROOT, 'logs', 'backend-core.err.log'),
+      merge_logs: true,
+      time: true,
+      kill_timeout: 60000,
+      max_memory_restart: '2G',
+    },
+    {
       name: 'ulticode-notification',
       cwd: BACKEND_CWD,
       script: 'mise',

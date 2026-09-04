@@ -16,9 +16,8 @@ import java.util.Set;
  * It mirrors {@link IdentityQueryService}'s shape (single + batch), so the two
  * query providers are symmetric and the call sites can share a
  * fan-out helper. Reads only; no write methods live here &mdash;
- * authorization mutations are owned by
- * {@link AccountAdministrationService#changeAuthorization}.
- *
+ * authorization mutations are owned by {@link AuthorizationMutationService}
+ * and role changes by {@link RoleMutationService}.
  * <p>This interface is contract-only; no ServiceImpl lives in this
  * module. The provider implementation belongs to {@code backend-auth}.
  */

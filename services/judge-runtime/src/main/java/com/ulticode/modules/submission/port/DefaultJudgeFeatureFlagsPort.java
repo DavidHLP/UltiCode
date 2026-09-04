@@ -1,6 +1,5 @@
 package com.ulticode.modules.submission.port;
 
-import com.ulticode.app.api.service.JudgeFeatureFlagsPort;
 import com.ulticode.modules.submission.config.FeatureFlagsProperties;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

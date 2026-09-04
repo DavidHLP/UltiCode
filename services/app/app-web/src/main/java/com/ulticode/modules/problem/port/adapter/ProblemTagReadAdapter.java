@@ -5,7 +5,7 @@ import com.ulticode.modules.problem.entity.ProblemTag;
 import com.ulticode.modules.problem.entity.ProblemTagRelation;
 import com.ulticode.modules.problem.mapper.ProblemTagMapper;
 import com.ulticode.modules.problem.mapper.ProblemTagRelationMapper;
-import com.ulticode.app.api.service.ProblemTagReadPort;
+import com.ulticode.modules.solution.port.ProblemTagReadPort;
 import org.springframework.stereotype.Component;
 
 import java.util.Collection;

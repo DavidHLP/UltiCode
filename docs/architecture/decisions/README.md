@@ -11,4 +11,6 @@ ADR 是 durable history 的权威入口；普通提交不在这里复制。实�
 | [0005](0005-repository-production-boundary.md) | Accepted | 仓库实现与 disposable proof 不等于 production applied；外部 authority 和证据必须显式分开。 |
 | [0006](0006-existing-control-planes.md) | Accepted | 在引入新平台前复用 Compose、Dubbo/Nacos、Redis Streams、Outbox/Inbox 和当前 runbooks。 |
 | [0007](0007-legacy-compatibility-lifecycle.md) | Accepted — closure `2026-09-02` | legacy compatibility 由 App owner 管理，当前支持范围以 N-1 floor/expiry/cutover gate 约束；`P4-LEGACY-006..011` 已闭环，当前二进制对 `legacy-rollback` fail closed。 |
+| [0009](0009-authorization-and-runtime-seams.md) | Accepted / Core default deferred | Auth direct permission delta, App/Judge execution Seam separation, App-only contract locality；Core parent 已加入，但完整 local Adapter parity 与业务路由仍未闭环。 |
+| [0010](0010-core-judge-convergence-blockers.md) | In progress | Core opt-in parent 的 G1/G2、readiness、断言载体和 Judge classpath 证据；G3/G5 余项 OPEN，远端 Judge TLS `BLOCKED_EXTERNAL`。 |
 | [0008](0008-admin-event-read-model.md) | Accepted | Admin 暂不复制 Owner event read model；先使用 bounded synchronous reads、typed degradation 和 metrics，超预算后再复议。 |

@@ -7,9 +7,8 @@ import java.io.Serializable;
 
 /**
  * Authorization snapshot returned by
- * {@link com.ulticode.auth.api.service.AccountAdministrationService#changeAuthorization}
- * and
- * {@link com.ulticode.auth.api.service.AuthorizationSnapshotService#getSnapshot}.
+ * {@link com.ulticode.auth.api.service.AuthorizationSnapshotService#getSnapshot}
+ * and its batch variant.
  *
  * <p>The snapshot is the post-write authoritative role + permission
  * set the auth provider commits to; downstream services can cache it

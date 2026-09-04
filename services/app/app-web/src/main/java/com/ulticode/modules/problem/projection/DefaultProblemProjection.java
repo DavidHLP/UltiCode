@@ -28,7 +28,7 @@ import com.ulticode.modules.problem.mapper.ProblemLanguageMapper;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.problem.mapper.ProblemTagMapper;
 import com.ulticode.modules.problem.mapper.ProblemTagRelationMapper;
-import com.ulticode.app.api.service.JudgingLanguageSupport;
+import com.ulticode.modules.problem.port.ProblemLanguageCatalog;
 import com.ulticode.submission.api.service.ProblemSubmissionStatsPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -69,7 +69,7 @@ public class DefaultProblemProjection implements ProblemProjection {
     private final ProblemInteractionQueryPort interactionQueryPort;
     private final ObjectMapper objectMapper;
     private final CurrentUserProvider currentUserProvider;
-    private final JudgingLanguageSupport languageSupport;
+    private final ProblemLanguageCatalog languageSupport;
 
     // ------------------------------------------------------------------
     // toVO projection

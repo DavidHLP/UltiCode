@@ -377,6 +377,9 @@ public class CoreOwnerContextManager {
         child.getBeanFactory().registerSingleton(
                 "coreLocalAuthorizationMutationAdapter",
                 new CoreLocalAuthorizationMutationAdapter(this));
+        child.getBeanFactory().registerSingleton(
+                "coreLocalAccountQueryAdapter",
+                new CoreLocalAccountQueryAdapter(this));
     }
 
 

@@ -104,21 +104,16 @@ class CoreLocalAdapterWiringTest {
             ownerContexts.registerChildContracts(child, new CoreModuleDefinition(
                     "admin", "ADMIN", CoreOwnerBootConfigurations.Admin.class,
                     "adminTransactionManager", "backend-admin"));
-            child.registerBean(UserPermissionServiceImpl.class,
-                    () -> new UserPermissionServiceImpl(
-                            new com.ulticode.admin.security.SpringSecurityCurrentUserProvider()));
+            // Register the real admin beans as container beans before refresh so
+            // their @DubboReference fields autowire to the local singletons
+            // registered by registerChildContracts. No reflection: if either
+            // local seam were missing from the child, refresh would fail on the
+            // unsatisfied field and this test would fail.
+            child.registerBean(com.ulticode.admin.security.SpringSecurityCurrentUserProvider.class);
+            child.registerBean(UserPermissionServiceImpl.class);
             child.refresh();
 
             UserPermissionService service = child.getBean(UserPermissionService.class);
-            // The two injected @DubboReference fields are null in this child;
-            // autowire the registered local singletons to exercise the legal path.
-            org.springframework.test.util.ReflectionTestUtils.setField(
-                    service, "authorizationMutationService",
-                    child.getBean(AuthorizationMutationService.class));
-            org.springframework.test.util.ReflectionTestUtils.setField(
-                    service, "accountQueryService",
-                    child.getBean(AccountQueryService.class));
-
             AuthorizationMutationDTO result = service.assignUserPermission(
                     "user-123", "READ", "PROBLEM",
                     LocalDateTime.now().plusDays(1).toLocalDate().atStartOfDay());
@@ -155,19 +150,11 @@ class CoreLocalAdapterWiringTest {
             ownerContexts.registerChildContracts(child, new CoreModuleDefinition(
                     "admin", "ADMIN", CoreOwnerBootConfigurations.Admin.class,
                     "adminTransactionManager", "backend-admin"));
-            child.registerBean(UserPermissionServiceImpl.class,
-                    () -> new UserPermissionServiceImpl(
-                            new com.ulticode.admin.security.SpringSecurityCurrentUserProvider()));
+            child.registerBean(com.ulticode.admin.security.SpringSecurityCurrentUserProvider.class);
+            child.registerBean(UserPermissionServiceImpl.class);
             child.refresh();
 
             UserPermissionService service = child.getBean(UserPermissionService.class);
-            org.springframework.test.util.ReflectionTestUtils.setField(
-                    service, "authorizationMutationService",
-                    child.getBean(AuthorizationMutationService.class));
-            org.springframework.test.util.ReflectionTestUtils.setField(
-                    service, "accountQueryService",
-                    child.getBean(AccountQueryService.class));
-
             assertThatThrownBy(() -> service.assignUserPermission(
                     "user-123", "READ", "PROBLEM", null))
                     .satisfies(error -> assertThat(

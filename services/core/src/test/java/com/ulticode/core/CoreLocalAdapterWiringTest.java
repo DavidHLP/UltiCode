@@ -139,8 +139,8 @@ class CoreLocalAdapterWiringTest {
         AccountQueryService authAccountQuery = mock(AccountQueryService.class);
         doReturn(authAccountQuery).when(ownerContexts).bean("auth", AccountQueryService.class);
         doReturn(RpcResult.success(account, "t-auth")).when(authAccountQuery).getAccountById("user-123");
-        // Mutation provider missing → the local mutation adapter cannot issue an assertion
-        // and must return UNAUTHORIZED rather than succeed.
+        // Delegation assertion signer missing → the local mutation adapter cannot
+        // issue an assertion and must return UNAUTHORIZED rather than succeed.
         doReturn(null).when(ownerContexts).bean("admin", com.ulticode.admin.security.DelegationAssertionSigner.class);
 
         SecurityContextHolder.getContext().setAuthentication(

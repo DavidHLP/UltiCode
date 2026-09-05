@@ -105,10 +105,12 @@ class CoreLocalAdapterWiringTest {
                     "admin", "ADMIN", CoreOwnerBootConfigurations.Admin.class,
                     "adminTransactionManager", "backend-admin"));
             // Register the real admin beans as container beans before refresh so
-            // their @DubboReference fields autowire to the local singletons
-            // registered by registerChildContracts. No reflection: if either
-            // local seam were missing from the child, refresh would fail on the
-            // unsatisfied field and this test would fail.
+            // their @Autowired(required=false) @DubboReference fields autowire to
+            // the local singletons registered by registerChildContracts. No
+            // reflection: because the fields are optional, a missing local seam
+            // would not fail refresh — it would stay null and the legal-grant
+            // assertion below would fail with OWNER_QUERY_UNAVAILABLE. The
+            // behavior assertion therefore detects missing registration.
             child.registerBean(com.ulticode.admin.security.SpringSecurityCurrentUserProvider.class);
             child.registerBean(UserPermissionServiceImpl.class);
             child.refresh();

@@ -140,8 +140,14 @@ must delegate to existing Owner implementations.
   with `.web(NONE)`, explicit child contract registration, and owner properties.
 - The bounded URL loader is parent-first lifecycle/TCCL support, not proof of
   sibling class/resource invisibility.
-- A per-child startup timeout uses a single-CAS ownership handoff and close-once
-  `OwnerStartup`.
+- A per-child startup timeout uses a single-CAS ownership handoff; each startup
+  is closed through a close-once `StartupAttempt` that owns both the child
+  context and its URLClassLoader.
+- The manager tracks active attempts and per-child startup slots under one
+  lock with the stop path; shutdown interrupts slots, awaits their bounded
+  termination, and closes every remaining attempt. A non-cooperative
+  `SpringApplication.run()` cannot be force-terminated; that remains a bounded
+  evidence gap, not a claimed guarantee.
 
 ## 7. Readiness
 
@@ -171,8 +177,10 @@ must delegate to existing Owner implementations.
 - `requiredJudgeWithoutReadinessEndpointFailsClosed` — NOT_CONFIGURED state
 
 `CoreOwnerContextManagerLifecycleTest`:
-- 6 deterministic tests for CAS handoff protocol (success, timeout, interrupt,
-  created-but-unhanded, startup exception, stop-during-startup)
+- 8 deterministic tests covering duplicate ready events, timeout after
+  publication, caller interrupt, created-but-unhanded timeout, startup
+  exception, stop during startup, close failure isolation, and close-once
+  ownership; every test also asserts no manager thread outlives the manager.
 
 ## 9. Evidence Level
 

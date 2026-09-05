@@ -51,8 +51,12 @@
   三者之一唯一接管（`CoreOwnerContextManagerLifecycleTest` 确定性回归）。
 - Core 已落地同进程断言载体、Auth local adapters 与 Admin child 的显式
   contract registration；`CoreLocalAdapterWiringTest` 证明实际
-  `AccountReadAdapter` 可通过本地 identity contract 注入。该测试使用
-  mock Auth contract，不证明 DB/Redis 或完整 child boot。
+  `AccountReadAdapter` 通过本地 identity contract 注入，且真实
+  `UserPermissionServiceImpl` 的合法 permission grant 走
+  `requireAccount`（`AccountQueryService`）+ `mutatePermission`
+  （`AuthorizationMutationService`）两个本地 seam 成功、缺 signer 时
+  fail-closed。该测试使用 mock Auth provider，不证明 DB/Redis 或完整
+  child boot。
 - `CoreOwnerClassLoaders` 是 parent-first 的 TCCL/生命周期辅助，不是
   class/resource isolation。2026-09-04 enabled-owner exec-jar 失败报告
   保留为 reported/not rerun evidence；Admin/App/Submission/Notification

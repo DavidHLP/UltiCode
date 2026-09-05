@@ -20,10 +20,11 @@
 
 当前默认拓扑为五个 Data Owner（Auth、Admin、App、Submission、Notification）
 与两个 Worker（Judge、Search）。`backend-core` 是新增的 opt-in parent profile：
-它显式组装 Owner child contexts，不改变默认发布拓扑，也不取得业务表写入权。
-服务边界、Submission 单写者、Contract 收敛、验证层级、DevStack 场景化、
-Admin 用户详情深 Module、协调发布控制面和 App interface locality 已闭环；
-Core 的边界与未完成门禁见 SVC-025。
+它使用显式扫描和 registry allowlist 组装 Owner child contexts，不改变默认
+发布拓扑，也不取得业务表写入权。当前 Core 只启用 Auth/Admin；其余四个
+模块保持注册但 `DISABLED`。服务边界、Submission 单写者、Contract 收敛、
+验证层级、DevStack 场景化、Admin 用户详情深 Module、协调发布控制面和
+App interface locality 已闭环；Core 的边界与未完成门禁见 SVC-025。
 
 项目当前没有生产环境，是正在开发的开源项目。仓库内的生产 profile 只描述安全边界；凡是可复现的运行行为统一使用短时、隔离、可销毁的 disposable 模拟环境验证，不把模拟结果写成生产证据。不为形式上的“企业级”提前引入 Kubernetes、Service Mesh、新 MQ 或分布式事务框架。
 
@@ -31,58 +32,51 @@ Core 的边界与未完成门禁见 SVC-025。
 
 ## OPEN
 
-Core profile 仍有一个仓库可执行 OPEN 项：SVC-025 的完整 local Adapter parity、
-同进程业务路由和启用 Owner 的 disposable journey 尚未闭环；不得切换默认拓扑。
+Core profile 仍有一个仓库可执行 OPEN 项：SVC-025 的完整 local Adapter
+parity、enabled-owner wiring 和业务 journey 尚未闭环；不得切换默认拓扑。
 
 ### SVC-025 Core profile local parity（OPEN）
 
 现状：`services/core` 已提供显式 Core parent、五组 Owner 数据源/事务/
 MapperScan、非 Web Owner child contexts、9108 readiness 和独立 Judge
-classpath 边界。G1/G2、parent smoke、readiness fail-closed 和本地断言
-载体已有仓库证据；Auth direct-permission 是当前唯一实现的 Core local
-Adapter。Admin/App/Submission/Notification 其余跨 Owner consumer 仍使用
-Dubbo Adapter，Core 尚未提供完整业务 HTTP 路由和启用 Owner 的 disposable
-journey，因此不能宣称 Core 与 distributed profile 同构。
+进程。`CoreModuleRegistry` 仅启用 Auth/Admin；App/Submission/Notification/
+Search 保持 `DISABLED`。G1/G2、parent smoke、readiness fail-closed、生命周期
+close-once 和本地断言载体已有仓库证据；Admin child 的显式 local contract
+registration 与 `AccountReadAdapter` identity wiring 有单测。该测试使用
+mock Auth contract，不是完整 child boot 或 disposable evidence。
 
 证据：[`services/core`](../core/)、[`core-profile-contract.sh`](../../scripts/test/core-profile-contract.sh)、
 [`CoreApplicationSmokeTest`](../core/src/test/java/com/ulticode/core/CoreApplicationSmokeTest.java)、
 [`LocalDelegationAssertionContext`](../platform/common/src/main/java/com/ulticode/common/security/LocalDelegationAssertionContext.java)。
 
 运行时证据（2026-09-04）：启用 Owner child contexts 的 exec-jar smoke
-（`CORE_OWNER_CONTEXTS_ENABLED=true`，无基础设施）显示六个 child context
-全部在 bean 装配阶段失败——早于任何 DB/Redis 交互，与基础设施无关。
-根因是六个 Owner jar 处于同一 classpath，而 child 的包扫描根
-（`com.ulticode.common`、`com.ulticode.modules.event.inbox`、
-`com.ulticode.modules.submission.*`、`com.ulticode.modules.notification.*`
-等）在多个 jar 中同时存在：Auth/Search child 拉入
-`backend-admin` 的 `DefaultAuditRecorder`（缺 `AuditSinkPort`）；Admin
-child 拉入 `backend-app-web` 的 `SubmissionJudgedInboxBridge`（缺
-Achievement consumer）；Submission child 把 `BackendSubmissionApplication`
-（位于被扫描的 `com.ulticode.submission` 根下）作为配置类注册，产生
-重复 mapper 跳过与跨 jar `SubmissionUserReadPort` 歧义；
-App/Notification child 同类泄漏。包扫描排除无法根治（同包跨 jar 类只能
-按类型逐一排除），因此启用 Owner 的 journey 需先实现按 Owner jar 隔离的
-类加载（或等价隔离），仅排除启动类不够。parent boot、DISABLED/FAILED
-fail-closed readiness（503）与 Judge `OPTIONAL` 判定均已 smoke 验证。
+（`CORE_OWNER_CONTEXTS_ENABLED=true`，无基础设施）是 **reported / not rerun**
+证据，记录六个 child context 在 bean 装配阶段失败。根因是所有 Owner jar
+位于同一 Core classpath，parent-first loader 不能提供 class/resource
+隔离；多个显式扫描根在多个 jar 中存在重叠。该报告保留为风险输入，但当前
+设计不再把按 Owner jar classloader 作为必需承诺，也没有把旧运行结果改写成
+本轮通过证据。
+
+当前边界：`CoreOwnerClassLoaders` 只负责 child startup 的 TCCL 与 close
+lifecycle；显式 `@ComponentScan`、`CoreModuleRegistry.enabledModules()` 和
+Admin local contract registration 才是 Core assembly contract。Core parent
+只提供 `/api/v1/core/health/ready`，child 为 non-Web；Core 没有可运行的
+业务 HTTP/WS journey。分布式 `app-journey` 是四步参考旅程，Core 变体
+在业务入口存在前不可执行。
+
 `CoreOwnerContextManager` 现在对每个 child 启动使用有界 timeout，且
 timeout/cancel 与 child 启动完成之间通过单 CAS ownership handoff 协议
 交接：每个已创建的 child context 必然由 startAll 调用方、timeout 关闭
-路径或迟到完成的 callable 三者之一唯一接管，close 至多一次（此前
-expired-boolean 检查存在"已创建 context 无人接管"的丢结果窗口，已由
-`CoreOwnerContextManagerLifecycleTest` 的确定性交错回归覆盖：正常发布、
-超时 claim 后迟到完成、lost-result 超时、中断交接、取消中断观察、
-停止与发布并发，并断言 startup/slot executor 线程退出与 FAILED 不变为
-READY）。parent 关闭期间的 stopping 守卫继续阻止 queued/running
-startup 创建后续 child；数据 Owner child 的 DB URL/credentials 与
-Redis host/password 仍强制非空（缺失即 fail closed，Search child 不注入
-datasource 属性）。
+路径或迟到完成的 callable 三者之一唯一接管，close 至多一次；相关交错
+由 `CoreOwnerContextManagerLifecycleTest` 覆盖。数据 Owner child 的 DB
+URL/credentials 与 Redis host/password 仍强制非空（缺失即 fail closed），
+Search child 不注入 datasource 属性。
 
-关闭条件：为每个实际跨 Owner consumer 提供 owner-local Adapter 或明确
-保留 Dubbo 的理由；先实现并证明 child context 的按 Owner jar 类加载隔离
-（或等价机制），再完成同进程 HTTP/WS 路由、Auth/App/Submission/
-Notification contract parity、启用所有 Owner 的 disposable smoke，并由
-Core profile gate 与 distributed profile 对比验证。外部 Judge remote TLS、
-生产 HA 和真实流量属于当前项目范围外，不阻塞本开源仓库的开发验收。
+关闭条件：保持 distributed 为唯一默认；在不增加 broad parent coupling、
+复制业务实现或重新引入旧 Contract 的前提下，先取得 Auth/Admin enabled
+wiring 与 disposable journey 证据。若至 `2026-10-06` 仍不能证明 bounded
+testbed 的价值，按 ADR-0012 删除 Core-only artifacts。外部 Judge remote
+TLS、生产 HA 和真实流量属于当前项目范围外，不阻塞本开源仓库验收。
 
 
 ## CLOSED

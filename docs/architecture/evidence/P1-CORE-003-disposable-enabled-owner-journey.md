@@ -1,49 +1,48 @@
 # P1-CORE-003: Core Enabled-Owner Disposable Journey
 
-## Journey Scope
+## Current status
 
-**Goal:** Verify that two enabled Owner child contexts in Core can cooperate in-process
-without Dubbo, exercising the mutation path (Admin → Auth) and the read path
-(Auth → Admin identity resolution).
+`P1-CORE-003` is **NOT_RUN / UNAVAILABLE** for the selected Core design.
+Core child contexts are non-Web and the parent security chain exposes only
+`/api/v1/core/health/ready`; there is no Core business HTTP/WS route on which
+the four-step journey can execute.
 
-**Owners enabled:** `auth` + `admin`
-**Cross-owner flows exercised:**
-1. Admin calls Auth mutation via `CoreLocalAuthorizationMutationAdapter` (delegates through
-   `BackendAuthorizationMutationPort` in the Auth child)
-2. Admin reads Auth identity via `IdentityQueryService` — **requires a local adapter**
-   since `dubbo.enabled=false` in child contexts
+## Selected scope and source evidence
 
-**Owners NOT enabled:** `app`, `submission`, `notification`, `search`
-Rationale: App/Submission/Notification require their own local adapters (see
-P1-CORE-002) which are out of scope for the minimal disposable journey. Search
-is database-free and has no cross-owner deps.
+The registry allowlist enables `auth` and `admin` only. The Admin child receives
+`CoreLocalIdentityQueryAdapter` and `CoreLocalAuthorizationMutationAdapter`
+through explicit startup registration. `CoreLocalAdapterWiringTest` proves an
+actual Admin `AccountReadAdapter` resolves identity through the local contract;
+it does not prove database, Redis, or full Auth/Admin startup.
 
-## Required Additions
+App, Submission, Notification, and Search remain registered but disabled.
+Their consumers still require their distributed Dubbo seams or additional
+local adapters; they are not hidden prerequisites for this task.
 
-| Component | Purpose | Location |
-|---|---|---|
-| `CoreLocalIdentityQueryAdapter` | Local adapter implementing `IdentityQueryService` by delegating to the Auth child context's bean via `CoreOwnerContextManager.bean("auth", ...)` | `services/core/src/main/java/com/ulticode/core/` |
+## First journey (distributed reference)
 
-## Cost Budget
+The bounded journey remains:
 
-| Item | Estimated |
-|---|---|
-| New source files | 1 Java class + 1 test |
-| New @Import wiring | 1 `@Import` in `CoreOwnerBootConfigurations.Admin` |
-| New test | 1 smoke test asserting Auth identity resolution from Admin context |
-| Risk surface | Low — mirrors existing `CoreLocalAuthorizationMutationAdapter` pattern |
+1. `POST /auth/login`
+2. `GET /problems/{id}`
+3. `POST /bookmarks/quick`
+4. ordinary-user `POST /problems` → expected 403/typed denial
 
-## Expiry
+The distributed `app-journey` scope is the executable reference. The Core
+variant is deferred until a real business HTTP/WS seam exists; do not report
+the parent readiness smoke as a journey result.
 
-This disposable journey is a **validation-only artifact**. It must be removed
-(or the Core profile disabled) before any production deployment of Core.
-Expiry condition: P7-GATE-001 decision gate — if Core is decided REMOVABLE,
-all Core-local adapters (`CoreLocalAuthorizationMutationAdapter`,
-`CoreLocalIdentityQueryAdapter`) and the enabled-owner tests are removed.
+## Cost and expiry
 
-## Validation Steps
+Record cold start, memory, required variables, changed files, and validation
+steps only when both topologies run under identical disposable inputs. Do not
+infer production SLO, HA, or feature equivalence. The expiry checkpoint is
+`2026-10-06`; no automatic renewal is allowed.
 
-1. `bash scripts/dev/test.sh static` — static contract gate passes
-2. `bash scripts/dev/test.sh core` — Core smoke passes with `CORE_OWNER_CONTEXTS_ENABLED=true`
-3. Journey test: enable auth+admin contexts, verify mutation + identity read paths
-4. `bash scripts/test/core-profile-contract.sh` — isolation contract preserved
+## Validation result
+
+- `CoreLocalAdapterWiringTest`: repository test, not disposable infrastructure.
+- `scripts/dev/test.sh core`: parent/config/readiness smoke only.
+- Enabled-owner Core wiring: not run.
+- Distributed/Core business journey: Core unavailable; distributed run deferred
+  until disposable credentials and seeded data are available.

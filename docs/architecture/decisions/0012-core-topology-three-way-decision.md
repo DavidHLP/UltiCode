@@ -8,57 +8,44 @@
 ## Context
 
 ADR-0010 recorded three blocking gates for Core promotion: G3 (cross-owner local
-Adapter parity), G4 (in-process delegation assertion coverage), G5 (unified
-HTTP/WS readiness). P0–P2 baseline work (P1-CORE-001, P1-CORE-002, P1-CORE-003)
-addressed the classpath-isolation blocker and added two local adapters.
+Adapter parity), G4 (in-process delegation assertion coverage), and G5
+(business HTTP/WS surface). The follow-up selected **explicit assembly**:
+`CoreModuleRegistry` allowlists Auth/Admin, explicit scans define each child,
+and the remaining registered modules stay disabled.
 
-**Current state after P0–P2 baseline:**
+`CoreOwnerClassLoaders` remains a parent-first lifecycle/TCCL helper. It is not
+class/resource isolation and does not prove sibling implementation invisibility.
+The Core parent exposes `/api/v1/core/health/ready` only; child contexts are
+non-Web. `CoreLocalAdapterWiringTest` proves one real Admin consumer injects the
+local identity contract with a mocked Auth contract. No disposable enabled-owner
+boot or business journey has been run.
 
-| Gate | Status |
-|---|---|
-| G1: Owner startup shell / package scan | LOCAL PROOF (zero-infra) |
-| G2: Per-owner DataSource / SqlSessionFactory / TxManager | LOCAL PROOF (zero-infra) |
-| G3: Cross-owner local Adapter parity | PARTIAL — `CoreLocalAuthorizationMutationAdapter` + `CoreLocalIdentityQueryAdapter` only cover Auth paths; Admin→App, Submission→App/Auth, Notification→Auth/App remain uncovered |
-| G4: In-process delegation assertions | PARTIAL — Auth path only; other consumers still use `@DubboReference` which fails closed in Core |
-| G5: Unified HTTP/WS readiness | NOT IMPLEMENTED — child contexts have no HTTP surface; Core provides `/api/v1/core/health/ready` only |
-| G6: Judge isolation | PROVEN — Core classpath excludes judge-runtime |
-
-The enabled-owner disposable journey (P1-CORE-003) has a new
-`CoreLocalIdentityQueryAdapter` + unit test, but no end-to-end integration
-journey validated against real infrastructure.
-
-## Three-Way Decision
+## Three-way decision
 
 | Option | Verdict |
 |---|---|
-| **PROMOTE_LATER** — flip Core to default | REJECTED. Cross-owner Adapter parity is incomplete; a promotion would create silent fail-closed paths for Admin→App, Submission↔App/Auth, Notification↔Auth. |
-| **RETAIN_TEMPORARILY_WITH_EXPIRY** | SELECTED. Core provides genuine value as an isolation testbed and has proven the classloader separation. Retain with explicit scope limitations and an expiry checkpoint. |
-| **REMOVE_CORE_EXPERIMENT** | REJECTED. The classloader isolation (P1-CORE-001) is a real technical contribution that resolves G5's classpath-leakage blocker; deletion would discard this. |
+| **PROMOTE_LATER** — flip Core to default | REJECTED. Local parity and a Core business journey are incomplete; promotion would create fail-closed or unavailable paths. |
+| **RETAIN_TEMPORARILY_WITH_EXPIRY** | SELECTED. Retain the small explicit-assembly testbed with a fixed allowlist, no isolation claim, and a hard expiry. |
+| **REMOVE_CORE_EXPERIMENT** | DEFERRED. Removal remains the fallback if the bounded testbed cannot justify its maintenance cost before expiry. |
 
-## RETAIN_TEMPORARILY_WITH_EXPIRY Terms
+## Retain terms
 
-1. **Scope boundary:** Core may only enable Owner child contexts that have full
-   local Adapter parity. Currently that means: **Auth + Admin only** (the two
-   paths covered by `CoreLocalAuthorizationMutationAdapter` and
-   `CoreLocalIdentityQueryAdapter`). App, Submission, Notification, and Search
-   child contexts must remain `DISABLED` in Core until P1-CORE-002 is fully
-   addressed.
+1. **Scope boundary:** only Auth + Admin child contexts are enabled. App,
+   Submission, Notification, and Search remain `DISABLED`.
+2. **Transport boundary:** Admin→Auth local adapters are explicit; uncovered
+   cross-owner consumers remain on distributed Dubbo and are not silently
+   treated as Core-compatible.
+3. **Expiry checkpoint:** **2026-10-06**. At that checkpoint, either a new
+   decision records evidence-backed continuation, or Core is removed. A status
+   edit cannot renew the date.
+4. **No default promotion:** generic Core owner-context and Judge-required
+   properties default to `false`; only the named `core` scope opts in.
+5. **Validation boundary:** `test.sh core` proves parent/config/readiness only.
+   Enabled-owner wiring needs disposable Owner artifacts/infra; a Core business
+   journey is unavailable until a business HTTP/WS seam exists.
 
-2. **Expiry checkpoint:** 2026-10-06 (30 days). At that checkpoint, either:
-   - P1-CORE-002 full parity is achieved → proceed to G7-GATE-001 decision
-     gate, or
-   - Core is demoted to `REMOVE_CORE_EXPERIMENT`.
+## Decision record
 
-3. **No default promotion:** Core remains behind
-   `CORE_OWNER_CONTEXTS_ENABLED=false` by default in all profiles. The
-   `core` Spring profile is opt-in via PM2 `ulticode-core` app descriptor.
-
-4. **Zero-infra validation:** `bash scripts/dev/test.sh static` — zero-infra
-   static gates — must continue to pass for Core. Enabled-owner integration
-   requires real infrastructure (MySQL, Redis, Nacos) and is NOT zero-infra.
-
-## Decision Record
-
-**Distributed remains the sole default topology.** Core is explicitly an
-opt-in experiment with bounded scope and a hard expiry. No new deployable
-services are created by this experiment.
+**Distributed remains the sole default topology.** Core is an explicitly
+opt-in, bounded assembly testbed with a non-renewing expiry. No new deployable
+services are created and no production suitability is claimed.

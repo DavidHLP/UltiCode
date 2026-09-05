@@ -79,8 +79,10 @@
   `AdminUserDetailQuery` deep module backed by the Auth
   `AuthorizationSnapshotService` and the provider-owned Submission
   `SubmissionUserDetailStatsPort` snapshot.
-- **ContestSubmissionPort** — the port through which submission asks contest
-  to record synchronous same-transaction contest effects.
+- **ContestSubmissionPort** — the narrow contract used by Submission-owned
+  reads of contest context. Contest-side mutation is the durable
+  `SubmissionCreated` outbox → App inbox/event path; it is not a synchronous
+  same-transaction callback.
 - **SubmissionPerformanceStats** — deep module owning the runtime/memory
   percentile + distribution-bin math for an Accepted submission.
 - **Judge queue / outbox** — the dispatch path from Submission intake to the

@@ -12,7 +12,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
-/** Explicit child-context assemblies for the six Core modules. */
+/** Explicit child-context assemblies for six registered modules; Auth and Admin are enabled by default. */
 final class CoreOwnerBootConfigurations {
 
     private CoreOwnerBootConfigurations() {

@@ -6,7 +6,17 @@ record CoreModuleDefinition(
         String environmentPrefix,
         Class<?> bootConfiguration,
         String transactionManagerBean,
-        String ownerArtifactId) {
+        String ownerArtifactId,
+        boolean enabled) {
+
+    CoreModuleDefinition(
+            String name,
+            String environmentPrefix,
+            Class<?> bootConfiguration,
+            String transactionManagerBean,
+            String ownerArtifactId) {
+        this(name, environmentPrefix, bootConfiguration, transactionManagerBean, ownerArtifactId, true);
+    }
 
     CoreModuleDefinition {
         if (name == null || name.isBlank()

@@ -40,7 +40,7 @@ quick|same as static + unit|existing node_modules only|same -Punit backend gate|
 full-local|MySQL + Redis Compose|pnpm install allowed|Maven verify|migration and coverage
 full|MySQL + Redis Compose|pnpm install allowed|Maven verify|build, audit, i18n
 integration|MySQL + Redis + sandbox/Testcontainers|pnpm install allowed|Maven verify + *IT|migration safety drill
-core|MySQL + Redis + local Owner contexts|none|Core module assembly smoke|explicit scan, transaction factories, readiness
+core|none (no Docker/DB/services)|none|Core parent/config/readiness smoke with Owner contexts disabled|explicit scans, datasource factories, readiness
 TABLE
 }
 
@@ -276,7 +276,7 @@ run_core_checks() {
   require_maven_toolchain
   echo "Building Core dependency reactor without running Owner tests..."
   (cd "$ROOT_DIR/services" && "${MAVEN[@]}" -pl core -am -DskipTests -Djacoco.skip=true install -B)
-  echo "Running Core context smoke..."
+  echo "Running Core parent/config/readiness smoke with Owner contexts disabled..."
   (cd "$ROOT_DIR/services" && "${MAVEN[@]}" -Punit -pl core test -B)
 }
 

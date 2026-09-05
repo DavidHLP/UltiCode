@@ -9,28 +9,18 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Builds an isolated {@link URLClassLoader} per Owner Module so that
- * {@code @ComponentScan} in one child context cannot discover sibling
- * Owner classes from another Owner's JAR on the shared Core classpath.
+ * Builds a bounded owner-specific URL view for the Core lifecycle runner.
  *
- * <p>The Core JAR carries every Owner implementation JAR at compile time
- * (see {@code services/core/pom.xml}). Without isolation, shared base
- * packages such as {@code com.ulticode.common} and
- * {@code com.ulticode.modules.event.inbox} are scanned by multiple children,
- * producing bean-definition conflicts and cross-owner leakage.
+ * <p>This helper is not a class/resource isolation boundary. Core is assembled
+ * from all Owner implementation artifacts and this loader remains parent-first,
+ * so sibling classes can still be visible through the parent classloader.
+ * Explicit component scans and the {@link CoreModuleRegistry} allowlist are the
+ * actual Core assembly contract.
  *
- * <p>The isolation scheme resolves JAR URLs from the Core thread context
- * classloader and partitions them into:
- * <ul>
- *   <li><b>Shared platform</b> — contract, common, and framework JARs that
- *       every child needs (backend-common, backend-web-security, backend-api,
- *       backend-integration-inbox, Spring, MyBatis, Hikari, etc.)</li>
- *   <li><b>Owner-specific</b> — the single Owner implementation JAR (e.g.
- *       backend-auth, backend-submission) that only that child may load</li>
- * </ul>
- *
- * <p>Framework/system classes are never included in the per-owner URL list;
- * they resolve from the parent classloader (the Core application classloader).
+ * <p>The URL partition is retained only to give each child startup a
+ * deterministic thread-context classloader and to close that loader with the
+ * child context. It must not be used as evidence that Owner implementations are
+ * invisible to one another or as a security boundary.
  */
 final class CoreOwnerClassLoaders {
 
@@ -70,11 +60,11 @@ final class CoreOwnerClassLoaders {
     }
 
     /**
-     * Create an isolated classloader for one Owner child context.
+     * Create a bounded owner-specific URL view for one child startup.
      *
      * @param ownerArtifactId the Maven artifactId of the Owner implementation
      *                        (e.g. {@code backend-auth})
-     * @return a URLClassLoader whose classpath is shared-platform + that Owner only
+     * @return a parent-first URLClassLoader with shared-platform and owner URLs
      */
     URLClassLoader createOwnerClassLoader(String ownerArtifactId) {
         List<URL> ownerUrls = discoverOwnerUrls(ownerArtifactId);
@@ -169,7 +159,7 @@ final class CoreOwnerClassLoaders {
         return base;
     }
 
-    /** Returns the list of owner JAR names that this classloaders can isolate. */
+    /** Returns the owner artifact names supported by the bounded URL view. */
     static List<String> ownerArtifactIds() {
         return OWNER_JARS;
     }

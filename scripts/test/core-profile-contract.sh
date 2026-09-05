@@ -25,6 +25,13 @@ contains services/core/src/main/java/com/ulticode/core/CoreApplication.java '@Sp
 contains services/core/src/main/java/com/ulticode/core/CoreApplication.java 'basePackages = "com.ulticode.core"'
 contains services/core/src/main/java/com/ulticode/core/CoreOwnerDataSourceConfiguration.java 'authTransactionManager'
 contains services/core/src/main/java/com/ulticode/core/CoreOwnerDataSourceConfiguration.java 'submissionTransactionManager'
+contains services/core/src/main/java/com/ulticode/core/CoreModuleRegistry.java '"backend-auth", true'
+contains services/core/src/main/java/com/ulticode/core/CoreModuleRegistry.java '"backend-admin", true'
+contains services/core/src/main/java/com/ulticode/core/CoreModuleRegistry.java '"backend-app-web", false'
+contains services/core/src/main/java/com/ulticode/core/CoreModuleRegistry.java 'enabledModules()'
+contains services/core/src/main/java/com/ulticode/core/CoreOwnerClassLoaders.java 'not a class/resource isolation boundary'
+contains services/core/src/main/resources/application.yml 'enabled: ${CORE_OWNER_CONTEXTS_ENABLED:false}'
+contains services/core/src/main/resources/application.yml 'required: ${CORE_JUDGE_REQUIRED:false}'
 contains services/core/src/main/java/com/ulticode/core/CoreOwnerMapperConfigurations.java 'com.ulticode.auth.security.oauth.mapper'
 contains services/core/src/main/java/com/ulticode/core/CoreOwnerMapperConfigurations.java 'sqlSessionFactoryRef = "appSqlSessionFactory"'
 contains services/core/src/main/java/com/ulticode/core/CoreOwnerBootConfigurations.java '"com.ulticode.modules.contest"'
@@ -56,5 +63,4 @@ source "$ROOT_DIR/scripts/dev/devstack-manifest.sh"
   || fail 'core readiness contract drifted'
 [[ "$(devstack_app_port ulticode-core)" == '9108' ]] \
   || fail 'core port drifted'
-
-printf 'Core profile explicit assembly and isolation contract: PASS\n'
+printf 'Core profile explicit assembly and bounded lifecycle contract: PASS\n'

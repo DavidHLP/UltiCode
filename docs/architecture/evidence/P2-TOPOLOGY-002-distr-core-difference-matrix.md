@@ -4,74 +4,63 @@
 
 | Aspect | Distributed Mode | Core Mode |
 |---|---|---|
-| **Processes** | 5 owner services + 2 workers (Judge, Search) + 2 frontends | 1 process (`ulticode-core`) + Judge |
-| **PM2 app names** | `ulticode-auth`, `ulticode-admin`, `ulticode-app`, `ulticode-submission`, `ulticode-notification`, `ulticode-judge`, `ulticode-search` | `ulticode-core`, `ulticode-judge` |
-| **Startup command** | `./mvnw -f services/auth/pom.xml spring-boot:run` (per owner) | `./mvnw -f core/pom.xml spring-boot:run -Dspring-boot.run.profiles=core` |
+| **Processes** | 5 Owner services + 2 Workers (Judge, Search) + frontends as selected | 1 `ulticode-core` parent + independent Judge |
+| **PM2 app names** | Owner/Worker apps selected by the named scope | `ulticode-core`, `ulticode-judge` |
+| **Startup command** | Per-owner `spring-boot:run` through the DevStack resolver | `spring-boot:run -Dspring-boot.run.profiles=core` |
 | **Spring profile** | Per-owner (`auth`, `admin`, etc.) | `core` |
-| **Owner contexts** | Each owner is a standalone Spring Boot process | 6 child contexts started in-process by `CoreOwnerContextManager` |
-| **`CORE_OWNER_CONTEXTS_ENABLED`** | N/A (each owner is its own process) | `true` (default for Core profile) |
-| **`CORE_JUDGE_REQUIRED`** | N/A | `true` (default; Core probes Judge readiness) |
+| **Owner contexts** | Each Owner is a standalone process | Auth and Admin enabled; App, Submission, Notification, Search registered but disabled |
+| **`CORE_OWNER_CONTEXTS_ENABLED`** | N/A | `false` in generic config/PM2 defaults; named `core` scope sets `true` |
+| **`CORE_JUDGE_REQUIRED`** | N/A | `false` in generic config/PM2 defaults and named `core` scope |
 
-## Configuration Differences
+## Configuration differences
 
-| Config Key | Distributed | Core |
+| Config key | Distributed | Core |
 |---|---|---|
-| `spring.application.name` | `ulticode-auth` (etc.) per owner | `ulticode-core` (parent) + `ulticode-core-{owner}` per child |
-| `spring.main.web-application-type` | `servlet` per owner | Parent: `servlet`; Child: `none` (`spring.main.web-application-type=none`) |
-| `spring.datasource.*` | Each owner has its own DS (auth, admin, app, submission, notification) | Core passes per-owner DS via `core.datasource.{owner}.*` |
-| `spring.flyway.enabled` | `true` per owner | `false` per child context |
-| `dubbo.enabled` | `true` (services register with Nacos) | `false` (child contexts: in-process only) |
-| `spring.redis.*` | Per-owner Redis (shared DB, per-owner username) | Core passes per-owner Redis via `{PREFIX}_REDIS_*` |
-| Security | Full Admin/Security filter chains per owner | Parent: deny-all except `/api/v1/core/health/ready`; Children inherit owner-specific security |
+| `spring.application.name` | Per-owner process name | `ulticode-core` parent + `ulticode-core-{owner}` child |
+| `spring.main.web-application-type` | `servlet` per Owner | Parent `servlet`; child `none` |
+| `spring.datasource.*` | Each Owner owns its process-local DS | Parent has five factories; enabled child startup receives owner DS properties |
+| `spring.flyway.enabled` | `true` in the Owner migration path | `false` in each child |
+| `dubbo.enabled` | `true`, Nacos registration | `false` in each child; local contracts are registered explicitly |
+| Redis | Per-owner credentials/namespace | Enabled child receives its owner Redis properties |
+| Security | Owner HTTP/WS policy | Parent permits readiness only and denies all other requests |
 
-## Startup Sequence
+## Startup and readiness
 
 | Phase | Distributed | Core |
 |---|---|---|
-| 1 | Nacos, MySQL, Redis started via Compose | Same infra (mysql, redis, nacos) + meilisearch |
-| 2 | Each owner Spring Boot app starts independently | Core parent context starts, then `CoreOwnerContextManager.startAll()` creates child contexts |
-| 3 | Each owner registers Dubbo services with Nacos | Child contexts do NOT register Dubbo (`dubbo.enabled=false`); `CoreLocalAuthorizationMutationAdapter` bridges Core → Auth |
-| 4 | Frontend apps connect to owner APIs | Same frontend → Core port 9108 |
-
-## Readiness
+| 1 | Named scope starts required Compose infrastructure | Named `core` scope may start required infra; `test.sh core` starts none |
+| 2 | Each Owner starts independently | `CoreOwnerContextManager` starts only registry-enabled children |
+| 3 | Owners register Dubbo with Nacos | Children do not register Dubbo; Admin receives explicit local Auth contracts |
+| 4 | Frontends call Owner routes | Core has no business HTTP/WS aggregation route; only readiness is exposed |
 
 | Surface | Distributed | Core |
 |---|---|---|
-| Auth | `http://9101/api/v1/auth/health/ready` | N/A (child context) |
-| Admin | `http://9102/api/v1/admin/health/ready` | N/A (child context) |
-| App | `http://9103/api/v1/app/health/ready` | N/A (child context) |
-| Notification | `http://9105/api/v1/notification/health/ready` | N/A (child context) |
-| Submission | `pm2` process check | N/A (child context) |
-| Search | `http://9107` | N/A |
-| **Core (Core profile)** | N/A | `http://9108/api/v1/core/health/ready` |
+| Auth/Admin/App/Notification | Owner readiness and business routes | N/A while child contexts are not exposed as HTTP |
+| Submission/Judge/Search | Worker/Owner readiness by named scope | N/A except independent Judge process |
+| **Core** | N/A | `http://9108/api/v1/core/health/ready` |
 
-## Validation Entrypoints
+## Validation entrypoints
 
-| Validation Type | Distributed Command | Core Command |
+| Validation type | Distributed command | Core command |
 |---|---|---|
 | Static checks | `bash scripts/dev/test.sh static` | Same |
 | Core profile contract | N/A | `bash scripts/test/core-profile-contract.sh` |
-| Core smoke | N/A | `CORE_OWNER_CONTEXTS_ENABLED=false bash scripts/dev/test.sh core` |
-| Owner unit tests | `./mvnw test -pl auth` (etc.) | `./mvnw test -pl core` |
-| Contract tests | `./mvnw verify -pl auth-api` (etc.) | `./mvnw verify -pl api/auth-api` |
-| Integration tests | `./mvnw -Dtest='*IT' test` | Same (Core has no `*IT`) |
+| Core parent smoke | N/A | `bash scripts/dev/test.sh core` (contexts disabled) |
+| Owner unit tests | Owner module `-Punit` tests | Core module `-Punit` tests |
+| Contract tests | Relevant `services/api` contract gates | Same shared contract gates |
+| Enabled-owner wiring | Disposable named Owner scope | Not run; requires disposable Owner artifacts/infra |
+| Business journey | Disposable `app-journey` scope | Not available: Core exposes readiness only |
 
-## Key Difference: Cross-Owner Communication
+## Cross-owner communication
 
-| Communication Path | Distributed | Core |
+| Communication path | Distributed | Core |
 |---|---|---|
-| Admin → Auth mutation | `@DubboReference AuthorizationMutationService` (RPC via Nacos) | `CoreLocalAuthorizationMutationAdapter` (in-process delegation via `CoreOwnerContextManager.bean()`) |
-| Admin → Auth query | `@DubboReference AccountQueryService` / `IdentityQueryService` (RPC) | `CoreLocalIdentityQueryAdapter` (in-process delegation) |
-| Admin → App | `@DubboReference` (RPC) | **NOT SUPPORTED** — requires local adapter (see P1-CORE-002) |
-| Submission → App | `@DubboReference` (RPC) | **NOT SUPPORTED** — `CoreLocalIdentityQueryAdapter` does not cover problem/title/user ports |
-| Notification → Auth | `@DubboReference` (RPC) | **NOT SUPPORTED** — requires local adapter (see P1-CORE-002) |
-| Submission → Auth | `@DubboReference` (RPC) | **NOT SUPPORTED** — requires local adapter (see P1-CORE-002) |
+| Admin → Auth mutation | Dubbo `AuthorizationMutationService` | `CoreLocalAuthorizationMutationAdapter` |
+| Admin → Auth identity | Dubbo `IdentityQueryService` | Explicitly registered `CoreLocalIdentityQueryAdapter` |
+| Admin → App | Dubbo contract | Not supported |
+| Submission → App/Auth | Dubbo contracts | Not supported |
+| Notification → Auth/App | Dubbo contracts | Not supported |
 
-## Conclusion
-
-Core mode provides **partial** cross-owner communication — only the mutation path
-(Admin → Auth) is covered by the existing `CoreLocalAuthorizationMutationAdapter`,
-plus the identity read path via the newly added `CoreLocalIdentityQueryAdapter`.
-All other cross-owner paths (Admin → App, Submission → App/Auth, Notification →
-Auth/App) remain uncovered. These require additional local adapters to be
-production-viable.
+Core therefore proves only bounded parent assembly plus the explicitly
+registered Admin→Auth local contract seam. It does not claim parity with the
+distributed business surface.

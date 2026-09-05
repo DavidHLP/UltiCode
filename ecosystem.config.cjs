@@ -113,8 +113,8 @@ module.exports = {
       env_file: BACKEND_ENV_FILE,
       env: {
         CORE_SERVER_PORT: '9108',
-        CORE_OWNER_CONTEXTS_ENABLED: process.env.CORE_OWNER_CONTEXTS_ENABLED || 'true',
-        CORE_JUDGE_REQUIRED: process.env.CORE_JUDGE_REQUIRED || 'true',
+        CORE_OWNER_CONTEXTS_ENABLED: process.env.CORE_OWNER_CONTEXTS_ENABLED || 'false',
+        CORE_JUDGE_REQUIRED: process.env.CORE_JUDGE_REQUIRED || 'false',
         CORE_JUDGE_READINESS_URL: process.env.CORE_JUDGE_READINESS_URL,
       },
       out_file: path.join(ROOT, 'logs', 'backend-core.out.log'),

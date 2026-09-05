@@ -14,7 +14,7 @@
 
     <artifactId>backend-judge-runtime</artifactId>
     <name>UltiCode Backend (judge execution runtime)</name>
-    <description>Storage-free queue and sandbox runtime shared by backend-app compatibility mode and backend-judge.</description>
+    <description>Storage-free queue and sandbox runtime owned by backend-judge; App integrates through Owner API seams.</description>
 
     <dependencies>
         <dependency>

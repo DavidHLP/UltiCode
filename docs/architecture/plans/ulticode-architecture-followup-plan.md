@@ -1,522 +1,194 @@
-# UltiCode 架构后续整改计划
+# UltiCode 架构问题自主核查与后续任务计划
 
-> 状态：`COMPLETED — 43/43 DONE (2026-09-02)`<br>
-> 模式：`COMPLETED`（实施已闭环，本文保留为历史规划快照）<br>
-> 调查基线：`fix/architecture-remediation@6f97e6d5fee65e3ecf1cbc4e086336dd870606d5`<br>
-> 规划持久化 HEAD：`55b541bf82f7c060ae7eec236b42fc8e0c496b47`；实施完成 HEAD：`9e1c36e14`<br>
-> 调查日期：2026-09-01；规划持久化：2026-09-02；实施闭环：2026-09-02<br>
-> 机器任务源（本 checkout、本地 ignored）：`.agent/tasks/ulticode-architecture-followup/TASKS.yaml`（`plan.status DONE`，本机 ignored，仅本地可读）<br>
-> 规划 checkpoint `.agent/checkpoints/architecture-followup-planning.md` 已于 `2026-09-02` 随任务闭环删除工作树副本，内容已迁移至本文与 `../evidence/`，Git 历史保留实现提交 `9e1c36e14` 之前版本<br>
-> 最终集成矩阵：`../evidence/P5-GATE-004-final-integration-matrix.md`；当前状态：`../../project/current-status.md`
-## 1. 执行结论（基线快照说明）
+> 计划状态：`IMPLEMENTED_WITH_EVIDENCE_GAPS`；Core 已完成显式装配边界、Auth/Admin allowlist、本地契约接线和验证入口收敛，但 enabled-owner 完整业务旅程仍未执行。
+>
+> 执行授权：`true`。本轮允许修改源码、测试、脚本、配置和文档；不执行 commit、push、merge、deploy、迁移或外部凭据操作。
+>
+> 当前基线：`main@fedbc45c9fc380689e46434f81c49cd38a3bb3db`，工作区包含用户既有 WIP 与本轮未提交改动；`main...origin/main [ahead 8]`。
+>
+> 权威机器状态：`.agent/tasks/ulticode-architecture-followup/TASKS.yaml`。恢复信息：`.agent/checkpoints/architecture-followup-planning.md`。
 
-> **快照声明**：本节 `1–4` 描述的是规划基线 `6f97e6d5`（2026-09-01）的调查快照，用于解释为何立项；非当前实现。当前实现已在 `2026-09-02` 完成全部 `43/43` 任务并通过对应 Gate，当前真实状态以 [`../../project/current-status.md`](../../project/current-status.md) 与 [`../../../services/docs/SERVICES_ISSUES.md`](../../../services/docs/SERVICES_ISSUES.md) 为准。下述“仍保留/仍存在”均为基线时态。
+## 1. 结论
 
-四个规划领域均仍成立，但不是普通、未修复的仓库缺陷：
+本轮不新增物理服务。Core 选择显式装配而非真实 class/resource loader isolation：`CoreModuleRegistry` 注册六个 Owner，但仅 Auth/Admin 启用；`CoreOwnerClassLoaders` 保留为 parent-first 的有界 TCCL/生命周期辅助，不能作为 sibling 不可见性或安全边界证据。
 
-1. **AREA-INFRA**（基线）：默认 MySQL、Redis、MeiliSearch 仍共享单机故障域；Nacos HA profile 需要外部节点。仓库已有 ACL、备份恢复、Search fallback、Streams resilience 和 disposable drills，应先深化现有 seam，不直接引入新平台。
-2. **AREA-APP**（基线）：App 已有 Problem、Contest、Submission、Moderation 私有 Maven module，但主要 implementation 仍集中在 `app-web`；`app-api` 同时承载跨 Owner interface 与 App/Judge 内部 interface。先收窄 interface、深化 module，再决定是否物理拆分。
-3. **AREA-ADMIN**（基线）：Admin 是同步依赖集中点。调查基线有 61 个 `@DubboReference`：App 33、Auth 18、Submission 6、Notification 4；无 Judge reference。Dashboard stats 已并行，但用户趋势仍按 100 条分页扫描 Auth，RPC 数随账号量增长。
-4. **AREA-LEGACY**（基线）：`legacy-rollback` 仍保留 App 本地 Submission read implementation。`app-web -> backend-judge-runtime` 还存在三个非回滚依赖族：`AppUuidGenerator`、queue-local `SubmissionResultPushPort`、`SubmissionStatusCodec`。必须先迁走它们，再关闭 profile 和删除兼容 implementation。
+`distributed` 继续是唯一默认拓扑。Core 是 Auth/Admin allowlist 的 opt-in testbed，通用默认关闭，命名 `core` scope 才开启 Owner contexts；Judge readiness 在该 scope 为 optional。Core 三路结果选择 `RETAIN_TEMPORARILY_WITH_EXPIRY`，expiry 为 `2026-10-06`，不自动续期；在完整 journey 证据补齐前不 promotion。
 
-已确认的当前事实：
+保留以下已建立的边界，不因本计划重新打开：
 
-- Submission mutation 已由 `backend-submission` 单写；App 不存在 local writer。
-- Judge 是独立 Worker，不依赖或复用 `app-web`；当前 `AGENTS.md` 已修正为这一事实。
-- 实际 Submission module 路径是 `services/submission/`，不是 `services/backend-submission/`。
-- 暂不采用 Kubernetes、Kafka、Service Mesh、Seata 不是缺陷。
-- 文件数、LOC、interface 数和注解数只作为基线线索，不能单独支持拆分结论。
+- Submission 仍由 `backend-submission` 单写；不共享 Entity、Mapper 或事务，不恢复双写。
+- Notification 仍拥有投递状态、重试和去重；是否单独运行与是否保持独立 Module 分开判断。
+- Auth 仍是凭据和权限写入的权威 Owner；本地调用必须传递同等 actor、授权、幂等和失败语义。
+- Judge 仍是独立 Worker；独立进程不等于已经证明 sandbox 安全，远程 Judge/TLS 属于外部或可选验证。
+- App 的域数量、目录规模或实现长度不足以触发新的物理服务；先深化现有私有 Module。
+- Search 是可重建的派生索引，按业务 scope 运行，不引入新的托管服务作为本轮前置条件。
 
-当前最重要的矛盾是：
+## 2. 基线、证据和限制
 
-> Owner 数据所有权和远程 seam 已建立，但基础设施故障域、App module 深度、Admin use-case 预算和兼容 seam 退出机制尚未完全收敛。
+### 2.1 实际核查基线
 
-推荐总顺序：
+- 报告提供的基线日期为 2026-09-05，报告 HEAD 为 `fedbc45c9`；本次重新读取的 HEAD 与报告一致。
+- 当前分支为 `main`，工作区包含用户既有 WIP 与本轮未提交改动；基线仍为 `main...origin/main [ahead 8]`。
+- 现有历史计划 `ulticode-architecture-followup-plan.md` 曾记录 2026-09-02 的 `43/43 DONE` 快照；现已由本文件承接为后续核查计划。旧实现任务的完成状态不在本轮重新包装，历史细节由当前拓扑计划和 evidence 文档承接。
+- 当前相关设计参考为 [`ulticode-topology-contract-module-convergence-plan.md`](ulticode-topology-contract-module-convergence-plan.md)，其中的原任务 ID 在本计划中复用，不创建同义的第二套 ID。
 
-1. 冻结事实与现有 Gate。
-2. 迁出 App 对 `judge-runtime` 的非回滚依赖，并收窄 `app-api`。
-3. 治理 Admin Dashboard 分页扫描与 use-case 预算。
-4. 并行推进基础设施职责隔离和非生产故障演练。
-5. 通过 `GATE-LEGACY-REMOVAL` 后关闭 `legacy-rollback`。
-6. 分步删除兼容 adapter、read implementation、Mapper、POM 依赖和遗留数据库对象。
-7. 依据量化证据决定保持当前 App deployment 或进入物理拆分设计。
+### 2.2 证据优先级
 
-## 2. 范围与非目标
+当前源码、POM、配置和测试实现高于报告、历史文档、知识页和图谱。当前 codebase-memory 项目 `UltiCode` 已 indexed，generation 为 `2026-09-03T03:56:34Z`；Core 文件有未跟踪/未记录项，部分文档和脚本被排除，因此本计划对 Core 的负面结论回读了源码，对图谱只作定位用途。报告中“2026-09-04 enabled-owner exec-jar smoke 失败”的内容是 `reported` 证据，本轮没有重跑该探针。
 
-### 覆盖范围
+执行阶段实际运行：`bash scripts/test/core-profile-contract.sh`、三个 Shell 脚本语法检查、`bash ./mvnw -Punit -pl core test -B`（使用 `JAVA_TOOL_OPTIONS=-XX:-UseContainerSupport`，20 tests 全部通过）、`scripts/dev/test.sh --describe`、DevStack manifest/control contract、docs contract 和 `scripts/dev/test.sh static`，上述检查均通过。`scripts/test/zero-infra-validation-contract.sh` 在默认环境和同一 JVM workaround 下都在 backend-app-web 的 JaCoCo report 阶段以 `Unknown block type 0` 失败；其静态 child checks 通过，因此该入口保持 `validated_with_environment_failure`，不记为 PASS。`scripts/dev/test.sh core` 在 workaround 下通过；Docker/PM2/数据库和四步 disposable journey 未执行，Core 业务 journey 因 Core parent 没有业务 HTTP/WS 路由保持未执行。
 
-- AREA-INFRA：MySQL、Redis、MeiliSearch、Nacos 的职责、消费者、故障影响、降级和恢复。
-- AREA-APP：`app-api`、App 私有 module、compile/runtime/data/transaction seam 和发布耦合。
-- AREA-ADMIN：全量 Dubbo reference、页面/use case fanout、预算、freshness、partial failure 和条件事件读模型。
-- AREA-LEGACY：`legacy-rollback`、本地 Submission read implementation、`judge-runtime` 依赖和安全删除顺序。
+## 3. R1—R6 及相邻发现
 
-### 明确排除
+| ID | 分类 | evidence_kind | 当前结论与证据 | 影响 | 处置 |
+|---|---|---|---|---|---|
+| R1 | `Confirmed` | `static` + `reported` | `CoreOwnerClassLoaders#createOwnerClassLoader` 使用 `CoreOwnerClassLoaders.class.getClassLoader()` 作为 parent（`services/core/src/main/java/com/ulticode/core/CoreOwnerClassLoaders.java:79-86`）；Core POM 同时依赖六个 Owner Implementation（`services/core/pom.xml:31-73`）。包扫描也重复包含 `com.ulticode.common`、`event.inbox`、`submission.*`、`notification.*`（`CoreOwnerBootConfigurations.java:21-165`）。现有 2026-09-04 报告记录 enabled-owner wiring 在 Bean refresh 阶段失败。 | `core-opt-in` | `P1-CORE-001`、`AF-CORE-004`、`P7-GATE-001`。先选择边界方案；只有选择真实类加载隔离时才承诺类和资源不可见。 |
+| R2 | `Confirmed`（运行时为局部 PASS） | `static` + `runtime` | `CoreLocalIdentityQueryAdapter` 仍是 Core parent 的 `@Component`，但当前 Admin child 由 `CoreOwnerContextManager#registerChildContracts` 显式注册 `coreOwnerContextManager`、`CoreLocalIdentityQueryAdapter` 和 `CoreLocalAuthorizationMutationAdapter`；`CoreLocalAdapterWiringTest` 用 mock Auth contract 验证 `AccountReadAdapter` 能解析 identity。真实 Auth provider、权限 mutation consumer 和可用 DB/Redis 未执行。 | `core-opt-in`, `shared-contract` | `P1-CORE-002`。局部接线已修正；真实 provider/permission journey 保持 evidence gap。 |
+| R3 | `Confirmed` | `static` | Owner child 被设置为 `spring.main.web-application-type=none`（`CoreOwnerContextManager.java:223-226`）；Core parent 的安全配置仅放行 readiness、其余请求 deny（`services/core/src/main/java/com/ulticode/core/CoreSecurityConfiguration.java:12-18`）。`CoreApplication` 只扫描 `com.ulticode.core`（`CoreApplication.java:18-41`），没有业务 HTTP/WS 路由。 | `core-opt-in` | `P1-CORE-003`、`P2-TOPOLOGY-002`。启动/readiness、业务可用和完整迁移分开验收。 |
+| R4 | `Historical / Resolved` | `static` + `runtime` | 变更前 `CoreApplicationSmokeTest` 和 `scripts/dev/test.sh` 的描述会把 disabled Core smoke 误读为 enabled-owner wiring；本轮已将 `core` 帮助、scope、Core 测试和验证表述改为 parent/config/readiness smoke，并以 20 个 Core unit tests 与 static checks 复核。 | `documentation`, `verification` | `P6-VERIFY-001`、`P6-VERIFY-002`、`P6-VERIFY-003`、`P8-DOC-002` 已解决；不把 shell smoke 当业务证明。 |
+| R5 | `Hypothesis`（双拓扑存在是 `static`） | `static` | 独立 Owner 启动壳和 Core parent/child 启动壳同时存在（`services/pom.xml:35-42`、`services/core/pom.xml:100-109`、`ecosystem.config.cjs:106-125`）。因此两套配置、Adapter 和验证可能扩大维护面；尚没有同一 journey 的冷启动、内存、配置、改动文件数或验证耗时数据。 | `core-opt-in`, `distributed` | `P2-TOPOLOGY-001`、`P2-TOPOLOGY-003`、`P6-VERIFY-003`。只采集比较方法，不预设数字。 |
+| R6 | `Historical / Resolved` | `static` + `documentation` | 变更前 gate、状态文档、difference matrix、ADR、application.yml 和 DevStack 对 isolation、Owner context/Judge 默认值的表述不一致；本轮已统一为 explicit assembly/no classloader isolation、Auth/Admin opt-in、distributed sole default、Judge optional。 | `documentation`, `core-opt-in` | `P8-DOC-001`、`P8-DOC-002`、`P8-DOC-003` 已解决；当前 evidence gap 见第 7—10 节。 |
+| N1 | `Historical / Resolved` | `static` | 变更前 `CoreModuleRegistry` 默认遍历六个 Owner 且没有 per-owner allowlist；当前 registry 明确记录六个模块的 enabled 状态，只有 Auth/Admin 在 opt-in Core scope 启用，其余四个保持 disabled。 | `core-opt-in` | `P1-CORE-001`、`P2-TOPOLOGY-002` 已解决。 |
+| N2 | `Historical / Resolved` | `static` + `runtime` | 变更前 child classloader 没有稳定 ownership/close handoff；当前 `OwnerStartup` 使用 close-once `StartupAttempt`，manager 跟踪 active attempts/slots，并在 timeout/stop 路径执行 bounded cancellation、resource close 和 termination wait。非 cooperative `SpringApplication.run()` 仅有 bounded termination evidence gap，不宣称强制终止。 | `core-opt-in`, `lifecycle` | `AF-CORE-004` 不适用；loader ownership、close-once 和可合作线程路径已验证，非 cooperative termination 保持 evidence gap。 |
 
-- 真实生产流量、长期生产 SLO、生产多主机 failover。
-- 真实生产 mixed-version、证书轮换、远程 Judge 和独立 rollback 证明。
-- Kubernetes、Kafka、新 MQ、Service Mesh、Seata。
-- 五套独立数据库集群。
-- 直接拆分新微服务。
-- 无指标支持的 Admin 事件读模型。
-- 本计划的自动执行、提交、部署或数据库操作。
+### 3.1 已解决、误报和范围外
 
-Repository、CI、disposable、integration 或 pre-production evidence 必须明确标注，不能描述成生产证明。
+| 分类 | 数量 | 结论与依据 |
+|---|---:|---|
+| `Already Addressed` | 6 | Submission 单写已由 `services/submission` 承担；Notification recipient seam 已移到 `services/notification`；`ContestSubmissionPort` 的旧 `recordSubmissionIfNeeded` 已删除且实现为 `OutboxContestSubmissionPort`；Admin 用户详情已有 `AdminUserDetailQuery` 的 deadline/cancel/显式失败；App 当前 POM 没有 `backend-judge-runtime` compile dependency，且正常路径使用 `backend-common` codec/UUID；App-only Interface 已按 catalog 内部化。证据包括 `docs/architecture/modules.md:36`、`services/notification/src/main/java/com/ulticode/notification/recipient/UserNotificationReadPort.java:14-33`、`services/submission/src/main/java/com/ulticode/submission/port/adapter/OutboxContestSubmissionPort.java`、`services/admin/src/main/java/com/ulticode/modules/admin/query/DefaultAdminUserDetailQuery.java:147-238`、`services/app/app-web/pom.xml:53-75`。 |
+| `False Positive` | 1 | “App 当前仍直接编译依赖 `backend-judge-runtime`”不成立。当前 `services/app/app-web/pom.xml` 没有该依赖；Hindsight Component map 和旧 evidence 的对应描述属于过期快照。不能据此重新创建 P4 legacy 删除任务。 |
+| `Out of Scope` | 1 组 | 真实生产 HA、多主机 failover、远程 Judge/TLS、托管 MySQL/Redis/Meili、mixed-version 运行史以及 Kubernetes/Kafka/Service Mesh/Seata/多个数据库集群，没有本仓库可用证据，不作为本轮完成条件。既有 `SERVICES_ISSUES.md` 的 `OUT_OF_SCOPE`/`OPTIONAL_PROFILE` 分类继续有效。 |
 
-## 3. 当前证据基线
+因此本轮当前问题统计为：`Confirmed=3`（R1、R2、R3），`Historical / Resolved=4`（R4、R6、N1、N2），`Hypothesis=1`（R5），`Already Addressed=6`，`False Positive=1`，`Out of Scope=1 组`。R2 的真实 provider/permission 运行时部分，以及 N2 的非 cooperative termination 仍是 evidence gap；不再把已解决的旧表述当作当前缺口。
 
-本节的数量是绑定上述 commit 的调查快照，不是长期架构事实。
+## 4. 方案与决策关口
 
-| 领域 | 当前事实 | 权威证据 | 风险 | 可信度 |
-| --- | --- | --- | --- | --- |
-| 状态 | 官方注册表无 repository-actionable `OPEN`；剩余为 `DEFERRED` 或 `ACCEPTED` | `services/docs/SERVICES_ISSUES.md:5-24` | 历史 Finding 被重新当作当前缺陷 | 高 |
-| INFRA | 默认 MySQL、Redis、MeiliSearch 单点；HA Compose 不声明透明 failover | `services/docs/SERVICES_ISSUES.md:68-72`; `docker-compose.ha.yml:10-17` | 一个依赖故障跨多个 Owner/Worker | 高 |
-| Redis | Streams、cache、rate-limit、replay、queue、judge、Pub/Sub 共用 Redis；ACL 只隔离身份/keyspace | `docker/redis/generate-users-acl.sh:58-74` | 权限隔离不等于内存、eviction、连接或故障隔离 | 高 |
-| MySQL | Owner schema/account 已隔离；已有加密 backup、checksum、Flyway metadata、disposable restore drill | `docs/operations/backup-and-recovery.md:7-23` | 共享实例维护和 pool 压力仍跨 Owner | 高 |
-| Search | Search worker 是唯一 MeiliSearch writer；App indexed read 有显式 DB fallback | `SearchDocumentIndexWorker.java:40-55`; `DefaultSearchReadProjection.java:91-148` | fallback 改变排序/freshness；恢复需可执行验证 | 高 |
-| APP | 一个 `service.version.app` 发布四个私有 module 和 `app-web` | `services/app/pom.xml:16-29` | 多域共同发布、扩缩容和失败 | 高 |
-| APP module | 私有 module 仍较浅，主体 implementation 位于 `app-web` | `services/app/modules/**`; `services/app/app-web/src/main/java/com/ulticode/modules/**` | module 名称与真实 locality 不一致 | 高 |
-| app-api | 调查快照有 75 个公开 interface；至少四个 interface 所有权位置不合理 | `JudgeConfigPort.java`; `JudgeEnqueuePort.java`; `VerdictResolvePort.java`; `ModerationUserReadPort.java` | 内部知识扩大 contract lifecycle | 高 |
-| ADMIN | 61 个 Dubbo references：App 33、Auth 18、Submission 6、Notification 4 | `services/admin/src/main/java/**/@DubboReference` | Admin 成为同步 coupling 集中点 | 高 |
-| ADMIN Enricher | `AdminUserEnricher` 批量合并 Auth/App，返回 `OK/PARTIAL/UNAVAILABLE`；两个独立 batch 当前串行 | `AdminUserEnricher.java:208-361` | page wall time 缺少 use-case budget | 高 |
-| ADMIN Dashboard | stats 并行三个 Owner 并限定 800ms；用户趋势按 100 条串行扫描 Auth | `DefaultAdminDashboardReadAdapter.java:78-100,165-243` | RPC 数随账号量增长 | 高 |
-| RPC | Query 800ms/1 retry、逻辑总预算 1.6s、bulkhead 32、5 次失败开路 30s | `RpcPolicy.java:74-100`; `DubboDependencyResilienceFilter.java` | dependency budget 不能限制页面 fanout | 高 |
-| LEGACY write | App mutation 始终进入 Submission Owner | `RemoteSubmissionWritePort.java`; `DefaultSubmissionWritePort.java` | 不得重新引入双写 | 高 |
-| LEGACY profile | `legacy-rollback` 可由 DevStack 显式启用，并打开 local read/Judge compatibility | `devstack-manifest.sh:195-202`; `AppJudgeCompatibilityConfiguration.java` | 临时 seam 永久化或误启用 | 高 |
-| LEGACY read | App Submission 调查快照有 59 个 Java 文件，18 个直接含 legacy 条件；Mapper 由 legacy scan 装配 | `LegacySubmissionMapperScanConfig.java`; `SubmissionRoutingProperties.java` | 两套 read model 漂移 | 高 |
-| runtime dependency | App 正常路径还直接使用 runtime UUID、push alias 和 status codec | `app-web/pom.xml:68` 及对应 import inventory | 直接删 POM 依赖会破坏正常路径 | 高 |
-| 图谱限制 | codebase-memory generation 旧于部分源码，且曾返回已删除 symbol | `check_index_coverage` | 图谱不能用于负面或穷举证明 | 已披露；结论已回读源码 |
+### D1：装配隔离与类加载隔离必须分开
 
-## 4. 目标架构原则
+`P1-CORE-001` 先产出方案选择，不默认建设通用 classloader 容器：
 
-### AREA-INFRA
+1. **显式装配方案（首选候选）**：每个 Owner 只注册自己的 Configuration、MapperScan、数据源和 Contract；共享 parent 只暴露无业务语义的 platform/Contract。验收承诺是 Bean/Mapper/DataSource 装配隔离，不承诺 sibling 类在物理 classpath 上不可见。
+2. **真正类加载隔离（条件候选）**：只有显式装配无法满足 Core 目标时才选。必须同时证明 sibling class 与 resource 不可见、共享 Contract 的类型身份稳定、Spring Boot exec-jar 和开发 classpath 都可打包运行、loader 能在 context close 时有界释放。
+3. **大范围 parent + 排除名单（拒绝）**：不能把 Core 全部 Owner Implementation 暴露给 child，再靠 `@Primary`、扫描顺序或不断增加排除项掩盖边界。
 
-- 每个 infrastructure dependency 的 error mode、fallback、capacity、eviction/durability 和 recovery 都属于其 interface。
-- ACL 继续负责权限；资源和故障隔离单独裁决。
-- Redis 先建立 workload role 和命名 client/config seam；只有互斥 eviction/durability 或 fault drill 证明收益时才拆实例。
-- MySQL 保持 Owner schema/account；优先完善 pool budget、backup/restore 和 disposable recovery，不默认拆五个集群。
-- Search index 是派生数据，必须能从 Owner 数据和 event 重建。
-- Nacos 启动/运行时失效语义必须可测试，不能 fabricated success。
+D1 的失败出口是暂停 Core 扩大，保留 distributed；不自动迁移所有 Owner，也不把失败包装成新平台建设任务。
 
-### AREA-APP
+### D2：本地调用必须穿过真实 Seam
 
-- `app-api` 只承载真实跨进程、provider-owned interface。
-- App/Judge 内部 seam 保持 implementation-private。
-- Interface 使用 deletion test、consumer、error mode、performance 和 locality 评估，不以方法数裁决。
-- 先深化现有私有 module，再运行物理拆分 Gate。
-- 新 contract 必须声明 Provider owner、consumer、transport、version、error mode 和 budget。
+`P1-CORE-002` 只接受以下证据链：
 
-### AREA-ADMIN
+```text
+真实 consumer
+  → 目标 child context 中实际注册的 Contract/Port
+  → local Adapter
+  → provider Owner 的真实 Implementation
+```
 
-- 页面/use case 是 dependency budget 的基本单位。
-- 可聚合事实在 Data Owner 内完成，不把全量数据拉回 Admin。
-- 独立 RPC 可以并行；依赖上一结果的调用保持顺序并记录总 budget。
-- Freshness、partial、unavailable 是 interface 内容；空集合不能代替故障。
-- Cache 先定义 freshness 和 invalidation owner。
-- Event read model 只有在同步治理仍不满足量化 Gate 时进入 PoC，且不能成为第二数据真相。
+每条链路都要检查 actor/delegation、权限、事务边界、异常/超时、幂等和返回 envelope。`@DubboReference(check=false)` 在 Core 中得到 null 或空结果只能证明 fail-closed，不能证明合法请求成功。当前 Auth mutation/identity 是候选最小链路；Admin→App、Submission→App/Auth、Notification→Auth/App 先列为未覆盖，不强行塞入第一条旅程。
 
-### AREA-LEGACY
+### D3：Core 三路去留
 
-- Compatibility seam 必须有 owner、expiry、release floor 和删除 Gate。
-- 顺序固定为：迁走正常依赖 → 关闭 profile → 删除 compatibility implementation → 删除 local persistence knowledge → 删除 POM dependency → schema contraction。
-- Rollback 优先使用完整、已验证的旧 release descriptor，而不是让当前 binary 永久携带旧 implementation。
+`P2-TOPOLOGY-003` 在 P1/P2/P6 证据完成后重新评审：
 
-## 5. 分阶段路线图
+- `PROMOTE_LATER`：只有代表性旅程和 enabled-owner wiring 通过，且同条件比较显示 Core 明显降低贡献者成本，才允许另行提出默认切换；本计划不直接授权切换。
+- `RETAIN_TEMPORARILY_WITH_EXPIRY`：只保留已证明的 Owner scope，写明 owner allowlist、过期日期、删除动作和 distributed 回退；过期不自动续期。
+- `REMOVE_CORE_EXPERIMENT`：若需要通用复杂 loader、重复实现或多条半成品路由才能通过，删除 Core 专属入口/配置/Adapter/测试/文档，保留 Owner 独立进程。
 
-| 阶段 | 目标 | 主要产出 | 进入条件 | 退出条件 | 后续 Gate |
-| --- | --- | --- | --- | --- | --- |
-| P0 | 冻结当前事实 | Evidence manifest、Maven graph、Dubbo graph、infra graph、legacy graph | 当前仓库可读 | 四领域路径、调用、配置和 Gate 全部可追溯 | `GATE-BASELINE-FROZEN` |
-| P1 | 减少共享基础设施故障传播 | Redis role、MySQL recovery、Search/Nacos drills、统一 runbook | P0 infra graph | 每类 workload 有预算、降级、恢复和非生产演练 | `GATE-INFRA-ISOLATION` |
-| P2 | 收窄 App interface、深化 module | Contract catalog、内部 interface 迁移、module pilot、growth Gate、scorecard | P0 module graph | `app-api` ownership 清晰；至少一个 pilot 证明 locality | `GATE-APP-SPLIT-CANDIDATE` |
-| P3 | 降低 Admin 同步 coupling | Use-case budget、Auth aggregate、Enricher、typed degradation、metrics | P0 Dubbo graph | Dashboard 无分页扫描；核心 use case fanout/budget 可测 | `GATE-ADMIN-EVENT-READ-MODEL` |
-| P4 | 关闭并删除 legacy seam | 非回滚依赖迁移、profile 关闭、implementation/data 分步删除 | P0 legacy graph | App 无 local Submission model、无 `judge-runtime` compile dependency | `GATE-LEGACY-REMOVAL` |
-| P5 | 固化跨领域 Gate | ownership/profile/dependency/infra/Admin/integration Gate | 相应阶段可验收 | Gate fail closed 且可定位 | `GATE-FINAL-ARCHITECTURE` |
-| P6 | 持久化架构与状态 | 架构图、ADR、注册表、任务状态、漂移检查 | 各阶段决策形成 | canonical docs 与源码一致 | Docs contract |
+现有 `ADR-0012` 的 `RETAIN_TEMPORARILY_WITH_EXPIRY`（2026-10-06）是待复核输入，不是本轮最终裁决。
 
-## 6. 任务注册表
+## 5. 第一条代表性业务旅程
 
-任务的完整字段、状态和 acceptance criteria 以本 checkout 的本地 ignored 文件 `.agent/tasks/ulticode-architecture-followup/TASKS.yaml` 为机器权威源。本节提供可提交的执行索引，避免正文和 YAML 形成两份可独立修改的任务真相。
+选择 Auth + App + 管理权限的最小旅程，理由是它覆盖身份、一个公共业务读、一个 App-owned 写和一次角色拒绝，同时不提前引入 Submission→Judge 或 Notification 复杂度：
 
-### P0 基线
+1. 身份认证：`POST /auth/login`，对应 `services/auth/.../AuthController.java:37-58`，验证 session cookie/CSRF 约束和当前用户可被解析。
+2. 业务读取：`GET /problems/{id}`，对应 `services/app/app-web/.../ProblemController.java:31-77`，验证 App-owned Problem projection 与 read-only 路径。
+3. 业务写入：`POST /bookmarks/quick`，对应 `services/app/app-web/.../BookmarkController.java:21-40`，验证当前用户身份、App 事务和结果 envelope。
+4. 权限拒绝：普通用户调用 `POST /problems`，对应 `ProblemController.java:111-137` 的 `@PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")`，必须得到拒绝结果，不能因 Core 合并而放宽。
 
-| ID | 任务 | 优先级 | Size | 依赖 | Gate |
-| --- | --- | --- | --- | --- | --- |
-| P0-BASELINE-001 | 冻结当前事实与文档漂移 | HIGH | S | — | BASELINE |
-| P0-BASELINE-002 | 建立 Maven module 与 contract consumer graph | HIGH | M | 001 | BASELINE |
-| P0-BASELINE-003 | 建立 Admin use-case 级 Dubbo 调用图 | HIGH | M | 001 | BASELINE |
-| P0-BASELINE-004 | 建立基础设施 workload 与故障传播图 | HIGH | M | 001 | BASELINE |
-| P0-BASELINE-005 | 建立 legacy reachability 与删除闭包图 | HIGH | M | 001 | BASELINE |
+旅程的外部 `/api` 前缀和 gateway rewrite 由执行任务从当前 Nginx/route 配置重新确认；上面使用的是 Controller owner-relative path。第一轮不包含 `POST /problems/{problemId}/submissions`、Judge sandbox、结果回写或通知投递；这些保留为后续条件任务，避免把所有入口改造变成 Core 的隐含前置条件。
 
-### P1 基础设施
-
-| ID | 任务 | 优先级 | Size | 依赖 | Gate |
-| --- | --- | --- | --- | --- | --- |
-| P1-INFRA-001 | 裁决 Redis workload 角色与隔离级别 | HIGH | M | P0-004 | INFRA |
-| P1-INFRA-002 | 建立 Redis 命名 client 与资源预算 seam | HIGH | M | 001 | INFRA |
-| P1-INFRA-003 | 建立 Redis 非生产故障/eviction/backpressure 演练 | HIGH | M | 001,002 | INFRA |
-| P1-INFRA-004 | 建立 MySQL Owner 影响与恢复/连接预算矩阵 | HIGH | M | P0-004 | INFRA |
-| P1-INFRA-005 | 固化 MeiliSearch 降级与重建 contract | MEDIUM | M | P0-004 | INFRA |
-| P1-INFRA-006 | 固化 Nacos 启动/运行时失效语义 | MEDIUM | M | P0-004 | INFRA |
-| P1-INFRA-007 | 汇总跨基础设施恢复 runbook | MEDIUM | L | 003–006 | INFRA |
-
-### P2 App
-
-| ID | 任务 | 优先级 | Size | 依赖 | Gate |
-| --- | --- | --- | --- | --- | --- |
-| P2-APP-001 | 建立 app-api interface 消费者与稳定性目录 | HIGH | M | P0-002 | APP |
-| P2-APP-002 | 建立 App domain 依赖、数据、事务与 co-change 矩阵 | HIGH | M | P0-002 | APP |
-| P2-APP-003 | 内部化已确认放错位置的 interface | HIGH | M | 001 | APP |
-| P2-APP-004 | 对宽 interface 执行 deletion test 与消费者切片评审 | MEDIUM | M | 001,P0-003 | APP |
-| P2-APP-005 | 执行一个 App 私有 module 深化 pilot | MEDIUM | L | 002,004 | APP |
-| P2-APP-006 | 建立 app-api 增长和 ownership Gate | HIGH | M | 001 | APP |
-| P2-APP-007 | 建立 App 候选部署单元 scorecard | MEDIUM | M | 002,004–006 | APP |
-
-### P3 Admin
-
-| ID | 任务 | 优先级 | Size | 依赖 | Gate |
-| --- | --- | --- | --- | --- | --- |
-| P3-ADMIN-001 | 定义 Admin use-case RPC、latency 与 freshness 预算 | HIGH | M | P0-003 | ADMIN |
-| P3-ADMIN-002 | 用 Auth Owner 聚合替代 Dashboard 账号分页扫描 | HIGH | M | 001,P2-004 | ADMIN |
-| P3-ADMIN-003 | 收敛 AdminUserEnricher 串并行与批量 contract | MEDIUM | M | 001 | ADMIN |
-| P3-ADMIN-004 | 统一 Admin typed degradation 语义 | HIGH | M | 001 | ADMIN |
-| P3-ADMIN-005 | 增加 use-case fanout 与依赖指标 | MEDIUM | M | 001 | ADMIN |
-| P3-ADMIN-006 | 建立事件读模型 PoC/采用决策 Gate | MEDIUM | S | 002–005 | ADMIN |
-
-### P4 Legacy
-
-| ID | 任务 | 优先级 | Size | 依赖 | Gate |
-| --- | --- | --- | --- | --- | --- |
-| P4-LEGACY-001 | 指定 compatibility owner、截止条件和支持版本下限 | HIGH | S | P0-005 | LEGACY |
-| P4-LEGACY-002 | 用 common UuidGenerator 替换 AppUuidGenerator | HIGH | M | P0-005 | LEGACY |
-| P4-LEGACY-003 | 删除 queue-local SubmissionResultPushPort 别名 | HIGH | S | P0-005 | LEGACY |
-| P4-LEGACY-004 | 移除 App 对 Judge runtime SubmissionStatusCodec 的依赖 | HIGH | S | P0-005 | LEGACY |
-| P4-LEGACY-005 | 证明 app-web→judge-runtime 只剩 compatibility closure | HIGH | S | 002–004 | LEGACY |
-| P4-LEGACY-006 | 关闭 legacy-rollback 当前版本可达性 | HIGH | M | 001,005,P5-001 | LEGACY |
-| P4-LEGACY-007 | 删除 App Judge compatibility adapter 与旧 RQueue 路径 | HIGH | M | 006 | LEGACY |
-| P4-LEGACY-008 | 删除 App 本地 Submission read adapter/projection implementation | HIGH | L | 006 | LEGACY |
-| P4-LEGACY-009 | 删除 App Submission Mapper、entity、mapper scan 与私有 domain 残留 | HIGH | M | 008 | LEGACY |
-| P4-LEGACY-010 | 删除 app-web 对 backend-judge-runtime 的 Maven 依赖 | HIGH | S | 005,007 | LEGACY |
-| P4-LEGACY-011 | 执行 repository/disposable Submission schema contraction | HIGH | L | 006,008,009,P5-004 | LEGACY |
-
-### P5 Gate
-
-| ID | 任务 | 优先级 | Size | 依赖 | Gate |
-| --- | --- | --- | --- | --- | --- |
-| P5-GATE-001 | 建立静态 ownership、interface、Maven 与 profile Gate | HIGH | M | P0-002,005 | FINAL |
-| P5-GATE-002 | 建立基础设施降级与恢复 Gate | HIGH | M | P1-003–006 | INFRA |
-| P5-GATE-003 | 建立 Admin RPC budget Gate | HIGH | M | P3-001,005 | ADMIN |
-| P5-GATE-004 | 建立阶段 Go/No-Go 与最终集成矩阵 | HIGH | M | 001–003 | FINAL |
-
-### P6 文档
-
-| ID | 任务 | 优先级 | Size | 依赖 | Gate |
-| --- | --- | --- | --- | --- | --- |
-| P6-DOC-001 | 更新当前架构与故障域图 | MEDIUM | M | P1-007,P2-007,P3-006,P4-010 | FINAL |
-| P6-DOC-002 | 更新 ADR、问题注册表和 legacy 生命周期 | HIGH | S | P4-001,P2-007,P3-006 | FINAL |
-| P6-DOC-003 | 持久化实施任务账本并增加漂移检查 | MEDIUM | M | P5-004 | FINAL |
-
-## 7. 依赖关系与关键路径
+## 6. 执行路线和并行关系
 
 ```mermaid
 flowchart TD
-  P0001[P0-001] --> P0002[P0-002]
-  P0001 --> P0003[P0-003]
-  P0001 --> P0004[P0-004]
-  P0001 --> P0005[P0-005]
-
-  P0004 --> I001[P1-001] --> I002[P1-002] --> I003[P1-003]
-  P0004 --> I004[P1-004]
-  P0004 --> I005[P1-005]
-  P0004 --> I006[P1-006]
-  I003 --> I007[P1-007]
-  I004 --> I007
-  I005 --> I007
-  I006 --> I007
-
-  P0002 --> A001[P2-001]
-  P0002 --> A002[P2-002]
-  A001 --> A003[P2-003]
-  A001 --> A004[P2-004]
-  A002 --> A005[P2-005]
-  A004 --> A005
-  A001 --> A006[P2-006]
-  A002 --> A007[P2-007]
-  A005 --> A007
-  A006 --> A007
-
-  P0003 --> D001[P3-001]
-  D001 --> D002[P3-002]
-  D001 --> D003[P3-003]
-  D001 --> D004[P3-004]
-  D001 --> D005[P3-005]
-  D002 --> D006[P3-006]
-  D003 --> D006
-  D004 --> D006
-  D005 --> D006
-
-  P0005 --> L001[P4-001]
-  P0005 --> L002[P4-002]
-  P0005 --> L003[P4-003]
-  P0005 --> L004[P4-004]
-  L002 --> L005[P4-005]
-  L003 --> L005
-  L004 --> L005
-  L001 --> L006[P4-006]
-  L005 --> L006
-  L006 --> L007[P4-007]
-  L006 --> L008[P4-008]
-  L008 --> L009[P4-009]
-  L007 --> L010[P4-010]
-  L005 --> L010
-  L008 --> L011[P4-011]
-  L009 --> L011
+  C1[P1-CORE-001\n边界/allowlist/隔离方案] --> C4[AF-CORE-004\nloader 生命周期与打包证据]
+  C1 --> C2[P1-CORE-002\n真实 consumer 注入 parity]
+  V1[P6-VERIFY-001\n验证层级与旅程定义] --> V2[P6-VERIFY-002\nzero-infra scope/反误报]
+  T1[P2-TOPOLOGY-001\ndistributed 默认与 Core expiry] --> T2[P2-TOPOLOGY-002\n配置/启动/readiness 差异]
+  C2 --> C3[P1-CORE-003\nenabled-owner 旅程与成本采集]
+  V1 --> C3
+  T1 --> V3[P6-VERIFY-003\n按变更 scope 路由验证]
+  T2 --> D3[P2-TOPOLOGY-003\n三路去留决策]
+  C3 --> D3
+  V3 --> D3
+  C4 --> G[P7-GATE-001\nCore gate pack]
+  D3 --> G
+  V2 --> G
+  G --> D1[P8-DOC-001\ncanonical 状态/ADR/SVC-025]
+  G --> D2[P8-DOC-002\n源码/脚本/Contract 文档漂移]
+  D1 --> D4[P8-DOC-003\nexpiry 与单一账本]
+  D2 --> D4
 ```
 
-### 关键路径
+可并行的第一批是 `P1-CORE-001`、`P6-VERIFY-001` 和 `P2-TOPOLOGY-001`；`AF-CORE-004` 与 `P1-CORE-002` 等待 D1；`P1-CORE-003` 等待真实接线和验证层级；最终 Gate 前不得执行 Core 继续分支。
 
-1. `P0-BASELINE-001 → P0-BASELINE-005`
-2. `P4-LEGACY-002/003/004 → 005 → 006`
-3. `P4-LEGACY-007/008 → 009/010 → 011`
-4. `P5-GATE-001 → P5-GATE-004`
-5. `P6-DOC-001/002/003`
+## 7. 验证分层
 
-### 可并行流
+| 层级 | 计划证明什么 | 明确不能宣称 | 入口状态 |
+|---|---|---|---|
+| 静态 / 零基础设施 unit | 依赖方向、allowlist、Contract 绑定规则、负向类/资源约束、小范围逻辑 | Owner 已启动、数据库/消息正确 | `validated`：Core profile contract PASS；Core `-Punit` 20 tests PASS（`JAVA_TOOL_OPTIONS=-XX:-UseContainerSupport`） |
+| shell smoke | Core parent、配置对象、readiness fail-closed | enabled-owner wiring、业务可用 | `validated`：入口说明已修正；`test.sh core` 仍是 contexts disabled 的 parent/config/readiness smoke |
+| enabled-owner wiring | 实际 child 配置、真实 consumer 注入、local Adapter 到 provider 的绑定、sibling 不泄漏 | 持久化、消息、完整业务旅程 | `partial`：Admin `AccountReadAdapter` + mock Auth contract wiring PASS；真实 provider boot、其余 Owner parity 未执行 |
+| 临时基础设施集成 | 对应 MySQL/Redis/消息和事务/幂等行为 | 全部入口、生产 HA、真实流量 | `not_run`：本轮未启动基础设施 |
+| 代表性业务 journey | login、Problem read、Bookmark write、普通用户 403，以及 distributed/Core 对照语义 | 全功能等价、性能数字、生产部署 | `deferred/not_run`：Core 无业务路由；distributed disposable 输入未提供 |
 
-- P0 的 module、Dubbo、infra 和 legacy 图。
-- P1 的 MySQL、MeiliSearch、Nacos 与 Redis 决策。
-- P2 的 contract catalog 与 domain dependency matrix。
-- P3 的 Dashboard aggregate、Enricher、degradation、metrics（预算 manifest 后）。
-- P4 的 UUID、push alias、codec 三个非回滚迁移。
-- Profile 关闭后，P4 Judge compatibility 删除与 local read 删除。
+所有后续命令必须在任务中标注 `existing` 或 `proposed`。本轮未执行的验证一律保持 `not_run`、`deferred` 或 `not_applicable`；没有 Docker/凭据不会被写成通过。
 
-### 必须串行
+## 8. 任务索引
 
-- `P4-LEGACY-005` 前不能关闭 profile。
-- Profile 关闭前不能删除 compatibility implementation。
-- Local read implementation 删除前不能删除 Mapper/entity。
-- 代码/data Gate 完成前不能 schema contraction。
-- Interface 收窄与 module 深化前不能给出 App 物理拆分 Go。
+完整字段、状态、步骤、验收、回退和 validation 见 TASKS.yaml；本节只给执行顺序，避免维护第二份可变状态表。
 
-## 8. 决策矩阵
+| 任务 ID | 结果 | 依赖 | 状态 |
+|---|---|---|---|
+| `P1-CORE-001` | 选择显式装配隔离，定义 Owner allowlist | — | done |
+| `AF-CORE-004` | 证明 sibling 类/资源、Contract 类型身份和 loader close 语义 | P1-CORE-001 | not_applicable |
+| `P1-CORE-002` | Auth/Admin consumer→Adapter→provider 局部接线和未覆盖矩阵 | P1-CORE-001 | done_with_evidence_gap |
+| `P6-VERIFY-001` | 验证层级、第一条旅程和“不证明什么” | — | done |
+| `P6-VERIFY-002` | zero-infra/Core smoke scope 反误报入口 | P6-VERIFY-001 | done_with_evidence_gap |
+| `P2-TOPOLOGY-001` | distributed 唯一默认、Core expiry 和回退 | — | done |
+| `P2-TOPOLOGY-002` | 配置、Owner scope、启动和 readiness 差异矩阵 | P2-TOPOLOGY-001 | done |
+| `P6-VERIFY-003` | 按变更 scope 选择 distributed/Core 验证 | P2-TOPOLOGY-001, P6-VERIFY-001 | done |
+| `P1-CORE-003` | enabled-owner 最小旅程与成本采集方法 | P1-CORE-002, P6-VERIFY-001 | deferred |
+| `P2-TOPOLOGY-003` | Core `PROMOTE_LATER`/`RETAIN...`/`REMOVE...` 决策 | P1-CORE-003, P2-TOPOLOGY-002, P6-VERIFY-003 | done |
+| `P7-GATE-001` | Core load/parity/journey/topology Gate pack | AF-CORE-004, P1-CORE-003, P2-TOPOLOGY-003, P6-VERIFY-002 | done_with_evidence_gap |
+| `P8-DOC-001` | 更新 canonical 状态、ADR 和 SVC-025 入口 | P7-GATE-001 | done |
+| `P8-DOC-002` | 修正脚本、evidence、Contract 和旧快照表述 | P7-GATE-001, P6-VERIFY-002 | done |
+| `P8-DOC-003` | 固化 expiry、任务账本和漂移检查 | P8-DOC-001, P8-DOC-002 | done |
 
-### 8.1 App 当前 deployment 与物理拆分
+## 9. 风险、回退和停止条件
 
-| 方案 | 适用条件 | 收益 | 成本/风险 | 前置证据 | 当前结论 | 触发器 |
-| --- | --- | --- | --- | --- | --- | --- |
-| 保持当前 deployment、深化 module | 无独立团队/发布/扩缩容证据 | 不增加 RPC 和 data migration；提高 locality | 仍共同发布 | Contract catalog、module pilot | **推荐** | 独立团队、capacity、incident 或 release 证据 |
-| 候选 module 物理拆分 | data/transaction清晰；interface 收窄；独立 CI/deploy 可承担 | 独立发布、扩缩容、故障隔离 | 新 RPC、mixed-version、迁移 | P2 全部任务；Gate 多数通过 | 仅进入设计 | `GATE-APP-SPLIT-CANDIDATE` |
+- **边界扩大风险**：如果执行者需要把所有 Owner Implementation 暴露到 shared parent，停止 Core 实验，回到显式装配或删除分支。
+- **安全降级风险**：local Adapter 缺失时可以拒绝请求，但不能把拒绝全部请求当成功；合法 login/read/write/403 需要分别证明。
+- **数据所有权风险**：任何 Core 修复不得让 child 直接取得 sibling Mapper、Entity、事务或写权；Submission/Notification 单写者 Gate 始终保留。
+- **生命周期风险**：child startup timeout、late completion、context close 和 loader close 必须各有唯一责任方；失败时 readiness 继续非 200。
+- **双拓扑成本风险**：没有同一旅程的可比数据前，不得把 Core 的 JVM 数或“预期更低运维”写成事实。
+- **文档漂移风险**：Gate、ADR、current-status、issue registry 和 evidence 的状态只能在 P8 任务中同步，不能在本轮通过新文件维护第二份 issue 表。
 
-### 8.2 Admin 同步治理与事件读模型
+回退点：任何 Core 分支都能通过保留 `distributed` 默认、关闭 Core Owner contexts、移除 Core scope；如果最终选择移除，按 `P7-GATE-001` 输出的清单删除 Core 专属配置、Adapter、测试、脚本和文档引用，Owner 独立进程不变。任何删除任务都不得与新的 runtime 修复混在同一提交中。
 
-| 方案 | 适用条件 | 收益 | 成本/风险 | 前置证据 | 当前结论 | 触发器 |
-| --- | --- | --- | --- | --- | --- | --- |
-| Batch/aggregate/parallel/budget/degradation | freshness 需要近实时；fanout 可 bounded | 保持 Owner 真相；恢复简单 | 仍依赖 Provider | P3-001–005 | **推荐** | 治理后仍持续超 budget |
-| Event projection PoC | 允许 eventual；同步治理仍不足 | 读延迟稳定，可读旧值 | replay/delete/repair/version；第二真相风险 | Gate 输入齐全 | 条件 PoC | controlled P95/P99、failure 与 freshness Gate |
-| 正式事件模型 | PoC 可重建、幂等、删除、修复、版本演进全过 | 稳定读路径 | 长期存储和 schema 运维 | 人工+自动 Gate | 当前 No-Go | `GATE-ADMIN-EVENT-READ-MODEL` |
+## 10. 计划自审结果
 
-受控非生产默认阈值：最大 fanout/serial rounds 以 manifest 为准；核心 use case 三次基线 P95 > 1.2s 或 P99 > 1.6s，且 batch/aggregate/parallel/degradation 后仍不满足，才允许进入 PoC 评审。这不是生产 SLO。
+1. R1—R6 全部有分类、证据、影响和任务/不处理依据；相邻 N1/N2 已分别并入 Core boundary/lifecycle 任务。
+2. 已解决的 Admin detail、Submission/Notification ownership、Contract relocation 和 App judge-runtime 误报没有重新创建修复任务。
+3. Core 与默认 distributed 已明确分开；没有把生产 HA、远程 TLS 或新基础设施变成前置条件。
+4. 装配隔离和类加载隔离分别作为 D1 的不同承诺；没有预先指定通用 classloader 方案。
+5. P1-CORE-002 的验收明确要求真实 consumer→Adapter→provider；现有 mock-only 测试只作为局部证据。
+6. 验证层级区分启动、装配、集成、旅程和生产证明；Core parent/unit 已验证，enabled-owner provider、disposable 和业务旅程明确保持 `not_run` 或 `deferred`。
+7. 任务依赖图无环，互斥的三路结果在 P2-TOPOLOGY-003 中选择 retain；promotion 未获授权，expiry 不因状态修改自动延长。
+8. 任务均有独立结果；没有新增“优化架构/完善测试”式空任务。
+9. 计划授权了本轮源码、测试、脚本、配置和文档收敛，但不授权默认拓扑切换、commit、push、merge、deploy 或外部凭据操作。
+10. 旧 completed 账本和当前 topology plan 通过 external reference 承接；新的可变状态只在 TASKS.yaml，checkpoint 不复制任务正文。
 
-### 8.3 Redis 逻辑隔离与实例隔离
+执行结果：已完成可在本地、无基础设施条件下证明的 Core 边界、Auth/Admin 局部契约接线和入口文案收敛；Core parent/unit、静态架构合同和文档合同已验证。真实 Auth provider 启动、完整 Owner parity、Core/distributed disposable journey、成本比较和生产/HA 证据不在本轮完成条件内；zero-infra wrapper 的 backend-app-web JaCoCo 环境故障已保留为失败证据，没有被写成 PASS。
 
-| 方案 | 适用条件 | 收益 | 成本/风险 | 前置证据 | 当前结论 | 触发器 |
-| --- | --- | --- | --- | --- | --- | --- |
-| 同实例、角色化 client/config | 当前容量可控；policy兼容 | 最低成本、未来可路由 | 仍共享故障域 | Workload catalog | **第一步推荐** | Fault drill 出现跨 workload 影响 |
-| Cache/control 两角色实例 | cache eviction 与 Streams/control noeviction 冲突 | 减少 cache 对控制流影响 | 第二实例、ACL、监控、恢复 | P1-003 | 条件采用 | 任意 stream/control key eviction 或 PEL/recovery 超预算 |
-| 新 broker/更多平台 | 吞吐、保留、审计超过 Redis envelope | 更强隔离 | 双写、迁移、运维 | 长期容量证据 | 当前拒绝 | ADR trigger |
-
-### 8.4 Legacy 保留与关闭删除
-
-| 方案 | 适用条件 | 收益 | 成本/风险 | 前置证据 | 当前结论 | 触发器 |
-| --- | --- | --- | --- | --- | --- | --- |
-| 有期限保留 | 受支持旧 release 仍依赖 App local read；有 owner/expiry | 保留旧路径 | 双模型、误启用、compile coupling | 支持版本矩阵 | 只允许临时 | Expiry 或 release floor 前移 |
-| 当前 binary 关闭，rollback 旧完整 artifact | 新旧 contract/data proof 足够 | 当前 binary 简化 | 依赖 artifact 管理 | P4-001/005 | **推荐下一状态** | Legacy Gate |
-| 删除 implementation/data | 当前读写均 Owner route；profile 不可达；非回滚依赖为零 | 最大 locality | 删除高风险 | Legacy Gate 全过 | Gate 后分步执行 | 新兼容窗口必须新 ADR |
-
-## 9. Gate 清单
-
-### GATE-BASELINE-FROZEN
-
-- 输入：HEAD、clean status、source/POM/config/test/Gate inventory、graph coverage limitation。
-- 自动：路径、hash、Maven graph、reference 与 legacy inventory。
-- 人工：历史漂移分类和 source-of-truth 顺序。
-- 通过：四领域均有当前证据；无未验证历史结论。
-- 阻断：关键事实只存在历史文档；图谱不新鲜且未回读源码。
-- 失败：补 source inspection，不进入后续决策。
-
-### GATE-INFRA-ISOLATION
-
-- 输入：workload matrix、Redis decision、MySQL recovery、Search/Nacos drills。
-- 自动：ACL、Compose、stop/recover、checksum、PEL/DLQ、fallback flag。
-- 人工：额外实例运维成本、recovery owner、evidence level。
-- 通过：每个 Owner/Worker 有依赖、降级和恢复；没有未分类 workload。
-- 阻断：stream/control key 可被 cache eviction；BLOCKED 被写成 PASS。
-- 失败：保持现 topology；必要时进入 cache/control 两角色设计。
-
-### GATE-APP-SPLIT-CANDIDATE
-
-- 输入：contract catalog、domain matrix、module pilot、growth Gate、scorecard。
-- 自动：owner、consumer、dependency、table/transaction、CI coverage。
-- 人工：团队 owner、release cadence、capacity 和 fault-isolation 收益。
-- 通过：data/transaction清晰、interface 收窄、独立测试/部署可承担，证据多数通过。
-- 阻断：仅凭 LOC/route；需要共享 DB write；remote cost 未评估。
-- 失败：保持当前物理 deployment，继续深化逻辑 module。
-
-### GATE-ADMIN-EVENT-READ-MODEL
-
-- 输入：use-case budget、fanout metrics、同步治理、freshness contract。
-- 自动：RPC count、serial rounds、controlled latency、fault drill、replay/idempotency/delete/repair。
-- 人工：stale window、projection owner、第二真相风险。
-- 通过：同步治理仍持续超预算；允许 eventual；projection 可完整重建。
-- 阻断：仅因 reference 多；freshness 未定义；无 delete/replay/repair。
-- 失败：维持同步 deep module。
-
-### GATE-LEGACY-REMOVAL
-
-- 输入：owner/expiry、owner-only read/write、non-rollback import=0、profile reachability、contract/data proof。
-- 自动：Maven tree、symbol denylist、profile tests、checksum、grants、contraction proof。
-- 人工：最低支持 release、旧 artifact rollback 可用性。
-- 通过：当前读写不依赖 App local model；profile 关闭；删除可分步回退。
-- 阻断：正常路径仍 import runtime/local mapper；支持窗口未结束；data proof 缺失。
-- 失败：保留 seam 但必须重新指定 owner/expiry。
-
-### GATE-FINAL-ARCHITECTURE
-
-- 输入：P1–P6 Gate 结果和 integration matrix。
-- 自动：quick/full/integration、contract、dependency tree、docs、Git cleanliness。
-- 人工：阶段状态、非目标、风险接受。
-- 通过：全部计划内 Gate green；生产证据仍明确 excluded。
-- 阻断：Gate 绕过、文档冲突、未解释 dependency 或 data deletion。
-- 失败：回退最近独立 batch，不部署。
-
-## 10. 风险登记表
-
-| ID | 风险 | 触发条件 | 影响 | 缓解 | 任务 | Owner 建议 |
-| --- | --- | --- | --- | --- | --- | --- |
-| R-001 | 隐藏调用路径 | 只统计注解/import | 删除后失败 | Maven tree、implements、same-package、use-case trace | P0-002/003/005、P4-005 | Architecture |
-| R-002 | Legacy profile 误启用 | 环境变量或 DevStack 仍接受旧 mode | 旧模型重新运行 | Fail-closed validator、移除入口 | P4-006、P5-001 | Release |
-| R-003 | App interface 继续扩张 | 新 interface 无 owner/consumer | Contract/release 面增长 | Catalog、growth Gate | P2-001/006 | App Owner |
-| R-004 | Admin aggregate 变 God interface | 合并不相关 query | Interface 浅化 | Use-case-specific aggregate | P2-004、P3-002 | Admin/Auth |
-| R-005 | Cache freshness 误解 | 无 stale/invalidation contract | 管理决策使用旧数据 | Freshness metadata | P3-001/004 | Admin |
-| R-006 | Event projection 成第二真相 | 可本地修正或不可重建 | Data drift | Owner-only write、rebuild Gate | P3-006 | Admin+Owner |
-| R-007 | Redis 隔离增加运维复杂度 | 过早增实例 | Config/recovery drift | 先逻辑 seam、drill 后决策 | P1-001/002/003 | Platform/Ops |
-| R-008 | 删除兼容后失去 rollback | Release floor/artifact 未确认 | 无恢复路径 | Owner/expiry、旧完整 artifact、分步删除 | P4-001/006/007 | Release |
-| R-009 | 文档再次漂移 | 多处复制状态 | Agent 重复旧缺陷 | Canonical docs、delete-zone、contract | P6 | Docs/Architecture |
-| R-010 | 图谱或统计陈旧 | Graph generation 旧、机械改造污染 history | 错误结论 | Source fallback、多窗口 history | P0 | Architecture |
-| R-011 | Schema contraction 误删数据 | Proof/backup/quiescence/checksum 不足 | 不可逆损失 | 独立 contraction、disposable target、copy-back | P4-011、P5-004 | Submission/DBA |
-| R-012 | 模拟验证被写成生产证明 | Disposable green | 错误风险判断 | Evidence level、docs contract | P1、P5、P6 | Architecture |
-| R-013 | Module pilot 只增加 wrapper | 旧 pass-through 未删 | 更多浅 module | Deletion test、interface test surface | P2-005 | App Owner |
-| R-014 | Auth aggregate 无界 | period/window 不受限 | Auth DB 放大 | Bounded window/bucket、query-plan tests | P3-002 | Auth Owner |
-
-## 11. 实施批次
-
-### Batch A：证据冻结和 Gate 骨架
-
-- 任务：P0 全部、P5-GATE-001 report-only。
-- 原因：后续决策依赖同一事实基线。
-- 前置：工作树干净。
-- 回退：全部是分析或 report-only。
-- 完成：`GATE-BASELINE-FROZEN`。
-
-### Batch B：低风险 interface 与非回滚依赖治理
-
-- 任务：P2-APP-001/003/004/006；P4-LEGACY-002/003/004/005。
-- 原因：先减少错误 contract placement 和正常 App→runtime coupling。
-- 前置：P0 module/legacy graph。
-- 回退：UUID、push、codec 各自独立提交。
-- 完成：App 正常 source 不再 import runtime type；growth Gate 生效。
-
-### Batch C：基础设施职责隔离准备
-
-- 任务：P1 全部、P5-GATE-002。
-- 原因：统一 workload、轻量 config seam 和 disposable drills。
-- 前置：P0 infra graph。
-- 回退：角色 client 仍全部指向原 Redis。
-- 完成：`GATE-INFRA-ISOLATION` 或明确 No-Go/trigger。
-
-### Batch D：Admin 同步 coupling 治理
-
-- 任务：P3-ADMIN-001–005、P5-GATE-003。
-- 原因：Budget、aggregate、parallel、degradation、metrics 互相验证。
-- 前置：P0 Dubbo graph。
-- 回退：Dashboard aggregate 与 Enricher 分开提交。
-- 完成：Dashboard 无 Auth pagination scan；核心 use-case budget 可测。
-
-### Batch E：Legacy 关闭决策
-
-- 任务：P4-LEGACY-001/006、P3-ADMIN-006；复用 Batch B 的 P4-LEGACY-005 closure evidence。
-- 原因：都是 decision/Gate，不含 data deletion。
-- 前置：Batch B；owner/release floor 明确。
-- 回退：Gate 不过则保留并重设 owner/expiry。
-- 完成：当前 release 不再接受 `legacy-rollback`。
-
-### Batch F：Compatibility 分步删除
-
-- 任务：P4-LEGACY-007–011、P5-GATE-004。
-- 原因：按 reachability→implementation→persistence→POM→data 收缩。
-- 前置：Legacy Gate。
-- 回退：每个 read family、Mapper/entity、POM、contraction 独立提交；data 最后。
-- 完成：App 无 local Submission model 和 `judge-runtime` dependency；disposable contraction green。
-
-### Batch G：App module 深化和部署候选判定
-
-- 任务：P2-APP-002/005/007、P6 全部。
-- 原因：先 in-process pilot，再作物理拆分 Go/No-Go。
-- 前置：Batch B。
-- 回退：Pilot 不改变 deployment，可独立回退。
-- 完成：App Gate 给出明确结论；证据不足时保持当前 deployment。
-
-## 12. 最终推荐顺序
-
-1. P0 + P5-GATE-001 report-only。
-2. P4-002/003/004 和 P2-001/003/006。
-3. P3 use-case budget 与 Dashboard aggregate。
-4. P1 workload/infra drills。
-5. 指定 compatibility owner、release floor 和 expiry。
-6. Legacy Gate 后关闭 profile。
-7. 删除 Judge compatibility、local Submission read、Mapper/entity 和 runtime dependency。
-8. 最后做 repository/disposable schema contraction。
-9. 深化一个 App 私有 module pilot。
-10. 用 scorecard 决定保持当前 deployment 或进入拆分设计。
-11. 持久化 canonical docs 和状态。
-
-非回滚 `judge-runtime` 依赖迁移被提前，因为它们是关闭 compatibility seam 的隐藏前置条件。基础设施调查可以并行，但不阻塞这些低风险 seam 收缩。
-
-## 13. 待确认项
-
-### Q-001 Compatibility owner、expiry 和最低支持 release
-
-- 已查：`SERVICES_ISSUES.md`、`CONTRACT_COMPAT_GATE.md`、ADR-0002、roadmap、POM、DevStack。
-- 缺少：命名 owner、expiry、release floor。
-- 原因：发布支持/组织决策不在源码。
-- 阻塞：P4-006–011。
-- 确认方：Release/Architecture owner。
-
-### Q-002 Admin 核心页面 wall budget 和 freshness
-
-- 已查：`RpcPolicy`、dependency runbook、AdminUserEnricher、Dashboard、SVC-006。
-- 缺少：产品认可的页面 budget 和 stale window。
-- 原因：仓库只有 per-dependency budget。
-- 阻塞：P3-001/004/006 的最终阈值。
-- 确认方：Admin product owner + Architecture。
-
-### Q-003 第二 Redis role 的运维 owner
-
-- 已查：ACL、Compose、HA profile、runbook、current status。
-- 缺少：第二实例的 capacity、backup、alert、recovery owner。
-- 原因：运营责任不由源码表达。
-- 阻塞：只阻塞物理实例隔离，不阻塞逻辑 seam。
-- 确认方：Platform/Ops owner。
-
-### Q-004 App 候选 domain 的组织 ownership 和独立发布需求
-
-- 已查：POM、Git history、ADR、task ledger、domain source。
-- 缺少：独立团队、release cadence、capacity 或 fault target。
-- 原因：组织和产品计划不在源码。
-- 阻塞：只阻塞物理拆分，不阻塞 module 深化。
-- 确认方：项目负责人，通过 P2-APP-007 scorecard 记录。
-
-## 14. 完成与停止条件
-
-- 详细任务状态只在 `TASKS.yaml` 更新；本文保持规划与决策语义。
-- 任何任务开工前，先检查 dependencies 和对应 Gate。
-- 本计划的持久化不代表任何任务已开始。
-- 本轮持久化完成后立即停止，不执行实现、测试环境变更、commit、push、deploy 或数据库操作。
+本文件和 TASKS.yaml 的引用、YAML 语法、ID 唯一性、依赖无环性已执行只读校验；文档、ADR、issue registry、知识图和源码的实际更正已在本轮完成。后续只允许沿 expiry/新决策路径继续，不得通过改状态静默续期。

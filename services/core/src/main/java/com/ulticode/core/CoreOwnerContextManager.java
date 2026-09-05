@@ -10,6 +10,8 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -19,7 +21,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
-/** Starts the existing Owner Implementations in isolated child contexts. */
+/** Starts allowlisted Owner implementations in bounded child contexts. */
 @Component
 public class CoreOwnerContextManager {
     private static final Logger log = LoggerFactory.getLogger(CoreOwnerContextManager.class);
@@ -38,6 +40,10 @@ public class CoreOwnerContextManager {
     private final Map<String, State> states = new java.util.LinkedHashMap<>();
     private final Map<String, org.springframework.context.ConfigurableApplicationContext> contexts =
             new java.util.LinkedHashMap<>();
+    private final Map<String, OwnerStartup> ownerStartups =
+            new java.util.LinkedHashMap<>();
+    private final Set<StartupAttempt> startupAttempts = ConcurrentHashMap.newKeySet();
+    private final Set<ExecutorService> startupSlots = ConcurrentHashMap.newKeySet();
     private final ExecutorService startupExecutor = Executors.newSingleThreadExecutor(runnable -> {
         Thread thread = new Thread(runnable, "core-owner-bootstrap");
         thread.setDaemon(true);
@@ -46,6 +52,7 @@ public class CoreOwnerContextManager {
     private final long startupTimeoutMs;
     private final boolean enabled;
     private final AtomicBoolean stopping = new AtomicBoolean();
+    private final AtomicBoolean startupSubmitted = new AtomicBoolean();
 
     /** Closing-duty claim published by the timeout path before any context. */
     private static final Object TIMEOUT_CLAIMED = new Object();
@@ -53,7 +60,7 @@ public class CoreOwnerContextManager {
     public CoreOwnerContextManager(
             CoreModuleRegistry registry,
             org.springframework.core.env.Environment environment,
-            @org.springframework.beans.factory.annotation.Value("${core.owner-contexts.enabled:true}") boolean enabled,
+            @org.springframework.beans.factory.annotation.Value("${core.owner-contexts.enabled:false}") boolean enabled,
             @org.springframework.beans.factory.annotation.Value("${core.owner-contexts.startup-timeout-ms:120000}") long startupTimeoutMs) {
         this.registry = registry;
         this.ownerClassLoaders = new CoreOwnerClassLoaders();
@@ -61,16 +68,18 @@ public class CoreOwnerContextManager {
         this.enabled = enabled;
         this.startupTimeoutMs = Math.max(1_000L, startupTimeoutMs);
         for (CoreModuleDefinition module : registry.modules()) {
-            states.put(module.name(), enabled ? State.STARTING : State.DISABLED);
+            states.put(module.name(), enabled && module.enabled() ? State.STARTING : State.DISABLED);
         }
     }
 
     @EventListener(org.springframework.boot.context.event.ApplicationReadyEvent.class)
     public void startOwnerModules() {
-        if (!enabled || stopping.get()) {
-            return;
+        synchronized (this) {
+            if (!enabled || stopping.get() || !startupSubmitted.compareAndSet(false, true)) {
+                return;
+            }
+            startupExecutor.submit(this::startAll);
         }
-        startupExecutor.submit(this::startAll);
     }
 
     public synchronized Map<String, State> states() {
@@ -78,7 +87,8 @@ public class CoreOwnerContextManager {
     }
 
     public synchronized boolean allReady() {
-        return enabled && states.values().stream().allMatch(state -> state == State.READY);
+        return enabled && registry.enabledModules().stream()
+                .allMatch(module -> states.get(module.name()) == State.READY);
     }
     public synchronized <T> T bean(String owner, Class<T> type) {
         if (states.get(owner) != State.READY || !contexts.containsKey(owner)) {
@@ -93,22 +103,27 @@ public class CoreOwnerContextManager {
     }
 
     private void startAll() {
-        for (CoreModuleDefinition module : registry.modules()) {
+        for (CoreModuleDefinition module : registry.enabledModules()) {
             if (stopping.get()) {
                 return;
             }
             try {
-                org.springframework.context.ConfigurableApplicationContext context =
+                OwnerStartup startup =
                         startWithTimeout(module);
                 // Re-check under the same lock the stop path uses to snapshot
-                // and clear, so a context can never be published after the
-                // stop snapshot was taken (it would leak un-closed).
+                // and clear, so a startup cannot be published after the
+                // stop snapshot was taken (it would leak un-closed resources).
                 synchronized (this) {
                     if (stopping.get()) {
-                        context.close();
+                        try {
+                            startup.close();
+                        } catch (RuntimeException closeFailure) {
+                            log.error("Core Owner Module close failed during startup stop", closeFailure);
+                        }
                         return;
                     }
-                    contexts.put(module.name(), context);
+                    contexts.put(module.name(), startup.context());
+                    ownerStartups.put(module.name(), startup);
                     states.put(module.name(), State.READY);
                 }
             } catch (RuntimeException failure) {
@@ -125,52 +140,72 @@ public class CoreOwnerContextManager {
         return java.util.Map.copyOf(contexts);
     }
 
-    private org.springframework.context.ConfigurableApplicationContext startWithTimeout(
-            CoreModuleDefinition module) {
-        if (stopping.get()) {
-            throw new IllegalStateException("Core Owner Module startup cancelled: " + module.name());
-        }
-        // Ownership box: the slot thread publishes each created context here
-        // (null -> context) exactly once; the timeout path claims closing duty
-        // (null -> TIMEOUT_CLAIMED) exactly once. A created context therefore
+    private OwnerStartup startWithTimeout(CoreModuleDefinition module) {
+        // Ownership box: the slot thread publishes each created startup here
+        // (null -> startup) exactly once; the timeout path claims closing duty
+        // (null -> TIMEOUT_CLAIMED) exactly once. A created startup therefore
         // always ends up owned by exactly one of the startAll caller, the
         // timeout path, or the late-completing callable itself — never by
         // more than one, never by nobody.
         AtomicReference<Object> handoff = new AtomicReference<>();
-        // One executor slot per child: a hung start can occupy its own daemon
-        // thread, but it must not starve the remaining children's bounded
-        // startup futures on a shared single-thread executor.
-        ExecutorService slot = Executors.newSingleThreadExecutor(runnable -> {
-            Thread thread = new Thread(runnable, "core-owner-context-startup-" + module.name());
-            thread.setDaemon(true);
-            return thread;
-        });
+        StartupAttempt attempt = new StartupAttempt();
+        ExecutorService slot;
+        Future<OwnerStartup> startup;
+        synchronized (this) {
+            if (stopping.get()) {
+                throw new IllegalStateException(
+                        "Core Owner Module startup cancelled: " + module.name());
+            }
+            startupAttempts.add(attempt);
+            // One executor slot per child: a hung start can occupy its own
+            // daemon thread, but it must not starve the remaining children's
+            // bounded startup futures on a shared single-thread executor.
+            slot = Executors.newSingleThreadExecutor(runnable -> {
+                Thread thread = new Thread(
+                        runnable, "core-owner-context-startup-" + module.name());
+                thread.setDaemon(true);
+                return thread;
+            });
+            startupSlots.add(slot);
+            try {
+                startup = slot.submit(() -> {
+                    OwnerStartup ownerStartup = start(module, attempt);
+                    if (handoff.compareAndSet(null, ownerStartup)) {
+                        // Ownership transferred to the caller via the
+                        // returned future; startAll publishes or closes it.
+                        return ownerStartup;
+                    }
+                    // Timeout path already claimed closing duty before
+                    // publication, so the caller will never receive this
+                    // startup: the callable is the sole closer.
+                    ownerStartup.close();
+                    throw new IllegalStateException(
+                            "Core Owner Module startup abandoned after timeout claim: "
+                                    + module.name());
+                });
+            } catch (RuntimeException | Error failure) {
+                startupSlots.remove(slot);
+                startupAttempts.remove(attempt);
+                try {
+                    attempt.close();
+                } catch (RuntimeException closeFailure) {
+                    failure.addSuppressed(closeFailure);
+                }
+                slot.shutdownNow();
+                throw failure;
+            }
+        }
+        long startupDeadlineNanos =
+                System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(startupTimeoutMs);
         try {
-            Future<org.springframework.context.ConfigurableApplicationContext> startup =
-                    slot.submit(() -> {
-                        org.springframework.context.ConfigurableApplicationContext context =
-                                start(module);
-                        if (handoff.compareAndSet(null, context)) {
-                            // Ownership transferred to the caller via the
-                            // returned future; startAll publishes or closes it.
-                            return context;
-                        }
-                        // Timeout path already claimed closing duty before
-                        // publication, so the caller will never receive this
-                        // context: the callable is the sole closer.
-                        context.close();
-                        throw new IllegalStateException(
-                                "Core Owner Module startup abandoned after timeout claim: "
-                                        + module.name());
-                    });
             try {
                 return awaitStartup(startup, module);
             } catch (TimeoutException exception) {
-                closeOrphanedContext(handoff, startup, module.name());
+                closeOrphanedStartup(handoff, startup, attempt, module.name());
                 throw new IllegalStateException(
                         "Core Owner Module startup timed out: " + module.name(), exception);
             } catch (InterruptedException exception) {
-                closeOrphanedContext(handoff, startup, module.name());
+                closeOrphanedStartup(handoff, startup, attempt, module.name());
                 Thread.currentThread().interrupt();
                 throw new IllegalStateException(
                         "Core Owner Module startup interrupted: " + module.name(), exception);
@@ -183,40 +218,73 @@ public class CoreOwnerContextManager {
                         "Core Owner Module startup failed: " + module.name(), cause);
             }
         } finally {
-            slot.shutdownNow();
+            stopStartupSlot(slot, module.name(), startupDeadlineNanos);
+            synchronized (this) {
+                startupAttempts.remove(attempt);
+                startupSlots.remove(slot);
+            }
+        }
+    }
+
+    private void stopStartupSlot(
+            ExecutorService slot, String module, long startupDeadlineNanos) {
+        slot.shutdownNow();
+        boolean interrupted = false;
+        while (!slot.isTerminated()) {
+            long remaining = startupDeadlineNanos - System.nanoTime();
+            if (remaining <= 0) {
+                log.error("Core Owner Module startup thread did not terminate: {}", module);
+                break;
+            }
+            try {
+                slot.awaitTermination(remaining, TimeUnit.NANOSECONDS);
+            } catch (InterruptedException interruptedException) {
+                interrupted = true;
+                slot.shutdownNow();
+            }
+        }
+        if (interrupted) {
+            Thread.currentThread().interrupt();
         }
     }
 
     /**
      * Timeout/interrupt handoff. Claims closing duty with one CAS. If the
-     * callable already published the context (claim fails), the caller never
+     * callable already published the startup (claim fails), the caller never
      * received it because get() threw, so the timeout path closes it. If the
      * claim succeeds, a late-completing callable observes the claim, closes
-     * its own context, and discards it. {@code Future.cancel(true)} is only a
+     * its own startup, and discards it. {@code Future.cancel(true)} is only a
      * cancellation signal for the worker thread — it is never treated as
-     * proof that a context was stopped; ownership is decided solely by this
+     * proof that a startup was stopped; ownership is decided solely by this
      * CAS protocol.
      */
-    private void closeOrphanedContext(
+    private void closeOrphanedStartup(
             AtomicReference<Object> handoff,
-            Future<org.springframework.context.ConfigurableApplicationContext> startup,
+            Future<OwnerStartup> startup,
+            StartupAttempt attempt,
             String module) {
         Object boxed = handoff.compareAndSet(null, TIMEOUT_CLAIMED) ? null : handoff.get();
         startup.cancel(true);
-        if (boxed instanceof org.springframework.context.ConfigurableApplicationContext context) {
-            context.close();
-            log.warn("Core Owner Module startup context closed by timeout path: {}", module);
+        if (boxed instanceof OwnerStartup ownerStartup) {
+            ownerStartup.close();
+            log.warn("Core Owner Module startup resources closed by timeout path: {}", module);
+        } else {
+            attempt.close();
         }
     }
 
-    org.springframework.context.ConfigurableApplicationContext awaitStartup(
-            Future<org.springframework.context.ConfigurableApplicationContext> startup,
+    OwnerStartup awaitStartup(
+            Future<OwnerStartup> startup,
             CoreModuleDefinition module)
             throws InterruptedException, ExecutionException, TimeoutException {
         return startup.get(startupTimeoutMs, TimeUnit.MILLISECONDS);
     }
 
-    org.springframework.context.ConfigurableApplicationContext start(CoreModuleDefinition module) {
+    OwnerStartup start(CoreModuleDefinition module) {
+        return start(module, new StartupAttempt());
+    }
+
+    OwnerStartup start(CoreModuleDefinition module, StartupAttempt attempt) {
         String prefix = module.environmentPrefix();
         boolean admin = "admin".equals(module.name());
         boolean search = "search".equals(module.name());
@@ -272,16 +340,139 @@ public class CoreOwnerContextManager {
         }
         java.net.URLClassLoader ownerClassLoader =
                 ownerClassLoaders.createOwnerClassLoader(module.ownerArtifactId());
+        attempt.setClassLoader(ownerClassLoader);
         Thread current = Thread.currentThread();
         ClassLoader previous = current.getContextClassLoader();
         current.setContextClassLoader(ownerClassLoader);
         try {
-            return new SpringApplicationBuilder(module.bootConfiguration())
-                    .web(WebApplicationType.NONE)
-                    .properties(properties.toArray(String[]::new))
-                    .run();
+            org.springframework.context.ConfigurableApplicationContext context =
+                    new SpringApplicationBuilder(module.bootConfiguration())
+                            .web(WebApplicationType.NONE)
+                            .initializers(child -> registerChildContracts(child, module))
+                            .properties(properties.toArray(String[]::new))
+                            .run();
+            attempt.setContext(context);
+            return new OwnerStartup(attempt);
+        } catch (RuntimeException | Error failure) {
+            try {
+                attempt.close();
+            } catch (RuntimeException closeFailure) {
+                failure.addSuppressed(closeFailure);
+            }
+            throw failure;
         } finally {
             current.setContextClassLoader(previous);
+        }
+    }
+
+    void registerChildContracts(
+            org.springframework.context.ConfigurableApplicationContext child,
+            CoreModuleDefinition module) {
+        if (!"admin".equals(module.name())) {
+            return;
+        }
+        child.getBeanFactory().registerSingleton("coreOwnerContextManager", this);
+        child.getBeanFactory().registerSingleton(
+                "coreLocalIdentityQueryAdapter", new CoreLocalIdentityQueryAdapter(this));
+        child.getBeanFactory().registerSingleton(
+                "coreLocalAuthorizationMutationAdapter",
+                new CoreLocalAuthorizationMutationAdapter(this));
+    }
+
+
+    private static void closeOwnerClassLoader(java.net.URLClassLoader ownerClassLoader) {
+        if (ownerClassLoader == null) {
+            return;
+        }
+        try {
+            ownerClassLoader.close();
+        } catch (java.io.IOException closeFailure) {
+            log.warn("Core Owner Module classloader close failed", closeFailure);
+        }
+    }
+
+    static final class StartupAttempt {
+        private final AtomicBoolean closed = new AtomicBoolean();
+        private java.net.URLClassLoader classLoader;
+        private org.springframework.context.ConfigurableApplicationContext context;
+
+        StartupAttempt() {
+        }
+
+        StartupAttempt(
+                org.springframework.context.ConfigurableApplicationContext context,
+                java.net.URLClassLoader classLoader) {
+            this.context = context;
+            this.classLoader = classLoader;
+        }
+
+        synchronized void setClassLoader(java.net.URLClassLoader classLoader) {
+            if (closed.get()) {
+                closeOwnerClassLoader(classLoader);
+            } else {
+                this.classLoader = classLoader;
+            }
+        }
+
+        synchronized void setContext(
+                org.springframework.context.ConfigurableApplicationContext context) {
+            if (closed.get()) {
+                closeContext(context);
+            } else {
+                this.context = context;
+            }
+        }
+
+        synchronized org.springframework.context.ConfigurableApplicationContext context() {
+            return context;
+        }
+
+        void close() {
+            org.springframework.context.ConfigurableApplicationContext contextToClose;
+            java.net.URLClassLoader classLoaderToClose;
+            synchronized (this) {
+                if (!closed.compareAndSet(false, true)) {
+                    return;
+                }
+                contextToClose = context;
+                classLoaderToClose = classLoader;
+                context = null;
+                classLoader = null;
+            }
+            try {
+                closeContext(contextToClose);
+            } finally {
+                closeOwnerClassLoader(classLoaderToClose);
+            }
+        }
+
+        private static void closeContext(
+                org.springframework.context.ConfigurableApplicationContext context) {
+            if (context != null) {
+                context.close();
+            }
+        }
+    }
+
+    static final class OwnerStartup {
+        private final StartupAttempt attempt;
+
+        OwnerStartup(
+                org.springframework.context.ConfigurableApplicationContext context,
+                java.net.URLClassLoader classLoader) {
+            this.attempt = new StartupAttempt(context, classLoader);
+        }
+
+        OwnerStartup(StartupAttempt attempt) {
+            this.attempt = attempt;
+        }
+
+        org.springframework.context.ConfigurableApplicationContext context() {
+            return attempt.context();
+        }
+
+        void close() {
+            attempt.close();
         }
     }
 
@@ -300,41 +491,67 @@ public class CoreOwnerContextManager {
         throw new IllegalStateException(
                 "Core Owner Module startup requires property: " + String.join(" | ", keys));
     }
-    private void stopOwnerModules() {
-        if (!stopping.compareAndSet(false, true)) {
-            return;
+    private void closeActiveStartupAttempts() {
+        Set<StartupAttempt> activeAttempts;
+        synchronized (this) {
+            activeAttempts = Set.copyOf(startupAttempts);
         }
+        for (StartupAttempt attempt : activeAttempts) {
+            try {
+                attempt.close();
+            } catch (RuntimeException closeFailure) {
+                log.error("Core Owner Module startup resource close failed", closeFailure);
+            }
+        }
+    }
+
+    private void stopOwnerModules() {
+        Set<ExecutorService> activeSlots;
+        synchronized (this) {
+            if (!stopping.compareAndSet(false, true)) {
+                return;
+            }
+            activeSlots = Set.copyOf(startupSlots);
+            activeSlots.forEach(ExecutorService::shutdownNow);
+        }
+        closeActiveStartupAttempts();
         Future<?> shutdown = startupExecutor.submit(() -> {
-            List<org.springframework.context.ConfigurableApplicationContext> closing;
+            List<OwnerStartup> closing;
             synchronized (this) {
-                closing = List.copyOf(contexts.values());
+                closing = List.copyOf(ownerStartups.values());
                 contexts.clear();
+                ownerStartups.clear();
                 states.replaceAll((name, state) -> state == State.DISABLED ? state : State.STOPPED);
             }
             for (int index = closing.size() - 1; index >= 0; index--) {
-                closing.get(index).close();
+                try {
+                    closing.get(index).close();
+                } catch (RuntimeException closeFailure) {
+                    log.error("Core Owner Module close failed", closeFailure);
+                }
             }
         });
         startupExecutor.shutdown();
         try {
             shutdown.get(startupTimeoutMs, TimeUnit.MILLISECONDS);
         } catch (Exception exception) {
-            log.error("Core Owner Module shutdown did not complete", exception);
+            closeActiveStartupAttempts();
             // Child startup slots are per-child executors that die in their
             // own finally; force-close any child that registered before the
             // queued cleanup was dropped.
             startupExecutor.shutdownNow();
-            List<org.springframework.context.ConfigurableApplicationContext> remaining;
+            List<OwnerStartup> remaining;
             synchronized (this) {
-                remaining = List.copyOf(contexts.values());
+                remaining = List.copyOf(ownerStartups.values());
                 contexts.clear();
+                ownerStartups.clear();
                 states.replaceAll((name, state) -> state == State.DISABLED ? state : State.STOPPED);
             }
             for (int index = remaining.size() - 1; index >= 0; index--) {
                 try {
                     remaining.get(index).close();
                 } catch (RuntimeException closeFailure) {
-                    log.warn("Core Owner Module forced context close failed", closeFailure);
+                    log.warn("Core Owner Module forced module close failed", closeFailure);
                 }
             }
         }

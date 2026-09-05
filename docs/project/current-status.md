@@ -36,22 +36,28 @@
 - 已加入 `.devcontainer/devcontainer.json`：Java 17、Node 22、pnpm、
   mise、PM2、Maven wrapper、Docker-in-Docker 和固定端口。postCreate
   只准备依赖，postStart 只运行 unit gate，不自动启动全栈。
-- Core + Judge 已提供 opt-in `core` profile：`services/core` 使用显式
+- Core + Judge 提供 opt-in `core` profile：`services/core` 使用显式
   Core parent、五组 Owner DataSource/SqlSessionFactory/TransactionManager
-  与互斥 MapperScan；既有 Owner Implementation 在非 Web child context
-  中尝试启动，Core readiness 为 `/api/v1/core/health/ready`，端口为 9108。
-  Core parent 不依赖 `backend-judge-runtime`；Judge 仍是独立进程。
-  child 启动的 timeout/cancel 交接使用单 CAS ownership handoff 协议，
+  与显式 MapperScan。`CoreModuleRegistry` 仅启用 Auth/Admin；App、
+  Submission、Notification、Search 保持注册但 `DISABLED`。Core parent
+  不依赖 `backend-judge-runtime`；Judge 仍是独立进程。
+- Core 通用配置与 PM2 fallback 的 `CORE_OWNER_CONTEXTS_ENABLED`、
+  `CORE_JUDGE_REQUIRED` 默认均为 `false`；命名 `core` scope 才显式启用
+  Auth/Admin contexts，并将 Judge readiness 设为 optional。`test.sh core`
+  只做 contexts disabled 的 parent/config/readiness smoke；Core parent
+  只暴露 `/api/v1/core/health/ready`，没有业务 HTTP/WS 聚合路由。
+- child 启动的 timeout/cancel 交接使用单 CAS ownership handoff 协议，
   每个已创建 context 由调用方、timeout 关闭路径或迟到完成 callable
   三者之一唯一接管（`CoreOwnerContextManagerLifecycleTest` 确定性回归）。
-- Core 已落地同进程断言载体与 Auth direct-permission local Adapter：
-  signed delegation assertion 在受限 ThreadLocal scope 中传递，Auth
-  verifier 缺失断言仍 fail closed。G1/G2 与 parent/readiness/classpath
-  静态段已通过本地 smoke；但 enabled-owner exec-jar smoke 在 bean wiring
-  阶段因同一 classpath 的跨 Owner package leakage 使六个 child context
-  失败。Admin/App/Submission/Notification 的完整 consumer local Adapter
-  parity、同进程业务路由、Judge readiness 与 mixed-version/remote TLS
-  仍未验证，不能切换默认拓扑。
+- Core 已落地同进程断言载体、Auth local adapters 与 Admin child 的显式
+  contract registration；`CoreLocalAdapterWiringTest` 证明实际
+  `AccountReadAdapter` 可通过本地 identity contract 注入。该测试使用
+  mock Auth contract，不证明 DB/Redis 或完整 child boot。
+- `CoreOwnerClassLoaders` 是 parent-first 的 TCCL/生命周期辅助，不是
+  class/resource isolation。2026-09-04 enabled-owner exec-jar 失败报告
+  保留为 reported/not rerun evidence；Admin/App/Submission/Notification
+  的完整 local parity、enabled-owner wiring、同进程业务路由、Judge
+  readiness 与 mixed-version/remote TLS 仍未验证，不能切换默认拓扑。
 
 ## 验证入口
 
@@ -90,4 +96,4 @@ GitLab runner 仍被外部使用的部署 authority 确认（U-01）。只有部
 - Operational procedures：[`../operations/`](../operations/deployment.md)
 - HA/reference topology 决策：[`../architecture/decisions/0001-deferred-platform-expansion.md`](../architecture/decisions/0001-deferred-platform-expansion.md)
 - Core + Judge 收敛阻塞证据：[`ADR-0010`](../architecture/decisions/0010-core-judge-convergence-blockers.md)（SVC-025 仍 OPEN，Core 不是默认拓扑）。
-- Follow-up plan：[`../architecture/plans/ulticode-architecture-followup-plan.md`](../architecture/plans/ulticode-architecture-followup-plan.md)（历史规划快照，`COMPLETED`）。本轮唯一任务计划为[`../architecture/plans/ulticode-topology-contract-module-convergence-plan.md`](../architecture/plans/ulticode-topology-contract-module-convergence-plan.md)；本轮只持久化计划和相关文档，未实施任务。
+- Follow-up plan：[`../architecture/plans/ulticode-architecture-followup-plan.md`](../architecture/plans/ulticode-architecture-followup-plan.md)（本轮唯一任务计划与执行结果入口，任务状态以 `.agent/tasks/ulticode-architecture-followup/TASKS.yaml` 为准）。本轮保持 distributed default；Core 为 Auth/Admin allowlist 的 bounded opt-in testbed，expiry 为 2026-10-06。

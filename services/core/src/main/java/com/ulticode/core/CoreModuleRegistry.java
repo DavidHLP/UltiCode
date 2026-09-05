@@ -15,27 +15,27 @@ public final class CoreModuleRegistry {
                 new CoreModuleDefinition(
                         "auth", "AUTH", CoreOwnerBootConfigurations.Auth.class,
                         "authTransactionManager",
-                        "backend-auth"),
+                        "backend-auth", true),
                 new CoreModuleDefinition(
                         "admin", "ADMIN", CoreOwnerBootConfigurations.Admin.class,
                         "adminTransactionManager",
-                        "backend-admin"),
+                        "backend-admin", true),
                 new CoreModuleDefinition(
                         "app", "APP", CoreOwnerBootConfigurations.App.class,
                         "appTransactionManager",
-                        "backend-app-web"),
+                        "backend-app-web", false),
                 new CoreModuleDefinition(
                         "submission", "SUBMISSION", CoreOwnerBootConfigurations.Submission.class,
                         "submissionTransactionManager",
-                        "backend-submission"),
+                        "backend-submission", false),
                 new CoreModuleDefinition(
                         "notification", "NOTIFICATION", CoreOwnerBootConfigurations.Notification.class,
                         "notificationTransactionManager",
-                        "backend-notification"),
+                        "backend-notification", false),
                 new CoreModuleDefinition(
                         "search", "SEARCH", CoreOwnerBootConfigurations.Search.class,
                         null,
-                        "backend-search")));
+                        "backend-search", false)));
     }
 
     CoreModuleRegistry(List<CoreModuleDefinition> modules) {
@@ -44,5 +44,17 @@ public final class CoreModuleRegistry {
 
     public List<CoreModuleDefinition> modules() {
         return modules;
+    }
+
+    public List<CoreModuleDefinition> enabledModules() {
+        return modules.stream()
+                .filter(CoreModuleDefinition::enabled)
+                .toList();
+    }
+
+    public List<CoreModuleDefinition> disabledModules() {
+        return modules.stream()
+                .filter(module -> !module.enabled())
+                .toList();
     }
 }

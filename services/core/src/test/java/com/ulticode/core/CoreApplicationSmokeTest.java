@@ -25,10 +25,16 @@ class CoreApplicationSmokeTest {
         CoreModuleRegistry registry = new CoreModuleRegistry();
         assertThat(registry.modules()).extracting(CoreModuleDefinition::name)
                 .containsExactly("auth", "admin", "app", "submission", "notification", "search");
+        assertThat(registry.enabledModules()).extracting(CoreModuleDefinition::name)
+                .containsExactly("auth", "admin");
+        assertThat(registry.disabledModules()).extracting(CoreModuleDefinition::name)
+                .containsExactly("app", "submission", "notification", "search");
         assertThat(registry.modules()).extracting(CoreModuleDefinition::transactionManagerBean)
                 .containsExactly("authTransactionManager", "adminTransactionManager",
                         "appTransactionManager", "submissionTransactionManager",
                         "notificationTransactionManager", null);
+        assertThat(registry.modules()).extracting(CoreModuleDefinition::enabled)
+                .containsExactly(true, true, false, false, false, false);
     }
 
     @Test
@@ -72,10 +78,8 @@ class CoreApplicationSmokeTest {
                 .isNotSameAs(context.getBean("submissionTransactionManager"))
                 .isNotSameAs(context.getBean("notificationTransactionManager"));
         assertThat(context.getBean(CoreLocalAuthorizationMutationAdapter.class)).isNotNull();
+        assertThat(context.getBean(CoreLocalIdentityQueryAdapter.class)).isNotNull();
         assertThat(context.containsBean("backendAuthApplication")).isFalse();
-        assertThat(context.getClassLoader()
-                .getResource("com/ulticode/modules/submission/runtime/async/AsyncSandboxExecutor.class"))
-                .isNull();
     }
 
     @Test

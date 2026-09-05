@@ -5,7 +5,11 @@
 
 ## Context
 
-ADR-0009 Decision #4 记录了七进程 distributed profile 仍是 reference、Core 合并需先过隔离证据。本轮补充源码级门禁证据：逐项检查 Owner 启动壳、数据源、Mapper 扫描、Dubbo 注入面与运行契约，确定哪些门禁**当前无法在同进程内证明**，供后续 Core 试点直接对照。
+ADR-0009 Decision #4 记录了七进程 distributed profile 仍是 reference、Core
+合并需先过边界与旅程证据。本轮补充源码级门禁证据：逐项检查 Owner 启动
+壳、数据源、Mapper 扫描、Dubbo 注入面与运行契约，确定哪些门禁当前无法在
+同进程内证明，供后续 Core 试点直接对照。当前裁决采用显式装配，不把
+parent-first URL loader 描述成 class/resource isolation。
 
 ## Design It Twice（方案 A vs B）
 
@@ -46,11 +50,11 @@ ADR-0009 Decision #4 记录了七进程 distributed profile 仍是 reference、C
 
 ### G3 跨 Owner 调用的 local Adapter parity（部分实现）
 
-- Core 已加入 `CoreLocalAuthorizationMutationAdapter`，复用 Auth-owned
-  `AuthorizationMutationService` contract，不泄漏 Mapper/Entity；它通过
-  Admin signer 为当前认证 actor 生成目标绑定断言，再委托 Auth child context。
-- 其余 Admin/App/Submission/Notification consumer 仍是 Dubbo Adapter。故
-  G3 不能标为完成；当前实现是可回滚的高风险权限写入试点，不是全量替代。
+- Core 已加入 `CoreLocalAuthorizationMutationAdapter` 和
+  `CoreLocalIdentityQueryAdapter`，复用 Auth-owned contracts，不泄漏
+  Mapper/Entity；startup 会在 Admin child 显式注册它们。
+- 其余 Admin/App/Submission/Notification consumer 仍是 Dubbo Adapter。
+  故 G3 不能标为完成；当前实现是有限的 local wiring 试点，不是全量替代。
 
 ### G4 同进程委托断言（Auth 路径已实现，整体部分）
 
@@ -62,30 +66,25 @@ ADR-0009 Decision #4 记录了七进程 distributed profile 仍是 reference、C
   `UNAUTHORIZED`。其余跨 Owner consumer 尚未全部接入此 Seam，整体 G4
   仍为部分实现。
 
-### G5 运行契约（parent 已实现；enabled child wiring 被阻塞）
+### G5 运行契约（parent 已实现；enabled child wiring 未完成）
 
-- Core parent 提供 `9108` 与 `/api/v1/core/health/ready`；`devstack-manifest.sh`
-  和 PM2 descriptor 有 `core` scope，启动失败以非 200 readiness 暴露，
-  并与独立 `ulticode-judge` 同 scope。
-- `CoreOwnerContextManager` 对每个 child context 使用有界 startup
-  timeout，超时标记 `FAILED` 并继续 fail closed。timeout/cancel 与
-  child 启动完成之间的交接使用单 CAS ownership handoff 协议（
-  `CoreOwnerContextManagerLifecycleTest` 以确定性交错覆盖：正常发布、
-  claim 后迟到完成、lost-result 超时、中断交接、取消中断、停止与发布
-  并发；close 至多一次，FAILED 不变为 READY，executor 线程退出）。
-- `CoreReadinessService` 当前能区分 owner context、drain 和可选 Judge
-  probe；Core scope 默认不把没有 HTTP readiness 的 Judge 当成必需 HTTP
-  依赖。所有 Owner HTTP/WS 路由尚未合并到同一入口。
-- 2026-09-04 的 enabled-owner exec-jar smoke（
-  `CORE_OWNER_CONTEXTS_ENABLED=true`、无基础设施）显示六个 child context
-  全部在 bean refresh 阶段失败，早于 DB/Redis 交互：同一 classpath 上的
-  Owner jars 使 `com.ulticode.common`、event inbox、submission 和
-  notification 等扫描根互相发现 sibling classes，代表性症状包括
-  `DefaultAuditRecorder` 缺 `AuditSinkPort`、`SubmissionJudgedInboxBridge`
-  缺 Achievement consumer，以及 `SubmissionUserReadPort` 跨 jar 歧义。
-  这是真实的 wiring/classloader OPEN blocker，不是基础设施 readiness 结果。
-  disabled-owner 与 failed-owner readiness 的 503、Judge `OPTIONAL` 判定已
-  smoke 验证；统一业务 journey 仍未验证。
+- Core parent 提供 `9108` 与 `/api/v1/core/health/ready`；
+  `devstack-manifest.sh` 和 PM2 descriptor 有 `core` scope，启动失败以非
+  200 readiness 暴露，并与独立 `ulticode-judge` 同 scope。
+- `CoreOwnerContextManager` 对每个 child context 使用有界 startup timeout，
+  timeout/cancel 与 child 启动完成之间使用单 CAS ownership handoff 协议。
+  `CoreOwnerContextManagerLifecycleTest` 覆盖正常发布、超时 claim 后迟到
+  完成、lost-result 超时、中断交接、取消中断、停止与发布并发，并断言
+  close 至多一次、FAILED 不变为 READY、executor 线程退出。
+- `CoreReadinessService` 能区分 owner context、drain 和可选 Judge probe；
+  Core scope 不把没有 HTTP readiness 的 Judge 当成必需 HTTP 依赖。所有
+  Owner HTTP/WS 路由尚未合并到同一入口。
+- 2026-09-04 的 enabled-owner exec-jar smoke 是 **reported / not rerun**
+  evidence：同一 classpath 的多 Owner 扫描曾在 bean refresh 阶段失败。
+  该结果解释为何本轮不承诺 class/resource isolation，但没有被重写成
+  当前运行证据；显式扫描与 Auth/Admin allowlist 是当前可执行边界。
+- disabled-owner 与 failed-owner readiness 的 503、Judge `OPTIONAL` 判定
+  由 parent/unit smoke 覆盖；统一业务 journey 仍未验证。
 
 ### G6 Judge 隔离（本地已证；远端项外部阻塞）
 
@@ -100,21 +99,20 @@ ADR-0009 Decision #4 记录了七进程 distributed profile 仍是 reference、C
 
 ## 结论与下一步
 
-- 本 ADR 不切换默认拓扑，不把 Core 的性能/HA/成本写成既成事实；本项目没有生产
-  环境，真实 HA、远程 TLS 和流量证据属于 `OUT_OF_SCOPE`，不计入当前开发验收。
-- 当前仓库已有可启动的 opt-in Core parent shell、readiness 和 Judge
-  classpath 隔离，但 enabled Owner child assembly 因同一 classpath 的跨
-  Owner package leakage 尚不可运行；另只完成显式 Owner assembly、G1/G2
-  本地证据、Auth local Adapter 与同进程断言载体。G3/G4 的其余 consumer
-  parity、G5 的统一业务 HTTP/WS 路由与 enabled Owner journey 仍是仓库
-  OPEN 项。
-- 下一步不是重复写 ADR：应先按 SVC-025 为跨 Owner consumer 逐一落地
-  local Adapter/保留 Dubbo 的明确边界，并先实现按 Owner jar 隔离的类加载
-  （或等价机制），再运行 Core 与 distributed 的 contract/parity/disposable
-  journey 对照；未完成前维持 distributed default。
+- 本 ADR 不切换默认拓扑，不把 Core 的性能/HA/成本写成既成事实；本项目
+  没有生产环境，真实 HA、远程 TLS 和流量证据属于 `OUT_OF_SCOPE`。
+- 当前仓库已有 opt-in Core parent shell、readiness、显式 Owner assembly、
+  Auth local Adapter 和生命周期 close-once 证据。`CoreOwnerClassLoaders`
+  仅提供 parent-first TCCL/生命周期支持，不能满足 class/resource
+  isolation 证明。其他 consumer parity、统一业务 HTTP/WS 路由和
+  enabled-owner journey 仍是 SVC-025 OPEN。
+- 下一步是保留 distributed default，在固定 Auth/Admin scope 和
+  2026-10-06 expiry 下收集必要 wiring/journey 证据；若不能证明价值，
+  按 ADR-0012 删除 Core 实验。不得通过继续增加排除名单或复制业务实现
+  来伪造隔离。
 - 回滚：distributed profile 与现有 release descriptor 保留为唯一回滚路径；
-  Core 试点失败即停止新增 local consumers，按 descriptor 切回，不恢复已删除
-  的全量权限 writer 或 App Docker fallback。
+  Core 试点失败即停止新增 local consumers，按 descriptor 切回，不恢复
+  已删除的全量权限 writer 或 App Docker fallback。
 
 ## Evidence
 - Core assembly/runtime：`services/core/src/main/java/com/ulticode/core/`、

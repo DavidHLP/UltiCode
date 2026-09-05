@@ -1,9 +1,15 @@
 # P2-TOPOLOGY-001 Distributed is the Sole Default; Core is Explicitly Conditional
 
-> status: FROZEN
-> head: c344f6268084a893f0bde871da21e5130a331207
+> status: AMENDED
+> head: working tree 2026-09-05
 > scope: runtime topology default policy
-> evidence: Repository Implemented
+> evidence: Repository Implemented + source/config review
+>
+> **Amendment 2026-09-05:** The distributed profile remains the only default.
+> Core uses explicit assembly, not class/resource isolation. Its registry keeps
+> Auth and Admin enabled and keeps App, Submission, Notification, and Search
+> registered but disabled. No Core business HTTP/WS journey is currently
+> available; the parent exposes readiness only.
 
 ## 1. Distributed is the sole default
 
@@ -30,12 +36,15 @@ the sole default; Core is opt-in only.
 ```yaml
 core:
   owner-contexts:
-    enabled: ${CORE_OWNER_CONTEXTS_ENABLED:true}
+    enabled: ${CORE_OWNER_CONTEXTS_ENABLED:false}
+  judge:
+    required: ${CORE_JUDGE_REQUIRED:false}
 ```
 
-The flag defaults to `true` but Core only activates when the `core` profile
-is used. The default DevStack (`devstack-manifest.sh`) does not use the
-`core` profile. Core does **not** expose any HTTP business routes — only
+The Core process is opt-in, and its generic properties default to disabled.
+The named `core` DevStack scope explicitly enables Auth/Admin child contexts
+and keeps Judge readiness optional. This does not make Core a default route.
+Core exposes no business HTTP/WS routes — only
 `/api/v1/core/health/ready` on port 9108.
 
 ### No dual defaults
@@ -54,10 +63,11 @@ the distributed topology.
 ### Profile activation
 
 Core is activated only via:
-- `scripts/dev/test.sh core` — runs
-  `mvn -pl core -am install -DskipTests` then `mvn -Punit -pl core test`
-- `CORE_OWNER_CONTEXTS_ENABLED=true` environment in the Core PM2 config
-- The `core` Spring profile (not in default DevStack)
+- `scripts/dev/test.sh core` — parent/config/readiness smoke with Owner
+  contexts disabled
+- the named `core` DevStack/PM2 scope, which explicitly sets
+  `CORE_OWNER_CONTEXTS_ENABLED=true`
+- the `core` Spring profile (not in default DevStack)
 
 ### Core exposes only readiness HTTP
 
@@ -83,34 +93,38 @@ Core is a single-process assembly; its only published port is
 
 ### Expiry
 
-Core is marked as a **conditional, time-boxed experiment**. Its status is
-tracked by SVC-025 in `services/docs/SERVICES_ISSUES.md` and by ADR-0011.
+Core is a conditional, time-boxed experiment. Its current allowlist,
+expiry, and rollback are recorded by SVC-025 and ADR-0012.
 
 ## 4. Topology decision matrix
 
 | Dimension | Distributed (default) | Core (conditional) |
 |---|---|---|
-| Service count | 7 PM2 processes | 1 JVM |
-| Owner contexts | Separate processes | In-JVM child contexts |
-| DataSource | Per-owner process | Per-child DataSource props |
+| Service count | 5 Data Owners + 2 Workers | 1 Core JVM + independent Judge |
+| Owner contexts | Separate processes | Auth/Admin enabled; App/Submission/Notification/Search registered but disabled |
+| DataSource | Per-owner process | Parent has per-owner factories; enabled child startup receives owner properties |
 | Business HTTP routes | Per-owner port | None (only readiness on 9108) |
-| Dubbo | Nacos registry | `dubbo.enabled=false`, check=false |
+| Dubbo | Nacos registry | Child contexts disable Dubbo; local adapters are explicit |
 | Profile | default (no `core`) | `core` profile |
-| Test mode | static/unit/full-local/full/integration | `core` only |
-| State | Production topology | Experimental, opt-in |
+| Test mode | static/unit/full-local/full/integration | `core` parent/config/readiness smoke |
+| State | Default topology | Experimental, opt-in, expires 2026-10-06 |
 
 ## 5. Evidence Level
 
-Repository Implemented. Source-anchored to `overview.md`,
-`ecosystem.config.cjs`, `devstack-manifest.sh`, `application.yml`,
-`test.sh`, `CoreSecurityConfiguration`, and `AGENTS.md`.
+Repository Implemented + source/config review. The registry, explicit scans,
+parent readiness and disabled-owner behavior are source/test concerns. The
+bounded URL loader is lifecycle support only and is not evidence of sibling
+class/resource invisibility. No production deployment evidence is claimed.
 
-No production deployment evidence claimed — this is the repository's
-documented default policy.
+The enabled-owner wiring and representative business journey remain
+unvalidated; absence of those checks blocks promotion and preserves the
+distributed default.
 
 ## Verification
 
-- `grep -n "core" ecosystem.config.cjs` — Core not in default PM2 list
-- `grep -n "CORE_OWNER_CONTEXTS_ENABLED" services/core/src/main/resources/application.yml` — opt-in flag
-- `bash scripts/dev/test.sh --describe` — `core` mode listed as explicit
-- `bash scripts/dev/test.sh static` — does not reference Core owner contexts
+- `bash scripts/test/core-profile-contract.sh` — explicit assembly and bounded
+  lifecycle contract
+- `bash scripts/dev/test.sh --describe` — Core is a separate parent smoke mode
+- `bash scripts/dev/test.sh static` — zero-infrastructure static gates
+- enabled-owner wiring and distributed/Core business journey — not run without
+  disposable infrastructure and a Core business HTTP/WS seam

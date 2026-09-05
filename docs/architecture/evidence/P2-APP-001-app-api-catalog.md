@@ -116,6 +116,14 @@ catalog.
 - The catalog is source inventory, not a production traffic or deployment
   claim.
 
+### Current implementation note
+
+`ContestSubmissionPort` is a narrow Submission-owned read contract. Contest
+mutation is handled by the durable `SubmissionCreated` outbox/inbox path; no
+same-transaction callback is part of the current contract. The retired
+`UserNotificationReadPort` and other interfaces below remain replacement
+references only; they must not be restored as live imports.
+
 ## Evidence Level
 
 Repository Implemented. Catalog is source inventory, not a production traffic or deployment claim.

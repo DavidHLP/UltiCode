@@ -21,11 +21,11 @@ server:
 
 core:
   owner-contexts:
-    enabled: ${CORE_OWNER_CONTEXTS_ENABLED:true}
+    enabled: ${CORE_OWNER_CONTEXTS_ENABLED:false}
     startup-timeout-ms: ${CORE_OWNER_STARTUP_TIMEOUT_MS:120000}
   judge:
     readiness-url: ${CORE_JUDGE_READINESS_URL:}
-    required: ${CORE_JUDGE_REQUIRED:true}
+    required: ${CORE_JUDGE_REQUIRED:false}
   datasource:
     auth:
       url: ${AUTH_DB_URL:jdbc:mysql://${AUTH_DB_HOST:localhost}:${AUTH_DB_PORT:3306}/${AUTH_DB_NAME:auth}?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&sslMode=${AUTH_DB_SSL_MODE:REQUIRED}}

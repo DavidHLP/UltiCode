@@ -4,6 +4,13 @@
 > head: c344f6268084a893f0bde871da21e5130a331207
 > scope: `services/core/` — single-process Core profile assembly
 > evidence: Repository Implemented
+>
+> **Amendment 2026-09-05:** Core now treats explicit scans and the registry
+> allowlist as its assembly boundary. Auth/Admin are enabled; App, Submission,
+> Notification, and Search are registered but disabled. `CoreOwnerClassLoaders`
+> provides lifecycle/TCCL support only, not sibling class/resource isolation.
+> `CoreLocalAdapterWiringTest` covers a real Admin consumer's identity lookup;
+> enabled child persistence and business routing remain unvalidated.
 
 ## 1. Core module Maven closure
 
@@ -43,9 +50,9 @@ defines in the **parent** context:
 
 `CoreOwnerContextManager` and `CoreModuleRegistry` are in the parent.
 
-`CoreLocalAuthorizationMutationAdapter` implements
-`AuthorizationMutationService` in the **parent** context (the only local
-adapter).
+`CoreLocalAuthorizationMutationAdapter` and `CoreLocalIdentityQueryAdapter`
+implement Auth contracts in the **parent** context; startup explicitly
+registers them in the Admin child. They do not expose Mapper or Entity types.
 
 ## 3. Per-child assembly (CoreOwnerBootConfigurations)
 
@@ -126,13 +133,15 @@ must delegate to existing Owner implementations.
 ## 6. Child context lifecycle
 
 `CoreOwnerContextManager`:
-- Constructor reads `core.owner-contexts.enabled` from env (defaults `true`)
+- Constructor reads `core.owner-contexts.enabled` from env (defaults `false`).
+- The registry's `enabledModules()` limits startup to Auth and Admin; the other
+  registered modules remain `DISABLED`.
 - `start()` builds `SpringApplicationBuilder(module.bootConfiguration())`
-  with `.web(NONE)` and `.properties(...)`
-- **Does NOT call `.parent(parentContext)`** — confirmed at line 271-274
-- Single-thread executor (`core-owner-bootstrap`), `startupTimeoutMs` (default
-  120000)
-- CAS-based handoff protocol: `TIMEOUT_CLAIMED` sentinel for timeout path
+  with `.web(NONE)`, explicit child contract registration, and owner properties.
+- The bounded URL loader is parent-first lifecycle/TCCL support, not proof of
+  sibling class/resource invisibility.
+- A per-child startup timeout uses a single-CAS ownership handoff and close-once
+  `OwnerStartup`.
 
 ## 7. Readiness
 
@@ -167,16 +176,17 @@ must delegate to existing Owner implementations.
 
 ## 9. Evidence Level
 
-Repository Implemented + Static Analysis. The enabled-owner child-context
-boot is the one path that cannot be proven zero-infrastructure; it requires
-MySQL + Redis + the actual Owner JAR classpath. Static assertions in
-`CoreApplicationSmokeTest` cover annotation-level boundaries but cannot prove
-runtime bean isolation without an enabled-owner startup.
+Repository Implemented + Static Analysis for parent assembly, allowlist,
+readiness, and lifecycle. The Admin local adapter wiring test proves only
+contract injection with a mocked Auth contract; enabled-owner persistence,
+Redis, HTTP/WS routing, and disposable parity remain unvalidated. No class or
+resource isolation claim is made.
 
 ## Verification
 
-- `services/core` compiles and `CoreApplicationSmokeTest` passes with
-  `CORE_OWNER_CONTEXTS_ENABLED=false` (zero-infra)
-- Full enabled-owner boot requires `CORE_OWNER_CONTEXTS_ENABLED=true` +
-  per-owner DB/Redis env → disposable validation only
+- `services/core` compiles and parent smoke runs with
+  `CORE_OWNER_CONTEXTS_ENABLED=false`
+- `scripts/test/core-profile-contract.sh` checks explicit assembly and defaults
+- Full enabled-owner boot requires `CORE_OWNER_CONTEXTS_ENABLED=true` plus
+  per-owner DB/Redis env and remains disposable validation only
 - `git diff --check` must pass

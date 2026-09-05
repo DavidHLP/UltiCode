@@ -88,7 +88,7 @@ From `scripts/dev/test.sh:19-43`:
 | full-local | MySQL + Redis Compose | pnpm install allowed | Maven verify | migration and coverage |
 | full | MySQL + Redis Compose | pnpm install allowed | Maven verify | build, audit, i18n |
 | integration | MySQL + Redis + sandbox/Testcontainers | pnpm install allowed | Maven verify + *IT | migration safety drill |
-| core | MySQL + Redis + local Owner contexts | none | Core module assembly smoke | explicit scan, transaction factories, readiness |
+| core | none for `test.sh core`; named `core` scope may start MySQL/Redis/Nacos/Meili for independent Judge | none | parent/config/readiness smoke with contexts disabled | Core profile contract; enabled-owner wiring and business journey not proven |
 
 ### Zero-infrastructure validation boundary
 
@@ -110,10 +110,11 @@ From `scripts/dev/test.sh:19-43`:
 ### Core profile contract
 
 `scripts/test/core-profile-contract.sh` validates:
-- Core POM is a single-process assembly (no multi-service Docker)
-- Shared platform modules do not depend on owner implementations
-- No Core-specific runtime properties bypass validation
-
+- Core is explicit assembly with a bounded lifecycle loader, not class/resource
+  isolation
+- the registry allowlist enables Auth/Admin and disables the other four modules
+- parent readiness is the only Core HTTP surface
+- no Core-specific runtime properties bypass boundary validation
 ## 4. Validation tooling
 
 ### -Punit Maven profile

@@ -51,8 +51,8 @@ DEVSTACK_DEV_FULL_APPS=(
 #   admin            auth admin app notification submission     mysql redis nacos
 #                    management
 #   submission-judge app submission judge                       mysql redis nacos
-#   search           auth app search console                    mysql redis nacos meilisearch
 #   core            ulticode-core + ulticode-judge                  mysql redis nacos meilisearch
+#                    Core Owner contexts are opt-in and allowlist Auth/Admin only.
 #
 # Observability is never part of a scope's default infra. Use the explicit
 # --observability lifecycle flag to append its Compose services.

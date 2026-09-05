@@ -42,7 +42,7 @@ Maven 离线缓存，不启动全栈；容器启动后的默认检查仅执行
 ./scripts/dev/up.sh --scope admin            # 管理：auth/admin/app/notification/submission + management
 ./scripts/dev/up.sh --scope submission-judge # judge 路径：app/submission/judge，无 Search
 ./scripts/dev/up.sh --scope search           # indexed Search：auth/app/search + console + meili
-./scripts/dev/up.sh --scope core             # Core parent 9108 + independent Judge
+./scripts/dev/up.sh --scope core             # Core parent 9108 + independent Judge; Auth/Admin contexts only when explicitly enabled
 ./scripts/dev/up.sh --scope full-stack       # 显式全量进程集
 ./scripts/dev/up.sh --scope full-stack --observability  # 显式选择 observability overlay
 
@@ -56,16 +56,21 @@ Maven 离线缓存，不启动全栈；容器启动后的默认检查仅执行
 Search/Meili、Judge、observability 与前端只在被选中 scope 需要时才启动；`dev-lite` 默认不创建 Meili 容器。生命周期操作消费同一集合：`./scripts/dev/up.sh status|logs|health --scope <name>`，`./scripts/dev/stop.sh --scope <name>`（`--all` 停止全部）。`up.sh` 对已退役的 `legacy-rollback` 和未知 mode/scope fail closed。生产回滚使用部署方保留并校验的上一份完整 release descriptor，不能通过当前二进制恢复旧实现（见[部署、发布与回滚](../operations/deployment.md)）。`up.sh` 消费 `scripts/dev/devstack-manifest.sh` 的 route、flag、worker、readiness 和 failure policy，不要直接用 Maven 或 PM2 启动 runtime。
 
 `core` scope 会启动 `ulticode-core`（9108）和独立 `ulticode-judge`；
-Core 的 owner contexts 默认启用，启动失败会使 readiness 保持非 200。
-当前 exec-jar 的 enabled-owner smoke 会在 bean wiring 阶段暴露同一
-classpath 的跨 Owner package leakage；只验证 parent/readiness 时可设置
-`CORE_OWNER_CONTEXTS_ENABLED=false`。该 profile 当前用于显式组装和边界
-验证，完整 local Adapter parity 尚未替代 distributed profile。Core 专用门禁：
+通用配置与 PM2 默认不启动 Owner contexts，named `core` scope 才显式启用
+Auth/Admin，并将 Judge readiness 设为 optional。Core parent 没有业务
+HTTP/WS 聚合路由，readiness 不是业务可用性证明。启用 Owner 需要
+disposable MySQL/Redis、Owner artifacts 和完整凭据；缺少这些输入时
+必须 fail closed，不能把 parent smoke 当成 enabled-owner wiring。Core
+专用门禁：
 
 ```bash
 ./scripts/dev/test.sh core
 ./ulticode doctor --scope core --json
 ```
+
+其中 `test.sh core` 只运行 contexts disabled 的 parent/config/readiness
+smoke；Core enabled-owner wiring 和四步业务 journey 当前未验证。分布式
+普通用户首旅程使用 `app-journey` scope。
 
 常用变体：
 

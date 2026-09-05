@@ -13,7 +13,7 @@
 
     <artifactId>backend-core</artifactId>
     <name>UltiCode Backend (Core profile)</name>
-    <description>Single-process Core module assembly with isolated Owner child contexts and independent Judge.</description>
+    <description>Single-process Core assembly with explicit Owner child-context scans and independent Judge.</description>
 
     <dependencies>
         <dependency>

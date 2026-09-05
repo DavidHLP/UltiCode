@@ -27,7 +27,7 @@ public final class CoreReadinessService {
             CoreOwnerContextManager ownerContexts,
             DrainGate drainGate,
             @Value("${core.judge.readiness-url:}") String judgeReadinessUrl,
-            @Value("${core.judge.required:true}") boolean judgeRequired) {
+            @Value("${core.judge.required:false}") boolean judgeRequired) {
         this.ownerContexts = ownerContexts;
         this.drainGate = drainGate;
         this.judgeReadinessUrl = judgeReadinessUrl == null ? "" : judgeReadinessUrl.trim();

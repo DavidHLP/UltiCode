@@ -1,5 +1,6 @@
 package com.ulticode.modules.admin.port.adapter;
 
+import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.admin.error.AdminReadContract;
 import com.ulticode.app.api.dto.DashboardAppStatsDTO;
 import com.ulticode.app.api.dto.DashboardChartDataDTO;
@@ -169,6 +170,8 @@ public class DefaultAdminDashboardReadAdapter implements AdminDashboardReadPort 
                         appDashboardReadPort.loadDashboardChartData(metric, start, end, period));
                 default -> List.of();
             };
+        } catch (BusinessException exception) {
+            throw exception;
         } catch (RuntimeException exception) {
             throw unavailable();
         }
@@ -194,7 +197,13 @@ public class DefaultAdminDashboardReadAdapter implements AdminDashboardReadPort 
         }
         RpcResult<AccountQueryService.AccountStatsSummary> response =
                 accountQueryService.getDashboardStatsSummary();
-        if (response == null || !response.success() || response.data() == null) {
+        if (response == null) {
+            throw unavailable();
+        }
+        if (!response.success() && isPermissionError(response)) {
+            throw permissionError(response);
+        }
+        if (!response.success() || response.data() == null) {
             throw unavailable();
         }
         AccountQueryService.AccountStatsSummary summary = response.data();
@@ -212,7 +221,13 @@ public class DefaultAdminDashboardReadAdapter implements AdminDashboardReadPort 
                 new AuthUserTrendAggregateQuery(start, end, period, MAX_TREND_BUCKETS);
         RpcResult<List<AuthUserTrendBucketDTO>> response =
                 accountQueryService.getUserTrend(query);
-        if (response == null || !response.success() || response.data() == null) {
+        if (response == null) {
+            throw unavailable();
+        }
+        if (!response.success() && isPermissionError(response)) {
+            throw permissionError(response);
+        }
+        if (!response.success() || response.data() == null) {
             throw unavailable();
         }
         List<AuthUserTrendBucketDTO> buckets = response.data();
@@ -247,6 +262,24 @@ public class DefaultAdminDashboardReadAdapter implements AdminDashboardReadPort 
 
     private static BusinessException unavailable() {
         return AdminReadContract.ownerUnavailable("Dashboard");
+    }
+
+    /** Check if an RPC error payload represents a permission failure (401/403). */
+    private static boolean isPermissionError(RpcResult<?> rpc) {
+        if (rpc == null || rpc.error() == null) {
+            return false;
+        }
+        int code = rpc.error().code();
+        return code == 40100 || code == 40300;
+    }
+
+    /** Map an RPC permission error to an Admin-layer BusinessException. */
+    private static BusinessException permissionError(RpcResult<?> rpc) {
+        int code = rpc.error().code();
+        if (code == 40100) {
+            return new BusinessException(AdminErrorCode.UNAUTHORIZED);
+        }
+        return new BusinessException(AdminErrorCode.FORBIDDEN);
     }
 
 }

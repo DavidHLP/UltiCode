@@ -167,7 +167,7 @@ class CommentModeratorRouterTest {
     }
 
     @Test
-    @DisplayName("Type=null listComments iterates every moderator with max page size, then paginates in memory")
+    @DisplayName("Type=null listComments iterates every moderator with bounded page size, then paginates in memory")
     void listComments_nullType_iteratesAllAndPaginates() {
         AdminCommentQueryDTO query = new AdminCommentQueryDTO();
         query.setType(null);
@@ -183,12 +183,14 @@ class CommentModeratorRouterTest {
             stubVo("c1", CONTEST_TYPE, LocalDateTime.of(2026, 7, 2, 10, 0)),
             stubVo("c2", CONTEST_TYPE, LocalDateTime.of(2026, 7, 5, 10, 0)));
 
-        when(forumModerator.listComments(eq(query), eq(1), eq(Integer.MAX_VALUE)))
-            .thenReturn(PageResult.of(forumItems, (long) forumItems.size(), 1, Integer.MAX_VALUE));
-        when(solutionModerator.listComments(eq(query), eq(1), eq(Integer.MAX_VALUE)))
-            .thenReturn(PageResult.of(solutionItems, (long) solutionItems.size(), 1, Integer.MAX_VALUE));
-        when(contestModerator.listComments(eq(query), eq(1), eq(Integer.MAX_VALUE)))
-            .thenReturn(PageResult.of(contestItems, (long) contestItems.size(), 1, Integer.MAX_VALUE));
+        // Bounded: page size 100, up to 4 pages. Each moderator returns all
+        // items in page 1 (items < 100), so the loop stops after page 1.
+        when(forumModerator.listComments(eq(query), eq(1), eq(100)))
+            .thenReturn(PageResult.of(forumItems, (long) forumItems.size(), 1, 100));
+        when(solutionModerator.listComments(eq(query), eq(1), eq(100)))
+            .thenReturn(PageResult.of(solutionItems, (long) solutionItems.size(), 1, 100));
+        when(contestModerator.listComments(eq(query), eq(1), eq(100)))
+            .thenReturn(PageResult.of(contestItems, (long) contestItems.size(), 1, 100));
 
         PageResult<AdminCommentVO> merged = router.getComments(query);
 
@@ -199,9 +201,9 @@ class CommentModeratorRouterTest {
         assertEquals("s1", merged.getItems().get(1).id());
         assertEquals("f2", merged.getItems().get(2).id());
 
-        verify(forumModerator, times(1)).listComments(eq(query), eq(1), eq(Integer.MAX_VALUE));
-        verify(solutionModerator, times(1)).listComments(eq(query), eq(1), eq(Integer.MAX_VALUE));
-        verify(contestModerator, times(1)).listComments(eq(query), eq(1), eq(Integer.MAX_VALUE));
+        verify(forumModerator, times(1)).listComments(eq(query), eq(1), eq(100));
+        verify(solutionModerator, times(1)).listComments(eq(query), eq(1), eq(100));
+        verify(contestModerator, times(1)).listComments(eq(query), eq(1), eq(100));
     }
 
     @Test

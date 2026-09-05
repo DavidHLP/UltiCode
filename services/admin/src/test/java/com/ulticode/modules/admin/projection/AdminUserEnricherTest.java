@@ -10,6 +10,7 @@ import com.ulticode.auth.api.error.AuthErrorCode;
 import com.ulticode.auth.api.service.AccountQueryService;
 import com.ulticode.auth.api.service.IdentityQueryService;
 import com.ulticode.common.exception.BusinessException;
+import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.response.DegradationStatus;
 import com.ulticode.common.rpc.RpcResult;
 import org.junit.jupiter.api.AfterEach;
@@ -342,6 +343,90 @@ class AdminUserEnricherTest {
                     .isInstanceOf(BusinessException.class)
                     .satisfies(e -> assertThat(((BusinessException) e).getErrorCode())
                             .isEqualTo(AdminErrorCode.OWNER_QUERY_UNAVAILABLE));
+    }
+}
+
+    @Nested
+    @DisplayName("permission error propagation")
+    class PermissionErrorPropagation {
+
+        @Test
+        @DisplayName("findAccountWithProfile: FORBIDDEN RPC error propagates instead of UNAVAILABLE")
+        void findAccountAuthoritativelyForbiddenPropagates() {
+            when(accountQueryService.getAccountById("u1")).thenReturn(
+                    RpcResult.failure(BaseErrorCode.FORBIDDEN, "t"));
+
+            assertThatThrownBy(() -> enricher.findAccountWithProfile("u1"))
+                    .isInstanceOf(BusinessException.class)
+                    .satisfies(e -> assertThat(((BusinessException) e).getErrorCode())
+                            .isEqualTo(AdminErrorCode.FORBIDDEN));
+        }
+
+        @Test
+        @DisplayName("findAccountWithProfile: UNAUTHORIZED RPC error propagates instead of UNAVAILABLE")
+        void findAccountAuthoritativelyUnauthorizedPropagates() {
+            when(accountQueryService.getAccountById("u1")).thenReturn(
+                    RpcResult.failure(BaseErrorCode.UNAUTHORIZED, "t"));
+
+            assertThatThrownBy(() -> enricher.findAccountWithProfile("u1"))
+                    .isInstanceOf(BusinessException.class)
+                    .satisfies(e -> assertThat(((BusinessException) e).getErrorCode())
+                            .isEqualTo(AdminErrorCode.UNAUTHORIZED));
+        }
+
+        @Test
+        @DisplayName("enrichOne: FORBIDDEN from getAccountById propagates instead of falling back to batch")
+        void enrichOneForbiddenFromAccountQueryPropagates() {
+            when(accountQueryService.getAccountById("u1")).thenReturn(
+                    RpcResult.failure(BaseErrorCode.FORBIDDEN, "t"));
+
+            assertThatThrownBy(() -> enricher.enrichOne("u1"))
+                    .isInstanceOf(BusinessException.class)
+                    .satisfies(e -> assertThat(((BusinessException) e).getErrorCode())
+                            .isEqualTo(AdminErrorCode.FORBIDDEN));
+        }
+
+        @Test
+        @DisplayName("enrichOne: UNAUTHORIZED from getProfileByAccountId propagates instead of degrading")
+        void enrichOneUnauthorizedFromProfileQueryPropagates() {
+            when(accountQueryService.getAccountById("u1")).thenReturn(
+                    RpcResult.success(new AuthAccountDTO("u1", "user-u1", "u1@example.com", "ADMIN",
+                            true, false, null, null, LocalDateTime.now(), LocalDateTime.now(), 1L), "t"));
+            when(userProfileQueryService.getProfileByAccountId("u1")).thenReturn(
+                    RpcResult.failure(BaseErrorCode.UNAUTHORIZED, "t"));
+
+            assertThatThrownBy(() -> enricher.enrichOne("u1"))
+                    .isInstanceOf(BusinessException.class)
+                    .satisfies(e -> assertThat(((BusinessException) e).getErrorCode())
+                            .isEqualTo(AdminErrorCode.UNAUTHORIZED));
+        }
+
+        @Test
+        @DisplayName("batchIdentities: FORBIDDEN RPC error propagates through enrichWithStatus")
+        void batchIdentitiesForbiddenPropagates() {
+            when(identityQueryService.batchGetIdentity(any())).thenReturn(
+                    RpcResult.failure(BaseErrorCode.FORBIDDEN, "t"));
+            when(userProfileQueryService.getProfilesByAccountIds(any())).thenReturn(
+                    RpcResult.success(List.of(), "t"));
+
+            assertThatThrownBy(() -> enricher.enrichWithStatus(Set.of("u1")))
+                    .isInstanceOf(BusinessException.class)
+                    .satisfies(e -> assertThat(((BusinessException) e).getErrorCode())
+                            .isEqualTo(AdminErrorCode.FORBIDDEN));
+        }
+
+        @Test
+        @DisplayName("batchProfiles: UNAUTHORIZED RPC error propagates through enrichWithStatus")
+        void batchProfilesUnauthorizedPropagates() {
+            when(identityQueryService.batchGetIdentity(any())).thenReturn(
+                    RpcResult.success(List.of(), "t"));
+            when(userProfileQueryService.getProfilesByAccountIds(any())).thenReturn(
+                    RpcResult.failure(BaseErrorCode.UNAUTHORIZED, "t"));
+
+            assertThatThrownBy(() -> enricher.enrichWithStatus(Set.of("u1")))
+                    .isInstanceOf(BusinessException.class)
+                    .satisfies(e -> assertThat(((BusinessException) e).getErrorCode())
+                            .isEqualTo(AdminErrorCode.UNAUTHORIZED));
         }
     }
 }

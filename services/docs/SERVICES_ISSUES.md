@@ -27,6 +27,8 @@ Core 的边界与未完成门禁见 SVC-025。
 
 项目当前没有生产环境，是正在开发的开源项目。仓库内的生产 profile 只描述安全边界；凡是可复现的运行行为统一使用短时、隔离、可销毁的 disposable 模拟环境验证，不把模拟结果写成生产证据。不为形式上的“企业级”提前引入 Kubernetes、Service Mesh、新 MQ 或分布式事务框架。
 
+本轮拓扑、Contract 和深 Module 整改的唯一任务计划见[`docs/architecture/plans/ulticode-topology-contract-module-convergence-plan.md`](../../docs/architecture/plans/ulticode-topology-contract-module-convergence-plan.md)。该计划不会把本文件的 issue 状态复制成第二份任务账本；本文件继续只承载当前 issue 状态和 SVC-025 的关闭条件。
+
 ## OPEN
 
 Core profile 仍有一个仓库可执行 OPEN 项：SVC-025 的完整 local Adapter parity、

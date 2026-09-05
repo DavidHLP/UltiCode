@@ -1,6 +1,5 @@
 package com.ulticode.notification.recipient;
 
-import com.ulticode.app.api.dto.NotificationRecipientDTO;
 import com.ulticode.auth.api.dto.AuthNotificationRecipientDTO;
 import com.ulticode.auth.api.service.IdentityQueryService;
 import com.ulticode.auth.api.service.NotificationRecipientQueryService;

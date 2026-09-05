@@ -33,6 +33,7 @@ public class CoreOwnerContextManager {
     }
 
     private final CoreModuleRegistry registry;
+    private final CoreOwnerClassLoaders ownerClassLoaders;
     private final org.springframework.core.env.Environment environment;
     private final Map<String, State> states = new java.util.LinkedHashMap<>();
     private final Map<String, org.springframework.context.ConfigurableApplicationContext> contexts =
@@ -55,6 +56,7 @@ public class CoreOwnerContextManager {
             @org.springframework.beans.factory.annotation.Value("${core.owner-contexts.enabled:true}") boolean enabled,
             @org.springframework.beans.factory.annotation.Value("${core.owner-contexts.startup-timeout-ms:120000}") long startupTimeoutMs) {
         this.registry = registry;
+        this.ownerClassLoaders = new CoreOwnerClassLoaders();
         this.environment = environment;
         this.enabled = enabled;
         this.startupTimeoutMs = Math.max(1_000L, startupTimeoutMs);
@@ -268,10 +270,19 @@ public class CoreOwnerContextManager {
                     "core.datasource." + module.name() + ".password",
                     prefix + "_DB_PASSWORD"));
         }
-        return new SpringApplicationBuilder(module.bootConfiguration())
-                .web(WebApplicationType.NONE)
-                .properties(properties.toArray(String[]::new))
-                .run();
+        java.net.URLClassLoader ownerClassLoader =
+                ownerClassLoaders.createOwnerClassLoader(module.ownerArtifactId());
+        Thread current = Thread.currentThread();
+        ClassLoader previous = current.getContextClassLoader();
+        current.setContextClassLoader(ownerClassLoader);
+        try {
+            return new SpringApplicationBuilder(module.bootConfiguration())
+                    .web(WebApplicationType.NONE)
+                    .properties(properties.toArray(String[]::new))
+                    .run();
+        } finally {
+            current.setContextClassLoader(previous);
+        }
     }
 
     private String property(String key, String fallback) {

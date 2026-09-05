@@ -6,6 +6,7 @@ import com.ulticode.app.api.dto.ProblemListSummaryDTO;
 import com.ulticode.app.api.service.ProblemListChainReadPort;
 import com.ulticode.app.api.service.ProblemListSearchReadPort;
 import com.ulticode.common.exception.BusinessException;
+import com.ulticode.common.response.DegradationStatus;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.admin.dto.AdminProblemListQueryDTO;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,6 +20,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -30,7 +33,7 @@ import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for {@link DefaultAdminProblemListProjection} after the
- * ADMIN-005 rewiring &mdash; the admin-side deep module backed by the
+ * ADMIN-005 rewiring — the admin-side deep module backed by the
  * entity-free app-api read ports ({@link ProblemListSearchReadPort} /
  * {@link ProblemListChainReadPort}).
  */
@@ -57,7 +60,7 @@ class DefaultAdminProblemListProjectionTest {
     class FindAdminListsTests {
 
         @Test
-        @DisplayName("happy path: remote paged result flows through with author enrichment")
+        @DisplayName("happy path: remote paged result flows through with batch author enrichment")
         void findAdminLists_returnsPagedResultWithEnrichment() {
             AdminProblemListQueryDTO query = new AdminProblemListQueryDTO();
             query.setPage(1);
@@ -69,8 +72,11 @@ class DefaultAdminProblemListProjectionTest {
             when(problemListSearchReadPort.searchAdminLists(
                     eq("algo"), eq(null), eq(true), eq("createdAt"), eq("desc"), eq(1), eq(10)))
                     .thenReturn(PageResult.of(List.of(dto), 7L, 1, 10));
-            when(userEnricher.enrichOne(OWNER_ID)).thenReturn(
-                    new AdminUserSummary(OWNER_ID, "alice", "role1", "Alice", "avatar1", "alice@example.com"));
+            when(userEnricher.enrichWithStatus(Set.of(OWNER_ID))).thenReturn(
+                    new AdminUserEnricher.EnrichedUsers(
+                            Map.of(OWNER_ID,
+                                    new AdminUserSummary(OWNER_ID, "alice", "role1", "Alice", "avatar1", "alice@example.com")),
+                            DegradationStatus.OK));
 
             PageResult<ProblemListSummaryDTO> result = projection.findAdminLists(query);
 
@@ -85,6 +91,8 @@ class DefaultAdminProblemListProjectionTest {
             assertThat(vo.getAuthorUsername()).isEqualTo("alice");
             verify(problemListSearchReadPort).searchAdminLists(
                     eq("algo"), eq(null), eq(true), eq("createdAt"), eq("desc"), eq(1), eq(10));
+            // N+1 elimination: enrichWithStatus batch call, not per-row enrichOne
+            verify(userEnricher).enrichWithStatus(Set.of(OWNER_ID));
         }
 
         @Test
@@ -97,6 +105,8 @@ class DefaultAdminProblemListProjectionTest {
             when(problemListSearchReadPort.searchAdminLists(
                     any(), any(), any(), any(), any(), anyInt(), anyInt()))
                     .thenReturn(PageResult.of(Collections.emptyList(), 0L, 2, 5));
+            when(userEnricher.enrichWithStatus(Set.of())).thenReturn(
+                    new AdminUserEnricher.EnrichedUsers(Collections.emptyMap(), DegradationStatus.OK));
 
             PageResult<ProblemListSummaryDTO> result = projection.findAdminLists(query);
 
@@ -104,6 +114,26 @@ class DefaultAdminProblemListProjectionTest {
             assertThat(result.getTotal()).isEqualTo(0L);
             assertThat(result.getPage()).isEqualTo(2);
             assertThat(result.getPageSize()).isEqualTo(5);
+        }
+
+        @Test
+        @DisplayName("owner unavailable when enrichWithStatus returns UNAVAILABLE")
+        void findAdminLists_ownerUnavailableWhenBothSourcesDown() {
+            AdminProblemListQueryDTO query = new AdminProblemListQueryDTO();
+            query.setPage(1);
+            query.setLimit(10);
+
+            ProblemListSummaryDTO dto = summary("list-1", "Algo 101");
+            when(problemListSearchReadPort.searchAdminLists(
+                    any(), any(), any(), any(), any(), anyInt(), anyInt()))
+                    .thenReturn(PageResult.of(List.of(dto), 1L, 1, 10));
+            when(userEnricher.enrichWithStatus(Set.of(OWNER_ID))).thenReturn(
+                    new AdminUserEnricher.EnrichedUsers(Collections.emptyMap(), DegradationStatus.UNAVAILABLE));
+
+            assertThatThrownBy(() -> projection.findAdminLists(query))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("errorCode")
+                    .isEqualTo(AdminErrorCode.OWNER_QUERY_UNAVAILABLE);
         }
     }
 

@@ -14,3 +14,4 @@ ADR 是 durable history 的权威入口；普通提交不在这里复制。实�
 | [0009](0009-authorization-and-runtime-seams.md) | Accepted / Core default deferred | Auth direct permission delta, App/Judge execution Seam separation, App-only contract locality；Core parent 已加入，但完整 local Adapter parity 与业务路由仍未闭环。 |
 | [0010](0010-core-judge-convergence-blockers.md) | In progress | Core opt-in parent 的 G1/G2、readiness、断言载体和 Judge classpath 证据；G3/G5 余项 OPEN，远端 Judge TLS `BLOCKED_EXTERNAL`。 |
 | [0008](0008-admin-event-read-model.md) | Accepted | Admin 暂不复制 Owner event read model；先使用 bounded synchronous reads、typed degradation 和 metrics，超预算后再复议。 |
+| [0011](0011-topology-contract-module-convergence.md) | Proposed — plan persisted | `distributed` 保持唯一默认；Core 仅为有 expiry 的条件实验；先收敛 Contract 所有权、Contest/Submission 残留 Seam、Admin 深 Module 和 App 内部 Locality，再决定 Core 去留。 |

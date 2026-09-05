@@ -5,7 +5,9 @@ import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.modules.admin.bulk.AdminBulkExecutor;
 import com.ulticode.admin.error.AdminErrorCode;
+import com.ulticode.admin.error.AdminReadContract;
 import com.ulticode.common.exception.BusinessException;
+import com.ulticode.common.response.DegradationStatus;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.PaginationRequest;
 import com.ulticode.modules.admin.dto.AdminCommentQueryDTO;
@@ -47,7 +49,7 @@ import java.util.stream.Collectors;
  *   <li><b>Bulk actions</b> ({@link #bulkCommentAction}) — iterate the per-id
  *       work and aggregate per-item results, identical for every moderator.</li>
  *   <li><b>Type=null aggregation</b> ({@link #getComments} when no type is
- *       supplied) — query every moderator with a max-page-size page, merge,
+ *       supplied) — query every moderator with a bounded page, merge,
  *       sort, paginate in memory. Each moderator's per-store query lives
  *       in that moderator; the cross-store merge is here because it has
  *       no single owner.</li>
@@ -71,6 +73,15 @@ public class AdminCommentServiceImpl implements AdminCommentService {
     private final AdminCommentReadPort commentReadPort;
     private final CurrentUserProvider currentUserProvider;
     private final AdminBulkExecutor bulkExecutor;
+
+    /**
+     * Bounded page size for the type-less {@link #getAllComments} cross-moderator
+     * merge. Each moderator's {@code listComments} costs 4 logical RPCs
+     * (comment page + Auth identity + Auth profile + parent-title read),
+     * so one page per moderator keeps {@code I-COMMENT-ALL} within its
+     * {@code 8/8} budget: 2 moderators × 1 page × 4 RPCs = 8.
+     */
+    private static final int MODERATOR_PAGE_SIZE = 100;
 
     /**
      * Type-keyed view of {@link #moderators}, built once at startup.
@@ -162,28 +173,71 @@ public class AdminCommentServiceImpl implements AdminCommentService {
     /**
      * Cross-moderator merge for the type-less {@link #getComments} path.
      *
-     * <p>Each moderator is queried with a max-page-size page to fetch its
-     * full result set; the union is sorted by {@code createdAt} desc and
-     * sliced in memory. Preserves the original behavior of the
-     * pre-refactor {@code getAllComments} method.
+     * <p>Each moderator is fetched with a single bounded page of
+     * {@value #MODERATOR_PAGE_SIZE} rows — never {@code Integer.MAX_VALUE}.
+     * Each moderator's {@code listComments} costs 4 logical RPCs
+     * (comment page + Auth identity + Auth profile + parent-title read),
+     * so one page per moderator keeps {@code I-COMMENT-ALL} within its
+     * {@code 8/8} budget: 2 moderators × 1 page × 4 RPCs = 8.
+     *
+     * <p>Replaces the previous {@code Integer.MAX_VALUE} unbounded page that
+     * could load every comment from every store at once.
+     *
+     * <p><b>Bounded total:</b> {@code total} reflects the actual number of
+     * items fetched across all moderators (at most
+     * {@code moderators.size() * MODERATOR_PAGE_SIZE}), not each owner's
+     * {@code PageResult.getTotal()} (which advertises the owner's full row
+     * count). Summing owner totals would advertise pages with no backing
+     * data within the RPC budget. Full pagination across all comments
+     * from every store requires a different budget and is not supported
+     * by this bounded merge.
+     * <p><b>Per-moderator degradation:</b> if a moderator throws
+     * {@link BusinessException} with
+     * {@link AdminErrorCode#OWNER_QUERY_UNAVAILABLE} (transport/timeout),
+     * that moderator's results are omitted and the degradation status is
+     * marked {@link DegradationStatus#PARTIAL}. Permission failures
+     * ({@link AdminErrorCode#FORBIDDEN} / {@code UNAUTHORIZED}) and other
+     * exceptions propagate immediately. If all moderators are unavailable,
+     * the aggregate throws via {@link AdminReadContract#ownerUnavailable}.
      */
     private PageResult<AdminCommentVO> getAllComments(AdminCommentQueryDTO query, int page, int limit) {
         List<AdminCommentVO> all = new ArrayList<>();
+        int unavailableCount = 0;
         for (CommentModerator moderator : moderators) {
-            PageResult<AdminCommentVO> moderatorPage =
-                moderator.listComments(query, 1, Integer.MAX_VALUE);
-            if (moderatorPage != null && moderatorPage.getItems() != null) {
-                all.addAll(moderatorPage.getItems());
+            try {
+                PageResult<AdminCommentVO> moderatorPage =
+                    moderator.listComments(query, 1, MODERATOR_PAGE_SIZE);
+                List<AdminCommentVO> items = moderatorPage != null ? moderatorPage.getItems() : null;
+                if (items != null && !items.isEmpty()) {
+                    all.addAll(items);
+                }
+            } catch (BusinessException e) {
+                if (e.getErrorCode() == AdminErrorCode.OWNER_QUERY_UNAVAILABLE) {
+                    log.warn("Moderator {} unavailable: {}", moderator.getType(), e.getMessage());
+                    unavailableCount++;
+                } else {
+                    throw e;
+                }
             }
         }
+        if (!moderators.isEmpty() && unavailableCount == moderators.size()) {
+            throw AdminReadContract.ownerUnavailable("all comment moderators");
+        }
+        DegradationStatus mergedStatus = unavailableCount > 0
+                ? DegradationStatus.PARTIAL : DegradationStatus.OK;
         all.sort(Comparator.comparing(AdminCommentVO::createdAt).reversed());
-
-        long total = all.size();
         int fromIndex = Math.min((page - 1) * limit, all.size());
         int toIndex = Math.min(fromIndex + limit, all.size());
         List<AdminCommentVO> paged = all.subList(fromIndex, toIndex);
 
-        return PageResult.of(paged, total, page, limit);
+        // Total reflects the bounded fetched count, not each owner's full
+        // PageResult.getTotal(). With one page per moderator at 100 rows,
+        // total is at most moderators.size() * MODERATOR_PAGE_SIZE.
+        long total = all.size();
+
+        PageResult<AdminCommentVO> result = PageResult.of(paged, total, page, limit);
+        result.setDegradationStatus(mergedStatus);
+        return result;
     }
 
     /**

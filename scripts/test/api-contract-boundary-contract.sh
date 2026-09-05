@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# ARCH-CONTRACT-001: keep provider-owned API modules implementation-free and
-# leave only the documented Submission result seam in app-api.
+# ARCH-CONTRACT-001: keep provider-owned API modules implementation-free;
+# app-api depends only on backend-common — all cross-owner contracts
+# are owned by their respective API modules.
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
@@ -91,7 +92,7 @@ print("app-api Submission seam boundary: PASS")
 PY
 
 
-contains services/api/app-api/pom.xml '<artifactId>backend-submission-api</artifactId>'
+not_contains services/api/app-api/pom.xml '<artifactId>backend-submission-api</artifactId>'
 not_contains services/pom.xml '<module>api/admin-api</module>'
 not_contains services/admin/pom.xml '<artifactId>backend-admin-api</artifactId>'
 not_contains services/api/app-api/pom.xml '<artifactId>spring-context</artifactId>'
@@ -174,7 +175,7 @@ for line in catalog.splitlines():
     if line == "## Catalog":
         in_catalog = True
         continue
-    if line == "## Retired by P2-APP-003":
+    if line.startswith("## Retired"):
         break
     if in_catalog and line.startswith("| ") and line.endswith("|"):
         name = line.split("|", 2)[1].strip()

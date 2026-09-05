@@ -85,10 +85,16 @@ catalog.
 | SubscriptionReadPort | App/Subscription | Admin analytics | Dubbo | stable | KEEP |
 | TestCaseOwnerPort | App/Problem | Admin problem commands | Dubbo | stable | KEEP |
 | UserExistencePort | Auth/App | Submission owner | Dubbo/in-process | stable | KEEP |
-| UserNotificationReadPort | App | Notification owner | Dubbo | stable | KEEP |
 | UserProfileQueryService | App/Profile | Admin/Auth projections | Dubbo | stable | KEEP |
 | UserReadPort | App/User | App projections | in-process | current | INTERNALIZED |
 | UserSearchReadPort | App/Search | App search source | in-process | current | INTERNALIZED |
+
+## Retired by P3-CONTRACT-003
+
+| Retired interface | Replacement | Evidence |
+|---|---|---|
+| `UserNotificationReadPort` | `com.ulticode.notification.recipient.UserNotificationReadPort` | `services/notification/src/main/java/com/ulticode/notification/recipient/` |
+| `NotificationRecipientDTO` | `com.ulticode.notification.recipient.NotificationRecipientDTO` | same |
 
 ## Retired by P2-APP-003
 

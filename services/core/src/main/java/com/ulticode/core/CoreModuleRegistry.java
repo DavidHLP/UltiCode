@@ -14,22 +14,28 @@ public final class CoreModuleRegistry {
         this(List.of(
                 new CoreModuleDefinition(
                         "auth", "AUTH", CoreOwnerBootConfigurations.Auth.class,
-                        "authTransactionManager"),
+                        "authTransactionManager",
+                        "backend-auth"),
                 new CoreModuleDefinition(
                         "admin", "ADMIN", CoreOwnerBootConfigurations.Admin.class,
-                        "adminTransactionManager"),
+                        "adminTransactionManager",
+                        "backend-admin"),
                 new CoreModuleDefinition(
                         "app", "APP", CoreOwnerBootConfigurations.App.class,
-                        "appTransactionManager"),
+                        "appTransactionManager",
+                        "backend-app-web"),
                 new CoreModuleDefinition(
                         "submission", "SUBMISSION", CoreOwnerBootConfigurations.Submission.class,
-                        "submissionTransactionManager"),
+                        "submissionTransactionManager",
+                        "backend-submission"),
                 new CoreModuleDefinition(
                         "notification", "NOTIFICATION", CoreOwnerBootConfigurations.Notification.class,
-                        "notificationTransactionManager"),
+                        "notificationTransactionManager",
+                        "backend-notification"),
                 new CoreModuleDefinition(
                         "search", "SEARCH", CoreOwnerBootConfigurations.Search.class,
-                        null)));
+                        null,
+                        "backend-search")));
     }
 
     CoreModuleRegistry(List<CoreModuleDefinition> modules) {

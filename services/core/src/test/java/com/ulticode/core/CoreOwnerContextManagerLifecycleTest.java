@@ -230,7 +230,7 @@ class CoreOwnerContextManagerLifecycleTest {
 
     private static CoreModuleRegistry single(String name) {
         return new CoreModuleRegistry(List.of(new CoreModuleDefinition(
-                name, "TEST", CoreApplication.class, null)));
+                name, "TEST", CoreApplication.class, null, "backend-" + name)));
     }
 
     private static void awaitState(

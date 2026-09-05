@@ -1,8 +1,10 @@
 package com.ulticode.modules.admin.port.adapter;
 
+import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.auth.api.error.AuthErrorCode;
-import com.ulticode.auth.api.service.AccountQueryService;
+import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.exception.BusinessException;
+import com.ulticode.auth.api.service.AccountQueryService;
 import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.submission.api.service.SubmissionAdminReadPort;
 import org.junit.jupiter.api.Test;
@@ -13,6 +15,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
@@ -51,6 +54,52 @@ class DefaultAdminDashboardReadAdapterUserTrendTest {
                 .hasMessage("Dashboard owner query unavailable");
         verify(accountQueryService, times(1)).getUserTrend(any());
         verify(accountQueryService, never()).queryAccounts(any());
+
+        adapter.shutdownQueryExecutor();
+    }
+
+    @Test
+    void permissionForbiddenFromUserTrendPropagatesInsteadOfUnavailable() {
+        DefaultAdminDashboardReadAdapter adapter =
+                new DefaultAdminDashboardReadAdapter(submissionAdminReadPort,
+                        new CancellableQueryExecutor("test", 3));
+        ReflectionTestUtils.setField(adapter, "accountQueryService", accountQueryService);
+        ReflectionTestUtils.setField(adapter, "appDashboardReadPort", appDashboardReadPort);
+        when(accountQueryService.getUserTrend(any())).thenReturn(
+                RpcResult.failure(BaseErrorCode.FORBIDDEN, "t-1"));
+
+        assertThatThrownBy(() -> adapter.loadChartData(
+                "users",
+                LocalDateTime.of(2026, 8, 1, 0, 0),
+                LocalDateTime.of(2026, 8, 3, 23, 59),
+                "day"))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(e -> assertThat(((BusinessException) e).getErrorCode())
+                        .isEqualTo(AdminErrorCode.FORBIDDEN));
+        verify(accountQueryService, times(1)).getUserTrend(any());
+
+        adapter.shutdownQueryExecutor();
+    }
+
+    @Test
+    void permissionUnauthorizedFromUserTrendPropagatesInsteadOfUnavailable() {
+        DefaultAdminDashboardReadAdapter adapter =
+                new DefaultAdminDashboardReadAdapter(submissionAdminReadPort,
+                        new CancellableQueryExecutor("test", 3));
+        ReflectionTestUtils.setField(adapter, "accountQueryService", accountQueryService);
+        ReflectionTestUtils.setField(adapter, "appDashboardReadPort", appDashboardReadPort);
+        when(accountQueryService.getUserTrend(any())).thenReturn(
+                RpcResult.failure(BaseErrorCode.UNAUTHORIZED, "t-1"));
+
+        assertThatThrownBy(() -> adapter.loadChartData(
+                "users",
+                LocalDateTime.of(2026, 8, 1, 0, 0),
+                LocalDateTime.of(2026, 8, 3, 23, 59),
+                "day"))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(e -> assertThat(((BusinessException) e).getErrorCode())
+                        .isEqualTo(AdminErrorCode.UNAUTHORIZED));
+        verify(accountQueryService, times(1)).getUserTrend(any());
 
         adapter.shutdownQueryExecutor();
     }

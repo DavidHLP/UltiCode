@@ -8,30 +8,13 @@ package com.ulticode.app.api.service;
  * <p>The submission module owns this port (it defines the collaboration it
  * needs); the contest module supplies the adapter.
  *
- * <p>Local compatibility writes are synchronous so they share the caller's
- * {@code @Transactional} boundary. Remote contest intake uses the separate
- * durable event path on the Submission owner.
+ * <p>Remote contest intake uses the separate durable event path on the
+ * Submission owner ({@code SubmissionCreated} outbox). The submission
+ * module owns contest association for all production write paths; the
+ * {@code recordSubmissionIfNeeded} method that existed on this port has
+ * been removed (P3-CONTRACT-004) as it had zero production callers.
  */
 public interface ContestSubmissionPort {
-
-    /**
-     * Record contest effects only when an explicit contest context is present.
-     * A missing {@code contestId} means an ordinary submission and is a no-op;
-     * this port must never scan currently running contests to infer ownership.
-     *
-     * <p>With a contest context, admission failures are propagated so the
-     * caller's submission transaction rolls back. The adapter validates the
-     * contest, problem, participant, virtual session and deadline while holding
-     * the contest/participant locks.
-     *
-     * @param submissionId the just-created submission id
-     * @param userId the submitting user id
-     * @param problemId the problem id the submission targets
-     * @param contestId explicit contest context, or {@code null}
-     * @param virtualSessionId explicit virtual session context, or {@code null}
-     */
-    void recordSubmissionIfNeeded(String submissionId, String userId, Long problemId,
-                                  String contestId, String virtualSessionId);
 
     /**
      * Whether the supplied submission belongs to a virtual-contest replay.

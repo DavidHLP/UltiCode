@@ -1,6 +1,7 @@
 package com.ulticode.modules.admin.projection;
-
 import com.ulticode.admin.error.AdminErrorCode;
+import com.ulticode.admin.error.AdminReadContract;
+import com.ulticode.common.response.DegradationStatus;
 import com.ulticode.app.api.dto.ProblemListDetailDTO;
 import com.ulticode.app.api.dto.ProblemListSummaryDTO;
 import com.ulticode.app.api.service.ProblemListChainReadPort;
@@ -15,6 +16,9 @@ import org.springframework.stereotype.Service;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -62,12 +66,30 @@ public class DefaultAdminProblemListProjection implements AdminProblemListProjec
                 query.getSortOrder(),
                 page,
                 limit);
-
-        List<ProblemListSummaryDTO> enriched = remote.getItems().stream()
-                .map(this::enrichAuthor)
+        // Batch author enrichment: collect all author IDs and look them up
+        // in one bounded RPC via enrichWithStatus, avoiding per-row enrichOne.
+        List<ProblemListSummaryDTO> items = remote.getItems();
+        Set<String> authorIds = items.stream()
+                .map(ProblemListSummaryDTO::getAuthorId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        AdminUserEnricher.EnrichedUsers enriched = userEnricher.enrichWithStatus(authorIds);
+        if (enriched == null || enriched.status() == null
+                || enriched.status() == DegradationStatus.UNAVAILABLE) {
+            throw AdminReadContract.ownerUnavailable("Auth/App user");
+        }
+        Map<String, AdminUserSummary> users = enriched.users();
+        List<ProblemListSummaryDTO> enrichedItems = items.stream()
+                .peek(dto -> {
+                    AdminUserSummary author = users.get(dto.getAuthorId());
+                    if (author != null) {
+                        dto.setAuthorName(author.name());
+                        dto.setAuthorUsername(author.username());
+                    }
+                })
                 .collect(Collectors.toList());
 
-        return PageResult.of(enriched, remote.getTotal(), page, limit);
+        return PageResult.of(enrichedItems, remote.getTotal(), page, limit);
     }
 
     // ------------------------------------------------------------------

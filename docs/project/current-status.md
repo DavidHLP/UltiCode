@@ -1,6 +1,6 @@
 # 当前状态
 
-更新时间：2026-09-04
+更新时间：2026-09-05
 
 ## 总体状态
 
@@ -90,4 +90,4 @@ GitLab runner 仍被外部使用的部署 authority 确认（U-01）。只有部
 - Operational procedures：[`../operations/`](../operations/deployment.md)
 - HA/reference topology 决策：[`../architecture/decisions/0001-deferred-platform-expansion.md`](../architecture/decisions/0001-deferred-platform-expansion.md)
 - Core + Judge 收敛阻塞证据：[`ADR-0010`](../architecture/decisions/0010-core-judge-convergence-blockers.md)（SVC-025 仍 OPEN，Core 不是默认拓扑）。
-- Follow-up plan：[`../architecture/plans/ulticode-architecture-followup-plan.md`](../architecture/plans/ulticode-architecture-followup-plan.md)（历史规划快照，`COMPLETED`）与 [`../architecture/evidence/P5-GATE-004-final-integration-matrix.md`](../architecture/evidence/P5-GATE-004-final-integration-matrix.md)（已提交证据矩阵）；本轮深化计划的机器任务正本不在仓库内（规划 artifact 位于本机 harness 会话目录 `~/.codex/visualizations/2026/09/02/`，只读，不提交）
+- Follow-up plan：[`../architecture/plans/ulticode-architecture-followup-plan.md`](../architecture/plans/ulticode-architecture-followup-plan.md)（历史规划快照，`COMPLETED`）。本轮唯一任务计划为[`../architecture/plans/ulticode-topology-contract-module-convergence-plan.md`](../architecture/plans/ulticode-topology-contract-module-convergence-plan.md)；本轮只持久化计划和相关文档，未实施任务。

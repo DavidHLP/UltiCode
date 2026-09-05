@@ -1,6 +1,6 @@
 package com.ulticode.modules.notification.channel;
 
-import com.ulticode.app.api.dto.NotificationRecipientDTO;
+import com.ulticode.notification.recipient.NotificationRecipientDTO;
 import com.ulticode.modules.email.constants.EmailStatus;
 import com.ulticode.modules.email.dto.EmailLogDTO;
 import com.ulticode.modules.email.dto.SendEmailDTO;

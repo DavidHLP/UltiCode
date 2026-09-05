@@ -7,8 +7,6 @@ import com.ulticode.modules.contest.entity.Contest;
 import com.ulticode.modules.contest.entity.ContestParticipant;
 import com.ulticode.modules.contest.entity.ContestProblem;
 import com.ulticode.modules.contest.entity.ContestSubmission;
-import com.ulticode.modules.contest.entity.enums.ContestParticipantStatus;
-import com.ulticode.modules.contest.entity.enums.ContestStatus;
 import com.ulticode.modules.contest.mapper.ContestMapper;
 import com.ulticode.modules.contest.mapper.ContestParticipantMapper;
 import com.ulticode.modules.contest.mapper.ContestProblemMapper;
@@ -20,11 +18,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
-import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.Optional;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * Contest-side adapter of {@link ContestSubmissionPort}.
@@ -36,11 +33,13 @@ import java.util.Objects;
  * inversion so the submission module never imports
  * {@code com.ulticode.modules.contest.*}.
  *
- * <p>Explicit contest context is required for every contest write. Ordinary
- * submissions return immediately; they never scan all contests for a first
- * match. Context-bearing submissions lock the contest and exact participant,
- * validate the real/virtual deadline, and insert the mapping in the caller's
- * transaction so an admission failure rolls back the submission itself.
+ * <p>Contest association writes are driven by the durable
+ * {@code SubmissionCreated} outbox event from the Submission owner.
+ * {@link #recordSubmissionFromEvent} inserts the mapping idempotently,
+ * preserving the original occurrence time without re-checking the current
+ * contest deadline (bounded admission window accepted by design).
+ * Read-side lookups ({@link #findContestId}, {@link #isContestSubmission},
+ * {@link #isVirtualParticipation}) serve the judge worker and result dispatch.
  */
 @Slf4j
 @Component
@@ -53,75 +52,6 @@ public class ContestSubmissionAdapter implements ContestSubmissionPort {
     private final ContestSubmissionMapper contestSubmissionMapper;
     private final ContestRankingMarkDirtyPort contestRankingMarkDirtyPort;
     private final ContestClock contestClock;
-    private final Clock clock;
-
-    @Override
-    public void recordSubmissionIfNeeded(String submissionId, String userId, Long problemId,
-                                         String contestId, String virtualSessionId) {
-        if (!StringUtils.hasText(contestId)) {
-            // Ordinary submissions have no contest ownership. Never infer it
-            // from a running contest that happens to contain the same problem.
-            return;
-        }
-
-        LocalDateTime now = LocalDateTime.now(clock);
-        Contest contest = contestMapper.selectByIdForUpdate(contestId);
-        if (contest == null) {
-            throw new BusinessException(ContestErrorCode.CONTEST_NOT_FOUND);
-        }
-
-        ContestProblem contestProblem = contestProblemMapper
-                .findByContestIdAndProblemId(contestId, problemId);
-        if (contestProblem == null) {
-            throw new BusinessException(ContestErrorCode.PROBLEM_NOT_FOUND);
-        }
-
-        boolean virtual = StringUtils.hasText(virtualSessionId);
-        Optional<ContestParticipant> participant = virtual
-                ? contestParticipantMapper.findVirtualForSubmissionAdmission(
-                        contestId, userId, virtualSessionId)
-                : contestParticipantMapper.findRealForSubmissionAdmission(contestId, userId);
-        if (participant.isEmpty()) {
-            throw new BusinessException(ContestErrorCode.CONTEST_NOT_REGISTERED);
-        }
-
-        ContestParticipant p = participant.get();
-        if (!ContestParticipantStatus.STARTED.name().equals(p.getStatus())) {
-            throw new BusinessException(virtual
-                    ? ContestErrorCode.CONTEST_ENDED
-                    : ContestErrorCode.CONTEST_NOT_STARTED);
-        }
-
-        if (virtual) {
-            if (!ContestStatus.FINISHED.name().equals(contest.getStatus())) {
-                throw new BusinessException(ContestErrorCode.CONTEST_ENDED);
-            }
-        } else if (!ContestStatus.RUNNING.name().equals(contest.getStatus())) {
-            throw new BusinessException(ContestErrorCode.CONTEST_NOT_STARTED);
-        }
-
-        LocalDateTime deadline = virtual
-                ? contestClock.effectiveEndTime(p, contest).orElse(null)
-                : contestClock.contestEndTime(contest).orElse(null);
-        if (deadline == null || now.isAfter(deadline)) {
-            throw new BusinessException(ContestErrorCode.CONTEST_ENDED);
-        }
-
-        ContestSubmission cs = new ContestSubmission();
-        cs.setSubmissionId(submissionId);
-        cs.setContestId(contestId);
-        cs.setContestProblemId(contestProblem.getId());
-        cs.setParticipantId(p.getId());
-        cs.setVirtualSessionId(virtual ? p.getVirtualSessionId() : null);
-        LocalDateTime start = contestClock.participantClock(p, contest).orElse(null);
-        if (start != null) {
-            cs.setTimeFromStart((int) Math.max(0, Duration.between(start, now).getSeconds()));
-        }
-        cs.setIsAccepted(false); // Updated when the judge completes.
-        cs.setSubmittedAt(now);
-        contestSubmissionMapper.insert(cs);
-        contestRankingMarkDirtyPort.markDirty(contestId);
-    }
 
     /**
      * Apply an already-admitted remote contest submission. Admission is the

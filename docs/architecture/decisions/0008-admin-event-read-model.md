@@ -27,6 +27,53 @@ freshness/availability requirement cannot be met by the bounded synchronous
 seam. Any proposal must include an owner event contract, version/tombstone and
 delete semantics, replay/DLQ repair, freshness bounds, backfill, and rollback.
 
+## Conditional Reopen Gate (P4-ADMIN-004)
+
+This decision reopens only when **all** of the following gates pass. No event read model
+task is active without every trigger being met. The gate is evaluated by the
+`GATE-ADMIN-DEEP-MODULE` review panel.
+
+### Triggers (any one requires **all** sub-conditions)
+
+1. **Budget overrun** (P4-ADMIN-001 budgets):
+   - A core Admin read use case (`I-DASH-STATS`, `I-USER-LIST`, `I-SUBMISSION-LIST`) exceeds its
+     declared RPC budget (calls or latency) under representative load for ≥3 consecutive
+     measurement windows.
+   - Evidence: `AdminUseCaseMetrics` histograms show P95 > budget threshold.
+   - Mitigation exhausted: bounded executor tuning, batching, and caching already applied.
+
+2. **Repeated provider failure** (P4-ADMIN-003 typed degradation):
+   - `OWNER_QUERY_UNAVAILABLE` rate > 5% for the same owner+use-case pair, averaged over 24h,
+     sustained for ≥7 days.
+   - Evidence: degradation status logs and `AdminWebExceptionHandler` 503 counts.
+
+3. **Freshness/availability requirement unmet**:
+   - A documented consumer requirement (e.g., dashboard SLA) cannot be met by the bounded
+     synchronous seam because the owner cannot guarantee the required freshness or
+     availability tier.
+
+### Gate checklist
+
+| criterion | required evidence |
+|---|---|
+| Budget overrun confirmed | `AdminUseCaseMetrics` P95/P99 > budget; reproducible under load |
+| Mitigation exhausted | Record of bounded executor, batching, caching changes applied |
+| Provider failure sustained | 24h+ rate > 5% for 7+ days; degradation logs |
+| Freshness/availability requirement documented | Consumer-facing SLA that sync reads cannot meet |
+| Proposal includes owner event contract | Draft contract with namespace, version, tombstone, and delete semantics |
+| Replay/DLQ repair defined | Dead-letter queue design and replay procedure |
+| Freshness bounds specified | Max staleness threshold and enforcement mechanism |
+| Backfill procedure defined | One-time replay from owner event stream |
+| Rollback procedure defined | Reversion to synchronous reads; projection decommission |
+| Source of truth remains owner | Written confirmation that owner writes and recovery are authoritative |
+
+### Decision rule
+
+The gate is **reject-by-default**. A proposal to introduce an Admin event read model
+is approved only when all checklist rows are satisfied and the `GATE-ADMIN-DEEP-MODULE`
+panel signs off. If any trigger is absent, the synchronous seam remains canonical and
+no projection implementation begins.
+
 ## Alternatives considered
 
 ### Admin event read model

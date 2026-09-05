@@ -1,13 +1,12 @@
-package com.ulticode.app.api.dto;
+package com.ulticode.notification.recipient;
 
 import java.io.Serializable;
 
 /**
  * Minimum recipient projection required by notification delivery.
  *
- * <p>Email and governance flags are returned through the App-owned
- * notification read seam; no Auth entity or credential field crosses the
- * contract.
+ * <p>Moved from {@code com.ulticode.app.api.dto} — Notification owns this
+ * in-process seam and its DTO.
  */
 public record NotificationRecipientDTO(
         String userId,

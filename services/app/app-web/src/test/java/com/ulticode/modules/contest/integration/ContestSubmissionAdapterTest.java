@@ -22,23 +22,19 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.Clock;
-import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("ContestSubmissionAdapter explicit admission")
+@DisplayName("ContestSubmissionAdapter event-driven contest association")
 class ContestSubmissionAdapterTest {
 
     private static final String CONTEST_ID = "contest-1";
@@ -57,91 +53,9 @@ class ContestSubmissionAdapterTest {
 
     @BeforeEach
     void setUp() {
-        Clock clock = Clock.fixed(Instant.parse("2026-08-10T12:00:00Z"), ZoneOffset.UTC);
         adapter = new ContestSubmissionAdapter(
                 contestProblemMapper, contestMapper, contestParticipantMapper,
-                contestSubmissionMapper, rankingMarkDirtyPort, contestClock, clock);
-    }
-
-    @Test
-    @DisplayName("ordinary submission does not scan or infer a contest")
-    void ordinarySubmission_doesNotInferContest() {
-        adapter.recordSubmissionIfNeeded("submission-1", USER_ID, PROBLEM_ID, null, null);
-
-        verifyNoInteractions(contestMapper, contestProblemMapper, contestParticipantMapper,
                 contestSubmissionMapper, rankingMarkDirtyPort, contestClock);
-    }
-
-    @Test
-    @DisplayName("real contest context locks exact participant and records mapping")
-    void realContext_recordsOnlyExplicitContest() {
-        Contest contest = contest(ContestStatus.RUNNING.name());
-        ContestProblem problem = contestProblem();
-        ContestParticipant participant = participant(false, null);
-        when(contestMapper.selectByIdForUpdate(CONTEST_ID)).thenReturn(contest);
-        when(contestProblemMapper.findByContestIdAndProblemId(CONTEST_ID, PROBLEM_ID))
-                .thenReturn(problem);
-        when(contestParticipantMapper.findRealForSubmissionAdmission(CONTEST_ID, USER_ID))
-                .thenReturn(Optional.of(participant));
-        when(contestClock.contestEndTime(contest)).thenReturn(Optional.of(NOW));
-        when(contestClock.participantClock(participant, contest)).thenReturn(Optional.of(NOW.minusMinutes(3)));
-
-        adapter.recordSubmissionIfNeeded("submission-1", USER_ID, PROBLEM_ID, CONTEST_ID, null);
-
-        ArgumentCaptor<ContestSubmission> captor = ArgumentCaptor.forClass(ContestSubmission.class);
-        verify(contestSubmissionMapper).insert(captor.capture());
-        ContestSubmission recorded = captor.getValue();
-        assertThat(recorded.getContestId()).isEqualTo(CONTEST_ID);
-        assertThat(recorded.getContestProblemId()).isEqualTo(problem.getId());
-        assertThat(recorded.getParticipantId()).isEqualTo(participant.getId());
-        assertThat(recorded.getVirtualSessionId()).isNull();
-        assertThat(recorded.getTimeFromStart()).isEqualTo(180);
-        verify(rankingMarkDirtyPort).markDirty(CONTEST_ID);
-        verify(contestProblemMapper, never()).findByProblemId(anyLong());
-    }
-
-    @Test
-    @DisplayName("virtual context accepts a FINISHED parent inside its own session window")
-    void virtualContext_usesSessionWindow() {
-        Contest contest = contest(ContestStatus.FINISHED.name());
-        ContestProblem problem = contestProblem();
-        ContestParticipant participant = participant(true, "session-1");
-        when(contestMapper.selectByIdForUpdate(CONTEST_ID)).thenReturn(contest);
-        when(contestProblemMapper.findByContestIdAndProblemId(CONTEST_ID, PROBLEM_ID))
-                .thenReturn(problem);
-        when(contestParticipantMapper.findVirtualForSubmissionAdmission(
-                CONTEST_ID, USER_ID, "session-1")).thenReturn(Optional.of(participant));
-        when(contestClock.effectiveEndTime(participant, contest)).thenReturn(Optional.of(NOW));
-        when(contestClock.participantClock(participant, contest)).thenReturn(Optional.of(NOW.minusMinutes(5)));
-
-        adapter.recordSubmissionIfNeeded("submission-virtual", USER_ID, PROBLEM_ID,
-                CONTEST_ID, "session-1");
-
-        ArgumentCaptor<ContestSubmission> captor = ArgumentCaptor.forClass(ContestSubmission.class);
-        verify(contestSubmissionMapper).insert(captor.capture());
-        assertThat(captor.getValue().getVirtualSessionId()).isEqualTo("session-1");
-        assertThat(captor.getValue().getTimeFromStart()).isEqualTo(300);
-    }
-
-    @Test
-    @DisplayName("expired virtual session is rejected before contest mapping insert")
-    void virtualContext_afterDeadline_isRejected() {
-        Contest contest = contest(ContestStatus.FINISHED.name());
-        ContestParticipant participant = participant(true, "session-1");
-        when(contestMapper.selectByIdForUpdate(CONTEST_ID)).thenReturn(contest);
-        when(contestProblemMapper.findByContestIdAndProblemId(CONTEST_ID, PROBLEM_ID))
-                .thenReturn(contestProblem());
-        when(contestParticipantMapper.findVirtualForSubmissionAdmission(
-                CONTEST_ID, USER_ID, "session-1")).thenReturn(Optional.of(participant));
-        when(contestClock.effectiveEndTime(participant, contest))
-                .thenReturn(Optional.of(NOW.minusNanos(1)));
-
-        assertThatThrownBy(() -> adapter.recordSubmissionIfNeeded(
-                "submission-late", USER_ID, PROBLEM_ID, CONTEST_ID, "session-1"))
-                .isInstanceOf(BusinessException.class)
-                .hasFieldOrPropertyWithValue("errorCode", ContestErrorCode.CONTEST_ENDED);
-        verify(contestSubmissionMapper, never()).insert(any(ContestSubmission.class));
-        verify(rankingMarkDirtyPort, never()).markDirty(any());
     }
 
     @Test

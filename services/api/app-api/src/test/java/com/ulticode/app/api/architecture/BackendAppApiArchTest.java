@@ -17,7 +17,9 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
  * scanning, no Spring Security context, and no transitive dependency
  * on any implementation module. The allowlist is used in place of a
  * blanket forbid so the rule does not collide with the module's own
- * package.
+ * package. The {@code backend-submission-api} dependency and its
+ * allowlist entry were removed after the unused Submission result
+ * payload seam was relocated (P3-CONTRACT-006).
  */
 @AnalyzeClasses(
         packages = "com.ulticode.app.api",
@@ -121,7 +123,6 @@ public class BackendAppApiArchTest {
                     .should().onlyDependOnClassesThat().resideInAnyPackage(
                             "com.ulticode.app.api..",
                             "com.ulticode.common..",
-                            "com.ulticode.submission.api..",
                             "com.ulticode.domain..",
                             "java..",
                             "javax..",
@@ -130,8 +131,7 @@ public class BackendAppApiArchTest {
                             "com.fasterxml.jackson.annotation..",
                             "io.swagger.v3.oas.annotations..")
                     .because("contract module may only depend on its "
-                            + "own package, backend-common, the explicit "
-                            + "Submission result payload seam, and standard "
+                            + "own package, backend-common, and standard "
                             + "annotation libraries (Lombok compile-time "
                             + "codegen, Jackson serialization annotations, "
                             + "Swagger OpenAPI documentation); no "

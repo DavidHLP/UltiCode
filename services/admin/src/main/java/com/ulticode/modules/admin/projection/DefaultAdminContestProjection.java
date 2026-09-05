@@ -52,10 +52,11 @@ public class DefaultAdminContestProjection implements AdminContestProjection {
         requirePage(result, "App contest");
 
         List<AdminContestVO> vos = result.getItems().stream()
-                .map(this::toAdminVO)
+                .map(this::toAdminVOFromPage)
                 .collect(Collectors.toList());
-
-        return PageResult.of(vos, result.getTotal(), pageRequest, DegradationStatus.OK);
+        DegradationStatus status = result.getDegradationStatus() == null
+                ? DegradationStatus.OK : result.getDegradationStatus();
+        return PageResult.of(vos, result.getTotal(), pageRequest, status);
     }
 
     @Override
@@ -106,10 +107,38 @@ public class DefaultAdminContestProjection implements AdminContestProjection {
 
         return vo;
     }
+    /**
+     * List-path VO mapping. Uses the batched problemCount already set on the
+     * DTO by {@code DefaultContestAdminReadAdapter.selectPage}, avoiding the
+     * N+1 per-row call to {@link #toAdminVO(ContestAdminDTO)}.
+     */
+    private AdminContestVO toAdminVOFromPage(ContestAdminDTO contest) {
+        if (contest == null) {
+            return null;
+        }
+        AdminContestVO vo = new AdminContestVO();
+        vo.setId(contest.getId());
+        vo.setSlug(contest.getSlug());
+        vo.setTitle(contest.getTitle());
+        vo.setDescription(contest.getDescription());
+        vo.setContestType(contest.getContestType());
+        vo.setStatus(contest.getStatus());
+        vo.setStartTime(contest.getStartTime());
+        vo.setEndTime(contest.getEndTime());
+        vo.setDurationMinutes(contest.getDurationMinutes());
+        vo.setIsVisible(contest.getIsVisible());
+        vo.setParticipantCount(contest.getRegisteredCount());
+        vo.setCreatedAt(contest.getCreatedAt());
+        vo.setUpdatedAt(contest.getUpdatedAt());
+        Integer pc = contest.getProblemCount();
+        vo.setProblemCount(pc != null ? pc : 0);
+        return vo;
+    }
 
     private static void requirePage(PageResult<?> page, String owner) {
         if (page == null || page.getItems() == null || page.getItems().stream().anyMatch(java.util.Objects::isNull)
-                || page.getTotal() == null || page.getTotal() < 0) {
+                || page.getTotal() == null || page.getTotal() < 0
+                || page.getDegradationStatus() == DegradationStatus.UNAVAILABLE) {
             throw AdminReadContract.ownerUnavailable(owner);
         }
     }

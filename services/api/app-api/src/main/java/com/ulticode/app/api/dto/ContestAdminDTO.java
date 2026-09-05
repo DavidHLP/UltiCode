@@ -33,6 +33,7 @@ public class ContestAdminDTO implements Serializable {
     private Integer durationMinutes;
     private Integer maxParticipants;
     private Integer registeredCount;
+    private Integer problemCount;
     private Boolean isPublished;
     private Boolean isPremium;
     private Boolean isVisible;
@@ -85,4 +86,6 @@ public class ContestAdminDTO implements Serializable {
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+    public Integer getProblemCount() { return problemCount; }
+    public void setProblemCount(Integer problemCount) { this.problemCount = problemCount; }
 }

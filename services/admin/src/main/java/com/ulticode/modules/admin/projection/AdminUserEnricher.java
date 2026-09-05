@@ -2,6 +2,7 @@ package com.ulticode.modules.admin.projection;
 
 import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.app.api.dto.UserProfileDTO;
+import com.ulticode.app.api.error.AppErrorCode;
 import com.ulticode.app.api.service.UserProfileQueryService;
 import com.ulticode.auth.api.dto.AccountQueryDTO;
 import com.ulticode.auth.api.dto.AuthAccountDTO;
@@ -9,6 +10,7 @@ import com.ulticode.auth.api.dto.UserIdentityDTO;
 import com.ulticode.auth.api.error.AuthErrorCode;
 import com.ulticode.auth.api.service.AccountQueryService;
 import com.ulticode.auth.api.service.IdentityQueryService;
+import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.response.DegradationStatus;
 import com.ulticode.common.rpc.RpcPolicy;
@@ -66,6 +68,10 @@ import java.util.stream.Collectors;
  *       {@link BusinessException} ({@link AdminErrorCode#OWNER_QUERY_UNAVAILABLE})
  *       when both sources are unavailable, so infrastructure failure is never
  *       indistinguishable from "no matching users".</li>
+ *   <li>Permission failures ({@link AdminErrorCode#FORBIDDEN},
+ *       {@link AdminErrorCode#UNAUTHORIZED}) propagate immediately from any
+ *       owner RPC path — they are never caught and mapped to
+ *       {@code OWNER_QUERY_UNAVAILABLE}.</li>
  * </ul>
  */
 @Slf4j
@@ -124,11 +130,20 @@ public class AdminUserEnricher {
         RpcResult<AuthAccountDTO> rpc;
         try {
             rpc = accountQueryService.queryAccounts(query);
+        } catch (BusinessException exception) {
+            if (isPermissionError(exception)) {
+                throw exception;
+            }
+            log.warn("AccountQueryService.queryAccounts failed: {}", exception.getMessage());
+            throw ownerUnavailable("AccountQueryService.queryAccounts failed", exception);
         } catch (Exception e) {
             log.warn("AccountQueryService.queryAccounts failed: {}", e.getMessage());
             throw ownerUnavailable("AccountQueryService.queryAccounts failed", e);
         }
         if (rpc == null || !rpc.success() || rpc.page() == null) {
+            if (isPermissionError(rpc)) {
+                throw permissionError(rpc);
+            }
             throw ownerUnavailable("AccountQueryService.queryAccounts returned failure");
         }
 
@@ -161,6 +176,7 @@ public class AdminUserEnricher {
      * <p>This is the authoritative first round of the admin detail query:
      * {@code null} means Auth proved the account is absent, while every
      * transport/provider failure is raised as {@code OWNER_QUERY_UNAVAILABLE}.
+     * Permission failures (401/403) propagate immediately.
      */
     public AuthAccountDTO findAccountAuthoritatively(String accountId) {
         if (accountQueryService == null) {
@@ -170,6 +186,13 @@ public class AdminUserEnricher {
         RpcResult<AuthAccountDTO> rpc;
         try {
             rpc = accountQueryService.getAccountById(accountId);
+        } catch (BusinessException exception) {
+            if (isPermissionError(exception)) {
+                throw exception;
+            }
+            log.warn("AccountQueryService.getAccountById failed for {}: {}",
+                    accountId, exception.getClass().getSimpleName());
+            throw ownerUnavailable("AccountQueryService.getAccountById failed", exception);
         } catch (Exception exception) {
             log.warn("AccountQueryService.getAccountById failed for {}: {}",
                     accountId, exception.getClass().getSimpleName());
@@ -181,6 +204,9 @@ public class AdminUserEnricher {
         if (!rpc.success()) {
             if (isAuthAccountNotFound(rpc)) {
                 return null;
+            }
+            if (isPermissionError(rpc)) {
+                throw permissionError(rpc);
             }
             throw ownerUnavailable("AccountQueryService.getAccountById returned failure");
         }
@@ -323,6 +349,8 @@ public class AdminUserEnricher {
             execution = queryExecutor.submit(() -> {
                 try {
                     result.complete(task.call());
+                } catch (BusinessException exception) {
+                    result.completeExceptionally(exception);
                 } catch (Error error) {
                     result.completeExceptionally(error);
                     throw error;
@@ -364,6 +392,10 @@ public class AdminUserEnricher {
     private static void rethrowFatal(Throwable cause) {
         if (cause instanceof Error error) {
             throw error;
+        }
+        if (cause instanceof BusinessException exception
+                && isPermissionError(exception)) {
+            throw exception;
         }
     }
 
@@ -458,10 +490,19 @@ public class AdminUserEnricher {
             RpcResult<AuthAccountDTO> rpc = null;
             try {
                 rpc = accountQueryService.getAccountById(accountId);
+            } catch (BusinessException exception) {
+                if (isPermissionError(exception)) {
+                    throw exception;
+                }
+                log.warn("AccountQueryService.getAccountById failed for {}: {}", accountId, exception.getMessage());
             } catch (Exception e) {
                 log.warn("AccountQueryService.getAccountById failed for {}: {}", accountId, e.getMessage());
             }
-            if (rpc != null && rpc.success() && rpc.data() != null) {
+            if (rpc != null) {
+                if (isPermissionError(rpc)) {
+                    throw permissionError(rpc);
+                }
+                if (rpc.success() && rpc.data() != null) {
                     AuthAccountDTO account = rpc.data();
                     // Profile fields from UserProfileQueryService
                     String name = null;
@@ -469,10 +510,20 @@ public class AdminUserEnricher {
                     if (userProfileQueryService != null) {
                         try {
                             RpcResult<UserProfileDTO> profileRpc = userProfileQueryService.getProfileByAccountId(accountId);
-                            if (profileRpc != null && profileRpc.success() && profileRpc.data() != null) {
-                                name = profileRpc.data().name();
-                                avatar = profileRpc.data().avatar();
+                            if (profileRpc != null) {
+                                if (isPermissionError(profileRpc)) {
+                                    throw permissionError(profileRpc);
+                                }
+                                if (profileRpc.success() && profileRpc.data() != null) {
+                                    name = profileRpc.data().name();
+                                    avatar = profileRpc.data().avatar();
+                                }
                             }
+                        } catch (BusinessException exception) {
+                            if (isPermissionError(exception)) {
+                                throw exception;
+                            }
+                            log.warn("UserProfileQueryService.getProfileByAccountId failed for {}: {}", accountId, exception.getMessage());
                         } catch (Exception e) {
                             log.warn("UserProfileQueryService.getProfileByAccountId failed for {}: {}", accountId, e.getMessage());
                         }
@@ -486,6 +537,7 @@ public class AdminUserEnricher {
                             account.email()
                     );
                 }
+            }
         }
 
         // Fall back to batch enrichment (no email); UNAVAILABLE there is
@@ -505,12 +557,21 @@ public class AdminUserEnricher {
         try {
             RpcResult<List<UserIdentityDTO>> rpc = identityQueryService.batchGetIdentity(accountIds);
             if (rpc == null || !rpc.success() || rpc.data() == null) {
+                if (isPermissionError(rpc)) {
+                    throw permissionError(rpc);
+                }
                 return new IdentityBatch(Collections.emptyMap(), false);
             }
             return new IdentityBatch(rpc.data().stream()
                     .filter(Objects::nonNull)
                     .collect(Collectors.toMap(UserIdentityDTO::accountId, Function.identity(), (a, b) -> a)),
                     true);
+        } catch (BusinessException exception) {
+            if (isPermissionError(exception)) {
+                throw exception;
+            }
+            log.warn("IdentityQueryService.batchGetIdentity failed for {} ids: {}", accountIds.size(), exception.getMessage());
+            return new IdentityBatch(Collections.emptyMap(), false);
         } catch (Exception e) {
             log.warn("IdentityQueryService.batchGetIdentity failed for {} ids: {}", accountIds.size(), e.getMessage());
             return new IdentityBatch(Collections.emptyMap(), false);
@@ -524,12 +585,21 @@ public class AdminUserEnricher {
         try {
             RpcResult<List<UserProfileDTO>> rpc = userProfileQueryService.getProfilesByAccountIds(accountIds);
             if (rpc == null || !rpc.success() || rpc.data() == null) {
+                if (isPermissionError(rpc)) {
+                    throw permissionError(rpc);
+                }
                 return new ProfileBatch(Collections.emptyMap(), false);
             }
             return new ProfileBatch(rpc.data().stream()
                     .filter(Objects::nonNull)
                     .collect(Collectors.toMap(UserProfileDTO::accountId, Function.identity(), (a, b) -> a)),
                     true);
+        } catch (BusinessException exception) {
+            if (isPermissionError(exception)) {
+                throw exception;
+            }
+            log.warn("UserProfileQueryService.getProfilesByAccountIds failed for {} ids: {}", accountIds.size(), exception.getMessage());
+            return new ProfileBatch(Collections.emptyMap(), false);
         } catch (Exception e) {
             log.warn("UserProfileQueryService.getProfilesByAccountIds failed for {} ids: {}", accountIds.size(), e.getMessage());
             return new ProfileBatch(Collections.emptyMap(), false);
@@ -541,6 +611,52 @@ public class AdminUserEnricher {
         return error != null
                 && AuthErrorCode.NAMESPACE.equals(error.namespace())
                 && error.code() == AuthErrorCode.ACCOUNT_NOT_FOUND.code();
+    }
+
+    /**
+     * Check if an RPC error payload represents a permission failure
+     * (401 Unauthorized or 403 Forbidden). Permission failures must
+     * propagate rather than be mapped to {@code OWNER_QUERY_UNAVAILABLE}.
+     */
+    private static boolean isPermissionError(RpcResult<?> rpc) {
+        if (rpc == null || rpc.success() || rpc.error() == null) {
+            return false;
+        }
+        RpcResult.ErrorPayload error = rpc.error();
+        int code = error.code();
+        return (code == BaseErrorCode.UNAUTHORIZED.code() || code == BaseErrorCode.FORBIDDEN.code())
+                || (AppErrorCode.NAMESPACE.equals(error.namespace())
+                        && (code == AppErrorCode.UNAUTHORIZED.code() || code == AppErrorCode.FORBIDDEN.code()))
+                || (AuthErrorCode.NAMESPACE.equals(error.namespace())
+                        && code == AuthErrorCode.ACCOUNT_BANNED.code());
+    }
+
+    /**
+     * Check if a thrown exception is an Admin-layer permission failure
+     * (FORBIDDEN or UNAUTHORIZED) that must propagate rather than be
+     * caught and mapped to OWNER_QUERY_UNAVAILABLE.
+     */
+    private static boolean isPermissionError(Throwable throwable) {
+        if (throwable instanceof BusinessException exception) {
+            var errorCode = exception.getErrorCode();
+            return errorCode == AdminErrorCode.FORBIDDEN || errorCode == AdminErrorCode.UNAUTHORIZED;
+        }
+        return false;
+    }
+
+    /**
+     * Construct a BusinessException from a permission-failed RPC result,
+     * mapping the owner's 401/403 error code to the Admin namespace.
+     */
+    private static BusinessException permissionError(RpcResult<?> rpc) {
+        RpcResult.ErrorPayload error = rpc.error();
+        int code = error.code();
+        if (code == BaseErrorCode.UNAUTHORIZED.code()
+                || (AppErrorCode.NAMESPACE.equals(error.namespace())
+                        && code == AppErrorCode.UNAUTHORIZED.code())) {
+            return new BusinessException(AdminErrorCode.UNAUTHORIZED, error.message());
+        }
+        return new BusinessException(AdminErrorCode.FORBIDDEN, error.message());
     }
 
     private static BusinessException ownerUnavailable(String message) {

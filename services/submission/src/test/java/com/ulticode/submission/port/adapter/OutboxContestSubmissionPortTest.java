@@ -12,7 +12,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class NoopContestSubmissionPortTest {
+class OutboxContestSubmissionPortTest {
 
     @Mock
     private SubmissionCreatedOutboxMapper createdOutboxMapper;
@@ -24,7 +24,7 @@ class NoopContestSubmissionPortTest {
         record.setVirtualSessionId("session-1");
         when(createdOutboxMapper.findLatestBySubmissionId("submission-1")).thenReturn(record);
 
-        NoopContestSubmissionPort port = new NoopContestSubmissionPort(createdOutboxMapper);
+        OutboxContestSubmissionPort port = new OutboxContestSubmissionPort(createdOutboxMapper);
 
         assertThat(port.findContestId("submission-1")).isEqualTo("contest-1");
         assertThat(port.isContestSubmission("submission-1")).isTrue();
@@ -35,7 +35,7 @@ class NoopContestSubmissionPortTest {
     void returnsNullWhenCreatedRowIsGenuinelyAbsent() {
         when(createdOutboxMapper.findLatestBySubmissionId("submission-2")).thenReturn(null);
 
-        NoopContestSubmissionPort port = new NoopContestSubmissionPort(createdOutboxMapper);
+        OutboxContestSubmissionPort port = new OutboxContestSubmissionPort(createdOutboxMapper);
 
         assertThat(port.findContestId("submission-2")).isNull();
         assertThat(port.isContestSubmission("submission-2")).isFalse();
@@ -47,7 +47,7 @@ class NoopContestSubmissionPortTest {
         when(createdOutboxMapper.findLatestBySubmissionId("submission-3"))
                 .thenThrow(new IllegalStateException("connection lost"));
 
-        NoopContestSubmissionPort port = new NoopContestSubmissionPort(createdOutboxMapper);
+        OutboxContestSubmissionPort port = new OutboxContestSubmissionPort(createdOutboxMapper);
 
         // Fail-closed: verdict writers must roll back and retry rather than
         // emit a judged event without contest context.

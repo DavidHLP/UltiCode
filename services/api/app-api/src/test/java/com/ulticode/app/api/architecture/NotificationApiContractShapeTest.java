@@ -1,37 +1,36 @@
 package com.ulticode.app.api.architecture;
 
-import com.ulticode.app.api.dto.NotificationRecipientDTO;
-import com.ulticode.app.api.service.UserNotificationReadPort;
 import org.junit.jupiter.api.Test;
-
-import java.lang.reflect.Method;
-import java.util.Arrays;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** Locks the explicit App-provided recipient/fact exception. */
+/**
+ * Asserts that {@code UserNotificationReadPort} and
+ * {@code NotificationRecipientDTO} have been relocated from app-api to the
+ * Notification owner module. They were misclassified as App-owned contracts
+ * although only Notification consumes and provides them.
+ */
 class NotificationApiContractShapeTest {
 
     @Test
-    void app_fact_seams_remain_entity_free_and_app_owned() {
-        assertThat(UserNotificationReadPort.class.getPackageName())
-                .isEqualTo("com.ulticode.app.api.service");
-        for (Method method : UserNotificationReadPort.class.getDeclaredMethods()) {
-            assertThat(method.getReturnType().getName())
-                    .doesNotStartWith("com.ulticode.modules.");
-            assertThat(Arrays.stream(method.getParameterTypes())
-                    .map(Class::getName).toList())
-                    .noneMatch(type -> type.startsWith("com.ulticode.modules."));
-        }
+    void userNotificationReadPortIsNotDeclaredInAppApi() {
+        assertThat(getClassByName("com.ulticode.app.api.service.UserNotificationReadPort"))
+                .as("UserNotificationReadPort must not exist in app-api")
+                .isNull();
     }
 
     @Test
-    void recipient_projection_keeps_the_minimum_fact_shape() {
-        assertThat(Arrays.stream(NotificationRecipientDTO.class.getRecordComponents())
-                .map(component -> component.getName())
-                .toList())
-                .containsExactly("userId", "email", "active", "banned");
-        assertThat(NotificationRecipientDTO.class.getPackageName())
-                .isEqualTo("com.ulticode.app.api.dto");
+    void notificationRecipientDtoIsNotDeclaredInAppApi() {
+        assertThat(getClassByName("com.ulticode.app.api.dto.NotificationRecipientDTO"))
+                .as("NotificationRecipientDTO must not exist in app-api")
+                .isNull();
+    }
+
+    private static Class<?> getClassByName(String name) {
+        try {
+            return Class.forName(name);
+        } catch (ClassNotFoundException e) {
+            return null;
+        }
     }
 }

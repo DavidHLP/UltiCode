@@ -14,6 +14,7 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -75,8 +76,18 @@ public class DefaultContestAdminReadAdapter implements ContestAdminReadPort {
         }
         applySort(wrapper, sortBy, sortOrder);
         Page<Contest> result = contestMapper.selectPage(p, wrapper);
+        List<String> contestIds = result.getRecords().stream()
+                .map(Contest::getId)
+                .collect(Collectors.toList());
+        Map<String, Integer> problemCounts = contestIds.isEmpty()
+                ? Map.of()
+                : batchProblemCounts(contestIds);
         List<ContestAdminDTO> items = result.getRecords().stream()
-                .map(DefaultContestAdminReadAdapter::toDTO)
+                .map(contest -> {
+                    ContestAdminDTO dto = toDTO(contest);
+                    dto.setProblemCount(problemCounts.getOrDefault(contest.getId(), 0));
+                    return dto;
+                })
                 .collect(Collectors.toList());
         return PageResult.of(items, result.getTotal(), page, size);
     }
@@ -131,6 +142,20 @@ public class DefaultContestAdminReadAdapter implements ContestAdminReadPort {
     @Override
     public long countProblemsByContestId(String contestId) {
         return contestProblemMapper.countByContestId(contestId);
+    }
+    /**
+     * Single-query batch for problem counts per contest, eliminating the
+     * N+1 call to {@link #countProblemsByContestId} per contest row.
+     */
+    private Map<String, Integer> batchProblemCounts(List<String> contestIds) {
+        List<Map<String, Object>> rows = contestProblemMapper.countByContestIds(contestIds);
+        Map<String, Integer> counts = new java.util.HashMap<>();
+        for (Map<String, Object> row : rows) {
+            String contestId = (String) row.get("contestId");
+            Number cnt = (Number) row.get("cnt");
+            counts.put(contestId, cnt != null ? cnt.intValue() : 0);
+        }
+        return counts;
     }
 
     private static ContestAdminDTO toDTO(Contest contest) {

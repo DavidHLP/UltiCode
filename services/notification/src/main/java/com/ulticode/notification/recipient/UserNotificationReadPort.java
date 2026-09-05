@@ -1,6 +1,4 @@
-package com.ulticode.app.api.service;
-
-import com.ulticode.app.api.dto.NotificationRecipientDTO;
+package com.ulticode.notification.recipient;
 
 import java.util.Collection;
 import java.util.List;
@@ -12,6 +10,9 @@ import java.util.List;
  * account projection into this contract. Notification preferences are
  * intentionally not part of this port; they remain local to the notification
  * owner and are evaluated by its dispatcher.
+ *
+ * <p>Moved from {@code com.ulticode.app.api.service} — Notification is the
+ * sole consumer and provider of this in-process seam.
  */
 public interface UserNotificationReadPort {
 

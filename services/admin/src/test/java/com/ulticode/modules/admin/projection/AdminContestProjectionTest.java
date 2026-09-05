@@ -3,6 +3,7 @@ package com.ulticode.modules.admin.projection;
 import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.response.DegradationStatus;
+import com.ulticode.common.response.PaginationRequest;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.uuid.FixedUuidGenerator;
 import com.ulticode.modules.admin.dto.AdminContestQueryDTO;
@@ -192,12 +193,11 @@ class AdminContestProjectionTest {
             ContestAdminDTO c1 = buildContest("c1", "weekly-21", "Weekly #21", "d", "ICPC", "UPCOMING",
                     LocalDateTime.now(), LocalDateTime.now().plusHours(2),
                     120, true, 0, LocalDateTime.now(), LocalDateTime.now());
+            c1.setProblemCount(4);
             ContestAdminDTO c2 = buildContest("c2", "weekly-22", "Weekly #22", "d", "ICPC", "RUNNING",
                     LocalDateTime.now(), LocalDateTime.now().plusHours(2),
                     120, true, 5, LocalDateTime.now(), LocalDateTime.now());
-
-            when(contestAdminReadPort.countProblemsByContestId("c1")).thenReturn(4L);
-            when(contestAdminReadPort.countProblemsByContestId("c2")).thenReturn(8L);
+            c2.setProblemCount(8);
 
             PageResult<ContestAdminDTO> pageResult = PageResult.of(List.of(c1, c2), 2L, 1, 10);
             when(contestAdminReadPort.selectPage(anyInt(), anyInt(), any(), any(), any(), any(), any()))
@@ -215,6 +215,34 @@ class AdminContestProjectionTest {
         }
 
         @Test
+        @DisplayName("getContests does not call countProblemsByContestId per row (N+1 eliminated)")
+        void listPath_doesNotInvokePerRowCount() {
+            AdminContestQueryDTO query = new AdminContestQueryDTO();
+            query.setPage(1);
+            query.setLimit(10);
+
+            ContestAdminDTO c1 = buildContest("c1", "s1", "T1", "d", "ICPC", "UPCOMING",
+                    LocalDateTime.now(), LocalDateTime.now().plusHours(2),
+                    120, true, 0, LocalDateTime.now(), LocalDateTime.now());
+            c1.setProblemCount(4);
+            ContestAdminDTO c2 = buildContest("c2", "s2", "T2", "d", "ICPC", "RUNNING",
+                    LocalDateTime.now(), LocalDateTime.now().plusHours(2),
+                    120, true, 5, LocalDateTime.now(), LocalDateTime.now());
+            c2.setProblemCount(8);
+
+            PageResult<ContestAdminDTO> pageResult = PageResult.of(List.of(c1, c2), 2L, 1, 10);
+            when(contestAdminReadPort.selectPage(anyInt(), anyInt(), any(), any(), any(), any(), any()))
+                    .thenReturn(pageResult);
+
+            projection.getContests(query);
+
+            // N+1 elimination: the list path must read problemCount from the DTO,
+            // never calling the per-row count RPC.
+            org.mockito.Mockito.verify(contestAdminReadPort,
+                    org.mockito.Mockito.never()).countProblemsByContestId(anyString());
+        }
+
+        @Test
         @DisplayName("null owner page is unavailable, never an empty success")
         void nullOwnerPage_throwsUnavailable() {
             AdminContestQueryDTO query = new AdminContestQueryDTO();
@@ -225,8 +253,8 @@ class AdminContestProjectionTest {
                     .isInstanceOf(BusinessException.class)
                     .extracting("errorCode")
                     .isEqualTo(AdminErrorCode.OWNER_QUERY_UNAVAILABLE);
-
         }
+
         @Test
         @DisplayName("returns an empty PageResult when the read port yields no records")
         void emptyResult_yieldsEmptyPageResult() {
@@ -244,7 +272,42 @@ class AdminContestProjectionTest {
             assertThat(result.getItems()).isEmpty();
             assertThat(result.getDegradationStatus()).isEqualTo(DegradationStatus.OK);
         }
+
+        @Test
+        @DisplayName("owner page with UNAVAILABLE degradation status throws instead of returning empty")
+        void unavailableDegradationStatus_throwsUnavailable() {
+            AdminContestQueryDTO query = new AdminContestQueryDTO();
+            when(contestAdminReadPort.selectPage(anyInt(), anyInt(), any(), any(), any(), any(), any()))
+                    .thenReturn(PageResult.of(
+                            List.of(), 0L,
+                            PaginationRequest.of(1, 10), DegradationStatus.UNAVAILABLE));
+
+            assertThatThrownBy(() -> projection.getContests(query))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("errorCode")
+                    .isEqualTo(AdminErrorCode.OWNER_QUERY_UNAVAILABLE);
+        }
+
+        @Test
+        @DisplayName("owner page with PARTIAL degradation status preserves PARTIAL status")
+        void partialDegradationStatus_preservesPartialStatus() {
+            AdminContestQueryDTO query = new AdminContestQueryDTO();
+
+            ContestAdminDTO c1 = buildContest("c1", "s1", "T1", "d", "ICPC", "UPCOMING",
+                    LocalDateTime.now(), LocalDateTime.now().plusHours(2),
+                    120, true, 0, LocalDateTime.now(), LocalDateTime.now());
+            c1.setProblemCount(4);
+            PageResult<ContestAdminDTO> result = PageResult.of(
+                    List.of(c1), 1L, PaginationRequest.of(1, 10), DegradationStatus.PARTIAL);
+            when(contestAdminReadPort.selectPage(anyInt(), anyInt(), any(), any(), any(), any(), any()))
+                    .thenReturn(result);
+
+            PageResult<AdminContestVO> page = projection.getContests(query);
+            assertThat(page.getDegradationStatus()).isEqualTo(DegradationStatus.PARTIAL);
+            assertThat(page.getItems()).hasSize(1);
+        }
     }
+
 
     @Nested
     @DisplayName("generateSlug(title) — URL-friendly slug rules")
@@ -296,7 +359,6 @@ class AdminContestProjectionTest {
     // ----------------------------------------------------------------------
     // Test fixture helpers
     // ----------------------------------------------------------------------
-
     private static ContestAdminDTO buildContest(String id, String slug, String title, String description,
                                       String contestType, String status, LocalDateTime startTime,
                                       LocalDateTime endTime, Integer durationMinutes,
@@ -318,4 +380,5 @@ class AdminContestProjectionTest {
         contest.setUpdatedAt(updatedAt);
         return contest;
     }
+
 }

@@ -33,10 +33,6 @@
 			<artifactId>backend-common</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>com.ulticode</groupId>
-			<artifactId>backend-submission-api</artifactId>
-		</dependency>
-		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
 			<scope>provided</scope>

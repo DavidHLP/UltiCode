@@ -1,7 +1,7 @@
 package com.ulticode.modules.notification.dispatcher;
 
 import com.ulticode.common.uuid.UuidGenerator;
-import com.ulticode.app.api.dto.NotificationRecipientDTO;
+import com.ulticode.notification.recipient.NotificationRecipientDTO;
 import com.ulticode.modules.notification.entity.Notification;
 import com.ulticode.modules.notification.entity.enums.NotificationCategory;
 import com.ulticode.modules.notification.mapper.NotificationMapper;

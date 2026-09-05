@@ -50,9 +50,10 @@ defines in the **parent** context:
 
 `CoreOwnerContextManager` and `CoreModuleRegistry` are in the parent.
 
-`CoreLocalAuthorizationMutationAdapter` and `CoreLocalIdentityQueryAdapter`
-implement Auth contracts in the **parent** context; startup explicitly
-registers them in the Admin child. They do not expose Mapper or Entity types.
+`CoreLocalIdentityQueryAdapter`, `CoreLocalAuthorizationMutationAdapter` and
+`CoreLocalAccountQueryAdapter` implement Auth contracts in the **parent**
+context; startup explicitly registers them in the Admin child. They do not
+expose Mapper or Entity types.
 
 ## 3. Per-child assembly (CoreOwnerBootConfigurations)
 

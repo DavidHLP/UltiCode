@@ -57,7 +57,8 @@ if [[ -z "$REDIS_CONTAINER" ]] || ! container_running "$REDIS_CONTAINER"; then
 fi
 REDIS_HEALTH_USER="${REDIS_HEALTH_USER:-ulticode-health}"
 REDIS_HEALTH_PASSWORD="${REDIS_HEALTH_PASSWORD:-${HEALTH_REDIS_PASSWORD:-}}"
-
+REHEARSAL_REDIS_HOST="${REHEARSAL_REDIS_HOST:-127.0.0.1}"
+REHEARSAL_REDIS_PORT="${REHEARSAL_REDIS_PORT:-26379}"
 
 if [[ -n "$MYSQL_CONTAINER" ]] && docker inspect "$MYSQL_CONTAINER" >/dev/null 2>&1; then
   mysql_container_targets_configured_host "$MYSQL_CONTAINER" "$MYSQL_CONTAINER_PORT" \
@@ -124,8 +125,8 @@ if [[ "$SKIP_TESTS" == "true" ]]; then
   TEST_STATUS="SKIPPED_UNAVAILABLE"
 else
   echo "Running Maven fault-injection, timeout, outage, duplicate event, and stale generation test suites..."
-  export REDIS_HOST="127.0.0.1"
-  export REDIS_PORT="26379"
+  export REDIS_HOST="$REHEARSAL_REDIS_HOST"
+  export REDIS_PORT="$REHEARSAL_REDIS_PORT"
   export REDIS_PASSWORD="${REDIS_PASSWORD:-}"
 
   MAVEN_OUTPUT_FILE="$(mktemp /tmp/dev-local-obs-test-XXXXXX.log)"

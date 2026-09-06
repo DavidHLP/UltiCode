@@ -55,6 +55,9 @@ REDIS_CONTAINER="${REDIS_CONTAINER:-}"
 if [[ -z "$REDIS_CONTAINER" ]] || ! container_running "$REDIS_CONTAINER"; then
   REDIS_CONTAINER="$(running_compose_service_container redis)"
 fi
+REDIS_HEALTH_USER="${REDIS_HEALTH_USER:-ulticode-health}"
+REDIS_HEALTH_PASSWORD="${REDIS_HEALTH_PASSWORD:-${HEALTH_REDIS_PASSWORD:-}}"
+
 
 if [[ -n "$MYSQL_CONTAINER" ]] && docker inspect "$MYSQL_CONTAINER" >/dev/null 2>&1; then
   mysql_container_targets_configured_host "$MYSQL_CONTAINER" "$MYSQL_CONTAINER_PORT" \
@@ -103,7 +106,7 @@ else
 fi
 
 if docker inspect "$REDIS_CONTAINER" >/dev/null 2>&1; then
-  REDIS_PING="$(docker exec -e REDISCLI_AUTH="${REDIS_PASSWORD:-}" "$REDIS_CONTAINER" redis-cli ping 2>/dev/null || echo "FAIL")"
+  REDIS_PING="$(docker exec -e REDISCLI_AUTH="$REDIS_HEALTH_PASSWORD" "$REDIS_CONTAINER" redis-cli --user "$REDIS_HEALTH_USER" ping 2>/dev/null || echo "FAIL")"
   if [[ "$REDIS_PING" != "PONG" ]]; then
     echo "ERROR: Redis ping failed (got $REDIS_PING)" >&2
     exit 1

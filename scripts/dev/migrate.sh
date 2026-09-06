@@ -277,6 +277,9 @@ owner_baseline_preflight() {
     admin)
       expected_table="audit_outbox"
       expected_columns=10
+      # The shared fenced-lease migration creates this Admin-owned control
+      # table before the owner-specific Flyway history is bootstrapped.
+      expected_snapshot="audit_outbox:10,fenced_job_leases:5"
       expected_signature="1:id:varchar(40):NO|2:performer_id:varchar(40):NO|3:user_id:varchar(40):YES|4:action:varchar(60):NO|5:resource_type:varchar(60):NO|6:resource_id:varchar(60):YES|7:details:text:YES|8:status:enum('pending','processed','failed'):NO|9:created_at:datetime(3):NO|10:processed_at:datetime(3):YES"
       ;;
     submission)
@@ -294,7 +297,7 @@ owner_baseline_preflight() {
   [[ "$history_count" == "0" ]] \
     || fail_preflight "owner schema '$MIGRATION_SCHEMA' already has Flyway history; baseline is only for fresh adoption"
 
-  expected_snapshot="$expected_table:$expected_columns"
+  expected_snapshot="${expected_snapshot:-$expected_table:$expected_columns}"
   actual_snapshot="$(mysql_query "SELECT COALESCE(GROUP_CONCAT(CONCAT(table_name, ':', column_count) ORDER BY table_name SEPARATOR ','), '') FROM (SELECT table_name, COUNT(*) AS column_count FROM information_schema.columns WHERE table_schema = '$MIGRATION_SCHEMA' AND table_name <> 'flyway_schema_history' GROUP BY table_name) AS bootstrap_tables;")" \
     || fail_preflight "cannot inspect expected bootstrap tables"
   [[ "$actual_snapshot" == "$expected_snapshot" ]] \

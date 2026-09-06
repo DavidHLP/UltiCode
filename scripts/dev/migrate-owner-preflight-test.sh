@@ -21,6 +21,7 @@ DB_USER=ulticode
 DB_PASSWORD=runtime-password
 DB_NAME=ulticode
 AUTH_DB_USER=auth_rw
+ADMIN_DB_USER=admin_rw
 NOTIFICATION_DB_USER=notification_rw
 EOF
 
@@ -78,6 +79,8 @@ done
 expected_database="auth"
 if [[ "${FAKE_MYSQL_MODE:-success}" == "notification-create-user" || "${FAKE_MYSQL_MODE:-success}" == "notification-missing-grant-option" ]]; then
   expected_database="notification"
+elif [[ "${FAKE_MYSQL_MODE:-success}" == "bootstrap-admin" ]]; then
+  expected_database="admin"
 fi
 if [[ "${FAKE_MYSQL_MODE:-}" != "auth-contract-gate" || -n "$database" ]]; then
   if [[ "${FAKE_MYSQL_CONTAINER_MODE:-false}" == "true" ]]; then
@@ -154,7 +157,7 @@ if [[ "${FAKE_MYSQL_MODE:-success}" == "notification-missing-grant-option" && "$
   printf 'GRANT CREATE USER, RELOAD ON *.* TO `migration_user`@`localhost`\nGRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX, REFERENCES ON `notification`.* TO `migration_user`@`localhost` WITH GRANT OPTION\n'
   exit 0
 fi
-if [[ "${FAKE_MYSQL_MODE:-success}" == "bootstrap-auth" && "$query" == *"table_name = 'flyway_schema_history'"* ]]; then
+if [[ "${FAKE_MYSQL_MODE:-success}" == "bootstrap-auth" || "${FAKE_MYSQL_MODE:-success}" == "bootstrap-admin" ]] && [[ "$query" == *"table_name = 'flyway_schema_history'"* ]]; then
   printf '0\n'
   exit 0
 fi
@@ -170,6 +173,18 @@ if [[ "${FAKE_MYSQL_MODE:-success}" == "bootstrap-auth" && "$query" == *"auth.se
   printf '0\n'
   exit 0
 fi
+if [[ "${FAKE_MYSQL_MODE:-success}" == "bootstrap-admin" && "$query" == *"GROUP_CONCAT(CONCAT(table_name"* ]]; then
+  printf 'audit_outbox:10,fenced_job_leases:5\n'
+  exit 0
+fi
+if [[ "${FAKE_MYSQL_MODE:-success}" == "bootstrap-admin" && "$query" == *"GROUP_CONCAT(CONCAT(ordinal_position"* ]]; then
+  printf '1:id:varchar(40):NO|2:performer_id:varchar(40):NO|3:user_id:varchar(40):YES|4:action:varchar(60):NO|5:resource_type:varchar(60):NO|6:resource_id:varchar(60):YES|7:details:text:YES|8:status:enum('\''pending'\'','\''processed'\'','\''failed'\''):NO|9:created_at:datetime(3):NO|10:processed_at:datetime(3):YES\n'
+  exit 0
+fi
+if [[ "${FAKE_MYSQL_MODE:-success}" == "bootstrap-admin" && "$query" == *"admin.audit_outbox"* ]]; then
+  printf '0\n'
+  exit 0
+fi
 if [[ "${FAKE_MYSQL_MODE:-success}" == "auth-contract-gate" && "$query" =~ information_schema\.tables ]]; then
   printf '1\n'
   exit 0
@@ -181,9 +196,21 @@ fi
 case "$query" in
   *"SUBSTRING_INDEX"*) printf 'migration_user\n' ;;
   *"SELECT CURRENT_USER"*) printf 'migration_user@localhost\n' ;;
-  *"SELECT DATABASE"*) printf 'auth\n' ;;
+  *"SELECT DATABASE"*)
+    if [[ "${FAKE_MYSQL_MODE:-success}" == "bootstrap-admin" ]]; then
+      printf 'admin\n'
+    else
+      printf 'auth\n'
+    fi
+    ;;
   *"information_schema.schemata"*) printf '1\n' ;;
-  *"SHOW GRANTS FOR CURRENT_USER"*) printf 'GRANT RELOAD ON *.* TO `migration_user`@`localhost`\nGRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX, REFERENCES ON `auth`.* TO `migration_user`@`localhost` WITH GRANT OPTION\n' ;;
+  *"SHOW GRANTS FOR CURRENT_USER"*)
+    if [[ "${FAKE_MYSQL_MODE:-success}" == "bootstrap-admin" ]]; then
+      printf 'GRANT RELOAD ON *.* TO `migration_user`@`localhost`\nGRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX, REFERENCES ON `admin`.* TO `migration_user`@`localhost` WITH GRANT OPTION\n'
+    else
+      printf 'GRANT RELOAD ON *.* TO `migration_user`@`localhost`\nGRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX, REFERENCES ON `auth`.* TO `migration_user`@`localhost` WITH GRANT OPTION\n'
+    fi
+    ;;
   *) : ;;
 esac
 EOF
@@ -671,6 +698,31 @@ assert_contains "$baseline_marker" "args=flyway:baseline"
 assert_contains "$baseline_marker" "-Dflyway.baselineVersion=20260729140000"
 [[ "$(wc -l < "$MAVEN_MARKER")" == "1" ]] || {
   echo 'DEV-LOCAL baseline must invoke exactly one Flyway goal.' >&2
+  exit 1
+}
+rm -f "$MAVEN_MARKER"
+admin_baseline_output="$(env \
+  PATH="$FAKE_BIN:$PATH" \
+  ENV_FILE="$ENV_FILE" \
+  FAKE_MYSQL_MODE=bootstrap-admin \
+  DEV_LOCAL_OWNER_BASELINE=true \
+  DEV_LOCAL_OWNER_BASELINE_CONFIRM=I_UNDERSTAND_DEV_LOCAL_OWNER_BASELINE \
+  MIGRATION_SCHEMA=admin \
+  MIGRATION_DB_HOST=migration-host \
+  MIGRATION_DB_PORT=3306 \
+  MIGRATION_DB_NAME=admin \
+  MIGRATION_DB_USER=migration_user \
+  MIGRATION_DB_PASSWORD=secret \
+  MIGRATION_RUN_ID=admin-baseline-run \
+  "$ROOT_DIR/scripts/dev/migrate.sh" baseline 2>&1)"
+assert_contains "$admin_baseline_output" "DEV-LOCAL baseline preflight passed: schema=admin bootstrap=audit_outbox columns=10 baseline=20260729140100 rows=0"
+admin_baseline_marker="$(cat "$MAVEN_MARKER")"
+assert_contains "$admin_baseline_marker" "args=flyway:baseline"
+assert_contains "$admin_baseline_marker" "-Dflyway.baselineVersion=20260729140100"
+assert_contains "$admin_baseline_marker" "-Dflyway.configFiles=flyway-admin.conf"
+assert_contains "$admin_baseline_marker" "DB_HOST=migration-host DB_PORT=3306 DB_NAME=admin DB_USER=migration_user"
+[[ "$(wc -l < "$MAVEN_MARKER")" == "1" ]] || {
+  echo 'Admin DEV-LOCAL baseline must invoke exactly one Flyway goal.' >&2
   exit 1
 }
 rm -f "$MAVEN_MARKER"

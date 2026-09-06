@@ -11,11 +11,8 @@ fail() {
   exit 1
 }
 
-contains() {
-  local file="$1" text="$2"
-  grep -Fq -- "$text" "$ROOT_DIR/$file" \
-    || fail "$file is missing: $text"
-}
+# shellcheck source=scripts/test/lib/assertions.sh
+source "$ROOT_DIR/scripts/test/lib/assertions.sh"
 
 for config in \
   services/admin/src/main/java/com/ulticode/admin/config/AdminSchedulerConfiguration.java \

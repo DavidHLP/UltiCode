@@ -57,19 +57,8 @@ fail() {
   exit 1
 }
 
-contains() {
-  local file="$1" text="$2"
-  [[ -f "$ROOT_DIR/$file" ]] || fail "missing guarded file: $file"
-  grep -F -- "$text" "$ROOT_DIR/$file" >/dev/null \
-    || fail "$file does not contain: $text"
-}
-
-not_contains() {
-  local file="$1" text="$2"
-  [[ -f "$ROOT_DIR/$file" ]] || fail "missing guarded file: $file"
-  ! grep -F -- "$text" "$ROOT_DIR/$file" >/dev/null \
-    || fail "$file contains stale or bypass text: $text"
-}
+# shellcheck source=scripts/test/lib/assertions.sh
+source "$ROOT_DIR/scripts/test/lib/assertions.sh"
 
 assert_absent() {
   local file="$1"
@@ -294,10 +283,11 @@ done
 
 not_contains scripts/dev/doctor.sh 'pm2 start ecosystem.config.cjs'
 
-# The root-level start/stop compatibility aliases are deleted; only the
-# pitstop Windows adapter (still consumed by pitstop.yaml) remains at the root.
-for stale_alias in scripts/start.sh scripts/stop.sh scripts/start.bat scripts/stop.bat; do
-  [[ ! -e "$ROOT_DIR/$stale_alias" ]] || fail "stale root-level alias still present: $stale_alias"
+# Retired aliases and the obsolete three-service experiment must stay absent;
+# the pitstop Windows adapter is still consumed by pitstop.yaml.
+for stale_alias in scripts/start.sh scripts/stop.sh scripts/start.bat scripts/stop.bat \
+  services/scripts/dev/start-service-shells.sh; do
+  [[ ! -e "$ROOT_DIR/$stale_alias" ]] || fail "retired launcher still present: $stale_alias"
 done
 contains scripts/pitstop-start-backend.ps1 'scripts/dev/up.sh'
 contains scripts/dev/stop.sh 'pm2 delete'
@@ -507,7 +497,7 @@ contains init-db/flyway-post-owner.conf 'flyway.baselineOnMigrate=true'
 contains scripts/dev/up.sh 'migrate-post-owner.sh'
 contains scripts/dev/migrate-post-owner.sh 'flyway-post-owner.conf'
 contains init-db/scripts/generate-baseline.sh 'flyway_post_owner_history'
-contains init-db/scripts/validate-baseline.sh 'flyway_post_owner_history'
+contains init-db/scripts/validate-baseline.sh '"$ROOT/init-db/scripts/generate-baseline.sh" "$TMP_DUMP"'
 contains scripts/runbooks/owner-backup-restore.sh 'OWNER_SCHEMAS=(auth admin app notification submission)'
 contains scripts/runbooks/owner-backup-restore.sh 'openssl enc -aes-256-cbc -salt -pbkdf2'
 contains scripts/runbooks/owner-backup-restore.sh 'flock -n'

@@ -13,17 +13,8 @@ fail() {
   exit 1
 }
 
-contains() {
-  local file="$1" text="$2"
-  grep -Fq -- "$text" "$ROOT_DIR/$file" \
-    || fail "$file is missing: $text"
-}
-
-not_contains() {
-  local file="$1" text="$2"
-  ! grep -Fq -- "$text" "$ROOT_DIR/$file" \
-    || fail "$file contains forbidden text: $text"
-}
+# shellcheck source=scripts/test/lib/assertions.sh
+source "$ROOT_DIR/scripts/test/lib/assertions.sh"
 
 [[ -x "$POLICY" ]] || fail "image-reference-policy.sh is not executable"
 

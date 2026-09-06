@@ -9,19 +9,8 @@ fail() {
   exit 1
 }
 
-contains() {
-  local file="$1" text="$2"
-  [[ -f "$ROOT_DIR/$file" ]] || fail "missing file: $file"
-  grep -F -- "$text" "$ROOT_DIR/$file" >/dev/null \
-    || fail "$file does not contain: $text"
-}
-
-not_contains() {
-  local file="$1" text="$2"
-  [[ -f "$ROOT_DIR/$file" ]] || fail "missing file: $file"
-  ! grep -F -- "$text" "$ROOT_DIR/$file" >/dev/null \
-    || fail "$file contains forbidden value: $text"
-}
+# shellcheck source=scripts/test/lib/assertions.sh
+source "$ROOT_DIR/scripts/test/lib/assertions.sh"
 
 [[ -f "$COMPOSE_FILE" ]] || fail "missing production Compose override"
 contains docker-compose.prod.yml 'DUBBO_MTLS_CERT_DIR:?DUBBO_MTLS_CERT_DIR is required'

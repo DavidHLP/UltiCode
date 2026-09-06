@@ -17,17 +17,8 @@ fail() {
   exit 1
 }
 
-contains() {
-  local file="$1" text="$2"
-  [[ -f "$ROOT_DIR/$file" ]] || fail "missing source: $file"
-  grep -Fq -- "$text" "$ROOT_DIR/$file" || fail "$file is missing: $text"
-}
-
-not_contains() {
-  local file="$1" text="$2"
-  [[ -f "$ROOT_DIR/$file" ]] || fail "missing source: $file"
-  ! grep -Fq -- "$text" "$ROOT_DIR/$file" || fail "$file contains forbidden value: $text"
-}
+# shellcheck source=scripts/test/lib/assertions.sh
+source "$ROOT_DIR/scripts/test/lib/assertions.sh"
 
 contains docker-compose.prod.yml 'DOCKER_HOST=${JUDGE_DOCKER_HOST:?JUDGE_DOCKER_HOST is required for production sandbox}'
 contains docker-compose.prod.yml 'DOCKER_TLS_VERIFY=1'

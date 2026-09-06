@@ -21,6 +21,11 @@ After any schema migration is added to `migrations/`:
 
 The generator starts a disposable MySQL, runs the full Flyway chain, dumps `--no-data` schema, and writes `baseline.sql`. No applied migration file is touched.
 
+`validate-baseline.sh` uses that same generator with a temporary output, then
+compares schema/table pairs and rejects leaked Flyway history. It leaves the
+checked-in baseline untouched and works from any current directory. Generation
+owns container cleanup; validation owns its temporary comparison files.
+
 ## Fresh-install Usage
 
 **Standard (always supported):**

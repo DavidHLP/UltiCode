@@ -11,16 +11,8 @@ fail() {
   exit 1
 }
 
-contains() {
-  local file="$1" text="$2"
-  [[ -f "$ROOT_DIR/$file" ]] || fail "missing source: $file"
-  grep -Fq -- "$text" "$ROOT_DIR/$file" || fail "$file is missing: $text"
-}
-
-not_contains() {
-  local file="$1" text="$2"
-  ! grep -Fq -- "$text" "$ROOT_DIR/$file" || fail "$file must not contain: $text"
-}
+# shellcheck source=scripts/test/lib/assertions.sh
+source "$ROOT_DIR/scripts/test/lib/assertions.sh"
 
 for source in \
   services/platform/integration-inbox/src/main/java/com/ulticode/modules/event/inbox/InboxConsumer.java \

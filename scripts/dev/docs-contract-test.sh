@@ -15,19 +15,8 @@ fail() {
   exit 1
 }
 
-contains() {
-  local file="$1" text="$2"
-  [[ -f "$ROOT_DIR/$file" ]] || fail "missing guarded file: $file"
-  grep -F -- "$text" "$ROOT_DIR/$file" >/dev/null \
-    || fail "$file does not contain: $text"
-}
-
-not_contains() {
-  local file="$1" text="$2"
-  [[ -f "$ROOT_DIR/$file" ]] || fail "missing guarded file: $file"
-  ! grep -F -- "$text" "$ROOT_DIR/$file" >/dev/null \
-    || fail "$file contains stale or bypass text: $text"
-}
+# shellcheck source=scripts/test/lib/assertions.sh
+source "$ROOT_DIR/scripts/test/lib/assertions.sh"
 
 not_contains README.md 'pm2 start ecosystem.config.cjs'
 not_contains README.md 'pm2 restart ulticode-auth ulticode-admin'

@@ -12,23 +12,8 @@ fail() {
   exit 1
 }
 
-contains() {
-  local file="$1" text="$2"
-  [[ -f "$ROOT_DIR/$file" ]] || fail "missing source: $file"
-  grep -Fq -- "$text" "$ROOT_DIR/$file" || fail "$file is missing: $text"
-}
-
-not_contains() {
-  local file="$1" text="$2"
-  [[ -f "$ROOT_DIR/$file" ]] || fail "missing source: $file"
-  local status=0
-  grep -Fq -- "$text" "$ROOT_DIR/$file" || status=$?
-  if (( status == 0 )); then
-    fail "$file contains implementation dependency: $text"
-  elif (( status != 1 )); then
-    fail "could not inspect $file while checking for: $text (grep exit $status)"
-  fi
-}
+# shellcheck source=scripts/test/lib/assertions.sh
+source "$ROOT_DIR/scripts/test/lib/assertions.sh"
 
 admin_api_dir="$ROOT_DIR/services/api/admin-api"
 if [[ -L "$admin_api_dir" || ( -e "$admin_api_dir" && ! -d "$admin_api_dir" ) ]]; then

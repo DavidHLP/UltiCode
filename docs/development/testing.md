@@ -13,6 +13,8 @@
 
 `static` 不调用 Docker、数据库、服务、Testcontainers、Maven verify 或 `pnpm install`，可用 deny-shim 自证（见 `scripts/test/zero-infra-validation-contract.sh`）；缺 shellcheck 等可选工具时跳过并提示。`full-local` 保留原 `quick` 的完整覆盖（MySQL/Redis、owner migration、Maven verify/JaCoCo、Console/Management coverage 与类型检查）。`full` 追加前端构建、i18n 与依赖审计；`integration` 追加 Testcontainers、数据库/Redis/Sandbox 相关集成测试。后端 `unit` 使用根 POM 的 `unit` profile（Surefire 排除 `*IT`/`*IntegrationTest` 含嵌套类，不传 `-Dtest` 选择器）；wrapper 剥离基础设施凭据并以 deny 环境实证（deny 运行 5786 测试零失败、零 Testcontainers、零 IT），零基础设施自证见 `scripts/test/zero-infra-validation-contract.sh`（含 unit deny 阶段）。具体阶段由 `scripts/dev/test.sh` 实现，不在本页复制脚本内部逻辑。
 
+Shell 工具的文件断言和基线编排可单独运行 `bash scripts/test/shell-tooling-contract.sh`，也包含在 `static` 中。该测试使用临时文件和 Docker 替身检查失败传播、清理及基线不变性，不连接 Docker daemon 或真实数据库；真实迁移效果仍由基线和集成门禁验证。
+
 ## Core 与 distributed 验证边界
 
 | 层级 | 环境/副作用 | 能证明什么 | 明确不能证明 |

@@ -206,6 +206,7 @@ run_continuation_guard() {
 
 run_static_guardrails() {
   local static_only="$1"
+  bash "$ROOT_DIR/scripts/test/shell-tooling-contract.sh"
   run_architecture_contract "$static_only"
   run_theme_checks
   run_shell_analysis

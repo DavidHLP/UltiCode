@@ -8,9 +8,8 @@ fail() {
   exit 1
 }
 
-contains() {
-  grep -F -- "$2" "$ROOT_DIR/$1" >/dev/null || fail "$1 missing: $2"
-}
+# shellcheck source=scripts/test/lib/assertions.sh
+source "$ROOT_DIR/scripts/test/lib/assertions.sh"
 
 [[ -f "$ROOT_DIR/services/core/pom.xml" ]] || fail 'Core Maven module missing'
 [[ -f "$ROOT_DIR/services/core/src/main/java/com/ulticode/core/CoreApplication.java" ]] \

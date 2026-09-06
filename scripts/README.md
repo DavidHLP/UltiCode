@@ -25,11 +25,18 @@ local startup/verification entry points live in `scripts/dev/`.
   `docs/` / CONTEXT wording). Invoked by the architecture gate.
 - `devstack-manifest-test.sh` — locks the manifest data consumed by
   `up.sh`/`stop.sh`.
+- `scripts/test/shell-tooling-contract.sh` — temporary-file/fake-Docker checks
+  for literal assertions and baseline generation/comparison; included in static.
 - `migrate-owner-preflight-test.sh` — fast fake-binary suite for
   `migrate.sh`; runs in every quick/full gate.
 - `owner-migration-safety-integration-test.sh` — disposable MySQL/Redis
   permission/grant isolation suite; runs in `test.sh integration`.
 - shellcheck runs over `scripts/**/*.sh` when installed.
+
+Source/config contracts reuse `scripts/test/lib/assertions.sh` for literal
+`contains`/`not_contains` checks; each suite retains its own `fail` message and
+execution policy. Missing files and read errors fail both assertions. The
+helper does not load `.env`, install tools, or run infrastructure.
 
 ## scripts/dev/lib/ — shared shell library
 
@@ -103,6 +110,10 @@ Dubbo metadata; it does not require an interface-level provider service.
 ## Other
 
 - `security/bootstrap-nacos-user.sh` — opt-in Nacos administrator and per-service registry-user provisioning.
+- The retired `services/scripts/dev/start-service-shells.sh` experiment used
+  obsolete JAR paths, unauthenticated Nacos, and Actuator probes. Use `dev/up.sh`
+  for local startup and `test/dubbo-nacos-smoke.sh` for disposable registration
+  verification.
 - `pitstop-start-backend.ps1` — Windows pitstop adapter delegating to
   `scripts/dev/up.sh --no-frontend` (consumed by `pitstop.yaml`).
 - [`statusline/README.md`](statusline/README.md) — Claude Code statusline configuration and design reference.

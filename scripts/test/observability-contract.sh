@@ -13,11 +13,8 @@ fail() {
   exit 1
 }
 
-contains() {
-  local file="$1" text="$2"
-  grep -Fq -- "$text" "$ROOT_DIR/$file" \
-    || fail "$file is missing: $text"
-}
+# shellcheck source=scripts/test/lib/assertions.sh
+source "$ROOT_DIR/scripts/test/lib/assertions.sh"
 
 [[ -d "$OBS_DIR" ]] || fail "observability config directory is missing"
 [[ -f "$COMPOSE_FILE" ]] || fail "observability Compose overlay is missing"

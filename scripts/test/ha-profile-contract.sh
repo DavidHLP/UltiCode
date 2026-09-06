@@ -14,19 +14,8 @@ fail() {
 
 external_blocked=0
 
-contains() {
-  local file="$1" text="$2"
-  [[ -f "$ROOT_DIR/$file" ]] || fail "missing guarded file: $file"
-  grep -F -- "$text" "$ROOT_DIR/$file" >/dev/null \
-    || fail "$file does not contain: $text"
-}
-
-not_contains() {
-  local file="$1" text="$2"
-  [[ -f "$ROOT_DIR/$file" ]] || fail "missing guarded file: $file"
-  ! grep -F -- "$text" "$ROOT_DIR/$file" >/dev/null \
-    || fail "$file contains forbidden HA shortcut: $text"
-}
+# shellcheck source=scripts/test/lib/assertions.sh
+source "$ROOT_DIR/scripts/test/lib/assertions.sh"
 
 [[ -f "$COMPOSE_HA" ]] || fail "missing docker-compose.ha.yml"
 contains docker-compose.ha.yml 'profiles: [ha]'

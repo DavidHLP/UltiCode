@@ -193,7 +193,9 @@ column_names() {
   local schema="$1" table="$2"
   mysql_query "SELECT COLUMN_NAME FROM information_schema.columns
     WHERE table_schema = '$schema' AND table_name = '$table'
-      AND (extra IS NULL OR extra NOT LIKE '%GENERATED%')
+      AND (extra IS NULL
+           OR (extra NOT LIKE '%VIRTUAL GENERATED%'
+               AND extra NOT LIKE '%STORED GENERATED%'))
     ORDER BY ordinal_position;"
 }
 

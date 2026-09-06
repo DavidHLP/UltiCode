@@ -16,7 +16,7 @@ declare -rA NACOS_OWNER_METADATA_PREFIX=(
   [JUDGE]='com.ulticode.judge'
 )
 NACOS_PERMISSION_RESOURCE_MAX_LENGTH=128
-NACOS_LONGEST_RESOURCE_SUFFIX=':DEFAULT_GROUP:naming/providers:com.ulticode.notification*'
+NACOS_LONGEST_RESOURCE_SUFFIX=':DUBBO_SERVICEDISCOVERY_MIGRATION:config/backend-notification.migration'
 NACOS_RESOURCE_NAMESPACE="${DUBBO_NAMESPACE:-${NACOS_NAMESPACE:-}}"
 [[ "$NACOS_RESOURCE_NAMESPACE" =~ ^[A-Za-z0-9._-]{1,128}$ ]] || {
   echo "DUBBO_NAMESPACE or NACOS_NAMESPACE must be a safe non-empty namespace id" >&2
@@ -107,6 +107,7 @@ provision_service_sql() {
   local config_default_resource="${NACOS_RESOURCE_NAMESPACE}:DEFAULT_GROUP:config/*"
   local config_dubbo_resource="${NACOS_RESOURCE_NAMESPACE}:dubbo:config/*"
   local config_application_resource="${NACOS_RESOURCE_NAMESPACE}:backend-${prefix,,}:config/*"
+  local config_migration_resource="${NACOS_RESOURCE_NAMESPACE}:DUBBO_SERVICEDISCOVERY_MIGRATION:config/backend-${prefix,,}.migration"
   local config_test_default_resource=":Dubbo-Nacos-Test:config/*"
   local naming_read_resource="${NACOS_RESOURCE_NAMESPACE}:DEFAULT_GROUP:naming/*"
   local naming_app_write_resource="${NACOS_RESOURCE_NAMESPACE}:DEFAULT_GROUP:naming/backend-${prefix,,}"
@@ -126,6 +127,7 @@ INSERT INTO permissions (role, resource, action) VALUES
   ('$role', '$config_default_resource', 'r'),
   ('$role', '$config_dubbo_resource', 'r'),
   ('$role', '$config_application_resource', 'r'),
+  ('$role', '$config_migration_resource', 'r'),
   ('$role', '$metadata_read_resource', 'r'),
   ('$role', '$metadata_write_resource', 'w'),
   ('$role', '$metadata_empty_read_resource', 'r'),

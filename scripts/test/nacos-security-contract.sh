@@ -48,9 +48,9 @@ for owner in AUTH ADMIN APP SUBMISSION NOTIFICATION JUDGE; do
     || { echo "Nacos metadata owner prefix is missing: $owner" >&2; exit 1; }
 done
 grep -Fq 'NACOS_RESOURCE_NAMESPACE=' "$ROOT_DIR/scripts/security/bootstrap-nacos-user.sh"
-grep -Fq "NACOS_LONGEST_RESOURCE_SUFFIX=':DEFAULT_GROUP:naming/providers:com.ulticode.notification*'" \
+grep -Fq "NACOS_LONGEST_RESOURCE_SUFFIX=':DUBBO_SERVICEDISCOVERY_MIGRATION:config/backend-notification.migration'" \
   "$ROOT_DIR/scripts/security/bootstrap-nacos-user.sh"
-for resource in ':Dubbo-Nacos-Test:config/*' ':DEFAULT_GROUP:config/*' ':dubbo:config/*' ':backend-${prefix,,}:config/*' \
+for resource in ':Dubbo-Nacos-Test:config/*' ':DEFAULT_GROUP:config/*' ':dubbo:config/*' ':backend-${prefix,,}:config/*' ':DUBBO_SERVICEDISCOVERY_MIGRATION:config/backend-${prefix,,}.migration' \
   ':mapping:config/*' ':mapping:config/' \
   ':DEFAULT_GROUP:naming/*' ':DEFAULT_GROUP:naming/backend-' ':DEFAULT_GROUP:naming/providers:'; do
   grep -Fq -- "$resource" "$ROOT_DIR/scripts/security/bootstrap-nacos-user.sh" \
@@ -66,6 +66,7 @@ for permission in \
   "\$config_default_resource', 'r'" \
   "\$config_dubbo_resource', 'r'" \
   "\$config_application_resource', 'r'" \
+  "\$config_migration_resource', 'r'" \
   "\$metadata_read_resource', 'r'" \
   "\$metadata_write_resource', 'w'" \
   "\$metadata_empty_read_resource', 'r'" \
@@ -83,11 +84,13 @@ for permission in \
   "\$config_default_resource', 'w'" \
   "\$config_dubbo_resource', 'w'" \
   "\$config_application_resource', 'w'" \
+  "\$config_migration_resource', 'w'" \
   "\$naming_read_resource', 'w'" \
   "\$config_test_resource', 'rw'" \
   "\$config_test_default_resource', 'rw'" \
   "\$config_dubbo_resource', 'rw'" \
   "\$config_application_resource', 'rw'" \
+  "\$config_migration_resource', 'rw'" \
   "\$metadata_read_resource', 'w'" \
   "\$metadata_read_resource', 'rw'" \
   "\$metadata_empty_read_resource', 'w'" \

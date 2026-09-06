@@ -23,7 +23,6 @@ spring:
       url: ${APP_REDIS_URL:redis://${REDIS_USERNAME:}:${REDIS_PASSWORD:}@${REDIS_HOST:localhost}:${REDIS_PORT:26379}/${REDIS_DB:0}}
       ssl:
         enabled: ${APP_REDIS_SSL_ENABLED:false}
-        bundle: ${APP_REDIS_SSL_BUNDLE:}
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:26379}
       username: ${REDIS_USERNAME:}

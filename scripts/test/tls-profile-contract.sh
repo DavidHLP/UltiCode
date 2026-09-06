@@ -66,11 +66,13 @@ for spec in \
   read -r config prefix <<< "$spec"
   url_key="url: \${${prefix}_REDIS_URL:"
   enabled_key="enabled: \${${prefix}_REDIS_SSL_ENABLED:false}"
-  bundle_key="bundle: \${${prefix}_REDIS_SSL_BUNDLE:"
   grep -Fq "$url_key" "$ROOT_DIR/$config"
   grep -Fq "$enabled_key" "$ROOT_DIR/$config"
-  grep -Fq "$bundle_key" "$ROOT_DIR/$config"
+  ! grep -Fq "bundle: \${${prefix}_REDIS_SSL_BUNDLE:" "$ROOT_DIR/$config"
 done
+[[ "$(grep -Fc -- '- SPRING_DATA_REDIS_SSL_BUNDLE' "$ROOT_DIR/docker-compose.prod.yml")" -eq 7 ]]
+! grep -Fq 'SPRING_DATA_REDIS_SSL_BUNDLE=' "$ROOT_DIR/docker-compose.prod.yml"
+grep -Fq '#SPRING_DATA_REDIS_SSL_BUNDLE=managed-redis' "$ROOT_DIR/.env.example"
 grep -Fq 'address: "${AUTH_REDIS_URL:' "$ROOT_DIR/services/auth/src/main/resources/application.yml"
 grep -Fq 'sslEnableEndpointIdentification:' "$ROOT_DIR/services/auth/src/main/resources/application.yml"
 grep -Fq 'AUTH_REDIS_SSL_TRUSTSTORE=${AUTH_REDIS_SSL_TRUSTSTORE:-}' "$ROOT_DIR/docker-compose.prod.yml"

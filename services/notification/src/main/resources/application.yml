@@ -30,7 +30,6 @@ spring:
       url: ${NOTIFICATION_REDIS_URL:redis://${REDIS_USERNAME:}:${REDIS_PASSWORD:}@${REDIS_HOST:localhost}:${REDIS_PORT:26379}/${REDIS_DB:0}}
       ssl:
         enabled: ${NOTIFICATION_REDIS_SSL_ENABLED:false}
-        bundle: ${NOTIFICATION_REDIS_SSL_BUNDLE:}
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:26379}
       # Per-owner Redis ACL user (review 2026-08-25). Empty default keeps

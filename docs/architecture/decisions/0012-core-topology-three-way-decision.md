@@ -2,8 +2,8 @@
 
 - **Status:** RETAIN_TEMPORARILY_WITH_EXPIRY
 - **Date:** 2026-09-05
-- **Decides:** P2-TOPOLOGY-002 / P2-TOPOLOGY-003 — whether to keep, retain-with-expiry,
-  or remove the Core child-context experiment.
+- **Decides:** whether to keep, retain-with-expiry, or remove the Core child-context
+  experiment.
 
 ## Context
 
@@ -16,9 +16,10 @@ and the remaining registered modules stay disabled.
 `CoreOwnerClassLoaders` remains a parent-first lifecycle/TCCL helper. It is not
 class/resource isolation and does not prove sibling implementation invisibility.
 The Core parent exposes `/api/v1/core/health/ready` only; child contexts are
-non-Web. `CoreLocalAdapterWiringTest` proves one real Admin consumer injects the
-local identity contract with a mocked Auth contract. No disposable enabled-owner
-boot or business journey has been run.
+non-Web. `CoreLocalAdapterWiringTest` proves the real Admin identity consumer and
+the permission-mutation path through explicitly registered local account-query and
+mutation seams, using mocked Auth providers. No disposable enabled-owner boot or
+business journey has been run.
 
 ## Three-way decision
 

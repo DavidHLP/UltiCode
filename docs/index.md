@@ -31,7 +31,8 @@
 - [架构总览](architecture/overview.md)：五个 Data Owner、两个 Worker、运行拓扑和当前收敛状态。
 - [模块与所有权](architecture/modules.md)：Owner/Worker 职责、服务边界、共享代码政策。
 - [数据流与契约](architecture/data-flow.md)：请求链、Owner 数据、Dubbo、事务和异步可靠性。
-- [本轮架构整改计划](architecture/plans/ulticode-topology-contract-module-convergence-plan.md)：Core 条件实验、拓扑收敛、Contract 所有权、Admin 深 Module、App 内部 Locality 和零基础设施验证的唯一任务计划。
+- [拓扑收敛与 Contract 所有权](architecture/decisions/0011-topology-contract-module-convergence.md)：distributed 默认、Owner/Contract 边界、Admin 深 Module 和 App 内部 Locality 的长期设计依据。
+- [Core 三路去留决策](architecture/decisions/0012-core-topology-three-way-decision.md)：Auth/Admin allowlist、readiness-only 边界、保留期限和删除回退条件。
 - [安全架构](architecture/security.md)：Cookie、CSRF、JWT/JWKS、委托身份和 WebSocket 信任边界。
 - [ADR 索引](architecture/decisions/README.md)：不可逆或需要持续记忆的设计决定。
 

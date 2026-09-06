@@ -104,6 +104,15 @@ git diff --check
 
 Do not use `/actuator/health` as a readiness check; Actuator is not exposed. Use the existing public API, frontend roots, PM2 state, and container health checks.
 
+## Test deployment and remote access
+
+- Apply this section only when the task explicitly requests remote testing, deployment, or tunnel access. Resolve the remote host, checkout, branch, and ports from the current environment; otherwise follow the repository's normal local entry points.
+- Before remote execution, read [`docs/development/local-setup.md`](docs/development/local-setup.md), [`docs/development/testing.md`](docs/development/testing.md), and [`docs/operations/deployment.md`](docs/operations/deployment.md); use their supported `scripts/dev/*` and manifest entry points.
+- For data backfill or cutover runbooks, perform the source/target, checksum, outbox, and writer checks required by that runbook; only for Submission cutover update its marker after verification passes. Pure schema migrations follow their migration gate and do not require a cutover marker.
+- For personal local access to a remote test stack, prefer SSH local port forwarding. Use a Cloudflare Quick Tunnel only when public or cross-device access is explicitly required; scope it to frontend entries, protect administrative surfaces, and remove it after testing.
+- Treat explicit exit codes, readiness responses, parsed PM2 state, and Compose health as separate evidence. Process `online` or container `healthy` alone is not a complete deployment proof.
+- Keep dynamic URLs, container names, test counts, commit IDs, temporary failures, and runtime logs out of this file; record current evidence only in the task report or the canonical document that owns it.
+
 ## Git and external actions
 
 - Review `git diff` and `git diff --check` before completion. Use conventional commit subjects: `<type>: <description>`.

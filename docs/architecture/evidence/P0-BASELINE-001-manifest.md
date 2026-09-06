@@ -6,8 +6,8 @@
 > investigation_commit: 6f97e6d5fee65e3ecf1cbc4e086336dd870606d5
 > persistence_head: 55b541bf82f7c060ae7eec236b42fc8e0c496b47
 > branch: fix/architecture-remediation
-> plan: docs/architecture/plans/ulticode-architecture-followup-plan.md
-> tasks: .agent/tasks/ulticode-architecture-followup/TASKS.yaml (43 tasks, P0-P6, DAG acyclic)
+> plan: historical follow-up plan, retired 2026-09-06; current status is carried by `docs/project/current-status.md`, ADR-0012 and SVC-025
+> tasks: historical local ledger, retired 2026-09-06 after reconciliation; it was not a current evidence source
 
 ## Fact Priority (code > tests/gates > POM/Compose/scripts > current-status > ADR > SERVICES_ISSUES > historical)
 
@@ -65,4 +65,3 @@
 ## Evidence Level
 
 - Repository Implemented + Disposable Validatable (no production evidence claimed; excluded_scope: production-deployment-evidence)
-

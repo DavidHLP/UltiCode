@@ -1,6 +1,6 @@
 # `services/` 问题清单
 
-更新时间：2026-09-04
+更新时间：2026-09-06
 
 本文件是 `services/` 微服务架构问题、评审 Finding、修复状态与可选外部运行触发条件的唯一入口。其他文档只能链接到本文件，不得复制问题正文或维护第二份状态。
 
@@ -28,7 +28,7 @@ App interface locality 已闭环；Core 的边界与未完成门禁见 SVC-025�
 
 项目当前没有生产环境，是正在开发的开源项目。仓库内的生产 profile 只描述安全边界；凡是可复现的运行行为统一使用短时、隔离、可销毁的 disposable 模拟环境验证，不把模拟结果写成生产证据。不为形式上的“企业级”提前引入 Kubernetes、Service Mesh、新 MQ 或分布式事务框架。
 
-本轮拓扑、Contract 和深 Module 整改的唯一任务计划见[`docs/architecture/plans/ulticode-topology-contract-module-convergence-plan.md`](../../docs/architecture/plans/ulticode-topology-contract-module-convergence-plan.md)。该计划不会把本文件的 issue 状态复制成第二份任务账本；本文件继续只承载当前 issue 状态和 SVC-025 的关闭条件。
+本轮拓扑与 Contract 的长期设计依据见 [`ADR-0011`](../../docs/architecture/decisions/0011-topology-contract-module-convergence.md)，Core 三路结果与 expiry 见 [`ADR-0012`](../../docs/architecture/decisions/0012-core-topology-three-way-decision.md)。本文件是当前 issue 状态和 SVC-025 关闭条件的唯一入口；已完成的执行计划、台账和检查点不作为当前证据。
 
 ## OPEN
 
@@ -42,8 +42,9 @@ MapperScan、非 Web Owner child contexts、9108 readiness 和独立 Judge
 进程。`CoreModuleRegistry` 仅启用 Auth/Admin；App/Submission/Notification/
 Search 保持 `DISABLED`。G1/G2、parent smoke、readiness fail-closed、生命周期
 close-once 和本地断言载体已有仓库证据；Admin child 的显式 local contract
-registration 与 `AccountReadAdapter` identity wiring 有单测。该测试使用
-mock Auth contract，不是完整 child boot 或 disposable evidence。
+registration 与 `AccountReadAdapter` identity wiring、`UserPermissionServiceImpl`
+通过 account-query/mutation seams 的合法 grant 都有单测。该测试使用 mock
+Auth contract，不是完整 child boot 或 disposable evidence。
 
 证据：[`services/core`](../core/)、[`core-profile-contract.sh`](../../scripts/test/core-profile-contract.sh)、
 [`CoreApplicationSmokeTest`](../core/src/test/java/com/ulticode/core/CoreApplicationSmokeTest.java)、

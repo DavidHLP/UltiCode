@@ -99,5 +99,5 @@ GitLab runner 仍被外部使用的部署 authority 确认（U-01）。只有部
 - Architecture map：[`../architecture/overview.md`](../architecture/overview.md)
 - Operational procedures：[`../operations/`](../operations/deployment.md)
 - HA/reference topology 决策：[`../architecture/decisions/0001-deferred-platform-expansion.md`](../architecture/decisions/0001-deferred-platform-expansion.md)
-- Core + Judge 收敛阻塞证据：[`ADR-0010`](../architecture/decisions/0010-core-judge-convergence-blockers.md)（SVC-025 仍 OPEN，Core 不是默认拓扑）。
-- Follow-up plan：[`../architecture/plans/ulticode-architecture-followup-plan.md`](../architecture/plans/ulticode-architecture-followup-plan.md)（本轮唯一任务计划与执行结果入口，任务状态以 `.agent/tasks/ulticode-architecture-followup/TASKS.yaml` 为准）。本轮保持 distributed default；Core 为 Auth/Admin allowlist 的 bounded opt-in testbed，expiry 为 2026-10-06。
+- Core + Judge 收敛阻塞证据：[`ADR-0010`](../architecture/decisions/0010-core-judge-convergence-blockers.md)；当前 OPEN 项与关闭条件以 [`SVC-025`](../../services/docs/SERVICES_ISSUES.md#svc-025-core-profile-local-parity) 为准，Core 不是默认拓扑。
+- Core 三路决策：[`ADR-0012`](../architecture/decisions/0012-core-topology-three-way-decision.md)。本轮保持 distributed default；Core 为 Auth/Admin allowlist 的 bounded opt-in testbed，expiry 为 2026-10-06，不能通过状态编辑自动续期。

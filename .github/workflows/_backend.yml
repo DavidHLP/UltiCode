@@ -29,7 +29,7 @@ jobs:
           node-version: '22.x'
 
       - name: Run zero-infrastructure validation contract
-        run: bash scripts/test/zero-infra-validation-contract.sh
+        run: bash scripts/test/zero-infra-validation-contract.sh --static-only
 
   backend-build:
     name: Backend Build

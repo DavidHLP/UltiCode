@@ -4,6 +4,12 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 WRAPPER="$ROOT_DIR/scripts/dev/test.sh"
 
+case "${1:-}" in
+  ''|--static-only) ;;
+  *) echo 'Usage: zero-infra-validation-contract.sh [--static-only]' >&2; exit 2 ;;
+esac
+[[ $# -le 1 ]] || { echo 'Expected at most one argument' >&2; exit 2; }
+
 fail() {
   echo "zero-infra-validation-contract: FAIL: $*" >&2
   exit 1
@@ -122,23 +128,27 @@ run_unit_deny() {
 # Generated coverage HTML (from earlier full-local/coverage runs) is ignored
 # but scanned by the design-system color contract; remove it so the unit gate
 # runs against the same clean state CI would have.
-rm -rf "$ROOT_DIR"/apps/*/coverage "$ROOT_DIR"/apps/*/src/coverage \
-  "$ROOT_DIR"/packages/*/coverage "$ROOT_DIR"/packages/*/src/coverage
+if [[ "${1:-}" != --static-only ]]; then
+  rm -rf "$ROOT_DIR"/apps/*/coverage "$ROOT_DIR"/apps/*/src/coverage \
+    "$ROOT_DIR"/packages/*/coverage "$ROOT_DIR"/packages/*/src/coverage
 
-git -C "$ROOT_DIR" diff --binary -- . >"$BEFORE_DIFF"
-run_unit_deny 0 || fail "test.sh unit used a forbidden command or failed"
-git -C "$ROOT_DIR" diff --binary -- . >"$AFTER_DIFF"
-cmp -s "$BEFORE_DIFF" "$AFTER_DIFF" \
-  || fail "unit validation modified tracked files"
-grep -Fq "Running backend unit tests (-Punit" "$TEST_DIR/unit-0.log" \
-  || fail "unit mode did not run the -Punit backend gate"
-grep -Fq -- "-Punit" "$TEST_DIR/unit-0.log" \
-  || fail "unit backend command did not activate the unit profile"
-if grep -Eq "Testcontainers|Ryuk|Running com\\.ulticode\\.[A-Za-z0-9_.]*(IT|IntegrationTest)\\b" \
-  "$TEST_DIR/unit-0.log"; then
-  fail "unit run executed an integration-flavoured suite"
+  git -C "$ROOT_DIR" diff --binary -- . >"$BEFORE_DIFF"
+  run_unit_deny 0 || fail "test.sh unit used a forbidden command or failed"
+  git -C "$ROOT_DIR" diff --binary -- . >"$AFTER_DIFF"
+  cmp -s "$BEFORE_DIFF" "$AFTER_DIFF" \
+    || fail "unit validation modified tracked files"
+  grep -Fq "Running backend unit tests (-Punit" "$TEST_DIR/unit-0.log" \
+    || fail "unit mode did not run the -Punit backend gate"
+  grep -Fq -- "-Punit" "$TEST_DIR/unit-0.log" \
+    || fail "unit backend command did not activate the unit profile"
+  if grep -Eq "Testcontainers|Ryuk|Running com\\.ulticode\\.[A-Za-z0-9_.]*(IT|IntegrationTest)\\b" \
+    "$TEST_DIR/unit-0.log"; then
+    fail "unit run executed an integration-flavoured suite"
+  fi
+  printf 'test.sh unit: PASS (deny-shim PATH, -Punit, no *IT, no tracked-file change)\n'
+else
+  printf 'test.sh unit: skipped (--static-only; run without arguments for unit deny proof)\n'
 fi
-printf 'test.sh unit: PASS (deny-shim PATH, -Punit, no *IT, no tracked-file change)\n'
 
 # The marker makes the same shims fail closed if a forbidden command is ever
 # reached. Running static with it must still pass while the deny log stays empty.

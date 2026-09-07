@@ -208,7 +208,7 @@ jobs:
           PY
 
       - name: Upload japicmp reports
-        if: always()
+        if: ${{ always() && steps.baseline_contracts.outputs.has_standalone_contracts == 'true' && steps.baseline_contracts.outputs.breaking_release != 'true' }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: japicmp-reports

@@ -11,12 +11,13 @@ import lombok.Builder;
 public class QueueHealthSnapshotDTO implements Serializable {
     private static final long serialVersionUID = 1L;
     private String queueName;
-    private long waitingDepth = 0L;
-    private long failedCount = 0L;
-    private long completedCount = 0L;
+    private long waitingDepth;
+    private long failedCount;
+    private long completedCount;
+    @Builder.Default
     private ProbeStatus probeStatus = ProbeStatus.OK;
 
-    public QueueHealthSnapshotDTO() {}
+    public QueueHealthSnapshotDTO() { this.probeStatus = ProbeStatus.OK; }
 
     public QueueHealthSnapshotDTO(String queueName, long waitingDepth, long failedCount,
                                    long completedCount, ProbeStatus probeStatus) {

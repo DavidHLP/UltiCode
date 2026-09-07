@@ -27,13 +27,14 @@ docker run -d --rm --name "$SOURCE_CONTAINER" \
   -e "MYSQL_ROOT_PASSWORD=$ROOT_PASSWORD" -e MYSQL_DATABASE=ulticode \
   mysql:8.0 --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci >/dev/null
 for _ in $(seq 1 60); do
-  if docker exec -e MYSQL_PWD="$ROOT_PASSWORD" "$SOURCE_CONTAINER" mysql -uroot -N -B -e 'SELECT 1' >/dev/null 2>&1; then
+  # The image's temporary initialization server only accepts socket connections.
+  if docker exec -e MYSQL_PWD="$ROOT_PASSWORD" "$SOURCE_CONTAINER" mysql --protocol=tcp -h 127.0.0.1 -uroot -N -B -e 'SELECT 1' >/dev/null 2>&1; then
     break
   fi
   sleep 1
 done
-docker exec -e MYSQL_PWD="$ROOT_PASSWORD" "$SOURCE_CONTAINER" mysql -uroot -N -B -e 'SELECT 1' >/dev/null
-docker exec -i -e MYSQL_PWD="$ROOT_PASSWORD" "$SOURCE_CONTAINER" mysql -uroot < "$ROOT_DIR/init-db/baseline/baseline.sql"
+docker exec -e MYSQL_PWD="$ROOT_PASSWORD" "$SOURCE_CONTAINER" mysql --protocol=tcp -h 127.0.0.1 -uroot -N -B -e 'SELECT 1' >/dev/null
+docker exec -i -e MYSQL_PWD="$ROOT_PASSWORD" "$SOURCE_CONTAINER" mysql --protocol=tcp -h 127.0.0.1 -uroot < "$ROOT_DIR/init-db/baseline/baseline.sql"
 
 detect_version() {
   local directory="$1"

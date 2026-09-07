@@ -14,6 +14,17 @@ MAVEN_MARKER="$TMP_DIR/maven-marker"
 mkdir -p "$FAKE_BIN"
 export MAVEN_BIN="$FAKE_BIN/mvn"
 
+# Exercise the Java launcher boundary without requiring a real toolchain.
+cat >"$FAKE_BIN/mise" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+[[ "$1" == exec && "$2" == java@zulu-17.68.203.0 && "$3" == -- ]]
+shift 3
+exec "$@"
+EOF
+chmod +x "$FAKE_BIN/mise"
+unset ULTICODE_MISE_JAVA17
+
 cat >"$ENV_FILE" <<'EOF'
 DB_HOST=runtime-host
 DB_PORT=3306

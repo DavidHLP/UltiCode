@@ -2,6 +2,8 @@
 
 ## 统一入口
 
+CI 的静态任务运行 `bash scripts/test/zero-infra-validation-contract.sh --static-only`，无需 Java、mise 或前端依赖。省略 `--static-only` 会额外执行 unit deny 自证，需要预装 mise Java 17、pnpm 和前端依赖。
+
 ```bash
 ./scripts/dev/test.sh static       # 只读、零基础设施的结构门禁
 ./scripts/dev/test.sh unit         # static + 前端单测 + -Punit 后端门禁（deny 环境，无 *IT）

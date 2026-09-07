@@ -12,7 +12,7 @@ UltiCode is an online-judge platform with these main surfaces:
 |`services/admin/`|Admin owner service: governance, audit, settings, monitoring, backup|
 |`services/app/`|App owner service: OJ and general user business (parent of `app-web/` boot shell + `modules/` private domains)|
 |`services/judge/`|Independent Judge worker service: separate from `app-web`, reuses the storage-free `backend-judge-runtime` plus owner APIs; Redis Streams consumer + Docker sandbox, Dubbo remote adapters, no HTTP and no business tables|
-|`services/`|Java 17 / Spring Boot 3.2.5 Maven parent/reactor; `platform/` (common, web-security), `api/` (Dubbo contracts), five owner services, two independent workers, and the shared judge runtime|
+|`services/`|Java / Spring Boot Maven parent/reactor; `platform/` (common, web-security), `api/` (Dubbo contracts), five owner services, two independent workers, and the shared judge runtime|
 | `apps/console/` | Vue 3 user application |
 | `apps/management/` | Vue 3 administrator application |
 | `packages/` | Focused frontend packages shared by both applications |

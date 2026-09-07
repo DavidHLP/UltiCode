@@ -7,7 +7,6 @@ import com.ulticode.modules.bookmark.port.BookmarkReadPort;
 import com.ulticode.modules.follow.port.FollowCountPort;
 import com.ulticode.app.api.service.SubscriptionReadPort;
 import com.ulticode.app.i18n.service.I18nService;
-import com.ulticode.app.security.AppTestSecurityConfig;
 import com.ulticode.websecurity.jwt.ResourceServerJwtVerifier;
 import com.ulticode.modules.bookmark.projection.BookmarkProjection;
 import com.ulticode.modules.bookmark.service.BookmarkService;
@@ -26,7 +25,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.context.annotation.Import;
 import org.springframework.context.ApplicationContext;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -37,7 +35,6 @@ import org.springframework.test.context.ActiveProfiles;
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
-@Import(AppTestSecurityConfig.class)
 class BackendAppApplicationTest {
 
     @LocalServerPort
@@ -345,6 +342,8 @@ class BackendAppApplicationTest {
     @DisplayName("ResourceServerJwtVerifier uses real test JWKS wiring")
     void resourceServerJwtVerifierIsWired() {
         assertThat(resourceServerJwtVerifier).isNotNull();
+        assertThat(applicationContext.getBeansOfType(org.springframework.security.web.SecurityFilterChain.class))
+                .containsOnlyKeys("securityFilterChain");
     }
 
     @Test

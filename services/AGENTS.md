@@ -4,7 +4,7 @@ This file supplements [`../AGENTS.md`](../AGENTS.md) for `services/`.
 
 ## Boundaries
 
-- Java 17, Spring Boot 3.2.5, MyBatis-Plus, and MapStruct are configured in `pom.xml`.
+- Java, Spring Boot, MyBatis-Plus, and MapStruct versions are configured in `pom.xml`.
 - Shared platform code lives under `platform/` (common, web-security) and Dubbo contracts under `api/`; app-private domains live under `app/modules/`; owner-specific boot code lives in `auth/`, `admin/`, or `app/app-web/`.
 - Use annotation-based MyBatis mappers; the backend does not use XML mappers.
 - Read-side projections own entity-to-VO shaping and cross-mapper enrichment. Cross-module dependencies should use consumer-owned ports rather than reaching through another module's internals.

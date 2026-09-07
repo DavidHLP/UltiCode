@@ -46,6 +46,8 @@ RUN pnpm build
 # Production stage - nginx
 FROM nginx:alpine@sha256:db35bfc6b2951e7f8a72db5db120288c127ffaeeb4a6d4b95a26fead017d5913 AS production
 
+RUN apk upgrade --no-cache
+
 # Create non-root user with specific UID for consistency
 RUN addgroup -g 1001 -S appgroup && \
     adduser -S appuser -u 1001 -G appgroup

@@ -96,6 +96,7 @@ not_contains docker-compose.prod.yml 'IMAGE_TAG'
 not_contains docker-compose.prod.yml ':latest'
 
 for dockerfile in services/Dockerfile apps/console/Dockerfile apps/management/Dockerfile; do
+  contains "$dockerfile" 'RUN apk upgrade --no-cache'
   while IFS= read -r from_line; do
     [[ "$from_line" == *'@sha256:'* ]] || fail "$dockerfile has an unpinned base: $from_line"
   done < <(grep -E '^FROM ' "$ROOT_DIR/$dockerfile")
@@ -134,6 +135,13 @@ references = re.findall(r'^\s+(?:images|image-ref|IMAGE_REF): (.+)$', workflow, 
 assert references == [image] + [image + '@${{ steps.build.outputs.digest }}'] * 3, \
     'metadata, scan, signing and manifest must share the normalized repository'
 print('mixed-case publish repository normalization: PASS')
+scan = workflow.split('      - name: Scan pushed image\n', 1)[1].split('      - name:', 1)[0]
+assert "exit-code: '1'" in scan and 'continue-on-error' not in scan
+upload = workflow.split('      - name: Upload image scan report\n', 1)[1].split('      - name:', 1)[0]
+assert "always()" in upload and "steps.scan.outcome" in upload
+assert 'path: ${{ runner.temp }}/${{ matrix.service.name }}.trivy.json' in upload
+assert workflow.index('      - name: Upload image scan report') < workflow.index('      - name: Sign image')
+print('failed scans retain reports and block signing: PASS')
 PY
 
 contains .github/workflows/docker-publish.yml 'sbom: true'

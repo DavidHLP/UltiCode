@@ -14,6 +14,10 @@
 
 Docker Publish 将 GitHub 仓库名统一转为小写，再用于镜像标签、Trivy 扫描、Cosign 签名和不可变发布清单；签名证书身份及源码 URL 保留 GitHub 原始大小写。
 
+Trivy 扫描完成后，无论门禁是否通过，都上传独立的 `trivy-<service>` JSON 报告；扫描失败仍阻止签名和发布清单生成。排查漏洞时从该报告读取受影响包、已安装版本和修复版本。
+
+运行镜像保留固定的基础镜像 digest，并在构建时通过 `apk upgrade --no-cache` 安装该 Alpine 分支的安全更新。后端依赖由 `services/pom.xml` 的 Spring Boot BOM 统一管理；BOM 尚未包含的安全修复使用集中版本覆盖。发布前以最终镜像扫描结果为准。
+
 `host-deploy` 在任何 migration、Redis ACL materialization、Judge sandbox provisioning 或 Compose mutation 前检查：
 
 - approved source commit；

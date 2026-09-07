@@ -34,7 +34,8 @@ ARG SERVICE_HEALTHCHECK
 
 WORKDIR /app
 
-RUN apk add --no-cache curl \
+RUN apk upgrade --no-cache \
+    && apk add --no-cache curl \
     && if [ "${INSTALL_DOCKER_CLI}" = "true" ]; then apk add --no-cache docker-cli; fi
 
 COPY --from=builder /app/service.jar ./app.jar

@@ -127,6 +127,7 @@ jobs:
           cosign-release: v2.5.3
 
       - name: Scan pushed image
+        id: scan
         uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
         with:
           image-ref: ${{ env.REGISTRY }}/${{ steps.normalize.outputs.image_name }}/${{ matrix.service.name }}@${{ steps.build.outputs.digest }}
@@ -137,6 +138,15 @@ jobs:
           vuln-type: os,library
           severity: HIGH,CRITICAL
           version: v0.74.0
+
+      - name: Upload image scan report
+        if: ${{ always() && steps.scan.outcome != 'skipped' && steps.scan.outcome != '' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: trivy-${{ matrix.service.name }}
+          path: ${{ runner.temp }}/${{ matrix.service.name }}.trivy.json
+          if-no-files-found: warn
+          retention-days: 30
 
       - name: Sign image and attest SBOM/provenance
         env:

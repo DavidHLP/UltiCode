@@ -111,6 +111,31 @@ for workflow in "$ROOT_DIR"/.github/workflows/*.yml; do
   done < <(grep -E '^[[:space:]]*uses:' "$workflow")
 done
 
+python3 - "$ROOT_DIR/.github/workflows/docker-publish.yml" <<'PY'
+import os
+from pathlib import Path
+import re
+import subprocess
+import sys
+import tempfile
+import textwrap
+
+workflow = Path(sys.argv[1]).read_text()
+step = re.search(r'      - name: Normalize image repository\n        run: \|\n((?:          .+\n)+)', workflow)
+assert step, 'publish must normalize the image repository before metadata'
+assert step.start() < workflow.index('      - name: Extract metadata')
+with tempfile.NamedTemporaryFile() as output:
+    subprocess.run(['bash', '-euo', 'pipefail', '-c', textwrap.dedent(step[1])],
+                   env={**os.environ, 'GITHUB_REPOSITORY': 'DavidHLP/UltiCode',
+                        'GITHUB_ENV': output.name}, check=True)
+    assert Path(output.name).read_text() == 'IMAGE_NAME=davidhlp/ulticode\n'
+image = '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.service.name }}'
+references = re.findall(r'^\s+(?:images|image-ref|IMAGE_REF): (.+)$', workflow, re.M)
+assert references == [image] + [image + '@${{ steps.build.outputs.digest }}'] * 3, \
+    'metadata, scan, signing and manifest must share the normalized repository'
+print('mixed-case publish repository normalization: PASS')
+PY
+
 contains .github/workflows/docker-publish.yml 'sbom: true'
 contains .github/workflows/docker-publish.yml 'provenance: mode=max'
 contains .github/workflows/docker-publish.yml 'aquasecurity/trivy-action@'

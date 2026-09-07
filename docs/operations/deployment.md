@@ -12,6 +12,8 @@
 
 ## 生产发布前
 
+Docker Publish 将 GitHub 仓库名统一转为小写，再用于镜像标签、Trivy 扫描、Cosign 签名和不可变发布清单；签名证书身份及源码 URL 保留 GitHub 原始大小写。
+
 `host-deploy` 在任何 migration、Redis ACL materialization、Judge sandbox provisioning 或 Compose mutation 前检查：
 
 - approved source commit；

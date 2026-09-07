@@ -121,15 +121,15 @@ import tempfile
 import textwrap
 
 workflow = Path(sys.argv[1]).read_text()
-step = re.search(r'      - name: Normalize image repository\n        run: \|\n((?:          .+\n)+)', workflow)
+step = re.search(r'      - name: Normalize image repository\n        id: normalize\n        run: echo "image_name=\$\{GITHUB_REPOSITORY,,}" >> "\$GITHUB_OUTPUT"\n', workflow)
 assert step, 'publish must normalize the image repository before metadata'
 assert step.start() < workflow.index('      - name: Extract metadata')
 with tempfile.NamedTemporaryFile() as output:
-    subprocess.run(['bash', '-euo', 'pipefail', '-c', textwrap.dedent(step[1])],
+    subprocess.run(['bash', '-euo', 'pipefail', '-c', 'echo "image_name=${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"'],
                    env={**os.environ, 'GITHUB_REPOSITORY': 'DavidHLP/UltiCode',
-                        'GITHUB_ENV': output.name}, check=True)
-    assert Path(output.name).read_text() == 'IMAGE_NAME=davidhlp/ulticode\n'
-image = '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.service.name }}'
+                        'GITHUB_OUTPUT': output.name}, check=True)
+    assert Path(output.name).read_text() == 'image_name=davidhlp/ulticode\n'
+image = '${{ env.REGISTRY }}/${{ steps.normalize.outputs.image_name }}/${{ matrix.service.name }}'
 references = re.findall(r'^\s+(?:images|image-ref|IMAGE_REF): (.+)$', workflow, re.M)
 assert references == [image] + [image + '@${{ steps.build.outputs.digest }}'] * 3, \
     'metadata, scan, signing and manifest must share the normalized repository'

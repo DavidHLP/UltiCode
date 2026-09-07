@@ -87,14 +87,14 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Normalize image repository
-        run: |
-          echo "IMAGE_NAME=${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
+        id: normalize
+        run: echo "image_name=${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
 
       - name: Extract metadata (tags, labels)
         id: meta
         uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.service.name }}
+          images: ${{ env.REGISTRY }}/${{ steps.normalize.outputs.image_name }}/${{ matrix.service.name }}
           tags: |
             type=sha
             type=raw,value=v${{ steps.svcver.outputs.version }},enable=${{ steps.svcver.outputs.version != '' }}
@@ -129,7 +129,7 @@ jobs:
       - name: Scan pushed image
         uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
         with:
-          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.service.name }}@${{ steps.build.outputs.digest }}
+          image-ref: ${{ env.REGISTRY }}/${{ steps.normalize.outputs.image_name }}/${{ matrix.service.name }}@${{ steps.build.outputs.digest }}
           format: json
           output: ${{ runner.temp }}/${{ matrix.service.name }}.trivy.json
           exit-code: '1'
@@ -140,7 +140,7 @@ jobs:
 
       - name: Sign image and attest SBOM/provenance
         env:
-          IMAGE_REF: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.service.name }}@${{ steps.build.outputs.digest }}
+          IMAGE_REF: ${{ env.REGISTRY }}/${{ steps.normalize.outputs.image_name }}/${{ matrix.service.name }}@${{ steps.build.outputs.digest }}
           SIGNER_IDENTITY: https://github.com/${{ github.repository }}/.github/workflows/docker-publish.yml@refs/heads/main
           SIGNER_ISSUER: https://token.actions.githubusercontent.com
           SBOM_PATH: ${{ runner.temp }}/${{ matrix.service.name }}.spdx.json
@@ -179,8 +179,8 @@ jobs:
 
       - name: Publish immutable release manifest
         env:
-          IMAGE_REF: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.service.name }}@${{ steps.build.outputs.digest }}
           SERVICE: ${{ matrix.service.name }}
+          IMAGE_REF: ${{ env.REGISTRY }}/${{ steps.normalize.outputs.image_name }}/${{ matrix.service.name }}@${{ steps.build.outputs.digest }}
         run: |
           set -euo pipefail
           [[ "$IMAGE_REF" =~ @sha256:[0-9a-f]{64}$ ]] || exit 1

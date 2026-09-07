@@ -145,6 +145,13 @@ print('failed scans retain reports and block signing: PASS')
 PY
 
 contains .github/workflows/docker-publish.yml 'sbom: true'
+for entry in '_docker.yml:verify' 'docker-publish.yml:publish'; do
+  workflow="${entry%:*}"
+  scope="${entry#*:}"
+  contains ".github/workflows/$workflow" "cache-from: type=gha,scope=$scope-\${{ matrix.service.name }}"
+  contains ".github/workflows/$workflow" "cache-to: type=gha,mode=max,scope=$scope-\${{ matrix.service.name }},ignore-error=true"
+  not_contains ".github/workflows/$workflow" 'continue-on-error:'
+done
 contains .github/workflows/docker-publish.yml 'provenance: mode=max'
 contains .github/workflows/docker-publish.yml 'aquasecurity/trivy-action@'
 contains .github/workflows/docker-publish.yml 'sigstore/cosign-installer@'

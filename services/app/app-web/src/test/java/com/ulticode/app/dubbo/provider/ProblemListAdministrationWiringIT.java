@@ -38,7 +38,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -101,12 +101,12 @@ class ProblemListAdministrationWiringIT {
     @Autowired
     private AppCommandReceiptMapper receiptMapper;
 
-    @MockBean
+    @MockitoBean
     private ProblemListProjection problemListProjection;
 
-    @MockBean
+    @MockitoBean
     private ProblemExistencePort problemExistencePort;
-    @MockBean
+    @MockitoBean
     private AdminActorAuthorizer adminActorAuthorizer;
 
     @BeforeEach

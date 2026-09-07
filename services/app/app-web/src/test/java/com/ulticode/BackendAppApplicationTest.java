@@ -22,7 +22,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.ApplicationContext;
@@ -54,269 +54,269 @@ class BackendAppApplicationTest {
 
     @Autowired
     private com.ulticode.common.audit.AuditSinkPort auditSinkPort;
-    @MockBean
+    @MockitoBean
     private I18nService i18nService;
 
-    @MockBean
+    @MockitoBean
     private SubscriptionService subscriptionService;
 
-    @MockBean
+    @MockitoBean
     private SubscriptionReadPort subscriptionReadPort;
 
-    @MockBean
+    @MockitoBean
     private BookmarkService bookmarkService;
 
-    @MockBean
+    @MockitoBean
     private BookmarkReadPort bookmarkReadPort;
 
-    @MockBean
+    @MockitoBean
     private BookmarkProjection bookmarkProjection;
 
-    @MockBean
+    @MockitoBean
     private FollowService followService;
 
-    @MockBean
+    @MockitoBean
     private FollowCountPort followCountPort;
 
-    @MockBean
+    @MockitoBean
     private FollowInspector followInspector;
 
-    @MockBean
+    @MockitoBean
     private UserReadPort userReadPort;
 
-    @MockBean
+    @MockitoBean
     private FollowEventPublisher followEventPublisher;
 
-    @MockBean
+    @MockitoBean
     private com.ulticode.modules.solution.service.SolutionService solutionService;
 
-    @MockBean
+    @MockitoBean
     private com.ulticode.modules.solution.projection.SolutionProjection solutionProjection;
 
-    @MockBean
+    @MockitoBean
     private com.ulticode.modules.solution.service.SolutionTopicService solutionTopicService;
 
-    @MockBean
+    @MockitoBean
     private com.ulticode.modules.solution.mapper.SolutionMapper solutionMapper;
 
-    @MockBean
+    @MockitoBean
     private com.ulticode.modules.solution.mapper.SolutionCommentMapper solutionCommentMapper;
 
-    @MockBean
+    @MockitoBean
     private com.ulticode.modules.problem.port.ProblemExistencePort problemExistencePort;
 
-    @MockBean
+    @MockitoBean
     private com.ulticode.app.api.service.SolutionOwnerPort solutionOwnerPort;
 
-    @MockBean
+    @MockitoBean
     private com.ulticode.app.api.service.SolutionCommentOwnerPort solutionCommentOwnerPort;
 
-    @MockBean
+    @MockitoBean
     private com.ulticode.modules.achievement.port.AchievementBadgeReadPort achievementBadgeReadPort;
 
-    @MockBean
+    @MockitoBean
     private com.ulticode.modules.solution.port.ProblemTagReadPort problemTagReadPort;
 
-    @MockBean
+    @MockitoBean
     private com.ulticode.modules.solution.port.SolutionVoteReadPort solutionVoteReadPort;
 
-    @MockBean
+    @MockitoBean
     private com.ulticode.modules.solution.port.SolutionUserReadPort solutionUserReadPort;
 
-    @MockBean
+    @MockitoBean
     private com.ulticode.app.api.service.SolutionReadPort solutionReadPort;
 
-    @MockBean
+    @MockitoBean
     private com.ulticode.app.security.BanCheckPort banCheckPort;
 
-    @MockBean
+    @MockitoBean
     private com.ulticode.modules.forum.mapper.ForumPostMapper forumPostMapper;
 
 
-    @MockBean
+    @MockitoBean
     private com.ulticode.modules.reconciliation.port.AppReconciliationReadMapper appReconciliationReadMapper;
 
-    @MockBean
+    @MockitoBean
     private com.ulticode.modules.problemlist.mapper.ProblemListMapper problemListMapper;
 
-    @MockBean
+    @MockitoBean
     private com.ulticode.modules.problemlist.mapper.ProblemListProblemMapper problemListProblemMapper;
 
-    @MockBean
+    @MockitoBean
     private com.ulticode.modules.problemlist.mapper.ProblemListCategoryMapper problemListCategoryMapper;
 
-    @MockBean
+    @MockitoBean
     private com.ulticode.modules.problemlist.mapper.ProblemListBookmarkMapper problemListBookmarkMapper;
 
-    @MockBean
+    @MockitoBean
     private com.ulticode.app.user.port.UserFactsProjection userFactsProjection;
 
-    @MockBean
+    @MockitoBean
     private com.ulticode.app.user.port.UserDirectoryProjection userDirectoryProjection;
 
 
-    @MockBean
+    @MockitoBean
     private com.ulticode.modules.forum.port.ForumUserReadPort forumUserReadPort;
 
-    @MockBean
+    @MockitoBean
     private com.ulticode.app.userprofile.mapper.UserProfileMapper userProfileMapper;
 
-    @MockBean
+    @MockitoBean
     private com.ulticode.modules.forum.mapper.ForumCommentMapper forumCommentMapper;
 
-    @MockBean
+    @MockitoBean
     private com.ulticode.modules.forum.mapper.ForumCommunityMapper forumCommunityMapper;
 
-    @MockBean
+    @MockitoBean
     private com.ulticode.modules.forum.mapper.ForumCommunityMemberMapper forumCommunityMemberMapper;
 
-    @MockBean
+    @MockitoBean
     private com.ulticode.modules.forum.mapper.ForumTagMapper forumTagMapper;
 
-    @MockBean
+    @MockitoBean
     private com.ulticode.modules.forum.mapper.ForumUserMapper forumUserMapper;
 
-    @MockBean
+    @MockitoBean
     private com.ulticode.modules.forum.port.ForumVoteReadPort forumVoteReadPort;
 
-    @MockBean
+    @MockitoBean
     private com.ulticode.modules.forum.port.ForumPostReadPort forumPostReadPort;
 
     // ==================== Submission family (P7-RELOCATE-SUBMISSION-001) ====================
 
-    @MockBean
+    @MockitoBean
     private com.ulticode.app.api.service.ProblemFactsPort submissionProblemFactsPort;
-    @MockBean
+    @MockitoBean
     private com.ulticode.app.api.service.UserExistencePort userExistencePort;
-    @MockBean
+    @MockitoBean
     private com.ulticode.modules.queue.port.JudgeEnqueuePort judgeEnqueuePort;
-    @MockBean
+    @MockitoBean
     private com.ulticode.modules.contest.integration.ContestSubmissionAdapter contestSubmissionAdapter;
     // FeatureFlagsProperties is a real @ConfigurationProperties bean; must NOT be mocked
-    @MockBean
+    @MockitoBean
     private com.ulticode.common.uuid.UuidGenerator uuidGenerator;
-    @MockBean
+    @MockitoBean
     private com.ulticode.app.idempotency.mapper.AppCommandReceiptMapper appCommandReceiptMapper;
-    @MockBean
+    @MockitoBean
     private com.ulticode.app.api.service.SubmissionUserReadPort submissionUserReadPort;
-    @MockBean
+    @MockitoBean
     private com.ulticode.modules.submission.port.InteractiveCodeRunner codeExecutionPort;
-    @MockBean
+    @MockitoBean
     private com.ulticode.submission.api.service.SubmissionReadPort submissionReadPort;
-    @MockBean
+    @MockitoBean
     private com.ulticode.submission.api.service.SubmissionStreakPort submissionStreakPort;
-    @MockBean
+    @MockitoBean
     private com.ulticode.modules.submission.port.JudgeConfigPort judgeConfigPort;
-    @MockBean
+    @MockitoBean
     private com.ulticode.submission.api.service.SubmissionUserStatsPort submissionUserStatsPort;
-    @MockBean
+    @MockitoBean
     private com.ulticode.submission.api.service.ProblemSubmissionStatsPort problemSubmissionStatsPort;
-    @MockBean
+    @MockitoBean
     private com.ulticode.modules.submission.config.DockerSandboxConfig dockerSandboxConfig;
-    @MockBean
+    @MockitoBean
     private com.ulticode.modules.submission.sandbox.SandboxExecutor sandboxExecutor;
-    @MockBean
+    @MockitoBean
     private com.ulticode.modules.submission.service.VerdictResolver verdictResolver;
-    @MockBean
+    @MockitoBean
     private com.ulticode.modules.submission.service.SandboxOutputFormatter sandboxOutputFormatter;
-    @MockBean
+    @MockitoBean
     private com.ulticode.modules.submission.port.JudgingLanguageSupport judgingLanguageSupport;
-    @MockBean
+    @MockitoBean
     private com.ulticode.modules.submission.port.ProblemFactsPort submissionPortProblemFactsPort;
 
     // ==================== Problem family (P7-RELOCATE-PROBLEM-001) ====================
 
-    @MockBean
+    @MockitoBean
     private com.ulticode.modules.problem.mapper.ProblemMapper problemMapper;
-    @MockBean
+    @MockitoBean
     private com.ulticode.modules.problem.mapper.ProblemDetailMapper problemDetailMapper;
-    @MockBean
+    @MockitoBean
     private com.ulticode.modules.problem.mapper.ProblemExampleMapper problemExampleMapper;
-    @MockBean
+    @MockitoBean
     private com.ulticode.modules.problem.mapper.ProblemLanguageMapper problemLanguageMapper;
-    @MockBean
+    @MockitoBean
     private com.ulticode.modules.problem.mapper.ProblemNoteMapper problemNoteMapper;
-    @MockBean
+    @MockitoBean
     private com.ulticode.modules.problem.mapper.ProblemTagMapper problemTagMapper;
-    @MockBean
+    @MockitoBean
     private com.ulticode.modules.problem.mapper.ProblemTagRelationMapper problemTagRelationMapper;
-    @MockBean
+    @MockitoBean
     private com.ulticode.modules.problem.mapper.ProblemVersionMapper problemVersionMapper;
-    @MockBean
+    @MockitoBean
     private com.ulticode.modules.problem.mapper.TestCaseMapper testCaseMapper;
-    @MockBean
+    @MockitoBean
     private com.ulticode.modules.problem.port.ProblemInteractionQueryPort problemInteractionQueryPort;
-    @MockBean
+    @MockitoBean
     private com.ulticode.app.api.service.ProblemAnalyticsReadPort problemAnalyticsReadPort;
-    @MockBean
+    @MockitoBean
     private com.ulticode.modules.problem.port.ProblemLanguageCatalog problemJudgingLanguageSupport;
     // P7-RELOCATE-CONTEST-001: contest mappers + app-api ports
-    @MockBean private com.ulticode.modules.contest.mapper.ContestMapper contestMapper;
-    @MockBean private com.ulticode.modules.contest.mapper.ContestAnnouncementMapper contestAnnouncementMapper;
-    @MockBean private com.ulticode.modules.contest.mapper.ContestParticipantMapper contestParticipantMapper;
-    @MockBean private com.ulticode.modules.contest.mapper.ContestProblemMapper contestProblemMapper;
-    @MockBean private com.ulticode.modules.contest.mapper.ContestProblemResultMapper contestProblemResultMapper;
-@MockBean private com.ulticode.modules.contest.mapper.ContestAdjudicationReceiptMapper contestAdjudicationReceiptMapper;
-    @MockBean private com.ulticode.modules.contest.mapper.ContestSubmissionMapper contestSubmissionMapper;
-@MockBean private com.ulticode.modules.contest.mapper.ContestRatingCalculationMapper contestRatingCalculationMapper;
-@MockBean private com.ulticode.modules.contest.mapper.ContestCascadeMapper contestCascadeMapper;
-    @MockBean private com.ulticode.modules.contest.mapper.FirstSolveRecordMapper firstSolveRecordMapper;
-    @MockBean private com.ulticode.modules.contest.mapper.GlobalRankingMapper globalRankingMapper;
-    @MockBean private com.ulticode.modules.contest.mapper.ScoringRuleMapper scoringRuleMapper;
-    @MockBean private com.ulticode.modules.contest.clock.ContestClock contestClock;
-    @MockBean private com.ulticode.modules.achievement.port.ContestAchievementPort contestAchievementPort;
-    @MockBean private com.ulticode.modules.notification.port.ContestNotificationPort contestNotificationPort;
-    @MockBean private com.ulticode.modules.websocket.port.ContestStatusPushPort contestStatusPushPortBean;
-    @MockBean private com.ulticode.modules.websocket.port.ContestRankingMarkDirtyPort contestRankingMarkDirtyPortBean;
-    @MockBean private com.ulticode.app.api.service.ContestLiveRankingReadPort contestLiveRankingReadPortBean;
-    @MockBean private com.ulticode.modules.contest.service.ContestParticipantTransitions contestParticipantTransitions;
-    @MockBean private com.ulticode.modules.contest.service.RatingCalculationService ratingCalculationService;
-    @MockBean private com.ulticode.modules.contest.scoring.ContestRankingCacheEvictor contestRankingCacheEvictor;
+    @MockitoBean private com.ulticode.modules.contest.mapper.ContestMapper contestMapper;
+    @MockitoBean private com.ulticode.modules.contest.mapper.ContestAnnouncementMapper contestAnnouncementMapper;
+    @MockitoBean private com.ulticode.modules.contest.mapper.ContestParticipantMapper contestParticipantMapper;
+    @MockitoBean private com.ulticode.modules.contest.mapper.ContestProblemMapper contestProblemMapper;
+    @MockitoBean private com.ulticode.modules.contest.mapper.ContestProblemResultMapper contestProblemResultMapper;
+@MockitoBean private com.ulticode.modules.contest.mapper.ContestAdjudicationReceiptMapper contestAdjudicationReceiptMapper;
+    @MockitoBean private com.ulticode.modules.contest.mapper.ContestSubmissionMapper contestSubmissionMapper;
+@MockitoBean private com.ulticode.modules.contest.mapper.ContestRatingCalculationMapper contestRatingCalculationMapper;
+@MockitoBean private com.ulticode.modules.contest.mapper.ContestCascadeMapper contestCascadeMapper;
+    @MockitoBean private com.ulticode.modules.contest.mapper.FirstSolveRecordMapper firstSolveRecordMapper;
+    @MockitoBean private com.ulticode.modules.contest.mapper.GlobalRankingMapper globalRankingMapper;
+    @MockitoBean private com.ulticode.modules.contest.mapper.ScoringRuleMapper scoringRuleMapper;
+    @MockitoBean private com.ulticode.modules.contest.clock.ContestClock contestClock;
+    @MockitoBean private com.ulticode.modules.achievement.port.ContestAchievementPort contestAchievementPort;
+    @MockitoBean private com.ulticode.modules.notification.port.ContestNotificationPort contestNotificationPort;
+    @MockitoBean private com.ulticode.modules.websocket.port.ContestStatusPushPort contestStatusPushPortBean;
+    @MockitoBean private com.ulticode.modules.websocket.port.ContestRankingMarkDirtyPort contestRankingMarkDirtyPortBean;
+    @MockitoBean private com.ulticode.app.api.service.ContestLiveRankingReadPort contestLiveRankingReadPortBean;
+    @MockitoBean private com.ulticode.modules.contest.service.ContestParticipantTransitions contestParticipantTransitions;
+    @MockitoBean private com.ulticode.modules.contest.service.RatingCalculationService ratingCalculationService;
+    @MockitoBean private com.ulticode.modules.contest.scoring.ContestRankingCacheEvictor contestRankingCacheEvictor;
     // P7-INFRA-S1: vote + event infrastructure
-    @MockBean private com.ulticode.modules.vote.mapper.EdgeOperationMapper edgeOperationMapper;
-    @MockBean private com.ulticode.modules.event.outbox.IntegrationOutboxMapper integrationOutboxMapper;
-    @MockBean private com.ulticode.modules.event.inbox.ConsumerInboxMapper consumerInboxMapper;
-    @MockBean private org.springframework.data.redis.core.StringRedisTemplate stringRedisTemplate;
-    @MockBean private org.redisson.api.RedissonClient redissonClient;
-    @MockBean(name = "judgeQueue") private org.redisson.api.RQueue<Object> judgeQueueBean;
-    @MockBean(name = "emailQueue") private org.redisson.api.RQueue<Object> emailQueueBean;
-    @MockBean(name = "notificationQueue") private org.redisson.api.RQueue<Object> notificationQueueBean;
-    @MockBean private org.springframework.data.redis.core.RedisTemplate<String, Object> redisTemplate;
-    @MockBean private com.ulticode.modules.websocket.port.SubmissionResultPushPort submissionResultPushPort;
-    @MockBean private com.ulticode.modules.moderation.port.ModerationUserReadPort moderationUserReadPort;
-    @MockBean private com.ulticode.modules.moderation.port.ModerationAccountPort moderationAccountPort;
-    @MockBean private com.ulticode.modules.moderation.port.ModerationContentActionPort moderationContentActionPort;
+    @MockitoBean private com.ulticode.modules.vote.mapper.EdgeOperationMapper edgeOperationMapper;
+    @MockitoBean private com.ulticode.modules.event.outbox.IntegrationOutboxMapper integrationOutboxMapper;
+    @MockitoBean private com.ulticode.modules.event.inbox.ConsumerInboxMapper consumerInboxMapper;
+    @MockitoBean private org.springframework.data.redis.core.StringRedisTemplate stringRedisTemplate;
+    @MockitoBean private org.redisson.api.RedissonClient redissonClient;
+    @MockitoBean(name = "judgeQueue") private org.redisson.api.RQueue<Object> judgeQueueBean;
+    @MockitoBean(name = "emailQueue") private org.redisson.api.RQueue<Object> emailQueueBean;
+    @MockitoBean(name = "notificationQueue") private org.redisson.api.RQueue<Object> notificationQueueBean;
+    @MockitoBean private org.springframework.data.redis.core.RedisTemplate<String, Object> redisTemplate;
+    @MockitoBean private com.ulticode.modules.websocket.port.SubmissionResultPushPort submissionResultPushPort;
+    @MockitoBean private com.ulticode.modules.moderation.port.ModerationUserReadPort moderationUserReadPort;
+    @MockitoBean private com.ulticode.modules.moderation.port.ModerationAccountPort moderationAccountPort;
+    @MockitoBean private com.ulticode.modules.moderation.port.ModerationContentActionPort moderationContentActionPort;
     // P7-INFRA-S4: achievement (notification delivery is owned by backend-notification)
-    @MockBean private com.ulticode.modules.achievement.mapper.AchievementMapper achievementMapper;
-    @MockBean private com.ulticode.modules.achievement.mapper.UserAchievementMapper userAchievementMapper;
-    @MockBean private com.ulticode.modules.user.port.UserReadPort userReadPortBean;
-    @MockBean private com.ulticode.modules.notification.port.NotificationPushPort notificationPushPortBean;
-    @MockBean private com.ulticode.modules.achievement.port.BadgePushPort badgePushPortBean;
+    @MockitoBean private com.ulticode.modules.achievement.mapper.AchievementMapper achievementMapper;
+    @MockitoBean private com.ulticode.modules.achievement.mapper.UserAchievementMapper userAchievementMapper;
+    @MockitoBean private com.ulticode.modules.user.port.UserReadPort userReadPortBean;
+    @MockitoBean private com.ulticode.modules.notification.port.NotificationPushPort notificationPushPortBean;
+    @MockitoBean private com.ulticode.modules.achievement.port.BadgePushPort badgePushPortBean;
     // P7-RELOCATE-WEBSOCKET-001
-    @MockBean private com.ulticode.common.security.JwtValidationPort jwtValidationPort;
-    @MockBean private com.ulticode.common.security.AccountReadPort accountReadPort;
-    @MockBean private com.ulticode.modules.websocket.port.TokenBlacklistPort tokenBlacklistPort;
+    @MockitoBean private com.ulticode.common.security.JwtValidationPort jwtValidationPort;
+    @MockitoBean private com.ulticode.common.security.AccountReadPort accountReadPort;
+    @MockitoBean private com.ulticode.modules.websocket.port.TokenBlacklistPort tokenBlacklistPort;
 
-    @MockBean private com.ulticode.modules.moderation.mapper.UserWarningMapper userwarningmapperMapper;
+    @MockitoBean private com.ulticode.modules.moderation.mapper.UserWarningMapper userwarningmapperMapper;
 
-    @MockBean private com.ulticode.modules.moderation.mapper.UserBanMapper userbanmapperMapper;
+    @MockitoBean private com.ulticode.modules.moderation.mapper.UserBanMapper userbanmapperMapper;
 
-    @MockBean private com.ulticode.modules.moderation.mapper.AppealMapper appealmapperMapper;
+    @MockitoBean private com.ulticode.modules.moderation.mapper.AppealMapper appealmapperMapper;
 
-    @MockBean private com.ulticode.modules.moderation.mapper.ReportMapper reportmapperMapper;
+    @MockitoBean private com.ulticode.modules.moderation.mapper.ReportMapper reportmapperMapper;
 
-    @MockBean private com.ulticode.modules.moderation.mapper.ModerationActionMapper moderationactionmapperMapper;
+    @MockitoBean private com.ulticode.modules.moderation.mapper.ModerationActionMapper moderationactionmapperMapper;
 
-    @MockBean private com.ulticode.modules.moderation.mapper.ModerationQueueMapper moderationqueuemapperMapper;
+    @MockitoBean private com.ulticode.modules.moderation.mapper.ModerationQueueMapper moderationqueuemapperMapper;
 
     // P7-AUDIT-SINK-OWNER-BINDING-001: mapper bean for AppAuditSinkAdapter in the test profile
-    @MockBean private com.ulticode.app.audit.AppAuditOutboxMapper appAuditOutboxMapper;
+    @MockitoBean private com.ulticode.app.audit.AppAuditOutboxMapper appAuditOutboxMapper;
 
     // Pre-existing shell-test wiring gap unmasked by the audit fix: UserProfileQueryProvider needs this mapper
-    @MockBean private com.ulticode.app.user.port.UserProfileReadMapper userProfileReadMapper;
+    @MockitoBean private com.ulticode.app.user.port.UserProfileReadMapper userProfileReadMapper;
 
     // Pre-existing shell-test wiring gap (P7-INFRA-MODERATION-BRIDGE-001): ModerationServiceImpl needs this port
-    @MockBean private com.ulticode.modules.moderation.port.ContentModerationPort contentModerationPort;
+    @MockitoBean private com.ulticode.modules.moderation.port.ContentModerationPort contentModerationPort;
 
 
     @Test

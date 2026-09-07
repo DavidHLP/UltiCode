@@ -42,7 +42,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Run zero-infrastructure validation contract
-        run: bash scripts/test/zero-infra-validation-contract.sh
+        run: bash scripts/test/zero-infra-validation-contract.sh --static-only
 
   frontend-lint:
     name: Lint (${{ matrix.app }})

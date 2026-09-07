@@ -28,7 +28,7 @@ import org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerA
 import org.springframework.boot.autoconfigure.transaction.TransactionAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -160,13 +160,13 @@ class ContestAdjudicationWiringIT {
     @Autowired
     private ScoringRuleMapper scoringRuleMapper;
 
-    @MockBean
+    @MockitoBean
     private ContestRankingCacheEvictor rankingCacheEvictor;
 
-    @MockBean
+    @MockitoBean
     private UuidGenerator uuidGenerator;
 
-    @MockBean
+    @MockitoBean
     private SubmissionGenerationReadPort submissionGenerationReadPort;
 
     @BeforeEach

@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.test.context.ActiveProfiles;
@@ -34,10 +34,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DisplayName("Submission owner boot boundary")
 class BackendSubmissionApplicationTest {
 
-    @MockBean
+    @MockitoBean
     private StringRedisTemplate stringRedisTemplate;
 
-    @MockBean
+    @MockitoBean
     private RedissonClient redissonClient;
 
     @Autowired

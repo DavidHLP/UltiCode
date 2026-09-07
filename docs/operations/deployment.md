@@ -12,6 +12,8 @@
 
 ## 生产发布前
 
+Docker Verify 与 Docker Publish 按工作流和服务隔离 GHA 构建缓存。缓存导出使用 `ignore-error=true`，仅将缓存上传作为尽力完成的加速步骤；镜像构建、推送、扫描和签名失败仍阻断任务。
+
 Docker Publish 将 GitHub 仓库名统一转为小写，再用于镜像标签、Trivy 扫描、Cosign 签名和不可变发布清单；签名证书身份及源码 URL 保留 GitHub 原始大小写。
 
 Trivy 扫描完成后，无论门禁是否通过，都上传独立的 `trivy-<service>` JSON 报告；扫描失败仍阻止签名和发布清单生成。排查漏洞时从该报告读取受影响包、已安装版本和修复版本。

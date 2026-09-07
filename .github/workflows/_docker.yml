@@ -71,5 +71,5 @@ jobs:
             SERVICE_HEALTH_PATH=${{ matrix.service.health_path }}
             INSTALL_DOCKER_CLI=${{ matrix.service.install_docker_cli || false }}
             SERVICE_HEALTHCHECK=${{ matrix.service.healthcheck || true }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=verify-${{ matrix.service.name }}
+          cache-to: type=gha,mode=max,scope=verify-${{ matrix.service.name }},ignore-error=true

@@ -45,7 +45,7 @@ import org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerA
 import org.springframework.boot.autoconfigure.transaction.TransactionAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -115,13 +115,13 @@ class ContestAdministrationWiringIT {
     @Autowired
     private AppCommandReceiptMapper receiptMapper;
 
-    @MockBean
+    @MockitoBean
     private ContestLifecycleService contestLifecycleService;
 
-    @MockBean
+    @MockitoBean
     private UuidGenerator uuidGenerator;
 
-    @MockBean
+    @MockitoBean
     private AdminActorAuthorizer adminActorAuthorizer;
     @BeforeEach
     void configureUuidGenerator() {

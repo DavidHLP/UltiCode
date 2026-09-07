@@ -17,6 +17,12 @@ fail() {
 
 [[ -x "$WRAPPER" ]] || fail "scripts/dev/test.sh is not executable"
 
+for workflow in _backend.yml _frontend.yml; do
+  grep -Fqx '        run: bash scripts/test/zero-infra-validation-contract.sh --static-only' \
+    "$ROOT_DIR/.github/workflows/$workflow" \
+    || fail "$workflow must select --static-only for its lightweight CI job"
+done
+
 TEST_DIR="$(mktemp -d "${TMPDIR:-/tmp}/ulticode-zero-infra.XXXXXX")"
 trap 'rm -rf -- "$TEST_DIR"' EXIT
 DENY_BIN="$TEST_DIR/deny-bin"

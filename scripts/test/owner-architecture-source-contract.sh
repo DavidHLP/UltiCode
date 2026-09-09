@@ -38,17 +38,53 @@ if needle not in source:
 PYTHON
 }
 
-while IFS=$'\t' read -r kind text files; do
-  [[ -z "$kind" || "$kind" == \#* ]] && continue
-  IFS='|' read -r -a paths <<< "$files"
+compact_not_contains() {
+  local file="$1" text="$2"
+  [[ -f "$ROOT_DIR/$file" ]] || fail "missing guarded file: $file"
+  if python3 - "$ROOT_DIR/$file" "$text" <<'PYTHON'
+import re
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+needle = re.sub(r"\s+", "", sys.argv[2])
+source = re.sub(r"\s+", "", path.read_text(encoding="utf-8"))
+if needle in source:
+    raise SystemExit(1)
+PYTHON
+  then
+    return 0
+  fi
+  fail "$file contains forbidden compact text: $text"
+}
+
+parse_registry_line() {
+  local line="$1" remainder
+  [[ "$line" == *$'\t'* ]] || fail "malformed registry line: $line"
+  registry_kind="${line%%$'\t'*}"
+  remainder="${line#*$'\t'}"
+  [[ "$remainder" == *$'\t'* ]] || fail "malformed registry line: $line"
+  registry_text="${remainder%%$'\t'*}"
+  registry_files="${remainder#*$'\t'}"
+}
+
+parse_registry_line $'exists\t\tparser-regression'
+[[ "$registry_kind" == "exists" && -z "$registry_text" && "$registry_files" == "parser-regression" ]] \
+  || fail "registry parser does not preserve empty literal fields"
+
+while IFS= read -r registry_line; do
+  [[ -z "$registry_line" || "$registry_line" == \#* ]] && continue
+  parse_registry_line "$registry_line"
+  IFS='|' read -r -a paths <<< "$registry_files"
   for file in "${paths[@]}"; do
-    case "$kind" in
+    case "$registry_kind" in
       exists) assert_exists "$file" ;;
       absent) assert_absent "$file" ;;
-      contains) contains "$file" "$text" ;;
-      not_contains) not_contains "$file" "$text" ;;
-      compact_contains) compact_contains "$file" "$text" ;;
-      *) fail "unknown registry rule: $kind" ;;
+      contains) contains "$file" "$registry_text" ;;
+      not_contains) not_contains "$file" "$registry_text" ;;
+      compact_contains) compact_contains "$file" "$registry_text" ;;
+      compact_not_contains) compact_not_contains "$file" "$registry_text" ;;
+      *) fail "unknown registry rule: $registry_kind" ;;
     esac
   done
 done < "$RULES_FILE"

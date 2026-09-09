@@ -1,6 +1,6 @@
 # Development-only Judge sandbox override.
 # Use only in an explicitly disposable environment layered after the service
-# definition: docker-compose.yml + docker-compose.prod.yml + this file.
+# definition: docker/docker-compose.yml + docker/docker-compose.prod.yml + this file.
 # Never include this file in a production deployment.
 services:
   backend-judge:

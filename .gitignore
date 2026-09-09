@@ -36,15 +36,6 @@
 !/pitstop.yaml
 !/ecosystem.config.cjs
 !/.dockerignore
-!/docker-compose.yml
-!/docker-compose.dev.yml
-!/docker-compose.prod.yml
-!/docker-compose.ci.yml
-!/docker-compose.gateway-test.yml
-!/docker-compose.observability.yml
-!/docker-compose.ha.yml
-!/docker-compose.judge-dev.yml
-!/docker-compose.observability-managed.yml
 !/.devcontainer/
 !/.devcontainer/**
 !/ulticode

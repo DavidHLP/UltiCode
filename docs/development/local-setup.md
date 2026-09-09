@@ -120,9 +120,9 @@ pnpm --dir packages/auth-core test:coverage
   `APP_STORAGE_S3_TLS_ENABLED=true` 时任何 HTTP endpoint 都拒绝。
 - Notification 保留 `LoggingSmtpSenderAdapter` 默认路径；真实 SMTP 只通过
   `SMTP_*`/`APP_EMAIL_ENABLED` 配置，不让业务 Module 依赖厂商 SDK。
-- 本地 observability 使用 `docker-compose.observability.yml`。托管 OTLP
+- 本地 observability 使用 `docker/docker-compose.observability.yml`。托管 OTLP
   仅通过部署环境提供 HTTPS endpoint/header，并显式叠加
-  `docker-compose.observability-managed.yml`；仓库不创建外部账户或凭据。
+  `docker/docker-compose.observability-managed.yml`；仓库不创建外部账户或凭据。
 
 修改共享包或认证代码时，按 [测试与质量](testing.md) 在 Console、Management 和对应 package 分别验证。
 

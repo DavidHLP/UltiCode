@@ -37,7 +37,7 @@ grep -Fq 'Validate release and deployment integrity before mutation' "$HOST_DEPL
   || fail "host-deploy does not preflight before mutation"
 grep -Fq 'deployment-integrity.sh preflight' "$HOST_DEPLOY" \
   || fail "host-deploy does not validate deployment integrity"
-grep -Fq 'docker-compose.prod.yml config --quiet' "$HOST_DEPLOY" \
+grep -Fq 'docker/docker-compose.prod.yml config --quiet' "$HOST_DEPLOY" \
   || fail "host-deploy does not validate merged Compose configuration"
 grep -Fq 'deployment-integrity.sh check-rollback' "$HOST_DEPLOY" \
   || fail "host-deploy does not gate schema-compatible rollback"
@@ -45,7 +45,7 @@ grep -Fq 'DEPLOYMENT_STATUS=PENDING_HEALTH' "$HOST_DEPLOY" \
   || fail "host-deploy does not record pending health state"
 preflight_line="$(grep -n 'Validate release and deployment integrity before mutation' "$HOST_DEPLOY" | head -1 | cut -d: -f1)"
 migration_line="$(grep -n 'Run ordered owner database migrations' "$HOST_DEPLOY" | head -1 | cut -d: -f1)"
-config_line="$(grep -n 'docker-compose.prod.yml config --quiet' "$HOST_DEPLOY" | head -1 | cut -d: -f1)"
+config_line="$(grep -n 'docker/docker-compose.prod.yml config --quiet' "$HOST_DEPLOY" | head -1 | cut -d: -f1)"
 [[ "$preflight_line" -lt "$migration_line" && "$config_line" -lt "$migration_line" ]] \
   || fail "deployment config preflight occurs after migration mutation"
 grep -Fq 'flyway/flyway@sha256:' "$ROOT_DIR/scripts/runbooks/owner-migration-manifest.sh" \

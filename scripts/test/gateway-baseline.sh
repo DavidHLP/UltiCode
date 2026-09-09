@@ -19,10 +19,10 @@
 #      `proxy_cache` so streaming responses aren't spooled to a tempfile.
 #   4. Security headers: server scope and the static-asset location both
 #      `include` `infrastructure/nginx/includes/security-headers.conf`.
-#   5. Compose config validity: `docker compose -f docker-compose.yml -f
-#      docker-compose.prod.yml config -q` exits 0 — the production
+#   5. Compose config validity: `docker compose --project-directory . -f docker/docker-compose.yml -f
+#      docker/docker-compose.prod.yml config -q` exits 0 — the production
 #      deployment still resolves end to end.
-#   6. Live smoke test: brings up `docker-compose.gateway-test.yml` with
+#   6. Live smoke test: brings up `docker/docker-compose.gateway-test.yml` with
 #      the production console nginx.conf + a deterministic echo backend,
 #      then curls each route family + forges an identity header to assert
 #      the upstream sees the correct (preserved) path AND no client-
@@ -42,9 +42,9 @@ CONSOLE_CONF="$ROOT_DIR/apps/console/nginx.conf"
 MANAGEMENT_CONF="$ROOT_DIR/apps/management/nginx.conf"
 SNIPPET_CONF="$ROOT_DIR/infrastructure/nginx/includes/backend-proxy.conf"
 SECURITY_CONF="$ROOT_DIR/infrastructure/nginx/includes/security-headers.conf"
-COMPOSE_BASE="$ROOT_DIR/docker-compose.yml"
-COMPOSE_PROD="$ROOT_DIR/docker-compose.prod.yml"
-COMPOSE_TEST="$ROOT_DIR/docker-compose.gateway-test.yml"
+COMPOSE_BASE="$ROOT_DIR/docker/docker-compose.yml"
+COMPOSE_PROD="$ROOT_DIR/docker/docker-compose.prod.yml"
+COMPOSE_TEST="$ROOT_DIR/docker/docker-compose.gateway-test.yml"
 
 # Required ingress route families (route inventory).
 ROUTE_FAMILIES=(/api/auth/ /api/admin/ /api/moderation/ /api/ /api/ws/ /ws/)
@@ -189,8 +189,8 @@ done
 
 heading "6. docker compose config (production stack)"
 if command -v docker >/dev/null 2>&1; then
-    if docker compose -f "$COMPOSE_BASE" -f "$COMPOSE_PROD" config -q 2>/dev/null; then
-        log_pass "compose:prod" "docker-compose.yml + docker-compose.prod.yml config -q ok"
+    if docker compose --project-directory "$ROOT_DIR" -f "$COMPOSE_BASE" -f "$COMPOSE_PROD" config -q 2>/dev/null; then
+        log_pass "compose:prod" "docker/docker-compose.yml + docker/docker-compose.prod.yml config -q ok"
     else
         log_fail "compose:prod" "compose config validation failed"
     fi
@@ -198,16 +198,16 @@ else
     log_skip "compose:prod" "docker not installed"
 fi
 
-heading "7. Live smoke (gateway + echo backend via docker-compose.gateway-test.yml)"
+heading "7. Live smoke (gateway + echo backend via docker/docker-compose.gateway-test.yml)"
 if [ "$SKIP_SMOKE" -eq 1 ]; then
     log_skip "smoke:overall" "--skip-smoke set"
 elif ! command -v docker >/dev/null 2>&1; then
     log_skip "smoke:overall" "docker not installed"
 else
-    log_info "Bringing up docker-compose.gateway-test.yml ..."
+    log_info "Bringing up docker/docker-compose.gateway-test.yml ..."
     set +e
     COMPOSE_OUTPUT=$(mktemp)
-    docker compose -f "$COMPOSE_TEST" up -d >"$COMPOSE_OUTPUT" 2>&1
+    docker compose --project-directory "$ROOT_DIR" -f "$COMPOSE_TEST" up -d >"$COMPOSE_OUTPUT" 2>&1
     UP_RC=$?
     set -e
     if [ "$UP_RC" -ne 0 ]; then
@@ -247,8 +247,8 @@ except Exception: sys.exit(1)
             log_fail "smoke:detailed" "failures:\n$PROBE_OUTPUT"
         fi
 
-        log_info "Tearing down docker-compose.gateway-test.yml ..."
-        docker compose -f "$COMPOSE_TEST" down >/dev/null 2>&1 || true
+        log_info "Tearing down docker/docker-compose.gateway-test.yml ..."
+        docker compose --project-directory "$ROOT_DIR" -f "$COMPOSE_TEST" down >/dev/null 2>&1 || true
     fi
 fi
 

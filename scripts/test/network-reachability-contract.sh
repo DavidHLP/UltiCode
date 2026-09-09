@@ -8,9 +8,9 @@ set -euo pipefail
 # firewall or host policy.
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-PROD_COMPOSE="$ROOT_DIR/docker-compose.prod.yml"
-BASE_COMPOSE="$ROOT_DIR/docker-compose.yml"
-OBS_COMPOSE="$ROOT_DIR/docker-compose.observability.yml"
+PROD_COMPOSE="$ROOT_DIR/docker/docker-compose.prod.yml"
+BASE_COMPOSE="$ROOT_DIR/docker/docker-compose.yml"
+OBS_COMPOSE="$ROOT_DIR/docker/docker-compose.observability.yml"
 DOCKER_BIN="${DOCKER_BIN:-docker}"
 
 fail() {
@@ -81,12 +81,12 @@ assert_loopback_ports() {
 
 for network in edge sql cache registry rpc-auth rpc-app rpc-submission \
   rpc-notification rpc-judge search observability; do
-  contains docker-compose.yml "  $network:"
+  contains docker/docker-compose.yml "  $network:"
   assert_network_property "$BASE_COMPOSE" "$network" internal true
 done
 for network in egress-auth egress-admin egress-app egress-submission egress-search \
   egress-notification egress-judge egress-nacos; do
-  contains docker-compose.yml "  $network:"
+  contains docker/docker-compose.yml "  $network:"
   assert_network_property "$BASE_COMPOSE" "$network" internal false
 done
 assert_networks "$BASE_COMPOSE" mysql sql
@@ -95,11 +95,11 @@ assert_networks "$BASE_COMPOSE" nacos sql registry egress-nacos
 assert_networks "$BASE_COMPOSE" meilisearch search
 
 for network in sql cache registry search; do
-  contains docker-compose.dev.yml "  $network:"
-  assert_network_property "$ROOT_DIR/docker-compose.dev.yml" "$network" internal false
+  contains docker/docker-compose.dev.yml "  $network:"
+  assert_network_property "$ROOT_DIR/docker/docker-compose.dev.yml" "$network" internal false
 done
 for network in edge rpc-auth rpc-app rpc-submission rpc-notification rpc-judge observability; do
-  not_contains docker-compose.dev.yml "  $network:"
+  not_contains docker/docker-compose.dev.yml "  $network:"
 done
 assert_networks "$PROD_COMPOSE" backend-auth edge sql cache registry rpc-auth observability egress-auth
 assert_networks "$PROD_COMPOSE" backend-admin edge sql cache registry rpc-auth rpc-app rpc-submission rpc-notification observability egress-admin
@@ -118,7 +118,7 @@ done
 
 # Infrastructure and worker-plane isolation: these services must not inherit a
 # broad default/infrastructure network or an ingress edge network accidentally.
-for file in docker-compose.yml docker-compose.prod.yml docker-compose.ha.yml; do
+for file in docker/docker-compose.yml docker/docker-compose.prod.yml docker/docker-compose.ha.yml; do
   not_contains "$file" '      - default'
   not_contains "$file" '      - infrastructure'
   for service in mysql redis nacos meilisearch backend-auth backend-admin backend-app \
@@ -134,13 +134,13 @@ for file in "$BASE_COMPOSE" "$PROD_COMPOSE"; do
 done
 assert_loopback_ports "$PROD_COMPOSE" console
 assert_loopback_ports "$PROD_COMPOSE" management
-assert_networks "$ROOT_DIR/docker-compose.ha.yml" mysql-replica sql
-assert_networks "$ROOT_DIR/docker-compose.ha.yml" redis-replica cache
-assert_networks "$ROOT_DIR/docker-compose.ha.yml" redis-sentinel-1 cache
-assert_networks "$ROOT_DIR/docker-compose.ha.yml" redis-sentinel-2 cache
-assert_networks "$ROOT_DIR/docker-compose.ha.yml" redis-sentinel-3 cache
-assert_networks "$ROOT_DIR/docker-compose.ha.yml" nacos-2 sql registry egress-nacos
-assert_networks "$ROOT_DIR/docker-compose.ha.yml" nacos-3 sql registry egress-nacos
+assert_networks "$ROOT_DIR/docker/docker-compose.ha.yml" mysql-replica sql
+assert_networks "$ROOT_DIR/docker/docker-compose.ha.yml" redis-replica cache
+assert_networks "$ROOT_DIR/docker/docker-compose.ha.yml" redis-sentinel-1 cache
+assert_networks "$ROOT_DIR/docker/docker-compose.ha.yml" redis-sentinel-2 cache
+assert_networks "$ROOT_DIR/docker/docker-compose.ha.yml" redis-sentinel-3 cache
+assert_networks "$ROOT_DIR/docker/docker-compose.ha.yml" nacos-2 sql registry egress-nacos
+assert_networks "$ROOT_DIR/docker/docker-compose.ha.yml" nacos-3 sql registry egress-nacos
 
 # Optional observability reaches only the dedicated telemetry network.
 for service in otel-collector prometheus alertmanager tempo loki grafana; do
@@ -152,12 +152,12 @@ printf 'ingress/data/search/judge/observability isolation: PASS\n'
 
 if [[ -n "${NET_COMPOSE_ENV_FILE:-}" ]]; then
   [[ -f "$NET_COMPOSE_ENV_FILE" ]] || fail "NET_COMPOSE_ENV_FILE does not exist"
-  "$DOCKER_BIN" compose --env-file "$NET_COMPOSE_ENV_FILE" \
-    -f "$BASE_COMPOSE" -f "$ROOT_DIR/docker-compose.prod.yml" config >/dev/null \
+  "$DOCKER_BIN" compose --project-directory "$ROOT_DIR" --env-file "$NET_COMPOSE_ENV_FILE" \
+    -f "$BASE_COMPOSE" -f "$ROOT_DIR/docker/docker-compose.prod.yml" config >/dev/null \
     || fail 'base/prod Compose network expansion failed'
   printf 'production Compose network expansion: PASS\n'
-  "$DOCKER_BIN" compose --env-file "$NET_COMPOSE_ENV_FILE" \
-    -f "$BASE_COMPOSE" -f "$ROOT_DIR/docker-compose.dev.yml" config >/dev/null \
+  "$DOCKER_BIN" compose --project-directory "$ROOT_DIR" --env-file "$NET_COMPOSE_ENV_FILE" \
+    -f "$BASE_COMPOSE" -f "$ROOT_DIR/docker/docker-compose.dev.yml" config >/dev/null \
     || fail 'base/dev Compose network expansion failed'
   printf 'base/dev Compose network expansion: PASS\n'
 else

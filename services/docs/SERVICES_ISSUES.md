@@ -163,13 +163,13 @@ The repository-side SVC-003 gate is closed by source inventory, major-version co
 
 ### SVC-008 可观测的 Judge 节点隔离（OUT_OF_SCOPE）
 
-现状：生产 Compose 已禁止 `docker.sock`、`DOCKER_GID` 与本机 socket fallback，要求 `JUDGE_DOCKER_HOST` 指向专用 remote/rootless Docker daemon、`DOCKER_TLS_VERIFY=1`、只读 client certificate bundle 与共享 sandbox workspace；开发 socket 仅在显式 `docker-compose.judge-dev.yml --profile judge-socket` 下启用。
+现状：生产 Compose 已禁止 `docker.sock`、`DOCKER_GID` 与本机 socket fallback，要求 `JUDGE_DOCKER_HOST` 指向专用 remote/rootless Docker daemon、`DOCKER_TLS_VERIFY=1`、只读 client certificate bundle 与共享 sandbox workspace；开发 socket 仅在显式 `docker/docker-compose.judge-dev.yml --profile judge-socket` 下启用。
 
 触发条件：未来部署方需要真实生产远程 daemon/证书轮换/节点故障演练时，再由部署 authority 提供 endpoint、TLS material、rootless 证明和 shared workspace，并运行 `JUDGE_REMOTE_SMOKE=1`。这不属于当前开源仓库的完成条件。
 
 ### SVC-009 可观测运营证据（OPTIONAL_PROFILE）
 
-现状：OTel、Prometheus、Worker SLO 指标、告警规则、Runbook 和故障演练入口已接线；可选 `docker-compose.observability.yml` 提供固定镜像的 Collector、Prometheus、Alertmanager、Grafana、Tempo、Loki overlay，生产 Compose 要求为全部 backend 显式提供外部 OTLP collector 地址。仓库可以验证配置、scrape、规则、路由、dashboard 和 release annotation 接线，但不能替代真实生产 telemetry storage/receiver、阈值调优和 SLO 报表。
+现状：OTel、Prometheus、Worker SLO 指标、告警规则、Runbook 和故障演练入口已接线；可选 `docker/docker-compose.observability.yml` 提供固定镜像的 Collector、Prometheus、Alertmanager、Grafana、Tempo、Loki overlay，生产 Compose 要求为全部 backend 显式提供外部 OTLP collector 地址。仓库可以验证配置、scrape、规则、路由、dashboard 和 release annotation 接线，但不能替代真实生产 telemetry storage/receiver、阈值调优和 SLO 报表。
 
 触发条件：未来需要真实生产流量、托管 telemetry storage 或 SLO 报表时，由部署方启用该 profile 并执行 HTTP → Dubbo → Redis Streams 链路、积压、PEL、DLQ 与 last-success 恢复演练。当前本地 observability 配置和 disposable contract 已足够，不阻塞本项目开发验收。操作入口见 [`WORKER_SLO_RUNBOOK.md`](WORKER_SLO_RUNBOOK.md)。
 
@@ -251,7 +251,7 @@ Judge0 仍默认关闭，当前没有 endpoint/凭据或真实实例，因此没
 | 旧 GitLab 直连部署控制面 | `.gitlab-ci.yml` 退役禁用（无 reset/build/up 路径）；canonical 控制面唯一；只读 `deployment-integrity.sh describe` + matrix/Compose `verify-registry`；runner authority 见 CLOSED SVC-021 |
 | app-api 收纳纯 App 内部 interface | App-only seam 迁入对应私有 Module/内部包；`api-contract-boundary-contract.sh` 校验单一权威位置；跨 Owner contract 仍留在 `app-api` |
 | Auth `RoleTemplateService` contract 无消费者 | Admin 详情切至 `AuthorizationSnapshotService` 后无剩余 consumer；Auth provider、测试与 contract interface 已删除 |
-| 可选外部 Adapter 配置面（S3/R2、SMTP、OTLP） | App `FileStoragePort` 已有 LocalStorage（自托管默认）与 S3Storage，`APP_STORAGE_S3_*` 只配置 endpoint/bucket/TLS/凭据；Notification `SmtpSenderPort` 保留 Logging 与 JavaMail 两个 Adapter；OTLP 仅标准 endpoint/headers/sampling 配置，`platform/observability` 在配置 authorization 时 fail closed 拒绝非 HTTPS，可选 `docker-compose.observability-managed.yml` 从 secret/env 读 endpoint。Meilisearch Cloud、Judge0、托管数据层分别见 OPTIONAL_PROFILE SVC-026/027/028 |
+| 可选外部 Adapter 配置面（S3/R2、SMTP、OTLP） | App `FileStoragePort` 已有 LocalStorage（自托管默认）与 S3Storage，`APP_STORAGE_S3_*` 只配置 endpoint/bucket/TLS/凭据；Notification `SmtpSenderPort` 保留 Logging 与 JavaMail 两个 Adapter；OTLP 仅标准 endpoint/headers/sampling 配置，`platform/observability` 在配置 authorization 时 fail closed 拒绝非 HTTPS，可选 `docker/docker-compose.observability-managed.yml` 从 secret/env 读 endpoint。Meilisearch Cloud、Judge0、托管数据层分别见 OPTIONAL_PROFILE SVC-026/027/028 |
 
 ## ACCEPTED
 

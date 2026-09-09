@@ -75,10 +75,10 @@ contains services/platform/integration-inbox/pom.xml 'jdk.attach.allowAttachSelf
 contains services/docs/GRACEFUL_DRAIN_RUNBOOK.md 'P3-GRACE-001'
 
 [[ "$(grep -Fc 'stop_grace_period: ${SERVICE_STOP_GRACE_PERIOD:-60s}' \
-  "$ROOT_DIR/docker-compose.prod.yml")" == 7 ]] \
+  "$ROOT_DIR/docker/docker-compose.prod.yml")" == 7 ]] \
   || fail 'production Java service stop grace is not configured for all seven services'
 [[ "$(grep -Fc 'stop_grace_period: ${FRONTEND_STOP_GRACE_PERIOD:-30s}' \
-  "$ROOT_DIR/docker-compose.prod.yml")" == 2 ]] \
+  "$ROOT_DIR/docker/docker-compose.prod.yml")" == 2 ]] \
   || fail 'production frontend stop grace is not configured for both gateways'
 [[ "$(grep -Fc 'kill_timeout:' "$ROOT_DIR/ecosystem.config.cjs")" == 10 ]] \
   || fail 'PM2 kill_timeout is not configured for all ten local processes'

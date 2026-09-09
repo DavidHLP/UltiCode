@@ -5,7 +5,7 @@ globs:
 - init-db/**/*.sql
 - init-db/**/*.conf
 - scripts/dev/**/*
-- docker-compose*.yml
+- docker/docker-compose*.yml
 - docker/**/*
 - apps/**/*
 - packages/**/*
@@ -27,7 +27,7 @@ priority: 100
 - Frontend: preserve Vue 3/TypeScript contracts, existing routing/store seams, i18n coverage, keyboard accessibility, cancellation/stale-result handling, and the `Result` envelope.
 - Frontend: stable behavior shared between Console and Management belongs in a focused package under `packages/`; Solarized tokens, typography, and theme state are owned by `packages/theme` and `packages/design-system`.
 - Frontend: add focused Vitest regressions for changed behavior, loading/empty/success/failure states, and malicious-input paths where rendering or URLs are involved.
-- Operations: development-only infrastructure exposure belongs in `docker-compose.dev.yml` and binds to loopback; base and production Compose files MUST NOT publish backend or infrastructure ports.
+- Operations: development-only infrastructure exposure belongs in `docker/docker-compose.dev.yml` and binds to loopback; base and production Compose files MUST NOT publish backend or infrastructure ports.
 - Operations: use existing startup, migration, PM2, and verification entry points; do not invent parallel operational paths.
 - Shell: new Bash scripts MUST use `#!/usr/bin/env bash`, default to `set -euo pipefail`, quote expansions, avoid `eval`, use `mktemp` plus cleanup traps, bound retries/polling, and fail closed for security-sensitive validation.
 - Shell: changed scripts MUST pass `bash -n`; never echo secrets or enable `set -x` around credentials.

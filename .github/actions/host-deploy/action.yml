@@ -219,7 +219,7 @@ runs:
         if [[ "$SKIP_MIGRATIONS" == "true" ]]; then
           remote_command+=" $REMOTE_ENV ./scripts/runbooks/deployment-integrity.sh check-rollback &&"
         fi
-        remote_command+=" $REMOTE_ENV docker compose -f docker-compose.yml -f docker-compose.prod.yml config --quiet &&"
+        remote_command+=" $REMOTE_ENV docker compose --project-directory . -f docker/docker-compose.yml -f docker/docker-compose.prod.yml config --quiet &&"
         remote_command+=" $REMOTE_ENV ./scripts/runbooks/image-reference-policy.sh verify"
         "${SSH_CMD[@]}" "$remote_command"
     - name: Validate remote sandbox prerequisites
@@ -371,7 +371,7 @@ runs:
           done
         fi
 
-        remote_command+=" $REMOTE_ENV docker compose -f docker-compose.yml -f docker-compose.prod.yml pull$TARGETS &&"
-        remote_command+=" $REMOTE_ENV docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --remove-orphans$TARGETS &&"
+        remote_command+=" $REMOTE_ENV docker compose --project-directory . -f docker/docker-compose.yml -f docker/docker-compose.prod.yml pull$TARGETS &&"
+        remote_command+=" $REMOTE_ENV docker compose --project-directory . -f docker/docker-compose.yml -f docker/docker-compose.prod.yml up -d --remove-orphans$TARGETS &&"
         remote_command+=" $REMOTE_ENV DEPLOYED_SERVICES=$(shell_quote "${DEPLOY_SERVICES:-all}") DEPLOYMENT_STATUS=PENDING_HEALTH ./scripts/runbooks/deployment-integrity.sh record"
         "${SSH_CMD[@]}" "$remote_command"

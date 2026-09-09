@@ -54,7 +54,7 @@ enabled-owner wiring 或业务 journey。
 | Console | `pnpm --dir apps/console lint && pnpm --dir apps/console type-check && pnpm --dir apps/console test:coverage && pnpm --dir apps/console build` |
 | Management | `pnpm --dir apps/management lint && pnpm --dir apps/management type-check && pnpm --dir apps/management test:coverage && pnpm --dir apps/management validate:i18n-keys && pnpm --dir apps/management build` |
 | `packages/auth-core` | `pnpm --dir packages/auth-core test:coverage && pnpm --dir packages/auth-core type-check` |
-| migration/Compose | `docker compose --env-file .env -f docker-compose.yml -f docker-compose.dev.yml config >/dev/null` 与 `git diff --check` |
+| migration/Compose | `docker compose --project-directory . --env-file .env -f docker/docker-compose.yml -f docker/docker-compose.dev.yml config >/dev/null` 与 `git diff --check` |
 | 架构/文档 | `bash scripts/dev/architecture-contract-test.sh` 与 `bash scripts/dev/docs-contract-test.sh` |
 
 ## 测试约定

@@ -276,7 +276,7 @@ for release_service in "${release_services[@]}"; do
     inside && /^  [^ ]/ { exit }
     inside && /MANAGEMENT_OTLP_TRACING_ENDPOINT=/ { count++ }
     END { print count + 0 }
-  ' "$ROOT_DIR/docker-compose.prod.yml")"
+  ' "$ROOT_DIR/docker/docker-compose.prod.yml")"
   [[ "$otlp_endpoint_count" -eq 1 ]] \
     || fail "production Compose service $release_service must have exactly one OTLP endpoint"
 done
@@ -347,8 +347,8 @@ for stale_jwt in \
   services/notification/src/main/java/com/ulticode/notification/security/jwt/ResourceServerJwtVerifier.java; do
   [[ ! -e "$ROOT_DIR/$stale_jwt" ]] || fail "stale owner-local JWT security source remains: $stale_jwt"
 done
-contains docker-compose.prod.yml 'JWT_JWKS_URI=https://backend-auth:9101/auth/jwks'
-not_contains docker-compose.prod.yml 'JWT_JWKS_URI=http://backend-auth:9101/auth/jwks'
+contains docker/docker-compose.prod.yml 'JWT_JWKS_URI=https://backend-auth:9101/auth/jwks'
+not_contains docker/docker-compose.prod.yml 'JWT_JWKS_URI=http://backend-auth:9101/auth/jwks'
 # P0-SEC-005: transport assertions are RS256-only. Private signing material
 # stays in Admin; every verifier receives only public key material.
 not_contains services/admin/src/main/java/com/ulticode/admin/security/DelegationAssertionSigner.java 'Keys.hmacShaKeyFor'
@@ -372,17 +372,17 @@ not_contains services/auth/src/main/resources/application.yml 'BOOTSTRAP_DELEGAT
 contains services/auth/src/main/resources/application.yml 'BOOTSTRAP_DELEGATION_PUBLIC_KEY'
 not_contains services/admin/src/main/resources/application.yml 'INTERNAL_DELEGATION_SECRET'
 not_contains services/admin/src/main/resources/application.yml 'BOOTSTRAP_DELEGATION_SECRET'
-not_contains docker-compose.prod.yml 'INTERNAL_DELEGATION_SECRET='
-contains docker-compose.prod.yml 'INTERNAL_DELEGATION_PRIVATE_KEY='
-contains docker-compose.prod.yml 'BOOTSTRAP_DELEGATION_PRIVATE_KEY='
-contains docker-compose.prod.yml 'INTERNAL_DELEGATION_PUBLIC_KEY='
-contains docker-compose.prod.yml 'BOOTSTRAP_DELEGATION_PUBLIC_KEY='
+not_contains docker/docker-compose.prod.yml 'INTERNAL_DELEGATION_SECRET='
+contains docker/docker-compose.prod.yml 'INTERNAL_DELEGATION_PRIVATE_KEY='
+contains docker/docker-compose.prod.yml 'BOOTSTRAP_DELEGATION_PRIVATE_KEY='
+contains docker/docker-compose.prod.yml 'INTERNAL_DELEGATION_PUBLIC_KEY='
+contains docker/docker-compose.prod.yml 'BOOTSTRAP_DELEGATION_PUBLIC_KEY='
 replay_controller="$ROOT_DIR/services/app/app-web/src/main/java/com/ulticode/modules/event/replay/EventReplayController.java"
 replay_annotations="$(grep -c '@PreAuthorize' "$replay_controller" || true)"
 [[ "$replay_annotations" -eq 6 ]] || fail "EventReplayController must protect all six operations"
 contains docker/redis/generate-users-acl.sh '~stream:integration'
 [[ ! -e "$ROOT_DIR/docker/redis/users.acl" ]] || fail "tracked Redis ACL verifier remains"
-contains docker-compose.yml 'REDIS_ACL_DIR'
+contains docker/docker-compose.yml 'REDIS_ACL_DIR'
 contains docker/redis/generate-users-acl.sh '<PREFIX>_REDIS_PASSWORD_PREVIOUS'
 contains scripts/runbooks/redis-acl-rotation.sh 'next-overlap-current'
 contains scripts/runbooks/redis-acl-rotation.sh 'current-overlap-next'
@@ -544,7 +544,7 @@ contains apps/console/nginx.conf 'include /etc/nginx/conf.d/includes/tls-listene
 contains apps/management/nginx.conf 'include /etc/nginx/conf.d/includes/tls-listener.conf;'
 contains infrastructure/nginx/includes/tls-listener.prod.conf 'listen 8443 ssl;'
 contains infrastructure/nginx/includes/security-headers.conf 'Strict-Transport-Security'
-contains docker-compose.prod.yml 'TLS_CERT_DIR'
+contains docker/docker-compose.prod.yml 'TLS_CERT_DIR'
 contains .github/workflows/_backend.yml 'tls-profile-contract.sh'
 run_child scripts/test/tls-profile-contract.sh
 contains .github/actions/host-deploy/action.yml 'owner-migration-manifest.sh migrate'
@@ -676,15 +676,15 @@ for remote_submission_source in \
   services/app/app-web/src/main/java/com/ulticode/modules/submission/port/adapter/RemoteCodeExecutionPort.java; do
   not_contains "$remote_submission_source" 'legacy-rollback'
 done
-contains docker-compose.prod.yml 'JWT_RSA_ENABLED=true'
-contains docker-compose.prod.yml 'JWT_JWKS_URI=https://backend-auth:9101/auth/jwks'
-not_contains docker-compose.prod.yml 'DUBBO_NAMESPACE:-dev'
+contains docker/docker-compose.prod.yml 'JWT_RSA_ENABLED=true'
+contains docker/docker-compose.prod.yml 'JWT_JWKS_URI=https://backend-auth:9101/auth/jwks'
+not_contains docker/docker-compose.prod.yml 'DUBBO_NAMESPACE:-dev'
 contains docker/initdb/02-nacos-user.sh 'NACOS_DB_USER'
 contains services/admin/src/main/java/com/ulticode/admin/security/DelegationAssertionSigner.java 'app.bootstrap-admin.enabled:false'
 contains services/admin/src/main/java/com/ulticode/admin/security/DelegationAssertionSigner.java 'app.dev-users.enabled:false'
 contains services/admin/src/main/java/com/ulticode/admin/security/DelegationAssertionSigner.java 'issueForBootstrap'
 contains services/platform/web-security/src/main/java/com/ulticode/websecurity/jwt/DelegationAssertionVerifierSupport.java 'DelegationAssertionContract.BOOTSTRAP_CLAIM'
-not_contains docker-compose.prod.yml 'BOOTSTRAP_DELEGATION_SECRET='
+not_contains docker/docker-compose.prod.yml 'BOOTSTRAP_DELEGATION_SECRET='
 
 contains .github/workflows/_contract.yml 'api-contract-boundary-contract.sh'
 contains scripts/test/api-contract-boundary-contract.sh 'api-contract-boundary-contract: PASS'

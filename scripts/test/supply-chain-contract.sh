@@ -83,17 +83,17 @@ grep -Fq 'cosign verify-attestation' "$fake_log" \
 grep -Fq 'trivy image --exit-code 1' "$fake_log" \
   || fail "verify did not require the vulnerability scan"
 
-contains docker-compose.prod.yml 'image: mysql@sha256:0255b469f0135a0236d672d60e3154ae2f4538b146744966d96440318cc822c6'
-contains docker-compose.prod.yml 'image: redis@sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28ecfe28eadf'
-contains docker-compose.prod.yml 'image: nacos/nacos-server@sha256:d70b20546fe59aeb86add0754db1dbc3a3067363e18599329c5163d0d8cd9cd8'
-contains docker-compose.prod.yml 'image: getmeili/meilisearch@sha256:bbdb723dbf83ae431ad5c10bf4970a517ca1fce1dcda9bdb99691576e963a6e5'
+contains docker/docker-compose.prod.yml 'image: mysql@sha256:0255b469f0135a0236d672d60e3154ae2f4538b146744966d96440318cc822c6'
+contains docker/docker-compose.prod.yml 'image: redis@sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28ecfe28eadf'
+contains docker/docker-compose.prod.yml 'image: nacos/nacos-server@sha256:d70b20546fe59aeb86add0754db1dbc3a3067363e18599329c5163d0d8cd9cd8'
+contains docker/docker-compose.prod.yml 'image: getmeili/meilisearch@sha256:bbdb723dbf83ae431ad5c10bf4970a517ca1fce1dcda9bdb99691576e963a6e5'
 for variable in \
   BACKEND_AUTH BACKEND_ADMIN BACKEND_APP BACKEND_SUBMISSION BACKEND_SEARCH \
   BACKEND_NOTIFICATION BACKEND_JUDGE CONSOLE MANAGEMENT; do
-  contains docker-compose.prod.yml "${variable}_IMAGE_REF:?${variable}_IMAGE_REF is required"
+  contains docker/docker-compose.prod.yml "${variable}_IMAGE_REF:?${variable}_IMAGE_REF is required"
 done
-not_contains docker-compose.prod.yml 'IMAGE_TAG'
-not_contains docker-compose.prod.yml ':latest'
+not_contains docker/docker-compose.prod.yml 'IMAGE_TAG'
+not_contains docker/docker-compose.prod.yml ':latest'
 
 for dockerfile in services/Dockerfile apps/console/Dockerfile apps/management/Dockerfile; do
   contains "$dockerfile" 'RUN apk upgrade --no-cache'

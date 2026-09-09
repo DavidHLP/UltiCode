@@ -1,5 +1,5 @@
 # Production Docker Compose override
-# Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+# Usage: docker compose --project-directory . -f docker/docker-compose.yml -f docker/docker-compose.prod.yml up -d
 #
 # This file references pre-built images from GHCR instead of building locally.
 # Required environment variables (set in deployment environment):

@@ -7,8 +7,8 @@ set -euo pipefail
 # and requires operator-supplied endpoint/cert/image values.
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-PROD_COMPOSE="$ROOT_DIR/docker-compose.prod.yml"
-DEV_COMPOSE="$ROOT_DIR/docker-compose.judge-dev.yml"
+PROD_COMPOSE="$ROOT_DIR/docker/docker-compose.prod.yml"
+DEV_COMPOSE="$ROOT_DIR/docker/docker-compose.judge-dev.yml"
 EXECUTOR="$ROOT_DIR/services/judge-runtime/src/main/java/com/ulticode/modules/submission/sandbox/executor/SandboxExecutorImpl.java"
 DOCKER_BIN="${DOCKER_BIN:-docker}"
 
@@ -20,23 +20,23 @@ fail() {
 # shellcheck source=scripts/test/lib/assertions.sh
 source "$ROOT_DIR/scripts/test/lib/assertions.sh"
 
-contains docker-compose.prod.yml 'DOCKER_HOST=${JUDGE_DOCKER_HOST:?JUDGE_DOCKER_HOST is required for production sandbox}'
-contains docker-compose.prod.yml 'DOCKER_TLS_VERIFY=1'
-contains docker-compose.prod.yml 'DOCKER_CERT_PATH=/run/secrets/judge-docker'
-contains docker-compose.prod.yml 'JUDGE_DOCKER_CERT_DIR:?JUDGE_DOCKER_CERT_DIR is required for production sandbox}:/run/secrets/judge-docker:ro'
-contains docker-compose.prod.yml 'SANDBOX_HOST_DIR:?SANDBOX_HOST_DIR is required for production sandbox}'
-not_contains docker-compose.prod.yml 'docker.sock'
-not_contains docker-compose.prod.yml 'JUDGE_DOCKER_SOCK'
-not_contains docker-compose.prod.yml 'DOCKER_GID'
-not_contains docker-compose.prod.yml 'group_add:'
+contains docker/docker-compose.prod.yml 'DOCKER_HOST=${JUDGE_DOCKER_HOST:?JUDGE_DOCKER_HOST is required for production sandbox}'
+contains docker/docker-compose.prod.yml 'DOCKER_TLS_VERIFY=1'
+contains docker/docker-compose.prod.yml 'DOCKER_CERT_PATH=/run/secrets/judge-docker'
+contains docker/docker-compose.prod.yml 'JUDGE_DOCKER_CERT_DIR:?JUDGE_DOCKER_CERT_DIR is required for production sandbox}:/run/secrets/judge-docker:ro'
+contains docker/docker-compose.prod.yml 'SANDBOX_HOST_DIR:?SANDBOX_HOST_DIR is required for production sandbox}'
+not_contains docker/docker-compose.prod.yml 'docker.sock'
+not_contains docker/docker-compose.prod.yml 'JUDGE_DOCKER_SOCK'
+not_contains docker/docker-compose.prod.yml 'DOCKER_GID'
+not_contains docker/docker-compose.prod.yml 'group_add:'
 
-contains docker-compose.judge-dev.yml 'profiles: [judge-socket]'
-contains docker-compose.judge-dev.yml 'JUDGE_DOCKER_SOCK'
-contains docker-compose.judge-dev.yml ':/var/run/docker.sock'
-contains docker-compose.judge-dev.yml 'DOCKER_HOST='
-contains docker-compose.judge-dev.yml 'DOCKER_TLS_VERIFY='
-contains docker-compose.judge-dev.yml 'DOCKER_CERT_PATH='
-contains docker-compose.judge-dev.yml 'Never include this file in a production deployment'
+contains docker/docker-compose.judge-dev.yml 'profiles: [judge-socket]'
+contains docker/docker-compose.judge-dev.yml 'JUDGE_DOCKER_SOCK'
+contains docker/docker-compose.judge-dev.yml ':/var/run/docker.sock'
+contains docker/docker-compose.judge-dev.yml 'DOCKER_HOST='
+contains docker/docker-compose.judge-dev.yml 'DOCKER_TLS_VERIFY='
+contains docker/docker-compose.judge-dev.yml 'DOCKER_CERT_PATH='
+contains docker/docker-compose.judge-dev.yml 'Never include this file in a production deployment'
 
 for argument in \
   '"--network", "none"' \
@@ -65,8 +65,8 @@ contains services/judge-runtime/src/main/java/com/ulticode/modules/submission/sa
 contains services/judge-runtime/src/main/java/com/ulticode/modules/submission/sandbox/executor/DockerProcessRunner.java '"rm", "-f"'
 contains services/judge-runtime/src/main/java/com/ulticode/modules/submission/sandbox/executor/DockerProcessRunner.java 'Files.readString'
 contains services/judge-runtime/src/main/java/com/ulticode/modules/submission/sandbox/executor/DockerProcessRunner.java 'destroyForcibly'
-contains docker-compose.prod.yml 'test -d \"$${SANDBOX_HOST_DIR}/workspace\"'
-contains docker-compose.judge-dev.yml 'SANDBOX_SECCOMP_PROFILE=${SANDBOX_HOST_DIR:-/opt/ulticode/sandbox}/seccomp-profile.json'
+contains docker/docker-compose.prod.yml 'test -d \"$${SANDBOX_HOST_DIR}/workspace\"'
+contains docker/docker-compose.judge-dev.yml 'SANDBOX_SECCOMP_PROFILE=${SANDBOX_HOST_DIR:-/opt/ulticode/sandbox}/seccomp-profile.json'
 not_contains .github/actions/host-deploy/action.yml 'docker/sandbox/harness/build.sh'
 contains .github/actions/host-deploy/action.yml 'judge-sandbox-preflight.sh'
 contains scripts/runbooks/judge-sandbox-preflight.sh 'config", "--format", "json"'
@@ -77,7 +77,7 @@ contains scripts/runbooks/judge-sandbox-preflight.sh 'cert.pem'
 contains .github/actions/host-deploy/action.yml 'IMAGE_REF_LIST: ${{ inputs.image_refs }}'
 contains .github/actions/host-deploy/action.yml 'IMAGE_REF_LIST=$(shell_quote'
 contains scripts/runbooks/judge-sandbox-preflight.sh 'compose_env'
-contains docker-compose.prod.yml 'SANDBOX_HOST_DIR=${SANDBOX_HOST_DIR:?SANDBOX_HOST_DIR is required for production sandbox}'
+contains docker/docker-compose.prod.yml 'SANDBOX_HOST_DIR=${SANDBOX_HOST_DIR:?SANDBOX_HOST_DIR is required for production sandbox}'
 contains services/judge-runtime/src/main/java/com/ulticode/modules/submission/sandbox/executor/SandboxExecutorImpl.java 'cmd.add("--volume");'
 contains services/judge-runtime/src/main/java/com/ulticode/modules/submission/sandbox/executor/SandboxExecutorImpl.java '"--security-opt"'
 preflight_line="$(grep -n 'judge-sandbox-preflight.sh' "$ROOT_DIR/.github/actions/host-deploy/action.yml" | cut -d: -f1)"

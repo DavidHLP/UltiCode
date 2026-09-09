@@ -17,7 +17,7 @@ The decision does not add Kafka, another message broker, a service mesh, Kuberne
 
 This repository has no production traffic plane. This document makes no production claim about capacity, RPO, RTO, latency, availability, or failover. The numbers below are source/config values or proposed acceptance thresholds for short-lived, isolated, disposable drills. A green disposable drill is not production evidence.
 
-`docker-compose.yml` declares one Redis service with the `redis_data` volume and does not set `maxmemory`, `maxmemory-policy`, AOF, or a Redis-specific RPO/RTO. `docker-compose.ha.yml` is an operator-owned reference profile: it adds a replica, Sentinel processes, and AOF on the primary, but it explicitly does not provide transparent application failover. No production multi-host or Sentinel-aware client claim is made here.
+`docker/docker-compose.yml` declares one Redis service with the `redis_data` volume and does not set `maxmemory`, `maxmemory-policy`, AOF, or a Redis-specific RPO/RTO. `docker/docker-compose.ha.yml` is an operator-owned reference profile: it adds a replica, Sentinel processes, and AOF on the primary, but it explicitly does not provide transparent application failover. No production multi-host or Sentinel-aware client claim is made here.
 
 ## Runtime and client baseline
 
@@ -31,7 +31,7 @@ This repository has no production traffic plane. This document makes no producti
 | Notification | same endpoint; timeout `10000ms` | Lettuce `max-active=8`; listener container needs a subscriber connection | integration Streams consumer, Pub/Sub publisher, rate-limit, delegation replay |
 | Judge | same endpoint; timeout `10000ms` | Lettuce `max-active=8` is present in the worker config; active Judge transport uses Redisson Streams, while legacy RQueue beans remain in the imported runtime graph | Judge Streams, Judge DLQ/dedup/lock, legacy queue compatibility |
 
-The repository has no explicit Redisson pool budget for App, Submission, Search, Notification, or Judge. That is a P1-INFRA-002 budget/seam obligation, not evidence that those clients are isolated. Every production service receives a distinct `REDIS_USERNAME`/password in `docker-compose.prod.yml`; all default to the same `redis` host and port.
+The repository has no explicit Redisson pool budget for App, Submission, Search, Notification, or Judge. That is a P1-INFRA-002 budget/seam obligation, not evidence that those clients are isolated. Every production service receives a distinct `REDIS_USERNAME`/password in `docker/docker-compose.prod.yml`; all default to the same `redis` host and port.
 
 ## Complete workload and keyspace inventory
 
@@ -146,9 +146,9 @@ A physical split is not triggered by key count, source file count, ACL-user coun
 
 - P0 topology and initial workload/failure graph: `docs/architecture/evidence/P0-BASELINE-004-infra-graph.md`.
 - ACL users, key/channel patterns, and command superset: `docker/redis/generate-users-acl.sh:47-75`; local materialization is ignored runtime state.
-- Base Redis endpoint, ACL mount, volume, health check, and internal network: `docker-compose.yml:31-53`.
-- Production per-owner Redis usernames/passwords and shared endpoint: `docker-compose.prod.yml:127-130`, `219-222`, `313-316`, `423-426`, `501-504`, `572-575`, `661-664`.
-- HA reference boundary: `docker-compose.ha.yml:9-17`, `67-107`.
+- Base Redis endpoint, ACL mount, volume, health check, and internal network: `docker/docker-compose.yml:31-53`.
+- Production per-owner Redis usernames/passwords and shared endpoint: `docker/docker-compose.prod.yml:127-130`, `219-222`, `313-316`, `423-426`, `501-504`, `572-575`, `661-664`.
+- HA reference boundary: `docker/docker-compose.ha.yml:9-17`, `67-107`.
 - Owner/worker Redis timeout and Lettuce pool settings: `services/auth/src/main/resources/application.yml:32-47`, `services/admin/src/main/resources/application.yml:20-34`, `services/app/app-web/src/main/resources/application.yml:21-32`, `services/submission/src/main/resources/application.yml:18-30`, `services/search/src/main/resources/application.yml:22-35`, `services/notification/src/main/resources/application.yml:28-40`, `services/judge/src/main/resources/application.yml:22-35`.
 - App/Admin cache TTL and serializer wiring: `services/app/app-web/src/main/java/com/ulticode/app/config/AppCacheConfig.java:23-62`, `services/admin/src/main/java/com/ulticode/admin/config/AdminCacheConfig.java:22-56`.
 - OAuth state: `services/auth/src/main/java/com/ulticode/auth/security/oauth/OAuthStateModule.java:24-69`.

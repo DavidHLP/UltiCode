@@ -11,6 +11,8 @@ overrides:
   dompurify: 3.4.5
   lodash-es: 4.18.1
   protocol-buffers-schema: 3.6.1
+  # GHSA-jrc7-96c5-q579: patched MapLibre pulled in by Unovis.
+  maplibre-gl: 6.4.1
   vite: ^8.0.16
   form-data: ^4.0.6
   # GHSA-v245-v573-v5vm / nanoid loop DoS / postcss source-map traversal —

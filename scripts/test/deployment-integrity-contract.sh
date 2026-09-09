@@ -22,6 +22,39 @@ fail() {
   echo "deployment-integrity-contract: FAIL: $*" >&2
   exit 1
 }
+
+# SVC-005: every backend image in the release matrix must remain selectable
+# by both manual deploy and rollback entry points.
+mapfile -t release_services < <(python3 - "$ROOT_DIR/.github/services-matrix.json" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as source:
+    services = json.load(source)
+for service in services:
+    name = service.get("name", "")
+    if name.startswith("backend-"):
+        print(name)
+PY
+)
+(( ${#release_services[@]} > 0 )) || fail "services matrix contains no backend runtimes"
+for release_service in "${release_services[@]}"; do
+  grep -Fq "          - $release_service" "$CD_DEPLOY" \
+    || fail "cd-deploy omits backend service $release_service"
+  grep -Fq "\"$release_service\"" "$CD_ROLLBACK" \
+    || fail "cd-rollback omits backend service $release_service"
+  grep -Fq "      $release_service " "$HOST_HEALTH" \
+    || fail "host-health omits backend service $release_service"
+  otlp_endpoint_count="$(awk -v service="$release_service" '
+    $0 == "  " service ":" { inside = 1; next }
+    inside && /^  [^ ]/ { exit }
+    inside && /MANAGEMENT_OTLP_TRACING_ENDPOINT=/ { count++ }
+    END { print count + 0 }
+  ' "$ROOT_DIR/docker-compose.prod.yml")"
+  [[ "$otlp_endpoint_count" -eq 1 ]] \
+    || fail "production Compose service $release_service must have exactly one OTLP endpoint"
+done
+
 grep -Fq 'stages: []' "$GITLAB_CI" \
   || fail "legacy GitLab direct-deploy pipeline is not disabled"
 ! grep -Fq 'reset --hard' "$GITLAB_CI" \
@@ -191,4 +224,32 @@ grep -Fq 'SYSTEM HEALTH PASS' "$HOST_HEALTH" \
 grep -Fq 'deployment-integrity.sh mark-health' "$HOST_HEALTH" \
   || fail "host-health does not persist descriptor health"
 printf 'host-health system summary and descriptor wiring: PASS\n'
+
+for contract in \
+  owner-backup-restore-contract.sh \
+  redis-acl-rotation-contract.sh \
+  scheduler-contract.sh \
+  fenced-lease-contract.sh \
+  graceful-drain-contract.sh \
+  dependency-resilience-contract.sh \
+  stream-resilience-contract.sh \
+  scale-topology-contract.sh \
+  dubbo-mtls-contract.sh \
+  network-reachability-contract.sh \
+  judge-sandbox-contract.sh \
+  tls-profile-contract.sh \
+  owner-migration-manifest-contract.sh; do
+  grep -Fq "$contract" "$ROOT_DIR/.github/workflows/_backend.yml" \
+    || fail "backend workflow omits $contract"
+done
+for contract in \
+  supply-chain-contract.sh \
+  deployment-integrity-contract.sh \
+  dubbo-mtls-contract.sh \
+  network-reachability-contract.sh \
+  judge-sandbox-contract.sh; do
+  grep -Fq "$contract" "$ROOT_DIR/.github/workflows/_docker.yml" \
+    || fail "docker workflow omits $contract"
+done
+
 printf 'deployment-integrity-contract: PASS\n'

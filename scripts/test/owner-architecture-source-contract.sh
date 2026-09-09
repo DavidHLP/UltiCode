@@ -18,6 +18,22 @@ assert_absent() {
   [[ ! -e "$ROOT_DIR/$file" ]] || fail "$file must be absent after compatibility retirement"
 }
 
+compact_contains() {
+  local file="$1" text="$2"
+  [[ -f "$ROOT_DIR/$file" ]] || fail "missing guarded file: $file"
+  python3 - "$ROOT_DIR/$file" "$text" <<'PY'
+import re
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+needle = re.sub(r"\s+", "", sys.argv[2])
+source = re.sub(r"\s+", "", path.read_text(encoding="utf-8"))
+if needle not in source:
+    raise SystemExit(f"{path}: missing guarded symbol chain {sys.argv[2]}")
+PY
+}
+
 for file in \
   scripts/runbooks/notification-schema-cutover.sh \
   scripts/runbooks/submission-schema-cutover.sh \
@@ -281,5 +297,223 @@ for remote_submission_source in \
   services/app/app-web/src/main/java/com/ulticode/modules/submission/port/adapter/RemoteCodeExecutionPort.java; do
   not_contains "$remote_submission_source" 'legacy-rollback'
 done
+
+# Security and repair regressions: keep the executable boundaries aligned with
+# the source-level fixes so future migrations cannot silently reopen them.
+for csrf_config in \
+  services/auth/src/main/java/com/ulticode/auth/security/AuthSecurityConfig.java \
+  services/app/app-web/src/main/java/com/ulticode/app/security/AppSecurityConfig.java \
+  services/admin/src/main/java/com/ulticode/admin/security/AdminSecurityConfig.java \
+  services/notification/src/main/java/com/ulticode/notification/security/NotificationSecurityConfig.java; do
+  contains "$csrf_config" 'new CookieCsrfFilter()'
+done
+for stale_csrf in \
+  services/auth/src/main/java/com/ulticode/auth/security/csrf/CsrfValidationFilter.java \
+  services/auth/src/main/java/com/ulticode/auth/security/csrf/CsrfService.java; do
+  assert_absent "$stale_csrf"
+done
+for route_config in \
+  services/auth/src/main/java/com/ulticode/auth/security/AuthSecurityConfig.java \
+  services/app/app-web/src/main/java/com/ulticode/app/security/AppSecurityConfig.java \
+  services/admin/src/main/java/com/ulticode/admin/security/AdminSecurityConfig.java \
+  services/notification/src/main/java/com/ulticode/notification/security/NotificationSecurityConfig.java \
+  services/app/app-web/src/test/java/com/ulticode/app/security/AppTestSecurityConfig.java; do
+  not_contains "$route_config" '.anyRequest().permitAll()'
+done
+compact_contains services/auth/src/main/java/com/ulticode/auth/security/AuthSecurityConfig.java \
+  '.anyRequest().authenticated()'
+contains services/app/app-web/src/main/java/com/ulticode/app/security/AppSecurityConfig.java \
+  '.anyRequest().authenticated()'
+contains services/admin/src/main/java/com/ulticode/admin/security/AdminSecurityConfig.java \
+  '.requestMatchers("/admin/**").hasAnyRole("ADMIN", "SUPER_ADMIN")'
+contains services/admin/src/main/java/com/ulticode/admin/security/AdminSecurityConfig.java \
+  '.anyRequest().denyAll()'
+contains services/notification/src/main/java/com/ulticode/notification/security/NotificationSecurityConfig.java \
+  '.anyRequest().authenticated()'
+for shared_jwt in \
+  services/platform/web-security/src/main/java/com/ulticode/websecurity/jwt/AccessTokenVerifier.java \
+  services/platform/web-security/src/main/java/com/ulticode/websecurity/jwt/AccessTokenClaims.java \
+  services/platform/web-security/src/main/java/com/ulticode/websecurity/jwt/JwtAuthenticationFilter.java \
+  services/platform/web-security/src/main/java/com/ulticode/websecurity/jwt/JwksPublicKeyProvider.java \
+  services/platform/web-security/src/main/java/com/ulticode/websecurity/jwt/ResourceServerJwtVerifier.java; do
+  [[ -f "$ROOT_DIR/$shared_jwt" ]] || fail "missing shared JWT security source: $shared_jwt"
+done
+for stale_jwt in \
+  services/auth/src/main/java/com/ulticode/auth/security/jwt/JwtAuthenticationFilter.java \
+  services/app/app-web/src/main/java/com/ulticode/app/security/jwt/JwtAuthenticationFilter.java \
+  services/app/app-web/src/main/java/com/ulticode/app/security/jwt/JwksPublicKeyProvider.java \
+  services/app/app-web/src/main/java/com/ulticode/app/security/jwt/ResourceServerJwtVerifier.java \
+  services/admin/src/main/java/com/ulticode/admin/security/jwt/JwtAuthenticationFilter.java \
+  services/admin/src/main/java/com/ulticode/admin/security/jwt/JwksPublicKeyProvider.java \
+  services/admin/src/main/java/com/ulticode/admin/security/jwt/ResourceServerJwtVerifier.java \
+  services/notification/src/main/java/com/ulticode/notification/security/jwt/JwtAuthenticationFilter.java \
+  services/notification/src/main/java/com/ulticode/notification/security/jwt/JwksPublicKeyProvider.java \
+  services/notification/src/main/java/com/ulticode/notification/security/jwt/ResourceServerJwtVerifier.java; do
+  assert_absent "$stale_jwt"
+done
+contains docker-compose.prod.yml 'JWT_JWKS_URI=https://backend-auth:9101/auth/jwks'
+not_contains docker-compose.prod.yml 'JWT_JWKS_URI=http://backend-auth:9101/auth/jwks'
+not_contains services/admin/src/main/java/com/ulticode/admin/security/DelegationAssertionSigner.java 'Keys.hmacShaKeyFor'
+for delegation_source in \
+  services/auth/src/main/java/com/ulticode/auth/security/InternalDelegationAssertionVerifier.java \
+  services/app/app-web/src/main/java/com/ulticode/app/security/InternalDelegationAssertionVerifier.java \
+  services/notification/src/main/java/com/ulticode/notification/security/InternalDelegationAssertionVerifier.java \
+  services/submission/src/main/java/com/ulticode/submission/security/InternalDelegationAssertionVerifier.java; do
+  not_contains "$delegation_source" 'Keys.hmacShaKeyFor'
+  contains "$delegation_source" 'DelegationAssertionVerifierSupport.verifyTrusted'
+  not_contains "$delegation_source" 'DelegationAssertionVerifierSupport.verify('
+  not_contains "$delegation_source" 'private static RSAPublicKey loadOptionalPublicKey'
+done
+contains services/platform/web-security/src/main/java/com/ulticode/websecurity/jwt/DelegationAssertionVerifierSupport.java \
+  'public static boolean verifyTrusted'
+contains services/platform/web-security/src/main/java/com/ulticode/websecurity/jwt/RsaKeyMaterial.java \
+  'loadOptionalPublicKey'
+contains services/notification/src/main/java/com/ulticode/notification/BackendNotificationApplication.java \
+  'RedisDelegationAssertionReplayGuard.class'
+contains services/admin/src/main/java/com/ulticode/admin/security/DelegationAssertionSigner.java 'Jwts.SIG.RS256'
+contains services/admin/src/main/resources/application.yml 'INTERNAL_DELEGATION_PRIVATE_KEY'
+contains services/admin/src/main/resources/application.yml 'BOOTSTRAP_DELEGATION_PRIVATE_KEY'
+for delegation_config in \
+  services/auth/src/main/resources/application.yml \
+  services/app/app-web/src/main/resources/application.yml \
+  services/notification/src/main/resources/application.yml \
+  services/submission/src/main/resources/application.yml; do
+  not_contains "$delegation_config" 'INTERNAL_DELEGATION_SECRET'
+  contains "$delegation_config" 'INTERNAL_DELEGATION_PUBLIC_KEY'
+done
+not_contains services/auth/src/main/resources/application.yml 'BOOTSTRAP_DELEGATION_SECRET'
+contains services/auth/src/main/resources/application.yml 'BOOTSTRAP_DELEGATION_PUBLIC_KEY'
+not_contains services/admin/src/main/resources/application.yml 'INTERNAL_DELEGATION_SECRET'
+not_contains services/admin/src/main/resources/application.yml 'BOOTSTRAP_DELEGATION_SECRET'
+not_contains docker-compose.prod.yml 'INTERNAL_DELEGATION_SECRET='
+contains docker-compose.prod.yml 'INTERNAL_DELEGATION_PRIVATE_KEY='
+contains docker-compose.prod.yml 'BOOTSTRAP_DELEGATION_PRIVATE_KEY='
+contains docker-compose.prod.yml 'INTERNAL_DELEGATION_PUBLIC_KEY='
+contains docker-compose.prod.yml 'BOOTSTRAP_DELEGATION_PUBLIC_KEY='
+replay_controller="$ROOT_DIR/services/app/app-web/src/main/java/com/ulticode/modules/event/replay/EventReplayController.java"
+replay_annotations="$(grep -c '@PreAuthorize' "$replay_controller" || true)"
+[[ "$replay_annotations" -eq 6 ]] || fail "EventReplayController must protect all six operations"
+
+# Redis and owner cutover checks are source-level assertions; the disposable
+# ACL and schema exercises remain owned by their dedicated child scripts.
+contains docker/redis/generate-users-acl.sh '~stream:integration'
+assert_absent docker/redis/users.acl
+contains docker-compose.yml 'REDIS_ACL_DIR'
+contains docker/redis/generate-users-acl.sh '<PREFIX>_REDIS_PASSWORD_PREVIOUS'
+contains scripts/runbooks/redis-acl-rotation.sh 'next-overlap-current'
+contains scripts/runbooks/redis-acl-rotation.sh 'current-overlap-next'
+contains scripts/runbooks/redis-acl-rotation.sh 'runtime ACL drift detected'
+contains .github/actions/host-deploy/action.yml 'redis-acl-rotation.sh materialize'
+contains .github/workflows/_backend.yml 'redis-acl-rotation-contract.sh'
+contains services/auth/src/main/java/com/ulticode/auth/adapter/in/web/JwksController.java \
+  'public Map<String, Object> getJwks()'
+contains services/auth/src/main/java/com/ulticode/auth/security/InternalDelegationAssertionVerifier.java 'backend-auth'
+contains services/app/app-web/src/main/java/com/ulticode/app/dubbo/provider/ProblemAdministrationProvider.java \
+  'AdminActorAuthorizer actorAuthorizer'
+contains services/app/app-web/src/main/java/com/ulticode/app/dubbo/provider/ContestAdministrationProvider.java \
+  'AdminActorAuthorizer actorAuthorizer'
+
+# P1-DATA/P1-AUDIT source ownership assertions stay together with the other
+# owner/module source contracts; runtime exercises remain separate children.
+contains services/submission/src/main/java/com/ulticode/submission/dubbo/provider/SubmissionAdministrationProvider.java \
+  'implements SubmissionAdministrationService'
+contains services/submission/src/main/java/com/ulticode/submission/admin/SubmissionRejudgeService.java '@Transactional'
+contains services/submission/src/main/java/com/ulticode/submission/security/InternalDelegationAssertionVerifier.java 'expectedAudience'
+contains services/submission/src/main/java/com/ulticode/submission/security/InternalDelegationAssertionVerifier.java 'backend-submission'
+contains services/submission/src/main/java/com/ulticode/modules/submission/mapper/SubmissionMapper.java 'current_attempt_id = NULL'
+contains services/submission/src/main/java/com/ulticode/submission/idempotency/mapper/SubmissionCommandReceiptMapper.java \
+  'INSERT IGNORE INTO submission_command_receipt'
+contains services/admin/src/main/java/com/ulticode/modules/admin/service/SubmissionCutoverService.java \
+  'group = "backend-submission"'
+not_contains services/admin/src/main/java/com/ulticode/modules/admin/service/SubmissionCutoverService.java \
+  'app.features.submission-dubbo-cutover'
+for stale_rejudge in \
+  services/app/app-web/src/main/java/com/ulticode/app/dubbo/provider/SubmissionAdministrationProvider.java \
+  services/app/app-web/src/main/java/com/ulticode/app/dubbo/provider/RejudgePolicyProvider.java \
+  services/admin/src/main/java/com/ulticode/modules/admin/service/AdminSubmissionService.java \
+  services/admin/src/main/java/com/ulticode/modules/admin/service/impl/AdminSubmissionServiceImpl.java; do
+  assert_absent "$stale_rejudge"
+done
+contains services/admin/src/main/java/com/ulticode/modules/reconciliation/port/adapter/DubboSubmissionReconciliationReadAdapter.java \
+  'group = "backend-submission"'
+contains services/admin/src/main/java/com/ulticode/modules/reconciliation/port/adapter/DubboNotificationReconciliationReadAdapter.java \
+  'group = NotificationServiceContract.DUBBO_GROUP'
+contains services/notification/src/main/java/com/ulticode/notification/dubbo/provider/NotificationReconciliationReadProvider.java \
+  'NotificationServiceContract.DUBBO_GROUP'
+contains services/notification/src/main/java/com/ulticode/modules/notification/mapper/NotificationReconciliationReadMapper.java \
+  'FROM notifications'
+contains services/admin/src/main/java/com/ulticode/modules/reconciliation/OwnerReconciler.java 'runIncrementalReconciliation'
+contains services/admin/src/main/java/com/ulticode/modules/reconciliation/OwnerReconciler.java 'fencedJobLeaseService.tryAcquire'
+contains services/admin/src/main/java/com/ulticode/modules/reconciliation/OwnerReconciler.java 'notificationOrphans'
+not_contains services/app/app-web/src/main/java/com/ulticode/modules/reconciliation/port/AppReconciliationReadMapper.java 'submissions'
+not_contains services/app/app-web/src/main/java/com/ulticode/modules/reconciliation/port/DefaultAppReconciliationReadPort.java 'submissionUserCounts'
+not_contains services/app/app-web/src/main/java/com/ulticode/modules/reconciliation/port/AppReconciliationReadMapper.java 'notifications'
+not_contains services/app/app-web/src/main/java/com/ulticode/modules/reconciliation/port/DefaultAppReconciliationReadPort.java 'notificationUserCounts'
+if grep -REn --include='*.java' \
+  'INSERT[[:space:]]+INTO[[:space:]]+`?(notifications|notification_preferences|notification_delivery_ledger)|UPDATE[[:space:]]+`?(notifications|notification_preferences|notification_delivery_ledger)|DELETE[[:space:]]+FROM[[:space:]]+`?(notifications|notification_preferences|notification_delivery_ledger)|com\.ulticode\.modules\.notification\.(channel|consumer|dispatcher|ledger|mapper|service)([^[:alnum:]_]|$)|com\.ulticode\.modules\.notification\.entity\.(Notification|NotificationPreference)([^[:alnum:]_]|$)|com\.ulticode\.modules\.notification\.dto([^[:alnum:]_]|$)' \
+  "$app_java" >/dev/null; then
+  fail "App contains Notification-owned persistence or runtime implementation references"
+fi
+
+for audit_source in \
+  services/app/app-web/src/main/java/com/ulticode/app/audit/AppAuditOutboxRecord.java \
+  services/app/app-web/src/main/java/com/ulticode/app/audit/AppAuditOutboxMapper.java \
+  services/app/app-web/src/main/java/com/ulticode/app/audit/AppAuditSinkAdapter.java \
+  services/app/app-web/src/main/java/com/ulticode/app/audit/AppAuditOutboxDispatcher.java \
+  services/auth/src/main/java/com/ulticode/auth/audit/AuthAuditOutboxRecord.java \
+  services/auth/src/main/java/com/ulticode/auth/audit/AuthAuditOutboxMapper.java \
+  services/auth/src/main/java/com/ulticode/auth/audit/AuthAuditSinkAdapter.java \
+  services/auth/src/main/java/com/ulticode/auth/audit/AuthAuditOutboxDispatcher.java \
+  services/admin/src/main/java/com/ulticode/modules/admin/audit/AdminAuditEventConsumer.java \
+  services/admin/src/main/java/com/ulticode/modules/admin/audit/AdminAuditRecordedPayload.java \
+  services/admin/src/main/java/com/ulticode/modules/admin/audit/AdminAuditIntegrationInboxBridge.java \
+  services/admin/src/main/java/com/ulticode/modules/admin/mapper/AuditLogMapper.java \
+  scripts/test/audit-owner-boundary-contract.sh \
+  init-db/migrations/auth/V20260831100000__Create_Auth_Audit_Outbox.sql \
+  init-db/migrations/app/V20260831100100__Create_App_Audit_Outbox.sql \
+  init-db/migrations/admin/V20260831100200__Create_Admin_Audit_Inbox.sql \
+  init-db/migrations/admin/V20260831100300__Widen_Audit_Action.sql \
+  init-db/flyway-post-owner.conf \
+  init-db/migrations/post-owner/V20260831100400__Revoke_Cross_Owner_Audit_Grants.sql; do
+  [[ -f "$ROOT_DIR/$audit_source" ]] || fail "missing P1-AUDIT source: $audit_source"
+done
+for owner_audit_source in \
+  services/app/app-web/src/main/java/com/ulticode/app/audit/AppAuditOutboxRecord.java \
+  services/app/app-web/src/main/java/com/ulticode/app/audit/AppAuditOutboxMapper.java \
+  services/app/app-web/src/main/java/com/ulticode/app/audit/AppAuditSinkAdapter.java \
+  services/app/app-web/src/main/java/com/ulticode/app/audit/AppAuditOutboxDispatcher.java \
+  services/auth/src/main/java/com/ulticode/auth/audit/AuthAuditOutboxRecord.java \
+  services/auth/src/main/java/com/ulticode/auth/audit/AuthAuditOutboxMapper.java \
+  services/auth/src/main/java/com/ulticode/auth/audit/AuthAuditSinkAdapter.java \
+  services/auth/src/main/java/com/ulticode/auth/audit/AuthAuditOutboxDispatcher.java; do
+  not_contains "$owner_audit_source" 'admin.audit_outbox'
+done
+contains services/app/app-web/src/main/java/com/ulticode/app/audit/AppAuditOutboxDispatcher.java 'APP_AUDIT_STREAM_KEY'
+contains services/auth/src/main/java/com/ulticode/auth/audit/AuthAuditOutboxDispatcher.java 'AUTH_AUDIT_STREAM_KEY'
+contains services/admin/src/main/java/com/ulticode/modules/admin/audit/AdminAuditIntegrationInboxBridge.java 'STREAM_KEYS'
+contains services/platform/common/src/main/java/com/ulticode/common/event/IntegrationEventEnvelopeContract.java 'APP_AUDIT_STREAM_KEY'
+contains services/platform/common/src/main/java/com/ulticode/common/event/IntegrationEventEnvelopeContract.java 'AUTH_AUDIT_STREAM_KEY'
+contains scripts/runbooks/admin-audit-stream-migration.sh 'I_HAVE_VERIFIED_ADMIN_AUDIT_STREAM_MIGRATION'
+contains services/admin/src/main/java/com/ulticode/modules/admin/audit/AdminAuditIntegrationInboxBridge.java 'AuditRecorded'
+contains services/admin/src/main/java/com/ulticode/modules/admin/mapper/AuditLogMapper.java 'ON DUPLICATE KEY UPDATE id = id'
+not_contains init-db/migrations/auth/V20260831100000__Create_Auth_Audit_Outbox.sql 'REVOKE INSERT ON `admin`.`audit_outbox`'
+not_contains init-db/migrations/app/V20260831100100__Create_App_Audit_Outbox.sql 'REVOKE INSERT ON `admin`.`audit_outbox`'
+contains init-db/migrations/post-owner/V20260831100400__Revoke_Cross_Owner_Audit_Grants.sql \
+  'REVOKE INSERT ON `admin`.`audit_outbox`'
+contains init-db/migrations/admin/V20260831100300__Widen_Audit_Action.sql 'MODIFY COLUMN `action` VARCHAR(64) NOT NULL'
+
+# P0-SEC-005: transport assertions are RS256-only. Private signing material
+# stays in Admin; every verifier receives only public key material.
+contains docker-compose.prod.yml 'JWT_RSA_ENABLED=true'
+not_contains docker-compose.prod.yml 'DUBBO_NAMESPACE:-dev'
+contains docker/initdb/02-nacos-user.sh 'NACOS_DB_USER'
+contains services/admin/src/main/java/com/ulticode/admin/security/DelegationAssertionSigner.java \
+  'app.bootstrap-admin.enabled:false'
+contains services/admin/src/main/java/com/ulticode/admin/security/DelegationAssertionSigner.java \
+  'app.dev-users.enabled:false'
+contains services/admin/src/main/java/com/ulticode/admin/security/DelegationAssertionSigner.java 'issueForBootstrap'
+contains services/platform/web-security/src/main/java/com/ulticode/websecurity/jwt/DelegationAssertionVerifierSupport.java \
+  'DelegationAssertionContract.BOOTSTRAP_CLAIM'
+not_contains docker-compose.prod.yml 'BOOTSTRAP_DELEGATION_SECRET='
 
 echo "Owner architecture source contract: PASS"

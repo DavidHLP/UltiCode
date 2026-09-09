@@ -17,7 +17,7 @@ CI 的静态任务运行 `bash scripts/test/zero-infra-validation-contract.sh --
 
 Shell 工具的文件断言和基线编排可单独运行 `bash scripts/test/shell-tooling-contract.sh`，也包含在 `static` 中。该测试使用临时文件和 Docker 替身检查失败传播、清理及基线不变性，不连接 Docker daemon 或真实数据库；真实迁移效果仍由基线和集成门禁验证。
 
-owner/module 的 source contract assertions 由 scripts/test/owner-architecture-source-contract.sh 持有；scripts/dev/architecture-contract-test.sh 仍是唯一架构门禁入口，parent 只负责 scope、执行顺序和结果汇总。
+owner/module 的 declarative source contract registry 由 scripts/test/owner-architecture-source-contract.rules 持有，并由 scripts/test/owner-architecture-source-contract.sh 执行；scripts/dev/architecture-contract-test.sh 仍是唯一架构门禁入口，parent 只负责 scope、执行顺序和结果汇总。
 
 ## Core 与 distributed 验证边界
 

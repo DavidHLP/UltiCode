@@ -10,6 +10,7 @@ import com.ulticode.submission.api.queue.JudgeQueue;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.context.event.ContextClosedEvent;
@@ -61,6 +62,7 @@ public class JudgeOutboxDispatcher {
     private final JudgeJobEnvelopeTranslator envelopeTranslator;
     private final DrainGate drainGate = new DrainGate();
 
+    @Autowired
     public JudgeOutboxDispatcher(JudgeOutboxMapper judgeOutboxMapper,
                                  ObjectProvider<JudgeQueue> judgeQueueProvider,
                                  MeterRegistry meterRegistry,

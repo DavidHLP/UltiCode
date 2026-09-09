@@ -15,32 +15,32 @@ fail() {
 # shellcheck source=scripts/test/lib/assertions.sh
 source "$ROOT_DIR/scripts/test/lib/assertions.sh"
 
-for compose in docker-compose.yml docker-compose.prod.yml; do
+for compose in docker/docker-compose.yml docker/docker-compose.prod.yml; do
   not_contains "$compose" 'container_name:'
   not_contains "$compose" 'network_mode: host'
 done
 
 for service in backend-auth backend-admin backend-app backend-submission backend-search \
   backend-notification backend-judge; do
-  contains docker-compose.prod.yml "  $service:"
+  contains docker/docker-compose.prod.yml "  $service:"
 done
 contains services/auth/src/main/resources/application.yml 'port: ${DUBBO_PROTOCOL_PORT:20881}'
 
-contains docker-compose.prod.yml 'DUBBO_REGISTRY_ADDRESS=nacos://nacos:8848'
-contains docker-compose.prod.yml 'restart: unless-stopped'
-contains docker-compose.prod.yml 'healthcheck:'
-contains docker-compose.prod.yml 'expose:'
-contains docker-compose.prod.yml 'deploy:'
-contains docker-compose.yml 'networks:'
-contains docker-compose.yml 'cache:'
+contains docker/docker-compose.prod.yml 'DUBBO_REGISTRY_ADDRESS=nacos://nacos:8848'
+contains docker/docker-compose.prod.yml 'restart: unless-stopped'
+contains docker/docker-compose.prod.yml 'healthcheck:'
+contains docker/docker-compose.prod.yml 'expose:'
+contains docker/docker-compose.prod.yml 'deploy:'
+contains docker/docker-compose.yml 'networks:'
+contains docker/docker-compose.yml 'cache:'
 
 printf 'production Compose scale-safe service names and discovery references: PASS\n'
 printf 'production backend health/restart/resource declarations: PASS\n'
 
 if [[ -n "${SCALE_COMPOSE_ENV_FILE:-}" ]]; then
   command -v docker >/dev/null 2>&1 || fail 'SCALE_COMPOSE_ENV_FILE requires docker'
-  docker compose --env-file "$SCALE_COMPOSE_ENV_FILE" \
-    -f "$ROOT_DIR/docker-compose.yml" -f "$ROOT_DIR/docker-compose.prod.yml" config >/dev/null
+  docker compose --project-directory "$ROOT_DIR" --env-file "$SCALE_COMPOSE_ENV_FILE" \
+    -f "$ROOT_DIR/docker/docker-compose.yml" -f "$ROOT_DIR/docker/docker-compose.prod.yml" config >/dev/null
   printf 'production Compose merged config expansion: PASS\n'
 else
   printf 'production Compose merged config expansion: BLOCKED_EXTERNAL (SCALE_COMPOSE_ENV_FILE is unset)\n'

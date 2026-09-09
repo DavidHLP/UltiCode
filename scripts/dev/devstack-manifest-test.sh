@@ -175,8 +175,8 @@ assert_file_contains ecosystem.config.cjs "APP_RUNTIME_MODE: process.env.APP_RUN
 assert_file_contains ecosystem.config.cjs "APP_FEATURES_USE_JUDGE_OUTBOX: process.env.APP_FEATURES_USE_JUDGE_OUTBOX || 'true'"
 assert_file_contains ecosystem.config.cjs "APP_FEATURES_USE_GENERATION_FENCE: process.env.APP_FEATURES_USE_GENERATION_FENCE || 'true'"
 assert_file_contains ecosystem.config.cjs "APP_FEATURES_JUDGE_QUEUE_USE_PORT: process.env.APP_FEATURES_JUDGE_QUEUE_USE_PORT || 'true'"
-assert_file_contains docker-compose.prod.yml 'APP_SEARCH_READ_MODE=indexed'
-assert_file_contains docker-compose.prod.yml 'APP_SEARCH_FALLBACK_TO_DATABASE=true'
+assert_file_contains docker/docker-compose.prod.yml 'APP_SEARCH_READ_MODE=indexed'
+assert_file_contains docker/docker-compose.prod.yml 'APP_SEARCH_FALLBACK_TO_DATABASE=true'
 assert_file_contains docs/archive/architecture-remediation-2026-08/PROJECT_DOCUMENTATION-2026-08-30.md 'Phase 7'
 assert_file_contains README.md './scripts/dev/up.sh --mode dev-lite'
 assert_file_contains README.md './scripts/dev/up.sh --mode dev-full'
@@ -186,7 +186,7 @@ if grep -Eq 'APP_FEATURES_JUDGE_QUEUE_ENVELOPE_VERSION|envelope-version:' \
   "$ROOT_DIR/services/app/app-web/src/main/resources/application.yml" \
   "$ROOT_DIR/services/judge/src/main/resources/application.yml" \
   "$ROOT_DIR/scripts/dev/devstack-manifest.sh" \
-  "$ROOT_DIR/docker-compose.prod.yml"; then
+  "$ROOT_DIR/docker/docker-compose.prod.yml"; then
   echo 'obsolete Judge envelope-version configuration remains' >&2
   exit 1
 fi

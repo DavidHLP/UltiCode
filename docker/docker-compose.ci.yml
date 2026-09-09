@@ -1,5 +1,5 @@
 # CI override: build owner images locally instead of pulling from GHCR.
-# Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.ci.yml up -d --build
+# Usage: docker compose --project-directory . -f docker/docker-compose.yml -f docker/docker-compose.prod.yml -f docker/docker-compose.ci.yml up -d --build
 
 services:
   backend-auth:
@@ -51,7 +51,7 @@ services:
     image: ulticode-console:latest
     build:
       context: .
-      dockerfile: console/Dockerfile
+      dockerfile: apps/console/Dockerfile
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:8080/"]
 
@@ -59,6 +59,6 @@ services:
     image: ulticode-management:latest
     build:
       context: .
-      dockerfile: management/Dockerfile
+      dockerfile: apps/management/Dockerfile
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:8080/"]

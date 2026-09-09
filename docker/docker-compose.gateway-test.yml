@@ -1,13 +1,13 @@
 # Gateway topology smoke test (used by scripts/test/gateway-baseline.sh).
 #
-# Mirrors docker-compose.prod.yml's wiring at the network layer: the gateway
+# Mirrors docker/docker-compose.prod.yml's wiring at the network layer: the gateway
 # resolves backend-auth/backend-admin/backend-app via Docker DNS exactly as the
 # production frontend containers do. Each owner is a deterministic echo
 # backend on its production internal HTTP port.
 #
 # Usage (called by the script — don't run directly):
-#   docker compose -f docker-compose.gateway-test.yml up -d
-#   docker compose -f docker-compose.gateway-test.yml down
+#   docker compose --project-directory . -f docker/docker-compose.gateway-test.yml up -d
+#   docker compose --project-directory . -f docker/docker-compose.gateway-test.yml down
 #
 # The gateway port is published on loopback only. Backend ports are NOT
 # published.
@@ -80,9 +80,9 @@ services:
         condition: service_healthy
     volumes:
       # Render the shared security headers under the include path expected by
-      # console/nginx.conf; the template is static but follows nginx's normal
+      # apps/console/nginx.conf; the template is static but follows nginx's normal
       # envsubst layout.
-      - ./console/nginx.conf:/etc/nginx/templates/default.conf.template:ro
+      - ./apps/console/nginx.conf:/etc/nginx/templates/default.conf.template:ro
       - ./infrastructure/nginx/includes/security-headers.conf:/etc/nginx/templates/includes/security-headers.conf.template:ro
       # backend-proxy.conf has no env vars; mount it directly.
       - ./infrastructure/nginx/includes/backend-proxy.conf:/etc/nginx/conf.d/includes/backend-proxy.conf:ro

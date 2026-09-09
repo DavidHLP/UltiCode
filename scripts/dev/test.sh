@@ -333,9 +333,9 @@ run_full_local() {
   fi
 
   compose=(
-    docker compose --env-file "$ENV_FILE"
-    -f "$ROOT_DIR/docker-compose.yml"
-    -f "$ROOT_DIR/docker-compose.dev.yml"
+    docker compose --project-directory "$ROOT_DIR" --env-file "$ENV_FILE"
+    -f "$ROOT_DIR/docker/docker-compose.yml"
+    -f "$ROOT_DIR/docker/docker-compose.dev.yml"
   )
 
   cleanup_test_resources() {

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-COMPOSE_FILE="$ROOT_DIR/docker-compose.prod.yml"
+COMPOSE_FILE="$ROOT_DIR/docker/docker-compose.prod.yml"
 
 fail() {
   echo "Dubbo mTLS contract failed: $*" >&2
@@ -13,9 +13,9 @@ fail() {
 source "$ROOT_DIR/scripts/test/lib/assertions.sh"
 
 [[ -f "$COMPOSE_FILE" ]] || fail "missing production Compose override"
-contains docker-compose.prod.yml 'DUBBO_MTLS_CERT_DIR:?DUBBO_MTLS_CERT_DIR is required'
-contains docker-compose.prod.yml ':/run/secrets/dubbo:ro'
-not_contains docker-compose.prod.yml 'DUBBO_MTLS_CERT_DIR:-'
+contains docker/docker-compose.prod.yml 'DUBBO_MTLS_CERT_DIR:?DUBBO_MTLS_CERT_DIR is required'
+contains docker/docker-compose.prod.yml ':/run/secrets/dubbo:ro'
+not_contains docker/docker-compose.prod.yml 'DUBBO_MTLS_CERT_DIR:-'
 
 service_files=(
   "backend-auth:services/auth/src/main/resources/application.yml"
@@ -37,8 +37,8 @@ for mapping in "${service_files[@]}"; do
   contains "$file" 'client-key-cert-chain-path: ${DUBBO_SSL_CLIENT_KEY_CERT_CHAIN_PATH:}'
   contains "$file" 'client-private-key-path: ${DUBBO_SSL_CLIENT_PRIVATE_KEY_PATH:}'
   contains "$file" 'client-trust-cert-collection-path: ${DUBBO_SSL_CLIENT_TRUST_CERT_COLLECTION_PATH:}'
-  contains docker-compose.prod.yml "DUBBO_MTLS_SERVICE_IDENTITY=$service"
-  contains docker-compose.prod.yml "\${DUBBO_MTLS_CERT_DIR:?DUBBO_MTLS_CERT_DIR is required}/$service:/run/secrets/dubbo:ro"
+  contains docker/docker-compose.prod.yml "DUBBO_MTLS_SERVICE_IDENTITY=$service"
+  contains docker/docker-compose.prod.yml "\${DUBBO_MTLS_CERT_DIR:?DUBBO_MTLS_CERT_DIR is required}/$service:/run/secrets/dubbo:ro"
 done
 for pom in \
   services/auth/pom.xml services/admin/pom.xml services/app/app-web/pom.xml \
@@ -46,12 +46,12 @@ for pom in \
   contains "$pom" '<artifactId>backend-rpc-resilience</artifactId>'
 done
 
-contains docker-compose.prod.yml 'DUBBO_MTLS_ALLOWED_CALLERS=backend-admin,backend-app,backend-notification,backend-submission'
-contains docker-compose.prod.yml 'DUBBO_MTLS_ALLOWED_CALLERS='
-contains docker-compose.prod.yml 'DUBBO_MTLS_ALLOWED_CALLERS=backend-admin,backend-submission,backend-judge'
-contains docker-compose.prod.yml 'DUBBO_MTLS_ALLOWED_CALLERS=backend-admin,backend-app,backend-judge'
-contains docker-compose.prod.yml 'DUBBO_MTLS_ALLOWED_CALLERS=backend-admin'
-contains docker-compose.prod.yml 'DUBBO_MTLS_ALLOWED_CALLERS=backend-app'
+contains docker/docker-compose.prod.yml 'DUBBO_MTLS_ALLOWED_CALLERS=backend-admin,backend-app,backend-notification,backend-submission'
+contains docker/docker-compose.prod.yml 'DUBBO_MTLS_ALLOWED_CALLERS='
+contains docker/docker-compose.prod.yml 'DUBBO_MTLS_ALLOWED_CALLERS=backend-admin,backend-submission,backend-judge'
+contains docker/docker-compose.prod.yml 'DUBBO_MTLS_ALLOWED_CALLERS=backend-admin,backend-app,backend-judge'
+contains docker/docker-compose.prod.yml 'DUBBO_MTLS_ALLOWED_CALLERS=backend-admin'
+contains docker/docker-compose.prod.yml 'DUBBO_MTLS_ALLOWED_CALLERS=backend-app'
 for property in \
   DUBBO_PROTOCOL_SSL_ENABLED=true \
   DUBBO_SSL_DEFAULT=true \
@@ -61,7 +61,7 @@ for property in \
   DUBBO_SSL_CLIENT_KEY_CERT_CHAIN_PATH=/run/secrets/dubbo/identity.crt \
   DUBBO_SSL_CLIENT_PRIVATE_KEY_PATH=/run/secrets/dubbo/identity.key \
   DUBBO_SSL_CLIENT_TRUST_CERT_COLLECTION_PATH=/run/secrets/dubbo/trusted-services.pem; do
-  contains docker-compose.prod.yml "$property"
+  contains docker/docker-compose.prod.yml "$property"
 done
 
 fixture_dir="$(mktemp -d)"

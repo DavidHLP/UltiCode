@@ -27,7 +27,7 @@ and do not open the circuit.
 This is a repository-static matrix for backend roles only. Console and management
 are not added: this runbook has no source-backed 4×9 contract for those surfaces.
 
-`docker-compose.prod.yml` declares one `mysql`, `redis`, `nacos`, and `meilisearch`
+`docker/docker-compose.prod.yml` declares one `mysql`, `redis`, `nacos`, and `meilisearch`
 service. Owner schemas/accounts and Redis ACL users are logical ownership
 boundaries. Schema/ACL ownership does not equal physical fault isolation. The
 four services therefore remain one shared fault domain in the reference Compose
@@ -54,7 +54,7 @@ Evidence labels:
 | **Search** | DataSource/MyBatis/Flyway autoconfiguration is excluded; the worker has no MySQL path. `[RS]` | Redis is the stream source and a readiness input. Read/reclaim/ACK errors do not fabricate success; PEL work remains retryable and the heartbeat marker goes stale when Redis cannot answer. `[RS; UE=BLOCKED_EXTERNAL]` | No Dubbo/Nacos client or registry configuration; registry failure is outside the worker's direct dependency set. `[RS]` | Meili is the sole write target. Heartbeat requires Redis+Meili; write failure leaves events in PEL, and Owner-data backfill can rebuild the derived index. `[RS; UE=BLOCKED_EXTERNAL]` |
 | **Judge** | DataSource/MyBatis/Flyway autoconfiguration is excluded; verdict persistence uses the remote Submission contract. `[RS]` | Redis Streams is the queue. Poll failure stops the worker queue path; NACK leaves entries in PEL, and the reaper reclaims or dead-letters after bounded attempts. Readiness marker proves Redis only. `[RS; UE=BLOCKED_EXTERNAL]` | Nacos is needed for App/Submission Dubbo references, but the Redis marker does not prove registry health; remote case/verdict calls therefore have registry-dependent failure semantics. `[SI; UE=BLOCKED_EXTERNAL]` | No direct Meili client/config; judging does not write the search index. `[RS]` |
 
-Static source anchors: [`docker-compose.prod.yml`](../../docker-compose.prod.yml),
+Static source anchors: [`docker/docker-compose.prod.yml`](../../docker/docker-compose.prod.yml),
 [`ReadinessChecks`](../platform/common/src/main/java/com/ulticode/common/health/ReadinessChecks.java),
 [`App search projection`](../app/app-web/src/main/java/com/ulticode/modules/search/projection/DefaultSearchReadProjection.java),
 [`App WebSocket bridge`](../app/app-web/src/main/java/com/ulticode/modules/websocket/broadcast/WebSocketBroadcastBridge.java),

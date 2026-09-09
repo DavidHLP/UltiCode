@@ -21,7 +21,7 @@
 - Kubernetes/Kafka/Service Mesh/Seata non-adoption is NOT defect (explicit exclusion). Source: `docs/architecture/decisions/0001-deferred-platform-expansion.md`, `plan excluded_scope`.
 
 ### AREA-INFRA
-- Default MySQL/Redis/MeiliSearch share single-host failure domain; HA compose does not declare transparent failover. Source: `docker-compose.yml`, `docker-compose.ha.yml:10-17`, `docker-compose.prod.yml:46-66`, `services/docs/SERVICES_ISSUES.md:68-72` (now DEFERRED SVC-007).
+- Default MySQL/Redis/MeiliSearch share single-host failure domain; HA compose does not declare transparent failover. Source: `docker/docker-compose.yml`, `docker/docker-compose.ha.yml:10-17`, `docker/docker-compose.prod.yml:46-66`, `services/docs/SERVICES_ISSUES.md:68-72` (now DEFERRED SVC-007).
 - Redis: Streams, cache, rate-limit, replay, queue, judge, Pub/Sub share instance; ACL isolates identity/keyspace only, not memory/eviction/connection/failure. Source: `docker/redis/generate-users-acl.sh:58-74`, `services/**/application*.yml`.
 - MySQL Owner schema/account isolated; encrypted backup, checksum, Flyway metadata, disposable restore drill exist. Source: `docs/operations/backup-and-recovery.md:7-23`, `init-db/migrations/*`, `scripts/dev/migrate-owner-*.sh`.
 - Search worker sole MeiliSearch writer; App indexed read has explicit DB fallback. Source: `services/search/**/SearchDocumentIndexWorker.java:40-55`, `services/app/**/DefaultSearchReadProjection.java:91-148`.
@@ -59,7 +59,7 @@
 
 - `git rev-parse HEAD` => c344f6268084a893f0bde871da21e5130a331207 (clean worktree before manifest creation)
 - `git status --short` => clean (except this manifest, which is expected)
-- Paths exist: `services/docs/SERVICES_ISSUES.md`, `docs/project/current-status.md`, `AGENTS.md`, `services/app/pom.xml`, `services/app/app-web/pom.xml`, `docker/redis/generate-users-acl.sh`, `docker-compose.yml`, `docker-compose.ha.yml`, `docker-compose.prod.yml`
+- Paths exist: `services/docs/SERVICES_ISSUES.md`, `docs/project/current-status.md`, `AGENTS.md`, `services/app/pom.xml`, `services/app/app-web/pom.xml`, `docker/redis/generate-users-acl.sh`, `docker/docker-compose.yml`, `docker/docker-compose.ha.yml`, `docker/docker-compose.prod.yml`
 - Acceptance: four areas each have current source+config+tests+Gate evidence bound to commit+path above; no historical archive used as current fact without re-verification.
 
 ## Evidence Level

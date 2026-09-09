@@ -193,8 +193,8 @@ reset only when local data may be deleted:
 
 ```bash
 pm2 delete ulticode-9001 ulticode-9002 ulticode-9003
-docker compose --env-file .env \
-  -f docker-compose.yml -f docker-compose.dev.yml down -v
+docker compose --project-directory . --env-file .env \
+  -f docker/docker-compose.yml -f docker/docker-compose.dev.yml down -v
 rm .env
 ./scripts/dev/init-env.sh
 ./scripts/dev/up.sh

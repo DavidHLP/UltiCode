@@ -338,9 +338,9 @@ COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-ulticode}"
 export COMPOSE_PROJECT_NAME NACOS_EXPECTED_DOCKER_PROJECT="$COMPOSE_PROJECT_NAME"
 
 compose=(
-  docker compose --env-file "$ENV_FILE"
-  -f "$ROOT_DIR/docker-compose.yml"
-  -f "$ROOT_DIR/docker-compose.dev.yml"
+  docker compose --project-directory "$ROOT_DIR" --env-file "$ENV_FILE"
+  -f "$ROOT_DIR/docker/docker-compose.yml"
+  -f "$ROOT_DIR/docker/docker-compose.dev.yml"
 )
 
 INFRA_TARGETS=""
@@ -435,7 +435,7 @@ if [[ "$SKIP_INFRA" != true ]]; then
     exit 2
   }
   if [[ "$OBSERVABILITY" == true ]]; then
-    compose+=(--profile observability -f "$ROOT_DIR/docker-compose.observability.yml")
+    compose+=(--profile observability -f "$ROOT_DIR/docker/docker-compose.observability.yml")
   fi
   echo "Starting infrastructure for scope $DEV_SCOPE: $INFRA_TARGETS"
   # Explicit targets are mandatory: an unqualified Compose up would create

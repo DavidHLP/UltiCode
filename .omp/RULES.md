@@ -26,7 +26,7 @@ These rules are project-level sticky guidance for `omp`.
 - WebSocket authentication accepts only the `access_token` cookie, never query, URL, or client-controlled STOMP tokens.
 - `/admin/**` and privileged methods require `ADMIN` or `SUPER_ADMIN`. Audit identity comes from the authenticated principal, not request data.
 - Markdown and KaTeX HTML must pass through `packages/markdown-utils`; do not bypass DOMPurify or send unsanitized output to `v-html`.
-- Base and production Compose configurations must not publish infrastructure or backend ports. Development exposure belongs only in `docker-compose.dev.yml` and must bind to loopback. Keep Nacos authentication enabled and its default account disabled.
+- Base and production Compose configurations must not publish infrastructure or backend ports. Development exposure belongs only in `docker/docker-compose.dev.yml` and must bind to loopback. Keep Nacos authentication enabled and its default account disabled.
 - Do not add usable default users or passwords to migrations. Initial administrator provisioning remains opt-in.
 
 ## Database changes

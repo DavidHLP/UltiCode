@@ -6,7 +6,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 OBS_DIR="$ROOT_DIR/infrastructure/observability"
-COMPOSE_FILE="$ROOT_DIR/docker-compose.observability.yml"
+COMPOSE_FILE="$ROOT_DIR/docker/docker-compose.observability.yml"
 
 fail() {
   echo "observability-contract: FAIL: $*" >&2
@@ -36,23 +36,23 @@ while IFS= read -r image_line; do
     || fail "observability image is not digest-pinned: $image_line"
 done < <(grep -E '^[[:space:]]+image:' "$COMPOSE_FILE" | sed 's/^[[:space:]]*image:[[:space:]]*//')
 
-contains docker-compose.observability.yml 'profiles: [observability]'
-contains docker-compose.observability.yml 'GRAFANA_ADMIN_PASSWORD is required'
+contains docker/docker-compose.observability.yml 'profiles: [observability]'
+contains docker/docker-compose.observability.yml 'GRAFANA_ADMIN_PASSWORD is required'
 contains infrastructure/observability/prometheus.yml '/etc/prometheus/rules/worker-slo-alerts.yml'
 contains infrastructure/observability/prometheus.yml 'host.docker.internal:9101'
 contains infrastructure/observability/prometheus.yml 'backend-auth:9101'
 contains infrastructure/observability/observability-alerts.yml 'ulticode-owners|ulticode-owners-compose'
-contains docker-compose.observability.yml 'host.docker.internal:host-gateway'
+contains docker/docker-compose.observability.yml 'host.docker.internal:host-gateway'
 contains infrastructure/observability/prometheus.yml 'otel-collector:9464'
 contains infrastructure/observability/otel-collector.yml 'otlp/tempo'
 contains infrastructure/observability/otel-collector.yml 'otlphttp/loki'
 contains infrastructure/observability/otel-collector.yml 'prometheus:'
 contains infrastructure/observability/grafana/provisioning/datasources/datasources.yml 'datasourceUid: tempo'
 contains infrastructure/observability/grafana/provisioning/datasources/datasources.yml "matcherRegex: 'traceId=([A-Za-z0-9_-]+)'"
-contains docker-compose.prod.yml 'MANAGEMENT_OTLP_METRICS_ENABLED=${MANAGEMENT_OTLP_METRICS_ENABLED:-false}'
-contains docker-compose.prod.yml 'MANAGEMENT_OTLP_METRICS_ENDPOINT=${MANAGEMENT_OTLP_METRICS_ENDPOINT:-http://otel-collector:4318/v1/metrics}'
-contains docker-compose.observability-managed.yml 'MANAGED_OTLP_TRACING_ENDPOINT is required'
-contains docker-compose.observability-managed.yml 'MANAGED_OTLP_SAMPLING_PROBABILITY:-0.1'
+contains docker/docker-compose.prod.yml 'MANAGEMENT_OTLP_METRICS_ENABLED=${MANAGEMENT_OTLP_METRICS_ENABLED:-false}'
+contains docker/docker-compose.prod.yml 'MANAGEMENT_OTLP_METRICS_ENDPOINT=${MANAGEMENT_OTLP_METRICS_ENDPOINT:-http://otel-collector:4318/v1/metrics}'
+contains docker/docker-compose.observability-managed.yml 'MANAGED_OTLP_TRACING_ENDPOINT is required'
+contains docker/docker-compose.observability-managed.yml 'MANAGED_OTLP_SAMPLING_PROBABILITY:-0.1'
 contains services/platform/observability/src/main/java/com/ulticode/observability/config/OtlpSecurityAutoConfiguration.java 'must use https when authorization is configured'
 contains services/auth/src/main/resources/application.yml 'MANAGEMENT_TRACING_SAMPLING_PROBABILITY:1.0'
 contains services/admin/src/main/resources/application.yml 'MANAGEMENT_OTLP_AUTHORIZATION'
@@ -123,8 +123,8 @@ NACOS_AUTH_IDENTITY_KEY=contract-identity-key \
 NACOS_AUTH_IDENTITY_VALUE=contract-identity-value \
 MEILI_MASTER_KEY=contract-meili-key \
 GRAFANA_ADMIN_PASSWORD=contract-password \
-  docker compose -f "$ROOT_DIR/docker-compose.yml" \
-  -f "$ROOT_DIR/docker-compose.dev.yml" \
+  docker compose --project-directory "$ROOT_DIR" -f "$ROOT_DIR/docker/docker-compose.yml" \
+  -f "$ROOT_DIR/docker/docker-compose.dev.yml" \
   -f "$COMPOSE_FILE" --profile observability config > "$compose_output"
 printf 'merged observability Compose config: PASS\n'
 

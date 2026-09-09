@@ -8,7 +8,7 @@
 
 开发启动命令与 mode 语义由[本地开发](../development/local-setup.md)统一维护；正常 `dev-lite`/`dev-full` 都要求 `APP_SUBMISSION_ROUTING_MODE=remote` 和 `SUBMISSION_CUTOVER_COMPLETE=true`。
 
-`docker-compose.yml` 是基础配置；`docker-compose.dev.yml` 只在 loopback 暴露开发端口；`docker-compose.prod.yml` 不发布 MySQL、Redis、Nacos 或 backend 端口，前端仅作 HTTPS edge。不要直接用 PM2/Maven 启动 owner runtime，以免绕过 manifest、migration、readiness 和 rollback gate。
+`docker/docker-compose.yml` 是基础配置；`docker/docker-compose.dev.yml` 只在 loopback 暴露开发端口；`docker/docker-compose.prod.yml` 不发布 MySQL、Redis、Nacos 或 backend 端口，前端仅作 HTTPS edge。不要直接用 PM2/Maven 启动 owner runtime，以免绕过 manifest、migration、readiness 和 rollback gate。
 
 ## 生产发布前
 
@@ -29,7 +29,7 @@ Trivy 扫描完成后，无论门禁是否通过，都上传独立的 `trivy-<se
 - 合并生产 Compose 配置、TLS/JWKS、owner DB 和必要 secret inputs；
 - registry digest、Cosign、SBOM、SLSA、Trivy 证据（若由部署策略要求）。
 
-生产 Judge 需要 `JUDGE_DOCKER_HOST`、`DOCKER_TLS_VERIFY=1`、只读 client certificate、共享绝对 workspace、固定 seccomp 和 remote/rootless daemon。生产不挂载 `docker.sock`、不使用 `DOCKER_GID`；socket 仅在显式 disposable `docker-compose.judge-dev.yml --profile judge-socket` 下允许。
+生产 Judge 需要 `JUDGE_DOCKER_HOST`、`DOCKER_TLS_VERIFY=1`、只读 client certificate、共享绝对 workspace、固定 seccomp 和 remote/rootless daemon。生产不挂载 `docker.sock`、不使用 `DOCKER_GID`；socket 仅在显式 disposable `docker/docker-compose.judge-dev.yml --profile judge-socket` 下允许。
 
 ## 健康与回滚
 
@@ -57,4 +57,4 @@ DEPLOYMENT_OUTPUT_FORMAT=json ./scripts/runbooks/deployment-integrity.sh describ
 
 ## HA 说明
 
-`docker-compose.ha.yml` 的 `ha` profile 是可审计的 stateful reference，不是默认生产 failover：包含 `mysql-replica`、Redis replica/Sentinel、`nacos-2`/`nacos-3`，但 promotion、endpoint 变更、secret rotation、Sentinel-aware client 和 RPO/RTO 仍需 operator。**本仓库不承诺 active-active HA**。配置保留 `masteruser ulticode-replication`、`sentinel auth-user`、`sentinel auth-user mymaster ulticode-sentinel`、`P3-HA-001`、`mysql-replica` 和 `redis-sentinel-1` 等控制面契约。
+`docker/docker-compose.ha.yml` 的 `ha` profile 是可审计的 stateful reference，不是默认生产 failover：包含 `mysql-replica`、Redis replica/Sentinel、`nacos-2`/`nacos-3`，但 promotion、endpoint 变更、secret rotation、Sentinel-aware client 和 RPO/RTO 仍需 operator。**本仓库不承诺 active-active HA**。配置保留 `masteruser ulticode-replication`、`sentinel auth-user`、`sentinel auth-user mymaster ulticode-sentinel`、`P3-HA-001`、`mysql-replica` 和 `redis-sentinel-1` 等控制面契约。

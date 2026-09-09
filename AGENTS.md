@@ -45,7 +45,7 @@ Read the nearest guide before editing `services/`, `apps/console/`, `apps/manage
 - WebSocket authentication accepts only the `access_token` cookie, never query, URL, or client-controlled STOMP tokens.
 - `/admin/**` and privileged methods require `ADMIN` or `SUPER_ADMIN`. Audit identity comes from the authenticated principal, not request data.
 - Markdown and KaTeX HTML must pass through `packages/markdown-utils`; do not bypass DOMPurify or send unsanitized output to `v-html`.
-- Base and production Compose configurations must not publish MySQL, Redis, Nacos, or backend ports. Development exposure belongs only in `docker-compose.dev.yml` and must bind to loopback. Keep Nacos authentication enabled and its default account disabled.
+- Base and production Compose configurations must not publish MySQL, Redis, Nacos, or backend ports. Development exposure belongs only in `docker/docker-compose.dev.yml` and must bind to loopback. Keep Nacos authentication enabled and its default account disabled.
 - Do not add usable default users or passwords to migrations. Initial administrator provisioning remains opt-in.
 
 ## Database changes
@@ -97,8 +97,8 @@ pnpm --dir packages/<package> test
 For Compose or migration changes, also validate both configurations and whitespace:
 
 ```bash
-docker compose --env-file .env -f docker-compose.yml -f docker-compose.dev.yml config >/dev/null
-docker compose --env-file .env -f docker-compose.yml -f docker-compose.prod.yml config >/dev/null
+docker compose --project-directory . --env-file .env -f docker/docker-compose.yml -f docker/docker-compose.dev.yml config >/dev/null
+docker compose --project-directory . --env-file .env -f docker/docker-compose.yml -f docker/docker-compose.prod.yml config >/dev/null
 git diff --check
 ```
 

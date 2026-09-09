@@ -71,9 +71,9 @@ cmp -s "$BEFORE_DIFF" "$AFTER_DIFF" \
   || fail "static validation modified tracked files"
 printf 'test.sh static: PASS (deny-shim PATH, no Docker daemon)\n'
 # Pure source/catalog children are static-safe and run inside static mode:
-# api-contract-boundary, dubbo-provider-reference, and docs-contract now pass
-# after the App locality migration and provider retirement. The remaining
-# dynamic children (Docker/network/Maven integration shapes) must stay skipped.
+# owner-architecture-source, api-contract-boundary, dubbo-provider-reference,
+# and docs-contract. The remaining dynamic children (Docker/network/Maven
+# integration shapes) must stay skipped.
 for skipped_child in \
   scripts/test/redis-acl-contract.sh \
   scripts/test/audit-owner-boundary-contract.sh \
@@ -102,6 +102,7 @@ for skipped_child in \
 done
 
 for static_child in \
+  scripts/test/owner-architecture-source-contract.sh \
   scripts/test/api-contract-boundary-contract.sh \
   scripts/test/dubbo-provider-reference-contract.sh \
   scripts/dev/docs-contract-test.sh; do

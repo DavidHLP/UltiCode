@@ -126,6 +126,21 @@ public class DefaultSubmissionWritePort implements SubmissionIntakePort, Submiss
     private SubmissionVO submitInternal(String userId, CreateSubmissionDTO createDTO,
                                         SubmissionFactsSnapshot facts,
                                         boolean contestCommand) {
+        Submission submission = buildValidatedSubmission(userId, createDTO, facts);
+        persistSubmission(submission);
+        recordJudgeDispatch(submission);
+        if (contestCommand) {
+            recordContestAssociation(submission, createDTO);
+        }
+        return submissionProjection.toVO(submission);
+    }
+
+    /**
+     * Keep request validation and entity construction together so the intake
+     * transaction has one explicit entry point before it emits any intent.
+     */
+    private Submission buildValidatedSubmission(String userId, CreateSubmissionDTO createDTO,
+                                                SubmissionFactsSnapshot facts) {
         if (!StringUtils.hasText(userId)) {
             throw new BusinessException(BaseErrorCode.BAD_REQUEST);
         }
@@ -152,26 +167,23 @@ public class DefaultSubmissionWritePort implements SubmissionIntakePort, Submiss
         submission.setMemory(0.0);
         submission.setCreatedAt(LocalDateTime.now(clock));
         submission.setTestDetails(new ArrayList<>());
+        return submission;
+    }
 
+    private void persistSubmission(Submission submission) {
         submissionMapper.insert(submission);
         log.info("Created submission {} for user {} and problem {}",
-                submission.getId(), userId, createDTO.getProblemId());
+                submission.getId(), submission.getUserId(), submission.getProblemId());
+    }
 
+    private void recordJudgeDispatch(Submission submission) {
         boolean portActive = featureFlags.getJudgeQueue().isUsePort();
         if (featureFlags.isUseJudgeOutbox() && judgeOutboxMapper != null) {
             long generation = submission.getGeneration() != null ? submission.getGeneration() : 1L;
             boolean isShadow = !portActive;
             judgeOutboxMapper.insert(JudgeOutboxRecord.of(
-                    submission, String.valueOf(createDTO.getProblemId()),
+                    submission, String.valueOf(submission.getProblemId()),
                     generation, isShadow, uuidGenerator));
-        }
-
-        if (contestCommand) {
-            long generation = submission.getGeneration() != null ? submission.getGeneration() : 1L;
-            createdOutboxWriter.recordSubmissionCreated(
-                    submission.getId(), generation, userId,
-                    String.valueOf(createDTO.getProblemId()), createDTO.getContestId(),
-                    createDTO.getVirtualSessionId(), language, submission.getCreatedAt());
         }
 
         if (portActive) {
@@ -180,8 +192,14 @@ public class DefaultSubmissionWritePort implements SubmissionIntakePort, Submiss
             log.warn("Submit {}: legacy judge enqueue is not supported by "
                     + "backend-submission; keep useJudgeOutbox+usePort active", submission.getId());
         }
+    }
 
-        return submissionProjection.toVO(submission);
+    private void recordContestAssociation(Submission submission, CreateSubmissionDTO createDTO) {
+        long generation = submission.getGeneration() != null ? submission.getGeneration() : 1L;
+        createdOutboxWriter.recordSubmissionCreated(
+                submission.getId(), generation, submission.getUserId(),
+                String.valueOf(submission.getProblemId()), createDTO.getContestId(),
+                createDTO.getVirtualSessionId(), submission.getLanguage(), submission.getCreatedAt());
     }
 
     @Override

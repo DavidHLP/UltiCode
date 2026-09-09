@@ -4,6 +4,9 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
+# This contract uses a fake mysql client; never inherit an operator-selected
+# container and turn the zero-infrastructure check into a Docker probe.
+unset MYSQL_CONTAINER MIGRATION_MYSQL_CONTAINER
 FAKE_BIN="$TMP_DIR/bin"
 FAKE_LOG="$TMP_DIR/mysql.log"
 FAKE_STATE="$TMP_DIR/mysql.state"

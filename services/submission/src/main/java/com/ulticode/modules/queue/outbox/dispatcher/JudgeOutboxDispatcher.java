@@ -1,14 +1,13 @@
 package com.ulticode.modules.queue.outbox.dispatcher;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.common.lifecycle.DrainGate;
 import com.ulticode.modules.submission.outbox.entity.JudgeOutboxRecord;
 import com.ulticode.modules.submission.outbox.mapper.JudgeOutboxMapper;
 import com.ulticode.submission.api.queue.JudgeJobEnvelope;
 import com.ulticode.submission.api.queue.JudgeQueue;
-import com.ulticode.modules.queue.port.adapter.RedissonStreamsJudgeQueueAdapter;
 import io.micrometer.core.instrument.MeterRegistry;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
@@ -21,7 +20,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Judge outbox dispatcher (SPLIT-003 slice-3, backend-submission local copy).
@@ -43,7 +41,6 @@ import java.util.Map;
 @Slf4j
 @Component
 @org.springframework.context.annotation.Profile("!test")
-@RequiredArgsConstructor
 @org.springframework.boot.autoconfigure.condition.ConditionalOnExpression(
         "${app.features.use-judge-outbox:false}")
 public class JudgeOutboxDispatcher {
@@ -61,8 +58,30 @@ public class JudgeOutboxDispatcher {
     /** Nullable so unit tests without a registry still work. */
     private final MeterRegistry meterRegistry;
     private final Clock clock;
-    private final UuidGenerator uuidGenerator;
+    private final JudgeJobEnvelopeTranslator envelopeTranslator;
     private final DrainGate drainGate = new DrainGate();
+
+    public JudgeOutboxDispatcher(JudgeOutboxMapper judgeOutboxMapper,
+                                 ObjectProvider<JudgeQueue> judgeQueueProvider,
+                                 MeterRegistry meterRegistry,
+                                 Clock clock,
+                                 UuidGenerator uuidGenerator) {
+        this(judgeOutboxMapper, judgeQueueProvider, meterRegistry, clock,
+                new JudgeJobEnvelopeTranslator(
+                        new ObjectMapper(), uuidGenerator));
+    }
+
+    JudgeOutboxDispatcher(JudgeOutboxMapper judgeOutboxMapper,
+                          ObjectProvider<JudgeQueue> judgeQueueProvider,
+                          MeterRegistry meterRegistry,
+                          Clock clock,
+                          JudgeJobEnvelopeTranslator envelopeTranslator) {
+        this.judgeOutboxMapper = judgeOutboxMapper;
+        this.judgeQueueProvider = judgeQueueProvider;
+        this.meterRegistry = meterRegistry;
+        this.clock = clock;
+        this.envelopeTranslator = envelopeTranslator;
+    }
 
     /** Cutover watermark (F13). Only rows {@code created_at >= cutoverAt} are real-dispatched. */
     @Value("${app.features.judge-queue.cutover-at:1970-01-01T00:00:00}")
@@ -127,7 +146,7 @@ public class JudgeOutboxDispatcher {
             return;
         }
         for (JudgeOutboxRecord row : claimed) {
-            JudgeJobEnvelope envelope = toEnvelope(row);
+            JudgeJobEnvelope envelope = envelopeTranslator.translate(row);
             if (envelope == null) {
                 // Malformed or legacy payload: enqueueing the half-null
                 // envelope would mark the row SENT and only fail later as a
@@ -155,87 +174,6 @@ public class JudgeOutboxDispatcher {
                         row.getSubmissionId(), row.getGeneration(), reason);
             }
         }
-    }
-
-    /**
-     * Build a v2 {@link JudgeJobEnvelope} from the outbox row's payload
-     * map. The outbox row already captures {@code generation}; we add a
-     * fresh {@code attemptId} here so the fence CAS targets the current
-     * acquire attempt (mirroring the M3b worker contract).
-     */
-    private static final com.fasterxml.jackson.databind.ObjectMapper OBJECT_MAPPER =
-            new com.fasterxml.jackson.databind.ObjectMapper();
-
-    @SuppressWarnings("unchecked")
-    private static Map<String, Object> extractPayload(JudgeOutboxRecord row) {
-        if (row == null) {
-            return Map.of();
-        }
-        Object payloadObj = row.getPayload();
-        if (payloadObj instanceof Map<?, ?> map) {
-            return (Map<String, Object>) map;
-        }
-        if (payloadObj instanceof String jsonStr && !jsonStr.isBlank()) {
-            try {
-                return OBJECT_MAPPER.readValue(jsonStr, Map.class);
-            } catch (Exception ignored) {
-            }
-        }
-        return Map.of();
-    }
-
-    private JudgeJobEnvelope toEnvelope(JudgeOutboxRecord row) {
-        Map<String, Object> payload = extractPayload(row);
-        if (!hasText(row.getSubmissionId())
-                || !hasText(stringOrNull(payload, "problemId"))
-                || !hasText(stringOrNull(payload, "userId"))
-                || !hasText(stringOrNull(payload, "language"))
-                || !hasText(stringOrNull(payload, "code"))) {
-            return null;
-        }
-        String attemptId = uuidGenerator.newId();
-        return new JudgeJobEnvelope(
-                2,
-                row.getId(),
-                row.getSubmissionId(),
-                stringOrNull(payload, "problemId"),
-                stringOrNull(payload, "userId"),
-                stringOrNull(payload, "language"),
-                stringOrNull(payload, "code"),
-                intOrDefault(payload, "timeLimitMs", 2000),
-                intOrDefault(payload, "memoryLimitKb", 256 * 1024),
-                row.getGeneration(),
-                attemptId);
-    }
-
-    private static boolean hasText(String value) {
-        return value != null && !value.isBlank();
-    }
-
-    private static String stringOrNull(Map<String, Object> map, String key) {
-        if (map == null) {
-            return null;
-        }
-        Object v = map.get(key);
-        return v == null ? null : v.toString();
-    }
-
-    private static int intOrDefault(Map<String, Object> map, String key, int dflt) {
-        if (map == null) {
-            return dflt;
-        }
-        Object v = map.get(key);
-        if (v instanceof Number n) {
-            return n.intValue();
-        }
-        if (v instanceof String s) {
-            try {
-                return Integer.parseInt(s);
-            } catch (NumberFormatException ignored) {
-                return dflt;
-            }
-        }
-        return dflt;
     }
 
     /** Exponential backoff: 2s × 2^attempts, capped at 60s. */

@@ -87,7 +87,7 @@ validate_inputs() {
   printf '%s' "$DEPLOYMENT_COMMIT" | grep -Eq '^[0-9a-f]{40}$' || die "DEPLOYMENT_COMMIT must be a 40-character commit SHA"
   printf '%s' "$EXPECTED_SCHEMA_MANIFEST_CHECKSUM" | grep -Eq '^[0-9a-f]{64}$' \
     || die "EXPECTED_SCHEMA_MANIFEST_CHECKSUM must be a 64-character SHA-256"
-  for required in docker-compose.yml docker-compose.prod.yml \
+  for required in docker/docker-compose.yml docker/docker-compose.prod.yml \
     scripts/runbooks/owner-migration-manifest.sh \
     scripts/runbooks/redis-acl-rotation.sh \
     scripts/runbooks/image-reference-policy.sh; do
@@ -200,7 +200,7 @@ mark_health() {
 
 verify_registry() {
   local matrix="$ROOT_DIR/.github/services-matrix.json"
-  local compose_file="$ROOT_DIR/docker-compose.prod.yml"
+  local compose_file="$ROOT_DIR/docker/docker-compose.prod.yml"
   [ -f "$matrix" ] || die "services matrix is missing"
   [ -f "$compose_file" ] || die "production Compose file is missing"
   mapfile -t matrix_services < <(python3 - "$matrix" <<'PY'

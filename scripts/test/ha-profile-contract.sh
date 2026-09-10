@@ -4,7 +4,7 @@ set -euo pipefail
 # P3-HA-001: validate the optional stateful reference profile without implying
 # that Compose provides transparent database or application failover.
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-COMPOSE_HA="$ROOT_DIR/docker-compose.ha.yml"
+COMPOSE_HA="$ROOT_DIR/docker/docker-compose.ha.yml"
 DOCKER_BIN="${DOCKER_BIN:-docker}"
 
 fail() {
@@ -17,23 +17,23 @@ external_blocked=0
 # shellcheck source=scripts/test/lib/assertions.sh
 source "$ROOT_DIR/scripts/test/lib/assertions.sh"
 
-[[ -f "$COMPOSE_HA" ]] || fail "missing docker-compose.ha.yml"
-contains docker-compose.ha.yml 'profiles: [ha]'
-contains docker-compose.ha.yml 'mysql-replica:'
-contains docker-compose.ha.yml 'read-only=ON'
-contains docker-compose.ha.yml 'redis-replica:'
-contains docker-compose.ha.yml 'redis-sentinel-1:'
-contains docker-compose.ha.yml 'redis-sentinel-2:'
-contains docker-compose.ha.yml 'redis-sentinel-3:'
-contains docker-compose.ha.yml 'REDIS_HA_CONFIG_DIR:?REDIS_HA_CONFIG_DIR is required'
-contains docker-compose.ha.yml 'nacos-2:'
-contains docker-compose.ha.yml 'nacos-3:'
-contains docker-compose.ha.yml 'MODE: cluster'
-contains docker-compose.ha.yml 'NACOS_SERVERS: ${NACOS_SERVERS:?NACOS_SERVERS is required for HA cluster mode}'
-contains docker-compose.ha.yml 'NACOS_AUTH_ENABLE: "true"'
-not_contains docker-compose.ha.yml 'container_name:'
-not_contains docker-compose.ha.yml 'network_mode: host'
-not_contains docker-compose.ha.yml 'ports:'
+[[ -f "$COMPOSE_HA" ]] || fail "missing docker/docker-compose.ha.yml"
+contains docker/docker-compose.ha.yml 'profiles: [ha]'
+contains docker/docker-compose.ha.yml 'mysql-replica:'
+contains docker/docker-compose.ha.yml 'read-only=ON'
+contains docker/docker-compose.ha.yml 'redis-replica:'
+contains docker/docker-compose.ha.yml 'redis-sentinel-1:'
+contains docker/docker-compose.ha.yml 'redis-sentinel-2:'
+contains docker/docker-compose.ha.yml 'redis-sentinel-3:'
+contains docker/docker-compose.ha.yml 'REDIS_HA_CONFIG_DIR:?REDIS_HA_CONFIG_DIR is required'
+contains docker/docker-compose.ha.yml 'nacos-2:'
+contains docker/docker-compose.ha.yml 'nacos-3:'
+contains docker/docker-compose.ha.yml 'MODE: cluster'
+contains docker/docker-compose.ha.yml 'NACOS_SERVERS: ${NACOS_SERVERS:?NACOS_SERVERS is required for HA cluster mode}'
+contains docker/docker-compose.ha.yml 'NACOS_AUTH_ENABLE: "true"'
+not_contains docker/docker-compose.ha.yml 'container_name:'
+not_contains docker/docker-compose.ha.yml 'network_mode: host'
+not_contains docker/docker-compose.ha.yml 'ports:'
 contains docs/operations/deployment.md '本仓库不承诺 active-active HA'
 contains services/docs/DEPENDENCY_RESILIENCE_RUNBOOK.md 'P5-INFRA-001'
 contains services/docs/DEPENDENCY_RESILIENCE_RUNBOOK.md 'shared fault domain'
@@ -55,12 +55,12 @@ for owner in \
   ulticode-health; do
   contains docker/redis/generate-users-acl.sh "user $owner"
 done
-contains docker-compose.ha.yml '${REDIS_ACL_DIR:?REDIS_ACL_DIR is required}/users.acl'
+contains docker/docker-compose.ha.yml '${REDIS_ACL_DIR:?REDIS_ACL_DIR is required}/users.acl'
 contains docker/redis/generate-users-acl.sh 'user ulticode-replication'
 contains docker/redis/generate-users-acl.sh 'user ulticode-sentinel'
 contains docker/redis/generate-users-acl.sh '+psync'
 contains docker/redis/generate-users-acl.sh '+replconf'
-contains docker-compose.ha.yml 'redis-cli --user'
+contains docker/docker-compose.ha.yml 'redis-cli --user'
 contains docs/operations/deployment.md 'masteruser ulticode-replication'
 contains docs/operations/deployment.md 'sentinel auth-user'
 contains docs/operations/deployment.md 'sentinel auth-user mymaster ulticode-sentinel'
@@ -69,11 +69,11 @@ contains docs/operations/deployment.md 'mysql-replica'
 contains docs/operations/deployment.md 'redis-sentinel-1'
 if [[ -n "${HA_COMPOSE_ENV_FILE:-}" ]]; then
   [[ -f "$HA_COMPOSE_ENV_FILE" ]] || fail "HA_COMPOSE_ENV_FILE does not exist"
-  compose_files=(-f "$ROOT_DIR/docker-compose.yml")
+  compose_files=(-f "$ROOT_DIR/docker/docker-compose.yml")
   if [[ "${HA_COMPOSE_PROD:-1}" == "1" ]]; then
-    compose_files+=(-f "$ROOT_DIR/docker-compose.prod.yml")
+    compose_files+=(-f "$ROOT_DIR/docker/docker-compose.prod.yml")
   else
-    compose_files+=(-f "$ROOT_DIR/docker-compose.dev.yml")
+    compose_files+=(-f "$ROOT_DIR/docker/docker-compose.dev.yml")
   fi
   ha_config_dir="${REDIS_HA_CONFIG_DIR:-}"
   if [[ -z "$ha_config_dir" ]]; then
@@ -111,9 +111,9 @@ if [[ -n "${HA_COMPOSE_ENV_FILE:-}" ]]; then
         || fail "Sentinel config must provide auth-pass"
     fi
   done
-  "$DOCKER_BIN" compose --env-file "$HA_COMPOSE_ENV_FILE" \
+  "$DOCKER_BIN" compose --project-directory "$ROOT_DIR" --env-file "$HA_COMPOSE_ENV_FILE" \
     "${compose_files[@]}" \
-    -f "$ROOT_DIR/docker-compose.ha.yml" \
+    -f "$ROOT_DIR/docker/docker-compose.ha.yml" \
     --profile ha config >/dev/null \
     || fail "HA Compose profile does not expand"
   echo "HA Compose profile expansion: PASS"

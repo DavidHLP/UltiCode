@@ -1,5 +1,5 @@
 # Development-only host port mappings.
-# Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+# Usage: docker compose --project-directory . -f docker/docker-compose.yml -f docker/docker-compose.dev.yml up -d
 services:
   mysql:
     ports:

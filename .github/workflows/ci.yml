@@ -86,7 +86,7 @@ jobs:
               - 'services/**'
               - 'apps/console/Dockerfile'
               - 'apps/management/Dockerfile'
-              - 'docker-compose*.yml'
+              - 'docker/docker-compose*.yml'
               - 'infrastructure/observability/**'
               - 'docker/prometheus/**'
               - 'services/docs/OBSERVABILITY_RUNBOOK.md'

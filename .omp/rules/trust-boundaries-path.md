@@ -16,7 +16,7 @@ globs:
 - apps/console/src/**/*.{ts,vue}
 - apps/management/src/**/*.{ts,vue}
 - packages/{auth-core,auth-ui,http-client,markdown-utils,theme,design-system}/**/*.{ts,vue,js}
-- docker-compose*.yml
+- docker/docker-compose*.yml
 - docker/**/*.{yml,yaml,json,conf}
 priority: 100
 ---

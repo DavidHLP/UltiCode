@@ -59,7 +59,7 @@ YAML
 cleanup() {
   local rc=$?
   trap - EXIT INT TERM
-  docker compose --env-file "$ENV_FILE" -f "$ROOT_DIR/docker-compose.yml" \
+  docker compose --project-directory "$ROOT_DIR" --env-file "$ENV_FILE" -f "$ROOT_DIR/docker/docker-compose.yml" \
     -f "$COMPOSE_OVERRIDE_FILE" down -v --remove-orphans >/dev/null 2>&1 || true
   rm -rf -- "$REDIS_ACL_DIR" "$COMPOSE_OVERRIDE_FILE"
   exit "$rc"
@@ -67,12 +67,12 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 "$ROOT_DIR/docker/redis/generate-users-acl.sh" "$REDIS_ACL_FILE"
-compose=(docker compose --env-file "$ENV_FILE" -f "$ROOT_DIR/docker-compose.yml" -f "$COMPOSE_OVERRIDE_FILE")
+compose=(docker compose --project-directory "$ROOT_DIR" --env-file "$ENV_FILE" -f "$ROOT_DIR/docker/docker-compose.yml" -f "$COMPOSE_OVERRIDE_FILE")
 if ! "${compose[@]}" up -d redis >/dev/null; then
   echo "redis-role-fault-drill: BLOCKED_EXTERNAL (disposable Redis could not start)"
   exit 0
 fi
-container="$(docker compose --env-file "$ENV_FILE" -f "$ROOT_DIR/docker-compose.yml" -f "$COMPOSE_OVERRIDE_FILE" ps -aq redis)"
+container="$(docker compose --project-directory "$ROOT_DIR" --env-file "$ENV_FILE" -f "$ROOT_DIR/docker/docker-compose.yml" -f "$COMPOSE_OVERRIDE_FILE" ps -aq redis)"
 [[ -n "$container" ]] || { echo "redis-role-fault-drill: BLOCKED_EXTERNAL (Redis container unavailable)"; exit 0; }
 redis() {
   local user="$1" password="$2"

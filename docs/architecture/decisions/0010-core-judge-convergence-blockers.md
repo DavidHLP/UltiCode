@@ -124,5 +124,5 @@ parent-first URL loader 描述成 class/resource isolation。
 - 数据源/映射/事务：各 Owner `src/main/resources/application.yml`、`@MapperScan` 清单
 - Dubbo 注入面：`@DubboService`/`@DubboReference` 统计（本 ADR 上文）与代表性 consumer
 - 信任通道：`InternalDelegationAssertionVerifier.java`、`ProviderActorTrustGate.java`
-- 运行契约：`docker-compose.yml` healthcheck、`scripts/dev/devstack-manifest.sh`
+- 运行契约：`docker/docker-compose.yml` healthcheck、`scripts/dev/devstack-manifest.sh`
 - 既有裁决：`docs/architecture/decisions/0009-authorization-and-runtime-seams.md`

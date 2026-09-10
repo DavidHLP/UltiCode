@@ -2,8 +2,8 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-PROD="$ROOT_DIR/docker-compose.prod.yml"
-BASE="$ROOT_DIR/docker-compose.yml"
+PROD="$ROOT_DIR/docker/docker-compose.prod.yml"
+BASE="$ROOT_DIR/docker/docker-compose.yml"
 DUPLICATE_OUTPUT="$(mktemp)"
 trap 'rm -f "$DUPLICATE_OUTPUT"' EXIT
 

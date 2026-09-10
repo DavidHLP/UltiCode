@@ -26,7 +26,7 @@ MANAGEMENT_OTLP_METRICS_ENDPOINT=http://127.0.0.1:4318/v1/metrics \
 For a containerized owner deployment, use the deployment-owned Compose files
 instead. Do not pass the Docker-only `otel-collector` hostname to host PM2.
 
-The production invocation uses `docker-compose.prod.yml` and all of its
+The production invocation uses `docker/docker-compose.prod.yml` and all of its
 required owner/registry/TLS/image-ref variables. Do not put the Grafana
 password or a production webhook in this repository.
 
@@ -153,7 +153,7 @@ never prints the bearer token. Correlate the annotation with a spike in HTTP
 
 ```bash
 ./scripts/test/observability-contract.sh
-docker compose -f docker-compose.observability.yml config
+docker compose --project-directory . -f docker/docker-compose.observability.yml config
 ```
 
 A local overlay being healthy proves configuration and wiring only. It does not

@@ -13,7 +13,7 @@
 | Interface ownership (app-api 153 files, 75 ports, 4 misplaced) | PASS | `P0-002` graph, `find services/api/app-api -name "*.java" | xargs grep -l interface` |
 | Maven reactor (18 modules, app 5 submodules, per-service versions) | PASS | `services/pom.xml:modules`, `services/app/pom.xml:modules`, `mvn dependency:tree` consistent |
 | Profile closure (legacy-rollback reachability graph, 3 non-rollback leakages, 18 conditional files) | PASS | `P0-005` graph, `grep -rn legacy-rollback` 18 hits, `grep -rn AppUuidGenerator|SubmissionStatusCodec|SubmissionResultPushPort` 9 hits |
-| Compose base+dev config | PASS | `docker compose --env-file .env -f docker-compose.yml -f docker-compose.dev.yml config >/dev/null` PASS |
+| Compose base+dev config | PASS | `docker compose --project-directory . --env-file .env -f docker/docker-compose.yml -f docker/docker-compose.dev.yml config >/dev/null` PASS |
 | Compose base+prod config | BLOCKED_EXTERNAL (expected) | Requires `BACKEND_*_IMAGE_REF`, `MANAGEMENT_OTLP_TRACING_ENDPOINT`, `JWT_RSA_PRIVATE_KEY`, `JUDGE_DOCKER_HOST`, etc. — fail-closed, not repo defect |
 | Architecture contract | PASS_WITH_EXTERNAL_BLOCKERS | `scripts/dev/architecture-contract-test.sh` PASS, externals BLOCKED_EXTERNAL as designed |
 | Docs contract | PASS | `scripts/dev/docs-contract-test.sh` (see logs) |
@@ -28,4 +28,3 @@
 ## Evidence Level
 
 Repository Implemented + Disposable Validatable. No production evidence.
-

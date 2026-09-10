@@ -37,14 +37,14 @@ grep -Fq 'ssl_certificate_key /etc/nginx/tls/privkey.pem;' "$ROOT_DIR/infrastruc
 grep -Fq 'ssl_protocols TLSv1.2 TLSv1.3;' "$ROOT_DIR/infrastructure/nginx/includes/tls-listener.prod.conf"
 grep -Fq 'return 301 https://$host$request_uri;' "$ROOT_DIR/infrastructure/nginx/includes/tls-listener.prod.conf"
 grep -Fq 'Strict-Transport-Security $strict_transport_security always;' "$ROOT_DIR/infrastructure/nginx/includes/security-headers.conf"
-grep -Fq '${TLS_CERT_DIR:?TLS_CERT_DIR is required}' "$ROOT_DIR/docker-compose.prod.yml"
-grep -Fq 'CONSOLE_HTTPS_PORT' "$ROOT_DIR/docker-compose.prod.yml"
-grep -Fq 'MANAGEMENT_HTTPS_PORT' "$ROOT_DIR/docker-compose.prod.yml"
-grep -Fq 'https://localhost:8443/' "$ROOT_DIR/docker-compose.prod.yml"
-grep -Fq 'JWT_COOKIE_SECURE=true' "$ROOT_DIR/docker-compose.prod.yml"
-grep -Fq 'CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:?CORS_ALLOWED_ORIGINS is required for production}' "$ROOT_DIR/docker-compose.prod.yml"
-grep -Fq 'FRONTEND_URL=${FRONTEND_URL:?FRONTEND_URL is required for production}' "$ROOT_DIR/docker-compose.prod.yml"
-grep -Fq 'JWT_JWKS_URI=https://backend-auth:9101/auth/jwks' "$ROOT_DIR/docker-compose.prod.yml"
+grep -Fq '${TLS_CERT_DIR:?TLS_CERT_DIR is required}' "$ROOT_DIR/docker/docker-compose.prod.yml"
+grep -Fq 'CONSOLE_HTTPS_PORT' "$ROOT_DIR/docker/docker-compose.prod.yml"
+grep -Fq 'MANAGEMENT_HTTPS_PORT' "$ROOT_DIR/docker/docker-compose.prod.yml"
+grep -Fq 'https://localhost:8443/' "$ROOT_DIR/docker/docker-compose.prod.yml"
+grep -Fq 'JWT_COOKIE_SECURE=true' "$ROOT_DIR/docker/docker-compose.prod.yml"
+grep -Fq 'CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:?CORS_ALLOWED_ORIGINS is required for production}' "$ROOT_DIR/docker/docker-compose.prod.yml"
+grep -Fq 'FRONTEND_URL=${FRONTEND_URL:?FRONTEND_URL is required for production}' "$ROOT_DIR/docker/docker-compose.prod.yml"
+grep -Fq 'JWT_JWKS_URI=https://backend-auth:9101/auth/jwks' "$ROOT_DIR/docker/docker-compose.prod.yml"
 for config in \
   services/auth/src/main/resources/application.yml \
   services/admin/src/main/resources/application.yml \
@@ -55,7 +55,7 @@ for config in \
   grep -Fq 'DB_URL:' "$ROOT_DIR/$config"
 done
 for prefix in AUTH ADMIN APP SUBMISSION NOTIFICATION; do
-  grep -Fq "${prefix}_DB_SSL_MODE:-VERIFY_IDENTITY" "$ROOT_DIR/docker-compose.prod.yml"
+  grep -Fq "${prefix}_DB_SSL_MODE:-VERIFY_IDENTITY" "$ROOT_DIR/docker/docker-compose.prod.yml"
 done
 for spec in \
   "services/auth/src/main/resources/application.yml AUTH" \
@@ -72,19 +72,19 @@ for spec in \
   grep -Fq "$enabled_key" "$ROOT_DIR/$config"
   ! grep -Fq "bundle: \${${prefix}_REDIS_SSL_BUNDLE:" "$ROOT_DIR/$config"
 done
-[[ "$(grep -Fc -- '- SPRING_DATA_REDIS_SSL_BUNDLE' "$ROOT_DIR/docker-compose.prod.yml")" -eq 7 ]]
-! grep -Fq 'SPRING_DATA_REDIS_SSL_BUNDLE=' "$ROOT_DIR/docker-compose.prod.yml"
+[[ "$(grep -Fc -- '- SPRING_DATA_REDIS_SSL_BUNDLE' "$ROOT_DIR/docker/docker-compose.prod.yml")" -eq 7 ]]
+! grep -Fq 'SPRING_DATA_REDIS_SSL_BUNDLE=' "$ROOT_DIR/docker/docker-compose.prod.yml"
 grep -Fq '#SPRING_DATA_REDIS_SSL_BUNDLE=managed-redis' "$ROOT_DIR/.env.example"
 grep -Fq 'address: "${AUTH_REDIS_URL:' "$ROOT_DIR/services/auth/src/main/resources/application.yml"
 grep -Fq 'sslEnableEndpointIdentification:' "$ROOT_DIR/services/auth/src/main/resources/application.yml"
-grep -Fq 'AUTH_REDIS_SSL_TRUSTSTORE=${AUTH_REDIS_SSL_TRUSTSTORE:-}' "$ROOT_DIR/docker-compose.prod.yml"
-grep -Fq 'AUTH_REDIS_SSL_TRUSTSTORE_PASSWORD=${AUTH_REDIS_SSL_TRUSTSTORE_PASSWORD:-}' "$ROOT_DIR/docker-compose.prod.yml"
+grep -Fq 'AUTH_REDIS_SSL_TRUSTSTORE=${AUTH_REDIS_SSL_TRUSTSTORE:-}' "$ROOT_DIR/docker/docker-compose.prod.yml"
+grep -Fq 'AUTH_REDIS_SSL_TRUSTSTORE_PASSWORD=${AUTH_REDIS_SSL_TRUSTSTORE_PASSWORD:-}' "$ROOT_DIR/docker/docker-compose.prod.yml"
 grep -Fq 'sslTruststore:' "$ROOT_DIR/services/auth/src/main/resources/application.yml"
 grep -Fq 'sslTruststorePassword:' "$ROOT_DIR/services/auth/src/main/resources/application.yml"
 printf 'managed MySQL/Redis URL, TLS, CA-bundle, and hostname-verification bindings: PASS\n'
-! grep -Fq '${REDIS_URL' "$ROOT_DIR/docker-compose.prod.yml"
+! grep -Fq '${REDIS_URL' "$ROOT_DIR/docker/docker-compose.prod.yml"
 ! grep -Fq '#REDIS_URL=' "$ROOT_DIR/.env.example"
-! grep -Fq 'docker/redis/users.acl' "$ROOT_DIR/docker-compose.prod.yml"
+! grep -Fq 'docker/redis/users.acl' "$ROOT_DIR/docker/docker-compose.prod.yml"
 printf 'TLS certificate mount, HTTPS listener, HSTS, cookie, and JWKS static contract: PASS\n'
 
 if [[ "${ULTI_STATIC_ONLY:-0}" == "1" ]]; then

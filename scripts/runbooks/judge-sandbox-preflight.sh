@@ -18,9 +18,9 @@ from pathlib import Path
 root = Path(sys.argv[1])
 env_file = Path(sys.argv[2])
 compose = [
-    "docker", "compose", "--env-file", str(env_file),
-    "-f", str(root / "docker-compose.yml"),
-    "-f", str(root / "docker-compose.prod.yml"),
+    "docker", "compose", "--project-directory", str(root), "--env-file", str(env_file),
+    "-f", str(root / "docker" / "docker-compose.yml"),
+    "-f", str(root / "docker" / "docker-compose.prod.yml"),
     "config", "--format", "json",
 ]
 

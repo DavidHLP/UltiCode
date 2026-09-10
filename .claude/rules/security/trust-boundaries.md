@@ -15,7 +15,7 @@ paths:
   - "apps/console/src/**/*.{ts,vue}"
   - "apps/management/src/**/*.{ts,vue}"
   - "packages/{auth-core,auth-ui,http-client,markdown-utils,theme,design-system}/**/*.{ts,vue,js}"
-  - "docker-compose*.yml"
+  - "docker/docker-compose*.yml"
   - "docker/**/*.{yml,yaml,json,conf}"
 kind: rules
 summary: 'Cross-cutting trust boundary and security invariants.'

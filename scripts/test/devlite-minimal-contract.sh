@@ -35,11 +35,12 @@ capture_compose_up() {
   [[ -n "$targets" ]] || fail "scope $scope resolved no infra targets"
   local -a compose_targets=(
     docker compose
-    -f "$ROOT_DIR/docker-compose.yml"
-    -f "$ROOT_DIR/docker-compose.dev.yml"
+    --project-directory "$ROOT_DIR"
+    -f "$ROOT_DIR/docker/docker-compose.yml"
+    -f "$ROOT_DIR/docker/docker-compose.dev.yml"
   )
   [[ "$observability" == true ]] \
-    && compose_targets+=(-f "$ROOT_DIR/docker-compose.observability.yml" --profile observability)
+    && compose_targets+=(-f "$ROOT_DIR/docker/docker-compose.observability.yml" --profile observability)
   local -a infra_array=()
   local IFS=,
   read -ra infra_array <<< "$targets"

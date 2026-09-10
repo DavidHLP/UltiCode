@@ -1,7 +1,7 @@
 # Optional managed OTLP overlay.
 # Use explicitly with base + prod (or a deployment-owned equivalent):
-#   docker compose -f docker-compose.yml -f docker-compose.prod.yml \
-#     -f docker-compose.observability-managed.yml up -d
+#   docker compose --project-directory . -f docker/docker-compose.yml -f docker/docker-compose.prod.yml \
+#     -f docker/docker-compose.observability-managed.yml up -d
 #
 # The endpoint and headers come only from the deployment secret/environment
 # surface. No provider account, token, or certificate is stored here.

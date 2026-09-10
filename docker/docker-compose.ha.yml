@@ -3,8 +3,8 @@
 # This is not enabled by the base, dev, or production Compose files. Use it
 # only with an operator-owned secret/config directory and an explicit profile:
 #
-#   docker compose -f docker-compose.yml -f docker-compose.prod.yml \
-#     -f docker-compose.ha.yml --profile ha up -d
+#   docker compose --project-directory . -f docker/docker-compose.yml -f docker/docker-compose.prod.yml \
+#     -f docker/docker-compose.ha.yml --profile ha up -d
 #
 # The profile provides an asynchronous MySQL replica, a Redis replica plus
 # three Sentinel processes, and a three-node Nacos cluster sharing the owner

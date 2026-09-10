@@ -242,9 +242,9 @@ sys.stdout.write(value)
 
 export COMPOSE_PROJECT_NAME="ulticode-dubbo-smoke-$$"
 export NACOS_EXPECTED_DOCKER_PROJECT="$COMPOSE_PROJECT_NAME"
-compose=(docker compose --env-file "$ENV_FILE"
-         -f "$ROOT_DIR/docker-compose.yml"
-         -f "$ROOT_DIR/docker-compose.dev.yml")
+compose=(docker compose --project-directory "$ROOT_DIR" --env-file "$ENV_FILE"
+         -f "$ROOT_DIR/docker/docker-compose.yml"
+         -f "$ROOT_DIR/docker/docker-compose.dev.yml")
 
 cleanup() {
   local rc=$?

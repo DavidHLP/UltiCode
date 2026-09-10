@@ -6,8 +6,8 @@
 
 ## 1. Topology (Compose)
 
-- `docker-compose.yml` (base) + `docker-compose.dev.yml` (loopback-exposed) + `docker-compose.prod.yml` (secure, no published infra/backend ports) + `docker-compose.ha.yml` (reference, 10-17 no container_name, MySQL replica, not transparent failover)
-- Verification: `docker compose --env-file .env -f docker-compose.yml -f docker-compose.dev.yml config >/dev/null` && `... -f docker-compose.prod.yml config >/dev/null` (both must pass; no Actuator health probe)
+- `docker/docker-compose.yml` (base) + `docker/docker-compose.dev.yml` (loopback-exposed) + `docker/docker-compose.prod.yml` (secure, no published infra/backend ports) + `docker/docker-compose.ha.yml` (reference, 10-17 no container_name, MySQL replica, not transparent failover)
+- Verification: `docker compose --project-directory . --env-file .env -f docker/docker-compose.yml -f docker/docker-compose.dev.yml config >/dev/null` && `... -f docker/docker-compose.prod.yml config >/dev/null` (both must pass; no Actuator health probe)
 
 ## 2. Workload Classification
 
@@ -16,7 +16,7 @@
 | MySQL (single instance, 5 schemas) | Owner datasources | auth, admin, app, submission, notification | `accounts`, `contests`, `submissions`, `problems` | authoritative | schema+account isolated, instance shared |
 | Redis (single instance) | Streams, cache, rate-limit, replay, queue, judge, Pub/Sub | app, submission, judge, admin, auth | `stream:integration:*`, `cache:*`, `rate:*`, `replay:*`, `queue:*`, `judge:*`, `pubsub:*` | mixed (event=durability, cache=eviction, coordination=latency) | ACL identity/keyspace only (`docker/redis/generate-users-acl.sh:58-74`), not memory/eviction/connection/failure |
 | MeiliSearch (single) | Search index (derived) | search (writer), app (reader with DB fallback) | `problem_index`, `solution_index` | derived | single writer (`SearchDocumentIndexWorker.java:40-55`), reader fallback `DefaultSearchReadProjection.java:91-148` |
-| Nacos (registry/config) | Service discovery, config | all Owners + Workers | `service-registry`, `config` | control-plane | cluster profile needs external nodes (`docker-compose.ha.yml:10-17`), fail semantics must be tested not fabricated |
+| Nacos (registry/config) | Service discovery, config | all Owners + Workers | `service-registry`, `config` | control-plane | cluster profile needs external nodes (`docker/docker-compose.ha.yml:10-17`), fail semantics must be tested not fabricated |
 
 ## 3. Redis Keyspace & Command Inventory (source scan)
 
@@ -45,8 +45,8 @@
 
 - `docker/redis/generate-users-acl.sh` inventory: 58-74 covers identity/keyspace, no `maxmemory`/`maxclients` isolation
 - `grep -rn "REDIS_HOST\|RedisTemplate\|Redisson" services/**/application*.yml` shows shared `REDIS_HOST` today (role seam not yet)
-- `cat docker-compose.ha.yml:10-17` confirms no transparent failover, needs external nodes
-- `check_index_coverage` on `docker/redis/*`, `docker-compose*.yml` — fallback to direct read
+- `cat docker/docker-compose.ha.yml:10-17` confirms no transparent failover, needs external nodes
+- `check_index_coverage` on `docker/redis/*`, `docker/docker-compose*.yml` — fallback to direct read
 
 ## Evidence Level
 

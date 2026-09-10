@@ -11,7 +11,7 @@ rule_files:
   - /etc/prometheus/rules/worker-slo-alerts.yml
 ```
 
-The repository overlay `docker-compose.observability.yml` supplies Prometheus,
+The repository overlay `docker/docker-compose.observability.yml` supplies Prometheus,
 Alertmanager, Grafana, Tempo, Loki, and the OpenTelemetry Collector. Combine it
 with the base plus environment Compose file and opt in with `--profile
 observability`; it binds host ports to loopback only.

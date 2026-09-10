@@ -44,7 +44,7 @@ on MySQL and `pm2 logs ulticode-9001` shows the connection error.
 ### Daily start (env already exists)
 
 ```bash
-docker compose --env-file .env -f docker-compose.yml -f docker-compose.dev.yml up -d mysql redis nacos
+docker compose --project-directory . --env-file .env -f docker/docker-compose.yml -f docker/docker-compose.dev.yml up -d mysql redis nacos
 pm2 start ecosystem.config.cjs        # or `pm2 start all` after first run
 pm2 status
 ```
@@ -53,14 +53,14 @@ pm2 status
 
 ```bash
 pm2 stop all                          # stop PM2 processes (SIGTERM, then SIGKILL after 1.6s)
-docker compose --env-file .env -f docker-compose.yml -f docker-compose.dev.yml stop
+docker compose --project-directory . --env-file .env -f docker/docker-compose.yml -f docker/docker-compose.dev.yml stop
 ```
 
 ### Hard reset (data loss)
 
 ```bash
 pm2 delete ulticode-9001 ulticode-9002 ulticode-9003
-docker compose --env-file .env -f docker-compose.yml -f docker-compose.dev.yml down -v
+docker compose --project-directory . --env-file .env -f docker/docker-compose.yml -f docker/docker-compose.dev.yml down -v
 rm .env
 ./scripts/dev/init-env.sh
 ./scripts/dev/up.sh
@@ -381,7 +381,7 @@ If a CI job fails:
 
 1. Check the **Gitleaks** job first (fails-fast on any leaked secret).
 2. For Flyway, run the migration locally on a fresh MySQL container
-   (`./scripts/dev/up.sh --skip-install` after `docker compose down -v`).
+   (`./scripts/dev/up.sh --skip-install` after `docker compose --project-directory . -f docker/docker-compose.yml -f docker/docker-compose.dev.yml down -v`).
 3. For prod dep audit, run `pnpm audit --prod --audit-level high` in the
    affected package.
 

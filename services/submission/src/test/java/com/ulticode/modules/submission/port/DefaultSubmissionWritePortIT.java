@@ -21,22 +21,27 @@ import com.ulticode.modules.submission.result.SubmissionResultOutboxMapper;
 import com.ulticode.modules.submission.result.SubmissionResultOutboxWriter;
 import com.ulticode.modules.submission.stats.SubmissionPerformanceStats;
 import com.ulticode.domain.submission.enums.SubmissionStatus;
+import com.ulticode.submission.api.service.SubmissionVerdictWritePort;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zaxxer.hikari.HikariDataSource;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
+import org.mybatis.spring.SqlSessionTemplate;
+import org.springframework.aop.framework.ProxyFactory;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.transaction.annotation.AnnotationTransactionAttributeSource;
+import org.springframework.transaction.interceptor.TransactionInterceptor;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-import javax.sql.DataSource;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -45,6 +50,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyDouble;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -69,21 +77,24 @@ class DefaultSubmissionWritePortIT {
             .withPassword("submission-pw");
 
     private static SqlSessionFactory sqlSessionFactory;
+    private static HikariDataSource dataSource;
     private SqlSession session;
     private SubmissionMapper submissionMapper;
     private JudgeOutboxMapper judgeOutboxMapper;
     private SubmissionResultOutboxMapper resultOutboxMapper;
     private SubmissionCreatedOutboxMapper createdOutboxMapper;
     private DefaultSubmissionWritePort writer;
+    private SqlSessionTemplate transactionTemplate;
+    private SubmissionMapper transactionSubmissionMapper;
+    private SubmissionVerdictWritePort verdictPort;
 
     @BeforeAll
     static void createSchema() throws Exception {
-        DataSource dataSource = new HikariDataSource() {{
-            setJdbcUrl(mysql.getJdbcUrl());
-            setUsername(mysql.getUsername());
-            setPassword(mysql.getPassword());
-            setMaximumPoolSize(2);
-        }};
+        dataSource = new HikariDataSource();
+        dataSource.setJdbcUrl(mysql.getJdbcUrl());
+        dataSource.setUsername(mysql.getUsername());
+        dataSource.setPassword(mysql.getPassword());
+        dataSource.setMaximumPoolSize(2);
 
         try (var c = dataSource.getConnection();
              var st = c.createStatement()) {
@@ -201,6 +212,19 @@ class DefaultSubmissionWritePortIT {
 
         writer = newWriter(submissionMapper, judgeOutboxMapper, resultOutboxMapper,
                 createdOutboxMapper);
+
+        transactionTemplate = new SqlSessionTemplate(sqlSessionFactory);
+        transactionSubmissionMapper = transactionTemplate.getMapper(SubmissionMapper.class);
+        SubmissionResultOutboxWriter transactionalResultWriter = withTransactionBoundary(
+                new SubmissionResultOutboxWriter(
+                        transactionTemplate.getMapper(SubmissionResultOutboxMapper.class),
+                        () -> UUID.randomUUID().toString()));
+        verdictPort = withTransactionBoundary(newWriter(
+                transactionSubmissionMapper,
+                transactionTemplate.getMapper(JudgeOutboxMapper.class),
+                transactionTemplate.getMapper(SubmissionResultOutboxMapper.class),
+                transactionTemplate.getMapper(SubmissionCreatedOutboxMapper.class),
+                transactionalResultWriter));
     }
 
     @AfterEach
@@ -215,13 +239,21 @@ class DefaultSubmissionWritePortIT {
                                                  JudgeOutboxMapper jom,
                                                  SubmissionResultOutboxMapper rom,
                                                  SubmissionCreatedOutboxMapper com) {
+        return newWriter(sm, jom, rom, com, null);
+    }
+
+    private DefaultSubmissionWritePort newWriter(SubmissionMapper sm,
+                                                 JudgeOutboxMapper jom,
+                                                 SubmissionResultOutboxMapper rom,
+                                                 SubmissionCreatedOutboxMapper com,
+                                                 SubmissionResultOutboxWriter resultWriter) {
         ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
         FeatureFlagsProperties flags = new FeatureFlagsProperties();
         flags.setUseJudgeOutbox(true);
         flags.getJudgeQueue().setUsePort(true);
 
         UuidGenerator uuid = () -> UUID.randomUUID().toString();
-        SubmissionProjection projection = new DefaultSubmissionProjection(submissionMapper, null, null, new com.fasterxml.jackson.databind.ObjectMapper());
+        SubmissionProjection projection = new DefaultSubmissionProjection(sm, null, null, new com.fasterxml.jackson.databind.ObjectMapper());
         SubmissionPerformanceStats stats = mock(SubmissionPerformanceStats.class);
         when(stats.compute(any(), anyInt(), any())).thenReturn(PerformanceStats.EMPTY);
 
@@ -234,11 +266,22 @@ class DefaultSubmissionWritePortIT {
                 jom,
                 flags,
                 new SimpleMeterRegistry(),
-                new SubmissionResultOutboxWriter(rom, uuid),
+                resultWriter != null ? resultWriter : new SubmissionResultOutboxWriter(rom, uuid),
                 new SubmissionCreatedOutboxWriter(com, uuid),
                 mock(ApplicationEventPublisher.class),
                 Clock.systemUTC(),
                 uuid);
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T> T withTransactionBoundary(T target) {
+        TransactionInterceptor transactionInterceptor = new TransactionInterceptor(
+                new DataSourceTransactionManager(dataSource),
+                new AnnotationTransactionAttributeSource());
+        ProxyFactory proxyFactory = new ProxyFactory(target);
+        proxyFactory.setProxyTargetClass(true);
+        proxyFactory.addAdvice(transactionInterceptor);
+        return (T) proxyFactory.getProxy();
     }
 
     private static SubmissionFactsSnapshot facts() {
@@ -310,16 +353,52 @@ class DefaultSubmissionWritePortIT {
 
         String attemptId = UUID.randomUUID().toString();
         acquireLease(vo.getId(), attemptId);
-        boolean written = writer.updateSubmissionResultFenced(
+        boolean written = verdictPort.updateSubmissionResultFenced(
                 vo.getId(), SubmissionStatus.ACCEPTED, 12, 1.5, "[]", 1L, attemptId);
-        session.commit();
 
         assertThat(written).isTrue();
-        Submission row = submissionMapper.selectById(vo.getId());
+        Submission row = transactionSubmissionMapper.selectById(vo.getId());
         assertThat(row.getStatus()).isEqualTo(SubmissionStatus.ACCEPTED.wireValue());
 
         long outboxCount = countResultOutbox(vo.getId());
         assertThat(outboxCount).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("result outbox failure rolls back fenced verdict through transaction boundary")
+    void resultOutboxFailureRollsBackFencedVerdict() throws Exception {
+        CreateSubmissionDTO dto = new CreateSubmissionDTO();
+        dto.setProblemId(101L);
+        dto.setLanguage("java");
+        dto.setCode("class A{}");
+        SubmissionVO vo = writer.submit("user-1", dto, facts());
+        session.commit();
+
+        String attemptId = UUID.randomUUID().toString();
+        acquireLease(vo.getId(), attemptId);
+
+        SubmissionResultOutboxMapper failingResultMapper = mock(SubmissionResultOutboxMapper.class);
+        doThrow(new IllegalStateException("result outbox unavailable"))
+                .when(failingResultMapper).insertIfAbsent(
+                        any(), any(), anyLong(), any(), any(), any(), anyInt(), anyDouble(), any());
+        SubmissionResultOutboxWriter failingResultWriter = withTransactionBoundary(
+                new SubmissionResultOutboxWriter(
+                        failingResultMapper, () -> UUID.randomUUID().toString()));
+        SubmissionVerdictWritePort failingVerdictPort = withTransactionBoundary(newWriter(
+                transactionSubmissionMapper,
+                transactionTemplate.getMapper(JudgeOutboxMapper.class),
+                transactionTemplate.getMapper(SubmissionResultOutboxMapper.class),
+                transactionTemplate.getMapper(SubmissionCreatedOutboxMapper.class),
+                failingResultWriter));
+
+        assertThatThrownBy(() -> failingVerdictPort.updateSubmissionResultFenced(
+                vo.getId(), SubmissionStatus.ACCEPTED, 12, 1.5, "[]", 1L, attemptId))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("result outbox unavailable");
+
+        assertThat(transactionSubmissionMapper.selectById(vo.getId()).getStatus())
+                .isEqualTo("Pending");
+        assertThat(countResultOutbox(vo.getId())).isZero();
     }
 
     @Test
@@ -332,12 +411,11 @@ class DefaultSubmissionWritePortIT {
         SubmissionVO vo = writer.submit("user-1", dto, facts());
 
         acquireLease(vo.getId(), "real-attempt");
-        boolean written = writer.updateSubmissionResultFenced(
+        boolean written = verdictPort.updateSubmissionResultFenced(
                 vo.getId(), SubmissionStatus.ACCEPTED, 12, 1.5, "[]", 99L, "real-attempt");
-        session.commit();
 
         assertThat(written).isFalse();
-        Submission row = submissionMapper.selectById(vo.getId());
+        Submission row = transactionSubmissionMapper.selectById(vo.getId());
         assertThat(row.getStatus()).isEqualTo("Pending");
 
         long outboxCount = countResultOutbox(vo.getId());

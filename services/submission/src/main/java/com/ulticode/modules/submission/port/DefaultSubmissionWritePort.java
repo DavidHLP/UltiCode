@@ -126,6 +126,21 @@ public class DefaultSubmissionWritePort implements SubmissionIntakePort, Submiss
     private SubmissionVO submitInternal(String userId, CreateSubmissionDTO createDTO,
                                         SubmissionFactsSnapshot facts,
                                         boolean contestCommand) {
+        Submission submission = buildValidatedSubmission(userId, createDTO, facts);
+        persistSubmission(submission);
+        recordJudgeDispatch(submission);
+        if (contestCommand) {
+            recordContestAssociation(submission, createDTO);
+        }
+        return submissionProjection.toVO(submission);
+    }
+
+    /**
+     * Keep request validation and entity construction together so the intake
+     * transaction has one explicit entry point before it emits any intent.
+     */
+    private Submission buildValidatedSubmission(String userId, CreateSubmissionDTO createDTO,
+                                                SubmissionFactsSnapshot facts) {
         if (!StringUtils.hasText(userId)) {
             throw new BusinessException(BaseErrorCode.BAD_REQUEST);
         }
@@ -152,26 +167,23 @@ public class DefaultSubmissionWritePort implements SubmissionIntakePort, Submiss
         submission.setMemory(0.0);
         submission.setCreatedAt(LocalDateTime.now(clock));
         submission.setTestDetails(new ArrayList<>());
+        return submission;
+    }
 
+    private void persistSubmission(Submission submission) {
         submissionMapper.insert(submission);
         log.info("Created submission {} for user {} and problem {}",
-                submission.getId(), userId, createDTO.getProblemId());
+                submission.getId(), submission.getUserId(), submission.getProblemId());
+    }
 
+    private void recordJudgeDispatch(Submission submission) {
         boolean portActive = featureFlags.getJudgeQueue().isUsePort();
         if (featureFlags.isUseJudgeOutbox() && judgeOutboxMapper != null) {
             long generation = submission.getGeneration() != null ? submission.getGeneration() : 1L;
             boolean isShadow = !portActive;
             judgeOutboxMapper.insert(JudgeOutboxRecord.of(
-                    submission, String.valueOf(createDTO.getProblemId()),
+                    submission, String.valueOf(submission.getProblemId()),
                     generation, isShadow, uuidGenerator));
-        }
-
-        if (contestCommand) {
-            long generation = submission.getGeneration() != null ? submission.getGeneration() : 1L;
-            createdOutboxWriter.recordSubmissionCreated(
-                    submission.getId(), generation, userId,
-                    String.valueOf(createDTO.getProblemId()), createDTO.getContestId(),
-                    createDTO.getVirtualSessionId(), language, submission.getCreatedAt());
         }
 
         if (portActive) {
@@ -180,8 +192,14 @@ public class DefaultSubmissionWritePort implements SubmissionIntakePort, Submiss
             log.warn("Submit {}: legacy judge enqueue is not supported by "
                     + "backend-submission; keep useJudgeOutbox+usePort active", submission.getId());
         }
+    }
 
-        return submissionProjection.toVO(submission);
+    private void recordContestAssociation(Submission submission, CreateSubmissionDTO createDTO) {
+        long generation = submission.getGeneration() != null ? submission.getGeneration() : 1L;
+        createdOutboxWriter.recordSubmissionCreated(
+                submission.getId(), generation, submission.getUserId(),
+                String.valueOf(submission.getProblemId()), createDTO.getContestId(),
+                createDTO.getVirtualSessionId(), submission.getLanguage(), submission.getCreatedAt());
     }
 
     @Override
@@ -194,6 +212,17 @@ public class DefaultSubmissionWritePort implements SubmissionIntakePort, Submiss
             log.warn("Cannot update result: submission {} not found", submissionId);
             return;
         }
+        applyVerdictToSubmission(submission, status, wire, runtime, memory, testDetailsJson);
+        persistVerdict(submission, submissionId, wire, runtime, memory);
+        recordVerdictOutcome(submission, status,
+                submission.getGeneration() != null ? submission.getGeneration() : 1L,
+                runtime, memory != null ? memory : 0,
+                contestSubmissionPort.findContestId(submissionId));
+    }
+
+    private void applyVerdictToSubmission(Submission submission, SubmissionStatus status,
+                                          String wire, int runtime, Double memory,
+                                          String testDetailsJson) {
         submission.setStatus(wire);
         submission.setRuntime(runtime);
         submission.setMemory(memory);
@@ -202,14 +231,13 @@ public class DefaultSubmissionWritePort implements SubmissionIntakePort, Submiss
             PerformanceStats stats = performanceStats.compute(submission, runtime, memory);
             applyPerformanceStatsToEntity(submission, stats);
         }
+    }
+
+    private void persistVerdict(Submission submission, String submissionId, String wire,
+                                int runtime, Double memory) {
         submissionMapper.updateById(submission);
         log.info("Updated submission {} status={}, runtime={}ms, memory={}",
                 submissionId, wire, runtime, memory != null ? memory + "MB" : "N/A");
-
-        publishContestScoringEvent(submission, status,
-                submission.getGeneration() != null ? submission.getGeneration() : 1L,
-                runtime, memory != null ? memory : 0,
-                contestSubmissionPort.findContestId(submissionId));
     }
 
     @Override
@@ -218,25 +246,10 @@ public class DefaultSubmissionWritePort implements SubmissionIntakePort, Submiss
                                                 int runtime, Double memory, String testDetailsJson,
                                                 long generation, String attemptId) {
         String wire = SubmissionStatusCodec.toWire(status);
-
-        Double runtimePercentile = null;
-        Double memoryPercentile = null;
-        String runtimeDistBinsJson = null;
-        String memoryDistBinsJson = null;
-        if (status == SubmissionStatus.ACCEPTED) {
-            Submission pre = submissionMapper.selectById(submissionId);
-            if (pre != null) {
-                PerformanceStats stats = performanceStats.compute(pre, runtime, memory);
-                runtimePercentile = stats.runtimePercentile();
-                memoryPercentile = stats.memoryPercentile();
-                runtimeDistBinsJson = serializeBins(stats.runtimeDistBinsMs());
-                memoryDistBinsJson = serializeBins(stats.memoryDistBinsMb());
-            }
-        }
-
-        int affected = submissionMapper.writeVerdictFencedWithStats(
-                submissionId, generation, attemptId, wire, runtime, memory, testDetailsJson,
-                runtimePercentile, memoryPercentile, runtimeDistBinsJson, memoryDistBinsJson);
+        PerformanceStats stats = calculateAcceptedPerformanceStats(
+                submissionId, status, runtime, memory);
+        int affected = writeFencedVerdict(
+                submissionId, generation, attemptId, wire, runtime, memory, testDetailsJson, stats);
 
         if (affected == 0) {
             incrementStaleResultDropped();
@@ -250,15 +263,43 @@ public class DefaultSubmissionWritePort implements SubmissionIntakePort, Submiss
             log.warn("Fenced verdict wrote but submission {} not found on re-read", submissionId);
             return true;
         }
-        publishContestScoringEvent(submission, status,
+        recordVerdictOutcome(submission, status,
                 generation, runtime, memory != null ? memory : 0,
                 contestSubmissionPort.findContestId(submissionId));
         return true;
     }
 
-    private void publishContestScoringEvent(Submission submission, SubmissionStatus status,
-                                            long generation, int runtimeMs, double memoryMb,
-                                            String contestId) {
+    private PerformanceStats calculateAcceptedPerformanceStats(String submissionId,
+                                                               SubmissionStatus status,
+                                                               int runtime, Double memory) {
+        if (status != SubmissionStatus.ACCEPTED) {
+            return null;
+        }
+        Submission pre = submissionMapper.selectById(submissionId);
+        return pre == null ? null : performanceStats.compute(pre, runtime, memory);
+    }
+
+    private int writeFencedVerdict(String submissionId, long generation, String attemptId,
+                                   String wire, int runtime, Double memory,
+                                   String testDetailsJson, PerformanceStats stats) {
+        return submissionMapper.writeVerdictFencedWithStats(
+                submissionId, generation, attemptId, wire, runtime, memory, testDetailsJson,
+                stats == null ? null : stats.runtimePercentile(),
+                stats == null ? null : stats.memoryPercentile(),
+                stats == null ? null : serializeBins(stats.runtimeDistBinsMs()),
+                stats == null ? null : serializeBins(stats.memoryDistBinsMb()));
+    }
+
+    private void recordVerdictOutcome(Submission submission, SubmissionStatus status,
+                                      long generation, int runtimeMs, double memoryMb,
+                                      String contestId) {
+        recordTerminalVerdictResult(submission, status, generation, runtimeMs, memoryMb, contestId);
+        publishSubmissionJudgedEvent(submission, status, generation, runtimeMs, memoryMb, contestId);
+    }
+
+    private void recordTerminalVerdictResult(Submission submission, SubmissionStatus status,
+                                             long generation, int runtimeMs, double memoryMb,
+                                             String contestId) {
         // SPLIT-003 slice-2: there is no local event consumer in this owner.
         // The result outbox is the only durable cross-service channel, so a
         // terminal verdict is ALWAYS recorded there (the App adapter only
@@ -266,21 +307,24 @@ public class DefaultSubmissionWritePort implements SubmissionIntakePort, Submiss
         // The result-outbox dispatcher (later slice) forwards it to
         // Notification/Achievement/WebSocket consumers.
         if (status.isTerminal()) {
-            try {
-                resultOutboxWriter.recordVerdictResult(
-                        submission.getId(),
-                        generation > 0 ? generation : 1L,
-                        submission.getUserId(),
-                        String.valueOf(submission.getProblemId()),
-                        SubmissionStatusCodec.toWire(status),
-                        runtimeMs,
-                        memoryMb,
-                        contestId);
-            } catch (Exception e) {
-                log.error("Failed to record result outbox for submission {}: {}",
-                        submission.getId(), e.getMessage());
-            }
+            // Durable output is part of the verdict transaction. Let the
+            // failure escape so the transaction interceptor rolls back both
+            // the verdict and its outbox row.
+            resultOutboxWriter.recordVerdictResult(
+                    submission.getId(),
+                    generation > 0 ? generation : 1L,
+                    submission.getUserId(),
+                    String.valueOf(submission.getProblemId()),
+                    SubmissionStatusCodec.toWire(status),
+                    runtimeMs,
+                    memoryMb,
+                    contestId);
         }
+    }
+
+    private void publishSubmissionJudgedEvent(Submission submission, SubmissionStatus status,
+                                              long generation, int runtimeMs, double memoryMb,
+                                              String contestId) {
         try {
             if (applicationEventPublisher == null) {
                 throw new IllegalStateException("ApplicationEventPublisher unavailable");

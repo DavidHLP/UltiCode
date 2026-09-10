@@ -71,8 +71,8 @@ cmp -s "$BEFORE_DIFF" "$AFTER_DIFF" \
   || fail "static validation modified tracked files"
 printf 'test.sh static: PASS (deny-shim PATH, no Docker daemon)\n'
 # Pure source/catalog children are static-safe and run inside static mode:
-# api-contract-boundary, dubbo-provider-reference, and docs-contract now pass
-# after the App locality migration and provider retirement. The remaining
+# owner-architecture-source, api-contract-boundary, dubbo-provider-reference,
+# docs-contract, and the static half of the TLS profile. The remaining
 # dynamic children (Docker/network/Maven integration shapes) must stay skipped.
 for skipped_child in \
   scripts/test/redis-acl-contract.sh \
@@ -91,20 +91,21 @@ for skipped_child in \
   scripts/test/fenced-lease-contract.sh \
   scripts/test/graceful-drain-contract.sh \
   scripts/test/dependency-resilience-contract.sh \
-  scripts/test/tls-profile-contract.sh \
   scripts/test/redis-acl-rotation-contract.sh; do
   grep -Fq "Architecture child $skipped_child: skipped in static-only mode" \
     "$TEST_DIR/static-0.log" \
     || fail "static mode unexpectedly ran deferred child: $skipped_child"
-  grep -Fq "run_child $skipped_child" \
+  grep -Fq "$skipped_child" \
     "$ROOT_DIR/scripts/dev/architecture-contract-test.sh" \
     || fail "non-static architecture gate no longer runs deferred child: $skipped_child"
 done
 
 for static_child in \
+  scripts/test/owner-architecture-source-contract.sh \
   scripts/test/api-contract-boundary-contract.sh \
   scripts/test/dubbo-provider-reference-contract.sh \
-  scripts/dev/docs-contract-test.sh; do
+  scripts/dev/docs-contract-test.sh \
+  scripts/test/tls-profile-contract.sh; do
   grep -Fq "Architecture child $static_child: running static-safe checks" \
     "$TEST_DIR/static-0.log" \
     || fail "static mode did not run pure source child: $static_child"

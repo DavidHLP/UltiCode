@@ -53,6 +53,19 @@ assert_file_not_contains services/platform/judge-config/src/main/java/com/ultico
 assert_file_contains services/platform/judge-config/src/main/java/com/ulticode/modules/submission/config/FlagCombinationValidator.java \
   'expected dev-lite, dev-full or external-full.'
 
+# Retired launchers and direct process boot paths must stay absent; the pitstop
+# Windows adapter remains a supported caller of the canonical entrypoint.
+assert_file_not_contains scripts/dev/doctor.sh 'pm2 start ecosystem.config.cjs'
+for stale_alias in scripts/start.sh scripts/stop.sh scripts/start.bat scripts/stop.bat \
+  services/scripts/dev/start-service-shells.sh; do
+  assert_file_absent "$stale_alias"
+done
+assert_file_contains scripts/pitstop-start-backend.ps1 'scripts/dev/up.sh'
+assert_file_contains scripts/dev/stop.sh 'pm2 delete'
+assert_file_not_contains scripts/pitstop-start-backend.ps1 'mvn spring-boot:run'
+assert_file_not_contains services/admin/src/main/java/com/ulticode/admin/security/jwt/AccountReadAdapter.java \
+  'UserFactsProjection'
+
 (
   export APP_RUNTIME_MODE=legacy-rollback
   export APP_SUBMISSION_ROUTING_MODE=local

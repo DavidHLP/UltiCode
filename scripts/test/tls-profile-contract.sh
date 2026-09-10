@@ -13,7 +13,9 @@ HTML_DIR="$TEST_DIR/html"
 MINIMAL_CONF="$TEST_DIR/nginx.conf"
 
 cleanup() {
-  docker rm -f "$NGINX_CONTAINER" >/dev/null 2>&1 || true
+  if [[ "${ULTI_STATIC_ONLY:-0}" != "1" ]]; then
+    docker rm -f "$NGINX_CONTAINER" >/dev/null 2>&1 || true
+  fi
   rm -rf "$TEST_DIR"
 }
 trap cleanup EXIT
@@ -84,6 +86,11 @@ printf 'managed MySQL/Redis URL, TLS, CA-bundle, and hostname-verification bindi
 ! grep -Fq '#REDIS_URL=' "$ROOT_DIR/.env.example"
 ! grep -Fq 'docker/redis/users.acl' "$ROOT_DIR/docker/docker-compose.prod.yml"
 printf 'TLS certificate mount, HTTPS listener, HSTS, cookie, and JWKS static contract: PASS\n'
+
+if [[ "${ULTI_STATIC_ONLY:-0}" == "1" ]]; then
+  printf 'tls-profile-contract: PASS (static-only)\n'
+  exit 0
+fi
 
 for config in apps/console/nginx.conf apps/management/nginx.conf; do
   docker run --rm \

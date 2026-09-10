@@ -12,6 +12,34 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# P2-MIG-001: the executable migration and backup seams must keep the same
+# ordered owner scope used by the local runbook and deployment action.
+for expected in \
+  'OWNER_MIGRATION_ORDER=(auth admin app notification submission)' \
+  'flock -n' \
+  'no repair is attempted' \
+  'skip_migrations=true preserves schema' \
+  '-baselineOnMigrate=true'; do
+  grep -Fq -- "$expected" "$ROOT_DIR/scripts/runbooks/owner-migration-manifest.sh"
+done
+grep -Fq 'flyway.baselineOnMigrate=true' "$ROOT_DIR/init-db/flyway-post-owner.conf"
+grep -Fq 'migrate-post-owner.sh' "$ROOT_DIR/scripts/dev/up.sh"
+grep -Fq 'flyway-post-owner.conf' "$ROOT_DIR/scripts/dev/migrate-post-owner.sh"
+grep -Fq 'flyway_post_owner_history' "$ROOT_DIR/init-db/scripts/generate-baseline.sh"
+grep -Fq 'generate-baseline.sh" "$TMP_DUMP"' "$ROOT_DIR/init-db/scripts/validate-baseline.sh"
+grep -Fq 'OWNER_SCHEMAS=(auth admin app notification submission)' \
+  "$ROOT_DIR/scripts/runbooks/owner-backup-restore.sh"
+grep -Fq 'openssl enc -aes-256-cbc -salt -pbkdf2' \
+  "$ROOT_DIR/scripts/runbooks/owner-backup-restore.sh"
+grep -Fq 'flock -n' "$ROOT_DIR/scripts/runbooks/owner-backup-restore.sh"
+grep -Fq 'rto_seconds' "$ROOT_DIR/scripts/runbooks/owner-backup-restore.sh"
+grep -Fq 'owner-migration-manifest.sh migrate' "$ROOT_DIR/.github/actions/host-deploy/action.yml"
+grep -Fq 'MIGRATION_DB_PASSWORD' "$ROOT_DIR/.github/actions/host-deploy/action.yml"
+grep -Fq "inputs.skip_migrations != 'true'" "$ROOT_DIR/.github/actions/host-deploy/action.yml"
+grep -Fq 'migration_db_user:' "$ROOT_DIR/.github/workflows/cd-deploy.yml"
+grep -Fq 'submission_migration_db_password:' "$ROOT_DIR/.github/workflows/cd-deploy.yml"
+grep -Fq "skip_migrations: 'true'" "$ROOT_DIR/.github/workflows/cd-rollback.yml"
+
 MIGRATION_PASSWORD="$(openssl rand -hex 16)"
 SUBMISSION_PASSWORD="$(openssl rand -hex 16)"
 COMMON_ENV=(

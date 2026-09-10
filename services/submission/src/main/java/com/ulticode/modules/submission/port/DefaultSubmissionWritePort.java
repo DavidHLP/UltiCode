@@ -307,20 +307,18 @@ public class DefaultSubmissionWritePort implements SubmissionIntakePort, Submiss
         // The result-outbox dispatcher (later slice) forwards it to
         // Notification/Achievement/WebSocket consumers.
         if (status.isTerminal()) {
-            try {
-                resultOutboxWriter.recordVerdictResult(
-                        submission.getId(),
-                        generation > 0 ? generation : 1L,
-                        submission.getUserId(),
-                        String.valueOf(submission.getProblemId()),
-                        SubmissionStatusCodec.toWire(status),
-                        runtimeMs,
-                        memoryMb,
-                        contestId);
-            } catch (Exception e) {
-                log.error("Failed to record result outbox for submission {}: {}",
-                        submission.getId(), e.getMessage());
-            }
+            // Durable output is part of the verdict transaction. Let the
+            // failure escape so the transaction interceptor rolls back both
+            // the verdict and its outbox row.
+            resultOutboxWriter.recordVerdictResult(
+                    submission.getId(),
+                    generation > 0 ? generation : 1L,
+                    submission.getUserId(),
+                    String.valueOf(submission.getProblemId()),
+                    SubmissionStatusCodec.toWire(status),
+                    runtimeMs,
+                    memoryMb,
+                    contestId);
         }
     }
 

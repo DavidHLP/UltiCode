@@ -18,6 +18,8 @@ set -o pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 # shellcheck source=scripts/dev/devstack-manifest.sh
 source "$ROOT_DIR/scripts/dev/devstack-manifest.sh"
+# shellcheck source=scripts/dev/lib/pm2.sh
+source "$ROOT_DIR/scripts/dev/lib/pm2.sh"
 
 SCOPE="dev-lite"
 SCOPE_EXPLICIT=false
@@ -181,44 +183,6 @@ compose_health() {
     "$container" 2>/dev/null || printf 'unknown'
 }
 
-load_pm2_records() {
-  PM2_RECORDS=""
-  if ! command -v pm2 >/dev/null 2>&1; then
-    return 0
-  fi
-  local raw
-  raw="$(pm2 jlist 2>/dev/null || true)"
-  [[ -n "$raw" && "$raw" != "[]" ]] || return 0
-  if command -v node >/dev/null 2>&1; then
-    PM2_RECORDS="$(printf '%s' "$raw" | node -e '
-let s="";
-process.stdin.on("data", d => s += d).on("end", () => {
-  let apps = [];
-  try { apps = JSON.parse(s || "[]"); } catch (_) { process.exit(0); }
-  for (const item of apps) {
-    const env = item.pm2_env || {};
-    const name = String(item.name || "").replaceAll("|", "_");
-    const status = String(env.status || "unknown").replaceAll("|", "_");
-    const restarts = Number.isFinite(Number(env.unstable_restarts)) ? Number(env.unstable_restarts) : 0;
-    const pid = Number.isFinite(Number(item.pid)) ? Number(item.pid) : 0;
-    if (name) console.log([name, status, restarts, pid].join("|"));
-  }
-});' 2>/dev/null || true)"
-  fi
-}
-
-pm2_record_for() {
-  local wanted="$1" name status restarts pid
-  while IFS='|' read -r name status restarts pid; do
-    [[ "$name" == "$wanted" ]] || continue
-    printf '%s|%s|%s|%s' "$name" "$status" "$restarts" "$pid"
-    return 0
-  done <<< "$PM2_RECORDS"
-  if command -v pm2 >/dev/null 2>&1 && pm2 describe "$wanted" >/dev/null 2>&1; then
-    printf '%s|unknown|0|%s' "$wanted" "$(pm2 pid "$wanted" 2>/dev/null || printf '0')"
-  fi
-}
-
 port_status_line() {
   local record="$1" app port label pids pid owner
   IFS='|' read -r app port label <<< "$record"
@@ -276,7 +240,7 @@ infra_status_json() {
 }
 
 pm2_status_json() {
-  local first=true app record name status restarts pid
+  local first=true app record name status restarts pid restarts_json
   local IFS=,
   printf '['
   for app in $SELECTED_APPS; do
@@ -287,9 +251,14 @@ pm2_status_json() {
       name="$app" status='absent' restarts=0 pid=0
     fi
     [[ "$first" == true ]] || printf ','
+    if [[ "$restarts" =~ ^[0-9]+$ ]]; then
+      restarts_json="$restarts"
+    else
+      restarts_json=null
+    fi
     printf '{"name":%s,"port":%s,"status":%s,"restarts":%s,"pid":%s}' \
       "$(json_string "$name")" "$(devstack_app_port "$app")" \
-      "$(json_string "$status")" "$restarts" "$pid"
+      "$(json_string "$status")" "$restarts_json" "$pid"
     first=false
   done
   printf ']'
@@ -301,7 +270,7 @@ pm2_health() {
     printf '%s pm2 not on PATH\n' "$(color yellow '[SKIP]')"
     return 0
   fi
-  load_pm2_records
+  pm2_load_records
   printf '%s PM2 apps (scope: %s):\n' "$(color cyan '[INFO]')" "$SCOPE"
   local IFS=,
   for app in $SELECTED_APPS; do
@@ -352,7 +321,7 @@ recommend() {
     [[ "$owner" == preview/vite ]] && ports_preview=$((ports_preview + 1))
   done
   if command -v pm2 >/dev/null 2>&1; then
-    load_pm2_records
+    pm2_load_records
     local -a selected_apps=()
     local IFS=','
     read -ra selected_apps <<< "$SELECTED_APPS"
@@ -383,7 +352,7 @@ recommend() {
 # ---------- main ----------
 
 if [[ "$JSON_ONLY" == true ]]; then
-  load_pm2_records
+  pm2_load_records
   printf '{"scope":%s,"apps":%s,"ports":%s,"infra":%s,"features":%s}\n' \
     "$(json_string "$SCOPE")" "$(pm2_status_json)" "$(port_status_json)" \
     "$(infra_status_json)" "$(json_string "$(devstack_scope_features "$SCOPE")")"

@@ -34,13 +34,24 @@ case "${1:-}" in
     exit 0
     ;;
   jlist)
+    case "${PM2_JLIST_MODE:-online}" in
+      fail) exit 1 ;;
+      malformed) printf '{"broken"\n'; exit 0 ;;
+    esac
     printf '['
     first=true
     IFS=',' read -ra apps <<< "$PM2_ACTIVE_APPS"
     for app in "${apps[@]}"; do
       [[ -n "$app" ]] || continue
       [[ "$first" == true ]] || printf ','
-      printf '{"name":"%s","pid":12345,"pm2_env":{"status":"online","unstable_restarts":0}}' "$app"
+      if [[ "${PM2_JLIST_MODE:-online}" == missing-fields ]]; then
+        printf '{"name":"%s","pid":12345,"pm2_env":{}}' "$app"
+      elif [[ "${PM2_JLIST_MODE:-online}" == invalid-restarts ]]; then
+        printf '{"name":"%s","pid":12345,"pm2_env":{"status":"online","unstable_restarts":"bad"}}' "$app"
+      else
+        printf '{"name":"%s","pid":12345,"pm2_env":{"status":"%s","unstable_restarts":%s}}' \
+          "$app" "${PM2_STATUS:-online}" "${PM2_RESTARTS:-0}"
+      fi
       first=false
     done
     printf ']\n'
@@ -91,6 +102,49 @@ while IFS='|' read -r app kind port path; do
   grep -F -- "http://127.0.0.1:${port}${path}" "$CURL_CAPTURE" >/dev/null \
     || fail "curl did not capture resolver readiness endpoint for $app"
 done < <(devstack_readiness_for_selection "$scope" "$expected_apps")
+
+# The PM2 adapter owns state parsing and fail-closed readiness semantics for
+# both up.sh and doctor.sh. Exercise the real callers through the fake CLI.
+first_app="${expected_apps%%,*}"
+assert_pm2_state() {
+  local mode="$1" status="$2" restarts="$3" expected_ready="$4" path_override="${5:-$PATH}"
+  local expected_json_restarts="$restarts"
+  [[ "$expected_json_restarts" == unknown ]] && expected_json_restarts=null
+  PM2_JLIST_MODE="$mode" PM2_STATUS="$status" PM2_RESTARTS="$restarts" \
+    PATH="$path_override" NO_COLOR=1 \
+    bash "$ROOT_DIR/scripts/dev/doctor.sh" --scope "$scope" --json >"$TMP_DIR/pm2-$mode.json"
+  node - "$TMP_DIR/pm2-$mode.json" "$first_app" "$status" "$expected_json_restarts" <<'EOF'
+const fs = require('fs')
+const [jsonPath, appName, expectedStatus, expectedRestarts] = process.argv.slice(2)
+const report = JSON.parse(fs.readFileSync(jsonPath, 'utf8'))
+const app = report.apps.find((item) => item.name === appName)
+if (!app) throw new Error(`PM2 app missing: ${appName}`)
+if (app.status !== expectedStatus) throw new Error(`PM2 status: ${app.status} != ${expectedStatus}`)
+if (String(app.restarts) !== expectedRestarts) throw new Error(`PM2 restarts: ${app.restarts} != ${expectedRestarts}`)
+EOF
+
+  if PM2_JLIST_MODE="$mode" PM2_STATUS="$status" PM2_RESTARTS="$restarts" \
+    PATH="$path_override" bash -c \
+      'source "$1/scripts/dev/lib/pm2.sh"; pm2_load_records; pm2_record_is_online "$2"' \
+      bash "$ROOT_DIR" "$first_app"; then
+    actual_ready=ready
+  else
+    actual_ready=not-ready
+  fi
+  [[ "$actual_ready" == "$expected_ready" ]] \
+    || fail "PM2 readiness for $mode: $actual_ready != $expected_ready"
+}
+
+assert_pm2_state online online 0 ready
+assert_pm2_state stopped stopped 0 not-ready
+assert_pm2_state high-restarts online 5 not-ready
+assert_pm2_state missing-fields unknown unknown not-ready
+assert_pm2_state invalid-restarts online unknown not-ready
+assert_pm2_state malformed unknown unknown not-ready
+assert_pm2_state fail unknown unknown not-ready
+assert_pm2_state online unknown unknown not-ready
+assert_pm2_state tool-missing absent 0 not-ready "/usr/bin:/bin"
+printf 'PM2 state adapter contract: PASS (online/stopped/restarts/malformed/missing/read-failure/tool-missing)\n'
 
 # status and health are explicit up.sh actions and delegate to doctor with the
 # same scope. Their machine outputs must match exactly.

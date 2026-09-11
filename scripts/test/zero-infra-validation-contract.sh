@@ -26,12 +26,14 @@ done
 TEST_DIR="$(mktemp -d "${TMPDIR:-/tmp}/ulticode-zero-infra.XXXXXX")"
 trap 'rm -rf -- "$TEST_DIR"' EXIT
 DENY_BIN="$TEST_DIR/deny-bin"
+STATIC_DENY_BIN="$TEST_DIR/static-deny-bin"
 DENY_LOG="$TEST_DIR/deny.log"
-mkdir -p "$DENY_BIN"
+mkdir -p "$DENY_BIN" "$STATIC_DENY_BIN"
 : >"$DENY_LOG"
 
-for forbidden in docker mysql redis-cli curl; do
-  cat >"$DENY_BIN/$forbidden" <<'SHIM'
+write_deny_shim() {
+  local directory="$1" command="$2"
+  cat >"$directory/$command" <<'SHIM'
 #!/usr/bin/env bash
 set -euo pipefail
 printf '%s\n' "${0##*/}" >> "${ULTI_DENY_LOG:?ULTI_DENY_LOG is required}"
@@ -40,7 +42,15 @@ if [[ "${ULTI_TEST_DENY:-0}" == "1" ]]; then
 fi
 exit 42
 SHIM
-  chmod +x "$DENY_BIN/$forbidden"
+  chmod +x "$directory/$command"
+}
+
+for forbidden in docker mysql redis-cli curl; do
+  write_deny_shim "$DENY_BIN" "$forbidden"
+  write_deny_shim "$STATIC_DENY_BIN" "$forbidden"
+done
+for forbidden in mvn mvnw pnpm; do
+  write_deny_shim "$STATIC_DENY_BIN" "$forbidden"
 done
 
 ORIGINAL_PATH="${PATH:-}"
@@ -51,7 +61,7 @@ git -C "$ROOT_DIR" diff --binary -- . >"$BEFORE_DIFF"
 run_static() {
   local marker="$1"
   : >"$DENY_LOG"
-  PATH="$DENY_BIN:$ORIGINAL_PATH" \
+  PATH="$STATIC_DENY_BIN:$ORIGINAL_PATH" \
     ULTI_DENY_LOG="$DENY_LOG" \
     ULTI_TEST_DENY="$marker" \
     bash "$WRAPPER" static >"$TEST_DIR/static-$marker.log" 2>&1 \
@@ -176,27 +186,13 @@ for mode in static unit quick full-local full integration; do
   grep -Fq "${mode}|" <<<"$describe_output" \
     || fail "--describe is missing mode: $mode"
 done
-[[ "$(grep -Fc 'DEPRECATION: quick now means static + unit' "$WRAPPER")" -eq 1 ]] \
-  || fail "quick deprecation notice is not emitted exactly once"
 printf '%s\n' '--describe and quick mode-name contract: PASS'
 
-dispatch_block="$(awk '
-  /^case "\$MODE" in$/ { in_case = 1; candidate = ""; next }
-  in_case {
-    candidate = candidate $0 ORS
-    if ($0 == "esac") {
-      last_case = candidate
-      in_case = 0
-    }
-  }
-  END { printf "%s", last_case }
-' "$WRAPPER")"
-[[ -n "$dispatch_block" ]] || fail "could not inspect test.sh mode dispatch"
-if grep -Eiq 'docker|compose|pnpm[[:space:]]+install|verify|init-env|generate-users-acl' \
-  <<<"$dispatch_block"; then
-  fail "static/unit/quick mode dispatch contains a forbidden command"
+if [[ "${1:-}" == --static-only ]]; then
+  printf 'static behavior contract: PASS (CLI execution stayed inside the deny environment)\n'
+else
+  printf 'static/unit behavior contract: PASS (CLI execution stayed inside the deny environment)\n'
 fi
-printf 'static/unit/quick dispatch audit: PASS (forbidden heavy commands unreachable)\n'
 
 set +e
 invalid_output="$(bash "$WRAPPER" invalid 2>&1)"

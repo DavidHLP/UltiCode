@@ -19,6 +19,8 @@ source "$ROOT_DIR/scripts/dev/devstack-manifest.sh"
 
 # shellcheck source=scripts/dev/lib/common.sh
 source "$ROOT_DIR/scripts/dev/lib/common.sh"
+# shellcheck source=scripts/dev/lib/pm2.sh
+source "$ROOT_DIR/scripts/dev/lib/pm2.sh"
 
 # Preserve explicit caller-provided migration and seed values while loading .env below.
 capture_env_vars MIGRATION_DB_HOST MIGRATION_DB_PORT MIGRATION_DB_NAME MIGRATION_DB_USER \
@@ -800,28 +802,9 @@ check_port() {
 }
 
 check_pm2_online() {
-  local app="$1" jlist status restarts log
-  jlist="$(pm2 jlist 2>/dev/null)" || return 1
-  # pm2 jlist 是紧凑 JSON: 外层 {"name":..,"pm2_env":{"name":..,"status":..,"restart_time":..},..}。
-  # 老实现用 grep -o '"name":"app"[^}]*' 匹配到 pm2_env 内嵌的 '}' 即截断,
-  # status/restart_time 在外层对象尾部取不到 → judge 就绪检查永远失败。
-  # 用 jq 精确取 pm2_env 下的字段; jq 缺失时退化为进程存在性判断。
-  if command -v jq >/dev/null 2>&1; then
-    status="$(printf '%s' "$jlist" | jq -r ".[] | select(.name==\"$app\") | .pm2_env.status" 2>/dev/null)"
-    restarts="$(printf '%s' "$jlist" | jq -r ".[] | select(.name==\"$app\") | .pm2_env.unstable_restarts" 2>/dev/null)"
-  else
-    # jq 缺失: 至少验证 PM2 进程存在。pm2 pid 对 stopped 进程返回 "0",
-    # 非空检查无法区分, 必须校验为正整数。
-    [[ "$(pm2 pid "$app" 2>/dev/null)" =~ ^[1-9][0-9]*$ ]] || return 1
-    status="online"
-    restarts="0"
-  fi
-  # 只认 online 状态: crash-loop 期间 pid 存在但 status 会周期性离开 online。
-  [[ "$status" == "online" ]] || return 1
-  # unstable_restarts 只统计 crash 触发的自动重启; 手动 startOrRestart 不计入。
-  # 不能用 restart_time (累计值, 连续多次跑 up.sh 也会增长, 会把健康实例误判为 crash-loop)。
-  # 持续增长 = crash-loop, 即使瞬间 online 也不算就绪。
-  [[ "${restarts:-0}" -lt 5 ]] || return 1
+  local app="$1" log
+  pm2_load_records
+  pm2_record_is_online "$app" || return 1
 
   local banner
   banner="$(devstack_readiness_banner "$app")"

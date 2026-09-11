@@ -40,8 +40,11 @@ helper does not load `.env`, install tools, or run infrastructure.
 
 ## scripts/dev/lib/ — shared shell library
 
-`common.sh` is the single external entry point. Internals are split by concern
-and frozen `readonly -f` before any `.env` is sourced:
+`common.sh` is the external entry point for the general-purpose helpers.
+Internals are split by concern and frozen `readonly -f` before any `.env` is
+sourced. `pm2.sh` is intentionally a separate lightweight, read-only seam
+used directly by `up.sh` and `doctor.sh`, so diagnostics do not load the full
+environment/Docker/SQL helper stack:
 
 - `env.sh` — `ROOT_DIR`/`ENV_FILE` resolution, `load_env_file`,
   `capture_env_vars`/`apply_env_overrides`
@@ -53,6 +56,10 @@ and frozen `readonly -f` before any `.env` is sourced:
   (`table_exists`/`column_signature`/`row_count`/`checksum_table`) and
   `define_mysql_query_adapter`, the single-sourced factory behind every
   runbook's `mysql_query`
+- `pm2.sh` — `pm2 jlist` record parsing, unknown-state fallback, and the
+  fail-closed online/restart-count readiness predicate used by startup;
+  diagnostics consume the same parsed records but keep their own display and
+  exit policy
 
 Do not add runbook-specific business logic here; keep REVOKE/drain/cutover
 semantics in the runbooks.

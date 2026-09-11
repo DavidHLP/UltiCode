@@ -89,6 +89,9 @@ importers:
       '@ulticode/http-client':
         specifier: workspace:*
         version: link:../../packages/http-client
+      '@ulticode/i18n-completeness':
+        specifier: workspace:*
+        version: link:../../packages/i18n-completeness
       '@ulticode/locale-preference':
         specifier: workspace:*
         version: link:../../packages/locale-preference

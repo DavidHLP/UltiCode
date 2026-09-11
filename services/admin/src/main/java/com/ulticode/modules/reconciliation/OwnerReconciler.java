@@ -69,6 +69,7 @@ public class OwnerReconciler {
     private static final int RECONCILIATION_PAGE_SIZE = SubmissionReconciliationReadPort.MAX_PAGE_SIZE;
     private static final int NOTIFICATION_RECONCILIATION_PAGE_SIZE =
             NotificationReconciliationReadPort.MAX_PAGE_SIZE;
+    private static final int MAX_RECONCILIATION_PAGES = 32;
 
     private final ReconciliationRunMapper runMapper;
     private final UuidGenerator uuidGenerator;
@@ -315,6 +316,7 @@ public class OwnerReconciler {
         }
         String afterAccountId = "";
         long missing = 0L;
+        int pages = 0;
         while (true) {
             List<SubmissionUserReferenceCountDTO> references =
                     submissionReconciliationReadPort.findUserReferenceCounts(
@@ -324,6 +326,9 @@ public class OwnerReconciler {
             }
             if (references.isEmpty()) {
                 break;
+            }
+            if (++pages > MAX_RECONCILIATION_PAGES) {
+                throw submissionUnavailable();
             }
             if (references.size() > RECONCILIATION_PAGE_SIZE) {
                 throw submissionUnavailable();
@@ -364,6 +369,7 @@ public class OwnerReconciler {
         }
         String afterAccountId = "";
         long missing = 0L;
+        int pages = 0;
         while (true) {
             List<NotificationUserReferenceCountDTO> references =
                     notificationReconciliationReadPort.findUserReferenceCounts(
@@ -373,6 +379,9 @@ public class OwnerReconciler {
             }
             if (references.isEmpty()) {
                 break;
+            }
+            if (++pages > MAX_RECONCILIATION_PAGES) {
+                throw notificationUnavailable();
             }
             if (references.size() > NOTIFICATION_RECONCILIATION_PAGE_SIZE) {
                 throw notificationUnavailable();
@@ -423,11 +432,16 @@ public class OwnerReconciler {
     private OrphanDetectionResult auditLogsOrphans() {
         long missing = 0;
         int offset = 0;
+        int pages = 0;
         final int pageSize = 500;
         while (true) {
             List<AuditReferenceCount> references = auditOrphanMapper.auditPerformerIds(offset, pageSize);
             if (references == null || references.isEmpty()) {
                 break;
+            }
+            if (++pages > MAX_RECONCILIATION_PAGES) {
+                throw new BusinessException(
+                        BaseErrorCode.UNKNOWN_ERROR, "Admin audit reconciliation page cap exceeded");
             }
             Set<String> candidates = references.stream()
                     .map(AuditReferenceCount::getPerformerId)

@@ -15,6 +15,7 @@ import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.response.DegradationStatus;
 import com.ulticode.common.rpc.RpcPolicy;
 import com.ulticode.common.rpc.RpcResult;
+import com.ulticode.modules.admin.port.adapter.CancellableQueryExecutor;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
@@ -26,18 +27,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -78,10 +73,8 @@ import java.util.stream.Collectors;
 @Component
 public class AdminUserEnricher {
     private static final int BATCH_QUERY_POOL_SIZE = 2;
-    private static final int BATCH_QUERY_QUEUE_CAPACITY = 2;
     private static final String BATCH_QUERY_THREAD_PREFIX = "admin-user-enrichment-query";
-
-    private final ThreadPoolExecutor queryExecutor;
+    private final CancellableQueryExecutor queryExecutor;
 
     public AdminUserEnricher() {
         this(null, null, null);
@@ -91,13 +84,13 @@ public class AdminUserEnricher {
                       UserProfileQueryService userProfileQueryService,
                       AccountQueryService accountQueryService) {
         this(identityQueryService, userProfileQueryService, accountQueryService,
-                newQueryExecutor());
+                new CancellableQueryExecutor(BATCH_QUERY_THREAD_PREFIX, BATCH_QUERY_POOL_SIZE));
     }
 
     AdminUserEnricher(IdentityQueryService identityQueryService,
                       UserProfileQueryService userProfileQueryService,
                       AccountQueryService accountQueryService,
-                      ThreadPoolExecutor queryExecutor) {
+                      CancellableQueryExecutor queryExecutor) {
         this.identityQueryService = identityQueryService;
         this.userProfileQueryService = userProfileQueryService;
         this.accountQueryService = accountQueryService;
@@ -106,7 +99,7 @@ public class AdminUserEnricher {
 
     @PreDestroy
     void shutdownQueryExecutor() {
-        queryExecutor.shutdownNow();
+        queryExecutor.close();
     }
 
     @Autowired(required = false)
@@ -320,9 +313,9 @@ public class AdminUserEnricher {
     }
 
     private EnrichedUsers enrichBatchesInParallel(Set<String> accountIds) {
-        EnrichmentQuery<IdentityBatch> identities =
+        CancellableQueryExecutor.Query<IdentityBatch> identities =
                 submitQuery(() -> batchIdentities(accountIds));
-        EnrichmentQuery<ProfileBatch> profiles =
+        CancellableQueryExecutor.Query<ProfileBatch> profiles =
                 submitQuery(() -> batchProfiles(accountIds));
         try {
             CompletableFuture.allOf(identities.result(), profiles.result())
@@ -342,39 +335,13 @@ public class AdminUserEnricher {
                 completedResult(profiles.result()));
     }
 
-    private <T> EnrichmentQuery<T> submitQuery(Callable<T> task) {
-        CompletableFuture<T> result = new CompletableFuture<>();
-        Future<?> execution;
-        try {
-            execution = queryExecutor.submit(() -> {
-                try {
-                    result.complete(task.call());
-                } catch (BusinessException exception) {
-                    result.completeExceptionally(exception);
-                } catch (Error error) {
-                    result.completeExceptionally(error);
-                    throw error;
-                } catch (Exception exception) {
-                    result.completeExceptionally(exception);
-                }
-            });
-        } catch (RejectedExecutionException rejected) {
-            result.completeExceptionally(rejected);
-            execution = null;
-        }
-        return new EnrichmentQuery<>(result, execution);
+    private <T> CancellableQueryExecutor.Query<T> submitQuery(Callable<T> task) {
+        return queryExecutor.submit(task);
     }
 
     @SafeVarargs
-    private static void cancel(EnrichmentQuery<?>... queries) {
-        for (EnrichmentQuery<?> query : queries) {
-            // Cancel the public result before interrupting its worker, matching
-            // the admin query executor's race-safe cancellation order.
-            query.result().cancel(true);
-            if (query.execution() != null) {
-                query.execution().cancel(true);
-            }
-        }
+    private static void cancel(CancellableQueryExecutor.Query<?>... queries) {
+        CancellableQueryExecutor.cancel(queries);
     }
 
     private static <T> T completedResult(CompletableFuture<T> result) {
@@ -436,36 +403,6 @@ public class AdminUserEnricher {
                         }
                 ));
         return new EnrichedUsers(users, status);
-    }
-
-    private static ThreadPoolExecutor newQueryExecutor() {
-        return new ThreadPoolExecutor(
-                BATCH_QUERY_POOL_SIZE,
-                BATCH_QUERY_POOL_SIZE,
-                30,
-                TimeUnit.SECONDS,
-                new ArrayBlockingQueue<>(BATCH_QUERY_QUEUE_CAPACITY),
-                new NamedDaemonThreadFactory(BATCH_QUERY_THREAD_PREFIX),
-                new ThreadPoolExecutor.AbortPolicy());
-    }
-
-    private record EnrichmentQuery<T>(CompletableFuture<T> result, Future<?> execution) {
-    }
-
-    private static final class NamedDaemonThreadFactory implements ThreadFactory {
-        private final String name;
-        private final AtomicInteger sequence = new AtomicInteger();
-
-        private NamedDaemonThreadFactory(String name) {
-            this.name = name;
-        }
-
-        @Override
-        public Thread newThread(Runnable runnable) {
-            Thread thread = new Thread(runnable, name + "-" + sequence.incrementAndGet());
-            thread.setDaemon(true);
-            return thread;
-        }
     }
 
     /**

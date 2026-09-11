@@ -36,6 +36,7 @@
     "@ulticode/design-system": "workspace:*",
     "@ulticode/domain-types": "workspace:*",
     "@ulticode/http-client": "workspace:*",
+    "@ulticode/i18n-completeness": "workspace:*",
     "@ulticode/locale-preference": "workspace:*",
     "@ulticode/markdown-utils": "workspace:*",
     "@ulticode/sidebar-menu": "workspace:*",

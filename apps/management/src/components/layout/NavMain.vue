@@ -25,7 +25,7 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
 import { DropdownMenuArrow } from 'reka-ui'
-import { SidebarMenuSubItem as SharedSidebarMenuSubItem } from '@/shared/sidebar-menu/src'
+import { SidebarMenuSubItem as SharedSidebarMenuSubItem } from '@ulticode/sidebar-menu'
 
 interface NavItem {
   title: string

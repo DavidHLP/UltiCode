@@ -117,7 +117,7 @@ export const WILDCARD_PERMISSION: Permission = { action: '*', resource: '*' };
  *
  * Example usage in management router guards:
  * ```ts
- * import { Permissions, hasPermission } from '@/shared/auth-core';
+ * import { Permissions, hasPermission } from '@ulticode/auth-core';
  *
  * const userPermissions = new Set(user.permissions);
  * if (!hasPermission(userPermissions, Permissions.USER_READ)) {

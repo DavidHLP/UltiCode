@@ -6,6 +6,16 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
+# This contract owns a disposable MySQL instance. Do not let a caller's
+# migration environment override the test-generated container and credentials.
+unset MIGRATION_DB_HOST MIGRATION_DB_PORT MIGRATION_DB_NAME \
+  MIGRATION_SCHEMA \
+  MIGRATION_DB_USER MIGRATION_DB_PASSWORD MIGRATION_MYSQL_CONTAINER \
+  MIGRATION_MYSQL_CONTAINER_PORT OWNER_CONTRACTION_APP_USER \
+  OWNER_CONTRACTION_APP_HOST OWNER_SCHEMA_CONTRACTION_CONFIRM \
+  OWNER_SCHEMA_CONTRACTION_BACKUP_CONFIRM \
+  OWNER_SCHEMA_CONTRACTION_QUIESCE_CONFIRM OWNER_SCHEMA_CONTRACTION_BACKUP_REFERENCE
+
 if ! java -version >/dev/null 2>&1 && command -v mise >/dev/null 2>&1; then
   exec mise exec java@zulu-17.68.203.0 -- bash "$0" "$@"
 fi

@@ -1,6 +1,6 @@
 import type { User } from "@/types/auth";
 import { apiGet, apiPost } from "@/utils/request";
-import { createSessionAuthStore, csrfManager } from "@/shared/auth-core/src";
+import { createSessionAuthStore, csrfManager } from "@ulticode/auth-core";
 
 /**
  * Detect whether the browser has a `csrf_token` cookie set.

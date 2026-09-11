@@ -21,7 +21,7 @@ import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
 import { useDataTable } from '@/composables/useDataTable'
 import { useCommentModeration } from '@/composables/useCommentModeration'
 import { createColumns } from './columns'
-import { renderMarkdown } from '@/shared/markdown-utils/src'
+import { renderMarkdown } from '@ulticode/markdown-utils'
 
 const { t } = useI18n()
 const commentsStore = useCommentsStore()

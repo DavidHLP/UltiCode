@@ -13,6 +13,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -258,6 +260,40 @@ class CoreOwnerContextManagerLifecycleTest {
         assertThat(manager.states().get("unhanded"))
                 .isEqualTo(CoreOwnerContextManager.State.FAILED);
         assertThat(manager.allReady()).isFalse();
+    }
+
+    @Test
+    void startupSlotGetsFreshDrainBudgetAfterAwaitTimeout() throws Exception {
+        Harness manager = newHarness("drain", 1_000L, () -> null);
+        CountDownLatch release = new CountDownLatch(1);
+        ExecutorService slot = Executors.newSingleThreadExecutor(runnable -> {
+            Thread thread = new Thread(runnable, "core-owner-context-startup-drain");
+            thread.setDaemon(true);
+            return thread;
+        });
+        slot.submit(() -> {
+            while (true) {
+                try {
+                    release.await();
+                    return;
+                } catch (InterruptedException ignored) {
+                    // Simulate a child startup that needs a bounded drain after cancellation.
+                }
+            }
+        });
+
+        CountDownLatch stopReturned = new CountDownLatch(1);
+        Thread stopper = new Thread(() -> {
+            manager.stopStartupSlot(slot, "drain");
+            stopReturned.countDown();
+        });
+        stopper.start();
+        assertThat(stopReturned.await(100, TimeUnit.MILLISECONDS)).isFalse();
+
+        release.countDown();
+        assertThat(stopReturned.await(5, TimeUnit.SECONDS)).isTrue();
+        stopper.join(5_000);
+        assertThat(slot.isTerminated()).isTrue();
     }
 
     @Test

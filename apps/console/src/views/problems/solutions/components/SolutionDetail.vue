@@ -21,7 +21,7 @@ import { PostActions } from "@/components/edge-operations";
 import { toast } from "vue-sonner";
 import { resolveUserVote, resolveVoteCounts } from "@/utils/vote";
 import { formatRelativeTime } from "@/utils/datetime";
-import { extractHeadings } from "@/shared/markdown-utils/src";
+import { extractHeadings } from "@ulticode/markdown-utils";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "vue-router";
 import { Pencil, Trash2, Flag, List } from "lucide-vue-next";

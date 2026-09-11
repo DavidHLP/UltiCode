@@ -2,7 +2,7 @@
  * i18n Translation Completeness Checker — console adapter.
  *
  * Delegates locale consistency + code-to-locale coverage to the shared engine
- * (../../shared/i18n-completeness). This adapter only wires the console locale
+ * (@ulticode/i18n-completeness). This adapter only wires the console locale
  * trees and source root, then renders the report.
  *
  * Usage:

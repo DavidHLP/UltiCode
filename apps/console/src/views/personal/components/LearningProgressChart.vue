@@ -4,7 +4,7 @@ import * as echarts from "echarts";
 import { useI18n } from "vue-i18n";
 import { fetchLearningProgress } from "@/api/submission";
 import type { LearningProgress } from "@/api/submission";
-import { readCssColor, SOLARIZED_PALETTE } from "@ulticode/design-system";
+import { useChartPalette } from "@ulticode/design-system";
 import { withSafeChartAnimation } from "./chartOptions";
 
 const { t } = useI18n();
@@ -19,9 +19,9 @@ const props = withDefaults(defineProps<Props>(), {
 
 const chartRef = ref<HTMLDivElement | null>(null);
 let chartInstance: echarts.ECharts | null = null;
-let themeObserver: MutationObserver | null = null;
 const progressData = ref<LearningProgress | null>(null);
 const dataLoading = ref(true);
+const chartPalette = useChartPalette();
 
 const hasData = computed(
   () =>
@@ -41,21 +41,7 @@ const initChart = () => {
     renderer: "canvas",
   });
 
-  const colors = {
-    series1: readCssColor("--chart-series-1", SOLARIZED_PALETTE.blue),
-    series2: readCssColor("--chart-series-2", SOLARIZED_PALETTE.cyan),
-    background: readCssColor(
-      "--chart-tooltip-background",
-      SOLARIZED_PALETTE.base3,
-    ),
-    foreground: readCssColor("--foreground-strong", SOLARIZED_PALETTE.base01),
-    muted: readCssColor("--foreground", SOLARIZED_PALETTE.base01),
-    border: readCssColor("--chart-grid-color", SOLARIZED_PALETTE.base1),
-    tooltipBorder: readCssColor(
-      "--chart-tooltip-border",
-      SOLARIZED_PALETTE.base00,
-    ),
-  };
+  const colors = chartPalette.value;
 
   const weeks = progressData.value?.weeklyProgress.map((w) => w.week) || [];
   const problemsSolved =
@@ -210,11 +196,6 @@ const loadData = async () => {
 onMounted(() => {
   loadData();
   window.addEventListener("resize", handleResize);
-  themeObserver = new MutationObserver(() => initChart());
-  themeObserver.observe(document.documentElement, {
-    attributes: true,
-    attributeFilter: ["class"],
-  });
 });
 
 watch([hasData, dataLoading], () => {
@@ -223,10 +204,10 @@ watch([hasData, dataLoading], () => {
   }
 });
 
+watch(chartPalette, () => initChart(), { flush: "post" });
+
 onUnmounted(() => {
   window.removeEventListener("resize", handleResize);
-  themeObserver?.disconnect();
-  themeObserver = null;
   chartInstance?.dispose();
   chartInstance = null;
 });

@@ -5,6 +5,9 @@ set -euo pipefail
 # Compose targets without starting Docker. The fake CLI records argv only.
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+CONTRACT_FAILURE_PREFIX="devlite minimal contract failed"
+# shellcheck source=scripts/test/lib/contract-harness.sh
+source "$ROOT_DIR/scripts/test/lib/contract-harness.sh"
 # shellcheck source=scripts/dev/devstack-manifest.sh
 source "$ROOT_DIR/scripts/dev/devstack-manifest.sh"
 
@@ -22,11 +25,6 @@ exit 0
 EOF
 chmod +x "$FAKE_BIN/docker"
 export DEVSTACK_DOCKER_CAPTURE="$CAPTURE"
-
-fail() {
-  echo "devlite minimal contract failed: $*" >&2
-  exit 1
-}
 
 capture_compose_up() {
   local scope="$1" observability="${2:-false}" targets selected

@@ -5,11 +5,9 @@ set -euo pipefail
 # durable worker refuses new claims while its current bounded cycle drains.
 
 ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
-
-fail() {
-  echo "graceful-drain-contract: FAIL: $*" >&2
-  exit 1
-}
+CONTRACT_FAILURE_PREFIX="graceful-drain-contract: FAIL"
+# shellcheck source=scripts/test/lib/contract-harness.sh
+source "$ROOT_DIR/scripts/test/lib/contract-harness.sh"
 
 # shellcheck source=scripts/test/lib/assertions.sh
 source "$ROOT_DIR/scripts/test/lib/assertions.sh"

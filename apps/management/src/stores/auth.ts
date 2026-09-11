@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { authApi, type LoginCredentials, type User } from '@/api/auth'
-import { createAuthStore } from '@/shared/auth-core/src'
+import { createAuthStore } from '@ulticode/auth-core'
 
 /**
  * Management auth store.

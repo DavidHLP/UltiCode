@@ -4,6 +4,7 @@
 
 // Shared types (User, LoginCredentials, LoginResponse, RegisterRequest, Permission)
 export {
+  type AuthStatus,
   type LoginCredentials,
   type RegisterRequest,
   type LoginResponse,
@@ -26,7 +27,7 @@ export {
   type CsrfTokenManager,
 } from './csrf';
 
-// Lazy memo singleton — every `import { csrfManager } from '@/shared/auth-core/src'`
+// Lazy memo singleton — every `import { csrfManager } from '@ulticode/auth-core'`
 // binds to the same instance, so `csrfManager.setToken(...)` from one caller is
 // `csrfManager.getToken()` for the next. Replaces the per-app `utils/csrf.ts`
 // re-export shims that previously created independent instances (the root cause

@@ -65,9 +65,45 @@ importers:
       '@tanstack/vue-virtual':
         specifier: ^3.13.18
         version: 3.13.29(vue@3.5.38(typescript@6.0.3))
+      '@ulticode/app-bootstrap':
+        specifier: workspace:*
+        version: link:../../packages/app-bootstrap
+      '@ulticode/auth-core':
+        specifier: workspace:*
+        version: link:../../packages/auth-core
+      '@ulticode/auth-ui':
+        specifier: workspace:*
+        version: link:../../packages/auth-ui
+      '@ulticode/badge-config':
+        specifier: workspace:*
+        version: link:../../packages/badge-config
+      '@ulticode/datetime-utils':
+        specifier: workspace:*
+        version: link:../../packages/datetime-utils
       '@ulticode/design-system':
         specifier: workspace:*
         version: link:../../packages/design-system
+      '@ulticode/domain-types':
+        specifier: workspace:*
+        version: link:../../packages/domain-types
+      '@ulticode/http-client':
+        specifier: workspace:*
+        version: link:../../packages/http-client
+      '@ulticode/locale-preference':
+        specifier: workspace:*
+        version: link:../../packages/locale-preference
+      '@ulticode/markdown-utils':
+        specifier: workspace:*
+        version: link:../../packages/markdown-utils
+      '@ulticode/sidebar-menu':
+        specifier: workspace:*
+        version: link:../../packages/sidebar-menu
+      '@ulticode/submission-status':
+        specifier: workspace:*
+        version: link:../../packages/submission-status
+      '@ulticode/theme':
+        specifier: workspace:*
+        version: link:../../packages/theme
       '@unovis/ts':
         specifier: ^1.6.2
         version: 1.6.5(supports-color@7.2.0)
@@ -267,9 +303,48 @@ importers:
       '@types/markdown-it':
         specifier: ^14.1.2
         version: 14.1.2
+      '@ulticode/app-bootstrap':
+        specifier: workspace:*
+        version: link:../../packages/app-bootstrap
+      '@ulticode/auth-core':
+        specifier: workspace:*
+        version: link:../../packages/auth-core
+      '@ulticode/auth-ui':
+        specifier: workspace:*
+        version: link:../../packages/auth-ui
+      '@ulticode/badge-config':
+        specifier: workspace:*
+        version: link:../../packages/badge-config
+      '@ulticode/datetime-utils':
+        specifier: workspace:*
+        version: link:../../packages/datetime-utils
       '@ulticode/design-system':
         specifier: workspace:*
         version: link:../../packages/design-system
+      '@ulticode/domain-types':
+        specifier: workspace:*
+        version: link:../../packages/domain-types
+      '@ulticode/http-client':
+        specifier: workspace:*
+        version: link:../../packages/http-client
+      '@ulticode/i18n-completeness':
+        specifier: workspace:*
+        version: link:../../packages/i18n-completeness
+      '@ulticode/locale-preference':
+        specifier: workspace:*
+        version: link:../../packages/locale-preference
+      '@ulticode/markdown-utils':
+        specifier: workspace:*
+        version: link:../../packages/markdown-utils
+      '@ulticode/sidebar-menu':
+        specifier: workspace:*
+        version: link:../../packages/sidebar-menu
+      '@ulticode/submission-status':
+        specifier: workspace:*
+        version: link:../../packages/submission-status
+      '@ulticode/theme':
+        specifier: workspace:*
+        version: link:../../packages/theme
       '@unovis/ts':
         specifier: ^1.6.5
         version: 1.6.5(supports-color@7.2.0)

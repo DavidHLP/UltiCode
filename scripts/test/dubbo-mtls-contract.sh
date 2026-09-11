@@ -3,11 +3,9 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 COMPOSE_FILE="$ROOT_DIR/docker/docker-compose.prod.yml"
-
-fail() {
-  echo "Dubbo mTLS contract failed: $*" >&2
-  exit 1
-}
+CONTRACT_FAILURE_PREFIX="Dubbo mTLS contract failed"
+# shellcheck source=scripts/test/lib/contract-harness.sh
+source "$ROOT_DIR/scripts/test/lib/contract-harness.sh"
 
 # shellcheck source=scripts/test/lib/assertions.sh
 source "$ROOT_DIR/scripts/test/lib/assertions.sh"

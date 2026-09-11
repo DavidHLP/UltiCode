@@ -2,7 +2,7 @@ import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { PERM } from '@/constants/permissions'
 import { t } from '@/i18n'
-import { installAuthNavigation } from '@/shared/auth-core/src'
+import { installAuthNavigation } from '@ulticode/auth-core'
 
 /**
  * Route naming convention:

@@ -7,7 +7,7 @@ import {
   resolveInitialLocale,
   setStoredLocale,
   setStorageNotifier,
-} from '@/shared/locale-preference/src'
+} from '@ulticode/locale-preference'
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from './types'
 
 setStorageNotifier((level, message) => {

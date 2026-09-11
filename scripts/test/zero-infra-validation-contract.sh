@@ -10,10 +10,9 @@ case "${1:-}" in
 esac
 [[ $# -le 1 ]] || { echo 'Expected at most one argument' >&2; exit 2; }
 
-fail() {
-  echo "zero-infra-validation-contract: FAIL: $*" >&2
-  exit 1
-}
+CONTRACT_FAILURE_PREFIX="zero-infra-validation-contract: FAIL"
+# shellcheck source=scripts/test/lib/contract-harness.sh
+source "$ROOT_DIR/scripts/test/lib/contract-harness.sh"
 
 [[ -x "$WRAPPER" ]] || fail "scripts/dev/test.sh is not executable"
 

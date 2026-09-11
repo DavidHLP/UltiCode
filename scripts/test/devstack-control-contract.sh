@@ -6,6 +6,9 @@ set -euo pipefail
 # container, or service is started.
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+CONTRACT_FAILURE_PREFIX="devstack control contract failed"
+# shellcheck source=scripts/test/lib/contract-harness.sh
+source "$ROOT_DIR/scripts/test/lib/contract-harness.sh"
 # shellcheck source=scripts/dev/devstack-manifest.sh
 source "$ROOT_DIR/scripts/dev/devstack-manifest.sh"
 
@@ -84,11 +87,6 @@ export PM2_CAPTURE DOCKER_CAPTURE CURL_CAPTURE
 export PM2_ACTIVE_APPS="$(devstack_apps_csv "${DEVSTACK_ALL_APPS[@]}")"
 export ENV_FILE="$TMP_DIR/.env"
 export PATH="$FAKE_BIN:$PATH"
-
-fail() {
-  echo "devstack control contract failed: $*" >&2
-  exit 1
-}
 
 scope="app-journey"
 expected_apps="$(devstack_scope_apps "$scope")"

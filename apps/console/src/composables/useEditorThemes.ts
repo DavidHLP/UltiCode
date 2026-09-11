@@ -4,7 +4,7 @@ import {
   type EditorSettings,
   type EditorTheme,
 } from "@/stores/editorSettings";
-import type { ThemeMode } from "@/shared/theme/src";
+import type { ThemeMode } from "@ulticode/theme";
 
 export interface ThemeOption {
   value: EditorTheme;

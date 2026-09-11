@@ -13,10 +13,9 @@ BASE_COMPOSE="$ROOT_DIR/docker/docker-compose.yml"
 OBS_COMPOSE="$ROOT_DIR/docker/docker-compose.observability.yml"
 DOCKER_BIN="${DOCKER_BIN:-docker}"
 
-fail() {
-  echo "network-reachability-contract: FAIL: $*" >&2
-  exit 1
-}
+CONTRACT_FAILURE_PREFIX="network-reachability-contract: FAIL"
+# shellcheck source=scripts/test/lib/contract-harness.sh
+source "$ROOT_DIR/scripts/test/lib/contract-harness.sh"
 
 # shellcheck source=scripts/test/lib/assertions.sh
 source "$ROOT_DIR/scripts/test/lib/assertions.sh"

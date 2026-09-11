@@ -12,11 +12,11 @@ import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { toast } from "vue-sonner";
 import { authApi } from "@/api/auth";
-import AuthCard from "@/shared/auth-ui/src/components/AuthCard.vue";
-import AuthLayout from "@/shared/auth-ui/src/layouts/AuthLayout.vue";
-import AuthPatternBackground from "@/shared/auth-ui/src/layouts/AuthPatternBackground.vue";
-import AuthInput from "@/shared/auth-ui/src/components/AuthInput.vue";
-import AuthButton from "@/shared/auth-ui/src/components/AuthButton.vue";
+import AuthCard from "@ulticode/auth-ui/components/AuthCard.vue";
+import AuthLayout from "@ulticode/auth-ui/layouts/AuthLayout.vue";
+import AuthPatternBackground from "@ulticode/auth-ui/layouts/AuthPatternBackground.vue";
+import AuthInput from "@ulticode/auth-ui/components/AuthInput.vue";
+import AuthButton from "@ulticode/auth-ui/components/AuthButton.vue";
 
 const router = useRouter();
 const { t } = useI18n();

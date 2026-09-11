@@ -3,46 +3,15 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 STATIC_ONLY="${ULTI_STATIC_ONLY:-0}"
+RULES_FILE="$ROOT_DIR/scripts/dev/architecture-contract-test.rules"
 
 # This is the single architecture-contract entrypoint. Children own their
-# assertions; this registry owns execution order and static/full eligibility,
-# and set -e aggregates the first failing result.
-ARCHITECTURE_CHILDREN=(
-  static:scripts/test/owner-architecture-source-contract.sh
-  static:scripts/dev/devstack-manifest-test.sh
-  static:scripts/test/core-profile-contract.sh
-  static:scripts/test/devlite-minimal-contract.sh
-  static:scripts/test/devstack-control-contract.sh
-  static:scripts/test/app-judge-runtime-dependency-contract.sh
-  static:scripts/test/submission-compatibility-retirement-contract.sh
-  static:scripts/test/deployment-integrity-contract.sh
-  dynamic:scripts/test/redis-acl-contract.sh
-  dynamic:scripts/test/redis-acl-rotation-contract.sh
-  static:scripts/test/ssh-host-identity-contract.sh
-  static:scripts/test/nacos-security-contract.sh
-  static:scripts/test/submission-backfill-contract.sh
-  dynamic:scripts/test/owner-schema-contraction-contract.sh
-  dynamic:scripts/test/audit-owner-boundary-contract.sh
-  dynamic:scripts/test/admin-audit-stream-migration-contract.sh
-  dynamic:scripts/test/stream-resilience-contract.sh
-  dynamic:scripts/test/scale-topology-contract.sh
-  dynamic:scripts/test/ha-profile-contract.sh
-  dynamic:scripts/test/dubbo-mtls-contract.sh
-  dynamic:scripts/test/network-reachability-contract.sh
-  dynamic:scripts/test/judge-sandbox-contract.sh
-  dynamic:scripts/test/owner-backup-restore-contract.sh
-  static:scripts/test/supply-chain-contract.sh
-  dynamic:scripts/test/observability-contract.sh
-  dynamic:scripts/test/scheduler-contract.sh
-  dynamic:scripts/test/fenced-lease-contract.sh
-  dynamic:scripts/test/graceful-drain-contract.sh
-  dynamic:scripts/test/dependency-resilience-contract.sh
-  static:scripts/test/tls-profile-contract.sh
-  static:scripts/test/owner-migration-manifest-contract.sh
-  static:scripts/test/api-contract-boundary-contract.sh
-  static:scripts/test/dubbo-provider-reference-contract.sh
-  static:scripts/dev/docs-contract-test.sh
-)
+# assertions; the adjacent registry owns execution order and static/full
+# eligibility, and set -e aggregates the first failing result.
+CONTRACT_FAILURE_PREFIX="Architecture contract: FAIL"
+CONTRACT_SUCCESS_MESSAGE="Architecture contract: PASS"
+# shellcheck source=scripts/test/lib/contract-harness.sh
+source "$ROOT_DIR/scripts/test/lib/contract-harness.sh"
 
 run_child() {
   local entry="$1"
@@ -58,8 +27,14 @@ run_child() {
   bash "$ROOT_DIR/$child"
 }
 
-for child in "${ARCHITECTURE_CHILDREN[@]}"; do
-  run_child "$child"
-done
+[[ -f "$RULES_FILE" ]] || fail "missing contract registry: $RULES_FILE"
+while IFS=$'\t' read -r qualification child extra; do
+  [[ -z "$qualification$child$extra" || "$qualification" == \#* ]] && continue
+  [[ -n "$qualification" && -n "$child" && -z "$extra" ]] \
+    || fail "malformed contract registry row: ${qualification}${child}${extra}"
+  [[ "$qualification" == static || "$qualification" == dynamic ]] \
+    || fail "unknown contract qualification: $qualification"
+  run_child "$qualification:$child"
+done < "$RULES_FILE"
 
-echo "Architecture contract: PASS"
+contract_pass

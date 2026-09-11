@@ -3,7 +3,7 @@ import { ref, onMounted, onUnmounted, watch, computed } from "vue";
 import * as echarts from "echarts";
 import type { UserSkill } from "@/types/userStats";
 import { useI18n } from "vue-i18n";
-import { readCssColor, SOLARIZED_PALETTE } from "@ulticode/design-system";
+import { useChartPalette } from "@ulticode/design-system";
 import { withSafeChartAnimation } from "./chartOptions";
 
 const { t } = useI18n();
@@ -19,7 +19,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const chartRef = ref<HTMLDivElement | null>(null);
 let chartInstance: echarts.ECharts | null = null;
-let themeObserver: MutationObserver | null = null;
+const chartPalette = useChartPalette();
 
 const hasSkills = computed(() => props.skills && props.skills.length > 0);
 
@@ -34,21 +34,7 @@ const initChart = () => {
     renderer: "canvas",
   });
 
-  const colors = {
-    series: readCssColor("--chart-series-1", SOLARIZED_PALETTE.blue),
-    background: readCssColor(
-      "--chart-tooltip-background",
-      SOLARIZED_PALETTE.base3,
-    ),
-    surface: readCssColor("--surface-highlight", SOLARIZED_PALETTE.base2),
-    foreground: readCssColor("--foreground-strong", SOLARIZED_PALETTE.base01),
-    muted: readCssColor("--foreground", SOLARIZED_PALETTE.base0),
-    border: readCssColor("--chart-grid-color", SOLARIZED_PALETTE.base1),
-    tooltipBorder: readCssColor(
-      "--chart-tooltip-border",
-      SOLARIZED_PALETTE.base0,
-    ),
-  };
+  const colors = chartPalette.value;
 
   const indicators = props.skills.map((skill) => ({
     name: skill.tagName,
@@ -113,14 +99,14 @@ const initChart = () => {
             symbolSize: 6,
             lineStyle: {
               width: 2,
-              color: colors.series,
+              color: colors.series1,
             },
             areaStyle: {
-              color: colors.series,
+              color: colors.series1,
               opacity: 0.2,
             },
             itemStyle: {
-              color: colors.series,
+              color: colors.series1,
               borderColor: colors.background,
               borderWidth: 2,
             },
@@ -142,11 +128,6 @@ onMounted(() => {
     initChart();
   }
   window.addEventListener("resize", handleResize);
-  themeObserver = new MutationObserver(() => initChart());
-  themeObserver.observe(document.documentElement, {
-    attributes: true,
-    attributeFilter: ["class"],
-  });
 });
 
 watch(
@@ -162,10 +143,10 @@ watch(
   { deep: true, flush: "post" },
 );
 
+watch(chartPalette, () => initChart(), { flush: "post" });
+
 onUnmounted(() => {
   window.removeEventListener("resize", handleResize);
-  themeObserver?.disconnect();
-  themeObserver = null;
   chartInstance?.dispose();
   chartInstance = null;
 });

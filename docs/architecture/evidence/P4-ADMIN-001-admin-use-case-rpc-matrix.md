@@ -3,7 +3,7 @@
 > status: `REPOSITORY EVIDENCE` — extends `P3-ADMIN-001-admin-budget-manifest.md` with explicit controller → projection/service → deep-interface → provider call chains and measured/unmeasured markers.
 > owner: ADMIN
 > base: `docs/architecture/evidence/P3-ADMIN-001-admin-budget-manifest.md`
-> implementation_change: none (evidence/document only)
+> implementation_change: pure one-hop Admin owner references are now registered in `AdminDubboReferenceRegistry`; behavior-carrying adapters remain separate.
 
 ## 1. Purpose and scope
 
@@ -49,12 +49,12 @@ budget or still exhibits N+1 / unbounded scan / all-or-nothing failure.
 | `I-SUBMISSION-FILTERS` | `AdminSubmissionController:87-95` → `DefaultAdminSubmissionProjection` | `AdminSubmissionProjection.listSubmissionLanguages` | Submission languages read | 1 | 1 | 1 RPC | `MEASURED` |
 | `I-PROBLEM-READ` | `AdminProblemController` → `AdminProblemService` → `ProblemOwnerReadAdapter` | `ProblemOwnerReadPort` | App problem read per endpoint | 1 | 1 | 1 RPC | `MEASURED` |
 | `I-PROBLEM-SUBMISSIONS` | `AdminProblemController` → `DefaultAdminSubmissionProjection:50-189` | `AdminSubmissionProjection.listProblemSubmissions` | Problem existence + submission page | 2 | 2 | 2 RPC | `MEASURED` |
-| `I-TESTCASE-READ` | `AdminTestCaseController` → `AdminTestCaseService` → `DubboTestCaseOwnerAdapter` | `TestCaseOwnerReadPort` | App problem/test-case read | 2 | 2 | 2 RPC | `MEASURED` |
+| `I-TESTCASE-READ` | `AdminTestCaseController` → `AdminTestCaseService` → `AdminDubboReferenceRegistry` | `TestCaseOwnerReadPort` | App problem/test-case read | 2 | 2 | 2 RPC | `MEASURED` |
 | `I-PROBLEM-LIST-LIST` | `AdminProblemListController` → `DefaultAdminProblemListProjection:41-145` | `AdminProblemListProjection.listProblemLists` | App list page + `enrichWithStatus(Set)` batch | target `3/3` | 2 | page + enrich batch | `FIXED` — list path uses `enrichWithStatus(Set)`; detail retains `enrichOne` (single-item) |
 | `I-PROBLEM-LIST-DETAIL` | `AdminProblemListController` → `DefaultAdminProblemListProjection:147-175` | `AdminProblemListProjection.getProblemList` | App list detail + enrichOne | 4 | 4 | serial | `MEASURED` |
 | `I-COMMENT-TYPED` | `AdminCommentController` → `AdminCommentService` → comment projection | `AdminCommentReadPort` | App comment page + enrich batch + parent batch | 4 | 3 | page + enrich + parent | `MEASURED` |
 | `I-COMMENT-ALL` | `AdminCommentController` → `AdminCommentService` → `getAllComments` | dual-owner merge | one bounded page (100 rows) per moderator: 2 moderators × 4 owner RPC per `listComments` = 8/8 | target `8/8` | 8 max (1 page × 2 moderators × 4 RPC) | `FIXED` — `MODERATOR_PAGE_SIZE=100`; `getAllComments` fetches one page per moderator; `total` = fetched item count (`all.size()`), not owner `PageResult.getTotal()` summed — page size 100 never `Integer.MAX_VALUE` |
-| `I-TAG-READ` | `AdminTagController` → tag service → `DubboProblemTagOwnerAdapter` | tag read | one owner read per endpoint | 1 | 1 | 1 RPC | `MEASURED` |
+| `I-TAG-READ` | `AdminTagController` → tag service → `AdminDubboReferenceRegistry` | tag read | one owner read per endpoint | 1 | 1 | 1 RPC | `MEASURED` |
 | `I-ANALYTICS-OVERVIEW` | `AdminAnalyticsController:27-79` → `DefaultUserActivityAnalyticsProjection` + `DefaultAdminAnalyticsPortAdapter:53-210` | analytics read ports | six slices in parallel | 6 | 1 | parallel | `MEASURED` |
 | `I-ANALYTICS-ACTIVITY` | `AdminAnalyticsController:81-120` → `DefaultUserActivityAnalyticsProjection:52-184` | `ActivityAnalyticsProjection` | Submission daily/weekly/retention/hourly/top + optional Auth identity | target `11/11` | 10 + optional | serial | `MEASURED` — no 365-day cap yet |
 | `I-ANALYTICS-PROBLEM` | `AdminAnalyticsController:122-140` → `ProblemReportController` | problem analytics | App analytics read | 1 | 1 | 1 RPC | `MEASURED` |

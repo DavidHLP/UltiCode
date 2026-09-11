@@ -12,10 +12,9 @@ DEV_COMPOSE="$ROOT_DIR/docker/docker-compose.judge-dev.yml"
 EXECUTOR="$ROOT_DIR/services/judge-runtime/src/main/java/com/ulticode/modules/submission/sandbox/executor/SandboxExecutorImpl.java"
 DOCKER_BIN="${DOCKER_BIN:-docker}"
 
-fail() {
-  echo "judge-sandbox-contract: FAIL: $*" >&2
-  exit 1
-}
+CONTRACT_FAILURE_PREFIX="judge-sandbox-contract: FAIL"
+# shellcheck source=scripts/test/lib/contract-harness.sh
+source "$ROOT_DIR/scripts/test/lib/contract-harness.sh"
 
 # shellcheck source=scripts/test/lib/assertions.sh
 source "$ROOT_DIR/scripts/test/lib/assertions.sh"

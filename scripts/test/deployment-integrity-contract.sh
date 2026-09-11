@@ -18,10 +18,9 @@ for service in backend-auth backend-admin backend-app backend-submission backend
   valid_refs="$valid_refs$variable=ghcr.io/example/ulticode/$service@sha256:$valid_digest"$'\n'
 done
 
-fail() {
-  echo "deployment-integrity-contract: FAIL: $*" >&2
-  exit 1
-}
+CONTRACT_FAILURE_PREFIX="deployment-integrity-contract: FAIL"
+# shellcheck source=scripts/test/lib/contract-harness.sh
+source "$ROOT_DIR/scripts/test/lib/contract-harness.sh"
 
 # SVC-005: every backend image in the release matrix must remain selectable
 # by both manual deploy and rollback entry points.

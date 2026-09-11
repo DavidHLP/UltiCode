@@ -6,11 +6,9 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 COMPOSE_HA="$ROOT_DIR/docker/docker-compose.ha.yml"
 DOCKER_BIN="${DOCKER_BIN:-docker}"
-
-fail() {
-  echo "HA profile contract failed: $*" >&2
-  exit 1
-}
+CONTRACT_FAILURE_PREFIX="HA profile contract failed"
+# shellcheck source=scripts/test/lib/contract-harness.sh
+source "$ROOT_DIR/scripts/test/lib/contract-harness.sh"
 
 external_blocked=0
 

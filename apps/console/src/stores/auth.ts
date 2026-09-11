@@ -3,7 +3,7 @@ import {
   checkPermission,
   checkRole,
   checkAnyRole,
-} from "@/shared/auth-core/src";
+} from "@ulticode/auth-core";
 import { computed } from "vue";
 import type { User } from "@/types/auth";
 import { useAuthSession } from "@/composables/useAuthSession";

@@ -26,13 +26,13 @@ import {
   DataTableToolbar,
   type ColumnDef,
 } from "@/components/common/data-table";
-import type { SemanticColor } from "@/shared/badge-config/src";
+import type { SemanticColor } from "@ulticode/badge-config";
 import {
   getStatusColor,
   getStatusIconKey,
   getStatusLabelI18nKey,
-} from "@/shared/submission-status/src";
-import type { VerdictIconKey } from "@/shared/submission-status/src";
+} from "@ulticode/submission-status";
+import type { VerdictIconKey } from "@ulticode/submission-status";
 
 /**
  * Stable verdict→icon map for this surface. The verdict→icon-key mapping

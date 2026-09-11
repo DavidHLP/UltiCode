@@ -15,7 +15,7 @@ import {
   SidebarMenuSubItem as SharedSidebarMenuSubItem, // the local shadcn ui/sidebar
   SidebarGroupCollapsible,
   SidebarParentItem,
-} from '@/shared/sidebar-menu/src'
+} from '@ulticode/sidebar-menu'
 ```
 
 > The `as SharedSidebarMenuItem` alias is **required** when a local shadcn

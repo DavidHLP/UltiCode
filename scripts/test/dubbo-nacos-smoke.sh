@@ -189,14 +189,7 @@ BACKEND_ENV_FILE="$LOG_DIR/backend-auth.env"
 readonly BACKEND_ENV_FILE
 MIGRATION_ENV_FILE="$LOG_DIR/migration.env"
 readonly MIGRATION_ENV_FILE
-mkdir -p "$REDIS_ACL_DIR"
-chmod 755 "$REDIS_ACL_DIR"
-[[ -x "$ROOT_DIR/docker/redis/generate-users-acl.sh" ]] || {
-  echo "Missing Redis ACL generator: docker/redis/generate-users-acl.sh" >&2
-  exit 1
-}
-"$ROOT_DIR/docker/redis/generate-users-acl.sh" "$REDIS_ACL_FILE"
-export REDIS_ACL_DIR REDIS_ACL_FILE
+materialize_redis_acl "$REDIS_ACL_DIR"
 
 nacos_login() {
   local username="$1" password="$2" endpoint="$3"

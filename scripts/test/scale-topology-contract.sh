@@ -13,6 +13,8 @@ source "$ROOT_DIR/scripts/test/lib/contract-harness.sh"
 
 # shellcheck source=scripts/test/lib/assertions.sh
 source "$ROOT_DIR/scripts/test/lib/assertions.sh"
+# shellcheck source=scripts/dev/lib/common.sh
+source "$ROOT_DIR/scripts/dev/lib/common.sh"
 
 for compose in docker/docker-compose.yml docker/docker-compose.prod.yml; do
   not_contains "$compose" 'container_name:'
@@ -38,8 +40,9 @@ printf 'production backend health/restart/resource declarations: PASS\n'
 
 if [[ -n "${SCALE_COMPOSE_ENV_FILE:-}" ]]; then
   command -v docker >/dev/null 2>&1 || fail 'SCALE_COMPOSE_ENV_FILE requires docker'
-  docker compose --project-directory "$ROOT_DIR" --env-file "$SCALE_COMPOSE_ENV_FILE" \
-    -f "$ROOT_DIR/docker/docker-compose.yml" -f "$ROOT_DIR/docker/docker-compose.prod.yml" config >/dev/null
+  ENV_FILE="$SCALE_COMPOSE_ENV_FILE"
+  devstack_compose_args compose --base-only "$ROOT_DIR/docker/docker-compose.prod.yml"
+  "${compose[@]}" config >/dev/null
   printf 'production Compose merged config expansion: PASS\n'
 else
   printf 'production Compose merged config expansion: BLOCKED_EXTERNAL (SCALE_COMPOSE_ENV_FILE is unset)\n'

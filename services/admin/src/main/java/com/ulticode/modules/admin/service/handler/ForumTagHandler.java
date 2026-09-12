@@ -1,31 +1,27 @@
 package com.ulticode.modules.admin.service.handler;
 
 import com.ulticode.admin.error.AdminErrorCode;
-import com.ulticode.common.command.ActorDelegation;
 import com.ulticode.app.api.command.ForumTagMutationCommand;
 import com.ulticode.app.api.dto.ForumTagDTO;
 import com.ulticode.app.api.service.ForumTagAdministrationService;
 import com.ulticode.app.api.service.ForumTagReadPort;
 import com.ulticode.app.api.service.ForumTagReadPort.ForumTagPage;
 import com.ulticode.app.api.service.ForumTagReadPort.ForumTagRow;
-import com.ulticode.common.auth.AdminActors;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.rpc.RpcResult;
-import com.ulticode.common.tracing.IdMetadata;
-import com.ulticode.common.tracing.TraceMetadata;
-import com.ulticode.common.util.TraceIdUtil;
 import com.ulticode.modules.admin.dto.tag.CreateTagDTO;
 import com.ulticode.modules.admin.dto.tag.MergeTagDTO;
 import com.ulticode.modules.admin.dto.tag.TagListResponse;
 import com.ulticode.modules.admin.dto.tag.TagTypes;
 import com.ulticode.modules.admin.dto.tag.TagVO;
 import com.ulticode.modules.admin.dto.tag.UpdateTagDTO;
+import com.ulticode.modules.admin.write.AdminOwnerErrorMapper;
+import com.ulticode.modules.admin.write.AdminWriteEnvelope;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Forum-branch implementation of {@link TagDomainHandler}.
@@ -72,9 +68,11 @@ public class ForumTagHandler implements TagDomainHandler {
 
     @Override
     public TagVO create(CreateTagDTO dto, String slug) {
+        AdminWriteEnvelope envelope = AdminWriteEnvelope.envelope(
+                "forum-tag-create", null, currentUserProvider.getCurrentUserId(),
+                currentUserProvider, "forum tag create");
         ForumTagDTO result = mutate(new ForumTagMutationCommand(
-                commandId(), idempotency(), actor("forum tag create"),
-                currentTrace(),
+                envelope.commandId(), envelope.idempotency(), envelope.actor(), envelope.trace(),
                 ForumTagMutationCommand.Action.CREATE,
                 null, null, null,
                 dto.getName(), slug, dto.getDescription(), dto.getColor()));
@@ -83,9 +81,11 @@ public class ForumTagHandler implements TagDomainHandler {
 
     @Override
     public TagVO update(String id, UpdateTagDTO dto) {
+        AdminWriteEnvelope envelope = AdminWriteEnvelope.envelope(
+                "forum-tag-update", null, currentUserProvider.getCurrentUserId(),
+                currentUserProvider, "forum tag update");
         ForumTagDTO result = mutate(new ForumTagMutationCommand(
-                commandId(), idempotency(), actor("forum tag update"),
-                currentTrace(),
+                envelope.commandId(), envelope.idempotency(), envelope.actor(), envelope.trace(),
                 ForumTagMutationCommand.Action.UPDATE,
                 id, null, null,
                 dto.getName(), dto.getSlug(), dto.getDescription(), dto.getColor()));
@@ -94,74 +94,33 @@ public class ForumTagHandler implements TagDomainHandler {
 
     @Override
     public void delete(String id) {
+        AdminWriteEnvelope envelope = AdminWriteEnvelope.envelope(
+                "forum-tag-delete", null, currentUserProvider.getCurrentUserId(),
+                currentUserProvider, "forum tag delete");
         mutate(new ForumTagMutationCommand(
-                commandId(), idempotency(), actor("forum tag delete"),
-                currentTrace(),
+                envelope.commandId(), envelope.idempotency(), envelope.actor(), envelope.trace(),
                 ForumTagMutationCommand.Action.DELETE,
                 id, null, null, null, null, null, null));
     }
 
     @Override
     public void merge(MergeTagDTO dto) {
+        AdminWriteEnvelope envelope = AdminWriteEnvelope.envelope(
+                "forum-tag-merge", null, currentUserProvider.getCurrentUserId(),
+                currentUserProvider, "forum tag merge");
         mutate(new ForumTagMutationCommand(
-                commandId(), idempotency(), actor("forum tag merge"),
-                currentTrace(),
+                envelope.commandId(), envelope.idempotency(), envelope.actor(), envelope.trace(),
                 ForumTagMutationCommand.Action.MERGE,
                 null, dto.getSourceId(), dto.getTargetTagId(),
                 null, null, null, null));
     }
 
-    private static TraceMetadata currentTrace() {
-        String reqId = TraceIdUtil.current();
-        if (reqId == null || reqId.isBlank()) {
-            reqId = "t-" + UUID.randomUUID();
-        }
-        return new TraceMetadata(reqId, null, null, null);
-    }
-
     private ForumTagDTO mutate(ForumTagMutationCommand command) {
         RpcResult<ForumTagDTO> result = forumTagAdministrationService.mutate(command);
         if (result == null || !result.success()) {
-            throw mapError(result);
+            throw AdminOwnerErrorMapper.mapOwnerError(AdminOwnerErrorMapper.Owner.FORUM_TAG, result);
         }
         return result.data();
-    }
-
-    private static BusinessException mapError(RpcResult<?> result) {
-        if (result == null) {
-            return new BusinessException(AdminErrorCode.UNKNOWN_ERROR,
-                    "RPC result is null (transport failure)");
-        }
-        var err = result.error();
-        if (err == null) {
-            return new BusinessException(AdminErrorCode.UNKNOWN_ERROR,
-                    "RPC failed without error payload");
-        }
-        return switch (err.code()) {
-            case 40000 -> new BusinessException(AdminErrorCode.BAD_REQUEST, err.message());
-            case 40100 -> new BusinessException(AdminErrorCode.UNAUTHORIZED, err.message());
-            case 40300 -> new BusinessException(AdminErrorCode.FORBIDDEN, err.message());
-            case 40401 -> new BusinessException(AdminErrorCode.FORUM_TAG_NOT_FOUND, err.message());
-            case 40904 -> new BusinessException(AdminErrorCode.FORUM_TAG_NAME_EXISTS, err.message());
-            case 40905 -> new BusinessException(AdminErrorCode.FORUM_TAG_SLUG_EXISTS, err.message());
-            default -> new BusinessException(AdminErrorCode.UNKNOWN_ERROR, err.message());
-        };
-    }
-
-    private static String commandId() {
-        return UUID.randomUUID().toString();
-    }
-
-    private static IdMetadata idempotency() {
-        return IdMetadata.mint();
-    }
-
-    private ActorDelegation actor(String rationale) {
-        String actorId = currentUserProvider.getCurrentUserId();
-        if (actorId == null || actorId.isBlank()) {
-            throw new BusinessException(AdminErrorCode.UNAUTHORIZED, "Authenticated admin actor is required");
-        }
-        return new ActorDelegation(AdminActors.typeOf(currentUserProvider), actorId, actorId, rationale);
     }
 
     private TagVO toTagVO(ForumTagRow tag) {

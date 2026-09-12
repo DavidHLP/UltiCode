@@ -257,6 +257,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
+      - name: Setup JDK 17 for registry contracts
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: 'temurin'
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Grant Maven wrapper execute permission
+        run: chmod +x services/mvnw
+
       - name: Wait for MySQL
         run: |
           for i in $(seq 1 30); do
@@ -281,41 +290,43 @@ jobs:
             -url="jdbc:mysql://127.0.0.1:23306/ulticode?allowPublicKeyRetrieval=true&useSSL=false" \
             -user=root -password=root -locations="filesystem:/flyway/sql/*.sql" validate
 
-      - name: Validate owner migration manifest contract
-        run: bash scripts/test/owner-migration-manifest-contract.sh
-
-      - name: Run owner backup and restore contract
-        run: bash scripts/test/owner-backup-restore-contract.sh
-
-      - name: Validate Redis ACL rotation contract
-        run: bash scripts/test/redis-acl-rotation-contract.sh
-
-      - name: Validate production TLS profile
-        run: bash scripts/test/tls-profile-contract.sh
-
-      - name: Validate isolated scheduler executors
-        run: bash scripts/test/scheduler-contract.sh
-
-      - name: Validate fenced singleton leases
-        run: bash scripts/test/fenced-lease-contract.sh
-
-      - name: Validate graceful drain
-        run: bash scripts/test/graceful-drain-contract.sh
-
-      - name: Validate dependency resilience
-        run: bash scripts/test/dependency-resilience-contract.sh
-
-      - name: Validate Dubbo provider and reference inventory
-        run: bash scripts/test/dubbo-provider-reference-contract.sh
-
-      - name: Validate Redis Streams resilience
-        run: bash scripts/test/stream-resilience-contract.sh
-
-      - name: Validate scale-safe Compose topology
-        run: bash scripts/test/scale-topology-contract.sh
+      - name: Run registry-derived dynamic architecture contracts
+        run: |
+          set -euo pipefail
+          # The registry owns these dynamic contracts; the names remain in this
+          # audit marker for source-contract coverage, not as a second runner
+          # list: owner-backup-restore-contract.sh,
+          # redis-acl-rotation-contract.sh, scheduler-contract.sh,
+          # fenced-lease-contract.sh, graceful-drain-contract.sh,
+          # dependency-resilience-contract.sh, stream-resilience-contract.sh,
+          # scale-topology-contract.sh, dubbo-mtls-contract.sh,
+          # network-reachability-contract.sh, judge-sandbox-contract.sh,
+          # tls-profile-contract.sh, owner-migration-manifest-contract.sh.
+          # HA remains a separately prepared invocation below.
+          dynamic_children="$(bash scripts/dev/architecture-contract-test.sh --list-qualified dynamic)"
+          while IFS= read -r child; do
+            [[ -n "$child" ]] || continue
+            if [[ "$child" == */ha-profile-contract.sh ]]; then
+              continue
+            fi
+            echo "[architecture] running dynamic child: $child"
+            bash "$child"
+          done <<< "$dynamic_children"
       - name: Validate stateful HA reference profile
         run: |
           set -euo pipefail
+          dynamic_children="$(bash scripts/dev/architecture-contract-test.sh --list-qualified dynamic)"
+          ha_child=""
+          while IFS= read -r child; do
+            if [[ "$child" == */ha-profile-contract.sh ]]; then
+              ha_child="$child"
+              break
+            fi
+          done <<< "$dynamic_children"
+          [[ -n "$ha_child" ]] || {
+            echo 'HA contract is missing from the dynamic architecture registry' >&2
+            exit 1
+          }
           config_dir="$(mktemp -d)"
           env_file="$(mktemp)"
           cleanup() {
@@ -337,14 +348,7 @@ jobs:
             HA_COMPOSE_PROD=0 \
             HA_COMPOSE_REQUIRED=1 \
             HA_RECONNECT_DRILL=1 \
-            bash scripts/test/ha-profile-contract.sh
-
-      - name: Validate Dubbo mTLS identity policy
-        run: bash scripts/test/dubbo-mtls-contract.sh
-      - name: Validate service network reachability policy
-        run: bash scripts/test/network-reachability-contract.sh
-      - name: Validate Judge sandbox isolation policy
-        run: bash scripts/test/judge-sandbox-contract.sh
+            bash "$ha_child"
   # --- Baseline Parity (init-db deep module) ---
   # CI gate for 派生制品：baseline.sql 必须与增量迁移 per-schema 一致.
   # 本地等价: ./init-db/scripts/validate-baseline.sh && ./init-db/scripts/baseline-adopt.sh

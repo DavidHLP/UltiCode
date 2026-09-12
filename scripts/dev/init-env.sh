@@ -2,6 +2,8 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+# shellcheck source=scripts/dev/lib/common.sh
+source "$ROOT_DIR/scripts/dev/lib/common.sh"
 OUTPUT_FILE="$ROOT_DIR/.env"
 FORCE=false
 
@@ -310,21 +312,13 @@ chmod 600 "$OUTPUT_FILE"
 # Re-render the runtime Redis ACL file from the freshly generated per-owner
 # passwords so the dev stack always pairs with this .env. The output stays
 # outside the tracked repository (review 2026-08-25 / P2-REDIS-001).
-ACL_DIR="${REDIS_ACL_DIR:-$ROOT_DIR/.local/redis}"
-ACL_FILE="${REDIS_ACL_FILE:-$ACL_DIR/users.acl}"
-[[ "$ACL_DIR" == /* ]] || ACL_DIR="$ROOT_DIR/$ACL_DIR"
-[[ "$ACL_FILE" == /* ]] || ACL_FILE="$ROOT_DIR/$ACL_FILE"
-mkdir -p "$ACL_DIR"
-chmod 755 "$ACL_DIR"
-if [[ -f "$ROOT_DIR/docker/redis/generate-users-acl.sh" ]]; then
-  # shellcheck disable=SC1090
-  set -a
-  source "$OUTPUT_FILE"
-  set +a
-  "$ROOT_DIR/docker/redis/generate-users-acl.sh" "$ACL_FILE"
-  echo "Materialized Redis ACL file: $ACL_FILE"
-else
-  echo "WARNING: docker/redis/generate-users-acl.sh not found; runtime Redis ACL was not materialized." >&2
+# shellcheck disable=SC1090
+set -a
+source "$OUTPUT_FILE"
+set +a
+materialize_redis_acl "$ROOT_DIR/.local/redis" --warn-missing
+if [[ "${REDIS_ACL_MATERIALIZED:-false}" == true ]]; then
+  echo "Materialized Redis ACL file: $REDIS_ACL_FILE"
 fi
 
 echo "Generated private development environment: $OUTPUT_FILE"

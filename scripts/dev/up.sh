@@ -300,22 +300,15 @@ if [[ "$FRONTEND_ONLY" != true && ! "$SUBMISSION_MIGRATION_DB_USER" =~ ^[A-Za-z0
 fi
 devstack_validate_environment "$DEV_MODE" "$ROOT_DIR" "$FRONTEND_ONLY" "$PREPARE_SUBMISSION_OWNER"
 
-REDIS_ACL_DIR="${REDIS_ACL_DIR:-$ROOT_DIR/.local/redis}"
-[[ "$REDIS_ACL_DIR" == /* ]] || REDIS_ACL_DIR="$ROOT_DIR/$REDIS_ACL_DIR"
-REDIS_ACL_FILE="${REDIS_ACL_FILE:-$REDIS_ACL_DIR/users.acl}"
-[[ "$REDIS_ACL_FILE" == /* ]] || REDIS_ACL_FILE="$ROOT_DIR/$REDIS_ACL_FILE"
-export REDIS_ACL_DIR REDIS_ACL_FILE
-mkdir -p "$REDIS_ACL_DIR"
-chmod 755 "$REDIS_ACL_DIR"
-
 # Keep the runtime Redis ACL directory in lockstep with the credentials loaded
 # from .env. Without this, --force-recreate can start Redis with stale hashes
 # and block the whole stack at its healthcheck with WRONGPASS.
-if [[ -x "$ROOT_DIR/docker/redis/generate-users-acl.sh" ]]; then
-  "$ROOT_DIR/docker/redis/generate-users-acl.sh" "$REDIS_ACL_FILE"
+materialize_redis_acl "$ROOT_DIR/.local/redis"
+
+if [[ "$OBSERVABILITY" == true ]]; then
+  devstack_compose_args compose --observability
 else
-  echo "Missing Redis ACL generator: docker/redis/generate-users-acl.sh" >&2
-  exit 1
+  devstack_compose_args compose
 fi
 
 if [[ "$FRONTEND_ONLY" != true ]]; then
@@ -338,8 +331,6 @@ COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-ulticode}"
   exit 1
 }
 export COMPOSE_PROJECT_NAME NACOS_EXPECTED_DOCKER_PROJECT="$COMPOSE_PROJECT_NAME"
-
-devstack_compose_args compose
 
 INFRA_TARGETS=""
 if [[ "$FRONTEND_ONLY" != true ]]; then
@@ -432,9 +423,6 @@ if [[ "$SKIP_INFRA" != true ]]; then
     echo "Scope $DEV_SCOPE has no Compose targets; use --frontend-only for frontend-only startup." >&2
     exit 2
   }
-  if [[ "$OBSERVABILITY" == true ]]; then
-    compose+=(--profile observability -f "$ROOT_DIR/docker/docker-compose.observability.yml")
-  fi
   echo "Starting infrastructure for scope $DEV_SCOPE: $INFRA_TARGETS"
   # Explicit targets are mandatory: an unqualified Compose up would create
   # MeiliSearch even when Search is disabled.

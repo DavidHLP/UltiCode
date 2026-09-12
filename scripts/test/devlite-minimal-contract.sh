@@ -5,9 +5,13 @@ set -euo pipefail
 # Compose targets without starting Docker. The fake CLI records argv only.
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+ENV_FILE="$ROOT_DIR/.env"
+export ENV_FILE
 CONTRACT_FAILURE_PREFIX="devlite minimal contract failed"
 # shellcheck source=scripts/test/lib/contract-harness.sh
 source "$ROOT_DIR/scripts/test/lib/contract-harness.sh"
+# shellcheck source=scripts/dev/lib/common.sh
+source "$ROOT_DIR/scripts/dev/lib/common.sh"
 # shellcheck source=scripts/dev/devstack-manifest.sh
 source "$ROOT_DIR/scripts/dev/devstack-manifest.sh"
 
@@ -20,7 +24,7 @@ mkdir -p "$FAKE_BIN"
 cat > "$FAKE_BIN/docker" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
-printf '%s\n' "$*" >> "$DEVSTACK_DOCKER_CAPTURE"
+printf '%s\n' "${0##*/} $*" >> "$DEVSTACK_DOCKER_CAPTURE"
 exit 0
 EOF
 chmod +x "$FAKE_BIN/docker"
@@ -31,14 +35,12 @@ capture_compose_up() {
   selected="$(devstack_scope_apps "$scope")"
   targets="$(devstack_infra_for_selection "$scope" "$selected" "$observability")"
   [[ -n "$targets" ]] || fail "scope $scope resolved no infra targets"
-  local -a compose_targets=(
-    docker compose
-    --project-directory "$ROOT_DIR"
-    -f "$ROOT_DIR/docker/docker-compose.yml"
-    -f "$ROOT_DIR/docker/docker-compose.dev.yml"
-  )
-  [[ "$observability" == true ]] \
-    && compose_targets+=(-f "$ROOT_DIR/docker/docker-compose.observability.yml" --profile observability)
+  if [[ "$observability" == true ]]; then
+    devstack_compose_args compose --observability
+  else
+    devstack_compose_args compose
+  fi
+  local -a compose_targets=("${compose[@]}")
   local -a infra_array=()
   local IFS=,
   read -ra infra_array <<< "$targets"
@@ -57,6 +59,12 @@ assert_capture_not_contains() {
     || fail "fake Compose argv unexpectedly contains: $unexpected"
 }
 
+assert_capture_exact() {
+  local expected="$1"
+  [[ "$(<"$CAPTURE")" == "$expected" ]] \
+    || fail "fake Compose argv differs from builder output: $(<"$CAPTURE")"
+}
+
 
 : > "$CAPTURE"
 capture_compose_up submission-judge
@@ -70,6 +78,7 @@ assert_capture_not_contains 'judge-dev.yml'
 assert_capture_not_contains 'profile judge-socket'
 : > "$CAPTURE"
 capture_compose_up dev-lite
+assert_capture_exact "docker compose --project-directory $ROOT_DIR --env-file $ROOT_DIR/.env -f $ROOT_DIR/docker/docker-compose.yml -f $ROOT_DIR/docker/docker-compose.dev.yml up -d mysql redis nacos"
 assert_capture_contains 'up -d mysql redis nacos'
 assert_capture_not_contains meilisearch
 assert_capture_not_contains otel-collector
@@ -84,6 +93,7 @@ assert_capture_contains 'up -d mysql redis nacos meilisearch'
 
 : > "$CAPTURE"
 capture_compose_up dev-lite true
+assert_capture_exact "docker compose --project-directory $ROOT_DIR --env-file $ROOT_DIR/.env -f $ROOT_DIR/docker/docker-compose.yml -f $ROOT_DIR/docker/docker-compose.dev.yml --profile observability -f $ROOT_DIR/docker/docker-compose.observability.yml up -d mysql redis nacos otel-collector prometheus alertmanager tempo loki grafana"
 assert_capture_contains 'up -d mysql redis nacos otel-collector prometheus alertmanager tempo loki grafana'
 
 # Search, Judge, and observability are opt-in capabilities, not accidental

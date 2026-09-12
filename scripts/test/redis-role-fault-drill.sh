@@ -41,8 +41,7 @@ export REDIS_ACL_DIR="$(mktemp -d "${TMPDIR:-/tmp}/ulticode-redis-drill-acl.XXXX
 export REDIS_ACL_FILE="$REDIS_ACL_DIR/users.acl"
 export COMPOSE_PROJECT_NAME="ulticode-redis-drill-$$"
 COMPOSE_OVERRIDE_FILE="$(mktemp "${TMPDIR:-/tmp}/ulticode-redis-drill-compose.XXXXXX.yml")"
-readonly REDIS_ACL_DIR REDIS_ACL_FILE COMPOSE_PROJECT_NAME COMPOSE_OVERRIDE_FILE
-chmod 755 "$REDIS_ACL_DIR"
+readonly COMPOSE_PROJECT_NAME COMPOSE_OVERRIDE_FILE
 cat >"$COMPOSE_OVERRIDE_FILE" <<'YAML'
 services:
   redis:
@@ -65,7 +64,7 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-"$ROOT_DIR/docker/redis/generate-users-acl.sh" "$REDIS_ACL_FILE"
+materialize_redis_acl "$REDIS_ACL_DIR"
 devstack_compose_args compose --base-only "$COMPOSE_OVERRIDE_FILE"
 if ! "${compose[@]}" up -d redis >/dev/null; then
   echo "redis-role-fault-drill: BLOCKED_EXTERNAL (disposable Redis could not start)"

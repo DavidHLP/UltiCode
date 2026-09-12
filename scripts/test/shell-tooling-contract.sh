@@ -136,18 +136,140 @@ printf '%s\\n' --
 devstack_compose_args override --base-only "$1/override.yml"
 printf '%s\\n' "${override[@]}"
 """, "fixture", str(root)], capture_output=True, text=True,
+        env={**os.environ, "ENV_FILE": str(root / ".env")},
     )
     assert compose_probe.returncode == 0, compose_probe.stderr
     compose_output = compose_probe.stdout.splitlines()
-    assert compose_output[0:8] == [
-        "docker", "compose", "--project-directory", str(root), "--env-file", "", "-f",
-        str(root / "docker/docker-compose.yml"),
-    ] or compose_output[0:8] == [
-        "docker", "compose", "--project-directory", str(root), "--env-file", str(root / ".env"), "-f",
-        str(root / "docker/docker-compose.yml"),
+    sections, section = [], []
+    for line in compose_output:
+        if line == "--":
+            sections.append(section)
+            section = []
+        else:
+            section.append(line)
+    sections.append(section)
+    base = [
+        "docker", "compose", "--project-directory", str(root), "--env-file", str(root / ".env"),
+        "-f", str(root / "docker/docker-compose.yml"), "-f", str(root / "docker/docker-compose.dev.yml"),
     ]
-    assert "--profile" in compose_output
-    assert str(root / "override.yml") in compose_output
-    print("shared Compose command builder: PASS")
+    assert sections == [
+        base,
+        base + ["--profile", "observability", "-f", str(root / "docker/docker-compose.observability.yml")],
+        ["docker", "compose", "--project-directory", str(root), "--env-file", str(root / ".env"),
+         "-f", str(root / "docker/docker-compose.yml"), "-f", str(root / "override.yml")],
+    ], sections
+    print("shared Compose command builder and argv order: PASS")
+
+    acl_root = work / "acl-repo"
+    (acl_root / "scripts/dev").mkdir(parents=True)
+    shutil.copytree(root / "scripts/dev/lib", acl_root / "scripts/dev/lib")
+    generator = acl_root / "docker/redis/generate-users-acl.sh"
+    generator.parent.mkdir(parents=True)
+    shutil.copy2(root / "docker/redis/generate-users-acl.sh", generator)
+    generator.chmod(0o755)
+    credentials = {"PATH": os.environ["PATH"], "ENV_FILE": str(acl_root / ".env")}
+    for prefix in ("AUTH", "ADMIN", "APP", "SUBMISSION", "SEARCH", "NOTIFICATION", "JUDGE", "OPS", "HEALTH"):
+        credentials[f"{prefix}_REDIS_PASSWORD"] = f"contract-{prefix.lower()}-password"
+    credentials["REDIS_REPLICATION_PASSWORD"] = "contract-replication-password"
+    credentials["REDIS_SENTINEL_PASSWORD"] = "contract-sentinel-password"
+
+    acl_probe = subprocess.run(
+        ["bash", "-c", """set -euo pipefail
+source "$1/scripts/dev/lib/common.sh"
+unset REDIS_ACL_DIR REDIS_ACL_FILE
+materialize_redis_acl relative-acl
+bash -c 'test -n "$REDIS_ACL_DIR" && test -n "$REDIS_ACL_FILE"'
+printf 'dir=%s\nfile=%s\nmaterialized=%s\n' "$REDIS_ACL_DIR" "$REDIS_ACL_FILE" "$REDIS_ACL_MATERIALIZED"
+""", "fixture", str(acl_root)], capture_output=True, text=True,
+        env={**os.environ, **credentials},
+    )
+    assert acl_probe.returncode == 0, acl_probe.stderr
+    acl_output = acl_probe.stdout.splitlines()
+    acl_file = acl_root / "relative-acl/users.acl"
+    assert acl_output == [
+        f"dir={acl_root / 'relative-acl'}",
+        f"file={acl_file}",
+        "materialized=true",
+    ], acl_output
+    acl_contents = acl_file.read_text(encoding="utf-8")
+    assert "user default off" in acl_contents
+    assert all(secret not in acl_contents for secret in credentials.values() if "password" in secret)
+    assert acl_file.stat().st_mode & 0o777 == 0o644
+
+    absolute_file = work / "absolute-acl/custom.acl"
+    absolute_probe = subprocess.run(
+        ["bash", "-c", """set -euo pipefail
+source "$1/scripts/dev/lib/common.sh"
+REDIS_ACL_DIR="$1/absolute-acl"
+REDIS_ACL_FILE="$2"
+materialize_redis_acl ignored-default
+printf '%s\n%s\n' "$REDIS_ACL_DIR" "$REDIS_ACL_FILE"
+""", "fixture", str(acl_root), str(absolute_file)],
+        capture_output=True, text=True, env={**os.environ, **credentials},
+    )
+    assert absolute_probe.returncode == 0, absolute_probe.stderr
+    assert absolute_probe.stdout.splitlines() == [str(acl_root / "absolute-acl"), str(absolute_file)]
+    assert absolute_file.exists()
+    assert (acl_root / "absolute-acl").stat().st_mode & 0o777 == 0o755
+
+    generator.unlink()
+    missing_probe = subprocess.run(
+        ["bash", "-c", """set -euo pipefail
+source "$1/scripts/dev/lib/common.sh"
+if materialize_redis_acl missing-acl; then
+  exit 99
+else
+  printf 'status=%s\n' "$?"
+fi
+""", "fixture", str(acl_root)], capture_output=True, text=True, env={**os.environ, **credentials},
+    )
+    assert missing_probe.returncode == 0, missing_probe.stderr
+    assert "status=1" in missing_probe.stdout
+    assert "Missing Redis ACL generator" in missing_probe.stderr
+
+    generator.write_text("#!/usr/bin/env bash\nexit 17\n", encoding="utf-8")
+    generator.chmod(0o755)
+    failure_probe = subprocess.run(
+        ["bash", "-c", """set -euo pipefail
+source "$1/scripts/dev/lib/common.sh"
+if materialize_redis_acl failure-acl; then
+  exit 99
+else
+  printf 'status=%s\n' "$?"
+fi
+""", "fixture", str(acl_root)], capture_output=True, text=True, env={**os.environ, **credentials},
+    )
+    assert failure_probe.returncode == 0, failure_probe.stderr
+    assert "status=17" in failure_probe.stdout
+
+    init_root = work / "init-env-repo"
+    (init_root / "scripts/dev").mkdir(parents=True)
+    shutil.copytree(root / "scripts/dev/lib", init_root / "scripts/dev/lib")
+    shutil.copy2(root / "scripts/dev/init-env.sh", init_root / "scripts/dev/init-env.sh")
+    init_output = init_root / "private/.env"
+    init_probe = subprocess.run(
+        ["bash", str(init_root / "scripts/dev/init-env.sh"), "--output", str(init_output), "--force"],
+        cwd=init_root, capture_output=True, text=True, timeout=30,
+        env={**os.environ, "ENV_FILE": str(init_root / ".env")},
+    )
+    assert init_probe.returncode == 0, (init_probe.stdout, init_probe.stderr)
+    assert "WARNING: docker/redis/generate-users-acl.sh not found" in init_probe.stderr
+    assert init_output.exists() and init_output.stat().st_mode & 0o777 == 0o600
+    assert not (init_root / ".local/redis/users.acl").exists()
+
+    init_generator = init_root / "docker/redis/generate-users-acl.sh"
+    init_generator.parent.mkdir(parents=True)
+    shutil.copy2(root / "docker/redis/generate-users-acl.sh", init_generator)
+    init_generator.chmod(0o755)
+    init_success_output = init_root / "private-success/.env"
+    init_success_probe = subprocess.run(
+        ["bash", str(init_root / "scripts/dev/init-env.sh"), "--output", str(init_success_output), "--force"],
+        cwd=init_root, capture_output=True, text=True, timeout=30,
+        env={**os.environ, "ENV_FILE": str(init_root / ".env")},
+    )
+    assert init_success_probe.returncode == 0, (init_success_probe.stdout, init_success_probe.stderr)
+    assert "Materialized Redis ACL file:" in init_success_probe.stdout
+    assert (init_root / ".local/redis/users.acl").exists()
+    print("Redis ACL helper paths, permissions, warning-only init, hash-only output and failure propagation: PASS")
 print("shell-tooling-contract: PASS")
 PY

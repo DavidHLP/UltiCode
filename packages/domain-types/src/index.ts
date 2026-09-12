@@ -264,9 +264,14 @@ function optionalNumber(record: ProblemRecord, key: string, audience: string): n
   return value
 }
 
-function optionalText(record: ProblemRecord, key: string, audience: string): string | undefined {
+function optionalText(
+  record: ProblemRecord,
+  key: string,
+  audience: string,
+  allowEmpty = false,
+): string | undefined {
   if (record[key] === null || record[key] === undefined) return undefined
-  if (typeof record[key] !== 'string' || record[key].trim() === '') {
+  if (typeof record[key] !== 'string' || (!allowEmpty && record[key].trim() === '')) {
     throw invalidProblem(audience, `has an invalid ${key}`)
   }
   return record[key] as string
@@ -405,7 +410,7 @@ export function normalizeAdminProblem(value: unknown): ProblemAdmin {
   const flagReason = optionalText(record, 'flagReason', 'Admin')
   const flagReportedBy = optionalText(record, 'flagReportedBy', 'Admin')
   const flagReviewedBy = optionalText(record, 'flagReviewedBy', 'Admin')
-  const flagNotes = optionalText(record, 'flagNotes', 'Admin')
+  const flagNotes = optionalText(record, 'flagNotes', 'Admin', true)
   const isFlagged = optionalBoolean(record, 'isFlagged', 'Admin')
   const flagStatus = optionalStatus(
     record,

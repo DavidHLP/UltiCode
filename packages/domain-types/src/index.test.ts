@@ -57,6 +57,7 @@ describe('Problem boundary normalization', () => {
       created_at: '2026-01-01T00:00:00Z',
       updated_at: '2026-01-02T00:00:00Z',
       tags: [{ id: '1', label: 'array' }],
+      flag_notes: '',
     })
 
     expect(problem.id).toBe('7')
@@ -66,6 +67,7 @@ describe('Problem boundary normalization', () => {
     expect(problem.createdAt).toEqual(new Date('2026-01-01T00:00:00Z'))
     expect(problem.updatedAt).toEqual(new Date('2026-01-02T00:00:00Z'))
     expect(problem.tags).toEqual([{ id: '1', label: 'array' }])
+    expect(problem.flagNotes).toBe('')
     expect(problem).not.toHaveProperty('is_premium')
   })
 

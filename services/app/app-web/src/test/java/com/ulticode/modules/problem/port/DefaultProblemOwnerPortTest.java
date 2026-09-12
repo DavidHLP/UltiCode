@@ -3,6 +3,7 @@ import com.ulticode.app.api.service.ProblemOwnerPort;
 
 import com.ulticode.modules.problem.entity.Problem;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
+import com.ulticode.modules.problem.service.ProblemIndexRefresher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -43,13 +44,13 @@ class DefaultProblemOwnerPortTest {
     private ProblemMapper problemMapper;
 
     @Mock
-    private com.ulticode.modules.search.source.SearchDocumentChangedPublisher searchPublisher;
+    private ProblemIndexRefresher indexRefresher;
 
     private ProblemOwnerPort port;
 
     @BeforeEach
     void setUp() {
-        port = new DefaultProblemOwnerPort(problemMapper, searchPublisher);
+        port = new DefaultProblemOwnerPort(problemMapper, indexRefresher);
     }
 
     @Nested
@@ -179,6 +180,7 @@ class DefaultProblemOwnerPortTest {
             assertThat(inserted.getIsFlagged()).isFalse();
             assertThat(inserted.getIsDeleted()).isFalse();
             assertThat(inserted.getVersion()).isEqualTo(1);
+            verify(indexRefresher).publish(inserted);
         }
 
         @Test
@@ -192,6 +194,7 @@ class DefaultProblemOwnerPortTest {
             assertThat(inserted.getStatus()).isEqualTo("solved");
             assertThat(inserted.getIsPremium()).isTrue();
             assertThat(inserted.getIsPublished()).isTrue();
+            verify(indexRefresher).publish(inserted);
         }
     }
 
@@ -221,6 +224,7 @@ class DefaultProblemOwnerPortTest {
             assertThat(existing.getIsPremium()).isTrue();
             // null DTO field must not overwrite the stored value
             assertThat(existing.getIsPublished()).isFalse();
+            verify(indexRefresher).publish(existing);
         }
 
         @Test

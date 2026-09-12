@@ -86,9 +86,21 @@ public class ProblemAdministrationDomainServiceImpl implements ProblemAdministra
 
     @Override
     public Problem updateProblem(Long id, UpdateProblemDTO dto, String actorId, Long expectedVersion) {
+        return updateProblemInternal(id, dto, actorId, expectedVersion, true);
+    }
+
+    @Override
+    public Problem updateProblemUnfenced(Long id, UpdateProblemDTO dto, String actorId) {
+        return updateProblemInternal(id, dto, actorId, null, false);
+    }
+
+    private Problem updateProblemInternal(Long id, UpdateProblemDTO dto, String actorId,
+                                          Long expectedVersion, boolean fenced) {
         Problem problem = findById(id)
                 .orElseThrow(() -> new BusinessException(BaseErrorCode.NOT_FOUND, "Problem not found"));
-        requireExpectedVersion(problem, expectedVersion);
+        if (fenced) {
+            requireExpectedVersion(problem, expectedVersion);
+        }
 
         if (dto.getSlug() != null && !dto.getSlug().equals(problem.getSlug())) {
             Optional<Problem> existingProblem = findBySlug(dto.getSlug());
@@ -117,11 +129,11 @@ public class ProblemAdministrationDomainServiceImpl implements ProblemAdministra
             problem.setHasSolution(dto.getHasSolution());
         }
 
-        if (expectedVersion == null) {
-            writePort.updateById(problem);
-        } else {
+        if (fenced) {
             requireAffected(writePort.updateById(problem, expectedVersion));
             problem.setVersion(nextVersion(expectedVersion));
+        } else {
+            writePort.updateById(problem);
         }
         detailPort.applyDetailUpdate(id, problem, dto);
         versionPort.createVersion(id, "UPDATE", null, actorId);
@@ -136,11 +148,7 @@ public class ProblemAdministrationDomainServiceImpl implements ProblemAdministra
                 .orElseThrow(() -> new BusinessException(BaseErrorCode.NOT_FOUND, "Problem not found"));
         requireExpectedVersion(problem, expectedVersion);
 
-        if (expectedVersion == null) {
-            writePort.deleteById(id);
-        } else {
-            requireAffected(writePort.deleteById(id, expectedVersion));
-        }
+        requireAffected(writePort.deleteById(id, expectedVersion));
         log.info("Problem deleted: {} by user {}", id, actorId);
     }
 
@@ -174,18 +182,14 @@ public class ProblemAdministrationDomainServiceImpl implements ProblemAdministra
     }
 
     private void persistPublishedState(Problem problem, Long expectedVersion) {
-        if (expectedVersion == null) {
-            writePort.updateById(problem);
-        } else {
-            requireAffected(writePort.updateById(problem, expectedVersion));
-            problem.setVersion(nextVersion(expectedVersion));
-        }
+        requireAffected(writePort.updateById(problem, expectedVersion));
+        problem.setVersion(nextVersion(expectedVersion));
     }
 
     private static void requireExpectedVersion(Problem problem, Long expectedVersion) {
-        if (expectedVersion != null
-                && (problem.getVersion() == null
-                || problem.getVersion().longValue() != expectedVersion.longValue())) {
+        if (expectedVersion == null
+                || problem.getVersion() == null
+                || problem.getVersion().longValue() != expectedVersion.longValue()) {
             throw versionConflict();
         }
     }

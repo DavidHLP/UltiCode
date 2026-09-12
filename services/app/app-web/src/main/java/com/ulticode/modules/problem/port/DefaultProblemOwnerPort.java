@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.ulticode.app.api.service.ProblemOwnerPort;
 import com.ulticode.modules.problem.entity.Problem;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
+import com.ulticode.modules.problem.service.ProblemIndexRefresher;
 import lombok.RequiredArgsConstructor;
 import org.springframework.util.StringUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -45,7 +46,7 @@ import java.util.Map;
 public class DefaultProblemOwnerPort implements ProblemOwnerPort {
 
     private final ProblemMapper problemMapper;
-    private final com.ulticode.modules.search.source.SearchDocumentChangedPublisher searchPublisher;
+    private final ProblemIndexRefresher indexRefresher;
 
     @Override
     @Transactional
@@ -132,7 +133,7 @@ public class DefaultProblemOwnerPort implements ProblemOwnerPort {
         problemMapper.insert(problem);
         // SEARCH-001: import writes must publish like any other problem write.
         // UPSERT only when published; the search Q-read filters is_published=true.
-        searchPublisher.publishProblem(problem, Boolean.TRUE.equals(problem.getIsPublished()));
+        indexRefresher.publish(problem);
         log.info("ProblemOwnerPort.insertImportedProblem slug={} id={}", slug, problem.getId());
         return problem;
     }
@@ -169,7 +170,7 @@ public class DefaultProblemOwnerPort implements ProblemOwnerPort {
         problemMapper.updateById(existing);
         // SEARCH-001: import updates must publish like any other problem write.
         // Tombstone when unpublished (Q-read filters is_published=true).
-        searchPublisher.publishProblem(existing, Boolean.TRUE.equals(existing.getIsPublished()));
+        indexRefresher.publish(existing);
         log.info("ProblemOwnerPort.applyImportedUpdate id={}", id);
     }
 

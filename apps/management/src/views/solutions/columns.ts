@@ -15,6 +15,7 @@ import { createEntityActionsMenu } from '@/components/table/entityActions'
 import { badge } from '@/components/ui/terminal'
 import type { SolutionListItem } from '@/api/admin/solutions'
 import { formatDate } from '@/lib/format/date'
+import type { SolutionPermissionMap } from '@/composables/useSolutionPermissions'
 
 export interface SolutionActions {
   viewSolution: (id: string) => void
@@ -41,8 +42,7 @@ function renderStatusBadge(solution: SolutionListItem, t: (key: string) => strin
 export function createColumns(
   t: (key: string) => string,
   actions: SolutionActions,
-  canUpdateSolution: () => boolean,
-  canDeleteSolution: () => boolean,
+  can: SolutionPermissionMap,
 ): ColumnDef<SolutionListItem>[] {
   return [
     ...createSelectionColumn<SolutionListItem>(t, {
@@ -185,7 +185,7 @@ export function createColumns(
                   icon: IconCheck,
                   iconClass: 'h-4 w-4 text-foreground-strong',
                   labelClass: 'text-[var(--foreground-strong)]',
-                  hidden: !canUpdateSolution(),
+                  hidden: !can.moderate.value,
                 }
               : {
                   label: t('solutions.actions.flag'),
@@ -193,7 +193,7 @@ export function createColumns(
                   icon: IconFlag,
                   iconClass: 'h-4 w-4 text-foreground-strong',
                   labelClass: 'text-[var(--foreground-strong)]',
-                  hidden: !canUpdateSolution(),
+                  hidden: !can.moderate.value,
                 },
             { kind: 'separator' },
             {
@@ -202,7 +202,7 @@ export function createColumns(
               icon: IconTrash,
               iconClass: 'h-4 w-4 text-foreground-strong',
               labelClass: 'text-[var(--foreground-strong)]',
-              hidden: !canDeleteSolution(),
+              hidden: !can.delete.value,
             },
           ],
           {

@@ -8,29 +8,21 @@ import {
   type UpdateUserDto,
 } from '@/api/admin/users'
 import { extractApiErrorMessage } from '@/utils/error'
+import { createCollectionSlice } from '@/stores/createCollectionSlice'
 
 export const useUsersStore = defineStore('adminUsers', () => {
-  const users = ref<User[]>([])
-  const total = ref(0)
-  const loading = ref(false)
-  const error = ref<string | null>(null)
-  const currentUser = ref<User | null>(null)
-
-  async function fetchUsers(params: UserQueryParams = {}) {
-    loading.value = true
-    error.value = null
-    try {
-      // usersApi.getUsers already returns PageResult<User> directly (unwrapped by request.ts)
+  const collection = createCollectionSlice<User, UserQueryParams>({
+    load: async (params = {}) => {
       const pageResult = await usersApi.getUsers(params)
-      users.value = pageResult.items
-      total.value = pageResult.total
-    } catch (err: unknown) {
-      error.value = extractApiErrorMessage(err, 'Failed to fetch users')
-      console.error('Failed to fetch users:', err)
-    } finally {
-      loading.value = false
-    }
-  }
+      return { items: pageResult.items, total: pageResult.total }
+    },
+  })
+  const users = collection.items
+  const total = collection.total
+  const loading = collection.isLoading
+  const error = collection.error
+  const fetchUsers = collection.fetch
+  const currentUser = ref<User | null>(null)
 
   async function fetchUser(id: string) {
     loading.value = true
@@ -182,6 +174,9 @@ export const useUsersStore = defineStore('adminUsers', () => {
   }
 
   return {
+    items: collection.items,
+    isLoading: collection.isLoading,
+    fetch: collection.fetch,
     users,
     total,
     loading,

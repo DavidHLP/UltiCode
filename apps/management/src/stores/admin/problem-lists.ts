@@ -9,34 +9,27 @@ import {
   type ProblemListDetail,
   type UpdateProblemListProblemsDto,
 } from '@/api/admin/problem-lists'
+import { createCollectionSlice } from '@/stores/createCollectionSlice'
 
 export const useAdminProblemListsStore = defineStore('admin-problem-lists', () => {
-  const lists = ref<ProblemList[]>([])
+  const collection = createCollectionSlice<ProblemList, ProblemListQuery>({
+    load: async (query = {}) => {
+      const pageResult = await adminProblemListsApi.getLists(query)
+      return { items: pageResult.items, total: pageResult.total }
+    },
+  })
+  const lists = collection.items
   const currentList = ref<ProblemListDetail | null>(null)
-  const total = ref(0)
-  const isLoading = ref(false)
-  const error = ref<string | null>(null)
+  const total = collection.total
+  const isLoading = collection.isLoading
+  const error = collection.error
+  const fetchLists = collection.fetch
 
   function getErrorMessage(err: unknown, defaultMessage: string): string {
     if (isAxiosError(err) && err.response?.data?.message) {
       return err.response.data.message
     }
     return defaultMessage
-  }
-
-  async function fetchLists(query: ProblemListQuery) {
-    isLoading.value = true
-    error.value = null
-    try {
-      const pageResult = await adminProblemListsApi.getLists(query)
-      lists.value = pageResult.items
-      total.value = pageResult.total
-    } catch (err) {
-      error.value = getErrorMessage(err, 'Failed to fetch problem lists')
-      throw err
-    } finally {
-      isLoading.value = false
-    }
   }
 
   async function fetchList(id: string) {
@@ -95,6 +88,8 @@ export const useAdminProblemListsStore = defineStore('admin-problem-lists', () =
   }
 
   return {
+    items: collection.items,
+    fetch: collection.fetch,
     lists,
     currentList,
     total,

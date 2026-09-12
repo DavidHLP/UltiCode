@@ -3,6 +3,15 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import { useSearchPalette } from '@/composables/useSearchPalette'
+import { useSystemPermissions } from '@/composables/useSystemPermissions'
+import { useProblemPermissions } from '@/composables/useProblemPermissions'
+import { useProblemListPermissions } from '@/composables/useProblemListPermissions'
+import { useTagPermissions } from '@/composables/useTagPermissions'
+import { useContestPermissions } from '@/composables/useContestPermissions'
+import { useSolutionPermissions } from '@/composables/useSolutionPermissions'
+import { useForumPermissions } from '@/composables/useForumPermissions'
+import { useUserPermissions } from '@/composables/useUserPermissions'
+import { useCommentPermissions } from '@/composables/useCommentPermissions'
 import {
   IconCode,
   IconDashboard,
@@ -42,6 +51,15 @@ const { toggleSidebar } = useSidebar()
 const { t } = useI18n()
 const authStore = useAuthStore()
 const { open: openSearch } = useSearchPalette()
+const { can: systemCan } = useSystemPermissions()
+const { can: problemCan } = useProblemPermissions()
+const { can: problemListCan } = useProblemListPermissions()
+const { can: tagCan } = useTagPermissions()
+const { can: contestCan } = useContestPermissions()
+const { can: solutionCan } = useSolutionPermissions()
+const { can: forumCan } = useForumPermissions()
+const { can: userCan } = useUserPermissions()
+const { can: commentCan } = useCommentPermissions()
 
 const user = computed(() => ({
   name: authStore.user?.name || 'Admin',
@@ -58,7 +76,7 @@ const overviewItems = computed(() => {
       icon: IconDashboard,
     },
   ]
-  if (authStore.hasPermission('READ', 'SYSTEM')) {
+  if (systemCan.system.read.value) {
     items.push({
       title: t('nav.analytics'),
       url: '/analytics',
@@ -78,21 +96,21 @@ const contentItems = computed(() => {
 
   // 1. Problem Bank Group
   const bankSubItems = []
-  if (authStore.hasPermission('READ', 'PROBLEM')) {
+  if (problemCan.problem.read.value) {
     bankSubItems.push({
       title: t('nav.problems'),
       url: '/problems',
       icon: IconListDetails,
     })
   }
-  if (authStore.hasPermission('READ', 'PROBLEM_LIST')) {
+  if (problemListCan.problemList.read.value) {
     bankSubItems.push({
       title: t('nav.problemLists'),
       url: '/problem-lists',
       icon: IconListDetails,
     })
   }
-  if (authStore.hasPermission('READ', 'TAG')) {
+  if (tagCan.tag.read.value) {
     bankSubItems.push({
       title: t('nav.tags'),
       url: '/tags',
@@ -110,7 +128,7 @@ const contentItems = computed(() => {
   }
 
   // 2. Contests (Single item)
-  if (authStore.hasPermission('READ', 'CONTEST')) {
+  if (contestCan.contest.read.value) {
     items.push({
       title: t('nav.contests'),
       url: '/contests',
@@ -119,7 +137,7 @@ const contentItems = computed(() => {
   }
 
   // 3. Submissions (Single item)
-  if (authStore.hasPermission('READ', 'PROBLEM')) {
+  if (problemCan.problem.read.value) {
     items.push({
       title: t('nav.submissions'),
       url: '/submissions',
@@ -129,14 +147,14 @@ const contentItems = computed(() => {
 
   // 4. Discussions Group
   const discussionSubItems = []
-  if (authStore.hasPermission('READ', 'SOLUTION')) {
+  if (solutionCan.solution.read.value) {
     discussionSubItems.push({
       title: t('nav.solutions'),
       url: '/solutions',
       icon: IconFileDescription,
     })
   }
-  if (authStore.hasPermission('MODERATE', 'FORUM_POST')) {
+  if (forumCan.forum.moderatePost.value) {
     discussionSubItems.push({
       title: t('nav.forum'),
       url: '/forum/posts',
@@ -163,7 +181,7 @@ const userSecurityItems = computed(() => {
   //    guard (router meta.permission = PERM.USER_READ). Previously pushed
   //    unconditionally, so a user without USER_READ saw the menu but was
   //    rejected by the route guard with a "no permission" toast.
-  if (authStore.hasPermission('READ', 'USER')) {
+  if (userCan.user.read.value) {
     items.push({
       title: t('nav.users'),
       url: '/users',
@@ -173,7 +191,7 @@ const userSecurityItems = computed(() => {
 
   // 2. Moderation Group
   const moderationSubItems = []
-  if (authStore.hasPermission('MODERATE', 'PROBLEM')) {
+  if (problemCan.problem.moderate.value) {
     moderationSubItems.push({
       title: t('nav.moderation'),
       url: '/moderation',
@@ -181,8 +199,7 @@ const userSecurityItems = computed(() => {
     })
   }
   if (
-    authStore.hasPermission('MODERATE', 'FORUM_COMMENT') ||
-    authStore.hasPermission('MODERATE', 'SOLUTION_COMMENT')
+    commentCan.comment.moderateForum.value || commentCan.comment.moderateSolution.value
   ) {
     moderationSubItems.push({
       title: t('nav.comments'),
@@ -201,7 +218,7 @@ const userSecurityItems = computed(() => {
   }
 
   // 3. Notifications (Single item)
-  if (authStore.hasPermission('READ', 'SYSTEM')) {
+  if (systemCan.system.read.value) {
     items.push({
       title: t('nav.notifications'),
       url: '/notifications',
@@ -215,7 +232,7 @@ const userSecurityItems = computed(() => {
 const navSecondary = computed(() => {
   const items = []
 
-  if (authStore.hasPermission('UPDATE', 'SYSTEM')) {
+  if (systemCan.system.update.value) {
     items.push({
       title: t('nav.settings'),
       url: '/settings',
@@ -225,7 +242,7 @@ const navSecondary = computed(() => {
 
   // Only show help and search for users with READ:SYSTEM permission
   // Basic admin users (only Dashboard + User Management) should not see these
-  if (authStore.hasPermission('READ', 'SYSTEM')) {
+  if (systemCan.system.read.value) {
     items.push({
       title: t('nav.getHelp'),
       url: '/help',

@@ -8,14 +8,23 @@ import {
   type LanguageOption,
   type SubmissionQueryParams,
 } from '@/api/admin/submissions'
+import { createCollectionSlice } from '@/stores/createCollectionSlice'
 
 export const useSubmissionsStore = defineStore('admin-submissions', () => {
   // State
-  const submissions = ref<SubmissionListItem[]>([])
-  const total = ref(0)
   const totalPages = ref(0)
-  const loading = ref(false)
-  const error = ref<string | null>(null)
+  const collection = createCollectionSlice<SubmissionListItem, SubmissionQueryParams>({
+    load: async (params = {}) => {
+      const response = await submissionsApi.getList(params)
+      totalPages.value = response.totalPages
+      return { items: response.items, total: response.total }
+    },
+  })
+  const submissions = collection.items
+  const total = collection.total
+  const loading = collection.isLoading
+  const error = collection.error
+  const fetchSubmissions = collection.fetch
 
   // Statistics
   const statistics = ref<SubmissionStatistics | null>(null)
@@ -41,22 +50,6 @@ export const useSubmissionsStore = defineStore('admin-submissions', () => {
   })
 
   // Actions
-  async function fetchSubmissions(params: SubmissionQueryParams) {
-    loading.value = true
-    error.value = null
-    try {
-      const response = await submissionsApi.getList(params)
-      submissions.value = response.items
-      total.value = response.total
-      totalPages.value = response.totalPages
-    } catch (err) {
-      console.error('Failed to load submissions:', err)
-      error.value = 'Failed to load submissions'
-    } finally {
-      loading.value = false
-    }
-  }
-
   async function fetchStatistics() {
     statsLoading.value = true
     try {
@@ -111,6 +104,9 @@ export const useSubmissionsStore = defineStore('admin-submissions', () => {
 
   return {
     // State
+    items: collection.items,
+    isLoading: collection.isLoading,
+    fetch: collection.fetch,
     submissions,
     total,
     totalPages,

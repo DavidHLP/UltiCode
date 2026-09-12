@@ -19,7 +19,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useProblemsStore } from '@/stores/admin/problems'
-import { useAuthStore } from '@/stores/auth'
 import { type Problem } from '@/api/admin/problems'
 
 import DataTable from '@/components/table/DataTable.vue'
@@ -35,11 +34,12 @@ import { useDataTable } from '@/composables/useDataTable'
 import { useProblemFilters } from './composables/useProblemFilters'
 import { useProblemActions } from './composables/useProblemActions'
 import { useProblemColumns } from './composables/useProblemColumns'
+import { useProblemPermissions } from '@/composables/useProblemPermissions'
 
 const { t } = useI18n()
 const router = useRouter()
 const problemsStore = useProblemsStore()
-const authStore = useAuthStore()
+const { can } = useProblemPermissions()
 
 const {
   searchQuery,
@@ -65,13 +65,7 @@ const {
   { sortBy: string; sortOrder: 'asc' | 'desc' },
   Parameters<typeof problemsStore.fetchProblems>[0]
 >({
-  store: {
-    data: computed(() => problemsStore.problems),
-    total: computed(() => problemsStore.total),
-    isLoading: computed(() => problemsStore.loading),
-    error: computed(() => problemsStore.error),
-    fetch: (params) => problemsStore.fetchProblems(params),
-  },
+  store: problemsStore,
   filters: () => ({
     sortBy: sortBy.value,
     sortOrder: sortOrder.value,
@@ -126,16 +120,14 @@ const {
 } = useProblemActions(() => loadProblems())
 
 // Permissions
-const canCreateProblem = computed(() => authStore.hasPermission('CREATE', 'PROBLEM'))
-const canUpdateProblem = computed(() => authStore.hasPermission('UPDATE', 'PROBLEM'))
-const canDeleteProblem = computed(() => authStore.hasPermission('DELETE', 'PROBLEM'))
+const canCreateProblem = can.problem.create
 
 // Animation state
 const isLoaded = ref(false)
 
 // Stats
 const stats = computed(() => {
-  const problems = problemsStore.problems
+  const problems = problemsStore.items
   const total = problemsStore.total
   const published = problems.filter((p) => p.isPublished).length
   const draft = problems.filter((p) => !p.isPublished).length
@@ -180,7 +172,7 @@ const toolbarFilters = computed<Filter[]>(() => [
 ])
 
 // Table columns (delegated to composable)
-const columns = useProblemColumns(canUpdateProblem, canDeleteProblem, {
+const columns = useProblemColumns(can.problem, {
   viewProblem,
   viewProblemCode,
   viewProblemCases,

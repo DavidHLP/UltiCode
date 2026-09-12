@@ -18,7 +18,6 @@ import { Label } from '@/components/ui/label'
 import { IconAlertTriangle, IconLoader } from '@tabler/icons-vue'
 
 import { useUsersStore } from '@/stores/admin/users'
-import { useAuthStore } from '@/stores/auth'
 import type { User } from '@/api/admin/users'
 
 import DataTable from '@/components/table/DataTable.vue'
@@ -31,11 +30,12 @@ import UserResetPasswordDialog from './UserResetPasswordDialog.vue'
 // Terminal UI components available for future use
 // import { TerminalBadge, DataBlock } from '@/components/ui/terminal'
 import { useDataTable } from '@/composables/useDataTable'
+import { useUserPermissions } from '@/composables/useUserPermissions'
 import { createColumns } from './columns'
 
 const { t } = useI18n()
 const usersStore = useUsersStore()
-const authStore = useAuthStore()
+const { can } = useUserPermissions()
 
 const roleFilter = ref<string>('all')
 const statusFilter = ref<string>('all')
@@ -62,13 +62,12 @@ onMounted(() => {
   }, 100)
 })
 
-const canCreateUser = computed(() => authStore.hasPermission('CREATE', 'USER'))
-const canModerateUser = computed(() => authStore.hasPermission('MODERATE', 'USER'))
-const canDeleteUser = computed(() => authStore.hasPermission('DELETE', 'USER'))
+const canCreateUser = can.user.create
+const canDeleteUser = can.user.delete
 
 // Stats for terminal ticker
 const stats = computed(() => {
-  const users = usersStore.users
+  const users = usersStore.items
   const total = usersStore.total
   const active = users.filter((u) => u.isActive && !u.isBanned).length
   const banned = users.filter((u) => u.isBanned).length
@@ -114,13 +113,7 @@ const {
   { role: string; status: string },
   Parameters<typeof usersStore.fetchUsers>[0]
 >({
-  store: {
-    data: computed(() => usersStore.users),
-    total: computed(() => usersStore.total),
-    isLoading: computed(() => usersStore.loading),
-    error: computed(() => usersStore.error),
-    fetch: (params) => usersStore.fetchUsers(params),
-  },
+  store: usersStore,
   filters: () => ({
     role: roleFilter.value,
     status: statusFilter.value,
@@ -167,7 +160,7 @@ const columns = createColumns(
       }
     },
   },
-  () => canModerateUser.value,
+  can.user,
 )
 
 async function handleBanUser(id: string | number, reason?: string) {

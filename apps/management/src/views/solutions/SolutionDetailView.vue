@@ -3,7 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useSolutionsStore } from '@/stores/admin/solutions'
-import { useAuthStore } from '@/stores/auth'
+import { useSolutionPermissions } from '@/composables/useSolutionPermissions'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ArrowLeft, Flag, Eye, Trash, FileText, User } from 'lucide-vue-next'
@@ -15,7 +15,7 @@ import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
 const router = useRouter()
 const route = useRoute()
 const solutionsStore = useSolutionsStore()
-const authStore = useAuthStore()
+const { can } = useSolutionPermissions()
 const { t } = useI18n()
 
 const isInitialLoad = ref(true)
@@ -25,8 +25,8 @@ const flagDialogOpen = ref(false)
 const solutionId = computed(() => route.params.id as string)
 const solution = computed(() => solutionsStore.currentSolution)
 
-const canUpdateSolution = computed(() => authStore.hasPermission('MODERATE', 'SOLUTION'))
-const canDeleteSolution = computed(() => authStore.hasPermission('DELETE', 'SOLUTION'))
+const canUpdateSolution = can.solution.moderate
+const canDeleteSolution = can.solution.delete
 
 // Determine current view from route
 const currentView = computed(() => {

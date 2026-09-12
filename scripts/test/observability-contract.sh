@@ -17,6 +17,15 @@ source "$ROOT_DIR/scripts/test/lib/assertions.sh"
 # shellcheck source=scripts/dev/lib/common.sh
 source "$ROOT_DIR/scripts/dev/lib/common.sh"
 
+# CI checkouts intentionally do not contain a runtime .env. Compose only
+# needs a non-secret interpolation source here; required contract values are
+# supplied explicitly below. Preserve an operator-provided ENV_FILE.
+if [[ "$ENV_FILE" == "$ROOT_DIR/.env" && ! -f "$ENV_FILE" ]]; then
+  ENV_FILE="$ROOT_DIR/.env.example"
+  export ENV_FILE
+fi
+[[ -f "$ENV_FILE" ]] || fail "Compose env file is missing: $ENV_FILE"
+
 [[ -d "$OBS_DIR" ]] || fail "observability config directory is missing"
 [[ -f "$COMPOSE_FILE" ]] || fail "observability Compose overlay is missing"
 

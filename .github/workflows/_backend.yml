@@ -293,15 +293,7 @@ jobs:
       - name: Run registry-derived dynamic architecture contracts
         run: |
           set -euo pipefail
-          # The registry owns these dynamic contracts; the names remain in this
-          # audit marker for source-contract coverage, not as a second runner
-          # list: owner-backup-restore-contract.sh,
-          # redis-acl-rotation-contract.sh, scheduler-contract.sh,
-          # fenced-lease-contract.sh, graceful-drain-contract.sh,
-          # dependency-resilience-contract.sh, stream-resilience-contract.sh,
-          # scale-topology-contract.sh, dubbo-mtls-contract.sh,
-          # network-reachability-contract.sh, judge-sandbox-contract.sh,
-          # tls-profile-contract.sh, owner-migration-manifest-contract.sh.
+          # The registry is the sole authority for dynamic contract names.
           # HA remains a separately prepared invocation below.
           dynamic_children="$(bash scripts/dev/architecture-contract-test.sh --list-qualified dynamic)"
           while IFS= read -r child; do

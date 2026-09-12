@@ -50,6 +50,12 @@ public record AdminWriteEnvelope(
                 traceMetadata());
     }
 
+    /** Converts the shared producer actor to the Auth API command boundary. */
+    public com.ulticode.auth.api.command.ActorDelegation authActor() {
+        return new com.ulticode.auth.api.command.ActorDelegation(
+                actor.actorType(), actor.actorId(), actor.delegatorId(), actor.rationale());
+    }
+
     private static IdMetadata idempotency(String requestedKey) {
         if (requestedKey == null || requestedKey.isBlank()) {
             return IdMetadata.mint();

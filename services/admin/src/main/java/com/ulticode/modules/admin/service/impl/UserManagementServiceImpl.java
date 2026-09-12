@@ -16,21 +16,18 @@ import com.ulticode.auth.api.service.AccountQueryService;
 import com.ulticode.common.annotation.Audited;
 import com.ulticode.common.audit.AuditRecorder;
 import com.ulticode.common.audit.AuditVocabulary;
-import com.ulticode.common.auth.AdminActors;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.common.rpc.RpcResult;
-import com.ulticode.common.tracing.IdMetadata;
-import com.ulticode.common.tracing.TraceMetadata;
 import com.ulticode.common.util.AuditContext;
-import com.ulticode.common.util.TraceIdUtil;
 import com.ulticode.modules.admin.dto.AdminCreateUserDTO;
 import com.ulticode.modules.admin.dto.AdminUpdateUserDTO;
 import com.ulticode.modules.admin.dto.AdminUserVO;
 import com.ulticode.modules.admin.query.AdminUserDetailQuery;
 import com.ulticode.modules.admin.query.AdminUserDetailResult;
 import com.ulticode.modules.admin.service.UserManagementService;
+import com.ulticode.modules.admin.write.AdminWriteEnvelope;
 import com.ulticode.admin.port.UserProfilePort;
 import com.ulticode.app.api.command.UpdateProfileCommand;
 import lombok.RequiredArgsConstructor;
@@ -44,7 +41,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import com.ulticode.common.rpc.RpcPolicy;
 
 @Slf4j
@@ -91,12 +87,14 @@ public class UserManagementServiceImpl implements UserManagementService {
         }
 
         String role = StringUtils.hasText(dto.getRole()) ? dto.getRole() : "USER";
-        String commandId = UUID.randomUUID().toString();
+        AdminWriteEnvelope accountEnvelope = AdminWriteEnvelope.envelope(
+                "auth-account-create", null, currentUserProvider.getCurrentUserId(),
+                currentUserProvider, "admin create user");
         CreateAccountCommand createCmd = new CreateAccountCommand(
-                commandId,
-                IdMetadata.mint(),
-                authActor("admin create user"),
-                currentTrace(),
+                accountEnvelope.commandId(),
+                accountEnvelope.idempotency(),
+                accountEnvelope.authActor(),
+                accountEnvelope.trace(),
                 dto.getUsername(),
                 dto.getEmail(),
                 dto.getPassword(),
@@ -111,11 +109,14 @@ public class UserManagementServiceImpl implements UserManagementService {
         String newUserId = createResult.data().accountId();
 
         if (StringUtils.hasText(dto.getName())) {
+            AdminWriteEnvelope profileEnvelope = AdminWriteEnvelope.envelope(
+                    "app-profile-create", null, currentUserProvider.getCurrentUserId(),
+                    currentUserProvider, "admin create user");
             UpdateProfileCommand profileCmd = new UpdateProfileCommand(
-                    UUID.randomUUID().toString(),
-                    IdMetadata.mint(),
-                    appActor("admin create user"),
-                    currentTrace(),
+                    profileEnvelope.commandId(),
+                    profileEnvelope.idempotency(),
+                    profileEnvelope.actor(),
+                    profileEnvelope.trace(),
                     newUserId,
                     dto.getName(), null, null, null, null, null, null, null, null);
             userProfilePort.updateProfile(profileCmd);
@@ -159,11 +160,14 @@ public class UserManagementServiceImpl implements UserManagementService {
 
         String newUsername = StringUtils.hasText(dto.getUsername()) ? dto.getUsername() : current.username();
         String newEmail = StringUtils.hasText(dto.getEmail()) ? dto.getEmail() : current.email();
+        AdminWriteEnvelope credentialsEnvelope = AdminWriteEnvelope.envelope(
+                "auth-account-credentials-update", null, currentUserProvider.getCurrentUserId(),
+                currentUserProvider, "admin update credentials");
         UpdateAccountCredentialsCommand updateCredsCmd = new UpdateAccountCredentialsCommand(
-                UUID.randomUUID().toString(),
-                IdMetadata.mint(),
-                authActor("admin update credentials"),
-                currentTrace(),
+                credentialsEnvelope.commandId(),
+                credentialsEnvelope.idempotency(),
+                credentialsEnvelope.authActor(),
+                credentialsEnvelope.trace(),
                 id,
                 newUsername,
                 newEmail
@@ -171,11 +175,14 @@ public class UserManagementServiceImpl implements UserManagementService {
         requireSuccessful(accountManagementService.updateCredentials(updateCredsCmd),
                 "Account credentials update failed");
 
+        AdminWriteEnvelope profileEnvelope = AdminWriteEnvelope.envelope(
+                "app-profile-update", null, currentUserProvider.getCurrentUserId(),
+                currentUserProvider, "admin update user");
         UpdateProfileCommand profileCmd = new UpdateProfileCommand(
-                UUID.randomUUID().toString(),
-                IdMetadata.mint(),
-                appActor("admin update user"),
-                currentTrace(),
+                profileEnvelope.commandId(),
+                profileEnvelope.idempotency(),
+                profileEnvelope.actor(),
+                profileEnvelope.trace(),
                 id,
                 dto.getName(),
                 dto.getAvatar(),
@@ -193,13 +200,12 @@ public class UserManagementServiceImpl implements UserManagementService {
                 throw new BusinessException(AdminErrorCode.UNKNOWN_ERROR,
                         "RoleMutationService unavailable");
             }
-            TraceMetadata trace = currentTrace();
-            String stableKey = "auth-role-update-" + trace.traceId() + "-" + id;
-            String commandId = UUID.nameUUIDFromBytes(
-                    stableKey.getBytes(java.nio.charset.StandardCharsets.UTF_8)).toString();
+            AdminWriteEnvelope roleEnvelope = AdminWriteEnvelope.envelope(
+                    "auth-role-update", null, currentUserProvider.getCurrentUserId(),
+                    currentUserProvider, "admin user update");
             ChangeRoleCommand command = new ChangeRoleCommand(
-                    commandId, IdMetadata.of(stableKey, null),
-                    authActor("admin user update"), trace,
+                    roleEnvelope.commandId(), roleEnvelope.idempotency(),
+                    roleEnvelope.authActor(), roleEnvelope.trace(),
                     id, dto.getRole(), current.authzVersion(), "update user role");
             requireSuccessful(roleMutationService.changeRole(command),
                     "Account role update failed");
@@ -222,11 +228,14 @@ public class UserManagementServiceImpl implements UserManagementService {
         checkQueryServiceAvailable();
         AuthAccountDTO current = getAccountOrThrow(id);
 
+        AdminWriteEnvelope envelope = AdminWriteEnvelope.envelope(
+                "auth-account-ban", null, currentUserProvider.getCurrentUserId(),
+                currentUserProvider, "admin ban user");
         ChangeAccountStateCommand command = new ChangeAccountStateCommand(
-                UUID.randomUUID().toString(),
-                IdMetadata.mint(),
-                authActor("admin ban user"),
-                currentTrace(),
+                envelope.commandId(),
+                envelope.idempotency(),
+                envelope.authActor(),
+                envelope.trace(),
                 id,
                 current.authzVersion(),
                 ChangeAccountStateCommand.AccountStateAction.BAN,
@@ -243,11 +252,14 @@ public class UserManagementServiceImpl implements UserManagementService {
         checkQueryServiceAvailable();
         AuthAccountDTO current = getAccountOrThrow(id);
 
+        AdminWriteEnvelope envelope = AdminWriteEnvelope.envelope(
+                "auth-account-unban", null, currentUserProvider.getCurrentUserId(),
+                currentUserProvider, "admin unban user");
         ChangeAccountStateCommand command = new ChangeAccountStateCommand(
-                UUID.randomUUID().toString(),
-                IdMetadata.mint(),
-                authActor("admin unban user"),
-                currentTrace(),
+                envelope.commandId(),
+                envelope.idempotency(),
+                envelope.authActor(),
+                envelope.trace(),
                 id,
                 current.authzVersion(),
                 ChangeAccountStateCommand.AccountStateAction.UNBAN,
@@ -262,11 +274,14 @@ public class UserManagementServiceImpl implements UserManagementService {
     @Audited(action = AuditVocabulary.DELETE_USER, entityType = AuditVocabulary.ENTITY_USER, userIdFrom = "id")
     public void deleteUser(String id) {
         checkManagementServiceAvailable();
+        AdminWriteEnvelope envelope = AdminWriteEnvelope.envelope(
+                "auth-account-delete", null, currentUserProvider.getCurrentUserId(),
+                currentUserProvider, "admin delete user");
         DeleteAccountCommand command = new DeleteAccountCommand(
-                UUID.randomUUID().toString(),
-                IdMetadata.mint(),
-                authActor("admin delete user"),
-                currentTrace(),
+                envelope.commandId(),
+                envelope.idempotency(),
+                envelope.authActor(),
+                envelope.trace(),
                 id,
                 "admin delete user"
         );
@@ -281,11 +296,14 @@ public class UserManagementServiceImpl implements UserManagementService {
         AuditContext.setOldValues(Map.of("passwordChanged", false));
         AuditContext.setNewValues(Map.of("passwordChanged", true));
 
+        AdminWriteEnvelope envelope = AdminWriteEnvelope.envelope(
+                "auth-password-reset", null, currentUserProvider.getCurrentUserId(),
+                currentUserProvider, "admin reset password");
         ResetPasswordCommand command = new ResetPasswordCommand(
-                UUID.randomUUID().toString(),
-                IdMetadata.mint(),
-                authActor("admin reset password"),
-                currentTrace(),
+                envelope.commandId(),
+                envelope.idempotency(),
+                envelope.authActor(),
+                envelope.trace(),
                 id,
                 newPassword,
                 "admin reset password"
@@ -401,37 +419,6 @@ public class UserManagementServiceImpl implements UserManagementService {
         }
     }
 
-    private com.ulticode.auth.api.command.ActorDelegation authActor(String rationale) {
-        String actorId = currentActorId();
-        return new com.ulticode.auth.api.command.ActorDelegation(
-                currentActorType(), actorId, actorId, rationale);
-    }
-
-    private com.ulticode.common.command.ActorDelegation appActor(String rationale) {
-        String actorId = currentActorId();
-        return new com.ulticode.common.command.ActorDelegation(
-                currentActorType(), actorId, actorId, rationale);
-    }
-
-    private String currentActorType() {
-        return AdminActors.typeOf(currentUserProvider);
-    }
-
-    private String currentActorId() {
-        String actorId = currentUserProvider.getCurrentUserId();
-        if (actorId == null || actorId.isBlank()) {
-            throw new BusinessException(AdminErrorCode.UNAUTHORIZED, "Authenticated admin actor is required");
-        }
-        return actorId;
-    }
-
-    private TraceMetadata currentTrace() {
-        String reqId = TraceIdUtil.current();
-        if (reqId == null || reqId.isBlank()) {
-            reqId = "t-" + UUID.randomUUID();
-        }
-        return new TraceMetadata(reqId, null, null, null);
-    }
     private AdminUserVO userFromDetail(String id) {
         AdminUserDetailResult result = adminUserDetailQuery.loadUserDetail(id);
         if (result == null || result.failure() == AdminUserDetailResult.Failure.NOT_FOUND) {

@@ -7,6 +7,7 @@ import com.ulticode.auth.api.dto.AuthAccountDTO;
 import com.ulticode.auth.api.dto.AuthorizationSnapshotDTO;
 import com.ulticode.auth.api.dto.PermissionEntry;
 import com.ulticode.auth.api.error.AuthErrorCode;
+import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.auth.api.service.AuthorizationSnapshotService;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.response.DegradationStatus;
@@ -35,6 +36,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -261,6 +263,32 @@ class AdminUserDetailQueryTest {
                 .thenThrow(new RuntimeException("Auth snapshot down"));
         AdminUserDetailResult exceptionResult = query.loadUserDetail("user-123");
         assertPermissionUnavailable(exceptionResult);
+    }
+
+    @Test
+    @DisplayName("authorization permission failure propagates instead of degrading the detail")
+    void authorizationPermissionFailurePropagates() {
+        stubHealthyAccountAndFacts();
+        when(authorizationSnapshotService.getSnapshot("user-123"))
+                .thenReturn(RpcResult.failure(BaseErrorCode.FORBIDDEN, "t-forbidden"));
+
+        assertThatThrownBy(() -> query.loadUserDetail("user-123"))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(exception -> assertThat(((BusinessException) exception).getErrorCode())
+                        .isEqualTo(AdminErrorCode.FORBIDDEN));
+    }
+
+    @Test
+    @DisplayName("thrown authorization permission failure propagates through the fanout")
+    void thrownAuthorizationPermissionFailurePropagates() {
+        stubHealthyAccountAndFacts();
+        when(authorizationSnapshotService.getSnapshot("user-123"))
+                .thenThrow(new BusinessException(BaseErrorCode.UNAUTHORIZED));
+
+        assertThatThrownBy(() -> query.loadUserDetail("user-123"))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(exception -> assertThat(((BusinessException) exception).getErrorCode())
+                        .isEqualTo(AdminErrorCode.UNAUTHORIZED));
     }
 
     @Test

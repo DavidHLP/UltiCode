@@ -1,8 +1,9 @@
 package com.ulticode.modules.admin.projection;
 
 import com.ulticode.admin.error.AdminErrorCode;
+import com.ulticode.admin.error.AdminReadContract;
+import com.ulticode.admin.error.AdminReadContract.OwnerRead;
 import com.ulticode.app.api.dto.UserProfileDTO;
-import com.ulticode.app.api.error.AppErrorCode;
 import com.ulticode.app.api.service.UserProfileQueryService;
 import com.ulticode.auth.api.dto.AccountQueryDTO;
 import com.ulticode.auth.api.dto.AuthAccountDTO;
@@ -10,7 +11,6 @@ import com.ulticode.auth.api.dto.UserIdentityDTO;
 import com.ulticode.auth.api.error.AuthErrorCode;
 import com.ulticode.auth.api.service.AccountQueryService;
 import com.ulticode.auth.api.service.IdentityQueryService;
-import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.response.DegradationStatus;
 import com.ulticode.common.rpc.RpcPolicy;
@@ -26,12 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -104,27 +99,19 @@ public class AdminUserEnricher {
     /** Query an Auth account page and merge App profiles in one owner-aggregation round. */
     public AccountPage queryAccountsWithProfiles(AccountQueryDTO query) {
         if (accountQueryService == null) {
-            throw ownerUnavailable("AccountQueryService is unavailable");
+            throw AdminReadContract.ownerUnavailable("Auth");
         }
 
         RpcResult<AuthAccountDTO> rpc;
         try {
             rpc = accountQueryService.queryAccounts(query);
-        } catch (BusinessException exception) {
-            if (isPermissionError(exception)) {
-                throw exception;
-            }
-            log.warn("AccountQueryService.queryAccounts failed: {}", exception.getMessage());
-            throw ownerUnavailable("AccountQueryService.queryAccounts failed", exception);
-        } catch (Exception e) {
-            log.warn("AccountQueryService.queryAccounts failed: {}", e.getMessage());
-            throw ownerUnavailable("AccountQueryService.queryAccounts failed", e);
+        } catch (RuntimeException exception) {
+            AdminReadContract.propagate(exception);
+            throw AdminReadContract.ownerUnavailable("Auth", exception);
         }
-        if (rpc == null || !rpc.success() || rpc.page() == null) {
-            if (isPermissionError(rpc)) {
-                throw permissionError(rpc);
-            }
-            throw ownerUnavailable("AccountQueryService.queryAccounts returned failure");
+        OwnerRead<AuthAccountDTO> read = AdminReadContract.classify("Auth", rpc);
+        if (!read.available() || rpc.page() == null) {
+            throw AdminReadContract.ownerUnavailable("Auth");
         }
 
         RpcResult.Page page = rpc.page();
@@ -142,11 +129,13 @@ public class AdminUserEnricher {
                 .map(AuthAccountDTO::accountId)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
-        ProfileBatch profiles = batchProfiles(accountIds);
+        OwnerRead<Map<String, UserProfileDTO>> profiles = batchProfiles(accountIds);
+        Map<String, UserProfileDTO> profileData = profiles.available() && profiles.value() != null
+                ? profiles.value() : Collections.emptyMap();
         return new AccountPage(
                 accounts,
                 total,
-                profiles.data(),
+                profileData,
                 profiles.available() ? DegradationStatus.OK : DegradationStatus.PARTIAL);
     }
 
@@ -160,40 +149,27 @@ public class AdminUserEnricher {
      */
     public AuthAccountDTO findAccountAuthoritatively(String accountId) {
         if (accountQueryService == null) {
-            throw ownerUnavailable("AccountQueryService is unavailable");
+            throw AdminReadContract.ownerUnavailable("Auth");
         }
 
         RpcResult<AuthAccountDTO> rpc;
         try {
             rpc = accountQueryService.getAccountById(accountId);
-        } catch (BusinessException exception) {
-            if (isPermissionError(exception)) {
-                throw exception;
-            }
-            log.warn("AccountQueryService.getAccountById failed for {}: {}",
-                    accountId, exception.getClass().getSimpleName());
-            throw ownerUnavailable("AccountQueryService.getAccountById failed", exception);
-        } catch (Exception exception) {
-            log.warn("AccountQueryService.getAccountById failed for {}: {}",
-                    accountId, exception.getClass().getSimpleName());
-            throw ownerUnavailable("AccountQueryService.getAccountById failed", exception);
+        } catch (RuntimeException exception) {
+            AdminReadContract.propagate(exception);
+            throw AdminReadContract.ownerUnavailable("Auth", exception);
         }
-        if (rpc == null) {
-            throw ownerUnavailable("AccountQueryService.getAccountById returned null");
-        }
-        if (!rpc.success()) {
+        OwnerRead<AuthAccountDTO> read = AdminReadContract.classify("Auth", rpc);
+        if (!read.available()) {
             if (isAuthAccountNotFound(rpc)) {
                 return null;
             }
-            if (isPermissionError(rpc)) {
-                throw permissionError(rpc);
-            }
-            throw ownerUnavailable("AccountQueryService.getAccountById returned failure");
+            throw AdminReadContract.ownerUnavailable("Auth");
         }
-        if (rpc.data() == null) {
-            throw ownerUnavailable("AccountQueryService.getAccountById returned empty payload");
+        if (read.value() == null) {
+            throw AdminReadContract.ownerUnavailable("Auth");
         }
-        return rpc.data();
+        return read.value();
     }
 
     /**
@@ -204,9 +180,11 @@ public class AdminUserEnricher {
         if (accountId == null || accountId.isBlank()) {
             return new ProfileDetail(null, DegradationStatus.UNAVAILABLE);
         }
-        ProfileBatch profiles = batchProfiles(Set.of(accountId));
+        OwnerRead<Map<String, UserProfileDTO>> profiles = batchProfiles(Set.of(accountId));
+        Map<String, UserProfileDTO> profileData = profiles.available() && profiles.value() != null
+                ? profiles.value() : Collections.emptyMap();
         return new ProfileDetail(
-                profiles.data().get(accountId),
+                profileData.get(accountId),
                 profiles.available() ? DegradationStatus.OK : DegradationStatus.UNAVAILABLE);
     }
 
@@ -220,10 +198,12 @@ public class AdminUserEnricher {
             return null;
         }
 
-        ProfileBatch profiles = batchProfiles(Set.of(accountId));
+        OwnerRead<Map<String, UserProfileDTO>> profiles = batchProfiles(Set.of(accountId));
+        Map<String, UserProfileDTO> profileData = profiles.available() && profiles.value() != null
+                ? profiles.value() : Collections.emptyMap();
         return new AccountDetail(
                 account,
-                profiles.data().get(accountId),
+                profileData.get(accountId),
                 profiles.available() ? DegradationStatus.OK : DegradationStatus.PARTIAL);
     }
 
@@ -260,7 +240,7 @@ public class AdminUserEnricher {
         EnrichedUsers result = enrichWithStatus(accountIds);
         if (result.status() == DegradationStatus.UNAVAILABLE) {
             log.warn("User identity and profile providers are both unavailable");
-            throw new BusinessException(AdminErrorCode.OWNER_QUERY_UNAVAILABLE);
+            throw AdminReadContract.ownerUnavailable("Auth and App");
         }
         return result.users();
     }
@@ -293,65 +273,32 @@ public class AdminUserEnricher {
     public record EnrichedUsers(Map<String, AdminUserSummary> users, DegradationStatus status) {
     }
 
-    private record IdentityBatch(Map<String, UserIdentityDTO> data, boolean available) {
-    }
-
-    private record ProfileBatch(Map<String, UserProfileDTO> data, boolean available) {
-    }
-
     private EnrichedUsers enrichBatchesInParallel(Set<String> accountIds) {
-        CancellableQueryExecutor.Query<IdentityBatch> identities =
-                submitQuery(() -> batchIdentities(accountIds));
-        CancellableQueryExecutor.Query<ProfileBatch> profiles =
-                submitQuery(() -> batchProfiles(accountIds));
-        try {
-            queryExecutor.awaitAll(
-                    RpcPolicy.QUERY_TIMEOUT_MS,
-                    TimeUnit.MILLISECONDS,
-                    identities,
-                    profiles);
-        } catch (InterruptedException exception) {
-            Thread.currentThread().interrupt();
-        } catch (ExecutionException exception) {
-            rethrowFatal(exception.getCause());
-        } catch (TimeoutException exception) {
-        }
+        CancellableQueryExecutor.Query<OwnerRead<Map<String, UserIdentityDTO>>> identities =
+                queryExecutor.submit(() -> batchIdentities(accountIds));
+        CancellableQueryExecutor.Query<OwnerRead<Map<String, UserProfileDTO>>> profiles =
+                queryExecutor.submit(() -> batchProfiles(accountIds));
+        List<OwnerRead<Object>> reads = AdminReadContract.<Object>awaitAndClassify(
+                queryExecutor,
+                "User enrichment",
+                RpcPolicy.QUERY_TIMEOUT_MS,
+                TimeUnit.MILLISECONDS,
+                identities,
+                profiles);
         return mergeBatches(
                 accountIds,
-                completedResult(identities.result()),
-                completedResult(profiles.result()));
-    }
-
-    private <T> CancellableQueryExecutor.Query<T> submitQuery(Callable<T> task) {
-        return queryExecutor.submit(task);
-    }
-
-    private static <T> T completedResult(CompletableFuture<T> result) {
-        if (!result.isDone() || result.isCancelled()) {
-            return null;
-        }
-        try {
-            return result.join();
-        } catch (CompletionException exception) {
-            rethrowFatal(exception.getCause());
-            return null;
-        }
-    }
-
-    private static void rethrowFatal(Throwable cause) {
-        if (cause instanceof Error error) {
-            throw error;
-        }
-        if (cause instanceof BusinessException exception
-                && isPermissionError(exception)) {
-            throw exception;
-        }
+                typedRead(reads.get(0)),
+                typedRead(reads.get(1)));
     }
 
     private static EnrichedUsers mergeBatches(
-            Set<String> accountIds, IdentityBatch identities, ProfileBatch profiles) {
-        boolean identitiesAvailable = identities != null && identities.available();
-        boolean profilesAvailable = profiles != null && profiles.available();
+            Set<String> accountIds,
+            OwnerRead<Map<String, UserIdentityDTO>> identities,
+            OwnerRead<Map<String, UserProfileDTO>> profiles) {
+        boolean identitiesAvailable = identities != null
+                && identities.available() && identities.value() != null;
+        boolean profilesAvailable = profiles != null
+                && profiles.available() && profiles.value() != null;
         DegradationStatus status;
         if (!identitiesAvailable && !profilesAvailable) {
             status = DegradationStatus.UNAVAILABLE;
@@ -361,12 +308,12 @@ public class AdminUserEnricher {
             status = DegradationStatus.OK;
         }
 
-        Map<String, UserIdentityDTO> identityMap = identities == null || identities.data() == null
+        Map<String, UserIdentityDTO> identityMap = !identitiesAvailable
                 ? Collections.emptyMap()
-                : identities.data();
-        Map<String, UserProfileDTO> profileMap = profiles == null || profiles.data() == null
+                : identities.value();
+        Map<String, UserProfileDTO> profileMap = !profilesAvailable
                 ? Collections.emptyMap()
-                : profiles.data();
+                : profiles.value();
         Map<String, AdminUserSummary> users = accountIds.stream()
                 .filter(id -> identityMap.containsKey(id) || profileMap.containsKey(id))
                 .collect(Collectors.toMap(
@@ -406,45 +353,26 @@ public class AdminUserEnricher {
 
         // Try AccountQueryService first (has email + full account data)
         if (accountQueryService != null) {
-            RpcResult<AuthAccountDTO> rpc = null;
             try {
-                rpc = accountQueryService.getAccountById(accountId);
-            } catch (BusinessException exception) {
-                if (isPermissionError(exception)) {
-                    throw exception;
-                }
-                log.warn("AccountQueryService.getAccountById failed for {}: {}", accountId, exception.getMessage());
-            } catch (Exception e) {
-                log.warn("AccountQueryService.getAccountById failed for {}: {}", accountId, e.getMessage());
-            }
-            if (rpc != null) {
-                if (isPermissionError(rpc)) {
-                    throw permissionError(rpc);
-                }
-                if (rpc.success() && rpc.data() != null) {
-                    AuthAccountDTO account = rpc.data();
-                    // Profile fields from UserProfileQueryService
+                OwnerRead<AuthAccountDTO> accountRead = AdminReadContract.classify(
+                        "Auth", accountQueryService.getAccountById(accountId));
+                if (accountRead.available() && accountRead.value() != null) {
+                    AuthAccountDTO account = accountRead.value();
                     String name = null;
                     String avatar = null;
                     if (userProfileQueryService != null) {
                         try {
-                            RpcResult<UserProfileDTO> profileRpc = userProfileQueryService.getProfileByAccountId(accountId);
-                            if (profileRpc != null) {
-                                if (isPermissionError(profileRpc)) {
-                                    throw permissionError(profileRpc);
-                                }
-                                if (profileRpc.success() && profileRpc.data() != null) {
-                                    name = profileRpc.data().name();
-                                    avatar = profileRpc.data().avatar();
-                                }
+                            OwnerRead<UserProfileDTO> profileRead = AdminReadContract.classify(
+                                    "App",
+                                    userProfileQueryService.getProfileByAccountId(accountId));
+                            if (profileRead.available() && profileRead.value() != null) {
+                                name = profileRead.value().name();
+                                avatar = profileRead.value().avatar();
                             }
-                        } catch (BusinessException exception) {
-                            if (isPermissionError(exception)) {
-                                throw exception;
-                            }
-                            log.warn("UserProfileQueryService.getProfileByAccountId failed for {}: {}", accountId, exception.getMessage());
-                        } catch (Exception e) {
-                            log.warn("UserProfileQueryService.getProfileByAccountId failed for {}: {}", accountId, e.getMessage());
+                        } catch (RuntimeException exception) {
+                            AdminReadContract.propagate(exception);
+                            log.warn("UserProfileQueryService.getProfileByAccountId failed for {}: {}",
+                                    accountId, exception.getMessage());
                         }
                     }
                     return new AdminUserSummary(
@@ -453,9 +381,12 @@ public class AdminUserEnricher {
                             account.role(),
                             name,
                             avatar,
-                            account.email()
-                    );
+                            account.email());
                 }
+            } catch (RuntimeException exception) {
+                AdminReadContract.propagate(exception);
+                log.warn("AccountQueryService.getAccountById failed for {}: {}",
+                        accountId, exception.getMessage());
             }
         }
 
@@ -464,127 +395,58 @@ public class AdminUserEnricher {
         EnrichedUsers result = enrichWithStatus(Set.of(accountId));
         if (result.status() == DegradationStatus.UNAVAILABLE) {
             log.warn("User identity and profile providers are both unavailable");
-            throw new BusinessException(AdminErrorCode.OWNER_QUERY_UNAVAILABLE);
+            throw AdminReadContract.ownerUnavailable("Auth and App");
         }
         return result.users().get(accountId);
     }
 
-    private IdentityBatch batchIdentities(Set<String> accountIds) {
+    private OwnerRead<Map<String, UserIdentityDTO>> batchIdentities(Set<String> accountIds) {
         if (identityQueryService == null) {
-            return new IdentityBatch(Collections.emptyMap(), false);
+            return OwnerRead.unavailable("Auth owner query unavailable");
         }
-        try {
-            RpcResult<List<UserIdentityDTO>> rpc = identityQueryService.batchGetIdentity(accountIds);
-            if (rpc == null || !rpc.success() || rpc.data() == null) {
-                if (isPermissionError(rpc)) {
-                    throw permissionError(rpc);
-                }
-                return new IdentityBatch(Collections.emptyMap(), false);
-            }
-            return new IdentityBatch(rpc.data().stream()
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.toMap(UserIdentityDTO::accountId, Function.identity(), (a, b) -> a)),
-                    true);
-        } catch (BusinessException exception) {
-            if (isPermissionError(exception)) {
-                throw exception;
-            }
-            log.warn("IdentityQueryService.batchGetIdentity failed for {} ids: {}", accountIds.size(), exception.getMessage());
-            return new IdentityBatch(Collections.emptyMap(), false);
-        } catch (Exception e) {
-            log.warn("IdentityQueryService.batchGetIdentity failed for {} ids: {}", accountIds.size(), e.getMessage());
-            return new IdentityBatch(Collections.emptyMap(), false);
+        RpcResult<List<UserIdentityDTO>> rpc = identityQueryService.batchGetIdentity(accountIds);
+        OwnerRead<List<UserIdentityDTO>> read = AdminReadContract.classify("Auth", rpc);
+        if (!read.available() || read.value() == null) {
+            return OwnerRead.unavailable(read.reason());
         }
+        return OwnerRead.available(read.value().stream()
+                .filter(Objects::nonNull)
+                .collect(Collectors.toMap(UserIdentityDTO::accountId, Function.identity(), (a, b) -> a)));
     }
 
-    private ProfileBatch batchProfiles(Set<String> accountIds) {
+    private OwnerRead<Map<String, UserProfileDTO>> batchProfiles(Set<String> accountIds) {
         if (userProfileQueryService == null) {
-            return new ProfileBatch(Collections.emptyMap(), false);
+            return OwnerRead.unavailable("App owner query unavailable");
         }
         try {
             RpcResult<List<UserProfileDTO>> rpc = userProfileQueryService.getProfilesByAccountIds(accountIds);
-            if (rpc == null || !rpc.success() || rpc.data() == null) {
-                if (isPermissionError(rpc)) {
-                    throw permissionError(rpc);
-                }
-                return new ProfileBatch(Collections.emptyMap(), false);
+            OwnerRead<List<UserProfileDTO>> read = AdminReadContract.classify("App", rpc);
+            if (!read.available() || read.value() == null) {
+                return OwnerRead.unavailable(read.reason());
             }
-            return new ProfileBatch(rpc.data().stream()
+            return OwnerRead.available(read.value().stream()
                     .filter(Objects::nonNull)
-                    .collect(Collectors.toMap(UserProfileDTO::accountId, Function.identity(), (a, b) -> a)),
-                    true);
-        } catch (BusinessException exception) {
-            if (isPermissionError(exception)) {
-                throw exception;
-            }
-            log.warn("UserProfileQueryService.getProfilesByAccountIds failed for {} ids: {}", accountIds.size(), exception.getMessage());
-            return new ProfileBatch(Collections.emptyMap(), false);
-        } catch (Exception e) {
-            log.warn("UserProfileQueryService.getProfilesByAccountIds failed for {} ids: {}", accountIds.size(), e.getMessage());
-            return new ProfileBatch(Collections.emptyMap(), false);
+                    .collect(Collectors.toMap(UserProfileDTO::accountId, Function.identity(), (a, b) -> a)));
+        } catch (RuntimeException exception) {
+            AdminReadContract.propagate(exception);
+            log.warn("UserProfileQueryService.getProfilesByAccountIds failed for {} ids: {}",
+                    accountIds.size(), exception.getMessage());
+            return OwnerRead.unavailable("App owner query unavailable");
         }
     }
 
+    @SuppressWarnings("unchecked")
+    private static <T> OwnerRead<T> typedRead(OwnerRead<?> read) {
+        return (OwnerRead<T>) read;
+    }
+
     private static boolean isAuthAccountNotFound(RpcResult<?> rpc) {
+        if (rpc == null) {
+            return false;
+        }
         RpcResult.ErrorPayload error = rpc.error();
         return error != null
                 && AuthErrorCode.NAMESPACE.equals(error.namespace())
                 && error.code() == AuthErrorCode.ACCOUNT_NOT_FOUND.code();
-    }
-
-    /**
-     * Check if an RPC error payload represents a permission failure
-     * (401 Unauthorized or 403 Forbidden). Permission failures must
-     * propagate rather than be mapped to {@code OWNER_QUERY_UNAVAILABLE}.
-     */
-    private static boolean isPermissionError(RpcResult<?> rpc) {
-        if (rpc == null || rpc.success() || rpc.error() == null) {
-            return false;
-        }
-        RpcResult.ErrorPayload error = rpc.error();
-        int code = error.code();
-        return (code == BaseErrorCode.UNAUTHORIZED.code() || code == BaseErrorCode.FORBIDDEN.code())
-                || (AppErrorCode.NAMESPACE.equals(error.namespace())
-                        && (code == AppErrorCode.UNAUTHORIZED.code() || code == AppErrorCode.FORBIDDEN.code()))
-                || (AuthErrorCode.NAMESPACE.equals(error.namespace())
-                        && code == AuthErrorCode.ACCOUNT_BANNED.code());
-    }
-
-    /**
-     * Check if a thrown exception is an Admin-layer permission failure
-     * (FORBIDDEN or UNAUTHORIZED) that must propagate rather than be
-     * caught and mapped to OWNER_QUERY_UNAVAILABLE.
-     */
-    private static boolean isPermissionError(Throwable throwable) {
-        if (throwable instanceof BusinessException exception) {
-            var errorCode = exception.getErrorCode();
-            return errorCode == AdminErrorCode.FORBIDDEN || errorCode == AdminErrorCode.UNAUTHORIZED;
-        }
-        return false;
-    }
-
-    /**
-     * Construct a BusinessException from a permission-failed RPC result,
-     * mapping the owner's 401/403 error code to the Admin namespace.
-     */
-    private static BusinessException permissionError(RpcResult<?> rpc) {
-        RpcResult.ErrorPayload error = rpc.error();
-        int code = error.code();
-        if (code == BaseErrorCode.UNAUTHORIZED.code()
-                || (AppErrorCode.NAMESPACE.equals(error.namespace())
-                        && code == AppErrorCode.UNAUTHORIZED.code())) {
-            return new BusinessException(AdminErrorCode.UNAUTHORIZED, error.message());
-        }
-        return new BusinessException(AdminErrorCode.FORBIDDEN, error.message());
-    }
-
-    private static BusinessException ownerUnavailable(String message) {
-        log.warn("Owner query unavailable: {}", message);
-        return new BusinessException(AdminErrorCode.OWNER_QUERY_UNAVAILABLE);
-    }
-
-    private static BusinessException ownerUnavailable(String message, Throwable cause) {
-        log.warn("Owner query unavailable: {}", message, cause);
-        return new BusinessException(AdminErrorCode.OWNER_QUERY_UNAVAILABLE, cause);
     }
 }

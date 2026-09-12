@@ -104,8 +104,8 @@ not_contains	submissions	services/app/app-web/src/main/java/com/ulticode/modules
 not_contains	submissionUserCounts	services/app/app-web/src/main/java/com/ulticode/modules/reconciliation/port/DefaultAppReconciliationReadPort.java
 not_contains	notifications	services/app/app-web/src/main/java/com/ulticode/modules/reconciliation/port/AppReconciliationReadMapper.java
 not_contains	notificationUserCounts	services/app/app-web/src/main/java/com/ulticode/modules/reconciliation/port/DefaultAppReconciliationReadPort.java
-contains	APP_AUDIT_STREAM_KEY	services/app/app-web/src/main/java/com/ulticode/app/audit/AppAuditOutboxDispatcher.java|services/platform/common/src/main/java/com/ulticode/common/event/IntegrationEventEnvelopeContract.java
-contains	AUTH_AUDIT_STREAM_KEY	services/auth/src/main/java/com/ulticode/auth/audit/AuthAuditOutboxDispatcher.java|services/platform/common/src/main/java/com/ulticode/common/event/IntegrationEventEnvelopeContract.java
+contains	APP_AUDIT_STREAM_KEY	services/app/app-web/src/main/java/com/ulticode/app/audit/AppAuditOutboxPublisher.java|services/platform/common/src/main/java/com/ulticode/common/event/IntegrationEventEnvelopeContract.java
+contains	AUTH_AUDIT_STREAM_KEY	services/auth/src/main/java/com/ulticode/auth/audit/AuthAuditOutboxPublisher.java|services/platform/common/src/main/java/com/ulticode/common/event/IntegrationEventEnvelopeContract.java
 contains	STREAM_KEYS	services/admin/src/main/java/com/ulticode/modules/admin/audit/AdminAuditIntegrationInboxBridge.java
 contains	I_HAVE_VERIFIED_ADMIN_AUDIT_STREAM_MIGRATION	scripts/runbooks/admin-audit-stream-migration.sh
 contains	AuditRecorded	services/admin/src/main/java/com/ulticode/modules/admin/audit/AdminAuditIntegrationInboxBridge.java

@@ -16,7 +16,7 @@ source "$ROOT_DIR/scripts/test/lib/assertions.sh"
 for source in \
   services/platform/integration-inbox/src/main/java/com/ulticode/modules/event/inbox/InboxConsumer.java \
   services/platform/integration-inbox/src/main/java/com/ulticode/modules/event/inbox/ConsumerInboxMapper.java \
-  services/app/app-web/src/main/java/com/ulticode/modules/event/inbox/SubmissionJudgedInboxBridge.java \
+  services/platform/integration-inbox/src/main/java/com/ulticode/modules/event/inbox/RedisStreamInboxBridge.java \
   services/notification/src/main/java/com/ulticode/notification/inbox/NotificationIntegrationInboxBridge.java \
   services/search/src/main/java/com/ulticode/search/SearchDocumentIndexWorker.java \
   services/judge-runtime/src/main/java/com/ulticode/modules/queue/port/adapter/RedissonStreamsJudgeQueueAdapter.java \
@@ -30,8 +30,8 @@ contains services/platform/integration-inbox/src/main/java/com/ulticode/modules/
 contains services/platform/integration-inbox/src/main/java/com/ulticode/modules/event/inbox/ConsumerInboxMapper.java "state = 'PROCESSING'"
 contains services/platform/integration-inbox/src/main/java/com/ulticode/modules/event/inbox/ConsumerInboxMapper.java 'POWER(2'
 contains services/platform/integration-inbox/src/main/java/com/ulticode/modules/event/inbox/ConsumerInboxMapper.java "THEN 'DEAD'"
-contains services/app/app-web/src/main/java/com/ulticode/modules/event/inbox/SubmissionJudgedInboxBridge.java 'ReadOffset.from("0-0")'
-contains services/app/app-web/src/main/java/com/ulticode/modules/event/inbox/SubmissionJudgedInboxBridge.java 'ReadOffset.lastConsumed()'
+contains services/platform/integration-inbox/src/main/java/com/ulticode/modules/event/inbox/RedisStreamInboxBridge.java 'ReadOffset.from("0-0")'
+contains services/platform/integration-inbox/src/main/java/com/ulticode/modules/event/inbox/RedisStreamInboxBridge.java 'ReadOffset.lastConsumed()'
 contains services/app/app-web/src/main/java/com/ulticode/modules/event/inbox/SubmissionJudgedInboxBridge.java 'IntegrationEventPoison'
 contains services/app/app-web/src/main/java/com/ulticode/modules/event/inbox/SubmissionJudgedInboxBridge.java 'IntegrationEventEnvelopeContract.requireCompatibleEnvelope'
 contains services/notification/src/main/java/com/ulticode/notification/inbox/NotificationIntegrationInboxBridge.java 'IntegrationEventEnvelopeContract.requireCompatibleEnvelope'

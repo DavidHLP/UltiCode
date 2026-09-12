@@ -125,8 +125,8 @@ automatically.
 
 | id | entry point | deep interface | provider contract(s) | target L | current_shape | status |
 |---|---|---|---|---|---|---|
-| `S-RECON-FULL` | `OwnerReconciler:294-445` | reconciliation loop | Auth orphan aggregate + Submission/Notification paged facts + App orphan + audit | 164 target | `UNBOUNDED` no finite page cap | `UNMEASURED` — `FAIL_UNBOUNDED_SCAN` |
-| `S-RECON-INCREMENTAL` | `OwnerReconciler:294-445` with watermark | same loop | same providers | 164 target | unbounded if window large | `UNMEASURED` — `FAIL_UNBOUNDED_SCAN` |
+| `S-RECON-FULL` | `OwnerReconciler` → `OrphanScan` | reconciliation loop | Auth orphan aggregate + Submission/Notification paged facts + App orphan + audit | 164 target | bounded owner pages, ordered pages, batched Auth existence checks | `FIXED` — `MAX_RECONCILIATION_PAGES=32` |
+| `S-RECON-INCREMENTAL` | `OwnerReconciler` → `OrphanScan` with watermark | same loop | same providers | 164 target | same bounded scan envelope | `FIXED` — `MAX_RECONCILIATION_PAGES=32` |
 | `S-RECON-LEASE-BUSY` | `OwnerReconciler:162-209` | lease entry | lease acquire | 0 | exit on null lease | `MEASURED` |
 
 ## 6. Unmeasured / N+1 / bounded-scan summary
@@ -140,8 +140,8 @@ automatically.
 | `B-TESTCASE-REORDER` | `AdminTestCaseService` | no explicit ID count cap | Add input size cap |
 | `B-PROBLIST-REPLACE` | `AdminProblemListServiceImpl` | no entry-size cap | Add `@Size(max=500)` |
 | `B-PROBLEM-EXPORT` | `ProblemExportServiceImpl` | provider-side cap not evident | Require provider-side 10k cap |
-| `S-RECON-FULL` | `OwnerReconciler` | no finite page cap | `MAX_*_PAGES=32` (see P3 manifest §6) |
-| `S-RECON-INCREMENTAL` | `OwnerReconciler` | no finite page cap | Same `MAX_*_PAGES=32` |
+| `S-RECON-FULL` | `OwnerReconciler` → `OrphanScan` | duplicated paging and parent lookup policy | Shared bounded scan module with `MAX_RECONCILIATION_PAGES=32` (see P3 manifest §6) |
+| `S-RECON-INCREMENTAL` | `OwnerReconciler` → `OrphanScan` | duplicated paging and parent lookup policy | Same shared bounded scan module |
 | `I-ANALYTICS-ACTIVITY` | `AdminAnalyticsController:27-71` | no 365-day input cap annotation | Add `@Min(1) @Max(365)` |
 | `I-ANALYTICS-CONTEST` | `ContestParticipationReporter:35-89` | no 500-row cap | Require owner-side cap |
 | `I-ANALYTICS-REVENUE` | `RevenueReporter:37-169` | no 10,000-row cap | Require owner-side cap |

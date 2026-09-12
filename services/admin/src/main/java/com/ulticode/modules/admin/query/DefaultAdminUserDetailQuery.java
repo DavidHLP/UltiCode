@@ -31,7 +31,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.RejectedExecutionException;
@@ -171,16 +170,16 @@ public class DefaultAdminUserDetailQuery implements AdminUserDetailQuery {
                 queryExecutor.submit(() -> userEnricher.findAccountAuthoritatively(userId));
         AuthAccountDTO account;
         try {
-            account = await(accountQuery, deadline);
+            account = queryExecutor.await(
+                    accountQuery,
+                    remainingNanos(deadline),
+                    TimeUnit.NANOSECONDS);
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
-            CancellableQueryExecutor.cancel(accountQuery);
             return AdminUserDetailResult.unavailable(AUTH_ACCOUNT_INTERRUPTED_REASON);
         } catch (TimeoutException exception) {
-            CancellableQueryExecutor.cancel(accountQuery);
             return AdminUserDetailResult.unavailable(AUTH_ACCOUNT_TIMEOUT_REASON);
         } catch (ExecutionException exception) {
-            CancellableQueryExecutor.cancel(accountQuery);
             return accountFailure(exception.getCause());
         }
 
@@ -209,17 +208,13 @@ public class DefaultAdminUserDetailQuery implements AdminUserDetailQuery {
         boolean timedOut = false;
         boolean rejected = false;
         try {
-            long remaining = remainingNanos(deadline);
-            if (remaining <= 0) {
-                timedOut = true;
-            } else {
-                CompletableFuture.allOf(
-                                permissionQuery.result(),
-                                profileQuery.result(),
-                                solutionQuery.result(),
-                                submissionQuery.result())
-                        .get(remaining, TimeUnit.NANOSECONDS);
-            }
+            queryExecutor.awaitAll(
+                    Math.max(0L, remainingNanos(deadline)),
+                    TimeUnit.NANOSECONDS,
+                    permissionQuery,
+                    profileQuery,
+                    solutionQuery,
+                    submissionQuery);
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
             interrupted = true;
@@ -232,11 +227,6 @@ public class DefaultAdminUserDetailQuery implements AdminUserDetailQuery {
                 rejected = true;
             } else {
                 rethrowFatal(exception.getCause());
-            }
-        } finally {
-            if (interrupted || timedOut || rejected) {
-                CancellableQueryExecutor.cancel(
-                        permissionQuery, profileQuery, solutionQuery, submissionQuery);
             }
         }
 
@@ -267,16 +257,6 @@ public class DefaultAdminUserDetailQuery implements AdminUserDetailQuery {
         log.warn("Auth account query failed: {}",
                 cause == null ? "unknown" : cause.getClass().getSimpleName());
         return AdminUserDetailResult.unavailable("Auth account query unavailable");
-    }
-
-    private <T> T await(
-            CancellableQueryExecutor.Query<T> query, long deadline)
-            throws InterruptedException, TimeoutException, ExecutionException {
-        long remaining = remainingNanos(deadline);
-        if (remaining <= 0) {
-            throw new TimeoutException("detail query wall budget exhausted");
-        }
-        return query.result().get(remaining, TimeUnit.NANOSECONDS);
     }
 
     private static long remainingNanos(long deadline) {

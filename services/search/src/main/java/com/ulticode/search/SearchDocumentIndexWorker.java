@@ -9,6 +9,7 @@ import com.ulticode.common.event.SearchDocumentChangedEventContract;
 import com.ulticode.common.lifecycle.DrainGate;
 import com.ulticode.common.metrics.WorkerSloMeters;
 import com.ulticode.common.resilience.DependencyGuard;
+import com.ulticode.modules.event.inbox.RedisStreamTransport;
 import com.ulticode.search.config.SearchWorkerProperties;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -21,14 +22,10 @@ import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.data.domain.Range;
 import org.springframework.data.redis.core.script.RedisScript;
-import org.springframework.data.redis.connection.stream.Consumer;
 import org.springframework.data.redis.connection.stream.MapRecord;
 import org.springframework.data.redis.connection.stream.PendingMessage;
 import org.springframework.data.redis.connection.stream.PendingMessages;
-import org.springframework.data.redis.connection.stream.ReadOffset;
 import org.springframework.data.redis.connection.stream.RecordId;
-import org.springframework.data.redis.connection.stream.StreamOffset;
-import org.springframework.data.redis.connection.stream.StreamReadOptions;
 import org.springframework.data.redis.core.StreamOperations;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -89,6 +86,7 @@ public class SearchDocumentIndexWorker {
 
     /** Instance-unique consumer identity, resolved once at startup. */
     private final String consumerName;
+    private final RedisStreamTransport streamTransport;
     private final DrainGate drainGate = new DrainGate();
     private final DependencyGuard meiliSearchGuard =
             new DependencyGuard(8, 5, Duration.ofSeconds(30));
@@ -168,6 +166,8 @@ public class SearchDocumentIndexWorker {
         this.staleCounter = meterRegistry.counter("search.worker.stale_skipped");
         this.slo = WorkerSloMeters.register(meterRegistry, "search.worker");
         this.consumerName = props.effectiveConsumerName();
+        this.streamTransport = new RedisStreamTransport(
+                redisTemplate, props.getStreamKey(), props.getGroup(), consumerName);
         log.info("Search worker consumer identity: {} in group {}", this.consumerName, props.getGroup());
     }
 
@@ -293,43 +293,17 @@ public class SearchDocumentIndexWorker {
         if (drainGate.isDraining()) {
             return false;
         }
-        try {
-            redisTemplate.opsForStream().createGroup(
-                    props.getStreamKey(), ReadOffset.from("0-0"), props.getGroup());
-            return true;
-        } catch (RuntimeException e) {
-            // Lettuce surfaces BUSYGROUP as a generic RedisSystemException;
-            // decide by re-querying the group list instead (restart case).
-            if (groupExists()) {
-                return true;
-            }
-            log.warn("Stream group {} unavailable: {}", props.getGroup(), e.getMessage());
-            return false;
+        boolean ready = streamTransport.ensureGroup();
+        if (!ready) {
+            log.warn("Stream group {} unavailable", props.getGroup());
         }
-    }
-
-    private boolean groupExists() {
-        try {
-            var groups = redisTemplate.opsForStream().groups(props.getStreamKey());
-            if (groups == null) {
-                return false;
-            }
-            for (var group : groups) {
-                if (props.getGroup().equals(group.groupName())) {
-                    return true;
-                }
-            }
-            return false;
-        } catch (RuntimeException e) {
-            log.warn("Failed to list stream groups: {}", e.getMessage());
-            return false;
-        }
+        return ready;
     }
 
     private int drainNew() {
         List<MapRecord<String, String, String>> records;
         try {
-            records = readNew(redisTemplate.opsForStream());
+            records = readNew();
         } catch (RuntimeException e) {
             slo.incrementFailures();
             log.debug("Stream read unavailable: {}", e.getMessage());
@@ -362,15 +336,13 @@ public class SearchDocumentIndexWorker {
         return processed;
     }
 
-    private List<MapRecord<String, String, String>> readNew(StreamOperations<String, String, String> streams) {
+    private List<MapRecord<String, String, String>> readNew() {
         if (drainGate.isDraining()) {
             return List.of();
         }
-        List<MapRecord<String, String, String>> records = streams.read(
-                Consumer.from(props.getGroup(), consumerName),
-                StreamReadOptions.empty().count(props.getBatchSize()),
-                StreamOffset.create(props.getStreamKey(), ReadOffset.lastConsumed()));
-        return records == null ? List.of() : records;
+        return streamTransport.read(
+                org.springframework.data.redis.connection.stream.ReadOffset.lastConsumed(),
+                props.getBatchSize());
     }
 
     /**
@@ -383,8 +355,7 @@ public class SearchDocumentIndexWorker {
         if (drainGate.isDraining()) {
             return List.of();
         }
-        PendingMessages pending = streams.pending(
-                props.getStreamKey(), props.getGroup(), Range.unbounded(), props.getBatchSize());
+        PendingMessages pending = streamTransport.pending(props.getBatchSize());
         if (pending == null || pending.isEmpty()) {
             return List.of();
         }
@@ -404,13 +375,7 @@ public class SearchDocumentIndexWorker {
         if (reclaimIds.isEmpty()) {
             return List.of();
         }
-        List<MapRecord<String, String, String>> reclaimed = streams.claim(
-                props.getStreamKey(),
-                props.getGroup(),
-                consumerName,
-                CLAIM_MIN_IDLE,
-                reclaimIds.toArray(RecordId[]::new));
-        return reclaimed == null ? List.of() : reclaimed;
+        return streamTransport.reclaim(reclaimIds, CLAIM_MIN_IDLE);
     }
 
     private boolean isWaitingForDocumentLock(RecordId recordId) {
@@ -710,8 +675,7 @@ public class SearchDocumentIndexWorker {
 
     private boolean ack(MapRecord<String, String, String> record) {
         try {
-            Long acknowledged = redisTemplate.opsForStream().acknowledge(
-                    props.getStreamKey(), props.getGroup(), record.getId());
+            Long acknowledged = streamTransport.acknowledge(record.getId());
             if (acknowledged == null || acknowledged < 1L) {
                 slo.incrementFailures();
                 log.warn("Search event {} was not acknowledged", record.getId().getValue());

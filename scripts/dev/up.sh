@@ -339,11 +339,7 @@ COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-ulticode}"
 }
 export COMPOSE_PROJECT_NAME NACOS_EXPECTED_DOCKER_PROJECT="$COMPOSE_PROJECT_NAME"
 
-compose=(
-  docker compose --project-directory "$ROOT_DIR" --env-file "$ENV_FILE"
-  -f "$ROOT_DIR/docker/docker-compose.yml"
-  -f "$ROOT_DIR/docker/docker-compose.dev.yml"
-)
+devstack_compose_args compose
 
 INFRA_TARGETS=""
 if [[ "$FRONTEND_ONLY" != true ]]; then

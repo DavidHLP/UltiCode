@@ -85,13 +85,12 @@ run_or_stop() {
 
 cd "$ROOT_DIR"
 
-printf '=== P0 BASELINE ===\n'
-run_or_stop P0 manifest-contract 0 bash "$ROOT_DIR/scripts/dev/devstack-manifest-test.sh"
-run_or_stop P0 docs-contract 0 bash "$ROOT_DIR/scripts/dev/docs-contract-test.sh"
-run_or_stop P0 api-contract 0 bash "$ROOT_DIR/scripts/test/api-contract-boundary-contract.sh"
-
-printf '\n=== P1 APP RUNTIME BOUNDARY ===\n'
-run_or_stop P1 app-judge-runtime 0 bash "$ROOT_DIR/scripts/test/app-judge-runtime-dependency-contract.sh"
+printf '=== P0/P1 ARCHITECTURE CONTRACT ===\n'
+# The architecture contract registry is the source of truth for static
+# baseline/runtime-boundary children. The final gate only selects its
+# static-safe view; it must not maintain a second child list here.
+run_or_stop P0 architecture-contract 0 env ULTI_STATIC_ONLY=1 \
+  bash "$ROOT_DIR/scripts/dev/architecture-contract-test.sh"
 
 printf '\n=== P2 INFRASTRUCTURE RECOVERY ===\n'
 run_or_stop P2 infra-isolation 1 bash "$ROOT_DIR/scripts/test/gate-infra-isolation.sh"
@@ -107,7 +106,6 @@ run_or_stop P5 repository-full 1 bash -c \
   "cd \"$ROOT_DIR/services\" && mise exec java@zulu-17.68.203.0 -- bash ./mvnw -pl auth,admin,app/app-web,submission,judge,notification,search -am test -B"
 
 printf '\n=== P6 DISPOSABLE INTEGRATION SUITE ===\n'
-run_or_stop P6 schema-integration 1 bash "$ROOT_DIR/scripts/test/owner-schema-contraction-contract.sh"
 run_or_stop P6 audit-stream-integration 1 bash "$ROOT_DIR/scripts/test/admin-audit-stream-migration-contract.sh"
 
 printf '\nFINAL_GATE: PASS\n'

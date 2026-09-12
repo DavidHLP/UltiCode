@@ -371,20 +371,19 @@ class OwnerReconcilerTest {
             assertThat(run.getDetail()).contains("\"orphans\":2");
         }
         @Test
-        @DisplayName("blank and empty performer IDs are counted as audit orphans")
-        void blankPerformerIdsAreOrphans() {
+        @DisplayName("blank performer IDs fail the audit scan closed")
+        void blankPerformerIdsFailClosed() {
             when(authService.countAuthOrphans()).thenReturn(RpcResult.success(
                     AuthReconciliationOrphanCounts.ZERO, "t-system"));
             when(appPort.countOrphans()).thenReturn(ReconciliationOrphanCounts.ZERO);
             when(auditMapper.auditPerformerIds(any(Integer.class), any(Integer.class)))
                     .thenReturn(List.of(reference("", 1), reference("  ", 1), reference("ghost", 1)));
-            when(authService.existingUserIds(Set.of("", "  ", "ghost")))
-                    .thenReturn(RpcResult.success(Set.of(), "t-system"));
 
             ReconciliationRun run = reconciler.runReconciliation();
 
-            assertThat(run.getOrphanCount()).isEqualTo(1);
-            assertThat(run.getDetail()).contains("\"orphans\":3");
+            assertThat(run.getStatus()).isEqualTo("FAILED");
+            assertThat(run.getOrphanCount()).isZero();
+            assertThat(run.getDetail()).contains("\"mode\":\"FULL\"", "\"error\":");
         }
 
         @Test

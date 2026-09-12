@@ -103,4 +103,12 @@ describe('createSessionAuthStore', () => {
     await store.loadPermissions()
     expect(store.permissions.value.has('READ:USER')).toBe(true)
   })
+
+  it('rejects registration when the adapter does not support it', async () => {
+    transport = makeTransport({ register: undefined })
+    const store = createSessionAuthStore(transport)
+
+    await expect(store.register({})).rejects.toThrow('Registration is not supported')
+    expect(store.status.value).toBe('error')
+  })
 })

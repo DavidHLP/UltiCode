@@ -382,9 +382,8 @@ function buildManagementAuthAdapter() {
       // Previously this adapter called fetchUser() unconditionally
       // (ensureUser() did not exist on the auth store yet), which
       // caused a redundant /auth/me round-trip on every protected
-      // navigation for an already-authenticated user. createAuthStore
-      // now exposes ensureUser() to satisfy the seam's lazy-loader
-      // contract.
+      // navigation for an already-authenticated user. The shared session
+      // policy exposes ensureUser() to satisfy the seam's lazy-loader contract.
       await useAuthStore().ensureUser()
     },
   }

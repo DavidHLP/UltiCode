@@ -293,10 +293,7 @@ run_full_local() {
     "$ROOT_DIR/scripts/dev/init-env.sh"
   fi
 
-  set -a
-  # shellcheck disable=SC1090
-  source "$ENV_FILE"
-  set +a
+  load_env_file
   [[ -n "${JAVA_TOOL_OPTIONS:-}" ]] || unset JAVA_TOOL_OPTIONS
 
   # Compose validates the Meili service even when the full-local gate does not
@@ -332,11 +329,7 @@ run_full_local() {
     exit 1
   fi
 
-  compose=(
-    docker compose --project-directory "$ROOT_DIR" --env-file "$ENV_FILE"
-    -f "$ROOT_DIR/docker/docker-compose.yml"
-    -f "$ROOT_DIR/docker/docker-compose.dev.yml"
-  )
+  devstack_compose_args compose
 
   cleanup_test_resources() {
     if [[ -n "$TEST_MYSQL_CONTAINER" ]]; then

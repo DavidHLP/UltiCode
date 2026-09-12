@@ -32,7 +32,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * Nightly reconciliation job and orphan scanner (P5-RECONCILE-001),
@@ -84,15 +83,6 @@ public class OwnerReconciler {
     @DubboReference(group = "backend-auth", version = "1.0.0",
             timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
     private ReconciliationQueryService authQueryService;
-
-    /** Reconciliation pair for vertical-split table count divergence checks. */
-    record ReconciliationPair(String sourceTable, String targetTable, String owner) {}
-
-    // The users → user_profiles dual-write pair is removed: profile columns
-    // have been dropped from users (P5-USERPROFILE-001 contract phase).
-    // Reconciliation infrastructure remains for future pairs and orphan detection.
-    private static final List<ReconciliationPair> RECONCILIATION_PAIRS = List.of();
-
 
     @Scheduled(scheduler = "adminReconciliationScheduler", cron = "0 0 2 * * *")
     @Transactional
@@ -161,14 +151,6 @@ public class OwnerReconciler {
             String failureReason = null;
 
             try {
-                for (ReconciliationPair pair : RECONCILIATION_PAIRS) {
-                    ReconciliationResult result = reconcilePair(pair);
-                    reconResults.add(result);
-                    if (!result.isDriftFree()) {
-                        totalDivergence++;
-                    }
-                }
-
                 orphanResults.addAll(authOrphans());
                 orphanResults.add(submissionOrphans(createdSince));
                 orphanResults.add(notificationOrphans(createdSince));
@@ -269,29 +251,6 @@ public class OwnerReconciler {
         return exception.getClass().getSimpleName() + ": " + message;
     }
 
-    /**
-     * Reconcile a vertical-split pair: the source owner counts rows
-     * via RPC; the target owner counts via the local read port.
-     */
-    ReconciliationResult reconcilePair(ReconciliationPair pair) {
-        long sourceCount = 0;
-        long targetCount = 0;
-
-        if ("users".equals(pair.sourceTable()) && "user_profiles".equals(pair.targetTable())) {
-            RpcResult<Long> authCount = authQueryService.countActiveUsers();
-            if (authCount != null && authCount.success() && authCount.data() != null) {
-                sourceCount = authCount.data();
-            }
-            targetCount = appReconciliationReadPort.countUserProfiles();
-        }
-
-        return new ReconciliationResult(
-                pair.sourceTable() + " → " + pair.targetTable(),
-                pair.owner(),
-                sourceCount,
-                targetCount);
-    }
-
     /** Four Auth-internal orphan checks via the auth Dubbo provider. */
     private List<OrphanDetectionResult> authOrphans() {
         if (authQueryService == null) {
@@ -314,50 +273,19 @@ public class OwnerReconciler {
         if (submissionReconciliationReadPort == null) {
             throw submissionUnavailable();
         }
-        String afterAccountId = "";
-        long missing = 0L;
-        int pages = 0;
-        while (true) {
-            List<SubmissionUserReferenceCountDTO> references =
-                    submissionReconciliationReadPort.findUserReferenceCounts(
-                            afterAccountId, createdSince, RECONCILIATION_PAGE_SIZE);
-            if (references == null) {
-                throw submissionUnavailable();
-            }
-            if (references.isEmpty()) {
-                break;
-            }
-            if (++pages > MAX_RECONCILIATION_PAGES) {
-                throw submissionUnavailable();
-            }
-            if (references.size() > RECONCILIATION_PAGE_SIZE) {
-                throw submissionUnavailable();
-            }
-            Set<String> candidates = new HashSet<>();
-            String previousAccountId = afterAccountId;
-            for (SubmissionUserReferenceCountDTO reference : references) {
-                if (reference == null || reference.accountId() == null
-                        || reference.accountId().isBlank() || reference.rowCount() < 0
-                        || !candidates.add(reference.accountId())
-                        || reference.accountId().compareTo(previousAccountId) <= 0) {
-                    throw submissionUnavailable();
-                }
-                previousAccountId = reference.accountId();
-            }
-            Set<String> existing = existingUserIds(candidates);
-            for (SubmissionUserReferenceCountDTO reference : references) {
-                if (!existing.contains(reference.accountId())) {
-                    missing += reference.rowCount();
-                }
-            }
-            String nextAccountId = references.get(references.size() - 1).accountId();
-            if (nextAccountId.compareTo(afterAccountId) <= 0) {
-                throw submissionUnavailable();
-            }
-            afterAccountId = nextAccountId;
-            if (references.size() < RECONCILIATION_PAGE_SIZE) {
-                break;
-            }
+        long missing;
+        try {
+            missing = OrphanScan.keyset(
+                    "",
+                    RECONCILIATION_PAGE_SIZE,
+                    MAX_RECONCILIATION_PAGES,
+                    (after, limit) -> submissionReconciliationReadPort.findUserReferenceCounts(
+                            after, createdSince, limit),
+                    SubmissionUserReferenceCountDTO::accountId,
+                    SubmissionUserReferenceCountDTO::rowCount,
+                    this::existingUserIds);
+        } catch (OrphanScan.InvalidPageException exception) {
+            throw submissionUnavailable();
         }
         return orphan("submissions", "user_id", "Submission", "users", "Auth", missing);
     }
@@ -367,50 +295,19 @@ public class OwnerReconciler {
         if (notificationReconciliationReadPort == null) {
             throw notificationUnavailable();
         }
-        String afterAccountId = "";
-        long missing = 0L;
-        int pages = 0;
-        while (true) {
-            List<NotificationUserReferenceCountDTO> references =
-                    notificationReconciliationReadPort.findUserReferenceCounts(
-                            afterAccountId, createdSince, NOTIFICATION_RECONCILIATION_PAGE_SIZE);
-            if (references == null) {
-                throw notificationUnavailable();
-            }
-            if (references.isEmpty()) {
-                break;
-            }
-            if (++pages > MAX_RECONCILIATION_PAGES) {
-                throw notificationUnavailable();
-            }
-            if (references.size() > NOTIFICATION_RECONCILIATION_PAGE_SIZE) {
-                throw notificationUnavailable();
-            }
-            Set<String> candidates = new HashSet<>();
-            String previousAccountId = afterAccountId;
-            for (NotificationUserReferenceCountDTO reference : references) {
-                if (reference == null || reference.accountId() == null
-                        || reference.accountId().isBlank() || reference.rowCount() < 0
-                        || !candidates.add(reference.accountId())
-                        || reference.accountId().compareTo(previousAccountId) <= 0) {
-                    throw notificationUnavailable();
-                }
-                previousAccountId = reference.accountId();
-            }
-            Set<String> existing = existingUserIds(candidates);
-            for (NotificationUserReferenceCountDTO reference : references) {
-                if (!existing.contains(reference.accountId())) {
-                    missing += reference.rowCount();
-                }
-            }
-            String nextAccountId = references.get(references.size() - 1).accountId();
-            if (nextAccountId.compareTo(afterAccountId) <= 0) {
-                throw notificationUnavailable();
-            }
-            afterAccountId = nextAccountId;
-            if (references.size() < NOTIFICATION_RECONCILIATION_PAGE_SIZE) {
-                break;
-            }
+        long missing;
+        try {
+            missing = OrphanScan.keyset(
+                    "",
+                    NOTIFICATION_RECONCILIATION_PAGE_SIZE,
+                    MAX_RECONCILIATION_PAGES,
+                    (after, limit) -> notificationReconciliationReadPort.findUserReferenceCounts(
+                            after, createdSince, limit),
+                    NotificationUserReferenceCountDTO::accountId,
+                    NotificationUserReferenceCountDTO::rowCount,
+                    this::existingUserIds);
+        } catch (OrphanScan.InvalidPageException exception) {
+            throw notificationUnavailable();
         }
         return orphan("notifications", "user_id", "Notification", "users", "Auth", missing);
     }
@@ -430,31 +327,19 @@ public class OwnerReconciler {
 
     /** Admin-local audit_logs candidates checked against Auth physical existence in bounded pages. */
     private OrphanDetectionResult auditLogsOrphans() {
-        long missing = 0;
-        int offset = 0;
-        int pages = 0;
         final int pageSize = 500;
-        while (true) {
-            List<AuditReferenceCount> references = auditOrphanMapper.auditPerformerIds(offset, pageSize);
-            if (references == null || references.isEmpty()) {
-                break;
-            }
-            if (++pages > MAX_RECONCILIATION_PAGES) {
-                throw new BusinessException(
-                        BaseErrorCode.UNKNOWN_ERROR, "Admin audit reconciliation page cap exceeded");
-            }
-            Set<String> candidates = references.stream()
-                    .map(AuditReferenceCount::getPerformerId)
-                    .collect(Collectors.toSet());
-            Set<String> existing = existingUserIds(candidates);
-            missing += references.stream()
-                    .filter(reference -> !existing.contains(reference.getPerformerId()))
-                    .mapToLong(AuditReferenceCount::getRowCount)
-                    .sum();
-            if (references.size() < pageSize) {
-                break;
-            }
-            offset += pageSize;
+        long missing;
+        try {
+            missing = OrphanScan.offset(
+                    pageSize,
+                    MAX_RECONCILIATION_PAGES,
+                    (offset, limit) -> auditOrphanMapper.auditPerformerIds(offset, limit),
+                    AuditReferenceCount::getPerformerId,
+                    AuditReferenceCount::getRowCount,
+                    this::existingUserIds);
+        } catch (OrphanScan.InvalidPageException exception) {
+            throw new BusinessException(
+                    BaseErrorCode.UNKNOWN_ERROR, "Admin audit reconciliation page unavailable");
         }
         return orphan("audit_logs", "performer_id", "Admin", "users", "Auth", missing);
     }
@@ -466,16 +351,12 @@ public class OwnerReconciler {
         if (authQueryService == null) {
             throw authUnavailable();
         }
-        List<String> ids = new ArrayList<>(candidates);
         Set<String> existing = new HashSet<>();
-        for (int start = 0; start < ids.size(); start += 500) {
-            Set<String> batch = Set.copyOf(ids.subList(start, Math.min(start + 500, ids.size())));
-            RpcResult<Set<String>> result = authQueryService.existingUserIds(batch);
-            if (result == null || !result.success() || result.data() == null) {
-                throw authUnavailable();
-            }
-            existing.addAll(result.data());
+        RpcResult<Set<String>> result = authQueryService.existingUserIds(candidates);
+        if (result == null || !result.success() || result.data() == null) {
+            throw authUnavailable();
         }
+        existing.addAll(result.data());
         return existing;
     }
 

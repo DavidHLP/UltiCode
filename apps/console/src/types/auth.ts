@@ -11,7 +11,7 @@
  * snake_case types from auth-core, removing the documented debt flagged in
  * the file's previous header comment.
  *
- * See `/tmp/architecture-review-1783341079.html` Card 3.
+ * See ADR-0013 for the architecture-review auth contract decision.
  */
 export type {
   LoginCredentials,

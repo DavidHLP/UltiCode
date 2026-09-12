@@ -20,6 +20,8 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 source "$ROOT_DIR/scripts/dev/devstack-manifest.sh"
 # shellcheck source=scripts/dev/lib/pm2.sh
 source "$ROOT_DIR/scripts/dev/lib/pm2.sh"
+# shellcheck source=scripts/dev/lib/common.sh
+source "$ROOT_DIR/scripts/dev/lib/common.sh"
 
 SCOPE="dev-lite"
 SCOPE_EXPLICIT=false
@@ -169,18 +171,11 @@ pid_owner() {
   fi
 }
 
-running_compose_service_container() {
-  local service="$1"
-  command -v docker >/dev/null 2>&1 || return 0
-  docker ps -q --filter "label=com.docker.compose.service=$service" | sed -n '1p'
-}
-
 compose_health() {
   local service="$1" container
   container="$(running_compose_service_container "$service")"
   [[ -n "$container" ]] || { printf 'absent'; return; }
-  docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' \
-    "$container" 2>/dev/null || printf 'unknown'
+  container_health_status "$container"
 }
 
 port_status_line() {

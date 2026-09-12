@@ -28,7 +28,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -215,11 +214,16 @@ public class DefaultAdminAnalyticsPortAdapter implements AdminAnalyticsPort {
                             () -> countContestsInRange(from));
                     CancellableQueryExecutor.Query<Long> subscriptions = queryExecutor.submit(
                             this::countActiveSubscriptions);
-                    CompletableFuture<?> all = CompletableFuture.allOf(
-                            totalUsers.result(), activeUsers.result(), submissions.result(),
-                            accepted.result(), contests.result(), subscriptions.result());
                     try {
-                        all.get(RpcPolicy.QUERY_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+                        queryExecutor.awaitAll(
+                                RpcPolicy.QUERY_TIMEOUT_MS,
+                                TimeUnit.MILLISECONDS,
+                                totalUsers,
+                                activeUsers,
+                                submissions,
+                                accepted,
+                                contests,
+                                subscriptions);
                         return new AnalyticsOverviewData(
                                 totalUsers.result().join(),
                                 activeUsers.result().join(),
@@ -229,14 +233,8 @@ public class DefaultAdminAnalyticsPortAdapter implements AdminAnalyticsPort {
                                 subscriptions.result().join());
                     } catch (InterruptedException exception) {
                         Thread.currentThread().interrupt();
-                        CancellableQueryExecutor.cancel(
-                                totalUsers, activeUsers, submissions, accepted,
-                                contests, subscriptions);
                         throw unavailable();
                     } catch (ExecutionException exception) {
-                        CancellableQueryExecutor.cancel(
-                                totalUsers, activeUsers, submissions, accepted,
-                                contests, subscriptions);
                         Throwable cause = exception.getCause();
                         if (cause instanceof Error) {
                             throw (Error) cause;
@@ -246,9 +244,6 @@ public class DefaultAdminAnalyticsPortAdapter implements AdminAnalyticsPort {
                         }
                         throw unavailable();
                     } catch (TimeoutException exception) {
-                        CancellableQueryExecutor.cancel(
-                                totalUsers, activeUsers, submissions, accepted,
-                                contests, subscriptions);
                         throw unavailable();
                     }
                 });

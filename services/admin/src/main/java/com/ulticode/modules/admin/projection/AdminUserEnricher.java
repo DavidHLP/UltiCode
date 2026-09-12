@@ -16,7 +16,6 @@ import com.ulticode.common.response.DegradationStatus;
 import com.ulticode.common.rpc.RpcPolicy;
 import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.modules.admin.port.adapter.CancellableQueryExecutor;
-import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -72,19 +71,12 @@ import java.util.stream.Collectors;
 @Slf4j
 @Component
 public class AdminUserEnricher {
-    private static final int BATCH_QUERY_POOL_SIZE = 2;
-    private static final String BATCH_QUERY_THREAD_PREFIX = "admin-user-enrichment-query";
     private final CancellableQueryExecutor queryExecutor;
 
-    public AdminUserEnricher() {
-        this(null, null, null);
-    }
-
-    AdminUserEnricher(IdentityQueryService identityQueryService,
-                      UserProfileQueryService userProfileQueryService,
-                      AccountQueryService accountQueryService) {
-        this(identityQueryService, userProfileQueryService, accountQueryService,
-                new CancellableQueryExecutor(BATCH_QUERY_THREAD_PREFIX, BATCH_QUERY_POOL_SIZE));
+    /** Production construction receives the Admin-owned executor bean. */
+    @Autowired
+    public AdminUserEnricher(CancellableQueryExecutor queryExecutor) {
+        this(null, null, null, queryExecutor);
     }
 
     AdminUserEnricher(IdentityQueryService identityQueryService,
@@ -95,11 +87,6 @@ public class AdminUserEnricher {
         this.userProfileQueryService = userProfileQueryService;
         this.accountQueryService = accountQueryService;
         this.queryExecutor = Objects.requireNonNull(queryExecutor, "queryExecutor");
-    }
-
-    @PreDestroy
-    void shutdownQueryExecutor() {
-        queryExecutor.close();
     }
 
     @Autowired(required = false)
@@ -318,16 +305,16 @@ public class AdminUserEnricher {
         CancellableQueryExecutor.Query<ProfileBatch> profiles =
                 submitQuery(() -> batchProfiles(accountIds));
         try {
-            CompletableFuture.allOf(identities.result(), profiles.result())
-                    .get(RpcPolicy.QUERY_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+            queryExecutor.awaitAll(
+                    RpcPolicy.QUERY_TIMEOUT_MS,
+                    TimeUnit.MILLISECONDS,
+                    identities,
+                    profiles);
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
-            cancel(identities, profiles);
         } catch (ExecutionException exception) {
-            cancel(identities, profiles);
             rethrowFatal(exception.getCause());
         } catch (TimeoutException exception) {
-            cancel(identities, profiles);
         }
         return mergeBatches(
                 accountIds,
@@ -337,11 +324,6 @@ public class AdminUserEnricher {
 
     private <T> CancellableQueryExecutor.Query<T> submitQuery(Callable<T> task) {
         return queryExecutor.submit(task);
-    }
-
-    @SafeVarargs
-    private static void cancel(CancellableQueryExecutor.Query<?>... queries) {
-        CancellableQueryExecutor.cancel(queries);
     }
 
     private static <T> T completedResult(CompletableFuture<T> result) {

@@ -1,13 +1,17 @@
 package com.ulticode.modules.admin.port.adapter;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /** Bounded, interrupt-aware executor for one Admin owner-query slice. */
@@ -45,6 +49,53 @@ public final class CancellableQueryExecutor implements AutoCloseable {
             execution = null;
         }
         return new Query<>(result, execution);
+    }
+
+    /**
+     * Wait for one query and cancel it whenever the wait cannot complete.
+     * Callers remain responsible for translating the failure into their
+     * domain-specific degradation result.
+     */
+    public <T> T await(Query<T> query, long timeout, TimeUnit unit)
+            throws InterruptedException, ExecutionException, TimeoutException {
+        if (timeout <= 0) {
+            cancel(query);
+            throw new TimeoutException("query deadline exhausted");
+        }
+        try {
+            return query.result().get(timeout, unit);
+        } catch (InterruptedException | ExecutionException | TimeoutException exception) {
+            cancel(query);
+            throw exception;
+        }
+    }
+
+    /**
+     * Wait for a bounded query fan-out and cancel every query on failure.
+     * This is the single cancellation boundary for Admin owner-query slices.
+     */
+    @SafeVarargs
+    public final <T> List<T> awaitAll(long timeout, TimeUnit unit, Query<? extends T>... queries)
+            throws InterruptedException, ExecutionException, TimeoutException {
+        if (timeout <= 0) {
+            cancel(queries);
+            throw new TimeoutException("query deadline exhausted");
+        }
+        CompletableFuture<?>[] results = new CompletableFuture<?>[queries.length];
+        for (int index = 0; index < queries.length; index++) {
+            results[index] = queries[index].result();
+        }
+        try {
+            CompletableFuture.allOf(results).get(timeout, unit);
+        } catch (InterruptedException | ExecutionException | TimeoutException exception) {
+            cancel(queries);
+            throw exception;
+        }
+        List<T> values = new ArrayList<>(queries.length);
+        for (Query<? extends T> query : queries) {
+            values.add(query.result().join());
+        }
+        return List.copyOf(values);
     }
 
     @SafeVarargs

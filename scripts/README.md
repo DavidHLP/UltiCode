@@ -50,6 +50,8 @@ environment/Docker/SQL helper stack:
   `capture_env_vars`/`apply_env_overrides`
 - `validate.sh` — identifier/port/schema validators
 - `docker.sh` — container probes and health waits
+- `compose.sh` — shared base/dev/observability Compose argument builder for
+  startup, stop, tests, and disposable drills
 - `confirm.sh` — write-confirmation predicates (`gate_confirmed`,
   `require_write_confirmation`)
 - `sql.sh` — data-verification primitives

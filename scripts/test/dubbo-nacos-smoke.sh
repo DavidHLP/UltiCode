@@ -242,9 +242,7 @@ sys.stdout.write(value)
 
 export COMPOSE_PROJECT_NAME="ulticode-dubbo-smoke-$$"
 export NACOS_EXPECTED_DOCKER_PROJECT="$COMPOSE_PROJECT_NAME"
-compose=(docker compose --project-directory "$ROOT_DIR" --env-file "$ENV_FILE"
-         -f "$ROOT_DIR/docker/docker-compose.yml"
-         -f "$ROOT_DIR/docker/docker-compose.dev.yml")
+devstack_compose_args compose
 
 cleanup() {
   local rc=$?
@@ -284,19 +282,12 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 wait_for_container_health() {
-  local service="$1"
-  local container
+  local service="$1" container
   container="$(compose_service_container compose "$service")"
   local attempts="${2:-60}" interval_seconds="${3:-2}" status
-  for ((health_attempt = 1; health_attempt <= attempts; health_attempt++)); do
-    status="$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' \
-      "$container" 2>/dev/null || true)"
-    if [[ "$status" == "healthy" || "$status" == "running" ]]; then
-      return 0
-    fi
-    sleep "$interval_seconds"
-  done
-  echo "Container did not become healthy: $container" >&2
+  if await_container_health "$container" "$attempts" "$interval_seconds"; then
+    return 0
+  fi
   redact_smoke_output < <(docker logs --tail 100 "$container" 2>&1) >&2 || true
   return 1
 }

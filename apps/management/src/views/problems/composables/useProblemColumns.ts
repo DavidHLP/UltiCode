@@ -127,11 +127,11 @@ export function useProblemColumns(
     },
     {
       id: 'isPublished',
-      accessorFn: (row) => row.isPublished ?? row.is_published,
+      accessorFn: (row) => row.isPublished,
       header: () => t('problems.columns.published'),
       cell: ({ row }) => {
         const isPublished = row.getValue('isPublished') as boolean
-        const isDeleted = row.original.isDeleted ?? row.original.is_deleted
+        const isDeleted = row.original.isDeleted
         if (isDeleted)
           return badge({
             color: 'error',
@@ -148,7 +148,7 @@ export function useProblemColumns(
     },
     {
       id: 'isFlagged',
-      accessorFn: (row) => row.isFlagged ?? row.is_flagged,
+      accessorFn: (row) => row.isFlagged,
       header: () => t('problems.columns.flagged'),
       cell: ({ row }) => {
         const problem = row.original
@@ -156,7 +156,7 @@ export function useProblemColumns(
         if (!isFlagged) {
           return h('span', { class: 'font-data text-xs text-[var(--foreground-muted)] italic' }, '\u2014')
         }
-        const flagStatus = problem.flagStatus || problem.flag_status || ('PENDING' as const)
+        const flagStatus = problem.flagStatus || ('PENDING' as const)
         const statusColors: Record<string, string> = {
           PENDING: 'text-foreground-strong',
           REVIEWED: 'text-foreground-strong',
@@ -169,7 +169,7 @@ export function useProblemColumns(
           'div',
           {
             class: 'flex items-center gap-1',
-            title: `${t(statusKey)}${problem.flagReason || problem.flag_reason ? `: ${problem.flagReason || problem.flag_reason}` : ''}`,
+            title: `${t(statusKey)}${problem.flagReason ? `: ${problem.flagReason}` : ''}`,
           },
           [
             h(IconFlag, {
@@ -190,7 +190,7 @@ export function useProblemColumns(
     },
     {
       id: 'submissionCount',
-      accessorFn: (row) => row.submissionCount ?? row.submission_count,
+      accessorFn: (row) => row.submissionCount,
       header: () => t('problems.columns.submissions'),
       cell: ({ row }) =>
         h(

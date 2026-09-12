@@ -124,5 +124,30 @@ else:
                 assert f"--ignore-table={schema}.flyway_schema_history" in event
             assert "--ignore-table=ulticode.flyway_post_owner_history" in dumps[0]
     print("baseline generation reuse, order, parity, history rejection and failure cleanup: PASS")
+    compose_probe = subprocess.run(
+        ["bash", "-c", """set -euo pipefail
+source "$1/scripts/dev/lib/common.sh"
+devstack_compose_args default
+printf '%s\\n' "${default[@]}"
+printf '%s\\n' --
+devstack_compose_args observability --observability
+printf '%s\\n' "${observability[@]}"
+printf '%s\\n' --
+devstack_compose_args override --base-only "$1/override.yml"
+printf '%s\\n' "${override[@]}"
+""", "fixture", str(root)], capture_output=True, text=True,
+    )
+    assert compose_probe.returncode == 0, compose_probe.stderr
+    compose_output = compose_probe.stdout.splitlines()
+    assert compose_output[0:8] == [
+        "docker", "compose", "--project-directory", str(root), "--env-file", "", "-f",
+        str(root / "docker/docker-compose.yml"),
+    ] or compose_output[0:8] == [
+        "docker", "compose", "--project-directory", str(root), "--env-file", str(root / ".env"), "-f",
+        str(root / "docker/docker-compose.yml"),
+    ]
+    assert "--profile" in compose_output
+    assert str(root / "override.yml") in compose_output
+    print("shared Compose command builder: PASS")
 print("shell-tooling-contract: PASS")
 PY

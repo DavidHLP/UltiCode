@@ -1,4 +1,9 @@
-import type { PageResult } from '@ulticode/domain-types'
+import {
+  normalizeAdminProblem,
+  type PageResult,
+  type ProblemAdmin,
+  type ProblemTag as DomainProblemTag,
+} from '@ulticode/domain-types'
 import { apiGet, apiPost, apiPatch, apiDelete, apiDownload } from '@/utils/request'
 
 export enum Difficulty {
@@ -13,10 +18,7 @@ export enum ProblemStatus {
   TODO = 'todo',
 }
 
-export interface ProblemTag {
-  id: string
-  label: string
-}
+export type ProblemTag = DomainProblemTag
 
 export interface ProblemDetail {
   id: string
@@ -29,44 +31,7 @@ export interface ProblemDetail {
   hints?: string[]
 }
 
-export interface Problem {
-  id: string
-  slug: string
-  title: string
-  difficulty: Difficulty
-  status: ProblemStatus
-  isPremium: boolean
-  hasSolution: boolean
-  isPublished: boolean
-  publishedAt?: Date
-  publishedBy?: string
-  isDeleted: boolean
-  deletedAt?: Date
-  isFlagged?: boolean
-  flagReason?: string
-  flagReportedBy?: string
-  flagReportedAt?: Date
-  flagStatus?: 'PENDING' | 'REVIEWED' | 'RESOLVED' | 'DISMISSED'
-  flagReviewedBy?: string
-  flagReviewedAt?: Date
-  flagNotes?: string
-  createdAt: Date
-  updatedAt: Date
-  tags: ProblemTag[]
-  submissionCount?: number
-  solutionCount?: number
-
-  // Backend snake_case fallbacks
-  is_premium?: boolean
-  has_solution?: boolean
-  is_published?: boolean
-  is_deleted?: boolean
-  is_flagged?: boolean
-  flag_reason?: string
-  flag_status?: 'PENDING' | 'REVIEWED' | 'RESOLVED' | 'DISMISSED'
-  submission_count?: number
-  solution_count?: number
-}
+export type Problem = ProblemAdmin
 
 export interface ProblemExample {
   id: string
@@ -157,7 +122,7 @@ export interface CasesData {
 export interface ProblemQueryParams {
   search?: string
   difficulty?: Difficulty
-  status?: ProblemStatus
+  status?: Problem['status']
   publishStatus?: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED'
   isPublished?: boolean
   isDeleted?: boolean
@@ -397,24 +362,28 @@ export interface ImportProblemsResponse {
 export const problemsApi = {
   async getProblems(params: ProblemQueryParams): Promise<PageResult<Problem>> {
     // apiGet already unwraps response.data automatically
-    return apiGet<PageResult<Problem>>('/admin/problems', { params })
+    const response = await apiGet<PageResult<unknown>>('/admin/problems', { params })
+    return {
+      ...response,
+      items: response.items.map(normalizeAdminProblem),
+    }
   },
 
   async getProblem(id: string): Promise<Problem> {
-    const response = await apiGet<Problem>(`/admin/problems/${id}`)
-    return response
+    const response = await apiGet<unknown>(`/admin/problems/${id}`)
+    return normalizeAdminProblem(response)
   },
 
   async createProblem(input: ProblemCreateInput): Promise<Problem> {
     const data = serializeCreateInput(input)
-    const response = await apiPost<Problem>('/admin/problems', data)
-    return response
+    const response = await apiPost<unknown>('/admin/problems', data)
+    return normalizeAdminProblem(response)
   },
 
   async updateProblem(id: string, input: ProblemUpdateInput): Promise<Problem> {
     const data = serializeUpdateInput(input)
-    const response = await apiPatch<Problem>(`/admin/problems/${id}`, data)
-    return response
+    const response = await apiPatch<unknown>(`/admin/problems/${id}`, data)
+    return normalizeAdminProblem(response)
   },
 
   async deleteProblem(id: string): Promise<void> {
@@ -422,13 +391,13 @@ export const problemsApi = {
   },
 
   async publishProblem(id: string): Promise<Problem> {
-    const response = await apiPost<Problem>(`/admin/problems/${id}/publish`)
-    return response
+    const response = await apiPost<unknown>(`/admin/problems/${id}/publish`)
+    return normalizeAdminProblem(response)
   },
 
   async unpublishProblem(id: string): Promise<Problem> {
-    const response = await apiPost<Problem>(`/admin/problems/${id}/unpublish`)
-    return response
+    const response = await apiPost<unknown>(`/admin/problems/${id}/unpublish`)
+    return normalizeAdminProblem(response)
   },
 
   async getProblemSubmissions(
@@ -521,8 +490,8 @@ export const problemsApi = {
   },
 
   async flagProblem(id: string, reason: string): Promise<Problem> {
-    const response = await apiPost<Problem>(`/admin/problems/${id}/flag`, { reason })
-    return response
+    const response = await apiPost<unknown>(`/admin/problems/${id}/flag`, { reason })
+    return normalizeAdminProblem(response)
   },
 
   async moderateProblem(
@@ -532,8 +501,8 @@ export const problemsApi = {
       notes?: string
     },
   ): Promise<Problem> {
-    const response = await apiPost<Problem>(`/admin/problems/${id}/moderate`, data)
-    return response
+    const response = await apiPost<unknown>(`/admin/problems/${id}/moderate`, data)
+    return normalizeAdminProblem(response)
   },
 
   async getFlaggedProblems(params: {
@@ -542,7 +511,11 @@ export const problemsApi = {
     status?: 'PENDING' | 'REVIEWED' | 'RESOLVED' | 'DISMISSED'
   }): Promise<PageResult<Problem>> {
     // apiGet already unwraps response.data automatically
-    return apiGet<PageResult<Problem>>('/admin/problems/flagged', { params })
+    const response = await apiGet<PageResult<unknown>>('/admin/problems/flagged', { params })
+    return {
+      ...response,
+      items: response.items.map(normalizeAdminProblem),
+    }
   },
 
   async batchModerateProblems(data: {

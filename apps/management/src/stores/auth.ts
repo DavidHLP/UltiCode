@@ -1,45 +1,107 @@
 import { defineStore } from 'pinia'
+import { computed, ref } from 'vue'
+import {
+  checkAnyRole,
+  checkPermission,
+  checkRole,
+  createSessionAuthStore,
+  csrfManager,
+  hasCsrfCookie,
+} from '@ulticode/auth-core'
 import { authApi, type LoginCredentials, type User } from '@/api/auth'
-import { createAuthStore } from '@ulticode/auth-core'
 
 /**
- * Management auth store.
- *
- * <p>After architecture-review candidate #4, the duplicated
- * login/logout/fetchUser/loadPermissions/initialize/clearUser/hasPermission/
- * hasRole/hasAnyRole chain and the CSRF persistence contract live once in
- * {@link createAuthStore} (shared/auth-core). This store is a thin Pinia
- * wrapper that binds the factory to the management backend adapter and
- * re-exports the same surface existing call sites depend on.
- *
- * <p>After architecture-review candidate #3 follow-up, this store
- * re-exposes {@code ensureUser} so the auth-navigation adapter in
- * {@code router/index.ts} can satisfy the seam's lazy-loader contract
- * without falling back to {@code fetchUser} (unconditional refetch).
- *
- * <p>Cookie-authenticated unsafe methods are protected by the shared server
- * CookieCsrfFilter and the auth-core token/header lifecycle.
+ * Management's boolean auth view over the shared session policy. The API
+ * keeps its legacy login result and lazy ensureUser surface; transport and
+ * lifecycle state are owned by auth-core.
  */
 export const useAuthStore = defineStore('auth', () => {
-  const internals = createAuthStore(authApi)
+  const session = createSessionAuthStore<User>({
+    fetchCurrentUser: () => authApi.getCurrentUser(),
+    login: async (credentials) => {
+      return authApi.login(credentials as LoginCredentials)
+    },
+    logout: () => authApi.logout(),
+    loadPermissions: () => authApi.getPermissions(),
+    hasSessionCookie: hasCsrfCookie,
+    refreshCsrf: (response) => csrfManager.refreshFromResponse(response),
+    clearCsrf: () => csrfManager.clearToken(),
+  })
+
+  const isInitialized = ref(false)
+  const isAuthenticated = computed(() => !!session.user.value)
+  const userRole = computed(() => session.user.value?.role)
+  const userName = computed(() => session.user.value?.name || session.user.value?.username)
+
+  async function fetchUser(): Promise<User | null> {
+    const user = await session.fetchUser()
+    if (user) {
+      await session.loadPermissions()
+    } else {
+      session.permissions.value.clear()
+    }
+    return user
+  }
+
+  async function ensureUser(): Promise<User | null> {
+    if (session.user.value) return session.user.value
+    return fetchUser()
+  }
+
+  async function login(credentials: LoginCredentials): Promise<boolean> {
+    try {
+      await session.login(credentials)
+      await session.loadPermissions()
+      return true
+    } catch (error) {
+      console.error('Login failed:', error)
+      return false
+    }
+  }
+
+  async function initialize(): Promise<void> {
+    if (isInitialized.value) return
+    try {
+      await session.initialize()
+      if (session.user.value) await session.loadPermissions()
+    } finally {
+      isInitialized.value = true
+    }
+  }
+
+  function clearUser(): void {
+    session.clearUser()
+  }
+
+  function hasPermission(action: string, resource: string): boolean {
+    return checkPermission(session.permissions.value, action, resource)
+  }
+
+  function hasRole(role: string): boolean {
+    return checkRole(session.user.value?.role, role)
+  }
+
+  function hasAnyRole(roles: string[]): boolean {
+    return checkAnyRole(session.user.value?.role, roles)
+  }
 
   return {
-    user: internals.user,
-    permissions: internals.permissions,
-    isInitialized: internals.isInitialized,
-    isAuthenticated: internals.isAuthenticated,
-    userRole: internals.userRole,
-    userName: internals.userName,
-    login: internals.login,
-    logout: internals.logout,
-    loadPermissions: internals.loadPermissions,
-    fetchUser: internals.fetchUser,
-    ensureUser: internals.ensureUser,
-    initialize: internals.initialize,
-    clearUser: internals.clearUser,
-    hasPermission: internals.hasPermission,
-    hasRole: internals.hasRole,
-    hasAnyRole: internals.hasAnyRole,
+    user: session.user,
+    permissions: session.permissions,
+    isInitialized,
+    isAuthenticated,
+    userRole,
+    userName,
+    login,
+    logout: session.logout,
+    loadPermissions: session.loadPermissions,
+    fetchUser,
+    ensureUser,
+    initialize,
+    clearUser,
+    hasPermission,
+    hasRole,
+    hasAnyRole,
   }
 })
 

@@ -25,7 +25,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -100,8 +99,12 @@ public class DefaultAdminDashboardReadAdapter implements AdminDashboardReadPort 
                 () -> submissionAdminReadPort.loadDashboardStats(now));
         CancellableQueryExecutor.Query<DashboardUserData> userFuture = queryExecutor.submit(this::loadUserData);
         try {
-            CompletableFuture.allOf(appFuture.result(), submissionFuture.result(), userFuture.result())
-                    .get(RpcPolicy.QUERY_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+            queryExecutor.awaitAll(
+                    RpcPolicy.QUERY_TIMEOUT_MS,
+                    TimeUnit.MILLISECONDS,
+                    appFuture,
+                    submissionFuture,
+                    userFuture);
             DashboardAppStatsDTO app = appFuture.result().get();
             SubmissionDashboardStatsDTO submission = submissionFuture.result().get();
             DashboardUserData users = userFuture.result().get();
@@ -113,10 +116,8 @@ public class DefaultAdminDashboardReadAdapter implements AdminDashboardReadPort 
             throw exception;
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
-            CancellableQueryExecutor.cancel(appFuture, submissionFuture, userFuture);
             throw unavailable();
         } catch (ExecutionException exception) {
-            CancellableQueryExecutor.cancel(appFuture, submissionFuture, userFuture);
             Throwable cause = exception.getCause();
             if (cause instanceof Error) {
                 throw (Error) cause;
@@ -126,7 +127,6 @@ public class DefaultAdminDashboardReadAdapter implements AdminDashboardReadPort 
             }
             throw unavailable();
         } catch (TimeoutException exception) {
-            CancellableQueryExecutor.cancel(appFuture, submissionFuture, userFuture);
             throw unavailable();
         }
     }

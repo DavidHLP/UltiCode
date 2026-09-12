@@ -53,14 +53,14 @@ describe("mapProblem", () => {
     expect(p.completedTime).toBe("2026-02-02T00:00:00");
   });
 
-  it("returns undefined acceptanceRate for an unparseable value", () => {
-    const p = mapProblem({ ...baseSnake, acceptance_rate: "abc" }) as Problem;
-    expect(p.acceptanceRate).toBeUndefined();
-    expect(p.acceptance_rate).toBeUndefined();
+  it("rejects an unparseable acceptanceRate at the API boundary", () => {
+    expect(() => mapProblem({ ...baseSnake, acceptance_rate: "abc" })).toThrow(
+      "acceptanceRate",
+    );
   });
 
-  it("returns the input untouched for non-object input", () => {
-    expect(mapProblem(null as unknown)).toBeNull();
-    expect(mapProblem(undefined as unknown)).toBeUndefined();
+  it("rejects non-object input at the API boundary", () => {
+    expect(() => mapProblem(null as unknown)).toThrow("must be an object");
+    expect(() => mapProblem(undefined as unknown)).toThrow("must be an object");
   });
 });

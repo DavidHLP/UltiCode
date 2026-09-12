@@ -1,4 +1,5 @@
 import { apiDelete, apiGet, apiPatch, apiPost } from "@/utils/request";
+import { readPage } from "@/api/projection";
 import type {
   ForumComment,
   ForumCommunity,
@@ -107,6 +108,25 @@ function normalizePost(
   } as ForumPost;
 }
 
+type ForumPostApiItem = {
+  userId: string;
+  authorUsername?: string;
+  authorAvatar?: string;
+  communityId?: string;
+  communityName?: string;
+  communitySlug?: string;
+  flairType?: string;
+  flairLabel?: string;
+} & Record<string, unknown>;
+
+function mapForumPostPage(raw: unknown): PageResult<ForumPost> {
+  const page = readPage<ForumPostApiItem>(raw);
+  return {
+    ...page,
+    items: page.items.map(normalizePost),
+  };
+}
+
 // =========================================================================
 // API functions
 // =========================================================================
@@ -115,36 +135,14 @@ export async function fetchForumPosts(options?: {
   sortBy?: string;
   page?: number;
   pageSize?: number;
-}): Promise<{ posts: ForumPost[]; total: number; totalPages: number }> {
+}): Promise<PageResult<ForumPost>> {
   const params: Record<string, string | number> = {};
   if (options?.sortBy) params.sortBy = options.sortBy;
   if (options?.page) params.page = options.page;
   if (options?.pageSize) params.pageSize = options.pageSize;
 
-  const response = await apiGet<
-    PageResult<
-      {
-        userId: string;
-        authorUsername?: string;
-        authorAvatar?: string;
-        communityId?: string;
-        communityName?: string;
-        communitySlug?: string;
-        flairType?: string;
-        flairLabel?: string;
-      } & Record<string, unknown>
-    >
-  >("/forum/posts", { params });
-
-  const rows = Array.isArray(response) ? response : response.items;
-  const total = !Array.isArray(response) ? response.total : rows.length;
-  const totalPages = !Array.isArray(response) ? response.totalPages : 1;
-
-  return {
-    posts: rows.map(normalizePost),
-    total,
-    totalPages,
-  };
+  const response = await apiGet<unknown>("/forum/posts", { params });
+  return mapForumPostPage(response);
 }
 
 export async function fetchForumPost(postId: string): Promise<ForumPost> {
@@ -183,36 +181,17 @@ export async function fetchForumCommunity(slugOrId: string): Promise<{
 export async function fetchCommunityPosts(
   slug: string,
   options?: { sortBy?: string; page?: number; pageSize?: number },
-): Promise<{ posts: ForumPost[]; total: number; totalPages: number }> {
+): Promise<PageResult<ForumPost>> {
   const params: Record<string, string | number> = {};
   if (options?.sortBy) params.sortBy = options.sortBy;
   if (options?.page) params.page = options.page;
   if (options?.pageSize) params.pageSize = options.pageSize;
 
-  const response = await apiGet<
-    PageResult<
-      {
-        userId: string;
-        authorUsername?: string;
-        authorAvatar?: string;
-        communityId?: string;
-        communityName?: string;
-        communitySlug?: string;
-        flairType?: string;
-        flairLabel?: string;
-      } & Record<string, unknown>
-    >
-  >(`/forum/communities/${slug}/posts`, { params });
-
-  const rows = Array.isArray(response) ? response : response.items;
-  const total = !Array.isArray(response) ? response.total : rows.length;
-  const totalPages = !Array.isArray(response) ? response.totalPages : 1;
-
-  return {
-    posts: rows.map(normalizePost),
-    total,
-    totalPages,
-  };
+  const response = await apiGet<unknown>(
+    `/forum/communities/${slug}/posts`,
+    { params },
+  );
+  return mapForumPostPage(response);
 }
 
 export async function fetchForumTags(): Promise<ForumTag[]> {
@@ -333,33 +312,11 @@ export async function deleteForumPost(postId: string): Promise<void> {
 export async function fetchMyForumPosts(options?: {
   page?: number;
   pageSize?: number;
-}): Promise<{ posts: ForumPost[]; total: number; totalPages: number }> {
+}): Promise<PageResult<ForumPost>> {
   const params: Record<string, string | number> = {};
   if (options?.page) params.page = options.page;
   if (options?.pageSize) params.pageSize = options.pageSize;
 
-  const response = await apiGet<
-    PageResult<
-      {
-        userId: string;
-        authorUsername?: string;
-        authorAvatar?: string;
-        communityId?: string;
-        communityName?: string;
-        communitySlug?: string;
-        flairType?: string;
-        flairLabel?: string;
-      } & Record<string, unknown>
-    >
-  >("/forum/me/posts", { params });
-
-  const rows = Array.isArray(response) ? response : response.items;
-  const total = !Array.isArray(response) ? response.total : rows.length;
-  const totalPages = !Array.isArray(response) ? response.totalPages : 1;
-
-  return {
-    posts: rows.map(normalizePost),
-    total,
-    totalPages,
-  };
+  const response = await apiGet<unknown>("/forum/me/posts", { params });
+  return mapForumPostPage(response);
 }

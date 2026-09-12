@@ -195,7 +195,7 @@ describe("mapRunResult", () => {
 });
 
 describe("submission fetchers", () => {
-  it("fetchProblemSubmissions unwraps pageResult.items and maps each", async () => {
+  it("returns mapped submissions in the canonical page envelope", async () => {
     vi.mocked(apiGet).mockResolvedValueOnce({
       items: [
         { id: "s1", problem_id: 1 },
@@ -207,13 +207,14 @@ describe("submission fetchers", () => {
       totalPages: 1,
     });
     const result = await fetchProblemSubmissions(1);
-    expect(result).toHaveLength(2);
-    expect(result[0].id).toBe("s1");
-    expect(result[1].id).toBe("s2");
+    expect(result.items).toHaveLength(2);
+    expect(result.items[0].id).toBe("s1");
+    expect(result.items[1].id).toBe("s2");
+    expect(result.totalPages).toBe(1);
     expect(apiGet).toHaveBeenCalledWith("/problems/1/submissions");
   });
 
-  it("fetchUserSubmissions also unwraps pageResult", async () => {
+  it("keeps pagination metadata for user submissions", async () => {
     vi.mocked(apiGet).mockResolvedValueOnce({
       items: [],
       total: 0,
@@ -222,7 +223,13 @@ describe("submission fetchers", () => {
       totalPages: 0,
     });
     const result = await fetchUserSubmissions();
-    expect(result).toEqual([]);
+    expect(result).toMatchObject({
+      items: [],
+      total: 0,
+      page: 1,
+      pageSize: 10,
+      totalPages: 0,
+    });
   });
 
   it("fetchSubmissionStatuses maps each item including snake_case fallback", async () => {

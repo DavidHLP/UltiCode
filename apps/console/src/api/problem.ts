@@ -1,5 +1,7 @@
 import { normalizePublicProblem } from "@ulticode/domain-types";
 import type { Problem } from "@/types/problem";
+import type { PageResult } from "@ulticode/domain-types";
+import { readPage } from "@/api/projection";
 import { apiGet } from "@/utils/request";
 
 // ============================================================================
@@ -21,19 +23,13 @@ export interface ProblemFilters {
   sortOrder?: string;
 }
 
-export interface PaginatedProblems {
-  items: Problem[];
-  total: number;
-  page: number;
-  pageSize: number;
-  totalPages: number;
-}
+export type PaginatedProblems = PageResult<Problem>;
 
 export async function fetchProblems(
   filters: ProblemFilters = {},
   page: number = 1,
   pageSize: number = 50,
-): Promise<PaginatedProblems> {
+): Promise<PageResult<Problem>> {
   const params = new URLSearchParams();
   params.append("page", String(page));
   params.append("pageSize", String(pageSize));
@@ -48,19 +44,11 @@ export async function fetchProblems(
   if (filters.sortBy) params.append("sortBy", filters.sortBy);
   if (filters.sortOrder) params.append("sortOrder", filters.sortOrder);
 
-  const response = await apiGet<{
-    items: unknown[];
-    total: number;
-    page: number;
-    pageSize: number;
-    totalPages: number;
-  }>(`/problems?${params.toString()}`);
+  const response = await apiGet<unknown>(`/problems?${params.toString()}`);
+  const pageResult = readPage<unknown>(response);
   return {
-    items: response.items.map(mapProblem),
-    total: response.total,
-    page: response.page,
-    pageSize: response.pageSize,
-    totalPages: response.totalPages,
+    ...pageResult,
+    items: pageResult.items.map(mapProblem),
   };
 }
 

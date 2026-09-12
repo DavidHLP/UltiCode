@@ -113,8 +113,20 @@ public class DefaultContentModerationAdapter implements ContentModerationPort, C
                 forumOwnerPort.deletePost(contentId, actorId);
                 yield ContentLifecycleState.DELETED;
             }
+            case "forum_comment" -> {
+                forumCommentOwnerPort.deleteComment(contentId, actorId);
+                yield ContentLifecycleState.DELETED;
+            }
             case "solution" -> {
                 solutionOwnerPort.deleteSolution(contentId);
+                yield ContentLifecycleState.DELETED;
+            }
+            case "solution_comment" -> {
+                solutionCommentOwnerPort.deleteComment(contentId, actorId);
+                yield ContentLifecycleState.DELETED;
+            }
+            case "problem" -> {
+                problemOwnerPort.deleteProblem(contentId, actorId);
                 yield ContentLifecycleState.DELETED;
             }
             default -> throw new BusinessException(BaseErrorCode.BAD_REQUEST, "Unknown contentType: " + contentType);

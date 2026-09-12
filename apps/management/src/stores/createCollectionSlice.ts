@@ -11,7 +11,11 @@ export interface CollectionSlice<T, TParams> {
   total: Ref<number>
   isLoading: Ref<boolean>
   error: Ref<string | null>
-  fetch: (params?: TParams) => Promise<void>
+  fetch: (params?: TParams, options?: CollectionFetchOptions) => Promise<void>
+}
+
+export interface CollectionFetchOptions {
+  rethrow?: boolean
 }
 
 interface CreateCollectionSliceOptions<T, TParams> {
@@ -44,7 +48,7 @@ export function createCollectionSlice<T, TParams>(
   const error = ref<string | null>(null)
   let requestSequence = 0
 
-  async function fetch(params?: TParams): Promise<void> {
+  async function fetch(params?: TParams, fetchOptions?: CollectionFetchOptions): Promise<void> {
     const request = ++requestSequence
     isLoading.value = true
     error.value = null
@@ -58,6 +62,7 @@ export function createCollectionSlice<T, TParams>(
       if (request !== requestSequence || isCancellationError(err)) return
       error.value = extractApiErrorMessage(err, 'Failed to load collection')
       console.error('Failed to load collection:', err)
+      if (fetchOptions?.rethrow) throw err
     } finally {
       if (request === requestSequence) {
         isLoading.value = false

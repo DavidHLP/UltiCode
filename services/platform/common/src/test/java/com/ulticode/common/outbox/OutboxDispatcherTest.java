@@ -35,6 +35,19 @@ class OutboxDispatcherTest {
     }
 
     @Test
+    void continuesWithLaterRecordsWhenMarkFailedThrows() {
+        Adapter adapter = new Adapter();
+        adapter.records = List.of(new Event("event-1"), new Event("event-2"));
+        adapter.publicationFailureId = "event-1";
+        adapter.failMarkFailed = true;
+        OutboxDispatcher<Event> dispatcher = new OutboxDispatcher<>("test", adapter);
+
+        assertThat(dispatcher.dispatch()).isEqualTo(1);
+        assertThat(adapter.failed.get()).isEqualTo(1);
+        assertThat(adapter.published.get()).isEqualTo(1);
+    }
+
+    @Test
     void doesNotRetryWhenDeliveryConfirmationLosesTheFence() {
         Adapter adapter = new Adapter();
         adapter.deliveryResult = 0;
@@ -68,7 +81,10 @@ class OutboxDispatcherTest {
         private final AtomicReference<String> failedOwner = new AtomicReference<>();
         private final AtomicReference<String> failedError = new AtomicReference<>();
         private final AtomicInteger failedMaxAttempts = new AtomicInteger();
+        private List<Event> records = List.of(new Event("event-1"));
         private boolean fail;
+        private String publicationFailureId;
+        private boolean failMarkFailed;
         private int deliveryResult = 1;
 
         @Override
@@ -84,12 +100,12 @@ class OutboxDispatcherTest {
 
         @Override
         public List<Event> selectClaimed(String claimOwner) {
-            return List.of(new Event("event-1"));
+            return records;
         }
 
         @Override
         public String publish(Event record) {
-            if (fail) {
+            if (fail || record.id().equals(publicationFailureId)) {
                 throw new IllegalStateException("publish failed");
             }
             published.incrementAndGet();
@@ -108,6 +124,9 @@ class OutboxDispatcherTest {
             failedOwner.set(claimOwner);
             failedError.set(error);
             failedMaxAttempts.set(maxAttempts);
+            if (failMarkFailed) {
+                throw new IllegalStateException("mark failed");
+            }
             return 1;
         }
 

@@ -54,6 +54,28 @@ class DefaultProblemOwnerPortTest {
     }
 
     @Nested
+    @DisplayName("deleteProblem()")
+    class DeleteProblem {
+
+        @Test
+        @DisplayName("uses the current version fence and publishes a deleted tombstone")
+        void deletesWithCurrentVersion() {
+            Problem problem = new Problem();
+            problem.setId(42L);
+            problem.setVersion(3);
+            problem.setIsDeleted(false);
+            when(problemMapper.selectById(42L)).thenReturn(problem);
+            when(problemMapper.deleteByIdWithExpectedVersion(42L, 3L)).thenReturn(1);
+
+            port.deleteProblem("42", "admin-1");
+
+            verify(problemMapper).deleteByIdWithExpectedVersion(42L, 3L);
+            assertThat(problem.getIsDeleted()).isTrue();
+            verify(indexRefresher).publish(problem);
+        }
+    }
+
+    @Nested
     @DisplayName("flagProblem()")
     class FlagProblem {
 

@@ -33,7 +33,9 @@ export const useNotificationsStore = defineStore('admin-notifications', () => {
   const total = collection.total
   const isLoading = collection.isLoading
   const error = collection.error
-  const fetchAnnouncements = collection.fetch
+  function fetchAnnouncements(params?: AdminNotificationQueryParams) {
+    return collection.fetch(params, { rethrow: true })
+  }
 
   async function createNotification(data: CreateNotificationDto) {
     isLoading.value = true

@@ -1,7 +1,10 @@
 package com.ulticode.modules.problem.port;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.ulticode.app.api.error.AppErrorCode;
 import com.ulticode.app.api.service.ProblemOwnerPort;
+import com.ulticode.common.error.BaseErrorCode;
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.problem.entity.Problem;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.problem.service.ProblemIndexRefresher;
@@ -54,6 +57,39 @@ public class DefaultProblemOwnerPort implements ProblemOwnerPort {
         final int affected = problemMapper.flagProblem(id, reason, reportedBy);
         log.info("ProblemOwnerPort.flagProblem id={} reason={} reporter={} affected={}",
                 id, reason, reportedBy, affected);
+    }
+
+    @Override
+    @Transactional
+    public void deleteProblem(String id, String deletedBy) {
+        if (id == null || id.isBlank()) {
+            throw new BusinessException(BaseErrorCode.BAD_REQUEST, "Problem id is required");
+        }
+
+        final Long problemId;
+        try {
+            problemId = Long.valueOf(id);
+        } catch (NumberFormatException exception) {
+            throw new BusinessException(BaseErrorCode.BAD_REQUEST, "Problem id must be numeric");
+        }
+
+        Problem problem = problemMapper.selectById(problemId);
+        if (problem == null) {
+            throw new BusinessException(BaseErrorCode.NOT_FOUND, "Problem not found");
+        }
+        if (problem.getVersion() == null) {
+            throw versionConflict();
+        }
+
+        int affected = problemMapper.deleteByIdWithExpectedVersion(
+                problemId, problem.getVersion().longValue());
+        if (affected != 1) {
+            throw versionConflict();
+        }
+
+        problem.setIsDeleted(true);
+        indexRefresher.publish(problem);
+        log.info("ProblemOwnerPort.deleteProblem id={} by {}", problemId, deletedBy);
     }
 
     @Override
@@ -228,6 +264,10 @@ public class DefaultProblemOwnerPort implements ProblemOwnerPort {
             }
         }
         return results;
+    }
+
+    private static BusinessException versionConflict() {
+        return new BusinessException(AppErrorCode.VERSION_CONFLICT, "Problem version conflict");
     }
 
     @Override

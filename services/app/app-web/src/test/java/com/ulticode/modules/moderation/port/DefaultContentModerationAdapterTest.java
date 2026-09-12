@@ -52,12 +52,40 @@ class DefaultContentModerationAdapterTest {
     }
 
     @Test
+    @DisplayName("deleteContent delegates forum_comment deletion to ForumCommentOwnerPort")
+    void deleteContentForumComment() {
+        ContentLifecycleState state = adapter.deleteContent("forum_comment", "comment-100", "moderator-1");
+
+        assertThat(state).isEqualTo(ContentLifecycleState.DELETED);
+        verify(forumCommentOwnerPort).deleteComment("comment-100", "moderator-1");
+    }
+
+    @Test
     @DisplayName("deleteContent delegates solution deletion to SolutionOwnerPort")
     void deleteContentSolution() {
         ContentLifecycleState state = adapter.deleteContent("solution", "sol-100", "moderator-1");
 
         assertThat(state).isEqualTo(ContentLifecycleState.DELETED);
         verify(solutionOwnerPort).deleteSolution("sol-100");
+    }
+
+    @Test
+    @DisplayName("deleteContent delegates solution_comment deletion to SolutionCommentOwnerPort")
+    void deleteContentSolutionComment() {
+        ContentLifecycleState state = adapter.deleteContent(
+                "solution_comment", "comment-200", "moderator-1");
+
+        assertThat(state).isEqualTo(ContentLifecycleState.DELETED);
+        verify(solutionCommentOwnerPort).deleteComment("comment-200", "moderator-1");
+    }
+
+    @Test
+    @DisplayName("deleteContent delegates problem deletion to ProblemOwnerPort")
+    void deleteContentProblem() {
+        ContentLifecycleState state = adapter.deleteContent("problem", "42", "moderator-1");
+
+        assertThat(state).isEqualTo(ContentLifecycleState.DELETED);
+        verify(problemOwnerPort).deleteProblem("42", "moderator-1");
     }
 
     @Test

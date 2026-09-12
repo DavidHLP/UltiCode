@@ -1,6 +1,7 @@
 package com.ulticode.modules.admin.port.adapter;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.Callable;
@@ -95,7 +96,7 @@ public final class CancellableQueryExecutor implements AutoCloseable {
         for (Query<? extends T> query : queries) {
             values.add(query.result().join());
         }
-        return List.copyOf(values);
+        return Collections.unmodifiableList(values);
     }
 
     @SafeVarargs

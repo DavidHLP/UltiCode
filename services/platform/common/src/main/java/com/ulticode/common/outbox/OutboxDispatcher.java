@@ -49,11 +49,17 @@ public final class OutboxDispatcher<T> {
                 } catch (Exception exception) {
                     LOGGER.log(Level.WARNING,
                             "Failed to dispatch outbox " + adapter.recordId(record), exception);
-                    adapter.markFailed(
-                            record,
-                            claimOwner,
-                            truncate(exception.getMessage(), 500),
-                            MAX_ATTEMPTS);
+                    try {
+                        adapter.markFailed(
+                                record,
+                                claimOwner,
+                                truncate(exception.getMessage(), 500),
+                                MAX_ATTEMPTS);
+                    } catch (Exception markFailedException) {
+                        LOGGER.log(Level.SEVERE,
+                                "Failed to mark outbox " + adapter.recordId(record) + " as failed",
+                                markFailedException);
+                    }
                 }
             }
             return published;

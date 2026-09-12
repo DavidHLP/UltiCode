@@ -54,6 +54,14 @@ public interface ProblemOwnerPort {
     String resolveAuthorId(String id);
 
     /**
+     * Soft-delete one problem behind the owner's optimistic-lock fence.
+     *
+     * @param id problem ID in the cross-module string representation
+     * @param deletedBy actor performing the deletion
+     */
+    void deleteProblem(String id, String deletedBy);
+
+    /**
      * Set the moderation flag on a problem.
      *
      * @param id problem ID in the cross-module string representation

@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -90,6 +91,22 @@ class CancellableQueryExecutorTest {
 
             assertThatThrownBy(() -> executor.awaitAll(0, TimeUnit.NANOSECONDS, query))
                     .isInstanceOf(TimeoutException.class);
+        } finally {
+            executor.close();
+        }
+    }
+
+    @Test
+    void awaitAllPreservesNullResults() throws Exception {
+        CancellableQueryExecutor executor = new CancellableQueryExecutor("test-null", 1);
+        try {
+            CancellableQueryExecutor.Query<String> query = executor.submit(() -> null);
+
+            List<String> values = executor.awaitAll(1, TimeUnit.SECONDS, query);
+
+            assertThat(values).containsExactly((String) null);
+            assertThatThrownBy(() -> values.add("unexpected"))
+                    .isInstanceOf(UnsupportedOperationException.class);
         } finally {
             executor.close();
         }

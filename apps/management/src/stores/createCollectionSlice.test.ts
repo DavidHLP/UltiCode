@@ -26,6 +26,17 @@ describe('createCollectionSlice', () => {
     expect(slice.isLoading.value).toBe(false)
   })
 
+  it('can rethrow a load failure for mutation refreshes', async () => {
+    const error = new Error('refresh failed')
+    const load = vi.fn().mockRejectedValue(error)
+    const slice = createCollectionSlice<string, void>({ load })
+
+    await expect(slice.fetch(undefined, { rethrow: true })).rejects.toBe(error)
+
+    expect(slice.error.value).toBe('refresh failed')
+    expect(slice.isLoading.value).toBe(false)
+  })
+
   it('does not surface an intentional cancellation as a collection error', async () => {
     const load = vi.fn().mockRejectedValue(
       Object.assign(new Error('Request canceled'), { code: -1 }),

@@ -17,13 +17,6 @@ public interface ProblemAdministrationDomainService {
     Problem updateProblem(Long id, UpdateProblemDTO dto, String actorId, Long expectedVersion);
 
     /**
-     * Deliberate bypass for controlled legacy/import flows that do not have a
-     * version token. Public and owner-bound writes must use {@link
-     * #updateProblem(Long, UpdateProblemDTO, String, Long)}.
-     */
-    Problem updateProblemUnfenced(Long id, UpdateProblemDTO dto, String actorId);
-
-    /**
      * Soft-delete a problem behind its owner-side optimistic-lock fence.
      */
     void deleteProblem(Long id, String actorId, Long expectedVersion);

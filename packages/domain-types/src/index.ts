@@ -124,6 +124,18 @@ const problemAliases: ReadonlyArray<readonly [string, string]> = [
   ['updatedAt', 'updated_at'],
 ]
 
+const problemCommonKeys = [
+  'id',
+  'title',
+  'slug',
+  'difficulty',
+  'status',
+  'tags',
+  'tagRelations',
+  'sortOrder',
+  'addedAt',
+] as const
+
 function asProblemRecord(value: unknown): ProblemRecord | undefined {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
     ? (value as ProblemRecord)
@@ -134,11 +146,13 @@ function canonicalProblemRecord(value: unknown): ProblemRecord | undefined {
   const raw = asProblemRecord(value)
   if (!raw) return undefined
 
-  const result = { ...raw }
+  const result: ProblemRecord = {}
+  for (const key of problemCommonKeys) {
+    if (raw[key] !== undefined) result[key] = raw[key]
+  }
   for (const [camelKey, snakeKey] of problemAliases) {
-    const resolved = result[camelKey] ?? raw[snakeKey]
+    const resolved = raw[camelKey] ?? raw[snakeKey]
     if (resolved !== undefined) result[camelKey] = resolved
-    delete result[snakeKey]
   }
   return result
 }
@@ -243,9 +257,31 @@ function optionalBoolean(
   return record[key] as boolean
 }
 
+function optionalNumber(record: ProblemRecord, key: string, audience: string): number | undefined {
+  if (record[key] === null || record[key] === undefined) return undefined
+  const value = asNumber(record[key])
+  if (value === undefined) throw invalidProblem(audience, `has an invalid ${key}`)
+  return value
+}
+
+function optionalText(record: ProblemRecord, key: string, audience: string): string | undefined {
+  if (record[key] === null || record[key] === undefined) return undefined
+  if (typeof record[key] !== 'string' || record[key].trim() === '') {
+    throw invalidProblem(audience, `has an invalid ${key}`)
+  }
+  return record[key] as string
+}
+
 function requiredDate(record: ProblemRecord, key: string, audience: string): Date {
   const date = asDate(record[key])
   if (!date) throw invalidProblem(audience, `is missing a valid ${key}`)
+  return date
+}
+
+function optionalDate(record: ProblemRecord, key: string, audience: string): Date | undefined {
+  if (record[key] === null || record[key] === undefined) return undefined
+  const date = asDate(record[key])
+  if (!date) throw invalidProblem(audience, `has an invalid ${key}`)
   return date
 }
 
@@ -314,20 +350,33 @@ export function normalizePublicProblem(value: unknown): ProblemPublic {
           : (() => {
               throw invalidProblem('Public', 'has an invalid completedTime')
             })()
+  const isPremium = optionalBoolean(record, 'isPremium', 'Public')
+  const hasSolution = optionalBoolean(record, 'hasSolution', 'Public')
+  const submissionCount = optionalNumber(record, 'submissionCount', 'Public')
+  const solutionCount = optionalNumber(record, 'solutionCount', 'Public')
+  const createdAt = optionalText(record, 'createdAt', 'Public')
+  const updatedAt = optionalText(record, 'updatedAt', 'Public')
+  const sortOrder = optionalNumber(record, 'sortOrder', 'Public')
+  const addedAt = optionalText(record, 'addedAt', 'Public')
   return {
-    ...record,
     id,
     title,
     slug,
     difficulty,
     acceptance_rate: acceptanceRate,
     acceptanceRate,
-    status,
-    isPremium: optionalBoolean(record, 'isPremium', 'Public'),
-    hasSolution: optionalBoolean(record, 'hasSolution', 'Public'),
-    completedTime,
     tags: publicTags(record),
-  } as ProblemPublic
+    ...(status === undefined ? {} : { status }),
+    ...(isPremium === undefined ? {} : { isPremium }),
+    ...(hasSolution === undefined ? {} : { hasSolution }),
+    ...(completedTime === undefined ? {} : { completedTime }),
+    ...(submissionCount === undefined ? {} : { submissionCount }),
+    ...(solutionCount === undefined ? {} : { solutionCount }),
+    ...(createdAt === undefined ? {} : { createdAt }),
+    ...(updatedAt === undefined ? {} : { updatedAt }),
+    ...(sortOrder === undefined ? {} : { sortOrder }),
+    ...(addedAt === undefined ? {} : { addedAt }),
+  }
 }
 
 export function normalizeAdminProblem(value: unknown): ProblemAdmin {
@@ -348,22 +397,26 @@ export function normalizeAdminProblem(value: unknown): ProblemAdmin {
   const acceptanceRate = optionalRate(record, 'Admin')
   const createdAt = requiredDate(record, 'createdAt', 'Admin')
   const updatedAt = requiredDate(record, 'updatedAt', 'Admin')
-  const optionalDateKeys = [
-    'publishedAt',
-    'deletedAt',
-    'flagReportedAt',
-    'flagReviewedAt',
-  ] as const
-  for (const key of optionalDateKeys) {
-    if (record[key] !== null && record[key] !== undefined) {
-      const date = asDate(record[key])
-      if (!date) throw invalidProblem('Admin', `has an invalid ${key}`)
-      record[key] = date
-    }
-  }
+  const publishedAt = optionalDate(record, 'publishedAt', 'Admin')
+  const deletedAt = optionalDate(record, 'deletedAt', 'Admin')
+  const flagReportedAt = optionalDate(record, 'flagReportedAt', 'Admin')
+  const flagReviewedAt = optionalDate(record, 'flagReviewedAt', 'Admin')
+  const publishedBy = optionalText(record, 'publishedBy', 'Admin')
+  const flagReason = optionalText(record, 'flagReason', 'Admin')
+  const flagReportedBy = optionalText(record, 'flagReportedBy', 'Admin')
+  const flagReviewedBy = optionalText(record, 'flagReviewedBy', 'Admin')
+  const flagNotes = optionalText(record, 'flagNotes', 'Admin')
+  const isFlagged = optionalBoolean(record, 'isFlagged', 'Admin')
+  const flagStatus = optionalStatus(
+    record,
+    'flagStatus',
+    new Set(['PENDING', 'REVIEWED', 'RESOLVED', 'DISMISSED'] as const),
+    'Admin',
+  )
+  const submissionCount = optionalNumber(record, 'submissionCount', 'Admin')
+  const solutionCount = optionalNumber(record, 'solutionCount', 'Admin')
 
   return {
-    ...record,
     id: String(id),
     slug,
     title,
@@ -373,9 +426,22 @@ export function normalizeAdminProblem(value: unknown): ProblemAdmin {
     hasSolution,
     isPublished,
     isDeleted,
-    acceptanceRate,
     createdAt,
     updatedAt,
     tags: problemTags(record.tags),
-  } as ProblemAdmin
+    ...(publishedAt === undefined ? {} : { publishedAt }),
+    ...(publishedBy === undefined ? {} : { publishedBy }),
+    ...(deletedAt === undefined ? {} : { deletedAt }),
+    ...(isFlagged === undefined ? {} : { isFlagged }),
+    ...(flagReason === undefined ? {} : { flagReason }),
+    ...(flagReportedBy === undefined ? {} : { flagReportedBy }),
+    ...(flagReportedAt === undefined ? {} : { flagReportedAt }),
+    ...(flagStatus === undefined ? {} : { flagStatus }),
+    ...(flagReviewedBy === undefined ? {} : { flagReviewedBy }),
+    ...(flagReviewedAt === undefined ? {} : { flagReviewedAt }),
+    ...(flagNotes === undefined ? {} : { flagNotes }),
+    ...(acceptanceRate === undefined ? {} : { acceptanceRate }),
+    ...(submissionCount === undefined ? {} : { submissionCount }),
+    ...(solutionCount === undefined ? {} : { solutionCount }),
+  }
 }

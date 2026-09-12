@@ -112,8 +112,21 @@ public class DefaultAdminAnalyticsPortAdapter implements AdminAnalyticsPort {
                 2,
                 AdminUseCaseMetrics.Freshness.REQ,
                 () -> {
-                    List<ContestAdminDTO> contests =
-                            contestAdminReadPort.selectByStartTimeAfter(startDate);
+                    long deadlineNanos = System.nanoTime()
+                            + TimeUnit.MILLISECONDS.toNanos(RpcPolicy.QUERY_TIMEOUT_MS);
+                    CancellableQueryExecutor.Query<List<ContestAdminDTO>> contestsQuery =
+                            queryExecutor.submit(() -> contestAdminReadPort.selectByStartTimeAfter(startDate));
+                    AdminReadContract.OwnerRead<List<ContestAdminDTO>> contestsRead =
+                            AdminReadContract.awaitAndClassify(
+                                    queryExecutor,
+                                    "Analytics",
+                                    contestsQuery,
+                                    remainingNanos(deadlineNanos),
+                                    TimeUnit.NANOSECONDS);
+                    if (!contestsRead.available() || contestsRead.value() == null) {
+                        throw unavailable();
+                    }
+                    List<ContestAdminDTO> contests = contestsRead.value();
 
                     List<ContestSummary> contestSummaries = contests.stream()
                             .map(c -> new ContestSummary(
@@ -129,8 +142,21 @@ public class DefaultAdminAnalyticsPortAdapter implements AdminAnalyticsPort {
                         List<String> contestIds = contests.stream()
                                 .map(ContestAdminDTO::getId)
                                 .collect(Collectors.toList());
-                        for (ContestParticipantReadPort.ParticipantInfo p
-                                : contestParticipantReadPort.findByContestIds(contestIds)) {
+                        CancellableQueryExecutor.Query<List<ContestParticipantReadPort.ParticipantInfo>>
+                                participantsQuery = queryExecutor.submit(
+                                        () -> contestParticipantReadPort.findByContestIds(contestIds));
+                        AdminReadContract.OwnerRead<
+                                List<ContestParticipantReadPort.ParticipantInfo>> participantsRead =
+                                AdminReadContract.awaitAndClassify(
+                                        queryExecutor,
+                                        "Analytics",
+                                        participantsQuery,
+                                        remainingNanos(deadlineNanos),
+                                        TimeUnit.NANOSECONDS);
+                        if (!participantsRead.available() || participantsRead.value() == null) {
+                            throw unavailable();
+                        }
+                        for (ContestParticipantReadPort.ParticipantInfo p : participantsRead.value()) {
                             participantsByContest.merge(p.contestId(), 1L, Long::sum);
                             uniqueParticipants.add(p.userId());
                         }
@@ -256,5 +282,9 @@ public class DefaultAdminAnalyticsPortAdapter implements AdminAnalyticsPort {
 
     private static BusinessException unavailable() {
         return AdminReadContract.ownerUnavailable("Analytics");
+    }
+
+    private static long remainingNanos(long deadlineNanos) {
+        return Math.max(0L, deadlineNanos - System.nanoTime());
     }
 }

@@ -24,6 +24,24 @@ describe('Problem boundary normalization', () => {
     expect(problem.tags).toEqual(['array'])
   })
 
+  it('does not expose admin or unknown fields through the public shape', () => {
+    const problem = normalizePublicProblem({
+      id: 7,
+      title: 'Two Sum',
+      slug: 'two-sum',
+      difficulty: 'EASY',
+      acceptanceRate: 42.5,
+      tags: [],
+      is_deleted: true,
+      flag_reason: 'internal',
+      internalOnly: 'secret',
+    })
+
+    expect(problem).not.toHaveProperty('isDeleted')
+    expect(problem).not.toHaveProperty('flagReason')
+    expect(problem).not.toHaveProperty('internalOnly')
+  })
+
   it('normalizes admin fields and converts wire timestamps to Dates', () => {
     const problem = normalizeAdminProblem({
       id: 7,
@@ -49,6 +67,26 @@ describe('Problem boundary normalization', () => {
     expect(problem.updatedAt).toEqual(new Date('2026-01-02T00:00:00Z'))
     expect(problem.tags).toEqual([{ id: '1', label: 'array' }])
     expect(problem).not.toHaveProperty('is_premium')
+  })
+
+  it('does not expose unknown fields through the admin shape', () => {
+    const problem = normalizeAdminProblem({
+      id: 7,
+      slug: 'two-sum',
+      title: 'Two Sum',
+      difficulty: 'EASY',
+      status: 'TODO',
+      isPremium: false,
+      hasSolution: false,
+      isPublished: false,
+      isDeleted: false,
+      createdAt: '2026-01-01T00:00:00Z',
+      updatedAt: '2026-01-02T00:00:00Z',
+      tags: [],
+      internalOnly: 'secret',
+    })
+
+    expect(problem).not.toHaveProperty('internalOnly')
   })
 
   it('rejects malformed public payloads at the API boundary', () => {

@@ -234,12 +234,12 @@ class ProblemAdministrationDomainServiceTest {
             UpdateProblemDTO dto = new UpdateProblemDTO();
             dto.setTitle("New Title");
 
-            assertThatThrownBy(() -> service.updateProblemUnfenced(99L, dto, ACTOR_ID))
+            assertThatThrownBy(() -> service.updateProblem(99L, dto, ACTOR_ID, 1L))
                     .isInstanceOf(BusinessException.class)
                     .extracting("errorCode")
                     .isEqualTo(BaseErrorCode.NOT_FOUND);
 
-            verify(writePort, never()).updateById(any());
+            verify(writePort, never()).updateById(any(Problem.class), any());
         }
 
         @Test
@@ -300,27 +300,10 @@ class ProblemAdministrationDomainServiceTest {
                     .extracting("errorCode")
                     .isEqualTo(AppErrorCode.VERSION_CONFLICT);
 
-            verify(writePort, never()).updateById(any(Problem.class));
             verify(writePort, never()).updateById(any(Problem.class), any());
             verify(detailPort, never()).applyDetailUpdate(any(), any(), any());
         }
 
-        @Test
-        @DisplayName("explicit unfenced update uses the legacy unconditional write")
-        void explicitUnfencedUpdate() {
-            Problem existing = new Problem();
-            existing.setId(10L);
-            existing.setVersion(4);
-            when(writePort.selectById(10L)).thenReturn(existing);
-
-            UpdateProblemDTO dto = new UpdateProblemDTO();
-            dto.setTitle("New Title");
-
-            service.updateProblemUnfenced(10L, dto, ACTOR_ID);
-
-            verify(writePort).updateById(existing);
-            verify(writePort, never()).updateById(any(Problem.class), any());
-        }
     }
 
     // ── deleteProblem ───────────────────────────────────────────────────────
@@ -367,7 +350,7 @@ class ProblemAdministrationDomainServiceTest {
                     .extracting("errorCode")
                     .isEqualTo(BaseErrorCode.NOT_FOUND);
 
-            verify(writePort, never()).deleteById(any());
+            verify(writePort, never()).deleteById(any(), any());
         }
     }
 

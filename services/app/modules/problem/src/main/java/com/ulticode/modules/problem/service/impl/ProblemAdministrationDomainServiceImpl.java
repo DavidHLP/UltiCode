@@ -86,21 +86,14 @@ public class ProblemAdministrationDomainServiceImpl implements ProblemAdministra
 
     @Override
     public Problem updateProblem(Long id, UpdateProblemDTO dto, String actorId, Long expectedVersion) {
-        return updateProblemInternal(id, dto, actorId, expectedVersion, true);
-    }
-
-    @Override
-    public Problem updateProblemUnfenced(Long id, UpdateProblemDTO dto, String actorId) {
-        return updateProblemInternal(id, dto, actorId, null, false);
+        return updateProblemInternal(id, dto, actorId, expectedVersion);
     }
 
     private Problem updateProblemInternal(Long id, UpdateProblemDTO dto, String actorId,
-                                          Long expectedVersion, boolean fenced) {
+                                          Long expectedVersion) {
         Problem problem = findById(id)
                 .orElseThrow(() -> new BusinessException(BaseErrorCode.NOT_FOUND, "Problem not found"));
-        if (fenced) {
-            requireExpectedVersion(problem, expectedVersion);
-        }
+        requireExpectedVersion(problem, expectedVersion);
 
         if (dto.getSlug() != null && !dto.getSlug().equals(problem.getSlug())) {
             Optional<Problem> existingProblem = findBySlug(dto.getSlug());
@@ -129,12 +122,8 @@ public class ProblemAdministrationDomainServiceImpl implements ProblemAdministra
             problem.setHasSolution(dto.getHasSolution());
         }
 
-        if (fenced) {
-            requireAffected(writePort.updateById(problem, expectedVersion));
-            problem.setVersion(nextVersion(expectedVersion));
-        } else {
-            writePort.updateById(problem);
-        }
+        requireAffected(writePort.updateById(problem, expectedVersion));
+        problem.setVersion(nextVersion(expectedVersion));
         detailPort.applyDetailUpdate(id, problem, dto);
         versionPort.createVersion(id, "UPDATE", null, actorId);
 

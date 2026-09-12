@@ -2,6 +2,8 @@ package com.ulticode.app.dubbo.provider;
 
 import com.ulticode.common.command.ActorDelegation;
 import com.ulticode.app.api.command.ApplyModerationCommand;
+import com.ulticode.app.api.command.ApplyModerationCommand.ModerationAction;
+import com.ulticode.app.api.dto.ContentLifecycleState;
 import com.ulticode.app.api.dto.ModerationApplyResultDTO;
 import com.ulticode.app.api.error.AppErrorCode;
 import com.ulticode.app.api.service.ContentModerationService;
@@ -9,7 +11,7 @@ import com.ulticode.app.idempotency.CommandReceiptExecutor;
 import com.ulticode.app.security.AdminActorAuthorizer;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.rpc.RpcResult;
-import com.ulticode.modules.moderation.service.ContentModerationDomainService;
+import com.ulticode.modules.moderation.port.ContentModerationActionPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboService;
@@ -25,7 +27,7 @@ public class ContentModerationProvider implements ContentModerationService {
 
     private static final String SERVICE = "ContentModerationService";
 
-    private final ContentModerationDomainService domainService;
+    private final ContentModerationActionPort contentModerationActionPort;
     private final CommandReceiptExecutor receiptExecutor;
     private final AdminActorAuthorizer actorAuthorizer;
 
@@ -46,7 +48,15 @@ public class ContentModerationProvider implements ContentModerationService {
                     ModerationApplyResultDTO.class,
                     traceId -> {
                         try {
-                            return RpcResult.success(domainService.apply(command), traceId);
+                            if (command.action() != ModerationAction.DELETE) {
+                                throw new BusinessException(AppErrorCode.BAD_REQUEST,
+                                        "Unsupported moderation action: " + command.action());
+                            }
+                            ContentLifecycleState newState = contentModerationActionPort.deleteContent(
+                                    command.contentType(), command.contentId(), command.actor().actorId());
+                            return RpcResult.success(new ModerationApplyResultDTO(
+                                    command.moderationCaseId(), command.contentId(), command.action(), newState),
+                                    traceId);
                         } catch (BusinessException exception) {
                             return toFailure(exception, traceId);
                         } catch (Exception exception) {

@@ -66,15 +66,16 @@ serial Auth pages of 100, unbounded).
 
 ## 2. App Module deep-module status
 
-Per P2-APP-005 (already COMPLETE): `backend-problem-domain` and
-`backend-moderation-domain` library modules provide pure domain services
-`ProblemAdministrationDomainService` and `ContentModerationDomainService`.
-`app-web` `AppDomainServiceConfig` registers them as Spring beans. Old
-pass-through implementations deleted.
+Per P2-APP-005 (already COMPLETE): `backend-problem-domain` provides the
+pure `ProblemAdministrationDomainService`, while `backend-moderation-domain`
+provides the private `ContentModerationActionPort` seam. `app-web`
+`AppDomainServiceConfig` registers only the Problem domain service; the
+moderation pass-through implementation and bean are deleted.
 
 App private modules (from `services/app/pom.xml`): problem, contest,
 submission, moderation. Main impl still in `app-web/src/main/java/com/
-ulticode/modules/**`.
+ulticode/modules/**`; moderation exposes the private
+`ContentModerationActionPort` seam rather than a pass-through domain service.
 
 ## 3. Validation scope matrix (current test.sh)
 

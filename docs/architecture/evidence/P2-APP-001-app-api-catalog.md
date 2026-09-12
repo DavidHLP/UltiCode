@@ -52,7 +52,6 @@ catalog.
 | ForumTagReadPort | App/Forum | Admin tag projection | Dubbo | stable | KEEP |
 | ForumVoteReadPort | App/Vote | App forum projection | in-process | current | INTERNALIZED |
 | ModerationAccountPort | App/Moderation | App moderation | in-process | current | INTERNALIZED |
-| ModerationContentActionPort | App/Moderation | App moderation | in-process | current | INTERNALIZED |
 | ProblemAdminReadPort | App/Problem | Admin problem projection | Dubbo | stable | KEEP deep module |
 | ProblemAdministrationService | App/Problem | Admin problem commands | Dubbo | stable | KEEP |
 | ProblemAnalyticsReadPort | App/Problem | Admin analytics | Dubbo | stable | KEEP |

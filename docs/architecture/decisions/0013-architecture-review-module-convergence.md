@@ -23,8 +23,10 @@
    与 Admin 只注册 binding 和 handler；Search 复用 transport，但保留自己的
    document lock、version ledger 和 DLQ 语义。
 3. `OutboxDispatcher` 负责 claim/reclaim、publish、delivery confirmation、
-   retry/DLQ 和 drain。Submission 的两类 outbox 与 App integration outbox
-   通过 adapter 接入，owner-specific payload、mapper 和 sink 不进入共享模块。
+   retry/DLQ 和 drain。Submission 的两类 outbox、App integration outbox 与
+   三类 owner-local audit outbox 通过 adapter 接入；Audit 的共用
+   envelope/payload contract 位于 `backend-common`，owner-specific mapper、
+   sink 与 audit retry/fencing state 仍留在各 Owner。
 4. `OrphanScan` 负责 reconciliation 的 keyset/offset paging、顺序与 null
    校验、有限 page envelope 和分批 parent existence lookup。删除
    `OwnerReconciler` 中无可达实现的 reconciliation-pair 扩展路径；未来 pair

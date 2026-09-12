@@ -1,4 +1,6 @@
 import { apiGet, apiPost } from "@/utils/request";
+import { readPage } from "@/api/projection";
+import type { PageResult } from "@ulticode/domain-types";
 import type {
   SubmissionRecord,
   SubmissionStatusMeta,
@@ -27,11 +29,15 @@ export { mapSubmissionStatus };
 
 export async function fetchProblemSubmissions(
   problemId: number,
-): Promise<SubmissionRecord[]> {
-  const pageResult = await apiGet<{ items: unknown[] }>(
+): Promise<PageResult<SubmissionRecord>> {
+  const response = await apiGet<unknown>(
     `/problems/${problemId}/submissions`,
   );
-  return pageResult.items.map(mapSubmission);
+  const pageResult = readPage<unknown>(response);
+  return {
+    ...pageResult,
+    items: pageResult.items.map(mapSubmission),
+  };
 }
 
 export async function fetchSubmission(
@@ -48,10 +54,15 @@ export async function fetchBestSubmission(
   return mapSubmission(data);
 }
 
-export async function fetchUserSubmissions(): Promise<SubmissionRecord[]> {
-  // Backend returns PageResult<SubmissionVO> with items array, not a plain array
-  const pageResult = await apiGet<{ items: unknown[] }>(`/submissions`);
-  return pageResult.items.map(mapSubmission);
+export async function fetchUserSubmissions(): Promise<
+  PageResult<SubmissionRecord>
+> {
+  const response = await apiGet<unknown>(`/submissions`);
+  const pageResult = readPage<unknown>(response);
+  return {
+    ...pageResult,
+    items: pageResult.items.map(mapSubmission),
+  };
 }
 
 export async function fetchSubmissionStatuses(): Promise<

@@ -222,6 +222,9 @@ describe("useSolutionAuthoring", () => {
           },
         ],
         total: 1,
+        page: 1,
+        pageSize: 10,
+        totalPages: 1,
       });
 
       const onPublishSuccess = vi.fn();
@@ -259,7 +262,13 @@ describe("useSolutionAuthoring", () => {
       vi.mocked(createSolution).mockRejectedValue(
         new ApiError("already exists", 409),
       );
-      vi.mocked(fetchUserSolutions).mockResolvedValue({ items: [], total: 0 });
+      vi.mocked(fetchUserSolutions).mockResolvedValue({
+        items: [],
+        total: 0,
+        page: 1,
+        pageSize: 10,
+        totalPages: 0,
+      });
 
       const onCollisionRecovery = vi.fn();
       const authoring = useSolutionAuthoring({

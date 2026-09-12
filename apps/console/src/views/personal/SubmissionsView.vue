@@ -143,7 +143,7 @@ onMounted(async () => {
     const userId = useAuthStore().fetchCurrentUserId();
     if (!userId) return;
     hasUser.value = true;
-    submissions.value = await fetchUserSubmissions();
+    submissions.value = (await fetchUserSubmissions()).items;
   } catch (e) {
     console.error("Failed to load submissions", e);
   } finally {

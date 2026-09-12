@@ -48,7 +48,7 @@ async function loadPosts() {
   isLoading.value = true;
   try {
     const result = await fetchMyForumPosts();
-    posts.value = result.posts;
+    posts.value = result.items;
   } catch (error) {
     console.error("Failed to load forum posts", error);
     toast.error(t("personal.messages.loadFailed"));

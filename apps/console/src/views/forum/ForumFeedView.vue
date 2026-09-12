@@ -69,7 +69,7 @@ async function loadAllPosts() {
       fetchForumCommunities(),
       fetchForumQuickFilters(),
     ]);
-    posts.value = postResult.posts;
+    posts.value = postResult.items;
     totalPages.value = postResult.totalPages;
     communities.value = communityRows;
     quickFilters.value = filters.map((f) => ({
@@ -104,7 +104,7 @@ async function loadCommunityPosts(slug: string) {
     currentCommunity.value = communityData.community;
     communityRules.value = communityData.rules ?? [];
     communityLinks.value = communityData.links ?? [];
-    posts.value = postResult.posts;
+    posts.value = postResult.items;
     totalPages.value = postResult.totalPages;
   } catch (error) {
     console.error("[ForumFeedView] Failed to load community data", error);

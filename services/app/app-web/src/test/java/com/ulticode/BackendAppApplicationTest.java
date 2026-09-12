@@ -221,8 +221,6 @@ class BackendAppApplicationTest {
     private com.ulticode.modules.submission.service.SandboxOutputFormatter sandboxOutputFormatter;
     @MockitoBean
     private com.ulticode.modules.submission.port.JudgingLanguageSupport judgingLanguageSupport;
-    @MockitoBean
-    private com.ulticode.modules.submission.port.ProblemFactsPort submissionPortProblemFactsPort;
 
     // ==================== Problem family (P7-RELOCATE-PROBLEM-001) ====================
 

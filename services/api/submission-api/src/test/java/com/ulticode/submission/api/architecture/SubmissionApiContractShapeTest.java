@@ -67,10 +67,12 @@ class SubmissionApiContractShapeTest {
 
     @Test
     void mutationContractsStaySplitByConsumerCapability() {
-        assertThat(SubmissionIntakePort.class.getDeclaredMethods()).hasSize(4);
+        assertThat(SubmissionIntakePort.class.getDeclaredMethods()).hasSize(2);
         assertThat(SubmissionVerdictWritePort.class.getDeclaredMethods()).hasSize(2);
         assertThat(Arrays.stream(SubmissionIntakePort.class.getDeclaredMethods())
                 .map(Method::getName)).allMatch(name -> name.startsWith("submit"));
+        assertThat(Arrays.stream(SubmissionIntakePort.class.getDeclaredMethods())
+                .map(Method::getParameterCount)).containsOnly(3);
         assertThat(Arrays.stream(SubmissionVerdictWritePort.class.getDeclaredMethods())
                 .map(Method::getName)).allMatch(name -> name.startsWith("updateSubmissionResult"));
     }

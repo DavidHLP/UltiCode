@@ -15,6 +15,7 @@ import com.ulticode.submission.api.dto.SubmissionStatusMeta;
 import com.ulticode.submission.api.dto.SubmissionVO;
 import com.ulticode.submission.api.service.SubmissionUserQueryPort;
 import com.ulticode.submission.api.service.SubmissionIntakePort;
+import com.ulticode.modules.submission.port.SubmissionFactsCapture;
 import java.util.List;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -37,6 +38,7 @@ public class SubmissionController {
 
     private final SubmissionUserQueryPort submissionUserQuery;
     private final SubmissionIntakePort submissionWritePort;
+    private final SubmissionFactsCapture submissionFactsCapture;
     private final CurrentUserProvider currentUserProvider;
 
     /**
@@ -59,7 +61,8 @@ public class SubmissionController {
             throw new BusinessException(BaseErrorCode.UNAUTHORIZED);
         }
 
-        SubmissionVO submission = submissionWritePort.submit(userId, createDTO);
+        SubmissionVO submission = submissionWritePort.submit(
+                userId, createDTO, submissionFactsCapture.capture(userId, createDTO));
         return Result.success(submission);
     }
 

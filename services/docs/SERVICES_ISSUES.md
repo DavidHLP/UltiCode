@@ -123,6 +123,7 @@ P1-SUB-004 now moves reconciliation to Submission-owned bounded full/incremental
 
 Evidence:
 
+- [App submission facts capture](../app/app-web/src/main/java/com/ulticode/modules/submission/port/SubmissionFactsCapture.java)
 - [Owner-only intake adapter](../app/app-web/src/main/java/com/ulticode/modules/submission/port/adapter/RemoteSubmissionWritePort.java)
 - [Owner writer](../submission/src/main/java/com/ulticode/modules/submission/port/DefaultSubmissionWritePort.java)
 - [Owner intake provider](../submission/src/main/java/com/ulticode/submission/dubbo/provider/SubmissionIntakeProvider.java)

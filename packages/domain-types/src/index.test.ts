@@ -157,5 +157,20 @@ describe('Problem boundary normalization', () => {
       updatedAt: '2026-01-02T00:00:00Z',
       tags: [],
     })).toThrow('createdAt')
+    expect(() => normalizeAdminProblem({
+      id: 1,
+      slug: 'two-sum',
+      title: 'Two Sum',
+      difficulty: 'EASY',
+      status: 'TODO',
+      isPremium: false,
+      hasSolution: false,
+      isPublished: false,
+      isDeleted: false,
+      createdAt: '2026-01-01T00:00:00Z',
+      updatedAt: '2026-01-02T00:00:00Z',
+      flagNotes: '   ',
+      tags: [],
+    })).toThrow('flagNotes')
   })
 })

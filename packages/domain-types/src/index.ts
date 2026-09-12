@@ -271,7 +271,10 @@ function optionalText(
   allowEmpty = false,
 ): string | undefined {
   if (record[key] === null || record[key] === undefined) return undefined
-  if (typeof record[key] !== 'string' || (!allowEmpty && record[key].trim() === '')) {
+  if (
+    typeof record[key] !== 'string' ||
+    (record[key].trim() === '' && !(allowEmpty && record[key] === ''))
+  ) {
     throw invalidProblem(audience, `has an invalid ${key}`)
   }
   return record[key] as string

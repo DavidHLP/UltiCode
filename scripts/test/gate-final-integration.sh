@@ -87,8 +87,9 @@ cd "$ROOT_DIR"
 
 printf '=== P0/P1 ARCHITECTURE CONTRACT ===\n'
 # The architecture contract registry is the source of truth for static
-# baseline/runtime-boundary children. The final gate only selects its
-# static-safe view; it must not maintain a second child list here.
+# baseline/runtime-boundary children. The final gate selects its static-safe
+# view through the parent entrypoint; its qualified list is exposed for CI,
+# but no second child list belongs here.
 run_or_stop P0 architecture-contract 0 env ULTI_STATIC_ONLY=1 \
   bash "$ROOT_DIR/scripts/dev/architecture-contract-test.sh"
 

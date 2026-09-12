@@ -37,8 +37,9 @@
    DTO，也不承担业务状态机。
 6. 开发脚本通过 `common.sh` 复用 Compose 参数、env 加载和 Docker 探测；
    `scripts/dev/architecture-contract-test.rules` 是 architecture contract
-   child 的权威注册表，final gate 只选择 static view。删除 Garden 的永久
-   opt-out，保留 static/unit/full 的既有分层。
+   child 的权威注册表，`architecture-contract-test.sh --list-qualified static|dynamic`
+   提供逐行机器视图，CI 从该视图执行 child，final gate 只选择 static view。
+   删除 Garden 的永久 opt-out，保留 static/unit/full 的既有分层。
 7. Auth 只保留 `createSessionAuthStore` 这一套共享 session policy；Management
    在其上保留 boolean Pinia view，Console 保留 status-machine view。两端的
    transport、路由和页面权限语义不进入共享工厂。

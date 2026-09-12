@@ -45,16 +45,16 @@ class DefaultContentModerationAdapterTest {
     @Test
     @DisplayName("deleteContent delegates forum_post deletion to ForumOwnerPort")
     void deleteContentForumPost() {
-        ContentLifecycleState state = adapter.deleteContent("forum_post", "post-100");
+        ContentLifecycleState state = adapter.deleteContent("forum_post", "post-100", "moderator-1");
 
         assertThat(state).isEqualTo(ContentLifecycleState.DELETED);
-        verify(forumOwnerPort).deletePost("post-100");
+        verify(forumOwnerPort).deletePost("post-100", "moderator-1");
     }
 
     @Test
     @DisplayName("deleteContent delegates solution deletion to SolutionOwnerPort")
     void deleteContentSolution() {
-        ContentLifecycleState state = adapter.deleteContent("solution", "sol-100");
+        ContentLifecycleState state = adapter.deleteContent("solution", "sol-100", "moderator-1");
 
         assertThat(state).isEqualTo(ContentLifecycleState.DELETED);
         verify(solutionOwnerPort).deleteSolution("sol-100");
@@ -63,7 +63,7 @@ class DefaultContentModerationAdapterTest {
     @Test
     @DisplayName("deleteContent throws BusinessException for unknown contentType")
     void deleteContentUnknownType() {
-        assertThatThrownBy(() -> adapter.deleteContent("unknown_type", "id-100"))
+        assertThatThrownBy(() -> adapter.deleteContent("unknown_type", "id-100", "moderator-1"))
                 .isInstanceOf(BusinessException.class);
     }
 }

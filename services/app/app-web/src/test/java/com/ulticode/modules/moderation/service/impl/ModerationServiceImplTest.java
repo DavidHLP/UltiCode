@@ -32,6 +32,7 @@ import com.ulticode.modules.moderation.mapper.ModerationQueueMapper;
 import com.ulticode.modules.moderation.mapper.ReportMapper;
 import com.ulticode.modules.moderation.mapper.UserBanMapper;
 import com.ulticode.modules.moderation.mapper.UserWarningMapper;
+import com.ulticode.modules.moderation.port.ContentModerationActionPort;
 import com.ulticode.modules.moderation.port.ContentModerationPort;
 import com.ulticode.modules.moderation.projection.ModerationProjection;
 import com.ulticode.modules.event.outbox.IntegrationEventPublisher;
@@ -66,6 +67,7 @@ class ModerationServiceImplTest {
   @Mock private UserBanMapper banMapper;
   @Mock private ModerationAccountPort accountPort;
   @Mock private ContentModerationPort contentModerationPort;
+  @Mock private ContentModerationActionPort contentModerationActionPort;
   @Mock private ModerationProjection moderationProjection;
   @Mock private CurrentUserProvider currentUserProvider;
   @Mock private IntegrationEventPublisher integrationEventPublisher;
@@ -80,6 +82,7 @@ class ModerationServiceImplTest {
         banMapper,
         accountPort,
         contentModerationPort,
+        contentModerationActionPort,
         moderationProjection,
         CLOCK,
         currentUserProvider,
@@ -240,6 +243,20 @@ class ModerationServiceImplTest {
     verify(contentModerationPort)
         .updateFlagStatus(eq("FORUM_POST"), eq("post-1"), eq(true), eq("hide note"));
     verify(warningMapper, never()).insert(any(UserWarning.class));
+  }
+
+  @Test
+  void performActionWithDeletePassesModeratorToContentActionPort() {
+    when(queueMapper.selectById("q-1")).thenReturn(queueItem("q-1"));
+    when(moderationProjection.queueItemById("q-1")).thenReturn(new ModerationQueueVO());
+
+    PerformModerationActionDTO dto = new PerformModerationActionDTO();
+    dto.setAction(ModerationActionType.DELETED);
+
+    service().performAction("q-1", dto, "mod-1");
+
+    verify(contentModerationActionPort).deleteContent("FORUM_POST", "post-1", "mod-1");
+    verify(contentModerationPort, never()).updateFlagStatus(anyString(), anyString(), eq(true), any());
   }
 
   @Test

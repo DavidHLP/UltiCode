@@ -2,10 +2,10 @@ package com.ulticode.modules.moderation.port;
 
 import com.ulticode.app.api.dto.ContentLifecycleState;
 import com.ulticode.modules.forum.port.ForumCommentOwnerPort;
-import com.ulticode.modules.moderation.port.ModerationContentActionPort;
 import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.exception.BusinessException;
 import java.time.LocalDateTime;
+import java.util.Locale;
 import com.ulticode.modules.forum.port.ForumOwnerPort;
 import com.ulticode.app.api.service.ProblemOwnerPort;
 import com.ulticode.app.api.service.SolutionCommentOwnerPort;
@@ -33,7 +33,7 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class DefaultContentModerationAdapter implements ContentModerationPort, ModerationContentActionPort {
+public class DefaultContentModerationAdapter implements ContentModerationPort, ContentModerationActionPort {
 
     private final ForumOwnerPort forumOwnerPort;
     private final ForumCommentOwnerPort forumCommentOwnerPort;
@@ -101,13 +101,16 @@ public class DefaultContentModerationAdapter implements ContentModerationPort, M
         }
     }
     @Override
-    public ContentLifecycleState deleteContent(String contentType, String contentId) {
-        if (contentType == null || contentId == null) {
-            throw new BusinessException(BaseErrorCode.BAD_REQUEST, "contentType and contentId are required");
+    public ContentLifecycleState deleteContent(String contentType, String contentId, String actorId) {
+        if (contentType == null || contentType.isBlank()
+                || contentId == null || contentId.isBlank()
+                || actorId == null || actorId.isBlank()) {
+            throw new BusinessException(BaseErrorCode.BAD_REQUEST,
+                    "contentType, contentId and actorId are required");
         }
-        return switch (contentType.toLowerCase()) {
+        return switch (contentType.toLowerCase(Locale.ROOT)) {
             case "forum_post", "forum" -> {
-                forumOwnerPort.deletePost(contentId);
+                forumOwnerPort.deletePost(contentId, actorId);
                 yield ContentLifecycleState.DELETED;
             }
             case "solution" -> {

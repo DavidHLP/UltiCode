@@ -121,7 +121,6 @@ internalized = {
     "ForumPostReadPort": "forum/port/ForumPostReadPort.java",
     "ForumVoteReadPort": "forum/port/ForumVoteReadPort.java",
     "ModerationAccountPort": "moderation/port/ModerationAccountPort.java",
-    "ModerationContentActionPort": "moderation/port/ModerationContentActionPort.java",
     "ProblemExistencePort": "problem/port/ProblemExistencePort.java",
     "ProblemTagReadPort": "solution/port/ProblemTagReadPort.java",
     "SolutionVoteReadPort": "solution/port/SolutionVoteReadPort.java",

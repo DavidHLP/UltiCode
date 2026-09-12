@@ -8,18 +8,12 @@ import {
   type AdminNotificationQueryParams,
 } from '@/api/admin/notifications'
 import { extractApiErrorMessage } from '@/utils/error'
+import { createCollectionSlice } from '@/stores/createCollectionSlice'
 export const useNotificationsStore = defineStore('admin-notifications', () => {
-  const announcements = ref<SystemAnnouncement[]>([])
-  const total = ref(0)
   const currentPage = ref(1)
   const pageSize = ref(10)
-  const isLoading = ref(false)
-  const error = ref<string | null>(null)
-
-  async function fetchAnnouncements(params?: AdminNotificationQueryParams) {
-    isLoading.value = true
-    error.value = null
-    try {
+  const collection = createCollectionSlice<SystemAnnouncement, AdminNotificationQueryParams>({
+    load: async (params = {}) => {
       const queryParams: AdminNotificationQueryParams = {
         page: params?.page ?? currentPage.value,
         limit: params?.limit ?? pageSize.value,
@@ -30,17 +24,16 @@ export const useNotificationsStore = defineStore('admin-notifications', () => {
         sortOrder: params?.sortOrder,
       }
       const response = await adminNotificationsApi.getAll(queryParams)
-      announcements.value = response.items
-      total.value = response.total
       currentPage.value = response.page
       pageSize.value = response.pageSize
-    } catch (e: unknown) {
-      error.value = extractApiErrorMessage(e, 'Failed to fetch announcements')
-      throw e
-    } finally {
-      isLoading.value = false
-    }
-  }
+      return { items: response.items, total: response.total }
+    },
+  })
+  const announcements = collection.items
+  const total = collection.total
+  const isLoading = collection.isLoading
+  const error = collection.error
+  const fetchAnnouncements = collection.fetch
 
   async function createNotification(data: CreateNotificationDto) {
     isLoading.value = true
@@ -85,6 +78,8 @@ export const useNotificationsStore = defineStore('admin-notifications', () => {
   }
 
   return {
+    items: collection.items,
+    fetch: collection.fetch,
     announcements,
     total,
     currentPage,

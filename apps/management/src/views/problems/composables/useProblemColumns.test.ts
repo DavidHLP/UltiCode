@@ -4,6 +4,7 @@ import { createI18n } from 'vue-i18n'
 import { describe, expect, it, vi } from 'vitest'
 import type { Problem } from '@/api/admin/problems'
 import { useProblemColumns, type ProblemActions } from './useProblemColumns'
+import type { ProblemPermissionMap } from '@/composables/useProblemPermissions'
 
 const actions: ProblemActions = {
   viewProblem: vi.fn(),
@@ -22,8 +23,13 @@ function mountPublishedCell(isPublished: boolean, isDeleted = false) {
   const Harness = defineComponent({
     setup() {
       const columns = useProblemColumns(
-        computed(() => true),
-        computed(() => true),
+        {
+          read: computed(() => true),
+          create: computed(() => true),
+          update: computed(() => true),
+          delete: computed(() => true),
+          moderate: computed(() => true),
+        } satisfies ProblemPermissionMap,
         actions,
       )
       const publishedColumn = columns.find((column) => column.id === 'isPublished')

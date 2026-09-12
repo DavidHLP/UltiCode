@@ -125,13 +125,7 @@ const {
   },
   QueryReportsParams
 >({
-  store: {
-    data: computed(() => store.reports),
-    total: computed(() => store.reportsTotal),
-    isLoading: computed(() => store.reportsLoading),
-    error: computed(() => store.reportsError),
-    fetch: (params) => store.fetchReports(params),
-  },
+  store: store.reportsCollection,
   filters: () => ({
     status: statusFilter.value,
     category: categoryFilter.value,

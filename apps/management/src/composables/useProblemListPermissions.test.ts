@@ -11,87 +11,33 @@ describe('useProblemListPermissions', () => {
     vi.clearAllMocks()
   })
 
-  it('canEditBasicInfo returns true when user has UPDATE:PROBLEM_LIST permission', () => {
-    const mockHasPermission = vi.fn().mockReturnValue(true)
+  it('exposes one update predicate for all problem-list editing surfaces', () => {
+    const mockHasPermission = vi.fn((action: string, resource: string) =>
+      action === 'UPDATE' && resource === 'PROBLEM_LIST',
+    )
     vi.mocked(useAuthStore).mockReturnValue({
       hasPermission: mockHasPermission,
     } as unknown as ReturnType<typeof useAuthStore>)
 
-    const { canEditBasicInfo } = useProblemListPermissions()
-    expect(canEditBasicInfo.value).toBe(true)
+    const { can } = useProblemListPermissions()
+
+    expect(can.problemList.update.value).toBe(true)
+    expect(can.problemList.manageProblems.value).toBe(false)
     expect(mockHasPermission).toHaveBeenCalledWith('UPDATE', 'PROBLEM_LIST')
   })
 
-  it('canEditBasicInfo returns false when user lacks UPDATE:PROBLEM_LIST permission', () => {
+  it('keeps problem-list management fail-closed', () => {
     const mockHasPermission = vi.fn().mockReturnValue(false)
     vi.mocked(useAuthStore).mockReturnValue({
       hasPermission: mockHasPermission,
     } as unknown as ReturnType<typeof useAuthStore>)
 
-    const { canEditBasicInfo } = useProblemListPermissions()
-    expect(canEditBasicInfo.value).toBe(false)
-  })
+    const { can } = useProblemListPermissions()
 
-  it('canEditVisibility returns true when user has UPDATE:PROBLEM_LIST permission', () => {
-    const mockHasPermission = vi.fn().mockReturnValue(true)
-    vi.mocked(useAuthStore).mockReturnValue({
-      hasPermission: mockHasPermission,
-    } as unknown as ReturnType<typeof useAuthStore>)
-
-    const { canEditVisibility } = useProblemListPermissions()
-    expect(canEditVisibility.value).toBe(true)
-    expect(mockHasPermission).toHaveBeenCalledWith('UPDATE', 'PROBLEM_LIST')
-  })
-
-  it('canEditVisibility returns false when user lacks UPDATE:PROBLEM_LIST permission', () => {
-    const mockHasPermission = vi.fn().mockReturnValue(false)
-    vi.mocked(useAuthStore).mockReturnValue({
-      hasPermission: mockHasPermission,
-    } as unknown as ReturnType<typeof useAuthStore>)
-
-    const { canEditVisibility } = useProblemListPermissions()
-    expect(canEditVisibility.value).toBe(false)
-  })
-
-  it('canEditBanner returns true when user has UPDATE:PROBLEM_LIST permission', () => {
-    const mockHasPermission = vi.fn().mockReturnValue(true)
-    vi.mocked(useAuthStore).mockReturnValue({
-      hasPermission: mockHasPermission,
-    } as unknown as ReturnType<typeof useAuthStore>)
-
-    const { canEditBanner } = useProblemListPermissions()
-    expect(canEditBanner.value).toBe(true)
-    expect(mockHasPermission).toHaveBeenCalledWith('UPDATE', 'PROBLEM_LIST')
-  })
-
-  it('canEditBanner returns false when user lacks UPDATE:PROBLEM_LIST permission', () => {
-    const mockHasPermission = vi.fn().mockReturnValue(false)
-    vi.mocked(useAuthStore).mockReturnValue({
-      hasPermission: mockHasPermission,
-    } as unknown as ReturnType<typeof useAuthStore>)
-
-    const { canEditBanner } = useProblemListPermissions()
-    expect(canEditBanner.value).toBe(false)
-  })
-
-  it('canManageProblems returns true when user has MANAGE_PROBLEMS:PROBLEM_LIST permission', () => {
-    const mockHasPermission = vi.fn().mockReturnValue(true)
-    vi.mocked(useAuthStore).mockReturnValue({
-      hasPermission: mockHasPermission,
-    } as unknown as ReturnType<typeof useAuthStore>)
-
-    const { canManageProblems } = useProblemListPermissions()
-    expect(canManageProblems.value).toBe(true)
-    expect(mockHasPermission).toHaveBeenCalledWith('MANAGE_PROBLEMS', 'PROBLEM_LIST')
-  })
-
-  it('canManageProblems returns false when user lacks MANAGE_PROBLEMS:PROBLEM_LIST permission', () => {
-    const mockHasPermission = vi.fn().mockReturnValue(false)
-    vi.mocked(useAuthStore).mockReturnValue({
-      hasPermission: mockHasPermission,
-    } as unknown as ReturnType<typeof useAuthStore>)
-
-    const { canManageProblems } = useProblemListPermissions()
-    expect(canManageProblems.value).toBe(false)
+    expect(can.problemList.read.value).toBe(false)
+    expect(can.problemList.create.value).toBe(false)
+    expect(can.problemList.update.value).toBe(false)
+    expect(can.problemList.delete.value).toBe(false)
+    expect(can.problemList.manageProblems.value).toBe(false)
   })
 })

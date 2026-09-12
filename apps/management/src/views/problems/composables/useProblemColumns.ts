@@ -1,4 +1,4 @@
-import { h, type ComputedRef } from 'vue'
+import { h } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { formatDateByLocale } from '@/i18n/utils'
 import type { ColumnDef } from '@tanstack/vue-table'
@@ -26,6 +26,7 @@ import { badge, DIFFICULTY_COLOR_MAP } from '@/components/ui/terminal'
 import { createSelectionColumn } from '@/components/table/selectionColumn'
 import { createEntityActionsMenu } from '@/components/table/entityActions'
 import { Difficulty, type Problem } from '@/api/admin/problems'
+import type { ProblemPermissionMap } from '@/composables/useProblemPermissions'
 
 function getDifficultyIcon(difficulty: Difficulty) {
   switch (difficulty) {
@@ -54,8 +55,7 @@ export interface ProblemActions {
 }
 
 export function useProblemColumns(
-  canUpdateProblem: ComputedRef<boolean>,
-  canDeleteProblem: ComputedRef<boolean>,
+  can: ProblemPermissionMap,
   actions: ProblemActions,
 ): ColumnDef<Problem>[] {
   const { t } = useI18n()
@@ -275,14 +275,14 @@ export function useProblemColumns(
                 onSelect: () => actions.unflagProblem(problem.id),
                 icon: IconFlagOff,
                 iconClass: 'h-4 w-4 text-foreground-strong',
-                hidden: !canUpdateProblem.value,
+                hidden: !can.update.value,
               }
             : {
                 label: t('moderation.flag'),
                 onSelect: () => actions.openFlagDialog(problem),
                 icon: IconFlag,
                 iconClass: 'h-4 w-4 text-foreground-strong',
-                hidden: !canUpdateProblem.value,
+                hidden: !can.update.value,
               },
           { kind: 'separator' },
           problem.isPublished
@@ -291,21 +291,21 @@ export function useProblemColumns(
                 onSelect: () => actions.unpublishProblem(problem.id),
                 icon: IconEyeOff,
                 labelClass: 'text-foreground-strong',
-                hidden: !canUpdateProblem.value,
+                hidden: !can.update.value,
               }
             : {
                 label: t('problems.actions.publish'),
                 onSelect: () => actions.publishProblem(problem.id),
                 icon: IconEye,
                 labelClass: 'text-foreground-strong',
-                hidden: !canUpdateProblem.value,
+                hidden: !can.update.value,
               },
           {
             label: t('common.delete'),
             onSelect: () => actions.confirmDelete(problem),
             icon: IconTrash,
             labelClass: 'text-destructive',
-            hidden: !canDeleteProblem.value,
+            hidden: !can.delete.value,
           },
         ])
       },

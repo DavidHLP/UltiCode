@@ -17,6 +17,7 @@ import { createSelectionColumn } from '@/components/table/selectionColumn'
 import { createEntityActionsMenu } from '@/components/table/entityActions'
 import type { Contest } from '@/api/admin/contests'
 import { formatDate } from '@/lib/format/date'
+import type { ContestPermissionMap } from '@/composables/useContestPermissions'
 import { badge, CONTEST_TYPE_COLOR_MAP, CONTEST_STATUS_COLOR_MAP } from '@/components/ui/terminal'
 
 export interface ContestActions {
@@ -59,8 +60,7 @@ function renderStatusBadge(
 export function createColumns(
   t: (key: string, params?: string | Record<string, unknown>) => string,
   actions: ContestActions,
-  canUpdate: () => boolean,
-  canDelete: () => boolean,
+  can: ContestPermissionMap,
 ): ColumnDef<Contest>[] {
   return [
     ...createSelectionColumn<Contest>(t, {
@@ -223,7 +223,7 @@ export function createColumns(
               icon: IconPlayerPlay,
               iconClass: 'h-4 w-4 text-foreground-strong',
               labelClass: 'text-[var(--foreground-strong)]',
-              hidden: !(canUpdate() && contest.status === 'UPCOMING'),
+              hidden: !(can.update.value && contest.status === 'UPCOMING'),
             },
             {
               label: t('contests.actions.endContest'),
@@ -231,7 +231,7 @@ export function createColumns(
               icon: IconPlayerStop,
               iconClass: 'h-4 w-4 text-foreground-strong',
               labelClass: 'text-[var(--foreground-strong)]',
-              hidden: !(canUpdate() && contest.status === 'RUNNING'),
+              hidden: !(can.update.value && contest.status === 'RUNNING'),
             },
             { kind: 'separator' },
             {
@@ -240,7 +240,7 @@ export function createColumns(
               icon: IconTrash,
               iconClass: 'h-4 w-4 text-foreground-strong',
               labelClass: 'text-[var(--foreground-strong)]',
-              hidden: !canDelete(),
+              hidden: !can.delete.value,
             },
           ],
           {

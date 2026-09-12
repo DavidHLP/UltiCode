@@ -98,13 +98,7 @@ const {
   { type: CommentType | 'all'; flaggedFilter: string; deletedFilter: string },
   Parameters<typeof commentsStore.fetchComments>[0]
 >({
-  store: {
-    data: computed(() => commentsStore.comments),
-    total: computed(() => commentsStore.total),
-    isLoading: computed(() => commentsStore.loading),
-    error: computed(() => commentsStore.error),
-    fetch: (params) => commentsStore.fetchComments(params),
-  },
+  store: commentsStore,
   filters: () => ({
     type: typeFilter.value,
     flaggedFilter: flaggedFilter.value,

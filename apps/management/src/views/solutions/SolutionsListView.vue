@@ -8,7 +8,6 @@ import { IconFileText } from '@tabler/icons-vue'
 import { Button } from '@/components/ui/button'
 
 import { useSolutionsStore } from '@/stores/admin/solutions'
-import { useAuthStore } from '@/stores/auth'
 import type { SolutionListItem } from '@/api/admin/solutions'
 
 import DataTable from '@/components/table/DataTable.vue'
@@ -16,10 +15,11 @@ import DataTableToolbar, { type Filter } from '@/components/table/DataTableToolb
 import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
 import { createColumns } from './columns'
 import { useDataTable } from '@/composables/useDataTable'
+import { useSolutionPermissions } from '@/composables/useSolutionPermissions'
 
 const router = useRouter()
 const solutionsStore = useSolutionsStore()
-const authStore = useAuthStore()
+const { can } = useSolutionPermissions()
 const { t } = useI18n()
 
 const flaggedFilter = ref<string>('all')
@@ -29,9 +29,6 @@ const selectedSolutionId = ref<string | null>(null)
 const selectedSolutionTitle = ref<string | null>(null)
 const deleteDialogOpen = ref(false)
 const flagDialogOpen = ref(false)
-
-const canUpdateSolution = computed(() => authStore.hasPermission('MODERATE', 'SOLUTION'))
-const canDeleteSolution = computed(() => authStore.hasPermission('DELETE', 'SOLUTION'))
 
 // Animation state for staggered reveal
 const isLoaded = ref(false)
@@ -85,13 +82,7 @@ const {
   { flaggedFilter: string; publishedFilter: string },
   Parameters<typeof solutionsStore.fetchSolutions>[0]
 >({
-  store: {
-    data: computed(() => solutionsStore.solutions),
-    total: computed(() => solutionsStore.total),
-    isLoading: computed(() => solutionsStore.loading),
-    error: computed(() => solutionsStore.error),
-    fetch: (params) => solutionsStore.fetchSolutions(params),
-  },
+  store: solutionsStore,
   filters: () => ({
     flaggedFilter: flaggedFilter.value,
     publishedFilter: publishedFilter.value,
@@ -136,8 +127,7 @@ const columns = createColumns(
       deleteDialogOpen.value = true
     },
   },
-  () => canUpdateSolution.value,
-  () => canDeleteSolution.value,
+  can.solution,
 )
 
 async function handleDeleteSolution(id: string | number) {

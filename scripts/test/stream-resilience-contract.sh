@@ -34,7 +34,6 @@ contains services/platform/integration-inbox/src/main/java/com/ulticode/modules/
 contains services/platform/integration-inbox/src/main/java/com/ulticode/modules/event/inbox/RedisStreamInboxBridge.java 'ReadOffset.lastConsumed()'
 contains services/app/app-web/src/main/java/com/ulticode/modules/event/inbox/SubmissionJudgedInboxBridge.java 'IntegrationEventPoison'
 contains services/platform/integration-inbox/src/main/java/com/ulticode/modules/event/inbox/RedisStreamInboxBridge.java 'IntegrationEventEnvelopeContract.requireCompatibleEnvelope'
-contains services/platform/integration-inbox/src/main/java/com/ulticode/modules/event/inbox/RedisStreamInboxBridge.java 'IntegrationEventEnvelopeContract.requireCompatibleEnvelope'
 contains services/search/src/main/java/com/ulticode/search/SearchDocumentIndexWorker.java 'ATOMIC_DEAD_LETTER_SCRIPT'
 contains services/search/src/main/java/com/ulticode/search/SearchDocumentIndexWorker.java "redis.call('XACK'"
 contains services/search/src/main/java/com/ulticode/search/SearchDocumentIndexWorker.java 'parseVersion'

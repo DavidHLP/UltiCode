@@ -1,9 +1,10 @@
 import { ref, type Ref } from 'vue'
 import { extractApiErrorMessage } from '@/utils/error'
 
-export interface CollectionPage<T> {
+export interface CollectionPage<T, TMetadata = never> {
   items: T[]
   total: number
+  metadata?: TMetadata
 }
 
 export interface CollectionSlice<T, TParams> {
@@ -18,8 +19,9 @@ export interface CollectionFetchOptions {
   rethrow?: boolean
 }
 
-interface CreateCollectionSliceOptions<T, TParams> {
-  load: (params: TParams) => Promise<CollectionPage<T> | undefined>
+interface CreateCollectionSliceOptions<T, TParams, TMetadata> {
+  load: (params: TParams) => Promise<CollectionPage<T, TMetadata> | undefined>
+  applyMetadata?: (metadata: TMetadata) => void
 }
 
 function isCancellationError(err: unknown): boolean {
@@ -39,8 +41,8 @@ function isCancellationError(err: unknown): boolean {
  * A loader may return undefined when it intentionally ignores an aborted
  * request. The newest fetch owns the loading/error state and the applied page.
  */
-export function createCollectionSlice<T, TParams>(
-  options: CreateCollectionSliceOptions<T, TParams>,
+export function createCollectionSlice<T, TParams, TMetadata = never>(
+  options: CreateCollectionSliceOptions<T, TParams, TMetadata>,
 ): CollectionSlice<T, TParams> {
   const items = ref<T[]>([]) as Ref<T[]>
   const total = ref(0)
@@ -58,6 +60,9 @@ export function createCollectionSlice<T, TParams>(
       if (request !== requestSequence || !page) return
       items.value = page.items
       total.value = page.total
+      if (page.metadata !== undefined) {
+        options.applyMetadata?.(page.metadata)
+      }
     } catch (err: unknown) {
       if (request !== requestSequence || isCancellationError(err)) return
       error.value = extractApiErrorMessage(err, 'Failed to load collection')

@@ -12,7 +12,11 @@ import { createCollectionSlice } from '@/stores/createCollectionSlice'
 export const useNotificationsStore = defineStore('admin-notifications', () => {
   const currentPage = ref(1)
   const pageSize = ref(10)
-  const collection = createCollectionSlice<SystemAnnouncement, AdminNotificationQueryParams>({
+  const collection = createCollectionSlice<
+    SystemAnnouncement,
+    AdminNotificationQueryParams,
+    { page: number; pageSize: number }
+  >({
     load: async (params = {}) => {
       const queryParams: AdminNotificationQueryParams = {
         page: params?.page ?? currentPage.value,
@@ -24,9 +28,15 @@ export const useNotificationsStore = defineStore('admin-notifications', () => {
         sortOrder: params?.sortOrder,
       }
       const response = await adminNotificationsApi.getAll(queryParams)
-      currentPage.value = response.page
-      pageSize.value = response.pageSize
-      return { items: response.items, total: response.total }
+      return {
+        items: response.items,
+        total: response.total,
+        metadata: { page: response.page, pageSize: response.pageSize },
+      }
+    },
+    applyMetadata: (metadata) => {
+      currentPage.value = metadata.page
+      pageSize.value = metadata.pageSize
     },
   })
   const announcements = collection.items

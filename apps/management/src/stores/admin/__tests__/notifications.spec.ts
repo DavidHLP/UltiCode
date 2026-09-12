@@ -41,4 +41,35 @@ describe('useNotificationsStore', () => {
     expect(adminNotificationsApi.create).toHaveBeenCalledWith(data)
     expect(store.isLoading).toBe(false)
   })
+
+  it('keeps mutation refreshes on the newest pagination metadata', async () => {
+    let resolveFirst: (value: typeof emptyPage) => void = () => undefined
+    const firstPage = new Promise<typeof emptyPage>((resolve) => {
+      resolveFirst = resolve
+    })
+    vi.mocked(adminNotificationsApi.getAll)
+      .mockReturnValueOnce(firstPage)
+      .mockResolvedValueOnce({ items: [], total: 0, page: 2, pageSize: 20 })
+    const store = useNotificationsStore()
+
+    const firstFetch = store.fetchAnnouncements({ page: 1, limit: 10, keyword: 'old' })
+    await store.fetchAnnouncements({ page: 2, limit: 20, keyword: 'new' })
+    resolveFirst({ items: [], total: 0, page: 1, pageSize: 10 })
+    await firstFetch
+
+    expect(store.currentPage).toBe(2)
+    expect(store.pageSize).toBe(20)
+
+    await store.createNotification({
+      title: 'Maintenance',
+      content: 'Planned maintenance',
+      type: 'SYSTEM',
+      target: 'ALL',
+    })
+
+    expect(adminNotificationsApi.getAll).toHaveBeenNthCalledWith(
+      3,
+      expect.objectContaining({ page: 2, limit: 20 }),
+    )
+  })
 })

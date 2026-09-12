@@ -68,4 +68,31 @@ describe('createCollectionSlice', () => {
     expect(slice.items.value).toEqual(['new'])
     expect(slice.total.value).toBe(1)
   })
+
+  it('only applies metadata from the newest overlapping fetch', async () => {
+    let resolveFirst: (value: { items: string[]; total: number; metadata: { page: number } }) => void =
+      () => undefined
+    const first = new Promise<{ items: string[]; total: number; metadata: { page: number } }>(
+      (resolve) => {
+        resolveFirst = resolve
+      },
+    )
+    const applyMetadata = vi.fn()
+    const load = vi
+      .fn()
+      .mockReturnValueOnce(first)
+      .mockResolvedValueOnce({ items: ['new'], total: 1, metadata: { page: 2 } })
+    const slice = createCollectionSlice<string, number, { page: number }>({
+      load,
+      applyMetadata,
+    })
+
+    const firstFetch = slice.fetch(1)
+    await slice.fetch(2)
+    resolveFirst({ items: ['old'], total: 1, metadata: { page: 1 } })
+    await firstFetch
+
+    expect(applyMetadata).toHaveBeenCalledTimes(1)
+    expect(applyMetadata).toHaveBeenCalledWith({ page: 2 })
+  })
 })

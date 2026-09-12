@@ -36,15 +36,21 @@ docker run -d --name "$MYSQL_CONTAINER" -e MYSQL_ROOT_PASSWORD="$ROOT_PASSWORD" 
   -p 127.0.0.1::3306 mysql:8.0 --character-set-server=utf8mb4 \
   --collation-server=utf8mb4_unicode_ci >/dev/null
 
+mysql_ready=0
 for _ in $(seq 1 60); do
-  if docker exec -e MYSQL_PWD="$ROOT_PASSWORD" "$MYSQL_CONTAINER" \
-      mysql -uroot -N -B -e 'SELECT 1' >/dev/null 2>&1; then
+  # The MySQL image briefly exposes its initialization server before stopping
+  # it and starting the final server. Wait for the hand-off marker so a probe
+  # cannot pass against the temporary socket and race the shutdown.
+  if docker logs "$MYSQL_CONTAINER" 2>&1 \
+      | grep -Fq 'MySQL init process done. Ready for start up.' \
+      && docker exec -e MYSQL_PWD="$ROOT_PASSWORD" "$MYSQL_CONTAINER" \
+        mysql -uroot -N -B -e 'SELECT 1' >/dev/null 2>&1; then
+    mysql_ready=1
     break
   fi
   sleep 1
 done
-docker exec -e MYSQL_PWD="$ROOT_PASSWORD" "$MYSQL_CONTAINER" \
-  mysql -uroot -N -B -e 'SELECT 1' >/dev/null
+(( mysql_ready == 1 ))
 
 MYSQL_PORT="$(docker port "$MYSQL_CONTAINER" 3306/tcp)"
 MYSQL_PORT="${MYSQL_PORT##*:}"

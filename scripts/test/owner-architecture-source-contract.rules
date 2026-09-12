@@ -83,7 +83,6 @@ contains	next-overlap-current	scripts/runbooks/redis-acl-rotation.sh
 contains	current-overlap-next	scripts/runbooks/redis-acl-rotation.sh
 contains	runtime ACL drift detected	scripts/runbooks/redis-acl-rotation.sh
 contains	redis-acl-rotation.sh materialize	.github/actions/host-deploy/action.yml
-contains	redis-acl-rotation-contract.sh	.github/workflows/_backend.yml
 contains	public Map<String, Object> getJwks()	services/auth/src/main/java/com/ulticode/auth/adapter/in/web/JwksController.java
 contains	backend-auth	services/auth/src/main/java/com/ulticode/auth/security/InternalDelegationAssertionVerifier.java
 contains	AdminActorAuthorizer actorAuthorizer	services/app/app-web/src/main/java/com/ulticode/app/dubbo/provider/ProblemAdministrationProvider.java|services/app/app-web/src/main/java/com/ulticode/app/dubbo/provider/ContestAdministrationProvider.java

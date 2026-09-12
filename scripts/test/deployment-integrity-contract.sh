@@ -224,23 +224,9 @@ grep -Fq 'deployment-integrity.sh mark-health' "$HOST_HEALTH" \
   || fail "host-health does not persist descriptor health"
 printf 'host-health system summary and descriptor wiring: PASS\n'
 
-for contract in \
-  owner-backup-restore-contract.sh \
-  redis-acl-rotation-contract.sh \
-  scheduler-contract.sh \
-  fenced-lease-contract.sh \
-  graceful-drain-contract.sh \
-  dependency-resilience-contract.sh \
-  stream-resilience-contract.sh \
-  scale-topology-contract.sh \
-  dubbo-mtls-contract.sh \
-  network-reachability-contract.sh \
-  judge-sandbox-contract.sh \
-  tls-profile-contract.sh \
-  owner-migration-manifest-contract.sh; do
-  grep -Fq "$contract" "$ROOT_DIR/.github/workflows/_backend.yml" \
-    || fail "backend workflow omits $contract"
-done
+grep -Fq 'bash scripts/dev/architecture-contract-test.sh --list-qualified dynamic' \
+  "$ROOT_DIR/.github/workflows/_backend.yml" \
+  || fail 'backend workflow does not execute registry-qualified dynamic contracts'
 for contract in \
   supply-chain-contract.sh \
   deployment-integrity-contract.sh \

@@ -396,6 +396,7 @@ class OwnerReconcilerTest {
             assertThat(run.getStatus()).isEqualTo("FAILED");
             assertThat(run.getOrphanCount()).isZero();
             assertThat(run.getDetail()).contains("\"mode\":\"FULL\"", "\"error\":");
+            assertThat(run.getDetail()).contains("Auth owner query unavailable");
             assertThat(meterRegistry.counter("reconciliation.failures", "mode", "FULL").count())
                     .isEqualTo(1.0);
         }

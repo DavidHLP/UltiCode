@@ -2,6 +2,8 @@ package com.ulticode.modules.reconciliation;
 
 import com.ulticode.auth.api.dto.AuthReconciliationOrphanCounts;
 import com.ulticode.auth.api.service.ReconciliationQueryService;
+import com.ulticode.admin.error.AdminReadContract;
+import com.ulticode.admin.error.AdminReadContract.OwnerRead;
 import com.ulticode.common.lease.FencedLease;
 import com.ulticode.common.lifecycle.DrainGate;
 import com.ulticode.app.api.dto.ReconciliationOrphanCounts;
@@ -257,10 +259,12 @@ public class OwnerReconciler {
             throw authUnavailable();
         }
         RpcResult<AuthReconciliationOrphanCounts> result = authQueryService.countAuthOrphans();
-        if (result == null || !result.success() || result.data() == null) {
+        OwnerRead<AuthReconciliationOrphanCounts> read =
+                AdminReadContract.classify("Auth", result);
+        if (!read.available() || read.value() == null) {
             throw authUnavailable();
         }
-        AuthReconciliationOrphanCounts counts = result.data();
+        AuthReconciliationOrphanCounts counts = read.value();
         return List.of(
                 orphan("refresh_tokens", "user_id", "Auth", "users", "Auth", counts.refreshTokens()),
                 orphan("password_resets", "user_id", "Auth", "users", "Auth", counts.passwordResets()),
@@ -351,25 +355,24 @@ public class OwnerReconciler {
         if (authQueryService == null) {
             throw authUnavailable();
         }
-        Set<String> existing = new HashSet<>();
         RpcResult<Set<String>> result = authQueryService.existingUserIds(candidates);
-        if (result == null || !result.success() || result.data() == null) {
+        OwnerRead<Set<String>> read = AdminReadContract.classify("Auth", result);
+        if (!read.available() || read.value() == null) {
             throw authUnavailable();
         }
-        existing.addAll(result.data());
+        Set<String> existing = new HashSet<>();
+        existing.addAll(read.value());
         return existing;
     }
 
     private BusinessException authUnavailable() {
-        return new BusinessException(BaseErrorCode.UNKNOWN_ERROR, "Auth reconciliation owner unavailable");
+        return AdminReadContract.ownerUnavailable("Auth");
     }
     private BusinessException submissionUnavailable() {
-        return new BusinessException(
-                BaseErrorCode.UNKNOWN_ERROR, "Submission reconciliation owner unavailable");
+        return AdminReadContract.ownerUnavailable("Submission");
     }
     private BusinessException notificationUnavailable() {
-        return new BusinessException(
-                BaseErrorCode.UNKNOWN_ERROR, "Notification reconciliation owner unavailable");
+        return AdminReadContract.ownerUnavailable("Notification");
     }
     private static OrphanDetectionResult orphan(String childTable, String childColumn,
                                                 String childOwner, String parentTable,

@@ -14,7 +14,7 @@ import com.ulticode.auth.api.dto.AuthAccountDTO;
 import com.ulticode.auth.api.service.AccountQueryService;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.admin.error.AdminReadContract;
-import com.ulticode.admin.error.AdminErrorCode;
+import com.ulticode.admin.error.AdminReadContract.OwnerRead;
 import com.ulticode.common.rpc.RpcPolicy;
 import com.ulticode.common.rpc.RpcResult;
 import jakarta.annotation.PreDestroy;
@@ -28,9 +28,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -182,8 +180,8 @@ public class DefaultAdminAnalyticsPortAdapter implements AdminAnalyticsPort {
         try {
             RpcResult<AuthAccountDTO> result = accountQueryService.queryAccounts(
                     new AccountQueryDTO(null, null, null, null, 1, 1, "joinedAt", "desc"));
-            if (result == null || !result.success()
-                    || result.page() == null || result.page().total() == null) {
+            OwnerRead<AuthAccountDTO> read = AdminReadContract.classify("Auth", result);
+            if (!read.available() || result.page() == null || result.page().total() == null) {
                 throw unavailable();
             }
             return result.page().total();
@@ -214,38 +212,27 @@ public class DefaultAdminAnalyticsPortAdapter implements AdminAnalyticsPort {
                             () -> countContestsInRange(from));
                     CancellableQueryExecutor.Query<Long> subscriptions = queryExecutor.submit(
                             this::countActiveSubscriptions);
-                    try {
-                        queryExecutor.awaitAll(
-                                RpcPolicy.QUERY_TIMEOUT_MS,
-                                TimeUnit.MILLISECONDS,
-                                totalUsers,
-                                activeUsers,
-                                submissions,
-                                accepted,
-                                contests,
-                                subscriptions);
-                        return new AnalyticsOverviewData(
-                                totalUsers.result().join(),
-                                activeUsers.result().join(),
-                                submissions.result().join(),
-                                accepted.result().join(),
-                                contests.result().join(),
-                                subscriptions.result().join());
-                    } catch (InterruptedException exception) {
-                        Thread.currentThread().interrupt();
-                        throw unavailable();
-                    } catch (ExecutionException exception) {
-                        Throwable cause = exception.getCause();
-                        if (cause instanceof Error) {
-                            throw (Error) cause;
-                        }
-                        if (cause instanceof BusinessException) {
-                            throw (BusinessException) cause;
-                        }
-                        throw unavailable();
-                    } catch (TimeoutException exception) {
+                    List<OwnerRead<Long>> reads = AdminReadContract.awaitAndClassify(
+                            queryExecutor,
+                            "Analytics",
+                            RpcPolicy.QUERY_TIMEOUT_MS,
+                            TimeUnit.MILLISECONDS,
+                            totalUsers,
+                            activeUsers,
+                            submissions,
+                            accepted,
+                            contests,
+                            subscriptions);
+                    if (reads.stream().anyMatch(read -> !read.available() || read.value() == null)) {
                         throw unavailable();
                     }
+                    return new AnalyticsOverviewData(
+                            reads.get(0).value(),
+                            reads.get(1).value(),
+                            reads.get(2).value(),
+                            reads.get(3).value(),
+                            reads.get(4).value(),
+                            reads.get(5).value());
                 });
     }
 

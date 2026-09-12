@@ -41,6 +41,14 @@ run_child() {
     printf 'Architecture child %s: skipped in static-only mode\n' "$child"
     return 0
   fi
+  # Compatibility retirement is a release-only proof. Keep its row in the
+  # registry, but let the contract workflow select it through its existing
+  # breaking-release output instead of duplicating the child path in CI.
+  if [[ "$child" == "scripts/test/submission-compatibility-retirement-contract.sh" \
+    && "${ARCHITECTURE_BREAKING_RELEASE:-true}" != "true" ]]; then
+    printf 'Architecture child %s: skipped outside breaking-release mode\n' "$child"
+    return 0
+  fi
   if [[ "$STATIC_ONLY" == "1" ]]; then
     printf 'Architecture child %s: running static-safe checks\n' "$child"
   fi

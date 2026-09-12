@@ -25,6 +25,10 @@ done
 grep -Fq 'bash scripts/dev/architecture-contract-test.sh --list-qualified dynamic' \
   "$ROOT_DIR/.github/workflows/_backend.yml" \
   || fail '_backend.yml must enumerate dynamic architecture contracts from the registry'
+for workflow in _docker.yml _contract.yml; do
+  grep -Fq "ULTI_STATIC_ONLY: '1'" "$ROOT_DIR/.github/workflows/$workflow" \
+    || fail "$workflow must run only static architecture contracts"
+done
 
 TEST_DIR="$(mktemp -d "${TMPDIR:-/tmp}/ulticode-zero-infra.XXXXXX")"
 trap 'rm -rf -- "$TEST_DIR"' EXIT
@@ -150,8 +154,9 @@ assert_workflow_does_not_hand_list() {
       || fail "$workflow hand-lists registered architecture child: $child"
   done <<<"$all_children"
 }
-assert_workflow_does_not_hand_list _backend.yml
-assert_workflow_does_not_hand_list _frontend.yml
+for workflow in _backend.yml _frontend.yml _docker.yml _contract.yml; do
+  assert_workflow_does_not_hand_list "$workflow"
+done
 
 assert_architecture_banners() {
   local line child expected kind

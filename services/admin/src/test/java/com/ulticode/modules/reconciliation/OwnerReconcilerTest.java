@@ -314,9 +314,9 @@ class OwnerReconcilerTest {
     void fullScanResumesPersistedCursorAfterPageBudget() {
         AtomicReference<ReconciliationRun> partialCheckpoint = new AtomicReference<>();
         when(uuidGenerator.newId()).thenReturn("run-1", "run-2");
-        when(runMapper.findLatestPartial("FULL"))
+        when(runMapper.findLatestPartial("FULL", null))
                 .thenAnswer(invocation -> partialCheckpoint.get());
-        when(runMapper.findLatestCompleted("FULL"))
+        when(runMapper.findLatestCompleted("FULL", null))
                 .thenReturn(null);
         when(runMapper.updateByIdWhileLeaseHeld(any(ReconciliationRun.class), anyString(),
                 anyString(), anyLong())).thenAnswer(invocation -> {
@@ -363,6 +363,44 @@ class OwnerReconcilerTest {
         assertThat(second.getDetail()).contains("\"child\":\"submissions\"", "\"orphans\":16500");
         verify(submissionPort).findUserReferenceCounts(
                 "user-15999", null, SubmissionReconciliationReadPort.MAX_PAGE_SIZE);
+    }
+
+    @Test
+    @DisplayName("incremental checkpoints are isolated by their creation watermark")
+    void incrementalCheckpointUsesMatchingWatermark() {
+        LocalDateTime since = LocalDateTime.of(2026, 8, 29, 0, 0);
+        ReconciliationRun checkpoint = new ReconciliationRun();
+        checkpoint.setStartedAt(LocalDateTime.of(2026, 8, 30, 0, 0));
+        checkpoint.setDetail("{\"mode\":\"INCREMENTAL\",\"continuation\":{"
+                + "\"createdSince\":\"" + since + "\","
+                + "\"submission\":{\"cursor\":\"user-15999\",\"missing\":7,"
+                + "\"complete\":false},"
+                + "\"notification\":{\"cursor\":\"\",\"missing\":0,\"complete\":true},"
+                + "\"audit\":{\"offset\":0,\"missing\":0,\"complete\":true}}}");
+        when(runMapper.findLatestPartial("INCREMENTAL", since.toString()))
+                .thenReturn(checkpoint);
+        when(runMapper.findLatestCompleted("INCREMENTAL", since.toString()))
+                .thenReturn(null);
+        when(authService.countAuthOrphans())
+                .thenReturn(RpcResult.success(AuthReconciliationOrphanCounts.ZERO, "t-system"));
+        when(submissionPort.findUserReferenceCounts("user-15999", since,
+                SubmissionReconciliationReadPort.MAX_PAGE_SIZE))
+                .thenReturn(List.of(new SubmissionUserReferenceCountDTO("user-16000", 1L)));
+        when(notificationPort.findUserReferenceCounts(anyString(), eq(since),
+                eq(NotificationReconciliationReadPort.MAX_PAGE_SIZE))).thenReturn(List.of());
+        when(authService.existingUserIds(any()))
+                .thenReturn(RpcResult.success(Set.of(), "t-system"));
+        when(appPort.countOrphans()).thenReturn(ReconciliationOrphanCounts.ZERO);
+        when(auditMapper.auditPerformerIds(any(Integer.class), any(Integer.class)))
+                .thenReturn(List.of());
+
+        ReconciliationRun run = reconciler.runIncrementalReconciliation(since);
+
+        assertThat(run.getStatus()).isEqualTo("COMPLETED");
+        assertThat(run.getDetail()).contains("\"orphans\":8");
+        verify(runMapper).findLatestPartial("INCREMENTAL", since.toString());
+        verify(submissionPort).findUserReferenceCounts(
+                "user-15999", since, SubmissionReconciliationReadPort.MAX_PAGE_SIZE);
     }
 
     @Nested

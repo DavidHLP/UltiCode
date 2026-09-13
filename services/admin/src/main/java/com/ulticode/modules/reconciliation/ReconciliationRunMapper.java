@@ -12,29 +12,45 @@ import org.apache.ibatis.annotations.Update;
 @Mapper
 public interface ReconciliationRunMapper extends BaseMapper<ReconciliationRun> {
 
-    /** Find the newest unfinished continuation for the requested scan mode. */
+    /** Find the newest unfinished continuation for the requested scan mode and watermark. */
     @Select("""
             SELECT *
             FROM reconciliation_runs
             WHERE owner = 'ALL'
               AND status = 'PARTIAL'
               AND detail LIKE CONCAT('{\"mode\":\"', #{mode}, '\"%')
+              AND (
+                    (#{createdSince} IS NULL
+                     AND detail LIKE '%\"continuation\":{\"createdSince\":null,%')
+                    OR (#{createdSince} IS NOT NULL
+                        AND detail LIKE CONCAT('%\"continuation\":{\"createdSince\":\"',
+                                               #{createdSince}, '\",%'))
+                  )
             ORDER BY started_at DESC
             LIMIT 1
             """)
-    ReconciliationRun findLatestPartial(@Param("mode") String mode);
+    ReconciliationRun findLatestPartial(@Param("mode") String mode,
+                                        @Param("createdSince") String createdSince);
 
-    /** Find the newest completed run so an old continuation is not replayed. */
+    /** Find the newest completed run for the requested scan mode and watermark. */
     @Select("""
             SELECT *
             FROM reconciliation_runs
             WHERE owner = 'ALL'
               AND status = 'COMPLETED'
               AND detail LIKE CONCAT('{\"mode\":\"', #{mode}, '\"%')
+              AND (
+                    (#{createdSince} IS NULL
+                     AND detail LIKE '%\"continuation\":{\"createdSince\":null,%')
+                    OR (#{createdSince} IS NOT NULL
+                        AND detail LIKE CONCAT('%\"continuation\":{\"createdSince\":\"',
+                                               #{createdSince}, '\",%'))
+                  )
             ORDER BY started_at DESC
             LIMIT 1
             """)
-    ReconciliationRun findLatestCompleted(@Param("mode") String mode);
+    ReconciliationRun findLatestCompleted(@Param("mode") String mode,
+                                          @Param("createdSince") String createdSince);
 
     /**
      * Finish a run only while the same owner and fence token still hold the

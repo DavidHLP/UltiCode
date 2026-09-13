@@ -34,6 +34,7 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.Clock;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 
@@ -213,5 +214,40 @@ class OwnerReconcilerIT {
         assertThat(auditOrphanMapper.auditPerformerIds(0, 2))
                 .extracting(AuditReferenceCount::getPerformerId)
                 .containsExactly("ghost-user", "u-001");
+    }
+
+    @Test
+    @DisplayName("checkpoint queries isolate incremental watermarks")
+    void mapperSelectsMatchingCheckpointWatermark() {
+        LocalDateTime firstWatermark = LocalDateTime.of(2026, 8, 29, 0, 0);
+        LocalDateTime secondWatermark = LocalDateTime.of(2026, 8, 30, 0, 0);
+        jdbcTemplate.update("""
+                INSERT INTO reconciliation_runs
+                    (run_id, started_at, owner, fence_token, status,
+                     divergence_count, orphan_count, detail)
+                VALUES (?, ?, 'ALL', 1, 'PARTIAL', 0, 0, ?),
+                       (?, ?, 'ALL', 1, 'PARTIAL', 0, 0, ?),
+                       (?, ?, 'ALL', 1, 'COMPLETED', 0, 0, ?)
+                """,
+                "partial-first", firstWatermark.plusDays(1), checkpointDetail(firstWatermark),
+                "partial-second", secondWatermark.plusDays(1), checkpointDetail(secondWatermark),
+                "completed-second", secondWatermark.plusDays(2), checkpointDetail(secondWatermark));
+
+        assertThat(runMapper.findLatestPartial("INCREMENTAL", firstWatermark.toString())
+                .getRunId()).isEqualTo("partial-first");
+        assertThat(runMapper.findLatestPartial("INCREMENTAL", secondWatermark.toString())
+                .getRunId()).isEqualTo("partial-second");
+        assertThat(runMapper.findLatestCompleted("INCREMENTAL", firstWatermark.toString()))
+                .isNull();
+        assertThat(runMapper.findLatestCompleted("INCREMENTAL", secondWatermark.toString())
+                .getRunId()).isEqualTo("completed-second");
+    }
+
+    private static String checkpointDetail(LocalDateTime createdSince) {
+        return "{\"mode\":\"INCREMENTAL\",\"continuation\":{"
+                + "\"createdSince\":\"" + createdSince + "\","
+                + "\"submission\":{\"cursor\":\"user-1\",\"missing\":0,\"complete\":false},"
+                + "\"notification\":{\"cursor\":\"\",\"missing\":0,\"complete\":true},"
+                + "\"audit\":{\"offset\":0,\"missing\":0,\"complete\":true}}}";
     }
 }

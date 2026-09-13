@@ -261,11 +261,12 @@ public class OwnerReconciler {
     }
 
     private ScanProgress loadCheckpoint(String mode, LocalDateTime createdSince) {
-        ReconciliationRun partial = runMapper.findLatestPartial(mode);
+        String expectedCreatedSince = createdSince == null ? null : createdSince.toString();
+        ReconciliationRun partial = runMapper.findLatestPartial(mode, expectedCreatedSince);
         if (partial == null) {
             return ScanProgress.initial(createdSince);
         }
-        ReconciliationRun completed = runMapper.findLatestCompleted(mode);
+        ReconciliationRun completed = runMapper.findLatestCompleted(mode, expectedCreatedSince);
         if (isSuperseded(partial, completed)) {
             return ScanProgress.initial(createdSince);
         }
@@ -276,7 +277,6 @@ public class OwnerReconciler {
             }
             JsonNode continuation = checkpointObject(detail, "continuation");
             String persistedCreatedSince = checkpointNullableText(continuation, "createdSince");
-            String expectedCreatedSince = createdSince == null ? null : createdSince.toString();
             if (!Objects.equals(persistedCreatedSince, expectedCreatedSince)) {
                 return ScanProgress.initial(createdSince);
             }

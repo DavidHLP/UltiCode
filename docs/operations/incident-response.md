@@ -27,7 +27,7 @@
 
 ## 状态语义
 
-`SERVICES_ISSUES.md` 使用 `OPEN`（仓库仍可修）、`DEFERRED`（需真实指标/环境/授权）、`CLOSED`（机制已落地）和 `ACCEPTED`（有意取舍）。当前没有 repository-actionable OPEN；SVC-006–010 的外部触发条件仍需真实环境。不要把删除临时记录、disposable 通过或文档更新宣称为生产问题已解决。
+`SERVICES_ISSUES.md` 使用 `OPEN`（仓库仍可修）、`DEFERRED`（需真实指标/环境/授权）、`CLOSED`（机制已落地）和 `ACCEPTED`（有意取舍）。repository-actionable OPEN 的当前列表与关闭条件以 [`SERVICES_ISSUES.md`](../../services/docs/SERVICES_ISSUES.md) 为准；SVC-006–010 的外部触发条件仍需真实环境。不要把删除临时记录、disposable 通过或文档更新宣称为生产问题已解决。
 
 ## 参考 runbook
 

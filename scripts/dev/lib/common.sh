@@ -18,8 +18,11 @@
 #                    capture_env_vars/apply_env_overrides
 #   lib/validate.sh  owner_schema, valid_identifier/port/container_ref
 #   lib/docker.sh    compose_service_container, running_compose_service_container,
-#                    container_running, await_container_health,
+#                    container_running, container_health_status, await_container_health,
 #                    mysql_container_targets_configured_host
+#   lib/compose.sh   devstack_compose_args
+#   lib/redis.sh    materialize_redis_acl resolve, export, permission and
+#                   materialize the runtime Redis ACL file
 #   lib/confirm.sh   require_write_confirmation, gate_confirmed
 #   lib/sql.sh       table_exists/column_signature/row_count/checksum_table,
 #                    define_mysql_query_adapter
@@ -39,8 +42,13 @@ if ! [[ -v __ULTICODE_COMMON_SOURCED ]]; then
   source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/validate.sh"
   # shellcheck source=scripts/dev/lib/docker.sh
   source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/docker.sh"
+  # shellcheck source=scripts/dev/lib/compose.sh
+  source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/compose.sh"
+  # shellcheck source=scripts/dev/lib/redis.sh
+  source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/redis.sh"
   # shellcheck source=scripts/dev/lib/confirm.sh
   source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/confirm.sh"
   # shellcheck source=scripts/dev/lib/sql.sh
   source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/sql.sh"
+
 fi

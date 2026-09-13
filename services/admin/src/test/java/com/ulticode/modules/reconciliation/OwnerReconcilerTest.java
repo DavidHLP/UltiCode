@@ -1,5 +1,6 @@
 package com.ulticode.modules.reconciliation;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.app.api.dto.ReconciliationOrphanCounts;
 import com.ulticode.app.api.service.AppReconciliationReadPort;
 import com.ulticode.auth.api.dto.AuthReconciliationOrphanCounts;
@@ -37,6 +38,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -82,9 +84,11 @@ class OwnerReconcilerTest {
                 SubmissionReconciliationReadPort.MAX_PAGE_SIZE)).thenReturn(List.of());
         when(notificationPort.findUserReferenceCounts("", null,
                 NotificationReconciliationReadPort.MAX_PAGE_SIZE)).thenReturn(List.of());
+        when(auditMapper.auditPerformerIdsSince(any(Integer.class), any(Integer.class),
+                any(LocalDateTime.class))).thenReturn(List.of());
         reconciler = new OwnerReconciler(
                 runMapper, uuidGenerator, appPort, submissionPort, notificationPort,
-                auditMapper, meterRegistry, leaseService);
+                auditMapper, meterRegistry, leaseService, new ObjectMapper());
         ReflectionTestUtils.setField(reconciler, "authQueryService", authService);
     }
 
@@ -143,6 +147,25 @@ class OwnerReconcilerTest {
         assertThat(run.getDetail()).contains("\"child\":\"notifications\"", "\"orphans\":3");
         verify(notificationPort).findUserReferenceCounts(
                 "", since, NotificationReconciliationReadPort.MAX_PAGE_SIZE);
+    }
+
+    @Test
+    @DisplayName("incremental runs filter Admin audit facts by the watermark")
+    void incrementalRunsFilterAuditByWatermark() {
+        LocalDateTime since = LocalDateTime.of(2026, 8, 29, 0, 0);
+        when(authService.countAuthOrphans())
+                .thenReturn(RpcResult.success(AuthReconciliationOrphanCounts.ZERO, "t-system"));
+        when(submissionPort.findUserReferenceCounts("", since,
+                SubmissionReconciliationReadPort.MAX_PAGE_SIZE)).thenReturn(List.of());
+        when(notificationPort.findUserReferenceCounts("", since,
+                NotificationReconciliationReadPort.MAX_PAGE_SIZE)).thenReturn(List.of());
+        when(appPort.countOrphans()).thenReturn(ReconciliationOrphanCounts.ZERO);
+        when(auditMapper.auditPerformerIdsSince(0, 500, since)).thenReturn(List.of());
+
+        ReconciliationRun run = reconciler.runIncrementalReconciliation(since);
+
+        assertThat(run.getStatus()).isEqualTo("COMPLETED");
+        verify(auditMapper).auditPerformerIdsSince(0, 500, since);
     }
 
     @Test
@@ -306,6 +329,329 @@ class OwnerReconcilerTest {
         verify(submissionPort).findUserReferenceCounts(
                 "user-0499", null, SubmissionReconciliationReadPort.MAX_PAGE_SIZE);
     }
+
+    @Test
+    @DisplayName("full scans persist and resume owner cursors after the page budget")
+    void fullScanResumesPersistedCursorAfterPageBudget() {
+        AtomicReference<ReconciliationRun> partialCheckpoint = new AtomicReference<>();
+        when(uuidGenerator.newId()).thenReturn("run-1", "run-2");
+        when(runMapper.findLatestPartial("FULL", null))
+                .thenAnswer(invocation -> partialCheckpoint.get());
+        when(runMapper.findLatestCompleted("FULL", null))
+                .thenReturn(null);
+        when(runMapper.updateByIdWhileLeaseHeld(any(ReconciliationRun.class), anyString(),
+                anyString(), anyLong())).thenAnswer(invocation -> {
+            ReconciliationRun run = invocation.getArgument(0);
+            if ("PARTIAL".equals(run.getStatus())) {
+                partialCheckpoint.set(run);
+            }
+            return 1;
+        });
+        when(authService.countAuthOrphans())
+                .thenReturn(RpcResult.success(AuthReconciliationOrphanCounts.ZERO, "t-system"));
+        when(appPort.countOrphans()).thenReturn(ReconciliationOrphanCounts.ZERO);
+        when(notificationPort.findUserReferenceCounts("", null,
+                NotificationReconciliationReadPort.MAX_PAGE_SIZE)).thenReturn(List.of());
+        when(auditMapper.auditPerformerIds(any(Integer.class), any(Integer.class)))
+                .thenReturn(List.of());
+        when(authService.existingUserIds(any()))
+                .thenReturn(RpcResult.success(Set.of(), "t-system"));
+        when(submissionPort.findUserReferenceCounts(anyString(), isNull(LocalDateTime.class),
+                eq(SubmissionReconciliationReadPort.MAX_PAGE_SIZE))).thenAnswer(invocation -> {
+            String after = invocation.getArgument(0);
+            int start = after.isEmpty()
+                    ? 0
+                    : Integer.parseInt(after.substring("user-".length())) + 1;
+            if (start >= 16_500) {
+                return List.of();
+            }
+            int end = Math.min(start + SubmissionReconciliationReadPort.MAX_PAGE_SIZE, 16_500);
+            return IntStream.range(start, end)
+                    .mapToObj(index -> new SubmissionUserReferenceCountDTO(
+                            "user-%05d".formatted(index), 1L))
+                    .toList();
+        });
+        when(notificationPort.findUserReferenceCounts(anyString(), isNull(LocalDateTime.class),
+                eq(NotificationReconciliationReadPort.MAX_PAGE_SIZE))).thenAnswer(invocation -> {
+            String after = invocation.getArgument(0);
+            int start = after.isEmpty()
+                    ? 0
+                    : Integer.parseInt(after.substring("user-".length())) + 1;
+            if (start >= 16_500) {
+                return List.of();
+            }
+            int end = Math.min(start + NotificationReconciliationReadPort.MAX_PAGE_SIZE, 16_500);
+            return IntStream.range(start, end)
+                    .mapToObj(index -> new NotificationUserReferenceCountDTO(
+                            "user-%05d".formatted(index), 1L))
+                    .toList();
+        });
+        when(auditMapper.auditPerformerIds(any(Integer.class), eq(500))).thenAnswer(invocation -> {
+            int offset = invocation.getArgument(0);
+            if (offset >= 16_500) {
+                return List.of();
+            }
+            int end = Math.min(offset + 500, 16_500);
+            return IntStream.range(offset, end)
+                    .mapToObj(index -> reference("user-%05d".formatted(index), 1L))
+                    .toList();
+        });
+
+        ReconciliationRun first = reconciler.runReconciliation();
+
+        assertThat(first.getStatus()).isEqualTo("PARTIAL");
+        assertThat(first.getDetail()).contains(
+                "\"continuation\"",
+                "\"submission\":{\"cursor\":\"user-15999\"",
+                "\"notification\":{\"cursor\":\"user-15999\"",
+                "\"audit\":{\"offset\":16000");
+
+        ReconciliationRun second = reconciler.runReconciliation();
+
+        assertThat(second.getStatus()).isEqualTo("COMPLETED");
+        assertThat(second.getDetail()).contains(
+                "\"child\":\"submissions\"", "\"child\":\"notifications\"",
+                "\"child\":\"audit_logs\"", "\"orphans\":16500");
+        verify(submissionPort).findUserReferenceCounts(
+                "user-15999", null, SubmissionReconciliationReadPort.MAX_PAGE_SIZE);
+        verify(notificationPort).findUserReferenceCounts(
+                "user-15999", null, NotificationReconciliationReadPort.MAX_PAGE_SIZE);
+        verify(auditMapper).auditPerformerIds(16000, 500);
+        verify(submissionPort, org.mockito.Mockito.times(1)).findUserReferenceCounts(
+                "", null, SubmissionReconciliationReadPort.MAX_PAGE_SIZE);
+    }
+
+    @Test
+    @DisplayName("incremental checkpoints are isolated by their creation watermark")
+    void incrementalCheckpointUsesMatchingWatermark() {
+        LocalDateTime since = LocalDateTime.of(2026, 8, 29, 0, 0);
+        ReconciliationRun checkpoint = new ReconciliationRun();
+        checkpoint.setStartedAt(LocalDateTime.of(2026, 8, 30, 0, 0));
+        checkpoint.setDetail("{\"mode\":\"INCREMENTAL\",\"continuation\":{"
+                + "\"createdSince\":\"" + since + "\","
+                + "\"submission\":{\"cursor\":\"user-15999\",\"missing\":7,"
+                + "\"complete\":false},"
+                + "\"notification\":{\"cursor\":\"\",\"missing\":0,\"complete\":true},"
+                + "\"audit\":{\"offset\":0,\"missing\":0,\"complete\":true}}}");
+        when(runMapper.findLatestPartial("INCREMENTAL", since))
+                .thenReturn(checkpoint);
+        when(runMapper.findLatestCompleted("INCREMENTAL", since))
+                .thenReturn(null);
+        when(authService.countAuthOrphans())
+                .thenReturn(RpcResult.success(AuthReconciliationOrphanCounts.ZERO, "t-system"));
+        when(submissionPort.findUserReferenceCounts("user-15999", since,
+                SubmissionReconciliationReadPort.MAX_PAGE_SIZE))
+                .thenReturn(List.of(new SubmissionUserReferenceCountDTO("user-16000", 1L)));
+        when(notificationPort.findUserReferenceCounts(anyString(), eq(since),
+                eq(NotificationReconciliationReadPort.MAX_PAGE_SIZE))).thenReturn(List.of());
+        when(authService.existingUserIds(any()))
+                .thenReturn(RpcResult.success(Set.of(), "t-system"));
+        when(appPort.countOrphans()).thenReturn(ReconciliationOrphanCounts.ZERO);
+        when(auditMapper.auditPerformerIds(any(Integer.class), any(Integer.class)))
+                .thenReturn(List.of());
+
+        ReconciliationRun run = reconciler.runIncrementalReconciliation(since);
+
+        assertThat(run.getStatus()).isEqualTo("COMPLETED");
+        assertThat(run.getDetail()).contains("\"orphans\":8");
+        verify(runMapper).findLatestPartial("INCREMENTAL", since);
+        verify(submissionPort).findUserReferenceCounts(
+                "user-15999", since, SubmissionReconciliationReadPort.MAX_PAGE_SIZE);
+    }
+
+    @Test
+    @DisplayName("completed checkpoint supersedes an equal-time partial by run ID")
+    void completedCheckpointSupersedesEqualTimePartialByRunId() {
+        LocalDateTime startedAt = LocalDateTime.of(2026, 8, 30, 0, 0);
+        ReconciliationRun partial = new ReconciliationRun();
+        partial.setRunId("run-1");
+        partial.setStartedAt(startedAt);
+        partial.setDetail("{\"mode\":\"FULL\",\"continuation\":{"
+                + "\"createdSince\":null,"
+                + "\"submission\":{\"cursor\":\"user-15999\",\"missing\":7,"
+                + "\"complete\":false},"
+                + "\"notification\":{\"cursor\":\"\",\"missing\":0,\"complete\":true},"
+                + "\"audit\":{\"offset\":0,\"missing\":0,\"complete\":true}}}");
+        ReconciliationRun completed = new ReconciliationRun();
+        completed.setRunId("run-2");
+        completed.setStartedAt(startedAt);
+        when(runMapper.findLatestPartial("FULL", null)).thenReturn(partial);
+        when(runMapper.findLatestCompleted("FULL", null)).thenReturn(completed);
+        when(authService.countAuthOrphans())
+                .thenReturn(RpcResult.success(AuthReconciliationOrphanCounts.ZERO, "t-system"));
+        when(appPort.countOrphans()).thenReturn(ReconciliationOrphanCounts.ZERO);
+        when(auditMapper.auditPerformerIds(any(Integer.class), any(Integer.class)))
+                .thenReturn(List.of());
+
+        ReconciliationRun run = reconciler.runReconciliation();
+
+        assertThat(run.getStatus()).isEqualTo("COMPLETED");
+        verify(submissionPort).findUserReferenceCounts(
+                "", null, SubmissionReconciliationReadPort.MAX_PAGE_SIZE);
+        verify(submissionPort, org.mockito.Mockito.never()).findUserReferenceCounts(
+                "user-15999", null, SubmissionReconciliationReadPort.MAX_PAGE_SIZE);
+    }
+
+    @Test
+    @DisplayName("fractional checkpoint counters fail closed")
+    void fractionalCheckpointCountersFailClosed() {
+        ReconciliationRun checkpoint = new ReconciliationRun();
+        checkpoint.setDetail("{\"mode\":\"FULL\",\"continuation\":{"
+                + "\"createdSince\":null,"
+                + "\"submission\":{\"cursor\":\"user-1\",\"missing\":-0.5,"
+                + "\"complete\":false},"
+                + "\"notification\":{\"cursor\":\"\",\"missing\":0,\"complete\":true},"
+                + "\"audit\":{\"offset\":0,\"missing\":0,\"complete\":true}}}");
+        when(runMapper.findLatestPartial("FULL", null)).thenReturn(checkpoint);
+        when(runMapper.findLatestCompleted("FULL", null)).thenReturn(null);
+
+        ReconciliationRun run = reconciler.runReconciliation();
+
+        assertThat(run.getStatus()).isEqualTo("FAILED");
+        assertThat(run.getDetail()).contains("invalid reconciliation checkpoint");
+    }
+
+    @Test
+    @DisplayName("checkpoint without continuation fails closed")
+    void checkpointWithoutContinuationFailsClosed() {
+        ReconciliationRun checkpoint = new ReconciliationRun();
+        checkpoint.setDetail("{\"mode\":\"FULL\"}");
+        when(runMapper.findLatestPartial("FULL", null)).thenReturn(checkpoint);
+        when(runMapper.findLatestCompleted("FULL", null)).thenReturn(null);
+
+        ReconciliationRun run = reconciler.runReconciliation();
+
+        assertThat(run.getStatus()).isEqualTo("FAILED");
+        assertThat(run.getDetail()).contains("invalid reconciliation checkpoint");
+    }
+
+    @Test
+    @DisplayName("full scans resume Notification and audit checkpoints through completion")
+    void fullScanResumesNotificationAndAuditCheckpoints() {
+        AtomicReference<ReconciliationRun> completedCheckpoint = new AtomicReference<>();
+        ReconciliationRun checkpoint = new ReconciliationRun();
+        checkpoint.setRunId("run-0");
+        checkpoint.setStartedAt(LocalDateTime.of(2026, 8, 30, 0, 0));
+        checkpoint.setDetail("{\"mode\":\"FULL\",\"continuation\":{"
+                + "\"createdSince\":null,"
+                + "\"submission\":{\"cursor\":\"\",\"missing\":0,\"complete\":true},"
+                + "\"notification\":{\"cursor\":\"user-15999\",\"missing\":0,"
+                + "\"complete\":false},"
+                + "\"audit\":{\"offset\":16000,\"missing\":0,\"complete\":false}}}");
+        when(runMapper.findLatestPartial("FULL", null)).thenReturn(checkpoint);
+        when(runMapper.findLatestCompleted("FULL", null))
+                .thenAnswer(invocation -> completedCheckpoint.get());
+        when(runMapper.updateByIdWhileLeaseHeld(any(ReconciliationRun.class), anyString(),
+                anyString(), anyLong())).thenAnswer(invocation -> {
+            ReconciliationRun run = invocation.getArgument(0);
+            if ("COMPLETED".equals(run.getStatus())) {
+                completedCheckpoint.set(run);
+            }
+            return 1;
+        });
+        when(authService.countAuthOrphans())
+                .thenReturn(RpcResult.success(AuthReconciliationOrphanCounts.ZERO, "t-system"));
+        when(appPort.countOrphans()).thenReturn(ReconciliationOrphanCounts.ZERO);
+        when(submissionPort.findUserReferenceCounts("", null,
+                SubmissionReconciliationReadPort.MAX_PAGE_SIZE)).thenReturn(List.of());
+        when(notificationPort.findUserReferenceCounts("user-15999", null,
+                NotificationReconciliationReadPort.MAX_PAGE_SIZE))
+                .thenReturn(List.of(new NotificationUserReferenceCountDTO("user-16000", 1L)));
+        when(notificationPort.findUserReferenceCounts("", null,
+                NotificationReconciliationReadPort.MAX_PAGE_SIZE)).thenReturn(List.of());
+        when(auditMapper.auditPerformerIds(16000, 500)).thenReturn(List.of(reference("user-16000", 1)));
+        when(auditMapper.auditPerformerIds(0, 500)).thenReturn(List.of());
+        when(authService.existingUserIds(any()))
+                .thenReturn(RpcResult.success(Set.of(), "t-system"));
+
+        ReconciliationRun first = reconciler.runReconciliation();
+
+        assertThat(first.getStatus()).isEqualTo("COMPLETED");
+        assertThat(first.getOrphanCount()).isEqualTo(2);
+        assertThat(first.getDetail()).contains(
+                "\"continuation\"", "\"notification\":{\"cursor\":\"user-16000\"",
+                "\"audit\":{\"offset\":16000,\"missing\":1,\"complete\":true}");
+
+        ReconciliationRun second = reconciler.runReconciliation();
+
+        assertThat(second.getStatus()).isEqualTo("COMPLETED");
+        assertThat(second.getOrphanCount()).isZero();
+        verify(notificationPort).findUserReferenceCounts(
+                "user-15999", null, NotificationReconciliationReadPort.MAX_PAGE_SIZE);
+        verify(auditMapper).auditPerformerIds(16000, 500);
+        verify(submissionPort).findUserReferenceCounts(
+                "", null, SubmissionReconciliationReadPort.MAX_PAGE_SIZE);
+    }
+
+    @Test
+    @DisplayName("full scans persist and resume Notification and audit pages after the budget")
+    void fullScanResumesNotificationAndAuditAfterPageBudget() {
+        AtomicReference<ReconciliationRun> partialCheckpoint = new AtomicReference<>();
+        when(uuidGenerator.newId()).thenReturn("run-1", "run-2");
+        when(runMapper.findLatestPartial("FULL", null))
+                .thenAnswer(invocation -> partialCheckpoint.get());
+        when(runMapper.findLatestCompleted("FULL", null)).thenReturn(null);
+        when(runMapper.updateByIdWhileLeaseHeld(any(ReconciliationRun.class), anyString(),
+                anyString(), anyLong())).thenAnswer(invocation -> {
+            ReconciliationRun run = invocation.getArgument(0);
+            if ("PARTIAL".equals(run.getStatus())) {
+                partialCheckpoint.set(run);
+            }
+            return 1;
+        });
+        when(authService.countAuthOrphans())
+                .thenReturn(RpcResult.success(AuthReconciliationOrphanCounts.ZERO, "t-system"));
+        when(appPort.countOrphans()).thenReturn(ReconciliationOrphanCounts.ZERO);
+        when(submissionPort.findUserReferenceCounts("", null,
+                SubmissionReconciliationReadPort.MAX_PAGE_SIZE)).thenReturn(List.of());
+        when(authService.existingUserIds(any()))
+                .thenReturn(RpcResult.success(Set.of(), "t-system"));
+        when(notificationPort.findUserReferenceCounts(anyString(), isNull(LocalDateTime.class),
+                eq(NotificationReconciliationReadPort.MAX_PAGE_SIZE))).thenAnswer(invocation -> {
+            String after = invocation.getArgument(0);
+            int start = after.isEmpty()
+                    ? 0
+                    : Integer.parseInt(after.substring("user-".length())) + 1;
+            if (start >= 16_500) {
+                return List.of();
+            }
+            int end = Math.min(start + NotificationReconciliationReadPort.MAX_PAGE_SIZE, 16_500);
+            return IntStream.range(start, end)
+                    .mapToObj(index -> new NotificationUserReferenceCountDTO(
+                            "user-%05d".formatted(index), 1L))
+                    .toList();
+        });
+        when(auditMapper.auditPerformerIds(any(Integer.class), eq(500))).thenAnswer(invocation -> {
+            int offset = invocation.getArgument(0);
+            if (offset >= 16_500) {
+                return List.of();
+            }
+            int end = Math.min(offset + 500, 16_500);
+            return IntStream.range(offset, end)
+                    .mapToObj(index -> reference("user-%05d".formatted(index), 1L))
+                    .toList();
+        });
+
+        ReconciliationRun first = reconciler.runReconciliation();
+
+        assertThat(first.getStatus()).isEqualTo("PARTIAL");
+        assertThat(first.getDetail()).contains(
+                "\"notification\":{\"cursor\":\"user-15999\"",
+                "\"audit\":{\"offset\":16000");
+
+        ReconciliationRun second = reconciler.runReconciliation();
+
+        assertThat(second.getStatus()).isEqualTo("COMPLETED");
+        assertThat(second.getDetail()).contains(
+                "\"notification\":{\"cursor\":\"user-16499\"",
+                "\"audit\":{\"offset\":16500");
+        verify(notificationPort).findUserReferenceCounts(
+                "user-15999", null, NotificationReconciliationReadPort.MAX_PAGE_SIZE);
+        verify(auditMapper).auditPerformerIds(16000, 500);
+        verify(submissionPort, org.mockito.Mockito.times(1)).findUserReferenceCounts(
+                "", null, SubmissionReconciliationReadPort.MAX_PAGE_SIZE);
+    }
+
     @Nested
     @DisplayName("Checksum aggregation")
     class Checksum {
@@ -371,20 +717,19 @@ class OwnerReconcilerTest {
             assertThat(run.getDetail()).contains("\"orphans\":2");
         }
         @Test
-        @DisplayName("blank and empty performer IDs are counted as audit orphans")
-        void blankPerformerIdsAreOrphans() {
+        @DisplayName("blank performer IDs fail the audit scan closed")
+        void blankPerformerIdsFailClosed() {
             when(authService.countAuthOrphans()).thenReturn(RpcResult.success(
                     AuthReconciliationOrphanCounts.ZERO, "t-system"));
             when(appPort.countOrphans()).thenReturn(ReconciliationOrphanCounts.ZERO);
             when(auditMapper.auditPerformerIds(any(Integer.class), any(Integer.class)))
                     .thenReturn(List.of(reference("", 1), reference("  ", 1), reference("ghost", 1)));
-            when(authService.existingUserIds(Set.of("", "  ", "ghost")))
-                    .thenReturn(RpcResult.success(Set.of(), "t-system"));
 
             ReconciliationRun run = reconciler.runReconciliation();
 
-            assertThat(run.getOrphanCount()).isEqualTo(1);
-            assertThat(run.getDetail()).contains("\"orphans\":3");
+            assertThat(run.getStatus()).isEqualTo("FAILED");
+            assertThat(run.getOrphanCount()).isZero();
+            assertThat(run.getDetail()).contains("\"mode\":\"FULL\"", "\"error\":");
         }
 
         @Test
@@ -397,6 +742,7 @@ class OwnerReconcilerTest {
             assertThat(run.getStatus()).isEqualTo("FAILED");
             assertThat(run.getOrphanCount()).isZero();
             assertThat(run.getDetail()).contains("\"mode\":\"FULL\"", "\"error\":");
+            assertThat(run.getDetail()).contains("Auth owner query unavailable");
             assertThat(meterRegistry.counter("reconciliation.failures", "mode", "FULL").count())
                     .isEqualTo(1.0);
         }

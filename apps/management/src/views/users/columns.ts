@@ -14,6 +14,7 @@ import { createEntityActionsMenu } from '@/components/table/entityActions'
 import { badge, USER_ROLE_COLOR_MAP } from '@/components/ui/terminal'
 import type { User } from '@/api/admin/users'
 import { formatDate } from '@/lib/format/date'
+import type { UserPermissionMap } from '@/composables/useUserPermissions'
 
 export interface UserActions {
   viewUser: (user: User) => void
@@ -41,7 +42,7 @@ function renderStatusBadge(isBanned: boolean, isActive: boolean, t: (key: string
 export function createColumns(
   t: (key: string) => string,
   actions: UserActions,
-  canModerateUser: () => boolean,
+  can: UserPermissionMap,
 ): ColumnDef<User>[] {
   return [
     ...createSelectionColumn<User>(t, {
@@ -196,7 +197,7 @@ export function createColumns(
         ),
       cell: ({ row }) => {
         const user = row.original
-        const canModerateRow = canModerateUser()
+        const canModerateRow = can.moderate.value
         return createEntityActionsMenu(
           [
             {

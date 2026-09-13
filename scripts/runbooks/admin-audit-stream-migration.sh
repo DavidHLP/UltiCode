@@ -25,10 +25,9 @@ mode="$(stat -c '%a' -- "$ENV_FILE")"
   exit 1
 }
 
-set -a
-# shellcheck disable=SC1090
-source "$ENV_FILE"
-set +a
+# shellcheck source=scripts/dev/lib/common.sh
+source "$ROOT_DIR/scripts/dev/lib/common.sh"
+load_env_file
 : "${REDIS_HOST:?REDIS_HOST is required}"
 : "${REDIS_PORT:?REDIS_PORT is required}"
 : "${REDIS_DB:?REDIS_DB is required}"

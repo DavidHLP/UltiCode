@@ -2,7 +2,7 @@
  * i18n Translation Completeness Checker — console adapter.
  *
  * Delegates locale consistency + code-to-locale coverage to the shared engine
- * (../../shared/i18n-completeness). This adapter only wires the console locale
+ * (@ulticode/i18n-completeness). This adapter only wires the console locale
  * trees and source root, then renders the report.
  *
  * Usage:
@@ -13,7 +13,7 @@
 import { join } from 'path'
 import zhCN from './locales/zh-CN'
 import enUS from './locales/en-US'
-import { formatReport, runI18nCheck } from '../../../../packages/i18n-completeness'
+import { formatReport, runI18nCheck } from '@ulticode/i18n-completeness'
 
 async function main() {
   const isJson = process.argv.includes('--json')

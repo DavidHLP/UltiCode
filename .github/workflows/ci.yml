@@ -57,6 +57,10 @@ jobs:
               - 'init-db/**'
               - 'scripts/**'
               - 'docker/redis/**'
+              # Docker topology and observability changes must also exercise
+              # the backend workflow's dynamic infrastructure contracts.
+              - 'docker/docker-compose*.yml'
+              - 'infrastructure/observability/**'
               - 'infrastructure/nginx/**'
               - '.github/workflows/ci.yml'
               - '.github/workflows/_backend.yml'

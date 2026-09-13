@@ -33,11 +33,13 @@ class AppAuditOutboxDispatcherTest {
     @Mock
     private StreamOperations<String, Object, Object> streamOperations;
 
+    private AppAuditOutboxPublisher publisher;
     private AppAuditOutboxDispatcher dispatcher;
 
     @BeforeEach
     void setUp() {
-        dispatcher = new AppAuditOutboxDispatcher(outboxMapper, redisTemplate, new ObjectMapper());
+        publisher = new AppAuditOutboxPublisher(redisTemplate, new ObjectMapper());
+        dispatcher = new AppAuditOutboxDispatcher(outboxMapper, publisher);
         lenient().when(redisTemplate.opsForStream()).thenReturn((StreamOperations) streamOperations);
     }
 
@@ -45,8 +47,8 @@ class AppAuditOutboxDispatcherTest {
     void dispatchesClaimedAuditRow() {
         AppAuditOutboxRecord record = new AppAuditOutboxRecord();
         record.setId("app-audit-1");
-        when(outboxMapper.selectPending(50)).thenReturn(List.of(record));
-        when(outboxMapper.claim(eq("app-audit-1"), anyString())).thenReturn(1);
+        when(outboxMapper.claimPending(anyString(), eq(50))).thenReturn(1);
+        when(outboxMapper.selectClaimed(anyString())).thenReturn(List.of(record));
         when(streamOperations.add(any(MapRecord.class))).thenReturn(RecordId.of("1-0"));
         when(outboxMapper.markDelivered(eq("app-audit-1"), anyString())).thenReturn(1);
 
@@ -61,8 +63,8 @@ class AppAuditOutboxDispatcherTest {
     void retriesWhenRedisPublishFails() {
         AppAuditOutboxRecord record = new AppAuditOutboxRecord();
         record.setId("app-audit-2");
-        when(outboxMapper.selectPending(50)).thenReturn(List.of(record));
-        when(outboxMapper.claim(eq("app-audit-2"), anyString())).thenReturn(1);
+        when(outboxMapper.claimPending(anyString(), eq(50))).thenReturn(1);
+        when(outboxMapper.selectClaimed(anyString())).thenReturn(List.of(record));
         when(streamOperations.add(any(MapRecord.class)))
                 .thenThrow(new IllegalStateException("redis down"));
 

@@ -6,7 +6,7 @@ vi.mock("@/stores/auth", () => ({
   useAuthStore: vi.fn(),
 }));
 
-vi.mock("@/shared/auth-core/src", () => ({
+vi.mock("@ulticode/auth-core", () => ({
   installAuthNavigation: vi.fn(),
 }));
 

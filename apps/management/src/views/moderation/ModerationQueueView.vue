@@ -108,13 +108,7 @@ const {
   },
   QueryModerationQueueParams
 >({
-  store: {
-    data: computed(() => store.queueItems),
-    total: computed(() => store.queueTotal),
-    isLoading: computed(() => store.queueLoading),
-    error: computed(() => store.queueError),
-    fetch: (params) => store.fetchQueue(params),
-  },
+  store: store.queue,
   filters: () => ({
     status: statusFilter.value,
     primaryCategory: categoryFilter.value,

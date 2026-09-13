@@ -29,6 +29,7 @@ import type {
 } from '@/types/submission'
 import type { ProblemRunResult, ProblemRunCase } from '@/types/test-results'
 import type { ProfileData, UserProfile } from '@/api/user'
+import type { PageResult } from '@ulticode/domain-types'
 
 // ============================================================================
 // Shared readers
@@ -98,6 +99,41 @@ export function readBool(
   const v = readField<unknown>(raw, camelKey, snakeKey)
   if (v === undefined || v === null) return fallback
   return Boolean(v)
+}
+
+type PageRecord = Record<string, unknown>
+
+function readPageItems(record: PageRecord): unknown[] {
+  for (const key of ['items', 'posts', 'problems', 'data']) {
+    if (Array.isArray(record[key])) return record[key]
+  }
+  return []
+}
+
+/** Normalize the list envelopes used by Console APIs to the shared page shape. */
+export function readPage<T>(raw: unknown): PageResult<T> {
+  const record =
+    raw && typeof raw === 'object' && !Array.isArray(raw)
+      ? (raw as PageRecord)
+      : undefined
+  const items = (Array.isArray(raw) ? raw : record ? readPageItems(record) : []) as T[]
+  const total = record
+    ? (readNumber(record, 'total', 'total') ?? items.length)
+    : items.length
+  const page = record ? (readNumber(record, 'page', 'page') ?? 1) : 1
+  const pageSize = record
+    ? (readNumber(record, 'pageSize', 'page_size') ??
+      readNumber(record, 'limit', 'limit') ??
+      items.length)
+    : items.length
+  const totalPages = record
+    ? (readNumber(record, 'totalPages', 'total_pages') ??
+      (pageSize > 0 ? Math.ceil(total / pageSize) : 0))
+    : items.length > 0
+      ? 1
+      : 0
+
+  return { items, total, page, pageSize, totalPages }
 }
 
 /**

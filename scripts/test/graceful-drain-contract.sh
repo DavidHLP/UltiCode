@@ -5,11 +5,9 @@ set -euo pipefail
 # durable worker refuses new claims while its current bounded cycle drains.
 
 ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
-
-fail() {
-  echo "graceful-drain-contract: FAIL: $*" >&2
-  exit 1
-}
+CONTRACT_FAILURE_PREFIX="graceful-drain-contract: FAIL"
+# shellcheck source=scripts/test/lib/contract-harness.sh
+source "$ROOT_DIR/scripts/test/lib/contract-harness.sh"
 
 # shellcheck source=scripts/test/lib/assertions.sh
 source "$ROOT_DIR/scripts/test/lib/assertions.sh"
@@ -42,20 +40,13 @@ done
 
 for worker in \
   services/platform/integration-inbox/src/main/java/com/ulticode/modules/event/inbox/InboxConsumer.java \
-  services/admin/src/main/java/com/ulticode/modules/admin/audit/AdminAuditIntegrationInboxBridge.java \
-  services/admin/src/main/java/com/ulticode/modules/admin/outbox/AuditOutboxDispatcher.java \
+  services/platform/integration-inbox/src/main/java/com/ulticode/modules/event/inbox/RedisStreamInboxBridge.java \
+  services/platform/common/src/main/java/com/ulticode/common/outbox/OutboxDispatcher.java \
   services/admin/src/main/java/com/ulticode/modules/reconciliation/OwnerReconciler.java \
   services/admin/src/main/java/com/ulticode/modules/backup/scheduler/BackupScheduler.java \
-  services/auth/src/main/java/com/ulticode/auth/audit/AuthAuditOutboxDispatcher.java \
   services/auth/src/main/java/com/ulticode/auth/search/SearchDocumentChangedOutboxDispatcher.java \
-  services/app/app-web/src/main/java/com/ulticode/app/audit/AppAuditOutboxDispatcher.java \
-  services/app/app-web/src/main/java/com/ulticode/modules/event/outbox/IntegrationOutboxDispatcher.java \
-  services/app/app-web/src/main/java/com/ulticode/modules/event/inbox/SubmissionJudgedInboxBridge.java \
   services/submission/src/main/java/com/ulticode/modules/queue/outbox/dispatcher/JudgeOutboxDispatcher.java \
-  services/submission/src/main/java/com/ulticode/modules/submission/result/SubmissionResultDispatcher.java \
-  services/submission/src/main/java/com/ulticode/modules/submission/created/SubmissionCreatedDispatcher.java \
   services/submission/src/main/java/com/ulticode/modules/submission/reaper/JudgingLeaseReaper.java \
-  services/notification/src/main/java/com/ulticode/notification/inbox/NotificationIntegrationInboxBridge.java \
   services/notification/src/main/java/com/ulticode/modules/notification/ledger/reaper/NotificationLedgerReaper.java \
   services/search/src/main/java/com/ulticode/search/SearchDocumentIndexWorker.java \
   services/search/src/main/java/com/ulticode/search/SearchWorkerReadinessHeartbeat.java \

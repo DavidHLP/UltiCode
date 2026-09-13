@@ -293,10 +293,7 @@ run_full_local() {
     "$ROOT_DIR/scripts/dev/init-env.sh"
   fi
 
-  set -a
-  # shellcheck disable=SC1090
-  source "$ENV_FILE"
-  set +a
+  load_env_file
   [[ -n "${JAVA_TOOL_OPTIONS:-}" ]] || unset JAVA_TOOL_OPTIONS
 
   # Compose validates the Meili service even when the full-local gate does not
@@ -315,28 +312,15 @@ run_full_local() {
   done
 
   REDIS_ACL_DIR="$ROOT_DIR/.local/test-redis-acl"
-  [[ "$REDIS_ACL_DIR" == /* ]] || REDIS_ACL_DIR="$ROOT_DIR/$REDIS_ACL_DIR"
-  mkdir -p "$REDIS_ACL_DIR"
-  chmod 755 "$REDIS_ACL_DIR"
   REDIS_ACL_FILE="$REDIS_ACL_DIR/users.acl"
-  [[ "$REDIS_ACL_FILE" == /* ]] || REDIS_ACL_FILE="$ROOT_DIR/$REDIS_ACL_FILE"
-  export REDIS_ACL_DIR REDIS_ACL_FILE
-  if [[ ! -x "$ROOT_DIR/docker/redis/generate-users-acl.sh" ]]; then
-    echo "Missing Redis ACL generator: docker/redis/generate-users-acl.sh" >&2
-    exit 1
-  fi
-  "$ROOT_DIR/docker/redis/generate-users-acl.sh" "$REDIS_ACL_FILE"
+  materialize_redis_acl "$ROOT_DIR/.local/test-redis-acl"
 
   if ! [[ "$DB_USER" =~ ^[A-Za-z0-9_]+$ && "$TEST_DB_NAME" =~ ^[A-Za-z0-9_]+$ && "$TEST_MYSQL_DB_NAME" =~ ^[A-Za-z0-9_]+$ ]]; then
     echo "DB_USER, TEST_DB_NAME, and TEST_MYSQL_DB_NAME must contain only letters, digits, or underscore." >&2
     exit 1
   fi
 
-  compose=(
-    docker compose --project-directory "$ROOT_DIR" --env-file "$ENV_FILE"
-    -f "$ROOT_DIR/docker/docker-compose.yml"
-    -f "$ROOT_DIR/docker/docker-compose.dev.yml"
-  )
+  devstack_compose_args compose
 
   cleanup_test_resources() {
     if [[ -n "$TEST_MYSQL_CONTAINER" ]]; then

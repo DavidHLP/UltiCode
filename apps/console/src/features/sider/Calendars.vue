@@ -5,7 +5,7 @@ import { useI18n } from "vue-i18n";
 import { useSidebarLists } from "./composables/useSidebarLists";
 import SidebarListSections from "./components/SidebarListSections.vue";
 import SidebarListDialogs from "./components/SidebarListDialogs.vue";
-import { SidebarMenuItem as SharedSidebarMenuItem } from "@/shared/sidebar-menu/src";
+import { SidebarMenuItem as SharedSidebarMenuItem } from "@ulticode/sidebar-menu";
 
 const { t } = useI18n();
 

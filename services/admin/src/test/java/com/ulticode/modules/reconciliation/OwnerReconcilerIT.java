@@ -2,6 +2,7 @@ package com.ulticode.modules.reconciliation;
 
 import com.baomidou.mybatisplus.core.MybatisConfiguration;
 import com.baomidou.mybatisplus.core.MybatisSqlSessionFactoryBuilder;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.app.api.dto.ReconciliationOrphanCounts;
 import com.ulticode.app.api.service.AppReconciliationReadPort;
 import com.ulticode.auth.api.dto.AuthReconciliationOrphanCounts;
@@ -22,7 +23,10 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.support.EncodedResource;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.init.ScriptUtils;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.junit.jupiter.Container;
@@ -33,6 +37,9 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.Clock;
+import java.time.LocalDateTime;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
 
@@ -76,6 +83,8 @@ class OwnerReconcilerIT {
     private static ReconciliationRunMapper runMapper;
     private static FencedJobLeaseMapper fencedJobLeaseMapper;
     private static AuditOrphanMapper auditOrphanMapper;
+    private static final LocalDateTime LEGACY_WATERMARK =
+            LocalDateTime.of(2026, 8, 27, 0, 0, 0, 123_000_000);
 
     @BeforeAll
     static void provision() throws Exception {
@@ -118,6 +127,7 @@ class OwnerReconcilerIT {
                 CREATE TABLE `audit_logs` (
                   `id` varchar(40) NOT NULL,
                   `performer_id` varchar(40) DEFAULT NULL,
+                  `created_at` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
                   PRIMARY KEY (`id`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
                 """);
@@ -135,6 +145,30 @@ class OwnerReconcilerIT {
         config.setMaximumPoolSize(4);
         dataSource = new HikariDataSource(config);
         jdbcTemplate = new JdbcTemplate(dataSource);
+        jdbcTemplate.update("""
+                INSERT INTO reconciliation_runs
+                    (run_id, started_at, owner, fence_token, status,
+                     divergence_count, orphan_count, detail)
+                VALUES (?, ?, 'ALL', 1, 'PARTIAL', 0, 0, ?),
+                       (?, ?, 'ALL', 1, 'COMPLETED', 0, 0, ?),
+                       (?, ?, 'ALL', 1, 'COMPLETED', 0, 0, ?),
+                       (?, ?, 'ALL', 1, 'PARTIAL', 0, 0, ?),
+                       (?, ?, 'ALL', 1, 'PARTIAL', 0, 0, ?),
+                       (?, ?, 'ALL', 1, 'PARTIAL', 0, 0, ?)
+                """,
+                "legacy-partial", LEGACY_WATERMARK.plusDays(1), checkpointDetail(LEGACY_WATERMARK),
+                "legacy-completed", LEGACY_WATERMARK.plusDays(2), checkpointDetail(LEGACY_WATERMARK),
+                "legacy-full-completed", LEGACY_WATERMARK.plusDays(3), fullCheckpointDetail(),
+                "legacy-unknown-mode", LEGACY_WATERMARK.plusDays(4), unknownCheckpointDetail(),
+                "legacy-invalid-watermark", LEGACY_WATERMARK.plusDays(5), invalidCheckpointDetail(),
+                "legacy-incomplete-continuation", LEGACY_WATERMARK.plusDays(6),
+                "{\"mode\":\"FULL\",\"continuation\":{\"submission\":{}}}");
+        try (Connection connection = dataSource.getConnection()) {
+            Path migration = findRepositoryRoot().resolve(
+                    "init-db/migrations/admin/V20260913140000__Add_Reconciliation_Checkpoint_Fields.sql");
+            ScriptUtils.executeSqlScript(connection,
+                    new EncodedResource(new FileSystemResource(migration.toFile())));
+        }
 
         MybatisConfiguration mybatisConfiguration = new MybatisConfiguration();
         mybatisConfiguration.setEnvironment(new Environment(
@@ -181,7 +215,8 @@ class OwnerReconcilerIT {
         OwnerReconciler reconciler = new OwnerReconciler(
                 runMapper, new FixedUuidGenerator("run-it-1"), appPort,
                 submissionPort, notificationPort, auditOrphanMapper, null,
-                new FencedJobLeaseService(fencedJobLeaseMapper, Clock.systemUTC()));
+                new FencedJobLeaseService(fencedJobLeaseMapper, Clock.systemUTC()),
+                new ObjectMapper());
         ReflectionTestUtils.setField(reconciler, "authQueryService", authService);
         return reconciler;
     }
@@ -211,5 +246,105 @@ class OwnerReconcilerIT {
         assertThat(auditOrphanMapper.auditPerformerIds(0, 2))
                 .extracting(AuditReferenceCount::getPerformerId)
                 .containsExactly("ghost-user", "u-001");
+        assertThat(auditOrphanMapper.auditPerformerIdsSince(
+                0, 2, LocalDateTime.of(2026, 8, 29, 0, 0)))
+                .extracting(AuditReferenceCount::getPerformerId)
+                .containsExactly("ghost-user", "u-001");
+    }
+
+    @Test
+    @DisplayName("checkpoint queries isolate incremental watermarks")
+    void mapperSelectsMatchingCheckpointWatermark() {
+        LocalDateTime firstWatermark = LocalDateTime.of(2026, 8, 29, 0, 0);
+        LocalDateTime secondWatermark = LocalDateTime.of(2026, 8, 30, 0, 0);
+        jdbcTemplate.update("""
+                INSERT INTO reconciliation_runs
+                    (run_id, started_at, owner, scan_mode, scan_created_since,
+                     fence_token, status, divergence_count, orphan_count, detail)
+                VALUES (?, ?, 'ALL', 'INCREMENTAL', ?, 1, 'PARTIAL', 0, 0, ?),
+                       (?, ?, 'ALL', 'INCREMENTAL', ?, 1, 'PARTIAL', 0, 0, ?),
+                       (?, ?, 'ALL', 'INCREMENTAL', ?, 1, 'COMPLETED', 0, 0, ?)
+                """,
+                "partial-first", firstWatermark.plusDays(1), firstWatermark, checkpointDetail(firstWatermark),
+                "partial-second", secondWatermark.plusDays(1), secondWatermark, checkpointDetail(secondWatermark),
+                "completed-second", secondWatermark.plusDays(2), secondWatermark, checkpointDetail(secondWatermark));
+
+        assertThat(runMapper.findLatestPartial("INCREMENTAL", firstWatermark)
+                .getRunId()).isEqualTo("partial-first");
+        assertThat(runMapper.findLatestPartial("INCREMENTAL", secondWatermark)
+                .getRunId()).isEqualTo("partial-second");
+        assertThat(runMapper.findLatestCompleted("INCREMENTAL", firstWatermark))
+                .isNull();
+        assertThat(runMapper.findLatestCompleted("INCREMENTAL", secondWatermark)
+                .getRunId()).isEqualTo("completed-second");
+    }
+
+    @Test
+    @DisplayName("checkpoint migration backfills legacy metadata and ignores invalid values")
+    void migrationBackfillsLegacyCheckpointMetadata() {
+        assertThat(runMapper.findLatestPartial("INCREMENTAL", LEGACY_WATERMARK)
+                .getRunId()).isEqualTo("legacy-partial");
+        assertThat(runMapper.findLatestCompleted("INCREMENTAL", LEGACY_WATERMARK)
+                .getRunId()).isEqualTo("legacy-completed");
+        assertThat(runMapper.findLatestCompleted("FULL", null)
+                .getRunId()).isEqualTo("legacy-full-completed");
+        assertThat(runMapper.findLatestPartial("INCREMENTAL", LEGACY_WATERMARK.plusDays(10)))
+                .isNull();
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT scan_mode FROM reconciliation_runs WHERE run_id = 'legacy-unknown-mode'",
+                String.class)).isNull();
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT scan_created_since FROM reconciliation_runs "
+                        + "WHERE run_id = 'legacy-invalid-watermark'",
+                LocalDateTime.class)).isNull();
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT scan_mode FROM reconciliation_runs "
+                        + "WHERE run_id = 'legacy-incomplete-continuation'",
+                String.class)).isNull();
+        assertThat(runMapper.findLatestPartial("FULL", null)).isNull();
+    }
+
+    private static String checkpointDetail(LocalDateTime createdSince) {
+        return "{\"mode\":\"INCREMENTAL\",\"continuation\":{"
+                + "\"createdSince\":\"" + createdSince + "\","
+                + "\"submission\":{\"cursor\":\"user-1\",\"missing\":0,\"complete\":false},"
+                + "\"notification\":{\"cursor\":\"\",\"missing\":0,\"complete\":true},"
+                + "\"audit\":{\"offset\":0,\"missing\":0,\"complete\":true}}}";
+    }
+
+    private static String fullCheckpointDetail() {
+        return "{\"mode\":\"FULL\",\"continuation\":{"
+                + "\"createdSince\":null,"
+                + "\"submission\":{\"cursor\":\"\",\"missing\":0,\"complete\":true},"
+                + "\"notification\":{\"cursor\":\"\",\"missing\":0,\"complete\":true},"
+                + "\"audit\":{\"offset\":0,\"missing\":0,\"complete\":true}}}";
+    }
+
+    private static String unknownCheckpointDetail() {
+        return "{\"mode\":\"UNKNOWN\",\"continuation\":{"
+                + "\"createdSince\":null,"
+                + "\"submission\":{\"cursor\":\"user-1\",\"missing\":0,\"complete\":false},"
+                + "\"notification\":{\"cursor\":\"\",\"missing\":0,\"complete\":true},"
+                + "\"audit\":{\"offset\":0,\"missing\":0,\"complete\":true}}}";
+    }
+
+    private static String invalidCheckpointDetail() {
+        return "{\"mode\":\"INCREMENTAL\",\"continuation\":{"
+                + "\"createdSince\":\"not-a-timestamp\","
+                + "\"submission\":{\"cursor\":\"user-1\",\"missing\":0,\"complete\":false},"
+                + "\"notification\":{\"cursor\":\"\",\"missing\":0,\"complete\":true},"
+                + "\"audit\":{\"offset\":0,\"missing\":0,\"complete\":true}}}";
+    }
+
+    private static Path findRepositoryRoot() {
+        Path directory = Path.of("").toAbsolutePath();
+        while (directory != null) {
+            if (Files.isRegularFile(directory.resolve(
+                    "init-db/migrations/admin/V20260913140000__Add_Reconciliation_Checkpoint_Fields.sql"))) {
+                return directory;
+            }
+            directory = directory.getParent();
+        }
+        throw new IllegalStateException("repository root not found");
     }
 }

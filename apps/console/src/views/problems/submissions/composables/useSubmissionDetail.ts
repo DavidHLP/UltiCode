@@ -8,7 +8,7 @@ import type {
 import {
   getStatusLabelI18nKey,
   isPending as isPendingStatus,
-} from "@/shared/submission-status/src";
+} from "@ulticode/submission-status";
 
 export interface NormalizedDistributionPoint {
   i: number;

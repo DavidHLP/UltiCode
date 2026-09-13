@@ -49,7 +49,7 @@ export interface LoginResponse {
  * Field names mirror the backend API snake_case contract.
  *
  * **IMPORTANT**: This is the single source of truth for User type across the entire frontend.
- * Both console and management frontends MUST use this type from shared/auth-core.
+ * Both console and management frontends MUST use this type from @ulticode/auth-core.
  * Do NOT define duplicate User types in console/src/types/auth.ts or management/src/api/auth.ts.
  */
 export interface User {

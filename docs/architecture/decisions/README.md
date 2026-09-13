@@ -16,3 +16,4 @@ ADR 是 durable history 的权威入口；普通提交不在这里复制。实�
 | [0008](0008-admin-event-read-model.md) | Accepted | Admin 暂不复制 Owner event read model；先使用 bounded synchronous reads、typed degradation 和 metrics，超预算后再复议。 |
 | [0011](0011-topology-contract-module-convergence.md) | Implemented — Core outcome in 0012 | `distributed` 保持唯一默认；Contract 所有权、Contest/Submission 残留 Seam、Admin 深 Module 和 App 内部 Locality 的长期边界。 |
 | [0012](0012-core-topology-three-way-decision.md) | Selected — expiry `2026-10-06` | Core 仅保留为 Auth/Admin allowlist 的 bounded opt-in testbed；不宣称 class/resource isolation，不切换默认拓扑。 |
+| [0013](0013-architecture-review-module-convergence.md) | Accepted — implementation `2026-09-12` | 把 Admin、Inbox、Outbox、reconciliation、Problem/Auth contract 与开发脚本的重复机制收口为共享 seam；保留 Owner 本地语义，明确延后 UI primitive 大迁移。 |

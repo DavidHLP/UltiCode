@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 WRAPPER="$ROOT_DIR/scripts/dev/test.sh"
+ARCHITECTURE_GATE="$ROOT_DIR/scripts/dev/architecture-contract-test.sh"
 
 case "${1:-}" in
   ''|--static-only) ;;
@@ -10,10 +11,9 @@ case "${1:-}" in
 esac
 [[ $# -le 1 ]] || { echo 'Expected at most one argument' >&2; exit 2; }
 
-fail() {
-  echo "zero-infra-validation-contract: FAIL: $*" >&2
-  exit 1
-}
+CONTRACT_FAILURE_PREFIX="zero-infra-validation-contract: FAIL"
+# shellcheck source=scripts/test/lib/contract-harness.sh
+source "$ROOT_DIR/scripts/test/lib/contract-harness.sh"
 
 [[ -x "$WRAPPER" ]] || fail "scripts/dev/test.sh is not executable"
 
@@ -21,6 +21,13 @@ for workflow in _backend.yml _frontend.yml; do
   grep -Fqx '        run: bash scripts/test/zero-infra-validation-contract.sh --static-only' \
     "$ROOT_DIR/.github/workflows/$workflow" \
     || fail "$workflow must select --static-only for its lightweight CI job"
+done
+grep -Fq 'bash scripts/dev/architecture-contract-test.sh --list-qualified dynamic' \
+  "$ROOT_DIR/.github/workflows/_backend.yml" \
+  || fail '_backend.yml must enumerate dynamic architecture contracts from the registry'
+for workflow in _docker.yml _contract.yml; do
+  grep -Fq "ULTI_STATIC_ONLY: '1'" "$ROOT_DIR/.github/workflows/$workflow" \
+    || fail "$workflow must run only static architecture contracts"
 done
 
 TEST_DIR="$(mktemp -d "${TMPDIR:-/tmp}/ulticode-zero-infra.XXXXXX")"
@@ -80,46 +87,116 @@ git -C "$ROOT_DIR" diff --binary -- . >"$AFTER_DIFF"
 cmp -s "$BEFORE_DIFF" "$AFTER_DIFF" \
   || fail "static validation modified tracked files"
 printf 'test.sh static: PASS (deny-shim PATH, no Docker daemon)\n'
-# Pure source/catalog children are static-safe and run inside static mode:
-# owner-architecture-source, api-contract-boundary, dubbo-provider-reference,
-# docs-contract, and the static half of the TLS profile. The remaining
-# dynamic children (Docker/network/Maven integration shapes) must stay skipped.
-for skipped_child in \
-  scripts/test/redis-acl-contract.sh \
-  scripts/test/audit-owner-boundary-contract.sh \
-  scripts/test/owner-schema-contraction-contract.sh \
-  scripts/test/admin-audit-stream-migration-contract.sh \
-  scripts/test/stream-resilience-contract.sh \
-  scripts/test/scale-topology-contract.sh \
-  scripts/test/ha-profile-contract.sh \
-  scripts/test/dubbo-mtls-contract.sh \
-  scripts/test/network-reachability-contract.sh \
-  scripts/test/judge-sandbox-contract.sh \
-  scripts/test/owner-backup-restore-contract.sh \
-  scripts/test/observability-contract.sh \
-  scripts/test/scheduler-contract.sh \
-  scripts/test/fenced-lease-contract.sh \
-  scripts/test/graceful-drain-contract.sh \
-  scripts/test/dependency-resilience-contract.sh \
-  scripts/test/redis-acl-rotation-contract.sh; do
-  grep -Fq "Architecture child $skipped_child: skipped in static-only mode" \
-    "$TEST_DIR/static-0.log" \
-    || fail "static mode unexpectedly ran deferred child: $skipped_child"
-  grep -Fq "$skipped_child" \
-    "$ROOT_DIR/scripts/dev/architecture-contract-test.sh" \
-    || fail "non-static architecture gate no longer runs deferred child: $skipped_child"
+
+collect_qualified() {
+  local qualification="$1" output error_file
+  error_file="$TEST_DIR/list-$qualification.error"
+  if output="$(bash "$ARCHITECTURE_GATE" --list-qualified "$qualification" 2>"$error_file")"; then
+    :
+  else
+    cat "$error_file" >&2
+    fail "architecture registry list failed for qualification: $qualification"
+  fi
+  [[ "$output" != *'Architecture child '* ]] \
+    || fail "qualified list emitted execution banners: $qualification"
+  [[ "$output" != *'Architecture contract: '* ]] \
+    || fail "qualified list emitted a contract result: $qualification"
+  printf '%s\n' "$output"
+}
+
+assert_invalid_qualified_list() {
+  local kind="$1" output status
+  if [[ "$kind" == missing ]]; then
+    if output="$(bash "$ARCHITECTURE_GATE" --list-qualified 2>&1)"; then
+      status=0
+    else
+      status=$?
+    fi
+  else
+    if output="$(bash "$ARCHITECTURE_GATE" --list-qualified invalid 2>&1)"; then
+      status=0
+    else
+      status=$?
+    fi
+  fi
+  [[ "$status" -eq 2 ]] || fail "qualified list $kind filter exited $status, expected 2"
+  grep -Fq 'Usage:' <<<"$output" \
+    || fail "qualified list $kind filter did not print usage text"
+}
+
+static_children="$(collect_qualified static)"
+dynamic_children="$(collect_qualified dynamic)"
+[[ -n "$static_children" ]] || fail 'architecture registry has no static children'
+[[ -n "$dynamic_children" ]] || fail 'architecture registry has no dynamic children'
+assert_invalid_qualified_list missing
+assert_invalid_qualified_list invalid
+
+declare -A registry_qualification=()
+declare -A seen_banner=()
+register_qualified_children() {
+  local qualification="$1" children="$2" child
+  while IFS= read -r child; do
+    [[ -n "$child" ]] || continue
+    [[ -z "${registry_qualification[$child]+present}" ]] \
+      || fail "architecture registry listed child more than once: $child"
+    registry_qualification["$child"]="$qualification"
+  done <<<"$children"
+}
+register_qualified_children static "$static_children"
+register_qualified_children dynamic "$dynamic_children"
+
+assert_workflow_does_not_hand_list() {
+  local workflow="$1" child all_children
+  all_children="$static_children"$'\n'"$dynamic_children"
+  while IFS= read -r child; do
+    [[ -n "$child" ]] || continue
+    ! grep -Fq "$child" "$ROOT_DIR/.github/workflows/$workflow" \
+      || fail "$workflow hand-lists registered architecture child: $child"
+  done <<<"$all_children"
+}
+for workflow in _backend.yml _frontend.yml _docker.yml _contract.yml; do
+  assert_workflow_does_not_hand_list "$workflow"
 done
 
-for static_child in \
-  scripts/test/owner-architecture-source-contract.sh \
-  scripts/test/api-contract-boundary-contract.sh \
-  scripts/test/dubbo-provider-reference-contract.sh \
-  scripts/dev/docs-contract-test.sh \
-  scripts/test/tls-profile-contract.sh; do
-  grep -Fq "Architecture child $static_child: running static-safe checks" \
-    "$TEST_DIR/static-0.log" \
-    || fail "static mode did not run pure source child: $static_child"
-done
+assert_architecture_banners() {
+  local line child expected kind
+  while IFS= read -r line; do
+    if [[ "$line" =~ ^Architecture\ child\ (.+):\ running\ static-safe\ checks$ ]]; then
+      child="${BASH_REMATCH[1]}"
+      kind=running
+    elif [[ "$line" =~ ^Architecture\ child\ (.+):\ skipped\ in\ static-only\ mode$ ]]; then
+      child="${BASH_REMATCH[1]}"
+      kind=skipped
+    else
+      continue
+    fi
+    expected="${registry_qualification[$child]-}"
+    [[ -n "$expected" ]] \
+      || fail "static log emitted a banner for an unregistered child: $child"
+    if [[ "$kind" == running ]]; then
+      [[ "$expected" == static ]] \
+        || fail "dynamic child was marked static-running: $child"
+    else
+      [[ "$expected" == dynamic ]] \
+        || fail "static child was marked skipped: $child"
+    fi
+    [[ -z "${seen_banner[$child]+present}" ]] \
+      || fail "static log emitted duplicate architecture banners: $child"
+    seen_banner["$child"]="$kind"
+  done < "$TEST_DIR/static-0.log"
+
+  for child in "${!registry_qualification[@]}"; do
+    expected="${registry_qualification[$child]}"
+    if [[ "$expected" == static ]]; then
+      kind=running
+    else
+      kind=skipped
+    fi
+    [[ "${seen_banner[$child]-}" == "$kind" ]] \
+      || fail "static log banner mismatch for $expected child: $child"
+  done
+}
+assert_architecture_banners
 
 
 # Unit mode (static + frontend checks + -Punit backend gate) must also run

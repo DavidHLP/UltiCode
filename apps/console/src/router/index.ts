@@ -4,7 +4,7 @@ import {
   type RouteRecordRaw,
 } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
-import { installAuthNavigation } from "@/shared/auth-core/src";
+import { installAuthNavigation } from "@ulticode/auth-core";
 
 const forumRoutes: RouteRecordRaw = {
   path: "/forum",

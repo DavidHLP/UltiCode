@@ -6,19 +6,19 @@ import { IconPlus, IconList } from '@tabler/icons-vue'
 
 import { Button } from '@/components/ui/button'
 import { useAdminProblemListsStore } from '@/stores/admin/problem-lists'
-import { useAuthStore } from '@/stores/auth'
 import type { ProblemList } from '@/api/admin/problem-lists'
 
 import DataTable from '@/components/table/DataTable.vue'
 import DataTableToolbar, { type Filter } from '@/components/table/DataTableToolbar.vue'
 import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
 import { useDataTable } from '@/composables/useDataTable'
+import { useProblemListPermissions } from '@/composables/useProblemListPermissions'
 import { createColumns } from './columns'
 
 const router = useRouter()
 const { t } = useI18n()
 const store = useAdminProblemListsStore()
-const authStore = useAuthStore()
+const { can } = useProblemListPermissions()
 
 const featuredFilter = ref<string>('all')
 const visibilityFilter = ref<string>('all')
@@ -27,9 +27,7 @@ const selectedListId = ref<string | null>(null)
 const selectedListName = ref<string | null>(null)
 const deleteDialogOpen = ref(false)
 
-const canCreate = computed(() => authStore.hasPermission('CREATE', 'PROBLEM_LIST'))
-const canUpdate = computed(() => authStore.hasPermission('UPDATE', 'PROBLEM_LIST'))
-const canDelete = computed(() => authStore.hasPermission('DELETE', 'PROBLEM_LIST'))
+const canCreate = can.problemList.create
 
 // Animation state for staggered reveal
 const isLoaded = ref(false)
@@ -54,13 +52,7 @@ const {
   { featuredFilter: string; visibilityFilter: string },
   Parameters<typeof store.fetchLists>[0]
 >({
-  store: {
-    data: computed(() => store.lists),
-    total: computed(() => store.total),
-    isLoading: computed(() => store.isLoading),
-    error: computed(() => store.error),
-    fetch: (params) => store.fetchLists(params),
-  },
+  store,
   filters: () => ({
     featuredFilter: featuredFilter.value,
     visibilityFilter: visibilityFilter.value,
@@ -80,8 +72,8 @@ const {
 // Stats for terminal ticker
 const stats = computed(() => ({
   total: store.total,
-  featured: (store.lists || []).filter((l) => l.isFeatured).length,
-  public: (store.lists || []).filter((l) => l.isPublic).length,
+  featured: (store.items || []).filter((l) => l.isFeatured).length,
+  public: (store.items || []).filter((l) => l.isPublic).length,
 }))
 
 // Toolbar filters for DataTableToolbar
@@ -125,8 +117,7 @@ async function handleDelete(id: string | number) {
 const columns = createColumns(
   t,
   { editList, deleteList: confirmDelete },
-  () => canUpdate.value,
-  () => canDelete.value,
+  can.problemList,
 )
 </script>
 

@@ -8,6 +8,8 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 # shellcheck source=scripts/dev/devstack-manifest.sh
 source "$ROOT_DIR/scripts/dev/devstack-manifest.sh"
+# shellcheck source=scripts/dev/lib/common.sh
+source "$ROOT_DIR/scripts/dev/lib/common.sh"
 
 ENV_FILE="${ENV_FILE:-$ROOT_DIR/.env}"
 SCOPE="dev-lite"
@@ -158,9 +160,10 @@ if [[ "$stop_infra" == true && -x "$(command -v docker 2>/dev/null || true)" && 
     infra_targets="$(devstack_infra_for_selection "$SCOPE" "$SELECTED_APPS")"
   fi
   if [[ -n "$infra_targets" ]]; then
-    compose=(docker compose --project-directory "$ROOT_DIR" --env-file "$ENV_FILE" -f "$ROOT_DIR/docker/docker-compose.yml" -f "$ROOT_DIR/docker/docker-compose.dev.yml")
     if [[ "$STOP_ALL" == true ]]; then
-      compose+=(--profile observability -f "$ROOT_DIR/docker/docker-compose.observability.yml")
+      devstack_compose_args compose --observability
+    else
+      devstack_compose_args compose
     fi
     IFS=',' read -ra infra_array <<< "$infra_targets"
     echo "Stopping infrastructure targets: $infra_targets"

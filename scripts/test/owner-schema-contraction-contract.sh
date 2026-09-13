@@ -6,6 +6,16 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
+# This contract owns a disposable MySQL instance. Do not let a caller's
+# migration environment override the test-generated container and credentials.
+unset MIGRATION_DB_HOST MIGRATION_DB_PORT MIGRATION_DB_NAME \
+  MIGRATION_SCHEMA \
+  MIGRATION_DB_USER MIGRATION_DB_PASSWORD MIGRATION_MYSQL_CONTAINER \
+  MIGRATION_MYSQL_CONTAINER_PORT OWNER_CONTRACTION_APP_USER \
+  OWNER_CONTRACTION_APP_HOST OWNER_SCHEMA_CONTRACTION_CONFIRM \
+  OWNER_SCHEMA_CONTRACTION_BACKUP_CONFIRM \
+  OWNER_SCHEMA_CONTRACTION_QUIESCE_CONFIRM OWNER_SCHEMA_CONTRACTION_BACKUP_REFERENCE
+
 if ! java -version >/dev/null 2>&1 && command -v mise >/dev/null 2>&1; then
   exec mise exec java@zulu-17.68.203.0 -- bash "$0" "$@"
 fi
@@ -26,15 +36,21 @@ docker run -d --name "$MYSQL_CONTAINER" -e MYSQL_ROOT_PASSWORD="$ROOT_PASSWORD" 
   -p 127.0.0.1::3306 mysql:8.0 --character-set-server=utf8mb4 \
   --collation-server=utf8mb4_unicode_ci >/dev/null
 
+mysql_ready=0
 for _ in $(seq 1 60); do
-  if docker exec -e MYSQL_PWD="$ROOT_PASSWORD" "$MYSQL_CONTAINER" \
-      mysql -uroot -N -B -e 'SELECT 1' >/dev/null 2>&1; then
+  # The MySQL image briefly exposes its initialization server before stopping
+  # it and starting the final server. Wait for the hand-off marker so a probe
+  # cannot pass against the temporary socket and race the shutdown.
+  if docker logs "$MYSQL_CONTAINER" 2>&1 \
+      | grep -Fq 'MySQL init process done. Ready for start up.' \
+      && docker exec -e MYSQL_PWD="$ROOT_PASSWORD" "$MYSQL_CONTAINER" \
+        mysql -uroot -N -B -e 'SELECT 1' >/dev/null 2>&1; then
+    mysql_ready=1
     break
   fi
   sleep 1
 done
-docker exec -e MYSQL_PWD="$ROOT_PASSWORD" "$MYSQL_CONTAINER" \
-  mysql -uroot -N -B -e 'SELECT 1' >/dev/null
+(( mysql_ready == 1 ))
 
 MYSQL_PORT="$(docker port "$MYSQL_CONTAINER" 3306/tcp)"
 MYSQL_PORT="${MYSQL_PORT##*:}"

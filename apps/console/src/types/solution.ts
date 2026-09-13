@@ -1,3 +1,5 @@
+import type { PageResult } from "@ulticode/domain-types";
+
 export interface SolutionFeedItem {
   id: string;
   problem_id: string;
@@ -50,8 +52,6 @@ export interface SolutionFeedItem {
   userVote?: 0 | 1 | -1;
 }
 
-export interface SolutionFeedResponse {
-  items: SolutionFeedItem[];
-  total: number;
+export type SolutionFeedResponse = PageResult<SolutionFeedItem> & {
   sortOptions?: { label: string; value: string }[];
-}
+};

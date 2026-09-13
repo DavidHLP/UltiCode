@@ -1,6 +1,6 @@
 // console/src/lib/realtime/contest-room.ts
 import type { IMessage } from "@stomp/stompjs";
-import { getCsrfToken } from "@/shared/auth-core/src";
+import { getCsrfToken } from "@ulticode/auth-core";
 import type { RankingEntry } from "@/types/contest";
 import {
   createRealtimeTransport,

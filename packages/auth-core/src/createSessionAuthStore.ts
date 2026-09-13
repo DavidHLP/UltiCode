@@ -22,7 +22,7 @@ export interface SessionAuthTransport<U> {
   /** POST /auth/login — resolves the authenticated user directly (no re-fetch). */
   login(credentials: unknown): Promise<{ user: U; csrfToken?: string }>
   /** POST /auth/register — resolves the newly-registered user directly. */
-  register(data: unknown): Promise<{ user: U; csrfToken?: string }>
+  register?(data: unknown): Promise<{ user: U; csrfToken?: string }>
   /** POST /auth/logout. */
   logout(): Promise<void>
   /** GET /auth/permissions — resolves the caller's permission strings. */
@@ -59,8 +59,7 @@ export interface SessionAuthStore<U> {
 
 /**
  * Status-machine auth session factory. Owns the reusable session policy for
- * apps that need a richer `idle/loading/ready/error` surface than the boolean
- * {@link createAuthStore} exposes: the concurrent-init dedup promise, the
+ * both apps: the concurrent-init dedup promise, the
  * CSRF-cookie-gated bootstrap, the login/register throw-and-record-error flow
  * (login trusts its own response and does not re-fetch /auth/me), and the
  * clear/reset teardown.
@@ -176,7 +175,13 @@ export function createSessionAuthStore<U>(transport: SessionAuthTransport<U>): S
   }
 
   async function register(data: unknown): Promise<void> {
-    await runAuthFlow(() => transport.register(data), 'Invalid register response')
+    await runAuthFlow(
+      () =>
+        transport.register
+          ? transport.register(data)
+          : Promise.reject(new Error('Registration is not supported by this adapter')),
+      'Invalid register response',
+    )
   }
 
   async function logout(): Promise<void> {

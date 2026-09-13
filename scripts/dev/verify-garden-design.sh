@@ -4,7 +4,7 @@
 # adoption ("Garden" design system).
 #
 # Verifies, in order:
-#   1. Architecture contract (existing repo guardrail)
+#   1. Architecture contract (static, zero-infrastructure)
 #   2. Theme sync + typography token guardrails
 #   3. Design-system contract tests: canonical Garden palette lock, WCAG
 #      contrast mappings (light + dark), runtime palette bridge parity, and
@@ -25,18 +25,17 @@ WITH_BUILD=false
 
 step() { printf "\n=== %s ===\n" "$1"; }
 
-# NOTE: scripts/dev/architecture-contract-test.sh is intentionally NOT part of
-# this gate; its devstack-manifest subtest currently fails on an unrelated,
-# pre-existing readiness-path mismatch (auth /health vs /health/ready).
+step "1/5 Architecture contract (static)"
+ULTI_STATIC_ONLY=1 bash "$ROOT_DIR/scripts/dev/architecture-contract-test.sh"
 
-step "1/4 Theme guardrails"
+step "2/5 Theme guardrails"
 node "$ROOT_DIR/packages/theme/scripts/verify-theme-sync.mjs"
 node "$ROOT_DIR/packages/theme/scripts/verify-typography-tokens.mjs"
 
-step "2/4 Design-system contract tests (palette lock, contrast, scanner)"
+step "3/5 Design-system contract tests (palette lock, contrast, scanner)"
 pnpm --dir "$ROOT_DIR/packages/design-system" test
 
-step "3/4 Apps: type-check + unit tests"
+step "4/5 Apps: type-check + unit tests"
 for app in console management; do
   printf -- "--- apps/%s type-check ---\n" "$app"
   pnpm --dir "$ROOT_DIR/apps/$app" type-check
@@ -45,12 +44,12 @@ for app in console management; do
 done
 
 if $WITH_BUILD; then
-  step "3b/4 Apps: production builds"
+  step "4b/5 Apps: production builds"
   pnpm --dir "$ROOT_DIR/apps/console" build
   pnpm --dir "$ROOT_DIR/apps/management" build
 fi
 
-step "4/4 Legacy Solarized literal sweep"
+step "5/5 Legacy Solarized literal sweep"
 LEGACY_PATTERN='#(002b36|073642|586e75|657b83|839496|93a1a1|eee8d5|fdf6e3|b58900|cb4b16|dc322f|d33682|268bd2|2aa198|859900)'
 FOUND=$(grep -rniE "$LEGACY_PATTERN" \
   "$ROOT_DIR/apps" "$ROOT_DIR/packages" \

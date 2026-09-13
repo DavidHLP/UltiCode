@@ -27,6 +27,7 @@ import org.springframework.data.redis.connection.stream.StreamRecords;
 import org.springframework.data.redis.core.StreamOperations;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
+/** Notification owner binding tests; generic Redis staging mechanics live in the shared bridge suite. */
 @ExtendWith(MockitoExtension.class)
 class NotificationIntegrationInboxBridgeTest {
 

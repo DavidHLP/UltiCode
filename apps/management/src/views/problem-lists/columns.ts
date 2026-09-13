@@ -14,6 +14,7 @@ import { createEntityActionsMenu } from '@/components/table/entityActions'
 import type { ProblemList } from '@/api/admin/problem-lists'
 import { formatDate } from '@/lib/format/date'
 import { badge } from '@/components/ui/terminal'
+import type { ProblemListPermissionMap } from '@/composables/useProblemListPermissions'
 
 export interface ProblemListActions {
   editList: (id: string) => void
@@ -48,8 +49,7 @@ function renderFeaturedBadge(isFeatured: boolean) {
 export function createColumns(
   t: (key: string) => string,
   actions: ProblemListActions,
-  canUpdate: () => boolean,
-  canDelete: () => boolean,
+  can: ProblemListPermissionMap,
 ): ColumnDef<ProblemList>[] {
   return [
     ...createSelectionColumn<ProblemList>(t, {
@@ -195,16 +195,16 @@ export function createColumns(
               onSelect: () => actions.editList(list.id),
               icon: IconPencil,
               iconClass: 'h-4 w-4 text-[var(--primary)]',
-              hidden: !canUpdate(),
+              hidden: !can.update.value,
             },
-            { kind: 'separator', hidden: !canDelete() },
+            { kind: 'separator', hidden: !can.delete.value },
             {
               label: t('common.delete'),
               onSelect: () => actions.deleteList(list),
               icon: IconTrash,
               iconClass: 'h-4 w-4 text-foreground-strong',
               labelClass: 'text-[var(--foreground-strong)]',
-              hidden: !canDelete(),
+              hidden: !can.delete.value,
             },
           ],
           {

@@ -1,9 +1,7 @@
 package com.ulticode.modules.admin.service.impl;
 
 import com.ulticode.admin.error.AdminErrorCode;
-import com.ulticode.common.command.ActorDelegation;
 import com.ulticode.notification.api.command.CreateNotificationCommand;
-import com.ulticode.app.api.error.AppErrorCode;
 import com.ulticode.notification.api.command.DeleteNotificationCommand;
 import com.ulticode.notification.api.command.UpdateNotificationCommand;
 import com.ulticode.notification.api.dto.NotificationAdminDTO;
@@ -11,15 +9,11 @@ import com.ulticode.notification.api.dto.NotificationAdminViewDTO;
 import com.ulticode.notification.api.service.NotificationAdminReadPort;
 import com.ulticode.notification.api.service.NotificationAdministrationService;
 import com.ulticode.notification.api.service.NotificationServiceContract;
-import com.ulticode.common.auth.AdminActors;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.rpc.RpcPolicy;
 import com.ulticode.common.rpc.RpcResult;
-import com.ulticode.common.tracing.IdMetadata;
-import com.ulticode.common.tracing.TraceMetadata;
-import com.ulticode.common.util.TraceIdUtil;
 import com.ulticode.common.util.AuditContext;
 import com.ulticode.modules.admin.dto.AdminNotificationQueryDTO;
 import com.ulticode.modules.admin.dto.AdminNotificationVO;
@@ -27,16 +21,16 @@ import com.ulticode.modules.admin.dto.CreateSystemNotificationRequest;
 import com.ulticode.modules.admin.dto.UpdateSystemNotificationRequest;
 import com.ulticode.modules.admin.projection.AdminNotificationProjection;
 import com.ulticode.modules.admin.service.AdminNotificationService;
+import com.ulticode.modules.admin.write.AdminOwnerErrorMapper;
+import com.ulticode.modules.admin.write.AdminWriteEnvelope;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.stereotype.Service;
 
-import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.Map;
-import java.util.UUID;
 
 /**
  * Admin system-notification service &mdash; ADMIN-008.
@@ -86,14 +80,14 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
     @Override
     public AdminNotificationVO createSystemNotification(
             CreateSystemNotificationRequest request, String idempotencyKey) {
-        String actorId = safeActorId();
+        String actorId = currentUserProvider.getCurrentUserId();
         String category = request.getCategory() != null ? request.getCategory() : SYSTEM_CATEGORY;
-        IdMetadata idempotency = idempotency(idempotencyKey);
+        AdminWriteEnvelope envelope = AdminWriteEnvelope.envelope(
+                "create", idempotencyKey, actorId, currentUserProvider,
+                "admin notification create");
         RpcResult<NotificationAdminViewDTO> result = dubboProvider.createNotification(
                 new CreateNotificationCommand(
-                        commandId("create", idempotency), idempotency,
-                        new ActorDelegation(actorType(), actorId, actorId, "admin notification create"),
-                        trace(),
+                        envelope.commandId(), envelope.idempotency(), envelope.actor(), envelope.trace(),
                         actorId,
                         request.getTitle(),
                         request.getContent(),
@@ -101,8 +95,9 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
                         request.getCategory(),
                         request.getTarget(),
                         request.getUserIds()));
-        if (!result.success()) {
-            throw mapError(result);
+        if (result == null || !result.success()) {
+            throw AdminOwnerErrorMapper.mapOwnerError(
+                    AdminOwnerErrorMapper.Owner.NOTIFICATION, result);
         }
 
         NotificationAdminViewDTO dto = result.data();
@@ -140,15 +135,16 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
                     "type", existing.type() != null ? existing.type() : ""
             ));
         }
-        String actorId = safeActorId();
-        IdMetadata idempotency = idempotency(idempotencyKey);
+        String actorId = currentUserProvider.getCurrentUserId();
+        AdminWriteEnvelope envelope = AdminWriteEnvelope.envelope(
+                "delete", idempotencyKey, actorId, currentUserProvider,
+                "admin notification delete");
         RpcResult<Void> result = dubboProvider.deleteNotification(
                 new DeleteNotificationCommand(
-                        commandId("delete", idempotency), idempotency,
-                        new ActorDelegation(actorType(), actorId, actorId, "admin notification delete"),
-                        trace(), id));
-        if (!result.success()) {
-            throw mapError(result);
+                        envelope.commandId(), envelope.idempotency(), envelope.actor(), envelope.trace(), id));
+        if (result == null || !result.success()) {
+            throw AdminOwnerErrorMapper.mapOwnerError(
+                    AdminOwnerErrorMapper.Owner.NOTIFICATION, result);
         }
         log.info("Deleted system notification '{}' by admin {}", id, actorId);
     }
@@ -173,17 +169,18 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
             ));
         }
 
-        String actorId = safeActorId();
-        IdMetadata idempotency = idempotency(idempotencyKey);
+        String actorId = currentUserProvider.getCurrentUserId();
+        AdminWriteEnvelope envelope = AdminWriteEnvelope.envelope(
+                "update", idempotencyKey, actorId, currentUserProvider,
+                "admin notification update");
         RpcResult<NotificationAdminViewDTO> result = dubboProvider.updateNotification(
                 new UpdateNotificationCommand(
-                        commandId("update", idempotency), idempotency,
-                        new ActorDelegation(actorType(), actorId, actorId, "admin notification update"),
-                        trace(), id,
+                        envelope.commandId(), envelope.idempotency(), envelope.actor(), envelope.trace(), id,
                         request.getTitle(), request.getContent(),
                         request.getType(), request.getCategory()));
-        if (!result.success()) {
-            throw mapError(result);
+        if (result == null || !result.success()) {
+            throw AdminOwnerErrorMapper.mapOwnerError(
+                    AdminOwnerErrorMapper.Owner.NOTIFICATION, result);
         }
 
         AuditContext.setNewValues(Map.of(
@@ -223,9 +220,6 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
 
     // ── helpers ────────────────────────────────────────────────
 
-    private String actorType() {
-        return AdminActors.typeOf(currentUserProvider);
-    }
     /**
      * Re-fetch the full VO via the read port so the HTTP response shape
      * matches the legacy projection (content + creator enrichment).
@@ -246,58 +240,5 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
             return null;
         }
         return adminNotificationProjection.toAdminVO(row);
-    }
-    private static IdMetadata idempotency(String requestedKey) {
-        String key = requestedKey == null || requestedKey.isBlank()
-                ? UUID.randomUUID().toString()
-                : requestedKey.trim();
-        if (key.length() > 120) {
-            throw new BusinessException(
-                    AdminErrorCode.BAD_REQUEST, "Idempotency-Key must not exceed 120 characters");
-        }
-        return IdMetadata.of(key, null);
-    }
-
-    private static String commandId(String operation, IdMetadata idempotency) {
-        return UUID.nameUUIDFromBytes(
-                (operation + ":" + idempotency.idempotencyKey()).getBytes(StandardCharsets.UTF_8))
-                .toString();
-    }
-    private static TraceMetadata trace() {
-        return new TraceMetadata(TraceIdUtil.current(), null, null, null);
-    }
-
-    private String safeActorId() {
-        String actorId = currentUserProvider.getCurrentUserId();
-        if (actorId == null || actorId.isBlank()) {
-            throw new BusinessException(AdminErrorCode.UNAUTHORIZED, "Authenticated admin actor is required");
-        }
-        return actorId;
-    }
-
-    private static BusinessException mapError(RpcResult<?> result) {
-        var err = result.error();
-        if (err == null) {
-            return new BusinessException(AdminErrorCode.UNKNOWN_ERROR, "RPC failed without error payload");
-        }
-        int code = err.code();
-        if (code == AppErrorCode.BAD_REQUEST.code()) {
-            return new BusinessException(AdminErrorCode.BAD_REQUEST, err.message());
-        }
-        if (code == AppErrorCode.UNAUTHORIZED.code()) {
-            return new BusinessException(AdminErrorCode.UNAUTHORIZED, err.message());
-        }
-        if (code == AppErrorCode.FORBIDDEN.code()) {
-            return new BusinessException(AdminErrorCode.FORBIDDEN, err.message());
-        }
-        if (code == AppErrorCode.CONTENT_NOT_FOUND.code()) {
-            return new BusinessException(AdminErrorCode.NOT_FOUND, err.message());
-        }
-        if (code == AppErrorCode.VERSION_CONFLICT.code()
-                || code == AppErrorCode.CONTENT_STATE_CONFLICT.code()
-                || code == AppErrorCode.IDEMPOTENCY_KEY_CONFLICT.code()) {
-            return new BusinessException(AdminErrorCode.CONFLICT, err.message());
-        }
-        return new BusinessException(AdminErrorCode.UNKNOWN_ERROR, err.message());
     }
 }

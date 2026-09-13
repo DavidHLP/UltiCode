@@ -4,13 +4,12 @@ import * as echarts from "echarts";
 import type { ECharts } from "echarts";
 import { Clock, Microchip } from "lucide-vue-next";
 import { useI18n } from "vue-i18n";
+import { useChartPalette, type ChartPalette } from "@ulticode/design-system";
 import {
   buildDistributionChartOption,
-  DEFAULT_CHART_FALLBACKS,
   formatMemory,
   formatPercentile,
   formatRuntime,
-  readChartCssColors,
   renderAvatarMarkPointDataUrl,
   type DistributionChartPoint,
 } from "./submissionChartOptions";
@@ -46,7 +45,7 @@ let memoryChart: ECharts | null = null;
 
 let runtimeResizeObserver: ResizeObserver | null = null;
 let memoryResizeObserver: ResizeObserver | null = null;
-let themeObserver: MutationObserver | null = null;
+const chartPalette = useChartPalette();
 
 let renderGeneration = 0;
 
@@ -74,11 +73,11 @@ async function applyAvatarMarkPoint(
   paired: { count: number }[],
   avatarUrl: string,
   generation: number,
+  palette: ChartPalette,
 ) {
-  const colors = readChartCssColors(DEFAULT_CHART_FALLBACKS);
   let circularAvatar: string | null = null;
   try {
-    circularAvatar = await renderAvatarMarkPointDataUrl(avatarUrl, colors.accent);
+    circularAvatar = await renderAvatarMarkPointDataUrl(avatarUrl, palette.series1);
   } catch {
     return;
   }
@@ -118,6 +117,7 @@ function initRuntimeChart() {
       props.runtimeHighlightIndex,
       "ms",
       t,
+      chartPalette.value,
     ),
   );
   if (
@@ -132,6 +132,7 @@ function initRuntimeChart() {
       props.runtimePoints,
       props.avatarUrl,
       generation,
+      chartPalette.value,
     );
   }
 }
@@ -152,6 +153,7 @@ function initMemoryChart() {
       props.memoryHighlightIndex,
       "MB",
       t,
+      chartPalette.value,
     ),
   );
   if (
@@ -166,6 +168,7 @@ function initMemoryChart() {
       props.memoryPoints,
       props.avatarUrl,
       generation,
+      chartPalette.value,
     );
   }
 }
@@ -180,17 +183,6 @@ function selectChart(next: ActiveChart) {
 }
 
 onMounted(() => {
-  themeObserver = new MutationObserver(() => {
-    renderGeneration++;
-    void nextTick(() => {
-      initRuntimeChart();
-      initMemoryChart();
-    });
-  });
-  themeObserver.observe(document.documentElement, {
-    attributes: true,
-    attributeFilter: ["class", "data-theme"],
-  });
   void nextTick(() => {
     initRuntimeChart();
     initMemoryChart();
@@ -224,9 +216,15 @@ watch(activeChart, () => {
   });
 });
 
+watch(chartPalette, () => {
+  renderGeneration++;
+  void nextTick(() => {
+    initRuntimeChart();
+    initMemoryChart();
+  });
+});
+
 onBeforeUnmount(() => {
-  themeObserver?.disconnect();
-  themeObserver = null;
   renderGeneration++;
   if (runtimeResizeObserver) {
     runtimeResizeObserver.disconnect();

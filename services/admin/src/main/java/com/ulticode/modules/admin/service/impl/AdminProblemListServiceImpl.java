@@ -1,7 +1,6 @@
 package com.ulticode.modules.admin.service.impl;
 
 import com.ulticode.admin.error.AdminErrorCode;
-import com.ulticode.common.command.ActorDelegation;
 import com.ulticode.app.api.command.CreateProblemListCommand;
 import com.ulticode.app.api.command.DeleteProblemListCommand;
 import com.ulticode.app.api.command.ReplaceListProblemsCommand;
@@ -14,16 +13,12 @@ import com.ulticode.app.api.dto.ProblemListSummaryDTO;
 import com.ulticode.app.api.service.ProblemListAdministrationService;
 import com.ulticode.app.api.service.ProblemListChainReadPort;
 import com.ulticode.common.annotation.Audited;
-import com.ulticode.common.auth.AdminActors;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.rpc.RpcResult;
-import com.ulticode.common.tracing.IdMetadata;
-import com.ulticode.common.tracing.TraceMetadata;
 import com.ulticode.common.util.AuditContext;
-import com.ulticode.common.util.TraceIdUtil;
 import com.ulticode.modules.admin.dto.AdminProblemListQueryDTO;
 import com.ulticode.modules.admin.dto.CreateProblemListRequest;
 import com.ulticode.modules.admin.dto.UpdateBannerRequest;
@@ -33,16 +28,16 @@ import com.ulticode.modules.admin.dto.UpdateProblemsRequest;
 import com.ulticode.modules.admin.dto.UpdateVisibilityRequest;
 import com.ulticode.modules.admin.projection.AdminProblemListProjection;
 import com.ulticode.modules.admin.service.AdminProblemListService;
+import com.ulticode.modules.admin.write.AdminOwnerErrorMapper;
+import com.ulticode.modules.admin.write.AdminWriteEnvelope;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 /**
  * Implementation of {@link com.ulticode.modules.admin.service.AdminProblemListService}.
@@ -88,12 +83,12 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
 
     public ProblemListSummaryDTO createProblemList(
             CreateProblemListRequest dto, String authorId, String requestedKey) {
-        IdMetadata idempotency = idempotency(requestedKey);
+        AdminWriteEnvelope envelope = AdminWriteEnvelope.envelope(
+                "admin-problem-list:create", requestedKey, authorId, currentUserProvider,
+                "admin create problem list");
         RpcResult<ProblemListSummaryDTO> result = problemListAdministrationService.createProblemList(
                 new CreateProblemListCommand(
-                        commandId("create", idempotency), idempotency,
-                        new ActorDelegation(actorType(), authorId, authorId, "admin create problem list"),
-                        currentTrace(),
+                        envelope.commandId(), envelope.idempotency(), envelope.actor(), envelope.trace(),
                         dto.getName(), dto.getDescription(), dto.getIsPublic(),
                         dto.getBannerTag(), dto.getBannerIcon(), dto.getBannerTheme(), dto.getBannerOrder()));
         return requireSuccess(result);
@@ -114,12 +109,12 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
             AuditContext.setOldValues(oldSnapshot(old));
         }
 
-        IdMetadata idempotency = idempotency(requestedKey);
+        AdminWriteEnvelope envelope = AdminWriteEnvelope.envelope(
+                "admin-problem-list:update", requestedKey, userId, currentUserProvider,
+                "admin update problem list");
         RpcResult<ProblemListSummaryDTO> result = problemListAdministrationService.updateProblemList(
                 new UpdateProblemListCommand(
-                        commandId("update", idempotency), idempotency,
-                        new ActorDelegation(actorType(), userId, userId, "admin update problem list"),
-                        currentTrace(), id,
+                        envelope.commandId(), envelope.idempotency(), envelope.actor(), envelope.trace(), id,
                         dto.getName(), dto.getDescription(), dto.getIsPublic(), dto.getIsFeatured(),
                         dto.getBannerTag(), dto.getBannerIcon(), dto.getBannerTheme(), dto.getBannerOrder()));
         ProblemListSummaryDTO vo = requireSuccess(result);
@@ -140,12 +135,12 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
             AuditContext.setOldValues(deleteSnapshot(old));
         }
 
-        IdMetadata idempotency = idempotency(requestedKey);
+        AdminWriteEnvelope envelope = AdminWriteEnvelope.envelope(
+                "admin-problem-list:delete", requestedKey, userId, currentUserProvider,
+                "admin delete problem list");
         RpcResult<Void> result = problemListAdministrationService.deleteProblemList(
                 new DeleteProblemListCommand(
-                        commandId("delete", idempotency), idempotency,
-                        new ActorDelegation(actorType(), userId, userId, "admin delete problem list"),
-                        currentTrace(), id));
+                        envelope.commandId(), envelope.idempotency(), envelope.actor(), envelope.trace(), id));
         requireSuccess(result);
     }
 
@@ -170,12 +165,13 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
             }
             entries.add(new ReplaceListProblemsCommand.ProblemEntry(entry.getProblemId(), entry.getSortOrder()));
         }
-        IdMetadata idempotency = idempotency(requestedKey);
+        AdminWriteEnvelope envelope = AdminWriteEnvelope.envelope(
+                "admin-problem-list:replace-problems", requestedKey, userId, currentUserProvider,
+                "admin replace list problems");
         RpcResult<Void> result = problemListAdministrationService.replaceListProblems(
                 new ReplaceListProblemsCommand(
-                        commandId("replace-problems", idempotency), idempotency,
-                        new ActorDelegation(actorType(), userId, userId, "admin replace list problems"),
-                        currentTrace(), id, entries));
+                        envelope.commandId(), envelope.idempotency(), envelope.actor(), envelope.trace(),
+                        id, entries));
         requireSuccess(result);
         AuditContext.setNewValues(Map.of("updatedProblems", dto.getProblems().size()));
     }
@@ -198,12 +194,13 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
             AuditContext.setOldValues(oldValues);
         }
 
-        IdMetadata idempotency = idempotency(requestedKey);
+        AdminWriteEnvelope envelope = AdminWriteEnvelope.envelope(
+                "admin-problem-list:basic-info", requestedKey, userId, currentUserProvider,
+                "admin update basic info");
         RpcResult<ProblemListSummaryDTO> result = problemListAdministrationService.updateBasicInfo(
                 new UpdateBasicInfoCommand(
-                        commandId("basic-info", idempotency), idempotency,
-                        new ActorDelegation(actorType(), userId, userId, "admin update basic info"),
-                        currentTrace(), id, dto.getName(), dto.getDescription()));
+                        envelope.commandId(), envelope.idempotency(), envelope.actor(), envelope.trace(),
+                        id, dto.getName(), dto.getDescription()));
         ProblemListSummaryDTO vo = requireSuccess(result);
 
         Map<String, Object> newValues = new HashMap<>();
@@ -231,12 +228,13 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
             AuditContext.setOldValues(oldValues);
         }
 
-        IdMetadata idempotency = idempotency(requestedKey);
+        AdminWriteEnvelope envelope = AdminWriteEnvelope.envelope(
+                "admin-problem-list:visibility", requestedKey, userId, currentUserProvider,
+                "admin update visibility");
         RpcResult<ProblemListSummaryDTO> result = problemListAdministrationService.updateVisibility(
                 new UpdateVisibilityCommand(
-                        commandId("visibility", idempotency), idempotency,
-                        new ActorDelegation(actorType(), userId, userId, "admin update visibility"),
-                        currentTrace(), id, dto.getIsPublic(), dto.getIsFeatured()));
+                        envelope.commandId(), envelope.idempotency(), envelope.actor(), envelope.trace(),
+                        id, dto.getIsPublic(), dto.getIsFeatured()));
         ProblemListSummaryDTO vo = requireSuccess(result);
 
         Map<String, Object> newValues = new HashMap<>();
@@ -266,12 +264,12 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
             AuditContext.setOldValues(oldValues);
         }
 
-        IdMetadata idempotency = idempotency(requestedKey);
+        AdminWriteEnvelope envelope = AdminWriteEnvelope.envelope(
+                "admin-problem-list:banner", requestedKey, userId, currentUserProvider,
+                "admin update banner");
         RpcResult<ProblemListSummaryDTO> result = problemListAdministrationService.updateBanner(
                 new UpdateBannerCommand(
-                        commandId("banner", idempotency), idempotency,
-                        new ActorDelegation(actorType(), userId, userId, "admin update banner"),
-                        currentTrace(), id,
+                        envelope.commandId(), envelope.idempotency(), envelope.actor(), envelope.trace(), id,
                         dto.getBannerTag(), dto.getBannerIcon(), dto.getBannerTheme(), dto.getBannerOrder()));
         ProblemListSummaryDTO vo = requireSuccess(result);
 
@@ -285,21 +283,6 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
     }
 
     // ── helpers ────────────────────────────────────────────────
-
-    /**
-     * Propagate the current request trace id onto every write command,
-     * mirroring {@code UserManagementServiceImpl.currentTrace()} /
-     * {@code AdminUserProfileAdapter.trace()}: use the request-scoped
-     * {@code TraceIdUtil.current()} value, falling back to a fresh
-     * {@code t-<uuid>} so the RPC envelope never carries a null traceId.
-     */
-    private static TraceMetadata currentTrace() {
-        String reqId = TraceIdUtil.current();
-        if (reqId == null || reqId.isBlank()) {
-            reqId = "t-" + UUID.randomUUID();
-        }
-        return new TraceMetadata(reqId, null, null, null);
-    }
 
     /**
      * Load the pre-state summary via the remote chain read; maps a
@@ -328,55 +311,11 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
     }
 
     private static <T> T requireSuccess(RpcResult<T> result) {
-        if (result.success()) {
+        if (result != null && result.success()) {
             return result.data();
         }
-        var err = result.error();
-        if (err == null) {
-            throw new BusinessException(AdminErrorCode.UNKNOWN_ERROR, "RPC failed without error payload");
-        }
-        if (err.code() == 40401) {
-            throw new BusinessException(AdminErrorCode.PROBLEM_LIST_NOT_FOUND, err.message());
-        }
-        if (err.code() == 30001) {
-            throw new BusinessException(AdminErrorCode.PROBLEM_NOT_FOUND, err.message());
-        }
-        if (err.code() == 90004) {
-            throw new BusinessException(AdminErrorCode.PROBLEM_LIST_PROBLEM_DUPLICATE, err.message());
-        }
-        if (err.code() == 40300) {
-            throw new BusinessException(AdminErrorCode.FORBIDDEN, err.message());
-        }
-        if (err.code() == 40901 || err.code() == 40902 || err.code() == 40903) {
-            throw new BusinessException(AdminErrorCode.CONFLICT, err.message());
-        }
-        if (err.code() == 40000 || err.code() == 49999) {
-            throw new BusinessException(AdminErrorCode.VALIDATION_FAILED, err.message());
-        }
-        throw new BusinessException(AdminErrorCode.UNKNOWN_ERROR, err.message());
-    }
-
-
-    private String actorType() {
-        return AdminActors.typeOf(currentUserProvider);
-    }
-    private static IdMetadata idempotency(String requestedKey) {
-        if (requestedKey == null || requestedKey.isBlank()) {
-            return IdMetadata.mint();
-        }
-        String key = requestedKey.trim();
-        if (key.length() > 120) {
-            throw new BusinessException(AdminErrorCode.VALIDATION_FAILED,
-                    "Idempotency-Key must not exceed 120 characters");
-        }
-        return IdMetadata.of(key, null);
-    }
-
-    private static String commandId(String operation, IdMetadata idempotency) {
-        return UUID.nameUUIDFromBytes(
-                ("admin-problem-list:" + operation + ":" + idempotency.idempotencyKey())
-                        .getBytes(StandardCharsets.UTF_8))
-                .toString();
+        throw AdminOwnerErrorMapper.mapOwnerError(
+                AdminOwnerErrorMapper.Owner.PROBLEM_LIST, result);
     }
 
     private static Map<String, Object> oldSnapshot(ProblemListSummaryDTO list) {

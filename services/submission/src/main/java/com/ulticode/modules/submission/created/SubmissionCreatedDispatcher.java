@@ -1,11 +1,9 @@
 package com.ulticode.modules.submission.created;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.ulticode.common.outbox.OutboxDispatcher;
 import com.ulticode.submission.api.event.SubmissionLifecycleEventContract;
-import com.ulticode.common.lifecycle.DrainGate;
 import com.ulticode.modules.submission.result.ResultEventPublisher;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.context.event.EventListener;
@@ -14,68 +12,84 @@ import org.springframework.stereotype.Component;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 /** Publishes SubmissionCreated rows to the shared integration stream. */
-@Slf4j
 @Component
-@RequiredArgsConstructor
 public class SubmissionCreatedDispatcher {
 
-    private static final int BATCH_SIZE = 50;
-    private static final int MAX_ATTEMPTS = 5;
-
-    private final String claimOwner = "submission-created-" + UUID.randomUUID();
     private final SubmissionCreatedOutboxMapper outboxMapper;
     private final ResultEventPublisher eventPublisher;
-    private final DrainGate drainGate = new DrainGate();
+    private final OutboxDispatcher<SubmissionCreatedOutboxRecord> dispatcher;
+
+    public SubmissionCreatedDispatcher(
+            SubmissionCreatedOutboxMapper outboxMapper,
+            ResultEventPublisher eventPublisher) {
+        this.outboxMapper = outboxMapper;
+        this.eventPublisher = eventPublisher;
+        this.dispatcher = new OutboxDispatcher<>(
+                "submission-created",
+                new OutboxDispatcher.Adapter<>() {
+                    @Override
+                    public void reclaimStaleClaimed() {
+                        SubmissionCreatedDispatcher.this.outboxMapper.reclaimStaleClaimed();
+                    }
+
+                    @Override
+                    public int claimPending(String claimOwner, int limit) {
+                        return SubmissionCreatedDispatcher.this.outboxMapper.claimPending(claimOwner, limit);
+                    }
+
+                    @Override
+                    public List<SubmissionCreatedOutboxRecord> selectClaimed(String claimOwner) {
+                        return SubmissionCreatedDispatcher.this.outboxMapper.selectList(
+                                new LambdaQueryWrapper<SubmissionCreatedOutboxRecord>()
+                                        .eq(SubmissionCreatedOutboxRecord::getState, "CLAIMED")
+                                        .eq(SubmissionCreatedOutboxRecord::getClaimOwner, claimOwner)
+                                        .orderByAsc(SubmissionCreatedOutboxRecord::getCreatedAt));
+                    }
+
+                    @Override
+                    public String publish(SubmissionCreatedOutboxRecord record) {
+                        SubmissionCreatedDispatcher.this.publish(record);
+                        return null;
+                    }
+
+                    @Override
+                    public int markDelivered(
+                            SubmissionCreatedOutboxRecord record,
+                            String claimOwner,
+                            String publicationId) {
+                        return SubmissionCreatedDispatcher.this.outboxMapper.markDelivered(
+                                record.getId(), claimOwner);
+                    }
+
+                    @Override
+                    public int markFailed(
+                            SubmissionCreatedOutboxRecord record,
+                            String claimOwner,
+                            String error,
+                            int maxAttempts) {
+                        return SubmissionCreatedDispatcher.this.outboxMapper.markFailed(
+                                record.getId(), claimOwner, error, maxAttempts);
+                    }
+
+                    @Override
+                    public String recordId(SubmissionCreatedOutboxRecord record) {
+                        return record.getId();
+                    }
+                });
+    }
 
     @Scheduled(scheduler = "submissionCreatedOutboxScheduler",
                fixedDelayString = "${created.outbox.dispatcher.interval-ms:3000}",
                initialDelayString = "5000")
     public int dispatch() {
-        if (!drainGate.tryEnter()) {
-            return 0;
-        }
-        try {
-            return dispatchClaimedBatch();
-        } finally {
-            drainGate.leave();
-        }
-    }
-
-    private int dispatchClaimedBatch() {
-        outboxMapper.reclaimStaleClaimed();
-        int claimed = outboxMapper.claimPending(claimOwner, BATCH_SIZE);
-        if (claimed == 0) {
-            return 0;
-        }
-
-        List<SubmissionCreatedOutboxRecord> records = outboxMapper.selectList(
-                new LambdaQueryWrapper<SubmissionCreatedOutboxRecord>()
-                        .eq(SubmissionCreatedOutboxRecord::getState, "CLAIMED")
-                        .eq(SubmissionCreatedOutboxRecord::getClaimOwner, claimOwner)
-                        .orderByAsc(SubmissionCreatedOutboxRecord::getCreatedAt));
-        int published = 0;
-        for (SubmissionCreatedOutboxRecord record : records) {
-            try {
-                publish(record);
-                if (outboxMapper.markDelivered(record.getId(), claimOwner) > 0) {
-                    published++;
-                }
-            } catch (Exception e) {
-                log.error("Failed to dispatch created outbox {}: {}",
-                        record.getId(), e.getMessage(), e);
-                outboxMapper.markFailed(record.getId(), claimOwner,
-                        truncate(e.getMessage(), 500), MAX_ATTEMPTS);
-            }
-        }
-        return published;
+        return dispatcher.dispatch();
     }
 
     @EventListener
     public void onContextClosed(ContextClosedEvent ignored) {
-        drainGate.beginDrain();
+        dispatcher.beginDrain();
     }
 
     private void publish(SubmissionCreatedOutboxRecord record) {
@@ -96,12 +110,5 @@ public class SubmissionCreatedDispatcher {
                 record.getId(), SubmissionLifecycleEventContract.OWNER,
                 SubmissionLifecycleEventContract.CREATED_EVENT_TYPE,
                 record.getSubmissionId(), generation, payload);
-    }
-
-    private static String truncate(String value, int maxLength) {
-        if (value == null) {
-            return null;
-        }
-        return value.length() <= maxLength ? value : value.substring(0, maxLength);
     }
 }

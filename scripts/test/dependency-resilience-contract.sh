@@ -6,11 +6,9 @@ set -euo pipefail
 # automatic retry.
 
 ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
-
-fail() {
-  echo "dependency-resilience-contract: FAIL: $*" >&2
-  exit 1
-}
+CONTRACT_FAILURE_PREFIX="dependency-resilience-contract: FAIL"
+# shellcheck source=scripts/test/lib/contract-harness.sh
+source "$ROOT_DIR/scripts/test/lib/contract-harness.sh"
 
 # shellcheck source=scripts/test/lib/assertions.sh
 source "$ROOT_DIR/scripts/test/lib/assertions.sh"

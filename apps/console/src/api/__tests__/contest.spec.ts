@@ -1,11 +1,22 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { apiPost } from "@/utils/request";
-import { finishVirtualContest } from "@/api/contest";
+import { apiGet, apiPost } from "@/utils/request";
+import { fetchUserContests, finishVirtualContest } from "@/api/contest";
 
 vi.mock("@/utils/request", () => ({
   apiPost: vi.fn(),
   apiGet: vi.fn(),
 }));
+
+const contest = {
+  id: "contest-1",
+  slug: "contest-1",
+  title: "Contest 1",
+  status: "UPCOMING",
+  startTime: "2026-09-12T09:00:00Z",
+  duration: 60,
+  contestType: "ICPC",
+  scoringMode: "ICPC",
+};
 
 describe("finishVirtualContest (R10.1 / F-51)", () => {
   beforeEach(() => {
@@ -47,5 +58,44 @@ describe("finishVirtualContest (R10.1 / F-51)", () => {
     vi.mocked(apiPost).mockRejectedValue(networkError);
 
     await expect(finishVirtualContest("c1", "s1")).rejects.toBe(networkError);
+  });
+});
+
+describe("fetchUserContests (C10)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("normalizes a paginated object envelope to PageResult", async () => {
+    vi.mocked(apiGet).mockResolvedValueOnce({
+      items: [contest],
+      total: 3,
+      page: 2,
+      pageSize: 1,
+      totalPages: 3,
+    });
+
+    const result = await fetchUserContests("registered");
+
+    expect(result.items[0]?.id).toBe("contest-1");
+    expect(result.total).toBe(3);
+    expect(result.page).toBe(2);
+    expect(result.pageSize).toBe(1);
+    expect(result.totalPages).toBe(3);
+    expect(apiGet).toHaveBeenCalledWith("/contest/user/my-contests", {
+      params: { type: "registered" },
+    });
+  });
+
+  it("wraps legacy arrays, including an empty page", async () => {
+    vi.mocked(apiGet).mockResolvedValueOnce([]);
+
+    await expect(fetchUserContests("virtual")).resolves.toEqual({
+      items: [],
+      total: 0,
+      page: 1,
+      pageSize: 0,
+      totalPages: 0,
+    });
   });
 });

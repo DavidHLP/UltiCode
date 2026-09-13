@@ -14,7 +14,7 @@ import {
   formatWeekdayShortDate as _formatWeekdayShortDate,
   formatPenaltyTime,
   getDurationMinutes,
-} from "@/shared/datetime-utils/src";
+} from "@ulticode/datetime-utils";
 import { getActiveLocale } from "@/i18n/utils/locale";
 
 export function formatDate(

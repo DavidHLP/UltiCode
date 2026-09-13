@@ -11,6 +11,7 @@ import com.ulticode.submission.api.dto.CreateSubmissionDTO;
 import com.ulticode.modules.submission.controller.RunResultDTO;
 import com.ulticode.modules.submission.controller.RunSubmissionDTO;
 import com.ulticode.modules.submission.port.InteractiveCodeRunner;
+import com.ulticode.modules.submission.port.SubmissionFactsCapture;
 import com.ulticode.submission.api.dto.SubmissionListItemVO;
 import com.ulticode.submission.api.dto.SubmissionQueryDTO;
 import com.ulticode.submission.api.dto.SubmissionVO;
@@ -36,6 +37,7 @@ public class ProblemSubmissionController {
 
     private final SubmissionUserQueryPort submissionUserQuery;
     private final SubmissionIntakePort submissionWritePort;
+    private final SubmissionFactsCapture submissionFactsCapture;
     private final InteractiveCodeRunner codeExecutionPort;
     private final Validator validator;
     private final CurrentUserProvider currentUserProvider;
@@ -131,7 +133,8 @@ public class ProblemSubmissionController {
             throw new BusinessException(BaseErrorCode.BAD_REQUEST, message);
         }
 
-        SubmissionVO submission = submissionWritePort.submit(userId, createDTO);
+        SubmissionVO submission = submissionWritePort.submit(
+                userId, createDTO, submissionFactsCapture.capture(userId, createDTO));
         return Result.success(submission);
     }
 

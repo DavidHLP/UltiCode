@@ -6,7 +6,7 @@ import { twMerge } from 'tailwind-merge'
  *
  * Vendored locally like `packages/auth-ui` and `packages/design-system`:
  * `@ulticode/auth-core` is a runtime auth module and must not be imported by
- * visual packages (the former `@/shared/auth-core/src/utils` re-export never
+* visual packages (the former direct shared-source re-export never
  * resolved in this package's standalone tsconfig).
  */
 export function cn(...inputs: ClassValue[]): string {

@@ -18,10 +18,9 @@ for service in backend-auth backend-admin backend-app backend-submission backend
   valid_refs="$valid_refs$variable=ghcr.io/example/ulticode/$service@sha256:$valid_digest"$'\n'
 done
 
-fail() {
-  echo "deployment-integrity-contract: FAIL: $*" >&2
-  exit 1
-}
+CONTRACT_FAILURE_PREFIX="deployment-integrity-contract: FAIL"
+# shellcheck source=scripts/test/lib/contract-harness.sh
+source "$ROOT_DIR/scripts/test/lib/contract-harness.sh"
 
 # SVC-005: every backend image in the release matrix must remain selectable
 # by both manual deploy and rollback entry points.
@@ -225,31 +224,14 @@ grep -Fq 'deployment-integrity.sh mark-health' "$HOST_HEALTH" \
   || fail "host-health does not persist descriptor health"
 printf 'host-health system summary and descriptor wiring: PASS\n'
 
-for contract in \
-  owner-backup-restore-contract.sh \
-  redis-acl-rotation-contract.sh \
-  scheduler-contract.sh \
-  fenced-lease-contract.sh \
-  graceful-drain-contract.sh \
-  dependency-resilience-contract.sh \
-  stream-resilience-contract.sh \
-  scale-topology-contract.sh \
-  dubbo-mtls-contract.sh \
-  network-reachability-contract.sh \
-  judge-sandbox-contract.sh \
-  tls-profile-contract.sh \
-  owner-migration-manifest-contract.sh; do
-  grep -Fq "$contract" "$ROOT_DIR/.github/workflows/_backend.yml" \
-    || fail "backend workflow omits $contract"
-done
-for contract in \
-  supply-chain-contract.sh \
-  deployment-integrity-contract.sh \
-  dubbo-mtls-contract.sh \
-  network-reachability-contract.sh \
-  judge-sandbox-contract.sh; do
-  grep -Fq "$contract" "$ROOT_DIR/.github/workflows/_docker.yml" \
-    || fail "docker workflow omits $contract"
-done
+grep -Fq 'bash scripts/dev/architecture-contract-test.sh --list-qualified dynamic' \
+  "$ROOT_DIR/.github/workflows/_backend.yml" \
+  || fail 'backend workflow does not execute registry-qualified dynamic contracts'
+grep -Fq 'run: bash scripts/dev/architecture-contract-test.sh' \
+  "$ROOT_DIR/.github/workflows/_docker.yml" \
+  || fail 'docker workflow does not execute the architecture registry'
+grep -Fq 'run: bash scripts/dev/architecture-contract-test.sh' \
+  "$ROOT_DIR/.github/workflows/_contract.yml" \
+  || fail 'contract workflow does not execute the architecture registry'
 
 printf 'deployment-integrity-contract: PASS\n'

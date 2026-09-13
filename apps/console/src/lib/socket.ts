@@ -1,5 +1,5 @@
 import type { IMessage } from "@stomp/stompjs";
-import { getCsrfToken } from "@/shared/auth-core/src";
+import { getCsrfToken } from "@ulticode/auth-core";
 import {
   createRealtimeTransport,
   type ConnectionStatus,

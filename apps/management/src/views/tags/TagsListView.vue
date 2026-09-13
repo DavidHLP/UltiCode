@@ -24,7 +24,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useTagsStore } from '@/stores/admin/tags'
-import { useAuthStore } from '@/stores/auth'
 import { TagType, type Tag } from '@/api/admin/tags'
 
 import DataTable from '@/components/table/DataTable.vue'
@@ -33,10 +32,11 @@ import TagEditDialog from './TagEditDialog.vue'
 import TagMergeDialog from './TagMergeDialog.vue'
 import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
 import { useDataTable } from '@/composables/useDataTable'
+import { useTagPermissions } from '@/composables/useTagPermissions'
 
 const { t } = useI18n()
 const tagsStore = useTagsStore()
-const authStore = useAuthStore()
+const { can } = useTagPermissions()
 
 const tagTypeFilter = ref<TagType>(TagType.PROBLEM)
 
@@ -67,11 +67,7 @@ const toolbarFilters = computed<Filter[]>(() => [
   },
 ])
 
-const canManageTags = computed(
-  () =>
-    authStore.hasPermission('MANAGE_USERS', 'SYSTEM') ||
-    authStore.hasPermission('UPDATE', 'PROBLEM'),
-)
+const canManageTags = can.tag.manage
 
 const {
   searchQuery,
@@ -83,13 +79,7 @@ const {
   error,
   loadEntities: loadTags,
 } = useDataTable<Tag, { tagType: TagType }, Parameters<typeof tagsStore.fetchTags>[0]>({
-  store: {
-    data: computed(() => tagsStore.tags),
-    total: computed(() => tagsStore.total),
-    isLoading: computed(() => tagsStore.isLoading),
-    error: computed(() => tagsStore.error),
-    fetch: (params) => tagsStore.fetchTags(params),
-  },
+  store: tagsStore,
   filters: () => ({
     tagType: tagTypeFilter.value,
   }),

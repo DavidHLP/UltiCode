@@ -2,11 +2,9 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-
-fail() {
-  echo "core-profile-contract: FAIL: $*" >&2
-  exit 1
-}
+CONTRACT_FAILURE_PREFIX="core-profile-contract: FAIL"
+# shellcheck source=scripts/test/lib/contract-harness.sh
+source "$ROOT_DIR/scripts/test/lib/contract-harness.sh"
 
 # shellcheck source=scripts/test/lib/assertions.sh
 source "$ROOT_DIR/scripts/test/lib/assertions.sh"

@@ -27,8 +27,6 @@ jobs:
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           fetch-depth: 0
-      - name: Validate API contract ownership boundary
-        run: bash scripts/test/api-contract-boundary-contract.sh
 
       - name: Determine baseline ref
         id: baseline
@@ -146,6 +144,12 @@ jobs:
           ./mvnw -pl "$(IFS=,; echo "${baseline_projects[*]}")" -am \
             -Drevision="${baseline_revision}" -DskipTests install -B
 
+      - name: Run registry-derived static architecture contracts
+        env:
+          ULTI_STATIC_ONLY: '1'
+          ARCHITECTURE_BREAKING_RELEASE: ${{ steps.baseline_contracts.outputs.breaking_release }}
+        run: bash scripts/dev/architecture-contract-test.sh
+
       - name: Record skipped contract compatibility comparison
         if: ${{ steps.baseline_contracts.outputs.has_standalone_contracts != 'true' || steps.baseline_contracts.outputs.breaking_release == 'true' }}
         run: |
@@ -164,10 +168,6 @@ jobs:
           ./mvnw -Drevision=${{ steps.current.outputs.ci_revision }} \
             -pl api/auth-api,api/app-api,api/submission-api,api/notification-api \
             -am -DskipTests package -B
-
-      - name: Validate intentional major contract retirement
-        if: ${{ steps.baseline_contracts.outputs.breaking_release == 'true' }}
-        run: bash scripts/test/submission-compatibility-retirement-contract.sh
 
       - name: Run japicmp contract compat check
         if: ${{ steps.baseline_contracts.outputs.has_standalone_contracts == 'true' && steps.baseline_contracts.outputs.breaking_release != 'true' }}

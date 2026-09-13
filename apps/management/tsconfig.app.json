@@ -33,9 +33,6 @@
       "@/lib/utils": [
         "../../packages/auth-core/src/utils"
       ],
-      "@/shared/*": [
-        "../../packages/*"
-      ],
       "vue": [
         "./node_modules/vue"
       ],

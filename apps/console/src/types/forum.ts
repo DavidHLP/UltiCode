@@ -1,4 +1,4 @@
-import type { PageResult } from '@/shared/domain-types/src'
+import type { PageResult } from '@ulticode/domain-types'
 export type { PageResult }
 
 export interface ForumUser {
@@ -220,4 +220,3 @@ export interface ForumThread extends ForumPost {
   comments: ForumComment[];
   body?: string;
 }
-

@@ -7,7 +7,6 @@ import { IconPlus, IconTrash, IconTrophy } from '@tabler/icons-vue'
 import { Button } from '@/components/ui/button'
 
 import { useContestsStore } from '@/stores/admin/contests'
-import { useAuthStore } from '@/stores/auth'
 import type { Contest, ContestType } from '@/api/admin/contests'
 
 import DataTable from '@/components/table/DataTable.vue'
@@ -17,9 +16,10 @@ import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
 import ContestDetailDrawer from './ContestDetailDrawer.vue'
 import { createColumns } from './columns'
 import { useDataTable } from '@/composables/useDataTable'
+import { useContestPermissions } from '@/composables/useContestPermissions'
 
 const contestsStore = useContestsStore()
-const authStore = useAuthStore()
+const { can } = useContestPermissions()
 const { t } = useI18n()
 
 const searchQuery = ref('')
@@ -44,13 +44,12 @@ onMounted(() => {
   }, 100)
 })
 
-const canCreate = computed(() => authStore.hasPermission('CREATE', 'CONTEST'))
-const canUpdate = computed(() => authStore.hasPermission('UPDATE', 'CONTEST'))
-const canDelete = computed(() => authStore.hasPermission('DELETE', 'CONTEST'))
+const canCreate = can.contest.create
+const canDelete = can.contest.delete
 
 // Stats for terminal ticker
 const stats = computed(() => {
-  const contests = contestsStore.contests
+  const contests = contestsStore.items
   const total = contestsStore.total
   const running = contests.filter((c) => c.status === 'RUNNING').length
   const upcoming = contests.filter((c) => c.status === 'UPCOMING').length
@@ -95,13 +94,7 @@ const {
   { statusFilter: string; typeFilter: string },
   Parameters<typeof contestsStore.fetchContests>[0]
 >({
-  store: {
-    data: computed(() => contestsStore.contests),
-    total: computed(() => contestsStore.total),
-    isLoading: computed(() => contestsStore.loading),
-    error: computed(() => contestsStore.error),
-    fetch: (params) => contestsStore.fetchContests(params),
-  },
+  store: contestsStore,
   filters: () => ({
     statusFilter: statusFilter.value,
     typeFilter: typeFilter.value,
@@ -148,8 +141,7 @@ const columns = createColumns(
       deleteDialogOpen.value = true
     },
   },
-  () => canUpdate.value,
-  () => canDelete.value,
+  can.contest,
 )
 
 async function handleBulkDelete() {

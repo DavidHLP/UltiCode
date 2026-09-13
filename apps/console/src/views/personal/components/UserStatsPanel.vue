@@ -27,7 +27,7 @@ import SubmissionHistoryChart from "./SubmissionHistoryChart.vue";
 import LearningProgressChart from "./LearningProgressChart.vue";
 import type { UserStats, UserSkill } from "@/types/userStats";
 import type { SubmissionRecord } from "@/types/submission";
-import { getStatusLabelI18nKey } from "@/shared/submission-status/src";
+import { getStatusLabelI18nKey } from "@ulticode/submission-status";
 
 const props = defineProps<{
   statsData: UserStats | null;

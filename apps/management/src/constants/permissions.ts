@@ -2,7 +2,7 @@
  * Permission Constants (Management Frontend)
  *
  * Structured `{ action, resource }` form derived from the single source of
- * truth in `@/shared/auth-core/src/permission.ts` (`Permissions`). This file
+ * truth in `@ulticode/auth-core` (`Permissions`). This file
  * exists only because management's route meta / composable APIs consume the
  * object shape; the canonical string keys live in the shared package so the
  * two frontends cannot drift.
@@ -16,7 +16,7 @@
  *   PERM.USER_READ.resource // 'USER'
  */
 
-import { Permissions, type PermissionKey } from '@/shared/auth-core/src/permission'
+import { Permissions, type PermissionKey } from '@ulticode/auth-core'
 
 /**
  * Split a canonical `'ACTION:RESOURCE'` string into the structured form.

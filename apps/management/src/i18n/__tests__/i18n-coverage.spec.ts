@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { join } from 'path'
 import zhCN from '../locales/zh-CN'
-import { flattenObject, runI18nCheck } from '@/shared/i18n-completeness/src'
+import { flattenObject, runI18nCheck } from '@ulticode/i18n-completeness'
 
 type TranslationObject = Record<string, unknown>
 

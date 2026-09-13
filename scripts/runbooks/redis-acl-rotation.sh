@@ -108,6 +108,8 @@ acquire_lock() {
 
 render_phase() {
   local phase="$1" output_file="$2" primary_var next_var previous_var current_value next_value
+  local REDIS_ACL_DIR="$ACL_DIR" REDIS_ACL_FILE="$output_file"
+  export REDIS_ACL_DIR REDIS_ACL_FILE
   for primary_var in "${PASSWORD_VARS[@]}"; do
     next_var="${primary_var}_NEXT"
     previous_var="${primary_var}_PREVIOUS"
@@ -134,7 +136,7 @@ render_phase() {
       *) die "unknown ACL render phase: $phase" ;;
     esac
   done
-  REDIS_ACL_FILE="$output_file" "$ROOT_DIR/docker/redis/generate-users-acl.sh" "$output_file"
+  materialize_redis_acl "$ACL_DIR"
 }
 
 reload_redis_acl() {

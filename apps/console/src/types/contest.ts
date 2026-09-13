@@ -1,4 +1,4 @@
-import type { PageResult } from '@/shared/domain-types/src'
+import type { PageResult } from '@ulticode/domain-types'
 
 // ============================================================================
 // ENUMS — Aligned with backend ContestQueryDTO/ContestVO

@@ -6,10 +6,9 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
-fail() {
-  echo "stream-resilience-contract: FAIL: $*" >&2
-  exit 1
-}
+CONTRACT_FAILURE_PREFIX="stream-resilience-contract: FAIL"
+# shellcheck source=scripts/test/lib/contract-harness.sh
+source "$ROOT_DIR/scripts/test/lib/contract-harness.sh"
 
 # shellcheck source=scripts/test/lib/assertions.sh
 source "$ROOT_DIR/scripts/test/lib/assertions.sh"
@@ -17,7 +16,7 @@ source "$ROOT_DIR/scripts/test/lib/assertions.sh"
 for source in \
   services/platform/integration-inbox/src/main/java/com/ulticode/modules/event/inbox/InboxConsumer.java \
   services/platform/integration-inbox/src/main/java/com/ulticode/modules/event/inbox/ConsumerInboxMapper.java \
-  services/app/app-web/src/main/java/com/ulticode/modules/event/inbox/SubmissionJudgedInboxBridge.java \
+  services/platform/integration-inbox/src/main/java/com/ulticode/modules/event/inbox/RedisStreamInboxBridge.java \
   services/notification/src/main/java/com/ulticode/notification/inbox/NotificationIntegrationInboxBridge.java \
   services/search/src/main/java/com/ulticode/search/SearchDocumentIndexWorker.java \
   services/judge-runtime/src/main/java/com/ulticode/modules/queue/port/adapter/RedissonStreamsJudgeQueueAdapter.java \
@@ -31,11 +30,10 @@ contains services/platform/integration-inbox/src/main/java/com/ulticode/modules/
 contains services/platform/integration-inbox/src/main/java/com/ulticode/modules/event/inbox/ConsumerInboxMapper.java "state = 'PROCESSING'"
 contains services/platform/integration-inbox/src/main/java/com/ulticode/modules/event/inbox/ConsumerInboxMapper.java 'POWER(2'
 contains services/platform/integration-inbox/src/main/java/com/ulticode/modules/event/inbox/ConsumerInboxMapper.java "THEN 'DEAD'"
-contains services/app/app-web/src/main/java/com/ulticode/modules/event/inbox/SubmissionJudgedInboxBridge.java 'ReadOffset.from("0-0")'
-contains services/app/app-web/src/main/java/com/ulticode/modules/event/inbox/SubmissionJudgedInboxBridge.java 'ReadOffset.lastConsumed()'
+contains services/platform/integration-inbox/src/main/java/com/ulticode/modules/event/inbox/RedisStreamInboxBridge.java 'ReadOffset.from("0-0")'
+contains services/platform/integration-inbox/src/main/java/com/ulticode/modules/event/inbox/RedisStreamInboxBridge.java 'ReadOffset.lastConsumed()'
 contains services/app/app-web/src/main/java/com/ulticode/modules/event/inbox/SubmissionJudgedInboxBridge.java 'IntegrationEventPoison'
-contains services/app/app-web/src/main/java/com/ulticode/modules/event/inbox/SubmissionJudgedInboxBridge.java 'IntegrationEventEnvelopeContract.requireCompatibleEnvelope'
-contains services/notification/src/main/java/com/ulticode/notification/inbox/NotificationIntegrationInboxBridge.java 'IntegrationEventEnvelopeContract.requireCompatibleEnvelope'
+contains services/platform/integration-inbox/src/main/java/com/ulticode/modules/event/inbox/RedisStreamInboxBridge.java 'IntegrationEventEnvelopeContract.requireCompatibleEnvelope'
 contains services/search/src/main/java/com/ulticode/search/SearchDocumentIndexWorker.java 'ATOMIC_DEAD_LETTER_SCRIPT'
 contains services/search/src/main/java/com/ulticode/search/SearchDocumentIndexWorker.java "redis.call('XACK'"
 contains services/search/src/main/java/com/ulticode/search/SearchDocumentIndexWorker.java 'parseVersion'

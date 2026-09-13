@@ -9,11 +9,9 @@ set -euo pipefail
 # code-seam contracts live in architecture-contract-test.sh.
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-
-fail() {
-  echo "Documentation contract failed: $*" >&2
-  exit 1
-}
+CONTRACT_FAILURE_PREFIX="Documentation contract failed"
+# shellcheck source=scripts/test/lib/contract-harness.sh
+source "$ROOT_DIR/scripts/test/lib/contract-harness.sh"
 
 # shellcheck source=scripts/test/lib/assertions.sh
 source "$ROOT_DIR/scripts/test/lib/assertions.sh"

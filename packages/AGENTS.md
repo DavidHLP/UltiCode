@@ -17,7 +17,7 @@ Each package owns one focused cross-app seam. Current packages and their manifes
 
 - Keep public interfaces small and import through a package entry point or a declared `package.json` subpath export. Do not couple consumers to undeclared internals.
 - Extend an existing package when the behavior belongs to its seam; create a package only for a durable boundary used across applications.
-- When a consuming app type-checks shared source through `@/shared/<package>/src` (vite/tsconfig alias pointing to `../../packages/`), ensure its `tsconfig.app.json` includes the package.
+- Consuming apps must import the package entry point or a declared `package.json` subpath; keep the package source in the app's `tsconfig.app.json` include list for source-level type checking.
 - Preserve the full sanitization pipeline in `markdown-utils`; add malicious-input regressions for rendering changes.
 - Theme initialization is owned by `packages/theme` and the generated `public/theme-bootstrap.js` copies. Change the source, run the sync/verification scripts, and do not duplicate initialization in components or `main.ts`.
 - Keep `auth-core` subpath exports explicit when sibling packages need a narrow internal seam.

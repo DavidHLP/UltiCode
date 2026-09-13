@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createCsrfTokenManager } from "../csrf";
+import { createCsrfTokenManager, hasCsrfCookie } from "../csrf";
 
 describe("csrf token cookie fallback", () => {
   afterEach(() => {
@@ -27,5 +27,13 @@ describe("csrf token cookie fallback", () => {
     vi.stubGlobal("document", { cookie: "csrf_token_shadow=wrong" });
 
     expect(createCsrfTokenManager().getToken()).toBeNull();
+  });
+
+  it("detects only the exact csrf session sentinel", () => {
+    vi.stubGlobal("document", { cookie: "csrf_token_shadow=wrong" });
+    expect(hasCsrfCookie()).toBe(false);
+
+    vi.stubGlobal("document", { cookie: "csrf_token=present" });
+    expect(hasCsrfCookie()).toBe(true);
   });
 });

@@ -35,6 +35,8 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import com.ulticode.common.auth.CurrentUserProvider;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 /**
  * Unit tests for {@link DefaultProblemDetailPort}. The interface is the test
  * surface — each of the four satellite-write branches is exercised directly
@@ -88,6 +90,11 @@ class DefaultProblemDetailPortTest {
         p.setId(id);
         p.setSlug(slug);
         return p;
+    }
+
+    @Test
+    void implementsProblemDetailDomainPortDirectly() {
+        assertThat(port).isInstanceOf(ProblemDetailDomainPort.class);
     }
 
     @Test

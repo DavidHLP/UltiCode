@@ -9,11 +9,11 @@
  */
 import { useI18n } from "vue-i18n";
 import { useAuthStore } from "@/stores/auth";
-import type { RegisterRequest } from "@/shared/auth-core/src";
-import AuthCard from "@/shared/auth-ui/src/components/AuthCard.vue";
-import AuthLayout from "@/shared/auth-ui/src/layouts/AuthLayout.vue";
-import AuthPatternBackground from "@/shared/auth-ui/src/layouts/AuthPatternBackground.vue";
-import RegisterForm from "@/shared/auth-ui/src/components/RegisterForm.vue";
+import type { RegisterRequest } from "@ulticode/auth-core";
+import AuthCard from "@ulticode/auth-ui/components/AuthCard.vue";
+import AuthLayout from "@ulticode/auth-ui/layouts/AuthLayout.vue";
+import AuthPatternBackground from "@ulticode/auth-ui/layouts/AuthPatternBackground.vue";
+import RegisterForm from "@ulticode/auth-ui/components/RegisterForm.vue";
 
 const { t } = useI18n();
 const authStore = useAuthStore();

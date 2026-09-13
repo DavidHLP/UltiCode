@@ -12,6 +12,7 @@ import com.ulticode.modules.admin.dto.AdminUserQueryDTO;
 import com.ulticode.modules.admin.dto.AdminUserVO;
 import com.ulticode.modules.admin.query.AdminUserDetailQuery;
 import com.ulticode.modules.admin.query.AdminUserDetailResult;
+import com.ulticode.modules.admin.port.adapter.CancellableQueryExecutor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -53,7 +54,10 @@ public class DefaultAdminUserProjection implements AdminUserProjection {
             com.ulticode.app.api.service.SolutionReadPort solutionReadPort,
             com.ulticode.auth.api.service.AuthorizationSnapshotService authorizationSnapshotService) {
         this.userEnricher = new AdminUserEnricher(
-                null, userProfileQueryService, accountQueryService);
+                null,
+                userProfileQueryService,
+                accountQueryService,
+                new CancellableQueryExecutor("admin-user-enrichment-test", 2));
         this.userDetailQuery = new com.ulticode.modules.admin.query.DefaultAdminUserDetailQuery(
                 userEnricher,
                 submissionStatsReadPort,

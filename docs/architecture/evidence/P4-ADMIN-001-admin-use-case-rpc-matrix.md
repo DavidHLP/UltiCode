@@ -3,7 +3,7 @@
 > status: `REPOSITORY EVIDENCE` — extends `P3-ADMIN-001-admin-budget-manifest.md` with explicit controller → projection/service → deep-interface → provider call chains and measured/unmeasured markers.
 > owner: ADMIN
 > base: `docs/architecture/evidence/P3-ADMIN-001-admin-budget-manifest.md`
-> implementation_change: none (evidence/document only)
+> implementation_change: pure one-hop Admin owner references are now registered in `AdminDubboReferenceRegistry`; behavior-carrying adapters remain separate.
 
 ## 1. Purpose and scope
 
@@ -49,12 +49,12 @@ budget or still exhibits N+1 / unbounded scan / all-or-nothing failure.
 | `I-SUBMISSION-FILTERS` | `AdminSubmissionController:87-95` → `DefaultAdminSubmissionProjection` | `AdminSubmissionProjection.listSubmissionLanguages` | Submission languages read | 1 | 1 | 1 RPC | `MEASURED` |
 | `I-PROBLEM-READ` | `AdminProblemController` → `AdminProblemService` → `ProblemOwnerReadAdapter` | `ProblemOwnerReadPort` | App problem read per endpoint | 1 | 1 | 1 RPC | `MEASURED` |
 | `I-PROBLEM-SUBMISSIONS` | `AdminProblemController` → `DefaultAdminSubmissionProjection:50-189` | `AdminSubmissionProjection.listProblemSubmissions` | Problem existence + submission page | 2 | 2 | 2 RPC | `MEASURED` |
-| `I-TESTCASE-READ` | `AdminTestCaseController` → `AdminTestCaseService` → `DubboTestCaseOwnerAdapter` | `TestCaseOwnerReadPort` | App problem/test-case read | 2 | 2 | 2 RPC | `MEASURED` |
+| `I-TESTCASE-READ` | `AdminTestCaseController` → `AdminTestCaseService` → `AdminDubboReferenceRegistry` | `TestCaseOwnerReadPort` | App problem/test-case read | 2 | 2 | 2 RPC | `MEASURED` |
 | `I-PROBLEM-LIST-LIST` | `AdminProblemListController` → `DefaultAdminProblemListProjection:41-145` | `AdminProblemListProjection.listProblemLists` | App list page + `enrichWithStatus(Set)` batch | target `3/3` | 2 | page + enrich batch | `FIXED` — list path uses `enrichWithStatus(Set)`; detail retains `enrichOne` (single-item) |
 | `I-PROBLEM-LIST-DETAIL` | `AdminProblemListController` → `DefaultAdminProblemListProjection:147-175` | `AdminProblemListProjection.getProblemList` | App list detail + enrichOne | 4 | 4 | serial | `MEASURED` |
 | `I-COMMENT-TYPED` | `AdminCommentController` → `AdminCommentService` → comment projection | `AdminCommentReadPort` | App comment page + enrich batch + parent batch | 4 | 3 | page + enrich + parent | `MEASURED` |
 | `I-COMMENT-ALL` | `AdminCommentController` → `AdminCommentService` → `getAllComments` | dual-owner merge | one bounded page (100 rows) per moderator: 2 moderators × 4 owner RPC per `listComments` = 8/8 | target `8/8` | 8 max (1 page × 2 moderators × 4 RPC) | `FIXED` — `MODERATOR_PAGE_SIZE=100`; `getAllComments` fetches one page per moderator; `total` = fetched item count (`all.size()`), not owner `PageResult.getTotal()` summed — page size 100 never `Integer.MAX_VALUE` |
-| `I-TAG-READ` | `AdminTagController` → tag service → `DubboProblemTagOwnerAdapter` | tag read | one owner read per endpoint | 1 | 1 | 1 RPC | `MEASURED` |
+| `I-TAG-READ` | `AdminTagController` → tag service → `AdminDubboReferenceRegistry` | tag read | one owner read per endpoint | 1 | 1 | 1 RPC | `MEASURED` |
 | `I-ANALYTICS-OVERVIEW` | `AdminAnalyticsController:27-79` → `DefaultUserActivityAnalyticsProjection` + `DefaultAdminAnalyticsPortAdapter:53-210` | analytics read ports | six slices in parallel | 6 | 1 | parallel | `MEASURED` |
 | `I-ANALYTICS-ACTIVITY` | `AdminAnalyticsController:81-120` → `DefaultUserActivityAnalyticsProjection:52-184` | `ActivityAnalyticsProjection` | Submission daily/weekly/retention/hourly/top + optional Auth identity | target `11/11` | 10 + optional | serial | `MEASURED` — no 365-day cap yet |
 | `I-ANALYTICS-PROBLEM` | `AdminAnalyticsController:122-140` → `ProblemReportController` | problem analytics | App analytics read | 1 | 1 | 1 RPC | `MEASURED` |
@@ -125,8 +125,8 @@ automatically.
 
 | id | entry point | deep interface | provider contract(s) | target L | current_shape | status |
 |---|---|---|---|---|---|---|
-| `S-RECON-FULL` | `OwnerReconciler:294-445` | reconciliation loop | Auth orphan aggregate + Submission/Notification paged facts + App orphan + audit | 164 target | `UNBOUNDED` no finite page cap | `UNMEASURED` — `FAIL_UNBOUNDED_SCAN` |
-| `S-RECON-INCREMENTAL` | `OwnerReconciler:294-445` with watermark | same loop | same providers | 164 target | unbounded if window large | `UNMEASURED` — `FAIL_UNBOUNDED_SCAN` |
+| `S-RECON-FULL` | `OwnerReconciler` → `OrphanScan` | reconciliation loop | Auth orphan aggregate + Submission/Notification paged facts + App orphan + audit | 164 target per invocation | bounded owner pages, ordered pages, batched Auth existence checks, durable cursor/offset continuation | `FIXED` — `MAX_RECONCILIATION_PAGES=32` per invocation; `PARTIAL` resumes until `COMPLETED` |
+| `S-RECON-INCREMENTAL` | `OwnerReconciler` → `OrphanScan` with watermark | same loop | same providers | 164 target per invocation | same bounded scan envelope with durable cursor/offset continuation | `FIXED` — `MAX_RECONCILIATION_PAGES=32` per invocation; matching watermark resumes until `COMPLETED` |
 | `S-RECON-LEASE-BUSY` | `OwnerReconciler:162-209` | lease entry | lease acquire | 0 | exit on null lease | `MEASURED` |
 
 ## 6. Unmeasured / N+1 / bounded-scan summary
@@ -140,8 +140,8 @@ automatically.
 | `B-TESTCASE-REORDER` | `AdminTestCaseService` | no explicit ID count cap | Add input size cap |
 | `B-PROBLIST-REPLACE` | `AdminProblemListServiceImpl` | no entry-size cap | Add `@Size(max=500)` |
 | `B-PROBLEM-EXPORT` | `ProblemExportServiceImpl` | provider-side cap not evident | Require provider-side 10k cap |
-| `S-RECON-FULL` | `OwnerReconciler` | no finite page cap | `MAX_*_PAGES=32` (see P3 manifest §6) |
-| `S-RECON-INCREMENTAL` | `OwnerReconciler` | no finite page cap | Same `MAX_*_PAGES=32` |
+| `S-RECON-FULL` | `OwnerReconciler` → `OrphanScan` | duplicated paging and parent lookup policy | Shared bounded scan module with `MAX_RECONCILIATION_PAGES=32` per invocation and `reconciliation_runs.detail` continuation (see P3 manifest §6) |
+| `S-RECON-INCREMENTAL` | `OwnerReconciler` → `OrphanScan` | duplicated paging and parent lookup policy | Same shared bounded scan module and watermark-bound continuation |
 | `I-ANALYTICS-ACTIVITY` | `AdminAnalyticsController:27-71` | no 365-day input cap annotation | Add `@Min(1) @Max(365)` |
 | `I-ANALYTICS-CONTEST` | `ContestParticipationReporter:35-89` | no 500-row cap | Require owner-side cap |
 | `I-ANALYTICS-REVENUE` | `RevenueReporter:37-169` | no 10,000-row cap | Require owner-side cap |

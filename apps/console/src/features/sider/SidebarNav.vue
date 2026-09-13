@@ -23,7 +23,7 @@ import {
   SidebarMenuSubItem as SharedSidebarMenuSubItem,
   SidebarGroupCollapsible,
   SidebarParentItem,
-} from "@/shared/sidebar-menu/src";
+} from "@ulticode/sidebar-menu";
 
 const { t } = useI18n();
 const authStore = useAuthStore();

@@ -25,7 +25,6 @@ import com.ulticode.modules.admin.dto.AdminCreateUserDTO;
 import com.ulticode.modules.admin.dto.AdminUpdateUserDTO;
 import com.ulticode.modules.admin.dto.AdminUserVO;
 import com.ulticode.modules.admin.query.AdminUserDetailQuery;
-import com.ulticode.modules.admin.query.AdminUserDetailResult;
 import com.ulticode.modules.admin.service.UserManagementService;
 import com.ulticode.modules.admin.write.AdminWriteEnvelope;
 import com.ulticode.admin.port.UserProfilePort;
@@ -123,7 +122,7 @@ public class UserManagementServiceImpl implements UserManagementService {
         }
 
         log.info("User created: {} by admin", newUserId);
-        return userFromDetail(newUserId);
+        return adminUserDetailQuery.loadUserDetailOrThrow(newUserId);
     }
 
     @Override
@@ -219,7 +218,7 @@ public class UserManagementServiceImpl implements UserManagementService {
         ));
 
         log.info("User updated: {}", id);
-        return userFromDetail(id);
+        return adminUserDetailQuery.loadUserDetailOrThrow(id);
     }
 
     @Override
@@ -243,7 +242,7 @@ public class UserManagementServiceImpl implements UserManagementService {
         );
         executeStateChange(command);
         log.info("User banned: {} - reason: {}", id, reason);
-        return userFromDetail(id);
+        return adminUserDetailQuery.loadUserDetailOrThrow(id);
     }
 
     @Override
@@ -267,7 +266,7 @@ public class UserManagementServiceImpl implements UserManagementService {
         );
         executeStateChange(command);
         log.info("User unbanned: {}", id);
-        return userFromDetail(id);
+        return adminUserDetailQuery.loadUserDetailOrThrow(id);
     }
 
     @Override
@@ -419,17 +418,4 @@ public class UserManagementServiceImpl implements UserManagementService {
         }
     }
 
-    private AdminUserVO userFromDetail(String id) {
-        AdminUserDetailResult result = adminUserDetailQuery.loadUserDetail(id);
-        if (result == null || result.failure() == AdminUserDetailResult.Failure.NOT_FOUND) {
-            throw new BusinessException(AdminErrorCode.USER_NOT_FOUND);
-        }
-        if (result.failure() == AdminUserDetailResult.Failure.TRANSPORT_UNAVAILABLE
-                || result.user() == null) {
-            throw new BusinessException(
-                    AdminErrorCode.OWNER_QUERY_UNAVAILABLE,
-                    "Admin user detail query unavailable");
-        }
-        return result.user();
-    }
 }

@@ -13,9 +13,6 @@ import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.modules.admin.dto.AdminUserQueryDTO;
 import com.ulticode.modules.admin.dto.AdminUserVO;
-import com.ulticode.modules.admin.port.AdminSubmissionUserDetailStatsReadPort;
-import com.ulticode.app.api.service.SolutionReadPort;
-import com.ulticode.auth.api.service.AuthorizationSnapshotService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -40,9 +37,6 @@ class AdminUserProjectionTest {
 
     @Mock private AccountQueryService accountQueryService;
     @Mock private UserProfileQueryService userProfileQueryService;
-    @Mock private AdminSubmissionUserDetailStatsReadPort submissionStatsReadPort;
-    @Mock private SolutionReadPort solutionReadPort;
-    @Mock private AuthorizationSnapshotService authorizationSnapshotService;
     private DefaultAdminUserProjection projection;
 
     private AuthAccountDTO createValidAccount() {
@@ -61,9 +55,7 @@ class AdminUserProjectionTest {
     @BeforeEach
     void setUp() {
         projection = new DefaultAdminUserProjection(
-                accountQueryService, userProfileQueryService,
-                submissionStatsReadPort, solutionReadPort,
-                authorizationSnapshotService);
+                accountQueryService, userProfileQueryService);
     }
 
     @Test
@@ -129,8 +121,7 @@ class AdminUserProjectionTest {
         @DisplayName("unwired AccountQueryService (provider never registered) -> 503, not an empty page")
         void unwiredAuthThrowsUnavailable() {
             projection = new DefaultAdminUserProjection(
-                    null, userProfileQueryService, submissionStatsReadPort,
-                    solutionReadPort, authorizationSnapshotService);
+                    null, userProfileQueryService);
 
             assertThatThrownBy(() -> projection.getUsers(new AdminUserQueryDTO()))
                     .isInstanceOf(BusinessException.class)
@@ -170,75 +161,4 @@ class AdminUserProjectionTest {
         }
     }
 
-    @Nested
-    @DisplayName("getUserById()")
-    class GetUserById {
-
-        @Test
-        @DisplayName("returns full user VO when account exists")
-        void getUserByIdSuccess() {
-            AuthAccountDTO account = createValidAccount();
-            UserProfileDTO profile = createValidProfile();
-
-            when(accountQueryService.getAccountById("user-123")).thenReturn(RpcResult.success(account, "t-123"));
-            when(userProfileQueryService.getProfilesByAccountIds(any()))
-                    .thenReturn(RpcResult.success(List.of(profile), "t-123"));
-
-            AdminUserVO vo = projection.getUserById("user-123");
-
-            assertThat(vo.getId()).isEqualTo("user-123");
-            assertThat(vo.getUsername()).isEqualTo("testuser");
-            assertThat(vo.getName()).isEqualTo("Test User");
-        }
-
-        @Test
-        @DisplayName("throws USER_NOT_FOUND when account is absent (authoritative Auth answer)")
-        void getUserByIdNotFound() {
-            when(accountQueryService.getAccountById("user-999")).thenReturn(RpcResult.failure(AuthErrorCode.ACCOUNT_NOT_FOUND, "t-123"));
-
-            assertThatThrownBy(() -> projection.getUserById("user-999"))
-                    .isInstanceOf(BusinessException.class)
-                    .satisfies(e -> assertThat(((BusinessException) e).getErrorCode())
-                            .isEqualTo(AdminErrorCode.USER_NOT_FOUND));
-        }
-
-        @Test
-        @DisplayName("account RPC transport failure -> 503 OWNER_QUERY_UNAVAILABLE, not USER_NOT_FOUND")
-        void getUserByIdTransportFailureThrowsUnavailable() {
-            when(accountQueryService.getAccountById("user-123"))
-                    .thenThrow(new RuntimeException("rpc down"));
-
-            assertThatThrownBy(() -> projection.getUserById("user-123"))
-                    .isInstanceOf(BusinessException.class)
-                    .satisfies(e -> assertThat(((BusinessException) e).getErrorCode())
-                            .isEqualTo(AdminErrorCode.OWNER_QUERY_UNAVAILABLE));
-        }
-
-        @Test
-        @DisplayName("non-NOT_FOUND account RPC failure -> 503 OWNER_QUERY_UNAVAILABLE, not USER_NOT_FOUND")
-        void getUserByIdOtherFailureThrowsUnavailable() {
-            when(accountQueryService.getAccountById("user-123")).thenReturn(RpcResult.failure(AuthErrorCode.INVALID_ACCOUNT_REQUEST, "t-123"));
-
-            assertThatThrownBy(() -> projection.getUserById("user-123"))
-                    .isInstanceOf(BusinessException.class)
-                    .satisfies(e -> assertThat(((BusinessException) e).getErrorCode())
-                            .isEqualTo(AdminErrorCode.OWNER_QUERY_UNAVAILABLE));
-        }
-
-        @Test
-        @DisplayName("profile provider down on detail view -> PARTIAL marker on the VO")
-        void getUserByIdProfileDownMarksPartial() {
-            AuthAccountDTO account = createValidAccount();
-
-            when(accountQueryService.getAccountById("user-123")).thenReturn(RpcResult.success(account, "t-123"));
-            when(userProfileQueryService.getProfilesByAccountIds(any()))
-                    .thenThrow(new RuntimeException("app provider down"));
-
-            AdminUserVO vo = projection.getUserById("user-123");
-
-            assertThat(vo.getUsername()).isEqualTo("testuser");
-            assertThat(vo.getName()).isNull();
-            assertThat(vo.getDegradationStatus()).isEqualTo(DegradationStatus.PARTIAL);
-        }
-    }
 }

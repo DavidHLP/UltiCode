@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { renderMarkdown } from '@/shared/markdown-utils/src';
+import { renderMarkdown } from '@ulticode/markdown-utils';
 import { toast } from "vue-sonner";
 import { useI18n } from "vue-i18n";
 

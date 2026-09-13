@@ -9,32 +9,25 @@ import {
   type BulkSolutionActionDto,
 } from '@/api/admin/solutions'
 import { extractApiErrorMessage } from '@/utils/error'
+import { createCollectionSlice } from '@/stores/createCollectionSlice'
 export const useSolutionsStore = defineStore('adminSolutions', () => {
-  const solutions = ref<SolutionListItem[]>([])
-  const total = ref(0)
-  const loading = ref(false)
-  const error = ref<string | null>(null)
+  const collection = createCollectionSlice<SolutionListItem, SolutionQueryParams>({
+    load: async (params = {}) => {
+      const response = await solutionsApi.getSolutions(params)
+      return { items: response.items, total: response.total }
+    },
+  })
+  const solutions = collection.items
+  const total = collection.total
+  const loading = collection.isLoading
+  const error = collection.error
+  const fetchSolutions = collection.fetch
   const currentSolution = ref<Solution | null>(null)
 
   // Computed stats for terminal ticker
   const totalCount = computed(() => total.value)
   const flaggedCount = computed(() => solutions.value.filter((s) => s.isFlagged).length)
   const publishedCount = computed(() => solutions.value.filter((s) => s.isPublished).length)
-
-  async function fetchSolutions(params: SolutionQueryParams = {}) {
-    loading.value = true
-    error.value = null
-    try {
-      const response = await solutionsApi.getSolutions(params)
-      solutions.value = response.items
-      total.value = response.total
-    } catch (err: unknown) {
-      error.value = extractApiErrorMessage(err, 'Failed to fetch solutions')
-      console.error('Failed to fetch solutions:', err)
-    } finally {
-      loading.value = false
-    }
-  }
 
   async function fetchFlaggedSolutions(params: SolutionQueryParams = {}) {
     loading.value = true
@@ -171,6 +164,9 @@ export const useSolutionsStore = defineStore('adminSolutions', () => {
   }
 
   return {
+    items: collection.items,
+    isLoading: collection.isLoading,
+    fetch: collection.fetch,
     solutions,
     total,
     loading,

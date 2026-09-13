@@ -90,26 +90,15 @@ export default defineConfig({
   ],
   resolve: {
     alias: [
-      // Most-specific first: @/shared must be matched before the
-      // catch-all `@` → ./src alias rewrites the path to <console>/src/shared/...
-      // (where `shared` is a broken plain-text file on this checkout, not a
-      // symlink). Vite's resolve.alias uses startsWith matching in
-      // declaration order, so order matters.
-      {
-        find: '@/shared',
-        replacement: fileURLToPath(new URL('../../packages', import.meta.url)),
-      },
       // Catch-all `@` → ./src
       { find: '@', replacement: fileURLToPath(new URL('./src', import.meta.url)) },
-      // Files inside shared/ (axiosCsrfInterceptor.ts, utils.ts, and the
-      // auth-ui / sidebar-menu components) import their runtime + peer deps
-      // as bare specifiers. Resolve them from console/node_modules rather
-      // than letting vite walk up from the shared/ file's physical location
-      // (which has no node_modules and fails to resolve on the Docker CI
-      // build). Covers axios, clsx, tailwind-merge, lucide-vue-next, and the
-      // peer deps vue-router / vue-i18n / reka-ui consumed by shared/auth-ui
-      // & shared/sidebar-menu. `vue` itself is resolved by the plugin, so it
-      // needs no alias here.
+      // Workspace packages import their runtime + peer deps as bare
+      // specifiers. Resolve them from console/node_modules rather than
+      // letting Vite walk up from a package's physical location (which has
+      // no node_modules in the Docker build). Covers axios, clsx,
+      // tailwind-merge, lucide-vue-next, and the peer deps vue-router /
+      // vue-i18n / reka-ui consumed by auth-ui and sidebar-menu. `vue` itself
+      // is resolved by the plugin, so it needs no alias here.
       { find: /^axios$/, replacement: fileURLToPath(new URL('./node_modules/axios', import.meta.url)) },
       { find: /^clsx$/, replacement: fileURLToPath(new URL('./node_modules/clsx', import.meta.url)) },
       { find: /^tailwind-merge$/, replacement: fileURLToPath(new URL('./node_modules/tailwind-merge', import.meta.url)) },

@@ -6,6 +6,7 @@ import com.ulticode.submission.api.dto.CreateSubmissionDTO;
 import com.ulticode.modules.submission.controller.RunResultDTO;
 import com.ulticode.modules.submission.controller.RunSubmissionDTO;
 import com.ulticode.modules.submission.port.InteractiveCodeRunner;
+import com.ulticode.modules.submission.port.SubmissionFactsCapture;
 import com.ulticode.submission.api.service.SubmissionUserQueryPort;
 import com.ulticode.submission.api.service.SubmissionIntakePort;
 import jakarta.validation.Validator;
@@ -41,6 +42,9 @@ class ProblemSubmissionControllerTest {
     private SubmissionIntakePort submissionWritePort;
 
     @Mock
+    private SubmissionFactsCapture submissionFactsCapture;
+
+    @Mock
     private InteractiveCodeRunner codeExecutionPort;
 
     @Mock
@@ -52,7 +56,9 @@ class ProblemSubmissionControllerTest {
     @BeforeEach
     void setUp() {
         SecurityContextHolder.clearContext();
-        controller = new ProblemSubmissionController(submissionUserQuery, submissionWritePort, codeExecutionPort, validator, currentUserProvider);
+        controller = new ProblemSubmissionController(
+                submissionUserQuery, submissionWritePort, submissionFactsCapture,
+                codeExecutionPort, validator, currentUserProvider);
     }
 
     @AfterEach

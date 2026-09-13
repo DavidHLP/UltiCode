@@ -10,13 +10,21 @@ import {
 } from '@/api/admin/forum'
 import { extractApiErrorMessage } from '@/utils/error'
 import type { AuditLog } from '@/api/admin/audit'
+import { createCollectionSlice } from '@/stores/createCollectionSlice'
 
 export const useForumStore = defineStore('adminForum', () => {
   // Posts State
-  const posts = ref<ForumPost[]>([])
-  const totalPosts = ref(0)
-  const postsLoading = ref(false)
-  const postsError = ref<string | null>(null)
+  const collection = createCollectionSlice<ForumPost, ForumPostQueryParams>({
+    load: async (params = {}) => {
+      const response = await forumApi.getPosts(params)
+      return { items: response.items, total: response.total }
+    },
+  })
+  const posts = collection.items
+  const totalPosts = collection.total
+  const postsLoading = collection.isLoading
+  const postsError = collection.error
+  const fetchPosts = collection.fetch
 
   // Communities State
   const communities = ref<ForumCommunity[]>([])
@@ -29,21 +37,6 @@ export const useForumStore = defineStore('adminForum', () => {
   const auditHistory = ref<AuditLog[]>([])
 
   // Actions
-  async function fetchPosts(params: ForumPostQueryParams = {}) {
-    postsLoading.value = true
-    postsError.value = null
-    try {
-      const response = await forumApi.getPosts(params)
-      posts.value = response.items
-      totalPosts.value = response.total
-    } catch (err: unknown) {
-      postsError.value = extractApiErrorMessage(err, 'Failed to fetch forum posts')
-      console.error('Failed to fetch forum posts:', err)
-    } finally {
-      postsLoading.value = false
-    }
-  }
-
   async function fetchCommunities() {
     communitiesLoading.value = true
     try {
@@ -185,6 +178,11 @@ export const useForumStore = defineStore('adminForum', () => {
   }
 
   return {
+    items: collection.items,
+    total: collection.total,
+    isLoading: collection.isLoading,
+    error: collection.error,
+    fetch: collection.fetch,
     posts,
     totalPosts,
     postsLoading,

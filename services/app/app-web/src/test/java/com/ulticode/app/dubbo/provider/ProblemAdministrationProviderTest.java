@@ -16,6 +16,7 @@ import com.ulticode.modules.problem.dto.CreateProblemDTO;
 import com.ulticode.modules.problem.dto.UpdateProblemDTO;
 import com.ulticode.modules.problem.entity.Problem;
 import com.ulticode.modules.problem.service.ProblemAdministrationDomainService;
+import com.ulticode.modules.problem.service.ProblemIndexRefresher;
 import com.ulticode.app.security.AdminActorAuthorizer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -44,7 +45,7 @@ class ProblemAdministrationProviderTest {
     private ProblemAdministrationDomainService domainService;
 
     @Mock
-    private com.ulticode.modules.search.source.SearchDocumentChangedPublisher searchPublisher;
+    private ProblemIndexRefresher indexRefresher;
     @Mock
     private AdminActorAuthorizer actorAuthorizer;
 
@@ -52,7 +53,7 @@ class ProblemAdministrationProviderTest {
 
     @BeforeEach
     void setUp() {
-        provider = new ProblemAdministrationProvider(domainService, searchPublisher, actorAuthorizer);
+        provider = new ProblemAdministrationProvider(domainService, indexRefresher, actorAuthorizer);
         when(actorAuthorizer.isAuthorized(any())).thenReturn(true);
     }
     @Test
@@ -111,6 +112,7 @@ class ProblemAdministrationProviderTest {
             assertThat(view.slug()).isEqualTo("two-sum");
             assertThat(view.title()).isEqualTo("Two Sum");
             assertThat(view.version()).isEqualTo(1L);
+            verify(indexRefresher).publish(entity);
         }
 
         @Test
@@ -149,6 +151,7 @@ class ProblemAdministrationProviderTest {
 
             assertThat(result.success()).isTrue();
             assertThat(result.data().problemId()).isEqualTo("10");
+            verify(indexRefresher).publish(entity);
         }
     }
 
@@ -170,6 +173,7 @@ class ProblemAdministrationProviderTest {
 
             assertThat(result.success()).isTrue();
             verify(domainService).publishProblem(42L, "admin-1", 1L);
+            verify(indexRefresher).publish(entity);
         }
 
         @Test
@@ -186,6 +190,7 @@ class ProblemAdministrationProviderTest {
 
             assertThat(result.success()).isTrue();
             verify(domainService).unpublishProblem(42L, "admin-1", 1L);
+            verify(indexRefresher).publish(entity);
         }
 
         @Test
@@ -234,7 +239,7 @@ class ProblemAdministrationProviderTest {
 
             assertThat(result.success()).isTrue();
             verify(domainService).deleteProblem(42L, "admin-1", 3L);
-            verify(searchPublisher).publishProblem(existing, false);
+            verify(indexRefresher).publish(existing);
         }
     }
 }

@@ -1,4 +1,4 @@
-import type { PageResult } from '@/shared/domain-types/src'
+import type { PageResult } from '@ulticode/domain-types'
 import { apiGet, apiPost } from '@/utils/request'
 
 export interface SubmissionQueryParams {

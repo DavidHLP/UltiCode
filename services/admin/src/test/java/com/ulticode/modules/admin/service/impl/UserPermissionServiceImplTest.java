@@ -74,6 +74,9 @@ class UserPermissionServiceImplTest {
         assertThat(command.expiresAt()).isEqualTo(expiresAtWire);
         assertThat(command.expectedVersion()).isEqualTo(7L);
         assertThat(command.actorId()).isEqualTo("admin-001");
+        assertThat(command.commandId()).isNotBlank();
+        assertThat(command.idempotency()).isNotNull();
+        assertThat(command.trace()).isNotNull();
     }
 
     @Test

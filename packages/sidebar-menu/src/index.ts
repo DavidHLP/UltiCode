@@ -8,7 +8,7 @@
  *
  * Importing apps must alias the local shadcn `SidebarMenuItem` etc. to avoid
  * name clashes, e.g.
- *   import { SidebarMenuItem as SharedSidebarMenuItem } from '@/shared/sidebar-menu/src'
+ *   import { SidebarMenuItem as SharedSidebarMenuItem } from '@ulticode/sidebar-menu'
  *
  * Consumption status:
  * - SidebarMenuItem / SidebarMenuSubItem / SidebarGroupCollapsible / SidebarParentItem:

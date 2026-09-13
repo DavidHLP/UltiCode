@@ -1,6 +1,6 @@
 # 当前状态
 
-更新时间：2026-09-05
+更新时间：2026-09-12
 
 ## 总体状态
 
@@ -62,6 +62,13 @@
   保留为 reported/not rerun evidence；Admin/App/Submission/Notification
   的完整 local parity、enabled-owner wiring、同进程业务路由、Judge
   readiness 与 mixed-version/remote TLS 仍未验证，不能切换默认拓扑。
+- 2026-09-12 架构复审收敛：Admin 的 bounded fan-out/cancel、Owner
+  reconciliation paging、共享 Redis Streams inbox staging、outbox dispatch
+  mechanics、Problem 双受众 contract 和 Auth session policy 已分别收口为
+  复用 seam；各 Owner 仍保留 handler、delivery state、Search lock/ledger
+  等本地语义。开发脚本的 Compose/env/Docker helper 与 architecture contract
+  registry 已统一，`distributed` 默认拓扑未改变。详见
+  [`ADR-0013`](../architecture/decisions/0013-architecture-review-module-convergence.md)。
 
 ## 验证入口
 

@@ -3,8 +3,8 @@ package com.ulticode.auth.audit;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
-import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
+import org.apache.ibatis.annotations.Select;
 
 import java.util.List;
 
@@ -17,20 +17,27 @@ import java.util.List;
 @Mapper
 public interface AuthAuditOutboxMapper extends BaseMapper<AuthAuditOutboxRecord> {
 
-    @Select("""
-        SELECT * FROM audit_outbox
-        WHERE state = 'PENDING' AND next_retry_at <= NOW(3)
-        ORDER BY created_at, id
-        LIMIT #{limit}
-        """)
-    List<AuthAuditOutboxRecord> selectPending(@Param("limit") int limit);
-
     @Update("""
         UPDATE audit_outbox
         SET state = 'CLAIMED', claimed_at = NOW(3), claim_owner = #{claimOwner}
-        WHERE id = #{id} AND state = 'PENDING'
+        WHERE state = 'PENDING' AND next_retry_at <= NOW(3)
+          AND id IN (
+            SELECT id FROM (
+              SELECT id FROM audit_outbox
+              WHERE state = 'PENDING' AND next_retry_at <= NOW(3)
+              ORDER BY created_at, id
+              LIMIT #{limit}
+            ) AS claimable
+          )
         """)
-    int claim(@Param("id") String id, @Param("claimOwner") String claimOwner);
+    int claimPending(@Param("claimOwner") String claimOwner, @Param("limit") int limit);
+
+    @Select("""
+        SELECT * FROM audit_outbox
+        WHERE state = 'CLAIMED' AND claim_owner = #{claimOwner}
+        ORDER BY created_at, id
+        """)
+    List<AuthAuditOutboxRecord> selectClaimed(@Param("claimOwner") String claimOwner);
 
     @Update("""
         UPDATE audit_outbox

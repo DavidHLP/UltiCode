@@ -2,9 +2,12 @@ package com.ulticode.modules.admin.port.adapter;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import org.junit.jupiter.api.Test;
 
 class CancellableQueryExecutorTest {
@@ -56,5 +59,72 @@ class CancellableQueryExecutorTest {
         } finally {
             executor.close();
         }
+    }
+
+    @Test
+    void awaitAllCancelsEveryQueryWhenTheSharedDeadlineExpires() throws Exception {
+        CancellableQueryExecutor executor = new CancellableQueryExecutor("test-await", 2);
+        CountDownLatch started = new CountDownLatch(2);
+        CountDownLatch interrupted = new CountDownLatch(2);
+        try {
+            CancellableQueryExecutor.Query<String> first = blockingQuery(executor, started, interrupted);
+            CancellableQueryExecutor.Query<String> second = blockingQuery(executor, started, interrupted);
+
+            assertThat(started.await(1, TimeUnit.SECONDS)).isTrue();
+            assertThatThrownBy(() -> executor.awaitAll(10, TimeUnit.MILLISECONDS, first, second))
+                    .isInstanceOf(TimeoutException.class);
+
+            assertThat(interrupted.await(1, TimeUnit.SECONDS)).isTrue();
+            assertThat(first.result()).isCancelled();
+            assertThat(second.result()).isCancelled();
+        } finally {
+            executor.close();
+        }
+    }
+
+    @Test
+    void awaitAllRejectsAnAlreadyCompletedQueryWhenTheDeadlineIsExhausted() throws Exception {
+        CancellableQueryExecutor executor = new CancellableQueryExecutor("test-expired", 1);
+        try {
+            CancellableQueryExecutor.Query<String> query = executor.submit(() -> "done");
+            assertThat(query.result().get(1, TimeUnit.SECONDS)).isEqualTo("done");
+
+            assertThatThrownBy(() -> executor.awaitAll(0, TimeUnit.NANOSECONDS, query))
+                    .isInstanceOf(TimeoutException.class);
+        } finally {
+            executor.close();
+        }
+    }
+
+    @Test
+    void awaitAllPreservesNullResults() throws Exception {
+        CancellableQueryExecutor executor = new CancellableQueryExecutor("test-null", 1);
+        try {
+            CancellableQueryExecutor.Query<String> query = executor.submit(() -> null);
+
+            List<String> values = executor.awaitAll(1, TimeUnit.SECONDS, query);
+
+            assertThat(values).containsExactly((String) null);
+            assertThatThrownBy(() -> values.add("unexpected"))
+                    .isInstanceOf(UnsupportedOperationException.class);
+        } finally {
+            executor.close();
+        }
+    }
+
+    private static CancellableQueryExecutor.Query<String> blockingQuery(
+            CancellableQueryExecutor executor,
+            CountDownLatch started,
+            CountDownLatch interrupted) {
+        return executor.submit(() -> {
+            started.countDown();
+            try {
+                new CountDownLatch(1).await();
+            } catch (InterruptedException exception) {
+                interrupted.countDown();
+                throw exception;
+            }
+            return "never";
+        });
     }
 }

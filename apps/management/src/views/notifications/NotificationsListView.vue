@@ -64,13 +64,7 @@ const {
   { type: string; category: string },
   AdminNotificationQueryParams
 >({
-  store: {
-    data: computed(() => store.announcements),
-    total: computed(() => store.total),
-    isLoading: computed(() => store.isLoading),
-    error: computed(() => store.error),
-    fetch: (params) => store.fetchAnnouncements(params),
-  },
+  store,
   filters: () => ({
     type: typeFilter.value,
     category: categoryFilter.value,

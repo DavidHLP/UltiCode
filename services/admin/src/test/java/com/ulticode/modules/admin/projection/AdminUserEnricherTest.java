@@ -13,6 +13,7 @@ import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.response.DegradationStatus;
 import com.ulticode.common.rpc.RpcResult;
+import com.ulticode.modules.admin.port.adapter.CancellableQueryExecutor;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -45,6 +46,7 @@ class AdminUserEnricherTest {
     @Mock private AccountQueryService accountQueryService;
 
     private AdminUserEnricher enricher;
+    private CancellableQueryExecutor queryExecutor;
 
     private UserIdentityDTO identity(String id) {
         return new UserIdentityDTO(id, "user-" + id, "ADMIN", true, false);
@@ -77,7 +79,8 @@ class AdminUserEnricherTest {
 
     @BeforeEach
     void setUp() {
-        enricher = new AdminUserEnricher();
+        queryExecutor = new CancellableQueryExecutor("test-user-enrichment", 2);
+        enricher = new AdminUserEnricher(queryExecutor);
         ReflectionTestUtils.setField(enricher, "identityQueryService", identityQueryService);
         ReflectionTestUtils.setField(enricher, "userProfileQueryService", userProfileQueryService);
         ReflectionTestUtils.setField(enricher, "accountQueryService", accountQueryService);
@@ -85,7 +88,7 @@ class AdminUserEnricherTest {
 
     @AfterEach
     void tearDown() {
-        enricher.shutdownQueryExecutor();
+        queryExecutor.close();
     }
 
     @Nested
@@ -185,7 +188,7 @@ class AdminUserEnricherTest {
 
             assertThat(result.status()).isEqualTo(DegradationStatus.UNAVAILABLE);
             assertThat(result.users()).isEmpty();
-            enricher.shutdownQueryExecutor();
+            queryExecutor.close();
             assertThat(identityInterrupted.await(1, TimeUnit.SECONDS)).isTrue();
             assertThat(profileInterrupted.await(1, TimeUnit.SECONDS)).isTrue();
         }

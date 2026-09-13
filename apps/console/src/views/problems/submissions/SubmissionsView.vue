@@ -120,9 +120,10 @@ const loadSubmissions = async () => {
     userId,
   });
   try {
-    submissions.value = props.contestId
-      ? await fetchContestProblemSubmissions(props.contestId, props.problemId)
+    const result = props.contestId
+      ? { items: await fetchContestProblemSubmissions(props.contestId, props.problemId) }
       : await fetchProblemSubmissions(props.problemId);
+    submissions.value = result.items;
     await problemHooks.emit("problem:submissions:load:after", {
       problemId: props.problemId,
       userId,

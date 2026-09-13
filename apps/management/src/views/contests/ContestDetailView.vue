@@ -3,7 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useContestsStore } from '@/stores/admin/contests'
-import { useAuthStore } from '@/stores/auth'
+import { useContestPermissions } from '@/composables/useContestPermissions'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
@@ -29,7 +29,7 @@ import ContestRankingsTab from './components/ContestRankingsTab.vue'
 const route = useRoute()
 const router = useRouter()
 const contestsStore = useContestsStore()
-const authStore = useAuthStore()
+const { can } = useContestPermissions()
 const { t } = useI18n()
 
 const contestId = computed(() => route.params.id as string)
@@ -41,8 +41,8 @@ const problemPickerOpen = ref(false)
 const activeTab = ref('overview')
 const isLoaded = ref(false)
 
-const canUpdate = computed(() => authStore.hasPermission('UPDATE', 'CONTEST'))
-const canDelete = computed(() => authStore.hasPermission('DELETE', 'CONTEST'))
+const canUpdate = can.contest.update
+const canDelete = can.contest.delete
 
 onMounted(async () => {
   if (contestId.value) {

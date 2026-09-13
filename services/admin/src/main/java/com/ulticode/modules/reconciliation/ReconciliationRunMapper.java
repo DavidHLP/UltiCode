@@ -3,13 +3,46 @@ package com.ulticode.modules.reconciliation;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
+
+import java.time.LocalDateTime;
 
 /**
  * MyBatis-Plus mapper for {@link ReconciliationRun} (P5-RECONCILE-001).
  */
 @Mapper
 public interface ReconciliationRunMapper extends BaseMapper<ReconciliationRun> {
+
+    /** Find the newest unfinished continuation for the requested scan mode and watermark. */
+    @Select("""
+            SELECT run_id, started_at, finished_at, owner, fence_token, status,
+                   divergence_count, orphan_count, detail, scan_mode, scan_created_since
+            FROM reconciliation_runs
+            WHERE owner = 'ALL'
+              AND status = 'PARTIAL'
+              AND scan_mode = #{mode}
+              AND scan_created_since <=> #{createdSince,jdbcType=TIMESTAMP}
+            ORDER BY started_at DESC, run_id DESC
+            LIMIT 1
+            """)
+    ReconciliationRun findLatestPartial(@Param("mode") String mode,
+                                        @Param("createdSince") LocalDateTime createdSince);
+
+    /** Find the newest completed run for the requested scan mode and watermark. */
+    @Select("""
+            SELECT run_id, started_at, finished_at, owner, fence_token, status,
+                   divergence_count, orphan_count, detail, scan_mode, scan_created_since
+            FROM reconciliation_runs
+            WHERE owner = 'ALL'
+              AND status = 'COMPLETED'
+              AND scan_mode = #{mode}
+              AND scan_created_since <=> #{createdSince,jdbcType=TIMESTAMP}
+            ORDER BY started_at DESC, run_id DESC
+            LIMIT 1
+            """)
+    ReconciliationRun findLatestCompleted(@Param("mode") String mode,
+                                          @Param("createdSince") LocalDateTime createdSince);
 
     /**
      * Finish a run only while the same owner and fence token still hold the

@@ -21,10 +21,9 @@ mode="$(stat -c '%a' -- "$ENV_FILE")"
   exit 1
 }
 
-set -a
-# shellcheck disable=SC1090
-source "$ENV_FILE"
-set +a
+# shellcheck source=scripts/dev/lib/common.sh
+source "$ROOT_DIR/scripts/dev/lib/common.sh"
+load_env_file
 required=(
   AUTH_REDIS_PASSWORD ADMIN_REDIS_PASSWORD APP_REDIS_PASSWORD
   SUBMISSION_REDIS_PASSWORD SEARCH_REDIS_PASSWORD NOTIFICATION_REDIS_PASSWORD
@@ -42,8 +41,7 @@ export REDIS_ACL_DIR="$(mktemp -d "${TMPDIR:-/tmp}/ulticode-redis-drill-acl.XXXX
 export REDIS_ACL_FILE="$REDIS_ACL_DIR/users.acl"
 export COMPOSE_PROJECT_NAME="ulticode-redis-drill-$$"
 COMPOSE_OVERRIDE_FILE="$(mktemp "${TMPDIR:-/tmp}/ulticode-redis-drill-compose.XXXXXX.yml")"
-readonly REDIS_ACL_DIR REDIS_ACL_FILE COMPOSE_PROJECT_NAME COMPOSE_OVERRIDE_FILE
-chmod 755 "$REDIS_ACL_DIR"
+readonly COMPOSE_PROJECT_NAME COMPOSE_OVERRIDE_FILE
 cat >"$COMPOSE_OVERRIDE_FILE" <<'YAML'
 services:
   redis:
@@ -59,20 +57,20 @@ YAML
 cleanup() {
   local rc=$?
   trap - EXIT INT TERM
-  docker compose --project-directory "$ROOT_DIR" --env-file "$ENV_FILE" -f "$ROOT_DIR/docker/docker-compose.yml" \
-    -f "$COMPOSE_OVERRIDE_FILE" down -v --remove-orphans >/dev/null 2>&1 || true
+  devstack_compose_args cleanup_compose --base-only "$COMPOSE_OVERRIDE_FILE"
+  "${cleanup_compose[@]}" down -v --remove-orphans >/dev/null 2>&1 || true
   rm -rf -- "$REDIS_ACL_DIR" "$COMPOSE_OVERRIDE_FILE"
   exit "$rc"
 }
 trap cleanup EXIT INT TERM
 
-"$ROOT_DIR/docker/redis/generate-users-acl.sh" "$REDIS_ACL_FILE"
-compose=(docker compose --project-directory "$ROOT_DIR" --env-file "$ENV_FILE" -f "$ROOT_DIR/docker/docker-compose.yml" -f "$COMPOSE_OVERRIDE_FILE")
+materialize_redis_acl "$REDIS_ACL_DIR"
+devstack_compose_args compose --base-only "$COMPOSE_OVERRIDE_FILE"
 if ! "${compose[@]}" up -d redis >/dev/null; then
   echo "redis-role-fault-drill: BLOCKED_EXTERNAL (disposable Redis could not start)"
   exit 0
 fi
-container="$(docker compose --project-directory "$ROOT_DIR" --env-file "$ENV_FILE" -f "$ROOT_DIR/docker/docker-compose.yml" -f "$COMPOSE_OVERRIDE_FILE" ps -aq redis)"
+container="$("${compose[@]}" ps -aq redis)"
 [[ -n "$container" ]] || { echo "redis-role-fault-drill: BLOCKED_EXTERNAL (Redis container unavailable)"; exit 0; }
 redis() {
   local user="$1" password="$2"

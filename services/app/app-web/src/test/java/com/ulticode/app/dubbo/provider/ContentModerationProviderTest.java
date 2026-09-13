@@ -15,7 +15,7 @@ import com.ulticode.app.api.dto.ModerationApplyResultDTO;
 import com.ulticode.app.idempotency.CommandReceiptExecutor;
 import com.ulticode.app.idempotency.mapper.AppCommandReceiptMapper;
 import com.ulticode.app.security.AdminActorAuthorizer;
-import com.ulticode.modules.moderation.service.ContentModerationDomainService;
+import com.ulticode.modules.moderation.port.ContentModerationActionPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -40,7 +40,7 @@ import static org.mockito.Mockito.when;
 class ContentModerationProviderTest {
 
     @Mock
-    private ContentModerationDomainService domainService;
+    private ContentModerationActionPort contentModerationActionPort;
 
     @Mock
     private AppCommandReceiptMapper receiptMapper;
@@ -56,7 +56,7 @@ class ContentModerationProviderTest {
         when(receiptMapper.markSuccess(any(), any())).thenReturn(1);
         when(actorAuthorizer.isAuthorized(any())).thenReturn(true);
         provider = new ContentModerationProvider(
-                domainService,
+                contentModerationActionPort,
                 new CommandReceiptExecutor(receiptMapper, new ObjectMapper(),
                         java.time.Clock.systemUTC()),
                 actorAuthorizer);
@@ -82,7 +82,7 @@ class ContentModerationProviderTest {
 
         assertThat(result.success()).isFalse();
         assertThat(result.error().code()).isEqualTo(AppErrorCode.FORBIDDEN.code());
-        verify(domainService, never()).apply(any());
+        verify(contentModerationActionPort, never()).deleteContent(any(), any(), any());
         verify(receiptMapper, never()).insertClaim(any());
     }
 
@@ -99,7 +99,7 @@ class ContentModerationProviderTest {
 
         assertThat(result.success()).isFalse();
         assertThat(result.error().code()).isEqualTo(AppErrorCode.FORBIDDEN.code());
-        verify(domainService, never()).apply(any());
+        verify(contentModerationActionPort, never()).deleteContent(any(), any(), any());
         verify(receiptMapper, never()).insertClaim(any());
     }
 
@@ -108,11 +108,10 @@ class ContentModerationProviderTest {
     class DeleteAction {
 
         @Test
-        @DisplayName("forum_post DELETE delegates to domainService")
+        @DisplayName("forum_post DELETE delegates with the admin actor")
         void deleteForumPost() {
-            var expected = new ModerationApplyResultDTO(
-                    "case-1", "content-1", ModerationAction.DELETE, ContentLifecycleState.DELETED);
-            when(domainService.apply(any())).thenReturn(expected);
+            when(contentModerationActionPort.deleteContent(any(), any(), any()))
+                    .thenReturn(ContentLifecycleState.DELETED);
 
             ApplyModerationCommand command = cmd("forum_post", ModerationAction.DELETE);
             RpcResult<ModerationApplyResultDTO> result = provider.apply(command);
@@ -120,22 +119,23 @@ class ContentModerationProviderTest {
             assertThat(result.success()).isTrue();
             assertThat(result.data().appliedAction()).isEqualTo(ModerationAction.DELETE);
             assertThat(result.data().newContentState()).isEqualTo(ContentLifecycleState.DELETED);
-            verify(domainService).apply(command);
+            verify(contentModerationActionPort).deleteContent(
+                    command.contentType(), command.contentId(), command.actor().actorId());
         }
 
         @Test
-        @DisplayName("solution DELETE delegates to domainService")
+        @DisplayName("solution DELETE delegates with the admin actor")
         void deleteSolution() {
-            var expected = new ModerationApplyResultDTO(
-                    "case-1", "content-1", ModerationAction.DELETE, ContentLifecycleState.DELETED);
-            when(domainService.apply(any())).thenReturn(expected);
+            when(contentModerationActionPort.deleteContent(any(), any(), any()))
+                    .thenReturn(ContentLifecycleState.DELETED);
 
             ApplyModerationCommand command = cmd("solution", ModerationAction.DELETE);
             RpcResult<ModerationApplyResultDTO> result = provider.apply(command);
 
             assertThat(result.success()).isTrue();
             assertThat(result.data().newContentState()).isEqualTo(ContentLifecycleState.DELETED);
-            verify(domainService).apply(command);
+            verify(contentModerationActionPort).deleteContent(
+                    command.contentType(), command.contentId(), command.actor().actorId());
         }
     }
 
@@ -146,7 +146,7 @@ class ContentModerationProviderTest {
         @Test
         @DisplayName("BusinessException(NOT_FOUND) maps to CONTENT_NOT_FOUND")
         void mapsNotFound() {
-            when(domainService.apply(any()))
+            when(contentModerationActionPort.deleteContent(any(), any(), any()))
                     .thenThrow(new BusinessException(BaseErrorCode.NOT_FOUND, "not found"));
 
             RpcResult<ModerationApplyResultDTO> result = provider.apply(cmd("forum_post", ModerationAction.DELETE));
@@ -157,7 +157,7 @@ class ContentModerationProviderTest {
         @Test
         @DisplayName("BusinessException(BAD_REQUEST) maps to CONTENT_STATE_CONFLICT")
         void mapsBadRequest() {
-            when(domainService.apply(any()))
+            when(contentModerationActionPort.deleteContent(any(), any(), any()))
                     .thenThrow(new BusinessException(BaseErrorCode.BAD_REQUEST, "unsupported action"));
 
             RpcResult<ModerationApplyResultDTO> result = provider.apply(cmd("forum_post", ModerationAction.HIDE));

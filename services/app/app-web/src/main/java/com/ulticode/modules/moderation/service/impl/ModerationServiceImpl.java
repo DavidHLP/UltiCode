@@ -26,6 +26,7 @@ import com.ulticode.modules.moderation.mapper.ModerationQueueMapper;
 import com.ulticode.modules.moderation.mapper.ReportMapper;
 import com.ulticode.modules.moderation.mapper.UserBanMapper;
 import com.ulticode.modules.moderation.mapper.UserWarningMapper;
+import com.ulticode.modules.moderation.port.ContentModerationActionPort;
 import com.ulticode.modules.moderation.port.ContentModerationPort;
 import com.ulticode.modules.moderation.projection.ModerationProjection;
 import com.ulticode.modules.moderation.service.ModerationService;
@@ -87,6 +88,7 @@ public class ModerationServiceImpl implements ModerationService {
     private final UserBanMapper banMapper;
     private final ModerationAccountPort accountPort;
     private final ContentModerationPort contentModerationPort;
+    private final ContentModerationActionPort contentModerationActionPort;
     private final ModerationProjection moderationProjection;
     private final Clock clock;
     private final CurrentUserProvider currentUserProvider;
@@ -405,7 +407,12 @@ public class ModerationServiceImpl implements ModerationService {
      */
     private void applyAction(ActionRequest request, ModerationQueue item) {
         switch (request.action()) {
-            case DELETED, HIDDEN -> {
+            case DELETED -> {
+                contentModerationActionPort.deleteContent(
+                        item.getEntityType(), item.getEntityId(), request.moderatorId());
+                resolve(item, request.now());
+            }
+            case HIDDEN -> {
                 updateContentFlagStatus(item.getEntityType(), item.getEntityId(), true, request.note());
                 resolve(item, request.now());
             }

@@ -9,9 +9,9 @@ import "./assets/markdown.css";
 
 // Import PWA registration (this registers the service worker)
 import "@/pwa-register";
-import { initTheme, applyTypographyDensity } from "@/shared/theme/src";
-import { bootstrapApp } from "@/shared/app-bootstrap/src";
-import { setOnAuthFailure } from "@/shared/auth-core/src";
+import { initTheme, applyTypographyDensity } from "@ulticode/theme";
+import { bootstrapApp } from "@ulticode/app-bootstrap";
+import { setOnAuthFailure } from "@ulticode/auth-core";
 
 /**
  * Console application bootstrap.

@@ -98,13 +98,7 @@ const {
   { status: string; language: string },
   Parameters<typeof store.fetchSubmissions>[0]
 >({
-  store: {
-    data: computed(() => store.submissions),
-    total: computed(() => store.total),
-    isLoading: computed(() => store.loading),
-    error: computed(() => store.error),
-    fetch: (params) => store.fetchSubmissions(params),
-  },
+  store,
   filters: () => ({
     status: statusFilter.value,
     language: languageFilter.value,

@@ -7,18 +7,15 @@ import com.ulticode.auth.api.dto.AuthorizationMutationDTO;
 import com.ulticode.auth.api.service.AccountQueryService;
 import com.ulticode.auth.api.service.AuthorizationMutationService;
 import com.ulticode.common.annotation.Audited;
-import com.ulticode.common.auth.AdminActors;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.common.rpc.RpcPolicy;
 import com.ulticode.common.rpc.RpcResult;
-import com.ulticode.common.tracing.IdMetadata;
-import com.ulticode.common.tracing.TraceMetadata;
 import com.ulticode.common.util.AuditContext;
-import com.ulticode.common.util.TraceIdUtil;
 import com.ulticode.modules.admin.service.UserPermissionService;
+import com.ulticode.modules.admin.write.AdminWriteEnvelope;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.apache.dubbo.rpc.RpcException;
@@ -29,7 +26,6 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.UUID;
 
 /** Admin adapter for Auth-owned direct permission deltas. */
 @Slf4j
@@ -92,18 +88,14 @@ public class UserPermissionServiceImpl implements UserPermissionService {
             throw new BusinessException(
                     AdminErrorCode.UNAUTHORIZED, "Authenticated admin actor is required");
         }
-        String traceId = currentTraceId();
-        String stableKey = "auth-perm-" + traceId + "-" + id + "-"
-                + operation + "-" + action + "-" + resource;
-        String commandId = UUID.nameUUIDFromBytes(
-                stableKey.getBytes(java.nio.charset.StandardCharsets.UTF_8)).toString();
+        AdminWriteEnvelope envelope = AdminWriteEnvelope.envelope(
+                "auth-permission-" + operation.name().toLowerCase(), null, actorId,
+                currentUserProvider, operation.name().toLowerCase() + " permission");
         PermissionMutationCommand command = new PermissionMutationCommand(
-                commandId,
-                IdMetadata.of(stableKey, null),
-                new ActorDelegation(
-                        AdminActors.typeOf(currentUserProvider), actorId, actorId,
-                        operation.name().toLowerCase() + " permission"),
-                new TraceMetadata(traceId, null, null, null),
+                envelope.commandId(),
+                envelope.idempotency(),
+                envelope.authActor(),
+                envelope.trace(),
                 id, operation, action, resource,
                 expiresAt == null ? null : expiresAt.atOffset(java.time.ZoneOffset.UTC),
                 account.authzVersion(), operation.name().toLowerCase() + " permission");
@@ -193,11 +185,5 @@ public class UserPermissionServiceImpl implements UserPermissionService {
         if (value == null || value.isBlank()) {
             throw new BusinessException(AdminErrorCode.VALIDATION_FAILED, field + " is required");
         }
-    }
-
-    private static String currentTraceId() {
-        String traceId = TraceIdUtil.current();
-        return traceId == null || traceId.isBlank()
-                ? "t-" + UUID.randomUUID() : traceId;
     }
 }

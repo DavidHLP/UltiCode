@@ -6,8 +6,8 @@
 // shared packages. Single source of truth lives at
 // `shared/auth-core/src/utils.ts` — see that file's header comment.
 //
-// The `@/shared` alias in `management/vite.config.ts` resolves this path
-// to the file under `../shared/auth-core/src/utils.ts`.
+// The package entry keeps this app-local utility compatible with existing callers.
+// to the public `@ulticode/auth-core` entry.
 // ---------------------------------------------------------------------------
-export { cn } from '@/shared/auth-core/src/utils'
+export { cn } from '@ulticode/auth-core'
 export type { ClassValue } from 'clsx'

@@ -22,6 +22,11 @@ function readCsrfCookie(): string | null {
   return null;
 }
 
+/** Whether the browser has the exact client-readable session sentinel. */
+export function hasCsrfCookie(): boolean {
+  return readCsrfCookie() !== null;
+}
+
 /**
  * Factory function that creates an isolated CSRF token manager.
  * Call `getToken()` / `setToken()` / `clearToken()` on the returned object.

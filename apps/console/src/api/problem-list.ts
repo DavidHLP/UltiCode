@@ -1,5 +1,6 @@
 import { apiGet, apiPost, apiDelete, apiPatch } from "@/utils/request";
 import { mapProblem } from "@/api/problem";
+import { readPage } from "@/api/projection";
 import type {
   ProblemListStats,
   ProblemListId,
@@ -107,7 +108,7 @@ function mapCategory(input: unknown): ProblemListCategory {
     id: String(raw.id ?? ""),
     name: String(raw.name ?? ""),
     sortOrder: typeof raw.sortOrder === "number" ? raw.sortOrder : 0,
-    lists: Array.isArray(raw.lists) ? raw.lists.map(mapProblemList) : [],
+    lists: readPage<unknown>(raw.lists).items.map(mapProblemList),
     description:
       typeof raw.description === "string" ? raw.description : undefined,
     icon: typeof raw.icon === "string" ? raw.icon : undefined,
@@ -128,18 +129,10 @@ function mapUserProblemListsResponse(input: unknown): UserProblemListsResponse {
     categories?: unknown[];
   };
   return {
-    ownLists: Array.isArray(raw.ownLists)
-      ? raw.ownLists.map(mapProblemList)
-      : [],
-    savedLists: Array.isArray(raw.savedLists)
-      ? raw.savedLists.map(mapProblemList)
-      : [],
-    featuredLists: Array.isArray(raw.featuredLists)
-      ? raw.featuredLists.map(mapProblemList)
-      : [],
-    categories: Array.isArray(raw.categories)
-      ? raw.categories.map(mapCategory)
-      : [],
+    ownLists: readPage<unknown>(raw.ownLists).items.map(mapProblemList),
+    savedLists: readPage<unknown>(raw.savedLists).items.map(mapProblemList),
+    featuredLists: readPage<unknown>(raw.featuredLists).items.map(mapProblemList),
+    categories: readPage<unknown>(raw.categories).items.map(mapCategory),
   };
 }
 
@@ -220,7 +213,7 @@ export async function fetchProblemListOverview(
   const listData = mapProblemList(data);
   return {
     list: listData,
-    problems: Array.isArray(raw.problems) ? raw.problems.map(mapProblem) : [],
+    problems: readPage<unknown>(raw.problems).items.map(mapProblem),
     stats:
       raw.stats && typeof raw.stats === "object"
         ? (raw.stats as ProblemListStats)
@@ -236,16 +229,17 @@ export async function fetchProblemListOverview(
                 : null,
           }
         : undefined,
-    categories: Array.isArray(raw.categories)
-      ? raw.categories.map((item: unknown) => {
-          const c = item as BackendCategoryOption;
-          return {
-            id: String(c.id ?? ""),
-            name: String(c.name ?? ""),
-            sortOrder: typeof c.sortOrder === "number" ? c.sortOrder : 0,
-          };
-        })
-      : undefined,
+    categories:
+      raw.categories == null
+        ? undefined
+        : readPage<unknown>(raw.categories).items.map((item: unknown) => {
+            const c = item as BackendCategoryOption;
+            return {
+              id: String(c.id ?? ""),
+              name: String(c.name ?? ""),
+              sortOrder: typeof c.sortOrder === "number" ? c.sortOrder : 0,
+            };
+          }),
   };
 }
 
@@ -329,7 +323,7 @@ export async function getUserListsForProblem(
     return [];
   }
   const raw = data as { lists?: unknown[] };
-  const lists = Array.isArray(raw.lists) ? raw.lists : [];
+  const lists = readPage<unknown>(raw.lists).items;
   return lists.map((item) => {
     const rawItem = item as BackendProblemList & {
       hasProblem?: boolean;

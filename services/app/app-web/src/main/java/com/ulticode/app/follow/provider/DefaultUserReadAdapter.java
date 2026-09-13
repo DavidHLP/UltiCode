@@ -1,59 +1,31 @@
 package com.ulticode.app.follow.provider;
 
-import com.ulticode.app.userprofile.entity.UserProfile;
-import com.ulticode.app.userprofile.mapper.UserProfileMapper;
-import com.ulticode.auth.api.dto.UserIdentityDTO;
-import com.ulticode.auth.api.service.IdentityQueryService;
-import com.ulticode.common.rpc.RpcPolicy;
-import com.ulticode.common.rpc.RpcResult;
+import com.ulticode.app.user.port.UserDirectoryProjection;
+import com.ulticode.app.user.port.UserSummaryView;
 import com.ulticode.modules.follow.port.UserReadPort;
-import java.util.*;
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.stereotype.Component;
 
-/**
- * Adapter backing UserReadPort via UserProfileMapper and IdentityQueryService.
- */
-@Slf4j
+/** Adapter backing UserReadPort via the App-owned directory projection. */
 @Component
 @RequiredArgsConstructor
 public class DefaultUserReadAdapter implements UserReadPort {
 
-    private final UserProfileMapper userProfileMapper;
-
-    @DubboReference(group = "backend-auth", timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
-    private IdentityQueryService identityQueryService;
+    private final UserDirectoryProjection userDirectoryProjection;
 
     @Override
     public boolean exists(String userId) {
-        if (userId == null || userId.isBlank()) {
-            return false;
-        }
-        UserProfile profile = userProfileMapper.selectById(userId);
-        if (profile != null) {
-            return true;
-        }
-        if (identityQueryService != null) {
-            try {
-                RpcResult<UserIdentityDTO> res = identityQueryService.getIdentity(userId);
-                return res != null && res.success() && res.data() != null;
-            } catch (Exception e) {
-                log.warn("Identity service check failed for user {}: {}", userId, e.getMessage());
-            }
-        }
-        return false;
+        return userId != null && !userId.isBlank()
+                && userDirectoryProjection.selectById(userId) != null;
     }
 
     @Override
     public UserSummaryData findById(String userId) {
-        if (userId == null) {
-            return null;
-        }
-        Map<String, UserSummaryData> map = findByIds(List.of(userId));
-        return map.get(userId);
+        return toSummary(userDirectoryProjection.selectById(userId));
     }
 
     @Override
@@ -61,39 +33,16 @@ public class DefaultUserReadAdapter implements UserReadPort {
         if (userIds == null || userIds.isEmpty()) {
             return Map.of();
         }
-        Set<String> cleanIds = userIds.stream()
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
-        if (cleanIds.isEmpty()) {
-            return Map.of();
-        }
+        return userDirectoryProjection.selectByIds(userIds).entrySet().stream()
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        entry -> toSummary(entry.getValue()),
+                        (first, ignored) -> first,
+                        LinkedHashMap::new));
+    }
 
-        List<UserProfile> profiles = userProfileMapper.selectBatchIds(cleanIds);
-        Map<String, UserProfile> profileMap = profiles.stream()
-                .collect(Collectors.toMap(UserProfile::getAccountId, p -> p, (a, b) -> a));
-
-        Map<String, String> usernameMap = new HashMap<>();
-        if (identityQueryService != null) {
-            try {
-                RpcResult<List<UserIdentityDTO>> res = identityQueryService.batchGetIdentity(cleanIds);
-                if (res != null && res.success() && res.data() != null) {
-                    res.data().forEach(dto -> usernameMap.put(dto.accountId(), dto.username()));
-                }
-            } catch (Exception e) {
-                log.warn("Batch identity lookup failed for userIds: {}", e.getMessage());
-            }
-        }
-
-        Map<String, UserSummaryData> result = new HashMap<>();
-        for (String id : cleanIds) {
-            UserProfile profile = profileMap.get(id);
-            if (profile != null || usernameMap.containsKey(id)) {
-                String username = usernameMap.getOrDefault(id, profile != null ? profile.getName() : id);
-                String avatar = profile != null ? profile.getAvatar() : null;
-                String bio = profile != null ? profile.getBio() : null;
-                result.put(id, new UserSummaryData(id, username, avatar, bio));
-            }
-        }
-        return result;
+    private UserSummaryData toSummary(UserSummaryView view) {
+        return view == null ? null
+                : new UserSummaryData(view.id(), view.username(), view.avatar(), view.bio());
     }
 }

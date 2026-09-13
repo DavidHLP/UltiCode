@@ -44,6 +44,9 @@ business journey has been run.
 5. **Validation boundary:** `test.sh core` proves parent/config/readiness only.
    Enabled-owner wiring needs disposable Owner artifacts/infra; a Core business
    journey is unavailable until a business HTTP/WS seam exists.
+6. **Lifecycle boundary:** startup cancellation drains the child executor with
+   a fresh bounded timeout after `awaitStartup` returns or times out; time spent
+   waiting for startup must not consume the cleanup budget.
 
 ## Decision record
 

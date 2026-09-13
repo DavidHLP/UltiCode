@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Literal source/config assertions. Callers own ROOT_DIR and fail(), including
-# their suite-specific failure prefix. Sourcing this file has no runtime setup.
+# Literal source/config assertions. Callers own ROOT_DIR and source the shared
+# contract harness (or provide an equivalent fail()). Sourcing this file has no
+# runtime setup.
 
 contains() {
   local file="$1" text="$2"

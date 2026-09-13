@@ -19,11 +19,6 @@ public class LegacyProblemWriteAdapter implements ProblemWritePort {
     }
 
     @Override
-    public void updateById(Problem problem) {
-        problemMapper.updateById(problem);
-    }
-
-    @Override
     public int updateById(Problem problem, Long expectedVersion) {
         return problemMapper.updateByIdWithExpectedVersion(problem, expectedVersion);
     }
@@ -31,11 +26,6 @@ public class LegacyProblemWriteAdapter implements ProblemWritePort {
     @Override
     public int deleteById(Long id, Long expectedVersion) {
         return problemMapper.deleteByIdWithExpectedVersion(id, expectedVersion);
-    }
-
-    @Override
-    public void deleteById(Long id) {
-        problemMapper.deleteById(id);
     }
 
     @Override

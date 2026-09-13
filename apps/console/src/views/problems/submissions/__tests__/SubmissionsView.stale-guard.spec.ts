@@ -71,10 +71,13 @@ describe("SubmissionsView stale detail-response guard", () => {
     vi.clearAllMocks();
     routeState().query = {};
     vi.mocked(fetchSubmissionStatuses).mockResolvedValue([]);
-    vi.mocked(fetchProblemSubmissions).mockResolvedValue([
-      submission("a"),
-      submission("b"),
-    ]);
+    vi.mocked(fetchProblemSubmissions).mockResolvedValue({
+      items: [submission("a"), submission("b")],
+      total: 2,
+      page: 1,
+      pageSize: 10,
+      totalPages: 1,
+    });
   });
 
   const mountView = async (): Promise<VueWrapper> => {

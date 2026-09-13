@@ -5,7 +5,7 @@
  * at startup. The 401 interceptor in axiosCsrfInterceptor invokes this
  * when refresh itself fails.
  *
- * Decoupling is necessary: `shared/auth-core` cannot import Pinia stores
+ * Decoupling is necessary: `auth-core` cannot import Pinia stores
  * or vue-router, which live in the consuming app.
  *
  * Concurrent same-reason triggers (a fan-in of 401s, or a burst of

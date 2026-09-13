@@ -77,18 +77,18 @@ export const useContestRankingStore = defineStore("contestRanking", () => {
     try {
       if (type) {
         const result = await apiFetchUserContests(type);
-        if (type === "registered") registeredContests.value = result;
-        if (type === "participated") participatedContests.value = result;
-        if (type === "virtual") virtualContests.value = result;
+        if (type === "registered") registeredContests.value = result.items;
+        if (type === "participated") participatedContests.value = result.items;
+        if (type === "virtual") virtualContests.value = result.items;
       } else {
         const [registered, participated, virtual] = await Promise.all([
           apiFetchUserContests("registered"),
           apiFetchUserContests("participated"),
           apiFetchUserContests("virtual"),
         ]);
-        registeredContests.value = registered;
-        participatedContests.value = participated;
-        virtualContests.value = virtual;
+        registeredContests.value = registered.items;
+        participatedContests.value = participated.items;
+        virtualContests.value = virtual.items;
       }
     } catch (err) {
       error.value =

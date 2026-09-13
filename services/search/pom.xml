@@ -31,6 +31,10 @@
         </dependency>
         <dependency>
             <groupId>com.ulticode</groupId>
+            <artifactId>backend-integration-inbox</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.ulticode</groupId>
             <artifactId>backend-observability</artifactId>
         </dependency>
         <dependency>

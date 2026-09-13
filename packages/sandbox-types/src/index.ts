@@ -3,8 +3,8 @@
  * (LeetCode/HackerRank) sandbox contract.
  *
  * <p>These mirror the Java records and Python dataclasses the harness
- * emits. Frontends import from {@code @/shared/sandbox-types/src/...}
- * (resolved via the {@code shared} symlink in each frontend) so the
+ * emits. Frontends import from the public {@code @ulticode/sandbox-types/...}
+ * (resolved through the workspace package in each frontend) so the
  * submission flow stays aligned with the backend's DTOs.
  *
  * <p>Plan reference: {@code .claude/PRPs/plans/oj-sandbox-d-form-refactor.plan.md}

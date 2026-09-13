@@ -1,52 +1,15 @@
+import { normalizePublicProblem } from "@ulticode/domain-types";
 import type { Problem } from "@/types/problem";
+import type { PageResult } from "@ulticode/domain-types";
+import { readPage } from "@/api/projection";
 import { apiGet } from "@/utils/request";
-import { readField, readNumber } from "@/api/projection";
 
 // ============================================================================
 // Backend Response Interface (snake_case from Spring Boot)
 // ============================================================================
 
 function mapProblem(problem: unknown): Problem {
-  if (!problem || typeof problem !== "object") return problem as Problem;
-  const p = problem as Record<string, unknown>;
-  const acceptanceRate = readNumber(p, "acceptanceRate", "acceptance_rate");
-  const completedRaw = readField<unknown>(p, "completedTime", "completed_time");
-  const completedTime =
-    completedRaw === null || completedRaw === undefined
-      ? undefined
-      : completedRaw instanceof Date
-        ? completedRaw.toISOString()
-        : String(completedRaw);
-  // Convert id to number (bigint from backend comes as string in JSON)
-  const rawId = p.id;
-  const id =
-    typeof rawId === "number"
-      ? rawId
-      : typeof rawId === "string"
-        ? Number(rawId)
-        : rawId;
-  return {
-    ...p,
-    id,
-    acceptance_rate:
-      acceptanceRate ??
-      (typeof p.acceptance_rate === "number" ? p.acceptance_rate : undefined),
-    acceptanceRate,
-    isPremium: readField<boolean>(p, "isPremium", "is_premium"),
-    hasSolution: readField<boolean>(p, "hasSolution", "has_solution"),
-    completedTime,
-    tags: Array.isArray(p.tags)
-      ? p.tags
-          .map((tag) =>
-            typeof tag === "string" ? tag : (tag as { label?: string })?.label,
-          )
-          .filter((l): l is string => typeof l === "string")
-      : Array.isArray(p.tagRelations)
-        ? p.tagRelations
-            .map((r: { tag?: { label: string } }) => r.tag?.label)
-            .filter((l): l is string => typeof l === "string")
-        : [],
-  } as Problem;
+  return normalizePublicProblem(problem) as Problem;
 }
 
 export interface ProblemFilters {
@@ -60,19 +23,13 @@ export interface ProblemFilters {
   sortOrder?: string;
 }
 
-export interface PaginatedProblems {
-  items: Problem[];
-  total: number;
-  page: number;
-  pageSize: number;
-  totalPages: number;
-}
+export type PaginatedProblems = PageResult<Problem>;
 
 export async function fetchProblems(
   filters: ProblemFilters = {},
   page: number = 1,
   pageSize: number = 50,
-): Promise<PaginatedProblems> {
+): Promise<PageResult<Problem>> {
   const params = new URLSearchParams();
   params.append("page", String(page));
   params.append("pageSize", String(pageSize));
@@ -87,19 +44,11 @@ export async function fetchProblems(
   if (filters.sortBy) params.append("sortBy", filters.sortBy);
   if (filters.sortOrder) params.append("sortOrder", filters.sortOrder);
 
-  const response = await apiGet<{
-    items: unknown[];
-    total: number;
-    page: number;
-    pageSize: number;
-    totalPages: number;
-  }>(`/problems?${params.toString()}`);
+  const response = await apiGet<unknown>(`/problems?${params.toString()}`);
+  const pageResult = readPage<unknown>(response);
   return {
-    items: response.items.map(mapProblem),
-    total: response.total,
-    page: response.page,
-    pageSize: response.pageSize,
-    totalPages: response.totalPages,
+    ...pageResult,
+    items: pageResult.items.map(mapProblem),
   };
 }
 

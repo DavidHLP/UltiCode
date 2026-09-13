@@ -9,6 +9,7 @@ import {
   readField,
   readNumber,
   readString,
+  readPage,
 } from "@/api/projection";
 
 describe("readField / readNumber / readString / readBool", () => {
@@ -59,6 +60,61 @@ describe("readField / readNumber / readString / readBool", () => {
     expect(readBool({}, "x", "x_y")).toBe(false);
     expect(readBool({ x: 1 }, "x", "x_y", true)).toBe(true);
     expect(readBool({ x: "yes" }, "x", "x_y")).toBe(true);
+  });
+});
+
+describe("readPage", () => {
+  const first = { id: "first" };
+  const second = { id: "second" };
+
+  it("reads the shared PageResult object", () => {
+    expect(
+      readPage({
+        items: [first, second],
+        total: 7,
+        page: 2,
+        pageSize: 2,
+        totalPages: 4,
+      }),
+    ).toEqual({
+      items: [first, second],
+      total: 7,
+      page: 2,
+      pageSize: 2,
+      totalPages: 4,
+    });
+  });
+
+  it("wraps a bare array with canonical pagination defaults", () => {
+    expect(readPage([first, second])).toEqual({
+      items: [first, second],
+      total: 2,
+      page: 1,
+      pageSize: 2,
+      totalPages: 1,
+    });
+  });
+
+  it("derives missing metadata from a local page shape", () => {
+    expect(readPage({ items: [first], total: 5, page: 2, limit: 1 })).toEqual({
+      items: [first],
+      total: 5,
+      page: 2,
+      pageSize: 1,
+      totalPages: 5,
+    });
+  });
+
+  it("maps the forum posts envelope to items", () => {
+    expect(readPage({ posts: [first, second], total: 6, totalPages: 3 })).toEqual(
+      {
+        items: [first, second],
+        total: 6,
+        page: 1,
+        pageSize: 2,
+        totalPages: 3,
+      },
+    );
   });
 });
 

@@ -2,6 +2,7 @@ package com.ulticode.modules.submission.port;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.app.api.service.ContestSubmissionPort;
+import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.submission.config.FeatureFlagsProperties;
@@ -123,9 +124,9 @@ class DefaultSubmissionWritePortTest {
 
     @Test
     void missingFacts() {
-        assertThatThrownBy(() -> writer.submit("user-1", request("python")))
+        assertThatThrownBy(() -> writer.submit("user-1", request("python"), null))
                 .isInstanceOf(BusinessException.class)
-                .hasMessageContaining("facts snapshot");
+                .hasFieldOrPropertyWithValue("errorCode", BaseErrorCode.NOT_FOUND);
         verifyNoInteractions(submissionMapper, judgeOutboxMapper);
     }
 

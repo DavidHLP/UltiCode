@@ -1,8 +1,8 @@
 import { color as echartsColor, type EChartsOption } from "echarts";
 import {
-  readCssColor,
+  resolveChartPalette,
   SOLARIZED_PALETTE,
-  type SolarizedPaletteValue,
+  type ChartPalette,
 } from "@ulticode/design-system";
 export type DistributionChartUnit = "ms" | "MB";
 
@@ -31,48 +31,17 @@ interface Translator {
   (key: string, params?: Record<string, unknown>): string;
 }
 
-type ChartColorFallbacks = {
-  foreground: SolarizedPaletteValue;
-  border: SolarizedPaletteValue;
-  accent: SolarizedPaletteValue;
-  tooltipBackground?: SolarizedPaletteValue;
-  tooltipBorder?: SolarizedPaletteValue;
-};
-
-const FALLBACK_COLORS: Required<Omit<ChartCssColors, "mutedBar">> & ChartColorFallbacks = {
-  foreground: SOLARIZED_PALETTE.base01,
-  border: SOLARIZED_PALETTE.base1,
-  accent: SOLARIZED_PALETTE.blue,
-  tooltipBackground: SOLARIZED_PALETTE.base3,
-  tooltipBorder: SOLARIZED_PALETTE.base00,
-};
-
-export function readChartCssColors(
-  fallbacks: ChartColorFallbacks = FALLBACK_COLORS,
-): ChartCssColors {
-  const foreground = readCssColor("--foreground", fallbacks.foreground);
-  const border = readCssColor("--chart-grid-color", fallbacks.border);
-  const accent = readCssColor("--chart-series-1", fallbacks.accent);
-  const tooltipBackground = readCssColor(
-    "--chart-tooltip-background",
-    fallbacks.tooltipBackground ?? FALLBACK_COLORS.tooltipBackground,
-  );
-  const tooltipBorder = readCssColor(
-    "--chart-tooltip-border",
-    fallbacks.tooltipBorder ?? FALLBACK_COLORS.tooltipBorder,
-  );
-  const mutedBar = echartsColor.modifyAlpha(foreground, 0.32) || foreground;
+function chartColorsFromPalette(palette: ChartPalette): ChartCssColors {
+  const mutedBar = echartsColor.modifyAlpha(palette.muted, 0.32) || palette.muted;
   return {
-    foreground,
-    border,
-    accent,
+    foreground: palette.muted,
+    border: palette.border,
+    accent: palette.series1,
     mutedBar,
-    tooltipBackground,
-    tooltipBorder,
+    tooltipBackground: palette.background,
+    tooltipBorder: palette.tooltipBorder,
   };
 }
-
-export const DEFAULT_CHART_FALLBACKS: ChartColorFallbacks = FALLBACK_COLORS;
 
 export function buildDistributionChartOption(
   paired: DistributionChartPoint[],
@@ -80,8 +49,9 @@ export function buildDistributionChartOption(
   userIndex: number,
   unit: DistributionChartUnit,
   t: Translator = (key) => key,
+  palette: ChartPalette = resolveChartPalette(),
 ): EChartsOption {
-  const colors = readChartCssColors(FALLBACK_COLORS);
+  const colors = chartColorsFromPalette(palette);
   const safeTotal = Number.isFinite(total) ? total : 0;
 
   return {

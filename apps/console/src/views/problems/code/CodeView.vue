@@ -24,7 +24,7 @@ import { problemHooks } from "@/hooks/problem-hooks";
 import { useProblemEditorStore } from "@/stores/problemEditorStore";
 import { useEditorSettingsStore } from "@/stores/editorSettings";
 import { syncAppEditorTheme } from "@/composables/useEditorThemes";
-import { useColorTheme } from "@/shared/theme/src";
+import { useColorTheme } from "@ulticode/theme";
 import { usePreferredDark } from "@vueuse/core";
 import { useI18n } from "vue-i18n";
 

@@ -11,11 +11,9 @@ JUDGE_POM="$SERVICES_DIR/judge/pom.xml"
 APP_MAIN="$SERVICES_DIR/app/app-web/src/main/java"
 RUNTIME_MAIN="$SERVICES_DIR/judge-runtime/src/main/java"
 MAVEN_WRAPPER="$SERVICES_DIR/mvnw"
-
-fail() {
-  echo "app-judge-runtime-dependency-contract: FAIL: $*" >&2
-  exit 1
-}
+CONTRACT_FAILURE_PREFIX="app-judge-runtime-dependency-contract: FAIL"
+# shellcheck source=scripts/test/lib/contract-harness.sh
+source "$ROOT_DIR/scripts/test/lib/contract-harness.sh"
 
 for required_path in "$APP_POM" "$JUDGE_POM" "$APP_MAIN" "$RUNTIME_MAIN" "$MAVEN_WRAPPER"; do
   [[ -e "$required_path" ]] || fail "missing required path: $required_path"

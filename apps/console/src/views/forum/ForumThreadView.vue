@@ -23,7 +23,7 @@ import ReportDialog from "@/components/ReportDialog.vue";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useForumThread } from "@/composables/useForumThread";
 import { useContentNavigation } from "@/composables/useContentNavigation";
-import { extractHeadings, slugifyHeading } from "@/shared/markdown-utils/src";
+import { extractHeadings, slugifyHeading } from "@ulticode/markdown-utils";
 
 const { t } = useI18n();
 

@@ -16,23 +16,6 @@ RUN corepack enable && corepack prepare pnpm@9 --activate && \
 # Copy source code
 COPY apps/management ./apps/management
 
-# Mirror the monorepo layout: management/ and shared/ are siblings. Locally
-# management/src/shared is a symlink to ../../shared, which `COPY` cannot
-# preserve (it follows symlinks and bakes shared/ into src/shared/). Place
-# packages at the repo root and recreate the symlink so the app resolves
-# shared package imports through the current monorepo layout.
-COPY packages ./packages
-RUN rm -rf /app/apps/management/src/shared && \
-    ln -sfn /app/packages /app/apps/management/src/shared
-# Give the shared/ packages a node_modules so their bare imports resolve from
-# management's installed deps. The shared packages ship source only (peer deps
-# provided by the host app), so in Docker they have no node_modules of their
-# own — vue-tsc (type-check), @vue/compiler-sfc (.vue compile), and
-# vite/rolldown all fail to resolve vue / reka-ui / vue-router / vue-i18n /
-# clsx / etc. Symlinking shared/node_modules → management/node_modules fixes
-# all three resolution paths via Node's standard upward node_modules lookup.
-RUN ln -sfn /app/apps/management/node_modules /app/packages/node_modules
-
 # Build application
 WORKDIR /app/apps/management
 ARG VITE_API_BASE_URL=/api

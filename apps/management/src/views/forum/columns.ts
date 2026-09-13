@@ -16,6 +16,7 @@ import { createEntityActionsMenu } from '@/components/table/entityActions'
 import { badge } from '@/components/ui/terminal'
 import type { ForumPost } from '@/api/admin/forum'
 import { formatDate } from '@/lib/format/date'
+import type { ForumPermissionMap } from '@/composables/useForumPermissions'
 
 export interface ForumPostActions {
   viewPostDetails: (post: ForumPost) => void
@@ -47,7 +48,7 @@ function renderPinLockBadge(post: ForumPost, t: (key: string) => string) {
 export function createColumns(
   t: (key: string) => string,
   actions: ForumPostActions,
-  canModerate: () => boolean,
+  can: ForumPermissionMap,
 ): ColumnDef<ForumPost>[] {
   return [
     ...createSelectionColumn<ForumPost>(t, {
@@ -156,7 +157,7 @@ export function createColumns(
         ),
       cell: ({ row }) => {
         const post = row.original
-        const canModerateRow = canModerate()
+        const canModerateRow = can.moderatePost.value
         return createEntityActionsMenu(
           [
             {

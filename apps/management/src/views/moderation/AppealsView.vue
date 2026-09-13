@@ -103,13 +103,7 @@ const {
   total,
   loadEntities: loadAppeals,
 } = useDataTable<Appeal, { status: AppealStatus | 'all' }, QueryAppealsParams>({
-  store: {
-    data: computed(() => store.appeals),
-    total: computed(() => store.appealsTotal),
-    isLoading: computed(() => store.appealsLoading),
-    error: computed(() => store.appealsError),
-    fetch: (params) => store.fetchAppeals(params),
-  },
+  store: store.appealsCollection,
   filters: () => ({ status: statusFilter.value }),
   transformParams: ({ filters, page, limit }) => ({
     page,

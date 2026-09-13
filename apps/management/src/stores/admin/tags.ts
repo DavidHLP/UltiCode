@@ -1,5 +1,4 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
 import {
   tagsApi,
   type Tag,
@@ -8,27 +7,20 @@ import {
   type UpdateTagDto,
   TagType,
 } from '@/api/admin/tags'
+import { createCollectionSlice } from '@/stores/createCollectionSlice'
 
 export const useTagsStore = defineStore('admin-tags', () => {
-  const tags = ref<Tag[]>([])
-  const total = ref(0)
-  const isLoading = ref(false)
-  const error = ref<string | null>(null)
-
-  async function fetchTags(query: TagQuery) {
-    isLoading.value = true
-    error.value = null
-    try {
+  const collection = createCollectionSlice<Tag, TagQuery>({
+    load: async (query = {}) => {
       const response = await tagsApi.getTags(query)
-      tags.value = response.data
-      total.value = response.total
-    } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Failed to fetch tags'
-      console.error(err)
-    } finally {
-      isLoading.value = false
-    }
-  }
+      return { items: response.data, total: response.total }
+    },
+  })
+  const tags = collection.items
+  const total = collection.total
+  const isLoading = collection.isLoading
+  const error = collection.error
+  const fetchTags = collection.fetch
 
   async function fetchTag(id: string, type: TagType) {
     isLoading.value = true
@@ -107,6 +99,8 @@ export const useTagsStore = defineStore('admin-tags', () => {
   }
 
   return {
+    items: collection.items,
+    fetch: collection.fetch,
     tags,
     total,
     isLoading,

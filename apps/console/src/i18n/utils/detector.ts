@@ -6,7 +6,7 @@ import {
 import {
   detectBrowserLocale as detectSharedBrowserLocale,
   resolveInitialLocale,
-} from "@/shared/locale-preference/src";
+} from "@ulticode/locale-preference";
 
 /**
  * Detect browser locale and match to supported locales

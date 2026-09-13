@@ -143,3 +143,8 @@ export type {
   SolarizedPaletteKey,
   SolarizedPaletteValue,
 } from "./palette";
+export {
+  resolveChartPalette,
+  useChartPalette,
+} from "./chartPalette";
+export type { ChartPalette } from "./chartPalette";

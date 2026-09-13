@@ -45,11 +45,19 @@ if ! [[ -v __ULTICODE_DOCKER_SOURCED ]]; then
 
   running_compose_service_container() {
     local service="$1"
+    command -v docker >/dev/null 2>&1 || return 0
     docker ps -q --filter "label=com.docker.compose.service=$service" | sed -n '1p'
   }
 
   container_running() {
     [[ "$(docker inspect -f '{{.State.Running}}' "$1" 2>/dev/null || true)" == "true" ]]
+  }
+
+  container_health_status() {
+    local container="$1" status
+    status="$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' \
+      "$container" 2>/dev/null || true)"
+    printf '%s\n' "${status:-unknown}"
   }
 
   await_container_health() {
@@ -58,7 +66,7 @@ if ! [[ -v __ULTICODE_DOCKER_SOURCED ]]; then
     local interval_seconds="${3:-2}"
     local i status
     for ((i = 1; i <= attempts; i++)); do
-      status="$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$container" 2>/dev/null || true)"
+      status="$(container_health_status "$container")"
       if [[ "$status" == "healthy" || "$status" == "running" ]]; then
         return 0
       fi
@@ -68,6 +76,6 @@ if ! [[ -v __ULTICODE_DOCKER_SOURCED ]]; then
     return 1
   }
 
-  readonly -f mysql_container_targets_configured_host compose_service_container running_compose_service_container container_running await_container_health
+  readonly -f mysql_container_targets_configured_host compose_service_container running_compose_service_container container_running container_health_status await_container_health
 
 fi

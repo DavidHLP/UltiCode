@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useTheme } from '@/shared/theme/src'
+import { useTheme } from '@ulticode/theme'
 import { useI18n } from 'vue-i18n'
 import {
   DropdownMenu,

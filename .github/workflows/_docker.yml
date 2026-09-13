@@ -27,20 +27,10 @@ jobs:
             || { echo "::error::.github/services-matrix.json must be a non-empty array"; exit 1; }
           echo "matrix=$(jq -c . .github/services-matrix.json)" >> "$GITHUB_OUTPUT"
 
-      - name: Validate immutable supply-chain contract
-        run: bash scripts/test/supply-chain-contract.sh
-
-      - name: Validate observability control plane
-        run: bash scripts/test/observability-contract.sh
-
-      - name: Validate deployment integrity control plane
-        run: bash scripts/test/deployment-integrity-contract.sh
-      - name: Validate Dubbo mTLS identity policy
-        run: bash scripts/test/dubbo-mtls-contract.sh
-      - name: Validate service network reachability policy
-        run: bash scripts/test/network-reachability-contract.sh
-      - name: Validate Judge sandbox isolation policy
-        run: bash scripts/test/judge-sandbox-contract.sh
+      - name: Run registry-derived architecture contracts
+        env:
+          ULTI_STATIC_ONLY: '1'
+        run: bash scripts/dev/architecture-contract-test.sh
 
   docker-verify:
     name: Docker Build (${{ matrix.service.name }})

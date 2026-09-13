@@ -24,11 +24,14 @@
   - `Problem` entity（纯注解，无 MyBatis 运行时）、`CreateProblemDTO/UpdateProblemDTO`
   - 纯领域服务 `ProblemAdministrationDomainService` 及其实现 `ProblemAdministrationDomainServiceImpl`
   - 端口 `ProblemDetailDomainPort`, `ProblemVersionDomainPort` 等
-- `services/app/modules/moderation`（`backend-moderation-domain`）同理提供 `ContentModerationDomainService`
-- `app-web` 通过 `AppDomainServiceConfig` 将领域服务注册为 Spring Bean，无 pass-through：
+- `services/app/modules/moderation`（`backend-moderation-domain`）提供 App 私有的
+  `ContentModerationActionPort`，由 `app-web` 的 owner-port adapter 实现；
+  `ContentModerationProvider` 和 `ModerationServiceImpl` 共用这一删除入口。
+- `app-web` 仅通过 `AppDomainServiceConfig` 注册 Problem 领域服务；Moderation 不再有
+  pass-through domain service 或额外 Bean：
 
 ```java
-// services/app/app-web/src/main/java/com/ulticode/app/config/AppDomainServiceConfig.java:42-47
+// services/app/app-web/src/main/java/com/ulticode/app/config/AppDomainServiceConfig.java:32-39
 @Bean
 public ProblemAdministrationDomainService problemAdministrationDomainService(...) {
   return new ProblemAdministrationDomainServiceImpl(writePort, detailPort, versionPort, clock);
@@ -46,19 +49,20 @@ private final ProblemAdministrationDomainService domainService;
 
 ## 满足验收
 
-- [x] Caller 只跨一个小接口（Provider → DomainService / DomainService → WritePort）
-- [x] Tests 通过该接口验证：`services/app/modules/problem/src/test`, `services/app/modules/moderation/src/test`, `ProblemAdministrationProviderTest`, `ContentModerationProviderTest`
+- [x] Caller 只跨一个小接口（Problem Provider → DomainService；Moderation Provider/Service → ActionPort）
+- [x] Tests 通过该接口验证：`services/app/modules/problem/src/test`, `ProblemAdministrationProviderTest`, `ContentModerationProviderTest`, `DefaultContentModerationAdapterTest`, `ModerationServiceImplTest`
 - [x] HTTP/Dubbo contract 行为不变：Provider 仍暴露 `app-api` 契约，无新增 Remote DTO shape
-- [x] 旧 pass-through 已删除：无重复 `ProblemServiceImpl` 写入实现
+- [x] 旧 pass-through 已删除：无重复 `ProblemServiceImpl` 写入实现，Moderation 也不再保留透传领域服务
 
 ## Before/after 依赖图
 
 ```
 Before: app-web: controller → serviceImpl (contains domain logic) → mapper → entity
 After:  backend-problem-domain: entity + DTO + ProblemAdministrationDomainService (pure)
-        backend-moderation-domain: ContentModerationDomainService (pure)
+        backend-moderation-domain: ContentModerationActionPort (private seam)
         app-web: controller → ProblemServiceImpl (orchestration) → DomainService → PortAdapter → mapper
-               + Provider → DomainService (single seam)
+               + Problem Provider → DomainService (single seam)
+               + ModerationService / ContentModerationProvider → ActionPort → owner ports
 ```
 
 `services/app/pom.xml:18-29` 父 POM 聚合 `backend-problem-domain`, `backend-contest-domain`, `backend-moderation-domain`, `backend-app-web`；`app-web` 编译依赖三者。`backend-judge-runtime` 不进入 Problem 领域链。

@@ -22,6 +22,11 @@ public class ProblemOwnerProvider implements ProblemOwnerPort {
     }
 
     @Override
+    public void deleteProblem(String id, String deletedBy) {
+        delegate.deleteProblem(id, deletedBy);
+    }
+
+    @Override
     public void updateModerationFlag(String id, boolean isFlagged, String reason) {
         delegate.updateModerationFlag(id, isFlagged, reason);
     }

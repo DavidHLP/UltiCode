@@ -17,8 +17,10 @@ import com.ulticode.modules.contest.mapper.ContestProblemMapper;
 import com.ulticode.modules.contest.projection.ContestProjection;
 import com.ulticode.modules.contest.service.ContestLifecycleService;
 import com.ulticode.submission.api.dto.CreateSubmissionDTO;
+import com.ulticode.submission.api.dto.SubmissionFactsSnapshot;
 import com.ulticode.submission.api.dto.SubmissionVO;
 import com.ulticode.submission.api.service.SubmissionIntakePort;
+import com.ulticode.modules.submission.port.SubmissionFactsCapture;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -64,6 +66,7 @@ class ContestServiceImplTest {
     @Mock private ContestProblemMapper contestProblemMapper;
     @Mock private ContestParticipantMapper participantMapper;
     @Mock private SubmissionIntakePort submissionWritePort;
+    @Mock private SubmissionFactsCapture submissionFactsCapture;
     @Mock private ContestLifecycleService contestLifecycleService;
     @Mock private ContestProjection contestProjection;
     @Mock private com.ulticode.modules.contest.clock.ContestClock contestClock;
@@ -85,6 +88,7 @@ class ContestServiceImplTest {
                 contestProblemMapper,
                 participantMapper,
                 submissionWritePort,
+                submissionFactsCapture,
                 contestLifecycleService,
                 contestProjection,
                 contestClock,
@@ -187,7 +191,9 @@ class ContestServiceImplTest {
                     .thenReturn(contestProblem);
             when(participantMapper.findRealForSubmissionAdmission("contest-1", REGULAR_USER_ID))
                     .thenReturn(java.util.Optional.of(participant));
-            when(submissionWritePort.submitContest(REGULAR_USER_ID, dto)).thenReturn(submissionVO);
+            SubmissionFactsSnapshot facts = facts(REGULAR_USER_ID, 42L);
+            when(submissionFactsCapture.capture(REGULAR_USER_ID, dto)).thenReturn(facts);
+            when(submissionWritePort.submitContest(REGULAR_USER_ID, dto, facts)).thenReturn(submissionVO);
 
             SubmissionVO result = contestService.submitContestProblem(
                     "contest-1", 42L, REGULAR_USER_ID, dto);
@@ -232,7 +238,7 @@ class ContestServiceImplTest {
                     .isInstanceOf(BusinessException.class)
                     .hasFieldOrPropertyWithValue("errorCode", ContestErrorCode.CONTEST_NOT_STARTED);
 
-            verify(submissionWritePort, never()).submitContest(any(), any());
+            verify(submissionWritePort, never()).submitContest(any(), any(), any());
         }
 
         /** R6.2 / F-07: virtual sessions are rejected once the participant
@@ -283,7 +289,7 @@ class ContestServiceImplTest {
                     .isInstanceOf(BusinessException.class)
                     .hasFieldOrPropertyWithValue("errorCode", ContestErrorCode.CONTEST_ENDED);
 
-            verify(submissionWritePort, never()).submitContest(any(), any());
+            verify(submissionWritePort, never()).submitContest(any(), any(), any());
         }
 
         /** R6.2 / F-07: virtual session within duration is accepted.
@@ -328,7 +334,9 @@ class ContestServiceImplTest {
             dto.setVirtualSessionId("session-1");
             when(contestClock.effectiveEndTime(any(), any()))
                     .thenReturn(java.util.Optional.of(LocalDateTime.of(2026, 1, 1, 0, 0)));
-            when(submissionWritePort.submitContest(REGULAR_USER_ID, dto)).thenReturn(submissionVO);
+            SubmissionFactsSnapshot facts = facts(REGULAR_USER_ID, 42L);
+            when(submissionFactsCapture.capture(REGULAR_USER_ID, dto)).thenReturn(facts);
+            when(submissionWritePort.submitContest(REGULAR_USER_ID, dto, facts)).thenReturn(submissionVO);
 
             SubmissionVO result = contestService.submitContestProblem(
                     "contest-1", 42L, REGULAR_USER_ID, dto);
@@ -363,5 +371,13 @@ class ContestServiceImplTest {
                     .hasFieldOrPropertyWithValue("errorCode", BaseErrorCode.BAD_REQUEST);
             verify(contestProblemMapper, never()).deleteById("contest-problem-1");
         }
+    }
+
+    private static SubmissionFactsSnapshot facts(String userId, Long problemId) {
+        return new SubmissionFactsSnapshot(
+                userId, true,
+                new SubmissionFactsSnapshot.ProblemFacts(
+                        problemId, "Two Sum", "two-sum", 2, 256, "print(0)"),
+                1L, SubmissionFactsSnapshot.CURRENT_SCHEMA_VERSION);
     }
 }

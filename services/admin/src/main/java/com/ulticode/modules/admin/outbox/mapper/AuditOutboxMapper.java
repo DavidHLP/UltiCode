@@ -17,17 +17,30 @@ import java.util.List;
 public interface AuditOutboxMapper extends BaseMapper<AuditOutboxRecord> {
 
     /**
-     * Select pending candidates. The state transition below is the concurrency claim.
-     */
-    @Select("SELECT * FROM audit_outbox WHERE state = 'PENDING' ORDER BY created_at LIMIT #{batchSize}")
-    List<AuditOutboxRecord> claimPending(@Param("batchSize") int batchSize);
-
-    /**
-     * Atomically claim one candidate so only one dispatcher processes it.
+     * Atomically claim a bounded batch so only one dispatcher processes each row.
      * Sets lease timestamp + owner for crash recovery and fencing.
      */
-    @Update("UPDATE audit_outbox SET state = 'PROCESSING', claimed_at = NOW(3), claim_owner = #{claimOwner} WHERE id = #{id} AND state = 'PENDING'")
-    int claim(@Param("id") String id, @Param("claimOwner") String claimOwner);
+    @Update("""
+        UPDATE audit_outbox
+        SET state = 'PROCESSING', claimed_at = NOW(3), claim_owner = #{claimOwner}
+        WHERE state = 'PENDING'
+          AND id IN (
+            SELECT id FROM (
+              SELECT id FROM audit_outbox
+              WHERE state = 'PENDING'
+              ORDER BY created_at, id
+              LIMIT #{limit}
+            ) AS claimable
+          )
+        """)
+    int claimPending(@Param("claimOwner") String claimOwner, @Param("limit") int limit);
+
+    @Select("""
+        SELECT * FROM audit_outbox
+        WHERE state = 'PROCESSING' AND claim_owner = #{claimOwner}
+        ORDER BY created_at, id
+        """)
+    List<AuditOutboxRecord> selectClaimed(@Param("claimOwner") String claimOwner);
 
     /**
      * Reclaim PROCESSING rows whose lease expired (or was never set).

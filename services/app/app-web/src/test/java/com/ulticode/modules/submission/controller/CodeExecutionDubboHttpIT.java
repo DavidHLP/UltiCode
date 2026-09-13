@@ -6,6 +6,7 @@ import com.ulticode.app.error.ProblemWebExceptionHandler;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.judge.provider.CodeExecutionProvider;
 import com.ulticode.modules.submission.port.adapter.RemoteCodeExecutionPort;
+import com.ulticode.modules.submission.port.SubmissionFactsCapture;
 import com.ulticode.modules.submission.service.CodeExecutionService;
 import com.ulticode.submission.api.service.SubmissionIntakePort;
 import com.ulticode.submission.api.service.SubmissionUserQueryPort;
@@ -95,6 +96,7 @@ class CodeExecutionDubboHttpIT {
         ProblemSubmissionController controller = new ProblemSubmissionController(
                 mock(SubmissionUserQueryPort.class),
                 mock(SubmissionIntakePort.class),
+                mock(SubmissionFactsCapture.class),
                 remote,
                 mock(Validator.class),
                 mock(CurrentUserProvider.class));

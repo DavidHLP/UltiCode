@@ -5,11 +5,9 @@ set -euo pipefail
 # singleton callers and that the real MySQL runner tests are available.
 
 ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
-
-fail() {
-  echo "fenced-lease-contract: FAIL: $*" >&2
-  exit 1
-}
+CONTRACT_FAILURE_PREFIX="fenced-lease-contract: FAIL"
+# shellcheck source=scripts/test/lib/contract-harness.sh
+source "$ROOT_DIR/scripts/test/lib/contract-harness.sh"
 
 # shellcheck source=scripts/test/lib/assertions.sh
 source "$ROOT_DIR/scripts/test/lib/assertions.sh"

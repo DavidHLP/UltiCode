@@ -1,7 +1,6 @@
 package com.ulticode.modules.admin.service.impl;
 
 import com.ulticode.admin.error.AdminErrorCode;
-import com.ulticode.common.command.ActorDelegation;
 import com.ulticode.app.api.command.ApplyModerationCommand;
 import com.ulticode.app.api.command.ApplyModerationCommand.ModerationAction;
 import com.ulticode.app.api.dto.AdminForumPostRowDTO;
@@ -10,13 +9,9 @@ import com.ulticode.app.api.service.AdminForumReadPort;
 import com.ulticode.app.api.service.ContentModerationService;
 import com.ulticode.common.audit.AuditRecorder;
 import com.ulticode.common.audit.AuditVocabulary;
-import com.ulticode.common.auth.AdminActors;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.rpc.RpcResult;
-import com.ulticode.common.tracing.IdMetadata;
-import com.ulticode.common.tracing.TraceMetadata;
-import com.ulticode.common.util.TraceIdUtil;
 import com.ulticode.modules.admin.bulk.AdminBulkExecutor;
 import com.ulticode.modules.admin.dto.AuditLogQueryDTO;
 import com.ulticode.modules.admin.dto.AuditLogVO;
@@ -26,6 +21,8 @@ import com.ulticode.modules.admin.policy.ForumPostFieldToggle;
 import com.ulticode.modules.admin.policy.ForumPostFieldToggle.FieldToggle;
 import com.ulticode.modules.admin.service.AdminForumService;
 import com.ulticode.modules.admin.service.AuditService;
+import com.ulticode.modules.admin.write.AdminOwnerErrorMapper;
+import com.ulticode.modules.admin.write.AdminWriteEnvelope;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
@@ -106,9 +103,9 @@ public class AdminForumServiceImpl implements AdminForumService {
             throw new BusinessException(AdminErrorCode.NOT_FOUND);
         }
         String performerId = currentUserProvider.getCurrentUserId();
-        if (performerId == null || performerId.isBlank()) {
-            throw new BusinessException(AdminErrorCode.UNAUTHORIZED, "Authenticated admin actor is required");
-        }
+        AdminWriteEnvelope envelope = AdminWriteEnvelope.envelope(
+                "forum-post-delete", null, performerId, currentUserProvider,
+                "admin forum delete");
         Map<String, Object> oldValues = new HashMap<>();
         oldValues.put("isDeleted", false);
         oldValues.put("deletedAt", post.getDeletedAt());
@@ -116,19 +113,15 @@ public class AdminForumServiceImpl implements AdminForumService {
         newValues.put("isDeleted", true);
         newValues.put("deletedAt", LocalDateTime.now(clock));
         newValues.put("deletedBy", performerId);
-        String actorId = performerId;
         String caseId = UUID.randomUUID().toString();
         RpcResult<ModerationApplyResultDTO> result = contentModerationService.apply(
                 new ApplyModerationCommand(
-                        UUID.randomUUID().toString(), IdMetadata.mint(),
-                        new ActorDelegation(
-                                AdminActors.typeOf(currentUserProvider),
-                                actorId, actorId, "admin forum delete"),
-                        currentTrace(),
+                        envelope.commandId(), envelope.idempotency(), envelope.actor(), envelope.trace(),
                         caseId, id, "forum_post", ModerationAction.DELETE,
                         "admin forum post soft-delete"));
         if (result == null || !result.success()) {
-            throw mapError(result);
+            throw AdminOwnerErrorMapper.mapOwnerError(
+                    AdminOwnerErrorMapper.Owner.FORUM_POST, result);
         }
         auditRecorder.recordForUser(
                 AuditVocabulary.DELETE_FORUM_POST,
@@ -186,31 +179,4 @@ public class AdminForumServiceImpl implements AdminForumService {
         return auditService.getAuditLogs(query).getItems();
     }
 
-    private static TraceMetadata currentTrace() {
-        String reqId = TraceIdUtil.current();
-        if (reqId == null || reqId.isBlank()) {
-            reqId = "t-" + UUID.randomUUID();
-        }
-        return new TraceMetadata(reqId, null, null, null);
-    }
-
-    private static BusinessException mapError(RpcResult<?> result) {
-        if (result == null) {
-            return new BusinessException(AdminErrorCode.UNKNOWN_ERROR,
-                    "RPC result is null (transport failure)");
-        }
-        var err = result.error();
-        if (err == null) {
-            return new BusinessException(AdminErrorCode.UNKNOWN_ERROR,
-                    "RPC failed without error payload");
-        }
-        return switch (err.code()) {
-            case 40000 -> new BusinessException(AdminErrorCode.BAD_REQUEST, err.message());
-            case 40100 -> new BusinessException(AdminErrorCode.UNAUTHORIZED, err.message());
-            case 40300 -> new BusinessException(AdminErrorCode.FORBIDDEN, err.message());
-            case 40401 -> new BusinessException(AdminErrorCode.NOT_FOUND, err.message());
-            case 40902 -> new BusinessException(AdminErrorCode.CONFLICT, err.message());
-            default -> new BusinessException(AdminErrorCode.UNKNOWN_ERROR, err.message());
-        };
-    }
 }

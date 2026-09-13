@@ -89,18 +89,6 @@ public class DefaultSubmissionWritePort implements SubmissionIntakePort, Submiss
     );
 
     @Override
-    public SubmissionVO submit(String userId, CreateSubmissionDTO createDTO) {
-        throw new BusinessException(BaseErrorCode.BAD_REQUEST,
-                "Submission facts snapshot is required");
-    }
-
-    @Override
-    public SubmissionVO submitContest(String userId, CreateSubmissionDTO createDTO) {
-        throw new BusinessException(BaseErrorCode.BAD_REQUEST,
-                "Submission facts snapshot is required");
-    }
-
-    @Override
     @Transactional
     public SubmissionVO submit(String userId, CreateSubmissionDTO createDTO,
                                SubmissionFactsSnapshot facts) {

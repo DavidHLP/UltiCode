@@ -1,9 +1,7 @@
 package com.ulticode.modules.event.outbox;
 
-import lombok.RequiredArgsConstructor;
-import com.ulticode.common.lifecycle.DrainGate;
+import com.ulticode.common.outbox.OutboxDispatcher;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.connection.stream.RecordId;
 import org.springframework.data.redis.connection.stream.StreamRecords;
 import org.springframework.data.redis.connection.stream.MapRecord;
@@ -16,7 +14,6 @@ import org.springframework.stereotype.Component;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 /**
  * Dispatcher for the {@code integration_outbox} table (P6-OUTBOX-001).
  *
@@ -28,21 +25,69 @@ import java.util.UUID;
  * <p>Uses a bounded claim/dispatch/confirm cycle and publishes to Redis Streams
  * outside the database claim transaction.
  */
-@Slf4j
 @Component
-@RequiredArgsConstructor
 public class IntegrationOutboxDispatcher {
 
     private static final String STREAM_KEY = "stream:integration";
-    private static final int BATCH_SIZE = 50;
-    private static final int MAX_ATTEMPTS = 5;
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-
-    private final String claimOwner = "integration-outbox-" + UUID.randomUUID();
 
     private final IntegrationOutboxMapper outboxMapper;
     private final StringRedisTemplate redisTemplate;
-    private final DrainGate drainGate = new DrainGate();
+    private final OutboxDispatcher<IntegrationOutboxRecord> dispatcher;
+
+    public IntegrationOutboxDispatcher(
+            IntegrationOutboxMapper outboxMapper,
+            StringRedisTemplate redisTemplate) {
+        this.outboxMapper = outboxMapper;
+        this.redisTemplate = redisTemplate;
+        this.dispatcher = new OutboxDispatcher<>(
+                "integration-outbox",
+                new OutboxDispatcher.Adapter<>() {
+                    @Override
+                    public void reclaimStaleClaimed() {
+                        IntegrationOutboxDispatcher.this.outboxMapper.reclaimStaleClaimed();
+                    }
+
+                    @Override
+                    public int claimPending(String claimOwner, int limit) {
+                        return IntegrationOutboxDispatcher.this.outboxMapper.claimPending(claimOwner, limit);
+                    }
+
+                    @Override
+                    public List<IntegrationOutboxRecord> selectClaimed(String claimOwner) {
+                        return IntegrationOutboxDispatcher.this.outboxMapper.selectClaimed(claimOwner);
+                    }
+
+                    @Override
+                    public String publish(IntegrationOutboxRecord record) throws Exception {
+                        return IntegrationOutboxDispatcher.this.publishToStream(record);
+                    }
+
+                    @Override
+                    public int markDelivered(
+                            IntegrationOutboxRecord record,
+                            String claimOwner,
+                            String publicationId) {
+                        return IntegrationOutboxDispatcher.this.outboxMapper.markDelivered(
+                                record.getEventId(), claimOwner, publicationId);
+                    }
+
+                    @Override
+                    public int markFailed(
+                            IntegrationOutboxRecord record,
+                            String claimOwner,
+                            String error,
+                            int maxAttempts) {
+                        return IntegrationOutboxDispatcher.this.outboxMapper.markFailed(
+                                record.getEventId(), claimOwner, error, maxAttempts);
+                    }
+
+                    @Override
+                    public String recordId(IntegrationOutboxRecord record) {
+                        return record.getEventId();
+                    }
+                });
+    }
 
     /**
      * Scheduled dispatch loop. Runs every 2 seconds (configurable).
@@ -52,53 +97,12 @@ public class IntegrationOutboxDispatcher {
     @Scheduled(fixedDelayString = "${integration.outbox.dispatcher.interval-ms:2000}",
                initialDelayString = "5000")
     public int dispatch() {
-        if (!drainGate.tryEnter()) {
-            return 0;
-        }
-        try {
-            return dispatchClaimedBatch();
-        } finally {
-            drainGate.leave();
-        }
-    }
-
-    private int dispatchClaimedBatch() {
-        outboxMapper.reclaimStaleClaimed();
-        int claimed = outboxMapper.claimPending(claimOwner, BATCH_SIZE);
-        if (claimed == 0) {
-            return 0;
-        }
-
-        List<IntegrationOutboxRecord> records = outboxMapper.selectClaimed(claimOwner);
-        int published = 0;
-
-        for (IntegrationOutboxRecord record : records) {
-            try {
-                String streamId = publishToStream(record);
-                if (outboxMapper.markDelivered(record.getEventId(), claimOwner, streamId) > 0) {
-                    published++;
-                    log.debug("Published event {} to {} as {}",
-                            record.getEventId(), STREAM_KEY, streamId);
-                } else {
-                    log.debug("Event {} was reclaimed before delivery confirmation",
-                            record.getEventId());
-                }
-            } catch (Exception e) {
-                log.error("Failed to publish event {}: {}", record.getEventId(), e.getMessage(), e);
-                outboxMapper.markFailed(
-                        record.getEventId(), claimOwner, truncate(e.getMessage(), 500), MAX_ATTEMPTS);
-            }
-        }
-
-        if (published > 0) {
-            log.debug("Dispatched {} integration outbox events", published);
-        }
-        return published;
+        return dispatcher.dispatch();
     }
 
     @EventListener
     public void onContextClosed(ContextClosedEvent ignored) {
-        drainGate.beginDrain();
+        dispatcher.beginDrain();
     }
 
     /**
@@ -139,10 +143,5 @@ public class IntegrationOutboxDispatcher {
      */
     public Long getOldestOutboxAgeSeconds() {
         return outboxMapper.oldestOutboxAgeSeconds();
-    }
-
-    private static String truncate(String s, int maxLen) {
-        if (s == null) return null;
-        return s.length() <= maxLen ? s : s.substring(0, maxLen);
     }
 }

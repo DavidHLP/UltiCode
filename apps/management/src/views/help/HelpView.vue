@@ -13,6 +13,9 @@ import { useRouter } from 'vue-router'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useAuthStore } from '@/stores/auth'
+import { useUserPermissions } from '@/composables/useUserPermissions'
+import { useProblemPermissions } from '@/composables/useProblemPermissions'
+import { useAnalyticsPermissions } from '@/composables/useAnalyticsPermissions'
 import {
   IconKeyboard,
   IconBolt,
@@ -28,6 +31,9 @@ defineOptions({ name: 'HelpView' })
 const { t } = useI18n()
 const router = useRouter()
 const authStore = useAuthStore()
+const { can: userCan } = useUserPermissions()
+const { can: problemCan } = useProblemPermissions()
+const { can: analyticsCan } = useAnalyticsPermissions()
 
 /** Build-time injected by Vite. Empty string when not built. */
 const appVersion = computed(() => (import.meta.env.VITE_APP_VERSION as string | undefined) || 'dev')
@@ -51,13 +57,13 @@ const shortcuts: Shortcut[] = [
 
 const quickLinks = computed(() => {
   const links = [{ to: '/', icon: IconChartBar, labelKey: 'help.quickLinks.dashboard' }]
-  if (authStore.hasPermission('READ', 'USER')) {
+  if (userCan.user.read.value) {
     links.push({ to: '/users', icon: IconUsers, labelKey: 'help.quickLinks.users' })
   }
-  if (authStore.hasPermission('MODERATE', 'PROBLEM')) {
+  if (problemCan.problem.moderate.value) {
     links.push({ to: '/moderation', icon: IconFlag, labelKey: 'help.quickLinks.moderation' })
   }
-  if (authStore.hasPermission('READ', 'ANALYTICS')) {
+  if (analyticsCan.analytics.read.value) {
     links.push({ to: '/analytics', icon: IconBolt, labelKey: 'help.quickLinks.analytics' })
   }
   return links

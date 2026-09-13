@@ -2,7 +2,7 @@
  * i18n Translation Completeness Checker — management adapter.
  *
  * Delegates locale consistency + code-to-locale coverage to the shared engine
- * (../../shared/i18n-completeness). This adapter only wires the management
+ * (@ulticode/i18n-completeness). This adapter only wires the management
  * locale trees and source root, then renders the report.
  *
  * Usage:

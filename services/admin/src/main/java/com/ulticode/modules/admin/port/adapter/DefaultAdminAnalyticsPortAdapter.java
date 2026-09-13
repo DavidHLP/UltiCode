@@ -14,7 +14,7 @@ import com.ulticode.auth.api.dto.AuthAccountDTO;
 import com.ulticode.auth.api.service.AccountQueryService;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.admin.error.AdminReadContract;
-import com.ulticode.admin.error.AdminErrorCode;
+import com.ulticode.admin.error.AdminReadContract.OwnerRead;
 import com.ulticode.common.rpc.RpcPolicy;
 import com.ulticode.common.rpc.RpcResult;
 import jakarta.annotation.PreDestroy;
@@ -28,10 +28,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -115,8 +112,21 @@ public class DefaultAdminAnalyticsPortAdapter implements AdminAnalyticsPort {
                 2,
                 AdminUseCaseMetrics.Freshness.REQ,
                 () -> {
-                    List<ContestAdminDTO> contests =
-                            contestAdminReadPort.selectByStartTimeAfter(startDate);
+                    long deadlineNanos = System.nanoTime()
+                            + TimeUnit.MILLISECONDS.toNanos(RpcPolicy.QUERY_TIMEOUT_MS);
+                    CancellableQueryExecutor.Query<List<ContestAdminDTO>> contestsQuery =
+                            queryExecutor.submit(() -> contestAdminReadPort.selectByStartTimeAfter(startDate));
+                    AdminReadContract.OwnerRead<List<ContestAdminDTO>> contestsRead =
+                            AdminReadContract.awaitAndClassify(
+                                    queryExecutor,
+                                    "Analytics",
+                                    contestsQuery,
+                                    remainingNanos(deadlineNanos),
+                                    TimeUnit.NANOSECONDS);
+                    if (!contestsRead.available() || contestsRead.value() == null) {
+                        throw unavailable();
+                    }
+                    List<ContestAdminDTO> contests = contestsRead.value();
 
                     List<ContestSummary> contestSummaries = contests.stream()
                             .map(c -> new ContestSummary(
@@ -132,8 +142,21 @@ public class DefaultAdminAnalyticsPortAdapter implements AdminAnalyticsPort {
                         List<String> contestIds = contests.stream()
                                 .map(ContestAdminDTO::getId)
                                 .collect(Collectors.toList());
-                        for (ContestParticipantReadPort.ParticipantInfo p
-                                : contestParticipantReadPort.findByContestIds(contestIds)) {
+                        CancellableQueryExecutor.Query<List<ContestParticipantReadPort.ParticipantInfo>>
+                                participantsQuery = queryExecutor.submit(
+                                        () -> contestParticipantReadPort.findByContestIds(contestIds));
+                        AdminReadContract.OwnerRead<
+                                List<ContestParticipantReadPort.ParticipantInfo>> participantsRead =
+                                AdminReadContract.awaitAndClassify(
+                                        queryExecutor,
+                                        "Analytics",
+                                        participantsQuery,
+                                        remainingNanos(deadlineNanos),
+                                        TimeUnit.NANOSECONDS);
+                        if (!participantsRead.available() || participantsRead.value() == null) {
+                            throw unavailable();
+                        }
+                        for (ContestParticipantReadPort.ParticipantInfo p : participantsRead.value()) {
                             participantsByContest.merge(p.contestId(), 1L, Long::sum);
                             uniqueParticipants.add(p.userId());
                         }
@@ -183,8 +206,8 @@ public class DefaultAdminAnalyticsPortAdapter implements AdminAnalyticsPort {
         try {
             RpcResult<AuthAccountDTO> result = accountQueryService.queryAccounts(
                     new AccountQueryDTO(null, null, null, null, 1, 1, "joinedAt", "desc"));
-            if (result == null || !result.success()
-                    || result.page() == null || result.page().total() == null) {
+            OwnerRead<AuthAccountDTO> read = AdminReadContract.classify("Auth", result);
+            if (!read.available() || result.page() == null || result.page().total() == null) {
                 throw unavailable();
             }
             return result.page().total();
@@ -215,42 +238,27 @@ public class DefaultAdminAnalyticsPortAdapter implements AdminAnalyticsPort {
                             () -> countContestsInRange(from));
                     CancellableQueryExecutor.Query<Long> subscriptions = queryExecutor.submit(
                             this::countActiveSubscriptions);
-                    CompletableFuture<?> all = CompletableFuture.allOf(
-                            totalUsers.result(), activeUsers.result(), submissions.result(),
-                            accepted.result(), contests.result(), subscriptions.result());
-                    try {
-                        all.get(RpcPolicy.QUERY_TIMEOUT_MS, TimeUnit.MILLISECONDS);
-                        return new AnalyticsOverviewData(
-                                totalUsers.result().join(),
-                                activeUsers.result().join(),
-                                submissions.result().join(),
-                                accepted.result().join(),
-                                contests.result().join(),
-                                subscriptions.result().join());
-                    } catch (InterruptedException exception) {
-                        Thread.currentThread().interrupt();
-                        CancellableQueryExecutor.cancel(
-                                totalUsers, activeUsers, submissions, accepted,
-                                contests, subscriptions);
-                        throw unavailable();
-                    } catch (ExecutionException exception) {
-                        CancellableQueryExecutor.cancel(
-                                totalUsers, activeUsers, submissions, accepted,
-                                contests, subscriptions);
-                        Throwable cause = exception.getCause();
-                        if (cause instanceof Error) {
-                            throw (Error) cause;
-                        }
-                        if (cause instanceof BusinessException) {
-                            throw (BusinessException) cause;
-                        }
-                        throw unavailable();
-                    } catch (TimeoutException exception) {
-                        CancellableQueryExecutor.cancel(
-                                totalUsers, activeUsers, submissions, accepted,
-                                contests, subscriptions);
+                    List<OwnerRead<Long>> reads = AdminReadContract.awaitAndClassify(
+                            queryExecutor,
+                            "Analytics",
+                            RpcPolicy.QUERY_TIMEOUT_MS,
+                            TimeUnit.MILLISECONDS,
+                            totalUsers,
+                            activeUsers,
+                            submissions,
+                            accepted,
+                            contests,
+                            subscriptions);
+                    if (reads.stream().anyMatch(read -> !read.available() || read.value() == null)) {
                         throw unavailable();
                     }
+                    return new AnalyticsOverviewData(
+                            reads.get(0).value(),
+                            reads.get(1).value(),
+                            reads.get(2).value(),
+                            reads.get(3).value(),
+                            reads.get(4).value(),
+                            reads.get(5).value());
                 });
     }
 
@@ -274,5 +282,9 @@ public class DefaultAdminAnalyticsPortAdapter implements AdminAnalyticsPort {
 
     private static BusinessException unavailable() {
         return AdminReadContract.ownerUnavailable("Analytics");
+    }
+
+    private static long remainingNanos(long deadlineNanos) {
+        return Math.max(0L, deadlineNanos - System.nanoTime());
     }
 }

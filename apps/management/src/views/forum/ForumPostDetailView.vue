@@ -3,7 +3,7 @@ import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useForumStore } from '@/stores/admin/forum'
-import { useAuthStore } from '@/stores/auth'
+import { useForumPermissions } from '@/composables/useForumPermissions'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -29,7 +29,7 @@ const router = useRouter()
 const route = useRoute()
 const { t } = useI18n()
 const forumStore = useForumStore()
-const authStore = useAuthStore()
+const { can } = useForumPermissions()
 
 const deleteDialogOpen = ref(false)
 const flagDialogOpen = ref(false)
@@ -37,8 +37,8 @@ const auditLoading = ref(false)
 
 const postId = computed(() => route.params.id as string)
 const post = computed(() => forumStore.currentPost)
-const canModerate = computed(() => authStore.hasPermission('MODERATE', 'FORUM_POST'))
-const canDelete = computed(() => authStore.hasPermission('DELETE', 'FORUM_POST'))
+const canModerate = can.forum.moderatePost
+const canDelete = can.forum.deletePost
 
 // Detail lifecycle (first-load skeleton, mount animation, refresh) lives in
 // the shared workspace; audit history is the secondary refresh.

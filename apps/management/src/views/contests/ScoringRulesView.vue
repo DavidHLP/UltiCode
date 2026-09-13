@@ -26,7 +26,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Switch } from '@/components/ui/switch'
-import { useAuthStore } from '@/stores/auth'
+import { useContestPermissions } from '@/composables/useContestPermissions'
+import { useSystemPermissions } from '@/composables/useSystemPermissions'
 import {
   scoringRulesApi,
   type ScoringRule,
@@ -40,7 +41,8 @@ import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
 import type { PaginationState } from '@tanstack/vue-table'
 
 const { t } = useI18n()
-const authStore = useAuthStore()
+const { can: contestCan } = useContestPermissions()
+const { can: systemCan } = useSystemPermissions()
 
 // State
 const searchQuery = ref('')
@@ -71,9 +73,7 @@ onMounted(() => {
 })
 
 const canManageRules = computed(
-  () =>
-    authStore.hasPermission('MANAGE_USERS', 'SYSTEM') ||
-    authStore.hasPermission('UPDATE', 'CONTEST'),
+  () => systemCan.system.manageUsers.value || contestCan.contest.update.value,
 )
 
 // Stats for terminal ticker

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { use } from 'echarts/core'
 import { BarChart } from 'echarts/charts'
@@ -7,8 +7,7 @@ import { GridComponent, TooltipComponent } from 'echarts/components'
 import { SVGRenderer } from 'echarts/renderers'
 import VChart from 'vue-echarts'
 import { IconChartBar } from '@tabler/icons-vue'
-import { readCssColor, SOLARIZED_PALETTE } from '@ulticode/design-system'
-import { useColorTheme } from '@/shared/theme/src'
+import { useChartPalette } from '@ulticode/design-system'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   createTopUsersChartOption,
@@ -23,22 +22,18 @@ const props = defineProps<{
 }>()
 
 const { t, locale } = useI18n()
-const { theme } = useColorTheme()
-const themeRevision = ref(0)
-
-let themeObserver: MutationObserver | undefined
+const chartPalette = useChartPalette()
 
 const colors = computed<TopUserChartColors>(() => {
-  void theme.value
-  void themeRevision.value
+  const palette = chartPalette.value
 
   return {
-    accent: readCssColor('--chart-series-1', SOLARIZED_PALETTE.blue),
-    accentMuted: readCssColor('--chart-series-2', SOLARIZED_PALETTE.cyan),
-    axis: readCssColor('--foreground', SOLARIZED_PALETTE.base0),
-    border: readCssColor('--chart-tooltip-border', SOLARIZED_PALETTE.base01),
-    card: readCssColor('--chart-tooltip-background', SOLARIZED_PALETTE.base02),
-    foreground: readCssColor('--foreground-strong', SOLARIZED_PALETTE.base1),
+    accent: palette.series1,
+    accentMuted: palette.series2,
+    axis: palette.axis,
+    border: palette.border,
+    card: palette.background,
+    foreground: palette.foreground,
   }
 })
 
@@ -49,19 +44,6 @@ const option = computed(() => {
   )
 })
 
-onMounted(() => {
-  themeObserver = new MutationObserver(() => {
-    themeRevision.value += 1
-  })
-  themeObserver.observe(document.documentElement, {
-    attributes: true,
-    attributeFilter: ['class'],
-  })
-})
-
-onUnmounted(() => {
-  themeObserver?.disconnect()
-})
 </script>
 
 <template>

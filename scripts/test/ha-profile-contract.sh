@@ -6,11 +6,11 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 COMPOSE_HA="$ROOT_DIR/docker/docker-compose.ha.yml"
 DOCKER_BIN="${DOCKER_BIN:-docker}"
-
-fail() {
-  echo "HA profile contract failed: $*" >&2
-  exit 1
-}
+CONTRACT_FAILURE_PREFIX="HA profile contract failed"
+# shellcheck source=scripts/test/lib/contract-harness.sh
+source "$ROOT_DIR/scripts/test/lib/contract-harness.sh"
+# shellcheck source=scripts/dev/lib/common.sh
+source "$ROOT_DIR/scripts/dev/lib/common.sh"
 
 external_blocked=0
 
@@ -69,12 +69,16 @@ contains docs/operations/deployment.md 'mysql-replica'
 contains docs/operations/deployment.md 'redis-sentinel-1'
 if [[ -n "${HA_COMPOSE_ENV_FILE:-}" ]]; then
   [[ -f "$HA_COMPOSE_ENV_FILE" ]] || fail "HA_COMPOSE_ENV_FILE does not exist"
-  compose_files=(-f "$ROOT_DIR/docker/docker-compose.yml")
   if [[ "${HA_COMPOSE_PROD:-1}" == "1" ]]; then
-    compose_files+=(-f "$ROOT_DIR/docker/docker-compose.prod.yml")
+    ENV_FILE="$HA_COMPOSE_ENV_FILE"
+    devstack_compose_args compose --base-only \
+      "$ROOT_DIR/docker/docker-compose.prod.yml" "$COMPOSE_HA"
   else
-    compose_files+=(-f "$ROOT_DIR/docker/docker-compose.dev.yml")
+    ENV_FILE="$HA_COMPOSE_ENV_FILE"
+    devstack_compose_args compose --base-only \
+      "$ROOT_DIR/docker/docker-compose.dev.yml" "$COMPOSE_HA"
   fi
+  compose[0]="$DOCKER_BIN"
   ha_config_dir="${REDIS_HA_CONFIG_DIR:-}"
   if [[ -z "$ha_config_dir" ]]; then
     ha_config_dir="$(sed -n 's/^REDIS_HA_CONFIG_DIR=//p' "$HA_COMPOSE_ENV_FILE" | sed -n '1p')"
@@ -111,10 +115,7 @@ if [[ -n "${HA_COMPOSE_ENV_FILE:-}" ]]; then
         || fail "Sentinel config must provide auth-pass"
     fi
   done
-  "$DOCKER_BIN" compose --project-directory "$ROOT_DIR" --env-file "$HA_COMPOSE_ENV_FILE" \
-    "${compose_files[@]}" \
-    -f "$ROOT_DIR/docker/docker-compose.ha.yml" \
-    --profile ha config >/dev/null \
+  "${compose[@]}" --profile ha config >/dev/null \
     || fail "HA Compose profile does not expand"
   echo "HA Compose profile expansion: PASS"
 else

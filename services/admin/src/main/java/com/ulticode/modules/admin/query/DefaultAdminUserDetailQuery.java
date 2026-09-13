@@ -1,6 +1,8 @@
 package com.ulticode.modules.admin.query;
 
 import com.ulticode.admin.error.AdminErrorCode;
+import com.ulticode.admin.error.AdminReadContract;
+import com.ulticode.admin.error.AdminReadContract.OwnerRead;
 import com.ulticode.app.api.dto.UserProfileDTO;
 import com.ulticode.app.api.service.SolutionReadPort;
 import com.ulticode.auth.api.dto.AuthAccountDTO;
@@ -31,10 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -171,16 +170,17 @@ public class DefaultAdminUserDetailQuery implements AdminUserDetailQuery {
                 queryExecutor.submit(() -> userEnricher.findAccountAuthoritatively(userId));
         AuthAccountDTO account;
         try {
-            account = await(accountQuery, deadline);
+            account = queryExecutor.await(
+                    accountQuery,
+                    remainingNanos(deadline),
+                    TimeUnit.NANOSECONDS);
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
-            CancellableQueryExecutor.cancel(accountQuery);
             return AdminUserDetailResult.unavailable(AUTH_ACCOUNT_INTERRUPTED_REASON);
         } catch (TimeoutException exception) {
-            CancellableQueryExecutor.cancel(accountQuery);
             return AdminUserDetailResult.unavailable(AUTH_ACCOUNT_TIMEOUT_REASON);
         } catch (ExecutionException exception) {
-            CancellableQueryExecutor.cancel(accountQuery);
+            AdminReadContract.propagate(exception.getCause());
             return accountFailure(exception.getCause());
         }
 
@@ -196,59 +196,34 @@ public class DefaultAdminUserDetailQuery implements AdminUserDetailQuery {
             return foundWithUnavailableSections(user, DETAIL_TIMEOUT_REASON);
         }
 
-        CancellableQueryExecutor.Query<PermissionRead> permissionQuery =
+        CancellableQueryExecutor.Query<OwnerRead<PermissionData>> permissionQuery =
                 queryExecutor.submit(() -> readPermissions(userId));
-        CancellableQueryExecutor.Query<ProfileRead> profileQuery =
+        CancellableQueryExecutor.Query<OwnerRead<UserProfileDTO>> profileQuery =
                 queryExecutor.submit(() -> readProfile(userId));
-        CancellableQueryExecutor.Query<SolutionRead> solutionQuery =
+        CancellableQueryExecutor.Query<OwnerRead<Long>> solutionQuery =
                 queryExecutor.submit(() -> readSolutionCount(userId));
-        CancellableQueryExecutor.Query<SubmissionRead> submissionQuery =
+        CancellableQueryExecutor.Query<OwnerRead<SubmissionUserDetailStatsSnapshotDTO>> submissionQuery =
                 queryExecutor.submit(() -> readSubmissionStats(userId));
 
-        boolean interrupted = false;
-        boolean timedOut = false;
-        boolean rejected = false;
-        try {
-            long remaining = remainingNanos(deadline);
-            if (remaining <= 0) {
-                timedOut = true;
-            } else {
-                CompletableFuture.allOf(
-                                permissionQuery.result(),
-                                profileQuery.result(),
-                                solutionQuery.result(),
-                                submissionQuery.result())
-                        .get(remaining, TimeUnit.NANOSECONDS);
-            }
-        } catch (InterruptedException exception) {
-            Thread.currentThread().interrupt();
-            interrupted = true;
-        } catch (TimeoutException exception) {
-            timedOut = true;
-        } catch (ExecutionException exception) {
-            if (exception.getCause() instanceof RejectedExecutionException) {
-                // Executor saturation: do not let sibling owner RPCs keep
-                // occupying the bounded pool after one task was rejected.
-                rejected = true;
-            } else {
-                rethrowFatal(exception.getCause());
-            }
-        } finally {
-            if (interrupted || timedOut || rejected) {
-                CancellableQueryExecutor.cancel(
-                        permissionQuery, profileQuery, solutionQuery, submissionQuery);
-            }
-        }
-
-        String fallbackReason = interrupted
-                ? DETAIL_INTERRUPTED_REASON
-                : timedOut
-                        ? DETAIL_TIMEOUT_REASON
-                        : rejected ? DETAIL_REJECTED_REASON : null;
-        PermissionRead permissions = completedPermission(permissionQuery, fallbackReason);
-        ProfileRead profile = completedProfile(profileQuery, fallbackReason);
-        SolutionRead solution = completedSolution(solutionQuery, fallbackReason);
-        SubmissionRead submission = completedSubmission(submissionQuery, fallbackReason);
+        List<OwnerRead<Object>> reads = AdminReadContract.<Object>awaitAndClassify(
+                queryExecutor,
+                "Admin user detail",
+                Math.max(0L, remainingNanos(deadline)),
+                TimeUnit.NANOSECONDS,
+                permissionQuery,
+                profileQuery,
+                solutionQuery,
+                submissionQuery);
+        String fallbackReason = detailFallbackReason(reads);
+        OwnerRead<PermissionData> permissions = normalizeUnavailable(
+                typedRead(reads.get(0)), fallbackReason,
+                "Authorization snapshot query failed");
+        OwnerRead<UserProfileDTO> profile = normalizeUnavailable(
+                typedRead(reads.get(1)), fallbackReason, PROFILE_FAILURE_REASON);
+        OwnerRead<Long> solution = normalizeUnavailable(
+                typedRead(reads.get(2)), fallbackReason, SOLUTION_FAILURE_REASON);
+        OwnerRead<SubmissionUserDetailStatsSnapshotDTO> submission = normalizeUnavailable(
+                typedRead(reads.get(3)), fallbackReason, SUBMISSION_FAILURE_REASON);
         return assemble(user, profile, submission, solution, permissions);
     }
 
@@ -269,16 +244,6 @@ public class DefaultAdminUserDetailQuery implements AdminUserDetailQuery {
         return AdminUserDetailResult.unavailable("Auth account query unavailable");
     }
 
-    private <T> T await(
-            CancellableQueryExecutor.Query<T> query, long deadline)
-            throws InterruptedException, TimeoutException, ExecutionException {
-        long remaining = remainingNanos(deadline);
-        if (remaining <= 0) {
-            throw new TimeoutException("detail query wall budget exhausted");
-        }
-        return query.result().get(remaining, TimeUnit.NANOSECONDS);
-    }
-
     private static long remainingNanos(long deadline) {
         return Math.max(0L, deadline - System.nanoTime());
     }
@@ -293,59 +258,62 @@ public class DefaultAdminUserDetailQuery implements AdminUserDetailQuery {
         return result;
     }
 
-    private ProfileRead readProfile(String userId) {
+    private OwnerRead<UserProfileDTO> readProfile(String userId) {
         try {
             AdminUserEnricher.ProfileDetail detail =
                     userEnricher.findProfileWithStatus(userId);
             if (detail == null || detail.status() != DegradationStatus.OK) {
-                return ProfileRead.unavailable(PROFILE_FAILURE_REASON);
+                return OwnerRead.unavailable(PROFILE_FAILURE_REASON);
             }
-            return ProfileRead.success(detail.profile());
+            return OwnerRead.available(detail.profile());
         } catch (RuntimeException exception) {
+            AdminReadContract.propagate(exception);
             log.warn("App profile query failed for {}: {}", userId,
                     exception.getClass().getSimpleName());
-            return ProfileRead.unavailable(PROFILE_FAILURE_REASON);
+            return OwnerRead.unavailable(PROFILE_FAILURE_REASON);
         }
     }
 
-    private SolutionRead readSolutionCount(String userId) {
+    private OwnerRead<Long> readSolutionCount(String userId) {
         if (solutionReadPort == null) {
-            return SolutionRead.unavailable(SOLUTION_FAILURE_REASON);
+            return OwnerRead.unavailable(SOLUTION_FAILURE_REASON);
         }
         try {
             long count = solutionReadPort.countByUserId(userId);
             if (count < 0) {
-                return SolutionRead.unavailable("App solution count payload invalid");
+                return OwnerRead.unavailable("App solution count payload invalid");
             }
-            return SolutionRead.success(count);
+            return OwnerRead.available(count);
         } catch (RuntimeException exception) {
+            AdminReadContract.propagate(exception);
             log.warn("App solution count query failed for {}: {}", userId,
                     exception.getClass().getSimpleName());
-            return SolutionRead.unavailable(SOLUTION_FAILURE_REASON);
+            return OwnerRead.unavailable(SOLUTION_FAILURE_REASON);
         }
     }
 
-    private SubmissionRead readSubmissionStats(String userId) {
+    private OwnerRead<SubmissionUserDetailStatsSnapshotDTO> readSubmissionStats(String userId) {
         if (submissionStatsReadPort == null) {
-            return SubmissionRead.unavailable(SUBMISSION_FAILURE_REASON);
+            return OwnerRead.unavailable(SUBMISSION_FAILURE_REASON);
         }
         try {
             SubmissionUserDetailStatsSnapshotDTO snapshot =
                     submissionStatsReadPort.loadUserDetailStats(userId);
             if (snapshot == null) {
-                return SubmissionRead.unavailable(SUBMISSION_FAILURE_REASON);
+                return OwnerRead.unavailable(SUBMISSION_FAILURE_REASON);
             }
-            return SubmissionRead.success(snapshot);
+            return OwnerRead.available(snapshot);
         } catch (RuntimeException exception) {
+            AdminReadContract.propagate(exception);
             log.warn("Submission stats query failed for {}: {}", userId,
                     exception.getClass().getSimpleName());
-            return SubmissionRead.unavailable(SUBMISSION_FAILURE_REASON);
+            return OwnerRead.unavailable(SUBMISSION_FAILURE_REASON);
         }
     }
 
-    private PermissionRead readPermissions(String userId) {
+    private OwnerRead<PermissionData> readPermissions(String userId) {
         if (authorizationSnapshotService == null) {
-            return PermissionRead.unavailable(
+            return OwnerRead.unavailable(
                     "Authorization snapshot provider unavailable");
         }
 
@@ -353,18 +321,24 @@ public class DefaultAdminUserDetailQuery implements AdminUserDetailQuery {
         try {
             rpc = authorizationSnapshotService.getSnapshot(userId);
         } catch (RuntimeException exception) {
+            AdminReadContract.propagate(exception);
             log.warn("Authorization snapshot query failed for {}: {}", userId,
                     exception.getClass().getSimpleName());
-            return PermissionRead.unavailable("Authorization snapshot query failed");
+            return OwnerRead.unavailable("Authorization snapshot query failed");
         }
         if (rpc == null) {
-            return PermissionRead.unavailable("Authorization snapshot returned null");
+            return OwnerRead.unavailable("Authorization snapshot returned null");
         }
-        if (!rpc.success() || rpc.data() == null) {
-            return PermissionRead.unavailable("Authorization snapshot returned failure");
+        OwnerRead<AuthorizationSnapshotDTO> read =
+                AdminReadContract.classify("Auth", rpc);
+        if (!read.available()) {
+            return OwnerRead.unavailable("Authorization snapshot returned failure");
+        }
+        if (read.value() == null) {
+            return OwnerRead.unavailable("Authorization snapshot returned null");
         }
 
-        AuthorizationSnapshotDTO snapshot = rpc.data();
+        AuthorizationSnapshotDTO snapshot = read.value();
         if (snapshot.accountId() == null
                 || !userId.equals(snapshot.accountId())
                 || snapshot.role() == null
@@ -372,7 +346,7 @@ public class DefaultAdminUserDetailQuery implements AdminUserDetailQuery {
                 || snapshot.permissions() == null
                 || invalidPermissionEntries(snapshot.permissionEntries())
                 || invalidFlatPermissions(snapshot)) {
-            return PermissionRead.unavailable(
+            return OwnerRead.unavailable(
                     "Authorization snapshot payload invalid");
         }
 
@@ -383,41 +357,43 @@ public class DefaultAdminUserDetailQuery implements AdminUserDetailQuery {
                         snapshot.role(),
                         snapshot.permissions(),
                         snapshot.version());
-        return PermissionRead.success(permissions, completeSnapshot);
+        return OwnerRead.available(new PermissionData(permissions, completeSnapshot));
     }
 
     private AdminUserDetailResult assemble(
             AdminUserVO user,
-            ProfileRead profile,
-            SubmissionRead submission,
-            SolutionRead solution,
-            PermissionRead permissions) {
-        ProfileRead safeProfile = profile == null
-                ? ProfileRead.unavailable(PROFILE_FAILURE_REASON) : profile;
-        SubmissionRead safeSubmission = submission == null
-                ? SubmissionRead.unavailable(SUBMISSION_FAILURE_REASON) : submission;
-        SolutionRead safeSolution = solution == null
-                ? SolutionRead.unavailable(SOLUTION_FAILURE_REASON) : solution;
-        PermissionRead safePermissions = permissions == null
-                ? PermissionRead.unavailable("Authorization snapshot query failed") : permissions;
+            OwnerRead<UserProfileDTO> profile,
+            OwnerRead<SubmissionUserDetailStatsSnapshotDTO> submission,
+            OwnerRead<Long> solution,
+            OwnerRead<PermissionData> permissions) {
+        OwnerRead<UserProfileDTO> safeProfile = profile == null
+                ? OwnerRead.unavailable(PROFILE_FAILURE_REASON) : profile;
+        OwnerRead<SubmissionUserDetailStatsSnapshotDTO> safeSubmission = submission == null
+                ? OwnerRead.unavailable(SUBMISSION_FAILURE_REASON) : submission;
+        OwnerRead<Long> safeSolution = solution == null
+                ? OwnerRead.unavailable(SOLUTION_FAILURE_REASON) : solution;
+        OwnerRead<PermissionData> safePermissions = permissions == null
+                ? OwnerRead.unavailable("Authorization snapshot query failed") : permissions;
 
         if (safeProfile.available()) {
-            user.setName(safeProfile.profile() == null ? null : safeProfile.profile().name());
-            user.setAvatar(safeProfile.profile() == null ? null : safeProfile.profile().avatar());
+            user.setName(safeProfile.value() == null ? null : safeProfile.value().name());
+            user.setAvatar(safeProfile.value() == null ? null : safeProfile.value().avatar());
         }
-        if (safePermissions.available()) {
-            user.setPermissions(safePermissions.permissions());
+        if (safePermissions.available() && safePermissions.value() != null) {
+            user.setPermissions(safePermissions.value().permissions());
         }
 
-        AdminUserDetailResult.Section profileSection = safeProfile.section();
+        AdminUserDetailResult.Section profileSection = section(safeProfile);
         AdminUserDetailResult.Section statsSection;
-        if (safeSubmission.available() && safeSolution.available()) {
-            SubmissionUserDetailStatsSnapshotDTO submissionStats = safeSubmission.snapshot();
+        boolean submissionAvailable = safeSubmission.available() && safeSubmission.value() != null;
+        boolean solutionAvailable = safeSolution.available() && safeSolution.value() != null;
+        if (submissionAvailable && solutionAvailable) {
+            SubmissionUserDetailStatsSnapshotDTO submissionStats = safeSubmission.value();
             try {
                 AdminUserVO.UserStatsInfo stats = new AdminUserVO.UserStatsInfo();
                 stats.setTotalSubmissions(toInt(submissionStats.submissionCount()));
                 stats.setAcceptedSubmissions(toInt(submissionStats.acceptedProblemCount()));
-                stats.setTotalSolutions(toInt(safeSolution.count()));
+                stats.setTotalSolutions(toInt(safeSolution.value()));
                 stats.setStreak(submissionStats.streak());
                 user.setStats(stats);
                 statsSection = AdminUserDetailResult.Section.ok();
@@ -426,25 +402,41 @@ public class DefaultAdminUserDetailQuery implements AdminUserDetailQuery {
                         AdminUserDetailResult.Availability.UNAVAILABLE,
                         "User statistics payload invalid");
             }
-        } else if (safeSubmission.available() || safeSolution.available()) {
-            String reason = safeSubmission.available()
-                    ? safeSolution.reason() : safeSubmission.reason();
+        } else if (submissionAvailable || solutionAvailable) {
+            String reason = submissionAvailable
+                    ? reason(safeSolution, SOLUTION_FAILURE_REASON)
+                    : reason(safeSubmission, SUBMISSION_FAILURE_REASON);
             statsSection = new AdminUserDetailResult.Section(
                     AdminUserDetailResult.Availability.PARTIAL, reason);
         } else {
             statsSection = new AdminUserDetailResult.Section(
                     AdminUserDetailResult.Availability.UNAVAILABLE,
-                    safeSubmission.reason() + "; " + safeSolution.reason());
+                    reason(safeSubmission, SUBMISSION_FAILURE_REASON) + "; "
+                            + reason(safeSolution, SOLUTION_FAILURE_REASON));
         }
 
+        boolean permissionsAvailable = safePermissions.available()
+                && safePermissions.value() != null;
         AdminUserDetailResult result = AdminUserDetailResult.found(
                 user,
                 profileSection,
                 statsSection,
-                safePermissions.section(),
-                safePermissions.snapshot());
+                permissionsAvailable
+                        ? AdminUserDetailResult.Section.ok()
+                        : section(safePermissions),
+                permissionsAvailable ? safePermissions.value().snapshot() : null);
         applyWireStatus(user, result);
         return result;
+    }
+
+    private static AdminUserDetailResult.Section section(OwnerRead<?> read) {
+        return read.available()
+                ? AdminUserDetailResult.Section.ok()
+                : AdminUserDetailResult.Section.unavailable(read.reason());
+    }
+
+    private static String reason(OwnerRead<?> read, String fallback) {
+        return read.reason() == null ? fallback : read.reason();
     }
 
     private static int toInt(long value) {
@@ -547,56 +539,43 @@ public class DefaultAdminUserDetailQuery implements AdminUserDetailQuery {
         return info;
     }
 
-    private static <T> T completedValue(
-            CancellableQueryExecutor.Query<T> query) {
-        if (query == null || !query.result().isDone() || query.result().isCancelled()) {
-            return null;
+    private static String detailFallbackReason(List<OwnerRead<Object>> reads) {
+        for (OwnerRead<Object> read : reads) {
+            String reason = read.reason();
+            if (reason == null) {
+                continue;
+            }
+            if (reason.contains("interrupted")) {
+                return DETAIL_INTERRUPTED_REASON;
+            }
+            if (reason.contains("timed out")) {
+                return DETAIL_TIMEOUT_REASON;
+            }
+            if (reason.contains("capacity exceeded")) {
+                return DETAIL_REJECTED_REASON;
+            }
         }
-        try {
-            return query.result().join();
-        } catch (CompletionException exception) {
-            rethrowFatal(exception.getCause());
-            return null;
+        return null;
+    }
+
+    private static <T> OwnerRead<T> normalizeUnavailable(
+            OwnerRead<T> read, String fallbackReason, String defaultReason) {
+        if (read == null) {
+            return OwnerRead.unavailable(fallbackReason == null ? defaultReason : fallbackReason);
         }
-    }
-
-    private static void rethrowFatal(Throwable cause) {
-        if (cause instanceof Error error) {
-            throw error;
+        if (read.available()) {
+            return read;
         }
+        String reason = read.reason();
+        if (reason == null || reason.startsWith("Admin user detail owner query ")) {
+            return OwnerRead.unavailable(fallbackReason == null ? defaultReason : fallbackReason);
+        }
+        return read;
     }
 
-    private static ProfileRead completedProfile(
-            CancellableQueryExecutor.Query<ProfileRead> query, String fallbackReason) {
-        ProfileRead value = completedValue(query);
-        return value == null
-                ? ProfileRead.unavailable(fallbackReason == null ? PROFILE_FAILURE_REASON : fallbackReason)
-                : value;
-    }
-
-    private static SolutionRead completedSolution(
-            CancellableQueryExecutor.Query<SolutionRead> query, String fallbackReason) {
-        SolutionRead value = completedValue(query);
-        return value == null
-                ? SolutionRead.unavailable(fallbackReason == null ? SOLUTION_FAILURE_REASON : fallbackReason)
-                : value;
-    }
-
-    private static SubmissionRead completedSubmission(
-            CancellableQueryExecutor.Query<SubmissionRead> query, String fallbackReason) {
-        SubmissionRead value = completedValue(query);
-        return value == null
-                ? SubmissionRead.unavailable(fallbackReason == null ? SUBMISSION_FAILURE_REASON : fallbackReason)
-                : value;
-    }
-
-    private static PermissionRead completedPermission(
-            CancellableQueryExecutor.Query<PermissionRead> query, String fallbackReason) {
-        PermissionRead value = completedValue(query);
-        return value == null
-                ? PermissionRead.unavailable(fallbackReason == null
-                        ? "Authorization snapshot query failed" : fallbackReason)
-                : value;
+    @SuppressWarnings("unchecked")
+    private static <T> OwnerRead<T> typedRead(OwnerRead<?> read) {
+        return (OwnerRead<T>) read;
     }
 
     private static AdminUserVO toUser(AuthAccountDTO account, UserProfileDTO profile) {
@@ -618,65 +597,8 @@ public class DefaultAdminUserDetailQuery implements AdminUserDetailQuery {
         return user;
     }
 
-    private record ProfileRead(UserProfileDTO profile, boolean available, String reason) {
-        private static ProfileRead success(UserProfileDTO profile) {
-            return new ProfileRead(profile, true, null);
-        }
-
-        private static ProfileRead unavailable(String reason) {
-            return new ProfileRead(null, false, reason);
-        }
-
-        private AdminUserDetailResult.Section section() {
-            return available
-                    ? AdminUserDetailResult.Section.ok()
-                    : AdminUserDetailResult.Section.unavailable(reason);
-        }
-    }
-
-    private record SolutionRead(long count, boolean available, String reason) {
-        private static SolutionRead success(long count) {
-            return new SolutionRead(count, true, null);
-        }
-
-        private static SolutionRead unavailable(String reason) {
-            return new SolutionRead(0L, false, reason);
-        }
-    }
-
-    private record SubmissionRead(
-            SubmissionUserDetailStatsSnapshotDTO snapshot,
-            boolean available,
-            String reason) {
-        private static SubmissionRead success(
-                SubmissionUserDetailStatsSnapshotDTO snapshot) {
-            return new SubmissionRead(snapshot, true, null);
-        }
-
-        private static SubmissionRead unavailable(String reason) {
-            return new SubmissionRead(null, false, reason);
-        }
-    }
-
-    private record PermissionRead(
+    private record PermissionData(
             List<AdminUserVO.PermissionInfo> permissions,
-            AdminUserDetailResult.PermissionSnapshot snapshot,
-            boolean available,
-            String reason) {
-        private static PermissionRead success(
-                List<AdminUserVO.PermissionInfo> permissions,
-                AdminUserDetailResult.PermissionSnapshot snapshot) {
-            return new PermissionRead(List.copyOf(permissions), snapshot, true, null);
-        }
-
-        private static PermissionRead unavailable(String reason) {
-            return new PermissionRead(null, null, false, reason);
-        }
-
-        private AdminUserDetailResult.Section section() {
-            return available
-                    ? AdminUserDetailResult.Section.ok()
-                    : AdminUserDetailResult.Section.unavailable(reason);
-        }
+            AdminUserDetailResult.PermissionSnapshot snapshot) {
     }
 }

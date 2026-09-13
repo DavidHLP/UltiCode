@@ -28,7 +28,7 @@ import { SemanticBadge } from "@/components/ui/terminal";
 import {
   getStatusColor,
   getStatusLabelI18nKey,
-} from "@/shared/submission-status/src";
+} from "@ulticode/submission-status";
 
 const props = defineProps<{
   submissions: SubmissionRecord[];

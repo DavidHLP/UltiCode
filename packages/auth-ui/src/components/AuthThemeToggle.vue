@@ -2,8 +2,8 @@
 /**
  * AuthThemeToggle - Compact theme toggle button for auth pages
  *
- * Cycles through light → dark → system modes on click. Uses the shared
- * `@ulticode/theme` singleton (re-exported via shared/auth-ui's relative
+ * Cycles through light → dark → system modes on click. Uses the
+ * `@ulticode/theme` singleton (re-exported via auth-ui's relative
  * import path) so other theme pickers (header dropdown, settings card)
  * stay in sync across both frontends.
  *

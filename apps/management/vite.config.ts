@@ -10,23 +10,13 @@ export default defineConfig({
   plugins: [vue(), tailwindcss()],
   resolve: {
     alias: [
-      // Most-specific first: @/shared must be matched before the
-      // catch-all `@` → ./src alias rewrites the path to <management>/src/shared/...
-      // (where `shared` is a broken plain-text file on this checkout, not a
-      // symlink). Vite's resolve.alias uses startsWith matching in
-      // declaration order, so order matters.
-      {
-        find: '@/shared',
-        replacement: fileURLToPath(new URL('../../packages', import.meta.url)),
-      },
       // Catch-all `@` → ./src
       { find: '@', replacement: fileURLToPath(new URL('./src', import.meta.url)) },
-      // Files under shared/ (including the auth-ui & sidebar-menu components)
-      // import their runtime + peer deps as bare specifiers. The shared
-      // packages have no node_modules, so resolve them from the app's own
-      // node_modules — clsx/tailwind-merge/axios/lucide-vue-next plus the
-      // peer deps vue-router/vue-i18n/reka-ui consumed by shared/auth-ui &
-      // shared/sidebar-menu. `vue` itself is handled by the plugin + dedupe.
+      // Workspace packages import their runtime + peer deps as bare
+      // specifiers. The packages have no node_modules, so resolve them from
+      // the app's own node_modules — clsx/tailwind-merge/axios/lucide-vue-next
+      // plus the peer deps vue-router/vue-i18n/reka-ui consumed by auth-ui and
+      // sidebar-menu. `vue` itself is handled by the plugin + dedupe.
       {
         find: /^clsx$/,
         replacement: path.resolve(

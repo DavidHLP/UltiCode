@@ -45,7 +45,7 @@ onMounted(async () => {
     ]);
 
     user.value = userData;
-    submissions.value = userSubmissions;
+    submissions.value = userSubmissions.items;
     statsData.value = userStats;
 
     skillsLoading.value = true;

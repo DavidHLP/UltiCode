@@ -5,9 +5,9 @@ import './style.css'
 import App from './App.vue'
 import router from './router'
 import i18n, { setLocale, getActiveLocale } from './i18n'
-import { initTheme, applyTypographyDensity } from '@/shared/theme/src'
-import { bootstrapApp } from '@/shared/app-bootstrap/src'
-import { setOnAuthFailure } from '@/shared/auth-core/src'
+import { initTheme, applyTypographyDensity } from '@ulticode/theme'
+import { bootstrapApp } from '@ulticode/app-bootstrap'
+import { setOnAuthFailure } from '@ulticode/auth-core'
 
 /**
  * Management application bootstrap.

@@ -221,8 +221,6 @@ class BackendAppApplicationTest {
     private com.ulticode.modules.submission.service.SandboxOutputFormatter sandboxOutputFormatter;
     @MockitoBean
     private com.ulticode.modules.submission.port.JudgingLanguageSupport judgingLanguageSupport;
-    @MockitoBean
-    private com.ulticode.modules.submission.port.ProblemFactsPort submissionPortProblemFactsPort;
 
     // ==================== Problem family (P7-RELOCATE-PROBLEM-001) ====================
 
@@ -285,7 +283,7 @@ class BackendAppApplicationTest {
     @MockitoBean private com.ulticode.modules.websocket.port.SubmissionResultPushPort submissionResultPushPort;
     @MockitoBean private com.ulticode.modules.moderation.port.ModerationUserReadPort moderationUserReadPort;
     @MockitoBean private com.ulticode.modules.moderation.port.ModerationAccountPort moderationAccountPort;
-    @MockitoBean private com.ulticode.modules.moderation.port.ModerationContentActionPort moderationContentActionPort;
+    @MockitoBean private com.ulticode.modules.moderation.port.ContentModerationActionPort contentModerationActionPort;
     // P7-INFRA-S4: achievement (notification delivery is owned by backend-notification)
     @MockitoBean private com.ulticode.modules.achievement.mapper.AchievementMapper achievementMapper;
     @MockitoBean private com.ulticode.modules.achievement.mapper.UserAchievementMapper userAchievementMapper;

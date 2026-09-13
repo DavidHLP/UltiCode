@@ -42,9 +42,6 @@ public interface ForumOwnerPort {
      */
     String resolveAuthorId(String postId);
 
-    /** Soft-delete a forum post without an actor (internal legacy path). */
-    DeleteResult deletePost(String postId);
-
     /**
      * Soft-delete a forum post with the verified owner-side actor.
      *

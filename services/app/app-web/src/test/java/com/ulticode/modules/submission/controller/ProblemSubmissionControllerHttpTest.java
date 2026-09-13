@@ -2,6 +2,7 @@ package com.ulticode.modules.submission.controller;
 
 import com.ulticode.modules.submission.controller.RunResultDTO;
 import com.ulticode.modules.submission.port.InteractiveCodeRunner;
+import com.ulticode.modules.submission.port.SubmissionFactsCapture;
 import com.ulticode.app.error.ProblemErrorCode;
 import com.ulticode.app.error.ProblemWebExceptionHandler;
 import com.ulticode.common.auth.CurrentUserProvider;
@@ -38,6 +39,7 @@ class ProblemSubmissionControllerHttpTest {
         ProblemSubmissionController controller = new ProblemSubmissionController(
                 mock(SubmissionUserQueryPort.class),
                 mock(SubmissionIntakePort.class),
+                mock(SubmissionFactsCapture.class),
                 codeExecutionPort,
                 mock(Validator.class),
                 mock(CurrentUserProvider.class));

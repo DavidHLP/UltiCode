@@ -2573,6 +2573,8 @@ CREATE TABLE `reconciliation_runs` (
   `started_at` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   `finished_at` datetime(3) DEFAULT NULL,
   `owner` varchar(20) NOT NULL COMMENT 'Auth/Admin/App/ALL',
+  `scan_mode` varchar(20) DEFAULT NULL,
+  `scan_created_since` datetime(3) DEFAULT NULL,
   `fence_token` bigint NOT NULL DEFAULT '0',
   `status` varchar(20) NOT NULL DEFAULT 'RUNNING' COMMENT 'RUNNING/COMPLETED/FAILED',
   `divergence_count` int NOT NULL DEFAULT '0',
@@ -2580,7 +2582,8 @@ CREATE TABLE `reconciliation_runs` (
   `detail` text COMMENT 'JSON summary of reconciliation results',
   PRIMARY KEY (`run_id`),
   KEY `idx_recon_runs_started_at` (`started_at`),
-  KEY `idx_recon_runs_owner` (`owner`)
+  KEY `idx_recon_runs_owner` (`owner`),
+  KEY `idx_recon_runs_checkpoint` (`owner`,`status`,`scan_mode`,`scan_created_since`,`started_at`,`run_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 

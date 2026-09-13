@@ -21,12 +21,12 @@ import {
   hasDisplayValue,
   hasResultDetails,
 } from "./testResultDisplay";
-import type { SemanticColor } from "@/shared/badge-config/src";
+import type { SemanticColor } from "@ulticode/badge-config";
 import {
   getStatusColor,
   getStatusLabelI18nKey,
   isFinal,
-} from "@/shared/submission-status/src";
+} from "@ulticode/submission-status";
 
 const props = defineProps<{
   runResult: ProblemRunResult | null;

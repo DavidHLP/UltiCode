@@ -10,10 +10,9 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 TMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/ulticode-compat-retirement.XXXXXX")"
 trap 'rm -rf -- "$TMP_DIR"' EXIT
 
-fail() {
-  echo "submission-compatibility-retirement-contract: FAIL: $*" >&2
-  exit 1
-}
+CONTRACT_FAILURE_PREFIX="submission-compatibility-retirement-contract: FAIL"
+# shellcheck source=scripts/test/lib/contract-harness.sh
+source "$ROOT_DIR/scripts/test/lib/contract-harness.sh"
 
 assert_absent() {
   local path="$1"

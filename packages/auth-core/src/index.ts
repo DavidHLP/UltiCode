@@ -4,6 +4,7 @@
 
 // Shared types (User, LoginCredentials, LoginResponse, RegisterRequest, Permission)
 export {
+  type AuthStatus,
   type LoginCredentials,
   type RegisterRequest,
   type LoginResponse,
@@ -23,10 +24,11 @@ export {
 import { createCsrfTokenManager as _createCsrfTokenManager, type CsrfTokenManager } from './csrf';
 export {
   createCsrfTokenManager,
+  hasCsrfCookie,
   type CsrfTokenManager,
 } from './csrf';
 
-// Lazy memo singleton — every `import { csrfManager } from '@/shared/auth-core/src'`
+// Lazy memo singleton — every `import { csrfManager } from '@ulticode/auth-core'`
 // binds to the same instance, so `csrfManager.setToken(...)` from one caller is
 // `csrfManager.getToken()` for the next. Replaces the per-app `utils/csrf.ts`
 // re-export shims that previously created independent instances (the root cause
@@ -128,21 +130,9 @@ export {
   type InstallAuthNavigationOptions,
 } from './navigation'
 
-// Auth store factory — the deep seam that owns the duplicated
-// login/logout/fetchUser/loadPermissions/initialize/clearUser/hasPermission/
-// hasRole chain both apps carried. Each app's Pinia `defineStore` calls this
-// with its per-app backend adapter; the auth contract lives once. See
-// architecture-review candidate #4.
-export {
-  createAuthStore,
-  type AuthStoreAdapter,
-  type AuthStoreInternals,
-} from './createAuthStore'
-
 // Status-machine session store factory — owns the reusable idle/loading/ready/
-// error session policy (dedup init, CSRF-cookie gate, throw-on-auth-error) that
-// the console app previously carried as a bespoke 280-line composable. Apps pass
-// a transport adapter; the policy lives once. See architecture-review candidate #2.
+// error session policy (dedup init, CSRF-cookie gate, throw-on-auth-error) for
+// both apps. Each app supplies only its transport and local computed views.
 export {
   createSessionAuthStore,
   type SessionAuthStore,

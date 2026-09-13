@@ -8,13 +8,23 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 OBS_DIR="$ROOT_DIR/infrastructure/observability"
 COMPOSE_FILE="$ROOT_DIR/docker/docker-compose.observability.yml"
 
-fail() {
-  echo "observability-contract: FAIL: $*" >&2
-  exit 1
-}
+CONTRACT_FAILURE_PREFIX="observability-contract: FAIL"
+# shellcheck source=scripts/test/lib/contract-harness.sh
+source "$ROOT_DIR/scripts/test/lib/contract-harness.sh"
 
 # shellcheck source=scripts/test/lib/assertions.sh
 source "$ROOT_DIR/scripts/test/lib/assertions.sh"
+# shellcheck source=scripts/dev/lib/common.sh
+source "$ROOT_DIR/scripts/dev/lib/common.sh"
+
+# CI checkouts intentionally do not contain a runtime .env. Compose only
+# needs a non-secret interpolation source here; required contract values are
+# supplied explicitly below. Preserve an operator-provided ENV_FILE.
+if [[ "$ENV_FILE" == "$ROOT_DIR/.env" && ! -f "$ENV_FILE" ]]; then
+  ENV_FILE="$ROOT_DIR/.env.example"
+  export ENV_FILE
+fi
+[[ -f "$ENV_FILE" ]] || fail "Compose env file is missing: $ENV_FILE"
 
 [[ -d "$OBS_DIR" ]] || fail "observability config directory is missing"
 [[ -f "$COMPOSE_FILE" ]] || fail "observability Compose overlay is missing"
@@ -115,6 +125,7 @@ PY
 compose_output="$(mktemp)"
 fake_bin="$(mktemp -d)"
 trap 'rm -f "$compose_output"; rm -rf "$fake_bin"' EXIT
+devstack_compose_args compose --observability
 MYSQL_ROOT_PASSWORD=contract-root-password \
 DB_PASSWORD=contract-db-password \
 HEALTH_REDIS_PASSWORD=contract-health-password \
@@ -123,9 +134,7 @@ NACOS_AUTH_IDENTITY_KEY=contract-identity-key \
 NACOS_AUTH_IDENTITY_VALUE=contract-identity-value \
 MEILI_MASTER_KEY=contract-meili-key \
 GRAFANA_ADMIN_PASSWORD=contract-password \
-  docker compose --project-directory "$ROOT_DIR" -f "$ROOT_DIR/docker/docker-compose.yml" \
-  -f "$ROOT_DIR/docker/docker-compose.dev.yml" \
-  -f "$COMPOSE_FILE" --profile observability config > "$compose_output"
+  "${compose[@]}" config > "$compose_output"
 printf 'merged observability Compose config: PASS\n'
 
 PROMETHEUS_IMAGE='prom/prometheus@sha256:2659f4c2ebb718e7695cb9b25ffa7d6be64db013daba13e05c875451cf51b0d3'

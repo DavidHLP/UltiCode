@@ -92,10 +92,7 @@ if [[ -f "$ROOT_DIR/scripts/dev/lib/common.sh" ]]; then
     load_env_file || true
   fi
 elif [[ -f "${ENV_FILE:-}" ]]; then
-  set -a
-  # shellcheck disable=SC1090
-  source "$ENV_FILE"
-  set +a
+  load_env_file
 fi
 
 REDIS_HOST="${REDIS_HOST:-127.0.0.1}"

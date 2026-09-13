@@ -3,11 +3,11 @@ import type { RecentActivity } from "@/types/userStats";
 import { cn } from "@/lib/utils";
 import { CheckCircle, MessageSquare, FileText, Clock } from "lucide-vue-next";
 import { useI18n } from "vue-i18n";
-import type { SemanticColor } from "@/shared/badge-config/src";
+import type { SemanticColor } from "@ulticode/badge-config";
 import {
   getStatusColor,
   getStatusLabelI18nKey,
-} from "@/shared/submission-status/src";
+} from "@ulticode/submission-status";
 
 defineProps<{
   activities: RecentActivity[];

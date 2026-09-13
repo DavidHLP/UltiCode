@@ -22,6 +22,7 @@ import com.ulticode.modules.contest.mapper.ContestProblemMapper;
 import com.ulticode.modules.contest.projection.ContestProjection;
 import com.ulticode.modules.contest.service.ContestLifecycleService;
 import com.ulticode.modules.contest.service.ContestService;
+import com.ulticode.modules.submission.port.SubmissionFactsCapture;
 import com.ulticode.submission.api.dto.CreateSubmissionDTO;
 import com.ulticode.submission.api.dto.SubmissionVO;
 import com.ulticode.submission.api.service.SubmissionIntakePort;
@@ -64,6 +65,7 @@ public class ContestServiceImpl implements ContestService {
     private final ContestProblemMapper contestProblemMapper;
     private final ContestParticipantMapper participantMapper;
     private final SubmissionIntakePort submissionWritePort;
+    private final SubmissionFactsCapture submissionFactsCapture;
     private final ContestLifecycleService contestLifecycleService;
     private final ContestProjection contestProjection;
     private final ContestClock contestClock;
@@ -131,7 +133,8 @@ public class ContestServiceImpl implements ContestService {
         createDTO.setProblemId(problemId);
         createDTO.setContestId(contestId);
         createDTO.setVirtualSessionId(virtual ? participant.getVirtualSessionId() : null);
-        return submissionWritePort.submitContest(userId, createDTO);
+        return submissionWritePort.submitContest(
+                userId, createDTO, submissionFactsCapture.capture(userId, createDTO));
     }
 
     // =========================================================================

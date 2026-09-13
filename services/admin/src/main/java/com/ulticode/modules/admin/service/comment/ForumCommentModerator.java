@@ -1,25 +1,22 @@
 package com.ulticode.modules.admin.service.comment;
 
 import com.ulticode.admin.error.AdminErrorCode;
-import com.ulticode.common.command.ActorDelegation;
 import com.ulticode.app.api.command.ForumCommentModerationCommand;
 import com.ulticode.app.api.dto.ForumCommentModerationResultDTO;
 import com.ulticode.app.api.service.ForumCommentAdministrationService;
 import com.ulticode.app.api.service.ForumCommentReadPort;
 import com.ulticode.app.api.service.ForumCommentReadPort.ForumCommentPage;
 import com.ulticode.app.api.service.ForumCommentReadPort.ForumCommentRow;
-import com.ulticode.common.auth.AdminActors;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.rpc.RpcResult;
-import com.ulticode.common.tracing.IdMetadata;
-import com.ulticode.common.tracing.TraceMetadata;
 import com.ulticode.common.util.AuditContext;
-import com.ulticode.common.util.TraceIdUtil;
 import com.ulticode.modules.admin.dto.AdminCommentQueryDTO;
 import com.ulticode.modules.admin.dto.AdminCommentVO;
 import com.ulticode.modules.admin.port.AdminCommentReadPort;
+import com.ulticode.modules.admin.write.AdminOwnerErrorMapper;
+import com.ulticode.modules.admin.write.AdminWriteEnvelope;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -28,7 +25,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -105,7 +101,8 @@ public class ForumCommentModerator implements CommentModerator {
         RpcResult<ForumCommentModerationResultDTO> result = forumCommentAdministrationService.moderate(
                 command(commentId, ForumCommentModerationCommand.Action.FLAG, reason, null));
         if (result == null || !result.success() || result.data() == null) {
-            throw mapError(result);
+            throw AdminOwnerErrorMapper.mapOwnerError(
+                    AdminOwnerErrorMapper.Owner.FORUM_COMMENT, result);
         }
         ForumCommentModerationResultDTO res = result.data();
         AuditContext.setUserId(res.authorUserId());
@@ -123,7 +120,8 @@ public class ForumCommentModerator implements CommentModerator {
         RpcResult<ForumCommentModerationResultDTO> result = forumCommentAdministrationService.moderate(
                 command(commentId, ForumCommentModerationCommand.Action.UNFLAG, null, null));
         if (result == null || !result.success() || result.data() == null) {
-            throw mapError(result);
+            throw AdminOwnerErrorMapper.mapOwnerError(
+                    AdminOwnerErrorMapper.Owner.FORUM_COMMENT, result);
         }
         ForumCommentModerationResultDTO res = result.data();
         AuditContext.setUserId(res.authorUserId());
@@ -138,11 +136,12 @@ public class ForumCommentModerator implements CommentModerator {
 
     @Override
     public void deleteComment(String commentId) {
-        String deletedBy = safeActorId();
+        String deletedBy = currentUserProvider.getCurrentUserId();
         RpcResult<ForumCommentModerationResultDTO> result = forumCommentAdministrationService.moderate(
                 command(commentId, ForumCommentModerationCommand.Action.DELETE, null, deletedBy));
         if (result == null || !result.success() || result.data() == null) {
-            throw mapError(result);
+            throw AdminOwnerErrorMapper.mapOwnerError(
+                    AdminOwnerErrorMapper.Owner.FORUM_COMMENT, result);
         }
         ForumCommentModerationResultDTO res = result.data();
         AuditContext.setUserId(res.authorUserId());
@@ -152,50 +151,13 @@ public class ForumCommentModerator implements CommentModerator {
     }
     private ForumCommentModerationCommand command(String commentId, ForumCommentModerationCommand.Action action,
                                                   String reason, String deletedBy) {
-        String actorId = safeActorId();
-        return new ForumCommentModerationCommand(
-                UUID.randomUUID().toString(),
-                IdMetadata.mint(),
-                new ActorDelegation(
-                        AdminActors.typeOf(currentUserProvider),
-                        actorId, actorId, "forum comment moderation"),
-                currentTrace(),
-                commentId, action, reason, deletedBy);
-    }
-
-    private static TraceMetadata currentTrace() {
-        String reqId = TraceIdUtil.current();
-        if (reqId == null || reqId.isBlank()) {
-            reqId = "t-" + UUID.randomUUID();
-        }
-        return new TraceMetadata(reqId, null, null, null);
-    }
-
-    private String safeActorId() {
         String actorId = currentUserProvider.getCurrentUserId();
-        if (actorId == null || actorId.isBlank()) {
-            throw new BusinessException(AdminErrorCode.UNAUTHORIZED, "Authenticated admin actor is required");
-        }
-        return actorId;
-    }
-
-    private static BusinessException mapError(RpcResult<?> result) {
-        if (result == null) {
-            return new BusinessException(AdminErrorCode.UNKNOWN_ERROR,
-                    "RPC result is null (transport failure)");
-        }
-        var err = result.error();
-        if (err == null) {
-            return new BusinessException(AdminErrorCode.UNKNOWN_ERROR,
-                    "RPC failed without error payload");
-        }
-        return switch (err.code()) {
-            case 40000 -> new BusinessException(AdminErrorCode.BAD_REQUEST, err.message());
-            case 40100 -> new BusinessException(AdminErrorCode.UNAUTHORIZED, err.message());
-            case 40300 -> new BusinessException(AdminErrorCode.FORBIDDEN, err.message());
-            case 40401 -> new BusinessException(AdminErrorCode.NOT_FOUND, err.message());
-            default -> new BusinessException(AdminErrorCode.UNKNOWN_ERROR, err.message());
-        };
+        AdminWriteEnvelope envelope = AdminWriteEnvelope.envelope(
+                "forum-comment-moderation", null, actorId, currentUserProvider,
+                "forum comment moderation");
+        return new ForumCommentModerationCommand(
+                envelope.commandId(), envelope.idempotency(), envelope.actor(), envelope.trace(),
+                commentId, action, reason, deletedBy);
     }
 
 

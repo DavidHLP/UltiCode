@@ -1,6 +1,6 @@
 import { useI18n } from 'vue-i18n'
 import { SUPPORTED_LOCALES, LOCALE_CONFIGS, type SupportedLocale, type LocaleConfig } from '@/i18n'
-import { createUseLocale } from '@/shared/locale-preference/src'
+import { createUseLocale } from '@ulticode/locale-preference'
 
 /**
  * Console locale composable — delegates to the shared locale-preference

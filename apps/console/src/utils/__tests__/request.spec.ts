@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { AuthFailureStrategy } from "@/shared/http-client/src";
+import type { AuthFailureStrategy } from "@ulticode/http-client";
 
 // Capture the AuthFailureStrategy that request.ts wires into createHttpClient,
 // without exporting an internal constant. The strategy under test is the exact
@@ -9,14 +9,14 @@ const harness = vi.hoisted(() => ({
   runSessionExpired: vi.fn(),
 }));
 
-vi.mock("@/shared/http-client/src", () => ({
+vi.mock("@ulticode/http-client", () => ({
   createHttpClient: (cfg: { onAuthFailure?: AuthFailureStrategy }) => {
     if (cfg.onAuthFailure) harness.strategy = cfg.onAuthFailure;
     return {};
   },
 }));
 
-vi.mock("@/shared/auth-core/src", () => ({
+vi.mock("@ulticode/auth-core", () => ({
   csrfManager: {
     clearToken: vi.fn(),
     refreshFromResponse: vi.fn(),

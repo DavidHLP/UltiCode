@@ -3,7 +3,7 @@ package com.ulticode.modules.admin.service;
 import com.ulticode.notification.api.service.NotificationAdminReadPort;
 import com.ulticode.notification.api.service.NotificationAdministrationService;
 import com.ulticode.notification.api.service.NotificationServiceContract;
-import com.ulticode.modules.admin.port.adapter.DubboNotificationAdminReadAdapter;
+import com.ulticode.modules.admin.port.adapter.AdminDubboReferenceRegistry;
 import com.ulticode.modules.admin.service.impl.AdminNotificationServiceImpl;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.junit.jupiter.api.Test;
@@ -20,8 +20,8 @@ class NotificationProviderReferenceContractTest {
     @Test
     void adminNotificationConsumersUseTheTargetOwnerGroup() throws Exception {
         assertReferenceGroup(
-                DubboNotificationAdminReadAdapter.class,
-                "notificationAdminReadPort",
+                AdminDubboReferenceRegistry.class,
+                "notificationAdminReadReference",
                 NotificationAdminReadPort.class);
         assertReferenceGroup(
                 AdminNotificationServiceImpl.class,

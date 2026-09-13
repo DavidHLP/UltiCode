@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { renderMarkdown } from '@/shared/markdown-utils/src';
+import { renderMarkdown } from '@ulticode/markdown-utils';
 
 describe("markdown security", () => {
   it("renders KaTeX while removing executable markup", () => {

@@ -34,7 +34,7 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * Default (and only) adapter for {@link ProblemDetailPort}. Owns the
+ * Default (and only) adapter for {@link ProblemDetailDomainPort}. Owns the
  * detail-satellite write lifecycle — see the interface javadoc for why this is
  * a deep module.
  *
@@ -49,7 +49,7 @@ import java.util.Objects;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class DefaultProblemDetailPort implements ProblemDetailPort {
+public class DefaultProblemDetailPort implements ProblemDetailDomainPort {
 
     private final ProblemDetailMapper problemDetailMapper;
     private final ProblemExampleMapper problemExampleMapper;

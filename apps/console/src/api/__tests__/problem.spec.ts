@@ -1,6 +1,27 @@
-import { describe, it, expect } from "vitest";
-import { mapProblem } from "@/api/problem";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { apiGet } from "@/utils/request";
+import { fetchProblems, mapProblem } from "@/api/problem";
 import type { Problem } from "@/types/problem";
+
+vi.mock("@/utils/request", () => ({
+  apiGet: vi.fn(),
+}));
+
+beforeEach(() => {
+  vi.clearAllMocks();
+});
+
+const baseSnake = {
+  id: "1",
+  title: "Two Sum",
+  slug: "two-sum",
+  difficulty: "EASY",
+  acceptance_rate: "42.5",
+  is_premium: true,
+  has_solution: false,
+  completed_time: "2026-01-01T00:00:00",
+  tags: ["array"],
+};
 
 /**
  * Direct mapProblem seam tests. The candidate's premise was that two wire
@@ -10,18 +31,6 @@ import type { Problem } from "@/types/problem";
  * acceptanceRate) consumers depend on.
  */
 describe("mapProblem", () => {
-  const baseSnake = {
-    id: "1",
-    title: "Two Sum",
-    slug: "two-sum",
-    difficulty: "EASY",
-    acceptance_rate: "42.5",
-    is_premium: true,
-    has_solution: false,
-    completed_time: "2026-01-01T00:00:00",
-    tags: ["array"],
-  };
-
   it("resolves snake_case fields to the camelCase Problem shape", () => {
     const p = mapProblem({ ...baseSnake }) as Problem;
     expect(p.id).toBe(1);
@@ -53,14 +62,37 @@ describe("mapProblem", () => {
     expect(p.completedTime).toBe("2026-02-02T00:00:00");
   });
 
-  it("returns undefined acceptanceRate for an unparseable value", () => {
-    const p = mapProblem({ ...baseSnake, acceptance_rate: "abc" }) as Problem;
-    expect(p.acceptanceRate).toBeUndefined();
-    expect(p.acceptance_rate).toBeUndefined();
+  it("rejects an unparseable acceptanceRate at the API boundary", () => {
+    expect(() => mapProblem({ ...baseSnake, acceptance_rate: "abc" })).toThrow(
+      "acceptanceRate",
+    );
   });
 
-  it("returns the input untouched for non-object input", () => {
-    expect(mapProblem(null as unknown)).toBeNull();
-    expect(mapProblem(undefined as unknown)).toBeUndefined();
+  it("rejects non-object input at the API boundary", () => {
+    expect(() => mapProblem(null as unknown)).toThrow("must be an object");
+    expect(() => mapProblem(undefined as unknown)).toThrow("must be an object");
+  });
+});
+
+describe("fetchProblems", () => {
+  it("returns mapped items with the canonical page envelope", async () => {
+    vi.mocked(apiGet).mockResolvedValueOnce({
+      items: [{ ...baseSnake }],
+      total: 4,
+      page: 2,
+      pageSize: 1,
+      totalPages: 4,
+    });
+
+    const result = await fetchProblems({ search: "two sum" }, 2, 1);
+
+    expect(result.items[0]?.title).toBe("Two Sum");
+    expect(result.total).toBe(4);
+    expect(result.page).toBe(2);
+    expect(result.pageSize).toBe(1);
+    expect(result.totalPages).toBe(4);
+    expect(apiGet).toHaveBeenCalledWith(
+      "/problems?page=2&pageSize=1&search=two+sum",
+    );
   });
 });

@@ -222,33 +222,44 @@ bulk test-case import are capped at 500 (`BulkProblemRequestDTO.java:17-31`,
 ## 6. Scheduled reconciliation budget
 
 P0 identifies reconciliation as an Auth + App + Submission + Notification use-case. The
-current implementation has correct owner facts and cursor/page validation, but its full
-and incremental loops stop only when the owner returns an empty page. Page size `500`
-is bounded; total pages are not (`OwnerReconciler.java:311-465`). This manifest therefore
-uses a finite planning cap and fails closed when it is exceeded.
+current implementation has correct owner facts and cursor/page validation. `OrphanScan`
+keeps each invocation finite: page size `500`, at most `32` non-empty pages, and parent
+existence lookups in batches of `500`. When the page budget ends on a full page, the
+`OwnerReconciler` persists the per-owner cursor/offset and accumulated count in the
+`reconciliation_runs.detail` continuation; the next run resumes it. Malformed or unavailable
+pages still fail closed. The per-invocation budget is a repository/disposable safety boundary,
+not a claim about the size of production history. Completed runs retain the final continuation
+watermark/state so they supersede an older partial checkpoint for the same scan. Checkpoint
+identity is also stored in indexed `scan_mode`/`scan_created_since` columns, with valid legacy
+continuations backfilled by the additive owner migration. Incremental audit candidates use the
+same inclusive `createdSince` watermark as the Submission and Notification owner facts.
 
 The target constants are deliberately repository/disposable limits, not production SLOs:
-`MAX_OWNER_NONEMPTY_PAGES=32` for Submission and Notification, and `MAX_AUDIT_PAGES=32` for
-the Admin audit candidate scan. A capped run processes at most 16,000 grouped owner facts per
-owner stream and 16,000 audit candidate rows before failing with its last cursor/offset
-for a resumable run. Each owner stream also permits one terminal empty-page read; that
-terminator is included in the RPC budget below.
+`MAX_RECONCILIATION_PAGES=32` per continuation run for Submission, Notification, and the
+Admin audit candidate scan. A single invocation processes at most 16,000 grouped owner facts
+per stream and 16,000 audit candidate rows, then records `PARTIAL` progress when more data is
+present. Subsequent invocations eventually cover the complete dataset and publish
+`COMPLETED`; each owner stream may also perform one terminal empty-page read when it finishes
+before the page budget.
 
 | id | scheduled mode | target scan cap | target L / R / wall_budget_ms | current shape | per-call policy / freshness | result semantics | source |
 | --- | --- | --- | ---: | --- | --- | --- | --- |
 | `S-BOOTSTRAP-ADMIN` | Explicit production-safe one-shot admin bootstrap CLI | one invocation | `5 / 5 / 9400` (`2Q` role counts + `2Q` identity checks + `1W` create) | `AdminBootstrapRunner` performs those checks serially, then one Auth create | `Q` + `W`; `REQ` | Existing admin or identity conflict aborts before write; Auth failure aborts; no write retry | `[E-BOOTSTRAP]` |
 | `S-DEV-BOOTSTRAP` | Explicit dev-only create/restore admin runner | one invocation | `8 / 8 / 18400` worst case (`4Q + 4W` restore path) | Username/email checks, then create (`3` calls) or restore (`up to 8` calls), serial; dev profile/property gated | `Q` + `W`; `REQ` | Conflict aborts; restore/write failure aborts; dev-only path is not a production SLO | `[E-BOOTSTRAP]` |
-| `S-RECON-FULL` | Nightly full reconciliation | Submission `32` non-empty pages + one terminator, Notification `32` non-empty pages + one terminator, audit `32` pages; page size `500` | **`164 / 164 / 262400`** (`1` Auth orphan aggregate + `1` App orphan aggregate + `65` Submission/Auth calls + `65` Notification/Auth calls + `32` audit/Auth calls) | `1 + 2P_submission + 2P_notification + P_audit` with no finite `P`; current `max_logical_rpcs=UNBOUNDED`, `FAIL_UNBOUNDED_SCAN` | `Q`; `CRON`; facts are full-history (`createdSince=null`) | Owner/null/ordering/lease failures persist `FAILED`; no partial `COMPLETED`; lease busy is `SKIPPED` | `[E-RECON]` |
-| `S-RECON-INCREMENTAL` | Manual/invoked incremental reconciliation | Same `32/32/32` non-empty-page caps plus owner terminators; inclusive watermark required | **`164 / 164 / 262400`** | Same unbounded page loops if the watermark window is large; current `FAIL_UNBOUNDED_SCAN` | `Q`; `WM`; caller supplies `createdSince` | Exceeding a cap fails with cursor for retry as a new bounded run; owner failure `FAILED`; no automatic write retry | `[E-RECON]` |
+| `S-RECON-FULL` | Nightly full reconciliation | Submission `32` non-empty pages + continuation, Notification `32` non-empty pages + continuation, audit `32` pages per invocation; page size `500` | **`164 / 164 / 262400`** per invocation (`1` Auth orphan aggregate + `1` App orphan aggregate + at most `65` Submission/Auth calls + `65` Notification/Auth calls + `32` audit/Auth calls) | `1 + 2P_submission + 2P_notification + P_audit` within the finite per-invocation envelope; `OrphanScan` persists a continuation when a source is not complete | `Q`; `CRON`; facts are full-history (`createdSince=null`) | `PARTIAL` persists owner cursors/offsets and accumulated counts; final `COMPLETED` covers all sources; owner/null/ordering/lease failures persist `FAILED`; lease busy is `SKIPPED` | `[E-RECON]` |
+| `S-RECON-INCREMENTAL` | Manual/invoked incremental reconciliation | Same `32/32/32` non-empty-page budgets per invocation plus continuation; inclusive watermark required | **`164 / 164 / 262400`** per invocation | Same finite per-invocation `OrphanScan` envelope; malformed or oversized pages fail closed; progress resumes by owner cursor/offset | `Q`; `WM`; caller supplies `createdSince` | A budget boundary persists `PARTIAL` progress and later completes; owner failure `FAILED`; no automatic write retry | `[E-RECON]` |
 | `S-RECON-LEASE-BUSY` | Scheduled/manual run when fenced lease is held | No owner scan | `0 / 0 / 0` | Lease acquisition returns null and exits | `P`; `CRON` or `WM` | `SKIPPED`, increment skip metric; never report success with fabricated facts | `[E-RECON]` |
 
-`OwnerReconciler` currently calls Auth orphan aggregate, Submission and Notification paged
-facts, App orphan aggregate, and Admin-local audit pages in serial order
-(`OwnerReconciler.java:162-209,294-445`). The current source already persists `FAILED`,
-`SKIPPED`, lease-loss, and completion state; this manifest adds the finite scan envelope
-that the source does not yet enforce. `RECONCILIATION_PAIRS` is currently empty
-(`OwnerReconciler.java:87-94`); any future pair must reserve additional `Q` calls inside
-the same scheduled budget rather than silently expanding it.
+`OwnerReconciler` calls the Auth orphan aggregate, Submission and Notification paged
+facts, App orphan aggregate, and Admin-local audit pages in serial order. The shared
+`OrphanScan` module now enforces the finite per-invocation envelope, ordered/non-null page
+contract, batched Auth existence lookups, and the existing fail-closed result semantics.
+`reconciliation_runs.detail` carries continuation state so a budget boundary is resumable
+instead of being reported as a permanent failure.
+The former empty `RECONCILIATION_PAIRS` extension path was removed because it was
+unreachable and had no approved budget or owner contract. Any future reconciliation
+pair must be introduced as an explicit, budgeted owner capability rather than silently
+expanding this scheduled run.
 
 ## 7. Boundary and evidence rules
 
@@ -285,23 +296,23 @@ the same scheduled budget rather than silently expanding it.
 | `E-USER-WRITE` | `services/admin/src/main/java/com/ulticode/modules/admin/service/impl/UserManagementServiceImpl.java:70-339`; `services/admin/src/main/java/com/ulticode/modules/admin/controller/AdminAccountController.java:65-105`; `services/admin/src/main/java/com/ulticode/modules/admin/port/adapter/UserProvisioningAdapter.java:54-64`; `services/admin/src/main/java/com/ulticode/modules/admin/port/adapter/AdminUserProfileAdapter.java:49-169`. |
 | `E-BOOTSTRAP` | `services/admin/src/main/java/com/ulticode/modules/admin/bootstrap/AdminBootstrapRunner.java:27-69`; `DevUserBootstrapRunner.java:27-71`; `services/admin/src/main/java/com/ulticode/modules/admin/port/adapter/UserProvisioningAdapter.java:47-267`. |
 | `E-PERM` | `services/admin/src/main/java/com/ulticode/modules/admin/service/impl/UserPermissionServiceImpl.java:43-160`. |
-| `E-CONTEST` | `services/admin/src/main/java/com/ulticode/modules/admin/projection/DefaultAdminContestProjection.java:31-84`; `services/admin/src/main/java/com/ulticode/modules/admin/service/impl/AdminContestServiceImpl.java:31-60`; adapters under `services/admin/src/main/java/com/ulticode/modules/admin/port/adapter/DubboContest*.java`. |
+| `E-CONTEST` | `services/admin/src/main/java/com/ulticode/modules/admin/projection/DefaultAdminContestProjection.java:31-84`; `services/admin/src/main/java/com/ulticode/modules/admin/service/impl/AdminContestServiceImpl.java:31-60`; pure RPC references under `services/admin/src/main/java/com/ulticode/modules/admin/port/adapter/AdminDubboReferenceRegistry.java:54-68,169-191`. |
 | `E-CONTEST-WRITE` | `services/admin/src/main/java/com/ulticode/modules/admin/service/ContestCutoverService.java:40-182`. |
 | `E-PROFILE` | `services/admin/src/main/java/com/ulticode/modules/admin/port/adapter/AdminUserProfileAdapter.java:49-169` — App profile write and avatar file/URL sequence. |
 | `E-FORUM` | `services/admin/src/main/java/com/ulticode/modules/admin/projection/DefaultAdminForumProjection.java:44-115`; `services/admin/src/main/java/com/ulticode/modules/admin/port/adapter/DubboAdminForumReadAdapter.java:33-78`. |
 | `E-FORUM-WRITE` | `services/admin/src/main/java/com/ulticode/modules/admin/service/impl/AdminForumServiceImpl.java:67-177`; `services/admin/src/main/java/com/ulticode/modules/admin/policy/impl/ForumPostFieldToggleImpl.java:35-86`; `ForumFlagPolicyImpl.java:35-106`. |
-| `E-NOTIFY` | `services/admin/src/main/java/com/ulticode/modules/admin/projection/DefaultAdminNotificationProjection.java:63-146`; `services/admin/src/main/java/com/ulticode/modules/admin/port/adapter/DubboNotificationAdminReadAdapter.java:27-52`. |
+| `E-NOTIFY` | `services/admin/src/main/java/com/ulticode/modules/admin/projection/DefaultAdminNotificationProjection.java:63-146`; `services/admin/src/main/java/com/ulticode/modules/admin/port/adapter/AdminDubboReferenceRegistry.java:90-93,223-227`. |
 | `E-NOTIFY-WRITE` | `services/admin/src/main/java/com/ulticode/modules/admin/service/impl/AdminNotificationServiceImpl.java:63-196`; `services/admin/src/main/java/com/ulticode/modules/admin/service/NotificationCutoverService.java:49-253`. |
-| `E-SOLUTION` | `services/admin/src/main/java/com/ulticode/modules/admin/projection/DefaultAdminSolutionProjection.java:50-149,193-246`; `services/admin/src/main/java/com/ulticode/modules/admin/port/adapter/DubboSolution*.java`. |
+| `E-SOLUTION` | `services/admin/src/main/java/com/ulticode/modules/admin/projection/DefaultAdminSolutionProjection.java:50-149,193-246`; pure RPC references under `services/admin/src/main/java/com/ulticode/modules/admin/port/adapter/AdminDubboReferenceRegistry.java:123-141,271-299`. |
 | `E-SOLUTION-WRITE` | `services/admin/src/main/java/com/ulticode/modules/admin/service/impl/AdminSolutionServiceImpl.java:36-125`. |
-| `E-SUBMISSION` | `services/admin/src/main/java/com/ulticode/modules/admin/projection/DefaultAdminSubmissionProjection.java:50-189,257-310`; `services/admin/src/main/java/com/ulticode/modules/admin/port/adapter/DubboSubmissionAdminReadAdapter.java:28-98`. |
-| `E-PROBLEM` | `services/admin/src/main/java/com/ulticode/modules/admin/service/impl/AdminProblemServiceImpl.java:46-200`; `services/admin/src/main/java/com/ulticode/modules/admin/port/adapter/DubboProblemAdminReadAdapter.java:32-134`. |
+| `E-SUBMISSION` | `services/admin/src/main/java/com/ulticode/modules/admin/projection/DefaultAdminSubmissionProjection.java:50-189,257-310`; pure RPC references under `services/admin/src/main/java/com/ulticode/modules/admin/port/adapter/AdminDubboReferenceRegistry.java:143-153,301-317`. |
+| `E-PROBLEM` | `services/admin/src/main/java/com/ulticode/modules/admin/service/impl/AdminProblemServiceImpl.java:46-200`; pure RPC references under `services/admin/src/main/java/com/ulticode/modules/admin/port/adapter/AdminDubboReferenceRegistry.java:95-121,229-269`. |
 | `E-PROBLEM-WRITE` | `services/admin/src/main/java/com/ulticode/modules/admin/service/ProblemCutoverService.java:47-154`; `services/admin/src/main/java/com/ulticode/modules/admin/service/impl/AdminProblemServiceImpl.java:103-189`. |
 | `E-PROBLIST` | `services/admin/src/main/java/com/ulticode/modules/admin/projection/DefaultAdminProblemListProjection.java:41-145`. |
 | `E-PROBLIST-WRITE` | `services/admin/src/main/java/com/ulticode/modules/admin/service/impl/AdminProblemListServiceImpl.java:62-180,218-285,304-373`. |
 | `E-COMMENT` | `services/admin/src/main/java/com/ulticode/modules/admin/service/impl/AdminCommentServiceImpl.java:97-186`; `ForumCommentModerator.java:52-101`; `SolutionCommentModerator.java:52-101`; `AdminCommentReadAdapter.java:35-63`. |
-| `E-TAG` | `services/admin/src/main/java/com/ulticode/modules/admin/service/handler/ForumTagHandler.java:46-127`; `ProblemTagHandler.java:32-132`; `services/admin/src/main/java/com/ulticode/modules/admin/port/adapter/DubboProblemTagOwnerAdapter.java:21-44`. |
-| `E-TESTCASE` | `services/admin/src/main/java/com/ulticode/modules/admin/service/AdminTestCaseService.java:45-75,88-199,207-270`; `BulkImportTestCasesDTO.java:18-30`; `DubboTestCaseOwnerAdapter.java:17-56`. |
+| `E-TAG` | `services/admin/src/main/java/com/ulticode/modules/admin/service/handler/ForumTagHandler.java:46-127`; `ProblemTagHandler.java:32-132`; `services/admin/src/main/java/com/ulticode/modules/admin/port/adapter/AdminDubboReferenceRegistry.java:82-88,119-121,211-221,265-269`. |
+| `E-TESTCASE` | `services/admin/src/main/java/com/ulticode/modules/admin/service/AdminTestCaseService.java:45-75,88-199,207-270`; `BulkImportTestCasesDTO.java:18-30`; `services/admin/src/main/java/com/ulticode/modules/admin/port/adapter/AdminDubboReferenceRegistry.java:159-161,325-329`. |
 | `E-ANALYTICS` | `services/admin/src/main/java/com/ulticode/modules/admin/port/adapter/DefaultAdminAnalyticsPortAdapter.java:53-210`; `DefaultUserActivityAnalyticsProjection.java:52-184`; `ContestParticipationReporter.java:35-89`; `RevenueReporter.java:37-169`; `AdminAnalyticsController.java:27-79`. |
 | `E-LOCAL` | `services/admin/src/main/java/com/ulticode/modules/admin/service/impl/SystemSettingsServiceImpl.java:58-162`; `services/admin/src/main/java/com/ulticode/modules/admin/service/impl/AuditServiceImpl.java:23-187`. |
 | `E-BULK` | `services/admin/src/main/java/com/ulticode/modules/admin/bulk/AdminBulkExecutor.java:52-81`; request caps in `BulkUserActionRequest.java`, `BulkActionRequest.java`, `BulkCommentActionRequest.java`, `BulkSolutionActionDto.java`, `BulkProblemRequestDTO.java`, `BatchRejudgeRequest.java`, `ImportProblemsRequestDTO.java`, and `BulkImportTestCasesDTO.java`. |

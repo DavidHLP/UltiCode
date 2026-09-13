@@ -8,7 +8,6 @@ import { IconFlag, IconLock, IconPin, IconTrash, IconMessages } from '@tabler/ic
 import { Button } from '@/components/ui/button'
 
 import { useForumStore } from '@/stores/admin/forum'
-import { useAuthStore } from '@/stores/auth'
 import type { ForumPost } from '@/api/admin/forum'
 
 import DataTable from '@/components/table/DataTable.vue'
@@ -16,11 +15,12 @@ import DataTableToolbar, { type Filter } from '@/components/table/DataTableToolb
 import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
 import { createColumns } from './columns'
 import { useDataTable } from '@/composables/useDataTable'
+import { useForumPermissions } from '@/composables/useForumPermissions'
 
 const router = useRouter()
 const { t } = useI18n()
 const forumStore = useForumStore()
-const authStore = useAuthStore()
+const { can } = useForumPermissions()
 
 const communityFilter = ref<string>('all')
 const flaggedFilter = ref<string>('all')
@@ -42,12 +42,12 @@ onMounted(() => {
   }, 100)
 })
 
-const canModerate = computed(() => authStore.hasPermission('MODERATE', 'FORUM_POST'))
+const canModerate = can.forum.moderatePost
 
 // Stats for terminal ticker
 const stats = computed(() => {
-  const posts = forumStore.posts
-  const total = forumStore.totalPosts
+  const posts = forumStore.items
+  const total = forumStore.total
   const pinned = posts.filter((p) => p.isPinned).length
   const locked = posts.filter((p) => p.isLocked).length
   const flagged = posts.filter((p) => p.isFlagged).length
@@ -126,13 +126,7 @@ const {
   },
   Parameters<typeof forumStore.fetchPosts>[0]
 >({
-  store: {
-    data: computed(() => forumStore.posts),
-    total: computed(() => forumStore.totalPosts),
-    isLoading: computed(() => forumStore.postsLoading),
-    error: computed(() => forumStore.postsError),
-    fetch: (params) => forumStore.fetchPosts(params),
-  },
+  store: forumStore,
   filters: () => ({
     communityFilter: communityFilter.value,
     flaggedFilter: flaggedFilter.value,
@@ -207,7 +201,7 @@ const columns = createColumns(
       deleteDialogOpen.value = true
     },
   },
-  () => canModerate.value,
+  can.forum,
 )
 
 async function handleDeletePost(id: string | number) {

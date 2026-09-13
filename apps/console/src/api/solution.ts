@@ -1,5 +1,6 @@
 import { useAuthStore } from "@/stores/auth";
 import { apiGet, apiPost, apiPatch, apiPut, apiDelete } from "@/utils/request";
+import { readPage } from "@/api/projection";
 import type { SolutionFeedResponse, SolutionFeedItem } from "@/types/solution";
 import type { SolutionComment } from "@/types/comment";
 export type { SolutionFeedResponse };
@@ -181,17 +182,14 @@ export async function fetchSolution(
 export async function fetchSolutionFeed(
   problemId: number,
 ): Promise<SolutionFeedResponse> {
-  const pageResult = await apiGet<{
-    items: SolutionListApiItem[];
-    total: number;
-    page: number;
-    pageSize: number;
-    totalPages: number;
-  }>(`/api/problems/${problemId}/solutions`);
+  const response = await apiGet<unknown>(
+    `/api/problems/${problemId}/solutions`,
+  );
+  const pageResult = readPage<SolutionListApiItem>(response);
 
   return {
+    ...pageResult,
     items: pageResult.items.map(transformListApiSolution),
-    total: pageResult.total,
   };
 }
 
@@ -203,13 +201,14 @@ export async function fetchUserSolutions(
   if (problemId) {
     params.set("problemId", problemId);
   }
-  const response = await apiGet<SolutionApiItem[]>(
+  const response = await apiGet<unknown>(
     `/api/solutions?${params.toString()}`,
   );
+  const pageResult = readPage<SolutionApiItem>(response);
 
   return {
-    items: response.map(transformApiSolution),
-    total: response.length,
+    ...pageResult,
+    items: pageResult.items.map(transformApiSolution),
   };
 }
 

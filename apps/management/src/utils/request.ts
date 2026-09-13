@@ -17,8 +17,8 @@
  * Concurrent same-reason triggers collapse to a single invocation inside
  * `shared/auth-core/src/auth-failure.ts`.
  */
-import { csrfManager } from '@/shared/auth-core/src'
-import { createHttpClient } from '@/shared/http-client/src'
+import { csrfManager } from '@ulticode/auth-core'
+import { createHttpClient } from '@ulticode/http-client'
 import { getActiveLocale, i18n } from '@/i18n'
 import { runSessionExpired } from '@/auth/runSessionExpired'
 
@@ -27,7 +27,7 @@ import type {
   RequestConfig,
   AuthFailureStrategy,
   DedupPolicy,
-} from '@/shared/http-client/src'
+} from '@ulticode/http-client'
 
 const onAuthFailure: AuthFailureStrategy = {
   kind: 'clear-and-run',
@@ -56,4 +56,4 @@ export const {
 })
 
 export type { ApiResponse, RequestConfig }
-export { ApiError } from '@/shared/http-client/src'
+export { ApiError } from '@ulticode/http-client'

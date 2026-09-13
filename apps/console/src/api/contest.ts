@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { apiGet, apiPost, apiDelete } from "@/utils/request";
 import { mapSubmission } from "@/api/submission";
+import { readPage } from "@/api/projection";
+import type { PageResult } from "@ulticode/domain-types";
 import {
   contestListItemSchema,
   contestDetailSchema,
@@ -256,11 +258,15 @@ export async function finishVirtualContest(
 
 export async function fetchUserContests(
   type: "registered" | "participated" | "virtual" = "participated",
-): Promise<ContestListItem[]> {
-  const result = await apiGet<unknown[]>("/contest/user/my-contests", {
+): Promise<PageResult<ContestListItem>> {
+  const result = await apiGet<unknown>("/contest/user/my-contests", {
     params: { type },
   });
-  return z.array(contestListItemSchema).parse(result || []);
+  const page = readPage<unknown>(result);
+  return {
+    ...page,
+    items: page.items.map((item) => contestListItemSchema.parse(item)),
+  };
 }
 
 export async function fetchUserContestHistory(): Promise<UserContestHistory[]> {

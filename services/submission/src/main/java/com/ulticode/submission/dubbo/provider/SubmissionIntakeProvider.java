@@ -18,19 +18,9 @@ public class SubmissionIntakeProvider implements SubmissionIntakePort {
     private final DefaultSubmissionWritePort delegate;
 
     @Override
-    public SubmissionVO submit(String userId, CreateSubmissionDTO createDTO) {
-        return delegate.submit(userId, createDTO);
-    }
-
-    @Override
     public SubmissionVO submit(String userId, CreateSubmissionDTO createDTO,
                                SubmissionFactsSnapshot facts) {
         return delegate.submit(userId, createDTO, facts);
-    }
-
-    @Override
-    public SubmissionVO submitContest(String userId, CreateSubmissionDTO createDTO) {
-        return delegate.submitContest(userId, createDTO);
     }
 
     @Override

@@ -33,11 +33,13 @@ class AuthAuditOutboxDispatcherTest {
     @Mock
     private StreamOperations<String, Object, Object> streamOperations;
 
+    private AuthAuditOutboxPublisher publisher;
     private AuthAuditOutboxDispatcher dispatcher;
 
     @BeforeEach
     void setUp() {
-        dispatcher = new AuthAuditOutboxDispatcher(outboxMapper, redisTemplate, new ObjectMapper());
+        publisher = new AuthAuditOutboxPublisher(redisTemplate, new ObjectMapper());
+        dispatcher = new AuthAuditOutboxDispatcher(outboxMapper, publisher);
         lenient().when(redisTemplate.opsForStream()).thenReturn((StreamOperations) streamOperations);
     }
 
@@ -45,8 +47,8 @@ class AuthAuditOutboxDispatcherTest {
     void dispatchesClaimedAuditRow() {
         AuthAuditOutboxRecord record = new AuthAuditOutboxRecord();
         record.setId("auth-audit-1");
-        when(outboxMapper.selectPending(50)).thenReturn(List.of(record));
-        when(outboxMapper.claim(eq("auth-audit-1"), anyString())).thenReturn(1);
+        when(outboxMapper.claimPending(anyString(), eq(50))).thenReturn(1);
+        when(outboxMapper.selectClaimed(anyString())).thenReturn(List.of(record));
         when(streamOperations.add(any(MapRecord.class))).thenReturn(RecordId.of("1-0"));
         when(outboxMapper.markDelivered(eq("auth-audit-1"), anyString())).thenReturn(1);
 
@@ -61,8 +63,8 @@ class AuthAuditOutboxDispatcherTest {
     void retriesWhenRedisPublishFails() {
         AuthAuditOutboxRecord record = new AuthAuditOutboxRecord();
         record.setId("auth-audit-2");
-        when(outboxMapper.selectPending(50)).thenReturn(List.of(record));
-        when(outboxMapper.claim(eq("auth-audit-2"), anyString())).thenReturn(1);
+        when(outboxMapper.claimPending(anyString(), eq(50))).thenReturn(1);
+        when(outboxMapper.selectClaimed(anyString())).thenReturn(List.of(record));
         when(streamOperations.add(any(MapRecord.class)))
                 .thenThrow(new IllegalStateException("redis down"));
 

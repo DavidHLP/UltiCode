@@ -209,16 +209,19 @@ class ProblemAdministrationDomainServiceTest {
             existing.setId(10L);
             existing.setSlug("old-slug");
             existing.setTitle("Old Title");
+            existing.setVersion(1);
 
             when(writePort.selectById(10L)).thenReturn(existing);
+            when(writePort.updateById(existing, 1L)).thenReturn(1);
 
             UpdateProblemDTO dto = new UpdateProblemDTO();
             dto.setTitle("New Title");
 
-            Problem updated = service.updateProblem(10L, dto, ACTOR_ID);
+            Problem updated = service.updateProblem(10L, dto, ACTOR_ID, 1L);
 
             assertThat(updated.getTitle()).isEqualTo("New Title");
-            verify(writePort).updateById(existing);
+            assertThat(updated.getVersion()).isEqualTo(2);
+            verify(writePort).updateById(existing, 1L);
             verify(detailPort).applyDetailUpdate(eq(10L), eq(existing), eq(dto));
             verify(versionPort).createVersion(10L, "UPDATE", null, ACTOR_ID);
         }
@@ -231,12 +234,12 @@ class ProblemAdministrationDomainServiceTest {
             UpdateProblemDTO dto = new UpdateProblemDTO();
             dto.setTitle("New Title");
 
-            assertThatThrownBy(() -> service.updateProblem(99L, dto, ACTOR_ID))
+            assertThatThrownBy(() -> service.updateProblem(99L, dto, ACTOR_ID, 1L))
                     .isInstanceOf(BusinessException.class)
                     .extracting("errorCode")
                     .isEqualTo(BaseErrorCode.NOT_FOUND);
 
-            verify(writePort, never()).updateById(any());
+            verify(writePort, never()).updateById(any(Problem.class), any());
         }
 
         @Test
@@ -280,6 +283,27 @@ class ProblemAdministrationDomainServiceTest {
             verify(detailPort, never()).applyDetailUpdate(any(), any(), any());
             verify(versionPort, never()).createVersion(any(), any(), any(), any());
         }
+
+        @Test
+        @DisplayName("fenced update rejects a missing expected version")
+        void missingExpectedVersion() {
+            Problem existing = new Problem();
+            existing.setId(10L);
+            existing.setVersion(4);
+            when(writePort.selectById(10L)).thenReturn(existing);
+
+            UpdateProblemDTO dto = new UpdateProblemDTO();
+            dto.setTitle("New Title");
+
+            assertThatThrownBy(() -> service.updateProblem(10L, dto, ACTOR_ID, null))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("errorCode")
+                    .isEqualTo(AppErrorCode.VERSION_CONFLICT);
+
+            verify(writePort, never()).updateById(any(Problem.class), any());
+            verify(detailPort, never()).applyDetailUpdate(any(), any(), any());
+        }
+
     }
 
     // ── deleteProblem ───────────────────────────────────────────────────────
@@ -293,11 +317,13 @@ class ProblemAdministrationDomainServiceTest {
         void success() {
             Problem existing = new Problem();
             existing.setId(5L);
+            existing.setVersion(1);
             when(writePort.selectById(5L)).thenReturn(existing);
+            when(writePort.deleteById(5L, 1L)).thenReturn(1);
 
-            service.deleteProblem(5L, ACTOR_ID);
+            service.deleteProblem(5L, ACTOR_ID, 1L);
 
-            verify(writePort).deleteById(5L);
+            verify(writePort).deleteById(5L, 1L);
         }
 
         @Test
@@ -319,12 +345,12 @@ class ProblemAdministrationDomainServiceTest {
         void notFound() {
             when(writePort.selectById(99L)).thenReturn(null);
 
-            assertThatThrownBy(() -> service.deleteProblem(99L, ACTOR_ID))
+            assertThatThrownBy(() -> service.deleteProblem(99L, ACTOR_ID, 1L))
                     .isInstanceOf(BusinessException.class)
                     .extracting("errorCode")
                     .isEqualTo(BaseErrorCode.NOT_FOUND);
 
-            verify(writePort, never()).deleteById(any());
+            verify(writePort, never()).deleteById(any(), any());
         }
     }
 
@@ -342,14 +368,16 @@ class ProblemAdministrationDomainServiceTest {
             existing.setIsPublished(false);
             existing.setPublishedAt(null);
             existing.setPublishedBy(null);
+            existing.setVersion(1);
             when(writePort.selectById(7L)).thenReturn(existing);
+            when(writePort.updateById(existing, 1L)).thenReturn(1);
 
-            Problem result = service.publishProblem(7L, ACTOR_ID);
+            Problem result = service.publishProblem(7L, ACTOR_ID, 1L);
 
             assertThat(result.getIsPublished()).isTrue();
             assertThat(result.getPublishedAt()).isNotNull();
             assertThat(result.getPublishedBy()).isEqualTo(ACTOR_ID);
-            verify(writePort).updateById(existing);
+            verify(writePort).updateById(existing, 1L);
         }
 
         @Test
@@ -360,14 +388,16 @@ class ProblemAdministrationDomainServiceTest {
             existing.setIsPublished(true);
             existing.setPublishedAt(LocalDateTime.of(2026, 1, 1, 0, 0));
             existing.setPublishedBy("original-actor");
+            existing.setVersion(1);
             when(writePort.selectById(7L)).thenReturn(existing);
+            when(writePort.updateById(existing, 1L)).thenReturn(1);
 
-            Problem result = service.publishProblem(7L, "new-actor");
+            Problem result = service.publishProblem(7L, "new-actor", 1L);
 
             assertThat(result.getIsPublished()).isTrue();
             assertThat(result.getPublishedAt()).isEqualTo(LocalDateTime.of(2026, 1, 1, 0, 0));
             assertThat(result.getPublishedBy()).isEqualTo("original-actor");
-            verify(writePort).updateById(existing);
+            verify(writePort).updateById(existing, 1L);
         }
 
         @Test
@@ -391,7 +421,7 @@ class ProblemAdministrationDomainServiceTest {
         void notFound() {
             when(writePort.selectById(99L)).thenReturn(null);
 
-            assertThatThrownBy(() -> service.publishProblem(99L, ACTOR_ID))
+            assertThatThrownBy(() -> service.publishProblem(99L, ACTOR_ID, 1L))
                     .isInstanceOf(BusinessException.class)
                     .extracting("errorCode")
                     .isEqualTo(BaseErrorCode.NOT_FOUND);
@@ -412,14 +442,16 @@ class ProblemAdministrationDomainServiceTest {
             existing.setIsPublished(true);
             existing.setPublishedAt(LocalDateTime.of(2026, 1, 1, 0, 0));
             existing.setPublishedBy("some-actor");
+            existing.setVersion(1);
             when(writePort.selectById(7L)).thenReturn(existing);
+            when(writePort.updateById(existing, 1L)).thenReturn(1);
 
-            Problem result = service.unpublishProblem(7L, ACTOR_ID);
+            Problem result = service.unpublishProblem(7L, ACTOR_ID, 1L);
 
             assertThat(result.getIsPublished()).isFalse();
             assertThat(result.getPublishedAt()).isEqualTo(LocalDateTime.of(2026, 1, 1, 0, 0));
             assertThat(result.getPublishedBy()).isEqualTo("some-actor");
-            verify(writePort).updateById(existing);
+            verify(writePort).updateById(existing, 1L);
         }
 
         @Test
@@ -427,7 +459,7 @@ class ProblemAdministrationDomainServiceTest {
         void notFound() {
             when(writePort.selectById(99L)).thenReturn(null);
 
-            assertThatThrownBy(() -> service.unpublishProblem(99L, ACTOR_ID))
+            assertThatThrownBy(() -> service.unpublishProblem(99L, ACTOR_ID, 1L))
                     .isInstanceOf(BusinessException.class)
                     .extracting("errorCode")
                     .isEqualTo(BaseErrorCode.NOT_FOUND);

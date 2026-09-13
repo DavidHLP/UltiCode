@@ -1,7 +1,7 @@
 package com.ulticode.modules.admin.port.adapter;
 
-import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.admin.error.AdminReadContract;
+import com.ulticode.admin.error.AdminReadContract.OwnerRead;
 import com.ulticode.app.api.dto.DashboardAppStatsDTO;
 import com.ulticode.app.api.dto.DashboardChartDataDTO;
 import com.ulticode.app.api.service.DashboardAdminReadPort;
@@ -25,10 +25,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 
 /**
@@ -99,36 +96,27 @@ public class DefaultAdminDashboardReadAdapter implements AdminDashboardReadPort 
         CancellableQueryExecutor.Query<SubmissionDashboardStatsDTO> submissionFuture = queryExecutor.submit(
                 () -> submissionAdminReadPort.loadDashboardStats(now));
         CancellableQueryExecutor.Query<DashboardUserData> userFuture = queryExecutor.submit(this::loadUserData);
-        try {
-            CompletableFuture.allOf(appFuture.result(), submissionFuture.result(), userFuture.result())
-                    .get(RpcPolicy.QUERY_TIMEOUT_MS, TimeUnit.MILLISECONDS);
-            DashboardAppStatsDTO app = appFuture.result().get();
-            SubmissionDashboardStatsDTO submission = submissionFuture.result().get();
-            DashboardUserData users = userFuture.result().get();
-            if (app == null || submission == null || users == null) {
-                throw unavailable();
-            }
-            return new DashboardData(users, app, submission);
-        } catch (BusinessException exception) {
-            throw exception;
-        } catch (InterruptedException exception) {
-            Thread.currentThread().interrupt();
-            CancellableQueryExecutor.cancel(appFuture, submissionFuture, userFuture);
-            throw unavailable();
-        } catch (ExecutionException exception) {
-            CancellableQueryExecutor.cancel(appFuture, submissionFuture, userFuture);
-            Throwable cause = exception.getCause();
-            if (cause instanceof Error) {
-                throw (Error) cause;
-            }
-            if (cause instanceof BusinessException) {
-                throw (BusinessException) cause;
-            }
-            throw unavailable();
-        } catch (TimeoutException exception) {
-            CancellableQueryExecutor.cancel(appFuture, submissionFuture, userFuture);
+        List<OwnerRead<Object>> reads = AdminReadContract.<Object>awaitAndClassify(
+                queryExecutor,
+                "Dashboard",
+                RpcPolicy.QUERY_TIMEOUT_MS,
+                TimeUnit.MILLISECONDS,
+                appFuture,
+                submissionFuture,
+                userFuture);
+        OwnerRead<Object> appRead = reads.get(0);
+        OwnerRead<Object> submissionRead = reads.get(1);
+        OwnerRead<Object> userRead = reads.get(2);
+        if (!appRead.available() || !submissionRead.available() || !userRead.available()
+                || appRead.value() == null
+                || submissionRead.value() == null
+                || userRead.value() == null) {
             throw unavailable();
         }
+        return new DashboardData(
+                (DashboardUserData) userRead.value(),
+                (DashboardAppStatsDTO) appRead.value(),
+                (SubmissionDashboardStatsDTO) submissionRead.value());
     }
 
     @Override
@@ -200,13 +188,12 @@ public class DefaultAdminDashboardReadAdapter implements AdminDashboardReadPort 
         if (response == null) {
             throw unavailable();
         }
-        if (!response.success() && isPermissionError(response)) {
-            throw permissionError(response);
-        }
-        if (!response.success() || response.data() == null) {
+        OwnerRead<AccountQueryService.AccountStatsSummary> read =
+                AdminReadContract.classify("Auth", response);
+        if (!read.available() || read.value() == null) {
             throw unavailable();
         }
-        AccountQueryService.AccountStatsSummary summary = response.data();
+        AccountQueryService.AccountStatsSummary summary = read.value();
         return new DashboardUserData(
                 summary.total(), summary.active(), summary.banned(), summary.activeToday(),
                 summary.activeWeek(), summary.activeMonth(), summary.byRole());
@@ -224,13 +211,12 @@ public class DefaultAdminDashboardReadAdapter implements AdminDashboardReadPort 
         if (response == null) {
             throw unavailable();
         }
-        if (!response.success() && isPermissionError(response)) {
-            throw permissionError(response);
-        }
-        if (!response.success() || response.data() == null) {
+        OwnerRead<List<AuthUserTrendBucketDTO>> read =
+                AdminReadContract.classify("Auth", response);
+        if (!read.available() || read.value() == null) {
             throw unavailable();
         }
-        List<AuthUserTrendBucketDTO> buckets = response.data();
+        List<AuthUserTrendBucketDTO> buckets = read.value();
         if (buckets.size() > MAX_TREND_BUCKETS) {
             throw unavailable();
         }
@@ -262,24 +248,6 @@ public class DefaultAdminDashboardReadAdapter implements AdminDashboardReadPort 
 
     private static BusinessException unavailable() {
         return AdminReadContract.ownerUnavailable("Dashboard");
-    }
-
-    /** Check if an RPC error payload represents a permission failure (401/403). */
-    private static boolean isPermissionError(RpcResult<?> rpc) {
-        if (rpc == null || rpc.error() == null) {
-            return false;
-        }
-        int code = rpc.error().code();
-        return code == 40100 || code == 40300;
-    }
-
-    /** Map an RPC permission error to an Admin-layer BusinessException. */
-    private static BusinessException permissionError(RpcResult<?> rpc) {
-        int code = rpc.error().code();
-        if (code == 40100) {
-            return new BusinessException(AdminErrorCode.UNAUTHORIZED);
-        }
-        return new BusinessException(AdminErrorCode.FORBIDDEN);
     }
 
 }

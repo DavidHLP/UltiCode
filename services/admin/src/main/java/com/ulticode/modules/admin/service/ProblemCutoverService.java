@@ -1,6 +1,5 @@
 package com.ulticode.modules.admin.service;
 
-import com.ulticode.common.command.ActorDelegation;
 import com.ulticode.app.api.command.CreateProblemCommand;
 import com.ulticode.app.api.command.DeleteProblemCommand;
 import com.ulticode.app.api.command.PublishProblemCommand;
@@ -8,24 +7,21 @@ import com.ulticode.app.api.command.UpdateProblemCommand;
 import com.ulticode.app.api.dto.ProblemAdminRowDTO;
 import com.ulticode.app.api.service.ProblemAdministrationService;
 import com.ulticode.app.api.service.ProblemAdminReadPort;
-import com.ulticode.common.auth.AdminActors;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.common.rpc.RpcResult;
-import com.ulticode.common.tracing.IdMetadata;
-import com.ulticode.common.tracing.TraceMetadata;
-import com.ulticode.common.util.TraceIdUtil;
 import com.ulticode.modules.admin.dto.problem.AdminProblemMapper;
 import com.ulticode.modules.admin.dto.problem.CreateProblemDTO;
 import com.ulticode.modules.admin.dto.problem.ProblemAdminVO;
 import com.ulticode.modules.admin.dto.problem.UpdateProblemDTO;
+import com.ulticode.modules.admin.write.AdminOwnerErrorMapper;
+import com.ulticode.modules.admin.write.AdminWriteEnvelope;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.stereotype.Service;
 
-import java.util.UUID;
 import com.ulticode.common.rpc.RpcPolicy;
 
 /**
@@ -58,18 +54,17 @@ public class ProblemCutoverService {
     private ProblemAdministrationService dubboProvider;
 
     public ProblemAdminVO createProblem(CreateProblemDTO createDTO) {
-        String actorId = currentActorId();
+        String actorId = currentUserProvider.getCurrentUserId();
+        AdminWriteEnvelope envelope = AdminWriteEnvelope.envelope(
+                "problem-create", null, actorId, currentUserProvider, "cutover create");
         RpcResult<com.ulticode.app.api.dto.ProblemAdminViewDTO> result = dubboProvider.createProblem(
                 new CreateProblemCommand(
-                        UUID.randomUUID().toString(),
-                        IdMetadata.mint(),
-                        new ActorDelegation(actorType(), actorId, actorId, "cutover create"),
-                        currentTrace(),
+                        envelope.commandId(), envelope.idempotency(), envelope.actor(), envelope.trace(),
                         createDTO.getSlug(),
                         createDTO.getTitle(),
                         actorId));
-        if (!result.success()) {
-            throw mapError(result);
+        if (result == null || !result.success()) {
+            throw AdminOwnerErrorMapper.mapOwnerError(AdminOwnerErrorMapper.Owner.PROBLEM, result);
         }
         ProblemAdminRowDTO row = problemReadPort.findBySlug(createDTO.getSlug());
         return mapper.toAdminVO(row);
@@ -77,20 +72,19 @@ public class ProblemCutoverService {
 
     public ProblemAdminVO updateProblem(Long id, UpdateProblemDTO updateDTO) {
         String idStr = String.valueOf(id);
-        String actorId = currentActorId();
+        String actorId = currentUserProvider.getCurrentUserId();
         ProblemAdminRowDTO current = requireProblemWithVersion(id);
+        AdminWriteEnvelope envelope = AdminWriteEnvelope.envelope(
+                "problem-update", null, actorId, currentUserProvider, "cutover update");
         RpcResult<com.ulticode.app.api.dto.ProblemAdminViewDTO> result = dubboProvider.updateProblem(
                 new UpdateProblemCommand(
-                        UUID.randomUUID().toString(),
-                        IdMetadata.mint(),
-                        new ActorDelegation(actorType(), actorId, actorId, "cutover update"),
-                        currentTrace(),
+                        envelope.commandId(), envelope.idempotency(), envelope.actor(), envelope.trace(),
                         idStr,
                         current.version(),
                         updateDTO.getTitle(),
                         "cutover update"));
-        if (!result.success()) {
-            throw mapError(result);
+        if (result == null || !result.success()) {
+            throw AdminOwnerErrorMapper.mapOwnerError(AdminOwnerErrorMapper.Owner.PROBLEM, result);
         }
         return mapper.toAdminVO(problemReadPort.findProblem(id));
     }
@@ -105,19 +99,18 @@ public class ProblemCutoverService {
 
     public void deleteProblem(Long id) {
         String idStr = String.valueOf(id);
-        String actorId = currentActorId();
+        String actorId = currentUserProvider.getCurrentUserId();
         ProblemAdminRowDTO current = requireProblemWithVersion(id);
+        AdminWriteEnvelope envelope = AdminWriteEnvelope.envelope(
+                "problem-delete", null, actorId, currentUserProvider, "cutover delete");
         RpcResult<Void> result = dubboProvider.deleteProblem(
                 new DeleteProblemCommand(
-                        UUID.randomUUID().toString(),
-                        IdMetadata.mint(),
-                        new ActorDelegation(actorType(), actorId, actorId, "cutover delete"),
-                        currentTrace(),
+                        envelope.commandId(), envelope.idempotency(), envelope.actor(), envelope.trace(),
                         idStr,
                         current.version(),
                         "cutover delete"));
-        if (!result.success()) {
-            throw mapError(result);
+        if (result == null || !result.success()) {
+            throw AdminOwnerErrorMapper.mapOwnerError(AdminOwnerErrorMapper.Owner.PROBLEM, result);
         }
     }
 
@@ -125,20 +118,21 @@ public class ProblemCutoverService {
 
     private ProblemAdminVO doPublish(Long id, boolean publish) {
         String idStr = String.valueOf(id);
-        String actorId = currentActorId();
+        String actorId = currentUserProvider.getCurrentUserId();
         ProblemAdminRowDTO current = requireProblemWithVersion(id);
+        String rationale = publish ? "cutover publish" : "cutover unpublish";
+        AdminWriteEnvelope envelope = AdminWriteEnvelope.envelope(
+                publish ? "problem-publish" : "problem-unpublish",
+                null, actorId, currentUserProvider, rationale);
         RpcResult<Void> result = dubboProvider.publishProblem(
                 new PublishProblemCommand(
-                        UUID.randomUUID().toString(),
-                        IdMetadata.mint(),
-                        new ActorDelegation(actorType(), actorId, actorId, publish ? "cutover publish" : "cutover unpublish"),
-                        currentTrace(),
+                        envelope.commandId(), envelope.idempotency(), envelope.actor(), envelope.trace(),
                         idStr,
                         current.version(),
                         publish,
                         publish ? "cutover publish" : "cutover unpublish"));
-        if (!result.success()) {
-            throw mapError(result);
+        if (result == null || !result.success()) {
+            throw AdminOwnerErrorMapper.mapOwnerError(AdminOwnerErrorMapper.Owner.PROBLEM, result);
         }
         return mapper.toAdminVO(problemReadPort.findProblem(id));
     }
@@ -154,38 +148,4 @@ public class ProblemCutoverService {
         return row;
     }
 
-    private String currentActorId() {
-        String actorId = currentUserProvider.getCurrentUserId();
-        if (actorId == null || actorId.isBlank()) {
-            throw new BusinessException(AdminErrorCode.UNAUTHORIZED, "Authenticated admin actor is required");
-        }
-        return actorId;
-    }
-
-    private String actorType() {
-        return AdminActors.typeOf(currentUserProvider);
-    }
-
-    private static TraceMetadata currentTrace() {
-        String reqId = TraceIdUtil.current();
-        if (reqId == null || reqId.isBlank()) {
-            reqId = "t-" + UUID.randomUUID();
-        }
-        return new TraceMetadata(reqId, null, null, null);
-    }
-
-    private static BusinessException mapError(RpcResult<?> result) {
-        var err = result.error();
-        if (err == null) {
-            return new BusinessException(AdminErrorCode.UNKNOWN_ERROR, "RPC failed without error payload");
-        }
-        int code = err.code();
-        if (code == 40401) {
-            return new BusinessException(AdminErrorCode.PROBLEM_NOT_FOUND, err.message());
-        }
-        if (code == 40901 || code == 40902) {
-            return new BusinessException(AdminErrorCode.CONFLICT, err.message());
-        }
-        return new BusinessException(AdminErrorCode.UNKNOWN_ERROR, err.message());
-    }
 }

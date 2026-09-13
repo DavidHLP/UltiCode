@@ -25,8 +25,6 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      // @/shared must be matched before the catch-all @ alias
-      '@/shared': fileURLToPath(new URL('../../packages', import.meta.url)),
       '@': fileURLToPath(new URL('./src', import.meta.url)),
       // Files inside packages/ import their runtime deps as bare specifiers.
       // Resolve them from apps/management/node_modules.

@@ -17,13 +17,12 @@ status is PASS only when P0 through P6 complete with no non-PASS result.
 
 | Phase | Commands / gate | PASS | FAIL | BLOCKED_EXTERNAL |
 | --- | --- | --- | --- | --- |
-| P0 Baseline | `manifest-contract`, `docs-contract`, `api-contract` | All three repository contracts exit zero without the marker. | The first contract that exits non-zero without the marker is the failing gate. | A child stream contains `BLOCKED_EXTERNAL`; the marker is never treated as green. |
-| P1 App runtime boundary | `app-judge-runtime` | The App-to-Judge dependency contract exits zero without the marker. | The contract exits non-zero without the marker. | The child stream contains `BLOCKED_EXTERNAL`. |
+| P0/P1 Architecture baseline and App runtime boundary | `architecture-contract` (static view of `scripts/dev/architecture-contract-test.rules`) | Every static registry child, including manifest, docs, API, and App-to-Judge boundary contracts, exits zero without the marker. | The first registry child that exits non-zero without the marker is the failing gate. | A child stream contains `BLOCKED_EXTERNAL`; the marker is never treated as green. |
 | P2 Infrastructure recovery | `infra-isolation` | The infrastructure recovery gate exits zero without the marker. | The gate exits non-zero without the marker. | The child stream contains `BLOCKED_EXTERNAL`, or `FINAL_GATE_SKIP_EXPENSIVE=1` blocks the disposable drill. |
 | P3 Admin RPC budget | `admin-rpc-budget` | The Admin budget gate exits zero without the marker. | The gate exits non-zero without the marker. | The child stream contains `BLOCKED_EXTERNAL`, or the expensive-mode flag blocks this gate. |
 | P4 Legacy schema contraction (P4-011) | `schema-contraction` | The owner schema contraction contract exits zero without the marker. | The contract exits non-zero without the marker. | The child stream contains `BLOCKED_EXTERNAL`, or the expensive-mode flag blocks the disposable MySQL rehearsal. |
 | P5 Affected Maven full suite | `repository-full` → Maven full test slice for changed owners/workers | The affected Maven slice exits zero without the marker. | Maven exits non-zero without the marker. | The child stream contains `BLOCKED_EXTERNAL`, or the expensive-mode flag blocks the suite. |
-| P6 Disposable integration suite | `schema-integration`, `audit-stream-integration` | Both disposable contracts exit zero without the marker. | The first contract that exits non-zero without the marker is the failing gate. | A child stream contains `BLOCKED_EXTERNAL`, or the expensive-mode flag blocks integration. |
+| P6 Disposable integration suite | `audit-stream-integration` | The disposable audit-stream migration contract exits zero without the marker. | The contract exits non-zero without the marker. | The child stream contains `BLOCKED_EXTERNAL`, or the expensive-mode flag blocks integration. |
 
 For every child, output classification is applied after the complete combined
 stdout/stderr stream is emitted:
@@ -42,16 +41,12 @@ contract and is independent of the caller's current working directory:
 
 | Order | Phase | Gate label | Invoked command | Expensive-mode handling |
 | ---: | --- | --- | --- | --- |
-| 1 | P0 | `manifest-contract` | `bash scripts/dev/devstack-manifest-test.sh` | Always run |
-| 2 | P0 | `docs-contract` | `bash scripts/dev/docs-contract-test.sh` | Always run |
-| 3 | P0 | `api-contract` | `bash scripts/test/api-contract-boundary-contract.sh` | Always run |
-| 4 | P1 | `app-judge-runtime` | `bash scripts/test/app-judge-runtime-dependency-contract.sh` | Always run |
-| 5 | P2 | `infra-isolation` | `bash scripts/test/gate-infra-isolation.sh` | Blocked when `FINAL_GATE_SKIP_EXPENSIVE=1` |
-| 6 | P3 | `admin-rpc-budget` | `bash scripts/test/gate-admin-rpc-budget.sh` | Blocked when `FINAL_GATE_SKIP_EXPENSIVE=1` |
-| 7 | P4 | `schema-contraction` | `bash scripts/test/owner-schema-contraction-contract.sh` | Blocked when `FINAL_GATE_SKIP_EXPENSIVE=1` |
-| 8 | P5 | `repository-full` | `(cd services && mise exec java@zulu-17.68.203.0 -- bash ./mvnw -pl auth,admin,app/app-web,submission,judge,notification,search -am test -B)` | Blocked when `FINAL_GATE_SKIP_EXPENSIVE=1` |
-| 9 | P6 | `schema-integration` | `bash scripts/test/owner-schema-contraction-contract.sh` | Blocked when `FINAL_GATE_SKIP_EXPENSIVE=1` |
-| 10 | P6 | `audit-stream-integration` | `bash scripts/test/admin-audit-stream-migration-contract.sh` | Blocked when `FINAL_GATE_SKIP_EXPENSIVE=1` |
+| 1 | P0/P1 | `architecture-contract` | `ULTI_STATIC_ONLY=1 bash scripts/dev/architecture-contract-test.sh` | Always run; child eligibility comes from the registry |
+| 2 | P2 | `infra-isolation` | `bash scripts/test/gate-infra-isolation.sh` | Blocked when `FINAL_GATE_SKIP_EXPENSIVE=1` |
+| 3 | P3 | `admin-rpc-budget` | `bash scripts/test/gate-admin-rpc-budget.sh` | Blocked when `FINAL_GATE_SKIP_EXPENSIVE=1` |
+| 4 | P4 | `schema-contraction` | `bash scripts/test/owner-schema-contraction-contract.sh` | Blocked when `FINAL_GATE_SKIP_EXPENSIVE=1` |
+| 5 | P5 | `repository-full` | `(cd services && mise exec java@zulu-17.68.203.0 -- bash ./mvnw -pl auth,admin,app/app-web,submission,judge,notification,search -am test -B)` | Blocked when `FINAL_GATE_SKIP_EXPENSIVE=1` |
+| 6 | P6 | `audit-stream-integration` | `bash scripts/test/admin-audit-stream-migration-contract.sh` | Blocked when `FINAL_GATE_SKIP_EXPENSIVE=1` |
 
 The default is complete (`FINAL_GATE_SKIP_EXPENSIVE` unset or `0`). The
 operator-controlled `FINAL_GATE_SKIP_EXPENSIVE=1` mode does not claim a pass:

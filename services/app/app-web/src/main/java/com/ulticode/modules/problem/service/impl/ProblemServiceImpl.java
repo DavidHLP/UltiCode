@@ -11,18 +11,14 @@ import com.ulticode.modules.problem.entity.Problem;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.problem.projection.ProblemProjection;
 import com.ulticode.modules.problem.service.ProblemService;
-import com.ulticode.modules.problem.port.ProblemDetailDomainPort;
-import com.ulticode.modules.problem.port.ProblemVersionPort;
-import com.ulticode.modules.problem.port.ProblemWritePort;
-import com.ulticode.modules.problem.service.impl.ProblemAdministrationDomainServiceImpl;
 import com.ulticode.modules.problem.service.ProblemAdministrationDomainService;
+import com.ulticode.modules.problem.service.ProblemIndexRefresher;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Clock;
 import java.util.Optional;
 
 /**
@@ -30,9 +26,7 @@ import java.util.Optional;
  *
  * <p>Write operations (create / update / publish / unpublish / delete) are
  * delegated to the canonical {@link ProblemAdministrationDomainService} in
- * {@code backend-problem-domain}. This class is the composition root: it
- * receives all collaborators via constructor, assembles the domain service
- * with the required port adapters, provides the transaction and cache
+ * {@code backend-problem-domain}. This class provides the transaction and cache
  * boundary ({@code @Transactional} / {@code @CacheEvict}), extracts actor
  * identity from the {@link CurrentUserProvider}, and projects the returned
  * {@link Problem} entity to {@link ProblemVO} via the existing
@@ -51,33 +45,24 @@ public class ProblemServiceImpl implements ProblemService {
     private final ProblemMapper problemMapper;
     private final ProblemProjection problemProjection;
     private final CurrentUserProvider currentUserProvider;
-    private final com.ulticode.modules.search.source.SearchDocumentChangedPublisher searchPublisher;
+    private final ProblemIndexRefresher indexRefresher;
 
     /**
-     * Composition root: assembles the canonical domain service from its port
-     * adapters. {@code backend-problem-domain} is a pure-POJO module — no
-     * Spring annotations — so it is instantiated here in the legacy service.
-     * The injected {@code clock} is passed through to the domain service so
-     * tests can substitute a fixed clock.
+     * Receives the canonical domain service registered by
+     * {@code AppDomainServiceConfig}; the App service does not create a second
+     * instance for the HTTP path.
      */
     public ProblemServiceImpl(
+            ProblemAdministrationDomainService domainService,
             ProblemMapper problemMapper,
             ProblemProjection problemProjection,
             CurrentUserProvider currentUserProvider,
-            Clock clock,
-            ProblemWritePort problemWritePort,
-            ProblemDetailDomainPort problemDetailDomainPort,
-            ProblemVersionPort problemVersionPort,
-            com.ulticode.modules.search.source.SearchDocumentChangedPublisher searchPublisher) {
+            ProblemIndexRefresher indexRefresher) {
+        this.domainService = domainService;
         this.problemMapper = problemMapper;
         this.problemProjection = problemProjection;
         this.currentUserProvider = currentUserProvider;
-        this.searchPublisher = searchPublisher;
-        this.domainService = new ProblemAdministrationDomainServiceImpl(
-                problemWritePort,
-                problemDetailDomainPort,
-                problemVersionPort,
-                clock);
+        this.indexRefresher = indexRefresher;
     }
 
     // ── read entry points (unchanged) ────────────────────────────────────────
@@ -133,7 +118,7 @@ public class ProblemServiceImpl implements ProblemService {
     public ProblemVO createProblem(CreateProblemDTO createDTO) {
         String actorId = currentUserProvider.getCurrentUserId();
         Problem created = domainService.createProblem(createDTO, actorId);
-        searchPublisher.publishProblem(created, true);
+        indexRefresher.publish(created);
         return toVO(created);
     }
 
@@ -142,8 +127,8 @@ public class ProblemServiceImpl implements ProblemService {
     @CacheEvict(value = "problem", allEntries = true)
     public ProblemVO updateProblem(Long id, UpdateProblemDTO updateDTO) {
         String actorId = currentUserProvider.getCurrentUserId();
-        Problem updated = domainService.updateProblem(id, updateDTO, actorId);
-        searchPublisher.publishProblem(updated, true);
+        Problem updated = domainService.updateProblem(id, updateDTO, actorId, currentVersion(id));
+        indexRefresher.publish(updated);
         return toVO(updated);
     }
 
@@ -153,9 +138,10 @@ public class ProblemServiceImpl implements ProblemService {
     public void deleteProblem(Long id) {
         String actorId = currentUserProvider.getCurrentUserId();
         Problem before = problemMapper.selectById(id);
-        domainService.deleteProblem(id, actorId);
+        domainService.deleteProblem(id, actorId, versionOf(before));
         if (before != null) {
-            searchPublisher.publishProblem(before, false);
+            before.setIsDeleted(true);
+            indexRefresher.publish(before);
         }
     }
 
@@ -163,8 +149,8 @@ public class ProblemServiceImpl implements ProblemService {
     @Transactional
     public ProblemVO publishProblem(Long id) {
         String actorId = currentUserProvider.getCurrentUserId();
-        Problem published = domainService.publishProblem(id, actorId);
-        searchPublisher.publishProblem(published, true);
+        Problem published = domainService.publishProblem(id, actorId, currentVersion(id));
+        indexRefresher.publish(published);
         return toVO(published);
     }
 
@@ -172,11 +158,17 @@ public class ProblemServiceImpl implements ProblemService {
     @Transactional
     public ProblemVO unpublishProblem(Long id) {
         String actorId = currentUserProvider.getCurrentUserId();
-        Problem unpublished = domainService.unpublishProblem(id, actorId);
-        // DefaultProblemSearchReadPort filters is_published=true; keep the
-        // search index coherent by tombstoning unpublished documents (SEARCH-001).
-        searchPublisher.publishProblem(unpublished, false);
+        Problem unpublished = domainService.unpublishProblem(id, actorId, currentVersion(id));
+        indexRefresher.publish(unpublished);
         return toVO(unpublished);
+    }
+
+    private Long currentVersion(Long id) {
+        return versionOf(problemMapper.selectById(id));
+    }
+
+    private static Long versionOf(Problem problem) {
+        return problem == null || problem.getVersion() == null ? null : problem.getVersion().longValue();
     }
 
     // ── projection facade (unchanged) ─────────────────────────────────────────

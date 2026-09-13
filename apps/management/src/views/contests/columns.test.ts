@@ -1,8 +1,9 @@
-import { defineComponent, type VNode } from 'vue'
+import { computed, defineComponent, type VNode } from 'vue'
 import { mount } from '@vue/test-utils'
 import { describe, expect, it, vi } from 'vitest'
 import type { Contest } from '@/api/admin/contests'
 import { createColumns, type ContestActions } from './columns'
+import type { ContestPermissionMap } from '@/composables/useContestPermissions'
 
 const actions: ContestActions = {
   viewContest: vi.fn(),
@@ -23,8 +24,12 @@ function mountContestTitleCell() {
       const columns = createColumns(
         (key) => key,
         actions,
-        () => true,
-        () => true,
+        {
+          read: computed(() => true),
+          create: computed(() => true),
+          update: computed(() => true),
+          delete: computed(() => true),
+        } satisfies ContestPermissionMap,
       )
       const titleColumn = columns.find(
         (column) => 'accessorKey' in column && column.accessorKey === 'title',

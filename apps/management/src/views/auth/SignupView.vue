@@ -9,10 +9,10 @@
  * admin" message so the form behaves as a placeholder.
  */
 import { useI18n } from 'vue-i18n'
-import AuthCard from '@/shared/auth-ui/src/components/AuthCard.vue'
-import AuthLayout from '@/shared/auth-ui/src/layouts/AuthLayout.vue'
-import AuthPatternBackground from '@/shared/auth-ui/src/layouts/AuthPatternBackground.vue'
-import RegisterForm from '@/shared/auth-ui/src/components/RegisterForm.vue'
+import AuthCard from '@ulticode/auth-ui/components/AuthCard.vue'
+import AuthLayout from '@ulticode/auth-ui/layouts/AuthLayout.vue'
+import AuthPatternBackground from '@ulticode/auth-ui/layouts/AuthPatternBackground.vue'
+import RegisterForm from '@ulticode/auth-ui/components/RegisterForm.vue'
 
 const { t } = useI18n()
 

@@ -195,8 +195,6 @@ public class CoreOwnerContextManager {
                 throw failure;
             }
         }
-        long startupDeadlineNanos =
-                System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(startupTimeoutMs);
         try {
             try {
                 return awaitStartup(startup, module);
@@ -218,7 +216,7 @@ public class CoreOwnerContextManager {
                         "Core Owner Module startup failed: " + module.name(), cause);
             }
         } finally {
-            stopStartupSlot(slot, module.name(), startupDeadlineNanos);
+            stopStartupSlot(slot, module.name());
             synchronized (this) {
                 startupAttempts.remove(attempt);
                 startupSlots.remove(slot);
@@ -226,12 +224,13 @@ public class CoreOwnerContextManager {
         }
     }
 
-    private void stopStartupSlot(
-            ExecutorService slot, String module, long startupDeadlineNanos) {
+    void stopStartupSlot(ExecutorService slot, String module) {
         slot.shutdownNow();
         boolean interrupted = false;
+        long drainDeadlineNanos =
+                System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(startupTimeoutMs);
         while (!slot.isTerminated()) {
-            long remaining = startupDeadlineNanos - System.nanoTime();
+            long remaining = drainDeadlineNanos - System.nanoTime();
             if (remaining <= 0) {
                 log.error("Core Owner Module startup thread did not terminate: {}", module);
                 break;

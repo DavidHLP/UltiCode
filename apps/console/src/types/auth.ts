@@ -11,7 +11,7 @@
  * snake_case types from auth-core, removing the documented debt flagged in
  * the file's previous header comment.
  *
- * See `/tmp/architecture-review-1783341079.html` Card 3.
+ * See ADR-0013 for the architecture-review auth contract decision.
  */
 export type {
   LoginCredentials,
@@ -20,14 +20,14 @@ export type {
   User,
   Permission,
   AuthStatus,
-} from '@/shared/auth-core/src/types'
+} from '@ulticode/auth-core'
 
 /**
  * `/auth/me` returns `{ user, csrfToken }` — re-exported locally so the
  * `apiGet<UserWithCsrfResponse>` call site reads the same way it always has.
  */
 export interface UserWithCsrfResponse {
-  user: import('@/shared/auth-core/src/types').User
+  user: import('@ulticode/auth-core').User
   csrfToken: string
 }
 

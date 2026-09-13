@@ -27,7 +27,7 @@ env:
 
 jobs:
   # App/package path filters already route here; this lightweight contract
-  # verifies the zero-infrastructure local entrypoint before frontend jobs.
+  # verifies the registry-driven zero-infrastructure entrypoint before jobs.
   static-validation-contract:
     name: Zero-infrastructure static contract
     runs-on: ubuntu-latest

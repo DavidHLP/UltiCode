@@ -10,9 +10,8 @@ import com.ulticode.modules.problem.entity.Problem;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.ulticode.modules.problem.projection.ProblemProjection;
-import com.ulticode.modules.problem.port.ProblemDetailDomainPort;
-import com.ulticode.modules.problem.port.ProblemVersionPort;
-import com.ulticode.modules.problem.port.ProblemWritePort;
+import com.ulticode.modules.problem.service.ProblemAdministrationDomainService;
+import com.ulticode.modules.problem.service.ProblemIndexRefresher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -24,9 +23,6 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
 import java.math.BigDecimal;
-import java.time.Clock;
-import java.time.Instant;
-import java.time.ZoneId;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -41,30 +37,22 @@ import static org.mockito.Mockito.when;
 class ProblemServiceImplTest {
 
     private static final String ACTOR_ID = "actor-99";
-    private static final Clock FIXED_CLOCK = Clock.fixed(
-            Instant.parse("2026-07-29T10:00:00Z"), ZoneId.of("UTC"));
-
-    @Mock private ProblemWritePort problemWritePort;
-    @Mock private ProblemDetailDomainPort problemDetailDomainPort;
-    @Mock private ProblemVersionPort problemVersionPort;
+    @Mock private ProblemAdministrationDomainService domainService;
     @Mock private ProblemMapper problemMapper;
     @Mock private ProblemProjection problemProjection;
     @Mock private CurrentUserProvider currentUserProvider;
-    @Mock private com.ulticode.modules.search.source.SearchDocumentChangedPublisher searchPublisher;
+    @Mock private ProblemIndexRefresher indexRefresher;
 
     private ProblemServiceImpl problemService;
 
     @BeforeEach
     void setUp() {
         problemService = new ProblemServiceImpl(
+                domainService,
                 problemMapper,
                 problemProjection,
                 currentUserProvider,
-                FIXED_CLOCK,
-                problemWritePort,
-                problemDetailDomainPort,
-                problemVersionPort,
-                searchPublisher
+                indexRefresher
         );
     }
 
@@ -191,7 +179,7 @@ class ProblemServiceImplTest {
     class WriteDelegationTests {
 
         @Test
-        @DisplayName("createProblem: slug uniqueness check via writePort, insert via writePort, initial version created, result projected")
+        @DisplayName("createProblem: delegates to the injected domain service and refreshes the index")
         void createProblem_delegatesAndProjects() {
             CreateProblemDTO dto = new CreateProblemDTO();
             dto.setSlug("new-slug");
@@ -203,20 +191,20 @@ class ProblemServiceImplTest {
             vo.setId(1L);
             vo.setSlug("new-slug");
 
-            lenient().when(problemWritePort.selectBySlug("new-slug")).thenReturn(null);
-            lenient().when(problemWritePort.selectById(1L)).thenReturn(inserted);
+            lenient().when(currentUserProvider.getCurrentUserId()).thenReturn(ACTOR_ID);
+            when(domainService.createProblem(dto, ACTOR_ID)).thenReturn(inserted);
             lenient().when(problemProjection.toVO(any(Problem.class))).thenReturn(vo);
 
             ProblemVO result = problemService.createProblem(dto);
 
             assertThat(result.getSlug()).isEqualTo("new-slug");
-            verify(problemWritePort).insert(any(Problem.class));
-            verify(problemVersionPort).createInitialVersion(any(), any());
+            verify(domainService).createProblem(dto, ACTOR_ID);
+            verify(indexRefresher).publish(inserted);
             verify(problemProjection).toVO(any(Problem.class));
         }
 
         @Test
-        @DisplayName("updateProblem: updateById via writePort, detail + version updated, result projected")
+        @DisplayName("updateProblem: reads the current version and uses the fenced domain method")
         void updateProblem_delegatesAndProjects() {
             Problem existing = problem(1L, "two-sum");
             existing.setTitle("Old Title");
@@ -226,70 +214,74 @@ class ProblemServiceImplTest {
             UpdateProblemDTO dto = new UpdateProblemDTO();
             dto.setTitle("Updated Title");
 
-            lenient().when(currentUserProvider.getCurrentUserId()).thenReturn(ACTOR_ID);
-            lenient().when(problemWritePort.selectById(1L)).thenReturn(existing);
+            when(currentUserProvider.getCurrentUserId()).thenReturn(ACTOR_ID);
+            when(problemMapper.selectById(1L)).thenReturn(existing);
+            when(domainService.updateProblem(1L, dto, ACTOR_ID, 1L)).thenReturn(existing);
             lenient().when(problemProjection.toVO(any(Problem.class))).thenReturn(vo);
 
             ProblemVO result = problemService.updateProblem(1L, dto);
 
             assertThat(result.getId()).isEqualTo(1L);
-            verify(problemWritePort).updateById(any(Problem.class));
-            verify(problemDetailDomainPort).applyDetailUpdate(any(), any(), any());
-            verify(problemVersionPort).createVersion(any(), any(), any(), any());
+            verify(domainService).updateProblem(1L, dto, ACTOR_ID, 1L);
+            verify(indexRefresher).publish(existing);
             verify(problemProjection).toVO(any(Problem.class));
         }
 
         @Test
-        @DisplayName("deleteProblem: delegates to domainService with actorId")
+        @DisplayName("deleteProblem: forwards the current version and publishes a tombstone")
         void deleteProblem_delegates() {
             Problem existing = problem(1L, "two-sum");
 
-            lenient().when(currentUserProvider.getCurrentUserId()).thenReturn(ACTOR_ID);
-            lenient().when(problemWritePort.selectById(1L)).thenReturn(existing);
+            when(currentUserProvider.getCurrentUserId()).thenReturn(ACTOR_ID);
+            when(problemMapper.selectById(1L)).thenReturn(existing);
 
             problemService.deleteProblem(1L);
 
-            verify(problemWritePort).deleteById(1L);
+            verify(domainService).deleteProblem(1L, ACTOR_ID, 1L);
+            assertThat(existing.getIsDeleted()).isTrue();
+            verify(indexRefresher).publish(existing);
         }
 
         @Test
-        @DisplayName("publishProblem: sets published fields, updateById via writePort, result projected")
+        @DisplayName("publishProblem: forwards the current version and refreshes the index")
         void publishProblem_delegatesAndProjects() {
             Problem existing = problem(1L, "two-sum");
             existing.setIsPublished(false);
             ProblemVO vo = new ProblemVO();
             vo.setId(1L);
 
-            lenient().when(currentUserProvider.getCurrentUserId()).thenReturn(ACTOR_ID);
-            lenient().when(problemWritePort.selectById(1L)).thenReturn(existing);
+            when(currentUserProvider.getCurrentUserId()).thenReturn(ACTOR_ID);
+            when(problemMapper.selectById(1L)).thenReturn(existing);
+            when(domainService.publishProblem(1L, ACTOR_ID, 1L)).thenReturn(existing);
             lenient().when(problemProjection.toVO(any(Problem.class))).thenReturn(vo);
 
             ProblemVO result = problemService.publishProblem(1L);
 
             assertThat(result.getId()).isEqualTo(1L);
-            verify(problemWritePort).updateById(any(Problem.class));
+            verify(domainService).publishProblem(1L, ACTOR_ID, 1L);
             verify(problemProjection).toVO(any(Problem.class));
-            verify(searchPublisher).publishProblem(existing, true);
+            verify(indexRefresher).publish(existing);
         }
 
         @Test
-        @DisplayName("unpublishProblem: sets isPublished=false, updateById via writePort, result projected")
+        @DisplayName("unpublishProblem: forwards the current version and refreshes the index")
         void unpublishProblem_delegatesAndProjects() {
             Problem existing = problem(1L, "two-sum");
             existing.setIsPublished(true);
             ProblemVO vo = new ProblemVO();
             vo.setId(1L);
 
-            lenient().when(currentUserProvider.getCurrentUserId()).thenReturn(ACTOR_ID);
-            lenient().when(problemWritePort.selectById(1L)).thenReturn(existing);
+            when(currentUserProvider.getCurrentUserId()).thenReturn(ACTOR_ID);
+            when(problemMapper.selectById(1L)).thenReturn(existing);
+            when(domainService.unpublishProblem(1L, ACTOR_ID, 1L)).thenReturn(existing);
             lenient().when(problemProjection.toVO(any(Problem.class))).thenReturn(vo);
 
             ProblemVO result = problemService.unpublishProblem(1L);
 
             assertThat(result.getId()).isEqualTo(1L);
-            verify(problemWritePort).updateById(any(Problem.class));
+            verify(domainService).unpublishProblem(1L, ACTOR_ID, 1L);
             verify(problemProjection).toVO(any(Problem.class));
-            verify(searchPublisher).publishProblem(existing, false);
+            verify(indexRefresher).publish(existing);
         }
     }
 }

@@ -19,7 +19,7 @@ import { useCommentsStore } from '@/stores/admin/comments'
 import type { CommentType } from '@/api/admin/comments'
 import { formatDate } from '@/lib/format/date'
 import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
-import { renderMarkdown } from '@/shared/markdown-utils/src'
+import { renderMarkdown } from '@ulticode/markdown-utils'
 import { useDetailWorkspace } from '@/composables/useDetailWorkspace'
 import { useCommentModeration } from '@/composables/useCommentModeration'
 

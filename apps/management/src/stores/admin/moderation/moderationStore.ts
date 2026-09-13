@@ -19,6 +19,7 @@ import {
 } from '@/api/admin/moderation'
 import { isTerminalStatus } from '@/views/moderation/workflow/moderationWorkflow'
 import { extractApiErrorMessage } from '@/utils/error'
+import { createCollectionSlice, type CollectionPage } from '@/stores/createCollectionSlice'
 
 /**
  * Moderation decision + collection store.
@@ -53,32 +54,12 @@ export const useModerationStore = defineStore('adminModeration', () => {
   // ============================================================================
   // Queue State
   // ============================================================================
-  const queueItems = ref<ModerationQueueItem[]>([])
-  const queueTotal = ref(0)
-  const queueLoading = ref(false)
-  const queueError = ref<string | null>(null)
   const stats = ref<ModerationStats | null>(null)
   const statsLoading = ref(false)
   const statsError = ref<string | null>(null)
 
   const pendingCount = computed(() => stats.value?.pendingCount ?? 0)
   const underReviewCount = computed(() => stats.value?.underReviewCount ?? 0)
-
-  // ============================================================================
-  // Reports State
-  // ============================================================================
-  const reports = ref<Report[]>([])
-  const reportsTotal = ref(0)
-  const reportsLoading = ref(false)
-  const reportsError = ref<string | null>(null)
-
-  // ============================================================================
-  // Appeals State
-  // ============================================================================
-  const appeals = ref<Appeal[]>([])
-  const appealsTotal = ref(0)
-  const appealsLoading = ref(false)
-  const appealsError = ref<string | null>(null)
 
   // ============================================================================
   // Abort Controllers
@@ -102,6 +83,48 @@ export const useModerationStore = defineStore('adminModeration', () => {
     abortControllers.value.clear()
   }
 
+  async function loadModerationCollection<T>(
+    key: string,
+    load: (signal: AbortSignal) => Promise<{ items?: T[]; total: number }>,
+  ): Promise<CollectionPage<T> | undefined> {
+    const controller = getAbortController(key)
+    try {
+      const response = await load(controller.signal)
+      if (controller.signal.aborted) return undefined
+      return { items: response.items ?? [], total: response.total }
+    } catch (err: unknown) {
+      if (controller.signal.aborted || (err as Error).name === 'AbortError') return undefined
+      throw err
+    }
+  }
+
+  const queue = createCollectionSlice<ModerationQueueItem, QueryModerationQueueParams>({
+    load: (params = {}) =>
+      loadModerationCollection('queue', (signal) => moderationQueueApi.getQueue(params, signal)),
+  })
+  const queueItems = queue.items
+  const queueTotal = queue.total
+  const queueLoading = queue.isLoading
+  const queueError = queue.error
+
+  const reportsCollection = createCollectionSlice<Report, QueryReportsParams>({
+    load: (params = {}) =>
+      loadModerationCollection('reports', (signal) => reportsApi.getReports(params, signal)),
+  })
+  const reports = reportsCollection.items
+  const reportsTotal = reportsCollection.total
+  const reportsLoading = reportsCollection.isLoading
+  const reportsError = reportsCollection.error
+
+  const appealsCollection = createCollectionSlice<Appeal, QueryAppealsParams>({
+    load: (params = {}) =>
+      loadModerationCollection('appeals', (signal) => appealsApi.getAppeals(params, signal)),
+  })
+  const appeals = appealsCollection.items
+  const appealsTotal = appealsCollection.total
+  const appealsLoading = appealsCollection.isLoading
+  const appealsError = appealsCollection.error
+
   // ============================================================================
   // Error Helpers
   // ============================================================================
@@ -112,24 +135,7 @@ export const useModerationStore = defineStore('adminModeration', () => {
   // ============================================================================
   // Queue Actions
   // ============================================================================
-  async function fetchQueue(params: QueryModerationQueueParams = {}) {
-    const controller = getAbortController('queue')
-    queueLoading.value = true
-    queueError.value = null
-    try {
-      const queryParams: QueryModerationQueueParams = { ...params }
-      const response = await moderationQueueApi.getQueue(queryParams, controller.signal)
-      if (controller.signal.aborted) return
-      queueItems.value = response.items ?? []
-      queueTotal.value = response.total
-    } catch (err: unknown) {
-      if ((err as Error).name === 'AbortError') return
-      queueError.value = extractErrorMessage(err)
-      console.error('[ModerationStore] Failed to fetch queue:', err)
-    } finally {
-      if (abortControllers.value.get('queue') === controller) queueLoading.value = false
-    }
-  }
+  const fetchQueue = queue.fetch
 
   async function fetchStats(forceRefresh = false) {
     if (!forceRefresh && stats.value) return stats.value
@@ -223,44 +229,12 @@ export const useModerationStore = defineStore('adminModeration', () => {
   // ============================================================================
   // Reports Actions
   // ============================================================================
-  async function fetchReports(params: QueryReportsParams = {}) {
-    const controller = getAbortController('reports')
-    reportsLoading.value = true
-    reportsError.value = null
-    try {
-      const response = await reportsApi.getReports(params, controller.signal)
-      if (controller.signal.aborted) return
-      reports.value = response.items ?? []
-      reportsTotal.value = response.total
-    } catch (err: unknown) {
-      if ((err as Error).name === 'AbortError') return
-      reportsError.value = extractErrorMessage(err)
-      console.error('[ModerationStore] Failed to fetch reports:', err)
-    } finally {
-      if (abortControllers.value.get('reports') === controller) reportsLoading.value = false
-    }
-  }
+  const fetchReports = reportsCollection.fetch
 
   // ============================================================================
   // Appeals Actions
   // ============================================================================
-  async function fetchAppeals(params: QueryAppealsParams = {}) {
-    const controller = getAbortController('appeals')
-    appealsLoading.value = true
-    appealsError.value = null
-    try {
-      const response = await appealsApi.getAppeals(params, controller.signal)
-      if (controller.signal.aborted) return
-      appeals.value = response.items ?? []
-      appealsTotal.value = response.total
-    } catch (err: unknown) {
-      if ((err as Error).name === 'AbortError') return
-      appealsError.value = extractErrorMessage(err)
-      console.error('[ModerationStore] Failed to fetch appeals:', err)
-    } finally {
-      if (abortControllers.value.get('appeals') === controller) appealsLoading.value = false
-    }
-  }
+  const fetchAppeals = appealsCollection.fetch
 
   async function reviewAppeal(id: string, data: ReviewAppealDto) {
     try {
@@ -319,6 +293,9 @@ export const useModerationStore = defineStore('adminModeration', () => {
   }
 
   return {
+    queue,
+    reportsCollection,
+    appealsCollection,
     // Queue
     queueItems,
     queueTotal,

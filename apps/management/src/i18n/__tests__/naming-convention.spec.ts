@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import zhCN from '../locales/zh-CN'
-import { flattenObject } from '@/shared/i18n-completeness/src'
+import { flattenObject } from '@ulticode/i18n-completeness'
 
 /**
  * Known API field name mapping keys (snake_case, must be preserved).

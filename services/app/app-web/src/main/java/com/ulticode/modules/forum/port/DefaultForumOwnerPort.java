@@ -164,12 +164,6 @@ public class DefaultForumOwnerPort implements ForumOwnerPort {
 
     @Override
     @Transactional(noRollbackFor = BusinessException.class)
-    public DeleteResult deletePost(String postId) {
-        return deletePost(postId, null);
-    }
-
-    @Override
-    @Transactional(noRollbackFor = BusinessException.class)
     public DeleteResult deletePost(String postId, String deletedBy) {
         ForumPost post = forumPostMapper.selectByIdForUpdateIgnoreDeleted(postId);
         if (post == null || Boolean.TRUE.equals(post.getIsDeleted())) {

@@ -3,7 +3,7 @@
  * Registers vue-sonner toast as the storage notifier on first import.
  */
 import { toast } from 'vue-sonner'
-import { setStorageNotifier } from '@/shared/locale-preference/src'
+import { setStorageNotifier } from '@ulticode/locale-preference'
 
 // Wire the shared storage module's notifier to this app's toast
 setStorageNotifier((level, message) => {
@@ -12,4 +12,4 @@ setStorageNotifier((level, message) => {
   else if (level === 'success') toast.success(message)
 })
 
-export { getStoredLocale, setStoredLocale, type SupportedLocale } from '@/shared/locale-preference/src'
+export { getStoredLocale, setStoredLocale, type SupportedLocale } from '@ulticode/locale-preference'

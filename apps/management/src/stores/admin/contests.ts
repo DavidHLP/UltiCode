@@ -10,28 +10,21 @@ import {
   type ContestRanking,
 } from '@/api/admin/contests'
 import { extractApiErrorMessage } from '@/utils/error'
+import { createCollectionSlice } from '@/stores/createCollectionSlice'
 export const useContestsStore = defineStore('adminContests', () => {
-  const contests = ref<Contest[]>([])
-  const total = ref(0)
-  const loading = ref(false)
-  const error = ref<string | null>(null)
+  const collection = createCollectionSlice<Contest, ContestQueryParams>({
+    load: async (params = {}) => {
+      const response = await contestsApi.getContests(params)
+      return { items: response.items, total: response.total }
+    },
+  })
+  const contests = collection.items
+  const total = collection.total
+  const loading = collection.isLoading
+  const error = collection.error
+  const fetchContests = collection.fetch
   const currentContest = ref<Contest | null>(null)
   const currentRankings = ref<ContestRanking[]>([])
-
-  async function fetchContests(params: ContestQueryParams = {}) {
-    loading.value = true
-    error.value = null
-    try {
-      const response = await contestsApi.getContests(params)
-      contests.value = response.items
-      total.value = response.total
-    } catch (err: unknown) {
-      error.value = extractApiErrorMessage(err, 'Failed to fetch contests')
-      console.error('Failed to fetch contests:', err)
-    } finally {
-      loading.value = false
-    }
-  }
 
   async function fetchContest(id: string): Promise<Contest | null> {
     loading.value = true
@@ -203,6 +196,9 @@ export const useContestsStore = defineStore('adminContests', () => {
   }
 
   return {
+    items: collection.items,
+    isLoading: collection.isLoading,
+    fetch: collection.fetch,
     contests,
     total,
     loading,

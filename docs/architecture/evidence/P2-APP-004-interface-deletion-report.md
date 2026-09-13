@@ -10,9 +10,9 @@ The deletion test removes a candidate declaration in a disposable working copy a
 
 | Candidate | Production consumers | Consumer slice | Result | Decision |
 |---|---|---|---|---|
-| `ProblemAdminReadPort` (19 methods) | Admin | `DubboProblemAdminReadAdapter`, `AdminProblemServiceImpl`, `ProblemCutoverService`, `ProblemExportServiceImpl`, `ProblemImportServiceImpl`, `AdminTestCaseService`, `ProblemTagHandler`, `DefaultAdminSolutionProjection`, `DefaultAdminSubmissionProjection` | Removal breaks all listed slices; methods group into bounded row/tab/list/test-case/tag reads but one provider RPC avoids N+1 | KEEP as deep App/Problem owner contract |
-| `ProblemOwnerPort` (write + import batch) | Admin | `DubboProblemOwnerAdapter`, `ProblemImportServiceImpl`, `ImportProblemsRequestDTO`, `AdminProblemServiceImpl` | Removal breaks moderation/import write slices; contract already owns max batch and affected-row semantics | KEEP; no God aggregate created |
-| `ProblemListSearchReadPort` | Admin | `DubboProblemListSearchReadAdapter`, Admin list projection | Removal breaks one bounded list use-case | KEEP; single use-case seam |
+| `ProblemAdminReadPort` (19 methods) | Admin | `AdminDubboReferenceRegistry`, `AdminProblemServiceImpl`, `ProblemCutoverService`, `ProblemExportServiceImpl`, `ProblemImportServiceImpl`, `AdminTestCaseService`, `ProblemTagHandler`, `DefaultAdminSolutionProjection`, `DefaultAdminSubmissionProjection` | Removal breaks all listed slices; methods group into bounded row/tab/list/test-case/tag reads but one provider RPC avoids N+1 | KEEP as deep App/Problem owner contract |
+| `ProblemOwnerPort` (write + import batch) | Admin | `AdminDubboReferenceRegistry`, `ProblemImportServiceImpl`, `ImportProblemsRequestDTO`, `AdminProblemServiceImpl` | Removal breaks moderation/import write slices; contract already owns max batch and affected-row semantics | KEEP; no God aggregate created |
+| `ProblemListSearchReadPort` | Admin | `AdminDubboReferenceRegistry`, Admin list projection | Removal breaks one bounded list use-case | KEEP; single use-case seam |
 | `SolutionOwnerPort` | Admin | solution moderation/cutover services | Removal breaks owner-only write boundary | KEEP |
 | `ContestAdminReadPort` | Admin | contest projection/cutover | Removal breaks owner read boundary | KEEP |
 

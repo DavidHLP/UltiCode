@@ -19,11 +19,11 @@ export interface PaginationState {
 // Accepts Ref, ComputedRef, or getter functions - toValue() handles unwrapping
 export interface UseDataTableOptions<TData, TFilters, TParams> {
   store: {
-    data: MaybeRefOrGetter<TData[]>
+    items: MaybeRefOrGetter<TData[]>
     total: MaybeRefOrGetter<number>
     isLoading: MaybeRefOrGetter<boolean>
     error: MaybeRefOrGetter<string | null>
-    fetch: (params: TParams) => Promise<void>
+    fetch: (params?: TParams) => Promise<void>
   }
   filters?: MaybeRefOrGetter<TFilters>
   transformParams: (params: {
@@ -71,7 +71,7 @@ export function useDataTable<
   // Use toValue() to properly unwrap nested refs (handles both ref and computed)
   // Include initialLoad to ensure skeleton is shown during first data fetch
   const loading = computed(() => initialLoad.value || toValue(store.isLoading) || false)
-  const data = computed(() => toValue(store.data) || [])
+  const data = computed(() => toValue(store.items) || [])
   const total = computed(() => toValue(store.total) || 0)
   const error = computed(() => toValue(store.error) || null)
 

@@ -10,6 +10,7 @@ import {
 import { extractApiErrorMessage } from '@/utils/error'
 import { useAuthStore } from '@/stores/auth'
 import { PERM } from '@/constants/permissions'
+import { createCollectionSlice } from '@/stores/createCollectionSlice'
 
 /**
  * Grouping shape used by the bulk-moderation workflow. The store owns
@@ -19,27 +20,23 @@ import { PERM } from '@/constants/permissions'
 export type CommentTypeGroup = Partial<Record<CommentType, string[]>>
 
 export const useCommentsStore = defineStore('adminComments', () => {
-  const comments = ref<Comment[]>([])
-  const total = ref(0)
-  const currentComment = ref<Comment | null>(null)
-  const loading = ref(false)
-  const error = ref<string | null>(null)
   const lastParams = ref<CommentQueryParams>({})
-
-  async function fetchComments(params: CommentQueryParams = {}) {
-    loading.value = true
-    error.value = null
-    lastParams.value = { ...params }
-    try {
+  const collection = createCollectionSlice<Comment, CommentQueryParams>({
+    load: async (params = {}) => {
+      lastParams.value = { ...params }
       const response = await commentsApi.getComments(params)
-      comments.value = response.items.filter((c): c is Comment => c !== null)
-      total.value = response.total
-    } catch (err: unknown) {
-      error.value = extractApiErrorMessage(err, 'Failed to fetch comments')
-    } finally {
-      loading.value = false
-    }
-  }
+      return {
+        items: response.items.filter((c): c is Comment => c !== null),
+        total: response.total,
+      }
+    },
+  })
+  const comments = collection.items
+  const total = collection.total
+  const currentComment = ref<Comment | null>(null)
+  const loading = collection.isLoading
+  const error = collection.error
+  const fetchComments = collection.fetch
 
   async function fetchComment(id: string, type: CommentType) {
     loading.value = true
@@ -223,6 +220,9 @@ export const useCommentsStore = defineStore('adminComments', () => {
   }
 
   return {
+    items: collection.items,
+    isLoading: collection.isLoading,
+    fetch: collection.fetch,
     comments,
     total,
     currentComment,

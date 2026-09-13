@@ -153,13 +153,16 @@ class OwnerReconcilerIT {
                        (?, ?, 'ALL', 1, 'COMPLETED', 0, 0, ?),
                        (?, ?, 'ALL', 1, 'COMPLETED', 0, 0, ?),
                        (?, ?, 'ALL', 1, 'PARTIAL', 0, 0, ?),
+                       (?, ?, 'ALL', 1, 'PARTIAL', 0, 0, ?),
                        (?, ?, 'ALL', 1, 'PARTIAL', 0, 0, ?)
                 """,
                 "legacy-partial", LEGACY_WATERMARK.plusDays(1), checkpointDetail(LEGACY_WATERMARK),
                 "legacy-completed", LEGACY_WATERMARK.plusDays(2), checkpointDetail(LEGACY_WATERMARK),
                 "legacy-full-completed", LEGACY_WATERMARK.plusDays(3), fullCheckpointDetail(),
                 "legacy-unknown-mode", LEGACY_WATERMARK.plusDays(4), unknownCheckpointDetail(),
-                "legacy-invalid-watermark", LEGACY_WATERMARK.plusDays(5), invalidCheckpointDetail());
+                "legacy-invalid-watermark", LEGACY_WATERMARK.plusDays(5), invalidCheckpointDetail(),
+                "legacy-incomplete-continuation", LEGACY_WATERMARK.plusDays(6),
+                "{\"mode\":\"FULL\",\"continuation\":{\"submission\":{}}}");
         try (Connection connection = dataSource.getConnection()) {
             Path migration = findRepositoryRoot().resolve(
                     "init-db/migrations/admin/V20260913140000__Add_Reconciliation_Checkpoint_Fields.sql");
@@ -294,6 +297,11 @@ class OwnerReconcilerIT {
                 "SELECT scan_created_since FROM reconciliation_runs "
                         + "WHERE run_id = 'legacy-invalid-watermark'",
                 LocalDateTime.class)).isNull();
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT scan_mode FROM reconciliation_runs "
+                        + "WHERE run_id = 'legacy-incomplete-continuation'",
+                String.class)).isNull();
+        assertThat(runMapper.findLatestPartial("FULL", null)).isNull();
     }
 
     private static String checkpointDetail(LocalDateTime createdSince) {

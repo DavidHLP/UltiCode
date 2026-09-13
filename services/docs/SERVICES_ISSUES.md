@@ -35,6 +35,7 @@ App interface locality 已闭环；Core 的边界与未完成门禁见 SVC-025�
 Core profile 仍有一个仓库可执行 OPEN 项：SVC-025 的完整 local Adapter
 parity、enabled-owner wiring 和业务 journey 尚未闭环；不得切换默认拓扑。
 
+<a id="svc-025-core-profile-local-parity"></a>
 ### SVC-025 Core profile local parity（OPEN）
 
 现状：`services/core` 已提供显式 Core parent、五组 Owner 数据源/事务/

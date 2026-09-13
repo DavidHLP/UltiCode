@@ -283,7 +283,7 @@ M3a 时序缺陷由 [ADR-005 §2.8](./ADR-005-rolling-deploy-playbook.md#28-roun
 
 ### 2.7 实施进度 (Implementation Progress)
 
-> 状态转换遵循 [ADR README §Status 转换规则补丁](./README.md#status-转换规则补丁):ADR-003 **Status 保持 Proposed**。M3a+M3b 不涉及 F11-F14,但仅落地 4 个 milestone 中的前 2 个;ADR-003 转 `Accepted` 的硬门禁是 **M3c merged + F12 (Redis Streams 故障注入) 验证通过**。
+> 历史快照（M3a/M3b 时点）：当时 ADR-003 **Status 保持 Proposed**。M3a+M3b 不涉及 F11-F14,但仅落地 4 个 milestone 中的前 2 个;当时转 `Accepted` 的硬门禁是 **M3c merged + F12 (Redis Streams 故障注入) 验证通过**。当前状态以本文件头部和 ADR 索引为准；M3d cleanup 与真实 Streams F12 IT 仍见 §2.8/§4。
 
 | Milestone | 状态 | Commit | 范围 | Feature Flag (默认) |
 |---|---|---|---|---|
@@ -308,7 +308,7 @@ M3a 时序缺陷由 [ADR-005 §2.8](./ADR-005-rolling-deploy-playbook.md#28-roun
 
 ### 2.8 codex 对抗审查记录 (2026-06-13)
 
-ADR-003 M3a → M3c-3b 全部 7 commit (`09c97d1b8` → `82d5f022e`) 经 `codex exec review --base 09c97d1b8^` 对抗审查 (审查范围 41 文件 / 4684 行),发现 3 个 P1 真缺陷,本节记录在 commit `5148275d1` 全修。ADR-003 Status 保持 Accepted(修复等价于补完 F12 验证,README §Status 转换规则补丁的"M3c merged + F12 验证"门禁现满足)。
+ADR-003 M3a → M3c-3b 全部 7 commit (`09c97d1b8` → `82d5f022e`) 经 `codex exec review --base 09c97d1b8^` 对抗审查 (审查范围 41 文件 / 4684 行),发现 3 个 P1 真缺陷,本节记录在 commit `5148275d1` 全修。ADR-003 Status 保持 Accepted(修复等价于补完 F12 验证,§2.7 记录的历史"M3c merged + F12 验证"门禁现满足)。
 
 **3 P1 详解**:
 

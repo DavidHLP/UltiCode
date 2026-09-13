@@ -279,6 +279,8 @@ ledger 状态 `FAILED` 不自动重试 (一些 channel 的失败不该重试, �
 
 M4d 后跑了 7-angle adversarial review (line-by-line / removed-behavior / cross-file / reuse / simplification / efficiency / altitude), 7 个候选 findings 经 1-vote recall-biased verify 后**确认 6 个需修复** + 1 个细化 (Tier 4 副本) 列入 backlog。4 个 commit 落地,代码净增量 169 行,测试调整 5 个文件。
 
+> 表中 finding #4 是历史 F11：`CLAIMED` 投递在进程崩溃后不能被重新接管，可能永久丢失 channel 投递；本 ADR 记录的修复是 `NotificationLedgerReaper`（commit `33c9a41ba`）。这里保留身份映射，避免把已记录的历史 finding 与当前 issue 状态混为一谈。
+
 | # | Finding | 修复 | Commit |
 |---|---|---|---|
 | 1 | `EmailTemplates.forIntent` 5 处 `Map.of(...)` 对 `achievementName`/`contestTitle`/`replierUsername`/`title` 缺 null 合并 → null 字段导致 NPE | 加 `== null ? "" : ...` 守卫 | `d32882198` |

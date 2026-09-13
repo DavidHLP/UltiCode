@@ -240,6 +240,14 @@ public class OutboxShadowComparator {
 - Nacos Config client 集成 → ADR-008
 - 多副本部署 → 当前项目单副本 backend, 多副本是另一专项
 
+### 2.9 F14 生产回滚边界（实施验收条件）
+
+F14 的可复用约束是区分开发演练与生产回滚，而不是固定某个当前服务命令：
+
+- dev/disposable 演练可以按 §2.6 使用 `pm2 reload`，但表中的 `_TBD_` 不得视为已完成。
+- production rollback 不得依赖 PM2；应由部署方保留上一份 immutable artifact/descriptor，通过受控环境配置回退 feature flag，重新部署受影响的 owner，并通过当前[部署指南](../../operations/deployment.md)规定的 health/readiness gate。
+- 本节保留的是决策约束，不构成仓库已有 production 执行证据；本仓库没有 production environment。
+
 ## 3. Consequences
 
 ### 3.1 Positive

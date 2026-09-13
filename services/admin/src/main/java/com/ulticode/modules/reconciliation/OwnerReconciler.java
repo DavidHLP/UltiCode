@@ -145,6 +145,8 @@ public class OwnerReconciler {
             run.setRunId(runId);
             run.setStartedAt(startedAt);
             run.setOwner("ALL");
+            run.setScanMode(mode);
+            run.setScanCreatedSince(createdSince);
             run.setFenceToken(lease.fenceToken());
             run.setStatus("RUNNING");
             run.setDivergenceCount(0);
@@ -215,6 +217,8 @@ public class OwnerReconciler {
         run.setRunId(runId);
         run.setStartedAt(LocalDateTime.now());
         run.setOwner("ALL");
+        run.setScanMode(mode);
+        run.setScanCreatedSince(null);
         run.setStatus("RUNNING");
         run.setDivergenceCount(0);
         run.setOrphanCount(0);
@@ -262,11 +266,11 @@ public class OwnerReconciler {
 
     private ScanProgress loadCheckpoint(String mode, LocalDateTime createdSince) {
         String expectedCreatedSince = createdSince == null ? null : createdSince.toString();
-        ReconciliationRun partial = runMapper.findLatestPartial(mode, expectedCreatedSince);
+        ReconciliationRun partial = runMapper.findLatestPartial(mode, createdSince);
         if (partial == null) {
             return ScanProgress.initial(createdSince);
         }
-        ReconciliationRun completed = runMapper.findLatestCompleted(mode, expectedCreatedSince);
+        ReconciliationRun completed = runMapper.findLatestCompleted(mode, createdSince);
         if (isSuperseded(partial, completed)) {
             return ScanProgress.initial(createdSince);
         }
@@ -321,7 +325,8 @@ public class OwnerReconciler {
 
     private static long checkpointLong(JsonNode parent, String field) {
         JsonNode value = parent.get(field);
-        if (value == null || !value.canConvertToLong() || value.longValue() < 0) {
+        if (value == null || !value.isIntegralNumber()
+                || !value.canConvertToLong() || value.longValue() < 0) {
             throw new IllegalStateException("checkpoint field must be a non-negative integer: " + field);
         }
         return value.longValue();
@@ -329,7 +334,8 @@ public class OwnerReconciler {
 
     private static int checkpointInt(JsonNode parent, String field) {
         JsonNode value = parent.get(field);
-        if (value == null || !value.canConvertToInt() || value.intValue() < 0) {
+        if (value == null || !value.isIntegralNumber()
+                || !value.canConvertToInt() || value.intValue() < 0) {
             throw new IllegalStateException("checkpoint field must be a non-negative integer: " + field);
         }
         return value.intValue();

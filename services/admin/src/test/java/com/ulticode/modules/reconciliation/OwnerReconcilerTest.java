@@ -377,9 +377,9 @@ class OwnerReconcilerTest {
                 + "\"complete\":false},"
                 + "\"notification\":{\"cursor\":\"\",\"missing\":0,\"complete\":true},"
                 + "\"audit\":{\"offset\":0,\"missing\":0,\"complete\":true}}}");
-        when(runMapper.findLatestPartial("INCREMENTAL", since.toString()))
+        when(runMapper.findLatestPartial("INCREMENTAL", since))
                 .thenReturn(checkpoint);
-        when(runMapper.findLatestCompleted("INCREMENTAL", since.toString()))
+        when(runMapper.findLatestCompleted("INCREMENTAL", since))
                 .thenReturn(null);
         when(authService.countAuthOrphans())
                 .thenReturn(RpcResult.success(AuthReconciliationOrphanCounts.ZERO, "t-system"));
@@ -398,9 +398,28 @@ class OwnerReconcilerTest {
 
         assertThat(run.getStatus()).isEqualTo("COMPLETED");
         assertThat(run.getDetail()).contains("\"orphans\":8");
-        verify(runMapper).findLatestPartial("INCREMENTAL", since.toString());
+        verify(runMapper).findLatestPartial("INCREMENTAL", since);
         verify(submissionPort).findUserReferenceCounts(
                 "user-15999", since, SubmissionReconciliationReadPort.MAX_PAGE_SIZE);
+    }
+
+    @Test
+    @DisplayName("fractional checkpoint counters fail closed")
+    void fractionalCheckpointCountersFailClosed() {
+        ReconciliationRun checkpoint = new ReconciliationRun();
+        checkpoint.setDetail("{\"mode\":\"FULL\",\"continuation\":{"
+                + "\"createdSince\":null,"
+                + "\"submission\":{\"cursor\":\"user-1\",\"missing\":-0.5,"
+                + "\"complete\":false},"
+                + "\"notification\":{\"cursor\":\"\",\"missing\":0,\"complete\":true},"
+                + "\"audit\":{\"offset\":0,\"missing\":0,\"complete\":true}}}");
+        when(runMapper.findLatestPartial("FULL", null)).thenReturn(checkpoint);
+        when(runMapper.findLatestCompleted("FULL", null)).thenReturn(null);
+
+        ReconciliationRun run = reconciler.runReconciliation();
+
+        assertThat(run.getStatus()).isEqualTo("FAILED");
+        assertThat(run.getDetail()).contains("invalid reconciliation checkpoint");
     }
 
     @Test
@@ -457,6 +476,75 @@ class OwnerReconcilerTest {
                 "user-15999", null, NotificationReconciliationReadPort.MAX_PAGE_SIZE);
         verify(auditMapper).auditPerformerIds(16000, 500);
         verify(submissionPort).findUserReferenceCounts(
+                "", null, SubmissionReconciliationReadPort.MAX_PAGE_SIZE);
+    }
+
+    @Test
+    @DisplayName("full scans persist and resume Notification and audit pages after the budget")
+    void fullScanResumesNotificationAndAuditAfterPageBudget() {
+        AtomicReference<ReconciliationRun> partialCheckpoint = new AtomicReference<>();
+        when(uuidGenerator.newId()).thenReturn("run-1", "run-2");
+        when(runMapper.findLatestPartial("FULL", null))
+                .thenAnswer(invocation -> partialCheckpoint.get());
+        when(runMapper.findLatestCompleted("FULL", null)).thenReturn(null);
+        when(runMapper.updateByIdWhileLeaseHeld(any(ReconciliationRun.class), anyString(),
+                anyString(), anyLong())).thenAnswer(invocation -> {
+            ReconciliationRun run = invocation.getArgument(0);
+            if ("PARTIAL".equals(run.getStatus())) {
+                partialCheckpoint.set(run);
+            }
+            return 1;
+        });
+        when(authService.countAuthOrphans())
+                .thenReturn(RpcResult.success(AuthReconciliationOrphanCounts.ZERO, "t-system"));
+        when(appPort.countOrphans()).thenReturn(ReconciliationOrphanCounts.ZERO);
+        when(submissionPort.findUserReferenceCounts("", null,
+                SubmissionReconciliationReadPort.MAX_PAGE_SIZE)).thenReturn(List.of());
+        when(authService.existingUserIds(any()))
+                .thenReturn(RpcResult.success(Set.of(), "t-system"));
+        when(notificationPort.findUserReferenceCounts(anyString(), isNull(LocalDateTime.class),
+                eq(NotificationReconciliationReadPort.MAX_PAGE_SIZE))).thenAnswer(invocation -> {
+            String after = invocation.getArgument(0);
+            int start = after.isEmpty()
+                    ? 0
+                    : Integer.parseInt(after.substring("user-".length())) + 1;
+            if (start >= 16_500) {
+                return List.of();
+            }
+            int end = Math.min(start + NotificationReconciliationReadPort.MAX_PAGE_SIZE, 16_500);
+            return IntStream.range(start, end)
+                    .mapToObj(index -> new NotificationUserReferenceCountDTO(
+                            "user-%05d".formatted(index), 1L))
+                    .toList();
+        });
+        when(auditMapper.auditPerformerIds(any(Integer.class), eq(500))).thenAnswer(invocation -> {
+            int offset = invocation.getArgument(0);
+            if (offset >= 16_500) {
+                return List.of();
+            }
+            int end = Math.min(offset + 500, 16_500);
+            return IntStream.range(offset, end)
+                    .mapToObj(index -> reference("user-%05d".formatted(index), 1L))
+                    .toList();
+        });
+
+        ReconciliationRun first = reconciler.runReconciliation();
+
+        assertThat(first.getStatus()).isEqualTo("PARTIAL");
+        assertThat(first.getDetail()).contains(
+                "\"notification\":{\"cursor\":\"user-15999\"",
+                "\"audit\":{\"offset\":16000");
+
+        ReconciliationRun second = reconciler.runReconciliation();
+
+        assertThat(second.getStatus()).isEqualTo("COMPLETED");
+        assertThat(second.getDetail()).contains(
+                "\"notification\":{\"cursor\":\"user-16499\"",
+                "\"audit\":{\"offset\":16500");
+        verify(notificationPort).findUserReferenceCounts(
+                "user-15999", null, NotificationReconciliationReadPort.MAX_PAGE_SIZE);
+        verify(auditMapper).auditPerformerIds(16000, 500);
+        verify(submissionPort, org.mockito.Mockito.times(1)).findUserReferenceCounts(
                 "", null, SubmissionReconciliationReadPort.MAX_PAGE_SIZE);
     }
 

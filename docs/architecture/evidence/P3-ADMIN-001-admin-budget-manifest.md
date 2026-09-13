@@ -229,7 +229,9 @@ existence lookups in batches of `500`. When the page budget ends on a full page,
 `reconciliation_runs.detail` continuation; the next run resumes it. Malformed or unavailable
 pages still fail closed. The per-invocation budget is a repository/disposable safety boundary,
 not a claim about the size of production history. Completed runs retain the final continuation
-watermark/state so they supersede an older partial checkpoint for the same scan.
+watermark/state so they supersede an older partial checkpoint for the same scan. Checkpoint
+identity is also stored in indexed `scan_mode`/`scan_created_since` columns, with valid legacy
+continuations backfilled by the additive owner migration.
 
 The target constants are deliberately repository/disposable limits, not production SLOs:
 `MAX_RECONCILIATION_PAGES=32` per continuation run for Submission, Notification, and the

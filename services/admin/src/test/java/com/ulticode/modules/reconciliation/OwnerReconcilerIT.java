@@ -90,12 +90,16 @@ class OwnerReconcilerIT {
                   `started_at` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
                   `finished_at` datetime(3) DEFAULT NULL,
                   `owner` varchar(20) NOT NULL,
+                  `scan_mode` varchar(20) DEFAULT NULL,
+                  `scan_created_since` datetime(3) DEFAULT NULL,
                   `fence_token` bigint NOT NULL DEFAULT 0,
                   `status` varchar(20) NOT NULL DEFAULT 'RUNNING',
                   `divergence_count` int NOT NULL DEFAULT 0,
                   `orphan_count` int NOT NULL DEFAULT 0,
                   `detail` text,
-                  PRIMARY KEY (`run_id`)
+                  PRIMARY KEY (`run_id`),
+                  KEY `idx_recon_runs_checkpoint`
+                    (`owner`, `status`, `scan_mode`, `scan_created_since`, `started_at`, `run_id`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
                 """);
             stmt.execute("""
@@ -223,23 +227,23 @@ class OwnerReconcilerIT {
         LocalDateTime secondWatermark = LocalDateTime.of(2026, 8, 30, 0, 0);
         jdbcTemplate.update("""
                 INSERT INTO reconciliation_runs
-                    (run_id, started_at, owner, fence_token, status,
-                     divergence_count, orphan_count, detail)
-                VALUES (?, ?, 'ALL', 1, 'PARTIAL', 0, 0, ?),
-                       (?, ?, 'ALL', 1, 'PARTIAL', 0, 0, ?),
-                       (?, ?, 'ALL', 1, 'COMPLETED', 0, 0, ?)
+                    (run_id, started_at, owner, scan_mode, scan_created_since,
+                     fence_token, status, divergence_count, orphan_count, detail)
+                VALUES (?, ?, 'ALL', 'INCREMENTAL', ?, 1, 'PARTIAL', 0, 0, ?),
+                       (?, ?, 'ALL', 'INCREMENTAL', ?, 1, 'PARTIAL', 0, 0, ?),
+                       (?, ?, 'ALL', 'INCREMENTAL', ?, 1, 'COMPLETED', 0, 0, ?)
                 """,
-                "partial-first", firstWatermark.plusDays(1), checkpointDetail(firstWatermark),
-                "partial-second", secondWatermark.plusDays(1), checkpointDetail(secondWatermark),
-                "completed-second", secondWatermark.plusDays(2), checkpointDetail(secondWatermark));
+                "partial-first", firstWatermark.plusDays(1), firstWatermark, checkpointDetail(firstWatermark),
+                "partial-second", secondWatermark.plusDays(1), secondWatermark, checkpointDetail(secondWatermark),
+                "completed-second", secondWatermark.plusDays(2), secondWatermark, checkpointDetail(secondWatermark));
 
-        assertThat(runMapper.findLatestPartial("INCREMENTAL", firstWatermark.toString())
+        assertThat(runMapper.findLatestPartial("INCREMENTAL", firstWatermark)
                 .getRunId()).isEqualTo("partial-first");
-        assertThat(runMapper.findLatestPartial("INCREMENTAL", secondWatermark.toString())
+        assertThat(runMapper.findLatestPartial("INCREMENTAL", secondWatermark)
                 .getRunId()).isEqualTo("partial-second");
-        assertThat(runMapper.findLatestCompleted("INCREMENTAL", firstWatermark.toString()))
+        assertThat(runMapper.findLatestCompleted("INCREMENTAL", firstWatermark))
                 .isNull();
-        assertThat(runMapper.findLatestCompleted("INCREMENTAL", secondWatermark.toString())
+        assertThat(runMapper.findLatestCompleted("INCREMENTAL", secondWatermark)
                 .getRunId()).isEqualTo("completed-second");
     }
 

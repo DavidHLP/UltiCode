@@ -30,6 +30,14 @@ public class ReconciliationRun {
     /** Auth/Admin/App/ALL */
     private String owner;
 
+    /** FULL or INCREMENTAL; indexed for checkpoint lookup. */
+    @TableField("scan_mode")
+    private String scanMode;
+
+    /** Inclusive incremental watermark; null for full scans. */
+    @TableField("scan_created_since")
+    private LocalDateTime scanCreatedSince;
+
     /** Monotonic fencing token held when this run started. */
     @TableField("fence_token")
     private Long fenceToken;

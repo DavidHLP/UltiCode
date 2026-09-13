@@ -6,6 +6,8 @@ import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
+import java.time.LocalDateTime;
+
 /**
  * MyBatis-Plus mapper for {@link ReconciliationRun} (P5-RECONCILE-001).
  */
@@ -14,43 +16,33 @@ public interface ReconciliationRunMapper extends BaseMapper<ReconciliationRun> {
 
     /** Find the newest unfinished continuation for the requested scan mode and watermark. */
     @Select("""
-            SELECT *
+            SELECT run_id, started_at, finished_at, owner, fence_token, status,
+                   divergence_count, orphan_count, detail, scan_mode, scan_created_since
             FROM reconciliation_runs
             WHERE owner = 'ALL'
               AND status = 'PARTIAL'
-              AND detail LIKE CONCAT('{\"mode\":\"', #{mode}, '\"%')
-              AND (
-                    (#{createdSince} IS NULL
-                     AND detail LIKE '%\"continuation\":{\"createdSince\":null,%')
-                    OR (#{createdSince} IS NOT NULL
-                        AND detail LIKE CONCAT('%\"continuation\":{\"createdSince\":\"',
-                                               #{createdSince}, '\",%'))
-                  )
-            ORDER BY started_at DESC
+              AND scan_mode = #{mode}
+              AND scan_created_since <=> #{createdSince,jdbcType=TIMESTAMP}
+            ORDER BY started_at DESC, run_id DESC
             LIMIT 1
             """)
     ReconciliationRun findLatestPartial(@Param("mode") String mode,
-                                        @Param("createdSince") String createdSince);
+                                        @Param("createdSince") LocalDateTime createdSince);
 
     /** Find the newest completed run for the requested scan mode and watermark. */
     @Select("""
-            SELECT *
+            SELECT run_id, started_at, finished_at, owner, fence_token, status,
+                   divergence_count, orphan_count, detail, scan_mode, scan_created_since
             FROM reconciliation_runs
             WHERE owner = 'ALL'
               AND status = 'COMPLETED'
-              AND detail LIKE CONCAT('{\"mode\":\"', #{mode}, '\"%')
-              AND (
-                    (#{createdSince} IS NULL
-                     AND detail LIKE '%\"continuation\":{\"createdSince\":null,%')
-                    OR (#{createdSince} IS NOT NULL
-                        AND detail LIKE CONCAT('%\"continuation\":{\"createdSince\":\"',
-                                               #{createdSince}, '\",%'))
-                  )
-            ORDER BY started_at DESC
+              AND scan_mode = #{mode}
+              AND scan_created_since <=> #{createdSince,jdbcType=TIMESTAMP}
+            ORDER BY started_at DESC, run_id DESC
             LIMIT 1
             """)
     ReconciliationRun findLatestCompleted(@Param("mode") String mode,
-                                          @Param("createdSince") String createdSince);
+                                          @Param("createdSince") LocalDateTime createdSince);
 
     /**
      * Finish a run only while the same owner and fence token still hold the

@@ -584,7 +584,7 @@ public class OwnerReconciler {
                     jsonEscape(o.getChildTable()), jsonEscape(o.getParentTable()), o.getOrphanCount()));
         }
         sb.append("]");
-        if (failureReason == null && progress != null && !progress.isComplete()) {
+        if (failureReason == null && progress != null) {
             appendContinuation(sb, progress);
         }
         if (failureReason != null) {

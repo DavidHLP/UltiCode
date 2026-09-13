@@ -70,7 +70,6 @@ public class OwnerReconciler {
     private static final int RECONCILIATION_PAGE_SIZE = SubmissionReconciliationReadPort.MAX_PAGE_SIZE;
     private static final int NOTIFICATION_RECONCILIATION_PAGE_SIZE =
             NotificationReconciliationReadPort.MAX_PAGE_SIZE;
-    private static final int MAX_RECONCILIATION_PAGES = 32;
 
     private final ReconciliationRunMapper runMapper;
     private final UuidGenerator uuidGenerator;
@@ -272,7 +271,7 @@ public class OwnerReconciler {
                 orphan("user_permissions", "user_id", "Auth", "users", "Auth", counts.userPermissions()));
     }
 
-    /** Bounded Submission-owned orphan scan for full or incremental runs. */
+    /** Page-bounded Submission-owned orphan scan for full or incremental runs. */
     private OrphanDetectionResult submissionOrphans(LocalDateTime createdSince) {
         if (submissionReconciliationReadPort == null) {
             throw submissionUnavailable();
@@ -282,7 +281,6 @@ public class OwnerReconciler {
             missing = OrphanScan.keyset(
                     "",
                     RECONCILIATION_PAGE_SIZE,
-                    MAX_RECONCILIATION_PAGES,
                     (after, limit) -> submissionReconciliationReadPort.findUserReferenceCounts(
                             after, createdSince, limit),
                     SubmissionUserReferenceCountDTO::accountId,
@@ -294,7 +292,7 @@ public class OwnerReconciler {
         return orphan("submissions", "user_id", "Submission", "users", "Auth", missing);
     }
 
-    /** Bounded Notification-owned orphan scan for full or incremental runs. */
+    /** Page-bounded Notification-owned orphan scan for full or incremental runs. */
     private OrphanDetectionResult notificationOrphans(LocalDateTime createdSince) {
         if (notificationReconciliationReadPort == null) {
             throw notificationUnavailable();
@@ -304,7 +302,6 @@ public class OwnerReconciler {
             missing = OrphanScan.keyset(
                     "",
                     NOTIFICATION_RECONCILIATION_PAGE_SIZE,
-                    MAX_RECONCILIATION_PAGES,
                     (after, limit) -> notificationReconciliationReadPort.findUserReferenceCounts(
                             after, createdSince, limit),
                     NotificationUserReferenceCountDTO::accountId,
@@ -336,7 +333,6 @@ public class OwnerReconciler {
         try {
             missing = OrphanScan.offset(
                     pageSize,
-                    MAX_RECONCILIATION_PAGES,
                     (offset, limit) -> auditOrphanMapper.auditPerformerIds(offset, limit),
                     AuditReferenceCount::getPerformerId,
                     AuditReferenceCount::getRowCount,

@@ -7,7 +7,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.ToLongFunction;
 
-/** Shared bounded paging and parent-existence logic for owner orphan scans. */
+/** Shared page-bounded paging and parent-existence logic for owner orphan scans. */
 final class OrphanScan {
 
     private static final int PARENT_LOOKUP_BATCH_SIZE = 500;
@@ -18,22 +18,17 @@ final class OrphanScan {
     static <T> long keyset(
             String initialCursor,
             int pageSize,
-            int maxPages,
             KeysetPage<T> page,
             Function<T, String> key,
             ToLongFunction<T> rowCount,
             Function<Set<String>, Set<String>> existingIds) {
         String cursor = initialCursor;
         long missing = 0L;
-        int pages = 0;
         while (true) {
             List<T> references = page.read(cursor, pageSize);
             validatePage(references, pageSize);
             if (references.isEmpty()) {
                 return missing;
-            }
-            if (++pages > maxPages) {
-                throw new InvalidPageException("orphan scan page cap exceeded");
             }
 
             String previous = cursor;
@@ -60,7 +55,6 @@ final class OrphanScan {
 
     static <T> long offset(
             int pageSize,
-            int maxPages,
             OffsetPage<T> page,
             Function<T, String> key,
             ToLongFunction<T> rowCount,
@@ -68,15 +62,11 @@ final class OrphanScan {
         int offset = 0;
         String previous = "";
         long missing = 0L;
-        int pages = 0;
         while (true) {
             List<T> references = page.read(offset, pageSize);
             validatePage(references, pageSize);
             if (references.isEmpty()) {
                 return missing;
-            }
-            if (++pages > maxPages) {
-                throw new InvalidPageException("orphan scan page cap exceeded");
             }
 
             Set<String> candidates = new LinkedHashSet<>();

@@ -24,7 +24,6 @@ class OrphanScanTest {
         long missing = OrphanScan.keyset(
                 "",
                 2,
-                4,
                 (after, ignored) -> {
                     cursors.add(after);
                     return pages.get(page.getAndIncrement());
@@ -42,11 +41,51 @@ class OrphanScanTest {
     }
 
     @Test
+    void keysetScanContinuesPastThirtyTwoPages() {
+        AtomicInteger page = new AtomicInteger();
+
+        long missing = OrphanScan.keyset(
+                "",
+                1,
+                (after, ignored) -> {
+                    int index = page.getAndIncrement();
+                    return index == 33
+                            ? List.of()
+                            : List.of(new Reference("user-%02d".formatted(index), 1));
+                },
+                Reference::id,
+                Reference::count,
+                candidates -> Set.of());
+
+        assertThat(missing).isEqualTo(33);
+        assertThat(page).hasValue(34);
+    }
+
+    @Test
+    void offsetScanContinuesPastThirtyTwoPages() {
+        AtomicInteger page = new AtomicInteger();
+
+        long missing = OrphanScan.offset(
+                1,
+                (offset, ignored) -> {
+                    page.incrementAndGet();
+                    return offset == 33
+                            ? List.of()
+                            : List.of(new Reference("user-%02d".formatted(offset), 1));
+                },
+                Reference::id,
+                Reference::count,
+                candidates -> Set.of());
+
+        assertThat(missing).isEqualTo(33);
+        assertThat(page).hasValue(34);
+    }
+
+    @Test
     void rejectsUnorderedOrDuplicatePageKeys() {
         assertThatThrownBy(() -> OrphanScan.keyset(
                 "",
                 3,
-                1,
                 (after, ignored) -> List.of(new Reference("b", 1), new Reference("a", 1)),
                 Reference::id,
                 Reference::count,

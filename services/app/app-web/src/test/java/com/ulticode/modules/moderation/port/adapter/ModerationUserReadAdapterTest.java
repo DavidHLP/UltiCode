@@ -8,6 +8,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -39,6 +40,19 @@ class ModerationUserReadAdapterTest {
         verify(userFactsProjection).findByIds(ids);
         verify(userFactsProjection, never()).findById("u-1");
         verify(userFactsProjection, never()).findById("u-2");
+    }
+
+    @Test
+    void findByIdsKeepsFactsProjectionOrder() {
+        Set<String> ids = new java.util.LinkedHashSet<>(List.of("u-2", "u-1"));
+        Map<String, UserFactView> facts = new LinkedHashMap<>();
+        facts.put("u-2", user("u-2", "bob"));
+        facts.put("u-1", user("u-1", "alice"));
+        when(userFactsProjection.findByIds(ids)).thenReturn(facts);
+
+        Map<String, ?> result = new ModerationUserReadAdapter(userFactsProjection).findByIds(ids);
+
+        assertThat(result.keySet()).containsExactly("u-2", "u-1");
     }
 
     private static UserFactView user(String id, String username) {

@@ -10,7 +10,6 @@ import com.ulticode.common.exception.BusinessException;
 import com.ulticode.submission.api.service.SubmissionUserQueryPort;
 import com.ulticode.submission.api.service.SubmissionIntakePort;
 import jakarta.validation.Validation;
-import jakarta.validation.Validator;
 import org.springframework.validation.beanvalidation.SpringValidatorAdapter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -41,7 +40,6 @@ class ProblemSubmissionControllerHttpTest {
                 mock(SubmissionIntakePort.class),
                 mock(SubmissionFactsCapture.class),
                 codeExecutionPort,
-                mock(Validator.class),
                 mock(CurrentUserProvider.class));
         mockMvc = standaloneSetup(controller)
                 .setValidator(new SpringValidatorAdapter(

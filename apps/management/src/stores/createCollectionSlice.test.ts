@@ -95,4 +95,14 @@ describe('createCollectionSlice', () => {
     expect(applyMetadata).toHaveBeenCalledTimes(1)
     expect(applyMetadata).toHaveBeenCalledWith({ page: 2 })
   })
+
+  it('keeps alternate collection loads on the same request policy', async () => {
+    const load = vi.fn().mockResolvedValue({ items: ['default'], total: 1 })
+    const slice = createCollectionSlice<string, void>({ load })
+
+    await slice.fetchWith(async () => ({ items: ['alternate'], total: 1 }))
+
+    expect(slice.items.value).toEqual(['alternate'])
+    expect(load).not.toHaveBeenCalled()
+  })
 })

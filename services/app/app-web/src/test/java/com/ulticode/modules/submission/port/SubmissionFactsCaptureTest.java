@@ -4,6 +4,7 @@ import com.ulticode.app.api.service.ProblemFactsPort;
 import com.ulticode.app.api.service.UserExistencePort;
 import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.exception.BusinessException;
+import com.ulticode.common.time.TimeSource;
 import com.ulticode.submission.api.dto.CreateSubmissionDTO;
 import com.ulticode.submission.api.dto.SubmissionFactsSnapshot;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,12 +24,13 @@ class SubmissionFactsCaptureTest {
 
     @Mock private ProblemFactsPort problemFacts;
     @Mock private UserExistencePort userExistencePort;
+    @Mock private TimeSource timeSource;
 
     private SubmissionFactsCapture capture;
 
     @BeforeEach
     void setUp() {
-        capture = new SubmissionFactsCapture(problemFacts, userExistencePort);
+        capture = new SubmissionFactsCapture(problemFacts, userExistencePort, timeSource);
     }
 
     @Test
@@ -40,6 +42,7 @@ class SubmissionFactsCaptureTest {
                 .thenReturn(new ProblemFactsPort.ProblemLimits(2, 256));
         when(problemFacts.findStarterCode(101L, "python")).thenReturn("print(0)");
         when(userExistencePort.existsById("user-1")).thenReturn(true);
+        when(timeSource.wallMillis()).thenReturn(1700000000123L);
 
         SubmissionFactsSnapshot snapshot = capture.capture("user-1", request);
 
@@ -48,10 +51,28 @@ class SubmissionFactsCaptureTest {
         assertThat(snapshot.problem().timeLimitSeconds()).isEqualTo(2);
         assertThat(snapshot.problem().memoryLimitMb()).isEqualTo(256);
         assertThat(snapshot.problem().starterCode()).isEqualTo("print(0)");
+        assertThat(snapshot.capturedAtEpochMillis()).isEqualTo(1700000000123L);
         verify(problemFacts).findDisplayFacts(101L);
         verify(problemFacts).findLimits(101L);
         verify(problemFacts).findStarterCode(101L, "python");
         verify(userExistencePort).existsById("user-1");
+        verify(timeSource).wallMillis();
+    }
+
+    @Test
+    void pathProblemIdIsAuthoritativeWhenCapturingProblemSubmission() {
+        CreateSubmissionDTO request = request();
+        request.setProblemId(999L);
+        when(problemFacts.findDisplayFacts(101L))
+                .thenReturn(new ProblemFactsPort.ProblemDisplayFacts(101L, "Two Sum", "two-sum"));
+        when(userExistencePort.existsById("user-1")).thenReturn(true);
+        when(timeSource.wallMillis()).thenReturn(1700000000123L);
+
+        SubmissionFactsSnapshot snapshot = capture.capture("user-1", 101L, request);
+
+        assertThat(request.getProblemId()).isEqualTo(101L);
+        assertThat(snapshot.admits("user-1", 101L)).isTrue();
+        verify(problemFacts).findDisplayFacts(101L);
     }
 
     @Test

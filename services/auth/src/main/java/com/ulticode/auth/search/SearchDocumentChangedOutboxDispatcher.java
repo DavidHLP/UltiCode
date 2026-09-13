@@ -1,14 +1,10 @@
 package com.ulticode.auth.search;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ulticode.common.outbox.OutboxDispatcher;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.annotation.Profile;
-import com.ulticode.common.lifecycle.DrainGate;
 import org.springframework.data.redis.connection.stream.MapRecord;
 import org.springframework.data.redis.connection.stream.RecordId;
 import org.springframework.data.redis.connection.stream.StreamRecords;
@@ -28,71 +24,87 @@ import org.springframework.stereotype.Component;
  * stream append succeeds. Stale CLAIMED rows are reclaimed after a lease and
  * retried up to {@code maxAttempts}; a terminal FAILED row is not re-enqueued.
  */
-@Slf4j
 @Component
 @ConditionalOnProperty(name = "auth.search.outbox.dispatcher.enabled", havingValue = "true")
-@RequiredArgsConstructor
 public class SearchDocumentChangedOutboxDispatcher {
     private static final String STREAM_KEY = "stream:integration";
-    private static final int BATCH_SIZE = 50;
-    private static final int MAX_ATTEMPTS = 5;
     private static final int LEASE_SECONDS = 120;
     private static final int RETRY_BACKOFF_SECONDS = 30;
 
     private final SearchDocumentChangedOutboxMapper outboxMapper;
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
-    private final DrainGate drainGate = new DrainGate();
+    private final OutboxDispatcher<SearchDocumentChangedOutboxRecord> dispatcher;
 
-    private final String claimOwner = "auth-search-" + UUID.randomUUID();
+    public SearchDocumentChangedOutboxDispatcher(
+            SearchDocumentChangedOutboxMapper outboxMapper,
+            StringRedisTemplate redisTemplate,
+            ObjectMapper objectMapper) {
+        this.outboxMapper = outboxMapper;
+        this.redisTemplate = redisTemplate;
+        this.objectMapper = objectMapper;
+        this.dispatcher = new OutboxDispatcher<>(
+                "auth-search-outbox",
+                new OutboxDispatcher.Adapter<>() {
+                    @Override
+                    public void reclaimStaleClaimed() {
+                        outboxMapper.reclaimStaleClaimed(LEASE_SECONDS);
+                    }
+
+                    @Override
+                    public int claimPending(String claimOwner, int limit) {
+                        return outboxMapper.claimPending(claimOwner, limit);
+                    }
+
+                    @Override
+                    public List<SearchDocumentChangedOutboxRecord> selectClaimed(String claimOwner) {
+                        return outboxMapper.selectClaimed(claimOwner);
+                    }
+
+                    @Override
+                    public String publish(SearchDocumentChangedOutboxRecord record) throws Exception {
+                        return SearchDocumentChangedOutboxDispatcher.this.publishToStream(record);
+                    }
+
+                    @Override
+                    public int markDelivered(
+                            SearchDocumentChangedOutboxRecord record,
+                            String claimOwner,
+                            String publicationId) {
+                        return outboxMapper.markDelivered(record.getId(), claimOwner);
+                    }
+
+                    @Override
+                    public int markFailed(
+                            SearchDocumentChangedOutboxRecord record,
+                            String claimOwner,
+                            String error,
+                            int maxAttempts) {
+                        return outboxMapper.markRetry(
+                                record.getId(), claimOwner,
+                                error != null ? error : "XADD failed",
+                                maxAttempts, RETRY_BACKOFF_SECONDS);
+                    }
+
+                    @Override
+                    public String recordId(SearchDocumentChangedOutboxRecord record) {
+                        return record.getId();
+                    }
+                });
+    }
 
     @Scheduled(fixedDelayString = "${auth.search.outbox.dispatcher.interval-ms:2000}",
                initialDelayString = "5000")
     public int dispatch() {
-        if (!drainGate.tryEnter()) {
-            return 0;
-        }
-        try {
-            return dispatchClaimedBatch();
-        } finally {
-            drainGate.leave();
-        }
-    }
-
-    private int dispatchClaimedBatch() {
-        outboxMapper.reclaimStaleClaimed(LEASE_SECONDS);
-        List<SearchDocumentChangedOutboxRecord> pending = outboxMapper.selectPending(BATCH_SIZE);
-        if (pending.isEmpty()) {
-            return 0;
-        }
-        int delivered = 0;
-        for (SearchDocumentChangedOutboxRecord record : pending) {
-            if (drainGate.isDraining()) {
-                break;
-            }
-            if (outboxMapper.claim(record.getId(), claimOwner) == 0) {
-                continue; // another replica claimed it
-            }
-            try {
-                publishToStream(record);
-                outboxMapper.markDelivered(record.getId(), claimOwner);
-                delivered++;
-            } catch (Exception e) {
-                log.warn("Failed to dispatch search event {}: {}", record.getId(), e.getMessage());
-                outboxMapper.markRetry(record.getId(), claimOwner,
-                        e.getMessage() != null ? e.getMessage().substring(0, Math.min(500, e.getMessage().length())) : "XADD failed",
-                        MAX_ATTEMPTS, RETRY_BACKOFF_SECONDS);
-            }
-        }
-        return delivered;
+        return dispatcher.dispatch();
     }
 
     @EventListener
     public void onContextClosed(ContextClosedEvent ignored) {
-        drainGate.beginDrain();
+        dispatcher.beginDrain();
     }
 
-    private void publishToStream(SearchDocumentChangedOutboxRecord record) throws Exception {
+    private String publishToStream(SearchDocumentChangedOutboxRecord record) throws Exception {
         Map<String, String> fields = new LinkedHashMap<>();
         fields.put("eventId", record.getId());
         fields.put("owner", record.getOwner());
@@ -108,5 +120,6 @@ public class SearchDocumentChangedOutboxDispatcher {
         if (recordId == null) {
             throw new IllegalStateException("Redis XADD returned null for event " + record.getId());
         }
+        return recordId.getValue();
     }
 }

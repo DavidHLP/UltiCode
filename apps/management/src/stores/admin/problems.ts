@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, readonly } from 'vue'
 import {
   problemsApi,
   type Problem,
@@ -50,11 +50,13 @@ export const useProblemsStore = defineStore('adminProblems', () => {
       return { items: pageResult.items, total: pageResult.total }
     },
   })
-  const problems = collection.items
-  const total = collection.total
-  const loading = collection.isLoading
-  const error = collection.error
+  const problems = readonly(collection.items) as Readonly<typeof collection.items>
+  const total = readonly(collection.total) as Readonly<typeof collection.total>
+  const loading = readonly(collection.isLoading) as Readonly<typeof collection.isLoading>
+  const error = readonly(collection.error) as Readonly<typeof collection.error>
   const fetchProblems = collection.fetch
+  const operationLoading = ref(false)
+  const operationError = ref<string | null>(null)
 
   const tabStates = ref<Map<string, TabState<unknown>>>(new Map())
 
@@ -200,99 +202,94 @@ export const useProblemsStore = defineStore('adminProblems', () => {
   }
 
   async function createProblem(data: ProblemCreateInput) {
-    loading.value = true
-    error.value = null
+    operationLoading.value = true
+    operationError.value = null
     try {
       const problem = await problemsApi.createProblem(data)
       return problem
     } catch (err: unknown) {
-      error.value = extractErrorMessage(err)
+      operationError.value = extractErrorMessage(err)
       console.error('Failed to create problem:', err)
       throw err
     } finally {
-      loading.value = false
+      operationLoading.value = false
     }
   }
 
   async function updateProblem(id: string, data: ProblemUpdateInput) {
-    loading.value = true
-    error.value = null
+    operationLoading.value = true
+    operationError.value = null
     try {
       const problem = await problemsApi.updateProblem(id, data)
-      const index = problems.value.findIndex((p) => p.id === id)
-      if (index !== -1) {
-        problems.value[index] = problem
-      }
+      collection.updateItems((current) =>
+        current.map((problemItem) => (problemItem.id === id ? problem : problemItem)),
+      )
       invalidateTabCache(id)
       return problem
     } catch (err: unknown) {
-      error.value = extractErrorMessage(err)
+      operationError.value = extractErrorMessage(err)
       console.error('Failed to update problem:', err)
       throw err
     } finally {
-      loading.value = false
+      operationLoading.value = false
     }
   }
 
   async function deleteProblem(id: string) {
-    loading.value = true
-    error.value = null
+    operationLoading.value = true
+    operationError.value = null
     try {
       await problemsApi.deleteProblem(id)
-      const previousLength = problems.value.length
-      problems.value = problems.value.filter((p) => p.id !== id)
-      if (problems.value.length !== previousLength) {
-        total.value = total.value - 1
-      }
+      const removed = problems.value.some((problemItem) => problemItem.id === id)
+      collection.updateItems((current) => current.filter((problemItem) => problemItem.id !== id))
+      if (removed) collection.setTotal(Math.max(0, total.value - 1))
       if (getTabState<HeaderData>('header').loadedId === id) {
         clearCurrentProblem()
       }
     } catch (err: unknown) {
-      error.value = extractErrorMessage(err)
+      operationError.value = extractErrorMessage(err)
       console.error('Failed to delete problem:', err)
       throw err
     } finally {
-      loading.value = false
+      operationLoading.value = false
     }
   }
 
   async function publishProblem(id: string) {
-    loading.value = true
-    error.value = null
+    operationLoading.value = true
+    operationError.value = null
     try {
       const problem = await problemsApi.publishProblem(id)
-      const index = problems.value.findIndex((p) => p.id === id)
-      if (index !== -1) {
-        problems.value[index] = problem
-      }
+      collection.updateItems((current) =>
+        current.map((problemItem) => (problemItem.id === id ? problem : problemItem)),
+      )
       invalidateTabCache(id)
       return problem
     } catch (err: unknown) {
-      error.value = extractErrorMessage(err)
+      operationError.value = extractErrorMessage(err)
       console.error('Failed to publish problem:', err)
       throw err
     } finally {
-      loading.value = false
+      operationLoading.value = false
     }
   }
 
   async function unpublishProblem(id: string) {
-    loading.value = true
-    error.value = null
+    operationLoading.value = true
+    operationError.value = null
     try {
       const problem = await problemsApi.unpublishProblem(id)
-      const index = problems.value.findIndex((p) => p.id === id)
-      if (index !== -1) {
-        problems.value[index] = problem
-      }
+      collection.updateItems((current) =>
+        current.map((problemItem) => (problemItem.id === id ? problem : problemItem)),
+      )
       invalidateTabCache(id)
       return problem
     } catch (err: unknown) {
-      error.value = extractErrorMessage(err)
+      operationError.value = extractErrorMessage(err)
       console.error('Failed to unpublish problem:', err)
       throw err
     } finally {
-      loading.value = false
+      operationLoading.value = false
     }
   }
 
@@ -301,8 +298,8 @@ export const useProblemsStore = defineStore('adminProblems', () => {
     data: ProblemUpdateInput,
     targetPublishedState: boolean,
   ) {
-    loading.value = true
-    error.value = null
+    operationLoading.value = true
+    operationError.value = null
     try {
       let problem = await problemsApi.updateProblem(id, data)
 
@@ -312,36 +309,35 @@ export const useProblemsStore = defineStore('adminProblems', () => {
           ? await problemsApi.publishProblem(id)
           : await problemsApi.unpublishProblem(id)
 
-        const index = problems.value.findIndex((p) => p.id === id)
-        if (index !== -1) {
-          problems.value[index] = problem
-        }
+        collection.updateItems((current) =>
+          current.map((problemItem) => (problemItem.id === id ? problem : problemItem)),
+        )
       }
 
       invalidateTabCache(id)
 
       return problem
     } catch (err: unknown) {
-      error.value = extractErrorMessage(err)
+      operationError.value = extractErrorMessage(err)
       console.error('Failed to update problem:', err)
       throw err
     } finally {
-      loading.value = false
+      operationLoading.value = false
     }
   }
 
   async function bulkAction(data: BulkProblemActionDto) {
-    loading.value = true
-    error.value = null
+    operationLoading.value = true
+    operationError.value = null
     try {
       await problemsApi.bulkAction(data)
       await fetchProblems()
     } catch (err: unknown) {
-      error.value = extractErrorMessage(err)
+      operationError.value = extractErrorMessage(err)
       console.error('Failed to perform bulk action:', err)
       throw err
     } finally {
-      loading.value = false
+      operationLoading.value = false
     }
   }
 
@@ -359,7 +355,8 @@ export const useProblemsStore = defineStore('adminProblems', () => {
   }
 
   function clearError() {
-    error.value = null
+    collection.clearError()
+    operationError.value = null
   }
 
   function clearCurrentProblem() {
@@ -368,22 +365,23 @@ export const useProblemsStore = defineStore('adminProblems', () => {
   }
 
   function reset() {
-    problems.value = []
-    total.value = 0
-    loading.value = false
-    error.value = null
+    collection.reset()
+    operationLoading.value = false
+    operationError.value = null
 
     clearCurrentProblem()
   }
 
   return {
-    items: collection.items,
-    isLoading: collection.isLoading,
+    items: problems,
+    isLoading: loading,
     fetch: collection.fetch,
     problems,
     total,
     loading,
     error,
+    operationLoading,
+    operationError,
     headerData,
     headerLoading,
     headerError,

@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, readonly } from 'vue'
 import { isAxiosError } from 'axios'
 import {
   adminProblemListsApi,
@@ -18,12 +18,14 @@ export const useAdminProblemListsStore = defineStore('admin-problem-lists', () =
       return { items: pageResult.items, total: pageResult.total }
     },
   })
-  const lists = collection.items
+  const lists = readonly(collection.items) as Readonly<typeof collection.items>
   const currentList = ref<ProblemListDetail | null>(null)
-  const total = collection.total
-  const isLoading = collection.isLoading
-  const error = collection.error
+  const total = readonly(collection.total) as Readonly<typeof collection.total>
+  const isLoading = readonly(collection.isLoading) as Readonly<typeof collection.isLoading>
+  const error = readonly(collection.error) as Readonly<typeof collection.error>
   const fetchLists = collection.fetch
+  const operationLoading = ref(false)
+  const operationError = ref<string | null>(null)
 
   function getErrorMessage(err: unknown, defaultMessage: string): string {
     if (isAxiosError(err) && err.response?.data?.message) {
@@ -33,68 +35,72 @@ export const useAdminProblemListsStore = defineStore('admin-problem-lists', () =
   }
 
   async function fetchList(id: string) {
-    isLoading.value = true
-    error.value = null
+    operationLoading.value = true
+    operationError.value = null
     try {
       currentList.value = await adminProblemListsApi.getList(id)
     } catch (err) {
-      error.value = getErrorMessage(err, 'Failed to fetch problem list')
+      operationError.value = getErrorMessage(err, 'Failed to fetch problem list')
       throw err
     } finally {
-      isLoading.value = false
+      operationLoading.value = false
     }
   }
 
   async function createList(data: CreateProblemListDto) {
-    isLoading.value = true
-    error.value = null
+    operationLoading.value = true
+    operationError.value = null
     try {
       return await adminProblemListsApi.createList(data)
     } catch (err) {
-      error.value = getErrorMessage(err, 'Failed to create problem list')
+      operationError.value = getErrorMessage(err, 'Failed to create problem list')
       throw err
     } finally {
-      isLoading.value = false
+      operationLoading.value = false
     }
   }
 
   async function deleteList(id: string) {
-    isLoading.value = true
-    error.value = null
+    operationLoading.value = true
+    operationError.value = null
     try {
       await adminProblemListsApi.deleteList(id)
-      lists.value = lists.value.filter((l) => l.id !== id)
+      const removed = lists.value.some((list) => list.id === id)
+      collection.updateItems((current) => current.filter((list) => list.id !== id))
+      if (removed) collection.setTotal(Math.max(0, total.value - 1))
     } catch (err) {
-      error.value = getErrorMessage(err, 'Failed to delete problem list')
+      operationError.value = getErrorMessage(err, 'Failed to delete problem list')
       throw err
     } finally {
-      isLoading.value = false
+      operationLoading.value = false
     }
   }
 
   async function updateListProblems(id: string, data: UpdateProblemListProblemsDto) {
-    isLoading.value = true
-    error.value = null
+    operationLoading.value = true
+    operationError.value = null
     try {
       await adminProblemListsApi.updateListProblems(id, data)
       // Refresh list details
       await fetchList(id)
     } catch (err) {
-      error.value = getErrorMessage(err, 'Failed to update list problems')
+      operationError.value = getErrorMessage(err, 'Failed to update list problems')
       throw err
     } finally {
-      isLoading.value = false
+      operationLoading.value = false
     }
   }
 
   return {
-    items: collection.items,
+    items: lists,
     fetch: collection.fetch,
     lists,
     currentList,
     total,
     isLoading,
     error,
+    operationLoading,
+    operationError,
     fetchLists,
     fetchList,
     createList,

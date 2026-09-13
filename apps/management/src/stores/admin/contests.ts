@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, readonly } from 'vue'
 import {
   contestsApi,
   type Contest,
@@ -18,17 +18,19 @@ export const useContestsStore = defineStore('adminContests', () => {
       return { items: response.items, total: response.total }
     },
   })
-  const contests = collection.items
-  const total = collection.total
-  const loading = collection.isLoading
-  const error = collection.error
+  const contests = readonly(collection.items) as Readonly<typeof collection.items>
+  const total = readonly(collection.total) as Readonly<typeof collection.total>
+  const loading = readonly(collection.isLoading) as Readonly<typeof collection.isLoading>
+  const error = readonly(collection.error) as Readonly<typeof collection.error>
   const fetchContests = collection.fetch
+  const operationLoading = ref(false)
+  const operationError = ref<string | null>(null)
   const currentContest = ref<Contest | null>(null)
   const currentRankings = ref<ContestRanking[]>([])
 
   async function fetchContest(id: string): Promise<Contest | null> {
-    loading.value = true
-    error.value = null
+    operationLoading.value = true
+    operationError.value = null
     currentContest.value = null // Clear previous
     try {
       const contest = await contestsApi.getContest(id)
@@ -36,127 +38,128 @@ export const useContestsStore = defineStore('adminContests', () => {
       return contest
     } catch (err: unknown) {
       const errorMessage = extractApiErrorMessage(err, 'Failed to fetch contest')
-      error.value = errorMessage
+      operationError.value = errorMessage
       console.error('Failed to fetch contest:', err)
       return null
     } finally {
-      loading.value = false
+      operationLoading.value = false
     }
   }
 
   async function createContest(data: CreateContestDto) {
-    loading.value = true
-    error.value = null
+    operationLoading.value = true
+    operationError.value = null
     try {
       const contest = await contestsApi.createContest(data)
       return contest
     } catch (err: unknown) {
-      error.value = extractApiErrorMessage(err, 'Failed to create contest')
+      operationError.value = extractApiErrorMessage(err, 'Failed to create contest')
       console.error('Failed to create contest:', err)
       throw err
     } finally {
-      loading.value = false
+      operationLoading.value = false
     }
   }
 
   async function updateContest(id: string, data: UpdateContestDto) {
-    loading.value = true
-    error.value = null
+    operationLoading.value = true
+    operationError.value = null
     try {
       const contest = await contestsApi.updateContest(id, data)
       // Update local list if present
-      const index = contests.value.findIndex((c) => c.id === id)
-      if (index !== -1) {
-        contests.value[index] = contest
-      }
+      collection.updateItems((current) =>
+        current.map((contestItem) => (contestItem.id === id ? contest : contestItem)),
+      )
       // Also update currentContest if it matches
       if (currentContest.value?.id === id) {
         currentContest.value = { ...currentContest.value, ...contest }
       }
       return contest
     } catch (err: unknown) {
-      error.value = extractApiErrorMessage(err, 'Failed to update contest')
+      operationError.value = extractApiErrorMessage(err, 'Failed to update contest')
       console.error('Failed to update contest:', err)
       throw err
     } finally {
-      loading.value = false
+      operationLoading.value = false
     }
   }
 
   async function deleteContest(id: string) {
-    loading.value = true
-    error.value = null
+    operationLoading.value = true
+    operationError.value = null
     try {
       await contestsApi.deleteContest(id)
       // Remove from local list
-      const index = contests.value.findIndex((c) => c.id === id)
-      if (index !== -1) {
-        contests.value.splice(index, 1)
-        total.value--
-      }
+      const removed = contests.value.some((contestItem) => contestItem.id === id)
+      collection.updateItems((current) => current.filter((contestItem) => contestItem.id !== id))
+      if (removed) collection.setTotal(Math.max(0, total.value - 1))
       // Clear currentContest if it matches
       if (currentContest.value?.id === id) {
         currentContest.value = null
       }
     } catch (err: unknown) {
-      error.value = extractApiErrorMessage(err, 'Failed to delete contest')
+      operationError.value = extractApiErrorMessage(err, 'Failed to delete contest')
       console.error('Failed to delete contest:', err)
       throw err
     } finally {
-      loading.value = false
+      operationLoading.value = false
     }
   }
 
   async function startContest(id: string) {
-    loading.value = true
-    error.value = null
+    operationLoading.value = true
+    operationError.value = null
     try {
       const contest = await contestsApi.startContest(id)
-      const index = contests.value.findIndex((c) => c.id === id)
-      if (index !== -1) contests.value[index] = contest
+      collection.updateItems((current) =>
+        current.map((contestItem) => (contestItem.id === id ? contest : contestItem)),
+      )
       if (currentContest.value?.id === id) currentContest.value = contest
       return contest
     } catch (err: unknown) {
-      error.value = extractApiErrorMessage(err, 'Failed to start contest')
+      operationError.value = extractApiErrorMessage(err, 'Failed to start contest')
       throw err
     } finally {
-      loading.value = false
+      operationLoading.value = false
     }
   }
 
   async function endContest(id: string) {
-    loading.value = true
-    error.value = null
+    operationLoading.value = true
+    operationError.value = null
     try {
       const contest = await contestsApi.endContest(id)
-      const index = contests.value.findIndex((c) => c.id === id)
-      if (index !== -1) contests.value[index] = contest
+      collection.updateItems((current) =>
+        current.map((contestItem) => (contestItem.id === id ? contest : contestItem)),
+      )
       if (currentContest.value?.id === id) currentContest.value = contest
       return contest
     } catch (err: unknown) {
-      error.value = extractApiErrorMessage(err, 'Failed to end contest')
+      operationError.value = extractApiErrorMessage(err, 'Failed to end contest')
       throw err
     } finally {
-      loading.value = false
+      operationLoading.value = false
     }
   }
 
   async function addProblem(id: string, data: AddContestProblemDto) {
     // Note: This endpoint returns the ContestProblem, but we often want to refresh the whole contest
-    loading.value = true
+    operationLoading.value = true
+    operationError.value = null
     try {
       await contestsApi.addProblem(id, data)
       await fetchContest(id) // Refresh to get updated problems list
     } catch (err: unknown) {
-      error.value = extractApiErrorMessage(err, 'Failed to add problem')
+      operationError.value = extractApiErrorMessage(err, 'Failed to add problem')
       throw err
     } finally {
-      loading.value = false
+      operationLoading.value = false
     }
   }
 
   async function removeProblem(id: string, problemId: number) {
-    loading.value = true
+    operationLoading.value = true
+    operationError.value = null
     try {
       await contestsApi.removeProblem(id, problemId)
       if (currentContest.value?.problemIds) {
@@ -166,28 +169,31 @@ export const useContestsStore = defineStore('adminContests', () => {
         }
       }
     } catch (err: unknown) {
-      error.value = extractApiErrorMessage(err, 'Failed to remove problem')
+      operationError.value = extractApiErrorMessage(err, 'Failed to remove problem')
       throw err
     } finally {
-      loading.value = false
+      operationLoading.value = false
     }
   }
 
   async function fetchRankings(id: string, page = 1, limit = 50) {
-    loading.value = true
+    operationLoading.value = true
+    operationError.value = null
     try {
       const response = await contestsApi.getRankings(id, page, limit)
       currentRankings.value = response.items
       return response.items
     } catch (err: unknown) {
+      operationError.value = extractApiErrorMessage(err, 'Failed to fetch contest rankings')
       console.error('Failed to fetch rankings', err)
     } finally {
-      loading.value = false
+      operationLoading.value = false
     }
   }
 
   function clearError() {
-    error.value = null
+    collection.clearError()
+    operationError.value = null
   }
 
   function clearCurrentContest() {
@@ -196,13 +202,15 @@ export const useContestsStore = defineStore('adminContests', () => {
   }
 
   return {
-    items: collection.items,
-    isLoading: collection.isLoading,
+    items: contests,
+    isLoading: loading,
     fetch: collection.fetch,
     contests,
     total,
     loading,
     error,
+    operationLoading,
+    operationError,
     currentContest,
     currentRankings,
     fetchContests,

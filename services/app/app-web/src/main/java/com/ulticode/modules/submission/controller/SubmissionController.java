@@ -23,7 +23,6 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -55,7 +54,7 @@ public class SubmissionController {
     @ApiResponse(responseCode = "404", description = "Problem not found")
     @RateLimit(key = "submission:create", limit = 20, period = 60)
     @PostMapping
-    public Result<SubmissionVO> submit(@Valid @RequestBody CreateSubmissionDTO createDTO) {
+    public Result<SubmissionVO> submit(@RequestBody CreateSubmissionDTO createDTO) {
         String userId = currentUserProvider.getCurrentUserId();
         if (userId == null) {
             throw new BusinessException(BaseErrorCode.UNAUTHORIZED);

@@ -10,7 +10,6 @@ import com.ulticode.modules.submission.port.SubmissionFactsCapture;
 import com.ulticode.modules.submission.service.CodeExecutionService;
 import com.ulticode.submission.api.service.SubmissionIntakePort;
 import com.ulticode.submission.api.service.SubmissionUserQueryPort;
-import jakarta.validation.Validator;
 import org.apache.dubbo.config.ApplicationConfig;
 import org.apache.dubbo.config.ProtocolConfig;
 import org.apache.dubbo.config.ReferenceConfig;
@@ -98,7 +97,6 @@ class CodeExecutionDubboHttpIT {
                 mock(SubmissionIntakePort.class),
                 mock(SubmissionFactsCapture.class),
                 remote,
-                mock(Validator.class),
                 mock(CurrentUserProvider.class));
         mockMvc = standaloneSetup(controller)
                 .setControllerAdvice(new ProblemWebExceptionHandler())

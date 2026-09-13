@@ -84,10 +84,15 @@ public class DefaultUserFactsReadProjection
                 .filter(profile -> profile != null && requested.contains(profile.getAccountId()))
                 .collect(Collectors.toMap(UserProfileReadRow::getAccountId, profile -> profile,
                         (first, ignored) -> first));
+        Map<String, AuthAccountDTO> accounts = response.data().stream()
+                .filter(account -> account != null && requested.contains(account.accountId()))
+                .collect(Collectors.toMap(AuthAccountDTO::accountId, account -> account,
+                        (first, ignored) -> first));
         Map<String, UserFactView> result = new LinkedHashMap<>();
-        for (AuthAccountDTO account : response.data()) {
-            if (account != null && requested.contains(account.accountId())) {
-                result.putIfAbsent(account.accountId(), toFact(account, profiles.get(account.accountId())));
+        for (String accountId : requested) {
+            AuthAccountDTO account = accounts.get(accountId);
+            if (account != null) {
+                result.put(accountId, toFact(account, profiles.get(accountId)));
             }
         }
         return result;

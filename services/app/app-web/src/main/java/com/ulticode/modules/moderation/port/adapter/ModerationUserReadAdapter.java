@@ -58,10 +58,9 @@ public class ModerationUserReadAdapter implements ModerationUserReadPort {
             users = Map.of();
         }
         Map<String, ModerationUserInfo> result = new LinkedHashMap<>();
-        for (String userId : requested) {
-            UserFactView user = users.get(userId);
-            if (user != null) {
-                result.put(user.id(), new ModerationUserInfo(user.id(), user.username()));
+        for (UserFactView user : users.values()) {
+            if (user != null && requested.contains(user.id())) {
+                result.putIfAbsent(user.id(), new ModerationUserInfo(user.id(), user.username()));
             }
         }
         return result;

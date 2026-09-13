@@ -7,9 +7,9 @@ import com.ulticode.modules.submission.controller.RunResultDTO;
 import com.ulticode.modules.submission.controller.RunSubmissionDTO;
 import com.ulticode.modules.submission.port.InteractiveCodeRunner;
 import com.ulticode.modules.submission.port.SubmissionFactsCapture;
+import com.ulticode.submission.api.dto.SubmissionFactsSnapshot;
 import com.ulticode.submission.api.service.SubmissionUserQueryPort;
 import com.ulticode.submission.api.service.SubmissionIntakePort;
-import jakarta.validation.Validator;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -49,7 +49,6 @@ class ProblemSubmissionControllerTest {
 
     @Mock
     private CurrentUserProvider currentUserProvider;
-    private Validator validator;
 
     private ProblemSubmissionController controller;
 
@@ -58,7 +57,7 @@ class ProblemSubmissionControllerTest {
         SecurityContextHolder.clearContext();
         controller = new ProblemSubmissionController(
                 submissionUserQuery, submissionWritePort, submissionFactsCapture,
-                codeExecutionPort, validator, currentUserProvider);
+                codeExecutionPort, currentUserProvider);
     }
 
     @AfterEach
@@ -99,5 +98,27 @@ class ProblemSubmissionControllerTest {
                 .isInstanceOf(BusinessException.class)
                 .satisfies(error -> assertThat(((BusinessException) error).getErrorCode())
                         .isEqualTo(BaseErrorCode.UNAUTHORIZED));
+    }
+
+    @Test
+    @DisplayName("submitForProblem delegates path binding and captured facts to intake")
+    void submitForProblem_authenticatedUser_delegatesToAdmissionSeam() {
+        CreateSubmissionDTO request = new CreateSubmissionDTO();
+        request.setProblemId(999L);
+        request.setLanguage("python");
+        request.setCode("print('ok')");
+        SubmissionFactsSnapshot facts = new SubmissionFactsSnapshot(
+                "user-1", true,
+                new SubmissionFactsSnapshot.ProblemFacts(
+                        1L, "Two Sum", "two-sum", 2, 256, null),
+                1700000000123L, SubmissionFactsSnapshot.CURRENT_SCHEMA_VERSION);
+
+        when(currentUserProvider.getCurrentUserId()).thenReturn("user-1");
+        when(submissionFactsCapture.capture("user-1", 1L, request)).thenReturn(facts);
+
+        controller.submitForProblem(1L, request);
+
+        verify(submissionFactsCapture).capture("user-1", 1L, request);
+        verify(submissionWritePort).submit("user-1", request, facts);
     }
 }

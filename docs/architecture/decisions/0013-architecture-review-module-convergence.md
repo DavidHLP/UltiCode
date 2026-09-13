@@ -2,6 +2,7 @@
 
 - 状态：`Accepted — implemented`
 - 日期：2026-09-12
+- 跟进实现：2026-09-13 架构复审报告 C1-C8
 - 输入：2026-09-12 架构复审报告
 - 关联决策：[`ADR-0011`](0011-topology-contract-module-convergence.md)、[`ADR-0012`](0012-core-topology-three-way-decision.md)
 - 默认拓扑：`distributed`
@@ -43,6 +44,14 @@
 7. Auth 只保留 `createSessionAuthStore` 这一套共享 session policy；Management
    在其上保留 boolean Pinia view，Console 保留 status-machine view。两端的
    transport、路由和页面权限语义不进入共享工厂。
+8. 架构复审报告的 C1-C8 跟进项已按既有 owner 边界落地：Admin 抽出
+   reconciliation checkpoint codec、集中用户 detail failure translation；Console
+   删除未使用的 auth helper；Integration Inbox 共享 Redis queue-health observation；
+   App Facts projection 负责批量结果的请求顺序；Auth search outbox 接入公共
+   `OutboxDispatcher`；Management collection slice 暴露只读列表状态并分离操作
+   状态；App submission intake 统一 admission/facts snapshot seam，并通过
+   `TimeSource` 捕获时间。上述收敛不新增进程、数据库或消息基础设施，owner 仍
+   保留业务校验和本地状态语义。
 
 ## Deliberate non-decisions
 

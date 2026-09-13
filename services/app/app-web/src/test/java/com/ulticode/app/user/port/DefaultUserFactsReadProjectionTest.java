@@ -13,6 +13,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.LocalDateTime;
 import java.lang.reflect.Method;
 import java.util.List;
+import java.util.LinkedHashSet;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -68,6 +69,16 @@ class DefaultUserFactsReadProjectionTest {
 
         assertThat(result.keySet()).containsExactly("u-2", "u-1");
         assertThat(result.get("u-1").name()).isNull();
+    }
+
+    @Test
+    void findByIdsReturnsRequestedOrderWhenAuthReturnsAnotherOrder() {
+        Set<String> ids = new LinkedHashSet<>(List.of("u-2", "u-1"));
+        when(accountQueryService.getAccountsByIds(ids)).thenReturn(RpcResult.success(List.of(
+                account("u-1", "alice"), account("u-2", "bob")), "t-order"));
+        when(profileReadMapper.findSearchRowsByAccountIds(ids)).thenReturn(List.of());
+
+        assertThat(projection.findByIds(ids).keySet()).containsExactly("u-2", "u-1");
     }
 
     @Test

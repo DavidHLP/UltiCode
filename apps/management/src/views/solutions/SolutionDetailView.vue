@@ -208,7 +208,7 @@ function back() {
     <main class="flex-1 w-full max-w-5xl mx-auto p-4 lg:p-6 lg:pt-8">
       <!-- Error State -->
       <div
-        v-if="solutionsStore.error"
+        v-if="solutionsStore.operationError"
         class="flex flex-col items-center justify-center py-24 text-center"
       >
         <div
@@ -219,7 +219,7 @@ function back() {
         <h2 class="text-sm font-semibold mb-1 text-[var(--foreground)]">
           {{ t('solutions.error.loadingSolution') }}
         </h2>
-        <p class="text-xs font-data text-[var(--foreground-muted)] mb-4">{{ solutionsStore.error }}</p>
+        <p class="text-xs font-data text-[var(--foreground-muted)] mb-4">{{ solutionsStore.operationError }}</p>
         <div class="flex gap-2">
           <Button
             variant="terminal"
@@ -241,7 +241,7 @@ function back() {
       </div>
 
       <!-- Loading State -->
-      <div v-else-if="isInitialLoad || solutionsStore.loading" class="space-y-6">
+      <div v-else-if="isInitialLoad || solutionsStore.operationLoading" class="space-y-6">
         <div class="space-y-4">
           <Skeleton class="h-12 w-1/3 rounded-none" />
           <Skeleton class="h-64 w-full rounded-none" />

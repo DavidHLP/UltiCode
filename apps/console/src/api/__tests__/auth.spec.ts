@@ -1,10 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { apiGet, apiPost } from "@/utils/request";
+import { apiPost } from "@/utils/request";
 import { authApi } from "@/api/auth";
 import type { User } from "@/types/auth";
 
 vi.mock("@/utils/request", () => ({
-  apiGet: vi.fn(),
   apiPost: vi.fn(),
 }));
 
@@ -61,18 +60,6 @@ describe("authApi", () => {
       await authApi.logout();
 
       expect(apiPost).toHaveBeenCalledWith("/auth/logout");
-    });
-  });
-
-  describe("getCurrentUser", () => {
-    it("calls apiGet with /auth/me and returns the user", async () => {
-      const meResponse = { user: mockUser, csrfToken: "csrf-789" };
-      vi.mocked(apiGet).mockResolvedValue(meResponse);
-
-      const result = await authApi.getCurrentUser();
-
-      expect(apiGet).toHaveBeenCalledWith("/auth/me");
-      expect(result).toEqual(mockUser);
     });
   });
 

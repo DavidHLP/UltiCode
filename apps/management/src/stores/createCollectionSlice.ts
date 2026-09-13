@@ -18,7 +18,6 @@ export interface CollectionSlice<T, TParams> {
     params?: TParams,
     options?: CollectionFetchOptions,
   ) => Promise<void>
-  replaceItems: (items: T[]) => void
   updateItems: (update: (items: T[]) => T[]) => void
   setTotal: (total: number) => void
   clearError: () => void
@@ -110,10 +109,6 @@ export function createCollectionSlice<T, TParams, TMetadata = never>(
     return runFetch(load, params, fetchOptions)
   }
 
-  function replaceItems(nextItems: T[]): void {
-    items.value = nextItems
-  }
-
   function updateItems(update: (currentItems: T[]) => T[]): void {
     items.value = update(items.value)
   }
@@ -141,7 +136,6 @@ export function createCollectionSlice<T, TParams, TMetadata = never>(
     error,
     fetch,
     fetchWith,
-    replaceItems,
     updateItems,
     setTotal,
     clearError,

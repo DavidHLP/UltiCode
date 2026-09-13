@@ -216,7 +216,7 @@ class OwnerReconcilerIT {
                 runMapper, new FixedUuidGenerator("run-it-1"), appPort,
                 submissionPort, notificationPort, auditOrphanMapper, null,
                 new FencedJobLeaseService(fencedJobLeaseMapper, Clock.systemUTC()),
-                new ObjectMapper());
+                new ReconciliationCheckpointCodec(new ObjectMapper()));
         ReflectionTestUtils.setField(reconciler, "authQueryService", authService);
         return reconciler;
     }

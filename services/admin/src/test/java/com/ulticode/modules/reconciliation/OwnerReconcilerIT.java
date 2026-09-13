@@ -282,6 +282,13 @@ class OwnerReconcilerIT {
                 .getRunId()).isEqualTo("legacy-full-completed");
         assertThat(runMapper.findLatestPartial("INCREMENTAL", LEGACY_WATERMARK.plusDays(10)))
                 .isNull();
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT scan_mode FROM reconciliation_runs WHERE run_id = 'legacy-unknown-mode'",
+                String.class)).isNull();
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT scan_created_since FROM reconciliation_runs "
+                        + "WHERE run_id = 'legacy-invalid-watermark'",
+                LocalDateTime.class)).isNull();
     }
 
     private static String checkpointDetail(LocalDateTime createdSince) {

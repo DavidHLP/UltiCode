@@ -350,19 +350,54 @@ class OwnerReconcilerTest {
                             "user-%05d".formatted(index), 1L))
                     .toList();
         });
+        when(notificationPort.findUserReferenceCounts(anyString(), isNull(LocalDateTime.class),
+                eq(NotificationReconciliationReadPort.MAX_PAGE_SIZE))).thenAnswer(invocation -> {
+            String after = invocation.getArgument(0);
+            int start = after.isEmpty()
+                    ? 0
+                    : Integer.parseInt(after.substring("user-".length())) + 1;
+            if (start >= 16_500) {
+                return List.of();
+            }
+            int end = Math.min(start + NotificationReconciliationReadPort.MAX_PAGE_SIZE, 16_500);
+            return IntStream.range(start, end)
+                    .mapToObj(index -> new NotificationUserReferenceCountDTO(
+                            "user-%05d".formatted(index), 1L))
+                    .toList();
+        });
+        when(auditMapper.auditPerformerIds(any(Integer.class), eq(500))).thenAnswer(invocation -> {
+            int offset = invocation.getArgument(0);
+            if (offset >= 16_500) {
+                return List.of();
+            }
+            int end = Math.min(offset + 500, 16_500);
+            return IntStream.range(offset, end)
+                    .mapToObj(index -> reference("user-%05d".formatted(index), 1L))
+                    .toList();
+        });
 
         ReconciliationRun first = reconciler.runReconciliation();
 
         assertThat(first.getStatus()).isEqualTo("PARTIAL");
         assertThat(first.getDetail()).contains(
-                "\"continuation\"", "\"cursor\":\"user-15999\"");
+                "\"continuation\"",
+                "\"submission\":{\"cursor\":\"user-15999\"",
+                "\"notification\":{\"cursor\":\"user-15999\"",
+                "\"audit\":{\"offset\":16000");
 
         ReconciliationRun second = reconciler.runReconciliation();
 
         assertThat(second.getStatus()).isEqualTo("COMPLETED");
-        assertThat(second.getDetail()).contains("\"child\":\"submissions\"", "\"orphans\":16500");
+        assertThat(second.getDetail()).contains(
+                "\"child\":\"submissions\"", "\"child\":\"notifications\"",
+                "\"child\":\"audit_logs\"", "\"orphans\":16500");
         verify(submissionPort).findUserReferenceCounts(
                 "user-15999", null, SubmissionReconciliationReadPort.MAX_PAGE_SIZE);
+        verify(notificationPort).findUserReferenceCounts(
+                "user-15999", null, NotificationReconciliationReadPort.MAX_PAGE_SIZE);
+        verify(auditMapper).auditPerformerIds(16000, 500);
+        verify(submissionPort, org.mockito.Mockito.times(1)).findUserReferenceCounts(
+                "", null, SubmissionReconciliationReadPort.MAX_PAGE_SIZE);
     }
 
     @Test
@@ -413,6 +448,20 @@ class OwnerReconcilerTest {
                 + "\"complete\":false},"
                 + "\"notification\":{\"cursor\":\"\",\"missing\":0,\"complete\":true},"
                 + "\"audit\":{\"offset\":0,\"missing\":0,\"complete\":true}}}");
+        when(runMapper.findLatestPartial("FULL", null)).thenReturn(checkpoint);
+        when(runMapper.findLatestCompleted("FULL", null)).thenReturn(null);
+
+        ReconciliationRun run = reconciler.runReconciliation();
+
+        assertThat(run.getStatus()).isEqualTo("FAILED");
+        assertThat(run.getDetail()).contains("invalid reconciliation checkpoint");
+    }
+
+    @Test
+    @DisplayName("checkpoint without continuation fails closed")
+    void checkpointWithoutContinuationFailsClosed() {
+        ReconciliationRun checkpoint = new ReconciliationRun();
+        checkpoint.setDetail("{\"mode\":\"FULL\"}");
         when(runMapper.findLatestPartial("FULL", null)).thenReturn(checkpoint);
         when(runMapper.findLatestCompleted("FULL", null)).thenReturn(null);
 

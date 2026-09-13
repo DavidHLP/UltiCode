@@ -127,6 +127,7 @@ class OwnerReconcilerIT {
                 CREATE TABLE `audit_logs` (
                   `id` varchar(40) NOT NULL,
                   `performer_id` varchar(40) DEFAULT NULL,
+                  `created_at` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
                   PRIMARY KEY (`id`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
                 """);
@@ -240,6 +241,10 @@ class OwnerReconcilerIT {
     @DisplayName("admin mapper returns performer references in bounded pages")
     void mapperReturnsAuditPerformerCandidates() {
         assertThat(auditOrphanMapper.auditPerformerIds(0, 2))
+                .extracting(AuditReferenceCount::getPerformerId)
+                .containsExactly("ghost-user", "u-001");
+        assertThat(auditOrphanMapper.auditPerformerIdsSince(
+                0, 2, LocalDateTime.of(2026, 8, 29, 0, 0)))
                 .extracting(AuditReferenceCount::getPerformerId)
                 .containsExactly("ghost-user", "u-001");
     }

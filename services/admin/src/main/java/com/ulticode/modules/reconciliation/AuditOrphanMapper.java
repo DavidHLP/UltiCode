@@ -4,6 +4,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /** Admin-local audit performer candidates; Auth parent existence is resolved via RPC. */
@@ -20,4 +21,17 @@ public interface AuditOrphanMapper {
             """)
     List<AuditReferenceCount> auditPerformerIds(
             @Param("offset") int offset, @Param("limit") int limit);
+
+    @Select("""
+            SELECT performer_id, COUNT(*) AS row_count
+            FROM audit_logs
+            WHERE performer_id IS NOT NULL
+              AND created_at >= #{createdSince,jdbcType=TIMESTAMP}
+            GROUP BY performer_id
+            ORDER BY performer_id
+            LIMIT #{limit} OFFSET #{offset}
+            """)
+    List<AuditReferenceCount> auditPerformerIdsSince(
+            @Param("offset") int offset, @Param("limit") int limit,
+            @Param("createdSince") LocalDateTime createdSince);
 }

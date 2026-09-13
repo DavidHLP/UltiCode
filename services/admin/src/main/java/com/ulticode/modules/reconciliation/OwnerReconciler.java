@@ -166,7 +166,7 @@ public class OwnerReconciler {
                 orphanResults.add(submissionOrphans(createdSince, progress));
                 orphanResults.add(notificationOrphans(createdSince, progress));
                 orphanResults.addAll(appOrphans());
-                orphanResults.add(auditLogsOrphans(progress));
+                orphanResults.add(auditLogsOrphans(createdSince, progress));
                 for (OrphanDetectionResult result : orphanResults) {
                     if (!result.isOrphanFree()) {
                         totalOrphans++;
@@ -291,9 +291,14 @@ public class OwnerReconciler {
     }
 
     private static boolean isSuperseded(ReconciliationRun partial, ReconciliationRun completed) {
-        return completed != null && partial.getStartedAt() != null
-                && completed.getStartedAt() != null
-                && !partial.getStartedAt().isAfter(completed.getStartedAt());
+        if (completed == null || partial.getStartedAt() == null || completed.getStartedAt() == null
+                || partial.getRunId() == null || completed.getRunId() == null) {
+            return false;
+        }
+        int startedAtComparison = completed.getStartedAt().compareTo(partial.getStartedAt());
+        return startedAtComparison > 0
+                || (startedAtComparison == 0
+                && completed.getRunId().compareTo(partial.getRunId()) >= 0);
     }
 
     private static JsonNode checkpointObject(JsonNode parent, String field) {
@@ -501,7 +506,8 @@ public class OwnerReconciler {
     }
 
     /** Admin-local audit_logs candidates checked against Auth physical existence in bounded pages. */
-    private OrphanDetectionResult auditLogsOrphans(ScanProgress progress) {
+    private OrphanDetectionResult auditLogsOrphans(
+            LocalDateTime createdSince, ScanProgress progress) {
         final int pageSize = 500;
         if (progress.auditComplete) {
             return orphan("audit_logs", "performer_id", "Admin", "users", "Auth",
@@ -514,8 +520,12 @@ public class OwnerReconciler {
                     MAX_RECONCILIATION_PAGES,
                     (offset, limit) -> {
                         try {
-                            return auditOrphanMapper.auditPerformerIds(
-                                    Math.addExact(offset, progress.auditOffset), limit);
+                            int absoluteOffset = Math.addExact(offset, progress.auditOffset);
+                            if (createdSince == null) {
+                                return auditOrphanMapper.auditPerformerIds(absoluteOffset, limit);
+                            }
+                            return auditOrphanMapper.auditPerformerIdsSince(
+                                    absoluteOffset, limit, createdSince);
                         } catch (ArithmeticException exception) {
                             throw new OrphanScan.InvalidPageException(
                                     "orphan scan offset exceeds integer range");

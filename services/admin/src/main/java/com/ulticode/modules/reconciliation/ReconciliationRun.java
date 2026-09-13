@@ -34,7 +34,7 @@ public class ReconciliationRun {
     @TableField("fence_token")
     private Long fenceToken;
 
-    /** RUNNING/COMPLETED/FAILED/SKIPPED */
+    /** RUNNING/PARTIAL/COMPLETED/FAILED/SKIPPED */
     private String status;
 
     @TableField("divergence_count")

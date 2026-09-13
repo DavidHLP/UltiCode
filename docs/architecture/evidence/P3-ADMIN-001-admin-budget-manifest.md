@@ -223,30 +223,35 @@ bulk test-case import are capped at 500 (`BulkProblemRequestDTO.java:17-31`,
 
 P0 identifies reconciliation as an Auth + App + Submission + Notification use-case. The
 current implementation has correct owner facts and cursor/page validation. `OrphanScan`
-adds a finite page envelope: page size `500` and the total number of non-empty pages are
-bounded; a run fails closed when the cap is exceeded (`OwnerReconciler.java`,
-`OrphanScan.java`). The cap is a repository/disposable safety boundary, not a claim about
-the size of production history.
+keeps each invocation finite: page size `500`, at most `32` non-empty pages, and parent
+existence lookups in batches of `500`. When the page budget ends on a full page, the
+`OwnerReconciler` persists the per-owner cursor/offset and accumulated count in the
+`reconciliation_runs.detail` continuation; the next run resumes it. Malformed or unavailable
+pages still fail closed. The per-invocation budget is a repository/disposable safety boundary,
+not a claim about the size of production history.
 
 The target constants are deliberately repository/disposable limits, not production SLOs:
-`MAX_OWNER_NONEMPTY_PAGES=32` for Submission and Notification, and `MAX_AUDIT_PAGES=32` for
-the Admin audit candidate scan. A capped run processes at most 16,000 grouped owner facts per
-owner stream and 16,000 audit candidate rows. A capped run fails closed without persisting a
-continuation cursor; callers retry as a new bounded run. Each owner stream also permits one terminal empty-page read; that
-terminator is included in the RPC budget below.
+`MAX_RECONCILIATION_PAGES=32` per continuation run for Submission, Notification, and the
+Admin audit candidate scan. A single invocation processes at most 16,000 grouped owner facts
+per stream and 16,000 audit candidate rows, then records `PARTIAL` progress when more data is
+present. Subsequent invocations eventually cover the complete dataset and publish
+`COMPLETED`; each owner stream may also perform one terminal empty-page read when it finishes
+before the page budget.
 
 | id | scheduled mode | target scan cap | target L / R / wall_budget_ms | current shape | per-call policy / freshness | result semantics | source |
 | --- | --- | --- | ---: | --- | --- | --- | --- |
 | `S-BOOTSTRAP-ADMIN` | Explicit production-safe one-shot admin bootstrap CLI | one invocation | `5 / 5 / 9400` (`2Q` role counts + `2Q` identity checks + `1W` create) | `AdminBootstrapRunner` performs those checks serially, then one Auth create | `Q` + `W`; `REQ` | Existing admin or identity conflict aborts before write; Auth failure aborts; no write retry | `[E-BOOTSTRAP]` |
 | `S-DEV-BOOTSTRAP` | Explicit dev-only create/restore admin runner | one invocation | `8 / 8 / 18400` worst case (`4Q + 4W` restore path) | Username/email checks, then create (`3` calls) or restore (`up to 8` calls), serial; dev profile/property gated | `Q` + `W`; `REQ` | Conflict aborts; restore/write failure aborts; dev-only path is not a production SLO | `[E-BOOTSTRAP]` |
-| `S-RECON-FULL` | Nightly full reconciliation | Submission `32` non-empty pages + one terminator, Notification `32` non-empty pages + one terminator, audit `32` pages; page size `500` | **`164 / 164 / 262400`** (`1` Auth orphan aggregate + `1` App orphan aggregate + `65` Submission/Auth calls + `65` Notification/Auth calls + `32` audit/Auth calls) | `1 + 2P_submission + 2P_notification + P_audit` within the finite `32`-page envelope; `OrphanScan` rejects malformed or oversized pages | `Q`; `CRON`; facts are full-history (`createdSince=null`) | Owner/null/ordering/lease failures persist `FAILED`; no partial `COMPLETED`; lease busy is `SKIPPED` | `[E-RECON]` |
-| `S-RECON-INCREMENTAL` | Manual/invoked incremental reconciliation | Same `32/32/32` non-empty-page caps plus owner terminators; inclusive watermark required | **`164 / 164 / 262400`** | Same finite `OrphanScan` page envelope; malformed or oversized pages fail closed | `Q`; `WM`; caller supplies `createdSince` | Exceeding a cap fails closed; caller retries as a new bounded run; owner failure `FAILED`; no automatic write retry | `[E-RECON]` |
+| `S-RECON-FULL` | Nightly full reconciliation | Submission `32` non-empty pages + continuation, Notification `32` non-empty pages + continuation, audit `32` pages per invocation; page size `500` | **`164 / 164 / 262400`** per invocation (`1` Auth orphan aggregate + `1` App orphan aggregate + at most `65` Submission/Auth calls + `65` Notification/Auth calls + `32` audit/Auth calls) | `1 + 2P_submission + 2P_notification + P_audit` within the finite per-invocation envelope; `OrphanScan` persists a continuation when a source is not complete | `Q`; `CRON`; facts are full-history (`createdSince=null`) | `PARTIAL` persists owner cursors/offsets and accumulated counts; final `COMPLETED` covers all sources; owner/null/ordering/lease failures persist `FAILED`; lease busy is `SKIPPED` | `[E-RECON]` |
+| `S-RECON-INCREMENTAL` | Manual/invoked incremental reconciliation | Same `32/32/32` non-empty-page budgets per invocation plus continuation; inclusive watermark required | **`164 / 164 / 262400`** per invocation | Same finite per-invocation `OrphanScan` envelope; malformed or oversized pages fail closed; progress resumes by owner cursor/offset | `Q`; `WM`; caller supplies `createdSince` | A budget boundary persists `PARTIAL` progress and later completes; owner failure `FAILED`; no automatic write retry | `[E-RECON]` |
 | `S-RECON-LEASE-BUSY` | Scheduled/manual run when fenced lease is held | No owner scan | `0 / 0 / 0` | Lease acquisition returns null and exits | `P`; `CRON` or `WM` | `SKIPPED`, increment skip metric; never report success with fabricated facts | `[E-RECON]` |
 
 `OwnerReconciler` calls the Auth orphan aggregate, Submission and Notification paged
 facts, App orphan aggregate, and Admin-local audit pages in serial order. The shared
-`OrphanScan` module now enforces the finite scan envelope, ordered/non-null page
+`OrphanScan` module now enforces the finite per-invocation envelope, ordered/non-null page
 contract, batched Auth existence lookups, and the existing fail-closed result semantics.
+`reconciliation_runs.detail` carries continuation state so a budget boundary is resumable
+instead of being reported as a permanent failure.
 The former empty `RECONCILIATION_PAIRS` extension path was removed because it was
 unreachable and had no approved budget or owner contract. Any future reconciliation
 pair must be introduced as an explicit, budgeted owner capability rather than silently

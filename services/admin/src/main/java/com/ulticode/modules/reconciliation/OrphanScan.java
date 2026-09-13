@@ -7,7 +7,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.ToLongFunction;
 
-/** Shared page-bounded paging and parent-existence logic for owner orphan scans. */
+/** Shared bounded paging and parent-existence logic for owner orphan scans. */
 final class OrphanScan {
 
     private static final int PARENT_LOOKUP_BATCH_SIZE = 500;
@@ -15,20 +15,23 @@ final class OrphanScan {
     private OrphanScan() {
     }
 
-    static <T> long keyset(
+    static <T> KeysetResult keyset(
             String initialCursor,
             int pageSize,
+            int maxPages,
             KeysetPage<T> page,
             Function<T, String> key,
             ToLongFunction<T> rowCount,
             Function<Set<String>, Set<String>> existingIds) {
+        validateArguments(pageSize, maxPages);
         String cursor = initialCursor;
         long missing = 0L;
-        while (true) {
+        int pages = 0;
+        while (pages < maxPages) {
             List<T> references = page.read(cursor, pageSize);
             validatePage(references, pageSize);
             if (references.isEmpty()) {
-                return missing;
+                return new KeysetResult(missing, cursor, true);
             }
 
             String previous = cursor;
@@ -47,26 +50,31 @@ final class OrphanScan {
                 }
             }
             cursor = previous;
+            pages++;
             if (references.size() < pageSize) {
-                return missing;
+                return new KeysetResult(missing, cursor, true);
             }
         }
+        return new KeysetResult(missing, cursor, false);
     }
 
-    static <T> long offset(
+    static <T> OffsetResult offset(
             int pageSize,
+            int maxPages,
             OffsetPage<T> page,
             Function<T, String> key,
             ToLongFunction<T> rowCount,
             Function<Set<String>, Set<String>> existingIds) {
+        validateArguments(pageSize, maxPages);
         int offset = 0;
         String previous = "";
         long missing = 0L;
-        while (true) {
+        int pages = 0;
+        while (pages < maxPages) {
             List<T> references = page.read(offset, pageSize);
             validatePage(references, pageSize);
             if (references.isEmpty()) {
-                return missing;
+                return new OffsetResult(missing, offset, true);
             }
 
             Set<String> candidates = new LinkedHashSet<>();
@@ -83,10 +91,22 @@ final class OrphanScan {
                     missing += rowCount.applyAsLong(reference);
                 }
             }
+            pages++;
             if (references.size() < pageSize) {
-                return missing;
+                return new OffsetResult(missing, offset, true);
             }
-            offset += pageSize;
+            try {
+                offset = Math.addExact(offset, pageSize);
+            } catch (ArithmeticException exception) {
+                throw new InvalidPageException("orphan scan offset exceeds integer range");
+            }
+        }
+        return new OffsetResult(missing, offset, false);
+    }
+
+    private static void validateArguments(int pageSize, int maxPages) {
+        if (pageSize <= 0 || maxPages <= 0) {
+            throw new InvalidPageException("orphan scan page budget must be positive");
         }
     }
 
@@ -137,6 +157,12 @@ final class OrphanScan {
     @FunctionalInterface
     interface OffsetPage<T> {
         List<T> read(int offset, int pageSize);
+    }
+
+    record KeysetResult(long missing, String nextCursor, boolean complete) {
+    }
+
+    record OffsetResult(long missing, int nextOffset, boolean complete) {
     }
 
     static final class InvalidPageException extends IllegalArgumentException {

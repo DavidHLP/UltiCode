@@ -3,6 +3,7 @@ package com.ulticode.modules.reconciliation;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
 /**
@@ -10,6 +11,30 @@ import org.apache.ibatis.annotations.Update;
  */
 @Mapper
 public interface ReconciliationRunMapper extends BaseMapper<ReconciliationRun> {
+
+    /** Find the newest unfinished continuation for the requested scan mode. */
+    @Select("""
+            SELECT *
+            FROM reconciliation_runs
+            WHERE owner = 'ALL'
+              AND status = 'PARTIAL'
+              AND detail LIKE CONCAT('{\"mode\":\"', #{mode}, '\"%')
+            ORDER BY started_at DESC
+            LIMIT 1
+            """)
+    ReconciliationRun findLatestPartial(@Param("mode") String mode);
+
+    /** Find the newest completed run so an old continuation is not replayed. */
+    @Select("""
+            SELECT *
+            FROM reconciliation_runs
+            WHERE owner = 'ALL'
+              AND status = 'COMPLETED'
+              AND detail LIKE CONCAT('{\"mode\":\"', #{mode}, '\"%')
+            ORDER BY started_at DESC
+            LIMIT 1
+            """)
+    ReconciliationRun findLatestCompleted(@Param("mode") String mode);
 
     /**
      * Finish a run only while the same owner and fence token still hold the

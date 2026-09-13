@@ -2,6 +2,7 @@ package com.ulticode.modules.reconciliation;
 
 import com.baomidou.mybatisplus.core.MybatisConfiguration;
 import com.baomidou.mybatisplus.core.MybatisSqlSessionFactoryBuilder;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.app.api.dto.ReconciliationOrphanCounts;
 import com.ulticode.app.api.service.AppReconciliationReadPort;
 import com.ulticode.auth.api.dto.AuthReconciliationOrphanCounts;
@@ -181,7 +182,8 @@ class OwnerReconcilerIT {
         OwnerReconciler reconciler = new OwnerReconciler(
                 runMapper, new FixedUuidGenerator("run-it-1"), appPort,
                 submissionPort, notificationPort, auditOrphanMapper, null,
-                new FencedJobLeaseService(fencedJobLeaseMapper, Clock.systemUTC()));
+                new FencedJobLeaseService(fencedJobLeaseMapper, Clock.systemUTC()),
+                new ObjectMapper());
         ReflectionTestUtils.setField(reconciler, "authQueryService", authService);
         return reconciler;
     }

@@ -74,6 +74,6 @@ public interface SearchDocumentChangedOutboxMapper {
 
     @Update("UPDATE search_document_changed_outbox "
             + "SET state = 'PENDING', claim_owner = NULL, next_retry_at = NOW(3) "
-            + "WHERE state = 'CLAIMED' AND claimed_at &lt; DATE_SUB(NOW(3), INTERVAL #{leaseSeconds} SECOND)")
+            + "WHERE state = 'CLAIMED' AND claimed_at < DATE_SUB(NOW(3), INTERVAL #{leaseSeconds} SECOND)")
     int reclaimStaleClaimed(@Param("leaseSeconds") int leaseSeconds);
 }

@@ -16,7 +16,7 @@ updates:
     rebase-strategy: "disabled"
 
   - package-ecosystem: "npm"
-    directory: "/console"
+    directory: "/apps/console"
     schedule:
       interval: "weekly"
     groups:
@@ -34,7 +34,7 @@ updates:
     rebase-strategy: "disabled"
 
   - package-ecosystem: "npm"
-    directory: "/management"
+    directory: "/apps/management"
     schedule:
       interval: "weekly"
     groups:

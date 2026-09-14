@@ -123,10 +123,18 @@ public class NotificationIntegrationInboxBridge {
     /** Best-effort queue and PEL gauges for the App-Notification group. */
     private void refreshSloGauges() {
         RedisStreamQueueHealth.Snapshot snapshot = queueHealth.observe(STREAM_KEY, GROUP, null);
-        slo.setQueueLag(snapshot.queueLag());
-        slo.setPelSize(snapshot.pelSize());
-        slo.setPelOldestAgeSeconds(snapshot.oldestPendingAgeSeconds());
-        slo.setDlqSize(snapshot.dlqSize());
+        if (snapshot.queueLag() != WorkerSloMeters.UNKNOWN) {
+            slo.setQueueLag(snapshot.queueLag());
+        }
+        if (snapshot.pelSize() != WorkerSloMeters.UNKNOWN) {
+            slo.setPelSize(snapshot.pelSize());
+        }
+        if (snapshot.oldestPendingAgeSeconds() != WorkerSloMeters.UNKNOWN) {
+            slo.setPelOldestAgeSeconds(snapshot.oldestPendingAgeSeconds());
+        }
+        if (snapshot.dlqSize() != WorkerSloMeters.UNKNOWN) {
+            slo.setDlqSize(snapshot.dlqSize());
+        }
     }
 
     private static boolean expectedOwner(String streamKey, String eventType, String owner) {

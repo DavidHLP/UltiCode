@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -42,6 +43,7 @@ class RedisStreamQueueHealthTest {
                 new RedisStreamQueueHealth(redisTemplate).observe("stream:test", "worker", "dlq:test");
 
         assertThat(snapshot).isEqualTo(new RedisStreamQueueHealth.Snapshot(7, 3, 42, 2));
+        verify(redisTemplate, times(1)).execute((RedisCallback<Object>) any(RedisCallback.class));
         verify(streams, never()).groups(anyString());
     }
 

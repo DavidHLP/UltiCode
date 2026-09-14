@@ -4,7 +4,9 @@ import com.ulticode.modules.problem.entity.ProblemTag;
 import com.ulticode.modules.problem.entity.ProblemTagRelation;
 import com.ulticode.modules.problem.mapper.ProblemTagMapper;
 import com.ulticode.modules.problem.mapper.ProblemTagRelationMapper;
+import com.ulticode.common.testsupport.MyBatisPlusLambdaCacheSupport;
 import com.ulticode.submission.api.service.SubmissionUserStatsPort;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -28,6 +30,14 @@ class DefaultProblemTagStatsReadPortTest {
     private ProblemTagMapper tagMapper;
     @Mock
     private SubmissionUserStatsPort submissionUserStats;
+
+    @BeforeAll
+    static void registerEntities() {
+        // The port builds LambdaQueryWrapper<ProblemTagRelation> directly, so the
+        // MyBatis-Plus lambda cache needs the entity registered outside Spring.
+        MyBatisPlusLambdaCacheSupport.register(ProblemTagRelation.class);
+        MyBatisPlusLambdaCacheSupport.register(ProblemTag.class);
+    }
 
     @Test
     void joinsOwnerAcceptedIdsWithAppOwnedTags() {

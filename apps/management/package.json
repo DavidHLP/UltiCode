@@ -46,7 +46,7 @@
     "@mdit/plugin-katex": "^0.25.2",
     "@tabler/icons-vue": "^3.44.0",
     "@tailwindcss/vite": "^4.3.0",
-    "@tanstack/vue-table": "^8.21.3",
+    "@tanstack/vue-table": "^9.2.4",
     "@types/markdown-it": "^14.1.2",
     "@unovis/ts": "^1.6.5",
     "@unovis/vue": "^1.6.5",

@@ -64,3 +64,15 @@ updates:
       - "automated"
     open-pull-requests-limit: 5
     rebase-strategy: "disabled"
+    # Spring Boot 4 / Spring Framework 7 is a coordinated migration (renamed
+    # starters, Jackson 3, moved auto-configuration packages, and a Dubbo line
+    # with no Boot 4 support), not a version bump. Hold the Boot-4-line
+    # artifacts here; same-line patch releases still apply, and Dependabot
+    # security updates are unaffected by `ignore`.
+    ignore:
+      - dependency-name: "org.springframework.boot:spring-boot-starter-parent"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "org.testcontainers:testcontainers-bom"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "org.springdoc:springdoc-openapi-starter-webmvc-ui"
+        update-types: ["version-update:semver-major"]

@@ -3,7 +3,7 @@ package com.ulticode.modules.search.backfill;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.baomidou.mybatisplus.core.MybatisConfiguration;
-import com.baomidou.mybatisplus.extension.spring.MybatisSqlSessionFactoryBean;
+import com.baomidou.mybatisplus.spring.MybatisSqlSessionFactoryBean;
 import com.ulticode.modules.forum.mapper.ForumPostMapper;
 import com.ulticode.modules.forum.port.ForumPostSearchBackfillReadPort;
 import com.ulticode.modules.problem.mapper.ProblemMapper;

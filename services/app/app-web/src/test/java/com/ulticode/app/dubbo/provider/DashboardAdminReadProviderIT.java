@@ -1,6 +1,6 @@
 package com.ulticode.app.dubbo.provider;
 
-import com.baomidou.mybatisplus.extension.spring.MybatisSqlSessionFactoryBean;
+import com.baomidou.mybatisplus.spring.MybatisSqlSessionFactoryBean;
 import com.baomidou.mybatisplus.core.MybatisConfiguration;
 import com.ulticode.modules.dashboard.mapper.DashboardAdminMapper;
 import com.zaxxer.hikari.HikariDataSource;

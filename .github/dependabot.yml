@@ -67,8 +67,12 @@ updates:
     # Spring Boot 4 / Spring Framework 7 is a coordinated migration (renamed
     # starters, Jackson 3, moved auto-configuration packages, and a Dubbo line
     # with no Boot 4 support), not a version bump. Hold the Boot-4-line
-    # artifacts here; same-line patch releases still apply, and Dependabot
-    # security updates are unaffected by `ignore`.
+    # artifacts here; same-line patch and minor releases still apply.
+    #
+    # Tradeoff: Dependabot applies `ignore` to version updates and to security
+    # updates, so these three artifacts will also stop receiving security
+    # update PRs. Watch advisories against Boot 3.5.x, testcontainers 1.21.x
+    # and springdoc 2.x manually and lift the matching rule when one lands.
     ignore:
       - dependency-name: "org.springframework.boot:spring-boot-starter-parent"
         update-types: ["version-update:semver-major"]

@@ -7,6 +7,7 @@ import com.ulticode.common.exception.BusinessException;
 import com.ulticode.auth.api.service.AccountQueryService;
 import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.submission.api.service.SubmissionAdminReadPort;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -35,11 +36,21 @@ class DefaultAdminDashboardReadAdapterUserTrendTest {
     @Mock
     com.ulticode.app.api.service.DashboardAdminReadPort appDashboardReadPort;
 
+    private CancellableQueryExecutor queryExecutor;
+
+    @AfterEach
+    void closeQueryExecutor() {
+        if (queryExecutor != null) {
+            queryExecutor.close();
+        }
+    }
+
     @Test
     void mapsAuthTrendFailureToUnavailableWithoutFallbackPaging() {
+        queryExecutor = new CancellableQueryExecutor("test", 3);
         DefaultAdminDashboardReadAdapter adapter =
                 new DefaultAdminDashboardReadAdapter(submissionAdminReadPort,
-                        new CancellableQueryExecutor("test", 3));
+                        queryExecutor);
         ReflectionTestUtils.setField(adapter, "accountQueryService", accountQueryService);
         ReflectionTestUtils.setField(adapter, "appDashboardReadPort", appDashboardReadPort);
         when(accountQueryService.getUserTrend(any())).thenReturn(
@@ -55,14 +66,14 @@ class DefaultAdminDashboardReadAdapterUserTrendTest {
         verify(accountQueryService, times(1)).getUserTrend(any());
         verify(accountQueryService, never()).queryAccounts(any());
 
-        adapter.shutdownQueryExecutor();
     }
 
     @Test
     void permissionForbiddenFromUserTrendPropagatesInsteadOfUnavailable() {
+        queryExecutor = new CancellableQueryExecutor("test", 3);
         DefaultAdminDashboardReadAdapter adapter =
                 new DefaultAdminDashboardReadAdapter(submissionAdminReadPort,
-                        new CancellableQueryExecutor("test", 3));
+                        queryExecutor);
         ReflectionTestUtils.setField(adapter, "accountQueryService", accountQueryService);
         ReflectionTestUtils.setField(adapter, "appDashboardReadPort", appDashboardReadPort);
         when(accountQueryService.getUserTrend(any())).thenReturn(
@@ -78,14 +89,14 @@ class DefaultAdminDashboardReadAdapterUserTrendTest {
                         .isEqualTo(AdminErrorCode.FORBIDDEN));
         verify(accountQueryService, times(1)).getUserTrend(any());
 
-        adapter.shutdownQueryExecutor();
     }
 
     @Test
     void permissionUnauthorizedFromUserTrendPropagatesInsteadOfUnavailable() {
+        queryExecutor = new CancellableQueryExecutor("test", 3);
         DefaultAdminDashboardReadAdapter adapter =
                 new DefaultAdminDashboardReadAdapter(submissionAdminReadPort,
-                        new CancellableQueryExecutor("test", 3));
+                        queryExecutor);
         ReflectionTestUtils.setField(adapter, "accountQueryService", accountQueryService);
         ReflectionTestUtils.setField(adapter, "appDashboardReadPort", appDashboardReadPort);
         when(accountQueryService.getUserTrend(any())).thenReturn(
@@ -101,6 +112,5 @@ class DefaultAdminDashboardReadAdapterUserTrendTest {
                         .isEqualTo(AdminErrorCode.UNAUTHORIZED));
         verify(accountQueryService, times(1)).getUserTrend(any());
 
-        adapter.shutdownQueryExecutor();
     }
 }

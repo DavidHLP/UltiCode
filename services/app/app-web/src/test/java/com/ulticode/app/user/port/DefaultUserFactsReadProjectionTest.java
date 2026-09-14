@@ -117,6 +117,12 @@ class DefaultUserFactsReadProjectionTest {
 
     @Test
     void publicReadSeamsRemainNarrow() {
+        assertThat(UserFactsProjection.class.isAssignableFrom(DefaultUserFactsReadProjection.class))
+                .isTrue();
+        assertThat(UserDirectoryProjection.class.isAssignableFrom(DefaultUserFactsReadProjection.class))
+                .isFalse();
+        assertThat(UserDirectoryProjection.class.isAssignableFrom(DefaultUserDirectoryReadProjection.class))
+                .isTrue();
         assertThat(List.of(UserFactsProjection.class.getDeclaredMethods()))
                 .extracting(Method::getName)
                 .containsExactlyInAnyOrder("findById", "findByIds", "compose");

@@ -15,10 +15,12 @@ import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.response.DegradationStatus;
 import com.ulticode.common.rpc.RpcPolicy;
 import com.ulticode.common.rpc.RpcResult;
+import com.ulticode.modules.admin.port.adapter.AdminQueryDeadline;
 import com.ulticode.modules.admin.port.adapter.CancellableQueryExecutor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import java.util.Collections;
@@ -67,21 +69,39 @@ import java.util.stream.Collectors;
 @Component
 public class AdminUserEnricher {
     private final CancellableQueryExecutor queryExecutor;
+    private final AdminQueryDeadline queryDeadline;
 
     /** Production construction receives the Admin-owned executor bean. */
     @Autowired
+    public AdminUserEnricher(
+            @Qualifier("adminUserEnrichmentQueryExecutor") CancellableQueryExecutor queryExecutor,
+            AdminQueryDeadline queryDeadline) {
+        this(null, null, null, queryExecutor, queryDeadline);
+    }
+
+    /** Test constructor that uses the platform monotonic time source. */
     public AdminUserEnricher(CancellableQueryExecutor queryExecutor) {
-        this(null, null, null, queryExecutor);
+        this(null, null, null, queryExecutor, AdminQueryDeadline.system());
     }
 
     AdminUserEnricher(IdentityQueryService identityQueryService,
                       UserProfileQueryService userProfileQueryService,
                       AccountQueryService accountQueryService,
                       CancellableQueryExecutor queryExecutor) {
+        this(identityQueryService, userProfileQueryService, accountQueryService,
+                queryExecutor, AdminQueryDeadline.system());
+    }
+
+    AdminUserEnricher(IdentityQueryService identityQueryService,
+                      UserProfileQueryService userProfileQueryService,
+                      AccountQueryService accountQueryService,
+                      CancellableQueryExecutor queryExecutor,
+                      AdminQueryDeadline queryDeadline) {
         this.identityQueryService = identityQueryService;
         this.userProfileQueryService = userProfileQueryService;
         this.accountQueryService = accountQueryService;
         this.queryExecutor = Objects.requireNonNull(queryExecutor, "queryExecutor");
+        this.queryDeadline = Objects.requireNonNull(queryDeadline, "queryDeadline");
     }
 
     @Autowired(required = false)
@@ -274,6 +294,8 @@ public class AdminUserEnricher {
     }
 
     private EnrichedUsers enrichBatchesInParallel(Set<String> accountIds) {
+        AdminQueryDeadline.Deadline deadline = queryDeadline.start(
+                RpcPolicy.QUERY_TIMEOUT_MS, TimeUnit.MILLISECONDS);
         CancellableQueryExecutor.Query<OwnerRead<Map<String, UserIdentityDTO>>> identities =
                 queryExecutor.submit(() -> batchIdentities(accountIds));
         CancellableQueryExecutor.Query<OwnerRead<Map<String, UserProfileDTO>>> profiles =
@@ -281,8 +303,8 @@ public class AdminUserEnricher {
         List<OwnerRead<Object>> reads = AdminReadContract.<Object>awaitAndClassify(
                 queryExecutor,
                 "User enrichment",
-                RpcPolicy.QUERY_TIMEOUT_MS,
-                TimeUnit.MILLISECONDS,
+                deadline.remainingNanos(),
+                TimeUnit.NANOSECONDS,
                 identities,
                 profiles);
         return mergeBatches(

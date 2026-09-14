@@ -17,9 +17,9 @@ import com.ulticode.admin.error.AdminReadContract;
 import com.ulticode.admin.error.AdminReadContract.OwnerRead;
 import com.ulticode.common.rpc.RpcPolicy;
 import com.ulticode.common.rpc.RpcResult;
-import jakarta.annotation.PreDestroy;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
@@ -66,6 +67,7 @@ public class DefaultAdminAnalyticsPortAdapter implements AdminAnalyticsPort {
     private final SubscriptionReadPort subscriptionReadPort;
     private final SubmissionAdminReadPort submissionAdminReadPort;
     private final CancellableQueryExecutor queryExecutor;
+    private final AdminQueryDeadline queryDeadline;
 
     /** Optional so direct unit tests and metric-disabled deployments keep the same seam. */
     @Autowired(required = false)
@@ -81,27 +83,15 @@ public class DefaultAdminAnalyticsPortAdapter implements AdminAnalyticsPort {
             ContestAdminReadPort contestAdminReadPort,
             ContestParticipantReadPort contestParticipantReadPort,
             SubscriptionReadPort subscriptionReadPort,
-            SubmissionAdminReadPort submissionAdminReadPort) {
-        this(contestAdminReadPort, contestParticipantReadPort, subscriptionReadPort,
-                submissionAdminReadPort, new CancellableQueryExecutor("admin-analytics-query", 6));
-    }
-
-    DefaultAdminAnalyticsPortAdapter(
-            ContestAdminReadPort contestAdminReadPort,
-            ContestParticipantReadPort contestParticipantReadPort,
-            SubscriptionReadPort subscriptionReadPort,
             SubmissionAdminReadPort submissionAdminReadPort,
-            CancellableQueryExecutor queryExecutor) {
+            @Qualifier("adminAnalyticsQueryExecutor") CancellableQueryExecutor queryExecutor,
+            AdminQueryDeadline queryDeadline) {
         this.contestAdminReadPort = contestAdminReadPort;
         this.contestParticipantReadPort = contestParticipantReadPort;
         this.subscriptionReadPort = subscriptionReadPort;
         this.submissionAdminReadPort = submissionAdminReadPort;
-        this.queryExecutor = queryExecutor;
-    }
-
-    @PreDestroy
-    void shutdownQueryExecutor() {
-        queryExecutor.close();
+        this.queryExecutor = Objects.requireNonNull(queryExecutor, "queryExecutor");
+        this.queryDeadline = Objects.requireNonNull(queryDeadline, "queryDeadline");
     }
 
     @Override
@@ -112,8 +102,8 @@ public class DefaultAdminAnalyticsPortAdapter implements AdminAnalyticsPort {
                 2,
                 AdminUseCaseMetrics.Freshness.REQ,
                 () -> {
-                    long deadlineNanos = System.nanoTime()
-                            + TimeUnit.MILLISECONDS.toNanos(RpcPolicy.QUERY_TIMEOUT_MS);
+                    AdminQueryDeadline.Deadline deadline = queryDeadline.start(
+                            RpcPolicy.QUERY_TIMEOUT_MS, TimeUnit.MILLISECONDS);
                     CancellableQueryExecutor.Query<List<ContestAdminDTO>> contestsQuery =
                             queryExecutor.submit(() -> contestAdminReadPort.selectByStartTimeAfter(startDate));
                     AdminReadContract.OwnerRead<List<ContestAdminDTO>> contestsRead =
@@ -121,7 +111,7 @@ public class DefaultAdminAnalyticsPortAdapter implements AdminAnalyticsPort {
                                     queryExecutor,
                                     "Analytics",
                                     contestsQuery,
-                                    remainingNanos(deadlineNanos),
+                                    deadline.remainingNanos(),
                                     TimeUnit.NANOSECONDS);
                     if (!contestsRead.available() || contestsRead.value() == null) {
                         throw unavailable();
@@ -151,7 +141,7 @@ public class DefaultAdminAnalyticsPortAdapter implements AdminAnalyticsPort {
                                         queryExecutor,
                                         "Analytics",
                                         participantsQuery,
-                                        remainingNanos(deadlineNanos),
+                                        deadline.remainingNanos(),
                                         TimeUnit.NANOSECONDS);
                         if (!participantsRead.available() || participantsRead.value() == null) {
                             throw unavailable();
@@ -226,6 +216,8 @@ public class DefaultAdminAnalyticsPortAdapter implements AdminAnalyticsPort {
                 1,
                 AdminUseCaseMetrics.Freshness.REQ,
                 () -> {
+                    AdminQueryDeadline.Deadline deadline = queryDeadline.start(
+                            RpcPolicy.QUERY_TIMEOUT_MS, TimeUnit.MILLISECONDS);
                     CancellableQueryExecutor.Query<Long> totalUsers =
                             queryExecutor.submit(this::countAllUsers);
                     CancellableQueryExecutor.Query<Long> activeUsers = queryExecutor.submit(
@@ -241,8 +233,8 @@ public class DefaultAdminAnalyticsPortAdapter implements AdminAnalyticsPort {
                     List<OwnerRead<Long>> reads = AdminReadContract.awaitAndClassify(
                             queryExecutor,
                             "Analytics",
-                            RpcPolicy.QUERY_TIMEOUT_MS,
-                            TimeUnit.MILLISECONDS,
+                            deadline.remainingNanos(),
+                            TimeUnit.NANOSECONDS,
                             totalUsers,
                             activeUsers,
                             submissions,
@@ -284,7 +276,4 @@ public class DefaultAdminAnalyticsPortAdapter implements AdminAnalyticsPort {
         return AdminReadContract.ownerUnavailable("Analytics");
     }
 
-    private static long remainingNanos(long deadlineNanos) {
-        return Math.max(0L, deadlineNanos - System.nanoTime());
-    }
 }

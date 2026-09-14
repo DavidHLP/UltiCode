@@ -1,18 +1,15 @@
-import { computed, type ComputedRef } from 'vue'
-import { useAuthStore } from '@/stores/auth'
+import { type ComputedRef } from 'vue'
 import { PERM } from '@/constants/permissions'
+import { usePermissionMap } from './usePermissionMap'
 
 export interface AnalyticsPermissionMap {
   read: ComputedRef<boolean>
 }
 
 export function useAnalyticsPermissions(): { can: { analytics: AnalyticsPermissionMap } } {
-  const authStore = useAuthStore()
-  const analytics: AnalyticsPermissionMap = {
-    read: computed(() =>
-      authStore.hasPermission(PERM.ANALYTICS_READ.action, PERM.ANALYTICS_READ.resource),
-    ),
-  }
+  const analytics: AnalyticsPermissionMap = usePermissionMap({
+    read: PERM.ANALYTICS_READ,
+  })
 
   return { can: { analytics } }
 }

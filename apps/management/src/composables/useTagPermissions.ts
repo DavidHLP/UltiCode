@@ -1,6 +1,6 @@
-import { computed, type ComputedRef } from 'vue'
-import { useAuthStore } from '@/stores/auth'
+import { type ComputedRef } from 'vue'
 import { PERM } from '@/constants/permissions'
+import { usePermissionMap } from './usePermissionMap'
 
 export interface TagPermissionMap {
   read: ComputedRef<boolean>
@@ -9,17 +9,13 @@ export interface TagPermissionMap {
 }
 
 export function useTagPermissions(): { can: { tag: TagPermissionMap } } {
-  const authStore = useAuthStore()
-  const has = (permission: (typeof PERM)[keyof typeof PERM]) =>
-    authStore.hasPermission(permission.action, permission.resource)
-
-  const tag: TagPermissionMap = {
-    read: computed(() => has(PERM.TAG_READ)),
-    update: computed(() => has(PERM.TAG_UPDATE)),
+  const tag: TagPermissionMap = usePermissionMap({
+    read: PERM.TAG_READ,
+    update: PERM.TAG_UPDATE,
     // Preserve the existing policy: system managers and problem editors can
     // manage the shared tag catalog.
-    manage: computed(() => has(PERM.SYSTEM_MANAGE_USERS) || has(PERM.PROBLEM_UPDATE)),
-  }
+    manage: [PERM.SYSTEM_MANAGE_USERS, PERM.PROBLEM_UPDATE],
+  })
 
   return { can: { tag } }
 }

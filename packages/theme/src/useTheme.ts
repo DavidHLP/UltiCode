@@ -5,8 +5,8 @@
 // component sees the same value and the listener is registered exactly
 // once per app instance.
 //
-// Legacy `useTheme` name is kept as a deprecated alias to avoid breaking
-// the in-flight diff; new code should use `useColorTheme`.
+// The public composable is named `useColorTheme` to distinguish it from
+// component-local theme state.
 // ---------------------------------------------------------------------------
 
 import { ref, type Ref } from 'vue'
@@ -132,12 +132,6 @@ export function __resetForTest(): void {
   theme.value = 'system'
   initialized = false
 }
-
-/**
- * @deprecated Use {@link useColorTheme} instead. This alias exists for
- * in-flight imports and will be removed once the migration is complete.
- */
-export const useTheme = useColorTheme
 
 // Re-export the type guard so consumers can validate arbitrary payloads
 // without importing ThemeMode directly.

@@ -8,11 +8,11 @@ import { Switch } from '@/components/ui/switch'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { IconSettings, IconUsers, IconServer } from '@tabler/icons-vue'
 import type { SystemSettings } from '@/api/admin/settings'
-import { useTheme } from '@ulticode/theme'
+import { useColorTheme } from '@ulticode/theme'
 import { Sun, Moon, Laptop } from 'lucide-vue-next'
 
 const { t } = useI18n()
-const { theme: themeRef, setTheme } = useTheme()
+const { theme: themeRef, setTheme } = useColorTheme()
 // vue-tsc 3.x does not auto-unwrap `Ref<T>` in template comparisons;
 // expose the value as a `ComputedRef` to match the project convention.
 const theme = computed(() => themeRef.value)

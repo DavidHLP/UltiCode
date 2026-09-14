@@ -14,6 +14,8 @@ import com.ulticode.common.response.DegradationStatus;
 import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.modules.admin.dto.AdminUserVO;
 import com.ulticode.modules.admin.port.AdminSubmissionUserDetailStatsReadPort;
+import com.ulticode.modules.admin.port.adapter.AdminQueryDeadline;
+import com.ulticode.modules.admin.port.adapter.CancellableQueryExecutor;
 import com.ulticode.modules.admin.projection.AdminUserEnricher;
 import com.ulticode.modules.admin.projection.DefaultAdminUserProjection;
 import com.ulticode.submission.api.dto.SubmissionUserDetailStatsSnapshotDTO;
@@ -56,20 +58,24 @@ class AdminUserDetailQueryTest {
     private AuthorizationSnapshotService authorizationSnapshotService;
 
     private DefaultAdminUserDetailQuery query;
+    private CancellableQueryExecutor queryExecutor;
 
     @BeforeEach
     void setUp() {
+        queryExecutor = new CancellableQueryExecutor("test-admin-user-detail", 4);
         query = new DefaultAdminUserDetailQuery(
                 userEnricher,
                 submissionStatsReadPort,
                 solutionReadPort,
                 authorizationSnapshotService,
-                Clock.fixed(Instant.parse("2026-01-01T00:00:00Z"), ZoneOffset.UTC));
+                Clock.fixed(Instant.parse("2026-01-01T00:00:00Z"), ZoneOffset.UTC),
+                queryExecutor,
+                AdminQueryDeadline.system());
     }
 
     @AfterEach
     void tearDown() {
-        query.shutdownQueryExecutor();
+        queryExecutor.close();
     }
 
     @Test

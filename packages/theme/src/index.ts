@@ -39,4 +39,4 @@ export {
 // barrel — it is a test-only entry point and consumers should import it
 // via the relative path (`from '@ulticode/theme/src/useTheme'`) only from
 // __tests__/ files. See useTheme.spec.ts for the canonical import.
-export { cycleTheme, initTheme, setTheme, useColorTheme, useTheme } from './useTheme'
+export { cycleTheme, initTheme, setTheme, useColorTheme } from './useTheme'

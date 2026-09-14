@@ -8,6 +8,7 @@ import com.ulticode.auth.api.dto.ChangePasswordDTO;
 import com.ulticode.auth.api.service.AccountManagementService;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.rpc.RpcResult;
+import com.ulticode.modules.admin.dto.AdminUserVO;
 import com.ulticode.modules.admin.query.AdminUserDetailQuery;
 import com.ulticode.modules.admin.service.UserManagementService;
 import org.mockito.ArgumentCaptor;
@@ -28,6 +29,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -61,6 +63,24 @@ class AdminAccountControllerTest {
     @BeforeEach
     void setUp() {
         when(currentUserProvider.getCurrentUserId()).thenReturn("admin-123");
+    }
+
+    @Nested
+    @DisplayName("GET /admin/account/profile")
+    class GetProfile {
+
+        @Test
+        @DisplayName("delegates detail loading to AdminUserDetailQuery")
+        void delegatesToDetailQuery() throws Exception {
+            AdminUserVO user = new AdminUserVO();
+            user.setId("admin-123");
+            when(adminUserDetailQuery.loadUserDetailOrThrow("admin-123")).thenReturn(user);
+
+            mockMvc.perform(get("/admin/account/profile"))
+                    .andExpect(status().isOk());
+
+            verify(adminUserDetailQuery).loadUserDetailOrThrow("admin-123");
+        }
     }
 
     @Nested

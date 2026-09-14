@@ -114,7 +114,7 @@ function handleListUpdate(updatedList: ProblemListDetail | null) {
     <!-- Main Editor Interface -->
     <div class="w-full">
       <!-- Loading State -->
-      <div v-if="isInitialLoad || (store.isLoading && !list && !isCreate)" class="space-y-6">
+      <div v-if="isInitialLoad || (store.operationLoading && !list && !isCreate)" class="space-y-6">
         <div class="space-y-4">
           <Skeleton class="h-10 w-1/3 rounded-none" />
           <Skeleton class="h-48 w-full rounded-none" />
@@ -123,7 +123,7 @@ function handleListUpdate(updatedList: ProblemListDetail | null) {
 
       <!-- Error State -->
       <div
-        v-else-if="store.error && !isCreate"
+        v-else-if="store.operationError && !isCreate"
         class="flex flex-col items-center justify-center py-20 text-center border border-[var(--editor-panel-border)] bg-[var(--editor-panel-bg)]"
       >
         <div
@@ -136,7 +136,7 @@ function handleListUpdate(updatedList: ProblemListDetail | null) {
         >
           {{ t('problemLists.errorLoading') }}
         </h2>
-        <p class="text-xs font-mono text-[var(--editor-text-muted)] mb-4">{{ store.error }}</p>
+        <p class="text-xs font-mono text-[var(--editor-text-muted)] mb-4">{{ store.operationError }}</p>
         <Button
           variant="outline"
           size="sm"

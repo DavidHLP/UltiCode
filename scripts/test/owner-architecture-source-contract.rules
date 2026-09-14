@@ -7,7 +7,10 @@ contains	Map<String, UserFactView> findByIds	services/app/app-web/src/main/java/
 contains	UserSummaryView selectById	services/app/app-web/src/main/java/com/ulticode/app/user/port/UserDirectoryProjection.java
 not_contains	UserSummaryView selectBy	services/app/app-web/src/main/java/com/ulticode/app/user/port/UserFactsProjection.java
 not_contains	selectActiveUsers	services/app/app-web/src/main/java/com/ulticode/app/user/port/UserFactsProjection.java
-contains	implements UserDirectoryProjection, UserFactsProjection	services/app/app-web/src/main/java/com/ulticode/app/user/port/DefaultUserFactsReadProjection.java
+contains	implements UserFactsProjection	services/app/app-web/src/main/java/com/ulticode/app/user/port/DefaultUserFactsReadProjection.java
+not_contains	implements UserDirectoryProjection	services/app/app-web/src/main/java/com/ulticode/app/user/port/DefaultUserFactsReadProjection.java
+contains	implements UserDirectoryProjection	services/app/app-web/src/main/java/com/ulticode/app/user/port/DefaultUserDirectoryReadProjection.java
+exists		services/app/app-web/src/main/java/com/ulticode/app/user/port/DefaultUserDirectoryReadProjection.java
 contains	List<SubmissionVO> toVOs(Collection<String> submissionIds)	services/api/submission-api/src/main/java/com/ulticode/submission/api/service/SubmissionReadPort.java
 contains	submissionProjection.toVOs(contestSubmissionMapper	services/app/app-web/src/main/java/com/ulticode/modules/contest/projection/DefaultContestProjection.java
 contains	use-judge-outbox: true	services/app/app-web/src/test/resources/application.yml

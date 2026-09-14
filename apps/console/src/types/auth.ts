@@ -23,15 +23,6 @@ export type {
 } from '@ulticode/auth-core'
 
 /**
- * `/auth/me` returns `{ user, csrfToken }` — re-exported locally so the
- * `apiGet<UserWithCsrfResponse>` call site reads the same way it always has.
- */
-export interface UserWithCsrfResponse {
-  user: import('@ulticode/auth-core').User
-  csrfToken: string
-}
-
-/**
  * Console-only DTOs (not part of auth-core because they are not shared
  * with management) — kept here so callers that previously imported them
  * from `@/types/auth` continue to work.

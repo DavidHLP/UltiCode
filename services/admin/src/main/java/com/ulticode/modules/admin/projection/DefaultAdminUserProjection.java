@@ -3,15 +3,11 @@ package com.ulticode.modules.admin.projection;
 import com.ulticode.app.api.dto.UserProfileDTO;
 import com.ulticode.auth.api.dto.AccountQueryDTO;
 import com.ulticode.auth.api.dto.AuthAccountDTO;
-import com.ulticode.common.exception.BusinessException;
-import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.common.response.DegradationStatus;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.PaginationRequest;
 import com.ulticode.modules.admin.dto.AdminUserQueryDTO;
 import com.ulticode.modules.admin.dto.AdminUserVO;
-import com.ulticode.modules.admin.query.AdminUserDetailQuery;
-import com.ulticode.modules.admin.query.AdminUserDetailResult;
 import com.ulticode.modules.admin.port.adapter.CancellableQueryExecutor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -27,19 +23,13 @@ import java.util.stream.Collectors;
 public class DefaultAdminUserProjection implements AdminUserProjection {
 
     private final AdminUserEnricher userEnricher;
-    private final AdminUserDetailQuery userDetailQuery;
 
     /**
-     * Production constructor: account/profile list enrichment and the detail
-     * use case are separate seams; this compatibility projection only
-     * delegates the detail operation.
+     * Production constructor for the lean list projection.
      */
     @Autowired
-    public DefaultAdminUserProjection(
-            AdminUserEnricher userEnricher,
-            AdminUserDetailQuery userDetailQuery) {
+    public DefaultAdminUserProjection(AdminUserEnricher userEnricher) {
         this.userEnricher = userEnricher;
-        this.userDetailQuery = userDetailQuery;
     }
 
     /**
@@ -49,20 +39,12 @@ public class DefaultAdminUserProjection implements AdminUserProjection {
      */
     public DefaultAdminUserProjection(
             com.ulticode.auth.api.service.AccountQueryService accountQueryService,
-            com.ulticode.app.api.service.UserProfileQueryService userProfileQueryService,
-            com.ulticode.modules.admin.port.AdminSubmissionUserDetailStatsReadPort submissionStatsReadPort,
-            com.ulticode.app.api.service.SolutionReadPort solutionReadPort,
-            com.ulticode.auth.api.service.AuthorizationSnapshotService authorizationSnapshotService) {
+            com.ulticode.app.api.service.UserProfileQueryService userProfileQueryService) {
         this.userEnricher = new AdminUserEnricher(
                 null,
                 userProfileQueryService,
                 accountQueryService,
                 new CancellableQueryExecutor("admin-user-enrichment-test", 2));
-        this.userDetailQuery = new com.ulticode.modules.admin.query.DefaultAdminUserDetailQuery(
-                userEnricher,
-                submissionStatsReadPort,
-                solutionReadPort,
-                authorizationSnapshotService);
     }
 
     @Override
@@ -96,19 +78,6 @@ public class DefaultAdminUserProjection implements AdminUserProjection {
         return PageResult.of(voList, total, pageRequest, ownerPage.status());
     }
 
-    @Override
-    public AdminUserVO getUserById(String id) {
-        AdminUserDetailResult result = userDetailQuery.loadUserDetail(id);
-        if (result == null || result.failure() == AdminUserDetailResult.Failure.NOT_FOUND) {
-            throw new BusinessException(AdminErrorCode.USER_NOT_FOUND);
-        }
-        if (result.failure() == AdminUserDetailResult.Failure.TRANSPORT_UNAVAILABLE) {
-            throw new BusinessException(
-                    AdminErrorCode.OWNER_QUERY_UNAVAILABLE,
-                    "Admin user detail query unavailable");
-        }
-        return result.user();
-    }
     private AdminUserVO toVO(AuthAccountDTO account, UserProfileDTO profile) {
         if (account == null) {
             return null;

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useTheme } from '@ulticode/theme'
+import { useColorTheme } from '@ulticode/theme'
 import { useI18n } from 'vue-i18n'
 import {
   DropdownMenu,
@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Sun, Moon, Laptop, Check } from 'lucide-vue-next'
 
-const { theme: themeRef, setTheme } = useTheme()
+const { theme: themeRef, setTheme } = useColorTheme()
 // vue-tsc 3.x does not auto-unwrap `Ref<T>` in template comparisons or
 // function arguments; expose the value as a `ComputedRef` to match the
 // project convention (see `useLocale`).

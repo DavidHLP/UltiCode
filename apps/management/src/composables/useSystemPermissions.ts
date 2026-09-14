@@ -1,6 +1,6 @@
-import { computed, type ComputedRef } from 'vue'
-import { useAuthStore } from '@/stores/auth'
+import { type ComputedRef } from 'vue'
 import { PERM } from '@/constants/permissions'
+import { usePermissionMap } from './usePermissionMap'
 
 export interface SystemPermissionMap {
   read: ComputedRef<boolean>
@@ -9,15 +9,11 @@ export interface SystemPermissionMap {
 }
 
 export function useSystemPermissions(): { can: { system: SystemPermissionMap } } {
-  const authStore = useAuthStore()
-  const has = (permission: (typeof PERM)[keyof typeof PERM]) =>
-    authStore.hasPermission(permission.action, permission.resource)
-
-  const system: SystemPermissionMap = {
-    read: computed(() => has(PERM.SYSTEM_READ)),
-    update: computed(() => has(PERM.SYSTEM_UPDATE)),
-    manageUsers: computed(() => has(PERM.SYSTEM_MANAGE_USERS)),
-  }
+  const system: SystemPermissionMap = usePermissionMap({
+    read: PERM.SYSTEM_READ,
+    update: PERM.SYSTEM_UPDATE,
+    manageUsers: PERM.SYSTEM_MANAGE_USERS,
+  })
 
   return { can: { system } }
 }

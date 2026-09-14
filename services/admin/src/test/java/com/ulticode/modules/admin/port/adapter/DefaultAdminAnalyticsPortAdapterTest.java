@@ -17,6 +17,7 @@ import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.submission.api.service.SubmissionAdminReadPort;
 import java.time.LocalDateTime;
 import java.util.List;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -36,6 +37,15 @@ class DefaultAdminAnalyticsPortAdapterTest {
     private SubmissionAdminReadPort submissionAdminReadPort;
     @Mock
     private AccountQueryService accountQueryService;
+
+    private CancellableQueryExecutor queryExecutor;
+
+    @AfterEach
+    void closeQueryExecutor() {
+        if (queryExecutor != null) {
+            queryExecutor.close();
+        }
+    }
 
     @Test
     void loadContestDataUsesOneParticipantBatchForTheWholeContestPage() {
@@ -94,11 +104,14 @@ class DefaultAdminAnalyticsPortAdapterTest {
     }
 
     private DefaultAdminAnalyticsPortAdapter adapter() {
+        queryExecutor = new CancellableQueryExecutor("test-analytics", 6);
         DefaultAdminAnalyticsPortAdapter adapter = new DefaultAdminAnalyticsPortAdapter(
                 contestAdminReadPort,
                 contestParticipantReadPort,
                 subscriptionReadPort,
-                submissionAdminReadPort);
+                submissionAdminReadPort,
+                queryExecutor,
+                AdminQueryDeadline.system());
         ReflectionTestUtils.setField(adapter, "accountQueryService", accountQueryService);
         return adapter;
     }

@@ -10,8 +10,8 @@ Metrics are registered via `com.ulticode.common.metrics.WorkerSloMeters` (plain 
 
 | Prometheus name | Source setter | Meaning | UNKNOWN handling |
 |---|---|---|---|
-| `search_worker_queue_lag` | `slo.setQueueLag(...)` in `SearchDocumentIndexWorker.refreshSloGauges()` via `streamIntegrationLag()` (`XINFO GROUPS` lag, Redis ≥7; raw callback) | `XINFO GROUPS lag` for group `search-worker` on `stream:integration`. Delivered-but-not-yet-consumed count. | `-1` when broker cannot answer (pre-7.0, no group, or raw callback empty). Alerts filter `!= -1`. |
-| `search_worker_queue_pel_size` | `slo.setPelSize(...)` from `StreamOperations.groups(...).pendingCount()` | PEL depth for the group | `-1` initially, `0` when empty. Stale value kept on observation failure. |
+| `search_worker_queue_lag` | `slo.setQueueLag(...)` in `SearchDocumentIndexWorker.refreshSloGauges()` from the shared `RedisStreamQueueHealth.observe()` raw `XINFO GROUPS` reply | `XINFO GROUPS lag` for group `search-worker` on `stream:integration`. Delivered-but-not-yet-consumed count. | `-1` when the broker cannot answer, the group/field is absent, or the raw reply is invalid. Alerts filter `!= -1`. |
+| `search_worker_queue_pel_size` | `slo.setPelSize(...)` from the same shared `XINFO GROUPS` observation (`pending` field) | PEL depth for the group | `-1` initially or when observation fails; the previous gauge value is retained by the worker. |
 | `search_worker_queue_pel_oldest_age_seconds` | `slo.setPelOldestAgeSeconds(...)` from oldest `PendingMessage.getElapsedTimeSinceLastDelivery()` | Age of oldest PEL entry since last delivery | `-1` when `XPENDING` fails (not updated); `0` when PEL empty. Alerts filter `!= -1`. |
 | `search_worker_queue_dlq_size` | `slo.setDlqSize(XLEN search:stream:dlq)` | DLQ stream length | `-1` until first successful `XLEN`; updated only on success. |
 | `search_worker_last_success_timestamp` | `slo.markSuccess()` when `consume()` processed ≥1 record (not on empty poll) | Epoch millis of last successful consume cycle | `0` until first success. Alerts require `> 0`. |
@@ -22,8 +22,8 @@ Metrics are registered via `com.ulticode.common.metrics.WorkerSloMeters` (plain 
 | `judge_streams_queue_dlq_size` | `slo.setDlqSize(dlqSize())` via `RStream(JUDGE_STREAM_DLQ_KEY).size()` or `0` if not exists | DLQ `judge:{judge-stream}:dlq` length | `UNKNOWN (-1)` on exception. |
 | `judge_streams_last_success_timestamp` | `sloMeters.markSuccess()` in `RedissonStreamsJudgeQueueAdapter.ack()` (XACK success) | Last successful ack | `0` until first ack. |
 | `judge_streams_consume_failures_total` | `markConsumeFailure()` on `poll` exception/no-group fallback, poison decode, `ack` exception | Counter | `increase(...[5m])`. |
-| `notification_inbox_queue_lag` | `slo.setQueueLag(streamLag(fallback))` in `NotificationIntegrationInboxBridge.refreshSloGauges()` (XINFO GROUPS lag with stream length fallback) | `App-Notification` group lag on `stream:integration` | `-1` only if both `XINFO` and fallback `XLEN` fail; otherwise fallback to stream length. |
-| `notification_inbox_queue_pel_size` | `slo.setPelSize(pending)` from `groups.pendingCount()` | PEL depth for `App-Notification` | `0` when no group info. |
+| `notification_inbox_queue_lag` | `slo.setQueueLag(...)` in `NotificationIntegrationInboxBridge.refreshSloGauges()` from the shared `RedisStreamQueueHealth.observe()` raw `XINFO GROUPS` reply | `App-Notification` group lag on `stream:integration` | `-1` when the broker cannot answer, the group/field is absent, or the raw reply is invalid; there is no stream-length fallback. |
+| `notification_inbox_queue_pel_size` | `slo.setPelSize(...)` from the same shared `XINFO GROUPS` observation (`pending` field) | PEL depth for `App-Notification` | `-1` initially or when observation fails; the previous gauge value is retained by the bridge. |
 | `notification_inbox_queue_pel_oldest_age_seconds` | `slo.setPelOldestAgeSeconds(oldestPendingAgeSeconds())` from `XPENDING` oldest entry | PEL oldest age | `-1` on exception (not updated); `0` when empty. |
 | `notification_inbox_queue_dlq_size` | **Not applicable** — notification has no stream DLQ; gauge stays `UNKNOWN (-1)`. Poison goes to DB (see §3). | — | Always `-1`; no alert on it. |
 | `notification_inbox_last_success_timestamp` | `slo.markSuccess()` at end of `consume()` (stage+process success) | Last success | `0` until first. |
@@ -37,6 +37,7 @@ Additional counters (not WorkerSloMeters, but visible in `/actuator/prometheus`)
 ### UNKNOWN=-1 operational meaning
 - `queue.lag = -1` / `pel.oldest = -1` / `dlq.size = -1` means the observation cycle failed (Redis down, pre-7.0, key evicted). The worker keeps the previous gauge value and never breaks consumption for it. **Do not page on `-1` alone**; page on sustained `!= -1` breaches plus `consume_failures` / `last_success` stall.
 - `last.success.timestamp = 0` means the worker has never marked success since boot (empty stream or immediate failures).
+- Search and Notification share one raw `XINFO GROUPS` request per health observation; that reply supplies both `lag` and `pending`. `XPENDING` remains a separate lookup for oldest-entry age. There is no `XLEN` fallback for queue lag, and unknown fields are not written over the last known gauge value.
 
 ## 2. Alert → response
 

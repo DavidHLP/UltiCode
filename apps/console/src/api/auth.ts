@@ -5,13 +5,12 @@
  * The request.ts utility automatically unwraps the backend Result<T> envelope
  */
 
-import { apiGet, apiPost } from "@/utils/request";
+import { apiPost } from "@/utils/request";
 import type {
   User,
   LoginRequest,
   RegisterRequest,
   LoginResponse,
-  UserWithCsrfResponse,
   ForgotPasswordRequest,
   ResetPasswordRequest,
 } from "@/types/auth";
@@ -47,20 +46,6 @@ export const authApi = {
   },
 
   /**
-   * Get current authenticated user
-   * GET /auth/me → Result<UserWithCsrfResponse>
-   * Returns: { user: User, csrfToken: string }
-   *
-   * Note: We return only the User part for simplicity
-   * The CSRF token is automatically stored by the auth store
-   */
-  async getCurrentUser(): Promise<User> {
-    // /auth/me returns { user: User, csrfToken: string }
-    const response = await apiGet<UserWithCsrfResponse>("/auth/me");
-    return response.user;
-  },
-
-  /**
    * Send password reset email
    * POST /auth/forgot-password → Result<Void>
    */
@@ -83,7 +68,6 @@ export type {
   LoginRequest,
   RegisterRequest,
   LoginResponse,
-  UserWithCsrfResponse,
   ForgotPasswordRequest,
   ResetPasswordRequest,
 };

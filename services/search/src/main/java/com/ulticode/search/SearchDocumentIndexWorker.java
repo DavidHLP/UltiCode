@@ -9,6 +9,7 @@ import com.ulticode.common.event.SearchDocumentChangedEventContract;
 import com.ulticode.common.lifecycle.DrainGate;
 import com.ulticode.common.metrics.WorkerSloMeters;
 import com.ulticode.common.resilience.DependencyGuard;
+import com.ulticode.modules.event.inbox.RedisStreamQueueHealth;
 import com.ulticode.modules.event.inbox.RedisStreamTransport;
 import com.ulticode.search.config.SearchWorkerProperties;
 import java.time.Duration;
@@ -87,6 +88,7 @@ public class SearchDocumentIndexWorker {
     /** Instance-unique consumer identity, resolved once at startup. */
     private final String consumerName;
     private final RedisStreamTransport streamTransport;
+    private final RedisStreamQueueHealth queueHealth;
     private final DrainGate drainGate = new DrainGate();
     private final DependencyGuard meiliSearchGuard =
             new DependencyGuard(8, 5, Duration.ofSeconds(30));
@@ -168,6 +170,7 @@ public class SearchDocumentIndexWorker {
         this.consumerName = props.effectiveConsumerName();
         this.streamTransport = new RedisStreamTransport(
                 redisTemplate, props.getStreamKey(), props.getGroup(), consumerName);
+        this.queueHealth = new RedisStreamQueueHealth(redisTemplate);
         log.info("Search worker consumer identity: {} in group {}", this.consumerName, props.getGroup());
     }
 
@@ -213,79 +216,19 @@ public class SearchDocumentIndexWorker {
      * gauge value (or UNKNOWN) without disturbing consumption.
      */
     private void refreshSloGauges() {
-        try {
-            StreamOperations<String, String, String> streams = redisTemplate.opsForStream();
-            Long dlqLength = streams.size(props.getDlqKey());
-            if (dlqLength != null) {
-                slo.setDlqSize(dlqLength);
-            }
-            long pelSize = 0;
-            var groups = redisTemplate.opsForStream().groups(props.getStreamKey());
-            if (groups != null) {
-                for (var info : groups) {
-                    if (props.getGroup().equals(info.groupName())) {
-                        Long pending = info.pendingCount();
-                        pelSize = pending == null ? 0 : pending;
-                        break;
-                    }
-                }
-            }
-            slo.setPelSize(pelSize);
-            slo.setQueueLag(streamIntegrationLag(props.getStreamKey()));
-            long oldestAgeSeconds = oldestPendingAgeSeconds(streams);
-            if (oldestAgeSeconds >= 0) {
-                slo.setPelOldestAgeSeconds(oldestAgeSeconds);
-            }
-        } catch (RuntimeException e) {
-            log.debug("SLO gauge refresh unavailable: {}", e.getMessage());
+        RedisStreamQueueHealth.Snapshot snapshot = queueHealth.observe(
+                props.getStreamKey(), props.getGroup(), props.getDlqKey());
+        if (snapshot.queueLag() != WorkerSloMeters.UNKNOWN) {
+            slo.setQueueLag(snapshot.queueLag());
         }
-    }
-
-    /**
-     * Group lag from {@code XINFO GROUPS} ({@code lag} field, Redis >= 7).
-     * Spring Data does not map the field, so read it through a raw callback;
-     * returns {@link WorkerSloMeters#UNKNOWN} when the broker cannot answer.
-     */
-    private long streamIntegrationLag(String key) {
-        try {
-            Object reply = redisTemplate.execute((org.springframework.data.redis.core.RedisCallback<Object>)
-                    conn -> conn.execute("XINFO", "GROUPS".getBytes(), key.getBytes()));
-            if (!(reply instanceof java.util.List<?> fields)) {
-                return WorkerSloMeters.UNKNOWN;
-            }
-            String lag = null;
-            for (int i = 0; i + 1 < fields.size(); i += 2) {
-                Object rawField = fields.get(i);
-                String field = rawField instanceof byte[] b
-                        ? new String(b) : String.valueOf(rawField);
-                if (!"lag".equalsIgnoreCase(field)) {
-                    continue;
-                }
-                Object value = fields.get(i + 1);
-                lag = value instanceof Number n ? n.toString()
-                        : value instanceof byte[] vb ? new String(vb) : String.valueOf(value);
-                break;
-            }
-            return lag == null ? WorkerSloMeters.UNKNOWN : Long.parseLong(lag.trim());
-        } catch (RuntimeException e) {
-            log.debug("XINFO GROUPS lag unavailable: {}", e.getMessage());
-            return WorkerSloMeters.UNKNOWN;
+        if (snapshot.pelSize() != WorkerSloMeters.UNKNOWN) {
+            slo.setPelSize(snapshot.pelSize());
         }
-    }
-
-    private long oldestPendingAgeSeconds(StreamOperations<String, String, String> streams) {
-        try {
-            PendingMessages pending = streams.pending(
-                    props.getStreamKey(), props.getGroup(),
-                    org.springframework.data.domain.Range.unbounded(), 1);
-            if (pending == null || pending.isEmpty()) {
-                return 0;
-            }
-            PendingMessage oldest = pending.iterator().next();
-            return Math.max(0L, oldest.getElapsedTimeSinceLastDelivery().getSeconds());
-        } catch (RuntimeException e) {
-            log.debug("PEL age unavailable: {}", e.getMessage());
-            return -1;
+        if (snapshot.oldestPendingAgeSeconds() != WorkerSloMeters.UNKNOWN) {
+            slo.setPelOldestAgeSeconds(snapshot.oldestPendingAgeSeconds());
+        }
+        if (snapshot.dlqSize() != WorkerSloMeters.UNKNOWN) {
+            slo.setDlqSize(snapshot.dlqSize());
         }
     }
 

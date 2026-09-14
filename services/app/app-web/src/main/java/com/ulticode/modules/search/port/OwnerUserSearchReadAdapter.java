@@ -145,14 +145,10 @@ public class OwnerUserSearchReadAdapter implements UserDirectoryQueryPort {
             return List.of();
         }
         Map<String, UserFactView> facts = userFactsReadPort.findByIds(accountIds);
-        Map<String, UserDirectoryRow> rows = new LinkedHashMap<>();
-        for (String accountId : accountIds) {
-            UserFactView fact = facts.get(accountId);
-            if (fact != null) {
-                rows.putIfAbsent(accountId, UserDirectoryRow.from(toRow(fact)));
-            }
-        }
-        return new ArrayList<>(rows.values());
+        return facts.values().stream()
+                .filter(java.util.Objects::nonNull)
+                .map(fact -> UserDirectoryRow.from(toRow(fact)))
+                .toList();
     }
 
     private long usernameMatchCount(String query) {

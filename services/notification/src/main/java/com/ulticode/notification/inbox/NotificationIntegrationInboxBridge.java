@@ -6,23 +6,18 @@ import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.event.inbox.ConsumerInboxMapper;
 import com.ulticode.modules.event.inbox.InboxConsumer;
 import com.ulticode.modules.event.inbox.RedisStreamInboxBridge;
+import com.ulticode.modules.event.inbox.RedisStreamQueueHealth;
 import com.ulticode.modules.notification.consumer.NotificationIntentEventConsumer;
 import com.ulticode.modules.notification.consumer.SubmissionJudgedNotificationConsumer;
 import com.ulticode.notification.api.event.NotificationIntentEventContract;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.List;
 import java.util.Set;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.context.event.EventListener;
-import org.springframework.data.domain.Range;
-import org.springframework.data.redis.connection.stream.PendingMessage;
-import org.springframework.data.redis.connection.stream.PendingMessages;
-import org.springframework.data.redis.core.StreamOperations;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -37,16 +32,14 @@ import org.springframework.transaction.support.TransactionTemplate;
         matchIfMissing = true)
 public class NotificationIntegrationInboxBridge {
 
-    private static final Logger LOGGER =
-            LoggerFactory.getLogger(NotificationIntegrationInboxBridge.class);
     private static final String STREAM_KEY = "stream:integration";
     private static final String GROUP = "App-Notification";
     private static final String EVENT_TYPE = "SubmissionJudged";
     private static final String NOTIFICATION_EVENT_TYPE = NotificationIntentEventContract.EVENT_TYPE;
     private static final String POISON_EVENT_TYPE = "IntegrationEventPoison";
 
-    private final StringRedisTemplate redisTemplate;
     private final RedisStreamInboxBridge bridge;
+    private final RedisStreamQueueHealth queueHealth;
     /** Queue/consumer SLO gauges for the App-Notification staging bridge. */
     private final WorkerSloMeters slo;
 
@@ -60,7 +53,7 @@ public class NotificationIntegrationInboxBridge {
             ObjectProvider<MeterRegistry> meterRegistryProvider,
             SubmissionJudgedNotificationConsumer notificationConsumer,
             NotificationIntentEventConsumer notificationIntentConsumer) {
-        this.redisTemplate = redisTemplate;
+        this.queueHealth = new RedisStreamQueueHealth(redisTemplate);
         PlatformTransactionManager transactionManager = transactionManagerProvider == null
                 ? null
                 : transactionManagerProvider.getIfAvailable();
@@ -129,74 +122,18 @@ public class NotificationIntegrationInboxBridge {
 
     /** Best-effort queue and PEL gauges for the App-Notification group. */
     private void refreshSloGauges() {
-        try {
-            StreamOperations<String, String, String> streams = redisTemplate.opsForStream();
-            Long streamLength = streams.size(STREAM_KEY);
-            long pelSize = 0;
-            var groups = streams.groups(STREAM_KEY);
-            if (groups != null) {
-                for (var info : groups) {
-                    if (GROUP.equals(info.groupName())) {
-                        Long pending = info.pendingCount();
-                        pelSize = pending == null ? 0 : pending;
-                        break;
-                    }
-                }
-            }
-            slo.setPelSize(pelSize);
-            slo.setQueueLag(streamLag(streamLength == null ? WorkerSloMeters.UNKNOWN : streamLength));
-            long oldestAgeSeconds = oldestPendingAgeSeconds(streams);
-            if (oldestAgeSeconds >= 0) {
-                slo.setPelOldestAgeSeconds(oldestAgeSeconds);
-            }
-        } catch (RuntimeException exception) {
-            LOGGER.debug("SLO gauge refresh unavailable: {}", exception.getMessage());
+        RedisStreamQueueHealth.Snapshot snapshot = queueHealth.observe(STREAM_KEY, GROUP, null);
+        if (snapshot.queueLag() != WorkerSloMeters.UNKNOWN) {
+            slo.setQueueLag(snapshot.queueLag());
         }
-    }
-
-    /** Read XINFO GROUPS lag, falling back to stream length when unavailable. */
-    private long streamLag(long fallback) {
-        try {
-            Object reply = redisTemplate.execute(
-                    (org.springframework.data.redis.core.RedisCallback<Object>) connection ->
-                            connection.execute("XINFO", "GROUPS".getBytes(), STREAM_KEY.getBytes()));
-            if (!(reply instanceof List<?> fields)) {
-                return fallback;
-            }
-            for (int i = 0; i + 1 < fields.size(); i += 2) {
-                Object rawField = fields.get(i);
-                String field = rawField instanceof byte[] bytes
-                        ? new String(bytes)
-                        : String.valueOf(rawField);
-                if (!"lag".equalsIgnoreCase(field)) {
-                    continue;
-                }
-                Object value = fields.get(i + 1);
-                String lag = value instanceof Number number
-                        ? number.toString()
-                        : value instanceof byte[] bytes
-                                ? new String(bytes)
-                                : String.valueOf(value);
-                return Long.parseLong(lag.trim());
-            }
-            return fallback;
-        } catch (RuntimeException exception) {
-            LOGGER.debug("XINFO GROUPS lag unavailable: {}", exception.getMessage());
-            return fallback;
+        if (snapshot.pelSize() != WorkerSloMeters.UNKNOWN) {
+            slo.setPelSize(snapshot.pelSize());
         }
-    }
-
-    private long oldestPendingAgeSeconds(StreamOperations<String, String, String> streams) {
-        try {
-            PendingMessages pending = streams.pending(STREAM_KEY, GROUP, Range.unbounded(), 1);
-            if (pending == null || pending.isEmpty()) {
-                return 0;
-            }
-            PendingMessage oldest = pending.iterator().next();
-            return Math.max(0L, oldest.getElapsedTimeSinceLastDelivery().getSeconds());
-        } catch (RuntimeException exception) {
-            LOGGER.debug("PEL age unavailable: {}", exception.getMessage());
-            return -1;
+        if (snapshot.oldestPendingAgeSeconds() != WorkerSloMeters.UNKNOWN) {
+            slo.setPelOldestAgeSeconds(snapshot.oldestPendingAgeSeconds());
+        }
+        if (snapshot.dlqSize() != WorkerSloMeters.UNKNOWN) {
+            slo.setDlqSize(snapshot.dlqSize());
         }
     }
 

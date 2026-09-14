@@ -12,6 +12,7 @@ import com.ulticode.submission.api.dto.SubmissionDashboardChartDataDTO;
 import com.ulticode.submission.api.dto.SubmissionDashboardStatsDTO;
 import com.ulticode.submission.api.service.SubmissionAdminReadPort;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
@@ -37,6 +38,15 @@ class DefaultAdminDashboardReadAdapterTest {
     private SubmissionAdminReadPort submissionAdminReadPort;
     @Mock
     private AccountQueryService accountQueryService;
+
+    private CancellableQueryExecutor queryExecutor;
+
+    @AfterEach
+    void closeQueryExecutor() {
+        if (queryExecutor != null) {
+            queryExecutor.close();
+        }
+    }
 
     @Test
     void loadStatsUsesOneBoundedCallPerOwner() {
@@ -131,8 +141,10 @@ class DefaultAdminDashboardReadAdapterTest {
     }
 
     private DefaultAdminDashboardReadAdapter adapter() {
+        queryExecutor = new CancellableQueryExecutor("test-dashboard", 4);
         DefaultAdminDashboardReadAdapter adapter =
-                new DefaultAdminDashboardReadAdapter(submissionAdminReadPort);
+                new DefaultAdminDashboardReadAdapter(
+                        submissionAdminReadPort, queryExecutor, AdminQueryDeadline.system());
         ReflectionTestUtils.setField(adapter, "appDashboardReadPort", appDashboardReadPort);
         ReflectionTestUtils.setField(adapter, "accountQueryService", accountQueryService);
         return adapter;

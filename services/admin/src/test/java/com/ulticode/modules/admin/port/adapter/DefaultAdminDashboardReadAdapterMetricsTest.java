@@ -35,11 +35,12 @@ class DefaultAdminDashboardReadAdapterMetricsTest {
     private AccountQueryService accountQueryService;
 
     private DefaultAdminDashboardReadAdapter adapter;
+    private CancellableQueryExecutor queryExecutor;
 
     @AfterEach
     void closeAdapter() {
         if (adapter != null) {
-            adapter.shutdownQueryExecutor();
+            queryExecutor.close();
         }
     }
 
@@ -93,7 +94,9 @@ class DefaultAdminDashboardReadAdapterMetricsTest {
     }
 
     private DefaultAdminDashboardReadAdapter adapter(AdminUseCaseMetrics metrics) {
-        adapter = new DefaultAdminDashboardReadAdapter(submissionAdminReadPort);
+        queryExecutor = new CancellableQueryExecutor("test-dashboard-metrics", 4);
+        adapter = new DefaultAdminDashboardReadAdapter(
+                submissionAdminReadPort, queryExecutor, AdminQueryDeadline.system());
         ReflectionTestUtils.setField(adapter, "appDashboardReadPort", appDashboardReadPort);
         ReflectionTestUtils.setField(adapter, "accountQueryService", accountQueryService);
         ReflectionTestUtils.setField(adapter, "useCaseMetrics", metrics);

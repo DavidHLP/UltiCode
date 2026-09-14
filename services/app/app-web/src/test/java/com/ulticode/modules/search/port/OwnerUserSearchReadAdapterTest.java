@@ -247,6 +247,19 @@ class OwnerUserSearchReadAdapterTest {
                 .containsExactly("u-1");
     }
 
+    @Test
+    void findByIdsKeepsFactsProjectionOrder() {
+        Set<String> ids = new java.util.LinkedHashSet<>(List.of("u-2", "u-1"));
+        AuthAccountDTO first = account("u-1", "alice", "2026-08-01T00:00:00", null);
+        AuthAccountDTO second = account("u-2", "bob", "2026-08-01T00:00:00", null);
+        when(accountQueryService.getAccountsByIds(ids))
+                .thenReturn(RpcResult.success(List.of(first, second), "t-order"));
+        when(profileReadMapper.findSearchRowsByAccountIds(ids)).thenReturn(List.of());
+
+        assertThat(adapter.findByIds(ids)).extracting(row -> row.row().getId())
+                .containsExactly("u-2", "u-1");
+    }
+
 
     @Test
     void directoryRowFreshnessUsesNewestOwnerTimestamp() {

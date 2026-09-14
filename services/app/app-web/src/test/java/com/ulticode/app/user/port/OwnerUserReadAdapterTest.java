@@ -23,16 +23,16 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class DefaultUserFactsProfileProjectionTest {
+class DefaultUserDirectoryReadProjectionTest {
 
     @Mock private UserProfileReadMapper profileReadMapper;
     @Mock private AccountQueryService accountQueryService;
 
-    private DefaultUserFactsReadProjection adapter;
+    private DefaultUserDirectoryReadProjection adapter;
 
     @BeforeEach
     void setUp() {
-        adapter = new DefaultUserFactsReadProjection(profileReadMapper);
+        adapter = new DefaultUserDirectoryReadProjection(profileReadMapper);
         adapter.setAccountQueryService(accountQueryService);
     }
 

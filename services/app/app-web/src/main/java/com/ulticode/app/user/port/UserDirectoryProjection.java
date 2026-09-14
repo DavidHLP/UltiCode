@@ -8,7 +8,7 @@ import java.util.Map;
  * Narrow directory read seam for UserSummaryView callers.
  *
  * <p>Account state, profile display fields and directory pagination stay behind
- * this interface; Search and Moderation use UserFactsProjection instead.</p>
+ * this interface; cross-owner facts consumers use UserFactsProjection instead.</p>
  */
 public interface UserDirectoryProjection {
 

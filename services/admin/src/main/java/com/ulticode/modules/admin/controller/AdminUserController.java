@@ -1,37 +1,22 @@
 package com.ulticode.modules.admin.controller;
+
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.admin.error.AdminErrorCode;
-import com.ulticode.common.exception.BusinessException;
 import com.ulticode.websecurity.annotation.RateLimit;
-import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.response.PageResult;
-import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.response.Result;
-import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.admin.dto.AdminCreateUserDTO;
-import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.admin.dto.AdminUpdateUserDTO;
-import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.admin.dto.AdminUserQueryDTO;
-import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.admin.dto.AdminUserVO;
-import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.admin.dto.BanUserRequest;
-import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.admin.dto.BulkUserActionRequest;
-import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.admin.dto.GrantPermissionRequest;
-import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.admin.dto.ResetPasswordRequest;
-import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.admin.dto.RevokePermissionRequest;
-import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.admin.projection.AdminUserProjection;
 import com.ulticode.modules.admin.query.AdminUserDetailQuery;
-import com.ulticode.modules.admin.query.AdminUserDetailResult;
-import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.admin.service.UserManagementService;
-import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.admin.service.UserPermissionService;
 import com.ulticode.auth.api.dto.AuthorizationMutationDTO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -67,7 +52,7 @@ public class AdminUserController {
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<AdminUserVO> getUserById(@PathVariable String id) {
-        return Result.success(userFromDetail(id));
+        return Result.success(adminUserDetailQuery.loadUserDetailOrThrow(id));
     }
 
     @Operation(summary = "Create user", description = "Create a new user account")
@@ -197,18 +182,5 @@ public class AdminUserController {
     @PreAuthorize("hasAnyRole('SUPER_ADMIN')")
     public Result<List<UserManagementService.DeleteResult>> bulkDelete(@Valid @RequestBody BulkUserActionRequest request) {
         return Result.success(userManagementService.bulkDelete(request.getIds()));
-    }
-    private AdminUserVO userFromDetail(String id) {
-        AdminUserDetailResult result = adminUserDetailQuery.loadUserDetail(id);
-        if (result == null || result.failure() == AdminUserDetailResult.Failure.NOT_FOUND) {
-            throw new BusinessException(AdminErrorCode.USER_NOT_FOUND);
-        }
-        if (result.failure() == AdminUserDetailResult.Failure.TRANSPORT_UNAVAILABLE
-                || result.user() == null) {
-            throw new BusinessException(
-                    AdminErrorCode.OWNER_QUERY_UNAVAILABLE,
-                    "Admin user detail query unavailable");
-        }
-        return result.user();
     }
 }

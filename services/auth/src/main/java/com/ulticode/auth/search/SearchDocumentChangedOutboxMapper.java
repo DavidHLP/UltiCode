@@ -29,24 +29,33 @@ public interface SearchDocumentChangedOutboxMapper {
             + " 'PENDING', 0, #{createdAt}, #{createdAt})")
     int insert(SearchDocumentChangedOutboxRecord record);
 
-    @Select("<script>"
-            + "SELECT id, owner, aggregate_id, aggregate_version, event_type, schema_version, payload, "
-            + "       state, attempts, last_error, created_at, claimed_at, claim_owner, delivered_at, next_retry_at "
-            + "FROM search_document_changed_outbox "
-            + "WHERE state = 'PENDING' AND next_retry_at &lt;= NOW(3) "
-            + "ORDER BY created_at ASC "
-            + "LIMIT #{limit}"
-            + "</script>")
+    @Update("""
+        UPDATE search_document_changed_outbox
+        SET state = 'CLAIMED', claimed_at = NOW(3), claim_owner = #{claimOwner}
+        WHERE state = 'PENDING' AND next_retry_at <= NOW(3)
+          AND id IN (
+            SELECT id FROM (
+              SELECT id FROM search_document_changed_outbox
+              WHERE state = 'PENDING' AND next_retry_at <= NOW(3)
+              ORDER BY created_at, id
+              LIMIT #{limit}
+            ) AS claimable
+          )
+        """)
+    int claimPending(@Param("claimOwner") String claimOwner, @Param("limit") int limit);
+
+    @Select("""
+        SELECT id, owner, aggregate_id, aggregate_version, event_type, schema_version, payload,
+               state, attempts, last_error, created_at, claimed_at, claim_owner, delivered_at, next_retry_at
+        FROM search_document_changed_outbox
+        WHERE state = 'CLAIMED' AND claim_owner = #{claimOwner}
+        ORDER BY created_at, id
+        """)
     @Results({
             @Result(property = "payload", column = "payload",
                     typeHandler = com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler.class)
     })
-    List<SearchDocumentChangedOutboxRecord> selectPending(@Param("limit") int limit);
-
-    @Update("UPDATE search_document_changed_outbox "
-            + "SET state = 'CLAIMED', claimed_at = NOW(3), claim_owner = #{claimOwner} "
-            + "WHERE id = #{id} AND state = 'PENDING'")
-    int claim(@Param("id") String id, @Param("claimOwner") String claimOwner);
+    List<SearchDocumentChangedOutboxRecord> selectClaimed(@Param("claimOwner") String claimOwner);
 
     @Update("UPDATE search_document_changed_outbox "
             + "SET state = 'DELIVERED', delivered_at = NOW(3), claim_owner = NULL "
@@ -65,6 +74,6 @@ public interface SearchDocumentChangedOutboxMapper {
 
     @Update("UPDATE search_document_changed_outbox "
             + "SET state = 'PENDING', claim_owner = NULL, next_retry_at = NOW(3) "
-            + "WHERE state = 'CLAIMED' AND claimed_at &lt; DATE_SUB(NOW(3), INTERVAL #{leaseSeconds} SECOND)")
+            + "WHERE state = 'CLAIMED' AND claimed_at < DATE_SUB(NOW(3), INTERVAL #{leaseSeconds} SECOND)")
     int reclaimStaleClaimed(@Param("leaseSeconds") int leaseSeconds);
 }

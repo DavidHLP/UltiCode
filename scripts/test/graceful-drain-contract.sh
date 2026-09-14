@@ -53,9 +53,16 @@ for worker in \
   services/judge-runtime/src/main/java/com/ulticode/modules/queue/processor/JudgeWorkerProcessor.java \
   services/judge-runtime/src/main/java/com/ulticode/modules/queue/outbox/reaper/UnackedStreamEntriesReaper.java \
   services/judge-runtime/src/main/java/com/ulticode/modules/queue/processor/JudgeWorkerReadinessHeartbeat.java; do
-  contains "$worker" 'DrainGate'
-  contains "$worker" 'tryEnter'
-  contains "$worker" 'beginDrain'
+  if grep -F -- 'DrainGate' "$ROOT_DIR/$worker" >/dev/null; then
+    contains "$worker" 'tryEnter'
+    contains "$worker" 'beginDrain'
+  else
+    # Shared outbox dispatchers own the DrainGate and expose the same bounded
+    # cycle/drain boundary to their service-specific adapters.
+    contains "$worker" 'OutboxDispatcher'
+    contains "$worker" 'dispatcher.dispatch()'
+    contains "$worker" 'dispatcher.beginDrain()'
+  fi
 done
 
 absent services/app/app-web/src/main/java/com/ulticode/app/judge/AppJudgeCompatibilityConfiguration.java

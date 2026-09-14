@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { ref, readonly, type DeepReadonly } from 'vue'
 import {
   tagsApi,
   type Tag,
@@ -17,99 +18,115 @@ export const useTagsStore = defineStore('admin-tags', () => {
     },
   })
   const tags = collection.items
-  const total = collection.total
-  const isLoading = collection.isLoading
-  const error = collection.error
+  const readonlyTags: DeepReadonly<typeof tags> = readonly(tags)
+  const total: DeepReadonly<typeof collection.total> = readonly(collection.total)
+  const isLoading: DeepReadonly<typeof collection.isLoading> = readonly(collection.isLoading)
+  const error: DeepReadonly<typeof collection.error> = readonly(collection.error)
   const fetchTags = collection.fetch
+  const operationLoading = ref(false)
+  const operationError = ref<string | null>(null)
 
   async function fetchTag(id: string, type: TagType) {
-    isLoading.value = true
-    error.value = null
+    operationLoading.value = true
+    operationError.value = null
     try {
       const tag = await tagsApi.getTag(id, type)
       return tag
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Failed to fetch tag'
+      operationError.value = err instanceof Error ? err.message : 'Failed to fetch tag'
       throw err
     } finally {
-      isLoading.value = false
+      operationLoading.value = false
     }
   }
 
   async function createTag(data: CreateTagDto) {
-    isLoading.value = true
-    error.value = null
+    operationLoading.value = true
+    operationError.value = null
     try {
       const newTag = await tagsApi.createTag(data)
       // Optimistically add to list if it matches current view, but simplest is to reload
       return newTag
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Failed to create tag'
+      operationError.value = err instanceof Error ? err.message : 'Failed to create tag'
       throw err
     } finally {
-      isLoading.value = false
+      operationLoading.value = false
     }
   }
 
   async function updateTag(id: string, data: UpdateTagDto) {
-    isLoading.value = true
-    error.value = null
+    operationLoading.value = true
+    operationError.value = null
     try {
       const updatedTag = await tagsApi.updateTag(id, data)
-      const index = tags.value.findIndex((t) => t.id === id)
-      if (index !== -1) {
-        tags.value[index] = { ...tags.value[index], ...updatedTag }
-      }
+      collection.updateItems((current) =>
+        current.map((currentTag) =>
+          currentTag.id === id ? { ...currentTag, ...updatedTag } : currentTag,
+        ),
+      )
       return updatedTag
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Failed to update tag'
+      operationError.value = err instanceof Error ? err.message : 'Failed to update tag'
       throw err
     } finally {
-      isLoading.value = false
+      operationLoading.value = false
     }
   }
 
   async function deleteTag(id: string, type: TagType) {
-    isLoading.value = true
-    error.value = null
+    operationLoading.value = true
+    operationError.value = null
     try {
       await tagsApi.deleteTag(id, type)
-      tags.value = tags.value.filter((t) => t.id !== id)
+      const removed = tags.value.some((tag) => tag.id === id)
+      collection.updateItems((current) => current.filter((tag) => tag.id !== id))
+      if (removed) collection.setTotal(Math.max(0, total.value - 1))
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Failed to delete tag'
+      operationError.value = err instanceof Error ? err.message : 'Failed to delete tag'
       throw err
     } finally {
-      isLoading.value = false
+      operationLoading.value = false
     }
   }
 
   async function mergeTag(data: { sourceId: string; targetTagId: string; type: TagType }) {
-    isLoading.value = true
-    error.value = null
+    operationLoading.value = true
+    operationError.value = null
     try {
       await tagsApi.mergeTag(data)
       // Remove source tag from list locally
-      tags.value = tags.value.filter((t) => t.id !== data.sourceId)
+      const removed = tags.value.some((tag) => tag.id === data.sourceId)
+      collection.updateItems((current) => current.filter((tag) => tag.id !== data.sourceId))
+      if (removed) collection.setTotal(Math.max(0, total.value - 1))
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Failed to merge tags'
+      operationError.value = err instanceof Error ? err.message : 'Failed to merge tags'
       throw err
     } finally {
-      isLoading.value = false
+      operationLoading.value = false
     }
   }
 
+  function clearError() {
+    collection.clearError()
+    operationError.value = null
+  }
+
   return {
-    items: collection.items,
+    items: readonlyTags,
     fetch: collection.fetch,
-    tags,
+    tags: readonlyTags,
     total,
     isLoading,
     error,
+    operationLoading,
+    operationError,
     fetchTags,
     fetchTag,
     createTag,
     updateTag,
     deleteTag,
     mergeTag,
+    clearError,
   }
 })

@@ -37,6 +37,7 @@ import org.springframework.data.redis.connection.stream.RecordId;
 import org.springframework.data.redis.connection.stream.StreamOffset;
 import org.springframework.data.redis.connection.stream.StreamReadOptions;
 import org.springframework.data.redis.connection.stream.StreamRecords;
+import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.StreamOperations;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -55,14 +56,15 @@ class SearchDocumentIndexWorkerTest {
     @Mock private IndexWriter meiliIndex;
 
     private SearchDocumentIndexWorker worker;
+    private io.micrometer.core.instrument.simple.SimpleMeterRegistry meterRegistry;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @BeforeEach
     void setUp() {
         SearchWorkerProperties props = new SearchWorkerProperties();
         props.setEnabled(true);
-        worker = new SearchDocumentIndexWorker(redisTemplate, searchIndex, objectMapper, props,
-                new io.micrometer.core.instrument.simple.SimpleMeterRegistry());
+        meterRegistry = new io.micrometer.core.instrument.simple.SimpleMeterRegistry();
+        worker = new SearchDocumentIndexWorker(redisTemplate, searchIndex, objectMapper, props, meterRegistry);
         when(redisTemplate.opsForStream()).thenReturn(streamOps);
         when(redisTemplate.opsForHash()).thenReturn(hashOps);
         when(redisTemplate.opsForValue()).thenReturn(valueOps);
@@ -150,6 +152,38 @@ class SearchDocumentIndexWorkerTest {
         assertThat(worker.consume()).isZero();
         verify(redisTemplate, never()).opsForStream();
         verify(searchIndex, never()).index(anyString());
+    }
+
+    @Test
+    @DisplayName("unknown queue observations keep the last known SLO gauges")
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    void unknownQueueObservationKeepsLastKnownGauges() {
+        stubBusyGroup();
+        stubEmptyReads();
+
+        when(streamOps.size(anyString())).thenReturn(2L);
+        when(redisTemplate.execute((RedisCallback<Object>) any(RedisCallback.class)))
+                .thenReturn(List.of(List.of("name", "search-worker", "pending", "3", "lag", "7")));
+
+        worker.consume();
+
+        assertThat(meterRegistry.get("search.worker.queue.lag").gauge().value()).isEqualTo(7);
+        assertThat(meterRegistry.get("search.worker.queue.pel.size").gauge().value()).isEqualTo(3);
+        assertThat(meterRegistry.get("search.worker.queue.pel.oldest.age.seconds").gauge().value()).isZero();
+        assertThat(meterRegistry.get("search.worker.queue.dlq.size").gauge().value()).isEqualTo(2);
+
+        when(redisTemplate.execute((RedisCallback<Object>) any(RedisCallback.class)))
+                .thenThrow(new IllegalStateException("health unavailable"));
+        when(streamOps.pending(anyString(), anyString(), any(org.springframework.data.domain.Range.class), anyLong()))
+                .thenThrow(new IllegalStateException("health unavailable"));
+        when(streamOps.size(anyString())).thenThrow(new IllegalStateException("health unavailable"));
+
+        worker.consume();
+
+        assertThat(meterRegistry.get("search.worker.queue.lag").gauge().value()).isEqualTo(7);
+        assertThat(meterRegistry.get("search.worker.queue.pel.size").gauge().value()).isEqualTo(3);
+        assertThat(meterRegistry.get("search.worker.queue.pel.oldest.age.seconds").gauge().value()).isZero();
+        assertThat(meterRegistry.get("search.worker.queue.dlq.size").gauge().value()).isEqualTo(2);
     }
 
     @Test

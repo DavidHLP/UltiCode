@@ -13,6 +13,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.LocalDateTime;
 import java.lang.reflect.Method;
 import java.util.List;
+import java.util.LinkedHashSet;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -71,6 +72,16 @@ class DefaultUserFactsReadProjectionTest {
     }
 
     @Test
+    void findByIdsReturnsRequestedOrderWhenAuthReturnsAnotherOrder() {
+        Set<String> ids = new LinkedHashSet<>(List.of("u-2", "u-1"));
+        when(accountQueryService.getAccountsByIds(ids)).thenReturn(RpcResult.success(List.of(
+                account("u-1", "alice"), account("u-2", "bob")), "t-order"));
+        when(profileReadMapper.findSearchRowsByAccountIds(ids)).thenReturn(List.of());
+
+        assertThat(projection.findByIds(ids).keySet()).containsExactly("u-2", "u-1");
+    }
+
+    @Test
     void unavailableAuthFailsClosed() {
         projection.setAccountQueryService(null);
 
@@ -106,6 +117,12 @@ class DefaultUserFactsReadProjectionTest {
 
     @Test
     void publicReadSeamsRemainNarrow() {
+        assertThat(UserFactsProjection.class.isAssignableFrom(DefaultUserFactsReadProjection.class))
+                .isTrue();
+        assertThat(UserDirectoryProjection.class.isAssignableFrom(DefaultUserFactsReadProjection.class))
+                .isFalse();
+        assertThat(UserDirectoryProjection.class.isAssignableFrom(DefaultUserDirectoryReadProjection.class))
+                .isTrue();
         assertThat(List.of(UserFactsProjection.class.getDeclaredMethods()))
                 .extracting(Method::getName)
                 .containsExactlyInAnyOrder("findById", "findByIds", "compose");

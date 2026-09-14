@@ -16,15 +16,16 @@ import com.ulticode.modules.admin.port.AdminDashboardReadPort;
 import com.ulticode.submission.api.dto.SubmissionDashboardChartDataDTO;
 import com.ulticode.submission.api.dto.SubmissionDashboardStatsDTO;
 import com.ulticode.submission.api.service.SubmissionAdminReadPort;
-import jakarta.annotation.PreDestroy;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
@@ -48,6 +49,7 @@ public class DefaultAdminDashboardReadAdapter implements AdminDashboardReadPort 
 
     private final SubmissionAdminReadPort submissionAdminReadPort;
     private final CancellableQueryExecutor queryExecutor;
+    private final AdminQueryDeadline queryDeadline;
 
     @DubboReference(group = "backend-app", version = "1.0.0",
             timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
@@ -64,20 +66,19 @@ public class DefaultAdminDashboardReadAdapter implements AdminDashboardReadPort 
     private AdminUseCaseMetrics useCaseMetrics;
 
     @Autowired
-    public DefaultAdminDashboardReadAdapter(SubmissionAdminReadPort submissionAdminReadPort) {
-        this(submissionAdminReadPort, new CancellableQueryExecutor("admin-dashboard-query", 4));
+    public DefaultAdminDashboardReadAdapter(
+            SubmissionAdminReadPort submissionAdminReadPort,
+            @Qualifier("adminDashboardQueryExecutor") CancellableQueryExecutor queryExecutor,
+            AdminQueryDeadline queryDeadline) {
+        this.submissionAdminReadPort = submissionAdminReadPort;
+        this.queryExecutor = Objects.requireNonNull(queryExecutor, "queryExecutor");
+        this.queryDeadline = Objects.requireNonNull(queryDeadline, "queryDeadline");
     }
 
     DefaultAdminDashboardReadAdapter(
             SubmissionAdminReadPort submissionAdminReadPort,
             CancellableQueryExecutor queryExecutor) {
-        this.submissionAdminReadPort = submissionAdminReadPort;
-        this.queryExecutor = queryExecutor;
-    }
-
-    @PreDestroy
-    void shutdownQueryExecutor() {
-        queryExecutor.close();
+        this(submissionAdminReadPort, queryExecutor, AdminQueryDeadline.system());
     }
 
     @Override
@@ -91,6 +92,8 @@ public class DefaultAdminDashboardReadAdapter implements AdminDashboardReadPort 
     }
 
     private DashboardData loadStatsInternal(LocalDateTime now) {
+        AdminQueryDeadline.Deadline deadline = queryDeadline.start(
+                RpcPolicy.QUERY_TIMEOUT_MS, TimeUnit.MILLISECONDS);
         CancellableQueryExecutor.Query<DashboardAppStatsDTO> appFuture = queryExecutor.submit(
                 () -> appDashboardReadPort.loadDashboardStats(now));
         CancellableQueryExecutor.Query<SubmissionDashboardStatsDTO> submissionFuture = queryExecutor.submit(
@@ -99,8 +102,8 @@ public class DefaultAdminDashboardReadAdapter implements AdminDashboardReadPort 
         List<OwnerRead<Object>> reads = AdminReadContract.<Object>awaitAndClassify(
                 queryExecutor,
                 "Dashboard",
-                RpcPolicy.QUERY_TIMEOUT_MS,
-                TimeUnit.MILLISECONDS,
+                deadline.remainingNanos(),
+                TimeUnit.NANOSECONDS,
                 appFuture,
                 submissionFuture,
                 userFuture);

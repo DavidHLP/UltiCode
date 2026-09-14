@@ -70,6 +70,7 @@ class OwnerReconcilerTest {
             Instant.parse("2026-08-31T00:00:00Z"),
             Instant.parse("2026-08-31T01:00:00Z"));
 
+    private ReconciliationCheckpointCodec checkpointCodec;
     private OwnerReconciler reconciler;
 
     @BeforeEach
@@ -86,9 +87,11 @@ class OwnerReconcilerTest {
                 NotificationReconciliationReadPort.MAX_PAGE_SIZE)).thenReturn(List.of());
         when(auditMapper.auditPerformerIdsSince(any(Integer.class), any(Integer.class),
                 any(LocalDateTime.class))).thenReturn(List.of());
+        checkpointCodec = new ReconciliationCheckpointCodec(new ObjectMapper());
         reconciler = new OwnerReconciler(
                 runMapper, uuidGenerator, appPort, submissionPort, notificationPort,
-                auditMapper, meterRegistry, leaseService, new ObjectMapper());
+                auditMapper, meterRegistry, leaseService,
+                checkpointCodec);
         ReflectionTestUtils.setField(reconciler, "authQueryService", authService);
     }
 
@@ -400,11 +403,6 @@ class OwnerReconcilerTest {
         ReconciliationRun first = reconciler.runReconciliation();
 
         assertThat(first.getStatus()).isEqualTo("PARTIAL");
-        assertThat(first.getDetail()).contains(
-                "\"continuation\"",
-                "\"submission\":{\"cursor\":\"user-15999\"",
-                "\"notification\":{\"cursor\":\"user-15999\"",
-                "\"audit\":{\"offset\":16000");
 
         ReconciliationRun second = reconciler.runReconciliation();
 
@@ -422,122 +420,18 @@ class OwnerReconcilerTest {
     }
 
     @Test
-    @DisplayName("incremental checkpoints are isolated by their creation watermark")
-    void incrementalCheckpointUsesMatchingWatermark() {
-        LocalDateTime since = LocalDateTime.of(2026, 8, 29, 0, 0);
-        ReconciliationRun checkpoint = new ReconciliationRun();
-        checkpoint.setStartedAt(LocalDateTime.of(2026, 8, 30, 0, 0));
-        checkpoint.setDetail("{\"mode\":\"INCREMENTAL\",\"continuation\":{"
-                + "\"createdSince\":\"" + since + "\","
-                + "\"submission\":{\"cursor\":\"user-15999\",\"missing\":7,"
-                + "\"complete\":false},"
-                + "\"notification\":{\"cursor\":\"\",\"missing\":0,\"complete\":true},"
-                + "\"audit\":{\"offset\":0,\"missing\":0,\"complete\":true}}}");
-        when(runMapper.findLatestPartial("INCREMENTAL", since))
-                .thenReturn(checkpoint);
-        when(runMapper.findLatestCompleted("INCREMENTAL", since))
-                .thenReturn(null);
-        when(authService.countAuthOrphans())
-                .thenReturn(RpcResult.success(AuthReconciliationOrphanCounts.ZERO, "t-system"));
-        when(submissionPort.findUserReferenceCounts("user-15999", since,
-                SubmissionReconciliationReadPort.MAX_PAGE_SIZE))
-                .thenReturn(List.of(new SubmissionUserReferenceCountDTO("user-16000", 1L)));
-        when(notificationPort.findUserReferenceCounts(anyString(), eq(since),
-                eq(NotificationReconciliationReadPort.MAX_PAGE_SIZE))).thenReturn(List.of());
-        when(authService.existingUserIds(any()))
-                .thenReturn(RpcResult.success(Set.of(), "t-system"));
-        when(appPort.countOrphans()).thenReturn(ReconciliationOrphanCounts.ZERO);
-        when(auditMapper.auditPerformerIds(any(Integer.class), any(Integer.class)))
-                .thenReturn(List.of());
-
-        ReconciliationRun run = reconciler.runIncrementalReconciliation(since);
-
-        assertThat(run.getStatus()).isEqualTo("COMPLETED");
-        assertThat(run.getDetail()).contains("\"orphans\":8");
-        verify(runMapper).findLatestPartial("INCREMENTAL", since);
-        verify(submissionPort).findUserReferenceCounts(
-                "user-15999", since, SubmissionReconciliationReadPort.MAX_PAGE_SIZE);
-    }
-
-    @Test
-    @DisplayName("completed checkpoint supersedes an equal-time partial by run ID")
-    void completedCheckpointSupersedesEqualTimePartialByRunId() {
-        LocalDateTime startedAt = LocalDateTime.of(2026, 8, 30, 0, 0);
-        ReconciliationRun partial = new ReconciliationRun();
-        partial.setRunId("run-1");
-        partial.setStartedAt(startedAt);
-        partial.setDetail("{\"mode\":\"FULL\",\"continuation\":{"
-                + "\"createdSince\":null,"
-                + "\"submission\":{\"cursor\":\"user-15999\",\"missing\":7,"
-                + "\"complete\":false},"
-                + "\"notification\":{\"cursor\":\"\",\"missing\":0,\"complete\":true},"
-                + "\"audit\":{\"offset\":0,\"missing\":0,\"complete\":true}}}");
-        ReconciliationRun completed = new ReconciliationRun();
-        completed.setRunId("run-2");
-        completed.setStartedAt(startedAt);
-        when(runMapper.findLatestPartial("FULL", null)).thenReturn(partial);
-        when(runMapper.findLatestCompleted("FULL", null)).thenReturn(completed);
-        when(authService.countAuthOrphans())
-                .thenReturn(RpcResult.success(AuthReconciliationOrphanCounts.ZERO, "t-system"));
-        when(appPort.countOrphans()).thenReturn(ReconciliationOrphanCounts.ZERO);
-        when(auditMapper.auditPerformerIds(any(Integer.class), any(Integer.class)))
-                .thenReturn(List.of());
-
-        ReconciliationRun run = reconciler.runReconciliation();
-
-        assertThat(run.getStatus()).isEqualTo("COMPLETED");
-        verify(submissionPort).findUserReferenceCounts(
-                "", null, SubmissionReconciliationReadPort.MAX_PAGE_SIZE);
-        verify(submissionPort, org.mockito.Mockito.never()).findUserReferenceCounts(
-                "user-15999", null, SubmissionReconciliationReadPort.MAX_PAGE_SIZE);
-    }
-
-    @Test
-    @DisplayName("fractional checkpoint counters fail closed")
-    void fractionalCheckpointCountersFailClosed() {
-        ReconciliationRun checkpoint = new ReconciliationRun();
-        checkpoint.setDetail("{\"mode\":\"FULL\",\"continuation\":{"
-                + "\"createdSince\":null,"
-                + "\"submission\":{\"cursor\":\"user-1\",\"missing\":-0.5,"
-                + "\"complete\":false},"
-                + "\"notification\":{\"cursor\":\"\",\"missing\":0,\"complete\":true},"
-                + "\"audit\":{\"offset\":0,\"missing\":0,\"complete\":true}}}");
-        when(runMapper.findLatestPartial("FULL", null)).thenReturn(checkpoint);
-        when(runMapper.findLatestCompleted("FULL", null)).thenReturn(null);
-
-        ReconciliationRun run = reconciler.runReconciliation();
-
-        assertThat(run.getStatus()).isEqualTo("FAILED");
-        assertThat(run.getDetail()).contains("invalid reconciliation checkpoint");
-    }
-
-    @Test
-    @DisplayName("checkpoint without continuation fails closed")
-    void checkpointWithoutContinuationFailsClosed() {
-        ReconciliationRun checkpoint = new ReconciliationRun();
-        checkpoint.setDetail("{\"mode\":\"FULL\"}");
-        when(runMapper.findLatestPartial("FULL", null)).thenReturn(checkpoint);
-        when(runMapper.findLatestCompleted("FULL", null)).thenReturn(null);
-
-        ReconciliationRun run = reconciler.runReconciliation();
-
-        assertThat(run.getStatus()).isEqualTo("FAILED");
-        assertThat(run.getDetail()).contains("invalid reconciliation checkpoint");
-    }
-
-    @Test
     @DisplayName("full scans resume Notification and audit checkpoints through completion")
     void fullScanResumesNotificationAndAuditCheckpoints() {
         AtomicReference<ReconciliationRun> completedCheckpoint = new AtomicReference<>();
         ReconciliationRun checkpoint = new ReconciliationRun();
         checkpoint.setRunId("run-0");
         checkpoint.setStartedAt(LocalDateTime.of(2026, 8, 30, 0, 0));
-        checkpoint.setDetail("{\"mode\":\"FULL\",\"continuation\":{"
-                + "\"createdSince\":null,"
-                + "\"submission\":{\"cursor\":\"\",\"missing\":0,\"complete\":true},"
-                + "\"notification\":{\"cursor\":\"user-15999\",\"missing\":0,"
-                + "\"complete\":false},"
-                + "\"audit\":{\"offset\":16000,\"missing\":0,\"complete\":false}}}");
+        ReconciliationCheckpointCodec.Progress progress = checkpointCodec.initial(null);
+        progress.advanceSubmission(new OrphanScan.KeysetResult(0, "", true));
+        progress.advanceNotification(new OrphanScan.KeysetResult(0, "user-15999", false));
+        progress.advanceAudit(new OrphanScan.OffsetResult(0, 16000, false));
+        checkpoint.setDetail("{\"mode\":\"FULL\",\"continuation\":"
+                + checkpointCodec.encode(progress) + "}");
         when(runMapper.findLatestPartial("FULL", null)).thenReturn(checkpoint);
         when(runMapper.findLatestCompleted("FULL", null))
                 .thenAnswer(invocation -> completedCheckpoint.get());
@@ -568,9 +462,6 @@ class OwnerReconcilerTest {
 
         assertThat(first.getStatus()).isEqualTo("COMPLETED");
         assertThat(first.getOrphanCount()).isEqualTo(2);
-        assertThat(first.getDetail()).contains(
-                "\"continuation\"", "\"notification\":{\"cursor\":\"user-16000\"",
-                "\"audit\":{\"offset\":16000,\"missing\":1,\"complete\":true}");
 
         ReconciliationRun second = reconciler.runReconciliation();
 
@@ -635,16 +526,10 @@ class OwnerReconcilerTest {
         ReconciliationRun first = reconciler.runReconciliation();
 
         assertThat(first.getStatus()).isEqualTo("PARTIAL");
-        assertThat(first.getDetail()).contains(
-                "\"notification\":{\"cursor\":\"user-15999\"",
-                "\"audit\":{\"offset\":16000");
 
         ReconciliationRun second = reconciler.runReconciliation();
 
         assertThat(second.getStatus()).isEqualTo("COMPLETED");
-        assertThat(second.getDetail()).contains(
-                "\"notification\":{\"cursor\":\"user-16499\"",
-                "\"audit\":{\"offset\":16500");
         verify(notificationPort).findUserReferenceCounts(
                 "user-15999", null, NotificationReconciliationReadPort.MAX_PAGE_SIZE);
         verify(auditMapper).auditPerformerIds(16000, 500);

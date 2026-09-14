@@ -1,6 +1,6 @@
 # 当前状态
 
-更新时间：2026-09-12
+更新时间：2026-09-14
 
 ## 总体状态
 
@@ -68,6 +68,9 @@
   等本地语义。开发脚本的 Compose/env/Docker helper 与 architecture contract
   registry 已统一，`distributed` 默认拓扑未改变。详见
   [`ADR-0013`](../architecture/decisions/0013-architecture-review-module-convergence.md)。
+- 2026-09-13 架构复审报告 C1-C8 跟进已集成到当前分支（含 C2 Admin
+  detail failure seam 与 C3 Console auth helper 收口）；未纳入范围的
+  parked 项继续以 ADR-0013 的 deliberate non-decisions 为准。
 
 ## 验证入口
 

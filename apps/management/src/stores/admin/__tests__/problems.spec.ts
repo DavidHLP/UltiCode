@@ -142,8 +142,8 @@ describe('useProblemsStore', () => {
 
       expect(problemsApi.createProblem).toHaveBeenCalledWith(input)
       expect(result).toEqual(mockProblem)
-      expect(store.loading).toBe(false)
-      expect(store.error).toBeNull()
+      expect(store.operationLoading).toBe(false)
+      expect(store.operationError).toBeNull()
     })
 
     it('should set error and throw on failure', async () => {
@@ -157,16 +157,22 @@ describe('useProblemsStore', () => {
       }
 
       await expect(store.createProblem(input)).rejects.toThrow('Creation failed')
-      expect(store.error).toBe('Creation failed')
-      expect(store.loading).toBe(false)
+      expect(store.operationError).toBe('Creation failed')
+      expect(store.operationLoading).toBe(false)
     })
   })
 
   describe('updateProblem', () => {
     it('should update local list item when problem is in the list', async () => {
+      vi.mocked(problemsApi.getProblems).mockResolvedValue({
+        items: [mockProblem],
+        total: 1,
+        page: 1,
+        pageSize: 10,
+        totalPages: 1,
+      })
       const store = useProblemsStore()
-      store.problems = [{ ...mockProblem }]
-      store.total = 1
+      await store.fetchProblems()
 
       vi.mocked(problemsApi.updateProblem).mockResolvedValue(mockUpdatedProblem)
 
@@ -215,15 +221,21 @@ describe('useProblemsStore', () => {
       vi.mocked(problemsApi.updateProblem).mockRejectedValue(new Error('Update failed'))
 
       await expect(store.updateProblem('1', { title: 'X' })).rejects.toThrow('Update failed')
-      expect(store.error).toBe('Update failed')
+      expect(store.operationError).toBe('Update failed')
     })
   })
 
   describe('deleteProblem', () => {
     it('should remove problem from list and decrement total', async () => {
+      vi.mocked(problemsApi.getProblems).mockResolvedValue({
+        items: [mockProblem],
+        total: 1,
+        page: 1,
+        pageSize: 10,
+        totalPages: 1,
+      })
       const store = useProblemsStore()
-      store.problems = [{ ...mockProblem }]
-      store.total = 1
+      await store.fetchProblems()
 
       vi.mocked(problemsApi.deleteProblem).mockResolvedValue(undefined)
 
@@ -235,9 +247,15 @@ describe('useProblemsStore', () => {
     })
 
     it('should not decrement total if problem was not in list', async () => {
+      vi.mocked(problemsApi.getProblems).mockResolvedValue({
+        items: [],
+        total: 5,
+        page: 1,
+        pageSize: 10,
+        totalPages: 1,
+      })
       const store = useProblemsStore()
-      store.problems = []
-      store.total = 5
+      await store.fetchProblems()
 
       vi.mocked(problemsApi.deleteProblem).mockResolvedValue(undefined)
 
@@ -257,8 +275,14 @@ describe('useProblemsStore', () => {
         isPremium: false,
         isPublished: false,
       }
-      store.problems = [{ ...mockProblem }]
-      store.total = 1
+      vi.mocked(problemsApi.getProblems).mockResolvedValue({
+        items: [mockProblem],
+        total: 1,
+        page: 1,
+        pageSize: 10,
+        totalPages: 1,
+      })
+      await store.fetchProblems()
 
       vi.mocked(problemsApi.deleteProblem).mockResolvedValue(undefined)
 
@@ -272,17 +296,13 @@ describe('useProblemsStore', () => {
       vi.mocked(problemsApi.deleteProblem).mockRejectedValue(new Error('Delete failed'))
 
       await expect(store.deleteProblem('1')).rejects.toThrow('Delete failed')
-      expect(store.error).toBe('Delete failed')
+      expect(store.operationError).toBe('Delete failed')
     })
   })
 
   describe('reset', () => {
     it('should clear all state', () => {
       const store = useProblemsStore()
-      store.problems = [{ ...mockProblem }]
-      store.total = 10
-      store.loading = true
-      store.error = 'some error'
       store.headerData = {
         id: '1',
         title: 'Test',
@@ -306,11 +326,13 @@ describe('useProblemsStore', () => {
   describe('clearError', () => {
     it('should set error to null', () => {
       const store = useProblemsStore()
-      store.error = 'some error'
+      vi.mocked(problemsApi.getProblems).mockRejectedValue(new Error('some error'))
 
-      store.clearError()
+      return store.fetchProblems().then(() => {
+        store.clearError()
 
-      expect(store.error).toBeNull()
+        expect(store.error).toBeNull()
+      })
     })
   })
 

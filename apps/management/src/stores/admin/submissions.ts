@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, readonly, type DeepReadonly } from 'vue'
 import {
   submissionsApi,
   type SubmissionListItem,
@@ -21,10 +21,13 @@ export const useSubmissionsStore = defineStore('admin-submissions', () => {
     },
   })
   const submissions = collection.items
-  const total = collection.total
-  const loading = collection.isLoading
-  const error = collection.error
+  const readonlySubmissions: DeepReadonly<typeof submissions> = readonly(submissions)
+  const total: DeepReadonly<typeof collection.total> = readonly(collection.total)
+  const loading: DeepReadonly<typeof collection.isLoading> = readonly(collection.isLoading)
+  const error: DeepReadonly<typeof collection.error> = readonly(collection.error)
   const fetchSubmissions = collection.fetch
+  const operationLoading = ref(false)
+  const operationError = ref<string | null>(null)
 
   // Statistics
   const statistics = ref<SubmissionStatistics | null>(null)
@@ -75,11 +78,29 @@ export const useSubmissionsStore = defineStore('admin-submissions', () => {
   }
 
   async function rejudgeSubmission(id: string, notifyUser: boolean = false) {
-    return submissionsApi.rejudge(id, notifyUser)
+    operationLoading.value = true
+    operationError.value = null
+    try {
+      return await submissionsApi.rejudge(id, notifyUser)
+    } catch (err) {
+      operationError.value = err instanceof Error ? err.message : 'Failed to rejudge submission'
+      throw err
+    } finally {
+      operationLoading.value = false
+    }
   }
 
   async function batchRejudge(submissionIds: string[], notifyUsers: boolean = false) {
-    return submissionsApi.batchRejudge(submissionIds, notifyUsers)
+    operationLoading.value = true
+    operationError.value = null
+    try {
+      return await submissionsApi.batchRejudge(submissionIds, notifyUsers)
+    } catch (err) {
+      operationError.value = err instanceof Error ? err.message : 'Failed to rejudge submissions'
+      throw err
+    } finally {
+      operationLoading.value = false
+    }
   }
 
   async function getSubmissionDetail(id: string) {
@@ -87,31 +108,33 @@ export const useSubmissionsStore = defineStore('admin-submissions', () => {
   }
 
   function clearError() {
-    error.value = null
+    collection.clearError()
+    operationError.value = null
   }
 
   function reset() {
-    submissions.value = []
-    total.value = 0
+    collection.reset()
     totalPages.value = 0
-    loading.value = false
-    error.value = null
     statistics.value = null
     statsLoading.value = false
+    operationLoading.value = false
+    operationError.value = null
     statuses.value = []
     languages.value = []
   }
 
   return {
     // State
-    items: collection.items,
-    isLoading: collection.isLoading,
+    items: readonlySubmissions,
+    isLoading: loading,
     fetch: collection.fetch,
-    submissions,
+    submissions: readonlySubmissions,
     total,
     totalPages,
     loading,
     error,
+    operationLoading,
+    operationError,
     statistics,
     statsLoading,
     statuses,

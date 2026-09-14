@@ -1,6 +1,6 @@
-import { computed, type ComputedRef } from 'vue'
-import { useAuthStore } from '@/stores/auth'
+import { type ComputedRef } from 'vue'
 import { PERM } from '@/constants/permissions'
+import { usePermissionMap } from './usePermissionMap'
 
 export interface ProblemPermissionMap {
   read: ComputedRef<boolean>
@@ -11,17 +11,13 @@ export interface ProblemPermissionMap {
 }
 
 export function useProblemPermissions(): { can: { problem: ProblemPermissionMap } } {
-  const authStore = useAuthStore()
-  const has = (permission: (typeof PERM)[keyof typeof PERM]) =>
-    authStore.hasPermission(permission.action, permission.resource)
-
-  const problem: ProblemPermissionMap = {
-    read: computed(() => has(PERM.PROBLEM_READ)),
-    create: computed(() => has(PERM.PROBLEM_CREATE)),
-    update: computed(() => has(PERM.PROBLEM_UPDATE)),
-    delete: computed(() => has(PERM.PROBLEM_DELETE)),
-    moderate: computed(() => has(PERM.MODERATE_PROBLEM)),
-  }
+  const problem: ProblemPermissionMap = usePermissionMap({
+    read: PERM.PROBLEM_READ,
+    create: PERM.PROBLEM_CREATE,
+    update: PERM.PROBLEM_UPDATE,
+    delete: PERM.PROBLEM_DELETE,
+    moderate: PERM.MODERATE_PROBLEM,
+  })
 
   return { can: { problem } }
 }

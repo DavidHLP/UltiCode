@@ -21,7 +21,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import jakarta.validation.Validator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -39,7 +38,6 @@ public class ProblemSubmissionController {
     private final SubmissionIntakePort submissionWritePort;
     private final SubmissionFactsCapture submissionFactsCapture;
     private final InteractiveCodeRunner codeExecutionPort;
-    private final Validator validator;
     private final CurrentUserProvider currentUserProvider;
 
     /**
@@ -122,19 +120,8 @@ public class ProblemSubmissionController {
             throw new BusinessException(BaseErrorCode.UNAUTHORIZED);
         }
 
-        // Set problem ID from path, then validate
-        createDTO.setProblemId(problemId);
-        var violations = validator.validate(createDTO);
-        if (!violations.isEmpty()) {
-            String message = violations.stream()
-                    .map(v -> v.getMessage())
-                    .findFirst()
-                    .orElse("Validation failed");
-            throw new BusinessException(BaseErrorCode.BAD_REQUEST, message);
-        }
-
         SubmissionVO submission = submissionWritePort.submit(
-                userId, createDTO, submissionFactsCapture.capture(userId, createDTO));
+                userId, createDTO, submissionFactsCapture.capture(userId, problemId, createDTO));
         return Result.success(submission);
     }
 

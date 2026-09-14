@@ -16,13 +16,14 @@ import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.modules.admin.dto.AdminUserVO;
 import com.ulticode.modules.admin.metrics.AdminUseCaseMetrics;
 import com.ulticode.modules.admin.port.AdminSubmissionUserDetailStatsReadPort;
+import com.ulticode.modules.admin.port.adapter.AdminQueryDeadline;
 import com.ulticode.modules.admin.port.adapter.CancellableQueryExecutor;
 import com.ulticode.modules.admin.projection.AdminUserEnricher;
 import com.ulticode.submission.api.dto.SubmissionUserDetailStatsSnapshotDTO;
-import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import java.time.Clock;
@@ -67,8 +68,6 @@ public class DefaultAdminUserDetailQuery implements AdminUserDetailQuery {
     private static final String SUBMISSION_FAILURE_REASON =
             "Submission stats query unavailable";
     private static final int DETAIL_QUERY_POOL_SIZE = 4;
-    private static final long DETAIL_WALL_BUDGET_NANOS =
-            TimeUnit.MILLISECONDS.toNanos(RpcPolicy.QUERY_TOTAL_BUDGET_MS);
     private static final Map<AdminUseCaseMetrics.Owner, Integer> DETAIL_CALLS = Map.of(
             AdminUseCaseMetrics.Owner.AUTH, 2,
             AdminUseCaseMetrics.Owner.APP, 2,
@@ -79,6 +78,7 @@ public class DefaultAdminUserDetailQuery implements AdminUserDetailQuery {
     private final SolutionReadPort solutionReadPort;
     private final Clock clock;
     private final CancellableQueryExecutor queryExecutor;
+    private final AdminQueryDeadline queryDeadline;
 
     @Autowired(required = false)
     @DubboReference(group = "backend-auth", version = "1.0.0",
@@ -95,9 +95,11 @@ public class DefaultAdminUserDetailQuery implements AdminUserDetailQuery {
             AdminUserEnricher userEnricher,
             AdminSubmissionUserDetailStatsReadPort submissionStatsReadPort,
             SolutionReadPort solutionReadPort,
-            Clock clock) {
+            Clock clock,
+            @Qualifier("adminUserDetailQueryExecutor") CancellableQueryExecutor queryExecutor,
+            AdminQueryDeadline queryDeadline) {
         this(userEnricher, submissionStatsReadPort, solutionReadPort, null, clock,
-                new CancellableQueryExecutor("admin-user-detail-query", DETAIL_QUERY_POOL_SIZE));
+                queryExecutor, queryDeadline);
     }
 
     /** Test constructor that keeps the optional Auth snapshot provider explicit. */
@@ -108,7 +110,8 @@ public class DefaultAdminUserDetailQuery implements AdminUserDetailQuery {
             AuthorizationSnapshotService authorizationSnapshotService) {
         this(userEnricher, submissionStatsReadPort, solutionReadPort,
                 authorizationSnapshotService, Clock.systemDefaultZone(),
-                new CancellableQueryExecutor("admin-user-detail-query-test", DETAIL_QUERY_POOL_SIZE));
+                new CancellableQueryExecutor("admin-user-detail-query-test", DETAIL_QUERY_POOL_SIZE),
+                AdminQueryDeadline.system());
     }
 
     /** Test constructor with an explicit clock for expiry-boundary assertions. */
@@ -120,7 +123,8 @@ public class DefaultAdminUserDetailQuery implements AdminUserDetailQuery {
             Clock clock) {
         this(userEnricher, submissionStatsReadPort, solutionReadPort,
                 authorizationSnapshotService, clock,
-                new CancellableQueryExecutor("admin-user-detail-query-test", DETAIL_QUERY_POOL_SIZE));
+                new CancellableQueryExecutor("admin-user-detail-query-test", DETAIL_QUERY_POOL_SIZE),
+                AdminQueryDeadline.system());
     }
 
     DefaultAdminUserDetailQuery(
@@ -129,18 +133,15 @@ public class DefaultAdminUserDetailQuery implements AdminUserDetailQuery {
             SolutionReadPort solutionReadPort,
             AuthorizationSnapshotService authorizationSnapshotService,
             Clock clock,
-            CancellableQueryExecutor queryExecutor) {
+            CancellableQueryExecutor queryExecutor,
+            AdminQueryDeadline queryDeadline) {
         this.userEnricher = Objects.requireNonNull(userEnricher, "userEnricher");
         this.submissionStatsReadPort = submissionStatsReadPort;
         this.solutionReadPort = solutionReadPort;
         this.clock = Objects.requireNonNull(clock, "clock");
         this.queryExecutor = Objects.requireNonNull(queryExecutor, "queryExecutor");
+        this.queryDeadline = Objects.requireNonNull(queryDeadline, "queryDeadline");
         this.authorizationSnapshotService = authorizationSnapshotService;
-    }
-
-    @PreDestroy
-    void shutdownQueryExecutor() {
-        queryExecutor.close();
     }
 
     @Override
@@ -165,14 +166,15 @@ public class DefaultAdminUserDetailQuery implements AdminUserDetailQuery {
             return AdminUserDetailResult.notFound();
         }
 
-        long deadline = System.nanoTime() + DETAIL_WALL_BUDGET_NANOS;
+        AdminQueryDeadline.Deadline deadline = queryDeadline.start(
+                RpcPolicy.QUERY_TOTAL_BUDGET_MS, TimeUnit.MILLISECONDS);
         CancellableQueryExecutor.Query<AuthAccountDTO> accountQuery =
                 queryExecutor.submit(() -> userEnricher.findAccountAuthoritatively(userId));
         AuthAccountDTO account;
         try {
             account = queryExecutor.await(
                     accountQuery,
-                    remainingNanos(deadline),
+                    deadline.remainingNanos(),
                     TimeUnit.NANOSECONDS);
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
@@ -192,7 +194,7 @@ public class DefaultAdminUserDetailQuery implements AdminUserDetailQuery {
         }
 
         AdminUserVO user = toUser(account, null);
-        if (remainingNanos(deadline) <= 0) {
+        if (deadline.remainingNanos() <= 0) {
             return foundWithUnavailableSections(user, DETAIL_TIMEOUT_REASON);
         }
 
@@ -208,7 +210,7 @@ public class DefaultAdminUserDetailQuery implements AdminUserDetailQuery {
         List<OwnerRead<Object>> reads = AdminReadContract.<Object>awaitAndClassify(
                 queryExecutor,
                 "Admin user detail",
-                Math.max(0L, remainingNanos(deadline)),
+                deadline.remainingNanos(),
                 TimeUnit.NANOSECONDS,
                 permissionQuery,
                 profileQuery,
@@ -242,10 +244,6 @@ public class DefaultAdminUserDetailQuery implements AdminUserDetailQuery {
         log.warn("Auth account query failed: {}",
                 cause == null ? "unknown" : cause.getClass().getSimpleName());
         return AdminUserDetailResult.unavailable("Auth account query unavailable");
-    }
-
-    private static long remainingNanos(long deadline) {
-        return Math.max(0L, deadline - System.nanoTime());
     }
 
     private AdminUserDetailResult foundWithUnavailableSections(

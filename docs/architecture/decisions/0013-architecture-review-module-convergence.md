@@ -2,6 +2,7 @@
 
 - 状态：`Accepted — implemented`
 - 日期：2026-09-12
+- 跟进实现：2026-09-13 架构复审报告 C1-C8
 - 输入：2026-09-12 架构复审报告
 - 关联决策：[`ADR-0011`](0011-topology-contract-module-convergence.md)、[`ADR-0012`](0012-core-topology-three-way-decision.md)
 - 默认拓扑：`distributed`
@@ -17,7 +18,9 @@
 
 1. Admin 使用 `CancellableQueryExecutor` 作为 bounded await/cancel 边界。
    Dashboard、Analytics、用户 enrichment 和用户 detail 复用同一 fan-out
-   等待策略；调用方继续负责 typed degradation 和业务错误映射。
+   等待策略；生命周期由 `AdminQueryExecutorConfiguration` 持有，按 use case
+   保留独立 pool，`AdminQueryDeadline` 统一 monotonic deadline 计算；调用方
+   继续负责 typed degradation 和业务错误映射。
 2. `RedisStreamInboxBridge` 与 `RedisStreamTransport` 负责 Redis Streams 的
    group/read/reclaim/ack、信封校验、poison staging 和 drain。App、Notification
    与 Admin 只注册 binding 和 handler；Search 复用 transport，但保留自己的
@@ -43,6 +46,16 @@
 7. Auth 只保留 `createSessionAuthStore` 这一套共享 session policy；Management
    在其上保留 boolean Pinia view，Console 保留 status-machine view。两端的
    transport、路由和页面权限语义不进入共享工厂。
+8. 架构复审报告的 C1-C8 跟进项已按既有 owner 边界落地：Admin 抽出
+   reconciliation checkpoint codec、集中用户 detail failure translation；Console
+   删除未使用的 auth helper；Integration Inbox 共享 Redis queue-health observation；
+   App Facts projection 负责批量结果的请求顺序；Auth search outbox 接入公共
+   `OutboxDispatcher`；Management collection slice 暴露只读列表状态并分离操作
+   状态；App submission intake 统一 admission/facts snapshot seam，并通过
+   `TimeSource` 捕获时间。复审中原先 parked 的 Admin query 生命周期/deadline、
+   dead frontend exports、Facts/Directory 实现拆分和 Management permission
+   map 机制重复也已按最小变更完成。上述收敛不新增进程、数据库或消息基础设施，
+   owner 仍保留业务校验和本地状态语义。
 
 ## Deliberate non-decisions
 
@@ -55,6 +68,8 @@
   “当前 pipeline 未读取”替代该证明。
 - `sandbox-types` 的无前端 consumer、两方法单实现的 `JudgeAttemptExecutor`、
   事务边界内的单 caller outbox writer 不做无收益的抽象或删除。
+- Facts/Directory 的实现已物理拆分，但不继续抽出新的共享基类；只有出现第二个
+  独立 adapter 或明确变化不变量时才重新评估。
 
 ## Consequences
 
@@ -70,9 +85,13 @@
 ## Evidence anchors
 
 - [`CancellableQueryExecutor`](../../../services/admin/src/main/java/com/ulticode/modules/admin/port/adapter/CancellableQueryExecutor.java)
+- [`AdminQueryExecutorConfiguration`](../../../services/admin/src/main/java/com/ulticode/admin/config/AdminQueryExecutorConfiguration.java)
+- [`AdminQueryDeadline`](../../../services/admin/src/main/java/com/ulticode/modules/admin/port/adapter/AdminQueryDeadline.java)
 - [`RedisStreamInboxBridge`](../../../services/platform/integration-inbox/src/main/java/com/ulticode/modules/event/inbox/RedisStreamInboxBridge.java)
 - [`OutboxDispatcher`](../../../services/platform/common/src/main/java/com/ulticode/common/outbox/OutboxDispatcher.java)
 - [`OrphanScan`](../../../services/admin/src/main/java/com/ulticode/modules/reconciliation/OrphanScan.java)
 - [`@ulticode/domain-types`](../../../packages/domain-types/src/index.ts)
 - [`createSessionAuthStore`](../../../packages/auth-core/src/createSessionAuthStore.ts)
+- [`usePermissionMap`](../../../apps/management/src/composables/usePermissionMap.ts)
+- [`DefaultUserDirectoryReadProjection`](../../../services/app/app-web/src/main/java/com/ulticode/app/user/port/DefaultUserDirectoryReadProjection.java)
 - [`architecture-contract-test.rules`](../../../scripts/dev/architecture-contract-test.rules)

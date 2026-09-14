@@ -39,11 +39,12 @@ class DefaultAdminAnalyticsPortAdapterMetricsTest {
     private AccountQueryService accountQueryService;
 
     private DefaultAdminAnalyticsPortAdapter adapter;
+    private CancellableQueryExecutor queryExecutor;
 
     @AfterEach
     void closeAdapter() {
         if (adapter != null) {
-            adapter.shutdownQueryExecutor();
+            queryExecutor.close();
         }
     }
 
@@ -131,11 +132,14 @@ class DefaultAdminAnalyticsPortAdapterMetricsTest {
     }
 
     private DefaultAdminAnalyticsPortAdapter adapter(AdminUseCaseMetrics metrics) {
+        queryExecutor = new CancellableQueryExecutor("test-analytics-metrics", 6);
         adapter = new DefaultAdminAnalyticsPortAdapter(
                 contestAdminReadPort,
                 contestParticipantReadPort,
                 subscriptionReadPort,
-                submissionAdminReadPort);
+                submissionAdminReadPort,
+                queryExecutor,
+                AdminQueryDeadline.system());
         ReflectionTestUtils.setField(adapter, "accountQueryService", accountQueryService);
         ReflectionTestUtils.setField(adapter, "useCaseMetrics", metrics);
         return adapter;

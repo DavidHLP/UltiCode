@@ -15,7 +15,6 @@ import com.ulticode.app.api.dto.ProfileWriteResult;
 import com.ulticode.modules.admin.dto.AdminUserVO;
 import com.ulticode.modules.admin.dto.AdminUpdateUserDTO;
 import com.ulticode.modules.admin.query.AdminUserDetailQuery;
-import com.ulticode.modules.admin.query.AdminUserDetailResult;
 import com.ulticode.modules.admin.service.impl.UserManagementServiceImpl;
 import com.ulticode.admin.port.UserProfilePort;
 import org.junit.jupiter.api.AfterEach;
@@ -37,6 +36,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -79,12 +79,6 @@ class UserManagementServiceImplTest {
         sampleVO.setEmail("alice@example.com");
     }
 
-    private AdminUserDetailResult detail(AdminUserVO user) {
-        AdminUserDetailResult.Section unavailable =
-                AdminUserDetailResult.Section.unavailable("not requested");
-        return AdminUserDetailResult.found(user, unavailable, unavailable, unavailable, null);
-    }
-
     @AfterEach
     void clearAuditContext() {
         com.ulticode.common.util.AuditContext.clear();
@@ -121,7 +115,7 @@ class UserManagementServiceImplTest {
         AccountMutationDTO mutationDTO = new AccountMutationDTO(
                 "user-100", "alice", "alice@example.com", "USER", true, false, 0L, false);
         when(accountManagementService.createAccount(any())).thenReturn(RpcResult.success(mutationDTO, "t-123"));
-        when(adminUserDetailQuery.loadUserDetail("user-100")).thenReturn(detail(sampleVO));
+        doReturn(sampleVO).when(adminUserDetailQuery).loadUserDetailOrThrow("user-100");
 
         AdminUserVO result = service.createUser(dto);
 
@@ -151,7 +145,7 @@ class UserManagementServiceImplTest {
         AccountMutationDTO mutationDTO = new AccountMutationDTO(
                 "user-200", "bob", "bob@example.com", "USER", true, false, 0L, false);
         when(accountManagementService.createAccount(any())).thenReturn(RpcResult.success(mutationDTO, "t-123"));
-        when(adminUserDetailQuery.loadUserDetail("user-200")).thenReturn(detail(sampleVO));
+        doReturn(sampleVO).when(adminUserDetailQuery).loadUserDetailOrThrow("user-200");
 
         service.createUser(dto);
 
@@ -226,7 +220,7 @@ class UserManagementServiceImplTest {
         when(accountQueryService.getAccountById("user-100")).thenReturn(RpcResult.success(sampleAccount, "t-123"));
         AccountStateDTO stateDTO = new AccountStateDTO("user-100", true, true, 2L);
         when(accountAdministrationService.changeState(any())).thenReturn(RpcResult.success(stateDTO, "t-123"));
-        when(adminUserDetailQuery.loadUserDetail("user-100")).thenReturn(detail(sampleVO));
+        doReturn(sampleVO).when(adminUserDetailQuery).loadUserDetailOrThrow("user-100");
 
         List<UserManagementService.BanResult> results = service.bulkBan(List.of("user-100"), "test ban");
 

@@ -18,7 +18,6 @@ import com.ulticode.common.util.TraceIdUtil;
 import com.ulticode.modules.admin.dto.AdminUpdateUserDTO;
 import com.ulticode.modules.admin.dto.AdminUserVO;
 import com.ulticode.modules.admin.query.AdminUserDetailQuery;
-import com.ulticode.modules.admin.query.AdminUserDetailResult;
 import com.ulticode.modules.admin.service.UserManagementService;
 import com.ulticode.websecurity.annotation.RateLimit;
 import io.swagger.v3.oas.annotations.Operation;
@@ -59,7 +58,7 @@ public class AdminAccountController {
     @GetMapping("/profile")
     public Result<AdminUserVO> getProfile() {
         String userId = getCurrentUserIdOrThrow();
-        AdminUserVO user = userFromDetail(userId);
+        AdminUserVO user = adminUserDetailQuery.loadUserDetailOrThrow(userId);
         return Result.success(user);
     }
 
@@ -148,19 +147,5 @@ public class AdminAccountController {
         public void setStartedAt(String startedAt) { this.startedAt = startedAt; }
         public String getExpiresAt() { return expiresAt; }
         public void setExpiresAt(String expiresAt) { this.expiresAt = expiresAt; }
-    }
-    private AdminUserVO userFromDetail(String id) {
-        AdminUserDetailResult result = adminUserDetailQuery.loadUserDetail(id);
-        if (result == null || result.failure() == AdminUserDetailResult.Failure.NOT_FOUND) {
-            throw new BusinessException(
-                    com.ulticode.admin.error.AdminErrorCode.USER_NOT_FOUND);
-        }
-        if (result.failure() == AdminUserDetailResult.Failure.TRANSPORT_UNAVAILABLE
-                || result.user() == null) {
-            throw new BusinessException(
-                    com.ulticode.admin.error.AdminErrorCode.OWNER_QUERY_UNAVAILABLE,
-                    "Admin user detail query unavailable");
-        }
-        return result.user();
     }
 }

@@ -4,6 +4,7 @@ import com.ulticode.app.api.service.ProblemFactsPort;
 import com.ulticode.app.api.service.UserExistencePort;
 import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.exception.BusinessException;
+import com.ulticode.common.time.TimeSource;
 import com.ulticode.submission.api.dto.CreateSubmissionDTO;
 import com.ulticode.submission.api.dto.SubmissionFactsSnapshot;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +18,19 @@ public class SubmissionFactsCapture {
 
     private final ProblemFactsPort problemFacts;
     private final UserExistencePort userExistencePort;
+    private final TimeSource timeSource;
+
+    /**
+     * Bind a problem-scoped request to the path problem before capturing its
+     * admission facts. The path value is authoritative over any body value.
+     */
+    public SubmissionFactsSnapshot capture(
+            String userId, Long problemId, CreateSubmissionDTO createDTO) {
+        if (createDTO != null) {
+            createDTO.setProblemId(problemId);
+        }
+        return capture(userId, createDTO);
+    }
 
     /**
      * Capture one immutable snapshot for a submission request.
@@ -54,7 +68,7 @@ public class SubmissionFactsCapture {
                         limits == null ? null : limits.timeLimitSeconds(),
                         limits == null ? null : limits.memoryLimitMb(),
                         problemFacts.findStarterCode(problemId, language)),
-                System.currentTimeMillis(),
+                timeSource.wallMillis(),
                 SubmissionFactsSnapshot.CURRENT_SCHEMA_VERSION);
     }
 

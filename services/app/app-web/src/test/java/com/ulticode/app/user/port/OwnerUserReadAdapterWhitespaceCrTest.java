@@ -15,12 +15,12 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-class DefaultUserFactsReadProjectionWhitespaceCrTest {
+class DefaultUserDirectoryReadProjectionWhitespaceCrTest {
 
     @Test
     void selectByIdsTrimsWhitespace() {
         UserProfileReadMapper profileMapper = mock(UserProfileReadMapper.class);
-        DefaultUserFactsReadProjection adapter = new DefaultUserFactsReadProjection(profileMapper);
+        DefaultUserDirectoryReadProjection adapter = new DefaultUserDirectoryReadProjection(profileMapper);
         AccountQueryService auth = mock(AccountQueryService.class);
         adapter.setAccountQueryService(auth);
 

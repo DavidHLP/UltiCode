@@ -14,8 +14,9 @@ import com.ulticode.common.response.DegradationStatus;
 import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.modules.admin.dto.AdminUserVO;
 import com.ulticode.modules.admin.port.AdminSubmissionUserDetailStatsReadPort;
+import com.ulticode.modules.admin.port.adapter.AdminQueryDeadline;
+import com.ulticode.modules.admin.port.adapter.CancellableQueryExecutor;
 import com.ulticode.modules.admin.projection.AdminUserEnricher;
-import com.ulticode.modules.admin.projection.DefaultAdminUserProjection;
 import com.ulticode.submission.api.dto.SubmissionUserDetailStatsSnapshotDTO;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
@@ -56,20 +57,24 @@ class AdminUserDetailQueryTest {
     private AuthorizationSnapshotService authorizationSnapshotService;
 
     private DefaultAdminUserDetailQuery query;
+    private CancellableQueryExecutor queryExecutor;
 
     @BeforeEach
     void setUp() {
+        queryExecutor = new CancellableQueryExecutor("test-admin-user-detail", 4);
         query = new DefaultAdminUserDetailQuery(
                 userEnricher,
                 submissionStatsReadPort,
                 solutionReadPort,
                 authorizationSnapshotService,
-                Clock.fixed(Instant.parse("2026-01-01T00:00:00Z"), ZoneOffset.UTC));
+                Clock.fixed(Instant.parse("2026-01-01T00:00:00Z"), ZoneOffset.UTC),
+                queryExecutor,
+                AdminQueryDeadline.system());
     }
 
     @AfterEach
     void tearDown() {
-        query.shutdownQueryExecutor();
+        queryExecutor.close();
     }
 
     @Test
@@ -133,6 +138,20 @@ class AdminUserDetailQueryTest {
         assertThat(result.availability())
                 .isEqualTo(AdminUserDetailResult.Availability.UNAVAILABLE);
         verifyNoInteractions(submissionStatsReadPort, solutionReadPort, authorizationSnapshotService);
+    }
+
+    @Test
+    @DisplayName("detail seam maps null, not-found, and transport failures consistently")
+    void detailFailuresAreTranslatedAtQuerySeam() {
+        assertDetailFailure(id -> null, "missing", AdminErrorCode.USER_NOT_FOUND);
+        assertDetailFailure(
+                id -> AdminUserDetailResult.notFound(),
+                "missing",
+                AdminErrorCode.USER_NOT_FOUND);
+        assertDetailFailure(
+                id -> AdminUserDetailResult.unavailable("Auth down"),
+                "down",
+                AdminErrorCode.OWNER_QUERY_UNAVAILABLE);
     }
 
     @Test
@@ -369,19 +388,6 @@ class AdminUserDetailQueryTest {
     }
 
     @Test
-    @DisplayName("compatibility projection keeps existing error mapping while query owns fanout")
-    void compatibilityProjectionPreservesErrorSemantics() {
-        AdminUserDetailQuery notFound = id -> AdminUserDetailResult.notFound();
-        DefaultAdminUserProjection notFoundProjection =
-                new DefaultAdminUserProjection(userEnricher, notFound);
-        org.assertj.core.api.Assertions.assertThatThrownBy(
-                        () -> notFoundProjection.getUserById("missing"))
-                .isInstanceOf(BusinessException.class)
-                .satisfies(exception -> assertThat(((BusinessException) exception).getErrorCode())
-                        .isEqualTo(AdminErrorCode.USER_NOT_FOUND));
-    }
-
-    @Test
     @DisplayName("malformed legacy flat permission entries make the permission section unavailable")
     void malformedFlatPermissionsAreRejected() {
         stubHealthyAccountAndFacts();
@@ -420,6 +426,14 @@ class AdminUserDetailQueryTest {
                 .isEqualTo(AdminUserDetailResult.Availability.UNAVAILABLE);
         assertThat(result.user().getPermissions()).isNull();
         assertThat(result.permissionSnapshot()).isNull();
+    }
+
+    private void assertDetailFailure(
+            AdminUserDetailQuery detailQuery, String userId, AdminErrorCode expectedCode) {
+        assertThatThrownBy(() -> detailQuery.loadUserDetailOrThrow(userId))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(exception -> assertThat(((BusinessException) exception).getErrorCode())
+                        .isEqualTo(expectedCode));
     }
 
     private AuthAccountDTO account() {

@@ -16,4 +16,4 @@ ADR 是 durable history 的权威入口；普通提交不在这里复制。实�
 | [0010](0010-core-judge-convergence-blockers.md) | In progress | Core opt-in parent 的 G1/G2、readiness、断言载体和 Judge classpath 证据；G3/G5 余项 OPEN，远端 Judge TLS `BLOCKED_EXTERNAL`。 |
 | [0011](0011-topology-contract-module-convergence.md) | Implemented — Core outcome in 0012 | `distributed` 保持唯一默认；Contract 所有权、Contest/Submission 残留 Seam、Admin 深 Module 和 App 内部 Locality 的长期边界。 |
 | [0012](0012-core-topology-three-way-decision.md) | Selected — expiry `2026-10-06` | Core 仅保留为 Auth/Admin allowlist 的 bounded opt-in testbed；不宣称 class/resource isolation，不切换默认拓扑。 |
-| [0013](0013-architecture-review-module-convergence.md) | Accepted — implementation `2026-09-12` | 把 Admin、Inbox、Outbox、reconciliation、Problem/Auth contract 与开发脚本的重复机制收口为共享 seam；保留 Owner 本地语义，明确延后 UI primitive 大迁移。 |
+| [0013](0013-architecture-review-module-convergence.md) | Accepted — implementation `2026-09-12`, follow-up `2026-09-13` | 把 Admin、Inbox、Outbox、reconciliation、Problem/Auth contract 与开发脚本的重复机制收口为共享 seam；保留 Owner 本地语义，明确延后 UI primitive 大迁移。 |

@@ -29,9 +29,10 @@ public final class RedisStreamQueueHealth {
         } catch (RuntimeException ignored) {
             return unknown();
         }
+        GroupSnapshot groupSnapshot = observeGroup(streamKey, group);
         return new Snapshot(
-                queueLag(streamKey, group),
-                pelSize(streams, streamKey, group),
+                groupSnapshot.queueLag(),
+                groupSnapshot.pelSize(),
                 oldestPendingAgeSeconds(streams, streamKey, group),
                 dlqSize(streams, dlqKey));
     }
@@ -44,34 +45,17 @@ public final class RedisStreamQueueHealth {
                 WorkerSloMeters.UNKNOWN);
     }
 
-    private long queueLag(String streamKey, String group) {
+    private GroupSnapshot observeGroup(String streamKey, String group) {
         try {
             Object reply = redisTemplate.execute(
                     (org.springframework.data.redis.core.RedisCallback<Object>) connection ->
                             connection.execute(XINFO, "GROUPS".getBytes(StandardCharsets.UTF_8),
                                     streamKey.getBytes(StandardCharsets.UTF_8)));
-            return findGroupField(reply, group, "lag");
+            return new GroupSnapshot(
+                    findGroupField(reply, group, "lag"),
+                    findGroupField(reply, group, "pending"));
         } catch (RuntimeException ignored) {
-            return WorkerSloMeters.UNKNOWN;
-        }
-    }
-
-    private long pelSize(
-            StreamOperations<String, String, String> streams, String streamKey, String group) {
-        try {
-            var groups = streams.groups(streamKey);
-            if (groups == null) {
-                return WorkerSloMeters.UNKNOWN;
-            }
-            for (var info : groups) {
-                if (group.equals(info.groupName())) {
-                    Long pending = info.pendingCount();
-                    return pending == null ? WorkerSloMeters.UNKNOWN : pending;
-                }
-            }
-            return WorkerSloMeters.UNKNOWN;
-        } catch (RuntimeException ignored) {
-            return WorkerSloMeters.UNKNOWN;
+            return new GroupSnapshot(WorkerSloMeters.UNKNOWN, WorkerSloMeters.UNKNOWN);
         }
     }
 
@@ -146,5 +130,8 @@ public final class RedisStreamQueueHealth {
     }
 
     public record Snapshot(long queueLag, long pelSize, long oldestPendingAgeSeconds, long dlqSize) {
+    }
+
+    private record GroupSnapshot(long queueLag, long pelSize) {
     }
 }

@@ -37,7 +37,6 @@ import org.springframework.data.redis.connection.stream.RecordId;
 import org.springframework.data.redis.connection.stream.StreamOffset;
 import org.springframework.data.redis.connection.stream.StreamReadOptions;
 import org.springframework.data.redis.connection.stream.StreamRecords;
-import org.springframework.data.redis.connection.stream.StreamInfo;
 import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.StreamOperations;
@@ -162,15 +161,9 @@ class SearchDocumentIndexWorkerTest {
         stubBusyGroup();
         stubEmptyReads();
 
-        StreamInfo.XInfoGroup group = org.mockito.Mockito.mock(StreamInfo.XInfoGroup.class);
-        when(group.groupName()).thenReturn("search-worker");
-        when(group.pendingCount()).thenReturn(3L);
-        StreamInfo.XInfoGroups groups = org.mockito.Mockito.mock(StreamInfo.XInfoGroups.class);
-        when(groups.iterator()).thenReturn(List.of(group).iterator());
-        when(streamOps.groups("stream:integration")).thenReturn(groups);
         when(streamOps.size(anyString())).thenReturn(2L);
         when(redisTemplate.execute((RedisCallback<Object>) any(RedisCallback.class)))
-                .thenReturn(List.of(List.of("name", "search-worker", "lag", "7")));
+                .thenReturn(List.of(List.of("name", "search-worker", "pending", "3", "lag", "7")));
 
         worker.consume();
 
@@ -181,7 +174,6 @@ class SearchDocumentIndexWorkerTest {
 
         when(redisTemplate.execute((RedisCallback<Object>) any(RedisCallback.class)))
                 .thenThrow(new IllegalStateException("health unavailable"));
-        when(streamOps.groups(anyString())).thenThrow(new IllegalStateException("health unavailable"));
         when(streamOps.pending(anyString(), anyString(), any(org.springframework.data.domain.Range.class), anyLong()))
                 .thenThrow(new IllegalStateException("health unavailable"));
         when(streamOps.size(anyString())).thenThrow(new IllegalStateException("health unavailable"));

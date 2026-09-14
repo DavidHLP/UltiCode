@@ -26,7 +26,6 @@ import org.springframework.data.domain.Range;
 import org.springframework.data.redis.connection.stream.MapRecord;
 import org.springframework.data.redis.connection.stream.PendingMessages;
 import org.springframework.data.redis.connection.stream.RecordId;
-import org.springframework.data.redis.connection.stream.StreamInfo;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.connection.stream.StreamOffset;
@@ -117,16 +116,10 @@ class NotificationIntegrationInboxBridgeTest {
 
         SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
         when(meterRegistryProvider.getIfAvailable()).thenReturn(meterRegistry);
-        StreamInfo.XInfoGroup group = mock(StreamInfo.XInfoGroup.class);
-        when(group.groupName()).thenReturn("App-Notification");
-        when(group.pendingCount()).thenReturn(3L);
-        StreamInfo.XInfoGroups groups = mock(StreamInfo.XInfoGroups.class);
-        when(groups.iterator()).thenReturn(List.of(group).iterator());
-        when(streamOperations.groups("stream:integration")).thenReturn(groups);
         when(streamOperations.pending(anyString(), anyString(), any(Range.class), anyLong()))
                 .thenReturn(new PendingMessages("stream:integration", Range.unbounded(), List.of()));
         when(redisTemplate.execute((RedisCallback<Object>) any(RedisCallback.class)))
-                .thenReturn(List.of(List.of("name", "App-Notification", "lag", "7")));
+                .thenReturn(List.of(List.of("name", "App-Notification", "pending", "3", "lag", "7")));
 
         NotificationIntegrationInboxBridge bridge = new NotificationIntegrationInboxBridge(
                 redisTemplate,
@@ -148,8 +141,6 @@ class NotificationIntegrationInboxBridgeTest {
                 .isEqualTo(WorkerSloMeters.UNKNOWN);
 
         when(redisTemplate.execute((RedisCallback<Object>) any(RedisCallback.class)))
-                .thenThrow(new IllegalStateException("health unavailable"));
-        when(streamOperations.groups(anyString()))
                 .thenThrow(new IllegalStateException("health unavailable"));
         when(streamOperations.pending(anyString(), anyString(), any(Range.class), anyLong()))
                 .thenThrow(new IllegalStateException("health unavailable"));

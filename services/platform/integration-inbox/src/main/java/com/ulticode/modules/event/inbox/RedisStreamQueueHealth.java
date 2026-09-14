@@ -15,7 +15,6 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 public final class RedisStreamQueueHealth {
 
     private static final String XINFO = "XINFO";
-    private static final byte[] GROUPS = "GROUPS".getBytes(StandardCharsets.UTF_8);
 
     private final StringRedisTemplate redisTemplate;
 
@@ -49,7 +48,7 @@ public final class RedisStreamQueueHealth {
         try {
             Object reply = redisTemplate.execute(
                     (org.springframework.data.redis.core.RedisCallback<Object>) connection ->
-                            connection.execute(XINFO, GROUPS,
+                            connection.execute(XINFO, "GROUPS".getBytes(StandardCharsets.UTF_8),
                                     streamKey.getBytes(StandardCharsets.UTF_8)));
             return findGroupField(reply, group, "lag");
         } catch (RuntimeException ignored) {

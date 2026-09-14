@@ -13,8 +13,9 @@ const mockUser: User = {
   name: "Test User",
   email: "test@example.com",
   role: "USER",
-  isActive: true,
-  joinedAt: "2026-01-01T00:00:00Z",
+  is_active: true,
+  is_banned: false,
+  joined_at: "2026-01-01T00:00:00Z",
 };
 
 describe("authApi", () => {

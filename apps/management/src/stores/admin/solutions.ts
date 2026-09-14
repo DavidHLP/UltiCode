@@ -116,8 +116,11 @@ export const useSolutionsStore = defineStore('adminSolutions', () => {
     try {
       await solutionsApi.deleteSolution(id)
       // Remove from local list (immutable update)
+      const removed = solutions.value.some((solutionItem) => solutionItem.id === id)
       collection.updateItems((current) => current.filter((solutionItem) => solutionItem.id !== id))
-      collection.setTotal(Math.max(0, total.value - 1))
+      if (removed) {
+        collection.setTotal(Math.max(0, total.value - 1))
+      }
       // Clear currentSolution if it matches
       if (currentSolution.value?.id === id) {
         currentSolution.value = null

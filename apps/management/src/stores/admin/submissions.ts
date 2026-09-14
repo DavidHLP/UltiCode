@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed, readonly } from 'vue'
+import { ref, computed, readonly, type DeepReadonly } from 'vue'
 import {
   submissionsApi,
   type SubmissionListItem,
@@ -21,10 +21,10 @@ export const useSubmissionsStore = defineStore('admin-submissions', () => {
     },
   })
   const submissions = collection.items
-  const readonlySubmissions = readonly(submissions) as Readonly<typeof submissions>
-  const total = readonly(collection.total) as Readonly<typeof collection.total>
-  const loading = readonly(collection.isLoading) as Readonly<typeof collection.isLoading>
-  const error = readonly(collection.error) as Readonly<typeof collection.error>
+  const readonlySubmissions: DeepReadonly<typeof submissions> = readonly(submissions)
+  const total: DeepReadonly<typeof collection.total> = readonly(collection.total)
+  const loading: DeepReadonly<typeof collection.isLoading> = readonly(collection.isLoading)
+  const error: DeepReadonly<typeof collection.error> = readonly(collection.error)
   const fetchSubmissions = collection.fetch
   const operationLoading = ref(false)
   const operationError = ref<string | null>(null)

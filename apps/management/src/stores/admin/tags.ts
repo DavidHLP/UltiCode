@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, readonly } from 'vue'
+import { ref, readonly, type DeepReadonly } from 'vue'
 import {
   tagsApi,
   type Tag,
@@ -18,10 +18,10 @@ export const useTagsStore = defineStore('admin-tags', () => {
     },
   })
   const tags = collection.items
-  const readonlyTags = readonly(tags) as Readonly<typeof tags>
-  const total = readonly(collection.total) as Readonly<typeof collection.total>
-  const isLoading = readonly(collection.isLoading) as Readonly<typeof collection.isLoading>
-  const error = readonly(collection.error) as Readonly<typeof collection.error>
+  const readonlyTags: DeepReadonly<typeof tags> = readonly(tags)
+  const total: DeepReadonly<typeof collection.total> = readonly(collection.total)
+  const isLoading: DeepReadonly<typeof collection.isLoading> = readonly(collection.isLoading)
+  const error: DeepReadonly<typeof collection.error> = readonly(collection.error)
   const fetchTags = collection.fetch
   const operationLoading = ref(false)
   const operationError = ref<string | null>(null)

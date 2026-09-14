@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, readonly } from 'vue'
+import { ref, readonly, type DeepReadonly } from 'vue'
 import { isAxiosError } from 'axios'
 import {
   adminProblemListsApi,
@@ -18,11 +18,11 @@ export const useAdminProblemListsStore = defineStore('admin-problem-lists', () =
       return { items: pageResult.items, total: pageResult.total }
     },
   })
-  const lists = readonly(collection.items) as Readonly<typeof collection.items>
+  const lists: DeepReadonly<typeof collection.items> = readonly(collection.items)
   const currentList = ref<ProblemListDetail | null>(null)
-  const total = readonly(collection.total) as Readonly<typeof collection.total>
-  const isLoading = readonly(collection.isLoading) as Readonly<typeof collection.isLoading>
-  const error = readonly(collection.error) as Readonly<typeof collection.error>
+  const total: DeepReadonly<typeof collection.total> = readonly(collection.total)
+  const isLoading: DeepReadonly<typeof collection.isLoading> = readonly(collection.isLoading)
+  const error: DeepReadonly<typeof collection.error> = readonly(collection.error)
   const fetchLists = collection.fetch
   const operationLoading = ref(false)
   const operationError = ref<string | null>(null)

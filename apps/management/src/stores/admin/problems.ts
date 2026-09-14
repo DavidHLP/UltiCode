@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed, readonly } from 'vue'
+import { ref, computed, readonly, type DeepReadonly } from 'vue'
 import {
   problemsApi,
   type Problem,
@@ -50,10 +50,10 @@ export const useProblemsStore = defineStore('adminProblems', () => {
       return { items: pageResult.items, total: pageResult.total }
     },
   })
-  const problems = readonly(collection.items) as Readonly<typeof collection.items>
-  const total = readonly(collection.total) as Readonly<typeof collection.total>
-  const loading = readonly(collection.isLoading) as Readonly<typeof collection.isLoading>
-  const error = readonly(collection.error) as Readonly<typeof collection.error>
+  const problems: DeepReadonly<typeof collection.items> = readonly(collection.items)
+  const total: DeepReadonly<typeof collection.total> = readonly(collection.total)
+  const loading: DeepReadonly<typeof collection.isLoading> = readonly(collection.isLoading)
+  const error: DeepReadonly<typeof collection.error> = readonly(collection.error)
   const fetchProblems = collection.fetch
   const operationLoading = ref(false)
   const operationError = ref<string | null>(null)

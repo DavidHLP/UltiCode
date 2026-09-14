@@ -7,6 +7,7 @@ import {
   computed,
   toValue,
   type MaybeRefOrGetter,
+  type DeepReadonly,
 } from 'vue'
 import { watchDebounced } from '@vueuse/core'
 
@@ -19,7 +20,7 @@ export interface PaginationState {
 // Accepts Ref, ComputedRef, or getter functions - toValue() handles unwrapping
 export interface UseDataTableOptions<TData, TFilters, TParams> {
   store: {
-    items: MaybeRefOrGetter<TData[]>
+    items: MaybeRefOrGetter<readonly (TData | DeepReadonly<TData>)[]>
     total: MaybeRefOrGetter<number>
     isLoading: MaybeRefOrGetter<boolean>
     error: MaybeRefOrGetter<string | null>
@@ -71,7 +72,7 @@ export function useDataTable<
   // Use toValue() to properly unwrap nested refs (handles both ref and computed)
   // Include initialLoad to ensure skeleton is shown during first data fetch
   const loading = computed(() => initialLoad.value || toValue(store.isLoading) || false)
-  const data = computed(() => toValue(store.items) || [])
+  const data = computed<TData[]>(() => [...(toValue(store.items) || [])] as TData[])
   const total = computed(() => toValue(store.total) || 0)
   const error = computed(() => toValue(store.error) || null)
 

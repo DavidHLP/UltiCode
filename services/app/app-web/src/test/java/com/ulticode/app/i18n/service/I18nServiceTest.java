@@ -7,6 +7,8 @@ import com.ulticode.app.i18n.entity.Translation;
 import com.ulticode.app.i18n.mapper.TranslationMapper;
 import com.ulticode.app.i18n.service.impl.I18nServiceImpl;
 import com.ulticode.common.exception.BusinessException;
+import com.ulticode.common.testsupport.MyBatisPlusLambdaCacheSupport;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -36,6 +38,13 @@ class I18nServiceTest {
     private I18nServiceImpl i18nService;
 
     private List<Translation> testTranslations;
+
+    @BeforeAll
+    static void registerEntities() {
+        // The service builds LambdaQueryWrapper<Translation> directly, so the
+        // MyBatis-Plus lambda cache needs the entity registered outside Spring.
+        MyBatisPlusLambdaCacheSupport.register(Translation.class);
+    }
 
     @BeforeEach
     void setUp() {

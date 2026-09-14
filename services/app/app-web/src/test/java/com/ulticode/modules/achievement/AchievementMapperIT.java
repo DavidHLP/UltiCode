@@ -2,7 +2,7 @@ package com.ulticode.modules.achievement;
 
 import com.baomidou.mybatisplus.core.MybatisConfiguration;
 import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
-import com.baomidou.mybatisplus.extension.spring.MybatisSqlSessionFactoryBean;
+import com.baomidou.mybatisplus.spring.MybatisSqlSessionFactoryBean;
 import com.ulticode.modules.achievement.entity.Achievement;
 import com.ulticode.modules.achievement.mapper.AchievementMapper;
 import org.apache.ibatis.session.SqlSessionFactory;

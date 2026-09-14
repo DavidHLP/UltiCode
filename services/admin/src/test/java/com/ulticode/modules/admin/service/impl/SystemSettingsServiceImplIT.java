@@ -2,7 +2,7 @@ package com.ulticode.modules.admin.service.impl;
 
 import com.baomidou.mybatisplus.core.MybatisConfiguration;
 import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
-import com.baomidou.mybatisplus.extension.spring.MybatisSqlSessionFactoryBean;
+import com.baomidou.mybatisplus.spring.MybatisSqlSessionFactoryBean;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.modules.admin.dto.settings.EmailSettingsVO;

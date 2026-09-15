@@ -144,8 +144,8 @@ importers:
         specifier: ^0.18.7
         version: 0.18.7
       lucide-vue-next:
-        specifier: ^0.552.0
-        version: 0.552.0(vue@3.5.42(typescript@6.0.3))
+        specifier: ^1.0.0
+        version: 1.0.0(vue@3.5.42(typescript@6.0.3))
       markdown-it:
         specifier: ^14.3.2
         version: 14.3.2
@@ -4601,6 +4601,12 @@ packages:
 
   lucide-vue-next@0.562.0:
     resolution: {integrity: sha512-LN0BLGKMFulv0lnfK29r14DcngRUhIqdcaL0zXTt2o0oS9odlrjCGaU3/X9hIihOjjN8l8e+Y9G/famcNYaI7Q==}
+    deprecated: Package deprecated. Please use @lucide/vue instead.
+    peerDependencies:
+      vue: '>=3.0.1'
+
+  lucide-vue-next@1.0.0:
+    resolution: {integrity: sha512-V6SPvx1IHTj/UY+FrIYWV5faISsPSb8BnWSFDxAtezWKvWc9ZZ40PDrdu1/Qb5vg4lHWr1hs1BAMGVGm6V1Xdg==}
     deprecated: Package deprecated. Please use @lucide/vue instead.
     peerDependencies:
       vue: '>=3.0.1'
@@ -10213,11 +10219,11 @@ snapshots:
     dependencies:
       vue: 3.5.42(typescript@5.9.3)
 
-  lucide-vue-next@0.552.0(vue@3.5.42(typescript@6.0.3)):
+  lucide-vue-next@0.562.0(vue@3.5.42(typescript@6.0.3)):
     dependencies:
       vue: 3.5.42(typescript@6.0.3)
 
-  lucide-vue-next@0.562.0(vue@3.5.42(typescript@6.0.3)):
+  lucide-vue-next@1.0.0(vue@3.5.42(typescript@6.0.3)):
     dependencies:
       vue: 3.5.42(typescript@6.0.3)
 

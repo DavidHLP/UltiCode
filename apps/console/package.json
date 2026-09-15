@@ -62,7 +62,7 @@
     "idb": "^8.0.3",
     "katex": "^0.18.7",
     "lucide-vue-next": "^0.552.0",
-    "markdown-it": "^14.1.1",
+    "markdown-it": "^14.3.2",
     "monaco-editor": "^0.56.0",
     "pinia": "^3.0.4",
     "reka-ui": "^2.10.4",

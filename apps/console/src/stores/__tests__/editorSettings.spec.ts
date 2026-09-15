@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import { nextTick } from "vue";
 import { setActivePinia, createPinia } from "pinia";
 import { useEditorSettingsStore } from "../editorSettings";
 
@@ -87,11 +88,18 @@ describe("useEditorSettingsStore", () => {
       expect(store.settings.theme).toBe("hc-black");
     });
 
-    it("should persist theme to localStorage", () => {
+    it("should persist theme to localStorage", async () => {
       const store = useEditorSettingsStore();
       store.setTheme("vs-light");
 
-      expect(localStorageMock.setItem).toHaveBeenCalled();
+      // The store persists through a Vue watcher, so the write lands once the
+      // scheduler flushes. Assert that write instead of relying on call history
+      // leaking in from the "load settings" case above.
+      await nextTick();
+      expect(localStorageMock.setItem).toHaveBeenCalledWith(
+        "ulticode-editor-settings",
+        expect.stringContaining('"vs-light"'),
+      );
     });
   });
 

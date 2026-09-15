@@ -50,6 +50,31 @@ updates:
       - "automated"
     open-pull-requests-limit: 5
     rebase-strategy: "disabled"
+    # Coordinated migrations, not version bumps (same policy as the Spring Boot
+    # 4 holds below). Same-line updates still apply.
+    #
+    # @dnd-kit/abstract and @dnd-kit/dom 0.5 rewrite the activation-constraint
+    # options and swap the manager types. The only Vue adapter,
+    # dnd-kit-vue@0.0.2, is pinned to the 0.1.x line, so a 0.5 bump leaves
+    # DataTable on a different generation than the adapter that drives it. Lift
+    # these two when the adapter moves to @dnd-kit/vue.
+    #
+    # @tanstack/vue-table 9 is an API rewrite (useTable plus explicit
+    # tableFeatures, row-model slots, atom state, and a TFeatures type
+    # parameter) that reaches DataTable, DraggableRow and every column
+    # definition. Migrate deliberately, then lift this rule.
+    #
+    # Tradeoff: Dependabot applies `ignore` to security updates and to version
+    # updates, so these artifacts also stop receiving security update PRs.
+    # Watch advisories against the held lines manually and lift the matching
+    # rule when one lands.
+    ignore:
+      - dependency-name: "@dnd-kit/abstract"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@dnd-kit/dom"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@tanstack/vue-table"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "maven"
     directory: "/services"

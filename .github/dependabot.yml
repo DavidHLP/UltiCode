@@ -38,6 +38,10 @@ updates:
     # compiler enums. Both `lint:check` and `type-check` therefore fail before
     # any project code is checked. Hold the major until vue-tsc and
     # typescript-eslint ship TypeScript 7 support.
+    #
+    # Tradeoff: Dependabot applies `ignore` to security updates too, so
+    # TypeScript stops receiving security PRs here; watch advisories against the
+    # 6.x line manually and lift the rule once the toolchain supports 7.
     ignore:
       - dependency-name: "typescript"
         update-types: ["version-update:semver-major"]

@@ -431,21 +431,27 @@ export function createHttpClient(config: HttpClientConfig): HttpClient {
     },
   )
 
+  // axios types the response as `AxiosResponseResult<T, R, D, P>`, a conditional
+  // type that cannot collapse when the caller passes its own response type
+  // parameter. The response interceptor already unwraps the envelope, so the
+  // runtime value is the payload; assert that once here, not at every call site.
+  const asPayload = <T>(request: Promise<unknown>): Promise<T> => request as Promise<T>
+
   return {
     apiGet: <T>(path: string, init?: RequestConfig & { signal?: AbortSignal }) => {
       const { signal, ...axiosConfig } = (init || {}) as RequestConfig & {
         signal?: AbortSignal
       }
-      return service.get<T, T>(path, { ...axiosConfig, signal })
+      return asPayload<T>(service.get<T, T>(path, { ...axiosConfig, signal }))
     },
     apiPost: <T>(path: string, body?: unknown, init?: RequestConfig) =>
-      service.post<T, T, unknown>(path, body, { ...init }),
+      asPayload<T>(service.post<T, T, unknown>(path, body, { ...init })),
     apiPatch: <T>(path: string, body?: unknown, init?: RequestConfig) =>
-      service.patch<T, T, unknown>(path, body, { ...init }),
+      asPayload<T>(service.patch<T, T, unknown>(path, body, { ...init })),
     apiPut: <T>(path: string, body?: unknown, init?: RequestConfig) =>
-      service.put<T, T, unknown>(path, body, { ...init }),
+      asPayload<T>(service.put<T, T, unknown>(path, body, { ...init })),
     apiDelete: <T>(path: string, init?: RequestConfig) =>
-      service.delete<T, T>(path, { ...init }),
+      asPayload<T>(service.delete<T, T>(path, { ...init })),
     apiUpload: <T>(
       path: string,
       file: File | Blob,
@@ -454,16 +460,18 @@ export function createHttpClient(config: HttpClientConfig): HttpClient {
     ) => {
       const formData = new FormData()
       formData.append('file', file)
-      return service.post<T, T>(path, formData, {
-        ...init,
-        headers: { 'Content-Type': 'multipart/form-data' },
-        onUploadProgress: (progressEvent) => {
-          if (onProgress && progressEvent.total) {
-            const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total)
-            onProgress(progress)
-          }
-        },
-      })
+      return asPayload<T>(
+        service.post<T, T>(path, formData, {
+          ...init,
+          headers: { 'Content-Type': 'multipart/form-data' },
+          onUploadProgress: (progressEvent) => {
+            if (onProgress && progressEvent.total) {
+              const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+              onProgress(progress)
+            }
+          },
+        }),
+      )
     },
     apiDownload: async (path: string, filename?: string, init?: RequestConfig) => {
       const response = await service.get<Blob>(path, {

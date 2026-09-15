@@ -32,6 +32,15 @@ updates:
       - "automated"
     open-pull-requests-limit: 5
     rebase-strategy: "disabled"
+    # TypeScript 7 moved the compiler entry points this toolchain still relies
+    # on: vue-tsc resolves typescript/lib/tsc, which the package no longer
+    # exports, and @typescript-eslint/typescript-estree crashes reading the
+    # compiler enums. Both `lint:check` and `type-check` therefore fail before
+    # any project code is checked. Hold the major until vue-tsc and
+    # typescript-eslint ship TypeScript 7 support.
+    ignore:
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "npm"
     directory: "/apps/management"
@@ -69,6 +78,9 @@ updates:
     # Watch advisories against the held lines manually and lift the matching
     # rule when one lands.
     ignore:
+      # Same TypeScript 7 toolchain hold as the console entry above.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
       - dependency-name: "@dnd-kit/abstract"
         update-types: ["version-update:semver-major"]
       - dependency-name: "@dnd-kit/dom"

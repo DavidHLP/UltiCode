@@ -1,0 +1,22 @@
+services/admin/src/main/java/com/ulticode/common/audit/DefaultAuditRecorder.java
+  h_77173abe25c3ff 3,13-14,16,26-33,41,51
+services/admin/src/test/java/com/ulticode/common/audit/DefaultAuditRecorderTest.java
+  h_77173abe25c3ff 1-90
+services/platform/web-security/src/main/java/com/ulticode/audit/AuditAspect.java
+  h_77173abe25c3ff 5,22-24,30-37,41,53-54,61,85-86,90,92
+services/platform/web-security/src/main/java/com/ulticode/audit/AuditEmissionPolicy.java
+  h_77173abe25c3ff 1-106
+services/platform/web-security/src/test/java/com/ulticode/audit/AuditAspectTest.java
+  h_77173abe25c3ff 6,10,16-18,23-26,53-67,72-77,108-169
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "90f4e9fa014dd20fb18fd25920f986b6185e1a6e",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

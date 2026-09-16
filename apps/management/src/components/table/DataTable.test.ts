@@ -72,7 +72,7 @@ describe('DataTable public contract', () => {
     const wrapper = mountTable({ rowCount: 21 })
     const nextButton = wrapper
       .findAll('button')
-      .find((button) => button.attributes('aria-label') === 'table.goToNextPage')
+      .find((button) => button.text().includes('table.goToNextPage'))
 
     expect(nextButton).toBeDefined()
     await nextButton?.trigger('click')

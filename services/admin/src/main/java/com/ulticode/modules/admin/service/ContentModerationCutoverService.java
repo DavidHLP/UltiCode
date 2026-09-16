@@ -8,10 +8,10 @@ import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.rpc.RpcResult;
-import lombok.RequiredArgsConstructor;
+import com.ulticode.modules.admin.port.adapter.OwnerCutoverGate;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import com.ulticode.modules.admin.write.AdminOwnerErrorMapper;
@@ -27,26 +27,34 @@ import com.ulticode.common.rpc.RpcPolicy;
  * AdminSolutionService). When the flag is {@code true}, moderation writes
  * go through the Dubbo {@link ContentModerationService} Provider.
  *
- * <p>Mirrors {@code NotificationCutoverService} / {@link ContestCutoverService}
- * in pattern. Only DELETE action is currently routed (matching the admin
- * services' soft-delete methods); HIDE/RESTORE/UNDELETE are deferred until
- * those operations exist on the admin services.
+ * <p>Follows the same adapter pattern as {@link ContestCutoverService}. Only
+ * DELETE action is currently routed (matching the admin services' soft-delete
+ * methods); HIDE/RESTORE/UNDELETE are deferred until those operations exist on
+ * the admin services.
  */
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class ContentModerationCutoverService {
 
     private final AdminForumService forumService;
     private final AdminSolutionService solutionService;
     private final CurrentUserProvider currentUserProvider;
+    private final OwnerCutoverGate cutoverGate;
+
+    public ContentModerationCutoverService(
+            AdminForumService forumService,
+            AdminSolutionService solutionService,
+            CurrentUserProvider currentUserProvider,
+            @Qualifier("moderationOwnerCutover") OwnerCutoverGate cutoverGate) {
+        this.forumService = forumService;
+        this.solutionService = solutionService;
+        this.currentUserProvider = currentUserProvider;
+        this.cutoverGate = cutoverGate;
+    }
 
     @DubboReference(group = "backend-app", version = "1.0.0",
             timeout = RpcPolicy.WRITE_TIMEOUT_MS, retries = RpcPolicy.WRITE_RETRIES, check = false)
     private ContentModerationService dubboProvider;
-
-    @Value("${app.features.moderation-dubbo-cutover:false}")
-    private boolean dubboEnabled;
 
     /**
      * Apply a moderation action to forum content.
@@ -63,8 +71,7 @@ public class ContentModerationCutoverService {
     }
 
     private void moderate(String contentId, String contentType, ModerationAction action) {
-        if (!dubboEnabled) {
-            // Local path: dispatch to the admin service directly
+        if (cutoverGate.delegatesLocal()) {
             dispatchLocal(contentId, contentType, action);
             return;
         }

@@ -7,10 +7,11 @@ import com.ulticode.notification.api.dto.NotificationAdminDTO;
 import com.ulticode.notification.api.dto.NotificationAdminViewDTO;
 import com.ulticode.notification.api.service.NotificationAdminReadPort;
 import com.ulticode.notification.api.service.NotificationAdministrationService;
+import com.ulticode.common.annotation.Audited;
+import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.response.PageResult;
-import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.common.util.AuditContext;
 import com.ulticode.modules.admin.dto.AdminNotificationQueryDTO;
 import com.ulticode.modules.admin.dto.AdminNotificationVO;
@@ -70,6 +71,32 @@ class AdminNotificationServiceImplTest {
         adminNotificationService = new AdminNotificationServiceImpl(
                 adminNotificationProjection, notificationAdminReadPort, currentUserProvider);
         ReflectionTestUtils.setField(adminNotificationService, "dubboProvider", notificationDubbo);
+    }
+
+    @Test
+    @DisplayName("annotates every notification write entry point for audit")
+    void annotatesEveryNotificationWriteEntryPoint() throws NoSuchMethodException {
+        assertAudited("createSystemNotification", AuditVocabulary.CREATE_NOTIFICATION,
+                CreateSystemNotificationRequest.class);
+        assertAudited("createSystemNotification", AuditVocabulary.CREATE_NOTIFICATION,
+                CreateSystemNotificationRequest.class, String.class);
+        assertAudited("deleteNotification", AuditVocabulary.DELETE_NOTIFICATION, String.class);
+        assertAudited("deleteNotification", AuditVocabulary.DELETE_NOTIFICATION,
+                String.class, String.class);
+        assertAudited("updateSystemNotification", AuditVocabulary.UPDATE_NOTIFICATION,
+                String.class, UpdateSystemNotificationRequest.class);
+        assertAudited("updateSystemNotification", AuditVocabulary.UPDATE_NOTIFICATION,
+                String.class, UpdateSystemNotificationRequest.class, String.class);
+    }
+
+    private static void assertAudited(
+            String methodName, String action, Class<?>... parameterTypes) throws NoSuchMethodException {
+        Audited audited = AdminNotificationServiceImpl.class
+                .getDeclaredMethod(methodName, parameterTypes)
+                .getAnnotation(Audited.class);
+        assertThat(audited).isNotNull();
+        assertThat(audited.action()).isEqualTo(action);
+        assertThat(audited.entityType()).isEqualTo(AuditVocabulary.ENTITY_NOTIFICATION);
     }
 
     @AfterEach

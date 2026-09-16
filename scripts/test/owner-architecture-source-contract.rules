@@ -95,7 +95,11 @@ contains	expectedAudience	services/submission/src/main/java/com/ulticode/submiss
 contains	current_attempt_id = NULL	services/submission/src/main/java/com/ulticode/modules/submission/mapper/SubmissionMapper.java
 contains	INSERT IGNORE INTO submission_command_receipt	services/submission/src/main/java/com/ulticode/submission/idempotency/mapper/SubmissionCommandReceiptMapper.java
 contains	group = "backend-submission"	services/admin/src/main/java/com/ulticode/modules/admin/service/SubmissionCutoverService.java|services/admin/src/main/java/com/ulticode/modules/reconciliation/port/adapter/DubboSubmissionReconciliationReadAdapter.java
-not_contains	app.features.submission-dubbo-cutover	services/admin/src/main/java/com/ulticode/modules/admin/service/SubmissionCutoverService.java
+not_contains	app.features.submission-dubbo-cutover	services/admin/src/main/resources/application.yml|services/admin/src/main/java/com/ulticode/modules/admin/service/SubmissionCutoverService.java|services/admin/src/main/java/com/ulticode/modules/admin/port/adapter/OwnerCutoverRegistry.java
+contains	OwnerCutoverGate.Policy.ALWAYS_REMOTE	services/admin/src/main/java/com/ulticode/modules/admin/port/adapter/OwnerCutoverRegistry.java
+contains	OwnerCutoverGate.Policy.CUTOVER_REMOVED	services/admin/src/main/java/com/ulticode/modules/admin/port/adapter/OwnerCutoverRegistry.java
+absent		services/admin/src/main/java/com/ulticode/modules/admin/service/NotificationCutoverService.java|services/admin/src/test/java/com/ulticode/modules/admin/service/NotificationCutoverServiceTest.java
+contains	@Audited(action = AuditVocabulary.CREATE_NOTIFICATION	services/admin/src/main/java/com/ulticode/modules/admin/service/impl/AdminNotificationServiceImpl.java
 contains	group = NotificationServiceContract.DUBBO_GROUP	services/admin/src/main/java/com/ulticode/modules/reconciliation/port/adapter/DubboNotificationReconciliationReadAdapter.java
 contains	NotificationServiceContract.DUBBO_GROUP	services/notification/src/main/java/com/ulticode/notification/dubbo/provider/NotificationReconciliationReadProvider.java
 contains	FROM notifications	services/notification/src/main/java/com/ulticode/modules/notification/mapper/NotificationReconciliationReadMapper.java

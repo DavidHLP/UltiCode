@@ -32,6 +32,24 @@ function makeClient() {
   })
 }
 
+function createPendingAdapter() {
+  const pending: Array<(value: unknown) => void> = []
+  const requests: Array<{ signal?: AbortSignal }> = []
+  const adapter = vi.fn().mockImplementation(
+    (request: { signal?: AbortSignal }) =>
+      new Promise<unknown>((resolve, reject) => {
+        requests.push(request)
+        request.signal?.addEventListener(
+          'abort',
+          () => reject(new axios.CanceledError()),
+          { once: true },
+        )
+        pending.push(resolve)
+      }),
+  )
+  return { adapter, pending, requests }
+}
+
 describe('createHttpClient', () => {
   it('returns apiGet/apiPost/apiPatch/apiPut/apiDelete/apiUpload/apiDownload', () => {
     const client = makeClient()
@@ -180,6 +198,53 @@ describe('Dedup policy', () => {
     })
     await Promise.all([p1, p2])
     expect(adapter).toHaveBeenCalledTimes(1)
+  })
+
+  it('isolates deduplication and cancellation between client instances', async () => {
+    const clientAState = createPendingAdapter()
+    const clientBState = createPendingAdapter()
+    const clientA = createHttpClient({
+      csrfManager: createCsrfTokenManager(),
+      baseURL: 'http://test.local',
+      getLocale: () => 'en-US',
+      dedupPolicy: 'all-non-auth',
+      __testAdapter: clientAState.adapter,
+    })
+    const clientB = createHttpClient({
+      csrfManager: createCsrfTokenManager(),
+      baseURL: 'http://test.local',
+      getLocale: () => 'en-US',
+      dedupPolicy: 'all-non-auth',
+      __testAdapter: clientBState.adapter,
+    })
+
+    const firstA = clientA.apiGet('/foo').catch((error: unknown) => error)
+    const firstB = clientB.apiGet('/foo').catch((error: unknown) => error)
+    await vi.waitFor(() => {
+      expect(clientAState.adapter).toHaveBeenCalledTimes(1)
+      expect(clientBState.adapter).toHaveBeenCalledTimes(1)
+    })
+    const secondA = clientA.apiGet('/foo')
+    await vi.waitFor(() => expect(clientAState.adapter).toHaveBeenCalledTimes(2))
+
+    expect(clientAState.adapter).toHaveBeenCalledTimes(2)
+    expect(clientBState.adapter).toHaveBeenCalledTimes(1)
+    expect(clientAState.requests[0].signal?.aborted).toBe(true)
+    expect(clientBState.requests[0].signal?.aborted).toBe(false)
+
+    const response = {
+      status: 200,
+      statusText: 'OK',
+      headers: {},
+      config: { headers: {} },
+      data: { code: 0, message: 'ok', data: { ok: true } },
+    }
+    clientAState.pending[1](response)
+    clientBState.pending[0](response)
+
+    await expect(firstA).resolves.toMatchObject({ name: 'ApiError', code: -1 })
+    await expect(secondA).resolves.toEqual({ ok: true })
+    await expect(firstB).resolves.toEqual({ ok: true })
   })
 
   it("'non-auth-readonly' does NOT dedup PATCH/PUT/DELETE", async () => {

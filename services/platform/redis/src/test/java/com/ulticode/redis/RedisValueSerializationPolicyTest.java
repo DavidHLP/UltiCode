@@ -2,6 +2,7 @@ package com.ulticode.redis;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.cache.support.NullValue;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 
 import java.nio.charset.StandardCharsets;
@@ -72,6 +73,25 @@ class RedisValueSerializationPolicyTest {
             description.append(current).append(' ');
         }
         return description.toString();
+    }
+
+    @Test
+    @DisplayName("cache null sentinel is not silently stored by the shared policy")
+    void cacheNullSentinelIsNotSilentlyStored() {
+        GenericJackson2JsonRedisSerializer serializer =
+                RedisValueSerializationPolicy.valueSerializer();
+        // Spring's cache null sentinel is only serializable after
+        // GenericJackson2JsonRedisSerializer.registerNullValueSerializer is
+        // registered on the mapper; without it the write fails loudly. The
+        // allowlist constrains reads only, so this matches the pre-allowlist
+        // behavior exactly. If null caching is ever required, register the
+        // sentinel serializer and allow exactly NullValue.class in the allowlist.
+        Exception failure = assertThrows(Exception.class,
+                () -> serializer.serialize(NullValue.INSTANCE),
+                "the null sentinel must fail loudly instead of storing a wrong value");
+
+        assertTrue(describe(failure).contains("NullValue"),
+                "the failure must name the sentinel: " + describe(failure));
     }
 
     @Test

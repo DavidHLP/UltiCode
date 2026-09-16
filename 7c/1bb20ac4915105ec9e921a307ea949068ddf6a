@@ -1,0 +1,14 @@
+scripts/test/admin-rpc-adapter-contract.sh
+  h_77173abe25c3ff 50-52
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7c1bb20ac4915105ec9e921a307ea949068ddf6a",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

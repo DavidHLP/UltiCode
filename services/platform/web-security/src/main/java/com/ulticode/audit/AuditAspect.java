@@ -1,21 +1,15 @@
 package com.ulticode.audit;
 
 import com.ulticode.common.annotation.Audited;
-import com.ulticode.common.audit.AuditPolicy;
 import com.ulticode.common.audit.AuditSinkPort;
+import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.util.AuditContext;
 import com.ulticode.websecurity.util.ClientIpResolver;
-import com.ulticode.common.auth.CurrentUserProvider;
-import jakarta.servlet.http.HttpServletRequest;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.CodeSignature;
 import org.springframework.stereotype.Component;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.util.Map;
 
@@ -25,30 +19,26 @@ import java.util.Map;
  * <p>Automatically captures: performer ID, client IP, user agent, action, entity type.
  * For old/new value capture, use {@link AuditContext} inside the method body.
  *
- * <p><strong>Cross-cutting seam:</strong> the aspect depends only on
- * {@link AuditSinkPort} — the admin module ships the production
- * adapter. The aspect no longer imports {@code AuditService} directly.
- * See {@code /tmp/architecture-review-1783485814.html} candidate 4.
+ * <p><strong>Cross-cutting seam:</strong> emission is centralized in
+ * {@link AuditEmissionPolicy}, which receives the existing ports explicitly.
+ * The aspect no longer imports {@code AuditService} directly.
  */
-@Slf4j
 @Aspect
 @Component
-@RequiredArgsConstructor
 public class AuditAspect {
 
-    private final AuditSinkPort auditSinkPort;
-    private final ClientIpResolver clientIpResolver;
-    private final CurrentUserProvider currentUserProvider;
+    private final AuditEmissionPolicy auditEmissionPolicy;
+
+    public AuditAspect(AuditSinkPort auditSinkPort,
+                       ClientIpResolver clientIpResolver,
+                       CurrentUserProvider currentUserProvider) {
+        this.auditEmissionPolicy =
+            new AuditEmissionPolicy(auditSinkPort, clientIpResolver, currentUserProvider);
+    }
 
     @Around("@annotation(audited)")
     public Object auditAround(ProceedingJoinPoint joinPoint, Audited audited) throws Throwable {
-        String performerId = currentUserProvider.getCurrentUserId();
-        if (performerId == null) {
-            performerId = "system";
-        }
-
-        String ip = clientIpResolver.resolveCurrent();
-        String userAgent = getUserAgent();
+        AuditEmissionPolicy.Prepared emissionMetadata = auditEmissionPolicy.prepare();
 
         String targetUserId = resolveParamValue(joinPoint, audited.userIdFrom());
         String resolvedEntityId = resolveParamValue(joinPoint, audited.entityIdFrom());
@@ -60,17 +50,15 @@ public class AuditAspect {
             String userId = firstNonNull(targetUserId, AuditContext.getUserId());
             String entityId = firstNonNull(resolvedEntityId, AuditContext.getEntityId(), "N/A");
 
-            auditSinkPort.log(
-                performerId,
+            auditEmissionPolicy.emit(
+                emissionMetadata,
                 userId,
                 audited.action(),
                 audited.entityType(),
                 entityId,
                 AuditContext.getOldValues(),
                 Map.of("error", e.getClass().getSimpleName(),
-                       "message", e.getMessage() != null ? e.getMessage() : ""),
-                ip,
-                userAgent
+                       "message", e.getMessage() != null ? e.getMessage() : "")
             );
             AuditContext.clear();
             throw e;
@@ -94,16 +82,14 @@ public class AuditAspect {
             newValues = captureSimpleState(result);
         }
 
-        auditSinkPort.log(
-            performerId,
+        auditEmissionPolicy.emit(
+            emissionMetadata,
             userId,
             audited.action(),
             audited.entityType(),
-            entityId != null ? entityId : "N/A",
+            entityId,
             oldValues,
-            newValues,
-            ip,
-            userAgent
+            newValues
         );
 
         AuditContext.clear();
@@ -162,17 +148,6 @@ public class AuditAspect {
         } catch (Exception e) {
             return null;
         }
-    }
-
-    private String getUserAgent() {
-        ServletRequestAttributes attributes =
-            (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-        if (attributes == null) {
-            return null;
-        }
-        HttpServletRequest request = attributes.getRequest();
-        String ua = request.getHeader("User-Agent");
-        return ua != null && !ua.isEmpty() ? ua : null;
     }
 
     private static String firstNonNull(String... values) {

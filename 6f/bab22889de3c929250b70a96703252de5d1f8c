@@ -1,0 +1,42 @@
+docs/architecture/modules.md
+  h_77173abe25c3ff 50,61
+scripts/test/api-contract-boundary-contract.sh
+  h_77173abe25c3ff 39
+services/admin/pom.xml
+  h_77173abe25c3ff 29-33
+services/admin/src/main/java/com/ulticode/admin/config/AdminCacheConfig.java
+  h_77173abe25c3ff 3,34
+services/admin/src/main/java/com/ulticode/admin/config/AdminRedisTemplateConfig.java
+  h_77173abe25c3ff 3,28
+services/app/app-web/pom.xml
+  h_77173abe25c3ff 35-39
+services/app/app-web/src/main/java/com/ulticode/app/config/AppCacheConfig.java
+  h_77173abe25c3ff 3,41
+services/app/app-web/src/main/java/com/ulticode/app/config/AppRedisTemplateConfig.java
+  h_77173abe25c3ff 3,28
+services/app/app-web/src/test/java/com/ulticode/app/config/AppRedisTemplateConfigSerializationTest.java
+  h_77173abe25c3ff 3,18-25,27-31,56-57,60
+services/judge-runtime/pom.xml
+  h_77173abe25c3ff 24-27
+services/judge-runtime/src/main/java/com/ulticode/app/config/AppRedisTemplateConfig.java
+  h_77173abe25c3ff 3,29
+services/platform/redis/pom.xml
+  h_77173abe25c3ff 1-84
+services/platform/redis/src/main/java/com/ulticode/redis/RedisValueSerializationPolicy.java
+  h_77173abe25c3ff 1-51
+services/platform/redis/src/test/java/com/ulticode/redis/RedisValueSerializationPolicyTest.java
+  h_77173abe25c3ff 1-75
+services/pom.xml
+  h_77173abe25c3ff 28,186-190
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6fbab22889de3c929250b70a96703252de5d1f8c",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

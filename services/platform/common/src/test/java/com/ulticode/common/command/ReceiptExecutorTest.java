@@ -53,7 +53,7 @@ class ReceiptExecutorTest {
 
         assertThat(result.success()).isTrue();
         assertThat(result.data()).isEqualTo("created");
-        assertThat(mutations).hasValue(1);
+        assertThat(mutations.get()).isEqualTo(1);
         assertThat(store.receipt("TestService", "create", "claim-key").status())
                 .isEqualTo("SUCCESS");
         assertThat(store.receipt("TestService", "create", "claim-key").resultPayload())
@@ -78,9 +78,8 @@ class ReceiptExecutorTest {
 
         assertThat(replay.success()).isTrue();
         assertThat(replay.data()).isEqualTo("stored-result");
-        assertThat(mutations).hasValue(1);
+        assertThat(mutations.get()).isEqualTo(1);
     }
-
     @Test
     void reusedKeyWithDifferentCommandConflicts() {
         TestCommand original = command("shared-key", "item-a");
@@ -115,7 +114,6 @@ class ReceiptExecutorTest {
                 store,
                 new StringCodec(),
                 new GenericFingerprintStrategy(),
-                ERRORS,
                 ReceiptCommandMetadata::from,
                 ReceiptExecutorTest::valid,
                 CLOCK);
@@ -137,7 +135,7 @@ class ReceiptExecutorTest {
 
         assertThat(first.data()).isEqualTo("auth-result");
         assertThat(replay.data()).isEqualTo("auth-result");
-        assertThat(mutations).hasValue(1);
+        assertThat(mutations.get()).isEqualTo(1);
         assertThat(store.receipt("AuthService", "changeState", "auth-key").resultPayload())
                 .isEqualTo("auth-result");
     }

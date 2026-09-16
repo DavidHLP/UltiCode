@@ -2,20 +2,27 @@ package com.ulticode.auth.idempotency;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.auth.api.command.ChangeAccountStateCommand;
-import com.ulticode.auth.api.command.PermissionMutationCommand;
-import com.ulticode.auth.api.command.ChangeRoleCommand;
 import com.ulticode.auth.api.command.ChangePasswordCommand;
+import com.ulticode.auth.api.command.ChangeRoleCommand;
 import com.ulticode.auth.api.command.CreateAccountCommand;
 import com.ulticode.auth.api.command.DeleteAccountCommand;
+import com.ulticode.auth.api.command.PermissionMutationCommand;
 import com.ulticode.auth.api.command.ResetPasswordCommand;
 import com.ulticode.auth.api.command.UpdateAccountCredentialsCommand;
 import com.ulticode.auth.api.command.WriteCommand;
 import com.ulticode.auth.api.error.AuthErrorCode;
 import com.ulticode.auth.idempotency.entity.AuthCommandReceiptEntity;
 import com.ulticode.auth.idempotency.mapper.AuthCommandReceiptMapper;
+import com.ulticode.common.command.CommandReceiptStore;
+import com.ulticode.common.command.ReceiptCommandMetadata;
+import com.ulticode.common.command.ReceiptErrorCatalog;
+import com.ulticode.common.command.ReceiptExecutionMode;
+import com.ulticode.common.command.ReceiptExecutor;
+import com.ulticode.common.command.ReceiptFingerprintStrategy;
+import com.ulticode.common.command.ReceiptPayloadCodec;
+import com.ulticode.common.command.ReceiptView;
+import com.ulticode.common.command.ReceiptWrite;
 import com.ulticode.common.rpc.RpcResult;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,43 +37,33 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-/**
- * Shared provider-side command receipt boundary.
- *
- * <p>Receipt lookup, primary mutation, and receipt finalization all execute
- * in one transaction. A receipt insert or serialization failure therefore
- * rolls back the primary mutation instead of leaving an un-deduplicated side
- * effect.</p>
- */
+/** Thin Auth adapter retaining the explicit mutate-then-record protocol. */
 @Component
 public class CommandReceiptExecutor {
 
-    private static final Logger log = LoggerFactory.getLogger(CommandReceiptExecutor.class);
-    private static final String SUCCESS = "SUCCESS";
-    private static final String DEFAULT_TRACE_ID = "t-system";
-    private static final char FIELD_SEPARATOR = '\u001f';
+    private static final ReceiptErrorCatalog ERRORS = new AuthReceiptErrors();
+    private static final ReceiptFingerprintStrategy<WriteCommand> FINGERPRINTS =
+            new AuthFingerprintStrategy();
 
-    private final AuthCommandReceiptMapper receiptMapper;
-    private final ObjectMapper objectMapper;
-    private final Clock clock;
+    private final ReceiptExecutor<WriteCommand> delegate;
 
     public CommandReceiptExecutor(
             AuthCommandReceiptMapper receiptMapper,
             ObjectMapper objectMapper,
             Clock clock) {
-        this.receiptMapper = receiptMapper;
-        this.objectMapper = objectMapper;
-        this.clock = clock;
+        CommandReceiptStore store = receiptMapper == null
+                ? null : new AuthReceiptStore(receiptMapper);
+        delegate = new ReceiptExecutor<>(
+                ReceiptExecutionMode.MUTATE_THEN_RECORD,
+                store,
+                new JacksonPayloadCodec(objectMapper),
+                FINGERPRINTS,
+                ERRORS,
+                CommandReceiptExecutor::metadata,
+                CommandReceiptExecutor::validCommand,
+                clock);
     }
 
-    /**
-     * Execute one idempotent mutation at a provider transaction boundary.
-     *
-     * <p>The mutation is deliberately allowed to throw. The transaction
-     * interceptor must observe that exception before the provider translates
-     * it into a transport failure, otherwise a caught business exception could
-     * accidentally commit a partial mutation.</p>
-     */
     @Transactional
     public <T> RpcResult<T> execute(
             String service,
@@ -74,165 +71,217 @@ public class CommandReceiptExecutor {
             WriteCommand command,
             Class<T> resultType,
             Function<String, RpcResult<T>> mutation) {
-        String traceId = traceId(command);
-        if (command == null || command.idempotency() == null
-                || !command.idempotency().hasKey()) {
-            return RpcResult.failure(AuthErrorCode.INVALID_ACCOUNT_REQUEST, traceId);
-        }
-
-        String idempotencyKey = command.idempotency().idempotencyKey();
-        String requestFingerprint = fingerprint(command);
-        if (receiptMapper == null) {
-            RpcResult<T> result = Objects.requireNonNull(mutation.apply(traceId),
-                    "mutation result must not be null");
-            return result;
-        }
-
-        AuthCommandReceiptEntity existing = receiptMapper.findByReceiptKey(
-                service, operation, idempotencyKey);
-        if (existing != null) {
-            if (existing.getRequestFingerprint() != null
-                    && !matchesFingerprint(existing.getRequestFingerprint(), command)) {
-                return RpcResult.failure(AuthErrorCode.IDEMPOTENCY_KEY_CONFLICT, traceId);
-            }
-            if (!SUCCESS.equals(existing.getStatus())) {
-                return RpcResult.failure(AuthErrorCode.UNEXPECTED_AUTH_STATE, traceId);
-            }
-            try {
-                T result = objectMapper.readValue(existing.getResultPayload(), resultType);
-                return RpcResult.success(result, traceId);
-            } catch (Exception e) {
-                log.error("Unable to replay command receipt for service={}, operation={}",
-                        service, operation, e);
-                return RpcResult.failure(AuthErrorCode.UNEXPECTED_AUTH_STATE, traceId);
-            }
-        }
-
-        RpcResult<T> result = Objects.requireNonNull(mutation.apply(traceId),
-                "mutation result must not be null");
-        if (result.success() && result.data() != null) {
-            insertReceipt(service, operation, command, requestFingerprint, result.data(), traceId);
-        }
-        return result;
-    }
-
-    private <T> void insertReceipt(
-            String service,
-            String operation,
-            WriteCommand command,
-            String requestFingerprint,
-            T result,
-            String traceId) {
-        AuthCommandReceiptEntity receipt = new AuthCommandReceiptEntity();
-        receipt.setId(java.util.UUID.randomUUID().toString());
-        receipt.setCommandId(command.commandId());
-        receipt.setService(service);
-        receipt.setOperation(operation);
-        receipt.setIdempotencyKey(command.idempotency().idempotencyKey());
-        receipt.setRequestFingerprint(requestFingerprint);
-        receipt.setStatus(SUCCESS);
-        try {
-            receipt.setResultPayload(objectMapper.writeValueAsString(result));
-        } catch (Exception e) {
-            throw new IllegalStateException("Unable to serialize command receipt", e);
-        }
-        receipt.setActorType(command.actor() == null ? null : command.actor().actorType());
-        receipt.setActorId(command.actor() == null ? null : command.actor().actorId());
-        receipt.setTraceId(traceId);
-        receipt.setCreatedAt(LocalDateTime.now(clock));
-        // Do not catch insert failures: the enclosing transaction must roll back.
-        receiptMapper.insert(receipt);
+        return delegate.execute(service, operation, command, resultType, mutation);
     }
 
     public static String traceId(WriteCommand command) {
         if (command == null || command.trace() == null
                 || command.trace().traceId() == null
                 || command.trace().traceId().isBlank()) {
-            return DEFAULT_TRACE_ID;
+            return "t-system";
         }
         return command.trace().traceId();
     }
 
-    /** Fingerprint business fields and optimistic-lock version; metadata changes between retries. */
     public static String fingerprint(WriteCommand command) {
-        return fingerprint(command, true);
+        return FINGERPRINTS.fingerprint(command);
     }
 
-    /**
-     * Matches receipts written before expectedVersion became part of the
-     * fingerprint while ensuring new receipts retain optimistic-lock semantics.
-     */
-    private static boolean matchesFingerprint(String stored, WriteCommand command) {
-        return fingerprint(command).equals(stored) || legacyFingerprint(command).equals(stored);
-    }
-
-    private static String legacyFingerprint(WriteCommand command) {
-        return fingerprint(command, false);
-    }
-
-
-    private static String fingerprint(WriteCommand command, boolean includeExpectedVersion) {
-        Objects.requireNonNull(command, "command");
-        String payload;
-        if (command instanceof CreateAccountCommand value) {
-            payload = join(value.username(), value.email(), value.password(), value.role());
-        } else if (command instanceof UpdateAccountCredentialsCommand value) {
-            payload = join(value.accountId(), value.username(), value.email());
-        } else if (command instanceof ChangePasswordCommand value) {
-            payload = join(value.accountId(), value.currentPassword(), value.newPassword());
-        } else if (command instanceof ResetPasswordCommand value) {
-            payload = join(value.accountId(), value.newPassword(), value.rationale());
-        } else if (command instanceof DeleteAccountCommand value) {
-            payload = join(value.accountId(), value.rationale());
-        } else if (command instanceof ChangeAccountStateCommand value) {
-            payload = includeExpectedVersion
-                    ? join(value.accountId(), value.expectedVersion(), value.action(), value.rationale())
-                    : join(value.accountId(), value.action(), value.rationale());
-        } else if (command instanceof PermissionMutationCommand value) {
-            payload = includeExpectedVersion
-                    ? join(value.accountId(), value.operation(), value.action(),
-                    value.resource(), value.expiresAt(), value.expectedVersion(),
-                    value.actor().actorType(), value.actorId(), value.actor().delegatorId(),
-                    value.rationale())
-                    : join(value.accountId(), value.operation(), value.action(),
-                    value.resource(), value.expiresAt(), value.actor().actorType(),
-                    value.actorId(), value.actor().delegatorId(), value.rationale());
-        } else if (command instanceof ChangeRoleCommand value) {
-            payload = includeExpectedVersion
-                    ? join(value.accountId(), value.role(), value.expectedVersion(),
-                    value.actor().actorType(), value.actor().actorId(),
-                    value.actor().delegatorId(), value.rationale())
-                    : join(value.accountId(), value.role(), value.actor().actorType(),
-                    value.actor().actorId(), value.actor().delegatorId(), value.rationale());
-        } else {
-            throw new IllegalArgumentException(
-                    "Unsupported write command for idempotency fingerprint: "
-                            + command.getClass().getName());
+    private static ReceiptCommandMetadata metadata(WriteCommand command) {
+        if (command == null) {
+            return null;
         }
-        return sha256(command.getClass().getName() + FIELD_SEPARATOR + payload);
+        var actor = command.actor();
+        return new ReceiptCommandMetadata(
+                command.commandId(),
+                command.idempotency() == null ? null : command.idempotency().idempotencyKey(),
+                command.trace() == null ? null : command.trace().traceId(),
+                actor == null ? null : actor.actorType(),
+                actor == null ? null : actor.actorId());
     }
 
-    private static String join(Object... values) {
-        return Arrays.stream(values)
-                .map(CommandReceiptExecutor::encode)
-                .collect(Collectors.joining("|"));
+    private static boolean validCommand(WriteCommand command) {
+        return command != null
+                && command.idempotency() != null
+                && command.idempotency().hasKey();
     }
 
-    private static String encode(Object value) {
-        if (value == null) {
-            return "-1:";
+    private static final class JacksonPayloadCodec implements ReceiptPayloadCodec {
+        private final ObjectMapper objectMapper;
+
+        private JacksonPayloadCodec(ObjectMapper objectMapper) {
+            this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper");
         }
-        String text = String.valueOf(value);
-        return text.length() + ":" + text;
+
+        @Override
+        public String encode(Object value) throws Exception {
+            return objectMapper.writeValueAsString(value);
+        }
+
+        @Override
+        public <T> T decode(String payload, Class<T> resultType) throws Exception {
+            return objectMapper.readValue(payload, resultType);
+        }
     }
 
-    private static String sha256(String value) {
-        try {
-            byte[] digest = MessageDigest.getInstance("SHA-256")
-                    .digest(value.getBytes(StandardCharsets.UTF_8));
-            return HexFormat.of().formatHex(digest);
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 is unavailable", e);
+    private static final class AuthReceiptStore implements CommandReceiptStore {
+        private final AuthCommandReceiptMapper mapper;
+
+        private AuthReceiptStore(AuthCommandReceiptMapper mapper) {
+            this.mapper = mapper;
+        }
+
+        @Override
+        public int insertClaim(ReceiptWrite receipt) {
+            return mapper.insert(toEntity(receipt));
+        }
+
+        @Override
+        public ReceiptView findByKey(String service, String operation, String idempotencyKey) {
+            return toView(mapper.findByReceiptKey(service, operation, idempotencyKey));
+        }
+
+        @Override
+        public int markSuccess(String id, String resultPayload) {
+            return 0;
+        }
+
+        @Override
+        public int deleteClaim(String id) {
+            return 0;
+        }
+
+        private static AuthCommandReceiptEntity toEntity(ReceiptWrite receipt) {
+            AuthCommandReceiptEntity entity = new AuthCommandReceiptEntity();
+            entity.setId(receipt.id());
+            entity.setCommandId(receipt.commandId());
+            entity.setService(receipt.service());
+            entity.setOperation(receipt.operation());
+            entity.setIdempotencyKey(receipt.idempotencyKey());
+            entity.setRequestFingerprint(receipt.requestFingerprint());
+            entity.setStatus(receipt.status());
+            entity.setResultPayload(receipt.resultPayload());
+            entity.setActorType(receipt.actorType());
+            entity.setActorId(receipt.actorId());
+            entity.setTraceId(receipt.traceId());
+            entity.setCreatedAt(receipt.createdAt());
+            return entity;
+        }
+
+        private static ReceiptView toView(AuthCommandReceiptEntity entity) {
+            if (entity == null) {
+                return null;
+            }
+            return new ReceiptView(
+                    entity.getId(), entity.getCommandId(), entity.getService(), entity.getOperation(),
+                    entity.getIdempotencyKey(), entity.getRequestFingerprint(), entity.getStatus(),
+                    entity.getResultPayload(), entity.getActorType(), entity.getActorId(), entity.getTraceId());
+        }
+    }
+
+    private static final class AuthReceiptErrors implements ReceiptErrorCatalog {
+        @Override
+        public AuthErrorCode invalidCommand() {
+            return AuthErrorCode.INVALID_ACCOUNT_REQUEST;
+        }
+
+        @Override
+        public AuthErrorCode keyConflict() {
+            return AuthErrorCode.IDEMPOTENCY_KEY_CONFLICT;
+        }
+
+        @Override
+        public AuthErrorCode processingDuplicate() {
+            return AuthErrorCode.UNEXPECTED_AUTH_STATE;
+        }
+
+        @Override
+        public AuthErrorCode missingReceipt() {
+            return AuthErrorCode.UNEXPECTED_AUTH_STATE;
+        }
+
+        @Override
+        public AuthErrorCode replayFailure() {
+            return AuthErrorCode.UNEXPECTED_AUTH_STATE;
+        }
+    }
+
+    private static final class AuthFingerprintStrategy implements ReceiptFingerprintStrategy<WriteCommand> {
+        private static final char FIELD_SEPARATOR = '\u001f';
+
+        @Override
+        public String fingerprint(WriteCommand command) {
+            return fingerprint(command, true);
+        }
+
+        @Override
+        public boolean matches(String storedFingerprint, WriteCommand command) {
+            return fingerprint(command).equals(storedFingerprint)
+                    || fingerprint(command, false).equals(storedFingerprint);
+        }
+
+        private static String fingerprint(WriteCommand command, boolean includeExpectedVersion) {
+            Objects.requireNonNull(command, "command");
+            String payload;
+            if (command instanceof CreateAccountCommand value) {
+                payload = join(value.username(), value.email(), value.password(), value.role());
+            } else if (command instanceof UpdateAccountCredentialsCommand value) {
+                payload = join(value.accountId(), value.username(), value.email());
+            } else if (command instanceof ChangePasswordCommand value) {
+                payload = join(value.accountId(), value.currentPassword(), value.newPassword());
+            } else if (command instanceof ResetPasswordCommand value) {
+                payload = join(value.accountId(), value.newPassword(), value.rationale());
+            } else if (command instanceof DeleteAccountCommand value) {
+                payload = join(value.accountId(), value.rationale());
+            } else if (command instanceof ChangeAccountStateCommand value) {
+                payload = includeExpectedVersion
+                        ? join(value.accountId(), value.expectedVersion(), value.action(), value.rationale())
+                        : join(value.accountId(), value.action(), value.rationale());
+            } else if (command instanceof PermissionMutationCommand value) {
+                payload = includeExpectedVersion
+                        ? join(value.accountId(), value.operation(), value.action(),
+                        value.resource(), value.expiresAt(), value.expectedVersion(),
+                        value.actor().actorType(), value.actorId(), value.actor().delegatorId(), value.rationale())
+                        : join(value.accountId(), value.operation(), value.action(), value.resource(),
+                        value.expiresAt(), value.actor().actorType(), value.actorId(),
+                        value.actor().delegatorId(), value.rationale());
+            } else if (command instanceof ChangeRoleCommand value) {
+                payload = includeExpectedVersion
+                        ? join(value.accountId(), value.role(), value.expectedVersion(),
+                        value.actor().actorType(), value.actor().actorId(),
+                        value.actor().delegatorId(), value.rationale())
+                        : join(value.accountId(), value.role(), value.actor().actorType(),
+                        value.actor().actorId(), value.actor().delegatorId(), value.rationale());
+            } else {
+                throw new IllegalArgumentException(
+                        "Unsupported write command for idempotency fingerprint: "
+                                + command.getClass().getName());
+            }
+            return sha256(command.getClass().getName() + FIELD_SEPARATOR + payload);
+        }
+
+        private static String join(Object... values) {
+            return Arrays.stream(values)
+                    .map(AuthFingerprintStrategy::encode)
+                    .collect(Collectors.joining("|"));
+        }
+
+        private static String encode(Object value) {
+            if (value == null) {
+                return "-1:";
+            }
+            String text = String.valueOf(value);
+            return text.length() + ":" + text;
+        }
+
+        private static String sha256(String value) {
+            try {
+                byte[] digest = MessageDigest.getInstance("SHA-256")
+                        .digest(value.getBytes(StandardCharsets.UTF_8));
+                return HexFormat.of().formatHex(digest);
+            } catch (NoSuchAlgorithmException exception) {
+                throw new IllegalStateException("SHA-256 is unavailable", exception);
+            }
         }
     }
 }

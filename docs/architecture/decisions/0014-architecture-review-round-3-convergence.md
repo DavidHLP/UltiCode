@@ -31,7 +31,8 @@ http-client 去重状态。全部为 in-process / ports & adapters 收敛，不�
    可选的非 RPC metrics 注入不变，`SubmissionUserDetailStatsPort` 仍作为后续项。
 7. 新增聚焦的 `services/platform/redis`（artifact `backend-redis`），由其持有 `RedisValueSerializationPolicy`，并让五份 Redis config copy 收敛到同一策略。
    Owner 保留 connection、TTL、key/hash、bean wiring；default typing + JavaTime 的 byte compatibility 保持并由测试 pin 住。
-   该策略保留 `LaissezFaire` + default typing（permissive polymorphic typing）属于显式的安全例外：它是四个 pre-C7 配置已写入 Redis 的字节格式，改用 allowlist 会破坏全部缓存值；风险边界限于本服务族写入的内部 Redis，升级路径为显式类型 allowlist + 缓存 flush，均在类 javadoc 中说明。
+   反序列化侧改为 `BasicPolymorphicTypeValidator` 显式 allowlist（`com.ulticode.`、`java.util.`、`java.time.`、`java.lang.`，另按单类放行 `BigDecimal`：`ProblemVO.acceptanceRate`、`ContestRankingVO.progress` 等缓存 VO 携带该类型），写出的 type-id bytes 不变；allowlist 外的 subtype（如 `java.io.File`）在反序列化时被拒绝，并有正反回归测试锁定（含 BigDecimal round-trip）。
+   缓存 null sentinel 的既有边界不变：未注册 `registerNullValueSerializer` 时写入即失败（allowlist 只约束读侧，前后一致），并有回归测试锁定；如需缓存 null 需另行注册并只放行该 sentinel。
 8. Submission owner 返回 sealed `RejudgeOutcome`；`SubmissionAdministrationProvider` 成为唯一的 wire-DTO builder 和 `AppErrorCode → RpcResult` mapper。
    `RejudgeResultDTO` 的 wire shape（含 nullable `success`）不变，null-lenient compatibility readers 保留。
 9. `useRemoteTable` 持有 search、filters、pagination、refresh 的 query state machine，并通过显式 Problems route adapter 接入路由。

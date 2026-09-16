@@ -114,6 +114,7 @@ class ReceiptExecutorTest {
                 store,
                 new StringCodec(),
                 new GenericFingerprintStrategy(),
+                ERRORS,
                 ReceiptCommandMetadata::from,
                 ReceiptExecutorTest::valid,
                 CLOCK);

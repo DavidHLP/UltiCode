@@ -2,6 +2,7 @@ package com.ulticode.submission.dubbo.provider;
 
 import com.ulticode.app.api.error.AppErrorCode;
 import com.ulticode.common.rpc.RpcResult;
+import com.ulticode.submission.admin.RejudgeOutcome;
 import com.ulticode.submission.admin.SubmissionRejudgeService;
 import com.ulticode.submission.api.command.BatchRejudgeCommand;
 import com.ulticode.submission.api.command.RejudgeCommand;
@@ -37,7 +38,10 @@ public class SubmissionAdministrationProvider implements SubmissionAdministratio
                 "rejudge",
                 command,
                 RejudgeResultDTO.class,
-                ignored -> toRpcResult(rejudgeService.rejudge(command.submissionId()), traceId));
+                ignored -> toRpcResult(
+                        command.submissionId(),
+                        rejudgeService.rejudge(command.submissionId()),
+                        traceId));
     }
 
     @Override
@@ -57,9 +61,9 @@ public class SubmissionAdministrationProvider implements SubmissionAdministratio
         List<RejudgeResultDTO> results = new ArrayList<>(command.submissionIds().size());
         int successful = 0;
         for (String submissionId : command.submissionIds()) {
-            RejudgeResultDTO result = rejudgeService.rejudge(submissionId);
-            results.add(result);
-            if (!Boolean.FALSE.equals(result.success())) {
+            RejudgeOutcome outcome = rejudgeService.rejudge(submissionId);
+            results.add(toDTO(submissionId, outcome));
+            if (outcome instanceof RejudgeOutcome.Initiated) {
                 successful++;
             }
         }
@@ -68,21 +72,41 @@ public class SubmissionAdministrationProvider implements SubmissionAdministratio
     }
 
     private static RpcResult<RejudgeResultDTO> toRpcResult(
-            RejudgeResultDTO result, String traceId) {
-        if (result == null) {
+            String submissionId, RejudgeOutcome outcome, String traceId) {
+        if (outcome == null) {
             return RpcResult.failure(AppErrorCode.UNEXPECTED_APP_STATE, traceId);
         }
-        if (!Boolean.FALSE.equals(result.success())) {
+        RejudgeResultDTO result = toDTO(submissionId, outcome);
+        if (outcome instanceof RejudgeOutcome.Initiated) {
             return RpcResult.success(result, traceId);
         }
-        AppErrorCode code = switch (result.errorCode() == null ? -1 : result.errorCode()) {
-            case 40401, 40400, 30001, 30002 -> AppErrorCode.CONTENT_NOT_FOUND;
-            case 40901 -> AppErrorCode.VERSION_CONFLICT;
-            case 40902, 40900 -> AppErrorCode.CONTENT_STATE_CONFLICT;
-            default -> AppErrorCode.UNEXPECTED_APP_STATE;
-        };
+        RejudgeOutcome.Rejected rejected = (RejudgeOutcome.Rejected) outcome;
         return RpcResult.failure(
-                new RpcResult.ErrorPayload(AppErrorCode.NAMESPACE, code.code(), result.error()),
+                new RpcResult.ErrorPayload(
+                        AppErrorCode.NAMESPACE, rejected.code().code(), rejected.message()),
                 traceId);
+    }
+
+    private static RejudgeResultDTO toDTO(
+            String submissionId, RejudgeOutcome outcome) {
+        if (outcome instanceof RejudgeOutcome.Initiated initiated) {
+            return new RejudgeResultDTO(
+                    initiated.submissionId(),
+                    initiated.newStatus(),
+                    initiated.rejudgedAtEpochMs(),
+                    initiated.retryCount(),
+                    true,
+                    null,
+                    null);
+        }
+        RejudgeOutcome.Rejected rejected = (RejudgeOutcome.Rejected) outcome;
+        return new RejudgeResultDTO(
+                submissionId,
+                null,
+                0L,
+                0,
+                false,
+                rejected.code().code(),
+                rejected.message());
     }
 }

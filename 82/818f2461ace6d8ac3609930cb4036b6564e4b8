@@ -1,0 +1,52 @@
+apps/management/src/components/table/DataTable.test.ts
+  h_77173abe25c3ff 1-101
+apps/management/src/components/table/DataTable.vue
+  h_77173abe25c3ff 8
+apps/management/src/composables/useRemoteTable.test.ts
+  h_77173abe25c3ff 1-270
+apps/management/src/composables/useRemoteTable.ts
+  h_77173abe25c3ff 3,5,7-8,10,17-42,50-51,59,62-65,70-78,81,83,85-87,90-91,94,97-109,112-115,117-124,126-147,149-157,159,161,163-164,168-177,179-196,198-211,213-214,217-253,255,262-267
+apps/management/src/stores/admin/moderation/moderationStore.ts
+  h_77173abe25c3ff 28,32,48,67
+apps/management/src/views/comments/CommentsListView.vue
+  h_77173abe25c3ff 21,31,42-84
+apps/management/src/views/contests/ContestsListView.vue
+  h_77173abe25c3ff 18,45-81
+apps/management/src/views/forum/ForumPostsListView.vue
+  h_77173abe25c3ff 17,30,42-105
+apps/management/src/views/moderation/AppealsView.vue
+  h_77173abe25c3ff 24,39,47-71
+apps/management/src/views/moderation/ModerationQueueView.vue
+  h_77173abe25c3ff 32,55,63-96
+apps/management/src/views/moderation/ReportsView.vue
+  h_77173abe25c3ff 21,30,39-84
+apps/management/src/views/moderation/composables/useModerationFilters.ts
+  h_77173abe25c3ff 8-40
+apps/management/src/views/notifications/NotificationsListView.vue
+  h_77173abe25c3ff 33,52,59-61,67-68,78-87
+apps/management/src/views/problem-lists/ProblemListsListView.vue
+  h_77173abe25c3ff 14,27,40,47-49,55-56,68-77
+apps/management/src/views/problems/ProblemsListView.vue
+  h_77173abe25c3ff 2,33-34,44-45,47,54-56,58,62-64,66,71-90,364,367
+apps/management/src/views/problems/composables/useProblemFilters.ts
+  h_77173abe25c3ff 1,4,9-16,18,25-36,42-53,55-59,62-93,96,99,101,103,105-109,113-114,116-119,124-125
+apps/management/src/views/solutions/SolutionsListView.vue
+  h_77173abe25c3ff 17,39-76
+apps/management/src/views/submissions/SubmissionsView.vue
+  h_77173abe25c3ff 21,42,55-89
+apps/management/src/views/tags/TagsListView.vue
+  h_77173abe25c3ff 34,49,70,77-79,81-82,91-98
+apps/management/src/views/users/UsersListView.vue
+  h_77173abe25c3ff 32,53,63-99
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "82818f2461ace6d8ac3609930cb4036b6564e4b8",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

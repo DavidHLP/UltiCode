@@ -18,6 +18,7 @@ http-client 去重状态。全部为 in-process / ports & adapters 收敛，不�
 
 1. `platform/common/command` 提供 owner-neutral 的 plain receipt executor 与 store port，并显式区分 `MUTATE_THEN_RECORD` 和 `CLAIM_MUTATE_FINALIZE`。
    Auth 使用前者，保留 legacy fingerprint hook 与 null-mapper bypass；App、Submission、Notification 使用后者。各 Owner 的 adapter、mapper、table、fingerprint 和 error namespace 不变，Contest/Profile direct-write paths 继续作为后续项。
+   Payload codec 与 receipt-store 映射保持 owner-local：`backend-common` 的 dependency-free 契约（含 ArchTest）不允许引入 jackson-databind，codec 落在各 Owner adapter 内是边界而非重复。
 2. 删除 `NotificationCutoverService`，由 `AdminNotificationServiceImpl` 保留单一通知写路径和 surviving entry points 上的 `@Audited`。
    `OwnerCutoverGate`/`OwnerCutoverRegistry` 明确五个 domain：contest `FAIL_CLOSED`、moderation `DELEGATE_LOCAL`、notification `CUTOVER_REMOVED`、submission/problem `ALWAYS_REMOTE`；同时删除 dead submission key 并更新 source-contract rules。
 3. Admin audit outbox 的失败语义采用完整 retry contract：记录 `attempts`、`last_error`、`next_retry_at`，使用 30 秒 backoff，在 `MAX_ATTEMPTS=5` 进入 terminal；retryable 与 terminal 的 `FAILED` 可区分。
@@ -30,6 +31,7 @@ http-client 去重状态。全部为 in-process / ports & adapters 收敛，不�
    可选的非 RPC metrics 注入不变，`SubmissionUserDetailStatsPort` 仍作为后续项。
 7. 新增聚焦的 `services/platform/redis`（artifact `backend-redis`），由其持有 `RedisValueSerializationPolicy`，并让五份 Redis config copy 收敛到同一策略。
    Owner 保留 connection、TTL、key/hash、bean wiring；default typing + JavaTime 的 byte compatibility 保持并由测试 pin 住。
+   该策略保留 `LaissezFaire` + default typing（permissive polymorphic typing）属于显式的安全例外：它是四个 pre-C7 配置已写入 Redis 的字节格式，改用 allowlist 会破坏全部缓存值；风险边界限于本服务族写入的内部 Redis，升级路径为显式类型 allowlist + 缓存 flush，均在类 javadoc 中说明。
 8. Submission owner 返回 sealed `RejudgeOutcome`；`SubmissionAdministrationProvider` 成为唯一的 wire-DTO builder 和 `AppErrorCode → RpcResult` mapper。
    `RejudgeResultDTO` 的 wire shape（含 nullable `success`）不变，null-lenient compatibility readers 保留。
 9. `useRemoteTable` 持有 search、filters、pagination、refresh 的 query state machine，并通过显式 Problems route adapter 接入路由。
@@ -40,6 +42,7 @@ http-client 去重状态。全部为 in-process / ports & adapters 收敛，不�
     补充 cross-instance isolation test。
 
 工具性修复：C5b 补齐 audit aspect test stubs，C6b 固化 registry count contract，C13/C13b 保持 docs-contract 的 README pin；这些修复不改变上述运行时边界。
+C13/C13b 归入本 PR 的原因：main 的 README 英文化（`7afe2b166`）已使该 docs-contract 断言潜在失败，而 `ci-ok` 一旦触发 frontend/backend gate 就必须通过该断言；不在本 PR 修复则无法取得绿色 CI。
 
 ## Deliberate non-decisions
 

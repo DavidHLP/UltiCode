@@ -24,12 +24,13 @@ public class AuditOutboxDispatcher {
                 new OutboxDispatcher.Adapter<>() {
                     @Override
                     public void reclaimStaleClaimed() {
-                        auditOutboxMapper.reclaimStaleClaimed();
+                        auditOutboxMapper.reclaimStaleClaimed(OutboxDispatcher.MAX_ATTEMPTS);
                     }
 
                     @Override
                     public int claimPending(String claimOwner, int limit) {
-                        return auditOutboxMapper.claimPending(claimOwner, limit);
+                        return auditOutboxMapper.claimPending(
+                                claimOwner, limit, OutboxDispatcher.MAX_ATTEMPTS);
                     }
 
                     @Override

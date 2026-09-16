@@ -121,9 +121,9 @@ class AuditOutboxProcessorTest {
     @DisplayName("mapper SQL distinguishes due retryable FAILED from terminal FAILED")
     void mapperSql_distinguishesRetryableAndTerminalFailures() throws NoSuchMethodException {
         Method claimMethod = AuditOutboxMapper.class.getMethod(
-                "claimPending", String.class, int.class);
+                "claimPending", String.class, int.class, int.class);
         Method reclaimMethod = AuditOutboxMapper.class.getMethod(
-                "reclaimStaleClaimed");
+                "reclaimStaleClaimed", int.class);
         Method processMethod = AuditOutboxMapper.class.getMethod(
                 "markProcessed", String.class, String.class);
         Method failureMethod = AuditOutboxMapper.class.getMethod(
@@ -135,7 +135,7 @@ class AuditOutboxProcessorTest {
 
         assertThat(claimSql)
                 .contains("state = 'FAILED'")
-                .contains("attempts < 5")
+                .contains("attempts < #{maxAttempts}")
                 .contains("next_retry_at <= NOW(3)");
         assertThat(failureSql)
                 .contains("attempts + 1")
@@ -144,7 +144,7 @@ class AuditOutboxProcessorTest {
                 .contains("next_retry_at = DATE_ADD(NOW(3), INTERVAL 30 SECOND)")
                 .contains("#{maxAttempts}");
         assertThat(reclaimSql)
-                .contains("attempts >= 5")
+                .contains("attempts >= #{maxAttempts}")
                 .contains("state = CASE")
                 .contains("next_retry_at = CASE");
         assertThat(processSql)

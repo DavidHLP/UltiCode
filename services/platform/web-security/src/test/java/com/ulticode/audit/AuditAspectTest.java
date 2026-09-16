@@ -174,12 +174,13 @@ class AuditAspectTest {
     }
 
     private ProceedingJoinPoint joinPoint(String[] paramNames, Object[] args) throws Throwable {
-        CodeSignature signature = mock(CodeSignature.class);
-        when(signature.getParameterNames()).thenReturn(paramNames);
         ProceedingJoinPoint joinPoint = mock(ProceedingJoinPoint.class);
-        when(joinPoint.getSignature()).thenReturn(signature);
-        when(joinPoint.getArgs()).thenReturn(args);
-        when(joinPoint.proceed()).thenReturn(null);
+        if (paramNames.length > 0) {
+            CodeSignature signature = mock(CodeSignature.class);
+            when(signature.getParameterNames()).thenReturn(paramNames);
+            when(joinPoint.getSignature()).thenReturn(signature);
+            when(joinPoint.getArgs()).thenReturn(args);
+        }
         return joinPoint;
     }
 }

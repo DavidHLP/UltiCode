@@ -70,7 +70,7 @@ class ProblemListAdministrationProviderTest {
     @Test
     void createRoutesThroughDurableReceiptBoundaryWithCommandMetadata() {
         when(receiptExecutor.execute(
-                eq(CommandReceiptExecutor.problemListService()),
+                eq("ProblemListAdministrationService"),
                 eq("createProblemList"),
                 any(CreateProblemListCommand.class),
                 eq(ProblemListSummaryDTO.class),
@@ -97,7 +97,7 @@ class ProblemListAdministrationProviderTest {
         ArgumentCaptor<CreateProblemListCommand> command =
                 ArgumentCaptor.forClass(CreateProblemListCommand.class);
         verify(receiptExecutor).execute(
-                eq(CommandReceiptExecutor.problemListService()),
+                eq("ProblemListAdministrationService"),
                 eq("createProblemList"), command.capture(), eq(ProblemListSummaryDTO.class), any());
         assertThat(command.getValue().idempotency().idempotencyKey()).isEqualTo("retry-1");
         assertThat(command.getValue().actor().actorId()).isEqualTo("admin-1");
@@ -107,7 +107,7 @@ class ProblemListAdministrationProviderTest {
     @Test
     void mapsOwnerPrivateFailureToForbidden() {
         when(receiptExecutor.execute(
-                eq(CommandReceiptExecutor.problemListService()),
+                eq("ProblemListAdministrationService"),
                 eq("createProblemList"),
                 any(CreateProblemListCommand.class),
                 eq(ProblemListSummaryDTO.class),
@@ -135,7 +135,7 @@ class ProblemListAdministrationProviderTest {
     @Test
     void mapsMissingProblemToProblemNotFound() {
         when(receiptExecutor.execute(
-                eq(CommandReceiptExecutor.problemListService()),
+                eq("ProblemListAdministrationService"),
                 eq("createProblemList"),
                 any(CreateProblemListCommand.class),
                 eq(ProblemListSummaryDTO.class),
@@ -161,7 +161,7 @@ class ProblemListAdministrationProviderTest {
     @Test
     void preservesMissingProblemErrorFromOwner() {
         when(receiptExecutor.execute(
-                eq(CommandReceiptExecutor.problemListService()),
+                eq("ProblemListAdministrationService"),
                 eq("replaceListProblems"),
                 any(ReplaceListProblemsCommand.class),
                 eq(Void.class),
@@ -185,7 +185,7 @@ class ProblemListAdministrationProviderTest {
     @Test
     void preservesDuplicateProblemErrorFromOwner() {
         when(receiptExecutor.execute(
-                eq(CommandReceiptExecutor.problemListService()),
+                eq("ProblemListAdministrationService"),
                 eq("replaceListProblems"),
                 any(ReplaceListProblemsCommand.class),
                 eq(Void.class),

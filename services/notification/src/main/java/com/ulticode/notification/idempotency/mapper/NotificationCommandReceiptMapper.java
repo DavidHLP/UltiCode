@@ -34,10 +34,10 @@ public interface NotificationCommandReceiptMapper extends BaseMapper<Notificatio
     @Insert("""
         INSERT IGNORE INTO notification_command_receipt
             (id, command_id, service, operation, idempotency_key,
-             request_fingerprint, status, actor_type, actor_id, trace_id, created_at)
+             request_fingerprint, status, result_payload, actor_type, actor_id, trace_id, created_at)
         VALUES
             (#{id}, #{commandId}, #{service}, #{operation}, #{idempotencyKey},
-             #{requestFingerprint}, 'PROCESSING', #{actorType}, #{actorId},
+             #{requestFingerprint}, #{status}, #{resultPayload}, #{actorType}, #{actorId},
              #{traceId}, #{createdAt})
     """)
     int insertClaim(NotificationCommandReceiptEntity receipt);

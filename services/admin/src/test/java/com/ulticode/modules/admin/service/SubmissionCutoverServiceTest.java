@@ -105,6 +105,20 @@ class SubmissionCutoverServiceTest {
         }
 
         @Test
+        @DisplayName("treats an explicit null success as successful")
+        void acceptsExplicitNullSuccessProviderPayload() {
+            RejudgeResultDTO legacy = new RejudgeResultDTO(
+                    "s1", "PENDING", 1700000000000L, 1, null, null, null);
+            when(submissionDubbo.rejudge(any())).thenReturn(RpcResult.success(legacy, "t-1"));
+
+            RejudgeResult result = submissionCutover.rejudge("s1", false);
+
+            assertThat(result.getSubmissionId()).isEqualTo("s1");
+            assertThat(result.getSuccess()).isTrue();
+            assertThat(result.getNewStatus()).isEqualTo("PENDING");
+        }
+
+        @Test
         @DisplayName("maps owner transport failure to a generic admin error")
         void mapsProviderUnavailable() {
             when(submissionDubbo.batchRejudge(any()))

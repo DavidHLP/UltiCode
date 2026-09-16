@@ -18,7 +18,7 @@ import type { Comment, CommentType } from '@/api/admin/comments'
 import DataTable from '@/components/table/DataTable.vue'
 import DataTableToolbar, { type Filter } from '@/components/table/DataTableToolbar.vue'
 import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
-import { useDataTable } from '@/composables/useDataTable'
+import { useRemoteTable } from '@/composables/useRemoteTable'
 import { useCommentModeration } from '@/composables/useCommentModeration'
 import { createColumns } from './columns'
 import { renderMarkdown } from '@ulticode/markdown-utils'
@@ -26,12 +26,9 @@ import { renderMarkdown } from '@ulticode/markdown-utils'
 const { t } = useI18n()
 const commentsStore = useCommentsStore()
 
-const typeFilter = ref<CommentType | 'all'>('all')
-const flaggedFilter = ref<string>('all')
-const deletedFilter = ref<string>('all')
-
 const detailDialogOpen = ref(false)
 const detailComment = ref<Comment | null>(null)
+const selectedRows = ref<Comment[]>([])
 
 // Animation state for staggered reveal
 const isLoaded = ref(false)
@@ -40,6 +37,49 @@ onMounted(() => {
   setTimeout(() => {
     isLoaded.value = true
   }, 100)
+})
+
+const {
+  query,
+  searchQuery,
+  tablePagination,
+  loading,
+  data,
+  total,
+  error,
+  refresh: loadComments,
+  setFilters,
+} = useRemoteTable<
+  Comment,
+  { type: CommentType | 'all'; flaggedFilter: string; deletedFilter: string },
+  Parameters<typeof commentsStore.fetchComments>[0]
+>({
+  store: commentsStore,
+  initialQuery: {
+    filters: { type: 'all', flaggedFilter: 'all', deletedFilter: 'all' },
+  },
+  toParams: ({ search, filters, page, limit }) => ({
+    search,
+    type: filters.type === 'all' ? undefined : filters.type,
+    isFlagged: filters.flaggedFilter === 'all' ? undefined : filters.flaggedFilter === 'flagged',
+    isDeleted: filters.deletedFilter === 'all' ? undefined : filters.deletedFilter === 'deleted',
+    page,
+    limit,
+  }),
+  autoLoad: true,
+})
+
+const typeFilter = computed({
+  get: () => query.value.filters.type,
+  set: (type: CommentType | 'all') => setFilters({ ...query.value.filters, type }),
+})
+const flaggedFilter = computed({
+  get: () => query.value.filters.flaggedFilter,
+  set: (flaggedFilter: string) => setFilters({ ...query.value.filters, flaggedFilter }),
+})
+const deletedFilter = computed({
+  get: () => query.value.filters.deletedFilter,
+  set: (deletedFilter: string) => setFilters({ ...query.value.filters, deletedFilter }),
 })
 
 // Stats for terminal ticker
@@ -84,36 +124,6 @@ const toolbarFilters = computed<Filter[]>(() => [
   },
 ])
 
-const {
-  searchQuery,
-  tablePagination,
-  selectedRows,
-  loading,
-  data,
-  total,
-  error,
-  loadEntities: loadComments,
-} = useDataTable<
-  Comment,
-  { type: CommentType | 'all'; flaggedFilter: string; deletedFilter: string },
-  Parameters<typeof commentsStore.fetchComments>[0]
->({
-  store: commentsStore,
-  filters: () => ({
-    type: typeFilter.value,
-    flaggedFilter: flaggedFilter.value,
-    deletedFilter: deletedFilter.value,
-  }),
-  transformParams: ({ search, filters, page, limit }) => ({
-    search,
-    type: filters.type === 'all' ? undefined : filters.type,
-    isFlagged: filters.flaggedFilter === 'all' ? undefined : filters.flaggedFilter === 'flagged',
-    isDeleted: filters.deletedFilter === 'all' ? undefined : filters.deletedFilter === 'deleted',
-    page,
-    limit,
-  }),
-  autoLoad: true,
-})
 
 const {
   selectedCommentId,

@@ -18,15 +18,13 @@ import type { SubmissionListItem, SubmissionDetail } from '@/api/admin/submissio
 
 import DataTable from '@/components/table/DataTable.vue'
 import DataTableToolbar, { type Filter } from '@/components/table/DataTableToolbar.vue'
-import { useDataTable } from '@/composables/useDataTable'
+import { useRemoteTable } from '@/composables/useRemoteTable'
 import { createColumns, formatRuntime, formatMemory } from './columns'
 
 const { t, te } = useI18n()
 const store = useSubmissionsStore()
 
 // Filters
-const statusFilter = ref<string>('all')
-const languageFilter = ref<string>('all')
 
 // Detail dialog
 const detailDialogOpen = ref(false)
@@ -41,6 +39,7 @@ const rejudging = ref(false)
 // Batch rejudge dialog
 const batchRejudgeDialogOpen = ref(false)
 const batchRejudging = ref(false)
+const selectedRows = ref<SubmissionListItem[]>([])
 
 // Animation state for staggered reveal
 const isLoaded = ref(false)
@@ -52,6 +51,41 @@ onMounted(() => {
   // Load statistics and filters separately
   store.fetchStatistics()
   store.fetchFilters()
+})
+const {
+  query,
+  searchQuery,
+  tablePagination,
+  loading,
+  data,
+  total,
+  error,
+  refresh: loadSubmissions,
+  setFilters,
+} = useRemoteTable<
+  SubmissionListItem,
+  { status: string; language: string },
+  Parameters<typeof store.fetchSubmissions>[0]
+>({
+  store,
+  initialQuery: { filters: { status: 'all', language: 'all' } },
+  toParams: ({ search, filters, page, limit }) => ({
+    search,
+    status: filters.status === 'all' ? undefined : filters.status,
+    language: filters.language === 'all' ? undefined : filters.language,
+    page,
+    limit,
+  }),
+  autoLoad: true,
+})
+
+const statusFilter = computed({
+  get: () => query.value.filters.status,
+  set: (status: string) => setFilters({ ...query.value.filters, status }),
+})
+const languageFilter = computed({
+  get: () => query.value.filters.language,
+  set: (language: string) => setFilters({ ...query.value.filters, language }),
 })
 
 // Stats for terminal ticker
@@ -84,34 +118,6 @@ const toolbarFilters = computed<Filter[]>(() => [
   },
 ])
 
-const {
-  searchQuery,
-  tablePagination,
-  selectedRows,
-  loading,
-  data,
-  total,
-  error,
-  loadEntities: loadSubmissions,
-} = useDataTable<
-  SubmissionListItem,
-  { status: string; language: string },
-  Parameters<typeof store.fetchSubmissions>[0]
->({
-  store,
-  filters: () => ({
-    status: statusFilter.value,
-    language: languageFilter.value,
-  }),
-  transformParams: ({ search, filters, page, limit }) => ({
-    search,
-    status: filters.status === 'all' ? undefined : filters.status,
-    language: filters.language === 'all' ? undefined : filters.language,
-    page,
-    limit,
-  }),
-  autoLoad: true,
-})
 
 async function viewSubmission(id: string) {
   detailLoading.value = true

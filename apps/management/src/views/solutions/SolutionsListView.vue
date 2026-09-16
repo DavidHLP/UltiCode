@@ -14,7 +14,7 @@ import DataTable from '@/components/table/DataTable.vue'
 import DataTableToolbar, { type Filter } from '@/components/table/DataTableToolbar.vue'
 import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
 import { createColumns } from './columns'
-import { useDataTable } from '@/composables/useDataTable'
+import { useRemoteTable } from '@/composables/useRemoteTable'
 import { useSolutionPermissions } from '@/composables/useSolutionPermissions'
 
 const router = useRouter()
@@ -22,8 +22,6 @@ const solutionsStore = useSolutionsStore()
 const { can } = useSolutionPermissions()
 const { t } = useI18n()
 
-const flaggedFilter = ref<string>('all')
-const publishedFilter = ref<string>('all')
 
 const selectedSolutionId = ref<string | null>(null)
 const selectedSolutionTitle = ref<string | null>(null)
@@ -37,6 +35,44 @@ onMounted(() => {
   setTimeout(() => {
     isLoaded.value = true
   }, 100)
+})
+const {
+  query,
+  searchQuery,
+  tablePagination,
+  loading,
+  data,
+  total,
+  error,
+  refresh: loadSolutions,
+  setFilters,
+} = useRemoteTable<
+  SolutionListItem,
+  { flaggedFilter: string; publishedFilter: string },
+  Parameters<typeof solutionsStore.fetchSolutions>[0]
+>({
+  store: solutionsStore,
+  initialQuery: { filters: { flaggedFilter: 'all', publishedFilter: 'all' } },
+  toParams: ({ search, filters, page, limit }) => ({
+    search,
+    isFlagged: filters.flaggedFilter === 'all' ? undefined : filters.flaggedFilter === 'flagged',
+    isPublished:
+      filters.publishedFilter === 'all'
+        ? undefined
+        : filters.publishedFilter === 'published',
+    page,
+    limit,
+  }),
+  autoLoad: true,
+})
+
+const flaggedFilter = computed({
+  get: () => query.value.filters.flaggedFilter,
+  set: (flaggedFilter: string) => setFilters({ ...query.value.filters, flaggedFilter }),
+})
+const publishedFilter = computed({
+  get: () => query.value.filters.publishedFilter,
+  set: (publishedFilter: string) => setFilters({ ...query.value.filters, publishedFilter }),
 })
 
 // Stats for terminal ticker
@@ -69,38 +105,6 @@ const toolbarFilters = computed<Filter[]>(() => [
   },
 ])
 
-const {
-  searchQuery,
-  tablePagination,
-  loading,
-  data,
-  total,
-  error,
-  loadEntities: loadSolutions,
-} = useDataTable<
-  SolutionListItem,
-  { flaggedFilter: string; publishedFilter: string },
-  Parameters<typeof solutionsStore.fetchSolutions>[0]
->({
-  store: solutionsStore,
-  filters: () => ({
-    flaggedFilter: flaggedFilter.value,
-    publishedFilter: publishedFilter.value,
-  }),
-  transformParams: ({ search, filters, page, limit }) => ({
-    search,
-    isFlagged: filters.flaggedFilter === 'all' ? undefined : filters.flaggedFilter === 'flagged',
-    isPublished:
-      filters.publishedFilter === 'all'
-        ? undefined
-        : filters.publishedFilter === 'published'
-          ? true
-          : false,
-    page,
-    limit,
-  }),
-  autoLoad: true,
-})
 
 const columns = createColumns(
   t,

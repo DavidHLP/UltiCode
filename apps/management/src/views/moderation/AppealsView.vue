@@ -21,7 +21,7 @@ import DataTableToolbar, { type Filter } from '@/components/table/DataTableToolb
 
 import { useModerationStore } from '@/stores/admin/moderation'
 import { type Appeal, AppealStatus, type QueryAppealsParams } from '@/api/admin/moderation'
-import { useDataTable } from '@/composables/useDataTable'
+import { useRemoteTable } from '@/composables/useRemoteTable'
 import { createAppealsColumns, type AppealActions } from './appeals-columns'
 
 const { t } = useI18n()
@@ -30,19 +30,44 @@ const store = useModerationStore()
 const isLoaded = ref(false)
 
 // Filters
-const statusFilter = ref<AppealStatus | 'all'>('all')
 
 // Review dialog state
 const reviewDialogOpen = ref(false)
 const selectedAppeal = ref<Appeal | null>(null)
 const reviewDecision = ref<'APPROVED' | 'REJECTED'>('APPROVED')
 const reviewResponse = ref('')
+const selectedRows = ref<Appeal[]>([])
 const reviewLoading = ref(false)
 
 onMounted(() => {
   setTimeout(() => {
     isLoaded.value = true
   }, 100)
+})
+const {
+  query,
+  searchQuery,
+  tablePagination,
+  loading,
+  data,
+  total,
+  refresh: loadAppeals,
+  setFilters,
+} = useRemoteTable<Appeal, { status: AppealStatus | 'all' }, QueryAppealsParams>({
+  store: store.appealsCollection,
+  initialQuery: { filters: { status: 'all' } },
+  toParams: ({ filters, page, limit }) => ({
+    page,
+    limit,
+    status: filters.status === 'all' ? undefined : filters.status,
+  }),
+  debounceMs: 300,
+  autoLoad: true,
+})
+
+const statusFilter = computed({
+  get: () => query.value.filters.status,
+  set: (status: AppealStatus | 'all') => setFilters({ status }),
 })
 
 // Stats
@@ -94,25 +119,6 @@ const filters = computed<Filter[]>(() => [
   },
 ])
 
-const {
-  searchQuery,
-  tablePagination,
-  selectedRows,
-  loading,
-  data,
-  total,
-  loadEntities: loadAppeals,
-} = useDataTable<Appeal, { status: AppealStatus | 'all' }, QueryAppealsParams>({
-  store: store.appealsCollection,
-  filters: () => ({ status: statusFilter.value }),
-  transformParams: ({ filters, page, limit }) => ({
-    page,
-    limit,
-    status: filters.status === 'all' ? undefined : filters.status,
-  }),
-  debounceMs: 300,
-  autoLoad: true,
-})
 
 function handleFilterUpdate(index: number, value: string | number) {
   if (index === 0) statusFilter.value = value as AppealStatus | 'all'

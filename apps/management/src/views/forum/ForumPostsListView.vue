@@ -14,7 +14,7 @@ import DataTable from '@/components/table/DataTable.vue'
 import DataTableToolbar, { type Filter } from '@/components/table/DataTableToolbar.vue'
 import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
 import { createColumns } from './columns'
-import { useDataTable } from '@/composables/useDataTable'
+import { useRemoteTable } from '@/composables/useRemoteTable'
 import { useForumPermissions } from '@/composables/useForumPermissions'
 
 const router = useRouter()
@@ -22,16 +22,12 @@ const { t } = useI18n()
 const forumStore = useForumStore()
 const { can } = useForumPermissions()
 
-const communityFilter = ref<string>('all')
-const flaggedFilter = ref<string>('all')
-const pinnedFilter = ref<string>('all')
-const lockedFilter = ref<string>('all')
-const deletedFilter = ref<string>('all')
 
 const selectedPostId = ref<string | null>(null)
 const selectedPostTitle = ref<string | null>(null)
 const deleteDialogOpen = ref(false)
 const flagDialogOpen = ref(false)
+const selectedRows = ref<ForumPost[]>([])
 
 // Animation state for staggered reveal
 const isLoaded = ref(false)
@@ -43,6 +39,70 @@ onMounted(() => {
 })
 
 const canModerate = can.forum.moderatePost
+const {
+  query,
+  searchQuery,
+  tablePagination,
+  loading,
+  data,
+  total,
+  error,
+  refresh: loadPosts,
+  setFilters,
+} = useRemoteTable<
+  ForumPost,
+  {
+    communityFilter: string
+    flaggedFilter: string
+    pinnedFilter: string
+    lockedFilter: string
+    deletedFilter: string
+  },
+  Parameters<typeof forumStore.fetchPosts>[0]
+>({
+  store: forumStore,
+  initialQuery: {
+    filters: {
+      communityFilter: 'all',
+      flaggedFilter: 'all',
+      pinnedFilter: 'all',
+      lockedFilter: 'all',
+      deletedFilter: 'all',
+    },
+  },
+  toParams: ({ search, filters, page, limit }) => ({
+    search,
+    communityId: filters.communityFilter === 'all' ? undefined : filters.communityFilter,
+    isFlagged: filters.flaggedFilter === 'all' ? undefined : filters.flaggedFilter === 'flagged',
+    isPinned: filters.pinnedFilter === 'all' ? undefined : filters.pinnedFilter === 'pinned',
+    isLocked: filters.lockedFilter === 'all' ? undefined : filters.lockedFilter === 'locked',
+    isDeleted: filters.deletedFilter === 'all' ? undefined : filters.deletedFilter === 'deleted',
+    page,
+    limit,
+  }),
+  autoLoad: true,
+})
+
+const communityFilter = computed({
+  get: () => query.value.filters.communityFilter,
+  set: (communityFilter: string) => setFilters({ ...query.value.filters, communityFilter }),
+})
+const flaggedFilter = computed({
+  get: () => query.value.filters.flaggedFilter,
+  set: (flaggedFilter: string) => setFilters({ ...query.value.filters, flaggedFilter }),
+})
+const pinnedFilter = computed({
+  get: () => query.value.filters.pinnedFilter,
+  set: (pinnedFilter: string) => setFilters({ ...query.value.filters, pinnedFilter }),
+})
+const lockedFilter = computed({
+  get: () => query.value.filters.lockedFilter,
+  set: (lockedFilter: string) => setFilters({ ...query.value.filters, lockedFilter }),
+})
+const deletedFilter = computed({
+  get: () => query.value.filters.deletedFilter,
+  set: (deletedFilter: string) => setFilters({ ...query.value.filters, deletedFilter }),
+})
 
 // Stats for terminal ticker
 const stats = computed(() => {
@@ -106,46 +166,6 @@ const toolbarFilters = computed<Filter[]>(() => [
   },
 ])
 
-const {
-  searchQuery,
-  tablePagination,
-  selectedRows,
-  loading,
-  data,
-  total,
-  error,
-  loadEntities: loadPosts,
-} = useDataTable<
-  ForumPost,
-  {
-    communityFilter: string
-    flaggedFilter: string
-    pinnedFilter: string
-    lockedFilter: string
-    deletedFilter: string
-  },
-  Parameters<typeof forumStore.fetchPosts>[0]
->({
-  store: forumStore,
-  filters: () => ({
-    communityFilter: communityFilter.value,
-    flaggedFilter: flaggedFilter.value,
-    pinnedFilter: pinnedFilter.value,
-    lockedFilter: lockedFilter.value,
-    deletedFilter: deletedFilter.value,
-  }),
-  transformParams: ({ search, filters, page, limit }) => ({
-    search,
-    communityId: filters.communityFilter === 'all' ? undefined : filters.communityFilter,
-    isFlagged: filters.flaggedFilter === 'all' ? undefined : filters.flaggedFilter === 'flagged',
-    isPinned: filters.pinnedFilter === 'all' ? undefined : filters.pinnedFilter === 'pinned',
-    isLocked: filters.lockedFilter === 'all' ? undefined : filters.lockedFilter === 'locked',
-    isDeleted: filters.deletedFilter === 'all' ? undefined : filters.deletedFilter === 'deleted',
-    page,
-    limit,
-  }),
-  autoLoad: true,
-})
 
 // Load communities on mount
 onMounted(() => {

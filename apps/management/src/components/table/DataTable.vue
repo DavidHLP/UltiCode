@@ -2,10 +2,10 @@
 import type {
   ColumnDef,
   ColumnFiltersState,
-  PaginationState,
   SortingState,
   VisibilityState,
 } from '@tanstack/vue-table'
+import type { PaginationState } from '@/composables/useRemoteTable'
 import { RestrictToVerticalAxis } from '@dnd-kit/abstract/modifiers'
 import { KeyboardSensor, PointerSensor } from '@dnd-kit/dom'
 import {

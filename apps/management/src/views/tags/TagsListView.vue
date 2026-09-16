@@ -31,14 +31,13 @@ import DataTableToolbar, { type Filter } from '@/components/table/DataTableToolb
 import TagEditDialog from './TagEditDialog.vue'
 import TagMergeDialog from './TagMergeDialog.vue'
 import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
-import { useDataTable } from '@/composables/useDataTable'
+import { useRemoteTable } from '@/composables/useRemoteTable'
 import { useTagPermissions } from '@/composables/useTagPermissions'
 
 const { t } = useI18n()
 const tagsStore = useTagsStore()
 const { can } = useTagPermissions()
 
-const tagTypeFilter = ref<TagType>(TagType.PROBLEM)
 
 const selectedTag = ref<Tag | null>(null)
 const selectedTagName = ref<string | null>(null)
@@ -47,6 +46,7 @@ const deleteDialogOpen = ref(false)
 const mergeDialogOpen = ref(false)
 
 const bulkActionLoading = ref(false)
+const selectedRows = ref<Tag[]>([])
 
 const isLoaded = ref(false)
 
@@ -66,24 +66,20 @@ const toolbarFilters = computed<Filter[]>(() => [
     ],
   },
 ])
-
-const canManageTags = can.tag.manage
-
 const {
+  query,
   searchQuery,
   tablePagination,
-  selectedRows,
   loading,
   data,
   total,
   error,
-  loadEntities: loadTags,
-} = useDataTable<Tag, { tagType: TagType }, Parameters<typeof tagsStore.fetchTags>[0]>({
+  refresh: loadTags,
+  setFilters,
+} = useRemoteTable<Tag, { tagType: TagType }, Parameters<typeof tagsStore.fetchTags>[0]>({
   store: tagsStore,
-  filters: () => ({
-    tagType: tagTypeFilter.value,
-  }),
-  transformParams: ({ search, filters, page, limit }) => ({
+  initialQuery: { filters: { tagType: TagType.PROBLEM } },
+  toParams: ({ search, filters, page, limit }) => ({
     search,
     type: filters.tagType,
     page,
@@ -91,6 +87,14 @@ const {
   }),
   autoLoad: true,
 })
+
+const tagTypeFilter = computed({
+  get: () => query.value.filters.tagType,
+  set: (tagType: TagType) => setFilters({ tagType }),
+})
+
+const canManageTags = can.tag.manage
+
 
 onMounted(() => {
   setTimeout(() => {

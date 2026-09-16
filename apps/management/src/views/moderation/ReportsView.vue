@@ -18,7 +18,7 @@ import {
   type ModeratableEntityType,
   type QueryReportsParams,
 } from '@/api/admin/moderation'
-import { useDataTable } from '@/composables/useDataTable'
+import { useRemoteTable } from '@/composables/useRemoteTable'
 import { createReportsColumns, type ReportActions } from './reports-columns'
 import { entityRoute } from './workflow/moderationWorkflow'
 
@@ -27,16 +27,60 @@ const router = useRouter()
 const store = useModerationStore()
 
 const isLoaded = ref(false)
+const selectedRows = ref<Report[]>([])
 
 // Filters
-const statusFilter = ref<ReportStatus | 'all'>('all')
-const categoryFilter = ref<ReportCategory | 'all'>('all')
-const entityTypeFilter = ref<ModeratableEntityType | 'all'>('all')
 
 onMounted(() => {
   setTimeout(() => {
     isLoaded.value = true
   }, 100)
+})
+const {
+  query,
+  searchQuery,
+  tablePagination,
+  loading,
+  data,
+  total,
+  refresh: loadReports,
+  setFilters,
+} = useRemoteTable<
+  Report,
+  {
+    status: ReportStatus | 'all'
+    category: ReportCategory | 'all'
+    entityType: ModeratableEntityType | 'all'
+  },
+  QueryReportsParams
+>({
+  store: store.reportsCollection,
+  initialQuery: {
+    filters: { status: 'all', category: 'all', entityType: 'all' },
+  },
+  toParams: ({ filters, page, limit }) => ({
+    page,
+    limit,
+    status: filters.status === 'all' ? undefined : filters.status,
+    category: filters.category === 'all' ? undefined : filters.category,
+    entityType: filters.entityType === 'all' ? undefined : filters.entityType,
+  }),
+  debounceMs: 300,
+  autoLoad: true,
+})
+
+const statusFilter = computed({
+  get: () => query.value.filters.status,
+  set: (status: ReportStatus | 'all') => setFilters({ ...query.value.filters, status }),
+})
+const categoryFilter = computed({
+  get: () => query.value.filters.category,
+  set: (category: ReportCategory | 'all') => setFilters({ ...query.value.filters, category }),
+})
+const entityTypeFilter = computed({
+  get: () => query.value.filters.entityType,
+  set: (entityType: ModeratableEntityType | 'all') =>
+    setFilters({ ...query.value.filters, entityType }),
 })
 
 // Stats
@@ -108,39 +152,6 @@ const filters = computed<Filter[]>(() => [
   },
 ])
 
-const {
-  searchQuery,
-  tablePagination,
-  selectedRows,
-  loading,
-  data,
-  total,
-  loadEntities: loadReports,
-} = useDataTable<
-  Report,
-  {
-    status: ReportStatus | 'all'
-    category: ReportCategory | 'all'
-    entityType: ModeratableEntityType | 'all'
-  },
-  QueryReportsParams
->({
-  store: store.reportsCollection,
-  filters: () => ({
-    status: statusFilter.value,
-    category: categoryFilter.value,
-    entityType: entityTypeFilter.value,
-  }),
-  transformParams: ({ filters, page, limit }) => ({
-    page,
-    limit,
-    status: filters.status === 'all' ? undefined : filters.status,
-    category: filters.category === 'all' ? undefined : filters.category,
-    entityType: filters.entityType === 'all' ? undefined : filters.entityType,
-  }),
-  debounceMs: 300,
-  autoLoad: true,
-})
 
 function handleFilterUpdate(index: number, value: string | number) {
   if (index === 0) statusFilter.value = value as ReportStatus | 'all'

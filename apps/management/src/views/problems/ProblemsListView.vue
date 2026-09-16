@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { IconPlus, IconTrophy, IconDownload, IconUpload, IconDatabase } from '@tabler/icons-vue'
@@ -30,8 +30,8 @@ import BulkEditDialog from '@/components/problems/BulkEditDialog.vue'
 import FlagInfoDialog from '@/components/problems/FlagInfoDialog.vue'
 import ProblemBulkActions from './components/ProblemBulkActions.vue'
 import ProblemAuditDrawer from './components/ProblemAuditDrawer.vue'
-import { useDataTable } from '@/composables/useDataTable'
-import { useProblemFilters } from './composables/useProblemFilters'
+import { useRemoteTable } from '@/composables/useRemoteTable'
+import { useProblemFilters, type ProblemTableFilters } from './composables/useProblemFilters'
 import { useProblemActions } from './composables/useProblemActions'
 import { useProblemColumns } from './composables/useProblemColumns'
 import { useProblemPermissions } from '@/composables/useProblemPermissions'
@@ -41,47 +41,53 @@ const router = useRouter()
 const problemsStore = useProblemsStore()
 const { can } = useProblemPermissions()
 
+const problemFilters = useProblemFilters()
+const { buildExportParams } = problemFilters
 const {
+  query,
   searchQuery,
-  difficultyFilter,
-  statusFilter,
-  publishedFilter,
-  sortBy,
-  sortOrder,
-  buildFilterParams,
-  buildExportParams,
-} = useProblemFilters()
-
-const {
-  searchQuery: internalSearchQuery,
   tablePagination,
   loading,
   data,
   total,
   error,
-  loadEntities: loadProblems,
-} = useDataTable<
+  refresh: loadProblems,
+  setFilters,
+} = useRemoteTable<
   Problem,
-  { sortBy: string; sortOrder: 'asc' | 'desc' },
+  ProblemTableFilters,
   Parameters<typeof problemsStore.fetchProblems>[0]
 >({
   store: problemsStore,
-  filters: () => ({
-    sortBy: sortBy.value,
-    sortOrder: sortOrder.value,
-  }),
-  transformParams: ({ search, page, limit }) => ({
+  initialQuery: problemFilters.initialQuery,
+  route: problemFilters.routeAdapter,
+  toParams: ({ search, filters, page, limit }) => ({
     search,
-    ...buildFilterParams({ pageIndex: page - 1, pageSize: limit }),
+    ...problemFilters.buildFilterParams(filters, page, limit),
   }),
   autoLoad: false,
 })
 
-// Initialize pageIndex from URL
-tablePagination.value.pageIndex = Math.max(
-  0,
-  (Number(router.currentRoute.value.query.page) || 1) - 1,
-)
+const difficultyFilter = computed({
+  get: () => query.value.filters.difficulty,
+  set: (difficulty: string) => setFilters({ ...query.value.filters, difficulty }),
+})
+const statusFilter = computed({
+  get: () => query.value.filters.status,
+  set: (status: string) => setFilters({ ...query.value.filters, status }),
+})
+const publishedFilter = computed({
+  get: () => query.value.filters.published,
+  set: (published: string) => setFilters({ ...query.value.filters, published }),
+})
+const sortBy = computed({
+  get: () => query.value.filters.sortBy,
+  set: (sortBy: string) => setFilters({ ...query.value.filters, sortBy }),
+})
+const sortOrder = computed({
+  get: () => query.value.filters.sortOrder,
+  set: (sortOrder: 'asc' | 'desc') => setFilters({ ...query.value.filters, sortOrder }),
+})
 
 const {
   selectedProblemId,
@@ -185,14 +191,6 @@ const columns = useProblemColumns(can.problem, {
   confirmDelete,
 })
 
-// Sync external searchQuery with useDataTable internal
-watch(
-  searchQuery,
-  (newValue) => {
-    internalSearchQuery.value = newValue
-  },
-  { immediate: true },
-)
 
 // Load on mount
 onMounted(() => {
@@ -202,15 +200,6 @@ onMounted(() => {
   }, 100)
 })
 
-// Reload when the Problem-specific toolbar filters change. sortBy/sortOrder and
-// pagination are intentionally NOT watched here: useDataTable already owns
-// reload for its `filters` ({sortBy, sortOrder}) and `tablePagination`, so
-// adding them here would fire a second concurrent fetch on every sort/page
-// change. Keeping this watcher scoped to difficulty/status/published makes
-// useDataTable the single owner of sort + pagination reload.
-watch([difficultyFilter, statusFilter, publishedFilter], () => {
-  loadProblems()
-})
 </script>
 
 <template>
@@ -372,10 +361,10 @@ watch([difficultyFilter, statusFilter, publishedFilter], () => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem @click="exportProblems(buildExportParams(), 'json')">{{
+                <DropdownMenuItem @click="exportProblems(buildExportParams(query), 'json')">{{
                   t('problems.export.json')
                 }}</DropdownMenuItem>
-                <DropdownMenuItem @click="exportProblems(buildExportParams(), 'csv')">{{
+                <DropdownMenuItem @click="exportProblems(buildExportParams(query), 'csv')">{{
                   t('problems.export.csv')
                 }}</DropdownMenuItem>
               </DropdownMenuContent>

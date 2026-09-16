@@ -25,11 +25,11 @@ import { createCollectionSlice, type CollectionPage } from '@/stores/createColle
  * Moderation decision + collection store.
  *
  * <p>Three collection slices (queue / reports / appeals) back the three
- * <code>useDataTable</code>-driven views; the stats slice backs the dashboard
+ * <code>useRemoteTable</code>-driven views; the stats slice backs the dashboard
  * and the queue header counters. Each collection fetch goes through the
  * per-key <code>abortControllers</code> registry so a stale response from an
  * earlier filter value cannot clobber fresh state when two fetches race —
- * <code>useDataTable</code> debounces new triggers but does not abort prior
+ * <code>useRemoteTable</code> debounces new triggers but does not abort prior
  * in-flight requests, so this registry is the load-bearing stale-response
  * gate.
  *
@@ -45,7 +45,7 @@ import { createCollectionSlice, type CollectionPage } from '@/stores/createColle
  * legacy collection-mutation surface (filters / pagination / setPage /
  * setLimit / hasActiveFilters / setFilters / clearFilters) and the per-form
  * loading flags (actionLoading / batchActionLoading / claimLoading) were
- * absorbed by <code>useDataTable</code> and per-view saving refs and have
+ * absorbed by <code>useRemoteTable</code> and per-view saving refs and have
  * been removed; the per-item detail-fetch surface (currentQueueItem /
  * currentAppeal and their fetchers) had no view consumers and has been
  * removed alongside.
@@ -64,7 +64,7 @@ export const useModerationStore = defineStore('adminModeration', () => {
   // ============================================================================
   // Abort Controllers
   // ============================================================================
-  // One in-flight request per collection slice. useDataTable debounces new
+  // One in-flight request per collection slice. useRemoteTable debounces new
   // triggers but does NOT abort prior in-flight requests; this registry is
   // the load-bearing gate that prevents a stale response (e.g. from an
   // earlier filter value) from clobbering fresh state when two fetches race.

@@ -15,16 +15,13 @@ import ContestWizard from './wizard/ContestWizard.vue'
 import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
 import ContestDetailDrawer from './ContestDetailDrawer.vue'
 import { createColumns } from './columns'
-import { useDataTable } from '@/composables/useDataTable'
+import { useRemoteTable } from '@/composables/useRemoteTable'
 import { useContestPermissions } from '@/composables/useContestPermissions'
 
 const contestsStore = useContestsStore()
 const { can } = useContestPermissions()
 const { t } = useI18n()
 
-const searchQuery = ref('')
-const statusFilter = ref<string>('all')
-const typeFilter = ref<string>('all')
 const selectedContestId = ref<string | null>(null)
 const selectedContestTitle = ref<string | null>(null)
 
@@ -45,6 +42,43 @@ onMounted(() => {
 })
 
 const canCreate = can.contest.create
+const {
+  query,
+  searchQuery,
+  tablePagination,
+  loading,
+  data,
+  total,
+  error,
+  refresh: loadContests,
+  setFilters,
+} = useRemoteTable<
+  Contest,
+  { statusFilter: string; typeFilter: string },
+  Parameters<typeof contestsStore.fetchContests>[0]
+>({
+  store: contestsStore,
+  initialQuery: {
+    filters: { statusFilter: 'all', typeFilter: 'all' },
+  },
+  toParams: ({ search, filters, page, limit }) => ({
+    search,
+    status: filters.statusFilter === 'all' ? undefined : filters.statusFilter,
+    type: filters.typeFilter === 'all' ? undefined : (filters.typeFilter as ContestType | undefined),
+    page,
+    limit,
+  }),
+  autoLoad: true,
+})
+
+const statusFilter = computed({
+  get: () => query.value.filters.statusFilter,
+  set: (statusFilter: string) => setFilters({ ...query.value.filters, statusFilter }),
+})
+const typeFilter = computed({
+  get: () => query.value.filters.typeFilter,
+  set: (typeFilter: string) => setFilters({ ...query.value.filters, typeFilter }),
+})
 const canDelete = can.contest.delete
 
 // Stats for terminal ticker
@@ -82,33 +116,6 @@ const toolbarFilters = computed<Filter[]>(() => [
   },
 ])
 
-const {
-  tablePagination,
-  loading,
-  data,
-  total,
-  error,
-  loadEntities: loadContests,
-} = useDataTable<
-  Contest,
-  { statusFilter: string; typeFilter: string },
-  Parameters<typeof contestsStore.fetchContests>[0]
->({
-  store: contestsStore,
-  filters: () => ({
-    statusFilter: statusFilter.value,
-    typeFilter: typeFilter.value,
-  }),
-  transformParams: ({ search, filters, page, limit }) => ({
-    search,
-    status: filters.statusFilter === 'all' ? undefined : filters.statusFilter,
-    type:
-      filters.typeFilter === 'all' ? undefined : (filters.typeFilter as ContestType | undefined),
-    page,
-    limit,
-  }),
-  autoLoad: true,
-})
 
 const columns = createColumns(
   t,

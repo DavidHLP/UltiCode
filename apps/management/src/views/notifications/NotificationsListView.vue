@@ -30,13 +30,11 @@ import { badge, NOTIFICATION_TYPE_COLOR_MAP } from '@/components/ui/terminal'
 import DataTable from '@/components/table/DataTable.vue'
 import DataTableToolbar, { type Filter } from '@/components/table/DataTableToolbar.vue'
 import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
-import { useDataTable } from '@/composables/useDataTable'
+import { useRemoteTable } from '@/composables/useRemoteTable'
 
 const { t } = useI18n()
 const store = useNotificationsStore()
 
-const typeFilter = ref<string>('all')
-const categoryFilter = ref<string>('all')
 const createDialogOpen = ref(false)
 const deleteDialogOpen = ref(false)
 const selectedNotificationId = ref<string | null>(null)
@@ -50,26 +48,24 @@ onMounted(() => {
     isLoaded.value = true
   }, 100)
 })
-
 const {
+  query,
   searchQuery,
   tablePagination,
   loading,
   data,
   total,
   error,
-  loadEntities: loadNotifications,
-} = useDataTable<
+  refresh: loadNotifications,
+  setFilters,
+} = useRemoteTable<
   SystemAnnouncement,
   { type: string; category: string },
   AdminNotificationQueryParams
 >({
   store,
-  filters: () => ({
-    type: typeFilter.value,
-    category: categoryFilter.value,
-  }),
-  transformParams: ({ search, filters, page, limit }) => ({
+  initialQuery: { filters: { type: 'all', category: 'all' } },
+  toParams: ({ search, filters, page, limit }) => ({
     keyword: search,
     type: filters.type === 'all' ? undefined : filters.type,
     category: filters.category === 'all' ? undefined : filters.category,
@@ -78,6 +74,16 @@ const {
   }),
   autoLoad: true,
 })
+
+const typeFilter = computed({
+  get: () => query.value.filters.type,
+  set: (type: string) => setFilters({ ...query.value.filters, type }),
+})
+const categoryFilter = computed({
+  get: () => query.value.filters.category,
+  set: (category: string) => setFilters({ ...query.value.filters, category }),
+})
+
 
 const stats = computed(() => {
   const announcements = data.value

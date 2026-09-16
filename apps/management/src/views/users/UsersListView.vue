@@ -29,7 +29,7 @@ import UserDetailDrawer from './UserDetailDrawer.vue'
 import UserResetPasswordDialog from './UserResetPasswordDialog.vue'
 // Terminal UI components available for future use
 // import { TerminalBadge, DataBlock } from '@/components/ui/terminal'
-import { useDataTable } from '@/composables/useDataTable'
+import { useRemoteTable } from '@/composables/useRemoteTable'
 import { useUserPermissions } from '@/composables/useUserPermissions'
 import { createColumns } from './columns'
 
@@ -37,8 +37,6 @@ const { t } = useI18n()
 const usersStore = useUsersStore()
 const { can } = useUserPermissions()
 
-const roleFilter = ref<string>('all')
-const statusFilter = ref<string>('all')
 const selectedUserId = ref<string | null>(null)
 const selectedUsername = ref<string | null>(null)
 
@@ -52,6 +50,7 @@ const bulkDeleteDialogOpen = ref(false)
 const bulkDeleteConfirmText = ref('')
 
 const bulkActionLoading = ref(false)
+const selectedRows = ref<User[]>([])
 
 // Animation state for staggered reveal
 const isLoaded = ref(false)
@@ -60,6 +59,43 @@ onMounted(() => {
   setTimeout(() => {
     isLoaded.value = true
   }, 100)
+})
+const {
+  query,
+  searchQuery,
+  tablePagination,
+  loading,
+  data,
+  total,
+  error,
+  refresh: loadUsers,
+  setFilters,
+} = useRemoteTable<
+  User,
+  { role: string; status: string },
+  Parameters<typeof usersStore.fetchUsers>[0]
+>({
+  store: usersStore,
+  initialQuery: { filters: { role: 'all', status: 'all' } },
+  toParams: ({ search, filters, page, limit }) => ({
+    search,
+    role: filters.role === 'all' ? undefined : filters.role,
+    isActive:
+      filters.status === 'active' ? true : filters.status === 'inactive' ? false : undefined,
+    isBanned: filters.status === 'banned' ? true : undefined,
+    page,
+    limit,
+  }),
+  autoLoad: true,
+})
+
+const roleFilter = computed({
+  get: () => query.value.filters.role,
+  set: (role: string) => setFilters({ ...query.value.filters, role }),
+})
+const statusFilter = computed({
+  get: () => query.value.filters.status,
+  set: (status: string) => setFilters({ ...query.value.filters, status }),
 })
 
 const canCreateUser = can.user.create
@@ -99,36 +135,6 @@ const toolbarFilters = computed<Filter[]>(() => [
   },
 ])
 
-const {
-  searchQuery,
-  tablePagination,
-  selectedRows,
-  loading,
-  data,
-  total,
-  error,
-  loadEntities: loadUsers,
-} = useDataTable<
-  User,
-  { role: string; status: string },
-  Parameters<typeof usersStore.fetchUsers>[0]
->({
-  store: usersStore,
-  filters: () => ({
-    role: roleFilter.value,
-    status: statusFilter.value,
-  }),
-  transformParams: ({ search, filters, page, limit }) => ({
-    search,
-    role: filters.role === 'all' ? undefined : filters.role,
-    isActive:
-      filters.status === 'active' ? true : filters.status === 'inactive' ? false : undefined,
-    isBanned: filters.status === 'banned' ? true : undefined,
-    page,
-    limit,
-  }),
-  autoLoad: true,
-})
 
 const columns = createColumns(
   t,

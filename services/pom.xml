@@ -25,6 +25,7 @@
 		<module>platform/web-security</module>
 		<module>platform/integration-inbox</module>
 		<module>platform/judge-config</module>
+		<module>platform/redis</module>
 		<module>platform/observability</module>
 		<module>api/auth-api</module>
 		<module>api/submission-api</module>
@@ -178,6 +179,11 @@
 			<dependency>
 				<groupId>com.ulticode</groupId>
 				<artifactId>backend-judge-config</artifactId>
+				<version>${revision}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.ulticode</groupId>
+				<artifactId>backend-redis</artifactId>
 				<version>${revision}</version>
 			</dependency>
 			<dependency>

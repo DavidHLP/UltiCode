@@ -36,7 +36,7 @@ implementation_artifacts=(
   backend-rpc-resilience backend-judge-config backend-problem-domain
   backend-contest-domain backend-submission-domain backend-moderation-domain
   backend-integration-inbox backend-judge-runtime backend-web-security
-  backend-observability
+  backend-redis backend-observability
   backend-app-web
 )
 

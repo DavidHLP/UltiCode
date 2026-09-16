@@ -23,6 +23,10 @@
         </dependency>
         <dependency>
             <groupId>com.ulticode</groupId>
+            <artifactId>backend-redis</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.ulticode</groupId>
             <artifactId>backend-app-api</artifactId>
         </dependency>
         <dependency>

@@ -1,12 +1,6 @@
 package com.ulticode.app.config;
 
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.fasterxml.jackson.annotation.PropertyAccessor;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.ulticode.redis.RedisValueSerializationPolicy;
 import com.ulticode.modules.queue.constants.QueueConstants;
 import com.ulticode.modules.queue.dto.JobStatusDTO;
 import org.junit.jupiter.api.DisplayName;
@@ -21,20 +15,20 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 /**
  * Regression for the {@code System Error — Judge queue unavailable} outage.
  *
- * <p>Root cause: {@code AppRedisTemplateConfig} (and the admin mirror) used the
- * no-arg {@code new GenericJackson2JsonRedisSerializer()}, whose default
- * ObjectMapper lacks the JSR-310 {@link JavaTimeModule}. When
- * {@code QueueServiceImpl#saveJobStatus} wrote a {@link JobStatusDTO} carrying
- * a non-null {@code LocalDateTime createdAt}, serialization threw
- * {@code SerializationException}, which the submission intake catch block
- * translated to {@code SYSTEM_ERROR} + "Judge queue unavailable". Existing
- * {@code QueueServiceTest} mocked the RedisTemplate with deep stubs, so the real
- * serialization path was never exercised and the bug shipped.
+ * <p>Root cause: the legacy no-arg {@code GenericJackson2JsonRedisSerializer}
+ * omitted {@code JavaTimeModule}. When {@code QueueServiceImpl#saveJobStatus}
+ * wrote a {@link JobStatusDTO} carrying a non-null {@code LocalDateTime
+ * createdAt}, serialization threw {@code SerializationException}, which the
+ * submission intake catch block translated to {@code SYSTEM_ERROR} + "Judge
+ * queue unavailable". Existing {@code QueueServiceTest} mocked the
+ * {@code RedisTemplate} with deep stubs, so the real serialization path was
+ * never exercised and the bug shipped.
  *
- * <p>This test locks the contract at the serialization seam itself (no Spring
- * context, no Redis): the configured serializer must round-trip a
- * {@link JobStatusDTO} with populated {@code LocalDateTime} fields, and the
- * legacy no-arg serializer must demonstrably fail the same input.
+ * <p>This test locks the shared {@link RedisValueSerializationPolicy} at the
+ * serialization seam itself (no Spring context, no Redis): the configured
+ * serializer must round-trip a {@link JobStatusDTO} with populated
+ * {@link LocalDateTime} fields, and the legacy no-arg serializer must
+ * demonstrably fail the same input.
  */
 class AppRedisTemplateConfigSerializationTest {
 
@@ -59,19 +53,11 @@ class AppRedisTemplateConfigSerializationTest {
     }
 
     /**
-     * The serializer configuration that {@code AppRedisTemplateConfig} and
-     * {@code AppCacheConfig} both build — JavaTimeModule + default-typing.
+     * The shared value-serialization policy used by app, admin, and judge
+     * owner Redis configurations.
      */
     private static GenericJackson2JsonRedisSerializer configuredSerializer() {
-        ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
-        objectMapper.activateDefaultTyping(
-                LaissezFaireSubTypeValidator.instance,
-                ObjectMapper.DefaultTyping.NON_FINAL,
-                JsonTypeInfo.As.PROPERTY);
-        objectMapper.registerModule(new JavaTimeModule());
-        objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-        return new GenericJackson2JsonRedisSerializer(objectMapper);
+        return RedisValueSerializationPolicy.valueSerializer();
     }
 
     @Test

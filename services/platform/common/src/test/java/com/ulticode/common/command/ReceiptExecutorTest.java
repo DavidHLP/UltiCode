@@ -141,6 +141,61 @@ class ReceiptExecutorTest {
                 .isEqualTo("auth-result");
     }
 
+    @Test
+    void mutateThenRecordReplaysWhenConcurrentRecordWins() {
+        TestCommand command = command("auth-race", "account-a");
+        AtomicInteger mutations = new AtomicInteger();
+        FakeStore recorded = new FakeStore();
+        CommandReceiptStore racingStore = new CommandReceiptStore() {
+            @Override
+            public int insertClaim(ReceiptWrite receipt) {
+                // Simulate a concurrent identical command that recorded first:
+                // the row exists, but this insert reports zero affected rows.
+                recorded.insertClaim(receipt);
+                return 0;
+            }
+
+            @Override
+            public ReceiptView findByKey(String service, String operation, String idempotencyKey) {
+                return recorded.findByKey(service, operation, idempotencyKey);
+            }
+
+            @Override
+            public int markSuccess(String id, String resultPayload) {
+                return recorded.markSuccess(id, resultPayload);
+            }
+
+            @Override
+            public int deleteClaim(String id) {
+                return recorded.deleteClaim(id);
+            }
+        };
+        ReceiptExecutor<TestCommand> authExecutor = new ReceiptExecutor<>(
+                ReceiptExecutionMode.MUTATE_THEN_RECORD,
+                racingStore,
+                new StringCodec(),
+                new GenericFingerprintStrategy(),
+                ERRORS,
+                ReceiptCommandMetadata::from,
+                ReceiptExecutorTest::valid,
+                CLOCK);
+
+        RpcResult<String> result = authExecutor.execute(
+                "AuthService", "changeState", command, String.class,
+                traceId -> {
+                    mutations.incrementAndGet();
+                    return RpcResult.success("auth-result", traceId);
+                });
+
+        assertThat(result.success()).isTrue();
+        assertThat(result.data()).isEqualTo("auth-result");
+        assertThat(mutations.get()).isEqualTo(1);
+        assertThat(recorded.receipt("AuthService", "changeState", "auth-race").status())
+                .isEqualTo("SUCCESS");
+        assertThat(recorded.receipt("AuthService", "changeState", "auth-race").resultPayload())
+                .isEqualTo("auth-result");
+    }
+
     private static boolean valid(TestCommand command) {
         return command != null
                 && command.idempotency() != null

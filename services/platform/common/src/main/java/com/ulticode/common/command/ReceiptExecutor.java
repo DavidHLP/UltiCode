@@ -121,10 +121,30 @@ public final class ReceiptExecutor<C> {
             } catch (Exception exception) {
                 throw new IllegalStateException("Unable to serialize command receipt", exception);
             }
-            store.insertClaim(newWrite(
+            int inserted = store.insertClaim(newWrite(
                     service, operation, command, metadata, fingerprint, SUCCESS, payload, traceId));
-            // The historical mutation-then-record protocol intentionally does
-            // not use the affected-row count to alter the mutation result.
+            if (inserted == 0 && key != null && !key.isBlank()) {
+                // A concurrent command already recorded this key. Its receipt is
+                // authoritative, so mirror the claim protocol instead of reporting
+                // a success whose receipt was never persisted.
+                ReceiptView recorded = store.findByKey(service, operation, key);
+                if (recorded == null) {
+                    return withKey(RpcResult.failure(errors.missingReceipt(), traceId), key);
+                }
+                if (recorded.requestFingerprint() != null
+                        && !fingerprintStrategy.matches(recorded.requestFingerprint(), command)) {
+                    return withKey(RpcResult.failure(errors.keyConflict(), traceId), key);
+                }
+                if (!SUCCESS.equals(recorded.status())) {
+                    return withKey(RpcResult.failure(errors.processingDuplicate(), traceId), key);
+                }
+                try {
+                    T recordedResult = payloadCodec.decode(recorded.resultPayload(), resultType);
+                    return withKey(RpcResult.success(recordedResult, traceId), key);
+                } catch (Exception exception) {
+                    return withKey(RpcResult.failure(errors.replayFailure(), traceId), key);
+                }
+            }
         }
         return result;
     }
@@ -155,6 +175,9 @@ public final class ReceiptExecutor<C> {
         RpcResult<T> result = withKey(
                 Objects.requireNonNull(mutation.apply(traceId), "mutation result must not be null"), key);
         if (!result.success()) {
+            // Checked, but a zero-row delete only means the claim is already gone
+            // or was reclaimed by another worker; the business failure result
+            // remains the authoritative outcome.
             store.deleteClaim(claim.id());
             return result;
         }

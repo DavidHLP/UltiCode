@@ -1,0 +1,30 @@
+services/notification/src/main/java/com/ulticode/modules/notification/dispatcher/NotificationDispatcher.java
+  h_77173abe25c3ff 6-8,30-32,55-56,67,72,76,122-127,134-139,142-143,166,186,188-192,194,216,218-222,224,243
+services/notification/src/main/java/com/ulticode/modules/notification/ledger/DeliveryAttemptCoordinator.java
+  h_77173abe25c3ff 1-161
+services/notification/src/main/java/com/ulticode/modules/notification/ledger/mapper/NotificationDeliveryLedgerMapper.java
+  h_77173abe25c3ff 36-38,148-150
+services/notification/src/main/java/com/ulticode/modules/notification/ledger/reaper/NotificationLedgerReaper.java
+  h_77173abe25c3ff 4,19-20,27-28,30-31,44-45,58,69-71,74-76
+services/notification/src/test/java/com/ulticode/modules/notification/NotificationWorkerProfileTest.java
+  h_77173abe25c3ff 8,43-46
+services/notification/src/test/java/com/ulticode/modules/notification/dispatcher/NotificationDispatcherTest.java
+  h_77173abe25c3ff 6,61-62,72,227
+services/notification/src/test/java/com/ulticode/modules/notification/ledger/DeliveryAttemptCoordinatorTest.java
+  h_77173abe25c3ff 1-152
+services/notification/src/test/java/com/ulticode/modules/notification/ledger/reaper/NotificationLedgerReaperTest.java
+  h_77173abe25c3ff 3,29,39-40,42,50-51,53,61,63
+services/notification/src/test/java/com/ulticode/notification/inbox/NotificationEventDeliveryIT.java
+  h_77173abe25c3ff 12,196-197
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b08f6361bbf68573856767201eb25b88d5daf666",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

@@ -1,0 +1,16 @@
+packages/http-client/src/__tests__/createHttpClient.test.ts
+  h_77173abe25c3ff 35-52,203-249
+packages/http-client/src/index.ts
+  h_77173abe25c3ff 241
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4f8c23e07da78f7daddb13a7c8f5c604a234df8c",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

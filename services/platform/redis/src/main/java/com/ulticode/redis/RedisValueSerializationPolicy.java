@@ -5,7 +5,8 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
+import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
+import com.fasterxml.jackson.databind.jsontype.PolymorphicTypeValidator;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 
@@ -18,23 +19,37 @@ import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSeriali
  * preserve field visibility, default typing, polymorphic type properties, and
  * ISO-8601 Java time values when changing this policy.
  *
- * <h2>Security exception: permissive polymorphic typing</h2>
+ * <h2>Type allowlist for polymorphic deserialization</h2>
  *
- * <p>{@link LaissezFaireSubTypeValidator} with {@code NON_FINAL} default typing
- * is deliberately retained even though permissive polymorphic JSON typing is
- * otherwise disallowed by the repository security rules. The exception exists
- * because these bytes are already stored in Redis by the four pre-unification
- * owner configurations; replacing them with an allowlist-based validator would
- * change the wire format and break every cached value on upgrade.
+ * <p>Default typing is required to round-trip the concrete DTOs these caches
+ * store, and existing Redis bytes carry type ids written by the four
+ * pre-unification owner configurations. The write side therefore stays a
+ * default-typing mapper (the serialized bytes are unchanged), but the read side
+ * is constrained by a {@link BasicPolymorphicTypeValidator} allowlist:
+ * {@code com.ulticode.} (owner DTOs), {@code java.util.} (collection
+ * containers), {@code java.time.} (JSR-310 values), and {@code java.lang.}
+ * (boxed primitives, strings, enums). Any other subtype named in a payload is
+ * rejected instead of being instantiated.
  *
- * <p>The risk is bounded to the Redis keys written through this policy: Redis
- * is an internal store that is not attacker-writable in the supported
- * topologies, and values are serialized only by this process family. The
- * upgrade path, when a breaking release is acceptable, is an explicit
- * polymorphic type allowlist plus a cache flush (delete the affected keys)
- * rather than a silent policy change.
+ * <p>Values written through this policy before the allowlist landed still
+ * deserialize as long as their concrete types are inside the allowlist. If a
+ * legacy value names a type outside it (none are known today), the read fails
+ * closed and the entry must be re-materialized by its owner rather than the
+ * allowlist being widened without an owner review.
  */
 public final class RedisValueSerializationPolicy {
+
+    /**
+     * Allowed packages for polymorphic deserialization of cached values. Keep
+     * this list explicit: widening it is a security-relevant change.
+     */
+    private static final PolymorphicTypeValidator POLYMORPHIC_TYPE_VALIDATOR =
+            BasicPolymorphicTypeValidator.builder()
+                    .allowIfSubType("com.ulticode.")
+                    .allowIfSubType("java.util.")
+                    .allowIfSubType("java.time.")
+                    .allowIfSubType("java.lang.")
+                    .build();
 
     private RedisValueSerializationPolicy() {
     }
@@ -48,7 +63,7 @@ public final class RedisValueSerializationPolicy {
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
         objectMapper.activateDefaultTyping(
-                LaissezFaireSubTypeValidator.instance,
+                POLYMORPHIC_TYPE_VALIDATOR,
                 ObjectMapper.DefaultTyping.NON_FINAL,
                 JsonTypeInfo.As.PROPERTY);
         objectMapper.registerModule(new JavaTimeModule());

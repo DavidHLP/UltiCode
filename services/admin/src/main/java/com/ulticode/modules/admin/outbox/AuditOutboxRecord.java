@@ -38,6 +38,16 @@ public class AuditOutboxRecord {
 
     private String state; // PENDING, PROCESSING, PROCESSED, FAILED
 
+    /**
+     * Number of failed dispatch attempts. FAILED rows with attempts >= 5 are
+     * terminal; lower counts identify rows eligible for a due retry.
+     */
+    @TableField("attempts")
+    private Integer attempts;
+
+    @TableField("last_error")
+    private String lastError;
+
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdAt;
 
@@ -46,4 +56,7 @@ public class AuditOutboxRecord {
     private String claimOwner;
 
     private LocalDateTime processedAt;
+
+    @TableField("next_retry_at")
+    private LocalDateTime nextRetryAt;
 }

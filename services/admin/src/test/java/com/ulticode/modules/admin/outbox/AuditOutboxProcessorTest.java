@@ -3,6 +3,7 @@ import com.ulticode.modules.admin.outbox.mapper.AuditOutboxMapper;
 
 import com.ulticode.modules.admin.entity.AuditLog;
 import com.ulticode.modules.admin.mapper.AuditLogMapper;
+import org.apache.ibatis.annotations.Update;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -11,6 +12,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.lang.reflect.Method;
+import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -18,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -70,16 +74,88 @@ class AuditOutboxProcessorTest {
     }
 
     @Test
-    @DisplayName("markFailedInNewTx delegates to mapper")
-    void markFailedInNewTx_delegatesToMapper() {
-        processor.markFailedInNewTx("rec-200", "owner-2");
+    @DisplayName("markFailedInNewTx forwards failure metadata and affected rows")
+    void markFailedInNewTx_forwardsFailureMetadataAndAffectedRows() {
+        when(auditOutboxMapper.markFailedWithRetry(
+                eq("rec-200"), eq("owner-2"), eq("constraint failure"), eq(5)))
+                .thenReturn(1);
 
-        verify(auditOutboxMapper).markFailed("rec-200", "owner-2");
+        int affectedRows = processor.markFailedInNewTx(
+                "rec-200", "owner-2", "constraint failure", 5);
+
+        assertThat(affectedRows).isEqualTo(1);
+        verify(auditOutboxMapper).markFailedWithRetry(
+                "rec-200", "owner-2", "constraint failure", 5);
     }
 
     @Test
-    @DisplayName("duplicate processing does not insert an audit log after CAS loss")
-    void processRecordInNewTx_skipsDuplicateAfterClaimLoss() {
+    @DisplayName("markFailedInNewTx reports a lost claim without throwing")
+    void markFailedInNewTx_reportsLostClaim() {
+        when(auditOutboxMapper.markFailedWithRetry(
+                eq("rec-lost"), eq("owner-lost"), eq("transient failure"), eq(5)))
+                .thenReturn(0);
+
+        assertThat(processor.markFailedInNewTx(
+                "rec-lost", "owner-lost", "transient failure", 5)).isZero();
+    }
+
+    @Test
+    @DisplayName("five failure updates preserve affected rows through terminal attempt")
+    void markFailedInNewTx_preservesRetryToTerminalProgression() {
+        when(auditOutboxMapper.markFailedWithRetry(
+                eq("rec-progress"), eq("owner-progress"), eq("transient failure"), eq(5)))
+                .thenReturn(1, 1, 1, 1, 1);
+
+        assertThat(List.of(
+                processor.markFailedInNewTx("rec-progress", "owner-progress", "transient failure", 5),
+                processor.markFailedInNewTx("rec-progress", "owner-progress", "transient failure", 5),
+                processor.markFailedInNewTx("rec-progress", "owner-progress", "transient failure", 5),
+                processor.markFailedInNewTx("rec-progress", "owner-progress", "transient failure", 5),
+                processor.markFailedInNewTx("rec-progress", "owner-progress", "transient failure", 5)))
+                .containsExactly(1, 1, 1, 1, 1);
+        verify(auditOutboxMapper, times(5)).markFailedWithRetry(
+                "rec-progress", "owner-progress", "transient failure", 5);
+    }
+
+    @Test
+    @DisplayName("mapper SQL distinguishes due retryable FAILED from terminal FAILED")
+    void mapperSql_distinguishesRetryableAndTerminalFailures() throws NoSuchMethodException {
+        Method claimMethod = AuditOutboxMapper.class.getMethod(
+                "claimPending", String.class, int.class);
+        Method reclaimMethod = AuditOutboxMapper.class.getMethod(
+                "reclaimStaleClaimed");
+        Method processMethod = AuditOutboxMapper.class.getMethod(
+                "markProcessed", String.class, String.class);
+        Method failureMethod = AuditOutboxMapper.class.getMethod(
+                "markFailedWithRetry", String.class, String.class, String.class, int.class);
+        String claimSql = String.join(" ", claimMethod.getAnnotation(Update.class).value());
+        String reclaimSql = String.join(" ", reclaimMethod.getAnnotation(Update.class).value());
+        String processSql = String.join(" ", processMethod.getAnnotation(Update.class).value());
+        String failureSql = String.join(" ", failureMethod.getAnnotation(Update.class).value());
+
+        assertThat(claimSql)
+                .contains("state = 'FAILED'")
+                .contains("attempts < 5")
+                .contains("next_retry_at <= NOW(3)");
+        assertThat(failureSql)
+                .contains("attempts + 1")
+                .contains("processed_at = CASE")
+                .contains("last_error = #{error}")
+                .contains("next_retry_at = DATE_ADD(NOW(3), INTERVAL 30 SECOND)")
+                .contains("#{maxAttempts}");
+        assertThat(reclaimSql)
+                .contains("attempts >= 5")
+                .contains("state = CASE")
+                .contains("next_retry_at = CASE");
+        assertThat(processSql)
+                .contains("state = 'PROCESSING'")
+                .contains("claim_owner = #{claimOwner}")
+                .contains("state = 'PROCESSED'");
+    }
+
+    @Test
+    @DisplayName("claim loss is recorded by stopping duplicate audit-log insertion")
+    void processRecordInNewTx_stopsDuplicateAfterClaimLoss() {
         AuditOutboxRecord record = new AuditOutboxRecord();
         record.setId("rec-race");
         record.setClaimOwner("owner-race");

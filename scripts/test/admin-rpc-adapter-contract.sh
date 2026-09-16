@@ -47,8 +47,8 @@ require_count() {
     || fail "$file must contain $expected occurrences of $text, found $actual"
 }
 
-require_count "$registry" '@DubboReference' 28
-require_count "$registry" '@Bean' 28
-require_count "$registry" '@Primary' 28
+require_count "$registry" '@DubboReference' 34
+require_count "$registry" '@Bean' 34
+require_count "$registry" '@Primary' 34
 
 contract_pass

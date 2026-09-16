@@ -1,0 +1,16 @@
+services/submission/src/main/java/com/ulticode/submission/idempotency/SubmissionCommandReceiptExecutor.java
+  h_77173abe25c3ff 5-14,25,27,32-34,36,42-54,63,66-67,70-71,86-90,93-96,98-101,104-155,159-182
+services/submission/src/main/java/com/ulticode/submission/idempotency/mapper/SubmissionCommandReceiptMapper.java
+  h_77173abe25c3ff 31,34
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2055e653c044282697efdf7e3ad09834b8529157",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

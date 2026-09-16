@@ -1,0 +1,18 @@
+apps/management/src/components/table/DataTable.test.ts
+  h_77173abe25c3ff 3,9,13-14,19-20,46-66
+apps/management/src/composables/useRemoteTable.ts
+  h_77173abe25c3ff 4,106
+apps/management/src/views/moderation/ModerationQueueView.vue
+  h_77173abe25c3ff 94
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3341c45ffadbc23b9ed26c539a7809c7c37c6a67",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

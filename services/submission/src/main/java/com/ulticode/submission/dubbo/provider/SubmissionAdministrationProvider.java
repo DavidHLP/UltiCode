@@ -61,9 +61,9 @@ public class SubmissionAdministrationProvider implements SubmissionAdministratio
         List<RejudgeResultDTO> results = new ArrayList<>(command.submissionIds().size());
         int successful = 0;
         for (String submissionId : command.submissionIds()) {
-            RejudgeOutcome outcome = rejudgeService.rejudge(submissionId);
-            results.add(toDTO(submissionId, outcome));
-            if (outcome instanceof RejudgeOutcome.Initiated) {
+            RejudgeResultDTO dto = toDTO(submissionId, rejudgeService.rejudge(submissionId));
+            results.add(dto);
+            if (Boolean.TRUE.equals(dto.success())) {
                 successful++;
             }
         }
@@ -76,14 +76,16 @@ public class SubmissionAdministrationProvider implements SubmissionAdministratio
         if (outcome == null) {
             return RpcResult.failure(AppErrorCode.UNEXPECTED_APP_STATE, traceId);
         }
+        // The DTO built by toDTO is the single source for both the wire payload
+        // and the RpcResult outcome, so the two can never drift apart.
         RejudgeResultDTO result = toDTO(submissionId, outcome);
-        if (outcome instanceof RejudgeOutcome.Initiated) {
+        if (Boolean.TRUE.equals(result.success())) {
             return RpcResult.success(result, traceId);
         }
-        RejudgeOutcome.Rejected rejected = (RejudgeOutcome.Rejected) outcome;
+        int errorCode = result.errorCode() == null
+                ? AppErrorCode.UNEXPECTED_APP_STATE.code() : result.errorCode();
         return RpcResult.failure(
-                new RpcResult.ErrorPayload(
-                        AppErrorCode.NAMESPACE, rejected.code().code(), rejected.message()),
+                new RpcResult.ErrorPayload(AppErrorCode.NAMESPACE, errorCode, result.error()),
                 traceId);
     }
 

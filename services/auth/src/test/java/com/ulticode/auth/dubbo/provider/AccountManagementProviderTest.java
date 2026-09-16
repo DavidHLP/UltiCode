@@ -33,6 +33,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -63,6 +64,11 @@ class AccountManagementProviderTest {
         when(uuidGenerator.newId()).thenReturn("user-uuid-100");
         when(passwordEncoder.encode(any())).thenAnswer(
                 invocation -> "hashed:" + invocation.getArgument(0));
+        // Mirror MyBatis-Plus: a successful receipt insert affects one row. The
+        // executor now checks that count, and strict stubbing is waived because
+        // rejection tests never reach the receipt write.
+        lenient().when(receiptMapper.insert(any(AuthCommandReceiptEntity.class)))
+                .thenReturn(1);
 
         AccountManagementEngine engine =
                 new AccountManagementEngine(accountPort, passwordEncoder, uuidGenerator, clock);

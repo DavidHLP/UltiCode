@@ -1,0 +1,16 @@
+services/platform/common/src/main/java/com/ulticode/common/command/ReceiptExecutor.java
+  h_77173abe25c3ff 124,126-147,178-180
+services/platform/common/src/test/java/com/ulticode/common/command/ReceiptExecutorTest.java
+  h_77173abe25c3ff 144-198
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "871f6a563cf81be97bbab3061a22ecae228dde2c",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

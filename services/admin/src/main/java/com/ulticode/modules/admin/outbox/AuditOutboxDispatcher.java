@@ -58,8 +58,8 @@ public class AuditOutboxDispatcher {
                             String claimOwner,
                             String error,
                             int maxAttempts) {
-                        auditOutboxProcessor.markFailedInNewTx(record.getId(), claimOwner);
-                        return 1;
+                        return auditOutboxProcessor.markFailedInNewTx(
+                                record.getId(), claimOwner, error, maxAttempts);
                     }
 
                     @Override

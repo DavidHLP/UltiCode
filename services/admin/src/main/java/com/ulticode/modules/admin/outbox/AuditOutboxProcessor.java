@@ -41,7 +41,10 @@ public class AuditOutboxProcessor {
         auditLog.setIpAddress(record.getIpAddress());
         auditLog.setUserAgent(record.getUserAgent());
 
-        if (auditOutboxMapper.markProcessed(record.getId(), record.getClaimOwner()) != 1) {
+        int processedRows = auditOutboxMapper.markProcessed(record.getId(), record.getClaimOwner());
+        if (processedRows != 1) {
+            log.warn("Lost audit outbox claim before processing recordId={} claimOwner={} affectedRows={}",
+                    record.getId(), record.getClaimOwner(), processedRows);
             throw new IllegalStateException("Audit outbox record is no longer PROCESSING for owner " + record.getClaimOwner() + ": " + record.getId());
         }
         if (auditLogMapper.insert(auditLog) != 1) {
@@ -51,9 +54,16 @@ public class AuditOutboxProcessor {
 
     /**
      * Mark an outbox record as failed in a new, isolated transaction.
+     *
+     * @return the mapper's affected-row count; zero means the claim was lost
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void markFailedInNewTx(String recordId, String claimOwner) {
-        auditOutboxMapper.markFailed(recordId, claimOwner);
+    public int markFailedInNewTx(String recordId, String claimOwner, String error, int maxAttempts) {
+        int affectedRows = auditOutboxMapper.markFailedWithRetry(recordId, claimOwner, error, maxAttempts);
+        if (affectedRows == 0) {
+            log.warn("Lost audit outbox claim while recording failure recordId={} claimOwner={}",
+                    recordId, claimOwner);
+        }
+        return affectedRows;
     }
 }

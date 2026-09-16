@@ -21,23 +21,30 @@ public final class GenericFingerprintStrategy implements ReceiptFingerprintStrat
     public String fingerprint(WriteCommand command) {
         Objects.requireNonNull(command, "command");
         var components = command.getClass().getRecordComponents();
-        String payload = components == null
-                ? command.getClass().getName()
-                : Arrays.stream(components)
-                .filter(component -> !switch (component.getName()) {
-                    case "commandId", "idempotency", "trace" -> true;
-                    default -> false;
-                })
-                .map(component -> {
-                    try {
-                        return component.getName() + "="
-                                + encode(component.getAccessor().invoke(command));
-                    } catch (ReflectiveOperationException exception) {
-                        throw new IllegalStateException(
-                                "Unable to fingerprint " + command.getClass().getName(), exception);
-                    }
-                })
-                .collect(Collectors.joining("|"));
+        String payload;
+        if (components == null) {
+            payload = command.getClass().getName();
+        } else {
+            StringBuilder payloadBuilder = new StringBuilder();
+            for (var component : components) {
+                String name = component.getName();
+                if ("commandId".equals(name) || "idempotency".equals(name) || "trace".equals(name)) {
+                    continue;
+                }
+                Object value;
+                try {
+                    value = component.getAccessor().invoke(command);
+                } catch (ReflectiveOperationException exception) {
+                    throw new IllegalStateException(
+                            "Unable to fingerprint " + command.getClass().getName(), exception);
+                }
+                if (payloadBuilder.length() > 0) {
+                    payloadBuilder.append('|');
+                }
+                payloadBuilder.append(name).append('=').append(encode(value));
+            }
+            payload = payloadBuilder.toString();
+        }
         return sha256(command.getClass().getName() + FIELD_SEPARATOR
                 + join(command.actor().actorType(), command.actor().actorId(),
                 command.actor().delegatorId(), payload));

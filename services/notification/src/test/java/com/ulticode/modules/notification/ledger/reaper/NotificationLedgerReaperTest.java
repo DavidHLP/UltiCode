@@ -1,6 +1,6 @@
 package com.ulticode.modules.notification.ledger.reaper;
 
-import com.ulticode.modules.notification.ledger.mapper.NotificationDeliveryLedgerMapper;
+import com.ulticode.modules.notification.ledger.DeliveryAttemptCoordinator;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.junit.jupiter.api.DisplayName;
@@ -26,7 +26,7 @@ import static org.mockito.Mockito.when;
 class NotificationLedgerReaperTest {
 
     @Mock
-    private NotificationDeliveryLedgerMapper ledgerMapper;
+    private DeliveryAttemptCoordinator deliveryAttemptCoordinator;
     @Mock
     private MeterRegistry meterRegistry;
     @Mock
@@ -36,9 +36,10 @@ class NotificationLedgerReaperTest {
     @DisplayName("reaped stale rows increment the reaper counter")
     void reapedRowsIncrementCounter() {
         when(meterRegistry.counter("notification.ledger.reaper.reaped")).thenReturn(reapedCounter);
-        when(ledgerMapper.reapStaleClaimed()).thenReturn(3);
+        when(deliveryAttemptCoordinator.reapStaleClaims())
+                .thenReturn(new DeliveryAttemptCoordinator.ReapResult(3));
 
-        new NotificationLedgerReaper(ledgerMapper, meterRegistry).reap();
+        new NotificationLedgerReaper(deliveryAttemptCoordinator, meterRegistry).reap();
 
         verify(reapedCounter).increment(3);
     }
@@ -46,9 +47,10 @@ class NotificationLedgerReaperTest {
     @Test
     @DisplayName("no stale rows leaves the counter untouched")
     void noStaleRowsKeepsCounterSilent() {
-        when(ledgerMapper.reapStaleClaimed()).thenReturn(0);
+        when(deliveryAttemptCoordinator.reapStaleClaims())
+                .thenReturn(new DeliveryAttemptCoordinator.ReapResult(0));
 
-        new NotificationLedgerReaper(ledgerMapper, meterRegistry).reap();
+        new NotificationLedgerReaper(deliveryAttemptCoordinator, meterRegistry).reap();
 
         verify(meterRegistry, never()).counter(anyString());
     }
@@ -56,9 +58,9 @@ class NotificationLedgerReaperTest {
     @Test
     @DisplayName("a ledger failure is contained and does not poison the worker")
     void ledgerFailureIsContained() {
-        when(ledgerMapper.reapStaleClaimed()).thenThrow(new RuntimeException("db down"));
+        when(deliveryAttemptCoordinator.reapStaleClaims()).thenThrow(new RuntimeException("db down"));
 
-        new NotificationLedgerReaper(ledgerMapper, meterRegistry).reap();
+        new NotificationLedgerReaper(deliveryAttemptCoordinator, meterRegistry).reap();
 
         verify(meterRegistry, never()).counter(anyString());
     }

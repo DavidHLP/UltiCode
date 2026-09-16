@@ -33,7 +33,9 @@ public interface NotificationDeliveryLedgerMapper extends BaseMapper<Notificatio
      * under the database row lock. This makes concurrent reclaimers produce
      * one positive result at most.
      *
-     * @return positive affected rows when this caller owns the slot, otherwise 0
+     * @return positive affected rows when this caller owns the slot, otherwise 0;
+     *         {@link com.ulticode.modules.notification.ledger.DeliveryAttemptCoordinator}
+     *         translates the protocol for delivery callers
      */
     default int tryClaim(String intentId,
                           String channelId,
@@ -143,8 +145,9 @@ public interface NotificationDeliveryLedgerMapper extends BaseMapper<Notificatio
                     @Param("claimOwner") String claimOwner);
 
     /**
-     * Lookup a single row by its natural key. Used by tests and ops queries;
-     * the dispatcher does not call this on the success path.
+     * Lookup a single row by its natural key. The delivery-attempt coordinator
+     * uses this only to classify an unavailable claim or fenced confirmation;
+     * tests and ops queries may also use it.
      */
     @Select("SELECT * FROM notification_delivery_ledger "
             + "WHERE intent_id = #{intentId} AND channel_id = #{channelId}")

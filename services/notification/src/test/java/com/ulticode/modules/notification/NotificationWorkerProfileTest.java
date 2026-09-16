@@ -5,6 +5,7 @@ import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.event.inbox.ConsumerInboxMapper;
 import com.ulticode.modules.notification.consumer.NotificationIntentEventConsumer;
 import com.ulticode.modules.notification.consumer.SubmissionJudgedNotificationConsumer;
+import com.ulticode.modules.notification.ledger.DeliveryAttemptCoordinator;
 import com.ulticode.modules.notification.ledger.mapper.NotificationDeliveryLedgerMapper;
 import com.ulticode.modules.notification.ledger.reaper.NotificationLedgerReaper;
 import com.ulticode.notification.inbox.NotificationIntegrationInboxBridge;
@@ -38,6 +39,10 @@ class NotificationWorkerProfileTest {
         }
         @Bean NotificationDeliveryLedgerMapper ledgerMapper() {
             return mock(NotificationDeliveryLedgerMapper.class);
+        }
+        @Bean DeliveryAttemptCoordinator deliveryAttemptCoordinator(
+                NotificationDeliveryLedgerMapper ledgerMapper) {
+            return new DeliveryAttemptCoordinator(ledgerMapper);
         }
         @Bean MeterRegistry meterRegistry() { return mock(MeterRegistry.class); }
     }

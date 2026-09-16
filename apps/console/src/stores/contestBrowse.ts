@@ -13,7 +13,8 @@ import {
  * Owns:
  *   - upcoming / running / past contest list state
  *   - pastContests pagination total
- *   - loading flag for list-level operations
+ *   - loadingContests flag for ongoing list-level operations
+ *   - loadingPastContests flag for past contest pagination
  *   - error message for the last browse operation
  *
  * Sibling stores: see ./contestDetail.ts (single-contest) and
@@ -30,6 +31,7 @@ export const useContestBrowseStore = defineStore("contestBrowse", () => {
   const pastContestsTotal = ref(0);
 
   const loadingContests = ref(false);
+  const loadingPastContests = ref(false);
   const error = ref<string | null>(null);
 
   // =========================================================================
@@ -56,7 +58,7 @@ export const useContestBrowseStore = defineStore("contestBrowse", () => {
   }
 
   async function loadPastContests(page: number = 1, pageSize: number = 10) {
-    loadingContests.value = true;
+    loadingPastContests.value = true;
     error.value = null;
     try {
       const result = await fetchPastContests(page, pageSize);
@@ -67,7 +69,7 @@ export const useContestBrowseStore = defineStore("contestBrowse", () => {
         err instanceof Error ? err.message : "Failed to load past contests";
       throw err;
     } finally {
-      loadingContests.value = false;
+      loadingPastContests.value = false;
     }
   }
 
@@ -82,6 +84,7 @@ export const useContestBrowseStore = defineStore("contestBrowse", () => {
     pastContests,
     pastContestsTotal,
     loadingContests,
+    loadingPastContests,
     error,
 
     // Actions

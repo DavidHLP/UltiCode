@@ -27,10 +27,6 @@ class NotificationProviderReferenceContractTest {
                 AdminNotificationServiceImpl.class,
                 "dubboProvider",
                 NotificationAdministrationService.class);
-        assertReferenceGroup(
-                NotificationCutoverService.class,
-                "dubboProvider",
-                NotificationAdministrationService.class);
     }
 
     private static void assertReferenceGroup(

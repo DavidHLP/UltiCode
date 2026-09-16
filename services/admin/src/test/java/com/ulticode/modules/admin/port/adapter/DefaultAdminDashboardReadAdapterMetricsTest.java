@@ -96,9 +96,11 @@ class DefaultAdminDashboardReadAdapterMetricsTest {
     private DefaultAdminDashboardReadAdapter adapter(AdminUseCaseMetrics metrics) {
         queryExecutor = new CancellableQueryExecutor("test-dashboard-metrics", 4);
         adapter = new DefaultAdminDashboardReadAdapter(
-                submissionAdminReadPort, queryExecutor, AdminQueryDeadline.system());
-        ReflectionTestUtils.setField(adapter, "appDashboardReadPort", appDashboardReadPort);
-        ReflectionTestUtils.setField(adapter, "accountQueryService", accountQueryService);
+                appDashboardReadPort,
+                accountQueryService,
+                submissionAdminReadPort,
+                queryExecutor,
+                AdminQueryDeadline.system());
         ReflectionTestUtils.setField(adapter, "useCaseMetrics", metrics);
         return adapter;
     }

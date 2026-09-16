@@ -16,7 +16,6 @@ import com.ulticode.modules.admin.port.AdminDashboardReadPort;
 import com.ulticode.submission.api.dto.SubmissionDashboardChartDataDTO;
 import com.ulticode.submission.api.dto.SubmissionDashboardStatsDTO;
 import com.ulticode.submission.api.service.SubmissionAdminReadPort;
-import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
@@ -47,38 +46,32 @@ public class DefaultAdminDashboardReadAdapter implements AdminDashboardReadPort 
     private static final Map<AdminUseCaseMetrics.Owner, Integer> USER_CHART_CALLS =
             Map.of(AdminUseCaseMetrics.Owner.AUTH, 1);
 
+    private final DashboardAdminReadPort appDashboardReadPort;
+    private final AccountQueryService accountQueryService;
     private final SubmissionAdminReadPort submissionAdminReadPort;
     private final CancellableQueryExecutor queryExecutor;
     private final AdminQueryDeadline queryDeadline;
 
-    @DubboReference(group = "backend-app", version = "1.0.0",
-            timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
-    private DashboardAdminReadPort appDashboardReadPort;
-
-    @Autowired(required = false)
-    @DubboReference(group = "backend-auth", version = "1.0.0",
-            timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
-    private AccountQueryService accountQueryService;
-
-
-    /** Optional so focused wiring tests and metrics-disabled deployments retain the same seam. */
+    /** Optional so metrics-disabled deployments retain the same seam. */
     @Autowired(required = false)
     private AdminUseCaseMetrics useCaseMetrics;
 
+    /**
+     * Production and test construction with all owner RPC seams explicit.
+     * Optional providers may be null so their call-time degradation is preserved.
+     */
     @Autowired
     public DefaultAdminDashboardReadAdapter(
+            DashboardAdminReadPort appDashboardReadPort,
+            AccountQueryService accountQueryService,
             SubmissionAdminReadPort submissionAdminReadPort,
             @Qualifier("adminDashboardQueryExecutor") CancellableQueryExecutor queryExecutor,
             AdminQueryDeadline queryDeadline) {
+        this.appDashboardReadPort = appDashboardReadPort;
+        this.accountQueryService = accountQueryService;
         this.submissionAdminReadPort = submissionAdminReadPort;
         this.queryExecutor = Objects.requireNonNull(queryExecutor, "queryExecutor");
         this.queryDeadline = Objects.requireNonNull(queryDeadline, "queryDeadline");
-    }
-
-    DefaultAdminDashboardReadAdapter(
-            SubmissionAdminReadPort submissionAdminReadPort,
-            CancellableQueryExecutor queryExecutor) {
-        this(submissionAdminReadPort, queryExecutor, AdminQueryDeadline.system());
     }
 
     @Override

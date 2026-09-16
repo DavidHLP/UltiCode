@@ -10,7 +10,6 @@ import com.ulticode.app.api.dto.ReconciliationOrphanCounts;
 import com.ulticode.app.api.service.AppReconciliationReadPort;
 import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.rpc.RpcPolicy;
 import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.submission.api.dto.SubmissionUserReferenceCountDTO;
@@ -20,9 +19,8 @@ import com.ulticode.notification.api.service.NotificationReconciliationReadPort;
 import com.ulticode.modules.lease.FencedJobLeaseService;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.dubbo.config.annotation.DubboReference;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.context.event.EventListener;
@@ -63,7 +61,6 @@ import java.util.Set;
  */
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class OwnerReconciler {
 
     private static final String RECONCILIATION_LEASE = "admin:reconciliation";
@@ -75,6 +72,7 @@ public class OwnerReconciler {
     private final ReconciliationRunMapper runMapper;
     private final UuidGenerator uuidGenerator;
     private final AppReconciliationReadPort appReconciliationReadPort;
+    private final ReconciliationQueryService authQueryService;
     private final SubmissionReconciliationReadPort submissionReconciliationReadPort;
     private final NotificationReconciliationReadPort notificationReconciliationReadPort;
     private final AuditOrphanMapper auditOrphanMapper;
@@ -83,9 +81,29 @@ public class OwnerReconciler {
     private final ReconciliationCheckpointCodec checkpointCodec;
     private final DrainGate drainGate = new DrainGate();
 
-    @DubboReference(group = "backend-auth", version = "1.0.0",
-            timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
-    private ReconciliationQueryService authQueryService;
+    @Autowired
+    public OwnerReconciler(
+            ReconciliationRunMapper runMapper,
+            UuidGenerator uuidGenerator,
+            AppReconciliationReadPort appReconciliationReadPort,
+            ReconciliationQueryService authQueryService,
+            SubmissionReconciliationReadPort submissionReconciliationReadPort,
+            NotificationReconciliationReadPort notificationReconciliationReadPort,
+            AuditOrphanMapper auditOrphanMapper,
+            MeterRegistry meterRegistry,
+            FencedJobLeaseService fencedJobLeaseService,
+            ReconciliationCheckpointCodec checkpointCodec) {
+        this.runMapper = runMapper;
+        this.uuidGenerator = uuidGenerator;
+        this.appReconciliationReadPort = appReconciliationReadPort;
+        this.authQueryService = authQueryService;
+        this.submissionReconciliationReadPort = submissionReconciliationReadPort;
+        this.notificationReconciliationReadPort = notificationReconciliationReadPort;
+        this.auditOrphanMapper = auditOrphanMapper;
+        this.meterRegistry = meterRegistry;
+        this.fencedJobLeaseService = fencedJobLeaseService;
+        this.checkpointCodec = checkpointCodec;
+    }
 
     @Scheduled(scheduler = "adminReconciliationScheduler", cron = "0 0 2 * * *")
     @Transactional

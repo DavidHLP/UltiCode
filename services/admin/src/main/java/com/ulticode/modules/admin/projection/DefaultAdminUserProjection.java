@@ -8,6 +8,7 @@ import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.PaginationRequest;
 import com.ulticode.modules.admin.dto.AdminUserQueryDTO;
 import com.ulticode.modules.admin.dto.AdminUserVO;
+import com.ulticode.modules.admin.port.adapter.AdminQueryDeadline;
 import com.ulticode.modules.admin.port.adapter.CancellableQueryExecutor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -44,7 +45,8 @@ public class DefaultAdminUserProjection implements AdminUserProjection {
                 null,
                 userProfileQueryService,
                 accountQueryService,
-                new CancellableQueryExecutor("admin-user-enrichment-test", 2));
+                new CancellableQueryExecutor("admin-user-enrichment-test", 2),
+                AdminQueryDeadline.system());
     }
 
     @Override

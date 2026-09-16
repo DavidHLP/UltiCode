@@ -17,7 +17,6 @@ import com.ulticode.admin.error.AdminReadContract;
 import com.ulticode.admin.error.AdminReadContract.OwnerRead;
 import com.ulticode.common.rpc.RpcPolicy;
 import com.ulticode.common.rpc.RpcResult;
-import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
@@ -66,6 +65,7 @@ public class DefaultAdminAnalyticsPortAdapter implements AdminAnalyticsPort {
     private final ContestParticipantReadPort contestParticipantReadPort;
     private final SubscriptionReadPort subscriptionReadPort;
     private final SubmissionAdminReadPort submissionAdminReadPort;
+    private final AccountQueryService accountQueryService;
     private final CancellableQueryExecutor queryExecutor;
     private final AdminQueryDeadline queryDeadline;
 
@@ -73,23 +73,24 @@ public class DefaultAdminAnalyticsPortAdapter implements AdminAnalyticsPort {
     @Autowired(required = false)
     private AdminUseCaseMetrics useCaseMetrics;
 
-    @Autowired(required = false)
-    @DubboReference(group = "backend-auth", version = "1.0.0",
-            timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
-    private AccountQueryService accountQueryService;
-
+    /**
+     * Production and test construction with all owner RPC seams explicit.
+     * Optional providers may be null so their call-time degradation is preserved.
+     */
     @Autowired
     public DefaultAdminAnalyticsPortAdapter(
             ContestAdminReadPort contestAdminReadPort,
             ContestParticipantReadPort contestParticipantReadPort,
             SubscriptionReadPort subscriptionReadPort,
             SubmissionAdminReadPort submissionAdminReadPort,
+            AccountQueryService accountQueryService,
             @Qualifier("adminAnalyticsQueryExecutor") CancellableQueryExecutor queryExecutor,
             AdminQueryDeadline queryDeadline) {
         this.contestAdminReadPort = contestAdminReadPort;
         this.contestParticipantReadPort = contestParticipantReadPort;
         this.subscriptionReadPort = subscriptionReadPort;
         this.submissionAdminReadPort = submissionAdminReadPort;
+        this.accountQueryService = accountQueryService;
         this.queryExecutor = Objects.requireNonNull(queryExecutor, "queryExecutor");
         this.queryDeadline = Objects.requireNonNull(queryDeadline, "queryDeadline");
     }

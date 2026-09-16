@@ -17,7 +17,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -144,9 +143,11 @@ class DefaultAdminDashboardReadAdapterTest {
         queryExecutor = new CancellableQueryExecutor("test-dashboard", 4);
         DefaultAdminDashboardReadAdapter adapter =
                 new DefaultAdminDashboardReadAdapter(
-                        submissionAdminReadPort, queryExecutor, AdminQueryDeadline.system());
-        ReflectionTestUtils.setField(adapter, "appDashboardReadPort", appDashboardReadPort);
-        ReflectionTestUtils.setField(adapter, "accountQueryService", accountQueryService);
+                        appDashboardReadPort,
+                        accountQueryService,
+                        submissionAdminReadPort,
+                        queryExecutor,
+                        AdminQueryDeadline.system());
         return adapter;
     }
 }

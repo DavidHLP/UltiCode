@@ -21,7 +21,6 @@ import com.ulticode.modules.admin.port.adapter.CancellableQueryExecutor;
 import com.ulticode.modules.admin.projection.AdminUserEnricher;
 import com.ulticode.submission.api.dto.SubmissionUserDetailStatsSnapshotDTO;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
@@ -67,7 +66,6 @@ public class DefaultAdminUserDetailQuery implements AdminUserDetailQuery {
             "App solution count query unavailable";
     private static final String SUBMISSION_FAILURE_REASON =
             "Submission stats query unavailable";
-    private static final int DETAIL_QUERY_POOL_SIZE = 4;
     private static final Map<AdminUseCaseMetrics.Owner, Integer> DETAIL_CALLS = Map.of(
             AdminUseCaseMetrics.Owner.AUTH, 2,
             AdminUseCaseMetrics.Owner.APP, 2,
@@ -76,72 +74,34 @@ public class DefaultAdminUserDetailQuery implements AdminUserDetailQuery {
     private final AdminUserEnricher userEnricher;
     private final AdminSubmissionUserDetailStatsReadPort submissionStatsReadPort;
     private final SolutionReadPort solutionReadPort;
+    private final AuthorizationSnapshotService authorizationSnapshotService;
     private final Clock clock;
     private final CancellableQueryExecutor queryExecutor;
     private final AdminQueryDeadline queryDeadline;
 
     @Autowired(required = false)
-    @DubboReference(group = "backend-auth", version = "1.0.0",
-            timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES,
-            check = false)
-    private AuthorizationSnapshotService authorizationSnapshotService;
-
-    @Autowired(required = false)
     private AdminUseCaseMetrics useCaseMetrics;
 
-    /** Production constructor; all required owner read seams are explicit. */
+    /**
+     * Production and test construction with all owner read seams explicit.
+     * Optional providers may be null so their call-time degradation is preserved.
+     */
     @Autowired
     public DefaultAdminUserDetailQuery(
             AdminUserEnricher userEnricher,
             AdminSubmissionUserDetailStatsReadPort submissionStatsReadPort,
             SolutionReadPort solutionReadPort,
+            AuthorizationSnapshotService authorizationSnapshotService,
             Clock clock,
             @Qualifier("adminUserDetailQueryExecutor") CancellableQueryExecutor queryExecutor,
-            AdminQueryDeadline queryDeadline) {
-        this(userEnricher, submissionStatsReadPort, solutionReadPort, null, clock,
-                queryExecutor, queryDeadline);
-    }
-
-    /** Test constructor that keeps the optional Auth snapshot provider explicit. */
-    public DefaultAdminUserDetailQuery(
-            AdminUserEnricher userEnricher,
-            AdminSubmissionUserDetailStatsReadPort submissionStatsReadPort,
-            SolutionReadPort solutionReadPort,
-            AuthorizationSnapshotService authorizationSnapshotService) {
-        this(userEnricher, submissionStatsReadPort, solutionReadPort,
-                authorizationSnapshotService, Clock.systemDefaultZone(),
-                new CancellableQueryExecutor("admin-user-detail-query-test", DETAIL_QUERY_POOL_SIZE),
-                AdminQueryDeadline.system());
-    }
-
-    /** Test constructor with an explicit clock for expiry-boundary assertions. */
-    public DefaultAdminUserDetailQuery(
-            AdminUserEnricher userEnricher,
-            AdminSubmissionUserDetailStatsReadPort submissionStatsReadPort,
-            SolutionReadPort solutionReadPort,
-            AuthorizationSnapshotService authorizationSnapshotService,
-            Clock clock) {
-        this(userEnricher, submissionStatsReadPort, solutionReadPort,
-                authorizationSnapshotService, clock,
-                new CancellableQueryExecutor("admin-user-detail-query-test", DETAIL_QUERY_POOL_SIZE),
-                AdminQueryDeadline.system());
-    }
-
-    DefaultAdminUserDetailQuery(
-            AdminUserEnricher userEnricher,
-            AdminSubmissionUserDetailStatsReadPort submissionStatsReadPort,
-            SolutionReadPort solutionReadPort,
-            AuthorizationSnapshotService authorizationSnapshotService,
-            Clock clock,
-            CancellableQueryExecutor queryExecutor,
             AdminQueryDeadline queryDeadline) {
         this.userEnricher = Objects.requireNonNull(userEnricher, "userEnricher");
         this.submissionStatsReadPort = submissionStatsReadPort;
         this.solutionReadPort = solutionReadPort;
+        this.authorizationSnapshotService = authorizationSnapshotService;
         this.clock = Objects.requireNonNull(clock, "clock");
         this.queryExecutor = Objects.requireNonNull(queryExecutor, "queryExecutor");
         this.queryDeadline = Objects.requireNonNull(queryDeadline, "queryDeadline");
-        this.authorizationSnapshotService = authorizationSnapshotService;
     }
 
     @Override

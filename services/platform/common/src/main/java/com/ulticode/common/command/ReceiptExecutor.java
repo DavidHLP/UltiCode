@@ -1,6 +1,5 @@
 package com.ulticode.common.command;
 
-import com.ulticode.common.error.NamespacedErrorCode;
 import com.ulticode.common.rpc.RpcResult;
 
 import java.time.Clock;

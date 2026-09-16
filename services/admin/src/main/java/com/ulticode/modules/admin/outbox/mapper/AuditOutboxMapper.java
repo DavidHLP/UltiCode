@@ -18,30 +18,32 @@ public interface AuditOutboxMapper extends BaseMapper<AuditOutboxRecord> {
 
     /**
      * Atomically claim a bounded batch of due rows. PENDING rows are new;
-     * FAILED rows are retryable while attempts is below the shared
-     * five-attempt ceiling and next_retry_at is due.
-     * A FAILED row with attempts >= 5 is terminal.
+     * FAILED rows are retryable while attempts is below the caller-supplied
+     * ceiling and next_retry_at is due.
+     * A FAILED row with attempts at or above the ceiling is terminal.
      */
     @Update("""
         UPDATE audit_outbox
         SET state = 'PROCESSING', claimed_at = NOW(3), claim_owner = #{claimOwner}
         WHERE (
               (state = 'PENDING' AND next_retry_at <= NOW(3))
-           OR (state = 'FAILED' AND attempts < 5 AND next_retry_at <= NOW(3))
+           OR (state = 'FAILED' AND attempts < #{maxAttempts} AND next_retry_at <= NOW(3))
           )
           AND id IN (
             SELECT id FROM (
               SELECT id FROM audit_outbox
               WHERE (
                     (state = 'PENDING' AND next_retry_at <= NOW(3))
-                 OR (state = 'FAILED' AND attempts < 5 AND next_retry_at <= NOW(3))
+                 OR (state = 'FAILED' AND attempts < #{maxAttempts} AND next_retry_at <= NOW(3))
                 )
               ORDER BY created_at, id
               LIMIT #{limit}
             ) AS claimable
           )
         """)
-    int claimPending(@Param("claimOwner") String claimOwner, @Param("limit") int limit);
+    int claimPending(@Param("claimOwner") String claimOwner,
+                     @Param("limit") int limit,
+                     @Param("maxAttempts") int maxAttempts);
 
     @Select("""
         SELECT * FROM audit_outbox
@@ -51,21 +53,21 @@ public interface AuditOutboxMapper extends BaseMapper<AuditOutboxRecord> {
     List<AuditOutboxRecord> selectClaimed(@Param("claimOwner") String claimOwner);
 
     /**
-     * Reclaim expired PROCESSING rows. Rows already at the five-attempt
-     * ceiling remain FAILED (terminal); all other rows become immediately
+     * Reclaim expired PROCESSING rows. Rows already at the caller-supplied
+     * attempt ceiling remain FAILED (terminal); all other rows become immediately
      * claimable PENDING rows. Attempts is authoritative so legacy FAILED
      * rows added before retry metadata remain retryable with attempts = 0.
      */
     @Update("""
         UPDATE audit_outbox
-        SET state = CASE WHEN attempts >= 5 THEN 'FAILED' ELSE 'PENDING' END,
+        SET state = CASE WHEN attempts >= #{maxAttempts} THEN 'FAILED' ELSE 'PENDING' END,
             claimed_at = NULL,
             claim_owner = NULL,
-            next_retry_at = CASE WHEN attempts >= 5 THEN next_retry_at ELSE NOW(3) END
+            next_retry_at = CASE WHEN attempts >= #{maxAttempts} THEN next_retry_at ELSE NOW(3) END
         WHERE state = 'PROCESSING'
           AND (claimed_at IS NULL OR claimed_at < DATE_SUB(NOW(3), INTERVAL 300 SECOND))
         """)
-    int reclaimStaleClaimed();
+    int reclaimStaleClaimed(@Param("maxAttempts") int maxAttempts);
 
     /**
      * Mark an outbox row as processed only by the dispatcher that owns the claim.
@@ -84,7 +86,7 @@ public interface AuditOutboxMapper extends BaseMapper<AuditOutboxRecord> {
 
     /**
      * Record a failed attempt while the caller still owns the claim.
-     * FAILED rows remain retryable while attempts is below five and become
+     * FAILED rows remain retryable while attempts is below maxAttempts and become
      * terminal at maxAttempts; attempts and last_error provide the evidence
      * needed to distinguish those two meanings without adding a new state word.
      * The dispatcher contract uses a 30-second retry backoff.

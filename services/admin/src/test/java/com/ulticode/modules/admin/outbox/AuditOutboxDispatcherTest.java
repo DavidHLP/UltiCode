@@ -40,7 +40,7 @@ class AuditOutboxDispatcherTest {
     @Test
     @DisplayName("dispatch returns 0 when no pending records exist")
     void dispatch_returnsZeroWhenNoPendingRecords() {
-        when(auditOutboxMapper.claimPending(anyString(), anyInt())).thenReturn(0);
+        when(auditOutboxMapper.claimPending(anyString(), anyInt(), anyInt())).thenReturn(0);
 
         int count = dispatcher.dispatch();
 
@@ -65,7 +65,7 @@ class AuditOutboxDispatcherTest {
         AuditOutboxRecord record = new AuditOutboxRecord();
         record.setId("outbox-1");
 
-        when(auditOutboxMapper.claimPending(anyString(), anyInt())).thenReturn(1);
+        when(auditOutboxMapper.claimPending(anyString(), anyInt(), anyInt())).thenReturn(1);
         when(auditOutboxMapper.selectClaimed(anyString())).thenAnswer(invocation -> {
             record.setClaimOwner(invocation.getArgument(0));
             return List.of(record);
@@ -85,7 +85,7 @@ class AuditOutboxDispatcherTest {
         record.setId("outbox-err");
         String longError = "x".repeat(600);
 
-        when(auditOutboxMapper.claimPending(anyString(), anyInt())).thenReturn(1);
+        when(auditOutboxMapper.claimPending(anyString(), anyInt(), anyInt())).thenReturn(1);
         when(auditOutboxMapper.selectClaimed(anyString())).thenAnswer(invocation -> {
             record.setClaimOwner(invocation.getArgument(0));
             return List.of(record);
@@ -109,7 +109,7 @@ class AuditOutboxDispatcherTest {
         AuditOutboxRecord record = new AuditOutboxRecord();
         record.setId("outbox-race");
 
-        when(auditOutboxMapper.claimPending(anyString(), anyInt())).thenReturn(0);
+        when(auditOutboxMapper.claimPending(anyString(), anyInt(), anyInt())).thenReturn(0);
 
         int count = dispatcher.dispatch();
 

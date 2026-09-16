@@ -17,6 +17,22 @@ import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSeriali
  * bean names. The mapper settings are a cache byte-compatibility contract:
  * preserve field visibility, default typing, polymorphic type properties, and
  * ISO-8601 Java time values when changing this policy.
+ *
+ * <h2>Security exception: permissive polymorphic typing</h2>
+ *
+ * <p>{@link LaissezFaireSubTypeValidator} with {@code NON_FINAL} default typing
+ * is deliberately retained even though permissive polymorphic JSON typing is
+ * otherwise disallowed by the repository security rules. The exception exists
+ * because these bytes are already stored in Redis by the four pre-unification
+ * owner configurations; replacing them with an allowlist-based validator would
+ * change the wire format and break every cached value on upgrade.
+ *
+ * <p>The risk is bounded to the Redis keys written through this policy: Redis
+ * is an internal store that is not attacker-writable in the supported
+ * topologies, and values are serialized only by this process family. The
+ * upgrade path, when a breaking release is acceptable, is an explicit
+ * polymorphic type allowlist plus a cache flush (delete the affected keys)
+ * rather than a silent policy change.
  */
 public final class RedisValueSerializationPolicy {
 

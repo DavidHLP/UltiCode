@@ -1,24 +1,23 @@
 import { createI18n } from 'vue-i18n'
 import { mount } from '@vue/test-utils'
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ColumnDef, PaginationState } from '@tanstack/vue-table'
 import DataTable from './DataTable.vue'
 import { createSelectionColumn } from './selectionColumn'
 
 interface Row {
-  id: string
-  title: string
+  id: string | number
 }
 
 const rows: Row[] = [
-  { id: '1', title: 'First' },
-  { id: '2', title: 'Second' },
+  { id: '1' },
+  { id: '2' },
 ]
 
 const columns: ColumnDef<Row>[] = [
   {
-    accessorKey: 'title',
-    header: 'Title',
+    accessorKey: 'id',
+    header: 'ID',
   },
 ]
 
@@ -43,6 +42,27 @@ function mountTable(props: {
     },
   })
 }
+
+beforeEach(() => {
+  vi.stubGlobal(
+    'ResizeObserver',
+    class {
+      observe() {
+        return undefined
+      }
+      unobserve() {
+        return undefined
+      }
+      disconnect() {
+        return undefined
+      }
+    },
+  )
+})
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
 
 describe('DataTable public contract', () => {
   it('emits pagination updates without mutating the controlled prop', async () => {

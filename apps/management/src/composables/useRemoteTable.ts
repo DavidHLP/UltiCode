@@ -1,6 +1,7 @@
 import {
   computed,
   ref,
+  shallowRef,
   toValue,
   type ComputedRef,
   type DeepReadonly,
@@ -102,7 +103,7 @@ export function useRemoteTable<
     ...initialQuery.pagination,
     ...routeQuery.pagination,
   }
-  const query = ref<RemoteTableQuery<TFilters>>({
+  const query = shallowRef<RemoteTableQuery<TFilters>>({
     search: routeQuery.search ?? initialQuery.search ?? '',
     filters: initialFilters,
     pagination: initialPagination,

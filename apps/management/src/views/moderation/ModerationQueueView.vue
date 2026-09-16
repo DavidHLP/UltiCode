@@ -91,8 +91,7 @@ const {
   autoLoad: true,
 })
 
-const { statusFilter, categoryFilter, entityTypeFilter, buildFilters, handleFilterUpdate } =
-  useModerationFilters({ query, setFilters })
+const { buildFilters, handleFilterUpdate } = useModerationFilters({ query, setFilters })
 const filters = buildFilters(t)
 
 // Stats

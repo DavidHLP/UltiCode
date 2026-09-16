@@ -34,6 +34,7 @@
 - [拓扑收敛与 Contract 所有权](architecture/decisions/0011-topology-contract-module-convergence.md)：distributed 默认、Owner/Contract 边界、Admin 深 Module 和 App 内部 Locality 的长期设计依据。
 - [Core 三路去留决策](architecture/decisions/0012-core-topology-three-way-decision.md)：Auth/Admin allowlist、readiness-only 边界、保留期限和删除回退条件。
 - [架构复审模块收敛](architecture/decisions/0013-architecture-review-module-convergence.md)：Admin、Inbox、Outbox、reconciliation、Problem/Auth contract 与开发脚本的共享 seam，以及 UI primitive 延后边界。
+- [架构复审第三轮收敛](architecture/decisions/0014-architecture-review-round-3-convergence.md)：C1-C11 的 receipt、owner cutover、outbox/ledger、audit、RPC、Redis、rejudge 与前端查询状态收敛，不新增基础设施。
 - [安全架构](architecture/security.md)：Cookie、CSRF、JWT/JWKS、委托身份和 WebSocket 信任边界。
 - [ADR 索引](architecture/decisions/README.md)：不可逆或需要持续记忆的设计决定。
 

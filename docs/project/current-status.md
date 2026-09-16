@@ -1,6 +1,6 @@
 # 当前状态
 
-更新时间：2026-09-14
+更新时间：2026-09-17
 
 ## 总体状态
 
@@ -71,6 +71,7 @@
 - 2026-09-13 架构复审报告 C1-C8 跟进已集成到当前分支（含 C2 Admin
   detail failure seam 与 C3 Console auth helper 收口）；未纳入范围的
   parked 项继续以 ADR-0013 的 deliberate non-decisions 为准。
+- 2026-09-17 架构复审第三轮 C1-C11 已收敛：receipt、cutover、outbox/ledger、audit、RPC、Redis、rejudge 与 Management/Console 查询状态 seam 均按既有 Owner 边界落地；不新增进程、数据库或消息基础设施。详见 [`ADR-0014`](../architecture/decisions/0014-architecture-review-round-3-convergence.md)。
 
 ## 验证入口
 

@@ -23,6 +23,19 @@
 - Provider 不同步调用第三个 Provider 完成同一命令；组合读优先使用本地 projection，临时实时读只做有界并行批量调用。
 - 保持 `Result<T>` / `RpcResult` envelope 和既有字段映射；业务错误与 transport 错误分开映射。
 
+## 命令回执
+
+App、Submission 和 Notification 的 claim 型写命令统一通过
+`platform/common` 的 `ReceiptExecutor`：owner adapter 在 mutation 前以
+`(service, operation, idempotency_key)` 抢占 `PROCESSING` 回执，成功后条件更新为
+`SUCCESS` 并保存 owner 编码的结果载荷；相同 fingerprint 的重试只重放载荷，
+处理中重复和 fingerprint 冲突分别返回 owner 既有错误码，mutation 失败删除
+claim。Auth 明确保留 `MUTATE_THEN_RECORD` 模式，以兼容既有回执和 legacy
+fingerprint；其成功 mutation 的结果载荷随 `SUCCESS` 回执写入。事务边界仍由
+各 owner adapter/provider 持有，common core 不依赖 Spring、MyBatis 或 JSON
+实现。
+
+
 ## 事件可靠性
 
 跨进程副作用使用本地事务内 Outbox、Redis Streams、Consumer Inbox、delivery ledger、lease 和 fence：

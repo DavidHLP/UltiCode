@@ -34,10 +34,10 @@ public interface AppCommandReceiptMapper extends BaseMapper<AppCommandReceiptEnt
     @Insert("""
         INSERT IGNORE INTO app_command_receipt
             (id, command_id, service, operation, idempotency_key,
-             request_fingerprint, status, actor_type, actor_id, trace_id, created_at)
+             request_fingerprint, status, result_payload, actor_type, actor_id, trace_id, created_at)
         VALUES
             (#{id}, #{commandId}, #{service}, #{operation}, #{idempotencyKey},
-             #{requestFingerprint}, 'PROCESSING', #{actorType}, #{actorId},
+             #{requestFingerprint}, #{status}, #{resultPayload}, #{actorType}, #{actorId},
              #{traceId}, #{createdAt})
     """)
     int insertClaim(AppCommandReceiptEntity receipt);

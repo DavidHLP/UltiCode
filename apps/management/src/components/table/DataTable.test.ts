@@ -21,6 +21,22 @@ const columns: ColumnDef<Row>[] = [
   },
 ]
 
+const ResizeObserverStub = vi.hoisted(() => {
+  class Stub {
+    observe() {
+      return undefined
+    }
+    unobserve() {
+      return undefined
+    }
+    disconnect() {
+      return undefined
+    }
+  }
+  vi.stubGlobal('ResizeObserver', Stub)
+  return Stub
+})
+
 function mountTable(props: {
   data?: Row[]
   loading?: boolean
@@ -44,20 +60,7 @@ function mountTable(props: {
 }
 
 beforeEach(() => {
-  vi.stubGlobal(
-    'ResizeObserver',
-    class {
-      observe() {
-        return undefined
-      }
-      unobserve() {
-        return undefined
-      }
-      disconnect() {
-        return undefined
-      }
-    },
-  )
+  vi.stubGlobal('ResizeObserver', ResizeObserverStub)
 })
 
 afterEach(() => {

@@ -1,0 +1,16 @@
+services/auth/src/test/java/com/ulticode/auth/dubbo/provider/AccountAdministrationProviderTest.java
+  h_77173abe25c3ff 34,62-66
+services/auth/src/test/java/com/ulticode/auth/dubbo/provider/AccountManagementProviderTest.java
+  h_77173abe25c3ff 36,67-71
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "51c8641cfe6730a537138d4364b9d6efa75e4d6b",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

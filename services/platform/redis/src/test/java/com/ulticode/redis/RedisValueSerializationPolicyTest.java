@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.cache.support.NullValue;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -76,6 +77,20 @@ class RedisValueSerializationPolicyTest {
     }
 
     @Test
+    @DisplayName("shared value serializer round-trips cached DTO shapes carrying BigDecimal")
+    void sharedValueSerializerRoundTripsBigDecimal() {
+        GenericJackson2JsonRedisSerializer serializer =
+                RedisValueSerializationPolicy.valueSerializer();
+        RatedValue original = new RatedValue("problem-1", new BigDecimal("0.8543"), SAMPLE_TIME);
+
+        byte[] bytes = serializer.serialize(original);
+        Object deserialized = serializer.deserialize(bytes);
+
+        assertEquals(original, deserialized,
+                "cached owner VOs carry BigDecimal fields (ProblemVO.acceptanceRate, ContestRankingVO.progress)");
+    }
+
+    @Test
     @DisplayName("cache null sentinel is not silently stored by the shared policy")
     void cacheNullSentinelIsNotSilentlyStored() {
         GenericJackson2JsonRedisSerializer serializer =
@@ -136,6 +151,48 @@ class RedisValueSerializationPolicyTest {
         @Override
         public int hashCode() {
             return Objects.hash(status, occurredAt);
+        }
+    }
+
+    public static class RatedValue {
+        private String entityId;
+        private BigDecimal rate;
+        private LocalDateTime updatedAt;
+
+        public RatedValue() {
+        }
+
+        private RatedValue(String entityId, BigDecimal rate, LocalDateTime updatedAt) {
+            this.entityId = entityId;
+            this.rate = rate;
+            this.updatedAt = updatedAt;
+        }
+
+        public String getEntityId() {
+            return entityId;
+        }
+
+        public BigDecimal getRate() {
+            return rate;
+        }
+
+        public LocalDateTime getUpdatedAt() {
+            return updatedAt;
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            if (!(other instanceof RatedValue that)) {
+                return false;
+            }
+            return Objects.equals(entityId, that.entityId)
+                    && Objects.equals(rate, that.rate)
+                    && Objects.equals(updatedAt, that.updatedAt);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(entityId, rate, updatedAt);
         }
     }
 }

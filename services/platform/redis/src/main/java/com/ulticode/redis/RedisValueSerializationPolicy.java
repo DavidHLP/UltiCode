@@ -10,6 +10,8 @@ import com.fasterxml.jackson.databind.jsontype.PolymorphicTypeValidator;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 
+import java.math.BigDecimal;
+
 /**
  * Shared value-serialization policy for owner Redis configurations.
  *
@@ -42,6 +44,10 @@ public final class RedisValueSerializationPolicy {
     /**
      * Allowed packages for polymorphic deserialization of cached values. Keep
      * this list explicit: widening it is a security-relevant change.
+     * {@code BigDecimal} is allowed as a single class because cached owner VOs
+     * carry it (for example {@code ProblemVO.acceptanceRate} and
+     * {@code ContestRankingVO.progress}); it is not part of any broader package
+     * that would be allowed wholesale.
      */
     private static final PolymorphicTypeValidator POLYMORPHIC_TYPE_VALIDATOR =
             BasicPolymorphicTypeValidator.builder()
@@ -49,6 +55,7 @@ public final class RedisValueSerializationPolicy {
                     .allowIfSubType("java.util.")
                     .allowIfSubType("java.time.")
                     .allowIfSubType("java.lang.")
+                    .allowIfSubType(BigDecimal.class)
                     .build();
 
     private RedisValueSerializationPolicy() {

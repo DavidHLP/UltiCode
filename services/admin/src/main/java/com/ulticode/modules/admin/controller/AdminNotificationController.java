@@ -8,7 +8,6 @@ import com.ulticode.modules.admin.dto.AdminNotificationVO;
 import com.ulticode.modules.admin.dto.CreateSystemNotificationRequest;
 import com.ulticode.modules.admin.dto.UpdateSystemNotificationRequest;
 import com.ulticode.modules.admin.service.AdminNotificationService;
-import com.ulticode.modules.admin.service.NotificationCutoverService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -27,7 +26,6 @@ import org.springframework.web.bind.annotation.*;
 public class AdminNotificationController {
 
     private final AdminNotificationService adminNotificationService;
-    private final NotificationCutoverService notificationCutoverService;
 
     @Operation(summary = "List system notifications", description = "Paginated list of system announcements with server-side filtering")
     @GetMapping
@@ -43,7 +41,7 @@ public class AdminNotificationController {
     public Result<AdminNotificationVO> createNotification(
             @Valid @RequestBody CreateSystemNotificationRequest request,
             @RequestHeader(name = "Idempotency-Key", required = false) String idempotencyKey) {
-        return Result.success(notificationCutoverService.createSystemNotification(request, idempotencyKey));
+        return Result.success(adminNotificationService.createSystemNotification(request, idempotencyKey));
     }
 
     @Operation(summary = "Delete notification", description = "Delete a system notification and all related user notifications")
@@ -54,7 +52,7 @@ public class AdminNotificationController {
             @io.swagger.v3.oas.annotations.Parameter(description = "Notification ID")
             @PathVariable String id,
             @RequestHeader(name = "Idempotency-Key", required = false) String idempotencyKey) {
-        notificationCutoverService.deleteNotification(id, idempotencyKey);
+        adminNotificationService.deleteNotification(id, idempotencyKey);
         return Result.success();
     }
 
@@ -68,6 +66,6 @@ public class AdminNotificationController {
             @Valid @RequestBody UpdateSystemNotificationRequest request,
             @RequestHeader(name = "Idempotency-Key", required = false) String idempotencyKey) {
         return Result.success(
-                notificationCutoverService.updateSystemNotification(id, request, idempotencyKey));
+                adminNotificationService.updateSystemNotification(id, request, idempotencyKey));
     }
 }

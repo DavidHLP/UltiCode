@@ -50,7 +50,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ProblemListAdministrationProvider implements ProblemListAdministrationService {
 
-    private static final String SERVICE = CommandReceiptExecutor.problemListService();
+    private static final String SERVICE = "ProblemListAdministrationService";
 
     private final ProblemListService problemListService;
     private final ProblemListAdminService problemListAdminService;

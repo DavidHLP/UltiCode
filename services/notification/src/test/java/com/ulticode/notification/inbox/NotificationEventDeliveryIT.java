@@ -9,6 +9,7 @@ import com.ulticode.modules.notification.channel.InAppNotificationChannel;
 import com.ulticode.modules.notification.consumer.NotificationIntentEventConsumer;
 import com.ulticode.modules.notification.consumer.SubmissionJudgedNotificationConsumer;
 import com.ulticode.modules.notification.dispatcher.NotificationDispatcher;
+import com.ulticode.modules.notification.ledger.DeliveryAttemptCoordinator;
 import com.ulticode.modules.notification.ledger.mapper.NotificationDeliveryLedgerMapper;
 import com.ulticode.modules.notification.mapper.NotificationMapper;
 import com.ulticode.modules.notification.mapper.NotificationPreferenceMapper;
@@ -192,7 +193,8 @@ class NotificationEventDeliveryIT {
                 Clock.systemUTC(), notificationMapper, preferenceMapper);
         NotificationDispatcher dispatcher = new NotificationDispatcher(
                 List.of(new InAppNotificationChannel(notificationService)),
-                ledgerMapper, preferenceMapper, new SimpleMeterRegistry());
+                new DeliveryAttemptCoordinator(ledgerMapper),
+                preferenceMapper, new SimpleMeterRegistry());
         intentConsumer = new NotificationIntentEventConsumer(dispatcher);
         submissionConsumer = new SubmissionJudgedNotificationConsumer(dispatcher);
 

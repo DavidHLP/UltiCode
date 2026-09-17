@@ -4,6 +4,7 @@ import com.ulticode.app.api.service.ContestAdminReadPort;
 import com.ulticode.app.api.service.ContestAnnouncementReadPort;
 import com.ulticode.app.api.service.ContestLiveRankingReadPort;
 import com.ulticode.app.api.service.ContestParticipantReadPort;
+import com.ulticode.app.api.service.DashboardAdminReadPort;
 import com.ulticode.app.api.service.ForumCommentAdministrationService;
 import com.ulticode.app.api.service.ForumCommentReadPort;
 import com.ulticode.app.api.service.ForumPostAdministrationService;
@@ -23,7 +24,12 @@ import com.ulticode.app.api.service.SolutionOwnerPort;
 import com.ulticode.app.api.service.SolutionReadPort;
 import com.ulticode.app.api.service.SubscriptionReadPort;
 import com.ulticode.app.api.service.TestCaseOwnerPort;
+import com.ulticode.app.api.service.UserProfileQueryService;
 import com.ulticode.auth.api.service.AccountManagementService;
+import com.ulticode.auth.api.service.AccountQueryService;
+import com.ulticode.auth.api.service.AuthorizationSnapshotService;
+import com.ulticode.auth.api.service.IdentityQueryService;
+import com.ulticode.auth.api.service.ReconciliationQueryService;
 import com.ulticode.common.rpc.RpcPolicy;
 import com.ulticode.notification.api.service.NotificationAdminReadPort;
 import com.ulticode.notification.api.service.NotificationServiceContract;
@@ -51,9 +57,29 @@ public class AdminDubboReferenceRegistry {
             timeout = RpcPolicy.WRITE_TIMEOUT_MS, retries = RpcPolicy.WRITE_RETRIES, check = false)
     private AccountManagementService accountManagementReference;
 
+    @DubboReference(group = "backend-auth", version = "1.0.0",
+            timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
+    private AccountQueryService accountQueryReference;
+
+    @DubboReference(group = "backend-auth", version = "1.0.0",
+            timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
+    private AuthorizationSnapshotService authorizationSnapshotReference;
+
+    @DubboReference(group = "backend-auth", version = "1.0.0",
+            timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
+    private IdentityQueryService identityQueryReference;
+
+    @DubboReference(group = "backend-auth", version = "1.0.0",
+            timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
+    private ReconciliationQueryService reconciliationQueryReference;
+
     @DubboReference(group = "backend-app", version = "1.0.0",
             timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
     private ContestAdminReadPort contestAdminReadReference;
+
+    @DubboReference(group = "backend-app", version = "1.0.0",
+            timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
+    private DashboardAdminReadPort dashboardAdminReadReference;
 
     @DubboReference(group = "backend-app", version = "1.0.0",
             timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
@@ -160,6 +186,10 @@ public class AdminDubboReferenceRegistry {
             timeout = RpcPolicy.WRITE_TIMEOUT_MS, retries = RpcPolicy.WRITE_RETRIES, check = false)
     private TestCaseOwnerPort testCaseOwnerReference;
 
+    @DubboReference(group = "backend-app", version = "1.0.0",
+            timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
+    private UserProfileQueryService userProfileQueryReference;
+
     @Bean
     @Primary
     public AccountManagementService accountManagementService() {
@@ -168,8 +198,38 @@ public class AdminDubboReferenceRegistry {
 
     @Bean
     @Primary
+    public AccountQueryService accountQueryService() {
+        return accountQueryReference;
+    }
+
+    @Bean
+    @Primary
+    public AuthorizationSnapshotService authorizationSnapshotService() {
+        return authorizationSnapshotReference;
+    }
+
+    @Bean
+    @Primary
+    public IdentityQueryService identityQueryService() {
+        return identityQueryReference;
+    }
+
+    @Bean
+    @Primary
+    public ReconciliationQueryService reconciliationQueryService() {
+        return reconciliationQueryReference;
+    }
+
+    @Bean
+    @Primary
     public ContestAdminReadPort contestAdminReadPort() {
         return contestAdminReadReference;
+    }
+
+    @Bean
+    @Primary
+    public DashboardAdminReadPort dashboardAdminReadPort() {
+        return dashboardAdminReadReference;
     }
 
     @Bean
@@ -326,5 +386,11 @@ public class AdminDubboReferenceRegistry {
     @Primary
     public TestCaseOwnerPort testCaseOwnerPort() {
         return testCaseOwnerReference;
+    }
+
+    @Bean
+    @Primary
+    public UserProfileQueryService userProfileQueryService() {
+        return userProfileQueryReference;
     }
 }

@@ -29,7 +29,7 @@ import {
   type QueryModerationQueueParams,
   type ModeratableEntityType,
 } from '@/api/admin/moderation'
-import { useDataTable } from '@/composables/useDataTable'
+import { useRemoteTable } from '@/composables/useRemoteTable'
 import { createColumns, type ModerationActions } from './columns'
 import { useModerationFilters } from './composables/useModerationFilters'
 import { ACTION_CATALOG, actionColorVar, entityRoute } from './workflow/moderationWorkflow'
@@ -41,8 +41,6 @@ const store = useModerationStore()
 
 const isLoaded = ref(false)
 
-const { statusFilter, categoryFilter, entityTypeFilter, buildFilters, handleFilterUpdate } =
-  useModerationFilters()
 
 // Detail drawer state
 const drawerOpen = ref(false)
@@ -54,6 +52,7 @@ const saving = ref(false)
 
 // Batch dialog state
 const batchDialogOpen = ref(false)
+const selectedRows = ref<ModerationQueueItem[]>([])
 
 onMounted(() => {
   setTimeout(() => {
@@ -61,6 +60,39 @@ onMounted(() => {
   }, 100)
   store.fetchStats()
 })
+const {
+  query,
+  searchQuery,
+  tablePagination,
+  loading,
+  data,
+  total,
+  refresh: loadQueue,
+  setFilters,
+} = useRemoteTable<
+  ModerationQueueItem,
+  {
+    status: ModerationStatus | 'all'
+    category: ReportCategory | 'all'
+    entityType: ModeratableEntityType | 'all'
+  },
+  QueryModerationQueueParams
+>({
+  store: store.queue,
+  initialQuery: { filters: { status: 'all', category: 'all', entityType: 'all' } },
+  toParams: ({ filters, page, limit }) => ({
+    page,
+    limit,
+    status: filters.status === 'all' ? undefined : filters.status,
+    primaryCategory: filters.category === 'all' ? undefined : filters.category,
+    entityType: filters.entityType === 'all' ? undefined : filters.entityType,
+  }),
+  debounceMs: 300,
+  autoLoad: true,
+})
+
+const { buildFilters, handleFilterUpdate } = useModerationFilters({ query, setFilters })
+const filters = buildFilters(t)
 
 // Stats
 const stats = computed(() => ({
@@ -89,41 +121,7 @@ const columns = computed(() => {
   return createColumns(t, actions)
 })
 
-const filters = buildFilters(t)
 
-const {
-  searchQuery,
-  tablePagination,
-  selectedRows,
-  loading,
-  data,
-  total,
-  loadEntities: loadQueue,
-} = useDataTable<
-  ModerationQueueItem,
-  {
-    status: ModerationStatus | 'all'
-    primaryCategory: ReportCategory | 'all'
-    entityType: ModeratableEntityType | 'all'
-  },
-  QueryModerationQueueParams
->({
-  store: store.queue,
-  filters: () => ({
-    status: statusFilter.value,
-    primaryCategory: categoryFilter.value,
-    entityType: entityTypeFilter.value,
-  }),
-  transformParams: ({ filters, page, limit }) => ({
-    page,
-    limit,
-    status: filters.status === 'all' ? undefined : filters.status,
-    primaryCategory: filters.primaryCategory === 'all' ? undefined : filters.primaryCategory,
-    entityType: filters.entityType === 'all' ? undefined : filters.entityType,
-  }),
-  debounceMs: 300,
-  autoLoad: true,
-})
 
 async function handleQuickAction(id: string, action: ModerationActionType) {
   try {

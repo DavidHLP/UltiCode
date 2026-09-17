@@ -3,6 +3,7 @@ package com.ulticode.modules.notification.dispatcher;
 import com.ulticode.modules.notification.channel.NotificationChannel;
 import com.ulticode.modules.notification.intent.AchievementEarnedIntent;
 import com.ulticode.modules.notification.intent.NotificationIntent;
+import com.ulticode.modules.notification.ledger.DeliveryAttemptCoordinator;
 import com.ulticode.modules.notification.ledger.DeliveryState;
 import com.ulticode.modules.notification.ledger.entity.NotificationDeliveryLedger;
 import com.ulticode.modules.notification.ledger.mapper.NotificationDeliveryLedgerMapper;
@@ -57,7 +58,8 @@ class NotificationDispatcherTest {
 
     @BeforeEach
     void setUp() {
-        // Default: tryClaim succeeds (returns 1) so the dispatcher proceeds.
+        // Default: tryClaim succeeds (returns 1) so the coordinator reports
+        // ACQUIRED and the dispatcher proceeds.
         // Tests that want a different claim outcome override per-test.
         // lenient(): tests that fully override the claim stub (e.g.
         // idempotencyThreeDispatches) would otherwise trip
@@ -67,7 +69,7 @@ class NotificationDispatcherTest {
                 .thenReturn(1);
         dispatcher = new NotificationDispatcher(
                 List.of(channelA, channelB, channelC),
-                ledgerMapper,
+                new DeliveryAttemptCoordinator(ledgerMapper),
                 preferenceMapper,
                 new SimpleMeterRegistry());
     }
@@ -222,6 +224,7 @@ class NotificationDispatcherTest {
         when(ledgerMapper.findByIntentAndChannel(anyString(), eq("a")))
                 .thenReturn(NotificationDeliveryLedger.builder()
                         .deliveryState(DeliveryState.FAILED)
+                        .reclaimAttempts(5)
                         .build());
 
         NotificationIntent intent = sampleIntent("user-1");

@@ -31,6 +31,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -58,6 +59,11 @@ class AccountAdministrationProviderTest {
                 new CommandReceiptExecutor(receiptMapper, objectMapper, clock);
         delegationVerifier = mock(InternalDelegationAssertionVerifier.class);
         when(delegationVerifier.isTrusted(any())).thenReturn(true);
+        // Mirror MyBatis-Plus: a successful receipt insert affects one row. The
+        // executor now checks that count, and strict stubbing is waived because
+        // rejection tests never reach the receipt write.
+        lenient().when(receiptMapper.insert(any(AuthCommandReceiptEntity.class)))
+                .thenReturn(1);
         provider = new AccountAdministrationProvider(
                 workflow, receiptExecutor, new ProviderActorTrustGate(delegationVerifier));
 

@@ -181,8 +181,6 @@ interface ConfigWithMetadata
   _metadata?: RequestMetadata
 }
 
-const pendingRequests = new Map<string, AbortController>()
-
 function generateRequestId(): string {
   return `req_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
 }
@@ -240,6 +238,7 @@ export function createHttpClient(config: HttpClientConfig): HttpClient {
   const dedupPolicy = config.dedupPolicy ?? 'non-auth-readonly'
   const canceledMessage = config.canceledMessage ?? 'Request canceled'
   let isAuthErrorHandling = false
+  const pendingRequests = new Map<string, AbortController>()
   type ViteImportMeta = ImportMeta & {
     env?: {
       DEV?: boolean

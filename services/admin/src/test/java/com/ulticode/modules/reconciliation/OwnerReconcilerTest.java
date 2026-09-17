@@ -24,7 +24,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
 import java.time.Instant;
@@ -89,10 +88,9 @@ class OwnerReconcilerTest {
                 any(LocalDateTime.class))).thenReturn(List.of());
         checkpointCodec = new ReconciliationCheckpointCodec(new ObjectMapper());
         reconciler = new OwnerReconciler(
-                runMapper, uuidGenerator, appPort, submissionPort, notificationPort,
-                auditMapper, meterRegistry, leaseService,
+                runMapper, uuidGenerator, appPort, authService, submissionPort,
+                notificationPort, auditMapper, meterRegistry, leaseService,
                 checkpointCodec);
-        ReflectionTestUtils.setField(reconciler, "authQueryService", authService);
     }
 
     private ReconciliationRun capturedRun() {

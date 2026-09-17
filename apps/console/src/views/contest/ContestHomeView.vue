@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from "vue";
+import { ref, onMounted, computed } from "vue";
 import { Trophy } from "lucide-vue-next";
-import { useRouter, useRoute } from "vue-router";
 import { useContestBrowseStore } from "@/stores/contestBrowse";
 import { useContestRankingStore } from "@/stores/contestRanking";
 import { storeToRefs } from "pinia";
@@ -10,60 +9,40 @@ import UpcomingContests from "./components/UpcomingContests.vue";
 import RunningContests from "./components/RunningContests.vue";
 import GlobalRanking from "./components/GlobalRanking.vue";
 import PastContests from "./components/PastContests.vue";
+import { usePastContestsPager } from "@/composables/contest/usePastContestsPager";
 import { useI18n } from "vue-i18n";
 
-const router = useRouter();
-const route = useRoute();
 const contestStore = useContestBrowseStore();
 const rankingStore = useContestRankingStore();
+const pastPager = usePastContestsPager();
 const { t } = useI18n();
 
 // Use store state
-const {
-  upcomingContests,
-  runningContests,
-  pastContests,
-  pastContestsTotal,
-  loadingContests,
-} = storeToRefs(contestStore);
+const { upcomingContests, runningContests, pastContests } =
+  storeToRefs(contestStore);
 const { globalRankings, loadingRankings } = storeToRefs(rankingStore);
+const {
+  page: currentPage,
+  totalPages,
+  loading: pastLoading,
+} = pastPager;
 
-const currentPage = ref(1);
-const pageSize = 10;
 const initialLoading = ref(true);
 
 const isLoading = computed(() => initialLoading.value || loadingRankings.value);
 
-const totalPages = computed(() =>
-  Math.ceil(pastContestsTotal.value / pageSize),
-);
-
 // Load data
 onMounted(async () => {
   try {
-    const page = Number(route.query.page) || 1;
-    currentPage.value = page;
-
     await Promise.all([
       contestStore.loadContests(),
-      contestStore.loadPastContests(page, pageSize),
+      pastPager.loadInitialPage(),
       rankingStore.loadGlobalRankings(),
     ]);
   } catch (error) {
     console.error("Failed to load contest data:", error);
   } finally {
     initialLoading.value = false;
-  }
-});
-
-// Watch pagination changes
-watch(currentPage, async (newPage) => {
-  try {
-    await contestStore.loadPastContests(newPage, pageSize);
-    // Update URL Query
-    router.replace({ query: { ...route.query, page: newPage } });
-  } catch (error) {
-    console.error("Failed to load past contests:", error);
   }
 });
 </script>
@@ -114,7 +93,7 @@ watch(currentPage, async (newPage) => {
         <div class="lg:col-span-8">
           <PastContests
             :contests="pastContests"
-            :loading="loadingContests"
+            :loading="pastLoading"
             v-model:currentPage="currentPage"
             :totalPages="totalPages"
           />

@@ -47,6 +47,7 @@ Judge 通过 Redis Streams 异步接收 Submission outbox，使用 Problem facts
 
 ```text
 platform/common <- api/* <- Owner/Worker provider 或 adapter
+platform/redis <- Owner/Worker Redis value serializer
 backend-admin -> auth-api + app-api + submission-api + notification-api
 backend-app -> auth-api + submission-api + notification-api + judge-api
 backend-notification -> auth-api + app-api + notification-api
@@ -57,7 +58,7 @@ backend-auth -X-> app/admin API
 
 - 每个请求最多经过一个业务 Provider 单跳；Provider 不形成 A→B→A 链。
 - Consumer 依赖 consumer-owned port；Provider 暴露 provider-owned contract。
-- 允许共享：DTO、Result/RpcResult、error code 基础类型、trace/deadline/idempotency metadata、无业务语义工具和 contract fixture。
+- 允许共享：DTO、Result/RpcResult、error code 基础类型、trace/deadline/idempotency metadata、无业务语义工具、contract fixture 和 Redis value serialization policy。
 - 禁止共享：Entity、Mapper、Repository、业务 Service/Projection 实现、数据库连接 starter、私钥和隐式全局 Redis 配置。
 
 ## 代码分层

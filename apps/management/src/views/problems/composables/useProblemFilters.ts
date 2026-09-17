@@ -1,185 +1,128 @@
-import { ref, watch, type Ref } from 'vue'
+import { watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useDebounceFn } from '@vueuse/core'
 import { Difficulty } from '@/api/admin/problems'
-import type { PaginationState } from '@/composables/useDataTable'
+import type { RemoteTableQuery, RemoteTableRouteAdapter } from '@/composables/useRemoteTable'
 
 const DIFFICULTIES: readonly Difficulty[] = [Difficulty.EASY, Difficulty.MEDIUM, Difficulty.HARD]
-
-/** Publish-status wire values accepted by the problems query. */
 type PublishStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED'
 
-/**
- * Type guard that narrows a free-form (e.g. URL-derived) string to
- * {@link Difficulty} without an `as` cast, so a malformed or crafted query
- * value cannot be forwarded to the API as a typed lie.
- */
-function isDifficulty(value: string): value is Difficulty {
-  return DIFFICULTIES.some((d) => d === value)
+export interface ProblemTableFilters {
+  difficulty: string
+  status: string
+  published: string
+  sortBy: string
+  sortOrder: 'asc' | 'desc'
 }
 
-/**
- * Type guard that narrows a free-form string to a publish-status wire value
- * without an `as` cast.
- */
+function isDifficulty(value: string): value is Difficulty {
+  return DIFFICULTIES.some((difficulty) => difficulty === value)
+}
+
 function isProblemStatus(value: string): value is PublishStatus {
   return value === 'DRAFT' || value === 'PUBLISHED' || value === 'ARCHIVED'
 }
 
-export interface ProblemFilterState {
-  searchQuery: Ref<string>
-  difficultyFilter: Ref<string>
-  statusFilter: Ref<string>
-  publishedFilter: Ref<string>
-  sortBy: Ref<string>
-  sortOrder: Ref<'asc' | 'desc'>
-  tablePagination: Ref<PaginationState>
+function queryString(value: unknown): string | undefined {
+  if (typeof value === 'string') return value
+  if (Array.isArray(value) && typeof value[0] === 'string') return value[0]
+  return undefined
+}
+
+function routeKey(query: RemoteTableQuery<ProblemTableFilters>): string {
+  return JSON.stringify({
+    search: query.search,
+    filters: query.filters,
+    pageIndex: query.pagination.pageIndex,
+  })
 }
 
 export function useProblemFilters() {
   const route = useRoute()
   const router = useRouter()
+  let lastWrittenRouteKey: string | undefined
 
-  // Initialize filters from URL query params
-  const searchQuery = ref((route.query.search as string) || '')
-  const difficultyFilter = ref((route.query.difficulty as string) || 'all')
-  const statusFilter = ref((route.query.status as string) || 'all')
-  const publishedFilter = ref((route.query.published as string) || 'all')
+  function readRoute(): RemoteTableQuery<ProblemTableFilters> {
+    const search = queryString(route.query.search) ?? ''
+    const difficulty = queryString(route.query.difficulty) ?? 'all'
+    const status = queryString(route.query.status) ?? 'all'
+    const published = queryString(route.query.published) ?? 'all'
+    const sortBy = queryString(route.query.sortBy) ?? 'default'
+    const rawSortOrder = queryString(route.query.sortOrder)
+    const sortOrder: 'asc' | 'desc' = rawSortOrder === 'asc' ? 'asc' : 'desc'
+    const rawPage = Number(queryString(route.query.page))
+    const pageIndex = Number.isInteger(rawPage) && rawPage > 0 ? rawPage - 1 : 0
 
-  const initialPage = Number(route.query.page) || 1
-  const sortBy = ref((route.query.sortBy as string) || 'default')
-  const sortOrder = ref<'asc' | 'desc'>((route.query.sortOrder as 'asc' | 'desc') || 'desc')
-
-  // Placeholder -- actual tablePagination comes from useDataTable
-  // This ref is used only for URL sync and route-based page init
-  const routePageIndex = ref(Math.max(0, initialPage - 1))
-
-  // URL synchronization - debounced to avoid excessive updates
-  const debouncedUpdateUrl = useDebounceFn(() => {
-    router.push({
-      query: {
-        ...(searchQuery.value && { search: searchQuery.value }),
-        ...(difficultyFilter.value !== 'all' && { difficulty: difficultyFilter.value }),
-        ...(statusFilter.value !== 'all' && { status: statusFilter.value }),
-        ...(publishedFilter.value !== 'all' && { published: publishedFilter.value }),
-        ...(sortBy.value !== 'default' && { sortBy: sortBy.value }),
-        ...(sortOrder.value && { sortOrder: sortOrder.value }),
-        page: (routePageIndex.value + 1).toString(),
-      },
-    })
-  }, 300)
-
-  // Sync tablePagination from useDataTable back to routePageIndex for URL sync
-  function bindTablePagination(tablePagination: Ref<PaginationState>) {
-    watch(
-      tablePagination,
-      (val) => {
-        routePageIndex.value = val.pageIndex
-      },
-      { deep: true },
-    )
-
-    // Return initial page index so caller can set tablePagination
-    return Math.max(0, initialPage - 1)
-  }
-
-  // Watch all filter state changes and update URL
-  watch(
-    [
-      searchQuery,
-      difficultyFilter,
-      statusFilter,
-      publishedFilter,
-      sortBy,
-      sortOrder,
-      routePageIndex,
-    ],
-    debouncedUpdateUrl,
-    { deep: true },
-  )
-
-  // Watch filters for data reload trigger
-  const filterChangeTrigger = ref(0)
-  watch([difficultyFilter, statusFilter, publishedFilter, sortBy, sortOrder], () => {
-    filterChangeTrigger.value++
-  })
-
-  // Handle browser back/forward navigation
-  function syncFromRoute() {
-    searchQuery.value = (route.query.search as string) || ''
-    difficultyFilter.value = (route.query.difficulty as string) || 'all'
-    statusFilter.value = (route.query.status as string) || 'all'
-    publishedFilter.value = (route.query.published as string) || 'all'
-    sortBy.value = (route.query.sortBy as string) || 'default'
-    sortOrder.value = (route.query.sortOrder as 'asc' | 'desc') || 'desc'
-    const page = Number(route.query.page) || 1
-    routePageIndex.value = Math.max(0, page - 1)
-    filterChangeTrigger.value++
-  }
-
-  // Watch route changes (back/forward)
-  watch(
-    () => route.query,
-    () => syncFromRoute(),
-    { deep: true },
-  )
-
-  // Build transform params for API calls
-  function buildFilterParams(tablePagination: PaginationState) {
     return {
-      difficulty:
-        difficultyFilter.value === 'all' || !isDifficulty(difficultyFilter.value)
-          ? undefined
-          : difficultyFilter.value,
-      publishStatus:
-        statusFilter.value === 'all' || !isProblemStatus(statusFilter.value)
-          ? undefined
-          : statusFilter.value,
-      isPublished:
-        publishedFilter.value === 'all'
-          ? undefined
-          : publishedFilter.value === 'published'
-            ? true
-            : false,
-      sortBy: sortBy.value === 'default' ? undefined : sortBy.value,
-      sortOrder: sortOrder.value || undefined,
-      page: Math.max(1, tablePagination.pageIndex + 1),
-      limit: tablePagination.pageSize,
+      search,
+      filters: { difficulty, status, published, sortBy, sortOrder },
+      pagination: { pageIndex, pageSize: 10 },
     }
   }
 
-  // Build export filter params
-  function buildExportParams() {
+  const routeAdapter: RemoteTableRouteAdapter<ProblemTableFilters> = {
+    read: readRoute,
+    writeDebounceMs: 300,
+    write: (query) => {
+      const { filters } = query
+      lastWrittenRouteKey = routeKey(query)
+      router.push({
+        query: {
+          ...(query.search && { search: query.search }),
+          ...(filters.difficulty !== 'all' && { difficulty: filters.difficulty }),
+          ...(filters.status !== 'all' && { status: filters.status }),
+          ...(filters.published !== 'all' && { published: filters.published }),
+          ...(filters.sortBy !== 'default' && { sortBy: filters.sortBy }),
+          ...(filters.sortOrder !== 'desc' && { sortOrder: filters.sortOrder }),
+          page: (query.pagination.pageIndex + 1).toString(),
+        },
+      })
+    },
+    subscribe: (onChange) =>
+      watch(
+        () => route.query,
+        () => {
+          const nextQuery = readRoute()
+          if (routeKey(nextQuery) === lastWrittenRouteKey) {
+            lastWrittenRouteKey = undefined
+            return
+          }
+          lastWrittenRouteKey = undefined
+          onChange(nextQuery)
+        },
+        { deep: true },
+      ),
+  }
+
+  function buildFilterParams(filters: ProblemTableFilters, page: number, limit: number) {
     return {
-      search: searchQuery.value || undefined,
       difficulty:
-        difficultyFilter.value === 'all' || !isDifficulty(difficultyFilter.value)
+        filters.difficulty === 'all' || !isDifficulty(filters.difficulty)
           ? undefined
-          : difficultyFilter.value,
+          : filters.difficulty,
       publishStatus:
-        statusFilter.value === 'all' || !isProblemStatus(statusFilter.value)
-          ? undefined
-          : statusFilter.value,
+        filters.status === 'all' || !isProblemStatus(filters.status) ? undefined : filters.status,
       isPublished:
-        publishedFilter.value === 'all'
-          ? undefined
-          : publishedFilter.value === 'published'
-            ? true
-            : false,
+        filters.published === 'all' ? undefined : filters.published === 'published',
+      sortBy: filters.sortBy === 'default' ? undefined : filters.sortBy,
+      sortOrder: filters.sortOrder || undefined,
+      page: Math.max(1, page),
+      limit,
+    }
+  }
+
+  function buildExportParams(query: RemoteTableQuery<ProblemTableFilters>) {
+    const params = buildFilterParams(query.filters, 1, 10)
+    return {
+      search: query.search || undefined,
+      difficulty: params.difficulty,
+      publishStatus: params.publishStatus,
+      isPublished: params.isPublished,
     }
   }
 
   return {
-    searchQuery,
-    difficultyFilter,
-    statusFilter,
-    publishedFilter,
-    sortBy,
-    sortOrder,
-    routePageIndex,
-    filterChangeTrigger,
-    bindTablePagination,
-    syncFromRoute,
+    initialQuery: readRoute(),
+    routeAdapter,
     buildFilterParams,
     buildExportParams,
   }

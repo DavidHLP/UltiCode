@@ -1,6 +1,6 @@
 package com.ulticode.modules.admin.outbox;
+import com.ulticode.common.outbox.OutboxDispatcher;
 import com.ulticode.modules.admin.outbox.mapper.AuditOutboxMapper;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -40,7 +40,7 @@ class AuditOutboxDispatcherTest {
     @Test
     @DisplayName("dispatch returns 0 when no pending records exist")
     void dispatch_returnsZeroWhenNoPendingRecords() {
-        when(auditOutboxMapper.claimPending(anyString(), anyInt())).thenReturn(0);
+        when(auditOutboxMapper.claimPending(anyString(), anyInt(), anyInt())).thenReturn(0);
 
         int count = dispatcher.dispatch();
 
@@ -65,7 +65,7 @@ class AuditOutboxDispatcherTest {
         AuditOutboxRecord record = new AuditOutboxRecord();
         record.setId("outbox-1");
 
-        when(auditOutboxMapper.claimPending(anyString(), anyInt())).thenReturn(1);
+        when(auditOutboxMapper.claimPending(anyString(), anyInt(), anyInt())).thenReturn(1);
         when(auditOutboxMapper.selectClaimed(anyString())).thenAnswer(invocation -> {
             record.setClaimOwner(invocation.getArgument(0));
             return List.of(record);
@@ -79,22 +79,28 @@ class AuditOutboxDispatcherTest {
     }
 
     @Test
-    @DisplayName("dispatch catches exception during processing and marks record as failed")
-    void dispatch_marksFailedOnException() {
+    @DisplayName("dispatch forwards the bounded error and shared retry ceiling")
+    void dispatch_forwardsFailureContract() {
         AuditOutboxRecord record = new AuditOutboxRecord();
         record.setId("outbox-err");
+        String longError = "x".repeat(600);
 
-        when(auditOutboxMapper.claimPending(anyString(), anyInt())).thenReturn(1);
+        when(auditOutboxMapper.claimPending(anyString(), anyInt(), anyInt())).thenReturn(1);
         when(auditOutboxMapper.selectClaimed(anyString())).thenAnswer(invocation -> {
             record.setClaimOwner(invocation.getArgument(0));
             return List.of(record);
         });
-        doThrow(new RuntimeException("DB error")).when(auditOutboxProcessor).processRecordInNewTx(record);
+        doThrow(new RuntimeException(longError)).when(auditOutboxProcessor).processRecordInNewTx(record);
+        when(auditOutboxProcessor.markFailedInNewTx(anyString(), anyString(), anyString(), anyInt()))
+                .thenReturn(0);
 
-        int count = dispatcher.dispatch();
+        assertThat(dispatcher.dispatch()).isZero();
 
-        assertThat(count).isEqualTo(0);
-        verify(auditOutboxProcessor).markFailedInNewTx(eq("outbox-err"), anyString());
+        verify(auditOutboxProcessor).markFailedInNewTx(
+                eq("outbox-err"),
+                anyString(),
+                eq(longError.substring(0, 500)),
+                eq(OutboxDispatcher.MAX_ATTEMPTS));
     }
 
     @Test
@@ -103,12 +109,13 @@ class AuditOutboxDispatcherTest {
         AuditOutboxRecord record = new AuditOutboxRecord();
         record.setId("outbox-race");
 
-        when(auditOutboxMapper.claimPending(anyString(), anyInt())).thenReturn(0);
+        when(auditOutboxMapper.claimPending(anyString(), anyInt(), anyInt())).thenReturn(0);
 
         int count = dispatcher.dispatch();
 
         assertThat(count).isZero();
         verify(auditOutboxProcessor, never()).processRecordInNewTx(any());
-        verify(auditOutboxProcessor, never()).markFailedInNewTx(anyString(), anyString());
+        verify(auditOutboxProcessor, never()).markFailedInNewTx(
+                anyString(), anyString(), anyString(), anyInt());
     }
 }

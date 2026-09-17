@@ -24,12 +24,13 @@ public class AuditOutboxDispatcher {
                 new OutboxDispatcher.Adapter<>() {
                     @Override
                     public void reclaimStaleClaimed() {
-                        auditOutboxMapper.reclaimStaleClaimed();
+                        auditOutboxMapper.reclaimStaleClaimed(OutboxDispatcher.MAX_ATTEMPTS);
                     }
 
                     @Override
                     public int claimPending(String claimOwner, int limit) {
-                        return auditOutboxMapper.claimPending(claimOwner, limit);
+                        return auditOutboxMapper.claimPending(
+                                claimOwner, limit, OutboxDispatcher.MAX_ATTEMPTS);
                     }
 
                     @Override
@@ -58,8 +59,8 @@ public class AuditOutboxDispatcher {
                             String claimOwner,
                             String error,
                             int maxAttempts) {
-                        auditOutboxProcessor.markFailedInNewTx(record.getId(), claimOwner);
-                        return 1;
+                        return auditOutboxProcessor.markFailedInNewTx(
+                                record.getId(), claimOwner, error, maxAttempts);
                     }
 
                     @Override

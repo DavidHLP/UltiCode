@@ -18,7 +18,6 @@ import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.modules.admin.port.adapter.AdminQueryDeadline;
 import com.ulticode.modules.admin.port.adapter.CancellableQueryExecutor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
@@ -44,10 +43,9 @@ import java.util.stream.Collectors;
  * <p>For single-item lookups ({@link #enrichOne}), email is populated via
  * {@code AccountQueryService} since it is only needed in detail views.
  *
- * <p>Follows the same dual-source Dubbo pattern as
- * {@code DefaultAdminUserProjection}. All Dubbo references use
- * {@code check=false} and {@code required=false} so the admin context loads
- * even when providers are down.
+ * <p>Owner references are supplied by {@code AdminDubboReferenceRegistry}
+ * with {@code check=false}. Nullable seams preserve call-time degradation
+ * when an owner provider is unavailable.
  *
  * <p>Degradation is explicit, never silent:
  * <ul>
@@ -68,53 +66,29 @@ import java.util.stream.Collectors;
 @Slf4j
 @Component
 public class AdminUserEnricher {
+    private final IdentityQueryService identityQueryService;
+    private final UserProfileQueryService userProfileQueryService;
+    private final AccountQueryService accountQueryService;
     private final CancellableQueryExecutor queryExecutor;
     private final AdminQueryDeadline queryDeadline;
 
-    /** Production construction receives the Admin-owned executor bean. */
+    /**
+     * Production and test construction with all owner RPC seams explicit.
+     * Optional providers may be null so their call-time degradation is preserved.
+     */
     @Autowired
     public AdminUserEnricher(
+            IdentityQueryService identityQueryService,
+            UserProfileQueryService userProfileQueryService,
+            AccountQueryService accountQueryService,
             @Qualifier("adminUserEnrichmentQueryExecutor") CancellableQueryExecutor queryExecutor,
             AdminQueryDeadline queryDeadline) {
-        this(null, null, null, queryExecutor, queryDeadline);
-    }
-
-    /** Test constructor that uses the platform monotonic time source. */
-    public AdminUserEnricher(CancellableQueryExecutor queryExecutor) {
-        this(null, null, null, queryExecutor, AdminQueryDeadline.system());
-    }
-
-    AdminUserEnricher(IdentityQueryService identityQueryService,
-                      UserProfileQueryService userProfileQueryService,
-                      AccountQueryService accountQueryService,
-                      CancellableQueryExecutor queryExecutor) {
-        this(identityQueryService, userProfileQueryService, accountQueryService,
-                queryExecutor, AdminQueryDeadline.system());
-    }
-
-    AdminUserEnricher(IdentityQueryService identityQueryService,
-                      UserProfileQueryService userProfileQueryService,
-                      AccountQueryService accountQueryService,
-                      CancellableQueryExecutor queryExecutor,
-                      AdminQueryDeadline queryDeadline) {
         this.identityQueryService = identityQueryService;
         this.userProfileQueryService = userProfileQueryService;
         this.accountQueryService = accountQueryService;
         this.queryExecutor = Objects.requireNonNull(queryExecutor, "queryExecutor");
         this.queryDeadline = Objects.requireNonNull(queryDeadline, "queryDeadline");
     }
-
-    @Autowired(required = false)
-    @DubboReference(group = "backend-auth", version = "1.0.0", timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
-    private IdentityQueryService identityQueryService;
-
-    @Autowired(required = false)
-    @DubboReference(group = "backend-app", version = "1.0.0", timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
-    private UserProfileQueryService userProfileQueryService;
-
-    @Autowired(required = false)
-    @DubboReference(group = "backend-auth", version = "1.0.0", timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
-    private AccountQueryService accountQueryService;
 
     /** Query an Auth account page and merge App profiles in one owner-aggregation round. */
     public AccountPage queryAccountsWithProfiles(AccountQueryDTO query) {

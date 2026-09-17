@@ -4,7 +4,6 @@ import com.ulticode.modules.admin.dto.AdminNotificationVO;
 import com.ulticode.modules.admin.dto.CreateSystemNotificationRequest;
 import com.ulticode.modules.admin.dto.UpdateSystemNotificationRequest;
 import com.ulticode.modules.admin.service.AdminNotificationService;
-import com.ulticode.modules.admin.service.NotificationCutoverService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -23,14 +22,11 @@ class AdminNotificationControllerTest {
     @Mock
     private AdminNotificationService adminNotificationService;
 
-    @Mock
-    private NotificationCutoverService notificationCutoverService;
-
     private AdminNotificationController controller;
 
     @BeforeEach
     void setUp() {
-        controller = new AdminNotificationController(adminNotificationService, notificationCutoverService);
+        controller = new AdminNotificationController(adminNotificationService);
     }
 
     @Test
@@ -38,24 +34,24 @@ class AdminNotificationControllerTest {
     void forwardsIdempotencyKeyForWrites() {
         CreateSystemNotificationRequest createRequest = new CreateSystemNotificationRequest();
         AdminNotificationVO created = new AdminNotificationVO();
-        when(notificationCutoverService.createSystemNotification(createRequest, "create-retry"))
+        when(adminNotificationService.createSystemNotification(createRequest, "create-retry"))
                 .thenReturn(created);
 
         assertThat(controller.createNotification(createRequest, "create-retry").getData())
                 .isSameAs(created);
-        verify(notificationCutoverService).createSystemNotification(createRequest, "create-retry");
+        verify(adminNotificationService).createSystemNotification(createRequest, "create-retry");
 
         controller.deleteNotification("notification-1", "delete-retry");
-        verify(notificationCutoverService).deleteNotification("notification-1", "delete-retry");
+        verify(adminNotificationService).deleteNotification("notification-1", "delete-retry");
 
         UpdateSystemNotificationRequest updateRequest = new UpdateSystemNotificationRequest();
         AdminNotificationVO updated = new AdminNotificationVO();
-        when(notificationCutoverService.updateSystemNotification(
+        when(adminNotificationService.updateSystemNotification(
                 "notification-1", updateRequest, "update-retry")).thenReturn(updated);
 
         assertThat(controller.updateNotification(
                 "notification-1", updateRequest, "update-retry").getData()).isSameAs(updated);
-        verify(notificationCutoverService).updateSystemNotification(
+        verify(adminNotificationService).updateSystemNotification(
                 "notification-1", updateRequest, "update-retry");
     }
 }

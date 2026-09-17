@@ -12,7 +12,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
 
@@ -49,10 +48,12 @@ class DefaultAdminDashboardReadAdapterUserTrendTest {
     void mapsAuthTrendFailureToUnavailableWithoutFallbackPaging() {
         queryExecutor = new CancellableQueryExecutor("test", 3);
         DefaultAdminDashboardReadAdapter adapter =
-                new DefaultAdminDashboardReadAdapter(submissionAdminReadPort,
-                        queryExecutor);
-        ReflectionTestUtils.setField(adapter, "accountQueryService", accountQueryService);
-        ReflectionTestUtils.setField(adapter, "appDashboardReadPort", appDashboardReadPort);
+                new DefaultAdminDashboardReadAdapter(
+                        appDashboardReadPort,
+                        accountQueryService,
+                        submissionAdminReadPort,
+                        queryExecutor,
+                        AdminQueryDeadline.system());
         when(accountQueryService.getUserTrend(any())).thenReturn(
                 RpcResult.failure(AuthErrorCode.UNEXPECTED_AUTH_STATE, "t-1"));
 
@@ -72,10 +73,12 @@ class DefaultAdminDashboardReadAdapterUserTrendTest {
     void permissionForbiddenFromUserTrendPropagatesInsteadOfUnavailable() {
         queryExecutor = new CancellableQueryExecutor("test", 3);
         DefaultAdminDashboardReadAdapter adapter =
-                new DefaultAdminDashboardReadAdapter(submissionAdminReadPort,
-                        queryExecutor);
-        ReflectionTestUtils.setField(adapter, "accountQueryService", accountQueryService);
-        ReflectionTestUtils.setField(adapter, "appDashboardReadPort", appDashboardReadPort);
+                new DefaultAdminDashboardReadAdapter(
+                        appDashboardReadPort,
+                        accountQueryService,
+                        submissionAdminReadPort,
+                        queryExecutor,
+                        AdminQueryDeadline.system());
         when(accountQueryService.getUserTrend(any())).thenReturn(
                 RpcResult.failure(BaseErrorCode.FORBIDDEN, "t-1"));
 
@@ -95,10 +98,12 @@ class DefaultAdminDashboardReadAdapterUserTrendTest {
     void permissionUnauthorizedFromUserTrendPropagatesInsteadOfUnavailable() {
         queryExecutor = new CancellableQueryExecutor("test", 3);
         DefaultAdminDashboardReadAdapter adapter =
-                new DefaultAdminDashboardReadAdapter(submissionAdminReadPort,
-                        queryExecutor);
-        ReflectionTestUtils.setField(adapter, "accountQueryService", accountQueryService);
-        ReflectionTestUtils.setField(adapter, "appDashboardReadPort", appDashboardReadPort);
+                new DefaultAdminDashboardReadAdapter(
+                        appDashboardReadPort,
+                        accountQueryService,
+                        submissionAdminReadPort,
+                        queryExecutor,
+                        AdminQueryDeadline.system());
         when(accountQueryService.getUserTrend(any())).thenReturn(
                 RpcResult.failure(BaseErrorCode.UNAUTHORIZED, "t-1"));
 

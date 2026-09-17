@@ -5,10 +5,39 @@ import {
   type ModeratableEntityType,
 } from '@/api/admin/moderation'
 
-export function useModerationFilters() {
-  const statusFilter = ref<ModerationStatus | 'all'>('all')
-  const categoryFilter = ref<ReportCategory | 'all'>('all')
-  const entityTypeFilter = ref<ModeratableEntityType | 'all'>('all')
+export interface ModerationFilterState {
+  status: ModerationStatus | 'all'
+  category: ReportCategory | 'all'
+  entityType: ModeratableEntityType | 'all'
+}
+
+interface ModerationFilterBinding {
+  query: { readonly value: { readonly filters: ModerationFilterState } }
+  setFilters: (filters: ModerationFilterState) => void
+}
+
+export function useModerationFilters(binding?: ModerationFilterBinding) {
+  const statusFilter = binding
+    ? computed({
+        get: () => binding.query.value.filters.status,
+        set: (status: ModerationStatus | 'all') =>
+          binding.setFilters({ ...binding.query.value.filters, status }),
+      })
+    : ref<ModerationStatus | 'all'>('all')
+  const categoryFilter = binding
+    ? computed({
+        get: () => binding.query.value.filters.category,
+        set: (category: ReportCategory | 'all') =>
+          binding.setFilters({ ...binding.query.value.filters, category }),
+      })
+    : ref<ReportCategory | 'all'>('all')
+  const entityTypeFilter = binding
+    ? computed({
+        get: () => binding.query.value.filters.entityType,
+        set: (entityType: ModeratableEntityType | 'all') =>
+          binding.setFilters({ ...binding.query.value.filters, entityType }),
+      })
+    : ref<ModeratableEntityType | 'all'>('all')
 
   // Filter configuration for DataTableToolbar
   function buildFilters(t: (key: string) => string) {

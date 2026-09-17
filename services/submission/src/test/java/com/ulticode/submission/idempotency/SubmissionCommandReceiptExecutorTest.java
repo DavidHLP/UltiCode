@@ -13,6 +13,7 @@ import com.ulticode.submission.idempotency.mapper.SubmissionCommandReceiptMapper
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -41,6 +42,56 @@ class SubmissionCommandReceiptExecutorTest {
                 mapper,
                 objectMapper,
                 Clock.fixed(Instant.parse("2026-08-30T00:00:00Z"), ZoneOffset.UTC));
+    }
+
+    @Test
+    void receiptRoundTripPreservesRejudgeDtoWireShape() throws Exception {
+        RejudgeCommand command = command("key-1", "sub-1");
+        RejudgeResultDTO expected = new RejudgeResultDTO(
+                "sub-1", "Pending", 1L, 1, true, null, null);
+        when(mapper.insertClaim(any())).thenReturn(1);
+        when(mapper.markSuccess(any(), any())).thenReturn(1);
+
+        RpcResult<RejudgeResultDTO> first = executor.execute(
+                "rejudge", command, RejudgeResultDTO.class,
+                traceId -> RpcResult.success(expected, traceId));
+
+        assertThat(first.success()).isTrue();
+        ArgumentCaptor<String> payload = ArgumentCaptor.forClass(String.class);
+        verify(mapper).markSuccess(any(), payload.capture());
+        var stored = objectMapper.readTree(payload.getValue());
+        java.util.List<String> fieldNames = new java.util.ArrayList<>();
+        stored.fieldNames().forEachRemaining(fieldNames::add);
+        assertThat(fieldNames).containsExactlyInAnyOrder(
+                "submissionId", "newStatus", "rejudgedAtEpochMs", "retryCount",
+                "success", "errorCode", "error");
+        assertThat(stored.get("submissionId").asText()).isEqualTo("sub-1");
+        assertThat(stored.get("newStatus").asText()).isEqualTo("Pending");
+        assertThat(stored.get("rejudgedAtEpochMs").asLong()).isEqualTo(1L);
+        assertThat(stored.get("retryCount").asInt()).isEqualTo(1);
+        assertThat(stored.get("success").asBoolean()).isTrue();
+        assertThat(stored.get("errorCode").isNull()).isTrue();
+        assertThat(stored.get("error").isNull()).isTrue();
+
+        SubmissionCommandReceiptEntity receipt = receipt(command, "SUCCESS");
+        receipt.setResultPayload(payload.getValue());
+        when(mapper.insertClaim(any())).thenReturn(0);
+        when(mapper.findByReceiptKey(
+                "SubmissionAdministrationService", "rejudge", "key-1"))
+                .thenReturn(receipt);
+        AtomicInteger replayMutations = new AtomicInteger();
+
+        RpcResult<RejudgeResultDTO> replayed = executor.execute(
+                "rejudge", command, RejudgeResultDTO.class,
+                traceId -> {
+                    replayMutations.incrementAndGet();
+                    return RpcResult.success(expected, traceId);
+                });
+
+        assertThat(replayed.data()).isEqualTo(expected);
+        assertThat(objectMapper.readTree(
+                objectMapper.writeValueAsString(replayed.data()))).isEqualTo(stored);
+        assertThat(replayMutations).hasValue(0);
     }
 
     @Test

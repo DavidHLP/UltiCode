@@ -138,9 +138,9 @@ class DefaultAdminAnalyticsPortAdapterMetricsTest {
                 contestParticipantReadPort,
                 subscriptionReadPort,
                 submissionAdminReadPort,
+                accountQueryService,
                 queryExecutor,
                 AdminQueryDeadline.system());
-        ReflectionTestUtils.setField(adapter, "accountQueryService", accountQueryService);
         ReflectionTestUtils.setField(adapter, "useCaseMetrics", metrics);
         return adapter;
     }

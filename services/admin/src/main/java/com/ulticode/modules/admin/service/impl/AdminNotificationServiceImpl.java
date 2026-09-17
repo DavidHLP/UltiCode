@@ -9,6 +9,8 @@ import com.ulticode.notification.api.dto.NotificationAdminViewDTO;
 import com.ulticode.notification.api.service.NotificationAdminReadPort;
 import com.ulticode.notification.api.service.NotificationAdministrationService;
 import com.ulticode.notification.api.service.NotificationServiceContract;
+import com.ulticode.common.annotation.Audited;
+import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.response.PageResult;
@@ -73,11 +75,13 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
     }
 
     @Override
+    @Audited(action = AuditVocabulary.CREATE_NOTIFICATION, entityType = AuditVocabulary.ENTITY_NOTIFICATION)
     public AdminNotificationVO createSystemNotification(CreateSystemNotificationRequest request) {
         return createSystemNotification(request, null);
     }
 
     @Override
+    @Audited(action = AuditVocabulary.CREATE_NOTIFICATION, entityType = AuditVocabulary.ENTITY_NOTIFICATION)
     public AdminNotificationVO createSystemNotification(
             CreateSystemNotificationRequest request, String idempotencyKey) {
         String actorId = currentUserProvider.getCurrentUserId();
@@ -117,11 +121,13 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
     }
 
     @Override
+    @Audited(action = AuditVocabulary.DELETE_NOTIFICATION, entityType = AuditVocabulary.ENTITY_NOTIFICATION)
     public void deleteNotification(String id) {
         deleteNotification(id, null);
     }
 
     @Override
+    @Audited(action = AuditVocabulary.DELETE_NOTIFICATION, entityType = AuditVocabulary.ENTITY_NOTIFICATION)
     public void deleteNotification(String id, String idempotencyKey) {
         AuditContext.setEntityId(id);
         NotificationAdminDTO existing = notificationAdminReadPort.selectById(id);
@@ -150,11 +156,13 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
     }
 
     @Override
+    @Audited(action = AuditVocabulary.UPDATE_NOTIFICATION, entityType = AuditVocabulary.ENTITY_NOTIFICATION)
     public AdminNotificationVO updateSystemNotification(String id, UpdateSystemNotificationRequest request) {
         return updateSystemNotification(id, request, null);
     }
 
     @Override
+    @Audited(action = AuditVocabulary.UPDATE_NOTIFICATION, entityType = AuditVocabulary.ENTITY_NOTIFICATION)
     public AdminNotificationVO updateSystemNotification(
             String id, UpdateSystemNotificationRequest request, String idempotencyKey) {
         NotificationAdminDTO existing = notificationAdminReadPort.selectById(id);

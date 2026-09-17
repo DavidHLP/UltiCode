@@ -22,9 +22,9 @@ import com.ulticode.modules.admin.dto.UpdateContestDTO;
 import com.ulticode.modules.admin.projection.AdminContestProjection;
 import com.ulticode.modules.admin.write.AdminOwnerErrorMapper;
 import com.ulticode.modules.admin.write.AdminWriteEnvelope;
-import lombok.RequiredArgsConstructor;
+import com.ulticode.modules.admin.port.adapter.OwnerCutoverGate;
 import org.apache.dubbo.config.annotation.DubboReference;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import java.time.ZoneOffset;
@@ -33,14 +33,20 @@ import com.ulticode.common.rpc.RpcPolicy;
 
 /** Admin-side adapter for the App-owned contest write contract. */
 @Service
-@RequiredArgsConstructor
 public class ContestCutoverService {
 
     private final AdminContestProjection adminContestProjection;
     private final CurrentUserProvider currentUserProvider;
+    private final OwnerCutoverGate cutoverGate;
 
-    @Value("${app.features.contest-dubbo-cutover:false}")
-    private boolean dubboEnabled;
+    public ContestCutoverService(
+            AdminContestProjection adminContestProjection,
+            CurrentUserProvider currentUserProvider,
+            @Qualifier("contestOwnerCutover") OwnerCutoverGate cutoverGate) {
+        this.adminContestProjection = adminContestProjection;
+        this.currentUserProvider = currentUserProvider;
+        this.cutoverGate = cutoverGate;
+    }
 
     @DubboReference(group = "backend-app", version = "1.0.0",
             timeout = RpcPolicy.WRITE_TIMEOUT_MS, retries = RpcPolicy.WRITE_RETRIES, check = false)
@@ -175,7 +181,7 @@ public class ContestCutoverService {
     }
 
     private void ensureDubboEnabled() {
-        if (!dubboEnabled) {
+        if (!cutoverGate.remoteEnabled()) {
             throw new BusinessException(AdminErrorCode.CONFLICT,
                     "Contest Dubbo cutover is disabled");
         }

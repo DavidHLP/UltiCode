@@ -27,7 +27,6 @@ import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.support.EncodedResource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.init.ScriptUtils;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -213,11 +212,10 @@ class OwnerReconcilerIT {
                 NotificationReconciliationReadPort.MAX_PAGE_SIZE)).thenReturn(List.of());
 
         OwnerReconciler reconciler = new OwnerReconciler(
-                runMapper, new FixedUuidGenerator("run-it-1"), appPort,
+                runMapper, new FixedUuidGenerator("run-it-1"), appPort, authService,
                 submissionPort, notificationPort, auditOrphanMapper, null,
                 new FencedJobLeaseService(fencedJobLeaseMapper, Clock.systemUTC()),
                 new ReconciliationCheckpointCodec(new ObjectMapper()));
-        ReflectionTestUtils.setField(reconciler, "authQueryService", authService);
         return reconciler;
     }
 

@@ -22,6 +22,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import ContestCard from "./components/ContestCard.vue";
+import { usePastContestsPager } from "@/composables/contest/usePastContestsPager";
 import type { ContestListItem } from "@/types/contest";
 
 const props = defineProps<{
@@ -32,28 +33,23 @@ const route = useRoute();
 const router = useRouter();
 const { t } = useI18n();
 const contestStore = useContestBrowseStore();
+const pastPager = usePastContestsPager();
 
 // Store state
+const { upcomingContests, runningContests, pastContests, loadingContests } =
+  storeToRefs(contestStore);
 const {
-  upcomingContests,
-  runningContests,
-  pastContests,
-  pastContestsTotal,
-  loadingContests,
-} = storeToRefs(contestStore);
+  page: currentPage,
+  totalPages,
+  loading: pastLoading,
+} = pastPager;
 
 // Local state
 const activeTab = ref<string>("ongoing");
-const currentPage = ref(1);
-const pageSize = 10;
 const initialLoading = ref(true);
 
 // Computed properties
 const isLoading = computed(() => initialLoading.value || loadingContests.value);
-
-const totalPages = computed(() =>
-  Math.ceil(pastContestsTotal.value / pageSize),
-);
 
 // Get contests based on active tab
 const currentContests = computed<ContestListItem[]>(() => {
@@ -89,12 +85,9 @@ async function loadData() {
           : "ongoing";
     activeTab.value = resolvedTab;
 
-    const page = Number(route.query.page) || 1;
-    currentPage.value = page;
-
     await Promise.all([
       contestStore.loadContests(),
-      contestStore.loadPastContests(page, pageSize),
+      pastPager.loadInitialPage(),
     ]);
   } catch {
     // Error handled by UI state
@@ -102,16 +95,6 @@ async function loadData() {
     initialLoading.value = false;
   }
 }
-
-// Watch for pagination changes
-watch(currentPage, async (newPage) => {
-  try {
-    await contestStore.loadPastContests(newPage, pageSize);
-    router.replace({ query: { ...route.query, page: newPage } });
-  } catch {
-    // Error handled by UI state
-  }
-});
 
 // Initialize on mount
 onMounted(loadData);
@@ -300,7 +283,7 @@ onMounted(loadData);
         <TabsContent value="finished" class="mt-6 space-y-6">
           <!-- Loading Skeletons -->
           <div
-            v-if="loadingContests"
+            v-if="pastLoading"
             class="grid gap-6 md:grid-cols-2 lg:grid-cols-3"
           >
             <Card v-for="i in 3" :key="i">
@@ -352,7 +335,7 @@ onMounted(loadData);
               variant="outline"
               size="icon"
               class="h-9 w-9"
-              :disabled="currentPage === 1 || loadingContests"
+              :disabled="currentPage === 1 || pastLoading"
               @click="currentPage--"
             >
               <span class="sr-only">Previous page</span>
@@ -377,7 +360,7 @@ onMounted(loadData);
               variant="outline"
               size="icon"
               class="h-9 w-9"
-              :disabled="currentPage === totalPages || loadingContests"
+              :disabled="currentPage === totalPages || pastLoading"
               @click="currentPage++"
             >
               <span class="sr-only">Next page</span>

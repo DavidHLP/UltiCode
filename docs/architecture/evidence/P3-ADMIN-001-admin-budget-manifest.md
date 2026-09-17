@@ -9,6 +9,10 @@
 > `SubmissionUserDetailStatsPort` snapshot (≤5 logical RPCs / ≤2 rounds), enforced by
 > `scripts/test/gate-admin-rpc-budget.sh`. This file stays as the frozen historical
 > budget baseline; do not treat its E-USER path as current source.
+> amendment: 2026-09-16 — the `E-NOTIFY-WRITE` chain no longer includes
+> `NotificationCutoverService` (deleted in the round-3 review, C2); notification
+> writes now take the single `AdminNotificationServiceImpl` path (see
+> `P4-ADMIN-001-admin-use-case-rpc-matrix.md`, `W-NOTIFY-CREATE`).
 > owner: ADMIN
 > baseline: [`P0-BASELINE-003-admin-rpc-graph.md`](P0-BASELINE-003-admin-rpc-graph.md)
 > policy_source: `services/platform/common/src/main/java/com/ulticode/common/rpc/RpcPolicy.java`
@@ -302,7 +306,7 @@ expanding this scheduled run.
 | `E-FORUM` | `services/admin/src/main/java/com/ulticode/modules/admin/projection/DefaultAdminForumProjection.java:44-115`; `services/admin/src/main/java/com/ulticode/modules/admin/port/adapter/DubboAdminForumReadAdapter.java:33-78`. |
 | `E-FORUM-WRITE` | `services/admin/src/main/java/com/ulticode/modules/admin/service/impl/AdminForumServiceImpl.java:67-177`; `services/admin/src/main/java/com/ulticode/modules/admin/policy/impl/ForumPostFieldToggleImpl.java:35-86`; `ForumFlagPolicyImpl.java:35-106`. |
 | `E-NOTIFY` | `services/admin/src/main/java/com/ulticode/modules/admin/projection/DefaultAdminNotificationProjection.java:63-146`; `services/admin/src/main/java/com/ulticode/modules/admin/port/adapter/AdminDubboReferenceRegistry.java:90-93,223-227`. |
-| `E-NOTIFY-WRITE` | `services/admin/src/main/java/com/ulticode/modules/admin/service/impl/AdminNotificationServiceImpl.java:63-196`; `services/admin/src/main/java/com/ulticode/modules/admin/service/NotificationCutoverService.java:49-253`. |
+| `E-NOTIFY-WRITE` | `services/admin/src/main/java/com/ulticode/modules/admin/service/impl/AdminNotificationServiceImpl.java:78-170` (historical snapshot: this row originally also listed `NotificationCutoverService.java:49-253`; that twin was deleted in the round-3 review, C2 — see the 2026-09-16 amendment above). |
 | `E-SOLUTION` | `services/admin/src/main/java/com/ulticode/modules/admin/projection/DefaultAdminSolutionProjection.java:50-149,193-246`; pure RPC references under `services/admin/src/main/java/com/ulticode/modules/admin/port/adapter/AdminDubboReferenceRegistry.java:123-141,271-299`. |
 | `E-SOLUTION-WRITE` | `services/admin/src/main/java/com/ulticode/modules/admin/service/impl/AdminSolutionServiceImpl.java:36-125`. |
 | `E-SUBMISSION` | `services/admin/src/main/java/com/ulticode/modules/admin/projection/DefaultAdminSubmissionProjection.java:50-189,257-310`; pure RPC references under `services/admin/src/main/java/com/ulticode/modules/admin/port/adapter/AdminDubboReferenceRegistry.java:143-153,301-317`. |

@@ -11,7 +11,7 @@ import type { ProblemList } from '@/api/admin/problem-lists'
 import DataTable from '@/components/table/DataTable.vue'
 import DataTableToolbar, { type Filter } from '@/components/table/DataTableToolbar.vue'
 import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
-import { useDataTable } from '@/composables/useDataTable'
+import { useRemoteTable } from '@/composables/useRemoteTable'
 import { useProblemListPermissions } from '@/composables/useProblemListPermissions'
 import { createColumns } from './columns'
 
@@ -20,12 +20,11 @@ const { t } = useI18n()
 const store = useAdminProblemListsStore()
 const { can } = useProblemListPermissions()
 
-const featuredFilter = ref<string>('all')
-const visibilityFilter = ref<string>('all')
 
 const selectedListId = ref<string | null>(null)
 const selectedListName = ref<string | null>(null)
 const deleteDialogOpen = ref(false)
+const selectedRows = ref<ProblemList[]>([])
 
 const canCreate = can.problemList.create
 
@@ -37,27 +36,24 @@ onMounted(() => {
     isLoaded.value = true
   }, 100)
 })
-
 const {
+  query,
   searchQuery,
   tablePagination,
-  selectedRows,
   loading,
   data,
   total,
   error,
-  loadEntities: loadLists,
-} = useDataTable<
+  refresh: loadLists,
+  setFilters,
+} = useRemoteTable<
   ProblemList,
   { featuredFilter: string; visibilityFilter: string },
   Parameters<typeof store.fetchLists>[0]
 >({
   store,
-  filters: () => ({
-    featuredFilter: featuredFilter.value,
-    visibilityFilter: visibilityFilter.value,
-  }),
-  transformParams: ({ search, filters, page, limit }) => ({
+  initialQuery: { filters: { featuredFilter: 'all', visibilityFilter: 'all' } },
+  toParams: ({ search, filters, page, limit }) => ({
     search,
     isFeatured:
       filters.featuredFilter === 'all' ? undefined : filters.featuredFilter === 'featured',
@@ -68,6 +64,16 @@ const {
   }),
   autoLoad: true,
 })
+
+const featuredFilter = computed({
+  get: () => query.value.filters.featuredFilter,
+  set: (featuredFilter: string) => setFilters({ ...query.value.filters, featuredFilter }),
+})
+const visibilityFilter = computed({
+  get: () => query.value.filters.visibilityFilter,
+  set: (visibilityFilter: string) => setFilters({ ...query.value.filters, visibilityFilter }),
+})
+
 
 // Stats for terminal ticker
 const stats = computed(() => ({

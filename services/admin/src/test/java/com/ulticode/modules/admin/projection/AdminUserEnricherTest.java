@@ -13,6 +13,7 @@ import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.response.DegradationStatus;
 import com.ulticode.common.rpc.RpcResult;
+import com.ulticode.modules.admin.port.adapter.AdminQueryDeadline;
 import com.ulticode.modules.admin.port.adapter.CancellableQueryExecutor;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,7 +23,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -80,10 +80,12 @@ class AdminUserEnricherTest {
     @BeforeEach
     void setUp() {
         queryExecutor = new CancellableQueryExecutor("test-user-enrichment", 2);
-        enricher = new AdminUserEnricher(queryExecutor);
-        ReflectionTestUtils.setField(enricher, "identityQueryService", identityQueryService);
-        ReflectionTestUtils.setField(enricher, "userProfileQueryService", userProfileQueryService);
-        ReflectionTestUtils.setField(enricher, "accountQueryService", accountQueryService);
+        enricher = new AdminUserEnricher(
+                identityQueryService,
+                userProfileQueryService,
+                accountQueryService,
+                queryExecutor,
+                AdminQueryDeadline.system());
     }
 
     @AfterEach

@@ -33,14 +33,18 @@ App、Submission 和 Notification 的 claim 型写命令统一通过
 claim。Auth 明确保留 `MUTATE_THEN_RECORD` 模式，以兼容既有回执和 legacy
 fingerprint；其成功 mutation 的结果载荷随 `SUCCESS` 回执写入。事务边界仍由
 各 owner adapter/provider 持有，common core 不依赖 Spring、MyBatis 或 JSON
-实现。
+实现。owner 侧构造由 `platform/receipt`（`backend-receipt`）统一承载：Jackson
+payload codec、`ReceiptExecutorFactory.claim` 的 claim profile（共享指纹、metadata
+与委托校验），以及 `CommandReceiptStoreBridge`/`ClaimCommandReceiptStoreBridge`
+参数化 store 桥；owner 仍持有自己的表、entity 转换与错误命名空间，
+`backend-common` 保持 dependency-free。
 
 
 ## 事件可靠性
 
 跨进程副作用使用本地事务内 Outbox、Redis Streams、Consumer Inbox、delivery ledger、lease 和 fence：
 
-- Submission：`judge_outbox`、`submission_result_outbox`、`submission_created_outbox`，generation/attempt fence。
+- Submission：`judge_outbox`、`submission_result_outbox`、`submission_created_outbox`，generation/attempt fence；judge payload 由 owner-private `JudgeOutboxPayload` 统一编解码（持久 keys/顺序为兼容契约）。
 - Notification：Inbox、delivery ledger、stale lease reclaim、有限重试和幂等投递。
 - Search：版本账本 `search:doc-version:{index}`，DELETE 使用 `D:T` tombstone，旧版本只 ACK 不覆盖新版本。
 - Judge：Streams PEL、`0-0` group replay、bounded reclaim、DLQ、ACK-after-write。

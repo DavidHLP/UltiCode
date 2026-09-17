@@ -17,6 +17,15 @@ vi.mock('@/api/admin/audit', async () => {
     },
   }
 })
+const ResizeObserverStub = vi.hoisted(() => {
+  class Stub {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  }
+  vi.stubGlobal('ResizeObserver', Stub)
+  return Stub
+})
 
 const emptyPage = {
   items: [],
@@ -78,6 +87,7 @@ function mountAuditLogsView() {
 
 describe('AuditLogsView refresh contract', () => {
   beforeEach(() => {
+    vi.stubGlobal('ResizeObserver', ResizeObserverStub)
     setActivePinia(createPinia())
     vi.clearAllMocks()
     vi.mocked(auditApi.getAuditLogs).mockResolvedValue(emptyPage)

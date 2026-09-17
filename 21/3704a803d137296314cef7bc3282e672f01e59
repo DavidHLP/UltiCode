@@ -1,0 +1,22 @@
+CONTEXT.md
+  h_77173abe25c3ff 88-93,95-97
+docs/architecture/data-flow.md
+  h_77173abe25c3ff 36-40,47
+docs/architecture/decisions/0015-architecture-review-round-4-convergence.md
+  h_77173abe25c3ff 1-83
+docs/architecture/decisions/README.md
+  h_77173abe25c3ff 21
+docs/index.md
+  h_77173abe25c3ff 38
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "213704a803d137296314cef7bc3282e672f01e59",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

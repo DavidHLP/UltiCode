@@ -257,6 +257,7 @@ export function useRemoteTable<
     cancelSearchTimer()
     cancelRouteTimer()
     disposeActiveRequests()
+    stopRoute?.()
   })
 
   if (autoLoad) void loadCurrent()

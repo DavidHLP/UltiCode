@@ -311,6 +311,43 @@ describe('useRemoteTable', () => {
     await Promise.all([first, second])
   })
 
+  it('stops the route subscription when the table scope is disposed', () => {
+    const scope = effectScope()
+    const store = createStore()
+    let subscribed = true
+    let emit: ((query: Partial<RemoteTableQuery<Filters>>) => void) | undefined
+    const stop = vi.fn(() => {
+      subscribed = false
+    })
+
+    scope.run(() => {
+      useRemoteTable<Row, Filters, Params>({
+        store,
+        initialQuery: { filters: { status: 'all' } },
+        toParams: ({ filters, page, limit }) => ({
+          status: filters.status,
+          page,
+          limit,
+        }),
+        route: {
+          read: () => ({}),
+          subscribe: (onChange) => {
+            emit = (query) => {
+              if (subscribed) onChange(query)
+            }
+            return stop
+          },
+        },
+      })
+    })
+
+    scope.stop()
+    emit?.({ filters: { status: 'draft' } })
+
+    expect(stop).toHaveBeenCalledOnce()
+    expect(store.fetch).not.toHaveBeenCalled()
+  })
+
   it('exposes reactive data and loading from the collection', () => {
     const { store, table } = createTable()
     store.items.value = [{ id: '1', title: 'First' }]

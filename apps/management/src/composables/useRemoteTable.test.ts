@@ -166,7 +166,7 @@ describe('useRemoteTable', () => {
     expect(writes).toHaveLength(1)
   })
 
-  it('cancels a pending route write when pagination or navigation changes state', async () => {
+  it('keeps a pending route write across pagination and cancels it for external navigation', async () => {
     vi.useFakeTimers()
     const writes: RemoteTableQuery<Filters>[] = []
     let onRouteChange:
@@ -187,12 +187,14 @@ describe('useRemoteTable', () => {
     await table.setFilters({ status: 'draft' })
     await table.setPagination({ pageIndex: 4, pageSize: 10 })
     await vi.advanceTimersByTimeAsync(300)
-    expect(writes).toHaveLength(0)
+    expect(writes).toHaveLength(1)
+    expect(writes[0].filters).toEqual({ status: 'draft' })
+    expect(writes[0].pagination.pageIndex).toBe(4)
 
     await table.setFilters({ status: 'published' })
     onRouteChange?.({ filters: { status: 'external' } })
     await vi.advanceTimersByTimeAsync(300)
-    expect(writes).toHaveLength(0)
+    expect(writes).toHaveLength(1)
     expect(table.query.value.filters).toEqual({ status: 'external' })
   })
 

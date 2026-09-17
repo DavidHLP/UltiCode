@@ -166,12 +166,15 @@ export function useRemoteTable<
     }
   }
 
-  function writeRoute(nextQuery: RemoteTableQuery<TFilters>): void {
+  function writeRoute(): void {
     if (!route?.write) return
     cancelRouteTimer()
     const write = () => {
       routeTimer = undefined
-      route.write?.(nextQuery)
+      // Read the latest query when the timer fires so a pagination change that
+      // lands inside the debounce window is still written together with the
+      // search/filter change that scheduled this write.
+      route.write?.(query.value)
     }
     if (route.writeDebounceMs) routeTimer = setTimeout(write, route.writeDebounceMs)
     else write()
@@ -197,8 +200,12 @@ export function useRemoteTable<
     if (transitionOptions.resetPage) nextQuery.pagination.pageIndex = 0
 
     query.value = nextQuery
-    if (transitionOptions.writeRoute === false) cancelRouteTimer()
-    else writeRoute(nextQuery)
+    // Transitions that must not write the route themselves (pagination,
+    // refresh, route-driven updates) leave an already pending debounced write
+    // alive: that write reads the latest query when it fires, so the URL
+    // converges to the combined search + filters + page state instead of being
+    // left with the pre-transition state.
+    if (transitionOptions.writeRoute !== false) writeRoute()
     if (transitionOptions.debounce) {
       cancelSearchTimer()
       searchTimer = setTimeout(() => {

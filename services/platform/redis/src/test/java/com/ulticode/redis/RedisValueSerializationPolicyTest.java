@@ -4,6 +4,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.cache.support.NullValue;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
+import org.springframework.data.redis.serializer.SerializationException;
 
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -56,12 +57,13 @@ class RedisValueSerializationPolicyTest {
     void polymorphicDeserializationRejectsDisallowedSubtype() {
         GenericJackson2JsonRedisSerializer serializer =
                 RedisValueSerializationPolicy.valueSerializer();
-        // A default-typed java.io.File value (classic payload shape). The
-        // allowlist covers com.ulticode./java.util./java.time./java.lang. only,
-        // so this type id must be rejected before any construction is attempted.
+        // A default-typed java.io.File value (classic payload shape):
+        // java.io.File is outside the allowlist, so this type id must be
+        // rejected before any construction is attempted.
         byte[] payload = "[\"java.io.File\",\"/etc/passwd\"]".getBytes(StandardCharsets.UTF_8);
 
-        Exception failure = assertThrows(Exception.class, () -> serializer.deserialize(payload),
+        SerializationException failure = assertThrows(SerializationException.class,
+                () -> serializer.deserialize(payload),
                 "a subtype outside the allowlist must not deserialize");
 
         assertTrue(describe(failure).contains("java.io.File"),

@@ -27,7 +27,7 @@ http-client 去重状态。全部为 in-process / ports & adapters 收敛，不�
    Dispatcher 仍负责 fan-out/preference，reaper 仍负责 scheduling，mapper SQL 不变。
 5. `web-security` 持有非 Bean 的 `AuditEmissionPolicy`，以显式 ports 同时服务 `AuditAspect` 与 Admin `DefaultAuditRecorder`。
    统一 performer fallback、entity null/empty → `N/A`、经 `ClientIpResolver` 取 IP、UA empty → `null`；现有 failure/clear semantics 保持，fail-closed improvement 继续作为后续项。
-6. `AdminDubboReferenceRegistry` 收口为 34 个 one-hop references；五个 RPC-backed Admin module 均只有一个 constructor，所有 RPC seam 可见。
+6. `AdminDubboReferenceRegistry` 收口全部 one-hop references（registry 作为唯一注册点）；五个 RPC-backed Admin module 均只有一个 constructor，所有 RPC seam 可见。
    可选的非 RPC metrics 注入不变，`SubmissionUserDetailStatsPort` 仍作为后续项。
 7. 新增聚焦的 `services/platform/redis`（artifact `backend-redis`），由其持有 `RedisValueSerializationPolicy`，并让五份 Redis config copy 收敛到同一策略。
    Owner 保留 connection、TTL、key/hash、bean wiring；default typing + JavaTime 的 byte compatibility 保持并由测试 pin 住。
@@ -36,7 +36,7 @@ http-client 去重状态。全部为 in-process / ports & adapters 收敛，不�
 8. Submission owner 返回 sealed `RejudgeOutcome`；`SubmissionAdministrationProvider` 成为唯一的 wire-DTO builder 和 `AppErrorCode → RpcResult` mapper。
    `RejudgeResultDTO` 的 wire shape（含 nullable `success`）不变，null-lenient compatibility readers 保留。
 9. `useRemoteTable` 持有 search、filters、pagination、refresh 的 query state machine，并通过显式 Problems route adapter 接入路由。
-   dead helpers 删除，`DataTable` 继续保持 controlled，13 个 consumers 完成迁移。
+   dead helpers 删除，`DataTable` 继续保持 controlled，management 列表 consumers 全部完成迁移。
 10. `usePastContestsPager` 成为 Browse/Home 共用的单一 pager；store 将 `loadingPastContests` 与 `loadingContests` 分离。
     避免历史赛事分页和当前赛事列表互相覆盖 loading 状态。
 11. http-client 的 dedup map 移入 `createHttpClient` closure，使每个 client instance 隔离。

@@ -29,9 +29,10 @@ import java.math.BigDecimal;
  * default-typing mapper (the serialized bytes are unchanged), but the read side
  * is constrained by a {@link BasicPolymorphicTypeValidator} allowlist:
  * {@code com.ulticode.} (owner DTOs), {@code java.util.} (collection
- * containers), {@code java.time.} (JSR-310 values), and {@code java.lang.}
- * (boxed primitives, strings, enums). Any other subtype named in a payload is
- * rejected instead of being instantiated.
+ * containers), {@code java.time.} (JSR-310 values), {@code java.lang.}
+ * (boxed primitives, strings, enums), and {@code java.math.BigDecimal} as a
+ * single class (cached owner VOs carry it). Any other subtype named in a
+ * payload is rejected instead of being instantiated.
  *
  * <p>Values written through this policy before the allowlist landed still
  * deserialize as long as their concrete types are inside the allowlist. If a

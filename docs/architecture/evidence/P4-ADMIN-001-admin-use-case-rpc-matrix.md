@@ -83,7 +83,7 @@ automatically.
 | `W-PROBLEM-CREATE` | `AdminProblemController:31-60` → `AdminProblemServiceImpl:46-200` / `ProblemCutoverService:47-154` | problem write adapter | App write + read | 2/2 | write + read | `MEASURED` |
 | `W-PROBLEM-UPDATE-STATE` | `AdminProblemController:62-90` → `ProblemCutoverService` | problem write | version read + write + read-back | 3/3 | serial | `MEASURED` |
 | `W-PROBLEM-DELETE` | `AdminProblemController:92-120` → `ProblemCutoverService` | problem delete | version read + write | 2/2 | serial | `MEASURED` |
-| `W-NOTIFY-CREATE` | `AdminNotificationController:31-55` → `AdminNotificationServiceImpl:63-196` / `NotificationCutoverService:49-253` | notification write | Notification write + read + enrich | 4/4 | write + read + enrich | `MEASURED` |
+| `W-NOTIFY-CREATE` | `AdminNotificationController:31-55` → `AdminNotificationServiceImpl:78-120` | notification write | Notification write + read + enrich | 4/4 | write + read + enrich | `MEASURED` |
 | `W-NOTIFY-UPDATE` | `AdminNotificationController:57-85` → `AdminNotificationServiceImpl` | notification update | pre-read + write + read-back + enrich | 5/5 | serial | `MEASURED` |
 | `W-NOTIFY-DELETE` | `AdminNotificationController:87-110` → `AdminNotificationServiceImpl` | notification delete | pre-read + write | 2/2 | serial | `MEASURED` |
 | `W-SOLUTION-READBACK` | `AdminSolutionController:72-100` → `AdminSolutionServiceImpl:36-125` | solution write | solution write + read + enrich + problem | 6/6 | serial | `MEASURED` |

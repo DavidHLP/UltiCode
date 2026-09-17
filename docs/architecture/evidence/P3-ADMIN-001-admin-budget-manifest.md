@@ -9,6 +9,10 @@
 > `SubmissionUserDetailStatsPort` snapshot (≤5 logical RPCs / ≤2 rounds), enforced by
 > `scripts/test/gate-admin-rpc-budget.sh`. This file stays as the frozen historical
 > budget baseline; do not treat its E-USER path as current source.
+> amendment: 2026-09-16 — the `E-NOTIFY-WRITE` chain no longer includes
+> `NotificationCutoverService` (deleted in the round-3 review, C2); notification
+> writes now take the single `AdminNotificationServiceImpl` path (see
+> `P4-ADMIN-001-admin-use-case-rpc-matrix.md`, `W-NOTIFY-CREATE`).
 > owner: ADMIN
 > baseline: [`P0-BASELINE-003-admin-rpc-graph.md`](P0-BASELINE-003-admin-rpc-graph.md)
 > policy_source: `services/platform/common/src/main/java/com/ulticode/common/rpc/RpcPolicy.java`

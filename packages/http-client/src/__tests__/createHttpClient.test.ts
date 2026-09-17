@@ -1,7 +1,16 @@
 import { describe, expect, it, vi } from 'vitest'
-import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios'
+import axios, {
+  AxiosError,
+  type AxiosAdapter,
+  type InternalAxiosRequestConfig,
+} from 'axios'
 import { createCsrfTokenManager } from '@ulticode/auth-core/src/csrf'
-import { createHttpClient, type HttpClient, type RequestConfig } from '../index'
+import {
+  createHttpClient,
+  type HttpClient,
+  type HttpClientConfig,
+  type RequestConfig,
+} from '../index'
 
 /**
  * Build an AxiosError with the given HTTP status. Axios only invokes the
@@ -35,6 +44,24 @@ function makeClient() {
     getLocale: () => 'en-US',
     dedupPolicy: 'all-non-auth',
   })
+}
+
+type TestHttpClientConfig = HttpClientConfig & { __testAdapter: unknown }
+
+function createTestHttpClient(config: TestHttpClientConfig): HttpClient {
+  const { __testAdapter, ...clientConfig } = config
+  const originalCreate = axios.create
+  const createSpy = vi.spyOn(axios, 'create')
+  createSpy.mockImplementation((defaults) => {
+    const service = originalCreate(defaults)
+    service.defaults.adapter = __testAdapter as AxiosAdapter
+    return service
+  })
+  try {
+    return createHttpClient(clientConfig)
+  } finally {
+    createSpy.mockRestore()
+  }
 }
 
 function createPendingAdapter() {
@@ -102,6 +129,15 @@ describe('createHttpClient', () => {
     expect(ac).toBeInstanceOf(AbortController)
     expect(ac.signal.aborted).toBe(false)
   })
+  it('keeps adapter injection outside the public client config', () => {
+    const config: HttpClientConfig = {
+      csrfManager: createCsrfTokenManager(),
+      getLocale: () => 'en-US',
+      // @ts-expect-error Test adapters are wired through the test-only factory.
+      __testAdapter: vi.fn(),
+    }
+    expect(config).toBeDefined()
+  })
 })
 
 describe('ApiResponse unwrap', () => {
@@ -113,7 +149,7 @@ describe('ApiResponse unwrap', () => {
       config: { headers: {} },
       data: { code: 0, message: 'success', data: { id: 'u-1' }, traceId: 't-1' },
     })
-    const client = createHttpClient({
+    const client = createTestHttpClient({
       csrfManager: createCsrfTokenManager(),
       baseURL: 'http://test.local',
       getLocale: () => 'en-US',
@@ -133,7 +169,7 @@ describe('ApiResponse unwrap', () => {
       config: { headers: {} },
       data: { code: 1001, message: 'invalid', data: null },
     })
-    const client = createHttpClient({
+    const client = createTestHttpClient({
       csrfManager: createCsrfTokenManager(),
       baseURL: 'http://test.local',
       getLocale: () => 'en-US',
@@ -152,7 +188,7 @@ describe('Auth failure strategy', () => {
   it('invokes the clear-and-run callback on 401', async () => {
     const adapter = vi.fn().mockRejectedValue(buildAxiosError(401, 'Unauthorized'))
     const onAuthFailure = vi.fn()
-    const client = createHttpClient({
+    const client = createTestHttpClient({
       csrfManager: createCsrfTokenManager(),
       baseURL: 'http://test.local',
       getLocale: () => 'en-US',
@@ -168,7 +204,7 @@ describe('Auth failure strategy', () => {
   it('does NOT redirect on 403 in redirect-login mode (forbidden ≠ unauthenticated)', async () => {
     const adapter = vi.fn().mockRejectedValue(buildAxiosError(403, 'Forbidden'))
     const redirect = vi.fn()
-    const client = createHttpClient({
+    const client = createTestHttpClient({
       csrfManager: createCsrfTokenManager(),
       baseURL: 'http://test.local',
       getLocale: () => 'en-US',
@@ -184,7 +220,7 @@ describe('Auth failure strategy', () => {
   it('invokes redirect-login on 401 with the configured path', async () => {
     const adapter = vi.fn().mockRejectedValue(buildAxiosError(401, 'Unauthorized'))
     const redirect = vi.fn()
-    const client = createHttpClient({
+    const client = createTestHttpClient({
       csrfManager: createCsrfTokenManager(),
       baseURL: 'http://test.local',
       getLocale: () => 'en-US',
@@ -209,7 +245,7 @@ describe('Dedup policy', () => {
           }
         }),
     )
-    const client = createHttpClient({
+    const client = createTestHttpClient({
       csrfManager: createCsrfTokenManager(),
       baseURL: 'http://test.local',
       getLocale: () => 'en-US',
@@ -237,14 +273,14 @@ describe('Dedup policy', () => {
   it('isolates deduplication and cancellation between client instances', async () => {
     const clientAState = createPendingAdapter()
     const clientBState = createPendingAdapter()
-    const clientA = createHttpClient({
+    const clientA = createTestHttpClient({
       csrfManager: createCsrfTokenManager(),
       baseURL: 'http://test.local',
       getLocale: () => 'en-US',
       dedupPolicy: 'all-non-auth',
       __testAdapter: clientAState.adapter,
     })
-    const clientB = createHttpClient({
+    const clientB = createTestHttpClient({
       csrfManager: createCsrfTokenManager(),
       baseURL: 'http://test.local',
       getLocale: () => 'en-US',
@@ -289,7 +325,7 @@ describe('Dedup policy', () => {
       config: { headers: {} },
       data: { code: 0, message: 'ok', data: null },
     })
-    const client = createHttpClient({
+    const client = createTestHttpClient({
       csrfManager: createCsrfTokenManager(),
       baseURL: 'http://test.local',
       getLocale: () => 'en-US',
@@ -312,7 +348,7 @@ describe('Dedup policy', () => {
       config: { headers: {} },
       data: { code: 0, message: 'ok', data: null },
     })
-    const client = createHttpClient({
+    const client = createTestHttpClient({
       csrfManager: createCsrfTokenManager(),
       baseURL: 'http://test.local',
       getLocale: () => 'en-US',
@@ -332,7 +368,7 @@ describe('Dedup policy', () => {
       seenSignals.push(request.signal)
       return Promise.resolve(responseFor(request))
     })
-    const client = createHttpClient({
+    const client = createTestHttpClient({
       csrfManager: createCsrfTokenManager(),
       baseURL: 'http://test.local',
       getLocale: () => 'en-US',
@@ -361,7 +397,7 @@ describe('Dedup policy', () => {
 
   it('does not let a stale response clear the replacement request entry', async () => {
     const state = createRaceAdapter()
-    const client = createHttpClient({
+    const client = createTestHttpClient({
       csrfManager: createCsrfTokenManager(),
       baseURL: 'http://test.local',
       getLocale: () => 'en-US',
@@ -392,7 +428,7 @@ describe('Dedup policy', () => {
 
   it('does not let a stale error clear the replacement request entry', async () => {
     const state = createRaceAdapter()
-    const client = createHttpClient({
+    const client = createTestHttpClient({
       csrfManager: createCsrfTokenManager(),
       baseURL: 'http://test.local',
       getLocale: () => 'en-US',
@@ -422,7 +458,7 @@ describe('Dedup policy', () => {
 describe('Retry / backoff', () => {
   it('does NOT retry when retry: 0 (verified via adapter call count)', async () => {
     const adapter = vi.fn().mockRejectedValue(buildAxiosError(500, 'Internal Server Error'))
-    const client = createHttpClient({
+    const client = createTestHttpClient({
       csrfManager: createCsrfTokenManager(),
       baseURL: 'http://test.local',
       getLocale: () => 'en-US',
@@ -437,7 +473,7 @@ describe('Retry / backoff', () => {
     const adapter = vi.fn().mockImplementation((request: InternalAxiosRequestConfig) =>
       Promise.reject(buildAxiosError(500, 'Internal Server Error', request)),
     )
-    const client = createHttpClient({
+    const client = createTestHttpClient({
       csrfManager: createCsrfTokenManager(),
       baseURL: 'http://test.local',
       getLocale: () => 'en-US',
@@ -470,7 +506,7 @@ describe('Retry / backoff', () => {
         pending.push({ request, resolve })
       })
     })
-    const client = createHttpClient({
+    const client = createTestHttpClient({
       csrfManager: createCsrfTokenManager(),
       baseURL: 'http://test.local',
       getLocale: () => 'en-US',

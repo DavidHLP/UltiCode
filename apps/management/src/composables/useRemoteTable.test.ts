@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { effectScope, ref } from 'vue'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   useRemoteTable,
@@ -257,6 +257,46 @@ describe('useRemoteTable', () => {
     pending[1]()
     await second
     expect(table.loading.value).toBe(false)
+  })
+
+  it('aborts the active request when the table scope is disposed', async () => {
+    const scope = effectScope()
+    const store = createStore()
+    let resolveFetch!: () => void
+    const fetchDone = new Promise<void>((resolve) => {
+      resolveFetch = resolve
+    })
+    store.fetch.mockImplementation(
+      (_params, options?: { signal?: AbortSignal }) => {
+        expect(options?.signal).toBeDefined()
+        return fetchDone
+      },
+    )
+
+    let table!: ReturnType<typeof useRemoteTable<Row, Filters, Params>>
+    scope.run(() => {
+      table = useRemoteTable<Row, Filters, Params>({
+        store,
+        initialQuery: { filters: { status: 'all' } },
+        toParams: ({ filters, page, limit }) => ({
+          status: filters.status,
+          page,
+          limit,
+        }),
+      })
+    })
+
+    const loading = table.setFilters({ status: 'draft' })
+    const fetchOptions = store.fetch.mock.calls[0]?.[1] as
+      | { signal?: AbortSignal }
+      | undefined
+    expect(fetchOptions?.signal?.aborted).toBe(false)
+
+    scope.stop()
+
+    expect(fetchOptions?.signal?.aborted).toBe(true)
+    resolveFetch()
+    await loading
   })
 
   it('exposes reactive data and loading from the collection', () => {

@@ -1,0 +1,14 @@
+services/platform/receipt/src/test/java/com/ulticode/receipt/ReceiptExecutorFactoryTest.java
+  h_77173abe25c3ff 103-107
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f0f5399511b089b37c41ee4befcd561d62c48e84",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

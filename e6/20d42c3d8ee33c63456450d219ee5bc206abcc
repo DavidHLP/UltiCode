@@ -1,0 +1,20 @@
+docs/architecture/decisions/0014-architecture-review-round-3-convergence.md
+  h_77173abe25c3ff 39-40
+docs/architecture/decisions/0015-architecture-review-round-4-convergence.md
+  h_77173abe25c3ff 3,16-17,54-58,86-87
+docs/architecture/decisions/README.md
+  h_77173abe25c3ff 21
+docs/project/current-status.md
+  h_77173abe25c3ff 75
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e620d42c3d8ee33c63456450d219ee5bc206abcc",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

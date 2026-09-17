@@ -8,6 +8,7 @@ import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.rpc.RpcResult;
+import com.ulticode.modules.admin.port.adapter.OwnerCutoverDecision;
 import com.ulticode.modules.admin.port.adapter.OwnerCutoverGate;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
@@ -71,7 +72,7 @@ public class ContentModerationCutoverService {
     }
 
     private void moderate(String contentId, String contentType, ModerationAction action) {
-        if (cutoverGate.delegatesLocal()) {
+        if (cutoverGate.decide() == OwnerCutoverDecision.LOCAL) {
             dispatchLocal(contentId, contentType, action);
             return;
         }

@@ -21,13 +21,15 @@ import com.ulticode.modules.admin.dto.AdminNotificationQueryDTO;
 import com.ulticode.modules.admin.dto.AdminNotificationVO;
 import com.ulticode.modules.admin.dto.CreateSystemNotificationRequest;
 import com.ulticode.modules.admin.dto.UpdateSystemNotificationRequest;
+import com.ulticode.modules.admin.port.adapter.OwnerCutoverDecision;
+import com.ulticode.modules.admin.port.adapter.OwnerCutoverGate;
 import com.ulticode.modules.admin.projection.AdminNotificationProjection;
 import com.ulticode.modules.admin.service.AdminNotificationService;
 import com.ulticode.modules.admin.write.AdminOwnerErrorMapper;
 import com.ulticode.modules.admin.write.AdminWriteEnvelope;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -55,7 +57,6 @@ import java.util.Map;
  */
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class AdminNotificationServiceImpl implements AdminNotificationService {
 
     private static final String SYSTEM_CATEGORY = "SYSTEM";
@@ -63,6 +64,18 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
     private final AdminNotificationProjection adminNotificationProjection;
     private final NotificationAdminReadPort notificationAdminReadPort;
     private final CurrentUserProvider currentUserProvider;
+    private final OwnerCutoverGate notificationOwnerCutover;
+
+    public AdminNotificationServiceImpl(
+            AdminNotificationProjection adminNotificationProjection,
+            NotificationAdminReadPort notificationAdminReadPort,
+            CurrentUserProvider currentUserProvider,
+            @Qualifier("notificationOwnerCutover") OwnerCutoverGate notificationOwnerCutover) {
+        this.adminNotificationProjection = adminNotificationProjection;
+        this.notificationAdminReadPort = notificationAdminReadPort;
+        this.currentUserProvider = currentUserProvider;
+        this.notificationOwnerCutover = notificationOwnerCutover;
+    }
 
     @DubboReference(group = NotificationServiceContract.DUBBO_GROUP,
             version = NotificationServiceContract.DUBBO_VERSION,
@@ -84,6 +97,7 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
     @Audited(action = AuditVocabulary.CREATE_NOTIFICATION, entityType = AuditVocabulary.ENTITY_NOTIFICATION)
     public AdminNotificationVO createSystemNotification(
             CreateSystemNotificationRequest request, String idempotencyKey) {
+        ensureNotificationWritesEnabled();
         String actorId = currentUserProvider.getCurrentUserId();
         String category = request.getCategory() != null ? request.getCategory() : SYSTEM_CATEGORY;
         AdminWriteEnvelope envelope = AdminWriteEnvelope.envelope(
@@ -129,6 +143,7 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
     @Override
     @Audited(action = AuditVocabulary.DELETE_NOTIFICATION, entityType = AuditVocabulary.ENTITY_NOTIFICATION)
     public void deleteNotification(String id, String idempotencyKey) {
+        ensureNotificationWritesEnabled();
         AuditContext.setEntityId(id);
         NotificationAdminDTO existing = notificationAdminReadPort.selectById(id);
         if (existing == null && (idempotencyKey == null || idempotencyKey.isBlank())) {
@@ -165,6 +180,7 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
     @Audited(action = AuditVocabulary.UPDATE_NOTIFICATION, entityType = AuditVocabulary.ENTITY_NOTIFICATION)
     public AdminNotificationVO updateSystemNotification(
             String id, UpdateSystemNotificationRequest request, String idempotencyKey) {
+        ensureNotificationWritesEnabled();
         NotificationAdminDTO existing = notificationAdminReadPort.selectById(id);
         if (existing == null && (idempotencyKey == null || idempotencyKey.isBlank())) {
             throw new BusinessException(AdminErrorCode.NOT_FOUND, "Notification not found");
@@ -198,6 +214,17 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
         AuditContext.setEntityId(id);
         log.info("Updated system notification '{}' by admin {}", id, actorId);
         return readBackUpdate(id, result.data(), request);
+    }
+
+    /**
+     * The notification domain has no local fallback; every write path still
+     * consumes the cutover decision so a registry change can deny writes.
+     */
+    private void ensureNotificationWritesEnabled() {
+        if (notificationOwnerCutover.decide() != OwnerCutoverDecision.REMOTE) {
+            throw new BusinessException(AdminErrorCode.CONFLICT,
+                    "Notification writes are disabled by cutover policy");
+        }
     }
 
     private AdminNotificationVO readBackUpdate(

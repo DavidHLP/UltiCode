@@ -36,7 +36,8 @@ http-client 去重状态。全部为 in-process / ports & adapters 收敛，不�
 8. Submission owner 返回 sealed `RejudgeOutcome`；`SubmissionAdministrationProvider` 成为唯一的 wire-DTO builder 和 `AppErrorCode → RpcResult` mapper。
    `RejudgeResultDTO` 的 wire shape（含 nullable `success`）不变，null-lenient compatibility readers 保留。
 9. `useRemoteTable` 持有 search、filters、pagination、refresh 的 query state machine，并通过显式 Problems route adapter 接入路由。
-   dead helpers 删除，`DataTable` 继续保持 controlled，management 列表 consumers 全部完成迁移。
+   dead helpers 删除，`DataTable` 继续保持 controlled；通用远程列表 consumer 使用该状态机，
+   ScoringRules 的非分页设置列表不属于该迁移范围，其死 search/分页 UI 由 ADR-0015 C5 删除。
 10. `usePastContestsPager` 成为 Browse/Home 共用的单一 pager；store 将 `loadingPastContests` 与 `loadingContests` 分离。
     避免历史赛事分页和当前赛事列表互相覆盖 loading 状态。
 11. http-client 的 dedup map 移入 `createHttpClient` closure，使每个 client instance 隔离。

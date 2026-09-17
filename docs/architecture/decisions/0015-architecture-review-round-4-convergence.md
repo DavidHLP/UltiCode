@@ -1,6 +1,6 @@
 # ADR-0015：架构复审第四轮收敛（C1-C13）
 
-- 状态：`Accepted — in progress`（services 批已实现并验证；前端批 C5-C11 落地后置 `implemented`）
+- 状态：`implemented`（C1-C13 已落地；前端批已完成目标测试、类型检查、lint 与 build 验证；services 批 quick/full 作为最终交付门禁）
 - 日期：2026-09-17
 - 输入：2026-09-17 架构复审报告（round 4，scope: `services/` · `apps/` · `packages/`；报告副本存于 `.local/architecture-review/architecture-review-20260917-121144.html`）
 - 关联决策：[`ADR-0011`](0011-topology-contract-module-convergence.md)、[`ADR-0013`](0013-architecture-review-module-convergence.md)、[`ADR-0014`](0014-architecture-review-round-3-convergence.md)（本 ADR 对 ADR-0014 决定 1 作出 amendment）
@@ -13,8 +13,8 @@
 cutover 决策面、audit retry 契约、judge outbox payload、intake provider 依赖，以及前端
 列表/取消状态、搜索 staleness、http-client 类型与去重所有权。
 
-services 批（C1-C4、C12、C13）已实现并经目标单测、闭包测试与全量编译验证；前端批
-（C5-C11）与批级 `full` 验证尚在进行中，其决定与证据在合并后随本 ADR 更新。
+services 批（C1-C4、C12、C13）与前端批（C5-C11）均已实现；前端批已完成目标测试、类型检查、lint 与 build 验证，services 批的 quick/full 作为最终交付门禁。
+本 ADR 的决定已完成落地；验证结果与剩余环境边界以当前状态文档和最终交付记录为准。
 
 ## Decisions
 
@@ -51,9 +51,11 @@ services 批（C1-C4、C12、C13）已实现并经目标单测、闭包测试与
    fail closed，moderation `LOCAL` 走本地、`DENY` 拒绝、`REMOTE` 走 provider，notification
    写入口新增 `DENY` 拒绝分支。`OwnerCutoverRegistry` 的五个 domain metadata 保留给源码
    契约门禁。
-7. **前端批 C5-C11（进行中）。** Management 列表迁移补完与取消生命周期、list-state 收缩、
-   moderation filter adapter、Console contest 单状态拥有者与 search staleness、
-   http-client 包自有类型与 dedup race 修复；完成时在本节追加决定与证据。
+7. **前端批 C5-C11。** Management 列表迁移补完并统一 AbortSignal/请求生命周期，收缩 list-state 接口，
+   复用 moderation filter adapter，并删除 ScoringRules 的死 search/分页 UI；Console 由 pager 单独拥有历史赛事
+   分页状态，search 请求具备防抖、取消与陈旧响应保护。
+   http-client 迁移到包自有 RequestConfig/Error 类型，显式投影 Axios 配置，隔离 client 实例去重状态，
+   仅对 GET 使用 `non-auth-readonly` 去重，并修复重试请求不应中止更新请求的竞态。
 
 ## Deliberate non-decisions
 
@@ -81,3 +83,5 @@ services 批（C1-C4、C12、C13）已实现并经目标单测、闭包测试与
 - [`JudgeOutboxPayload`](../../../services/submission/src/main/java/com/ulticode/modules/submission/outbox/JudgeOutboxPayload.java)、[`JudgeJobEnvelopeTranslator`](../../../services/submission/src/main/java/com/ulticode/modules/queue/outbox/dispatcher/JudgeJobEnvelopeTranslator.java)
 - [`AuditOutboxOutcome`](../../../services/admin/src/main/java/com/ulticode/modules/admin/outbox/AuditOutboxOutcome.java)、[`AuditOutboxProcessor`](../../../services/admin/src/main/java/com/ulticode/modules/admin/outbox/AuditOutboxProcessor.java)、[`AdminAuditOutboxPublisher`](../../../services/admin/src/main/java/com/ulticode/modules/admin/outbox/AdminAuditOutboxPublisher.java)
 - [`OwnerCutoverGate`](../../../services/admin/src/main/java/com/ulticode/modules/admin/port/adapter/OwnerCutoverGate.java)、[`OwnerCutoverDecision`](../../../services/admin/src/main/java/com/ulticode/modules/admin/port/adapter/OwnerCutoverDecision.java)、[`ContentModerationCutoverService`](../../../services/admin/src/main/java/com/ulticode/modules/admin/service/ContentModerationCutoverService.java)、[`ContestCutoverService`](../../../services/admin/src/main/java/com/ulticode/modules/admin/service/ContestCutoverService.java)、[`AdminNotificationServiceImpl`](../../../services/admin/src/main/java/com/ulticode/modules/admin/service/impl/AdminNotificationServiceImpl.java)
+- [`useRemoteTable`](../../../apps/management/src/composables/useRemoteTable.ts)、[`AuditLogsView`](../../../apps/management/src/views/audit/AuditLogsView.vue)、[`createCollectionSlice`](../../../apps/management/src/stores/createCollectionSlice.ts)、[`useModerationFilters`](../../../apps/management/src/views/moderation/composables/useModerationFilters.ts)
+- [`usePastContestsPager`](../../../apps/console/src/composables/contest/usePastContestsPager.ts)、[`contestBrowse`](../../../apps/console/src/stores/contestBrowse.ts)、[`useSearch`](../../../apps/console/src/composables/useSearch.ts)、[`createHttpClient`](../../../packages/http-client/src/index.ts)

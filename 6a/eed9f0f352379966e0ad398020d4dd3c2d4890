@@ -1,0 +1,24 @@
+apps/management/src/components/audit/AuditLogViewer.test.ts
+  h_77173abe25c3ff 27-47,63,65,76,116-150
+apps/management/src/components/audit/AuditLogViewer.vue
+  h_77173abe25c3ff 91,197
+apps/management/src/composables/useRemoteTable.ts
+  h_77173abe25c3ff 249-251
+apps/management/src/stores/admin/audit.ts
+  h_77173abe25c3ff 29-34,80
+apps/management/src/views/audit/AuditLogsView.test.ts
+  h_77173abe25c3ff 4,6,51-70,89,117-120,122,125-133,148-149,158-159,163-202
+apps/management/src/views/audit/AuditLogsView.vue
+  h_77173abe25c3ff 169-177
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6aeed9f0f352379966e0ad398020d4dd3c2d4890",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

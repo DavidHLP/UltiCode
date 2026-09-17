@@ -182,7 +182,7 @@ const filteredLogs = computed(() => data.value)
             entityType,
             entityId,
             search: searchQuery || undefined,
-            action: actionFilter || undefined,
+            action: actionFilter === 'all' ? undefined : actionFilter || undefined,
             format: 'csv',
           })
         "

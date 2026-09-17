@@ -115,6 +115,24 @@ class SubmissionProviderContractTest {
     }
 
     @Test
+    @DisplayName("intake provider needs only the narrow intake port")
+    void intakeProviderDependsOnlyOnTheIntakePort() {
+        SubmissionIntakePort intakePort = mock(SubmissionIntakePort.class);
+        SubmissionIntakeProvider provider = new SubmissionIntakeProvider(intakePort);
+        CreateSubmissionDTO request = new CreateSubmissionDTO();
+        SubmissionFactsSnapshot facts = new SubmissionFactsSnapshot("user-1", true, null, 1L, 1);
+        SubmissionVO expected = new SubmissionVO();
+        when(intakePort.submit("user-1", request, facts)).thenReturn(expected);
+        when(intakePort.submitContest("user-1", request, facts)).thenReturn(expected);
+
+        assertThat(provider.submit("user-1", request, facts)).isSameAs(expected);
+        assertThat(provider.submitContest("user-1", request, facts)).isSameAs(expected);
+
+        verify(intakePort).submit("user-1", request, facts);
+        verify(intakePort).submitContest("user-1", request, facts);
+    }
+
+    @Test
     @DisplayName("forwards every fence call to the local Submission owner")
     void fenceProviderForwardsToLocalFence() {
         DefaultSubmissionFencePort localFence = mock(DefaultSubmissionFencePort.class);

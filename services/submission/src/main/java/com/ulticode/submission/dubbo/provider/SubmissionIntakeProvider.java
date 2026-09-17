@@ -1,6 +1,5 @@
 package com.ulticode.submission.dubbo.provider;
 
-import com.ulticode.modules.submission.port.DefaultSubmissionWritePort;
 import com.ulticode.submission.api.dto.CreateSubmissionDTO;
 import com.ulticode.submission.api.dto.SubmissionFactsSnapshot;
 import com.ulticode.submission.api.dto.SubmissionVO;
@@ -15,7 +14,7 @@ import org.springframework.context.annotation.Profile;
 @RequiredArgsConstructor
 public class SubmissionIntakeProvider implements SubmissionIntakePort {
 
-    private final DefaultSubmissionWritePort delegate;
+    private final SubmissionIntakePort delegate;
 
     @Override
     public SubmissionVO submit(String userId, CreateSubmissionDTO createDTO,

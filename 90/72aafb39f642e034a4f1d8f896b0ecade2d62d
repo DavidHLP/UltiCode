@@ -1,0 +1,14 @@
+services/auth/src/main/java/com/ulticode/auth/idempotency/CommandReceiptExecutor.java
+  h_77173abe25c3ff 60,88-105
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9072aafb39f642e034a4f1d8f896b0ecade2d62d",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

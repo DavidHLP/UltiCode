@@ -1,0 +1,28 @@
+services/app/app-web/src/main/java/com/ulticode/app/idempotency/CommandReceiptExecutor.java
+  h_77173abe25c3ff 16,71,74-80
+services/auth/src/main/java/com/ulticode/auth/idempotency/CommandReceiptExecutor.java
+  h_77173abe25c3ff 24,113,116-120
+services/notification/src/main/java/com/ulticode/notification/idempotency/CommandReceiptExecutor.java
+  h_77173abe25c3ff 16,71-72,75-81
+services/platform/receipt/pom.xml
+  h_77173abe25c3ff 17
+services/platform/receipt/src/main/java/com/ulticode/receipt/ClaimCommandReceiptStoreBridge.java
+  h_77173abe25c3ff 1-44
+services/platform/receipt/src/main/java/com/ulticode/receipt/CommandReceiptStoreBridge.java
+  h_77173abe25c3ff 1-55
+services/platform/receipt/src/test/java/com/ulticode/receipt/ReceiptStoreBridgesTest.java
+  h_77173abe25c3ff 1-71
+services/submission/src/main/java/com/ulticode/submission/idempotency/SubmissionCommandReceiptExecutor.java
+  h_77173abe25c3ff 14,61-62,65-71
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "af06a9cf156c8bbb1c9c78e2879f1624b8eee78f",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

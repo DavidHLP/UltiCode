@@ -103,8 +103,8 @@ export function useRemoteTable<
     filters: initialFilters,
     pagination: initialPagination,
   })
-  const readonlyQuery = computed<DeepReadonly<RemoteTableQuery<TFilters>>>(() =>
-    readonly(query.value),
+  const readonlyQuery = computed<DeepReadonly<RemoteTableQuery<TFilters>>>(
+    () => readonly(query.value) as DeepReadonly<RemoteTableQuery<TFilters>>,
   )
   const initialLoad = ref(true)
   const pendingRequests = ref(0)

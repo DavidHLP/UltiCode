@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { storeToRefs } from 'pinia'
 import { ref, computed, onMounted, h } from 'vue'
 import { formatDateTimeByLocale } from '@/i18n/utils'
 import { watchDebounced } from '@vueuse/core'
@@ -54,6 +55,7 @@ interface AuditFilters {
 
 const { t } = useI18n()
 const auditStore = useAuditStore()
+const { logs, total: auditTotal, loading: auditLoading, error: auditError, stats } = storeToRefs(auditStore)
 const showAdvancedFilters = ref(false)
 const selectedLog = ref<AuditLog | null>(null)
 const detailsDrawerOpen = ref(false)
@@ -71,10 +73,10 @@ const {
   setFilters,
 } = useRemoteTable<AuditLog, AuditFilters, AuditLogQueryParams>({
   store: {
-    items: auditStore.logs,
-    total: auditStore.total,
-    isLoading: auditStore.loading,
-    error: auditStore.error,
+    items: logs,
+    total: auditTotal,
+    isLoading: auditLoading,
+    error: auditError,
     fetch: auditStore.fetchLogs,
   },
   initialQuery: {
@@ -155,15 +157,14 @@ async function refreshAuditData(): Promise<void> {
   await Promise.all([loadLogs(), refreshStats()])
 }
 
-
 onMounted(() => {
   setTimeout(() => {
     isLoaded.value = true
   }, 100)
 })
 
-const actionTypeStats = computed(() => auditStore.stats?.actionsByType ?? [])
-const statsTotal = computed(() => auditStore.stats?.totalActions ?? total.value)
+const actionTypeStats = computed(() => stats.value?.actionsByType ?? [])
+const statsTotal = computed(() => stats.value?.totalActions ?? total.value)
 
 watchDebounced(
   query,

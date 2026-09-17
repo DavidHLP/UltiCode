@@ -23,7 +23,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @DisplayName("Receipt executor factory claim profile")
 class ReceiptExecutorFactoryTest {
@@ -58,12 +61,11 @@ class ReceiptExecutorFactoryTest {
                     return RpcResult.success(new Payload("wrong", 2), traceId);
                 });
 
-        assertThat(first.success()).isTrue();
-        assertThat(first.data()).isEqualTo(new Payload("result-a", 1));
-        assertThat(replay.data()).isEqualTo(new Payload("result-a", 1));
-        assertThat(mutations.get()).isEqualTo(1);
-        assertThat(store.receipt("TestService", "create", "key-1").status())
-                .isEqualTo("SUCCESS");
+        assertTrue(first.success());
+        assertEquals(new Payload("result-a", 1), first.data());
+        assertEquals(new Payload("result-a", 1), replay.data());
+        assertEquals(1, mutations.get());
+        assertEquals("SUCCESS", store.receipt("TestService", "create", "key-1").status());
     }
 
     @Test
@@ -83,10 +85,10 @@ class ReceiptExecutorFactoryTest {
                     return RpcResult.success(new Payload("never", 0), traceId);
                 });
 
-        assertThat(result.success()).isFalse();
-        assertThat(result.error().code()).isEqualTo(TestError.INVALID.code());
-        assertThat(mutations.get()).isZero();
-        assertThat(store.receipt("TestService", "create", "key-2")).isNull();
+        assertFalse(result.success());
+        assertEquals(TestError.INVALID.code(), result.error().code());
+        assertEquals(0, mutations.get());
+        assertNull(store.receipt("TestService", "create", "key-2"));
     }
 
     private static TestCommand command(String key, String item) {

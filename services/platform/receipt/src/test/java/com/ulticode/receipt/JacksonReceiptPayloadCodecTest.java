@@ -5,8 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @DisplayName("Jackson receipt payload codec")
 class JacksonReceiptPayloadCodecTest {
@@ -20,19 +20,17 @@ class JacksonReceiptPayloadCodecTest {
 
         Payload decoded = codec.decode(payload, Payload.class);
 
-        assertThat(decoded).isEqualTo(new Payload("sub-1", 3));
+        assertEquals(new Payload("sub-1", 3), decoded);
     }
 
     @Test
     void rejectsMalformedPayload() {
-        assertThatThrownBy(() -> codec.decode("{not-json", Payload.class))
-                .isInstanceOf(JsonProcessingException.class);
+        assertThrows(JsonProcessingException.class, () -> codec.decode("{not-json", Payload.class));
     }
 
     @Test
     void requiresObjectMapper() {
-        assertThatThrownBy(() -> new JacksonReceiptPayloadCodec(null))
-                .isInstanceOf(NullPointerException.class);
+        assertThrows(NullPointerException.class, () -> new JacksonReceiptPayloadCodec(null));
     }
 
     record Payload(String id, int count) {

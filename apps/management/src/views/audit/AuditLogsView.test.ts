@@ -102,6 +102,9 @@ describe('AuditLogsView refresh contract', () => {
       .findAll('button')
       .find((button) => button.attributes('title') === 'common.refresh')
     expect(refreshButton).toBeDefined()
+    const initialLogCalls = auditApi.getAuditLogs.mock.calls.length
+    const initialStatsCalls = auditApi.getAuditStats.mock.calls.length
+
 
     vi.mocked(auditApi.getAuditStats)
       .mockRejectedValueOnce(new Error('stats unavailable'))
@@ -118,7 +121,7 @@ describe('AuditLogsView refresh contract', () => {
     await retryButton?.trigger('click')
     await flushPromises()
 
-    expect(auditApi.getAuditLogs).toHaveBeenCalledTimes(3)
-    expect(auditApi.getAuditStats).toHaveBeenCalledTimes(3)
+    expect(auditApi.getAuditLogs).toHaveBeenCalledTimes(initialLogCalls + 2)
+    expect(auditApi.getAuditStats).toHaveBeenCalledTimes(initialStatsCalls + 2)
   })
 })

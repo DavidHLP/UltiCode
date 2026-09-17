@@ -271,18 +271,18 @@ describe('useRemoteTable', () => {
     expect(table.loading.value).toBe(false)
   })
 
-  it('aborts the active request when the table scope is disposed', async () => {
+  it('aborts all active requests when the table scope is disposed', async () => {
     const scope = effectScope()
     const store = createStore()
-    let resolveFetch!: () => void
-    const fetchDone = new Promise<void>((resolve) => {
-      resolveFetch = resolve
-    })
+    const pending: Array<() => void> = []
+    const signals: AbortSignal[] = []
     store.fetch.mockImplementation(
-      (_params, options?: { signal?: AbortSignal }) => {
-        expect(options?.signal).toBeDefined()
-        return fetchDone
-      },
+      (_params, options?: { signal?: AbortSignal }) =>
+        new Promise<void>((resolve) => {
+          expect(options?.signal).toBeDefined()
+          signals.push(options!.signal!)
+          pending.push(resolve)
+        }),
     )
 
     let table!: ReturnType<typeof useRemoteTable<Row, Filters, Params>>
@@ -298,17 +298,17 @@ describe('useRemoteTable', () => {
       })
     })
 
-    const loading = table.setFilters({ status: 'draft' })
-    const fetchOptions = store.fetch.mock.calls[0]?.[1] as
-      | { signal?: AbortSignal }
-      | undefined
-    expect(fetchOptions?.signal?.aborted).toBe(false)
+    const first = table.setFilters({ status: 'draft' })
+    const second = table.setFilters({ status: 'published' })
+    expect(signals).toHaveLength(2)
+    expect(signals[0].aborted).toBe(true)
+    expect(signals[1].aborted).toBe(false)
 
     scope.stop()
 
-    expect(fetchOptions?.signal?.aborted).toBe(true)
-    resolveFetch()
-    await loading
+    expect(signals.every((signal) => signal.aborted)).toBe(true)
+    pending.forEach((resolve) => resolve())
+    await Promise.all([first, second])
   })
 
   it('exposes reactive data and loading from the collection', () => {

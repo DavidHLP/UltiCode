@@ -111,7 +111,7 @@ export function useRemoteTable<
   let searchTimer: ReturnType<typeof setTimeout> | undefined
   let routeTimer: ReturnType<typeof setTimeout> | undefined
   let requestSequence = 0
-  let activeController: AbortController | undefined
+  const activeControllers = new Set<AbortController>()
 
   const loading = computed(
     () => initialLoad.value || pendingRequests.value > 0 || toValue(store.isLoading) || false,
@@ -145,16 +145,16 @@ export function useRemoteTable<
     }
   }
 
-  function cancelActiveRequest(): void {
+  function cancelActiveRequests(): void {
     requestSequence += 1
-    activeController?.abort()
-    activeController = undefined
+    for (const controller of activeControllers) controller.abort()
+    activeControllers.clear()
   }
 
   async function loadCurrent(): Promise<void> {
     const request = ++requestSequence
     const controller = new AbortController()
-    activeController = controller
+    activeControllers.add(controller)
     pendingRequests.value += 1
     const current = query.value
     const params = toParams({
@@ -167,7 +167,7 @@ export function useRemoteTable<
     try {
       await store.fetch(params, { signal: controller.signal })
     } finally {
-      if (activeController === controller) activeController = undefined
+      activeControllers.delete(controller)
       pendingRequests.value -= 1
       if (request === requestSequence) initialLoad.value = false
     }
@@ -195,7 +195,7 @@ export function useRemoteTable<
       writeRoute?: boolean
     } = {},
   ): Promise<void> | void {
-    cancelActiveRequest()
+    cancelActiveRequests()
     const current = query.value
     const nextQuery: RemoteTableQuery<TFilters> = {
       search: patch.search ?? current.search,
@@ -252,7 +252,7 @@ export function useRemoteTable<
   tryOnScopeDispose(() => {
     cancelSearchTimer()
     cancelRouteTimer()
-    cancelActiveRequest()
+    cancelActiveRequests()
     stopRoute?.()
   })
 

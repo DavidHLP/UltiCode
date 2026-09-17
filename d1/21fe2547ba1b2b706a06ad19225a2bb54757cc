@@ -1,0 +1,44 @@
+services/app/app-web/pom.xml
+  h_77173abe25c3ff 35-39
+services/app/app-web/src/main/java/com/ulticode/app/idempotency/CommandReceiptExecutor.java
+  h_77173abe25c3ff 16,40
+services/auth/pom.xml
+  h_77173abe25c3ff 29-33
+services/auth/src/main/java/com/ulticode/auth/idempotency/CommandReceiptExecutor.java
+  h_77173abe25c3ff 24,57,60
+services/notification/pom.xml
+  h_77173abe25c3ff 29-33
+services/notification/src/main/java/com/ulticode/notification/idempotency/CommandReceiptExecutor.java
+  h_77173abe25c3ff 16,40
+services/platform/common/src/main/java/com/ulticode/common/command/ReceiptCommandValidation.java
+  h_77173abe25c3ff 1-24
+services/platform/common/src/test/java/com/ulticode/common/command/ReceiptCommandValidationTest.java
+  h_77173abe25c3ff 1-49
+services/platform/receipt/pom.xml
+  h_77173abe25c3ff 1-80
+services/platform/receipt/src/main/java/com/ulticode/receipt/JacksonReceiptPayloadCodec.java
+  h_77173abe25c3ff 1-26
+services/platform/receipt/src/main/java/com/ulticode/receipt/ReceiptExecutorFactory.java
+  h_77173abe25c3ff 1-47
+services/platform/receipt/src/test/java/com/ulticode/receipt/JacksonReceiptPayloadCodecTest.java
+  h_77173abe25c3ff 1-40
+services/platform/receipt/src/test/java/com/ulticode/receipt/ReceiptExecutorFactoryTest.java
+  h_77173abe25c3ff 1-225
+services/pom.xml
+  h_77173abe25c3ff 29
+services/submission/pom.xml
+  h_77173abe25c3ff 103-107
+services/submission/src/main/java/com/ulticode/submission/idempotency/SubmissionCommandReceiptExecutor.java
+  h_77173abe25c3ff 14,40
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d121fe2547ba1b2b706a06ad19225a2bb54757cc",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

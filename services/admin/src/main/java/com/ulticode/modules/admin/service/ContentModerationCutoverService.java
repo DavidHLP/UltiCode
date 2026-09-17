@@ -72,11 +72,16 @@ public class ContentModerationCutoverService {
     }
 
     private void moderate(String contentId, String contentType, ModerationAction action) {
-        if (cutoverGate.decide() == OwnerCutoverDecision.LOCAL) {
+        OwnerCutoverDecision decision = cutoverGate.decide();
+        if (decision == OwnerCutoverDecision.LOCAL) {
             dispatchLocal(contentId, contentType, action);
             return;
         }
-        // Dubbo path: route through the Provider
+        if (decision == OwnerCutoverDecision.DENY) {
+            throw new BusinessException(AdminErrorCode.CONFLICT,
+                    "Content moderation writes are disabled by cutover policy");
+        }
+        // REMOTE: route through the Provider
         String actorId = currentUserProvider.getCurrentUserId();
         String caseId = UUID.randomUUID().toString();
         AdminWriteEnvelope envelope = AdminWriteEnvelope.envelope(

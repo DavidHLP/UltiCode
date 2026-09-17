@@ -1,10 +1,12 @@
 package com.ulticode.modules.admin.service;
 
+import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.app.api.command.ApplyModerationCommand.ModerationAction;
 import com.ulticode.app.api.dto.ContentLifecycleState;
 import com.ulticode.app.api.dto.ModerationApplyResultDTO;
 import com.ulticode.app.api.service.ContentModerationService;
 import com.ulticode.common.auth.CurrentUserProvider;
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.modules.admin.port.adapter.OwnerCutoverGate;
 import org.junit.jupiter.api.DisplayName;
@@ -16,6 +18,7 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -58,6 +61,22 @@ class ContentModerationCutoverServiceTest {
 
         verify(contentModerationProvider).apply(any());
         verify(forumService, never()).deletePost(any());
+    }
+
+    @Test
+    @DisplayName("DENY decision fails closed before any write path")
+    void denyDecisionFailsTheWriteClosed() {
+        ContentModerationCutoverService service = new ContentModerationCutoverService(
+                forumService, solutionService, currentUserProvider,
+                new OwnerCutoverGate("moderation", null, false, false,
+                        OwnerCutoverGate.Policy.FAIL_CLOSED));
+        ReflectionTestUtils.setField(service, "dubboProvider", contentModerationProvider);
+
+        assertThatThrownBy(() -> service.moderateForumPost("post-1", ModerationAction.DELETE))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorCode", AdminErrorCode.CONFLICT);
+        verify(forumService, never()).deletePost(any());
+        verify(contentModerationProvider, never()).apply(any());
     }
 
     private ContentModerationCutoverService service(boolean remoteEnabled) {

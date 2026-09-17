@@ -335,7 +335,7 @@ export function createHttpClient(config: HttpClientConfig): HttpClient {
         requestId: req.requestId || generateRequestId(),
         startTime: Date.now(),
         retryCount: 0,
-        callerSignal: req.signal,
+        callerSignal: req.signal as AbortSignal | undefined,
       }
       const callerSignal = metadata.callerSignal
       const isRetry = metadata.retryCount > 0

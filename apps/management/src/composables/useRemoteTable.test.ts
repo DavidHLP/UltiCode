@@ -79,12 +79,15 @@ describe('useRemoteTable', () => {
     await vi.advanceTimersByTimeAsync(500)
 
     expect(store.fetch).toHaveBeenCalledTimes(1)
-    expect(store.fetch).toHaveBeenCalledWith({
-      search: 'graphs',
-      status: undefined,
-      page: 1,
-      limit: 10,
-    })
+    expect(store.fetch).toHaveBeenCalledWith(
+      {
+        search: 'graphs',
+        status: undefined,
+        page: 1,
+        limit: 10,
+      },
+      { signal: expect.any(AbortSignal) },
+    )
   })
 
   it('coalesces a pending search with a filter transition', async () => {
@@ -94,12 +97,15 @@ describe('useRemoteTable', () => {
     table.setSearch('graphs')
     await table.setFilters({ status: 'published' })
     expect(store.fetch).toHaveBeenCalledTimes(1)
-    expect(store.fetch).toHaveBeenCalledWith({
-      search: 'graphs',
-      status: 'published',
-      page: 1,
-      limit: 10,
-    })
+    expect(store.fetch).toHaveBeenCalledWith(
+      {
+        search: 'graphs',
+        status: 'published',
+        page: 1,
+        limit: 10,
+      },
+      { signal: expect.any(AbortSignal) },
+    )
 
     await vi.advanceTimersByTimeAsync(500)
     expect(store.fetch).toHaveBeenCalledTimes(1)
@@ -112,12 +118,15 @@ describe('useRemoteTable', () => {
 
     expect(table.query.value.pagination.pageIndex).toBe(0)
     expect(store.fetch).toHaveBeenCalledTimes(1)
-    expect(store.fetch).toHaveBeenCalledWith({
-      search: undefined,
-      status: 'published',
-      page: 1,
-      limit: 10,
-    })
+    expect(store.fetch).toHaveBeenCalledWith(
+      {
+        search: undefined,
+        status: 'published',
+        page: 1,
+        limit: 10,
+      },
+      { signal: expect.any(AbortSignal) },
+    )
   })
 
   it('refreshes the current page without changing query state', async () => {
@@ -126,12 +135,15 @@ describe('useRemoteTable', () => {
     await table.refresh()
 
     expect(table.query.value.pagination).toEqual({ pageIndex: 2, pageSize: 10 })
-    expect(store.fetch).toHaveBeenCalledWith({
-      search: undefined,
-      status: undefined,
-      page: 3,
-      limit: 10,
-    })
+    expect(store.fetch).toHaveBeenCalledWith(
+      {
+        search: undefined,
+        status: undefined,
+        page: 3,
+        limit: 10,
+      },
+      { signal: expect.any(AbortSignal) },
+    )
   })
 
   it('uses route state and debounces route writes', async () => {

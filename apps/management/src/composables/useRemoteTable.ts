@@ -46,7 +46,7 @@ export interface UseRemoteTableOptions<TData, TFilters, TParams> {
     total: MaybeRefOrGetter<number>
     isLoading: MaybeRefOrGetter<boolean>
     error: MaybeRefOrGetter<string | null>
-    fetch: (params?: TParams) => Promise<void>
+    fetch: (params?: TParams, options?: { signal?: AbortSignal }) => Promise<void>
   }
   initialQuery: RemoteTableQueryOptions<TFilters>
   toParams: (params: {
@@ -111,6 +111,7 @@ export function useRemoteTable<
   let searchTimer: ReturnType<typeof setTimeout> | undefined
   let routeTimer: ReturnType<typeof setTimeout> | undefined
   let requestSequence = 0
+  let activeController: AbortController | undefined
 
   const loading = computed(
     () => initialLoad.value || pendingRequests.value > 0 || toValue(store.isLoading) || false,
@@ -144,8 +145,16 @@ export function useRemoteTable<
     }
   }
 
+  function cancelActiveRequest(): void {
+    requestSequence += 1
+    activeController?.abort()
+    activeController = undefined
+  }
+
   async function loadCurrent(): Promise<void> {
     const request = ++requestSequence
+    const controller = new AbortController()
+    activeController = controller
     pendingRequests.value += 1
     const current = query.value
     const params = toParams({
@@ -156,8 +165,9 @@ export function useRemoteTable<
     })
 
     try {
-      await store.fetch(params)
+      await store.fetch(params, { signal: controller.signal })
     } finally {
+      if (activeController === controller) activeController = undefined
       pendingRequests.value -= 1
       if (request === requestSequence) initialLoad.value = false
     }
@@ -185,6 +195,7 @@ export function useRemoteTable<
       writeRoute?: boolean
     } = {},
   ): Promise<void> | void {
+    cancelActiveRequest()
     const current = query.value
     const nextQuery: RemoteTableQuery<TFilters> = {
       search: patch.search ?? current.search,
@@ -239,8 +250,9 @@ export function useRemoteTable<
   })
 
   tryOnScopeDispose(() => {
-    if (searchTimer) clearTimeout(searchTimer)
-    if (routeTimer) clearTimeout(routeTimer)
+    cancelSearchTimer()
+    cancelRouteTimer()
+    cancelActiveRequest()
     stopRoute?.()
   })
 

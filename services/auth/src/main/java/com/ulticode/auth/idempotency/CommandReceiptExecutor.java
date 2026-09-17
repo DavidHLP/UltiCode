@@ -16,7 +16,6 @@ import com.ulticode.auth.idempotency.mapper.AuthCommandReceiptMapper;
 import com.ulticode.common.command.CommandReceiptStore;
 import com.ulticode.common.command.ReceiptCommandMetadata;
 import com.ulticode.common.command.ReceiptErrorCatalog;
-import com.ulticode.common.command.ReceiptExecutionMode;
 import com.ulticode.common.command.ReceiptExecutor;
 import com.ulticode.common.command.ReceiptFingerprintStrategy;
 import com.ulticode.common.command.ReceiptPayloadCodec;
@@ -53,8 +52,7 @@ public class CommandReceiptExecutor {
             Clock clock) {
         CommandReceiptStore store = receiptMapper == null
                 ? null : new AuthReceiptStore(receiptMapper);
-        delegate = new ReceiptExecutor<>(
-                ReceiptExecutionMode.MUTATE_THEN_RECORD,
+        delegate = ReceiptExecutor.mutateThenRecord(
                 store,
                 new JacksonPayloadCodec(objectMapper),
                 FINGERPRINTS,
@@ -132,23 +130,13 @@ public class CommandReceiptExecutor {
         }
 
         @Override
-        public int insertClaim(ReceiptWrite receipt) {
+        public int insert(ReceiptWrite receipt) {
             return mapper.insert(toEntity(receipt));
         }
 
         @Override
         public ReceiptView findByKey(String service, String operation, String idempotencyKey) {
             return toView(mapper.findByReceiptKey(service, operation, idempotencyKey));
-        }
-
-        @Override
-        public int markSuccess(String id, String resultPayload) {
-            return 0;
-        }
-
-        @Override
-        public int deleteClaim(String id) {
-            return 0;
         }
 
         private static AuthCommandReceiptEntity toEntity(ReceiptWrite receipt) {

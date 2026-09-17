@@ -4,11 +4,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.app.api.error.AppErrorCode;
 import com.ulticode.app.idempotency.entity.AppCommandReceiptEntity;
 import com.ulticode.app.idempotency.mapper.AppCommandReceiptMapper;
-import com.ulticode.common.command.CommandReceiptStore;
+import com.ulticode.common.command.ClaimCommandReceiptStore;
 import com.ulticode.common.command.GenericFingerprintStrategy;
 import com.ulticode.common.command.ReceiptCommandMetadata;
 import com.ulticode.common.command.ReceiptErrorCatalog;
-import com.ulticode.common.command.ReceiptExecutionMode;
 import com.ulticode.common.command.ReceiptExecutor;
 import com.ulticode.common.command.ReceiptFingerprintStrategy;
 import com.ulticode.common.command.ReceiptPayloadCodec;
@@ -39,12 +38,11 @@ public class CommandReceiptExecutor {
             AppCommandReceiptMapper receiptMapper,
             ObjectMapper objectMapper,
             Clock clock) {
-        CommandReceiptStore store = receiptMapper == null
+        ClaimCommandReceiptStore store = receiptMapper == null
                 ? null : new AppReceiptStore(receiptMapper);
         ReceiptPayloadCodec codec = new JacksonPayloadCodec(objectMapper);
         Predicate<WriteCommand> validCommand = CommandReceiptExecutor::validCommand;
-        delegate = new ReceiptExecutor<>(
-                ReceiptExecutionMode.CLAIM_MUTATE_FINALIZE,
+        delegate = ReceiptExecutor.claimMutateFinalize(
                 store,
                 codec,
                 FINGERPRINTS,
@@ -111,7 +109,7 @@ public class CommandReceiptExecutor {
         }
     }
 
-    private static final class AppReceiptStore implements CommandReceiptStore {
+    private static final class AppReceiptStore implements ClaimCommandReceiptStore {
         private final AppCommandReceiptMapper mapper;
 
         private AppReceiptStore(AppCommandReceiptMapper mapper) {
@@ -119,7 +117,7 @@ public class CommandReceiptExecutor {
         }
 
         @Override
-        public int insertClaim(ReceiptWrite receipt) {
+        public int insert(ReceiptWrite receipt) {
             return mapper.insertClaim(toEntity(receipt));
         }
 

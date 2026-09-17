@@ -28,8 +28,7 @@ class ReceiptExecutorTest {
     @BeforeEach
     void setUp() {
         store = new FakeStore();
-        executor = new ReceiptExecutor<>(
-                ReceiptExecutionMode.CLAIM_MUTATE_FINALIZE,
+        executor = ReceiptExecutor.claimMutateFinalize(
                 store,
                 new StringCodec(),
                 new GenericFingerprintStrategy(),
@@ -109,8 +108,7 @@ class ReceiptExecutorTest {
 
     @Test
     void mutateThenRecordPersistsPayloadForAuthReplay() {
-        ReceiptExecutor<TestCommand> authExecutor = new ReceiptExecutor<>(
-                ReceiptExecutionMode.MUTATE_THEN_RECORD,
+        ReceiptExecutor<TestCommand> authExecutor = ReceiptExecutor.mutateThenRecord(
                 store,
                 new StringCodec(),
                 new GenericFingerprintStrategy(),
@@ -146,12 +144,14 @@ class ReceiptExecutorTest {
         TestCommand command = command("auth-race", "account-a");
         AtomicInteger mutations = new AtomicInteger();
         FakeStore recorded = new FakeStore();
+        // A mutate-then-record owner implements only the base store: there is
+        // no claim finalization to override.
         CommandReceiptStore racingStore = new CommandReceiptStore() {
             @Override
-            public int insertClaim(ReceiptWrite receipt) {
+            public int insert(ReceiptWrite receipt) {
                 // Simulate a concurrent identical command that recorded first:
                 // the row exists, but this insert reports zero affected rows.
-                recorded.insertClaim(receipt);
+                recorded.insert(receipt);
                 return 0;
             }
 
@@ -159,19 +159,8 @@ class ReceiptExecutorTest {
             public ReceiptView findByKey(String service, String operation, String idempotencyKey) {
                 return recorded.findByKey(service, operation, idempotencyKey);
             }
-
-            @Override
-            public int markSuccess(String id, String resultPayload) {
-                return recorded.markSuccess(id, resultPayload);
-            }
-
-            @Override
-            public int deleteClaim(String id) {
-                return recorded.deleteClaim(id);
-            }
         };
-        ReceiptExecutor<TestCommand> authExecutor = new ReceiptExecutor<>(
-                ReceiptExecutionMode.MUTATE_THEN_RECORD,
+        ReceiptExecutor<TestCommand> authExecutor = ReceiptExecutor.mutateThenRecord(
                 racingStore,
                 new StringCodec(),
                 new GenericFingerprintStrategy(),
@@ -238,12 +227,12 @@ class ReceiptExecutorTest {
         }
     }
 
-    private static final class FakeStore implements CommandReceiptStore {
+    private static final class FakeStore implements ClaimCommandReceiptStore {
         private final Map<String, ReceiptView> receipts = new HashMap<>();
         private final java.util.List<String> deletedIds = new java.util.ArrayList<>();
 
         @Override
-        public int insertClaim(ReceiptWrite receipt) {
+        public int insert(ReceiptWrite receipt) {
             String key = key(receipt.service(), receipt.operation(), receipt.idempotencyKey());
             if (receipts.containsKey(key)) {
                 return 0;

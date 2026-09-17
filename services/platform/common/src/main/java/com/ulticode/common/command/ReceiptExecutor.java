@@ -24,6 +24,7 @@ public final class ReceiptExecutor<C> {
 
     private final ReceiptExecutionMode mode;
     private final CommandReceiptStore store;
+    private final ClaimCommandReceiptStore claimStore;
     private final ReceiptPayloadCodec payloadCodec;
     private final ReceiptFingerprintStrategy<? super C> fingerprintStrategy;
     private final ReceiptErrorCatalog errors;
@@ -31,9 +32,10 @@ public final class ReceiptExecutor<C> {
     private final Predicate<? super C> validCommand;
     private final Clock clock;
 
-    public ReceiptExecutor(
+    private ReceiptExecutor(
             ReceiptExecutionMode mode,
             CommandReceiptStore store,
+            ClaimCommandReceiptStore claimStore,
             ReceiptPayloadCodec payloadCodec,
             ReceiptFingerprintStrategy<? super C> fingerprintStrategy,
             ReceiptErrorCatalog errors,
@@ -42,12 +44,50 @@ public final class ReceiptExecutor<C> {
             Clock clock) {
         this.mode = Objects.requireNonNull(mode, "mode");
         this.store = store;
+        this.claimStore = claimStore;
         this.payloadCodec = Objects.requireNonNull(payloadCodec, "payloadCodec");
         this.fingerprintStrategy = Objects.requireNonNull(fingerprintStrategy, "fingerprintStrategy");
         this.errors = Objects.requireNonNull(errors, "errors");
         this.metadataExtractor = Objects.requireNonNull(metadataExtractor, "metadataExtractor");
         this.validCommand = Objects.requireNonNull(validCommand, "validCommand");
         this.clock = Objects.requireNonNull(clock, "clock");
+    }
+
+    /**
+     * Creates a mutate-then-record executor: the owner mutation runs first and
+     * a successful non-null result is recorded afterwards. It uses only the
+     * base store operations, so the owner never implements claim finalization.
+     */
+    public static <C> ReceiptExecutor<C> mutateThenRecord(
+            CommandReceiptStore store,
+            ReceiptPayloadCodec payloadCodec,
+            ReceiptFingerprintStrategy<? super C> fingerprintStrategy,
+            ReceiptErrorCatalog errors,
+            Function<? super C, ReceiptCommandMetadata> metadataExtractor,
+            Predicate<? super C> validCommand,
+            Clock clock) {
+        return new ReceiptExecutor<>(
+                ReceiptExecutionMode.MUTATE_THEN_RECORD, store, null,
+                payloadCodec, fingerprintStrategy, errors, metadataExtractor, validCommand, clock);
+    }
+
+    /**
+     * Creates a claim-mutate-finalize executor: a processing claim is inserted
+     * before the mutation and conditionally finalized or deleted afterwards.
+     * The store must provide the claim extension; a missing store fails closed
+     * when a command executes.
+     */
+    public static <C> ReceiptExecutor<C> claimMutateFinalize(
+            ClaimCommandReceiptStore store,
+            ReceiptPayloadCodec payloadCodec,
+            ReceiptFingerprintStrategy<? super C> fingerprintStrategy,
+            ReceiptErrorCatalog errors,
+            Function<? super C, ReceiptCommandMetadata> metadataExtractor,
+            Predicate<? super C> validCommand,
+            Clock clock) {
+        return new ReceiptExecutor<>(
+                ReceiptExecutionMode.CLAIM_MUTATE_FINALIZE, store, store,
+                payloadCodec, fingerprintStrategy, errors, metadataExtractor, validCommand, clock);
     }
 
     /**
@@ -121,7 +161,7 @@ public final class ReceiptExecutor<C> {
             } catch (Exception exception) {
                 throw new IllegalStateException("Unable to serialize command receipt", exception);
             }
-            int inserted = store.insertClaim(newWrite(
+            int inserted = store.insert(newWrite(
                     service, operation, command, metadata, fingerprint, SUCCESS, payload, traceId));
             if (inserted == 0 && key != null && !key.isBlank()) {
                 // A concurrent command already recorded this key. Its receipt is
@@ -158,14 +198,14 @@ public final class ReceiptExecutor<C> {
             ReceiptCommandMetadata metadata,
             String fingerprint,
             String traceId) {
-        if (store == null) {
-            throw new IllegalStateException("Receipt store is required for claim mode");
+        if (claimStore == null) {
+            throw new IllegalStateException("Claim receipt store is required for claim mode");
         }
         String key = metadata.idempotencyKey();
         ReceiptWrite claim = newWrite(
                 service, operation, command, metadata, fingerprint, PROCESSING, null, traceId);
-        if (store.insertClaim(claim) == 0) {
-            ReceiptView existing = store.findByKey(service, operation, key);
+        if (claimStore.insert(claim) == 0) {
+            ReceiptView existing = claimStore.findByKey(service, operation, key);
             if (existing == null) {
                 return withKey(RpcResult.failure(errors.missingReceipt(), traceId), key);
             }
@@ -178,13 +218,13 @@ public final class ReceiptExecutor<C> {
             // Checked, but a zero-row delete only means the claim is already gone
             // or was reclaimed by another worker; the business failure result
             // remains the authoritative outcome.
-            store.deleteClaim(claim.id());
+            claimStore.deleteClaim(claim.id());
             return result;
         }
 
         try {
             String payload = payloadCodec.encode(result.data());
-            if (store.markSuccess(claim.id(), payload) != 1) {
+            if (claimStore.markSuccess(claim.id(), payload) != 1) {
                 throw new IllegalStateException("Unable to finalize command receipt");
             }
         } catch (Exception exception) {

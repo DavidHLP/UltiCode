@@ -4,24 +4,21 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.app.api.error.AppErrorCode;
 import com.ulticode.common.command.ClaimCommandReceiptStore;
 import com.ulticode.common.command.GenericFingerprintStrategy;
-import com.ulticode.common.command.ReceiptCommandMetadata;
 import com.ulticode.common.command.ReceiptErrorCatalog;
 import com.ulticode.common.command.ReceiptExecutor;
 import com.ulticode.common.command.ReceiptFingerprintStrategy;
-import com.ulticode.common.command.ReceiptPayloadCodec;
 import com.ulticode.common.command.ReceiptView;
 import com.ulticode.common.command.ReceiptWrite;
 import com.ulticode.common.command.WriteCommand;
 import com.ulticode.common.rpc.RpcResult;
+import com.ulticode.receipt.ReceiptExecutorFactory;
 import com.ulticode.submission.idempotency.entity.SubmissionCommandReceiptEntity;
 import com.ulticode.submission.idempotency.mapper.SubmissionCommandReceiptMapper;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
-import java.util.Objects;
 import java.util.function.Function;
-import java.util.function.Predicate;
 
 /** Thin Submission adapter around the owner-neutral claim receipt protocol. */
 @Component
@@ -40,16 +37,7 @@ public class SubmissionCommandReceiptExecutor {
             Clock clock) {
         ClaimCommandReceiptStore store = receiptMapper == null
                 ? null : new SubmissionReceiptStore(receiptMapper);
-        ReceiptPayloadCodec codec = new JacksonPayloadCodec(objectMapper);
-        Predicate<WriteCommand> validCommand = SubmissionCommandReceiptExecutor::validCommand;
-        delegate = ReceiptExecutor.claimMutateFinalize(
-                store,
-                codec,
-                FINGERPRINTS,
-                ERRORS,
-                ReceiptCommandMetadata::from,
-                validCommand,
-                clock);
+        delegate = ReceiptExecutorFactory.claim(store, objectMapper, ERRORS, clock);
     }
 
     @Transactional
@@ -67,36 +55,6 @@ public class SubmissionCommandReceiptExecutor {
 
     static String fingerprint(WriteCommand command) {
         return FINGERPRINTS.fingerprint(command);
-    }
-
-    private static boolean validCommand(WriteCommand command) {
-        return command != null
-                && command.idempotency() != null
-                && command.idempotency().hasKey()
-                && command.trace() != null
-                && command.actor() != null
-                && command.actor().actorId() != null
-                && !command.actor().actorId().isBlank()
-                && command.actor().delegatorId() != null
-                && !command.actor().delegatorId().isBlank();
-    }
-
-    private static final class JacksonPayloadCodec implements ReceiptPayloadCodec {
-        private final ObjectMapper objectMapper;
-
-        private JacksonPayloadCodec(ObjectMapper objectMapper) {
-            this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper");
-        }
-
-        @Override
-        public String encode(Object value) throws Exception {
-            return objectMapper.writeValueAsString(value);
-        }
-
-        @Override
-        public <T> T decode(String payload, Class<T> resultType) throws Exception {
-            return objectMapper.readValue(payload, resultType);
-        }
     }
 
     private static final class SubmissionReceiptStore implements ClaimCommandReceiptStore {

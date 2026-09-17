@@ -32,6 +32,11 @@
 			<groupId>com.ulticode</groupId>
 			<artifactId>backend-common</artifactId>
 		</dependency>
+		<!-- Shared receipt construction profile (Jackson codec + claim defaults). -->
+		<dependency>
+			<groupId>com.ulticode</groupId>
+			<artifactId>backend-receipt</artifactId>
+		</dependency>
 		<!-- Shared Redis value serialization policy. -->
 		<dependency>
 			<groupId>com.ulticode</groupId>

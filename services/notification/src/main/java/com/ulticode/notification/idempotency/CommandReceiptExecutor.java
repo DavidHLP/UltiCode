@@ -3,11 +3,9 @@ package com.ulticode.notification.idempotency;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.common.command.ClaimCommandReceiptStore;
 import com.ulticode.common.command.GenericFingerprintStrategy;
-import com.ulticode.common.command.ReceiptCommandMetadata;
 import com.ulticode.common.command.ReceiptErrorCatalog;
 import com.ulticode.common.command.ReceiptExecutor;
 import com.ulticode.common.command.ReceiptFingerprintStrategy;
-import com.ulticode.common.command.ReceiptPayloadCodec;
 import com.ulticode.common.command.ReceiptView;
 import com.ulticode.common.command.ReceiptWrite;
 import com.ulticode.common.command.WriteCommand;
@@ -15,13 +13,12 @@ import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.notification.error.NotificationErrorCode;
 import com.ulticode.notification.idempotency.entity.NotificationCommandReceiptEntity;
 import com.ulticode.notification.idempotency.mapper.NotificationCommandReceiptMapper;
+import com.ulticode.receipt.ReceiptExecutorFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
-import java.util.Objects;
 import java.util.function.Function;
-import java.util.function.Predicate;
 
 /** Thin Notification adapter around the owner-neutral claim receipt protocol. */
 @Component
@@ -40,16 +37,7 @@ public class CommandReceiptExecutor {
             Clock clock) {
         ClaimCommandReceiptStore store = receiptMapper == null
                 ? null : new NotificationReceiptStore(receiptMapper);
-        ReceiptPayloadCodec codec = new JacksonPayloadCodec(objectMapper);
-        Predicate<WriteCommand> validCommand = CommandReceiptExecutor::validCommand;
-        delegate = ReceiptExecutor.claimMutateFinalize(
-                store,
-                codec,
-                FINGERPRINTS,
-                ERRORS,
-                ReceiptCommandMetadata::from,
-                validCommand,
-                clock);
+        delegate = ReceiptExecutorFactory.claim(store, objectMapper, ERRORS, clock);
     }
 
     @Transactional
@@ -77,36 +65,6 @@ public class CommandReceiptExecutor {
 
     public static String fingerprint(WriteCommand command) {
         return FINGERPRINTS.fingerprint(command);
-    }
-
-    private static boolean validCommand(WriteCommand command) {
-        return command != null
-                && command.idempotency() != null
-                && command.idempotency().hasKey()
-                && command.trace() != null
-                && command.actor() != null
-                && command.actor().actorId() != null
-                && !command.actor().actorId().isBlank()
-                && command.actor().delegatorId() != null
-                && !command.actor().delegatorId().isBlank();
-    }
-
-    private static final class JacksonPayloadCodec implements ReceiptPayloadCodec {
-        private final ObjectMapper objectMapper;
-
-        private JacksonPayloadCodec(ObjectMapper objectMapper) {
-            this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper");
-        }
-
-        @Override
-        public String encode(Object value) throws Exception {
-            return objectMapper.writeValueAsString(value);
-        }
-
-        @Override
-        public <T> T decode(String payload, Class<T> resultType) throws Exception {
-            return objectMapper.readValue(payload, resultType);
-        }
     }
 
     private static final class NotificationReceiptStore implements ClaimCommandReceiptStore {

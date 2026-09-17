@@ -26,6 +26,7 @@
 		<module>platform/integration-inbox</module>
 		<module>platform/judge-config</module>
 		<module>platform/redis</module>
+		<module>platform/receipt</module>
 		<module>platform/observability</module>
 		<module>api/auth-api</module>
 		<module>api/submission-api</module>

@@ -18,10 +18,10 @@ import com.ulticode.common.command.ReceiptCommandMetadata;
 import com.ulticode.common.command.ReceiptErrorCatalog;
 import com.ulticode.common.command.ReceiptExecutor;
 import com.ulticode.common.command.ReceiptFingerprintStrategy;
-import com.ulticode.common.command.ReceiptPayloadCodec;
 import com.ulticode.common.command.ReceiptView;
 import com.ulticode.common.command.ReceiptWrite;
 import com.ulticode.common.rpc.RpcResult;
+import com.ulticode.receipt.JacksonReceiptPayloadCodec;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -54,10 +54,10 @@ public class CommandReceiptExecutor {
                 ? null : new AuthReceiptStore(receiptMapper);
         delegate = ReceiptExecutor.mutateThenRecord(
                 store,
-                new JacksonPayloadCodec(objectMapper),
+                new JacksonReceiptPayloadCodec(objectMapper),
                 FINGERPRINTS,
                 ERRORS,
-                CommandReceiptExecutor::metadata,
+                ReceiptCommandMetadata::from,
                 CommandReceiptExecutor::validCommand,
                 clock);
     }
@@ -85,41 +85,10 @@ public class CommandReceiptExecutor {
         return FINGERPRINTS.fingerprint(command);
     }
 
-    private static ReceiptCommandMetadata metadata(WriteCommand command) {
-        if (command == null) {
-            return null;
-        }
-        var actor = command.actor();
-        return new ReceiptCommandMetadata(
-                command.commandId(),
-                command.idempotency() == null ? null : command.idempotency().idempotencyKey(),
-                command.trace() == null ? null : command.trace().traceId(),
-                actor == null ? null : actor.actorType(),
-                actor == null ? null : actor.actorId());
-    }
-
     private static boolean validCommand(WriteCommand command) {
         return command != null
                 && command.idempotency() != null
                 && command.idempotency().hasKey();
-    }
-
-    private static final class JacksonPayloadCodec implements ReceiptPayloadCodec {
-        private final ObjectMapper objectMapper;
-
-        private JacksonPayloadCodec(ObjectMapper objectMapper) {
-            this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper");
-        }
-
-        @Override
-        public String encode(Object value) throws Exception {
-            return objectMapper.writeValueAsString(value);
-        }
-
-        @Override
-        public <T> T decode(String payload, Class<T> resultType) throws Exception {
-            return objectMapper.readValue(payload, resultType);
-        }
     }
 
     private static final class AuthReceiptStore implements CommandReceiptStore {

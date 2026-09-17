@@ -456,9 +456,15 @@ describe('Retry / backoff', () => {
       request: InternalAxiosRequestConfig
       resolve: (value: unknown) => void
     }> = []
+    let firstRequest: InternalAxiosRequestConfig | undefined
+    let rejectFirst: (reason?: unknown) => void = () => undefined
+    const firstFailure = new Promise<unknown>((_, reject) => {
+      rejectFirst = reject
+    })
     const adapter = vi.fn().mockImplementation((request: InternalAxiosRequestConfig) => {
       if (adapter.mock.calls.length === 1) {
-        return Promise.reject(buildAxiosError(500, 'retry me', request))
+        firstRequest = request
+        return firstFailure
       }
       return new Promise<unknown>((resolve) => {
         pending.push({ request, resolve })
@@ -477,6 +483,8 @@ describe('Retry / backoff', () => {
     const second = client.apiGet('/retry-race')
     await vi.waitFor(() => expect(adapter).toHaveBeenCalledTimes(2))
 
+    if (!firstRequest) throw new Error('first request was not captured')
+    rejectFirst(buildAxiosError(500, 'retry me', firstRequest))
     pending[0].resolve(responseFor(pending[0].request))
     await expect(second).resolves.toEqual({ ok: true })
     await vi.waitFor(() => expect(adapter).toHaveBeenCalledTimes(3))

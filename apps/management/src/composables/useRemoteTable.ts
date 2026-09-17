@@ -145,9 +145,13 @@ export function useRemoteTable<
     }
   }
 
-  function cancelActiveRequests(): void {
+  function abortActiveRequests(): void {
     requestSequence += 1
     for (const controller of activeControllers) controller.abort()
+  }
+
+  function disposeActiveRequests(): void {
+    abortActiveRequests()
     activeControllers.clear()
   }
 
@@ -195,7 +199,7 @@ export function useRemoteTable<
       writeRoute?: boolean
     } = {},
   ): Promise<void> | void {
-    cancelActiveRequests()
+    abortActiveRequests()
     const current = query.value
     const nextQuery: RemoteTableQuery<TFilters> = {
       search: patch.search ?? current.search,
@@ -252,8 +256,7 @@ export function useRemoteTable<
   tryOnScopeDispose(() => {
     cancelSearchTimer()
     cancelRouteTimer()
-    cancelActiveRequests()
-    stopRoute?.()
+    disposeActiveRequests()
   })
 
   if (autoLoad) void loadCurrent()

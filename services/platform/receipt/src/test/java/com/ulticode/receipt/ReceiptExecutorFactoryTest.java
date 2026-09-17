@@ -100,7 +100,11 @@ class ReceiptExecutorFactoryTest {
                 item);
     }
 
-    private record TestCommand(
+    /**
+     * Public so the shared fingerprint strategy can invoke its record
+     * accessors reflectively from another package.
+     */
+    public record TestCommand(
             String commandId,
             IdMetadata idempotency,
             ActorDelegation actor,

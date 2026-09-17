@@ -1,12 +1,12 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { createI18n } from 'vue-i18n'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type * as AuditApiModule from '@/api/admin/audit'
+import * as AuditApiModule from '@/api/admin/audit'
 import AuditLogViewer from './AuditLogViewer.vue'
 import { auditApi } from '@/api/admin/audit'
 
 vi.mock('@/api/admin/audit', async () => {
-  const actual = await vi.importActual<AuditApiModule>('@/api/admin/audit')
+  const actual = await vi.importActual<typeof AuditApiModule>('@/api/admin/audit')
   return {
     ...actual,
     auditApi: {

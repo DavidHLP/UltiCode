@@ -2,12 +2,12 @@ import { createPinia, setActivePinia } from 'pinia'
 import { flushPromises, mount } from '@vue/test-utils'
 import { createI18n } from 'vue-i18n'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type * as AuditApiModule from '@/api/admin/audit'
+import * as AuditApiModule from '@/api/admin/audit'
 import AuditLogsView from './AuditLogsView.vue'
 import { auditApi } from '@/api/admin/audit'
 
 vi.mock('@/api/admin/audit', async () => {
-  const actual = await vi.importActual<AuditApiModule>('@/api/admin/audit')
+  const actual = await vi.importActual<typeof AuditApiModule>('@/api/admin/audit')
   return {
     ...actual,
     auditApi: {
@@ -102,8 +102,8 @@ describe('AuditLogsView refresh contract', () => {
       .findAll('button')
       .find((button) => button.attributes('title') === 'common.refresh')
     expect(refreshButton).toBeDefined()
-    const initialLogCalls = auditApi.getAuditLogs.mock.calls.length
-    const initialStatsCalls = auditApi.getAuditStats.mock.calls.length
+    const initialLogCalls = vi.mocked(auditApi.getAuditLogs).mock.calls.length
+    const initialStatsCalls = vi.mocked(auditApi.getAuditStats).mock.calls.length
 
 
     vi.mocked(auditApi.getAuditStats)

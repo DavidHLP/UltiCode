@@ -1,6 +1,7 @@
 package com.ulticode.modules.admin.service;
 
 import com.ulticode.app.api.command.ApplyModerationCommand.ModerationAction;
+import com.ulticode.app.api.dto.ContentLifecycleState;
 import com.ulticode.app.api.dto.ModerationApplyResultDTO;
 import com.ulticode.app.api.service.ContentModerationService;
 import com.ulticode.common.auth.CurrentUserProvider;
@@ -48,8 +49,10 @@ class ContentModerationCutoverServiceTest {
     void remoteDecisionRoutesThroughProvider() {
         ContentModerationCutoverService service = service(true);
         when(currentUserProvider.getCurrentUserId()).thenReturn("admin-1");
-        when(contentModerationProvider.apply(any()))
-                .thenReturn(RpcResult.<ModerationApplyResultDTO>success(null, "trace-1"));
+        when(contentModerationProvider.apply(any())).thenReturn(RpcResult.success(
+                new ModerationApplyResultDTO(
+                        "case-1", "post-1", ModerationAction.DELETE, ContentLifecycleState.DELETED),
+                "trace-1"));
 
         service.moderateForumPost("post-1", ModerationAction.DELETE);
 

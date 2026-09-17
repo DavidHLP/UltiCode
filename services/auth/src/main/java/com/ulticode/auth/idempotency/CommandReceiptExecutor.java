@@ -57,7 +57,7 @@ public class CommandReceiptExecutor {
                 new JacksonReceiptPayloadCodec(objectMapper),
                 FINGERPRINTS,
                 ERRORS,
-                ReceiptCommandMetadata::from,
+                CommandReceiptExecutor::metadata,
                 CommandReceiptExecutor::validCommand,
                 clock);
     }
@@ -83,6 +83,24 @@ public class CommandReceiptExecutor {
 
     public static String fingerprint(WriteCommand command) {
         return FINGERPRINTS.fingerprint(command);
+    }
+
+    /**
+     * Auth commands implement {@code auth-api}'s own marker interface rather
+     * than {@link com.ulticode.common.command.WriteCommand}, so Auth keeps its
+     * own metadata projection instead of {@link ReceiptCommandMetadata#from}.
+     */
+    private static ReceiptCommandMetadata metadata(WriteCommand command) {
+        if (command == null) {
+            return null;
+        }
+        var actor = command.actor();
+        return new ReceiptCommandMetadata(
+                command.commandId(),
+                command.idempotency() == null ? null : command.idempotency().idempotencyKey(),
+                command.trace() == null ? null : command.trace().traceId(),
+                actor == null ? null : actor.actorType(),
+                actor == null ? null : actor.actorId());
     }
 
     private static boolean validCommand(WriteCommand command) {

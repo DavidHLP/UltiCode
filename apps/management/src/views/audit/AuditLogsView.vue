@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
-import { ref, computed, onMounted, h, watch } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, h, watch } from 'vue'
 import { formatDateTimeByLocale } from '@/i18n/utils'
 import { watchDebounced } from '@vueuse/core'
 import type { ColumnDef } from '@tanstack/vue-table'
@@ -161,6 +161,10 @@ onMounted(() => {
   setTimeout(() => {
     isLoaded.value = true
   }, 100)
+})
+
+onBeforeUnmount(() => {
+  auditStore.cancelStats()
 })
 
 const actionTypeStats = computed(() => stats.value?.actionsByType ?? [])

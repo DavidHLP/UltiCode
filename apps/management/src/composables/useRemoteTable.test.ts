@@ -65,6 +65,13 @@ describe('useRemoteTable', () => {
     expect(table.loading.value).toBe(true)
   })
 
+  it('can suppress the initial skeleton for conditionally loaded tables', () => {
+    const { store, table } = createTable({ showInitialLoading: false })
+
+    expect(store.fetch).not.toHaveBeenCalled()
+    expect(table.loading.value).toBe(false)
+  })
+
   it('debounces search and resets the page through one transition', async () => {
     vi.useFakeTimers()
     const { store, table } = createTable()

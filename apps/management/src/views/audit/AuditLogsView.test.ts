@@ -114,9 +114,9 @@ describe('AuditLogsView refresh contract', () => {
     vi.mocked(auditApi.getAuditStats).mockResolvedValue(stats)
   })
 
-afterEach(() => {
-  vi.useRealTimers()
-})
+  afterEach(() => {
+    vi.useRealTimers()
+  })
 
   it('refreshes logs and statistics from the toolbar and retries both after stats fail', async () => {
     vi.useFakeTimers()
@@ -200,5 +200,23 @@ afterEach(() => {
     await vi.advanceTimersByTimeAsync(500)
     await flushPromises()
     wrapper.unmount()
+  })
+
+  it('cancels statistics when the view unmounts', async () => {
+    vi.useFakeTimers()
+    let statsSignal: AbortSignal | undefined
+    vi.mocked(auditApi.getAuditStats).mockImplementation((_params, signal) => {
+      statsSignal = signal
+      return new Promise<AuditStats>(() => {})
+    })
+
+    const wrapper = mountAuditLogsView()
+    await flushPromises()
+    await vi.advanceTimersByTimeAsync(500)
+    await flushPromises()
+    expect(statsSignal).toBeDefined()
+
+    wrapper.unmount()
+    expect(statsSignal?.aborted).toBe(true)
   })
 })

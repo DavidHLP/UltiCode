@@ -57,6 +57,7 @@ export interface UseRemoteTableOptions<TData, TFilters, TParams> {
   }) => TParams
   debounceMs?: number
   autoLoad?: boolean
+  showInitialLoading?: boolean
   route?: RemoteTableRouteAdapter<TFilters>
 }
 
@@ -87,6 +88,7 @@ export function useRemoteTable<
     toParams,
     debounceMs = 500,
     autoLoad = false,
+    showInitialLoading = true,
     route,
   } = options
 
@@ -106,7 +108,7 @@ export function useRemoteTable<
   const readonlyQuery = computed<DeepReadonly<RemoteTableQuery<TFilters>>>(
     () => readonly(query.value) as DeepReadonly<RemoteTableQuery<TFilters>>,
   )
-  const initialLoad = ref(true)
+  const initialLoad = ref(showInitialLoading)
   const pendingRequests = ref(0)
   let searchTimer: ReturnType<typeof setTimeout> | undefined
   let routeTimer: ReturnType<typeof setTimeout> | undefined

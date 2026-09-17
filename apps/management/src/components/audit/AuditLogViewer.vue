@@ -74,6 +74,7 @@ const {
   debounceMs: 300,
   autoLoad: false,
   showInitialLoading: false,
+})
 
 const searchQuery = computed({
   get: () => query.value.search,

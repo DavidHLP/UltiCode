@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, h, watch } from 'vue'
+import { ref, computed, onMounted, h } from 'vue'
 import { formatDateTimeByLocale } from '@/i18n/utils'
+import { watchDebounced } from '@vueuse/core'
 import type { ColumnDef } from '@tanstack/vue-table'
 import {
   IconInfoCircle,
@@ -137,7 +138,7 @@ onMounted(() => {
 const actionTypeStats = computed(() => auditStore.stats?.actionsByType ?? [])
 const statsTotal = computed(() => auditStore.stats?.totalActions ?? total.value)
 
-watch(
+watchDebounced(
   query,
   (current) => {
     const { search, filters, pagination } = current
@@ -155,7 +156,7 @@ watch(
       }),
     )
   },
-  { deep: true, immediate: true },
+  { debounce: 500, deep: true, immediate: true },
 )
 
 function showDetails(log: AuditLog) {

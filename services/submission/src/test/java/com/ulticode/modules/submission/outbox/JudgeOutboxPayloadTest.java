@@ -59,6 +59,7 @@ class JudgeOutboxPayloadTest {
 
         assertThat(JudgeOutboxPayload.fromLegacy(values, objectMapper)).isEmpty();
         assertThat(JudgeOutboxPayload.fromLegacy("{not-json", objectMapper)).isEmpty();
+        assertThat(JudgeOutboxPayload.fromLegacy("null", objectMapper)).isEmpty();
         assertThat(JudgeOutboxPayload.fromLegacy(null, objectMapper)).isEmpty();
     }
 

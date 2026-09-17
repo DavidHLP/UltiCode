@@ -100,8 +100,10 @@ public record JudgeOutboxPayload(
         }
         if (raw instanceof String json && !json.isBlank()) {
             try {
-                return objectMapper.readValue(json, new TypeReference<Map<String, Object>>() {
-                });
+                Map<String, Object> parsed =
+                        objectMapper.readValue(json, new TypeReference<Map<String, Object>>() {
+                        });
+                return parsed == null ? Map.of() : parsed;
             } catch (Exception ignored) {
                 return Map.of();
             }

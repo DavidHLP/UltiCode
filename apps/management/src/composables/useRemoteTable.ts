@@ -147,6 +147,8 @@ export function useRemoteTable<
 
   function abortActiveRequests(): void {
     requestSequence += 1
+    // Keep controllers until each loader settles so disposal also covers
+    // loaders that do not honor the signal immediately.
     for (const controller of activeControllers) controller.abort()
   }
 

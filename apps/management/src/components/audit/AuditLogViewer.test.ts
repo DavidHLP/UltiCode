@@ -6,7 +6,7 @@ import { auditApi } from '@/api/admin/audit'
 type AuditApiModule = { auditApi: typeof auditApi }
 
 vi.mock('@/api/admin/audit', async () => {
-  const actual = await vi.importActual<typeof AuditApiModule>('@/api/admin/audit')
+  const actual = await vi.importActual<AuditApiModule>('@/api/admin/audit')
   return {
     ...actual,
     auditApi: {

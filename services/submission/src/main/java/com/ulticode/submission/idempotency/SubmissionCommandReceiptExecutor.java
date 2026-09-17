@@ -11,6 +11,7 @@ import com.ulticode.common.command.ReceiptView;
 import com.ulticode.common.command.ReceiptWrite;
 import com.ulticode.common.command.WriteCommand;
 import com.ulticode.common.rpc.RpcResult;
+import com.ulticode.receipt.ClaimCommandReceiptStoreBridge;
 import com.ulticode.receipt.ReceiptExecutorFactory;
 import com.ulticode.submission.idempotency.entity.SubmissionCommandReceiptEntity;
 import com.ulticode.submission.idempotency.mapper.SubmissionCommandReceiptMapper;
@@ -57,31 +58,17 @@ public class SubmissionCommandReceiptExecutor {
         return FINGERPRINTS.fingerprint(command);
     }
 
-    private static final class SubmissionReceiptStore implements ClaimCommandReceiptStore {
-        private final SubmissionCommandReceiptMapper mapper;
+    private static final class SubmissionReceiptStore
+            extends ClaimCommandReceiptStoreBridge<SubmissionCommandReceiptEntity> {
 
         private SubmissionReceiptStore(SubmissionCommandReceiptMapper mapper) {
-            this.mapper = mapper;
-        }
-
-        @Override
-        public int insert(ReceiptWrite receipt) {
-            return mapper.insertClaim(toEntity(receipt));
-        }
-
-        @Override
-        public ReceiptView findByKey(String service, String operation, String idempotencyKey) {
-            return toView(mapper.findByReceiptKey(service, operation, idempotencyKey));
-        }
-
-        @Override
-        public int markSuccess(String id, String resultPayload) {
-            return mapper.markSuccess(id, resultPayload);
-        }
-
-        @Override
-        public int deleteClaim(String id) {
-            return mapper.deleteClaim(id);
+            super(
+                    SubmissionReceiptStore::toEntity,
+                    SubmissionReceiptStore::toView,
+                    mapper::insertClaim,
+                    mapper::findByReceiptKey,
+                    mapper::markSuccess,
+                    mapper::deleteClaim);
         }
 
         private static SubmissionCommandReceiptEntity toEntity(ReceiptWrite receipt) {
@@ -102,9 +89,6 @@ public class SubmissionCommandReceiptExecutor {
         }
 
         private static ReceiptView toView(SubmissionCommandReceiptEntity entity) {
-            if (entity == null) {
-                return null;
-            }
             return new ReceiptView(
                     entity.getId(), entity.getCommandId(), entity.getService(), entity.getOperation(),
                     entity.getIdempotencyKey(), entity.getRequestFingerprint(), entity.getStatus(),

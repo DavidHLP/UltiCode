@@ -14,7 +14,7 @@
 
     <artifactId>backend-receipt</artifactId>
     <name>UltiCode Backend (shared receipt construction profile)</name>
-    <description>Owner-side Jackson codec and claim-executor profile for the shared command receipt protocol.</description>
+    <description>Owner-side Jackson codec, store bridge, and claim-executor profile for the shared command receipt protocol.</description>
 
     <dependencies>
         <dependency>

@@ -13,6 +13,7 @@ import com.ulticode.common.command.ReceiptView;
 import com.ulticode.common.command.ReceiptWrite;
 import com.ulticode.common.command.WriteCommand;
 import com.ulticode.common.rpc.RpcResult;
+import com.ulticode.receipt.ClaimCommandReceiptStoreBridge;
 import com.ulticode.receipt.ReceiptExecutorFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -67,31 +68,16 @@ public class CommandReceiptExecutor {
         return FINGERPRINTS.fingerprint(command);
     }
 
-    private static final class AppReceiptStore implements ClaimCommandReceiptStore {
-        private final AppCommandReceiptMapper mapper;
+    private static final class AppReceiptStore extends ClaimCommandReceiptStoreBridge<AppCommandReceiptEntity> {
 
         private AppReceiptStore(AppCommandReceiptMapper mapper) {
-            this.mapper = mapper;
-        }
-
-        @Override
-        public int insert(ReceiptWrite receipt) {
-            return mapper.insertClaim(toEntity(receipt));
-        }
-
-        @Override
-        public ReceiptView findByKey(String service, String operation, String idempotencyKey) {
-            return toView(mapper.findByReceiptKey(service, operation, idempotencyKey));
-        }
-
-        @Override
-        public int markSuccess(String id, String resultPayload) {
-            return mapper.markSuccess(id, resultPayload);
-        }
-
-        @Override
-        public int deleteClaim(String id) {
-            return mapper.deleteClaim(id);
+            super(
+                    AppReceiptStore::toEntity,
+                    AppReceiptStore::toView,
+                    mapper::insertClaim,
+                    mapper::findByReceiptKey,
+                    mapper::markSuccess,
+                    mapper::deleteClaim);
         }
 
         private static AppCommandReceiptEntity toEntity(ReceiptWrite receipt) {
@@ -112,9 +98,6 @@ public class CommandReceiptExecutor {
         }
 
         private static ReceiptView toView(AppCommandReceiptEntity entity) {
-            if (entity == null) {
-                return null;
-            }
             return new ReceiptView(
                     entity.getId(), entity.getCommandId(), entity.getService(), entity.getOperation(),
                     entity.getIdempotencyKey(), entity.getRequestFingerprint(), entity.getStatus(),

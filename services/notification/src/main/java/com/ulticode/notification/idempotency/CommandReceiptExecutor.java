@@ -13,6 +13,7 @@ import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.notification.error.NotificationErrorCode;
 import com.ulticode.notification.idempotency.entity.NotificationCommandReceiptEntity;
 import com.ulticode.notification.idempotency.mapper.NotificationCommandReceiptMapper;
+import com.ulticode.receipt.ClaimCommandReceiptStoreBridge;
 import com.ulticode.receipt.ReceiptExecutorFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -67,31 +68,17 @@ public class CommandReceiptExecutor {
         return FINGERPRINTS.fingerprint(command);
     }
 
-    private static final class NotificationReceiptStore implements ClaimCommandReceiptStore {
-        private final NotificationCommandReceiptMapper mapper;
+    private static final class NotificationReceiptStore
+            extends ClaimCommandReceiptStoreBridge<NotificationCommandReceiptEntity> {
 
         private NotificationReceiptStore(NotificationCommandReceiptMapper mapper) {
-            this.mapper = mapper;
-        }
-
-        @Override
-        public int insert(ReceiptWrite receipt) {
-            return mapper.insertClaim(toEntity(receipt));
-        }
-
-        @Override
-        public ReceiptView findByKey(String service, String operation, String idempotencyKey) {
-            return toView(mapper.findByReceiptKey(service, operation, idempotencyKey));
-        }
-
-        @Override
-        public int markSuccess(String id, String resultPayload) {
-            return mapper.markSuccess(id, resultPayload);
-        }
-
-        @Override
-        public int deleteClaim(String id) {
-            return mapper.deleteClaim(id);
+            super(
+                    NotificationReceiptStore::toEntity,
+                    NotificationReceiptStore::toView,
+                    mapper::insertClaim,
+                    mapper::findByReceiptKey,
+                    mapper::markSuccess,
+                    mapper::deleteClaim);
         }
 
         private static NotificationCommandReceiptEntity toEntity(ReceiptWrite receipt) {
@@ -112,9 +99,6 @@ public class CommandReceiptExecutor {
         }
 
         private static ReceiptView toView(NotificationCommandReceiptEntity entity) {
-            if (entity == null) {
-                return null;
-            }
             return new ReceiptView(
                     entity.getId(), entity.getCommandId(), entity.getService(), entity.getOperation(),
                     entity.getIdempotencyKey(), entity.getRequestFingerprint(), entity.getStatus(),

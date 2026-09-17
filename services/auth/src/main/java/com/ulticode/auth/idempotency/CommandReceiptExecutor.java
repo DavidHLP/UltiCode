@@ -21,6 +21,7 @@ import com.ulticode.common.command.ReceiptFingerprintStrategy;
 import com.ulticode.common.command.ReceiptView;
 import com.ulticode.common.command.ReceiptWrite;
 import com.ulticode.common.rpc.RpcResult;
+import com.ulticode.receipt.CommandReceiptStoreBridge;
 import com.ulticode.receipt.JacksonReceiptPayloadCodec;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -109,21 +110,14 @@ public class CommandReceiptExecutor {
                 && command.idempotency().hasKey();
     }
 
-    private static final class AuthReceiptStore implements CommandReceiptStore {
-        private final AuthCommandReceiptMapper mapper;
+    private static final class AuthReceiptStore extends CommandReceiptStoreBridge<AuthCommandReceiptEntity> {
 
         private AuthReceiptStore(AuthCommandReceiptMapper mapper) {
-            this.mapper = mapper;
-        }
-
-        @Override
-        public int insert(ReceiptWrite receipt) {
-            return mapper.insert(toEntity(receipt));
-        }
-
-        @Override
-        public ReceiptView findByKey(String service, String operation, String idempotencyKey) {
-            return toView(mapper.findByReceiptKey(service, operation, idempotencyKey));
+            super(
+                    AuthReceiptStore::toEntity,
+                    AuthReceiptStore::toView,
+                    mapper::insert,
+                    mapper::findByReceiptKey);
         }
 
         private static AuthCommandReceiptEntity toEntity(ReceiptWrite receipt) {
@@ -144,9 +138,6 @@ public class CommandReceiptExecutor {
         }
 
         private static ReceiptView toView(AuthCommandReceiptEntity entity) {
-            if (entity == null) {
-                return null;
-            }
             return new ReceiptView(
                     entity.getId(), entity.getCommandId(), entity.getService(), entity.getOperation(),
                     entity.getIdempotencyKey(), entity.getRequestFingerprint(), entity.getStatus(),

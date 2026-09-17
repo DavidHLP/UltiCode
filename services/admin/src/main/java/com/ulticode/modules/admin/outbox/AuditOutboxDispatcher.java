@@ -59,8 +59,11 @@ public class AuditOutboxDispatcher {
                             String claimOwner,
                             String error,
                             int maxAttempts) {
-                        return auditOutboxProcessor.markFailedInNewTx(
-                                record.getId(), claimOwner, error, maxAttempts);
+                        AuditOutboxOutcome outcome = auditOutboxProcessor.markFailedInNewTx(
+                                record, claimOwner, error, maxAttempts);
+                        // The shared contract reports affected rows; only a lost
+                        // claim updated nothing.
+                        return outcome == AuditOutboxOutcome.LOST_CLAIM ? 0 : 1;
                     }
 
                     @Override

@@ -27,9 +27,13 @@ public class AuditOutboxProcessor {
     /**
      * Process a single audit outbox record in a new, isolated transaction.
      * Fences on claimOwner so a reclaimed late worker cannot insert duplicate logs.
+     *
+     * @return {@link AuditOutboxOutcome#RECORDED} when the log row is written,
+     *         or {@link AuditOutboxOutcome#LOST_CLAIM} when another worker has
+     *         already taken the row
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void processRecordInNewTx(AuditOutboxRecord record) {
+    public AuditOutboxOutcome processRecordInNewTx(AuditOutboxRecord record) {
         AuditLog auditLog = new AuditLog();
         auditLog.setPerformerId(record.getPerformerId());
         auditLog.setUserId(record.getUserId());
@@ -45,25 +49,35 @@ public class AuditOutboxProcessor {
         if (processedRows != 1) {
             log.warn("Lost audit outbox claim before processing recordId={} claimOwner={} affectedRows={}",
                     record.getId(), record.getClaimOwner(), processedRows);
-            throw new IllegalStateException("Audit outbox record is no longer PROCESSING for owner " + record.getClaimOwner() + ": " + record.getId());
+            return AuditOutboxOutcome.LOST_CLAIM;
         }
         if (auditLogMapper.insert(auditLog) != 1) {
             throw new IllegalStateException("Audit log insert did not affect one row: " + record.getId());
         }
+        return AuditOutboxOutcome.RECORDED;
     }
 
     /**
-     * Mark an outbox record as failed in a new, isolated transaction.
+     * Record a failure in a new, isolated transaction.
      *
-     * @return the mapper's affected-row count; zero means the claim was lost
+     * @return the typed failure outcome; the attempt recorded by this call is
+     *         {@link AuditOutboxOutcome#FAILED_TERMINAL} once it reaches
+     *         {@code maxAttempts}, and {@link AuditOutboxOutcome#LOST_CLAIM}
+     *         when another worker owns the row
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public int markFailedInNewTx(String recordId, String claimOwner, String error, int maxAttempts) {
-        int affectedRows = auditOutboxMapper.markFailedWithRetry(recordId, claimOwner, error, maxAttempts);
+    public AuditOutboxOutcome markFailedInNewTx(
+            AuditOutboxRecord record, String claimOwner, String error, int maxAttempts) {
+        int affectedRows = auditOutboxMapper.markFailedWithRetry(
+                record.getId(), claimOwner, error, maxAttempts);
         if (affectedRows == 0) {
             log.warn("Lost audit outbox claim while recording failure recordId={} claimOwner={}",
-                    recordId, claimOwner);
+                    record.getId(), claimOwner);
+            return AuditOutboxOutcome.LOST_CLAIM;
         }
-        return affectedRows;
+        int attemptsAfterFailure = (record.getAttempts() == null ? 0 : record.getAttempts()) + 1;
+        return attemptsAfterFailure >= maxAttempts
+                ? AuditOutboxOutcome.FAILED_TERMINAL
+                : AuditOutboxOutcome.FAILED_RETRYABLE;
     }
 }

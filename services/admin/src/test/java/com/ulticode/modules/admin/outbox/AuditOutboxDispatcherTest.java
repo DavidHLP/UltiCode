@@ -53,6 +53,8 @@ class AuditOutboxDispatcherTest {
     void publisher_sinksLocallyAndReturnsNull() {
         AuditOutboxRecord record = new AuditOutboxRecord();
         record.setId("outbox-local");
+        when(auditOutboxProcessor.processRecordInNewTx(record))
+                .thenReturn(AuditOutboxOutcome.RECORDED);
 
         assertThat(publisher.publish(record)).isNull();
 
@@ -91,13 +93,14 @@ class AuditOutboxDispatcherTest {
             return List.of(record);
         });
         doThrow(new RuntimeException(longError)).when(auditOutboxProcessor).processRecordInNewTx(record);
-        when(auditOutboxProcessor.markFailedInNewTx(anyString(), anyString(), anyString(), anyInt()))
-                .thenReturn(0);
+        when(auditOutboxProcessor.markFailedInNewTx(
+                any(AuditOutboxRecord.class), anyString(), anyString(), anyInt()))
+                .thenReturn(AuditOutboxOutcome.FAILED_RETRYABLE);
 
         assertThat(dispatcher.dispatch()).isZero();
 
         verify(auditOutboxProcessor).markFailedInNewTx(
-                eq("outbox-err"),
+                eq(record),
                 anyString(),
                 eq(longError.substring(0, 500)),
                 eq(OutboxDispatcher.MAX_ATTEMPTS));
@@ -116,6 +119,6 @@ class AuditOutboxDispatcherTest {
         assertThat(count).isZero();
         verify(auditOutboxProcessor, never()).processRecordInNewTx(any());
         verify(auditOutboxProcessor, never()).markFailedInNewTx(
-                anyString(), anyString(), anyString(), anyInt());
+                any(AuditOutboxRecord.class), anyString(), anyString(), anyInt());
     }
 }

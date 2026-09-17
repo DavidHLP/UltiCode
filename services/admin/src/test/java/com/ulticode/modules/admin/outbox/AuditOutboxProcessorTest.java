@@ -13,11 +13,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
@@ -42,7 +42,7 @@ class AuditOutboxProcessorTest {
     }
 
     @Test
-    @DisplayName("processRecordInNewTx inserts AuditLog and marks outbox processed")
+    @DisplayName("processRecordInNewTx inserts AuditLog and reports the recorded outcome")
     void processRecordInNewTx_insertsLogAndMarksProcessed() {
         AuditOutboxRecord record = new AuditOutboxRecord();
         record.setId("rec-100");
@@ -59,7 +59,8 @@ class AuditOutboxProcessorTest {
         when(auditOutboxMapper.markProcessed(eq("rec-100"), eq("owner-1"))).thenReturn(1);
         when(auditLogMapper.insert(any(AuditLog.class))).thenReturn(1);
 
-        processor.processRecordInNewTx(record);
+        assertThat(processor.processRecordInNewTx(record))
+                .isEqualTo(AuditOutboxOutcome.RECORDED);
 
         ArgumentCaptor<AuditLog> logCaptor = ArgumentCaptor.forClass(AuditLog.class);
         verify(auditLogMapper).insert(logCaptor.capture());
@@ -74,16 +75,17 @@ class AuditOutboxProcessorTest {
     }
 
     @Test
-    @DisplayName("markFailedInNewTx forwards failure metadata and affected rows")
-    void markFailedInNewTx_forwardsFailureMetadataAndAffectedRows() {
+    @DisplayName("markFailedInNewTx forwards failure metadata and reports a retryable outcome")
+    void markFailedInNewTx_reportsRetryableFailure() {
+        AuditOutboxRecord record = new AuditOutboxRecord();
+        record.setId("rec-200");
+        record.setAttempts(0);
         when(auditOutboxMapper.markFailedWithRetry(
                 eq("rec-200"), eq("owner-2"), eq("constraint failure"), eq(5)))
                 .thenReturn(1);
 
-        int affectedRows = processor.markFailedInNewTx(
-                "rec-200", "owner-2", "constraint failure", 5);
-
-        assertThat(affectedRows).isEqualTo(1);
+        assertThat(processor.markFailedInNewTx(record, "owner-2", "constraint failure", 5))
+                .isEqualTo(AuditOutboxOutcome.FAILED_RETRYABLE);
         verify(auditOutboxMapper).markFailedWithRetry(
                 "rec-200", "owner-2", "constraint failure", 5);
     }
@@ -91,28 +93,38 @@ class AuditOutboxProcessorTest {
     @Test
     @DisplayName("markFailedInNewTx reports a lost claim without throwing")
     void markFailedInNewTx_reportsLostClaim() {
+        AuditOutboxRecord record = new AuditOutboxRecord();
+        record.setId("rec-lost");
         when(auditOutboxMapper.markFailedWithRetry(
                 eq("rec-lost"), eq("owner-lost"), eq("transient failure"), eq(5)))
                 .thenReturn(0);
 
-        assertThat(processor.markFailedInNewTx(
-                "rec-lost", "owner-lost", "transient failure", 5)).isZero();
+        assertThat(processor.markFailedInNewTx(record, "owner-lost", "transient failure", 5))
+                .isEqualTo(AuditOutboxOutcome.LOST_CLAIM);
     }
 
     @Test
-    @DisplayName("five failure updates preserve affected rows through terminal attempt")
-    void markFailedInNewTx_preservesRetryToTerminalProgression() {
+    @DisplayName("failure outcomes progress from retryable to terminal at the ceiling")
+    void markFailedInNewTx_progressesRetryableToTerminal() {
+        AuditOutboxRecord record = new AuditOutboxRecord();
+        record.setId("rec-progress");
         when(auditOutboxMapper.markFailedWithRetry(
                 eq("rec-progress"), eq("owner-progress"), eq("transient failure"), eq(5)))
                 .thenReturn(1, 1, 1, 1, 1);
 
-        assertThat(List.of(
-                processor.markFailedInNewTx("rec-progress", "owner-progress", "transient failure", 5),
-                processor.markFailedInNewTx("rec-progress", "owner-progress", "transient failure", 5),
-                processor.markFailedInNewTx("rec-progress", "owner-progress", "transient failure", 5),
-                processor.markFailedInNewTx("rec-progress", "owner-progress", "transient failure", 5),
-                processor.markFailedInNewTx("rec-progress", "owner-progress", "transient failure", 5)))
-                .containsExactly(1, 1, 1, 1, 1);
+        List<AuditOutboxOutcome> outcomes = new ArrayList<>();
+        for (int attempts = 0; attempts < 5; attempts++) {
+            record.setAttempts(attempts);
+            outcomes.add(processor.markFailedInNewTx(
+                    record, "owner-progress", "transient failure", 5));
+        }
+
+        assertThat(outcomes).containsExactly(
+                AuditOutboxOutcome.FAILED_RETRYABLE,
+                AuditOutboxOutcome.FAILED_RETRYABLE,
+                AuditOutboxOutcome.FAILED_RETRYABLE,
+                AuditOutboxOutcome.FAILED_RETRYABLE,
+                AuditOutboxOutcome.FAILED_TERMINAL);
         verify(auditOutboxMapper, times(5)).markFailedWithRetry(
                 "rec-progress", "owner-progress", "transient failure", 5);
     }
@@ -154,15 +166,15 @@ class AuditOutboxProcessorTest {
     }
 
     @Test
-    @DisplayName("claim loss is recorded by stopping duplicate audit-log insertion")
+    @DisplayName("claim loss is reported without duplicating the audit log")
     void processRecordInNewTx_stopsDuplicateAfterClaimLoss() {
         AuditOutboxRecord record = new AuditOutboxRecord();
         record.setId("rec-race");
         record.setClaimOwner("owner-race");
         when(auditOutboxMapper.markProcessed(eq("rec-race"), eq("owner-race"))).thenReturn(0);
 
-        assertThatThrownBy(() -> processor.processRecordInNewTx(record))
-                .isInstanceOf(IllegalStateException.class);
+        assertThat(processor.processRecordInNewTx(record))
+                .isEqualTo(AuditOutboxOutcome.LOST_CLAIM);
 
         verify(auditLogMapper, never()).insert(org.mockito.ArgumentMatchers.any(AuditLog.class));
     }

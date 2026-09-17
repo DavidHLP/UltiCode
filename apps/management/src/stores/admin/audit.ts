@@ -26,6 +26,12 @@ export const useAuditStore = defineStore('adminAudit', () => {
 
   const fetchLogs = collection.fetch
 
+  function cancelStats(): void {
+    statsSequence += 1
+    statsController?.abort()
+    statsController = null
+  }
+
   async function fetchStats(params?: AuditLogQueryParams) {
     statsController?.abort()
     const controller = new AbortController()
@@ -71,6 +77,7 @@ export const useAuditStore = defineStore('adminAudit', () => {
     error,
     fetchLogs,
     fetchStats,
+    cancelStats,
     exportLogs,
     clearError,
   }

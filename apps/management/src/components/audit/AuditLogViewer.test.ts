@@ -24,6 +24,27 @@ const ButtonStub = {
 }
 const SlotStub = { template: '<div><slot /></div>' }
 const InputStub = { inheritAttrs: false, template: '<input v-bind="$attrs" />' }
+const SelectStub = {
+  inheritAttrs: false,
+  props: {
+    modelValue: {
+      type: String,
+      default: 'all',
+    },
+  },
+  emits: ['update:modelValue'],
+  template: `
+    <select
+      v-bind="$attrs"
+      :value="modelValue"
+      @change="$emit('update:modelValue', $event.target.value)"
+    >
+      <option value="all">all</option>
+      <option value="CREATE_USER">CREATE_USER</option>
+    </select>
+  `,
+}
+
 const emptyPage = {
   items: [],
   total: 0,
@@ -39,9 +60,9 @@ const i18n = createI18n({
   messages: { 'en-US': {} },
 })
 
-function mountViewer() {
+function mountViewer(props: { entityType?: string; entityId?: string } = { entityType: 'USER', entityId: 'user-1' }) {
   return mount(AuditLogViewer, {
-    props: { entityType: 'USER', entityId: 'user-1' },
+    props,
     global: {
       plugins: [i18n],
       stubs: {
@@ -52,7 +73,7 @@ function mountViewer() {
         CardContent: SlotStub,
         CardHeader: SlotStub,
         ScrollArea: SlotStub,
-        Select: SlotStub,
+        Select: SelectStub,
         SelectContent: SlotStub,
         SelectItem: SlotStub,
         SelectTrigger: SlotStub,
@@ -92,5 +113,40 @@ describe('AuditLogViewer export contract', () => {
       action: undefined,
       format: 'csv',
     })
+    wrapper.unmount()
+  })
+
+  it('preserves a specific action when exporting', async () => {
+    const wrapper = mountViewer()
+    await flushPromises()
+
+    await wrapper.find('select').setValue('CREATE_USER')
+    await flushPromises()
+    const exportButton = wrapper
+      .findAll('button')
+      .find((button) => button.text().includes('audit.export'))
+    expect(exportButton).toBeDefined()
+
+    await exportButton?.trigger('click')
+    await flushPromises()
+
+    expect(auditApi.exportAuditLogs).toHaveBeenCalledWith({
+      entityType: 'USER',
+      entityId: 'user-1',
+      search: undefined,
+      action: 'CREATE_USER',
+      format: 'csv',
+    })
+    wrapper.unmount()
+  })
+
+  it('does not show a perpetual loading state without an entity scope', async () => {
+    const wrapper = mountViewer({})
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('audit.noLogs')
+    expect(wrapper.text()).not.toContain('common.loading')
+    expect(auditApi.getAuditLogs).not.toHaveBeenCalled()
+    wrapper.unmount()
   })
 })

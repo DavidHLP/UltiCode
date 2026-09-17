@@ -1,9 +1,9 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { flushPromises, mount } from '@vue/test-utils'
 import { createI18n } from 'vue-i18n'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import AuditLogsView from './AuditLogsView.vue'
-import { auditApi } from '@/api/admin/audit'
+import { auditApi, type AuditStats } from '@/api/admin/audit'
 type AuditApiModule = { auditApi: typeof auditApi }
 
 vi.mock('@/api/admin/audit', async () => {
@@ -48,6 +48,26 @@ const ButtonStub = {
 }
 const SlotStub = { template: '<div><slot /></div>' }
 const InputStub = { inheritAttrs: false, template: '<input v-bind="$attrs" />' }
+const SelectStub = {
+  inheritAttrs: false,
+  props: {
+    modelValue: {
+      type: String,
+      default: 'all',
+    },
+  },
+  emits: ['update:modelValue'],
+  template: `
+    <select
+      v-bind="$attrs"
+      :value="modelValue"
+      @change="$emit('update:modelValue', $event.target.value)"
+    >
+      <option value="all">all</option>
+      <option value="CREATE_USER">CREATE_USER</option>
+    </select>
+  `,
+}
 
 const i18n = createI18n({
   legacy: false,
@@ -66,7 +86,7 @@ function mountAuditLogsView() {
         Input: InputStub,
         DataTable: { template: '<div><slot name="toolbar-left" /></div>' },
         AuditLogDetailDrawer: SlotStub,
-        Select: SlotStub,
+        Select: SelectStub,
         SelectContent: SlotStub,
         SelectGroup: SlotStub,
         SelectItem: SlotStub,
@@ -94,8 +114,22 @@ describe('AuditLogsView refresh contract', () => {
     vi.mocked(auditApi.getAuditStats).mockResolvedValue(stats)
   })
 
+afterEach(() => {
+  vi.useRealTimers()
+})
+
   it('refreshes logs and statistics from the toolbar and retries both after stats fail', async () => {
+    vi.useFakeTimers()
     const wrapper = mountAuditLogsView()
+    await flushPromises()
+    await vi.advanceTimersByTimeAsync(500)
+    await flushPromises()
+
+    const actionSelect = wrapper.findAll('select')[0]
+    expect(actionSelect).toBeDefined()
+    await actionSelect?.setValue('CREATE_USER')
+    await flushPromises()
+    await vi.advanceTimersByTimeAsync(500)
     await flushPromises()
 
     const refreshButton = wrapper
@@ -105,12 +139,13 @@ describe('AuditLogsView refresh contract', () => {
     const initialLogCalls = vi.mocked(auditApi.getAuditLogs).mock.calls.length
     const initialStatsCalls = vi.mocked(auditApi.getAuditStats).mock.calls.length
 
-
     vi.mocked(auditApi.getAuditStats)
       .mockRejectedValueOnce(new Error('stats unavailable'))
       .mockResolvedValue(stats)
 
     await refreshButton?.trigger('click')
+    await flushPromises()
+    await vi.advanceTimersByTimeAsync(500)
     await flushPromises()
 
     const retryButton = wrapper
@@ -120,8 +155,50 @@ describe('AuditLogsView refresh contract', () => {
 
     await retryButton?.trigger('click')
     await flushPromises()
+    await vi.advanceTimersByTimeAsync(500)
+    await flushPromises()
 
     expect(auditApi.getAuditLogs).toHaveBeenCalledTimes(initialLogCalls + 2)
     expect(auditApi.getAuditStats).toHaveBeenCalledTimes(initialStatsCalls + 2)
+
+    const expectedQuery = { action: 'CREATE_USER', page: 1, limit: 50 }
+    const logCalls = vi.mocked(auditApi.getAuditLogs).mock.calls
+    const statsCalls = vi.mocked(auditApi.getAuditStats).mock.calls
+    expect(logCalls[initialLogCalls]?.[0]).toMatchObject(expectedQuery)
+    expect(logCalls[initialLogCalls + 1]?.[0]).toMatchObject(expectedQuery)
+    expect(statsCalls[initialStatsCalls]?.[0]).toMatchObject(expectedQuery)
+    expect(statsCalls[initialStatsCalls + 1]?.[0]).toMatchObject(expectedQuery)
+    wrapper.unmount()
+  })
+
+  it('cancels stale statistics when the audit query changes', async () => {
+    vi.useFakeTimers()
+    let firstStatsSignal: AbortSignal | undefined
+    let rejectFirstStats: ((reason?: unknown) => void) | undefined
+    vi.mocked(auditApi.getAuditStats)
+      .mockImplementationOnce((_params, signal) => {
+        firstStatsSignal = signal
+        return new Promise<AuditStats>((_resolve, reject) => {
+          rejectFirstStats = reject
+        })
+      })
+      .mockResolvedValue(stats)
+
+    const wrapper = mountAuditLogsView()
+    await flushPromises()
+    await vi.advanceTimersByTimeAsync(500)
+    await flushPromises()
+
+    const actionSelect = wrapper.findAll('select')[0]
+    await actionSelect?.setValue('CREATE_USER')
+    expect(firstStatsSignal?.aborted).toBe(true)
+
+    rejectFirstStats?.(new Error('stale stats unavailable'))
+    await flushPromises()
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false)
+
+    await vi.advanceTimersByTimeAsync(500)
+    await flushPromises()
+    wrapper.unmount()
   })
 })

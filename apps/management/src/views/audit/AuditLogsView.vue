@@ -166,6 +166,15 @@ onMounted(() => {
 const actionTypeStats = computed(() => stats.value?.actionsByType ?? [])
 const statsTotal = computed(() => stats.value?.totalActions ?? total.value)
 
+watch(
+  query,
+  () => {
+    auditStore.cancelStats()
+    auditStore.clearError()
+  },
+  { deep: true, flush: 'sync' },
+)
+
 watchDebounced(
   query,
   (current) => {

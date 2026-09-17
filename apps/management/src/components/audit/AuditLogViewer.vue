@@ -88,6 +88,7 @@ const totalPages = computed(() =>
   Math.max(1, Math.ceil(total.value / tablePagination.value.pageSize)),
 )
 const expandedLogs = ref<Set<string>>(new Set())
+const hasEntity = computed(() => Boolean(props.entityType && props.entityId))
 
 watch(
   [() => props.entityType, () => props.entityId],
@@ -193,7 +194,7 @@ const filteredLogs = computed(() => data.value)
     </div>
 
     <!-- Loading -->
-    <div v-if="loading" class="flex items-center justify-center py-8">
+    <div v-if="loading && hasEntity" class="flex items-center justify-center py-8">
       <div class="text-muted-foreground text-sm">{{ t('common.loading') }}</div>
     </div>
 

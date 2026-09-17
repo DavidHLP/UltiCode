@@ -246,7 +246,9 @@ export function useRemoteTable<
 
 
   function refresh(): Promise<void> {
-    return Promise.resolve(transition({}, { writeRoute: false }))
+    abortActiveRequests()
+    cancelSearchTimer()
+    return loadCurrent()
   }
 
   const stopRoute = route?.subscribe?.((nextQuery) => {

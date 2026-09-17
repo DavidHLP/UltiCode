@@ -45,6 +45,36 @@ class JudgeJobEnvelopeTranslatorTest {
         assertThat(translator.translate(row)).isNull();
     }
 
+    @Test
+    void honoursLimitsCarriedByLegacyPayloads() {
+        when(uuidGenerator.newId()).thenReturn("attempt-1");
+        JudgeOutboxRecord row = row(Map.of(
+                "problemId", "101",
+                "userId", "user-1",
+                "language", "java",
+                "code", "class Main {}",
+                "timeLimitMs", "1500",
+                "memoryLimitKb", 131072));
+
+        JudgeJobEnvelope envelope = translator.translate(row);
+
+        assertThat(envelope).isNotNull();
+        assertThat(envelope.timeLimitMs()).isEqualTo(1500);
+        assertThat(envelope.memoryLimitKb()).isEqualTo(131072);
+    }
+
+    @Test
+    void rejectsRowsWithBlankSubmissionId() {
+        JudgeOutboxRecord row = row(Map.of(
+                "problemId", "101",
+                "userId", "user-1",
+                "language", "java",
+                "code", "class Main {}"));
+        row.setSubmissionId(" ");
+
+        assertThat(translator.translate(row)).isNull();
+    }
+
     private static JudgeOutboxRecord row(Map<String, Object> payload) {
         JudgeOutboxRecord row = new JudgeOutboxRecord();
         row.setId("row-1");

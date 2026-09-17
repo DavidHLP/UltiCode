@@ -45,8 +45,8 @@ const CACHE_TTL_MS = 30_000
 
 export const useProblemsStore = defineStore('adminProblems', () => {
   const collection = createCollectionSlice<Problem, ProblemQueryParams>({
-    load: async (params = {}) => {
-      const pageResult = await problemsApi.getProblems(params)
+    load: async (params = {}, signal) => {
+      const pageResult = await problemsApi.getProblems(params, signal)
       return { items: pageResult.items, total: pageResult.total }
     },
   })

@@ -5,7 +5,10 @@ export const searchApi = {
   /**
    * Global search across all indexes
    */
-  async search(params: SearchQuery): Promise<SearchResponse> {
-    return apiGet<SearchResponse>("/search", { params });
+  async search(
+    params: SearchQuery,
+    signal?: AbortSignal,
+  ): Promise<SearchResponse> {
+    return apiGet<SearchResponse>("/search", { params, signal });
   },
 };

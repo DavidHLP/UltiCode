@@ -1,12 +1,12 @@
 import {
   computed,
+  readonly,
   ref,
   shallowRef,
   toValue,
   type ComputedRef,
   type DeepReadonly,
   type MaybeRefOrGetter,
-  type Ref,
 } from 'vue'
 import { tryOnScopeDispose } from '@vueuse/core'
 
@@ -27,7 +27,7 @@ export interface RemoteTableQueryOptions<TFilters> {
   pagination?: Partial<PaginationState>
 }
 
-export interface RemoteTableTransition<TFilters> {
+interface RemoteTableTransition<TFilters> {
   search?: string
   filters?: TFilters
   pagination?: Partial<PaginationState>
@@ -61,21 +61,16 @@ export interface UseRemoteTableOptions<TData, TFilters, TParams> {
 }
 
 export interface UseRemoteTableReturn<TData, TFilters> {
-  query: Ref<RemoteTableQuery<TFilters>>
+  query: ComputedRef<DeepReadonly<RemoteTableQuery<TFilters>>>
   searchQuery: ComputedRef<string>
   tablePagination: ComputedRef<PaginationState>
   loading: ComputedRef<boolean>
   data: ComputedRef<TData[]>
   total: ComputedRef<number>
   error: ComputedRef<string | null>
-  transition: (
-    patch: RemoteTableTransition<TFilters>,
-    options?: { debounce?: boolean; resetPage?: boolean; writeRoute?: boolean },
-  ) => Promise<void> | void
   setSearch: (search: string) => void
   setFilters: (filters: TFilters) => Promise<void> | void
   setPagination: (pagination: PaginationState) => Promise<void> | void
-  reset: () => Promise<void> | void
   refresh: () => Promise<void>
 }
 
@@ -108,7 +103,9 @@ export function useRemoteTable<
     filters: initialFilters,
     pagination: initialPagination,
   })
-
+  const readonlyQuery = computed<DeepReadonly<RemoteTableQuery<TFilters>>>(() =>
+    readonly(query.value),
+  )
   const initialLoad = ref(true)
   const pendingRequests = ref(0)
   let searchTimer: ReturnType<typeof setTimeout> | undefined
@@ -129,7 +126,7 @@ export function useRemoteTable<
     set: (search: string) => setSearch(search),
   })
   const tablePagination = computed({
-    get: () => query.value.pagination,
+    get: () => ({ ...query.value.pagination }),
     set: (pagination: PaginationState) => setPagination(pagination),
   })
 
@@ -230,16 +227,6 @@ export function useRemoteTable<
     return transition({ pagination }, { writeRoute: false })
   }
 
-  function reset(): Promise<void> | void {
-    return transition({
-      search: initialQuery.search ?? '',
-      filters: initialQuery.filters,
-      pagination: {
-        pageIndex: initialQuery.pagination?.pageIndex ?? 0,
-        pageSize: initialQuery.pagination?.pageSize ?? 10,
-      },
-    })
-  }
 
   function refresh(): Promise<void> {
     return Promise.resolve(transition({}, { writeRoute: false }))
@@ -260,18 +247,16 @@ export function useRemoteTable<
   if (autoLoad) void loadCurrent()
 
   return {
-    query,
+    query: readonlyQuery,
     searchQuery,
     tablePagination,
     loading,
     data,
     total,
     error,
-    transition,
     setSearch,
     setFilters,
     setPagination,
-    reset,
     refresh,
   }
 }

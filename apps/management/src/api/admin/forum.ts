@@ -96,7 +96,10 @@ export interface ForumPostDetail extends ForumPost {
 }
 
 export const forumApi = {
-  async getPosts(params: ForumPostQueryParams): Promise<PageResult<ForumPost>> {
+  async getPosts(
+    params: ForumPostQueryParams,
+    signal?: AbortSignal,
+  ): Promise<PageResult<ForumPost>> {
     const response = await apiGet<
       PageResult<
         ForumPost & {
@@ -106,7 +109,7 @@ export const forumApi = {
           communitySlug?: string
         }
       >
-    >('/admin/forum/posts', { params })
+    >('/admin/forum/posts', { params, signal })
     return {
       ...response,
       items: response.items.map((post) => ({

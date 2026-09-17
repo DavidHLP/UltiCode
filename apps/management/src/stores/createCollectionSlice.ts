@@ -27,6 +27,7 @@ export interface CollectionSlice<T, TParams> {
 export interface CollectionFetchOptions {
   rethrow?: boolean
   errorMessage?: string
+  signal?: AbortSignal
 }
 
 interface CreateCollectionSliceOptions<T, TParams, TMetadata> {
@@ -36,6 +37,7 @@ interface CreateCollectionSliceOptions<T, TParams, TMetadata> {
 
 type CollectionLoader<T, TParams, TMetadata> = (
   params: TParams,
+  signal?: AbortSignal,
 ) => Promise<CollectionPage<T, TMetadata> | undefined>
 
 function isCancellationError(err: unknown): boolean {
@@ -63,6 +65,7 @@ export function createCollectionSlice<T, TParams, TMetadata = never>(
   const isLoading = ref(false)
   const error = ref<string | null>(null)
   let requestSequence = 0
+  let currentController: AbortController | null = null
 
   async function runFetch<TLoadMetadata>(
     load: CollectionLoader<T, TParams, TLoadMetadata>,
@@ -70,20 +73,27 @@ export function createCollectionSlice<T, TParams, TMetadata = never>(
     fetchOptions?: CollectionFetchOptions,
     applyMetadata?: (metadata: TLoadMetadata) => void,
   ): Promise<void> {
+    currentController?.abort()
+    const controller = new AbortController()
+    currentController = controller
     const request = ++requestSequence
+    const externalSignal = fetchOptions?.signal
+    const abortFromExternal = () => controller.abort()
+    externalSignal?.addEventListener('abort', abortFromExternal, { once: true })
+    if (externalSignal?.aborted) controller.abort()
     isLoading.value = true
     error.value = null
 
     try {
-      const page = await load(params as TParams)
-      if (request !== requestSequence || !page) return
+      const page = await load(params as TParams, controller.signal)
+      if (request !== requestSequence || controller.signal.aborted || !page) return
       items.value = page.items
       total.value = page.total
       if (page.metadata !== undefined) {
         applyMetadata?.(page.metadata)
       }
     } catch (err: unknown) {
-      if (request !== requestSequence || isCancellationError(err)) return
+      if (request !== requestSequence || controller.signal.aborted || isCancellationError(err)) return
       error.value = extractApiErrorMessage(
         err,
         fetchOptions?.errorMessage ?? 'Failed to load collection',
@@ -91,7 +101,9 @@ export function createCollectionSlice<T, TParams, TMetadata = never>(
       console.error('Failed to load collection:', err)
       if (fetchOptions?.rethrow) throw err
     } finally {
-      if (request === requestSequence) {
+      externalSignal?.removeEventListener('abort', abortFromExternal)
+      if (currentController === controller) {
+        currentController = null
         isLoading.value = false
       }
     }
@@ -122,13 +134,14 @@ export function createCollectionSlice<T, TParams, TMetadata = never>(
   }
 
   function reset(): void {
+    currentController?.abort()
+    currentController = null
     requestSequence += 1
     items.value = []
     total.value = 0
     isLoading.value = false
     error.value = null
   }
-
   return {
     items,
     total,

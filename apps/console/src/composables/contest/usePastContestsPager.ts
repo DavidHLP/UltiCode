@@ -9,6 +9,7 @@ export interface PastContestsPager {
   pageSize: number;
   totalPages: ComputedRef<number>;
   loading: Ref<boolean>;
+  error: Ref<string | null>;
   loadPage: (nextPage?: number) => Promise<void>;
   loadInitialPage: () => Promise<void>;
 }
@@ -27,6 +28,7 @@ export function usePastContestsPager(): PastContestsPager {
 
   const page = ref(parsePage(route.query.page));
   const loading = ref(false);
+  const error = ref<string | null>(null);
   const totalPages = computed(() =>
     Math.ceil(contestStore.pastContestsTotal / PAST_CONTESTS_PAGE_SIZE),
   );
@@ -45,6 +47,7 @@ export function usePastContestsPager(): PastContestsPager {
     }
 
     loading.value = true;
+    error.value = null;
     try {
       await contestStore.loadPastContests(
         resolvedPage,
@@ -55,6 +58,12 @@ export function usePastContestsPager(): PastContestsPager {
           query: { ...route.query, page: resolvedPage },
         });
       }
+    } catch (err) {
+      error.value =
+        err instanceof Error && err.message
+          ? err.message
+          : "Failed to load past contests";
+      throw err;
     } finally {
       loading.value = false;
     }
@@ -75,7 +84,7 @@ export function usePastContestsPager(): PastContestsPager {
     }
 
     void loadPage(nextPage).catch(() => {
-      // The store owns the user-visible error state.
+      // The pager owns the user-visible transition error state.
     });
   });
 
@@ -89,6 +98,7 @@ export function usePastContestsPager(): PastContestsPager {
     pageSize: PAST_CONTESTS_PAGE_SIZE,
     totalPages,
     loading,
+    error,
     loadPage,
     loadInitialPage,
   };

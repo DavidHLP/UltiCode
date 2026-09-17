@@ -91,7 +91,7 @@ describe('useProblemsStore', () => {
       const store = useProblemsStore()
       await store.fetchProblems()
 
-      expect(problemsApi.getProblems).toHaveBeenCalledWith({})
+      expect(problemsApi.getProblems).toHaveBeenCalledWith({}, expect.any(AbortSignal))
       expect(store.problems).toEqual([mockProblem])
       expect(store.total).toBe(1)
       expect(store.loading).toBe(false)
@@ -110,11 +110,14 @@ describe('useProblemsStore', () => {
       const store = useProblemsStore()
       await store.fetchProblems({ page: 2, limit: 20, difficulty: 'EASY' })
 
-      expect(problemsApi.getProblems).toHaveBeenCalledWith({
-        page: 2,
-        limit: 20,
-        difficulty: 'EASY',
-      })
+      expect(problemsApi.getProblems).toHaveBeenCalledWith(
+        {
+          page: 2,
+          limit: 20,
+          difficulty: 'EASY',
+        },
+        expect.any(AbortSignal),
+      )
     })
 
     it('should set error and clear problems on failure', async () => {

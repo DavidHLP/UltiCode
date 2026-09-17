@@ -8,7 +8,7 @@ describe('createCollectionSlice', () => {
 
     await slice.fetch({ page: 1 })
 
-    expect(load).toHaveBeenCalledWith({ page: 1 })
+    expect(load).toHaveBeenCalledWith({ page: 1 }, expect.any(AbortSignal))
     expect(slice.items.value).toEqual(['one', 'two'])
     expect(slice.total.value).toBe(2)
     expect(slice.isLoading.value).toBe(false)
@@ -47,6 +47,26 @@ describe('createCollectionSlice', () => {
 
     expect(slice.error.value).toBeNull()
     expect(slice.isLoading.value).toBe(false)
+  })
+  it('aborts the previous loader when a newer fetch completes', async () => {
+    let resolveFirst: (value: { items: string[]; total: number }) => void = () => undefined
+    const first = new Promise<{ items: string[]; total: number }>((resolve) => {
+      resolveFirst = resolve
+    })
+    const load = vi
+      .fn()
+      .mockReturnValueOnce(first)
+      .mockResolvedValueOnce({ items: ['new'], total: 1 })
+    const slice = createCollectionSlice<string, number>({ load })
+
+    const firstFetch = slice.fetch(1)
+    const firstSignal = load.mock.calls[0][1] as AbortSignal
+    await slice.fetch(2)
+    resolveFirst({ items: ['old'], total: 1 })
+    await firstFetch
+
+    expect(firstSignal.aborted).toBe(true)
+    expect(slice.items.value).toEqual(['new'])
   })
 
   it('only applies the newest overlapping fetch', async () => {

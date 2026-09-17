@@ -12,11 +12,9 @@ import { createCollectionSlice } from '@/stores/createCollectionSlice'
 
 export const useSubmissionsStore = defineStore('admin-submissions', () => {
   // State
-  const totalPages = ref(0)
   const collection = createCollectionSlice<SubmissionListItem, SubmissionQueryParams>({
-    load: async (params = {}) => {
-      const response = await submissionsApi.getList(params)
-      totalPages.value = response.totalPages
+    load: async (params = {}, signal) => {
+      const response = await submissionsApi.getList(params, signal)
       return { items: response.items, total: response.total }
     },
   })
@@ -114,7 +112,6 @@ export const useSubmissionsStore = defineStore('admin-submissions', () => {
 
   function reset() {
     collection.reset()
-    totalPages.value = 0
     statistics.value = null
     statsLoading.value = false
     operationLoading.value = false
@@ -130,7 +127,6 @@ export const useSubmissionsStore = defineStore('admin-submissions', () => {
     fetch: collection.fetch,
     submissions: readonlySubmissions,
     total,
-    totalPages,
     loading,
     error,
     operationLoading,

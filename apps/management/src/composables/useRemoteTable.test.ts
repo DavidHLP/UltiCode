@@ -57,7 +57,8 @@ afterEach(() => {
 describe('useRemoteTable', () => {
   it('keeps the initial query and skeleton loading until the first fetch', () => {
     const { store, table } = createTable()
-
+    expect(table).not.toHaveProperty('transition')
+    expect(table).not.toHaveProperty('reset')
     expect(table.query.value.pagination).toEqual({ pageIndex: 2, pageSize: 10 })
     expect(table.query.value.filters).toEqual({ status: 'all' })
     expect(store.fetch).not.toHaveBeenCalled()

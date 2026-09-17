@@ -115,8 +115,8 @@ export interface BulkActionDto {
 }
 
 export const usersApi = {
-  async getUsers(params: UserQueryParams): Promise<PageResult<User>> {
-    return apiGet<PageResult<User>>('/admin/users', { params })
+  async getUsers(params: UserQueryParams, signal?: AbortSignal): Promise<PageResult<User>> {
+    return apiGet<PageResult<User>>('/admin/users', { params, signal })
   },
 
   async getUser(id: string): Promise<User> {

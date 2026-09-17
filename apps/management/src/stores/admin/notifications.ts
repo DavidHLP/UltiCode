@@ -1,5 +1,4 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
 import {
   adminNotificationsApi,
   type CreateNotificationDto,
@@ -10,33 +9,21 @@ import {
 import { extractApiErrorMessage } from '@/utils/error'
 import { createCollectionSlice } from '@/stores/createCollectionSlice'
 export const useNotificationsStore = defineStore('admin-notifications', () => {
-  const currentPage = ref(1)
-  const pageSize = ref(10)
   const collection = createCollectionSlice<
     SystemAnnouncement,
-    AdminNotificationQueryParams,
-    { page: number; pageSize: number }
+    AdminNotificationQueryParams
   >({
-    load: async (params = {}) => {
+    load: async (params = {}, signal) => {
       const queryParams: AdminNotificationQueryParams = {
-        page: params?.page ?? currentPage.value,
-        limit: params?.limit ?? pageSize.value,
-        keyword: params?.keyword,
-        type: params?.type,
-        category: params?.category,
-        sortBy: params?.sortBy,
-        sortOrder: params?.sortOrder,
+        ...params,
+        page: params.page ?? 1,
+        limit: params.limit ?? 10,
       }
-      const response = await adminNotificationsApi.getAll(queryParams)
+      const response = await adminNotificationsApi.getAll(queryParams, signal)
       return {
         items: response.items,
         total: response.total,
-        metadata: { page: response.page, pageSize: response.pageSize },
       }
-    },
-    applyMetadata: (metadata) => {
-      currentPage.value = metadata.page
-      pageSize.value = metadata.pageSize
     },
   })
   const announcements = collection.items
@@ -52,7 +39,6 @@ export const useNotificationsStore = defineStore('admin-notifications', () => {
     error.value = null
     try {
       await adminNotificationsApi.create(data)
-      await fetchAnnouncements()
     } catch (e: unknown) {
       error.value = extractApiErrorMessage(e, 'Failed to create notification')
       throw e
@@ -66,7 +52,6 @@ export const useNotificationsStore = defineStore('admin-notifications', () => {
     error.value = null
     try {
       await adminNotificationsApi.update(id, data)
-      await fetchAnnouncements()
     } catch (e: unknown) {
       error.value = extractApiErrorMessage(e, 'Failed to update notification')
       throw e
@@ -80,7 +65,6 @@ export const useNotificationsStore = defineStore('admin-notifications', () => {
     error.value = null
     try {
       await adminNotificationsApi.delete(id)
-      await fetchAnnouncements()
     } catch (e: unknown) {
       error.value = extractApiErrorMessage(e, 'Failed to delete announcement')
       throw e
@@ -94,8 +78,6 @@ export const useNotificationsStore = defineStore('admin-notifications', () => {
     fetch: collection.fetch,
     announcements,
     total,
-    currentPage,
-    pageSize,
     isLoading,
     error,
     fetchAnnouncements,

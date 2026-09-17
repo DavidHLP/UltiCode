@@ -22,9 +22,9 @@ export type CommentTypeGroup = Partial<Record<CommentType, string[]>>
 export const useCommentsStore = defineStore('adminComments', () => {
   const lastParams = ref<CommentQueryParams>({})
   const collection = createCollectionSlice<Comment, CommentQueryParams>({
-    load: async (params = {}) => {
+    load: async (params = {}, signal) => {
       lastParams.value = { ...params }
-      const response = await commentsApi.getComments(params)
+      const response = await commentsApi.getComments(params, signal)
       return {
         items: response.items.filter((c): c is Comment => c !== null),
         total: response.total,

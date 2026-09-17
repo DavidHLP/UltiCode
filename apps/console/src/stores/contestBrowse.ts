@@ -13,9 +13,7 @@ import {
  * Owns:
  *   - upcoming / running / past contest list state
  *   - pastContests pagination total
- *   - loadingContests flag for ongoing list-level operations
- *   - loadingPastContests flag for past contest pagination
- *   - error message for the last browse operation
+ *   - error message for ongoing list-level operations
  *
  * Sibling stores: see ./contestDetail.ts (single-contest) and
  * ./contestRanking.ts (rankings + user contests).
@@ -31,7 +29,6 @@ export const useContestBrowseStore = defineStore("contestBrowse", () => {
   const pastContestsTotal = ref(0);
 
   const loadingContests = ref(false);
-  const loadingPastContests = ref(false);
   const error = ref<string | null>(null);
 
   // =========================================================================
@@ -58,19 +55,9 @@ export const useContestBrowseStore = defineStore("contestBrowse", () => {
   }
 
   async function loadPastContests(page: number = 1, pageSize: number = 10) {
-    loadingPastContests.value = true;
-    error.value = null;
-    try {
-      const result = await fetchPastContests(page, pageSize);
-      pastContests.value = result.items;
-      pastContestsTotal.value = result.total;
-    } catch (err) {
-      error.value =
-        err instanceof Error ? err.message : "Failed to load past contests";
-      throw err;
-    } finally {
-      loadingPastContests.value = false;
-    }
+    const result = await fetchPastContests(page, pageSize);
+    pastContests.value = result.items;
+    pastContestsTotal.value = result.total;
   }
 
   function clearError() {
@@ -84,7 +71,6 @@ export const useContestBrowseStore = defineStore("contestBrowse", () => {
     pastContests,
     pastContestsTotal,
     loadingContests,
-    loadingPastContests,
     error,
 
     // Actions

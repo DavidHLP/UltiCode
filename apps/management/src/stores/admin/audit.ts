@@ -7,44 +7,41 @@ import {
   type AuditStats,
   type AuditExportParams,
 } from '@/api/admin/audit'
+import { createCollectionSlice } from '@/stores/createCollectionSlice'
 import { extractApiErrorMessage } from '@/utils/error'
 export const useAuditStore = defineStore('adminAudit', () => {
-  const logs = ref<AuditLog[]>([])
-  const total = ref(0)
+  const collection = createCollectionSlice<AuditLog, AuditLogQueryParams>({
+    load: async (params = {}, signal) => {
+      const data = await auditApi.getAuditLogs(params, signal)
+      return { items: data.items ?? [], total: data.total }
+    },
+  })
+  const logs = collection.items
+  const total = collection.total
+  const loading = collection.isLoading
+  const error = collection.error
   const stats = ref<AuditStats | null>(null)
-  const loading = ref(false)
-  const error = ref<string | null>(null)
+  let statsController: AbortController | null = null
+  let statsSequence = 0
 
-  async function fetchLogs(params: AuditLogQueryParams = {}) {
-    loading.value = true
-    error.value = null
-    try {
-      const data = await auditApi.getAuditLogs(params)
-      logs.value = data.items ?? []
-      total.value = data.total
-      return data
-    } catch (err: unknown) {
-      error.value = extractApiErrorMessage(err, 'Failed to fetch audit logs')
-      console.error('Failed to fetch audit logs:', err)
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
+  const fetchLogs = collection.fetch
 
   async function fetchStats(params?: AuditLogQueryParams) {
-    loading.value = true
-    error.value = null
+    statsController?.abort()
+    const controller = new AbortController()
+    statsController = controller
+    const request = ++statsSequence
     try {
-      const data = await auditApi.getAuditStats(params)
-      stats.value = data
+      const data = await auditApi.getAuditStats(params, controller.signal)
+      if (request === statsSequence && !controller.signal.aborted) stats.value = data
       return data
     } catch (err: unknown) {
+      if (controller.signal.aborted || request !== statsSequence) return null
       error.value = extractApiErrorMessage(err, 'Failed to fetch audit stats')
       console.error('Failed to fetch audit stats:', err)
       throw err
     } finally {
-      loading.value = false
+      if (statsController === controller) statsController = null
     }
   }
 

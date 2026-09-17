@@ -13,8 +13,8 @@ import { createCollectionSlice } from '@/stores/createCollectionSlice'
 
 export const useAdminProblemListsStore = defineStore('admin-problem-lists', () => {
   const collection = createCollectionSlice<ProblemList, ProblemListQuery>({
-    load: async (query = {}) => {
-      const pageResult = await adminProblemListsApi.getLists(query)
+    load: async (query = {}, signal) => {
+      const pageResult = await adminProblemListsApi.getLists(query, signal)
       return { items: pageResult.items, total: pageResult.total }
     },
   })

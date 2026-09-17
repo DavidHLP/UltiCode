@@ -82,8 +82,8 @@ export interface UpdateBannerDto {
 // PageResult type for paginated responses (matches backend PageResult<T>)
 
 export const adminProblemListsApi = {
-  async getLists(query: ProblemListQuery): Promise<PageResult<ProblemList>> {
-    return apiGet<PageResult<ProblemList>>('/admin/problem-lists', { params: query })
+  async getLists(query: ProblemListQuery, signal?: AbortSignal): Promise<PageResult<ProblemList>> {
+    return apiGet<PageResult<ProblemList>>('/admin/problem-lists', { params: query, signal })
   },
 
   async getList(id: string): Promise<ProblemListDetail> {

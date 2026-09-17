@@ -84,12 +84,18 @@ export interface FlagSolutionDto {
 }
 
 export const solutionsApi = {
-  async getSolutions(params: SolutionQueryParams): Promise<PageResult<SolutionListItem>> {
-    return apiGet<PageResult<SolutionListItem>>('/admin/solutions', { params })
+  async getSolutions(
+    params: SolutionQueryParams,
+    signal?: AbortSignal,
+  ): Promise<PageResult<SolutionListItem>> {
+    return apiGet<PageResult<SolutionListItem>>('/admin/solutions', { params, signal })
   },
 
-  async getFlaggedSolutions(params: SolutionQueryParams): Promise<PageResult<SolutionListItem>> {
-    return apiGet<PageResult<SolutionListItem>>('/admin/solutions/flagged', { params })
+  async getFlaggedSolutions(
+    params: SolutionQueryParams,
+    signal?: AbortSignal,
+  ): Promise<PageResult<SolutionListItem>> {
+    return apiGet<PageResult<SolutionListItem>>('/admin/solutions/flagged', { params, signal })
   },
 
   async getSolution(id: string): Promise<Solution> {

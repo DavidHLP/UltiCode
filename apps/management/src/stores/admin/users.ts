@@ -12,8 +12,8 @@ import { createCollectionSlice } from '@/stores/createCollectionSlice'
 
 export const useUsersStore = defineStore('adminUsers', () => {
   const collection = createCollectionSlice<User, UserQueryParams>({
-    load: async (params = {}) => {
-      const pageResult = await usersApi.getUsers(params)
+    load: async (params = {}, signal) => {
+      const pageResult = await usersApi.getUsers(params, signal)
       return { items: pageResult.items, total: pageResult.total }
     },
   })

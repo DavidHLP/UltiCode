@@ -42,6 +42,7 @@ const {
   page: currentPage,
   totalPages,
   loading: pastLoading,
+  error: pastError,
 } = pastPager;
 
 // Local state
@@ -66,6 +67,12 @@ const currentContests = computed<ContestListItem[]>(() => {
 });
 
 const hasContests = computed(() => currentContests.value.length > 0);
+
+function retryPastPage(): void {
+  void pastPager.loadPage().catch(() => {
+    // The pager owns and exposes the transition error state.
+  });
+}
 
 // Watch for tab changes to update URL
 watch(activeTab, (newTab) => {
@@ -281,6 +288,21 @@ onMounted(loadData);
 
         <!-- Finished Contests Tab -->
         <TabsContent value="finished" class="mt-6 space-y-6">
+          <div
+            v-if="pastError"
+            role="alert"
+            class="mb-6 flex items-center justify-between gap-4 border border-status-error-mark bg-status-error-surface px-4 py-3 text-sm text-foreground-strong"
+          >
+            <p>{{ pastError }}</p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              @click="retryPastPage"
+            >
+              {{ t("common.actions.retry") }}
+            </Button>
+          </div>
           <!-- Loading Skeletons -->
           <div
             v-if="pastLoading"

@@ -15,8 +15,8 @@ import { createCollectionSlice } from '@/stores/createCollectionSlice'
 export const useForumStore = defineStore('adminForum', () => {
   // Posts State
   const collection = createCollectionSlice<ForumPost, ForumPostQueryParams>({
-    load: async (params = {}) => {
-      const response = await forumApi.getPosts(params)
+    load: async (params = {}, signal) => {
+      const response = await forumApi.getPosts(params, signal)
       return { items: response.items, total: response.total }
     },
   })

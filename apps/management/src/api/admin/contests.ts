@@ -143,8 +143,8 @@ export interface ContestProblemAttachment {
 }
 
 export const contestsApi = {
-  async getContests(params: ContestQueryParams): Promise<PageResult<Contest>> {
-    return apiGet<PageResult<Contest>>('/admin/contest', { params })
+  async getContests(params: ContestQueryParams, signal?: AbortSignal): Promise<PageResult<Contest>> {
+    return apiGet<PageResult<Contest>>('/admin/contest', { params, signal })
   },
 
   async getContest(id: string): Promise<Contest> {

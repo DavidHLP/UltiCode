@@ -1,106 +1,118 @@
-import { ref, computed } from 'vue'
-import {
-  ModerationStatus,
-  ReportCategory,
-  type ModeratableEntityType,
-} from '@/api/admin/moderation'
+import { computed, ref } from 'vue'
+import type { Filter } from '@/components/table/DataTableToolbar.vue'
+import { ModerationStatus, ReportCategory, type ModeratableEntityType } from '@/api/admin/moderation'
 
 export interface ModerationFilterState {
-  status: ModerationStatus | 'all'
-  category: ReportCategory | 'all'
-  entityType: ModeratableEntityType | 'all'
+  status: string
+  category?: ReportCategory | 'all'
+  entityType?: ModeratableEntityType | 'all'
 }
 
-interface ModerationFilterBinding {
-  query: { readonly value: { readonly filters: ModerationFilterState } }
-  setFilters: (filters: ModerationFilterState) => void
+interface ModerationFilterBinding<TFilters extends ModerationFilterState> {
+  query: { readonly value: { readonly filters: TFilters } }
+  setFilters: (filters: TFilters) => void
 }
 
-export function useModerationFilters(binding?: ModerationFilterBinding) {
+interface ModerationFilterOptions {
+  statusValues?: readonly string[]
+  statusNamespace?: string
+  includeCategory?: boolean
+  includeEntityType?: boolean
+}
+
+const categoryOptions = Object.values(ReportCategory)
+const entityTypeOptions: ModeratableEntityType[] = [
+  'forum_post',
+  'forum_comment',
+  'solution',
+  'solution_comment',
+  'problem',
+]
+
+export function useModerationFilters<TFilters extends ModerationFilterState>(
+  binding?: ModerationFilterBinding<TFilters>,
+  options: ModerationFilterOptions = {},
+) {
+  const statusValues = options.statusValues ?? Object.values(ModerationStatus)
+  const statusNamespace = options.statusNamespace ?? 'moderation.status'
+  const includeCategory = options.includeCategory ?? true
+  const includeEntityType = options.includeEntityType ?? true
+
   const statusFilter = binding
     ? computed({
         get: () => binding.query.value.filters.status,
-        set: (status: ModerationStatus | 'all') =>
-          binding.setFilters({ ...binding.query.value.filters, status }),
+        set: (status: string) =>
+          binding.setFilters({ ...binding.query.value.filters, status } as TFilters),
       })
-    : ref<ModerationStatus | 'all'>('all')
+    : ref<string>('all')
   const categoryFilter = binding
     ? computed({
-        get: () => binding.query.value.filters.category,
+        get: () => binding.query.value.filters.category ?? 'all',
         set: (category: ReportCategory | 'all') =>
-          binding.setFilters({ ...binding.query.value.filters, category }),
+          binding.setFilters({ ...binding.query.value.filters, category } as TFilters),
       })
     : ref<ReportCategory | 'all'>('all')
   const entityTypeFilter = binding
     ? computed({
-        get: () => binding.query.value.filters.entityType,
+        get: () => binding.query.value.filters.entityType ?? 'all',
         set: (entityType: ModeratableEntityType | 'all') =>
-          binding.setFilters({ ...binding.query.value.filters, entityType }),
+          binding.setFilters({ ...binding.query.value.filters, entityType } as TFilters),
       })
     : ref<ModeratableEntityType | 'all'>('all')
 
-  // Filter configuration for DataTableToolbar
   function buildFilters(t: (key: string) => string) {
-    return computed(() => [
-      {
-        modelValue: statusFilter.value,
-        placeholder: t('moderation.status.title'),
-        options: [
-          { value: 'all', label: t('moderation.status.all') },
-          { value: ModerationStatus.PENDING, label: t('moderation.status.PENDING') },
-          { value: ModerationStatus.UNDER_REVIEW, label: t('moderation.status.UNDER_REVIEW') },
-          { value: ModerationStatus.RESOLVED, label: t('moderation.status.RESOLVED') },
-          { value: ModerationStatus.DISMISSED, label: t('moderation.status.DISMISSED') },
-          { value: ModerationStatus.APPEAL_PENDING, label: t('moderation.status.APPEAL_PENDING') },
-        ],
-        width: 'w-[160px]',
-      },
-      {
-        modelValue: categoryFilter.value,
-        placeholder: t('moderation.categories.title'),
-        options: [
-          { value: 'all', label: t('moderation.categories.all') },
-          { value: ReportCategory.SPAM, label: t('moderation.categories.SPAM') },
-          { value: ReportCategory.HARASSMENT, label: t('moderation.categories.HARASSMENT') },
-          { value: ReportCategory.HATE_SPEECH, label: t('moderation.categories.HATE_SPEECH') },
-          { value: ReportCategory.VIOLENCE, label: t('moderation.categories.VIOLENCE') },
-          {
-            value: ReportCategory.SEXUAL_CONTENT,
-            label: t('moderation.categories.SEXUAL_CONTENT'),
-          },
-          {
-            value: ReportCategory.MISINFORMATION,
-            label: t('moderation.categories.MISINFORMATION'),
-          },
-          { value: ReportCategory.WRONG_ANSWER, label: t('moderation.categories.WRONG_ANSWER') },
-          { value: ReportCategory.COPYRIGHT, label: t('moderation.categories.COPYRIGHT') },
-          { value: ReportCategory.OTHER, label: t('moderation.categories.OTHER') },
-        ],
-        width: 'w-[160px]',
-      },
-      {
-        modelValue: entityTypeFilter.value,
-        placeholder: t('moderation.entityTypes.title'),
-        options: [
-          { value: 'all', label: t('moderation.entityTypes.all') },
-          { value: 'forum_post', label: t('moderation.entityTypes.forum_post') },
-          { value: 'forum_comment', label: t('moderation.entityTypes.forum_comment') },
-          { value: 'solution', label: t('moderation.entityTypes.solution') },
-          { value: 'solution_comment', label: t('moderation.entityTypes.solution_comment') },
-          { value: 'problem', label: t('moderation.entityTypes.problem') },
-        ],
-        width: 'w-[140px]',
-      },
-    ])
+    return computed<Filter[]>(() => {
+      const filters: Filter[] = [
+        {
+          modelValue: statusFilter.value,
+          placeholder: t(`${statusNamespace}.title`),
+          options: [
+            { value: 'all', label: t(`${statusNamespace}.all`) },
+            ...statusValues.map((value) => ({
+              value,
+              label: t(`${statusNamespace}.${value}`),
+            })),
+          ],
+          width: 'w-[160px]',
+        },
+      ]
+      if (includeCategory) {
+        filters.push({
+          modelValue: categoryFilter.value,
+          placeholder: t('moderation.categories.title'),
+          options: [
+            { value: 'all', label: t('moderation.categories.all') },
+            ...categoryOptions.map((value) => ({
+              value,
+              label: t(`moderation.categories.${value}`),
+            })),
+          ],
+          width: 'w-[160px]',
+        })
+      }
+      if (includeEntityType) {
+        filters.push({
+          modelValue: entityTypeFilter.value,
+          placeholder: t('moderation.entityTypes.title'),
+          options: [
+            { value: 'all', label: t('moderation.entityTypes.all') },
+            ...entityTypeOptions.map((value) => ({
+              value,
+              label: t(`moderation.entityTypes.${value}`),
+            })),
+          ],
+          width: 'w-[140px]',
+        })
+      }
+      return filters
+    })
   }
 
   function handleFilterUpdate(index: number, value: string | number) {
-    if (index === 0) {
-      statusFilter.value = value as ModerationStatus | 'all'
-    } else if (index === 1) {
-      categoryFilter.value = value as ReportCategory | 'all'
-    } else if (index === 2) {
-      entityTypeFilter.value = value as ModeratableEntityType | 'all'
+    if (index === 0) statusFilter.value = String(value)
+    else if (index === 1 && includeCategory) categoryFilter.value = String(value) as ReportCategory
+    else if (includeEntityType) {
+      entityTypeFilter.value = String(value) as ModeratableEntityType
     }
   }
 

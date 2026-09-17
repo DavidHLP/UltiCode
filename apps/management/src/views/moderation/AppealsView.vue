@@ -17,12 +17,13 @@ import {
 import { IconRefresh, IconScale, IconLoader2, IconCheck, IconX } from '@tabler/icons-vue'
 
 import DataTable from '@/components/table/DataTable.vue'
-import DataTableToolbar, { type Filter } from '@/components/table/DataTableToolbar.vue'
+import DataTableToolbar from '@/components/table/DataTableToolbar.vue'
 
 import { useModerationStore } from '@/stores/admin/moderation'
 import { type Appeal, AppealStatus, type QueryAppealsParams } from '@/api/admin/moderation'
 import { useRemoteTable } from '@/composables/useRemoteTable'
 import { createAppealsColumns, type AppealActions } from './appeals-columns'
+import { useModerationFilters } from './composables/useModerationFilters'
 
 const { t } = useI18n()
 const store = useModerationStore()
@@ -65,10 +66,16 @@ const {
   autoLoad: true,
 })
 
-const statusFilter = computed({
-  get: () => query.value.filters.status,
-  set: (status: AppealStatus | 'all') => setFilters({ status }),
-})
+const { buildFilters, handleFilterUpdate } = useModerationFilters(
+  { query, setFilters },
+  {
+    statusValues: Object.values(AppealStatus),
+    statusNamespace: 'moderation.appealStatus',
+    includeCategory: false,
+    includeEntityType: false,
+  },
+)
+const filters = buildFilters(t)
 
 // Stats
 const stats = computed(() => ({
@@ -103,26 +110,7 @@ const columns = computed(() => {
   return createAppealsColumns(t, actions)
 })
 
-// Filter configuration
-const filters = computed<Filter[]>(() => [
-  {
-    modelValue: statusFilter.value,
-    placeholder: t('moderation.appealStatus.title'),
-    options: [
-      { value: 'all', label: t('moderation.appealStatus.all') },
-      { value: AppealStatus.PENDING, label: t('moderation.appealStatus.PENDING') },
-      { value: AppealStatus.UNDER_REVIEW, label: t('moderation.appealStatus.UNDER_REVIEW') },
-      { value: AppealStatus.APPROVED, label: t('moderation.appealStatus.APPROVED') },
-      { value: AppealStatus.REJECTED, label: t('moderation.appealStatus.REJECTED') },
-    ],
-    width: 'w-[160px]',
-  },
-])
 
-
-function handleFilterUpdate(index: number, value: string | number) {
-  if (index === 0) statusFilter.value = value as AppealStatus | 'all'
-}
 
 async function handleReviewSubmit() {
   if (!selectedAppeal.value) return

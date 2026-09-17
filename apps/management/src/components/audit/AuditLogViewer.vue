@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { formatDateTimeByLocale } from '@/i18n/utils'
 import { Button } from '@/components/ui/button'
@@ -15,7 +15,9 @@ import {
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { IconSearch, IconDownload, IconChevronDown, IconChevronUp } from '@tabler/icons-vue'
-import { auditApi, type AuditLog } from '@/api/admin/audit'
+import { auditApi, type AuditLog, type AuditLogQueryParams } from '@/api/admin/audit'
+import { createCollectionSlice } from '@/stores/createCollectionSlice'
+import { useRemoteTable } from '@/composables/useRemoteTable'
 import { formatJson } from '@/views/audit/utils'
 import { SemanticBadge, getAuditActionColor } from '@/components/ui/terminal'
 
@@ -28,64 +30,90 @@ interface Props {
   showFilters?: boolean
 }
 
+interface AuditViewerFilters {
+  search: string
+  action: string
+}
+
 const props = withDefaults(defineProps<Props>(), {
   limit: 20,
   showFilters: true,
 })
 
-const auditLogs = ref<AuditLog[]>([])
-const loading = ref(false)
-const currentPage = ref(1)
-const pageSize = ref(props.limit)
-const total = ref(0)
-const totalPages = ref(0)
+const collection = createCollectionSlice<AuditLog, AuditLogQueryParams>({
+  load: async (params = {}, signal) => {
+    const response = await auditApi.getAuditLogs(params, signal)
+    return { items: response.items ?? [], total: response.total }
+  },
+})
+const {
+  query,
+  tablePagination,
+  loading,
+  data,
+  total,
+  error,
+  refresh: loadAuditLogs,
+  setSearch,
+  setFilters,
+  setPagination,
+} = useRemoteTable<AuditLog, AuditViewerFilters, AuditLogQueryParams>({
+  store: collection,
+  initialQuery: {
+    filters: { search: '', action: 'all' },
+    pagination: { pageIndex: 0, pageSize: props.limit },
+  },
+  toParams: ({ search, filters, page, limit }) => ({
+    entityType: props.entityType,
+    entityId: props.entityId,
+    search: search || undefined,
+    action: filters.action === 'all' ? undefined : filters.action,
+    page,
+    limit,
+  }),
+  debounceMs: 300,
+  autoLoad: false,
+})
 
-const searchQuery = ref('')
-const actionFilter = ref('')
-const performerFilter = ref('')
+const searchQuery = computed({
+  get: () => query.value.search,
+  set: (value: string) => setSearch(value),
+})
+const actionFilter = computed({
+  get: () => query.value.filters.action,
+  set: (value: string) => setFilters({ ...query.value.filters, action: value }),
+})
+const currentPage = computed(() => tablePagination.value.pageIndex + 1)
+const totalPages = computed(() =>
+  Math.max(1, Math.ceil(total.value / tablePagination.value.pageSize)),
+)
 const expandedLogs = ref<Set<string>>(new Set())
 
-async function loadAuditLogs() {
-  if (!props.entityType || !props.entityId) {
-    return
-  }
-  loading.value = true
-  try {
-    const response = await auditApi.getAuditLogs({
-      entityType: props.entityType,
-      entityId: props.entityId,
-      search: searchQuery.value || undefined,
-      action: actionFilter.value && actionFilter.value !== 'all' ? actionFilter.value : undefined,
-      performerId: performerFilter.value || undefined,
-      page: currentPage.value,
-      limit: pageSize.value,
-    })
-    auditLogs.value = response.items || []
-    total.value = response.total
-    totalPages.value = response.totalPages
-  } catch (error) {
-    console.error('Failed to load audit logs:', error)
-  } finally {
-    loading.value = false
-  }
-}
+watch(
+  [() => props.entityType, () => props.entityId],
+  ([entityType, entityId]) => {
+    if (!entityType || !entityId) {
+      collection.reset()
+      return
+    }
+    void setPagination({ pageIndex: 0, pageSize: props.limit })
+  },
+  { immediate: true },
+)
 
 function toggleExpand(logId: string) {
-  if (expandedLogs.value.has(logId)) {
-    expandedLogs.value.delete(logId)
-  } else {
-    expandedLogs.value.add(logId)
-  }
+  const next = new Set(expandedLogs.value)
+  if (next.has(logId)) next.delete(logId)
+  else next.add(logId)
+  expandedLogs.value = next
 }
 
 function handlePreviousPage() {
-  currentPage.value--
-  loadAuditLogs()
+  void setPagination({ ...tablePagination.value, pageIndex: currentPage.value - 2 })
 }
 
 function handleNextPage() {
-  currentPage.value++
-  loadAuditLogs()
+  void setPagination({ ...tablePagination.value, pageIndex: currentPage.value })
 }
 
 function formatAction(action: string): string {
@@ -102,34 +130,12 @@ function formatAction(action: string): string {
 
 function getChangesSummary(log: AuditLog): { count: number; label: string } {
   let count = 0
-  if (log.oldValues && typeof log.oldValues === 'object') {
-    count += Object.keys(log.oldValues).length
-  }
-  if (log.newValues && typeof log.newValues === 'object') {
-    count += Object.keys(log.newValues).length
-  }
+  if (log.oldValues && typeof log.oldValues === 'object') count += Object.keys(log.oldValues).length
+  if (log.newValues && typeof log.newValues === 'object') count += Object.keys(log.newValues).length
   return { count, label: `${count} change${count !== 1 ? 's' : ''}` }
 }
 
-const filteredLogs = computed(() => {
-  return auditLogs.value
-})
-
-// Watch for entityId changes to trigger data fetch
-watch(
-  () => props.entityId,
-  (newEntityId) => {
-    if (newEntityId && props.entityType) {
-      currentPage.value = 1
-      loadAuditLogs()
-    }
-  },
-  { immediate: true },
-)
-
-onMounted(() => {
-  // Initial load is handled by watch(immediate: true)
-})
+const filteredLogs = computed(() => data.value)
 </script>
 
 <template>
@@ -145,7 +151,7 @@ onMounted(() => {
           @keyup.enter="loadAuditLogs"
         />
       </div>
-      <Select v-model="actionFilter" @update:model-value="loadAuditLogs">
+      <Select v-model="actionFilter">
         <SelectTrigger class="w-[180px]">
           <SelectValue :placeholder="t('audit.filterAction')" />
         </SelectTrigger>
@@ -189,6 +195,18 @@ onMounted(() => {
     <!-- Loading -->
     <div v-if="loading" class="flex items-center justify-center py-8">
       <div class="text-muted-foreground text-sm">{{ t('common.loading') }}</div>
+    </div>
+
+    <!-- Error state -->
+    <div
+      v-else-if="error"
+      role="alert"
+      class="flex items-center justify-between border border-[var(--status-error-mark)] bg-[color-mix(in_oklch,_var(--status-error-mark)_8%,_transparent)] p-4"
+    >
+      <span class="text-sm text-[var(--foreground)]">{{ error }}</span>
+      <Button variant="terminal" size="sm" @click="loadAuditLogs">
+        {{ t('common.retry') }}
+      </Button>
     </div>
 
     <!-- Empty state -->

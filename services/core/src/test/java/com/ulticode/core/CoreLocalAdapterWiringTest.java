@@ -48,11 +48,13 @@ class CoreLocalAdapterWiringTest {
 
         AnnotationConfigApplicationContext child = new AnnotationConfigApplicationContext();
         try {
-            ownerContexts.registerChildContracts(child, new CoreModuleDefinition(
+            CoreModuleDefinition admin = new CoreModuleDefinition(
                     "admin", "ADMIN", CoreOwnerBootConfigurations.Admin.class,
-                    "adminTransactionManager", "backend-admin"));
+                    "adminTransactionManager", "backend-admin");
+            CoreLocalContractAssembly.register(child, admin, ownerContexts);
             child.registerBean(AccountReadAdapter.class);
             child.refresh();
+            CoreLocalContractAssembly.validate(child, admin);
 
             assertThat(child.getBean(AuthorizationMutationService.class))
                     .isInstanceOf(CoreLocalAuthorizationMutationAdapter.class);
@@ -101,12 +103,13 @@ class CoreLocalAdapterWiringTest {
 
         AnnotationConfigApplicationContext child = new AnnotationConfigApplicationContext();
         try {
-            ownerContexts.registerChildContracts(child, new CoreModuleDefinition(
+            CoreModuleDefinition admin = new CoreModuleDefinition(
                     "admin", "ADMIN", CoreOwnerBootConfigurations.Admin.class,
-                    "adminTransactionManager", "backend-admin"));
+                    "adminTransactionManager", "backend-admin");
+            CoreLocalContractAssembly.register(child, admin, ownerContexts);
             // Register the real admin beans as container beans before refresh so
             // their @Autowired(required=false) @DubboReference fields autowire to
-            // the local singletons registered by registerChildContracts. No
+            // the local singletons registered by CoreLocalContractAssembly. No
             // reflection: because the fields are optional, a missing local seam
             // would not fail refresh — it would stay null and the legal-grant
             // assertion below would fail with OWNER_QUERY_UNAVAILABLE. The
@@ -114,6 +117,7 @@ class CoreLocalAdapterWiringTest {
             child.registerBean(com.ulticode.admin.security.SpringSecurityCurrentUserProvider.class);
             child.registerBean(UserPermissionServiceImpl.class);
             child.refresh();
+            CoreLocalContractAssembly.validate(child, admin);
 
             UserPermissionService service = child.getBean(UserPermissionService.class);
             AuthorizationMutationDTO result = service.assignUserPermission(
@@ -149,12 +153,14 @@ class CoreLocalAdapterWiringTest {
 
         AnnotationConfigApplicationContext child = new AnnotationConfigApplicationContext();
         try {
-            ownerContexts.registerChildContracts(child, new CoreModuleDefinition(
+            CoreModuleDefinition admin = new CoreModuleDefinition(
                     "admin", "ADMIN", CoreOwnerBootConfigurations.Admin.class,
-                    "adminTransactionManager", "backend-admin"));
+                    "adminTransactionManager", "backend-admin");
+            CoreLocalContractAssembly.register(child, admin, ownerContexts);
             child.registerBean(com.ulticode.admin.security.SpringSecurityCurrentUserProvider.class);
             child.registerBean(UserPermissionServiceImpl.class);
             child.refresh();
+            CoreLocalContractAssembly.validate(child, admin);
 
             UserPermissionService service = child.getBean(UserPermissionService.class);
             assertThatThrownBy(() -> service.assignUserPermission(

@@ -9,6 +9,7 @@ import java.util.List;
 /** Explicit local contract wiring for enabled Core Owner child contexts. */
 final class CoreLocalContractAssembly {
     private static final String ADMIN_MODULE = "admin";
+    static final String LOCAL_CONTRACTS_ENABLED_PROPERTY = "core.local-contracts.enabled";
     private static final String OWNER_CONTEXT_MANAGER = "coreOwnerContextManager";
     private static final String IDENTITY_QUERY_ADAPTER = "coreLocalIdentityQueryAdapter";
     private static final String AUTHORIZATION_MUTATION_ADAPTER =

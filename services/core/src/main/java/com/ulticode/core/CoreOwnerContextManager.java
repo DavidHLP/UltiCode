@@ -358,6 +358,7 @@ public class CoreOwnerContextManager implements ApplicationContextAware {
                 "security.internal-delegation.audience=backend-" + module.name(),
                 "security.internal-delegation.ttl-seconds="
                         + property("INTERNAL_DELEGATION_TTL_SECONDS", "30"),
+                CoreLocalContractAssembly.LOCAL_CONTRACTS_ENABLED_PROPERTY + "=" + admin,
                 "dubbo.enabled=false",
                 "dubbo.registry.address=N/A",
                 "dubbo.protocol.port=-1",

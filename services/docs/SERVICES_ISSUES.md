@@ -46,6 +46,11 @@ close-once 和本地断言载体已有仓库证据；Admin child 的显式 local
 registration 与 `AccountReadAdapter` identity wiring、`UserPermissionServiceImpl`
 通过 account-query/mutation seams 的合法 grant 都有单测。该测试使用 mock
 Auth contract，不是完整 child boot 或 disposable evidence。
+Core child additionally sets `core.local-contracts.enabled=true`; the Admin
+registry therefore does not publish its `@Primary` AccountQuery/Identity
+NullBean candidates there, while distributed mode keeps the existing registry
+definitions. This only protects local seam selection; it is not full child-boot
+or disposable-journey evidence.
 
 证据：[`services/core`](../core/)、[`core-profile-contract.sh`](../../scripts/test/core-profile-contract.sh)、
 [`CoreApplicationSmokeTest`](../core/src/test/java/com/ulticode/core/CoreApplicationSmokeTest.java)、

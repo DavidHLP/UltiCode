@@ -1,5 +1,6 @@
 package com.ulticode.core;
 
+import com.ulticode.modules.admin.port.adapter.AdminDubboReferenceRegistry;
 import com.ulticode.admin.security.jwt.AccountReadAdapter;
 import com.ulticode.admin.security.DelegationAssertionSigner;
 import com.ulticode.auth.api.command.ActorDelegation;
@@ -113,10 +114,13 @@ class CoreLocalAdapterWiringTest {
 
         AnnotationConfigApplicationContext child = new AnnotationConfigApplicationContext();
         try {
+            child.getEnvironment().setProperty(
+                    CoreLocalContractAssembly.LOCAL_CONTRACTS_ENABLED_PROPERTY, "true");
             CoreModuleDefinition admin = new CoreModuleDefinition(
                     "admin", "ADMIN", CoreOwnerBootConfigurations.Admin.class,
                     "adminTransactionManager", "backend-admin");
             CoreLocalContractAssembly.register(child, admin, ownerContexts);
+            child.registerBean(AdminDubboReferenceRegistry.class);
             // Register the real admin beans as container beans before refresh so
             // their @Autowired(required=false) @DubboReference fields autowire to
             // the local singletons registered by CoreLocalContractAssembly. No

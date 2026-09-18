@@ -28,6 +28,14 @@ contains services/core/src/main/java/com/ulticode/core/CoreLocalContractAssembly
 contains services/core/src/main/java/com/ulticode/core/CoreLocalContractAssembly.java '"coreLocalAuthorizationMutationAdapter"'
 contains services/core/src/main/java/com/ulticode/core/CoreLocalContractAssembly.java '"coreLocalAccountQueryAdapter"'
 contains services/core/src/main/java/com/ulticode/core/CoreLocalContractAssembly.java 'static void validate('
+contains services/core/src/main/java/com/ulticode/core/CoreLocalContractAssembly.java \
+  'LOCAL_CONTRACTS_ENABLED_PROPERTY'
+contains services/core/src/main/java/com/ulticode/core/CoreOwnerContextManager.java \
+  'CoreLocalContractAssembly.LOCAL_CONTRACTS_ENABLED_PROPERTY'
+contains services/admin/src/main/java/com/ulticode/modules/admin/port/adapter/AdminDubboReferenceRegistry.java \
+  '@ConditionalOnProperty'
+contains services/admin/src/main/java/com/ulticode/modules/admin/port/adapter/AdminDubboReferenceRegistry.java \
+  'core.local-contracts.enabled'
 
 contains services/core/src/main/java/com/ulticode/core/CoreOwnerContextManager.java 'CoreLocalContractAssembly.register(child, module, this)'
 contains services/core/src/main/java/com/ulticode/core/CoreOwnerContextManager.java 'CoreLocalContractAssembly.validate(context, module)'

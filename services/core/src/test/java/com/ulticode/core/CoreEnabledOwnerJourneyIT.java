@@ -5,6 +5,7 @@ import com.ulticode.auth.api.command.ActorDelegation;
 import com.ulticode.auth.api.command.PermissionMutationCommand;
 import com.ulticode.auth.api.dto.AuthorizationMutationDTO;
 import com.ulticode.auth.api.dto.UserIdentityDTO;
+import com.ulticode.auth.api.service.AccountQueryService;
 import com.ulticode.auth.api.service.IdentityQueryService;
 import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.common.security.LocalDelegationAssertionContext;
@@ -51,7 +52,8 @@ import static org.mockito.Mockito.spy;
  *
  * <p>The test creates no container unless the shell gate supplies the explicit system property.
  * It applies the repository-owned Auth/Admin migrations to disposable schemas, boots the real
- * children through {@link CoreOwnerContextManager}, and exercises only local contract seams.
+ * {@link CoreOwnerBootConfigurations.Admin} configuration through {@link CoreOwnerContextManager},
+ * and exercises only local contract seams.
  */
 class CoreEnabledOwnerJourneyIT {
     private static final String GATE_PROPERTY = "core.enabled.owner.journey";
@@ -116,6 +118,9 @@ class CoreEnabledOwnerJourneyIT {
                         List.of(new SimpleGrantedAuthority("ROLE_SUPER_ADMIN"))));
         try {
             IdentityQueryService identityQuery = ownerContexts.bean("admin", IdentityQueryService.class);
+            assertThat(identityQuery).isInstanceOf(CoreLocalIdentityQueryAdapter.class);
+            AccountQueryService accountQuery = ownerContexts.bean("admin", AccountQueryService.class);
+            assertThat(accountQuery).isInstanceOf(CoreLocalAccountQueryAdapter.class);
             RpcResult<UserIdentityDTO> identity = identityQuery.getIdentity("core-user");
             assertThat(identity.success()).isTrue();
             assertThat(identity.data()).extracting(UserIdentityDTO::accountId, UserIdentityDTO::username)

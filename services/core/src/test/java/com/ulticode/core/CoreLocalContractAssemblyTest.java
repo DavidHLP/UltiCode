@@ -1,5 +1,8 @@
 package com.ulticode.core;
 
+import com.ulticode.auth.api.service.AccountQueryService;
+import com.ulticode.auth.api.service.IdentityQueryService;
+import com.ulticode.modules.admin.port.adapter.AdminDubboReferenceRegistry;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
@@ -31,6 +34,30 @@ class CoreLocalContractAssemblyTest {
                     .isInstanceOf(CoreLocalAuthorizationMutationAdapter.class);
             assertThat(child.getBean("coreLocalAccountQueryAdapter"))
                     .isInstanceOf(CoreLocalAccountQueryAdapter.class);
+        } finally {
+            child.close();
+        }
+    }
+
+    @Test
+    void coreLocalContractsSuppressRemotePrimaryRegistryDefinitions() {
+        CoreOwnerContextManager ownerContexts = manager();
+        AnnotationConfigApplicationContext child = new AnnotationConfigApplicationContext();
+        try {
+            child.getEnvironment().setProperty(
+                    CoreLocalContractAssembly.LOCAL_CONTRACTS_ENABLED_PROPERTY, "true");
+            CoreLocalContractAssembly.register(child, admin(), ownerContexts);
+            child.registerBean(AdminDubboReferenceRegistry.class);
+            child.refresh();
+
+            CoreLocalContractAssembly.validate(child, admin());
+
+            assertThat(child.getBean(AccountQueryService.class))
+                    .isInstanceOf(CoreLocalAccountQueryAdapter.class);
+            assertThat(child.getBean(IdentityQueryService.class))
+                    .isInstanceOf(CoreLocalIdentityQueryAdapter.class);
+            assertThat(child.containsBean("accountQueryService")).isFalse();
+            assertThat(child.containsBean("identityQueryService")).isFalse();
         } finally {
             child.close();
         }

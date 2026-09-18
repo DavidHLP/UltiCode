@@ -347,10 +347,12 @@ public class CoreOwnerContextManager {
             org.springframework.context.ConfigurableApplicationContext context =
                     new SpringApplicationBuilder(module.bootConfiguration())
                             .web(WebApplicationType.NONE)
-                            .initializers(child -> registerChildContracts(child, module))
+                            .initializers(child ->
+                                    CoreLocalContractAssembly.register(child, module, this))
                             .properties(properties.toArray(String[]::new))
                             .run();
             attempt.setContext(context);
+            CoreLocalContractAssembly.validate(context, module);
             return new OwnerStartup(attempt);
         } catch (RuntimeException | Error failure) {
             try {
@@ -363,24 +365,6 @@ public class CoreOwnerContextManager {
             current.setContextClassLoader(previous);
         }
     }
-
-    void registerChildContracts(
-            org.springframework.context.ConfigurableApplicationContext child,
-            CoreModuleDefinition module) {
-        if (!"admin".equals(module.name())) {
-            return;
-        }
-        child.getBeanFactory().registerSingleton("coreOwnerContextManager", this);
-        child.getBeanFactory().registerSingleton(
-                "coreLocalIdentityQueryAdapter", new CoreLocalIdentityQueryAdapter(this));
-        child.getBeanFactory().registerSingleton(
-                "coreLocalAuthorizationMutationAdapter",
-                new CoreLocalAuthorizationMutationAdapter(this));
-        child.getBeanFactory().registerSingleton(
-                "coreLocalAccountQueryAdapter",
-                new CoreLocalAccountQueryAdapter(this));
-    }
-
 
     private static void closeOwnerClassLoader(java.net.URLClassLoader ownerClassLoader) {
         if (ownerClassLoader == null) {

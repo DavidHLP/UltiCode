@@ -486,6 +486,7 @@ const columns: ColumnDef<AuditLog>[] = [
       <!-- Error state - Terminal Style -->
       <div
         v-if="error"
+        role="alert"
         class="mt-4 flex items-center justify-between border border-[var(--status-error-mark)] bg-[color-mix(in_oklch,_var(--status-error-mark)_8%,_transparent)] p-4"
       >
         <div class="flex items-center gap-3">

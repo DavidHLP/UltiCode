@@ -4,6 +4,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
@@ -11,6 +13,8 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -21,9 +25,10 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
+
 /** Starts allowlisted Owner implementations in bounded child contexts. */
 @Component
-public class CoreOwnerContextManager {
+public class CoreOwnerContextManager implements ApplicationContextAware {
     private static final Logger log = LoggerFactory.getLogger(CoreOwnerContextManager.class);
 
     public enum State {
@@ -53,6 +58,8 @@ public class CoreOwnerContextManager {
     private final boolean enabled;
     private final AtomicBoolean stopping = new AtomicBoolean();
     private final AtomicBoolean startupSubmitted = new AtomicBoolean();
+    private final CompletableFuture<Void> startupCompletion = new CompletableFuture<>();
+    private volatile ApplicationContext ownerContext;
 
     /** Closing-duty claim published by the timeout path before any context. */
     private static final Object TIMEOUT_CLAIMED = new Object();
@@ -78,8 +85,17 @@ public class CoreOwnerContextManager {
             if (!enabled || stopping.get() || !startupSubmitted.compareAndSet(false, true)) {
                 return;
             }
-            startupExecutor.submit(this::startAll);
+            startupExecutor.submit(this::startAllAndComplete);
         }
+    }
+
+    @Override
+    public void setApplicationContext(ApplicationContext applicationContext) {
+        ownerContext = applicationContext;
+    }
+
+    CompletionStage<Void> startupCompletion() {
+        return startupCompletion;
     }
 
     public synchronized Map<String, State> states() {
@@ -90,6 +106,7 @@ public class CoreOwnerContextManager {
         return enabled && registry.enabledModules().stream()
                 .allMatch(module -> states.get(module.name()) == State.READY);
     }
+
     public synchronized <T> T bean(String owner, Class<T> type) {
         if (states.get(owner) != State.READY || !contexts.containsKey(owner)) {
             throw new IllegalStateException("Core Owner Module is not ready: " + owner);
@@ -98,7 +115,11 @@ public class CoreOwnerContextManager {
     }
 
     @EventListener
-    public void onContextClosed(ContextClosedEvent ignored) {
+    public void onContextClosed(ContextClosedEvent event) {
+        ApplicationContext source = event.getApplicationContext();
+        if (ownerContext != null && source != ownerContext) {
+            return;
+        }
         stopOwnerModules();
     }
 
@@ -132,6 +153,21 @@ public class CoreOwnerContextManager {
                     states.put(module.name(), State.FAILED);
                 }
             }
+        }
+    }
+
+    private void startAllAndComplete() {
+        try {
+            startAll();
+            if (allReady()) {
+                startupCompletion.complete(null);
+            } else {
+                startupCompletion.completeExceptionally(
+                        new IllegalStateException("Core Owner Module startup did not reach READY"));
+            }
+        } catch (RuntimeException | Error failure) {
+            startupCompletion.completeExceptionally(failure);
+            throw failure;
         }
     }
 

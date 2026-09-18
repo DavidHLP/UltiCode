@@ -14,6 +14,8 @@ import {
 import { badge } from '@/components/ui/terminal'
 import { formatDateByLocale } from '@/i18n/utils'
 import { Button } from '@/components/ui/button'
+import DataTable from '@/components/table/DataTable.vue'
+import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
 import { createSelectionColumn } from '@/components/table/selectionColumn'
 import {
   DropdownMenu,

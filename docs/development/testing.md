@@ -30,6 +30,16 @@ owner/module 的 declarative source contract registry 由 scripts/test/owner-arc
 | distributed journey | disposable `app-journey` scope、seeded account/problem | login → Problem read → Bookmark write → ordinary-user denial | Core parity、Judge sandbox、生产流量 |
 | Core journey | 当前不可执行；Core 只有 readiness HTTP | — | 任何业务 journey 或同构结论 |
 
+Core enabled-owner wiring 还有一个显式 opt-in 门禁：
+```bash
+CORE_ENABLED_OWNER_JOURNEY=1 bash scripts/test/core-enabled-owner-journey.sh
+```
+它不属于 `./scripts/dev/test.sh core`；只有显式设置上述开关，并提供 Docker、Maven
+及 canonical Auth/Admin migration 所需输入时才尝试。实际尝试时，它只证明真实
+Auth/Admin child wiring、local seams 与 cleanup；缺少任一输入必须报告
+`BLOCKED_EXTERNAL`，不能记为 `PASS`。默认仍是 distributed，Core 仅是
+Auth/Admin bounded opt-in；当前不宣称该 journey 已通过。
+
 第一条代表性业务旅程固定为：`POST /auth/login`、`GET /problems/{id}`、
 `POST /bookmarks/quick`、普通用户 `POST /problems` 得到 403/typed denial。
 Submission→Judge→result 不属于这条首旅程。Core 的 readiness smoke 不得代替

@@ -18,8 +18,8 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
-import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -47,14 +47,12 @@ public class AdminWebExceptionHandler {
         return ResponseEntity.status(status).body(Result.error(code, message, exception.getTraceId()));
     }
 
-    @ExceptionHandler(MethodArgumentNotValidException.class)
+    @ExceptionHandler(BindException.class)
     public ResponseEntity<Result<Map<String, String>>> handleValidationException(
-            MethodArgumentNotValidException exception) {
+            BindException exception) {
         Map<String, String> errors = new HashMap<>();
-        exception.getBindingResult().getAllErrors().forEach(error -> {
-            String fieldName = ((FieldError) error).getField();
-            errors.put(fieldName, error.getDefaultMessage());
-        });
+        exception.getBindingResult().getFieldErrors().forEach((FieldError error) ->
+                errors.put(error.getField(), error.getDefaultMessage()));
         String traceId = TraceIdUtil.current();
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Result.errorWithData(
                 BaseErrorCode.BAD_REQUEST.code(), "Validation failed", errors, traceId));

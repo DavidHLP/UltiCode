@@ -16,21 +16,20 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.event.ContextClosedEvent;
-import org.springframework.core.io.EncodedResource;
-import org.springframework.core.io.FileSystemResource;
-import org.springframework.jdbc.datasource.init.ScriptUtils;
 import org.springframework.mock.env.MockEnvironment;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.MySQLContainer;
+import org.flywaydb.core.Flyway;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
+import java.security.SecureRandom;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -39,7 +38,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -56,6 +55,9 @@ import static org.mockito.Mockito.spy;
  */
 class CoreEnabledOwnerJourneyIT {
     private static final String GATE_PROPERTY = "core.enabled.owner.journey";
+    private static final LocalDateTime PERMISSION_EXPIRY =
+            LocalDateTime.of(2099, 1, 1, 0, 0);
+    private static int fixtureSequence;
     private static final Map<String, String> ORIGINAL_SYSTEM_PROPERTIES = new HashMap<>();
 
     private static MySQLContainer<?> mysql;
@@ -75,9 +77,9 @@ class CoreEnabledOwnerJourneyIT {
         requireRepositoryInput(repositoryRoot.resolve("init-db/migrations/auth"));
         requireRepositoryInput(repositoryRoot.resolve("init-db/migrations/admin"));
 
-        mysqlPassword = randomSecret();
-        redisPassword = randomSecret();
-        jwtSecret = randomSecret() + randomSecret();
+        mysqlPassword = fixtureSecret();
+        redisPassword = fixtureSecret();
+        jwtSecret = fixtureSecret() + fixtureSecret();
         KeyPair delegationKeyPair = generateDelegationKeys();
 
         mysql = new MySQLContainer<>("mysql:8.0")
@@ -121,7 +123,7 @@ class CoreEnabledOwnerJourneyIT {
 
             UserPermissionService permissionService = ownerContexts.bean("admin", UserPermissionService.class);
             AuthorizationMutationDTO grant = permissionService.assignUserPermission(
-                    "core-user", "READ", "PROBLEM", LocalDateTime.now().plusMinutes(5));
+                    "core-user", "READ", "PROBLEM", PERMISSION_EXPIRY);
             assertThat(grant).isNotNull();
             assertThat(grant.accountId()).isEqualTo("core-user");
             assertThat(grant.operation()).isEqualTo("GRANT");
@@ -160,14 +162,23 @@ class CoreEnabledOwnerJourneyIT {
                         .containsEntry("admin", CoreOwnerContextManager.State.STOPPED);
             }
         } finally {
-            if (redis != null) {
-                redis.stop();
+            try {
+                if (redis != null) {
+                    redis.stop();
+                }
+            } finally {
+                try {
+                    if (mysql != null) {
+                        mysql.stop();
+                    }
+                } finally {
+                    try {
+                        restoreSystemProperties();
+                    } finally {
+                        SecurityContextHolder.clearContext();
+                    }
+                }
             }
-            if (mysql != null) {
-                mysql.stop();
-            }
-            restoreSystemProperties();
-            SecurityContextHolder.clearContext();
         }
     }
 
@@ -189,11 +200,11 @@ class CoreEnabledOwnerJourneyIT {
                 .withProperty("ADMIN_REDIS_PASSWORD", redisPassword)
                 .withProperty("INTERNAL_DELEGATION_PRIVATE_KEY", encode(delegationKeyPair.getPrivate().getEncoded()))
                 .withProperty("INTERNAL_DELEGATION_PUBLIC_KEY", encode(delegationKeyPair.getPublic().getEncoded()))
-                .withProperty("INTERNAL_DELEGATION_KEY_ID", "core-disposable-" + randomSecret().substring(0, 16))
+                .withProperty("INTERNAL_DELEGATION_KEY_ID", "core-disposable-" + fixtureSecret().substring(0, 16))
                 .withProperty("INTERNAL_DELEGATION_ISSUER", "backend-admin");
         ownerContexts = new CoreOwnerContextManager(new CoreModuleRegistry(), environment, true, 60_000L);
         ownerContexts.startOwnerModules();
-        waitForReady();
+        awaitOwnerStartup();
     }
 
     private static void prepareSchemasAndFixtures() throws Exception {
@@ -212,23 +223,26 @@ class CoreEnabledOwnerJourneyIT {
             insert.setString(1, "core-user");
             insert.setString(2, "core-user");
             insert.setString(3, "core-user@example.invalid");
-            insert.setString(4, randomSecret());
+            insert.setString(4, fixtureSecret());
             insert.executeUpdate();
         }
     }
 
-    private static void applyMigrations(String schema) throws Exception {
+    private static void applyMigrations(String schema) {
         Path migrationDirectory = repositoryRoot.resolve("init-db/migrations").resolve(schema);
-        try (Connection connection = DriverManager.getConnection(
-                jdbcUrl(schema), mysql.getUsername(), mysqlPassword)) {
-            try (var migrations = Files.list(migrationDirectory)) {
-                for (Path migration : migrations.filter(path -> path.getFileName().toString().endsWith(".sql"))
-                        .sorted().toList()) {
-                    ScriptUtils.executeSqlScript(connection,
-                            new EncodedResource(new FileSystemResource(migration.toFile()), StandardCharsets.UTF_8));
-                }
-            }
-        }
+        Flyway.configure()
+                .dataSource(jdbcUrl(schema), mysql.getUsername(), mysqlPassword)
+                .locations("filesystem:" + migrationDirectory.toAbsolutePath())
+                .defaultSchema(schema)
+                .schemas(schema)
+                .table("flyway_schema_history")
+                .encoding(StandardCharsets.UTF_8)
+                .baselineOnMigrate(false)
+                .outOfOrder(false)
+                .validateOnMigrate(true)
+                .cleanDisabled(true)
+                .load()
+                .migrate();
     }
 
     private static void configureSystemProperties() {
@@ -251,25 +265,17 @@ class CoreEnabledOwnerJourneyIT {
         setSystemProperty("MANAGEMENT_TRACING_SAMPLING_PROBABILITY", "0");
     }
 
-    private static void waitForReady() {
-        long deadline = System.nanoTime() + 120_000_000_000L;
-        while (System.nanoTime() < deadline) {
-            Map<String, CoreOwnerContextManager.State> states = ownerContexts.states();
-            if (states.get("auth") == CoreOwnerContextManager.State.FAILED
-                    || states.get("admin") == CoreOwnerContextManager.State.FAILED) {
-                throw new AssertionError("Core enabled-owner child failed to start");
-            }
-            if (ownerContexts.allReady()) {
-                return;
-            }
-            try {
-                Thread.sleep(250L);
-            } catch (InterruptedException interrupted) {
-                Thread.currentThread().interrupt();
-                throw new AssertionError("Interrupted while waiting for Core owner readiness", interrupted);
-            }
+    private static void awaitOwnerStartup() {
+        try {
+            ownerContexts.startupCompletion().toCompletableFuture().get(120, TimeUnit.SECONDS);
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            throw new AssertionError("Interrupted while waiting for Core owner readiness", interrupted);
+        } catch (java.util.concurrent.ExecutionException failure) {
+            throw new AssertionError("Core enabled-owner child failed to start", failure.getCause());
+        } catch (java.util.concurrent.TimeoutException timeout) {
+            throw new AssertionError("Core enabled-owner child readiness timed out", timeout);
         }
-        throw new AssertionError("Core enabled-owner child readiness timed out");
     }
 
     private static Path findRepositoryRoot() {
@@ -305,13 +311,14 @@ class CoreEnabledOwnerJourneyIT {
 
     private static KeyPair generateDelegationKeys() throws Exception {
         KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
-        generator.initialize(2048);
+        SecureRandom random = SecureRandom.getInstance("SHA1PRNG");
+        random.setSeed("core-enabled-owner-journey".getBytes(StandardCharsets.UTF_8));
+        generator.initialize(2048, random);
         return generator.generateKeyPair();
     }
 
-    private static String randomSecret() {
-        return UUID.randomUUID().toString().replace("-", "")
-                + UUID.randomUUID().toString().replace("-", "");
+    private static String fixtureSecret() {
+        return "core-disposable-fixture-" + ++fixtureSequence + "-value";
     }
 
     private static String encode(byte[] bytes) {

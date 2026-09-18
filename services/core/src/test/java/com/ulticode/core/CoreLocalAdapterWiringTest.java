@@ -1,6 +1,9 @@
 package com.ulticode.core;
 
 import com.ulticode.admin.security.jwt.AccountReadAdapter;
+import com.ulticode.admin.security.DelegationAssertionSigner;
+import com.ulticode.auth.api.command.ActorDelegation;
+import com.ulticode.auth.api.command.PermissionMutationCommand;
 import com.ulticode.auth.api.dto.AuthAccountDTO;
 import com.ulticode.auth.api.dto.AuthorizationMutationDTO;
 import com.ulticode.auth.api.dto.UserIdentityDTO;
@@ -8,6 +11,9 @@ import com.ulticode.auth.api.service.AccountQueryService;
 import com.ulticode.auth.api.service.AuthorizationMutationService;
 import com.ulticode.auth.api.service.IdentityQueryService;
 import com.ulticode.common.rpc.RpcResult;
+import com.ulticode.common.security.LocalDelegationAssertionContext;
+import com.ulticode.common.tracing.IdMetadata;
+import com.ulticode.common.tracing.TraceMetadata;
 import com.ulticode.modules.admin.service.UserPermissionService;
 import com.ulticode.modules.admin.service.impl.UserPermissionServiceImpl;
 import org.junit.jupiter.api.Test;
@@ -28,6 +34,10 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 
 class CoreLocalAdapterWiringTest {
+    private static final LocalDateTime ACCOUNT_CREATED_AT =
+            LocalDateTime.of(2020, 1, 1, 0, 0);
+    private static final LocalDateTime PERMISSION_EXPIRY =
+            LocalDateTime.of(2099, 1, 1, 0, 0);
 
     private static CoreOwnerContextManager manager() {
         return spy(new CoreOwnerContextManager(
@@ -75,7 +85,7 @@ class CoreLocalAdapterWiringTest {
         CoreOwnerContextManager ownerContexts = manager();
         AuthAccountDTO account =
                 new AuthAccountDTO("user-123", "bob", "bob@example.com", "USER", true, false,
-                        null, null, LocalDateTime.now().minusDays(30), null, 7L);
+                        null, null, ACCOUNT_CREATED_AT, null, 7L);
 
         // Auth child provider beans the local adapters delegate to.
         AccountQueryService authAccountQuery = mock(AccountQueryService.class);
@@ -122,7 +132,7 @@ class CoreLocalAdapterWiringTest {
             UserPermissionService service = child.getBean(UserPermissionService.class);
             AuthorizationMutationDTO result = service.assignUserPermission(
                     "user-123", "READ", "PROBLEM",
-                    LocalDateTime.now().plusDays(1).toLocalDate().atStartOfDay());
+                    PERMISSION_EXPIRY);
 
             assertThat(result.accountId()).isEqualTo("user-123");
             assertThat(result.changed()).isTrue();
@@ -139,7 +149,7 @@ class CoreLocalAdapterWiringTest {
         CoreOwnerContextManager ownerContexts = manager();
         AuthAccountDTO account =
                 new AuthAccountDTO("user-123", "bob", "bob@example.com", "USER", true, false,
-                        null, null, LocalDateTime.now().minusDays(30), null, 7L);
+                        null, null, ACCOUNT_CREATED_AT, null, 7L);
         AccountQueryService authAccountQuery = mock(AccountQueryService.class);
         doReturn(authAccountQuery).when(ownerContexts).bean("auth", AccountQueryService.class);
         doReturn(RpcResult.success(account, "t-auth")).when(authAccountQuery).getAccountById("user-123");
@@ -173,5 +183,48 @@ class CoreLocalAdapterWiringTest {
             child.close();
             ownerContexts.onContextClosed(new org.springframework.context.event.ContextClosedEvent(child));
         }
+    }
+
+    @Test
+    void localMutationStaysFailClosedForBlankAssertion() {
+        CoreOwnerContextManager ownerContexts = manager();
+        DelegationAssertionSigner signer = mock(DelegationAssertionSigner.class);
+        doReturn(" ").when(signer).issueForTarget("backend-auth");
+        doReturn(signer).when(ownerContexts).bean("admin", DelegationAssertionSigner.class);
+
+        RpcResult<AuthorizationMutationDTO> result =
+                new CoreLocalAuthorizationMutationAdapter(ownerContexts).mutatePermission(command());
+
+        assertThat(result.success()).isFalse();
+        assertThat(result.error().code())
+                .isEqualTo(com.ulticode.common.error.BaseErrorCode.UNAUTHORIZED.code());
+        assertThat(LocalDelegationAssertionContext.current()).isNull();
+    }
+
+    @Test
+    void localMutationStaysFailClosedWhenAuthProviderIsUnavailable() {
+        CoreOwnerContextManager ownerContexts = manager();
+        DelegationAssertionSigner signer = mock(DelegationAssertionSigner.class);
+        doReturn("signed-assertion").when(signer).issueForTarget("backend-auth");
+        doReturn(signer).when(ownerContexts).bean("admin", DelegationAssertionSigner.class);
+        doReturn(null).when(ownerContexts).bean("auth", AuthorizationMutationService.class);
+
+        RpcResult<AuthorizationMutationDTO> result =
+                new CoreLocalAuthorizationMutationAdapter(ownerContexts).mutatePermission(command());
+
+        assertThat(result.success()).isFalse();
+        assertThat(result.error().code())
+                .isEqualTo(com.ulticode.common.error.BaseErrorCode.UNAUTHORIZED.code());
+        assertThat(LocalDelegationAssertionContext.current()).isNull();
+    }
+
+    private static PermissionMutationCommand command() {
+        return new PermissionMutationCommand(
+                "wiring-command",
+                IdMetadata.of("wiring-key", null),
+                new ActorDelegation("SUPER_ADMIN", "admin-1", "admin-1", "test"),
+                new TraceMetadata("wiring-trace", null, null, null),
+                "user-123", PermissionMutationCommand.Operation.GRANT,
+                "READ", "PROBLEM", null, 0L, "wiring proof");
     }
 }

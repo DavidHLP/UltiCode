@@ -41,6 +41,12 @@ for owner in auth admin; do
   (( ${#migrations[@]} > 0 )) || blocked "no canonical $owner migration files are available"
 done
 
+CORE_REPORT="$ROOT_DIR/services/core/target/surefire-reports/com.ulticode.core.CoreEnabledOwnerJourneyIT.txt"
+rm -f -- "$CORE_REPORT"
+MAVEN_OUTPUT="$(mktemp)"
+trap 'rm -f -- "$MAVEN_OUTPUT"' EXIT
+
+set +e
 (
   cd "$ROOT_DIR/services"
   timeout 20m ./mvnw \
@@ -49,5 +55,23 @@ done
     -Dsurefire.failIfNoSpecifiedTests=false \
     -Dcore.enabled.owner.journey=true \
     test -B
-)
+) 2>&1 | tee "$MAVEN_OUTPUT"
+pipeline_status=("${PIPESTATUS[@]}")
+set -e
+
+maven_status="${pipeline_status[0]}"
+tee_status="${pipeline_status[1]}"
+if (( maven_status != 0 )); then
+  if grep -Eq 'Could not find a valid Docker environment|ContainerLaunchException|Failed to pull image|docker daemon' \
+      "$MAVEN_OUTPUT"; then
+    blocked 'the disposable Testcontainers environment is unavailable'
+  fi
+  exit "$maven_status"
+fi
+(( tee_status == 0 )) || exit "$tee_status"
+[[ -f "$CORE_REPORT" ]] \
+  || { printf 'core-enabled-owner-journey: FAIL (CoreEnabledOwnerJourneyIT report is missing)\n' >&2; exit 1; }
+grep -Eq 'Tests run: 1, Failures: 0, Errors: 0, Skipped: 0' "$CORE_REPORT" \
+  || { printf 'core-enabled-owner-journey: FAIL (the named IT did not execute exactly once)\n' >&2; exit 1; }
+
 printf 'core-enabled-owner-journey: PASS (Auth/Admin child wiring and cleanup)\n'

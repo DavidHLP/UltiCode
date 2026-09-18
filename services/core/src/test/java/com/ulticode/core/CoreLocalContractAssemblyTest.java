@@ -1,11 +1,14 @@
 package com.ulticode.core;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.mock.env.MockEnvironment;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 
 class CoreLocalContractAssemblyTest {
@@ -95,6 +98,35 @@ class CoreLocalContractAssemblyTest {
                     .isFalse();
         } finally {
             child.close();
+        }
+    }
+
+    @Test
+    void childCloseDoesNotStopParentOwnerManager() {
+        CoreModuleDefinition enabledAuth = new CoreModuleDefinition(
+                "auth", "AUTH", CoreOwnerBootConfigurations.Auth.class,
+                "authTransactionManager", "backend-auth", true);
+        CoreOwnerContextManager ownerContexts = new CoreOwnerContextManager(
+                new CoreModuleRegistry(java.util.List.of(enabledAuth)),
+                new MockEnvironment(),
+                true,
+                1_000L);
+        ApplicationContext parent = mock(ApplicationContext.class);
+        ownerContexts.setApplicationContext(parent);
+        AnnotationConfigApplicationContext child = new AnnotationConfigApplicationContext();
+        try {
+            CoreLocalContractAssembly.register(child, admin(), ownerContexts);
+            child.refresh();
+            CoreLocalContractAssembly.validate(child, admin());
+        } finally {
+            child.close();
+        }
+
+        try {
+            assertThat(ownerContexts.states())
+                    .containsEntry("auth", CoreOwnerContextManager.State.STARTING);
+        } finally {
+            ownerContexts.onContextClosed(new ContextClosedEvent(parent));
         }
     }
 

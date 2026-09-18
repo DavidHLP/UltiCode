@@ -1,0 +1,14 @@
+apps/management/src/views/audit/AuditLogsView.vue
+  h_77173abe25c3ff 489
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6aa6e4370c4dc4d6345f347a635297bc1e617239",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

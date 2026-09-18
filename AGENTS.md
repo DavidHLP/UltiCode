@@ -2,6 +2,16 @@
 
 This is the repository-wide source of truth for AI coding agents. A nested `AGENTS.md` adds rules for its subtree and must not repeat this file. `CLAUDE.md` is only a compatibility entry.
 
+## Task scope and evidence
+
+- Apply only the sections relevant to the task. A documentation edit does not require backend builds, deployment checks, or architecture exploration.
+- Start with the requested outcome and the affected files. Expand discovery when a dependency, caller, or concrete uncertainty requires it; do not audit the whole repository by default.
+- Use current source, executable configuration, and observed results to establish facts. Memory, documentation, and graph results are navigation aids; check their project and freshness before relying on them. Do not invent missing APIs, commands, files, or test results.
+- Choose the simplest change that satisfies the request and preserves existing contracts. Use a plan, skill, or delegated review when it adds value to the task, rather than as a mandatory ceremony for every edit.
+- Resolve routine, reversible choices using existing patterns. Ask when missing information materially affects correctness, scope, authorization, or an irreversible action; do not ask again for authorization already given for that action.
+- Stop exploring when the affected behavior is understood and the relevant checks answer the remaining risks. Revisit only when new evidence, failures, or changes justify it. If blocked, report the specific limit and continue independent work; do not repeat an unchanged failing approach.
+- Report what changed, what was actually verified, and any remaining limitations. Distinguish inference, static inspection, runtime verification, and remote delivery; a failed or skipped check is not a pass.
+
 ## Project and boundaries
 
 UltiCode is an online-judge platform with these main surfaces:
@@ -24,7 +34,7 @@ UltiCode is an online-judge platform with these main surfaces:
 Read the nearest guide before editing `services/`, `apps/console/`, `apps/management/`, or `packages/`.
 
 - Preserve the backend flow `controller -> service -> mapper -> entity` and existing domain-module boundaries. Do not introduce a parallel architecture for a local change.
-- Shared frontend code should own one coherent seam. If stable behavior is duplicated across both apps, extract or extend a focused package under `packages/`; do not force app-specific behavior into a shared abstraction.
+- Reuse focused packages under `packages/` for shared frontend behavior. Extract duplicated behavior when needed by the task; do not force app-specific behavior into a shared abstraction.
 - Keep request/response contracts aligned across backend, shared types, and both frontends. Preserve the existing `Result` envelope and established field-name mappings.
 
 ## Working rules
@@ -34,8 +44,8 @@ Read the nearest guide before editing `services/`, `apps/console/`, `apps/manage
 - Validate inputs at system boundaries, use typed DTOs and parameterized database access, and follow existing error-handling patterns.
 - Add or update tests for changed behavior and important failure paths. Security-sensitive rendering and URL handling require malicious-input regressions.
 - Only `packages/theme` may write the `data-theme` attribute; `useThemeForceUpdate` is test-only.
-- Use existing project skills when the task matches them, especially database migration, API-contract, cross-stack DTO, operations, and security workflows.
-- Before review or completion, inspect the diff for correctness, security, concurrency/resource handling, error paths, compatibility, performance, coverage, unrelated changes, and documentation drift. Use the available `code-review` skill for a formal review.
+- Use relevant project skills when explicitly requested or when their workflow helps the task. Missing optional tools or skills are not blockers if direct inspection and supported checks provide the needed evidence.
+- Before completion, review the diff against the request and applicable security, compatibility, and failure-path concerns. Use a formal review workflow for substantial or high-risk changes, or when requested; a focused self-review is sufficient for small, low-risk edits.
 
 ## Security invariants
 
@@ -57,7 +67,9 @@ Read the nearest guide before editing `services/`, `apps/console/`, `apps/manage
 
 ## Verification
 
-Run checks proportional to the changed surface. Prefer the supported wrapper for broad verification:
+Select checks proportional to the changed surface and risk; the commands below are alternatives, not a mandatory sequence. Documentation-only edits normally need a diff, link/path checks where relevant, and whitespace validation. For behavior changes, run focused regression checks first; broaden for cross-module effects or unresolved risks. Do not repeat equivalent successful checks without a reason.
+
+Prefer the supported wrapper when broad verification is needed:
 
 ```bash
 ./scripts/dev/test.sh quick
@@ -94,7 +106,7 @@ pnpm --dir packages/<package> type-check
 pnpm --dir packages/<package> test
 ```
 
-For Compose or migration changes, also validate both configurations and whitespace:
+For Compose changes, validate affected development and production combinations. For migrations, run the applicable migration checks; Compose validation is additionally needed when deployment configuration changes. Commands for both Compose combinations:
 
 ```bash
 docker compose --project-directory . --env-file .env -f docker/docker-compose.yml -f docker/docker-compose.dev.yml config >/dev/null
@@ -107,7 +119,7 @@ Do not use `/actuator/health` as a readiness check; Actuator is not exposed. Use
 ## Test deployment and remote access
 
 - Apply this section only when the task explicitly requests remote testing, deployment, or tunnel access. Resolve the remote host, checkout, branch, and ports from the current environment; otherwise follow the repository's normal local entry points.
-- Before remote execution, read [`docs/development/local-setup.md`](docs/development/local-setup.md), [`docs/development/testing.md`](docs/development/testing.md), and [`docs/operations/deployment.md`](docs/operations/deployment.md); use their supported `scripts/dev/*` and manifest entry points.
+- Before remote execution, read the relevant sections of [`docs/development/local-setup.md`](docs/development/local-setup.md), [`docs/development/testing.md`](docs/development/testing.md), and [`docs/operations/deployment.md`](docs/operations/deployment.md); use their supported `scripts/dev/*` and manifest entry points.
 - For data backfill or cutover runbooks, perform the source/target, checksum, outbox, and writer checks required by that runbook; only for Submission cutover update its marker after verification passes. Pure schema migrations follow their migration gate and do not require a cutover marker.
 - For personal local access to a remote test stack, prefer SSH local port forwarding. Use a Cloudflare Quick Tunnel only when public or cross-device access is explicitly required; scope it to frontend entries, protect administrative surfaces, and remove it after testing.
 - Treat explicit exit codes, readiness responses, parsed PM2 state, and Compose health as separate evidence. Process `online` or container `healthy` alone is not a complete deployment proof.
@@ -117,7 +129,7 @@ Do not use `/actuator/health` as a readiness check; Actuator is not exposed. Use
 
 - Review `git diff` and `git diff --check` before completion. Use conventional commit subjects: `<type>: <description>`.
 - Do not discard user changes or use destructive Git commands unless explicitly requested.
-- Get explicit approval before pushing, merging, publishing, changing third-party resources, rotating remote credentials, or rewriting history.
+- Pushing, merging, publishing, changing third-party resources, rotating remote credentials, and rewriting history require explicit user authorization for the action. An explicit request to perform that action is authorization within its stated scope; do not require a second confirmation unless the scope or risk changes.
 
 ## Documentation
 
@@ -130,15 +142,10 @@ Do not use `/actuator/health` as a readiness check; Actuator is not exposed. Use
 
 A task is complete when the requested behavior is implemented, relevant tests and static checks pass (or failures are reported with evidence), the diff contains no unintended changes, security and compatibility constraints are preserved, and affected documentation is current.
 
-## graphify
+## Code discovery tools
 
-This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
-
-When the user types `/graphify`, use the installed graphify skill or instructions before doing anything else.
-
-Rules:
-- For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
-- Dirty graphify-out/ files are expected after hooks or incremental updates; dirty graph files are not a reason to skip graphify. Only skip graphify if the task is about stale or incorrect graph output, or the user explicitly says not to use it.
-- Use `docs/index.md` for broad documentation navigation; use source/configuration for current behavior.
-- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
-- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
+- Use `docs/index.md` for broad documentation navigation. For code discovery, use an available, relevant graph to narrow the search, then inspect the source needed for the claim or edit. Avoid duplicating the same lookup across graph tools.
+- When graphify is useful and `graphify-out/graph.json` exists, use `graphify query "<question>"`, `graphify path "<A>" "<B>"`, or `graphify explain "<concept>"`. The full report is for broad architecture questions, not routine edits.
+- If a tool is unavailable or its index is stale, incomplete, or for another project, use targeted source reads and searches. An empty graph result does not prove absence; scope negative claims to what was checked.
+- Refresh a graph when the task needs updated relationships or the user requests it. Documentation-only edits do not require graph updates; preserve unrelated generated changes.
+- When the user explicitly invokes `/graphify`, follow the installed graphify skill.

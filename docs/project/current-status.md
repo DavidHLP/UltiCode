@@ -1,6 +1,6 @@
 # 当前状态
 
-更新时间：2026-09-17
+更新时间：2026-09-18
 
 ## 总体状态
 
@@ -48,19 +48,22 @@
 - child 启动的 timeout/cancel 交接使用单 CAS ownership handoff 协议，
   每个已创建 context 由调用方、timeout 关闭路径或迟到完成 callable
   三者之一唯一接管（`CoreOwnerContextManagerLifecycleTest` 确定性回归）。
-- Core 已落地同进程断言载体、Auth local adapters 与 Admin child 的显式
-  contract registration；`CoreLocalAdapterWiringTest` 证明实际
-  `AccountReadAdapter` 通过本地 identity contract 注入，且真实
-  `UserPermissionServiceImpl` 的合法 permission grant 走
-  `requireAccount`（`AccountQueryService`）+ `mutatePermission`
-  （`AuthorizationMutationService`）两个本地 seam 成功、缺 signer 时
-  fail-closed。该测试使用 mock Auth provider，不证明 DB/Redis 或完整
-  child boot。
-- `CoreOwnerClassLoaders` 是 parent-first 的 TCCL/生命周期辅助，不是
-  class/resource isolation。2026-09-04 enabled-owner exec-jar 失败报告
-  保留为 reported/not rerun evidence；Admin/App/Submission/Notification
-  的完整 local parity、enabled-owner wiring、同进程业务路由、Judge
-  readiness 与 mixed-version/remote TLS 仍未验证，不能切换默认拓扑。
+- Core 已将 Admin child 的本地 contract assembly 收口到 package-private
+  `CoreLocalContractAssembly`：显式 `register(...)` 集中注册 manager、
+  `CoreLocalIdentityQueryAdapter`、`CoreLocalAuthorizationMutationAdapter` 和
+  `CoreLocalAccountQueryAdapter`，显式 `validate(...)` 共同校验完整注册集并对
+  partial registration fail closed；非 Admin 为 no-op。`CoreOwnerContextManager`
+  只负责 child lifecycle，`CoreLocalAdapterWiringTest` 复用该 assembly 验证
+  mock Auth provider 下的 identity wiring、合法 permission grant 和缺 signer
+  fail-closed；这不证明 DB/Redis 或完整 child boot。
+- 新增 `scripts/test/core-enabled-owner-journey.sh` 作为仅覆盖 Auth/Admin 的
+  bounded disposable evidence entry：在真实 child artifacts 与 Testcontainers
+  MySQL/Redis 输入齐全时检查 readiness、identity read、合法 permission grant、
+  missing signer fail-closed 和 cleanup；缺少外部输入时必须输出
+  `BLOCKED_EXTERNAL` 并 fail closed。当前不声称 disposable journey 已通过。
+- SVC-025 仍为 OPEN；`distributed` 仍是 sole default，Core 仅是 Auth/Admin
+  bounded opt-in testbed，硬性 expiry 仍为 2026-10-06；未取得 bounded journey
+  证据前不能切换默认拓扑。
 - 2026-09-12 架构复审收敛：Admin 的 bounded fan-out/cancel、Owner
   reconciliation paging、共享 Redis Streams inbox staging、outbox dispatch
   mechanics、Problem 双受众 contract 和 Auth session policy 已分别收口为

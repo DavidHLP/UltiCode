@@ -1,26 +1,17 @@
 ---
 paths:
-  - "services/pom.xml"
+  - "services/**/*.java"
   - "services/**/pom.xml"
-  - "services/**/src/**/*.{java,yml,yaml,properties}"
-kind: rules
-summary: 'Spring Boot backend conventions for the UltiCode API.'
+  - "services/**/src/**/*.yml"
+  - "services/**/src/**/*.yaml"
+  - "services/**/src/**/*.properties"
+  - "docker/sandbox/harness/java/src/**/*.java"
 ---
 
-# Spring Boot rules
+# Backend changes
 
-- Use constructor injection. Do not introduce field injection, circular dependencies, or `@Lazy` solely to hide a dependency cycle.
-- Controllers **MUST** bind typed request models, trigger boundary validation, delegate business behavior, and return the established response contract.
-- Spring proxy annotations such as `@Transactional`, `@Async`, `@Cacheable`, and method security **MUST** be placed on methods reached through the proxy. Do not rely on self-invocation.
-- Transactions **MUST** declare the smallest service-level unit that owns the invariant. Keep remote calls, message delivery, sleeps, and sandbox execution outside an open transaction.
-- `@Async` work **MUST** use an intentional executor, bounded workload, propagated correlation/security context where required, and observable exception handling.
-- Scheduled jobs **MUST** tolerate duplicate execution, overlapping nodes, partial failure, and restart. They need bounded batches and explicit retry/lease behavior.
-- Publish events only after required state is durable. If delivery must survive process failure, use the project's durable delivery pattern rather than an in-memory event alone.
-- External configuration **SHOULD** use validated `@ConfigurationProperties`; avoid scattered `@Value` strings and unsafe defaults for security-sensitive settings.
-- Profiles and feature flags **MUST** fail safely for unsupported combinations and be covered by configuration tests when behavior changes.
-- Do not expose entities, framework exceptions, stack traces, or internal configuration objects through HTTP responses.
-- Filters, interceptors, argument resolvers, and exception handlers **MUST** remain stateless or thread-safe because one instance serves concurrent requests.
-- New endpoints, beans, or configuration properties require tests proving startup wiring and the relevant success/failure behavior.
-- Dubbo RPC providers and consumers **MUST** adhere to contracts declared in `services/api/` and implement idempotent replay / deduplication where commands alter state.
-- Independent judge runtimes (`app.runtime.role=judge`) consume Redis Streams without exposing HTTP endpoints or querying business tables directly.
-- Register every new `@Audited` or `@CheckBan` site in `AuditPolicy`; push-port adapters must treat disconnected subscriptions as no-ops.
+- For services, read `services/AGENTS.md` and the nearest module guide. Use the Java level and dependencies configured by the affected build.
+- Keep authorization tied to the authenticated principal and target resource. Validate untrusted paths, URLs and command arguments at their boundary; fail closed and test rejected inputs when changing security behavior.
+- Keep transaction ownership in the service operation. Check Spring proxy entry when changing transactional, async or method-security behavior; avoid holding transactions across remote calls or sandbox execution.
+- Preserve causes, interruption and resource cleanup on changed failure paths. Do not log credentials or sensitive payloads.
+- For concurrent or retried operations, preserve atomic updates, idempotency and bounded work. Add a focused regression for the risk changed; use integration or Spring tests when mocks cannot establish the contract.

@@ -14,8 +14,25 @@ source "$ROOT_DIR/scripts/test/lib/assertions.sh"
   || fail 'Core boot entrypoint missing'
 [[ -f "$ROOT_DIR/services/core/src/main/java/com/ulticode/core/CoreLocalAuthorizationMutationAdapter.java" ]] \
   || fail 'Core local authorization adapter missing'
+[[ -f "$ROOT_DIR/services/core/src/main/java/com/ulticode/core/CoreLocalContractAssembly.java" ]] \
+  || fail 'Core local contract assembly missing'
 [[ -f "$ROOT_DIR/services/platform/common/src/main/java/com/ulticode/common/security/LocalDelegationAssertionContext.java" ]] \
   || fail 'local delegation assertion context missing'
+
+contains services/core/src/main/java/com/ulticode/core/CoreLocalContractAssembly.java 'final class CoreLocalContractAssembly'
+contains services/core/src/main/java/com/ulticode/core/CoreLocalContractAssembly.java 'static void register('
+contains services/core/src/main/java/com/ulticode/core/CoreLocalContractAssembly.java 'if (!"admin".equals(module.name()))'
+contains services/core/src/main/java/com/ulticode/core/CoreLocalContractAssembly.java '"coreOwnerContextManager"'
+contains services/core/src/main/java/com/ulticode/core/CoreLocalContractAssembly.java '"coreLocalIdentityQueryAdapter"'
+contains services/core/src/main/java/com/ulticode/core/CoreLocalContractAssembly.java '"coreLocalAuthorizationMutationAdapter"'
+contains services/core/src/main/java/com/ulticode/core/CoreLocalContractAssembly.java '"coreLocalAccountQueryAdapter"'
+contains services/core/src/main/java/com/ulticode/core/CoreLocalContractAssembly.java 'static void validate('
+
+contains services/core/src/main/java/com/ulticode/core/CoreOwnerContextManager.java 'CoreLocalContractAssembly.register(child, module, this)'
+contains services/core/src/main/java/com/ulticode/core/CoreOwnerContextManager.java 'CoreLocalContractAssembly.validate(context, module)'
+! grep -F -- 'registerChildContracts' \
+  "$ROOT_DIR/services/core/src/main/java/com/ulticode/core/CoreOwnerContextManager.java" >/dev/null \
+  || fail 'Core manager must not own child contract registration'
 
 contains services/pom.xml '<module>core</module>'
 contains services/core/src/main/java/com/ulticode/core/CoreApplication.java '@SpringBootConfiguration'

@@ -140,13 +140,28 @@ describe('AuditLogViewer export contract', () => {
     wrapper.unmount()
   })
 
-  it('does not show a perpetual loading state without an entity scope', async () => {
+  it('does not issue unscoped requests without an entity scope', async () => {
     const wrapper = mountViewer({})
+    await flushPromises()
+
+    const searchButton = wrapper
+      .findAll('button')
+      .find((button) => button.text().includes('common.search'))
+    const exportButton = wrapper
+      .findAll('button')
+      .find((button) => button.text().includes('audit.export'))
+    expect(searchButton).toBeDefined()
+    expect(exportButton).toBeDefined()
+    expect(exportButton?.attributes('disabled')).toBeDefined()
+
+    await searchButton?.trigger('click')
+    await exportButton?.trigger('click')
     await flushPromises()
 
     expect(wrapper.text()).toContain('audit.noLogs')
     expect(wrapper.text()).not.toContain('common.loading')
     expect(auditApi.getAuditLogs).not.toHaveBeenCalled()
+    expect(auditApi.exportAuditLogs).not.toHaveBeenCalled()
     wrapper.unmount()
   })
 })

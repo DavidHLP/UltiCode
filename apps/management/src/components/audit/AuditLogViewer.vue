@@ -39,9 +39,12 @@ const props = withDefaults(defineProps<Props>(), {
   limit: 20,
   showFilters: true,
 })
+const hasEntity = computed(() => Boolean(props.entityType && props.entityId))
+
 
 const collection = createCollectionSlice<AuditLog, AuditLogQueryParams>({
   load: async (params = {}, signal) => {
+    if (!hasEntity.value) return { items: [], total: 0 }
     const response = await auditApi.getAuditLogs(params, signal)
     return { items: response.items ?? [], total: response.total }
   },
@@ -137,6 +140,17 @@ function getChangesSummary(log: AuditLog): { count: number; label: string } {
 }
 
 const filteredLogs = computed(() => data.value)
+
+function handleExport(): void {
+  if (!hasEntity.value) return
+  void auditApi.exportAuditLogs({
+    entityType: props.entityType,
+    entityId: props.entityId,
+    search: searchQuery.value || undefined,
+    action: actionFilter.value === 'all' ? undefined : actionFilter.value || undefined,
+    format: 'csv',
+  })
+}
 </script>
 
 <template>
@@ -178,15 +192,8 @@ const filteredLogs = computed(() => data.value)
       <Button
         variant="outline"
         size="sm"
-        @click="
-          auditApi.exportAuditLogs({
-            entityType,
-            entityId,
-            search: searchQuery || undefined,
-            action: actionFilter === 'all' ? undefined : actionFilter || undefined,
-            format: 'csv',
-          })
-        "
+        :disabled="!hasEntity"
+        @click="handleExport"
       >
         <IconDownload class="h-4 w-4 mr-1" />
         {{ t('audit.export') }}

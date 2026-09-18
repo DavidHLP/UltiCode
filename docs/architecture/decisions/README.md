@@ -18,3 +18,4 @@ ADR 是 durable history 的权威入口；普通提交不在这里复制。实�
 | [0012](0012-core-topology-three-way-decision.md) | Selected — expiry `2026-10-06` | Core 仅保留为 Auth/Admin allowlist 的 bounded opt-in testbed；不宣称 class/resource isolation，不切换默认拓扑。 |
 | [0013](0013-architecture-review-module-convergence.md) | Accepted — implementation `2026-09-12`, follow-up `2026-09-13` | 把 Admin、Inbox、Outbox、reconciliation、Problem/Auth contract 与开发脚本的重复机制收口为共享 seam；保留 Owner 本地语义，明确延后 UI primitive 大迁移。 |
 | [0014](0014-architecture-review-round-3-convergence.md) | Accepted — implemented | 第三轮 C1-C11 收敛为显式 receipt、owner cutover、outbox/ledger、audit、RPC、Redis、rejudge 与前端查询状态 seam；不新增基础设施。 |
+| [0015](0015-architecture-review-round-4-convergence.md) | Accepted — implemented | 第四轮 C1-C13：receipt 构造面（`platform/receipt` + 参数化 store bridge，amendment to 0014）、cutover 决策面（REMOTE/LOCAL/DENY）、audit retry typed outcome、judge payload typed 化、intake provider 收窄，以及前端列表/取消/搜索/http-client seam；不新增基础设施。 |

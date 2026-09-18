@@ -18,6 +18,8 @@ import com.ulticode.modules.admin.dto.AdminNotificationQueryDTO;
 import com.ulticode.modules.admin.dto.AdminNotificationVO;
 import com.ulticode.modules.admin.dto.CreateSystemNotificationRequest;
 import com.ulticode.modules.admin.dto.UpdateSystemNotificationRequest;
+import com.ulticode.modules.admin.port.adapter.OwnerCutoverDecision;
+import com.ulticode.modules.admin.port.adapter.OwnerCutoverGate;
 import com.ulticode.modules.admin.projection.AdminNotificationProjection;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -64,13 +66,16 @@ class AdminNotificationServiceImplTest {
     @Mock private NotificationAdminReadPort notificationAdminReadPort;
     @Mock private CurrentUserProvider currentUserProvider;
     @Mock private NotificationAdministrationService notificationDubbo;
+    @Mock private OwnerCutoverGate notificationOwnerCutover;
 
     private AdminNotificationServiceImpl adminNotificationService;
 
     @BeforeEach
     void setUp() {
         adminNotificationService = new AdminNotificationServiceImpl(
-                adminNotificationProjection, notificationAdminReadPort, currentUserProvider);
+                adminNotificationProjection, notificationAdminReadPort, currentUserProvider,
+                notificationOwnerCutover);
+        when(notificationOwnerCutover.decide()).thenReturn(OwnerCutoverDecision.REMOTE);
         ReflectionTestUtils.setField(adminNotificationService, "dubboProvider", notificationDubbo);
     }
 
@@ -98,6 +103,17 @@ class AdminNotificationServiceImplTest {
         assertThat(audited).isNotNull();
         assertThat(audited.action()).isEqualTo(action);
         assertThat(audited.entityType()).isEqualTo(AuditVocabulary.ENTITY_NOTIFICATION);
+    }
+
+    @Test
+    @DisplayName("denies writes when the cutover decision is not REMOTE")
+    void deniesWritesWhenCutoverDoesNotAllowRemote() {
+        when(notificationOwnerCutover.decide()).thenReturn(OwnerCutoverDecision.DENY);
+
+        assertThatThrownBy(() -> adminNotificationService.deleteNotification("n-1", "key-1"))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorCode", AdminErrorCode.CONFLICT);
+        verify(notificationDubbo, never()).deleteNotification(any());
     }
 
     @AfterEach

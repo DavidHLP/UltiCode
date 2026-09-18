@@ -8,6 +8,7 @@ import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.rpc.RpcResult;
+import com.ulticode.modules.admin.port.adapter.OwnerCutoverDecision;
 import com.ulticode.modules.admin.port.adapter.OwnerCutoverGate;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
@@ -71,11 +72,16 @@ public class ContentModerationCutoverService {
     }
 
     private void moderate(String contentId, String contentType, ModerationAction action) {
-        if (cutoverGate.delegatesLocal()) {
+        OwnerCutoverDecision decision = cutoverGate.decide();
+        if (decision == OwnerCutoverDecision.LOCAL) {
             dispatchLocal(contentId, contentType, action);
             return;
         }
-        // Dubbo path: route through the Provider
+        if (decision == OwnerCutoverDecision.DENY) {
+            throw new BusinessException(AdminErrorCode.CONFLICT,
+                    "Content moderation writes are disabled by cutover policy");
+        }
+        // REMOTE: route through the Provider
         String actorId = currentUserProvider.getCurrentUserId();
         String caseId = UUID.randomUUID().toString();
         AdminWriteEnvelope envelope = AdminWriteEnvelope.envelope(

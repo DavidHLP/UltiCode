@@ -24,11 +24,12 @@ public record OwnerCutoverGate(
         CUTOVER_REMOVED
     }
 
-    public boolean remoteEnabled() {
-        return policy == Policy.ALWAYS_REMOTE || policy == Policy.CUTOVER_REMOVED || enabled;
-    }
-
-    public boolean delegatesLocal() {
-        return policy == Policy.DELEGATE_LOCAL && !enabled;
+    /** Resolves the write-routing decision every surviving write path consumes. */
+    public OwnerCutoverDecision decide() {
+        return switch (policy) {
+            case ALWAYS_REMOTE, CUTOVER_REMOVED -> OwnerCutoverDecision.REMOTE;
+            case FAIL_CLOSED -> enabled ? OwnerCutoverDecision.REMOTE : OwnerCutoverDecision.DENY;
+            case DELEGATE_LOCAL -> enabled ? OwnerCutoverDecision.REMOTE : OwnerCutoverDecision.LOCAL;
+        };
     }
 }

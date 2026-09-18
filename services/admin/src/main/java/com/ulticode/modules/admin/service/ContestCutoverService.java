@@ -22,6 +22,7 @@ import com.ulticode.modules.admin.dto.UpdateContestDTO;
 import com.ulticode.modules.admin.projection.AdminContestProjection;
 import com.ulticode.modules.admin.write.AdminOwnerErrorMapper;
 import com.ulticode.modules.admin.write.AdminWriteEnvelope;
+import com.ulticode.modules.admin.port.adapter.OwnerCutoverDecision;
 import com.ulticode.modules.admin.port.adapter.OwnerCutoverGate;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -181,7 +182,7 @@ public class ContestCutoverService {
     }
 
     private void ensureDubboEnabled() {
-        if (!cutoverGate.remoteEnabled()) {
+        if (cutoverGate.decide() == OwnerCutoverDecision.DENY) {
             throw new BusinessException(AdminErrorCode.CONFLICT,
                     "Contest Dubbo cutover is disabled");
         }

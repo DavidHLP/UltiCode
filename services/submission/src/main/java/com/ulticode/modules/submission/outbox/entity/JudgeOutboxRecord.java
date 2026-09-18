@@ -8,9 +8,9 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.submission.entity.Submission;
+import com.ulticode.modules.submission.outbox.JudgeOutboxPayload;
 import lombok.Data;
 
-import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -57,9 +57,9 @@ public class JudgeOutboxRecord {
 
     /**
      * Full judge job payload, serialized to the {@code json} column via
-     * {@link JacksonTypeHandler}. Stored as a {@code Map<String,Object>} so the
-     * row captures everything the worker needs (submission/problem/user,
-     * language, code, generation) without a dedicated DTO.
+     * {@link JacksonTypeHandler}. Rows keep the {@code Map<String,Object>}
+     * form for stored-JSON compatibility; the typed shape and its codec are
+     * owned by {@link JudgeOutboxPayload}.
      */
     @TableField(value = "payload", typeHandler = JacksonTypeHandler.class)
     private Map<String, Object> payload;
@@ -140,23 +140,15 @@ public class JudgeOutboxRecord {
     }
 
     /**
-     * Assemble the judge-job payload map from a submission. Captures every field
-     * the worker needs so the row is self-describing.
+     * Builds the dispatch row; the payload shape and key order are owned by
+     * {@link JudgeOutboxPayload}.
      */
     private static JudgeOutboxRecord baseRecord(Submission submission, String problemId,
                                                 long generation, boolean isShadow) {
-        Map<String, Object> payload = new LinkedHashMap<>();
-        payload.put("submissionId", submission.getId());
-        payload.put("problemId", problemId);
-        payload.put("userId", submission.getUserId());
-        payload.put("language", submission.getLanguage());
-        payload.put("code", submission.getCode());
-        payload.put("generation", generation);
-
         JudgeOutboxRecord record = new JudgeOutboxRecord();
         record.setSubmissionId(submission.getId());
         record.setGeneration(generation);
-        record.setPayload(payload);
+        record.setPayload(JudgeOutboxPayload.forSubmission(submission, problemId, generation).toMap());
         record.setIsShadow(isShadow);
         return record;
     }

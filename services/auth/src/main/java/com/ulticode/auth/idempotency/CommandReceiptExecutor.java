@@ -16,13 +16,13 @@ import com.ulticode.auth.idempotency.mapper.AuthCommandReceiptMapper;
 import com.ulticode.common.command.CommandReceiptStore;
 import com.ulticode.common.command.ReceiptCommandMetadata;
 import com.ulticode.common.command.ReceiptErrorCatalog;
-import com.ulticode.common.command.ReceiptExecutionMode;
 import com.ulticode.common.command.ReceiptExecutor;
 import com.ulticode.common.command.ReceiptFingerprintStrategy;
-import com.ulticode.common.command.ReceiptPayloadCodec;
 import com.ulticode.common.command.ReceiptView;
 import com.ulticode.common.command.ReceiptWrite;
 import com.ulticode.common.rpc.RpcResult;
+import com.ulticode.receipt.CommandReceiptStoreBridge;
+import com.ulticode.receipt.JacksonReceiptPayloadCodec;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -53,10 +53,9 @@ public class CommandReceiptExecutor {
             Clock clock) {
         CommandReceiptStore store = receiptMapper == null
                 ? null : new AuthReceiptStore(receiptMapper);
-        delegate = new ReceiptExecutor<>(
-                ReceiptExecutionMode.MUTATE_THEN_RECORD,
+        delegate = ReceiptExecutor.mutateThenRecord(
                 store,
-                new JacksonPayloadCodec(objectMapper),
+                new JacksonReceiptPayloadCodec(objectMapper),
                 FINGERPRINTS,
                 ERRORS,
                 CommandReceiptExecutor::metadata,
@@ -87,6 +86,11 @@ public class CommandReceiptExecutor {
         return FINGERPRINTS.fingerprint(command);
     }
 
+    /**
+     * Auth commands implement {@code auth-api}'s own marker interface rather
+     * than {@link com.ulticode.common.command.WriteCommand}, so Auth keeps its
+     * own metadata projection instead of {@link ReceiptCommandMetadata#from}.
+     */
     private static ReceiptCommandMetadata metadata(WriteCommand command) {
         if (command == null) {
             return null;
@@ -106,49 +110,14 @@ public class CommandReceiptExecutor {
                 && command.idempotency().hasKey();
     }
 
-    private static final class JacksonPayloadCodec implements ReceiptPayloadCodec {
-        private final ObjectMapper objectMapper;
-
-        private JacksonPayloadCodec(ObjectMapper objectMapper) {
-            this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper");
-        }
-
-        @Override
-        public String encode(Object value) throws Exception {
-            return objectMapper.writeValueAsString(value);
-        }
-
-        @Override
-        public <T> T decode(String payload, Class<T> resultType) throws Exception {
-            return objectMapper.readValue(payload, resultType);
-        }
-    }
-
-    private static final class AuthReceiptStore implements CommandReceiptStore {
-        private final AuthCommandReceiptMapper mapper;
+    private static final class AuthReceiptStore extends CommandReceiptStoreBridge<AuthCommandReceiptEntity> {
 
         private AuthReceiptStore(AuthCommandReceiptMapper mapper) {
-            this.mapper = mapper;
-        }
-
-        @Override
-        public int insertClaim(ReceiptWrite receipt) {
-            return mapper.insert(toEntity(receipt));
-        }
-
-        @Override
-        public ReceiptView findByKey(String service, String operation, String idempotencyKey) {
-            return toView(mapper.findByReceiptKey(service, operation, idempotencyKey));
-        }
-
-        @Override
-        public int markSuccess(String id, String resultPayload) {
-            return 0;
-        }
-
-        @Override
-        public int deleteClaim(String id) {
-            return 0;
+            super(
+                    AuthReceiptStore::toEntity,
+                    AuthReceiptStore::toView,
+                    mapper::insert,
+                    mapper::findByReceiptKey);
         }
 
         private static AuthCommandReceiptEntity toEntity(ReceiptWrite receipt) {
@@ -169,9 +138,6 @@ public class CommandReceiptExecutor {
         }
 
         private static ReceiptView toView(AuthCommandReceiptEntity entity) {
-            if (entity == null) {
-                return null;
-            }
             return new ReceiptView(
                     entity.getId(), entity.getCommandId(), entity.getService(), entity.getOperation(),
                     entity.getIdempotencyKey(), entity.getRequestFingerprint(), entity.getStatus(),

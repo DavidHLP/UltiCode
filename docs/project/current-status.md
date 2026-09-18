@@ -72,6 +72,7 @@
   detail failure seam 与 C3 Console auth helper 收口）；未纳入范围的
   parked 项继续以 ADR-0013 的 deliberate non-decisions 为准。
 - 2026-09-17 架构复审第三轮 C1-C11 已收敛：receipt、cutover、outbox/ledger、audit、RPC、Redis、rejudge 与 Management/Console 查询状态 seam 均按既有 Owner 边界落地；不新增进程、数据库或消息基础设施。详见 [`ADR-0014`](../architecture/decisions/0014-architecture-review-round-3-convergence.md)。
+- 2026-09-17 架构复审第四轮 C1-C13 已按 services 与 frontend 两个批次完成实现；前端批已通过目标测试、类型检查、lint 与 build，services 批 quick/full 仍作为最终交付门禁。详见 [`ADR-0015`](../architecture/decisions/0015-architecture-review-round-4-convergence.md)。
 
 ## 验证入口
 

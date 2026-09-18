@@ -13,7 +13,13 @@ public class AdminAuditOutboxPublisher implements AuditOutboxPublisher<AuditOutb
 
     @Override
     public String publish(AuditOutboxRecord record) {
-        auditOutboxProcessor.processRecordInNewTx(record);
+        AuditOutboxOutcome outcome = auditOutboxProcessor.processRecordInNewTx(record);
+        if (outcome == AuditOutboxOutcome.LOST_CLAIM) {
+            // The shared dispatcher records failures raised from publish(); a
+            // lost claim must take that path so it is not counted as delivered.
+            throw new IllegalStateException("Audit outbox record is no longer PROCESSING for owner "
+                    + record.getClaimOwner() + ": " + record.getId());
+        }
         return null;
     }
 }

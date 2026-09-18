@@ -88,6 +88,39 @@ class AuditControllerFormatTest {
     }
 
     @Nested
+    @DisplayName("audit query validation")
+    class QueryValidationTests {
+
+        @Test
+        @DisplayName("logs reject page zero before reaching the service")
+        void logsRejectInvalidPage() throws Exception {
+            mockMvc.perform(get("/admin/audit/logs").param("page", "0"))
+                    .andExpect(status().isBadRequest());
+
+            verify(auditService, never()).getAuditLogs(any());
+        }
+
+        @Test
+        @DisplayName("stats reject a limit above the maximum before reaching the service")
+        void statsRejectOversizedLimit() throws Exception {
+            mockMvc.perform(get("/admin/audit/stats").param("limit", "1001"))
+                    .andExpect(status().isBadRequest());
+
+            verify(auditService, never()).getAuditStats(any());
+        }
+
+        @Test
+        @DisplayName("exports reject an oversized search before reaching the service")
+        void exportRejectOversizedSearch() throws Exception {
+            mockMvc.perform(get("/admin/audit/export")
+                            .param("search", "x".repeat(201)))
+                    .andExpect(status().isBadRequest());
+
+            verify(auditService, never()).getAuditLogsForExport(any());
+        }
+    }
+
+    @Nested
     @DisplayName("GET /admin/audit/export with csv format")
     class CsvExportTests {
 

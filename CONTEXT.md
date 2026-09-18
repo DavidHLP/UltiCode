@@ -85,8 +85,16 @@
   same-transaction callback.
 - **SubmissionPerformanceStats** — deep module owning the runtime/memory
   percentile + distribution-bin math for an Accepted submission.
+- **Owner cutover decision** — the REMOTE / LOCAL / DENY routing decision every
+  surviving owner write path consumes, resolved by Admin's
+  `OwnerCutoverGate.decide()`. `OwnerCutoverRegistry` keeps the five domain
+  metadata entries (contest `FAIL_CLOSED`, moderation `DELEGATE_LOCAL`,
+  notification `CUTOVER_REMOVED`, submission/problem `ALWAYS_REMOTE`) for the
+  source-contract gate.
 - **Judge queue / outbox** — the dispatch path from Submission intake to the
-  sandbox (`QueueService`, `JudgeOutboxMapper`, ADR-003).
+  sandbox (`QueueService`, `JudgeOutboxMapper`, ADR-003). The persisted payload
+  shape is owned by `JudgeOutboxPayload`; its key set and order are a
+  stored-JSON compatibility contract.
 - **SubmissionJudgedEvent** — domain event published after the verdict-write
   transaction commits; consumed by `ContestScoringListener` (AFTER_COMMIT)
   for post-commit scoring, and by achievement listeners.

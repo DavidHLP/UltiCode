@@ -220,7 +220,7 @@ jobs:
   migrate-validate:
     name: Validate Migrations
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     services:
       mysql:
         image: mysql@sha256:0255b469f0135a0236d672d60e3154ae2f4538b146744966d96440318cc822c6

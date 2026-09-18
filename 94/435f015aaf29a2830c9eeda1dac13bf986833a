@@ -1,0 +1,20 @@
+services/admin/src/main/java/com/ulticode/admin/error/AdminWebExceptionHandler.java
+  h_77173abe25c3ff 21,50,52,54-55
+services/admin/src/main/java/com/ulticode/modules/admin/controller/AuditController.java
+  h_77173abe25c3ff 99-104,106
+services/admin/src/main/java/com/ulticode/modules/admin/dto/AuditLogQueryDTO.java
+  h_77173abe25c3ff 11,13-14,16-17,19-20,26
+services/admin/src/test/java/com/ulticode/modules/admin/controller/AuditControllerFormatTest.java
+  h_77173abe25c3ff 95,98-115,121,124-141,147,151-169,217-234
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "94435f015aaf29a2830c9eeda1dac13bf986833a",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

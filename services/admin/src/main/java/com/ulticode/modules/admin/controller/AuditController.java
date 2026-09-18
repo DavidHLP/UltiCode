@@ -13,6 +13,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -35,21 +36,21 @@ public class AuditController {
     @Operation(summary = "获取审计日志列表")
     @GetMapping("/logs")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-    public Result<PageResult<AuditLogVO>> getAuditLogs(AuditLogQueryDTO query) {
+    public Result<PageResult<AuditLogVO>> getAuditLogs(@Valid @ModelAttribute AuditLogQueryDTO query) {
         return Result.success(auditService.getAuditLogs(query));
     }
 
     @Operation(summary = "获取审计统计")
     @GetMapping("/stats")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-    public Result<AuditStatsVO> getAuditStats(AuditLogQueryDTO query) {
+    public Result<AuditStatsVO> getAuditStats(@Valid @ModelAttribute AuditLogQueryDTO query) {
         return Result.success(auditService.getAuditStats(query));
     }
 
     @Operation(summary = "导出审计日志")
     @GetMapping("/export")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-    public void exportAuditLogs(AuditLogQueryDTO query,
+    public void exportAuditLogs(@Valid @ModelAttribute AuditLogQueryDTO query,
                                 @RequestParam(defaultValue = "csv") String format,
                                 HttpServletResponse response) throws IOException {
         if (!"csv".equalsIgnoreCase(format) && !"json".equalsIgnoreCase(format)) {

@@ -96,9 +96,13 @@ public class AuditController {
         if (field == null || field.isEmpty()) {
             return "";
         }
-        if (field.contains(",") || field.contains("\"") || field.contains("\n") || field.contains("\r")) {
-            return "\"" + field.replace("\"", "\"\"") + "\"";
+        String safeField = "=+-@".indexOf(field.charAt(0)) >= 0
+                ? "'" + field
+                : field;
+        if (safeField.contains(",") || safeField.contains("\"")
+                || safeField.contains("\n") || safeField.contains("\r")) {
+            return "\"" + safeField.replace("\"", "\"\"") + "\"";
         }
-        return field;
+        return safeField;
     }
 }

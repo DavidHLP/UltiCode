@@ -92,29 +92,81 @@ class AuditControllerFormatTest {
     class QueryValidationTests {
 
         @Test
-        @DisplayName("logs reject page zero before reaching the service")
+        @DisplayName("logs reject page zero with the standard JSON error envelope")
         void logsRejectInvalidPage() throws Exception {
             mockMvc.perform(get("/admin/audit/logs").param("page", "0"))
-                    .andExpect(status().isBadRequest());
+                    .andExpect(status().isBadRequest())
+                    .andExpect(content().contentTypeCompatibleWith("application/json"))
+                    .andExpect(jsonPath("$.code").value(40000))
+                    .andExpect(jsonPath("$.message").value("Validation failed"))
+                    .andExpect(jsonPath("$.data.page").value("Page must be at least 1"));
 
             verify(auditService, never()).getAuditLogs(any());
         }
 
         @Test
-        @DisplayName("stats reject a limit above the maximum before reaching the service")
+        @DisplayName("logs reject an oversized performer ID with the standard JSON error envelope")
+        void logsRejectOversizedPerformerId() throws Exception {
+            mockMvc.perform(get("/admin/audit/logs").param("performerId", "x".repeat(41)))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(content().contentTypeCompatibleWith("application/json"))
+                    .andExpect(jsonPath("$.code").value(40000))
+                    .andExpect(jsonPath("$.data.performerId")
+                            .value("Performer ID must not exceed 40 characters"));
+
+            verify(auditService, never()).getAuditLogs(any());
+        }
+
+        @Test
+        @DisplayName("stats reject an oversized limit with the standard JSON error envelope")
         void statsRejectOversizedLimit() throws Exception {
             mockMvc.perform(get("/admin/audit/stats").param("limit", "1001"))
-                    .andExpect(status().isBadRequest());
+                    .andExpect(status().isBadRequest())
+                    .andExpect(content().contentTypeCompatibleWith("application/json"))
+                    .andExpect(jsonPath("$.code").value(40000))
+                    .andExpect(jsonPath("$.message").value("Validation failed"))
+                    .andExpect(jsonPath("$.data.limit").value("Limit must not exceed 1000"));
 
             verify(auditService, never()).getAuditStats(any());
         }
 
         @Test
-        @DisplayName("exports reject an oversized search before reaching the service")
+        @DisplayName("stats reject an oversized entity type with the standard JSON error envelope")
+        void statsRejectOversizedEntityType() throws Exception {
+            mockMvc.perform(get("/admin/audit/stats").param("entityType", "x".repeat(65)))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(content().contentTypeCompatibleWith("application/json"))
+                    .andExpect(jsonPath("$.code").value(40000))
+                    .andExpect(jsonPath("$.data.entityType")
+                            .value("Entity type must not exceed 64 characters"));
+
+            verify(auditService, never()).getAuditStats(any());
+        }
+
+        @Test
+        @DisplayName("exports reject an oversized search with the standard JSON error envelope")
         void exportRejectOversizedSearch() throws Exception {
             mockMvc.perform(get("/admin/audit/export")
                             .param("search", "x".repeat(201)))
-                    .andExpect(status().isBadRequest());
+                    .andExpect(status().isBadRequest())
+                    .andExpect(content().contentTypeCompatibleWith("application/json"))
+                    .andExpect(jsonPath("$.code").value(40000))
+                    .andExpect(jsonPath("$.message").value("Validation failed"))
+                    .andExpect(jsonPath("$.data.search")
+                            .value("Search query must not exceed 200 characters"));
+
+            verify(auditService, never()).getAuditLogsForExport(any());
+        }
+
+        @Test
+        @DisplayName("exports reject an oversized action with the standard JSON error envelope")
+        void exportRejectOversizedAction() throws Exception {
+            mockMvc.perform(get("/admin/audit/export").param("action", "x".repeat(65)))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(content().contentTypeCompatibleWith("application/json"))
+                    .andExpect(jsonPath("$.code").value(40000))
+                    .andExpect(jsonPath("$.data.action")
+                            .value("Action must not exceed 64 characters"));
 
             verify(auditService, never()).getAuditLogsForExport(any());
         }
@@ -161,6 +213,24 @@ class AuditControllerFormatTest {
             mockMvc.perform(get("/admin/audit/export").param("format", "csv"))
                     .andExpect(status().isOk())
                     .andExpect(content().string(containsString("2026-01-15T13:45:27")));
+        }
+        @Test
+        @DisplayName("CSV prefixes formula-leading performer usernames")
+        void exportAuditLogs_csvFormat_neutralizesFormulaLeadingValues() throws Exception {
+            AuditLogVO vo = new AuditLogVO();
+            vo.setId("audit-log-003");
+            vo.setAction("CREATE");
+            vo.setEntityType("PROBLEM");
+            vo.setEntityId("3");
+            vo.setPerformer(new AuditLogVO.PerformerInfo(
+                    "performer-1", "=1", "Test User", "ADMIN"));
+
+            when(auditService.getAuditLogsForExport(any()))
+                    .thenReturn(Collections.singletonList(vo));
+
+            mockMvc.perform(get("/admin/audit/export").param("format", "csv"))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string(containsString(",'=1,")));
         }
     }
 

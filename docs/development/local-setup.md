@@ -67,6 +67,15 @@ disposable MySQL/Redis、Owner artifacts 和完整凭据；缺少这些输入时
 ./scripts/dev/test.sh core
 ./ulticode doctor --scope core --json
 ```
+Core enabled-owner wiring 的显式 opt-in 门禁为：
+```bash
+CORE_ENABLED_OWNER_JOURNEY=1 bash scripts/test/core-enabled-owner-journey.sh
+```
+该门禁不属于 `./scripts/dev/test.sh core`。它要求显式设置
+`CORE_ENABLED_OWNER_JOURNEY=1`，并提供 Docker、Maven 及 canonical Auth/Admin
+migration 所需输入；实际尝试时只证明真实 Auth/Admin child wiring、local seams
+与 cleanup。缺少输入时必须报告 `BLOCKED_EXTERNAL`，不能记为 `PASS`。默认仍是
+distributed，Core 仅是 Auth/Admin bounded opt-in；当前不宣称该 journey 已通过。
 
 其中 `test.sh core` 只运行 contexts disabled 的 parent/config/readiness
 smoke；Core enabled-owner wiring 和四步业务 journey 当前未验证。分布式

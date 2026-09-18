@@ -103,6 +103,18 @@ class AuditControllerFormatTest {
 
             verify(auditService, never()).getAuditLogs(any());
         }
+        @Test
+        @DisplayName("logs reject an empty page parameter with the standard JSON error envelope")
+        void logsRejectEmptyPage() throws Exception {
+            mockMvc.perform(get("/admin/audit/logs").param("page", ""))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(content().contentTypeCompatibleWith("application/json"))
+                    .andExpect(jsonPath("$.code").value(40000))
+                    .andExpect(jsonPath("$.data.page").value("Page is required"));
+
+            verify(auditService, never()).getAuditLogs(any());
+        }
+
 
         @Test
         @DisplayName("logs reject an oversized performer ID with the standard JSON error envelope")
@@ -129,6 +141,18 @@ class AuditControllerFormatTest {
 
             verify(auditService, never()).getAuditStats(any());
         }
+        @Test
+        @DisplayName("stats reject an empty limit parameter with the standard JSON error envelope")
+        void statsRejectEmptyLimit() throws Exception {
+            mockMvc.perform(get("/admin/audit/stats").param("limit", ""))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(content().contentTypeCompatibleWith("application/json"))
+                    .andExpect(jsonPath("$.code").value(40000))
+                    .andExpect(jsonPath("$.data.limit").value("Limit is required"));
+
+            verify(auditService, never()).getAuditStats(any());
+        }
+
 
         @Test
         @DisplayName("stats reject an oversized entity type with the standard JSON error envelope")

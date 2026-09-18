@@ -487,49 +487,56 @@ describe('Retry / backoff', () => {
     })
     expect(adapter).toHaveBeenCalledTimes(2)
   })
-  it('does not let a retry abort a newer same-key request', async () => {
-    const pending: Array<{
-      request: InternalAxiosRequestConfig
-      resolve: (value: unknown) => void
-    }> = []
-    let firstRequest: InternalAxiosRequestConfig | undefined
-    let rejectFirst: (reason?: unknown) => void = () => undefined
-    const firstFailure = new Promise<unknown>((_, reject) => {
-      rejectFirst = reject
-    })
-    const adapter = vi.fn().mockImplementation((request: InternalAxiosRequestConfig) => {
-      if (adapter.mock.calls.length === 1) {
-        firstRequest = request
-        return firstFailure
-      }
-      return new Promise<unknown>((resolve) => {
-        pending.push({ request, resolve })
+  it('does not let a stale retry abort a newer same-key request', async () => {
+    vi.useFakeTimers()
+    try {
+      const pending: Array<{
+        request: InternalAxiosRequestConfig
+        resolve: (value: unknown) => void
+      }> = []
+      let firstRequest: InternalAxiosRequestConfig | undefined
+      let rejectFirst: (reason?: unknown) => void = () => undefined
+      const firstFailure = new Promise<unknown>((_, reject) => {
+        rejectFirst = reject
       })
-    })
-    const client = createTestHttpClient({
-      csrfManager: createCsrfTokenManager(),
-      baseURL: 'http://test.local',
-      getLocale: () => 'en-US',
-      dedupPolicy: 'all-non-auth',
-      __testAdapter: adapter,
-    })
+      const adapter = vi.fn().mockImplementation((request: InternalAxiosRequestConfig) => {
+        if (adapter.mock.calls.length === 1) {
+          firstRequest = request
+          return firstFailure
+        }
+        return new Promise<unknown>((resolve) => {
+          pending.push({ request, resolve })
+        })
+      })
+      const client = createTestHttpClient({
+        csrfManager: createCsrfTokenManager(),
+        baseURL: 'http://test.local',
+        getLocale: () => 'en-US',
+        dedupPolicy: 'all-non-auth',
+        __testAdapter: adapter,
+      })
 
-    const first = client.apiGet('/retry-race', { retry: 1, retryDelay: 100 })
-    await vi.waitFor(() => expect(adapter).toHaveBeenCalledTimes(1))
+      const first = client
+        .apiGet('/retry-race', { retry: 1, retryDelay: 100 })
+        .catch((error: unknown) => error)
+      await vi.waitFor(() => expect(adapter).toHaveBeenCalledTimes(1))
 
-    if (!firstRequest) throw new Error('first request was not captured')
-    rejectFirst(buildAxiosError(500, 'retry me', firstRequest))
-    await new Promise((resolve) => setTimeout(resolve, 0))
+      if (!firstRequest) throw new Error('first request was not captured')
+      rejectFirst(buildAxiosError(500, 'retry me', firstRequest))
+      await vi.advanceTimersByTimeAsync(0)
 
-    const second = client.apiGet('/retry-race')
-    await vi.waitFor(() => expect(pending.length).toBeGreaterThanOrEqual(1))
-    await vi.waitFor(() => expect(pending).toHaveLength(2))
+      const second = client.apiGet('/retry-race')
+      await vi.waitFor(() => expect(pending).toHaveLength(1))
+      expect(pending[0].request.signal?.aborted).toBe(false)
 
-    expect(pending[0].request.signal?.aborted).toBe(false)
-    expect(pending[1].request.signal?.aborted).toBe(false)
-    pending[0].resolve(responseFor(pending[0].request))
-    pending[1].resolve(responseFor(pending[1].request))
-    await expect(second).resolves.toEqual({ ok: true })
-    await expect(first).resolves.toEqual({ ok: true })
+      await vi.advanceTimersByTimeAsync(100)
+      expect(adapter).toHaveBeenCalledTimes(2)
+      pending[0].resolve(responseFor(pending[0].request))
+
+      await expect(second).resolves.toEqual({ ok: true })
+      await expect(first).resolves.toMatchObject({ name: 'ApiError', code: 500 })
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })

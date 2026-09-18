@@ -284,6 +284,10 @@ export function createHttpClient(config: HttpClientConfig): HttpClient {
     metadata?.cleanupCallerSignal?.()
     if (metadata) metadata.cleanupCallerSignal = undefined
   }
+  const ownsPendingRequest = (request: InternalAxiosRequestConfig): boolean => {
+    if (!shouldDeduplicate(request, dedupPolicy)) return true
+    return pendingRequests.get(getRequestKey(request))?.signal === request.signal
+  }
   type ViteImportMeta = ImportMeta & {
     env?: {
       DEV?: boolean
@@ -333,6 +337,7 @@ export function createHttpClient(config: HttpClientConfig): HttpClient {
 
       if (shouldDeduplicate(req, dedupPolicy)) {
         const key = getRequestKey(req)
+        const previousSignal = req.signal
         const controller = new AbortController()
         if (callerSignal) {
           const onCallerAbort = (): void => controller.abort()
@@ -346,8 +351,9 @@ export function createHttpClient(config: HttpClientConfig): HttpClient {
           }
         }
         req.signal = controller.signal
-        if (!isRetry) {
-          pendingRequests.get(key)?.abort()
+        const pendingController = pendingRequests.get(key)
+        if (!isRetry || pendingController?.signal === previousSignal) {
+          pendingController?.abort()
           pendingRequests.set(key, controller)
         }
       }
@@ -402,10 +408,10 @@ export function createHttpClient(config: HttpClientConfig): HttpClient {
     },
     async (error: AxiosError) => {
       const cfg = error.config as ConfigWithMetadata | undefined
-      if (cfg && !NON_DEDUPLICABLE_URLS.has(cfg.url || '')) {
-        clearPendingRequest(cfg)
-      }
       if (error.name === 'CanceledError' || error.code === 'ERR_CANCELED') {
+        if (cfg && !NON_DEDUPLICABLE_URLS.has(cfg.url || '')) {
+          clearPendingRequest(cfg)
+        }
         if (isDevelopment) {
           // eslint-disable-next-line no-console
           console.debug('[API] canceled', cfg?.url)
@@ -414,6 +420,9 @@ export function createHttpClient(config: HttpClientConfig): HttpClient {
       }
       if (cfg) {
         if (cfg.skipErrorHandler) {
+          if (!NON_DEDUPLICABLE_URLS.has(cfg.url || '')) {
+            clearPendingRequest(cfg)
+          }
           return Promise.reject(ApiError.fromAxiosError(error))
         }
         const enableRetry = cfg.retry === undefined ? true : cfg.retry > 0
@@ -429,6 +438,10 @@ export function createHttpClient(config: HttpClientConfig): HttpClient {
           retryCount < maxRetry &&
           (!error.response || error.response.status >= 500)
         ) {
+          if (!ownsPendingRequest(cfg)) {
+            clearPendingRequest(cfg)
+            return Promise.reject(ApiError.fromAxiosError(error))
+          }
           metadata.retryCount = retryCount + 1
           cfg._metadata = metadata
           const delay = cfg.retryDelay || 1000 * (retryCount + 1)
@@ -437,7 +450,14 @@ export function createHttpClient(config: HttpClientConfig): HttpClient {
             // eslint-disable-next-line no-console
             console.debug('[API Retry]', { attempt: retryCount + 1, maxRetry, delay })
           }
+          if (!ownsPendingRequest(cfg)) {
+            clearPendingRequest(cfg)
+            return Promise.reject(ApiError.fromAxiosError(error))
+          }
           return service(cfg)
+        }
+        if (!NON_DEDUPLICABLE_URLS.has(cfg.url || '')) {
+          clearPendingRequest(cfg)
         }
       }
       const strategy = config.onAuthFailure ?? { kind: 'silent' as const }

@@ -7,6 +7,7 @@ import com.ulticode.auth.api.dto.AuthorizationMutationDTO;
 import com.ulticode.auth.api.dto.UserIdentityDTO;
 import com.ulticode.auth.api.service.IdentityQueryService;
 import com.ulticode.common.rpc.RpcResult;
+import com.ulticode.common.security.LocalDelegationAssertionContext;
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
 import com.ulticode.modules.admin.service.UserPermissionService;
@@ -142,6 +143,7 @@ class CoreEnabledOwnerJourneyIT {
             assertThat(missingSigner.success()).isFalse();
             assertThat(missingSigner.error().code())
                     .isEqualTo(com.ulticode.common.error.BaseErrorCode.UNAUTHORIZED.code());
+            assertThat(LocalDelegationAssertionContext.current()).isNull();
         } finally {
             SecurityContextHolder.clearContext();
         }
@@ -198,7 +200,6 @@ class CoreEnabledOwnerJourneyIT {
         try (Connection connection = DriverManager.getConnection(jdbcUrl("auth"), mysql.getUsername(), mysqlPassword);
              Statement statement = connection.createStatement()) {
             statement.execute("CREATE DATABASE IF NOT EXISTS `admin` CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci");
-            statement.execute("CREATE USER IF NOT EXISTS 'auth_rw'@'%' IDENTIFIED BY '" + randomSecret() + "'");
         }
         applyMigrations("auth");
         applyMigrations("admin");

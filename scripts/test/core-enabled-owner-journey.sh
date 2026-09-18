@@ -43,7 +43,7 @@ done
 
 (
   cd "$ROOT_DIR/services"
-  ./mvnw \
+  timeout 20m ./mvnw \
     -pl core -am \
     -Dtest='CoreEnabledOwnerJourneyIT' \
     -Dsurefire.failIfNoSpecifiedTests=false \

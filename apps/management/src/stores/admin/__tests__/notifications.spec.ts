@@ -22,11 +22,8 @@ describe('useNotificationsStore', () => {
     vi.mocked(adminNotificationsApi.create).mockResolvedValue({} as never)
   })
 
-  it('rethrows a failed refresh after a successful create', async () => {
-    const refreshError = new Error('refresh failed')
-    vi.mocked(adminNotificationsApi.getAll)
-      .mockResolvedValueOnce(emptyPage)
-      .mockRejectedValueOnce(refreshError)
+  it('does not refresh after a successful create', async () => {
+    vi.mocked(adminNotificationsApi.getAll).mockResolvedValueOnce(emptyPage)
     const store = useNotificationsStore()
     const data = {
       title: 'Maintenance',
@@ -36,13 +33,14 @@ describe('useNotificationsStore', () => {
     }
 
     await store.fetchAnnouncements()
-    await expect(store.createNotification(data)).rejects.toBe(refreshError)
+    await expect(store.createNotification(data)).resolves.toBeUndefined()
 
     expect(adminNotificationsApi.create).toHaveBeenCalledWith(data)
+    expect(adminNotificationsApi.getAll).toHaveBeenCalledTimes(1)
     expect(store.isLoading).toBe(false)
   })
 
-  it('keeps mutation refreshes on the newest pagination metadata', async () => {
+  it('keeps collection state on the newest notification page', async () => {
     let resolveFirst: (value: typeof emptyPage) => void = () => undefined
     const firstPage = new Promise<typeof emptyPage>((resolve) => {
       resolveFirst = resolve
@@ -57,8 +55,7 @@ describe('useNotificationsStore', () => {
     resolveFirst({ items: [], total: 0, page: 1, pageSize: 10 })
     await firstFetch
 
-    expect(store.currentPage).toBe(2)
-    expect(store.pageSize).toBe(20)
+    expect(store.total).toBe(0)
 
     await store.createNotification({
       title: 'Maintenance',
@@ -67,9 +64,6 @@ describe('useNotificationsStore', () => {
       target: 'ALL',
     })
 
-    expect(adminNotificationsApi.getAll).toHaveBeenNthCalledWith(
-      3,
-      expect.objectContaining({ page: 2, limit: 20 }),
-    )
+    expect(adminNotificationsApi.getAll).toHaveBeenCalledTimes(2)
   })
 })

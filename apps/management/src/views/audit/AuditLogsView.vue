@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, h, watch } from 'vue'
+import { storeToRefs } from 'pinia'
+import { ref, computed, onMounted, onBeforeUnmount, h, watch } from 'vue'
 import { formatDateTimeByLocale } from '@/i18n/utils'
 import { watchDebounced } from '@vueuse/core'
 import type { ColumnDef } from '@tanstack/vue-table'
@@ -26,7 +27,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useAuditStore } from '@/stores/admin/audit'
-import { normalizeDateParams, type AuditLog } from '@/api/admin/audit'
+import { normalizeDateParams, type AuditLog, type AuditLogQueryParams } from '@/api/admin/audit'
+import { useRemoteTable } from '@/composables/useRemoteTable'
 
 import DataTable from '@/components/table/DataTable.vue'
 import AuditLogDetailDrawer from './AuditLogDetailDrawer.vue'
@@ -42,76 +44,147 @@ import {
 } from './utils'
 import { badge, USER_ROLE_COLOR_MAP } from '@/components/ui/terminal'
 
+interface AuditFilters {
+  action: string
+  entityType: string
+  startDate: string
+  endDate: string
+  performerId: string
+  userId: string
+}
+
 const { t } = useI18n()
 const auditStore = useAuditStore()
-
-const searchQuery = ref('')
-const actionFilter = ref<string>('all')
-const entityTypeFilter = ref<string>('all')
-const startDateFilter = ref('')
-const endDateFilter = ref('')
-const performerIdFilter = ref('')
-const userIdFilter = ref('')
+const { logs, total: auditTotal, loading: auditLoading, error: auditError, stats } = storeToRefs(auditStore)
 const showAdvancedFilters = ref(false)
-const tablePagination = ref({ pageIndex: 0, pageSize: 50 })
-
 const selectedLog = ref<AuditLog | null>(null)
 const detailsDrawerOpen = ref(false)
-
-// Animation state for staggered reveal
 const isLoaded = ref(false)
 
+const {
+  query,
+  searchQuery,
+  tablePagination,
+  loading,
+  data,
+  total,
+  error,
+  refresh: loadLogs,
+  setFilters,
+} = useRemoteTable<AuditLog, AuditFilters, AuditLogQueryParams>({
+  store: {
+    items: logs,
+    total: auditTotal,
+    isLoading: auditLoading,
+    error: auditError,
+    fetch: auditStore.fetchLogs,
+  },
+  initialQuery: {
+    filters: {
+      action: 'all',
+      entityType: 'all',
+      startDate: '',
+      endDate: '',
+      performerId: '',
+      userId: '',
+    },
+    pagination: { pageIndex: 0, pageSize: 50 },
+  },
+  toParams: ({ search, filters, page, limit }) =>
+    normalizeDateParams({
+      search,
+      action: filters.action === 'all' ? undefined : filters.action,
+      entityType: filters.entityType === 'all' ? undefined : filters.entityType,
+      startDate: filters.startDate || undefined,
+      endDate: filters.endDate || undefined,
+      performerId: filters.performerId || undefined,
+      userId: filters.userId || undefined,
+      page,
+      limit,
+    }),
+  debounceMs: 500,
+  autoLoad: true,
+})
+
+const actionFilter = computed({
+  get: () => query.value.filters.action,
+  set: (action: string) => setFilters({ ...query.value.filters, action }),
+})
+const entityTypeFilter = computed({
+  get: () => query.value.filters.entityType,
+  set: (entityType: string) => setFilters({ ...query.value.filters, entityType }),
+})
+const startDateFilter = computed({
+  get: () => query.value.filters.startDate,
+  set: (startDate: string) => setFilters({ ...query.value.filters, startDate }),
+})
+const endDateFilter = computed({
+  get: () => query.value.filters.endDate,
+  set: (endDate: string) => setFilters({ ...query.value.filters, endDate }),
+})
+const performerIdFilter = computed({
+  get: () => query.value.filters.performerId,
+  set: (performerId: string) => setFilters({ ...query.value.filters, performerId }),
+})
+const userIdFilter = computed({
+  get: () => query.value.filters.userId,
+  set: (userId: string) => setFilters({ ...query.value.filters, userId }),
+})
+function toStatsParams(current = query.value): AuditLogQueryParams {
+  const { search, filters, pagination } = current
+  return normalizeDateParams({
+    search: search || undefined,
+    action: filters.action === 'all' ? undefined : filters.action,
+    entityType: filters.entityType === 'all' ? undefined : filters.entityType,
+    startDate: filters.startDate || undefined,
+    endDate: filters.endDate || undefined,
+    performerId: filters.performerId || undefined,
+    userId: filters.userId || undefined,
+    page: pagination.pageIndex + 1,
+    limit: pagination.pageSize,
+  })
+}
+
+async function refreshStats(current = query.value): Promise<void> {
+  try {
+    await auditStore.fetchStats(toStatsParams(current))
+  } catch {
+    // The store records the user-facing error; consume the rejection for event and watcher callers.
+  }
+}
+
+async function refreshAuditData(): Promise<void> {
+  await Promise.all([loadLogs(), refreshStats()])
+}
+
 onMounted(() => {
-  loadLogs()
   setTimeout(() => {
     isLoaded.value = true
   }, 100)
 })
 
-const actionTypeStats = computed(() => auditStore.stats?.actionsByType ?? [])
-const statsTotal = computed(() => auditStore.stats?.totalActions ?? auditStore.total)
+onBeforeUnmount(() => {
+  auditStore.cancelStats()
+})
 
-async function loadLogs() {
-  const params = normalizeDateParams({
-    search: searchQuery.value || undefined,
-    action: actionFilter.value === 'all' ? undefined : actionFilter.value,
-    entityType: entityTypeFilter.value === 'all' ? undefined : entityTypeFilter.value,
-    startDate: startDateFilter.value || undefined,
-    endDate: endDateFilter.value || undefined,
-    performerId: performerIdFilter.value || undefined,
-    userId: userIdFilter.value || undefined,
-    page: tablePagination.value.pageIndex + 1,
-    limit: tablePagination.value.pageSize,
-  })
-  await auditStore.fetchLogs(params)
-  await auditStore.fetchStats(params)
-}
+const actionTypeStats = computed(() => stats.value?.actionsByType ?? [])
+const statsTotal = computed(() => stats.value?.totalActions ?? total.value)
 
-// Watchers
+watch(
+  query,
+  () => {
+    auditStore.cancelStats()
+    auditStore.clearError()
+  },
+  { deep: true, flush: 'sync' },
+)
+
 watchDebounced(
-  searchQuery,
-  () => {
-    tablePagination.value.pageIndex = 0
-    loadLogs()
+  query,
+  (current) => {
+    void refreshStats(current)
   },
-  { debounce: 500 },
-)
-
-watch(
-  [actionFilter, entityTypeFilter, startDateFilter, endDateFilter, performerIdFilter, userIdFilter],
-  () => {
-    if (tablePagination.value.pageIndex === 0) {
-      loadLogs()
-    } else {
-      tablePagination.value.pageIndex = 0
-    }
-  },
-)
-
-watch(
-  () => tablePagination.value,
-  () => loadLogs(),
-  { deep: true },
+  { debounce: 500, deep: true, immediate: true },
 )
 
 function showDetails(log: AuditLog) {
@@ -296,10 +369,10 @@ const columns: ColumnDef<AuditLog>[] = [
     <div class="flex-1">
       <DataTable
         :columns="columns"
-        :data="auditStore.logs"
+        :data="data"
         :pagination="tablePagination"
-        :row-count="auditStore.total"
-        :loading="auditStore.loading"
+        :row-count="total"
+        :loading="loading"
         @update:pagination="tablePagination = $event"
         class="terminal-table"
       >
@@ -364,10 +437,10 @@ const columns: ColumnDef<AuditLog>[] = [
               variant="terminal"
               size="icon"
               class="h-8 w-8 border-[var(--border-subtle)] hover:border-[var(--status-success-mark)] hover:text-foreground-strong"
-              @click="loadLogs()"
+              @click="refreshAuditData"
               :title="t('common.refresh')"
             >
-              <IconRefresh class="h-3.5 w-3.5" :class="{ 'animate-spin': auditStore.loading }" />
+              <IconRefresh class="h-3.5 w-3.5" :class="{ 'animate-spin': loading }" />
             </Button>
             <Button
               variant="terminal"
@@ -412,18 +485,19 @@ const columns: ColumnDef<AuditLog>[] = [
 
       <!-- Error state - Terminal Style -->
       <div
-        v-if="auditStore.error"
+        v-if="error"
+        role="alert"
         class="mt-4 flex items-center justify-between border border-[var(--status-error-mark)] bg-[color-mix(in_oklch,_var(--status-error-mark)_8%,_transparent)] p-4"
       >
         <div class="flex items-center gap-3">
           <span class="font-data text-sm text-[var(--foreground-strong)]">&gt; ERROR:</span>
-          <span class="text-sm text-[var(--foreground)]">{{ auditStore.error }}</span>
+          <span class="text-sm text-[var(--foreground)]">{{ error }}</span>
         </div>
         <Button
           variant="terminal"
           size="sm"
           class="font-data text-xs border-[var(--status-error-mark)] text-foreground-strong hover:bg-[color-mix(in_oklch,_var(--status-error-mark)_10%,_transparent)]"
-          @click="loadLogs()"
+          @click="refreshAuditData"
         >
           {{ t('common.retry') }}
         </Button>

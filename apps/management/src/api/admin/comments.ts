@@ -48,8 +48,8 @@ export interface BulkCommentActionDto {
 }
 
 export const commentsApi = {
-  async getComments(params: CommentQueryParams): Promise<PageResult<Comment>> {
-    return apiGet<PageResult<Comment>>('/admin/comments', { params })
+  async getComments(params: CommentQueryParams, signal?: AbortSignal): Promise<PageResult<Comment>> {
+    return apiGet<PageResult<Comment>>('/admin/comments', { params, signal })
   },
 
   async getComment(id: string, type: CommentType): Promise<Comment> {

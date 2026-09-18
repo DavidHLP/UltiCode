@@ -18,10 +18,12 @@ const props = defineProps<{
   loading: boolean;
   currentPage: number;
   totalPages: number;
+  error?: string | null;
 }>();
 
 const emit = defineEmits<{
   "update:currentPage": [page: number];
+  retry: [];
 }>();
 
 const router = useRouter();
@@ -73,6 +75,16 @@ const visiblePages = computed(() => {
       >
         <Trophy class="h-3.5 w-3.5 text-[var(--status-warning-mark)]" />
         {{ t("contest.list.partner") }}
+      </Button>
+    </div>
+    <div
+      v-if="error"
+      role="alert"
+      class="flex items-center justify-between gap-4 border border-status-error-mark bg-status-error-surface px-4 py-3 text-sm text-foreground-strong"
+    >
+      <p>{{ error }}</p>
+      <Button type="button" variant="outline" size="sm" @click="emit('retry')">
+        {{ t("common.actions.retry") }}
       </Button>
     </div>
 

@@ -23,7 +23,6 @@
  * <p>See `/tmp/architecture-review-1783341079.html` Card 2.
  */
 import axios, {
-  type AxiosAdapter,
   type AxiosError,
   type AxiosInstance,
   type AxiosRequestConfig,
@@ -66,8 +65,15 @@ export interface ApiResponse<T = unknown> {
   traceId?: string
 }
 
-/** Extended request configuration with enterprise features. */
-export interface RequestConfig extends AxiosRequestConfig {
+/** Request options shared by all HTTP helpers without exposing the transport implementation. */
+export interface RequestConfig {
+  params?: unknown
+  data?: unknown
+  headers?: Record<string, string | number | boolean | null | undefined>
+  signal?: AbortSignal
+  timeout?: number
+  responseType?: 'arraybuffer' | 'blob' | 'document' | 'json' | 'text'
+  withCredentials?: boolean
   retry?: number
   retryDelay?: number
   skipErrorHandler?: boolean
@@ -75,12 +81,47 @@ export interface RequestConfig extends AxiosRequestConfig {
   requestId?: string
 }
 
+type ApiErrorData = {
+  message?: string
+  [key: string]: unknown
+}
+
+/** Narrow response payloads to the object shape used for API error messages. */
+function isApiErrorData(value: unknown): value is ApiErrorData {
+  return typeof value === 'object' && value !== null
+}
+
+/** Transport-neutral response details retained on an {@link ApiError}. */
+export interface ApiErrorResponse {
+  status: number
+  statusText?: string
+  data?: ApiErrorData | null
+}
+
+/** Convert transport response data to the package-owned error response shape. */
+function toApiErrorResponse(response?: AxiosResponse): ApiErrorResponse | undefined {
+  if (!response) return undefined
+  const data = response.data
+  return {
+    status: response.status,
+    statusText: response.statusText,
+    data:
+      data === null
+        ? null
+        : isApiErrorData(data)
+          ? data
+          : typeof data === 'string'
+            ? { message: data }
+            : undefined,
+  }
+}
+
 /** Custom API Error class. */
 export class ApiError extends Error {
   public code: number
-  public response?: AxiosResponse
+  public response?: ApiErrorResponse
 
-  constructor(message: string, code: number, response?: AxiosResponse) {
+  constructor(message: string, code: number, response?: ApiErrorResponse) {
     super(message)
     this.name = 'ApiError'
     this.code = code
@@ -88,16 +129,15 @@ export class ApiError extends Error {
     Object.setPrototypeOf(this, ApiError.prototype)
   }
 
-  static fromAxiosError(error: AxiosError): ApiError {
-    const data = error.response?.data
+  static fromAxiosError(error: unknown): ApiError {
+    const axiosError = axios.isAxiosError(error) ? error : undefined
+    const data = axiosError?.response?.data
     const message =
-      (typeof data === 'object' && data !== null && 'message' in data
-        ? (data as { message?: string }).message
-        : undefined) ||
-      error.message ||
+      (isApiErrorData(data) && typeof data.message === 'string' ? data.message : undefined) ||
+      (error instanceof Error ? error.message : undefined) ||
       'Request failed'
-    const code = error.response?.status || 0
-    return new ApiError(message, code, error.response)
+    const code = axiosError?.response?.status || 0
+    return new ApiError(message, code, toApiErrorResponse(axiosError?.response))
   }
 }
 
@@ -124,9 +164,8 @@ export type AuthFailureStrategy =
  * Whether to deduplicate in-flight identical requests.
  *
  * - `'all-non-auth'`: dedup every non-auth URL (console default).
- * - `'non-auth-readonly'`: additionally skip state-changing methods
- *   PATCH/PUT/DELETE (management default — prevents accidental abort of
- *   in-flight write operations).
+ * - 'non-auth-readonly': dedup only non-auth GET requests (management
+ *   default); never dedup state-changing methods.
  * - `'none'`: never dedup.
  */
 export type DedupPolicy = 'all-non-auth' | 'non-auth-readonly' | 'none'
@@ -153,15 +192,6 @@ export interface HttpClientConfig {
   dedupPolicy?: DedupPolicy
   /** Translation key / message used when a request is canceled. Default: `'Request canceled'`. */
   canceledMessage?: string
-  /**
-   * Test-only axios adapter injection — wires a mock adapter into the
-   * underlying axios instance before any interceptors fire, so tests can
-   * exercise the wrapper (dedup, retry, CSRF, 401 handling) without
-   * network or MSW. Replaces the previous `client.axiosInstance.defaults.adapter`
-   * escape hatch that exposed the raw axios instance through the public
-   * interface. Production code MUST NOT set this.
-   */
-  __testAdapter?: AxiosAdapter
 }
 
 // ---------------------------------------------------------------------------
@@ -172,12 +202,17 @@ interface RequestMetadata {
   requestId: string
   startTime: number
   retryCount: number
+  callerSignal?: AbortSignal
+  cleanupCallerSignal?: () => void
 }
 
-interface ConfigWithMetadata
-  extends Omit<InternalAxiosRequestConfig, 'headers'>,
-    Omit<RequestConfig, 'headers'> {
+interface ConfigWithMetadata extends Omit<InternalAxiosRequestConfig, 'headers'> {
   headers: AxiosRequestHeaders
+  retry?: number
+  retryDelay?: number
+  skipErrorHandler?: boolean
+  skipResponseUnwrap?: boolean
+  requestId?: string
   _metadata?: RequestMetadata
 }
 
@@ -196,7 +231,7 @@ function shouldDeduplicate(config: InternalAxiosRequestConfig, policy: DedupPoli
   if (policy === 'all-non-auth') return true
   // 'non-auth-readonly'
   const method = config.method?.toLowerCase() || ''
-  return !['patch', 'put', 'delete'].includes(method)
+  return method === 'get'
 }
 
 // ---------------------------------------------------------------------------
@@ -206,7 +241,7 @@ function shouldDeduplicate(config: InternalAxiosRequestConfig, policy: DedupPoli
 /** Public HTTP method bundle returned by {@link createHttpClient}. */
 export interface HttpClient {
   /** `GET /path` returning the unwrapped `data` field of the `Result<T>` envelope. */
-  apiGet: <T = unknown>(path: string, init?: RequestConfig & { signal?: AbortSignal }) => Promise<T>
+  apiGet: <T = unknown>(path: string, init?: RequestConfig) => Promise<T>
   /** `POST /path`. */
   apiPost: <T = unknown>(path: string, body?: unknown, init?: RequestConfig) => Promise<T>
   /** `PATCH /path`. */
@@ -239,6 +274,20 @@ export function createHttpClient(config: HttpClientConfig): HttpClient {
   const canceledMessage = config.canceledMessage ?? 'Request canceled'
   let isAuthErrorHandling = false
   const pendingRequests = new Map<string, AbortController>()
+  const clearPendingRequest = (request: InternalAxiosRequestConfig): void => {
+    const key = getRequestKey(request)
+    const pendingController = pendingRequests.get(key)
+    if (pendingController?.signal === request.signal) {
+      pendingRequests.delete(key)
+    }
+    const metadata = (request as ConfigWithMetadata)._metadata
+    metadata?.cleanupCallerSignal?.()
+    if (metadata) metadata.cleanupCallerSignal = undefined
+  }
+  const ownsPendingRequest = (request: InternalAxiosRequestConfig): boolean => {
+    if (!shouldDeduplicate(request, dedupPolicy)) return true
+    return pendingRequests.get(getRequestKey(request))?.signal === request.signal
+  }
   type ViteImportMeta = ImportMeta & {
     env?: {
       DEV?: boolean
@@ -256,10 +305,6 @@ export function createHttpClient(config: HttpClientConfig): HttpClient {
     headers: { 'Content-Type': 'application/json' },
   })
 
-  if (config.__testAdapter) {
-    service.defaults.adapter = config.__testAdapter
-  }
-
   const refreshAccessToken = createRefreshAccessToken(config.csrfManager)
   const csrfInterceptors = createCsrfAxiosInterceptor(
     config.csrfManager,
@@ -274,23 +319,43 @@ export function createHttpClient(config: HttpClientConfig): HttpClient {
 
   service.interceptors.request.use(
     (req: ConfigWithMetadata) => {
-      const requestId = req.requestId || generateRequestId()
-      req.headers['X-Request-ID'] = requestId
-      req._metadata = { requestId, startTime: Date.now(), retryCount: 0 }
+      const previousMetadata = req._metadata
+      previousMetadata?.cleanupCallerSignal?.()
+      const metadata: RequestMetadata = previousMetadata ?? {
+        requestId: req.requestId || generateRequestId(),
+        startTime: Date.now(),
+        retryCount: 0,
+        callerSignal: req.signal as AbortSignal | undefined,
+      }
+      const callerSignal = metadata.callerSignal
+      const isRetry = metadata.retryCount > 0
+      req.headers['X-Request-ID'] = metadata.requestId
+      req._metadata = metadata
       const activeLocale = config.getLocale()
       req.headers[LOCALE_HEADER_KEY] = activeLocale
       req.headers['Accept-Language'] = activeLocale
 
       if (shouldDeduplicate(req, dedupPolicy)) {
         const key = getRequestKey(req)
-        if (pendingRequests.has(key)) {
-          const controller = pendingRequests.get(key)!
-          controller.abort()
-          pendingRequests.delete(key)
-        }
+        const previousSignal = req.signal
         const controller = new AbortController()
+        if (callerSignal) {
+          const onCallerAbort = (): void => controller.abort()
+          if (callerSignal.aborted) {
+            controller.abort()
+          } else {
+            callerSignal.addEventListener('abort', onCallerAbort, { once: true })
+            if (callerSignal.aborted) controller.abort()
+            metadata.cleanupCallerSignal = () =>
+              callerSignal.removeEventListener('abort', onCallerAbort)
+          }
+        }
         req.signal = controller.signal
-        pendingRequests.set(key, controller)
+        const pendingController = pendingRequests.get(key)
+        if (!isRetry || pendingController?.signal === previousSignal) {
+          pendingController?.abort()
+          pendingRequests.set(key, controller)
+        }
       }
 
       if (isDevelopment) {
@@ -314,7 +379,7 @@ export function createHttpClient(config: HttpClientConfig): HttpClient {
       const cfg = response.config as ConfigWithMetadata
       const metadata = cfg._metadata
       if (cfg && !NON_DEDUPLICABLE_URLS.has(cfg.url || '')) {
-        pendingRequests.delete(getRequestKey(cfg))
+        clearPendingRequest(cfg)
       }
       if (isDevelopment && metadata) {
         // eslint-disable-next-line no-console
@@ -330,7 +395,11 @@ export function createHttpClient(config: HttpClientConfig): HttpClient {
         const apiResponse = data as ApiResponse<unknown>
         if (apiResponse.code !== 0) {
           return Promise.reject(
-            new ApiError(apiResponse.message || 'Request failed', apiResponse.code, response),
+            new ApiError(
+              apiResponse.message || 'Request failed',
+              apiResponse.code,
+              toApiErrorResponse(response),
+            ),
           )
         }
         return apiResponse.data
@@ -339,10 +408,10 @@ export function createHttpClient(config: HttpClientConfig): HttpClient {
     },
     async (error: AxiosError) => {
       const cfg = error.config as ConfigWithMetadata | undefined
-      if (cfg && !NON_DEDUPLICABLE_URLS.has(cfg.url || '')) {
-        pendingRequests.delete(getRequestKey(cfg))
-      }
       if (error.name === 'CanceledError' || error.code === 'ERR_CANCELED') {
+        if (cfg && !NON_DEDUPLICABLE_URLS.has(cfg.url || '')) {
+          clearPendingRequest(cfg)
+        }
         if (isDevelopment) {
           // eslint-disable-next-line no-console
           console.debug('[API] canceled', cfg?.url)
@@ -351,6 +420,9 @@ export function createHttpClient(config: HttpClientConfig): HttpClient {
       }
       if (cfg) {
         if (cfg.skipErrorHandler) {
+          if (!NON_DEDUPLICABLE_URLS.has(cfg.url || '')) {
+            clearPendingRequest(cfg)
+          }
           return Promise.reject(ApiError.fromAxiosError(error))
         }
         const enableRetry = cfg.retry === undefined ? true : cfg.retry > 0
@@ -366,15 +438,26 @@ export function createHttpClient(config: HttpClientConfig): HttpClient {
           retryCount < maxRetry &&
           (!error.response || error.response.status >= 500)
         ) {
+          if (!ownsPendingRequest(cfg)) {
+            clearPendingRequest(cfg)
+            return Promise.reject(ApiError.fromAxiosError(error))
+          }
           metadata.retryCount = retryCount + 1
           cfg._metadata = metadata
           const delay = cfg.retryDelay || 1000 * (retryCount + 1)
           await new Promise((resolve) => setTimeout(resolve, delay))
+          if (!ownsPendingRequest(cfg)) {
+            clearPendingRequest(cfg)
+            return Promise.reject(ApiError.fromAxiosError(error))
+          }
           if (isDevelopment) {
             // eslint-disable-next-line no-console
             console.debug('[API Retry]', { attempt: retryCount + 1, maxRetry, delay })
           }
           return service(cfg)
+        }
+        if (!NON_DEDUPLICABLE_URLS.has(cfg.url || '')) {
+          clearPendingRequest(cfg)
         }
       }
       const strategy = config.onAuthFailure ?? { kind: 'silent' as const }
@@ -435,22 +518,49 @@ export function createHttpClient(config: HttpClientConfig): HttpClient {
   // parameter. The response interceptor already unwraps the envelope, so the
   // runtime value is the payload; assert that once here, not at every call site.
   const asPayload = <T>(request: Promise<unknown>): Promise<T> => request as Promise<T>
+  const toAxiosConfig = (init?: RequestConfig): AxiosRequestConfig => {
+    if (!init) return {}
+    const {
+      params,
+      data,
+      headers,
+      signal,
+      timeout,
+      responseType,
+      withCredentials,
+      retry,
+      retryDelay,
+      skipErrorHandler,
+      skipResponseUnwrap,
+      requestId,
+    } = init
+    return {
+      params,
+      data,
+      headers,
+      signal,
+      timeout,
+      responseType,
+      withCredentials,
+      retry,
+      retryDelay,
+      skipErrorHandler,
+      skipResponseUnwrap,
+      requestId,
+    } as AxiosRequestConfig
+  }
 
   return {
-    apiGet: <T>(path: string, init?: RequestConfig & { signal?: AbortSignal }) => {
-      const { signal, ...axiosConfig } = (init || {}) as RequestConfig & {
-        signal?: AbortSignal
-      }
-      return asPayload<T>(service.get<T, T>(path, { ...axiosConfig, signal }))
-    },
+    apiGet: <T>(path: string, init?: RequestConfig) =>
+      asPayload<T>(service.get<T, T>(path, toAxiosConfig(init))),
     apiPost: <T>(path: string, body?: unknown, init?: RequestConfig) =>
-      asPayload<T>(service.post<T, T, unknown>(path, body, { ...init })),
+      asPayload<T>(service.post<T, T, unknown>(path, body, toAxiosConfig(init))),
     apiPatch: <T>(path: string, body?: unknown, init?: RequestConfig) =>
-      asPayload<T>(service.patch<T, T, unknown>(path, body, { ...init })),
+      asPayload<T>(service.patch<T, T, unknown>(path, body, toAxiosConfig(init))),
     apiPut: <T>(path: string, body?: unknown, init?: RequestConfig) =>
-      asPayload<T>(service.put<T, T, unknown>(path, body, { ...init })),
+      asPayload<T>(service.put<T, T, unknown>(path, body, toAxiosConfig(init))),
     apiDelete: <T>(path: string, init?: RequestConfig) =>
-      asPayload<T>(service.delete<T, T>(path, { ...init })),
+      asPayload<T>(service.delete<T, T>(path, toAxiosConfig(init))),
     apiUpload: <T>(
       path: string,
       file: File | Blob,
@@ -461,8 +571,11 @@ export function createHttpClient(config: HttpClientConfig): HttpClient {
       formData.append('file', file)
       return asPayload<T>(
         service.post<T, T>(path, formData, {
-          ...init,
-          headers: { 'Content-Type': 'multipart/form-data' },
+          ...toAxiosConfig(init),
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            ...init?.headers,
+          },
           onUploadProgress: (progressEvent) => {
             if (onProgress && progressEvent.total) {
               const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total)
@@ -474,10 +587,10 @@ export function createHttpClient(config: HttpClientConfig): HttpClient {
     },
     apiDownload: async (path: string, filename?: string, init?: RequestConfig) => {
       const response = await service.get<Blob>(path, {
-        ...init,
+        ...toAxiosConfig(init),
         responseType: 'blob',
         skipResponseUnwrap: true,
-      } as RequestConfig)
+      } as AxiosRequestConfig)
       const url = window.URL.createObjectURL(response.data as Blob)
       const link = document.createElement('a')
       link.href = url

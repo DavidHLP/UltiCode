@@ -5,7 +5,6 @@ import type { ColumnDef } from '@tanstack/vue-table'
 import { toast } from 'vue-sonner'
 import {
   IconCalculator,
-  IconCircleXFilled,
   IconDotsVertical,
   IconPencil,
   IconPlus,
@@ -15,7 +14,6 @@ import {
 } from '@tabler/icons-vue'
 
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { createSelectionColumn } from '@/components/table/selectionColumn'
 import {
@@ -38,22 +36,16 @@ import {
 import DataTable from '@/components/table/DataTable.vue'
 import ScoringRuleForm from './components/ScoringRuleForm.vue'
 import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
-import type { PaginationState } from '@tanstack/vue-table'
 
 const { t } = useI18n()
 const { can: contestCan } = useContestPermissions()
 const { can: systemCan } = useSystemPermissions()
 
 // State
-const searchQuery = ref('')
 const includeInactive = ref(false)
 const loading = ref(false)
 const error = ref<string | null>(null)
 const scoringRules = ref<ScoringRule[]>([])
-const tablePagination = ref<PaginationState>({
-  pageIndex: 0,
-  pageSize: 10,
-})
 const selectedRows = ref<ScoringRule[]>([])
 
 // Dialogs
@@ -379,23 +371,8 @@ const columns: ColumnDef<ScoringRule>[] = [
     <!-- Main Content Area -->
     <div class="flex-1 py-4 px-4 lg:px-6">
       <!-- Toolbar -->
-      <div class="flex items-center justify-between mb-4">
+      <div class="flex items-center justify-end mb-4">
         <div class="flex items-center gap-2">
-          <Input
-            v-model="searchQuery"
-            :placeholder="t('scoringRules.searchPlaceholder')"
-            class="min-w-[200px] w-[260px]"
-          >
-            <template #trailing>
-              <button
-                v-if="searchQuery"
-                @click="searchQuery = ''"
-                class="rounded-none opacity-70 hover:opacity-100"
-              >
-                <IconCircleXFilled class="h-4 w-4" />
-              </button>
-            </template>
-          </Input>
           <div class="flex items-center gap-2 px-3 py-1.5 border rounded-none">
             <Switch
               :checked="includeInactive"
@@ -409,15 +386,15 @@ const columns: ColumnDef<ScoringRule>[] = [
             />
             <span class="text-xs text-muted-foreground">{{ t('scoringRules.showInactive') }}</span>
           </div>
+          <Button
+            variant="outline"
+            size="icon"
+            @click="loadScoringRules()"
+            :title="t('common.refresh')"
+          >
+            <IconRefresh class="h-4 w-4" :class="{ 'animate-spin': loading }" />
+          </Button>
         </div>
-        <Button
-          variant="outline"
-          size="icon"
-          @click="loadScoringRules()"
-          :title="t('common.refresh')"
-        >
-          <IconRefresh class="h-4 w-4" :class="{ 'animate-spin': loading }" />
-        </Button>
       </div>
 
       <!-- Bulk Action Bar -->
@@ -448,11 +425,9 @@ const columns: ColumnDef<ScoringRule>[] = [
       <DataTable
         :columns="columns"
         :data="scoringRules"
-        :pagination="tablePagination"
-        :row-count="scoringRules.length"
         :loading="loading"
         v-model:selected-rows="selectedRows"
-        @update:pagination="tablePagination = $event"
+        hide-pagination
         :empty-title="t('scoringRules.emptyTitle')"
         :empty-description="t('scoringRules.emptyDescription')"
         class="terminal-table"

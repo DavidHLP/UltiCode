@@ -19,20 +19,15 @@ import {
 } from '@/api/admin/moderation'
 import { isTerminalStatus } from '@/views/moderation/workflow/moderationWorkflow'
 import { extractApiErrorMessage } from '@/utils/error'
-import { createCollectionSlice, type CollectionPage } from '@/stores/createCollectionSlice'
+import { createCollectionSlice } from '@/stores/createCollectionSlice'
 
 /**
  * Moderation decision + collection store.
  *
  * <p>Three collection slices (queue / reports / appeals) back the three
  * <code>useRemoteTable</code>-driven views; the stats slice backs the dashboard
- * and the queue header counters. Each collection fetch goes through the
- * per-key <code>abortControllers</code> registry so a stale response from an
- * earlier filter value cannot clobber fresh state when two fetches race —
- * <code>useRemoteTable</code> debounces new triggers but does not abort prior
- * in-flight requests, so this registry is the load-bearing stale-response
- * gate.
- *
+ * and the queue header counters. Each collection slice owns cancellation and
+ * stale-response protection through <code>createCollectionSlice</code>.
  * <p>Action methods (claim / assign / performAction / batchAction /
  * reviewAppeal) own their post-action state reconciliation: they patch the
  * matching list index in place for non-terminal outcomes, remove terminal
@@ -62,45 +57,10 @@ export const useModerationStore = defineStore('adminModeration', () => {
   const underReviewCount = computed(() => stats.value?.underReviewCount ?? 0)
 
   // ============================================================================
-  // Abort Controllers
+  // Collection State
   // ============================================================================
-  // One in-flight request per collection slice. useRemoteTable debounces new
-  // triggers but does NOT abort prior in-flight requests; this registry is
-  // the load-bearing gate that prevents a stale response (e.g. from an
-  // earlier filter value) from clobbering fresh state when two fetches race.
-  const abortControllers = ref<Map<string, AbortController>>(new Map())
-
-  function getAbortController(key: string): AbortController {
-    const controller = abortControllers.value.get(key)
-    if (controller) controller.abort()
-    const newController = new AbortController()
-    abortControllers.value.set(key, newController)
-    return newController
-  }
-
-  function abortAllRequests() {
-    abortControllers.value.forEach((controller) => controller.abort())
-    abortControllers.value.clear()
-  }
-
-  async function loadModerationCollection<T>(
-    key: string,
-    load: (signal: AbortSignal) => Promise<{ items?: T[]; total: number }>,
-  ): Promise<CollectionPage<T> | undefined> {
-    const controller = getAbortController(key)
-    try {
-      const response = await load(controller.signal)
-      if (controller.signal.aborted) return undefined
-      return { items: response.items ?? [], total: response.total }
-    } catch (err: unknown) {
-      if (controller.signal.aborted || (err as Error).name === 'AbortError') return undefined
-      throw err
-    }
-  }
-
   const queue = createCollectionSlice<ModerationQueueItem, QueryModerationQueueParams>({
-    load: (params = {}) =>
-      loadModerationCollection('queue', (signal) => moderationQueueApi.getQueue(params, signal)),
+    load: (params = {}, signal) => moderationQueueApi.getQueue(params, signal),
   })
   const queueItems = queue.items
   const queueTotal = queue.total
@@ -108,8 +68,7 @@ export const useModerationStore = defineStore('adminModeration', () => {
   const queueError = queue.error
 
   const reportsCollection = createCollectionSlice<Report, QueryReportsParams>({
-    load: (params = {}) =>
-      loadModerationCollection('reports', (signal) => reportsApi.getReports(params, signal)),
+    load: (params = {}, signal) => reportsApi.getReports(params, signal),
   })
   const reports = reportsCollection.items
   const reportsTotal = reportsCollection.total
@@ -117,8 +76,7 @@ export const useModerationStore = defineStore('adminModeration', () => {
   const reportsError = reportsCollection.error
 
   const appealsCollection = createCollectionSlice<Appeal, QueryAppealsParams>({
-    load: (params = {}) =>
-      loadModerationCollection('appeals', (signal) => appealsApi.getAppeals(params, signal)),
+    load: (params = {}, signal) => appealsApi.getAppeals(params, signal),
   })
   const appeals = appealsCollection.items
   const appealsTotal = appealsCollection.total
@@ -137,23 +95,32 @@ export const useModerationStore = defineStore('adminModeration', () => {
   // ============================================================================
   const fetchQueue = queue.fetch
 
+  let statsController: AbortController | null = null
+  let statsSequence = 0
+
   async function fetchStats(forceRefresh = false) {
     if (!forceRefresh && stats.value) return stats.value
-    const controller = getAbortController('stats')
+    statsController?.abort()
+    const controller = new AbortController()
+    statsController = controller
+    const request = ++statsSequence
     statsLoading.value = true
     statsError.value = null
     try {
       const data = await moderationQueueApi.getStats(controller.signal)
-      if (controller.signal.aborted) return null
+      if (request !== statsSequence || controller.signal.aborted) return null
       stats.value = data
       return data
     } catch (err: unknown) {
-      if ((err as Error).name === 'AbortError') return null
+      if (request !== statsSequence || controller.signal.aborted) return null
       statsError.value = extractErrorMessage(err)
       console.error('[ModerationStore] Failed to fetch stats:', err)
       return null
     } finally {
-      if (abortControllers.value.get('stats') === controller) statsLoading.value = false
+      if (statsController === controller) {
+        statsController = null
+        statsLoading.value = false
+      }
     }
   }
 
@@ -274,22 +241,15 @@ export const useModerationStore = defineStore('adminModeration', () => {
   }
 
   function reset() {
-    queueItems.value = []
-    queueTotal.value = 0
-    queueLoading.value = false
-    queueError.value = null
-    reports.value = []
-    reportsTotal.value = 0
-    reportsLoading.value = false
-    reportsError.value = null
-    appeals.value = []
-    appealsTotal.value = 0
-    appealsLoading.value = false
-    appealsError.value = null
+    queue.reset()
+    reportsCollection.reset()
+    appealsCollection.reset()
+    statsController?.abort()
+    statsController = null
+    statsSequence += 1
     stats.value = null
     statsLoading.value = false
     statsError.value = null
-    abortAllRequests()
   }
 
   return {
@@ -306,8 +266,6 @@ export const useModerationStore = defineStore('adminModeration', () => {
     statsError,
     pendingCount,
     underReviewCount,
-    abortControllers,
-    abortAllRequests,
     extractErrorMessage,
     fetchQueue,
     fetchStats,

@@ -100,8 +100,11 @@ export interface LanguageOption {
 }
 
 export const submissionsApi = {
-  async getList(params: SubmissionQueryParams): Promise<PageResult<SubmissionListItem>> {
-    return apiGet<PageResult<SubmissionListItem>>('/admin/submissions', { params })
+  async getList(
+    params: SubmissionQueryParams,
+    signal?: AbortSignal,
+  ): Promise<PageResult<SubmissionListItem>> {
+    return apiGet<PageResult<SubmissionListItem>>('/admin/submissions', { params, signal })
   },
 
   async getById(id: string): Promise<SubmissionDetail | null> {

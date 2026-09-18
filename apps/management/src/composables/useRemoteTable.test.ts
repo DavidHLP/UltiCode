@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { effectScope, ref } from 'vue'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   useRemoteTable,
@@ -57,11 +57,19 @@ afterEach(() => {
 describe('useRemoteTable', () => {
   it('keeps the initial query and skeleton loading until the first fetch', () => {
     const { store, table } = createTable()
-
+    expect(table).not.toHaveProperty('transition')
+    expect(table).not.toHaveProperty('reset')
     expect(table.query.value.pagination).toEqual({ pageIndex: 2, pageSize: 10 })
     expect(table.query.value.filters).toEqual({ status: 'all' })
     expect(store.fetch).not.toHaveBeenCalled()
     expect(table.loading.value).toBe(true)
+  })
+
+  it('can suppress the initial skeleton for conditionally loaded tables', () => {
+    const { store, table } = createTable({ showInitialLoading: false })
+
+    expect(store.fetch).not.toHaveBeenCalled()
+    expect(table.loading.value).toBe(false)
   })
 
   it('debounces search and resets the page through one transition', async () => {
@@ -78,12 +86,15 @@ describe('useRemoteTable', () => {
     await vi.advanceTimersByTimeAsync(500)
 
     expect(store.fetch).toHaveBeenCalledTimes(1)
-    expect(store.fetch).toHaveBeenCalledWith({
-      search: 'graphs',
-      status: undefined,
-      page: 1,
-      limit: 10,
-    })
+    expect(store.fetch).toHaveBeenCalledWith(
+      {
+        search: 'graphs',
+        status: undefined,
+        page: 1,
+        limit: 10,
+      },
+      { signal: expect.any(AbortSignal) },
+    )
   })
 
   it('coalesces a pending search with a filter transition', async () => {
@@ -93,12 +104,15 @@ describe('useRemoteTable', () => {
     table.setSearch('graphs')
     await table.setFilters({ status: 'published' })
     expect(store.fetch).toHaveBeenCalledTimes(1)
-    expect(store.fetch).toHaveBeenCalledWith({
-      search: 'graphs',
-      status: 'published',
-      page: 1,
-      limit: 10,
-    })
+    expect(store.fetch).toHaveBeenCalledWith(
+      {
+        search: 'graphs',
+        status: 'published',
+        page: 1,
+        limit: 10,
+      },
+      { signal: expect.any(AbortSignal) },
+    )
 
     await vi.advanceTimersByTimeAsync(500)
     expect(store.fetch).toHaveBeenCalledTimes(1)
@@ -111,12 +125,15 @@ describe('useRemoteTable', () => {
 
     expect(table.query.value.pagination.pageIndex).toBe(0)
     expect(store.fetch).toHaveBeenCalledTimes(1)
-    expect(store.fetch).toHaveBeenCalledWith({
-      search: undefined,
-      status: 'published',
-      page: 1,
-      limit: 10,
-    })
+    expect(store.fetch).toHaveBeenCalledWith(
+      {
+        search: undefined,
+        status: 'published',
+        page: 1,
+        limit: 10,
+      },
+      { signal: expect.any(AbortSignal) },
+    )
   })
 
   it('refreshes the current page without changing query state', async () => {
@@ -125,12 +142,15 @@ describe('useRemoteTable', () => {
     await table.refresh()
 
     expect(table.query.value.pagination).toEqual({ pageIndex: 2, pageSize: 10 })
-    expect(store.fetch).toHaveBeenCalledWith({
-      search: undefined,
-      status: undefined,
-      page: 3,
-      limit: 10,
-    })
+    expect(store.fetch).toHaveBeenCalledWith(
+      {
+        search: undefined,
+        status: undefined,
+        page: 3,
+        limit: 10,
+      },
+      { signal: expect.any(AbortSignal) },
+    )
   })
 
   it('uses route state and debounces route writes', async () => {
@@ -256,6 +276,83 @@ describe('useRemoteTable', () => {
     pending[1]()
     await second
     expect(table.loading.value).toBe(false)
+  })
+
+  it('aborts all active requests when the table scope is disposed', async () => {
+    const scope = effectScope()
+    const store = createStore()
+    const pending: Array<() => void> = []
+    const signals: AbortSignal[] = []
+    store.fetch.mockImplementation(
+      (_params, options?: { signal?: AbortSignal }) =>
+        new Promise<void>((resolve) => {
+          expect(options?.signal).toBeDefined()
+          signals.push(options!.signal!)
+          pending.push(resolve)
+        }),
+    )
+
+    let table!: ReturnType<typeof useRemoteTable<Row, Filters, Params>>
+    scope.run(() => {
+      table = useRemoteTable<Row, Filters, Params>({
+        store,
+        initialQuery: { filters: { status: 'all' } },
+        toParams: ({ filters, page, limit }) => ({
+          status: filters.status,
+          page,
+          limit,
+        }),
+      })
+    })
+
+    const first = table.setFilters({ status: 'draft' })
+    const second = table.setFilters({ status: 'published' })
+    expect(signals).toHaveLength(2)
+    expect(signals[0].aborted).toBe(true)
+    expect(signals[1].aborted).toBe(false)
+
+    scope.stop()
+
+    expect(signals.every((signal) => signal.aborted)).toBe(true)
+    pending.forEach((resolve) => resolve())
+    await Promise.all([first, second])
+  })
+
+  it('stops the route subscription when the table scope is disposed', () => {
+    const scope = effectScope()
+    const store = createStore()
+    let subscribed = true
+    let emit: ((query: Partial<RemoteTableQuery<Filters>>) => void) | undefined
+    const stop = vi.fn(() => {
+      subscribed = false
+    })
+
+    scope.run(() => {
+      useRemoteTable<Row, Filters, Params>({
+        store,
+        initialQuery: { filters: { status: 'all' } },
+        toParams: ({ filters, page, limit }) => ({
+          status: filters.status,
+          page,
+          limit,
+        }),
+        route: {
+          read: () => ({}),
+          subscribe: (onChange) => {
+            emit = (query) => {
+              if (subscribed) onChange(query)
+            }
+            return stop
+          },
+        },
+      })
+    })
+
+    scope.stop()
+    emit?.({ filters: { status: 'draft' } })
+
+    expect(stop).toHaveBeenCalledOnce()
+    expect(store.fetch).not.toHaveBeenCalled()
   })
 
   it('exposes reactive data and loading from the collection', () => {

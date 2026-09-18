@@ -12,8 +12,8 @@ import { extractApiErrorMessage } from '@/utils/error'
 import { createCollectionSlice } from '@/stores/createCollectionSlice'
 export const useSolutionsStore = defineStore('adminSolutions', () => {
   const collection = createCollectionSlice<SolutionListItem, SolutionQueryParams>({
-    load: async (params = {}) => {
-      const response = await solutionsApi.getSolutions(params)
+    load: async (params = {}, signal) => {
+      const response = await solutionsApi.getSolutions(params, signal)
       return { items: response.items, total: response.total }
     },
   })
@@ -33,15 +33,14 @@ export const useSolutionsStore = defineStore('adminSolutions', () => {
 
   async function fetchFlaggedSolutions(params: SolutionQueryParams = {}) {
     return collection.fetchWith(
-      async (query = {}) => {
-        const response = await solutionsApi.getFlaggedSolutions(query)
+      async (query = {}, signal) => {
+        const response = await solutionsApi.getFlaggedSolutions(query, signal)
         return { items: response.items, total: response.total }
       },
       params,
       { errorMessage: 'Failed to fetch flagged solutions' },
     )
   }
-
   async function fetchSolution(id: string): Promise<Solution | null> {
     operationLoading.value = true
     operationError.value = null

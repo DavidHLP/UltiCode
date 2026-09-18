@@ -13,8 +13,8 @@ import { extractApiErrorMessage } from '@/utils/error'
 import { createCollectionSlice } from '@/stores/createCollectionSlice'
 export const useContestsStore = defineStore('adminContests', () => {
   const collection = createCollectionSlice<Contest, ContestQueryParams>({
-    load: async (params = {}) => {
-      const response = await contestsApi.getContests(params)
+    load: async (params = {}, signal) => {
+      const response = await contestsApi.getContests(params, signal)
       return { items: response.items, total: response.total }
     },
   })

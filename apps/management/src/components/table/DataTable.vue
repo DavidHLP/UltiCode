@@ -69,6 +69,7 @@ const props = defineProps<{
   data: TData[]
   pagination?: PaginationState
   rowCount?: number
+  hidePagination?: boolean
   emptyTitle?: string
   emptyDescription?: string
   loading?: boolean
@@ -180,7 +181,7 @@ const table = useVueTable({
       return rowSelection.value
     },
     get pagination() {
-      return props.pagination
+      return props.pagination ?? { pageIndex: 0, pageSize: Math.max(props.data.length, 1) }
     },
   },
 })
@@ -336,7 +337,7 @@ watch(
 
     <!-- Pagination Footer -->
     <div
-      v-if="loading || table.getRowModel().rows.length"
+      v-if="!props.hidePagination && (loading || table.getRowModel().rows.length)"
       class="flex items-center justify-between px-4 lg:px-6 py-2.5 border-t border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--surface-sunken)]"
     >
       <div

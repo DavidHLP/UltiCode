@@ -34,4 +34,23 @@ describe("PastContests", () => {
     expect(currentPage.classes()).toContain("text-foreground-strong");
     expect(currentPage.classes()).toContain("bg-status-warning-surface");
   });
+
+  it("renders pager errors and emits retry", async () => {
+    const wrapper = mount(PastContests, {
+      props: {
+        contests: [],
+        loading: false,
+        currentPage: 1,
+        totalPages: 0,
+        error: "Failed to load past contests",
+      },
+    });
+
+    expect(wrapper.get('[role="alert"]').text()).toContain(
+      "Failed to load past contests",
+    );
+
+    await wrapper.get('[role="alert"] button').trigger("click");
+    expect(wrapper.emitted("retry")).toHaveLength(1);
+  });
 });

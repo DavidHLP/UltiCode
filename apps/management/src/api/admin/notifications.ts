@@ -84,8 +84,8 @@ export interface AdminNotificationQueryParams {
 // ==================== API ====================
 
 export const adminNotificationsApi = {
-  getAll: (params?: AdminNotificationQueryParams) =>
-    apiGet<PageResult<SystemAnnouncement>>('/admin/notifications', { params }),
+  getAll: (params?: AdminNotificationQueryParams, signal?: AbortSignal) =>
+    apiGet<PageResult<SystemAnnouncement>>('/admin/notifications', { params, signal }),
 
   create: (data: CreateNotificationDto) =>
     apiPost<SystemAnnouncement>('/admin/notifications', data),

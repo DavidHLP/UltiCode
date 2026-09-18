@@ -12,8 +12,8 @@ import { createCollectionSlice } from '@/stores/createCollectionSlice'
 
 export const useTagsStore = defineStore('admin-tags', () => {
   const collection = createCollectionSlice<Tag, TagQuery>({
-    load: async (query = {}) => {
-      const response = await tagsApi.getTags(query)
+    load: async (query = {}, signal) => {
+      const response = await tagsApi.getTags(query, signal)
       return { items: response.data, total: response.total }
     },
   })

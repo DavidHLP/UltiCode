@@ -56,8 +56,8 @@ export interface ProblemTagResponse {
 }
 
 export const tagsApi = {
-  getTags(query: TagQuery) {
-    return apiGet<TagListResponse>('/admin/tags', { params: query })
+  getTags(query: TagQuery, signal?: AbortSignal) {
+    return apiGet<TagListResponse>('/admin/tags', { params: query, signal })
   },
 
   /**

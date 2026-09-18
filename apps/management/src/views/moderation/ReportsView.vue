@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { IconRefresh, IconAlertTriangle } from '@tabler/icons-vue'
 
 import DataTable from '@/components/table/DataTable.vue'
-import DataTableToolbar, { type Filter } from '@/components/table/DataTableToolbar.vue'
+import DataTableToolbar from '@/components/table/DataTableToolbar.vue'
 
 import { useModerationStore } from '@/stores/admin/moderation'
 import {
@@ -20,6 +20,7 @@ import {
 } from '@/api/admin/moderation'
 import { useRemoteTable } from '@/composables/useRemoteTable'
 import { createReportsColumns, type ReportActions } from './reports-columns'
+import { useModerationFilters } from './composables/useModerationFilters'
 import { entityRoute } from './workflow/moderationWorkflow'
 
 const { t } = useI18n()
@@ -69,19 +70,14 @@ const {
   autoLoad: true,
 })
 
-const statusFilter = computed({
-  get: () => query.value.filters.status,
-  set: (status: ReportStatus | 'all') => setFilters({ ...query.value.filters, status }),
-})
-const categoryFilter = computed({
-  get: () => query.value.filters.category,
-  set: (category: ReportCategory | 'all') => setFilters({ ...query.value.filters, category }),
-})
-const entityTypeFilter = computed({
-  get: () => query.value.filters.entityType,
-  set: (entityType: ModeratableEntityType | 'all') =>
-    setFilters({ ...query.value.filters, entityType }),
-})
+const { buildFilters, handleFilterUpdate } = useModerationFilters(
+  { query, setFilters },
+  {
+    statusValues: Object.values(ReportStatus),
+    statusNamespace: 'moderation.reportStatus',
+  },
+)
+const filters = buildFilters(t)
 
 // Stats
 const stats = computed(() => ({
@@ -106,58 +102,7 @@ const columns = computed(() => {
   return createReportsColumns(t, actions)
 })
 
-// Filter configuration
-const filters = computed<Filter[]>(() => [
-  {
-    modelValue: statusFilter.value,
-    placeholder: t('moderation.reportStatus.title'),
-    options: [
-      { value: 'all', label: t('moderation.reportStatus.all') },
-      { value: ReportStatus.PENDING, label: t('moderation.reportStatus.PENDING') },
-      { value: ReportStatus.REVIEWED, label: t('moderation.reportStatus.REVIEWED') },
-      { value: ReportStatus.RESOLVED, label: t('moderation.reportStatus.RESOLVED') },
-      { value: ReportStatus.DISMISSED, label: t('moderation.reportStatus.DISMISSED') },
-    ],
-    width: 'w-[140px]',
-  },
-  {
-    modelValue: categoryFilter.value,
-    placeholder: t('moderation.categories.title'),
-    options: [
-      { value: 'all', label: t('moderation.categories.all') },
-      { value: ReportCategory.SPAM, label: t('moderation.categories.SPAM') },
-      { value: ReportCategory.HARASSMENT, label: t('moderation.categories.HARASSMENT') },
-      { value: ReportCategory.HATE_SPEECH, label: t('moderation.categories.HATE_SPEECH') },
-      { value: ReportCategory.VIOLENCE, label: t('moderation.categories.VIOLENCE') },
-      { value: ReportCategory.SEXUAL_CONTENT, label: t('moderation.categories.SEXUAL_CONTENT') },
-      { value: ReportCategory.MISINFORMATION, label: t('moderation.categories.MISINFORMATION') },
-      { value: ReportCategory.WRONG_ANSWER, label: t('moderation.categories.WRONG_ANSWER') },
-      { value: ReportCategory.COPYRIGHT, label: t('moderation.categories.COPYRIGHT') },
-      { value: ReportCategory.OTHER, label: t('moderation.categories.OTHER') },
-    ],
-    width: 'w-[160px]',
-  },
-  {
-    modelValue: entityTypeFilter.value,
-    placeholder: t('moderation.entityTypes.title'),
-    options: [
-      { value: 'all', label: t('moderation.entityTypes.all') },
-      { value: 'forum_post', label: t('moderation.entityTypes.forum_post') },
-      { value: 'forum_comment', label: t('moderation.entityTypes.forum_comment') },
-      { value: 'solution', label: t('moderation.entityTypes.solution') },
-      { value: 'solution_comment', label: t('moderation.entityTypes.solution_comment') },
-      { value: 'problem', label: t('moderation.entityTypes.problem') },
-    ],
-    width: 'w-[140px]',
-  },
-])
 
-
-function handleFilterUpdate(index: number, value: string | number) {
-  if (index === 0) statusFilter.value = value as ReportStatus | 'all'
-  else if (index === 1) categoryFilter.value = value as ReportCategory | 'all'
-  else if (index === 2) entityTypeFilter.value = value as ModeratableEntityType | 'all'
-}
 </script>
 
 <template>

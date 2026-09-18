@@ -112,14 +112,21 @@ export function normalizeDateParams<T extends { startDate?: string; endDate?: st
 }
 
 export const auditApi = {
-  async getAuditLogs(params: AuditLogQueryParams = {}): Promise<PageResult<AuditLog>> {
+  async getAuditLogs(
+    params: AuditLogQueryParams = {},
+    signal?: AbortSignal,
+  ): Promise<PageResult<AuditLog>> {
     return apiGet<PageResult<AuditLog>>('/admin/audit/logs', {
       params: normalizeDateParams(params),
+      signal,
     })
   },
 
-  async getAuditStats(params?: AuditLogQueryParams): Promise<AuditStats> {
-    return apiGet<AuditStats>('/admin/audit/stats', { params: normalizeDateParams(params ?? {}) })
+  async getAuditStats(params?: AuditLogQueryParams, signal?: AbortSignal): Promise<AuditStats> {
+    return apiGet<AuditStats>('/admin/audit/stats', {
+      params: normalizeDateParams(params ?? {}),
+      signal,
+    })
   },
 
   async exportAuditLogs(params: AuditExportParams = {}): Promise<void> {

@@ -90,18 +90,29 @@ describe("usePastContestsPager", () => {
     );
 
     const pager = usePastContestsPager();
+    pager.error.value = "stale error";
     const loadPromise = pager.loadInitialPage();
 
+    expect(pager.error.value).toBeNull();
     expect(pager.loading.value).toBe(true);
     resolveLoad();
     await loadPromise;
     expect(pager.loading.value).toBe(false);
   });
-  it("clears its loading state when a transition fails", async () => {
+  it("propagates transition errors through its own error state", async () => {
     mocks.store.loadPastContests.mockRejectedValue(new Error("network"));
     const pager = usePastContestsPager();
 
     await expect(pager.loadInitialPage()).rejects.toThrow("network");
+    expect(pager.error.value).toBe("network");
+    expect(pager.loading.value).toBe(false);
+  });
+  it("uses a fallback message for non-Error transition failures", async () => {
+    mocks.store.loadPastContests.mockRejectedValue("network");
+    const pager = usePastContestsPager();
+
+    await expect(pager.loadInitialPage()).rejects.toBe("network");
+    expect(pager.error.value).toBe("Failed to load past contests");
     expect(pager.loading.value).toBe(false);
   });
 });

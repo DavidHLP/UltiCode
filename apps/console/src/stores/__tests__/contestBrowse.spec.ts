@@ -28,12 +28,17 @@ describe("useContestBrowseStore loading state", () => {
     vi.clearAllMocks();
   });
 
-  it("tracks ongoing and past loads independently", async () => {
+  it("keeps ongoing loading separate while the pager owns past loading", async () => {
     type ContestPage = PaginatedResult<ContestListItem>;
 
     const upcoming = deferred<ContestPage>();
     const running = deferred<ContestPage>();
     const past = deferred<ContestPage>();
+    const pastItem = {
+      id: "past-1",
+      slug: "past-1",
+      title: "Past contest",
+    } as ContestListItem;
 
     vi.mocked(fetchUpcomingContests).mockReturnValue(upcoming.promise);
     vi.mocked(fetchRunningContests).mockReturnValue(running.promise);
@@ -44,19 +49,45 @@ describe("useContestBrowseStore loading state", () => {
     const pastLoad = store.loadPastContests(2, 10);
 
     expect(store.loadingContests).toBe(true);
-    expect(store.loadingPastContests).toBe(true);
+    expect("loadingPastContests" in store).toBe(false);
 
-    past.resolve({ items: [], total: 0, page: 2, pageSize: 10, totalPages: 0 });
+    past.resolve({
+      items: [pastItem],
+      total: 11,
+      page: 2,
+      pageSize: 10,
+      totalPages: 2,
+    });
     await pastLoad;
 
-    expect(store.loadingPastContests).toBe(false);
+    expect(store.pastContests).toEqual([pastItem]);
+    expect(store.pastContestsTotal).toBe(11);
     expect(store.loadingContests).toBe(true);
 
-    upcoming.resolve({ items: [], total: 0, page: 1, pageSize: 10, totalPages: 0 });
-    running.resolve({ items: [], total: 0, page: 1, pageSize: 10, totalPages: 0 });
+    upcoming.resolve({
+      items: [],
+      total: 0,
+      page: 1,
+      pageSize: 10,
+      totalPages: 0,
+    });
+    running.resolve({
+      items: [],
+      total: 0,
+      page: 1,
+      pageSize: 10,
+      totalPages: 0,
+    });
     await ongoingLoad;
 
     expect(store.loadingContests).toBe(false);
-    expect(store.loadingPastContests).toBe(false);
+  });
+  it("does not write past-load failures into shared browse error", async () => {
+    vi.mocked(fetchPastContests).mockRejectedValue(new Error("past failed"));
+    const store = useContestBrowseStore();
+    store.error = "ongoing failed";
+
+    await expect(store.loadPastContests()).rejects.toThrow("past failed");
+    expect(store.error).toBe("ongoing failed");
   });
 });

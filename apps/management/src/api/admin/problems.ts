@@ -360,9 +360,9 @@ export interface ImportProblemsResponse {
 }
 
 export const problemsApi = {
-  async getProblems(params: ProblemQueryParams): Promise<PageResult<Problem>> {
+  async getProblems(params: ProblemQueryParams, signal?: AbortSignal): Promise<PageResult<Problem>> {
     // apiGet already unwraps response.data automatically
-    const response = await apiGet<PageResult<unknown>>('/admin/problems', { params })
+    const response = await apiGet<PageResult<unknown>>('/admin/problems', { params, signal })
     return {
       ...response,
       items: response.items.map(normalizeAdminProblem),

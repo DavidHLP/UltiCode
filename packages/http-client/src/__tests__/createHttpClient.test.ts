@@ -1,7 +1,16 @@
 import { describe, expect, it, vi } from 'vitest'
-import axios, { AxiosError } from 'axios'
+import axios, {
+  AxiosError,
+  type AxiosAdapter,
+  type InternalAxiosRequestConfig,
+} from 'axios'
 import { createCsrfTokenManager } from '@ulticode/auth-core/src/csrf'
-import { createHttpClient } from '../index'
+import {
+  createHttpClient,
+  type HttpClient,
+  type HttpClientConfig,
+  type RequestConfig,
+} from '../index'
 
 /**
  * Build an AxiosError with the given HTTP status. Axios only invokes the
@@ -9,16 +18,21 @@ import { createHttpClient } from '../index'
  * 401 status counts as a successful HTTP response, so we need to fabricate
  * the error envelope ourselves to exercise the auth-failure and retry paths.
  */
-function buildAxiosError(status: number, message: string): AxiosError {
-  const err = new AxiosError(message)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  ;(err as any).response = {
-    status,
-    statusText: message,
-    headers: {},
-    config: { headers: {} },
-    data: null,
-  }
+function buildAxiosError(
+  status: number,
+  message: string,
+  request?: InternalAxiosRequestConfig,
+): AxiosError {
+  const err = new AxiosError(message, undefined, request)
+  Object.assign(err, {
+    response: {
+      status,
+      statusText: message,
+      headers: {},
+      config: request ?? { headers: {} },
+      data: null,
+    },
+  })
   return err
 }
 
@@ -30,6 +44,24 @@ function makeClient() {
     getLocale: () => 'en-US',
     dedupPolicy: 'all-non-auth',
   })
+}
+
+type TestHttpClientConfig = HttpClientConfig & { __testAdapter: unknown }
+
+function createTestHttpClient(config: TestHttpClientConfig): HttpClient {
+  const { __testAdapter, ...clientConfig } = config
+  const originalCreate = axios.create
+  const createSpy = vi.spyOn(axios, 'create')
+  createSpy.mockImplementation((defaults) => {
+    const service = originalCreate(defaults)
+    service.defaults.adapter = __testAdapter as AxiosAdapter
+    return service
+  })
+  try {
+    return createHttpClient(clientConfig)
+  } finally {
+    createSpy.mockRestore()
+  }
 }
 
 function createPendingAdapter() {
@@ -48,6 +80,35 @@ function createPendingAdapter() {
       }),
   )
   return { adapter, pending, requests }
+}
+type PendingRequest = {
+  request: InternalAxiosRequestConfig
+  resolve: (value: unknown) => void
+  reject: (reason?: unknown) => void
+}
+
+function createRaceAdapter() {
+  const requests: PendingRequest[] = []
+  const adapter = vi.fn().mockImplementation((request: InternalAxiosRequestConfig) =>
+    new Promise<unknown>((resolve, reject) => {
+      requests.push({ request, resolve, reject })
+    }),
+  )
+  return { adapter, requests }
+}
+
+function responseFor(request: InternalAxiosRequestConfig) {
+  return {
+    status: 200,
+    statusText: 'OK',
+    headers: {},
+    config: request,
+    data: { code: 0, message: 'ok', data: { ok: true } },
+  }
+}
+
+function canceledErrorFor(request: InternalAxiosRequestConfig): AxiosError {
+  return new AxiosError('canceled', 'ERR_CANCELED', request)
 }
 
 describe('createHttpClient', () => {
@@ -68,6 +129,15 @@ describe('createHttpClient', () => {
     expect(ac).toBeInstanceOf(AbortController)
     expect(ac.signal.aborted).toBe(false)
   })
+  it('keeps adapter injection outside the public client config', () => {
+    const config: HttpClientConfig = {
+      csrfManager: createCsrfTokenManager(),
+      getLocale: () => 'en-US',
+      // @ts-expect-error Test adapters are wired through the test-only factory.
+      __testAdapter: vi.fn(),
+    }
+    expect(config).toBeDefined()
+  })
 })
 
 describe('ApiResponse unwrap', () => {
@@ -79,7 +149,7 @@ describe('ApiResponse unwrap', () => {
       config: { headers: {} },
       data: { code: 0, message: 'success', data: { id: 'u-1' }, traceId: 't-1' },
     })
-    const client = createHttpClient({
+    const client = createTestHttpClient({
       csrfManager: createCsrfTokenManager(),
       baseURL: 'http://test.local',
       getLocale: () => 'en-US',
@@ -99,7 +169,7 @@ describe('ApiResponse unwrap', () => {
       config: { headers: {} },
       data: { code: 1001, message: 'invalid', data: null },
     })
-    const client = createHttpClient({
+    const client = createTestHttpClient({
       csrfManager: createCsrfTokenManager(),
       baseURL: 'http://test.local',
       getLocale: () => 'en-US',
@@ -118,7 +188,7 @@ describe('Auth failure strategy', () => {
   it('invokes the clear-and-run callback on 401', async () => {
     const adapter = vi.fn().mockRejectedValue(buildAxiosError(401, 'Unauthorized'))
     const onAuthFailure = vi.fn()
-    const client = createHttpClient({
+    const client = createTestHttpClient({
       csrfManager: createCsrfTokenManager(),
       baseURL: 'http://test.local',
       getLocale: () => 'en-US',
@@ -134,7 +204,7 @@ describe('Auth failure strategy', () => {
   it('does NOT redirect on 403 in redirect-login mode (forbidden ≠ unauthenticated)', async () => {
     const adapter = vi.fn().mockRejectedValue(buildAxiosError(403, 'Forbidden'))
     const redirect = vi.fn()
-    const client = createHttpClient({
+    const client = createTestHttpClient({
       csrfManager: createCsrfTokenManager(),
       baseURL: 'http://test.local',
       getLocale: () => 'en-US',
@@ -150,7 +220,7 @@ describe('Auth failure strategy', () => {
   it('invokes redirect-login on 401 with the configured path', async () => {
     const adapter = vi.fn().mockRejectedValue(buildAxiosError(401, 'Unauthorized'))
     const redirect = vi.fn()
-    const client = createHttpClient({
+    const client = createTestHttpClient({
       csrfManager: createCsrfTokenManager(),
       baseURL: 'http://test.local',
       getLocale: () => 'en-US',
@@ -175,7 +245,7 @@ describe('Dedup policy', () => {
           }
         }),
     )
-    const client = createHttpClient({
+    const client = createTestHttpClient({
       csrfManager: createCsrfTokenManager(),
       baseURL: 'http://test.local',
       getLocale: () => 'en-US',
@@ -203,14 +273,14 @@ describe('Dedup policy', () => {
   it('isolates deduplication and cancellation between client instances', async () => {
     const clientAState = createPendingAdapter()
     const clientBState = createPendingAdapter()
-    const clientA = createHttpClient({
+    const clientA = createTestHttpClient({
       csrfManager: createCsrfTokenManager(),
       baseURL: 'http://test.local',
       getLocale: () => 'en-US',
       dedupPolicy: 'all-non-auth',
       __testAdapter: clientAState.adapter,
     })
-    const clientB = createHttpClient({
+    const clientB = createTestHttpClient({
       csrfManager: createCsrfTokenManager(),
       baseURL: 'http://test.local',
       getLocale: () => 'en-US',
@@ -255,7 +325,7 @@ describe('Dedup policy', () => {
       config: { headers: {} },
       data: { code: 0, message: 'ok', data: null },
     })
-    const client = createHttpClient({
+    const client = createTestHttpClient({
       csrfManager: createCsrfTokenManager(),
       baseURL: 'http://test.local',
       getLocale: () => 'en-US',
@@ -269,12 +339,126 @@ describe('Dedup policy', () => {
     ])
     expect(adapter).toHaveBeenCalledTimes(2)
   })
+
+  it("'non-auth-readonly' does NOT dedup POST", async () => {
+    const adapter = vi.fn().mockResolvedValue({
+      status: 200,
+      statusText: 'OK',
+      headers: {},
+      config: { headers: {} },
+      data: { code: 0, message: 'ok', data: null },
+    })
+    const client = createTestHttpClient({
+      csrfManager: createCsrfTokenManager(),
+      baseURL: 'http://test.local',
+      getLocale: () => 'en-US',
+      dedupPolicy: 'non-auth-readonly',
+      __testAdapter: adapter,
+    })
+
+    await Promise.all([
+      client.apiPost('/foo', {}).catch(() => {}),
+      client.apiPost('/foo', {}).catch(() => {}),
+    ])
+    expect(adapter).toHaveBeenCalledTimes(2)
+  })
+  it('forwards the package-owned AbortSignal option through every helper signature', async () => {
+    const seenSignals: unknown[] = []
+    const adapter = vi.fn().mockImplementation((request: InternalAxiosRequestConfig) => {
+      seenSignals.push(request.signal)
+      return Promise.resolve(responseFor(request))
+    })
+    const client = createTestHttpClient({
+      csrfManager: createCsrfTokenManager(),
+      baseURL: 'http://test.local',
+      getLocale: () => 'en-US',
+      dedupPolicy: 'none',
+      __testAdapter: adapter,
+    })
+    const controller = new AbortController()
+    const init: RequestConfig = { signal: controller.signal }
+
+    await client.apiGet('/signal', init)
+    await client.apiPost('/signal', {}, init)
+    await client.apiPatch('/signal', {}, init)
+    await client.apiPut('/signal', {}, init)
+    await client.apiDelete('/signal', init)
+    await client.apiUpload('/signal', new Blob(['payload']), undefined, init)
+    const download: HttpClient['apiDownload'] = client.apiDownload
+    const downloadWithSignal = (
+      path: string,
+      filename: string,
+      downloadInit: RequestConfig,
+    ): Promise<void> => client.apiDownload(path, filename, downloadInit)
+
+    expect(typeof download).toBe('function')
+    expect(seenSignals).toEqual(Array.from({ length: 6 }, () => controller.signal))
+  })
+
+  it('does not let a stale response clear the replacement request entry', async () => {
+    const state = createRaceAdapter()
+    const client = createTestHttpClient({
+      csrfManager: createCsrfTokenManager(),
+      baseURL: 'http://test.local',
+      getLocale: () => 'en-US',
+      dedupPolicy: 'all-non-auth',
+      __testAdapter: state.adapter,
+    })
+
+    const first = client.apiGet('/race').catch((error: unknown) => error)
+    await vi.waitFor(() => expect(state.adapter).toHaveBeenCalledTimes(1))
+    const second = client.apiGet('/race').catch((error: unknown) => error)
+    await vi.waitFor(() => expect(state.adapter).toHaveBeenCalledTimes(2))
+    expect(state.requests[0].request.signal?.aborted).toBe(true)
+
+    // Let Axios deliver a response from the already-aborted adapter call.
+    state.requests[0].request.signal = new AbortController().signal
+    state.requests[0].resolve(responseFor(state.requests[0].request))
+    await expect(first).resolves.toEqual({ ok: true })
+
+    const third = client.apiGet('/race').catch((error: unknown) => error)
+    await vi.waitFor(() => expect(state.adapter).toHaveBeenCalledTimes(3))
+    expect(state.requests[1].request.signal?.aborted).toBe(true)
+
+    state.requests[1].reject(canceledErrorFor(state.requests[1].request))
+    state.requests[2].resolve(responseFor(state.requests[2].request))
+    await expect(second).resolves.toMatchObject({ name: 'ApiError', code: -1 })
+    await expect(third).resolves.toEqual({ ok: true })
+  })
+
+  it('does not let a stale error clear the replacement request entry', async () => {
+    const state = createRaceAdapter()
+    const client = createTestHttpClient({
+      csrfManager: createCsrfTokenManager(),
+      baseURL: 'http://test.local',
+      getLocale: () => 'en-US',
+      dedupPolicy: 'all-non-auth',
+      __testAdapter: state.adapter,
+    })
+
+    const first = client.apiGet('/race').catch((error: unknown) => error)
+    await vi.waitFor(() => expect(state.adapter).toHaveBeenCalledTimes(1))
+    const second = client.apiGet('/race').catch((error: unknown) => error)
+    await vi.waitFor(() => expect(state.adapter).toHaveBeenCalledTimes(2))
+    state.requests[0].reject(canceledErrorFor(state.requests[0].request))
+    await expect(first).resolves.toMatchObject({ name: 'ApiError', code: -1 })
+
+    const third = client.apiGet('/race').catch((error: unknown) => error)
+    await vi.waitFor(() => expect(state.adapter).toHaveBeenCalledTimes(3))
+    expect(state.requests[1].request.signal?.aborted).toBe(true)
+
+    state.requests[1].reject(canceledErrorFor(state.requests[1].request))
+    state.requests[2].resolve(responseFor(state.requests[2].request))
+    await expect(second).resolves.toMatchObject({ name: 'ApiError', code: -1 })
+    await expect(third).resolves.toEqual({ ok: true })
+  })
+
 })
 
 describe('Retry / backoff', () => {
   it('does NOT retry when retry: 0 (verified via adapter call count)', async () => {
     const adapter = vi.fn().mockRejectedValue(buildAxiosError(500, 'Internal Server Error'))
-    const client = createHttpClient({
+    const client = createTestHttpClient({
       csrfManager: createCsrfTokenManager(),
       baseURL: 'http://test.local',
       getLocale: () => 'en-US',
@@ -284,5 +468,75 @@ describe('Retry / backoff', () => {
 
     await client.apiGet('/foo', { retry: 0 }).catch(() => {})
     expect(adapter).toHaveBeenCalledTimes(1)
+  })
+  it('stops retrying after the configured limit when requests keep failing', async () => {
+    const adapter = vi.fn().mockImplementation((request: InternalAxiosRequestConfig) =>
+      Promise.reject(buildAxiosError(500, 'Internal Server Error', request)),
+    )
+    const client = createTestHttpClient({
+      csrfManager: createCsrfTokenManager(),
+      baseURL: 'http://test.local',
+      getLocale: () => 'en-US',
+      dedupPolicy: 'none',
+      __testAdapter: adapter,
+    })
+
+    await expect(client.apiGet('/foo', { retry: 1, retryDelay: 1 })).rejects.toMatchObject({
+      name: 'ApiError',
+      code: 500,
+    })
+    expect(adapter).toHaveBeenCalledTimes(2)
+  })
+  it('does not let a stale retry abort a newer same-key request', async () => {
+    vi.useFakeTimers()
+    try {
+      const pending: Array<{
+        request: InternalAxiosRequestConfig
+        resolve: (value: unknown) => void
+      }> = []
+      let firstRequest: InternalAxiosRequestConfig | undefined
+      let rejectFirst: (reason?: unknown) => void = () => undefined
+      const firstFailure = new Promise<unknown>((_, reject) => {
+        rejectFirst = reject
+      })
+      const adapter = vi.fn().mockImplementation((request: InternalAxiosRequestConfig) => {
+        if (adapter.mock.calls.length === 1) {
+          firstRequest = request
+          return firstFailure
+        }
+        return new Promise<unknown>((resolve) => {
+          pending.push({ request, resolve })
+        })
+      })
+      const client = createTestHttpClient({
+        csrfManager: createCsrfTokenManager(),
+        baseURL: 'http://test.local',
+        getLocale: () => 'en-US',
+        dedupPolicy: 'all-non-auth',
+        __testAdapter: adapter,
+      })
+
+      const first = client
+        .apiGet('/retry-race', { retry: 1, retryDelay: 100 })
+        .catch((error: unknown) => error)
+      await vi.waitFor(() => expect(adapter).toHaveBeenCalledTimes(1))
+
+      if (!firstRequest) throw new Error('first request was not captured')
+      rejectFirst(buildAxiosError(500, 'retry me', firstRequest))
+      await vi.advanceTimersByTimeAsync(0)
+
+      const second = client.apiGet('/retry-race')
+      await vi.waitFor(() => expect(pending).toHaveLength(1))
+      expect(pending[0].request.signal?.aborted).toBe(false)
+
+      await vi.advanceTimersByTimeAsync(100)
+      expect(adapter).toHaveBeenCalledTimes(2)
+      pending[0].resolve(responseFor(pending[0].request))
+
+      await expect(second).resolves.toEqual({ ok: true })
+      await expect(first).resolves.toMatchObject({ name: 'ApiError', code: 500 })
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })

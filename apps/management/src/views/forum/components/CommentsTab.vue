@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, h, watch } from 'vue'
+import { computed, h, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { ColumnDef } from '@tanstack/vue-table'
 import {
@@ -14,6 +14,8 @@ import {
 import { badge } from '@/components/ui/terminal'
 import { formatDateByLocale } from '@/i18n/utils'
 import { Button } from '@/components/ui/button'
+import DataTable from '@/components/table/DataTable.vue'
+import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
 import { createSelectionColumn } from '@/components/table/selectionColumn'
 import {
   DropdownMenu,
@@ -25,10 +27,9 @@ import {
 import { useCommentsStore } from '@/stores/admin/comments'
 import type { Comment } from '@/api/admin/comments'
 
-import DataTable from '@/components/table/DataTable.vue'
-import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
 import { useCommentModeration } from '@/composables/useCommentModeration'
 import { renderInlineContent } from '@/utils/comment-renderer'
+import { useRemoteTable } from '@/composables/useRemoteTable'
 
 const props = defineProps<{
   postId: string
@@ -37,25 +38,37 @@ const props = defineProps<{
 const { t } = useI18n()
 const commentsStore = useCommentsStore()
 
-const tablePagination = ref({ pageIndex: 0, pageSize: 10 })
-
-// Stats for terminal ticker
-const stats = computed(() => {
-  const comments = commentsStore.comments
-  const total = commentsStore.total
-  const flagged = comments.filter((c) => c.isFlagged).length
-  const deleted = comments.filter((c) => c.isDeleted).length
-  return { total, flagged, deleted }
-})
-
-async function loadComments() {
-  await commentsStore.fetchComments({
+const {
+  tablePagination,
+  loading,
+  data,
+  total,
+  error,
+  refresh: loadComments,
+} = useRemoteTable<
+  Comment,
+  Record<string, never>,
+  Parameters<typeof commentsStore.fetchComments>[0]
+>({
+  store: commentsStore,
+  initialQuery: {
+    filters: {},
+    pagination: { pageIndex: 0, pageSize: 10 },
+  },
+  toParams: ({ page, limit }) => ({
     type: 'forum',
     parentEntityId: props.postId,
-    page: tablePagination.value.pageIndex + 1,
-    limit: tablePagination.value.pageSize,
-  })
-}
+    page,
+    limit,
+  }),
+  autoLoad: true,
+})
+
+const stats = computed(() => ({
+  total: total.value,
+  flagged: data.value.filter((comment) => comment.isFlagged).length,
+  deleted: data.value.filter((comment) => comment.isDeleted).length,
+}))
 
 const {
   selectedCommentId,
@@ -70,16 +83,9 @@ const {
   unflagComment,
 } = useCommentModeration({ refresh: loadComments })
 
-onMounted(() => loadComments())
-
-// Only watch pageIndex and pageSize separately to avoid deep watch issues
 watch(
-  () => tablePagination.value.pageIndex,
-  () => loadComments(),
-)
-watch(
-  () => tablePagination.value.pageSize,
-  () => loadComments(),
+  () => props.postId,
+  () => void loadComments(),
 )
 
 function renderStatusBadge(comment: Comment, t: (key: string) => string) {
@@ -315,12 +321,12 @@ const columns: ColumnDef<Comment>[] = [
         </div>
         <Button
           variant="terminal"
-          size="sm"
+          size="icon"
           class="h-7 w-7 p-0 border-[var(--border-subtle)] hover:border-[var(--primary)] hover:text-[var(--primary)]"
           @click="loadComments"
           :title="t('common.refresh')"
         >
-          <IconRefresh class="h-3.5 w-3.5" :class="{ 'animate-spin': commentsStore.loading }" />
+          <IconRefresh class="h-3.5 w-3.5" :class="{ 'animate-spin': loading }" />
         </Button>
       </div>
 
@@ -353,25 +359,24 @@ const columns: ColumnDef<Comment>[] = [
       </div>
     </div>
 
-    <!-- Comments Table -->
     <DataTable
       :columns="columns"
-      :data="commentsStore.comments"
+      :data="data"
       :pagination="tablePagination"
-      :row-count="commentsStore.total"
-      :loading="commentsStore.loading"
+      :row-count="total"
+      :loading="loading"
       @update:pagination="tablePagination = $event"
       class="terminal-table"
     />
 
     <!-- Error state - Terminal Style -->
     <div
-      v-if="commentsStore.error"
+      v-if="error"
       class="flex items-center justify-between border border-[var(--status-error-mark)] bg-[color-mix(in_oklch,_var(--status-error-mark)_8%,_transparent)] p-4"
     >
       <div class="flex items-center gap-3">
         <span class="font-data text-sm text-[var(--foreground-strong)]">&gt; ERROR:</span>
-        <span class="text-sm text-[var(--foreground)]">{{ commentsStore.error }}</span>
+        <span class="text-sm text-[var(--foreground)]">{{ error }}</span>
       </div>
       <Button
         variant="terminal"
@@ -385,7 +390,7 @@ const columns: ColumnDef<Comment>[] = [
 
     <!-- Empty state - Terminal Style -->
     <div
-      v-if="!commentsStore.loading && commentsStore.comments.length === 0 && !commentsStore.error"
+      v-if="!loading && data.length === 0 && !error"
       class="border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] p-8 text-center bg-[var(--card)]"
     >
       <div

@@ -25,11 +25,18 @@ const {
   page: currentPage,
   totalPages,
   loading: pastLoading,
+  error: pastError,
 } = pastPager;
 
 const initialLoading = ref(true);
 
 const isLoading = computed(() => initialLoading.value || loadingRankings.value);
+
+function retryPastPage(): void {
+  void pastPager.loadPage().catch(() => {
+    // The pager owns and exposes the transition error state.
+  });
+}
 
 // Load data
 onMounted(async () => {
@@ -94,8 +101,10 @@ onMounted(async () => {
           <PastContests
             :contests="pastContests"
             :loading="pastLoading"
+            :error="pastError"
             v-model:currentPage="currentPage"
             :totalPages="totalPages"
+            @retry="retryPastPage"
           />
         </div>
       </div>

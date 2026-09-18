@@ -21,7 +21,8 @@ source "$ROOT_DIR/scripts/test/lib/assertions.sh"
 
 contains services/core/src/main/java/com/ulticode/core/CoreLocalContractAssembly.java 'final class CoreLocalContractAssembly'
 contains services/core/src/main/java/com/ulticode/core/CoreLocalContractAssembly.java 'static void register('
-contains services/core/src/main/java/com/ulticode/core/CoreLocalContractAssembly.java 'if (!"admin".equals(module.name()))'
+contains services/core/src/main/java/com/ulticode/core/CoreLocalContractAssembly.java 'private static final String ADMIN_MODULE = "admin";'
+contains services/core/src/main/java/com/ulticode/core/CoreLocalContractAssembly.java 'if (!ADMIN_MODULE.equals(module.name()))'
 contains services/core/src/main/java/com/ulticode/core/CoreLocalContractAssembly.java '"coreOwnerContextManager"'
 contains services/core/src/main/java/com/ulticode/core/CoreLocalContractAssembly.java '"coreLocalIdentityQueryAdapter"'
 contains services/core/src/main/java/com/ulticode/core/CoreLocalContractAssembly.java '"coreLocalAuthorizationMutationAdapter"'

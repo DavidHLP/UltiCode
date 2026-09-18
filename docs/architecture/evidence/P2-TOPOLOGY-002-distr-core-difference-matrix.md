@@ -48,7 +48,7 @@
 | Core parent smoke | N/A | `bash scripts/dev/test.sh core` (contexts disabled) |
 | Owner unit tests | Owner module `-Punit` tests | Core module `-Punit` tests |
 | Contract tests | Relevant `services/api` contract gates | Same shared contract gates |
-| Enabled-owner wiring | Disposable named Owner scope | Not run; requires disposable Owner artifacts/infra |
+| Enabled-owner wiring | Disposable named Owner scope | `CORE_ENABLED_OWNER_JOURNEY=1 bash scripts/test/core-enabled-owner-journey.sh` — bounded Auth/Admin wiring only |
 | Business journey | Disposable `app-journey` scope | Not available: Core exposes readiness only |
 
 ## Cross-owner communication
@@ -56,11 +56,12 @@
 | Communication path | Distributed | Core |
 |---|---|---|
 | Admin → Auth mutation | Dubbo `AuthorizationMutationService` | `CoreLocalAuthorizationMutationAdapter` |
-| Admin → Auth identity | Dubbo `IdentityQueryService` | Explicitly registered `CoreLocalIdentityQueryAdapter` |
+| Admin → Auth identity/account read | Dubbo `IdentityQueryService` + `AccountQueryService` | Explicitly registered local adapters |
 | Admin → App | Dubbo contract | Not supported |
 | Submission → App/Auth | Dubbo contracts | Not supported |
 | Notification → Auth/App | Dubbo contracts | Not supported |
 
-Core therefore proves only bounded parent assembly plus the explicitly
-registered Admin→Auth local contract seam. It does not claim parity with the
-distributed business surface.
+Core therefore proves bounded parent assembly plus the explicitly registered
+Admin→Auth identity, account-read, and mutation seams. The disposable gate
+proves real Auth/Admin child wiring and cleanup, but Core still does not claim
+parity with the distributed business surface.

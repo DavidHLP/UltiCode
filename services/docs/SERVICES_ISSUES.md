@@ -33,7 +33,7 @@ App interface locality 已闭环；Core 的边界与未完成门禁见 SVC-025�
 ## OPEN
 
 Core profile 仍有一个仓库可执行 OPEN 项：SVC-025 的完整 local Adapter
-parity、enabled-owner wiring 和业务 journey 尚未闭环；不得切换默认拓扑。
+parity 和业务 journey 尚未闭环；Auth/Admin bounded enabled-owner wiring 已有本地 disposable 证据，不得切换默认拓扑。
 
 <a id="svc-025-core-profile-local-parity"></a>
 ### SVC-025 Core profile local parity（OPEN）
@@ -44,15 +44,22 @@ MapperScan、非 Web Owner child contexts、9108 readiness 和独立 Judge
 Search 保持 `DISABLED`。G1/G2、parent smoke、readiness fail-closed、生命周期
 close-once 和本地断言载体已有仓库证据；Admin child 的显式 local contract
 registration 与 `AccountReadAdapter` identity wiring、`UserPermissionServiceImpl`
-通过 account-query/mutation seams 的合法 grant 都有单测。该测试使用 mock
-Auth contract，不是完整 child boot 或 disposable evidence。
+通过 account-query/mutation seams 的合法 grant 都有单测。显式 opt-in 的
+`CoreEnabledOwnerJourneyIT` 另在真实 Testcontainers MySQL/Redis 中应用 canonical
+Auth/Admin migrations，启动真实 `CoreOwnerBootConfigurations.Auth/Admin` child，
+并验证 readiness、local identity read、合法 permission grant、missing signer
+fail-closed 与 cleanup。该证据为本地 disposable bounded proof，不是完整业务
+journey、生产 parity 或全量 Admin bean graph 健康证明。
+
 Core child additionally sets `core.local-contracts.enabled=true`; the Admin
 registry therefore does not publish its `@Primary` AccountQuery/Identity
 NullBean candidates there, while distributed mode keeps the existing registry
-definitions. This only protects local seam selection; it is not full child-boot
-or disposable-journey evidence.
+definitions. This only protects local seam selection; unrelated Admin/App
+contract consumers remain registered and missing providers fail closed.
 
 证据：[`services/core`](../core/)、[`core-profile-contract.sh`](../../scripts/test/core-profile-contract.sh)、
+[`core-enabled-owner-journey.sh`](../../scripts/test/core-enabled-owner-journey.sh)、
+[`CoreEnabledOwnerJourneyIT`](../core/src/test/java/com/ulticode/core/CoreEnabledOwnerJourneyIT.java)、
 [`CoreApplicationSmokeTest`](../core/src/test/java/com/ulticode/core/CoreApplicationSmokeTest.java)、
 [`LocalDelegationAssertionContext`](../platform/common/src/main/java/com/ulticode/common/security/LocalDelegationAssertionContext.java)。
 

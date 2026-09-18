@@ -5,17 +5,18 @@
 Determine which cross-owner adapters Core needs as local (in-process) equivalents,
 since `dubbo.enabled=false` in all child contexts disables `@DubboReference`.
 
-## Current State (2026-09-05)
+## Current State (2026-09-18)
 
-Core parent implements three Auth-contract local adapters and explicitly registers
-them into the Admin child during startup:
+Core parent uses package-private `CoreLocalContractAssembly` to explicitly
+register four exact Admin-child singletons during startup:
 
+- `CoreOwnerContextManager` (owner-context lifecycle handle)
 - `CoreLocalIdentityQueryAdapter` (implements Auth `IdentityQueryService`)
 - `CoreLocalAuthorizationMutationAdapter` (implements Auth `AuthorizationMutationService`)
 - `CoreLocalAccountQueryAdapter` (implements Auth `AccountQueryService`)
 
-Registration happens in `CoreOwnerContextManager.registerChildContracts`
-for the Admin child only.
+The assembly also validates the complete registration set and rejects partial or
+occupied local contract slots. Non-Admin children are a no-op.
 
 ## Consumer → Local Seam Coverage (Admin)
 
@@ -63,16 +64,19 @@ Both are now registered; the wiring test proves a legal grant succeeds and
   both required Auth local seams (`AuthorizationMutationService` +
   `AccountQueryService`) are registered and a wiring test drives a legal grant to a
   successful `AuthorizationMutationDTO`, while a missing signer stays fail-closed.
-- The disposable enabled-owner journey (P1-CORE-003) remains deferred; the
-  mutation `requireAccount` path is now covered by wiring evidence, but real Auth
-  provider boot and the business HTTP/WS journey are still not run.
+- The bounded disposable enabled-owner proof (P1-CORE-003) is now locally
+  validated for real Auth/Admin child boot, identity read, legal permission
+  grant, missing-signer fail-closed behavior, and cleanup. It still does not
+  provide a Core business HTTP/WS journey.
 - Submission/Notification/App adapters remain out of scope while those Owners
   stay disabled.
 
 ## Evidence
 
-- `CoreOwnerContextManager.registerChildContracts` —
-  `services/core/src/main/java/com/ulticode/core/CoreOwnerContextManager.java:364-383`
+- `CoreLocalContractAssembly.register/validate` —
+  `services/core/src/main/java/com/ulticode/core/CoreLocalContractAssembly.java`
+- `CoreOwnerContextManager` invokes the assembly for each child —
+  `services/core/src/main/java/com/ulticode/core/CoreOwnerContextManager.java:417-422`
 - `CoreLocalAccountQueryAdapter` (full `AccountQueryService` delegation) —
   `services/core/src/main/java/com/ulticode/core/CoreLocalAccountQueryAdapter.java`
 - `CoreLocalAdapterWiringTest` (3 tests: identity contract; legal grant through

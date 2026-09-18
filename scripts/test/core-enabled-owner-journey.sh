@@ -43,13 +43,15 @@ done
 
 CORE_REPORT="$ROOT_DIR/services/core/target/surefire-reports/com.ulticode.core.CoreEnabledOwnerJourneyIT.txt"
 rm -f -- "$CORE_REPORT"
+CORE_TMP_DIR="$(mktemp -d)"
+trap 'rm -rf -- "$CORE_TMP_DIR"' EXIT
 MAVEN_OUTPUT="$(mktemp)"
-trap 'rm -f -- "$MAVEN_OUTPUT"' EXIT
+trap 'rm -f -- "$MAVEN_OUTPUT"; rm -rf -- "$CORE_TMP_DIR"' EXIT
 
 set +e
 (
   cd "$ROOT_DIR/services"
-  timeout 20m ./mvnw \
+  CORE_ENABLED_OWNER_JOURNEY_TMP_DIR="$CORE_TMP_DIR" timeout 20m ./mvnw \
     -pl core -am \
     -Dtest='CoreEnabledOwnerJourneyIT' \
     -Dsurefire.failIfNoSpecifiedTests=false \

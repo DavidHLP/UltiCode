@@ -1,7 +1,7 @@
 # P2-TOPOLOGY-001 Distributed is the Sole Default; Core is Explicitly Conditional
 
 > status: AMENDED
-> head: working tree 2026-09-05
+> head: working tree 2026-09-18
 > scope: runtime topology default policy
 > evidence: Repository Implemented + source/config review
 >
@@ -111,14 +111,16 @@ expiry, and rollback are recorded by SVC-025 and ADR-0012.
 
 ## 5. Evidence Level
 
-Repository Implemented + source/config review. The registry, explicit scans,
-parent readiness and disabled-owner behavior are source/test concerns. The
-bounded URL loader is lifecycle support only and is not evidence of sibling
-class/resource invisibility. No production deployment evidence is claimed.
+Repository Implemented + source/config review + Locally Validated bounded
+Auth/Admin wiring. The registry, explicit scans, parent readiness and
+disabled-owner behavior are source/test concerns. The bounded URL loader is
+lifecycle support only and is not evidence of sibling class/resource
+invisibility. No production deployment evidence is claimed.
 
-The enabled-owner wiring and representative business journey remain
-unvalidated; absence of those checks blocks promotion and preserves the
-distributed default.
+The bounded Auth/Admin enabled-owner wiring is now locally validated by the
+explicit disposable gate. The representative business journey remains
+unvalidated because Core has no business HTTP/WS seam; this still blocks
+promotion and preserves the distributed default.
 
 ## Verification
 
@@ -126,5 +128,8 @@ distributed default.
   lifecycle contract
 - `bash scripts/dev/test.sh --describe` — Core is a separate parent smoke mode
 - `bash scripts/dev/test.sh static` — zero-infrastructure static gates
-- enabled-owner wiring and distributed/Core business journey — not run without
-  disposable infrastructure and a Core business HTTP/WS seam
+- `CORE_ENABLED_OWNER_JOURNEY=1 bash scripts/test/core-enabled-owner-journey.sh`
+  — bounded Auth/Admin wiring, identity, legal grant, fail-closed signer, and
+  cleanup proof
+- distributed/Core business journey — Core has no business HTTP/WS seam; no
+  parity result is claimed

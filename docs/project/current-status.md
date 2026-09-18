@@ -59,11 +59,12 @@
 - 新增 `scripts/test/core-enabled-owner-journey.sh` 作为仅覆盖 Auth/Admin 的
   bounded disposable evidence entry：在真实 child artifacts 与 Testcontainers
   MySQL/Redis 输入齐全时检查 readiness、identity read、合法 permission grant、
-  missing signer fail-closed 和 cleanup；缺少外部输入时必须输出
-  `BLOCKED_EXTERNAL` 并 fail closed。当前不声称 disposable journey 已通过。
+  missing signer fail-closed 和 cleanup。2026-09-18 的本地 disposable run
+  已通过该 bounded proof；它不等于完整业务 journey 或生产 parity。
+  缺少外部输入时必须输出 `BLOCKED_EXTERNAL` 并 fail closed。
 - SVC-025 仍为 OPEN；`distributed` 仍是 sole default，Core 仅是 Auth/Admin
-  bounded opt-in testbed，硬性 expiry 仍为 2026-10-06；未取得 bounded journey
-  证据前不能切换默认拓扑。
+  bounded opt-in testbed，硬性 expiry 仍为 2026-10-06。当前 bounded proof
+  不改变默认拓扑，也不自动续期 ADR-0012。
 - 2026-09-12 架构复审收敛：Admin 的 bounded fan-out/cancel、Owner
   reconciliation paging、共享 Redis Streams inbox staging、outbox dispatch
   mechanics、Problem 双受众 contract 和 Auth session policy 已分别收口为

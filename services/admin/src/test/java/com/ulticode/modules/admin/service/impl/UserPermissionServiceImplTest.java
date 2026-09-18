@@ -171,6 +171,18 @@ class UserPermissionServiceImplTest {
                         .isEqualTo(AdminErrorCode.OWNER_QUERY_UNAVAILABLE));
         verify(authorizationMutationService, never()).mutatePermission(any());
     }
+    @Test
+    void localOwnerNotReadyFailsClosed() {
+        when(accountQueryService.getAccountById("user-123"))
+                .thenThrow(new IllegalStateException("Core Owner Module is not ready"));
+
+        assertThatThrownBy(() -> userPermissionService.assignUserPermission(
+                "user-123", "READ", "PROBLEM", null))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(error -> assertThat(((BusinessException) error).getErrorCode())
+                        .isEqualTo(AdminErrorCode.OWNER_QUERY_UNAVAILABLE));
+        verify(authorizationMutationService, never()).mutatePermission(any());
+    }
 
     @Test
     void systemPermissionStillRequiresSuperAdmin() {

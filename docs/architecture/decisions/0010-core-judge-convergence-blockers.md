@@ -50,9 +50,13 @@ parent-first URL loader 描述成 class/resource isolation。
 
 ### G3 跨 Owner 调用的 local Adapter parity（部分实现）
 
-- Core 已加入 `CoreLocalAuthorizationMutationAdapter` 和
-  `CoreLocalIdentityQueryAdapter`，复用 Auth-owned contracts，不泄漏
-  Mapper/Entity；startup 会在 Admin child 显式注册它们。
+- Core uses package-private `CoreLocalContractAssembly` to register the
+  owner-context manager plus the three Auth-owned local contracts required by
+  Admin: `IdentityQueryService`, `AuthorizationMutationService`, and
+  `AccountQueryService`. Registration is explicit and validated as a complete
+  set.
+- The disposable Auth/Admin proof now validates real child boot, identity read,
+  legal permission grant, missing-signer fail-closed behavior, and cleanup.
 - 其余 Admin/App/Submission/Notification consumer 仍是 Dubbo Adapter。
   故 G3 不能标为完成；当前实现是有限的 local wiring 试点，不是全量替代。
 
@@ -66,7 +70,7 @@ parent-first URL loader 描述成 class/resource isolation。
   `UNAUTHORIZED`。其余跨 Owner consumer 尚未全部接入此 Seam，整体 G4
   仍为部分实现。
 
-### G5 运行契约（parent 已实现；enabled child wiring 未完成）
+### G5 运行契约（parent 已实现；Auth/Admin bounded wiring 已证）
 
 - Core parent 提供 `9108` 与 `/api/v1/core/health/ready`；
   `devstack-manifest.sh` 和 PM2 descriptor 有 `core` scope，启动失败以非
@@ -79,6 +83,10 @@ parent-first URL loader 描述成 class/resource isolation。
 - `CoreReadinessService` 能区分 owner context、drain 和可选 Judge probe；
   Core scope 不把没有 HTTP readiness 的 Judge 当成必需 HTTP 依赖。所有
   Owner HTTP/WS 路由尚未合并到同一入口。
+- 显式 opt-in 的 `core-enabled-owner-journey.sh` 已在真实 Testcontainers
+  MySQL/Redis 中验证 Auth/Admin child wiring、Redis ACL/Redisson 凭据、
+  identity read、合法 permission grant、missing signer fail-closed 与
+  cleanup。这是 bounded wiring 证据，不是完整业务 journey 或生产 parity。
 - 2026-09-04 的 enabled-owner exec-jar smoke 是 **reported / not rerun**
   evidence：同一 classpath 的多 Owner 扫描曾在 bean refresh 阶段失败。
   该结果解释为何本轮不承诺 class/resource isolation，但没有被重写成

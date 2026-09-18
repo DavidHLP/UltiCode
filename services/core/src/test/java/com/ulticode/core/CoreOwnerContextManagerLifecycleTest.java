@@ -307,6 +307,35 @@ class CoreOwnerContextManagerLifecycleTest {
         assertThat(manager.contextsSnapshot()).isEmpty();
         assertThat(manager.allReady()).isFalse();
     }
+    @Test
+    void partialStartupRollsBackReadySiblingWhenAnotherOwnerFails() throws Exception {
+        ConfigurableApplicationContext context = mock(ConfigurableApplicationContext.class);
+        URLClassLoader classLoader = mock(URLClassLoader.class);
+        AtomicInteger starts = new AtomicInteger();
+        CoreModuleRegistry registry = new CoreModuleRegistry(List.of(
+                new CoreModuleDefinition(
+                        "first", "TEST", CoreApplication.class, null, "backend-first"),
+                new CoreModuleDefinition(
+                        "second", "TEST", CoreApplication.class, null, "backend-second")));
+        Harness manager = new Harness(registry, 120_000L, () -> {
+            if (starts.getAndIncrement() == 0) {
+                return ownerStartup(context, classLoader).get();
+            }
+            throw new IllegalStateException("second owner failed");
+        });
+        managers.add(manager);
+
+        manager.startOwnerModules();
+
+        awaitState(manager, "second", CoreOwnerContextManager.State.FAILED);
+        awaitState(manager, "first", CoreOwnerContextManager.State.STOPPED);
+        verify(context, timeout(5_000)).close();
+        verify(classLoader, timeout(5_000)).close();
+        verify(context, times(1)).close();
+        verify(classLoader, times(1)).close();
+        assertThat(manager.contextsSnapshot()).isEmpty();
+        assertThat(manager.allReady()).isFalse();
+    }
 
     @Test
     void stopDuringStartupClosesPublishedStartupExactlyOnce() throws Exception {

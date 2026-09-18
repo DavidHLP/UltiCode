@@ -74,12 +74,13 @@ CORE_ENABLED_OWNER_JOURNEY=1 bash scripts/test/core-enabled-owner-journey.sh
 该门禁不属于 `./scripts/dev/test.sh core`。它要求显式设置
 `CORE_ENABLED_OWNER_JOURNEY=1`，并提供 Docker、Maven 及 canonical Auth/Admin
 migration 所需输入；实际尝试时只证明真实 Auth/Admin child wiring、local seams
-与 cleanup。缺少输入时必须报告 `BLOCKED_EXTERNAL`，不能记为 `PASS`。默认仍是
-distributed，Core 仅是 Auth/Admin bounded opt-in；当前不宣称该 journey 已通过。
+与 cleanup。当前本地 disposable run 已通过该 bounded proof，但不等于完整业务
+journey 或生产 parity。缺少输入时必须报告 `BLOCKED_EXTERNAL`，不能记为 `PASS`。
+默认仍是 distributed，Core 仅是 Auth/Admin bounded opt-in。
 
 其中 `test.sh core` 只运行 contexts disabled 的 parent/config/readiness
-smoke；Core enabled-owner wiring 和四步业务 journey 当前未验证。分布式
-普通用户首旅程使用 `app-journey` scope。
+smoke；四步业务 journey 仍未验证。分布式普通用户首旅程使用 `app-journey`
+scope。
 
 常用变体：
 

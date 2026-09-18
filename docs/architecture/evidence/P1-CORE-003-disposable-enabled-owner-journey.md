@@ -2,18 +2,23 @@
 
 ## Current status
 
-`P1-CORE-003` is **NOT_RUN / UNAVAILABLE** for the selected Core design.
-Core child contexts are non-Web and the parent security chain exposes only
-`/api/v1/core/health/ready`; there is no Core business HTTP/WS route on which
-the four-step journey can execute.
+`P1-CORE-003` is **PARTIAL / BOUNDED WIRING PROVEN** for the selected Core
+design. The opt-in disposable gate has locally validated real Auth/Admin child
+boot, readiness, identity read, legal permission grant, missing-signer
+fail-closed behavior, Redis access, and cleanup. Core child contexts remain
+non-Web and the parent security chain exposes only `/api/v1/core/health/ready`;
+there is no Core business HTTP/WS route on which the four-step journey can
+execute.
 
 ## Selected scope and source evidence
 
 The registry allowlist enables `auth` and `admin` only. The Admin child receives
-`CoreLocalIdentityQueryAdapter` and `CoreLocalAuthorizationMutationAdapter`
-through explicit startup registration. `CoreLocalAdapterWiringTest` proves an
-actual Admin `AccountReadAdapter` resolves identity through the local contract;
-it does not prove database, Redis, or full Auth/Admin startup.
+the four exact local singletons through `CoreLocalContractAssembly`: the owner
+context manager plus `CoreLocalIdentityQueryAdapter`,
+`CoreLocalAuthorizationMutationAdapter`, and `CoreLocalAccountQueryAdapter`.
+`CoreLocalAdapterWiringTest` proves the in-process contract paths, while the
+disposable gate additionally proves real database/Redis-backed Auth/Admin child
+startup and cleanup.
 
 App, Submission, Notification, and Search remain registered but disabled.
 Their consumers still require their distributed Dubbo seams or additional
@@ -29,8 +34,9 @@ The bounded journey remains:
 4. ordinary-user `POST /problems` → expected 403/typed denial
 
 The distributed `app-journey` scope is the executable reference. The Core
-variant is deferred until a real business HTTP/WS seam exists; do not report
-the parent readiness smoke as a journey result.
+business variant remains deferred because Core has no business HTTP/WS seam;
+do not report the parent readiness smoke or the bounded wiring proof as a
+business journey result.
 
 ## Cost and expiry
 
@@ -41,8 +47,9 @@ infer production SLO, HA, or feature equivalence. The expiry checkpoint is
 
 ## Validation result
 
-- `CoreLocalAdapterWiringTest`: repository test, not disposable infrastructure.
+- `CoreLocalAdapterWiringTest`: repository-level local contract test.
+- `scripts/test/core-enabled-owner-journey.sh`: disposable Auth/Admin bounded
+  wiring proof; locally passed with real Testcontainers infrastructure.
 - `scripts/dev/test.sh core`: parent/config/readiness smoke only.
-- Enabled-owner Core wiring: not run.
-- Distributed/Core business journey: Core unavailable; distributed run deferred
-  until disposable credentials and seeded data are available.
+- Distributed/Core business journey: Core has no business route, so no parity
+  result is claimed.

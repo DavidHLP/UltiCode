@@ -162,12 +162,30 @@ public class CoreOwnerContextManager implements ApplicationContextAware {
             if (allReady()) {
                 startupCompletion.complete(null);
             } else {
+                rollbackPublishedOwnerModules();
                 startupCompletion.completeExceptionally(
                         new IllegalStateException("Core Owner Module startup did not reach READY"));
             }
         } catch (RuntimeException | Error failure) {
             startupCompletion.completeExceptionally(failure);
             throw failure;
+        }
+    }
+    private void rollbackPublishedOwnerModules() {
+        List<OwnerStartup> closing;
+        synchronized (this) {
+            closing = List.copyOf(ownerStartups.values());
+            contexts.clear();
+            ownerStartups.clear();
+            states.replaceAll((name, state) ->
+                    state == State.READY ? State.STOPPED : state);
+        }
+        for (int index = closing.size() - 1; index >= 0; index--) {
+            try {
+                closing.get(index).close();
+            } catch (RuntimeException closeFailure) {
+                log.error("Core Owner Module rollback close failed", closeFailure);
+            }
         }
     }
 
@@ -323,20 +341,28 @@ public class CoreOwnerContextManager implements ApplicationContextAware {
         String prefix = module.environmentPrefix();
         boolean admin = "admin".equals(module.name());
         boolean search = "search".equals(module.name());
+        String redisUsername = property(
+                prefix + "_REDIS_USERNAME", "ulticode-" + module.name());
+        String redisPassword = requiredProperty(
+                prefix + "_REDIS_PASSWORD", "REDIS_PASSWORD");
         List<String> properties = new java.util.ArrayList<>(List.of(
                 "spring.application.name=ulticode-core-" + module.name(),
                 "spring.main.web-application-type=none",
                 "spring.main.banner-mode=off",
+                "spring.main.lazy-initialization=" + property(
+                        "spring.main.lazy-initialization", "false"),
+                "ulticode.app.inbox.enabled=" + property(
+                        "ulticode.app.inbox.enabled", admin ? "false" : "true"),
                 "spring.main.allow-bean-definition-overriding=false",
                 "spring.flyway.enabled=false",
                 "spring.data.redis.host=" + requiredProperty(
                         prefix + "_REDIS_HOST", "REDIS_HOST"),
                 "spring.data.redis.port=" + property(
                         prefix + "_REDIS_PORT", property("REDIS_PORT", "6379")),
-                "spring.data.redis.username=" + property(
-                        prefix + "_REDIS_USERNAME", "ulticode-" + module.name()),
-                "spring.data.redis.password=" + requiredProperty(
-                        prefix + "_REDIS_PASSWORD", "REDIS_PASSWORD"),
+                "spring.data.redis.username=" + redisUsername,
+                "spring.data.redis.password=" + redisPassword,
+                "REDIS_USERNAME=" + redisUsername,
+                "REDIS_PASSWORD=" + redisPassword,
                 "spring.data.redis.database=" + property(
                         prefix + "_REDIS_DB", property("REDIS_DB", "0")),
                 "spring.data.redis.ssl.enabled=" + property(
@@ -364,6 +390,10 @@ public class CoreOwnerContextManager implements ApplicationContextAware {
                 "dubbo.protocol.port=-1",
                 "dubbo.application.register-mode=none"
         ));
+        String autoConfigurationExcludes = property("spring.autoconfigure.exclude", "");
+        if (!autoConfigurationExcludes.isBlank()) {
+            properties.add("spring.autoconfigure.exclude=" + autoConfigurationExcludes);
+        }
         if (!search) {
             properties.add("spring.datasource.url=" + requiredProperty(
                     "core.datasource." + module.name() + ".url", prefix + "_DB_URL"));

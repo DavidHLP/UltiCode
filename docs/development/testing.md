@@ -35,10 +35,11 @@ Core enabled-owner wiring 还有一个显式 opt-in 门禁：
 CORE_ENABLED_OWNER_JOURNEY=1 bash scripts/test/core-enabled-owner-journey.sh
 ```
 它不属于 `./scripts/dev/test.sh core`；只有显式设置上述开关，并提供 Docker、Maven
-及 canonical Auth/Admin migration 所需输入时才尝试。实际尝试时，它只证明真实
-Auth/Admin child wiring、local seams 与 cleanup；缺少任一输入必须报告
-`BLOCKED_EXTERNAL`，不能记为 `PASS`。默认仍是 distributed，Core 仅是
-Auth/Admin bounded opt-in；当前不宣称该 journey 已通过。
+及 canonical Auth/Admin migration 所需输入时才尝试。当前本地 disposable run 已验证
+真实 Auth/Admin child wiring、local seams、identity read、合法 permission grant、
+missing signer fail-closed 与 cleanup；这不是完整业务 journey 或生产 parity 证据。
+缺少任一输入必须报告 `BLOCKED_EXTERNAL`，不能记为 `PASS`。默认仍是 distributed，
+Core 仅是 Auth/Admin bounded opt-in。
 
 第一条代表性业务旅程固定为：`POST /auth/login`、`GET /problems/{id}`、
 `POST /bookmarks/quick`、普通用户 `POST /problems` 得到 403/typed denial。

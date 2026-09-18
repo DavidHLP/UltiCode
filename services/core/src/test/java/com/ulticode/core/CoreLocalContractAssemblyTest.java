@@ -44,8 +44,8 @@ class CoreLocalContractAssemblyTest {
         CoreOwnerContextManager ownerContexts = manager();
         AnnotationConfigApplicationContext child = new AnnotationConfigApplicationContext();
         try {
-            child.getEnvironment().setProperty(
-                    CoreLocalContractAssembly.LOCAL_CONTRACTS_ENABLED_PROPERTY, "true");
+            child.setEnvironment(new MockEnvironment().withProperty(
+                    CoreLocalContractAssembly.LOCAL_CONTRACTS_ENABLED_PROPERTY, "true"));
             CoreLocalContractAssembly.register(child, admin(), ownerContexts);
             child.registerBean(AdminDubboReferenceRegistry.class);
             child.refresh();

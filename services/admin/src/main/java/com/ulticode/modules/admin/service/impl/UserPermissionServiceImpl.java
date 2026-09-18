@@ -127,6 +127,10 @@ public class UserPermissionServiceImpl implements UserPermissionService {
             throw new BusinessException(
                     AdminErrorCode.OWNER_QUERY_UNAVAILABLE,
                     "Auth account query unavailable", exception);
+        } catch (IllegalStateException exception) {
+            throw new BusinessException(
+                    AdminErrorCode.OWNER_QUERY_UNAVAILABLE,
+                    "Auth account query unavailable", exception);
         }
         if (result != null && result.success() && result.data() != null) {
             return result.data();

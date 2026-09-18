@@ -36,6 +36,7 @@ for user in "${business_users[@]}"; do
   [[ "$line" != *"+@"* ]] || { echo "$user uses command categories" >&2; exit 1; }
   [[ "$line" == *"+client|setinfo"* ]] || { echo "$user lacks the required CLIENT SETINFO command" >&2; exit 1; }
   [[ "$line" == *"+xlen"* ]] || { echo "$user lacks the required XLEN stream command" >&2; exit 1; }
+  [[ "$line" == *"+psetex"* ]] || { echo "$user lacks the required PSETEX command" >&2; exit 1; }
   [[ "$line" != *"~*"* ]] || { echo "$user has an unrestricted key pattern" >&2; exit 1; }
   [[ "$line" != *"&*"* ]] || { echo "$user has an unrestricted channel pattern" >&2; exit 1; }
   for command in flushdb flushall config shutdown module debug; do

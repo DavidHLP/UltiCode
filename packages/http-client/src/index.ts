@@ -446,13 +446,13 @@ export function createHttpClient(config: HttpClientConfig): HttpClient {
           cfg._metadata = metadata
           const delay = cfg.retryDelay || 1000 * (retryCount + 1)
           await new Promise((resolve) => setTimeout(resolve, delay))
-          if (isDevelopment) {
-            // eslint-disable-next-line no-console
-            console.debug('[API Retry]', { attempt: retryCount + 1, maxRetry, delay })
-          }
           if (!ownsPendingRequest(cfg)) {
             clearPendingRequest(cfg)
             return Promise.reject(ApiError.fromAxiosError(error))
+          }
+          if (isDevelopment) {
+            // eslint-disable-next-line no-console
+            console.debug('[API Retry]', { attempt: retryCount + 1, maxRetry, delay })
           }
           return service(cfg)
         }

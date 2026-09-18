@@ -1,18 +1,8 @@
 ---
-description: Arthas / JVM runtime diagnostics guardrails.
-globs:
-- services/**/src/**/*.java
-- infrastructure/arthas/**/*
-- scripts/dev/**/*.{sh,bash}
-priority: 100
+description: "Safety only when using live JVM diagnostics"
+alwaysApply: true
 ---
 
-# Runtime diagnostics guardrails
+# JVM diagnostics
 
-- Treat attached JVM diagnostics as production-affecting even when the command appears read-only; start with the narrowest observation point.
-- Bound `watch`, `trace`, `monitor`, and `tt` with `-n N`, normally `N <= 5`; bound `vmtool --action getInstances` with `-l N`.
-- Prefer exact class and method names plus read-only probes. Check that a bean exists before retrieving it so diagnostics do not trigger lazy initialization side effects.
-- Do not use wildcard class/method patterns on hot paths. Narrow from system/thread evidence to one known observation point before `trace` or `watch`.
-- When the same class exists in multiple class loaders, identify the loader hash first and target it explicitly instead of retrying ambiguous commands.
-- Do not capture credentials, tokens, personal data, full request bodies, or unbounded object graphs in parameters, return values, logs, or transcripts.
-- Stop the observation after collecting the minimum evidence needed, and report the observed signal, exact scope/class loader, conclusion limits, and next diagnostic step.
+Only when attaching runtime diagnostics: use narrow class/method targets and bounded observation counts/time; select the class loader when ambiguous. Avoid side effects and sensitive object dumps, and stop probes when the needed evidence is collected. Obtain authorization before mutating a live process.

@@ -1,14 +1,13 @@
 ---
-description: "Path-scoped rule maintenance conventions for omp-path-rules"
-globs: [".omp/rules/**/*.md", "AGENTS.md", "**/AGENTS.md"]
-priority: 120
+description: "Maintaining OMP path rules"
+globs:
+  - ".omp/rules/**/*.md"
 ---
 
-# Path rule maintenance
+# OMP rules
 
-- Use `globs` or `paths` for pre-inference guidance; do not add `condition`, `astCondition`, `ast_condition`, `ttsr_trigger`, or `ttsrTrigger` to a path rule.
-- Keep runtime inspection or interruption in a separate native TTSR rule. Do not duplicate the same rule body across the path and TTSR files.
-- Keep each rule focused, repository-relative, concise, and verifiable. Read the nearest `AGENTS.md` before editing.
-- Validate representative matching and non-matching paths after changing a rule.
-- Use `priority` only when multiple path rules need deterministic ordering; default to `100` otherwise.
-- Treat implementation, executable configuration, tests, and `AGENTS.md` as authoritative when rules disagree with them.
+Root and nearest `AGENTS.md` own project policy. These files add short, path-scoped risk reminders; apply only the parts relevant to the change.
+
+Use `globs`: the extension currently does not match `paths`. Omit default priority. Do not mix path matching with TTSR triggers or `alwaysApply`; the small JVM diagnostics rule intentionally uses native `alwaysApply` because a process attachment has no reliable file trigger.
+
+Keep equivalent guidance aligned with `.claude/rules/` while retaining each loader’s syntax. Check representative matching and unrelated paths after changing globs. See [rule design](../../docs/development/coding-guidelines.md).

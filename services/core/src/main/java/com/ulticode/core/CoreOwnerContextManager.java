@@ -4,6 +4,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
@@ -11,6 +13,8 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -21,9 +25,10 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
+
 /** Starts allowlisted Owner implementations in bounded child contexts. */
 @Component
-public class CoreOwnerContextManager {
+public class CoreOwnerContextManager implements ApplicationContextAware {
     private static final Logger log = LoggerFactory.getLogger(CoreOwnerContextManager.class);
 
     public enum State {
@@ -53,6 +58,8 @@ public class CoreOwnerContextManager {
     private final boolean enabled;
     private final AtomicBoolean stopping = new AtomicBoolean();
     private final AtomicBoolean startupSubmitted = new AtomicBoolean();
+    private final CompletableFuture<Void> startupCompletion = new CompletableFuture<>();
+    private volatile ApplicationContext ownerContext;
 
     /** Closing-duty claim published by the timeout path before any context. */
     private static final Object TIMEOUT_CLAIMED = new Object();
@@ -78,8 +85,17 @@ public class CoreOwnerContextManager {
             if (!enabled || stopping.get() || !startupSubmitted.compareAndSet(false, true)) {
                 return;
             }
-            startupExecutor.submit(this::startAll);
+            startupExecutor.submit(this::startAllAndComplete);
         }
+    }
+
+    @Override
+    public void setApplicationContext(ApplicationContext applicationContext) {
+        ownerContext = applicationContext;
+    }
+
+    CompletionStage<Void> startupCompletion() {
+        return startupCompletion;
     }
 
     public synchronized Map<String, State> states() {
@@ -90,6 +106,7 @@ public class CoreOwnerContextManager {
         return enabled && registry.enabledModules().stream()
                 .allMatch(module -> states.get(module.name()) == State.READY);
     }
+
     public synchronized <T> T bean(String owner, Class<T> type) {
         if (states.get(owner) != State.READY || !contexts.containsKey(owner)) {
             throw new IllegalStateException("Core Owner Module is not ready: " + owner);
@@ -98,7 +115,11 @@ public class CoreOwnerContextManager {
     }
 
     @EventListener
-    public void onContextClosed(ContextClosedEvent ignored) {
+    public void onContextClosed(ContextClosedEvent event) {
+        ApplicationContext source = event.getApplicationContext();
+        if (ownerContext != null && source != ownerContext) {
+            return;
+        }
         stopOwnerModules();
     }
 
@@ -131,6 +152,39 @@ public class CoreOwnerContextManager {
                 synchronized (this) {
                     states.put(module.name(), State.FAILED);
                 }
+            }
+        }
+    }
+
+    private void startAllAndComplete() {
+        try {
+            startAll();
+            if (allReady()) {
+                startupCompletion.complete(null);
+            } else {
+                rollbackPublishedOwnerModules();
+                startupCompletion.completeExceptionally(
+                        new IllegalStateException("Core Owner Module startup did not reach READY"));
+            }
+        } catch (RuntimeException | Error failure) {
+            startupCompletion.completeExceptionally(failure);
+            throw failure;
+        }
+    }
+    private void rollbackPublishedOwnerModules() {
+        List<OwnerStartup> closing;
+        synchronized (this) {
+            closing = List.copyOf(ownerStartups.values());
+            contexts.clear();
+            ownerStartups.clear();
+            states.replaceAll((name, state) ->
+                    state == State.READY ? State.STOPPED : state);
+        }
+        for (int index = closing.size() - 1; index >= 0; index--) {
+            try {
+                closing.get(index).close();
+            } catch (RuntimeException closeFailure) {
+                log.error("Core Owner Module rollback close failed", closeFailure);
             }
         }
     }
@@ -287,20 +341,28 @@ public class CoreOwnerContextManager {
         String prefix = module.environmentPrefix();
         boolean admin = "admin".equals(module.name());
         boolean search = "search".equals(module.name());
+        String redisUsername = property(
+                prefix + "_REDIS_USERNAME", "ulticode-" + module.name());
+        String redisPassword = requiredProperty(
+                prefix + "_REDIS_PASSWORD", "REDIS_PASSWORD");
         List<String> properties = new java.util.ArrayList<>(List.of(
                 "spring.application.name=ulticode-core-" + module.name(),
                 "spring.main.web-application-type=none",
                 "spring.main.banner-mode=off",
+                "spring.main.lazy-initialization=" + property(
+                        "spring.main.lazy-initialization", "false"),
+                "ulticode.app.inbox.enabled=" + property(
+                        "ulticode.app.inbox.enabled", admin ? "false" : "true"),
                 "spring.main.allow-bean-definition-overriding=false",
                 "spring.flyway.enabled=false",
                 "spring.data.redis.host=" + requiredProperty(
                         prefix + "_REDIS_HOST", "REDIS_HOST"),
                 "spring.data.redis.port=" + property(
                         prefix + "_REDIS_PORT", property("REDIS_PORT", "6379")),
-                "spring.data.redis.username=" + property(
-                        prefix + "_REDIS_USERNAME", "ulticode-" + module.name()),
-                "spring.data.redis.password=" + requiredProperty(
-                        prefix + "_REDIS_PASSWORD", "REDIS_PASSWORD"),
+                "spring.data.redis.username=" + redisUsername,
+                "spring.data.redis.password=" + redisPassword,
+                "REDIS_USERNAME=" + redisUsername,
+                "REDIS_PASSWORD=" + redisPassword,
                 "spring.data.redis.database=" + property(
                         prefix + "_REDIS_DB", property("REDIS_DB", "0")),
                 "spring.data.redis.ssl.enabled=" + property(
@@ -322,11 +384,16 @@ public class CoreOwnerContextManager {
                 "security.internal-delegation.audience=backend-" + module.name(),
                 "security.internal-delegation.ttl-seconds="
                         + property("INTERNAL_DELEGATION_TTL_SECONDS", "30"),
+                CoreLocalContractAssembly.LOCAL_CONTRACTS_ENABLED_PROPERTY + "=" + admin,
                 "dubbo.enabled=false",
                 "dubbo.registry.address=N/A",
                 "dubbo.protocol.port=-1",
                 "dubbo.application.register-mode=none"
         ));
+        String autoConfigurationExcludes = property("spring.autoconfigure.exclude", "");
+        if (!autoConfigurationExcludes.isBlank()) {
+            properties.add("spring.autoconfigure.exclude=" + autoConfigurationExcludes);
+        }
         if (!search) {
             properties.add("spring.datasource.url=" + requiredProperty(
                     "core.datasource." + module.name() + ".url", prefix + "_DB_URL"));
@@ -347,10 +414,12 @@ public class CoreOwnerContextManager {
             org.springframework.context.ConfigurableApplicationContext context =
                     new SpringApplicationBuilder(module.bootConfiguration())
                             .web(WebApplicationType.NONE)
-                            .initializers(child -> registerChildContracts(child, module))
+                            .initializers(child ->
+                                    CoreLocalContractAssembly.register(child, module, this))
                             .properties(properties.toArray(String[]::new))
                             .run();
             attempt.setContext(context);
+            CoreLocalContractAssembly.validate(context, module);
             return new OwnerStartup(attempt);
         } catch (RuntimeException | Error failure) {
             try {
@@ -363,24 +432,6 @@ public class CoreOwnerContextManager {
             current.setContextClassLoader(previous);
         }
     }
-
-    void registerChildContracts(
-            org.springframework.context.ConfigurableApplicationContext child,
-            CoreModuleDefinition module) {
-        if (!"admin".equals(module.name())) {
-            return;
-        }
-        child.getBeanFactory().registerSingleton("coreOwnerContextManager", this);
-        child.getBeanFactory().registerSingleton(
-                "coreLocalIdentityQueryAdapter", new CoreLocalIdentityQueryAdapter(this));
-        child.getBeanFactory().registerSingleton(
-                "coreLocalAuthorizationMutationAdapter",
-                new CoreLocalAuthorizationMutationAdapter(this));
-        child.getBeanFactory().registerSingleton(
-                "coreLocalAccountQueryAdapter",
-                new CoreLocalAccountQueryAdapter(this));
-    }
-
 
     private static void closeOwnerClassLoader(java.net.URLClassLoader ownerClassLoader) {
         if (ownerClassLoader == null) {

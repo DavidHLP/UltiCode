@@ -1,0 +1,44 @@
+docker/redis/generate-users-acl.sh
+  h_77173abe25c3ff 50
+scripts/test/core-enabled-owner-journey.sh
+  h_77173abe25c3ff 1-79
+scripts/test/core-profile-contract.sh
+  h_77173abe25c3ff 17-18,22-43,60-63,71
+scripts/test/redis-acl-contract.sh
+  h_77173abe25c3ff 39
+services/admin/src/main/java/com/ulticode/modules/admin/port/adapter/AdminDubboReferenceRegistry.java
+  h_77173abe25c3ff 40,202-203,216-217
+services/admin/src/main/java/com/ulticode/modules/admin/service/impl/UserPermissionServiceImpl.java
+  h_77173abe25c3ff 129-132
+services/admin/src/test/java/com/ulticode/modules/admin/service/impl/UserPermissionServiceImplTest.java
+  h_77173abe25c3ff 167-178
+services/core/pom.xml
+  h_77173abe25c3ff 98-130
+services/core/src/main/java/com/ulticode/core/CoreLocalAuthorizationMutationAdapter.java
+  h_77173abe25c3ff 29,35,37,40,43-53
+services/core/src/main/java/com/ulticode/core/CoreLocalContractAssembly.java
+  h_77173abe25c3ff 1-109
+services/core/src/main/java/com/ulticode/core/CoreOwnerContextManager.java
+  h_77173abe25c3ff 7-8,16-17,28,31,61-62,88,92-100,109,118-122,159-191,344-347,352-355,362-365,387,393-396,417-418,422
+services/core/src/test/java/com/ulticode/core/CoreEnabledOwnerJourneyIT.java
+  h_77173abe25c3ff 1-489
+services/core/src/test/java/com/ulticode/core/CoreLocalAdapterWiringTest.java
+  h_77173abe25c3ff 4-7,15-17,38-41,62,64-65,68,89,117-119,121-123,126,134,139,156,170,172-173,177,191-233
+services/core/src/test/java/com/ulticode/core/CoreLocalContractAssemblyTest.java
+  h_77173abe25c3ff 1-173
+services/core/src/test/java/com/ulticode/core/CoreOwnerContextManagerLifecycleTest.java
+  h_77173abe25c3ff 310-338
+services/docs/SERVICES_ISSUES.md
+  h_77173abe25c3ff 36,47-58,61-62
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "06c2c7a4ce4169fc83fdb9f96986aa4bb5450de6",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

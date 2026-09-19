@@ -3,8 +3,6 @@ description: "Documentation changes"
 globs:
   - "AGENTS.md"
   - "**/AGENTS.md"
-  - "CLAUDE.md"
-  - "**/CLAUDE.md"
   - "docs/**/*.md"
 ---
 

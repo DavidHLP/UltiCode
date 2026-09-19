@@ -2,8 +2,6 @@
 paths:
   - "AGENTS.md"
   - "**/AGENTS.md"
-  - "CLAUDE.md"
-  - "**/CLAUDE.md"
   - "docs/**/*.md"
 ---
 

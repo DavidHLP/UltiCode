@@ -244,7 +244,7 @@ MEILI_MASTER_KEY="$meili_master_key"
 # local development falls back to localhost:4318.
 #MANAGEMENT_OTLP_TRACING_ENDPOINT=http://otel-collector:4318/v1/traces
 # Sandbox (D-form) — image must be built locally, see
-# CLAUDE.md § Sandbox Harness. Under local PM2 SANDBOX_ENABLED has NO effect
+# docker/sandbox/harness/README.md. Under local PM2 SANDBOX_ENABLED has NO effect
 # on execution (the executor keys off sandbox.executor, default docker); it is
 # a historical placeholder, keep false. The production compose Judge Worker
 # forwards every SANDBOX_* variable and defaults SANDBOX_ENABLED=true, so on

@@ -6,7 +6,7 @@
 - **环境变量改动未生效**：执行 `./scripts/dev/up.sh --mode dev-lite --skip-install`，不要手工重启单个进程。
 - **Java 17 cgroup-v2 异常**：优先使用 mise 管理的 Zulu 17；旧的本地 17.0.2 可能在 JVM processor discovery 阶段失败。
 - **Redis/MySQL/Testcontainers 不可达**：区分宿主权限/凭据/容器状态与源码失败。记录准确错误；不能把 `BLOCKED_EXTERNAL` 写成测试通过。
-- **中文乱码**：容器内 MySQL 客户端显式使用 `--default-character-set=utf8mb4`，否则可能产生双重编码。操作说明见 [`CLAUDE.md`](../../CLAUDE.md)。
+- **中文乱码**：容器内 MySQL 客户端显式使用 `--default-character-set=utf8mb4`，否则可能产生双重编码；迁移入口见 [`数据库迁移文档`](../operations/database-migrations.md)。
 
 ## 认证与路由
 

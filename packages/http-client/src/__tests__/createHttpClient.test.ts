@@ -326,11 +326,13 @@ describe('ApiResponse unwrap', () => {
   })
 
   it('rejects the removed skipResponseUnwrap option at the type level', () => {
+    // The @ts-expect-error below is the assertion: `pnpm type-check` fails the
+    // moment the flag becomes part of the public request config again.
     const config: RequestConfig = {
       // @ts-expect-error skipResponseUnwrap is no longer part of the public request config.
       skipResponseUnwrap: true,
     }
-    expect(config).toBeDefined()
+    void config
   })
 
   it('ignores a legacy skipResponseUnwrap flag passed through an untyped config', async () => {
@@ -351,8 +353,9 @@ describe('ApiResponse unwrap', () => {
     const legacyInit = { skipResponseUnwrap: true } as unknown as RequestConfig
 
     const result = await client.apiGet<Record<string, unknown>>('/legacy', legacyInit)
+    // The unwrapped payload, not an Axios response: the removed flag cannot
+    // reopen a raw-return path at runtime either.
     expect(result).toEqual({ direct: true })
-    expect(result).not.toHaveProperty('data')
   })
 })
 

@@ -579,12 +579,12 @@ export function createHttpClient(config: HttpClientConfig): HttpClient {
       try {
         link?.remove()
       } catch (error) {
-        if (!failure) failure = { error }
+        failure ??= { error }
       }
       try {
         window.URL.revokeObjectURL(url)
       } catch (error) {
-        if (!failure) failure = { error }
+        failure ??= { error }
       }
       if (failure) throw failure.error
     },

@@ -39,6 +39,16 @@ classpath 的跨 Owner package leakage 在 bean wiring 阶段失败。完整 loc
 Adapter parity、同进程业务路由、远端 Judge TLS 和生产性能/HA 仍未证明，
 不得切换默认或推断生产可用性。
 
+Core 的 enabled Owner child 启动使用单一尝试协议：每个模块的内部对象
+`CoreOwnerContextManager.OwnerStartup` 从线程提交前就注册并持有资源身份，
+一次尝试承载自己的启动 slot、超时判定、取消信号（`requestStop`）、有界
+drain 预算与幂等 close；boot future 只传达完成或失败，不转移所有权。
+manager 只负责全局准入、启动顺序、READY 发布（发布锁内二次检查 stopping）
+以及批量停止的两遍流程——先向全部活动尝试发出取消信号，再逐个 close。
+已验证的限制如实保留：等待与 drain 均有界，但不证明任意 Spring
+context.close 或第三方 boot 可被强制终止；超过 drain 预算未终止的 daemon
+线程会被记录并禁止成功发布，close 失败仍继续清理其余对象。
+
 ## 运行拓扑
 
 ```mermaid

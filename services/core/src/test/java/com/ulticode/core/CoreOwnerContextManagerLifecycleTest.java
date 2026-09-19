@@ -18,104 +18,103 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Supplier;
+import java.util.function.BiConsumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 /**
- * Deterministic regressions for the {@link CoreOwnerContextManager} ownership
- * handoff protocol. Every created startup must be owned by exactly one of the
- * startAll caller, the timeout path, or the late-completing callable — close
- * count per startup is 0 (never created) or 1, never more, a timed-out module
- * must never become READY, and no executor thread may outlive the manager.
+ * Deterministic regressions for the {@link CoreOwnerContextManager} single
+ * attempt protocol. Every created startup is owned by exactly one
+ * {@link OwnerStartup} object from before thread submission: the close claim
+ * wins the admission race, cancellation always precedes blocking closes, a
+ * timed-out module never becomes READY, and no executor thread may outlive
+ * the test. Manager-level tests assert publication and rollback; attempt-level
+ * tests assert the handoff races inside the attempt.
  */
 class CoreOwnerContextManagerLifecycleTest {
 
-    /** Manager with gated startup creation and a pluggable await outcome. */
+    /** Manager whose controllable boot installs resources into the attempt. */
     static final class Harness extends CoreOwnerContextManager {
-        enum AwaitMode { REAL, TIMEOUT_AFTER_DONE, INTERRUPT_AFTER_DONE }
-
-        /** Held before startup creation (simulates a slow child boot). */
-        final AtomicReference<CountDownLatch> createGate =
-                new AtomicReference<>(new CountDownLatch(0));
-        /** Held after creation, before the ownership handoff attempt. */
+        /** Fired once the controllable boot has installed its resources. */
+        volatile CountDownLatch startedSignal;
+        /** Held after installation; lets a test park the boot mid-flight. */
         final AtomicReference<CountDownLatch> returnGate =
                 new AtomicReference<>(new CountDownLatch(0));
-        /** Fired once the worker holds a created startup; lets a test order a
-         * concurrent stop strictly after the startWithTimeout pre-check. */
-        volatile CountDownLatch startedSignal;
-        final Supplier<OwnerStartup> factory;
-        volatile AwaitMode awaitMode = AwaitMode.REAL;
-        /** Set when a cancellation signal interrupts the worker mid-start. */
+        /** Set when a cancellation signal interrupts the worker mid-boot. */
         volatile boolean cancelInterruptObserved;
+        private final BiConsumer<CoreModuleDefinition, OwnerStartup> bootAdapter;
 
         Harness(CoreModuleRegistry registry,
                 long timeoutMs,
-                Supplier<OwnerStartup> factory) {
+                BiConsumer<CoreModuleDefinition, OwnerStartup> bootAdapter) {
             super(registry, new MockEnvironment(), true, timeoutMs);
-            this.factory = factory;
+            this.bootAdapter = bootAdapter;
         }
 
         @Override
-        OwnerStartup start(CoreModuleDefinition module, OwnerStartup ignoredAttempt) {
-            try {
-                createGate.get().await();
-            } catch (InterruptedException interrupted) {
-                Thread.currentThread().interrupt();
-            }
-            OwnerStartup startup = factory.get();
+        void bootOwnerModule(CoreModuleDefinition module, OwnerStartup attempt) {
+            bootAdapter.accept(module, attempt);
             CountDownLatch started = startedSignal;
             if (started != null) {
                 started.countDown();
             }
             try {
-                // Parked with startup created but not yet handed off:
-                // the exact window the timeout path may cancel the future in.
+                // Parked with resources installed but the boot future not
+                // yet completed: the exact window the await timeout or a
+                // stop cancellation may overtake delivery in.
                 returnGate.get().await();
             } catch (InterruptedException interrupted) {
-                // startup.cancel(true) or slot shutdownNow landed here — a
-                // real cancellation signal observed while holding a startup.
+                // future.cancel(true) or slot shutdownNow landed here — a
+                // real cancellation signal observed while holding resources.
                 cancelInterruptObserved = true;
                 Thread.currentThread().interrupt();
             }
-            return startup;
+        }
+    }
+
+    /**
+     * Attempt whose await deterministically loses an already-completed boot
+     * outcome, so the lost-result handoff race is reproducible without
+     * timing luck.
+     */
+    private static final class LostResultStartup extends OwnerStartup {
+        private final boolean interruptCaller;
+
+        LostResultStartup(String moduleName, boolean interruptCaller) {
+            super(moduleName, 120_000L);
+            this.interruptCaller = interruptCaller;
         }
 
         @Override
-        OwnerStartup awaitStartup(
-                Future<OwnerStartup> startup,
-                CoreModuleDefinition module)
+        void awaitStartup(Future<?> startup)
                 throws InterruptedException, ExecutionException, TimeoutException {
-            if (awaitMode == AwaitMode.REAL) {
-                return super.awaitStartup(startup, module);
-            }
-            // Deterministic lost-result race: the future already completed
-            // with the published startup, yet the caller's get() reports a
-            // timeout (or is interrupted) and never receives the startup.
             while (!startup.isDone()) {
                 Thread.sleep(5);
             }
-            if (awaitMode == AwaitMode.TIMEOUT_AFTER_DONE) {
-                throw new TimeoutException("test-simulated lost-result race");
+            if (interruptCaller) {
+                throw new InterruptedException("test-simulated caller interrupt");
             }
-            throw new InterruptedException("test-simulated caller interrupt");
+            throw new TimeoutException("test-simulated lost-result race");
         }
     }
 
     private final List<Harness> managers = new ArrayList<>();
 
     private Harness newHarness(String module, long timeoutMs,
-            Supplier<OwnerStartup> factory) {
-        Harness manager = new Harness(single(module), timeoutMs, factory);
+            BiConsumer<CoreModuleDefinition, OwnerStartup> boot) {
+        Harness manager = new Harness(single(module), timeoutMs, boot);
         managers.add(manager);
         return manager;
     }
@@ -127,15 +126,17 @@ class CoreOwnerContextManagerLifecycleTest {
             // and stopped managers alike drain their executors here.
             manager.onContextClosed(new ContextClosedEvent(mock(ApplicationContext.class)));
         }
-        awaitNoThreads("core-owner-bootstrap", "core-owner-context-startup-");
+        awaitNoThreads("core-owner");
         managers.clear();
     }
+
+    // ---- manager interface: publication and rollback ----
 
     @Test
     void normalSuccessPublishesReadyAndStopClosesExactlyOnce() throws Exception {
         ConfigurableApplicationContext context = mock(ConfigurableApplicationContext.class);
         URLClassLoader classLoader = mock(URLClassLoader.class);
-        Harness manager = newHarness("ok", 120_000L, ownerStartup(context, classLoader));
+        Harness manager = newHarness("ok", 120_000L, installed(context, classLoader));
 
         manager.startOwnerModules();
         awaitState(manager, "ok", CoreOwnerContextManager.State.READY);
@@ -155,9 +156,9 @@ class CoreOwnerContextManagerLifecycleTest {
         ConfigurableApplicationContext context = mock(ConfigurableApplicationContext.class);
         URLClassLoader classLoader = mock(URLClassLoader.class);
         AtomicInteger starts = new AtomicInteger();
-        Harness manager = newHarness("once", 120_000L, () -> {
+        Harness manager = newHarness("once", 120_000L, (module, attempt) -> {
             starts.incrementAndGet();
-            return ownerStartup(context, classLoader).get();
+            installResources(attempt, context, classLoader);
         });
 
         // Parent and child contexts can each publish ApplicationReadyEvent.
@@ -184,10 +185,13 @@ class CoreOwnerContextManagerLifecycleTest {
         CoreModuleRegistry registry = new CoreModuleRegistry(List.of(
                 new CoreModuleDefinition("one", "TEST", CoreApplication.class, null, "backend-one"),
                 new CoreModuleDefinition("two", "TEST", CoreApplication.class, null, "backend-two")));
-        Harness manager = new Harness(registry, 120_000L, () ->
-                (starts.getAndIncrement() == 0
-                        ? ownerStartup(normalContext, normalLoader)
-                        : ownerStartup(failingContext, failingLoader)).get());
+        Harness manager = new Harness(registry, 120_000L, (module, attempt) -> {
+            if (starts.getAndIncrement() == 0) {
+                installResources(attempt, normalContext, normalLoader);
+            } else {
+                installResources(attempt, failingContext, failingLoader);
+            }
+        });
         managers.add(manager);
 
         manager.startOwnerModules();
@@ -205,17 +209,22 @@ class CoreOwnerContextManagerLifecycleTest {
     }
 
     @Test
-    void timeoutAfterContextCreatedClosesStrandedStartupExactlyOnce() throws Exception {
+    void startupTimeoutMarksFailedAndClosesInstalledStartup() throws Exception {
         ConfigurableApplicationContext context = mock(ConfigurableApplicationContext.class);
         URLClassLoader classLoader = mock(URLClassLoader.class);
-        Harness manager = newHarness("race", 120_000L, ownerStartup(context, classLoader));
-        manager.awaitMode = Harness.AwaitMode.TIMEOUT_AFTER_DONE;
+        CountDownLatch returnGate = new CountDownLatch(1);
+        Harness manager = newHarness("race", 150L, installed(context, classLoader));
+        manager.returnGate.set(returnGate);
 
         manager.startOwnerModules();
+        // The boot installed its resources but never completed; the await
+        // times out on its bounded budget and the losing attempt closes what
+        // it registered.
         awaitState(manager, "race", CoreOwnerContextManager.State.FAILED);
-        verify(context, timeout(5_000)).close();
+        assertThat(manager.cancelInterruptObserved)
+                .as("the timeout claim must interrupt the worker holding the startup")
+                .isTrue();
         verify(context, times(1)).close();
-        verify(classLoader, timeout(5_000)).close();
         verify(classLoader, times(1)).close();
         assertThat(manager.contextsSnapshot()).isEmpty();
         assertThat(manager.states().get("race"))
@@ -224,88 +233,8 @@ class CoreOwnerContextManagerLifecycleTest {
     }
 
     @Test
-    void interruptedCallerHandoffStillClosesPublishedStartupExactlyOnce() throws Exception {
-        ConfigurableApplicationContext context = mock(ConfigurableApplicationContext.class);
-        URLClassLoader classLoader = mock(URLClassLoader.class);
-        Harness manager = newHarness("intr", 120_000L, ownerStartup(context, classLoader));
-        manager.awaitMode = Harness.AwaitMode.INTERRUPT_AFTER_DONE;
-
-        manager.startOwnerModules();
-        awaitState(manager, "intr", CoreOwnerContextManager.State.FAILED);
-        verify(context, timeout(5_000)).close();
-        verify(context, times(1)).close();
-        verify(classLoader, timeout(5_000)).close();
-        verify(classLoader, times(1)).close();
-        assertThat(manager.contextsSnapshot()).isEmpty();
-        assertThat(manager.states().get("intr"))
-                .isEqualTo(CoreOwnerContextManager.State.FAILED);
-        assertThat(manager.allReady()).isFalse();
-    }
-
-    @Test
-    void createdStartupUnhandedWhenTimeoutCancelsIsClosedExactlyOnce() throws Exception {
-        ConfigurableApplicationContext context = mock(ConfigurableApplicationContext.class);
-        URLClassLoader classLoader = mock(URLClassLoader.class);
-        CountDownLatch returnGate = new CountDownLatch(1);
-        Harness manager = newHarness("unhanded", 150L, ownerStartup(context, classLoader));
-        manager.returnGate.set(returnGate);
-
-        manager.startOwnerModules();
-        // start() created the startup but is parked before the handoff; the
-        // timeout fires, claims closing duty, and cancel(true) interrupts the
-        // worker that still holds the startup.
-        awaitState(manager, "unhanded", CoreOwnerContextManager.State.FAILED);
-        returnGate.countDown();
-        verify(context, timeout(5_000)).close();
-        verify(classLoader, timeout(5_000)).close();
-        assertThat(manager.cancelInterruptObserved)
-                .as("cancel(true) must interrupt the worker holding the startup")
-                .isTrue();
-        verify(context, times(1)).close();
-        verify(classLoader, times(1)).close();
-        assertThat(manager.contextsSnapshot()).isEmpty();
-        assertThat(manager.states().get("unhanded"))
-                .isEqualTo(CoreOwnerContextManager.State.FAILED);
-        assertThat(manager.allReady()).isFalse();
-    }
-
-    @Test
-    void startupSlotGetsFreshDrainBudgetAfterAwaitTimeout() throws Exception {
-        Harness manager = newHarness("drain", 1_000L, () -> null);
-        CountDownLatch release = new CountDownLatch(1);
-        ExecutorService slot = Executors.newSingleThreadExecutor(runnable -> {
-            Thread thread = new Thread(runnable, "core-owner-context-startup-drain");
-            thread.setDaemon(true);
-            return thread;
-        });
-        slot.submit(() -> {
-            while (true) {
-                try {
-                    release.await();
-                    return;
-                } catch (InterruptedException ignored) {
-                    // Simulate a child startup that needs a bounded drain after cancellation.
-                }
-            }
-        });
-
-        CountDownLatch stopReturned = new CountDownLatch(1);
-        Thread stopper = new Thread(() -> {
-            manager.stopStartupSlot(slot, "drain");
-            stopReturned.countDown();
-        });
-        stopper.start();
-        assertThat(stopReturned.await(100, TimeUnit.MILLISECONDS)).isFalse();
-
-        release.countDown();
-        assertThat(stopReturned.await(5, TimeUnit.SECONDS)).isTrue();
-        stopper.join(5_000);
-        assertThat(slot.isTerminated()).isTrue();
-    }
-
-    @Test
     void startupExceptionMarksFailedWithoutPublishing() throws Exception {
-        Harness manager = newHarness("boom", 120_000L, () -> {
+        Harness manager = newHarness("boom", 120_000L, (module, attempt) -> {
             throw new IllegalStateException("child boot failure");
         });
 
@@ -314,6 +243,7 @@ class CoreOwnerContextManagerLifecycleTest {
         assertThat(manager.contextsSnapshot()).isEmpty();
         assertThat(manager.allReady()).isFalse();
     }
+
     @Test
     void partialStartupRollsBackReadySiblingWhenAnotherOwnerFails() throws Exception {
         ConfigurableApplicationContext context = mock(ConfigurableApplicationContext.class);
@@ -324,11 +254,12 @@ class CoreOwnerContextManagerLifecycleTest {
                         "first", "TEST", CoreApplication.class, null, "backend-first"),
                 new CoreModuleDefinition(
                         "second", "TEST", CoreApplication.class, null, "backend-second")));
-        Harness manager = new Harness(registry, 120_000L, () -> {
+        Harness manager = new Harness(registry, 120_000L, (module, attempt) -> {
             if (starts.getAndIncrement() == 0) {
-                return ownerStartup(context, classLoader).get();
+                installResources(attempt, context, classLoader);
+            } else {
+                throw new IllegalStateException("second owner failed");
             }
-            throw new IllegalStateException("second owner failed");
         });
         managers.add(manager);
 
@@ -345,34 +276,37 @@ class CoreOwnerContextManagerLifecycleTest {
     }
 
     @Test
-    void stopDuringStartupClosesPublishedStartupExactlyOnce() throws Exception {
+    void stopDuringStartupClosesActiveAttemptExactlyOnce() throws Exception {
         ConfigurableApplicationContext context = mock(ConfigurableApplicationContext.class);
         URLClassLoader classLoader = mock(URLClassLoader.class);
         CountDownLatch returnGate = new CountDownLatch(1);
         CountDownLatch startedSignal = new CountDownLatch(1);
-        Harness manager = newHarness("stop", 120_000L, ownerStartup(context, classLoader));
+        Harness manager = newHarness("stop", 120_000L, installed(context, classLoader));
         manager.returnGate.set(returnGate);
         manager.startedSignal = startedSignal;
 
         manager.startOwnerModules();
-        // start() holds the created startup inside get(); issue the stop from
-        // another thread (onContextClosed blocks until its queued cleanup
-        // drains behind the running startAll task). Waiting for the parked
-        // signal keeps the stop strictly after the startWithTimeout
-        // pre-check — otherwise a losing race never creates the startup and
-        // "closes exactly once" would mean "closes never".
+        // The boot holds installed resources inside the await; issue the stop
+        // from another thread (onContextClosed blocks until its queued
+        // cleanup runs behind the startAll task). Waiting for the started
+        // signal keeps the stop strictly after the attempt registration —
+        // otherwise a losing race never creates the resources and "closes
+        // exactly once" would mean "closes never".
         assertThat(startedSignal.await(15, TimeUnit.SECONDS))
-                .as("worker reached the handoff window")
+                .as("worker reached the in-boot window")
                 .isTrue();
         Thread stopper = new Thread(() -> manager.onContextClosed(
                 new ContextClosedEvent(mock(ApplicationContext.class))), "test-stopper");
         stopper.start();
-        // With stopping flagged, the released startup must be closed by
-        // startAll's stopping branch exactly once — never published READY,
-        // never closed again by the queued stop snapshot.
-        returnGate.countDown();
+        // The stop passes cancel the registered attempt before closing it,
+        // so the startAll waiter returns, refuses publication and never
+        // marks FAILED; the attempt's resources go away exactly once. The
+        // gate stays unreleased: the cancel signal alone ends the boot.
         stopper.join(15_000);
         assertThat(stopper.isAlive()).as("stop must complete").isFalse();
+        assertThat(manager.cancelInterruptObserved)
+                .as("stop must deliver its cancellation signal to the worker")
+                .isTrue();
         verify(context, times(1)).close();
         verify(classLoader, times(1)).close();
         assertThat(manager.contextsSnapshot()).isEmpty();
@@ -380,10 +314,302 @@ class CoreOwnerContextManagerLifecycleTest {
                 .isEqualTo(CoreOwnerContextManager.State.STOPPED);
     }
 
-    private static Supplier<OwnerStartup> ownerStartup(
+    // ---- attempt internals: handoff, claims, cancellation and drain ----
+
+    @Test
+    void successfulAttemptDeliversContextAndDuplicateCloseReleasesOnce() throws Exception {
+        ConfigurableApplicationContext context = mock(ConfigurableApplicationContext.class);
+        URLClassLoader classLoader = mock(URLClassLoader.class);
+        OwnerStartup startup = new OwnerStartup("ok", 120_000L);
+
+        startup.startAndAwait(attempt -> installResources(attempt, context, classLoader));
+
+        assertThat(startup.context()).isSameAs(context);
+        verify(context, never()).close();
+        verify(classLoader, never()).close();
+        startup.close();
+        startup.close();
+        verify(context, times(1)).close();
+        verify(classLoader, times(1)).close();
+        assertThat(startup.context()).isNull();
+        // One-shot: a started attempt can never be submitted again.
+        assertThatThrownBy(() -> startup.startAndAwait(attempt -> {
+            throw new AssertionError("boot must not run after close");
+        })).isInstanceOf(IllegalStateException.class).hasMessageContaining("already used");
+    }
+
+    @Test
+    void timeoutAfterBootCompletedClosesLostStartupExactlyOnce() throws Exception {
+        ConfigurableApplicationContext context = mock(ConfigurableApplicationContext.class);
+        URLClassLoader classLoader = mock(URLClassLoader.class);
+        LostResultStartup startup = new LostResultStartup("lost-timeout", false);
+
+        assertThatThrownBy(() ->
+                startup.startAndAwait(attempt -> installResources(attempt, context, classLoader)))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("timed out");
+        verify(context, times(1)).close();
+        verify(classLoader, times(1)).close();
+        assertThat(startup.context()).isNull();
+    }
+
+    @Test
+    void interruptedAwaitClosesLostStartupAndRestoresCallerInterrupt() throws Exception {
+        ConfigurableApplicationContext context = mock(ConfigurableApplicationContext.class);
+        URLClassLoader classLoader = mock(URLClassLoader.class);
+        LostResultStartup startup = new LostResultStartup("lost-interrupt", true);
+        AtomicReference<Throwable> thrown = new AtomicReference<>();
+        AtomicBoolean interruptFlagRestored = new AtomicBoolean();
+        CountDownLatch callerDone = new CountDownLatch(1);
+        Thread caller = new Thread(() -> {
+            try {
+                startup.startAndAwait(attempt -> installResources(attempt, context, classLoader));
+            } catch (Throwable failure) {
+                thrown.set(failure);
+                interruptFlagRestored.set(Thread.currentThread().isInterrupted());
+            }
+            callerDone.countDown();
+        }, "lost-interrupt-caller");
+        caller.start();
+
+        assertThat(callerDone.await(15, TimeUnit.SECONDS)).isTrue();
+        assertThat(thrown.get()).isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("interrupted");
+        assertThat(interruptFlagRestored)
+                .as("the interrupt flag must be restored after cancel and cleanup")
+                .isTrue();
+        verify(context, times(1)).close();
+        verify(classLoader, times(1)).close();
+    }
+
+    @Test
+    void lateInstallAfterTimeoutClaimReleasesImmediately() throws Exception {
+        ConfigurableApplicationContext context = mock(ConfigurableApplicationContext.class);
+        URLClassLoader classLoader = mock(URLClassLoader.class);
+        AtomicBoolean installedLate = new AtomicBoolean();
+        OwnerStartup startup = new OwnerStartup("late", 1_000L);
+
+        assertThatThrownBy(() -> startup.startAndAwait(attempt -> {
+            try {
+                new CountDownLatch(1).await(); // parked until the cancel signal
+            } catch (InterruptedException expectedWake) {
+                Thread.currentThread().interrupt();
+            }
+            // The timeout path claimed close before these installs landed:
+            // the late-install rule must release each incoming resource.
+            attempt.setClassLoader(classLoader);
+            attempt.setContext(context);
+            installedLate.set(true);
+        })).isInstanceOf(IllegalStateException.class).hasMessageContaining("timed out");
+
+        assertThat(installedLate)
+                .as("the bounded drain proved the worker installed after the claim")
+                .isTrue();
+        verify(context, times(1)).close();
+        verify(classLoader, times(1)).close();
+    }
+
+    @Test
+    void closeOrRequestStopBeforeSubmitStartsNoThreadAndRefusesBoot() throws Exception {
+        AtomicBoolean bootRan = new AtomicBoolean();
+        OwnerStartup closedFirst = new OwnerStartup("admit", 120_000L);
+        closedFirst.close();
+        assertThatThrownBy(() -> closedFirst.startAndAwait(attempt -> bootRan.set(true)))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("cancelled");
+
+        OwnerStartup stoppedFirst = new OwnerStartup("admit2", 120_000L);
+        stoppedFirst.requestStop();
+        assertThatThrownBy(() -> stoppedFirst.startAndAwait(attempt -> bootRan.set(true)))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("cancelled");
+        assertThat(bootRan).isFalse();
+        // The stop claim must not consume the close claim: a later close is
+        // still a complete (here empty) release.
+        stoppedFirst.close();
+        awaitNoThreads("core-owner-context-startup-admit");
+    }
+
+    @Test
+    void bootFailurePreservesPrimaryCauseAndSuppressesCleanupFailure() throws Exception {
+        ConfigurableApplicationContext context = mock(ConfigurableApplicationContext.class);
+        doThrow(new IllegalStateException("context close failed")).when(context).close();
+        URLClassLoader classLoader = mock(URLClassLoader.class);
+        IllegalStateException primary = new IllegalStateException("child boot failure");
+        OwnerStartup startup = new OwnerStartup("boot-boom", 120_000L);
+
+        assertThatThrownBy(() -> startup.startAndAwait(attempt -> {
+            attempt.setClassLoader(classLoader);
+            attempt.setContext(context);
+            throw primary;
+        })).isSameAs(primary);
+
+        Throwable[] suppressed = primary.getSuppressed();
+        assertThat(suppressed).hasSize(1);
+        assertThat(suppressed[0]).isInstanceOf(IllegalStateException.class)
+                .hasMessage("context close failed");
+        verify(context, times(1)).close();
+        // The context close threw, yet the classloader release still ran.
+        verify(classLoader, times(1)).close();
+        assertThat(startup.context()).isNull();
+    }
+
+    @Test
+    void closeStillReleasesClassLoaderWhenContextCloseThrows() throws Exception {
+        ConfigurableApplicationContext context = mock(ConfigurableApplicationContext.class);
+        doThrow(new IllegalStateException("close failed")).when(context).close();
+        URLClassLoader classLoader = mock(URLClassLoader.class);
+        OwnerStartup startup = new OwnerStartup("close-boom", 120_000L);
+        startup.startAndAwait(attempt -> installResources(attempt, context, classLoader));
+
+        assertThatThrownBy(startup::close)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("close failed");
+        verify(context, times(1)).close();
+        verify(classLoader, times(1)).close();
+    }
+
+    @Test
+    void everyActiveAttemptIsCancelledBeforeTheFirstBlockingClose() throws Exception {
+        ConfigurableApplicationContext firstContext = mock(ConfigurableApplicationContext.class);
+        URLClassLoader firstLoader = mock(URLClassLoader.class);
+        ConfigurableApplicationContext secondContext = mock(ConfigurableApplicationContext.class);
+        URLClassLoader secondLoader = mock(URLClassLoader.class);
+        CountDownLatch gate = new CountDownLatch(1);
+        CountDownLatch firstCloseBlocked = new CountDownLatch(1);
+        doAnswer(invocation -> {
+            firstCloseBlocked.countDown();
+            gate.await();
+            return null;
+        }).when(firstContext).close();
+        OwnerStartup first = new OwnerStartup("batch-one", 120_000L);
+        OwnerStartup second = new OwnerStartup("batch-two", 120_000L);
+        AtomicBoolean firstWorkerCancelled = new AtomicBoolean();
+        AtomicBoolean secondWorkerCancelled = new AtomicBoolean();
+        CountDownLatch firstInstalled = new CountDownLatch(1);
+        CountDownLatch secondInstalled = new CountDownLatch(1);
+        CountDownLatch firstWaiterDone = new CountDownLatch(1);
+        CountDownLatch secondWaiterDone = new CountDownLatch(1);
+        ExecutorService awaiters = Executors.newFixedThreadPool(2, runnable -> {
+            Thread thread = new Thread(runnable, "core-owner-batch-await");
+            thread.setDaemon(true);
+            return thread;
+        });
+        awaiters.submit(() -> {
+            try {
+                first.startAndAwait(attempt -> {
+                    installResources(attempt, firstContext, firstLoader);
+                    firstInstalled.countDown();
+                    awaitCancellationSignal(firstWorkerCancelled);
+                });
+            } catch (Throwable expected) {
+                // The await losing to the cancellation signal is the outcome.
+            }
+            firstWaiterDone.countDown();
+        });
+        awaiters.submit(() -> {
+            try {
+                second.startAndAwait(attempt -> {
+                    installResources(attempt, secondContext, secondLoader);
+                    secondInstalled.countDown();
+                    awaitCancellationSignal(secondWorkerCancelled);
+                });
+            } catch (Throwable expected) {
+                // Same: cancellation is delivered, the await gives up.
+            }
+            secondWaiterDone.countDown();
+        });
+        assertThat(firstInstalled.await(15, TimeUnit.SECONDS)).isTrue();
+        assertThat(secondInstalled.await(15, TimeUnit.SECONDS)).isTrue();
+
+        // Batch stop pass 1 — requestStop on every attempt — then the first
+        // pass-2 close blocks on its context and holds its caller.
+        first.requestStop();
+        second.requestStop();
+        assertThat(firstCloseBlocked.await(15, TimeUnit.SECONDS))
+                .as("the first attempt's close blocks on the gated context")
+                .isTrue();
+        verify(firstLoader, never()).close();
+        // While that close is blocked, the second attempt has already received
+        // its cancellation signal and completed its own cleanup.
+        assertThat(secondWaiterDone.await(15, TimeUnit.SECONDS)).isTrue();
+        assertThat(secondWorkerCancelled).isTrue();
+        verify(secondContext, times(1)).close();
+        verify(secondLoader, times(1)).close();
+
+        gate.countDown();
+        assertThat(firstWaiterDone.await(15, TimeUnit.SECONDS)).isTrue();
+        assertThat(firstWorkerCancelled).isTrue();
+        verify(firstContext, times(1)).close();
+        verify(firstLoader, times(1)).close();
+        awaiters.shutdown();
+        awaitNoThreads("core-owner-batch-await", "core-owner-context-startup-batch");
+    }
+
+    @Test
+    void drainUsesAFreshBoundedBudgetAndRecordsANonTerminatingWorker() throws Exception {
+        OwnerStartup startup = new OwnerStartup("drain", 1_000L);
+        CountDownLatch release = new CountDownLatch(1);
+        AtomicReference<Throwable> awaitFailure = new AtomicReference<>();
+        CountDownLatch waiterDone = new CountDownLatch(1);
+        ExecutorService caller = Executors.newSingleThreadExecutor(runnable -> {
+            Thread thread = new Thread(runnable, "core-owner-drain-caller");
+            thread.setDaemon(true);
+            return thread;
+        });
+        caller.submit(() -> {
+            try {
+                startup.startAndAwait(attempt -> {
+                    while (true) {
+                        try {
+                            release.await();
+                            return;
+                        } catch (InterruptedException ignored) {
+                            // A child boot that ignores cancellation: the
+                            // awaiter must still come back on a fresh,
+                            // bounded drain budget.
+                        }
+                    }
+                });
+            } catch (Throwable failure) {
+                awaitFailure.set(failure);
+            }
+            waiterDone.countDown();
+        });
+
+        assertThat(waiterDone.await(20, TimeUnit.SECONDS)).isTrue();
+        assertThat(awaitFailure.get()).isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("timed out");
+        assertThat(anyThreadWithName("core-owner-context-startup-drain"))
+                .as("the drain was bounded: the interrupt-ignoring worker is still alive")
+                .isTrue();
+        release.countDown();
+        caller.shutdown();
+        awaitNoThreads("core-owner-context-startup-drain", "core-owner-drain-caller");
+    }
+
+    private static BiConsumer<CoreModuleDefinition, OwnerStartup> installed(
             ConfigurableApplicationContext context,
             URLClassLoader classLoader) {
-        return () -> new OwnerStartup(context, classLoader);
+        return (module, attempt) -> installResources(attempt, context, classLoader);
+    }
+
+    /** The boot seam rule: install into the attempt passed to the boot, never a rival. */
+    private static void installResources(
+            OwnerStartup attempt,
+            ConfigurableApplicationContext context,
+            URLClassLoader classLoader) {
+        attempt.setClassLoader(classLoader);
+        attempt.setContext(context);
+    }
+
+    private static void awaitCancellationSignal(AtomicBoolean cancelled) {
+        try {
+            new CountDownLatch(1).await();
+        } catch (InterruptedException expected) {
+            cancelled.set(true);
+            Thread.currentThread().interrupt();
+        }
     }
 
     private static CoreModuleRegistry single(String name) {
@@ -409,6 +635,11 @@ class CoreOwnerContextManagerLifecycleTest {
         }
         fail("Module " + module + " never reached state " + expected + "; was "
                 + manager.states().get(module));
+    }
+
+    private static boolean anyThreadWithName(String prefix) {
+        return Thread.getAllStackTraces().keySet().stream()
+                .anyMatch(thread -> thread.getName().startsWith(prefix));
     }
 
     private static void awaitNoThreads(String... prefixes) {

@@ -43,7 +43,7 @@
     "@dnd-kit/dom": "^0.1.21",
     "@dnd-kit/modifiers": "^9.0.0",
     "@internationalized/date": "^3.12.4",
-    "@mdit/plugin-katex": "^0.25.2",
+    "@mdit/plugin-katex": "^1.1.1",
     "@tabler/icons-vue": "^3.46.0",
     "@tailwindcss/vite": "^4.3.3",
     "@tanstack/vue-table": "^8.21.3",

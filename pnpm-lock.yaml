@@ -292,8 +292,8 @@ importers:
         specifier: ^3.12.4
         version: 3.12.4
       '@mdit/plugin-katex':
-        specifier: ^0.25.2
-        version: 0.25.2(markdown-it@14.3.2)
+        specifier: ^1.1.1
+        version: 1.1.1(markdown-it@14.3.2)
       '@tabler/icons-vue':
         specifier: ^3.46.0
         version: 3.46.0(vue@3.5.42(typescript@6.0.3))
@@ -1717,6 +1717,15 @@ packages:
       markdown-it:
         optional: true
 
+  '@mdit/helper@1.1.1':
+    resolution: {integrity: sha512-Rrl14ZjFerzfAqCt0zxAWbPgRpsumgm9iBLrCVE05WS8dM6v/LnF1ppPFVnRz1F7fAaxn0kTFOlYwzcY+kRsHQ==}
+    engines: {node: '>=22'}
+    peerDependencies:
+      markdown-it: ^15.0.1
+    peerDependenciesMeta:
+      markdown-it:
+        optional: true
+
   '@mdit/plugin-katex@0.25.2':
     resolution: {integrity: sha512-r7nKvngZP2XXVGsYIXZt4UNxhTAxwSbLSXQtW445nJGhcp0ZrWmdPoz3AFZAX5x51inARab/lnZhD3uq01V5Yg==}
     engines: {node: '>= 20'}
@@ -1726,11 +1735,29 @@ packages:
       markdown-it:
         optional: true
 
+  '@mdit/plugin-katex@1.1.1':
+    resolution: {integrity: sha512-M7xMJYUg4GLv5iz0wujL84yYB7HtNNJgY4tUHcV13tvHJo0gPb8Xb13p6tvwvxfKSYG+fqT3HHXOawiozcgtyw==}
+    engines: {node: '>=22'}
+    peerDependencies:
+      markdown-it: ^15.0.1
+    peerDependenciesMeta:
+      markdown-it:
+        optional: true
+
   '@mdit/plugin-tex@0.24.2':
     resolution: {integrity: sha512-nVKIJHQJHvgDByKMpCgFT6gdeEZUyzZby24BjCjxP2N10bkgK8IEwZIBu7G5n5WBw2D0kmFD4Top+YA2mjeiQQ==}
     engines: {node: '>= 20'}
     peerDependencies:
       markdown-it: ^14.1.0
+    peerDependenciesMeta:
+      markdown-it:
+        optional: true
+
+  '@mdit/plugin-tex@1.1.1':
+    resolution: {integrity: sha512-it1Nk5hbqL20YdaurYD3LiXiudEG/r6gqMYLIJNSg5d2qafrvMtYjUVKQbaHptsOLtuh0LHTHRJGXuw81N8AUA==}
+    engines: {node: '>=22'}
+    peerDependencies:
+      markdown-it: ^15.0.1
     peerDependenciesMeta:
       markdown-it:
         optional: true
@@ -7253,6 +7280,10 @@ snapshots:
     optionalDependencies:
       markdown-it: 14.3.2
 
+  '@mdit/helper@1.1.1(markdown-it@14.3.2)':
+    optionalDependencies:
+      markdown-it: 14.3.2
+
   '@mdit/plugin-katex@0.25.2(markdown-it@14.3.2)':
     dependencies:
       '@mdit/helper': 0.23.2(markdown-it@14.3.2)
@@ -7262,9 +7293,23 @@ snapshots:
     optionalDependencies:
       markdown-it: 14.3.2
 
+  '@mdit/plugin-katex@1.1.1(markdown-it@14.3.2)':
+    dependencies:
+      '@mdit/helper': 1.1.1(markdown-it@14.3.2)
+      '@mdit/plugin-tex': 1.1.1(markdown-it@14.3.2)
+      katex: 0.18.7
+    optionalDependencies:
+      markdown-it: 14.3.2
+
   '@mdit/plugin-tex@0.24.2(markdown-it@14.3.2)':
     dependencies:
       '@types/markdown-it': 14.1.2
+    optionalDependencies:
+      markdown-it: 14.3.2
+
+  '@mdit/plugin-tex@1.1.1(markdown-it@14.3.2)':
+    dependencies:
+      '@mdit/helper': 1.1.1(markdown-it@14.3.2)
     optionalDependencies:
       markdown-it: 14.3.2
 

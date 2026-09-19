@@ -64,7 +64,7 @@
     "lucide-vue-next": "^1.0.0",
     "markdown-it": "^14.3.2",
     "monaco-editor": "^0.56.0",
-    "pinia": "^3.0.4",
+    "pinia": "^4.0.3",
     "reka-ui": "^2.10.4",
     "sockjs-client": "^1.6.1",
     "tailwind-merge": "^3.7.0",

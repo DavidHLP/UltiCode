@@ -43,7 +43,7 @@
     "@ulticode/submission-status": "workspace:*",
     "@ulticode/theme": "workspace:*",
     "@internationalized/date": "^3.12.4",
-    "@mdit/plugin-katex": "^0.25.2",
+    "@mdit/plugin-katex": "^1.1.1",
     "@monaco-editor/loader": "^1.7.0",
     "@stomp/stompjs": "^7.3.0",
     "@tabler/icons-vue": "^3.46.0",

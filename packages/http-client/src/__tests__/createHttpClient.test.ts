@@ -453,6 +453,63 @@ describe('Dedup policy', () => {
     await expect(third).resolves.toEqual({ ok: true })
   })
 
+  it('propagates caller abort and releases the current attempt', async () => {
+    const state = createPendingAdapter()
+    const client = createTestHttpClient({
+      csrfManager: createCsrfTokenManager(),
+      baseURL: 'http://test.local',
+      getLocale: () => 'en-US',
+      dedupPolicy: 'all-non-auth',
+      __testAdapter: state.adapter,
+    })
+    const controller = new AbortController()
+
+    const first = client
+      .apiGet('/abort', { signal: controller.signal })
+      .catch((error: unknown) => error)
+    await vi.waitFor(() => expect(state.adapter).toHaveBeenCalledTimes(1))
+
+    controller.abort()
+    await expect(first).resolves.toMatchObject({ name: 'ApiError', code: -1 })
+
+    const second = client.apiGet('/abort')
+    await vi.waitFor(() => expect(state.adapter).toHaveBeenCalledTimes(2))
+    expect(state.requests[1].signal?.aborted).toBe(false)
+    state.pending[1](responseFor(state.requests[1] as InternalAxiosRequestConfig))
+    await expect(second).resolves.toEqual({ ok: true })
+  })
+
+  it('removes caller abort listeners when replacement supersedes an attempt', async () => {
+    const state = createRaceAdapter()
+    const client = createTestHttpClient({
+      csrfManager: createCsrfTokenManager(),
+      baseURL: 'http://test.local',
+      getLocale: () => 'en-US',
+      dedupPolicy: 'all-non-auth',
+      __testAdapter: state.adapter,
+    })
+    const controller = new AbortController()
+    const removeCallerListener = vi.spyOn(controller.signal, 'removeEventListener')
+
+    const first = client
+      .apiGet('/replacement-cleanup', { signal: controller.signal })
+      .catch((error: unknown) => error)
+    await vi.waitFor(() => expect(state.adapter).toHaveBeenCalledTimes(1))
+
+    const second = client.apiGet('/replacement-cleanup')
+    await vi.waitFor(() => expect(state.adapter).toHaveBeenCalledTimes(2))
+    expect(removeCallerListener).toHaveBeenCalledTimes(1)
+
+    controller.abort()
+    expect(state.requests[1].request.signal?.aborted).toBe(false)
+    state.requests[0].request.signal = new AbortController().signal
+    state.requests[0].resolve(responseFor(state.requests[0].request))
+    state.requests[1].resolve(responseFor(state.requests[1].request))
+
+    await expect(first).resolves.toEqual({ ok: true })
+    await expect(second).resolves.toEqual({ ok: true })
+  })
+
 })
 
 describe('Retry / backoff', () => {
@@ -489,6 +546,7 @@ describe('Retry / backoff', () => {
   })
   it('does not let a stale retry abort a newer same-key request', async () => {
     vi.useFakeTimers()
+    const debug = vi.spyOn(console, 'debug')
     try {
       const pending: Array<{
         request: InternalAxiosRequestConfig
@@ -535,7 +593,9 @@ describe('Retry / backoff', () => {
 
       await expect(second).resolves.toEqual({ ok: true })
       await expect(first).resolves.toMatchObject({ name: 'ApiError', code: 500 })
+      expect(debug.mock.calls.filter(([message]) => message === '[API Retry]')).toHaveLength(0)
     } finally {
+      debug.mockRestore()
       vi.useRealTimers()
     }
   })

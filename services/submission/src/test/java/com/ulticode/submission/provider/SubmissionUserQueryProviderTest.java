@@ -7,6 +7,7 @@ import com.ulticode.common.response.PaginationRequest;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
 import com.ulticode.modules.submission.projection.SubmissionProjection;
+import com.ulticode.modules.submission.read.SubmissionReadAssembly;
 import com.ulticode.modules.submission.stats.SubmissionPerformanceStats;
 import com.ulticode.submission.api.dto.SubmissionListItemVO;
 import com.ulticode.submission.api.dto.SubmissionQueryDTO;
@@ -42,11 +43,14 @@ class SubmissionUserQueryProviderTest {
     void setUp() {
         submissionMapper = mock(SubmissionMapper.class);
         problemFactsPort = mock(ProblemFactsPort.class);
-        provider = new SubmissionUserQueryProvider(
-                mock(SubmissionProjection.class),
+        SubmissionProjection projection = mock(SubmissionProjection.class);
+        SubmissionReadAssembly readAssembly = new SubmissionReadAssembly(
                 submissionMapper,
+                projection,
                 mock(SubmissionPerformanceStats.class),
                 problemFactsPort);
+        provider = new SubmissionUserQueryProvider(
+                projection, readAssembly);
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})

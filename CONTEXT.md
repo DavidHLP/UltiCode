@@ -42,6 +42,9 @@
   the [[AdminReadModel seam]] ports: ports are for cross-module reads,
   projections are for admin's own VO shape. See the current Admin projection
   implementations and tests.
+- **Audit Read Workspace** — the management read shape that combines filtered
+  audit rows, audit statistics, and their shared query state. Entity detail and
+  export remain separate audit views.
 - **User Facts View** — the cross-owner read shape that combines Auth account
   facts with App profile facts for Search and moderation reads only; ordinary
   user-facing reads go through the User Directory View below.

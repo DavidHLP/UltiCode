@@ -50,6 +50,9 @@ class CoreOwnerContextManagerLifecycleTest {
         /** Held after creation, before the ownership handoff attempt. */
         final AtomicReference<CountDownLatch> returnGate =
                 new AtomicReference<>(new CountDownLatch(0));
+        /** Fired once the worker holds a created startup; lets a test order a
+         * concurrent stop strictly after the startWithTimeout pre-check. */
+        volatile CountDownLatch startedSignal;
         final Supplier<OwnerStartup> factory;
         volatile AwaitMode awaitMode = AwaitMode.REAL;
         /** Set when a cancellation signal interrupts the worker mid-start. */
@@ -70,6 +73,10 @@ class CoreOwnerContextManagerLifecycleTest {
                 Thread.currentThread().interrupt();
             }
             OwnerStartup startup = factory.get();
+            CountDownLatch started = startedSignal;
+            if (started != null) {
+                started.countDown();
+            }
             try {
                 // Parked with startup created but not yet handed off:
                 // the exact window the timeout path may cancel the future in.
@@ -342,13 +349,21 @@ class CoreOwnerContextManagerLifecycleTest {
         ConfigurableApplicationContext context = mock(ConfigurableApplicationContext.class);
         URLClassLoader classLoader = mock(URLClassLoader.class);
         CountDownLatch returnGate = new CountDownLatch(1);
+        CountDownLatch startedSignal = new CountDownLatch(1);
         Harness manager = newHarness("stop", 120_000L, ownerStartup(context, classLoader));
         manager.returnGate.set(returnGate);
+        manager.startedSignal = startedSignal;
 
         manager.startOwnerModules();
         // start() holds the created startup inside get(); issue the stop from
         // another thread (onContextClosed blocks until its queued cleanup
-        // drains behind the running startAll task).
+        // drains behind the running startAll task). Waiting for the parked
+        // signal keeps the stop strictly after the startWithTimeout
+        // pre-check — otherwise a losing race never creates the startup and
+        // "closes exactly once" would mean "closes never".
+        assertThat(startedSignal.await(15, TimeUnit.SECONDS))
+                .as("worker reached the handoff window")
+                .isTrue();
         Thread stopper = new Thread(() -> manager.onContextClosed(
                 new ContextClosedEvent(mock(ApplicationContext.class))), "test-stopper");
         stopper.start();

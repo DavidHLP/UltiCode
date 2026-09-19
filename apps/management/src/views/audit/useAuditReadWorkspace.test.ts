@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AuditLog, AuditStats } from '@/api/admin/audit'
 import {
   toAuditLogQueryParams,
+  toAuditStatsQueryParams,
   useAuditReadWorkspace,
   type AuditFilters,
 } from './useAuditReadWorkspace'
@@ -89,6 +90,61 @@ describe('toAuditLogQueryParams', () => {
       userId: 'user-1',
       page: 3,
       limit: 25,
+    })
+  })
+})
+
+describe('toAuditStatsQueryParams', () => {
+  const filters: AuditFilters = {
+    action: 'all',
+    entityType: 'USER',
+    startDate: '2026-09-01',
+    endDate: '2026-09-19',
+    performerId: '',
+    userId: 'user-1',
+  }
+
+  it('applies the same sentinel, blank and date rules as the log query', () => {
+    const stats = toAuditStatsQueryParams({ search: 'rotate', filters })
+
+    expect(stats).toEqual({
+      search: 'rotate',
+      action: undefined,
+      entityType: 'USER',
+      startDate: '2026-09-01T00:00:00',
+      endDate: '2026-09-20T00:00:00',
+      performerId: undefined,
+      userId: 'user-1',
+    })
+    const logs = toAuditLogQueryParams({
+      search: 'rotate',
+      filters,
+      pagination: { pageIndex: 0, pageSize: 50 },
+    })
+    expect(logs).toEqual({ ...stats, page: 1, limit: 50 })
+  })
+
+  it('drops every unset filter', () => {
+    expect(
+      toAuditStatsQueryParams({
+        search: '',
+        filters: {
+          action: 'all',
+          entityType: 'all',
+          startDate: '',
+          endDate: '',
+          performerId: '',
+          userId: '',
+        },
+      }),
+    ).toEqual({
+      search: undefined,
+      action: undefined,
+      entityType: undefined,
+      startDate: undefined,
+      endDate: undefined,
+      performerId: undefined,
+      userId: undefined,
     })
   })
 })

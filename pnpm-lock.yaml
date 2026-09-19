@@ -63,8 +63,8 @@ importers:
         specifier: ^4.3.3
         version: 4.3.3(vite@8.0.16(@types/node@26.5.1)(jiti@2.7.0)(terser@5.48.0)(yaml@2.9.0))
       '@tanstack/vue-virtual':
-        specifier: ^3.13.38
-        version: 3.13.38(vue@3.5.42(typescript@6.0.3))
+        specifier: ^3.13.39
+        version: 3.13.39(vue@3.5.42(typescript@6.0.3))
       '@ulticode/app-bootstrap':
         specifier: workspace:*
         version: link:../../packages/app-bootstrap
@@ -162,8 +162,8 @@ importers:
         specifier: ^1.6.1
         version: 1.6.1(supports-color@7.2.0)
       tailwind-merge:
-        specifier: ^3.6.0
-        version: 3.6.0
+        specifier: ^3.7.0
+        version: 3.7.0
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
@@ -2411,8 +2411,8 @@ packages:
     resolution: {integrity: sha512-ldZXEhOBb8Is7xLs01fR3YEc3DERiz5silj8tnGkFZytt1abEvl/GhUmCE0PMLaMPTa3Jk4HbKmRlHmu+gCftg==}
     engines: {node: '>=12'}
 
-  '@tanstack/virtual-core@3.17.10':
-    resolution: {integrity: sha512-eMorKWIi2nekElu+8DgSMJR4iR+sTDeh+W8VjKiMH79yUfEDJ3W9aL/96/wwbxNjyV6EfN39HKszSxjd90zAqQ==}
+  '@tanstack/virtual-core@3.17.11':
+    resolution: {integrity: sha512-+ILjvtHup6Y2hzQ6YzwMgX1Q+oQpxEGOXCEsCNaPoIP0VxMbizIBTmYTDtkerkIQS8/CbP1BRuyt8V/8BCsy1g==}
 
   '@tanstack/vue-table@8.21.3':
     resolution: {integrity: sha512-rusRyd77c5tDPloPskctMyPLFEQUeBzxdQ+2Eow4F7gDPlPOB1UnnhzfpdvqZ8ZyX2rRNGmqNnQWm87OI2OQPw==}
@@ -2420,8 +2420,8 @@ packages:
     peerDependencies:
       vue: '>=3.2'
 
-  '@tanstack/vue-virtual@3.13.38':
-    resolution: {integrity: sha512-9GE1RY5EBmA5w+0AR7AIL940EnGKik7o69QLDDcZg2sBLbitkjFRUD1BKxgKPD6WsCS/ptOPndARtDTkShH1jA==}
+  '@tanstack/vue-virtual@3.13.39':
+    resolution: {integrity: sha512-AG8sI+6nfrDvN6ixuHJL9LaJTf3//0V5VITZYW3UOaIuSVexnEzsbMu4LH/JhMfRTxwhUXPnLqkl1DlzkZbRtg==}
     peerDependencies:
       vue: ^2.7.0 || ^3.0.0
 
@@ -5268,6 +5268,9 @@ packages:
   tailwind-merge@3.6.0:
     resolution: {integrity: sha512-uxL7qAVQriqRQPAyK3pj66VqskWqoZ37PW94jwOTwNfq/z9oyu1V+eqrZqtR2+fCiXdYOZe/Modt8GtvqNzu+w==}
 
+  tailwind-merge@3.7.0:
+    resolution: {integrity: sha512-XPPUyAc+cvspz3lHTcR/QgPfW2A0lv/xQNIjX3HGhLR+Nq2lHaLq5MtTesHn8GUr3W3DguT2KT5x3NVgRtYwmA==}
+
   tailwindcss@4.3.3:
     resolution: {integrity: sha512-gOhV3P7ufE62QDGg1zVaTgCR+EtPv92k2nIhVcVKcLmxT1sUBsQGhnZj175j+MqRt4zLF7ic+sCYjfhxMxj7YQ==}
 
@@ -7598,21 +7601,21 @@ snapshots:
 
   '@tanstack/table-core@8.21.3': {}
 
-  '@tanstack/virtual-core@3.17.10': {}
+  '@tanstack/virtual-core@3.17.11': {}
 
   '@tanstack/vue-table@8.21.3(vue@3.5.42(typescript@6.0.3))':
     dependencies:
       '@tanstack/table-core': 8.21.3
       vue: 3.5.42(typescript@6.0.3)
 
-  '@tanstack/vue-virtual@3.13.38(vue@3.5.42(typescript@5.9.3))':
+  '@tanstack/vue-virtual@3.13.39(vue@3.5.42(typescript@5.9.3))':
     dependencies:
-      '@tanstack/virtual-core': 3.17.10
+      '@tanstack/virtual-core': 3.17.11
       vue: 3.5.42(typescript@5.9.3)
 
-  '@tanstack/vue-virtual@3.13.38(vue@3.5.42(typescript@6.0.3))':
+  '@tanstack/vue-virtual@3.13.39(vue@3.5.42(typescript@6.0.3))':
     dependencies:
-      '@tanstack/virtual-core': 3.17.10
+      '@tanstack/virtual-core': 3.17.11
       vue: 3.5.42(typescript@6.0.3)
 
   '@trickfilm400/rollup-plugin-off-main-thread@3.0.0-pre1':
@@ -10603,7 +10606,7 @@ snapshots:
       '@floating-ui/vue': 1.1.11(vue@3.5.42(typescript@5.9.3))
       '@internationalized/date': 3.12.4
       '@internationalized/number': 3.6.7
-      '@tanstack/vue-virtual': 3.13.38(vue@3.5.42(typescript@5.9.3))
+      '@tanstack/vue-virtual': 3.13.39(vue@3.5.42(typescript@5.9.3))
       '@vueuse/core': 14.4.0(vue@3.5.42(typescript@5.9.3))
       '@vueuse/shared': 14.4.0(vue@3.5.42(typescript@5.9.3))
       aria-hidden: 1.2.6
@@ -10619,7 +10622,7 @@ snapshots:
       '@floating-ui/vue': 1.1.11(vue@3.5.42(typescript@6.0.3))
       '@internationalized/date': 3.12.4
       '@internationalized/number': 3.6.7
-      '@tanstack/vue-virtual': 3.13.38(vue@3.5.42(typescript@6.0.3))
+      '@tanstack/vue-virtual': 3.13.39(vue@3.5.42(typescript@6.0.3))
       '@vueuse/core': 14.4.0(vue@3.5.42(typescript@6.0.3))
       '@vueuse/shared': 14.4.0(vue@3.5.42(typescript@6.0.3))
       aria-hidden: 1.2.6
@@ -10938,6 +10941,8 @@ snapshots:
       '@pkgr/core': 0.3.6
 
   tailwind-merge@3.6.0: {}
+
+  tailwind-merge@3.7.0: {}
 
   tailwindcss@4.3.3: {}
 

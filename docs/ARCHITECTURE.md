@@ -45,9 +45,12 @@ Core 的 enabled Owner child 启动使用单一尝试协议：每个模块的内
 drain 预算与幂等 close；boot future 只传达完成或失败，不转移所有权。
 manager 只负责全局准入、启动顺序、READY 发布（发布锁内二次检查 stopping）
 以及批量停止的两遍流程——先向全部活动尝试发出取消信号，再逐个 close。
-已验证的限制如实保留：等待与 drain 均有界，但不证明任意 Spring
-context.close 或第三方 boot 可被强制终止；超过 drain 预算未终止的 daemon
-线程会被记录并禁止成功发布，close 失败仍继续清理其余对象。
+取消、drain 与 context/classloader 关闭一律在 attempt 与 manager 的锁外
+执行：已认领关闭后迟到的资源在安装点认领、在锁外释放，READY 发布读取
+context 也在取得全局锁之前完成。等待与 drain 有界不代表任意 Spring
+context.close 或第三方 boot 可被强制终止：超过 drain 预算未终止的 daemon
+线程会被记录并禁止成功发布；清理失败作为 suppressed 附加在超时、中断或
+boot 主因之后，且仍继续清理其余对象。
 
 ## 运行拓扑
 

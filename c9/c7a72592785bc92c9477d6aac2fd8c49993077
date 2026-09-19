@@ -1,0 +1,424 @@
+.claude/rules/README.md
+  h_77173abe25c3ff 12
+.claude/rules/database/flyway-migrations.md
+  h_77173abe25c3ff 16
+.codex/rules/README.md
+  h_77173abe25c3ff 38
+.omp/rules/README.md
+  h_77173abe25c3ff 13
+.omp/rules/flyway-migrations-path.md
+  h_77173abe25c3ff 17
+AGENTS.md
+  h_77173abe25c3ff 32,124,141-142
+CONTEXT.md
+  h_77173abe25c3ff 64,95-97,115,172-173
+README.md
+  h_77173abe25c3ff 11,77,104,118,137,143-148,158
+README.zh-CN.md
+  h_77173abe25c3ff 11,78,105,120,139,143-148,158
+apps/console/src/api/edge-operations.ts
+  h_77173abe25c3ff 15,35
+apps/console/src/api/projection/index.ts
+  h_77173abe25c3ff 149,244
+apps/console/src/api/subscription.ts
+  h_77173abe25c3ff 72
+apps/console/src/types/auth.ts
+  h_77173abe25c3ff 5,14
+apps/console/src/types/test-results.ts
+  h_77173abe25c3ff 17,44
+apps/console/src/views/problems/submissions/components/__tests__/SubmissionTestResults.spec.ts
+  h_77173abe25c3ff 2,22
+apps/management/src/api/admin/__tests__/moderation-alignment.spec.ts
+  h_77173abe25c3ff 7
+apps/management/src/components/problem/HiddenCasesView.vue
+  h_77173abe25c3ff 18
+apps/management/src/views/problems/tabs/CasesTab.vue
+  h_77173abe25c3ff 17
+apps/management/src/views/problems/view/ViewCasesView.vue
+  h_77173abe25c3ff 76
+docker/redis/generate-users-acl.sh
+  h_77173abe25c3ff 56
+docker/sandbox/harness/build.sh
+  h_77173abe25c3ff 27,164
+docker/sandbox/harness/cpp/main.cpp
+  h_77173abe25c3ff 372,422,432
+docker/sandbox/harness/java/src/main/java/Main.java
+  h_77173abe25c3ff 82,262,277,310,332,389,407
+docker/sandbox/harness/python/_case_runner.py
+  h_77173abe25c3ff 12,91-93,209,270
+docker/sandbox/harness/python/main.py
+  h_77173abe25c3ff 109
+docker/sandbox/harness/python/test_resource_limits.py
+  h_77173abe25c3ff 1,40,82
+docs/ARCHITECTURE.md
+  h_77173abe25c3ff 1,3-149,163,172,189,204,291,297,301-342
+docs/DEVELOPMENT.md
+  h_77173abe25c3ff 1,3-146,165,193,205,213,217-319,321-324
+docs/OPERATIONS.md
+  h_77173abe25c3ff 1,3-7,11,13,17,44,46,57-60,62,65-219
+docs/PRODUCT.md
+  h_77173abe25c3ff 1,3,5,7,9,11-14,16,18,20,22-64
+docs/REFERENCE.md
+  h_77173abe25c3ff 1-6,20,26,32,43,47-70
+docs/index.md
+  h_77173abe25c3ff 1,3,5,7-11,13,15-22,24,26-30,32,34-38
+init-db/README.md
+  h_77173abe25c3ff 211
+packages/design-system/README.md
+  h_77173abe25c3ff 7
+packages/design-system/style.css
+  h_77173abe25c3ff 26,710
+packages/design-system/test/color-contract.test.mjs
+  h_77173abe25c3ff 11,242
+packages/design-system/test/solarized-theme.test.mjs
+  h_77173abe25c3ff 138
+packages/theme/scripts/verify-typography-tokens.mjs
+  h_77173abe25c3ff 5,20,80,107
+packages/theme/src/typography.css
+  h_77173abe25c3ff 23
+packages/theme/typography-allowlist.json
+  h_77173abe25c3ff 2
+scripts/dev/docs-contract-test.sh
+  h_77173abe25c3ff 25,27,37,39,41,43,45,47
+scripts/test/api-contract-boundary-contract.sh
+  h_77173abe25c3ff 106-107,113-115,158-166,172,174-175,177
+scripts/test/devlite-minimal-contract.sh
+  h_77173abe25c3ff 113-114,120,125-130
+scripts/test/fixtures/admin-rpc-budget-manifest.json
+  h_77173abe25c3ff 1
+scripts/test/fixtures/app-api-catalog.json
+  h_77173abe25c3ff 1
+scripts/test/gate-admin-rpc-budget.sh
+  h_77173abe25c3ff 17,143-159
+scripts/test/gate-infra-isolation.sh
+  h_77173abe25c3ff 92-93
+scripts/test/ha-profile-contract.sh
+  h_77173abe25c3ff 37,54-59
+services/.env.example
+  h_77173abe25c3ff 15
+services/admin/src/main/java/com/ulticode/admin/config/AdminMybatisPlusConfig.java
+  h_77173abe25c3ff 30
+services/admin/src/main/java/com/ulticode/modules/admin/controller/AdminForumController.java
+  h_77173abe25c3ff 31
+services/admin/src/main/java/com/ulticode/modules/admin/controller/AdminTagController.java
+  h_77173abe25c3ff 25-26
+services/admin/src/main/java/com/ulticode/modules/admin/dto/AdminForumCommunityVO.java
+  h_77173abe25c3ff 12
+services/admin/src/main/java/com/ulticode/modules/admin/dto/ResetPasswordRequest.java
+  h_77173abe25c3ff 14
+services/admin/src/main/java/com/ulticode/modules/admin/dto/tag/CreateTagDTO.java
+  h_77173abe25c3ff 22-23
+services/admin/src/main/java/com/ulticode/modules/admin/dto/tag/TagQueryDTO.java
+  h_77173abe25c3ff 13-15
+services/admin/src/main/java/com/ulticode/modules/admin/dto/tag/UpdateTagDTO.java
+  h_77173abe25c3ff 13-14,21,32-34
+services/admin/src/main/java/com/ulticode/modules/admin/port/AdminContestReadPort.java
+  h_77173abe25c3ff 7
+services/admin/src/main/java/com/ulticode/modules/admin/projection/AdminContestProjection.java
+  h_77173abe25c3ff 15
+services/admin/src/main/java/com/ulticode/modules/admin/projection/AdminForumProjection.java
+  h_77173abe25c3ff 19
+services/admin/src/main/java/com/ulticode/modules/admin/projection/AdminNotificationProjection.java
+  h_77173abe25c3ff 16
+services/admin/src/main/java/com/ulticode/modules/admin/projection/AdminSolutionProjection.java
+  h_77173abe25c3ff 16
+services/admin/src/main/java/com/ulticode/modules/admin/projection/AdminSubmissionProjection.java
+  h_77173abe25c3ff 26,33
+services/admin/src/main/java/com/ulticode/modules/admin/projection/DashboardStatsProjection.java
+  h_77173abe25c3ff 9
+services/admin/src/main/java/com/ulticode/modules/admin/projection/DefaultAdminSolutionProjection.java
+  h_77173abe25c3ff 119
+services/admin/src/main/java/com/ulticode/modules/admin/service/AdminForumService.java
+  h_77173abe25c3ff 10
+services/admin/src/main/java/com/ulticode/modules/admin/service/AdminNotificationService.java
+  h_77173abe25c3ff 16
+services/admin/src/main/java/com/ulticode/modules/admin/service/AdminSolutionService.java
+  h_77173abe25c3ff 10
+services/admin/src/main/java/com/ulticode/modules/admin/service/UserManagementService.java
+  h_77173abe25c3ff 18
+services/admin/src/main/java/com/ulticode/modules/admin/service/impl/AdminForumServiceImpl.java
+  h_77173abe25c3ff 41-42
+services/admin/src/main/java/com/ulticode/modules/reconciliation/OwnerReconciler.java
+  h_77173abe25c3ff 39
+services/admin/src/test/java/com/ulticode/common/dbperm/PerOwnerSchemaGrantTest.java
+  h_77173abe25c3ff 100
+services/admin/src/test/java/com/ulticode/modules/admin/controller/AdminTagControllerTest.java
+  h_77173abe25c3ff 45
+services/admin/src/test/java/com/ulticode/modules/admin/projection/AdminContestProjectionTest.java
+  h_77173abe25c3ff 40-41
+services/admin/src/test/java/com/ulticode/modules/admin/projection/AdminForumProjectionTest.java
+  h_77173abe25c3ff 29
+services/admin/src/test/java/com/ulticode/modules/admin/projection/AdminSolutionProjectionTest.java
+  h_77173abe25c3ff 42
+services/admin/src/test/java/com/ulticode/modules/admin/projection/AdminSubmissionProjectionTest.java
+  h_77173abe25c3ff 39
+services/admin/src/test/java/com/ulticode/modules/admin/service/comment/CommentModeratorRouterTest.java
+  h_77173abe25c3ff 56-57
+services/admin/src/test/java/com/ulticode/modules/admin/service/impl/AdminForumServiceImplTest.java
+  h_77173abe25c3ff 52
+services/admin/src/test/java/com/ulticode/modules/admin/service/impl/AdminTagServiceImplTest.java
+  h_77173abe25c3ff 49
+services/admin/src/test/java/com/ulticode/modules/admin/service/impl/SystemSettingsServiceImplIT.java
+  h_77173abe25c3ff 49
+services/api/app-api/src/main/java/com/ulticode/app/api/command/ForumCommentModerationCommand.java
+  h_77173abe25c3ff 17
+services/api/app-api/src/main/java/com/ulticode/app/api/dto/ReconciliationOrphanCounts.java
+  h_77173abe25c3ff 21
+services/api/app-api/src/main/java/com/ulticode/app/api/service/ContentModerationService.java
+  h_77173abe25c3ff 10
+services/api/app-api/src/main/java/com/ulticode/app/api/service/ProblemAdministrationService.java
+  h_77173abe25c3ff 13
+services/api/auth-api/src/main/java/com/ulticode/auth/api/command/ActorDelegation.java
+  h_77173abe25c3ff 9
+services/api/auth-api/src/main/java/com/ulticode/auth/api/command/WriteCommand.java
+  h_77173abe25c3ff 12
+services/api/auth-api/src/main/java/com/ulticode/auth/api/service/AccountAdministrationService.java
+  h_77173abe25c3ff 10,14
+services/api/auth-api/src/main/java/com/ulticode/auth/api/service/AuthorizationSnapshotService.java
+  h_77173abe25c3ff 14
+services/api/auth-api/src/main/java/com/ulticode/auth/api/service/IdentityQueryService.java
+  h_77173abe25c3ff 13
+services/api/auth-api/src/main/java/com/ulticode/auth/api/service/ReconciliationQueryService.java
+  h_77173abe25c3ff 22
+services/api/notification-api/src/main/java/com/ulticode/notification/api/service/NotificationAdministrationService.java
+  h_77173abe25c3ff 13
+services/api/submission-api/src/main/java/com/ulticode/submission/api/service/SubmissionAdministrationService.java
+  h_77173abe25c3ff 12,14,16
+services/api/submission-api/src/main/java/com/ulticode/submission/api/service/SubmissionFencePort.java
+  h_77173abe25c3ff 4,36
+services/app/app-web/src/main/java/com/ulticode/modules/achievement/controller/AchievementController.java
+  h_77173abe25c3ff 25
+services/app/app-web/src/main/java/com/ulticode/modules/achievement/mapper/AchievementMapper.java
+  h_77173abe25c3ff 70
+services/app/app-web/src/main/java/com/ulticode/modules/achievement/projection/AchievementProjection.java
+  h_77173abe25c3ff 23,25-26
+services/app/app-web/src/main/java/com/ulticode/modules/achievement/projection/DefaultAchievementProjection.java
+  h_77173abe25c3ff 36
+services/app/app-web/src/main/java/com/ulticode/modules/achievement/service/AchievementService.java
+  h_77173abe25c3ff 13
+services/app/app-web/src/main/java/com/ulticode/modules/achievement/service/impl/AchievementServiceImpl.java
+  h_77173abe25c3ff 23,29
+services/app/app-web/src/main/java/com/ulticode/modules/achievement/service/impl/AchievementTriggerServiceImpl.java
+  h_77173abe25c3ff 37
+services/app/app-web/src/main/java/com/ulticode/modules/contest/port/DefaultContestOwnerPort.java
+  h_77173abe25c3ff 50-52,190
+services/app/app-web/src/main/java/com/ulticode/modules/contest/scoring/ContestRankingCacheEvictor.java
+  h_77173abe25c3ff 24
+services/app/app-web/src/main/java/com/ulticode/modules/contest/service/ContestAdjudicationService.java
+  h_77173abe25c3ff 29
+services/app/app-web/src/main/java/com/ulticode/modules/contest/service/RankingService.java
+  h_77173abe25c3ff 17-18
+services/app/app-web/src/main/java/com/ulticode/modules/contest/service/impl/ContestAdjudicationServiceImpl.java
+  h_77173abe25c3ff 56,184,258
+services/app/app-web/src/main/java/com/ulticode/modules/contest/service/impl/RankingServiceImpl.java
+  h_77173abe25c3ff 37
+services/app/app-web/src/main/java/com/ulticode/modules/contest/service/impl/RatingCalculationServiceImpl.java
+  h_77173abe25c3ff 38,51
+services/app/app-web/src/main/java/com/ulticode/modules/edgeoperations/service/EdgeOperationsService.java
+  h_77173abe25c3ff 35
+services/app/app-web/src/main/java/com/ulticode/modules/edgeoperations/service/impl/EdgeOperationsServiceImpl.java
+  h_77173abe25c3ff 111
+services/app/app-web/src/main/java/com/ulticode/modules/notification/intent/AchievementEarnedIntent.java
+  h_77173abe25c3ff 11,31,49
+services/app/app-web/src/main/java/com/ulticode/modules/notification/intent/CommentReplyIntent.java
+  h_77173abe25c3ff 10
+services/app/app-web/src/main/java/com/ulticode/modules/notification/intent/ContestStartingIntent.java
+  h_77173abe25c3ff 22
+services/app/app-web/src/main/java/com/ulticode/modules/notification/intent/NotificationIntent.java
+  h_77173abe25c3ff 7
+services/app/app-web/src/main/java/com/ulticode/modules/notification/intent/SubmissionCompletedIntent.java
+  h_77173abe25c3ff 17,24
+services/app/app-web/src/main/java/com/ulticode/modules/notification/intent/SystemAlertIntent.java
+  h_77173abe25c3ff 10,19
+services/app/app-web/src/main/java/com/ulticode/modules/search/port/UserSearchReadPort.java
+  h_77173abe25c3ff 14
+services/app/app-web/src/main/java/com/ulticode/modules/submission/controller/RunResultDTO.java
+  h_77173abe25c3ff 20,28,47,49,74,76
+services/app/app-web/src/main/java/com/ulticode/modules/submission/controller/SubmissionController.java
+  h_77173abe25c3ff 85-86
+services/app/app-web/src/main/java/com/ulticode/modules/vote/entity/enums/EdgeOperationType.java
+  h_77173abe25c3ff 20
+services/app/app-web/src/main/java/com/ulticode/modules/websocket/notification/WebSocketContestRankingFlusher.java
+  h_77173abe25c3ff 34,40
+services/app/app-web/src/test/java/com/ulticode/modules/achievement/AchievementMapperIT.java
+  h_77173abe25c3ff 104
+services/app/app-web/src/test/java/com/ulticode/modules/achievement/AchievementMapperSQLGuardTest.java
+  h_77173abe25c3ff 44
+services/app/app-web/src/test/java/com/ulticode/modules/achievement/projection/AchievementProjectionTest.java
+  h_77173abe25c3ff 35
+services/app/app-web/src/test/java/com/ulticode/modules/achievement/service/AchievementServiceTest.java
+  h_77173abe25c3ff 45
+services/app/app-web/src/test/java/com/ulticode/modules/bookmark/service/BookmarkServiceTest.java
+  h_77173abe25c3ff 41
+services/app/app-web/src/test/java/com/ulticode/modules/contest/service/impl/ContestAdjudicationServiceImplTest.java
+  h_77173abe25c3ff 50,289,293,306,314,316,324
+services/app/app-web/src/test/java/com/ulticode/modules/contest/service/impl/RatingCalculationServiceImplTest.java
+  h_77173abe25c3ff 36-38
+services/app/app-web/src/test/java/com/ulticode/modules/problem/service/ProblemNoteServiceTest.java
+  h_77173abe25c3ff 36
+services/app/app-web/src/test/java/com/ulticode/modules/solution/service/SolutionServiceTest.java
+  h_77173abe25c3ff 35
+services/app/app-web/src/test/java/com/ulticode/modules/websocket/auth/DefaultWebSocketAuthenticatorTest.java
+  h_77173abe25c3ff 32
+services/app/modules/problem/src/main/java/com/ulticode/modules/problem/entity/Problem.java
+  h_77173abe25c3ff 170,178
+services/auth/src/main/java/com/ulticode/auth/dubbo/provider/AccountReconciliationProvider.java
+  h_77173abe25c3ff 18
+services/docs/CONTRACT_COMPAT_GATE.md
+  h_77173abe25c3ff 212
+services/docs/DEPENDENCY_RESILIENCE_RUNBOOK.md
+  h_77173abe25c3ff 67
+services/docs/SERVICES_ISSUES.md
+  h_77173abe25c3ff 31,80,186-187,236,258
+services/judge-runtime/src/main/java/com/ulticode/modules/queue/config/QueueConfig.java
+  h_77173abe25c3ff 97
+services/judge-runtime/src/main/java/com/ulticode/modules/queue/outbox/reaper/UnackedStreamEntriesReaper.java
+  h_77173abe25c3ff 18,46
+services/judge-runtime/src/main/java/com/ulticode/modules/queue/port/adapter/InMemoryJudgeQueueAdapter.java
+  h_77173abe25c3ff 15-16
+services/judge-runtime/src/main/java/com/ulticode/modules/queue/port/adapter/RedissonStreamsJudgeQueueAdapter.java
+  h_77173abe25c3ff 32-33,48
+services/judge-runtime/src/main/java/com/ulticode/modules/queue/processor/JudgeWorkerProcessor.java
+  h_77173abe25c3ff 40,132,136,190,255,295
+services/judge-runtime/src/main/java/com/ulticode/modules/submission/config/FeatureFlagsStartupLogger.java
+  h_77173abe25c3ff 11,13,28
+services/judge-runtime/src/main/java/com/ulticode/modules/submission/fence/LeaseConstants.java
+  h_77173abe25c3ff 4,12
+services/judge-runtime/src/main/java/com/ulticode/modules/submission/sandbox/BatchRunResult.java
+  h_77173abe25c3ff 11,22-23
+services/judge-runtime/src/main/java/com/ulticode/modules/submission/sandbox/LanguageProfile.java
+  h_77173abe25c3ff 8
+services/judge-runtime/src/main/java/com/ulticode/modules/submission/sandbox/RunCaseResult.java
+  h_77173abe25c3ff 17,25,29
+services/judge-runtime/src/main/java/com/ulticode/modules/submission/sandbox/SandboxExecutor.java
+  h_77173abe25c3ff 6,25,44,59
+services/judge-runtime/src/main/java/com/ulticode/modules/submission/sandbox/SandboxJob.java
+  h_77173abe25c3ff 23
+services/judge-runtime/src/main/java/com/ulticode/modules/submission/sandbox/SandboxLimits.java
+  h_77173abe25c3ff 4,17
+services/judge-runtime/src/main/java/com/ulticode/modules/submission/sandbox/SandboxOutcomeClassifier.java
+  h_77173abe25c3ff 15,256
+services/judge-runtime/src/main/java/com/ulticode/modules/submission/sandbox/adapter/InMemorySandboxAdapter.java
+  h_77173abe25c3ff 22
+services/judge-runtime/src/main/java/com/ulticode/modules/submission/sandbox/executor/SandboxExecutorImpl.java
+  h_77173abe25c3ff 41,89,95,100,106,134,159,326,360,375,546,554,572,582
+services/judge-runtime/src/main/java/com/ulticode/modules/submission/sandbox/executor/SandboxResultTranslator.java
+  h_77173abe25c3ff 27,36,106
+services/judge-runtime/src/main/java/com/ulticode/modules/submission/sandbox/profile/CLanguageProfile.java
+  h_77173abe25c3ff 20
+services/judge-runtime/src/main/java/com/ulticode/modules/submission/sandbox/profile/CppLanguageProfile.java
+  h_77173abe25c3ff 20
+services/judge-runtime/src/main/java/com/ulticode/modules/submission/sandbox/profile/JavaLanguageProfile.java
+  h_77173abe25c3ff 19
+services/judge-runtime/src/main/java/com/ulticode/modules/submission/sandbox/profile/JavaScriptLanguageProfile.java
+  h_77173abe25c3ff 20
+services/judge-runtime/src/main/java/com/ulticode/modules/submission/sandbox/profile/PythonLanguageProfile.java
+  h_77173abe25c3ff 19
+services/judge-runtime/src/main/java/com/ulticode/modules/submission/service/CodeExecutionService.java
+  h_77173abe25c3ff 125,324,349
+services/judge-runtime/src/main/java/com/ulticode/modules/submission/service/DFormEnvelopeCodec.java
+  h_77173abe25c3ff 42
+services/judge-runtime/src/main/java/com/ulticode/modules/submission/service/VerdictResolver.java
+  h_77173abe25c3ff 15
+services/judge-runtime/src/main/java/com/ulticode/modules/submission/service/impl/DFormEnvelopeCodecImpl.java
+  h_77173abe25c3ff 63
+services/judge-runtime/src/main/java/com/ulticode/modules/submission/service/impl/SandboxOutputFormatterImpl.java
+  h_77173abe25c3ff 102
+services/judge-runtime/src/test/java/com/ulticode/modules/queue/port/adapter/InMemoryJudgeQueueAdapterTest.java
+  h_77173abe25c3ff 18-19,135
+services/judge-runtime/src/test/java/com/ulticode/modules/submission/codec/SubmissionStatusCodecTest.java
+  h_77173abe25c3ff 11,101
+services/judge-runtime/src/test/java/com/ulticode/modules/submission/codec/SubmissionStatusI18nCoverageTest.java
+  h_77173abe25c3ff 24,34
+services/judge-runtime/src/test/java/com/ulticode/modules/submission/sandbox/adapter/InMemorySandboxAdapterTest.java
+  h_77173abe25c3ff 20,26,189
+services/judge-runtime/src/test/java/com/ulticode/modules/submission/sandbox/executor/SandboxExecutorImplForkDetectionTest.java
+  h_77173abe25c3ff 11,18
+services/judge-runtime/src/test/java/com/ulticode/modules/submission/sandbox/profile/CLanguageProfileTest.java
+  h_77173abe25c3ff 14,18
+services/judge-runtime/src/test/java/com/ulticode/modules/submission/sandbox/profile/CppLanguageProfileTest.java
+  h_77173abe25c3ff 18,23
+services/judge-runtime/src/test/java/com/ulticode/modules/submission/sandbox/profile/JavaLanguageProfileTest.java
+  h_77173abe25c3ff 18,31
+services/judge-runtime/src/test/java/com/ulticode/modules/submission/sandbox/profile/JavaScriptLanguageProfileTest.java
+  h_77173abe25c3ff 15,19
+services/judge-runtime/src/test/java/com/ulticode/modules/submission/sandbox/profile/PythonLanguageProfileTest.java
+  h_77173abe25c3ff 20,24
+services/judge-runtime/src/test/java/com/ulticode/modules/submission/service/CodeExecutionServiceTest.java
+  h_77173abe25c3ff 38,45,78,168,190,234
+services/notification/src/main/java/com/ulticode/modules/email/intake/EmailIntake.java
+  h_77173abe25c3ff 34
+services/notification/src/main/java/com/ulticode/modules/notification/channel/EmailNotificationChannel.java
+  h_77173abe25c3ff 20,88
+services/notification/src/main/java/com/ulticode/modules/notification/channel/InAppNotificationChannel.java
+  h_77173abe25c3ff 14
+services/notification/src/main/java/com/ulticode/modules/notification/channel/NotificationChannel.java
+  h_77173abe25c3ff 6,23
+services/notification/src/main/java/com/ulticode/modules/notification/channel/WebSocketNotificationChannel.java
+  h_77173abe25c3ff 16
+services/notification/src/main/java/com/ulticode/modules/notification/dispatcher/AnnouncementBroadcaster.java
+  h_77173abe25c3ff 27
+services/notification/src/main/java/com/ulticode/modules/notification/dispatcher/DefaultAnnouncementBroadcaster.java
+  h_77173abe25c3ff 33-34,129-130
+services/notification/src/main/java/com/ulticode/modules/notification/dispatcher/NotificationDispatcher.java
+  h_77173abe25c3ff 18,165,237,266
+services/notification/src/main/java/com/ulticode/modules/notification/email/EmailTemplates.java
+  h_77173abe25c3ff 37
+services/notification/src/main/java/com/ulticode/modules/notification/entity/enums/NotificationCategory.java
+  h_77173abe25c3ff 6-10
+services/notification/src/main/java/com/ulticode/modules/notification/intent/AchievementEarnedIntent.java
+  h_77173abe25c3ff 9-10,29,47
+services/notification/src/main/java/com/ulticode/modules/notification/intent/CommentReplyIntent.java
+  h_77173abe25c3ff 10
+services/notification/src/main/java/com/ulticode/modules/notification/intent/ContestStartingIntent.java
+  h_77173abe25c3ff 22
+services/notification/src/main/java/com/ulticode/modules/notification/intent/NotificationIntent.java
+  h_77173abe25c3ff 7
+services/notification/src/main/java/com/ulticode/modules/notification/intent/SubmissionCompletedIntent.java
+  h_77173abe25c3ff 17,24
+services/notification/src/main/java/com/ulticode/modules/notification/intent/SystemAlertIntent.java
+  h_77173abe25c3ff 10,17-19
+services/notification/src/main/java/com/ulticode/modules/notification/ledger/mapper/NotificationDeliveryLedgerMapper.java
+  h_77173abe25c3ff 12,159
+services/notification/src/main/java/com/ulticode/modules/notification/ledger/reaper/NotificationLedgerReaper.java
+  h_77173abe25c3ff 16
+services/notification/src/test/java/com/ulticode/modules/notification/channel/EmailNotificationChannelTest.java
+  h_77173abe25c3ff 61
+services/notification/src/test/java/com/ulticode/modules/notification/dispatcher/NotificationDispatcherTest.java
+  h_77173abe25c3ff 36,38,78,110,240,261,308,323
+services/platform/common/src/main/java/com/ulticode/common/response/PaginationRequest.java
+  h_77173abe25c3ff 33
+services/platform/common/src/main/java/com/ulticode/common/rpc/RpcResult.java
+  h_77173abe25c3ff 14
+services/platform/common/src/main/java/com/ulticode/domain/submission/enums/CaseScope.java
+  h_77173abe25c3ff 9,28
+services/platform/common/src/main/java/com/ulticode/domain/submission/enums/SubmissionStatus.java
+  h_77173abe25c3ff 8,27
+services/platform/common/src/test/java/com/ulticode/common/architecture/BackendCommonArchTest.java
+  h_77173abe25c3ff 26
+services/platform/common/src/test/java/com/ulticode/common/error/BaseErrorCodeValuePinningTest.java
+  h_77173abe25c3ff 19
+services/submission/src/main/java/com/ulticode/modules/queue/config/QueueConfig.java
+  h_77173abe25c3ff 50
+services/submission/src/main/java/com/ulticode/modules/queue/port/adapter/RedissonStreamsJudgeQueueAdapter.java
+  h_77173abe25c3ff 31,47
+services/submission/src/main/java/com/ulticode/modules/submission/entity/Submission.java
+  h_77173abe25c3ff 75,87,96
+services/submission/src/main/java/com/ulticode/modules/submission/mapper/SubmissionMapper.java
+  h_77173abe25c3ff 115,118,132
+services/submission/src/main/java/com/ulticode/modules/submission/outbox/entity/JudgeOutboxRecord.java
+  h_77173abe25c3ff 17,31,35,71
+services/submission/src/main/java/com/ulticode/modules/submission/outbox/mapper/JudgeOutboxMapper.java
+  h_77173abe25c3ff 15,126
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c9c7a72592785bc92c9477d6aac2fd8c49993077",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

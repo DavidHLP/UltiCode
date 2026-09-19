@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
@@ -23,7 +24,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
@@ -50,7 +50,6 @@ public class CoreOwnerContextManager implements ApplicationContextAware {
     private final Map<String, OwnerStartup> ownerStartups =
             new java.util.LinkedHashMap<>();
     private final Set<OwnerStartup> startupAttempts = ConcurrentHashMap.newKeySet();
-    private final Set<ExecutorService> startupSlots = ConcurrentHashMap.newKeySet();
     private final ExecutorService startupExecutor = Executors.newSingleThreadExecutor(runnable -> {
         Thread thread = new Thread(runnable, "core-owner-bootstrap");
         thread.setDaemon(true);
@@ -62,9 +61,6 @@ public class CoreOwnerContextManager implements ApplicationContextAware {
     private final AtomicBoolean startupSubmitted = new AtomicBoolean();
     private final CompletableFuture<Void> startupCompletion = new CompletableFuture<>();
     private volatile ApplicationContext ownerContext;
-
-    /** Closing-duty claim published by the timeout path before any context. */
-    private static final Object TIMEOUT_CLAIMED = new Object();
 
     public CoreOwnerContextManager(
             CoreModuleRegistry registry,
@@ -130,31 +126,79 @@ public class CoreOwnerContextManager implements ApplicationContextAware {
             if (stopping.get()) {
                 return;
             }
+            OwnerStartup attempt = admitStartupAttempt(module.name());
+            if (attempt == null) {
+                return;
+            }
             try {
-                OwnerStartup startup =
-                        startWithTimeout(module);
+                try {
+                    attempt.startAndAwait(startup -> bootOwnerModule(module, startup));
+                } finally {
+                    // Removal only after startAndAwait's drain completed; a
+                    // successful object is held on by the published-owner map.
+                    synchronized (this) {
+                        startupAttempts.remove(attempt);
+                    }
+                }
                 // Re-check under the same lock the stop path uses to snapshot
                 // and clear, so a startup cannot be published after the
                 // stop snapshot was taken (it would leak un-closed resources).
+                // The queued published-owner close runs on the same
+                // single-threaded startup executor as this loop, so closing
+                // here is always the sole owner's decision.
+                OwnerStartup stray = null;
+                // Read the attempt's own state before taking the manager lock:
+                // the global lock must never nest above an attempt monitor.
+                org.springframework.context.ConfigurableApplicationContext context =
+                        attempt.context();
                 synchronized (this) {
                     if (stopping.get()) {
-                        try {
-                            startup.close();
-                        } catch (RuntimeException closeFailure) {
-                            log.error("Core Owner Module close failed during startup stop", closeFailure);
-                        }
-                        return;
+                        stray = attempt;
+                    } else {
+                        contexts.put(module.name(), context);
+                        ownerStartups.put(module.name(), attempt);
+                        states.put(module.name(), State.READY);
                     }
-                    contexts.put(module.name(), startup.context());
-                    ownerStartups.put(module.name(), startup);
-                    states.put(module.name(), State.READY);
+                }
+                if (stray != null) {
+                    try {
+                        stray.close();
+                    } catch (RuntimeException closeFailure) {
+                        log.error("Core Owner Module close failed during startup stop", closeFailure);
+                    }
+                    return;
                 }
             } catch (RuntimeException failure) {
+                if (stopping.get()) {
+                    // The stop path holds this attempt in its snapshot and
+                    // owns the module's terminal state; startAndAwait already
+                    // released any resources the losing attempt carried.
+                    return;
+                }
                 log.error("Core Owner Module startup failed for {}", module.name(), failure);
                 synchronized (this) {
                     states.put(module.name(), State.FAILED);
                 }
             }
+        }
+    }
+
+    /**
+     * Admission step: creates an attempt and registers it under the same global
+     * lock that guards the stop snapshot and READY publication, so no new
+     * attempt can slip in behind a stop snapshot. Returns null, without
+     * registering, once stop is in progress. Package-private so a test can put
+     * more than one attempt into the active set: the sequential production loop
+     * above can never present that shape on its own.
+     */
+    OwnerStartup admitStartupAttempt(String moduleName) {
+        OwnerStartup attempt = new OwnerStartup(moduleName, startupTimeoutMs);
+        synchronized (this) {
+            if (stopping.get()) {
+                return null;
+            }
+            startupAttempts.add(attempt);
+            return attempt;
         }
     }
 
@@ -184,150 +228,13 @@ public class CoreOwnerContextManager implements ApplicationContextAware {
         return java.util.Map.copyOf(contexts);
     }
 
-    private OwnerStartup startWithTimeout(CoreModuleDefinition module) {
-        // Ownership box: the slot thread publishes each created startup here
-        // (null -> startup) exactly once; the timeout path claims closing duty
-        // (null -> TIMEOUT_CLAIMED) exactly once. A created startup therefore
-        // always ends up owned by exactly one of the startAll caller, the
-        // timeout path, or the late-completing callable itself — never by
-        // more than one, never by nobody.
-        AtomicReference<Object> handoff = new AtomicReference<>();
-        OwnerStartup attempt = new OwnerStartup();
-        ExecutorService slot;
-        Future<OwnerStartup> startup;
-        synchronized (this) {
-            if (stopping.get()) {
-                throw new IllegalStateException(
-                        "Core Owner Module startup cancelled: " + module.name());
-            }
-            startupAttempts.add(attempt);
-            // One executor slot per child: a hung start can occupy its own
-            // daemon thread, but it must not starve the remaining children's
-            // bounded startup futures on a shared single-thread executor.
-            slot = Executors.newSingleThreadExecutor(runnable -> {
-                Thread thread = new Thread(
-                        runnable, "core-owner-context-startup-" + module.name());
-                thread.setDaemon(true);
-                return thread;
-            });
-            startupSlots.add(slot);
-            try {
-                startup = slot.submit(() -> {
-                    OwnerStartup ownerStartup = start(module, attempt);
-                    if (handoff.compareAndSet(null, ownerStartup)) {
-                        // Ownership transferred to the caller via the
-                        // returned future; startAll publishes or closes it.
-                        return ownerStartup;
-                    }
-                    // Timeout path already claimed closing duty before
-                    // publication, so the caller will never receive this
-                    // startup: the callable is the sole closer.
-                    ownerStartup.close();
-                    throw new IllegalStateException(
-                            "Core Owner Module startup abandoned after timeout claim: "
-                                    + module.name());
-                });
-            } catch (RuntimeException | Error failure) {
-                startupSlots.remove(slot);
-                startupAttempts.remove(attempt);
-                try {
-                    attempt.close();
-                } catch (RuntimeException closeFailure) {
-                    failure.addSuppressed(closeFailure);
-                }
-                slot.shutdownNow();
-                throw failure;
-            }
-        }
-        try {
-            try {
-                return awaitStartup(startup, module);
-            } catch (TimeoutException exception) {
-                closeOrphanedStartup(handoff, startup, attempt, module.name());
-                throw new IllegalStateException(
-                        "Core Owner Module startup timed out: " + module.name(), exception);
-            } catch (InterruptedException exception) {
-                closeOrphanedStartup(handoff, startup, attempt, module.name());
-                Thread.currentThread().interrupt();
-                throw new IllegalStateException(
-                        "Core Owner Module startup interrupted: " + module.name(), exception);
-            } catch (ExecutionException exception) {
-                Throwable cause = exception.getCause();
-                if (cause instanceof RuntimeException runtimeException) {
-                    throw runtimeException;
-                }
-                throw new IllegalStateException(
-                        "Core Owner Module startup failed: " + module.name(), cause);
-            }
-        } finally {
-            stopStartupSlot(slot, module.name());
-            synchronized (this) {
-                startupAttempts.remove(attempt);
-                startupSlots.remove(slot);
-            }
-        }
-    }
-
-    void stopStartupSlot(ExecutorService slot, String module) {
-        slot.shutdownNow();
-        boolean interrupted = false;
-        long drainDeadlineNanos =
-                System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(startupTimeoutMs);
-        while (!slot.isTerminated()) {
-            long remaining = drainDeadlineNanos - System.nanoTime();
-            if (remaining <= 0) {
-                log.error("Core Owner Module startup thread did not terminate: {}", module);
-                break;
-            }
-            try {
-                slot.awaitTermination(remaining, TimeUnit.NANOSECONDS);
-            } catch (InterruptedException interruptedException) {
-                interrupted = true;
-                slot.shutdownNow();
-            }
-        }
-        if (interrupted) {
-            Thread.currentThread().interrupt();
-        }
-    }
-
     /**
-     * Timeout/interrupt handoff. Claims closing duty with one CAS. If the
-     * callable already published the startup (claim fails), the caller never
-     * received it because get() threw, so the timeout path closes it. If the
-     * claim succeeds, a late-completing callable observes the claim, closes
-     * its own startup, and discards it. {@code Future.cancel(true)} is only a
-     * cancellation signal for the worker thread — it is never treated as
-     * proof that a startup was stopped; ownership is decided solely by this
-     * CAS protocol.
+     * The production boot adapter: creates the owner classloader, runs the
+     * child context and installs both into the running attempt through its
+     * internal setters. Failure cleanup and resource ownership stay with the
+     * attempt; this method only propagates the boot failure.
      */
-    private void closeOrphanedStartup(
-            AtomicReference<Object> handoff,
-            Future<OwnerStartup> startup,
-            OwnerStartup attempt,
-            String module) {
-        Object boxed = handoff.compareAndSet(null, TIMEOUT_CLAIMED) ? null : handoff.get();
-        startup.cancel(true);
-        if (boxed instanceof OwnerStartup ownerStartup) {
-            ownerStartup.close();
-            log.warn("Core Owner Module startup resources closed by timeout path: {}", module);
-        } else {
-            attempt.close();
-        }
-    }
-
-    OwnerStartup awaitStartup(
-            Future<OwnerStartup> startup,
-            CoreModuleDefinition module)
-            throws InterruptedException, ExecutionException, TimeoutException {
-        return startup.get(startupTimeoutMs, TimeUnit.MILLISECONDS);
-    }
-
-    OwnerStartup start(CoreModuleDefinition module) {
-        return start(module, new OwnerStartup());
-    }
-
-    OwnerStartup start(CoreModuleDefinition module, OwnerStartup attempt) {
+    void bootOwnerModule(CoreModuleDefinition module, OwnerStartup attempt) {
         String prefix = module.environmentPrefix();
         boolean admin = "admin".equals(module.name());
         boolean search = "search".equals(module.name());
@@ -410,14 +317,6 @@ public class CoreOwnerContextManager implements ApplicationContextAware {
                             .run();
             attempt.setContext(context);
             CoreLocalContractAssembly.validate(context, module);
-            return attempt;
-        } catch (RuntimeException | Error failure) {
-            try {
-                attempt.close();
-            } catch (RuntimeException closeFailure) {
-                failure.addSuppressed(closeFailure);
-            }
-            throw failure;
         } finally {
             current.setContextClassLoader(previous);
         }
@@ -435,67 +334,313 @@ public class CoreOwnerContextManager implements ApplicationContextAware {
     }
 
     /**
-     * The single published-ownership type for one owner module's startup
-     * resources (context + classloader). It owns the close rules: close is
-     * idempotent, and a late setClassLoader/setContext after close disposes
-     * the incoming resource itself, so the in-flight attempt registered in
-     * {@code startupAttempts} and the published owner in
-     * {@code ownerStartups} are always the same object with exactly one
-     * effective close.
+     * The single startup attempt for one owner module: registration, boot,
+     * cancellation, handoff, resource ownership and the per-attempt drain
+     * budget all live here. The manager creates and registers the attempt
+     * before any thread is submitted, so the attempt — never the boot
+     * future — is the resource owner; the future only conveys boot completion
+     * or failure. {@link #close()} claims the terminal state and releases the
+     * installed context/classloader exactly once, and a late install after
+     * that claim disposes the incoming resource itself. {@link #requestStop()}
+     * is a pure cancellation signal and deliberately a distinct claim, so it
+     * never consumes the right to close. The module is one-shot: after a
+     * submit or a close there is no restart, re-submit or reuse, even once
+     * the future/slot/boot references have been released after the drain.
      */
-    static final class OwnerStartup {
-        private final AtomicBoolean closed = new AtomicBoolean();
+    static class OwnerStartup {
+        private final String moduleName;
+        private final long startupTimeoutMs;
+        private boolean started;
+        private boolean stopRequested;
+        private boolean closed;
+        private Consumer<OwnerStartup> boot;
+        private ExecutorService slot;
+        private Future<?> startupFuture;
         private java.net.URLClassLoader classLoader;
         private org.springframework.context.ConfigurableApplicationContext context;
 
-        OwnerStartup() {
+        OwnerStartup(String moduleName, long startupTimeoutMs) {
+            this.moduleName = moduleName;
+            this.startupTimeoutMs = startupTimeoutMs;
         }
 
-        OwnerStartup(
-                org.springframework.context.ConfigurableApplicationContext context,
-                java.net.URLClassLoader classLoader) {
-            this.context = context;
-            this.classLoader = classLoader;
-        }
-
-        synchronized void setClassLoader(java.net.URLClassLoader classLoader) {
-            if (closed.get()) {
-                closeOwnerClassLoader(classLoader);
-            } else {
-                this.classLoader = classLoader;
+        /**
+         * Runs {@code boot} on this attempt's own startup slot and waits for
+         * completion within the startup budget. Every failed or cancelled
+         * await closes the registered attempt before propagating, so a
+         * completed-but-lost boot result can never orphan its resources; the
+         * await failure stays the primary cause and a cleanup failure is only
+         * attached as suppressed. A successful return additionally requires
+         * that no stop claim landed and that the slot thread terminated within
+         * the fresh drain budget.
+         * The instance monitor serializes first submit against close; no lock
+         * is ever held across the future await, the drain or a close.
+         */
+        void startAndAwait(Consumer<OwnerStartup> boot) {
+            Future<?> startup;
+            synchronized (this) {
+                if (started) {
+                    throw new IllegalStateException(
+                            "Core Owner Module startup attempt already used: " + moduleName);
+                }
+                if (closed || stopRequested) {
+                    throw new IllegalStateException(
+                            "Core Owner Module startup cancelled: " + moduleName);
+                }
+                started = true;
+                // One executor slot per child: a hung start can occupy its own
+                // daemon thread, but it must not starve the remaining
+                // children's bounded startup futures on a shared executor.
+                slot = Executors.newSingleThreadExecutor(runnable -> {
+                    Thread thread = new Thread(
+                            runnable, "core-owner-context-startup-" + moduleName);
+                    thread.setDaemon(true);
+                    return thread;
+                });
+                this.boot = boot;
+                try {
+                    startup = slot.submit(() -> runBoot(boot));
+                    startupFuture = startup;
+                } catch (RuntimeException | Error failure) {
+                    ExecutorService rejected = slot;
+                    slot = null;
+                    this.boot = null;
+                    // Submission failure leaves no active resource and no
+                    // running slot: the terminal claim here only prevents any
+                    // later use of this one-shot attempt.
+                    stopRequested = true;
+                    closed = true;
+                    rejected.shutdownNow();
+                    throw failure;
+                }
+            }
+            boolean delivered = false;
+            boolean terminated;
+            try {
+                try {
+                    awaitStartup(startup);
+                } catch (TimeoutException timeout) {
+                    throw closePreservingPrimary(new IllegalStateException(
+                            "Core Owner Module startup timed out: " + moduleName, timeout));
+                } catch (InterruptedException interrupted) {
+                    IllegalStateException primary = new IllegalStateException(
+                            "Core Owner Module startup interrupted: " + moduleName, interrupted);
+                    closePreservingPrimary(primary);
+                    Thread.currentThread().interrupt();
+                    throw primary;
+                } catch (CancellationException cancelled) {
+                    throw closePreservingPrimary(new IllegalStateException(
+                            "Core Owner Module startup cancelled: " + moduleName, cancelled));
+                } catch (ExecutionException execution) {
+                    Throwable cause = execution.getCause();
+                    throw closePreservingPrimary(cause instanceof RuntimeException runtimeException
+                            ? runtimeException
+                            : new IllegalStateException(
+                                    "Core Owner Module startup failed: " + moduleName, cause));
+                }
+                // A completed boot is still not deliverable once a stop claim
+                // landed: only the close protocol may own the resources now.
+                boolean cancelledBeforeDelivery;
+                synchronized (this) {
+                    cancelledBeforeDelivery = closed || stopRequested;
+                }
+                if (cancelledBeforeDelivery) {
+                    throw closePreservingPrimary(new IllegalStateException(
+                            "Core Owner Module startup cancelled: " + moduleName));
+                }
+                delivered = true;
+            } finally {
+                // Fresh drain budget: the await already consumed its own.
+                terminated = drainSlot();
+                synchronized (this) {
+                    startupFuture = null;
+                    slot = null;
+                    this.boot = null;
+                }
+            }
+            if (delivered && !terminated) {
+                // Honest limit: the bounded drain did not prove the worker
+                // exited, so a possibly-still-creating boot must never be
+                // published as READY on top of it.
+                throw closePreservingPrimary(new IllegalStateException(
+                        "Core Owner Module startup thread did not terminate: " + moduleName));
             }
         }
 
-        synchronized void setContext(
+        /**
+         * Claims the close for a failed await without letting a cleanup failure
+         * replace the await failure: the timeout, interrupt or boot cause stays
+         * primary and the cleanup failure is attached as suppressed. An
+         * {@link Error} from the cleanup is never swallowed.
+         */
+        private RuntimeException closePreservingPrimary(RuntimeException primary) {
+            try {
+                close();
+            } catch (RuntimeException cleanupFailure) {
+                primary.addSuppressed(cleanupFailure);
+            }
+            return primary;
+        }
+
+        /** Await seam: tests override it to lose an already-completed result. */
+        void awaitStartup(Future<?> startup)
+                throws InterruptedException, ExecutionException, TimeoutException {
+            startup.get(startupTimeoutMs, TimeUnit.MILLISECONDS);
+        }
+
+        /**
+         * Late-install rule for the classloader: claim the decision under the
+         * monitor, then release the rejected resource outside it, so a slow
+         * third-party close can never hold this attempt's lock.
+         */
+        void setClassLoader(java.net.URLClassLoader classLoader) {
+            java.net.URLClassLoader rejected;
+            synchronized (this) {
+                if (!closed) {
+                    this.classLoader = classLoader;
+                    return;
+                }
+                rejected = classLoader;
+            }
+            closeOwnerClassLoader(rejected);
+        }
+
+        /** Late-install rule for the context: same claim-then-dispose split. */
+        void setContext(
                 org.springframework.context.ConfigurableApplicationContext context) {
-            if (closed.get()) {
-                closeContext(context);
-            } else {
-                this.context = context;
+            org.springframework.context.ConfigurableApplicationContext rejected;
+            synchronized (this) {
+                if (!closed) {
+                    this.context = context;
+                    return;
+                }
+                rejected = context;
             }
+            closeContext(rejected);
         }
 
+        /** The installed child context: null before install and after close. */
         synchronized org.springframework.context.ConfigurableApplicationContext context() {
             return context;
         }
 
+        /** Observation seam: has the stop claim landed? */
+        synchronized boolean stopRequested() {
+            return stopRequested;
+        }
+
+        /**
+         * Cancellation signal only: marks the stop claim, blocks later
+         * submit and delivery, cancels the registered future and shuts the
+         * slot down now. Never closes the context or classloader and never
+         * waits for the drain.
+         */
+        void requestStop() {
+            Future<?> startup;
+            ExecutorService startupSlot;
+            synchronized (this) {
+                stopRequested = true;
+                startup = startupFuture;
+                startupSlot = slot;
+            }
+            if (startup != null) {
+                startup.cancel(true);
+            }
+            if (startupSlot != null) {
+                startupSlot.shutdownNow();
+            }
+        }
+
+        /**
+         * Idempotent resource-close claim: performs its own requestStop first
+         * so a bare close stays complete. A losing concurrent claim returns
+         * without waiting, and the worker's late install releases itself
+         * through the closed flag.
+         */
         void close() {
+            requestStop();
+            releaseInstalledResources();
+        }
+
+        private void runBoot(Consumer<OwnerStartup> pendingBoot) {
+            try {
+                pendingBoot.accept(this);
+            } catch (RuntimeException | Error failure) {
+                // The cancellation signal may still be pending on this worker
+                // when the boot fails; clear it around the release so an
+                // interrupt-sensitive context/classloader close cannot abort
+                // and strand the resources, then put the flag back.
+                boolean interrupted = Thread.interrupted();
+                try {
+                    releaseInstalledResources();
+                } catch (RuntimeException closeFailure) {
+                    failure.addSuppressed(closeFailure);
+                } finally {
+                    if (interrupted) {
+                        Thread.currentThread().interrupt();
+                    }
+                }
+                throw failure;
+            }
+        }
+
+        private void releaseInstalledResources() {
             org.springframework.context.ConfigurableApplicationContext contextToClose;
             java.net.URLClassLoader classLoaderToClose;
             synchronized (this) {
-                if (!closed.compareAndSet(false, true)) {
+                if (closed) {
                     return;
                 }
+                closed = true;
                 contextToClose = context;
                 classLoaderToClose = classLoader;
                 context = null;
                 classLoader = null;
             }
+            // Claim and snapshot under the lock; every cancel, shutdown and
+            // close below runs outside it so a close never waits on the lock.
             try {
                 closeContext(contextToClose);
             } finally {
                 closeOwnerClassLoader(classLoaderToClose);
             }
+        }
+
+        /**
+         * Bounded drain with a fresh budget: the cancel signals were already
+         * sent, so this only waits for the worker to observe them. A
+         * non-terminating daemon thread is recorded and reported, never
+         * killed and never pretended to be dead.
+         */
+        private boolean drainSlot() {
+            ExecutorService startupSlot;
+            synchronized (this) {
+                startupSlot = slot;
+            }
+            if (startupSlot == null) {
+                return true;
+            }
+            startupSlot.shutdownNow();
+            boolean interrupted = false;
+            long drainDeadlineNanos =
+                    System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(startupTimeoutMs);
+            while (!startupSlot.isTerminated()) {
+                long remaining = drainDeadlineNanos - System.nanoTime();
+                if (remaining <= 0) {
+                    log.error("Core Owner Module startup thread did not terminate: {}", moduleName);
+                    return false;
+                }
+                try {
+                    startupSlot.awaitTermination(remaining, TimeUnit.NANOSECONDS);
+                } catch (InterruptedException interruptedException) {
+                    interrupted = true;
+                    startupSlot.shutdownNow();
+                }
+            }
+            if (interrupted) {
+                Thread.currentThread().interrupt();
+            }
+            return true;
         }
 
         private static void closeContext(
@@ -521,11 +666,28 @@ public class CoreOwnerContextManager implements ApplicationContextAware {
         throw new IllegalStateException(
                 "Core Owner Module startup requires property: " + String.join(" | ", keys));
     }
-    private void closeActiveStartupAttempts() {
+
+    /**
+     * Pass one of the batch stop: snapshot the active attempts under the global
+     * lock and deliver every cancellation signal, returning exactly the set
+     * the later close pass must release. Never closes a resource.
+     */
+    private Set<OwnerStartup> requestStopActiveStartupAttempts() {
         Set<OwnerStartup> activeAttempts;
         synchronized (this) {
             activeAttempts = Set.copyOf(startupAttempts);
         }
+        for (OwnerStartup attempt : activeAttempts) {
+            try {
+                attempt.requestStop();
+            } catch (RuntimeException signalFailure) {
+                log.error("Core Owner Module startup cancellation signal failed", signalFailure);
+            }
+        }
+        return activeAttempts;
+    }
+
+    private void closeStartupAttempts(Set<OwnerStartup> activeAttempts) {
         for (OwnerStartup attempt : activeAttempts) {
             try {
                 attempt.close();
@@ -564,30 +726,50 @@ public class CoreOwnerContextManager implements ApplicationContextAware {
     }
 
     private void stopOwnerModules() {
-        Set<ExecutorService> activeSlots;
         synchronized (this) {
             if (!stopping.compareAndSet(false, true)) {
                 return;
             }
-            activeSlots = Set.copyOf(startupSlots);
-            activeSlots.forEach(ExecutorService::shutdownNow);
         }
-        closeActiveStartupAttempts();
-        Future<?> shutdown = startupExecutor.submit(() -> closePublishedOwnerStartups(
-                state -> state != State.DISABLED,
-                failure -> log.error("Core Owner Module close failed", failure)));
+        // Two passes: every active attempt first receives its cancellation
+        // signal, and only then do the potentially blocking closes run, so a
+        // hung first close can never starve a later attempt of the signal.
+        closeStartupAttempts(requestStopActiveStartupAttempts());
+        Future<?> shutdown = startupExecutor.submit(
+                () -> stopPublishedOwnerModules(failure ->
+                        log.error("Core Owner Module close failed", failure)));
         startupExecutor.shutdown();
         try {
             shutdown.get(startupTimeoutMs, TimeUnit.MILLISECONDS);
-        } catch (Exception exception) {
-            closeActiveStartupAttempts();
-            // Child startup slots are per-child executors that die in their
-            // own finally; force-close any child that registered before the
-            // queued cleanup was dropped.
-            startupExecutor.shutdownNow();
-            closePublishedOwnerStartups(
-                    state -> state != State.DISABLED,
-                    failure -> log.warn("Core Owner Module forced module close failed", failure));
+        } catch (InterruptedException interrupted) {
+            // Same rule as the per-attempt drain: clean up first, then restore
+            // the caller's interrupt flag so the cleanup cannot be interrupted
+            // away half done.
+            forceStopAfterDroppedCleanup();
+            Thread.currentThread().interrupt();
+        } catch (TimeoutException | ExecutionException | CancellationException dropped) {
+            forceStopAfterDroppedCleanup();
         }
+    }
+
+    /**
+     * Published-owner exit used by both stop paths: same terminal-state
+     * claim and reverse-order close, only the failure logging differs.
+     */
+    private void stopPublishedOwnerModules(Consumer<RuntimeException> closeFailureLogger) {
+        closePublishedOwnerStartups(state -> state != State.DISABLED, closeFailureLogger);
+    }
+
+    /**
+     * Cleanup for a queued published-owner close that never came back. Each
+     * attempt drains its own slot inside startAndAwait, so this force-stops
+     * any child still registered when the queued cleanup was dropped, drops
+     * the executor and closes the published owners once more.
+     */
+    private void forceStopAfterDroppedCleanup() {
+        closeStartupAttempts(requestStopActiveStartupAttempts());
+        startupExecutor.shutdownNow();
+        stopPublishedOwnerModules(failure ->
+                log.warn("Core Owner Module forced module close failed", failure));
     }
 }

@@ -169,4 +169,19 @@ describe('useAuditReadWorkspace', () => {
 
     scope.stop()
   })
+
+  it('keeps statistics loading separate from the table loading state', async () => {
+    const store = createStore()
+    const { scope, workspace } = runWorkspace(store)
+
+    await vi.waitFor(() => expect(workspace.loading.value).toBe(false))
+    store.statsLoading.value = true
+
+    expect(workspace.loading.value).toBe(false)
+    expect(workspace.statsLoading.value).toBe(true)
+
+    store.loading.value = true
+    expect(workspace.loading.value).toBe(true)
+    scope.stop()
+  })
 })

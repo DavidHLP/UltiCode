@@ -599,4 +599,47 @@ describe('Retry / backoff', () => {
       vi.useRealTimers()
     }
   })
+
+  it('does not send another request when the caller aborts during backoff', async () => {
+    vi.useFakeTimers()
+    try {
+      let firstRequest: InternalAxiosRequestConfig | undefined
+      let rejectFirst: (reason?: unknown) => void = () => undefined
+      const firstFailure = new Promise<unknown>((_, reject) => {
+        rejectFirst = reject
+      })
+      const adapter = vi.fn().mockImplementation((request: InternalAxiosRequestConfig) => {
+        if (adapter.mock.calls.length === 1) {
+          firstRequest = request
+          return firstFailure
+        }
+        return Promise.reject(buildAxiosError(500, 'should never be sent', request))
+      })
+      const client = createTestHttpClient({
+        csrfManager: createCsrfTokenManager(),
+        baseURL: 'http://test.local',
+        getLocale: () => 'en-US',
+        dedupPolicy: 'all-non-auth',
+        __testAdapter: adapter,
+      })
+      const controller = new AbortController()
+
+      const first = client
+        .apiGet('/backoff-abort', { retry: 1, retryDelay: 100, signal: controller.signal })
+        .catch((error: unknown) => error)
+      await vi.waitFor(() => expect(adapter).toHaveBeenCalledTimes(1))
+
+      if (!firstRequest) throw new Error('first request was not captured')
+      rejectFirst(buildAxiosError(500, 'retry me', firstRequest))
+      await vi.advanceTimersByTimeAsync(0)
+
+      controller.abort()
+      await vi.advanceTimersByTimeAsync(100)
+
+      await expect(first).resolves.toMatchObject({ name: 'ApiError', code: -1 })
+      expect(adapter).toHaveBeenCalledTimes(1)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
 })

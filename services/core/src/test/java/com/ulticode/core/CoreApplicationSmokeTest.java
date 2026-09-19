@@ -14,7 +14,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest(properties = {
         "CORE_OWNER_CONTEXTS_ENABLED=false",
         "CORE_JUDGE_REQUIRED=false",
-        "spring.main.web-application-type=servlet"
+        "spring.main.web-application-type=servlet",
+        // Flyway is on the test classpath for the owner journey IT only;
+        // the smoke context never migrates and binds no primary DataSource.
+        "spring.flyway.enabled=false"
 })
 class CoreApplicationSmokeTest {
     @Autowired

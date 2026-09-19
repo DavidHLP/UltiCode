@@ -26,20 +26,31 @@ public final class CoreLocalAuthorizationMutationAdapter implements Authorizatio
         if (command == null) {
             return RpcResult.failure(BaseErrorCode.BAD_REQUEST, traceId);
         }
+
         String assertion;
         try {
             assertion = ownerContexts.bean("admin", DelegationAssertionSigner.class)
                     .issueForTarget("backend-auth");
         } catch (RuntimeException ignored) {
-            assertion = null;
-        }
-        if (assertion == null) {
             return RpcResult.failure(BaseErrorCode.UNAUTHORIZED, traceId);
         }
+        if (assertion == null || assertion.isBlank()) {
+            return RpcResult.failure(BaseErrorCode.UNAUTHORIZED, traceId);
+        }
+
         try (LocalDelegationAssertionContext.Scope ignored =
                      LocalDelegationAssertionContext.install(assertion)) {
-            return ownerContexts.bean("auth", AuthorizationMutationService.class)
-                    .mutatePermission(command);
+            AuthorizationMutationService authorizationMutation;
+            try {
+                authorizationMutation =
+                        ownerContexts.bean("auth", AuthorizationMutationService.class);
+            } catch (RuntimeException unavailable) {
+                return RpcResult.failure(BaseErrorCode.UNAUTHORIZED, traceId);
+            }
+            if (authorizationMutation == null) {
+                return RpcResult.failure(BaseErrorCode.UNAUTHORIZED, traceId);
+            }
+            return authorizationMutation.mutatePermission(command);
         }
     }
 }

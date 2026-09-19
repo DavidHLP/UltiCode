@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/select'
 import { CalendarIcon, RotateCcw } from 'lucide-vue-next'
 import { useAuditStore } from '@/stores/admin/audit'
-import { normalizeDateParams } from '@/api/admin/audit'
+import { toAuditStatsQueryParams } from './useAuditReadWorkspace'
 import {
   AUDIT_ENTITY_TYPES,
   AUDIT_ACTIONS_BY_ENTITY,
@@ -57,18 +57,25 @@ watch(entityTypeFilter, () => {
 })
 
 const stats = computed(() => auditStore.stats)
+const statsError = computed(() => auditStore.statsError)
 
 async function loadStats() {
-  const params = normalizeDateParams({
-    startDate: startDate.value || undefined,
-    endDate: endDate.value || undefined,
-    performerId: performerFilter.value || undefined,
-    userId: userIdFilter.value || undefined,
-    entityType: entityTypeFilter.value === 'all' ? undefined : entityTypeFilter.value,
-    action: actionFilter.value === 'all' ? undefined : actionFilter.value,
-    search: searchFilter.value || undefined,
+  const params = toAuditStatsQueryParams({
+    search: searchFilter.value,
+    filters: {
+      action: actionFilter.value,
+      entityType: entityTypeFilter.value,
+      startDate: startDate.value,
+      endDate: endDate.value,
+      performerId: performerFilter.value,
+      userId: userIdFilter.value,
+    },
   })
-  await auditStore.fetchStats(params)
+  try {
+    await auditStore.fetchStats(params)
+  } catch {
+    // The store records the user-facing error; the report renders it.
+  }
 }
 
 function resetFilters() {
@@ -83,6 +90,7 @@ function resetFilters() {
 
 onMounted(async () => {
   await loadStats()
+  // Revealed once the first attempt settles: a failed load must still show the error.
   isLoaded.value = true
 })
 </script>
@@ -189,6 +197,16 @@ onMounted(async () => {
           </div>
         </CardContent>
       </Card>
+
+      <!-- Stats failure keeps the report readable; Apply is the retry path. -->
+      <div
+        v-if="statsError"
+        role="alert"
+        class="flex items-center gap-3 border border-[var(--status-error-mark)] bg-[color-mix(in_oklch,_var(--status-error-mark)_8%,_transparent)] p-4"
+      >
+        <span class="font-data text-sm text-[var(--foreground-strong)]">&gt; ERROR:</span>
+        <span class="text-sm text-[var(--foreground)]">{{ statsError }}</span>
+      </div>
 
       <!-- Total Actions -->
       <Card>

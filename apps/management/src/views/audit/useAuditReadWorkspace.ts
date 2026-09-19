@@ -20,9 +20,16 @@ interface AuditQuerySnapshot {
   readonly pagination: Readonly<PaginationState>
 }
 
-export function toAuditLogQueryParams(current: AuditQuerySnapshot): AuditLogQueryParams {
-  const { search, filters, pagination } = current
-  return normalizeDateParams({
+interface AuditStatsSnapshot {
+  readonly search: string
+  readonly filters: Readonly<AuditFilters>
+}
+
+function toAuditFilterQueryParams(
+  search: string,
+  filters: Readonly<AuditFilters>,
+): Omit<AuditLogQueryParams, 'page' | 'limit'> {
+  return {
     search: search || undefined,
     action: filters.action === 'all' ? undefined : filters.action,
     entityType: filters.entityType === 'all' ? undefined : filters.entityType,
@@ -30,9 +37,20 @@ export function toAuditLogQueryParams(current: AuditQuerySnapshot): AuditLogQuer
     endDate: filters.endDate || undefined,
     performerId: filters.performerId || undefined,
     userId: filters.userId || undefined,
+  }
+}
+
+export function toAuditLogQueryParams(current: AuditQuerySnapshot): AuditLogQueryParams {
+  const { search, filters, pagination } = current
+  return normalizeDateParams({
+    ...toAuditFilterQueryParams(search, filters),
     page: pagination.pageIndex + 1,
     limit: pagination.pageSize,
   })
+}
+
+export function toAuditStatsQueryParams(current: AuditStatsSnapshot): AuditLogQueryParams {
+  return normalizeDateParams(toAuditFilterQueryParams(current.search, current.filters))
 }
 
 export function useAuditReadWorkspace() {

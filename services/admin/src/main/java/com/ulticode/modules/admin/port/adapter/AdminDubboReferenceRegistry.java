@@ -37,6 +37,7 @@ import com.ulticode.submission.api.service.SubmissionAdminReadPort;
 import com.ulticode.submission.api.service.SubmissionStreakPort;
 import com.ulticode.submission.api.service.SubmissionUserStatsPort;
 import org.apache.dubbo.config.annotation.DubboReference;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -198,6 +199,8 @@ public class AdminDubboReferenceRegistry {
 
     @Bean
     @Primary
+    @ConditionalOnProperty(
+            name = "core.local-contracts.enabled", havingValue = "false", matchIfMissing = true)
     public AccountQueryService accountQueryService() {
         return accountQueryReference;
     }
@@ -210,6 +213,8 @@ public class AdminDubboReferenceRegistry {
 
     @Bean
     @Primary
+    @ConditionalOnProperty(
+            name = "core.local-contracts.enabled", havingValue = "false", matchIfMissing = true)
     public IdentityQueryService identityQueryService() {
         return identityQueryReference;
     }

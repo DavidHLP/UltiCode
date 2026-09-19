@@ -14,8 +14,32 @@ source "$ROOT_DIR/scripts/test/lib/assertions.sh"
   || fail 'Core boot entrypoint missing'
 [[ -f "$ROOT_DIR/services/core/src/main/java/com/ulticode/core/CoreLocalAuthorizationMutationAdapter.java" ]] \
   || fail 'Core local authorization adapter missing'
+[[ -f "$ROOT_DIR/services/core/src/main/java/com/ulticode/core/CoreLocalContractAssembly.java" ]] \
+  || fail 'Core local contract assembly missing'
 [[ -f "$ROOT_DIR/services/platform/common/src/main/java/com/ulticode/common/security/LocalDelegationAssertionContext.java" ]] \
   || fail 'local delegation assertion context missing'
+
+contains services/core/src/main/java/com/ulticode/core/CoreLocalContractAssembly.java 'final class CoreLocalContractAssembly'
+contains services/core/src/main/java/com/ulticode/core/CoreLocalContractAssembly.java 'static void register('
+contains services/core/src/main/java/com/ulticode/core/CoreLocalContractAssembly.java 'private static final String ADMIN_MODULE = "admin";'
+contains services/core/src/main/java/com/ulticode/core/CoreLocalContractAssembly.java 'if (!ADMIN_MODULE.equals(module.name()))'
+contains services/core/src/main/java/com/ulticode/core/CoreLocalContractAssembly.java '"coreOwnerContextManager"'
+contains services/core/src/main/java/com/ulticode/core/CoreLocalContractAssembly.java '"coreLocalIdentityQueryAdapter"'
+contains services/core/src/main/java/com/ulticode/core/CoreLocalContractAssembly.java '"coreLocalAuthorizationMutationAdapter"'
+contains services/core/src/main/java/com/ulticode/core/CoreLocalContractAssembly.java '"coreLocalAccountQueryAdapter"'
+contains services/core/src/main/java/com/ulticode/core/CoreLocalContractAssembly.java 'static void validate('
+contains services/core/src/main/java/com/ulticode/core/CoreLocalContractAssembly.java \
+  'LOCAL_CONTRACTS_ENABLED_PROPERTY'
+contains services/core/src/main/java/com/ulticode/core/CoreOwnerContextManager.java \
+  'CoreLocalContractAssembly.LOCAL_CONTRACTS_ENABLED_PROPERTY'
+contains services/admin/src/main/java/com/ulticode/modules/admin/port/adapter/AdminDubboReferenceRegistry.java \
+  '@ConditionalOnProperty'
+contains services/admin/src/main/java/com/ulticode/modules/admin/port/adapter/AdminDubboReferenceRegistry.java \
+  'core.local-contracts.enabled'
+
+contains services/core/src/main/java/com/ulticode/core/CoreOwnerContextManager.java 'CoreLocalContractAssembly.register(child, module, this)'
+contains services/core/src/main/java/com/ulticode/core/CoreOwnerContextManager.java 'CoreLocalContractAssembly.validate(context, module)'
+not_contains services/core/src/main/java/com/ulticode/core/CoreOwnerContextManager.java 'registerChildContracts'
 
 contains services/pom.xml '<module>core</module>'
 contains services/core/src/main/java/com/ulticode/core/CoreApplication.java '@SpringBootConfiguration'
@@ -33,14 +57,10 @@ contains services/core/src/main/java/com/ulticode/core/CoreOwnerMapperConfigurat
 contains services/core/src/main/java/com/ulticode/core/CoreOwnerMapperConfigurations.java 'sqlSessionFactoryRef = "appSqlSessionFactory"'
 contains services/core/src/main/java/com/ulticode/core/CoreOwnerBootConfigurations.java '"com.ulticode.modules.contest"'
 contains services/core/src/main/java/com/ulticode/core/CoreOwnerBootConfigurations.java '"com.ulticode.modules.event.inbox",'
-! grep -F -- '"com.ulticode.modules",' "$ROOT_DIR/services/core/src/main/java/com/ulticode/core/CoreOwnerBootConfigurations.java" >/dev/null \
-  || fail 'Core App child must not use broad modules scan'
-! grep -F -- '"com.ulticode.modules.submission",' "$ROOT_DIR/services/core/src/main/java/com/ulticode/core/CoreOwnerBootConfigurations.java" >/dev/null \
-  || fail 'Core Submission child must not use broad submission scan'
-! grep -F -- '"com.ulticode.modules.notification",' "$ROOT_DIR/services/core/src/main/java/com/ulticode/core/CoreOwnerBootConfigurations.java" >/dev/null \
-  || fail 'Core Notification child must not use broad notification scan'
-! grep -F -- '"com.ulticode.modules.reconciliation",' "$ROOT_DIR/services/core/src/main/java/com/ulticode/core/CoreOwnerBootConfigurations.java" >/dev/null \
-  || fail 'Core Admin child must not use broad reconciliation scan'
+not_contains services/core/src/main/java/com/ulticode/core/CoreOwnerBootConfigurations.java '"com.ulticode.modules",'
+not_contains services/core/src/main/java/com/ulticode/core/CoreOwnerBootConfigurations.java '"com.ulticode.modules.submission",'
+not_contains services/core/src/main/java/com/ulticode/core/CoreOwnerBootConfigurations.java '"com.ulticode.modules.notification",'
+not_contains services/core/src/main/java/com/ulticode/core/CoreOwnerBootConfigurations.java '"com.ulticode.modules.reconciliation",'
 contains services/core/src/main/java/com/ulticode/core/CoreReadinessController.java '/api/v1/core/health'
 contains services/core/src/main/java/com/ulticode/core/CoreSecurityConfiguration.java 'anyRequest().denyAll()'
 contains services/core/src/main/java/com/ulticode/core/CoreOwnerContextManager.java 'spring.main.web-application-type=none'
@@ -48,8 +68,7 @@ contains services/core/src/main/java/com/ulticode/core/CoreOwnerContextManager.j
 contains services/core/src/main/java/com/ulticode/core/CoreOwnerContextManager.java 'dubbo.enabled=false'
 contains services/core/src/main/java/com/ulticode/core/CoreOwnerContextManager.java 'security.internal-delegation.private-key='
 contains services/core/src/main/java/com/ulticode/core/CoreOwnerContextManager.java 'INTERNAL_DELEGATION_PUBLIC_KEY'
-! grep -F -- 'backend-judge-runtime' "$ROOT_DIR/services/core/pom.xml" >/dev/null \
-  || fail 'Core must not depend on judge-runtime'
+not_contains services/core/pom.xml 'backend-judge-runtime'
 
 source "$ROOT_DIR/scripts/dev/devstack-manifest.sh"
 [[ "$(devstack_apps_for_scope core)" == 'ulticode-core,ulticode-judge' ]] \

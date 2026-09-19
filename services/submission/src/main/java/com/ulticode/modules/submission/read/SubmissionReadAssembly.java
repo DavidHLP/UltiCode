@@ -111,9 +111,9 @@ public class SubmissionReadAssembly {
         IPage<Submission> result = submissionMapper.findByProblemId(
                 problemId, userId, new Page<>(pagination.page(), pagination.pageSize()));
         List<Submission> records = result.getRecords();
-        Map<Long, ProblemFactsPort.ProblemDisplayFacts> facts = factsFor(records);
+        Map<Long, ProblemFactsPort.ProblemDisplayFacts> facts = factsFor(records, problemId);
         List<SubmissionListItemVO> items = records.stream()
-                .map(row -> submissionProjection.toListItemVO(row, facts.get(row.getProblemId())))
+                .map(row -> submissionProjection.toListItemVO(row, facts.get(problemId)))
                 .toList();
         return PageResult.of(items, result.getTotal(), pagination);
     }
@@ -137,6 +137,11 @@ public class SubmissionReadAssembly {
 
     private Map<Long, ProblemFactsPort.ProblemDisplayFacts> factsFor(
             Collection<Submission> submissions) {
+        return factsFor(submissions, null);
+    }
+
+    private Map<Long, ProblemFactsPort.ProblemDisplayFacts> factsFor(
+            Collection<Submission> submissions, Long fallbackProblemId) {
         if (submissions == null || submissions.isEmpty()) {
             return Map.of();
         }
@@ -145,6 +150,9 @@ public class SubmissionReadAssembly {
             if (submission != null && submission.getProblemId() != null) {
                 problemIds.add(submission.getProblemId());
             }
+        }
+        if (problemIds.isEmpty() && fallbackProblemId != null) {
+            problemIds.add(fallbackProblemId);
         }
         if (problemIds.isEmpty()) {
             return Map.of();

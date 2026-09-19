@@ -71,6 +71,9 @@ updates:
     # dnd-kit-vue@0.0.2, is pinned to the 0.1.x line, so a 0.5 bump leaves
     # DataTable on a different generation than the adapter that drives it. Lift
     # these two when the adapter moves to @dnd-kit/vue.
+    # Held by version constraint, not update-types: Dependabot classifies
+    # 0.1.21 -> 0.5.0 numerically as a minor bump, so a semver-major ignore
+    # never matches (PR #170 slipped through the old rule for exactly this).
     #
     # @tanstack/vue-table 9 is an API rewrite (useTable plus explicit
     # tableFeatures, row-model slots, atom state, and a TFeatures type
@@ -86,9 +89,9 @@ updates:
       - dependency-name: "typescript"
         update-types: ["version-update:semver-major"]
       - dependency-name: "@dnd-kit/abstract"
-        update-types: ["version-update:semver-major"]
+        versions: [">=0.2.0"]
       - dependency-name: "@dnd-kit/dom"
-        update-types: ["version-update:semver-major"]
+        versions: [">=0.2.0"]
       - dependency-name: "@tanstack/vue-table"
         update-types: ["version-update:semver-major"]
 

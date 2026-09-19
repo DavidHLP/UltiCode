@@ -42,9 +42,18 @@ updates:
     # Tradeoff: Dependabot applies `ignore` to security updates too, so
     # TypeScript stops receiving security PRs here; watch advisories against the
     # 6.x line manually and lift the rule once the toolchain supports 7.
+    #
+    # @vue-dnd-kit/core 2.x is a full API replacement (DnDProvider +
+    # makeDraggable/makeDroppable/makeSelectionArea; the 1.x useDraggable/
+    # useDroppable composable are gone). Its only consumer, LayoutPanelHeader,
+    # has no tests, so the 1.7 -> 2.4 jump (PR #177) type-checks only after a
+    # deliberate port with provider wiring and regression tests. Held by
+    # version constraint, same as the @dnd-kit hold below.
     ignore:
       - dependency-name: "typescript"
         update-types: ["version-update:semver-major"]
+      - dependency-name: "@vue-dnd-kit/core"
+        versions: [">=2.0.0"]
 
   - package-ecosystem: "npm"
     directory: "/apps/management"

@@ -1,0 +1,18 @@
+docs/ARCHITECTURE.md
+  h_77173abe25c3ff 48-53
+services/core/src/main/java/com/ulticode/core/CoreOwnerContextManager.java
+  h_77173abe25c3ff 129-132,150-153,158,186-204,371-375,423-424,426,428-430,432-433,436-439,448-449,465-477,479-480,482,491-503,505,508-509,511-517,519,527-531,569-573,578-581,670-675,687,737-740,744-751,754-774
+services/core/src/test/java/com/ulticode/core/CoreOwnerContextManagerLifecycleTest.java
+  h_77173abe25c3ff 6,32,319-466,469-529,760-835,893-904
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "369637fd4bc680ef61de8dff5d6589345c00fb4b",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

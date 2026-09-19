@@ -74,7 +74,6 @@ jobs:
           cache: 'pnpm'
           cache-dependency-path: |
             pnpm-lock.yaml
-            apps/${{ matrix.app }}/pnpm-lock.yaml
 
       - name: Install dependencies
         if: steps.should-run.outputs.run == 'true'
@@ -119,7 +118,6 @@ jobs:
           cache: 'pnpm'
           cache-dependency-path: |
             pnpm-lock.yaml
-            apps/${{ matrix.app }}/pnpm-lock.yaml
 
       - name: Install dependencies
         if: steps.should-run.outputs.run == 'true'
@@ -164,7 +162,6 @@ jobs:
           cache: 'pnpm'
           cache-dependency-path: |
             pnpm-lock.yaml
-            apps/${{ matrix.app }}/pnpm-lock.yaml
 
       - name: Install dependencies
         if: steps.should-run.outputs.run == 'true'
@@ -202,7 +199,6 @@ jobs:
           cache: 'pnpm'
           cache-dependency-path: |
             pnpm-lock.yaml
-            packages/auth-core/pnpm-lock.yaml
 
       - name: Install dependencies
         working-directory: packages/auth-core
@@ -231,7 +227,6 @@ jobs:
           cache: 'pnpm'
           cache-dependency-path: |
             pnpm-lock.yaml
-            apps/management/pnpm-lock.yaml
 
       - name: Install dependencies
         working-directory: apps/management

@@ -101,6 +101,37 @@ class DefaultAuditLogReadProjectionTest {
         assertThat(page.getTotal()).isEqualTo(1L);
     }
 
+    @Test
+    void exportUsesTheSameProjectionAndKeepsRowsWhenUserEnrichmentIsPartial() {
+        AuditLog log = auditLog("audit-export-1", "performer-1", "user-1");
+        when(auditLogMapper.selectList(any())).thenReturn(List.of(log));
+        when(userEnricher.enrich(Set.of("performer-1", "user-1")))
+                .thenReturn(Map.of("performer-1",
+                        new AdminUserSummary("performer-1", "admin", "ADMIN", "Admin", null, null)));
+
+        List<AuditLogVO> exported = projection.findForExport(
+                AuditLogQuery.from(new AuditLogQueryDTO()), 100);
+
+        assertThat(exported).singleElement().satisfies(item -> {
+            assertThat(item.getId()).isEqualTo("audit-export-1");
+            assertThat(item.getPerformer().getUsername()).isEqualTo("admin");
+            assertThat(item.getUser()).isNull();
+        });
+        verify(auditLogMapper).selectList(any());
+    }
+
+    private AuditLog auditLog(String id, String performerId, String userId) {
+        AuditLog log = new AuditLog();
+        log.setId(id);
+        log.setPerformerId(performerId);
+        log.setUserId(userId);
+        log.setAction("UPDATE");
+        log.setEntityType("PROBLEM");
+        log.setEntityId("problem-1");
+        log.setCreatedAt(LocalDateTime.of(2026, 9, 19, 10, 0));
+        return log;
+    }
+
     private AuditLogQueryDTO query() {
         AuditLogQueryDTO query = new AuditLogQueryDTO();
         query.setPerformerId("performer-1");

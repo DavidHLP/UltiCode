@@ -1,6 +1,6 @@
 # UltiCode development guide
 
-This is the repository-wide source of truth for AI coding agents. A nested `AGENTS.md` adds rules for its subtree and must not repeat this file. `CLAUDE.md` is only a compatibility entry.
+This is the repository-wide source of truth for AI coding agents. A nested `AGENTS.md` adds rules for its subtree and must not repeat this file.
 
 ## Task scope and evidence
 
@@ -135,7 +135,7 @@ Do not use `/actuator/health` as a readiness check; Actuator is not exposed. Use
 
 ## Documentation
 
-- Keep repository-wide agent rules only in this file. Nested guides contain only durable, subtree-specific constraints; `CLAUDE.md` remains a short pointer.
+- Keep repository-wide agent rules only in this file. Nested guides contain only durable, subtree-specific constraints.
 - Do not record volatile counts, file lengths, temporary review findings, planned architecture, or facts directly inferable from package/build configuration.
 - Update the affected canonical document under `docs/` in the same change when behavior, commands, paths, contracts, or architecture boundaries change. Keep implementation and executable configuration authoritative.
 - Agent runtime state is not project documentation: handoff, resume, worklog, task ledgers, and raw verification evidence stay in ignored local directories and are not committed. Architecture decisions go to `docs/architecture/decisions/`, current state to `docs/project/current-status.md`, open issues to `services/docs/SERVICES_ISSUES.md`; each fact has one authoritative location.

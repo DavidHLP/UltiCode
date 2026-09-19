@@ -21,6 +21,8 @@ export const useAuditStore = defineStore('adminAudit', () => {
   const loading = collection.isLoading
   const error = collection.error
   const stats = ref<AuditStats | null>(null)
+  const statsLoading = ref(false)
+  const statsError = ref<string | null>(null)
   let statsController: AbortController | null = null
   let statsSequence = 0
 
@@ -30,6 +32,7 @@ export const useAuditStore = defineStore('adminAudit', () => {
     statsSequence += 1
     statsController?.abort()
     statsController = null
+    statsLoading.value = false
   }
 
   async function fetchStats(params?: AuditLogQueryParams) {
@@ -37,17 +40,22 @@ export const useAuditStore = defineStore('adminAudit', () => {
     const controller = new AbortController()
     statsController = controller
     const request = ++statsSequence
+    statsLoading.value = true
+    statsError.value = null
     try {
       const data = await auditApi.getAuditStats(params, controller.signal)
       if (request === statsSequence && !controller.signal.aborted) stats.value = data
       return data
     } catch (err: unknown) {
       if (controller.signal.aborted || request !== statsSequence) return null
-      error.value = extractApiErrorMessage(err, 'Failed to fetch audit stats')
+      statsError.value = extractApiErrorMessage(err, 'Failed to fetch audit stats')
       console.error('Failed to fetch audit stats:', err)
       throw err
     } finally {
-      if (statsController === controller) statsController = null
+      if (statsController === controller) {
+        statsController = null
+        statsLoading.value = false
+      }
     }
   }
 
@@ -65,20 +73,17 @@ export const useAuditStore = defineStore('adminAudit', () => {
     }
   }
 
-  function clearError() {
-    error.value = null
-  }
-
   return {
     logs,
     total,
     stats,
+    statsLoading,
+    statsError,
     loading,
     error,
     fetchLogs,
     fetchStats,
     cancelStats,
     exportLogs,
-    clearError,
   }
 })

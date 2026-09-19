@@ -1,0 +1,23 @@
+apps/management/src/views/audit/AuditReportView.test.ts
+  s_bd65b162c8d71a::t_75226614087a98 1-138
+apps/management/src/views/audit/AuditReportView.vue
+  s_bd65b162c8d71a::t_627c3c7c658bf6 18,60,63-72,74-78,93,201-210
+apps/management/src/views/audit/useAuditReadWorkspace.test.ts
+  s_bd65b162c8d71a::t_aeac4f9387b690 6,97-151
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ee2720def2c502416b9d9d1713419901c430416b",
+  "prompts": {},
+  "sessions": {
+    "s_bd65b162c8d71a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0b919-0e98-7801-8f82-246c69699654",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

@@ -6,7 +6,7 @@ import java.io.Serializable;
  * Actor delegation record carried on every write command issued against
  * {@code backend-auth-api}.
  *
- * <p>Per {@code docs/architecture/data-flow.md}, every
+ * <p>Per {@code docs/ARCHITECTURE.md}, every
  * mutating RPC must capture <i>who is asking</i> and <i>on whose
  * behalf</i>: a write can originate from a human principal (end user /
  * admin), from a back-end service principal (Admin BFF, scheduled job),

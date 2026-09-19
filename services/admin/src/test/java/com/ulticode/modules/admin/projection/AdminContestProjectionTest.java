@@ -37,8 +37,8 @@ import com.ulticode.common.auth.CurrentUserProvider;
 
 /**
  * Unit tests for {@link DefaultAdminContestProjection} &mdash; the read-side
- * deep module lifted out of {@code AdminContestServiceImpl} per ADR-0011
- * Stage 3.
+ * deep module lifted out of {@code AdminContestServiceImpl} during the
+ * Stage 3 extraction.
  *
  * <p>Covers the projection surface: the {@code problemCount} read enrichment,
  * the {@code ContestAdminDTO} &rarr; {@link AdminContestVO} shape, the single-detail

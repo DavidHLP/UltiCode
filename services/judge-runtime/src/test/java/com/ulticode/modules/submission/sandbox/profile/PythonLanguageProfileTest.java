@@ -17,11 +17,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * Python language profile (ADR-002 §2.2). Mirrors
+ * Python language profile (language execution contract). Mirrors
  * {@link JavaLanguageProfileTest} but covers the Python-specific
  * bits (lowercase file name, no compile step, harness invocation).
  */
-@DisplayName("PythonLanguageProfile (ADR-002 §2.2)")
+@DisplayName("PythonLanguageProfile (language execution contract)")
 class PythonLanguageProfileTest {
 
     private final DockerSandboxConfig config = new DockerSandboxConfig(

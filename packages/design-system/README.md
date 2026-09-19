@@ -4,7 +4,7 @@ This package is the public design seam for both UltiCode frontends. It owns the
 canonical Garden palette, Light/Dark semantic mappings, zh-CN/en-US locale
 profiles, shared component states, chart colors and the small TypeScript token
 interface. The full visual specification lives in
-`docs/GARDEN_DESIGN_SPEC.md`; this README is the integration contract.
+`./docs/GARDEN_DESIGN_SPEC.md`; this README is the integration contract.
 
 Consumers import the stylesheet through:
 

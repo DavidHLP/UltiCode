@@ -112,10 +112,10 @@ public interface SubmissionMapper extends BaseMapper<Submission> {
 
     /**
      * Atomically transition a submission from Pending to Judging and acquire a
-     * lease (ADR-003 §2.3). CAS on {@code status='Pending' AND generation=#{generation}}
+     * lease (submission generation-fence contract). CAS on {@code status='Pending' AND generation=#{generation}}
      * so a worker that polled a stale queue entry for a generation that has
      * since been bumped cannot grab the lease. Times use the DB clock (NOW() /
-     * DATE_ADD) rather than the JVM clock (ADR-003 §1.1 F3).
+     * DATE_ADD) rather than the JVM clock (database-clock contract, F3).
      *
      * @return 1 if the lease was acquired, 0 otherwise (already judging or gen mismatch)
      */
@@ -129,7 +129,7 @@ public interface SubmissionMapper extends BaseMapper<Submission> {
                      @Param("ttlSeconds") long ttlSeconds);
 
     /**
-     * Heartbeat renewal (ADR-003 §2.3). Extends the lease only for the current
+     * Heartbeat renewal (submission lease contract). Extends the lease only for the current
      * attempt holder; any other writer leaves {@code current_attempt_id}
      * changed, so this CAS returns 0 and the worker knows it has lost the
      * lease and must discard its in-flight verdict.

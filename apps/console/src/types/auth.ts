@@ -2,7 +2,7 @@
  * Re-export seam — `User`, `LoginCredentials`, `LoginResponse`,
  * `RegisterRequest`, `Permission` and friends are owned by
  * `shared/auth-core/src/types.ts` as the single source of truth for both
- * frontends (see ADR note at the top of that file).
+ * frontends (see the auth-core source comment).
  *
  * Previously this file defined a parallel `User` shape with camelCase
  * fields (`isActive`, `joinedAt`, …) that no caller actually read at
@@ -11,7 +11,7 @@
  * snake_case types from auth-core, removing the documented debt flagged in
  * the file's previous header comment.
  *
- * See ADR-0013 for the architecture-review auth contract decision.
+ * See the current authentication contract and its regression coverage.
  */
 export type {
   LoginCredentials,

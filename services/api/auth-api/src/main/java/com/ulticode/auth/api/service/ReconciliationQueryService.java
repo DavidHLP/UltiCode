@@ -19,7 +19,7 @@ import java.util.Set;
  *
  * <p>Contract-only interface; the provider implementation lives in
  * {@code backend-auth} (Dubbo service). Listed by
- * ADR-P7-OWNER-BOUNDARY-RECONCILIATION-20260802 (Decision 4):
+ * the owner-boundary reconciliation design:
  * reconciliation replaces cross-owner JdbcTemplate SQL with owner
  * RPC/read ports; no cross-owner DB grants are introduced.
  */

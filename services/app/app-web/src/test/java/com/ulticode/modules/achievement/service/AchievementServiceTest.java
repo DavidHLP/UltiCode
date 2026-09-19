@@ -42,7 +42,7 @@ import static org.mockito.Mockito.*;
  *
  * <p>Read-path tests (list / getById / getUserAchievements / getUserPoints)
  * were migrated to {@code AchievementProjectionTest} when those methods moved
- * to {@link AchievementProjection} (ADR-0005). The write paths here delegate
+ * to {@link AchievementProjection} (the current projection seam). The write paths here delegate
  * the post-action view shape to {@code AchievementProjection#toVO}, which is
  * stubbed with a passthrough answer so the assertions still verify the
  * service's own mutation logic.</p>

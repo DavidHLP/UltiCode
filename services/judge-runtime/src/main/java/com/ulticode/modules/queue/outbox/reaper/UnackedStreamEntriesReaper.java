@@ -15,7 +15,7 @@ import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 
 /**
- * ADR-003 M3c-2 unacked Streams reaper (§2.6 F6 revision).
+ * Unacked Streams reaper for the current judge-queue contract.
  *
  * <p>After the Redisson Streams cutover, jobs sit in the
  * {@code judge-workers} consumer group's pending entries list between
@@ -43,7 +43,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 public class UnackedStreamEntriesReaper {
 
     /**
-     * Reaper sweep cadence. 10s is the ADR-003 §2.6 default. The reclaim
+     * Reaper sweep cadence. 10s is the default. The reclaim
      * threshold reuses {@link JudgeStreamKeys#JUDGE_STREAM_VISIBILITY_TIMEOUT_MS}
      * so it cannot drift from the adapter's dedup TTL and poll semantics.
      */

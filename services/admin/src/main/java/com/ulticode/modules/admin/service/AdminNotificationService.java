@@ -13,7 +13,7 @@ public interface AdminNotificationService {
     /**
      * Broadcast a system announcement to target users.
      *
-     * <p><b>Preference semantics (ADR-004 §2.3):</b> {@code SECURITY} and
+     * <p><b>Preference semantics:</b> {@code SECURITY} and
      * {@code SYSTEM} categories are force-delivered to every target. For
      * {@code MARKETING} / {@code COMMUNICATION}, recipients who opted out are
      * filtered before persistence (matching the dispatcher's defaults:

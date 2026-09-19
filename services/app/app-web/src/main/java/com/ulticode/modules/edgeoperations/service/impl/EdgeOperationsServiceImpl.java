@@ -108,7 +108,7 @@ public class EdgeOperationsServiceImpl implements EdgeOperationsService {
      * flag for whether this user has, e.g., liked via FAVORITE. Use
      * {@code voteService.getVoteStatus} for vote operations if you need
      * per-user state. See
-     * docs/edge-operations-api-test-report-2026-06-11.md §六.
+     * the current API contract and regression tests.
      */
     private void toggleOperation(String userId, String targetId,
                                   EdgeOperationTargetType targetType, EdgeOperationType operationType) {

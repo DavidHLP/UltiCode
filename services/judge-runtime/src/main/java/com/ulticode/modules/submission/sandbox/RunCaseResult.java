@@ -14,7 +14,7 @@ import java.util.List;
  * <h2>Field contract</h2>
  * <ul>
  *   <li>{@code status} — the per-case verdict as a {@link SubmissionStatus}
- *       enum (ADR-001). Never a raw wire string. Callers downstream
+ *       enum. Never a raw wire string. Callers downstream
  *       convert to the wire value via
  *       {@code SubmissionStatusCodec.toWire}.</li>
  *   <li>{@code elapsedMs} — wall-clock duration of the case in
@@ -22,11 +22,11 @@ import java.util.List;
  *       {@code 0} when the harness could not measure (e.g. compile
  *       failure that never ran). Legacy ms-truncated value.</li>
  *   <li>{@code elapsedUs} — precise wall-clock duration in microseconds
- *       (ADR-002 §8). Preferred over {@code elapsedMs} for display since
+ *       (precise wall-clock contract). Preferred over {@code elapsedMs} for display since
  *       the ms value truncates 0–999µs to {@code 0ms}. {@code 0} for
  *       older harnesses that do not emit {@code elapsed_us}.</li>
  *   <li>{@code cpuMs} — CPU time (user + sys) the user code consumed, in
- *       milliseconds (ADR-002 §8). Used for fair cross-language
+ *       milliseconds (precise CPU contract). Used for fair cross-language
  *       comparison; TLE is still judged on wall-clock. {@code 0} for
  *       older harnesses.</li>
  *   <li>{@code memoryBytes} — peak resident-set size in bytes, as

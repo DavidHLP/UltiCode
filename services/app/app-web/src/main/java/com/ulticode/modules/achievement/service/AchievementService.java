@@ -10,7 +10,7 @@ import com.ulticode.modules.achievement.entity.Achievement;
  * <p>Read paths (list / getById / getUserProgress / getUserAchievements /
  * getUserPoints) live in {@link
  * com.ulticode.modules.achievement.projection.AchievementProjection}
- * &mdash; see ADR-0005. This interface keeps only the state-mutating
+ * &mdash; see the current projection seam. This interface keeps only the state-mutating
  * operations plus {@link #findByKey(String)}, which the write paths use
  * internally for duplicate-key checks.</p>
  */

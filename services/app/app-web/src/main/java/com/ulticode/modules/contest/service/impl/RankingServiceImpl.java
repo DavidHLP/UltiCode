@@ -34,7 +34,7 @@ import java.util.stream.IntStream;
  * {@code DefaultContestLiveRankingReadAdapter} so external modules
  * (websocket, admin) and the contest module's own controllers depend on
  * a narrow intent surface rather than the full {@code RankingService}
- * API. See ADR-0010.
+ * API. See the seam-inversion rationale.
  */
 @Slf4j
 @Service

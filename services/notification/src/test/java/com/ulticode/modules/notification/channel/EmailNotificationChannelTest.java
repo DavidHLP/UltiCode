@@ -58,7 +58,7 @@ class EmailNotificationChannelTest {
 
     @Test
     void sendSilentlySkipsWhenUserHasNoEmail() {
-        // ADR-004 M4d-1 finding #3: missing email is "channel cannot reach
+        // Missing email is "channel cannot reach
         // user", not a delivery failure. The channel logs at debug and
         // returns normally so the dispatcher marks the ledger row DELIVERED
         // (we tried, no error) rather than FAILED (we tried and failed).

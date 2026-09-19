@@ -3,7 +3,7 @@ package com.ulticode.modules.notification.channel;
 import com.ulticode.modules.notification.intent.NotificationIntent;
 
 /**
- * Per-channel projection port (ADR-004 §2.2).
+ * Per-channel projection port (notification delivery contract).
  *
  * <p>Replaces the legacy "channel list with generic envelope" pattern. Each
  * implementation is a {@code @Component} that:
@@ -20,7 +20,7 @@ import com.ulticode.modules.notification.intent.NotificationIntent;
  *   <li>Implements {@link #send(NotificationIntent)} — failure throws
  *       {@link com.ulticode.common.exception.BusinessException} or a
  *       runtime exception; the dispatcher catches and records {@code FAILED}
- *       in the ledger but does not rethrow (failure isolation, ADR-004 §2.3).</li>
+ *       in the ledger but does not rethrow (failure isolation).</li>
  * </ol>
  *
  * <p>Implementations should be stateless and thread-safe: a single bean is

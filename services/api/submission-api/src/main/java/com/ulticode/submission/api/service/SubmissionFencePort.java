@@ -1,7 +1,7 @@
 package com.ulticode.submission.api.service;
 
 /**
- * Read + mutate surface for the ADR-003 judge lease fence — the half of the
+ * Read + mutate surface for the judge lease fence — the half of the
  * submission state machine the judge worker drives while a verdict is in flight.
  *
  * <p>{@link SubmissionVerdictWritePort} owns status/verdict writes and
@@ -33,7 +33,7 @@ public interface SubmissionFencePort {
     Long currentGeneration(String submissionId);
 
     /**
-     * CAS-acquire the judge lease (ADR-003 §2.3). Succeeds iff the row is still
+     * CAS-acquire the judge lease (the fence contract). Succeeds iff the row is still
      * {@code Pending} at the supplied generation; a bump (rejudge / reaper) or a
      * rival worker that already leased it makes this return {@code false}.
      *

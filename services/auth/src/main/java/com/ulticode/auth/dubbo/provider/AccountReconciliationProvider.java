@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
  * Dubbo provider for {@link ReconciliationQueryService}.
  *
  * <p>Backs the nightly reconciliation aggregator with Auth-owner facts
- * (ADR-P7-OWNER-BOUNDARY-RECONCILIATION-20260802 Decision 4): the
+ * (current owner-boundary reconciliation contract): the
  * count/existence reads stay on the Auth side and cross the owner
  * boundary as RPC — no cross-owner DB grants.
  */

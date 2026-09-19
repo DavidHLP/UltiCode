@@ -116,7 +116,7 @@ public class DefaultAdminSolutionProjection implements AdminSolutionProjection {
         flaggedQuery.setIsPublished(query.getIsPublished());
         // /admin/solutions/flagged always returns currently-active (non-deleted) solutions,
         // even if the caller passes isDeleted=true; otherwise the endpoint title would be
-        // misleading (see docs/solutions-admin-api-qa-2026-06-09.md BUG-Q9).
+        // misleading; the flagged-query regression is covered by the current admin tests.
         flaggedQuery.setIsDeleted(false);
         flaggedQuery.setPage(query.getPage());
         flaggedQuery.setLimit(query.getLimit());

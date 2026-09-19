@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * JavaScript language profile (ADR-002 §2.2).
+ * JavaScript language profile (language execution contract).
  *
  * <p><b>Status (M2a):</b> stub. The D-form harness for JavaScript is
  * not yet part of the migration (see

@@ -11,7 +11,7 @@ import java.util.Set;
  * snapshot for read-only consumers (Admin BFF detail pages, App
  * enrichments, scheduled jobs).
  *
- * <p>Listed in {@code docs/architecture/modules.md} as one of
+ * <p>Listed in {@code docs/ARCHITECTURE.md} as one of
  * {@code backend-auth}'s three Dubbo providers.
  * It mirrors {@link IdentityQueryService}'s shape (single + batch), so the two
  * query providers are symmetric and the call sites can share a

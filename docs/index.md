@@ -1,86 +1,38 @@
-# UltiCode 文档
+# UltiCode 文档地图
 
-本文档目录是长期文档的导航入口。实现、配置、迁移脚本和测试是运行行为的最终依据；文档解释职责、边界、操作顺序和决策原因。
+本文是 `docs/` 的唯一导航入口；当前目录只保留六个核心文档。实现、配置、迁移脚本、测试和可执行 runbook 是行为真相，核心文档只负责解释当前边界、入口和操作顺序。
 
-## 推荐阅读顺序
+## 默认读取路径
 
-1. [项目当前状态](project/current-status.md)
-2. [架构总览](architecture/overview.md)
-3. [模块与所有权](architecture/modules.md)
-4. [数据流与契约](architecture/data-flow.md)
-5. [本地开发](development/local-setup.md) 与 [测试](development/testing.md)
-6. [部署与回滚](operations/deployment.md)
-7. 按任务需要查阅 [数据库迁移](operations/database-migrations.md)、[认证 API](api/authentication.md)、[排障](development/troubleshooting.md)
+1. 先读根目录 [`AGENTS.md`](../AGENTS.md) 和受影响目录最近的 `AGENTS.md`。
+2. 再读本页，确认当前主题和核心文档职责。
+3. 按任务读取一个或多个核心文档：[`PRODUCT.md`](PRODUCT.md)、[`ARCHITECTURE.md`](ARCHITECTURE.md)、[`DEVELOPMENT.md`](DEVELOPMENT.md)、[`OPERATIONS.md`](OPERATIONS.md) 或 [`REFERENCE.md`](REFERENCE.md)。
+4. 回到实际代码、配置、脚本和测试，确认文档没有超出可执行事实。
+5. 需要运行细节时，读取仓库外部 owner 维护的 `services/docs/`、`init-db/README.md`、`scripts/README.md` 或包内说明；这些不是 `docs/` 的第二套当前主题入口。
 
-## 文档角色
+## 核心文档与职责
 
-| 角色 | 权威入口 | 用途 |
-| --- | --- | --- |
-| Constitution | [`AGENTS.md`](../AGENTS.md) 与最近的嵌套 `AGENTS.md` | 代理与贡献者必须遵守的规则 |
-| Map | [`architecture/`](architecture/overview.md) | 现有模块、边界、数据流和查找入口 |
-| Status | [`project/current-status.md`](project/current-status.md) | 当前完成度、验证入口和外部边界 |
-| Issues | [`services/docs/SERVICES_ISSUES.md`](../services/docs/SERVICES_ISSUES.md) | Services 问题状态与外部触发条件的唯一注册表 |
-| Plan | [`project/roadmap.md`](project/roadmap.md) | 尚未完成的外部采用顺序与明确延后项 |
-| History | [`architecture/decisions/`](architecture/decisions/README.md) 与 [`archive/`](archive/README.md) | 架构决策、迁移记录、验证证据和有意删除项 |
-| Operations | [`operations/`](operations/deployment.md) 与 [`services/docs/`](../services/docs/SERVICES_ISSUES.md) | 可执行发布、迁移、监控、恢复和问题登记 |
+| 事实类型 | 当前权威入口 |
+| --- | --- |
+| 产品定位与领域术语 | [`PRODUCT.md`](PRODUCT.md) |
+| 当前架构、所有权、数据流、安全 | [`ARCHITECTURE.md`](ARCHITECTURE.md) |
+| 开发、测试、配置、规则、排障 | [`DEVELOPMENT.md`](DEVELOPMENT.md) |
+| 部署、迁移、备份、监控、事件 | [`OPERATIONS.md`](OPERATIONS.md) |
+| API、认证与内部契约 | [`REFERENCE.md`](REFERENCE.md)；`services/api/` 与各 provider/controller |
+| 文档入口和维护规则 | 本页 |
 
-## 按主题查找
+## 当前核心文档
 
-### 架构与契约
+- [`PRODUCT.md`](PRODUCT.md)：定位、用户角色、核心能力、领域对象和边界。
+- [`ARCHITECTURE.md`](ARCHITECTURE.md)：服务边界、Owner/Worker 拓扑、模块所有权、数据流、契约、事务和安全。
+- [`DEVELOPMENT.md`](DEVELOPMENT.md)：本地启动、开发模式、测试入口、配置、编码规则和排障。
+- [`OPERATIONS.md`](OPERATIONS.md)：部署发布、回滚、数据库迁移、备份恢复、监控 SLO 和事件响应。
+- [`REFERENCE.md`](REFERENCE.md)：API 入口、认证流程、跨 Owner 契约、错误与兼容。
 
-- [架构总览](architecture/overview.md)：五个 Data Owner、两个 Worker、运行拓扑和当前收敛状态。
-- [模块与所有权](architecture/modules.md)：Owner/Worker 职责、服务边界、共享代码政策。
-- [数据流与契约](architecture/data-flow.md)：请求链、Owner 数据、Dubbo、事务和异步可靠性。
-- [拓扑收敛与 Contract 所有权](architecture/decisions/0011-topology-contract-module-convergence.md)：distributed 默认、Owner/Contract 边界、Admin 深 Module 和 App 内部 Locality 的长期设计依据。
-- [Core 三路去留决策](architecture/decisions/0012-core-topology-three-way-decision.md)：Auth/Admin allowlist、readiness-only 边界、保留期限和删除回退条件。
-- [架构复审模块收敛](architecture/decisions/0013-architecture-review-module-convergence.md)：Admin、Inbox、Outbox、reconciliation、Problem/Auth contract 与开发脚本的共享 seam，以及 UI primitive 延后边界。
-- [架构复审第三轮收敛](architecture/decisions/0014-architecture-review-round-3-convergence.md)：C1-C11 的 receipt、owner cutover、outbox/ledger、audit、RPC、Redis、rejudge 与前端查询状态收敛，不新增基础设施。
-- [架构复审第四轮收敛](architecture/decisions/0015-architecture-review-round-4-convergence.md)：C1-C13 的 receipt 构造面、cutover 决策面、audit retry 契约、judge payload、intake provider 依赖与前端列表/取消状态收敛，不新增基础设施。
-- [安全架构](architecture/security.md)：Cookie、CSRF、JWT/JWKS、委托身份和 WebSocket 信任边界。
-- [ADR 索引](architecture/decisions/README.md)：不可逆或需要持续记忆的设计决定。
+## 文档维护规则
 
-### 开发
-
-- [本地开发](development/local-setup.md)：依赖、启动、入口和开发模式。
-- [配置](development/configuration.md)：环境变量、密钥边界和 profile 规则。
-- [测试与质量](development/testing.md)：统一测试入口、分层测试和验证矩阵。
-- [编码指南](development/coding-guidelines.md)：规则入口与项目约定。
-- [排障](development/troubleshooting.md)：常见本地故障、日志和恢复路径。
-- [Management i18n](development/i18n-design.md)：管理端翻译结构与完整性检查。
-- [Garden 设计系统](development/design-system.md)：共享 token 和视觉契约入口。
-
-### 运维
-
-- [部署、发布与回滚](operations/deployment.md)
-- [数据库迁移](operations/database-migrations.md)
-- [监控与 SLO](operations/monitoring.md)
-- [备份与恢复](operations/backup-and-recovery.md)
-- [事件响应](operations/incident-response.md)
-- [数据库脚本 README](../init-db/README.md)
-- [开发与运维脚本 README](../scripts/README.md)
-- [Services 问题唯一注册表](../services/docs/SERVICES_ISSUES.md)
-
-### 项目状态与历史
-
-- [当前状态](project/current-status.md)
-- [路线图](project/roadmap.md)
-- [已知问题与外部门禁](project/known-issues.md)
-- [Architecture remediation closure](project/history/architecture-remediation-20260830.md)
-- [归档目录](archive/README.md)
-
-## 原位保留的专业文档
-
-以下文档由对应模块或工具维护，不复制到本目录：
-
-- `services/docs/`：契约、韧性、租约、优雅退出、观测、调度和 Worker SLO 运行手册。
-- `init-db/`：Flyway 命令、Owner migration、baseline、seed 和回滚说明。
-- `scripts/`：本地启动、测试、runbook 和 smoke 入口。
-- [`CONTEXT.md`](../CONTEXT.md)：供工具使用的当前领域术语表，不是任务状态或会话记录。
-- [Sandbox harness](../docker/sandbox/harness/README.md) 与 [Prometheus rules](../docker/prometheus/README.md)：运行时执行和观测专业文档。
-- [Statusline reference](../scripts/statusline/README.md)：开发工具状态栏的实现与设计说明。
-- `packages/design-system/docs/`：设计 token 的完整规范。
-- `docker/`：基础设施说明；[`assets/screenshots/README.md`](../assets/screenshots/README.md)：UI 参考截图索引。
-
-## 历史资料
-
-[归档目录](archive/README.md) 保留已完成 remediation wave 的历史映射和决策快照；运行台账与 raw evidence 已退役并保留在 Git 历史。归档内容只用于追溯，不取代当前实现或状态文档。
+- `docs/` 只保留以上六个核心文档；不再创建并行的 API、状态、路线图、ADR、evidence、archive 或专业主题入口。
+- 不创建按任务、按会话、按日期的长期文档，不把临时验证日志写入 `docs/`。
+- 当前事实必须回到代码、配置、脚本和测试核实；开放问题继续由 `services/docs/SERVICES_ISSUES.md` 维护。
+- 修改命令、路径、契约、架构边界或行为时，同步更新对应核心文档，并运行适用门禁。
+- 不通过 `.gitignore` 隐藏非核心文档；非核心内容从 `docs/` 中明确删除，避免被误读为当前事实。

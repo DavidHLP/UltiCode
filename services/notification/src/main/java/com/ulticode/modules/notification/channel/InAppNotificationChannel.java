@@ -11,7 +11,7 @@ import java.util.Map;
 
 /**
  * In-app channel — persists a row to the {@code notification} table so the
- * user can see it on the notifications page (ADR-004 §2.2, M4b).
+ * user can see it on the notifications page (notification delivery contract).
  *
  * <p>Idempotency is owned by the notification row's deterministic id derived
  * from the source intent, while the delivery ledger prevents duplicate channel

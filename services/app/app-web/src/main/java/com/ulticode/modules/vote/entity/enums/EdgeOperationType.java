@@ -17,7 +17,7 @@ public enum EdgeOperationType {
     // are accepted on POST /edge-operations but the response VO does NOT
     // surface a per-user flag for them — they take the silent-toggle path
     // in EdgeOperationsServiceImpl#toggleOperation (see
-    // docs/edge-operations-api-test-report-2026-06-11.md §四 / §六).
+    // the current API contract and regression tests).
     // The toggle is also the path for VIEW/ANALYZE/FAVORITE.
     LIKE("LIKE"),
     DISLIKE("DISLIKE"),

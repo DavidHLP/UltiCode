@@ -146,7 +146,7 @@ export function readPage<T>(raw: unknown): PageResult<T> {
  *
  * <p>Always returns `number[]`; empty array on parse failure.
  *
- * @see docs/reports/submission-api-test-report-2026-06-10.md §4.2
+ * @see the Submission API contract and regression tests.
  */
 export function mapDistributionBins(raw: unknown): number[] {
   if (Array.isArray(raw)) {
@@ -241,7 +241,7 @@ export function mapSubmissionStatus(meta: unknown): SubmissionStatusMeta {
  *   <li>`runtimeMs` / `memoryMb`: numeric v2 fields (alongside formatted strings)</li>
  * </ul>
  *
- * @see docs/reports/submission-api-test-report-2026-06-10.md §4.1
+ * @see the Submission API contract and regression tests.
  */
 export function mapRunResult(raw: unknown): ProblemRunResult {
   if (!raw || typeof raw !== 'object') return raw as ProblemRunResult

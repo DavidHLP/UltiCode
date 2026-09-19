@@ -10,7 +10,7 @@ import com.ulticode.common.rpc.RpcResult;
 /**
  * App-owned administrative write provider for problems.
  *
- * <p>Listed in {@code docs/architecture/modules.md} as one of
+ * <p>Listed in {@code docs/ARCHITECTURE.md} as one of
  * {@code backend-app}'s Dubbo providers. The Admin BFF calls these to act on
  * problem data while the transaction stays inside App's Owner boundary.
  *

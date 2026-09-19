@@ -9,7 +9,7 @@ spawns it per case, enforces a wall-clock timeout via
 per-case verdict. A runaway infinite loop in case 2 cannot affect
 case 1 or case 3's verdict.
 
-ADR-002 §8 (resource measurement contract): each verdict now carries
+Sandbox resource measurement contract: each verdict now carries
 ``elapsed_us`` (precise wall-clock µs), ``cpu_ms`` (user+sys CPU time,
 for fair cross-language comparison) and a genuine ``peak_memory_bytes``
 (``ru_maxrss`` of this fresh subprocess). A per-case ``memory_limit_bytes``
@@ -88,9 +88,9 @@ def _peak_rss_bytes() -> int:
 def _cpu_ms_since(ru_before) -> int:
     """CPU milliseconds (user+sys) consumed since ``ru_before`` was sampled.
 
-    ADR-002 §8: CPU time excludes wall-clock waits (I/O, scheduling) so it
-    is the fair basis for cross-language comparison; TLE is still judged on
-    wall-clock via the parent subprocess timeout.
+    Sandbox resource contract: CPU time excludes wall-clock waits (I/O,
+    scheduling), so it is the fair basis for cross-language comparison; TLE is
+    still judged on wall-clock via the parent subprocess timeout.
     """
     try:
         ru = resource.getrusage(resource.RUSAGE_SELF)
@@ -206,7 +206,7 @@ def run_one_case(solution_cls: Any, method_hint: Optional[str],
                "peak_memory_bytes": peak_bytes})
         return 0
 
-    # ADR-002 §8 (P0-2): clean run but over the memory ceiling → MLE.
+    # Resource-limit contract (P0-2): clean run but over the memory ceiling → MLE.
     if memory_limit_bytes > 0 and peak_bytes > memory_limit_bytes:
         _emit({"case_id": case_id, "label": label,
                "elapsed_ms": elapsed_ms, "elapsed_us": elapsed_us, "cpu_ms": cpu_ms,
@@ -267,7 +267,7 @@ def main() -> int:
     stdin and run it.
     """
     # argv: argv[1] = method_hint (or ''), argv[2] = per_case_timeout_ms,
-    # argv[3] = memory_limit_bytes (ADR-002 §8).
+    # argv[3] = memory_limit_bytes (sandbox resource contract).
     method_hint = sys.argv[1] if len(sys.argv) > 1 and sys.argv[1] else None
     per_case_timeout_ms = int(sys.argv[2]) if len(sys.argv) > 2 else 1000
     memory_limit_bytes = int(sys.argv[3]) if len(sys.argv) > 3 else 0

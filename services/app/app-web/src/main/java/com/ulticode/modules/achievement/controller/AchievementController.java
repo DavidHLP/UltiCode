@@ -22,7 +22,7 @@ import java.util.List;
  *
  * <p>Read endpoints delegate to {@link AchievementProjection}; write endpoints
  * (create / update / delete) delegate to {@link AchievementService}. See
- * ADR-0005.</p>
+ * the current achievement service contract.</p>
  */
 @Tag(name = "Achievement", description = "Achievement management API")
 @RestController

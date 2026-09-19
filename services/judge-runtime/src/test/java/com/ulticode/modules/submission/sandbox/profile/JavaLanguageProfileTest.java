@@ -15,7 +15,7 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Java language profile (ADR-002 §2.2).
+ * Java language profile (language execution contract).
  *
  * <p>Verifies the three behaviours the strategy contract promises:
  * <ol>
@@ -28,7 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  *       {@code <file>:<line>:} error markers.</li>
  * </ol>
  */
-@DisplayName("JavaLanguageProfile (ADR-002 §2.2)")
+@DisplayName("JavaLanguageProfile (language execution contract)")
 class JavaLanguageProfileTest {
 
     private final DockerSandboxConfig config = new DockerSandboxConfig(

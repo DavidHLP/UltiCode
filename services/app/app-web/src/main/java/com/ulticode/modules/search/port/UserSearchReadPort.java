@@ -11,7 +11,7 @@ import java.util.List;
  * matching and limit enforcement. A null/blank query or non-positive
  * limit yields an empty list; the result is never null.
  *
- * <p>Migration-state rule (ADR-P7-APP-DECOMPOSITION rule 3): the App
+ * <p>Migration-state rule (current App/Auth boundary): the App
  * service may Q-read the Auth-owned {@code users} table for account
  * display fields; when the physical DB splits later, this adapter
  * switches to the Auth identity query seam.

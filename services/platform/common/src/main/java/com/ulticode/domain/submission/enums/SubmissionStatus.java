@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonValue;
 import lombok.Getter;
 
 /**
- * Canonical submission status enum (ADR-001).
+ * Canonical submission status enum.
  * <p>
  * Each value carries:
  * <ul>
@@ -24,7 +24,7 @@ import lombok.Getter;
  *       reducers and ranking logic to decide whether a status is a real verdict.</li>
  * </ul>
  * <p>
- * <b>Contract invariants</b> (changes require a new ADR):
+ * <b>Contract invariants</b> (changes require a compatibility review):
  * <ul>
  *   <li>{@code displayName} (a.k.a. wire value) is the durable string for DB rows and
  *       JSON payloads; <b>never</b> rename or recase.</li>

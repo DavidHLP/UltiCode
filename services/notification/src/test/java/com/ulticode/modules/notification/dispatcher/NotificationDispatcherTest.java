@@ -33,9 +33,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * Validation tests for {@link NotificationDispatcher} (ADR-004 §4).
+ * Validation tests for {@link NotificationDispatcher}.
  *
- * <p>Covers the contract assertions in §4:
+ * <p>Covers the delivery contract assertions:
  * <ul>
  *   <li>#1 — every intent has at least one channel that supports it (covered
  *       in {@link com.ulticode.modules.notification.channel.NotificationChannelContractTest}).</li>
@@ -75,7 +75,7 @@ class NotificationDispatcherTest {
     }
 
     @Test
-    @DisplayName("ADR-004 §4 #2: a channel that throws does not block the others")
+    @DisplayName("a channel that throws does not block the others")
     void channelFailureDoesNotBlockOthers() {
         // channelA succeeds, channelB throws on send, channelC succeeds.
         when(channelA.channelId()).thenReturn("a");
@@ -107,7 +107,7 @@ class NotificationDispatcherTest {
     }
 
     @Test
-    @DisplayName("ADR-004 §2.3: a failure-recording error does not poison the remaining channels")
+    @DisplayName("a failure-recording error does not poison the remaining channels")
     void failureRecordingErrorDoesNotPoisonOthers() {
         when(channelA.channelId()).thenReturn("a");
         when(channelB.channelId()).thenReturn("b");
@@ -237,7 +237,7 @@ class NotificationDispatcherTest {
     }
 
     @Test
-    @DisplayName("ADR-004 §4 #2: a channel that throws on supports is also tolerated")
+    @DisplayName("a channel that throws on supports is also tolerated")
     void channelSupportsFalseMarksSkipped() {
         when(channelA.channelId()).thenReturn("a");
         when(channelB.channelId()).thenReturn("b");
@@ -258,7 +258,7 @@ class NotificationDispatcherTest {
     }
 
     @Test
-    @DisplayName("ADR-004 §4 #3: same intent dispatched 3 times → In-App channel send() called once")
+    @DisplayName("same intent dispatched 3 times → In-App channel send() called once")
     void idempotencyThreeDispatches() {
         when(channelA.channelId()).thenReturn("in_app");
         when(channelA.supports(any())).thenReturn(true);
@@ -305,7 +305,7 @@ class NotificationDispatcherTest {
     }
 
     @Test
-    @DisplayName("ADR-004 §4 #6: 3 no-op channels → single dispatch < 50ms")
+    @DisplayName("3 no-op channels → single dispatch < 50ms")
     void dispatcherLatencyUnder50ms() {
         when(channelA.channelId()).thenReturn("a");
         when(channelB.channelId()).thenReturn("b");
@@ -320,7 +320,7 @@ class NotificationDispatcherTest {
         }
 
         // Measure 100 dispatches; the *average* per-dispatch must be < 50ms
-        // (ADR §4 #6 specifies single-dispatch budget; the warm-up is to
+        // (the delivery contract specifies a single-dispatch budget; the warm-up is to
         // avoid first-call JIT cost dominating the measurement).
         NotificationIntent intent = sampleIntent("user-perf");
         long t0 = System.nanoTime();

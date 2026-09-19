@@ -22,8 +22,8 @@ import org.springframework.web.bind.annotation.*;
 /**
  * Admin tag management endpoints. {@code @Validated} enables {@code @Pattern} on
  * {@code @RequestParam} so unknown {@code type} values are rejected with HTTP400
- * (instead of silently falling back to PROBLEM — see docs/admin-tags-test-plan.md
- * §7 Bug #2). The whitelist is also re-enforced inside
+ * (instead of silently falling back to PROBLEM). The whitelist is also
+ * re-enforced inside
  * {@link com.ulticode.modules.admin.service.AdminTagServiceImpl} as a defense-in-depth.
  * The single source of truth for the whitelist lives in
  * {@link com.ulticode.modules.admin.dto.tag.TagTypes}.

@@ -20,13 +20,13 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Write-path implementation for achievement CRUD.
  *
- * <p>Read paths were extracted into {@link AchievementProjection} (ADR-0005).
+ * <p>Read paths were extracted into {@link AchievementProjection} (the current projection seam).
  * This impl now injects only the two achievement-side mappers it actually
  * uses; read-only submission counters moved with the read paths to the
  * projection, and the unused {@code ContestParticipantMapper} field was
  * dropped entirely. Post-action view shapes are produced via
  * {@link AchievementProjection#toVO(Achievement)} &mdash; mirroring the
- * ModerationProjection {@code toAppealVO} pattern (ADR-0004).</p>
+ * ModerationProjection {@code toAppealVO} pattern (the existing projection pattern).</p>
  */
 @Slf4j
 @Service

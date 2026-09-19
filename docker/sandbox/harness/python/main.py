@@ -106,7 +106,7 @@ def run(solution_module: Any, input_path: str) -> int:
     with open(input_path, encoding="utf-8") as f:
         envelope_in = json.load(f)
     per_case_timeout = int(envelope_in.get("per_case_timeout_ms", DEFAULT_PER_CASE_TIMEOUT_MS))
-    # ADR-002 §8 (P0-2): per-run memory ceiling forwarded to each per-case
+    # Resource-limit contract (P0-2): per-run memory ceiling forwarded to each per-case
     # subprocess so it can self-report Memory Limit Exceeded.
     memory_limit_bytes = int(envelope_in.get("memory_limit_bytes", 0) or 0)
     cases = envelope_in.get("cases", []) or []

@@ -14,7 +14,7 @@ globs:
 
 # Database migrations
 
-- Follow the root database rules and `init-db/README.md`; use `docs/operations/database-migrations.md` for the applicable migration workflow.
+- Follow the root database rules and `init-db/README.md`; use `docs/OPERATIONS.md#数据库迁移与-owner-收敛` for the applicable migration workflow.
 - Add a new canonical migration; do not edit applied history or introduce usable seed credentials. Preserve owner schema isolation and separate migration credentials from runtime accounts.
 - Keep existing opt-in guards for local baseline adoption and seed data; do not enable them implicitly or in production.
 - For populated tables, check affected data and lock/backfill risk; choose compatible DDL and a recovery path. Do not assume every alteration supports online DDL.

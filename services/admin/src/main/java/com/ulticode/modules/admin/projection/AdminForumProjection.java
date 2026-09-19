@@ -16,7 +16,7 @@ import com.ulticode.modules.admin.dto.AdminForumPostVO;
  *
  * <p>This is the same shallow cluster lifted out of
  * {@link com.ulticode.modules.admin.service.AdminForumService} for the Stage 2
- * rollout of ADR-0011: the paginated post list read ({@link #getPosts}, query
+ * rollout: the paginated post list read ({@link #getPosts}, query
  * building + batch comment/upvote/downvote/user/community enrichment + N+1-safe
  * VO shaping), the single-detail post read ({@link #getPost}), and the
  * community list derivation ({@link #getCommunities}). Sitting next to the

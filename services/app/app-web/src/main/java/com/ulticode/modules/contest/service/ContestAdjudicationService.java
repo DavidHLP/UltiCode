@@ -26,7 +26,7 @@ import com.ulticode.submission.api.event.SubmissionJudgedEvent;
  * auto-finish) and contest cleanup (cascade delete) live in the
  * {@link ContestLifecycleService}; this module does not touch them.
  *
- * <p>Preserves durable post-judge scoring and ADR-006 (scoring mode +
+ * <p>Preserves durable post-judge scoring and the scoring-mode rule (
  * penalty-keyed wrong-submission handling).
  */
 public interface ContestAdjudicationService {

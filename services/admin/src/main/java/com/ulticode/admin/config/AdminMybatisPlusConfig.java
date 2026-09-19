@@ -27,7 +27,7 @@ import org.springframework.context.annotation.Configuration;
  * </ul>
  *
  * <p>Deliberately omits the dead {@code DbOwnerViolationInterceptor} (classified
- * DEAD by ADR-P7-DBPERM-CLASSIFICATION-20260803) and the app-owned SQL timing
+ * DEAD by the owner-boundary classification) and the app-owned SQL timing
  * interceptor. Mirrors {@code com.ulticode.app.config.MybatisPlusConfig}.
  */
 @Configuration

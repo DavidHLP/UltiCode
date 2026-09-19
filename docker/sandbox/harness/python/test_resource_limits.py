@@ -1,4 +1,4 @@
-"""ADR-002 §8 resource measurement contract tests for the Python harness.
+"""Sandbox resource measurement contract tests for the Python harness.
 
 Exercises the per-case timeout (TLE), per-case memory ceiling (MLE), and
 the new measurement fields (elapsed_us / cpu_ms / peak_memory_bytes) via
@@ -37,7 +37,7 @@ def _run_flow(solution_src: str, input_payload: dict) -> dict:
 
 
 def test_resource_fields_present_on_accepted():
-    """Accepted verdicts carry the ADR-002 §8 measurement fields."""
+    """Accepted verdicts carry the sandbox resource measurement fields."""
     src = (
         "class Solution:\n"
         "    def add(self, a):\n"
@@ -79,7 +79,7 @@ def test_time_limit_exceeded_infinite_loop():
 
 
 def test_memory_limit_exceeded():
-    """Allocating past memory_limit_bytes self-reports MLE (ADR-002 §8 P0-2)."""
+    """Allocating past memory_limit_bytes self-reports MLE (resource-limit contract)."""
     src = (
         "class Solution:\n"
         "    def alloc(self, n):\n"

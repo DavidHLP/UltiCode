@@ -34,7 +34,7 @@ public final class EmailTemplates {
      * {@code to} (recipient) field — callers must set it before calling
      * {@code EmailService.sendEmail}.
      *
-     * <p>Per ADR-004 §2.5, a missing or null email is the channel's
+     * <p>A missing or null email is the channel's
      * concern; this helper is purely about the template binding.
      */
     public static SendEmailDTO forIntent(NotificationIntent intent) {

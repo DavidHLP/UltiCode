@@ -69,7 +69,7 @@ export const subscriptionApi = {
    * as `null` and then dropped by `Result.@JsonInclude(NON_NULL)`, leaving
    * the frontend with `undefined` and breaking `.hasAccess` access.
    * `/check-premium` returns the correct `SubscriptionCheckResultDTO` shape.
-   * See `docs/subscription-api-test-questions.md` (P0-2).
+   * The endpoint shape is covered by the current API contract and regression tests.
    */
   async getMySubscription(): Promise<SubscriptionCheckResult> {
     return apiGet<SubscriptionCheckResult>("/subscriptions/check-premium");

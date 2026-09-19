@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Java language profile (ADR-002 §2.2).
+ * Java language profile (language execution contract).
  *
  * <p>Behavior migrated verbatim from the D-form dispatch path of the
  * pre-M2a {@code SandboxServiceImpl}:

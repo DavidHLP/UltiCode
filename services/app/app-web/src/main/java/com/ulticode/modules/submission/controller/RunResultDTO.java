@@ -17,7 +17,7 @@ import java.util.List;
  *   <li>{@code runtimeMs} / {@code memoryMb}: numeric values — convenient
  *       for charts and aggregation. (Added in v2; absent for legacy callers.)</li>
  *   <li>{@code runtimeUs} / {@code cpuMs}: precise wall-clock microseconds
- *       and CPU milliseconds (ADR-002 §8). {@code runtimeUs} avoids the
+ *       and CPU milliseconds (resource-measurement contract). {@code runtimeUs} avoids
  *       ms-truncation that showed {@code 0ms} for fast cases; {@code cpuMs}
  *       enables fair cross-language comparison. (v3; absent for legacy.)</li>
  * </ul>
@@ -25,7 +25,7 @@ import java.util.List;
  * <p>{@code verdict} is the per-run overall status; per-case status lives
  * inside each {@link RunCaseResult#status} field.
  *
- * @see docs/reports/submission-api-test-report-2026-06-10.md §4.1
+ * @see SubmissionController and its regression tests.
  */
 @Data
 @Builder
@@ -44,9 +44,9 @@ public class RunResultDTO implements Serializable {
     private Long runtimeMs;
     /** Memory in MB (numeric, v2 schema). */
     private Double memoryMb;
-    /** Runtime in microseconds (numeric, v3 schema; precise, ADR-002 §8). */
+    /** Runtime in microseconds (numeric, v3 schema; precise, resource-measurement contract). */
     private Long runtimeUs;
-    /** CPU time in milliseconds, summed across cases (numeric, v3 schema; ADR-002 §8). */
+    /** CPU time in milliseconds, summed across cases (numeric, v3 schema; resource-measurement contract). */
     private Long cpuMs;
 
     private List<RunCaseResult> cases;
@@ -71,9 +71,9 @@ public class RunResultDTO implements Serializable {
         private Long runtimeMs;
         /** Memory in MB (numeric, v2 schema). */
         private Double memoryMb;
-        /** Runtime in microseconds (numeric, v3 schema; precise, ADR-002 §8). */
+        /** Runtime in microseconds (numeric, v3 schema; precise, resource-measurement contract). */
         private Long runtimeUs;
-        /** CPU time in milliseconds (numeric, v3 schema; ADR-002 §8). */
+        /** CPU time in milliseconds (numeric, v3 schema; resource-measurement contract). */
         private Long cpuMs;
         private String detail;
         private String output;

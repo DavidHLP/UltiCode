@@ -9,7 +9,7 @@ import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
 /**
- * MyBatis mapper for {@link NotificationDeliveryLedger} (ADR-004 M4a).
+ * MyBatis mapper for {@link NotificationDeliveryLedger} (delivery ledger contract).
  *
  * <p>{@code tryClaim} first inserts a delivery row and then, when the natural
  * key already exists, atomically reclaims an eligible {@code FAILED} row.
@@ -156,7 +156,7 @@ public interface NotificationDeliveryLedgerMapper extends BaseMapper<Notificatio
 
     /**
      * Count rows in a given delivery state. Used by ops dashboards and the
-     * ADR-004 §4 contract test.
+     * delivery contract test.
      */
     @Select("SELECT COUNT(*) FROM notification_delivery_ledger WHERE delivery_state = #{state}")
     long countByState(@Param("state") DeliveryState state);

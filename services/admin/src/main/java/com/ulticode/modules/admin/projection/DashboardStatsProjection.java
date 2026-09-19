@@ -6,7 +6,7 @@ import com.ulticode.modules.admin.dto.DashboardStatsVO;
 /**
  * Read-side deep module owning dashboard statistics aggregation and chart-data shaping.
  *
- * <p>Mirrors the ADR-0011 {@code *Projection} pattern: the interface is the test surface,
+ * <p>Mirrors the established {@code *Projection} pattern: the interface is the test surface,
  * the implementation absorbs owner-read data&rarr;VO shaping that previously lived beside
  * direct foreign-table queries. Owner SQL and bounded RPC failure semantics stay behind
  * {@code AdminDashboardReadPort}.

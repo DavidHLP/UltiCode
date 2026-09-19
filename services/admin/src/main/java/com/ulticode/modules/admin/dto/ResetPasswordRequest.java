@@ -11,7 +11,7 @@ import lombok.Data;
  * <p><b>命名差异提示</b>: 本模块 (admin) 使用字段名 <code>password</code>,
  * 而 <code>com.ulticode.modules.auth.dto.ResetPasswordDTO</code> (公开 token-based 重置)
  * 使用 <code>newPassword</code>。前端 management 已与本端点对齐使用 <code>password</code>。
- * 详见 <code>docs/api-field-naming-conventions.md</code>。
+ * API contract and frontend field mapping are maintained by the source and tests.
  */
 @Data
 @Schema(description = "Request to reset a user's password (admin operation)")

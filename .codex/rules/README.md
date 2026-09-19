@@ -35,5 +35,5 @@ codex execpolicy check --pretty --rules .codex/rules/infrastructure-safety.rules
 codex execpolicy check --pretty --rules .codex/rules/external-publish.rules -- docker push registry.example/app:tag
 ```
 
-See [rule design](../../docs/development/coding-guidelines.md) and
+See [rule design](../../docs/DEVELOPMENT.md#编码指南与规则入口) and
 [Codex rules documentation](https://learn.chatgpt.com/docs/agent-configuration/rules).

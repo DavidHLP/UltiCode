@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * MyBatis mapper for {@link JudgeOutboxRecord} (ADR-003 M3a).
+ * MyBatis mapper for {@link JudgeOutboxRecord} (M3a).
  *
  * <p>The {@code claim} query uses {@code FOR UPDATE SKIP LOCKED} so that
  * multiple dispatcher instances (or a dispatcher racing a reaper) never process
@@ -123,7 +123,7 @@ public interface JudgeOutboxMapper extends BaseMapper<JudgeOutboxRecord> {
     List<JudgeOutboxRecord> selectStalePending(@Param("staleBefore") LocalDateTime staleBefore);
 
     /**
-     * Claim rows for real (non-shadow) dispatch (ADR-003 M3c-2 cutover).
+     * Claim rows for real (non-shadow) dispatch (M3c-2 cutover contract).
      * Unlike {@link #claim}, this filters to {@code is_shadow = 0} rows created
      * at or after the cutover timestamp, so the M3c dispatcher never steals
      * rows from the M3a shadow path.

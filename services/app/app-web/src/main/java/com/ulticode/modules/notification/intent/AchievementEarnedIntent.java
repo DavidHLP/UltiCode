@@ -8,7 +8,7 @@ import java.time.Instant;
 
 /**
  * Intent emitted when a user earns an achievement. The legacy listener
- * (pre-ADR-004) used raw string types and a non-enum category; this record
+ * (pre-typed-intent refactor) used raw string types and a non-enum category; this record
  * captures the same data with proper typing.
  *
  * <p>{@code tier} follows the existing convention in
@@ -28,7 +28,7 @@ import java.time.Instant;
  * the achievement payload is a genuinely different DTO consumed by a
  * different frontend handler.
  *
- * <p>Reference: ADR-004 §2.1 (AchievementEarnedIntent); M4d-1 review
+ * <p>Reference: typed notification intent contract (AchievementEarnedIntent); M4d-1 review
  * finding #6.
  */
 public record AchievementEarnedIntent(
@@ -46,7 +46,7 @@ public record AchievementEarnedIntent(
 
     @Override
     public String intentId() {
-        // ADR-004 M4d-1 finding #6: earnedAt is part of the key so re-issued
+        // Intent-id rule: earnedAt is part of the key so re-issued
         // achievement events (tier-up promotion, system re-evaluate) produce
         // a distinct ledger row. Trade-off: a true duplicate event within
         // the same millisecond is still collapsed — acceptable since

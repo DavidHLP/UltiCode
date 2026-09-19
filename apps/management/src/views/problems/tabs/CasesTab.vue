@@ -14,7 +14,7 @@ defineProps<{
     <CasesDisplay :problem="problem" />
     <!--
       Admin-only hidden cases (read-only) — same component as in
-      ViewCasesView. See HiddenCasesView.vue for the ADR-001 visibility
+      ViewCasesView. See HiddenCasesView.vue for the hidden-case visibility
       contract.
     -->
     <HiddenCasesView :problem-id="problemId" />

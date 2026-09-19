@@ -5,7 +5,7 @@ import java.nio.file.Path;
 import java.util.List;
 
 /**
- * Strategy (ADR-002 §2.2) describing how to execute one programming
+ * Strategy describing how to execute one programming
  * language in the sandbox.
  *
  * <p>One bean is registered per supported language. The executor

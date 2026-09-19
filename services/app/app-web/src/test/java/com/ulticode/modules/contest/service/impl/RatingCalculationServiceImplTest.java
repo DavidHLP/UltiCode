@@ -33,10 +33,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * Unit tests for {@link RatingCalculationServiceImpl}, covering the P1-5
- * (O(n²) -> HashMap preload) and tie-handling fixes from
- * {@code docs/contest-design-analysis-2026-06-16.md}, plus the P1-4
- * (is_virtual filter) and R3.2 (status→is_virtual mapper switch) fixes.
+ * Unit tests for {@link RatingCalculationServiceImpl}, covering ranking
+ * performance (O(n²) -> HashMap preload), tie-handling, virtual-contest
+ * filtering, and status-to-virtual mapping regressions (P1-4, P1-5, R3.2).
  */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)

@@ -101,8 +101,7 @@ class AchievementMapperIT {
                   UNIQUE KEY `key` (`key`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
                 """);
-            // Seed 2 rows with valid JSON criteria — mirrors the dev seed in
-            // docs/achievement-api-test-report-2026-06-11.md §5.
+            // Seed 2 rows with valid JSON criteria — mirrors the dev seed criteria.
             stmt.execute("""
                 INSERT INTO achievements (id, `key`, name, description, category, tier, criteria, points, is_active)
                 VALUES

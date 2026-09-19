@@ -8,14 +8,14 @@ import org.junit.jupiter.params.provider.CsvSource;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Cross-language infrastructure failure detection (ADR-002 §2.5).
+ * Cross-language infrastructure failure detection (sandbox execution contract).
  *
  * <p>The pre-M2a {@code SandboxServiceImpl} hosted these as static
  * methods. They moved verbatim into {@link SandboxExecutorImpl};
  * this test class preserves the same fixture so the regression
  * coverage is unchanged.
  */
-@DisplayName("SandboxExecutorImpl fork-failure detection (ADR-002 §2.5)")
+@DisplayName("SandboxExecutorImpl fork-failure detection (sandbox execution contract)")
 class SandboxExecutorImplForkDetectionTest {
 
     @Test

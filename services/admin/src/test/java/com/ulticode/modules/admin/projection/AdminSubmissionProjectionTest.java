@@ -36,7 +36,7 @@ import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for {@link DefaultAdminSubmissionProjection} &mdash; the read-side
- * deep read module extracted during ADR-0011 Stage 2.
+ * deep read module extracted during the Stage 2 extraction.
  *
  * <p>Covers the read paths that previously shared the Admin submission
  * management service: {@code getStatuses} (enum-derived),

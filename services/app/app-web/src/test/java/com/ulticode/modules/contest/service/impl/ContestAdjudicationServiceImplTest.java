@@ -47,7 +47,7 @@ import static org.mockito.Mockito.when;
 /**
  * Unit tests for {@link ContestAdjudicationServiceImpl} — the deep verdict
  * seam. Covers the P0-1 first-solve / idempotency contract and the R4 /
- * ADR-006 §2 scoring-mode + penalty behaviour. Each test exercises one
+ * scoring-mode + penalty behaviour. Each test exercises one
  * invariant against a mock mapper graph so the contract is locked in
  * independent of MyBatis / DB state.
  */
@@ -286,11 +286,11 @@ class ContestAdjudicationServiceImplTest {
         assertThat(captor.getValue().getTotalScore()).isEqualTo(100);
     }
 
-    // ---- R4: ADR-006 §4 validation: scoring mode + penalty config ----
+    // ---- R4: scoring-mode validation: scoring mode + penalty config ----
 
     /** R4: SCORE mode — wrong submissions do NOT add penalty (AC-即满分). */
     @Test
-    @DisplayName("R4 / ADR-006 §2.2: SCORE mode does not accumulate penalty on WA")
+    @DisplayName("R4 / scoring-mode: SCORE mode does not accumulate penalty on WA")
     void applyJudgeResult_scoreMode_waHasNoPenalty() {
         runWrongSubmissionWithContest(mockContest("SCORE", 20));
         ArgumentCaptor<ContestParticipant> captor = ArgumentCaptor.forClass(ContestParticipant.class);
@@ -303,7 +303,7 @@ class ContestAdjudicationServiceImplTest {
 
     /** R4: IOI mode — wrong submissions do NOT add penalty (取最高分，错误不计). */
     @Test
-    @DisplayName("R4 / ADR-006 §2.2: IOI mode does not accumulate penalty on WA")
+    @DisplayName("R4 / scoring-mode: IOI mode does not accumulate penalty on WA")
     void applyJudgeResult_ioiMode_waHasNoPenalty() {
         runWrongSubmissionWithContest(mockContest("IOI", 20));
         ArgumentCaptor<ContestParticipant> captor = ArgumentCaptor.forClass(ContestParticipant.class);
@@ -311,9 +311,9 @@ class ContestAdjudicationServiceImplTest {
         assertThat(captor.getValue().getTotalPenalty()).isEqualTo(0);
     }
 
-    /** R4 / ADR-006 §2.1: penaltyPerWrong=null falls back to 20, no NPE. */
+    /** R4 / scoring-mode: penaltyPerWrong=null falls back to 20, no NPE. */
     @Test
-    @DisplayName("R4 / ADR-006 §2.1: penaltyPerWrong=null falls back to 20 in ICPC mode")
+    @DisplayName("R4 / scoring-mode: penaltyPerWrong=null falls back to 20 in ICPC mode")
     void applyJudgeResult_icpcPenaltyNull_fallsBackTo20() {
         runWrongSubmissionWithContest(mockContest("ICPC", null));
         ArgumentCaptor<ContestParticipant> captor = ArgumentCaptor.forClass(ContestParticipant.class);
@@ -321,7 +321,7 @@ class ContestAdjudicationServiceImplTest {
         assertThat(captor.getValue().getTotalPenalty()).isEqualTo(20);
     }
 
-    /** R4 / ADR-006 §2.1: custom penaltyPerWrong is honored. */
+    /** R4 / scoring-mode: custom penaltyPerWrong is honored. */
     @Test
     @DisplayName("R4: custom penaltyPerWrong=CUSTOM_PENALTY is applied in ICPC mode")
     void applyJudgeResult_icpcCustomPenalty_applied() {

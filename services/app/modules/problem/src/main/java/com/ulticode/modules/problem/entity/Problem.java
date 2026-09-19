@@ -167,7 +167,7 @@ public class Problem {
     private Integer version;
 
     /**
-     * Per-problem time limit in seconds (ADR-002 §8 / P2-1). NULL means
+     * Per-problem time limit in seconds (resource limit contract / P2-1). NULL means
      * "use the global sandbox default". Lets hard problems allow more time
      * than easy ones. Maps to column {@code time_limit} via
      * {@code mapUnderscoreToCamelCase}.
@@ -175,7 +175,7 @@ public class Problem {
     private Integer timeLimit;
 
     /**
-     * Per-problem memory limit in MiB (ADR-002 §8 / P2-1). NULL means
+     * Per-problem memory limit in MiB (resource limit contract / P2-1). NULL means
      * "use the global sandbox default". Maps to column {@code memory_limit}.
      */
     private Integer memoryLimit;

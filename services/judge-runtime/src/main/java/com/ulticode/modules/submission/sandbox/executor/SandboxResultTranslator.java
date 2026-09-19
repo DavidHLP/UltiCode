@@ -24,7 +24,7 @@ import java.util.List;
  *   <li>{@link #toPortResult(JudgeRunResponse.RunCaseResult, TestCase, long)}
  *       — runtime result DTO back into the port-owned
  *       {@link RunCaseResult} carrying the typed {@link SubmissionStatus}
- *       enum, including the ADR-002 §8 Layer-B memory-ceiling backstop
+ *       enum, including the Layer-B memory-ceiling backstop
  *       delegated to {@link SandboxOutcomeClassifier#applyMemoryCeiling}.</li>
  * </ul>
  *
@@ -33,7 +33,7 @@ import java.util.List;
  * constructed directly by {@code SandboxExecutorImpl} from collaborators it
  * already holds, so no wiring, DI, or external contract changes. The
  * security-sensitive surface (docker command, seccomp, fork detection, process
- * lifecycle) stays in {@code SandboxExecutorImpl} where ADR-002 keeps it
+ * lifecycle) stays in {@code SandboxExecutorImpl} where the sandbox contract keeps it
  * centrally owned.
  *
  * @author ulticode
@@ -103,7 +103,7 @@ class SandboxResultTranslator {
                 : 0L;
         long elapsedUs = dto.getRuntimeUs() != null ? dto.getRuntimeUs() : 0L;
         long cpuMs = dto.getCpuMs() != null ? dto.getCpuMs() : 0L;
-        // ADR-002 §8 Layer B: backend backstop MLE. If the harness reported a
+        // Layer B: backend backstop MLE. If the harness reported a
         // peak over the limit but didn't self-classify (older harness, or a
         // language whose harness skipped the check), reclassify so the user
         // sees Memory Limit Exceeded instead of a misleading Accepted/WA.

@@ -42,7 +42,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * on routing, JSON shape, and validation wiring — service-layer guards are
  * covered in AdminTagServiceImplTest.</p>
  *
- * <p>Each bug from docs/admin-tags-test-plan.md §7 has at least one regression
+ * <p>Each known tag validation regression has at least one regression
  * test:</p>
  * <ul>
  *   <li>Bug #1 → missing-type returns 400 (was 500)</li>

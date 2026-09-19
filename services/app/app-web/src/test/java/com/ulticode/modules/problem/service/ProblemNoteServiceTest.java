@@ -33,7 +33,7 @@ import static org.mockito.Mockito.doThrow;
 /**
  * Unit tests for {@link ProblemNoteServiceImpl}.
  *
- * <p>Regression scope from {@code docs/interaction-note-api-test-report-2026-06-11.md}:
+ * <p>Regression scope covers:
  * GET path (returns null when absent), POST path (upsert insert vs. update branch),
  * problem existence validation.
  */

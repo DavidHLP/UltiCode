@@ -12,7 +12,7 @@ import java.util.Locale;
  * {@link SubmissionStatus}.
  *
  * <p>This is the single source of truth for exit-code / output-based
- * failure detection (ADR-002 §2.5). It deliberately sees the
+ * failure detection (sandbox failure-classification contract). It deliberately sees the
  * <b>raw</b> stdout / stderr (including docker / OCI runtime lines
  * that {@link com.ulticode.modules.submission.service.SandboxOutputFormatter#sanitizeSandboxOutput(String)}
  * strips for display). Keeping the failure oracle independent of the
@@ -253,7 +253,7 @@ public class SandboxOutcomeClassifier {
 
     /**
      * Apply the backend backstop memory-limit-ceiling check
-     * (ADR-002 §8 Layer B). When the harness self-reported a
+     * (Layer B). When the harness self-reported a
      * verdict of {@link SubmissionStatus#ACCEPTED} or
      * {@link SubmissionStatus#WRONG_ANSWER} but the run's peak
      * memory exceeded the active {@link com.ulticode.modules.submission.sandbox.SandboxLimits#memoryMb()}

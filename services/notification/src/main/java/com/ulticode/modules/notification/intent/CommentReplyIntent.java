@@ -7,7 +7,7 @@ import java.util.Map;
 
 /**
  * Intent emitted when a user receives a reply to one of their comments.
- * Reserved by ADR-004 §2.1 — no producer constructs it yet; the forum
+ * Reserved — no producer constructs it yet; the forum
  * comment-reply path will dispatch this typed intent once that module is
  * touched. Channel projection is implemented (all three channels support
  * it) so the dispatcher does not silently drop events for the first caller.

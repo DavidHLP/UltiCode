@@ -39,7 +39,7 @@ import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for {@link DefaultAdminSolutionProjection} &mdash; the read-side
- * deep module lifted out of AdminSolutionServiceImpl per ADR-0011 Stage 2.
+ * deep module lifted out of AdminSolutionServiceImpl during the Stage 2 extraction.
  *
  * <p>Pins the three behaviours that moved behind the projection seam:
  * <ul>

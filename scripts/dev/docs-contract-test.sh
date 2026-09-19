@@ -22,9 +22,9 @@ contains README.md './scripts/dev/up.sh --mode dev-lite'
 contains README.md './scripts/dev/up.sh --mode dev-full'
 contains README.md 'This version no longer supports `legacy-rollback`'
 not_contains README.md './scripts/dev/up.sh --mode legacy-rollback'
-not_contains docs/development/local-setup.md './scripts/dev/up.sh --mode legacy-rollback'
+not_contains docs/DEVELOPMENT.md './scripts/dev/up.sh --mode legacy-rollback'
 contains scripts/README.md '`legacy-rollback` 和未知 mode fail closed'
-contains docs/development/local-setup.md 'bash scripts/runbooks/owner-schema-contraction.sh preflight'
+contains docs/DEVELOPMENT.md 'bash scripts/runbooks/owner-schema-contraction.sh preflight'
 contains scripts/dev/up.sh '--scope <name>'
 contains scripts/dev/up.sh 'defaults to dev-lite'
 contains scripts/dev/devstack-manifest.sh 'search=off;meili=off;judge=on;notification=on;frontend=off;observability=off'
@@ -34,18 +34,17 @@ contains init-db/README.md 'flyway-contraction.conf'
 contains scripts/README.md 'owner-schema-contraction.sh'
 contains services/docs/SERVICES_ISSUES.md 'P1-DATA-001 also routes normal user/contest/admin/statistics/generation reads'
 
-not_contains docs/architecture/overview.md \
+not_contains docs/ARCHITECTURE.md \
   'Admin 的查询 Seam 仍过细'
-contains docs/architecture/overview.md \
+contains docs/ARCHITECTURE.md \
   'Admin 查询已收敛为粗粒度 query slices'
-not_contains docs/architecture/overview.md \
+not_contains docs/ARCHITECTURE.md \
   'Submission 读侧的 facts enrichment、数据库物理隔离、App 双轨兼容、Admin Seam 聚合和运维文档仍需后续任务完成'
-contains docs/architecture/overview.md \
+contains docs/ARCHITECTURE.md \
   'Judge normal dev-lite/dev-full 使用 provider-owned JudgeQueue Streams'
-contains docs/operations/database-migrations.md \
+contains docs/OPERATIONS.md \
   '#### Submission read owner cutover 与 schema contraction'
-contains docs/architecture/evidence/P4-LEGACY-011-schema-contraction.md \
-  'owner-schema-contraction-contract: PASS'
+contains docs/OPERATIONS.md 'owner-schema-contraction-contract: PASS'
 contains services/docs/SCHEDULER_RUNBOOK.md 'P3-SCHED-001'
 contains services/docs/SCHEDULER_RUNBOOK.md 'ThreadPoolTaskScheduler'
 

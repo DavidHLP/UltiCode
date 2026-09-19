@@ -31,13 +31,13 @@ import java.util.stream.Collectors;
  *
  * <p>Extracted verbatim from the old {@code RealtimeService} (now
  * deleted) when the rest of the realtime-push seam was inverted into
- * per-consumer ports. ADR-0009 §3 explains why this class stays in the
+ * per-consumer ports. The transport boundary explains why this class stays in the
  * websocket module rather than the contest module: the throttle logic
  * exists only to protect the WebSocket transport, not the contest
  * domain.
  *
  * <p>The live-ranking read itself is obtained through the contest
- * module's {@link ContestLiveRankingReadPort} (ADR-0010) rather than
+ * module's {@link ContestLiveRankingReadPort} rather than
  * the old {@code RankingService} facade, so the websocket module does
  * not depend on the contest module's broader ranking API.
  *

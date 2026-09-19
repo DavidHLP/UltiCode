@@ -19,8 +19,8 @@ public class CreateTagDTO {
 
  /**
  * Tag storage bucket. Must be one of {@link TagTypes#WHITELIST_REGEX};
- * unknown values are rejected with HTTP400 — see docs/admin-tags-test-plan.md
- * §7 Bug #2.
+ * unknown values are rejected with HTTP400 by the tag-type whitelist
+ * validator in the controller and service layers.
  */
  @NotNull(message = "Tag type is required")
  @Pattern(regexp = TagTypes.WHITELIST_REGEX,

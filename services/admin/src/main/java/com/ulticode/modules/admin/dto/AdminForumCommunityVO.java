@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
  * endpoint. Extracted from {@code AdminForumController} as a top-level DTO so
  * the {@link com.ulticode.modules.admin.projection.AdminForumProjection}
  * deep module can own the read shape without importing a controller inner
- * class (ADR-0011 Stage 2 hygiene).
+ * class (deep-module hygiene).
  *
  * @author ulticode
  */

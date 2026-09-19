@@ -12,7 +12,7 @@ import { apiGet, apiPost } from "@/utils/request";
  * console/ and management/); keeping them here so the FE spec
  * matches the BE contract and prevents silent runtime errors
  * if/when the D-10 feature ships. See
- * docs/edge-operations-api-test-report-2026-06-11.md §四.
+ * the current API contract and regression checks.
  */
 export enum EdgeOperationType {
   VOTE_UP = "VOTE_UP",
@@ -32,7 +32,7 @@ export enum EdgeOperationType {
  * POST and COMMENT are reserved for the planned generic
  * comment-system migration (no controller endpoint exists yet);
  * keeping them here prevents future drift when the comment
- * module ships. See docs/edge-operations-api-test-report-2026-06-11.md §四.
+ * module ships; keep the current API contract and regression checks.
  */
 export enum EdgeOperationTargetType {
   PROBLEM = "PROBLEM",

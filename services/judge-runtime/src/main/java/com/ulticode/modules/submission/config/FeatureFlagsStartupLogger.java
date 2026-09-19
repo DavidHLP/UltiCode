@@ -8,9 +8,9 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 /**
- * Logs the ADR-003 judge feature-flag values at startup so operators can confirm
+ * Logs the judge feature-flag values at startup so operators can confirm
  * whether the M3a outbox shadow write and the M3b generation fence / lease path
- * are active for this deployment (see ADR-003 §3.3 and ADR-005 §3.3).
+ * are active for this deployment.
  *
  * <p>Normal development modes use the Streams + generation-fence path. The
  * legacy RQueue path is an explicit {@code legacy-rollback} mode only.
@@ -25,7 +25,7 @@ public class FeatureFlagsStartupLogger implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        log.info("ADR-003 judge feature flags: useJudgeOutbox={}, useGenerationFence={}",
+        log.info("judge feature flags: useJudgeOutbox={}, useGenerationFence={}",
                 featureFlags.isUseJudgeOutbox(),
                 featureFlags.isUseGenerationFence());
     }

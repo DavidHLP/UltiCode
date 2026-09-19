@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Central fan-out for {@link NotificationIntent} (ADR-004 §2.3).
+ * Central fan-out for {@link NotificationIntent} (notification delivery contract).
  *
  * <p>Algorithm per {@link #dispatch(NotificationIntent)}:
  * <ol>
@@ -162,7 +162,7 @@ public class NotificationDispatcher {
                 if (firstFailure == null) {
                     firstFailure = e;
                 }
-                // Failure isolation (ADR-004 §2.3): record the failure and let
+                // Failure isolation: record the failure and let
                 // the loop continue. recordFailure wraps its own ledger/counter/log
                 // calls so a broken ledger cannot escape here.
                 markFailed(intent, channel, intentType, claimOwner, e);
@@ -234,7 +234,7 @@ public class NotificationDispatcher {
     /**
      * Record a failed delivery. Wrapped so a broken ledger/meter (the likely
      * cause of the original failure) cannot escape and poison the next channel
-     * (ADR-004 §2.3 failure isolation).
+     * (failure isolation).
      */
     private void markFailed(NotificationIntent intent, NotificationChannel channel,
                             String intentType, String claimOwner, Exception cause) {
@@ -263,7 +263,7 @@ public class NotificationDispatcher {
 
     /**
      * Increment a counter, swallowing a meter-registry failure so a metrics
-     * hiccup never breaks dispatch (ADR-004 §2.3 failure isolation).
+     * hiccup never breaks dispatch (failure isolation).
      */
     private void incrementCounter(String name, String... tags) {
         try {

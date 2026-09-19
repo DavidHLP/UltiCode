@@ -8,7 +8,7 @@
 
 [English](README.md) · **简体中文**
 
-[快速开始](#快速开始) · [界面预览](#界面预览) · [项目文档](docs/index.md) · [路线图](docs/project/roadmap.md) · [参与贡献](#参与贡献)
+[快速开始](#快速开始) · [界面预览](#界面预览) · [项目文档](docs/index.md) · [参与贡献](#参与贡献)
 
 [MIT License](LICENSE) · [报告问题](https://github.com/DavidHLP/UltiCode/issues) · [CI 工作流](https://github.com/DavidHLP/UltiCode/actions/workflows/ci.yml)
 
@@ -75,7 +75,7 @@ cd UltiCode
 >
 > `init-env.sh` 会把 `SUBMISSION_CUTOVER_COMPLETE` 生成为 `false`。`dev-lite` 和 `dev-full` 都要求 `APP_SUBMISSION_ROUTING_MODE=remote` 与已完成的 Submission cutover marker；未满足时启动脚本会拒绝执行。
 >
-> 请先阅读[数据库迁移](docs/operations/database-migrations.md)，按授权的 cutover/backfill runbook 完成迁移与验证。不要仅修改标记来跳过检查。
+> 请先阅读[数据库迁移](docs/OPERATIONS.md#数据库迁移与-owner-收敛)，按授权的 cutover/backfill runbook 完成迁移与验证。不要仅修改标记来跳过检查。
 
 ### 4. 启动开发环境
 
@@ -102,7 +102,7 @@ cd UltiCode
 ./scripts/dev/up.sh --mode dev-full
 ```
 
-前端启动后访问：[Console 用户端](http://localhost:9002) · [Management 管理端](http://localhost:9003)。更多 scope、日志与排障入口见[本地开发](docs/development/local-setup.md)。
+前端启动后访问：[Console 用户端](http://localhost:9002) · [Management 管理端](http://localhost:9003)。更多 scope、日志与排障入口见[本地开发](docs/DEVELOPMENT.md#本地开发)。
 
 <details>
 <summary>可选 Core 试点与回滚说明</summary>
@@ -117,7 +117,7 @@ Core 收敛试点使用显式 scope，保持 Judge 独立进程：
 Core parent 监听 `9108`，readiness 为 `/api/v1/core/health/ready`；该 profile
 当前用于 owner assembly 和边界验证，尚未替代默认 distributed topology。
 
-当前版本不再支持 `legacy-rollback`；`up.sh` 对该旧模式和未知 mode fail closed。生产回滚只能使用部署方保留并校验的上一份完整 release descriptor，不能通过当前二进制恢复旧实现（见[部署、发布与回滚](docs/operations/deployment.md)）。
+当前版本不再支持 `legacy-rollback`；`up.sh` 对该旧模式和未知 mode fail closed。生产回滚只能使用部署方保留并校验的上一份完整 release descriptor，不能通过当前二进制恢复旧实现（见[部署、发布与回滚](docs/OPERATIONS.md#部署发布与回滚)）。
 
 </details>
 
@@ -136,16 +136,16 @@ UltiCode/
 └── docs/              # 架构、开发与部署文档
 ```
 
-默认采用 **distributed** 拓扑。Auth、Admin、App、Submission、Notification 分别负责自己的数据和写入边界；Judge 负责评测，Search 维护派生索引。详见[架构总览](docs/architecture/overview.md)。
+默认采用 **distributed** 拓扑。Auth、Admin、App、Submission、Notification 分别负责自己的数据和写入边界；Judge 负责评测，Search 维护派生索引。详见[架构总览](docs/ARCHITECTURE.md)。
 
 ## 文档入口
 
-- [文档导航](docs/index.md)：按架构、开发、运维、API、状态和历史查找权威来源。
-- [当前状态](docs/project/current-status.md)：仓库完成度、外部边界和当前验证入口。
-- [架构总览](docs/architecture/overview.md)：服务边界、Owner/Worker 拓扑和关键约束。
-- [本地开发与测试](docs/development/local-setup.md)、[测试与质量](docs/development/testing.md)。
-- [部署、发布与回滚](docs/operations/deployment.md)、[数据库迁移](docs/operations/database-migrations.md)。
-- [认证 API](docs/api/authentication.md)、[API 与内部契约](docs/api/overview.md)。
+- [文档导航](docs/index.md)：产品、架构、开发、运维和 API/认证的六个核心来源。
+- [产品与领域](docs/PRODUCT.md)：产品定位、角色、能力与边界。
+- [架构与系统边界](docs/ARCHITECTURE.md)：服务边界、Owner/Worker 拓扑、数据流、契约和安全边界。
+- [开发与测试](docs/DEVELOPMENT.md)：本地启动、验证、配置、规则与排障。
+- [运维](docs/OPERATIONS.md)：部署、发布、回滚、迁移、备份、监控和事件响应。
+- [API 与认证参考](docs/REFERENCE.md)：浏览器流程、API 入口和内部契约。
 
 实现、配置、迁移脚本、测试和可执行 runbook 是行为真相；本仓库没有生产环境，生产部署、真实流量和外部凭据由部署方负责。
 
@@ -155,7 +155,7 @@ UltiCode/
 
 1. 报告问题时，附上复现步骤、预期与实际行为，以及脱敏后的环境信息。
 2. 开始前阅读 [`AGENTS.md`](AGENTS.md) 与相关目录指南；较大改动先通过 Issue 讨论范围。
-3. 为行为变更补充相应测试，按[测试与质量指南](docs/development/testing.md)运行对应检查。
+3. 为行为变更补充相应测试，按[开发指南](docs/DEVELOPMENT.md)运行对应检查。
 4. 在 Pull Request 中说明改动原因、验证方式与已知限制。
 
 提交前检查 `git diff --check`，并运行与触碰面对应的 `./scripts/dev/test.sh` gate。不得提交 `.env`、凭据、私钥或生成的运行时材料。

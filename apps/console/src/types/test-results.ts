@@ -14,7 +14,7 @@ export interface ProblemRunCase {
   /** v2 numeric memory in MB (may be absent for legacy callers). */
   memoryMb?: number;
   /**
-   * v3 precise wall-clock runtime in microseconds (ADR-002 §8). Preferred over
+   * v3 precise wall-clock runtime in microseconds (resource measurement contract). Preferred over
    * runtimeMs for display since ms truncates 0–999µs to "0ms". May be absent
    * for legacy callers.
    */
@@ -41,7 +41,7 @@ export interface ProblemRunResult {
   runtimeMs?: number;
   /** v2 numeric memory in MB. */
   memoryMb?: number;
-  /** v3 precise wall-clock runtime in microseconds (ADR-002 §8). */
+  /** v3 precise wall-clock runtime in microseconds (resource measurement contract). */
   runtimeUs?: number;
   /** v3 CPU time (user+sys) in milliseconds. */
   cpuMs?: number;

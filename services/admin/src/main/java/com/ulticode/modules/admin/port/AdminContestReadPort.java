@@ -4,7 +4,7 @@ package com.ulticode.modules.admin.port;
  * Read port the admin module uses to inspect contest aggregates without
  * reaching across into the contest module's mappers and entities.
  *
- * Phase 2 of the AdminReadModel seam (ADR-0011), continuing the series
+ * Phase 2 of the AdminReadModel seam, continuing the series
  * opened by the submission and comment read seams. CONTEXT.md foreshadowed
  * the contest phase; this port starts it.
  *

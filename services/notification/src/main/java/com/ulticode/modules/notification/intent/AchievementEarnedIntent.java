@@ -6,9 +6,8 @@ import com.ulticode.notification.api.dto.NotificationPayload;
 import java.time.Instant;
 
 /**
- * Intent emitted when a user earns an achievement. The legacy listener
- * (pre-ADR-004) used raw string types and a non-enum category; this record
- * captures the same data with proper typing.
+ * Intent emitted when a user earns an achievement. The record replaces the
+ * legacy listener's raw string types and non-enum category with typed fields.
  *
  * <p>{@code tier} follows the existing convention in
  * {@code AchievementNotificationListener.getTierString} (1=Bronze, 2=Silver,
@@ -27,7 +26,7 @@ import java.time.Instant;
  * the achievement payload is a genuinely different DTO consumed by a
  * different frontend handler.
  *
- * <p>Reference: ADR-004 §2.1 (AchievementEarnedIntent); M4d-1 review
+ * <p>Reference: the typed notification-intent contract; M4d-1 review
  * finding #6.
  */
 public record AchievementEarnedIntent(
@@ -45,7 +44,7 @@ public record AchievementEarnedIntent(
 
     @Override
     public String intentId() {
-        // ADR-004 M4d-1 finding #6: earnedAt is part of the key so re-issued
+        // M4d-1 finding #6: earnedAt is part of the key so re-issued
         // achievement events (tier-up promotion, system re-evaluate) produce
         // a distinct ledger row. Trade-off: a true duplicate event within
         // the same millisecond is still collapsed — acceptable since

@@ -369,7 +369,7 @@ static CaseResult runCase(const Json& tc, long timeoutMs, long long memoryLimitB
         try {
             Solution sol;
             std::string out = run_user_method(sol, tc);
-            // ADR-002 §8: report this child's peak RSS + CPU time back to the
+            // Report this child's peak RSS + CPU time back to the
             // parent via a two-line header preceding the result JSON.
             struct rusage ru;
             long long peakKb = (getrusage(RUSAGE_SELF, &ru) == 0) ? ru.ru_maxrss : 0;
@@ -419,7 +419,7 @@ static CaseResult runCase(const Json& tc, long timeoutMs, long long memoryLimitB
         r.errorMsg = childOut.substr(4);
         return r;
     }
-    // ADR-002 §8: child wrote "peakKb\ncpuMs\n<resultJson>".
+    // Child wrote "peakKb\ncpuMs\n<resultJson>".
     size_t nl1 = childOut.find('\n');
     size_t nl2 = (nl1 != std::string::npos) ? childOut.find('\n', nl1 + 1) : std::string::npos;
     std::string resultJson = childOut;
@@ -429,7 +429,7 @@ static CaseResult runCase(const Json& tc, long timeoutMs, long long memoryLimitB
         resultJson = childOut.substr(nl2 + 1);
     }
     r.resultJson = resultJson;
-    // ADR-002 §8 (P0-2): over the per-run memory ceiling → MLE.
+    // Over the per-run memory ceiling → MLE.
     if (memoryLimitBytes > 0 && r.peakBytes > memoryLimitBytes) {
         r.status = "Memory Limit Exceeded";
         return r;

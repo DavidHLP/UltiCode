@@ -39,7 +39,7 @@ public interface DFormEnvelopeCodec {
      *                          Equals the problem's per-case time limit.
      * @param memoryLimitBytes  hard per-case memory ceiling forwarded to the
      *                          harness so it can self-report Memory Limit
-     *                          Exceeded (ADR-002 §8). 0 / negative disables
+     *                          Exceeded (resource-measurement contract). 0 / negative disables
      *                          the harness-level MLE check (backend still
      *                          enforces via docker {@code --memory}).
      * @return JSON-encoded payload string for {@code /job/input.json}

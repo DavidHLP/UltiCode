@@ -9,4 +9,4 @@ Root and nearest `AGENTS.md` own project policy. These files add short, path-sco
 
 Use `paths` frontmatter. JVM diagnostics is the small unconditional exception because attaching a process has no reliable file trigger; its instruction applies only when diagnostics are used.
 
-Keep equivalent guidance aligned with `.omp/rules/` while retaining each loader’s syntax. Do not add language handbooks, mandatory investigation reports or formatter preferences. See [rule design](../../docs/development/coding-guidelines.md).
+Keep equivalent guidance aligned with `.omp/rules/` while retaining each loader’s syntax. Do not add language handbooks, mandatory investigation reports or formatter preferences. See [rule design](../../docs/DEVELOPMENT.md#编码指南与规则入口).

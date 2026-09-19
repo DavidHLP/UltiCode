@@ -7,16 +7,16 @@ import java.util.Map;
 
 /**
  * Intent for security / system-critical alerts (e.g. password changed,
- * suspicious login detected). Reserved by ADR-004 §2.1.
+ * suspicious login detected). This intent is reserved for future producers.
  *
  * <p><b>Status: reserved, no automatic producer yet.</b> The intent type and
  * all three channel projections (in-app, WebSocket, email) are implemented,
  * but no business code constructs it — the auth module has no suspicious-
  * login / device-fingerprint detection today. The only live emitter of
  * {@code SECURITY}-category notifications is {@code AdminNotificationService}
- * (admin broadcast), which force-delivers and does not go through this
- * intent. Wiring automatic security events (new-device login, credential
- * change) is a future feature; see ADR-004 §2.1.
+ * (admin broadcast), which force-delivers and does not go through this intent.
+ * Wiring automatic security events (new-device login, credential
+ * changes) is a future feature.
  *
  * <p>Callers should set {@code category = SECURITY} on the record so the
  * dispatcher's preference filter applies consistently. A future

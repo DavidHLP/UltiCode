@@ -19,7 +19,7 @@ import java.util.Map;
  * of the intent id so the 24h and 1h reminders for the same user/contest
  * are distinct intents.
  *
- * <p>Reference: ADR-004 §2.1.
+ * <p>Reference: typed notification intent contract.
  */
 public record ContestStartingIntent(
         String userId,

@@ -79,7 +79,7 @@ public final class Main {
 
             long perCaseTimeoutMs = ((Number) input.getOrDefault(
                     "per_case_timeout_ms", DEFAULT_PER_CASE_TIMEOUT_MS)).longValue();
-            // ADR-002 §8 (P0-2): per-run memory ceiling forwarded by the
+            // Resource-limit contract (P0-2): per-run memory ceiling forwarded by the
             // backend so the harness can self-report Memory Limit Exceeded.
             // Absent / 0 disables the harness-level MLE check.
             long memoryLimitBytes = ((Number) input.getOrDefault("memory_limit_bytes", 0L)).longValue();
@@ -259,7 +259,7 @@ public final class Main {
         System.setOut(userStream);
 
         long startNs = System.nanoTime();
-        // ADR-002 §8: reset heap peak before user code so the sampled peak
+        // Resource-limit contract: reset heap peak before user code so the sampled peak
         // reflects only this case (the harness JVM runs all cases in one
         // process; without a reset the peak would be cumulative).
         resetHeapPeakUsage();
@@ -274,7 +274,7 @@ public final class Main {
             return t;
         });
         Future<Object> future = executor.submit(() -> {
-            // ADR-002 §8: sample CPU time of the worker thread only so the
+            // Resource-limit contract: sample CPU time of the worker thread only so the
             // harness's own reflection overhead is excluded.
             ThreadMXBean tb = ManagementFactory.getThreadMXBean();
             long cpu0 = tb.getCurrentThreadCpuTime();
@@ -307,7 +307,7 @@ public final class Main {
         long elapsedUs = (System.nanoTime() - startNs) / 1_000L;
         long elapsedMs = elapsedUs / 1_000L;
         long cpuMs = Math.max(0L, cpuHolder[0]) / 1_000_000L;
-        // ADR-002 §8: true heap peak (was totalMemory()-freeMemory(), a
+        // Resource-limit contract: true heap peak (was totalMemory()-freeMemory(), a
         // single-point sample that missed spikes GC'd away before sampling).
         long peakBytes = peakHeapUsageBytes();
         String userStdout = truncateUserOutput(userOut.toString(StandardCharsets.UTF_8));
@@ -329,7 +329,7 @@ public final class Main {
                     elapsedUs, cpuMs, null, userException, userStdout);
         }
 
-        // ADR-002 §8 (P0-2): user code ran cleanly but used more heap than the
+        // Resource-limit contract (P0-2): user code ran cleanly but used more heap than the
         // per-run ceiling → Memory Limit Exceeded (harness self-report; the
         // backend also has a Layer-B backstop for older harnesses).
         if (memoryLimitBytes > 0 && peakBytes > memoryLimitBytes) {
@@ -386,7 +386,7 @@ public final class Main {
     /**
      * Reset the JVM's per-pool heap peak-usage counters. Called before each
      * case's user code so {@link #peakHeapUsageBytes()} reflects only that
-     * case (ADR-002 §8).
+     * case (sandbox resource contract).
      */
     private static void resetHeapPeakUsage() {
         try {
@@ -404,7 +404,7 @@ public final class Main {
      * Sum of per-pool heap peak usage after user code ran. This is a true
      * high-water mark (since the last {@link #resetHeapPeakUsage}), unlike
      * the old {@code totalMemory()-freeMemory()} sample which only caught
-     * whatever was live at sampling time. ADR-002 §8.
+     * whatever was live at sampling time. Resource-limit contract.
      */
     private static long peakHeapUsageBytes() {
         try {

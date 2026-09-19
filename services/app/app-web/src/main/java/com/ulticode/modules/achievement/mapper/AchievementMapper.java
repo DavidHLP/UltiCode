@@ -67,8 +67,7 @@ public interface AchievementMapper extends BaseMapper<Achievement> {
      * MyBatis-Plus honour the entity-level {@code @TableField} annotations
      * and apply {@code JacksonTypeHandler} for the JSON column.</p>
      *
-     * <p>Discovered during implementation of
-     * docs/.claude/PRPs/plans/achievement-api-fixes.plan.md Task 4 — T3
+     * <p>Discovered during implementation; Task 4 — T3
      * validation showed {@code progress=0, target=0} despite DB rows
      * containing valid JSON {@code {"type":"problems_solved","target":1}}.</p>
      */

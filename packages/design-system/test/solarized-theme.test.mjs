@@ -135,7 +135,7 @@ test("keeps the canonical Garden palette", () => {
     ),
     {
       // Historical Solarized key names carry the Garden values (see
-      // docs/GARDEN_DESIGN_SPEC.md).
+      // packages/design-system/docs/GARDEN_DESIGN_SPEC.md).
       "solarized-base03": "#1c2412",
       "solarized-base02": "#26301b",
       "solarized-base01": "#545c45",

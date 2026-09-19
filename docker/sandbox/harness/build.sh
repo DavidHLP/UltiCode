@@ -24,7 +24,7 @@
 #   ./harness/build.sh --clean          # nuke staging/ before building
 #   ./harness/build.sh --no-docker      # skip docker build (CI matrix stage)
 #
-# Default end-to-end behavior (per ADR-002 §6.5):
+# Default end-to-end behavior (per sandbox image build contract):
 #   1. mvn / py_compile / gcc / g++ to populate harness-staging/
 #   2. docker build -t ulticode-sandbox-dform:phase2 .
 #   3. docker tag  ulticode-sandbox-dform:phase2  ulticode-sandbox:latest
@@ -161,7 +161,7 @@ if ! docker image inspect ulticode-sandbox:base-17 >/dev/null 2>&1; then
 fi
 
 # ── Build the D-form sandbox image + retag :latest ─────────────────────────
-# ADR-002 §6.5 hardening: previously the dform image was built with a
+# Image hardening: previously the dform image was built with a
 # pinned tag (ulticode-sandbox-dform:phase2) but :latest kept pointing at
 # the pre-dform Form-A image. A default SANDBOX_IMAGE=ulticode-sandbox:latest
 # then silently launched the broken image and produced "Runtime Error"

@@ -28,7 +28,7 @@ App interface locality 已闭环；Core 的边界与未完成门禁见 SVC-025�
 
 项目当前没有生产环境，是正在开发的开源项目。仓库内的生产 profile 只描述安全边界；凡是可复现的运行行为统一使用短时、隔离、可销毁的 disposable 模拟环境验证，不把模拟结果写成生产证据。不为形式上的“企业级”提前引入 Kubernetes、Service Mesh、新 MQ 或分布式事务框架。
 
-本轮拓扑与 Contract 的长期设计依据见 [`ADR-0011`](../../docs/architecture/decisions/0011-topology-contract-module-convergence.md)，Core 三路结果与 expiry 见 [`ADR-0012`](../../docs/architecture/decisions/0012-core-topology-three-way-decision.md)。本文件是当前 issue 状态和 SVC-025 关闭条件的唯一入口；已完成的执行计划、台账和检查点不作为当前证据。
+当前拓扑与 Contract 边界以 [`docs/ARCHITECTURE.md`](../../docs/ARCHITECTURE.md)、源码、配置和门禁为准。本文件是当前 issue 状态和 SVC-025 关闭条件的唯一入口；已完成的执行计划、台账和检查点不作为当前证据。
 
 ## OPEN
 
@@ -77,7 +77,7 @@ Search child 不注入 datasource 属性。
 关闭条件：保持 distributed 为唯一默认；在不增加 broad parent coupling、
 复制业务实现或重新引入旧 Contract 的前提下，先取得 Auth/Admin enabled
 wiring 与 disposable journey 证据。若至 `2026-10-06` 仍不能证明 bounded
-testbed 的价值，按 ADR-0012 删除 Core-only artifacts。外部 Judge remote
+testbed 的价值，则依据 `docs/ARCHITECTURE.md`、Core profile 源码与门禁结果删除 Core-only artifacts。外部 Judge remote
 TLS、生产 HA 和真实流量属于当前项目范围外，不阻塞本开源仓库验收。
 
 
@@ -183,14 +183,8 @@ The repository-side SVC-003 gate is closed by source inventory, major-version co
 
 ### SVC-011 文档收敛残差（DEFERRED）
 
-现状：`docs/` 经 `P5-GATE-001` 前的 `182 .md` 扫描已分流（`docs 100` `services/docs 8` 等），`CONTEXT.md` 的 `Submission intake` 已由 `DefaultSubmissionWritePort` 更正为 `SubmissionIntakePort/RemoteSubmissionWritePort`，`docs/archive/contest/README.md` 的“现行”已更正为“历史归档”。以下历史快照仍保留旧表述，属有意冻结的证据，不视为现行运营真理：
-
-- `docs/architecture/decisions/0007-legacy-compatibility-lifecycle.md` 正文仍保留 `legacy-rollback`/`App Judge adapter` 的 `P4 前` 基线描述，顶部 `Amendment 2026-09-02` 已声明 `006..011 DONE` 且当前二进制 `fail closed`
-- `P0-BASELINE-001..005`、`P2-APP-001/002/004`、`P5-GATE-001` 为 `c344` 前冻结基线，已由 `P4-LEGACY-005/011` 与 remediation closure history 覆盖（不再引用易漂移计数）
-- `P1-INFRA-001` 中 `legacy queue` 行、`P4-LEGACY-005` 的 `remains until P4-010` 文案、`P5-GATE-004` 的 `status` 与 `current-status` 的 `1 composite FAIL + 单跑 PASS` 差异均为历史快照时态
-- `docs/archive/RUNBOOK.md`、`PRIVACY.md`、`DOCS-SPEC.md`、`ADR` 中 `backend-spring/console` 旧路径为归档设计态，非现行 `services/app`/`apps/console` 运营路径
-
-触发条件：`P5-GATE-001` 最终基线刷新（`evidence` 重建）时统一替换上述冻结快照；触发前以 `Amendment` 与本条目为准，不重复报为缺陷。`CONTEXT.md` 与 `archive/contest/README` 的 `1 行` 现行性修正已随 `c0f79f2`/`68cbbdc` 落地，无需再触发。
+现状：`docs/` 只保留六个核心文档；本文件维护当前问题和外部触发条件，历史快照不再作为仓库当前入口。`CONTEXT.md` 与核心文档中的事实仍以源码、配置、测试和门禁核实。
+触发条件：若未来需要历史审计或完整基线，应在外部 evidence store 或任务专用资料中维护，不重新扩展 `docs/` 当前入口。
 
 ### SVC-026 Meilisearch Cloud 试点（OPTIONAL_PROFILE）
 
@@ -239,7 +233,7 @@ Judge0 仍默认关闭，当前没有 endpoint/凭据或真实实例，因此没
 | RBAC 变更无 durable invalidation/version 信号 | `authz_version` 原子递增与 durable `AUTHORIZATION_CHANGED` 记录 |
 | Submission 写事务同步回访 App/Auth | request owner 传入不可变 `SubmissionFactsSnapshot` 并 fail closed |
 | 游离 `services/com` 编译产物 | 当前 source tree 已清除 |
-| Services 问题文档多入口与状态漂移 | 本文件为唯一注册表，当前状态导航见 `docs/project/known-issues.md`；旧的 `PROJECT_DOCUMENTATION.md` 已归档，不再作为入口 |
+| Services 问题文档多入口与状态漂移 | 本文件为唯一注册表；`docs/index.md` 只导航六个核心文档，不复制问题状态 |
 | SVC-011 | Replay/DLQ HTTP operations are method-protected with `ADMIN|SUPER_ADMIN` and have MockMvc denied-path coverage for every operation |
 | SVC-012 | Admin delegation assertions are target-audience bound; Auth, App profile/problem/contest/list/submission writes reject missing or invalid trust; `changePassword` is self-service only (USER in-process via current-password check, admin self-change via verified assertion) |
 | SVC-013 | Production Compose requires RS256/JWKS, dedicated internal-delegation secret, explicit Dubbo namespace, and a least-privilege Nacos DB account |
@@ -261,7 +255,7 @@ Judge0 仍默认关闭，当前没有 endpoint/凭据或真实实例，因此没
 - Access token 即时黑名单 writer 当前不建设：refresh token hash-only revoke、HTTP ban check、WebSocket 实时 account check 与短期 access token TTL 共同限定窗口；只有产品明确要求即时踢下线时才新增 writer-owned revoke Interface。
 - Search `dev-lite=database`、`dev-full=indexed` 是 manifest 的显式策略，不是配置漂移。
 - `SubmissionFactsSnapshot` 只允许增加 Owner intake 校验所需的最小字段；字段变化必须通过现有 Contract shape test，避免形成第二套隐式 facts Interface。
-- Submission compatibility lifecycle is governed by ADR-0007; the current binary/DevStack reject the former local mode, and production rollback points only to the deployment-owned previous full release descriptor.
+- Submission compatibility lifecycle is governed by the current compatibility contract; the current binary/DevStack reject the former local mode, and production rollback points only to the deployment-owned previous full release descriptor.
 - 当前阶段不拆更多进程，不引入新 MQ、Service Mesh、Kubernetes 或 Seata。
 
 ## 维护规则

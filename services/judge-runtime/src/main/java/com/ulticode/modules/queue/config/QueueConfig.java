@@ -94,7 +94,7 @@ public class QueueConfig {
     }
 
     /**
-     * ADR-003 M3c-2: the {@link JudgeQueue} port backed by Redisson Streams.
+     * The {@link JudgeQueue} port is backed by Redisson Streams.
      * Dedup SETNX is delegated to Redisson {@code RBucket} so no separate
      * Redis wrapper dependency is needed here.
      *

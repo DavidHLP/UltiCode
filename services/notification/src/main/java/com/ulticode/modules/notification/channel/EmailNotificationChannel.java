@@ -17,7 +17,7 @@ import org.springframework.stereotype.Component;
  * Email channel — looks up the recipient's email and projects the intent to
  * a templated {@code SendEmailDTO} via {@link EmailTemplates}.
  *
- * <p>Behavior on missing email: per ADR-004 §2.5, the channel treats a
+ * <p>Behavior on missing email: the channel treats a
  * recipient without an email as an intentional skip. Transport failures are
  * surfaced to the dispatcher so the ledger records {@code FAILED} and can
  * apply its bounded retry policy. We do not block other channels.
@@ -85,7 +85,7 @@ public class EmailNotificationChannel implements NotificationChannel {
     public void send(NotificationIntent intent) {
         String recipient = resolveRecipientEmail(intent.userId());
         if (recipient == null) {
-            // ADR-004 §2.5: email failures are best-effort. A user without
+            // Email delivery is best-effort. A user without
             // an email on file is not a delivery failure — it is a "this
             // channel cannot reach this user" condition. We log at debug
             // and return normally so the dispatcher marks the ledger row

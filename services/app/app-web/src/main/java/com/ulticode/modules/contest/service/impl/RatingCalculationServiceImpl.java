@@ -35,7 +35,7 @@ public class RatingCalculationServiceImpl implements RatingCalculationService {
     private final ContestParticipantMapper participantMapper;
     private final GlobalRankingMapper globalRankingMapper;
     /** R6.1 / F-03: needed for the isRated gate (also reused for the F-10
-     *  decision record; see ADR-007 §7). */
+     * decision record). */
     private final ContestMapper contestMapper;
     private final ContestRatingCalculationMapper ratingCalculationMapper;
 
@@ -48,7 +48,7 @@ public class RatingCalculationServiceImpl implements RatingCalculationService {
         // R6.1 / F-03: isRated controls Elo mutation. Non-rated contests
         // (practice / unranked) still receive final ranks for usable history.
         // F-10 (finishVirtual does NOT trigger recalc) remains unchanged — see
-        // ADR-007 §7 for the full decision record.
+        // the full decision record.
         Contest contest = contestMapper.selectByIdForUpdate(contestId);
         if (contest == null) {
             log.info("R6.1: contest {} not found, skip rating", contestId);

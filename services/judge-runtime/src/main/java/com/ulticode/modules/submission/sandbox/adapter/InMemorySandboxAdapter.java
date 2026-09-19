@@ -19,8 +19,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * In-memory {@link SandboxExecutor} for tests and offline development
- * (ADR-002 §2.3).
+ * In-memory {@link SandboxExecutor} for tests and offline development.
  *
  * <p>Routes on simple markers in the user code (case-insensitive
  * substring or {@code // verdict: STATUS_NAME} annotation) so a unit

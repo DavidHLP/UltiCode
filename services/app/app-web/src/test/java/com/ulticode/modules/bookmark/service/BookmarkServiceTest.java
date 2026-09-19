@@ -38,7 +38,7 @@ import static org.mockito.Mockito.when;
 /**
  * Unit tests for {@link BookmarkServiceImpl}.
  *
- * <p>Regression scenarios from {@code docs/bookmark-api-test-report-2026-06-11.md}
+ * <p>Regression scenarios cover the bookmark mutation and removal paths:
  * §T08 (quickFavorite second call BindingException) and §T10
  * (removeBookmarkByTarget always 500) are covered here.
  */

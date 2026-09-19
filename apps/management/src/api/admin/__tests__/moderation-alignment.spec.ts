@@ -4,7 +4,7 @@
  * These tests verify that the frontend API types and HTTP methods
  * match the backend DTOs and controller endpoints exactly.
  *
- * Reference: docs/analysis/moderation-frontend-backend-alignment.md
+ * These tests are the frontend/backend alignment reference.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import {

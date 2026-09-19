@@ -20,7 +20,7 @@ package com.ulticode.modules.submission.sandbox;
  *       even for {@code /run} (preview) requests, where the caller
  *       generates a synthetic one — keeps the audit shape uniform.</li>
  *   <li>{@code submissionGeneration} — monotonic counter from
- *       {@code submissions.generation} (ADR-003). The sandbox records
+ *       {@code submissions.generation}. The sandbox records
  *       it in logs so a stale worker can be detected after a rejudge.
  *       For {@code /run} requests where the submission does not yet
  *       exist, callers pass {@code 0L}.</li>

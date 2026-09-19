@@ -21,7 +21,7 @@ import java.util.stream.Stream;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * i18n cross-stack coverage test (ADR-001 Section 2.5, M1b).
+ * i18n cross-stack coverage test (submission status contract, Section 2.5, M1b).
  * <p>
  * Pins the invariant that every SubmissionStatus enum constant has
  * a translation key in BOTH frontends (console + management) and BOTH
@@ -31,10 +31,9 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Java identifier in the UI.
  * <p>
  * <b>Why scan the .ts source instead of going through a build script?</b>
- * Per ADR-001 Section 2.5 the original idea was a build-time JSON dump.
+ * The original idea was a build-time JSON dump.
  * M1b deliberately keeps this as a JUnit test in backend-spring that
  * reads the .ts files directly: zero new frontend toolchain dependency,
- * runs with {@code ./mvnw test} like any other test, and CI sees the
  * same failure path the developer sees.
  * <p>
  * <b>How the two key formats are derived:</b>

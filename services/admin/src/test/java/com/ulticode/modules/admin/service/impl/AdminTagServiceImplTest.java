@@ -46,7 +46,7 @@ import static org.mockito.Mockito.when;
 /**
  * Unit tests for {@link AdminTagServiceImpl}.
  *
- * <p>Focuses on the bugs reported in <code>docs/admin-tags-test-plan.md §7</code>:
+ * <p>Focuses on tag validation, sorting, and merge guard regressions:
  * type whitelist (Bug #2), PROBLEM sortBy honoring (Bug #3), and merge guards.
  * Tests use manual constructor injection (mirrors AdminUserServiceImplTest) so each
  * mock dependency is explicit and the @RequiredArgsConstructor 3-arg contract is

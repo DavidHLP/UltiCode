@@ -13,7 +13,7 @@ import com.ulticode.modules.admin.dto.AdminSolutionVO;
  *
  * <p>This is the same shallow cluster lifted out of
  * {@link com.ulticode.modules.admin.service.AdminSolutionService} for the
- * Stage 2 rollout of ADR-0011: the paginated list read
+ * Stage 2 rollout: the paginated list read
  * ({@link #getSolutions}, ~100 LoC of query building + batch user/problem
  * enrichment + N+1-safe VO shaping across two DB-union branches
  * (active via MyBatis-Plus {@code LambdaQueryWrapper}, soft-deleted via the

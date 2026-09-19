@@ -36,7 +36,7 @@ import java.util.Set;
 /**
  * Nightly reconciliation job and orphan scanner (P5-RECONCILE-001),
  * rebuilt on owner RPC/read-port aggregation
- * (ADR-P7-OWNER-BOUNDARY-RECONCILIATION-20260802 Decision 4).
+ * (the current owner-boundary reconciliation design).
  *
  * <p>No cross-owner JdbcTemplate SQL remains. Facts are gathered per
  * owner:

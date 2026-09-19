@@ -28,7 +28,7 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Redisson Streams {@link JudgeQueue} adapter (ADR-003 M3c-2, §2.4 / §2.6
+ * Redisson Streams {@link JudgeQueue} adapter (M3c-2, §2.4 / §2.6
  * F6). Backs the port with Redis 7 Streams + a single consumer group
  * ({@code judge-workers}). Each envelope is a single Stream entry whose
  * {@code payload} field carries a JSON-serialized {@link JudgeJobEnvelope}.
@@ -44,7 +44,7 @@ import java.util.Optional;
  * JVMs. The handle's
  * {@link JudgeJobHandle#ackToken()} is the Redisson {@code StreamMessageId}
  * (kept as {@code Object} so the port package stays broker-agnostic per
- * the ADR-002 hex-arch rule).
+ * hexagonal architecture boundary).
  *
  * <p>Only active when {@code app.features.judge-queue.use-port=true}.
  *

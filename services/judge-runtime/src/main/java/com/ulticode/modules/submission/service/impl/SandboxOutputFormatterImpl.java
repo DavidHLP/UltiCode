@@ -99,7 +99,7 @@ public class SandboxOutputFormatterImpl implements SandboxOutputFormatter {
                 .toList();
         }
         // Prefer precise microseconds for the formatted string so fast
-        // cases stop showing "0ms" (ADR-002 §8). Fall back to the legacy
+        // cases stop showing "0ms" (resource-measurement contract). Fall back to the legacy
         // ms value when the harness didn't emit elapsed_us.
         String runtimeStr = elapsedUs > 0
             ? String.format("%.2fms", elapsedUs / 1000.0)

@@ -8,7 +8,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * Unit tests for {@link SubmissionStatusCodec} (ADR-001 wire contract).
+ * Unit tests for {@link SubmissionStatusCodec} (submission status wire contract).
  * Covers BCDE: borders (null in/out), correct round-trip for every enum
  * constant, design contract (wireValue is the durable string), and error
  * paths (unknown wire value, strict vs lenient decoding).
@@ -98,7 +98,7 @@ class SubmissionStatusCodecTest {
     @DisplayName("wire strings are the documented exact values (regression guard)")
     void wireStrings_areExpectedConstants() {
         // Locking these prevents accidental rename / case changes that would
-        // break the wire contract (ADR-001 invariant).
+        // break the wire contract (status invariant).
         assertThat(SubmissionStatus.PENDING.wireValue()).isEqualTo("Pending");
         assertThat(SubmissionStatus.JUDGING.wireValue()).isEqualTo("Judging");
         assertThat(SubmissionStatus.ACCEPTED.wireValue()).isEqualTo("Accepted");

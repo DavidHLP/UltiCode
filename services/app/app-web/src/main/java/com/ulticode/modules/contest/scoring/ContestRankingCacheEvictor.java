@@ -21,7 +21,7 @@ import org.springframework.stereotype.Component;
  * so {@link Cache#clear()} is the only safe option: partial eviction would
  * leave stale entries. The cost is acceptable at the current scale because
  * the ranking cache TTL is short. Per-contest eviction needs a key-template
- * change first (R9.1 / ADR-007 §8); until then this global clear is the
+ * change first (R9.1); until then this global clear is the
  * correct, NFR-P1-safe fallback.
  */
 @Slf4j

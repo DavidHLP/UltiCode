@@ -122,7 +122,7 @@ public class CodeExecutionService {
         // Per-run job descriptor. The submissionId is synthetic for
         // /run (preview) requests because no DB row exists yet — see
         // SandboxJob.submissionId() javadoc.
-        // ADR-002 §8 (P2-1): per-problem time/memory limits take
+        // Resource-limit contract: per-problem time/memory limits take
         // precedence over the global default; NULL on the problem row
         // falls back to the global default.
         int timeoutSeconds = resolveTimeoutSeconds(problemId);
@@ -321,7 +321,7 @@ public class CodeExecutionService {
                     .toList();
         }
         // Prefer precise microseconds for the formatted string so fast
-        // cases stop showing "0ms" (ADR-002 §8). Fall back to the legacy
+        // cases stop showing "0ms" (resource-measurement contract). Fall back to the legacy
         // ms value when the harness didn't emit elapsed_us.
         String runtimeStr = port.elapsedUs() > 0
                 ? String.format("%.2fms", port.elapsedUs() / 1000.0)
@@ -346,7 +346,7 @@ public class CodeExecutionService {
                 .build();
     }
 
-    // ── Per-problem resource limits (ADR-002 §8 / P2-1) ─────────────────────
+    // ── Per-problem resource limits (resource contract / P2-1) ───────────────
     // A problem may carry its own time_limit (seconds) / memory_limit (MiB).
     // When present they override the global default; when NULL the global
     // default still applies, preserving backwards compatibility.

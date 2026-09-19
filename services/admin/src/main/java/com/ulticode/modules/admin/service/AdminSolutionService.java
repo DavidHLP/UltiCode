@@ -7,7 +7,7 @@ import java.util.List;
 /**
  * Service interface for admin solution operations.
  *
- * <p><strong>Writes only</strong> after ADR-0011 Stage 2 extraction. Every
+ * <p><strong>Writes only</strong> after the Stage 2 read/write seam extraction. Every
  * read-side concern (paginated list, flagged-list derivation, single-detail
  * enrichment) lives on
  * {@link com.ulticode.modules.admin.projection.AdminSolutionProjection}.

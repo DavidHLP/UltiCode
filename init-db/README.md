@@ -208,7 +208,7 @@ For AI: read `baseline.sql` for the converged final schema; consult `migrations/
 ## Migration Operational Checklist
 
 > Added by R10.8 (2026-06-17) to close F-SEC-10 (Flyway 迁移期间 admin / 用户操作无锁). See
-> [docs/archive/contest/_archive/EXECUTION_PLAN_R10_2026-06-18.md](../docs/archive/contest/_archive/EXECUTION_PLAN_R10_2026-06-18.md) for historical context.
+> Current migration boundaries and rollback rules are maintained in [`docs/OPERATIONS.md`](../docs/OPERATIONS.md#数据库迁移与-owner-收敛).
 
 ### Before Running
 

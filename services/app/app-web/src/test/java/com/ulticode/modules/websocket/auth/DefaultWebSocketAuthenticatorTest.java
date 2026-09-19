@@ -29,7 +29,7 @@ import org.springframework.dao.QueryTimeoutException;
  *
  * <p>Verifies the policy the transport now delegates to: presence → blacklist
  * → signature/expiry → payload sanity → user existence → active/ban
- * (see {@code docs/architecture/security.md}). The fail-closed Redis contract
+ * (see {@code docs/ARCHITECTURE.md}). The fail-closed Redis contract
  * is regression-protected by the blacklist-error case.
  */
 @ExtendWith(MockitoExtension.class)

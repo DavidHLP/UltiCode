@@ -32,8 +32,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * Unit tests for SolutionService, focused on the fixes from
- * docs/api-tests/solution-api-test-plan.md (BUG-3, OBS-3).
+ * Unit tests for SolutionService, focused on the BUG-3 and OBS-3 regression cases.
  */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)

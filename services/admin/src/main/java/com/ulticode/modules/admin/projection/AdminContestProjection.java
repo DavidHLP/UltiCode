@@ -12,7 +12,7 @@ import com.ulticode.modules.admin.dto.AdminContestVO;
  * that previously lived inline on
  * {@link com.ulticode.modules.admin.service.AdminContestService}.
  *
- * <p>Lifted out per ADR-0011 (admin projection series): a Stage 3 deepening
+ * <p>Lifted out as a Stage 3 admin projection deepening:
  * matching the {@code AdminSubmissionProjection} /
  * {@code AdminUserProjection} / {@code AdminForumProjection} /
  * {@code AdminSolutionProjection} shape. Before the extraction:

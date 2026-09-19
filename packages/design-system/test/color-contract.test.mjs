@@ -8,7 +8,7 @@ const repoRoot = resolve(packageRoot, "../..");
 
 // Garden palette: the 16 raw bridge values plus the derived semantic
 // literals used by packages/design-system/style.css (see
-// docs/GARDEN_DESIGN_SPEC.md).
+// packages/design-system/docs/GARDEN_DESIGN_SPEC.md).
 const GARDEN_HEX = [
   "#1c2412",
   "#26301b",
@@ -239,7 +239,7 @@ const ALLOWED_FILES = {
     literals: ["#46769b"],
   },
   // ---------------------------------------------------------------------------
-  // Landing design source (docs/GARDEN_DESIGN_SPEC.md). These files ARE the
+  // Landing design source (packages/design-system/docs/GARDEN_DESIGN_SPEC.md). These files ARE the
   // origin of the Garden palette; their decorative literals are canonical by
   // definition. Sample-data strings ("#146", "#2904", "#704") are problem IDs
   // in copy, not colors. Do not add NEW files here — consume tokens instead.

@@ -17,13 +17,13 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Verdict routing for the in-memory sandbox adapter (ADR-002 §2.3).
+ * Verdict routing for the in-memory sandbox adapter (sandbox execution contract).
  *
  * <p>The adapter is the primary off-daemon test fixture for the
  * sandbox port, so a regression here propagates to every unit test
  * that exercises the executor via {@code sandbox.executor=inmemory}.
  */
-@DisplayName("InMemorySandboxAdapter (ADR-002 §2.3)")
+@DisplayName("InMemorySandboxAdapter (sandbox execution contract)")
 class InMemorySandboxAdapterTest {
 
     private final JudgingLanguageSupport languageSupport = new DefaultJudgingLanguageSupport();
@@ -186,7 +186,7 @@ class InMemorySandboxAdapterTest {
     class RunBatch {
 
         @Test
-        @DisplayName("preserves input order and length (1:1 contract from ADR-002 §2.5)")
+        @DisplayName("preserves input order and length (1:1 sandbox contract)")
         void runBatch_preservesOrderAndLength() {
             List<TestCase> cases = List.of(
                     new TestCase("tc-1", null, List.of(), "1"),

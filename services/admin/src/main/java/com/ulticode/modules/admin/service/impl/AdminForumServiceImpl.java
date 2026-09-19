@@ -38,8 +38,8 @@ import java.util.UUID;
 import com.ulticode.common.rpc.RpcPolicy;
 
 /**
- * Write-only implementation of {@link AdminForumService} after the ADR-0011
- * Stage 2 extraction, the C6 forum-toggle policy collapse, and ADMIN-007.
+ * Write-only implementation of {@link AdminForumService} after the Stage 2
+ * extraction, the C6 forum-toggle policy collapse, and ADMIN-007.
  *
  * <p>The six copy-pasted toggle methods (pin / unpin / lock / unlock /
  * flag / unflag) are thin one-line delegates over

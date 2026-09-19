@@ -33,7 +33,7 @@ import java.util.stream.Collectors;
  *
  * <p>Behaviour is byte-for-byte identical to the read paths previously inlined
  * in {@code AchievementServiceImpl}; the only change is locality (see
- * ADR-0005). The {@link SubmissionUserStatsPort} dependency &mdash; used solely by
+ * the current projection seam). The {@link SubmissionUserStatsPort} dependency &mdash; used solely by
  * the progress counters &mdash; moved here from the service; the service's
  * unused {@code ContestParticipantMapper} field was dropped entirely.</p>
  */

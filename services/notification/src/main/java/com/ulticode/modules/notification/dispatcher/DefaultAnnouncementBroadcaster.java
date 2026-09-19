@@ -30,8 +30,8 @@ import java.util.stream.Collectors;
  *
  * <p>Owns the three-step fan-out that used to live inline in the admin
  * service: target resolution → preference filter → batch row insert.
- * The {@code SECURITY} / {@code SYSTEM} force-delivery policy (ADR-004
- * §2.3) is preserved verbatim — only the implementation moved. Channel
+ * The {@code SECURITY} / {@code SYSTEM} force-delivery policy is
+ * preserved verbatim — only the implementation moved. Channel
  * fan-out is deliberately NOT driven through {@link NotificationDispatcher}
  * for admin announcements because the architecture review marks admin
  * broadcast as a documented exception that force-delivers outside
@@ -126,9 +126,8 @@ public class DefaultAnnouncementBroadcaster implements AnnouncementBroadcaster {
                                               List<String> userIds,
                                               Map<String, Object> metadata,
                                               String existingAnnouncementId) {
-        // Architecture-review candidate #4 ADR-004 §2.3: admin broadcast
-        // is a documented exception that force-delivers outside the
-        // event-driven SystemAlertIntent path. The broadcast result is
+        // Admin broadcast is a documented exception that force-delivers outside
+        // the event-driven SystemAlertIntent path. The broadcast result is
         // identical to broadcast() — the row fan-out IS the channel
         // contract for admin announcements. We deliberately do NOT
         // route through NotificationDispatcher here.

@@ -35,14 +35,14 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * M2a (ADR-002) version — the {@link SandboxService} collaborator is
+ * M2a version — the {@link SandboxService} collaborator is
  * replaced by the Hexagonal {@link SandboxExecutor} port. All five
  * pre-M2a cases are preserved with mock setups that target the new
  * port signature ({@code run(SandboxJob, TestCase)} /
  * {@code runBatch(SandboxJob, List<TestCase>)}).
  */
 @ExtendWith(MockitoExtension.class)
-@DisplayName("CodeExecutionService (M2a, ADR-002)")
+@DisplayName("CodeExecutionService (M2a)")
 class CodeExecutionServiceTest {
 
     @Mock
@@ -75,7 +75,7 @@ class CodeExecutionServiceTest {
         // would otherwise flag the unused stubs.
         lenient().when(sandboxConfig.timeout()).thenReturn(10);
         lenient().when(sandboxConfig.memory()).thenReturn("256m");
-        // ADR-002 §8 (P2-1): ProblemFactsPort is a plain mock — findLimits
+        // Resource-limit contract (P2-1): ProblemFactsPort is a plain mock —
         // returns null by default, so resolveTimeoutSeconds/Mb fall back to
         // the global default (matches pre-P2-1 behaviour). No explicit stub
         // needed (an explicit one trips UnnecessaryStubbing for the cases
@@ -165,7 +165,7 @@ class CodeExecutionServiceTest {
             JudgeRunRequest.TestCase tc = createTestCase("tc-1", "42");
             JudgeRunRequest request = createRequest("python", "def solution(): pass", List.of(tc));
             when(sandboxExecutor.run(any(SandboxJob.class), any(TestCase.class))).thenReturn(accepted());
-            // ADR-002 §8: execute() now aggregates via dto.runtimeMs (set by
+            // Resource-limit contract: execute() now aggregates via dto.runtimeMs (set by
             // toDtoCaseResult from port.elapsedMs), so parseRuntimeMs is no
             // longer on the hot path — lenient so the stub stays tolerant.
             lenient().when(sandboxOutputFormatter.parseRuntimeMs(anyString())).thenReturn(10L);
@@ -187,7 +187,7 @@ class CodeExecutionServiceTest {
             JudgeRunRequest request = createRequest("python", "def solution(): pass", List.of(tc1, tc2));
             when(sandboxExecutor.runBatch(any(SandboxJob.class), anyList()))
                     .thenReturn(new BatchRunResult(List.of(accepted(), wrongAnswer())));
-            // ADR-002 §8: execute() now aggregates via dto.runtimeMs (set by
+            // Resource-limit contract: execute() now aggregates via dto.runtimeMs (set by
             // toDtoCaseResult from port.elapsedMs), so parseRuntimeMs is no
             // longer on the hot path — lenient so the stub stays tolerant.
             lenient().when(sandboxOutputFormatter.parseRuntimeMs(anyString())).thenReturn(10L);
@@ -231,7 +231,7 @@ class CodeExecutionServiceTest {
             tc.setInputs(List.of(in));
             JudgeRunRequest request = createRequest("java", "class Solution {}", List.of(tc));
             when(sandboxExecutor.run(any(SandboxJob.class), any(TestCase.class))).thenReturn(portResult);
-            // ADR-002 §8: aggregation now uses dto.runtimeMs (set from
+            // Resource-limit contract: aggregation now uses dto.runtimeMs (set from
             // port.elapsedMs=2), so parseRuntimeMs is off the hot path.
             JudgeRunResponse result = codeExecutionService.execute(request, 7L, "user-1");
 

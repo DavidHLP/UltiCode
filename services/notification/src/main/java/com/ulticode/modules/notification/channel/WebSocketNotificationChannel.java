@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
  * WebSocket channel — publishes a real-time event for the App-local STOMP
  * relay through Redis.
  *
- * <p>Per ADR-004 §2.5 the WebSocket is best-effort: if the user is offline
+ * <p>The WebSocket is best-effort: if the user is offline
  * the push is lost (this is the current contract across the codebase). The
  * dispatcher's ledger row is marked {@code DELIVERED} regardless because
  * the broadcast port is best-effort and the App relay decides whether a

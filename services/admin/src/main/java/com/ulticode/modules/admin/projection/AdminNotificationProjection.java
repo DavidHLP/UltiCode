@@ -13,7 +13,7 @@ import com.ulticode.notification.api.dto.NotificationAdminDTO;
  * "announcement intent" VO builder used when every recipient opts out of a
  * broadcast.
  *
- * <p>Lifted out per ADR-0011 (admin projection series): a Stage 4 deepening
+ * <p>Lifted out as a Stage 4 admin projection deepening
  * matching the {@code AdminSubmissionProjection} /
  * {@code AdminUserProjection} / {@code AdminForumProjection} /
  * {@code AdminSolutionProjection} / {@code AdminContestProjection} shape.

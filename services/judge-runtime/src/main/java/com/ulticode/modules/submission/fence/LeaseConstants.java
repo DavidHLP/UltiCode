@@ -1,7 +1,7 @@
 package com.ulticode.modules.submission.fence;
 
 /**
- * Lease / heartbeat tuning constants for the ADR-003 M3b JUDGING lease mechanism.
+ * Lease / heartbeat tuning constants for the M3b JUDGING lease mechanism.
  *
  * <p>These are JVM-level operational constants, not user-tunable configuration.
  * The lease TTL governs how quickly a crashed worker's JUDGING row is recovered
@@ -9,7 +9,7 @@ package com.ulticode.modules.submission.fence;
  * heartbeat interval is TTL/3 so a worker gets ~2 renew attempts before the
  * reaper would notice a lapse.
  *
- * <p>Tuning trade-off (ADR-003 §3.3): shorter TTL -> faster recovery but more
+ * <p>Tuning trade-off: shorter TTL -> faster recovery but more
  * heartbeat DB writes; longer TTL -> fewer writes but slower recovery. 60s/20s
  * is the documented default; surface {@code judge.lease.miss_renew} and
  * {@code judge.lease.expired} to decide whether to change them.

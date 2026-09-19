@@ -11,11 +11,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * C language profile (ADR-002 §2.2). M2a stub — the D-form harness
+ * C language profile (language execution contract). M2a stub — the D-form harness
  * for C is in Phase 1 smoke skeleton and does not yet read
  * {@code input.json}.
  */
-@DisplayName("CLanguageProfile (ADR-002 §2.2, M2a stub)")
+@DisplayName("CLanguageProfile (language execution contract, M2a stub)")
 class CLanguageProfileTest {
 
     private final CLanguageProfile profile = new CLanguageProfile();

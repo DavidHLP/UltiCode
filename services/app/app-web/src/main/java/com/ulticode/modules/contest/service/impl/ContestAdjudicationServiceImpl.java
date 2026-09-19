@@ -53,7 +53,7 @@ import java.util.Optional;
  * lifecycle transitions and cascade cleanup belong to
  * {@link ContestLifecycleServiceImpl}.
  *
- * <p>Preserves durable post-judge scoring and ADR-006 (scoring mode +
+ * <p>Preserves durable post-judge scoring and the scoring-mode rule (
  * penalty-keyed wrong-submission handling); the structure deepens without
  * reopening either decision.
  */
@@ -181,7 +181,7 @@ public class ContestAdjudicationServiceImpl implements ContestAdjudicationServic
             firstSolveOnThisProblem = applyAccepted(
                     cs, contestProblem, participant, event, scoring.firstSolveBonus());
         } else {
-            // ADR-006 §2.2: wrong-submission penalty is mode-keyed. SCORE and
+            // Scoring-mode rule: wrong-submission penalty is mode-keyed. SCORE and
             // IOI are no-ops; ICPC adds penaltyPerWrong. Default scoringMode
             // is SCORE, so unset contests keep the legacy "no penalty" path.
             scoring.strategy().applyWrongSubmission(participant, scoring.penaltyPerWrong());
@@ -255,7 +255,7 @@ public class ContestAdjudicationServiceImpl implements ContestAdjudicationServic
     // ─── Scoring policy ────────────────────────────────────────────────
 
     /**
-     * ADR-006 scoring context for one verdict: the strategy selected from the
+     * Scoring context for one verdict: the strategy selected from the
      * contest's scoring mode, and the per-wrong-submission penalty (null
      * tolerates as the legacy hardcoded default).
      */

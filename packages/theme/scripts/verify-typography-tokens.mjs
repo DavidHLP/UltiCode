@@ -2,7 +2,7 @@
 // ---------------------------------------------------------------------------
 // verify-typography-tokens.mjs — guard against raw typography overrides
 //
-// Enforces the rule from docs/SHARED_TYPOGRAPHY_DESIGN.md:
+// Enforces the shared typography token contract:
 //   "Raw `font-size`, `font-family`, and arbitrary `text-[...]` values
 //    should be restricted to shared token files and rare one-off layout
 //    fixes."
@@ -17,7 +17,7 @@
 // ONLY way to keep a raw override. To whitelist a file, add it to
 // `packages/theme/typography-allowlist.json` with a comment explaining
 // why the exception exists (see its `_comment` field and
-// docs/SHARED_TYPOGRAPHY_DESIGN.md).
+// why the exception exists (see its _comment field).
 
 // Usage:
 //   node scripts/verify-typography-tokens.mjs
@@ -77,7 +77,7 @@ const PATTERNS = [
   { name: 'arbitrary-tracking', regex: /(^|[\s"'(])tracking-\[\s*-?\d+(\.\d+)?\s*(em|px|rem)\s*\]/g },
   // Tailwind arbitrary line-height
   { name: 'arbitrary-leading', regex: /(^|[\s"'(])leading-\[\s*\d+(\.\d+)?\s*(px|rem|em|%)\s*\]/g },
-  // Negative letter-spacing is deprecated per docs/SHARED_TYPOGRAPHY_DESIGN.md
+  // Negative letter-spacing is deprecated by the shared typography token contract
   // §5.5. The shared foundation maps `--tracking-tight` (the legacy
   // alias) to 0, so any explicit `letter-spacing: -N.NNem` in app code
   // is a regression. Catches both `letter-spacing:` in CSS / <style>
@@ -104,7 +104,7 @@ const PATTERNS = [
   // (normal/bold/bolder/lighter/inherit/initial/unset). The shared
   // foundation exposes the four documented weights (regular/medium/
   // semibold/bold) — anything else in app code is a regression against
-  // docs/SHARED_TYPOGRAPHY_DESIGN.md §5.4. Numeric values like 750 have
+  // the shared typography token contract. Numeric values like 750 have
   // appeared historically (console auth links) and drifted the design
   // system; this rule funnels them back through the shared tokens.
   { name: 'raw-font-weight', regex: /(^|[\s;{])font-weight\s*:\s*(?!var\b|normal\b|bold\b|bolder\b|lighter\b|inherit\b|initial\b|unset\b)\s*\d{1,3}\b/gm },

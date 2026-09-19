@@ -6,7 +6,7 @@ import lombok.Getter;
 
 /**
  * Canonical per-case scope enum for {@code submissions.test_details[*].caseScope}
- * (P0-1 / ADR-001 trajectory).
+ * (P0-1 / hidden-case visibility contract).
  *
  * <p>Two durable values map onto the {@code test_cases.is_sample} / {@code is_hidden}
  * columns:
@@ -25,7 +25,7 @@ import lombok.Getter;
  * JSON would break the canonical {@code SAMPLE|HIDDEN} contract and force every
  * consumer to handle it.
  *
- * <p><b>Wire contract</b> (changes require a new ADR):
+ * <p><b>Wire contract</b> (changes require a compatibility review):
  * <ul>
  *   <li>{@link #wireValue()} is the durable JSON value and database string.</li>
  *   <li>{@code name()} / {@code ordinal()} are JVM-internal only.</li>

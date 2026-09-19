@@ -31,7 +31,7 @@ import java.util.regex.Pattern;
  *       {@code templateId} is set).</li>
  *   <li>{@link EmailRenderPort} — substitute variables into subject / body.</li>
  *   <li>{@link EmailLogMapper} — persist the durable send log (the email
- *       module's "ledger"; per ADR-0004 mirror terminology).</li>
+ *       module's "ledger"; it follows the existing owner-ledger terminology).</li>
  *   <li>{@link SmtpSenderPort} — outbound transport (JavaMail in prod,
  *       log-only in dev/test).</li>
  *   <li>(internal) — recipient address validation.</li>

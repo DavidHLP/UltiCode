@@ -61,7 +61,7 @@
 - **Port** — an interface owned by the consuming module describing a
   collaboration it needs, implemented by an adapter in the providing module
   (dependency inversion). See [[ContestSubmissionPort]],
-  [[AdminReadModel seam]], [[CurrentUserProvider seam]].
+  [[AdminReadModel seam]], [[CurrentUserProvider (sole actor seam)]].
   `AdminSubmissionReadPort`, `AdminCommentReadPort`, `AdminSubmissionUserDetailStatsReadPort`,
   `AuthSessionPort`, `ProblemDetailPort`, `TokenBlacklistPort`.
 - **TokenBlacklistPort** — read-only revocation seam consulted by the
@@ -92,9 +92,9 @@
   notification `CUTOVER_REMOVED`, submission/problem `ALWAYS_REMOTE`) for the
   source-contract gate.
 - **Judge queue / outbox** — the dispatch path from Submission intake to the
-  sandbox (`QueueService`, `JudgeOutboxMapper`, ADR-003). The persisted payload
-  shape is owned by `JudgeOutboxPayload`; its key set and order are a
-  stored-JSON compatibility contract.
+  sandbox (`QueueService`, `JudgeOutboxMapper`, and the judge queue/outbox
+  contract). The persisted payload shape is owned by `JudgeOutboxPayload`;
+  its key set and order are a stored-JSON compatibility contract.
 - **SubmissionJudgedEvent** — domain event published after the verdict-write
   transaction commits; consumed by `ContestScoringListener` (AFTER_COMMIT)
   for post-commit scoring, and by achievement listeners.
@@ -112,7 +112,7 @@
   `UserPermissionServiceImpl`, and `AuditHelper` use
   `CurrentUserProvider` for `getCurrentUserId` / `hasRole` /
   `hasAuthority`; tests inject the same port.
-  See [[CurrentUserProvider seam]].
+  See [[CurrentUserProvider (sole actor seam)]].
 - **SystemSettingsStore** — the storage seam for the
   `system_settings` table. Owns the five category keys
   (`general` / `email` / `rate-limits` / `uploads` / `features`), the JSON
@@ -169,6 +169,6 @@
 
 ## Decisions
 
-- 2026-07-09: the former `wiki/concepts/` ADR + concept-page layer was retired.
-  Durable rationale remains in the relevant ADRs, source Javadoc and Flyway
+- 2026-07-09: the former `wiki/concepts/` decision-record and concept-page
+  layer was retired. Durable rationale remains in source Javadoc and Flyway
   migration comments; this glossary is the current terminology entry point.

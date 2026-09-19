@@ -60,7 +60,7 @@ public class DFormEnvelopeCodecImpl implements DFormEnvelopeCodec {
                                         long perCaseTimeoutMs, long memoryLimitBytes) {
         LinkedHashMap<String, Object> root = new LinkedHashMap<>();
         root.put("per_case_timeout_ms", perCaseTimeoutMs);
-        // ADR-002 §8: forward the per-case memory ceiling so the harness
+        // Resource-measurement contract: forward the per-case memory ceiling so the harness
         // can self-report Memory Limit Exceeded before the docker
         // --memory cap hard-kills the whole container. <=0 disables the
         // harness-level check (docker cap still enforces).

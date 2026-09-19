@@ -1,7 +1,7 @@
 package com.ulticode.modules.submission.sandbox;
 
 /**
- * Per-language effective resource limits (ADR-002 §2.2).
+ * Per-language effective resource limits.
  *
  * <p>Each {@link LanguageProfile} returns one of these from
  * {@link LanguageProfile#effectiveLimits(SandboxJob)} so the executor
@@ -14,7 +14,7 @@ package com.ulticode.modules.submission.sandbox;
  *
  * <p>Adding a new limit dimension (e.g. open-files cap) is a
  * non-breaking change for this record as long as new fields come with
- * sensible defaults and are documented in the ADR; treat the existing
+ * sensible defaults and are documented in the current sandbox contract; treat the existing
  * fields as the durable contract.
  */
 public record SandboxLimits(

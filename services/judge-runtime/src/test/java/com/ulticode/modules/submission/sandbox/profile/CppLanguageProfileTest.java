@@ -15,12 +15,12 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
- * C++ language profile (ADR-002 §2.2). The harness ships in
+ * C++ language profile (language execution contract). The harness ships in
  * docker/sandbox/harness/cpp/; the profile dispatches to the in-image
  * cpp-sandbox orchestrator. These tests pin the dispatch shell shape and
  * the workspace/compile-failure heuristics without touching Docker.
  */
-@DisplayName("CppLanguageProfile (ADR-002 §2.2)")
+@DisplayName("CppLanguageProfile (language execution contract)")
 class CppLanguageProfileTest {
 
     private final DockerSandboxConfig config = mock(DockerSandboxConfig.class);

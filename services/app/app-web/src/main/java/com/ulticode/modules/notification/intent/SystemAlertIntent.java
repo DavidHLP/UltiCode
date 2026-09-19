@@ -7,7 +7,7 @@ import java.util.Map;
 
 /**
  * Intent for security / system-critical alerts (e.g. password changed,
- * suspicious login detected). Reserved by ADR-004 §2.1.
+ * suspicious login detected). Reserved by the typed notification intent contract.
  *
  * <p><b>Status: reserved, no automatic producer yet.</b> The intent type and
  * all three channel projections (in-app, WebSocket, email) are implemented,
@@ -16,7 +16,7 @@ import java.util.Map;
  * {@code SECURITY}-category notifications is {@code AdminNotificationService}
  * (admin broadcast), which force-delivers and does not go through this
  * intent. Wiring automatic security events (new-device login, credential
- * change) is a future feature; see ADR-004 §2.1.
+ * change) is a future feature; see the typed notification intent contract.
  *
  * <p>Callers should set {@code category = SECURITY} on the record so the
  * dispatcher's preference filter applies consistently. A future

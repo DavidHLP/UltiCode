@@ -3,7 +3,7 @@ package com.ulticode.modules.submission.sandbox;
 import java.util.List;
 
 /**
- * Hexagonal port (ADR-002) for executing user code against test cases in
+ * Hexagonal port for executing user code against test cases in
  * a sandboxed environment.
  *
  * <p>This is the top-level boundary the rest of the system (judge worker,
@@ -22,7 +22,7 @@ import java.util.List;
  *       responsible for reducing the per-case results into an overall
  *       verdict — the port does not pick a winner on its own.</li>
  *   <li>The result's {@link RunCaseResult#status()} is the
- *       {@code SubmissionStatus} enum (ADR-001) — never a raw wire
+ *       {@code SubmissionStatus} enum — never a raw wire
  *       string. Wire-level string conversion happens at the DTO
  *       boundary, not inside the sandbox.</li>
  *   <li>Cross-language infrastructure failures (e.g. Docker daemon
@@ -41,7 +41,7 @@ import java.util.List;
  *       {@link LanguageProfile#dockerCommand} responsibility.</li>
  *   <li>Classify language-specific failures (e.g. Java compile errors) —
  *       that is each {@link LanguageProfile#isCompileFailure}
- *       responsibility. (See ADR-002 §2.4.)</li>
+ *       responsibility. (See the sandbox execution contract.)</li>
  * </ul>
  *
  * @see SandboxJob
@@ -56,7 +56,7 @@ public interface SandboxExecutor {
      * Execute a single test case.
      *
      * @param job       immutable per-run job descriptor; carries the
-     *                  language, code, limits, and ADR-003 generation
+     *                  language, code, limits, and generation
      *                  fence fields.
      * @param testCase  one test case to run against.
      * @return one {@link RunCaseResult} — never {@code null}.

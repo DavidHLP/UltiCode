@@ -23,7 +23,7 @@
 
   /* Canonical Markdown contract. Both `.markdown-block` and the
    * management-local `.prose` selector map to the same rules so the
-   * two apps cannot drift apart. See docs/SHARED_TYPOGRAPHY_DESIGN.md §8
+   * two apps cannot drift apart. See the shared typography token contract
    * for the design contract. */
   .markdown-block,
   .prose {
@@ -707,7 +707,7 @@
   --scrollbar-thumb-active: var(--solarized-base0);
 }
 
-/* Garden app-wide surface treatments (see docs/GARDEN_DESIGN_SPEC.md §5).
+/* Garden app-wide surface treatments (see packages/design-system/docs/GARDEN_DESIGN_SPEC.md §5).
  * `.paper-texture-overlay` is mounted once per app root; the grain sits above
  * content but never intercepts pointers. */
 .paper-texture-overlay {

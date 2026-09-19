@@ -14,8 +14,8 @@ import java.util.List;
  * (websocket, admin) through
  * {@link com.ulticode.modules.contest.port.ContestLiveRankingReadPort}
  * rather than this service, so that no cross-module caller needs to
- * import the contest module's internal ranking API. See ADR-0010 for
- * the seam-inversion rationale.
+ * import the contest module's internal ranking API.
+ * See the seam-inversion rationale.
  *
  * @author ulticode
  */

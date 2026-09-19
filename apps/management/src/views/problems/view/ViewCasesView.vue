@@ -73,7 +73,7 @@ onMounted(async () => {
       <div v-if="problem" class="space-y-4">
         <CasesDisplay :problem="problem" />
         <!--
-          Admin-only hidden cases viewer (read-only). Per ADR-001 + P0-1
+          Admin-only hidden cases viewer (read-only). Per P0-1
           backend projection, this is the ONLY frontend surface that may
           render hidden case data — the admin authn path is enforced by
           @PreAuthorize on AdminTestCaseController. console/ never imports

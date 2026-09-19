@@ -53,7 +53,7 @@ COMMON_COMMANDS="${COMMON_COMMANDS/ +get/ +client|setinfo +get}"
 
 # NOTE: redis-server ACL files allow ONLY lines that start with "user" — no
 # comments or blank lines. Keep the model documented in
-# `docs/architecture/security.md`; keep this generator focused on emitting
+# `docs/ARCHITECTURE.md`; keep this generator focused on emitting
 # the runtime file.
 #
 # stream:integration is the single intentional shared event-bus key. It is not

@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * C++ language profile (ADR-002 §2.2).
+ * C++ language profile (language execution contract).
  *
  * <p>Dispatches to the pre-built {@code cpp-sandbox} orchestrator inside the
  * sandbox image ({@code /opt/harness/cpp/cpp-sandbox}). The orchestrator reads

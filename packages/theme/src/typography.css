@@ -20,7 +20,7 @@
  * `document.documentElement.dataset.ucDensity = 'comfortable' | 'compact'`
  * (see shared/theme/src/typography.ts → applyTypographyDensity).
  *
- * See docs/SHARED_TYPOGRAPHY_DESIGN.md for the design rationale and the
+ * See the shared typography token contract for the design rationale and the
  * migration plan that this file enables.
  * =========================================================================== */
 

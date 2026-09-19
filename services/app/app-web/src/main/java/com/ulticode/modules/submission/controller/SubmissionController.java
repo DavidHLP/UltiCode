@@ -82,8 +82,8 @@ public class SubmissionController {
                     may still receive a JSON string in transitional windows; the frontend
                     `mapDistributionBins()` helper normalizes both shapes.
 
-                    See `docs/reports/submission-api-test-report-2026-06-10.md` for the
-                    full DTO contract.
+                    The DTO contract is defined by `SubmissionVO` and its regression
+                    tests.
                     """)
     @ApiResponse(responseCode = "200", description = "Submission retrieved", content = @Content(schema = @Schema(implementation = SubmissionVO.class)))
     @ApiResponse(responseCode = "403", description = "Not authorized to view this submission")

@@ -32,7 +32,7 @@ public interface EdgeOperationsService {
      *   <li>Toggle: insert if not exists, delete if exists. The
      *       response VO only exposes aggregated counts; the per-user
      *       "did this user favorite?" flag is not part of the contract
-     *       (see docs/edge-operations-api-test-report-2026-06-11.md §六).</li>
+     *       and is intentionally omitted from this service.</li>
      * </ul>
      *
      * @param userId the user performing the operation

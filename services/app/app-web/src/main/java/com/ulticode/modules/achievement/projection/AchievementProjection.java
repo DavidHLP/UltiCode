@@ -20,9 +20,10 @@ import java.util.List;
  * post-action view shape via {@link #toVO(Achievement)}.</p>
  *
  * <p>Mirrors the projection deep modules already established in this codebase
- * &mdash; {@code ModerationProjection} (ADR-0004), {@code ProblemProjection},
+ * &mdash; {@code ModerationProjection}, {@code ProblemProjection},
  * {@code SubmissionProjection}, {@code SearchReadProjection},
- * {@code SolutionProjection}, {@code ContestProjection}. See ADR-0005.</p>
+ * {@code SolutionProjection}, {@code ContestProjection}. The read seam
+ * remains separate from state-mutating operations.</p>
  */
 public interface AchievementProjection {
 

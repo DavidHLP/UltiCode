@@ -24,7 +24,7 @@ import java.util.Map;
  *   <li>Target resolution (all users, an explicit set, or no-one).</li>
  *   <li>Preference filtering for opt-out categories
  *       ({@code MARKETING}, {@code COMMUNICATION}). SECURITY / SYSTEM
- *       announcements are force-delivered (ADR-004 §2.3).</li>
+ *       announcements are force-delivered (notification preference contract).</li>
  *   <li>Announcement-row persistence so each recipient gets a notification
  *       row sharing one {@code announcementId}.</li>
  *   <li>Optionally, the cross-recipient {@code NotificationIntent}

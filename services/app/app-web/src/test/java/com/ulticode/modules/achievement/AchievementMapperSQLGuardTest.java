@@ -41,8 +41,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * achievements WHERE `key` = 'first_solved'}) would catch any runtime-only
  * regression and should be added as a follow-up; for now this guard runs
  * in <1ms and is sufficient for the structural bug class.
- * (Reported in docs/achievement-api-test-report-2026-06-11.md §6
- * CRITICAL #1/#2.)</p>
+ * (the critical SQL regression cases for #1/#2).</p>
  *
  * <p>Pattern mirrors
  * {@code com.ulticode.modules.notification.mapper.NotificationMapperBatchInsertTest}.</p>

@@ -14,6 +14,7 @@ python3 - "$ROOT_DIR" <<'PY'
 from __future__ import annotations
 
 from bisect import bisect_right
+import json
 from pathlib import Path
 import re
 import sys
@@ -139,36 +140,23 @@ def unmark(value: str) -> str:
     return re.sub(r"[`*_]", "", value).strip()
 
 
-def split_table_row(line: str) -> list[str]:
-    if not line.strip().startswith("|") or not line.strip().endswith("|"):
-        fail(f"malformed manifest table row: {line}")
-    return [cell.strip() for cell in line.strip()[1:-1].split("|")]
-
-
-def manifest_tables(text: str) -> list[tuple[list[str], list[list[str]]]]:
-    lines = text.splitlines()
-    tables: list[tuple[list[str], list[list[str]]]] = []
-    index = 0
-    while index < len(lines):
-        if lines[index].strip().startswith("| id |"):
-            header = split_table_row(lines[index])
-            if index + 1 >= len(lines) or not re.fullmatch(
-                r"\|\s*:?-{3,}:?(?:\s*\|\s*:?-{3,}:?)+\s*\|", lines[index + 1].strip()
-            ):
-                fail(f"manifest table has no separator after header at line {index + 1}")
-            rows: list[list[str]] = []
-            index += 2
-            while index < len(lines) and lines[index].strip().startswith("|"):
-                rows.append(split_table_row(lines[index]))
-                index += 1
-            tables.append((header, rows))
-            continue
-        index += 1
-    return tables
-
-
-manifest = read_required("docs/architecture/evidence/P3-ADMIN-001-admin-budget-manifest.md")
-tables = manifest_tables(manifest)
+manifest = json.loads(read_required("scripts/test/fixtures/admin-rpc-budget-manifest.json"))
+if manifest.get("format") != "admin-rpc-budget-manifest-v1":
+    fail("manifest has an unsupported fixture format")
+if manifest.get("scope") != "repository/non-production":
+    fail("manifest lacks its repository/non-production boundary")
+raw_tables = manifest.get("tables")
+if not isinstance(raw_tables, list):
+    fail("manifest has no tables array")
+tables = []
+for raw_table in raw_tables:
+    if not isinstance(raw_table, dict):
+        fail("manifest has a malformed table")
+    headers = raw_table.get("headers")
+    rows = raw_table.get("rows")
+    if not isinstance(headers, list) or not isinstance(rows, list):
+        fail("manifest table has malformed headers or rows")
+    tables.append((headers, rows))
 if len(tables) != 4:
     fail(f"expected four budget tables, found {len(tables)}")
 
@@ -242,8 +230,6 @@ if set(manifest_rows) != EXPECTED_ID_SET:
     fail(f"manifest ID set mismatch; missing={missing}, extra={extra}")
 if len(manifest_rows) != len(EXPECTED_IDS):
     fail("manifest ID count is not deterministic")
-if "not production SLO" not in manifest.lower() and "not a measured latency objective" not in manifest.lower():
-    fail("manifest lacks its repository/non-production boundary")
 print(f"manifest: PASS ({len(manifest_rows)} fixed IDs and required fields)")
 
 

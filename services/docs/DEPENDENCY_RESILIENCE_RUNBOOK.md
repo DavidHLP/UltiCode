@@ -64,7 +64,7 @@ Static source anchors: [`docker/docker-compose.prod.yml`](../../docker/docker-co
 [`Admin audit inbox`](../admin/src/main/java/com/ulticode/modules/admin/audit/AdminAuditIntegrationInboxBridge.java),
 [`Notification inbox`](../notification/src/main/java/com/ulticode/notification/inbox/NotificationIntegrationInboxBridge.java).
 
-Recovery entry points remain the existing [`backup and recovery`](../../docs/operations/backup-and-recovery.md),
+Recovery entry points remain the existing [`backup and recovery`](../../docs/OPERATIONS.md#备份与恢复),
 this runbook for Meili/Nacos/Dubbo recovery, and [`Worker SLO`](WORKER_SLO_RUNBOOK.md)
 for Redis PEL/DLQ and Meili replay/rebuild. These entries reuse the existing
 drills; they do not grant production failover authority.

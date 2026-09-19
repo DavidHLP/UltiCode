@@ -49,7 +49,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * Unit tests for {@link AdminForumServiceImpl} after the ADR-0011 Stage 2
+ * Unit tests for {@link AdminForumServiceImpl} after the Stage 2
  * extraction, the C6 forum-toggle policy collapse, and ADMIN-007.
  *
  * <p>Read tests ({@code getPosts} comment count enrichment) migrated to

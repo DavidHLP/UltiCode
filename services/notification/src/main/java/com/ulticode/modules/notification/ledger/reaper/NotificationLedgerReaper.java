@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * Reaps {@code CLAIMED} rows that have been stuck for more than 10 minutes
- * (ADR-004 M4d-1 finding #4). Without this reaper, a dispatcher that
+ * (delivery-ledger recovery contract). Without this reaper, a dispatcher that
  * claimed a row but died before transitioning it would permanently block
  * future dispatches for the same {@code (intent_id, channel_id)} pair,
  * because the delivery-attempt coordinator would classify the existing

@@ -32,7 +32,7 @@ import static org.mockito.Mockito.*;
  * Unit tests for {@link DefaultAchievementProjection}.
  *
  * <p>Migrated from {@code AchievementServiceTest} when the read paths were
- * extracted from {@code AchievementServiceImpl} (ADR-0005). Behaviour is
+ * extracted from {@code AchievementServiceImpl} (the current projection seam). Behaviour is
  * unchanged &mdash; the assertions are identical, only the SUT moved.</p>
  */
 @ExtendWith(MockitoExtension.class)

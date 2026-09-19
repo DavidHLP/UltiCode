@@ -4,7 +4,7 @@ import com.ulticode.modules.notification.entity.enums.NotificationCategory;
 import com.ulticode.notification.api.dto.NotificationPayload;
 
 /**
- * Sealed top-level interface for typed notification intents (ADR-004 §2.1).
+ * Sealed top-level interface for typed notification intents.
  *
  * <p>Replaces the legacy {@code Map<String, Object>} envelope. Every concrete
  * intent is a record declared in this package; this interface's {@code permits}

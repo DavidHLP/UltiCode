@@ -12,8 +12,8 @@ import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
 
 /**
- * In-memory {@link JudgeQueue} adapter (ADR-003 M3c-2). Hex-arch test
- * adapter following the ADR-002 {@code InMemorySandboxAdapter} pattern.
+ * In-memory {@link JudgeQueue} adapter for the current queue contract. Hex-arch test
+ * adapter following the {@code InMemorySandboxAdapter} pattern.
  *
  * <p>Semantics mirror the Redisson Streams adapter so tests assert
  * identical behavior:

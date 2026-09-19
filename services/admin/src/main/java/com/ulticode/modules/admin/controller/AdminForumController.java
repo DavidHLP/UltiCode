@@ -28,7 +28,7 @@ import java.util.List;
 /**
  * Admin controller for forum post management.
  *
- * <p>After the ADR-0011 Stage 2 extraction, reads (post list, post detail,
+ * <p>After the current read/write seam extraction, reads (post list, post detail,
  * community list) depend on {@link AdminForumProjection} and writes (pin /
  * unpin / lock / unlock / delete / flag / unflag / bulk) depend on
  * {@link AdminForumService}. Mirrors the AdminSubmission / AdminUser /

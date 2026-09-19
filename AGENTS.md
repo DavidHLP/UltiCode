@@ -29,7 +29,7 @@ UltiCode is an online-judge platform with these main surfaces:
 | `init-db/migrations/` | Canonical Flyway migrations |
 | `docker/` | Runtime infrastructure and judge sandbox |
 | `scripts/dev/` | Supported local startup, migration, and verification entry points |
-| `docs/` | 长期主题文档、架构地图、操作入口、项目状态与 ADR；从 [`docs/index.md`](docs/index.md) 开始 |
+| `docs/` | 六个核心主题文档；项目问题与运行细节由 `services/docs/`、源码、配置和门禁维护；从 [`docs/index.md`](docs/index.md) 开始 |
 
 Read the nearest guide before editing `services/`, `apps/console/`, `apps/management/`, or `packages/`.
 
@@ -121,7 +121,7 @@ Do not use `/actuator/health` as a readiness check; Actuator is not exposed. Use
 ## Test deployment and remote access
 
 - Apply this section only when the task explicitly requests remote testing, deployment, or tunnel access. Resolve the remote host, checkout, branch, and ports from the current environment; otherwise follow the repository's normal local entry points.
-- Before remote execution, read the relevant sections of [`docs/development/local-setup.md`](docs/development/local-setup.md), [`docs/development/testing.md`](docs/development/testing.md), and [`docs/operations/deployment.md`](docs/operations/deployment.md); use their supported `scripts/dev/*` and manifest entry points.
+- Before remote execution, read the relevant sections of [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md), [`docs/OPERATIONS.md`](docs/OPERATIONS.md), and the applicable Services runbook; use their supported `scripts/dev/*` and manifest entry points.
 - For data backfill or cutover runbooks, perform the source/target, checksum, outbox, and writer checks required by that runbook; only for Submission cutover update its marker after verification passes. Pure schema migrations follow their migration gate and do not require a cutover marker.
 - For personal local access to a remote test stack, prefer SSH local port forwarding. Use a Cloudflare Quick Tunnel only when public or cross-device access is explicitly required; scope it to frontend entries, protect administrative surfaces, and remove it after testing.
 - Treat explicit exit codes, readiness responses, parsed PM2 state, and Compose health as separate evidence. Process `online` or container `healthy` alone is not a complete deployment proof.
@@ -138,7 +138,8 @@ Do not use `/actuator/health` as a readiness check; Actuator is not exposed. Use
 - Keep repository-wide agent rules only in this file. Nested guides contain only durable, subtree-specific constraints.
 - Do not record volatile counts, file lengths, temporary review findings, planned architecture, or facts directly inferable from package/build configuration.
 - Update the affected canonical document under `docs/` in the same change when behavior, commands, paths, contracts, or architecture boundaries change. Keep implementation and executable configuration authoritative.
-- Agent runtime state is not project documentation: handoff, resume, worklog, task ledgers, and raw verification evidence stay in ignored local directories and are not committed. Architecture decisions go to `docs/architecture/decisions/`, current state to `docs/project/current-status.md`, open issues to `services/docs/SERVICES_ISSUES.md`; each fact has one authoritative location.
+- Read documentation through [`docs/index.md`](docs/index.md): it maps the six current core documents. For a task, read the relevant core entry first, then the owning code/config/tests; use `services/docs/` only for its owner-maintained issue and runbook material.
+- Do not add a new task/session/date-specific document or duplicate a core topic. Keep current documentation in the six core files; task execution state stays in ignored local agent directories, and open service issues remain in `services/docs/SERVICES_ISSUES.md`.
 
 ## Completion criteria
 

@@ -23,14 +23,14 @@ import java.util.List;
  *
  * <p>This projection is independent of the Submission-owned rejudge command
  * service; it owns only the Admin read surface described below.
- * Stage 2 rollout of ADR-0011: the paginated list read
+ * Stage 2 rollout: the paginated list read
  * ({@link #getSubmissions}, ~110 LoC of query building + batch user/problem
  * enrichment + N+1-safe VO shaping), the single-detail read
  * ({@link #getSubmission}), the dashboard statistics aggregation
  * ({@link #getStatistics}, total / by-status / by-language / 24h / pending),
  * and the two filter-option derivations ({@link #getStatuses} from the
  * canonical enum, {@link #getLanguages} with humanised labels). Sitting next
- * to the ADR-003 fenced rejudge state machine in the same service made every
+ * to the fenced rejudge state machine in the same service made every
  * projection tweak land in the same file as the write paths.
  *
  * <p>After the deepening:

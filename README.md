@@ -8,7 +8,7 @@
 
 **English** · [简体中文](README.zh-CN.md)
 
-[Quick Start](#quick-start) · [Screenshots](#screenshots) · [Documentation](docs/index.md) · [Roadmap](docs/project/roadmap.md) · [Contributing](#contributing)
+[Quick Start](#quick-start) · [Screenshots](#screenshots) · [Documentation](docs/index.md) · [Contributing](#contributing)
 
 [MIT License](LICENSE) · [Report an issue](https://github.com/DavidHLP/UltiCode/issues) · [CI workflow](https://github.com/DavidHLP/UltiCode/actions/workflows/ci.yml)
 
@@ -74,7 +74,7 @@ Contributors can also use Dev Containers / Codespaces directly; creating the con
 >
 > `init-env.sh` generates `SUBMISSION_CUTOVER_COMPLETE` as `false`. Both `dev-lite` and `dev-full` require `APP_SUBMISSION_ROUTING_MODE=remote` and a completed Submission cutover marker; the startup scripts refuse to run when either is missing.
 >
-> Read [Database migrations](docs/operations/database-migrations.md) first, and complete migration and verification according to the authorized cutover/backfill runbook. Do not skip the checks by only changing the marker.
+> Read [Database migrations](docs/OPERATIONS.md#数据库迁移与-owner-收敛) first, and complete migration and verification according to the authorized cutover/backfill runbook. Do not skip the checks by only changing the marker.
 
 ### 4. Start the development environment
 
@@ -101,7 +101,7 @@ Once the preparation above is done, choose a mode:
 ./scripts/dev/up.sh --mode dev-full
 ```
 
-Once the frontends are running: [Console](http://localhost:9002) · [Management](http://localhost:9003). See [Local development](docs/development/local-setup.md) for scopes, logs, and troubleshooting entry points.
+Once the frontends are running: [Console](http://localhost:9002) · [Management](http://localhost:9003). See [Local development](docs/DEVELOPMENT.md#本地开发) for scopes, logs, and troubleshooting entry points.
 
 <details>
 <summary>Optional Core pilot and rollback notes</summary>
@@ -115,7 +115,7 @@ The Core convergence pilot uses an explicit scope and keeps Judge as a separate 
 
 The Core parent listens on `9108` with readiness at `/api/v1/core/health/ready`; that profile currently serves owner assembly and boundary verification and has not yet replaced the default distributed topology.
 
-This version no longer supports `legacy-rollback`; `up.sh` fails closed for that legacy mode and for unknown modes. Production rollback can only use the last complete release descriptor retained and verified by the deployer — the current binaries cannot restore the old implementation (see [Deployment, release, and rollback](docs/operations/deployment.md)).
+This version no longer supports `legacy-rollback`; `up.sh` fails closed for that legacy mode and for unknown modes. Production rollback can only use the last complete release descriptor retained and verified by the deployer — the current binaries cannot restore the old implementation (see [Deployment, release, and rollback](docs/OPERATIONS.md#部署发布与回滚)).
 
 </details>
 
@@ -134,18 +134,18 @@ UltiCode/
 └── docs/              # Architecture, development, and deployment documents
 ```
 
-The default topology is **distributed**. Auth, Admin, App, Submission, and Notification each own their data and write boundaries; Judge runs judging, and Search maintains derived indexes. See the [architecture overview](docs/architecture/overview.md).
+The default topology is **distributed**. Auth, Admin, App, Submission, and Notification each own their data and write boundaries; Judge runs judging, and Search maintains derived indexes. See the [architecture overview](docs/ARCHITECTURE.md).
 
 ## Documentation
 
 Long-form documentation is currently maintained in Chinese.
 
-- [Documentation index](docs/index.md): authoritative sources by architecture, development, operations, API, status, and history.
-- [Current status](docs/project/current-status.md): repository completeness, external boundaries, and current verification entry points.
-- [Architecture overview](docs/architecture/overview.md): service boundaries, Owner/Worker topology, and key constraints.
-- [Local development and testing](docs/development/local-setup.md), [Testing and quality](docs/development/testing.md).
-- [Deployment, release, and rollback](docs/operations/deployment.md), [Database migrations](docs/operations/database-migrations.md).
-- [Authentication API](docs/api/authentication.md), [API and internal contracts](docs/api/overview.md).
+- [Documentation index](docs/index.md): the six core sources for product, architecture, development, operations, and API/reference.
+- [Product and domain](docs/PRODUCT.md): product positioning, roles, capabilities, and boundaries.
+- [Architecture](docs/ARCHITECTURE.md): service boundaries, Owner/Worker topology, data flow, contracts, and security boundaries.
+- [Development and testing](docs/DEVELOPMENT.md): local startup, verification, configuration, rules, and troubleshooting.
+- [Operations](docs/OPERATIONS.md): deployment, release, rollback, migrations, backup, monitoring, and incident response.
+- [API and authentication reference](docs/REFERENCE.md): browser flows, API entry points, and internal contracts.
 
 Implementation, configuration, migration scripts, tests, and executable runbooks are the source of truth for behavior; this repository has no production environment, and production deployment, real traffic, and external credentials are the deployer's responsibility.
 
@@ -155,7 +155,7 @@ Report issues and discuss improvements through [Issues](https://github.com/David
 
 1. When reporting an issue, include reproduction steps, expected vs. actual behavior, and sanitized environment details.
 2. Read [`AGENTS.md`](AGENTS.md) and the relevant directory guides before starting; discuss the scope in an Issue first for larger changes.
-3. Add tests for behavior changes and run the matching checks from the [testing guide](docs/development/testing.md).
+3. Add tests for behavior changes and run the matching checks from the [development guide](docs/DEVELOPMENT.md).
 4. Explain the reason, verification method, and known limitations in the Pull Request.
 
 Before submitting, run `git diff --check` and the `./scripts/dev/test.sh` gate matching the surface you touched. Never commit `.env`, credentials, private keys, or generated runtime artifacts.

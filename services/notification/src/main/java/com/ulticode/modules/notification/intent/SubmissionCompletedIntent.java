@@ -14,14 +14,14 @@ import java.util.Map;
  * does not need a schema change.
  *
  * <p>{@link #intentId()} is derived from {@code submissionId + ":" + generation}
- * — the ADR-003 generation fence guarantees that a re-judge produces a new
+ * — the generation fence guarantees that a re-judge produces a new
  * generation and therefore a new intent id, so retries are correctly deduped
  * while distinct verdicts are not collapsed.
  *
  * <p>The {@code contestId} / {@code contestScoreDelta} pair is nullable: most
  * submissions are not part of a contest.
  *
- * <p>Reference: ADR-001 (SubmissionStatus), ADR-003 (generation fence).
+ * <p>Reference: the submission-status and generation-fence contracts.
  */
 public record SubmissionCompletedIntent(
         String userId,

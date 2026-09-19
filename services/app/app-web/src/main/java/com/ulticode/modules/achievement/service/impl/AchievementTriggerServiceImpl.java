@@ -34,8 +34,7 @@ import java.util.stream.Collectors;
  * method removed ~50 lines of pure pass-through and moved the
  * "which type?" decision to the call site, where it belongs.
  *
- * <p>See ADR (to be filed) and
- * <code>/tmp/architecture-review-1783495648.html</code> candidate 1.
+ * <p>See the current architecture review input and source boundaries.</p>
  */
 @Slf4j
 @Service

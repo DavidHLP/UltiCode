@@ -47,8 +47,7 @@ public class QueueConfig {
     }
 
     /**
-     * ADR-003 M3c-2: the {@link com.ulticode.submission.api.queue.JudgeQueue}
-     * port backed by Redisson Streams. Only active when
+     * The JudgeQueue port is backed by Redisson Streams. Only active when
      * {@code app.features.judge-queue.use-port=true}.
      */
     @Bean

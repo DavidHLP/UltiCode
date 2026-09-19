@@ -30,7 +30,7 @@ import java.io.Serializable;
  * {@link #of(Integer, Integer, int)} overload. The hard cap of 100 is
  * non-negotiable — it protects against page-size DoS.
  *
- * <p>This is a deep module per ADR-0011: a small interface (two factory
+ * <p>This is a deep module: a small interface (two factory
  * methods + two accessors + offset) hiding the entire normalization rule set.
  * Tests cross the same seam as callers.
  */

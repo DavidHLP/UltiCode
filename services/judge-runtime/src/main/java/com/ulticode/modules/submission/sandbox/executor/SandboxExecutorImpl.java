@@ -38,7 +38,7 @@ import java.util.stream.Stream;
  * Default production {@link SandboxExecutor} implementation.
  *
  * <p>This class replaces the pre-M2a {@code SandboxServiceImpl}
- * (ADR-002 §1.1, §2.2). It does three things:
+ * (current sandbox execution contract). It does three things:
  * <ol>
  *   <li>Resolves the {@link LanguageProfile} for the job's
  *       {@link SandboxJob#languageId()}, fail-fast on duplicate
@@ -86,24 +86,24 @@ import java.util.stream.Stream;
 public class SandboxExecutorImpl implements SandboxExecutor {
 
     // Per-case soft timeout floor forwarded to the harness (its
-    // per_case_timeout_ms). ADR-002 §8: the soft timeout now equals the
+    // per_case_timeout_ms). The timeout contract: the soft timeout now equals the
     // problem's per-case limit directly (no longer derived from a single
     // hard timeout), floored at 500ms so a misconfigured 0 doesn't TLE
     // every case instantly.
     private static final int DFORM_SOFT_TIMEOUT_FLOOR_MS = 500;
 
-    // ── Docker hard-timeout math (ADR-002 §8) ───────────────────────────────
+    // ── Docker hard-timeout math (sandbox timeout contract) ─────────────────────
     // The whole-batch hard timeout scales with case count so N cases each
     // allowed `timeoutSeconds` don't get SIGKILLed after the first one.
     private static final int MAX_BATCH_HARD_TIMEOUT_SECONDS = 180;
     // C/C++ g++ compile budget folded into the docker hard timeout so the
-    // runner's compile phase never gets killed by the outer cap (ADR-002 §8
+    // runner's compile phase never gets killed by the outer cap (sandbox timeout
     // / P1-4). Interpreted languages get 0.
     private static final int COMPILE_BUDGET_SECONDS = 35;
     // Grace for docker startup + envelope flush after the last case.
     private static final int DOCKER_GRACE_SECONDS = 2;
 
-    // ── Common security args (ADR-002 §3.3) ──────────────────────────────────
+    // ── Common security args (sandbox security contract) ─────────────────────────
     // These are appended to every language's docker command so a
     // profile can never silently weaken sandbox isolation.
     private static final String DOCKER_BIN = "docker";
@@ -131,7 +131,7 @@ public class SandboxExecutorImpl implements SandboxExecutor {
         this.processLifecycleRunner = processLifecycleRunner;
         this.resultTranslator = new SandboxResultTranslator(sandboxOutputFormatter, outcomeClassifier);
         // Fail-fast: two profiles claiming the same language id is a
-        // wiring bug, not a runtime fallback. Per ADR-002 §2.2.
+        // wiring bug, not a runtime fallback. Per language-profile contract.
         this.profiles = all.stream().collect(Collectors.toUnmodifiableMap(
                 LanguageProfile::languageId,
                 p -> p,
@@ -156,7 +156,7 @@ public class SandboxExecutorImpl implements SandboxExecutor {
     public BatchRunResult runBatch(SandboxJob job, List<TestCase> cases) {
         // The D-form harness runs all cases in a single container
         // invocation; the executor spawns docker once and parses one
-        // envelope. Per ADR-002, the per-case list must preserve
+        // envelope. The per-case list must preserve
         // input order and length even on failure.
         long start = System.nanoTime();
         try {
@@ -323,7 +323,7 @@ public class SandboxExecutorImpl implements SandboxExecutor {
                                             Path workspace,
                                             SandboxLimits limits) {
         // M2a-round-2 fix (codex review F4): honor the profile's
-        // effective limits (ADR-002 §2.2) — the per-run
+        // effective limits (language-profile contract) — the per-run
         // SandboxLimits returned by profile.effectiveLimits(job) is
         // the single source of truth for what the executor actually
         // applies. Profiles are free to tighten/relax per-language
@@ -357,7 +357,7 @@ public class SandboxExecutorImpl implements SandboxExecutor {
     }
 
     /**
-     * Common security args (ADR-002 §3.3). Profiles are forbidden
+     * Common security args (sandbox security contract). Profiles are forbidden
      * from overriding these — if a future language needs something
      * not covered here, add it here, never in the profile.
      */
@@ -372,7 +372,7 @@ public class SandboxExecutorImpl implements SandboxExecutor {
         );
     }
 
-    // ── Fork-failure detection (ADR-002 §2.5: classifier is the oracle) ───────
+    // ── Fork-failure detection (sandbox failure-classification contract) ───────
 
     /**
      * @deprecated Retained as a thin delegation to
@@ -542,9 +542,8 @@ public class SandboxExecutorImpl implements SandboxExecutor {
         return s.length() <= 4096 ? s : s.substring(0, 4096) + "... [truncated]";
     }
 
-    // ── Timeout math ─────────────────────────────────────────────────────────
 
-    // ── Timeout math (ADR-002 §8) ────────────────────────────────────────────
+    // ── Timeout math (sandbox timeout contract) ─────────────────────────────────
 
     private static boolean isCompiledLanguage(SandboxJob job) {
         String lang = job.languageId();
@@ -552,7 +551,7 @@ public class SandboxExecutorImpl implements SandboxExecutor {
     }
 
     /**
-     * Docker hard timeout for the whole batch. ADR-002 §8 (P0-1): scales
+     * Docker hard timeout for the whole batch. The sandbox timeout contract (P0-1): scales
      * with case count so N cases each allowed {@code timeoutSeconds} don't
      * get SIGKILLed after the first one (the old {@code timeoutSeconds + 1}
      * formula made multi-case previews TLE the whole batch). Compiled
@@ -570,7 +569,7 @@ public class SandboxExecutorImpl implements SandboxExecutor {
      * Per-case soft timeout forwarded to the harness (its
      * {@code per_case_timeout_ms}). Equals the problem's per-case limit;
      * the harness self-reports Time Limit Exceeded when a single case
-     * exceeds it. ADR-002 §8.
+     * exceeds it.
      */
     private long perCaseTimeoutMs(SandboxJob job) {
         return Math.max(DFORM_SOFT_TIMEOUT_FLOOR_MS, job.timeoutSeconds() * 1000L);
@@ -580,7 +579,7 @@ public class SandboxExecutorImpl implements SandboxExecutor {
      * Effective per-run memory ceiling in bytes (from the active
      * LanguageProfile's limits). Forwarded to the harness as
      * {@code memory_limit_bytes} so it can self-report MLE, and used by
-     * {@link SandboxResultTranslator#toPortResult} as the Layer-B backstop threshold. ADR-002 §8.
+     * {@link SandboxResultTranslator#toPortResult} as the Layer-B backstop threshold.
      */
     private long effectiveMemoryLimitBytes(SandboxJob job) {
         SandboxLimits limits = profileOrThrow(job).effectiveLimits(job);

@@ -7,7 +7,7 @@ import java.util.List;
 
 /**
  * Write-side service interface for admin forum post management after the
- * ADR-0011 Stage 2 extraction.
+ * Stage 2 read/write seam extraction.
  *
  * <p>Read paths (paginated post list, single-detail post, community list)
  * moved to

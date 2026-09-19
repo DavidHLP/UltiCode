@@ -1,5 +1,5 @@
 /**
- * ADR-001 / task #10 (P0-1) — console-side 0-leak invariant.
+ * Hidden-case visibility task #10 (P0-1) — console-side 0-leak invariant.
  *
  * The console (user-facing) SubmissionTestResults component and its
  * SubmissionRecord type MUST NOT contain hidden case data. The backend
@@ -19,7 +19,7 @@ import type {
   SubmissionTestRecord,
 } from "@/types/submission";
 
-describe("console — SubmissionRecord 0-leak invariant (task #10 ADR-001)", () => {
+describe("console — SubmissionRecord 0-leak invariant (task #10 hidden-case contract)", () => {
   // Type-level witnesses: if SubmissionRecord / SubmissionTestRecord ever gain a
   // hidden-case field, these assignments fail to COMPILE — the real protection.
   // (Backend strips HIDDEN rows via CaseScope.isUserVisible; the console type is

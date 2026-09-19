@@ -9,7 +9,7 @@ import java.io.Serializable;
  * Base contract every write command issued against
  * {@code backend-auth-api} must implement.
  *
- * <p>Per {@code docs/architecture/data-flow.md}, each write Command carries:
+ * <p>Per {@code docs/ARCHITECTURE.md}, each write Command carries:
  * <ul>
  *   <li>a {@code commandId / idempotencyKey} so retried producers do
  *       not double-apply the side effect;</li>

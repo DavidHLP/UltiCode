@@ -97,7 +97,7 @@ class PerOwnerSchemaGrantTest {
     }
 
     private static void assertManifestOwner(Set<String> tables, String owner) throws IOException {
-        File guide = resolveFile("docs/architecture/data-flow.md");
+        File guide = resolveFile("docs/ARCHITECTURE.md");
         String[] rows = Files.readString(guide.toPath()).split("\\R");
         for (String table : tables) {
             String[] columns = java.util.Arrays.stream(rows)

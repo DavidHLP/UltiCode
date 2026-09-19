@@ -12,7 +12,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Pure reducer that turns a collection of per-case verdicts into a single final
- * submission verdict (ADR-001 §2.4).
+ * submission verdict (submission status contract).
  * <p>
  * Replaces the stringly-typed {@code VERDICT_PRIORITY} maps previously embedded
  * in {@code JudgeWorkerProcessor} <b>and</b> {@code CodeExecutionService}, so

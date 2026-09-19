@@ -53,8 +53,8 @@ import static org.mockito.Mockito.when;
  *
  * <p>Each {@link CommentModerator} is mocked — this test does NOT exercise
  * the real {@link ForumCommentModerator} / {@link SolutionCommentModerator}
- * bodies. The deep-module bodies are covered by integration tests
- * (see {@code docs/comments-api-test-report.md}).
+ * The deep-module bodies are covered by integration tests
+ * (see the integration tests).
  */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)

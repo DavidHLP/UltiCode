@@ -26,7 +26,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 /**
  * Unit tests for {@link DefaultAdminForumProjection} &mdash; the read-side
- * deep module lifted out of AdminForumServiceImpl per ADR-0011 Stage 2.
+ * deep module lifted out of AdminForumServiceImpl during the Stage 2 extraction.
  *
  * <p>Covers the read paths that previously lived on
  * {@code AdminForumServiceImplTest}: {@code getPosts} real comment count

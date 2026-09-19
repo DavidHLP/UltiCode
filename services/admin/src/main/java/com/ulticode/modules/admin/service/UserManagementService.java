@@ -15,7 +15,7 @@ import java.util.List;
  * <p>该接口仅承担「用户档案与状态」语义；
  * 不持有任何权限授予 / 撤销相关方法，避免与 {@link UserPermissionService} 产生交叉依赖。
  *
- * <p><b>ADR-0011 Stage 2 update</b>: detail reads are owned by the
+ * <b>Stage 2 update</b>: detail reads are owned by the
  * {@link com.ulticode.modules.admin.query.AdminUserDetailQuery} use case.
  * Write methods resolve their response through that same seam rather than
  * duplicating cross-owner fanout.

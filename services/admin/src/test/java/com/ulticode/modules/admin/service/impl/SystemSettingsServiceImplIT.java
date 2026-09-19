@@ -46,7 +46,7 @@ import static org.mockito.Mockito.when;
  * {@code init-db/migrations/V20260602_120000__Create_All_Tables.sql} DDL.
  *
  * <p>This test is the regression net for the three P0 bugs reported in
- * docs/SETTINGS_API_TEST_REPORT_2026-06-09.md:
+ * the settings persistence and maintenance-mode regressions:
  * <ul>
  *   <li>§5.1 — settings persistence (PATCH/POST actually writes to the DB)</li>
  *   <li>§5.2 — maintenance mode is a single source of truth</li>

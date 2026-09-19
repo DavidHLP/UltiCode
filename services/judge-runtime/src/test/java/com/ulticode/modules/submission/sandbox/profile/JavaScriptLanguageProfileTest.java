@@ -12,11 +12,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * JavaScript language profile (ADR-002 §2.2). M2a stub — the D-form
+ * JavaScript language profile (language execution contract). M2a stub — the D-form
  * harness for JavaScript is not yet part of the migration; this
  * test pins the structural integrity of the stub.
  */
-@DisplayName("JavaScriptLanguageProfile (ADR-002 §2.2, M2a stub)")
+@DisplayName("JavaScriptLanguageProfile (language execution contract, M2a stub)")
 class JavaScriptLanguageProfileTest {
 
     /**

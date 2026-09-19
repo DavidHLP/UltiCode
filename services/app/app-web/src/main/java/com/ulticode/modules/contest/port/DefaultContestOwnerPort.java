@@ -47,9 +47,9 @@ import java.util.List;
  *
  * <p>Status guard rationale: start/end guards check the in-memory
  * contest state (loaded via the existing {@link ContestMapper#selectById}
- * read method, allowed per ADR-0011) and reject the write with
- * the same {@code ContestErrorCode.CONTEST_NOT_STARTED} / {@code CONTEST_ENDED}
- * that the admin path used.
+ * read method, allowed by the owner-port contract) and reject the write with
+ * the same {@code ContestErrorCode.CONTEST_NOT_STARTED} /
+ * {@code CONTEST_ENDED} that the admin path used.
  */
 @Slf4j
 @Component
@@ -187,7 +187,7 @@ public class DefaultContestOwnerPort implements ContestOwnerPort {
         // (AdminContestReadPort#countProblemsByContestId) for the
         // problem count. The port's read path (selectList on
         // ContestProblemMapper) is a sanctioned admin read per
-        // ADR-0011; the port implementation goes through its own
+        // the owner-port contract; the port implementation goes through its own
         // mapper here so the port owns the invariant.
         final List<ContestProblem> existing =
                 contestProblemMapper.findByContestId(id);

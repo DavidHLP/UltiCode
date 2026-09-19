@@ -18,7 +18,7 @@ import java.io.Serializable;
  *
  * <p>P7-RECON-CONTRACTS-001: replaces the cross-owner
  * {@code LEFT JOIN users} SQL of the legacy monolith reconciler with
- * owner-side counts (ADR-P7-OWNER-BOUNDARY-RECONCILIATION-20260802).
+ * owner-side counts.
  *
  * @param submissions           deprecated zero placeholder; Submission owner fact
  * @param solutions             orphaned solutions.user_id

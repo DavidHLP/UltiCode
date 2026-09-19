@@ -66,12 +66,6 @@ run_stream_resilience() {
 
 
 required_files=(
-  docs/architecture/evidence/P1-INFRA-001-redis-role-decision.md
-  docs/architecture/evidence/P1-INFRA-002-redis-role-seam.md
-  docs/architecture/evidence/P1-INFRA-003-redis-fault-drill.md
-  docs/architecture/evidence/P1-INFRA-004-mysql-owner-matrix.md
-  docs/architecture/evidence/P1-INFRA-005-search-recovery-contract.md
-  docs/architecture/evidence/P1-INFRA-006-nacos-failure-contract.md
   scripts/test/redis-role-fault-drill.sh
   scripts/test/admin-audit-stream-migration-contract.sh
   scripts/test/meilisearch-recovery-contract.sh
@@ -95,8 +89,8 @@ DUBBO_NACOS_SMOKE_REGISTRY_DRILL=1 DUBBO_NACOS_SMOKE_REPLICAS=1 \
 bash "$ROOT_DIR/scripts/test/meilisearch-recovery-contract.sh"
 bash "$ROOT_DIR/scripts/test/dependency-resilience-contract.sh"
 
-# The MySQL recovery contract is the disposable restore proof. The separate
-# P1-004 matrix records the exact owner pool gaps instead of inventing values.
+# The MySQL recovery contract is the disposable restore proof; it does not
+# claim production restore authority or invent owner pool measurements.
 bash "$ROOT_DIR/scripts/test/owner-backup-restore-contract.sh"
 
 printf 'GATE-INFRA-ISOLATION: PASS (repository/disposable scenarios; no production claim)\n'

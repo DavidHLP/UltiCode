@@ -15,8 +15,8 @@ import java.util.concurrent.TimeUnit;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Unit tests for {@link InMemoryJudgeQueueAdapter} (ADR-003 M3c-2 / M3c-3a
- * adapter contract; M3c-3b acceptance).
+ * Unit tests for {@link InMemoryJudgeQueueAdapter} (current queue contract;
+ * M3c-3b acceptance).
  *
  * <p>Validates the four port contracts the production Redisson Streams
  * adapter must also satisfy (the F12 pre-condition: if a reaper can
@@ -132,7 +132,7 @@ class InMemoryJudgeQueueAdapterTest {
         }
 
         /**
-         * F12 fault-injection analogue (ADR-003 §2.6 F6). A worker:
+         * F12 fault-injection analogue: a worker:
          *   1. polls an entry from the broker
          *   2. "dies" before acking
          *   3. the reaper later XCLAIMs the entry and re-delivers it

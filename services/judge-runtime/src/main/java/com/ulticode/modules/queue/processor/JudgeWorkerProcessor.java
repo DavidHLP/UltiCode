@@ -37,7 +37,7 @@ import java.util.Map;
  *   <li>Set submission status to "Judging"
  *   <li>Load test cases, build the runtime-private JudgeRunRequest, execute via Docker sandbox
  *   <li>Determine verdict via {@link VerdictResolver#reduceWire} aggregating each case's wire value
- *       into a single {@code SubmissionStatus} (ADR-001; severity priority encoded in
+ *       into a single {@code SubmissionStatus} (severity priority encoded in
  *       {@code SubmissionStatus#getSeverity()}, replacing the old stringly-typed priority comparison)
  *   <li>Write result to Submission entity and its durable result event
  * </ol>
@@ -129,11 +129,11 @@ public class JudgeWorkerProcessor implements JobProcessor<JudgeJob> {
     }
 
     /**
-     * ADR-003 M3c-3a: poll the {@link JudgeQueue} port for v1/v2 envelopes
+     * JudgeQueue port path: poll the {@link JudgeQueue} port for v1/v2 envelopes
      * and process them through the fenced path. Runs in parallel to
      * {@link #pollAndProcess()}; whichever port is active drives
      * production. The two loops are mutually exclusive at the broker
-     * (ADR-005 F8): when {@code app.features.judge-queue.use-port=true}
+     * (current queue contract): when {@code app.features.judge-queue.use-port=true}
      * the dispatcher stops writing to the legacy RQueue, so this loop
      * is the only consumer.
      *
@@ -187,7 +187,7 @@ public class JudgeWorkerProcessor implements JobProcessor<JudgeJob> {
     }
 
     /**
-     * ADR-003 M3c-3b: process a reclaimed handle routed from the
+     * Process a reclaimed handle routed from the
      * unacked Streams reaper (codex P1 #3 fix). The handle is a normal
      * {@link JudgeJobHandle} returned by {@code claimIdle}; this method
      * is a public entry point so the reaper (in
@@ -252,7 +252,7 @@ public class JudgeWorkerProcessor implements JobProcessor<JudgeJob> {
     }
 
     /**
-     * ADR-003 M3c-3a fenced judging path for envelopes read from the
+     * Fenced judging path for envelopes read from the
      * {@link JudgeQueue} port. The v2 envelope carries its own
      * {@code attemptId} and {@code generation} (set by the dispatcher on
      * commit) so the worker does not generate either: it uses the
@@ -292,7 +292,7 @@ public class JudgeWorkerProcessor implements JobProcessor<JudgeJob> {
      *   <li>flag-off -> legacy path: selectById + updateSubmissionResult (no lease).</li>
      *   <li>flag-on -> fenced path: acquireLease CAS, heartbeat while judging,
      *       writeVerdictFenced so stale results from a superseded generation are
-     *       dropped (ADR-003 M3b).</li>
+     *       dropped when the generation is stale.</li>
      * </ul>
      */
     public void processJob(JudgeJob job) {

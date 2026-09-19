@@ -15,7 +15,7 @@ import { testCasesApi, type TestCase } from '@/api/admin/test-cases'
  * (`GET /admin/problems/{id}/test-cases?isHidden=true`) but renders in
  * view-only mode — no edit / create / delete actions.
  *
- * **Visibility contract** (ADR-001, task #3 P0-1):
+ * **Visibility contract** (task #3 P0-1):
  *   - This component is admin-only (mounted under `ViewCasesView`, reached
  *     only from `ProblemDetailView` which requires `ROLE_ADMIN` /
  *     `ROLE_SUPER_ADMIN` via `@PreAuthorize` on the backend).

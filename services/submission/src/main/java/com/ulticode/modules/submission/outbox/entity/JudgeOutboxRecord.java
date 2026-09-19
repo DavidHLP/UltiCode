@@ -14,7 +14,7 @@ import lombok.Data;
 import java.util.Map;
 
 /**
- * Outbox row for judge dispatch (ADR-003 M3a). One row per
+ * Outbox row for judge dispatch (M3a). One row per
  * {@code (submission_id, generation)} pair; the {@code uniq_dispatch} unique
  * key makes double-enqueue physically impossible even under duplicate writes.
  *
@@ -28,11 +28,11 @@ import java.util.Map;
  *
  * <p>{@code is_shadow = 1} for the entire M3a/M3b window; the M3c cutover flips
  * new rows to {@code is_shadow = 0} once the outbox dispatcher becomes the sole
- * active producer (ADR-005 §2.8 F8/F13).
+ * active producer (outbox cutover contract).
  *
  * <p>{@code created_at} is intentionally <b>not</b> annotated with
  * {@link FieldFill} — it is filled by the DB {@code DEFAULT CURRENT_TIMESTAMP(3)}
- * so the timestamp is the DB clock, not the JVM clock (ADR-003 §1.1).
+ * so the timestamp is the DB clock, not the JVM clock (database-clock contract).
  *
  * <p>Moved from {@code com.ulticode.modules.queue.outbox.entity} during P7
  * submission-family cutover. Both the queue module (dispatcher) and the
@@ -68,7 +68,7 @@ public class JudgeOutboxRecord {
     private String state;
 
     /**
-     * Shadow flag (ADR-005 F8/F13). {@code true} (1) for the M3a/M3b window where
+     * Shadow flag (outbox cutover contract). {@code true} (1) for the M3a/M3b window where
      * the legacy RQueue is the sole active producer; {@code false} (0) after the
      * M3c cutover when the outbox dispatcher takes over real delivery.
      */

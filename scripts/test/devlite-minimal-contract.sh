@@ -110,24 +110,24 @@ fi
 if devstack_validate_scope_selection admin ulticode-judge >/dev/null 2>&1; then
   fail 'admin + Judge worker was accepted'
 fi
-! grep -F -- './scripts/dev/up.sh --mode legacy-rollback' "$ROOT_DIR/docs/development/local-setup.md" >/dev/null \
-  || fail 'local setup advertises retired legacy command'
+! grep -F -- './scripts/dev/up.sh --mode legacy-rollback' "$ROOT_DIR/docs/DEVELOPMENT.md" >/dev/null \
+  || fail 'development guide advertises retired legacy command'
 if devstack_infra_for_selection dev-lite ulticode-auth,ulticode-search >/dev/null 2>&1; then
   fail 'Search-disabled selection resolved infra'
 fi
 
 # Matrix and executable entry points stay aligned without adding a second docs
-# table. local-setup.md already documents the compatibility mode contract.
+# table. DEVELOPMENT.md already documents the compatibility mode contract.
 for scope in "${DEVSTACK_SCOPES[@]}"; do
   devstack_resolve_scope "$scope" >/dev/null \
     || fail "resolver rejected documented scope: $scope"
 done
-grep -F -- './scripts/dev/up.sh --mode dev-lite' "$ROOT_DIR/docs/development/local-setup.md" >/dev/null \
-  || fail 'local setup lost dev-lite compatibility command'
-grep -F -- './scripts/dev/up.sh --mode dev-full' "$ROOT_DIR/docs/development/local-setup.md" >/dev/null \
-  || fail 'local setup lost dev-full compatibility command'
-! grep -F -- './scripts/dev/up.sh --mode legacy-rollback' "$ROOT_DIR/docs/development/local-setup.md" >/dev/null \
-  || fail 'local setup advertises retired legacy command'
+grep -F -- './scripts/dev/up.sh --mode dev-lite' "$ROOT_DIR/docs/DEVELOPMENT.md" >/dev/null \
+  || fail 'development guide lost dev-lite compatibility command'
+grep -F -- './scripts/dev/up.sh --mode dev-full' "$ROOT_DIR/docs/DEVELOPMENT.md" >/dev/null \
+  || fail 'development guide lost dev-full compatibility command'
+! grep -F -- './scripts/dev/up.sh --mode legacy-rollback' "$ROOT_DIR/docs/DEVELOPMENT.md" >/dev/null \
+  || fail 'development guide advertises retired legacy command'
 grep -F -- '"${COMPOSE_TARGETS[@]}"' "$ROOT_DIR/scripts/dev/up.sh" >/dev/null \
   || fail 'up.sh does not pass explicit Compose target array'
 grep -F -- 'source "$ROOT_DIR/scripts/dev/devstack-manifest.sh"' "$ROOT_DIR/scripts/dev/up.sh" >/dev/null \

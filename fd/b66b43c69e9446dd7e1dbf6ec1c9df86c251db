@@ -1,0 +1,14 @@
+pnpm-lock.yaml
+  h_77173abe25c3ff 11813-11845
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "fdb66b43c69e9446dd7e1dbf6ec1c9df86c251db",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

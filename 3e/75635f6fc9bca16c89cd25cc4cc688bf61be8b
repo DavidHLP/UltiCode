@@ -1,0 +1,14 @@
+AGENTS.md
+  h_77173abe25c3ff 3,138
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3e75635f6fc9bca16c89cd25cc4cc688bf61be8b",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

@@ -1,0 +1,18 @@
+.env.example
+  h_77173abe25c3ff 267
+docs/development/troubleshooting.md
+  h_77173abe25c3ff 9
+scripts/dev/init-env.sh
+  h_77173abe25c3ff 247
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2f67c0300a1afdb4d60de8a2882672a7810af9f9",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

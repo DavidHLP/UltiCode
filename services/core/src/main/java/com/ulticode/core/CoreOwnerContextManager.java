@@ -24,6 +24,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 
 /** Starts allowlisted Owner implementations in bounded child contexts. */
@@ -47,7 +49,7 @@ public class CoreOwnerContextManager implements ApplicationContextAware {
             new java.util.LinkedHashMap<>();
     private final Map<String, OwnerStartup> ownerStartups =
             new java.util.LinkedHashMap<>();
-    private final Set<StartupAttempt> startupAttempts = ConcurrentHashMap.newKeySet();
+    private final Set<OwnerStartup> startupAttempts = ConcurrentHashMap.newKeySet();
     private final Set<ExecutorService> startupSlots = ConcurrentHashMap.newKeySet();
     private final ExecutorService startupExecutor = Executors.newSingleThreadExecutor(runnable -> {
         Thread thread = new Thread(runnable, "core-owner-bootstrap");
@@ -172,21 +174,9 @@ public class CoreOwnerContextManager implements ApplicationContextAware {
         }
     }
     private void rollbackPublishedOwnerModules() {
-        List<OwnerStartup> closing;
-        synchronized (this) {
-            closing = List.copyOf(ownerStartups.values());
-            contexts.clear();
-            ownerStartups.clear();
-            states.replaceAll((name, state) ->
-                    state == State.READY ? State.STOPPED : state);
-        }
-        for (int index = closing.size() - 1; index >= 0; index--) {
-            try {
-                closing.get(index).close();
-            } catch (RuntimeException closeFailure) {
-                log.error("Core Owner Module rollback close failed", closeFailure);
-            }
-        }
+        closePublishedOwnerStartups(
+                state -> state == State.READY,
+                failure -> log.error("Core Owner Module rollback close failed", failure));
     }
 
     synchronized java.util.Map<String, org.springframework.context.ConfigurableApplicationContext>
@@ -202,7 +192,7 @@ public class CoreOwnerContextManager implements ApplicationContextAware {
         // timeout path, or the late-completing callable itself — never by
         // more than one, never by nobody.
         AtomicReference<Object> handoff = new AtomicReference<>();
-        StartupAttempt attempt = new StartupAttempt();
+        OwnerStartup attempt = new OwnerStartup();
         ExecutorService slot;
         Future<OwnerStartup> startup;
         synchronized (this) {
@@ -314,7 +304,7 @@ public class CoreOwnerContextManager implements ApplicationContextAware {
     private void closeOrphanedStartup(
             AtomicReference<Object> handoff,
             Future<OwnerStartup> startup,
-            StartupAttempt attempt,
+            OwnerStartup attempt,
             String module) {
         Object boxed = handoff.compareAndSet(null, TIMEOUT_CLAIMED) ? null : handoff.get();
         startup.cancel(true);
@@ -334,10 +324,10 @@ public class CoreOwnerContextManager implements ApplicationContextAware {
     }
 
     OwnerStartup start(CoreModuleDefinition module) {
-        return start(module, new StartupAttempt());
+        return start(module, new OwnerStartup());
     }
 
-    OwnerStartup start(CoreModuleDefinition module, StartupAttempt attempt) {
+    OwnerStartup start(CoreModuleDefinition module, OwnerStartup attempt) {
         String prefix = module.environmentPrefix();
         boolean admin = "admin".equals(module.name());
         boolean search = "search".equals(module.name());
@@ -420,7 +410,7 @@ public class CoreOwnerContextManager implements ApplicationContextAware {
                             .run();
             attempt.setContext(context);
             CoreLocalContractAssembly.validate(context, module);
-            return new OwnerStartup(attempt);
+            return attempt;
         } catch (RuntimeException | Error failure) {
             try {
                 attempt.close();
@@ -444,15 +434,24 @@ public class CoreOwnerContextManager implements ApplicationContextAware {
         }
     }
 
-    static final class StartupAttempt {
+    /**
+     * The single published-ownership type for one owner module's startup
+     * resources (context + classloader). It owns the close rules: close is
+     * idempotent, and a late setClassLoader/setContext after close disposes
+     * the incoming resource itself, so the in-flight attempt registered in
+     * {@code startupAttempts} and the published owner in
+     * {@code ownerStartups} are always the same object with exactly one
+     * effective close.
+     */
+    static final class OwnerStartup {
         private final AtomicBoolean closed = new AtomicBoolean();
         private java.net.URLClassLoader classLoader;
         private org.springframework.context.ConfigurableApplicationContext context;
 
-        StartupAttempt() {
+        OwnerStartup() {
         }
 
-        StartupAttempt(
+        OwnerStartup(
                 org.springframework.context.ConfigurableApplicationContext context,
                 java.net.URLClassLoader classLoader) {
             this.context = context;
@@ -507,28 +506,6 @@ public class CoreOwnerContextManager implements ApplicationContextAware {
         }
     }
 
-    static final class OwnerStartup {
-        private final StartupAttempt attempt;
-
-        OwnerStartup(
-                org.springframework.context.ConfigurableApplicationContext context,
-                java.net.URLClassLoader classLoader) {
-            this.attempt = new StartupAttempt(context, classLoader);
-        }
-
-        OwnerStartup(StartupAttempt attempt) {
-            this.attempt = attempt;
-        }
-
-        org.springframework.context.ConfigurableApplicationContext context() {
-            return attempt.context();
-        }
-
-        void close() {
-            attempt.close();
-        }
-    }
-
     private String property(String key, String fallback) {
         String value = environment.getProperty(key);
         return value == null ? fallback : value;
@@ -545,15 +522,43 @@ public class CoreOwnerContextManager implements ApplicationContextAware {
                 "Core Owner Module startup requires property: " + String.join(" | ", keys));
     }
     private void closeActiveStartupAttempts() {
-        Set<StartupAttempt> activeAttempts;
+        Set<OwnerStartup> activeAttempts;
         synchronized (this) {
             activeAttempts = Set.copyOf(startupAttempts);
         }
-        for (StartupAttempt attempt : activeAttempts) {
+        for (OwnerStartup attempt : activeAttempts) {
             try {
                 attempt.close();
             } catch (RuntimeException closeFailure) {
                 log.error("Core Owner Module startup resource close failed", closeFailure);
+            }
+        }
+    }
+
+    /**
+     * Published-owner exit protocol shared by the rollback and both stop
+     * paths: claim the snapshot under the same lock startAll holds when it
+     * publishes (so nothing slips in behind the snapshot), clear the context
+     * and ownership maps, mark the claimed states, then close outside the
+     * lock in reverse publication order with per-close failure logging so one
+     * failing close cannot strand a later owner's resources.
+     */
+    private void closePublishedOwnerStartups(
+            Predicate<State> becomesStopped,
+            Consumer<RuntimeException> closeFailureLogger) {
+        List<OwnerStartup> closing;
+        synchronized (this) {
+            closing = List.copyOf(ownerStartups.values());
+            contexts.clear();
+            ownerStartups.clear();
+            states.replaceAll((name, state) ->
+                    becomesStopped.test(state) ? State.STOPPED : state);
+        }
+        for (int index = closing.size() - 1; index >= 0; index--) {
+            try {
+                closing.get(index).close();
+            } catch (RuntimeException closeFailure) {
+                closeFailureLogger.accept(closeFailure);
             }
         }
     }
@@ -568,22 +573,9 @@ public class CoreOwnerContextManager implements ApplicationContextAware {
             activeSlots.forEach(ExecutorService::shutdownNow);
         }
         closeActiveStartupAttempts();
-        Future<?> shutdown = startupExecutor.submit(() -> {
-            List<OwnerStartup> closing;
-            synchronized (this) {
-                closing = List.copyOf(ownerStartups.values());
-                contexts.clear();
-                ownerStartups.clear();
-                states.replaceAll((name, state) -> state == State.DISABLED ? state : State.STOPPED);
-            }
-            for (int index = closing.size() - 1; index >= 0; index--) {
-                try {
-                    closing.get(index).close();
-                } catch (RuntimeException closeFailure) {
-                    log.error("Core Owner Module close failed", closeFailure);
-                }
-            }
-        });
+        Future<?> shutdown = startupExecutor.submit(() -> closePublishedOwnerStartups(
+                state -> state != State.DISABLED,
+                failure -> log.error("Core Owner Module close failed", failure)));
         startupExecutor.shutdown();
         try {
             shutdown.get(startupTimeoutMs, TimeUnit.MILLISECONDS);
@@ -593,20 +585,9 @@ public class CoreOwnerContextManager implements ApplicationContextAware {
             // own finally; force-close any child that registered before the
             // queued cleanup was dropped.
             startupExecutor.shutdownNow();
-            List<OwnerStartup> remaining;
-            synchronized (this) {
-                remaining = List.copyOf(ownerStartups.values());
-                contexts.clear();
-                ownerStartups.clear();
-                states.replaceAll((name, state) -> state == State.DISABLED ? state : State.STOPPED);
-            }
-            for (int index = remaining.size() - 1; index >= 0; index--) {
-                try {
-                    remaining.get(index).close();
-                } catch (RuntimeException closeFailure) {
-                    log.warn("Core Owner Module forced module close failed", closeFailure);
-                }
-            }
+            closePublishedOwnerStartups(
+                    state -> state != State.DISABLED,
+                    failure -> log.warn("Core Owner Module forced module close failed", failure));
         }
     }
 }

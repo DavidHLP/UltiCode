@@ -63,7 +63,7 @@ class CoreOwnerContextManagerLifecycleTest {
         }
 
         @Override
-        OwnerStartup start(CoreModuleDefinition module, StartupAttempt ignoredAttempt) {
+        OwnerStartup start(CoreModuleDefinition module, OwnerStartup ignoredAttempt) {
             try {
                 createGate.get().await();
             } catch (InterruptedException interrupted) {

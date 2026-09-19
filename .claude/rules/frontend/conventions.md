@@ -1,24 +1,14 @@
 ---
 paths:
-  - "apps/console/**/*.{ts,vue,js,mjs,cjs,json,css,html}"
-  - "apps/management/**/*.{ts,vue,js,mjs,cjs,json,css,html}"
-  - "packages/**/*.{ts,vue,js,mjs,cjs,json,css}"
-kind: rules
-summary: 'Cross-cutting frontend conventions for Console and Management apps.'
+  - "apps/console/**/*.{ts,tsx,vue,js,mjs,cjs,json,css,html}"
+  - "apps/management/**/*.{ts,tsx,vue,js,mjs,cjs,json,css,html}"
+  - "packages/**/*.{ts,tsx,vue,js,mjs,cjs,json,css}"
 ---
 
-# UltiCode frontend rules
+# Frontend changes
 
-- Read the nearest application/shared guide first; Console and Management intentionally use different API, routing, layout, and permission seams.
-- HTTP calls **MUST** use the application's request helper or an established shared package that owns the transport/authentication seam. Do not create a component-local Axios/fetch client that bypasses auth, CSRF, retry, or error handling.
-- Request and response contracts **MUST** be typed at the API boundary. Do not spread transport-specific envelopes, snake/camel conversion, or error parsing across components.
-- User-visible text **MUST** use the established i18n modules and remain complete in both supported locales.
-- Cross-application behavior belongs in a focused `packages/` package only when both apps share the same stable meaning. Direct Console-to-Management imports are forbidden.
-- Markdown, KaTeX, and HTML rendering **MUST** use the shared sanitization pipeline. A component must not locally weaken sanitizer options.
-- Theme state, Solarized color tokens, typography, and `data-theme` writes **MUST** remain owned by `packages/theme` and `packages/design-system`; components consume CSS tokens and theme composables rather than hardcoding hex colors or reimplementing bootstrap logic (`useThemeForceUpdate` is test-only).
-- Interactive UI **MUST** support keyboard operation, visible focus, semantic controls/labels, and correct disabled/loading states.
-- Async views **MUST** handle cancellation or stale results, normalize errors at the owned boundary, and avoid duplicate submissions.
-- Build-time environment variables are public client data. Secrets, private service credentials, and privileged-only data **MUST NOT** enter frontend bundles.
-- Keep generated component primitives and application-specific components separate; do not bulk-edit generated UI code for a one-off feature style.
-- Changes to shared contracts, auth, theme, or rendering **MUST** run the affected package checks and both consuming applications' relevant checks.
-- Management application translation changes **MUST** pass `pnpm validate:i18n-keys` in `apps/management`.
+- Read the affected app's `AGENTS.md`; for shared code also read `packages/AGENTS.md`. Preserve each app's existing API, auth bootstrap and router conventions.
+- Use the established request helper and typed public contracts. Do not bypass authentication/error handling with a component-local client or import another app's internals.
+- Preserve the shared sanitization and theme ownership required by the root guide. Frontend environment variables are public; do not put secrets in bundles.
+- Keep changed controls keyboard-accessible, labelled and visibly focusable. Preserve both locales and handle loading, failure and stale responses where the feature owns them.
+- Test the changed behavior at its public boundary; clean up mocks, timers and listeners. Run changed-package checks because app tests exclude some shared packages; broaden consumer checks when their contracts are affected.

@@ -1,29 +1,24 @@
 ---
-description: Cross-stack API contracts (DTOs, VOs, frontend types).
+description: "Contract changes"
 globs:
-- services/api/**/src/main/java/**/*.java
-- services/**/src/main/java/**/controller/**/*.java
-- services/**/src/main/java/**/adapter/in/web/**/*.java
-- services/**/src/main/java/**/*DTO.java
-- services/**/src/main/java/**/*VO.java
-- services/**/src/main/java/**/*Projection.java
-- services/**/src/main/java/**/*Request.java
-- services/**/src/main/java/**/*Response.java
-- apps/console/src/api/**/*.ts
-- apps/console/src/types/**/*.ts
-- apps/management/src/api/**/*.ts
-- apps/management/src/types/**/*.ts
-- packages/domain-types/**/*.ts
-- packages/sandbox-types/**/*.ts
-priority: 100
+  - "services/api/**/src/main/java/**/*.java"
+  - "services/**/src/main/java/**/controller/**/*.java"
+  - "services/**/src/main/java/**/adapter/in/web/**/*.java"
+  - "services/**/src/main/java/**/*DTO.java"
+  - "services/**/src/main/java/**/*VO.java"
+  - "services/**/src/main/java/**/*Projection.java"
+  - "services/**/src/main/java/**/*Request.java"
+  - "services/**/src/main/java/**/*Response.java"
+  - "apps/console/src/api/**/*.ts"
+  - "apps/console/src/types/**/*.ts"
+  - "apps/management/src/api/**/*.ts"
+  - "apps/management/src/types/**/*.ts"
+  - "packages/domain-types/**/*.ts"
+  - "packages/sandbox-types/**/*.ts"
 ---
 
-# Cross-stack contract changes
+# Contract changes
 
-- Read the root guide plus every affected subtree guide before deciding where the contract is owned.
-- Use graph tracing for symbols and callers, then search serialized field and endpoint literals to find consumers that static call edges cannot reveal.
-- Create a producer-consumer matrix for each changed request, response, event, or shared type. Include mappings, fixtures, and contract-focused tests in the matrix.
-- Compare the before and after wire shape explicitly and record any compatibility boundary that cannot be updated atomically.
-- Run the verification commands from each affected guide and inspect the final diff against the matrix for omissions.
-- Dubbo RPC contracts in `services/api/` govern cross-service boundaries; changes must maintain backward compatibility or be rolled out atomically across providers and consumers.
-- Preserve the standard `Result<T>` and `PageResult<T>` envelope and field mappings across Java DTOs, domain-types, and frontend API clients.
+- Identify the actual producers and consumers of a changed wire contract, including serialized field names that symbol references may miss.
+- Preserve the established HTTP/RPC envelopes and field mappings. Update affected Java contracts, shared types and clients together; state rollout compatibility when they cannot change atomically.
+- Check the changed contract and affected consumers. A separate matrix or full cross-stack build is useful only when the change's scope warrants it.

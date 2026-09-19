@@ -1,25 +1,38 @@
 # 编码指南与规则入口
 
-仓库级规则唯一入口是 [`AGENTS.md`](../../AGENTS.md)；后端、前端、包和数据库的嵌套规则位于最近的 `AGENTS.md` 与 `.omp/rules/` / `.claude/rules/`。命令执行安全策略位于 [`.codex/rules/README.md`](../../.codex/rules/README.md)，不替代代码规范。本文只提供查找地图，不复制规则正文。
+项目契约由根 [AGENTS.md](../../AGENTS.md) 与最近的嵌套指南维护。本页解释规则的分工与维护方式，不另建一套编码规范。
 
-## 必须保持的结构
+## 三层分工
 
-- 后端保持 `controller → service/projection/port → mapper → entity`，不为局部变化引入平行架构。
-- 跨 Owner 只通过 typed DTO、provider-owned contract 或 consumer-owned port；保留 `Result` / `RpcResult` envelope 和字段映射。
-- 信任边界验证输入，数据库访问使用参数化 MyBatis/SQL；异常显式处理，不能吞错或伪造成功。
-- 不提交 secret；access/refresh 仍是 HttpOnly cookie，refresh 仅接受 hash-only DB-backed rotation。
-- 共享前端行为放在聚焦 package；Markdown/KaTeX 必须经 `packages/markdown-utils` 清洗。
-- 迁移只新增时间戳更大的 Flyway 文件，不编辑已应用 migration。
+| 层 | 职责 | 不承担的职责 |
+| --- | --- | --- |
+| 根及嵌套 AGENTS.md | 安全不变量、模块边界、授权与验证原则 | 通用语言教材 |
+| [.claude/rules](../../.claude/rules/README.md) / [.omp/rules](../../.omp/rules/README.md) | 修改相关路径时补充少量风险提醒 | 强制全仓探索、逐项报告、重复项目指南 |
+| [.codex/rules](../../.codex/rules/README.md) | 高风险命令前缀的执行策略 | 路径匹配、代码风格、理解用户授权意图 |
 
-## 命名与提交
+Claude 使用 `paths`；OMP 扩展使用 `globs`，其 `paths` 字段当前不参与匹配。两份路径规则保留各自加载格式，同一主题的正文保持一致；不增加生成器或新的运行依赖。OMP 不再叠加全栈汇总规则或用于检查规则文本的运行时中断。JVM 诊断保留很短的常驻安全提醒，仅在实际附加进程时适用。
 
-环境变量使用 `SCREAMING_SNAKE_CASE`；服务模块使用 `backend-*` 语义；端口接口使用 `*Port`，实现使用 `Default*`；DTO 按 `*Query`、`*Request`、`*VO` 区分。提交使用 `<type>: <description>`，例如 `docs: update operations guide`。
+## 保留什么
 
-## 变更前后
+只保留有明确后果的约束：数据或用户改动丢失、凭据泄漏、鉴权绕过、契约不兼容、越过模块或数据库所有权、错误的事务与并发语义。具体项目不变量仍以 AGENTS.md 为准。
 
-1. 阅读根规则、最近嵌套规则、实现、配置和测试。
-2. 修改 exported symbol 前检查所有引用；跨栈 contract 同步后端、共享类型和两个前端。
-3. 为新行为和重要失败路径补测试；按 [测试与质量](testing.md) 选择最小完整门禁。
-4. 检查 diff、敏感信息、无关文件、错误路径、资源释放、兼容性和文档漂移。
+调查和验证随改动风险扩大：小改动不要求变更矩阵、全链路图、全量构建或正式多角色审查；跨服务兼容、数据迁移、安全边界改变时，再补相应证据。按 [测试与质量](testing.md) 选择适用检查，说明未验证的部分。
 
-如果本页与规则文件冲突，以 `AGENTS.md`、最近嵌套规则和实现为准。
+## 格式交给配置
+
+缩进、引号、分号、换行、导入顺序等以受影响模块的格式器和 lint 配置为准；没有配置时沿用邻近代码。不要从另一应用复制格式配置，不为风格统一批量重写，也不通过 rules 添加任意方法长度、注释数量或命名后缀要求。
+
+需要格式检查时，使用仓库已有工具并限定到改动文件。注意应用的 `lint`、`format` 脚本会修改文件；只读检查可选 `lint:check` 或格式器的检查模式。检查具体 package.json 后再运行，避免把全目录自动修复当作例行步骤。
+
+## 执行策略的边界
+
+Codex 前缀规则只能识别已列出的参数排列，无法覆盖任意脚本、包装器、绝对路径或选项位置。未命中不代表授权或安全；不要通过改写命令绕过审批。普通本地操作不额外设置 `prompt`，也不添加宽泛的 `allow`。
+
+外部发布、数据删除等保留窄范围 `prompt`。它可能在用户已授权后仍要求工具层批准；agent 不再额外重复询问。项目策略是否加载和生效取决于可信配置层、启动加载及当前执行模式，不能把它当作完整沙箱或秘密扫描器。
+
+## 维护与检查
+
+添加规则前先确认现有指南、工具配置和测试是否已覆盖该问题。避免重复正文、固定版本信息和普通语言常识。修改路径时检查匹配与不匹配样例；修改命令策略时运行 `codex execpolicy check`，同时验证危险命令和普通工作命令。检查 diff、链接和空白即可验证纯规则文档修改；不声称因此验证了应用运行行为或模型性能。
+
+参考：[Codex rules](https://learn.chatgpt.com/docs/agent-configuration/rules)、
+[omp-path-rules](https://github.com/DavidHLP/omp-path-rules/blob/master/README.md)。

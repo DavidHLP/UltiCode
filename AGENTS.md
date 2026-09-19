@@ -41,6 +41,8 @@ Read the nearest guide before editing `services/`, `apps/console/`, `apps/manage
 
 - Inspect the implementation, configuration, tests, and local guide before changing behavior. Treat code and executable configuration as authoritative when documentation disagrees.
 - Keep changes scoped. Preserve unrelated work in a dirty worktree and do not rewrite generated or historical files without a task-specific reason.
+- Formatting follows the affected module's formatter/linter configuration; where none exists, match nearby code. Do not impose extra line-length, naming, comment, import-order, or syntax preferences through agent rules.
+- Format changed files or ranges only. Do not run whole-tree auto-fixes or add formatting tools unless the task calls for them; inspect any tool-generated diff.
 - Validate inputs at system boundaries, use typed DTOs and parameterized database access, and follow existing error-handling patterns.
 - Add or update tests for changed behavior and important failure paths. Security-sensitive rendering and URL handling require malicious-input regressions.
 - Only `packages/theme` may write the `data-theme` attribute; `useThemeForceUpdate` is test-only.

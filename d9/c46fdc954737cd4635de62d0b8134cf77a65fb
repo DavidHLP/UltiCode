@@ -1,0 +1,26 @@
+services/admin/src/test/java/com/ulticode/modules/admin/projection/DefaultAuditLogReadProjectionTest.java
+  s_40c0e684805a47::t_c0e19e914eafda 104-134
+apps/management/src/views/audit/useAuditReadWorkspace.test.ts
+  s_40c0e684805a47::t_16737e7a0a2156 3
+  s_40c0e684805a47::t_c3683419d7fb10 25-31
+  s_40c0e684805a47::t_b110c20583a9a7 1-2,4-24,32-172
+services/submission/src/test/java/com/ulticode/submission/read/SubmissionReadAssemblyTest.java
+  s_40c0e684805a47::t_ec2e58f99df65b 4,13-16,26,31,33-38,40-41,46-132,190-197
+  s_40c0e684805a47::t_a5be44489edd16 198
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d9c46fdc954737cd4635de62d0b8134cf77a65fb",
+  "prompts": {},
+  "sessions": {
+    "s_40c0e684805a47": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0b84d-a87b-7b60-a042-4a9e66098879",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

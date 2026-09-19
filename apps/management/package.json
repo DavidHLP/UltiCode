@@ -66,7 +66,7 @@
     "markdown-it": "^14.3.2",
     "pinia": "^3.0.4",
     "reka-ui": "^2.10.4",
-    "tailwind-merge": "^3.6.0",
+    "tailwind-merge": "^3.7.0",
     "tailwindcss": "^4.3.3",
     "vaul-vue": "^0.4.1",
     "vee-validate": "^4.15.1",

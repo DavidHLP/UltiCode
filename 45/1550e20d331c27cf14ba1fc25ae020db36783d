@@ -1,0 +1,34 @@
+services/admin/src/main/java/com/ulticode/modules/admin/mapper/AuditLogMapper.java
+  s_40c0e684805a47::t_b587961d5e5aa9 5,9-10,15,38-43,45-50,52-57,64-74
+services/admin/src/test/java/com/ulticode/modules/admin/mapper/AuditLogSqlProviderTest.java
+  s_40c0e684805a47::t_67eabe8933651f 1-57
+services/admin/src/main/java/com/ulticode/modules/admin/service/impl/AuditServiceImpl.java
+  s_40c0e684805a47::t_b587961d5e5aa9 3-5,9-10,16-17,25,53,58,63
+services/admin/src/main/java/com/ulticode/modules/admin/projection/DefaultAuditLogReadProjection.java
+  s_40c0e684805a47::t_b587961d5e5aa9 1-98,100-127,129-137,139-146,151-152
+  s_40c0e684805a47::t_b14a08f291702e 99,128,138,147-150
+services/admin/src/main/java/com/ulticode/modules/admin/mapper/AuditLogSqlProvider.java
+  s_40c0e684805a47::t_b587961d5e5aa9 1-94
+services/admin/src/main/java/com/ulticode/modules/admin/projection/AuditLogQuery.java
+  s_40c0e684805a47::t_b587961d5e5aa9 1-144
+services/admin/src/test/java/com/ulticode/modules/admin/projection/DefaultAuditLogReadProjectionTest.java
+  s_40c0e684805a47::t_67eabe8933651f 1-113
+services/admin/src/main/java/com/ulticode/modules/admin/projection/AuditLogReadProjection.java
+  s_40c0e684805a47::t_b587961d5e5aa9 1-17
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "451550e20d331c27cf14ba1fc25ae020db36783d",
+  "prompts": {},
+  "sessions": {
+    "s_40c0e684805a47": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0b84d-a87b-7b60-a042-4a9e66098879",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

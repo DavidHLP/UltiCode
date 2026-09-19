@@ -1,20 +1,13 @@
 package com.ulticode.submission.dubbo.provider;
 
 import com.ulticode.submission.api.dto.SubmissionVO;
-import com.ulticode.app.api.service.ProblemFactsPort;
 import com.ulticode.submission.api.service.SubmissionReadPort;
-import com.ulticode.modules.submission.entity.Submission;
-import com.ulticode.modules.submission.mapper.SubmissionMapper;
-import com.ulticode.modules.submission.projection.SubmissionProjection;
+import com.ulticode.modules.submission.read.SubmissionReadAssembly;
 import lombok.RequiredArgsConstructor;
 import org.apache.dubbo.config.annotation.DubboService;
 
 import java.util.Collection;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 
 /**
  * Dubbo provider for {@link SubmissionReadPort} exported by
@@ -22,20 +15,17 @@ import java.util.Objects;
  * submission entities to VOs from the Submission owner schema.
  *
  * <p>SPLIT-004 slice-6: user-visible projection runs in the Submission owner
- * ({@link SubmissionProjection}, P0-1 hidden-case filter), then user and
+ * ({@link SubmissionReadAssembly}, P0-1 hidden-case filter), then user and
  * problem summaries are enriched through the App/Auth-owned seams
- * ({@link ProblemFactsPort}) — never reading user or problem tables (DEC-011).
+ * ({@link com.ulticode.app.api.service.ProblemFactsPort}) — never reading user
+ * or problem tables (DEC-011).
  * Normal App and Contest reads route to this owner provider.
  */
 @DubboService(group = "backend-submission", version = "1.0.0")
 @RequiredArgsConstructor
 public class SubmissionReadProvider implements SubmissionReadPort {
 
-    private static final int BATCH_SIZE = 100;
-
-    private final SubmissionMapper submissionMapper;
-    private final SubmissionProjection submissionProjection;
-    private final ProblemFactsPort problemFactsPort;
+    private final SubmissionReadAssembly readAssembly;
 
     @Override
     public SubmissionVO toVO(String submissionId) {
@@ -47,36 +37,6 @@ public class SubmissionReadProvider implements SubmissionReadPort {
 
     @Override
     public List<SubmissionVO> toVOs(Collection<String> submissionIds) {
-        if (submissionIds == null || submissionIds.isEmpty()) {
-            return List.of();
-        }
-        List<String> requested = submissionIds.stream()
-                .filter(id -> id != null && !id.isBlank())
-                .distinct()
-                .toList();
-        if (requested.isEmpty()) {
-            return List.of();
-        }
-        List<SubmissionVO> result = new ArrayList<>();
-        for (int start = 0; start < requested.size(); start += BATCH_SIZE) {
-            List<String> batch = requested.subList(start, Math.min(start + BATCH_SIZE, requested.size()));
-            Map<String, Submission> rows = new LinkedHashMap<>();
-            for (Submission row : submissionMapper.selectBatchIds(batch)) {
-                if (row != null) {
-                    rows.put(row.getId(), row);
-                }
-            }
-            List<Submission> ordered = batch.stream()
-                    .map(rows::get)
-                    .filter(Objects::nonNull)
-                    .toList();
-            Map<Long, ProblemFactsPort.ProblemDisplayFacts> facts =
-                    problemFactsPort.findDisplayFactsBatch(ordered.stream()
-                            .map(Submission::getProblemId)
-                            .filter(Objects::nonNull)
-                            .collect(java.util.stream.Collectors.toSet()));
-            result.addAll(submissionProjection.toVO(ordered, facts));
-        }
-        return result;
+        return readAssembly.toVOs(submissionIds);
     }
 }

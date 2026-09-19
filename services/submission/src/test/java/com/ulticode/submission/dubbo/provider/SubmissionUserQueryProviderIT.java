@@ -18,6 +18,7 @@ import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
 import com.ulticode.modules.submission.projection.DefaultSubmissionProjection;
 import com.ulticode.modules.submission.projection.SubmissionProjection;
+import com.ulticode.modules.submission.read.SubmissionReadAssembly;
 import com.ulticode.modules.submission.stats.SubmissionPerformanceStats;
 import com.zaxxer.hikari.HikariDataSource;
 import org.apache.ibatis.session.SqlSession;
@@ -136,7 +137,8 @@ class SubmissionUserQueryProviderIT {
         SubmissionProjection projection = new DefaultSubmissionProjection(
                 submissionMapper, userReadPort, problemFacts, new ObjectMapper());
         SubmissionPerformanceStats performanceStats = mock(SubmissionPerformanceStats.class);
-        provider = new SubmissionUserQueryProvider(projection, submissionMapper, performanceStats, problemFacts);
+        provider = new SubmissionUserQueryProvider(projection,
+                new SubmissionReadAssembly(submissionMapper, projection, performanceStats, problemFacts));
     }
 
     @AfterEach
@@ -291,9 +293,10 @@ class SubmissionUserQueryProviderIT {
                         "user-1", "alice", "Alice", "avatar.png")));
         SubmissionProjection enrichedProjection = new DefaultSubmissionProjection(
                 submissionMapper, userReadPort, problemFacts, new ObjectMapper());
+        SubmissionReadAssembly enrichedAssembly = new SubmissionReadAssembly(
+                submissionMapper, enrichedProjection, mock(SubmissionPerformanceStats.class), problemFacts);
         SubmissionUserQueryProvider enrichedProvider =
-                new SubmissionUserQueryProvider(enrichedProjection, submissionMapper,
-                        mock(SubmissionPerformanceStats.class), problemFacts);
+                new SubmissionUserQueryProvider(enrichedProjection, enrichedAssembly);
 
         insertRow("sub-1", 101L, "user-1", "python", "Accepted", 12,
                 LocalDateTime.of(2026, 8, 1, 10, 0));

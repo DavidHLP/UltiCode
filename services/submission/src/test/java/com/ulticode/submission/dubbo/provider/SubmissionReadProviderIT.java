@@ -12,6 +12,8 @@ import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
 import com.ulticode.modules.submission.projection.DefaultSubmissionProjection;
 import com.ulticode.modules.submission.projection.SubmissionProjection;
+import com.ulticode.modules.submission.read.SubmissionReadAssembly;
+import com.ulticode.modules.submission.stats.SubmissionPerformanceStats;
 import com.zaxxer.hikari.HikariDataSource;
 import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
@@ -138,7 +140,9 @@ class SubmissionReadProviderIT {
 
         SubmissionProjection projection = new DefaultSubmissionProjection(
                 submissionMapper, userRead, problemFacts, new com.fasterxml.jackson.databind.ObjectMapper());
-        return new SubmissionReadProvider(submissionMapper, projection, problemFacts);
+        SubmissionReadAssembly readAssembly = new SubmissionReadAssembly(
+                submissionMapper, projection, mock(SubmissionPerformanceStats.class), problemFacts);
+        return new SubmissionReadProvider(readAssembly);
     }
 
     private void insertRow(String id, Long problemId, String userId, String status) {

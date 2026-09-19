@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import axios, {
   AxiosError,
   type AxiosAdapter,
@@ -111,6 +111,105 @@ function canceledErrorFor(request: InternalAxiosRequestConfig): AxiosError {
   return new AxiosError('canceled', 'ERR_CANCELED', request)
 }
 
+interface DownloadAnchor {
+  href: string
+  attributes: Record<string, string>
+  attached: number
+  clicked: number
+  removeAttempts: number
+  removed: number
+  setAttribute(name: string, value: string): void
+  click(): void
+  remove(): void
+}
+
+interface DownloadDom {
+  anchors: DownloadAnchor[]
+  createObjectURL: ReturnType<typeof vi.fn>
+  revokeObjectURL: ReturnType<typeof vi.fn>
+  failOn: { append?: boolean; click?: boolean; remove?: boolean }
+}
+
+/** Minimal browser stand-ins for the download flow; restored via vi.unstubAllGlobals(). */
+function installDownloadDom(): DownloadDom {
+  const dom: DownloadDom = {
+    anchors: [],
+    createObjectURL: vi.fn(),
+    revokeObjectURL: vi.fn(),
+    failOn: {},
+  }
+  let generated = 0
+  dom.createObjectURL.mockImplementation(() => {
+    generated += 1
+    return `blob:download-${generated}`
+  })
+  const makeAnchor = (): DownloadAnchor => {
+    const anchor: DownloadAnchor = {
+      href: '',
+      attributes: {},
+      attached: 0,
+      clicked: 0,
+      removeAttempts: 0,
+      removed: 0,
+      setAttribute(name: string, value: string) {
+        anchor.attributes[name] = value
+      },
+      click() {
+        if (dom.failOn.click) throw new Error('click-boom')
+        anchor.clicked += 1
+      },
+      remove() {
+        anchor.removeAttempts += 1
+        if (dom.failOn.remove) throw new Error('remove-boom')
+        anchor.removed += 1
+      },
+    }
+    return anchor
+  }
+  vi.stubGlobal('window', {
+    URL: { createObjectURL: dom.createObjectURL, revokeObjectURL: dom.revokeObjectURL },
+  })
+  vi.stubGlobal('document', {
+    cookie: '',
+    createElement: () => {
+      const anchor = makeAnchor()
+      dom.anchors.push(anchor)
+      return anchor
+    },
+    body: {
+      appendChild: (node: DownloadAnchor) => {
+        if (dom.failOn.append) throw new Error('append-boom')
+        node.attached += 1
+        return node
+      },
+    },
+  })
+  return dom
+}
+
+function succeedWithBlob(blob: Blob, capture: { request?: InternalAxiosRequestConfig }) {
+  return vi.fn().mockImplementation((request: InternalAxiosRequestConfig) => {
+    capture.request = request
+    return Promise.resolve({
+      status: 200,
+      statusText: 'OK',
+      headers: {},
+      config: request,
+      data: blob,
+    })
+  })
+}
+
+function downloadClient(adapter: unknown): HttpClient {
+  return createTestHttpClient({
+    csrfManager: createCsrfTokenManager(),
+    baseURL: 'http://test.local',
+    getLocale: () => 'en-US',
+    dedupPolicy: 'none',
+    __testAdapter: adapter,
+  })
+}
+
 describe('createHttpClient', () => {
   it('returns apiGet/apiPost/apiPatch/apiPut/apiDelete/apiUpload/apiDownload', () => {
     const client = makeClient()
@@ -181,6 +280,79 @@ describe('ApiResponse unwrap', () => {
       name: 'ApiError',
       code: 1001,
     })
+  })
+
+  it('returns a non-Result payload as-is without any transport envelope fields', async () => {
+    const adapter = vi.fn().mockResolvedValue({
+      status: 200,
+      statusText: 'OK',
+      headers: {},
+      config: { headers: {} },
+      data: { direct: true },
+    })
+    const client = createTestHttpClient({
+      csrfManager: createCsrfTokenManager(),
+      baseURL: 'http://test.local',
+      getLocale: () => 'en-US',
+      dedupPolicy: 'none',
+      __testAdapter: adapter,
+    })
+
+    const result = await client.apiGet<Record<string, unknown>>('/plain')
+    expect(result).toEqual({ direct: true })
+    expect(result).not.toHaveProperty('status')
+    expect(result).not.toHaveProperty('config')
+  })
+
+  it('returns a Blob payload unwrapped', async () => {
+    const blob = new Blob(['bytes'])
+    const adapter = vi.fn().mockResolvedValue({
+      status: 200,
+      statusText: 'OK',
+      headers: {},
+      config: { headers: {} },
+      data: blob,
+    })
+    const client = createTestHttpClient({
+      csrfManager: createCsrfTokenManager(),
+      baseURL: 'http://test.local',
+      getLocale: () => 'en-US',
+      dedupPolicy: 'none',
+      __testAdapter: adapter,
+    })
+
+    const result = await client.apiGet<Blob>('/blob')
+    expect(result).toBe(blob)
+  })
+
+  it('rejects the removed skipResponseUnwrap option at the type level', () => {
+    const config: RequestConfig = {
+      // @ts-expect-error skipResponseUnwrap is no longer part of the public request config.
+      skipResponseUnwrap: true,
+    }
+    expect(config).toBeDefined()
+  })
+
+  it('ignores a legacy skipResponseUnwrap flag passed through an untyped config', async () => {
+    const adapter = vi.fn().mockResolvedValue({
+      status: 200,
+      statusText: 'OK',
+      headers: {},
+      config: { headers: {} },
+      data: { direct: true },
+    })
+    const client = createTestHttpClient({
+      csrfManager: createCsrfTokenManager(),
+      baseURL: 'http://test.local',
+      getLocale: () => 'en-US',
+      dedupPolicy: 'none',
+      __testAdapter: adapter,
+    })
+    const legacyInit = { skipResponseUnwrap: true } as unknown as RequestConfig
+
+    const result = await client.apiGet<Record<string, unknown>>('/legacy', legacyInit)
+    expect(result).toEqual({ direct: true })
+    expect(result).not.toHaveProperty('data')
   })
 })
 
@@ -641,5 +813,118 @@ describe('Retry / backoff', () => {
     } finally {
       vi.useRealTimers()
     }
+  })
+})
+
+describe('apiDownload', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('passes the adapter Blob to createObjectURL and preserves filename, params and timeout', async () => {
+    const blob = new Blob(['file-bytes'], { type: 'application/octet-stream' })
+    const capture: { request?: InternalAxiosRequestConfig } = {}
+    const dom = installDownloadDom()
+    const client = downloadClient(succeedWithBlob(blob, capture))
+
+    await client.apiDownload('/files/1', 'report.csv', {
+      params: { scope: 'full' },
+      timeout: 5000,
+    })
+
+    expect(capture.request?.params).toEqual({ scope: 'full' })
+    expect(capture.request?.timeout).toBe(5000)
+    expect(dom.createObjectURL).toHaveBeenCalledTimes(1)
+    expect(dom.createObjectURL.mock.calls[0][0]).toBe(blob)
+    expect(dom.revokeObjectURL).toHaveBeenCalledWith('blob:download-1')
+    const [anchor] = dom.anchors
+    expect(anchor.attributes.download).toBe('report.csv')
+    expect(anchor.href).toBe('blob:download-1')
+    expect(anchor.attached).toBe(1)
+    expect(anchor.clicked).toBe(1)
+    expect(anchor.removed).toBe(1)
+  })
+
+  it('falls back to the default download filename', async () => {
+    const blob = new Blob(['x'])
+    const dom = installDownloadDom()
+    const client = downloadClient(succeedWithBlob(blob, {}))
+
+    await client.apiDownload('/files/2')
+
+    expect(dom.anchors[0].attributes.download).toBe('download')
+    expect(dom.revokeObjectURL).toHaveBeenCalledTimes(1)
+  })
+
+  it('forces blob responseType even when the caller requests another one', async () => {
+    const blob = new Blob(['x'])
+    const capture: { request?: InternalAxiosRequestConfig } = {}
+    const dom = installDownloadDom()
+    const client = downloadClient(succeedWithBlob(blob, capture))
+
+    await client.apiDownload('/files/3', 'f.bin', { responseType: 'text' })
+
+    expect(capture.request?.responseType).toBe('blob')
+    expect(dom.createObjectURL.mock.calls[0][0]).toBe(blob)
+  })
+
+  it('forwards the caller signal and skips all download DOM work on cancellation', async () => {
+    const state = createPendingAdapter()
+    const dom = installDownloadDom()
+    const client = downloadClient(state.adapter)
+    const controller = new AbortController()
+
+    const download = client.apiDownload('/files/4', 'slow.bin', { signal: controller.signal })
+    await vi.waitFor(() => expect(state.adapter).toHaveBeenCalledTimes(1))
+    expect(state.requests[0].signal).toBeDefined()
+
+    controller.abort()
+    await expect(download).rejects.toMatchObject({ name: 'ApiError', code: -1 })
+    expect(state.requests[0].signal?.aborted).toBe(true)
+    expect(dom.createObjectURL).not.toHaveBeenCalled()
+    expect(dom.revokeObjectURL).not.toHaveBeenCalled()
+    expect(dom.anchors).toHaveLength(0)
+  })
+
+  it('rejects transport failures without any download DOM side effects', async () => {
+    const adapter = vi.fn().mockImplementation((request: InternalAxiosRequestConfig) =>
+      Promise.reject(buildAxiosError(500, 'Internal Server Error', request)),
+    )
+    const dom = installDownloadDom()
+    const client = downloadClient(adapter)
+
+    await expect(client.apiDownload('/files/5', 'boom.bin', { retry: 0 })).rejects.toMatchObject({
+      name: 'ApiError',
+      code: 500,
+    })
+    expect(dom.createObjectURL).not.toHaveBeenCalled()
+    expect(dom.revokeObjectURL).not.toHaveBeenCalled()
+    expect(dom.anchors).toHaveLength(0)
+  })
+
+  it('still removes the element and revokes the URL when click throws, keeping the original error', async () => {
+    const blob = new Blob(['x'])
+    const dom = installDownloadDom()
+    dom.failOn.click = true
+    dom.failOn.remove = true
+    const client = downloadClient(succeedWithBlob(blob, {}))
+
+    await expect(client.apiDownload('/files/6', 'a.bin')).rejects.toThrow('click-boom')
+    expect(dom.createObjectURL).toHaveBeenCalledTimes(1)
+    expect(dom.anchors).toHaveLength(1)
+    expect(dom.anchors[0].clicked).toBe(0)
+    expect(dom.anchors[0].removeAttempts).toBe(1)
+    expect(dom.revokeObjectURL).toHaveBeenCalledWith('blob:download-1')
+  })
+
+  it('surfaces a cleanup failure when the download itself succeeded', async () => {
+    const blob = new Blob(['x'])
+    const dom = installDownloadDom()
+    dom.failOn.remove = true
+    const client = downloadClient(succeedWithBlob(blob, {}))
+
+    await expect(client.apiDownload('/files/7', 'b.bin')).rejects.toThrow('remove-boom')
+    expect(dom.anchors[0].clicked).toBe(1)
+    expect(dom.revokeObjectURL).toHaveBeenCalledWith('blob:download-1')
   })
 })

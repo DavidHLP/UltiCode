@@ -78,7 +78,6 @@ export interface RequestConfig {
   retry?: number
   retryDelay?: number
   skipErrorHandler?: boolean
-  skipResponseUnwrap?: boolean
   requestId?: string
 }
 
@@ -211,7 +210,6 @@ interface ConfigWithMetadata extends Omit<InternalAxiosRequestConfig, 'headers'>
   retry?: number
   retryDelay?: number
   skipErrorHandler?: boolean
-  skipResponseUnwrap?: boolean
   requestId?: string
   _metadata?: RequestMetadata
   _attempt?: RequestAttempt
@@ -372,7 +370,6 @@ export function createHttpClient(config: HttpClientConfig): HttpClient {
           data: response.data,
         })
       }
-      if (cfg.skipResponseUnwrap) return response
       const data = response.data
       if (data && typeof data === 'object' && 'code' in data) {
         const apiResponse = data as ApiResponse<unknown>
@@ -508,7 +505,6 @@ export function createHttpClient(config: HttpClientConfig): HttpClient {
       retry,
       retryDelay,
       skipErrorHandler,
-      skipResponseUnwrap,
       requestId,
     } = init
     return {
@@ -522,7 +518,6 @@ export function createHttpClient(config: HttpClientConfig): HttpClient {
       retry,
       retryDelay,
       skipErrorHandler,
-      skipResponseUnwrap,
       requestId,
     } as AxiosRequestConfig
   }
@@ -563,19 +558,35 @@ export function createHttpClient(config: HttpClientConfig): HttpClient {
       )
     },
     apiDownload: async (path: string, filename?: string, init?: RequestConfig) => {
-      const response = await service.get<Blob>(path, {
-        ...toAxiosConfig(init),
-        responseType: 'blob',
-        skipResponseUnwrap: true,
-      } as AxiosRequestConfig)
-      const url = window.URL.createObjectURL(response.data as Blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.setAttribute('download', filename || 'download')
-      document.body.appendChild(link)
-      link.click()
-      link.remove()
-      window.URL.revokeObjectURL(url)
+      const blob = await asPayload<Blob>(
+        service.get<Blob, Blob>(path, {
+          ...toAxiosConfig(init),
+          responseType: 'blob',
+        }),
+      )
+      const url = window.URL.createObjectURL(blob)
+      let link: HTMLAnchorElement | undefined
+      let failure: { error: unknown } | undefined
+      try {
+        link = document.createElement('a')
+        link.href = url
+        link.setAttribute('download', filename || 'download')
+        document.body.appendChild(link)
+        link.click()
+      } catch (error) {
+        failure = { error }
+      }
+      try {
+        link?.remove()
+      } catch (error) {
+        if (!failure) failure = { error }
+      }
+      try {
+        window.URL.revokeObjectURL(url)
+      } catch (error) {
+        if (!failure) failure = { error }
+      }
+      if (failure) throw failure.error
     },
     createAbortController: () => new AbortController(),
   }

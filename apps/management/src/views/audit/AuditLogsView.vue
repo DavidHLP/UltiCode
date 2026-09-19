@@ -1,8 +1,6 @@
 <script setup lang="ts">
-import { storeToRefs } from 'pinia'
-import { ref, computed, onMounted, onBeforeUnmount, h, watch } from 'vue'
+import { ref, computed, onMounted, h } from 'vue'
 import { formatDateTimeByLocale } from '@/i18n/utils'
-import { watchDebounced } from '@vueuse/core'
 import type { ColumnDef } from '@tanstack/vue-table'
 import {
   IconInfoCircle,
@@ -26,12 +24,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { useAuditStore } from '@/stores/admin/audit'
-import { normalizeDateParams, type AuditLog, type AuditLogQueryParams } from '@/api/admin/audit'
-import { useRemoteTable } from '@/composables/useRemoteTable'
+import type { AuditLog } from '@/api/admin/audit'
 
 import DataTable from '@/components/table/DataTable.vue'
 import AuditLogDetailDrawer from './AuditLogDetailDrawer.vue'
+import { useAuditReadWorkspace } from './useAuditReadWorkspace'
 import {
   getActionBadge,
   getEntityTypeIcon,
@@ -44,18 +41,7 @@ import {
 } from './utils'
 import { badge, USER_ROLE_COLOR_MAP } from '@/components/ui/terminal'
 
-interface AuditFilters {
-  action: string
-  entityType: string
-  startDate: string
-  endDate: string
-  performerId: string
-  userId: string
-}
-
 const { t } = useI18n()
-const auditStore = useAuditStore()
-const { logs, total: auditTotal, loading: auditLoading, error: auditError, stats } = storeToRefs(auditStore)
 const showAdvancedFilters = ref(false)
 const selectedLog = ref<AuditLog | null>(null)
 const detailsDrawerOpen = ref(false)
@@ -69,42 +55,11 @@ const {
   data,
   total,
   error,
-  refresh: loadLogs,
+  refresh: refreshAuditData,
+  actionTypeStats,
+  statsTotal,
   setFilters,
-} = useRemoteTable<AuditLog, AuditFilters, AuditLogQueryParams>({
-  store: {
-    items: logs,
-    total: auditTotal,
-    isLoading: auditLoading,
-    error: auditError,
-    fetch: auditStore.fetchLogs,
-  },
-  initialQuery: {
-    filters: {
-      action: 'all',
-      entityType: 'all',
-      startDate: '',
-      endDate: '',
-      performerId: '',
-      userId: '',
-    },
-    pagination: { pageIndex: 0, pageSize: 50 },
-  },
-  toParams: ({ search, filters, page, limit }) =>
-    normalizeDateParams({
-      search,
-      action: filters.action === 'all' ? undefined : filters.action,
-      entityType: filters.entityType === 'all' ? undefined : filters.entityType,
-      startDate: filters.startDate || undefined,
-      endDate: filters.endDate || undefined,
-      performerId: filters.performerId || undefined,
-      userId: filters.userId || undefined,
-      page,
-      limit,
-    }),
-  debounceMs: 500,
-  autoLoad: true,
-})
+} = useAuditReadWorkspace()
 
 const actionFilter = computed({
   get: () => query.value.filters.action,
@@ -130,62 +85,11 @@ const userIdFilter = computed({
   get: () => query.value.filters.userId,
   set: (userId: string) => setFilters({ ...query.value.filters, userId }),
 })
-function toStatsParams(current = query.value): AuditLogQueryParams {
-  const { search, filters, pagination } = current
-  return normalizeDateParams({
-    search: search || undefined,
-    action: filters.action === 'all' ? undefined : filters.action,
-    entityType: filters.entityType === 'all' ? undefined : filters.entityType,
-    startDate: filters.startDate || undefined,
-    endDate: filters.endDate || undefined,
-    performerId: filters.performerId || undefined,
-    userId: filters.userId || undefined,
-    page: pagination.pageIndex + 1,
-    limit: pagination.pageSize,
-  })
-}
-
-async function refreshStats(current = query.value): Promise<void> {
-  try {
-    await auditStore.fetchStats(toStatsParams(current))
-  } catch {
-    // The store records the user-facing error; consume the rejection for event and watcher callers.
-  }
-}
-
-async function refreshAuditData(): Promise<void> {
-  await Promise.all([loadLogs(), refreshStats()])
-}
-
 onMounted(() => {
   setTimeout(() => {
     isLoaded.value = true
   }, 100)
 })
-
-onBeforeUnmount(() => {
-  auditStore.cancelStats()
-})
-
-const actionTypeStats = computed(() => stats.value?.actionsByType ?? [])
-const statsTotal = computed(() => stats.value?.totalActions ?? total.value)
-
-watch(
-  query,
-  () => {
-    auditStore.cancelStats()
-    auditStore.clearError()
-  },
-  { deep: true, flush: 'sync' },
-)
-
-watchDebounced(
-  query,
-  (current) => {
-    void refreshStats(current)
-  },
-  { debounce: 500, deep: true, immediate: true },
-)
 
 function showDetails(log: AuditLog) {
   // 主动移除触发按钮的焦点。抽屉是模态 reka Dialog,打开时会立即给背景(含侧边栏
@@ -257,7 +161,11 @@ const columns: ColumnDef<AuditLog>[] = [
     cell: ({ row }) => {
       const performer = row.original.performer
       if (!performer) {
-        return h('span', { class: 'text-[var(--foreground-muted)] text-sm' }, t('audit.systemAction'))
+        return h(
+          'span',
+          { class: 'text-[var(--foreground-muted)] text-sm' },
+          t('audit.systemAction'),
+        )
       }
       return h('div', { class: 'flex flex-col' }, [
         h('span', { class: 'text-sm font-medium' }, performer.username),
@@ -343,7 +251,9 @@ const columns: ColumnDef<AuditLog>[] = [
         class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--surface-sunken)]"
       >
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--foreground-muted)]">{{ t('audit.stats.total') }}:</span>
+          <span class="terminal-label text-[var(--foreground-muted)]"
+            >{{ t('audit.stats.total') }}:</span
+          >
           <span class="font-data text-sm text-[var(--foreground-strong)] tabular-nums">{{
             statsTotal
           }}</span>

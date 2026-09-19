@@ -1,0 +1,19 @@
+services/core/src/test/java/com/ulticode/core/CoreApplicationSmokeTest.java
+  s_bd65b162c8d71a::t_5e184791f0359e 17-20
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "37295919607af25763cee2c037a89f77ddd40234",
+  "prompts": {},
+  "sessions": {
+    "s_bd65b162c8d71a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0b919-0e98-7801-8f82-246c69699654",
+        "model": "unknown"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

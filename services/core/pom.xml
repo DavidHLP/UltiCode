@@ -113,7 +113,7 @@
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
-            <version>13.6.0</version>
+            <version>13.7.0</version>
             <scope>test</scope>
             <exclusions>
                 <exclusion>
@@ -125,7 +125,7 @@
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-mysql</artifactId>
-            <version>13.6.0</version>
+            <version>13.7.0</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

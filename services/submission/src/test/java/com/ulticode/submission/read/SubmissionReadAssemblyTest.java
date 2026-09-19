@@ -34,7 +34,6 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -102,20 +101,24 @@ class SubmissionReadAssemblyTest {
         SubmissionProjection projection = mock(SubmissionProjection.class);
         SubmissionPerformanceStats performanceStats = mock(SubmissionPerformanceStats.class);
         ProblemFactsPort problemFactsPort = mock(ProblemFactsPort.class);
-        Submission submission = submission("sub-2", 202L);
+        Submission listSubmission = submission("sub-2", null);
+        Submission bestSubmission = submission("sub-2", 202L);
         SubmissionListItemVO listItem = new SubmissionListItemVO();
         SubmissionVO best = new SubmissionVO();
+        ProblemFactsPort.ProblemDisplayFacts problemFacts =
+                new ProblemFactsPort.ProblemDisplayFacts(202L, "Problem 202", "problem-202");
         Page<Submission> page = new Page<>(1, 10);
-        page.setRecords(List.of(submission));
+        page.setRecords(List.of(listSubmission));
         page.setTotal(1);
 
         when(submissionMapper.findByProblemId(eq(202L), eq("user-1"), any(Page.class)))
                 .thenReturn(page);
         when(submissionMapper.findBestByProblemIdAndUserId(202L, "user-1"))
-                .thenReturn(Optional.of(submission));
-        when(problemFactsPort.findDisplayFactsBatch(anyCollection())).thenReturn(Map.of());
-        when(projection.toListItemVO(same(submission), isNull())).thenReturn(listItem);
-        when(projection.toVO(same(submission), anyMap())).thenReturn(best);
+                .thenReturn(Optional.of(bestSubmission));
+        when(problemFactsPort.findDisplayFactsBatch(anyCollection()))
+                .thenReturn(Map.of(202L, problemFacts));
+        when(projection.toListItemVO(same(listSubmission), same(problemFacts))).thenReturn(listItem);
+        when(projection.toVO(same(bestSubmission), anyMap())).thenReturn(best);
 
         SubmissionReadAssembly assembly = newAssembly(
                 submissionMapper, projection, performanceStats, problemFactsPort);
@@ -126,8 +129,8 @@ class SubmissionReadAssemblyTest {
         assertThat(assembly.findBest(202L, "user-1")).isSameAs(best);
         assertThat(assembly.findBest(null, "user-1")).isNull();
         assertThat(assembly.findBest(202L, null)).isNull();
-        verify(projection).toListItemVO(same(submission), isNull());
-        verify(projection).toVO(same(submission), anyMap());
+        verify(projection).toListItemVO(same(listSubmission), same(problemFacts));
+        verify(projection).toVO(same(bestSubmission), anyMap());
     }
 
     @Test

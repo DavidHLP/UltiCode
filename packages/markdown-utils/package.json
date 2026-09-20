@@ -17,14 +17,13 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@mdit/plugin-katex": "^0.25.2",
+    "@mdit/plugin-katex": "^1.1.1",
     "dompurify": "^3.4.5",
     "highlight.js": "^11.11.1",
-    "markdown-it": "^14.1.1"
+    "markdown-it": "^15.0.2"
   },
   "devDependencies": {
     "@types/dompurify": "^3.0.5",
-    "@types/markdown-it": "^14.1.2",
     "@types/node": "^22.10.0",
     "jsdom": "^25.0.1",
     "typescript": "~5.9.3",

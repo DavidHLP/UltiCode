@@ -7,7 +7,7 @@
 ### 前置条件
 
 - Docker + Compose v2：MySQL、Redis、Nacos 和可选 MeiliSearch。
-- mise 管理的 Zulu Java 17、Node.js `^20.19.0 || >=22.12.0`、pnpm 10+、PM2、Docker Compose v2，以及 `curl`、`timeout`、`openssl`。
+- mise 管理的 Zulu Java 17、Node.js `>=22.12.0`、pnpm 10+、PM2、Docker Compose v2，以及 `curl`、`timeout`、`openssl`。
 - 后端使用仓库内的 `services/mvnw`；不要用裸 Maven/Java 绕过启动入口。
 - 从仓库根目录执行脚本。`.env` 由 `scripts/dev/init-env.sh` 生成，不能提交。
 
@@ -122,10 +122,11 @@ pnpm --dir packages/auth-core type-check
 pnpm --dir packages/auth-core test:coverage
 ```
 
-前端只有一个根 `pnpm-lock.yaml`（成员 lock 已删除）。`.github/dependabot.yml` 的两个 npm block 目录是
-`apps/console` 与 `apps/management`，从父目录取回的根 lock 会被 dependabot-core 当作 support file 丢弃，
-所以 Dependabot 的 PR 只改 manifest；这类 PR 必须先补一个 `chore(deps): sync root lockfile` 提交，
-CI 的五处 `pnpm install --frozen-lockfile` 才可能通过，步骤与三种持久方案见 #199。
+前端只有一个根 `pnpm-lock.yaml`（成员 lock 已删除），所以 `.github/dependabot.yml` 的 npm 只有一个
+`directory: "/"` 的 block。pnpm workspace 只能从根更新：成员目录下 Dependabot 从父目录取回的根 lock 会被
+dependabot-core 当作 support file 丢弃，PR 只改 manifest，必然过不了 CI 的五处
+`pnpm install --frozen-lockfile`，update job 还会按成员 manifest 报 `misconfigured_tooling`。
+这个根 block 同时覆盖 `packages/*` 与根 manifest。
 
 ### Optional external Adapters
 

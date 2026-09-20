@@ -24,12 +24,12 @@
  * through `@ulticode/markdown-utils` and never reach for the underlying
  * MarkdownIt instance or DOMPurify directly.
  */
-import MarkdownIt from 'markdown-it'
+// markdown-it 15 ships its own types: the default export is the callable
+// factory only, and the instance type is a separate named export.
+import MarkdownIt, { type MarkdownIt as MarkdownItInstance, type Token } from 'markdown-it'
 import { katex } from '@mdit/plugin-katex'
 import hljs from 'highlight.js'
 import DOMPurify, { type Config as DOMPurifyConfig } from 'dompurify'
-
-type Token = NonNullable<ReturnType<MarkdownIt['parse']>>[number]
 
 // ---------------------------------------------------------------------------
 // Sanitization — always-on, cannot be bypassed.
@@ -91,10 +91,27 @@ const PURIFY_CONFIG: DOMPurifyConfig = {
     'title',
     'class',
     'id',
+    // KaTeX carries every glyph height, depth and horizontal offset as an
+    // inline `style` on the spans it emits (`style="height:0.8141em"`,
+    // `style="top:-3.063em"`). Dropping the attribute removes the entire
+    // geometry of a formula: numerators, superscripts and matrix rows stack
+    // onto one line while the surrounding text still renders, so the page
+    // looks plausible and the math is silently wrong.
+    //
+    // DOMPurify keeps an allowed `style` verbatim - it does not parse the CSS -
+    // so the declarations are narrowed by SAFE_STYLE_PROPERTIES below.
+    'style',
     'data-code',
     'data-index',
     'aria-label',
     'viewBox',
+    // KaTeX draws radicals, stretchy arrows, braces and wide hats as an SVG
+    // whose 400000-unit-wide viewBox has to be sliced to a ~1em box:
+    // `<svg ... viewBox="0 0 400000 1944" preserveAspectRatio="xMinYMin slice">`
+    // (`\sqrt`, `\xrightarrow`, `\overbrace`, `\widehat`). Without the
+    // attribute the SVG falls back to `xMidYMid meet` and scales the whole
+    // 400000-unit box down to nothing, so the glyph silently disappears.
+    'preserveAspectRatio',
     'width',
     'height',
     'fill',
@@ -119,6 +136,73 @@ const PURIFY_CONFIG: DOMPurifyConfig = {
   FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onblur', 'onmouseout'],
 }
 
+/**
+ * CSS declarations KaTeX emits, and the only shape a value may take.
+ *
+ * <p>DOMPurify does not sanitize the contents of an allowed `style` attribute:
+ * `background:url(javascript:...)`, `position:fixed` overlays, `expression()`
+ * and `-moz-binding` all survive it. Since `sanitizeHtml` is exported, the
+ * narrowed grammar is enforced here rather than left to the caller. KaTeX
+ * writes only bare length values (em/ex/pt/px/%), so anything else is dropped.
+ */
+const SAFE_STYLE_PROPERTIES = new Set([
+  'border-bottom-width',
+  'font-size',
+  'height',
+  'left',
+  'margin',
+  'margin-bottom',
+  'margin-left',
+  'margin-right',
+  'margin-top',
+  'min-width',
+  'padding',
+  'padding-left',
+  'padding-right',
+  'top',
+  'vertical-align',
+  'width',
+])
+
+const SAFE_STYLE_DECLARATION = /^([a-z-]+):\s*(-?\d*\.?\d+(?:em|ex|pt|px|%)?)$/
+
+/**
+ * Largest magnitude a length may have. {@link MAX_KATEX_SIZE_EM} already caps
+ * what KaTeX emits, so this only backstops direct `sanitizeHtml` callers; it is
+ * set well above the height of any legitimately deep construction (a tall
+ * matrix stacks hundreds of em) and well below a value that would distort the
+ * page.
+ */
+const MAX_STYLE_MAGNITUDE = 10_000
+
+/** Keep only well-formed declarations of an allowlisted length property. */
+function narrowStyle(value: string): string {
+  return value
+    .split(';')
+    .map((declaration) => declaration.trim())
+    .map((declaration) => {
+      const match = declaration.match(SAFE_STYLE_DECLARATION)
+      if (!match) return null
+      const [, property, size] = match
+      if (!property || !size || !SAFE_STYLE_PROPERTIES.has(property)) return null
+      const magnitude = Number.parseFloat(size)
+      if (!Number.isFinite(magnitude) || Math.abs(magnitude) > MAX_STYLE_MAGNITUDE) return null
+      return `${property}:${size}`
+    })
+    .filter((declaration): declaration is string => declaration !== null)
+    .join(';')
+}
+
+DOMPurify.addHook('uponSanitizeAttribute', (_node, data) => {
+  if (data.attrName !== 'style') return
+  const narrowed = narrowStyle(data.attrValue || '')
+  if (narrowed) {
+    data.attrValue = narrowed
+  } else {
+    data.keepAttr = false
+  }
+})
+
 /** Sanitize HTML — public re-export for downstream callers that need it. */
 export function sanitizeHtml(html: string): string {
   return String(DOMPurify.sanitize(html || '', PURIFY_CONFIG))
@@ -128,7 +212,7 @@ export function sanitizeHtml(html: string): string {
 // MarkdownIt instance + plugins.
 // ---------------------------------------------------------------------------
 
-const md: MarkdownIt = new MarkdownIt({
+const md: MarkdownItInstance = new MarkdownIt({
   html: false,
   linkify: true,
   breaks: true,
@@ -144,14 +228,23 @@ const md: MarkdownIt = new MarkdownIt({
   },
 })
 
-md.use(katex)
+// Untrusted problem statements, comments and forum posts reach KaTeX directly
+// and it honours user-specified sizes. Without a cap `\kern 999999999em` or
+// `\raisebox{99999999em}{x}` emits a dimension of that magnitude, which the
+// sanitizer below then preserves, handing the page an arbitrary scroll range.
+// KaTeX caps every user-specified size at `maxSize` ems; 100em is far above
+// what real typesetting reaches and the value degrades visibly rather than
+// throwing.
+const MAX_KATEX_SIZE_EM = 100
+
+md.use(katex, { maxSize: MAX_KATEX_SIZE_EM })
 
 // ---------------------------------------------------------------------------
 // Custom plugin: group consecutive fences with shared `{group="id"}` so they
 // render as a single tabbed code-block widget instead of N independent blocks.
 // ---------------------------------------------------------------------------
 
-const groupFencesPlugin = (instance: MarkdownIt): void => {
+const groupFencesPlugin = (instance: MarkdownItInstance): void => {
   instance.core.ruler.push('group_fences', (state) => {
     const tokens = state.tokens
     const next: Token[] = []
@@ -377,6 +470,9 @@ export function extractHeadings(
 // ---------------------------------------------------------------------------
 
 interface RenderEnv {
+  // markdown-it 15 types `env` as an open bag; keep the same signature so the
+  // per-render env stays assignable to `Env`.
+  [key: string | symbol]: unknown
   __headingIds?: Set<string>
 }
 

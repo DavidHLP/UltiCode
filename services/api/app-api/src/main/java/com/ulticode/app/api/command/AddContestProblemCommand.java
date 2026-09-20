@@ -1,5 +1,7 @@
 package com.ulticode.app.api.command;
 
+import java.io.Serializable;
+
 import com.ulticode.common.command.ActorDelegation;
 import com.ulticode.common.command.WriteCommand;
 import com.ulticode.app.api.dto.ContestProblemInputDTO;
@@ -14,7 +16,7 @@ public record AddContestProblemCommand(
         ActorDelegation actor,
         TraceMetadata trace,
         String contestId,
-        ContestProblemInputDTO problem) implements WriteCommand {
+        ContestProblemInputDTO problem) implements WriteCommand, Serializable {
     private static final long serialVersionUID = 1L;
 
 

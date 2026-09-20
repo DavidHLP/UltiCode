@@ -1,5 +1,6 @@
 package com.ulticode.app.api.service;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
 /**
@@ -42,5 +43,5 @@ public interface ProblemTagOwnerPort {
      */
     record TagWrite(String id, String label, String slug, String description,
                     String color, Integer usageCount,
-                    LocalDateTime createdAt, LocalDateTime updatedAt) {}
+                    LocalDateTime createdAt, LocalDateTime updatedAt) implements Serializable {}
 }

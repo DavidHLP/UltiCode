@@ -3,6 +3,7 @@ package com.ulticode.submission.api.catalog;
 import com.ulticode.domain.submission.enums.SubmissionStatus;
 import com.ulticode.submission.api.dto.SubmissionStatusMeta;
 
+import java.io.Serializable;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -20,7 +21,7 @@ public final class SubmissionStatusCatalog {
     }
 
     /** User-facing metadata that is not part of the durable status enum. */
-    public record Entry(String description, String suggestion, String severity, int sortOrder) {
+    public record Entry(String description, String suggestion, String severity, int sortOrder) implements Serializable {
     }
 
     private static final Map<SubmissionStatus, Entry> CATALOG;

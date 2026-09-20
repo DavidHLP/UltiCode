@@ -44,7 +44,7 @@ class DashboardAdminReadProviderIT {
         dataSource.setMaximumPoolSize(2);
         try (var connection = dataSource.getConnection(); var statement = connection.createStatement()) {
             statement.execute("CREATE TABLE problems (id BIGINT PRIMARY KEY, difficulty VARCHAR(32), "
-                    + "is_active TINYINT NOT NULL, is_deleted TINYINT NOT NULL, published_at DATETIME NULL, "
+                    + "is_published TINYINT NOT NULL, is_deleted TINYINT NOT NULL, published_at DATETIME NULL, "
                     + "created_at DATETIME NOT NULL, "
                     + "updated_at DATETIME NOT NULL)");
             statement.execute("CREATE TABLE contests (id VARCHAR(40) PRIMARY KEY, start_time DATETIME NOT NULL, "

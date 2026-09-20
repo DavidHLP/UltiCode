@@ -1,0 +1,50 @@
+apps/console/nginx.conf
+  h_77173abe25c3ff 104-110
+apps/console/src/api/__tests__/user.spec.ts
+  h_77173abe25c3ff 2,6,17,136-149
+apps/console/src/api/user.ts
+  h_77173abe25c3ff 1,73-79
+apps/console/src/composables/__tests__/useAvatar.spec.ts
+  h_77173abe25c3ff 15-23
+apps/console/src/composables/__tests__/useAvatarUpload.spec.ts
+  h_77173abe25c3ff 1-33
+apps/console/src/composables/useAvatarUpload.ts
+  h_77173abe25c3ff 1-23
+apps/console/src/i18n/locales/en-US/personal.ts
+  h_77173abe25c3ff 8-11
+apps/console/src/i18n/locales/zh-CN/personal.ts
+  h_77173abe25c3ff 8-11
+apps/console/src/stores/auth.ts
+  h_77173abe25c3ff 81-88,110
+apps/console/src/utils/request.ts
+  h_77173abe25c3ff 46
+apps/console/src/views/personal/AccountGeneralView.vue
+  h_77173abe25c3ff 2,8-9,25,29-36,61-81,84,123-164
+apps/management/nginx.conf
+  h_77173abe25c3ff 110-116
+apps/management/src/api/admin/users.test.ts
+  h_77173abe25c3ff 1-11,22-33
+apps/management/src/api/admin/users.ts
+  h_77173abe25c3ff 2,134-141
+apps/management/src/composables/useAvatarUpload.test.ts
+  h_77173abe25c3ff 1-46
+apps/management/src/composables/useAvatarUpload.ts
+  h_77173abe25c3ff 1-33
+apps/management/src/i18n/locales/en-US/modules/users.ts
+  h_77173abe25c3ff 116-117,147-148
+apps/management/src/i18n/locales/zh-CN/modules/users.ts
+  h_77173abe25c3ff 116-117,147-148
+apps/management/src/views/users/UserDetailDrawer.vue
+  h_77173abe25c3ff 4,6-7,9-10,28-54,213-242
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8db3f03cd7afe83d2262c7dd9237080bc7eb7e19",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

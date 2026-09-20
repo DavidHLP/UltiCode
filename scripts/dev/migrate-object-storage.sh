@@ -1,0 +1,499 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+ENV_FILE="${ENV_FILE:-$ROOT_DIR/.env}"
+
+usage() {
+  cat <<'USAGE'
+Usage: scripts/dev/migrate-object-storage.sh [options]
+
+Migrate legacy local avatars and completed admin backup dumps into RustFS.
+The default is a read-only dry run. No object or database writes happen
+without --apply. Existing local files are never deleted.
+
+Options:
+  --apply                         Upload objects and conditionally update rows.
+  --legacy-avatar-dir DIR         Directory containing legacy avatar files.
+                                  Default: ${AVATAR_UPLOAD_DIR:-$ROOT_DIR/uploads/avatars}
+  --legacy-backup-dir DIR         Directory containing legacy backup dumps.
+                                  Default: ${BACKUP_DIR:-/tmp/backups}
+  --bucket NAME                   Override RUSTFS_BUCKET (default: ulticode).
+  --limit N                       Process at most N rows (0 means unlimited).
+  --only avatars|backups|all      Restrict the migration (default: all).
+  --help                          Show this help and exit.
+
+Configuration (environment or .env):
+  APP_STORAGE_S3_ENDPOINT or RUSTFS_ENDPOINT
+  APP_STORAGE_S3_REGION or RUSTFS_REGION
+  APP_STORAGE_S3_TLS_ENABLED or RUSTFS_TLS_ENABLED
+  APP_STORAGE_S3_ACCESS_KEY or RUSTFS_ACCESS_KEY
+  APP_STORAGE_S3_SECRET_KEY or RUSTFS_SECRET_KEY
+  RUSTFS_BUCKET
+  APP_DB_* / ADMIN_DB_* (or MIGRATION_DB_*, then DB_* as fallback)
+  AWS_BIN (optional host aws executable override)
+
+available, it uses the pinned Docker Hub amazon/aws-cli image
+amazon/aws-cli:2.31.0@sha256:d5f18fde2ba3f9205e75d511ca3e6185c144e55df07e50eee16d940994557b40.
+The host binary is useful for local operators and fake-binary tests; the
+container fallback avoids an unpinned host dependency.
+USAGE
+}
+
+for argument in "$@"; do
+  [[ "$argument" == "--help" || "$argument" == "-h" ]] && { usage; exit 0; }
+done
+
+# shellcheck source=scripts/dev/lib/common.sh
+source "$ROOT_DIR/scripts/dev/lib/common.sh"
+
+# Preserve explicit environment values when .env is loaded.
+capture_env_vars \
+  APP_STORAGE_S3_ENDPOINT APP_STORAGE_S3_REGION APP_STORAGE_S3_TLS_ENABLED \
+  APP_STORAGE_S3_ACCESS_KEY APP_STORAGE_S3_SECRET_KEY APP_STORAGE_S3_BUCKET \
+  RUSTFS_ENDPOINT RUSTFS_S3_ENDPOINT RUSTFS_REGION RUSTFS_TLS_ENABLED \
+  RUSTFS_ACCESS_KEY RUSTFS_SECRET_KEY RUSTFS_BUCKET \
+  APP_DB_HOST APP_DB_PORT APP_DB_NAME APP_DB_USER APP_DB_PASSWORD \
+  ADMIN_DB_HOST ADMIN_DB_PORT ADMIN_DB_NAME ADMIN_DB_USER ADMIN_DB_PASSWORD \
+  MIGRATION_DB_HOST MIGRATION_DB_PORT MIGRATION_DB_NAME MIGRATION_DB_USER MIGRATION_DB_PASSWORD \
+  DB_HOST DB_PORT DB_NAME DB_USER DB_PASSWORD MIGRATION_MYSQL_CONTAINER MIGRATION_MYSQL_CONTAINER_PORT \
+  AVATAR_UPLOAD_DIR AVATAR_UPLOAD_VOL BACKUP_DIR AWS_BIN AWS_CLI_IMAGE
+if [[ -f "$ENV_FILE" ]]; then
+  load_env_file
+  apply_env_overrides
+fi
+
+APPLY=false
+ONLY="all"
+LIMIT=0
+AVATAR_DIR=""
+BACKUP_DIR_ARG=""
+BUCKET_OVERRIDE=""
+
+while (($#)); do
+  case "$1" in
+    --apply) APPLY=true; shift ;;
+    --legacy-avatar-dir)
+      (($# >= 2)) || { echo "--legacy-avatar-dir requires a value" >&2; exit 2; }
+      AVATAR_DIR="$2"; shift 2 ;;
+    --legacy-backup-dir)
+      (($# >= 2)) || { echo "--legacy-backup-dir requires a value" >&2; exit 2; }
+      BACKUP_DIR_ARG="$2"; shift 2 ;;
+    --bucket)
+      (($# >= 2)) || { echo "--bucket requires a value" >&2; exit 2; }
+      BUCKET_OVERRIDE="$2"; shift 2 ;;
+    --limit)
+      (($# >= 2)) || { echo "--limit requires a value" >&2; exit 2; }
+      LIMIT="$2"; shift 2 ;;
+    --only)
+      (($# >= 2)) || { echo "--only requires a value" >&2; exit 2; }
+      ONLY="$2"; shift 2 ;;
+    --help|-h) usage; exit 0 ;;
+    *) echo "Unknown option: $1" >&2; usage >&2; exit 2 ;;
+  esac
+done
+
+[[ "$ONLY" == "avatars" || "$ONLY" == "backups" || "$ONLY" == "all" ]] || {
+  echo "--only must be avatars, backups, or all" >&2
+  exit 2
+}
+[[ "$LIMIT" =~ ^[0-9]+$ ]] || { echo "--limit must be a non-negative integer" >&2; exit 2; }
+
+AVATAR_DIR="${AVATAR_DIR:-${AVATAR_UPLOAD_DIR:-${AVATAR_UPLOAD_VOL:-$ROOT_DIR/uploads/avatars}}}"
+BACKUP_DIR_ARG="${BACKUP_DIR_ARG:-${BACKUP_DIR:-/tmp/backups}}"
+S3_ENDPOINT="${APP_STORAGE_S3_ENDPOINT:-${RUSTFS_ENDPOINT:-${RUSTFS_S3_ENDPOINT:-http://127.0.0.1:9000}}}"
+S3_REGION="${APP_STORAGE_S3_REGION:-${RUSTFS_REGION:-us-east-1}}"
+S3_ACCESS_KEY="${APP_STORAGE_S3_ACCESS_KEY:-${RUSTFS_ACCESS_KEY:-}}"
+S3_SECRET_KEY="${APP_STORAGE_S3_SECRET_KEY:-${RUSTFS_SECRET_KEY:-}}"
+S3_BUCKET="${BUCKET_OVERRIDE:-${RUSTFS_BUCKET:-${APP_STORAGE_S3_BUCKET:-ulticode}}}"
+S3_TLS_ENABLED="${APP_STORAGE_S3_TLS_ENABLED:-${RUSTFS_TLS_ENABLED:-}}"
+if [[ -z "$S3_TLS_ENABLED" ]]; then
+  [[ "$S3_ENDPOINT" == https://* ]] && S3_TLS_ENABLED=true || S3_TLS_ENABLED=false
+fi
+
+case "$S3_TLS_ENABLED" in
+  true|false) ;;
+  *) echo "S3 TLS flag must be true or false" >&2; exit 2 ;;
+esac
+if [[ "$S3_TLS_ENABLED" == true && "$S3_ENDPOINT" != https://* ]]; then
+  echo "TLS is enabled but S3 endpoint is not HTTPS: $S3_ENDPOINT" >&2
+  exit 2
+fi
+if [[ "$S3_TLS_ENABLED" == false && "$S3_ENDPOINT" != http://127.0.0.1:* \
+    && "$S3_ENDPOINT" != http://localhost:* && "$S3_ENDPOINT" != http://\[::1\]:* ]]; then
+  echo "Plain HTTP S3 endpoints are allowed only on loopback: $S3_ENDPOINT" >&2
+  exit 2
+fi
+[[ "$S3_BUCKET" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{2,62}$ ]] || {
+  echo "Invalid S3 bucket name" >&2
+  exit 2
+}
+case "$AVATAR_DIR" in
+  /*) ;;
+  *) AVATAR_DIR="$ROOT_DIR/$AVATAR_DIR" ;;
+esac
+case "$BACKUP_DIR_ARG" in
+  /*) ;;
+  *) BACKUP_DIR_ARG="$ROOT_DIR/$BACKUP_DIR_ARG" ;;
+esac
+
+if [[ "$ONLY" == avatars || "$ONLY" == all ]]; then
+  APP_DB_HOST="${APP_DB_HOST:-${MIGRATION_DB_HOST:-${DB_HOST:-}}}"
+  APP_DB_PORT="${APP_DB_PORT:-${MIGRATION_DB_PORT:-${DB_PORT:-3306}}}"
+  APP_DB_NAME="${APP_DB_NAME:-${MIGRATION_DB_NAME:-${DB_NAME:-app}}}"
+  APP_DB_USER="${APP_DB_USER:-${MIGRATION_DB_USER:-${DB_USER:-}}}"
+  APP_DB_PASSWORD="${APP_DB_PASSWORD:-${MIGRATION_DB_PASSWORD:-${DB_PASSWORD:-}}}"
+fi
+if [[ "$ONLY" == backups || "$ONLY" == all ]]; then
+  ADMIN_DB_HOST="${ADMIN_DB_HOST:-${MIGRATION_DB_HOST:-${DB_HOST:-}}}"
+  ADMIN_DB_PORT="${ADMIN_DB_PORT:-${MIGRATION_DB_PORT:-${DB_PORT:-3306}}}"
+  ADMIN_DB_NAME="${ADMIN_DB_NAME:-${MIGRATION_DB_NAME:-${DB_NAME:-admin}}}"
+  ADMIN_DB_USER="${ADMIN_DB_USER:-${MIGRATION_DB_USER:-${DB_USER:-}}}"
+  ADMIN_DB_PASSWORD="${ADMIN_DB_PASSWORD:-${MIGRATION_DB_PASSWORD:-${DB_PASSWORD:-}}}"
+fi
+
+require_db_config() {
+  local prefix="$1" variable variable_name
+  for variable in HOST PORT NAME USER PASSWORD; do
+    variable_name="${prefix}_${variable}"
+    [[ -n "${!variable_name:-}" ]] || {
+      echo "${prefix}_$variable is required for --only $ONLY" >&2
+      exit 2
+    }
+  done
+}
+if [[ "$ONLY" == avatars || "$ONLY" == all ]]; then require_db_config APP_DB; fi
+if [[ "$ONLY" == backups || "$ONLY" == all ]]; then require_db_config ADMIN_DB; fi
+
+AWS_BIN="${AWS_BIN:-aws}"
+AWS_CLI_IMAGE="${AWS_CLI_IMAGE:-amazon/aws-cli:2.31.0@sha256:d5f18fde2ba3f9205e75d511ca3e6185c144e55df07e50eee16d940994557b40}"
+S3_CLIENT_MODE=""
+if [[ "$AWS_BIN" == */* && -x "$AWS_BIN" ]] || command -v "$AWS_BIN" >/dev/null 2>&1; then
+  S3_CLIENT_MODE=host
+elif command -v docker >/dev/null 2>&1; then
+  S3_CLIENT_MODE=container
+else
+  echo "AWS CLI '$AWS_BIN' not found and Docker is unavailable" >&2
+  exit 2
+fi
+if [[ "$APPLY" == true && ( -z "$S3_ACCESS_KEY" || -z "$S3_SECRET_KEY" ) ]]; then
+  echo "S3 access and secret keys are required with --apply" >&2
+  exit 2
+fi
+
+TMP_DIR="$(mktemp -d)"
+trap 'rm -r -- "$TMP_DIR"' EXIT
+VERIFIED_FILE="$TMP_DIR/verified"
+PENDING_FILE="$TMP_DIR/pending"
+: >"$VERIFIED_FILE"
+: >"$PENDING_FILE"
+
+TOTAL=0
+UPLOADED=0
+SKIPPED=0
+FAILED=0
+DB_UPDATED=0
+
+aws_call() {
+  local -a common=(--endpoint-url "$S3_ENDPOINT" --region "$S3_REGION")
+  if [[ "$S3_CLIENT_MODE" == host ]]; then
+    AWS_ACCESS_KEY_ID="$S3_ACCESS_KEY" AWS_SECRET_ACCESS_KEY="$S3_SECRET_KEY" \
+      AWS_DEFAULT_REGION="$S3_REGION" "$AWS_BIN" "${common[@]}" "$@"
+  else
+    docker run --rm --network host \
+      -e AWS_ACCESS_KEY_ID="$S3_ACCESS_KEY" -e AWS_SECRET_ACCESS_KEY="$S3_SECRET_KEY" \
+      -e AWS_DEFAULT_REGION="$S3_REGION" "$AWS_CLI_IMAGE" "${common[@]}" "$@"
+  fi
+}
+
+sql_quote() {
+  local value="$1"
+  value="${value//\\/\\\\}"
+  value="${value//\'/\'\'}"
+  printf "'%s'" "$value"
+}
+
+mysql_query() {
+  local prefix="$1" sql="$2" host port name user password container container_port variable_name
+  variable_name="${prefix}_HOST"; host="${!variable_name}"
+  variable_name="${prefix}_PORT"; port="${!variable_name}"
+  variable_name="${prefix}_NAME"; name="${!variable_name}"
+  variable_name="${prefix}_USER"; user="${!variable_name}"
+  variable_name="${prefix}_PASSWORD"; password="${!variable_name}"
+  container="${MIGRATION_MYSQL_CONTAINER:-}"; container_port="${MIGRATION_MYSQL_CONTAINER_PORT:-3306}"
+  if [[ -n "$container" ]]; then
+    MYSQL_PWD="$password" docker exec -e "MYSQL_PWD=$password" "$container" mysql \
+      --protocol=tcp -h 127.0.0.1 -P "$container_port" -u "$user" \
+      --default-character-set=utf8mb4 --batch --raw --skip-column-names "$name" -e "$sql"
+  else
+    MYSQL_PWD="$password" mysql --protocol=tcp -h "$host" -P "$port" -u "$user" \
+      --default-character-set=utf8mb4 --batch --raw --skip-column-names "$name" -e "$sql"
+  fi
+}
+
+safe_source_file() {
+  local directory="$1" name="$2" directory_real source_real
+  [[ -n "$name" && "$name" != /* && "$name" != *\\* && "$name" != *"/"* && "$name" != *".."* ]] || return 1
+  [[ -d "$directory" ]] || return 1
+  directory_real="$(realpath -e -- "$directory")" || return 1
+  source_real="$(realpath -e -- "$directory/$name")" || return 1
+  [[ "$source_real" == "$directory_real"/* && -f "$source_real" ]] || return 1
+  printf '%s\n' "$source_real"
+}
+
+head_object() {
+  local key="$1" output error_file error status size etag
+  error_file="$TMP_DIR/head-error"
+  : >"$error_file"
+  if output="$(aws_call s3api head-object --bucket "$S3_BUCKET" --key "$key" \
+      --query '[ContentLength,ETag]' --output text 2>"$error_file")"; then
+    read -r size etag <<<"$output"
+    size="${size//$'\r'/}"
+    etag="${etag//\"/}"
+    [[ "$size" =~ ^[0-9]+$ ]] || return 2
+    printf '%s\t%s\n' "$size" "$etag"
+    return 0
+  fi
+  status=$?
+  error="$(<"$error_file")"
+  if [[ -z "$error" || "$error" == *404* || "$error" == *NotFound* || "$error" == *NoSuchKey* ]]; then
+    return 1
+  fi
+  echo "S3 head failed for key $key: $error" >&2
+  return 2
+}
+
+local_md5() { md5sum -- "$1" | awk '{print $1}'; }
+local_sha256() { sha256sum -- "$1" | awk '{print $1}'; }
+local_size() { stat -c '%s' -- "$1"; }
+
+etag_matches() {
+  local etag="$1" expected_md5="$2"
+  [[ -z "$etag" || "$etag" == "None" || "$etag" == *-* ]] && return 0
+  [[ "$etag" =~ ^[[:xdigit:]]{32}$ ]] || return 0
+  [[ "${etag,,}" == "${expected_md5,,}" ]]
+}
+
+read_back_matches() {
+  local key="$1" expected_sha="$2" actual_sha
+  actual_sha="$(aws_call s3 cp "s3://$S3_BUCKET/$key" - --only-show-errors | sha256sum | awk '{print $1}')" || return 1
+  [[ "$actual_sha" == "$expected_sha" ]]
+}
+
+verify_object() {
+  local source="$1" key="$2" expected_size="$3" expected_sha="$4" expected_md5="$5" metadata actual_size etag
+  if ! metadata="$(head_object "$key")"; then
+    echo "verification failed: object is not readable after upload ($key)" >&2
+    return 1
+  fi
+  IFS=$'\t' read -r actual_size etag <<<"$metadata"
+  [[ "$actual_size" == "$expected_size" ]] || {
+    echo "verification failed: size mismatch for $key (expected $expected_size, got $actual_size)" >&2
+    return 1
+  }
+  etag_matches "$etag" "$expected_md5" || {
+    echo "verification failed: ETag mismatch for $key" >&2
+    return 1
+  }
+  read_back_matches "$key" "$expected_sha" || {
+    echo "verification failed: streamed checksum mismatch for $key" >&2
+    return 1
+  }
+  return 0
+}
+
+object_needs_upload() {
+  local source="$1" key="$2" expected_size="$3" expected_md5="$4" metadata actual_size etag
+  if metadata="$(head_object "$key")"; then
+    IFS=$'\t' read -r actual_size etag <<<"$metadata"
+    if [[ "$actual_size" == "$expected_size" ]] && etag_matches "$etag" "$expected_md5"; then
+      return 1
+    fi
+    return 0
+  else
+    case "$?" in
+      1) return 0 ;;
+      *) return 2 ;;
+    esac
+  fi
+}
+
+record_pending() { printf '%s\n' "$1" >>"$PENDING_FILE"; }
+record_verified() { printf '%s\n' "$1" >>"$VERIFIED_FILE"; }
+
+run_db_update() {
+  local prefix="$1" sql="$2" output affected
+  if ! output="$(mysql_query "$prefix" "$sql; SELECT ROW_COUNT();")"; then
+    return 2
+  fi
+  affected="${output##*$'\n'}"
+  [[ "$affected" == 1 ]]
+}
+
+process_avatar() {
+  local account_id="$1" legacy_avatar="$2" filename source key size sha md5 mime sql metadata actual_size etag
+  [[ "$legacy_avatar" == /uploads/avatars/* ]] || { FAILED=$((FAILED + 1)); record_pending "avatar account=$account_id reason=not-legacy-path"; return; }
+  filename="${legacy_avatar#/uploads/avatars/}"
+  if ! source="$(safe_source_file "$AVATAR_DIR" "$filename")"; then
+    FAILED=$((FAILED + 1)); record_pending "avatar account=$account_id source=$AVATAR_DIR/$filename reason=source-missing-or-unsafe"
+    echo "PENDING avatar source=$AVATAR_DIR/$filename reason=source-missing-or-unsafe"; return
+  fi
+  [[ "$account_id" =~ ^[A-Za-z0-9._-]+$ ]] || {
+    FAILED=$((FAILED + 1)); record_pending "avatar account=$account_id reason=unsafe-account-id"; echo "PENDING avatar account=$account_id reason=unsafe-account-id"; return
+  }
+  [[ "$filename" =~ ^[A-Za-z0-9._-]+\.[A-Za-z0-9]+$ ]] || {
+    FAILED=$((FAILED + 1)); record_pending "avatar account=$account_id reason=unsafe-object-name"; echo "PENDING avatar account=$account_id reason=unsafe-object-name"; return
+  }
+  key="app/avatars/$account_id/$filename"
+  size="$(local_size "$source")"; sha="$(local_sha256 "$source")"; md5="$(local_md5 "$source")"
+  case "${filename##*.}" in
+    jpg|jpeg|JPG|JPEG) mime=image/jpeg ;;
+    png|PNG) mime=image/png ;;
+    gif|GIF) mime=image/gif ;;
+    webp|WEBP) mime=image/webp ;;
+    *) mime=application/octet-stream ;;
+  esac
+  sql="UPDATE user_profiles SET avatar=$(sql_quote "$key") WHERE account_id=$(sql_quote "$account_id") AND avatar=$(sql_quote "$legacy_avatar")"
+  metadata=""
+  if metadata="$(head_object "$key")"; then
+    IFS=$'\t' read -r actual_size etag <<<"$metadata"
+    if [[ "$actual_size" != "$size" ]] || ! etag_matches "$etag" "$md5"; then
+      echo "PLAN type=avatar source=$source target=$key db_update=$sql action=replace-object"
+    elif [[ "$APPLY" == false ]]; then
+      SKIPPED=$((SKIPPED + 1)); echo "PLAN type=avatar source=$source target=$key db_update=$sql action=skip reason=object-exists-size-and-checksum"; return
+    else
+      echo "PLAN type=avatar source=$source target=$key db_update=$sql action=verify-existing"
+    fi
+  else
+    case "$?" in
+      1) echo "PLAN type=avatar source=$source target=$key db_update=$sql action=upload" ;;
+      *) FAILED=$((FAILED + 1)); record_pending "avatar account=$account_id reason=object-head-failed"; return ;;
+    esac
+  fi
+  if [[ "$APPLY" == false ]]; then
+    SKIPPED=$((SKIPPED + 1)); return
+  fi
+  local object_status=0
+  object_needs_upload "$source" "$key" "$size" "$md5" || object_status=$?
+  if [[ "$object_status" -eq 0 ]]; then
+    if ! aws_call s3api put-object --bucket "$S3_BUCKET" --key "$key" --body "$source" --content-type "$mime" >/dev/null; then
+      FAILED=$((FAILED + 1)); record_pending "avatar account=$account_id target=$key reason=upload-failed"; return
+    fi
+    UPLOADED=$((UPLOADED + 1))
+  elif [[ "$object_status" -eq 2 ]]; then
+    FAILED=$((FAILED + 1)); record_pending "avatar account=$account_id reason=object-head-failed"; return
+  else
+    SKIPPED=$((SKIPPED + 1))
+  fi
+  if ! verify_object "$source" "$key" "$size" "$sha" "$md5"; then
+    FAILED=$((FAILED + 1)); record_pending "avatar account=$account_id target=$key reason=verification-failed"; return
+  fi
+  local update_status=0
+  run_db_update APP_DB "$sql" || update_status=$?
+  if [[ "$update_status" -ne 0 ]]; then
+    if [[ "$update_status" -eq 2 ]]; then FAILED=$((FAILED + 1)); else SKIPPED=$((SKIPPED + 1)); fi
+    record_pending "avatar account=$account_id target=$key reason=db-row-no-longer-legacy-or-update-failed"; return
+  fi
+  DB_UPDATED=$((DB_UPDATED + 1)); record_verified "avatar account=$account_id target=$key"; echo "VERIFIED avatar account=$account_id target=$key"
+}
+
+process_backup() {
+  local backup_id filename legacy_size status created_at source key year month size sha md5 sql metadata actual_size etag
+  backup_id="$1"; filename="$2"; legacy_size="$3"; status="$4"; created_at="$5"
+  [[ "$status" == COMPLETED ]] || { SKIPPED=$((SKIPPED + 1)); record_pending "backup id=$backup_id reason=status-$status"; return; }
+  if ! source="$(safe_source_file "$BACKUP_DIR_ARG" "$filename")"; then
+    FAILED=$((FAILED + 1)); record_pending "backup id=$backup_id source=$BACKUP_DIR_ARG/$filename reason=source-missing-or-unsafe"; echo "PENDING backup id=$backup_id reason=source-missing-or-unsafe"; return
+  fi
+  [[ "$legacy_size" =~ ^[0-9]+$ ]] || { FAILED=$((FAILED + 1)); record_pending "backup id=$backup_id reason=invalid-db-size"; return; }
+  size="$(local_size "$source")"
+  [[ "$size" == "$legacy_size" ]] || { FAILED=$((FAILED + 1)); record_pending "backup id=$backup_id reason=size-does-not-match-db"; echo "PENDING backup id=$backup_id reason=size-does-not-match-db"; return; }
+  if [[ "$created_at" =~ ^([0-9]{4})-([0-9]{2}) ]]; then
+    year="${BASH_REMATCH[1]}"; month="${BASH_REMATCH[2]}"
+  elif [[ "$created_at" =~ ^([0-9]{4})/([0-9]{2}) ]]; then
+    year="${BASH_REMATCH[1]}"; month="${BASH_REMATCH[2]}"
+  else
+    FAILED=$((FAILED + 1)); record_pending "backup id=$backup_id reason=invalid-created-at"; return
+  fi
+  [[ "$backup_id" =~ ^[A-Za-z0-9._-]+$ ]] || { FAILED=$((FAILED + 1)); record_pending "backup id=$backup_id reason=unsafe-id"; return; }
+  key="admin/backups/$year/$month/$backup_id.sql"
+  sha="$(local_sha256 "$source")"; md5="$(local_md5 "$source")"
+  sql="UPDATE backups SET object_key=$(sql_quote "$key"), checksum=$(sql_quote "$sha"), size=$size WHERE id=$(sql_quote "$backup_id") AND filename=$(sql_quote "$filename") AND status='COMPLETED' AND (object_key IS NULL OR object_key='')"
+  if metadata="$(head_object "$key")"; then
+    IFS=$'\t' read -r actual_size etag <<<"$metadata"
+    if [[ "$actual_size" != "$size" ]] || ! etag_matches "$etag" "$md5"; then
+      echo "PLAN type=backup source=$source target=$key db_update=$sql action=replace-object"
+    elif [[ "$APPLY" == false ]]; then
+      SKIPPED=$((SKIPPED + 1)); echo "PLAN type=backup source=$source target=$key db_update=$sql action=skip reason=object-exists-size-and-checksum"; return
+    else
+      echo "PLAN type=backup source=$source target=$key db_update=$sql action=verify-existing"
+    fi
+  else
+    case "$?" in
+      1) echo "PLAN type=backup source=$source target=$key db_update=$sql action=upload" ;;
+      *) FAILED=$((FAILED + 1)); record_pending "backup id=$backup_id reason=object-head-failed"; return ;;
+    esac
+  fi
+  if [[ "$APPLY" == false ]]; then SKIPPED=$((SKIPPED + 1)); return; fi
+  local object_status=0
+  object_needs_upload "$source" "$key" "$size" "$md5" || object_status=$?
+  if [[ "$object_status" -eq 0 ]]; then
+    if ! aws_call s3api put-object --bucket "$S3_BUCKET" --key "$key" --body "$source" --content-type application/sql >/dev/null; then
+      FAILED=$((FAILED + 1)); record_pending "backup id=$backup_id target=$key reason=upload-failed"; return
+    fi
+    UPLOADED=$((UPLOADED + 1))
+  elif [[ "$object_status" -eq 2 ]]; then
+    FAILED=$((FAILED + 1)); record_pending "backup id=$backup_id reason=object-head-failed"; return
+  else
+    SKIPPED=$((SKIPPED + 1))
+  fi
+  if ! verify_object "$source" "$key" "$size" "$sha" "$md5"; then
+    FAILED=$((FAILED + 1)); record_pending "backup id=$backup_id target=$key reason=verification-failed"; return
+  fi
+  local update_status=0
+  run_db_update ADMIN_DB "$sql" || update_status=$?
+  if [[ "$update_status" -ne 0 ]]; then
+    if [[ "$update_status" -eq 2 ]]; then FAILED=$((FAILED + 1)); else SKIPPED=$((SKIPPED + 1)); fi
+    record_pending "backup id=$backup_id target=$key reason=db-row-no-longer-legacy-or-update-failed"; return
+  fi
+  DB_UPDATED=$((DB_UPDATED + 1)); record_verified "backup id=$backup_id target=$key"; echo "VERIFIED backup id=$backup_id target=$key"
+}
+
+if [[ "$ONLY" == avatars || "$ONLY" == all ]]; then
+  avatar_rows="$(mysql_query APP_DB "SELECT account_id, avatar FROM user_profiles WHERE avatar LIKE '/uploads/avatars/%' ORDER BY account_id")"
+  while IFS=$'\t' read -r account_id legacy_avatar; do
+    [[ -n "${account_id:-}" ]] || continue
+    (( LIMIT > 0 && TOTAL >= LIMIT )) && break
+    TOTAL=$((TOTAL + 1)); process_avatar "$account_id" "$legacy_avatar"
+  done <<<"$avatar_rows"
+fi
+if [[ "$ONLY" == backups || "$ONLY" == all ]] && (( LIMIT == 0 || TOTAL < LIMIT )); then
+  backup_object_key_count="$(mysql_query ADMIN_DB "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=$(sql_quote "$ADMIN_DB_NAME") AND TABLE_NAME='backups' AND COLUMN_NAME='object_key'")"
+  if [[ "$backup_object_key_count" != 1 ]]; then
+    echo "Admin backups.object_key is missing; apply the T2 backup object-storage migration before running this tool." >&2
+    exit 2
+  fi
+  backup_rows="$(mysql_query ADMIN_DB "SELECT id, filename, size, status, DATE_FORMAT(created_at, '%Y-%m-%d') FROM backups WHERE status='COMPLETED' AND (object_key IS NULL OR object_key='') ORDER BY created_at, id")"
+  while IFS=$'\t' read -r backup_id filename legacy_size status created_at; do
+    [[ -n "${backup_id:-}" ]] || continue
+    (( LIMIT > 0 && TOTAL >= LIMIT )) && break
+    TOTAL=$((TOTAL + 1)); process_backup "$backup_id" "$filename" "$legacy_size" "$status" "$created_at"
+  done <<<"$backup_rows"
+fi
+
+if [[ -s "$VERIFIED_FILE" ]]; then
+  echo "VERIFIED_MIGRATED_BEGIN"
+  while IFS= read -r line; do echo "VERIFIED_MIGRATED $line"; done <"$VERIFIED_FILE"
+  echo "VERIFIED_MIGRATED_END"
+else
+  echo "VERIFIED_MIGRATED none"
+fi
+if [[ -s "$PENDING_FILE" ]]; then
+  echo "PENDING_BEGIN"
+  while IFS= read -r line; do echo "PENDING $line"; done <"$PENDING_FILE"
+  echo "PENDING_END"
+else
+  echo "PENDING none"
+fi
+echo "MIGRATION_SUMMARY total=$TOTAL uploaded=$UPLOADED skipped=$SKIPPED failed=$FAILED db_updated=$DB_UPDATED apply=$APPLY"
+echo "NOTE Old local files and volumes were not deleted; clean them only after the operator confirms the migration."
+[[ "$FAILED" -eq 0 ]]

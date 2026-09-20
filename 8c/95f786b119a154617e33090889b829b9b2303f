@@ -1,0 +1,20 @@
+packages/design-system/package.json
+  h_77173abe25c3ff 56
+packages/markdown-utils/package.json
+  h_77173abe25c3ff 20,23
+packages/markdown-utils/src/index.ts
+  h_77173abe25c3ff 27,129,152
+pnpm-workspace.yaml
+  h_77173abe25c3ff 18-26
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8c95f786b119a154617e33090889b829b9b2303f",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

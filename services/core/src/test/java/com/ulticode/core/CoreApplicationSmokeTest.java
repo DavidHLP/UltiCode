@@ -17,7 +17,19 @@ import static org.assertj.core.api.Assertions.assertThat;
         "spring.main.web-application-type=servlet",
         // Flyway is on the test classpath for the owner journey IT only;
         // the smoke context never migrates and binds no primary DataSource.
-        "spring.flyway.enabled=false"
+        "spring.flyway.enabled=false",
+        // Core bundles the App/Admin owner services, so the shared object-storage
+        // module is auto-configured here too. Point it at a loopback endpoint and
+        // skip the boot probe so this smoke context stays hermetic; real
+        // deployments (and the owner contexts) still fail closed without the
+        // required APP_STORAGE_S3_* values.
+        "app.storage.s3.endpoint=http://127.0.0.1:9000",
+        "app.storage.s3.region=us-east-1",
+        "app.storage.s3.bucket=ulticode",
+        "app.storage.s3.access-key=test-access-key",
+        "app.storage.s3.secret-key=test-secret-key",
+        "app.storage.s3.tls-enabled=false",
+        "app.storage.startup-probe.enabled=false"
 })
 class CoreApplicationSmokeTest {
     @Autowired

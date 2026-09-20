@@ -1,0 +1,21 @@
+scripts/dev/migrate-object-storage-test.sh
+  s_aa33514364f4e1::t_35ebed6eea1a82 14,23,135-175,243-256
+scripts/dev/migrate-object-storage.sh
+  s_aa33514364f4e1::t_a4efa874c355dd 222-252,254-256
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "62360a0287c28f03bbb0731df22dad6244d43a96",
+  "prompts": {},
+  "sessions": {
+    "s_aa33514364f4e1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "3b397a92-58ca-4252-8232-f281ba8d72e8",
+        "model": "deepseek-v4.1-flash"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

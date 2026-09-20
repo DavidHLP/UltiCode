@@ -139,10 +139,15 @@ RustFS 是开发、测试、生产共同的必需基础设施，仓库不提供�
 - 卷级备份（示例，停止写入后执行）：
 
 ```bash
-# Resolve the project-scoped volume name first (Compose prefixes it with the
-# project name, e.g. ulticode_rustfs_data); never hardcode it.
-RUSTFS_VOLUME="$(docker volume ls --format '{{.Name}}' | grep -E '(^|_)rustfs_data$' | head -1)"
-docker run --rm -v "${RUSTFS_VOLUME}:/data:ro" -v "$PWD:/backup" alpine \
+# Resolve the project-scoped volume by its Compose label and fail when the
+# result is empty or ambiguous (never guess with `head -1`).
+mapfile -t RUSTFS_VOLUMES < <(docker volume ls \
+  --filter label=com.docker.compose.volume=rustfs_data --format '{{.Name}}')
+if [[ ${#RUSTFS_VOLUMES[@]} -ne 1 ]]; then
+  echo "expected exactly one rustfs_data volume, found ${#RUSTFS_VOLUMES[@]}" >&2
+  exit 1
+fi
+docker run --rm -v "${RUSTFS_VOLUMES[0]}:/data:ro" -v "$PWD:/backup" alpine \
   tar czf "/backup/rustfs-data-$(date +%Y%m%d_%H%M%S).tgz" -C /data .
 ```
 

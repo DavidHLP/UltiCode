@@ -1,0 +1,54 @@
+.env.example
+  h_77173abe25c3ff 200-202,204-205,218-219
+.github/actions/host-deploy/action.yml
+  h_77173abe25c3ff 5-7,43-44,244-348,378-379,406,487-553
+.github/workflows/_backend.yml
+  h_77173abe25c3ff 336-340
+docker/docker-compose.prod.yml
+  h_77173abe25c3ff 287-290
+docs/OPERATIONS.md
+  h_77173abe25c3ff 137-138,175-184,187-190
+init-db/README.md
+  h_77173abe25c3ff 95-99
+init-db/migrations/post-owner/V20260922120000__Create_Legacy_Backup_Cutover_State.sql
+  h_77173abe25c3ff 1-18
+scripts/dev/devstack-manifest-test.sh
+  h_77173abe25c3ff 184-187
+scripts/dev/migrate-post-owner.sh
+  h_77173abe25c3ff 16-17,60-64
+scripts/dev/owner-migration-safety-integration-test.sh
+  h_77173abe25c3ff 72-103,157-221
+scripts/runbooks/assert-admin-backup-drained.sh
+  h_77173abe25c3ff 1-77
+scripts/runbooks/owner-migration-manifest.sh
+  h_77173abe25c3ff 366-372
+scripts/runbooks/reconcile-legacy-backups.sh
+  h_77173abe25c3ff 1-166
+scripts/test/graceful-drain-contract.sh
+  h_77173abe25c3ff 74-78,94,99
+scripts/test/observability-contract.sh
+  h_77173abe25c3ff 137-140
+scripts/test/owner-migration-manifest-contract.sh
+  h_77173abe25c3ff 32-53,67-83,90-91,166-167
+services/admin/src/main/java/com/ulticode/admin/config/AdminBackupExecutorConfiguration.java
+  h_77173abe25c3ff 1-43
+services/admin/src/main/java/com/ulticode/modules/backup/service/impl/BackupExecutionServiceImpl.java
+  h_77173abe25c3ff 37
+services/admin/src/main/resources/application.yml
+  h_77173abe25c3ff 77-82
+services/admin/src/test/java/com/ulticode/admin/config/AdminBackupExecutorConfigurationTest.java
+  h_77173abe25c3ff 1-62
+services/docs/GRACEFUL_DRAIN_RUNBOOK.md
+  h_77173abe25c3ff 12-21
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "74f742501c4a5b3ec7ee142579952568ed8a0cf6",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

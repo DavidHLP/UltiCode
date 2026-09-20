@@ -89,6 +89,9 @@ for network in egress-auth egress-admin egress-app egress-submission egress-sear
   assert_network_property "$BASE_COMPOSE" "$network" internal false
 done
 assert_networks "$BASE_COMPOSE" rustfs object-storage
+assert_networks "$BASE_COMPOSE" mysql sql
+assert_networks "$BASE_COMPOSE" redis cache
+assert_networks "$BASE_COMPOSE" nacos sql registry egress-nacos
 assert_networks "$BASE_COMPOSE" meilisearch search
 
 for network in sql cache registry search; do

@@ -59,7 +59,8 @@ elif [[ "$sql" == *"UPDATE backups"* ]]; then
   : >"$FAKE_DB_STATE/backup"
   printf '1\n'
 elif [[ "$sql" == *"information_schema.COLUMNS"* ]]; then
-  printf '1\n'
+  # The tool preflights backups.object_key AND backups.checksum together.
+  printf '2\n'
 elif [[ "$sql" == *"ROW_COUNT"* ]]; then
   printf '1\n'
 elif [[ "$sql" == *"FROM user_profiles"* ]]; then

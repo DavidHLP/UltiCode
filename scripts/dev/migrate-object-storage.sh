@@ -493,9 +493,9 @@ if [[ "$ONLY" == avatars || "$ONLY" == all ]]; then
   done <<<"$avatar_rows"
 fi
 if [[ "$ONLY" == backups || "$ONLY" == all ]] && (( LIMIT == 0 || TOTAL < LIMIT )); then
-  backup_object_key_count="$(mysql_query ADMIN_DB "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=$(sql_quote "$ADMIN_DB_NAME") AND TABLE_NAME='backups' AND COLUMN_NAME='object_key'")"
-  if [[ "$backup_object_key_count" != 1 ]]; then
-    echo "Admin backups.object_key is missing; apply the T2 backup object-storage migration before running this tool." >&2
+  backup_object_key_count="$(mysql_query ADMIN_DB "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=$(sql_quote "$ADMIN_DB_NAME") AND TABLE_NAME='backups' AND COLUMN_NAME IN ('object_key','checksum')")"
+  if [[ "$backup_object_key_count" != 2 ]]; then
+    echo "Admin backups.object_key/backups.checksum are missing; apply the backup object-storage migration before running this tool." >&2
     exit 2
   fi
   backup_rows="$(mysql_query ADMIN_DB "SELECT id, filename, size, status, DATE_FORMAT(created_at, '%Y-%m-%d') FROM backups WHERE status='COMPLETED' AND (object_key IS NULL OR object_key='') ORDER BY created_at, id")"

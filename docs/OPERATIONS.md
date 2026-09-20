@@ -139,8 +139,11 @@ RustFS 是开发、测试、生产共同的必需基础设施，仓库不提供�
 - 卷级备份（示例，停止写入后执行）：
 
 ```bash
-docker run --rm -v ulticode_rustfs_data:/data:ro -v "$PWD:/backup" alpine \
-  tar czf /backup/rustfs-data-$(date +%Y%m%d_%H%M%S).tgz -C /data .
+# Resolve the project-scoped volume name first (Compose prefixes it with the
+# project name, e.g. ulticode_rustfs_data); never hardcode it.
+RUSTFS_VOLUME="$(docker volume ls --format '{{.Name}}' | grep -E '(^|_)rustfs_data$' | head -1)"
+docker run --rm -v "${RUSTFS_VOLUME}:/data:ro" -v "$PWD:/backup" alpine \
+  tar czf "/backup/rustfs-data-$(date +%Y%m%d_%H%M%S).tgz" -C /data .
 ```
 
   恢复时把归档解回同一卷（保持 `10001:10001` 属主），再启动 RustFS 并运行下面的 smoke test 确认对象可读。

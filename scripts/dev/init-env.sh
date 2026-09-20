@@ -249,7 +249,9 @@ RUSTFS_SECRET_KEY="$rustfs_secret_key"
 RUSTFS_BUCKET=ulticode
 RUSTFS_API_PORT=9000
 RUSTFS_CONSOLE_PORT=9001
-APP_STORAGE_S3_ENDPOINT=http://127.0.0.1:9000
+# Keep the host-run backend endpoint aligned with RUSTFS_API_PORT: the loopback
+# endpoint below is the only endpoint StorageProperties accepts without TLS.
+APP_STORAGE_S3_ENDPOINT="http://127.0.0.1:${RUSTFS_API_PORT}"
 APP_STORAGE_S3_REGION=us-east-1
 APP_STORAGE_S3_BUCKET=ulticode
 APP_STORAGE_S3_ACCESS_KEY="$rustfs_access_key"

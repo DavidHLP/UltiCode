@@ -39,7 +39,7 @@ public class DefaultAuthSessionAdapter implements AuthSessionPort {
                 List.of(
                         accessCookie(accessToken, accessConfig().getMaxAge()),
                         refreshCookie(refreshToken, refreshConfig().getMaxAge()),
-                        csrfCookie(csrfToken, refreshConfig().getMaxAge())
+                        csrfCookie(csrfToken, csrfLifetimeSeconds())
                 )
         );
     }
@@ -54,7 +54,7 @@ public class DefaultAuthSessionAdapter implements AuthSessionPort {
                 List.of(
                         accessCookie(accessToken, accessConfig().getMaxAge()),
                         refreshCookie(rotatedRefreshToken, refreshConfig().getMaxAge()),
-                        csrfCookie(csrfToken, refreshConfig().getMaxAge())
+                        csrfCookie(csrfToken, csrfLifetimeSeconds())
                 )
         );
     }
@@ -94,7 +94,15 @@ public class DefaultAuthSessionAdapter implements AuthSessionPort {
      * refresh cookie remains: login and refresh are themselves POST endpoints under
      * the same filter, and {@code /auth/me} needs a valid access token, so the
      * client could never mint a token again.
+     *
+     * <p>The lifetime is the longer of the two credential cookies: a deployment
+     * may configure the access cookie to outlive the refresh cookie, and tying
+     * the CSRF cookie to either one alone would strand the other.</p>
      */
+    private int csrfLifetimeSeconds() {
+        return Math.max(accessConfig().getMaxAge(), refreshConfig().getMaxAge());
+    }
+
     private CookieMutation csrfCookie(String value, int maxAgeSeconds) {
         JwtProperties.AccessTokenCookie config = accessConfig();
         return new CookieMutation(CSRF_TOKEN_COOKIE, value, maxAgeSeconds, false,

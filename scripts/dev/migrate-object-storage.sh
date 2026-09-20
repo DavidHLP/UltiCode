@@ -219,17 +219,41 @@ aws_call() {
       aws_env+=("AWS_CA_BUNDLE=$S3_CA_CERTIFICATE")
     fi
     env "${aws_env[@]}" "$AWS_BIN" "${common[@]}" "$@"
-  elif [[ -n "$S3_CA_CERTIFICATE" ]]; then
-    docker run --rm --network host \
-      -e "AWS_ACCESS_KEY_ID=$S3_ACCESS_KEY" -e "AWS_SECRET_ACCESS_KEY=$S3_SECRET_KEY" \
-      -e "AWS_DEFAULT_REGION=$S3_REGION" -e AWS_CA_BUNDLE=/tmp/ulticode-s3-ca.pem \
-      -v "$S3_CA_CERTIFICATE:/tmp/ulticode-s3-ca.pem:ro" \
-      "$AWS_CLI_IMAGE" "${common[@]}" "$@"
-  else
-    docker run --rm --network host \
-      -e "AWS_ACCESS_KEY_ID=$S3_ACCESS_KEY" -e "AWS_SECRET_ACCESS_KEY=$S3_SECRET_KEY" \
-      -e "AWS_DEFAULT_REGION=$S3_REGION" "$AWS_CLI_IMAGE" "${common[@]}" "$@"
+    return
   fi
+
+  local -a client_args=("$@") docker_mounts=()
+  local source index
+  local avatar_source_dir="" backup_source_dir=""
+  if [[ "$ONLY" == avatars || "$ONLY" == all ]]; then
+    avatar_source_dir="$(realpath -e -- "$AVATAR_DIR" 2>/dev/null || true)"
+    [[ -n "$avatar_source_dir" ]] && docker_mounts+=(-v "$avatar_source_dir:/migration-src/avatar:ro")
+  fi
+  if [[ "$ONLY" == backups || "$ONLY" == all ]]; then
+    backup_source_dir="$(realpath -e -- "$BACKUP_DIR_ARG" 2>/dev/null || true)"
+    [[ -n "$backup_source_dir" ]] && docker_mounts+=(-v "$backup_source_dir:/migration-src/backup:ro")
+  fi
+  for ((index = 0; index < ${#client_args[@]}; index++)); do
+    [[ "${client_args[index]}" == --body && $((index + 1)) -lt ${#client_args[@]} ]] || continue
+    source="${client_args[index + 1]}"
+    if [[ -n "$avatar_source_dir" && "$source" == "$avatar_source_dir"/* ]]; then
+      client_args[index + 1]="/migration-src/avatar/${source#"$avatar_source_dir"/}"
+    elif [[ -n "$backup_source_dir" && "$source" == "$backup_source_dir"/* ]]; then
+      client_args[index + 1]="/migration-src/backup/${source#"$backup_source_dir"/}"
+    fi
+  done
+  local -a docker_env=(
+    -e "AWS_ACCESS_KEY_ID=$S3_ACCESS_KEY"
+    -e "AWS_SECRET_ACCESS_KEY=$S3_SECRET_KEY"
+    -e "AWS_DEFAULT_REGION=$S3_REGION"
+  )
+  if [[ -n "$S3_CA_CERTIFICATE" ]]; then
+    docker_env+=(-e AWS_CA_BUNDLE=/tmp/ulticode-s3-ca.pem)
+    docker_mounts+=(-v "$S3_CA_CERTIFICATE:/tmp/ulticode-s3-ca.pem:ro")
+  fi
+  docker run --rm --network host \
+    "${docker_mounts[@]}" "${docker_env[@]}" "$AWS_CLI_IMAGE" \
+    "${common[@]}" "${client_args[@]}"
 }
 
 sql_quote() {

@@ -1,0 +1,14 @@
+init-db/migrations/admin/V20260920120000__Backup_Object_Storage.sql
+  h_77173abe25c3ff 1-57
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "47b1621e1b71aacb14b7e09bc480c14428b1e722",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

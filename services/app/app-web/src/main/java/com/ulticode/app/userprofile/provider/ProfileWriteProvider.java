@@ -25,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+import org.springframework.transaction.interceptor.TransactionAspectSupport;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.nio.charset.StandardCharsets;
@@ -181,6 +182,7 @@ public class ProfileWriteProvider implements ProfileWriteService {
             return RpcResult.success(result, traceId);
 
         } catch (Exception e) {
+            markTransactionRollbackOnly();
             log.error("Profile update failed for account: {}", command.accountId(), e);
             return RpcResult.failure(AppErrorCode.UNEXPECTED_APP_STATE, traceId);
         }
@@ -261,6 +263,7 @@ public class ProfileWriteProvider implements ProfileWriteService {
             return RpcResult.success(result, traceId);
 
         } catch (Exception e) {
+            markTransactionRollbackOnly();
             log.error("Avatar update failed for account: {}", command.accountId(), e);
             return RpcResult.failure(AppErrorCode.UNEXPECTED_APP_STATE, traceId);
         }
@@ -348,6 +351,12 @@ public class ProfileWriteProvider implements ProfileWriteService {
             });
         } else {
             submitCleanup.run();
+        }
+    }
+
+    private void markTransactionRollbackOnly() {
+        if (TransactionSynchronizationManager.isActualTransactionActive()) {
+            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
         }
     }
 

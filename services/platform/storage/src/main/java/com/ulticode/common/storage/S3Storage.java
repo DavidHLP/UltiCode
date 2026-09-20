@@ -348,6 +348,7 @@ public class S3Storage implements FileStoragePort {
         private final DependencyGuard.Permit permit;
         private final StorageReadiness readiness;
         private boolean closed;
+        private boolean failed;
 
         private GuardedInputStream(InputStream delegate, DependencyGuard.Permit permit, StorageReadiness readiness) {
             super(delegate);
@@ -359,12 +360,15 @@ public class S3Storage implements FileStoragePort {
         public int read() throws IOException {
             try {
                 int result = super.read();
-                readiness.markReady();
+                if (!failed) {
+                    readiness.markReady();
+                }
                 if (result == -1) {
                     close();
                 }
                 return result;
             } catch (IOException exception) {
+                failed = true;
                 readiness.markFailed(exception.getMessage());
                 permit.failure();
                 throw exception;
@@ -375,12 +379,15 @@ public class S3Storage implements FileStoragePort {
         public int read(byte[] bytes, int offset, int length) throws IOException {
             try {
                 int result = super.read(bytes, offset, length);
-                readiness.markReady();
+                if (!failed) {
+                    readiness.markReady();
+                }
                 if (result == -1) {
                     close();
                 }
                 return result;
             } catch (IOException exception) {
+                failed = true;
                 readiness.markFailed(exception.getMessage());
                 permit.failure();
                 throw exception;
@@ -391,9 +398,12 @@ public class S3Storage implements FileStoragePort {
         public long skip(long count) throws IOException {
             try {
                 long result = super.skip(count);
-                readiness.markReady();
+                if (!failed) {
+                    readiness.markReady();
+                }
                 return result;
             } catch (IOException exception) {
+                failed = true;
                 readiness.markFailed(exception.getMessage());
                 permit.failure();
                 throw exception;
@@ -408,9 +418,12 @@ public class S3Storage implements FileStoragePort {
             closed = true;
             try {
                 super.close();
-                readiness.markReady();
-                permit.success();
+                if (!failed) {
+                    readiness.markReady();
+                    permit.success();
+                }
             } catch (IOException exception) {
+                failed = true;
                 readiness.markFailed(exception.getMessage());
                 permit.failure();
                 throw exception;

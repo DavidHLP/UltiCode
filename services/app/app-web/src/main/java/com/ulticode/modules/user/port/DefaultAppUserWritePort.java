@@ -19,11 +19,10 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.Locale;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * App-side adapter for {@link AppUserWritePort}.
@@ -180,22 +179,35 @@ public class DefaultAppUserWritePort implements AppUserWritePort {
     }
 
     /**
-     * Deletes the replaced object only once the surrounding transaction has committed.
+     * Deletes the replaced object only after commit and outside the request thread.
      *
      * <p>Deleting earlier would lose data when a later step (for example the search-document outbox write)
      * rolls the transaction back: the row would still point at the old key, but the object would be gone.
-     * Outside a transaction the delete runs immediately. Failures are logged and never fail the request.
+     * Failures are logged and never fail the request.
      */
     private void deleteAfterCommit(String key) {
+        Runnable cleanup = () -> deleteQuietly(key);
+        Runnable submitCleanup = () -> {
+            try {
+                CompletableFuture.runAsync(cleanup).exceptionally(exception -> {
+                    log.warn("Async cleanup failed for replaced avatar object {}: {}",
+                            key, exception.getMessage());
+                    return null;
+                });
+            } catch (RuntimeException exception) {
+                log.warn("Failed to schedule cleanup for replaced avatar object {}: {}",
+                        key, exception.getMessage());
+            }
+        };
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override
                 public void afterCommit() {
-                    deleteQuietly(key);
+                    submitCleanup.run();
                 }
             });
         } else {
-            deleteQuietly(key);
+            submitCleanup.run();
         }
     }
     private static void validateExtension(String originalFilename) {
@@ -216,46 +228,13 @@ public class DefaultAppUserWritePort implements AppUserWritePort {
     }
 
     private static DetectedImage detectImage(byte[] content) {
-        if (content.length >= 8
-                && (content[0] & 0xff) == 0x89 && content[1] == 0x50 && content[2] == 0x4e
-                && content[3] == 0x47 && content[4] == 0x0d && content[5] == 0x0a
-                && (content[6] & 0xff) == 0x1a && content[7] == 0x0a
-                && decodesImage(content)) {
-            return new DetectedImage("png", "image/png");
-        }
-        if (content.length >= 3 && (content[0] & 0xff) == 0xff && (content[1] & 0xff) == 0xd8
-                && (content[2] & 0xff) == 0xff && decodesImage(content)) {
-            return new DetectedImage("jpg", "image/jpeg");
-        }
-        if (content.length >= 6
-                && (content[0] == 'G' && content[1] == 'I' && content[2] == 'F')
-                && (content[3] == '8') && (content[4] == '7' || content[4] == '9') && content[5] == 'a'
-                && decodesImage(content)) {
-            return new DetectedImage("gif", "image/gif");
-        }
-        if (content.length >= 12
-                && content[0] == 'R' && content[1] == 'I' && content[2] == 'F' && content[3] == 'F'
-                && content[8] == 'W' && content[9] == 'E' && content[10] == 'B' && content[11] == 'P') {
-            return new DetectedImage("webp", "image/webp");
-        }
-        throw new BusinessException(BaseErrorCode.BAD_REQUEST, "File content is not a supported image");
-    }
-
-    private static boolean decodesImage(byte[] content) {
-        assertDimensionsWithinLimit(content);
         try {
-            BufferedImage image = ImageIO.read(new ByteArrayInputStream(content));
-            return image != null;
-        } catch (IOException exception) {
-            return false;
-        }
-    }
-
-    private static void assertDimensionsWithinLimit(byte[] content) {
-        // One shared bound for both avatar paths: reject a raster that would blow the
-        // heap before any decode happens.
-        try {
-            ImageContent.assertWithinPixelBudget(content);
+            ImageContent.Detected detected = ImageContent.detect(content);
+            if (detected == null) {
+                throw new BusinessException(BaseErrorCode.BAD_REQUEST,
+                        "File content is not a supported image");
+            }
+            return new DetectedImage(detected.extension(), detected.contentType());
         } catch (IllegalArgumentException exception) {
             throw new BusinessException(BaseErrorCode.BAD_REQUEST, exception.getMessage());
         }

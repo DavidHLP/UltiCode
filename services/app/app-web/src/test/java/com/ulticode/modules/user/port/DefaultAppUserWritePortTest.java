@@ -29,16 +29,20 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
 import java.util.zip.CRC32;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.timeout;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * Focused tests for {@link DefaultAppUserWritePort} profile write paths.
@@ -198,6 +202,18 @@ class DefaultAppUserWritePortTest {
             assertThatThrownBy(() -> port.uploadAvatar("u-001", file))
                     .isInstanceOf(BusinessException.class);
         }
+
+        @Test
+        @DisplayName("WebP frame headers without compressed payload are rejected")
+        void webpHeaderWithoutFramePayloadIsRejected() {
+            MultipartFile file = new MockMultipartFile(
+                    "file", "header-only.webp", "image/webp", webpHeaderOnly());
+
+            assertThatThrownBy(() -> port.uploadAvatar("u-webp", file))
+                    .isInstanceOf(BusinessException.class);
+
+            verify(fileStorage, never()).put(any(), any(), org.mockito.ArgumentMatchers.anyLong(), any());
+        }
         @Test
         @DisplayName("oversized dimensions are rejected before decoding")
         void oversizedDimensionsAreRejectedBeforeDecoding() throws IOException {
@@ -273,7 +289,39 @@ class DefaultAppUserWritePortTest {
             order.verify(fileStorage).put(any(), any(), org.mockito.ArgumentMatchers.anyLong(),
                     org.mockito.ArgumentMatchers.eq("image/png"));
             order.verify(userProfileMapper).updateById(any(UserProfile.class));
-            order.verify(fileStorage).delete("app/avatars/u-005/old.png");
+            verify(fileStorage, timeout(1000)).delete("app/avatars/u-005/old.png");
+        }
+
+        @Test
+        @DisplayName("replacement cleanup does not block the successful upload")
+        void replacementCleanupDoesNotBlockSuccessfulUpload() throws Exception {
+            String userId = "u-005-async";
+            UserProfile existing = new UserProfile();
+            existing.setAccountId(userId);
+            existing.setAvatar("app/avatars/u-005-async/old.png");
+            when(userProfileMapper.selectById(userId)).thenReturn(existing);
+            when(userProfileMapper.updateById(any(UserProfile.class))).thenReturn(1);
+            when(uuidGenerator.newId()).thenReturn("uuid-2-async");
+            CountDownLatch deleteStarted = new CountDownLatch(1);
+            CountDownLatch allowDelete = new CountDownLatch(1);
+            doAnswer(invocation -> {
+                deleteStarted.countDown();
+                allowDelete.await(1, java.util.concurrent.TimeUnit.SECONDS);
+                return null;
+            }).when(fileStorage).delete("app/avatars/u-005-async/old.png");
+            byte[] png = java.util.Base64.getDecoder().decode(
+                    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+
+            CompletableFuture<String> request = CompletableFuture.supplyAsync(() -> port.uploadAvatar(
+                    userId, new MockMultipartFile("file", "photo.png", "image/png", png)));
+            assertThat(deleteStarted.await(1, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
+            try {
+                assertThat(request.get(500, java.util.concurrent.TimeUnit.MILLISECONDS))
+                        .isEqualTo("/api/users/avatars/u-005-async/uuid-2-async.png");
+            } finally {
+                allowDelete.countDown();
+            }
+            verify(fileStorage, timeout(1000)).delete("app/avatars/u-005-async/old.png");
         }
 
         @Test
@@ -336,12 +384,20 @@ class DefaultAppUserWritePortTest {
                 TransactionSynchronizationManager.getSynchronizations()
                         .forEach(TransactionSynchronization::afterCommit);
 
-                verify(fileStorage).delete("app/avatars/u-008/old.png");
+                verify(fileStorage, timeout(1000)).delete("app/avatars/u-008/old.png");
             } finally {
                 TransactionSynchronizationManager.clearSynchronization();
             }
         }
     }
+    private static byte[] webpHeaderOnly() {
+        return new byte[]{
+                'R', 'I', 'F', 'F', 22, 0, 0, 0, 'W', 'E', 'B', 'P',
+                'V', 'P', '8', ' ', 10, 0, 0, 0,
+                0, 0, 0, (byte) 0x9d, 0x01, 0x2a, 1, 0, 1, 0
+        };
+    }
+
     private static byte[] pngWithDimensions(int width, int height) throws IOException {
         BufferedImage image = new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
         ByteArrayOutputStream output = new ByteArrayOutputStream();

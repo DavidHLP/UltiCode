@@ -245,6 +245,28 @@ class S3StorageTest {
             assertThat(guard.state()).isEqualTo(DependencyGuard.State.OPEN);
             assertThat(readiness.state()).isEqualTo(StorageReadiness.State.FAILED);
         }
+
+        @Test
+        @DisplayName("keeps readiness failed when a failed stream is later closed")
+        void failedReadThenCloseKeepsReadinessFailed() throws Exception {
+            when(streamResponse.statusCode()).thenReturn(200);
+            when(streamResponse.body()).thenReturn(responseBody);
+            when(streamResponse.headers()).thenReturn(responseHeaders);
+            when(responseHeaders.firstValueAsLong("Content-Length"))
+                    .thenReturn(java.util.OptionalLong.of(1));
+            doThrow(new IOException("connection reset")).when(responseBody).read();
+            doReturn(streamResponse).when(httpClient).send(any(HttpRequest.class), any());
+
+            FileStoragePort.StorageStream stream = storage.openStream("avatars/read-then-close.png").orElseThrow();
+
+            assertThatThrownBy(() -> stream.content().read())
+                    .isInstanceOf(IOException.class)
+                    .hasMessage("connection reset");
+            stream.content().close();
+
+            assertThat(readiness.state()).isEqualTo(StorageReadiness.State.FAILED);
+            verify(responseBody).close();
+        }
         @Test
         @DisplayName("marks close and malformed header failures, then recovers on a successful request")
         void streamFailureAndRecoveryUpdateReadiness() throws Exception {

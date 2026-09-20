@@ -36,14 +36,17 @@ async function handleAvatarChange(event: Event) {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
   input.value = ''
-  if (!file || !props.userId) return
+  const targetUserId = props.userId
+  if (!file || !targetUserId) return
 
   try {
     const avatar = await uploadAvatar(file)
-    if (usersStore.currentUser?.id === props.userId) {
+    if (props.userId !== targetUserId) return
+    if (usersStore.currentUser?.id === targetUserId) {
       usersStore.currentUser = { ...usersStore.currentUser, avatar }
     }
-    const refreshed = await loadUser()
+    const refreshed = await loadUser(targetUserId)
+    if (props.userId !== targetUserId) return
     emit('success')
     toast.success(t('users.toast.avatarUploadSuccess'))
     if (!refreshed) {
@@ -53,6 +56,7 @@ async function handleAvatarChange(event: Event) {
       toast.warning(t('users.toast.avatarRefreshWarning'))
     }
   } catch (error) {
+    if (props.userId !== targetUserId) return
     toast.error(
       extractApiErrorMessage(error, t('users.toast.avatarUploadFailed')),
     )
@@ -78,11 +82,11 @@ const progressEmpty = computed(() => {
   return '░'.repeat(24 - filledCount)
 })
 
-async function loadUser() {
-  if (!props.userId) return null
+async function loadUser(userId: string | null = props.userId) {
+  if (!userId) return null
   loading.value = true
   try {
-    return await usersStore.fetchUser(props.userId)
+    return await usersStore.fetchUser(userId)
   } finally {
     loading.value = false
   }

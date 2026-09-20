@@ -120,6 +120,9 @@ public final class ImageContent {
             return null;
         }
         int chunkOffset = 12;
+        long[] extendedDimensions = null;
+        long[] frameDimensions = null;
+        boolean hasFramePayload = false;
         while (chunkOffset < riffEnd) {
             long remaining = riffEnd - chunkOffset;
             if (remaining < 8) {
@@ -134,17 +137,36 @@ public final class ImageContent {
             int dataOffset = chunkOffset + 8;
             int dataLength = (int) chunkLength;
             if (isChunk(content, chunkOffset, 'V', 'P', '8', 'X')) {
-                return webpExtendedDimensions(content, dataOffset, dataLength);
-            }
-            if (isChunk(content, chunkOffset, 'V', 'P', '8', ' ')) {
-                return webpLossyDimensions(content, dataOffset, dataLength);
-            }
-            if (isChunk(content, chunkOffset, 'V', 'P', '8', 'L')) {
-                return webpLosslessDimensions(content, dataOffset, dataLength);
+                extendedDimensions = webpExtendedDimensions(content, dataOffset, dataLength);
+                if (extendedDimensions == null) {
+                    return null;
+                }
+            } else if (isChunk(content, chunkOffset, 'V', 'P', '8', ' ')) {
+                long[] dimensions = webpLossyDimensions(content, dataOffset, dataLength);
+                if (dimensions == null) {
+                    return null;
+                }
+                frameDimensions = dimensions;
+                hasFramePayload = true;
+            } else if (isChunk(content, chunkOffset, 'V', 'P', '8', 'L')) {
+                long[] dimensions = webpLosslessDimensions(content, dataOffset, dataLength);
+                if (dimensions == null) {
+                    return null;
+                }
+                frameDimensions = dimensions;
+                hasFramePayload = true;
+            } else if (isChunk(content, chunkOffset, 'A', 'N', 'M', 'F')) {
+                if (dataLength <= 16) {
+                    return null;
+                }
+                hasFramePayload = true;
             }
             chunkOffset = (int) nextChunkOffset;
         }
-        return null;
+        if (!hasFramePayload) {
+            return null;
+        }
+        return extendedDimensions != null ? extendedDimensions : frameDimensions;
     }
 
     private static long[] webpLossyDimensions(byte[] content, int offset, int length) {
@@ -155,13 +177,20 @@ public final class ImageContent {
                 || (content[offset + 5] & 0xff) != 0x2a) {
             return null;
         }
+        long frameTag = (content[offset] & 0xffL)
+                | ((content[offset + 1] & 0xffL) << 8)
+                | ((content[offset + 2] & 0xffL) << 16);
+        long firstPartitionLength = frameTag >>> 5;
+        if (length <= 10 || firstPartitionLength == 0 || firstPartitionLength > length - 3L) {
+            return null;
+        }
         long width = unsignedShortLittleEndian(content, offset + 6) & 0x3fffL;
         long height = unsignedShortLittleEndian(content, offset + 8) & 0x3fffL;
         return new long[]{width, height};
     }
 
     private static long[] webpLosslessDimensions(byte[] content, int offset, int length) {
-        if (length < 5 || (content[offset] & 0xff) != 0x2f) {
+        if (length <= 5 || (content[offset] & 0xff) != 0x2f) {
             return null;
         }
         long bits = unsignedIntLittleEndian(content, offset + 1);
@@ -175,7 +204,7 @@ public final class ImageContent {
 
     private static long[] webpExtendedDimensions(byte[] content, int offset, int length) {
         if (length < 10
-                || (content[offset] & 0xe0) != 0
+                || (content[offset] & 0xc1) != 0
                 || content[offset + 1] != 0
                 || content[offset + 2] != 0
                 || content[offset + 3] != 0) {

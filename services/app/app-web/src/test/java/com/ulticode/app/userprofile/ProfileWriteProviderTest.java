@@ -2,6 +2,7 @@ package com.ulticode.app.userprofile;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -126,6 +127,28 @@ class ProfileWriteProviderTest {
         assertThat(result.success()).isTrue();
         verify(searchPublisher).publishUser(
                 "user-9", "alice", "Alice", "app/avatars/user-9/new.png", true);
+    }
+
+    @Test
+    void avatarUpdateSearchPublishFailureReturnsFailureAndRequiresRollback() {
+        when(actorAuthorizer.isAuthorized(any())).thenReturn(true);
+        UserProfile existing = new UserProfile();
+        existing.setAccountId("user-10");
+        when(userProfileMapper.selectById("user-10")).thenReturn(existing);
+        when(userProfileMapper.updateById(any(UserProfile.class))).thenReturn(1);
+        when(userDirectoryQueryPort.findById("user-10"))
+                .thenReturn(directoryRow("user-10", "alice", "Alice", "app/avatars/user-10/new.png"));
+        doThrow(new IllegalStateException("search unavailable"))
+                .when(searchPublisher).publishUser(any(), any(), any(), any(), anyBoolean());
+
+        RpcResult<?> result = provider.uploadAvatar(new UploadAvatarCommand(
+                "avatar-command", IdMetadata.mint(), adminActor(), TraceMetadata.EMPTY,
+                "user-10", "app/avatars/user-10/new.png"));
+
+        assertThat(result.success()).isFalse();
+        assertThat(result.error().code()).isEqualTo(AppErrorCode.UNEXPECTED_APP_STATE.code());
+        verify(searchPublisher).publishUser(
+                "user-10", "alice", "Alice", "app/avatars/user-10/new.png", true);
     }
 
     @Test

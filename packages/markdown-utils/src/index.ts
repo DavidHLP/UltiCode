@@ -91,10 +91,27 @@ const PURIFY_CONFIG: DOMPurifyConfig = {
     'title',
     'class',
     'id',
+    // KaTeX carries every glyph height, depth and horizontal offset as an
+    // inline `style` on the spans it emits (`style="height:0.8141em"`,
+    // `style="top:-3.063em"`). Dropping the attribute removes the entire
+    // geometry of a formula: numerators, superscripts and matrix rows stack
+    // onto one line while the surrounding text still renders, so the page
+    // looks plausible and the math is silently wrong.
+    //
+    // DOMPurify keeps an allowed `style` verbatim - it does not parse the CSS -
+    // so the declarations are narrowed by SAFE_STYLE_PROPERTIES below.
+    'style',
     'data-code',
     'data-index',
     'aria-label',
     'viewBox',
+    // KaTeX draws radicals, stretchy arrows, braces and wide hats as an SVG
+    // whose 400000-unit-wide viewBox has to be sliced to a ~1em box:
+    // `<svg ... viewBox="0 0 400000 1944" preserveAspectRatio="xMinYMin slice">`
+    // (`\sqrt`, `\xrightarrow`, `\overbrace`, `\widehat`). Without the
+    // attribute the SVG falls back to `xMidYMid meet` and scales the whole
+    // 400000-unit box down to nothing, so the glyph silently disappears.
+    'preserveAspectRatio',
     'width',
     'height',
     'fill',
@@ -118,6 +135,63 @@ const PURIFY_CONFIG: DOMPurifyConfig = {
   FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed', 'form', 'input'],
   FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onblur', 'onmouseout'],
 }
+
+/**
+ * CSS declarations KaTeX emits, and the only shape a value may take.
+ *
+ * <p>DOMPurify does not sanitize the contents of an allowed `style` attribute:
+ * `background:url(javascript:...)`, `position:fixed` overlays, `expression()`
+ * and `-moz-binding` all survive it. Since `sanitizeHtml` is exported, the
+ * narrowed grammar is enforced here rather than left to the caller. KaTeX
+ * writes only bare length values (em/ex/pt/px/%), so anything else is dropped.
+ */
+const SAFE_STYLE_PROPERTIES = new Set([
+  'border-bottom-width',
+  'font-size',
+  'height',
+  'left',
+  'margin',
+  'margin-bottom',
+  'margin-left',
+  'margin-right',
+  'margin-top',
+  'min-width',
+  'padding',
+  'padding-left',
+  'padding-right',
+  'top',
+  'vertical-align',
+  'width',
+])
+
+const SAFE_STYLE_DECLARATION = /^([a-z-]+):\s*(-?\d*\.?\d+(?:em|ex|pt|px|%)?)$/
+
+/** Keep only well-formed declarations of an allowlisted length property. */
+function narrowStyle(value: string): string {
+  return value
+    .split(';')
+    .map((declaration) => declaration.trim())
+    .map((declaration) => {
+      const match = declaration.match(SAFE_STYLE_DECLARATION)
+      if (!match) return null
+      const [, property, size] = match
+      return property && size && SAFE_STYLE_PROPERTIES.has(property)
+        ? `${property}:${size}`
+        : null
+    })
+    .filter((declaration): declaration is string => declaration !== null)
+    .join(';')
+}
+
+DOMPurify.addHook('uponSanitizeAttribute', (_node, data) => {
+  if (data.attrName !== 'style') return
+  const narrowed = narrowStyle(data.attrValue || '')
+  if (narrowed) {
+    data.attrValue = narrowed
+  } else {
+    data.keepAttr = false
+  }
+})
 
 /** Sanitize HTML — public re-export for downstream callers that need it. */
 export function sanitizeHtml(html: string): string {

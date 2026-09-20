@@ -363,8 +363,9 @@ assert_contains "$volume_output" "Using legacy avatar volume source: $AVATAR_VOL
 assert_contains "$volume_output" "Using legacy backup volume source: $BACKUP_VOLUME_DIR"
 assert_contains "$volume_output" "MIGRATION_SUMMARY total=2 uploaded=2"
 volume_docker_log="$(<"$DOCKER_LOG")"
-assert_contains "$volume_docker_log" "volume inspect legacy-app-upload"
-assert_contains "$volume_docker_log" "volume inspect legacy-backup-data"
+assert_contains "$volume_docker_log" "volume inspect --format"
+assert_contains "$volume_docker_log" "legacy-app-upload"
+assert_contains "$volume_docker_log" "legacy-backup-data"
 unset AVATAR_UPLOAD_VOL BACKUP_VOLUME
 
 # Compose labels find project-scoped volumes even when the checkout name differs.
@@ -378,8 +379,9 @@ assert_contains "$labeled_volume_output" "Using legacy avatar volume source: $AV
 assert_contains "$labeled_volume_output" "Using legacy backup volume source: $BACKUP_VOLUME_DIR"
 assert_contains "$labeled_volume_output" "MIGRATION_SUMMARY total=2 uploaded=2"
 labeled_volume_docker_log="$(<"$DOCKER_LOG")"
-assert_contains "$labeled_volume_docker_log" "volume inspect legacy-prod_app_uploads"
-assert_contains "$labeled_volume_docker_log" "volume inspect legacy-prod_backup_data"
+assert_contains "$labeled_volume_docker_log" "volume inspect --format"
+assert_contains "$labeled_volume_docker_log" "legacy-prod_app_uploads"
+assert_contains "$labeled_volume_docker_log" "legacy-prod_backup_data"
 unset COMPOSE_PROJECT_NAME FAKE_USE_LABELS FAKE_LABELLED_AVATAR_VOLUME_NAME FAKE_LABELLED_BACKUP_VOLUME_NAME
 
 # Docker fallback mounts both legacy directories and translates body paths.

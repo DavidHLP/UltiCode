@@ -195,4 +195,31 @@ describe('UserDetailDrawer avatar upload', () => {
     expect(mocks.store.currentUser.id).toBe('user-b')
     wrapper.unmount()
   })
+
+  it('keeps the newest refresh when same-user requests resolve out of order', async () => {
+    const older = deferred<DrawerTestUser>()
+    const newer = deferred<DrawerTestUser>()
+    let request = 0
+    mocks.store.fetchUser.mockImplementation(async () => {
+      const user = await (request++ === 0 ? older.promise : newer.promise)
+      return user
+    })
+    const wrapper = mountDrawer()
+
+    await wrapper.setProps({ open: false })
+    await wrapper.setProps({ open: true })
+    await wrapper.setProps({ open: false })
+    await wrapper.setProps({ open: true })
+    await flushPromises()
+    expect(mocks.store.fetchUser).toHaveBeenCalledTimes(2)
+
+    newer.resolve({ ...makeUser('user-a'), name: 'Newer' })
+    await flushPromises()
+    expect(mocks.store.currentUser.name).toBe('Newer')
+
+    older.resolve({ ...makeUser('user-a'), name: 'Older' })
+    await flushPromises()
+    expect(mocks.store.currentUser.name).toBe('Newer')
+    wrapper.unmount()
+  })
 })

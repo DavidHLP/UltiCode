@@ -26,6 +26,7 @@ const emit = defineEmits<{
 const usersStore = useUsersStore()
 const loading = ref(false)
 const avatarInput = ref<HTMLInputElement | null>(null)
+let loadGeneration = 0
 const {
   uploading: avatarUploading,
   progress: avatarProgress,
@@ -93,8 +94,9 @@ async function loadUser(userId: string | null = props.userId) {
 }
 
 async function loadSelectedUser(userId: string) {
+  const generation = ++loadGeneration
   const user = await loadUser(userId)
-  if (props.userId !== userId) return null
+  if (props.userId !== userId || generation !== loadGeneration) return null
   if (user) {
     usersStore.currentUser = user
   }

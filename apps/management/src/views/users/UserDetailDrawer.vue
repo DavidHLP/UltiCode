@@ -1,13 +1,16 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { toast } from 'vue-sonner'
 import { useUsersStore } from '@/stores/admin/users'
+import { useAvatarUpload } from '@/composables/useAvatarUpload'
+import { extractApiErrorMessage } from '@/utils/error'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { IconMail, IconTrophy, IconFlame } from '@tabler/icons-vue'
+import { Button } from '@/components/ui/button'
+import { IconMail, IconTrophy, IconFlame, IconUpload, IconLoader2 } from '@tabler/icons-vue'
 import BaseDetailDrawer from '@/components/shared/BaseDetailDrawer.vue'
 import { DataBlock, SemanticBadge, USER_ROLE_COLOR_MAP } from '@/components/ui/terminal'
 import { formatDateByLocale, formatDateTimeByLocale } from '@/i18n/utils'
-
 const { t } = useI18n()
 
 const props = defineProps<{
@@ -22,6 +25,33 @@ const emit = defineEmits<{
 
 const usersStore = useUsersStore()
 const loading = ref(false)
+const avatarInput = ref<HTMLInputElement | null>(null)
+const {
+  uploading: avatarUploading,
+  progress: avatarProgress,
+  upload: uploadAvatar,
+} = useAvatarUpload(computed(() => props.userId))
+
+async function handleAvatarChange(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = ''
+  if (!file || !props.userId) return
+
+  try {
+    const avatar = await uploadAvatar(file)
+    if (usersStore.currentUser?.id === props.userId) {
+      usersStore.currentUser = { ...usersStore.currentUser, avatar }
+    }
+    await loadUser()
+    emit('success')
+    toast.success(t('users.toast.avatarUploadSuccess'))
+  } catch (error) {
+    toast.error(
+      extractApiErrorMessage(error, t('users.toast.avatarUploadFailed')),
+    )
+  }
+}
 
 // Computed stats for progress display
 const acceptanceRate = computed(() => {
@@ -179,6 +209,36 @@ watch(
                 />
               </div>
             </div>
+          </div>
+          <div class="mt-3 flex flex-wrap items-center gap-2">
+            <input
+              ref="avatarInput"
+              type="file"
+              accept=".jpg,.jpeg,.png,.gif,.webp"
+              class="sr-only"
+              :disabled="avatarUploading"
+              :aria-label="t('users.actions.changeAvatar')"
+              @change="handleAvatarChange"
+            />
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              :disabled="avatarUploading"
+              @click="avatarInput?.click()"
+            >
+              <IconLoader2 v-if="avatarUploading" class="mr-1 h-4 w-4 animate-spin" />
+              <IconUpload v-else class="mr-1 h-4 w-4" />
+              {{ t('users.actions.changeAvatar') }}
+            </Button>
+            <span
+              v-if="avatarUploading"
+              role="status"
+              aria-live="polite"
+              class="font-data text-xs text-[var(--foreground-muted)]"
+            >
+              {{ t('users.actions.avatarUploading', { progress: avatarProgress }) }}
+            </span>
           </div>
         </div>
       </div>

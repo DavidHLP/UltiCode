@@ -12,6 +12,15 @@ describe("useAvatar", () => {
     expect(normalizedAvatar.value).toBe("/uploads/avatars/admin.png");
   });
 
+  it("preserves an object-storage avatar display URL", () => {
+    const { normalizedAvatar } = useAvatar(
+      ref("admin"),
+      ref("/api/users/avatars/admin/avatar.webp"),
+    );
+
+    expect(normalizedAvatar.value).toBe("/api/users/avatars/admin/avatar.webp");
+  });
+
   it("generates a deterministic local image when no avatar is stored", () => {
     const first = useAvatar(computed(() => "admin"), computed(() => ""));
     const second = useAvatar(computed(() => "admin"), computed(() => ""));

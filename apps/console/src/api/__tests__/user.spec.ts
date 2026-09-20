@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { apiGet, apiPatch } from "@/utils/request";
+import { apiGet, apiPatch, apiUpload } from "@/utils/request";
 import {
   fetchUserProfile,
   updateMyProfile,
+  uploadMyAvatar,
   fetchUserStats,
   fetchUserSkills,
   fetchProfileByUsername,
@@ -13,6 +14,7 @@ import type { UserStats, UserSkills } from "@/types/userStats";
 vi.mock("@/utils/request", () => ({
   apiGet: vi.fn(),
   apiPatch: vi.fn(),
+  apiUpload: vi.fn(),
 }));
 
 const mockProfile: UserProfile = {
@@ -128,6 +130,20 @@ describe("user api", () => {
       };
       await updateMyProfile(update);
       expect(apiPatch).toHaveBeenCalledWith("/users/me", update);
+    });
+  });
+
+  describe("uploadMyAvatar", () => {
+    it("posts the file to the current-user avatar endpoint", async () => {
+      const file = new File(["avatar"], "avatar.png", { type: "image/png" });
+      vi.mocked(apiUpload).mockResolvedValue(
+        "/api/users/avatars/user-123/avatar.webp",
+      );
+
+      await expect(uploadMyAvatar(file)).resolves.toBe(
+        "/api/users/avatars/user-123/avatar.webp",
+      );
+      expect(apiUpload).toHaveBeenCalledWith("/users/me/avatar", file, undefined);
     });
   });
 

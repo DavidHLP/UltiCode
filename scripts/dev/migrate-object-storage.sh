@@ -128,6 +128,8 @@ volume_mountpoint() {
       realpath -e -- "$mountpoint"
       return 0
     fi
+    echo "Explicit Docker volume '$logical' was not found; pass an explicit source directory." >&2
+    return 1
   fi
 
   if [[ -n "${COMPOSE_PROJECT_NAME:-}" ]]; then
@@ -150,9 +152,6 @@ volume_mountpoint() {
   local -a candidates=()
   if ((${#labeled_volumes[@]} == 1)); then
     candidates+=("${labeled_volumes[0]}")
-  elif [[ "$explicit" == true ]]; then
-    echo "Explicit Docker volume '$logical' was not found; pass an explicit source directory." >&2
-    return 1
   else
     echo "No uniquely identified Docker Compose volume matches legacy volume '$logical'; pass the actual volume name or an explicit source directory." >&2
     return 1

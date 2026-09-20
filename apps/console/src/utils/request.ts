@@ -43,6 +43,7 @@ export const {
   apiPatch,
   apiPut,
   apiDelete,
+  apiUpload,
   createAbortController,
 } = createHttpClient({
   csrfManager,

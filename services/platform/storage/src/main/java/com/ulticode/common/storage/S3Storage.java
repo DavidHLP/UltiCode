@@ -19,8 +19,10 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -33,11 +35,7 @@ public class S3Storage implements FileStoragePort {
     private static final Duration OPEN_DURATION = Duration.ofSeconds(30);
     private static final int READ_ATTEMPTS = 2;
     private static final String EMPTY_HASH = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
-    private static final ExecutorService STREAM_READ_EXECUTOR = Executors.newCachedThreadPool(runnable -> {
-        Thread thread = new Thread(runnable, "s3-stream-read");
-        thread.setDaemon(true);
-        return thread;
-    });
+    private final ExecutorService streamReadExecutor;
 
     private final StorageProperties properties;
     private final HttpClient httpClient;
@@ -60,6 +58,23 @@ public class S3Storage implements FileStoragePort {
         return builder.build();
     }
 
+    private static ExecutorService createStreamReadExecutor(int maxConcurrentRequests) {
+        ThreadPoolExecutor executor = new ThreadPoolExecutor(
+                0,
+                maxConcurrentRequests,
+                60,
+                TimeUnit.SECONDS,
+                new SynchronousQueue<>(),
+                runnable -> {
+                    Thread thread = new Thread(runnable, "s3-stream-read");
+                    thread.setDaemon(true);
+                    return thread;
+                },
+                new ThreadPoolExecutor.AbortPolicy());
+        executor.allowCoreThreadTimeOut(true);
+        return executor;
+    }
+
     S3Storage(StorageProperties properties, HttpClient httpClient) {
         this(properties, httpClient, new StorageReadiness());
     }
@@ -79,6 +94,7 @@ public class S3Storage implements FileStoragePort {
         this.httpClient = httpClient;
         this.dependencyGuard = dependencyGuard;
         this.readiness = readiness;
+        this.streamReadExecutor = createStreamReadExecutor(properties.getS3().getMaxConcurrentRequests());
     }
 
     @Override
@@ -182,7 +198,8 @@ public class S3Storage implements FileStoragePort {
                     readiness.markReady();
                     return Optional.of(new StorageStream(
                             new GuardedInputStream(
-                                    new TimeoutInputStream(body, properties.getS3().getRequestTimeoutMs()),
+                                    new TimeoutInputStream(
+                                            body, properties.getS3().getRequestTimeoutMs(), streamReadExecutor),
                                     permit, readiness),
                             contentLength, contentType));
                 } else {
@@ -365,10 +382,12 @@ public class S3Storage implements FileStoragePort {
     private static final class TimeoutInputStream extends FilterInputStream {
 
         private final int timeoutMs;
+        private final ExecutorService executor;
 
-        private TimeoutInputStream(InputStream delegate, int timeoutMs) {
+        private TimeoutInputStream(InputStream delegate, int timeoutMs, ExecutorService executor) {
             super(delegate);
             this.timeoutMs = timeoutMs;
+            this.executor = executor;
         }
 
         @Override
@@ -387,7 +406,13 @@ public class S3Storage implements FileStoragePort {
         }
 
         private <T> T withTimeout(ReadOperation<T> operation) throws IOException {
-            Future<T> future = STREAM_READ_EXECUTOR.submit(operation::execute);
+            Future<T> future;
+            try {
+                future = executor.submit(operation::execute);
+            } catch (RejectedExecutionException exception) {
+                closeDelegate();
+                throw new IOException("Object-store stream read capacity exhausted", exception);
+            }
             try {
                 return future.get(timeoutMs, TimeUnit.MILLISECONDS);
             } catch (TimeoutException exception) {

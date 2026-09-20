@@ -13,6 +13,7 @@ AWS_LOG="$TMP_DIR/aws.log"
 AWS_ENV_LOG="$TMP_DIR/aws-env.log"
 DOCKER_LOG="$TMP_DIR/docker.log"
 MYSQL_LOG="$TMP_DIR/mysql.log"
+MYSQL_DB_LOG="$TMP_DIR/mysql-db.log"
 DB_STATE="$TMP_DIR/db-state"
 ENV_FILE="$TMP_DIR/.env"
 CA_FILE="$TMP_DIR/rustfs-ca.pem"
@@ -20,6 +21,7 @@ mkdir -p "$BIN" "$AVATARS" "$BACKUPS" "$OBJECTS" "$DB_STATE"
 : >"$AWS_LOG"
 : >"$AWS_ENV_LOG"
 : >"$MYSQL_LOG"
+: >"$MYSQL_DB_LOG"
 : >"$DOCKER_LOG"
 printf '%s\n' '-----BEGIN CERTIFICATE-----' 'fake' '-----END CERTIFICATE-----' >"$CA_FILE"
 printf 'avatar-data' >"$AVATARS/avatar.png"
@@ -49,10 +51,16 @@ cat >"$BIN/mysql" <<'FAKE_MYSQL'
 #!/usr/bin/env bash
 set -euo pipefail
 sql=""
+database=""
 while (($#)); do
-  if [[ "$1" == "-e" ]]; then sql="${2:-}"; break; fi
-  shift
+  case "$1" in
+    -e) sql="${2:-}"; shift 2 ;;
+    -h|-P|-u) shift 2 ;;
+    --protocol=tcp|--default-character-set=*|--batch|--raw|--skip-column-names) shift ;;
+    *) database="${database:-$1}"; shift ;;
+  esac
 done
+printf 'DATABASE=%s\n' "$database" >>"$FAKE_MYSQL_DB_LOG"
 printf '%s\n' "$sql" >>"$FAKE_MYSQL_LOG"
 if [[ "$sql" == *"UPDATE user_profiles"* ]]; then
   : >"$FAKE_DB_STATE/avatar"
@@ -180,10 +188,10 @@ FAKE_DOCKER
 chmod +x "$BIN/docker"
 
 export FAKE_DOCKER_LOG="$DOCKER_LOG" FAKE_AWS_BIN="$BIN/aws"
-
 export PATH="$BIN:$PATH"
 export ENV_FILE AWS_BIN="$BIN/aws"
-export FAKE_AWS_LOG="$AWS_LOG" FAKE_AWS_ENV_LOG="$AWS_ENV_LOG" FAKE_MYSQL_LOG="$MYSQL_LOG"
+export FAKE_AWS_LOG="$AWS_LOG" FAKE_AWS_ENV_LOG="$AWS_ENV_LOG"
+export FAKE_MYSQL_LOG="$MYSQL_LOG" FAKE_MYSQL_DB_LOG="$MYSQL_DB_LOG"
 export FAKE_OBJECTS="$OBJECTS" FAKE_DB_STATE="$DB_STATE" FAKE_BACKUP_SIZE="$BACKUP_SIZE"
 unset AWS_CA_BUNDLE APP_STORAGE_S3_CA_CERTIFICATE RUSTFS_TLS_CA_CERT
 
@@ -199,6 +207,34 @@ run_migration() {
   "$ROOT_DIR/scripts/dev/migrate-object-storage.sh" \
     --legacy-avatar-dir "$AVATARS" --legacy-backup-dir "$BACKUPS" "$@"
 }
+
+FALLBACK_ENV_FILE="$TMP_DIR/fallback.env"
+cat >"$FALLBACK_ENV_FILE" <<EOF_FALLBACK
+APP_STORAGE_S3_ENDPOINT=http://127.0.0.1:9000
+APP_STORAGE_S3_REGION=us-east-1
+APP_STORAGE_S3_TLS_ENABLED=false
+RUSTFS_ACCESS_KEY=test-access
+RUSTFS_SECRET_KEY=test-secret
+RUSTFS_BUCKET=ulticode
+MIGRATION_DB_HOST=127.0.0.1
+MIGRATION_DB_PORT=3306
+MIGRATION_DB_NAME=ulticode
+MIGRATION_DB_USER=test
+MIGRATION_DB_PASSWORD=test
+EOF_FALLBACK
+ORIGINAL_ENV_FILE="$ENV_FILE"
+ENV_FILE="$FALLBACK_ENV_FILE"
+: >"$MYSQL_DB_LOG"
+fallback_avatar_output="$(run_migration --only avatars 2>&1)"
+assert_contains "$fallback_avatar_output" "MIGRATION_SUMMARY total=1"
+assert_contains "$(<"$MYSQL_DB_LOG")" "DATABASE=app"
+assert_not_contains "$(<"$MYSQL_DB_LOG")" "DATABASE=ulticode"
+: >"$MYSQL_DB_LOG"
+fallback_backup_output="$(run_migration --only backups 2>&1)"
+assert_contains "$fallback_backup_output" "MIGRATION_SUMMARY total=1"
+assert_contains "$(<"$MYSQL_DB_LOG")" "DATABASE=admin"
+assert_not_contains "$(<"$MYSQL_DB_LOG")" "DATABASE=ulticode"
+ENV_FILE="$ORIGINAL_ENV_FILE"
 
 # Dry-run must read the plan but never put an object or update a row.
 : >"$AWS_LOG"; : >"$MYSQL_LOG"; rm -f -- "$DB_STATE/avatar" "$DB_STATE/backup" "$OBJECTS"/*

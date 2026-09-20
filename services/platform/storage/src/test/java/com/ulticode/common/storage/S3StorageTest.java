@@ -29,7 +29,7 @@ import java.time.ZonedDateTime;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
-
+import java.util.concurrent.TimeUnit;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
@@ -270,6 +270,73 @@ class S3StorageTest {
 
             assertThat(guard.inFlight()).isZero();
             assertThat(readiness.state()).isEqualTo(StorageReadiness.State.FAILED);
+        }
+
+        @Test
+        @DisplayName("fails fast when timed-out stream readers exhaust the bounded pool")
+        void timedOutStreamReadersAreBounded() throws Exception {
+            properties.getS3().setRequestTimeoutMs(100);
+            properties.getS3().setMaxConcurrentRequests(1);
+            UnstoppableInputStream stalledBody = new UnstoppableInputStream();
+            when(streamResponse.statusCode()).thenReturn(200);
+            when(streamResponse.body()).thenReturn(stalledBody);
+            when(streamResponse.headers()).thenReturn(responseHeaders);
+            when(responseHeaders.firstValueAsLong("Content-Length"))
+                    .thenReturn(java.util.OptionalLong.of(1));
+            doReturn(streamResponse).when(httpClient).send(any(HttpRequest.class), any());
+            DependencyGuard guard = new DependencyGuard(1, 10, Duration.ofSeconds(30));
+            S3Storage guarded = new S3Storage(properties, httpClient, guard, readiness);
+
+            FileStoragePort.StorageStream first = guarded.openStream("avatars/first.png").orElseThrow();
+            assertThatThrownBy(() -> first.content().read())
+                    .isInstanceOf(IOException.class)
+                    .hasMessageContaining("stream read timed out");
+
+            FileStoragePort.StorageStream second = guarded.openStream("avatars/second.png").orElseThrow();
+            assertThatThrownBy(() -> second.content().read())
+                    .isInstanceOf(IOException.class)
+                    .hasMessageContaining("capacity exhausted");
+
+            stalledBody.release();
+            assertThat(stalledBody.awaitFinished()).isTrue();
+            first.content().close();
+            second.content().close();
+            assertThat(guard.inFlight()).isZero();
+        }
+
+        private static final class UnstoppableInputStream extends InputStream {
+
+            private final CountDownLatch release = new CountDownLatch(1);
+            private final CountDownLatch finished = new CountDownLatch(1);
+
+            @Override
+            public int read() {
+                try {
+                    while (release.getCount() != 0) {
+                        try {
+                            release.await();
+                        } catch (InterruptedException ignored) {
+                            // Simulate a stream that ignores cancellation until it is released.
+                        }
+                    }
+                    return 1;
+                } finally {
+                    finished.countDown();
+                }
+            }
+
+            @Override
+            public void close() {
+                // Deliberately does not unblock read(); the executor must stay bounded.
+            }
+
+            private void release() {
+                release.countDown();
+            }
+
+            private boolean awaitFinished() throws InterruptedException {
+                return finished.await(1, TimeUnit.SECONDS);
+            }
         }
 
         private static final class BlockingInputStream extends InputStream {

@@ -1,6 +1,7 @@
 package com.ulticode.modules.backup.service;
 
 import com.ulticode.modules.backup.entity.Backup;
+import com.ulticode.common.storage.FileStoragePort;
 import com.ulticode.modules.backup.entity.enums.BackupStatus;
 import com.ulticode.modules.backup.entity.enums.BackupType;
 import com.ulticode.modules.backup.mapper.BackupMapper;
@@ -20,6 +21,7 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.util.concurrent.atomic.AtomicReference;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
@@ -69,6 +71,9 @@ class BackupExecutionServiceTest {
     @Mock
     private BackupProcessPort backupProcessPort;
 
+    @Mock
+    private FileStoragePort fileStorage;
+
     @InjectMocks
     private BackupExecutionServiceImpl executionService;
 
@@ -77,7 +82,7 @@ class BackupExecutionServiceTest {
 
     @BeforeEach
     void setUp() {
-        ReflectionTestUtils.setField(executionService, "backupDir", tempDir.toString());
+        ReflectionTestUtils.setField(executionService, "backupTempDir", tempDir.toString());
         lenient().when(clock.instant()).thenReturn(Instant.parse("2026-01-01T00:00:00Z"));
         lenient().when(clock.getZone()).thenReturn(ZoneOffset.UTC);
     }
@@ -98,13 +103,13 @@ class BackupExecutionServiceTest {
     class LifecycleTransitions {
 
         @Test
-        @DisplayName("PENDING -> IN_PROGRESS -> COMPLETED when dump succeeds and file exists")
+        @DisplayName("PENDING -> IN_PROGRESS -> COMPLETED after object upload")
         void shouldCompleteWhenDumpSucceeds() throws Exception {
             Backup backup = pendingBackup();
             when(backupMapper.selectById(BACKUP_ID)).thenReturn(backup);
-            Path expectedFile = tempDir.resolve("backup_full_test.sql");
-            when(backupProcessPort.dump(eq(expectedFile))).thenAnswer(inv -> {
-                Files.writeString(expectedFile, "-- fake dump");
+            when(backupProcessPort.dump(any(Path.class))).thenAnswer(invocation -> {
+                Path dump = invocation.getArgument(0);
+                Files.writeString(dump, "-- fake dump");
                 return true;
             });
 
@@ -114,12 +119,38 @@ class BackupExecutionServiceTest {
             verify(backupMapper, atLeast(2)).updateById(captor.capture());
             Backup finalState = captor.getAllValues().get(captor.getAllValues().size() - 1);
 
-            assertEquals(BackupStatus.COMPLETED, finalState.getStatus(),
-                    "backup must reach COMPLETED when dump succeeds");
-            assertNotNull(finalState.getCompletedAt(), "completedAt must be recorded");
-            assertTrue(finalState.getSize() > 0, "size must be set from the dumped file");
-            assertNotNull(finalState.getMetadata(), "completion metadata must be recorded");
+            assertEquals(BackupStatus.COMPLETED, finalState.getStatus());
+            assertNotNull(finalState.getCompletedAt());
+            assertTrue(finalState.getSize() > 0);
+            assertNotNull(finalState.getChecksum());
+            assertEquals(64, finalState.getChecksum().length());
+            assertEquals("admin/backups/2026/01/" + BACKUP_ID + ".sql", finalState.getObjectKey());
+            assertNotNull(finalState.getMetadata());
             assertEquals("FULL", finalState.getMetadata().get("backupType"));
+            verify(fileStorage).putFile(eq(finalState.getObjectKey()), any(Path.class), eq("application/sql"));
+        }
+
+        @Test
+        @DisplayName("upload failure marks backup FAILED and removes temp file")
+        void shouldFailWhenObjectUploadFailsAndCleanTempFile() throws Exception {
+            Backup backup = pendingBackup();
+            when(backupMapper.selectById(BACKUP_ID)).thenReturn(backup);
+            AtomicReference<Path> dumpPath = new AtomicReference<>();
+            when(backupProcessPort.dump(any(Path.class))).thenAnswer(invocation -> {
+                Path dump = invocation.getArgument(0);
+                dumpPath.set(dump);
+                Files.writeString(dump, "-- fake dump");
+                return true;
+            });
+            doThrow(new RuntimeException("object store unavailable"))
+                    .when(fileStorage).putFile(any(), any(Path.class), any());
+
+            executionService.executeBackup(BACKUP_ID);
+
+            assertEquals(BackupStatus.FAILED, backup.getStatus());
+            assertNotNull(backup.getCompletedAt());
+            assertFalse(Files.exists(dumpPath.get()));
+            verify(fileStorage).putFile(any(), any(Path.class), eq("application/sql"));
         }
 
         @Test

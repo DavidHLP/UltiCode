@@ -3,3 +3,16 @@ dubbo:
   registry:
     register: false
     subscribe: false
+
+app:
+  storage:
+    type: s3
+    s3:
+      endpoint: http://127.0.0.1:9000
+      region: us-east-1
+      bucket: test
+      access-key: test-access-key
+      secret-key: test-secret-key
+      tls-enabled: false
+    startup-probe:
+      enabled: false

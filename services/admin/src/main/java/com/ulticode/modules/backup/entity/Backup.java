@@ -21,7 +21,11 @@ public class Backup {
 
     private String filename;
 
+    private String objectKey;
+
     private Long size;
+
+    private String checksum;
 
     private BackupType type;
 

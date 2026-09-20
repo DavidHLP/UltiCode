@@ -37,13 +37,28 @@ spring:
           max-active: 8
 
 backup:
-  dir: ${BACKUP_DIR:/tmp/backups}
   process:
     timeout-seconds: ${BACKUP_PROCESS_TIMEOUT_SECONDS:1800}
     mysqldump-path: ${BACKUP_PROCESS_MYSQLDUMP_PATH:mysqldump}
     mysql-path: ${BACKUP_PROCESS_MYSQL_PATH:mysql}
 
 app:
+  storage:
+    type: ${APP_STORAGE_TYPE:s3}
+    s3:
+      endpoint: ${APP_STORAGE_S3_ENDPOINT:}
+      region: ${APP_STORAGE_S3_REGION:}
+      bucket: ${APP_STORAGE_S3_BUCKET:}
+      access-key: ${APP_STORAGE_S3_ACCESS_KEY:}
+      secret-key: ${APP_STORAGE_S3_SECRET_KEY:}
+      tls-enabled: ${APP_STORAGE_S3_TLS_ENABLED:}
+      connect-timeout-ms: ${APP_STORAGE_S3_CONNECT_TIMEOUT_MS:10000}
+      request-timeout-ms: ${APP_STORAGE_S3_REQUEST_TIMEOUT_MS:30000}
+      max-concurrent-requests: ${APP_STORAGE_S3_MAX_CONCURRENT_REQUESTS:16}
+    startup-probe:
+      enabled: ${APP_STORAGE_STARTUP_PROBE_ENABLED:true}
+      attempts: ${APP_STORAGE_STARTUP_PROBE_ATTEMPTS:30}
+      delay-ms: ${APP_STORAGE_STARTUP_PROBE_DELAY_MS:2000}
   features:
     contest-dubbo-cutover: ${APP_FEATURES_CONTEST_DUBBO_CUTOVER:false}
     moderation-dubbo-cutover: ${APP_FEATURES_MODERATION_DUBBO_CUTOVER:false}

@@ -1,5 +1,7 @@
 package com.ulticode.modules.backup.service.impl;
 
+import com.ulticode.common.storage.FileStoragePort;
+import com.ulticode.common.storage.StorageKeys;
 import com.ulticode.modules.backup.entity.Backup;
 import com.ulticode.modules.backup.entity.enums.BackupStatus;
 import com.ulticode.modules.backup.mapper.BackupMapper;
@@ -11,36 +13,24 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.attribute.PosixFilePermissions;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.HexFormat;
 import java.util.Map;
 
 /**
- * Async execution lifecycle for a single backup run.
- *
- * <p>This bean is the {@code @Async} entrypoint that {@link BackupServiceImpl#createBackup}
- * dispatches to. Because it is a separate Spring bean, the call crosses the
- * AOP proxy and the {@code @Async} annotation actually takes effect &mdash;
- * the previous in-class self-invocation silently bypassed the proxy and
- * blocked the HTTP request thread until {@code mysqldump} returned. See
- * {@link BackupExecutionService} for the seam rationale.
- *
- * <p>Owns every lifecycle transition for the run:
- * <ul>
- *   <li>{@code PENDING &rarr; IN_PROGRESS} on entry,</li>
- *   <li>{@code IN_PROGRESS &rarr; COMPLETED} when {@link BackupProcessPort#dump}
- *       reports success and the file exists (records size + metadata),</li>
- *   <li>{@code IN_PROGRESS &rarr; FAILED} when dump reports failure, the file
- *       is missing, or any exception escapes (records the error message).</li>
- * </ul>
- * Process I/O itself stays behind {@link BackupProcessPort}; this class is
- * the lifecycle owner, not the subprocess spawner.
- *
- * @author ulticode
+ * Async backup lifecycle. Dump bytes exist only in a secure container-local
+ * temp file until they are streamed to object storage.
  */
 @Slf4j
 @Service
@@ -51,9 +41,10 @@ public class BackupExecutionServiceImpl implements BackupExecutionService {
     private final BackupMapper backupMapper;
     private final Clock clock;
     private final BackupProcessPort backupProcessPort;
+    private final FileStoragePort fileStorage;
 
-    @Value("${backup.dir:${BACKUP_DIR:/tmp/backups}}")
-    private String backupDir;
+    @Value("${backup.temp-dir:${java.io.tmpdir}/ulticode-backups}")
+    private String backupTempDir;
 
     @Override
     public void executeBackup(String backupId) {
@@ -63,67 +54,97 @@ public class BackupExecutionServiceImpl implements BackupExecutionService {
             return;
         }
 
+        Path tempFile = null;
         try {
-            // PENDING -> IN_PROGRESS
             backup.setStatus(BackupStatus.IN_PROGRESS);
             backupMapper.updateById(backup);
 
-            // Ensure backup directory exists
-            ensureBackupDirectoryExists();
-
-            Path filePath = Paths.get(backupDir, backup.getFilename());
-
-            // Delegate the mysqldump process I/O to the port — the
-            // execution lifecycle no longer spawns the subprocess directly.
-            boolean success = backupProcessPort.dump(filePath);
-
-            if (success && Files.exists(filePath)) {
-                long size = Files.size(filePath);
-                backup.setSize(size);
-                backup.setStatus(BackupStatus.COMPLETED);
-                backup.setCompletedAt(LocalDateTime.now(clock));
-
-                Map<String, Object> metadata = new HashMap<>();
-                metadata.put("databaseName", "see-port-adapter");
-                metadata.put("backupType", backup.getType().name());
-                backup.setMetadata(metadata);
-
-                backupMapper.updateById(backup);
-                log.info("Backup completed successfully: {}, size: {} bytes", backupId, size);
-            } else {
-                fail(backup, backupId, "mysqldump failed — see server logs");
-                log.error("Backup failed: {}", backupId);
+            tempFile = createSecureTempFile("dump-", ".sql");
+            if (!backupProcessPort.dump(tempFile) || !Files.isRegularFile(tempFile) || Files.size(tempFile) == 0) {
+                throw new IllegalStateException("mysqldump failed — see server logs");
             }
-        } catch (Exception e) {
-            if (e instanceof InterruptedException) {
+
+            long size = Files.size(tempFile);
+            String checksum = sha256(tempFile);
+            LocalDate createdDate = backup.getCreatedAt() == null
+                    ? LocalDateTime.now(clock).toLocalDate()
+                    : backup.getCreatedAt().toLocalDate();
+            String objectKey = StorageKeys.backupKey(backupId, createdDate);
+            fileStorage.putFile(objectKey, tempFile, "application/sql");
+
+            backup.setObjectKey(objectKey);
+            backup.setSize(size);
+            backup.setChecksum(checksum);
+            backup.setStatus(BackupStatus.COMPLETED);
+            backup.setCompletedAt(LocalDateTime.now(clock));
+            Map<String, Object> metadata = new HashMap<>();
+            metadata.put("databaseName", "see-port-adapter");
+            metadata.put("backupType", backup.getType().name());
+            backup.setMetadata(metadata);
+            backupMapper.updateById(backup);
+            log.info("Backup completed successfully: {}, size: {} bytes", backupId, size);
+        } catch (Exception exception) {
+            if (exception instanceof InterruptedException) {
                 Thread.currentThread().interrupt();
             }
-            log.error("Backup execution failed for: {}", backupId, e);
-            fail(backup, backupId, e.getMessage());
+            log.error("Backup execution failed for: {}", backupId, exception);
+            fail(backup, backupId, exception.getMessage());
+        } finally {
+            deleteTempFile(tempFile);
         }
     }
 
-    /**
-     * Transition a backup to FAILED and record the error message. Centralised
-     * so every failure path (process failure, missing file, exception)
-     * captures both the terminal status and the error string with the same
-     * invariants.
-     */
     private void fail(Backup backup, String backupId, String error) {
         backup.setStatus(BackupStatus.FAILED);
         backup.setCompletedAt(LocalDateTime.now(clock));
-        backup.setError(error);
+        backup.setError(error == null || error.isBlank() ? "Backup execution failed" : error);
         backupMapper.updateById(backup);
     }
 
-    private void ensureBackupDirectoryExists() {
-        Path path = Paths.get(backupDir);
-        if (!Files.exists(path)) {
-            try {
-                Files.createDirectories(path);
-            } catch (Exception e) {
-                log.warn("Failed to create backup directory: {}", path, e);
+    private Path createSecureTempFile(String prefix, String suffix) throws IOException {
+        Path directory = Paths.get(backupTempDir).toAbsolutePath().normalize();
+        Files.createDirectories(directory);
+        restrictPermissions(directory, "rwx------");
+        Path file = Files.createTempFile(directory, prefix, suffix);
+        restrictPermissions(file, "rw-------");
+        return file;
+    }
+
+    private static String sha256(Path file) throws IOException {
+        MessageDigest digest;
+        try {
+            digest = MessageDigest.getInstance("SHA-256");
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("SHA-256 is unavailable", exception);
+        }
+        try (InputStream input = Files.newInputStream(file)) {
+            byte[] buffer = new byte[8192];
+            int read;
+            while ((read = input.read(buffer)) >= 0) {
+                if (read > 0) {
+                    digest.update(buffer, 0, read);
+                }
             }
+        }
+        return HexFormat.of().formatHex(digest.digest());
+    }
+
+    private static void restrictPermissions(Path path, String permissions) throws IOException {
+        try {
+            Files.setPosixFilePermissions(path, PosixFilePermissions.fromString(permissions));
+        } catch (UnsupportedOperationException ignored) {
+            // POSIX permissions are unavailable on some local development hosts.
+        }
+    }
+
+    private static void deleteTempFile(Path file) {
+        if (file == null) {
+            return;
+        }
+        try {
+            Files.deleteIfExists(file);
+        } catch (IOException exception) {
+            log.warn("Failed to clean up backup temp file: {}", file, exception);
         }
     }
 }

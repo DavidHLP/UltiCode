@@ -17,6 +17,7 @@ import com.ulticode.modules.admin.dto.RevokePermissionRequest;
 import com.ulticode.modules.admin.projection.AdminUserProjection;
 import com.ulticode.modules.admin.query.AdminUserDetailQuery;
 import com.ulticode.modules.admin.service.UserManagementService;
+import com.ulticode.admin.port.UserProfilePort;
 import com.ulticode.modules.admin.service.UserPermissionService;
 import com.ulticode.auth.api.dto.AuthorizationMutationDTO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -24,8 +25,10 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -40,6 +43,7 @@ public class AdminUserController {
     private final UserPermissionService userPermissionService;
     private final AdminUserDetailQuery adminUserDetailQuery;
     private final AdminUserProjection adminUserProjection;
+    private final UserProfilePort userProfilePort;
 
     @Operation(summary = "Get users list", description = "Get paginated list of users with filters")
     @GetMapping
@@ -71,6 +75,16 @@ public class AdminUserController {
             @PathVariable String id,
             @Valid @RequestBody AdminUpdateUserDTO dto) {
         return Result.success(userManagementService.updateUser(id, dto));
+    }
+
+    @Operation(summary = "Upload user avatar")
+    @RateLimit(key = "admin:user-avatar-upload", limit = 30, period = 60)
+    @PostMapping(value = "/{id}/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public Result<String> uploadAvatar(
+            @PathVariable String id,
+            @RequestPart("file") MultipartFile file) {
+        return Result.success(userProfilePort.uploadAvatar(id, file));
     }
 
     @Operation(summary = "Delete user", description = "Delete a user account")

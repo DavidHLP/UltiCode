@@ -2,16 +2,18 @@ package com.ulticode.modules.admin.port.adapter;
 
 import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.admin.port.UserProfilePort;
-import com.ulticode.common.command.ActorDelegation;
 import com.ulticode.app.api.command.UpdateProfileCommand;
 import com.ulticode.app.api.command.UploadAvatarCommand;
 import com.ulticode.app.api.dto.ProfileWriteResult;
 import com.ulticode.app.api.service.ProfileWriteService;
 import com.ulticode.common.auth.AdminActors;
 import com.ulticode.common.auth.CurrentUserProvider;
+import com.ulticode.common.command.ActorDelegation;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.rpc.RpcPolicy;
 import com.ulticode.common.rpc.RpcResult;
+import com.ulticode.common.storage.FileStoragePort;
+import com.ulticode.common.storage.StorageKeys;
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
 import com.ulticode.common.util.TraceIdUtil;
@@ -24,11 +26,13 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.util.Locale;
 import java.util.UUID;
+
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
 
 /**
  * Admin-shell adapter for {@link UserProfilePort}.
@@ -39,9 +43,9 @@ import java.util.UUID;
  * the remote writes; provider unavailability or RPC failure fails closed with
  * an explicit {@link BusinessException} mapping the App error code.
  *
- * <p>Avatar upload preserves the legacy file-storage semantics (uploads
- * directory, UUID filename, content-type + size + extension validation);
- * the stored URL is then pushed via {@code ProfileWriteService.uploadAvatar}.
+ * <p>Avatar bytes are validated using the same size, extension, magic-byte and
+ * image-decoding rules as the App avatar path, then stored under the shared
+ * object-storage key. The Dubbo command carries that key, never a local path.
  */
 @Slf4j
 @Component
@@ -55,6 +59,7 @@ public class AdminUserProfileAdapter implements UserProfilePort {
 
     private final UuidGenerator uuidGenerator;
     private final CurrentUserProvider currentUserProvider;
+    private final FileStoragePort fileStorage;
 
     @Override
     @CacheEvict(value = "userStats", allEntries = true)
@@ -77,59 +82,112 @@ public class AdminUserProfileAdapter implements UserProfilePort {
         if (userId == null) {
             throw new BusinessException(AdminErrorCode.UNAUTHORIZED);
         }
-
         if (file == null || file.isEmpty()) {
             throw new BusinessException(AdminErrorCode.BAD_REQUEST, "File is required");
         }
 
-        long maxSize = 5 * 1024 * 1024;
+        long maxSize = 5L * 1024 * 1024;
         if (file.getSize() > maxSize) {
             throw new BusinessException(AdminErrorCode.BAD_REQUEST, "File size exceeds 5MB limit");
         }
+        validateExtension(file.getOriginalFilename());
 
-        String contentType = file.getContentType();
-        if (contentType == null || !contentType.startsWith("image/")) {
-            throw new BusinessException(AdminErrorCode.BAD_REQUEST, "Only image files are allowed");
-        }
-
-        String originalFilename = file.getOriginalFilename();
-        String ext = "";
-        if (originalFilename != null && originalFilename.contains(".")) {
-            String rawExt = originalFilename.substring(originalFilename.lastIndexOf(".")).toLowerCase();
-            ext = rawExt.replaceAll("[^a-z0-9]", "");
-            if (!ext.isEmpty() && !ext.equals("jpg") && !ext.equals("jpeg") &&
-                !ext.equals("png") && !ext.equals("gif") && !ext.equals("webp")) {
-                throw new BusinessException(AdminErrorCode.BAD_REQUEST, "Invalid file extension");
-            }
-            ext = "." + ext;
-        }
-        String filename = uuidGenerator.newId() + ext;
-
-        Path uploadDir = Paths.get("uploads/avatars");
-        Path filePath = uploadDir.resolve(filename);
+        byte[] content;
         try {
-            Files.createDirectories(uploadDir);
-            file.transferTo(filePath.toFile());
-        } catch (IOException e) {
-            log.error("Failed to save avatar for user {}: {}", userId, e.getMessage());
+            content = file.getBytes();
+        } catch (IOException exception) {
+            throw new BusinessException(AdminErrorCode.BAD_REQUEST, "Failed to read avatar");
+        }
+        if (content.length == 0) {
+            throw new BusinessException(AdminErrorCode.BAD_REQUEST, "File is required");
+        }
+        if (content.length > maxSize) {
+            throw new BusinessException(AdminErrorCode.BAD_REQUEST, "File size exceeds 5MB limit");
+        }
+
+        DetectedImage detected = detectImage(content);
+        String objectName = uuidGenerator.newId() + "." + detected.extension();
+        String key = StorageKeys.avatarKey(userId, objectName);
+        try {
+            fileStorage.put(key, new ByteArrayInputStream(content), content.length, detected.contentType());
+        } catch (RuntimeException exception) {
+            log.warn("Avatar upload failed for user {}: {}", userId, exception.getMessage());
             throw new BusinessException(AdminErrorCode.UNKNOWN_ERROR, "Failed to save avatar");
         }
 
-        String avatarUrl = "/uploads/avatars/" + filename;
         try {
-            updateAvatarUrl(userId, avatarUrl);
-        } catch (RuntimeException e) {
-            try {
-                Files.deleteIfExists(filePath);
-            } catch (Exception cleanupException) {
-                log.warn("Failed to clean up avatar file after profile update failure: {}",
-                        filePath, cleanupException);
-            }
-            throw e;
+            updateAvatarUrl(userId, key);
+        } catch (RuntimeException exception) {
+            deleteQuietly(key);
+            throw exception;
         }
 
-        log.info("Avatar uploaded for user {}: {}", userId, avatarUrl);
-        return avatarUrl;
+        String displayUrl = StorageKeys.avatarDisplayPath(userId, objectName);
+        log.info("Avatar uploaded for user {}", userId);
+        return displayUrl;
+    }
+
+    private static void validateExtension(String originalFilename) {
+        if (originalFilename == null || originalFilename.isBlank()) {
+            return;
+        }
+        int dot = originalFilename.lastIndexOf('.');
+        if (dot < 0) {
+            return;
+        }
+        String extension = originalFilename.substring(dot + 1).toLowerCase(Locale.ROOT);
+        if (!switch (extension) {
+            case "jpg", "jpeg", "png", "gif", "webp" -> true;
+            default -> false;
+        }) {
+            throw new BusinessException(AdminErrorCode.BAD_REQUEST, "Invalid file extension");
+        }
+    }
+
+    private static DetectedImage detectImage(byte[] content) {
+        if (content.length >= 8
+                && (content[0] & 0xff) == 0x89 && content[1] == 0x50 && content[2] == 0x4e
+                && content[3] == 0x47 && content[4] == 0x0d && content[5] == 0x0a
+                && (content[6] & 0xff) == 0x1a && content[7] == 0x0a
+                && decodesImage(content)) {
+            return new DetectedImage("png", "image/png");
+        }
+        if (content.length >= 3 && (content[0] & 0xff) == 0xff && (content[1] & 0xff) == 0xd8
+                && (content[2] & 0xff) == 0xff && decodesImage(content)) {
+            return new DetectedImage("jpg", "image/jpeg");
+        }
+        if (content.length >= 6
+                && content[0] == 'G' && content[1] == 'I' && content[2] == 'F'
+                && (content[3] == '8') && (content[4] == '7' || content[4] == '9') && content[5] == 'a'
+                && decodesImage(content)) {
+            return new DetectedImage("gif", "image/gif");
+        }
+        if (content.length >= 12
+                && content[0] == 'R' && content[1] == 'I' && content[2] == 'F' && content[3] == 'F'
+                && content[8] == 'W' && content[9] == 'E' && content[10] == 'B' && content[11] == 'P') {
+            return new DetectedImage("webp", "image/webp");
+        }
+        throw new BusinessException(AdminErrorCode.BAD_REQUEST, "File content is not a supported image");
+    }
+
+    private static boolean decodesImage(byte[] content) {
+        try {
+            BufferedImage image = ImageIO.read(new ByteArrayInputStream(content));
+            return image != null;
+        } catch (IOException exception) {
+            return false;
+        }
+    }
+
+    private void deleteQuietly(String key) {
+        try {
+            fileStorage.delete(key);
+        } catch (RuntimeException exception) {
+            log.warn("Failed to clean up avatar object: {}", exception.getMessage());
+        }
+    }
+
+    private record DetectedImage(String extension, String contentType) {
     }
 
     @Override

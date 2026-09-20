@@ -4,7 +4,7 @@ import com.ulticode.modules.backup.dto.BackupVO;
 import com.ulticode.modules.backup.dto.CreateBackupDTO;
 import com.ulticode.modules.backup.entity.Backup;
 
-import java.io.File;
+import java.io.InputStream;
 
 /**
  * Service interface for backup write operations. Read paths (paginated list,
@@ -25,12 +25,15 @@ public interface BackupService {
     BackupVO createBackup(String userId, CreateBackupDTO dto);
 
     /**
-     * Get the backup file for download
+     * Open a completed backup object for streaming download.
      *
      * @param id the backup ID
-     * @return the backup file
+     * @return the object stream and the validated display filename
      */
-    File getBackupFile(String id);
+    BackupDownload getBackupFile(String id);
+
+    record BackupDownload(String filename, InputStream content, long contentLength, String contentType) {
+    }
 
     /**
      * Restore database from a backup

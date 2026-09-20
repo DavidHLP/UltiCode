@@ -120,6 +120,13 @@ for conf_label in "console:$CONSOLE_CONF" "management:$MANAGEMENT_CONF"; do
         file_must_contain "$conf" "^[[:space:]]*location ${family} \\{" "$label:family:${family}"
     done
     file_must_contain "$conf" "include[[:space:]]+.*backend-proxy\\.conf" "$label:snippet-include"
+    file_must_contain "$conf" "location[[:space:]]+\\^~[[:space:]]+/api/users/avatars/[[:space:]]+\\{" "$label:avatar-read-route"
+    file_must_contain "$conf" "client_max_body_size[[:space:]]+6m;" "$label:avatar-body-limit"
+    if [[ "$label" == console ]]; then
+        file_must_contain "$conf" "location[[:space:]]+=[[:space:]]+/api/users/me/avatar[[:space:]]+\\{" "$label:avatar-upload-route"
+    else
+        file_must_contain "$conf" "location[[:space:]]+~[[:space:]]+\\^/api/admin/users/\\[\\^/\\]\\+/avatar\\\$[[:space:]]+\\{" "$label:avatar-upload-route"
+    fi
     file_must_contain "$conf" "^map[[:space:]]+\\\$http_upgrade[[:space:]]+\\\$connection_upgrade" "$label:map-directive"
     if grep -Eq 'proxy_set_header[[:space:]]+Connection[[:space:]]+"upgrade";' "$conf"; then
         log_fail "static:$label:hardcoded-upgrade" "found hardcoded Connection \"upgrade\"; breaks SockJS fallbacks"

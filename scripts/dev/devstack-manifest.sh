@@ -44,14 +44,14 @@ DEVSTACK_DEV_FULL_APPS=(
 # scope from file count or from all available owners:
 #
 #   scope            PM2 apps                                  Compose infra
-#   dev-lite         six existing backend apps                  mysql redis nacos
-#   dev-full         nine existing apps                         + meilisearch
-#   app-journey      auth app notification submission judge     mysql redis nacos
+#   dev-lite         six existing backend apps                  mysql redis nacos rustfs
+#   dev-full         nine existing apps                         mysql redis nacos rustfs meilisearch
+#   app-journey      auth app notification submission judge     mysql redis nacos rustfs
 #                    console
-#   admin            auth admin app notification submission     mysql redis nacos
+#   admin             auth admin app notification submission    mysql redis nacos rustfs
 #                    management
-#   submission-judge app submission judge                       mysql redis nacos
-#   core            ulticode-core + ulticode-judge                  mysql redis nacos meilisearch
+#   submission-judge app submission judge                       mysql redis nacos rustfs
+#   core             ulticode-core + ulticode-judge             mysql redis nacos rustfs meilisearch
 #                    Core Owner contexts are opt-in and allowlist Auth/Admin only.
 #
 # Observability is never part of a scope's default infra. Use the explicit
@@ -117,6 +117,7 @@ DEVSTACK_REQUIRED_BASE_VARS=(
   APP_NACOS_USERNAME APP_NACOS_PASSWORD SUBMISSION_NACOS_USERNAME SUBMISSION_NACOS_PASSWORD \
   NOTIFICATION_NACOS_USERNAME NOTIFICATION_NACOS_PASSWORD JUDGE_NACOS_USERNAME JUDGE_NACOS_PASSWORD
   NACOS_AUTH_IDENTITY_KEY NACOS_AUTH_IDENTITY_VALUE
+  RUSTFS_ACCESS_KEY RUSTFS_SECRET_KEY
 )
 
 # Failure timing is part of the DevStack interface. Keep launcher loops and
@@ -368,8 +369,8 @@ devstack_scope_has_app() {
 devstack_scope_infra() {
   devstack_validate_scope_name "$1" || return $?
   case "$1" in
-    dev-lite|app-journey|admin|submission-judge) printf 'mysql,redis,nacos' ;;
-    core|dev-full|search|full-stack) printf 'mysql,redis,nacos,meilisearch' ;;
+    dev-lite|app-journey|admin|submission-judge) printf 'mysql,redis,nacos,rustfs' ;;
+    core|dev-full|search|full-stack) printf 'mysql,redis,nacos,rustfs,meilisearch' ;;
   esac
 }
 
@@ -388,7 +389,7 @@ devstack_infra_for_selection() {
     [[ "$app" == ulticode-search || "$app" == ulticode-core ]] && has_search=true
   done
   if [[ "$has_backend" == true ]]; then
-    out='mysql,redis,nacos'
+    out='mysql,redis,nacos,rustfs'
   fi
   if [[ "$has_search" == true ]]; then
     out="${out:+$out,}meilisearch"

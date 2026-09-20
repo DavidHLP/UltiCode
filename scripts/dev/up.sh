@@ -340,6 +340,11 @@ COMPOSE_TARGETS=()
 if [[ -n "$INFRA_TARGETS" ]]; then
   IFS=',' read -ra COMPOSE_TARGETS <<< "$INFRA_TARGETS"
 fi
+# RustFS bucket bootstrap is a one-shot dependency for the host-run PM2
+# backends, so start it explicitly after the manifest-selected infra services.
+if [[ ",$INFRA_TARGETS," == *,rustfs,* ]]; then
+  COMPOSE_TARGETS+=(rustfs-init)
+fi
 mapfile -t SELECTED_READINESS < <(devstack_readiness_for_selection "$DEV_SCOPE" "$PM2_APPS")
 
 resolve_mysql_container() {
@@ -414,7 +419,33 @@ wait_for_health() {
   local service="$1"
   local container
   container="$(compose_service_container compose "$service")"
-  await_container_health "$container" "$DEVSTACK_INFRA_READINESS_ATTEMPTS" "$DEVSTACK_READINESS_INTERVAL_SECONDS"
+  if ! await_container_health "$container" "$DEVSTACK_INFRA_READINESS_ATTEMPTS" "$DEVSTACK_READINESS_INTERVAL_SECONDS"; then
+    if [[ "$service" == rustfs ]]; then
+      echo "RustFS did not become ready at the configured API health endpoint; inspect 'docker compose logs rustfs' and verify RUSTFS_ACCESS_KEY/RUSTFS_SECRET_KEY." >&2
+    fi
+    return 1
+  fi
+}
+
+wait_for_completion() {
+  local service="$1" container status exit_code
+  container="$("${compose[@]}" ps -aq "$service" | sed -n '1p' | tr -d '\r')"
+  [[ -n "$container" ]] || {
+    echo "No container found for one-shot Compose service: $service" >&2
+    return 1
+  }
+  for _ in $(seq 1 "$DEVSTACK_INFRA_READINESS_ATTEMPTS"); do
+    status="$(docker inspect -f '{{.State.Status}}' "$container" 2>/dev/null || true)"
+    if [[ "$status" == exited || "$status" == dead ]]; then
+      exit_code="$(docker inspect -f '{{.State.ExitCode}}' "$container" 2>/dev/null || true)"
+      [[ "$exit_code" == 0 ]] && return 0
+      echo "One-shot Compose service $service failed (status=$status exit_code=${exit_code:-unknown})." >&2
+      return 1
+    fi
+    sleep "$DEVSTACK_READINESS_INTERVAL_SECONDS"
+  done
+  echo "One-shot Compose service $service did not complete." >&2
+  return 1
 }
 
 # ===== 步骤 1: Docker 基础设施 =====
@@ -433,7 +464,11 @@ if [[ "$SKIP_INFRA" != true ]]; then
     export MYSQL_CONTAINER MIGRATION_MYSQL_CONTAINER
   fi
   for infra_service in "${COMPOSE_TARGETS[@]}"; do
-    wait_for_health "$infra_service"
+    if [[ "$infra_service" == rustfs-init ]]; then
+      wait_for_completion "$infra_service"
+    else
+      wait_for_health "$infra_service"
+    fi
   done
 
   if [[ ",$INFRA_TARGETS," == *,nacos,* ]]; then

@@ -111,8 +111,63 @@ services:
       retries: 3
     networks:
       - search
+# RustFS is private infrastructure: its S3 API and console are reachable only
+# from the storage network unless a development overlay explicitly publishes
+# loopback ports for host-run backends.
+  rustfs:
+    image: "${RUSTFS_IMAGE_REF:-rustfs/rustfs:1.0.0@sha256:8cc9801755448b71a786705ce76692c77e14936cccd87cf2fc31842e58f4d1ff}"
+    user: "10001:10001"
+    expose:
+      - "9000"
+      - "9001"
+    environment:
+      RUSTFS_VOLUMES: /data
+      RUSTFS_ADDRESS: :9000
+      RUSTFS_CONSOLE_ADDRESS: :9001
+      RUSTFS_CONSOLE_ENABLE: "true"
+      RUSTFS_HEALTH_ENDPOINT_ENABLE: "true"
+      RUSTFS_ACCESS_KEY: ${RUSTFS_ACCESS_KEY:?RUSTFS_ACCESS_KEY is required; do not use rustfsadmin}
+      RUSTFS_SECRET_KEY: ${RUSTFS_SECRET_KEY:?RUSTFS_SECRET_KEY is required; do not use rustfsadmin}
+    volumes:
+      - rustfs_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail --silent --show-error http://127.0.0.1:9000/health/ready >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    networks:
+      - object-storage
+
+  # Create the private bucket once RustFS is ready. The command is idempotent:
+  # head-bucket succeeds for an existing bucket and create-bucket handles the
+  # first boot. This service has no persistent data of its own.
+  rustfs-init:
+    image: "amazon/aws-cli:2.31.0@sha256:d5f18fde2ba3f9205e75d511ca3e6185c144e55df07e50eee16d940994557b40"
+    entrypoint: ["/bin/sh", "-ec"]
+    command: |
+      if aws s3api head-bucket --bucket "$$RUSTFS_BUCKET" --endpoint-url "$$RUSTFS_ENDPOINT" >/dev/null 2>&1; then
+        echo "RustFS bucket $$RUSTFS_BUCKET already exists."
+      else
+        aws s3api create-bucket --bucket "$$RUSTFS_BUCKET" --endpoint-url "$$RUSTFS_ENDPOINT"
+        echo "Created RustFS bucket $$RUSTFS_BUCKET."
+      fi
+    environment:
+      AWS_ACCESS_KEY_ID: ${RUSTFS_ACCESS_KEY:?RUSTFS_ACCESS_KEY is required}
+      AWS_SECRET_ACCESS_KEY: ${RUSTFS_SECRET_KEY:?RUSTFS_SECRET_KEY is required}
+      AWS_DEFAULT_REGION: us-east-1
+      AWS_EC2_METADATA_DISABLED: "true"
+      RUSTFS_BUCKET: ${RUSTFS_BUCKET:-ulticode}
+      RUSTFS_ENDPOINT: http://rustfs:9000
+    depends_on:
+      rustfs:
+        condition: service_healthy
+    networks:
+      - object-storage
 
 networks:
+  object-storage:
+    internal: true
   edge:
     internal: true
   sql:
@@ -157,3 +212,4 @@ volumes:
   redis_data:
   nacos_logs:
   meili_data:
+  rustfs_data:

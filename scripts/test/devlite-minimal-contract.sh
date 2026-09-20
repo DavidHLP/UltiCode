@@ -78,23 +78,23 @@ assert_capture_not_contains 'judge-dev.yml'
 assert_capture_not_contains 'profile judge-socket'
 : > "$CAPTURE"
 capture_compose_up dev-lite
-assert_capture_exact "docker compose --project-directory $ROOT_DIR --env-file $ROOT_DIR/.env -f $ROOT_DIR/docker/docker-compose.yml -f $ROOT_DIR/docker/docker-compose.dev.yml up -d mysql redis nacos"
-assert_capture_contains 'up -d mysql redis nacos'
+assert_capture_exact "docker compose --project-directory $ROOT_DIR --env-file $ROOT_DIR/.env -f $ROOT_DIR/docker/docker-compose.yml -f $ROOT_DIR/docker/docker-compose.dev.yml up -d mysql redis nacos rustfs"
+assert_capture_contains 'up -d mysql redis nacos rustfs'
 assert_capture_not_contains meilisearch
 assert_capture_not_contains otel-collector
 
 : > "$CAPTURE"
 capture_compose_up search
-assert_capture_contains 'up -d mysql redis nacos meilisearch'
+assert_capture_contains 'up -d mysql redis nacos rustfs meilisearch'
 : > "$CAPTURE"
 capture_compose_up core
 assert_capture_not_contains 'judge-dev.yml'
-assert_capture_contains 'up -d mysql redis nacos meilisearch'
+assert_capture_contains 'up -d mysql redis nacos rustfs meilisearch'
 
 : > "$CAPTURE"
 capture_compose_up dev-lite true
-assert_capture_exact "docker compose --project-directory $ROOT_DIR --env-file $ROOT_DIR/.env -f $ROOT_DIR/docker/docker-compose.yml -f $ROOT_DIR/docker/docker-compose.dev.yml --profile observability -f $ROOT_DIR/docker/docker-compose.observability.yml up -d mysql redis nacos otel-collector prometheus alertmanager tempo loki grafana"
-assert_capture_contains 'up -d mysql redis nacos otel-collector prometheus alertmanager tempo loki grafana'
+assert_capture_exact "docker compose --project-directory $ROOT_DIR --env-file $ROOT_DIR/.env -f $ROOT_DIR/docker/docker-compose.yml -f $ROOT_DIR/docker/docker-compose.dev.yml --profile observability -f $ROOT_DIR/docker/docker-compose.observability.yml up -d mysql redis nacos rustfs otel-collector prometheus alertmanager tempo loki grafana"
+assert_capture_contains 'up -d mysql redis nacos rustfs otel-collector prometheus alertmanager tempo loki grafana'
 
 # Search, Judge, and observability are opt-in capabilities, not accidental
 # dependencies of the compatibility default.

@@ -3,6 +3,8 @@ package com.ulticode.app.userprofile;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
@@ -11,6 +13,7 @@ import com.ulticode.app.api.command.UpdateProfileCommand;
 import com.ulticode.app.api.command.UploadAvatarCommand;
 import com.ulticode.app.api.error.AppErrorCode;
 import com.ulticode.app.security.AdminActorAuthorizer;
+import com.ulticode.app.userprofile.entity.UserProfile;
 import com.ulticode.app.userprofile.mapper.UserProfileMapper;
 import com.ulticode.app.userprofile.provider.ProfileWriteProvider;
 import com.ulticode.app.idempotency.mapper.AppCommandReceiptMapper;
@@ -66,6 +69,25 @@ class ProfileWriteProviderTest {
         assertThat(result.success()).isFalse();
         assertThat(result.error().code()).isEqualTo(AppErrorCode.FORBIDDEN.code());
         verifyNoInteractions(userProfileMapper, receiptMapper);
+    }
+
+    @Test
+    void zeroRowAvatarUpdateFailsAndKeepsThePreviousObject() {
+        when(actorAuthorizer.isAuthorized(any())).thenReturn(true);
+        UserProfile existing = new UserProfile();
+        existing.setAccountId("user-9");
+        existing.setAvatar("app/avatars/user-9/old.png");
+        when(userProfileMapper.selectById("user-9")).thenReturn(existing);
+        when(userProfileMapper.updateById(any(UserProfile.class))).thenReturn(0);
+
+        RpcResult<?> result = provider.uploadAvatar(new UploadAvatarCommand(
+                "avatar-command", IdMetadata.mint(), adminActor(), TraceMetadata.EMPTY,
+                "user-9", "app/avatars/user-9/new.png"));
+
+        assertThat(result.success()).isFalse();
+        assertThat(result.error().code()).isEqualTo(AppErrorCode.UNEXPECTED_APP_STATE.code());
+        // The stale object must survive a no-op write: the row still references it.
+        verify(fileStorage, never()).delete(any());
     }
 
     private static ActorDelegation adminActor() {

@@ -207,9 +207,17 @@ public class ProfileWriteProvider implements ProfileWriteService {
             profile.setAvatar(command.avatarUrl());
 
             if (isNew) {
-                userProfileMapper.insert(profile);
+                int insertedRows = userProfileMapper.insert(profile);
+                if (insertedRows != 1) {
+                    throw new IllegalStateException(
+                            "Avatar profile insert affected " + insertedRows + " rows");
+                }
             } else {
-                userProfileMapper.updateById(profile);
+                int updatedRows = userProfileMapper.updateById(profile);
+                if (updatedRows != 1) {
+                    throw new IllegalStateException(
+                            "Avatar profile update affected " + updatedRows + " rows");
+                }
             }
 
             deletePreviousAvatarAfterCommit(accountId, previousAvatar, profile.getAvatar());

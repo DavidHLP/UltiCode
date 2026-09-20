@@ -34,6 +34,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.HexFormat;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.RejectedExecutionException;
 
 /**
  * Write-side orchestration for backups. Durable dump bytes never live on a
@@ -70,9 +72,44 @@ public class BackupServiceImpl implements BackupService {
         backup.setCreatedBy(userId);
 
         backupMapper.insert(backup);
-        log.info("Created backup record: {} by user: {}", backup.getId(), userId);
-        backupExecutionService.executeBackup(backup.getId());
+        try {
+            CompletableFuture<Void> execution = backupExecutionService.executeBackup(backup.getId());
+            if (execution != null) {
+                execution.whenComplete((ignored, failure) -> {
+                    if (isRejected(failure)) {
+                        markExecutionRejected(backup, failure);
+                    }
+                });
+            }
+        } catch (RejectedExecutionException exception) {
+            markExecutionRejected(backup, exception);
+            throw exception;
+        }
         return backupReadProjection.toVO(backup);
+    }
+
+    private boolean isRejected(Throwable failure) {
+        while (failure != null) {
+            if (failure instanceof RejectedExecutionException) {
+                return true;
+            }
+            failure = failure.getCause();
+        }
+        return false;
+    }
+
+    private void markExecutionRejected(Backup backup, Throwable failure) {
+        backup.setStatus(BackupStatus.FAILED);
+        backup.setCompletedAt(LocalDateTime.now(clock));
+        String message = failure.getMessage();
+        backup.setError(message == null || message.isBlank()
+                ? "Backup execution rejected: executor unavailable"
+                : "Backup execution rejected: " + message);
+        int failedRows = backupMapper.updateById(backup);
+        if (failedRows != 1) {
+            log.error("Failed to persist rejected backup state: {}, affected rows: {}",
+                    backup.getId(), failedRows);
+        }
     }
 
     @Override

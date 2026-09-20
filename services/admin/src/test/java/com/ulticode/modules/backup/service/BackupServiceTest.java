@@ -35,6 +35,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.RejectedExecutionException;
 import java.time.ZoneOffset;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -198,6 +199,33 @@ class BackupServiceTest {
             // The orchestration service no longer owns the lifecycle: it
             // must not update the status itself on the create path.
             verify(backupMapper, never()).updateById(any(Backup.class));
+        }
+
+        @Test
+        @DisplayName("should mark the backup failed when async dispatch is rejected")
+        void shouldMarkBackupFailedWhenAsyncDispatchIsRejected() {
+            // Arrange
+            CreateBackupDTO dto = new CreateBackupDTO();
+            dto.setType(BackupType.FULL);
+            when(backupMapper.insert(any(Backup.class))).thenAnswer(invocation -> {
+                Backup backup = invocation.getArgument(0);
+                backup.setId(BACKUP_ID);
+                return 1;
+            });
+            doThrow(new RejectedExecutionException("executor is shutting down"))
+                    .when(backupExecutionService).executeBackup(BACKUP_ID);
+
+            // Act
+            assertThrows(RejectedExecutionException.class,
+                    () -> backupService.createBackup(USER_ID, dto));
+
+            // Assert
+            ArgumentCaptor<Backup> captor = ArgumentCaptor.forClass(Backup.class);
+            verify(backupMapper).updateById(captor.capture());
+            Backup failed = captor.getValue();
+            assertEquals(BackupStatus.FAILED, failed.getStatus());
+            assertNotNull(failed.getCompletedAt());
+            assertTrue(failed.getError().contains("executor is shutting down"));
         }
 
         /**

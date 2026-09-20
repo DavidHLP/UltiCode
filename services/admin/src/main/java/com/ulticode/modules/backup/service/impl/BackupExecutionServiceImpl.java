@@ -27,6 +27,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.HexFormat;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Async backup lifecycle. Dump bytes exist only in a secure container-local
@@ -45,13 +46,12 @@ public class BackupExecutionServiceImpl implements BackupExecutionService {
 
     @Value("${backup.temp-dir:${java.io.tmpdir}/ulticode-backups}")
     private String backupTempDir;
-
     @Override
-    public void executeBackup(String backupId) {
+    public CompletableFuture<Void> executeBackup(String backupId) {
         Backup backup = backupMapper.selectById(backupId);
         if (backup == null) {
             log.error("Backup not found: {}", backupId);
-            return;
+            return CompletableFuture.completedFuture(null);
         }
 
         Path tempFile = null;
@@ -104,6 +104,7 @@ public class BackupExecutionServiceImpl implements BackupExecutionService {
         } finally {
             deleteTempFile(tempFile);
         }
+        return CompletableFuture.completedFuture(null);
     }
 
     private void fail(Backup backup, String error) {

@@ -488,7 +488,7 @@ runs:
         rm -f -- "$STATE_FILE"
 
     - name: Handle quiesced Admin after deploy failure
-      if: ${{ failure() && inputs.skip_migrations != 'true' }}
+      if: ${{ always() && inputs.skip_migrations != 'true' }}
       shell: bash
       run: |
         set -euo pipefail

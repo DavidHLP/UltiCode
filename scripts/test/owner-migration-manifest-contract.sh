@@ -43,6 +43,8 @@ grep -Fq 'docker start$START_ARGS' \
   "$ROOT_DIR/.github/actions/host-deploy/action.yml"
 grep -Fq 'backend-admin remains stopped' \
   "$ROOT_DIR/.github/actions/host-deploy/action.yml"
+grep -Fq "always() && inputs.skip_migrations != 'true'" \
+  "$ROOT_DIR/.github/actions/host-deploy/action.yml"
 grep -Fq 'phase=migration-complete' \
   "$ROOT_DIR/.github/actions/host-deploy/action.yml"
 grep -Fq 'docker inspect -f' \

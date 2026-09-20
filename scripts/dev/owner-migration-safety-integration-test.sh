@@ -220,6 +220,35 @@ mysql_root -e "UPDATE ulticode.backups SET filename='legacy-initial.sql' WHERE i
 printf 'legacy backup mismatch gate: PASS\n'
 
 mysql_root -e "
+ALTER TABLE ulticode.backups
+  ADD COLUMN object_key VARCHAR(512) NULL,
+  ADD COLUMN checksum VARCHAR(128) NULL;
+UPDATE ulticode.backups
+   SET object_key='legacy/object.sql', checksum='legacy-checksum'
+ WHERE id='legacy-initial';"
+if env ENV_FILE="$TEST_ENV" \
+  MIGRATION_DB_HOST=127.0.0.1 MIGRATION_DB_PORT="$MYSQL_TEST_PORT" \
+  MIGRATION_DB_NAME=ulticode MIGRATION_DB_USER=root \
+  MIGRATION_DB_PASSWORD="$ROOT_PASSWORD" \
+  bash "$ROOT_DIR/scripts/runbooks/reconcile-legacy-backups.sh" \
+  >"$TEST_DIR/reconcile-object-fields.log" 2>&1; then
+  echo 'object-field parity gate unexpectedly passed' >&2
+  exit 1
+fi
+grep -q 'metadata_mismatch=' "$TEST_DIR/reconcile-object-fields.log"
+mysql_root -e "UPDATE admin.backups
+  SET object_key='legacy/object.sql', checksum='legacy-checksum'
+  WHERE id='legacy-initial';"
+env ENV_FILE="$TEST_ENV" \
+  MIGRATION_DB_HOST=127.0.0.1 MIGRATION_DB_PORT="$MYSQL_TEST_PORT" \
+  MIGRATION_DB_NAME=ulticode MIGRATION_DB_USER=root \
+  MIGRATION_DB_PASSWORD="$ROOT_PASSWORD" \
+  bash "$ROOT_DIR/scripts/runbooks/reconcile-legacy-backups.sh" \
+  >"$TEST_DIR/reconcile-object-fields-fixed.log" 2>&1
+grep -q 'status=PASS' "$TEST_DIR/reconcile-object-fields-fixed.log"
+printf 'legacy object-field parity gate: PASS\n'
+
+mysql_root -e "
 CREATE TABLE ulticode.users LIKE auth.users;
 CREATE TABLE ulticode.user_profiles LIKE app.user_profiles;
 INSERT INTO ulticode.users (id,username,email,password,is_deleted)

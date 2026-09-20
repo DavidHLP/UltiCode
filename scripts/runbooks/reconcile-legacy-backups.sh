@@ -98,6 +98,12 @@ source_object_key_expr='NULL'
 source_checksum_expr='NULL'
 [[ "$source_object_key" == 1 ]] && source_object_key_expr='s.`object_key`'
 [[ "$source_checksum" == 1 ]] && source_checksum_expr='s.`checksum`'
+source_object_key_parity='1=1'
+source_checksum_parity='1=1'
+[[ "$source_object_key" == 1 ]] \
+  && source_object_key_parity='s.`object_key` <=> d.`object_key`'
+[[ "$source_checksum" == 1 ]] \
+  && source_checksum_parity='s.`checksum` <=> d.`checksum`'
 
 marker_exists="$(mysql_query "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='admin' AND table_name='backup_cutover_state' AND table_type='BASE TABLE';")"
 [[ "$marker_exists" == 1 ]] || die 'admin.backup_cutover_state is missing; apply the post-owner migration first'
@@ -129,6 +135,8 @@ mismatch="$(mysql_query "SELECT COUNT(*)
    AND s.created_at <=> d.created_at
    AND s.completed_at <=> d.completed_at
    AND s.metadata <=> d.metadata
+   AND $source_object_key_parity
+   AND $source_checksum_parity
    AND s.error <=> d.error
  );")"
 if [[ "$marker_completed" == 0 ]]; then

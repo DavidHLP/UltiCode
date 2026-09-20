@@ -110,6 +110,9 @@ nacos_db_password="nacos_db_$(random_hex 24)"
 meili_master_key="meili_$(random_base64 32)"
 rustfs_access_key="ulticode_rustfs_$(random_hex 18)"
 rustfs_secret_key="ulticode_rustfs_$(random_hex 32)"
+# Single source for the loopback API port: the generated RUSTFS_API_PORT and the
+# host-run backend endpoint below must always agree.
+rustfs_api_port="9000"
 auth_db_password="auth_$(random_hex 18)"
 admin_db_password="admin_$(random_hex 18)"
 app_db_password="app_$(random_hex 18)"
@@ -247,11 +250,11 @@ RUSTFS_IMAGE_REF=rustfs/rustfs:1.0.0@sha256:8cc9801755448b71a786705ce76692c77e14
 RUSTFS_ACCESS_KEY="$rustfs_access_key"
 RUSTFS_SECRET_KEY="$rustfs_secret_key"
 RUSTFS_BUCKET=ulticode
-RUSTFS_API_PORT=9000
+RUSTFS_API_PORT="$rustfs_api_port"
 RUSTFS_CONSOLE_PORT=9001
 # Keep the host-run backend endpoint aligned with RUSTFS_API_PORT: the loopback
 # endpoint below is the only endpoint StorageProperties accepts without TLS.
-APP_STORAGE_S3_ENDPOINT="http://127.0.0.1:${RUSTFS_API_PORT}"
+APP_STORAGE_S3_ENDPOINT="http://127.0.0.1:$rustfs_api_port"
 APP_STORAGE_S3_REGION=us-east-1
 APP_STORAGE_S3_BUCKET=ulticode
 APP_STORAGE_S3_ACCESS_KEY="$rustfs_access_key"

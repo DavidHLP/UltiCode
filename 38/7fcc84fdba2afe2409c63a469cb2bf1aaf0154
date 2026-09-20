@@ -1,0 +1,16 @@
+apps/management/src/views/users/UserDetailDrawer.test.ts
+  h_77173abe25c3ff 198-224
+apps/management/src/views/users/UserDetailDrawer.vue
+  h_77173abe25c3ff 29,97,99
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "387fcc84fdba2afe2409c63a469cb2bf1aaf0154",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

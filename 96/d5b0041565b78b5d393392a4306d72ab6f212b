@@ -1,0 +1,14 @@
+scripts/test/graceful-drain-contract.sh
+  h_77173abe25c3ff 90
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "96d5b0041565b78b5d393392a4306d72ab6f212b",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

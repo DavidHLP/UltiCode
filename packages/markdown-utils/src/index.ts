@@ -166,6 +166,15 @@ const SAFE_STYLE_PROPERTIES = new Set([
 
 const SAFE_STYLE_DECLARATION = /^([a-z-]+):\s*(-?\d*\.?\d+(?:em|ex|pt|px|%)?)$/
 
+/**
+ * Largest magnitude a length may have. {@link MAX_KATEX_SIZE_EM} already caps
+ * what KaTeX emits, so this only backstops direct `sanitizeHtml` callers; it is
+ * set well above the height of any legitimately deep construction (a tall
+ * matrix stacks hundreds of em) and well below a value that would distort the
+ * page.
+ */
+const MAX_STYLE_MAGNITUDE = 10_000
+
 /** Keep only well-formed declarations of an allowlisted length property. */
 function narrowStyle(value: string): string {
   return value
@@ -175,9 +184,10 @@ function narrowStyle(value: string): string {
       const match = declaration.match(SAFE_STYLE_DECLARATION)
       if (!match) return null
       const [, property, size] = match
-      return property && size && SAFE_STYLE_PROPERTIES.has(property)
-        ? `${property}:${size}`
-        : null
+      if (!property || !size || !SAFE_STYLE_PROPERTIES.has(property)) return null
+      const magnitude = Number.parseFloat(size)
+      if (!Number.isFinite(magnitude) || Math.abs(magnitude) > MAX_STYLE_MAGNITUDE) return null
+      return `${property}:${size}`
     })
     .filter((declaration): declaration is string => declaration !== null)
     .join(';')
@@ -218,7 +228,16 @@ const md: MarkdownItInstance = new MarkdownIt({
   },
 })
 
-md.use(katex)
+// Untrusted problem statements, comments and forum posts reach KaTeX directly
+// and it honours user-specified sizes. Without a cap `\kern 999999999em` or
+// `\raisebox{99999999em}{x}` emits a dimension of that magnitude, which the
+// sanitizer below then preserves, handing the page an arbitrary scroll range.
+// KaTeX caps every user-specified size at `maxSize` ems; 100em is far above
+// what real typesetting reaches and the value degrades visibly rather than
+// throwing.
+const MAX_KATEX_SIZE_EM = 100
+
+md.use(katex, { maxSize: MAX_KATEX_SIZE_EM })
 
 // ---------------------------------------------------------------------------
 // Custom plugin: group consecutive fences with shared `{group="id"}` so they

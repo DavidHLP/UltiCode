@@ -315,6 +315,17 @@ describe('sanitizeHtml style attribute', () => {
     expect(out).not.toMatch(/z-index/i)
   })
 
+  it('rejects a length of absurd magnitude', () => {
+    const out = sanitizeHtml('<span style="height:999999999em;width:-999999999em">x</span>')
+    expect(out).not.toMatch(/999999999/)
+  })
+
+  it('keeps a large but plausible length', () => {
+    // A deep matrix legitimately stacks hundreds of em.
+    const out = sanitizeHtml('<span style="height:500em">x</span>')
+    expect(out).toContain('height:500em')
+  })
+
   it('drops an entire non-allowlisted declaration', () => {
     const out = sanitizeHtml('<span style="color:red;height:1em">x</span>')
     expect(out).not.toMatch(/color\s*:/i)
@@ -429,6 +440,30 @@ describe('katex', () => {
       expect(renderMarkdown(`$${tex}$`), tex).toMatch(/preserveAspectRatio="/)
     }
     expect(renderMarkdown('$\\sqrt{2}$')).toContain('preserveAspectRatio="xMinYMin slice"')
+  })
+
+  it('caps user-specified sizes so a formula cannot stretch the page', () => {
+    // KaTeX honours `\kern`, `\hspace`, `\rule` and `\raisebox` sizes, and the
+    // sanitizer now preserves dimensions, so an untrusted statement could
+    // otherwise emit a 1e9em box and an arbitrary scroll range.
+    for (const tex of [
+      '\\kern 999999999em x',
+      '\\hspace{1000000000em}x',
+      '\\rule{1em}{99999999em}',
+      '\\raisebox{99999999em}{x}',
+    ]) {
+      const html = renderMarkdown(`$${tex}$`)
+      const magnitudes = [...html.matchAll(/:(-?[\d.]+)em/g)].map((m) => Math.abs(Number(m[1])))
+      expect(Math.max(0, ...magnitudes), tex).toBeLessThanOrEqual(200)
+    }
+  })
+
+  it('leaves ordinary sizes alone', () => {
+    // The cap must not disturb real typesetting, so sizes below it pass
+    // through unchanged rather than being clamped to the cap.
+    expect(renderMarkdown('$\\hspace{50em}x$')).toMatch(/margin-right:50em/)
+    expect(renderMarkdown('$\\kern 30em x$')).toMatch(/margin-right:30em/)
+    expect(renderMarkdown('$\\hspace{1.5em}x$')).toMatch(/margin-right:1\.5em/)
   })
 
   it('sanitizes hostile HTML next to math', () => {

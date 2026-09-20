@@ -6,6 +6,7 @@ import com.ulticode.app.api.dto.ContestProblemInputDTO;
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
 
+import java.io.Serializable;
 import java.util.List;
 
 /**
@@ -31,7 +32,7 @@ public record CreateContestCommand(
         Boolean isPremium,
         Boolean isPublished,
         List<Long> problemIds,
-        List<ContestProblemInputDTO> problems) implements WriteCommand {
+        List<ContestProblemInputDTO> problems) implements WriteCommand, Serializable {
     private static final long serialVersionUID = 1L;
 
 

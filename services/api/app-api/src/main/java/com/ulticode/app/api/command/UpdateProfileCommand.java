@@ -1,5 +1,7 @@
 package com.ulticode.app.api.command;
 
+import java.io.Serializable;
+
 import com.ulticode.common.command.ActorDelegation;
 import com.ulticode.common.command.WriteCommand;
 import com.ulticode.common.tracing.IdMetadata;
@@ -36,7 +38,7 @@ public record UpdateProfileCommand(
         String location,
         String twitter,
         String website,
-        String preferredLanguage) implements WriteCommand {
+        String preferredLanguage) implements WriteCommand, Serializable {
     private static final long serialVersionUID = 1L;
 
 

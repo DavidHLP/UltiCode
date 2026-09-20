@@ -1,5 +1,7 @@
 package com.ulticode.app.api.command;
 
+import java.io.Serializable;
+
 import com.ulticode.common.command.ActorDelegation;
 import com.ulticode.common.command.WriteCommand;
 import com.ulticode.common.tracing.IdMetadata;
@@ -25,7 +27,7 @@ public record CreateProblemCommand(
         TraceMetadata trace,
         String slug,
         String title,
-        String authorAccountId) implements WriteCommand {
+        String authorAccountId) implements WriteCommand, Serializable {
     private static final long serialVersionUID = 1L;
 
 

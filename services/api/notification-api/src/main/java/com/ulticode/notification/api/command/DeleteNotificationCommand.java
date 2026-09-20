@@ -1,5 +1,7 @@
 package com.ulticode.notification.api.command;
 
+import java.io.Serializable;
+
 import com.ulticode.common.command.ActorDelegation;
 import com.ulticode.common.command.WriteCommand;
 import com.ulticode.common.tracing.IdMetadata;
@@ -17,7 +19,7 @@ public record DeleteNotificationCommand(
         IdMetadata idempotency,
         ActorDelegation actor,
         TraceMetadata trace,
-        String notificationId) implements WriteCommand {
+        String notificationId) implements WriteCommand, Serializable {
     private static final long serialVersionUID = 1L;
 
 

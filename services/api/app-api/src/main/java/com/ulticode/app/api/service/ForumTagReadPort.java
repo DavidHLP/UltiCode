@@ -1,5 +1,6 @@
 package com.ulticode.app.api.service;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -26,12 +27,12 @@ public interface ForumTagReadPort {
             String description,
             String color,
             Integer usageCount,
-            LocalDateTime createdAt) {}
+            LocalDateTime createdAt) implements Serializable {}
 
     /**
      * Paginated page of {@link ForumTagRow}.
      */
-    record ForumTagPage(List<ForumTagRow> rows, long total) {}
+    record ForumTagPage(List<ForumTagRow> rows, long total) implements Serializable {}
 
     /**
      * Paginated query over forum tags.

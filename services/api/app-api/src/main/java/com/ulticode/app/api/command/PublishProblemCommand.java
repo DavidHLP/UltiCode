@@ -1,5 +1,7 @@
 package com.ulticode.app.api.command;
 
+import java.io.Serializable;
+
 import com.ulticode.common.command.ActorDelegation;
 import com.ulticode.common.command.WriteCommand;
 import com.ulticode.common.tracing.IdMetadata;
@@ -22,7 +24,7 @@ public record PublishProblemCommand(
         String problemId,
         Long expectedVersion,
         boolean publish,
-        String rationale) implements WriteCommand {
+        String rationale) implements WriteCommand, Serializable {
     private static final long serialVersionUID = 1L;
 
 

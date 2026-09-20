@@ -41,6 +41,8 @@ public class AppSecurityConfig {
                 .requestMatchers("/moderation/**").hasAnyRole("MODERATOR", "ADMIN", "SUPER_ADMIN")
                 .requestMatchers("/monitoring/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
                 .requestMatchers(HttpMethod.GET,
+                        "/users/avatars/**").authenticated()
+                .requestMatchers(HttpMethod.GET,
                         "/achievements/my", "/achievements/points", "/achievements/user/me/**",
                         "/contest/user/**", "/contest/*/participation", "/contest/*/virtual/session",
                         "/contest/*/problems/*/submissions", "/forum/me/**",

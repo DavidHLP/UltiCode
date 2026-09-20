@@ -1,5 +1,6 @@
 package com.ulticode.app.user.port;
 
+import com.ulticode.modules.user.port.AvatarUrls;
 import com.ulticode.auth.api.dto.AuthAccountDTO;
 import com.ulticode.auth.api.error.AuthErrorCode;
 import com.ulticode.auth.api.service.AccountQueryService;
@@ -139,7 +140,7 @@ public class DefaultUserFactsReadProjection
         return new UserFactView(
                 account.id(), account.username(),
                 profile == null ? null : profile.getName(),
-                profile == null ? null : profile.getAvatar(),
+                AvatarUrls.resolve(account.id(), profile == null ? null : profile.getAvatar()),
                 account.joinedAt(), account.authUpdatedAt(),
                 profile == null ? null : profile.getUpdatedAt(),
                 account.deletedAt(), account.active(), account.banned());

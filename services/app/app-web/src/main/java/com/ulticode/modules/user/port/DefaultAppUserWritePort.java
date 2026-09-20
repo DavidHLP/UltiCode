@@ -4,6 +4,8 @@ import com.ulticode.app.userprofile.entity.UserProfile;
 import com.ulticode.app.userprofile.mapper.UserProfileMapper;
 import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.exception.BusinessException;
+import com.ulticode.common.storage.FileStoragePort;
+import com.ulticode.common.storage.StorageKeys;
 import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.user.dto.UpdateUserDTO;
 import com.ulticode.modules.user.dto.UserVO;
@@ -14,22 +16,18 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.ulticode.app.storage.FileStoragePort;
-
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
+import java.util.Locale;
 
 /**
  * App-side adapter for {@link AppUserWritePort}.
  *
  * <p>Profile mutations write exclusively to the App-owned
- * {@code user_profiles} table (canonical source).
- *
- * <p>Avatar upload delegates blob persistence to
- * {@link FileStoragePort}. The default local implementation preserves the
- * legacy behavior (uploads directory, UUID filename, content-type + size
- * validation); {@code app.storage.type=s3} moves blobs to a shared
- * object store so App replicas scale horizontally.
+ * {@code user_profiles} table (canonical source). Avatar bytes are stored in
+ * the mandatory shared object store before the profile row is updated.
  */
 @Slf4j
 @Service
@@ -112,57 +110,126 @@ public class DefaultAppUserWritePort implements AppUserWritePort {
         if (userId == null) {
             throw new BusinessException(BaseErrorCode.UNAUTHORIZED);
         }
-
         if (file == null || file.isEmpty()) {
             throw new BusinessException(BaseErrorCode.BAD_REQUEST, "File is required");
         }
-
-        long maxSize = 5 * 1024 * 1024;
+        long maxSize = 5L * 1024 * 1024;
         if (file.getSize() > maxSize) {
             throw new BusinessException(BaseErrorCode.BAD_REQUEST, "File size exceeds 5MB limit");
         }
+        validateExtension(file.getOriginalFilename());
 
-        String contentType = file.getContentType();
-        if (contentType == null || !contentType.startsWith("image/")) {
-            throw new BusinessException(BaseErrorCode.BAD_REQUEST, "Only image files are allowed");
+        byte[] content;
+        try {
+            content = file.getBytes();
+        } catch (IOException exception) {
+            throw new BusinessException(BaseErrorCode.BAD_REQUEST, "Failed to read avatar");
         }
-
-        String originalFilename = file.getOriginalFilename();
-        String ext = "";
-        if (originalFilename != null && originalFilename.contains(".")) {
-            String rawExt = originalFilename.substring(originalFilename.lastIndexOf(".")).toLowerCase();
-            ext = rawExt.replaceAll("[^a-z0-9]", "");
-            if (!ext.isEmpty() && !ext.equals("jpg") && !ext.equals("jpeg") &&
-                !ext.equals("png") && !ext.equals("gif") && !ext.equals("webp")) {
-                throw new BusinessException(BaseErrorCode.BAD_REQUEST, "Invalid file extension");
-            }
-            ext = "." + ext;
+        if (content.length == 0) {
+            throw new BusinessException(BaseErrorCode.BAD_REQUEST, "File is required");
         }
-        String filename = uuidGenerator.newId() + ext;
+        if (content.length > maxSize) {
+            throw new BusinessException(BaseErrorCode.BAD_REQUEST, "File size exceeds 5MB limit");
+        }
+        DetectedImage detected = detectImage(content);
+        String objectName = uuidGenerator.newId() + "." + detected.extension();
+        String key = StorageKeys.avatarKey(userId, objectName);
 
-        String key = "avatars/" + filename;
-        String avatarUrl;
-        try (InputStream in = file.getInputStream()) {
-            avatarUrl = fileStorage.put(key, in, file.getSize());
-        } catch (IOException | RuntimeException e) {
-            log.error("Failed to save avatar for user {}: {}", userId, e.getMessage());
+        UserProfile profile = userProfileMapper.selectById(userId);
+        String previousAvatar = profile == null ? null : profile.getAvatar();
+        try {
+            fileStorage.put(key, new ByteArrayInputStream(content), content.length, detected.contentType());
+        } catch (RuntimeException exception) {
+            log.warn("Avatar upload failed for user {}: {}", userId, exception.getMessage());
             throw new BusinessException(BaseErrorCode.BAD_REQUEST, "Failed to save avatar");
         }
 
-        UserProfile profile = userProfileMapper.selectById(userId);
-        if (profile == null) {
-            profile = new UserProfile();
-            profile.setAccountId(userId);
-            profile.setAvatar(avatarUrl);
-            userProfileMapper.insert(profile);
-        } else {
-            profile.setAvatar(avatarUrl);
-            userProfileMapper.updateById(profile);
+        try {
+            if (profile == null) {
+                profile = new UserProfile();
+                profile.setAccountId(userId);
+            }
+            profile.setAvatar(key);
+            if (previousAvatar == null) {
+                userProfileMapper.insert(profile);
+            } else {
+                userProfileMapper.updateById(profile);
+            }
+        } catch (RuntimeException exception) {
+            deleteQuietly(key);
+            throw exception;
         }
 
+        deleteQuietly(AvatarUrls.objectKey(userId, previousAvatar));
         publishUserDocument(userId);
-        log.info("Avatar uploaded for user {}: {}", userId, avatarUrl);
-        return avatarUrl;
+        String displayUrl = AvatarUrls.resolve(userId, key);
+        log.info("Avatar uploaded for user {}", userId);
+        return displayUrl;
+    }
+    private static void validateExtension(String originalFilename) {
+        if (originalFilename == null || originalFilename.isBlank()) {
+            return;
+        }
+        int dot = originalFilename.lastIndexOf('.');
+        if (dot < 0) {
+            return;
+        }
+        String extension = originalFilename.substring(dot + 1).toLowerCase(Locale.ROOT);
+        if (!switch (extension) {
+            case "jpg", "jpeg", "png", "gif", "webp" -> true;
+            default -> false;
+        }) {
+            throw new BusinessException(BaseErrorCode.BAD_REQUEST, "Invalid file extension");
+        }
+    }
+
+    private static DetectedImage detectImage(byte[] content) {
+        if (content.length >= 8
+                && (content[0] & 0xff) == 0x89 && content[1] == 0x50 && content[2] == 0x4e
+                && content[3] == 0x47 && content[4] == 0x0d && content[5] == 0x0a
+                && (content[6] & 0xff) == 0x1a && content[7] == 0x0a
+                && decodesImage(content)) {
+            return new DetectedImage("png", "image/png");
+        }
+        if (content.length >= 3 && (content[0] & 0xff) == 0xff && (content[1] & 0xff) == 0xd8
+                && (content[2] & 0xff) == 0xff && decodesImage(content)) {
+            return new DetectedImage("jpg", "image/jpeg");
+        }
+        if (content.length >= 6
+                && (content[0] == 'G' && content[1] == 'I' && content[2] == 'F')
+                && (content[3] == '8') && (content[4] == '7' || content[4] == '9') && content[5] == 'a'
+                && decodesImage(content)) {
+            return new DetectedImage("gif", "image/gif");
+        }
+        if (content.length >= 12
+                && content[0] == 'R' && content[1] == 'I' && content[2] == 'F' && content[3] == 'F'
+                && content[8] == 'W' && content[9] == 'E' && content[10] == 'B' && content[11] == 'P') {
+            return new DetectedImage("webp", "image/webp");
+        }
+        throw new BusinessException(BaseErrorCode.BAD_REQUEST, "File content is not a supported image");
+    }
+
+    private static boolean decodesImage(byte[] content) {
+        try {
+            BufferedImage image = ImageIO.read(new ByteArrayInputStream(content));
+            return image != null;
+        } catch (IOException exception) {
+            return false;
+        }
+    }
+
+    private void deleteQuietly(String key) {
+        if (key == null) {
+            return;
+        }
+        try {
+            fileStorage.delete(key);
+        } catch (RuntimeException exception) {
+            log.warn("Failed to delete stale avatar object: {}", exception.getMessage());
+        }
+    }
+
+    private record DetectedImage(String extension, String contentType) {
     }
 
     private UserVO toVO(UserProfile profile) {
@@ -172,9 +239,8 @@ public class DefaultAppUserWritePort implements AppUserWritePort {
         UserVO vo = new UserVO();
         vo.setId(profile.getAccountId());
         vo.setName(profile.getName());
-        vo.setAvatar(profile.getAvatar());
+        vo.setAvatar(AvatarUrls.resolve(profile.getAccountId(), profile.getAvatar()));
         vo.setBio(profile.getBio());
-        vo.setCompany(profile.getCompany());
         vo.setGithub(profile.getGithub());
         vo.setLocation(profile.getLocation());
         vo.setTwitter(profile.getTwitter());

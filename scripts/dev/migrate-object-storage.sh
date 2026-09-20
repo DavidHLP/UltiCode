@@ -30,7 +30,8 @@ Configuration (environment or .env):
   APP_STORAGE_S3_ACCESS_KEY or RUSTFS_ACCESS_KEY
   APP_STORAGE_S3_SECRET_KEY or RUSTFS_SECRET_KEY
   RUSTFS_BUCKET
-  APP_DB_* / ADMIN_DB_* (or MIGRATION_DB_*, then DB_* as fallback)
+  APP_DB_* / ADMIN_DB_* (host/port/user/password fall back to MIGRATION_DB_*,
+                         then DB_*; owner schema names default to app/admin)
   AWS_BIN (optional host aws executable override)
   MIGRATION_DOCKER_NETWORK (optional Docker network override for the container fallback)
 

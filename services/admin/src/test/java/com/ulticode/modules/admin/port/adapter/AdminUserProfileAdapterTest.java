@@ -1,6 +1,7 @@
 package com.ulticode.modules.admin.port.adapter;
 
 import com.ulticode.app.api.command.UploadAvatarCommand;
+import com.ulticode.app.api.error.AppErrorCode;
 import com.ulticode.app.api.dto.ProfileWriteResult;
 import com.ulticode.app.api.service.ProfileWriteService;
 import com.ulticode.common.auth.CurrentUserProvider;
@@ -78,12 +79,28 @@ class AdminUserProfileAdapterTest {
         when(uuidGenerator.newId()).thenReturn("uuid-1");
         byte[] png = Base64.getDecoder().decode(
                 "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
-        when(profileWriteService.uploadAvatar(any())).thenThrow(new RuntimeException("provider down"));
+        when(profileWriteService.uploadAvatar(any()))
+                .thenReturn(RpcResult.failure(AppErrorCode.UNEXPECTED_APP_STATE, "trace-1"));
+
+        assertThatThrownBy(() -> adapter.uploadAvatar("user-1",
+                new MockMultipartFile("file", "photo.png", "image/png", png)))
+                .hasMessageContaining("Unexpected app state");
+
+        verify(fileStorage).delete("app/avatars/user-1/uuid-1.png");
+    }
+
+    @Test
+    void keepsObjectWhenProfileWriteOutcomeIsUnknown() {
+        when(currentUserProvider.getCurrentUserId()).thenReturn("admin-1");
+        when(uuidGenerator.newId()).thenReturn("uuid-1");
+        byte[] png = Base64.getDecoder().decode(
+                "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+        when(profileWriteService.uploadAvatar(any())).thenThrow(new RuntimeException("provider timeout"));
 
         assertThatThrownBy(() -> adapter.uploadAvatar("user-1",
                 new MockMultipartFile("file", "photo.png", "image/png", png)))
                 .hasMessageContaining("Profile write RPC failed");
 
-        verify(fileStorage).delete("app/avatars/user-1/uuid-1.png");
+        verify(fileStorage, org.mockito.Mockito.never()).delete(any());
     }
 }

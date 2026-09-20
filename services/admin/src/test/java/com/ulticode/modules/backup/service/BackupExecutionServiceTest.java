@@ -152,6 +152,28 @@ class BackupExecutionServiceTest {
             assertFalse(Files.exists(dumpPath.get()));
             verify(fileStorage).putFile(any(), any(Path.class), eq("application/sql"));
         }
+        @Test
+        @DisplayName("DB update failure after upload removes the uploaded object")
+        void shouldRemoveObjectWhenCompletedStateCannotBePersisted() throws Exception {
+            Backup backup = pendingBackup();
+            when(backupMapper.selectById(BACKUP_ID)).thenReturn(backup);
+            when(backupProcessPort.dump(any(Path.class))).thenAnswer(invocation -> {
+                Path dump = invocation.getArgument(0);
+                Files.writeString(dump, "-- fake dump");
+                return true;
+            });
+            when(backupMapper.updateById(any(Backup.class)))
+                    .thenReturn(1)
+                    .thenThrow(new RuntimeException("database unavailable"))
+                    .thenReturn(1);
+
+            executionService.executeBackup(BACKUP_ID);
+
+            String objectKey = "admin/backups/2026/01/" + BACKUP_ID + ".sql";
+            verify(fileStorage).putFile(eq(objectKey), any(Path.class), eq("application/sql"));
+            verify(fileStorage).delete(objectKey);
+            assertEquals(BackupStatus.FAILED, backup.getStatus());
+        }
 
         @Test
         @DisplayName("IN_PROGRESS -> FAILED when dump reports failure")
@@ -190,7 +212,6 @@ class BackupExecutionServiceTest {
                     "backup must reach FAILED when the file is missing after dump");
             assertNotNull(finalState.getError());
         }
-
         @Test
         @DisplayName("IN_PROGRESS -> FAILED when dump throws, error message captured")
         void shouldFailWhenDumpThrows() {

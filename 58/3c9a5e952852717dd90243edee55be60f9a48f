@@ -1,0 +1,14 @@
+scripts/dev/migrate-object-storage-test.sh
+  h_77173abe25c3ff 366-368,382-384
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "583c9a5e952852717dd90243edee55be60f9a48f",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

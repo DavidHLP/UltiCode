@@ -10,13 +10,16 @@ AVATARS="$TMP_DIR/avatars"
 BACKUPS="$TMP_DIR/backups"
 OBJECTS="$TMP_DIR/objects"
 AWS_LOG="$TMP_DIR/aws.log"
+AWS_ENV_LOG="$TMP_DIR/aws-env.log"
 MYSQL_LOG="$TMP_DIR/mysql.log"
 DB_STATE="$TMP_DIR/db-state"
 ENV_FILE="$TMP_DIR/.env"
+CA_FILE="$TMP_DIR/rustfs-ca.pem"
 mkdir -p "$BIN" "$AVATARS" "$BACKUPS" "$OBJECTS" "$DB_STATE"
 : >"$AWS_LOG"
+: >"$AWS_ENV_LOG"
 : >"$MYSQL_LOG"
-
+printf '%s\n' '-----BEGIN CERTIFICATE-----' 'fake' '-----END CERTIFICATE-----' >"$CA_FILE"
 printf 'avatar-data' >"$AVATARS/avatar.png"
 printf 'dump' >"$BACKUPS/backup_FULL_20260920_120000.sql"
 BACKUP_SIZE="$(stat -c '%s' "$BACKUPS/backup_FULL_20260920_120000.sql")"
@@ -70,6 +73,11 @@ chmod +x "$BIN/mysql"
 cat >"$BIN/aws" <<'FAKE_AWS'
 #!/usr/bin/env bash
 set -euo pipefail
+if [[ -v AWS_CA_BUNDLE ]]; then
+  printf 'AWS_CA_BUNDLE=%s\n' "$AWS_CA_BUNDLE" >>"$FAKE_AWS_ENV_LOG"
+else
+  printf 'AWS_CA_BUNDLE=UNSET\n' >>"$FAKE_AWS_ENV_LOG"
+fi
 printf '%q ' "$@" >>"$FAKE_AWS_LOG"
 printf '\n' >>"$FAKE_AWS_LOG"
 service=""
@@ -123,8 +131,9 @@ chmod +x "$BIN/aws"
 
 export PATH="$BIN:$PATH"
 export ENV_FILE AWS_BIN="$BIN/aws"
-export FAKE_AWS_LOG="$AWS_LOG" FAKE_MYSQL_LOG="$MYSQL_LOG"
+export FAKE_AWS_LOG="$AWS_LOG" FAKE_AWS_ENV_LOG="$AWS_ENV_LOG" FAKE_MYSQL_LOG="$MYSQL_LOG"
 export FAKE_OBJECTS="$OBJECTS" FAKE_DB_STATE="$DB_STATE" FAKE_BACKUP_SIZE="$BACKUP_SIZE"
+unset AWS_CA_BUNDLE APP_STORAGE_S3_CA_CERTIFICATE RUSTFS_TLS_CA_CERT
 
 assert_contains() {
   local haystack="$1" needle="$2"
@@ -147,6 +156,15 @@ assert_contains "$dry_run_output" "PLAN type=backup"
 assert_contains "$dry_run_output" "MIGRATION_SUMMARY total=2 uploaded=0"
 assert_not_contains "$(<"$AWS_LOG")" "put-object"
 assert_not_contains "$(<"$MYSQL_LOG")" "UPDATE"
+assert_contains "$(<"$AWS_ENV_LOG")" "AWS_CA_BUNDLE=UNSET"
+
+# A configured PEM is passed to the host AWS client through AWS_CA_BUNDLE.
+: >"$AWS_ENV_LOG"
+export APP_STORAGE_S3_CA_CERTIFICATE="$CA_FILE"
+ca_output="$(run_migration --only avatars --limit 1 2>&1)"
+assert_contains "$ca_output" "MIGRATION_SUMMARY total=1"
+assert_contains "$(<"$AWS_ENV_LOG")" "AWS_CA_BUNDLE=$CA_FILE"
+unset APP_STORAGE_S3_CA_CERTIFICATE
 
 # An existing object with matching size and ETag is reused; no duplicate put.
 : >"$AWS_LOG"; : >"$MYSQL_LOG"; rm -f -- "$DB_STATE/avatar" "$DB_STATE/backup" "$OBJECTS"/*

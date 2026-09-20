@@ -33,6 +33,7 @@ Configuration (environment or .env):
   APP_DB_* / ADMIN_DB_* (or MIGRATION_DB_*, then DB_* as fallback)
   AWS_BIN (optional host aws executable override)
 
+The tool uses the host AWS CLI v2 when available. If it is absent and Docker is
 available, it uses the pinned Docker Hub amazon/aws-cli image
 amazon/aws-cli:2.31.0@sha256:d5f18fde2ba3f9205e75d511ca3e6185c144e55df07e50eee16d940994557b40.
 The host binary is useful for local operators and fake-binary tests; the
@@ -51,6 +52,7 @@ source "$ROOT_DIR/scripts/dev/lib/common.sh"
 capture_env_vars \
   APP_STORAGE_S3_ENDPOINT APP_STORAGE_S3_REGION APP_STORAGE_S3_TLS_ENABLED \
   APP_STORAGE_S3_ACCESS_KEY APP_STORAGE_S3_SECRET_KEY APP_STORAGE_S3_BUCKET \
+  APP_STORAGE_S3_CA_CERTIFICATE RUSTFS_TLS_CA_CERT \
   RUSTFS_ENDPOINT RUSTFS_S3_ENDPOINT RUSTFS_REGION RUSTFS_TLS_ENABLED \
   RUSTFS_ACCESS_KEY RUSTFS_SECRET_KEY RUSTFS_BUCKET \
   APP_DB_HOST APP_DB_PORT APP_DB_NAME APP_DB_USER APP_DB_PASSWORD \
@@ -107,6 +109,7 @@ S3_ACCESS_KEY="${APP_STORAGE_S3_ACCESS_KEY:-${RUSTFS_ACCESS_KEY:-}}"
 S3_SECRET_KEY="${APP_STORAGE_S3_SECRET_KEY:-${RUSTFS_SECRET_KEY:-}}"
 S3_BUCKET="${BUCKET_OVERRIDE:-${RUSTFS_BUCKET:-${APP_STORAGE_S3_BUCKET:-ulticode}}}"
 S3_TLS_ENABLED="${APP_STORAGE_S3_TLS_ENABLED:-${RUSTFS_TLS_ENABLED:-}}"
+S3_CA_CERTIFICATE="${APP_STORAGE_S3_CA_CERTIFICATE:-${RUSTFS_TLS_CA_CERT:-}}"
 if [[ -z "$S3_TLS_ENABLED" ]]; then
   [[ "$S3_ENDPOINT" == https://* ]] && S3_TLS_ENABLED=true || S3_TLS_ENABLED=false
 fi
@@ -128,6 +131,16 @@ fi
   echo "Invalid S3 bucket name" >&2
   exit 2
 }
+if [[ -n "$S3_CA_CERTIFICATE" ]]; then
+  case "$S3_CA_CERTIFICATE" in
+    /*) ;;
+    *) S3_CA_CERTIFICATE="$ROOT_DIR/$S3_CA_CERTIFICATE" ;;
+  esac
+  [[ -f "$S3_CA_CERTIFICATE" ]] || {
+    echo "S3 CA certificate does not exist: $S3_CA_CERTIFICATE" >&2
+    exit 2
+  }
+fi
 case "$AVATAR_DIR" in
   /*) ;;
   *) AVATAR_DIR="$ROOT_DIR/$AVATAR_DIR" ;;
@@ -197,12 +210,25 @@ DB_UPDATED=0
 aws_call() {
   local -a common=(--endpoint-url "$S3_ENDPOINT" --region "$S3_REGION")
   if [[ "$S3_CLIENT_MODE" == host ]]; then
-    AWS_ACCESS_KEY_ID="$S3_ACCESS_KEY" AWS_SECRET_ACCESS_KEY="$S3_SECRET_KEY" \
-      AWS_DEFAULT_REGION="$S3_REGION" "$AWS_BIN" "${common[@]}" "$@"
+    local -a aws_env=(
+      "AWS_ACCESS_KEY_ID=$S3_ACCESS_KEY"
+      "AWS_SECRET_ACCESS_KEY=$S3_SECRET_KEY"
+      "AWS_DEFAULT_REGION=$S3_REGION"
+    )
+    if [[ -n "$S3_CA_CERTIFICATE" ]]; then
+      aws_env+=("AWS_CA_BUNDLE=$S3_CA_CERTIFICATE")
+    fi
+    env "${aws_env[@]}" "$AWS_BIN" "${common[@]}" "$@"
+  elif [[ -n "$S3_CA_CERTIFICATE" ]]; then
+    docker run --rm --network host \
+      -e "AWS_ACCESS_KEY_ID=$S3_ACCESS_KEY" -e "AWS_SECRET_ACCESS_KEY=$S3_SECRET_KEY" \
+      -e "AWS_DEFAULT_REGION=$S3_REGION" -e AWS_CA_BUNDLE=/tmp/ulticode-s3-ca.pem \
+      -v "$S3_CA_CERTIFICATE:/tmp/ulticode-s3-ca.pem:ro" \
+      "$AWS_CLI_IMAGE" "${common[@]}" "$@"
   else
     docker run --rm --network host \
-      -e AWS_ACCESS_KEY_ID="$S3_ACCESS_KEY" -e AWS_SECRET_ACCESS_KEY="$S3_SECRET_KEY" \
-      -e AWS_DEFAULT_REGION="$S3_REGION" "$AWS_CLI_IMAGE" "${common[@]}" "$@"
+      -e "AWS_ACCESS_KEY_ID=$S3_ACCESS_KEY" -e "AWS_SECRET_ACCESS_KEY=$S3_SECRET_KEY" \
+      -e "AWS_DEFAULT_REGION=$S3_REGION" "$AWS_CLI_IMAGE" "${common[@]}" "$@"
   fi
 }
 

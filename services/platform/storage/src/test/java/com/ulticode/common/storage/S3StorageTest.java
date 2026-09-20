@@ -14,6 +14,7 @@ import org.mockito.quality.Strictness;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpHeaders;
@@ -34,6 +35,7 @@ import javax.crypto.spec.SecretKeySpec;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -48,6 +50,8 @@ class S3StorageTest {
 
     @Mock private HttpClient httpClient;
     @Mock private HttpResponse<byte[]> response;
+    @Mock private HttpResponse<InputStream> streamResponse;
+    @Mock private InputStream responseBody;
     @Mock private HttpHeaders responseHeaders;
 
     private StorageProperties properties;
@@ -138,6 +142,20 @@ class S3StorageTest {
         void getMissingIsEmpty() throws Exception {
             respond(404, new byte[0], null);
             assertThat(storage.get("avatars/gone.png")).isEmpty();
+        }
+        @Test
+        void openStreamClosesErrorBody() throws Exception {
+            when(streamResponse.statusCode()).thenReturn(500);
+            when(streamResponse.body()).thenReturn(responseBody);
+            doReturn(streamResponse).when(httpClient).send(any(HttpRequest.class), any());
+
+            assertThatThrownBy(() -> storage.openStream("avatars/broken.png"))
+                    .isInstanceOf(StorageException.class)
+                    .hasMessageContaining("500");
+
+            // A 5xx is retried, so the body of every failed attempt must be closed;
+            // assert "closed at least once" instead of an exact invocation count.
+            verify(responseBody, atLeastOnce()).close();
         }
 
         @Test

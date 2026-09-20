@@ -1,0 +1,25 @@
+services/app/app-web/src/test/java/com/ulticode/app/architecture/MultipartLimitsConfigurationTest.java
+  s_aa33514364f4e1::t_4081348b298545 1-37
+services/app/app-web/src/test/java/com/ulticode/modules/user/port/DefaultAppUserWritePortTest.java
+  s_aa33514364f4e1::t_6fb62171069cc6 27-33,201-232,345-358
+services/platform/storage/src/main/java/com/ulticode/common/storage/S3Storage.java
+  s_aa33514364f4e1::t_754a0c536c5337 5,112-118,120-156,159,271-327
+services/platform/storage/src/test/java/com/ulticode/common/storage/S3StorageTest.java
+  s_aa33514364f4e1::t_18e2f8b4b1be59 161-208
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "81628e4364dad1ee476202525094756c89fa89ba",
+  "prompts": {},
+  "sessions": {
+    "s_aa33514364f4e1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "3b397a92-58ca-4252-8232-f281ba8d72e8",
+        "model": "deepseek-v4.1-flash"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

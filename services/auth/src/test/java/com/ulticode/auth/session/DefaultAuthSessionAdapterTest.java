@@ -62,9 +62,25 @@ class DefaultAuthSessionAdapterTest {
                         "Secure", "HttpOnly", "SameSite=Lax");
         String csrfToken = session.response().getCsrfToken();
         assertThat(cookie(headers, "csrf_token"))
-                .contains("csrf_token=" + csrfToken, "Path=/", "Domain=example.test", "Max-Age=900",
+                .contains("csrf_token=" + csrfToken, "Path=/", "Domain=example.test", "Max-Age=604800",
                         "Secure", "SameSite=Lax")
                 .doesNotContain("HttpOnly");
+    }
+
+    @Test
+    void csrfCookieOutlivesEveryCredentialCookie() {
+        // CookieCsrfFilter demands the header whenever an access or refresh cookie
+        // is present. A CSRF cookie tied to the 15-minute access lifetime would
+        // disappear while the 7-day refresh cookie remains, and the client could
+        // never mint another one: login and refresh are POST endpoints under the
+        // same filter, and /auth/me needs a valid access token.
+        AuthSession session = completeLogin();
+
+        int access = session.cookies().get(0).maxAgeSeconds();
+        int refresh = session.cookies().get(1).maxAgeSeconds();
+        int csrf = session.cookies().get(2).maxAgeSeconds();
+
+        assertThat(csrf).isGreaterThanOrEqualTo(access).isGreaterThanOrEqualTo(refresh);
     }
 
     @Test

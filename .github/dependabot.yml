@@ -162,13 +162,31 @@ updates:
     # artifacts here; same-line patch and minor releases still apply.
     #
     # Tradeoff: Dependabot applies `ignore` to version updates and to security
-    # updates, so these three artifacts will also stop receiving security
+    # updates, so these artifacts will also stop receiving security
     # update PRs. Watch advisories against Boot 3.5.x, testcontainers 1.21.x
     # and springdoc 2.x manually and lift the matching rule when one lands.
+    #
+    # OkHttp 5 is not a usable upgrade on plain Maven: the 5.x `okhttp` artifact
+    # is published as a Kotlin Multiplatform module and its non-JVM jar is an
+    # empty stub (okhttp-5.5.0.jar is 754 bytes with zero class files; the JVM
+    # classes live in `okhttp-jvm`). Dependabot's bump edits only the
+    # `<okhttp.version>` property in services/pom.xml, which reinstalls exactly
+    # the stub that pinned 4.12.0 removed: services crash-loop at startup with
+    # `NoClassDefFoundError: okhttp3/MediaType` through meilisearch-java 0.21.0
+    # and `okhttp3/Interceptor` through the OTLP exporter (see commit 9f46b79de
+    # and PR #202). Green Backend CI on that PR is not evidence of compatibility
+    # - the failure is a startup path, not a test path.
+    #
+    # Lift when services/pom.xml manages `com.squareup.okhttp3:okhttp-jvm`
+    # explicitly, OTel is >= 1.53 (whose sender-okhttp moved to okhttp-jvm; this
+    # repo resolves 1.49.0 through Spring Boot 3.5.x, compiled against okhttp 4)
+    # and a meilisearch-java release declares okhttp-jvm as well.
     ignore:
       - dependency-name: "org.springframework.boot:spring-boot-starter-parent"
         update-types: ["version-update:semver-major"]
       - dependency-name: "org.testcontainers:testcontainers-bom"
         update-types: ["version-update:semver-major"]
       - dependency-name: "org.springdoc:springdoc-openapi-starter-webmvc-ui"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "com.squareup.okhttp3:okhttp"
         update-types: ["version-update:semver-major"]

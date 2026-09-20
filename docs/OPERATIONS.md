@@ -158,7 +158,7 @@ docker run --rm -v "${RUSTFS_VOLUMES[0]}:/data:ro" -v "$PWD:/backup" alpine \
   label（优先匹配 `COMPOSE_PROJECT_NAME`，无项目名时要求唯一匹配）解析
   `AVATAR_UPLOAD_VOL`（默认 `app_uploads`）和 `BACKUP_VOLUME`（默认 `backup_data`）的宿主机
   挂载点；头像卷兼容卷根、`uploads/avatars/` 和 `avatars/` 布局，备份卷读取卷根目录。
-  若 Docker 无法唯一解析显式卷名，脚本会 fail closed；也可用
+  若 Docker 无法唯一解析 legacy volume（包括默认卷），脚本会 fail closed；也可用
   `--legacy-avatar-dir` / `--legacy-backup-dir` 指向已审计的只读提取目录。源卷和旧文件始终不删除。
 - 头像迁移用原始 SQL 更新 `user_profiles.avatar`，不会自动产生
   `SearchDocumentChanged` outbox 事件。只要本次 `--apply` 更新了头像行，脚本就会

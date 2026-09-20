@@ -1,6 +1,7 @@
 package com.ulticode.admin.adapter.in.web;
 
 import com.ulticode.common.health.ReadinessChecks;
+import com.ulticode.common.storage.StorageReadiness;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import javax.sql.DataSource;
@@ -27,6 +28,7 @@ public class AdminReadinessController {
 
     private final DataSource dataSource;
     private final StringRedisTemplate redisTemplate;
+    private final StorageReadiness storageReadiness;
 
     /**
      * Dependencies resolve through {@link ObjectProvider} so contexts that
@@ -35,9 +37,12 @@ public class AdminReadinessController {
      * whole context.
      */
     public AdminReadinessController(org.springframework.beans.factory.ObjectProvider<DataSource> dataSourceProvider,
-                  org.springframework.beans.factory.ObjectProvider<StringRedisTemplate> redisTemplateProvider) {
+                  org.springframework.beans.factory.ObjectProvider<StringRedisTemplate> redisTemplateProvider,
+                  org.springframework.beans.factory.ObjectProvider<StorageReadiness> storageReadinessProvider) {
         this.dataSource = dataSourceProvider.getIfAvailable();
         this.redisTemplate = redisTemplateProvider.getIfAvailable();
+        // Absent only in contexts that do not carry the shared storage module.
+        this.storageReadiness = storageReadinessProvider.getIfAvailable();
     }
 
     @GetMapping("/health/ready")
@@ -45,6 +50,8 @@ public class AdminReadinessController {
         Map<String, Boolean> components = new LinkedHashMap<>();
         components.put("db", ReadinessChecks.dataSourceUp(dataSource));
         components.put("redis", redisUp());
+        // Admin writes backup objects: report the recorded startup-gate outcome.
+        components.put("storage", storageReadiness == null || storageReadiness.isReady());
         boolean allUp = components.values().stream().allMatch(Boolean::booleanValue);
         return ResponseEntity
                 .status(allUp ? HttpStatus.OK : HttpStatus.SERVICE_UNAVAILABLE)

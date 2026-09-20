@@ -1,6 +1,7 @@
 package com.ulticode.app.adapter.in.web;
 
 import com.ulticode.common.health.ReadinessChecks;
+import com.ulticode.common.storage.StorageReadiness;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import javax.sql.DataSource;
@@ -27,6 +28,7 @@ public class AppReadinessController {
 
     private final DataSource dataSource;
     private final StringRedisTemplate redisTemplate;
+    private final StorageReadiness storageReadiness;
 
     /**
      * The DataSource is resolved through {@link ObjectProvider} so contexts
@@ -35,9 +37,12 @@ public class AppReadinessController {
      * the whole context.
      */
     public AppReadinessController(org.springframework.beans.factory.ObjectProvider<DataSource> dataSourceProvider,
-                                  StringRedisTemplate redisTemplate) {
+                                  StringRedisTemplate redisTemplate,
+                                  org.springframework.beans.factory.ObjectProvider<StorageReadiness> storageReadinessProvider) {
         this.dataSource = dataSourceProvider.getIfAvailable();
         this.redisTemplate = redisTemplate;
+        // Absent only in contexts that do not carry the shared storage module.
+        this.storageReadiness = storageReadinessProvider.getIfAvailable();
     }
 
     @GetMapping("/health/ready")
@@ -45,6 +50,10 @@ public class AppReadinessController {
         Map<String, Boolean> components = new LinkedHashMap<>();
         components.put("db", ReadinessChecks.dataSourceUp(dataSource));
         components.put("redis", redisUp());
+        // The object store is mandatory: a boot that reached this endpoint already
+        // verified it (the startup gate runs during context refresh), so this reports
+        // the recorded outcome instead of assuming success.
+        components.put("storage", storageReadiness == null || storageReadiness.isReady());
         boolean allUp = components.values().stream().allMatch(Boolean::booleanValue);
         return ResponseEntity
                 .status(allUp ? HttpStatus.OK : HttpStatus.SERVICE_UNAVAILABLE)

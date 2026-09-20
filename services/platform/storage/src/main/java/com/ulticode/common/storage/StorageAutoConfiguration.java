@@ -15,7 +15,13 @@ public class StorageAutoConfiguration {
     }
 
     @Bean
-    public StorageStartupProbe storageStartupProbe(FileStoragePort storage, StorageProperties properties) {
-        return new StorageStartupProbe((S3Storage) storage, properties);
+    public StorageReadiness storageReadiness() {
+        return new StorageReadiness();
+    }
+
+    @Bean
+    public StorageStartupProbe storageStartupProbe(FileStoragePort storage, StorageProperties properties,
+                                                   StorageReadiness readiness) {
+        return new StorageStartupProbe((S3Storage) storage, properties, readiness);
     }
 }

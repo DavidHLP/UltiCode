@@ -119,7 +119,9 @@ Notification 是 `notifications`、preferences、delivery ledger 的唯一 write
 
 RustFS 是开发、测试、生产共同的必需基础设施，仓库不提供本地磁盘回退。应用在启动时校验
 `APP_STORAGE_S3_*`（endpoint、region、bucket、access key、secret key、TLS 开关），缺失即启动失败；
-启动后还会对 bucket 做有界重试探测（`APP_STORAGE_STARTUP_PROBE_*`），仍不可用则明确失败，不会静默改写本地目录。
+随后在**上下文刷新期间**对 bucket 做有界重试探测（`APP_STORAGE_STARTUP_PROBE_*`，默认 30×2s），仍不可用则本次启动失败，
+且此时 HTTP 端口尚未对外服务；两个 owner 的 `/health/ready` 同时报告 `storage` 组件（`UP`/`DOWN`），
+不会在对象存储未经验证时返回就绪。任何情况下都不会静默改写本地目录。
 
 ### 桶、前缀与权限
 

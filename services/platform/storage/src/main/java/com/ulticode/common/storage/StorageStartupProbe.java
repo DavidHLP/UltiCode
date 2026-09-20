@@ -1,9 +1,11 @@
 package com.ulticode.common.storage;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 
 /** Runs a bounded S3 readiness check after the application is ready to serve. */
+@Slf4j
 public class StorageStartupProbe {
 
     private final S3Storage storage;
@@ -18,6 +20,8 @@ public class StorageStartupProbe {
     public void verify() {
         StorageProperties.StartupProbe probe = properties.getStartupProbe();
         if (!probe.isEnabled()) {
+            log.warn("Object-store startup probe is disabled (app.storage.startup-probe.enabled=false); "
+                    + "RustFS availability is not verified at boot");
             return;
         }
         StorageException last = null;

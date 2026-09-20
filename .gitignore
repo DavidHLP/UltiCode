@@ -299,3 +299,6 @@ services/**/.flattened-pom.xml
 # graphify query/AST caches are pure generated artifacts — never commit them
 services/graphify-out/cache/
 graphify-out/cache/
+
+# graphify hook backups of the config it rewrites
+*.graphify-bak

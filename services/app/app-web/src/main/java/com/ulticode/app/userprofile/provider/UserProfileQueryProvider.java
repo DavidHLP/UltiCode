@@ -1,6 +1,7 @@
 package com.ulticode.app.userprofile.provider;
 
 import com.ulticode.app.api.dto.UserProfileDTO;
+import com.ulticode.modules.user.port.AvatarUrls;
 import com.ulticode.app.api.service.UserProfileQueryService;
 import com.ulticode.app.user.port.UserProfileReadMapper;
 import com.ulticode.common.rpc.RpcResult;
@@ -39,6 +40,8 @@ public class UserProfileQueryProvider implements UserProfileQueryService {
         UserProfileDTO dto = profileReadMapper.findByAccountId(cleanId);
         if (dto == null) {
             dto = UserProfileDTO.empty(cleanId);
+        } else {
+            dto = resolveAvatar(dto);
         }
         return RpcResult.success(dto, DEFAULT_TRACE_ID);
     }
@@ -56,7 +59,10 @@ public class UserProfileQueryProvider implements UserProfileQueryService {
             return RpcResult.success(List.of(), DEFAULT_TRACE_ID);
         }
 
-        List<UserProfileDTO> existing = profileReadMapper.findByAccountIds(cleanIds);
+        List<UserProfileDTO> existing = profileReadMapper.findByAccountIds(cleanIds).stream()
+                .filter(Objects::nonNull)
+                .map(this::resolveAvatar)
+                .toList();
         Set<String> foundAccountIds = existing.stream()
                 .filter(Objects::nonNull)
                 .map(UserProfileDTO::accountId)
@@ -69,5 +75,12 @@ public class UserProfileQueryProvider implements UserProfileQueryService {
             }
         }
         return RpcResult.success(allProfiles, DEFAULT_TRACE_ID);
+    }
+
+    private UserProfileDTO resolveAvatar(UserProfileDTO dto) {
+        return new UserProfileDTO(
+                dto.accountId(), dto.name(), AvatarUrls.resolve(dto.accountId(), dto.avatar()),
+                dto.bio(), dto.company(), dto.github(), dto.location(), dto.twitter(), dto.website(),
+                dto.preferredLanguage());
     }
 }

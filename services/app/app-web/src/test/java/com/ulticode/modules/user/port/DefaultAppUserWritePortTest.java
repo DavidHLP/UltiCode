@@ -4,18 +4,17 @@ import com.ulticode.app.userprofile.entity.UserProfile;
 import com.ulticode.app.userprofile.mapper.UserProfileMapper;
 import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.app.storage.LocalStorage;
-import com.ulticode.app.storage.StorageProperties;
+import com.ulticode.common.storage.FileStoragePort;
 import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.user.dto.UpdateUserDTO;
 import com.ulticode.modules.user.dto.UserVO;
-import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
@@ -26,9 +25,10 @@ import org.springframework.web.multipart.MultipartFile;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
 
 /**
  * Focused tests for {@link DefaultAppUserWritePort} profile write paths.
@@ -43,21 +43,16 @@ class DefaultAppUserWritePortTest {
 
     @Mock private UserProfileMapper userProfileMapper;
     @Mock private UuidGenerator uuidGenerator;
+    @Mock private FileStoragePort fileStorage;
     @Mock private com.ulticode.modules.search.port.UserDirectoryQueryPort userDirectoryQueryPort;
     @Mock private com.ulticode.modules.search.source.SearchDocumentChangedPublisher searchPublisher;
-
-    @TempDir
-    java.nio.file.Path tempDir;
 
     private DefaultAppUserWritePort port;
 
     @BeforeEach
     void setUp() {
-        StorageProperties storageProperties = new StorageProperties();
-        storageProperties.getLocal().setRootDir(tempDir.toString());
-        LocalStorage localStorage = new LocalStorage(storageProperties);
         port = new DefaultAppUserWritePort(userProfileMapper, uuidGenerator,
-                localStorage, userDirectoryQueryPort, searchPublisher);
+                fileStorage, userDirectoryQueryPort, searchPublisher);
     }
 
     @Nested
@@ -195,22 +190,65 @@ class DefaultAppUserWritePortTest {
         }
 
         @Test
-        @DisplayName("valid avatar: writes to user_profiles, returns URL")
+        @DisplayName("valid avatar: uploads before inserting the object key")
         void validAvatarWrites() {
             String userId = "u-004";
             when(uuidGenerator.newId()).thenReturn("uuid-1");
             when(userProfileMapper.selectById(userId)).thenReturn(null);
-            MultipartFile file = new MockMultipartFile("file", "photo.png", "image/png",
-                    new byte[]{1, 2, 3, 4, 5});
+            byte[] png = java.util.Base64.getDecoder().decode(
+                    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+            MultipartFile file = new MockMultipartFile("file", "photo.png", "text/plain", png);
 
             String url = port.uploadAvatar(userId, file);
 
-            // Legacy URL contract preserved: /uploads/avatars/<uuid>.<ext>
-            assertThat(url).isEqualTo("/uploads/avatars/uuid-1.png");
-            // Blob persisted through FileStoragePort into the local root.
-            assertThat(tempDir.resolve("avatars").resolve("uuid-1.png"))
-                    .hasBinaryContent(new byte[]{1, 2, 3, 4, 5});
-            verify(userProfileMapper).insert(any(UserProfile.class));
+            assertThat(url).isEqualTo("/api/users/avatars/u-004/uuid-1.png");
+            InOrder order = inOrder(fileStorage, userProfileMapper);
+            order.verify(fileStorage).put(any(), any(), org.mockito.ArgumentMatchers.anyLong(),
+                    org.mockito.ArgumentMatchers.eq("image/png"));
+            ArgumentCaptor<UserProfile> captor = ArgumentCaptor.forClass(UserProfile.class);
+            order.verify(userProfileMapper).insert(captor.capture());
+            assertThat(captor.getValue().getAvatar()).isEqualTo("app/avatars/u-004/uuid-1.png");
+        }
+
+        @Test
+        @DisplayName("replacing an avatar deletes the old object only after the database update")
+        void replacementDeletesOldObjectAfterDatabaseUpdate() {
+            String userId = "u-005";
+            UserProfile existing = new UserProfile();
+            existing.setAccountId(userId);
+            existing.setAvatar("app/avatars/u-005/old.png");
+            when(userProfileMapper.selectById(userId)).thenReturn(existing);
+            when(uuidGenerator.newId()).thenReturn("uuid-2");
+            byte[] png = java.util.Base64.getDecoder().decode(
+                    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+
+            port.uploadAvatar(userId, new MockMultipartFile("file", "photo.png", "image/png", png));
+
+            InOrder order = inOrder(fileStorage, userProfileMapper);
+            order.verify(userProfileMapper).selectById(userId);
+            order.verify(fileStorage).put(any(), any(), org.mockito.ArgumentMatchers.anyLong(),
+                    org.mockito.ArgumentMatchers.eq("image/png"));
+            order.verify(userProfileMapper).updateById(any(UserProfile.class));
+            order.verify(fileStorage).delete("app/avatars/u-005/old.png");
+        }
+
+        @Test
+        @DisplayName("database failure removes the newly uploaded object")
+        void databaseFailureRemovesUploadedObject() {
+            String userId = "u-006";
+            when(userProfileMapper.selectById(userId)).thenReturn(null);
+            when(uuidGenerator.newId()).thenReturn("uuid-3");
+            doThrow(new IllegalStateException("db failure"))
+                    .when(userProfileMapper).insert(any(UserProfile.class));
+            byte[] png = java.util.Base64.getDecoder().decode(
+                    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+
+            assertThatThrownBy(() -> port.uploadAvatar(userId,
+                    new MockMultipartFile("file", "photo.png", "image/png", png)))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessage("db failure");
+
+            verify(fileStorage).delete("app/avatars/u-006/uuid-3.png");
         }
     }
 }

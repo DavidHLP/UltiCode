@@ -2,6 +2,7 @@ package com.ulticode.modules.user.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.ulticode.app.user.port.UserSummaryView;
+import com.ulticode.modules.user.port.AvatarUrls;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -48,7 +49,7 @@ public class ProfileVO {
         vo.setId(user.id());
         vo.setUsername(user.username());
         vo.setName(user.name());
-        vo.setAvatar(user.avatar());
+        vo.setAvatar(AvatarUrls.resolve(user.id(), user.avatar()));
         vo.setBio(user.bio());
         vo.setCompany(user.company());
         vo.setLocation(user.location());

@@ -1,5 +1,6 @@
 package com.ulticode.app.user.port;
 
+import com.ulticode.modules.user.port.AvatarUrls;
 import com.ulticode.app.api.dto.UserProfileDTO;
 import com.ulticode.auth.api.dto.AccountQueryDTO;
 import com.ulticode.auth.api.dto.AuthAccountDTO;
@@ -195,7 +196,8 @@ public class DefaultUserDirectoryReadProjection implements UserDirectoryProjecti
     private UserSummaryView compose(AuthAccountDTO account, UserProfileDTO profile) {
         UserProfileDTO resolved = profile != null ? profile : UserProfileDTO.empty(account.accountId());
         return new UserSummaryView(
-                account.accountId(), account.username(), resolved.name(), account.email(), resolved.avatar(),
+                account.accountId(), account.username(), resolved.name(), account.email(),
+                AvatarUrls.resolve(account.accountId(), resolved.avatar()),
                 resolved.bio(), resolved.company(), resolved.github(), account.joinedAt(), resolved.location(),
                 resolved.twitter(), resolved.website(), resolved.preferredLanguage(), account.role(),
                 account.active(), account.banned(), account.lastLoginAt());

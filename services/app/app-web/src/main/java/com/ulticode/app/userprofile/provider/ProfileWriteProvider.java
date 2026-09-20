@@ -14,10 +14,13 @@ import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.common.storage.FileStoragePort;
 import com.ulticode.common.storage.StorageKeys;
 import com.ulticode.common.tracing.TraceMetadata;
+import com.ulticode.modules.search.port.UserDirectoryQueryPort;
+import com.ulticode.modules.search.source.SearchDocumentChangedPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.dubbo.config.annotation.DubboService;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
@@ -28,6 +31,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Dubbo provider implementing {@link ProfileWriteService}.
@@ -54,6 +58,24 @@ public class ProfileWriteProvider implements ProfileWriteService {
     private final ObjectMapper objectMapper;
     private final AdminActorAuthorizer actorAuthorizer;
     private final FileStoragePort fileStorage;
+    private final ObjectProvider<UserDirectoryQueryPort> userDirectoryQueryPort;
+    private final ObjectProvider<SearchDocumentChangedPublisher> searchPublisher;
+
+    /** Publish a complete user UPSERT from the row visible in this transaction. */
+    private void publishUserDocument(String accountId) {
+        UserDirectoryQueryPort directory = userDirectoryQueryPort.getIfAvailable();
+        SearchDocumentChangedPublisher publisher = searchPublisher.getIfAvailable();
+        if (directory == null || publisher == null) {
+            return;
+        }
+        var directoryRow = directory.findById(accountId);
+        if (directoryRow == null) {
+            return;
+        }
+        var row = directoryRow.row();
+        publisher.publishUser(row.getId(), row.getUsername(), row.getName(), row.getAvatar(), true);
+    }
+
 
     @Override
     @Transactional
@@ -136,6 +158,7 @@ public class ProfileWriteProvider implements ProfileWriteService {
                 userProfileMapper.updateById(profile);
             }
 
+            publishUserDocument(accountId);
             log.info("Profile updated for account: {}", accountId);
 
             ProfileWriteResult result = new ProfileWriteResult(
@@ -220,6 +243,7 @@ public class ProfileWriteProvider implements ProfileWriteService {
                 }
             }
 
+            publishUserDocument(accountId);
             deletePreviousAvatarAfterCommit(accountId, previousAvatar, profile.getAvatar());
             log.info("Avatar updated for account: {}", accountId);
 
@@ -303,15 +327,27 @@ public class ProfileWriteProvider implements ProfileWriteService {
                         previousAvatar, exception.getMessage());
             }
         };
+        Runnable submitCleanup = () -> {
+            try {
+                CompletableFuture.runAsync(cleanup).exceptionally(exception -> {
+                    log.warn("Async cleanup failed for replaced avatar object {}: {}",
+                            previousAvatar, exception.getMessage());
+                    return null;
+                });
+            } catch (RuntimeException exception) {
+                log.warn("Failed to schedule cleanup for replaced avatar object {}: {}",
+                        previousAvatar, exception.getMessage());
+            }
+        };
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override
                 public void afterCommit() {
-                    cleanup.run();
+                    submitCleanup.run();
                 }
             });
         } else {
-            cleanup.run();
+            submitCleanup.run();
         }
     }
 

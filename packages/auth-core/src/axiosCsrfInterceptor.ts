@@ -136,8 +136,13 @@ export function createCsrfAxiosInterceptor(
           // backend. Only an absolute origin needs to be spelled out here.
           const refreshUrl =
             baseURL && /^https?:\/\//i.test(baseURL) ? `${baseURL}/auth/me` : '/auth/me';
-          const meResponse = await rawAxios.get<{ csrfToken?: string }>(refreshUrl);
-          const refreshedToken = meResponse.data?.csrfToken;
+          // /auth/me answers with the `Result` envelope
+          // (`{ code, message, data: { user, csrfToken } }`), and rawAxios
+          // deliberately has no response-unwrapping interceptor — reading
+          // `data.csrfToken` here would always be undefined and the stale
+          // header would be replayed unchanged.
+          const meResponse = await rawAxios.get<{ data?: { csrfToken?: string } }>(refreshUrl);
+          const refreshedToken = meResponse.data?.data?.csrfToken;
           if (refreshedToken) {
             csrfManager.refreshFromResponse({ csrfToken: refreshedToken });
             config.headers['X-CSRF-Token'] = refreshedToken;

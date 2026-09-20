@@ -158,7 +158,8 @@ describe("axiosCsrfInterceptor", () => {
       } as AxiosError;
 
       vi.mocked(rawAxios.get).mockResolvedValue({
-        data: { csrfToken: "fresh-csrf-token" },
+        // /auth/me answers with the `Result` envelope; the token lives under `data`.
+        data: { code: 200, data: { csrfToken: "fresh-csrf-token" } },
       });
       vi.mocked(rawAxios.request).mockResolvedValueOnce({
         data: "retry-success",
@@ -197,7 +198,8 @@ describe("axiosCsrfInterceptor", () => {
       } as AxiosError;
 
       vi.mocked(rawAxios.get).mockResolvedValue({
-        data: { csrfToken: "fresh-csrf-token" },
+        // /auth/me answers with the `Result` envelope; the token lives under `data`.
+        data: { code: 200, data: { csrfToken: "fresh-csrf-token" } },
       });
       vi.mocked(rawAxios.request).mockResolvedValueOnce({
         data: "retry-success",
@@ -306,7 +308,7 @@ describe("axiosCsrfInterceptor", () => {
       } as AxiosError;
 
       vi.mocked(rawAxios.get).mockResolvedValue({
-        data: { csrfToken: "fresh-token" },
+        data: { code: 200, data: { csrfToken: "fresh-token" } },
       });
       vi.mocked(rawAxios.request).mockResolvedValueOnce({
         data: "retry-response",

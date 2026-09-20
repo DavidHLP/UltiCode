@@ -85,6 +85,7 @@ class BackupExecutionServiceTest {
         ReflectionTestUtils.setField(executionService, "backupTempDir", tempDir.toString());
         lenient().when(clock.instant()).thenReturn(Instant.parse("2026-01-01T00:00:00Z"));
         lenient().when(clock.getZone()).thenReturn(ZoneOffset.UTC);
+        lenient().when(backupMapper.updateById(any(Backup.class))).thenReturn(1);
     }
 
     private Backup pendingBackup() {
@@ -151,6 +152,40 @@ class BackupExecutionServiceTest {
             assertNotNull(backup.getCompletedAt());
             assertFalse(Files.exists(dumpPath.get()));
             verify(fileStorage).putFile(any(), any(Path.class), eq("application/sql"));
+        }
+
+        @Test
+        @DisplayName("no-op IN_PROGRESS update fails the run before dumping")
+        void shouldFailWhenInProgressUpdateAffectsNoRows() {
+            Backup backup = pendingBackup();
+            when(backupMapper.selectById(BACKUP_ID)).thenReturn(backup);
+            when(backupMapper.updateById(any(Backup.class))).thenReturn(0);
+
+            executionService.executeBackup(BACKUP_ID);
+
+            verify(backupProcessPort, never()).dump(any(Path.class));
+            verify(fileStorage, never()).putFile(any(), any(Path.class), any());
+            assertEquals(BackupStatus.FAILED, backup.getStatus());
+        }
+
+        @Test
+        @DisplayName("no-op COMPLETED update fails the run and removes the uploaded object")
+        void shouldFailWhenCompletedUpdateAffectsNoRows() throws Exception {
+            Backup backup = pendingBackup();
+            when(backupMapper.selectById(BACKUP_ID)).thenReturn(backup);
+            when(backupProcessPort.dump(any(Path.class))).thenAnswer(invocation -> {
+                Path dump = invocation.getArgument(0);
+                Files.writeString(dump, "-- fake dump");
+                return true;
+            });
+            when(backupMapper.updateById(any(Backup.class))).thenReturn(1, 0, 1);
+
+            executionService.executeBackup(BACKUP_ID);
+
+            String objectKey = "admin/backups/2026/01/" + BACKUP_ID + ".sql";
+            verify(fileStorage).putFile(eq(objectKey), any(Path.class), eq("application/sql"));
+            verify(fileStorage).delete(objectKey);
+            assertEquals(BackupStatus.FAILED, backup.getStatus());
         }
         @Test
         @DisplayName("DB update failure after upload removes the uploaded object")

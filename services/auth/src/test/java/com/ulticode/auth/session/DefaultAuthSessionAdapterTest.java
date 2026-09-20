@@ -62,9 +62,40 @@ class DefaultAuthSessionAdapterTest {
                         "Secure", "HttpOnly", "SameSite=Lax");
         String csrfToken = session.response().getCsrfToken();
         assertThat(cookie(headers, "csrf_token"))
-                .contains("csrf_token=" + csrfToken, "Path=/", "Domain=example.test", "Max-Age=900",
+                .contains("csrf_token=" + csrfToken, "Path=/", "Domain=example.test", "Max-Age=604800",
                         "Secure", "SameSite=Lax")
                 .doesNotContain("HttpOnly");
+    }
+
+    @Test
+    void csrfCookieOutlivesEveryCredentialCookie() {
+        // CookieCsrfFilter demands the header whenever an access or refresh cookie
+        // is present. A CSRF cookie tied to the 15-minute access lifetime would
+        // disappear while the 7-day refresh cookie remains, and the client could
+        // never mint another one: login and refresh are POST endpoints under the
+        // same filter, and /auth/me needs a valid access token.
+        AuthSession session = completeLogin();
+
+        int access = session.cookies().get(0).maxAgeSeconds();
+        int refresh = session.cookies().get(1).maxAgeSeconds();
+        int csrf = session.cookies().get(2).maxAgeSeconds();
+
+        assertThat(csrf).isGreaterThanOrEqualTo(access).isGreaterThanOrEqualTo(refresh);
+    }
+
+    @Test
+    void csrfCookieOutlivesAnAccessCookieLongerThanTheRefreshCookie() {
+        // JwtProperties validates each cookie age independently, so an operator
+        // can configure the access cookie to outlive the refresh cookie. Tying
+        // the CSRF lifetime to the refresh age alone would then expire the CSRF
+        // cookie while the access cookie is still present, and CookieCsrfFilter
+        // would reject every state-changing request until it lapsed.
+        jwtProperties.getCookie().getAccessToken().setMaxAge(1209600);
+        jwtProperties.getCookie().getRefreshToken().setMaxAge(604800);
+
+        int csrf = completeLogin().cookies().get(2).maxAgeSeconds();
+
+        assertThat(csrf).isEqualTo(1209600);
     }
 
     @Test

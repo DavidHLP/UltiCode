@@ -9,6 +9,7 @@ This is the repository-wide source of truth for AI coding agents. A nested `AGEN
 - Use current source, executable configuration, and observed results to establish facts. Memory, documentation, and graph results are navigation aids; check their project and freshness before relying on them. Do not invent missing APIs, commands, files, or test results.
 - Choose the simplest change that satisfies the request and preserves existing contracts. Use a plan, skill, or delegated review when it adds value to the task, rather than as a mandatory ceremony for every edit.
 - Resolve routine, reversible choices using existing patterns. Ask when missing information materially affects correctness, scope, authorization, or an irreversible action; do not ask again for authorization already given for that action.
+- A request to implement or fix an issue authorizes the necessary in-scope investigation, local edits, regression checks, and relevant documentation updates. Continue through these steps without a separate implementation confirmation. Review-only, planning-only, and explicit pre-edit approval requests remain binding; external and destructive actions retain their existing approval requirements.
 - Stop exploring when the affected behavior is understood and the relevant checks answer the remaining risks. Revisit only when new evidence, failures, or changes justify it. If blocked, report the specific limit and continue independent work; do not repeat an unchanged failing approach.
 - Report what changed, what was actually verified, and any remaining limitations. Distinguish inference, static inspection, runtime verification, and remote delivery; a failed or skipped check is not a pass.
 
@@ -143,7 +144,7 @@ Do not use `/actuator/health` as a readiness check; Actuator is not exposed. Use
 
 ## Completion criteria
 
-A task is complete when the requested behavior is implemented, relevant tests and static checks pass (or failures are reported with evidence), the diff contains no unintended changes, security and compatibility constraints are preserved, and affected documentation is current.
+A task is complete when the requested outcome and authorized delivery steps are fulfilled, applicable verification passes, the diff contains no unintended changes, security and compatibility constraints are preserved, and affected documentation is current. Reporting a failed or unavailable check does not itself satisfy completion. Resolve failures caused by the change within scope; otherwise report the remaining work and specific blocker, continue independent authorized work, and distinguish implementation complete from verification or delivery blocked.
 
 ## Code discovery tools
 
@@ -152,3 +153,16 @@ A task is complete when the requested behavior is implemented, relevant tests an
 - If a tool is unavailable or its index is stale, incomplete, or for another project, use targeted source reads and searches. An empty graph result does not prove absence; scope negative claims to what was checked.
 - Refresh a graph when the task needs updated relationships or the user requests it. Documentation-only edits do not require graph updates; preserve unrelated generated changes.
 - When the user explicitly invokes `/graphify`, follow the installed graphify skill.
+
+## graphify
+
+This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
+
+When the user types `/graphify`, use the installed graphify skill or instructions before doing anything else.
+
+Rules:
+- For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
+- Dirty graphify-out/ files are expected after hooks or incremental updates; dirty graph files are not a reason to skip graphify. Only skip graphify if the task is about stale or incorrect graph output, or the user explicitly says not to use it.
+- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
+- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
+- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).

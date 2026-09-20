@@ -1,5 +1,7 @@
 package com.ulticode.app.api.command;
 
+import java.io.Serializable;
+
 import com.ulticode.common.command.ActorDelegation;
 import com.ulticode.common.command.WriteCommand;
 import com.ulticode.common.tracing.IdMetadata;
@@ -18,7 +20,7 @@ public record UpdateVisibilityCommand(
         TraceMetadata trace,
         String listId,
         Boolean isPublic,
-        Boolean isFeatured) implements WriteCommand {
+        Boolean isFeatured) implements WriteCommand, Serializable {
     private static final long serialVersionUID = 1L;
 
 

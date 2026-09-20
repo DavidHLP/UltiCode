@@ -1,5 +1,7 @@
 package com.ulticode.auth.api.command;
 
+import java.io.Serializable;
+
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
 
@@ -24,7 +26,7 @@ public record ChangeAccountStateCommand(
         String accountId,
         Long expectedVersion,
         AccountStateAction action,
-        String rationale) implements WriteCommand {
+        String rationale) implements WriteCommand, Serializable {
     private static final long serialVersionUID = 1L;
 
 

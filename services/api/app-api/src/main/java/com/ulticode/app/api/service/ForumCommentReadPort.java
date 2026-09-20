@@ -1,5 +1,6 @@
 package com.ulticode.app.api.service;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -33,12 +34,12 @@ public interface ForumCommentReadPort {
             LocalDateTime flaggedAt,
             Boolean isDeleted,
             LocalDateTime deletedAt,
-            String deletedBy) {}
+            String deletedBy) implements Serializable {}
 
     /**
      * Paginated page of {@link ForumCommentRow}.
      */
-    record ForumCommentPage(List<ForumCommentRow> rows, long total) {}
+    record ForumCommentPage(List<ForumCommentRow> rows, long total) implements Serializable {}
 
     /**
      * Paginated query over forum comments ignoring logical delete.

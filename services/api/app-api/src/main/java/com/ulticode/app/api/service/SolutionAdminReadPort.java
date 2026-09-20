@@ -1,5 +1,6 @@
 package com.ulticode.app.api.service;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -41,12 +42,12 @@ public interface SolutionAdminReadPort {
             LocalDateTime deletedAt,
             String deletedBy,
             LocalDateTime createdAt,
-            LocalDateTime updatedAt) {}
+            LocalDateTime updatedAt) implements Serializable {}
 
     /**
      * Paginated page of {@link SolutionAdminRow}.
      */
-    record SolutionAdminPage(List<SolutionAdminRow> rows, long total) {}
+    record SolutionAdminPage(List<SolutionAdminRow> rows, long total) implements Serializable {}
 
     /**
      * Filter/sort/pagination parameters for the admin solution list read.
@@ -74,7 +75,7 @@ public interface SolutionAdminReadPort {
             String sortBy,
             String sortOrder,
             int page,
-            int limit) {}
+            int limit) implements Serializable {}
 
     /**
      * Paginated admin query over solutions.

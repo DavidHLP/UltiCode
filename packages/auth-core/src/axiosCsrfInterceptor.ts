@@ -129,10 +129,20 @@ export function createCsrfAxiosInterceptor(
           // 401 retry path above for the same fix.
           const { rawAxios } = await import('./rawAxios');
 
-          // Fetch fresh CSRF token via GET /auth/me (no CSRF validation on GET)
-          const refreshUrl = baseURL ? `${baseURL}/auth/me` : '/auth/me';
-          const meResponse = await rawAxios.get<{ csrfToken?: string }>(refreshUrl);
-          const refreshedToken = meResponse.data?.csrfToken;
+          // Fetch fresh CSRF token via GET /auth/me (no CSRF validation on GET).
+          // rawAxios already carries the API base URL, so a path-prefix baseURL
+          // ('/api') must not be prefixed again — doing so resolved the request
+          // to /api/api/auth/me and the 403 recovery path never reached the
+          // backend. Only an absolute origin needs to be spelled out here.
+          const refreshUrl =
+            baseURL && /^https?:\/\//i.test(baseURL) ? `${baseURL}/auth/me` : '/auth/me';
+          // /auth/me answers with the `Result` envelope
+          // (`{ code, message, data: { user, csrfToken } }`), and rawAxios
+          // deliberately has no response-unwrapping interceptor — reading
+          // `data.csrfToken` here would always be undefined and the stale
+          // header would be replayed unchanged.
+          const meResponse = await rawAxios.get<{ data?: { csrfToken?: string } }>(refreshUrl);
+          const refreshedToken = meResponse.data?.data?.csrfToken;
           if (refreshedToken) {
             csrfManager.refreshFromResponse({ csrfToken: refreshedToken });
             config.headers['X-CSRF-Token'] = refreshedToken;

@@ -122,6 +122,14 @@ volume_mountpoint() {
   [[ "$logical" =~ ^[A-Za-z0-9][A-Za-z0-9_.-]*$ ]] || return 1
   command -v docker >/dev/null 2>&1 || return 1
 
+  if [[ "$explicit" == true ]]; then
+    if mountpoint="$(docker volume inspect --format '{{.Mountpoint}}' "$logical" 2>/dev/null)"; then
+      [[ "$mountpoint" == /* && -d "$mountpoint" ]] || return 1
+      realpath -e -- "$mountpoint"
+      return 0
+    fi
+  fi
+
   if [[ -n "${COMPOSE_PROJECT_NAME:-}" ]]; then
     labeled_output="$(docker volume ls -q \
       --filter "label=com.docker.compose.volume=$logical" \
@@ -143,7 +151,8 @@ volume_mountpoint() {
   if ((${#labeled_volumes[@]} == 1)); then
     candidates+=("${labeled_volumes[0]}")
   elif [[ "$explicit" == true ]]; then
-    candidates+=("$logical")
+    echo "Explicit Docker volume '$logical' was not found; pass an explicit source directory." >&2
+    return 1
   else
     echo "No uniquely identified Docker Compose volume matches legacy volume '$logical'; pass the actual volume name or an explicit source directory." >&2
     return 1

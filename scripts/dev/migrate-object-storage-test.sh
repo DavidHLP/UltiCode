@@ -160,9 +160,9 @@ if [[ "${1:-}" == network && "${2:-}" == inspect ]]; then
 fi
 if [[ "${1:-}" == volume && "${2:-}" == ls ]]; then
   if [[ "${FAKE_USE_LABELS:-0}" == 1 ]]; then
-    if [[ "$*" == *"label=com.docker.compose.volume=app_uploads"* ]]; then
+    if [[ "$*" == *"label=com.docker.compose.volume=app_uploads"* || "$*" == *"label=com.docker.compose.volume=legacy-app-upload"* ]]; then
       printf '%s\n' "$FAKE_LABELLED_AVATAR_VOLUME_NAME"
-    elif [[ "$*" == *"label=com.docker.compose.volume=backup_data"* ]]; then
+    elif [[ "$*" == *"label=com.docker.compose.volume=backup_data"* || "$*" == *"label=com.docker.compose.volume=legacy-backup-data"* ]]; then
       printf '%s\n' "$FAKE_LABELLED_BACKUP_VOLUME_NAME"
     fi
   fi
@@ -358,6 +358,8 @@ assert_not_contains "$all_limit_mysql_log" "FROM backups"
 : >"$AWS_LOG"; : >"$DOCKER_LOG"; : >"$MYSQL_LOG"
 rm -f -- "$DB_STATE/avatar" "$DB_STATE/backup" "$OBJECTS"/*
 export AVATAR_UPLOAD_VOL=legacy-app-upload BACKUP_VOLUME=legacy-backup-data
+export FAKE_USE_LABELS=1 FAKE_LABELLED_AVATAR_VOLUME_NAME=unrelated-app-upload
+export FAKE_LABELLED_BACKUP_VOLUME_NAME=unrelated-backup-data
 volume_output="$(run_migration_without_explicit_dirs --apply 2>&1)"
 assert_contains "$volume_output" "Using legacy avatar volume source: $AVATAR_VOLUME/uploads/avatars"
 assert_contains "$volume_output" "Using legacy backup volume source: $BACKUP_VOLUME_DIR"
@@ -366,7 +368,9 @@ volume_docker_log="$(<"$DOCKER_LOG")"
 assert_contains "$volume_docker_log" "volume inspect --format"
 assert_contains "$volume_docker_log" "legacy-app-upload"
 assert_contains "$volume_docker_log" "legacy-backup-data"
-unset AVATAR_UPLOAD_VOL BACKUP_VOLUME
+assert_not_contains "$volume_docker_log" "unrelated-app-upload"
+assert_not_contains "$volume_docker_log" "unrelated-backup-data"
+unset AVATAR_UPLOAD_VOL BACKUP_VOLUME FAKE_USE_LABELS FAKE_LABELLED_AVATAR_VOLUME_NAME FAKE_LABELLED_BACKUP_VOLUME_NAME
 
 # Compose labels find project-scoped volumes even when the checkout name differs.
 : >"$AWS_LOG"; : >"$DOCKER_LOG"; : >"$MYSQL_LOG"

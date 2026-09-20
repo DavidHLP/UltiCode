@@ -30,9 +30,11 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermission;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Optional;
+import java.util.Set;
 import java.time.ZoneOffset;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -82,6 +84,7 @@ class BackupServiceTest {
         ReflectionTestUtils.setField(backupService, "backupTempDir", tempDir.toString());
         lenient().when(clock.instant()).thenReturn(Instant.parse("2026-01-01T00:00:00Z"));
         lenient().when(clock.getZone()).thenReturn(ZoneOffset.UTC);
+        lenient().when(backupMapper.updateById(any(Backup.class))).thenReturn(1);
     }
 
     @Nested
@@ -296,6 +299,24 @@ class BackupServiceTest {
         }
 
         @Test
+        @DisplayName("should fail when backup row deletion affects no rows")
+        void shouldFailWhenBackupRowDeletionAffectsNoRows() {
+            Backup backup = new Backup();
+            backup.setId(BACKUP_ID);
+            backup.setFilename("test_backup.sql");
+            backup.setObjectKey("admin/backups/2026/01/" + BACKUP_ID + ".sql");
+
+            when(backupMapper.selectById(BACKUP_ID)).thenReturn(backup);
+            when(backupMapper.deleteById(BACKUP_ID)).thenReturn(0);
+
+            BusinessException exception = assertThrows(BusinessException.class,
+                    () -> backupService.deleteBackup(BACKUP_ID));
+
+            assertTrue(exception.getMessage().contains("Failed to delete backup record"));
+            verify(fileStorage).delete(backup.getObjectKey());
+        }
+
+        @Test
         @DisplayName("should throw exception when backup not found")
         void shouldThrowExceptionWhenBackupNotFound() {
             // Arrange
@@ -402,6 +423,9 @@ class BackupServiceTest {
             when(backupProcessPort.restore(any(Path.class))).thenAnswer(invocation -> {
                 Path path = invocation.getArgument(0);
                 assertTrue(Files.exists(path));
+                assertEquals(
+                        Set.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE),
+                        Files.getPosixFilePermissions(path));
                 return true;
             });
             when(backupReadProjection.toVO(backup)).thenReturn(new BackupVO());

@@ -58,7 +58,11 @@ public class BackupExecutionServiceImpl implements BackupExecutionService {
         String objectKey = null;
         try {
             backup.setStatus(BackupStatus.IN_PROGRESS);
-            backupMapper.updateById(backup);
+            int inProgressRows = backupMapper.updateById(backup);
+            if (inProgressRows != 1) {
+                throw new IllegalStateException(
+                        "Failed to persist IN_PROGRESS backup state; affected rows: " + inProgressRows);
+            }
 
             tempFile = createSecureTempFile("dump-", ".sql");
             if (!backupProcessPort.dump(tempFile) || !Files.isRegularFile(tempFile) || Files.size(tempFile) == 0) {
@@ -82,7 +86,11 @@ public class BackupExecutionServiceImpl implements BackupExecutionService {
             metadata.put("databaseName", "see-port-adapter");
             metadata.put("backupType", backup.getType().name());
             backup.setMetadata(metadata);
-            backupMapper.updateById(backup);
+            int completedRows = backupMapper.updateById(backup);
+            if (completedRows != 1) {
+                throw new IllegalStateException(
+                        "Failed to persist COMPLETED backup state; affected rows: " + completedRows);
+            }
             log.info("Backup completed successfully: {}, size: {} bytes", backupId, size);
         } catch (Exception exception) {
             if (objectKey != null) {
@@ -102,7 +110,10 @@ public class BackupExecutionServiceImpl implements BackupExecutionService {
         backup.setStatus(BackupStatus.FAILED);
         backup.setCompletedAt(LocalDateTime.now(clock));
         backup.setError(error == null || error.isBlank() ? "Backup execution failed" : error);
-        backupMapper.updateById(backup);
+        int failedRows = backupMapper.updateById(backup);
+        if (failedRows != 1) {
+            log.error("Failed to persist FAILED backup state: {}, affected rows: {}", backup.getId(), failedRows);
+        }
     }
 
     private void deleteUploadedObject(String objectKey) {

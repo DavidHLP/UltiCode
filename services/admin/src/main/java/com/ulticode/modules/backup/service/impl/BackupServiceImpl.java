@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -115,14 +116,18 @@ public class BackupServiceImpl implements BackupService {
                 throw new BusinessException(BaseErrorCode.UNKNOWN_ERROR,
                         "Database restore failed. Check server logs for details.");
             }
-
             Map<String, Object> metadata = backup.getMetadata() == null
                     ? new HashMap<>()
                     : new HashMap<>(backup.getMetadata());
             metadata.put("lastRestoredAt", LocalDateTime.now(clock).toString());
             metadata.put("lastRestoredBy", userId);
             backup.setMetadata(metadata);
-            backupMapper.updateById(backup);
+            int updatedRows = backupMapper.updateById(backup);
+            if (updatedRows != 1) {
+                throw new IllegalStateException(
+                        "Failed to persist restore metadata for backup " + id
+                                + "; affected rows: " + updatedRows);
+            }
             log.info("Database restore completed successfully from backup: {}", id);
             return backupReadProjection.toVO(backup);
         } catch (BusinessException exception) {
@@ -135,13 +140,16 @@ public class BackupServiceImpl implements BackupService {
             deleteTempFile(tempFile);
         }
     }
-
     @Override
     public void deleteBackup(String id) {
         Backup backup = requireBackup(id);
         validateBackupFilePath(backup.getFilename());
         fileStorage.delete(requireBackupObjectKey(backup));
-        backupMapper.deleteById(id);
+        int deletedRows = backupMapper.deleteById(id);
+        if (deletedRows != 1) {
+            throw new BusinessException(BaseErrorCode.UNKNOWN_ERROR,
+                    "Failed to delete backup record; retry the operation");
+        }
         log.info("Deleted backup: {}", id);
     }
 
@@ -223,8 +231,9 @@ public class BackupServiceImpl implements BackupService {
         } catch (NoSuchAlgorithmException exception) {
             throw new IllegalStateException("SHA-256 is unavailable", exception);
         }
-        try (DigestInputStream digestInput = new DigestInputStream(content, digest)) {
-            Files.copy(digestInput, target, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+        try (DigestInputStream digestInput = new DigestInputStream(content, digest);
+             OutputStream output = Files.newOutputStream(target)) {
+            digestInput.transferTo(output);
         }
         return HexFormat.of().formatHex(digest.digest());
     }

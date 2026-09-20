@@ -87,6 +87,7 @@ contains services/admin/src/test/java/com/ulticode/admin/config/AdminBackupExecu
   || fail 'PM2 kill_timeout is not configured for all ten local processes'
 printf 'graceful shutdown/lifecycle/worker wiring contract: PASS\n'
 
+(
   cd "$ROOT_DIR/services"
   if command -v mise >/dev/null 2>&1; then
     mise exec java@zulu-17.68.203.0 -- bash ./mvnw \

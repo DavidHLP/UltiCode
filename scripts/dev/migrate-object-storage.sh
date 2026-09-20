@@ -32,12 +32,13 @@ Configuration (environment or .env):
   RUSTFS_BUCKET
   APP_DB_* / ADMIN_DB_* (or MIGRATION_DB_*, then DB_* as fallback)
   AWS_BIN (optional host aws executable override)
+  MIGRATION_DOCKER_NETWORK (optional Docker network override for the container fallback)
 
-The tool uses the host AWS CLI v2 when available. If it is absent and Docker is
-available, it uses the pinned Docker Hub amazon/aws-cli image
+The tool uses the host AWS CLI v2 for loopback endpoints when available.
+Non-loopback endpoints always use the pinned Docker Hub amazon/aws-cli image
 amazon/aws-cli:2.31.0@sha256:d5f18fde2ba3f9205e75d511ca3e6185c144e55df07e50eee16d940994557b40.
-The host binary is useful for local operators and fake-binary tests; the
-container fallback avoids an unpinned host dependency.
+Loopback endpoints use the container fallback when the host binary is absent.
+The container fallback avoids an unpinned host dependency.
 USAGE
 }
 
@@ -59,7 +60,8 @@ capture_env_vars \
   ADMIN_DB_HOST ADMIN_DB_PORT ADMIN_DB_NAME ADMIN_DB_USER ADMIN_DB_PASSWORD \
   MIGRATION_DB_HOST MIGRATION_DB_PORT MIGRATION_DB_NAME MIGRATION_DB_USER MIGRATION_DB_PASSWORD \
   DB_HOST DB_PORT DB_NAME DB_USER DB_PASSWORD MIGRATION_MYSQL_CONTAINER MIGRATION_MYSQL_CONTAINER_PORT \
-  AVATAR_UPLOAD_DIR AVATAR_UPLOAD_VOL BACKUP_DIR AWS_BIN AWS_CLI_IMAGE
+  AVATAR_UPLOAD_DIR AVATAR_UPLOAD_VOL BACKUP_DIR AWS_BIN AWS_CLI_IMAGE \
+  MIGRATION_DOCKER_NETWORK COMPOSE_PROJECT_NAME
 if [[ -f "$ENV_FILE" ]]; then
   load_env_file
   apply_env_overrides
@@ -180,18 +182,49 @@ if [[ "$ONLY" == backups || "$ONLY" == all ]]; then require_db_config ADMIN_DB; 
 
 AWS_BIN="${AWS_BIN:-aws}"
 AWS_CLI_IMAGE="${AWS_CLI_IMAGE:-amazon/aws-cli:2.31.0@sha256:d5f18fde2ba3f9205e75d511ca3e6185c144e55df07e50eee16d940994557b40}"
+
+is_loopback_endpoint() {
+  local authority="${1#*://}"
+  authority="${authority%%/*}"
+  case "$authority" in
+    127.0.0.1|127.0.0.1:*|localhost|localhost:*|\[::1\]|\[::1\]:*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
 S3_CLIENT_MODE=""
-if [[ "$AWS_BIN" == */* && -x "$AWS_BIN" ]] || command -v "$AWS_BIN" >/dev/null 2>&1; then
-  S3_CLIENT_MODE=host
+if is_loopback_endpoint "$S3_ENDPOINT"; then
+  if [[ "$AWS_BIN" == */* && -x "$AWS_BIN" ]] || command -v "$AWS_BIN" >/dev/null 2>&1; then
+    S3_CLIENT_MODE=host
+  elif command -v docker >/dev/null 2>&1; then
+    S3_CLIENT_MODE=container
+  else
+    echo "AWS CLI '$AWS_BIN' not found and Docker is unavailable" >&2
+    exit 2
+  fi
 elif command -v docker >/dev/null 2>&1; then
   S3_CLIENT_MODE=container
 else
-  echo "AWS CLI '$AWS_BIN' not found and Docker is unavailable" >&2
+  echo "Docker is required for non-loopback S3 endpoint '$S3_ENDPOINT'; host AWS CLI is only supported for loopback endpoints." >&2
   exit 2
 fi
 if [[ "$APPLY" == true && ( -z "$S3_ACCESS_KEY" || -z "$S3_SECRET_KEY" ) ]]; then
   echo "S3 access and secret keys are required with --apply" >&2
   exit 2
+fi
+
+DOCKER_NETWORK_ARGS=()
+if [[ "$S3_CLIENT_MODE" == container ]]; then
+  if is_loopback_endpoint "$S3_ENDPOINT"; then
+    DOCKER_NETWORK_ARGS=(--network host)
+  else
+    MIGRATION_DOCKER_NETWORK="${MIGRATION_DOCKER_NETWORK:-${COMPOSE_PROJECT_NAME:-ulticode}_object-storage}"
+    if ! docker network inspect "$MIGRATION_DOCKER_NETWORK" >/dev/null 2>&1; then
+      echo "Docker network '$MIGRATION_DOCKER_NETWORK' does not exist for S3 endpoint $S3_ENDPOINT; set MIGRATION_DOCKER_NETWORK to an existing network." >&2
+      exit 2
+    fi
+    DOCKER_NETWORK_ARGS=(--network "$MIGRATION_DOCKER_NETWORK")
+  fi
 fi
 
 TMP_DIR="$(mktemp -d)"
@@ -251,7 +284,7 @@ aws_call() {
     docker_env+=(-e AWS_CA_BUNDLE=/tmp/ulticode-s3-ca.pem)
     docker_mounts+=(-v "$S3_CA_CERTIFICATE:/tmp/ulticode-s3-ca.pem:ro")
   fi
-  docker run --rm --network host \
+  docker run --rm "${DOCKER_NETWORK_ARGS[@]}" \
     "${docker_mounts[@]}" "${docker_env[@]}" "$AWS_CLI_IMAGE" \
     "${common[@]}" "${client_args[@]}"
 }

@@ -260,6 +260,7 @@ APP_STORAGE_S3_BUCKET=ulticode
 APP_STORAGE_S3_ACCESS_KEY="$rustfs_access_key"
 APP_STORAGE_S3_SECRET_KEY="$rustfs_secret_key"
 APP_STORAGE_S3_TLS_ENABLED=false
+APP_STORAGE_S3_UPLOAD_TIMEOUT_MS=1800000
 # Production only: set an operator-managed collector reachable from the
 # deployment Compose network before running production Compose. Deliberately
 # left unset — production Compose fails closed on an unset or empty value;

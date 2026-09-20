@@ -73,18 +73,25 @@ class AppReadinessControllerTest {
     }
 
     @Test
-    @DisplayName("an unverified object store answers 503")
-    void unverifiedStorageIsNotReady() throws Exception {
+    @DisplayName("runtime storage failure answers 503 and recovery answers 200")
+    void runtimeStorageFailureAndRecoveryUpdatesReadiness() throws Exception {
         StorageReadiness readiness = new StorageReadiness();
-        readiness.markFailed("probe exhausted");
+        readiness.markFailed("runtime outage");
         AppReadinessController controller = new AppReadinessController(
                 dataSourceProvider(), pingingRedis(), readinessProvider(readiness));
 
-        ResponseEntity<Map<String, Object>> response = controller.ready();
+        ResponseEntity<Map<String, Object>> failedResponse = controller.ready();
 
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
-        assertThat(components(response)).containsEntry("storage", "DOWN");
-        assertThat(response.getBody()).containsEntry("status", "DOWN");
+        assertThat(failedResponse.getStatusCode()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
+        assertThat(components(failedResponse)).containsEntry("storage", "DOWN");
+        assertThat(failedResponse.getBody()).containsEntry("status", "DOWN");
+
+        readiness.markReady();
+
+        ResponseEntity<Map<String, Object>> recoveredResponse = controller.ready();
+
+        assertThat(recoveredResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(components(recoveredResponse)).containsEntry("storage", "UP");
     }
 
     @Test

@@ -50,7 +50,8 @@ public class AdminReadinessController {
         Map<String, Boolean> components = new LinkedHashMap<>();
         components.put("db", ReadinessChecks.dataSourceUp(dataSource));
         components.put("redis", redisUp());
-        // Admin writes backup objects: report the recorded startup-gate outcome.
+        // Admin writes backup objects: report the shared holder state. S3Storage updates it on
+        // runtime failure and recovery; this endpoint only reads it and never probes the store.
         components.put("storage", storageReadiness == null || storageReadiness.isReady());
         boolean allUp = components.values().stream().allMatch(Boolean::booleanValue);
         return ResponseEntity

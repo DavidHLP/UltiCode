@@ -234,6 +234,24 @@ class CoreEnabledOwnerJourneyIT {
                 .withProperty("INTERNAL_DELEGATION_PUBLIC_KEY", encode(delegationKeyPair.getPublic().getEncoded()))
                 .withProperty("INTERNAL_DELEGATION_KEY_ID", "core-disposable-" + fixtureSecret().substring(0, 16))
                 .withProperty("INTERNAL_DELEGATION_ISSUER", "backend-admin")
+                // Hermetic journey-only object-storage inputs: valid loopback S3
+                // settings with the startup probe explicitly disabled, so this
+                // gate never contacts RustFS. Production Core still requires
+                // real APP_STORAGE_* values and keeps the probe enabled by default.
+                .withProperty("APP_STORAGE_TYPE", "s3")
+                .withProperty("APP_STORAGE_S3_ENDPOINT", "http://127.0.0.1:9000")
+                .withProperty("APP_STORAGE_S3_REGION", "us-east-1")
+                .withProperty("APP_STORAGE_S3_BUCKET", "core-enabled-owner-journey")
+                .withProperty("APP_STORAGE_S3_ACCESS_KEY", "core-enabled-owner-access")
+                .withProperty("APP_STORAGE_S3_SECRET_KEY", "core-enabled-owner-secret")
+                .withProperty("APP_STORAGE_S3_TLS_ENABLED", "false")
+                .withProperty("APP_STORAGE_S3_CA_CERTIFICATE", "")
+                .withProperty("APP_STORAGE_S3_CONNECT_TIMEOUT_MS", "200")
+                .withProperty("APP_STORAGE_S3_REQUEST_TIMEOUT_MS", "300")
+                .withProperty("APP_STORAGE_S3_MAX_CONCURRENT_REQUESTS", "1")
+                .withProperty("APP_STORAGE_STARTUP_PROBE_ENABLED", "false")
+                .withProperty("APP_STORAGE_STARTUP_PROBE_ATTEMPTS", "1")
+                .withProperty("APP_STORAGE_STARTUP_PROBE_DELAY_MS", "0")
                 .withProperty("spring.main.lazy-initialization", "true")
                 .withProperty("ulticode.app.inbox.enabled", "false")
                 .withProperty("spring.autoconfigure.exclude",
@@ -403,6 +421,20 @@ class CoreEnabledOwnerJourneyIT {
         setSystemProperty("ADMIN_REDIS_PASSWORD", adminRedisPassword);
         setSystemProperty("AUTH_REDIS_URL", redisUrl("ulticode-auth", authRedisPassword));
         setSystemProperty("ADMIN_REDIS_URL", redisUrl("ulticode-admin", adminRedisPassword));
+        setSystemProperty("APP_STORAGE_TYPE", "s3");
+        setSystemProperty("APP_STORAGE_S3_ENDPOINT", "http://127.0.0.1:9000");
+        setSystemProperty("APP_STORAGE_S3_REGION", "us-east-1");
+        setSystemProperty("APP_STORAGE_S3_BUCKET", "core-enabled-owner-journey");
+        setSystemProperty("APP_STORAGE_S3_ACCESS_KEY", "core-enabled-owner-access");
+        setSystemProperty("APP_STORAGE_S3_SECRET_KEY", "core-enabled-owner-secret");
+        setSystemProperty("APP_STORAGE_S3_TLS_ENABLED", "false");
+        setSystemProperty("APP_STORAGE_S3_CA_CERTIFICATE", "");
+        setSystemProperty("APP_STORAGE_S3_CONNECT_TIMEOUT_MS", "200");
+        setSystemProperty("APP_STORAGE_S3_REQUEST_TIMEOUT_MS", "300");
+        setSystemProperty("APP_STORAGE_S3_MAX_CONCURRENT_REQUESTS", "1");
+        setSystemProperty("APP_STORAGE_STARTUP_PROBE_ENABLED", "false");
+        setSystemProperty("APP_STORAGE_STARTUP_PROBE_ATTEMPTS", "1");
+        setSystemProperty("APP_STORAGE_STARTUP_PROBE_DELAY_MS", "0");
         setSystemProperty("JWT_SECRET", jwtSecret);
         setSystemProperty("JWT_RSA_ENABLED", "false");
         setSystemProperty("AUTH_AUDIT_OUTBOX_DISPATCHER_ENABLED", "false");

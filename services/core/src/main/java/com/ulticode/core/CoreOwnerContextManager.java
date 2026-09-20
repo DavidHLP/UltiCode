@@ -252,6 +252,36 @@ public class CoreOwnerContextManager implements ApplicationContextAware {
                         "ulticode.app.inbox.enabled", admin ? "false" : "true"),
                 "spring.main.allow-bean-definition-overriding=false",
                 "spring.flyway.enabled=false",
+                "app.storage.type=" + property(
+                        "APP_STORAGE_TYPE", "s3"),
+                "app.storage.s3.endpoint=" + requiredProperty(
+                        "APP_STORAGE_S3_ENDPOINT"),
+                "app.storage.s3.region=" + requiredProperty(
+                        "APP_STORAGE_S3_REGION"),
+                "app.storage.s3.bucket=" + requiredProperty(
+                        "APP_STORAGE_S3_BUCKET"),
+                "app.storage.s3.access-key=" + requiredProperty(
+                        "APP_STORAGE_S3_ACCESS_KEY"),
+                "app.storage.s3.secret-key=" + requiredProperty(
+                        "APP_STORAGE_S3_SECRET_KEY"),
+                "app.storage.s3.tls-enabled=" + requiredProperty(
+                        "APP_STORAGE_S3_TLS_ENABLED"),
+                "app.storage.s3.ca-certificate-path=" + property(
+                        "APP_STORAGE_S3_CA_CERTIFICATE", ""),
+                "app.storage.s3.connect-timeout-ms=" + property(
+                        "APP_STORAGE_S3_CONNECT_TIMEOUT_MS", "10000"),
+                "app.storage.s3.request-timeout-ms=" + property(
+                        "APP_STORAGE_S3_REQUEST_TIMEOUT_MS", "30000"),
+                "app.storage.s3.upload-timeout-ms=" + property(
+                        "APP_STORAGE_S3_UPLOAD_TIMEOUT_MS", "1800000"),
+                "app.storage.s3.max-concurrent-requests=" + property(
+                        "APP_STORAGE_S3_MAX_CONCURRENT_REQUESTS", "16"),
+                "app.storage.startup-probe.enabled=" + property(
+                        "APP_STORAGE_STARTUP_PROBE_ENABLED", "true"),
+                "app.storage.startup-probe.attempts=" + property(
+                        "APP_STORAGE_STARTUP_PROBE_ATTEMPTS", "30"),
+                "app.storage.startup-probe.delay-ms=" + property(
+                        "APP_STORAGE_STARTUP_PROBE_DELAY_MS", "2000"),
                 "spring.data.redis.host=" + requiredProperty(
                         prefix + "_REDIS_HOST", "REDIS_HOST"),
                 "spring.data.redis.port=" + property(

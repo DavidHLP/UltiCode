@@ -50,9 +50,8 @@ public class AppReadinessController {
         Map<String, Boolean> components = new LinkedHashMap<>();
         components.put("db", ReadinessChecks.dataSourceUp(dataSource));
         components.put("redis", redisUp());
-        // The object store is mandatory: a boot that reached this endpoint already
-        // verified it (the startup gate runs during context refresh), so this reports
-        // the recorded outcome instead of assuming success.
+        // The object store is mandatory: report the shared holder state. S3Storage updates it on
+        // runtime failure and recovery; this endpoint only reads it and never probes the store.
         components.put("storage", storageReadiness == null || storageReadiness.isReady());
         boolean allUp = components.values().stream().allMatch(Boolean::booleanValue);
         return ResponseEntity

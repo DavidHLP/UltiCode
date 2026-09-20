@@ -122,11 +122,26 @@ public class BackupServiceImpl implements BackupService {
             metadata.put("lastRestoredAt", LocalDateTime.now(clock).toString());
             metadata.put("lastRestoredBy", userId);
             backup.setMetadata(metadata);
-            int updatedRows = backupMapper.updateById(backup);
+            int updatedRows;
+            try {
+                updatedRows = backupMapper.updateById(backup);
+            } catch (Exception exception) {
+                log.error(
+                        "Partial restore success for backup {}: database restore completed, "
+                                + "but metadata write-back failed; do not retry database restore",
+                        id, exception);
+                throw new BusinessException(BaseErrorCode.UNKNOWN_ERROR,
+                        "Database restore completed successfully, but metadata write-back failed. "
+                                + "Do not retry the database restore automatically.");
+            }
             if (updatedRows != 1) {
-                throw new IllegalStateException(
-                        "Failed to persist restore metadata for backup " + id
-                                + "; affected rows: " + updatedRows);
+                log.error(
+                        "Partial restore success for backup {}: database restore completed, "
+                                + "but metadata write-back affected {} rows; do not retry database restore",
+                        id, updatedRows);
+                throw new BusinessException(BaseErrorCode.UNKNOWN_ERROR,
+                        "Database restore completed successfully, but metadata write-back failed. "
+                                + "Do not retry the database restore automatically.");
             }
             log.info("Database restore completed successfully from backup: {}", id);
             return backupReadProjection.toVO(backup);

@@ -454,6 +454,32 @@ class BackupServiceTest {
             assertFalse(Files.exists(pathCaptor.getValue()));
         }
         @Test
+        @DisplayName("should report partial success when metadata update affects no rows")
+        void shouldReportPartialSuccessWhenMetadataUpdateAffectsNoRows() {
+            Backup backup = new Backup();
+            backup.setId(BACKUP_ID);
+            backup.setFilename("backup.sql");
+            backup.setObjectKey("admin/backups/2026/01/" + BACKUP_ID + ".sql");
+            backup.setStatus(BackupStatus.COMPLETED);
+            when(backupMapper.selectById(BACKUP_ID)).thenReturn(backup);
+            when(fileStorage.openStream(backup.getObjectKey())).thenReturn(Optional.of(
+                    new FileStoragePort.StorageStream(
+                            new ByteArrayInputStream("restore sql".getBytes()),
+                            11L,
+                            "application/sql")));
+            when(backupProcessPort.restore(any(Path.class))).thenReturn(true);
+            when(backupMapper.updateById(any(Backup.class))).thenReturn(0);
+
+            BusinessException exception = assertThrows(BusinessException.class,
+                    () -> backupService.restoreBackup(BACKUP_ID, USER_ID));
+
+            assertTrue(exception.getMessage().contains("restore completed"));
+            assertTrue(exception.getMessage().contains("metadata"));
+            assertFalse(exception.getMessage().contains("Database restore failed"));
+            verify(backupProcessPort, times(1)).restore(any(Path.class));
+        }
+
+        @Test
         @DisplayName("should reject a corrupted object before database restore")
         void shouldRejectChecksumMismatchBeforeRestore() {
             Backup backup = new Backup();

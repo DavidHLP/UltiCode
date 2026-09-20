@@ -127,6 +127,20 @@ class S3StorageTest {
                 Files.deleteIfExists(file);
             }
         }
+        @Test
+        @DisplayName("probes the bucket with a query-free HEAD request")
+        void probeUsesQueryFreeHeadRequest() throws Exception {
+            respond(200, new byte[0], null);
+
+            storage.probe();
+
+            ArgumentCaptor<HttpRequest> captor = ArgumentCaptor.forClass(HttpRequest.class);
+            verify(httpClient).send(captor.capture(), any());
+            assertThat(captor.getValue().method()).isEqualTo("HEAD");
+            assertThat(captor.getValue().uri()).isEqualTo(URI.create("http://localhost:9000/ulticode"));
+            assertThat(captor.getValue().uri().getRawQuery()).isNull();
+            assertThat(readiness.state()).isEqualTo(StorageReadiness.State.READY);
+        }
     }
 
     @Nested
@@ -174,7 +188,7 @@ class S3StorageTest {
                     .thenReturn(Optional.of("image/png"));
             doReturn(streamResponse).when(httpClient).send(any(HttpRequest.class), any());
             DependencyGuard guard = new DependencyGuard(1, 1, Duration.ofSeconds(30));
-            S3Storage guarded = new S3Storage(properties, httpClient, guard);
+            S3Storage guarded = new S3Storage(properties, httpClient, guard, readiness);
 
             FileStoragePort.StorageStream stream = guarded.openStream("avatars/open.png").orElseThrow();
 
@@ -182,10 +196,32 @@ class S3StorageTest {
             assertThatThrownBy(() -> guarded.openStream("avatars/second.png"))
                     .isInstanceOf(StorageException.class)
                     .hasMessageContaining("temporarily unavailable");
+            assertThat(readiness.state()).isEqualTo(StorageReadiness.State.FAILED);
 
             stream.content().close();
 
             assertThat(guard.inFlight()).isZero();
+        }
+
+        @Test
+        @DisplayName("releases the dependency permit when the streamed body reaches EOF")
+        void streamEofReleasesPermit() throws Exception {
+            when(streamResponse.statusCode()).thenReturn(200);
+            when(streamResponse.body()).thenReturn(responseBody);
+            when(streamResponse.headers()).thenReturn(responseHeaders);
+            when(responseHeaders.firstValueAsLong("Content-Length"))
+                    .thenReturn(java.util.OptionalLong.of(0));
+            when(responseHeaders.firstValue("Content-Type")).thenReturn(Optional.of("image/png"));
+            when(responseBody.read()).thenReturn(-1);
+            doReturn(streamResponse).when(httpClient).send(any(HttpRequest.class), any());
+            DependencyGuard guard = new DependencyGuard(1, 1, Duration.ofSeconds(30));
+            S3Storage guarded = new S3Storage(properties, httpClient, guard, readiness);
+
+            FileStoragePort.StorageStream stream = guarded.openStream("avatars/eof.png").orElseThrow();
+            assertThat(guard.inFlight()).isOne();
+            assertThat(stream.content().read()).isEqualTo(-1);
+            assertThat(guard.inFlight()).isZero();
+            verify(responseBody).close();
         }
 
         @Test
@@ -215,15 +251,15 @@ class S3StorageTest {
             when(streamResponse.statusCode()).thenReturn(200);
             when(streamResponse.body()).thenReturn(responseBody);
             when(streamResponse.headers()).thenReturn(responseHeaders);
-            when(responseHeaders.firstValueAsLong("Content-Length")).thenThrow(new IllegalArgumentException("bad header"));
+            doThrow(new IllegalArgumentException("bad header"))
+                    .when(responseHeaders).firstValueAsLong("Content-Length");
             doReturn(streamResponse).when(httpClient).send(any(HttpRequest.class), any());
 
             assertThatThrownBy(() -> storage.openStream("avatars/bad-header.png"))
                     .isInstanceOf(StorageException.class);
             assertThat(readiness.state()).isEqualTo(StorageReadiness.State.FAILED);
-
-            when(responseHeaders.firstValueAsLong("Content-Length"))
-                    .thenReturn(java.util.OptionalLong.of(1));
+            doReturn(java.util.OptionalLong.of(1))
+                    .when(responseHeaders).firstValueAsLong("Content-Length");
             doThrow(new IOException("close failed")).when(responseBody).close();
             FileStoragePort.StorageStream stream = storage.openStream("avatars/close-failed.png").orElseThrow();
             assertThat(readiness.state()).isEqualTo(StorageReadiness.State.READY);

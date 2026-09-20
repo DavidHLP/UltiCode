@@ -137,6 +137,10 @@ cat >"$BIN/docker" <<'FAKE_DOCKER'
 set -euo pipefail
 printf '%q ' "$@" >>"$FAKE_DOCKER_LOG"
 printf '\n' >>"$FAKE_DOCKER_LOG"
+if [[ "${1:-}" == network && "${2:-}" == inspect ]]; then
+  [[ "${FAKE_DOCKER_NETWORK:-}" == "${3:-}" ]] || { echo "unexpected fake docker network: ${3:-}" >&2; exit 1; }
+  exit 0
+fi
 [[ "${1:-}" == run ]] || { echo "unexpected fake docker command" >&2; exit 2; }
 shift
 mounts=()
@@ -253,5 +257,33 @@ assert_contains "$docker_log" "--body /migration-src/avatar/avatar.png"
 assert_contains "$docker_log" "--body /migration-src/backup/backup_FULL_20260920_120000.sql"
 assert_not_contains "$docker_log" "--body $AVATARS/avatar.png"
 assert_not_contains "$docker_log" "--body $BACKUPS/backup_FULL_20260920_120000.sql"
+
+# Compose-style fallback joins the project-scoped object-storage network.
+: >"$DOCKER_LOG"; : >"$MYSQL_LOG"
+rm -f -- "$DB_STATE/avatar" "$DB_STATE/backup" "$OBJECTS"/*
+export AWS_BIN="$BIN/aws"
+export APP_STORAGE_S3_ENDPOINT=https://rustfs:9000
+export APP_STORAGE_S3_TLS_ENABLED=true
+export COMPOSE_PROJECT_NAME=ulticode-prod
+export FAKE_DOCKER_NETWORK=ulticode-prod_object-storage
+unset MIGRATION_DOCKER_NETWORK
+production_fallback_output="$(run_migration --apply 2>&1)"
+assert_contains "$production_fallback_output" "MIGRATION_SUMMARY total=2 uploaded=2"
+production_docker_log="$(<"$DOCKER_LOG")"
+assert_contains "$production_docker_log" "network inspect ulticode-prod_object-storage"
+assert_contains "$production_docker_log" "run --rm --network ulticode-prod_object-storage"
+assert_not_contains "$production_docker_log" "--network host"
+
+# An explicit migration network overrides the Compose project default.
+: >"$DOCKER_LOG"; : >"$MYSQL_LOG"
+rm -f -- "$DB_STATE/avatar" "$DB_STATE/backup" "$OBJECTS"/*
+export MIGRATION_DOCKER_NETWORK=custom-object-storage
+export FAKE_DOCKER_NETWORK=custom-object-storage
+override_fallback_output="$(run_migration --apply 2>&1)"
+assert_contains "$override_fallback_output" "MIGRATION_SUMMARY total=2 uploaded=2"
+override_docker_log="$(<"$DOCKER_LOG")"
+assert_contains "$override_docker_log" "network inspect custom-object-storage"
+assert_contains "$override_docker_log" "run --rm --network custom-object-storage"
+unset APP_STORAGE_S3_ENDPOINT APP_STORAGE_S3_TLS_ENABLED COMPOSE_PROJECT_NAME MIGRATION_DOCKER_NETWORK FAKE_DOCKER_NETWORK
 
 echo 'migrate-object-storage-test: PASS'

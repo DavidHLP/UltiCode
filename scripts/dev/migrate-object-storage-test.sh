@@ -11,6 +11,7 @@ BACKUPS="$TMP_DIR/backups"
 OBJECTS="$TMP_DIR/objects"
 AWS_LOG="$TMP_DIR/aws.log"
 AWS_ENV_LOG="$TMP_DIR/aws-env.log"
+DOCKER_LOG="$TMP_DIR/docker.log"
 MYSQL_LOG="$TMP_DIR/mysql.log"
 DB_STATE="$TMP_DIR/db-state"
 ENV_FILE="$TMP_DIR/.env"
@@ -19,6 +20,7 @@ mkdir -p "$BIN" "$AVATARS" "$BACKUPS" "$OBJECTS" "$DB_STATE"
 : >"$AWS_LOG"
 : >"$AWS_ENV_LOG"
 : >"$MYSQL_LOG"
+: >"$DOCKER_LOG"
 printf '%s\n' '-----BEGIN CERTIFICATE-----' 'fake' '-----END CERTIFICATE-----' >"$CA_FILE"
 printf 'avatar-data' >"$AVATARS/avatar.png"
 printf 'dump' >"$BACKUPS/backup_FULL_20260920_120000.sql"
@@ -130,6 +132,47 @@ esac
 FAKE_AWS
 chmod +x "$BIN/aws"
 
+cat >"$BIN/docker" <<'FAKE_DOCKER'
+#!/usr/bin/env bash
+set -euo pipefail
+printf '%q ' "$@" >>"$FAKE_DOCKER_LOG"
+printf '\n' >>"$FAKE_DOCKER_LOG"
+[[ "${1:-}" == run ]] || { echo "unexpected fake docker command" >&2; exit 2; }
+shift
+mounts=()
+while (($#)); do
+  case "$1" in
+    --rm) shift ;;
+    --network) shift 2 ;;
+    -e) export "$2"; shift 2 ;;
+    -v) mounts+=("$2"); shift 2 ;;
+    *) shift; break ;;
+  esac
+done
+aws_args=()
+while (($#)); do
+  if [[ "$1" == --body && $# -ge 2 ]]; then
+    body="$2"
+    for mount in "${mounts[@]}"; do
+      IFS=: read -r host_path container_path _ <<<"$mount"
+      if [[ "$body" == "$container_path"/* ]]; then
+        body="$host_path/${body#"$container_path"/}"
+        break
+      fi
+    done
+    aws_args+=(--body "$body")
+    shift 2
+  else
+    aws_args+=("$1")
+    shift
+  fi
+done
+"$FAKE_AWS_BIN" "${aws_args[@]}"
+FAKE_DOCKER
+chmod +x "$BIN/docker"
+
+export FAKE_DOCKER_LOG="$DOCKER_LOG" FAKE_AWS_BIN="$BIN/aws"
+
 export PATH="$BIN:$PATH"
 export ENV_FILE AWS_BIN="$BIN/aws"
 export FAKE_AWS_LOG="$AWS_LOG" FAKE_AWS_ENV_LOG="$AWS_ENV_LOG" FAKE_MYSQL_LOG="$MYSQL_LOG"
@@ -196,5 +239,19 @@ assert_contains "$filter_output" "MIGRATION_SUMMARY total=1"
 assert_contains "$filter_output" "uploaded=1"
 assert_not_contains "$(<"$MYSQL_LOG")" "FROM user_profiles"
 assert_contains "$(<"$MYSQL_LOG")" "FROM backups"
+
+# Docker fallback mounts both legacy directories and translates body paths.
+: >"$AWS_LOG"; : >"$DOCKER_LOG"; : >"$MYSQL_LOG"
+rm -f -- "$DB_STATE/avatar" "$DB_STATE/backup" "$OBJECTS"/*
+export AWS_BIN="$TMP_DIR/missing-aws"
+fallback_output="$(run_migration --apply 2>&1)"
+assert_contains "$fallback_output" "MIGRATION_SUMMARY total=2 uploaded=2"
+docker_log="$(<"$DOCKER_LOG")"
+assert_contains "$docker_log" "-v $AVATARS:/migration-src/avatar:ro"
+assert_contains "$docker_log" "-v $BACKUPS:/migration-src/backup:ro"
+assert_contains "$docker_log" "--body /migration-src/avatar/avatar.png"
+assert_contains "$docker_log" "--body /migration-src/backup/backup_FULL_20260920_120000.sql"
+assert_not_contains "$docker_log" "--body $AVATARS/avatar.png"
+assert_not_contains "$docker_log" "--body $BACKUPS/backup_FULL_20260920_120000.sql"
 
 echo 'migrate-object-storage-test: PASS'

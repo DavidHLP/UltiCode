@@ -24,12 +24,12 @@
  * through `@ulticode/markdown-utils` and never reach for the underlying
  * MarkdownIt instance or DOMPurify directly.
  */
-import MarkdownIt from 'markdown-it'
+// markdown-it 15 ships its own types: the default export is the callable
+// factory only, and the instance type is a separate named export.
+import MarkdownIt, { type MarkdownIt as MarkdownItInstance, type Token } from 'markdown-it'
 import { katex } from '@mdit/plugin-katex'
 import hljs from 'highlight.js'
 import DOMPurify, { type Config as DOMPurifyConfig } from 'dompurify'
-
-type Token = NonNullable<ReturnType<MarkdownIt['parse']>>[number]
 
 // ---------------------------------------------------------------------------
 // Sanitization — always-on, cannot be bypassed.
@@ -128,7 +128,7 @@ export function sanitizeHtml(html: string): string {
 // MarkdownIt instance + plugins.
 // ---------------------------------------------------------------------------
 
-const md: MarkdownIt = new MarkdownIt({
+const md: MarkdownItInstance = new MarkdownIt({
   html: false,
   linkify: true,
   breaks: true,
@@ -151,7 +151,7 @@ md.use(katex)
 // render as a single tabbed code-block widget instead of N independent blocks.
 // ---------------------------------------------------------------------------
 
-const groupFencesPlugin = (instance: MarkdownIt): void => {
+const groupFencesPlugin = (instance: MarkdownItInstance): void => {
   instance.core.ruler.push('group_fences', (state) => {
     const tokens = state.tokens
     const next: Token[] = []
@@ -377,6 +377,9 @@ export function extractHeadings(
 // ---------------------------------------------------------------------------
 
 interface RenderEnv {
+  // markdown-it 15 types `env` as an open bag; keep the same signature so the
+  // per-render env stays assignable to `Env`.
+  [key: string | symbol]: unknown
   __headingIds?: Set<string>
 }
 

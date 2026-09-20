@@ -89,20 +89,6 @@ updates:
     # never depended on @vee-validate/zod. Lift this rule when a @vee-validate/zod
     # release supports zod 4 (PR #183).
     #
-    # markdown-it 15 is not adoptable as a bump: it imports the *named*
-    # `LinkifyIt` export (`dist/markdown-it.mjs:5`), which linkify-it only provides
-    # from 6.0.0, while `pnpm-workspace.yaml` overrides linkify-it to ^5.0.2. A
-    # pnpm override rewrites every matching edge unconditionally and does not fail,
-    # so syncing the root lockfile would install linkify-it 5 under markdown-it 15
-    # and `packages/markdown-utils` would throw as soon as it constructs
-    # MarkdownIt. The migration also owns packages/markdown-utils (the only real
-    # importer), both app manifests, and `packages/design-system`'s KaTeX CSS,
-    # because @mdit/plugin-katex 1.1.1 pulls katex ^0.18.6 and 0.18 renamed 16
-    # internal CSS classes. Checklist in #200; PRs #191/#195 closed.
-    # GHSA-6v5v-wf23-fmfq is already fixed by the held 14.3.2, so this rule
-    # suppresses no security PR today - 15.0.1/15.0.2 harden the linkify rules that
-    # `linkify: true` enables. Lift together with #200.
-    #
     # @vueuse/core 15 removes only `templateRef`, and none of the 12 composables
     # this repo imports. The blocker is the graph: reka-ui still declares
     # `@vueuse/core: ^14.1.0` as a regular dependency and packages/design-system
@@ -127,8 +113,6 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: "zod"
         update-types: ["version-update:semver-major"]
-      - dependency-name: "markdown-it"
-        versions: [">=15.0.0"]
       - dependency-name: "@vueuse/core"
         versions: [">=15.0.0"]
 

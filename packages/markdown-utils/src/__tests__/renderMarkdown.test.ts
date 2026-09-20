@@ -265,3 +265,81 @@ describe('sanitizeHtml', () => {
     expect(out).not.toMatch(/onclick/i)
   })
 })
+
+// `linkify: true` is user-visible behavior on problem statements, threads and
+// comments. These lock the linkify-it 6 rules that markdown-it 15 enabled:
+// fuzzy links off, no userinfo scanning, and Unicode punctuation ending a link.
+describe('linkify', () => {
+  it('linkifies a bare https URL that contains an underscore', () => {
+    const html = renderMarkdown('see https://example.com/a_b')
+    expect(html).toContain('<a href="https://example.com/a_b">')
+  })
+
+  it('does not fuzzy-link a host without a protocol', () => {
+    const html = renderMarkdown('example.com/x')
+    expect(html).not.toContain('<a href')
+    expect(html).toContain('example.com/x')
+  })
+
+  it('does not fuzzy-link a www host without a protocol', () => {
+    const html = renderMarkdown('www.example.com')
+    expect(html).not.toContain('<a href')
+    expect(html).toContain('www.example.com')
+  })
+
+  it('ends a link at a full-width CJK comma and keeps the trailing prose', () => {
+    const html = renderMarkdown('访问 https://example.com，然后')
+    expect(html).toContain('<a href="https://example.com">https://example.com</a>')
+    expect(html).toContain('，然后')
+  })
+
+  it('ends a link at a full-width CJK closing bracket', () => {
+    const html = renderMarkdown('访问 https://example.com）然后')
+    expect(html).toContain('<a href="https://example.com">https://example.com</a>')
+    expect(html).toContain('）然后')
+  })
+
+  it('never carries credentials from a userinfo URL into an href', () => {
+    const html = renderMarkdown('see https://user:pass@example.com/x')
+    expect(html).not.toMatch(/href="[^"]*:[^"]*@/i)
+  })
+
+  it('still autolinks a bare email address as mailto', () => {
+    const html = renderMarkdown('mail me@example.com')
+    expect(html).toContain('<a href="mailto:me@example.com">')
+  })
+})
+
+describe('katex', () => {
+  it('emits the KaTeX 0.18 class names the design-system stylesheet targets', () => {
+    // KaTeX 0.18 renamed 16 internal classes (`.base` -> `.katex-base`,
+    // `.strut` -> `.katex-strut`, ...). If the renderer and
+    // packages/design-system's katex CSS drift apart, formula layout silently
+    // collapses; this pins both sides to the same major.
+    const html = renderMarkdown('$x^2$')
+    expect(html).toContain('katex-base')
+    expect(html).toContain('katex-strut')
+  })
+
+  it('renders display math with the display wrapper', () => {
+    const html = renderMarkdown('$$\\int_0^1 x\\,dx$$')
+    expect(html).toContain('katex-display')
+  })
+
+  it('does not leak a macro defined in an earlier render into a later one', () => {
+    // The MarkdownIt instance is a module-level singleton, so a plugin that
+    // does not reset its macro table between renders lets one problem's
+    // `\gdef` change how the next problem's formulas typeset.
+    renderMarkdown('$\\gdef\\leakedmacro{42}$')
+    const next = renderMarkdown('$\\leakedmacro$')
+    expect(next).not.toContain('42')
+  })
+
+  it('sanitizes hostile HTML next to math', () => {
+    const html = renderMarkdown('$x^2$ <img src=x onerror=alert(1)> [x](javascript:alert(1))')
+    expect(html).toContain('katex')
+    expect(html).not.toMatch(/<img[\s>]/i)
+    expect(html).not.toMatch(/<script[\s>]/i)
+    expect(html).not.toMatch(/href="javascript:/i)
+  })
+})

@@ -18,8 +18,9 @@ overrides:
   # GHSA-v245-v573-v5vm / nanoid loop DoS / postcss source-map traversal —
   # pinned above vulnerable ranges until transitive deps catch up.
   # Caret-pinned to the patched release of each consumer-major line; a bare
-  # '>=' would jump majors (linkify-it 6 breaks markdown-it CJS interop).
-  linkify-it: ^5.0.2
+  # '>=' would jump majors. linkify-it follows markdown-it 15, which imports
+  # the named `LinkifyIt` export that only linkify-it 6 provides.
+  linkify-it: ^6.0.0
   nanoid: ^3.3.18
   postcss: ^8.5.18
 ignoredBuiltDependencies:

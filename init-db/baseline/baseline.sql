@@ -2143,7 +2143,7 @@ CREATE TABLE `virtual_contest_sessions` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-09-20 17:36:40
+-- Dump completed on 2026-09-20 23:03:05
 --
 -- Dumping schema: auth
 --
@@ -2401,7 +2401,7 @@ CREATE TABLE `users` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-09-20 17:36:41
+-- Dump completed on 2026-09-20 23:03:05
 --
 -- Dumping schema: admin
 --
@@ -2487,6 +2487,22 @@ CREATE TABLE `audit_outbox` (
   PRIMARY KEY (`id`),
   KEY `idx_state_claimed` (`state`,`claimed_at`),
   KEY `idx_audit_outbox_state_retry` (`state`,`next_retry_at`,`attempts`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `backup_cutover_state`
+--
+
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `backup_cutover_state` (
+  `id` tinyint unsigned NOT NULL,
+  `source_row_count` bigint unsigned NOT NULL DEFAULT '0',
+  `target_row_count` bigint unsigned NOT NULL DEFAULT '0',
+  `cutover_completed_at` datetime(3) DEFAULT NULL,
+  `last_reconciled_at` datetime(3) DEFAULT NULL,
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -2664,7 +2680,7 @@ CREATE TABLE `user_warnings` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-09-20 17:36:41
+-- Dump completed on 2026-09-20 23:03:06
 --
 -- Dumping schema: app
 --
@@ -4257,7 +4273,7 @@ CREATE TABLE `virtual_contest_sessions` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-09-20 17:36:41
+-- Dump completed on 2026-09-20 23:03:06
 --
 -- Dumping schema: notification
 --
@@ -4474,7 +4490,7 @@ CREATE TABLE `notifications` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-09-20 17:36:42
+-- Dump completed on 2026-09-20 23:03:06
 --
 -- Dumping schema: submission
 --
@@ -4668,4 +4684,4 @@ CREATE TABLE `submissions` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-09-20 17:36:42
+-- Dump completed on 2026-09-20 23:03:06

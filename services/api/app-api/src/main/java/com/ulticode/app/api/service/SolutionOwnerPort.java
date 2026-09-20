@@ -1,5 +1,6 @@
 package com.ulticode.app.api.service;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
@@ -86,10 +87,10 @@ public interface SolutionOwnerPort {
     /**
      * Result wrapper for flag/unflag operations carrying audit snapshot state.
      */
-    record FlagResult(String authorUserId, boolean oldIsFlagged, String oldFlaggedReason) {}
+    record FlagResult(String authorUserId, boolean oldIsFlagged, String oldFlaggedReason) implements Serializable {}
 
     /**
      * Result wrapper for delete operations carrying audit snapshot state.
      */
-    record DeleteResult(String authorUserId, String title, Long problemId) {}
+    record DeleteResult(String authorUserId, String title, Long problemId) implements Serializable {}
 }

@@ -3,6 +3,7 @@ package com.ulticode.auth.api.command;
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
 
+import java.io.Serializable;
 import java.time.OffsetDateTime;
 import java.util.Locale;
 /** Auth-owned delta mutation for one direct permission assignment. Expiry
@@ -18,7 +19,7 @@ public record PermissionMutationCommand(
         String resource,
         OffsetDateTime expiresAt,
         Long expectedVersion,
-        String rationale) implements WriteCommand {
+        String rationale) implements WriteCommand, Serializable {
 
     private static final long serialVersionUID = 1L;
 

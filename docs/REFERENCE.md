@@ -17,6 +17,8 @@
 
 浏览器通常通过前端 Nginx/gateway 访问 `/api`；不要把内部 Dubbo、数据库、Redis、Nacos 或 worker 端口发布到公网。
 
+浏览器侧统一经 `packages/http-client` 发起调用，成功结果只暴露业务 payload：`Result.code` 为 0 返回 `data`，非 0 以 `ApiError` 拒绝，非 `Result` envelope 返回 payload 本身（含 Blob），不提供原始 transport response。`apiDownload` 返回 `Promise<void>`，以 object URL 与临时 `<a download>` 元素触发浏览器保存；URL 创建后无论 DOM 步骤成功与否都会移除元素并 revoke URL，清理失败不覆盖原始错误。
+
 ### Contract modules
 
 `services/api/` 的 provider-owned contract：

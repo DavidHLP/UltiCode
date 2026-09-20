@@ -1,5 +1,7 @@
 package com.ulticode.app.api.service;
 
+import java.io.Serializable;
+
 /**
  * P7-MODERATION-CUTOVER-001: owner-only write + author-resolve surface for
  * {@code solution_comments} that lives in the solution module.
@@ -63,10 +65,10 @@ public interface SolutionCommentOwnerPort {
     /**
      * Result wrapper holding the author user ID and pre-mutation flag state.
      */
-    record FlagResult(String authorUserId, boolean previousIsFlagged, String previousFlaggedReason) {}
+    record FlagResult(String authorUserId, boolean previousIsFlagged, String previousFlaggedReason) implements Serializable {}
 
     /**
      * Result wrapper holding the author user ID and pre-mutation deleted state.
      */
-    record DeleteResult(String authorUserId, boolean previousIsDeleted) {}
+    record DeleteResult(String authorUserId, boolean previousIsDeleted) implements Serializable {}
 }

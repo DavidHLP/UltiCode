@@ -5,6 +5,7 @@ import com.ulticode.common.command.WriteCommand;
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
 
+import java.io.Serializable;
 import java.util.List;
 
 /**
@@ -27,7 +28,7 @@ public record BatchRejudgeCommand(
         ActorDelegation actor,
         TraceMetadata trace,
         List<String> submissionIds,
-        boolean notifyUsers) implements WriteCommand {
+        boolean notifyUsers) implements WriteCommand, Serializable {
     private static final long serialVersionUID = 1L;
 
     public BatchRejudgeCommand {

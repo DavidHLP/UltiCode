@@ -1,5 +1,7 @@
 package com.ulticode.submission.api.queue;
 
+import java.io.Serializable;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -24,7 +26,7 @@ public record JudgeJobEnvelope(
         @JsonProperty("timeLimitMs") int timeLimitMs,
         @JsonProperty("memoryLimitKb") int memoryLimitKb,
         @JsonProperty("generation") Long generation,
-        @JsonProperty("attemptId") String attemptId) {
+        @JsonProperty("attemptId") String attemptId) implements Serializable {
 
     public static final int VERSION_1 = 1;
     public static final int VERSION_2 = 2;

@@ -1,5 +1,6 @@
 package com.ulticode.app.api.service;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -32,12 +33,12 @@ public interface SolutionCommentReadPort {
             LocalDateTime flaggedAt,
             Boolean isDeleted,
             LocalDateTime deletedAt,
-            String deletedBy) {}
+            String deletedBy) implements Serializable {}
 
     /**
      * Paginated page of {@link SolutionCommentRow}.
      */
-    record SolutionCommentPage(List<SolutionCommentRow> rows, long total) {}
+    record SolutionCommentPage(List<SolutionCommentRow> rows, long total) implements Serializable {}
 
     /**
      * Paginated query over solution comments ignoring logical delete.

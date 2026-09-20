@@ -55,6 +55,7 @@ public class BackupExecutionServiceImpl implements BackupExecutionService {
         }
 
         Path tempFile = null;
+        String objectKey = null;
         try {
             backup.setStatus(BackupStatus.IN_PROGRESS);
             backupMapper.updateById(backup);
@@ -69,7 +70,7 @@ public class BackupExecutionServiceImpl implements BackupExecutionService {
             LocalDate createdDate = backup.getCreatedAt() == null
                     ? LocalDateTime.now(clock).toLocalDate()
                     : backup.getCreatedAt().toLocalDate();
-            String objectKey = StorageKeys.backupKey(backupId, createdDate);
+            objectKey = StorageKeys.backupKey(backupId, createdDate);
             fileStorage.putFile(objectKey, tempFile, "application/sql");
 
             backup.setObjectKey(objectKey);
@@ -84,21 +85,32 @@ public class BackupExecutionServiceImpl implements BackupExecutionService {
             backupMapper.updateById(backup);
             log.info("Backup completed successfully: {}, size: {} bytes", backupId, size);
         } catch (Exception exception) {
+            if (objectKey != null) {
+                deleteUploadedObject(objectKey);
+            }
             if (exception instanceof InterruptedException) {
                 Thread.currentThread().interrupt();
             }
             log.error("Backup execution failed for: {}", backupId, exception);
-            fail(backup, backupId, exception.getMessage());
+            fail(backup, exception.getMessage());
         } finally {
             deleteTempFile(tempFile);
         }
     }
 
-    private void fail(Backup backup, String backupId, String error) {
+    private void fail(Backup backup, String error) {
         backup.setStatus(BackupStatus.FAILED);
         backup.setCompletedAt(LocalDateTime.now(clock));
         backup.setError(error == null || error.isBlank() ? "Backup execution failed" : error);
         backupMapper.updateById(backup);
+    }
+
+    private void deleteUploadedObject(String objectKey) {
+        try {
+            fileStorage.delete(objectKey);
+        } catch (RuntimeException cleanupException) {
+            log.warn("Failed to clean up uploaded backup object: {}", objectKey, cleanupException);
+        }
     }
 
     private Path createSecureTempFile(String prefix, String suffix) throws IOException {

@@ -68,7 +68,12 @@ public class AdminUserProfileAdapter implements UserProfilePort {
             throw new BusinessException(AdminErrorCode.UNAUTHORIZED);
         }
 
-        RpcResult<ProfileWriteResult> result = invoke(() -> profileWriteService.updateProfile(command));
+        RpcResult<ProfileWriteResult> result;
+        try {
+            result = invoke(() -> profileWriteService.updateProfile(command));
+        } catch (RpcTransportException exception) {
+            throw transportFailure(exception);
+        }
         if (result == null || !result.success() || result.data() == null) {
             throw rpcFailure("Profile update failed on App provider", result);
         }
@@ -116,7 +121,10 @@ public class AdminUserProfileAdapter implements UserProfilePort {
         }
 
         try {
-            updateAvatarUrl(userId, key);
+            updateAvatarUrlWithOutcome(userId, key);
+        } catch (RpcTransportException exception) {
+            log.warn("Avatar profile update outcome is unknown for user {}; keeping object {}", userId, key);
+            throw transportFailure(exception);
         } catch (RuntimeException exception) {
             deleteQuietly(key);
             throw exception;
@@ -195,6 +203,14 @@ public class AdminUserProfileAdapter implements UserProfilePort {
         if (userId == null) {
             return;
         }
+        try {
+            updateAvatarUrlWithOutcome(userId, avatarUrl);
+        } catch (RpcTransportException exception) {
+            throw transportFailure(exception);
+        }
+    }
+
+    private void updateAvatarUrlWithOutcome(String userId, String avatarUrl) {
         UploadAvatarCommand command = new UploadAvatarCommand(
                 UUID.randomUUID().toString(),
                 IdMetadata.mint(),
@@ -214,15 +230,29 @@ public class AdminUserProfileAdapter implements UserProfilePort {
      */
     private RpcResult<ProfileWriteResult> invoke(RemoteCall call) {
         if (profileWriteService == null) {
-            throw new BusinessException(AdminErrorCode.UNKNOWN_ERROR, "ProfileWriteService unavailable");
+            throw new RpcTransportException("ProfileWriteService unavailable");
         }
         try {
             return call.call();
-        } catch (BusinessException e) {
-            throw e;
-        } catch (RuntimeException e) {
-            log.warn("ProfileWriteService RPC failed: {}", e.getMessage());
-            throw new BusinessException(AdminErrorCode.UNKNOWN_ERROR, "Profile write RPC failed");
+        } catch (BusinessException exception) {
+            throw exception;
+        } catch (RuntimeException exception) {
+            log.warn("ProfileWriteService RPC failed: {}", exception.getMessage());
+            throw new RpcTransportException("Profile write RPC failed", exception);
+        }
+    }
+
+    private static BusinessException transportFailure(RpcTransportException exception) {
+        return new BusinessException(AdminErrorCode.UNKNOWN_ERROR, exception.getMessage());
+    }
+
+    private static final class RpcTransportException extends RuntimeException {
+        private RpcTransportException(String message) {
+            super(message);
+        }
+
+        private RpcTransportException(String message, Throwable cause) {
+            super(message, cause);
         }
     }
 

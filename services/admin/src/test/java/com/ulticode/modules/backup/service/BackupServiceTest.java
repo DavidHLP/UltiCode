@@ -412,6 +412,28 @@ class BackupServiceTest {
             verify(backupProcessPort).restore(pathCaptor.capture());
             assertFalse(Files.exists(pathCaptor.getValue()));
         }
+        @Test
+        @DisplayName("should reject a corrupted object before database restore")
+        void shouldRejectChecksumMismatchBeforeRestore() {
+            Backup backup = new Backup();
+            backup.setId(BACKUP_ID);
+            backup.setFilename("backup.sql");
+            backup.setObjectKey("admin/backups/2026/01/" + BACKUP_ID + ".sql");
+            backup.setChecksum("0".repeat(64));
+            backup.setStatus(BackupStatus.COMPLETED);
+            when(backupMapper.selectById(BACKUP_ID)).thenReturn(backup);
+            when(fileStorage.openStream(backup.getObjectKey())).thenReturn(Optional.of(
+                    new FileStoragePort.StorageStream(
+                            new ByteArrayInputStream("restore sql".getBytes()),
+                            11L,
+                            "application/sql")));
+
+            BusinessException exception = assertThrows(BusinessException.class,
+                    () -> backupService.restoreBackup(BACKUP_ID, USER_ID));
+
+            assertTrue(exception.getMessage().contains("checksum mismatch"));
+            verify(backupProcessPort, never()).restore(any(Path.class));
+        }
     }
     @Nested
     @DisplayName("Path Traversal Validation Tests")

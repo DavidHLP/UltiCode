@@ -24,10 +24,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.PosixFilePermissions;
+import java.security.DigestInputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
+import java.util.HexFormat;
 import java.util.Map;
 
 /**
@@ -96,14 +100,16 @@ public class BackupServiceImpl implements BackupService {
         }
         validateBackupFilePath(backup.getFilename());
         String objectKey = requireBackupObjectKey(backup);
-
         Path tempFile = null;
         try {
             tempFile = createSecureTempFile("restore-", ".sql");
             FileStoragePort.StorageStream stored = fileStorage.openStream(objectKey)
                     .orElseThrow(() -> new BusinessException(BaseErrorCode.NOT_FOUND, "Backup object not found"));
-            try (InputStream content = stored.content()) {
-                Files.copy(content, tempFile, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            String checksum = copyAndChecksum(stored.content(), tempFile);
+            if (backup.getChecksum() != null && !backup.getChecksum().isBlank()
+                    && !checksum.equalsIgnoreCase(backup.getChecksum())) {
+                throw new BusinessException(BaseErrorCode.UNKNOWN_ERROR,
+                        "Backup checksum mismatch; refusing to restore");
             }
             if (!backupProcessPort.restore(tempFile)) {
                 throw new BusinessException(BaseErrorCode.UNKNOWN_ERROR,
@@ -208,5 +214,18 @@ public class BackupServiceImpl implements BackupService {
         } catch (IOException exception) {
             log.warn("Failed to clean up backup temp file: {}", file, exception);
         }
+    }
+
+    private static String copyAndChecksum(InputStream content, Path target) throws IOException {
+        MessageDigest digest;
+        try {
+            digest = MessageDigest.getInstance("SHA-256");
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("SHA-256 is unavailable", exception);
+        }
+        try (DigestInputStream digestInput = new DigestInputStream(content, digest)) {
+            Files.copy(digestInput, target, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+        }
+        return HexFormat.of().formatHex(digest.digest());
     }
 }

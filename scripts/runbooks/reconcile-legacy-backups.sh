@@ -107,6 +107,8 @@ source_checksum_parity='1=1'
 
 marker_exists="$(mysql_query "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='admin' AND table_name='backup_cutover_state' AND table_type='BASE TABLE';")"
 [[ "$marker_exists" == 1 ]] || die 'admin.backup_cutover_state is missing; apply the post-owner migration first'
+marker_rows="$(mysql_query "SELECT COUNT(*) FROM admin.backup_cutover_state WHERE id=1;")"
+[[ "$marker_rows" == 1 ]] || die 'admin.backup_cutover_state singleton row is missing'
 marker_completed="$(mysql_query "SELECT COUNT(*) FROM admin.backup_cutover_state WHERE id=1 AND cutover_completed_at IS NOT NULL;")"
 [[ "$marker_completed" =~ ^[01]$ ]] || die 'invalid backup cutover marker state'
 
@@ -169,6 +171,8 @@ mysql_query "UPDATE admin.backup_cutover_state
        cutover_completed_at=COALESCE(cutover_completed_at, CURRENT_TIMESTAMP(3)),
        last_reconciled_at=CURRENT_TIMESTAMP(3)
  WHERE id=1;" >/dev/null
+marker_rows_after="$(mysql_query "SELECT COUNT(*) FROM admin.backup_cutover_state WHERE id=1;")"
+[[ "$marker_rows_after" == 1 ]] || die 'admin.backup_cutover_state singleton row disappeared during reconciliation'
 
 printf 'LEGACY_BACKUP_RECONCILIATION source_rows=%s target_rows=%s source_only=0 metadata_mismatch=0 pre_cutover_target_extra=0 cutover_marker=%s status=PASS\n' \
   "$source_rows" "$target_rows" "$([[ "$marker_completed" == 1 ]] && echo existing || echo set)"

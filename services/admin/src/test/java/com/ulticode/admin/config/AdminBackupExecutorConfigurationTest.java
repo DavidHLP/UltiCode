@@ -57,6 +57,6 @@ class AdminBackupExecutorConfigurationTest {
         Async async = BackupExecutionServiceImpl.class.getAnnotation(Async.class);
 
         assertThat(async).isNotNull();
-        assertThat(async.value()).containsExactly("adminBackupExecutor");
+        assertThat(async.value()).isEqualTo("adminBackupExecutor");
     }
 }

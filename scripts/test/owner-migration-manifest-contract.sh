@@ -31,6 +31,8 @@ grep -Fq 'FROM `ulticode`.`backups`' \
   "$ROOT_DIR/init-db/migrations/post-owner/V20260921120000__Copy_Legacy_Backups_To_Admin.sql"
 grep -Fq 'backup_cutover_state' \
   "$ROOT_DIR/init-db/migrations/post-owner/V20260922120000__Create_Legacy_Backup_Cutover_State.sql"
+grep -Fq 'singleton row is missing' \
+  "$ROOT_DIR/scripts/runbooks/reconcile-legacy-backups.sh"
 grep -Fq 'reconcile-legacy-backups.sh' \
   "$ROOT_DIR/scripts/runbooks/owner-migration-manifest.sh"
 grep -Fq 'assert-admin-backup-drained.sh' \

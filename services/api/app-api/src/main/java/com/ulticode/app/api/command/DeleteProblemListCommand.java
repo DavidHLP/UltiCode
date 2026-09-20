@@ -1,5 +1,7 @@
 package com.ulticode.app.api.command;
 
+import java.io.Serializable;
+
 import com.ulticode.common.command.ActorDelegation;
 import com.ulticode.common.command.WriteCommand;
 import com.ulticode.common.tracing.IdMetadata;
@@ -16,7 +18,7 @@ public record DeleteProblemListCommand(
         IdMetadata idempotency,
         ActorDelegation actor,
         TraceMetadata trace,
-        String listId) implements WriteCommand {
+        String listId) implements WriteCommand, Serializable {
     private static final long serialVersionUID = 1L;
 
 

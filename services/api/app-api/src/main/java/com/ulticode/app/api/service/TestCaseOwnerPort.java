@@ -66,5 +66,5 @@ public interface TestCaseOwnerPort {
     record TestCaseWrite(String id, Long problemId, boolean isSample, boolean isHidden,
                          int testOrder, String inputText, String outputText,
                          String explanation, String constraints, String inputs,
-                         LocalDateTime createdAt, LocalDateTime updatedAt) {}
+                         LocalDateTime createdAt, LocalDateTime updatedAt) implements Serializable {}
 }

@@ -32,10 +32,10 @@
   "dependencies": {
     "clsx": "^2.1.1",
     "lucide-vue-next": "^0.552.0",
-    "tailwind-merge": "^3.6.0"
+    "tailwind-merge": "^3.7.0"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^6.0.7",
+    "@vitejs/plugin-vue": "^6.0.9",
     "@vue/test-utils": "^2.4.11",
     "@vue/tsconfig": "^0.7.0",
     "jsdom": "^29.1.1",

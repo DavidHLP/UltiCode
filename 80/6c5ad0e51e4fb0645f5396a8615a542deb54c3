@@ -1,0 +1,22 @@
+docs/DEVELOPMENT.md
+  h_77173abe25c3ff 133-152
+docs/OPERATIONS.md
+  h_77173abe25c3ff 118-158
+scripts/dev/rustfs-smoke-test.sh
+  h_77173abe25c3ff 1-90
+services/platform/storage/pom.xml
+  h_77173abe25c3ff 50-69
+services/platform/storage/src/test/java/com/ulticode/common/storage/RustFsSmokeTest.java
+  h_77173abe25c3ff 1-227
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "806c5ad0e51e4fb0645f5396a8615a542deb54c3",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

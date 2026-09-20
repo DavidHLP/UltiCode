@@ -115,6 +115,47 @@ Notification 是 `notifications`、preferences、delivery ledger 的唯一 write
 - [`../scripts/runbooks/owner-migration-manifest.sh`](../scripts/runbooks/owner-migration-manifest.sh)
 - [`../scripts/runbooks/owner-schema-contraction.sh`](../scripts/runbooks/owner-schema-contraction.sh)
 - [`../services/docs/CONTRACT_COMPAT_GATE.md`](../services/docs/CONTRACT_COMPAT_GATE.md)
+## 对象存储（RustFS）
+
+RustFS 是开发、测试、生产共同的必需基础设施，仓库不提供本地磁盘回退。应用在启动时校验
+`APP_STORAGE_S3_*`（endpoint、region、bucket、access key、secret key、TLS 开关），缺失即启动失败；
+启动后还会对 bucket 做有界重试探测（`APP_STORAGE_STARTUP_PROBE_*`），仍不可用则明确失败，不会静默改写本地目录。
+
+### 桶、前缀与权限
+
+- 单一私有 bucket（默认 `ulticode`，`RUSTFS_BUCKET` 可覆盖），一次性 `rustfs-init` 服务幂等创建；
+  没有任何匿名读权限，也没有公开 bucket 策略。
+- 头像前缀 `app/avatars/{accountId}/{uuid}.{ext}`：浏览器通过后端鉴权代理
+  `GET /api/users/avatars/{accountId}/{name}` 读取（要求登录态；只允许该前缀）。
+- 备份前缀 `admin/backups/{yyyy}/{MM}/{backupId}.sql`：只能通过 `/admin/backups/**`
+  的 `ADMIN`/`SUPER_ADMIN` 端点下载与恢复。
+- 凭据来自 `.env`/部署密钥系统（`RUSTFS_ACCESS_KEY`/`RUSTFS_SECRET_KEY`），禁止使用 RustFS
+  文档中的默认账号；生产不使用明文 HTTP，后端经 `https://rustfs:9000` 访问，证书目录由
+  `RUSTFS_TLS_CERT_DIR` 提供且证书/CA 需被后端 JVM 信任。
+
+### 卷、备份与恢复
+
+- 数据卷 `rustfs_data` 挂载到 `/data`，容器 UID/GID 为 `10001:10001`；容器重启后对象保留。
+- 卷级备份（示例，停止写入后执行）：
+
+```bash
+docker run --rm -v ulticode_rustfs_data:/data:ro -v "$PWD:/backup" alpine \
+  tar czf /backup/rustfs-data-$(date +%Y%m%d_%H%M%S).tgz -C /data .
+```
+
+  恢复时把归档解回同一卷（保持 `10001:10001` 属主），再启动 RustFS 并运行下面的 smoke test 确认对象可读。
+- 旧本地文件迁移用 `scripts/dev/migrate-object-storage.sh`：默认 dry-run；`--apply` 才上传；
+  上传后校验大小/checksum 并回读对象，校验通过后才更新数据库行（`user_profiles.avatar` 与
+  `backups.object_key`）；脚本从不删除旧文件，只有在迁移报告确认全部对象已校验后，operator 才可清理旧目录。
+- RustFS 不可用时：应用启动失败（或既有实例在请求路径上返回明确的存储错误），备份/恢复不会标记成功，
+  也不会回退到本地永久目录。
+
+### 参考
+
+- [`../scripts/dev/migrate-object-storage.sh`](../scripts/dev/migrate-object-storage.sh)
+- [`../scripts/dev/rustfs-smoke-test.sh`](../scripts/dev/rustfs-smoke-test.sh)
+- [`../docker/docker-compose.yml`](../docker/docker-compose.yml)（`rustfs` / `rustfs-init` 服务）
+
 ## 备份与恢复
 
 ### 责任与范围

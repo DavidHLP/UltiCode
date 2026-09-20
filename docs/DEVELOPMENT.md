@@ -130,10 +130,26 @@ dependabot-core 当作 support file 丢弃，PR 只改 manifest，必然过不�
 
 ### Optional external Adapters
 
-- `FileStoragePort` 默认使用 `LocalStorage`；S3-compatible/R2 通过
-  `APP_STORAGE_TYPE=s3`、endpoint、bucket 和 secret-store credentials
-  开启。远程 HTTP endpoint 总是拒绝；HTTP 仅允许 loopback 本地开发，
-  `APP_STORAGE_S3_TLS_ENABLED=true` 时任何 HTTP endpoint 都拒绝。
+- 对象存储是所有环境的必需依赖：`FileStoragePort` 只有 S3/RustFS 实现，
+  `LocalStorage`、`APP_STORAGE_TYPE=local`、dev-lite 本地文件回退和运行时切换都已删除。
+  RustFS 由 `docker/docker-compose.yml` 的 `rustfs` 服务提供，数据落在独立卷
+  `rustfs_data`，容器以 `10001:10001` 运行。开发环境把 API/Console 发布到 loopback
+  （默认 `127.0.0.1:9000`/`9001`，仅宿主机后端与人工排查使用），宿主机 PM2 后端用
+  `APP_STORAGE_S3_ENDPOINT=http://127.0.0.1:9000` + `APP_STORAGE_S3_TLS_ENABLED=false`；
+  生产后端在内部网络用 `https://rustfs:9000` + operator 提供的 `RUSTFS_TLS_CERT_DIR`
+  （`rustfs_cert.pem`/`rustfs_key.pem`，证书/CA 必须被后端 JVM 信任），且不发布任何端口。
+  缺失 endpoint、region、bucket、access key、secret key 或 TLS 配置时应用启动失败，
+  绝不回退本地磁盘；非 loopback 明文 HTTP 仍然拒绝。bucket 由一次性 `rustfs-init`
+  服务幂等创建，凭据只来自 `.env`/部署密钥系统，不使用 RustFS 默认账号。
+- 对象布局与读取策略：头像 `app/avatars/{accountId}/{uuid}.{ext}`（key 全部由服务端生成，
+  扩展名来自内容嗅探而不是原始文件名），备份 `admin/backups/{yyyy}/{MM}/{backupId}.sql`。
+  bucket 保持私有：浏览器只通过后端鉴权代理 `GET /api/users/avatars/{accountId}/{name}`
+  读取头像，备份只通过 `/admin/backups/**` 鉴权端点下载；数据库保存 object key，
+  不保存带环境地址的完整 URL。
+- 旧本地文件（`uploads/avatars/*`、旧 `BACKUP_DIR/backup_*.sql`）用
+  `scripts/dev/migrate-object-storage.sh` 迁移：默认 dry-run，`--apply` 才写入，上传后校验大小与
+  checksum 并回读对象，校验通过后才切换数据库，且从不删除旧文件。
+  RustFS 实例级 smoke test 见 `scripts/dev/rustfs-smoke-test.sh`。
 - Notification 保留 `LoggingSmtpSenderAdapter` 默认路径；真实 SMTP 只通过
   `SMTP_*`/`APP_EMAIL_ENABLED` 配置，不让业务 Module 依赖厂商 SDK。
 - 本地 observability 使用 `docker/docker-compose.observability.yml`。托管 OTLP

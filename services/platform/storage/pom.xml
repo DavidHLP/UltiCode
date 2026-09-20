@@ -47,4 +47,24 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <!--
+                      backend-storage carries no jacoco agent, so the parent's
+                      @{argLine} placeholder is never resolved and would be
+                      passed to the forked JVM as the literal '@{argLine}'
+                      (which crashes `java -jar`). Same override as
+                      platform/common, platform/observability and
+                      platform/rpc-resilience.
+                    -->
+                    <argLine>-Djdk.attach.allowAttachSelf=true</argLine>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>

@@ -13,6 +13,7 @@ import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.rpc.RpcPolicy;
 import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.common.storage.FileStoragePort;
+import com.ulticode.common.storage.ImageContent;
 import com.ulticode.common.storage.StorageKeys;
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
@@ -31,8 +32,6 @@ import java.io.IOException;
 import java.util.Locale;
 import java.util.UUID;
 
-import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
 
 /**
  * Admin-shell adapter for {@link UserProfilePort}.
@@ -153,38 +152,18 @@ public class AdminUserProfileAdapter implements UserProfilePort {
     }
 
     private static DetectedImage detectImage(byte[] content) {
-        if (content.length >= 8
-                && (content[0] & 0xff) == 0x89 && content[1] == 0x50 && content[2] == 0x4e
-                && content[3] == 0x47 && content[4] == 0x0d && content[5] == 0x0a
-                && (content[6] & 0xff) == 0x1a && content[7] == 0x0a
-                && decodesImage(content)) {
-            return new DetectedImage("png", "image/png");
-        }
-        if (content.length >= 3 && (content[0] & 0xff) == 0xff && (content[1] & 0xff) == 0xd8
-                && (content[2] & 0xff) == 0xff && decodesImage(content)) {
-            return new DetectedImage("jpg", "image/jpeg");
-        }
-        if (content.length >= 6
-                && content[0] == 'G' && content[1] == 'I' && content[2] == 'F'
-                && (content[3] == '8') && (content[4] == '7' || content[4] == '9') && content[5] == 'a'
-                && decodesImage(content)) {
-            return new DetectedImage("gif", "image/gif");
-        }
-        if (content.length >= 12
-                && content[0] == 'R' && content[1] == 'I' && content[2] == 'F' && content[3] == 'F'
-                && content[8] == 'W' && content[9] == 'E' && content[10] == 'B' && content[11] == 'P') {
-            return new DetectedImage("webp", "image/webp");
-        }
-        throw new BusinessException(AdminErrorCode.BAD_REQUEST, "File content is not a supported image");
-    }
-
-    private static boolean decodesImage(byte[] content) {
+        // Shared sniffer: rejects an image whose decoded raster would exceed the
+        // pixel budget before any decode happens (ImageContent.MAX_PIXELS).
+        ImageContent.Detected detected;
         try {
-            BufferedImage image = ImageIO.read(new ByteArrayInputStream(content));
-            return image != null;
-        } catch (IOException exception) {
-            return false;
+            detected = ImageContent.detect(content);
+        } catch (IllegalArgumentException exception) {
+            throw new BusinessException(AdminErrorCode.BAD_REQUEST, exception.getMessage());
         }
+        if (detected == null) {
+            throw new BusinessException(AdminErrorCode.BAD_REQUEST, "File content is not a supported image");
+        }
+        return new DetectedImage(detected.extension(), detected.contentType());
     }
 
     private void deleteQuietly(String key) {

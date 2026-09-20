@@ -5,6 +5,7 @@ import com.ulticode.app.userprofile.mapper.UserProfileMapper;
 import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.storage.FileStoragePort;
+import com.ulticode.common.storage.ImageContent;
 import com.ulticode.common.storage.StorageKeys;
 import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.user.dto.UpdateUserDTO;
@@ -19,12 +20,9 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.imageio.ImageIO;
-import javax.imageio.ImageReader;
-import javax.imageio.stream.ImageInputStream;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.util.Iterator;
 import java.util.Locale;
 
 /**
@@ -39,12 +37,6 @@ import java.util.Locale;
 @RequiredArgsConstructor
 public class DefaultAppUserWritePort implements AppUserWritePort {
 
-    private static final int MAX_IMAGE_DIMENSION = 4096;
-    private static final long MAX_IMAGE_PIXELS =
-            (long) MAX_IMAGE_DIMENSION * MAX_IMAGE_DIMENSION;
-    private static final String IMAGE_DIMENSION_LIMIT_MESSAGE =
-            "Image dimensions exceed " + MAX_IMAGE_DIMENSION + "x"
-                    + MAX_IMAGE_DIMENSION + " pixel limit";
 
     private final UserProfileMapper userProfileMapper;
     private final UuidGenerator uuidGenerator;
@@ -250,9 +242,7 @@ public class DefaultAppUserWritePort implements AppUserWritePort {
     }
 
     private static boolean decodesImage(byte[] content) {
-        if (!dimensionsWithinLimit(content)) {
-            return false;
-        }
+        assertDimensionsWithinLimit(content);
         try {
             BufferedImage image = ImageIO.read(new ByteArrayInputStream(content));
             return image != null;
@@ -261,29 +251,13 @@ public class DefaultAppUserWritePort implements AppUserWritePort {
         }
     }
 
-    private static boolean dimensionsWithinLimit(byte[] content) {
-        try (ImageInputStream input = ImageIO.createImageInputStream(new ByteArrayInputStream(content))) {
-            if (input == null) {
-                return false;
-            }
-            Iterator<ImageReader> readers = ImageIO.getImageReaders(input);
-            if (!readers.hasNext()) {
-                return false;
-            }
-            ImageReader reader = readers.next();
-            try {
-                reader.setInput(input, true, true);
-                long width = reader.getWidth(0);
-                long height = reader.getHeight(0);
-                if (width * height > MAX_IMAGE_PIXELS) {
-                    throw new BusinessException(BaseErrorCode.BAD_REQUEST, IMAGE_DIMENSION_LIMIT_MESSAGE);
-                }
-                return width > 0 && height > 0;
-            } finally {
-                reader.dispose();
-            }
-        } catch (IOException exception) {
-            return false;
+    private static void assertDimensionsWithinLimit(byte[] content) {
+        // One shared bound for both avatar paths: reject a raster that would blow the
+        // heap before any decode happens.
+        try {
+            ImageContent.assertWithinPixelBudget(content);
+        } catch (IllegalArgumentException exception) {
+            throw new BusinessException(BaseErrorCode.BAD_REQUEST, exception.getMessage());
         }
     }
 

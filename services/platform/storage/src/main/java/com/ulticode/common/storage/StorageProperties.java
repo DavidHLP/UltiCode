@@ -12,6 +12,8 @@ import java.util.Locale;
 @ConfigurationProperties(prefix = "app.storage")
 public class StorageProperties implements InitializingBean {
     public static final String TYPE_S3 = "s3";
+    public static final int DEFAULT_UPLOAD_TIMEOUT_MS = 1_800_000;
+    public static final int MAX_UPLOAD_TIMEOUT_MS = 3_600_000;
 
     private String type = TYPE_S3;
     private final S3 s3 = new S3();
@@ -96,8 +98,9 @@ public class StorageProperties implements InitializingBean {
             throw new IllegalStateException("app.storage.s3.endpoint must include a host.");
         }
         if (s3.connectTimeoutMs < 100 || s3.connectTimeoutMs > 30_000
-                || s3.requestTimeoutMs < 100 || s3.requestTimeoutMs > 120_000) {
-            throw new IllegalStateException("S3 connect/request timeout is outside the supported range.");
+                || s3.requestTimeoutMs < 100 || s3.requestTimeoutMs > 120_000
+                || s3.uploadTimeoutMs < 100 || s3.uploadTimeoutMs > MAX_UPLOAD_TIMEOUT_MS) {
+            throw new IllegalStateException("S3 timeout is outside the supported range.");
         }
         if (s3.maxConcurrentRequests < 1 || s3.maxConcurrentRequests > 128) {
             throw new IllegalStateException("S3 max concurrent requests must be between 1 and 128.");
@@ -131,6 +134,7 @@ public class StorageProperties implements InitializingBean {
         private String caCertificatePath;
         private int connectTimeoutMs = 10_000;
         private int requestTimeoutMs = 30_000;
+        private int uploadTimeoutMs = DEFAULT_UPLOAD_TIMEOUT_MS;
         private int maxConcurrentRequests = 16;
         public String getEndpoint() { return endpoint; }
         public void setEndpoint(String endpoint) { this.endpoint = endpoint; }
@@ -151,6 +155,8 @@ public class StorageProperties implements InitializingBean {
         public void setConnectTimeoutMs(int connectTimeoutMs) { this.connectTimeoutMs = connectTimeoutMs; }
         public int getRequestTimeoutMs() { return requestTimeoutMs; }
         public void setRequestTimeoutMs(int requestTimeoutMs) { this.requestTimeoutMs = requestTimeoutMs; }
+        public int getUploadTimeoutMs() { return uploadTimeoutMs; }
+        public void setUploadTimeoutMs(int uploadTimeoutMs) { this.uploadTimeoutMs = uploadTimeoutMs; }
         public int getMaxConcurrentRequests() { return maxConcurrentRequests; }
         public void setMaxConcurrentRequests(int maxConcurrentRequests) { this.maxConcurrentRequests = maxConcurrentRequests; }
     }

@@ -59,6 +59,7 @@ app:
       ca-certificate-path: ${APP_STORAGE_S3_CA_CERTIFICATE:}
       connect-timeout-ms: ${APP_STORAGE_S3_CONNECT_TIMEOUT_MS:10000}
       request-timeout-ms: ${APP_STORAGE_S3_REQUEST_TIMEOUT_MS:30000}
+      upload-timeout-ms: ${APP_STORAGE_S3_UPLOAD_TIMEOUT_MS:1800000}
       max-concurrent-requests: ${APP_STORAGE_S3_MAX_CONCURRENT_REQUESTS:16}
     startup-probe:
       enabled: ${APP_STORAGE_STARTUP_PROBE_ENABLED:true}

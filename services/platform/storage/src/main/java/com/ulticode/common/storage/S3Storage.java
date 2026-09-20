@@ -31,9 +31,15 @@ public class S3Storage implements FileStoragePort {
     private final StorageProperties properties;
     private final HttpClient httpClient;
     private final DependencyGuard dependencyGuard;
+    private final StorageReadiness readiness;
 
     public S3Storage(StorageProperties properties) {
-        this(properties, createHttpClient(properties));
+        this(properties, createHttpClient(properties), new StorageReadiness());
+    }
+
+    public S3Storage(StorageProperties properties, StorageReadiness readiness) {
+        this(properties, createHttpClient(properties), new DependencyGuard(
+                properties.getS3().getMaxConcurrentRequests(), FAILURE_THRESHOLD, OPEN_DURATION), readiness);
     }
 
     private static HttpClient createHttpClient(StorageProperties properties) {
@@ -44,14 +50,24 @@ public class S3Storage implements FileStoragePort {
     }
 
     S3Storage(StorageProperties properties, HttpClient httpClient) {
+        this(properties, httpClient, new StorageReadiness());
+    }
+
+    S3Storage(StorageProperties properties, HttpClient httpClient, StorageReadiness readiness) {
         this(properties, httpClient, new DependencyGuard(
-                properties.getS3().getMaxConcurrentRequests(), FAILURE_THRESHOLD, OPEN_DURATION));
+                properties.getS3().getMaxConcurrentRequests(), FAILURE_THRESHOLD, OPEN_DURATION), readiness);
     }
 
     S3Storage(StorageProperties properties, HttpClient httpClient, DependencyGuard dependencyGuard) {
+        this(properties, httpClient, dependencyGuard, new StorageReadiness());
+    }
+
+    S3Storage(StorageProperties properties, HttpClient httpClient, DependencyGuard dependencyGuard,
+              StorageReadiness readiness) {
         this.properties = properties;
         this.httpClient = httpClient;
         this.dependencyGuard = dependencyGuard;
+        this.readiness = readiness;
     }
 
     @Override
@@ -69,6 +85,9 @@ public class S3Storage implements FileStoragePort {
         } catch (IOException | InterruptedException exception) {
             restoreInterrupt(exception);
             throw new StorageException("Failed to store object '" + key + "'", exception);
+        } catch (StorageException exception) {
+            readiness.markFailed(exception.getMessage());
+            throw exception;
         }
     }
 
@@ -81,10 +100,14 @@ public class S3Storage implements FileStoragePort {
         try {
             String payloadHash = AwsSigV4Signer.sha256Hex(file);
             requireSuccess(exchange("PUT", objectUri(key), HttpRequest.BodyPublishers.ofFile(file), payloadHash,
-                    contentType, HttpResponse.BodyHandlers.ofByteArray(), 1), key);
+                    contentType, HttpResponse.BodyHandlers.ofByteArray(), 1,
+                    properties.getS3().getUploadTimeoutMs()), key);
         } catch (IOException | InterruptedException exception) {
             restoreInterrupt(exception);
             throw new StorageException("Failed to store object '" + key + "'", exception);
+        } catch (StorageException exception) {
+            readiness.markFailed(exception.getMessage());
+            throw exception;
         }
     }
 
@@ -117,31 +140,39 @@ public class S3Storage implements FileStoragePort {
             } catch (DependencyGuard.RejectedException rejected) {
                 throw new StorageException("Object store temporarily unavailable: " + rejected.reason(), rejected);
             }
+            HttpResponse<InputStream> response = null;
             try {
-                HttpResponse<InputStream> response = sendOnce("GET", objectUri(key),
-                        HttpRequest.BodyPublishers.noBody(), EMPTY_HASH, null,
-                        HttpResponse.BodyHandlers.ofInputStream());
+                response = sendOnce("GET", objectUri(key), HttpRequest.BodyPublishers.noBody(), EMPTY_HASH, null,
+                        HttpResponse.BodyHandlers.ofInputStream(), properties.getS3().getRequestTimeoutMs());
                 int status = response.statusCode();
                 if (status == 404) {
-                    closeBody(response.body());
+                    closeStreamingBody(response.body());
+                    readiness.markReady();
                     permit.success();
                     return Optional.empty();
                 }
                 if (status == 429 || status >= 500) {
+                    readiness.markFailed("Object store returned HTTP " + status);
                     permit.failure();
-                    closeBody(response.body());
+                    closeStreamingBody(response.body());
                     if (attempt < READ_ATTEMPTS) {
                         continue;
                     }
                     requireSuccess(response, key);
                 } else if (status / 100 == 2) {
+                    InputStream body = response.body();
+                    if (body == null) {
+                        throw new IOException("Object-store response body is missing");
+                    }
+                    long contentLength = response.headers().firstValueAsLong("Content-Length").orElse(-1L);
+                    String contentType = response.headers().firstValue("Content-Type").orElse(null);
+                    readiness.markReady();
                     return Optional.of(new StorageStream(
-                            new GuardedInputStream(response.body(), permit),
-                            response.headers().firstValueAsLong("Content-Length").orElse(-1L),
-                            response.headers().firstValue("Content-Type").orElse(null)));
+                            new GuardedInputStream(body, permit, readiness), contentLength, contentType));
                 } else {
-                    closeBody(response.body());
-                    permit.success();
+                    readiness.markFailed("Object store returned HTTP " + status);
+                    permit.failure();
+                    closeStreamingBody(response.body());
                     requireSuccess(response, key);
                 }
             } catch (InterruptedException exception) {
@@ -149,11 +180,27 @@ public class S3Storage implements FileStoragePort {
                 restoreInterrupt(exception);
                 throw new StorageException("Failed to stream object '" + key + "'", exception);
             } catch (IOException exception) {
+                readiness.markFailed(exception.getMessage());
                 permit.failure();
                 lastFailure = exception;
                 if (attempt == READ_ATTEMPTS) {
                     throw new StorageException("Failed to stream object '" + key + "'", exception);
                 }
+            } catch (StorageException exception) {
+                readiness.markFailed(exception.getMessage());
+                permit.failure();
+                throw exception;
+            } catch (RuntimeException exception) {
+                readiness.markFailed(exception.getMessage());
+                permit.failure();
+                if (response != null) {
+                    try {
+                        closeStreamingBody(response.body());
+                    } catch (IOException closeFailure) {
+                        exception.addSuppressed(closeFailure);
+                    }
+                }
+                throw new StorageException("Failed to stream object '" + key + "'", exception);
             }
         }
         throw new StorageException("Failed to stream object '" + key + "'", lastFailure);
@@ -186,12 +233,23 @@ public class S3Storage implements FileStoragePort {
         } catch (IOException | InterruptedException exception) {
             restoreInterrupt(exception);
             throw new StorageException("Object-store startup probe failed", exception);
+        } catch (StorageException exception) {
+            readiness.markFailed(exception.getMessage());
+            throw exception;
         }
     }
 
     private <T> HttpResponse<T> exchange(String method, URI uri, HttpRequest.BodyPublisher body,
                                          String payloadHash, String contentType,
                                          HttpResponse.BodyHandler<T> bodyHandler, int maxAttempts)
+            throws IOException, InterruptedException {
+        return exchange(method, uri, body, payloadHash, contentType, bodyHandler, maxAttempts,
+                properties.getS3().getRequestTimeoutMs());
+    }
+
+    private <T> HttpResponse<T> exchange(String method, URI uri, HttpRequest.BodyPublisher body,
+                                         String payloadHash, String contentType,
+                                         HttpResponse.BodyHandler<T> bodyHandler, int maxAttempts, int timeoutMs)
             throws IOException, InterruptedException {
         IOException lastFailure = null;
         for (int attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -202,22 +260,27 @@ public class S3Storage implements FileStoragePort {
                 throw new StorageException("Object store temporarily unavailable: " + rejected.reason(), rejected);
             }
             try (permit) {
-                HttpResponse<T> response = sendOnce(method, uri, body, payloadHash, contentType, bodyHandler);
+                HttpResponse<T> response = sendOnce(method, uri, body, payloadHash, contentType, bodyHandler, timeoutMs);
                 int status = response.statusCode();
-                if (status == 429 || status >= 500) {
+                if (status / 100 == 2 || status == 404) {
+                    readiness.markReady();
+                    permit.success();
+                } else {
+                    readiness.markFailed("Object store returned HTTP " + status);
                     permit.failure();
                     closeBody(response.body());
-                    if (attempt < maxAttempts) {
-                        continue;
+                    if (status == 429 || status >= 500) {
+                        if (attempt < maxAttempts) {
+                            continue;
+                        }
                     }
-                } else {
-                    permit.success();
                 }
                 return response;
             } catch (InterruptedException interrupted) {
                 permit.ignore();
                 throw interrupted;
             } catch (IOException failure) {
+                readiness.markFailed(failure.getMessage());
                 permit.failure();
                 lastFailure = failure;
                 if (attempt == maxAttempts) {
@@ -232,6 +295,14 @@ public class S3Storage implements FileStoragePort {
                                          String payloadHash, String contentType,
                                          HttpResponse.BodyHandler<T> bodyHandler)
             throws IOException, InterruptedException {
+        return sendOnce(method, uri, body, payloadHash, contentType, bodyHandler,
+                properties.getS3().getRequestTimeoutMs());
+    }
+
+    private <T> HttpResponse<T> sendOnce(String method, URI uri, HttpRequest.BodyPublisher body,
+                                         String payloadHash, String contentType,
+                                         HttpResponse.BodyHandler<T> bodyHandler, int timeoutMs)
+            throws IOException, InterruptedException {
         StorageProperties.S3 s3 = properties.getS3();
         ZonedDateTime now = ZonedDateTime.now(ZoneOffset.UTC);
         Map<String, String> headers = new LinkedHashMap<>();
@@ -244,7 +315,7 @@ public class S3Storage implements FileStoragePort {
         String authorization = AwsSigV4Signer.authorization(method, uri, headers, payloadHash,
                 s3.getAccessKey(), s3.getSecretKey(), s3.getRegion(), "s3", now);
         HttpRequest.Builder builder = HttpRequest.newBuilder(uri)
-                .timeout(Duration.ofMillis(s3.getRequestTimeoutMs()))
+                .timeout(Duration.ofMillis(timeoutMs))
                 .header("x-amz-content-sha256", payloadHash)
                 .header("x-amz-date", headers.get("x-amz-date"))
                 .header("Authorization", authorization);
@@ -271,18 +342,23 @@ public class S3Storage implements FileStoragePort {
     private static final class GuardedInputStream extends FilterInputStream {
 
         private final DependencyGuard.Permit permit;
+        private final StorageReadiness readiness;
         private boolean closed;
 
-        private GuardedInputStream(InputStream delegate, DependencyGuard.Permit permit) {
+        private GuardedInputStream(InputStream delegate, DependencyGuard.Permit permit, StorageReadiness readiness) {
             super(delegate);
             this.permit = permit;
+            this.readiness = readiness;
         }
 
         @Override
         public int read() throws IOException {
             try {
-                return super.read();
+                int result = super.read();
+                readiness.markReady();
+                return result;
             } catch (IOException exception) {
+                readiness.markFailed(exception.getMessage());
                 permit.failure();
                 throw exception;
             }
@@ -291,8 +367,11 @@ public class S3Storage implements FileStoragePort {
         @Override
         public int read(byte[] bytes, int offset, int length) throws IOException {
             try {
-                return super.read(bytes, offset, length);
+                int result = super.read(bytes, offset, length);
+                readiness.markReady();
+                return result;
             } catch (IOException exception) {
+                readiness.markFailed(exception.getMessage());
                 permit.failure();
                 throw exception;
             }
@@ -301,8 +380,11 @@ public class S3Storage implements FileStoragePort {
         @Override
         public long skip(long count) throws IOException {
             try {
-                return super.skip(count);
+                long result = super.skip(count);
+                readiness.markReady();
+                return result;
             } catch (IOException exception) {
+                readiness.markFailed(exception.getMessage());
                 permit.failure();
                 throw exception;
             }
@@ -316,11 +398,18 @@ public class S3Storage implements FileStoragePort {
             closed = true;
             try {
                 super.close();
+                readiness.markReady();
                 permit.success();
             } catch (IOException exception) {
+                readiness.markFailed(exception.getMessage());
                 permit.failure();
                 throw exception;
             }
+        }
+    }
+    private static void closeStreamingBody(InputStream body) throws IOException {
+        if (body != null) {
+            body.close();
         }
     }
 

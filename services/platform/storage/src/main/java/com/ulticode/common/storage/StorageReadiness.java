@@ -1,11 +1,12 @@
 package com.ulticode.common.storage;
 
 /**
- * Outcome of the object-store startup gate, shared with the owner readiness endpoints.
+ * Startup gate and runtime availability state of the mandatory object store, shared with owner readiness endpoints.
  *
  * <p>The gate itself runs during context refresh (see {@link StorageStartupProbe}), so a context that serves traffic has
- * already verified the object store. This holder exists so readiness reports what actually happened instead of assuming
- * success, and so an operator can see why a boot was refused.
+ * already verified the object store. Runtime storage requests reuse this holder: successful requests recover it to
+ * {@link State#READY}, while transport, service, and authentication failures move it to {@link State#FAILED}. A
+ * missing object is a valid storage response and does not mark the store failed.
  */
 public final class StorageReadiness {
 
@@ -24,13 +25,13 @@ public final class StorageReadiness {
     private volatile State state = State.PENDING;
     private volatile String detail;
 
-    /** Marks the object store verified. */
+    /** Marks the object store ready after the startup gate or a successful runtime request. */
     public void markReady() {
         this.state = State.READY;
         this.detail = null;
     }
 
-    /** Marks the object store unverified after a failed gate. */
+    /** Marks the object store unavailable after a startup or runtime failure. */
     public void markFailed(String failureDetail) {
         this.state = State.FAILED;
         this.detail = failureDetail;

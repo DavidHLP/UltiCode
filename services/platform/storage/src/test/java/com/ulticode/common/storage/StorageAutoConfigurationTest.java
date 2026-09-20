@@ -57,6 +57,9 @@ class StorageAutoConfigurationTest {
         withS3("app.storage.startup-probe.enabled=false").run(context -> {
             assertThat(context).hasNotFailed();
             assertThat(context).hasSingleBean(FileStoragePort.class);
+            assertThat(context).hasSingleBean(S3Storage.class);
+            assertThat(context.getBean(FileStoragePort.class))
+                    .isSameAs(context.getBean(S3Storage.class));
             assertThat(context).hasSingleBean(StorageReadiness.class);
             assertThat(context.getBean(StorageReadiness.class).state())
                     .isEqualTo(StorageReadiness.State.SKIPPED);

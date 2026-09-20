@@ -55,8 +55,8 @@ class S3StorageTest {
     @Mock private HttpHeaders responseHeaders;
 
     private StorageProperties properties;
+    private StorageReadiness readiness;
     private S3Storage storage;
-
     @BeforeEach
     void setUp() {
         properties = new StorageProperties();
@@ -66,7 +66,8 @@ class S3StorageTest {
         properties.getS3().setAccessKey("AKIDEXAMPLE");
         properties.getS3().setSecretKey("secret");
         properties.getS3().setTlsEnabled(false);
-        storage = new S3Storage(properties, httpClient);
+        readiness = new StorageReadiness();
+        storage = new S3Storage(properties, httpClient, readiness);
     }
 
     private void respond(int status, byte[] body, String contentType) throws Exception {
@@ -108,6 +109,7 @@ class S3StorageTest {
             respond(403, "<denied/>".getBytes(StandardCharsets.UTF_8), "application/xml");
             assertThatThrownBy(() -> storage.put("avatars/a.png", new ByteArrayInputStream(new byte[1]), 1,
                     "image/png")).isInstanceOf(StorageException.class).hasMessageContaining("403");
+            assertThat(readiness.state()).isEqualTo(StorageReadiness.State.FAILED);
         }
 
         @Test
@@ -119,6 +121,7 @@ class S3StorageTest {
                 storage.putFile("admin/backups/a.sql", file, "application/sql");
                 ArgumentCaptor<HttpRequest> captor = ArgumentCaptor.forClass(HttpRequest.class);
                 verify(httpClient).send(captor.capture(), any());
+                assertThat(captor.getValue().timeout()).contains(Duration.ofMinutes(30));
                 assertThat(captor.getValue().bodyPublisher()).isPresent();
             } finally {
                 Files.deleteIfExists(file);
@@ -142,6 +145,7 @@ class S3StorageTest {
         void getMissingIsEmpty() throws Exception {
             respond(404, new byte[0], null);
             assertThat(storage.get("avatars/gone.png")).isEmpty();
+            assertThat(readiness.state()).isEqualTo(StorageReadiness.State.READY);
         }
         @Test
         void openStreamClosesErrorBody() throws Exception {
@@ -193,7 +197,7 @@ class S3StorageTest {
             doThrow(new IOException("connection reset")).when(responseBody).read();
             doReturn(streamResponse).when(httpClient).send(any(HttpRequest.class), any());
             DependencyGuard guard = new DependencyGuard(1, 1, Duration.ofSeconds(30));
-            S3Storage guarded = new S3Storage(properties, httpClient, guard);
+            S3Storage guarded = new S3Storage(properties, httpClient, guard, readiness);
 
             FileStoragePort.StorageStream stream = guarded.openStream("avatars/failing.png").orElseThrow();
 
@@ -203,6 +207,34 @@ class S3StorageTest {
 
             assertThat(guard.inFlight()).isZero();
             assertThat(guard.state()).isEqualTo(DependencyGuard.State.OPEN);
+            assertThat(readiness.state()).isEqualTo(StorageReadiness.State.FAILED);
+        }
+        @Test
+        @DisplayName("marks close and malformed header failures, then recovers on a successful request")
+        void streamFailureAndRecoveryUpdateReadiness() throws Exception {
+            when(streamResponse.statusCode()).thenReturn(200);
+            when(streamResponse.body()).thenReturn(responseBody);
+            when(streamResponse.headers()).thenReturn(responseHeaders);
+            when(responseHeaders.firstValueAsLong("Content-Length")).thenThrow(new IllegalArgumentException("bad header"));
+            doReturn(streamResponse).when(httpClient).send(any(HttpRequest.class), any());
+
+            assertThatThrownBy(() -> storage.openStream("avatars/bad-header.png"))
+                    .isInstanceOf(StorageException.class);
+            assertThat(readiness.state()).isEqualTo(StorageReadiness.State.FAILED);
+
+            when(responseHeaders.firstValueAsLong("Content-Length"))
+                    .thenReturn(java.util.OptionalLong.of(1));
+            doThrow(new IOException("close failed")).when(responseBody).close();
+            FileStoragePort.StorageStream stream = storage.openStream("avatars/close-failed.png").orElseThrow();
+            assertThat(readiness.state()).isEqualTo(StorageReadiness.State.READY);
+            assertThatThrownBy(() -> stream.content().close())
+                    .isInstanceOf(IOException.class)
+                    .hasMessage("close failed");
+            assertThat(readiness.state()).isEqualTo(StorageReadiness.State.FAILED);
+
+            respond(200, new byte[]{1}, "application/octet-stream");
+            assertThat(storage.get("avatars/recovered.png")).isPresent();
+            assertThat(readiness.state()).isEqualTo(StorageReadiness.State.READY);
         }
 
 

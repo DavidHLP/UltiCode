@@ -25,6 +25,8 @@ class StoragePropertiesTest {
     void defaultsToS3AndRequiresValues() {
         StorageProperties properties = new StorageProperties();
         assertThat(properties.getType()).isEqualTo(StorageProperties.TYPE_S3);
+        assertThat(properties.getS3().getUploadTimeoutMs())
+                .isEqualTo(StorageProperties.DEFAULT_UPLOAD_TIMEOUT_MS);
         assertThatThrownBy(properties::validate).hasMessageContaining("app.storage.s3.endpoint")
                 .hasMessageContaining("app.storage.s3.tls-enabled");
     }
@@ -75,5 +77,12 @@ class StoragePropertiesTest {
         assertThatThrownBy(() -> complete("https://storage.example", false).validate())
                 .hasMessageContaining("loopback");
         assertThatCode(() -> complete("https://storage.example", true).validate()).doesNotThrowAnyException();
+    }
+    @Test
+    void uploadTimeoutHasAnExplicitUpperBound() {
+        StorageProperties properties = complete("http://localhost:9000", false);
+        properties.getS3().setUploadTimeoutMs(StorageProperties.MAX_UPLOAD_TIMEOUT_MS + 1);
+
+        assertThatThrownBy(properties::validate).hasMessageContaining("timeout");
     }
 }

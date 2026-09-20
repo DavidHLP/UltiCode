@@ -1,0 +1,21 @@
+services/platform/storage/src/main/java/com/ulticode/common/storage/StorageAutoConfiguration.java
+  s_aa33514364f4e1::t_a05387e7306359 6,24,27-29
+services/platform/storage/src/test/java/com/ulticode/common/storage/StorageAutoConfigurationTest.java
+  s_aa33514364f4e1::t_03fe391f2e386a 67-90
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c3f9952282fb87c917a9820af0bf0ab478066934",
+  "prompts": {},
+  "sessions": {
+    "s_aa33514364f4e1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "3b397a92-58ca-4252-8232-f281ba8d72e8",
+        "model": "deepseek-v4.1-flash"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

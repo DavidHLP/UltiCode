@@ -1,5 +1,6 @@
 package com.ulticode.app.api.service;
 
+import java.io.Serializable;
 import java.util.List;
 
 /**
@@ -23,7 +24,7 @@ public interface ContestParticipantReadPort {
     /**
      * Lightweight participant record for analytics.
      */
-    record ParticipantInfo(String contestId, String userId) {}
+    record ParticipantInfo(String contestId, String userId) implements Serializable {}
 
     /**
      * Find participants for the given contest ids.

@@ -18,7 +18,7 @@ public interface DashboardAdminMapper {
     @Select("SELECT COUNT(*) FROM problems")
     Long countTotalProblems();
 
-    @Select("SELECT COUNT(*) FROM problems WHERE is_active = 1 AND is_deleted = 0")
+    @Select("SELECT COUNT(*) FROM problems WHERE is_published = 1 AND is_deleted = 0")
     Long countPublishedProblems();
 
     @Select("SELECT difficulty AS bucket, COUNT(*) AS count FROM problems GROUP BY difficulty")
@@ -27,14 +27,14 @@ public interface DashboardAdminMapper {
     @Select("""
             SELECT CASE
                        WHEN is_deleted = 1 THEN 'DELETED'
-                       WHEN is_active = 1 THEN 'ACTIVE'
+                       WHEN is_published = 1 THEN 'ACTIVE'
                        ELSE 'INACTIVE'
                    END AS bucket,
                    COUNT(*) AS count
             FROM problems
             GROUP BY CASE
                          WHEN is_deleted = 1 THEN 'DELETED'
-                         WHEN is_active = 1 THEN 'ACTIVE'
+                         WHEN is_published = 1 THEN 'ACTIVE'
                          ELSE 'INACTIVE'
                      END
             ORDER BY bucket

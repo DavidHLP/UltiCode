@@ -1,5 +1,7 @@
 package com.ulticode.auth.api.command;
 
+import java.io.Serializable;
+
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
 
@@ -11,7 +13,7 @@ public record UpdateAccountCredentialsCommand(
         TraceMetadata trace,
         String accountId,
         String username,
-        String email) implements WriteCommand {
+        String email) implements WriteCommand, Serializable {
     private static final long serialVersionUID = 1L;
 
 

@@ -1,5 +1,7 @@
 package com.ulticode.auth.api.command;
 
+import java.io.Serializable;
+
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
 
@@ -17,7 +19,7 @@ public record CreateAccountCommand(
         String username,
         String email,
         String password,
-        String role) implements WriteCommand {
+        String role) implements WriteCommand, Serializable {
     private static final long serialVersionUID = 1L;
 
 

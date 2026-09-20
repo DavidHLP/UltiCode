@@ -65,6 +65,30 @@ class StorageAutoConfigurationTest {
     }
 
     @Test
+    @DisplayName("the gate stays eager under spring.main.lazy-initialization=true")
+    void gateIsNotBypassedByLazyInitialization() {
+        // The Core owner-context manager propagates lazy-initialization=true, so the
+        // gate must not become a lazily created bean that the first object operation
+        // could skip.
+        withS3("spring.main.lazy-initialization=true").run(context -> {
+            assertThat(context).hasFailed();
+            assertThat(context.getStartupFailure())
+                    .hasStackTraceContaining("Object-store startup probe failed after 1 attempts");
+        });
+    }
+
+    @Test
+    @DisplayName("the gate still runs under lazy initialization when verification is opted out")
+    void gateRunsUnderLazyInitializationWhenOptedOut() {
+        withS3("spring.main.lazy-initialization=true", "app.storage.startup-probe.enabled=false")
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context.getBean(StorageReadiness.class).state())
+                            .isEqualTo(StorageReadiness.State.SKIPPED);
+                });
+    }
+
+    @Test
     @DisplayName("missing required configuration fails the context before any probe")
     void missingConfigurationFailsFast() {
         runner.withPropertyValues("app.storage.type=s3", "app.storage.s3.endpoint=http://127.0.0.1:1")

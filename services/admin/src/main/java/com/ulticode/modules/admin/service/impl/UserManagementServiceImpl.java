@@ -35,6 +35,7 @@ import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -219,6 +220,14 @@ public class UserManagementServiceImpl implements UserManagementService {
 
         log.info("User updated: {}", id);
         return adminUserDetailQuery.loadUserDetailOrThrow(id);
+    }
+
+    @Override
+    @Audited(action = AuditVocabulary.UPDATE_USER, entityType = AuditVocabulary.ENTITY_USER, userIdFrom = "id")
+    public String uploadAvatar(String id, MultipartFile file) {
+        checkQueryServiceAvailable();
+        getAccountOrThrow(id);
+        return userProfilePort.uploadAvatar(id, file);
     }
 
     @Override

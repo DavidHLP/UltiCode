@@ -4,6 +4,8 @@ import com.ulticode.modules.admin.dto.AdminCreateUserDTO;
 import com.ulticode.modules.admin.dto.AdminUpdateUserDTO;
 import com.ulticode.modules.admin.dto.AdminUserVO;
 
+import org.springframework.web.multipart.MultipartFile;
+
 import java.util.List;
 
 /**
@@ -31,6 +33,11 @@ public interface UserManagementService {
      * 更新用户档案字段。
      */
     AdminUserVO updateUser(String id, AdminUpdateUserDTO dto);
+
+    /**
+     * Upload and persist a user's avatar through the audited user-management path.
+     */
+    String uploadAvatar(String id, MultipartFile file);
 
     /**
      * 删除用户（物理删除）。

@@ -17,7 +17,6 @@ import com.ulticode.modules.admin.dto.RevokePermissionRequest;
 import com.ulticode.modules.admin.projection.AdminUserProjection;
 import com.ulticode.modules.admin.query.AdminUserDetailQuery;
 import com.ulticode.modules.admin.service.UserManagementService;
-import com.ulticode.admin.port.UserProfilePort;
 import com.ulticode.modules.admin.service.UserPermissionService;
 import com.ulticode.auth.api.dto.AuthorizationMutationDTO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -43,7 +42,6 @@ public class AdminUserController {
     private final UserPermissionService userPermissionService;
     private final AdminUserDetailQuery adminUserDetailQuery;
     private final AdminUserProjection adminUserProjection;
-    private final UserProfilePort userProfilePort;
 
     @Operation(summary = "Get users list", description = "Get paginated list of users with filters")
     @GetMapping
@@ -84,7 +82,7 @@ public class AdminUserController {
     public Result<String> uploadAvatar(
             @PathVariable String id,
             @RequestPart("file") MultipartFile file) {
-        return Result.success(userProfilePort.uploadAvatar(id, file));
+        return Result.success(userManagementService.uploadAvatar(id, file));
     }
 
     @Operation(summary = "Delete user", description = "Delete a user account")

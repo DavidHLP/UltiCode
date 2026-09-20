@@ -5,6 +5,10 @@ server:
 spring:
   application:
     name: backend-admin
+  servlet:
+    multipart:
+      max-file-size: 6MB
+      max-request-size: 6MB
   lifecycle:
     timeout-per-shutdown-phase: ${SPRING_LIFECYCLE_TIMEOUT_PER_SHUTDOWN_PHASE:45s}
   autoconfigure:
@@ -52,6 +56,7 @@ app:
       access-key: ${APP_STORAGE_S3_ACCESS_KEY:}
       secret-key: ${APP_STORAGE_S3_SECRET_KEY:}
       tls-enabled: ${APP_STORAGE_S3_TLS_ENABLED:}
+      ca-certificate-path: ${APP_STORAGE_S3_CA_CERTIFICATE:}
       connect-timeout-ms: ${APP_STORAGE_S3_CONNECT_TIMEOUT_MS:10000}
       request-timeout-ms: ${APP_STORAGE_S3_REQUEST_TIMEOUT_MS:30000}
       max-concurrent-requests: ${APP_STORAGE_S3_MAX_CONCURRENT_REQUESTS:16}

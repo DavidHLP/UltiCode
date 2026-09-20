@@ -36,6 +36,7 @@ import java.util.zip.CRC32;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
@@ -62,11 +63,14 @@ class DefaultAppUserWritePortTest {
     @Mock private com.ulticode.modules.search.source.SearchDocumentChangedPublisher searchPublisher;
 
     private DefaultAppUserWritePort port;
+    private AvatarProfileMutationService avatarProfileMutationService;
 
     @BeforeEach
     void setUp() {
+        avatarProfileMutationService = new AvatarProfileMutationService(
+                userProfileMapper, fileStorage, userDirectoryQueryPort, searchPublisher);
         port = new DefaultAppUserWritePort(userProfileMapper, uuidGenerator,
-                fileStorage, userDirectoryQueryPort, searchPublisher);
+                fileStorage, userDirectoryQueryPort, searchPublisher, avatarProfileMutationService);
     }
 
     @Nested
@@ -285,9 +289,9 @@ class DefaultAppUserWritePortTest {
             port.uploadAvatar(userId, new MockMultipartFile("file", "photo.png", "image/png", png));
 
             InOrder order = inOrder(fileStorage, userProfileMapper);
-            order.verify(userProfileMapper).selectById(userId);
             order.verify(fileStorage).put(any(), any(), org.mockito.ArgumentMatchers.anyLong(),
                     org.mockito.ArgumentMatchers.eq("image/png"));
+            order.verify(userProfileMapper).selectById(userId);
             order.verify(userProfileMapper).updateById(any(UserProfile.class));
             verify(fileStorage, timeout(1000)).delete("app/avatars/u-005/old.png");
         }
@@ -341,6 +345,34 @@ class DefaultAppUserWritePortTest {
                     .hasMessage("db failure");
 
             verify(fileStorage).delete("app/avatars/u-006/uuid-3.png");
+        }
+
+        @Test
+        @DisplayName("search publication failure removes the staged object")
+        void searchPublicationFailureRemovesStagedObject() {
+            String userId = "u-009";
+            when(userProfileMapper.selectById(userId)).thenReturn(null);
+            when(userProfileMapper.insert(any(UserProfile.class))).thenReturn(1);
+            when(uuidGenerator.newId()).thenReturn("uuid-6");
+            com.ulticode.modules.search.port.UserSearchRow row =
+                    new com.ulticode.modules.search.port.UserSearchRow();
+            row.setId(userId);
+            row.setUsername("alice");
+            row.setName("Alice");
+            row.setAvatar("app/avatars/u-009/uuid-6.png");
+            when(userDirectoryQueryPort.findById(userId))
+                    .thenReturn(com.ulticode.modules.search.port.UserDirectoryRow.from(row));
+            doThrow(new IllegalStateException("search unavailable"))
+                    .when(searchPublisher).publishUser(any(), any(), any(), any(), anyBoolean());
+            byte[] png = java.util.Base64.getDecoder().decode(
+                    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+
+            assertThatThrownBy(() -> port.uploadAvatar(userId,
+                    new MockMultipartFile("file", "photo.png", "image/png", png)))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessage("search unavailable");
+
+            verify(fileStorage).delete("app/avatars/u-009/uuid-6.png");
         }
 
         @Test

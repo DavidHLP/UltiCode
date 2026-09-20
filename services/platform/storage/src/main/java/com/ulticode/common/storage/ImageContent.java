@@ -51,8 +51,7 @@ public final class ImageContent {
             return verified(content, "gif", "image/gif");
         }
         if (isWebp(content)) {
-            assertWithinPixelBudget(content);
-            return new Detected("webp", "image/webp");
+            return verified(content, "webp", "image/webp");
         }
         return null;
     }
@@ -241,7 +240,7 @@ public final class ImageContent {
         try {
             BufferedImage image = ImageIO.read(new ByteArrayInputStream(content));
             return image != null;
-        } catch (IOException exception) {
+        } catch (IOException | RuntimeException exception) {
             return false;
         }
     }

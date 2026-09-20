@@ -110,7 +110,11 @@ case "$service:$operation" in
   s3api:head-object)
     [[ -f "$object" ]] || exit 1
     size="$(stat -c '%s' "$object")"
-    etag="$(md5sum "$object" | awk '{print $1}')"
+    if [[ "${FAKE_ETAG_MODE:-}" == multipart ]]; then
+      etag="$(md5sum "$object" | awk '{print $1}')-2"
+    else
+      etag="$(md5sum "$object" | awk '{print $1}')"
+    fi
     printf '%s "%s"\n' "$size" "$etag"
     ;;
   s3api:put-object)
@@ -223,6 +227,18 @@ assert_contains "$existing_output" "VERIFIED avatar account=acct-1"
 assert_contains "$existing_output" "uploaded=0"
 assert_not_contains "$(<"$AWS_LOG")" "put-object"
 assert_contains "$(<"$MYSQL_LOG")" "UPDATE user_profiles"
+
+# Multipart ETags are inconclusive and must trigger a repair, then SHA-256 verifies it.
+: >"$AWS_LOG"; : >"$MYSQL_LOG"; rm -f -- "$DB_STATE/avatar" "$DB_STATE/backup" "$OBJECTS"/*
+key_path="$OBJECTS/app__avatars__acct-1__avatar.png"
+printf 'stale-data!' >"$key_path"
+export FAKE_ETAG_MODE=multipart
+multipart_output="$(run_migration --apply --only avatars 2>&1)"
+unset FAKE_ETAG_MODE
+assert_contains "$multipart_output" "VERIFIED avatar account=acct-1"
+assert_contains "$multipart_output" "uploaded=1"
+cmp -- "$AVATARS/avatar.png" "$key_path"
+
 
 # Read-back verification failure must leave the legacy DB row untouched.
 : >"$AWS_LOG"; : >"$MYSQL_LOG"; rm -f -- "$DB_STATE/avatar" "$DB_STATE/backup" "$OBJECTS"/*

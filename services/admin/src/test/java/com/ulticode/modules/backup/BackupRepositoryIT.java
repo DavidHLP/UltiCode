@@ -77,7 +77,7 @@ class BackupRepositoryIT {
     private static Path objectStorageMigrationPath() {
         Path current = Path.of(System.getProperty("user.dir")).toAbsolutePath().normalize();
         while (current != null) {
-            Path candidate = current.resolve("init-db/migrations/V20260920120000__Backup_Object_Storage.sql");
+            Path candidate = current.resolve("init-db/migrations/admin/V20260920120000__Backup_Object_Storage.sql");
             if (Files.isRegularFile(candidate)) {
                 return candidate;
             }

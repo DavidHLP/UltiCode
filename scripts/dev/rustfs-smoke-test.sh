@@ -21,7 +21,22 @@ ACCESS_KEY="${RUSTFS_SMOKE_ACCESS_KEY:-smoke-access-key}"
 SECRET_KEY="${RUSTFS_SMOKE_SECRET_KEY:-smoke-secret-key-0123456789}"
 ENDPOINT="http://127.0.0.1:${PORT}"
 KEEP=false
-[[ "${1:-}" == "--keep" ]] && KEEP=true
+case "${1:-}" in
+  "")
+    ;;
+  --keep)
+    KEEP=true
+    shift
+    ;;
+  *)
+    echo "Usage: ${BASH_SOURCE[0]} [--keep]" >&2
+    exit 2
+    ;;
+esac
+if (($# > 0)); then
+  echo "Usage: ${BASH_SOURCE[0]} [--keep]" >&2
+  exit 2
+fi
 
 log() { printf '\n== %s\n' "$*"; }
 

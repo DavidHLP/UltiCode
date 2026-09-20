@@ -45,7 +45,7 @@ async function handleAvatarChange(event: Event) {
     if (usersStore.currentUser?.id === targetUserId) {
       usersStore.currentUser = { ...usersStore.currentUser, avatar }
     }
-    const refreshed = await loadUser(targetUserId)
+    const refreshed = await loadSelectedUser(targetUserId)
     if (props.userId !== targetUserId) return
     emit('success')
     toast.success(t('users.toast.avatarUploadSuccess'))
@@ -86,17 +86,27 @@ async function loadUser(userId: string | null = props.userId) {
   if (!userId) return null
   loading.value = true
   try {
-    return await usersStore.fetchUser(userId)
+    return await usersStore.fetchUser(userId, false)
   } finally {
     loading.value = false
   }
 }
 
+async function loadSelectedUser(userId: string) {
+  const user = await loadUser(userId)
+  if (props.userId !== userId) return null
+  if (user) {
+    usersStore.currentUser = user
+  }
+  return user
+}
+
 watch(
   () => props.open,
   (newOpen) => {
-    if (newOpen && props.userId) {
-      loadUser()
+    const targetUserId = props.userId
+    if (newOpen && targetUserId) {
+      void loadSelectedUser(targetUserId)
     }
   },
 )

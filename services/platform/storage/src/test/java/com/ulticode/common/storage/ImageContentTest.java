@@ -23,6 +23,10 @@ class ImageContentTest {
 
     private static final byte[] ONE_PIXEL_PNG = Base64.getDecoder().decode(
             "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+    private static final byte[] ONE_PIXEL_WEBP = Base64.getDecoder().decode(
+            "UklGRhwAAABXRUJQVlA4TA8AAAAvAAAAAAcQ/Y/+ByKi/wEA");
+    private static final byte[] TWO_BY_THREE_WEBP = Base64.getDecoder().decode(
+            "UklGRhwAAABXRUJQVlA4TA8AAAAvAYAAAAcQ/Y/+ByKi/wEA");
 
     /** Builds a PNG signature + IHDR with the given dimensions (CRC-correct, no pixel data). */
     private static byte[] pngHeader(int width, int height) {
@@ -101,9 +105,6 @@ class ImageContentTest {
         return java.util.Arrays.copyOf(header, header.length + 1);
     }
 
-    private static byte[] vp8LosslessFrame(int width, int height) {
-        return java.util.Arrays.copyOf(vp8LosslessHeader(width, height), 6);
-    }
 
     private static byte[] vp8LosslessHeader(int width, int height) {
         long bits = (width - 1L) | ((height - 1L) << 14);
@@ -169,9 +170,9 @@ class ImageContentTest {
     }
 
     @Test
-    @DisplayName("detects a valid VP8 WebP without an ImageIO decode")
+    @DisplayName("detects a real WebP with a complete frame")
     void detectsWebpContainer() {
-        byte[] image = webp(webpChunk("VP8 ", vp8LossyFrame(1, 1)));
+        byte[] image = ONE_PIXEL_WEBP;
 
         ImageContent.Detected detected = ImageContent.detect(image);
 
@@ -189,11 +190,20 @@ class ImageContentTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("dimensions");
     }
+    @Test
+    @DisplayName("rejects a VP8L header with one trailing byte")
+    void rejectsShortVp8lPayload() {
+        byte[] malformed = webp(webpChunk("VP8L",
+                java.util.Arrays.copyOf(vp8LosslessHeader(1, 1), 6)));
+
+        assertThat(malformed).hasSize(26);
+        assertThat(ImageContent.detect(malformed)).isNull();
+    }
 
     @Test
     @DisplayName("reads VP8L and animated VP8X dimensions")
     void readsWebpVariants() {
-        ImageContent.assertWithinPixelBudget(webp(webpChunk("VP8L", vp8LosslessFrame(2, 3))));
+        ImageContent.assertWithinPixelBudget(TWO_BY_THREE_WEBP);
         ImageContent.assertWithinPixelBudget(webp(
                 webpChunk("VP8X", vp8ExtendedHeader(4, 5)),
                 webpChunk("VP8 ", vp8LossyFrame(4, 5))));

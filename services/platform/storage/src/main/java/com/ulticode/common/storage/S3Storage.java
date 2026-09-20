@@ -17,6 +17,12 @@ import java.time.ZonedDateTime;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /** S3-compatible, path-style object storage implementation. If configured,
  * {@code app.storage.s3.ca-certificate-path} adds operator CA certificates
@@ -27,6 +33,11 @@ public class S3Storage implements FileStoragePort {
     private static final Duration OPEN_DURATION = Duration.ofSeconds(30);
     private static final int READ_ATTEMPTS = 2;
     private static final String EMPTY_HASH = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+    private static final ExecutorService STREAM_READ_EXECUTOR = Executors.newCachedThreadPool(runnable -> {
+        Thread thread = new Thread(runnable, "s3-stream-read");
+        thread.setDaemon(true);
+        return thread;
+    });
 
     private final StorageProperties properties;
     private final HttpClient httpClient;
@@ -170,7 +181,10 @@ public class S3Storage implements FileStoragePort {
                     String contentType = response.headers().firstValue("Content-Type").orElse(null);
                     readiness.markReady();
                     return Optional.of(new StorageStream(
-                            new GuardedInputStream(body, permit, readiness), contentLength, contentType));
+                            new GuardedInputStream(
+                                    new TimeoutInputStream(body, properties.getS3().getRequestTimeoutMs()),
+                                    permit, readiness),
+                            contentLength, contentType));
                 } else {
                     readiness.markFailed("Object store returned HTTP " + status);
                     permit.failure();
@@ -340,6 +354,69 @@ public class S3Storage implements FileStoragePort {
         int status = response.statusCode();
         if (status / 100 != 2) {
             throw new StorageException("Object-store request for '" + key + "' failed with HTTP " + status);
+        }
+    }
+
+    @FunctionalInterface
+    private interface ReadOperation<T> {
+        T execute() throws IOException;
+    }
+
+    private static final class TimeoutInputStream extends FilterInputStream {
+
+        private final int timeoutMs;
+
+        private TimeoutInputStream(InputStream delegate, int timeoutMs) {
+            super(delegate);
+            this.timeoutMs = timeoutMs;
+        }
+
+        @Override
+        public int read() throws IOException {
+            return withTimeout(in::read);
+        }
+
+        @Override
+        public int read(byte[] bytes, int offset, int length) throws IOException {
+            return withTimeout(() -> in.read(bytes, offset, length));
+        }
+
+        @Override
+        public long skip(long count) throws IOException {
+            return withTimeout(() -> in.skip(count));
+        }
+
+        private <T> T withTimeout(ReadOperation<T> operation) throws IOException {
+            Future<T> future = STREAM_READ_EXECUTOR.submit(operation::execute);
+            try {
+                return future.get(timeoutMs, TimeUnit.MILLISECONDS);
+            } catch (TimeoutException exception) {
+                future.cancel(true);
+                closeDelegate();
+                throw new IOException("Object-store stream read timed out after " + timeoutMs + " ms", exception);
+            } catch (InterruptedException exception) {
+                future.cancel(true);
+                closeDelegate();
+                Thread.currentThread().interrupt();
+                throw new IOException("Interrupted while reading object-store response body", exception);
+            } catch (ExecutionException exception) {
+                Throwable cause = exception.getCause();
+                if (cause instanceof IOException ioException) {
+                    throw ioException;
+                }
+                if (cause instanceof RuntimeException runtimeException) {
+                    throw runtimeException;
+                }
+                throw new IOException("Failed to read object-store response body", cause);
+            }
+        }
+
+        private void closeDelegate() {
+            try {
+                in.close();
+            } catch (IOException ignored) {
+                // The read is already failing; the caller records the failure.
+            }
         }
     }
 

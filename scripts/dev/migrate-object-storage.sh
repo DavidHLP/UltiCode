@@ -350,11 +350,14 @@ local_md5() { md5sum -- "$1" | awk '{print $1}'; }
 local_sha256() { sha256sum -- "$1" | awk '{print $1}'; }
 local_size() { stat -c '%s' -- "$1"; }
 
-etag_matches() {
+etag_status() {
   local etag="$1" expected_md5="$2"
-  [[ -z "$etag" || "$etag" == "None" || "$etag" == *-* ]] && return 0
-  [[ "$etag" =~ ^[[:xdigit:]]{32}$ ]] || return 0
-  [[ "${etag,,}" == "${expected_md5,,}" ]]
+  if [[ -z "$etag" || "$etag" == "None" || "$etag" == *-* ||
+        ! "$etag" =~ ^[[:xdigit:]]{32}$ ]]; then
+    return 2
+  fi
+  [[ "${etag,,}" == "${expected_md5,,}" ]] && return 0
+  return 1
 }
 
 read_back_matches() {
@@ -364,7 +367,8 @@ read_back_matches() {
 }
 
 verify_object() {
-  local source="$1" key="$2" expected_size="$3" expected_sha="$4" expected_md5="$5" metadata actual_size etag
+  local source="$1" key="$2" expected_size="$3" expected_sha="$4" expected_md5="$5"
+  local metadata actual_size etag etag_result=0
   if ! metadata="$(head_object "$key")"; then
     echo "verification failed: object is not readable after upload ($key)" >&2
     return 1
@@ -374,10 +378,11 @@ verify_object() {
     echo "verification failed: size mismatch for $key (expected $expected_size, got $actual_size)" >&2
     return 1
   }
-  etag_matches "$etag" "$expected_md5" || {
+  etag_status "$etag" "$expected_md5" || etag_result=$?
+  if [[ "$etag_result" -eq 1 ]]; then
     echo "verification failed: ETag mismatch for $key" >&2
     return 1
-  }
+  fi
   read_back_matches "$key" "$expected_sha" || {
     echo "verification failed: streamed checksum mismatch for $key" >&2
     return 1
@@ -386,11 +391,17 @@ verify_object() {
 }
 
 object_needs_upload() {
-  local source="$1" key="$2" expected_size="$3" expected_md5="$4" metadata actual_size etag
+  local source="$1" key="$2" expected_size="$3" expected_md5="$4"
+  local metadata actual_size etag etag_result=0
   if metadata="$(head_object "$key")"; then
     IFS=$'\t' read -r actual_size etag <<<"$metadata"
-    if [[ "$actual_size" == "$expected_size" ]] && etag_matches "$etag" "$expected_md5"; then
-      return 1
+    if [[ "$actual_size" == "$expected_size" ]]; then
+      etag_status "$etag" "$expected_md5" || etag_result=$?
+      case "$etag_result" in
+        0) return 1 ;;
+        1|2) return 0 ;;
+        *) return 2 ;;
+      esac
     fi
     return 0
   else
@@ -437,10 +448,9 @@ process_avatar() {
     *) mime=application/octet-stream ;;
   esac
   sql="UPDATE user_profiles SET avatar=$(sql_quote "$key") WHERE account_id=$(sql_quote "$account_id") AND avatar=$(sql_quote "$legacy_avatar")"
-  metadata=""
   if metadata="$(head_object "$key")"; then
     IFS=$'\t' read -r actual_size etag <<<"$metadata"
-    if [[ "$actual_size" != "$size" ]] || ! etag_matches "$etag" "$md5"; then
+    if [[ "$actual_size" != "$size" ]] || ! etag_status "$etag" "$md5"; then
       echo "PLAN type=avatar source=$source target=$key db_update=$sql action=replace-object"
     elif [[ "$APPLY" == false ]]; then
       SKIPPED=$((SKIPPED + 1)); echo "PLAN type=avatar source=$source target=$key db_update=$sql action=skip reason=object-exists-size-and-checksum"; return
@@ -503,7 +513,7 @@ process_backup() {
   sql="UPDATE backups SET object_key=$(sql_quote "$key"), checksum=$(sql_quote "$sha"), size=$size WHERE id=$(sql_quote "$backup_id") AND filename=$(sql_quote "$filename") AND status='COMPLETED' AND (object_key IS NULL OR object_key='')"
   if metadata="$(head_object "$key")"; then
     IFS=$'\t' read -r actual_size etag <<<"$metadata"
-    if [[ "$actual_size" != "$size" ]] || ! etag_matches "$etag" "$md5"; then
+    if [[ "$actual_size" != "$size" ]] || ! etag_status "$etag" "$md5"; then
       echo "PLAN type=backup source=$source target=$key db_update=$sql action=replace-object"
     elif [[ "$APPLY" == false ]]; then
       SKIPPED=$((SKIPPED + 1)); echo "PLAN type=backup source=$source target=$key db_update=$sql action=skip reason=object-exists-size-and-checksum"; return
@@ -540,6 +550,7 @@ process_backup() {
   fi
   DB_UPDATED=$((DB_UPDATED + 1)); record_verified "backup id=$backup_id target=$key"; echo "VERIFIED backup id=$backup_id target=$key"
 }
+
 
 if [[ "$ONLY" == avatars || "$ONLY" == all ]]; then
   avatar_rows="$(mysql_query APP_DB "SELECT account_id, avatar FROM user_profiles WHERE avatar LIKE '/uploads/avatars/%' ORDER BY account_id")"

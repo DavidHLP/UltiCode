@@ -25,6 +25,12 @@ done
 grep -Fq 'flyway.baselineOnMigrate=true' "$ROOT_DIR/init-db/flyway-post-owner.conf"
 grep -Fq 'migrate-post-owner.sh' "$ROOT_DIR/scripts/dev/up.sh"
 grep -Fq 'flyway-post-owner.conf' "$ROOT_DIR/scripts/dev/migrate-post-owner.sh"
+grep -Fq 'INSERT INTO `admin`.`backups`' \
+  "$ROOT_DIR/init-db/migrations/post-owner/V20260921120000__Copy_Legacy_Backups_To_Admin.sql"
+grep -Fq 'FROM `ulticode`.`backups`' \
+  "$ROOT_DIR/init-db/migrations/post-owner/V20260921120000__Copy_Legacy_Backups_To_Admin.sql"
+! grep -Fq 'legacy_backups_copy_sql' \
+  "$ROOT_DIR/init-db/migrations/admin/V20260920120000__Backup_Object_Storage.sql"
 grep -Fq 'flyway_post_owner_history' "$ROOT_DIR/init-db/scripts/generate-baseline.sh"
 grep -Fq 'generate-baseline.sh" "$TMP_DUMP"' "$ROOT_DIR/init-db/scripts/validate-baseline.sh"
 grep -Fq 'OWNER_SCHEMAS=(auth admin app notification submission)' \

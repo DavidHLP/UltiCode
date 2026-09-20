@@ -28,6 +28,7 @@ import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CountDownLatch;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -244,6 +245,52 @@ class S3StorageTest {
             assertThat(guard.inFlight()).isZero();
             assertThat(guard.state()).isEqualTo(DependencyGuard.State.OPEN);
             assertThat(readiness.state()).isEqualTo(StorageReadiness.State.FAILED);
+        }
+
+        @Test
+        @DisplayName("times out and cancels a stalled streamed read")
+        void stalledStreamReadTimesOut() throws Exception {
+            properties.getS3().setRequestTimeoutMs(100);
+            BlockingInputStream blockingBody = new BlockingInputStream();
+            when(streamResponse.statusCode()).thenReturn(200);
+            when(streamResponse.body()).thenReturn(blockingBody);
+            when(streamResponse.headers()).thenReturn(responseHeaders);
+            when(responseHeaders.firstValueAsLong("Content-Length"))
+                    .thenReturn(java.util.OptionalLong.of(1));
+            doReturn(streamResponse).when(httpClient).send(any(HttpRequest.class), any());
+            DependencyGuard guard = new DependencyGuard(1, 1, Duration.ofSeconds(30));
+            S3Storage guarded = new S3Storage(properties, httpClient, guard, readiness);
+
+            FileStoragePort.StorageStream stream = guarded.openStream("avatars/stalled.png").orElseThrow();
+
+            assertThatThrownBy(() -> stream.content().read())
+                    .isInstanceOf(IOException.class)
+                    .hasMessageContaining("stream read timed out");
+            stream.content().close();
+
+            assertThat(guard.inFlight()).isZero();
+            assertThat(readiness.state()).isEqualTo(StorageReadiness.State.FAILED);
+        }
+
+        private static final class BlockingInputStream extends InputStream {
+
+            private final CountDownLatch closed = new CountDownLatch(1);
+
+            @Override
+            public int read() throws IOException {
+                try {
+                    closed.await();
+                } catch (InterruptedException exception) {
+                    Thread.currentThread().interrupt();
+                    throw new IOException("read interrupted", exception);
+                }
+                throw new IOException("stream closed");
+            }
+
+            @Override
+            public void close() {
+                closed.countDown();
+            }
         }
 
         @Test

@@ -90,7 +90,8 @@ deterministic Owner manifest (`auth`, `admin`, `app`, `notification`,
 shared `MIGRATION_DB_*` identity for Auth/Admin/App/Notification and passes
 `SUBMISSION_MIGRATION_DB_USER/PASSWORD` to the Submission owner migration.
 It then runs `flyway-post-owner.conf` with the shared privileged identity to
-remove the historical cross-owner audit grants after both local outboxes exist.
+copy legacy `ulticode.backups` metadata into `admin.backups` and remove the
+historical cross-owner audit grants after all owner migrations have completed.
 Finally it provisions and probes all five local runtime accounts before PM2
 starts. These identities must not be merged or silently defaulted to a runtime
 account.

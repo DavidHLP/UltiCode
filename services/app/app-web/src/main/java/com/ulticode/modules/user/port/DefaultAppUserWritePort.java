@@ -15,14 +15,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.Locale;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * App-side adapter for {@link AppUserWritePort}.
@@ -42,6 +39,7 @@ public class DefaultAppUserWritePort implements AppUserWritePort {
     private final FileStoragePort fileStorage;
     private final com.ulticode.modules.search.port.UserDirectoryQueryPort userDirectoryQueryPort;
     private final com.ulticode.modules.search.source.SearchDocumentChangedPublisher searchPublisher;
+    private final AvatarProfileMutationService avatarProfileMutationService;
 
     /** Publish a complete user-document UPSERT after a profile write. */
     private void publishUserDocument(String userId) {
@@ -108,7 +106,6 @@ public class DefaultAppUserWritePort implements AppUserWritePort {
     }
 
     @Override
-    @Transactional
     public String uploadAvatar(String userId, MultipartFile file) {
         if (userId == null) {
             throw new BusinessException(BaseErrorCode.UNAUTHORIZED);
@@ -138,9 +135,6 @@ public class DefaultAppUserWritePort implements AppUserWritePort {
         String objectName = uuidGenerator.newId() + "." + detected.extension();
         String key = StorageKeys.avatarKey(userId, objectName);
 
-        UserProfile profile = userProfileMapper.selectById(userId);
-        boolean isNew = profile == null;
-        String previousAvatar = isNew ? null : profile.getAvatar();
         try {
             fileStorage.put(key, new ByteArrayInputStream(content), content.length, detected.contentType());
         } catch (RuntimeException exception) {
@@ -149,67 +143,17 @@ public class DefaultAppUserWritePort implements AppUserWritePort {
         }
 
         try {
-            if (isNew) {
-                profile = new UserProfile();
-                profile.setAccountId(userId);
-            }
-            profile.setAvatar(key);
-            int affectedRows;
-            if (isNew) {
-                affectedRows = userProfileMapper.insert(profile);
-            } else {
-                affectedRows = userProfileMapper.updateById(profile);
-            }
-            if (affectedRows != 1) {
-                throw new IllegalStateException("Avatar profile update affected " + affectedRows + " rows");
-            }
+            avatarProfileMutationService.persistAvatar(userId, key);
         } catch (RuntimeException exception) {
             deleteQuietly(key);
             throw exception;
         }
 
-        String previousKey = AvatarUrls.objectKey(userId, previousAvatar);
-        if (previousKey != null && !previousKey.equals(key)) {
-            deleteAfterCommit(previousKey);
-        }
-        publishUserDocument(userId);
         String displayUrl = AvatarUrls.resolve(userId, key);
         log.info("Avatar uploaded for user {}", userId);
         return displayUrl;
     }
 
-    /**
-     * Deletes the replaced object only after commit and outside the request thread.
-     *
-     * <p>Deleting earlier would lose data when a later step (for example the search-document outbox write)
-     * rolls the transaction back: the row would still point at the old key, but the object would be gone.
-     * Failures are logged and never fail the request.
-     */
-    private void deleteAfterCommit(String key) {
-        Runnable cleanup = () -> deleteQuietly(key);
-        Runnable submitCleanup = () -> {
-            try {
-                CompletableFuture.runAsync(cleanup).exceptionally(exception -> {
-                    log.warn("Async cleanup failed for replaced avatar object {}: {}",
-                            key, exception.getMessage());
-                    return null;
-                });
-            } catch (RuntimeException exception) {
-                log.warn("Failed to schedule cleanup for replaced avatar object {}: {}",
-                        key, exception.getMessage());
-            }
-        };
-        if (TransactionSynchronizationManager.isSynchronizationActive()) {
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCommit() {
-                    submitCleanup.run();
-                }
-            });
-        } else {
-            submitCleanup.run();
-        }
-    }
     private static void validateExtension(String originalFilename) {
         if (originalFilename == null || originalFilename.isBlank()) {
             return;

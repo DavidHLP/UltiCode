@@ -27,12 +27,14 @@ export const useUsersStore = defineStore('adminUsers', () => {
   const operationError = ref<string | null>(null)
   const currentUser = ref<User | null>(null)
 
-  async function fetchUser(id: string) {
+  async function fetchUser(id: string, commitCurrent = true) {
     operationLoading.value = true
     operationError.value = null
     try {
       const user = await usersApi.getUser(id)
-      currentUser.value = user
+      if (commitCurrent) {
+        currentUser.value = user
+      }
       return user
     } catch (err: unknown) {
       operationError.value = extractApiErrorMessage(err, 'Failed to fetch user')

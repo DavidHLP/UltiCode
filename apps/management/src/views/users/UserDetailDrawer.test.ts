@@ -13,7 +13,7 @@ const mocks = vi.hoisted(() => ({
       role: 'USER',
       isActive: true,
       isBanned: false,
-      avatar: undefined,
+      avatar: undefined as string | undefined,
       joinedAt: '2026-01-01T00:00:00Z',
       lastLoginAt: null,
       stats: null,
@@ -63,6 +63,20 @@ const baseDetailDrawerStub = {
 const buttonStub = {
   inheritAttrs: false,
   template: '<button v-bind="$attrs"><slot /></button>',
+}
+type DrawerTestUser = {
+  id: string
+  username: string
+  name: string
+  email: string
+  role: string
+  isActive: boolean
+  isBanned: boolean
+  avatar: string | undefined
+  joinedAt: string
+  lastLoginAt: null
+  stats: null
+  permissions: never[]
 }
 
 function makeUser(id: string) {
@@ -145,6 +159,40 @@ describe('UserDetailDrawer avatar upload', () => {
     expect(mocks.store.fetchUser).not.toHaveBeenCalled()
     expect(mocks.toastSuccess).not.toHaveBeenCalled()
     expect(mocks.store.currentUser.avatar).toBeUndefined()
+    wrapper.unmount()
+  })
+
+  it('does not commit a stale refresh after the drawer switches users', async () => {
+    const pending = deferred<DrawerTestUser>()
+    mocks.uploadAvatar.mockResolvedValue('/api/users/avatars/user-a/new.png')
+    mocks.store.fetchUser.mockImplementation(
+      async (id: string, commitCurrent = true) => {
+        const user = id === 'user-a' ? await pending.promise : makeUser(id)
+        if (commitCurrent) {
+          mocks.store.currentUser = user
+        }
+        return user
+      },
+    )
+    const wrapper = mountDrawer()
+    const input = wrapper.find('input[type="file"]')
+    const file = new File(['avatar'], 'avatar.png', { type: 'image/png' })
+    Object.defineProperty(input.element, 'files', {
+      configurable: true,
+      value: [file],
+    })
+
+    const change = input.trigger('change')
+    await flushPromises()
+    expect(mocks.store.fetchUser).toHaveBeenCalledWith('user-a', false)
+
+    mocks.store.currentUser = makeUser('user-b')
+    await wrapper.setProps({ userId: 'user-b' })
+    pending.resolve(makeUser('user-a'))
+    await change
+    await flushPromises()
+
+    expect(mocks.store.currentUser.id).toBe('user-b')
     wrapper.unmount()
   })
 })

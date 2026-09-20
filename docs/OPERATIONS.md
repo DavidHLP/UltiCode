@@ -157,9 +157,9 @@ docker run --rm -v "${RUSTFS_VOLUMES[0]}:/data:ro" -v "$PWD:/backup" alpine \
 - 旧本地文件迁移用 `scripts/dev/migrate-object-storage.sh`：默认 dry-run；`--apply` 才上传；
   上传后校验大小/checksum 并回读对象，校验通过后才更新数据库行（`user_profiles.avatar` 与
   `backups.object_key`）；脚本从不删除旧文件，只有在迁移报告确认全部对象已校验后，operator 才可清理旧目录。
-- Admin owner migration `V20260920120000__Backup_Object_Storage.sql` idempotently copies
-  legacy `ulticode.backups` metadata into `admin.backups` before the object backfill; it does not
-  delete legacy rows or files.
+- 特权 `post-owner` migration `V20260921120000__Copy_Legacy_Backups_To_Admin.sql`
+  在对象回填前幂等地把旧 `ulticode.backups` 元数据复制到 `admin.backups`；
+  Owner-scoped 的 Admin migration 只负责创建/修复目标表。迁移不会删除旧行或旧文件。
 - For an internal production endpoint such as `https://rustfs:9000`, the migration script's Docker
   AWS CLI joins `${COMPOSE_PROJECT_NAME:-ulticode}_object-storage`; set `MIGRATION_DOCKER_NETWORK`
   when the Compose project uses a different network. Host AWS CLI mode is intentionally limited to

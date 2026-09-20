@@ -14,6 +14,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.transaction.UnexpectedRollbackException;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.mock.web.MockMultipartFile;
 
@@ -102,5 +103,21 @@ class AdminUserProfileAdapterTest {
                 .hasMessageContaining("Profile write RPC failed");
 
         verify(fileStorage, org.mockito.Mockito.never()).delete(any());
+    }
+
+    @Test
+    void removesObjectWhenProfileWriteTransactionRollsBack() {
+        when(currentUserProvider.getCurrentUserId()).thenReturn("admin-1");
+        when(uuidGenerator.newId()).thenReturn("uuid-1");
+        byte[] png = Base64.getDecoder().decode(
+                "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+        when(profileWriteService.uploadAvatar(any()))
+                .thenThrow(new UnexpectedRollbackException("transaction marked rollback-only"));
+
+        assertThatThrownBy(() -> adapter.uploadAvatar("user-1",
+                new MockMultipartFile("file", "photo.png", "image/png", png)))
+                .hasMessageContaining("Profile write RPC failed");
+
+        verify(fileStorage).delete("app/avatars/user-1/uuid-1.png");
     }
 }

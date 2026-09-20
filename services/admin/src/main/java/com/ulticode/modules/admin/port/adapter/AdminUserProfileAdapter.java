@@ -25,6 +25,7 @@ import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.UnexpectedRollbackException;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayInputStream;
@@ -122,7 +123,12 @@ public class AdminUserProfileAdapter implements UserProfilePort {
         try {
             updateAvatarUrlWithOutcome(userId, key);
         } catch (RpcTransportException exception) {
-            log.warn("Avatar profile update outcome is unknown for user {}; keeping object {}", userId, key);
+            if (isTransactionRollback(exception)) {
+                log.warn("Avatar profile update rolled back for user {}; deleting object {}", userId, key);
+                deleteQuietly(key);
+            } else {
+                log.warn("Avatar profile update outcome is unknown for user {}; keeping object {}", userId, key);
+            }
             throw transportFailure(exception);
         } catch (RuntimeException exception) {
             deleteQuietly(key);
@@ -233,6 +239,16 @@ public class AdminUserProfileAdapter implements UserProfilePort {
         private RpcTransportException(String message, Throwable cause) {
             super(message, cause);
         }
+    }
+    private static boolean isTransactionRollback(Throwable exception) {
+        Throwable current = exception;
+        while (current != null) {
+            if (current instanceof UnexpectedRollbackException) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 
     /**

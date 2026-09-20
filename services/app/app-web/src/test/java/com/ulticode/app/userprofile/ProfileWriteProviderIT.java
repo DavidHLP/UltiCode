@@ -3,8 +3,9 @@ package com.ulticode.app.userprofile;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
-
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.UUID;
@@ -14,6 +15,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
+import org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration;
+import org.springframework.boot.autoconfigure.transaction.TransactionAutoConfiguration;
 import org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -39,8 +42,13 @@ import com.ulticode.app.userprofile.mapper.UserProfileMapper;
 import com.ulticode.app.userprofile.provider.ProfileWriteProvider;
 import com.ulticode.app.security.AdminActorAuthorizer;
 import com.ulticode.common.rpc.RpcResult;
+import com.ulticode.common.storage.FileStoragePort;
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
+import com.ulticode.modules.search.port.UserDirectoryQueryPort;
+import com.ulticode.modules.search.port.UserDirectoryRow;
+import com.ulticode.modules.search.port.UserSearchRow;
+import com.ulticode.modules.search.source.SearchDocumentChangedPublisher;
 
 /**
  * Real MySQL CRUD round-trip IT for {@link ProfileWriteProvider}.
@@ -59,6 +67,8 @@ import com.ulticode.common.tracing.TraceMetadata;
                 UserProfileMapper.class,
                 AppCommandReceiptMapper.class,
                 DataSourceAutoConfiguration.class,
+                DataSourceTransactionManagerAutoConfiguration.class,
+                TransactionAutoConfiguration.class,
                 MybatisPlusAutoConfiguration.class,
                 JacksonAutoConfiguration.class
         },
@@ -118,6 +128,15 @@ class ProfileWriteProviderIT {
     @MockitoBean
     private AdminActorAuthorizer adminActorAuthorizer;
 
+    @MockitoBean
+    private FileStoragePort fileStorage;
+
+    @MockitoBean
+    private UserDirectoryQueryPort userDirectoryQueryPort;
+
+    @MockitoBean
+    private SearchDocumentChangedPublisher searchPublisher;
+
     @BeforeEach
     void configureActorAuthorizer() {
         when(adminActorAuthorizer.isAuthorized(any())).thenReturn(true);
@@ -128,6 +147,16 @@ class ProfileWriteProviderIT {
 
     @Autowired
     private AppCommandReceiptMapper receiptMapper;
+
+    private static UserDirectoryRow directoryRow(
+            String id, String username, String name, String avatar) {
+        UserSearchRow row = new UserSearchRow();
+        row.setId(id);
+        row.setUsername(username);
+        row.setName(name);
+        row.setAvatar(avatar);
+        return UserDirectoryRow.from(row);
+    }
 
     private static ActorDelegation testActor() {
         String uuid = UUID.randomUUID().toString();
@@ -335,6 +364,31 @@ class ProfileWriteProviderIT {
         // Name and bio from initial update should be preserved
         assertThat(persisted.getName()).isEqualTo("Alice");
         assertThat(persisted.getBio()).isEqualTo("Engineer");
+    }
+
+    @Test
+    @DisplayName("search publication failure rolls back avatar mutation through the Spring proxy")
+    void searchPublicationFailureRollsBackAvatarMutation() {
+        String accountId = UUID.randomUUID().toString();
+        profileWriteService.updateProfile(command(accountId, "Alice", "Engineer"));
+
+        when(userDirectoryQueryPort.findById(accountId))
+                .thenReturn(directoryRow(accountId, "alice", "Alice", "app/avatars/" + accountId + "/new.png"));
+        doThrow(new IllegalStateException("search unavailable"))
+                .when(searchPublisher).publishUser(any(), any(), any(), any(), anyBoolean());
+
+        RpcResult<ProfileWriteResult> result = profileWriteService.uploadAvatar(new UploadAvatarCommand(
+                UUID.randomUUID().toString(),
+                IdMetadata.mint(),
+                testActor(),
+                TraceMetadata.EMPTY,
+                accountId,
+                "app/avatars/" + accountId + "/new.png"));
+        assertThat(result.success()).isFalse();
+        assertThat(result.error().code()).isEqualTo(AppErrorCode.UNEXPECTED_APP_STATE.code());
+
+        UserProfile persisted = userProfileMapper.selectById(accountId);
+        assertThat(persisted.getAvatar()).isNull();
     }
 
     @Test

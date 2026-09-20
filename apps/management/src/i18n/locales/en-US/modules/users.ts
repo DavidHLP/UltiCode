@@ -146,6 +146,7 @@ export default {
     bulkDeleteFailed: 'Failed to bulk delete users',
     avatarUploadSuccess: 'User avatar updated successfully',
     avatarUploadFailed: 'Failed to upload user avatar',
+    avatarRefreshWarning: 'Avatar updated, but refreshing the user detail failed. Reload the drawer manually.',
   },
 
   // Dialogs

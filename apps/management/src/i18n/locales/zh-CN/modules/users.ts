@@ -146,6 +146,7 @@ export default {
     bulkDeleteFailed: '批量删除失败',
     avatarUploadSuccess: '用户头像更新成功',
     avatarUploadFailed: '用户头像上传失败',
+    avatarRefreshWarning: '头像已更新，但用户详情刷新失败，请手动重新加载',
   },
 
   // 对话框

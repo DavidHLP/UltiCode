@@ -43,9 +43,15 @@ async function handleAvatarChange(event: Event) {
     if (usersStore.currentUser?.id === props.userId) {
       usersStore.currentUser = { ...usersStore.currentUser, avatar }
     }
-    await loadUser()
+    const refreshed = await loadUser()
     emit('success')
     toast.success(t('users.toast.avatarUploadSuccess'))
+    if (!refreshed) {
+      // The upload itself succeeded (the returned URL is already applied above);
+      // the detail refresh failing must be reported instead of silently leaving
+      // the rest of the drawer stale.
+      toast.warning(t('users.toast.avatarRefreshWarning'))
+    }
   } catch (error) {
     toast.error(
       extractApiErrorMessage(error, t('users.toast.avatarUploadFailed')),
@@ -73,10 +79,10 @@ const progressEmpty = computed(() => {
 })
 
 async function loadUser() {
-  if (!props.userId) return
+  if (!props.userId) return null
   loading.value = true
   try {
-    await usersStore.fetchUser(props.userId)
+    return await usersStore.fetchUser(props.userId)
   } finally {
     loading.value = false
   }

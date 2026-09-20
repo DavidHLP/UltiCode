@@ -1,0 +1,40 @@
+apps/console/src/api/__tests__/user.spec.ts
+  h_77173abe25c3ff 146
+apps/console/src/api/user.ts
+  h_77173abe25c3ff 77
+apps/console/src/composables/__tests__/useAvatarUpload.spec.ts
+  h_77173abe25c3ff 2,8-15
+apps/console/src/composables/useAvatarUpload.ts
+  h_77173abe25c3ff 4-11
+apps/console/src/views/personal/AccountGeneralView.vue
+  h_77173abe25c3ff 9-12,69,74
+apps/management/src/api/admin/users.test.ts
+  h_77173abe25c3ff 31-36
+apps/management/src/api/admin/users.ts
+  h_77173abe25c3ff 139
+docs/OPERATIONS.md
+  h_77173abe25c3ff 157-169
+scripts/dev/migrate-object-storage-test.sh
+  h_77173abe25c3ff 21-25,161-184,220-221,241-243,291-302,344-383
+scripts/dev/migrate-object-storage.sh
+  h_77173abe25c3ff 24-25,37-38,68-69,81-83,90,93,103,114-186,188-217,348-349,602,666-670,683-687,695-700,715,717
+scripts/dev/rustfs-smoke-test.sh
+  h_77173abe25c3ff 62,66
+services/app/app-web/src/main/java/com/ulticode/modules/user/controller/UserAvatarController.java
+  h_77173abe25c3ff 44
+services/platform/storage/src/main/java/com/ulticode/common/storage/ImageContent.java
+  h_77173abe25c3ff 102-105
+services/platform/storage/src/test/java/com/ulticode/common/storage/ImageContentTest.java
+  h_77173abe25c3ff 30-43,151-169
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "513909bc41329ef81029c506afb7fff781c2d23d",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

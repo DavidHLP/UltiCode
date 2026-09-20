@@ -49,11 +49,36 @@ updates:
     # has no tests, so the 1.7 -> 2.4 jump (PR #177) type-checks only after a
     # deliberate port with provider wiring and regression tests. Held by
     # version constraint, same as the @dnd-kit hold below.
+    #
+    # markdown-it 15 is not adoptable as a bump: it imports the *named*
+    # `LinkifyIt` export (`dist/markdown-it.mjs:5`), which linkify-it only
+    # provides from 6.0.0, while `pnpm-workspace.yaml` overrides linkify-it to
+    # ^5.0.2. A pnpm override rewrites every matching edge unconditionally and
+    # does not fail, so syncing the root lockfile would install linkify-it 5
+    # under markdown-it 15 and `packages/markdown-utils` would throw as soon as
+    # it constructs MarkdownIt. The migration also owns `packages/markdown-utils`
+    # (the only real importer, invisible to these two app blocks) and
+    # `packages/design-system`'s KaTeX CSS, because @mdit/plugin-katex 1.1.1
+    # pulls katex ^0.18.6 and 0.18 renamed 16 internal CSS classes. Checklist in
+    # #200; PRs #191/#195 closed. GHSA-6v5v-wf23-fmfq is already fixed by the
+    # held 14.3.2, so this rule suppresses no security PR today - 15.0.1/15.0.2
+    # harden the linkify rules that `linkify: true` enables.
+    #
+    # @vueuse/core 15 removes only `templateRef`, none of the 12 composables this
+    # repo imports. The blocker is the graph: reka-ui still declares
+    # `@vueuse/core: ^14.1.0` as a regular dependency and packages/design-system
+    # declares ^14.1.0 and is consumed as source by both apps, so an app-only
+    # bump adds a third copy for no API gain. Lift when reka-ui accepts ^15,
+    # moving packages/design-system in the same change. PRs #194/#196 closed.
     ignore:
       - dependency-name: "typescript"
         update-types: ["version-update:semver-major"]
       - dependency-name: "@vue-dnd-kit/core"
         versions: [">=2.0.0"]
+      - dependency-name: "markdown-it"
+        versions: [">=15.0.0"]
+      - dependency-name: "@vueuse/core"
+        versions: [">=15.0.0"]
 
   - package-ecosystem: "npm"
     directory: "/apps/management"
@@ -94,6 +119,9 @@ updates:
     # it never depended on @vee-validate/zod. Lift this rule when a
     # @vee-validate/zod release supports zod 4 (PR #183).
     #
+    # markdown-it 15 and @vueuse/core 15: same holds as the console entry above
+    # (checklist in #200, PRs #195/#196 closed).
+    #
     # Tradeoff: Dependabot applies `ignore` to security updates and to version
     # updates, so these artifacts also stop receiving security update PRs.
     # Watch advisories against the held lines manually and lift the matching
@@ -110,6 +138,10 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: "zod"
         versions: [">=4.0.0"]
+      - dependency-name: "markdown-it"
+        versions: [">=15.0.0"]
+      - dependency-name: "@vueuse/core"
+        versions: [">=15.0.0"]
 
   - package-ecosystem: "maven"
     directory: "/services"

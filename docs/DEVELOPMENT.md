@@ -122,6 +122,11 @@ pnpm --dir packages/auth-core type-check
 pnpm --dir packages/auth-core test:coverage
 ```
 
+前端只有一个根 `pnpm-lock.yaml`（成员 lock 已删除）。`.github/dependabot.yml` 的两个 npm block 目录是
+`apps/console` 与 `apps/management`，从父目录取回的根 lock 会被 dependabot-core 当作 support file 丢弃，
+所以 Dependabot 的 PR 只改 manifest；这类 PR 必须先补一个 `chore(deps): sync root lockfile` 提交，
+CI 的五处 `pnpm install --frozen-lockfile` 才可能通过，步骤与三种持久方案见 #199。
+
 ### Optional external Adapters
 
 - `FileStoragePort` 默认使用 `LocalStorage`；S3-compatible/R2 通过

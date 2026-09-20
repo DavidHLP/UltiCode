@@ -51,7 +51,7 @@ public final class ImageContent {
             return verified(content, "gif", "image/gif");
         }
         if (isWebp(content)) {
-            // WebP is not decodable by ImageIO out of the box; the RIFF/WEBP container header is the bound check.
+            assertWithinPixelBudget(content);
             return new Detected("webp", "image/webp");
         }
         return null;
@@ -67,8 +67,11 @@ public final class ImageContent {
         if (dimensions == null) {
             throw new IllegalArgumentException("Image dimensions could not be read");
         }
-        long pixels = dimensions[0] * dimensions[1];
-        if (dimensions[0] <= 0 || dimensions[1] <= 0 || pixels > MAX_PIXELS) {
+        if (dimensions[0] <= 0
+                || dimensions[1] <= 0
+                || dimensions[0] > MAX_DIMENSION
+                || dimensions[1] > MAX_DIMENSION
+                || dimensions[0] > MAX_PIXELS / dimensions[1]) {
             throw new IllegalArgumentException(
                     "Image dimensions exceed " + MAX_DIMENSION + "x" + MAX_DIMENSION + " pixel limit");
         }
@@ -84,6 +87,9 @@ public final class ImageContent {
 
     /** Reads only the header metadata, so an oversized image is rejected before any raster allocation. */
     private static long[] readDimensions(byte[] content) {
+        if (content != null && isWebp(content)) {
+            return readWebpDimensions(content);
+        }
         try (ImageInputStream input = ImageIO.createImageInputStream(new ByteArrayInputStream(content))) {
             if (input == null) {
                 return null;
@@ -102,6 +108,104 @@ public final class ImageContent {
         } catch (IOException | RuntimeException exception) {
             return null;
         }
+    }
+
+    private static long[] readWebpDimensions(byte[] content) {
+        if (content.length < 12) {
+            return null;
+        }
+        long riffSize = unsignedIntLittleEndian(content, 4);
+        long riffEnd = 8L + riffSize;
+        if (riffSize < 4 || riffEnd != content.length || riffEnd < 12) {
+            return null;
+        }
+        int chunkOffset = 12;
+        while (chunkOffset < riffEnd) {
+            long remaining = riffEnd - chunkOffset;
+            if (remaining < 8) {
+                return null;
+            }
+            long chunkLength = unsignedIntLittleEndian(content, chunkOffset + 4);
+            long chunkEnd = chunkOffset + 8L + chunkLength;
+            long nextChunkOffset = chunkEnd + (chunkLength & 1L);
+            if (chunkEnd < chunkOffset || nextChunkOffset < chunkEnd || nextChunkOffset > riffEnd) {
+                return null;
+            }
+            int dataOffset = chunkOffset + 8;
+            int dataLength = (int) chunkLength;
+            if (isChunk(content, chunkOffset, 'V', 'P', '8', 'X')) {
+                return webpExtendedDimensions(content, dataOffset, dataLength);
+            }
+            if (isChunk(content, chunkOffset, 'V', 'P', '8', ' ')) {
+                return webpLossyDimensions(content, dataOffset, dataLength);
+            }
+            if (isChunk(content, chunkOffset, 'V', 'P', '8', 'L')) {
+                return webpLosslessDimensions(content, dataOffset, dataLength);
+            }
+            chunkOffset = (int) nextChunkOffset;
+        }
+        return null;
+    }
+
+    private static long[] webpLossyDimensions(byte[] content, int offset, int length) {
+        if (length < 10
+                || (content[offset] & 1) != 0
+                || (content[offset + 3] & 0xff) != 0x9d
+                || (content[offset + 4] & 0xff) != 0x01
+                || (content[offset + 5] & 0xff) != 0x2a) {
+            return null;
+        }
+        long width = unsignedShortLittleEndian(content, offset + 6) & 0x3fffL;
+        long height = unsignedShortLittleEndian(content, offset + 8) & 0x3fffL;
+        return new long[]{width, height};
+    }
+
+    private static long[] webpLosslessDimensions(byte[] content, int offset, int length) {
+        if (length < 5 || (content[offset] & 0xff) != 0x2f) {
+            return null;
+        }
+        long bits = unsignedIntLittleEndian(content, offset + 1);
+        if ((bits >>> 29) != 0) {
+            return null;
+        }
+        long width = (bits & 0x3fffL) + 1;
+        long height = ((bits >>> 14) & 0x3fffL) + 1;
+        return new long[]{width, height};
+    }
+
+    private static long[] webpExtendedDimensions(byte[] content, int offset, int length) {
+        if (length < 10
+                || (content[offset] & 0xe0) != 0
+                || content[offset + 1] != 0
+                || content[offset + 2] != 0
+                || content[offset + 3] != 0) {
+            return null;
+        }
+        long width = unsigned24LittleEndian(content, offset + 4) + 1;
+        long height = unsigned24LittleEndian(content, offset + 7) + 1;
+        return new long[]{width, height};
+    }
+
+    private static boolean isChunk(byte[] content, int offset, int a, int b, int c, int d) {
+        return content[offset] == a && content[offset + 1] == b
+                && content[offset + 2] == c && content[offset + 3] == d;
+    }
+
+    private static long unsignedShortLittleEndian(byte[] content, int offset) {
+        return (content[offset] & 0xffL) | ((content[offset + 1] & 0xffL) << 8);
+    }
+
+    private static long unsigned24LittleEndian(byte[] content, int offset) {
+        return (content[offset] & 0xffL)
+                | ((content[offset + 1] & 0xffL) << 8)
+                | ((content[offset + 2] & 0xffL) << 16);
+    }
+
+    private static long unsignedIntLittleEndian(byte[] content, int offset) {
+        return (content[offset] & 0xffL)
+                | ((content[offset + 1] & 0xffL) << 8)
+                | ((content[offset + 2] & 0xffL) << 16)
+                | ((content[offset + 3] & 0xffL) << 24);
     }
 
     private static boolean decodes(byte[] content) {

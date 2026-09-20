@@ -54,6 +54,65 @@ class ImageContentTest {
         return out.toByteArray();
     }
 
+    private static byte[] webp(byte[]... chunks) {
+        ByteArrayOutputStream body = new ByteArrayOutputStream();
+        body.writeBytes(new byte[]{'W', 'E', 'B', 'P'});
+        for (byte[] chunk : chunks) {
+            body.writeBytes(chunk);
+        }
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        out.writeBytes(new byte[]{'R', 'I', 'F', 'F'});
+        out.writeBytes(littleEndianInt(body.size()));
+        out.writeBytes(body.toByteArray());
+        return out.toByteArray();
+    }
+
+    private static byte[] webpChunk(String type, byte[] data) {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        out.writeBytes(type.getBytes(StandardCharsets.US_ASCII));
+        out.writeBytes(littleEndianInt(data.length));
+        out.writeBytes(data);
+        if ((data.length & 1) != 0) {
+            out.write(0);
+        }
+        return out.toByteArray();
+    }
+
+    private static byte[] littleEndianInt(int value) {
+        return new byte[]{
+                (byte) value,
+                (byte) (value >>> 8),
+                (byte) (value >>> 16),
+                (byte) (value >>> 24)
+        };
+    }
+
+    private static byte[] vp8LossyHeader(int width, int height) {
+        return new byte[]{
+                0, 0, 0, (byte) 0x9d, 0x01, 0x2a,
+                (byte) width, (byte) (width >>> 8),
+                (byte) height, (byte) (height >>> 8)
+        };
+    }
+
+    private static byte[] vp8LosslessHeader(int width, int height) {
+        long bits = (width - 1L) | ((height - 1L) << 14);
+        return new byte[]{
+                0x2f,
+                (byte) bits, (byte) (bits >>> 8), (byte) (bits >>> 16), (byte) (bits >>> 24)
+        };
+    }
+
+    private static byte[] vp8ExtendedHeader(int width, int height) {
+        long widthMinusOne = width - 1L;
+        long heightMinusOne = height - 1L;
+        return new byte[]{
+                0x02, 0, 0, 0,
+                (byte) widthMinusOne, (byte) (widthMinusOne >>> 8), (byte) (widthMinusOne >>> 16),
+                (byte) heightMinusOne, (byte) (heightMinusOne >>> 8), (byte) (heightMinusOne >>> 16)
+        };
+    }
+
     @Test
     @DisplayName("detects a real PNG inside the pixel budget")
     void detectsPng() {
@@ -100,19 +159,49 @@ class ImageContentTest {
     }
 
     @Test
-    @DisplayName("accepts the RIFF/WEBP container without an ImageIO decode")
+    @DisplayName("detects a valid VP8 WebP without an ImageIO decode")
     void detectsWebpContainer() {
-        byte[] webp = new byte[]{
-                'R', 'I', 'F', 'F', 0x1a, 0x00, 0x00, 0x00,
-                'W', 'E', 'B', 'P', 'V', 'P', '8', ' ',
-                0x0e, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00
-        };
+        byte[] image = webp(webpChunk("VP8 ", vp8LossyHeader(1, 1)));
 
-        ImageContent.Detected detected = ImageContent.detect(webp);
+        ImageContent.Detected detected = ImageContent.detect(image);
 
         assertThat(detected).isNotNull();
         assertThat(detected.extension()).isEqualTo("webp");
         assertThat(detected.contentType()).isEqualTo("image/webp");
+    }
+
+    @Test
+    @DisplayName("reads VP8L and animated VP8X dimensions")
+    void readsWebpVariants() {
+        ImageContent.assertWithinPixelBudget(webp(webpChunk("VP8L", vp8LosslessHeader(2, 3))));
+        ImageContent.assertWithinPixelBudget(webp(webpChunk("VP8X", vp8ExtendedHeader(4, 5))));
+    }
+
+    @Test
+    @DisplayName("rejects WebP dimensions over either image bound")
+    void rejectsOversizedWebp() {
+        assertThatThrownBy(() -> ImageContent.assertWithinPixelBudget(
+                webp(webpChunk("VP8X", vp8ExtendedHeader(16_384, 1)))))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("4096x4096");
+        assertThatThrownBy(() -> ImageContent.detect(
+                webp(webpChunk("VP8X", vp8ExtendedHeader(4_096, 4_097)))))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("4096x4096");
+    }
+
+    @Test
+    @DisplayName("rejects truncated and unknown WebP chunks without indexing past the input")
+    void rejectsMalformedWebp() {
+        byte[] truncated = new byte[]{
+                'R', 'I', 'F', 'F', 12, 0, 0, 0, 'W', 'E', 'B', 'P',
+                'V', 'P', '8', ' ', 8, 0, 0, 0
+        };
+        assertThatThrownBy(() -> ImageContent.assertWithinPixelBudget(truncated))
+                .isInstanceOf(IllegalArgumentException.class);
+
+        assertThatThrownBy(() -> ImageContent.assertWithinPixelBudget(
+                webp(webpChunk("JUNK", new byte[0]))))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 }

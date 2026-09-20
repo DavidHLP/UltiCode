@@ -78,7 +78,7 @@ assert_loopback_ports() {
 
 
 
-for network in edge sql cache registry rpc-auth rpc-app rpc-submission \
+for network in object-storage edge sql cache registry rpc-auth rpc-app rpc-submission \
   rpc-notification rpc-judge search observability; do
   contains docker/docker-compose.yml "  $network:"
   assert_network_property "$BASE_COMPOSE" "$network" internal true
@@ -88,9 +88,7 @@ for network in egress-auth egress-admin egress-app egress-submission egress-sear
   contains docker/docker-compose.yml "  $network:"
   assert_network_property "$BASE_COMPOSE" "$network" internal false
 done
-assert_networks "$BASE_COMPOSE" mysql sql
-assert_networks "$BASE_COMPOSE" redis cache
-assert_networks "$BASE_COMPOSE" nacos sql registry egress-nacos
+assert_networks "$BASE_COMPOSE" rustfs object-storage
 assert_networks "$BASE_COMPOSE" meilisearch search
 
 for network in sql cache registry search; do
@@ -101,8 +99,8 @@ for network in edge rpc-auth rpc-app rpc-submission rpc-notification rpc-judge o
   not_contains docker/docker-compose.dev.yml "  $network:"
 done
 assert_networks "$PROD_COMPOSE" backend-auth edge sql cache registry rpc-auth observability egress-auth
-assert_networks "$PROD_COMPOSE" backend-admin edge sql cache registry rpc-auth rpc-app rpc-submission rpc-notification observability egress-admin
-assert_networks "$PROD_COMPOSE" backend-app edge sql cache registry rpc-auth rpc-app rpc-submission rpc-judge search observability egress-app
+assert_networks "$PROD_COMPOSE" backend-admin edge sql cache registry rpc-auth rpc-app rpc-submission rpc-notification observability egress-admin object-storage
+assert_networks "$PROD_COMPOSE" backend-app edge sql cache registry rpc-auth rpc-app rpc-submission rpc-judge search observability egress-app object-storage
 assert_networks "$PROD_COMPOSE" backend-submission sql cache registry rpc-auth rpc-app rpc-submission observability egress-submission
 assert_networks "$PROD_COMPOSE" backend-search cache search observability egress-search
 assert_networks "$PROD_COMPOSE" backend-notification edge sql cache registry rpc-auth rpc-notification observability egress-notification
@@ -120,14 +118,14 @@ done
 for file in docker/docker-compose.yml docker/docker-compose.prod.yml docker/docker-compose.ha.yml; do
   not_contains "$file" '      - default'
   not_contains "$file" '      - infrastructure'
-  for service in mysql redis nacos meilisearch backend-auth backend-admin backend-app \
+  for service in mysql redis nacos rustfs meilisearch backend-auth backend-admin backend-app \
     backend-submission backend-search backend-notification backend-judge console management \
     mysql-replica redis-replica redis-sentinel-1 redis-sentinel-2 redis-sentinel-3 nacos-2 nacos-3; do
     assert_no_service_key "$file" "$service" network_mode
   done
 done
 for file in "$BASE_COMPOSE" "$PROD_COMPOSE"; do
-  for service in mysql redis nacos meilisearch; do
+  for service in mysql redis nacos rustfs meilisearch; do
     assert_no_service_key "$file" "$service" ports
   done
 done

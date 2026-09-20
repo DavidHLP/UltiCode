@@ -108,6 +108,8 @@ bootstrap_delegation_public_key="$(rsa_public_key "$bootstrap_delegation_private
 bootstrap_delegation_key_id="$(rsa_key_id "$bootstrap_delegation_public_key")"
 nacos_db_password="nacos_db_$(random_hex 24)"
 meili_master_key="meili_$(random_base64 32)"
+rustfs_access_key="ulticode_rustfs_$(random_hex 18)"
+rustfs_secret_key="ulticode_rustfs_$(random_hex 32)"
 auth_db_password="auth_$(random_hex 18)"
 admin_db_password="admin_$(random_hex 18)"
 app_db_password="app_$(random_hex 18)"
@@ -238,6 +240,21 @@ NACOS_DB_PASSWORD="$nacos_db_password"
 SPRINGDOC_ENABLED=true
 MEILISEARCH_ENABLED=false
 MEILI_MASTER_KEY="$meili_master_key"
+
+# RustFS is mandatory for every backend; these credentials are private and
+# generated only for this local checkout. Host-run PM2 uses the loopback API.
+RUSTFS_IMAGE_REF=rustfs/rustfs:1.0.0@sha256:8cc9801755448b71a786705ce76692c77e14936cccd87cf2fc31842e58f4d1ff
+RUSTFS_ACCESS_KEY="$rustfs_access_key"
+RUSTFS_SECRET_KEY="$rustfs_secret_key"
+RUSTFS_BUCKET=ulticode
+RUSTFS_API_PORT=9000
+RUSTFS_CONSOLE_PORT=9001
+APP_STORAGE_S3_ENDPOINT=http://127.0.0.1:9000
+APP_STORAGE_S3_REGION=us-east-1
+APP_STORAGE_S3_BUCKET=ulticode
+APP_STORAGE_S3_ACCESS_KEY="$rustfs_access_key"
+APP_STORAGE_S3_SECRET_KEY="$rustfs_secret_key"
+APP_STORAGE_S3_TLS_ENABLED=false
 # Production only: set an operator-managed collector reachable from the
 # deployment Compose network before running production Compose. Deliberately
 # left unset — production Compose fails closed on an unset or empty value;

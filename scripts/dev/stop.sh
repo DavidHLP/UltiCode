@@ -155,7 +155,7 @@ fi
 
 if [[ "$stop_infra" == true && -x "$(command -v docker 2>/dev/null || true)" && -f "$ENV_FILE" ]]; then
   if [[ "$STOP_ALL" == true ]]; then
-    infra_targets="mysql,redis,nacos,meilisearch,otel-collector,prometheus,alertmanager,tempo,loki,grafana"
+    infra_targets="mysql,redis,nacos,rustfs,meilisearch,otel-collector,prometheus,alertmanager,tempo,loki,grafana"
   else
     infra_targets="$(devstack_infra_for_selection "$SCOPE" "$SELECTED_APPS")"
   fi

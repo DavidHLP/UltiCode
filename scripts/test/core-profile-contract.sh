@@ -73,7 +73,7 @@ not_contains services/core/pom.xml 'backend-judge-runtime'
 source "$ROOT_DIR/scripts/dev/devstack-manifest.sh"
 [[ "$(devstack_apps_for_scope core)" == 'ulticode-core,ulticode-judge' ]] \
   || fail 'core scope app set drifted'
-[[ "$(devstack_infra_for_scope core)" == 'mysql,redis,nacos,meilisearch' ]] \
+[[ "$(devstack_infra_for_scope core)" == 'mysql,redis,nacos,rustfs,meilisearch' ]] \
   || fail 'core scope infra set drifted'
 [[ "$(devstack_readiness ulticode-core)" == 'http|9108|/api/v1/core/health/ready' ]] \
   || fail 'core readiness contract drifted'

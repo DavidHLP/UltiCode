@@ -157,6 +157,9 @@ docker run --rm -v "${RUSTFS_VOLUMES[0]}:/data:ro" -v "$PWD:/backup" alpine \
 - 旧本地文件迁移用 `scripts/dev/migrate-object-storage.sh`：默认 dry-run；`--apply` 才上传；
   上传后校验大小/checksum 并回读对象，校验通过后才更新数据库行（`user_profiles.avatar` 与
   `backups.object_key`）；脚本从不删除旧文件，只有在迁移报告确认全部对象已校验后，operator 才可清理旧目录。
+- **部署顺序要求**：升级到本版本后，尚未迁移的旧头像与旧备份在对象上传前不可用（下载/恢复返回明确的
+  NOT_FOUND，不会回退本地文件）。请在切换后立即执行迁移（先 dry-run 核对计划，再 `--apply`），并核对
+  `MIGRATION_SUMMARY` 全部通过后再对外确认头像与备份功能；迁移脚本幂等，可重复执行。
 - RustFS 不可用时：应用启动失败（或既有实例在请求路径上返回明确的存储错误），备份/恢复不会标记成功，
   也不会回退到本地永久目录。
 

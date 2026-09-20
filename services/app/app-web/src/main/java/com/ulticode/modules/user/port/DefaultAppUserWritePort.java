@@ -19,9 +19,12 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.imageio.ImageIO;
+import javax.imageio.ImageReader;
+import javax.imageio.stream.ImageInputStream;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.Locale;
 
 /**
@@ -35,6 +38,13 @@ import java.util.Locale;
 @Service
 @RequiredArgsConstructor
 public class DefaultAppUserWritePort implements AppUserWritePort {
+
+    private static final int MAX_IMAGE_DIMENSION = 4096;
+    private static final long MAX_IMAGE_PIXELS =
+            (long) MAX_IMAGE_DIMENSION * MAX_IMAGE_DIMENSION;
+    private static final String IMAGE_DIMENSION_LIMIT_MESSAGE =
+            "Image dimensions exceed " + MAX_IMAGE_DIMENSION + "x"
+                    + MAX_IMAGE_DIMENSION + " pixel limit";
 
     private final UserProfileMapper userProfileMapper;
     private final UuidGenerator uuidGenerator;
@@ -138,7 +148,8 @@ public class DefaultAppUserWritePort implements AppUserWritePort {
         String key = StorageKeys.avatarKey(userId, objectName);
 
         UserProfile profile = userProfileMapper.selectById(userId);
-        String previousAvatar = profile == null ? null : profile.getAvatar();
+        boolean isNew = profile == null;
+        String previousAvatar = isNew ? null : profile.getAvatar();
         try {
             fileStorage.put(key, new ByteArrayInputStream(content), content.length, detected.contentType());
         } catch (RuntimeException exception) {
@@ -147,13 +158,13 @@ public class DefaultAppUserWritePort implements AppUserWritePort {
         }
 
         try {
-            if (profile == null) {
+            if (isNew) {
                 profile = new UserProfile();
                 profile.setAccountId(userId);
             }
             profile.setAvatar(key);
             int affectedRows;
-            if (previousAvatar == null) {
+            if (isNew) {
                 affectedRows = userProfileMapper.insert(profile);
             } else {
                 affectedRows = userProfileMapper.updateById(profile);
@@ -239,9 +250,38 @@ public class DefaultAppUserWritePort implements AppUserWritePort {
     }
 
     private static boolean decodesImage(byte[] content) {
+        if (!dimensionsWithinLimit(content)) {
+            return false;
+        }
         try {
             BufferedImage image = ImageIO.read(new ByteArrayInputStream(content));
             return image != null;
+        } catch (IOException exception) {
+            return false;
+        }
+    }
+
+    private static boolean dimensionsWithinLimit(byte[] content) {
+        try (ImageInputStream input = ImageIO.createImageInputStream(new ByteArrayInputStream(content))) {
+            if (input == null) {
+                return false;
+            }
+            Iterator<ImageReader> readers = ImageIO.getImageReaders(input);
+            if (!readers.hasNext()) {
+                return false;
+            }
+            ImageReader reader = readers.next();
+            try {
+                reader.setInput(input, true, true);
+                long width = reader.getWidth(0);
+                long height = reader.getHeight(0);
+                if (width * height > MAX_IMAGE_PIXELS) {
+                    throw new BusinessException(BaseErrorCode.BAD_REQUEST, IMAGE_DIMENSION_LIMIT_MESSAGE);
+                }
+                return width > 0 && height > 0;
+            } finally {
+                reader.dispose();
+            }
         } catch (IOException exception) {
             return false;
         }

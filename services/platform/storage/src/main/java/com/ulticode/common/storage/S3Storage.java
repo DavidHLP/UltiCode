@@ -2,6 +2,7 @@ package com.ulticode.common.storage;
 
 import com.ulticode.common.resilience.DependencyGuard;
 
+import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -108,24 +109,54 @@ public class S3Storage implements FileStoragePort {
     @Override
     public Optional<StorageStream> openStream(String key) {
         StorageKeys.validate(key);
-        try {
-            HttpResponse<InputStream> response = exchange("GET", objectUri(key), HttpRequest.BodyPublishers.noBody(),
-                    EMPTY_HASH, null, HttpResponse.BodyHandlers.ofInputStream(), READ_ATTEMPTS);
-            if (response.statusCode() == 404) {
-                closeBody(response.body());
-                return Optional.empty();
+        IOException lastFailure = null;
+        for (int attempt = 1; attempt <= READ_ATTEMPTS; attempt++) {
+            DependencyGuard.Permit permit;
+            try {
+                permit = dependencyGuard.acquire();
+            } catch (DependencyGuard.RejectedException rejected) {
+                throw new StorageException("Object store temporarily unavailable: " + rejected.reason(), rejected);
             }
-            if (response.statusCode() / 100 != 2) {
-                closeBody(response.body());
-                requireSuccess(response, key);
+            try {
+                HttpResponse<InputStream> response = sendOnce("GET", objectUri(key),
+                        HttpRequest.BodyPublishers.noBody(), EMPTY_HASH, null,
+                        HttpResponse.BodyHandlers.ofInputStream());
+                int status = response.statusCode();
+                if (status == 404) {
+                    closeBody(response.body());
+                    permit.success();
+                    return Optional.empty();
+                }
+                if (status == 429 || status >= 500) {
+                    permit.failure();
+                    closeBody(response.body());
+                    if (attempt < READ_ATTEMPTS) {
+                        continue;
+                    }
+                    requireSuccess(response, key);
+                } else if (status / 100 == 2) {
+                    return Optional.of(new StorageStream(
+                            new GuardedInputStream(response.body(), permit),
+                            response.headers().firstValueAsLong("Content-Length").orElse(-1L),
+                            response.headers().firstValue("Content-Type").orElse(null)));
+                } else {
+                    closeBody(response.body());
+                    permit.success();
+                    requireSuccess(response, key);
+                }
+            } catch (InterruptedException exception) {
+                permit.ignore();
+                restoreInterrupt(exception);
+                throw new StorageException("Failed to stream object '" + key + "'", exception);
+            } catch (IOException exception) {
+                permit.failure();
+                lastFailure = exception;
+                if (attempt == READ_ATTEMPTS) {
+                    throw new StorageException("Failed to stream object '" + key + "'", exception);
+                }
             }
-            return Optional.of(new StorageStream(response.body(),
-                    response.headers().firstValueAsLong("Content-Length").orElse(-1L),
-                    response.headers().firstValue("Content-Type").orElse(null)));
-        } catch (IOException | InterruptedException exception) {
-            restoreInterrupt(exception);
-            throw new StorageException("Failed to stream object '" + key + "'", exception);
         }
+        throw new StorageException("Failed to stream object '" + key + "'", lastFailure);
     }
 
     @Override
@@ -236,6 +267,63 @@ public class S3Storage implements FileStoragePort {
             throw new StorageException("Object-store request for '" + key + "' failed with HTTP " + status);
         }
     }
+
+    private static final class GuardedInputStream extends FilterInputStream {
+
+        private final DependencyGuard.Permit permit;
+        private boolean closed;
+
+        private GuardedInputStream(InputStream delegate, DependencyGuard.Permit permit) {
+            super(delegate);
+            this.permit = permit;
+        }
+
+        @Override
+        public int read() throws IOException {
+            try {
+                return super.read();
+            } catch (IOException exception) {
+                permit.failure();
+                throw exception;
+            }
+        }
+
+        @Override
+        public int read(byte[] bytes, int offset, int length) throws IOException {
+            try {
+                return super.read(bytes, offset, length);
+            } catch (IOException exception) {
+                permit.failure();
+                throw exception;
+            }
+        }
+
+        @Override
+        public long skip(long count) throws IOException {
+            try {
+                return super.skip(count);
+            } catch (IOException exception) {
+                permit.failure();
+                throw exception;
+            }
+        }
+
+        @Override
+        public void close() throws IOException {
+            if (closed) {
+                return;
+            }
+            closed = true;
+            try {
+                super.close();
+                permit.success();
+            } catch (IOException exception) {
+                permit.failure();
+                throw exception;
+            }
+        }
+    }
+
 
     private static void closeBody(Object body) {
         if (body instanceof InputStream input) {

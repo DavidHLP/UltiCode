@@ -15,121 +15,110 @@ updates:
     open-pull-requests-limit: 5
     rebase-strategy: "disabled"
 
+  # One block for the whole pnpm workspace. The lockfile lives only at the root
+  # (the member locks were deleted in #179), and Dependabot can only update a pnpm
+  # workspace from its root: with `directory: /apps/console` it fetches the root
+  # pnpm-lock.yaml by walking up the tree, flags it a support file, and drops it
+  # from the PR (npm_and_yarn/file_fetcher.rb:844-857 plus
+  # dependency_change_builder.rb:193), so every npm PR shipped a manifest with no
+  # lockfile and failed `pnpm install --frozen-lockfile` in five CI jobs. The
+  # updater also files a server-side error per member manifest - see #199 and run
+  # 35496690062: "Updating workspaces from inside a workspace subdirectory is not
+  # supported ... Dependabot should only update from the root workspace."
+  #
+  # Merging the two app blocks has two consequences. `ignore` and `groups` match
+  # dependency names, not paths, so each rule now applies wherever that dependency
+  # appears; the per-app holds below are re-labelled with the app that owns them
+  # and zod moved from `versions: [">=4.0.0"]` to a semver-major ignore, which
+  # still blocks management's 3 -> 4 jump while letting console's 4.x minor and
+  # patch updates through (a version constraint would have frozen console too).
+  # Per-app groups also collapse into workspace-wide ones, so one PR now bumps
+  # console, management and packages together - which is what a single root
+  # lockfile wants anyway, and it stops specifier drift between the two apps.
+  #
+  # This block also newly covers the root package.json and packages/*, which no
+  # ecosystem covered before: notably packages/markdown-utils (markdown-it,
+  # @mdit/plugin-katex) and packages/design-system (katex CSS, @vueuse/core), i.e.
+  # the pins that actually decide Markdown/KaTeX rendering.
   - package-ecosystem: "npm"
-    directory: "/apps/console"
+    directory: "/"
     schedule:
       interval: "weekly"
     groups:
-      console-production:
+      production:
         dependency-type: "production"
         update-types:
           - "minor"
           - "patch"
-      console-development:
+      development:
         dependency-type: "development"
     labels:
       - "dependencies"
       - "automated"
     open-pull-requests-limit: 5
     rebase-strategy: "disabled"
-    # TypeScript 7 moved the compiler entry points this toolchain still relies
-    # on: vue-tsc resolves typescript/lib/tsc, which the package no longer
-    # exports, and @typescript-eslint/typescript-estree crashes reading the
-    # compiler enums. Both `lint:check` and `type-check` therefore fail before
-    # any project code is checked. Hold the major until vue-tsc and
-    # typescript-eslint ship TypeScript 7 support.
+    # TypeScript 7 (apps ~6.0.3, packages ~5.9.3) moved the compiler entry points
+    # this toolchain still relies on: vue-tsc resolves typescript/lib/tsc, which
+    # the package no longer exports, and @typescript-eslint/typescript-estree
+    # crashes reading the compiler enums. Both `lint:check` and `type-check`
+    # therefore fail before any project code is checked. Hold the major until
+    # vue-tsc and typescript-eslint ship TypeScript 7 support.
     #
-    # Tradeoff: Dependabot applies `ignore` to security updates too, so
-    # TypeScript stops receiving security PRs here; watch advisories against the
-    # 6.x line manually and lift the rule once the toolchain supports 7.
-    #
-    # @vue-dnd-kit/core 2.x is a full API replacement (DnDProvider +
+    # @vue-dnd-kit/core 2.x (console) is a full API replacement (DnDProvider +
     # makeDraggable/makeDroppable/makeSelectionArea; the 1.x useDraggable/
-    # useDroppable composable are gone). Its only consumer, LayoutPanelHeader,
-    # has no tests, so the 1.7 -> 2.4 jump (PR #177) type-checks only after a
-    # deliberate port with provider wiring and regression tests. Held by
-    # version constraint, same as the @dnd-kit hold below.
+    # useDroppable composable are gone). Its only consumer, LayoutPanelHeader, has
+    # no tests, so the 1.7 -> 2.4 jump (PR #177) type-checks only after a
+    # deliberate port with provider wiring and regression tests.
     #
-    # markdown-it 15 is not adoptable as a bump: it imports the *named*
-    # `LinkifyIt` export (`dist/markdown-it.mjs:5`), which linkify-it only
-    # provides from 6.0.0, while `pnpm-workspace.yaml` overrides linkify-it to
-    # ^5.0.2. A pnpm override rewrites every matching edge unconditionally and
-    # does not fail, so syncing the root lockfile would install linkify-it 5
-    # under markdown-it 15 and `packages/markdown-utils` would throw as soon as
-    # it constructs MarkdownIt. The migration also owns `packages/markdown-utils`
-    # (the only real importer, invisible to these two app blocks) and
-    # `packages/design-system`'s KaTeX CSS, because @mdit/plugin-katex 1.1.1
-    # pulls katex ^0.18.6 and 0.18 renamed 16 internal CSS classes. Checklist in
-    # #200; PRs #191/#195 closed. GHSA-6v5v-wf23-fmfq is already fixed by the
-    # held 14.3.2, so this rule suppresses no security PR today - 15.0.1/15.0.2
-    # harden the linkify rules that `linkify: true` enables.
-    #
-    # @vueuse/core 15 removes only `templateRef`, none of the 12 composables this
-    # repo imports. The blocker is the graph: reka-ui still declares
-    # `@vueuse/core: ^14.1.0` as a regular dependency and packages/design-system
-    # declares ^14.1.0 and is consumed as source by both apps, so an app-only
-    # bump adds a third copy for no API gain. Lift when reka-ui accepts ^15,
-    # moving packages/design-system in the same change. PRs #194/#196 closed.
-    ignore:
-      - dependency-name: "typescript"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "@vue-dnd-kit/core"
-        versions: [">=2.0.0"]
-      - dependency-name: "markdown-it"
-        versions: [">=15.0.0"]
-      - dependency-name: "@vueuse/core"
-        versions: [">=15.0.0"]
-
-  - package-ecosystem: "npm"
-    directory: "/apps/management"
-    schedule:
-      interval: "weekly"
-    groups:
-      management-production:
-        dependency-type: "production"
-        update-types:
-          - "minor"
-          - "patch"
-      management-development:
-        dependency-type: "development"
-    labels:
-      - "dependencies"
-      - "automated"
-    open-pull-requests-limit: 5
-    rebase-strategy: "disabled"
-    # Coordinated migrations, not version bumps (same policy as the Spring Boot
-    # 4 holds below). Same-line updates still apply.
-    #
-    # @dnd-kit/abstract and @dnd-kit/dom 0.5 rewrite the activation-constraint
-    # options and swap the manager types. The only Vue adapter,
-    # dnd-kit-vue@0.0.2, is pinned to the 0.1.x line, so a 0.5 bump leaves
+    # @dnd-kit/abstract and @dnd-kit/dom 0.5 (management) rewrite the
+    # activation-constraint options and swap the manager types. The only Vue
+    # adapter, dnd-kit-vue@0.0.2, is pinned to the 0.1.x line, so a 0.5 bump leaves
     # DataTable on a different generation than the adapter that drives it. Lift
-    # these two when the adapter moves to @dnd-kit/vue.
-    # Held by version constraint, not update-types: Dependabot classifies
-    # 0.1.21 -> 0.5.0 numerically as a minor bump, so a semver-major ignore
-    # never matches (PR #170 slipped through the old rule for exactly this).
+    # these two when the adapter moves to @dnd-kit/vue. Held by version
+    # constraint, not update-types: Dependabot classifies 0.1.21 -> 0.5.0
+    # numerically as a minor bump, so a semver-major ignore never matches
+    # (PR #170 slipped through the old rule for exactly this).
     #
-    # @tanstack/vue-table 9 is an API rewrite (useTable plus explicit
-    # tableFeatures, row-model slots, atom state, and a TFeatures type
-    # parameter) that reaches DataTable, DraggableRow and every column
-    # definition. Migrate deliberately, then lift this rule.
+    # @tanstack/vue-table 9 (management) is an API rewrite (useTable plus explicit
+    # tableFeatures, row-model slots, atom state, and a TFeatures type parameter)
+    # that reaches DataTable, DraggableRow and every column definition. Migrate
+    # deliberately, then lift this rule.
     #
     # zod 4 breaks @vee-validate/zod (peer `zod ^3.24`), which every management
-    # form schema uses through toTypedSchema; console already runs zod 4 because
-    # it never depended on @vee-validate/zod. Lift this rule when a
-    # @vee-validate/zod release supports zod 4 (PR #183).
+    # form schema uses through toTypedSchema; console already runs zod 4 because it
+    # never depended on @vee-validate/zod. Lift this rule when a @vee-validate/zod
+    # release supports zod 4 (PR #183).
     #
-    # markdown-it 15 and @vueuse/core 15: same holds as the console entry above
-    # (checklist in #200, PRs #195/#196 closed).
+    # markdown-it 15 is not adoptable as a bump: it imports the *named*
+    # `LinkifyIt` export (`dist/markdown-it.mjs:5`), which linkify-it only provides
+    # from 6.0.0, while `pnpm-workspace.yaml` overrides linkify-it to ^5.0.2. A
+    # pnpm override rewrites every matching edge unconditionally and does not fail,
+    # so syncing the root lockfile would install linkify-it 5 under markdown-it 15
+    # and `packages/markdown-utils` would throw as soon as it constructs
+    # MarkdownIt. The migration also owns packages/markdown-utils (the only real
+    # importer), both app manifests, and `packages/design-system`'s KaTeX CSS,
+    # because @mdit/plugin-katex 1.1.1 pulls katex ^0.18.6 and 0.18 renamed 16
+    # internal CSS classes. Checklist in #200; PRs #191/#195 closed.
+    # GHSA-6v5v-wf23-fmfq is already fixed by the held 14.3.2, so this rule
+    # suppresses no security PR today - 15.0.1/15.0.2 harden the linkify rules that
+    # `linkify: true` enables. Lift together with #200.
+    #
+    # @vueuse/core 15 removes only `templateRef`, and none of the 12 composables
+    # this repo imports. The blocker is the graph: reka-ui still declares
+    # `@vueuse/core: ^14.1.0` as a regular dependency and packages/design-system
+    # declares ^14.1.0 and is consumed as source by both apps, so an app-only bump
+    # adds a third copy for no API gain. Lift when reka-ui accepts ^15, moving
+    # packages/design-system in the same change. PRs #194/#196 closed.
     #
     # Tradeoff: Dependabot applies `ignore` to security updates and to version
     # updates, so these artifacts also stop receiving security update PRs.
     # Watch advisories against the held lines manually and lift the matching
     # rule when one lands.
     ignore:
-      # Same TypeScript 7 toolchain hold as the console entry above.
       - dependency-name: "typescript"
         update-types: ["version-update:semver-major"]
+      - dependency-name: "@vue-dnd-kit/core"
+        versions: [">=2.0.0"]
       - dependency-name: "@dnd-kit/abstract"
         versions: [">=0.2.0"]
       - dependency-name: "@dnd-kit/dom"
@@ -137,7 +126,7 @@ updates:
       - dependency-name: "@tanstack/vue-table"
         update-types: ["version-update:semver-major"]
       - dependency-name: "zod"
-        versions: [">=4.0.0"]
+        update-types: ["version-update:semver-major"]
       - dependency-name: "markdown-it"
         versions: [">=15.0.0"]
       - dependency-name: "@vueuse/core"

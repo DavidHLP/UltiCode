@@ -14,7 +14,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 IMAGE="${RUSTFS_IMAGE_REF:-rustfs/rustfs:1.0.0@sha256:8cc9801755448b71a786705ce76692c77e14936cccd87cf2fc31842e58f4d1ff}"
 NAME="${RUSTFS_SMOKE_NAME:-ulticode-rustfs-smoke}"
-VOLUME="${RUSTFS_SMOKE_VOLUME:-ulticode-rustfs-smoke-data}"
+VOLUME="${RUSTFS_SMOKE_VOLUME:-ulticode-rustfs-smoke-data-$$}"
 PORT="${RUSTFS_SMOKE_PORT:-19000}"
 BUCKET="${RUSTFS_BUCKET:-ulticode}"
 ACCESS_KEY="${RUSTFS_SMOKE_ACCESS_KEY:-smoke-access-key}"
@@ -36,6 +36,10 @@ esac
 if (($# > 0)); then
   echo "Usage: ${BASH_SOURCE[0]} [--keep]" >&2
   exit 2
+fi
+VOLUME_CLEANUP=true
+if [[ -n "${RUSTFS_SMOKE_VOLUME:-}" ]] && docker volume inspect "$VOLUME" >/dev/null 2>&1; then
+  VOLUME_CLEANUP=false
 fi
 
 log() { printf '\n== %s\n' "$*"; }
@@ -63,7 +67,11 @@ cleanup() {
     return
   fi
   docker rm -f "$NAME" >/dev/null 2>&1 || true
-  docker volume rm "$VOLUME" >/dev/null 2>&1 || true
+  if [[ "$VOLUME_CLEANUP" == "true" ]]; then
+    docker volume rm "$VOLUME" >/dev/null 2>&1 || true
+  else
+    echo "preserving pre-existing volume ${VOLUME}; use a dedicated smoke volume for automatic cleanup"
+  fi
 }
 trap cleanup EXIT
 

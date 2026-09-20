@@ -112,10 +112,13 @@ public class S3Storage implements FileStoragePort {
             HttpResponse<InputStream> response = exchange("GET", objectUri(key), HttpRequest.BodyPublishers.noBody(),
                     EMPTY_HASH, null, HttpResponse.BodyHandlers.ofInputStream(), READ_ATTEMPTS);
             if (response.statusCode() == 404) {
-                response.body().close();
+                closeBody(response.body());
                 return Optional.empty();
             }
-            requireSuccess(response, key);
+            if (response.statusCode() / 100 != 2) {
+                closeBody(response.body());
+                requireSuccess(response, key);
+            }
             return Optional.of(new StorageStream(response.body(),
                     response.headers().firstValueAsLong("Content-Length").orElse(-1L),
                     response.headers().firstValue("Content-Type").orElse(null)));

@@ -11,13 +11,16 @@ import com.ulticode.app.idempotency.mapper.AppCommandReceiptMapper;
 import com.ulticode.app.userprofile.entity.UserProfile;
 import com.ulticode.app.userprofile.mapper.UserProfileMapper;
 import com.ulticode.common.rpc.RpcResult;
+import com.ulticode.common.storage.FileStoragePort;
+import com.ulticode.common.storage.StorageKeys;
 import com.ulticode.common.tracing.TraceMetadata;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.dubbo.config.annotation.DubboService;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -50,6 +53,7 @@ public class ProfileWriteProvider implements ProfileWriteService {
     private final AppCommandReceiptMapper receiptMapper;
     private final ObjectMapper objectMapper;
     private final AdminActorAuthorizer actorAuthorizer;
+    private final FileStoragePort fileStorage;
 
     @Override
     @Transactional
@@ -195,6 +199,7 @@ public class ProfileWriteProvider implements ProfileWriteService {
             String accountId = command.accountId();
             UserProfile profile = userProfileMapper.selectById(accountId);
             boolean isNew = profile == null;
+            String previousAvatar = isNew ? null : profile.getAvatar();
             if (isNew) {
                 profile = new UserProfile();
                 profile.setAccountId(accountId);
@@ -207,6 +212,7 @@ public class ProfileWriteProvider implements ProfileWriteService {
                 userProfileMapper.updateById(profile);
             }
 
+            deletePreviousAvatarAfterCommit(accountId, previousAvatar, profile.getAvatar());
             log.info("Avatar updated for account: {}", accountId);
 
             ProfileWriteResult result = new ProfileWriteResult(
@@ -275,6 +281,32 @@ public class ProfileWriteProvider implements ProfileWriteService {
             throw new RuntimeException("Idempotency receipt insert failed", e);
         }
     }
+    private void deletePreviousAvatarAfterCommit(String accountId, String previousAvatar, String currentAvatar) {
+        if (previousAvatar == null || previousAvatar.equals(currentAvatar)
+                || !StorageKeys.isAvatarKey(previousAvatar)
+                || !accountId.equals(StorageKeys.avatarAccountId(previousAvatar))) {
+            return;
+        }
+        Runnable cleanup = () -> {
+            try {
+                fileStorage.delete(previousAvatar);
+            } catch (RuntimeException exception) {
+                log.warn("Failed to delete replaced avatar object {}: {}",
+                        previousAvatar, exception.getMessage());
+            }
+        };
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    cleanup.run();
+                }
+            });
+        } else {
+            cleanup.run();
+        }
+    }
+
     private boolean trustedActor(com.ulticode.common.command.ActorDelegation actor) {
         return com.ulticode.app.security.TrustedAdminActor.isTrusted(
                 actorAuthorizer, actor, "profile write");

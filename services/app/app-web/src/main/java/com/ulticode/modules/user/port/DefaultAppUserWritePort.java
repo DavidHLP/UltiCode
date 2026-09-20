@@ -14,6 +14,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.imageio.ImageIO;
@@ -150,21 +152,48 @@ public class DefaultAppUserWritePort implements AppUserWritePort {
                 profile.setAccountId(userId);
             }
             profile.setAvatar(key);
+            int affectedRows;
             if (previousAvatar == null) {
-                userProfileMapper.insert(profile);
+                affectedRows = userProfileMapper.insert(profile);
             } else {
-                userProfileMapper.updateById(profile);
+                affectedRows = userProfileMapper.updateById(profile);
+            }
+            if (affectedRows != 1) {
+                throw new IllegalStateException("Avatar profile update affected " + affectedRows + " rows");
             }
         } catch (RuntimeException exception) {
             deleteQuietly(key);
             throw exception;
         }
 
-        deleteQuietly(AvatarUrls.objectKey(userId, previousAvatar));
+        String previousKey = AvatarUrls.objectKey(userId, previousAvatar);
+        if (previousKey != null && !previousKey.equals(key)) {
+            deleteAfterCommit(previousKey);
+        }
         publishUserDocument(userId);
         String displayUrl = AvatarUrls.resolve(userId, key);
         log.info("Avatar uploaded for user {}", userId);
         return displayUrl;
+    }
+
+    /**
+     * Deletes the replaced object only once the surrounding transaction has committed.
+     *
+     * <p>Deleting earlier would lose data when a later step (for example the search-document outbox write)
+     * rolls the transaction back: the row would still point at the old key, but the object would be gone.
+     * Outside a transaction the delete runs immediately. Failures are logged and never fail the request.
+     */
+    private void deleteAfterCommit(String key) {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    deleteQuietly(key);
+                }
+            });
+        } else {
+            deleteQuietly(key);
+        }
     }
     private static void validateExtension(String originalFilename) {
         if (originalFilename == null || originalFilename.isBlank()) {

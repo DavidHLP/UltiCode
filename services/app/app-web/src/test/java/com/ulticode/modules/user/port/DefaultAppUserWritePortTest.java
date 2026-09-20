@@ -20,6 +20,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -29,6 +31,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.never;
 
 /**
  * Focused tests for {@link DefaultAppUserWritePort} profile write paths.
@@ -195,6 +198,7 @@ class DefaultAppUserWritePortTest {
             String userId = "u-004";
             when(uuidGenerator.newId()).thenReturn("uuid-1");
             when(userProfileMapper.selectById(userId)).thenReturn(null);
+            when(userProfileMapper.insert(any(UserProfile.class))).thenReturn(1);
             byte[] png = java.util.Base64.getDecoder().decode(
                     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
             MultipartFile file = new MockMultipartFile("file", "photo.png", "text/plain", png);
@@ -218,6 +222,7 @@ class DefaultAppUserWritePortTest {
             existing.setAccountId(userId);
             existing.setAvatar("app/avatars/u-005/old.png");
             when(userProfileMapper.selectById(userId)).thenReturn(existing);
+            when(userProfileMapper.updateById(any(UserProfile.class))).thenReturn(1);
             when(uuidGenerator.newId()).thenReturn("uuid-2");
             byte[] png = java.util.Base64.getDecoder().decode(
                     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
@@ -249,6 +254,53 @@ class DefaultAppUserWritePortTest {
                     .hasMessage("db failure");
 
             verify(fileStorage).delete("app/avatars/u-006/uuid-3.png");
+        }
+
+        @Test
+        @DisplayName("zero-row database write removes uploaded object and fails")
+        void zeroRowDatabaseWriteRemovesUploadedObject() {
+            String userId = "u-007";
+            when(userProfileMapper.selectById(userId)).thenReturn(null);
+            when(uuidGenerator.newId()).thenReturn("uuid-4");
+            when(userProfileMapper.insert(any(UserProfile.class))).thenReturn(0);
+            byte[] png = java.util.Base64.getDecoder().decode(
+                    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+
+            assertThatThrownBy(() -> port.uploadAvatar(userId,
+                    new MockMultipartFile("file", "photo.png", "image/png", png)))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessage("Avatar profile update affected 0 rows");
+
+            verify(fileStorage).delete("app/avatars/u-007/uuid-4.png");
+        }
+
+        @Test
+        @DisplayName("previous object is deleted only after the transaction commits")
+        void previousObjectDeletedOnlyAfterCommit() {
+            String userId = "u-008";
+            UserProfile existing = new UserProfile();
+            existing.setAccountId(userId);
+            existing.setAvatar("app/avatars/u-008/old.png");
+            when(userProfileMapper.selectById(userId)).thenReturn(existing);
+            when(uuidGenerator.newId()).thenReturn("uuid-5");
+            when(userProfileMapper.updateById(any(UserProfile.class))).thenReturn(1);
+            byte[] png = java.util.Base64.getDecoder().decode(
+                    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+
+            TransactionSynchronizationManager.initSynchronization();
+            try {
+                port.uploadAvatar(userId, new MockMultipartFile("file", "photo.png", "image/png", png));
+
+                // A rolled-back transaction must still find the previous object.
+                verify(fileStorage, never()).delete("app/avatars/u-008/old.png");
+
+                TransactionSynchronizationManager.getSynchronizations()
+                        .forEach(TransactionSynchronization::afterCommit);
+
+                verify(fileStorage).delete("app/avatars/u-008/old.png");
+            } finally {
+                TransactionSynchronizationManager.clearSynchronization();
+            }
         }
     }
 }

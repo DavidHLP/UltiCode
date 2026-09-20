@@ -17,7 +17,7 @@ public final class AvatarUrls {
         if (StorageKeys.isAvatarKey(stored)) {
             String storedAccount = StorageKeys.avatarAccountId(stored);
             if (accountId == null || !accountId.equals(storedAccount)) {
-                return stored;
+                return null;
             }
             return StorageKeys.avatarDisplayPath(storedAccount, StorageKeys.avatarObjectName(stored));
         }

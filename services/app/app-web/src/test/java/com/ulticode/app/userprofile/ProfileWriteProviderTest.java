@@ -16,6 +16,7 @@ import com.ulticode.app.userprofile.provider.ProfileWriteProvider;
 import com.ulticode.app.idempotency.mapper.AppCommandReceiptMapper;
 import com.ulticode.common.command.ActorDelegation;
 import com.ulticode.common.rpc.RpcResult;
+import com.ulticode.common.storage.FileStoragePort;
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,6 +28,7 @@ class ProfileWriteProviderTest {
     private AppCommandReceiptMapper receiptMapper;
     private ObjectMapper objectMapper;
     private AdminActorAuthorizer actorAuthorizer;
+    private FileStoragePort fileStorage;
     private ProfileWriteProvider provider;
 
     @BeforeEach
@@ -35,7 +37,9 @@ class ProfileWriteProviderTest {
         receiptMapper = mock(AppCommandReceiptMapper.class);
         objectMapper = mock(ObjectMapper.class);
         actorAuthorizer = mock(AdminActorAuthorizer.class);
-        provider = new ProfileWriteProvider(userProfileMapper, receiptMapper, objectMapper, actorAuthorizer);
+        fileStorage = mock(FileStoragePort.class);
+        provider = new ProfileWriteProvider(userProfileMapper, receiptMapper, objectMapper, actorAuthorizer,
+                fileStorage);
     }
 
     @Test

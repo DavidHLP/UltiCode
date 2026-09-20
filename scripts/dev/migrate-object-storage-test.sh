@@ -384,6 +384,15 @@ assert_contains "$labeled_volume_docker_log" "legacy-prod_app_uploads"
 assert_contains "$labeled_volume_docker_log" "legacy-prod_backup_data"
 unset COMPOSE_PROJECT_NAME FAKE_USE_LABELS FAKE_LABELLED_AVATAR_VOLUME_NAME FAKE_LABELLED_BACKUP_VOLUME_NAME
 
+# Do not guess a default project-scoped volume when Compose labels are absent.
+: >"$DOCKER_LOG"; : >"$MYSQL_LOG"
+unresolved_volume_output=""
+unresolved_volume_status=0
+unresolved_volume_output="$(run_migration_without_explicit_dirs --only avatars 2>&1)" || unresolved_volume_status=$?
+[[ "$unresolved_volume_status" -ne 0 ]] || { echo 'unresolved default volume unexpectedly passed' >&2; exit 1; }
+assert_contains "$unresolved_volume_output" "could not be uniquely resolved"
+assert_not_contains "$(<"$MYSQL_LOG")" "FROM user_profiles"
+
 # Docker fallback mounts both legacy directories and translates body paths.
 : >"$AWS_LOG"; : >"$DOCKER_LOG"; : >"$MYSQL_LOG"
 rm -f -- "$DB_STATE/avatar" "$DB_STATE/backup" "$OBJECTS"/*

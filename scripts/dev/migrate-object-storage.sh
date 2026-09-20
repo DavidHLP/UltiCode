@@ -15,9 +15,9 @@ without --apply. Existing local files are never deleted.
 Options:
   --apply                         Upload objects and conditionally update rows.
   --legacy-avatar-dir DIR         Directory containing legacy avatar files.
-                                  Default: ${AVATAR_UPLOAD_DIR:-$ROOT_DIR/uploads/avatars}
+                                  Overrides AVATAR_UPLOAD_DIR and volume lookup.
   --legacy-backup-dir DIR         Directory containing legacy backup dumps.
-                                  Default: ${BACKUP_DIR:-/tmp/backups}
+                                  Overrides BACKUP_DIR and volume lookup.
   --bucket NAME                   Override RUSTFS_BUCKET (default: ulticode).
   --limit N                       Process at most N rows (0 means unlimited).
   --only avatars|backups|all      Restrict the migration (default: all).
@@ -118,7 +118,7 @@ case "${MIGRATION_SEARCH_BACKFILL_CONFIRMED:-false}" in
 esac
 
 volume_mountpoint() {
-  local logical="$1" candidate mountpoint project labeled_output
+  local logical="$1" explicit="${2:-false}" candidate mountpoint labeled_output
   [[ "$logical" =~ ^[A-Za-z0-9][A-Za-z0-9_.-]*$ ]] || return 1
   command -v docker >/dev/null 2>&1 || return 1
 
@@ -142,13 +142,11 @@ volume_mountpoint() {
   local -a candidates=()
   if ((${#labeled_volumes[@]} == 1)); then
     candidates+=("${labeled_volumes[0]}")
+  elif [[ "$explicit" == true ]]; then
+    candidates+=("$logical")
   else
-    if [[ -n "${COMPOSE_PROJECT_NAME:-}" ]]; then
-      candidates+=("${COMPOSE_PROJECT_NAME}_${logical}")
-    fi
-    project="${ROOT_DIR##*/}"
-    project="${project,,}"
-    candidates+=("${project}_${logical}" "$logical")
+    echo "No uniquely identified Docker Compose volume matches legacy volume '$logical'; pass the actual volume name or an explicit source directory." >&2
+    return 1
   fi
 
   for candidate in "${candidates[@]}"; do
@@ -161,8 +159,8 @@ volume_mountpoint() {
 }
 
 resolve_volume_source() {
-  local logical="$1" subdirectory="$2" mountpoint candidate
-  mountpoint="$(volume_mountpoint "$logical")" || return 1
+  local logical="$1" subdirectory="$2" explicit="${3:-false}" mountpoint candidate
+  mountpoint="$(volume_mountpoint "$logical" "$explicit")" || return 1
   if [[ -n "$subdirectory" ]]; then
     for candidate in "$mountpoint/uploads/$subdirectory" "$mountpoint/$subdirectory"; do
       if [[ -d "$candidate" ]]; then
@@ -191,13 +189,11 @@ if [[ "$ONLY" == avatars || "$ONLY" == all ]]; then
       AVATAR_DIR="$(legacy_avatar_directory "$AVATAR_UPLOAD_DIR")"
     elif [[ -n "${AVATAR_UPLOAD_VOL:-}" && -d "$AVATAR_UPLOAD_VOL" ]]; then
       AVATAR_DIR="$(legacy_avatar_directory "$AVATAR_UPLOAD_VOL")"
-    elif AVATAR_DIR="$(resolve_volume_source "${AVATAR_UPLOAD_VOL:-app_uploads}" avatars)"; then
+    elif AVATAR_DIR="$(resolve_volume_source "${AVATAR_UPLOAD_VOL:-app_uploads}" avatars "${AVATAR_UPLOAD_VOL:+true}")"; then
       echo "Using legacy avatar volume source: $AVATAR_DIR"
-    elif [[ -n "${AVATAR_UPLOAD_VOL:-}" ]]; then
-      echo "Legacy avatar volume '${AVATAR_UPLOAD_VOL}' was not found; pass --legacy-avatar-dir with the extracted source." >&2
-      exit 2
     else
-      AVATAR_DIR="${AVATAR_UPLOAD_DIR:-$ROOT_DIR/uploads/avatars}"
+      echo "Legacy avatar volume '${AVATAR_UPLOAD_VOL:-app_uploads}' could not be uniquely resolved; pass --legacy-avatar-dir with the extracted source." >&2
+      exit 2
     fi
   fi
 fi
@@ -205,13 +201,11 @@ if [[ "$ONLY" == backups || "$ONLY" == all ]]; then
   if [[ "$BACKUP_DIR_EXPLICIT" == false ]]; then
     if [[ -n "${BACKUP_DIR:-}" && -d "$BACKUP_DIR" ]]; then
       BACKUP_DIR_ARG="$BACKUP_DIR"
-    elif BACKUP_DIR_ARG="$(resolve_volume_source "${BACKUP_VOLUME:-backup_data}" "")"; then
+    elif BACKUP_DIR_ARG="$(resolve_volume_source "${BACKUP_VOLUME:-backup_data}" "" "${BACKUP_VOLUME:+true}")"; then
       echo "Using legacy backup volume source: $BACKUP_DIR_ARG"
-    elif [[ -n "${BACKUP_VOLUME:-}" ]]; then
-      echo "Legacy backup volume '${BACKUP_VOLUME}' was not found; pass --legacy-backup-dir with the extracted source." >&2
-      exit 2
     else
-      BACKUP_DIR_ARG="${BACKUP_DIR:-/tmp/backups}"
+      echo "Legacy backup volume '${BACKUP_VOLUME:-backup_data}' could not be uniquely resolved; pass --legacy-backup-dir with the extracted source." >&2
+      exit 2
     fi
   fi
 fi
@@ -257,6 +251,9 @@ case "$AVATAR_DIR" in
   /*) ;;
   *) AVATAR_DIR="$ROOT_DIR/$AVATAR_DIR" ;;
 esac
+if [[ "$AVATAR_DIR_EXPLICIT" == true ]]; then
+  AVATAR_DIR="$(legacy_avatar_directory "$AVATAR_DIR")"
+fi
 case "$BACKUP_DIR_ARG" in
   /*) ;;
   *) BACKUP_DIR_ARG="$ROOT_DIR/$BACKUP_DIR_ARG" ;;

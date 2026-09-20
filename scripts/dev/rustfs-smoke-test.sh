@@ -38,11 +38,6 @@ if (($# > 0)); then
   exit 2
 fi
 
-VOLUME_PREEXISTED=false
-if docker volume inspect "$VOLUME" >/dev/null 2>&1; then
-  VOLUME_PREEXISTED=true
-fi
-
 log() { printf '\n== %s\n' "$*"; }
 
 # Unsigned raw-TCP probe: avoids depending on an HTTP client being installed.
@@ -68,11 +63,7 @@ cleanup() {
     return
   fi
   docker rm -f "$NAME" >/dev/null 2>&1 || true
-  if [[ "$VOLUME_PREEXISTED" == "false" ]]; then
-    docker volume rm "$VOLUME" >/dev/null 2>&1 || true
-  else
-    echo "preserving pre-existing volume ${VOLUME}; use a dedicated smoke volume for automatic cleanup"
-  fi
+  docker volume rm "$VOLUME" >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
 

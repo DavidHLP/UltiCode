@@ -38,10 +38,13 @@ if (($# > 0)); then
   exit 2
 fi
 VOLUME_CLEANUP=true
-if [[ -n "${RUSTFS_SMOKE_VOLUME:-}" ]] && docker volume inspect "$VOLUME" >/dev/null 2>&1; then
+if docker volume inspect "$VOLUME" >/dev/null 2>&1; then
+  if [[ -z "${RUSTFS_SMOKE_VOLUME:-}" ]]; then
+    echo "Generated smoke volume already exists: ${VOLUME}; refusing to reuse stale test data." >&2
+    exit 2
+  fi
   VOLUME_CLEANUP=false
 fi
-
 log() { printf '\n== %s\n' "$*"; }
 
 # Unsigned raw-TCP probe: avoids depending on an HTTP client being installed.

@@ -1,0 +1,32 @@
+apps/management/src/views/users/UserDetailDrawer.test.ts
+  h_77173abe25c3ff 1-150
+apps/management/src/views/users/UserDetailDrawer.vue
+  h_77173abe25c3ff 39-40,44-45,48-49,59,85-86,89
+services/app/app-web/src/main/java/com/ulticode/app/userprofile/provider/ProfileWriteProvider.java
+  h_77173abe25c3ff 28,185,266,357-362
+services/app/app-web/src/main/java/com/ulticode/modules/user/port/DefaultAppUserWritePort.java
+  h_77173abe25c3ff 25,182,186,189-201,206,210,232-237
+services/app/app-web/src/test/java/com/ulticode/app/userprofile/ProfileWriteProviderTest.java
+  h_77173abe25c3ff 5,132-153
+services/app/app-web/src/test/java/com/ulticode/modules/user/port/DefaultAppUserWritePortTest.java
+  h_77173abe25c3ff 32-33,39,43-45,205-216,292-324,387,393-400
+services/platform/storage/src/main/java/com/ulticode/common/storage/ImageContent.java
+  h_77173abe25c3ff 123-125,140-162,166-169,180-186,193,207
+services/platform/storage/src/main/java/com/ulticode/common/storage/S3Storage.java
+  h_77173abe25c3ff 351,363-365,371,382-384,390,401-403,406,421-424,426
+services/platform/storage/src/test/java/com/ulticode/common/storage/ImageContentTest.java
+  h_77173abe25c3ff 98-107,174,183-192,196-204,211-213,217-219
+services/platform/storage/src/test/java/com/ulticode/common/storage/S3StorageTest.java
+  h_77173abe25c3ff 248-269
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "83155648099a5dfebf0d60f13e58dea7f5994dec",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

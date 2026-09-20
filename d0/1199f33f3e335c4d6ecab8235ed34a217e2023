@@ -1,0 +1,21 @@
+packages/auth-core/src/axiosCsrfInterceptor.ts
+  s_78e381cfffd90a::t_4247041b3cadce 132-138
+packages/auth-core/src/__tests__/axiosCsrfInterceptor.spec.ts
+  s_78e381cfffd90a::t_1d305d5b374b1b 179-210
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d01199f33f3e335c4d6ecab8235ed34a217e2023",
+  "prompts": {},
+  "sessions": {
+    "s_78e381cfffd90a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f221ea9e-5fe5-49df-a788-9b37732ebf4e",
+        "model": "deepseek-v4.1-flash"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

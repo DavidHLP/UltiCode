@@ -7,7 +7,7 @@
 ### 前置条件
 
 - Docker + Compose v2：MySQL、Redis、Nacos 和可选 MeiliSearch。
-- mise 管理的 Zulu Java 17、Node.js `^20.19.0 || >=22.12.0`、pnpm 10+、PM2、Docker Compose v2，以及 `curl`、`timeout`、`openssl`。
+- mise 管理的 Zulu Java 17、Node.js `>=22.12.0`、pnpm 10+、PM2、Docker Compose v2，以及 `curl`、`timeout`、`openssl`。
 - 后端使用仓库内的 `services/mvnw`；不要用裸 Maven/Java 绕过启动入口。
 - 从仓库根目录执行脚本。`.env` 由 `scripts/dev/init-env.sh` 生成，不能提交。
 

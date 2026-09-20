@@ -1,0 +1,19 @@
+apps/console/nginx.conf
+  s_aa33514364f4e1::t_de5c56cdeab78f 30,32-34,109-112,114,119-125
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "432c248ffbba6a37a33ec6bdcdf941988f1a4b4f",
+  "prompts": {},
+  "sessions": {
+    "s_aa33514364f4e1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "3b397a92-58ca-4252-8232-f281ba8d72e8",
+        "model": "deepseek-v4.1-flash"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

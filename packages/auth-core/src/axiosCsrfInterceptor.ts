@@ -129,8 +129,13 @@ export function createCsrfAxiosInterceptor(
           // 401 retry path above for the same fix.
           const { rawAxios } = await import('./rawAxios');
 
-          // Fetch fresh CSRF token via GET /auth/me (no CSRF validation on GET)
-          const refreshUrl = baseURL ? `${baseURL}/auth/me` : '/auth/me';
+          // Fetch fresh CSRF token via GET /auth/me (no CSRF validation on GET).
+          // rawAxios already carries the API base URL, so a path-prefix baseURL
+          // ('/api') must not be prefixed again — doing so resolved the request
+          // to /api/api/auth/me and the 403 recovery path never reached the
+          // backend. Only an absolute origin needs to be spelled out here.
+          const refreshUrl =
+            baseURL && /^https?:\/\//i.test(baseURL) ? `${baseURL}/auth/me` : '/auth/me';
           const meResponse = await rawAxios.get<{ csrfToken?: string }>(refreshUrl);
           const refreshedToken = meResponse.data?.csrfToken;
           if (refreshedToken) {

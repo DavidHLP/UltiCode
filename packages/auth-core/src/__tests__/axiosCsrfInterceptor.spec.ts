@@ -176,6 +176,38 @@ describe("axiosCsrfInterceptor", () => {
       expect(result).toEqual({ data: "retry-success" });
     });
 
+    it("should not double-prefix the refresh URL for a path-prefix baseURL", async () => {
+      // createHttpClient passes its own baseURL ('/api') into this factory while
+      // rawAxios already resolves that same prefix, so prefixing it again asked
+      // the backend for /api/api/auth/me and the recovery never ran.
+      const prefixed = createCsrfAxiosInterceptor(mockCsrfManager, "/api");
+      const originalConfig = {
+        method: "post",
+        headers: {} as Record<string, string>,
+        _metadata: {},
+        url: "/api/test",
+      } as unknown as InternalAxiosRequestConfig;
+
+      const error = {
+        response: {
+          status: 403,
+          data: { code: 40300, message: "CSRF token is required" },
+        },
+        config: originalConfig,
+      } as AxiosError;
+
+      vi.mocked(rawAxios.get).mockResolvedValue({
+        data: { csrfToken: "fresh-csrf-token" },
+      });
+      vi.mocked(rawAxios.request).mockResolvedValueOnce({
+        data: "retry-success",
+      } as never);
+
+      await prefixed.errorInterceptor(error);
+
+      expect(rawAxios.get).toHaveBeenCalledWith("/auth/me");
+    });
+
     it("should NOT retry if already retried", async () => {
       const originalConfig = {
         method: "post",

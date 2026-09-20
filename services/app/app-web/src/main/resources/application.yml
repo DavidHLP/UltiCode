@@ -5,6 +5,10 @@ server:
 spring:
   application:
     name: backend-app
+  servlet:
+    multipart:
+      max-file-size: 6MB
+      max-request-size: 6MB
   lifecycle:
     timeout-per-shutdown-phase: ${SPRING_LIFECYCLE_TIMEOUT_PER_SHUTDOWN_PHASE:45s}
   autoconfigure:

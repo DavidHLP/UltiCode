@@ -159,6 +159,54 @@ class S3StorageTest {
         }
 
         @Test
+        @DisplayName("holds the dependency permit until the streamed body closes")
+        void streamHoldsPermitUntilClose() throws Exception {
+            when(streamResponse.statusCode()).thenReturn(200);
+            when(streamResponse.body()).thenReturn(responseBody);
+            when(streamResponse.headers()).thenReturn(responseHeaders);
+            when(responseHeaders.firstValueAsLong("Content-Length"))
+                    .thenReturn(java.util.OptionalLong.of(3));
+            when(responseHeaders.firstValue("Content-Type"))
+                    .thenReturn(Optional.of("image/png"));
+            doReturn(streamResponse).when(httpClient).send(any(HttpRequest.class), any());
+            DependencyGuard guard = new DependencyGuard(1, 1, Duration.ofSeconds(30));
+            S3Storage guarded = new S3Storage(properties, httpClient, guard);
+
+            FileStoragePort.StorageStream stream = guarded.openStream("avatars/open.png").orElseThrow();
+
+            assertThat(guard.inFlight()).isOne();
+            assertThatThrownBy(() -> guarded.openStream("avatars/second.png"))
+                    .isInstanceOf(StorageException.class)
+                    .hasMessageContaining("temporarily unavailable");
+
+            stream.content().close();
+
+            assertThat(guard.inFlight()).isZero();
+        }
+
+        @Test
+        @DisplayName("marks the dependency failed when a streamed read fails")
+        void streamReadFailureTripsGuard() throws Exception {
+            when(streamResponse.statusCode()).thenReturn(200);
+            when(streamResponse.body()).thenReturn(responseBody);
+            when(streamResponse.headers()).thenReturn(responseHeaders);
+            doThrow(new IOException("connection reset")).when(responseBody).read();
+            doReturn(streamResponse).when(httpClient).send(any(HttpRequest.class), any());
+            DependencyGuard guard = new DependencyGuard(1, 1, Duration.ofSeconds(30));
+            S3Storage guarded = new S3Storage(properties, httpClient, guard);
+
+            FileStoragePort.StorageStream stream = guarded.openStream("avatars/failing.png").orElseThrow();
+
+            assertThatThrownBy(() -> stream.content().read())
+                    .isInstanceOf(IOException.class)
+                    .hasMessage("connection reset");
+
+            assertThat(guard.inFlight()).isZero();
+            assertThat(guard.state()).isEqualTo(DependencyGuard.State.OPEN);
+        }
+
+
+        @Test
         void deleteIsIdempotent() throws Exception {
             respond(204, new byte[0], null);
             storage.delete("avatars/a.png");

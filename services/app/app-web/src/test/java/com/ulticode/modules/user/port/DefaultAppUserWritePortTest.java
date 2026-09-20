@@ -24,6 +24,13 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.zip.CRC32;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -191,6 +198,38 @@ class DefaultAppUserWritePortTest {
             assertThatThrownBy(() -> port.uploadAvatar("u-001", file))
                     .isInstanceOf(BusinessException.class);
         }
+        @Test
+        @DisplayName("oversized dimensions are rejected before decoding")
+        void oversizedDimensionsAreRejectedBeforeDecoding() throws IOException {
+            MultipartFile file = new MockMultipartFile(
+                    "file", "huge.png", "image/png", pngWithDimensions(4097, 4097));
+
+            assertThatThrownBy(() -> port.uploadAvatar("u-003", file))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage("Image dimensions exceed 4096x4096 pixel limit");
+
+            verify(fileStorage, never()).put(any(), any(), org.mockito.ArgumentMatchers.anyLong(), any());
+            verify(userProfileMapper, never()).selectById("u-003");
+        }
+
+        @Test
+        @DisplayName("existing profile without an avatar is updated instead of inserted")
+        void existingProfileWithoutAvatarUpdates() {
+            String userId = "u-004-existing";
+            UserProfile existing = new UserProfile();
+            existing.setAccountId(userId);
+            when(userProfileMapper.selectById(userId)).thenReturn(existing);
+            when(userProfileMapper.updateById(any(UserProfile.class))).thenReturn(1);
+            when(uuidGenerator.newId()).thenReturn("uuid-existing");
+            byte[] png = java.util.Base64.getDecoder().decode(
+                    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+
+            port.uploadAvatar(userId, new MockMultipartFile("file", "photo.png", "image/png", png));
+
+            verify(userProfileMapper).updateById(any(UserProfile.class));
+            verify(userProfileMapper, never()).insert(any(UserProfile.class));
+        }
+
 
         @Test
         @DisplayName("valid avatar: uploads before inserting the object key")
@@ -303,4 +342,18 @@ class DefaultAppUserWritePortTest {
             }
         }
     }
+    private static byte[] pngWithDimensions(int width, int height) throws IOException {
+        BufferedImage image = new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        assertThat(ImageIO.write(image, "png", output)).isTrue();
+        byte[] content = output.toByteArray();
+        ByteBuffer buffer = ByteBuffer.wrap(content);
+        buffer.putInt(16, width);
+        buffer.putInt(20, height);
+        CRC32 crc = new CRC32();
+        crc.update(content, 12, 17);
+        buffer.putInt(29, (int) crc.getValue());
+        return content;
+    }
+
 }

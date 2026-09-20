@@ -1,6 +1,7 @@
 package com.ulticode.modules.backup.service;
 
 import com.ulticode.common.exception.BusinessException;
+import com.ulticode.common.storage.FileStoragePort;
 import com.ulticode.modules.backup.dto.BackupVO;
 import com.ulticode.modules.backup.dto.CreateBackupDTO;
 import com.ulticode.modules.backup.entity.Backup;
@@ -25,12 +26,13 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.io.File;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.Optional;
 import java.time.ZoneOffset;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -58,6 +60,9 @@ class BackupServiceTest {
     private BackupProcessPort backupProcessPort;
 
     @Mock
+    private FileStoragePort fileStorage;
+
+    @Mock
     private BackupExecutionService backupExecutionService;
 
     @Mock
@@ -74,7 +79,7 @@ class BackupServiceTest {
 
     @BeforeEach
     void setUp() {
-        ReflectionTestUtils.setField(backupService, "backupDir", tempDir.toString());
+        ReflectionTestUtils.setField(backupService, "backupTempDir", tempDir.toString());
         lenient().when(clock.instant()).thenReturn(Instant.parse("2026-01-01T00:00:00Z"));
         lenient().when(clock.getZone()).thenReturn(ZoneOffset.UTC);
     }
@@ -213,26 +218,27 @@ class BackupServiceTest {
     class GetBackupFileTests {
 
         @Test
-        @DisplayName("should return file when backup is completed")
-        void shouldReturnFileWhenBackupIsCompleted() throws IOException {
-            // Arrange
+        @DisplayName("should stream the object when backup is completed")
+        void shouldStreamWhenBackupIsCompleted() {
             Backup backup = new Backup();
             backup.setId(BACKUP_ID);
             backup.setFilename("test_backup.sql");
+            backup.setObjectKey("admin/backups/2026/01/" + BACKUP_ID + ".sql");
             backup.setStatus(BackupStatus.COMPLETED);
 
-            Path testFile = tempDir.resolve("test_backup.sql");
-            Files.writeString(testFile, "test sql content");
-
             when(backupMapper.selectById(BACKUP_ID)).thenReturn(backup);
+            when(fileStorage.openStream(backup.getObjectKey())).thenReturn(Optional.of(
+                    new FileStoragePort.StorageStream(
+                            new ByteArrayInputStream("test sql content".getBytes()),
+                            15L,
+                            "application/sql")));
 
-            // Act
-            File result = backupService.getBackupFile(BACKUP_ID);
+            BackupService.BackupDownload result = backupService.getBackupFile(BACKUP_ID);
 
-            // Assert
             assertNotNull(result);
-            assertTrue(result.exists());
-            assertEquals("test_backup.sql", result.getName());
+            assertEquals("test_backup.sql", result.filename());
+            assertEquals(15L, result.contentLength());
+            assertEquals("application/sql", result.contentType());
         }
 
         @Test
@@ -252,17 +258,17 @@ class BackupServiceTest {
         }
 
         @Test
-        @DisplayName("should throw exception when file does not exist")
-        void shouldThrowExceptionWhenFileDoesNotExist() {
-            // Arrange
+        @DisplayName("should throw exception when backup object does not exist")
+        void shouldThrowExceptionWhenBackupObjectDoesNotExist() {
             Backup backup = new Backup();
             backup.setId(BACKUP_ID);
             backup.setFilename("non_existent.sql");
+            backup.setObjectKey("admin/backups/2026/01/" + BACKUP_ID + ".sql");
             backup.setStatus(BackupStatus.COMPLETED);
 
             when(backupMapper.selectById(BACKUP_ID)).thenReturn(backup);
+            when(fileStorage.openStream(backup.getObjectKey())).thenReturn(Optional.empty());
 
-            // Act & Assert
             assertThrows(BusinessException.class, () -> backupService.getBackupFile(BACKUP_ID));
         }
     }
@@ -272,25 +278,21 @@ class BackupServiceTest {
     class DeleteBackupTests {
 
         @Test
-        @DisplayName("should delete backup and file")
-        void shouldDeleteBackupAndFile() throws IOException {
-            // Arrange
+        @DisplayName("should delete backup object before deleting its row")
+        void shouldDeleteBackupObjectAndRow() {
             Backup backup = new Backup();
             backup.setId(BACKUP_ID);
             backup.setFilename("test_backup.sql");
-
-            Path testFile = tempDir.resolve("test_backup.sql");
-            Files.writeString(testFile, "test sql content");
+            backup.setObjectKey("admin/backups/2026/01/" + BACKUP_ID + ".sql");
 
             when(backupMapper.selectById(BACKUP_ID)).thenReturn(backup);
             when(backupMapper.deleteById(BACKUP_ID)).thenReturn(1);
 
-            // Act
             backupService.deleteBackup(BACKUP_ID);
 
-            // Assert
-            verify(backupMapper).deleteById(BACKUP_ID);
-            assertFalse(Files.exists(testFile));
+            var order = inOrder(fileStorage, backupMapper);
+            order.verify(fileStorage).delete(backup.getObjectKey());
+            order.verify(backupMapper).deleteById(BACKUP_ID);
         }
 
         @Test
@@ -369,18 +371,46 @@ class BackupServiceTest {
         }
 
         @Test
-        @DisplayName("should throw exception when backup file not found")
-        void shouldThrowExceptionWhenBackupFileNotFound() {
-            // Arrange
+        @DisplayName("should throw exception when backup object is not found")
+        void shouldThrowExceptionWhenBackupObjectNotFound() {
             Backup backup = new Backup();
             backup.setId(BACKUP_ID);
             backup.setFilename("non_existent.sql");
+            backup.setObjectKey("admin/backups/2026/01/" + BACKUP_ID + ".sql");
             backup.setStatus(BackupStatus.COMPLETED);
 
             when(backupMapper.selectById(BACKUP_ID)).thenReturn(backup);
+            when(fileStorage.openStream(backup.getObjectKey())).thenReturn(Optional.empty());
 
-            // Act & Assert
             assertThrows(BusinessException.class, () -> backupService.restoreBackup(BACKUP_ID, USER_ID));
+        }
+
+        @Test
+        @DisplayName("should restore from a secure temp file and clean it up")
+        void shouldRestoreFromTempFileAndCleanUp() {
+            Backup backup = new Backup();
+            backup.setId(BACKUP_ID);
+            backup.setFilename("backup.sql");
+            backup.setObjectKey("admin/backups/2026/01/" + BACKUP_ID + ".sql");
+            backup.setStatus(BackupStatus.COMPLETED);
+            when(backupMapper.selectById(BACKUP_ID)).thenReturn(backup);
+            when(fileStorage.openStream(backup.getObjectKey())).thenReturn(Optional.of(
+                    new FileStoragePort.StorageStream(
+                            new ByteArrayInputStream("restore sql".getBytes()),
+                            11L,
+                            "application/sql")));
+            when(backupProcessPort.restore(any(Path.class))).thenAnswer(invocation -> {
+                Path path = invocation.getArgument(0);
+                assertTrue(Files.exists(path));
+                return true;
+            });
+            when(backupReadProjection.toVO(backup)).thenReturn(new BackupVO());
+
+            backupService.restoreBackup(BACKUP_ID, USER_ID);
+
+            ArgumentCaptor<Path> pathCaptor = ArgumentCaptor.forClass(Path.class);
+            verify(backupProcessPort).restore(pathCaptor.capture());
+            assertFalse(Files.exists(pathCaptor.getValue()));
         }
     }
     @Nested

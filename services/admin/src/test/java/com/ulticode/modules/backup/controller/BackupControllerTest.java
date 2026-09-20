@@ -9,6 +9,7 @@ import com.ulticode.modules.backup.dto.CreateBackupDTO;
 import com.ulticode.modules.backup.entity.enums.BackupStatus;
 import com.ulticode.modules.backup.entity.enums.BackupType;
 import com.ulticode.modules.backup.projection.BackupReadProjection;
+import com.ulticode.common.storage.FileStoragePort;
 import com.ulticode.modules.backup.service.BackupService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -27,6 +28,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 
+import java.io.ByteArrayInputStream;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -159,17 +161,20 @@ class BackupControllerTest {
         }
 
         @Test
-        @DisplayName("GET /admin/backups/{id}/download -> downloadBackup returns file attachment")
-        void downloadBackupReturnsFileAttachment(@TempDir Path tempDir) throws Exception {
-            Path file = tempDir.resolve("backup_20260731.sql");
-            Files.writeString(file, "-- SQL Backup Dump");
-
-            when(backupService.getBackupFile(BACKUP_ID)).thenReturn(file.toFile());
+        @DisplayName("GET /admin/backups/{id}/download -> downloadBackup streams an object attachment")
+        void downloadBackupReturnsFileAttachment() throws Exception {
+            when(backupService.getBackupFile(BACKUP_ID)).thenReturn(
+                    new BackupService.BackupDownload(
+                            "backup_20260731.sql",
+                            new ByteArrayInputStream("-- SQL Backup Dump".getBytes()),
+                            18L,
+                            "application/sql"));
 
             mockMvc.perform(get("/admin/backups/{id}/download", BACKUP_ID))
                     .andExpect(status().isOk())
                     .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION,
-                            "attachment; filename*=UTF-8''backup_20260731.sql"));
+                            "attachment; filename*=UTF-8''backup_20260731.sql"))
+                    .andExpect(header().longValue(HttpHeaders.CONTENT_LENGTH, 18L));
 
             verify(backupService).getBackupFile(BACKUP_ID);
         }

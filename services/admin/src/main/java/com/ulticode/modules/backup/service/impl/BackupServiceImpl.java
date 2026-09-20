@@ -2,6 +2,8 @@ package com.ulticode.modules.backup.service.impl;
 
 import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.exception.BusinessException;
+import com.ulticode.common.storage.FileStoragePort;
+import com.ulticode.common.storage.StorageKeys;
 import com.ulticode.modules.backup.dto.BackupVO;
 import com.ulticode.modules.backup.dto.CreateBackupDTO;
 import com.ulticode.modules.backup.entity.Backup;
@@ -15,11 +17,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import java.io.File;
+
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -27,23 +31,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Write-side service for the backup module: create, restore (delegates dump
- * / restore to {@link BackupProcessPort}), delete, file download, and the
- * view-shape delegate. This is HTTP / scheduler orchestration only &mdash;
- * the async execution lifecycle (status transitions, file-size recording,
- * failure capture) lives behind {@link BackupExecutionService}.
- *
- * <p>Read paths (paginated list, detail by id) and the entity-to-VO shaping
- * live behind {@link BackupReadProjection}. The public {@link #toVO(Backup)}
- * stays for backwards compatibility and now delegates to the projection so
- * write paths return the same view shape the controller's read path serves.
- *
- * <p><strong>Async dispatch.</strong> {@link #createBackup} dispatches the
- * run by calling {@link BackupExecutionService#executeBackup} on the injected
- * bean, not by self-invoking a {@code @Async} method. The previous shape
- * ({@code this.executeBackup(id)} in-class) silently bypassed the Spring AOP
- * proxy and ran the dump on the request thread &mdash; see
- * {@link BackupExecutionService} for the deep-module rationale.
+ * Write-side orchestration for backups. Durable dump bytes never live on a
+ * permanent local filesystem path; restore is the only operation that creates
+ * a short-lived local file.
  */
 @Slf4j
 @Service
@@ -55,24 +45,18 @@ public class BackupServiceImpl implements BackupService {
     private final BackupProcessPort backupProcessPort;
     private final BackupReadProjection backupReadProjection;
     private final BackupExecutionService backupExecutionService;
+    private final FileStoragePort fileStorage;
 
-    @Value("${backup.dir:${BACKUP_DIR:/tmp/backups}}")
-    private String backupDir;
+    @Value("${backup.temp-dir:${java.io.tmpdir}/ulticode-backups}")
+    private String backupTempDir;
+
     private static final DateTimeFormatter FILE_DATE_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss");
 
     @Override
     public BackupVO createBackup(String userId, CreateBackupDTO dto) {
-        // Pre-create the backup directory so a misconfigured path fails fast
-        // at the request boundary instead of degrading to PENDING -> FAILED.
-        // The execution service also tolerates a missing directory, but this
-        // earlier check gives the operator an immediate actionable error.
-        ensureBackupDirectoryExists();
-
-        // Generate filename
         String timestamp = LocalDateTime.now(clock).format(FILE_DATE_FORMAT);
         String filename = String.format("backup_%s_%s.sql", dto.getType().name().toLowerCase(), timestamp);
 
-        // Create backup record with PENDING status
         Backup backup = new Backup();
         backup.setFilename(filename);
         backup.setSize(0L);
@@ -82,86 +66,75 @@ public class BackupServiceImpl implements BackupService {
 
         backupMapper.insert(backup);
         log.info("Created backup record: {} by user: {}", backup.getId(), userId);
-
-        // Dispatch the async lifecycle via the injected bean so the call
-        // crosses the Spring AOP proxy. The previous self-invocation
-        // (this.executeBackup(id)) bypassed the proxy and ran synchronously
-        // on this thread — see BackupExecutionService.
         backupExecutionService.executeBackup(backup.getId());
-
         return backupReadProjection.toVO(backup);
     }
 
     @Override
-    public File getBackupFile(String id) {
-        Backup backup = backupMapper.selectById(id);
-        if (backup == null) {
-            throw new BusinessException(BaseErrorCode.NOT_FOUND, "Backup not found");
-        }
+    public BackupDownload getBackupFile(String id) {
+        Backup backup = requireBackup(id);
         if (backup.getStatus() != BackupStatus.COMPLETED) {
             throw new BusinessException(BaseErrorCode.BAD_REQUEST, "Backup is not completed yet");
         }
-
-        Path filePath = validateBackupFilePath(backup.getFilename());
-        File file = filePath.toFile();
-
-        if (!file.exists()) {
-            throw new BusinessException(BaseErrorCode.NOT_FOUND, "Backup file not found");
-        }
-
-        return file;
+        validateBackupFilePath(backup.getFilename());
+        String objectKey = requireBackupObjectKey(backup);
+        FileStoragePort.StorageStream stream = fileStorage.openStream(objectKey)
+                .orElseThrow(() -> new BusinessException(BaseErrorCode.NOT_FOUND, "Backup object not found"));
+        return new BackupDownload(
+                backup.getFilename(),
+                stream.content(),
+                stream.contentLength(),
+                stream.contentType());
     }
 
     @Override
     public BackupVO restoreBackup(String id, String userId) {
-        Backup backup = backupMapper.selectById(id);
-        if (backup == null) {
-            throw new BusinessException(BaseErrorCode.NOT_FOUND, "Backup not found");
-        }
+        Backup backup = requireBackup(id);
         if (backup.getStatus() != BackupStatus.COMPLETED) {
-            throw new BusinessException(BaseErrorCode.BAD_REQUEST, "Cannot restore from a non-completed backup");
+            throw new BusinessException(BaseErrorCode.BAD_REQUEST,
+                    "Cannot restore from a non-completed backup");
         }
+        validateBackupFilePath(backup.getFilename());
+        String objectKey = requireBackupObjectKey(backup);
 
-        Path filePath = validateBackupFilePath(backup.getFilename());
-        if (!Files.exists(filePath)) {
-            throw new BusinessException(BaseErrorCode.NOT_FOUND, "Backup file not found");
-        }
-
-        log.warn("Starting database restore from backup: {} by user: {}", id, userId);
-
-        boolean success = backupProcessPort.restore(filePath);
-        if (success) {
-            log.info("Database restore completed successfully from backup: {}", id);
-            Map<String, Object> metadata = backup.getMetadata();
-            if (metadata == null) {
-                metadata = new HashMap<>();
+        Path tempFile = null;
+        try {
+            tempFile = createSecureTempFile("restore-", ".sql");
+            FileStoragePort.StorageStream stored = fileStorage.openStream(objectKey)
+                    .orElseThrow(() -> new BusinessException(BaseErrorCode.NOT_FOUND, "Backup object not found"));
+            try (InputStream content = stored.content()) {
+                Files.copy(content, tempFile, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
             }
+            if (!backupProcessPort.restore(tempFile)) {
+                throw new BusinessException(BaseErrorCode.UNKNOWN_ERROR,
+                        "Database restore failed. Check server logs for details.");
+            }
+
+            Map<String, Object> metadata = backup.getMetadata() == null
+                    ? new HashMap<>()
+                    : new HashMap<>(backup.getMetadata());
             metadata.put("lastRestoredAt", LocalDateTime.now(clock).toString());
             metadata.put("lastRestoredBy", userId);
             backup.setMetadata(metadata);
             backupMapper.updateById(backup);
+            log.info("Database restore completed successfully from backup: {}", id);
             return backupReadProjection.toVO(backup);
+        } catch (BusinessException exception) {
+            throw exception;
+        } catch (Exception exception) {
+            log.error("Database restore failed for backup: {}", id, exception);
+            throw new BusinessException(BaseErrorCode.UNKNOWN_ERROR,
+                    "Database restore failed. Check server logs for details.");
+        } finally {
+            deleteTempFile(tempFile);
         }
-        throw new BusinessException(BaseErrorCode.UNKNOWN_ERROR,
-                "Database restore failed. Check server logs for details.");
     }
 
     @Override
     public void deleteBackup(String id) {
-        Backup backup = backupMapper.selectById(id);
-        if (backup == null) {
-            throw new BusinessException(BaseErrorCode.NOT_FOUND, "Backup not found");
-        }
-
-        // Delete the file from disk
-        Path filePath = validateBackupFilePath(backup.getFilename());
-        try {
-            Files.deleteIfExists(filePath);
-        } catch (IOException e) {
-            log.warn("Failed to delete backup file: {}", filePath, e);
-        }
-
-        // Delete the record from database
+        Backup backup = requireBackup(id);
+        validateBackupFilePath(backup.getFilename());
+        fileStorage.delete(requireBackupObjectKey(backup));
         backupMapper.deleteById(id);
         log.info("Deleted backup: {}", id);
     }
@@ -171,36 +144,69 @@ public class BackupServiceImpl implements BackupService {
         return backupReadProjection.toVO(backup);
     }
 
-    /**
-     * Pre-create the backup directory at the request boundary so a
-     * misconfigured path fails fast with a 4xx instead of degrading the
-     * async run to PENDING &rarr; FAILED. The execution service also
-     * tolerates a missing directory; this is the fast-fail for operators.
-     */
-    private void ensureBackupDirectoryExists() {
-        Path path = Paths.get(backupDir);
-        if (!Files.exists(path)) {
-            try {
-                Files.createDirectories(path);
-                log.info("Created backup directory: {}", backupDir);
-            } catch (IOException e) {
-                throw new BusinessException(BaseErrorCode.UNKNOWN_ERROR, "Failed to create backup directory: " + e.getMessage());
-            }
+    private Backup requireBackup(String id) {
+        Backup backup = backupMapper.selectById(id);
+        if (backup == null) {
+            throw new BusinessException(BaseErrorCode.NOT_FOUND, "Backup not found");
         }
+        return backup;
     }
 
     /**
-     * Validate backup filename and ensure the resolved path stays within the backup directory.
+     * Keep the existing display-name validation even though the bytes now come
+     * from object storage. A filename is never treated as an object key.
      */
     private Path validateBackupFilePath(String filename) {
-        if (filename == null || filename.contains("..") || filename.contains("/") || filename.contains("\\")) {
+        if (filename == null || filename.isBlank()
+                || filename.contains("..") || filename.contains("/") || filename.contains("\\")) {
             throw new BusinessException(BaseErrorCode.BAD_REQUEST, "Invalid backup filename");
         }
-        Path backupRoot = Paths.get(backupDir).normalize();
-        Path filePath = Paths.get(backupDir, filename).normalize();
-        if (!filePath.startsWith(backupRoot)) {
+        Path root = Paths.get(backupTempDir).toAbsolutePath().normalize();
+        Path displayPath = root.resolve(filename).normalize();
+        if (!displayPath.startsWith(root)) {
             throw new BusinessException(BaseErrorCode.BAD_REQUEST, "Backup path traversal detected");
         }
-        return filePath;
+        return displayPath;
+    }
+
+    private String requireBackupObjectKey(Backup backup) {
+        String objectKey = backup.getObjectKey();
+        try {
+            StorageKeys.validate(objectKey);
+        } catch (IllegalArgumentException exception) {
+            throw new BusinessException(BaseErrorCode.BAD_REQUEST, "Invalid backup object key");
+        }
+        if (!objectKey.startsWith(StorageKeys.BACKUP_PREFIX)) {
+            throw new BusinessException(BaseErrorCode.BAD_REQUEST, "Invalid backup object key");
+        }
+        return objectKey;
+    }
+
+    private Path createSecureTempFile(String prefix, String suffix) throws IOException {
+        Path directory = Paths.get(backupTempDir).toAbsolutePath().normalize();
+        Files.createDirectories(directory);
+        restrictPermissions(directory, "rwx------");
+        Path file = Files.createTempFile(directory, prefix, suffix);
+        restrictPermissions(file, "rw-------");
+        return file;
+    }
+
+    private static void restrictPermissions(Path path, String permissions) throws IOException {
+        try {
+            Files.setPosixFilePermissions(path, PosixFilePermissions.fromString(permissions));
+        } catch (UnsupportedOperationException ignored) {
+            // POSIX permissions are unavailable on some local development hosts.
+        }
+    }
+
+    private static void deleteTempFile(Path file) {
+        if (file == null) {
+            return;
+        }
+        try {
+            Files.deleteIfExists(file);
+        } catch (IOException exception) {
+            log.warn("Failed to clean up backup temp file: {}", file, exception);
+        }
     }
 }

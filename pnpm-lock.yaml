@@ -191,7 +191,7 @@ importers:
     devDependencies:
       '@iconify-json/lucide':
         specifier: ^1.2.133
-        version: 1.2.134
+        version: 1.2.133
       '@iconify-json/radix-icons':
         specifier: ^1.2.6
         version: 1.2.6
@@ -711,8 +711,8 @@ importers:
   packages/markdown-utils:
     dependencies:
       '@mdit/plugin-katex':
-        specifier: ^0.25.2
-        version: 0.25.2(markdown-it@14.3.2)
+        specifier: ^1.1.1
+        version: 1.1.1(markdown-it@14.3.2)
       dompurify:
         specifier: 3.4.5
         version: 3.4.5
@@ -1607,8 +1607,8 @@ packages:
     resolution: {integrity: sha512-bV0Tgo9K4hfPCek+aMAn81RppFKv2ySDQeMoSZuvTASywNTnVJCArCZE2FWqpvIatKu7VMRLWlR1EazvVhDyhQ==}
     engines: {node: '>=18.18'}
 
-  '@iconify-json/lucide@1.2.134':
-    resolution: {integrity: sha512-MXzwT7H8Ii/aGN6NLtMbMLDaxLYsOxCKEdW0F5h3MemNUaUBqAxr9nz0mPlXzozd/piQyrdSiUyk0t5b5ErADg==}
+  '@iconify-json/lucide@1.2.133':
+    resolution: {integrity: sha512-zBlWJFHgLI53EMoTXyvIpjZslL5+/voWXNnhxDK6M+VoveFIYxYDgLGJr4lnAkQOscKmRoUfdxqhMZI6VYF32g==}
 
   '@iconify-json/radix-icons@1.2.6':
     resolution: {integrity: sha512-izgVBJwk37dSvsma1QsRMfCWQ4FIImbBmJId1WUURzRZA5fFyKlCcG/nZC8se0KhOBWszo2mYgLmhKJv/DFPoA==}
@@ -1724,15 +1724,6 @@ packages:
   '@maplibre/vt-pbf@4.3.2':
     resolution: {integrity: sha512-j6p0AdjvAR19Z3XaCysle7A4ZSo08tYOzxD0Y9NQylwPAkwJJeYub5b2eVucdeDh7erhv69DahoLOevDRERRUw==}
 
-  '@mdit/helper@0.23.2':
-    resolution: {integrity: sha512-w4oja7kZYnkSiodfn4Neg1gmlIkvQtmCBJTLvLFOaET7xt8KomDNPQeumpGobQ9dWkXFqBKHlxjTYgroPH+CvA==}
-    engines: {node: '>= 20'}
-    peerDependencies:
-      markdown-it: ^14.1.0
-    peerDependenciesMeta:
-      markdown-it:
-        optional: true
-
   '@mdit/helper@1.1.1':
     resolution: {integrity: sha512-Rrl14ZjFerzfAqCt0zxAWbPgRpsumgm9iBLrCVE05WS8dM6v/LnF1ppPFVnRz1F7fAaxn0kTFOlYwzcY+kRsHQ==}
     engines: {node: '>=22'}
@@ -1742,29 +1733,11 @@ packages:
       markdown-it:
         optional: true
 
-  '@mdit/plugin-katex@0.25.2':
-    resolution: {integrity: sha512-r7nKvngZP2XXVGsYIXZt4UNxhTAxwSbLSXQtW445nJGhcp0ZrWmdPoz3AFZAX5x51inARab/lnZhD3uq01V5Yg==}
-    engines: {node: '>= 20'}
-    peerDependencies:
-      markdown-it: ^14.1.0
-    peerDependenciesMeta:
-      markdown-it:
-        optional: true
-
   '@mdit/plugin-katex@1.1.1':
     resolution: {integrity: sha512-M7xMJYUg4GLv5iz0wujL84yYB7HtNNJgY4tUHcV13tvHJo0gPb8Xb13p6tvwvxfKSYG+fqT3HHXOawiozcgtyw==}
     engines: {node: '>=22'}
     peerDependencies:
       markdown-it: ^15.0.1
-    peerDependenciesMeta:
-      markdown-it:
-        optional: true
-
-  '@mdit/plugin-tex@0.24.2':
-    resolution: {integrity: sha512-nVKIJHQJHvgDByKMpCgFT6gdeEZUyzZby24BjCjxP2N10bkgK8IEwZIBu7G5n5WBw2D0kmFD4Top+YA2mjeiQQ==}
-    engines: {node: '>= 20'}
-    peerDependencies:
-      markdown-it: ^14.1.0
     peerDependenciesMeta:
       markdown-it:
         optional: true
@@ -4506,10 +4479,6 @@ packages:
     resolution: {integrity: sha512-p/nXbhSEcu3pZRdkW1OfJhpsVtW1gd4Wa1fnQc9YLiTfAjn0312eMKimbdIQzuZl9aa9xUGaRlP9T/CJE/ditQ==}
     engines: {node: '>=0.10.0'}
 
-  katex@0.16.47:
-    resolution: {integrity: sha512-Eeo8Ys1doU1z+x8AZsPpQu+p/QcZBI5PeOo7QGQdy2x2m0MU/hYagBbGOmXwr5KVbEfVuWv9LpnQWeehogurjg==}
-    hasBin: true
-
   katex@0.17.0:
     resolution: {integrity: sha512-Vdw0ATsQ9V+LuegM/BTwQqV/6cTl5lbGcIrU+BCgLxyf6bo38ybOr372tuSIxir3CN720flu1meYR6XzNMwQnw==}
     hasBin: true
@@ -7110,7 +7079,7 @@ snapshots:
 
   '@humanwhocodes/retry@0.4.3': {}
 
-  '@iconify-json/lucide@1.2.134':
+  '@iconify-json/lucide@1.2.133':
     dependencies:
       '@iconify/types': 2.0.0
 
@@ -7245,22 +7214,7 @@ snapshots:
       '@types/geojson': 7946.0.16
       pbf: 5.1.2
 
-  '@mdit/helper@0.23.2(markdown-it@14.3.2)':
-    dependencies:
-      '@types/markdown-it': 14.1.2
-    optionalDependencies:
-      markdown-it: 14.3.2
-
   '@mdit/helper@1.1.1(markdown-it@14.3.2)':
-    optionalDependencies:
-      markdown-it: 14.3.2
-
-  '@mdit/plugin-katex@0.25.2(markdown-it@14.3.2)':
-    dependencies:
-      '@mdit/helper': 0.23.2(markdown-it@14.3.2)
-      '@mdit/plugin-tex': 0.24.2(markdown-it@14.3.2)
-      '@types/markdown-it': 14.1.2
-      katex: 0.16.47
     optionalDependencies:
       markdown-it: 14.3.2
 
@@ -7269,12 +7223,6 @@ snapshots:
       '@mdit/helper': 1.1.1(markdown-it@14.3.2)
       '@mdit/plugin-tex': 1.1.1(markdown-it@14.3.2)
       katex: 0.18.7
-    optionalDependencies:
-      markdown-it: 14.3.2
-
-  '@mdit/plugin-tex@0.24.2(markdown-it@14.3.2)':
-    dependencies:
-      '@types/markdown-it': 14.1.2
     optionalDependencies:
       markdown-it: 14.3.2
 
@@ -10130,10 +10078,6 @@ snapshots:
       graceful-fs: 4.2.11
 
   jsonpointer@5.0.1: {}
-
-  katex@0.16.47:
-    dependencies:
-      commander: 8.3.0
 
   katex@0.17.0:
     dependencies:

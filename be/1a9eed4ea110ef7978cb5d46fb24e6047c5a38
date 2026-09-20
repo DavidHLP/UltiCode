@@ -1,0 +1,18 @@
+scripts/dev/migrate-object-storage-test.sh
+  h_77173abe25c3ff 387-395
+scripts/dev/migrate-object-storage.sh
+  h_77173abe25c3ff 18,20,121,145-146,148-149,162-163,192,195-196,204,207-208,254-256
+scripts/dev/rustfs-smoke-test.sh
+  h_77173abe25c3ff 41-45,71-75
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "be1a9eed4ea110ef7978cb5d46fb24e6047c5a38",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

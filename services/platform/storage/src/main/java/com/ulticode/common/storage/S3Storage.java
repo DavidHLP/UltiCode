@@ -17,7 +17,9 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 
-/** S3-compatible, path-style object storage implementation. */
+/** S3-compatible, path-style object storage implementation. If configured,
+ * {@code app.storage.s3.ca-certificate-path} adds operator CA certificates
+ * to the JVM default trust anchors without disabling hostname verification. */
 public class S3Storage implements FileStoragePort {
 
     private static final int FAILURE_THRESHOLD = 5;
@@ -30,9 +32,14 @@ public class S3Storage implements FileStoragePort {
     private final DependencyGuard dependencyGuard;
 
     public S3Storage(StorageProperties properties) {
-        this(properties, HttpClient.newBuilder()
-                .connectTimeout(Duration.ofMillis(properties.getS3().getConnectTimeoutMs()))
-                .build());
+        this(properties, createHttpClient(properties));
+    }
+
+    private static HttpClient createHttpClient(StorageProperties properties) {
+        HttpClient.Builder builder = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofMillis(properties.getS3().getConnectTimeoutMs()));
+        StorageTlsSupport.sslContext(properties.getS3()).ifPresent(builder::sslContext);
+        return builder.build();
     }
 
     S3Storage(StorageProperties properties, HttpClient httpClient) {

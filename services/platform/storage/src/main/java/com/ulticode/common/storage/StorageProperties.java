@@ -74,6 +74,7 @@ public class StorageProperties implements InitializingBean {
         if (!missing.isEmpty()) {
             throw new IllegalStateException("Missing required object-storage properties: " + String.join(", ", missing));
         }
+        StorageTlsSupport.validatePath(s3.caCertificatePath);
 
         URI endpoint;
         try {
@@ -120,7 +121,6 @@ public class StorageProperties implements InitializingBean {
         }
         return "localhost".equals(normalized) || "127.0.0.1".equals(normalized) || "::1".equals(normalized);
     }
-
     public static class S3 {
         private String endpoint;
         private String region;
@@ -128,10 +128,10 @@ public class StorageProperties implements InitializingBean {
         private String accessKey;
         private String secretKey;
         private Boolean tlsEnabled;
+        private String caCertificatePath;
         private int connectTimeoutMs = 10_000;
         private int requestTimeoutMs = 30_000;
         private int maxConcurrentRequests = 16;
-
         public String getEndpoint() { return endpoint; }
         public void setEndpoint(String endpoint) { this.endpoint = endpoint; }
         public String getRegion() { return region; }
@@ -145,6 +145,8 @@ public class StorageProperties implements InitializingBean {
         public Boolean getTlsEnabled() { return tlsEnabled; }
         public boolean isTlsEnabled() { return Boolean.TRUE.equals(tlsEnabled); }
         public void setTlsEnabled(Boolean tlsEnabled) { this.tlsEnabled = tlsEnabled; }
+        public String getCaCertificatePath() { return caCertificatePath; }
+        public void setCaCertificatePath(String caCertificatePath) { this.caCertificatePath = caCertificatePath; }
         public int getConnectTimeoutMs() { return connectTimeoutMs; }
         public void setConnectTimeoutMs(int connectTimeoutMs) { this.connectTimeoutMs = connectTimeoutMs; }
         public int getRequestTimeoutMs() { return requestTimeoutMs; }

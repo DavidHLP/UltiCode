@@ -1,5 +1,7 @@
 package com.ulticode.auth.api.command;
 
+import java.io.Serializable;
+
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
 
@@ -11,7 +13,7 @@ public record ChangePasswordCommand(
         TraceMetadata trace,
         String accountId,
         String currentPassword,
-        String newPassword) implements WriteCommand {
+        String newPassword) implements WriteCommand, Serializable {
     private static final long serialVersionUID = 1L;
 
 

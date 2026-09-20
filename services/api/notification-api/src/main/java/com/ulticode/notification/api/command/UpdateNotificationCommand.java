@@ -1,5 +1,7 @@
 package com.ulticode.notification.api.command;
 
+import java.io.Serializable;
+
 import com.ulticode.common.command.ActorDelegation;
 import com.ulticode.common.command.WriteCommand;
 import com.ulticode.common.tracing.IdMetadata;
@@ -29,7 +31,7 @@ public record UpdateNotificationCommand(
         String title,
         String content,
         String type,
-        String category) implements WriteCommand {
+        String category) implements WriteCommand, Serializable {
     private static final long serialVersionUID = 1L;
 
 

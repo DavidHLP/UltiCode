@@ -21,7 +21,7 @@ public record ReplaceListProblemsCommand(
         ActorDelegation actor,
         TraceMetadata trace,
         String listId,
-        List<ProblemEntry> problems) implements WriteCommand {
+        List<ProblemEntry> problems) implements WriteCommand, Serializable {
     private static final long serialVersionUID = 1L;
 
 

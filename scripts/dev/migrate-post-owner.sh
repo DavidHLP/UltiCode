@@ -13,7 +13,8 @@ fi
 # shellcheck source=scripts/dev/lib/common.sh
 source "$ROOT_DIR/scripts/dev/lib/common.sh"
 capture_env_vars MIGRATION_DB_HOST MIGRATION_DB_PORT MIGRATION_DB_NAME \
-  MIGRATION_DB_USER MIGRATION_DB_PASSWORD MAVEN_BIN MAVEN_POM
+  MIGRATION_DB_USER MIGRATION_DB_PASSWORD MIGRATION_MYSQL_BIN \
+  MIGRATION_MYSQL_CONTAINER MIGRATION_MYSQL_CONTAINER_PORT MAVEN_BIN MAVEN_POM
 load_env_file
 apply_env_overrides
 
@@ -56,3 +57,8 @@ DB_HOST="$MIGRATION_DB_HOST" \
   "$MAVEN_BIN" -f "$MAVEN_POM" flyway:migrate \
   -Dflyway.configFiles="$ROOT_DIR/init-db/flyway-post-owner.conf" \
   --no-transfer-progress -B
+
+MIGRATION_MYSQL_BIN="${MIGRATION_MYSQL_BIN:-mysql}" \
+  MIGRATION_MYSQL_CONTAINER="${MIGRATION_MYSQL_CONTAINER:-}" \
+  MIGRATION_MYSQL_CONTAINER_PORT="${MIGRATION_MYSQL_CONTAINER_PORT:-3306}" \
+  "$ROOT_DIR/scripts/runbooks/reconcile-legacy-backups.sh"

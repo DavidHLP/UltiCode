@@ -71,6 +71,11 @@ contains services/app/app-web/src/main/java/com/ulticode/modules/contest/schedul
 contains services/Dockerfile 'STOPSIGNAL SIGTERM'
 contains services/platform/integration-inbox/pom.xml 'jdk.attach.allowAttachSelf=true'
 contains services/docs/GRACEFUL_DRAIN_RUNBOOK.md 'P3-GRACE-001'
+contains services/admin/src/main/resources/application.yml 'await-termination-seconds: ${ADMIN_BACKUP_EXECUTOR_AWAIT_TERMINATION_SECONDS:60}'
+contains services/admin/src/main/java/com/ulticode/modules/backup/service/impl/BackupExecutionServiceImpl.java '@Async("adminBackupExecutor")'
+contains services/admin/src/main/java/com/ulticode/admin/config/AdminBackupExecutorConfiguration.java 'setWaitForTasksToCompleteOnShutdown(true)'
+contains services/admin/src/test/java/com/ulticode/admin/config/AdminBackupExecutorConfigurationTest.java 'backupExecutorWaitsForRunningWorkDuringShutdown'
+
 
 [[ "$(grep -Fc 'stop_grace_period: ${SERVICE_STOP_GRACE_PERIOD:-60s}' \
   "$ROOT_DIR/docker/docker-compose.prod.yml")" == 7 ]] \
@@ -82,17 +87,16 @@ contains services/docs/GRACEFUL_DRAIN_RUNBOOK.md 'P3-GRACE-001'
   || fail 'PM2 kill_timeout is not configured for all ten local processes'
 printf 'graceful shutdown/lifecycle/worker wiring contract: PASS\n'
 
-(
   cd "$ROOT_DIR/services"
   if command -v mise >/dev/null 2>&1; then
     mise exec java@zulu-17.68.203.0 -- bash ./mvnw \
       -pl platform/common,platform/integration-inbox,auth,admin,app/modules/problem,app/modules/contest,app/modules/moderation,app/app-web,notification,submission,search,judge-runtime,judge -am \
-      -Dtest='DrainGateTest,DrainGateSignalIT,InboxConsumerDrainTest,SearchDocumentIndexWorkerTest,AuthAuditOutboxDispatcherTest,SearchDocumentChangedOutboxDispatcherTest,AppAuditOutboxDispatcherTest,SubmissionJudgedInboxBridgeTest,SubmissionCreatedDispatcherTest,JudgeOutboxDispatcherTest,JudgingLeaseReaperTest,NotificationIntegrationInboxBridgeTest,NotificationLedgerReaperTest,JudgeWorkerProcessorTest,AdminAuditIntegrationInboxBridgeTest,AuditOutboxDispatcherTest' \
+      -Dtest='DrainGateTest,DrainGateSignalIT,InboxConsumerDrainTest,SearchDocumentIndexWorkerTest,AuthAuditOutboxDispatcherTest,SearchDocumentChangedOutboxDispatcherTest,AppAuditOutboxDispatcherTest,SubmissionJudgedInboxBridgeTest,SubmissionCreatedDispatcherTest,JudgeOutboxDispatcherTest,JudgingLeaseReaperTest,NotificationIntegrationInboxBridgeTest,NotificationLedgerReaperTest,JudgeWorkerProcessorTest,AdminAuditIntegrationInboxBridgeTest,AuditOutboxDispatcherTest,AdminBackupExecutorConfigurationTest' \
       -Dsurefire.failIfNoSpecifiedTests=false test -B
   else
     bash ./mvnw \
       -pl platform/common,platform/integration-inbox,auth,admin,app/modules/problem,app/modules/contest,app/modules/moderation,app/app-web,notification,submission,search,judge-runtime,judge -am \
-      -Dtest='DrainGateTest,DrainGateSignalIT,InboxConsumerDrainTest,SearchDocumentIndexWorkerTest,AuthAuditOutboxDispatcherTest,SearchDocumentChangedOutboxDispatcherTest,AppAuditOutboxDispatcherTest,SubmissionJudgedInboxBridgeTest,SubmissionCreatedDispatcherTest,JudgeOutboxDispatcherTest,JudgingLeaseReaperTest,NotificationIntegrationInboxBridgeTest,NotificationLedgerReaperTest,JudgeWorkerProcessorTest,AdminAuditIntegrationInboxBridgeTest,AuditOutboxDispatcherTest' \
+      -Dtest='DrainGateTest,DrainGateSignalIT,InboxConsumerDrainTest,SearchDocumentIndexWorkerTest,AuthAuditOutboxDispatcherTest,SearchDocumentChangedOutboxDispatcherTest,AppAuditOutboxDispatcherTest,SubmissionJudgedInboxBridgeTest,SubmissionCreatedDispatcherTest,JudgeOutboxDispatcherTest,JudgingLeaseReaperTest,NotificationIntegrationInboxBridgeTest,NotificationLedgerReaperTest,JudgeWorkerProcessorTest,AdminAuditIntegrationInboxBridgeTest,AuditOutboxDispatcherTest,AdminBackupExecutorConfigurationTest' \
       -Dsurefire.failIfNoSpecifiedTests=false test -B
   fi
 ) >/dev/null

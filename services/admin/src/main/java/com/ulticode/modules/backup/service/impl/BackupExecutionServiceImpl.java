@@ -34,7 +34,7 @@ import java.util.Map;
  */
 @Slf4j
 @Service
-@Async
+@Async("adminBackupExecutor")
 @RequiredArgsConstructor
 public class BackupExecutionServiceImpl implements BackupExecutionService {
 

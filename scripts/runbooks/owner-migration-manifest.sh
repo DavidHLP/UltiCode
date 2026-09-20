@@ -363,6 +363,13 @@ run_migrations() {
     || die 'owner migration fenced lease lost before post-owner'
   migrate_with_retry post-owner "$MIGRATION_DB_USER" "$MIGRATION_DB_PASSWORD" "$MIGRATION_DB_NAME" \
     || die "post-owner Flyway migration failed after $MAX_ATTEMPTS attempt(s)"
+  PHASE="reconcile:legacy-backups"
+  MIGRATION_MYSQL_BIN="$MYSQL_BIN" \
+    MIGRATION_MYSQL_CONTAINER="$MYSQL_CONTAINER" \
+    MIGRATION_MYSQL_CONTAINER_PORT="$MYSQL_CONTAINER_PORT" \
+    DOCKER_BIN="$DOCKER_BIN" \
+    "$ROOT_DIR/scripts/runbooks/reconcile-legacy-backups.sh" \
+    || die 'legacy backup reconciliation failed after post-owner migrations'
   fenced_lease_assert || die 'owner migration fenced lease lost before completion'
   PHASE="complete"
 }

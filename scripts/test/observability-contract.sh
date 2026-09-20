@@ -134,6 +134,10 @@ NACOS_AUTH_IDENTITY_KEY=contract-identity-key \
 NACOS_AUTH_IDENTITY_VALUE=contract-identity-value \
 MEILI_MASTER_KEY=contract-meili-key \
 GRAFANA_ADMIN_PASSWORD=contract-password \
+RUSTFS_ACCESS_KEY=contract-rustfs-access \
+RUSTFS_SECRET_KEY=contract-rustfs-secret \
+APP_STORAGE_S3_ACCESS_KEY=contract-rustfs-access \
+APP_STORAGE_S3_SECRET_KEY=contract-rustfs-secret \
   "${compose[@]}" config > "$compose_output"
 printf 'merged observability Compose config: PASS\n'
 

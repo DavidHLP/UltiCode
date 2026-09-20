@@ -2,8 +2,9 @@ name: 'Host deploy (SSH + compose)'
 description: >-
   Shared deploy mechanics for cd-deploy/cd-rollback: install the SSH key,
   verify release/Compose/remote sandbox integrity before any migration or ACL
-  mutation, optionally run the ordered owner migration manifest, then pull and
-  `docker compose up` on the host, optionally restricted to a service subset.
+  mutation, quiesce the legacy Admin backup writer, run the ordered owner
+  migration manifest, then pull and `docker compose up` on the host,
+  optionally restricted to a service subset.
 inputs:
   ssh_key:
     description: 'Private SSH key for the deploy host'
@@ -34,13 +35,13 @@ inputs:
     required: true
   deployment_descriptor_file:
     description: 'Remote deployment descriptor path relative to the deploy root'
-    required: false
     default: '.local/deploy/deployment.json'
   services:
     description: >-
       Optional subset of compose services to pull and up (comma/space
       separated, e.g. "backend-auth backend-app"). Empty or "all" reconciles
-      the whole stack.
+      the whole stack. When migrations run with a subset, backend-admin must
+      be included so the legacy backup writer can be quiesced and redeployed.
     required: false
     default: ''
   supply_chain_identity:
@@ -240,6 +241,111 @@ runs:
         remote_command+=" IMAGE_REF_LIST=$(shell_quote "$IMAGE_REF_LIST") ENV_FILE=.env ./scripts/runbooks/judge-sandbox-preflight.sh"
         "${SSH_CMD[@]}" "$remote_command"
 
+    - name: Quiesce legacy Admin backup writer
+      if: ${{ inputs.skip_migrations != 'true' }}
+      shell: bash
+      env:
+        DEPLOY_SERVICES: ${{ inputs.services }}
+        IMAGE_REF_LIST: ${{ inputs.image_refs }}
+      run: |
+        set -euo pipefail
+        shell_quote() { printf '%q' "$1"; }
+        STATE_FILE="${RUNNER_TEMP:-/tmp}/ulticode-backend-admin-quiesce-${GITHUB_RUN_ID:-local}-${GITHUB_RUN_ATTEMPT:-1}.state"
+        rm -f -- "$STATE_FILE"
+
+        SERVICES_NORMALIZED="$(printf '%s' "$DEPLOY_SERVICES" | tr ',' ' ' | xargs)"
+        if [[ -n "$SERVICES_NORMALIZED" && "$SERVICES_NORMALIZED" != all ]]; then
+          includes_admin=false
+          for service in $SERVICES_NORMALIZED; do
+            case "$service" in
+              backend-auth|backend-admin|backend-app|backend-submission|backend-notification|backend-search|backend-judge|console|management) ;;
+              *) echo "::error::Invalid deployable service: ${service}" >&2; exit 1 ;;
+            esac
+            [[ "$service" == backend-admin ]] && includes_admin=true
+          done
+          [[ "$includes_admin" == true ]] || {
+            echo "::error::backend-admin must be included in services when migrations run" >&2
+            exit 1
+          }
+        fi
+        [[ -n "$IMAGE_REF_LIST" ]] || { echo "::error::image_refs is required" >&2; exit 1; }
+        EXPORTS=""
+        while IFS= read -r pair; do
+          [[ -z "$pair" ]] && continue
+          NAME="${pair%%=*}"
+          VALUE="${pair#*=}"
+          EXPORTS+=" $(shell_quote "$NAME")=$(shell_quote "$VALUE")"
+        done <<< "$IMAGE_REF_LIST"
+        SSH_CMD=(ssh -i ~/.ssh/deploy_key -o BatchMode=yes
+          -o StrictHostKeyChecking=yes
+          -o UserKnownHostsFile="$HOME/.ssh/known_hosts"
+          "${{ inputs.user }}@${{ inputs.host }}" -p "${{ inputs.port }}")
+        compose_prefix="docker compose --project-directory . -f docker/docker-compose.yml -f docker/docker-compose.prod.yml"
+        remote_command="cd $(shell_quote "${{ inputs.path }}") &&"
+        remote_command+=" $EXPORTS $compose_prefix ps -q backend-admin"
+        container_list="$("${SSH_CMD[@]}" "$remote_command")"
+        prior_container_ids=""
+        while IFS= read -r container_id; do
+          container_id="${container_id//$'\r'/}"
+          [[ -z "$container_id" ]] && continue
+          [[ "$container_id" =~ ^[0-9a-f]+$ ]] || {
+            echo "::error::Compose returned an invalid backend-admin container id" >&2
+            exit 1
+          }
+          remote_command="cd $(shell_quote "${{ inputs.path }}") &&"
+          remote_command+=" $EXPORTS docker inspect -f '{{.State.Running}}' $(shell_quote "$container_id")"
+          running="$("${SSH_CMD[@]}" "$remote_command")"
+          if [[ "$running" == true ]]; then
+            prior_container_ids+=" $container_id"
+          fi
+        done <<< "$container_list"
+        prior_container_ids="${prior_container_ids# }"
+        prior_running=0
+        [[ -n "$prior_container_ids" ]] && prior_running=1
+        umask 077
+        mkdir -p "$(dirname "$STATE_FILE")"
+        printf 'container_ids=%s\nprior_running=%s\nphase=quiesce-pending\n' \
+          "$prior_container_ids" "$prior_running" >"$STATE_FILE"
+        if [[ "$prior_running" == 1 ]]; then
+          remote_command="cd $(shell_quote "${{ inputs.path }}") &&"
+          # Compose applies SERVICE_STOP_GRACE_PERIOD while the explicitly
+          # named Admin backup executor drains its in-flight work.
+          remote_command+=" $EXPORTS $compose_prefix stop backend-admin"
+          "${SSH_CMD[@]}" "$remote_command"
+        fi
+        printf 'phase=stopped\n' >>"$STATE_FILE"
+        echo "backend-admin quiesced; prior_running=$prior_running"
+
+    - name: Verify Admin backup writer drained
+      if: ${{ inputs.skip_migrations != 'true' }}
+      shell: bash
+      env:
+        MIGRATION_DB_HOST: ${{ inputs.migration_db_host }}
+        MIGRATION_DB_PORT: ${{ inputs.migration_db_port }}
+        MIGRATION_DB_NAME: ${{ inputs.migration_db_name }}
+        MIGRATION_DB_USER: ${{ inputs.migration_db_user }}
+        MIGRATION_DB_PASSWORD: ${{ inputs.migration_db_password }}
+        MIGRATION_MYSQL_BIN: ${{ inputs.migration_mysql_bin }}
+        MIGRATION_MYSQL_CONTAINER: ${{ inputs.migration_mysql_container }}
+        MIGRATION_MYSQL_CONTAINER_PORT: ${{ inputs.migration_mysql_container_port }}
+      run: |
+        set -euo pipefail
+        shell_quote() { printf '%q' "$1"; }
+        SSH_CMD=(ssh -i ~/.ssh/deploy_key -o BatchMode=yes
+          -o StrictHostKeyChecking=yes
+          -o UserKnownHostsFile="$HOME/.ssh/known_hosts"
+          "${{ inputs.user }}@${{ inputs.host }}" -p "${{ inputs.port }}")
+        remote_command="cd $(shell_quote "${{ inputs.path }}") &&"
+        for variable in MIGRATION_DB_HOST MIGRATION_DB_PORT MIGRATION_DB_NAME \
+          MIGRATION_DB_USER MIGRATION_DB_PASSWORD; do
+          remote_command+=" $variable=$(shell_quote "${!variable}")"
+        done
+        remote_command+=" MIGRATION_MYSQL_BIN=$(shell_quote "$MIGRATION_MYSQL_BIN")"
+        remote_command+=" MIGRATION_MYSQL_CONTAINER=$(shell_quote "$MIGRATION_MYSQL_CONTAINER")"
+        remote_command+=" MIGRATION_MYSQL_CONTAINER_PORT=$(shell_quote "$MIGRATION_MYSQL_CONTAINER_PORT")"
+        remote_command+=" ./scripts/runbooks/assert-admin-backup-drained.sh"
+        "${SSH_CMD[@]}" "$remote_command"
+
     - name: Run ordered owner database migrations
       if: ${{ inputs.skip_migrations != 'true' }}
       shell: bash
@@ -269,6 +375,8 @@ runs:
           NOTIFICATION_DB_USER SUBMISSION_DB_USER; do
           [[ -n "${!required}" ]] || { echo "::error::$required is required for owner migrations" >&2; exit 1; }
         done
+        STATE_FILE="${RUNNER_TEMP:-/tmp}/ulticode-backend-admin-quiesce-${GITHUB_RUN_ID:-local}-${GITHUB_RUN_ATTEMPT:-1}.state"
+        printf 'phase=migration-running\n' >>"$STATE_FILE"
 
         shell_quote() { printf '%q' "$1"; }
         SSH_CMD=(ssh -i ~/.ssh/deploy_key -o BatchMode=yes
@@ -295,6 +403,7 @@ runs:
         remote_command+=" OWNER_MIGRATION_MYSQL_CONTAINER_PORT=$(shell_quote "$MIGRATION_MYSQL_CONTAINER_PORT")"
         remote_command+=" ./scripts/runbooks/owner-migration-manifest.sh migrate"
         "${SSH_CMD[@]}" "$remote_command"
+        printf 'phase=migration-complete\n' >>"$STATE_FILE"
 
     - name: Materialize runtime Redis ACL
       shell: bash
@@ -375,3 +484,70 @@ runs:
         remote_command+=" $REMOTE_ENV docker compose --project-directory . -f docker/docker-compose.yml -f docker/docker-compose.prod.yml up -d --remove-orphans$TARGETS &&"
         remote_command+=" $REMOTE_ENV DEPLOYED_SERVICES=$(shell_quote "${DEPLOY_SERVICES:-all}") DEPLOYMENT_STATUS=PENDING_HEALTH ./scripts/runbooks/deployment-integrity.sh record"
         "${SSH_CMD[@]}" "$remote_command"
+        STATE_FILE="${RUNNER_TEMP:-/tmp}/ulticode-backend-admin-quiesce-${GITHUB_RUN_ID:-local}-${GITHUB_RUN_ATTEMPT:-1}.state"
+        rm -f -- "$STATE_FILE"
+
+    - name: Handle quiesced Admin after deploy failure
+      if: ${{ failure() && inputs.skip_migrations != 'true' }}
+      shell: bash
+      run: |
+        set -euo pipefail
+        shell_quote() { printf '%q' "$1"; }
+        STATE_FILE="${RUNNER_TEMP:-/tmp}/ulticode-backend-admin-quiesce-${GITHUB_RUN_ID:-local}-${GITHUB_RUN_ATTEMPT:-1}.state"
+        [[ -s "$STATE_FILE" ]] || exit 0
+        phase=""
+        container_ids=""
+        prior_running=0
+        while IFS='=' read -r key value; do
+          case "$key" in
+            phase) phase="$value" ;;
+            container_ids) container_ids="$value" ;;
+            prior_running) prior_running="$value" ;;
+          esac
+        done <"$STATE_FILE"
+        case "$phase" in
+          quiesce-pending|stopped)
+            if [[ "$prior_running" == 1 ]]; then
+              [[ -n "$container_ids" ]] || {
+                echo "::error::Admin recovery state has no prior container ids" >&2
+                exit 1
+              }
+              START_ARGS=""
+              for container_id in $container_ids; do
+                [[ "$container_id" =~ ^[0-9a-f]+$ ]] || {
+                  echo "::error::Admin recovery state has an invalid container id" >&2
+                  exit 1
+                }
+                START_ARGS+=" $(shell_quote "$container_id")"
+              done
+              SSH_CMD=(ssh -i ~/.ssh/deploy_key -o BatchMode=yes
+                -o StrictHostKeyChecking=yes
+                -o UserKnownHostsFile="$HOME/.ssh/known_hosts"
+                "${{ inputs.user }}@${{ inputs.host }}" -p "${{ inputs.port }}")
+              remote_command="cd $(shell_quote "${{ inputs.path }}") && docker start$START_ARGS"
+              if ! "${SSH_CMD[@]}" "$remote_command"; then
+                echo "::error::Failed to restore the previously running backend-admin container(s)" >&2
+                exit 1
+              fi
+              for container_id in $container_ids; do
+                remote_command="cd $(shell_quote "${{ inputs.path }}") && docker inspect -f '{{.State.Running}}' $(shell_quote "$container_id")"
+                [[ "$("${SSH_CMD[@]}" "$remote_command")" == true ]] || {
+                  echo "::error::Restored backend-admin container is not running: $container_id" >&2
+                  exit 1
+                }
+              done
+              echo 'Restored backend-admin to its pre-migration running state.'
+            fi
+            rm -f -- "$STATE_FILE"
+            ;;
+          migration-running|migration-complete)
+            rm -f -- "$STATE_FILE"
+            echo "::error::backend-admin remains stopped: owner migration began; inspect the migration/deployment report before any manual restart" >&2
+            exit 1
+            ;;
+          *)
+            rm -f -- "$STATE_FILE"
+            echo "::error::Unknown backend-admin quiesce phase: ${phase:-missing}" >&2
+            exit 1
+            ;;
+        esac

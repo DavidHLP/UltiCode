@@ -284,6 +284,10 @@ services:
       - DUBBO_MTLS_SERVICE_IDENTITY=backend-admin
       - DUBBO_MTLS_ALLOWED_CALLERS=
       - SERVER_PORT=9102
+      # Match the default Compose stop grace with the explicit backup executor
+      # drain budget. Operators overriding either value must keep the grace
+      # period at least as long as the executor await period.
+      - ADMIN_BACKUP_EXECUTOR_AWAIT_TERMINATION_SECONDS=${ADMIN_BACKUP_EXECUTOR_AWAIT_TERMINATION_SECONDS:-60}
       # RustFS is private and TLS-only in production. The mounted certificate
       # gives the storage client a private/self-signed CA trust anchor while
       # retaining the JVM default truststore.

@@ -29,6 +29,28 @@ grep -Fq 'INSERT INTO `admin`.`backups`' \
   "$ROOT_DIR/init-db/migrations/post-owner/V20260921120000__Copy_Legacy_Backups_To_Admin.sql"
 grep -Fq 'FROM `ulticode`.`backups`' \
   "$ROOT_DIR/init-db/migrations/post-owner/V20260921120000__Copy_Legacy_Backups_To_Admin.sql"
+grep -Fq 'backup_cutover_state' \
+  "$ROOT_DIR/init-db/migrations/post-owner/V20260922120000__Create_Legacy_Backup_Cutover_State.sql"
+grep -Fq 'reconcile-legacy-backups.sh' \
+  "$ROOT_DIR/scripts/runbooks/owner-migration-manifest.sh"
+grep -Fq 'assert-admin-backup-drained.sh' \
+  "$ROOT_DIR/.github/actions/host-deploy/action.yml"
+grep -Fq 'Invalid deployable service' \
+  "$ROOT_DIR/.github/actions/host-deploy/action.yml"
+grep -Fq 'phase=migration-running' \
+  "$ROOT_DIR/.github/actions/host-deploy/action.yml"
+grep -Fq 'docker start$START_ARGS' \
+  "$ROOT_DIR/.github/actions/host-deploy/action.yml"
+grep -Fq 'backend-admin remains stopped' \
+  "$ROOT_DIR/.github/actions/host-deploy/action.yml"
+grep -Fq 'phase=migration-complete' \
+  "$ROOT_DIR/.github/actions/host-deploy/action.yml"
+grep -Fq 'docker inspect -f' \
+  "$ROOT_DIR/.github/actions/host-deploy/action.yml"
+grep -Fq 'Verify Admin backup writer drained' \
+  "$ROOT_DIR/.github/actions/host-deploy/action.yml"
+grep -Fq 'backend-auth|backend-admin|backend-app|backend-submission|backend-notification|backend-search|backend-judge|console|management' \
+  "$ROOT_DIR/.github/actions/host-deploy/action.yml"
 ! grep -Fq 'legacy_backups_copy_sql' \
   "$ROOT_DIR/init-db/migrations/admin/V20260920120000__Backup_Object_Storage.sql"
 grep -Fq 'flyway_post_owner_history' "$ROOT_DIR/init-db/scripts/generate-baseline.sh"
@@ -42,13 +64,31 @@ grep -Fq 'rto_seconds' "$ROOT_DIR/scripts/runbooks/owner-backup-restore.sh"
 grep -Fq 'owner-migration-manifest.sh migrate' "$ROOT_DIR/.github/actions/host-deploy/action.yml"
 grep -Fq 'MIGRATION_DB_PASSWORD' "$ROOT_DIR/.github/actions/host-deploy/action.yml"
 grep -Fq "inputs.skip_migrations != 'true'" "$ROOT_DIR/.github/actions/host-deploy/action.yml"
+grep -Fq 'Quiesce legacy Admin backup writer' "$ROOT_DIR/.github/actions/host-deploy/action.yml"
+grep -Fq 'compose_prefix="docker compose --project-directory . -f docker/docker-compose.yml -f docker/docker-compose.prod.yml"' \
+  "$ROOT_DIR/.github/actions/host-deploy/action.yml"
+grep -Fq 'remote_command+=" $EXPORTS $compose_prefix stop backend-admin"' \
+  "$ROOT_DIR/.github/actions/host-deploy/action.yml"
+grep -Fq 'remote_command+=" $REMOTE_ENV docker compose' \
+  "$ROOT_DIR/.github/actions/host-deploy/action.yml"
+grep -Fq 'DEPLOY_SERVICES: ${{ inputs.services }}' \
+  "$ROOT_DIR/.github/actions/host-deploy/action.yml"
+grep -Fq 'backend-admin must be included in services when migrations run' \
+  "$ROOT_DIR/.github/actions/host-deploy/action.yml"
+quiesce_line="$(grep -n 'Quiesce legacy Admin backup writer' \
+  "$ROOT_DIR/.github/actions/host-deploy/action.yml" | head -1 | cut -d: -f1)"
+migration_line="$(grep -n 'Run ordered owner database migrations' \
+  "$ROOT_DIR/.github/actions/host-deploy/action.yml" | head -1 | cut -d: -f1)"
+[[ "$quiesce_line" -lt "$migration_line" ]] \
+  || { echo 'legacy backup writer is not quiesced before owner migrations' >&2; exit 1; }
 grep -Fq 'migration_db_user:' "$ROOT_DIR/.github/workflows/cd-deploy.yml"
 grep -Fq 'submission_migration_db_password:' "$ROOT_DIR/.github/workflows/cd-deploy.yml"
 grep -Fq "skip_migrations: 'true'" "$ROOT_DIR/.github/workflows/cd-rollback.yml"
 
 MIGRATION_PASSWORD="$(openssl rand -hex 16)"
 SUBMISSION_PASSWORD="$(openssl rand -hex 16)"
-COMMON_ENV=(
+touch "$TEST_DIR/empty.env"
+COMMON_ENV=(ENV_FILE="$TEST_DIR/empty.env"
   MIGRATION_DB_HOST=127.0.0.1
   MIGRATION_DB_PORT=3306
   MIGRATION_DB_NAME=ulticode
@@ -123,6 +163,8 @@ if [[ "$flat_sql" == *"INSERT INTO fenced_job_leases"* ]]; then
   printf '%s\n' "$owner" >"${FAKE_LEASE_STATE:?}"
 elif [[ "$flat_sql" == *"SELECT owner_token, fence_token"* ]]; then
   printf '%s\t1\n' "$(<"${FAKE_LEASE_STATE:?}")"
+elif [[ "$flat_sql" == *"table_schema='ulticode'"* && "$flat_sql" == *"table_name='backups'"* ]]; then
+  printf '0\n'
 elif [[ "$flat_sql" == *"SELECT COUNT(*)"* ]]; then
   printf '1\n'
 fi

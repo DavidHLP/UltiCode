@@ -134,6 +134,8 @@ RustFS 是开发、测试、生产共同的必需基础设施，仓库不提供�
 - 凭据来自 `.env`/部署密钥系统（`RUSTFS_ACCESS_KEY`/`RUSTFS_SECRET_KEY`），禁止使用 RustFS
   文档中的默认账号；生产不使用明文 HTTP，后端经 `https://rustfs:9000` 访问，证书目录由
   `RUSTFS_TLS_CERT_DIR` 提供且证书/CA 需被后端 JVM 信任。
+- `.env.example` deliberately leaves RustFS credentials empty; local development must
+  run `./scripts/dev/init-env.sh`, and production must provide operator-managed secrets.
 
 ### 卷、备份与恢复
 
@@ -170,9 +172,22 @@ docker run --rm -v "${RUSTFS_VOLUMES[0]}:/data:ro" -v "$PWD:/backup" alpine \
 - 旧本地文件迁移用 `scripts/dev/migrate-object-storage.sh`：默认 dry-run；`--apply` 才上传；
   上传后校验大小/checksum 并回读对象，校验通过后才更新数据库行（`user_profiles.avatar` 与
   `backups.object_key`）；脚本从不删除旧文件，只有在迁移报告确认全部对象已校验后，operator 才可清理旧目录。
+- 生产 `host-deploy` 在 ordered owner migrations 之前验证完整的 deploy service
+  allowlist，并要求 migration subset 包含 `backend-admin`；随后记录原有
+  `backend-admin` 容器 ID，使用已验证 image refs 执行 `docker compose stop`。
+  Compose 的 `SERVICE_STOP_GRACE_PERIOD` 与显式 `adminBackupExecutor` 一起排空
+  旧 backup writer，`scripts/runbooks/assert-admin-backup-drained.sh` 在迁移前
+  拒绝仍有 `PENDING`/`IN_PROGRESS` 行的数据库。手工运行 migration 也必须先
+  停止并排空所有旧 writer。
+- 排水或迁移前置检查失败时，动作只恢复此前确实运行的原容器；owner migration
+  一旦开始，动作保持 `backend-admin` 停止并 fail closed，不把旧 image 重新启动到
+  可能已部分迁移的 schema 上。应先检查 migration report，再按兼容 artifact 手工恢复。
 - 特权 `post-owner` migration `V20260921120000__Copy_Legacy_Backups_To_Admin.sql`
   在对象回填前幂等地把旧 `ulticode.backups` 元数据复制到 `admin.backups`；
-  Owner-scoped 的 Admin migration 只负责创建/修复目标表。迁移不会删除旧行或旧文件。
+  随后的 `scripts/runbooks/reconcile-legacy-backups.sh` 复制一次性 Flyway copy
+  之后出现的 source rows，拒绝 metadata conflict 和 pre-cutover target-only rows，
+  并在 parity 通过后写入 `admin.backup_cutover_state`。Owner-scoped 的 Admin
+  migration 只负责创建/修复目标表；迁移不会删除旧行或旧文件。
 - For an internal production endpoint such as `https://rustfs:9000`, the migration script's Docker
   AWS CLI joins `${COMPOSE_PROJECT_NAME:-ulticode}_object-storage`; set `MIGRATION_DOCKER_NETWORK`
   when the Compose project uses a different network. Host AWS CLI mode is intentionally limited to

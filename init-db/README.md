@@ -92,6 +92,11 @@ shared `MIGRATION_DB_*` identity for Auth/Admin/App/Notification and passes
 It then runs `flyway-post-owner.conf` with the shared privileged identity to
 copy legacy `ulticode.backups` metadata into `admin.backups` and remove the
 historical cross-owner audit grants after all owner migrations have completed.
+The same entry point runs `scripts/runbooks/reconcile-legacy-backups.sh`: it
+copies rows created after the one-time Flyway copy, fails on metadata conflicts
+or pre-cutover target-only rows, and records the durable
+`admin.backup_cutover_state` marker only after parity passes. Host deploy drains
+the Admin backup executor before starting this chain.
 Finally it provisions and probes all five local runtime accounts before PM2
 starts. These identities must not be merged or silently defaulted to a runtime
 account.

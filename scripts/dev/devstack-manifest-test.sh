@@ -181,6 +181,10 @@ assert_file_contains services/judge/src/main/resources/application.yml 'use-port
 assert_file_contains services/app/app-web/src/main/resources/application.yml 'mode: ${APP_SEARCH_READ_MODE:database}'
 assert_file_contains services/app/app-web/src/main/resources/application.yml 'fallback-to-database: ${APP_SEARCH_FALLBACK_TO_DATABASE:false}'
 assert_file_contains .env.example 'APP_SUBMISSION_ROUTING_MODE=remote'
+grep -Fxq 'RUSTFS_ACCESS_KEY=' "$ROOT_DIR/.env.example"
+grep -Fxq 'RUSTFS_SECRET_KEY=' "$ROOT_DIR/.env.example"
+grep -Fxq 'APP_STORAGE_S3_ACCESS_KEY=' "$ROOT_DIR/.env.example"
+grep -Fxq 'APP_STORAGE_S3_SECRET_KEY=' "$ROOT_DIR/.env.example"
 assert_file_contains scripts/dev/init-env.sh 'APP_SUBMISSION_ROUTING_MODE=remote'
 assert_file_contains scripts/dev/up.sh 'source "$ROOT_DIR/scripts/dev/devstack-manifest.sh"'
 assert_file_contains ecosystem.config.cjs "APP_FEATURES_CONTEST_DUBBO_CUTOVER: process.env.APP_FEATURES_CONTEST_DUBBO_CUTOVER || 'true'"

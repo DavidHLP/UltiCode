@@ -299,6 +299,23 @@ class BackupServiceTest {
         }
 
         @Test
+        @DisplayName("should delete a keyless backup row without attempting object deletion")
+        void shouldDeleteKeylessBackupRow() {
+            Backup backup = new Backup();
+            backup.setId(BACKUP_ID);
+            backup.setFilename("abandoned_backup.sql");
+            backup.setStatus(BackupStatus.PENDING);
+
+            when(backupMapper.selectById(BACKUP_ID)).thenReturn(backup);
+            when(backupMapper.deleteById(BACKUP_ID)).thenReturn(1);
+
+            backupService.deleteBackup(BACKUP_ID);
+
+            verify(fileStorage, never()).delete(anyString());
+            verify(backupMapper).deleteById(BACKUP_ID);
+        }
+
+        @Test
         @DisplayName("should fail when backup row deletion affects no rows")
         void shouldFailWhenBackupRowDeletionAffectsNoRows() {
             Backup backup = new Backup();

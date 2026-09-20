@@ -1,6 +1,5 @@
 package com.ulticode.modules.admin.controller;
 
-import com.ulticode.admin.port.UserProfilePort;
 import com.ulticode.common.response.Result;
 import com.ulticode.modules.admin.projection.AdminUserProjection;
 import com.ulticode.modules.admin.query.AdminUserDetailQuery;
@@ -29,22 +28,20 @@ class AdminUserControllerAvatarTest {
     private AdminUserDetailQuery adminUserDetailQuery;
     @Mock
     private AdminUserProjection adminUserProjection;
-    @Mock
-    private UserProfilePort userProfilePort;
 
     @Test
-    void uploadsAvatarThroughProfilePortAndReturnsDisplayUrl() {
+    void uploadsAvatarThroughAuditedUserManagementServiceAndReturnsDisplayUrl() {
         AdminUserController controller = new AdminUserController(
-                userManagementService, userPermissionService, adminUserDetailQuery,
-                adminUserProjection, userProfilePort);
+                userManagementService, userPermissionService, adminUserDetailQuery, adminUserProjection);
         MockMultipartFile file = new MockMultipartFile("file", "avatar.png", "image/png", new byte[]{1});
-        when(userProfilePort.uploadAvatar("user-1", file)).thenReturn("/api/users/avatars/user-1/uuid.png");
+        when(userManagementService.uploadAvatar("user-1", file))
+                .thenReturn("/api/users/avatars/user-1/uuid.png");
 
         Result<String> result = controller.uploadAvatar("user-1", file);
 
         assertThat(result.getCode()).isEqualTo(0);
         assertThat(result.getData()).isEqualTo("/api/users/avatars/user-1/uuid.png");
-        verify(userProfilePort).uploadAvatar("user-1", file);
+        verify(userManagementService).uploadAvatar("user-1", file);
     }
 
     @Test

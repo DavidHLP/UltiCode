@@ -144,7 +144,9 @@ public class BackupServiceImpl implements BackupService {
     public void deleteBackup(String id) {
         Backup backup = requireBackup(id);
         validateBackupFilePath(backup.getFilename());
-        fileStorage.delete(requireBackupObjectKey(backup));
+        if (backup.getObjectKey() != null && !backup.getObjectKey().isBlank()) {
+            fileStorage.delete(requireBackupObjectKey(backup));
+        }
         int deletedRows = backupMapper.deleteById(id);
         if (deletedRows != 1) {
             throw new BusinessException(BaseErrorCode.UNKNOWN_ERROR,

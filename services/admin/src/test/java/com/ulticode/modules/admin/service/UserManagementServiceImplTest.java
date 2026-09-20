@@ -8,6 +8,8 @@ import com.ulticode.auth.api.service.AccountAdministrationService;
 import com.ulticode.auth.api.service.AccountManagementService;
 import com.ulticode.auth.api.service.AccountQueryService;
 import com.ulticode.auth.api.service.RoleMutationService;
+import com.ulticode.common.annotation.Audited;
+import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.common.audit.AuditRecorder;
 import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.modules.admin.dto.AdminCreateUserDTO;
@@ -27,6 +29,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
@@ -178,6 +182,44 @@ class UserManagementServiceImplTest {
         assertThatThrownBy(() -> service.updateUser("user-100", dto))
                 .isInstanceOf(com.ulticode.common.exception.BusinessException.class)
                 .hasMessageContaining("Account role update failed");
+    }
+
+    @Test
+    @DisplayName("uploadAvatar uses the audited user-management path after Auth confirms the account")
+    void uploadAvatarUsesAuditedServicePath() throws NoSuchMethodException {
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "avatar.png", "image/png", new byte[]{1});
+        when(accountQueryService.getAccountById("user-100"))
+                .thenReturn(RpcResult.success(sampleAccount, "t-123"));
+        when(userProfilePort.uploadAvatar("user-100", file))
+                .thenReturn("/api/users/avatars/user-100/avatar.png");
+
+        Audited audited = UserManagementServiceImpl.class
+                .getDeclaredMethod("uploadAvatar", String.class, MultipartFile.class)
+                .getAnnotation(Audited.class);
+
+        assertThat(audited).isNotNull();
+        assertThat(audited.action()).isEqualTo(AuditVocabulary.UPDATE_USER);
+        assertThat(audited.entityType()).isEqualTo(AuditVocabulary.ENTITY_USER);
+        assertThat(audited.userIdFrom()).isEqualTo("id");
+        assertThat(service.uploadAvatar("user-100", file))
+                .isEqualTo("/api/users/avatars/user-100/avatar.png");
+        verify(accountQueryService).getAccountById("user-100");
+        verify(userProfilePort).uploadAvatar("user-100", file);
+    }
+
+    @Test
+    @DisplayName("uploadAvatar rejects an unknown account before writing profile bytes")
+    void uploadAvatarRejectsUnknownAccountBeforeStorageWrite() {
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "avatar.png", "image/png", new byte[]{1});
+        when(accountQueryService.getAccountById("missing"))
+                .thenReturn(RpcResult.failure(AuthErrorCode.ACCOUNT_NOT_FOUND, "t-123"));
+
+        assertThatThrownBy(() -> service.uploadAvatar("missing", file))
+                .isInstanceOf(com.ulticode.common.exception.BusinessException.class)
+                .hasMessage("User not found");
+        verify(userProfilePort, never()).uploadAvatar(any(), any());
     }
 
     @Test

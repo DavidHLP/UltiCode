@@ -1,6 +1,14 @@
 import { ref } from 'vue'
 import { uploadMyAvatar } from '@/api/user'
 
+export function isAvatarUploadSessionCurrent(
+  accountId: string,
+  profileId: string | null | undefined,
+  sessionId: string | null,
+): boolean {
+  return profileId === accountId && sessionId === accountId
+}
+
 type AvatarUploader = (file: File, onProgress?: (progress: number) => void) => Promise<string>
 
 export function useAvatarUpload(uploader: AvatarUploader = uploadMyAvatar) {

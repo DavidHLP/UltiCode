@@ -21,6 +21,8 @@ Options:
   --bucket NAME                   Override RUSTFS_BUCKET (default: ulticode).
   --limit N                       Process at most N rows (0 means unlimited).
   --only avatars|backups|all      Restrict the migration (default: all).
+  --confirm-users-index-backfill  Confirm the users-index backfill completed
+                                  after avatar rows were updated.
   --help                          Show this help and exit.
 
 Configuration (environment or .env):
@@ -32,6 +34,8 @@ Configuration (environment or .env):
   RUSTFS_BUCKET
   APP_DB_* / ADMIN_DB_* (host/port/user/password fall back to MIGRATION_DB_*,
                          then DB_*; owner schema names default to app/admin)
+  AVATAR_UPLOAD_VOL / BACKUP_VOLUME (legacy Docker volume names)
+  MIGRATION_SEARCH_BACKFILL_CONFIRMED=true (same as the confirmation flag)
   AWS_BIN (optional host aws executable override)
   MIGRATION_DOCKER_NETWORK (optional Docker network override for the container fallback)
 
@@ -61,8 +65,8 @@ capture_env_vars \
   ADMIN_DB_HOST ADMIN_DB_PORT ADMIN_DB_NAME ADMIN_DB_USER ADMIN_DB_PASSWORD \
   MIGRATION_DB_HOST MIGRATION_DB_PORT MIGRATION_DB_NAME MIGRATION_DB_USER MIGRATION_DB_PASSWORD \
   DB_HOST DB_PORT DB_NAME DB_USER DB_PASSWORD MIGRATION_MYSQL_CONTAINER MIGRATION_MYSQL_CONTAINER_PORT \
-  AVATAR_UPLOAD_DIR AVATAR_UPLOAD_VOL BACKUP_DIR AWS_BIN AWS_CLI_IMAGE \
-  MIGRATION_DOCKER_NETWORK COMPOSE_PROJECT_NAME
+  AVATAR_UPLOAD_DIR AVATAR_UPLOAD_VOL BACKUP_DIR BACKUP_VOLUME AWS_BIN AWS_CLI_IMAGE \
+  MIGRATION_DOCKER_NETWORK COMPOSE_PROJECT_NAME MIGRATION_SEARCH_BACKFILL_CONFIRMED
 if [[ -f "$ENV_FILE" ]]; then
   load_env_file
   apply_env_overrides
@@ -74,16 +78,19 @@ LIMIT=0
 AVATAR_DIR=""
 BACKUP_DIR_ARG=""
 BUCKET_OVERRIDE=""
+AVATAR_DIR_EXPLICIT=false
+BACKUP_DIR_EXPLICIT=false
+CONFIRM_USERS_INDEX_BACKFILL=false
 
 while (($#)); do
   case "$1" in
     --apply) APPLY=true; shift ;;
     --legacy-avatar-dir)
       (($# >= 2)) || { echo "--legacy-avatar-dir requires a value" >&2; exit 2; }
-      AVATAR_DIR="$2"; shift 2 ;;
+      AVATAR_DIR="$2"; AVATAR_DIR_EXPLICIT=true; shift 2 ;;
     --legacy-backup-dir)
       (($# >= 2)) || { echo "--legacy-backup-dir requires a value" >&2; exit 2; }
-      BACKUP_DIR_ARG="$2"; shift 2 ;;
+      BACKUP_DIR_ARG="$2"; BACKUP_DIR_EXPLICIT=true; shift 2 ;;
     --bucket)
       (($# >= 2)) || { echo "--bucket requires a value" >&2; exit 2; }
       BUCKET_OVERRIDE="$2"; shift 2 ;;
@@ -93,6 +100,7 @@ while (($#)); do
     --only)
       (($# >= 2)) || { echo "--only requires a value" >&2; exit 2; }
       ONLY="$2"; shift 2 ;;
+    --confirm-users-index-backfill) CONFIRM_USERS_INDEX_BACKFILL=true; shift ;;
     --help|-h) usage; exit 0 ;;
     *) echo "Unknown option: $1" >&2; usage >&2; exit 2 ;;
   esac
@@ -103,9 +111,110 @@ done
   exit 2
 }
 [[ "$LIMIT" =~ ^[0-9]+$ ]] || { echo "--limit must be a non-negative integer" >&2; exit 2; }
+case "${MIGRATION_SEARCH_BACKFILL_CONFIRMED:-false}" in
+  true) CONFIRM_USERS_INDEX_BACKFILL=true ;;
+  false|"") ;;
+  *) echo "MIGRATION_SEARCH_BACKFILL_CONFIRMED must be true or false" >&2; exit 2 ;;
+esac
 
-AVATAR_DIR="${AVATAR_DIR:-${AVATAR_UPLOAD_DIR:-${AVATAR_UPLOAD_VOL:-$ROOT_DIR/uploads/avatars}}}"
-BACKUP_DIR_ARG="${BACKUP_DIR_ARG:-${BACKUP_DIR:-/tmp/backups}}"
+volume_mountpoint() {
+  local logical="$1" candidate mountpoint project labeled_output
+  [[ "$logical" =~ ^[A-Za-z0-9][A-Za-z0-9_.-]*$ ]] || return 1
+  command -v docker >/dev/null 2>&1 || return 1
+
+  if [[ -n "${COMPOSE_PROJECT_NAME:-}" ]]; then
+    labeled_output="$(docker volume ls -q \
+      --filter "label=com.docker.compose.volume=$logical" \
+      --filter "label=com.docker.compose.project=$COMPOSE_PROJECT_NAME" 2>/dev/null || true)"
+  else
+    labeled_output="$(docker volume ls -q \
+      --filter "label=com.docker.compose.volume=$logical" 2>/dev/null || true)"
+  fi
+  local -a labeled_volumes=()
+  if [[ -n "$labeled_output" ]]; then
+    mapfile -t labeled_volumes <<<"$labeled_output"
+  fi
+  if ((${#labeled_volumes[@]} > 1)); then
+    echo "Multiple Docker Compose volumes match legacy volume '$logical'; set COMPOSE_PROJECT_NAME or pass an explicit source directory." >&2
+    return 1
+  fi
+
+  local -a candidates=()
+  if ((${#labeled_volumes[@]} == 1)); then
+    candidates+=("${labeled_volumes[0]}")
+  else
+    if [[ -n "${COMPOSE_PROJECT_NAME:-}" ]]; then
+      candidates+=("${COMPOSE_PROJECT_NAME}_${logical}")
+    fi
+    project="${ROOT_DIR##*/}"
+    project="${project,,}"
+    candidates+=("${project}_${logical}" "$logical")
+  fi
+
+  for candidate in "${candidates[@]}"; do
+    mountpoint="$(docker volume inspect --format '{{.Mountpoint}}' "$candidate" 2>/dev/null || true)"
+    [[ "$mountpoint" == /* && -d "$mountpoint" ]] || continue
+    realpath -e -- "$mountpoint"
+    return 0
+  done
+  return 1
+}
+
+resolve_volume_source() {
+  local logical="$1" subdirectory="$2" mountpoint candidate
+  mountpoint="$(volume_mountpoint "$logical")" || return 1
+  if [[ -n "$subdirectory" ]]; then
+    for candidate in "$mountpoint/uploads/$subdirectory" "$mountpoint/$subdirectory"; do
+      if [[ -d "$candidate" ]]; then
+        mountpoint="$candidate"
+        break
+      fi
+    done
+  fi
+  realpath -e -- "$mountpoint"
+}
+
+legacy_avatar_directory() {
+  local directory="$1" candidate
+  for candidate in "$directory/uploads/avatars" "$directory/avatars"; do
+    if [[ -d "$candidate" ]]; then
+      printf '%s\n' "$candidate"
+      return
+    fi
+  done
+  printf '%s\n' "$directory"
+}
+
+if [[ "$ONLY" == avatars || "$ONLY" == all ]]; then
+  if [[ "$AVATAR_DIR_EXPLICIT" == false ]]; then
+    if [[ -n "${AVATAR_UPLOAD_DIR:-}" && -d "$AVATAR_UPLOAD_DIR" ]]; then
+      AVATAR_DIR="$(legacy_avatar_directory "$AVATAR_UPLOAD_DIR")"
+    elif [[ -n "${AVATAR_UPLOAD_VOL:-}" && -d "$AVATAR_UPLOAD_VOL" ]]; then
+      AVATAR_DIR="$(legacy_avatar_directory "$AVATAR_UPLOAD_VOL")"
+    elif AVATAR_DIR="$(resolve_volume_source "${AVATAR_UPLOAD_VOL:-app_uploads}" avatars)"; then
+      echo "Using legacy avatar volume source: $AVATAR_DIR"
+    elif [[ -n "${AVATAR_UPLOAD_VOL:-}" ]]; then
+      echo "Legacy avatar volume '${AVATAR_UPLOAD_VOL}' was not found; pass --legacy-avatar-dir with the extracted source." >&2
+      exit 2
+    else
+      AVATAR_DIR="${AVATAR_UPLOAD_DIR:-$ROOT_DIR/uploads/avatars}"
+    fi
+  fi
+fi
+if [[ "$ONLY" == backups || "$ONLY" == all ]]; then
+  if [[ "$BACKUP_DIR_EXPLICIT" == false ]]; then
+    if [[ -n "${BACKUP_DIR:-}" && -d "$BACKUP_DIR" ]]; then
+      BACKUP_DIR_ARG="$BACKUP_DIR"
+    elif BACKUP_DIR_ARG="$(resolve_volume_source "${BACKUP_VOLUME:-backup_data}" "")"; then
+      echo "Using legacy backup volume source: $BACKUP_DIR_ARG"
+    elif [[ -n "${BACKUP_VOLUME:-}" ]]; then
+      echo "Legacy backup volume '${BACKUP_VOLUME}' was not found; pass --legacy-backup-dir with the extracted source." >&2
+      exit 2
+    else
+      BACKUP_DIR_ARG="${BACKUP_DIR:-/tmp/backups}"
+    fi
+  fi
+fi
 S3_ENDPOINT="${APP_STORAGE_S3_ENDPOINT:-${RUSTFS_ENDPOINT:-${RUSTFS_S3_ENDPOINT:-http://127.0.0.1:9000}}}"
 S3_REGION="${APP_STORAGE_S3_REGION:-${RUSTFS_REGION:-us-east-1}}"
 S3_ACCESS_KEY="${APP_STORAGE_S3_ACCESS_KEY:-${RUSTFS_ACCESS_KEY:-}}"
@@ -236,6 +345,8 @@ PENDING_FILE="$TMP_DIR/pending"
 : >"$PENDING_FILE"
 
 TOTAL=0
+AVATAR_DB_UPDATED=0
+SEARCH_BACKFILL_PENDING=false
 UPLOADED=0
 SKIPPED=0
 FAILED=0
@@ -488,7 +599,7 @@ process_avatar() {
     if [[ "$update_status" -eq 2 ]]; then FAILED=$((FAILED + 1)); else SKIPPED=$((SKIPPED + 1)); fi
     record_pending "avatar account=$account_id target=$key reason=db-row-no-longer-legacy-or-update-failed"; return
   fi
-  DB_UPDATED=$((DB_UPDATED + 1)); record_verified "avatar account=$account_id target=$key"; echo "VERIFIED avatar account=$account_id target=$key"
+  DB_UPDATED=$((DB_UPDATED + 1)); AVATAR_DB_UPDATED=$((AVATAR_DB_UPDATED + 1)); record_verified "avatar account=$account_id target=$key"; echo "VERIFIED avatar account=$account_id target=$key"
 }
 
 process_backup() {
@@ -551,10 +662,12 @@ process_backup() {
   fi
   DB_UPDATED=$((DB_UPDATED + 1)); record_verified "backup id=$backup_id target=$key"; echo "VERIFIED backup id=$backup_id target=$key"
 }
-
-
 if [[ "$ONLY" == avatars || "$ONLY" == all ]]; then
-  avatar_rows="$(mysql_query APP_DB "SELECT account_id, avatar FROM user_profiles WHERE avatar LIKE '/uploads/avatars/%' ORDER BY account_id")"
+  avatar_limit_clause=""
+  if (( LIMIT > 0 )); then
+    avatar_limit_clause=" LIMIT $LIMIT"
+  fi
+  avatar_rows="$(mysql_query APP_DB "SELECT account_id, avatar FROM user_profiles WHERE avatar LIKE '/uploads/avatars/%' ORDER BY account_id${avatar_limit_clause}")"
   while IFS=$'\t' read -r account_id legacy_avatar; do
     [[ -n "${account_id:-}" ]] || continue
     (( LIMIT > 0 && TOTAL >= LIMIT )) && break
@@ -567,12 +680,22 @@ if [[ "$ONLY" == backups || "$ONLY" == all ]] && (( LIMIT == 0 || TOTAL < LIMIT 
     echo "Admin backups.object_key/backups.checksum are missing; apply the backup object-storage migration before running this tool." >&2
     exit 2
   fi
-  backup_rows="$(mysql_query ADMIN_DB "SELECT id, filename, size, status, DATE_FORMAT(created_at, '%Y-%m-%d') FROM backups WHERE status='COMPLETED' AND (object_key IS NULL OR object_key='') ORDER BY created_at, id")"
+  backup_limit_clause=""
+  if (( LIMIT > 0 )); then
+    backup_limit_clause=" LIMIT $((LIMIT - TOTAL))"
+  fi
+  backup_rows="$(mysql_query ADMIN_DB "SELECT id, filename, size, status, DATE_FORMAT(created_at, '%Y-%m-%d') FROM backups WHERE status='COMPLETED' AND (object_key IS NULL OR object_key='') ORDER BY created_at, id${backup_limit_clause}")"
   while IFS=$'\t' read -r backup_id filename legacy_size status created_at; do
     [[ -n "${backup_id:-}" ]] || continue
     (( LIMIT > 0 && TOTAL >= LIMIT )) && break
     TOTAL=$((TOTAL + 1)); process_backup "$backup_id" "$filename" "$legacy_size" "$status" "$created_at"
   done <<<"$backup_rows"
+fi
+
+if (( AVATAR_DB_UPDATED > 0 )) && [[ "$CONFIRM_USERS_INDEX_BACKFILL" == false ]]; then
+  SEARCH_BACKFILL_PENDING=true
+  record_pending "users-index backfill required after avatar database updates; rerun with --confirm-users-index-backfill after APP_SEARCH_BACKFILL_ENABLED=true and APP_SEARCH_BACKFILL_INDEXES=users completes"
+  echo "PENDING users-index backfill required before migration can be declared complete"
 fi
 
 if [[ -s "$VERIFIED_FILE" ]]; then
@@ -589,6 +712,6 @@ if [[ -s "$PENDING_FILE" ]]; then
 else
   echo "PENDING none"
 fi
-echo "MIGRATION_SUMMARY total=$TOTAL uploaded=$UPLOADED skipped=$SKIPPED failed=$FAILED db_updated=$DB_UPDATED apply=$APPLY"
+echo "MIGRATION_SUMMARY total=$TOTAL uploaded=$UPLOADED skipped=$SKIPPED failed=$FAILED db_updated=$DB_UPDATED apply=$APPLY search_backfill=$([[ "$SEARCH_BACKFILL_PENDING" == true ]] && echo required || echo confirmed-or-not-needed)"
 echo "NOTE Old local files and volumes were not deleted; clean them only after the operator confirms the migration."
-[[ "$FAILED" -eq 0 ]]
+[[ "$FAILED" -eq 0 && "$SEARCH_BACKFILL_PENDING" == false ]]

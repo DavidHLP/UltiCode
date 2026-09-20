@@ -18,6 +18,11 @@ DB_STATE="$TMP_DIR/db-state"
 ENV_FILE="$TMP_DIR/.env"
 CA_FILE="$TMP_DIR/rustfs-ca.pem"
 mkdir -p "$BIN" "$AVATARS" "$BACKUPS" "$OBJECTS" "$DB_STATE"
+AVATAR_VOLUME="$TMP_DIR/avatar-volume"
+BACKUP_VOLUME_DIR="$TMP_DIR/backup-volume"
+mkdir -p "$AVATAR_VOLUME/uploads/avatars" "$BACKUP_VOLUME_DIR"
+printf 'avatar-data' >"$AVATAR_VOLUME/uploads/avatars/avatar.png"
+printf 'dump' >"$BACKUP_VOLUME_DIR/backup_FULL_20260920_120000.sql"
 : >"$AWS_LOG"
 : >"$AWS_ENV_LOG"
 : >"$MYSQL_LOG"
@@ -153,6 +158,30 @@ if [[ "${1:-}" == network && "${2:-}" == inspect ]]; then
   [[ "${FAKE_DOCKER_NETWORK:-}" == "${3:-}" ]] || { echo "unexpected fake docker network: ${3:-}" >&2; exit 1; }
   exit 0
 fi
+if [[ "${1:-}" == volume && "${2:-}" == ls ]]; then
+  if [[ "${FAKE_USE_LABELS:-0}" == 1 ]]; then
+    if [[ "$*" == *"label=com.docker.compose.volume=app_uploads"* ]]; then
+      printf '%s\n' "$FAKE_LABELLED_AVATAR_VOLUME_NAME"
+    elif [[ "$*" == *"label=com.docker.compose.volume=backup_data"* ]]; then
+      printf '%s\n' "$FAKE_LABELLED_BACKUP_VOLUME_NAME"
+    fi
+  fi
+  exit 0
+fi
+if [[ "${1:-}" == volume && "${2:-}" == inspect ]]; then
+  volume="${!#}"
+  if [[ "$volume" == "${FAKE_AVATAR_VOLUME_NAME:-}" || "$volume" == "${FAKE_LABELLED_AVATAR_VOLUME_NAME:-}" ]]; then
+    [[ -n "${FAKE_AVATAR_VOLUME_MOUNTPOINT:-}" ]] || exit 1
+    printf '%s\n' "$FAKE_AVATAR_VOLUME_MOUNTPOINT"
+    exit 0
+  fi
+  if [[ "$volume" == "${FAKE_BACKUP_VOLUME_NAME:-}" || "$volume" == "${FAKE_LABELLED_BACKUP_VOLUME_NAME:-}" ]]; then
+    [[ -n "${FAKE_BACKUP_VOLUME_MOUNTPOINT:-}" ]] || exit 1
+    printf '%s\n' "$FAKE_BACKUP_VOLUME_MOUNTPOINT"
+    exit 0
+  fi
+  exit 1
+fi
 [[ "${1:-}" == run ]] || { echo "unexpected fake docker command" >&2; exit 2; }
 shift
 mounts=()
@@ -188,6 +217,8 @@ FAKE_DOCKER
 chmod +x "$BIN/docker"
 
 export FAKE_DOCKER_LOG="$DOCKER_LOG" FAKE_AWS_BIN="$BIN/aws"
+export FAKE_AVATAR_VOLUME_NAME=legacy-app-upload FAKE_AVATAR_VOLUME_MOUNTPOINT="$AVATAR_VOLUME"
+export FAKE_BACKUP_VOLUME_NAME=legacy-backup-data FAKE_BACKUP_VOLUME_MOUNTPOINT="$BACKUP_VOLUME_DIR"
 export PATH="$BIN:$PATH"
 export ENV_FILE AWS_BIN="$BIN/aws"
 export FAKE_AWS_LOG="$AWS_LOG" FAKE_AWS_ENV_LOG="$AWS_ENV_LOG"
@@ -206,6 +237,9 @@ assert_not_contains() {
 run_migration() {
   "$ROOT_DIR/scripts/dev/migrate-object-storage.sh" \
     --legacy-avatar-dir "$AVATARS" --legacy-backup-dir "$BACKUPS" "$@"
+}
+run_migration_without_explicit_dirs() {
+  "$ROOT_DIR/scripts/dev/migrate-object-storage.sh" "$@"
 }
 
 FALLBACK_ENV_FILE="$TMP_DIR/fallback.env"
@@ -254,6 +288,18 @@ assert_contains "$ca_output" "MIGRATION_SUMMARY total=1"
 assert_contains "$(<"$AWS_ENV_LOG")" "AWS_CA_BUNDLE=$CA_FILE"
 unset APP_STORAGE_S3_CA_CERTIFICATE
 
+# Avatar DB updates must not be declared complete until the users-index
+# backfill has run through the application-owned Search outbox path.
+: >"$AWS_LOG"; : >"$MYSQL_LOG"; rm -f -- "$DB_STATE/avatar" "$DB_STATE/backup" "$OBJECTS"/*
+unset MIGRATION_SEARCH_BACKFILL_CONFIRMED
+search_gate_output=""
+search_gate_status=0
+search_gate_output="$(run_migration --apply --only avatars 2>&1)" || search_gate_status=$?
+[[ "$search_gate_status" -ne 0 ]] || { echo 'search backfill gate unexpectedly passed' >&2; exit 1; }
+assert_contains "$search_gate_output" "search_backfill=required"
+assert_contains "$search_gate_output" "users-index backfill required"
+export MIGRATION_SEARCH_BACKFILL_CONFIRMED=true
+
 # An existing object with matching size and ETag is reused; no duplicate put.
 : >"$AWS_LOG"; : >"$MYSQL_LOG"; rm -f -- "$DB_STATE/avatar" "$DB_STATE/backup" "$OBJECTS"/*
 key_path="$OBJECTS/app__avatars__acct-1__avatar.png"
@@ -295,6 +341,46 @@ assert_contains "$filter_output" "MIGRATION_SUMMARY total=1"
 assert_contains "$filter_output" "uploaded=1"
 assert_not_contains "$(<"$MYSQL_LOG")" "FROM user_profiles"
 assert_contains "$(<"$MYSQL_LOG")" "FROM backups"
+assert_contains "$(<"$MYSQL_LOG")" "LIMIT 1"
+
+# --only all pushes the remaining row limit into the avatar query and skips
+# the backup query once the shared limit is consumed.
+: >"$MYSQL_LOG"; rm -f -- "$DB_STATE/avatar" "$DB_STATE/backup" "$OBJECTS"/*
+all_limit_output="$(run_migration --only all --limit 1 2>&1)"
+assert_contains "$all_limit_output" "MIGRATION_SUMMARY total=1"
+all_limit_mysql_log="$(<"$MYSQL_LOG")"
+assert_contains "$all_limit_mysql_log" "FROM user_profiles"
+assert_contains "$all_limit_mysql_log" "LIMIT 1"
+assert_not_contains "$all_limit_mysql_log" "FROM backups"
+
+# Historical production volumes resolve to host mountpoints before migration;
+# app_uploads may contain uploads/avatars or avatars beneath the volume root.
+: >"$AWS_LOG"; : >"$DOCKER_LOG"; : >"$MYSQL_LOG"
+rm -f -- "$DB_STATE/avatar" "$DB_STATE/backup" "$OBJECTS"/*
+export AVATAR_UPLOAD_VOL=legacy-app-upload BACKUP_VOLUME=legacy-backup-data
+volume_output="$(run_migration_without_explicit_dirs --apply 2>&1)"
+assert_contains "$volume_output" "Using legacy avatar volume source: $AVATAR_VOLUME/uploads/avatars"
+assert_contains "$volume_output" "Using legacy backup volume source: $BACKUP_VOLUME_DIR"
+assert_contains "$volume_output" "MIGRATION_SUMMARY total=2 uploaded=2"
+volume_docker_log="$(<"$DOCKER_LOG")"
+assert_contains "$volume_docker_log" "volume inspect legacy-app-upload"
+assert_contains "$volume_docker_log" "volume inspect legacy-backup-data"
+unset AVATAR_UPLOAD_VOL BACKUP_VOLUME
+
+# Compose labels find project-scoped volumes even when the checkout name differs.
+: >"$AWS_LOG"; : >"$DOCKER_LOG"; : >"$MYSQL_LOG"
+rm -f -- "$DB_STATE/avatar" "$DB_STATE/backup" "$OBJECTS"/*
+export COMPOSE_PROJECT_NAME=legacy-prod FAKE_USE_LABELS=1
+export FAKE_LABELLED_AVATAR_VOLUME_NAME=legacy-prod_app_uploads
+export FAKE_LABELLED_BACKUP_VOLUME_NAME=legacy-prod_backup_data
+labeled_volume_output="$(run_migration_without_explicit_dirs --apply 2>&1)"
+assert_contains "$labeled_volume_output" "Using legacy avatar volume source: $AVATAR_VOLUME/uploads/avatars"
+assert_contains "$labeled_volume_output" "Using legacy backup volume source: $BACKUP_VOLUME_DIR"
+assert_contains "$labeled_volume_output" "MIGRATION_SUMMARY total=2 uploaded=2"
+labeled_volume_docker_log="$(<"$DOCKER_LOG")"
+assert_contains "$labeled_volume_docker_log" "volume inspect legacy-prod_app_uploads"
+assert_contains "$labeled_volume_docker_log" "volume inspect legacy-prod_backup_data"
+unset COMPOSE_PROJECT_NAME FAKE_USE_LABELS FAKE_LABELLED_AVATAR_VOLUME_NAME FAKE_LABELLED_BACKUP_VOLUME_NAME
 
 # Docker fallback mounts both legacy directories and translates body paths.
 : >"$AWS_LOG"; : >"$DOCKER_LOG"; : >"$MYSQL_LOG"

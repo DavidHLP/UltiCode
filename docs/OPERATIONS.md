@@ -154,6 +154,19 @@ docker run --rm -v "${RUSTFS_VOLUMES[0]}:/data:ro" -v "$PWD:/backup" alpine \
 ```
 
   恢复时把归档解回同一卷（保持 `10001:10001` 属主），再启动 RustFS 并运行下面的 smoke test 确认对象可读。
+- 旧生产 Compose 的 named volume 也必须先纳入迁移：脚本会通过 Docker Compose volume
+  label（优先匹配 `COMPOSE_PROJECT_NAME`，无项目名时要求唯一匹配）解析
+  `AVATAR_UPLOAD_VOL`（默认 `app_uploads`）和 `BACKUP_VOLUME`（默认 `backup_data`）的宿主机
+  挂载点；头像卷兼容卷根、`uploads/avatars/` 和 `avatars/` 布局，备份卷读取卷根目录。
+  若 Docker 无法唯一解析显式卷名，脚本会 fail closed；也可用
+  `--legacy-avatar-dir` / `--legacy-backup-dir` 指向已审计的只读提取目录。源卷和旧文件始终不删除。
+- 头像迁移用原始 SQL 更新 `user_profiles.avatar`，不会自动产生
+  `SearchDocumentChanged` outbox 事件。只要本次 `--apply` 更新了头像行，脚本就会
+  输出 `search_backfill=required` 并以非零状态结束，不能把迁移报告为完成；先重启
+  App，临时设置 `APP_SEARCH_BACKFILL_ENABLED=true` 与
+  `APP_SEARCH_BACKFILL_INDEXES=users` 执行用户索引 backfill，确认 runner 完成后再用
+  `--confirm-users-index-backfill`（或 `MIGRATION_SEARCH_BACKFILL_CONFIRMED=true`）
+  复核迁移结果。
 - 旧本地文件迁移用 `scripts/dev/migrate-object-storage.sh`：默认 dry-run；`--apply` 才上传；
   上传后校验大小/checksum 并回读对象，校验通过后才更新数据库行（`user_profiles.avatar` 与
   `backups.object_key`）；脚本从不删除旧文件，只有在迁移报告确认全部对象已校验后，operator 才可清理旧目录。

@@ -28,6 +28,11 @@ describe('user avatar upload API', () => {
     await expect(usersApi.uploadAvatar('user-7', file)).resolves.toBe(
       '/api/users/avatars/user-7/avatar.webp',
     )
-    expect(apiUpload).toHaveBeenCalledWith('/admin/users/user-7/avatar', file, undefined)
+    expect(apiUpload).toHaveBeenCalledWith(
+      '/admin/users/user-7/avatar',
+      file,
+      undefined,
+      { retry: 0 },
+    )
   })
 })

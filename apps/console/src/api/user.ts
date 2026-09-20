@@ -74,7 +74,7 @@ export async function uploadMyAvatar(
   file: File,
   onProgress?: (progress: number) => void,
 ): Promise<string> {
-  return apiUpload<string>('/users/me/avatar', file, onProgress)
+  return apiUpload<string>('/users/me/avatar', file, onProgress, { retry: 0 })
 }
 
 export async function changePassword(data: {

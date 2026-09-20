@@ -41,7 +41,7 @@ public class UserAvatarController {
                     HttpHeaders headers = new HttpHeaders();
                     headers.setContentType(mediaType);
                     headers.setContentLength(object.content().length);
-                    headers.add(HttpHeaders.ETAG, key);
+                    headers.setETag(key);
                     headers.add(HttpHeaders.CACHE_CONTROL, "private, max-age=300");
                     return new ResponseEntity<>(object.content(), headers, HttpStatus.OK);
                 })

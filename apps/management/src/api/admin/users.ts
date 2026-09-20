@@ -136,7 +136,7 @@ export const usersApi = {
     file: File,
     onProgress?: (progress: number) => void,
   ): Promise<string> {
-    return apiUpload<string>(`/admin/users/${id}/avatar`, file, onProgress)
+    return apiUpload<string>(`/admin/users/${id}/avatar`, file, onProgress, { retry: 0 })
   },
 
   async deleteUser(id: string): Promise<void> {

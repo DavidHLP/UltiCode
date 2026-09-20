@@ -27,6 +27,20 @@ class ImageContentTest {
             "UklGRhwAAABXRUJQVlA4TA8AAAAvAAAAAAcQ/Y/+ByKi/wEA");
     private static final byte[] TWO_BY_THREE_WEBP = Base64.getDecoder().decode(
             "UklGRhwAAABXRUJQVlA4TA8AAAAvAYAAAAcQ/Y/+ByKi/wEA");
+    private static final byte[] ANIMATED_GIF = {
+            'G', 'I', 'F', '8', '9', 'a',
+            1, 0, 1, 0, (byte) 0x80, 0, 0,
+            0, 0, 0, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            0x21, (byte) 0xf9, 4, 0, 0, 0, 0, 0,
+            0x2c, 0, 0, 0, 0, 1, 0, 1, 0, 0,
+            2, 2, 0x44, 0x01, 0,
+            0x21, (byte) 0xf9, 4, 0, 0, 0, 0, 0,
+            0x2c, 0, 0, 0, 0, 1, 0, 1, 0, 0,
+            2, 2, 0x4c, 0x01, 0,
+            0x3b
+    };
+    private static final byte[] STATIC_GIF = Base64.getDecoder().decode(
+            "R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==");
 
     /** Builds a PNG signature + IHDR with the given dimensions (CRC-correct, no pixel data). */
     private static byte[] pngHeader(int width, int height) {
@@ -132,6 +146,25 @@ class ImageContentTest {
         assertThat(detected).isNotNull();
         assertThat(detected.extension()).isEqualTo("png");
         assertThat(detected.contentType()).isEqualTo("image/png");
+    }
+
+    @Test
+    @DisplayName("rejects animated GIFs before decoding any frame")
+    void rejectsAnimatedGif() {
+        assertThatThrownBy(() -> ImageContent.assertWithinPixelBudget(ANIMATED_GIF))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> ImageContent.detect(ANIMATED_GIF))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    @DisplayName("accepts a static GIF after checking its frame count")
+    void acceptsStaticGif() {
+        ImageContent.Detected detected = ImageContent.detect(STATIC_GIF);
+
+        assertThat(detected).isNotNull();
+        assertThat(detected.extension()).isEqualTo("gif");
+        assertThat(detected.contentType()).isEqualTo("image/gif");
     }
 
     @Test

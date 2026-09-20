@@ -6,7 +6,10 @@ import { fetchUserProfile, updateMyProfile, type ProfileData } from "@/api/user"
 import { toast } from "vue-sonner";
 import { Loader2 } from "lucide-vue-next";
 import { useAvatar } from "@/composables/useAvatar";
-import { useAvatarUpload } from "@/composables/useAvatarUpload";
+import {
+  isAvatarUploadSessionCurrent,
+  useAvatarUpload,
+} from "@/composables/useAvatarUpload";
 import {
   Card,
   CardContent,
@@ -63,10 +66,12 @@ async function handleAvatarChange(event: Event) {
   const file = input.files?.[0];
   input.value = "";
   if (!file || !user.value) return;
+  const accountId = user.value.id;
 
   avatarError.value = "";
   try {
     const avatar = await uploadAvatar(file);
+    if (!isAvatarUploadSessionCurrent(accountId, user.value?.id, authStore.fetchCurrentUserId())) return;
     user.value = { ...user.value, avatar };
     authStore.setUserAvatar(avatar);
     toast.success(t("personal.profile.avatarUpdated"));

@@ -99,7 +99,10 @@ public final class ImageContent {
             }
             ImageReader reader = readers.next();
             try {
-                reader.setInput(input, true, true);
+                reader.setInput(input, false, true);
+                if (isGif(content) && reader.getNumImages(true) != 1) {
+                    return null;
+                }
                 return new long[]{reader.getWidth(0), reader.getHeight(0)};
             } finally {
                 reader.dispose();

@@ -59,10 +59,11 @@ wait_ready() {
 
 cleanup() {
   if [[ "$KEEP" == "true" ]]; then
-    echo "keeping container ${NAME} (--keep)"
+    echo "keeping container ${NAME} and volume ${VOLUME} (--keep)"
     return
   fi
   docker rm -f "$NAME" >/dev/null 2>&1 || true
+  docker volume rm "$VOLUME" >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
 

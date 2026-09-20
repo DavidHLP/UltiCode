@@ -143,7 +143,7 @@ describe("user api", () => {
       await expect(uploadMyAvatar(file)).resolves.toBe(
         "/api/users/avatars/user-123/avatar.webp",
       );
-      expect(apiUpload).toHaveBeenCalledWith("/users/me/avatar", file, undefined);
+      expect(apiUpload).toHaveBeenCalledWith("/users/me/avatar", file, undefined, { retry: 0 });
     });
   });
 

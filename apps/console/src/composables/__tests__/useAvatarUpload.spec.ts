@@ -1,10 +1,18 @@
 import { describe, expect, it, vi } from 'vitest'
-import { useAvatarUpload } from '@/composables/useAvatarUpload'
+import { isAvatarUploadSessionCurrent, useAvatarUpload } from '@/composables/useAvatarUpload'
 
 function makeFile() {
   return new File(['avatar'], 'avatar.png', { type: 'image/png' })
 }
 
+
+describe('isAvatarUploadSessionCurrent', () => {
+  it('rejects a response after logout or account switching', () => {
+    expect(isAvatarUploadSessionCurrent('user-a', 'user-a', 'user-a')).toBe(true)
+    expect(isAvatarUploadSessionCurrent('user-a', 'user-a', null)).toBe(false)
+    expect(isAvatarUploadSessionCurrent('user-a', 'user-b', 'user-b')).toBe(false)
+  })
+})
 describe('useAvatarUpload', () => {
   it('uploads the file, tracks progress, and returns the display URL', async () => {
     const uploader = vi.fn(async (_file: File, onProgress?: (value: number) => void) => {

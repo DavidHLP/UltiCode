@@ -1,0 +1,31 @@
+docs/DEVELOPMENT.md
+  s_aa33514364f4e1::t_b1be6837c45c85 141-144
+docs/OPERATIONS.md
+  s_aa33514364f4e1::t_30fcdfee80787a 122-124
+services/admin/src/test/java/com/ulticode/admin/adapter/in/web/AdminReadinessControllerTest.java
+  s_aa33514364f4e1::t_1cfdb0495b729b 1-102
+services/app/app-web/src/test/java/com/ulticode/app/adapter/in/web/AppReadinessControllerTest.java
+  s_aa33514364f4e1::t_10f6b4340cc32b 1-101
+services/platform/storage/src/main/java/com/ulticode/common/storage/StorageReadiness.java
+  s_aa33514364f4e1::t_c26e926307c01e 1-60
+services/platform/storage/src/test/java/com/ulticode/common/storage/StorageAutoConfigurationTest.java
+  s_aa33514364f4e1::t_e66131f0187342 1-87
+services/platform/storage/src/test/java/com/ulticode/common/storage/StorageStartupProbeTest.java
+  s_aa33514364f4e1::t_1a2227c4d53dbd 1-161
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b8a9f8788cbb178280493057412fdffe911cbdfc",
+  "prompts": {},
+  "sessions": {
+    "s_aa33514364f4e1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "3b397a92-58ca-4252-8232-f281ba8d72e8",
+        "model": "deepseek-v4.1-flash"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

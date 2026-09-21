@@ -434,7 +434,10 @@ runs:
         printf 'phase=stopped\n' >>"$STATE_FILE"
 
     - name: Verify Admin backup writer drained
-      if: ${{ inputs.rollback != 'true' }}
+      if: >-
+        ${{ inputs.rollback != 'true' && (inputs.skip_migrations != 'true'
+        || inputs.services == '' || inputs.services == 'all'
+        || contains(inputs.services, 'backend-admin')) }}
       shell: bash
       env:
         MIGRATION_DB_HOST: ${{ inputs.migration_db_host }}

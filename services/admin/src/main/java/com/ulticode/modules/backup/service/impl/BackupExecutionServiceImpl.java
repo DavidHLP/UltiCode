@@ -132,7 +132,10 @@ public class BackupExecutionServiceImpl implements BackupExecutionService {
                     boolean failed = fail(backup, exception.getMessage()) == 1;
                     if (objectKey != null) {
                         if (failed) {
-                            deleteUploadedObject(backupId, objectKey);
+                            // The PUT may still be committing after its timeout:
+                            // record the intent and let the sweep delete it a
+                            // settle window later instead of racing that commit.
+                            deferUploadedObjectCleanup(backupId, objectKey);
                         } else {
                             log.warn("Backup {} kept a durable COMPLETED row; preserving uploaded object {}",
                                     backupId, objectKey);
@@ -193,20 +196,18 @@ public class BackupExecutionServiceImpl implements BackupExecutionService {
         return failedRows;
     }
 
-    private void deleteUploadedObject(String backupId, String objectKey) {
+    /**
+     * Records the cleanup intent instead of deleting now: a PUT that timed out
+     * may still commit server-side, and an inline DELETE could run before that
+     * commit and leave the dump untracked. BackupObjectCleanup sweeps the
+     * tombstone after the settle window.
+     */
+    private void deferUploadedObjectCleanup(String backupId, String objectKey) {
         try {
-            fileStorage.delete(objectKey);
-        } catch (RuntimeException cleanupException) {
-            // The same outage that failed the run can fail this cleanup: record a
-            // tombstone so BackupObjectCleanup retries the deletion instead of
-            // leaving the dump orphaned until an operator notices.
-            try {
-                backupDeletionTombstoneMapper.insert(backupId, objectKey);
-            } catch (RuntimeException tombstoneFailure) {
-                log.warn("Could not record the pending deletion of backup object {}", objectKey,
-                        tombstoneFailure);
-            }
-            log.warn("Failed to clean up uploaded backup object: {}", objectKey, cleanupException);
+            backupDeletionTombstoneMapper.insert(backupId, objectKey);
+        } catch (RuntimeException tombstoneFailure) {
+            log.error("Could not record the pending deletion of backup object {}; delete backup {} manually",
+                    objectKey, backupId, tombstoneFailure);
         }
     }
 

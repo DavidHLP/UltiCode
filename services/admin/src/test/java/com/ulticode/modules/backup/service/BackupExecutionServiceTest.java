@@ -4,6 +4,7 @@ import com.ulticode.modules.backup.entity.Backup;
 import com.ulticode.common.storage.FileStoragePort;
 import com.ulticode.modules.backup.entity.enums.BackupStatus;
 import com.ulticode.modules.backup.entity.enums.BackupType;
+import com.ulticode.modules.backup.mapper.BackupDeletionTombstoneMapper;
 import com.ulticode.modules.backup.mapper.BackupMapper;
 import com.ulticode.modules.backup.port.BackupProcessPort;
 import com.ulticode.modules.backup.service.impl.BackupExecutionServiceImpl;
@@ -66,6 +67,9 @@ class BackupExecutionServiceTest {
 
     @Mock
     private BackupMapper backupMapper;
+
+    @Mock
+    private BackupDeletionTombstoneMapper backupDeletionTombstoneMapper;
 
     @Mock
     private Clock clock;
@@ -239,7 +243,8 @@ class BackupExecutionServiceTest {
 
             String objectKey = "admin/backups/2026/01/" + BACKUP_ID + ".sql";
             verify(fileStorage).putFile(eq(objectKey), any(Path.class), eq("application/sql"));
-            verify(fileStorage).delete(objectKey);
+            verify(backupDeletionTombstoneMapper).insert(BACKUP_ID, objectKey);
+            verify(fileStorage, never()).delete(any());
             assertEquals(BackupStatus.FAILED, backup.getStatus());
         }
         @Test
@@ -261,7 +266,8 @@ class BackupExecutionServiceTest {
 
             String objectKey = "admin/backups/2026/01/" + BACKUP_ID + ".sql";
             verify(fileStorage).putFile(eq(objectKey), any(Path.class), eq("application/sql"));
-            verify(fileStorage).delete(objectKey);
+            verify(backupDeletionTombstoneMapper).insert(BACKUP_ID, objectKey);
+            verify(fileStorage, never()).delete(any());
             assertEquals(BackupStatus.FAILED, backup.getStatus());
         }
 

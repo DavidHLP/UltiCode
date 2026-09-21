@@ -100,7 +100,34 @@ class StorageCleanupDispatcherTest {
 
         assertThat(dispatcher.dispatch()).isZero();
 
-        verify(outboxMapper).markRetry(eq("sc-1"), anyString(), eq("storage unavailable"), eq(5), eq(30));
+        verify(outboxMapper).markRetry(eq("sc-1"), anyString(), eq("storage unavailable"), eq(30));
         verify(outboxMapper, never()).markDelivered(anyString(), anyString());
+    }
+
+    @Test
+    void keepsRetryingWithGrowingBackoffInsteadOfGivingUp() {
+        // Attempt count past the previous five-attempt cap: the intent must stay
+        // retryable so an outage longer than the retry window cannot strand it.
+        StorageCleanupOutboxRecord record = claimedRow();
+        record.setAttempts(9);
+        givenClaimed(record);
+        when(userProfileMapper.selectById("u-1")).thenReturn(null);
+        org.mockito.Mockito.doThrow(new RuntimeException("storage unavailable"))
+                .when(fileStorage).delete(OLD_KEY);
+
+        assertThat(dispatcher.dispatch()).isZero();
+
+        verify(outboxMapper).markRetry(eq("sc-1"), anyString(), eq("storage unavailable"), eq(3600));
+    }
+
+    @Test
+    void requeuesRowsParkedDeadByAnEarlierRelease() {
+        givenClaimed(claimedRow());
+        when(userProfileMapper.selectById("u-1")).thenReturn(null);
+        when(outboxMapper.markDelivered(eq("sc-1"), anyString())).thenReturn(1);
+
+        dispatcher.dispatch();
+
+        verify(outboxMapper).requeueDead();
     }
 }

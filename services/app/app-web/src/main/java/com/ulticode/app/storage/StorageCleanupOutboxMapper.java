@@ -53,8 +53,7 @@ public interface StorageCleanupOutboxMapper extends BaseMapper<StorageCleanupOut
 
     @Update("""
         UPDATE storage_cleanup_outbox
-        SET state = CASE WHEN attempts + 1 >= #{maxAttempts} THEN 'DEAD' ELSE 'PENDING' END,
-            attempts = attempts + 1, last_error = #{error},
+        SET state = 'PENDING', attempts = attempts + 1, last_error = #{error},
             claimed_at = NULL, claim_owner = NULL,
             next_retry_at = DATE_ADD(NOW(3), INTERVAL #{backoffSeconds} SECOND)
         WHERE id = #{id} AND state = 'CLAIMED' AND claim_owner = #{claimOwner}
@@ -62,8 +61,21 @@ public interface StorageCleanupOutboxMapper extends BaseMapper<StorageCleanupOut
     int markRetry(@Param("id") String id,
                   @Param("claimOwner") String claimOwner,
                   @Param("error") String error,
-                  @Param("maxAttempts") int maxAttempts,
                   @Param("backoffSeconds") int backoffSeconds);
+
+    /**
+     * Deleting an object is idempotent, so an attempt cap would be the only way
+     * a cleanup intent could be stranded: an outage longer than the retry window
+     * would leave the avatar in the bucket forever. Rows parked in {@code DEAD}
+     * by an earlier release are requeued on the next cycle.
+     */
+    @Update("""
+        UPDATE storage_cleanup_outbox
+        SET state = 'PENDING', attempts = 0, last_error = 'Requeued dead cleanup intent',
+            claimed_at = NULL, claim_owner = NULL, next_retry_at = NOW(3)
+        WHERE state = 'DEAD'
+        """)
+    int requeueDead();
 
     @Update("""
         UPDATE storage_cleanup_outbox

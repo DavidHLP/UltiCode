@@ -110,7 +110,7 @@ class ProfileWriteProviderTest {
         when(actorAuthorizer.isAuthorized(any())).thenReturn(true);
         UserProfile existing = new UserProfile();
         existing.setAccountId("user-9");
-        when(userProfileMapper.selectById("user-9")).thenReturn(existing);
+        when(userProfileMapper.selectByIdForUpdate("user-9")).thenReturn(existing);
         when(userProfileMapper.updateById(any(UserProfile.class))).thenReturn(1);
         when(userDirectoryQueryPort.findById("user-9"))
                 .thenReturn(directoryRow("user-9", "alice", "Alice", "app/avatars/user-9/new.png"));
@@ -129,7 +129,7 @@ class ProfileWriteProviderTest {
         when(actorAuthorizer.isAuthorized(any())).thenReturn(true);
         UserProfile existing = new UserProfile();
         existing.setAccountId("user-10");
-        when(userProfileMapper.selectById("user-10")).thenReturn(existing);
+        when(userProfileMapper.selectByIdForUpdate("user-10")).thenReturn(existing);
         when(userProfileMapper.updateById(any(UserProfile.class))).thenReturn(1);
         when(userDirectoryQueryPort.findById("user-10"))
                 .thenReturn(directoryRow("user-10", "alice", "Alice", "app/avatars/user-10/new.png"));
@@ -152,7 +152,7 @@ class ProfileWriteProviderTest {
         UserProfile existing = new UserProfile();
         existing.setAccountId("user-9");
         existing.setAvatar("app/avatars/user-9/old.png");
-        when(userProfileMapper.selectById("user-9")).thenReturn(existing);
+        when(userProfileMapper.selectByIdForUpdate("user-9")).thenReturn(existing);
         when(userProfileMapper.updateById(any(UserProfile.class))).thenReturn(1);
 
         RpcResult<?> result = provider.uploadAvatar(new UploadAvatarCommand(
@@ -169,7 +169,7 @@ class ProfileWriteProviderTest {
         UserProfile existing = new UserProfile();
         existing.setAccountId("user-9");
         existing.setAvatar("app/avatars/user-9/old.png");
-        when(userProfileMapper.selectById("user-9")).thenReturn(existing);
+        when(userProfileMapper.selectByIdForUpdate("user-9")).thenReturn(existing);
         when(userProfileMapper.updateById(any(UserProfile.class))).thenReturn(1);
         doThrow(new RuntimeException("cleanup outbox unavailable"))
                 .when(storageCleanupOutbox).enqueue("app/avatars/user-9/old.png");
@@ -188,7 +188,7 @@ class ProfileWriteProviderTest {
         UserProfile existing = new UserProfile();
         existing.setAccountId("user-9");
         existing.setAvatar("app/avatars/user-9/old.png");
-        when(userProfileMapper.selectById("user-9")).thenReturn(existing);
+        when(userProfileMapper.selectByIdForUpdate("user-9")).thenReturn(existing);
         when(userProfileMapper.updateById(any(UserProfile.class))).thenReturn(0);
 
         RpcResult<?> result = provider.uploadAvatar(new UploadAvatarCommand(

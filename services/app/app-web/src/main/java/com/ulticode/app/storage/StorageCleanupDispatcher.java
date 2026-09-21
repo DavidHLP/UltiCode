@@ -23,6 +23,8 @@ import java.util.List;
 public class StorageCleanupDispatcher {
 
     private static final int RETRY_BACKOFF_SECONDS = 30;
+    private static final int MAX_RETRY_BACKOFF_SECONDS = 3600;
+    private static final int BACKOFF_DOUBLING_CAP = 7;
 
     private final OutboxDispatcher<StorageCleanupOutboxRecord> dispatcher;
 
@@ -36,6 +38,7 @@ public class StorageCleanupDispatcher {
                     @Override
                     public void reclaimStaleClaimed() {
                         outboxMapper.reclaimStaleClaimed();
+                        outboxMapper.requeueDead();
                     }
 
                     @Override
@@ -68,9 +71,12 @@ public class StorageCleanupDispatcher {
                             String claimOwner,
                             String error,
                             int maxAttempts) {
+                        // The attempt cap is deliberately not applied: this delete
+                        // is idempotent, so the intent stays retryable with a
+                        // growing backoff instead of becoming terminal during an
+                        // outage longer than the retry window.
                         return outboxMapper.markRetry(
-                                record.getId(), claimOwner, error, maxAttempts,
-                                RETRY_BACKOFF_SECONDS);
+                                record.getId(), claimOwner, error, backoffSeconds(record));
                     }
 
                     @Override
@@ -78,6 +84,12 @@ public class StorageCleanupDispatcher {
                         return record.getObjectKey();
                     }
                 });
+    }
+
+    private static int backoffSeconds(StorageCleanupOutboxRecord record) {
+        Integer attempts = record.getAttempts();
+        int doublings = Math.min(attempts == null ? 0 : attempts, BACKOFF_DOUBLING_CAP);
+        return Math.min(RETRY_BACKOFF_SECONDS << doublings, MAX_RETRY_BACKOFF_SECONDS);
     }
 
     private static String deleteUnlessCurrent(String key,

@@ -220,7 +220,9 @@ public class ProfileWriteProvider implements ProfileWriteService {
 
             // 2. Execute avatar upsert
             String accountId = command.accountId();
-            UserProfile profile = userProfileMapper.selectById(accountId);
+            // Locking read: overlapping uploads for one account must each queue
+            // the key their own transaction displaced.
+            UserProfile profile = userProfileMapper.selectByIdForUpdate(accountId);
             boolean isNew = profile == null;
             String previousAvatar = isNew ? null : profile.getAvatar();
             if (isNew) {

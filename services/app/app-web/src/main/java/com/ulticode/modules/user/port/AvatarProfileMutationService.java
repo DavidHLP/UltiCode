@@ -27,7 +27,9 @@ public class AvatarProfileMutationService {
 
     @Transactional
     public void persistAvatar(String userId, String key) {
-        UserProfile profile = userProfileMapper.selectById(userId);
+        // Locking read: a concurrent upload for the same account must queue the
+        // key this transaction displaces, not a stale one it read in parallel.
+        UserProfile profile = userProfileMapper.selectByIdForUpdate(userId);
         boolean isNew = profile == null;
         String previousAvatar = isNew ? null : profile.getAvatar();
         if (isNew) {

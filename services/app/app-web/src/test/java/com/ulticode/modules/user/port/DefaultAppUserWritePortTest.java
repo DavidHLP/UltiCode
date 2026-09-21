@@ -182,6 +182,12 @@ class DefaultAppUserWritePortTest {
     @DisplayName("uploadAvatar()")
     class UploadAvatar {
 
+        /** Default: no profile row yet; tests with an existing row override this stub. */
+        @BeforeEach
+        void stubLockedProfileRead() {
+            lenient().when(userProfileMapper.selectByIdForUpdate(anyString())).thenReturn(null);
+        }
+
         @Test
         @DisplayName("null userId throws UNAUTHORIZED")
         void nullUserIdThrows() {
@@ -228,7 +234,7 @@ class DefaultAppUserWritePortTest {
                     .hasMessage("Image dimensions exceed 4096x4096 pixel limit");
 
             verify(fileStorage, never()).put(any(), any(), org.mockito.ArgumentMatchers.anyLong(), any());
-            verify(userProfileMapper, never()).selectById("u-003");
+            verify(userProfileMapper, never()).selectByIdForUpdate("u-003");
         }
 
         @Test
@@ -237,7 +243,7 @@ class DefaultAppUserWritePortTest {
             String userId = "u-004-existing";
             UserProfile existing = new UserProfile();
             existing.setAccountId(userId);
-            when(userProfileMapper.selectById(userId)).thenReturn(existing);
+            when(userProfileMapper.selectByIdForUpdate(userId)).thenReturn(existing);
             when(userProfileMapper.updateById(any(UserProfile.class))).thenReturn(1);
             when(uuidGenerator.newId()).thenReturn("uuid-existing");
             byte[] png = java.util.Base64.getDecoder().decode(
@@ -279,7 +285,7 @@ class DefaultAppUserWritePortTest {
             UserProfile existing = new UserProfile();
             existing.setAccountId(userId);
             existing.setAvatar("app/avatars/u-005/old.png");
-            when(userProfileMapper.selectById(userId)).thenReturn(existing);
+            when(userProfileMapper.selectByIdForUpdate(userId)).thenReturn(existing);
             when(userProfileMapper.updateById(any(UserProfile.class))).thenReturn(1);
             when(uuidGenerator.newId()).thenReturn("uuid-2");
             byte[] png = java.util.Base64.getDecoder().decode(
@@ -290,7 +296,7 @@ class DefaultAppUserWritePortTest {
             InOrder order = inOrder(fileStorage, userProfileMapper, storageCleanupOutbox);
             order.verify(fileStorage).put(any(), any(), org.mockito.ArgumentMatchers.anyLong(),
                     org.mockito.ArgumentMatchers.eq("image/png"));
-            order.verify(userProfileMapper).selectById(userId);
+            order.verify(userProfileMapper).selectByIdForUpdate(userId);
             order.verify(userProfileMapper).updateById(any(UserProfile.class));
             order.verify(storageCleanupOutbox).enqueue("app/avatars/u-005/old.png");
             verify(fileStorage, never()).delete("app/avatars/u-005/old.png");
@@ -386,7 +392,6 @@ class DefaultAppUserWritePortTest {
         @DisplayName("zero-row database write removes uploaded object and fails")
         void zeroRowDatabaseWriteRemovesUploadedObject() {
             String userId = "u-007";
-            when(userProfileMapper.selectById(userId)).thenReturn(null);
             when(uuidGenerator.newId()).thenReturn("uuid-4");
             when(userProfileMapper.insert(any(UserProfile.class))).thenReturn(0);
             byte[] png = java.util.Base64.getDecoder().decode(
@@ -408,7 +413,7 @@ class DefaultAppUserWritePortTest {
             UserProfile existing = new UserProfile();
             existing.setAccountId(userId);
             existing.setAvatar("app/avatars/u-008/old.png");
-            when(userProfileMapper.selectById(userId)).thenReturn(existing);
+            when(userProfileMapper.selectByIdForUpdate(userId)).thenReturn(existing);
             when(uuidGenerator.newId()).thenReturn("uuid-5");
             when(userProfileMapper.updateById(any(UserProfile.class))).thenReturn(1);
             byte[] png = java.util.Base64.getDecoder().decode(

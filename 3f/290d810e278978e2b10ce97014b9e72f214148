@@ -1,0 +1,30 @@
+services/platform/storage/src/main/java/com/ulticode/common/storage/ImageContent.java
+  s_7a60c4729f6b13::t_92d5714ac91f85 161
+services/platform/storage/src/test/java/com/ulticode/common/storage/ImageContentTest.java
+  s_7a60c4729f6b13::t_92d5714ac91f85 237,245,247-249
+scripts/test/owner-migration-manifest-contract.sh
+  s_7a60c4729f6b13::t_92d5714ac91f85 36
+scripts/runbooks/reconcile-legacy-backups.sh
+  s_7a60c4729f6b13::t_92d5714ac91f85 115-121,146
+init-db/scripts/baseline-adopt.sh
+  s_7a60c4729f6b13::t_92d5714ac91f85 46-49,63,152
+scripts/dev/owner-migration-safety-integration-test.sh
+  s_7a60c4729f6b13::t_92d5714ac91f85 252-265
+  s_7a60c4729f6b13::t_a5393bc818f6b6 251
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3f290d810e278978e2b10ce97014b9e72f214148",
+  "prompts": {},
+  "sessions": {
+    "s_7a60c4729f6b13": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0c1f4-8a70-75e2-be77-59eaa10082f3",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

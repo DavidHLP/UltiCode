@@ -1,0 +1,32 @@
+scripts/test/graceful-drain-contract.sh
+  h_77173abe25c3ff 76-77
+services/admin/src/main/java/com/ulticode/admin/config/AdminBackupExecutorConfiguration.java
+  h_77173abe25c3ff 22
+services/admin/src/main/java/com/ulticode/modules/admin/port/adapter/AdminUserProfileAdapter.java
+  h_77173abe25c3ff 235-237,240
+services/admin/src/main/java/com/ulticode/modules/backup/service/impl/BackupExecutionServiceImpl.java
+  h_77173abe25c3ff 96-127,135-161
+services/admin/src/main/java/com/ulticode/modules/backup/service/impl/BackupServiceImpl.java
+  h_77173abe25c3ff 284-289
+services/admin/src/main/resources/application.yml
+  h_77173abe25c3ff 81
+services/admin/src/test/java/com/ulticode/modules/admin/port/adapter/AdminUserProfileAdapterTest.java
+  h_77173abe25c3ff 125-141
+services/admin/src/test/java/com/ulticode/modules/backup/service/BackupExecutionServiceTest.java
+  h_77173abe25c3ff 102-112,186-187,206-207,226-277
+services/admin/src/test/java/com/ulticode/modules/backup/service/BackupServiceTest.java
+  h_77173abe25c3ff 311-325,502-516
+services/docs/GRACEFUL_DRAIN_RUNBOOK.md
+  h_77173abe25c3ff 13-17
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a5faaedbb1d7773b29633411f5c8d7dd7108f05a",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

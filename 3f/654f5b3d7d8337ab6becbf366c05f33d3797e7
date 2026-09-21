@@ -1,0 +1,18 @@
+docs/OPERATIONS.md
+  h_77173abe25c3ff 177-180
+scripts/dev/migrate-object-storage-test.sh
+  h_77173abe25c3ff 192,199,203-224,483-500
+scripts/dev/migrate-object-storage.sh
+  h_77173abe25c3ff 49-52,127-128,133-134,157,161-167,169-175,178-182,184-202,204-207,209-221,235-242,489,492-504
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3f654f5b3d7d8337ab6becbf366c05f33d3797e7",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

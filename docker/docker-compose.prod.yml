@@ -76,6 +76,7 @@ services:
   rustfs-iam-init:
     environment:
       RUSTFS_ENDPOINT: https://rustfs:9000
+      RUSTFS_CA_BUNDLE: /certs/rustfs_cert.pem
       AWS_CA_BUNDLE: /certs/rustfs_cert.pem
       SSL_CERT_FILE: /certs/rustfs_cert.pem
       CURL_CA_BUNDLE: /certs/rustfs_cert.pem

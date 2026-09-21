@@ -51,7 +51,9 @@ jobs:
   deploy:
     name: Deploy to ${{ github.event.inputs.environment }}
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # Covers the default 3660s Admin backup drain plus migration/health handoff.
+    # The composite action's always() recovery step restores Admin if deploy fails.
+    timeout-minutes: 75
     environment: ${{ github.event.inputs.environment }}
     steps:
       - name: Checkout repository

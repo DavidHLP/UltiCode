@@ -145,13 +145,14 @@ services:
   rustfs-init:
     image: "amazon/aws-cli:2.31.0@sha256:d5f18fde2ba3f9205e75d511ca3e6185c144e55df07e50eee16d940994557b40"
     entrypoint: ["/bin/sh", "-ec"]
-    command: |
-      if aws s3api head-bucket --bucket "$$RUSTFS_BUCKET" --endpoint-url "$$RUSTFS_ENDPOINT" >/dev/null 2>&1; then
-        echo "RustFS bucket $$RUSTFS_BUCKET already exists."
-      else
-        aws s3api create-bucket --bucket "$$RUSTFS_BUCKET" --endpoint-url "$$RUSTFS_ENDPOINT"
-        echo "Created RustFS bucket $$RUSTFS_BUCKET."
-      fi
+    command:
+      - |
+        if aws s3api head-bucket --bucket "$$RUSTFS_BUCKET" --endpoint-url "$$RUSTFS_ENDPOINT" >/dev/null 2>&1; then
+          echo "RustFS bucket $$RUSTFS_BUCKET already exists."
+        else
+          aws s3api create-bucket --bucket "$$RUSTFS_BUCKET" --endpoint-url "$$RUSTFS_ENDPOINT"
+          echo "Created RustFS bucket $$RUSTFS_BUCKET."
+        fi
     environment:
       AWS_ACCESS_KEY_ID: ${RUSTFS_ACCESS_KEY:?RUSTFS_ACCESS_KEY is required}
       AWS_SECRET_ACCESS_KEY: ${RUSTFS_SECRET_KEY:?RUSTFS_SECRET_KEY is required}
@@ -171,85 +172,103 @@ services:
   rustfs-iam-init:
     image: "rustfs/rc:v0.1.36@sha256:ab024bfebee49a750ce886b4c70963ccd9ddaa03f491704a90710641d7a26699"
     entrypoint: ["/bin/sh", "-ec"]
-    command: |
-      umask 077
-      if [ "$$RUSTFS_APP_ACCESS_KEY" = "$$RUSTFS_ACCESS_KEY" ] \
-          || [ "$$RUSTFS_ADMIN_ACCESS_KEY" = "$$RUSTFS_ACCESS_KEY" ] \
-          || [ "$$RUSTFS_APP_ACCESS_KEY" = "$$RUSTFS_ADMIN_ACCESS_KEY" ]; then
-        echo "RustFS runtime access keys must be distinct from root and each other" >&2
-        exit 1
-      fi
-      cat >/tmp/app-storage-policy.json <<POLICY
-      {
-        "Version": "2012-10-17",
-        "Statement": [
-          {
-            "Effect": "Allow",
-            "Action": ["s3:GetBucketLocation"],
-            "Resource": ["arn:aws:s3:::$${RUSTFS_BUCKET}"]
-          },
-          {
-            "Effect": "Allow",
-            "Action": ["s3:ListBucket"],
-            "Resource": ["arn:aws:s3:::$${RUSTFS_BUCKET}"],
-            "Condition": {
-              "StringLike": {
-                "s3:prefix": ["app/avatars", "app/avatars/*"]
+    command:
+      - |
+        umask 077
+        if [ "$$RUSTFS_APP_ACCESS_KEY" = "$$RUSTFS_ACCESS_KEY" ] \
+            || [ "$$RUSTFS_ADMIN_ACCESS_KEY" = "$$RUSTFS_ACCESS_KEY" ] \
+            || [ "$$RUSTFS_APP_ACCESS_KEY" = "$$RUSTFS_ADMIN_ACCESS_KEY" ]; then
+          echo "RustFS runtime access keys must be distinct from root and each other" >&2
+          exit 1
+        fi
+        cat >/tmp/app-storage-policy.json <<POLICY
+        {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": ["s3:GetBucketLocation"],
+              "Resource": ["arn:aws:s3:::$${RUSTFS_BUCKET}"]
+            },
+            {
+              "Effect": "Allow",
+              "Action": ["s3:ListBucket"],
+              "Resource": ["arn:aws:s3:::$${RUSTFS_BUCKET}"],
+              "Condition": {
+                "StringLike": {
+                  "s3:prefix": ["app/avatars", "app/avatars/*"]
+                }
               }
+            },
+            {
+              "Effect": "Allow",
+              "Action": ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"],
+              "Resource": ["arn:aws:s3:::$${RUSTFS_BUCKET}/app/avatars/*"]
             }
-          },
-          {
-            "Effect": "Allow",
-            "Action": ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"],
-            "Resource": ["arn:aws:s3:::$${RUSTFS_BUCKET}/app/avatars/*"]
-          }
-        ]
-      }
-      POLICY
-      cat >/tmp/admin-storage-policy.json <<POLICY
-      {
-        "Version": "2012-10-17",
-        "Statement": [
-          {
-            "Effect": "Allow",
-            "Action": ["s3:GetBucketLocation"],
-            "Resource": ["arn:aws:s3:::$${RUSTFS_BUCKET}"]
-          },
-          {
-            "Effect": "Allow",
-            "Action": ["s3:ListBucket"],
-            "Resource": ["arn:aws:s3:::$${RUSTFS_BUCKET}"],
-            "Condition": {
-              "StringLike": {
-                "s3:prefix": [
-                  "app/avatars",
-                  "app/avatars/*",
-                  "admin/backups",
-                  "admin/backups/*"
-                ]
+          ]
+        }
+        POLICY
+        cat >/tmp/admin-storage-policy.json <<POLICY
+        {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": ["s3:GetBucketLocation"],
+              "Resource": ["arn:aws:s3:::$${RUSTFS_BUCKET}"]
+            },
+            {
+              "Effect": "Allow",
+              "Action": ["s3:ListBucket"],
+              "Resource": ["arn:aws:s3:::$${RUSTFS_BUCKET}"],
+              "Condition": {
+                "StringLike": {
+                  "s3:prefix": [
+                    "app/avatars",
+                    "app/avatars/*",
+                    "admin/backups",
+                    "admin/backups/*"
+                  ]
+                }
               }
+            },
+            {
+              "Effect": "Allow",
+              "Action": ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"],
+              "Resource": [
+                "arn:aws:s3:::$${RUSTFS_BUCKET}/app/avatars/*",
+                "arn:aws:s3:::$${RUSTFS_BUCKET}/admin/backups/*"
+              ]
             }
-          },
-          {
-            "Effect": "Allow",
-            "Action": ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"],
-            "Resource": [
-              "arn:aws:s3:::$${RUSTFS_BUCKET}/app/avatars/*",
-              "arn:aws:s3:::$${RUSTFS_BUCKET}/admin/backups/*"
-            ]
-          }
-        ]
-      }
-      POLICY
-      # RustFS rc treats policy create as replace and user add as create/update,
-      # so this one-shot remains convergent when local up.sh recreates it.
-      rc alias set root "$$RUSTFS_ENDPOINT" "$$RUSTFS_ACCESS_KEY" "$$RUSTFS_SECRET_KEY"
-      rc admin policy create root app-storage /tmp/app-storage-policy.json
-      rc admin policy create root admin-storage /tmp/admin-storage-policy.json
-      rc admin user add root "$$RUSTFS_APP_ACCESS_KEY" "$$RUSTFS_APP_SECRET_KEY"
-      rc admin user add root "$$RUSTFS_ADMIN_ACCESS_KEY" "$$RUSTFS_ADMIN_SECRET_KEY"
-      rc admin policy attach root app-storage --user "$$RUSTFS_APP_ACCESS_KEY"
-      rc admin policy attach root admin-storage --user "$$RUSTFS_ADMIN_ACCESS_KEY"
+          ]
+        }
+        POLICY
+        # RustFS rc needs the explicit flag for private production CAs; the
+        # local HTTP endpoint does not need one.
+        if [ -n "$${RUSTFS_CA_BUNDLE:-}" ]; then
+          rc alias set root "$$RUSTFS_ENDPOINT" "$$RUSTFS_ACCESS_KEY" "$$RUSTFS_SECRET_KEY" \
+            --ca-bundle "$$RUSTFS_CA_BUNDLE"
+        else
+          rc alias set root "$$RUSTFS_ENDPOINT" "$$RUSTFS_ACCESS_KEY" "$$RUSTFS_SECRET_KEY"
+        fi
+        rc admin policy create root app-storage /tmp/app-storage-policy.json
+        rc admin policy create root admin-storage /tmp/admin-storage-policy.json
+        if rc admin user info root "$$RUSTFS_APP_ACCESS_KEY" >/dev/null 2>&1; then
+          rc admin user passwd root "$$RUSTFS_APP_ACCESS_KEY" \
+            --password-from-env RUSTFS_APP_SECRET_KEY
+        else
+          rc admin user add root "$$RUSTFS_APP_ACCESS_KEY" "$$RUSTFS_APP_SECRET_KEY"
+        fi
+        rc admin user enable root "$$RUSTFS_APP_ACCESS_KEY"
+        if rc admin user info root "$$RUSTFS_ADMIN_ACCESS_KEY" >/dev/null 2>&1; then
+          rc admin user passwd root "$$RUSTFS_ADMIN_ACCESS_KEY" \
+            --password-from-env RUSTFS_ADMIN_SECRET_KEY
+        else
+          rc admin user add root "$$RUSTFS_ADMIN_ACCESS_KEY" "$$RUSTFS_ADMIN_SECRET_KEY"
+        fi
+        rc admin user enable root "$$RUSTFS_ADMIN_ACCESS_KEY"
+        rc admin policy attach root app-storage --user "$$RUSTFS_APP_ACCESS_KEY"
+        rc admin policy attach root admin-storage --user "$$RUSTFS_ADMIN_ACCESS_KEY"
     environment:
       RUSTFS_ENDPOINT: http://rustfs:9000
       RUSTFS_ACCESS_KEY: ${RUSTFS_ACCESS_KEY:?RUSTFS_ACCESS_KEY is required}

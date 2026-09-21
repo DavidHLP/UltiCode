@@ -176,8 +176,20 @@ EOF_POLICY
       rc alias set root "$RUSTFS_ENDPOINT" "$RUSTFS_ACCESS_KEY" "$RUSTFS_SECRET_KEY"
       rc admin policy create root app-storage /policies/app-storage-policy.json
       rc admin policy create root admin-storage /policies/admin-storage-policy.json
-      rc admin user add root "$RUSTFS_APP_ACCESS_KEY" "$RUSTFS_APP_SECRET_KEY"
-      rc admin user add root "$RUSTFS_ADMIN_ACCESS_KEY" "$RUSTFS_ADMIN_SECRET_KEY"
+      if rc admin user info root "$RUSTFS_APP_ACCESS_KEY" >/dev/null 2>&1; then
+        rc admin user passwd root "$RUSTFS_APP_ACCESS_KEY" \
+          --password-from-env RUSTFS_APP_SECRET_KEY
+      else
+        rc admin user add root "$RUSTFS_APP_ACCESS_KEY" "$RUSTFS_APP_SECRET_KEY"
+      fi
+      rc admin user enable root "$RUSTFS_APP_ACCESS_KEY"
+      if rc admin user info root "$RUSTFS_ADMIN_ACCESS_KEY" >/dev/null 2>&1; then
+        rc admin user passwd root "$RUSTFS_ADMIN_ACCESS_KEY" \
+          --password-from-env RUSTFS_ADMIN_SECRET_KEY
+      else
+        rc admin user add root "$RUSTFS_ADMIN_ACCESS_KEY" "$RUSTFS_ADMIN_SECRET_KEY"
+      fi
+      rc admin user enable root "$RUSTFS_ADMIN_ACCESS_KEY"
       rc admin policy attach root app-storage --user "$RUSTFS_APP_ACCESS_KEY"
       rc admin policy attach root admin-storage --user "$RUSTFS_ADMIN_ACCESS_KEY"
     '
@@ -188,17 +200,17 @@ run_iam_scope_tests() {
   aws_s3api "$APP_ACCESS_KEY" "$APP_SECRET_KEY" get-bucket-location \
     --bucket "$BUCKET" >/dev/null
   aws_s3api "$APP_ACCESS_KEY" "$APP_SECRET_KEY" put-object \
-    --bucket "$BUCKET" --key app/avatars/scope-app.txt --body /dev/null >/dev/null
+    --bucket "$BUCKET" --key app/avatars/scope-app.txt --body fileb:///dev/null >/dev/null
   aws_s3api "$APP_ACCESS_KEY" "$APP_SECRET_KEY" get-object \
     --bucket "$BUCKET" --key app/avatars/scope-app.txt /dev/null >/dev/null
   aws_s3api "$ADMIN_ACCESS_KEY" "$ADMIN_SECRET_KEY" put-object \
-    --bucket "$BUCKET" --key app/avatars/scope-admin.txt --body /dev/null >/dev/null
+    --bucket "$BUCKET" --key app/avatars/scope-admin.txt --body fileb:///dev/null >/dev/null
   aws_s3api "$ADMIN_ACCESS_KEY" "$ADMIN_SECRET_KEY" put-object \
-    --bucket "$BUCKET" --key admin/backups/scope-admin.sql --body /dev/null >/dev/null
+    --bucket "$BUCKET" --key admin/backups/scope-admin.sql --body fileb:///dev/null >/dev/null
   aws_s3api "$ADMIN_ACCESS_KEY" "$ADMIN_SECRET_KEY" get-object \
     --bucket "$BUCKET" --key admin/backups/scope-admin.sql /dev/null >/dev/null
   if aws_s3api "$APP_ACCESS_KEY" "$APP_SECRET_KEY" put-object \
-      --bucket "$BUCKET" --key admin/backups/scope-app.sql --body /dev/null >/dev/null 2>&1; then
+      --bucket "$BUCKET" --key admin/backups/scope-app.sql --body fileb:///dev/null >/dev/null 2>&1; then
     echo "App IAM user unexpectedly wrote admin/backups" >&2
     return 1
   fi
@@ -239,6 +251,8 @@ log "waiting for /health/ready"
 wait_ready
 
 log "provisioning RustFS IAM users and checking prefix boundaries"
+provision_iam
+log "reapplying RustFS IAM configuration to verify convergence"
 provision_iam
 run_iam_scope_tests
 

@@ -138,6 +138,8 @@ dependabot-core 当作 support file 丢弃，PR 只改 manifest，必然过不�
   `APP_STORAGE_S3_ENDPOINT=http://127.0.0.1:9000` + `APP_STORAGE_S3_TLS_ENABLED=false`；
   生产后端在内部网络用 `https://rustfs:9000` + operator 提供的 `RUSTFS_TLS_CERT_DIR`
   （`rustfs_cert.pem`/`rustfs_key.pem`，证书/CA 必须被后端 JVM 信任），且不发布任何端口。
+  只有 RustFS 容器挂载整个目录（服务端需要私钥）；`rustfs-init`、`rustfs-iam-init` 与
+  backend-admin/backend-app 仅挂载 `rustfs_cert.pem`，运行时无法读到 TLS 私钥。
   缺失 endpoint、region、bucket、access key、secret key 或 TLS 配置时应用启动失败，绝不回退本地磁盘；
   非 loopback 明文 HTTP 仍然拒绝。配置齐备后还会在**上下文刷新期间**（HTTP 端口对外服务之前）对 bucket 做
   有界重试探测，失败即本次启动失败；`/health/ready` 报告 `storage` 组件，未经验证不会返回就绪。

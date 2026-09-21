@@ -510,8 +510,10 @@ record_storage_migration_state() {
     return 0
   fi
   if ! mysql_query APP_DB "$statement" >/dev/null 2>&1; then
-    echo "WARNING app.storage_migration_state could not record '$mode'; the deploy gate cannot verify the users-index backfill from this run" >&2
+    echo "ERROR app.storage_migration_state could not record '$mode'; the deploy gate cannot verify the users-index backfill from this run" >&2
+    return 1
   fi
+  return 0
 }
 
 safe_source_file() {
@@ -769,6 +771,15 @@ if [[ "$ONLY" == avatars || "$ONLY" == all ]]; then
     avatar_limit_clause=" LIMIT $LIMIT"
   fi
   avatar_rows="$(mysql_query APP_DB "SELECT account_id, avatar FROM user_profiles WHERE avatar LIKE '/uploads/avatars/%' ORDER BY account_id${avatar_limit_clause}")"
+  if [[ "$APPLY" == true && -n "$avatar_rows" ]]; then
+    # Before the first rewrite: an interrupted run must not leave rewritten
+    # rows with no pending marker, because a rerun then finds no legacy rows
+    # and the deploy gate could not tell the index backfill is still owed.
+    record_storage_migration_state rewritten || {
+      echo 'Refusing to rewrite avatar rows while the pending backfill state cannot be persisted.' >&2
+      exit 2
+    }
+  fi
   while IFS=$'\t' read -r account_id legacy_avatar; do
     [[ -n "${account_id:-}" ]] || continue
     (( LIMIT > 0 && TOTAL >= LIMIT )) && break
@@ -796,7 +807,6 @@ fi
 if (( AVATAR_DB_UPDATED > 0 )); then
   # A confirmation supplied on this invocation cannot cover rows changed by it.
   SEARCH_BACKFILL_PENDING=true
-  record_storage_migration_state rewritten
   record_pending "users-index backfill required after avatar database updates; rerun with --confirm-users-index-backfill after APP_SEARCH_BACKFILL_ENABLED=true and APP_SEARCH_BACKFILL_INDEXES=users completes"
   echo "PENDING users-index backfill required before migration can be declared complete"
 elif [[ "$APPLY" == true \
@@ -808,7 +818,13 @@ elif [[ "$APPLY" == true \
 fi
 
 if [[ "$APPLY" == true && "$CONFIRM_USERS_INDEX_BACKFILL" == true && "$AVATAR_DB_UPDATED" -eq 0 ]]; then
-  record_storage_migration_state confirmed
+  if ! record_storage_migration_state confirmed; then
+    # The durable confirmation is the gate's evidence: an unrecorded one must
+    # not let this run report the cutover as complete.
+    SEARCH_BACKFILL_PENDING=true
+    record_pending "users-index backfill confirmation could not be persisted in app.storage_migration_state"
+    echo "PENDING users-index backfill confirmation could not be persisted" >&2
+  fi
 fi
 
 if [[ -s "$VERIFIED_FILE" ]]; then

@@ -124,7 +124,7 @@ class AdminStorageCleanupTest {
     @Test
     @DisplayName("an object App still references is kept, not deleted")
     void shouldKeepObjectAppStillReferences() {
-        when(outboxMapper.selectPendingOwnerChecks(anyInt())).thenReturn(List.of(OBJECT_KEY));
+        when(outboxMapper.selectPendingOwnerChecks(anyInt(), anyInt())).thenReturn(List.of(OBJECT_KEY));
         when(profileQueryService.getProfileByAccountId(ACCOUNT_ID))
                 .thenReturn(RpcResult.success(profile(DISPLAY_PATH), "trace-1"));
 
@@ -137,7 +137,7 @@ class AdminStorageCleanupTest {
     @Test
     @DisplayName("an object App no longer references is deleted")
     void shouldDeleteObjectAppNoLongerReferences() {
-        when(outboxMapper.selectPendingOwnerChecks(anyInt())).thenReturn(List.of(OBJECT_KEY));
+        when(outboxMapper.selectPendingOwnerChecks(anyInt(), anyInt())).thenReturn(List.of(OBJECT_KEY));
         when(profileQueryService.getProfileByAccountId(ACCOUNT_ID))
                 .thenReturn(RpcResult.success(profile("/api/users/avatars/user-1/other.png"), "trace-1"));
         when(outboxMapper.markDeleted(OBJECT_KEY)).thenReturn(1);
@@ -152,7 +152,7 @@ class AdminStorageCleanupTest {
     @Test
     @DisplayName("an empty profile from App means the object is unreferenced")
     void shouldDeleteObjectWhenProfileIsAbsent() {
-        when(outboxMapper.selectPendingOwnerChecks(anyInt())).thenReturn(List.of(OBJECT_KEY));
+        when(outboxMapper.selectPendingOwnerChecks(anyInt(), anyInt())).thenReturn(List.of(OBJECT_KEY));
         // App answers with its empty-profile stub, never with null data.
         when(profileQueryService.getProfileByAccountId(ACCOUNT_ID))
                 .thenReturn(RpcResult.success(UserProfileDTO.empty(ACCOUNT_ID), "trace-1"));
@@ -166,7 +166,7 @@ class AdminStorageCleanupTest {
     @Test
     @DisplayName("an unavailable App leaves the owner check pending")
     void shouldStayPendingWhileAppIsUnavailable() {
-        when(outboxMapper.selectPendingOwnerChecks(anyInt())).thenReturn(List.of(OBJECT_KEY));
+        when(outboxMapper.selectPendingOwnerChecks(anyInt(), anyInt())).thenReturn(List.of(OBJECT_KEY));
         when(profileQueryService.getProfileByAccountId(ACCOUNT_ID))
                 .thenThrow(new RuntimeException("app unavailable"));
 

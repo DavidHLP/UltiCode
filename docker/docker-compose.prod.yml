@@ -62,6 +62,7 @@ services:
     environment:
       RUSTFS_TLS_PATH: /certs
     volumes:
+      # The storage server is the only service that may see the TLS private key.
       - ${RUSTFS_TLS_CERT_DIR:?RUSTFS_TLS_CERT_DIR is required}:/certs:ro
     healthcheck:
       test: ["CMD-SHELL", "curl --fail --silent --show-error --cacert /certs/rustfs_cert.pem https://rustfs:9000/health/ready >/dev/null"]
@@ -71,7 +72,7 @@ services:
       RUSTFS_ENDPOINT: https://rustfs:9000
       AWS_CA_BUNDLE: /certs/rustfs_cert.pem
     volumes:
-      - ${RUSTFS_TLS_CERT_DIR:?RUSTFS_TLS_CERT_DIR is required}:/certs:ro
+      - ${RUSTFS_TLS_CERT_DIR:?RUSTFS_TLS_CERT_DIR is required}/rustfs_cert.pem:/certs/rustfs_cert.pem:ro
 
   rustfs-iam-init:
     environment:
@@ -81,7 +82,7 @@ services:
       SSL_CERT_FILE: /certs/rustfs_cert.pem
       CURL_CA_BUNDLE: /certs/rustfs_cert.pem
     volumes:
-      - ${RUSTFS_TLS_CERT_DIR:?RUSTFS_TLS_CERT_DIR is required}:/certs:ro
+      - ${RUSTFS_TLS_CERT_DIR:?RUSTFS_TLS_CERT_DIR is required}/rustfs_cert.pem:/certs/rustfs_cert.pem:ro
 
   mysql:
     image: mysql@sha256:0255b469f0135a0236d672d60e3154ae2f4538b146744966d96440318cc822c6
@@ -327,7 +328,7 @@ services:
 
     volumes:
       - ${DUBBO_MTLS_CERT_DIR:?DUBBO_MTLS_CERT_DIR is required}/backend-admin:/run/secrets/dubbo:ro
-      - ${RUSTFS_TLS_CERT_DIR:?RUSTFS_TLS_CERT_DIR is required}:/certs:ro
+      - ${RUSTFS_TLS_CERT_DIR:?RUSTFS_TLS_CERT_DIR is required}/rustfs_cert.pem:/certs/rustfs_cert.pem:ro
     networks:
       - edge
       - sql
@@ -476,7 +477,7 @@ services:
         max-file: "5"
     volumes:
       - ${DUBBO_MTLS_CERT_DIR:?DUBBO_MTLS_CERT_DIR is required}/backend-app:/run/secrets/dubbo:ro
-      - ${RUSTFS_TLS_CERT_DIR:?RUSTFS_TLS_CERT_DIR is required}:/certs:ro
+      - ${RUSTFS_TLS_CERT_DIR:?RUSTFS_TLS_CERT_DIR is required}/rustfs_cert.pem:/certs/rustfs_cert.pem:ro
 
   backend-submission:
     image: "${BACKEND_SUBMISSION_IMAGE_REF:?BACKEND_SUBMISSION_IMAGE_REF is required}"

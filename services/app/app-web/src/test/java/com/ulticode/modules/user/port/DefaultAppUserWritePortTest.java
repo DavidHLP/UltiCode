@@ -89,7 +89,7 @@ class DefaultAppUserWritePortTest {
         @DisplayName("new profile: inserts into user_profiles with non-null fields")
         void newProfileInserts() {
             String userId = "u-001";
-            when(userProfileMapper.selectById(userId)).thenReturn(null);
+            when(userProfileMapper.selectByIdForUpdate(userId)).thenReturn(null);
 
             UpdateUserDTO dto = new UpdateUserDTO();
             dto.setName("Alice");
@@ -114,7 +114,7 @@ class DefaultAppUserWritePortTest {
             UserProfile existing = new UserProfile();
             existing.setAccountId(userId);
             existing.setName("OldName");
-            when(userProfileMapper.selectById(userId)).thenReturn(existing);
+            when(userProfileMapper.selectByIdForUpdate(userId)).thenReturn(existing);
 
             UpdateUserDTO dto = new UpdateUserDTO();
             dto.setName("NewName");
@@ -150,7 +150,7 @@ class DefaultAppUserWritePortTest {
         @DisplayName("all nine fields written when all non-null in DTO")
         void allFieldsWritten() {
             String userId = "u-003";
-            when(userProfileMapper.selectById(userId)).thenReturn(null);
+            when(userProfileMapper.selectByIdForUpdate(userId)).thenReturn(null);
 
             UpdateUserDTO dto = new UpdateUserDTO();
             dto.setName("N");
@@ -263,7 +263,7 @@ class DefaultAppUserWritePortTest {
         void validAvatarWrites() {
             String userId = "u-004";
             when(uuidGenerator.newId()).thenReturn("uuid-1");
-            when(userProfileMapper.selectById(userId)).thenReturn(null);
+            when(userProfileMapper.selectByIdForUpdate(userId)).thenReturn(null);
             when(userProfileMapper.insert(any(UserProfile.class))).thenReturn(1);
             byte[] png = java.util.Base64.getDecoder().decode(
                     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
@@ -308,7 +308,7 @@ class DefaultAppUserWritePortTest {
         @DisplayName("first avatar upload queues no cleanup")
         void firstUploadQueuesNoCleanup() {
             String userId = "u-005-async";
-            when(userProfileMapper.selectById(userId)).thenReturn(null);
+            when(userProfileMapper.selectByIdForUpdate(userId)).thenReturn(null);
             when(userProfileMapper.insert(any(UserProfile.class))).thenReturn(1);
             when(uuidGenerator.newId()).thenReturn("uuid-2-async");
             byte[] png = java.util.Base64.getDecoder().decode(
@@ -325,7 +325,7 @@ class DefaultAppUserWritePortTest {
         @DisplayName("database failure queues the staged object for reconciled cleanup")
         void databaseFailureRemovesUploadedObject() {
             String userId = "u-006";
-            when(userProfileMapper.selectById(userId)).thenReturn(null);
+            when(userProfileMapper.selectByIdForUpdate(userId)).thenReturn(null);
             when(uuidGenerator.newId()).thenReturn("uuid-3");
             doThrow(new IllegalStateException("db failure"))
                     .when(userProfileMapper).insert(any(UserProfile.class));
@@ -345,7 +345,7 @@ class DefaultAppUserWritePortTest {
         @DisplayName("search publication failure queues the staged object for reconciled cleanup")
         void searchPublicationFailureRemovesStagedObject() {
             String userId = "u-009";
-            when(userProfileMapper.selectById(userId)).thenReturn(null);
+            when(userProfileMapper.selectByIdForUpdate(userId)).thenReturn(null);
             when(userProfileMapper.insert(any(UserProfile.class))).thenReturn(1);
             when(uuidGenerator.newId()).thenReturn("uuid-6");
             com.ulticode.modules.search.port.UserSearchRow row =
@@ -374,7 +374,7 @@ class DefaultAppUserWritePortTest {
         @DisplayName("an unqueued staged object never masks the write failure")
         void cleanupQueueFailureDoesNotMaskTheWriteFailure() {
             String userId = "u-010";
-            when(userProfileMapper.selectById(userId)).thenReturn(null);
+            when(userProfileMapper.selectByIdForUpdate(userId)).thenReturn(null);
             when(uuidGenerator.newId()).thenReturn("uuid-7");
             when(userProfileMapper.insert(any(UserProfile.class))).thenReturn(0);
             doThrow(new IllegalStateException("outbox unavailable"))

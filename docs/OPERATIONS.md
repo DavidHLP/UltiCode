@@ -146,7 +146,8 @@ RustFS 是开发、测试、生产共同的必需基础设施，仓库不提供�
 - 凭据来自 `.env`/部署密钥系统：`RUSTFS_ACCESS_KEY`/`RUSTFS_SECRET_KEY` 是
   bootstrap root pair；`RUSTFS_APP_*` 和 `RUSTFS_ADMIN_*` 是 prefix-scoped
   runtime pairs。禁止使用 RustFS 文档中的默认账号；生产不使用明文 HTTP，后端经
-  `https://rustfs:9000` 访问，证书目录由 `RUSTFS_TLS_CERT_DIR` 提供且证书/CA
+  `https://rustfs:9000` 访问（只有 RustFS 容器挂载含私钥的 `RUSTFS_TLS_CERT_DIR` 目录；
+  其余服务仅挂载 `rustfs_cert.pem`，运行时读不到 TLS 私钥），证书目录由 `RUSTFS_TLS_CERT_DIR` 提供且证书/CA
   需被后端 JVM 信任。
 - `.env.example` deliberately leaves all RustFS credentials empty; local development
   must run `./scripts/dev/init-env.sh`, and production must provide operator-managed
@@ -206,11 +207,14 @@ docker run --rm -v "${RUSTFS_VOLUMES[0]}:/data:ro" -v "$PWD:/backup" alpine \
   allowlist，并要求 migration subset 同时包含 `backend-admin` 与 `backend-app`
   （对象键写入与头像读取路径随本次发布一起切换）；随后记录原有
   `backend-admin` 容器 ID，使用已验证 image refs 执行 `docker compose stop`。
-  `backend-admin` 使用独立的 `ADMIN_BACKUP_STOP_GRACE_PERIOD`（默认 3660s）
-  和 `adminBackupExecutor` 排空旧 backup writer；默认覆盖 1800s dump、1800s
-  upload 以及 60s handoff margin。`scripts/runbooks/assert-admin-backup-drained.sh`
-  在迁移前拒绝仍有 `PENDING`/`IN_PROGRESS` 行的数据库。手工运行 migration
-  也必须先停止并排空所有旧 writer。
+  停止前先等待 `scripts/runbooks/assert-admin-backup-drained.sh` 通过（旧镜像没有 drain-aware
+  executor，直接 stop 会杀掉在跑的 `mysqldump`），超过 `ADMIN_BACKUP_DRAIN_TIMEOUT_SECONDS`
+  （默认 3660s）仍不通过就 fail closed；随后 `backend-admin` 使用独立的
+  `ADMIN_BACKUP_STOP_GRACE_PERIOD`（默认 3660s）和 `adminBackupExecutor` 排空旧 backup writer。
+  本次发布还会在迁移/门禁之前一并停止 `backend-app`：旧 App 到新镜像替换前仍会写
+  `/uploads/avatars/...` 行，门禁通过后再提交的行会指向不存在的对象。失败恢复会按记录
+  逐个 `docker start` 还原此前确实在运行的 `backend-admin` 与 `backend-app` 容器。
+  手工运行 migration 也必须先停止并排空所有旧 writer。
 - 排水或迁移前置检查失败时，动作只恢复此前确实运行的原容器；owner migration
   一旦开始，动作保持 `backend-admin` 停止并 fail closed，不把旧 image 重新启动到
   可能已部分迁移的 schema 上。应先检查 migration report，再按兼容 artifact 手工恢复。
@@ -239,7 +243,9 @@ docker run --rm -v "${RUSTFS_VOLUMES[0]}:/data:ro" -v "$PWD:/backup" alpine \
 - Admin 上传头像的对象键与清理意图：App 拒绝或不可达时对象会被删除，删除失败则记入
   `admin.storage_cleanup_outbox` 并由 `AdminStorageCleanup` 定时 sweep 幂等重试，避免 App 不可用期间
   每次重试都泄漏一个对象；RPC 结果未知（post-dispatch 超时）的对象以 `verify_owner_reference` 记录，
-  sweep 先向 App 查询当前头像，仍被引用则保留（`kept_at`），确认未被引用才删除，App 不可达时继续挂起。
+  sweep 先向 App 查询当前头像，仍被引用则保留（`kept_at`），确认未被引用才删除，App 不可达时继续挂起；
+  该判定只在意图超过 `admin.storage-cleanup.owner-check-grace-seconds`（默认 900s，长于 RPC 超时与
+  数据库锁等待）后执行，避免 Dubbo 超时但 provider 事务随后才提交时的误删。
 - 头像清理意图不会因存储长时间不可用而终止：`StorageCleanupDispatcher` 只增退避（上限 1 小时）地重试，
   并把历史 `DEAD` 行重新排入队列。
 

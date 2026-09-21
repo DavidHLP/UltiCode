@@ -153,14 +153,14 @@ onMounted(async () => {
             type="file"
             accept=".jpg,.jpeg,.png,.gif,.webp"
             class="sr-only"
-            :disabled="avatarUploading"
+            :disabled="avatarUploading || saving"
             :aria-label="t('personal.profile.changeAvatar')"
             @change="handleAvatarChange"
           />
           <Button
             type="button"
             variant="outline"
-            :disabled="avatarUploading"
+            :disabled="avatarUploading || saving"
             @click="avatarInput?.click()"
           >
             <Loader2 v-if="avatarUploading" class="mr-2 h-4 w-4 animate-spin" />
@@ -322,7 +322,7 @@ onMounted(async () => {
         <CardFooter class="bg-muted/5 border-t justify-end py-4">
           <Button
             @click="saveProfile"
-            :disabled="saving"
+            :disabled="saving || avatarUploading"
             class="rounded-none px-8"
           >
             <Loader2 v-if="saving" class="mr-2 h-4 w-4 animate-spin" />

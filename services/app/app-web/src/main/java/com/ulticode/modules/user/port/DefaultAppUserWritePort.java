@@ -60,7 +60,9 @@ public class DefaultAppUserWritePort implements AppUserWritePort {
             throw new BusinessException(BaseErrorCode.UNAUTHORIZED);
         }
 
-        UserProfile profile = userProfileMapper.selectById(userId);
+        // Locking read: a concurrent avatar upload must not be overwritten by
+        // this full-entity update with a stale avatar value.
+        UserProfile profile = userProfileMapper.selectByIdForUpdate(userId);
         boolean isNew = profile == null;
         if (isNew) {
             profile = new UserProfile();

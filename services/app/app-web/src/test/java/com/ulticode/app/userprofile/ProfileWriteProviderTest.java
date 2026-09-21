@@ -91,7 +91,7 @@ class ProfileWriteProviderTest {
     @Test
     void profileUpdatePublishesCompleteUserUpsert() {
         when(actorAuthorizer.isAuthorized(any())).thenReturn(true);
-        when(userProfileMapper.selectById("user-1")).thenReturn(new UserProfile());
+        when(userProfileMapper.selectByIdForUpdate("user-1")).thenReturn(new UserProfile());
         when(userProfileMapper.updateById(any(UserProfile.class))).thenReturn(1);
         when(userDirectoryQueryPort.findById("user-1"))
                 .thenReturn(directoryRow("user-1", "alice", "New Name", "app/avatars/user-1/avatar.png"));

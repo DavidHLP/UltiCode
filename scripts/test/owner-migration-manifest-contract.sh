@@ -76,7 +76,13 @@ grep -Fq "inputs.skip_migrations != 'true'" "$ROOT_DIR/.github/actions/host-depl
 grep -Fq 'Quiesce legacy Admin backup writer' "$ROOT_DIR/.github/actions/host-deploy/action.yml"
 grep -Fq 'compose_prefix="docker compose --project-directory . -f docker/docker-compose.yml -f docker/docker-compose.prod.yml"' \
   "$ROOT_DIR/.github/actions/host-deploy/action.yml"
-grep -Fq 'remote_command+=" $EXPORTS $compose_prefix stop backend-admin"' \
+grep -Fq 'remote_command+=" $EXPORTS $compose_prefix stop $service"' \
+  "$ROOT_DIR/.github/actions/host-deploy/action.yml"
+# Both owner writers stop before the cutover gate: the legacy App still writes
+# /uploads/avatars rows until the new image replaces it.
+grep -Fq 'quiesce_service backend-admin admin' \
+  "$ROOT_DIR/.github/actions/host-deploy/action.yml"
+grep -Fq 'quiesce_service backend-app app' \
   "$ROOT_DIR/.github/actions/host-deploy/action.yml"
 grep -Fq 'remote_command+=" $REMOTE_ENV docker compose' \
   "$ROOT_DIR/.github/actions/host-deploy/action.yml"
@@ -101,7 +107,7 @@ gate_line="$(grep -n 'Verify legacy object backfill before serving' \
 sed -n "${gate_line},$((gate_line + 6))p" "$ROOT_DIR/.github/actions/host-deploy/action.yml" \
   | grep -Fq "inputs.rollback != 'true'" \
   || { echo 'object cutover gate is still tied to skip_migrations instead of an explicit rollback input' >&2; exit 1; }
-grep -Fq 'rollback: ' "$ROOT_DIR/.github/actions/host-deploy/action.yml"
+grep -Fq '  rollback:' "$ROOT_DIR/.github/actions/host-deploy/action.yml"
 grep -Fq "rollback: 'true'" "$ROOT_DIR/.github/workflows/cd-rollback.yml"
 grep -Fq 'migration_db_user:' "$ROOT_DIR/.github/workflows/cd-deploy.yml"
 grep -Fq 'submission_migration_db_password:' "$ROOT_DIR/.github/workflows/cd-deploy.yml"

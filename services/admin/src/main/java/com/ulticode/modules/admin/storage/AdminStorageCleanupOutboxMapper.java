@@ -37,13 +37,19 @@ public interface AdminStorageCleanupOutboxMapper {
             """)
     List<String> selectPendingDeletions(@Param("limit") int limit);
 
+    /**
+     * Only intents older than the grace period are eligible: a Dubbo timeout
+     * does not cancel the provider transaction, so a negative read can precede
+     * the commit that makes the object the live avatar.
+     */
     @Select("""
             SELECT object_key FROM storage_cleanup_outbox
             WHERE deleted_at IS NULL AND kept_at IS NULL AND verify_owner_reference = 1
+              AND created_at <= DATE_SUB(NOW(3), INTERVAL #{graceSeconds} SECOND)
             ORDER BY created_at, object_key
             LIMIT #{limit}
             """)
-    List<String> selectPendingOwnerChecks(@Param("limit") int limit);
+    List<String> selectPendingOwnerChecks(@Param("limit") int limit, @Param("graceSeconds") int graceSeconds);
 
     @Update("""
             UPDATE storage_cleanup_outbox

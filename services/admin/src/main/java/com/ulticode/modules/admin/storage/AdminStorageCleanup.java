@@ -8,6 +8,7 @@ import com.ulticode.common.storage.StorageKeys;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -34,6 +35,15 @@ public class AdminStorageCleanup {
     private final AdminStorageCleanupOutboxMapper outboxMapper;
     private final FileStoragePort fileStorage;
     private final ObjectProvider<UserProfileQueryService> userProfileQueryService;
+
+    /**
+     * Grace before an ambiguous upload may be deleted: it must exceed the RPC
+     * timeout plus the database lock wait, so the original command transaction
+     * has definitively ended (committed or rolled back) before a negative read
+     * is treated as proof that the object is unreferenced.
+     */
+    @Value("${admin.storage-cleanup.owner-check-grace-seconds:900}")
+    private int ownerCheckGraceSeconds;
 
     /** Records a discarded staged object; the sweep deletes it. */
     public void enqueue(String objectKey) {
@@ -68,9 +78,9 @@ public class AdminStorageCleanup {
     }
 
     /**
-     * Resolves one ambiguous upload: keep the object while App's profile still
-     * references it, delete it once App's answer proves it unreferenced, and
-     * stay pending while App cannot answer.
+     * Resolves one ambiguous upload that is past its grace window: keep the
+     * object while App's profile still references it, delete it once a settled
+     * read proves it unreferenced, and stay pending while App cannot answer.
      */
     public void verifyOwnerReference(String objectKey) {
         UserProfileQueryService profiles = userProfileQueryService.getIfAvailable();
@@ -152,7 +162,7 @@ public class AdminStorageCleanup {
     private int sweepPendingOwnerChecks() {
         List<String> pending;
         try {
-            pending = outboxMapper.selectPendingOwnerChecks(SWEEP_LIMIT);
+            pending = outboxMapper.selectPendingOwnerChecks(SWEEP_LIMIT, ownerCheckGraceSeconds);
         } catch (RuntimeException databaseFailure) {
             log.warn("Admin storage cleanup sweep could not read owner checks", databaseFailure);
             return 0;

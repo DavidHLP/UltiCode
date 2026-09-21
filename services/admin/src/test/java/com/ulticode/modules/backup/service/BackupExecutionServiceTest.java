@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -158,6 +159,30 @@ class BackupExecutionServiceTest {
         }
 
         @Test
+        @DisplayName("the planned object key is persisted before the bytes are uploaded")
+        void shouldPersistPlannedKeyBeforeUpload() throws Exception {
+            Backup backup = pendingBackup();
+            when(backupMapper.selectById(BACKUP_ID)).thenReturn(backup);
+            when(backupProcessPort.dump(any(Path.class))).thenAnswer(invocation -> {
+                Path dump = invocation.getArgument(0);
+                Files.writeString(dump, "-- fake dump");
+                return true;
+            });
+
+            executionService.executeBackup(BACKUP_ID);
+
+            String objectKey = "admin/backups/2026/01/" + BACKUP_ID + ".sql";
+            InOrder order = inOrder(backupMapper, fileStorage);
+            ArgumentCaptor<Backup> captor = ArgumentCaptor.forClass(Backup.class);
+            order.verify(backupMapper).updateById(captor.capture());
+            order.verify(backupMapper).updateById(captor.capture());
+            // A crash after the PUT must still leave a row naming the dump.
+            assertEquals(objectKey, captor.getValue().getObjectKey());
+            assertEquals(BackupStatus.IN_PROGRESS, captor.getValue().getStatus());
+            order.verify(fileStorage).putFile(eq(objectKey), any(Path.class), eq("application/sql"));
+        }
+
+        @Test
         @DisplayName("upload failure marks backup FAILED and removes temp file")
         void shouldFailWhenObjectUploadFailsAndCleanTempFile() throws Exception {
             Backup backup = pendingBackup();
@@ -205,7 +230,7 @@ class BackupExecutionServiceTest {
                 Files.writeString(dump, "-- fake dump");
                 return true;
             });
-            when(backupMapper.updateById(any(Backup.class))).thenReturn(1, 0, 1);
+            when(backupMapper.updateById(any(Backup.class))).thenReturn(1, 1, 0, 1);
 
             executionService.executeBackup(BACKUP_ID);
 
@@ -226,9 +251,8 @@ class BackupExecutionServiceTest {
                 return true;
             });
             when(backupMapper.updateById(any(Backup.class)))
-                    .thenReturn(1)
-                    .thenThrow(new RuntimeException("database unavailable"))
-                    .thenReturn(1);
+                    .thenReturn(1, 1)
+                    .thenThrow(new RuntimeException("database unavailable"));
 
             executionService.executeBackup(BACKUP_ID);
 
@@ -251,7 +275,7 @@ class BackupExecutionServiceTest {
                 return true;
             });
             when(backupMapper.updateById(any(Backup.class)))
-                    .thenReturn(1)
+                    .thenReturn(1, 1)
                     .thenThrow(new RuntimeException("connection reset"));
 
             executionService.executeBackup(BACKUP_ID);
@@ -275,9 +299,8 @@ class BackupExecutionServiceTest {
                 return true;
             });
             when(backupMapper.updateById(any(Backup.class)))
-                    .thenReturn(1)
-                    .thenThrow(new RuntimeException("connection reset"))
-                    .thenReturn(1);
+                    .thenReturn(1, 1)
+                    .thenThrow(new RuntimeException("connection reset"));
             when(backupMapper.failUnlessCompleted(any(), any(), any(), any())).thenReturn(1);
 
             executionService.executeBackup(BACKUP_ID);
@@ -307,7 +330,7 @@ class BackupExecutionServiceTest {
                 return true;
             });
             when(backupMapper.updateById(any(Backup.class)))
-                    .thenReturn(1)
+                    .thenReturn(1, 1)
                     .thenThrow(new RuntimeException("connection reset"));
             // The row committed COMPLETED while the failure path was running.
             when(backupMapper.failUnlessCompleted(any(), any(), any(), any())).thenReturn(0);

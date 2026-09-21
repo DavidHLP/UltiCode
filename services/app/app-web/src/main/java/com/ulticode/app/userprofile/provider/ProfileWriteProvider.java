@@ -116,7 +116,9 @@ public class ProfileWriteProvider implements ProfileWriteService {
             // 2. Execute profile upsert (null-skip semantics, same as legacy)
             String accountId = command.accountId();
 
-            UserProfile profile = userProfileMapper.selectById(accountId);
+            // Locking read: a concurrent avatar upload must not be overwritten
+            // by this full-entity update with a stale avatar value.
+            UserProfile profile = userProfileMapper.selectByIdForUpdate(accountId);
             boolean isNew = profile == null;
             if (isNew) {
                 profile = new UserProfile();

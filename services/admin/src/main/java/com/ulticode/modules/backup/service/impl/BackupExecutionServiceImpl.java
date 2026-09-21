@@ -75,9 +75,17 @@ public class BackupExecutionServiceImpl implements BackupExecutionService {
                     ? LocalDateTime.now(clock).toLocalDate()
                     : backup.getCreatedAt().toLocalDate();
             objectKey = StorageKeys.backupKey(backupId, createdDate);
+            // Persist the planned key before the bytes move: a crash between the
+            // PUT and the completion update must leave a row that names the
+            // uploaded dump instead of an object nothing tracks.
+            backup.setObjectKey(objectKey);
+            int plannedRows = backupMapper.updateById(backup);
+            if (plannedRows != 1) {
+                throw new IllegalStateException(
+                        "Failed to persist the planned backup object key; affected rows: " + plannedRows);
+            }
             fileStorage.putFile(objectKey, tempFile, "application/sql");
 
-            backup.setObjectKey(objectKey);
             backup.setSize(size);
             backup.setChecksum(checksum);
             backup.setStatus(BackupStatus.COMPLETED);

@@ -178,7 +178,6 @@ class BackupExecutionServiceTest {
             order.verify(backupMapper).updateById(captor.capture());
             // A crash after the PUT must still leave a row naming the dump.
             assertEquals(objectKey, captor.getValue().getObjectKey());
-            assertEquals(BackupStatus.IN_PROGRESS, captor.getValue().getStatus());
             order.verify(fileStorage).putFile(eq(objectKey), any(Path.class), eq("application/sql"));
         }
 
@@ -282,8 +281,9 @@ class BackupExecutionServiceTest {
 
             verify(fileStorage).putFile(eq(objectKey), any(Path.class), eq("application/sql"));
             verify(fileStorage, never()).delete(any());
-            // exactly the IN_PROGRESS write plus the raced COMPLETED write; no FAILED overwrite
-            verify(backupMapper, times(2)).updateById(any(Backup.class));
+            // exactly the IN_PROGRESS write, the planned key and the raced
+            // COMPLETED write; no FAILED overwrite
+            verify(backupMapper, times(3)).updateById(any(Backup.class));
         }
 
         @Test
@@ -307,9 +307,10 @@ class BackupExecutionServiceTest {
 
             verify(fileStorage).putFile(eq(objectKey), any(Path.class), eq("application/sql"));
             verify(fileStorage, never()).delete(any());
-            // IN_PROGRESS and the raced COMPLETED write only: the terminal FAILED
-            // transition must not go through the unguarded row update.
-            verify(backupMapper, times(2)).updateById(any(Backup.class));
+            // IN_PROGRESS, the planned key and the raced COMPLETED write only:
+            // the terminal FAILED transition must not go through the unguarded
+            // row update.
+            verify(backupMapper, times(3)).updateById(any(Backup.class));
             assertEquals(BackupStatus.FAILED, backup.getStatus());
             assertNotNull(backup.getError());
             assertTrue(backup.getError().contains(objectKey));

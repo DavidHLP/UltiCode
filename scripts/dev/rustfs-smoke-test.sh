@@ -96,7 +96,11 @@ aws_s3api() {
     -e "AWS_ACCESS_KEY_ID=${access_key}" \
     -e "AWS_SECRET_ACCESS_KEY=${secret_key}" \
     -e AWS_DEFAULT_REGION=us-east-1 \
-    "$AWS_CLI_IMAGE" s3api "$@" --endpoint-url "$IN_CONTAINER_ENDPOINT"
+    -e "IN_CONTAINER_ENDPOINT=${IN_CONTAINER_ENDPOINT}" \
+    --entrypoint /bin/sh "$AWS_CLI_IMAGE" -ec '
+      printf smoke-body >/tmp/smoke-body
+      aws s3api "$@" --endpoint-url "$IN_CONTAINER_ENDPOINT"
+    ' aws "$@"
 }
 
 provision_iam() {
@@ -200,17 +204,17 @@ run_iam_scope_tests() {
   aws_s3api "$APP_ACCESS_KEY" "$APP_SECRET_KEY" get-bucket-location \
     --bucket "$BUCKET" >/dev/null
   aws_s3api "$APP_ACCESS_KEY" "$APP_SECRET_KEY" put-object \
-    --bucket "$BUCKET" --key app/avatars/scope-app.txt --body fileb://dev/null >/dev/null
+    --bucket "$BUCKET" --key app/avatars/scope-app.txt --body /tmp/smoke-body >/dev/null
   aws_s3api "$APP_ACCESS_KEY" "$APP_SECRET_KEY" get-object \
     --bucket "$BUCKET" --key app/avatars/scope-app.txt /dev/null >/dev/null
   aws_s3api "$ADMIN_ACCESS_KEY" "$ADMIN_SECRET_KEY" put-object \
-    --bucket "$BUCKET" --key app/avatars/scope-admin.txt --body fileb://dev/null >/dev/null
+    --bucket "$BUCKET" --key app/avatars/scope-admin.txt --body /tmp/smoke-body >/dev/null
   aws_s3api "$ADMIN_ACCESS_KEY" "$ADMIN_SECRET_KEY" put-object \
-    --bucket "$BUCKET" --key admin/backups/scope-admin.sql --body fileb://dev/null >/dev/null
+    --bucket "$BUCKET" --key admin/backups/scope-admin.sql --body /tmp/smoke-body >/dev/null
   aws_s3api "$ADMIN_ACCESS_KEY" "$ADMIN_SECRET_KEY" get-object \
     --bucket "$BUCKET" --key admin/backups/scope-admin.sql /dev/null >/dev/null
   if aws_s3api "$APP_ACCESS_KEY" "$APP_SECRET_KEY" put-object \
-      --bucket "$BUCKET" --key admin/backups/scope-app.sql --body fileb://dev/null >/dev/null 2>&1; then
+      --bucket "$BUCKET" --key admin/backups/scope-app.sql --body /tmp/smoke-body >/dev/null 2>&1; then
     echo "App IAM user unexpectedly wrote admin/backups" >&2
     return 1
   fi

@@ -1,0 +1,19 @@
+services/app/app-web/src/test/java/com/ulticode/modules/user/port/DefaultAppUserWritePortTest.java
+  s_4a64b03d7392c3::t_1c5f8e0c5580d2 316,331-332,336,360-381,399-400
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "63be19bcbe3ba57d6613435c12325839a77937b2",
+  "prompts": {},
+  "sessions": {
+    "s_4a64b03d7392c3": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "980d9dab-84b6-438f-945e-8c199ac97acf",
+        "model": "unknown"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

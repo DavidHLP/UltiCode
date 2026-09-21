@@ -81,7 +81,7 @@ contains services/admin/src/test/java/com/ulticode/admin/config/AdminBackupExecu
 contains docker/docker-compose.prod.yml 'stop_grace_period: ${ADMIN_BACKUP_STOP_GRACE_PERIOD:-3660s}'
 contains docker/docker-compose.prod.yml 'ADMIN_BACKUP_EXECUTOR_AWAIT_TERMINATION_SECONDS=${ADMIN_BACKUP_EXECUTOR_AWAIT_TERMINATION_SECONDS:-3600}'
 contains .github/workflows/cd-deploy.yml 'timeout-minutes: 75'
-contains .github/actions/host-deploy/action.yml 'if: ${{ always() && inputs.skip_migrations != '\''true'\'' }}'
+contains .github/actions/host-deploy/action.yml 'if: ${{ always() && inputs.rollback != '\''true'\'' }}'
 [[ "$(grep -Fc 'stop_grace_period: ${SERVICE_STOP_GRACE_PERIOD:-60s}' \
   "$ROOT_DIR/docker/docker-compose.prod.yml")" == 6 ]] \
   || fail 'production non-backup Java service stop grace is not configured for all six services'

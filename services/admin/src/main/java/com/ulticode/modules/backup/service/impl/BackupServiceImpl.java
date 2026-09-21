@@ -17,6 +17,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -193,18 +196,54 @@ public class BackupServiceImpl implements BackupService {
         }
     }
     @Override
+    @Transactional
     public void deleteBackup(String id) {
         Backup backup = requireBackup(id);
         validateBackupFilePath(backup.getFilename());
+        String objectKey = null;
         if (backup.getObjectKey() != null && !backup.getObjectKey().isBlank()) {
-            fileStorage.delete(requireBackupObjectKey(backup));
+            objectKey = requireBackupObjectKey(backup);
         }
         int deletedRows = backupMapper.deleteById(id);
         if (deletedRows != 1) {
             throw new BusinessException(BaseErrorCode.UNKNOWN_ERROR,
                     "Failed to delete backup record; retry the operation");
         }
+        if (objectKey != null) {
+            deleteObjectAfterCommit(objectKey);
+        }
         log.info("Deleted backup: {}", id);
+    }
+
+    /** Delete object bytes only after the database row has committed. */
+    private void deleteObjectAfterCommit(String objectKey) {
+        Runnable cleanup = () -> {
+            try {
+                fileStorage.delete(objectKey);
+            } catch (RuntimeException exception) {
+                log.warn("Failed to delete backup object after row deletion: {}", objectKey, exception);
+            }
+        };
+        Runnable submitCleanup = () -> {
+            try {
+                CompletableFuture.runAsync(cleanup).exceptionally(exception -> {
+                    log.warn("Async backup object cleanup failed: {}", objectKey, exception);
+                    return null;
+                });
+            } catch (RuntimeException exception) {
+                log.warn("Failed to schedule backup object cleanup: {}", objectKey, exception);
+            }
+        };
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    submitCleanup.run();
+                }
+            });
+        } else {
+            submitCleanup.run();
+        }
     }
 
     @Override

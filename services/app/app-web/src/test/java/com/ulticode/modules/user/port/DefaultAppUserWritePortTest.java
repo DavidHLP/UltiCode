@@ -120,9 +120,10 @@ class DefaultAppUserWritePortTest {
             dto.setName("NewName");
             dto.setCompany("Acme");
 
-            port.updateProfile(userId, dto);
+            UserVO result = port.updateProfile(userId, dto);
 
             verify(userProfileMapper).updateById(any(UserProfile.class));
+            assertThat(result.getCompany()).isEqualTo("Acme");
         }
 
         @Test

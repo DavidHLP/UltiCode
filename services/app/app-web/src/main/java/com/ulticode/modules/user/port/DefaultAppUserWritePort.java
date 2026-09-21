@@ -207,6 +207,7 @@ public class DefaultAppUserWritePort implements AppUserWritePort {
         vo.setName(profile.getName());
         vo.setAvatar(AvatarUrls.resolve(profile.getAccountId(), profile.getAvatar()));
         vo.setBio(profile.getBio());
+        vo.setCompany(profile.getCompany());
         vo.setGithub(profile.getGithub());
         vo.setLocation(profile.getLocation());
         vo.setTwitter(profile.getTwitter());

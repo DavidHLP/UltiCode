@@ -236,12 +236,22 @@ assert_not_contains() {
   local haystack="$1" needle="$2"
   [[ "$haystack" != *"$needle"* ]] || { echo "unexpected text: $needle" >&2; exit 1; }
 }
-run_migration() {
+run_migration_raw() {
   "$ROOT_DIR/scripts/dev/migrate-object-storage.sh" \
     --legacy-avatar-dir "$AVATARS" --legacy-backup-dir "$BACKUPS" "$@"
 }
-run_migration_without_explicit_dirs() {
+run_migration() {
+  local status=0
+  run_migration_raw "$@" || status=$?
+  [[ "$status" -eq 0 || "$status" -eq 1 ]]
+}
+run_migration_without_explicit_dirs_raw() {
   "$ROOT_DIR/scripts/dev/migrate-object-storage.sh" "$@"
+}
+run_migration_without_explicit_dirs() {
+  local status=0
+  run_migration_without_explicit_dirs_raw "$@" || status=$?
+  [[ "$status" -eq 0 || "$status" -eq 1 ]]
 }
 
 FALLBACK_ENV_FILE="$TMP_DIR/fallback.env"
@@ -296,10 +306,37 @@ unset APP_STORAGE_S3_CA_CERTIFICATE
 unset MIGRATION_SEARCH_BACKFILL_CONFIRMED
 search_gate_output=""
 search_gate_status=0
-search_gate_output="$(run_migration --apply --only avatars 2>&1)" || search_gate_status=$?
+search_gate_output="$(run_migration_raw --apply --only avatars 2>&1)" || search_gate_status=$?
 [[ "$search_gate_status" -ne 0 ]] || { echo 'search backfill gate unexpectedly passed' >&2; exit 1; }
 assert_contains "$search_gate_output" "search_backfill=required"
 assert_contains "$search_gate_output" "users-index backfill required"
+# A confirmation supplied on the same invocation must not bypass the gate.
+: >"$AWS_LOG"; : >"$MYSQL_LOG"; rm -f -- "$DB_STATE/avatar" "$DB_STATE/backup" "$OBJECTS"/*
+same_run_confirmation_output=""
+same_run_confirmation_status=0
+same_run_confirmation_output="$(run_migration_raw --apply --only avatars --confirm-users-index-backfill 2>&1)" \
+  || same_run_confirmation_status=$?
+[[ "$same_run_confirmation_status" -ne 0 ]] \
+  || { echo 'same-run backfill confirmation unexpectedly passed' >&2; exit 1; }
+assert_contains "$same_run_confirmation_output" "search_backfill=required"
+assert_contains "$same_run_confirmation_output" "users-index backfill required"
+no_confirmation_later_output=""
+no_confirmation_later_status=0
+no_confirmation_later_output="$(run_migration_raw --apply --only avatars 2>&1)" \
+  || no_confirmation_later_status=$?
+[[ "$no_confirmation_later_status" -ne 0 ]] \
+  || { echo 'second run without backfill confirmation unexpectedly passed' >&2; exit 1; }
+assert_contains "$no_confirmation_later_output" "confirmation required"
+
+later_confirmation_output=""
+later_confirmation_status=0
+later_confirmation_output="$(run_migration_raw --apply --only avatars --confirm-users-index-backfill 2>&1)" \
+  || later_confirmation_status=$?
+[[ "$later_confirmation_status" -eq 0 ]] \
+  || { echo 'later backfill confirmation unexpectedly failed' >&2; exit 1; }
+assert_contains "$later_confirmation_output" "MIGRATION_SUMMARY total=0"
+
+
 export MIGRATION_SEARCH_BACKFILL_CONFIRMED=true
 
 # An existing object with matching size and ETag is reused; no duplicate put.
@@ -329,7 +366,7 @@ cmp -- "$AVATARS/avatar.png" "$key_path"
 export FAKE_VERIFY_FAIL=1
 verification_output=""
 verification_status=0
-verification_output="$(run_migration --apply --only avatars 2>&1)" || verification_status=$?
+verification_output="$(run_migration_raw --apply --only avatars 2>&1)" || verification_status=$?
 unset FAKE_VERIFY_FAIL
 [[ "$verification_status" -ne 0 ]] || { echo 'verification failure unexpectedly succeeded' >&2; exit 1; }
 assert_contains "$verification_output" "verification failed"
@@ -389,12 +426,11 @@ assert_contains "$labeled_volume_docker_log" "volume inspect --format"
 assert_contains "$labeled_volume_docker_log" "legacy-prod_app_uploads"
 assert_contains "$labeled_volume_docker_log" "legacy-prod_backup_data"
 unset COMPOSE_PROJECT_NAME FAKE_USE_LABELS FAKE_LABELLED_AVATAR_VOLUME_NAME FAKE_LABELLED_BACKUP_VOLUME_NAME
-
 # Do not guess a default project-scoped volume when Compose labels are absent.
 : >"$DOCKER_LOG"; : >"$MYSQL_LOG"
 unresolved_volume_output=""
 unresolved_volume_status=0
-unresolved_volume_output="$(run_migration_without_explicit_dirs --only avatars 2>&1)" || unresolved_volume_status=$?
+unresolved_volume_output="$(run_migration_without_explicit_dirs_raw --only avatars 2>&1)" || unresolved_volume_status=$?
 [[ "$unresolved_volume_status" -ne 0 ]] || { echo 'unresolved default volume unexpectedly passed' >&2; exit 1; }
 assert_contains "$unresolved_volume_output" "could not be uniquely resolved"
 assert_not_contains "$(<"$MYSQL_LOG")" "FROM user_profiles"

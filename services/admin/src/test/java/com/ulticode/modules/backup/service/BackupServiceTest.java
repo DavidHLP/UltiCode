@@ -25,6 +25,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -309,8 +311,8 @@ class BackupServiceTest {
     class DeleteBackupTests {
 
         @Test
-        @DisplayName("should delete backup object before deleting its row")
-        void shouldDeleteBackupObjectAndRow() {
+        @DisplayName("should delete the row before cleaning its object after commit")
+        void shouldDeleteBackupRowBeforeObjectCleanup() {
             Backup backup = new Backup();
             backup.setId(BACKUP_ID);
             backup.setFilename("test_backup.sql");
@@ -319,11 +321,19 @@ class BackupServiceTest {
             when(backupMapper.selectById(BACKUP_ID)).thenReturn(backup);
             when(backupMapper.deleteById(BACKUP_ID)).thenReturn(1);
 
-            backupService.deleteBackup(BACKUP_ID);
+            TransactionSynchronizationManager.initSynchronization();
+            try {
+                backupService.deleteBackup(BACKUP_ID);
 
-            var order = inOrder(fileStorage, backupMapper);
-            order.verify(fileStorage).delete(backup.getObjectKey());
-            order.verify(backupMapper).deleteById(BACKUP_ID);
+                verify(backupMapper).deleteById(BACKUP_ID);
+                verify(fileStorage, never()).delete(anyString());
+
+                TransactionSynchronizationManager.getSynchronizations()
+                        .forEach(TransactionSynchronization::afterCommit);
+                verify(fileStorage, timeout(1000)).delete(backup.getObjectKey());
+            } finally {
+                TransactionSynchronizationManager.clearSynchronization();
+            }
         }
 
         @Test
@@ -358,8 +368,25 @@ class BackupServiceTest {
                     () -> backupService.deleteBackup(BACKUP_ID));
 
             assertTrue(exception.getMessage().contains("Failed to delete backup record"));
-            verify(fileStorage).delete(backup.getObjectKey());
+            verify(fileStorage, never()).delete(anyString());
         }
+        @Test
+        @DisplayName("should preserve the object when row deletion throws")
+        void shouldPreserveObjectWhenRowDeletionThrows() {
+            Backup backup = new Backup();
+            backup.setId(BACKUP_ID);
+            backup.setFilename("test_backup.sql");
+            backup.setObjectKey("admin/backups/2026/01/" + BACKUP_ID + ".sql");
+
+            when(backupMapper.selectById(BACKUP_ID)).thenReturn(backup);
+            doThrow(new IllegalStateException("database unavailable"))
+                    .when(backupMapper).deleteById(BACKUP_ID);
+
+            assertThrows(IllegalStateException.class, () -> backupService.deleteBackup(BACKUP_ID));
+
+            verify(fileStorage, never()).delete(anyString());
+        }
+
 
         @Test
         @DisplayName("should throw exception when backup not found")

@@ -703,10 +703,17 @@ if [[ "$ONLY" == backups || "$ONLY" == all ]] && (( LIMIT == 0 || TOTAL < LIMIT 
   done <<<"$backup_rows"
 fi
 
-if (( AVATAR_DB_UPDATED > 0 )) && [[ "$CONFIRM_USERS_INDEX_BACKFILL" == false ]]; then
+if (( AVATAR_DB_UPDATED > 0 )); then
+  # A confirmation supplied on this invocation cannot cover rows changed by it.
   SEARCH_BACKFILL_PENDING=true
   record_pending "users-index backfill required after avatar database updates; rerun with --confirm-users-index-backfill after APP_SEARCH_BACKFILL_ENABLED=true and APP_SEARCH_BACKFILL_INDEXES=users completes"
   echo "PENDING users-index backfill required before migration can be declared complete"
+elif [[ "$APPLY" == true \
+    && ( "$ONLY" == avatars || "$ONLY" == all ) \
+    && "$CONFIRM_USERS_INDEX_BACKFILL" == false ]]; then
+  SEARCH_BACKFILL_PENDING=true
+  record_pending "users-index backfill confirmation required; rerun with --confirm-users-index-backfill after APP_SEARCH_BACKFILL_ENABLED=true and APP_SEARCH_BACKFILL_INDEXES=users completes"
+  echo "PENDING users-index backfill confirmation required before migration can be declared complete"
 fi
 
 if [[ -s "$VERIFIED_FILE" ]]; then

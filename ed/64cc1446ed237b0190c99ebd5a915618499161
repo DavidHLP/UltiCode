@@ -1,0 +1,26 @@
+init-db/baseline/baseline.sql
+  h_77173abe25c3ff 2652-2668,4033-4046
+init-db/migrations/admin/V20260926120000__Create_Admin_Storage_Cleanup_Outbox.sql
+  h_77173abe25c3ff 1-14
+services/admin/src/main/java/com/ulticode/modules/admin/port/adapter/AdminUserProfileAdapter.java
+  h_77173abe25c3ff 64,181-190
+services/admin/src/main/java/com/ulticode/modules/admin/storage/AdminStorageCleanup.java
+  h_77173abe25c3ff 1-90
+services/admin/src/main/java/com/ulticode/modules/admin/storage/AdminStorageCleanupOutboxMapper.java
+  h_77173abe25c3ff 1-43
+services/admin/src/test/java/com/ulticode/modules/admin/port/adapter/AdminUserProfileAdapterTest.java
+  h_77173abe25c3ff 42-43,48-49,53-70
+services/admin/src/test/java/com/ulticode/modules/admin/storage/AdminStorageCleanupTest.java
+  h_77173abe25c3ff 1-101
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ed64cc1446ed237b0190c99ebd5a915618499161",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

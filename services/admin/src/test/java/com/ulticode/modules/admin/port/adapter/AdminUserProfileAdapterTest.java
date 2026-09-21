@@ -39,12 +39,33 @@ class AdminUserProfileAdapterTest {
     private FileStoragePort fileStorage;
     @Mock
     private ProfileWriteService profileWriteService;
+    @Mock
+    private com.ulticode.modules.admin.storage.AdminStorageCleanup adminStorageCleanup;
     private AdminUserProfileAdapter adapter;
 
     @BeforeEach
     void setUp() {
-        adapter = new AdminUserProfileAdapter(uuidGenerator, currentUserProvider, fileStorage);
+        adapter = new AdminUserProfileAdapter(uuidGenerator, currentUserProvider, fileStorage,
+                adminStorageCleanup);
         ReflectionTestUtils.setField(adapter, "profileWriteService", profileWriteService);
+    }
+
+    @Test
+    void queuesStagedObjectWhenTheCleanupDeleteFails() {
+        when(currentUserProvider.getCurrentUserId()).thenReturn("admin-1");
+        when(uuidGenerator.newId()).thenReturn("uuid-1");
+        when(profileWriteService.uploadAvatar(any()))
+                .thenThrow(new RpcException(RpcException.NO_INVOKER_AVAILABLE_AFTER_FILTER, "no provider"));
+        doThrow(new RuntimeException("storage unavailable"))
+                .when(fileStorage).delete("app/avatars/user-1/uuid-1.png");
+        byte[] png = Base64.getDecoder().decode(
+                "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+
+        assertThatThrownBy(() -> adapter.uploadAvatar("user-1",
+                new MockMultipartFile("file", "photo.png", "image/png", png)))
+                .hasMessageContaining("Profile write RPC failed");
+
+        verify(adminStorageCleanup).enqueue("app/avatars/user-1/uuid-1.png");
     }
 
     @Test

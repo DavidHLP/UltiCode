@@ -61,6 +61,7 @@ public class AdminUserProfileAdapter implements UserProfilePort {
     private final UuidGenerator uuidGenerator;
     private final CurrentUserProvider currentUserProvider;
     private final FileStoragePort fileStorage;
+    private final com.ulticode.modules.admin.storage.AdminStorageCleanup adminStorageCleanup;
 
     @Override
     @CacheEvict(value = "userStats", allEntries = true)
@@ -177,7 +178,16 @@ public class AdminUserProfileAdapter implements UserProfilePort {
         try {
             fileStorage.delete(key);
         } catch (RuntimeException exception) {
-            log.warn("Failed to clean up avatar object: {}", exception.getMessage());
+            // Durable intent: the upload request may be retried while the object
+            // store is unavailable, and each retry would otherwise leak another
+            // object. The sweep deletes the key idempotently.
+            try {
+                adminStorageCleanup.enqueue(key);
+                log.warn("Failed to clean up avatar object {}; queued for retry", key, exception);
+            } catch (RuntimeException enqueueFailure) {
+                log.warn("Failed to clean up avatar object {} and could not queue it for retry", key,
+                        enqueueFailure);
+            }
         }
     }
 

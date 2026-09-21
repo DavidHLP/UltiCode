@@ -2650,6 +2650,23 @@ CREATE TABLE `reconciliation_runs` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `storage_cleanup_outbox`
+--
+
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `storage_cleanup_outbox` (
+  `object_key` varchar(512) NOT NULL,
+  `attempts` int NOT NULL DEFAULT '0',
+  `last_error` varchar(500) DEFAULT NULL,
+  `created_at` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `deleted_at` datetime(3) DEFAULT NULL,
+  PRIMARY KEY (`object_key`),
+  KEY `idx_admin_storage_cleanup_pending` (`deleted_at`,`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `system_settings`
 --
 
@@ -4010,6 +4027,20 @@ CREATE TABLE `storage_cleanup_outbox` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_storage_cleanup_object_key` (`object_key`),
   KEY `idx_storage_cleanup_state_retry` (`state`,`next_retry_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `storage_migration_state`
+--
+
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `storage_migration_state` (
+  `id` tinyint NOT NULL,
+  `avatar_rows_rewritten_at` datetime(3) DEFAULT NULL,
+  `users_index_backfill_confirmed_at` datetime(3) DEFAULT NULL,
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 

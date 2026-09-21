@@ -150,11 +150,12 @@ class AdminStorageCleanupTest {
     }
 
     @Test
-    @DisplayName("a profile that vanished means the object is unreferenced")
+    @DisplayName("an empty profile from App means the object is unreferenced")
     void shouldDeleteObjectWhenProfileIsAbsent() {
         when(outboxMapper.selectPendingOwnerChecks(anyInt())).thenReturn(List.of(OBJECT_KEY));
+        // App answers with its empty-profile stub, never with null data.
         when(profileQueryService.getProfileByAccountId(ACCOUNT_ID))
-                .thenReturn(RpcResult.success((UserProfileDTO) null, "trace-1"));
+                .thenReturn(RpcResult.success(UserProfileDTO.empty(ACCOUNT_ID), "trace-1"));
         when(outboxMapper.markDeleted(OBJECT_KEY)).thenReturn(1);
 
         adminStorageCleanup.sweep();

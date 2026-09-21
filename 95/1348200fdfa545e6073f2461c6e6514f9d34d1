@@ -1,0 +1,33 @@
+scripts/dev/migrate-object-storage.sh
+  s_2ebf9ad44a8b1d::t_435d512d31a3ba 679-688
+services/admin/src/main/java/com/ulticode/modules/backup/mapper/BackupMapper.java
+  s_2ebf9ad44a8b1d::t_a0f42de84e178f 20-31
+services/admin/src/main/java/com/ulticode/modules/backup/service/impl/BackupServiceImpl.java
+  s_2ebf9ad44a8b1d::t_38ac54d0b17554 219,227-229
+services/admin/src/test/java/com/ulticode/modules/backup/service/BackupServiceTest.java
+  s_c986a1dff527ef::t_1b36b15c26ab70 345,372,390
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "951348200fdfa545e6073f2461c6e6514f9d34d1",
+  "prompts": {},
+  "sessions": {
+    "s_2ebf9ad44a8b1d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "24e244da-7a62-4686-9655-2ffb807139ad",
+        "model": "unknown"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    },
+    "s_c986a1dff527ef": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0c4ab-b5d9-72a0-b024-122345071987",
+        "model": "unknown"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

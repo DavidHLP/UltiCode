@@ -18,6 +18,7 @@ import org.springframework.beans.factory.ObjectProvider;
 
 import java.util.List;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -173,6 +174,20 @@ class AdminStorageCleanupTest {
         verify(fileStorage, never()).delete(anyString());
         verify(outboxMapper, never()).markKept(anyString());
         verify(outboxMapper).recordFailure(OBJECT_KEY, "app unavailable");
+    }
+
+    @Test
+    @DisplayName("the mapper package is inside the bounded Admin mapper scan")
+    void mapperPackageIsScanned() {
+        // There is no auto-configuration fallback: an unscanned mapper package
+        // leaves AdminStorageCleanup without a mapper bean and the whole
+        // context fails to start.
+        org.mybatis.spring.annotation.MapperScan scan =
+                com.ulticode.BackendAdminApplication.class
+                        .getAnnotation(org.mybatis.spring.annotation.MapperScan.class);
+
+        assertThat(java.util.Arrays.asList(scan.value()))
+                .contains(AdminStorageCleanupOutboxMapper.class.getPackageName());
     }
 
     private static UserProfileDTO profile(String avatar) {

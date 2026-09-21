@@ -12,6 +12,7 @@ import com.ulticode.modules.backup.mapper.BackupMapper;
 import com.ulticode.modules.backup.port.BackupProcessPort;
 import com.ulticode.modules.backup.projection.BackupReadProjection;
 import com.ulticode.modules.backup.service.BackupExecutionService;
+import com.ulticode.modules.backup.service.impl.BackupObjectCleanup;
 import com.ulticode.modules.backup.service.impl.BackupServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -76,6 +77,9 @@ class BackupServiceTest {
 
     @Mock
     private BackupReadProjection backupReadProjection;
+
+    @Mock
+    private BackupObjectCleanup backupObjectCleanup;
 
     @InjectMocks
     private BackupServiceImpl backupService;
@@ -345,12 +349,12 @@ class BackupServiceTest {
                 backupService.deleteBackup(BACKUP_ID);
 
                 verify(backupMapper).deleteById(BACKUP_ID);
-                verify(backupDeletionTombstoneMapper).insert(BACKUP_ID);
-                verify(fileStorage, never()).delete(anyString());
+                verify(backupDeletionTombstoneMapper).insert(BACKUP_ID, backup.getObjectKey());
+                verify(backupObjectCleanup, never()).deletePending(anyString());
 
                 TransactionSynchronizationManager.getSynchronizations()
                         .forEach(TransactionSynchronization::afterCommit);
-                verify(fileStorage, timeout(1000)).delete(backup.getObjectKey());
+                verify(backupObjectCleanup, timeout(1000)).deletePending(backup.getObjectKey());
             } finally {
                 TransactionSynchronizationManager.clearSynchronization();
             }
@@ -369,9 +373,9 @@ class BackupServiceTest {
 
             backupService.deleteBackup(BACKUP_ID);
 
-            verify(fileStorage, never()).delete(anyString());
+            verify(backupObjectCleanup, never()).deletePending(anyString());
             verify(backupMapper).deleteById(BACKUP_ID);
-            verify(backupDeletionTombstoneMapper).insert(BACKUP_ID);
+            verify(backupDeletionTombstoneMapper).insert(BACKUP_ID, null);
         }
 
         @Test
@@ -389,7 +393,7 @@ class BackupServiceTest {
                     () -> backupService.deleteBackup(BACKUP_ID));
 
             assertTrue(exception.getMessage().contains("Failed to delete backup record"));
-            verify(fileStorage, never()).delete(anyString());
+            verify(backupObjectCleanup, never()).deletePending(anyString());
         }
         @Test
         @DisplayName("should preserve the object when row deletion throws")
@@ -405,7 +409,7 @@ class BackupServiceTest {
 
             assertThrows(IllegalStateException.class, () -> backupService.deleteBackup(BACKUP_ID));
 
-            verify(fileStorage, never()).delete(anyString());
+            verify(backupObjectCleanup, never()).deletePending(anyString());
         }
 
 

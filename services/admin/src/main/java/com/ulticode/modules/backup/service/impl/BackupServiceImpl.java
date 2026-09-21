@@ -58,6 +58,7 @@ public class BackupServiceImpl implements BackupService {
     private final BackupReadProjection backupReadProjection;
     private final BackupExecutionService backupExecutionService;
     private final FileStoragePort fileStorage;
+    private final BackupObjectCleanup backupObjectCleanup;
 
     @Value("${backup.temp-dir:${java.io.tmpdir}/ulticode-backups}")
     private String backupTempDir;
@@ -211,22 +212,22 @@ public class BackupServiceImpl implements BackupService {
             throw new BusinessException(BaseErrorCode.UNKNOWN_ERROR,
                     "Failed to delete backup record; retry the operation");
         }
-        backupDeletionTombstoneMapper.insert(id);
+        // Same transaction as the row delete: the object key outlives the row,
+        // so the cleanup intent cannot be lost with a crashed request.
+        backupDeletionTombstoneMapper.insert(id, objectKey);
         if (objectKey != null) {
             deleteObjectAfterCommit(objectKey);
         }
         log.info("Deleted backup: {}", id);
     }
 
-    /** Delete object bytes only after the database row has committed. */
+    /**
+     * Delete object bytes only after the database row has committed. The
+     * tombstone holds the same intent, so this path only has to be fast, not
+     * reliable: the scheduled sweep re-drives anything left pending.
+     */
     private void deleteObjectAfterCommit(String objectKey) {
-        Runnable cleanup = () -> {
-            try {
-                fileStorage.delete(objectKey);
-            } catch (RuntimeException exception) {
-                log.warn("Failed to delete backup object after row deletion: {}", objectKey, exception);
-            }
-        };
+        Runnable cleanup = () -> backupObjectCleanup.deletePending(objectKey);
         Runnable submitCleanup = () -> {
             try {
                 CompletableFuture.runAsync(cleanup).exceptionally(exception -> {

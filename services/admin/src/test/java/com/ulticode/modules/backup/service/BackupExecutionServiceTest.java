@@ -26,6 +26,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -108,6 +109,20 @@ class BackupExecutionServiceTest {
         row.setStatus(status);
         row.setObjectKey(objectKey);
         return row;
+    }
+
+    /** Captures the conditional FAILED transition exactly as the database receives it. */
+    private FailedTransition capturedFailure() {
+        ArgumentCaptor<String> id = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<LocalDateTime> completedAt = ArgumentCaptor.forClass(LocalDateTime.class);
+        ArgumentCaptor<String> error = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<String> objectKey = ArgumentCaptor.forClass(String.class);
+        verify(backupMapper).failUnlessCompleted(
+                id.capture(), completedAt.capture(), error.capture(), objectKey.capture());
+        return new FailedTransition(id.getValue(), completedAt.getValue(), error.getValue(), objectKey.getValue());
+    }
+
+    private record FailedTransition(String id, LocalDateTime completedAt, String error, String objectKey) {
     }
 
     @Nested
@@ -263,16 +278,44 @@ class BackupExecutionServiceTest {
                     .thenReturn(1)
                     .thenThrow(new RuntimeException("connection reset"))
                     .thenReturn(1);
+            when(backupMapper.failUnlessCompleted(any(), any(), any(), any())).thenReturn(1);
 
             executionService.executeBackup(BACKUP_ID);
 
             verify(fileStorage).putFile(eq(objectKey), any(Path.class), eq("application/sql"));
             verify(fileStorage, never()).delete(any());
-            // IN_PROGRESS write, raced COMPLETED write, then the terminal FAILED write.
-            verify(backupMapper, times(3)).updateById(any(Backup.class));
+            // IN_PROGRESS and the raced COMPLETED write only: the terminal FAILED
+            // transition must not go through the unguarded row update.
+            verify(backupMapper, times(2)).updateById(any(Backup.class));
             assertEquals(BackupStatus.FAILED, backup.getStatus());
             assertNotNull(backup.getError());
             assertTrue(backup.getError().contains(objectKey));
+            assertEquals(objectKey, capturedFailure().objectKey(),
+                    "the preserved object key must reach the durable row");
+        }
+
+        @Test
+        @DisplayName("a durable COMPLETED row is never replaced by the FAILED transition")
+        void shouldNotReplaceDurableCompletedRow() throws Exception {
+            Backup backup = pendingBackup();
+            String objectKey = "admin/backups/2026/01/" + BACKUP_ID + ".sql";
+            when(backupMapper.selectById(BACKUP_ID)).thenReturn(backup)
+                    .thenThrow(new RuntimeException("database unreachable"));
+            when(backupProcessPort.dump(any(Path.class))).thenAnswer(invocation -> {
+                Path dump = invocation.getArgument(0);
+                Files.writeString(dump, "-- fake dump");
+                return true;
+            });
+            when(backupMapper.updateById(any(Backup.class)))
+                    .thenReturn(1)
+                    .thenThrow(new RuntimeException("connection reset"));
+            // The row committed COMPLETED while the failure path was running.
+            when(backupMapper.failUnlessCompleted(any(), any(), any(), any())).thenReturn(0);
+
+            executionService.executeBackup(BACKUP_ID);
+
+            verify(fileStorage, never()).delete(any());
+            assertEquals(objectKey, capturedFailure().objectKey());
         }
 
         @Test
@@ -284,14 +327,13 @@ class BackupExecutionServiceTest {
 
             executionService.executeBackup(BACKUP_ID);
 
-            ArgumentCaptor<Backup> captor = ArgumentCaptor.forClass(Backup.class);
-            verify(backupMapper, atLeast(2)).updateById(captor.capture());
-            Backup finalState = captor.getValue();
+            verify(backupMapper).updateById(any(Backup.class));
+            FailedTransition failure = capturedFailure();
 
-            assertEquals(BackupStatus.FAILED, finalState.getStatus(),
+            assertEquals(BackupStatus.FAILED, backup.getStatus(),
                     "backup must reach FAILED when dump reports failure");
-            assertNotNull(finalState.getCompletedAt());
-            assertNotNull(finalState.getError(), "failure must capture an error message");
+            assertNotNull(failure.completedAt());
+            assertNotNull(failure.error(), "failure must capture an error message");
         }
 
         @Test
@@ -304,13 +346,12 @@ class BackupExecutionServiceTest {
 
             executionService.executeBackup(BACKUP_ID);
 
-            ArgumentCaptor<Backup> captor = ArgumentCaptor.forClass(Backup.class);
-            verify(backupMapper, atLeast(2)).updateById(captor.capture());
-            Backup finalState = captor.getValue();
+            verify(backupMapper).updateById(any(Backup.class));
+            FailedTransition failure = capturedFailure();
 
-            assertEquals(BackupStatus.FAILED, finalState.getStatus(),
+            assertEquals(BackupStatus.FAILED, backup.getStatus(),
                     "backup must reach FAILED when the file is missing after dump");
-            assertNotNull(finalState.getError());
+            assertNotNull(failure.error());
         }
         @Test
         @DisplayName("IN_PROGRESS -> FAILED when dump throws, error message captured")
@@ -321,12 +362,11 @@ class BackupExecutionServiceTest {
 
             executionService.executeBackup(BACKUP_ID);
 
-            ArgumentCaptor<Backup> captor = ArgumentCaptor.forClass(Backup.class);
-            verify(backupMapper, atLeast(2)).updateById(captor.capture());
-            Backup finalState = captor.getValue();
+            verify(backupMapper).updateById(any(Backup.class));
+            FailedTransition failure = capturedFailure();
 
-            assertEquals(BackupStatus.FAILED, finalState.getStatus());
-            assertEquals("mysqldump not on PATH", finalState.getError(),
+            assertEquals(BackupStatus.FAILED, backup.getStatus());
+            assertEquals("mysqldump not on PATH", failure.error(),
                     "exception message must be captured on the FAILED record");
         }
     }

@@ -163,9 +163,14 @@ public class BackupExecutionServiceImpl implements BackupExecutionService {
         backup.setStatus(BackupStatus.FAILED);
         backup.setCompletedAt(LocalDateTime.now(clock));
         backup.setError(error == null || error.isBlank() ? "Backup execution failed" : error);
-        int failedRows = backupMapper.updateById(backup);
-        if (failedRows != 1) {
-            log.error("Failed to persist FAILED backup state: {}, affected rows: {}", backup.getId(), failedRows);
+        int failedRows = backupMapper.failUnlessCompleted(
+                backup.getId(), backup.getCompletedAt(), backup.getError(), backup.getObjectKey());
+        if (failedRows == 0) {
+            log.warn("Backup {} already holds a durable COMPLETED row; FAILED transition skipped",
+                    backup.getId());
+        } else if (failedRows != 1) {
+            log.error("Failed to persist FAILED backup state: {}, affected rows: {}",
+                    backup.getId(), failedRows);
         }
     }
 

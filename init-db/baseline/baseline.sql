@@ -2515,6 +2515,10 @@ CREATE TABLE `backup_cutover_state` (
 CREATE TABLE `backup_deletion_tombstones` (
   `backup_id` varchar(40) NOT NULL,
   `deleted_at` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `object_key` varchar(512) DEFAULT NULL,
+  `object_deleted_at` datetime(3) DEFAULT NULL,
+  `cleanup_attempts` int NOT NULL DEFAULT '0',
+  `cleanup_error` varchar(500) DEFAULT NULL,
   PRIMARY KEY (`backup_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;

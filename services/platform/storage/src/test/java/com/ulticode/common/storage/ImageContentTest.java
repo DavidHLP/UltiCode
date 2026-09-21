@@ -139,6 +139,26 @@ class ImageContentTest {
     }
 
     @Test
+    @DisplayName("rejects an animated PNG whose frames the JDK reader never validates")
+    void rejectsAnimatedPng() {
+        assertThatThrownBy(() -> ImageContent.assertWithinPixelBudget(withAnimationChunks(ONE_PIXEL_PNG)))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> ImageContent.detect(withAnimationChunks(ONE_PIXEL_PNG)))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    /** Splices {@code acTL}/{@code fdAT} right after the IHDR of a decodable PNG. */
+    private static byte[] withAnimationChunks(byte[] png) {
+        int ihdrEnd = 8 + 4 + 4 + 13 + 4;
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        out.writeBytes(java.util.Arrays.copyOfRange(png, 0, ihdrEnd));
+        out.writeBytes(chunk("acTL", new byte[]{0, 0, 0, 2, 0, 0, 0, 0}));
+        out.writeBytes(chunk("fdAT", new byte[]{0, 0, 0, 1, 0, 0, 0, 0}));
+        out.writeBytes(java.util.Arrays.copyOfRange(png, ihdrEnd, png.length));
+        return out.toByteArray();
+    }
+
+    @Test
     @DisplayName("detects a real PNG inside the pixel budget")
     void detectsPng() {
         ImageContent.Detected detected = ImageContent.detect(ONE_PIXEL_PNG);

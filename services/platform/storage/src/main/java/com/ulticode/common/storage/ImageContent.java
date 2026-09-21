@@ -89,6 +89,9 @@ public final class ImageContent {
         if (content != null && isWebp(content)) {
             return readWebpDimensions(content);
         }
+        if (content != null && isPng(content) && declaresPngAnimation(content)) {
+            return null;
+        }
         try (ImageInputStream input = ImageIO.createImageInputStream(new ByteArrayInputStream(content))) {
             if (input == null) {
                 return null;
@@ -251,6 +254,13 @@ public final class ImageContent {
                 | ((content[offset + 3] & 0xffL) << 24);
     }
 
+    private static long unsignedIntBigEndian(byte[] content, int offset) {
+        return ((content[offset] & 0xffL) << 24)
+                | ((content[offset + 1] & 0xffL) << 16)
+                | ((content[offset + 2] & 0xffL) << 8)
+                | (content[offset + 3] & 0xffL);
+    }
+
     private static boolean decodes(byte[] content) {
         try {
             BufferedImage image = ImageIO.read(new ByteArrayInputStream(content));
@@ -265,6 +275,34 @@ public final class ImageContent {
                 && (content[0] & 0xff) == 0x89 && content[1] == 0x50 && content[2] == 0x4e
                 && content[3] == 0x47 && content[4] == 0x0d && content[5] == 0x0a
                 && (content[6] & 0xff) == 0x1a && content[7] == 0x0a;
+    }
+
+    /**
+     * An animated PNG carries its frames in {@code acTL}/{@code fdAT} chunks that
+     * the JDK reader never validates: it only decodes the default image, while a
+     * browser animates every frame. Such a file is rejected like an animated GIF
+     * or WebP instead of being measured by one frame.
+     */
+    private static boolean declaresPngAnimation(byte[] content) {
+        int offset = 8;
+        while (offset + 8 <= content.length) {
+            long length = unsignedIntBigEndian(content, offset);
+            int typeOffset = offset + 4;
+            if (isChunk(content, typeOffset, 'I', 'E', 'N', 'D')) {
+                return false;
+            }
+            if (isChunk(content, typeOffset, 'a', 'c', 'T', 'L')
+                    || isChunk(content, typeOffset, 'f', 'd', 'A', 'T')) {
+                return true;
+            }
+            long next = offset + 12L + length;
+            if (next > content.length) {
+                // A truncated layout the decoder will reject; no frame claim to trust.
+                return false;
+            }
+            offset = (int) next;
+        }
+        return false;
     }
 
     private static boolean isJpeg(byte[] content) {

@@ -77,8 +77,11 @@ public final class StorageKeys {
             throw new IllegalArgumentException("Not an avatar key");
         }
         String[] parts = key.substring(AVATAR_PREFIX.length()).split("/", -1);
+        // Legacy uploads could persist a name without an extension (or with a
+        // trailing dot), and those rows have to stay migratable and readable;
+        // the object's stored content type carries the format instead.
         if (parts.length != 2 || parts[0].isBlank() || parts[1].isBlank()
-                || parts[1].indexOf('.') <= 0 || parts[1].endsWith(".")) {
+                || parts[1].indexOf('/') >= 0 || parts[1].indexOf('\\') >= 0) {
             throw new IllegalArgumentException("Invalid avatar key");
         }
         return parts;

@@ -1,6 +1,7 @@
 package com.ulticode.app.storage;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
@@ -11,6 +12,19 @@ import java.util.List;
 /** Claim/retry state transitions for the App storage cleanup outbox. */
 @Mapper
 public interface StorageCleanupOutboxMapper extends BaseMapper<StorageCleanupOutboxRecord> {
+
+    /** Records an intent whose deletion must wait for its operation to settle. */
+    @Insert("""
+            INSERT INTO storage_cleanup_outbox (id, object_key, state, attempts, next_retry_at)
+            VALUES (#{id}, #{objectKey}, 'PENDING', 0,
+                    DATE_ADD(NOW(3), INTERVAL #{delaySeconds} SECOND))
+            ON DUPLICATE KEY UPDATE
+                next_retry_at = GREATEST(next_retry_at,
+                        DATE_ADD(NOW(3), INTERVAL #{delaySeconds} SECOND))
+            """)
+    int enqueueDelayed(@Param("id") String id,
+                       @Param("objectKey") String objectKey,
+                       @Param("delaySeconds") int delaySeconds);
 
     @Update("""
         UPDATE storage_cleanup_outbox

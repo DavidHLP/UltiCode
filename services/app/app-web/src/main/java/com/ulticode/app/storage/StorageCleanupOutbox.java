@@ -5,6 +5,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 
+import java.util.UUID;
+
 /**
  * Records durable cleanup intents for replaced avatar objects. Callers invoke
  * {@link #enqueue(String)} inside the profile mutation transaction so the
@@ -16,6 +18,16 @@ import org.springframework.stereotype.Service;
 public class StorageCleanupOutbox {
 
     private final StorageCleanupOutboxMapper outboxMapper;
+
+    public void enqueueAfterGrace(String objectKey, int delaySeconds) {
+        try {
+            outboxMapper.enqueueDelayed(UUID.randomUUID().toString(), objectKey, delaySeconds);
+        } catch (DuplicateKeyException exception) {
+            if (outboxMapper.reopenTerminalRow(objectKey) == 0) {
+                log.debug("Delayed storage cleanup intent for {} already queued", objectKey);
+            }
+        }
+    }
 
     public void enqueue(String objectKey) {
         StorageCleanupOutboxRecord record = new StorageCleanupOutboxRecord();

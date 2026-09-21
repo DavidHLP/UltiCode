@@ -203,6 +203,15 @@ public class BackupServiceImpl implements BackupService {
     public void deleteBackup(String id) {
         Backup backup = requireBackup(id);
         validateBackupFilePath(backup.getFilename());
+        // A running backup with a planned key may still be uploading: deleting
+        // the row now would let the cleanup delete a not-yet-written object and
+        // leave the late PUT untracked.
+        if (backup.getObjectKey() != null && !backup.getObjectKey().isBlank()
+                && (backup.getStatus() == BackupStatus.PENDING
+                    || backup.getStatus() == BackupStatus.IN_PROGRESS)) {
+            throw new BusinessException(BaseErrorCode.BAD_REQUEST,
+                    "Backup is still running; retry the deletion after it reaches a terminal state");
+        }
         String objectKey = null;
         if (backup.getObjectKey() != null && !backup.getObjectKey().isBlank()) {
             objectKey = requireBackupObjectKey(backup);

@@ -42,6 +42,9 @@ public class DefaultAppUserWritePort implements AppUserWritePort {
     private final AvatarProfileMutationService avatarProfileMutationService;
     private final com.ulticode.app.storage.StorageCleanupOutbox storageCleanupOutbox;
 
+    @org.springframework.beans.factory.annotation.Value("${app.storage.cleanup.upload-settle-seconds:900}")
+    private int uploadSettleSeconds;
+
     /** Publish a complete user-document UPSERT after a profile write. */
     private void publishUserDocument(String userId) {
         var directoryRow = userDirectoryQueryPort.findById(userId);
@@ -151,9 +154,10 @@ public class DefaultAppUserWritePort implements AppUserWritePort {
         try {
             fileStorage.put(key, new ByteArrayInputStream(content), content.length, detected.contentType());
         } catch (RuntimeException exception) {
-            // The PUT may have committed before the error surfaced: queue the key
-            // so the dispatcher deletes it only if no profile references it.
-            queueStagedAvatarCleanup(key);
+            // The PUT may still commit server-side after this timeout: record the
+            // intent with a settle grace so a late commit is not deleted, and the
+            // dispatcher's current-avatar check protects an already-committed key.
+            queueAmbiguousAvatarCleanup(key);
             log.warn("Avatar upload failed for user {}: {}", userId, exception.getMessage());
             throw new BusinessException(BaseErrorCode.BAD_REQUEST, "Failed to save avatar");
         }
@@ -201,6 +205,18 @@ public class DefaultAppUserWritePort implements AppUserWritePort {
             return new DetectedImage(detected.extension(), detected.contentType());
         } catch (IllegalArgumentException exception) {
             throw new BusinessException(BaseErrorCode.BAD_REQUEST, exception.getMessage());
+        }
+    }
+
+    /** Records an ambiguous PUT intent with the configured settle grace. */
+    private void queueAmbiguousAvatarCleanup(String key) {
+        if (key == null) {
+            return;
+        }
+        try {
+            storageCleanupOutbox.enqueueAfterGrace(key, uploadSettleSeconds);
+        } catch (RuntimeException exception) {
+            log.warn("Failed to queue the ambiguous avatar object: {}", exception.getMessage());
         }
     }
 

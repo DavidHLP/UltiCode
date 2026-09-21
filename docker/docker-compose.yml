@@ -165,6 +165,106 @@ services:
     networks:
       - object-storage
 
+  # Create and bind least-privilege application users after the bucket exists.
+  # The root pair above is bootstrap-only; runtime services receive prefix-scoped
+  # credentials from the production/local overlays.
+  rustfs-iam-init:
+    image: "rustfs/rc:v0.1.36@sha256:ab024bfebee49a750ce886b4c70963ccd9ddaa03f491704a90710641d7a26699"
+    entrypoint: ["/bin/sh", "-ec"]
+    command: |
+      umask 077
+      if [ "$$RUSTFS_APP_ACCESS_KEY" = "$$RUSTFS_ACCESS_KEY" ] \
+          || [ "$$RUSTFS_ADMIN_ACCESS_KEY" = "$$RUSTFS_ACCESS_KEY" ] \
+          || [ "$$RUSTFS_APP_ACCESS_KEY" = "$$RUSTFS_ADMIN_ACCESS_KEY" ]; then
+        echo "RustFS runtime access keys must be distinct from root and each other" >&2
+        exit 1
+      fi
+      cat >/tmp/app-storage-policy.json <<POLICY
+      {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Effect": "Allow",
+            "Action": ["s3:GetBucketLocation"],
+            "Resource": ["arn:aws:s3:::$${RUSTFS_BUCKET}"]
+          },
+          {
+            "Effect": "Allow",
+            "Action": ["s3:ListBucket"],
+            "Resource": ["arn:aws:s3:::$${RUSTFS_BUCKET}"],
+            "Condition": {
+              "StringLike": {
+                "s3:prefix": ["app/avatars", "app/avatars/*"]
+              }
+            }
+          },
+          {
+            "Effect": "Allow",
+            "Action": ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"],
+            "Resource": ["arn:aws:s3:::$${RUSTFS_BUCKET}/app/avatars/*"]
+          }
+        ]
+      }
+      POLICY
+      cat >/tmp/admin-storage-policy.json <<POLICY
+      {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Effect": "Allow",
+            "Action": ["s3:GetBucketLocation"],
+            "Resource": ["arn:aws:s3:::$${RUSTFS_BUCKET}"]
+          },
+          {
+            "Effect": "Allow",
+            "Action": ["s3:ListBucket"],
+            "Resource": ["arn:aws:s3:::$${RUSTFS_BUCKET}"],
+            "Condition": {
+              "StringLike": {
+                "s3:prefix": [
+                  "app/avatars",
+                  "app/avatars/*",
+                  "admin/backups",
+                  "admin/backups/*"
+                ]
+              }
+            }
+          },
+          {
+            "Effect": "Allow",
+            "Action": ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"],
+            "Resource": [
+              "arn:aws:s3:::$${RUSTFS_BUCKET}/app/avatars/*",
+              "arn:aws:s3:::$${RUSTFS_BUCKET}/admin/backups/*"
+            ]
+          }
+        ]
+      }
+      POLICY
+      # RustFS rc treats policy create as replace and user add as create/update,
+      # so this one-shot remains convergent when local up.sh recreates it.
+      rc alias set root "$$RUSTFS_ENDPOINT" "$$RUSTFS_ACCESS_KEY" "$$RUSTFS_SECRET_KEY"
+      rc admin policy create root app-storage /tmp/app-storage-policy.json
+      rc admin policy create root admin-storage /tmp/admin-storage-policy.json
+      rc admin user add root "$$RUSTFS_APP_ACCESS_KEY" "$$RUSTFS_APP_SECRET_KEY"
+      rc admin user add root "$$RUSTFS_ADMIN_ACCESS_KEY" "$$RUSTFS_ADMIN_SECRET_KEY"
+      rc admin policy attach root app-storage --user "$$RUSTFS_APP_ACCESS_KEY"
+      rc admin policy attach root admin-storage --user "$$RUSTFS_ADMIN_ACCESS_KEY"
+    environment:
+      RUSTFS_ENDPOINT: http://rustfs:9000
+      RUSTFS_ACCESS_KEY: ${RUSTFS_ACCESS_KEY:?RUSTFS_ACCESS_KEY is required}
+      RUSTFS_SECRET_KEY: ${RUSTFS_SECRET_KEY:?RUSTFS_SECRET_KEY is required}
+      RUSTFS_APP_ACCESS_KEY: ${RUSTFS_APP_ACCESS_KEY:?RUSTFS_APP_ACCESS_KEY is required}
+      RUSTFS_APP_SECRET_KEY: ${RUSTFS_APP_SECRET_KEY:?RUSTFS_APP_SECRET_KEY is required}
+      RUSTFS_ADMIN_ACCESS_KEY: ${RUSTFS_ADMIN_ACCESS_KEY:?RUSTFS_ADMIN_ACCESS_KEY is required}
+      RUSTFS_ADMIN_SECRET_KEY: ${RUSTFS_ADMIN_SECRET_KEY:?RUSTFS_ADMIN_SECRET_KEY is required}
+      RUSTFS_BUCKET: ${RUSTFS_BUCKET:-ulticode}
+    depends_on:
+      rustfs-init:
+        condition: service_completed_successfully
+    networks:
+      - object-storage
+
 networks:
   object-storage:
     internal: true

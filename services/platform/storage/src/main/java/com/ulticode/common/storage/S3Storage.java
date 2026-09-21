@@ -255,13 +255,19 @@ public class S3Storage implements FileStoragePort {
         }
     }
 
-    /** Bounded readiness probe for the configured bucket. */
+    /**
+     * Bounded readiness probe for the configured bucket.
+     *
+     * <p>Use the bucket-location subresource instead of a bare HeadBucket
+     * request so prefix-scoped IAM users do not need unrestricted ListBucket.
+     */
     public void probe() {
-        URI bucketUri = URI.create(trimTrailingSlash(properties.getS3().getEndpoint()) + "/"
-                + properties.getS3().getBucket());
+        URI bucketLocationUri = URI.create(trimTrailingSlash(properties.getS3().getEndpoint()) + "/"
+                + properties.getS3().getBucket() + "?location=");
         try {
-            HttpResponse<Void> response = exchange("HEAD", bucketUri, HttpRequest.BodyPublishers.noBody(),
-                    EMPTY_HASH, null, HttpResponse.BodyHandlers.discarding(), 1);
+            HttpResponse<Void> response = exchange("GET", bucketLocationUri,
+                    HttpRequest.BodyPublishers.noBody(), EMPTY_HASH, null,
+                    HttpResponse.BodyHandlers.discarding(), 1);
             requireSuccess(response, "bucket probe");
         } catch (IOException | InterruptedException exception) {
             restoreInterrupt(exception);

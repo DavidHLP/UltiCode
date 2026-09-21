@@ -22,6 +22,7 @@ import com.ulticode.common.uuid.UuidGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
+import org.apache.dubbo.rpc.RpcException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Component;
@@ -123,8 +124,8 @@ public class AdminUserProfileAdapter implements UserProfilePort {
         try {
             updateAvatarUrlWithOutcome(userId, key);
         } catch (RpcTransportException exception) {
-            if (isTransactionRollback(exception)) {
-                log.warn("Avatar profile update rolled back for user {}; deleting object {}", userId, key);
+            if (exception.isPreDispatch() || isTransactionRollback(exception)) {
+                log.warn("Avatar profile update did not dispatch for user {}; deleting object {}", userId, key);
                 deleteQuietly(key);
             } else {
                 log.warn("Avatar profile update outcome is unknown for user {}; keeping object {}", userId, key);
@@ -215,7 +216,7 @@ public class AdminUserProfileAdapter implements UserProfilePort {
      */
     private RpcResult<ProfileWriteResult> invoke(RemoteCall call) {
         if (profileWriteService == null) {
-            throw new RpcTransportException("ProfileWriteService unavailable");
+            throw new RpcTransportException("ProfileWriteService unavailable", null, true);
         }
         try {
             return call.call();
@@ -223,8 +224,22 @@ public class AdminUserProfileAdapter implements UserProfilePort {
             throw exception;
         } catch (RuntimeException exception) {
             log.warn("ProfileWriteService RPC failed: {}", exception.getMessage());
-            throw new RpcTransportException("Profile write RPC failed", exception);
+            throw new RpcTransportException(
+                    "Profile write RPC failed", exception, isPreDispatchFailure(exception));
         }
+    }
+
+    private static boolean isPreDispatchFailure(Throwable exception) {
+        Throwable current = exception;
+        while (current != null) {
+            if (current instanceof RpcException rpcException
+                    && (rpcException.isNoInvokerAvailableAfterFilter()
+                    || rpcException.getCode() == RpcException.REGISTRY_EXCEPTION)) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 
     private static BusinessException transportFailure(RpcTransportException exception) {
@@ -232,12 +247,15 @@ public class AdminUserProfileAdapter implements UserProfilePort {
     }
 
     private static final class RpcTransportException extends RuntimeException {
-        private RpcTransportException(String message) {
-            super(message);
+        private final boolean preDispatch;
+
+        private RpcTransportException(String message, Throwable cause, boolean preDispatch) {
+            super(message, cause);
+            this.preDispatch = preDispatch;
         }
 
-        private RpcTransportException(String message, Throwable cause) {
-            super(message, cause);
+        private boolean isPreDispatch() {
+            return preDispatch;
         }
     }
     private static boolean isTransactionRollback(Throwable exception) {

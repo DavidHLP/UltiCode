@@ -8,6 +8,7 @@ import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.common.storage.FileStoragePort;
 import com.ulticode.common.uuid.UuidGenerator;
+import org.apache.dubbo.rpc.RpcException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -103,6 +104,37 @@ class AdminUserProfileAdapterTest {
                 .hasMessageContaining("Profile write RPC failed");
 
         verify(fileStorage, org.mockito.Mockito.never()).delete(any());
+    }
+
+    @Test
+    void removesObjectWhenProfileProviderIsUnavailableBeforeDispatch() {
+        when(currentUserProvider.getCurrentUserId()).thenReturn("admin-1");
+        when(uuidGenerator.newId()).thenReturn("uuid-1");
+        byte[] png = Base64.getDecoder().decode(
+                "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+        when(profileWriteService.uploadAvatar(any()))
+                .thenThrow(new RpcException(RpcException.NO_INVOKER_AVAILABLE_AFTER_FILTER, "no provider"));
+
+        assertThatThrownBy(() -> adapter.uploadAvatar("user-1",
+                new MockMultipartFile("file", "photo.png", "image/png", png)))
+                .hasMessageContaining("Profile write RPC failed");
+
+        verify(fileStorage).delete("app/avatars/user-1/uuid-1.png");
+    }
+
+    @Test
+    void removesObjectWhenProfileServiceReferenceIsAbsent() {
+        when(currentUserProvider.getCurrentUserId()).thenReturn("admin-1");
+        when(uuidGenerator.newId()).thenReturn("uuid-1");
+        byte[] png = Base64.getDecoder().decode(
+                "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+        ReflectionTestUtils.setField(adapter, "profileWriteService", null);
+
+        assertThatThrownBy(() -> adapter.uploadAvatar("user-1",
+                new MockMultipartFile("file", "photo.png", "image/png", png)))
+                .hasMessageContaining("ProfileWriteService unavailable");
+
+        verify(fileStorage).delete("app/avatars/user-1/uuid-1.png");
     }
 
     @Test

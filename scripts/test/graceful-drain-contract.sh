@@ -71,18 +71,18 @@ contains services/app/app-web/src/main/java/com/ulticode/modules/contest/schedul
 contains services/Dockerfile 'STOPSIGNAL SIGTERM'
 contains services/platform/integration-inbox/pom.xml 'jdk.attach.allowAttachSelf=true'
 contains services/docs/GRACEFUL_DRAIN_RUNBOOK.md 'P3-GRACE-001'
-contains services/admin/src/main/resources/application.yml 'await-termination-seconds: ${ADMIN_BACKUP_EXECUTOR_AWAIT_TERMINATION_SECONDS:60}'
+contains services/admin/src/main/resources/application.yml 'await-termination-seconds: ${ADMIN_BACKUP_EXECUTOR_AWAIT_TERMINATION_SECONDS:3600}'
+contains services/admin/src/main/java/com/ulticode/admin/config/AdminBackupExecutorConfiguration.java '@Value("${admin.backup.executor.await-termination-seconds:3600}")'
 contains services/admin/src/main/java/com/ulticode/modules/backup/service/impl/BackupExecutionServiceImpl.java '@Async("adminBackupExecutor")'
 contains services/admin/src/main/java/com/ulticode/admin/config/AdminBackupExecutorConfiguration.java 'setWaitForTasksToCompleteOnShutdown(true)'
 contains services/admin/src/test/java/com/ulticode/admin/config/AdminBackupExecutorConfigurationTest.java 'backupExecutorWaitsForRunningWorkDuringShutdown'
-
-
+contains docker/docker-compose.prod.yml 'stop_grace_period: ${ADMIN_BACKUP_STOP_GRACE_PERIOD:-3660s}'
+contains docker/docker-compose.prod.yml 'ADMIN_BACKUP_EXECUTOR_AWAIT_TERMINATION_SECONDS=${ADMIN_BACKUP_EXECUTOR_AWAIT_TERMINATION_SECONDS:-3600}'
 [[ "$(grep -Fc 'stop_grace_period: ${SERVICE_STOP_GRACE_PERIOD:-60s}' \
-  "$ROOT_DIR/docker/docker-compose.prod.yml")" == 7 ]] \
-  || fail 'production Java service stop grace is not configured for all seven services'
-[[ "$(grep -Fc 'stop_grace_period: ${FRONTEND_STOP_GRACE_PERIOD:-30s}' \
-  "$ROOT_DIR/docker/docker-compose.prod.yml")" == 2 ]] \
-  || fail 'production frontend stop grace is not configured for both gateways'
+  "$ROOT_DIR/docker/docker-compose.prod.yml")" == 6 ]] \
+  || fail 'production non-backup Java service stop grace is not configured for all six services'
+[[ "$(grep -Fc 'kill_timeout: 3660000' "$ROOT_DIR/ecosystem.config.cjs")" == 2 ]] \
+  || fail 'Admin and Core PM2 processes do not have the extended backup drain timeout'
 [[ "$(grep -Fc 'kill_timeout:' "$ROOT_DIR/ecosystem.config.cjs")" == 10 ]] \
   || fail 'PM2 kill_timeout is not configured for all ten local processes'
 printf 'graceful shutdown/lifecycle/worker wiring contract: PASS\n'

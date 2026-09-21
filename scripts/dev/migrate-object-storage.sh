@@ -29,8 +29,9 @@ Configuration (environment or .env):
   APP_STORAGE_S3_ENDPOINT or RUSTFS_ENDPOINT
   APP_STORAGE_S3_REGION or RUSTFS_REGION
   APP_STORAGE_S3_TLS_ENABLED or RUSTFS_TLS_ENABLED
-  APP_STORAGE_S3_ACCESS_KEY or RUSTFS_ACCESS_KEY
-  APP_STORAGE_S3_SECRET_KEY or RUSTFS_SECRET_KEY
+  RUSTFS_ACCESS_KEY and RUSTFS_SECRET_KEY for backup/all migrations;
+  APP_STORAGE_S3_ACCESS_KEY and APP_STORAGE_S3_SECRET_KEY are an avatar-only
+  fallback when the operator intentionally does not provide the root pair.
   RUSTFS_BUCKET
   APP_DB_* / ADMIN_DB_* (host/port/user/password fall back to MIGRATION_DB_*,
                          then DB_*; owner schema names default to app/admin)
@@ -219,8 +220,13 @@ if [[ "$ONLY" == backups || "$ONLY" == all ]]; then
 fi
 S3_ENDPOINT="${APP_STORAGE_S3_ENDPOINT:-${RUSTFS_ENDPOINT:-${RUSTFS_S3_ENDPOINT:-http://127.0.0.1:9000}}}"
 S3_REGION="${APP_STORAGE_S3_REGION:-${RUSTFS_REGION:-us-east-1}}"
-S3_ACCESS_KEY="${APP_STORAGE_S3_ACCESS_KEY:-${RUSTFS_ACCESS_KEY:-}}"
-S3_SECRET_KEY="${APP_STORAGE_S3_SECRET_KEY:-${RUSTFS_SECRET_KEY:-}}"
+S3_ACCESS_KEY="${RUSTFS_ACCESS_KEY:-${APP_STORAGE_S3_ACCESS_KEY:-}}"
+S3_SECRET_KEY="${RUSTFS_SECRET_KEY:-${APP_STORAGE_S3_SECRET_KEY:-}}"
+if [[ "$ONLY" == backups || "$ONLY" == all ]] \
+    && { [[ -z "${RUSTFS_ACCESS_KEY:-}" ]] || [[ -z "${RUSTFS_SECRET_KEY:-}" ]]; }; then
+  echo "RUSTFS_ACCESS_KEY and RUSTFS_SECRET_KEY are required for backup migrations" >&2
+  exit 2
+fi
 S3_BUCKET="${BUCKET_OVERRIDE:-${RUSTFS_BUCKET:-${APP_STORAGE_S3_BUCKET:-ulticode}}}"
 S3_TLS_ENABLED="${APP_STORAGE_S3_TLS_ENABLED:-${RUSTFS_TLS_ENABLED:-}}"
 S3_CA_CERTIFICATE="${APP_STORAGE_S3_CA_CERTIFICATE:-${RUSTFS_TLS_CA_CERT:-}}"

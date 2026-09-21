@@ -343,7 +343,7 @@ fi
 # RustFS bucket bootstrap is a one-shot dependency for the host-run PM2
 # backends, so start it explicitly after the manifest-selected infra services.
 if [[ ",$INFRA_TARGETS," == *,rustfs,* ]]; then
-  COMPOSE_TARGETS+=(rustfs-init)
+  COMPOSE_TARGETS+=(rustfs-init rustfs-iam-init)
 fi
 mapfile -t SELECTED_READINESS < <(devstack_readiness_for_selection "$DEV_SCOPE" "$PM2_APPS")
 
@@ -464,7 +464,7 @@ if [[ "$SKIP_INFRA" != true ]]; then
     export MYSQL_CONTAINER MIGRATION_MYSQL_CONTAINER
   fi
   for infra_service in "${COMPOSE_TARGETS[@]}"; do
-    if [[ "$infra_service" == rustfs-init ]]; then
+    if [[ "$infra_service" == rustfs-init || "$infra_service" == rustfs-iam-init ]]; then
       wait_for_completion "$infra_service"
     else
       wait_for_health "$infra_service"

@@ -238,6 +238,12 @@ public class CoreOwnerContextManager implements ApplicationContextAware {
         String prefix = module.environmentPrefix();
         boolean admin = "admin".equals(module.name());
         boolean search = "search".equals(module.name());
+        String storageAccessKey = admin
+                ? requiredProperty("RUSTFS_ADMIN_ACCESS_KEY")
+                : requiredProperty("RUSTFS_APP_ACCESS_KEY", "APP_STORAGE_S3_ACCESS_KEY");
+        String storageSecretKey = admin
+                ? requiredProperty("RUSTFS_ADMIN_SECRET_KEY")
+                : requiredProperty("RUSTFS_APP_SECRET_KEY", "APP_STORAGE_S3_SECRET_KEY");
         String redisUsername = property(
                 prefix + "_REDIS_USERNAME", "ulticode-" + module.name());
         String redisPassword = requiredProperty(
@@ -260,10 +266,8 @@ public class CoreOwnerContextManager implements ApplicationContextAware {
                         "APP_STORAGE_S3_REGION"),
                 "app.storage.s3.bucket=" + requiredProperty(
                         "APP_STORAGE_S3_BUCKET"),
-                "app.storage.s3.access-key=" + requiredProperty(
-                        "APP_STORAGE_S3_ACCESS_KEY"),
-                "app.storage.s3.secret-key=" + requiredProperty(
-                        "APP_STORAGE_S3_SECRET_KEY"),
+                "app.storage.s3.access-key=" + storageAccessKey,
+                "app.storage.s3.secret-key=" + storageSecretKey,
                 "app.storage.s3.tls-enabled=" + requiredProperty(
                         "APP_STORAGE_S3_TLS_ENABLED"),
                 "app.storage.s3.ca-certificate-path=" + property(

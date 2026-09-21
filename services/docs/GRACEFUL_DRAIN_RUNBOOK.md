@@ -12,13 +12,18 @@ The bounded scheduling pools either use the P3-SCHED-001 shutdown policy or
 Spring's `await-termination` settings. The Admin backup writer is explicitly
 bound to `adminBackupExecutor`; that executor rejects new work during context
 close and waits for its in-flight backup task before the process exits.
-Host-deploy applies the 60-second Compose grace period, then runs
-`scripts/runbooks/assert-admin-backup-drained.sh` before owner migrations.
-Keep `ADMIN_BACKUP_EXECUTOR_AWAIT_TERMINATION_SECONDS` no greater than the
-Compose stop grace. The process image declares `STOPSIGNAL SIGTERM`.
-Production Compose allows 60 seconds for Java services, 30 seconds for
-frontend gateways and infrastructure, and local PM2 gives Java processes a
-60-second `kill_timeout`.
+Host-deploy stops Admin with a dedicated `3660s` default Compose grace period,
+then runs `scripts/runbooks/assert-admin-backup-drained.sh` before owner
+migrations. The default covers the `1800s` backup process timeout plus the
+`1800s` object-upload timeout; `adminBackupExecutor` waits up to `3600s`, and
+the remaining `60s` is reserved for Spring/JVM shutdown and handoff. Keep
+`ADMIN_BACKUP_EXECUTOR_AWAIT_TERMINATION_SECONDS` strictly below
+`ADMIN_BACKUP_STOP_GRACE_PERIOD`; when changing either backup timeout, increase
+both drain settings to cover the new total. Production Compose allows 60
+seconds for the other Java services, 30 seconds for frontend gateways and
+infrastructure, and local PM2 gives Admin/Core processes a 3660-second
+`kill_timeout` while the other Java processes retain 60 seconds. The process
+image declares `STOPSIGNAL SIGTERM`.
 
 ## Worker behavior
 

@@ -244,6 +244,8 @@ class CoreEnabledOwnerJourneyIT {
                 .withProperty("APP_STORAGE_S3_BUCKET", "core-enabled-owner-journey")
                 .withProperty("APP_STORAGE_S3_ACCESS_KEY", "core-enabled-owner-access")
                 .withProperty("APP_STORAGE_S3_SECRET_KEY", "core-enabled-owner-secret")
+                .withProperty("RUSTFS_ADMIN_ACCESS_KEY", "core-enabled-admin-access")
+                .withProperty("RUSTFS_ADMIN_SECRET_KEY", "core-enabled-admin-secret")
                 .withProperty("APP_STORAGE_S3_TLS_ENABLED", "false")
                 .withProperty("APP_STORAGE_S3_CA_CERTIFICATE", "")
                 .withProperty("APP_STORAGE_S3_CONNECT_TIMEOUT_MS", "200")
@@ -427,6 +429,8 @@ class CoreEnabledOwnerJourneyIT {
         setSystemProperty("APP_STORAGE_S3_BUCKET", "core-enabled-owner-journey");
         setSystemProperty("APP_STORAGE_S3_ACCESS_KEY", "core-enabled-owner-access");
         setSystemProperty("APP_STORAGE_S3_SECRET_KEY", "core-enabled-owner-secret");
+        setSystemProperty("RUSTFS_ADMIN_ACCESS_KEY", "core-enabled-admin-access");
+        setSystemProperty("RUSTFS_ADMIN_SECRET_KEY", "core-enabled-admin-secret");
         setSystemProperty("APP_STORAGE_S3_TLS_ENABLED", "false");
         setSystemProperty("APP_STORAGE_S3_CA_CERTIFICATE", "");
         setSystemProperty("APP_STORAGE_S3_CONNECT_TIMEOUT_MS", "200");

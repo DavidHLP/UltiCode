@@ -129,17 +129,17 @@ class S3StorageTest {
             }
         }
         @Test
-        @DisplayName("probes the bucket with a query-free HEAD request")
-        void probeUsesQueryFreeHeadRequest() throws Exception {
+        @DisplayName("probes the bucket with the GetBucketLocation subresource")
+        void probeUsesBucketLocationRequest() throws Exception {
             respond(200, new byte[0], null);
 
             storage.probe();
 
             ArgumentCaptor<HttpRequest> captor = ArgumentCaptor.forClass(HttpRequest.class);
             verify(httpClient).send(captor.capture(), any());
-            assertThat(captor.getValue().method()).isEqualTo("HEAD");
-            assertThat(captor.getValue().uri()).isEqualTo(URI.create("http://localhost:9000/ulticode"));
-            assertThat(captor.getValue().uri().getRawQuery()).isNull();
+            assertThat(captor.getValue().method()).isEqualTo("GET");
+            assertThat(captor.getValue().uri()).isEqualTo(URI.create("http://localhost:9000/ulticode?location="));
+            assertThat(captor.getValue().uri().getRawQuery()).isEqualTo("location=");
             assertThat(readiness.state()).isEqualTo(StorageReadiness.State.READY);
         }
     }

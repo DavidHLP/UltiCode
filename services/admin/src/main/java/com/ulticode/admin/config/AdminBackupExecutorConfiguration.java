@@ -20,7 +20,7 @@ public class AdminBackupExecutorConfiguration {
             @Value("${admin.backup.executor.core-pool-size:1}") int corePoolSize,
             @Value("${admin.backup.executor.max-pool-size:1}") int maxPoolSize,
             @Value("${admin.backup.executor.queue-capacity:16}") int queueCapacity,
-            @Value("${admin.backup.executor.await-termination-seconds:60}") int awaitTerminationSeconds) {
+            @Value("${admin.backup.executor.await-termination-seconds:3600}") int awaitTerminationSeconds) {
         if (corePoolSize < 1 || maxPoolSize < corePoolSize || queueCapacity < 0
                 || awaitTerminationSeconds < 1) {
             throw new IllegalArgumentException(

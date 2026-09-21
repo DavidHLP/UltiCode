@@ -308,7 +308,7 @@ runs:
           "$prior_container_ids" "$prior_running" >"$STATE_FILE"
         if [[ "$prior_running" == 1 ]]; then
           remote_command="cd $(shell_quote "${{ inputs.path }}") &&"
-          # Compose applies SERVICE_STOP_GRACE_PERIOD while the explicitly
+          # Compose applies ADMIN_BACKUP_STOP_GRACE_PERIOD while the explicitly
           # named Admin backup executor drains its in-flight work.
           remote_command+=" $EXPORTS $compose_prefix stop backend-admin"
           "${SSH_CMD[@]}" "$remote_command"

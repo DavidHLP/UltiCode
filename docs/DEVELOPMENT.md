@@ -141,8 +141,9 @@ dependabot-core 当作 support file 丢弃，PR 只改 manifest，必然过不�
   缺失 endpoint、region、bucket、access key、secret key 或 TLS 配置时应用启动失败，绝不回退本地磁盘；
   非 loopback 明文 HTTP 仍然拒绝。配置齐备后还会在**上下文刷新期间**（HTTP 端口对外服务之前）对 bucket 做
   有界重试探测，失败即本次启动失败；`/health/ready` 报告 `storage` 组件，未经验证不会返回就绪。
-  bucket 由一次性 `rustfs-init`
-  服务幂等创建，凭据只来自 `.env`/部署密钥系统，不使用 RustFS 默认账号。
+  bucket 由一次性 `rustfs-init` 服务幂等创建，随后 `rustfs-iam-init` 创建 prefix-scoped
+  App/Admin 用户；`APP_STORAGE_S3_*` 默认使用 App pair，PM2 的 Admin 进程显式使用
+  Admin pair。凭据只来自 `.env`/部署密钥系统，不使用 RustFS 默认账号。
 - 对象布局与读取策略：头像 `app/avatars/{accountId}/{uuid}.{ext}`（key 全部由服务端生成，
   扩展名来自内容嗅探而不是原始文件名），备份 `admin/backups/{yyyy}/{MM}/{backupId}.sql`。
   bucket 保持私有：浏览器只通过后端鉴权代理 `GET /api/users/avatars/{accountId}/{name}`

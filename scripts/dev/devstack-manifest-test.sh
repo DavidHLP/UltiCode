@@ -183,8 +183,19 @@ assert_file_contains services/app/app-web/src/main/resources/application.yml 'fa
 assert_file_contains .env.example 'APP_SUBMISSION_ROUTING_MODE=remote'
 grep -Fxq 'RUSTFS_ACCESS_KEY=' "$ROOT_DIR/.env.example"
 grep -Fxq 'RUSTFS_SECRET_KEY=' "$ROOT_DIR/.env.example"
+grep -Fxq 'RUSTFS_APP_ACCESS_KEY=' "$ROOT_DIR/.env.example"
+grep -Fxq 'RUSTFS_APP_SECRET_KEY=' "$ROOT_DIR/.env.example"
+grep -Fxq 'RUSTFS_ADMIN_ACCESS_KEY=' "$ROOT_DIR/.env.example"
+grep -Fxq 'RUSTFS_ADMIN_SECRET_KEY=' "$ROOT_DIR/.env.example"
 grep -Fxq 'APP_STORAGE_S3_ACCESS_KEY=' "$ROOT_DIR/.env.example"
 grep -Fxq 'APP_STORAGE_S3_SECRET_KEY=' "$ROOT_DIR/.env.example"
+assert_file_contains docker/docker-compose.yml 'rustfs-iam-init'
+assert_file_contains docker/docker-compose.yml 'app/avatars'
+assert_file_contains docker/docker-compose.yml 'admin/backups'
+assert_file_contains docker/docker-compose.prod.yml 'RUSTFS_APP_ACCESS_KEY'
+assert_file_contains scripts/dev/up.sh 'rustfs-iam-init'
+assert_file_contains scripts/dev/rustfs-smoke-test.sh '--user "10001:10001"'
+assert_file_contains scripts/dev/rustfs-smoke-test.sh 'RustFS IAM prefix scope: PASS'
 assert_file_contains scripts/dev/init-env.sh 'APP_SUBMISSION_ROUTING_MODE=remote'
 assert_file_contains scripts/dev/up.sh 'source "$ROOT_DIR/scripts/dev/devstack-manifest.sh"'
 assert_file_contains ecosystem.config.cjs "APP_FEATURES_CONTEST_DUBBO_CUTOVER: process.env.APP_FEATURES_CONTEST_DUBBO_CUTOVER || 'true'"

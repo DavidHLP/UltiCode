@@ -79,7 +79,7 @@ admin:
       core-pool-size: ${ADMIN_BACKUP_EXECUTOR_CORE_POOL_SIZE:1}
       max-pool-size: ${ADMIN_BACKUP_EXECUTOR_MAX_POOL_SIZE:1}
       queue-capacity: ${ADMIN_BACKUP_EXECUTOR_QUEUE_CAPACITY:16}
-      await-termination-seconds: ${ADMIN_BACKUP_EXECUTOR_AWAIT_TERMINATION_SECONDS:60}
+      await-termination-seconds: ${ADMIN_BACKUP_EXECUTOR_AWAIT_TERMINATION_SECONDS:3600}
   lease:
     ttl-ms: ${ADMIN_FENCED_LEASE_TTL_MS:600000}
   audit:

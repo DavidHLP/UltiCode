@@ -125,17 +125,25 @@ RustFS 是开发、测试、生产共同的必需基础设施，仓库不提供�
 
 ### 桶、前缀与权限
 
-- 单一私有 bucket（默认 `ulticode`，`RUSTFS_BUCKET` 可覆盖），一次性 `rustfs-init` 服务幂等创建；
-  没有任何匿名读权限，也没有公开 bucket 策略。
+- 单一私有 bucket（默认 `ulticode`，`RUSTFS_BUCKET` 可覆盖），由一次性
+  `rustfs-init` 服务幂等创建；随后 `rustfs-iam-init` 用 bootstrap root pair
+  创建两个运行时用户。没有任何匿名读权限，也没有公开 bucket 策略。
+- App 用户只允许 `app/avatars/*`，Admin 用户允许 `app/avatars/*` 与
+  `admin/backups/*`；这两个运行时 pair 不能互换，root pair 只用于 bucket/IAM
+  bootstrap 和受控迁移。
 - 头像前缀 `app/avatars/{accountId}/{uuid}.{ext}`：浏览器通过后端鉴权代理
   `GET /api/users/avatars/{accountId}/{name}` 读取（要求登录态；只允许该前缀）。
 - 备份前缀 `admin/backups/{yyyy}/{MM}/{backupId}.sql`：只能通过 `/admin/backups/**`
   的 `ADMIN`/`SUPER_ADMIN` 端点下载与恢复。
-- 凭据来自 `.env`/部署密钥系统（`RUSTFS_ACCESS_KEY`/`RUSTFS_SECRET_KEY`），禁止使用 RustFS
-  文档中的默认账号；生产不使用明文 HTTP，后端经 `https://rustfs:9000` 访问，证书目录由
-  `RUSTFS_TLS_CERT_DIR` 提供且证书/CA 需被后端 JVM 信任。
-- `.env.example` deliberately leaves RustFS credentials empty; local development must
-  run `./scripts/dev/init-env.sh`, and production must provide operator-managed secrets.
+- 凭据来自 `.env`/部署密钥系统：`RUSTFS_ACCESS_KEY`/`RUSTFS_SECRET_KEY` 是
+  bootstrap root pair；`RUSTFS_APP_*` 和 `RUSTFS_ADMIN_*` 是 prefix-scoped
+  runtime pairs。禁止使用 RustFS 文档中的默认账号；生产不使用明文 HTTP，后端经
+  `https://rustfs:9000` 访问，证书目录由 `RUSTFS_TLS_CERT_DIR` 提供且证书/CA
+  需被后端 JVM 信任。
+- `.env.example` deliberately leaves all RustFS credentials empty; local development
+  must run `./scripts/dev/init-env.sh`, and production must provide operator-managed
+  secrets.
+
 
 ### 卷、备份与恢复
 
@@ -175,10 +183,11 @@ docker run --rm -v "${RUSTFS_VOLUMES[0]}:/data:ro" -v "$PWD:/backup" alpine \
 - 生产 `host-deploy` 在 ordered owner migrations 之前验证完整的 deploy service
   allowlist，并要求 migration subset 包含 `backend-admin`；随后记录原有
   `backend-admin` 容器 ID，使用已验证 image refs 执行 `docker compose stop`。
-  Compose 的 `SERVICE_STOP_GRACE_PERIOD` 与显式 `adminBackupExecutor` 一起排空
-  旧 backup writer，`scripts/runbooks/assert-admin-backup-drained.sh` 在迁移前
-  拒绝仍有 `PENDING`/`IN_PROGRESS` 行的数据库。手工运行 migration 也必须先
-  停止并排空所有旧 writer。
+  `backend-admin` 使用独立的 `ADMIN_BACKUP_STOP_GRACE_PERIOD`（默认 3660s）
+  和 `adminBackupExecutor` 排空旧 backup writer；默认覆盖 1800s dump、1800s
+  upload 以及 60s handoff margin。`scripts/runbooks/assert-admin-backup-drained.sh`
+  在迁移前拒绝仍有 `PENDING`/`IN_PROGRESS` 行的数据库。手工运行 migration
+  也必须先停止并排空所有旧 writer。
 - 排水或迁移前置检查失败时，动作只恢复此前确实运行的原容器；owner migration
   一旦开始，动作保持 `backend-admin` 停止并 fail closed，不把旧 image 重新启动到
   可能已部分迁移的 schema 上。应先检查 migration report，再按兼容 artifact 手工恢复。
@@ -202,7 +211,8 @@ docker run --rm -v "${RUSTFS_VOLUMES[0]}:/data:ro" -v "$PWD:/backup" alpine \
 
 - [`../scripts/dev/migrate-object-storage.sh`](../scripts/dev/migrate-object-storage.sh)
 - [`../scripts/dev/rustfs-smoke-test.sh`](../scripts/dev/rustfs-smoke-test.sh)
-- [`../docker/docker-compose.yml`](../docker/docker-compose.yml)（`rustfs` / `rustfs-init` 服务）
+- [`../docker/docker-compose.yml`](../docker/docker-compose.yml)（`rustfs` /
+  `rustfs-init` / `rustfs-iam-init` 服务）
 
 ## 备份与恢复
 

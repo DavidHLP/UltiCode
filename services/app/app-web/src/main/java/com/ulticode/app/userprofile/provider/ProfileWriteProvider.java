@@ -79,6 +79,7 @@ public class ProfileWriteProvider implements ProfileWriteService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "contestRanking", allEntries = true)
     public RpcResult<ProfileWriteResult> updateProfile(UpdateProfileCommand command) {
         String traceId = safeTraceId(command);
         if (!trustedActor(command == null ? null : command.actor())) {

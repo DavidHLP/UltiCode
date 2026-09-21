@@ -297,6 +297,7 @@ runs:
       shell: bash
       env:
         DEPLOY_SERVICES: ${{ inputs.services }}
+        SKIP_MIGRATIONS: ${{ inputs.skip_migrations }}
         IMAGE_REF_LIST: ${{ inputs.image_refs }}
         MIGRATION_DB_HOST: ${{ inputs.migration_db_host }}
         MIGRATION_DB_PORT: ${{ inputs.migration_db_port }}
@@ -333,6 +334,7 @@ runs:
         # The running (pre-upgrade) image has no drain-aware executor, so an
         # in-flight mysqldump must reach a terminal row before SIGTERM instead
         # of being killed by the stop grace period.
+        drain_legacy_writer() {
         for required in MIGRATION_DB_HOST MIGRATION_DB_PORT MIGRATION_DB_NAME \
           MIGRATION_DB_USER MIGRATION_DB_PASSWORD; do
           [[ -n "${!required}" ]] || {
@@ -360,6 +362,7 @@ runs:
           fi
           sleep 15
         done
+        }
 
         # Records the previously running containers of one compose service and
         # stops it; the failure path restores exactly this set.
@@ -399,7 +402,21 @@ runs:
         # backend-app must stop before the cutover gate: it still writes legacy
         # /uploads/avatars rows until the new image replaces it, and a row
         # committed after the gate would resolve to a missing object.
-        quiesce_service backend-admin admin
+        admin_replaced=false
+        if [[ "$SKIP_MIGRATIONS" != 'true' ]]; then
+          # Migrations need the legacy backup writer quiesced.
+          admin_replaced=true
+        elif [[ -z "$SERVICES_NORMALIZED" || "$SERVICES_NORMALIZED" == all ]]; then
+          admin_replaced=true
+        else
+          for service in $SERVICES_NORMALIZED; do
+            [[ "$service" == backend-admin ]] && admin_replaced=true
+          done
+        fi
+        if [[ "$admin_replaced" == true ]]; then
+          drain_legacy_writer
+          quiesce_service backend-admin admin
+        fi
         app_replaced=false
         if [[ -z "$SERVICES_NORMALIZED" || "$SERVICES_NORMALIZED" == all ]]; then
           app_replaced=true

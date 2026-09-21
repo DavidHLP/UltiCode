@@ -181,6 +181,8 @@ docker run --rm -v "${RUSTFS_VOLUMES[0]}:/data:ro" -v "$PWD:/backup" alpine \
   头像卷兼容卷根、`uploads/avatars/` 和 `avatars/` 布局，备份卷读取卷根目录。
   若 Docker 无法唯一解析 legacy volume（包括默认卷），脚本会 fail closed；也可用
   `--legacy-avatar-dir` / `--legacy-backup-dir` 指向已审计的只读提取目录。源卷和旧文件始终不删除。
+  若历史上自定义过 `APP_STORAGE_PUBLIC_URL_PREFIX`（例如 `/media`），迁移脚本与部署门禁都要用同一个
+  `LEGACY_AVATAR_URL_PREFIX`（默认 `/uploads`）选行，否则这些行不会被迁移、门禁也不会拦住它们。
 - 头像迁移用原始 SQL 更新 `user_profiles.avatar`，不会自动产生
   `SearchDocumentChanged` outbox 事件。只要本次 `--apply` 更新了头像行，脚本就会
   输出 `search_backfill=required` 并以非零状态结束，不能把迁移报告为完成；backfill 必须用**新

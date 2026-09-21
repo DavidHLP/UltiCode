@@ -126,14 +126,22 @@ public class BackupExecutionServiceImpl implements BackupExecutionService {
                     }
                 }
                 case DEFINITE_FAILURE -> {
+                    // Claim the terminal state first: the ambiguous COMPLETED
+                    // write may still commit, and deleting the bytes before the
+                    // FAILED transition wins would leave it pointing at nothing.
+                    boolean failed = fail(backup, exception.getMessage()) == 1;
                     if (objectKey != null) {
-                        deleteUploadedObject(backupId, objectKey);
+                        if (failed) {
+                            deleteUploadedObject(backupId, objectKey);
+                        } else {
+                            log.warn("Backup {} kept a durable COMPLETED row; preserving uploaded object {}",
+                                    backupId, objectKey);
+                        }
                     }
                     if (exception instanceof InterruptedException) {
                         Thread.currentThread().interrupt();
                     }
                     log.error("Backup execution failed for: {}", backupId, exception);
-                    fail(backup, exception.getMessage());
                 }
             }
         } finally {
@@ -169,7 +177,7 @@ public class BackupExecutionServiceImpl implements BackupExecutionService {
         return completed ? CompletionOutcome.PERSISTED : CompletionOutcome.DEFINITE_FAILURE;
     }
 
-    private void fail(Backup backup, String error) {
+    private int fail(Backup backup, String error) {
         backup.setStatus(BackupStatus.FAILED);
         backup.setCompletedAt(LocalDateTime.now(clock));
         backup.setError(error == null || error.isBlank() ? "Backup execution failed" : error);
@@ -182,6 +190,7 @@ public class BackupExecutionServiceImpl implements BackupExecutionService {
             log.error("Failed to persist FAILED backup state: {}, affected rows: {}",
                     backup.getId(), failedRows);
         }
+        return failedRows;
     }
 
     private void deleteUploadedObject(String backupId, String objectKey) {

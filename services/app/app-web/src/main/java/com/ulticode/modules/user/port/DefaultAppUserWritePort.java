@@ -107,7 +107,9 @@ public class DefaultAppUserWritePort implements AppUserWritePort {
         // object needs the same durable cleanup intent as an upload replacement.
         String displacedKey = AvatarUrls.objectKey(userId, previousAvatar);
         if (displacedKey != null && !displacedKey.equals(profile.getAvatar())) {
-            queueStagedAvatarCleanup(displacedKey);
+            // Inside the transaction: a failed insert must roll the profile write
+            // back, otherwise the displaced object loses its only cleanup intent.
+            storageCleanupOutbox.enqueue(displacedKey);
         }
 
         publishUserDocument(userId);

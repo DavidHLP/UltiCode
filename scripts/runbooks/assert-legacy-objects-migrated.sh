@@ -15,7 +15,8 @@ ENV_FILE="${ENV_FILE:-$ROOT_DIR/.env}"
 source "$ROOT_DIR/scripts/dev/lib/common.sh"
 capture_env_vars MIGRATION_DB_HOST MIGRATION_DB_PORT MIGRATION_DB_NAME \
   MIGRATION_DB_USER MIGRATION_DB_PASSWORD MIGRATION_MYSQL_BIN \
-  MIGRATION_MYSQL_CONTAINER MIGRATION_MYSQL_CONTAINER_PORT DOCKER_BIN
+  MIGRATION_MYSQL_CONTAINER MIGRATION_MYSQL_CONTAINER_PORT DOCKER_BIN \
+  LEGACY_AVATAR_URL_PREFIX
 load_env_file
 apply_env_overrides
 
@@ -74,7 +75,15 @@ count_rows() {
   mysql_query "SELECT COUNT(*) FROM \`$schema\`.\`$table\` WHERE $predicate;"
 }
 
-legacy_avatars="$(count_rows app user_profiles "avatar LIKE '/uploads/avatars/%'")"
+# A deployment may have persisted a custom legacy public prefix (for example
+# /media); the same value the migration tool uses has to be gated here.
+LEGACY_AVATAR_URL_PREFIX="${LEGACY_AVATAR_URL_PREFIX:-/uploads}"
+[[ "$LEGACY_AVATAR_URL_PREFIX" =~ ^/[A-Za-z0-9._/-]*$ && "$LEGACY_AVATAR_URL_PREFIX" != */ ]] || {
+  echo "Legacy object migration gate failed: LEGACY_AVATAR_URL_PREFIX must be an absolute path such as /uploads" >&2
+  exit 1
+}
+
+legacy_avatars="$(count_rows app user_profiles "avatar LIKE '${LEGACY_AVATAR_URL_PREFIX}/avatars/%'")"
 [[ "$legacy_avatars" =~ ^[0-9]+$ ]] || {
   echo "Legacy object migration gate failed: invalid app.user_profiles row probe" >&2
   exit 1

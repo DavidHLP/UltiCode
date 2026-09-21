@@ -75,12 +75,23 @@ capture_env_vars \
   MIGRATION_DB_HOST MIGRATION_DB_PORT MIGRATION_DB_NAME MIGRATION_DB_USER MIGRATION_DB_PASSWORD \
   DB_HOST DB_PORT DB_NAME DB_USER DB_PASSWORD MIGRATION_MYSQL_CONTAINER MIGRATION_MYSQL_CONTAINER_PORT \
   AVATAR_UPLOAD_DIR AVATAR_UPLOAD_VOL BACKUP_DIR BACKUP_VOLUME AWS_BIN AWS_CLI_IMAGE \
+  LEGACY_AVATAR_URL_PREFIX \
   RUSTFS_TLS_CERT_DIR \
   MIGRATION_DOCKER_NETWORK COMPOSE_PROJECT_NAME MIGRATION_SEARCH_BACKFILL_CONFIRMED
 if [[ -f "$ENV_FILE" ]]; then
   load_env_file
   apply_env_overrides
 fi
+
+# Legacy rows may carry a custom APP_STORAGE_PUBLIC_URL_PREFIX (for example
+# /media); both the selection predicate and the gate must use the same one.
+LEGACY_AVATAR_URL_PREFIX="${LEGACY_AVATAR_URL_PREFIX:-/uploads}"
+[[ "$LEGACY_AVATAR_URL_PREFIX" =~ ^/[A-Za-z0-9._/-]*$ && "$LEGACY_AVATAR_URL_PREFIX" != */ ]] || {
+  echo "LEGACY_AVATAR_URL_PREFIX must be an absolute path such as /uploads" >&2
+  exit 2
+}
+LEGACY_AVATAR_LIKE="${LEGACY_AVATAR_URL_PREFIX}/avatars/%"
+LEGACY_AVATAR_DIR_PREFIX="${LEGACY_AVATAR_URL_PREFIX}/avatars/"
 
 APPLY=false
 ONLY="all"
@@ -641,8 +652,8 @@ run_db_update() {
 
 process_avatar() {
   local account_id="$1" legacy_avatar="$2" filename source key size sha md5 mime sql metadata actual_size etag
-  [[ "$legacy_avatar" == /uploads/avatars/* ]] || { FAILED=$((FAILED + 1)); record_pending "avatar account=$account_id reason=not-legacy-path"; return; }
-  filename="${legacy_avatar#/uploads/avatars/}"
+  [[ "$legacy_avatar" == "$LEGACY_AVATAR_DIR_PREFIX"* ]] || { FAILED=$((FAILED + 1)); record_pending "avatar account=$account_id reason=not-legacy-path"; return; }
+  filename="${legacy_avatar#"$LEGACY_AVATAR_DIR_PREFIX"}"
   if ! source="$(safe_source_file "$AVATAR_DIR" "$filename")"; then
     FAILED=$((FAILED + 1)); record_pending "avatar account=$account_id source=$AVATAR_DIR/$filename reason=source-missing-or-unsafe"
     echo "PENDING avatar source=$AVATAR_DIR/$filename reason=source-missing-or-unsafe"; return
@@ -770,7 +781,7 @@ if [[ "$ONLY" == avatars || "$ONLY" == all ]]; then
   if (( LIMIT > 0 )); then
     avatar_limit_clause=" LIMIT $LIMIT"
   fi
-  avatar_rows="$(mysql_query APP_DB "SELECT account_id, avatar FROM user_profiles WHERE avatar LIKE '/uploads/avatars/%' ORDER BY account_id${avatar_limit_clause}")"
+  avatar_rows="$(mysql_query APP_DB "SELECT account_id, avatar FROM user_profiles WHERE avatar LIKE $(sql_quote "$LEGACY_AVATAR_LIKE") ORDER BY account_id${avatar_limit_clause}")"
   if [[ "$APPLY" == true && -n "$avatar_rows" ]]; then
     # Before the first rewrite: an interrupted run must not leave rewritten
     # rows with no pending marker, because a rerun then finds no legacy rows

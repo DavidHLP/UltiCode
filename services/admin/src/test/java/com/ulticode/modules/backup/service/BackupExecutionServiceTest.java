@@ -88,6 +88,7 @@ class BackupExecutionServiceTest {
         lenient().when(clock.instant()).thenReturn(Instant.parse("2026-01-01T00:00:00Z"));
         lenient().when(clock.getZone()).thenReturn(ZoneOffset.UTC);
         lenient().when(backupMapper.updateById(any(Backup.class))).thenReturn(1);
+        lenient().when(backupMapper.failUnlessCompleted(any(), any(), any(), any())).thenReturn(1);
     }
 
     private Backup pendingBackup() {

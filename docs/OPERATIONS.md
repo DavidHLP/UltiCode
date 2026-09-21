@@ -139,8 +139,8 @@ RustFS 是开发、测试、生产共同的必需基础设施，仓库不提供�
   `GET /api/users/avatars/{accountId}/{name}` 读取（允许匿名，与公开页面的头像展示一致；
   只允许该前缀、且代理校验 key 语法与账号绑定，对象名为服务端 UUID，bucket 保持私有）。
   替换头像时，旧对象的删除意图与 profile 更新在同一 App 事务写入
-  `app.storage_cleanup_outbox`，由 `StorageCleanupDispatcher` 带退避重试（5 次后转
-  `DEAD` 并保留日志）；删除前复核该 key 已不是当前头像。
+  `app.storage_cleanup_outbox`，由 `StorageCleanupDispatcher` 持续退避重试（退避上限 1 小时，
+  幂等删除因此不会终止）；删除前复核该 key 已不是当前头像。
 - 备份前缀 `admin/backups/{yyyy}/{MM}/{backupId}.sql`：只能通过 `/admin/backups/**`
   的 `ADMIN`/`SUPER_ADMIN` 端点下载与恢复。
 - 凭据来自 `.env`/部署密钥系统：`RUSTFS_ACCESS_KEY`/`RUSTFS_SECRET_KEY` 是
@@ -190,14 +190,19 @@ docker run --rm -v "${RUSTFS_VOLUMES[0]}:/data:ro" -v "$PWD:/backup" alpine \
 - 旧本地文件迁移用 `scripts/dev/migrate-object-storage.sh`：默认 dry-run；`--apply` 才上传；
   上传后校验大小/checksum 并回读对象，校验通过后才更新数据库行（`user_profiles.avatar` 与
   `backups.object_key`）；脚本从不删除旧文件，只有在迁移报告确认全部对象已校验后，operator 才可清理旧目录。
+  `--apply` 更新头像行时会在 `app.storage_migration_state` 记录“已重写、未确认索引”，直到带
+  `--confirm-users-index-backfill` 的确认运行才写入确认时间；部署门禁读取该记录，因此先放行
+  未重建用户索引的部署会被拒绝。
 - 生产 `host-deploy` 在 ordered owner migrations 之后、pull/`up` 之前执行
   `scripts/runbooks/assert-legacy-objects-migrated.sh`：存在仍指向
-  `/uploads/avatars/...` 的 `app.user_profiles` 行，或没有 `object_key` 的
-  `admin.backups` COMPLETED 行时，动作 fail closed 并给出迁移命令；该门禁与迁移脚本
+  `/uploads/avatars/...` 的 `app.user_profiles` 行、没有 `object_key` 的
+  `admin.backups` COMPLETED 行，或 `app.storage_migration_state` 中已重写但未确认的
+  头像回填记录时，动作 fail closed 并给出迁移命令；该门禁与迁移脚本
   使用同一组行谓词，因此“门禁通过”等于“回填没有剩余目标”。跳过 migration 的部署
   （`skip_migrations=true`，含回滚路径）同时跳过该门禁。
 - 生产 `host-deploy` 在 ordered owner migrations 之前验证完整的 deploy service
-  allowlist，并要求 migration subset 包含 `backend-admin`；随后记录原有
+  allowlist，并要求 migration subset 同时包含 `backend-admin` 与 `backend-app`
+  （对象键写入与头像读取路径随本次发布一起切换）；随后记录原有
   `backend-admin` 容器 ID，使用已验证 image refs 执行 `docker compose stop`。
   `backend-admin` 使用独立的 `ADMIN_BACKUP_STOP_GRACE_PERIOD`（默认 3660s）
   和 `adminBackupExecutor` 排空旧 backup writer；默认覆盖 1800s dump、1800s
@@ -229,6 +234,11 @@ docker run --rm -v "${RUSTFS_VOLUMES[0]}:/data:ro" -v "$PWD:/backup" alpine \
   而不是先放行新 App。
 - RustFS 不可用时：应用启动失败（或既有实例在请求路径上返回明确的存储错误），备份/恢复不会标记成功，
   也不会回退到本地永久目录。
+- Admin 上传头像的对象键与清理意图：App 拒绝或不可达时对象会被删除，删除失败则记入
+  `admin.storage_cleanup_outbox` 并由 `AdminStorageCleanup` 定时 sweep 幂等重试，避免 App 不可用期间
+  每次重试都泄漏一个对象。
+- 头像清理意图不会因存储长时间不可用而终止：`StorageCleanupDispatcher` 只增退避（上限 1 小时）地重试，
+  并把历史 `DEAD` 行重新排入队列。
 
 ### 参考
 

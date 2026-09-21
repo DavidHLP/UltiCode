@@ -84,6 +84,8 @@ grep -Fq 'DEPLOY_SERVICES: ${{ inputs.services }}' \
   "$ROOT_DIR/.github/actions/host-deploy/action.yml"
 grep -Fq 'backend-admin must be included in services when migrations run' \
   "$ROOT_DIR/.github/actions/host-deploy/action.yml"
+grep -Fq 'backend-app must be included in services when migrations run' \
+  "$ROOT_DIR/.github/actions/host-deploy/action.yml"
 quiesce_line="$(grep -n 'Quiesce legacy Admin backup writer' \
   "$ROOT_DIR/.github/actions/host-deploy/action.yml" | head -1 | cut -d: -f1)"
 migration_line="$(grep -n 'Run ordered owner database migrations' \

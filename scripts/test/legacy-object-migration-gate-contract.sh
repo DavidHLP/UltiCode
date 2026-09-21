@@ -31,11 +31,13 @@ if [[ "$sql" == *information_schema.tables* ]]; then
   case "$sql" in
     *table_name=\'user_profiles\'*) table=user_profiles ;;
     *table_name=\'backups\'*) table=backups ;;
+    *table_name=\'storage_migration_state\'*) table=storage_migration_state ;;
   esac
   [[ -n "$table" ]] || { echo 'unexpected table probe' >&2; exit 3; }
   if [[ ",${FAKE_MISSING_TABLES:-}," == *",$table,"* ]]; then echo 0; else echo 1; fi
   exit 0
 fi
+if [[ "$sql" == *storage_migration_state* ]]; then echo "${FAKE_UNCONFIRMED_INDEX:-0}"; exit 0; fi
 if [[ "$sql" == *user_profiles* ]]; then echo "${FAKE_AVATARS:-0}"; exit 0; fi
 if [[ "$sql" == *backups* ]]; then echo "${FAKE_BACKUPS:-0}"; exit 0; fi
 echo 'unexpected query' >&2
@@ -79,12 +81,18 @@ expect_failure 'invalid app.user_profiles row probe'
 FAKE_AVATARS=0 FAKE_BACKUPS=garbage run_gate
 expect_failure 'invalid admin.backups row probe'
 
+FAKE_AVATARS=0 FAKE_BACKUPS=0 FAKE_UNCONFIRMED_INDEX=1 run_gate
+expect_failure '1 unconfirmed avatar rewrite(s)'
+
+FAKE_AVATARS=0 FAKE_BACKUPS=0 FAKE_UNCONFIRMED_INDEX=garbage run_gate
+expect_failure 'invalid app.storage_migration_state probe'
+
 FAKE_AVATARS=0 FAKE_BACKUPS=0 run_gate
 [[ "$GATE_STATUS" == 0 ]] || fail "a backfilled database must pass (got $GATE_STATUS)"
-grep -Fq 'LEGACY_OBJECT_MIGRATION status=PASS legacy_avatars=0 legacy_backups=0' "$GATE_STDOUT" \
+grep -Fq 'LEGACY_OBJECT_MIGRATION status=PASS legacy_avatars=0 legacy_backups=0 unconfirmed_index_backfills=0' "$GATE_STDOUT" \
   || fail "PASS line is missing: $(cat "$GATE_STDOUT")"
 
-FAKE_MISSING_TABLES=user_profiles,backups FAKE_AVATARS=9 FAKE_BACKUPS=9 run_gate
+FAKE_MISSING_TABLES=user_profiles,backups,storage_migration_state FAKE_AVATARS=9 FAKE_BACKUPS=9 run_gate
 [[ "$GATE_STATUS" == 0 ]] || fail "an absent table has nothing to migrate (got $GATE_STATUS)"
 
 echo 'legacy-object-gate-contract: PASS'

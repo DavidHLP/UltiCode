@@ -40,8 +40,10 @@ inputs:
     description: >-
       Optional subset of compose services to pull and up (comma/space
       separated, e.g. "backend-auth backend-app"). Empty or "all" reconciles
-      the whole stack. When migrations run with a subset, backend-admin must
-      be included so the legacy backup writer can be quiesced and redeployed.
+      the whole stack. When migrations run with a subset, backend-admin and
+      backend-app must both be included: the legacy backup writer is
+      quiesced and redeployed, and the avatar read path ships with the
+      object-key writes the new Admin sends.
     required: false
     default: ''
   supply_chain_identity:
@@ -256,15 +258,23 @@ runs:
         SERVICES_NORMALIZED="$(printf '%s' "$DEPLOY_SERVICES" | tr ',' ' ' | xargs)"
         if [[ -n "$SERVICES_NORMALIZED" && "$SERVICES_NORMALIZED" != all ]]; then
           includes_admin=false
+          includes_app=false
           for service in $SERVICES_NORMALIZED; do
             case "$service" in
               backend-auth|backend-admin|backend-app|backend-submission|backend-notification|backend-search|backend-judge|console|management) ;;
               *) echo "::error::Invalid deployable service: ${service}" >&2; exit 1 ;;
             esac
             [[ "$service" == backend-admin ]] && includes_admin=true
+            [[ "$service" == backend-app ]] && includes_app=true
           done
           [[ "$includes_admin" == true ]] || {
             echo "::error::backend-admin must be included in services when migrations run" >&2
+            exit 1
+          }
+          # The avatars this release stores are object keys: an older backend-app
+          # returns them verbatim instead of the /api/users/avatars proxy path.
+          [[ "$includes_app" == true ]] || {
+            echo "::error::backend-app must be included in services when migrations run; the avatar read path and Admin writes ship together" >&2
             exit 1
           }
         fi

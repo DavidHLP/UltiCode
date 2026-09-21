@@ -22,7 +22,10 @@ Options:
   --limit N                       Process at most N rows (0 means unlimited).
   --only avatars|backups|all      Restrict the migration (default: all).
   --confirm-users-index-backfill  Confirm the users-index backfill completed
-                                  after avatar rows were updated.
+                                  after avatar rows were updated. With --apply
+                                  the confirmation is recorded in
+                                  app.storage_migration_state, which the
+                                  pre-deploy gate verifies.
   --help                          Show this help and exit.
 
 Configuration (environment or .env):
@@ -485,6 +488,32 @@ mysql_query() {
   fi
 }
 
+# Deploy-gate evidence for the object-storage cutover: a rewritten avatar row
+# and a confirmed users-index backfill are different states, and the gate that
+# runs before the new containers take traffic can only read them from here.
+record_storage_migration_state() {
+  local mode="$1" statement
+  case "$mode" in
+    rewritten)
+      statement="INSERT INTO storage_migration_state (id, avatar_rows_rewritten_at, users_index_backfill_confirmed_at) VALUES (1, NOW(3), NULL) ON DUPLICATE KEY UPDATE avatar_rows_rewritten_at = NOW(3), users_index_backfill_confirmed_at = NULL"
+      ;;
+    confirmed)
+      statement="INSERT INTO storage_migration_state (id, users_index_backfill_confirmed_at) VALUES (1, NOW(3)) ON DUPLICATE KEY UPDATE users_index_backfill_confirmed_at = NOW(3)"
+      ;;
+    *)
+      echo "Unknown storage migration state: $mode" >&2
+      return 1
+      ;;
+  esac
+  if [[ "$APPLY" != true ]]; then
+    echo "DRY-RUN would record $mode in app.storage_migration_state"
+    return 0
+  fi
+  if ! mysql_query APP_DB "$statement" >/dev/null 2>&1; then
+    echo "WARNING app.storage_migration_state could not record '$mode'; the deploy gate cannot verify the users-index backfill from this run" >&2
+  fi
+}
+
 safe_source_file() {
   local directory="$1" name="$2" directory_real source_real source_ref volume layout
   [[ -n "$name" && "$name" != /* && "$name" != *\\* && "$name" != *"/"* && "$name" != *".."* ]] || return 1
@@ -767,6 +796,7 @@ fi
 if (( AVATAR_DB_UPDATED > 0 )); then
   # A confirmation supplied on this invocation cannot cover rows changed by it.
   SEARCH_BACKFILL_PENDING=true
+  record_storage_migration_state rewritten
   record_pending "users-index backfill required after avatar database updates; rerun with --confirm-users-index-backfill after APP_SEARCH_BACKFILL_ENABLED=true and APP_SEARCH_BACKFILL_INDEXES=users completes"
   echo "PENDING users-index backfill required before migration can be declared complete"
 elif [[ "$APPLY" == true \
@@ -775,6 +805,10 @@ elif [[ "$APPLY" == true \
   SEARCH_BACKFILL_PENDING=true
   record_pending "users-index backfill confirmation required; rerun with --confirm-users-index-backfill after APP_SEARCH_BACKFILL_ENABLED=true and APP_SEARCH_BACKFILL_INDEXES=users completes"
   echo "PENDING users-index backfill confirmation required before migration can be declared complete"
+fi
+
+if [[ "$APPLY" == true && "$CONFIRM_USERS_INDEX_BACKFILL" == true && "$AVATAR_DB_UPDATED" -eq 0 ]]; then
+  record_storage_migration_state confirmed
 fi
 
 if [[ -s "$VERIFIED_FILE" ]]; then

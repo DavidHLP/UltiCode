@@ -86,10 +86,18 @@ legacy_backups="$(count_rows admin backups "status='COMPLETED' AND (object_key I
   exit 1
 }
 
-if [[ "$legacy_avatars" != 0 || "$legacy_backups" != 0 ]]; then
-  echo "Legacy object migration gate failed: $legacy_avatars legacy avatar row(s) and $legacy_backups legacy backup row(s) still need their object upload; the new App and Admin serve these only from the object store." >&2
+# Rewriting the avatar rows is only half the cutover: until the users index is
+# rebuilt, the search documents still advertise the old /uploads/avatars URLs.
+unconfirmed_index="$(count_rows app storage_migration_state "avatar_rows_rewritten_at IS NOT NULL AND users_index_backfill_confirmed_at IS NULL")"
+[[ "$unconfirmed_index" =~ ^[0-9]+$ ]] || {
+  echo "Legacy object migration gate failed: invalid app.storage_migration_state probe" >&2
+  exit 1
+}
+
+if [[ "$legacy_avatars" != 0 || "$legacy_backups" != 0 || "$unconfirmed_index" != 0 ]]; then
+  echo "Legacy object migration gate failed: $legacy_avatars legacy avatar row(s), $legacy_backups legacy backup row(s) and $unconfirmed_index unconfirmed avatar rewrite(s) still need object storage; the new App and Admin serve these only from the object store." >&2
   echo 'Run ./scripts/dev/migrate-object-storage.sh (dry run first, then --apply) on the deploy host, complete the users-index backfill confirmation it requires, and re-run this deployment.' >&2
   exit 1
 fi
 
-echo "LEGACY_OBJECT_MIGRATION status=PASS legacy_avatars=0 legacy_backups=0"
+echo "LEGACY_OBJECT_MIGRATION status=PASS legacy_avatars=0 legacy_backups=0 unconfirmed_index_backfills=0"

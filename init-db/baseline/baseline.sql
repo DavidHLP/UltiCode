@@ -3987,6 +3987,29 @@ CREATE TABLE `solutions` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `storage_cleanup_outbox`
+--
+
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `storage_cleanup_outbox` (
+  `id` varchar(40) NOT NULL,
+  `object_key` varchar(512) NOT NULL,
+  `state` varchar(16) NOT NULL DEFAULT 'PENDING',
+  `attempts` int NOT NULL DEFAULT '0',
+  `last_error` varchar(500) DEFAULT NULL,
+  `next_retry_at` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `claimed_at` datetime(3) DEFAULT NULL,
+  `claim_owner` varchar(80) DEFAULT NULL,
+  `created_at` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `delivered_at` datetime(3) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_storage_cleanup_object_key` (`object_key`),
+  KEY `idx_storage_cleanup_state_retry` (`state`,`next_retry_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `submission_result_outbox`
 --
 

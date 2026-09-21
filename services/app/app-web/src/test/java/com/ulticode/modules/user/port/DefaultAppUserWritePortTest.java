@@ -29,19 +29,15 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CountDownLatch;
 import java.util.zip.CRC32;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -59,6 +55,7 @@ class DefaultAppUserWritePortTest {
     @Mock private UserProfileMapper userProfileMapper;
     @Mock private UuidGenerator uuidGenerator;
     @Mock private FileStoragePort fileStorage;
+    @Mock private com.ulticode.app.storage.StorageCleanupOutbox storageCleanupOutbox;
     @Mock private com.ulticode.modules.search.port.UserDirectoryQueryPort userDirectoryQueryPort;
     @Mock private com.ulticode.modules.search.source.SearchDocumentChangedPublisher searchPublisher;
 
@@ -68,7 +65,7 @@ class DefaultAppUserWritePortTest {
     @BeforeEach
     void setUp() {
         avatarProfileMutationService = new AvatarProfileMutationService(
-                userProfileMapper, fileStorage, userDirectoryQueryPort, searchPublisher);
+                userProfileMapper, storageCleanupOutbox, userDirectoryQueryPort, searchPublisher);
         port = new DefaultAppUserWritePort(userProfileMapper, uuidGenerator,
                 fileStorage, userDirectoryQueryPort, searchPublisher, avatarProfileMutationService);
     }
@@ -275,8 +272,8 @@ class DefaultAppUserWritePortTest {
         }
 
         @Test
-        @DisplayName("replacing an avatar deletes the old object only after the database update")
-        void replacementDeletesOldObjectAfterDatabaseUpdate() {
+        @DisplayName("replacing an avatar queues durable cleanup after the database update")
+        void replacementQueuesCleanupAfterDatabaseUpdate() {
             String userId = "u-005";
             UserProfile existing = new UserProfile();
             existing.setAccountId(userId);
@@ -289,44 +286,30 @@ class DefaultAppUserWritePortTest {
 
             port.uploadAvatar(userId, new MockMultipartFile("file", "photo.png", "image/png", png));
 
-            InOrder order = inOrder(fileStorage, userProfileMapper);
+            InOrder order = inOrder(fileStorage, userProfileMapper, storageCleanupOutbox);
             order.verify(fileStorage).put(any(), any(), org.mockito.ArgumentMatchers.anyLong(),
                     org.mockito.ArgumentMatchers.eq("image/png"));
             order.verify(userProfileMapper).selectById(userId);
             order.verify(userProfileMapper).updateById(any(UserProfile.class));
-            verify(fileStorage, timeout(1000)).delete("app/avatars/u-005/old.png");
+            order.verify(storageCleanupOutbox).enqueue("app/avatars/u-005/old.png");
+            verify(fileStorage, never()).delete("app/avatars/u-005/old.png");
         }
 
         @Test
-        @DisplayName("replacement cleanup does not block the successful upload")
-        void replacementCleanupDoesNotBlockSuccessfulUpload() throws Exception {
+        @DisplayName("first avatar upload queues no cleanup")
+        void firstUploadQueuesNoCleanup() {
             String userId = "u-005-async";
-            UserProfile existing = new UserProfile();
-            existing.setAccountId(userId);
-            existing.setAvatar("app/avatars/u-005-async/old.png");
-            when(userProfileMapper.selectById(userId)).thenReturn(existing);
-            when(userProfileMapper.updateById(any(UserProfile.class))).thenReturn(1);
+            when(userProfileMapper.selectById(userId)).thenReturn(null);
+            when(userProfileMapper.insert(any(UserProfile.class))).thenReturn(1);
             when(uuidGenerator.newId()).thenReturn("uuid-2-async");
-            CountDownLatch deleteStarted = new CountDownLatch(1);
-            CountDownLatch allowDelete = new CountDownLatch(1);
-            doAnswer(invocation -> {
-                deleteStarted.countDown();
-                allowDelete.await(1, java.util.concurrent.TimeUnit.SECONDS);
-                return null;
-            }).when(fileStorage).delete("app/avatars/u-005-async/old.png");
             byte[] png = java.util.Base64.getDecoder().decode(
                     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
 
-            CompletableFuture<String> request = CompletableFuture.supplyAsync(() -> port.uploadAvatar(
-                    userId, new MockMultipartFile("file", "photo.png", "image/png", png)));
-            assertThat(deleteStarted.await(1, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
-            try {
-                assertThat(request.get(500, java.util.concurrent.TimeUnit.MILLISECONDS))
-                        .isEqualTo("/api/users/avatars/u-005-async/uuid-2-async.png");
-            } finally {
-                allowDelete.countDown();
-            }
-            verify(fileStorage, timeout(1000)).delete("app/avatars/u-005-async/old.png");
+            String url = port.uploadAvatar(userId,
+                    new MockMultipartFile("file", "photo.png", "image/png", png));
+
+            assertThat(url).isEqualTo("/api/users/avatars/u-005-async/uuid-2-async.png");
+            verify(storageCleanupOutbox, never()).enqueue(any());
         }
 
         @Test
@@ -395,8 +378,8 @@ class DefaultAppUserWritePortTest {
         }
 
         @Test
-        @DisplayName("previous object is deleted only after the transaction commits")
-        void previousObjectDeletedOnlyAfterCommit() {
+        @DisplayName("replacement queues the cleanup intent inside the mutation, not as a direct delete")
+        void cleanupIntentCouplesWithTheTransaction() {
             String userId = "u-008";
             UserProfile existing = new UserProfile();
             existing.setAccountId(userId);
@@ -407,20 +390,13 @@ class DefaultAppUserWritePortTest {
             byte[] png = java.util.Base64.getDecoder().decode(
                     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
 
-            TransactionSynchronizationManager.initSynchronization();
-            try {
-                port.uploadAvatar(userId, new MockMultipartFile("file", "photo.png", "image/png", png));
+            port.uploadAvatar(userId, new MockMultipartFile("file", "photo.png", "image/png", png));
 
-                // A rolled-back transaction must still find the previous object.
-                verify(fileStorage, never()).delete("app/avatars/u-008/old.png");
-
-                TransactionSynchronizationManager.getSynchronizations()
-                        .forEach(TransactionSynchronization::afterCommit);
-
-                verify(fileStorage, timeout(1000)).delete("app/avatars/u-008/old.png");
-            } finally {
-                TransactionSynchronizationManager.clearSynchronization();
-            }
+            // The intent is a row in the same transaction, so a rolled-back
+            // update leaves both the profile row and the previous object intact;
+            // the dispatcher owns the actual delete.
+            verify(storageCleanupOutbox).enqueue("app/avatars/u-008/old.png");
+            verify(fileStorage, never()).delete("app/avatars/u-008/old.png");
         }
     }
     private static byte[] webpHeaderOnly() {

@@ -162,6 +162,9 @@ class BackendAppApplicationTest {
     private com.ulticode.app.userprofile.mapper.UserProfileMapper userProfileMapper;
 
     @MockitoBean
+    private com.ulticode.app.storage.StorageCleanupOutboxMapper storageCleanupOutboxMapper;
+
+    @MockitoBean
     private com.ulticode.modules.forum.mapper.ForumCommentMapper forumCommentMapper;
 
     @MockitoBean

@@ -5,13 +5,13 @@ import com.ulticode.app.api.command.UploadAvatarCommand;
 import com.ulticode.app.api.dto.ProfileWriteResult;
 import com.ulticode.app.api.error.AppErrorCode;
 import com.ulticode.app.security.AdminActorAuthorizer;
+import com.ulticode.app.storage.StorageCleanupOutbox;
 import com.ulticode.app.api.service.ProfileWriteService;
 import com.ulticode.app.idempotency.entity.AppCommandReceiptEntity;
 import com.ulticode.app.idempotency.mapper.AppCommandReceiptMapper;
 import com.ulticode.app.userprofile.entity.UserProfile;
 import com.ulticode.app.userprofile.mapper.UserProfileMapper;
 import com.ulticode.common.rpc.RpcResult;
-import com.ulticode.common.storage.FileStoragePort;
 import com.ulticode.common.storage.StorageKeys;
 import com.ulticode.common.tracing.TraceMetadata;
 import com.ulticode.modules.search.port.UserDirectoryQueryPort;
@@ -22,7 +22,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboService;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import org.springframework.transaction.interceptor.TransactionAspectSupport;
@@ -32,7 +31,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * Dubbo provider implementing {@link ProfileWriteService}.
@@ -58,7 +56,7 @@ public class ProfileWriteProvider implements ProfileWriteService {
     private final AppCommandReceiptMapper receiptMapper;
     private final ObjectMapper objectMapper;
     private final AdminActorAuthorizer actorAuthorizer;
-    private final FileStoragePort fileStorage;
+    private final StorageCleanupOutbox storageCleanupOutbox;
     private final ObjectProvider<UserDirectoryQueryPort> userDirectoryQueryPort;
     private final ObjectProvider<SearchDocumentChangedPublisher> searchPublisher;
 
@@ -246,7 +244,7 @@ public class ProfileWriteProvider implements ProfileWriteService {
             }
 
             publishUserDocument(accountId);
-            deletePreviousAvatarAfterCommit(accountId, previousAvatar, profile.getAvatar());
+            queuePreviousAvatarCleanup(accountId, previousAvatar, profile.getAvatar());
             log.info("Avatar updated for account: {}", accountId);
 
             ProfileWriteResult result = new ProfileWriteResult(
@@ -316,42 +314,15 @@ public class ProfileWriteProvider implements ProfileWriteService {
             throw new RuntimeException("Idempotency receipt insert failed", e);
         }
     }
-    private void deletePreviousAvatarAfterCommit(String accountId, String previousAvatar, String currentAvatar) {
+    private void queuePreviousAvatarCleanup(String accountId, String previousAvatar, String currentAvatar) {
         if (previousAvatar == null || previousAvatar.equals(currentAvatar)
                 || !StorageKeys.isAvatarKey(previousAvatar)
                 || !accountId.equals(StorageKeys.avatarAccountId(previousAvatar))) {
             return;
         }
-        Runnable cleanup = () -> {
-            try {
-                fileStorage.delete(previousAvatar);
-            } catch (RuntimeException exception) {
-                log.warn("Failed to delete replaced avatar object {}: {}",
-                        previousAvatar, exception.getMessage());
-            }
-        };
-        Runnable submitCleanup = () -> {
-            try {
-                CompletableFuture.runAsync(cleanup).exceptionally(exception -> {
-                    log.warn("Async cleanup failed for replaced avatar object {}: {}",
-                            previousAvatar, exception.getMessage());
-                    return null;
-                });
-            } catch (RuntimeException exception) {
-                log.warn("Failed to schedule cleanup for replaced avatar object {}: {}",
-                        previousAvatar, exception.getMessage());
-            }
-        };
-        if (TransactionSynchronizationManager.isSynchronizationActive()) {
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCommit() {
-                    submitCleanup.run();
-                }
-            });
-        } else {
-            submitCleanup.run();
-        }
+        // Durable with this transaction: the dispatcher deletes the replaced
+        // object only after the row change commits, retrying transient failures.
+        storageCleanupOutbox.enqueue(previousAvatar);
     }
 
     private void markTransactionRollbackOnly() {

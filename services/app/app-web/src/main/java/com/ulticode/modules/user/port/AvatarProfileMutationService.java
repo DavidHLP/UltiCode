@@ -1,18 +1,14 @@
 package com.ulticode.modules.user.port;
 
+import com.ulticode.app.storage.StorageCleanupOutbox;
 import com.ulticode.app.userprofile.entity.UserProfile;
 import com.ulticode.app.userprofile.mapper.UserProfileMapper;
-import com.ulticode.common.storage.FileStoragePort;
 import com.ulticode.modules.search.port.UserDirectoryQueryPort;
 import com.ulticode.modules.search.source.SearchDocumentChangedPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
-
-import java.util.concurrent.CompletableFuture;
 
 /**
  * Performs the database and search side of an avatar upload in a short
@@ -25,7 +21,7 @@ import java.util.concurrent.CompletableFuture;
 public class AvatarProfileMutationService {
 
     private final UserProfileMapper userProfileMapper;
-    private final FileStoragePort fileStorage;
+    private final StorageCleanupOutbox storageCleanupOutbox;
     private final UserDirectoryQueryPort userDirectoryQueryPort;
     private final SearchDocumentChangedPublisher searchPublisher;
 
@@ -49,7 +45,9 @@ public class AvatarProfileMutationService {
 
         String previousKey = AvatarUrls.objectKey(userId, previousAvatar);
         if (previousKey != null && !previousKey.equals(key)) {
-            deleteAfterCommit(previousKey);
+            // Durable with the same transaction: the dispatcher deletes the
+            // replaced object only after this row change commits.
+            storageCleanupOutbox.enqueue(previousKey);
         }
         publishUserDocument(userId);
     }
@@ -61,40 +59,5 @@ public class AvatarProfileMutationService {
         }
         var row = directoryRow.row();
         searchPublisher.publishUser(row.getId(), row.getUsername(), row.getName(), row.getAvatar(), true);
-    }
-
-    /** Delete the replaced object only after the profile transaction commits. */
-    private void deleteAfterCommit(String key) {
-        Runnable cleanup = () -> deleteQuietly(key);
-        Runnable submitCleanup = () -> {
-            try {
-                CompletableFuture.runAsync(cleanup).exceptionally(exception -> {
-                    log.warn("Async cleanup failed for replaced avatar object {}: {}",
-                            key, exception.getMessage());
-                    return null;
-                });
-            } catch (RuntimeException exception) {
-                log.warn("Failed to schedule cleanup for replaced avatar object {}: {}",
-                        key, exception.getMessage());
-            }
-        };
-        if (TransactionSynchronizationManager.isSynchronizationActive()) {
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCommit() {
-                    submitCleanup.run();
-                }
-            });
-        } else {
-            submitCleanup.run();
-        }
-    }
-
-    private void deleteQuietly(String key) {
-        try {
-            fileStorage.delete(key);
-        } catch (RuntimeException exception) {
-            log.warn("Failed to delete stale avatar object: {}", exception.getMessage());
-        }
     }
 }

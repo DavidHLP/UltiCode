@@ -18,6 +18,10 @@ app:
     outbox:
       dispatcher:
         enabled: false
+  storage:
+    cleanup:
+      dispatcher:
+        enabled: false
   features:
     use-judge-outbox: true
     use-generation-fence: true

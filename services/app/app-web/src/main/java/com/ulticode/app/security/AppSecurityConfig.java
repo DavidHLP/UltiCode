@@ -40,8 +40,11 @@ public class AppSecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/moderation/reports").authenticated()
                 .requestMatchers("/moderation/**").hasAnyRole("MODERATOR", "ADMIN", "SUPER_ADMIN")
                 .requestMatchers("/monitoring/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                // Anonymous public pages render avatars through this proxy; the
+                // bucket stays private and the controller re-validates the exact
+                // avatar key grammar and account binding before streaming bytes.
                 .requestMatchers(HttpMethod.GET,
-                        "/users/avatars/**").authenticated()
+                        "/users/avatars/**").permitAll()
                 .requestMatchers(HttpMethod.GET,
                         "/achievements/my", "/achievements/points", "/achievements/user/me/**",
                         "/contest/user/**", "/contest/*/participation", "/contest/*/virtual/session",

@@ -61,9 +61,9 @@ class AppRouteAuthorizationContractTest {
     }
 
     @Test
-    void anonymousCannotReadAvatarProxy() throws Exception {
+    void anonymousCanReadAvatarProxy() throws Exception {
         mockMvc.perform(get("/users/avatars/user-1/avatar.png"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isOk());
     }
 
     @Test

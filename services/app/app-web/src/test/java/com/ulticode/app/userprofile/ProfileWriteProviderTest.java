@@ -3,11 +3,9 @@ package com.ulticode.app.userprofile;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -17,22 +15,19 @@ import com.ulticode.app.api.command.UpdateProfileCommand;
 import com.ulticode.app.api.command.UploadAvatarCommand;
 import com.ulticode.app.api.error.AppErrorCode;
 import com.ulticode.app.security.AdminActorAuthorizer;
+import com.ulticode.app.storage.StorageCleanupOutbox;
 import com.ulticode.app.userprofile.entity.UserProfile;
 import com.ulticode.app.userprofile.mapper.UserProfileMapper;
 import com.ulticode.app.userprofile.provider.ProfileWriteProvider;
 import com.ulticode.app.idempotency.mapper.AppCommandReceiptMapper;
 import com.ulticode.common.command.ActorDelegation;
 import com.ulticode.common.rpc.RpcResult;
-import com.ulticode.common.storage.FileStoragePort;
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
 import com.ulticode.modules.search.port.UserDirectoryQueryPort;
 import com.ulticode.modules.search.port.UserDirectoryRow;
 import com.ulticode.modules.search.port.UserSearchRow;
 import com.ulticode.modules.search.source.SearchDocumentChangedPublisher;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.ObjectProvider;
@@ -43,7 +38,7 @@ class ProfileWriteProviderTest {
     private AppCommandReceiptMapper receiptMapper;
     private ObjectMapper objectMapper;
     private AdminActorAuthorizer actorAuthorizer;
-    private FileStoragePort fileStorage;
+    private StorageCleanupOutbox storageCleanupOutbox;
     private UserDirectoryQueryPort userDirectoryQueryPort;
     private SearchDocumentChangedPublisher searchPublisher;
     private ObjectProvider<UserDirectoryQueryPort> userDirectoryQueryPortProvider;
@@ -56,7 +51,7 @@ class ProfileWriteProviderTest {
         receiptMapper = mock(AppCommandReceiptMapper.class);
         objectMapper = mock(ObjectMapper.class);
         actorAuthorizer = mock(AdminActorAuthorizer.class);
-        fileStorage = mock(FileStoragePort.class);
+        storageCleanupOutbox = mock(StorageCleanupOutbox.class);
         userDirectoryQueryPort = mock(UserDirectoryQueryPort.class);
         searchPublisher = mock(SearchDocumentChangedPublisher.class);
         userDirectoryQueryPortProvider = mock(ObjectProvider.class);
@@ -64,7 +59,7 @@ class ProfileWriteProviderTest {
         when(userDirectoryQueryPortProvider.getIfAvailable()).thenReturn(userDirectoryQueryPort);
         when(searchPublisherProvider.getIfAvailable()).thenReturn(searchPublisher);
         provider = new ProfileWriteProvider(userProfileMapper, receiptMapper, objectMapper, actorAuthorizer,
-                fileStorage, userDirectoryQueryPortProvider, searchPublisherProvider);
+                storageCleanupOutbox, userDirectoryQueryPortProvider, searchPublisherProvider);
     }
 
     @Test
@@ -152,58 +147,43 @@ class ProfileWriteProviderTest {
     }
 
     @Test
-    void replacedAvatarCleanupDoesNotBlockSuccessfulRpc() throws Exception {
+    void replacedAvatarQueuesDurableCleanupIntent() {
         when(actorAuthorizer.isAuthorized(any())).thenReturn(true);
         UserProfile existing = new UserProfile();
         existing.setAccountId("user-9");
         existing.setAvatar("app/avatars/user-9/old.png");
         when(userProfileMapper.selectById("user-9")).thenReturn(existing);
         when(userProfileMapper.updateById(any(UserProfile.class))).thenReturn(1);
-        CountDownLatch deleteStarted = new CountDownLatch(1);
-        CountDownLatch allowDelete = new CountDownLatch(1);
-        doAnswer(invocation -> {
-            deleteStarted.countDown();
-            allowDelete.await(1, TimeUnit.SECONDS);
-            return null;
-        }).when(fileStorage).delete("app/avatars/user-9/old.png");
-
-        CompletableFuture<RpcResult<?>> request = CompletableFuture.supplyAsync(() -> provider.uploadAvatar(
-                new UploadAvatarCommand(
-                        "avatar-command", IdMetadata.mint(), adminActor(), TraceMetadata.EMPTY,
-                        "user-9", "app/avatars/user-9/new.png")));
-        assertThat(deleteStarted.await(1, TimeUnit.SECONDS)).isTrue();
-        RpcResult<?> result;
-        try {
-            result = request.get(500, TimeUnit.MILLISECONDS);
-        } finally {
-            allowDelete.countDown();
-        }
-
-        assertThat(result.success()).isTrue();
-        verify(fileStorage, timeout(1000)).delete("app/avatars/user-9/old.png");
-    }
-
-    @Test
-    void avatarCleanupFailureDoesNotChangeSuccessfulRpcResult() {
-        when(actorAuthorizer.isAuthorized(any())).thenReturn(true);
-        UserProfile existing = new UserProfile();
-        existing.setAccountId("user-9");
-        existing.setAvatar("app/avatars/user-9/old.png");
-        when(userProfileMapper.selectById("user-9")).thenReturn(existing);
-        when(userProfileMapper.updateById(any(UserProfile.class))).thenReturn(1);
-        doThrow(new RuntimeException("storage unavailable"))
-                .when(fileStorage).delete("app/avatars/user-9/old.png");
 
         RpcResult<?> result = provider.uploadAvatar(new UploadAvatarCommand(
                 "avatar-command", IdMetadata.mint(), adminActor(), TraceMetadata.EMPTY,
                 "user-9", "app/avatars/user-9/new.png"));
 
         assertThat(result.success()).isTrue();
-        verify(fileStorage, timeout(1000)).delete("app/avatars/user-9/old.png");
+        verify(storageCleanupOutbox).enqueue("app/avatars/user-9/old.png");
     }
 
     @Test
-    void zeroRowAvatarUpdateFailsAndKeepsThePreviousObject() {
+    void cleanupQueueFailureFailsTheRpc() {
+        when(actorAuthorizer.isAuthorized(any())).thenReturn(true);
+        UserProfile existing = new UserProfile();
+        existing.setAccountId("user-9");
+        existing.setAvatar("app/avatars/user-9/old.png");
+        when(userProfileMapper.selectById("user-9")).thenReturn(existing);
+        when(userProfileMapper.updateById(any(UserProfile.class))).thenReturn(1);
+        doThrow(new RuntimeException("cleanup outbox unavailable"))
+                .when(storageCleanupOutbox).enqueue("app/avatars/user-9/old.png");
+
+        RpcResult<?> result = provider.uploadAvatar(new UploadAvatarCommand(
+                "avatar-command", IdMetadata.mint(), adminActor(), TraceMetadata.EMPTY,
+                "user-9", "app/avatars/user-9/new.png"));
+
+        assertThat(result.success()).isFalse();
+        assertThat(result.error().code()).isEqualTo(AppErrorCode.UNEXPECTED_APP_STATE.code());
+    }
+
+    @Test
+    void zeroRowAvatarUpdateFailsAndQueuesNoCleanup() {
         when(actorAuthorizer.isAuthorized(any())).thenReturn(true);
         UserProfile existing = new UserProfile();
         existing.setAccountId("user-9");
@@ -218,7 +198,7 @@ class ProfileWriteProviderTest {
         assertThat(result.success()).isFalse();
         assertThat(result.error().code()).isEqualTo(AppErrorCode.UNEXPECTED_APP_STATE.code());
         // The stale object must survive a no-op write: the row still references it.
-        verify(fileStorage, never()).delete(any());
+        verify(storageCleanupOutbox, never()).enqueue(any());
     }
 
     private static UserDirectoryRow directoryRow(

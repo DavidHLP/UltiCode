@@ -12,7 +12,11 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/** Authenticated read proxy for private avatar objects. */
+/**
+ * Public read-only proxy for private avatar objects. The route is anonymous
+ * because public pages already embed these URLs; the handler still validates
+ * the exact avatar key grammar and account binding before returning bytes.
+ */
 @RestController
 @RequestMapping("/users/avatars")
 @RequiredArgsConstructor

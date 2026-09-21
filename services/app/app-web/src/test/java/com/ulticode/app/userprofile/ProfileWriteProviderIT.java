@@ -132,6 +132,9 @@ class ProfileWriteProviderIT {
     private FileStoragePort fileStorage;
 
     @MockitoBean
+    private com.ulticode.app.storage.StorageCleanupOutbox storageCleanupOutbox;
+
+    @MockitoBean
     private UserDirectoryQueryPort userDirectoryQueryPort;
 
     @MockitoBean

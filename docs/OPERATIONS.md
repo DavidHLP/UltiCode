@@ -135,8 +135,12 @@ RustFS 是开发、测试、生产共同的必需基础设施，仓库不提供�
 - `rustfs-iam-init` 可在同一持久卷上重复执行：已有用户走 `rc admin user passwd`，
   新用户走 `rc admin user add`，随后启用并重新绑定策略；生产 HTTPS 通过
   `RUSTFS_CA_BUNDLE` 显式传给 `rc alias set --ca-bundle`。
-- 头像前缀 `app/avatars/{accountId}/{uuid}.{ext}`：浏览器通过后端鉴权代理
-  `GET /api/users/avatars/{accountId}/{name}` 读取（要求登录态；只允许该前缀）。
+- 头像前缀 `app/avatars/{accountId}/{uuid}.{ext}`：浏览器通过后端只读代理
+  `GET /api/users/avatars/{accountId}/{name}` 读取（允许匿名，与公开页面的头像展示一致；
+  只允许该前缀、且代理校验 key 语法与账号绑定，对象名为服务端 UUID，bucket 保持私有）。
+  替换头像时，旧对象的删除意图与 profile 更新在同一 App 事务写入
+  `app.storage_cleanup_outbox`，由 `StorageCleanupDispatcher` 带退避重试（5 次后转
+  `DEAD` 并保留日志）；删除前复核该 key 已不是当前头像。
 - 备份前缀 `admin/backups/{yyyy}/{MM}/{backupId}.sql`：只能通过 `/admin/backups/**`
   的 `ADMIN`/`SUPER_ADMIN` 端点下载与恢复。
 - 凭据来自 `.env`/部署密钥系统：`RUSTFS_ACCESS_KEY`/`RUSTFS_SECRET_KEY` 是

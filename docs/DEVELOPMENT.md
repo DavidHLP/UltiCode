@@ -146,8 +146,8 @@ dependabot-core 当作 support file 丢弃，PR 只改 manifest，必然过不�
   Admin pair。凭据只来自 `.env`/部署密钥系统，不使用 RustFS 默认账号。
 - 对象布局与读取策略：头像 `app/avatars/{accountId}/{uuid}.{ext}`（key 全部由服务端生成，
   扩展名来自内容嗅探而不是原始文件名），备份 `admin/backups/{yyyy}/{MM}/{backupId}.sql`。
-  bucket 保持私有：浏览器只通过后端鉴权代理 `GET /api/users/avatars/{accountId}/{name}`
-  读取头像，备份只通过 `/admin/backups/**` 鉴权端点下载；数据库保存 object key，
+  bucket 保持私有：浏览器只通过后端只读代理 `GET /api/users/avatars/{accountId}/{name}`
+  读取头像（允许匿名；代理校验 key 语法与账号绑定，对象名为服务端 UUID），备份只通过 `/admin/backups/**` 鉴权端点下载；数据库保存 object key，
   不保存带环境地址的完整 URL。
 - 旧本地文件（`uploads/avatars/*`、旧 `BACKUP_DIR/backup_*.sql`）用
   `scripts/dev/migrate-object-storage.sh` 迁移：默认 dry-run，`--apply` 才写入，上传后校验大小与

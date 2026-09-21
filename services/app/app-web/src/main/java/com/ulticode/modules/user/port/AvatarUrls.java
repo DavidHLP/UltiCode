@@ -2,7 +2,7 @@ package com.ulticode.modules.user.port;
 
 import com.ulticode.common.storage.StorageKeys;
 
-/** Converts persisted avatar values into the authenticated browser-facing path. */
+/** Converts persisted avatar values into the browser-facing read path. */
 public final class AvatarUrls {
 
     private static final String LEGACY_PREFIX = "/uploads" + "/avatars/";

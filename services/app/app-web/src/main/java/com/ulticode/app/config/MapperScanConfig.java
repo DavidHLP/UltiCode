@@ -33,6 +33,7 @@ import org.springframework.context.annotation.Profile;
         "com.ulticode.modules.event.inbox",
         "com.ulticode.app.userprofile.mapper",
         "com.ulticode.app.audit",
+        "com.ulticode.app.storage",
         "com.ulticode.app.user.port",
         "com.ulticode.app.i18n.mapper",
         "com.ulticode.app.idempotency.mapper",

@@ -313,7 +313,7 @@ class DefaultAppUserWritePortTest {
         }
 
         @Test
-        @DisplayName("database failure removes the newly uploaded object")
+        @DisplayName("database failure queues the staged object for reconciled cleanup")
         void databaseFailureRemovesUploadedObject() {
             String userId = "u-006";
             when(userProfileMapper.selectById(userId)).thenReturn(null);
@@ -328,11 +328,12 @@ class DefaultAppUserWritePortTest {
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessage("db failure");
 
-            verify(fileStorage).delete("app/avatars/u-006/uuid-3.png");
+            verify(storageCleanupOutbox).enqueue("app/avatars/u-006/uuid-3.png");
+            verify(fileStorage, never()).delete("app/avatars/u-006/uuid-3.png");
         }
 
         @Test
-        @DisplayName("search publication failure removes the staged object")
+        @DisplayName("search publication failure queues the staged object for reconciled cleanup")
         void searchPublicationFailureRemovesStagedObject() {
             String userId = "u-009";
             when(userProfileMapper.selectById(userId)).thenReturn(null);
@@ -356,7 +357,28 @@ class DefaultAppUserWritePortTest {
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessage("search unavailable");
 
-            verify(fileStorage).delete("app/avatars/u-009/uuid-6.png");
+            verify(storageCleanupOutbox).enqueue("app/avatars/u-009/uuid-6.png");
+            verify(fileStorage, never()).delete("app/avatars/u-009/uuid-6.png");
+        }
+
+        @Test
+        @DisplayName("an unqueued staged object never masks the write failure")
+        void cleanupQueueFailureDoesNotMaskTheWriteFailure() {
+            String userId = "u-010";
+            when(userProfileMapper.selectById(userId)).thenReturn(null);
+            when(uuidGenerator.newId()).thenReturn("uuid-7");
+            when(userProfileMapper.insert(any(UserProfile.class))).thenReturn(0);
+            doThrow(new IllegalStateException("outbox unavailable"))
+                    .when(storageCleanupOutbox).enqueue("app/avatars/u-010/uuid-7.png");
+            byte[] png = java.util.Base64.getDecoder().decode(
+                    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+
+            assertThatThrownBy(() -> port.uploadAvatar(userId,
+                    new MockMultipartFile("file", "photo.png", "image/png", png)))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessage("Avatar profile update affected 0 rows");
+
+            verify(fileStorage, never()).delete("app/avatars/u-010/uuid-7.png");
         }
 
         @Test
@@ -374,7 +396,8 @@ class DefaultAppUserWritePortTest {
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessage("Avatar profile update affected 0 rows");
 
-            verify(fileStorage).delete("app/avatars/u-007/uuid-4.png");
+            verify(storageCleanupOutbox).enqueue("app/avatars/u-007/uuid-4.png");
+            verify(fileStorage, never()).delete("app/avatars/u-007/uuid-4.png");
         }
 
         @Test

@@ -40,6 +40,7 @@ public class DefaultAppUserWritePort implements AppUserWritePort {
     private final com.ulticode.modules.search.port.UserDirectoryQueryPort userDirectoryQueryPort;
     private final com.ulticode.modules.search.source.SearchDocumentChangedPublisher searchPublisher;
     private final AvatarProfileMutationService avatarProfileMutationService;
+    private final com.ulticode.app.storage.StorageCleanupOutbox storageCleanupOutbox;
 
     /** Publish a complete user-document UPSERT after a profile write. */
     private void publishUserDocument(String userId) {
@@ -145,7 +146,11 @@ public class DefaultAppUserWritePort implements AppUserWritePort {
         try {
             avatarProfileMutationService.persistAvatar(userId, key);
         } catch (RuntimeException exception) {
-            deleteQuietly(key);
+            // The profile write may have committed before the error surfaced, so
+            // the staged object goes to the durable cleanup queue instead of
+            // being deleted here: the dispatcher re-reads the profile row and
+            // refuses to delete an avatar that row now references.
+            queueStagedAvatarCleanup(key);
             throw exception;
         }
 
@@ -184,14 +189,16 @@ public class DefaultAppUserWritePort implements AppUserWritePort {
         }
     }
 
-    private void deleteQuietly(String key) {
+    private void queueStagedAvatarCleanup(String key) {
         if (key == null) {
             return;
         }
         try {
-            fileStorage.delete(key);
+            storageCleanupOutbox.enqueue(key);
         } catch (RuntimeException exception) {
-            log.warn("Failed to delete stale avatar object: {}", exception.getMessage());
+            // Never mask the original failure: an unqueued object is an orphaned
+            // byte, while a wrongly deleted one is a broken profile.
+            log.warn("Failed to queue cleanup for the staged avatar object: {}", exception.getMessage());
         }
     }
 

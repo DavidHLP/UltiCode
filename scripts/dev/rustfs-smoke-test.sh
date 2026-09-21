@@ -200,17 +200,17 @@ run_iam_scope_tests() {
   aws_s3api "$APP_ACCESS_KEY" "$APP_SECRET_KEY" get-bucket-location \
     --bucket "$BUCKET" >/dev/null
   aws_s3api "$APP_ACCESS_KEY" "$APP_SECRET_KEY" put-object \
-    --bucket "$BUCKET" --key app/avatars/scope-app.txt --body fileb:///dev/null >/dev/null
+    --bucket "$BUCKET" --key app/avatars/scope-app.txt --body fileb://dev/null >/dev/null
   aws_s3api "$APP_ACCESS_KEY" "$APP_SECRET_KEY" get-object \
     --bucket "$BUCKET" --key app/avatars/scope-app.txt /dev/null >/dev/null
   aws_s3api "$ADMIN_ACCESS_KEY" "$ADMIN_SECRET_KEY" put-object \
-    --bucket "$BUCKET" --key app/avatars/scope-admin.txt --body fileb:///dev/null >/dev/null
+    --bucket "$BUCKET" --key app/avatars/scope-admin.txt --body fileb://dev/null >/dev/null
   aws_s3api "$ADMIN_ACCESS_KEY" "$ADMIN_SECRET_KEY" put-object \
-    --bucket "$BUCKET" --key admin/backups/scope-admin.sql --body fileb:///dev/null >/dev/null
+    --bucket "$BUCKET" --key admin/backups/scope-admin.sql --body fileb://dev/null >/dev/null
   aws_s3api "$ADMIN_ACCESS_KEY" "$ADMIN_SECRET_KEY" get-object \
     --bucket "$BUCKET" --key admin/backups/scope-admin.sql /dev/null >/dev/null
   if aws_s3api "$APP_ACCESS_KEY" "$APP_SECRET_KEY" put-object \
-      --bucket "$BUCKET" --key admin/backups/scope-app.sql --body fileb:///dev/null >/dev/null 2>&1; then
+      --bucket "$BUCKET" --key admin/backups/scope-app.sql --body fileb://dev/null >/dev/null 2>&1; then
     echo "App IAM user unexpectedly wrote admin/backups" >&2
     return 1
   fi

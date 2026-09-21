@@ -1,0 +1,30 @@
+docs/OPERATIONS.md
+  h_77173abe25c3ff 125
+scripts/dev/migrate-object-storage-test.sh
+  h_77173abe25c3ff 20-21,33,246-258,264-276,324-331,376,387,418,432,450,472,491,503
+scripts/dev/migrate-object-storage.sh
+  h_77173abe25c3ff 36,71,237-240
+services/admin/src/main/java/com/ulticode/admin/adapter/in/web/AdminReadinessController.java
+  h_77173abe25c3ff 53-56
+services/app/app-web/src/main/java/com/ulticode/app/adapter/in/web/AppReadinessController.java
+  h_77173abe25c3ff 53-56
+services/platform/storage/src/main/java/com/ulticode/common/storage/S3Storage.java
+  h_77173abe25c3ff 20,63,67,97
+services/platform/storage/src/main/java/com/ulticode/common/storage/StorageReadiness.java
+  h_77173abe25c3ff 3-5,30-31,34,40,46,66-101
+services/platform/storage/src/test/java/com/ulticode/common/storage/S3StorageTest.java
+  h_77173abe25c3ff 39,251-273,300,322
+services/platform/storage/src/test/java/com/ulticode/common/storage/StorageReadinessTest.java
+  h_77173abe25c3ff 1-83
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3abc6cfd30fc33e6d0f1571757b91c4acfc99357",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

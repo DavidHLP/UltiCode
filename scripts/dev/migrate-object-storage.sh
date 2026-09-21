@@ -661,7 +661,9 @@ process_avatar() {
   [[ "$account_id" =~ ^[A-Za-z0-9._-]+$ ]] || {
     FAILED=$((FAILED + 1)); record_pending "avatar account=$account_id reason=unsafe-account-id"; echo "PENDING avatar account=$account_id reason=unsafe-account-id"; return
   }
-  [[ "$filename" =~ ^[A-Za-z0-9._-]+\.[A-Za-z0-9]+$ ]] || {
+  # Legacy uploads may carry no extension at all (or a trailing dot); the
+  # relaxed key grammar accepts them, so the migration must too.
+  [[ "$filename" =~ ^[A-Za-z0-9._-]+$ ]] || {
     FAILED=$((FAILED + 1)); record_pending "avatar account=$account_id reason=unsafe-object-name"; echo "PENDING avatar account=$account_id reason=unsafe-object-name"; return
   }
   key="app/avatars/$account_id/$filename"
@@ -673,6 +675,10 @@ process_avatar() {
     webp|WEBP) mime=image/webp ;;
     *) mime=application/octet-stream ;;
   esac
+  if [[ "$mime" == application/octet-stream ]]; then
+    detected="$(file --brief --mime-type "$source" 2>/dev/null || true)"
+    [[ -n "$detected" ]] && mime="$detected"
+  fi
   sql="UPDATE user_profiles SET avatar=$(sql_quote "$key") WHERE account_id=$(sql_quote "$account_id") AND avatar=$(sql_quote "$legacy_avatar")"
   if metadata="$(head_object "$key")"; then
     IFS=$'\t' read -r actual_size etag <<<"$metadata"

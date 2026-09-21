@@ -165,11 +165,11 @@ public class DefaultAppUserWritePort implements AppUserWritePort {
         try {
             avatarProfileMutationService.persistAvatar(userId, key);
         } catch (RuntimeException exception) {
-            // The profile write may have committed before the error surfaced, so
-            // the staged object goes to the durable cleanup queue instead of
-            // being deleted here: the dispatcher re-reads the profile row and
-            // refuses to delete an avatar that row now references.
-            queueStagedAvatarCleanup(key);
+            // The profile write may have committed before the error surfaced and
+            // may not be visible yet, so the staged object enters the delayed
+            // cleanup queue: the dispatcher deletes it only after the settle
+            // window and only when no profile row references it.
+            queueAmbiguousAvatarCleanup(key);
             throw exception;
         }
 
@@ -217,19 +217,6 @@ public class DefaultAppUserWritePort implements AppUserWritePort {
             storageCleanupOutbox.enqueueAfterGrace(key, uploadSettleSeconds);
         } catch (RuntimeException exception) {
             log.warn("Failed to queue the ambiguous avatar object: {}", exception.getMessage());
-        }
-    }
-
-    private void queueStagedAvatarCleanup(String key) {
-        if (key == null) {
-            return;
-        }
-        try {
-            storageCleanupOutbox.enqueue(key);
-        } catch (RuntimeException exception) {
-            // Never mask the original failure: an unqueued object is an orphaned
-            // byte, while a wrongly deleted one is a broken profile.
-            log.warn("Failed to queue cleanup for the staged avatar object: {}", exception.getMessage());
         }
     }
 

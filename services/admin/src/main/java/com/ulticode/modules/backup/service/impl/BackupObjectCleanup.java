@@ -4,6 +4,7 @@ import com.ulticode.common.storage.FileStoragePort;
 import com.ulticode.modules.backup.mapper.BackupDeletionTombstoneMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -27,6 +28,13 @@ public class BackupObjectCleanup {
 
     private final BackupDeletionTombstoneMapper backupDeletionTombstoneMapper;
     private final FileStoragePort fileStorage;
+
+    /**
+     * A tombstone only becomes eligible after this window, so a PUT that times
+     * out but is still committing cannot be raced by the sweep.
+     */
+    @Value("${backup.object-cleanup.settle-seconds:300}")
+    private int settleSeconds;
 
     /** Attempts one deletion; a failure leaves the tombstone pending for the next sweep. */
     public void deletePending(String objectKey) {
@@ -57,7 +65,7 @@ public class BackupObjectCleanup {
     public int sweep() {
         List<String> pending;
         try {
-            pending = backupDeletionTombstoneMapper.selectPendingObjectKeys(SWEEP_LIMIT);
+            pending = backupDeletionTombstoneMapper.selectPendingObjectKeys(SWEEP_LIMIT, settleSeconds);
         } catch (RuntimeException databaseFailure) {
             log.warn("Backup object cleanup sweep could not read pending tombstones", databaseFailure);
             return 0;

@@ -66,7 +66,7 @@ class BackupObjectCleanupTest {
     @Test
     @DisplayName("the sweep retries every pending object even when one delete fails")
     void shouldRetryEveryPendingObject() {
-        when(backupDeletionTombstoneMapper.selectPendingObjectKeys(anyInt()))
+        when(backupDeletionTombstoneMapper.selectPendingObjectKeys(anyInt(), anyInt()))
                 .thenReturn(List.of(OBJECT_KEY, OTHER_OBJECT_KEY));
         doThrow(new RuntimeException("rustfs unavailable")).when(fileStorage).delete(OBJECT_KEY);
 
@@ -81,7 +81,7 @@ class BackupObjectCleanupTest {
     @Test
     @DisplayName("an unreadable tombstone table ends the sweep without deleting objects")
     void shouldStopSweepWhenPendingReadFails() {
-        when(backupDeletionTombstoneMapper.selectPendingObjectKeys(anyInt()))
+        when(backupDeletionTombstoneMapper.selectPendingObjectKeys(anyInt(), anyInt()))
                 .thenThrow(new RuntimeException("database unavailable"));
 
         assertEquals(0, backupObjectCleanup.sweep());

@@ -71,6 +71,7 @@ class DefaultAppUserWritePortTest {
         port = new DefaultAppUserWritePort(userProfileMapper, uuidGenerator,
                 fileStorage, userDirectoryQueryPort, searchPublisher, avatarProfileMutationService,
                 storageCleanupOutbox);
+        org.springframework.test.util.ReflectionTestUtils.setField(port, "uploadSettleSeconds", 900);
     }
 
     @Nested
@@ -337,7 +338,7 @@ class DefaultAppUserWritePortTest {
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessage("db failure");
 
-            verify(storageCleanupOutbox).enqueue("app/avatars/u-006/uuid-3.png");
+            verify(storageCleanupOutbox).enqueueAfterGrace("app/avatars/u-006/uuid-3.png", 900);
             verify(fileStorage, never()).delete("app/avatars/u-006/uuid-3.png");
         }
 
@@ -366,7 +367,7 @@ class DefaultAppUserWritePortTest {
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessage("search unavailable");
 
-            verify(storageCleanupOutbox).enqueue("app/avatars/u-009/uuid-6.png");
+            verify(storageCleanupOutbox).enqueueAfterGrace("app/avatars/u-009/uuid-6.png", 900);
             verify(fileStorage, never()).delete("app/avatars/u-009/uuid-6.png");
         }
 
@@ -404,7 +405,7 @@ class DefaultAppUserWritePortTest {
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessage("Avatar profile update affected 0 rows");
 
-            verify(storageCleanupOutbox).enqueue("app/avatars/u-007/uuid-4.png");
+            verify(storageCleanupOutbox).enqueueAfterGrace("app/avatars/u-007/uuid-4.png", 900);
             verify(fileStorage, never()).delete("app/avatars/u-007/uuid-4.png");
         }
 

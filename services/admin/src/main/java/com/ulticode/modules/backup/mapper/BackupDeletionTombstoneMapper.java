@@ -27,10 +27,12 @@ public interface BackupDeletionTombstoneMapper {
     @Select("""
             SELECT object_key FROM backup_deletion_tombstones
             WHERE object_key IS NOT NULL AND object_deleted_at IS NULL
+              AND deleted_at <= DATE_SUB(NOW(3), INTERVAL #{settleSeconds} SECOND)
             ORDER BY deleted_at, backup_id
             LIMIT #{limit}
             """)
-    List<String> selectPendingObjectKeys(@Param("limit") int limit);
+    List<String> selectPendingObjectKeys(@Param("limit") int limit,
+                                         @Param("settleSeconds") int settleSeconds);
 
     /** Deletion is idempotent, so a cleared intent is final. */
     @Update("""

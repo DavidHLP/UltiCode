@@ -172,13 +172,16 @@ class BackupExecutionServiceTest {
             executionService.executeBackup(BACKUP_ID);
 
             String objectKey = "admin/backups/2026/01/" + BACKUP_ID + ".sql";
+            // The PUT must come after the row already names the planned key.
             InOrder order = inOrder(backupMapper, fileStorage);
-            ArgumentCaptor<Backup> captor = ArgumentCaptor.forClass(Backup.class);
-            order.verify(backupMapper).updateById(captor.capture());
-            order.verify(backupMapper).updateById(captor.capture());
-            // A crash after the PUT must still leave a row naming the dump.
-            assertEquals(objectKey, captor.getValue().getObjectKey());
+            order.verify(backupMapper, times(2)).updateById(any(Backup.class));
             order.verify(fileStorage).putFile(eq(objectKey), any(Path.class), eq("application/sql"));
+
+            ArgumentCaptor<Backup> captor = ArgumentCaptor.forClass(Backup.class);
+            verify(backupMapper, times(3)).updateById(captor.capture());
+            // The second write is the planned key; a crash after the PUT leaves
+            // a row that names the dump instead of an untracked object.
+            assertEquals(objectKey, captor.getAllValues().get(1).getObjectKey());
         }
 
         @Test

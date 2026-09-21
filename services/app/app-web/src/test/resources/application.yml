@@ -18,10 +18,6 @@ app:
     outbox:
       dispatcher:
         enabled: false
-  storage:
-    cleanup:
-      dispatcher:
-        enabled: false
   features:
     use-judge-outbox: true
     use-generation-fence: true
@@ -38,6 +34,9 @@ app:
       tls-enabled: false
     startup-probe:
       enabled: false
+    cleanup:
+      dispatcher:
+        enabled: false
 
 dubbo:
   application:

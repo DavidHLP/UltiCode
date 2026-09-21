@@ -216,7 +216,7 @@ public class BackupServiceImpl implements BackupService {
         if (backup.getObjectKey() != null && !backup.getObjectKey().isBlank()) {
             objectKey = requireBackupObjectKey(backup);
         }
-        int deletedRows = backupMapper.deleteById(id);
+        int deletedRows = backupMapper.deleteIfNotRunning(id);
         if (deletedRows != 1) {
             throw new BusinessException(BaseErrorCode.UNKNOWN_ERROR,
                     "Failed to delete backup record; retry the operation");
@@ -224,7 +224,9 @@ public class BackupServiceImpl implements BackupService {
         // Same transaction as the row delete: the object key outlives the row,
         // so the cleanup intent cannot be lost with a crashed request.
         backupDeletionTombstoneMapper.insert(id, objectKey);
-        if (objectKey != null) {
+        // A FAILED row may have failed because its PUT timed out while still
+        // committing: route it through the age-gated sweep instead of deleting now.
+        if (objectKey != null && backup.getStatus() != BackupStatus.FAILED) {
             deleteObjectAfterCommit(objectKey);
         }
         log.info("Deleted backup: {}", id);

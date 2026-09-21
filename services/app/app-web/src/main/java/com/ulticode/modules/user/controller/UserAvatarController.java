@@ -58,7 +58,10 @@ public class UserAvatarController {
             return MediaType.APPLICATION_OCTET_STREAM;
         }
         try {
-            return MediaType.parseMediaType(value);
+            MediaType parsed = MediaType.parseMediaType(value);
+            // Same-origin anonymous surface: only image types may render inline;
+            // anything else (a legacy text/html object, for example) is inert.
+            return parsed.getType().equals("image") ? parsed : MediaType.APPLICATION_OCTET_STREAM;
         } catch (IllegalArgumentException exception) {
             return MediaType.APPLICATION_OCTET_STREAM;
         }

@@ -342,7 +342,7 @@ class BackupServiceTest {
             backup.setObjectKey("admin/backups/2026/01/" + BACKUP_ID + ".sql");
 
             when(backupMapper.selectById(BACKUP_ID)).thenReturn(backup);
-            when(backupMapper.deleteById(BACKUP_ID)).thenReturn(1);
+            when(backupMapper.deleteIfNotRunning(BACKUP_ID)).thenReturn(1);
 
             TransactionSynchronizationManager.initSynchronization();
             try {
@@ -369,7 +369,7 @@ class BackupServiceTest {
             backup.setStatus(BackupStatus.PENDING);
 
             when(backupMapper.selectById(BACKUP_ID)).thenReturn(backup);
-            when(backupMapper.deleteById(BACKUP_ID)).thenReturn(1);
+            when(backupMapper.deleteIfNotRunning(BACKUP_ID)).thenReturn(1);
 
             backupService.deleteBackup(BACKUP_ID);
 
@@ -387,7 +387,7 @@ class BackupServiceTest {
             backup.setObjectKey("admin/backups/2026/01/" + BACKUP_ID + ".sql");
 
             when(backupMapper.selectById(BACKUP_ID)).thenReturn(backup);
-            when(backupMapper.deleteById(BACKUP_ID)).thenReturn(0);
+            when(backupMapper.deleteIfNotRunning(BACKUP_ID)).thenReturn(0);
 
             BusinessException exception = assertThrows(BusinessException.class,
                     () -> backupService.deleteBackup(BACKUP_ID));

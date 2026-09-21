@@ -676,8 +676,16 @@ process_avatar() {
     *) mime=application/octet-stream ;;
   esac
   if [[ "$mime" == application/octet-stream ]]; then
-    detected="$(file --brief --mime-type "$source" 2>/dev/null || true)"
-    [[ -n "$detected" ]] && mime="$detected"
+    # Extensionless legacy names may hold anything the old endpoint accepted:
+    # only the supported image types are preserved, everything else is stored
+    # as an inert type so the same-origin proxy can never serve script content.
+    case "$(file --brief --mime-type "$source" 2>/dev/null || true)" in
+      image/png) mime=image/png ;;
+      image/jpeg) mime=image/jpeg ;;
+      image/gif) mime=image/gif ;;
+      image/webp) mime=image/webp ;;
+      *) mime=application/octet-stream ;;
+    esac
   fi
   sql="UPDATE user_profiles SET avatar=$(sql_quote "$key") WHERE account_id=$(sql_quote "$account_id") AND avatar=$(sql_quote "$legacy_avatar")"
   if metadata="$(head_object "$key")"; then

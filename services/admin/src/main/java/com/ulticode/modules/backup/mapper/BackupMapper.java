@@ -17,6 +17,18 @@ public interface BackupMapper extends BaseMapper<Backup> {
      * connection error, so failure handling must not overwrite that success.
      * The object key is kept when the caller has none to record.
      */
+    /**
+     * Deletes only a row that is not a running backup owning a planned key, so
+     * the decision cannot race the worker persisting that state.
+     */
+    @org.apache.ibatis.annotations.Delete("""
+            DELETE FROM backups
+            WHERE id = #{id}
+              AND NOT (object_key IS NOT NULL AND object_key <> ''
+                       AND status IN ('PENDING', 'IN_PROGRESS'))
+            """)
+    int deleteIfNotRunning(@Param("id") String id);
+
     @Update("""
             UPDATE backups
             SET status = 'FAILED', completed_at = #{completedAt}, error = #{error},

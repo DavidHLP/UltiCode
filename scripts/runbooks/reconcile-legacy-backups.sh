@@ -112,6 +112,13 @@ marker_rows="$(mysql_query "SELECT COUNT(*) FROM admin.backup_cutover_state WHER
 marker_completed="$(mysql_query "SELECT COUNT(*) FROM admin.backup_cutover_state WHERE id=1 AND cutover_completed_at IS NOT NULL;")"
 [[ "$marker_completed" =~ ^[01]$ ]] || die 'invalid backup cutover marker state'
 
+metadata_parity='s.`metadata` <=> d.`metadata`'
+if [[ "$marker_completed" == 1 ]]; then
+  # Restore writes target-owned audit fields after cutover; compare the
+  # remaining legacy metadata while treating null and an empty object alike.
+  metadata_parity="COALESCE(s.metadata, JSON_OBJECT()) <=> COALESCE(JSON_REMOVE(d.metadata, '\$.lastRestoredAt', '\$.lastRestoredBy'), JSON_OBJECT())"
+fi
+
 # This INSERT is the durable late-row repair.  It intentionally updates no
 # existing target row; metadata conflicts are reported by the parity query below.
 mysql_query "INSERT INTO admin.backups
@@ -136,7 +143,7 @@ mismatch="$(mysql_query "SELECT COUNT(*)
    AND s.created_by <=> d.created_by
    AND s.created_at <=> d.created_at
    AND s.completed_at <=> d.completed_at
-   AND s.metadata <=> d.metadata
+   AND $metadata_parity
    AND $source_object_key_parity
    AND $source_checksum_parity
    AND s.error <=> d.error

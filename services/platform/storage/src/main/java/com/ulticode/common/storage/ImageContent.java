@@ -158,10 +158,7 @@ public final class ImageContent {
                 frameDimensions = dimensions;
                 hasFramePayload = true;
             } else if (isChunk(content, chunkOffset, 'A', 'N', 'M', 'F')) {
-                if (dataLength <= 16) {
-                    return null;
-                }
-                hasFramePayload = true;
+                return null;
             }
             chunkOffset = (int) nextChunkOffset;
         }

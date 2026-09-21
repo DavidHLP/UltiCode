@@ -43,6 +43,10 @@ POST_OWNER_VER=$(detect_version "$ROOT/init-db/migrations/post-owner")
 echo "[adopt] versions: shared=$SHARED_VER auth=$AUTH_VER admin=$ADMIN_VER app=$APP_VER notification=$NOTIF_VER submission=$SUB_VER post-owner=$POST_OWNER_VER"
 
 JDBC_PARAMS="allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=UTF-8"
+CUTOVER_STATE_SEED_SQL="INSERT INTO admin.backup_cutover_state
+  (id, source_row_count, target_row_count, cutover_completed_at, last_reconciled_at)
+VALUES (1, 0, 0, NULL, NULL)
+ON DUPLICATE KEY UPDATE id = id;"
 
 # Decide mode: --real means adopt real DB via env, otherwise disposable validation
 MODE="disposable"
@@ -56,6 +60,7 @@ if [ "$MODE" = "disposable" ]; then
   for i in $(seq 1 30); do if docker exec "$CID" mysql -uulticode -pulticode -e "SELECT 1" ulticode >/dev/null 2>&1; then break; fi; sleep 2; done
   echo "[adopt] loading baseline.sql..."
   docker exec -i "$CID" mysql -uroot -proot < "$BASELINE_SQL"
+  docker exec "$CID" mysql -uroot -proot -e "$CUTOVER_STATE_SEED_SQL" >/dev/null
   # Per-schema baseline via flyway docker
   echo "[adopt] baselining shared (ulticode) at $SHARED_VER..."
   docker run --rm --network "container:$CID" -v "$ROOT/init-db:/flyway/init-db:ro" \
@@ -144,6 +149,7 @@ else
   echo "[adopt] preflight PASS — 6 schemas empty, no history"
   echo "[adopt] loading baseline.sql to $MIGRATION_DB_HOST:$MIGRATION_DB_PORT via privileged account..."
   mysql -h "$MIGRATION_DB_HOST" -P "$MIGRATION_DB_PORT" -u "$MIGRATION_DB_USER" -p"$MIGRATION_DB_PASSWORD" < "$BASELINE_SQL"
+  mysql_real "$CUTOVER_STATE_SEED_SQL" >/dev/null
   for schema in ulticode auth admin app notification submission; do
     case "$schema" in
       ulticode) ver="$SHARED_VER"; loc="migrations/*.sql"; use_owner=false ;;

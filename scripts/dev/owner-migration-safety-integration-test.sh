@@ -249,6 +249,21 @@ grep -q 'status=PASS' "$TEST_DIR/reconcile-object-fields-fixed.log"
 printf 'legacy object-field parity gate: PASS\n'
 
 mysql_root -e "
+UPDATE admin.backups
+   SET metadata = JSON_SET(COALESCE(metadata, JSON_OBJECT()),
+       '\$.lastRestoredAt', '2026-09-21T12:05:00',
+       '\$.lastRestoredBy', 'admin-1')
+ WHERE id='legacy-initial';"
+env ENV_FILE="$TEST_ENV" \
+  MIGRATION_DB_HOST=127.0.0.1 MIGRATION_DB_PORT="$MYSQL_TEST_PORT" \
+  MIGRATION_DB_NAME=ulticode MIGRATION_DB_USER=root \
+  MIGRATION_DB_PASSWORD="$ROOT_PASSWORD" \
+  bash "$ROOT_DIR/scripts/runbooks/reconcile-legacy-backups.sh" \
+  >"$TEST_DIR/reconcile-restored-metadata.log" 2>&1
+grep -q 'status=PASS' "$TEST_DIR/reconcile-restored-metadata.log"
+printf 'post-cutover restore metadata parity: PASS\n'
+
+mysql_root -e "
 CREATE TABLE ulticode.users LIKE auth.users;
 CREATE TABLE ulticode.user_profiles LIKE app.user_profiles;
 INSERT INTO ulticode.users (id,username,email,password,is_deleted)

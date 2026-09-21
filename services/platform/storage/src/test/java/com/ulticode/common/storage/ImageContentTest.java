@@ -234,7 +234,7 @@ class ImageContentTest {
     }
 
     @Test
-    @DisplayName("reads VP8L and animated VP8X dimensions")
+    @DisplayName("reads VP8L dimensions and rejects animated WebP")
     void readsWebpVariants() {
         ImageContent.assertWithinPixelBudget(TWO_BY_THREE_WEBP);
         ImageContent.assertWithinPixelBudget(webp(
@@ -242,9 +242,11 @@ class ImageContentTest {
                 webpChunk("VP8 ", vp8LossyFrame(4, 5))));
         byte[] animatedHeader = vp8ExtendedHeader(4, 5);
         animatedHeader[0] |= 0x20;
-        ImageContent.assertWithinPixelBudget(webp(
+        byte[] animated = webp(
                 webpChunk("VP8X", animatedHeader),
-                webpChunk("ANMF", new byte[17])));
+                webpChunk("ANMF", new byte[17]));
+        assertThatThrownBy(() -> ImageContent.detect(animated))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test

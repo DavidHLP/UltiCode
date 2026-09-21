@@ -99,6 +99,17 @@ class BackupExecutionServiceTest {
         return backup;
     }
 
+    /** A detached row as the database would return it, independent of in-memory mutation. */
+    private Backup durableRow(BackupStatus status, String objectKey) {
+        Backup row = new Backup();
+        row.setId(BACKUP_ID);
+        row.setFilename("backup_full_test.sql");
+        row.setType(BackupType.FULL);
+        row.setStatus(status);
+        row.setObjectKey(objectKey);
+        return row;
+    }
+
     @Nested
     @DisplayName("lifecycle transitions")
     class LifecycleTransitions {
@@ -172,7 +183,8 @@ class BackupExecutionServiceTest {
         @DisplayName("no-op COMPLETED update fails the run and removes the uploaded object")
         void shouldFailWhenCompletedUpdateAffectsNoRows() throws Exception {
             Backup backup = pendingBackup();
-            when(backupMapper.selectById(BACKUP_ID)).thenReturn(backup);
+            when(backupMapper.selectById(BACKUP_ID)).thenReturn(backup)
+                    .thenReturn(durableRow(BackupStatus.IN_PROGRESS, null));
             when(backupProcessPort.dump(any(Path.class))).thenAnswer(invocation -> {
                 Path dump = invocation.getArgument(0);
                 Files.writeString(dump, "-- fake dump");
@@ -191,7 +203,8 @@ class BackupExecutionServiceTest {
         @DisplayName("DB update failure after upload removes the uploaded object")
         void shouldRemoveObjectWhenCompletedStateCannotBePersisted() throws Exception {
             Backup backup = pendingBackup();
-            when(backupMapper.selectById(BACKUP_ID)).thenReturn(backup);
+            when(backupMapper.selectById(BACKUP_ID)).thenReturn(backup)
+                    .thenReturn(durableRow(BackupStatus.IN_PROGRESS, null));
             when(backupProcessPort.dump(any(Path.class))).thenAnswer(invocation -> {
                 Path dump = invocation.getArgument(0);
                 Files.writeString(dump, "-- fake dump");
@@ -208,6 +221,58 @@ class BackupExecutionServiceTest {
             verify(fileStorage).putFile(eq(objectKey), any(Path.class), eq("application/sql"));
             verify(fileStorage).delete(objectKey);
             assertEquals(BackupStatus.FAILED, backup.getStatus());
+        }
+
+        @Test
+        @DisplayName("ambiguous COMPLETED update that persisted keeps the uploaded object")
+        void shouldKeepObjectWhenCompletedStateRacedConnectionError() throws Exception {
+            Backup backup = pendingBackup();
+            String objectKey = "admin/backups/2026/01/" + BACKUP_ID + ".sql";
+            when(backupMapper.selectById(BACKUP_ID)).thenReturn(backup)
+                    .thenReturn(durableRow(BackupStatus.COMPLETED, objectKey));
+            when(backupProcessPort.dump(any(Path.class))).thenAnswer(invocation -> {
+                Path dump = invocation.getArgument(0);
+                Files.writeString(dump, "-- fake dump");
+                return true;
+            });
+            when(backupMapper.updateById(any(Backup.class)))
+                    .thenReturn(1)
+                    .thenThrow(new RuntimeException("connection reset"));
+
+            executionService.executeBackup(BACKUP_ID);
+
+            verify(fileStorage).putFile(eq(objectKey), any(Path.class), eq("application/sql"));
+            verify(fileStorage, never()).delete(any());
+            // exactly the IN_PROGRESS write plus the raced COMPLETED write; no FAILED overwrite
+            verify(backupMapper, times(2)).updateById(any(Backup.class));
+        }
+
+        @Test
+        @DisplayName("unreadable completion state keeps the uploaded object and still reaches a terminal row")
+        void shouldKeepObjectWhenCompletionOutcomeIsUnknown() throws Exception {
+            Backup backup = pendingBackup();
+            String objectKey = "admin/backups/2026/01/" + BACKUP_ID + ".sql";
+            when(backupMapper.selectById(BACKUP_ID)).thenReturn(backup)
+                    .thenThrow(new RuntimeException("database unreachable"));
+            when(backupProcessPort.dump(any(Path.class))).thenAnswer(invocation -> {
+                Path dump = invocation.getArgument(0);
+                Files.writeString(dump, "-- fake dump");
+                return true;
+            });
+            when(backupMapper.updateById(any(Backup.class)))
+                    .thenReturn(1)
+                    .thenThrow(new RuntimeException("connection reset"))
+                    .thenReturn(1);
+
+            executionService.executeBackup(BACKUP_ID);
+
+            verify(fileStorage).putFile(eq(objectKey), any(Path.class), eq("application/sql"));
+            verify(fileStorage, never()).delete(any());
+            // IN_PROGRESS write, raced COMPLETED write, then the terminal FAILED write.
+            verify(backupMapper, times(3)).updateById(any(Backup.class));
+            assertEquals(BackupStatus.FAILED, backup.getStatus());
+            assertNotNull(backup.getError());
+            assertTrue(backup.getError().contains(objectKey));
         }
 
         @Test

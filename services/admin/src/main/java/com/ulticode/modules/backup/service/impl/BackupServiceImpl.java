@@ -281,6 +281,12 @@ public class BackupServiceImpl implements BackupService {
 
     private String requireBackupObjectKey(Backup backup) {
         String objectKey = backup.getObjectKey();
+        // Legacy metadata rows stay COMPLETED with a null key until their dump is
+        // migrated; their bytes are unavailable, which the download/restore
+        // contract documents as NOT_FOUND, not a malformed-key BAD_REQUEST.
+        if (objectKey == null || objectKey.isBlank()) {
+            throw new BusinessException(BaseErrorCode.NOT_FOUND, "Backup object not found");
+        }
         try {
             StorageKeys.validate(objectKey);
         } catch (IllegalArgumentException exception) {

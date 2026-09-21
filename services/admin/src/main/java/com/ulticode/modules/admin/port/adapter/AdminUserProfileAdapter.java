@@ -232,8 +232,12 @@ public class AdminUserProfileAdapter implements UserProfilePort {
     private static boolean isPreDispatchFailure(Throwable exception) {
         Throwable current = exception;
         while (current != null) {
+            // FORBIDDEN_EXCEPTION (empty-protection off, directory forbidden
+            // before select) is raised by the consumer only before the request
+            // is dispatched to a provider, like NO_INVOKER_AVAILABLE_AFTER_FILTER.
             if (current instanceof RpcException rpcException
                     && (rpcException.isNoInvokerAvailableAfterFilter()
+                    || rpcException.isForbidden()
                     || rpcException.getCode() == RpcException.REGISTRY_EXCEPTION)) {
                 return true;
             }

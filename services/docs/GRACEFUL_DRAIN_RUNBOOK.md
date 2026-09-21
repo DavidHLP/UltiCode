@@ -10,8 +10,11 @@ started after the shutdown event.
 
 The bounded scheduling pools either use the P3-SCHED-001 shutdown policy or
 Spring's `await-termination` settings. The Admin backup writer is explicitly
-bound to `adminBackupExecutor`; that executor rejects new work during context
-close and waits for its in-flight backup task before the process exits.
+bound to `adminBackupExecutor`; that executor admits at most one in-flight
+backup (`queue-capacity: 0`, so a second concurrent submission is rejected and
+persisted as a terminal FAILED row rather than joining a drain-invisible
+backlog), rejects new work during context close, and waits for its in-flight
+backup task before the process exits.
 Host-deploy stops Admin with a dedicated `3660s` default Compose grace period,
 then runs `scripts/runbooks/assert-admin-backup-drained.sh` before owner
 migrations. The default covers the `1800s` backup process timeout plus the

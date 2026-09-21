@@ -123,6 +123,23 @@ class AdminUserProfileAdapterTest {
     }
 
     @Test
+    void removesObjectWhenDirectoryIsForbiddenBeforeDispatch() {
+        when(currentUserProvider.getCurrentUserId()).thenReturn("admin-1");
+        when(uuidGenerator.newId()).thenReturn("uuid-1");
+        byte[] png = Base64.getDecoder().decode(
+                "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+        when(profileWriteService.uploadAvatar(any()))
+                .thenThrow(new RpcException(RpcException.FORBIDDEN_EXCEPTION,
+                        "No provider available from registry"));
+
+        assertThatThrownBy(() -> adapter.uploadAvatar("user-1",
+                new MockMultipartFile("file", "photo.png", "image/png", png)))
+                .hasMessageContaining("Profile write RPC failed");
+
+        verify(fileStorage).delete("app/avatars/user-1/uuid-1.png");
+    }
+
+    @Test
     void removesObjectWhenProfileServiceReferenceIsAbsent() {
         when(currentUserProvider.getCurrentUserId()).thenReturn("admin-1");
         when(uuidGenerator.newId()).thenReturn("uuid-1");

@@ -93,18 +93,70 @@ public class BackupExecutionServiceImpl implements BackupExecutionService {
             }
             log.info("Backup completed successfully: {}, size: {} bytes", backupId, size);
         } catch (Exception exception) {
-            if (objectKey != null) {
-                deleteUploadedObject(objectKey);
+            CompletionOutcome outcome = objectKey == null
+                    ? CompletionOutcome.DEFINITE_FAILURE
+                    : classifyCompletionOutcome(backupId, objectKey);
+            switch (outcome) {
+                case PERSISTED -> log.info("Backup {} completion update raced a database error but the "
+                        + "COMPLETED state persisted; keeping the uploaded object {}", backupId, objectKey);
+                case UNKNOWN -> {
+                    log.error("Backup {} completion outcome is unknown after a database failure; "
+                            + "preserving uploaded object {} instead of deleting it", backupId, objectKey,
+                            exception);
+                    // The drain gate only tolerates terminal rows. Best-effort
+                    // FAILED write naming the preserved key; if the database is
+                    // still unreachable the row stays IN_PROGRESS and the gate
+                    // fails closed, which is the designed outcome.
+                    try {
+                        fail(backup, "Backup completion outcome unknown after a database failure; "
+                                + "uploaded object preserved for reconciliation: " + objectKey);
+                    } catch (RuntimeException stateFailure) {
+                        log.error("Backup {} terminal FAILED state could not be persisted", backupId,
+                                stateFailure);
+                    }
+                }
+                case DEFINITE_FAILURE -> {
+                    if (objectKey != null) {
+                        deleteUploadedObject(objectKey);
+                    }
+                    if (exception instanceof InterruptedException) {
+                        Thread.currentThread().interrupt();
+                    }
+                    log.error("Backup execution failed for: {}", backupId, exception);
+                    fail(backup, exception.getMessage());
+                }
             }
-            if (exception instanceof InterruptedException) {
-                Thread.currentThread().interrupt();
-            }
-            log.error("Backup execution failed for: {}", backupId, exception);
-            fail(backup, exception.getMessage());
         } finally {
             deleteTempFile(tempFile);
         }
         return CompletableFuture.completedFuture(null);
+    }
+
+    private enum CompletionOutcome {
+        PERSISTED,
+        UNKNOWN,
+        DEFINITE_FAILURE
+    }
+
+    /**
+     * A completion-state write can commit even when the client observes a
+     * connection error. Re-read the durable row before discarding uploaded
+     * bytes; when the state cannot be read at all, keep the object so a later
+     * reconciliation can adopt it rather than destroying a valid backup.
+     */
+    private CompletionOutcome classifyCompletionOutcome(String backupId, String objectKey) {
+        Backup persisted;
+        try {
+            persisted = backupMapper.selectById(backupId);
+        } catch (RuntimeException readFailure) {
+            return CompletionOutcome.UNKNOWN;
+        }
+        if (persisted == null) {
+            return CompletionOutcome.DEFINITE_FAILURE;
+        }
+        boolean completed = persisted.getStatus() == BackupStatus.COMPLETED
+                && objectKey.equals(persisted.getObjectKey());
+        return completed ? CompletionOutcome.PERSISTED : CompletionOutcome.DEFINITE_FAILURE;
     }
 
     private void fail(Backup backup, String error) {

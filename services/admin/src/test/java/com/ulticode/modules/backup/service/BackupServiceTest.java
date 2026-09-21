@@ -308,6 +308,21 @@ class BackupServiceTest {
 
             assertThrows(BusinessException.class, () -> backupService.getBackupFile(BACKUP_ID));
         }
+
+        @Test
+        @DisplayName("unmigrated legacy row with a null object key reports NOT_FOUND, not BAD_REQUEST")
+        void shouldReportNotFoundWhenCompletedRowHasNoObjectKeyYet() {
+            Backup backup = new Backup();
+            backup.setId(BACKUP_ID);
+            backup.setFilename("backup_full_legacy.sql");
+            backup.setStatus(BackupStatus.COMPLETED);
+
+            when(backupMapper.selectById(BACKUP_ID)).thenReturn(backup);
+
+            BusinessException exception = assertThrows(BusinessException.class,
+                    () -> backupService.getBackupFile(BACKUP_ID));
+            assertTrue(exception.getMessage().contains("Backup object not found"));
+        }
     }
 
     @Nested
@@ -482,6 +497,21 @@ class BackupServiceTest {
             when(fileStorage.openStream(backup.getObjectKey())).thenReturn(Optional.empty());
 
             assertThrows(BusinessException.class, () -> backupService.restoreBackup(BACKUP_ID, USER_ID));
+        }
+
+        @Test
+        @DisplayName("unmigrated legacy row with a null object key reports NOT_FOUND, not BAD_REQUEST")
+        void shouldReportNotFoundWhenRestoreTargetsUnmigratedRow() {
+            Backup backup = new Backup();
+            backup.setId(BACKUP_ID);
+            backup.setFilename("backup_full_legacy.sql");
+            backup.setStatus(BackupStatus.COMPLETED);
+
+            when(backupMapper.selectById(BACKUP_ID)).thenReturn(backup);
+
+            BusinessException exception = assertThrows(BusinessException.class,
+                    () -> backupService.restoreBackup(BACKUP_ID, USER_ID));
+            assertTrue(exception.getMessage().contains("Backup object not found"));
         }
 
         @Test

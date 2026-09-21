@@ -73,6 +73,8 @@ contains services/platform/integration-inbox/pom.xml 'jdk.attach.allowAttachSelf
 contains services/docs/GRACEFUL_DRAIN_RUNBOOK.md 'P3-GRACE-001'
 contains services/admin/src/main/resources/application.yml 'await-termination-seconds: ${ADMIN_BACKUP_EXECUTOR_AWAIT_TERMINATION_SECONDS:3600}'
 contains services/admin/src/main/java/com/ulticode/admin/config/AdminBackupExecutorConfiguration.java '@Value("${admin.backup.executor.await-termination-seconds:3600}")'
+contains services/admin/src/main/resources/application.yml 'queue-capacity: ${ADMIN_BACKUP_EXECUTOR_QUEUE_CAPACITY:0}'
+contains services/admin/src/main/java/com/ulticode/admin/config/AdminBackupExecutorConfiguration.java '@Value("${admin.backup.executor.queue-capacity:0}")'
 contains services/admin/src/main/java/com/ulticode/modules/backup/service/impl/BackupExecutionServiceImpl.java '@Async("adminBackupExecutor")'
 contains services/admin/src/main/java/com/ulticode/admin/config/AdminBackupExecutorConfiguration.java 'setWaitForTasksToCompleteOnShutdown(true)'
 contains services/admin/src/test/java/com/ulticode/admin/config/AdminBackupExecutorConfigurationTest.java 'backupExecutorWaitsForRunningWorkDuringShutdown'

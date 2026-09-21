@@ -405,6 +405,36 @@ runs:
         "${SSH_CMD[@]}" "$remote_command"
         printf 'phase=migration-complete\n' >>"$STATE_FILE"
 
+    - name: Verify legacy object backfill before serving
+      if: ${{ inputs.skip_migrations != 'true' }}
+      shell: bash
+      env:
+        MIGRATION_DB_HOST: ${{ inputs.migration_db_host }}
+        MIGRATION_DB_PORT: ${{ inputs.migration_db_port }}
+        MIGRATION_DB_NAME: ${{ inputs.migration_db_name }}
+        MIGRATION_DB_USER: ${{ inputs.migration_db_user }}
+        MIGRATION_DB_PASSWORD: ${{ inputs.migration_db_password }}
+        MIGRATION_MYSQL_BIN: ${{ inputs.migration_mysql_bin }}
+        MIGRATION_MYSQL_CONTAINER: ${{ inputs.migration_mysql_container }}
+        MIGRATION_MYSQL_CONTAINER_PORT: ${{ inputs.migration_mysql_container_port }}
+      run: |
+        set -euo pipefail
+        shell_quote() { printf '%q' "$1"; }
+        SSH_CMD=(ssh -i ~/.ssh/deploy_key -o BatchMode=yes
+          -o StrictHostKeyChecking=yes
+          -o UserKnownHostsFile="$HOME/.ssh/known_hosts"
+          "${{ inputs.user }}@${{ inputs.host }}" -p "${{ inputs.port }}")
+        remote_command="cd $(shell_quote "${{ inputs.path }}") &&"
+        for variable in MIGRATION_DB_HOST MIGRATION_DB_PORT MIGRATION_DB_NAME \
+          MIGRATION_DB_USER MIGRATION_DB_PASSWORD; do
+          remote_command+=" $variable=$(shell_quote "${!variable}")"
+        done
+        remote_command+=" MIGRATION_MYSQL_BIN=$(shell_quote "$MIGRATION_MYSQL_BIN")"
+        remote_command+=" MIGRATION_MYSQL_CONTAINER=$(shell_quote "$MIGRATION_MYSQL_CONTAINER")"
+        remote_command+=" MIGRATION_MYSQL_CONTAINER_PORT=$(shell_quote "$MIGRATION_MYSQL_CONTAINER_PORT")"
+        remote_command+=" ./scripts/runbooks/assert-legacy-objects-migrated.sh"
+        "${SSH_CMD[@]}" "$remote_command"
+
     - name: Materialize runtime Redis ACL
       shell: bash
       run: |

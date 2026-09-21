@@ -190,6 +190,12 @@ docker run --rm -v "${RUSTFS_VOLUMES[0]}:/data:ro" -v "$PWD:/backup" alpine \
 - 旧本地文件迁移用 `scripts/dev/migrate-object-storage.sh`：默认 dry-run；`--apply` 才上传；
   上传后校验大小/checksum 并回读对象，校验通过后才更新数据库行（`user_profiles.avatar` 与
   `backups.object_key`）；脚本从不删除旧文件，只有在迁移报告确认全部对象已校验后，operator 才可清理旧目录。
+- 生产 `host-deploy` 在 ordered owner migrations 之后、pull/`up` 之前执行
+  `scripts/runbooks/assert-legacy-objects-migrated.sh`：存在仍指向
+  `/uploads/avatars/...` 的 `app.user_profiles` 行，或没有 `object_key` 的
+  `admin.backups` COMPLETED 行时，动作 fail closed 并给出迁移命令；该门禁与迁移脚本
+  使用同一组行谓词，因此“门禁通过”等于“回填没有剩余目标”。跳过 migration 的部署
+  （`skip_migrations=true`，含回滚路径）同时跳过该门禁。
 - 生产 `host-deploy` 在 ordered owner migrations 之前验证完整的 deploy service
   allowlist，并要求 migration subset 包含 `backend-admin`；随后记录原有
   `backend-admin` 容器 ID，使用已验证 image refs 执行 `docker compose stop`。
@@ -205,7 +211,10 @@ docker run --rm -v "${RUSTFS_VOLUMES[0]}:/data:ro" -v "$PWD:/backup" alpine \
   在对象回填前幂等地把旧 `ulticode.backups` 元数据复制到 `admin.backups`；
   随后的 `scripts/runbooks/reconcile-legacy-backups.sh` 复制一次性 Flyway copy
   之后出现且未被 `admin.backup_deletion_tombstones` 标记的 source rows；删除备份
-  时先在 Admin 事务内持久化 tombstone，避免后续 reconciliation 复活已删除目标。
+  时先在 Admin 事务内持久化 tombstone（并记录该行的 `object_key`），避免后续
+  reconciliation 复活已删除目标；提交后立即尝试删除对象，失败时
+  `BackupObjectCleanup` 的定时 sweep 依据 tombstone 重试（对象删除幂等，成功后写
+  `object_deleted_at`）。
   Runbook 仍拒绝 metadata conflict 和 pre-cutover target-only rows，并在 parity
   通过后写入 `admin.backup_cutover_state`。Owner-scoped 的 Admin migration 只负责
   创建/修复目标表；迁移不会删除旧行或旧文件。
@@ -216,6 +225,8 @@ docker run --rm -v "${RUSTFS_VOLUMES[0]}:/data:ro" -v "$PWD:/backup" alpine \
 - **部署顺序要求**：升级到本版本后，尚未迁移的旧头像与旧备份在对象上传前不可用（下载/恢复返回明确的
   NOT_FOUND，不会回退本地文件）。请在切换后立即执行迁移（先 dry-run 核对计划，再 `--apply`），并核对
   `MIGRATION_SUMMARY` 全部通过后再对外确认头像与备份功能；迁移脚本幂等，可重复执行。
+  `host-deploy` 已把该回填作为 pull/`up` 之前的门禁，因此首次升级应在部署中断后按提示完成迁移再重跑部署，
+  而不是先放行新 App。
 - RustFS 不可用时：应用启动失败（或既有实例在请求路径上返回明确的存储错误），备份/恢复不会标记成功，
   也不会回退到本地永久目录。
 

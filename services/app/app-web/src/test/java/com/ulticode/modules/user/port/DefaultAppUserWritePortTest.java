@@ -67,7 +67,8 @@ class DefaultAppUserWritePortTest {
         avatarProfileMutationService = new AvatarProfileMutationService(
                 userProfileMapper, storageCleanupOutbox, userDirectoryQueryPort, searchPublisher);
         port = new DefaultAppUserWritePort(userProfileMapper, uuidGenerator,
-                fileStorage, userDirectoryQueryPort, searchPublisher, avatarProfileMutationService);
+                fileStorage, userDirectoryQueryPort, searchPublisher, avatarProfileMutationService,
+                storageCleanupOutbox);
     }
 
     @Nested

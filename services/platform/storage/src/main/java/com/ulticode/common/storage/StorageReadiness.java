@@ -27,6 +27,7 @@ public final class StorageReadiness {
 
     private volatile State state = State.PENDING;
     private volatile String detail;
+    private long stateGeneration;
     private volatile Runnable recoveryProbe;
     private final AtomicBoolean recoveryProbeInFlight = new AtomicBoolean();
 
@@ -34,18 +35,21 @@ public final class StorageReadiness {
     public synchronized void markReady() {
         this.state = State.READY;
         this.detail = null;
+        this.stateGeneration++;
     }
 
     /** Marks the object store unavailable after a startup or runtime failure. */
     public synchronized void markFailed(String failureDetail) {
         this.state = State.FAILED;
         this.detail = failureDetail;
+        this.stateGeneration++;
     }
 
     /** Marks verification as deliberately skipped (test profiles and operator opt-out). */
     public synchronized void markSkipped() {
         this.state = State.SKIPPED;
         this.detail = "startup probe disabled by configuration";
+        this.stateGeneration++;
     }
 
     public State state() {
@@ -69,8 +73,16 @@ public final class StorageReadiness {
         this.recoveryProbe = recoveryProbe;
     }
 
-    private synchronized void markRecoveryProbeFailed(String failureDetail) {
-        if (state == State.FAILED) {
+    private synchronized void markRecoveryProbeReady(long probeGeneration) {
+        if (state == State.FAILED && stateGeneration == probeGeneration) {
+            state = State.READY;
+            detail = null;
+            stateGeneration++;
+        }
+    }
+
+    private synchronized void markRecoveryProbeFailed(long probeGeneration, String failureDetail) {
+        if (state == State.FAILED && stateGeneration == probeGeneration) {
             this.detail = failureDetail;
         }
     }
@@ -82,18 +94,26 @@ public final class StorageReadiness {
      * succeeds; concurrent health checks share the in-flight probe.
      */
     public void probeIfFailed() {
-        if (state != State.FAILED) {
-            return;
+        scheduleRecoveryProbe();
+    }
+
+    CompletableFuture<Void> scheduleRecoveryProbe() {
+        Runnable probe;
+        long probeGeneration;
+        synchronized (this) {
+            if (state != State.FAILED || recoveryProbe == null
+                    || !recoveryProbeInFlight.compareAndSet(false, true)) {
+                return CompletableFuture.completedFuture(null);
+            }
+            probe = recoveryProbe;
+            probeGeneration = stateGeneration;
         }
-        Runnable probe = recoveryProbe;
-        if (probe == null || !recoveryProbeInFlight.compareAndSet(false, true)) {
-            return;
-        }
-        CompletableFuture.runAsync(() -> {
+        return CompletableFuture.runAsync(() -> {
             try {
                 probe.run();
+                markRecoveryProbeReady(probeGeneration);
             } catch (RuntimeException exception) {
-                markRecoveryProbeFailed(exception.getMessage());
+                markRecoveryProbeFailed(probeGeneration, exception.getMessage());
             } finally {
                 recoveryProbeInFlight.set(false);
             }

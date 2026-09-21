@@ -92,6 +92,17 @@ migration_line="$(grep -n 'Run ordered owner database migrations' \
   "$ROOT_DIR/.github/actions/host-deploy/action.yml" | head -1 | cut -d: -f1)"
 [[ "$quiesce_line" -lt "$migration_line" ]] \
   || { echo 'legacy backup writer is not quiesced before owner migrations' >&2; exit 1; }
+# The object cutover gate must run for every rollout of this release, including
+# one that skips Flyway; only an explicit rollback deployment opts out.
+gate_line="$(grep -n 'Verify legacy object backfill before serving' \
+  "$ROOT_DIR/.github/actions/host-deploy/action.yml" | head -1 | cut -d: -f1)"
+[[ -n "$gate_line" && "$migration_line" -lt "$gate_line" ]] \
+  || { echo 'object cutover gate is missing or runs before the owner migrations' >&2; exit 1; }
+sed -n "${gate_line},$((gate_line + 6))p" "$ROOT_DIR/.github/actions/host-deploy/action.yml" \
+  | grep -Fq "inputs.rollback != 'true'" \
+  || { echo 'object cutover gate is still tied to skip_migrations instead of an explicit rollback input' >&2; exit 1; }
+grep -Fq 'rollback: ' "$ROOT_DIR/.github/actions/host-deploy/action.yml"
+grep -Fq "rollback: 'true'" "$ROOT_DIR/.github/workflows/cd-rollback.yml"
 grep -Fq 'migration_db_user:' "$ROOT_DIR/.github/workflows/cd-deploy.yml"
 grep -Fq 'submission_migration_db_password:' "$ROOT_DIR/.github/workflows/cd-deploy.yml"
 grep -Fq "skip_migrations: 'true'" "$ROOT_DIR/.github/workflows/cd-rollback.yml"

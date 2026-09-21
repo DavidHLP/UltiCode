@@ -2661,6 +2661,8 @@ CREATE TABLE `storage_cleanup_outbox` (
   `last_error` varchar(500) DEFAULT NULL,
   `created_at` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   `deleted_at` datetime(3) DEFAULT NULL,
+  `verify_owner_reference` tinyint(1) NOT NULL DEFAULT '0',
+  `kept_at` datetime(3) DEFAULT NULL,
   PRIMARY KEY (`object_key`),
   KEY `idx_admin_storage_cleanup_pending` (`deleted_at`,`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;

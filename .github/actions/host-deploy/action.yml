@@ -66,6 +66,13 @@ inputs:
     description: '"true" skips the Flyway migrate step'
     required: false
     default: 'false'
+  rollback:
+    description: >-
+      "true" only for a rollback deployment that restores an already-approved
+      release. It skips the object cutover gate, which the restored artifacts
+      predate; a plain deploy must never set it.
+    required: false
+    default: 'false'
   registry:
     required: false
     default: ghcr.io
@@ -416,7 +423,7 @@ runs:
         printf 'phase=migration-complete\n' >>"$STATE_FILE"
 
     - name: Verify legacy object backfill before serving
-      if: ${{ inputs.skip_migrations != 'true' }}
+      if: ${{ inputs.rollback != 'true' }}
       shell: bash
       env:
         MIGRATION_DB_HOST: ${{ inputs.migration_db_host }}
@@ -429,6 +436,15 @@ runs:
         MIGRATION_MYSQL_CONTAINER_PORT: ${{ inputs.migration_mysql_container_port }}
       run: |
         set -euo pipefail
+        # The gate guards any rollout of this release, including one that skips
+        # Flyway: skipping migrations must not also skip the cutover check.
+        for required in MIGRATION_DB_HOST MIGRATION_DB_PORT MIGRATION_DB_NAME \
+          MIGRATION_DB_USER MIGRATION_DB_PASSWORD; do
+          [[ -n "${!required}" ]] || {
+            echo "::error::$required is required so the object cutover gate can run; a rollback must use CD Rollback, which sets rollback=true" >&2
+            exit 1
+          }
+        done
         shell_quote() { printf '%q' "$1"; }
         SSH_CMD=(ssh -i ~/.ssh/deploy_key -o BatchMode=yes
           -o StrictHostKeyChecking=yes

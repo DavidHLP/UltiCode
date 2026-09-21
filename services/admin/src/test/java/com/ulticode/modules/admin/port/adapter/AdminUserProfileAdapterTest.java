@@ -126,6 +126,9 @@ class AdminUserProfileAdapterTest {
                 .hasMessageContaining("Profile write RPC failed");
 
         verify(fileStorage, org.mockito.Mockito.never()).delete(any());
+        // App may have committed the key, so the object stays but a durable
+        // owner-checked intent decides its fate instead of leaving it orphaned.
+        verify(adminStorageCleanup).enqueueForOwnerCheck("app/avatars/user-1/uuid-1.png");
     }
 
     @Test

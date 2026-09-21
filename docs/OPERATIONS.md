@@ -198,8 +198,10 @@ docker run --rm -v "${RUSTFS_VOLUMES[0]}:/data:ro" -v "$PWD:/backup" alpine \
   `/uploads/avatars/...` 的 `app.user_profiles` 行、没有 `object_key` 的
   `admin.backups` COMPLETED 行，或 `app.storage_migration_state` 中已重写但未确认的
   头像回填记录时，动作 fail closed 并给出迁移命令；该门禁与迁移脚本
-  使用同一组行谓词，因此“门禁通过”等于“回填没有剩余目标”。跳过 migration 的部署
-  （`skip_migrations=true`，含回滚路径）同时跳过该门禁。
+  使用同一组行谓词，因此“门禁通过”等于“回填没有剩余目标”。只有显式回滚部署
+  （`cd-rollback.yml` 传入 `rollback: 'true'`，还原的是早于对象存储契约的产物）跳过该门禁；
+  跳过 Flyway 的普通部署（`skip_migrations=true`）仍会执行该门禁，缺少 migration 数据库凭据时
+  fail closed。
 - 生产 `host-deploy` 在 ordered owner migrations 之前验证完整的 deploy service
   allowlist，并要求 migration subset 同时包含 `backend-admin` 与 `backend-app`
   （对象键写入与头像读取路径随本次发布一起切换）；随后记录原有
@@ -236,7 +238,8 @@ docker run --rm -v "${RUSTFS_VOLUMES[0]}:/data:ro" -v "$PWD:/backup" alpine \
   也不会回退到本地永久目录。
 - Admin 上传头像的对象键与清理意图：App 拒绝或不可达时对象会被删除，删除失败则记入
   `admin.storage_cleanup_outbox` 并由 `AdminStorageCleanup` 定时 sweep 幂等重试，避免 App 不可用期间
-  每次重试都泄漏一个对象。
+  每次重试都泄漏一个对象；RPC 结果未知（post-dispatch 超时）的对象以 `verify_owner_reference` 记录，
+  sweep 先向 App 查询当前头像，仍被引用则保留（`kept_at`），确认未被引用才删除，App 不可达时继续挂起。
 - 头像清理意图不会因存储长时间不可用而终止：`StorageCleanupDispatcher` 只增退避（上限 1 小时）地重试，
   并把历史 `DEAD` 行重新排入队列。
 

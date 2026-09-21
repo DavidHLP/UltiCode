@@ -102,6 +102,7 @@ jobs:
           services: ${{ github.event.inputs.services }}
           supply_chain_identity: ${{ secrets.SUPPLY_CHAIN_CERT_IDENTITY }}
           skip_migrations: 'true'
+          rollback: 'true'
           registry: ghcr.io
           github_token: ${{ secrets.GITHUB_TOKEN }}
           actor: ${{ github.actor }}

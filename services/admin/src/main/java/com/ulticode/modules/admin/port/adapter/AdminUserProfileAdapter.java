@@ -129,7 +129,12 @@ public class AdminUserProfileAdapter implements UserProfilePort {
                 log.warn("Avatar profile update did not dispatch for user {}; deleting object {}", userId, key);
                 deleteQuietly(key);
             } else {
-                log.warn("Avatar profile update outcome is unknown for user {}; keeping object {}", userId, key);
+                // Ambiguous outcome: App may have committed this key, so the
+                // object is recorded for an owner-checked cleanup instead of
+                // being kept forever or deleted blindly.
+                log.warn("Avatar profile update outcome is unknown for user {}; queueing object {} for reconciliation",
+                        userId, key);
+                queueForOwnerCheck(key);
             }
             throw transportFailure(exception);
         } catch (RuntimeException exception) {
@@ -172,6 +177,14 @@ public class AdminUserProfileAdapter implements UserProfilePort {
             throw new BusinessException(AdminErrorCode.BAD_REQUEST, "File content is not a supported image");
         }
         return new DetectedImage(detected.extension(), detected.contentType());
+    }
+
+    private void queueForOwnerCheck(String key) {
+        try {
+            adminStorageCleanup.enqueueForOwnerCheck(key);
+        } catch (RuntimeException enqueueFailure) {
+            log.warn("Could not queue staged avatar object {} for reconciliation", key, enqueueFailure);
+        }
     }
 
     private void deleteQuietly(String key) {

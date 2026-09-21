@@ -348,7 +348,7 @@ class BackupServiceTest {
             try {
                 backupService.deleteBackup(BACKUP_ID);
 
-                verify(backupMapper).deleteById(BACKUP_ID);
+                verify(backupMapper).deleteIfNotRunning(BACKUP_ID);
                 verify(backupDeletionTombstoneMapper).insert(BACKUP_ID, backup.getObjectKey());
                 verify(backupObjectCleanup, never()).deletePending(anyString());
 
@@ -374,7 +374,7 @@ class BackupServiceTest {
             backupService.deleteBackup(BACKUP_ID);
 
             verify(backupObjectCleanup, never()).deletePending(anyString());
-            verify(backupMapper).deleteById(BACKUP_ID);
+            verify(backupMapper).deleteIfNotRunning(BACKUP_ID);
             verify(backupDeletionTombstoneMapper).insert(BACKUP_ID, null);
         }
 
@@ -405,7 +405,7 @@ class BackupServiceTest {
 
             when(backupMapper.selectById(BACKUP_ID)).thenReturn(backup);
             doThrow(new IllegalStateException("database unavailable"))
-                    .when(backupMapper).deleteById(BACKUP_ID);
+                    .when(backupMapper).deleteIfNotRunning(BACKUP_ID);
 
             assertThrows(IllegalStateException.class, () -> backupService.deleteBackup(BACKUP_ID));
 

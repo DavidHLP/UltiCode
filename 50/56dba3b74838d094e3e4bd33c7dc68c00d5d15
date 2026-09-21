@@ -1,0 +1,24 @@
+.github/workflows/cd-deploy.yml
+  h_77173abe25c3ff 54-56
+docker/docker-compose.prod.yml
+  h_77173abe25c3ff 79
+docker/docker-compose.yml
+  h_77173abe25c3ff 148-155,175-200,202-206,208-232,234-241,243-271
+scripts/dev/devstack-manifest-test.sh
+  h_77173abe25c3ff 196-200
+scripts/dev/rustfs-smoke-test.sh
+  h_77173abe25c3ff 179-192,203,207,209,213,255-256
+scripts/test/graceful-drain-contract.sh
+  h_77173abe25c3ff 81-82
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5056dba3b74838d094e3e4bd33c7dc68c00d5d15",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

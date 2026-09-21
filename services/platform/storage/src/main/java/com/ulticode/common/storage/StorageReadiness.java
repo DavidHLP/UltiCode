@@ -1,5 +1,8 @@
 package com.ulticode.common.storage;
 
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 /**
  * Startup gate and runtime availability state of the mandatory object store, shared with owner readiness endpoints.
  *
@@ -24,21 +27,23 @@ public final class StorageReadiness {
 
     private volatile State state = State.PENDING;
     private volatile String detail;
+    private volatile Runnable recoveryProbe;
+    private final AtomicBoolean recoveryProbeInFlight = new AtomicBoolean();
 
     /** Marks the object store ready after the startup gate or a successful runtime request. */
-    public void markReady() {
+    public synchronized void markReady() {
         this.state = State.READY;
         this.detail = null;
     }
 
     /** Marks the object store unavailable after a startup or runtime failure. */
-    public void markFailed(String failureDetail) {
+    public synchronized void markFailed(String failureDetail) {
         this.state = State.FAILED;
         this.detail = failureDetail;
     }
 
     /** Marks verification as deliberately skipped (test profiles and operator opt-out). */
-    public void markSkipped() {
+    public synchronized void markSkipped() {
         this.state = State.SKIPPED;
         this.detail = "startup probe disabled by configuration";
     }
@@ -57,5 +62,41 @@ public final class StorageReadiness {
      */
     public boolean isReady() {
         return state == State.READY || state == State.SKIPPED;
+    }
+
+    /** Installs the bounded object-store probe used by failed readiness checks. */
+    void setRecoveryProbe(Runnable recoveryProbe) {
+        this.recoveryProbe = recoveryProbe;
+    }
+
+    private synchronized void markRecoveryProbeFailed(String failureDetail) {
+        if (state == State.FAILED) {
+            this.detail = failureDetail;
+        }
+    }
+
+    /**
+     * Schedules one bounded recovery probe when the store is failed.
+     *
+     * <p>The readiness endpoint remains fast and reports 503 until the probe
+     * succeeds; concurrent health checks share the in-flight probe.
+     */
+    public void probeIfFailed() {
+        if (state != State.FAILED) {
+            return;
+        }
+        Runnable probe = recoveryProbe;
+        if (probe == null || !recoveryProbeInFlight.compareAndSet(false, true)) {
+            return;
+        }
+        CompletableFuture.runAsync(() -> {
+            try {
+                probe.run();
+            } catch (RuntimeException exception) {
+                markRecoveryProbeFailed(exception.getMessage());
+            } finally {
+                recoveryProbeInFlight.set(false);
+            }
+        });
     }
 }

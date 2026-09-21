@@ -50,8 +50,10 @@ public class AppReadinessController {
         Map<String, Boolean> components = new LinkedHashMap<>();
         components.put("db", ReadinessChecks.dataSourceUp(dataSource));
         components.put("redis", redisUp());
-        // The object store is mandatory: report the shared holder state. S3Storage updates it on
-        // runtime failure and recovery; this endpoint only reads it and never probes the store.
+        // Re-probe asynchronously after a runtime failure so health checks can recover an idle instance.
+        if (storageReadiness != null) {
+            storageReadiness.probeIfFailed();
+        }
         components.put("storage", storageReadiness == null || storageReadiness.isReady());
         boolean allUp = components.values().stream().allMatch(Boolean::booleanValue);
         return ResponseEntity

@@ -17,11 +17,11 @@ import java.time.ZonedDateTime;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -60,11 +60,11 @@ public class S3Storage implements FileStoragePort {
 
     private static ExecutorService createStreamReadExecutor(int maxConcurrentRequests) {
         ThreadPoolExecutor executor = new ThreadPoolExecutor(
-                0,
+                maxConcurrentRequests,
                 maxConcurrentRequests,
                 60,
                 TimeUnit.SECONDS,
-                new SynchronousQueue<>(),
+                new ArrayBlockingQueue<>(maxConcurrentRequests),
                 runnable -> {
                     Thread thread = new Thread(runnable, "s3-stream-read");
                     thread.setDaemon(true);
@@ -94,6 +94,7 @@ public class S3Storage implements FileStoragePort {
         this.httpClient = httpClient;
         this.dependencyGuard = dependencyGuard;
         this.readiness = readiness;
+        readiness.setRecoveryProbe(this::probe);
         this.streamReadExecutor = createStreamReadExecutor(properties.getS3().getMaxConcurrentRequests());
     }
 

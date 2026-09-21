@@ -36,6 +36,7 @@ import javax.crypto.spec.SecretKeySpec;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
@@ -248,6 +249,29 @@ class S3StorageTest {
         }
 
         @Test
+        @DisplayName("allows successive reads with one stream worker")
+        void successiveReadsReuseBoundedExecutor() throws Exception {
+            properties.getS3().setMaxConcurrentRequests(1);
+            when(streamResponse.statusCode()).thenReturn(200);
+            when(streamResponse.body()).thenReturn(responseBody);
+            when(streamResponse.headers()).thenReturn(responseHeaders);
+            when(responseHeaders.firstValueAsLong("Content-Length"))
+                    .thenReturn(java.util.OptionalLong.of(2));
+            when(responseBody.read(any(byte[].class), anyInt(), anyInt())).thenReturn(1, 1, -1);
+            doReturn(streamResponse).when(httpClient).send(any(HttpRequest.class), any());
+            DependencyGuard guard = new DependencyGuard(1, 1, Duration.ofSeconds(30));
+            S3Storage guarded = new S3Storage(properties, httpClient, guard, readiness);
+
+            FileStoragePort.StorageStream stream = guarded.openStream("avatars/chunked.png").orElseThrow();
+            byte[] chunk = new byte[1];
+
+            assertThat(stream.content().read(chunk)).isEqualTo(1);
+            assertThat(stream.content().read(chunk)).isEqualTo(1);
+            assertThat(stream.content().read(chunk)).isEqualTo(-1);
+            assertThat(guard.inFlight()).isZero();
+        }
+
+        @Test
         @DisplayName("times out and cancels a stalled streamed read")
         void stalledStreamReadTimesOut() throws Exception {
             properties.getS3().setRequestTimeoutMs(100);
@@ -273,7 +297,7 @@ class S3StorageTest {
         }
 
         @Test
-        @DisplayName("fails fast when timed-out stream readers exhaust the bounded pool")
+        @DisplayName("times out queued readers without rejecting them")
         void timedOutStreamReadersAreBounded() throws Exception {
             properties.getS3().setRequestTimeoutMs(100);
             properties.getS3().setMaxConcurrentRequests(1);
@@ -295,7 +319,7 @@ class S3StorageTest {
             FileStoragePort.StorageStream second = guarded.openStream("avatars/second.png").orElseThrow();
             assertThatThrownBy(() -> second.content().read())
                     .isInstanceOf(IOException.class)
-                    .hasMessageContaining("capacity exhausted");
+                    .hasMessageContaining("stream read timed out");
 
             stalledBody.release();
             assertThat(stalledBody.awaitFinished()).isTrue();

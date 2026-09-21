@@ -33,6 +33,7 @@ Configuration (environment or .env):
   APP_STORAGE_S3_ACCESS_KEY and APP_STORAGE_S3_SECRET_KEY are an avatar-only
   fallback when the operator intentionally does not provide the root pair.
   RUSTFS_BUCKET
+  RUSTFS_TLS_CERT_DIR (production TLS directory; uses rustfs_cert.pem as the CA)
   APP_DB_* / ADMIN_DB_* (host/port/user/password fall back to MIGRATION_DB_*,
                          then DB_*; owner schema names default to app/admin)
   AVATAR_UPLOAD_VOL / BACKUP_VOLUME (legacy Docker volume names)
@@ -67,6 +68,7 @@ capture_env_vars \
   MIGRATION_DB_HOST MIGRATION_DB_PORT MIGRATION_DB_NAME MIGRATION_DB_USER MIGRATION_DB_PASSWORD \
   DB_HOST DB_PORT DB_NAME DB_USER DB_PASSWORD MIGRATION_MYSQL_CONTAINER MIGRATION_MYSQL_CONTAINER_PORT \
   AVATAR_UPLOAD_DIR AVATAR_UPLOAD_VOL BACKUP_DIR BACKUP_VOLUME AWS_BIN AWS_CLI_IMAGE \
+  RUSTFS_TLS_CERT_DIR \
   MIGRATION_DOCKER_NETWORK COMPOSE_PROJECT_NAME MIGRATION_SEARCH_BACKFILL_CONFIRMED
 if [[ -f "$ENV_FILE" ]]; then
   load_env_file
@@ -229,9 +231,12 @@ if [[ "$ONLY" == backups || "$ONLY" == all ]] \
 fi
 S3_BUCKET="${BUCKET_OVERRIDE:-${RUSTFS_BUCKET:-${APP_STORAGE_S3_BUCKET:-ulticode}}}"
 S3_TLS_ENABLED="${APP_STORAGE_S3_TLS_ENABLED:-${RUSTFS_TLS_ENABLED:-}}"
-S3_CA_CERTIFICATE="${APP_STORAGE_S3_CA_CERTIFICATE:-${RUSTFS_TLS_CA_CERT:-}}"
 if [[ -z "$S3_TLS_ENABLED" ]]; then
   [[ "$S3_ENDPOINT" == https://* ]] && S3_TLS_ENABLED=true || S3_TLS_ENABLED=false
+fi
+S3_CA_CERTIFICATE="${APP_STORAGE_S3_CA_CERTIFICATE:-${RUSTFS_TLS_CA_CERT:-}}"
+if [[ -z "$S3_CA_CERTIFICATE" && "$S3_TLS_ENABLED" == true && -n "${RUSTFS_TLS_CERT_DIR:-}" ]]; then
+  S3_CA_CERTIFICATE="$RUSTFS_TLS_CERT_DIR/rustfs_cert.pem"
 fi
 
 case "$S3_TLS_ENABLED" in

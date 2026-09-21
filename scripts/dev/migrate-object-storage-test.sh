@@ -17,7 +17,8 @@ MYSQL_DB_LOG="$TMP_DIR/mysql-db.log"
 DB_STATE="$TMP_DIR/db-state"
 ENV_FILE="$TMP_DIR/.env"
 CA_FILE="$TMP_DIR/rustfs-ca.pem"
-mkdir -p "$BIN" "$AVATARS" "$BACKUPS" "$OBJECTS" "$DB_STATE"
+TLS_DIR="$TMP_DIR/rustfs-tls"
+mkdir -p "$BIN" "$AVATARS" "$BACKUPS" "$OBJECTS" "$DB_STATE" "$TLS_DIR"
 AVATAR_VOLUME="$TMP_DIR/avatar-volume"
 BACKUP_VOLUME_DIR="$TMP_DIR/backup-volume"
 mkdir -p "$AVATAR_VOLUME/uploads/avatars" "$BACKUP_VOLUME_DIR"
@@ -29,6 +30,7 @@ printf 'dump' >"$BACKUP_VOLUME_DIR/backup_FULL_20260920_120000.sql"
 : >"$MYSQL_DB_LOG"
 : >"$DOCKER_LOG"
 printf '%s\n' '-----BEGIN CERTIFICATE-----' 'fake' '-----END CERTIFICATE-----' >"$CA_FILE"
+cp -- "$CA_FILE" "$TLS_DIR/rustfs_cert.pem"
 printf 'avatar-data' >"$AVATARS/avatar.png"
 printf 'dump' >"$BACKUPS/backup_FULL_20260920_120000.sql"
 BACKUP_SIZE="$(stat -c '%s' "$BACKUPS/backup_FULL_20260920_120000.sql")"
@@ -241,17 +243,37 @@ run_migration_raw() {
     --legacy-avatar-dir "$AVATARS" --legacy-backup-dir "$BACKUPS" "$@"
 }
 run_migration() {
-  local status=0
-  run_migration_raw "$@" || status=$?
-  [[ "$status" -eq 0 || "$status" -eq 1 ]]
+  run_migration_raw "$@"
+}
+run_migration_allow_pending() {
+  local output status=0
+  output="$(run_migration_raw "$@" 2>&1)" || status=$?
+  printf '%s\n' "$output"
+  if (( status == 0 )); then
+    return 0
+  fi
+  [[ "$status" -eq 1 ]] \
+    && [[ "$output" == *"MIGRATION_SUMMARY"* ]] \
+    && [[ "$output" == *"failed=0"* ]] \
+    && [[ "$output" == *"search_backfill=required"* ]]
 }
 run_migration_without_explicit_dirs_raw() {
   "$ROOT_DIR/scripts/dev/migrate-object-storage.sh" "$@"
 }
 run_migration_without_explicit_dirs() {
-  local status=0
-  run_migration_without_explicit_dirs_raw "$@" || status=$?
-  [[ "$status" -eq 0 || "$status" -eq 1 ]]
+  run_migration_without_explicit_dirs_raw "$@"
+}
+run_migration_without_explicit_dirs_allow_pending() {
+  local output status=0
+  output="$(run_migration_without_explicit_dirs_raw "$@" 2>&1)" || status=$?
+  printf '%s\n' "$output"
+  if (( status == 0 )); then
+    return 0
+  fi
+  [[ "$status" -eq 1 ]] \
+    && [[ "$output" == *"MIGRATION_SUMMARY"* ]] \
+    && [[ "$output" == *"failed=0"* ]] \
+    && [[ "$output" == *"search_backfill=required"* ]]
 }
 
 FALLBACK_ENV_FILE="$TMP_DIR/fallback.env"
@@ -299,6 +321,14 @@ ca_output="$(run_migration --only avatars --limit 1 2>&1)"
 assert_contains "$ca_output" "MIGRATION_SUMMARY total=1"
 assert_contains "$(<"$AWS_ENV_LOG")" "AWS_CA_BUNDLE=$CA_FILE"
 unset APP_STORAGE_S3_CA_CERTIFICATE
+# Production TLS mounts expose the RustFS CA under the canonical filename.
+: >"$AWS_ENV_LOG"
+export RUSTFS_TLS_CERT_DIR="$TLS_DIR"
+export APP_STORAGE_S3_ENDPOINT=https://127.0.0.1:9000 APP_STORAGE_S3_TLS_ENABLED=true
+derived_ca_output="$(run_migration --only avatars --limit 1 2>&1)"
+assert_contains "$derived_ca_output" "MIGRATION_SUMMARY total=1"
+assert_contains "$(<"$AWS_ENV_LOG")" "AWS_CA_BUNDLE=$TLS_DIR/rustfs_cert.pem"
+unset RUSTFS_TLS_CERT_DIR APP_STORAGE_S3_ENDPOINT APP_STORAGE_S3_TLS_ENABLED
 
 # Avatar DB updates must not be declared complete until the users-index
 # backfill has run through the application-owned Search outbox path.
@@ -343,7 +373,7 @@ export MIGRATION_SEARCH_BACKFILL_CONFIRMED=true
 : >"$AWS_LOG"; : >"$MYSQL_LOG"; rm -f -- "$DB_STATE/avatar" "$DB_STATE/backup" "$OBJECTS"/*
 key_path="$OBJECTS/app__avatars__acct-1__avatar.png"
 cp -- "$AVATARS/avatar.png" "$key_path"
-existing_output="$(run_migration --apply --only avatars 2>&1)"
+existing_output="$(run_migration_allow_pending --apply --only avatars 2>&1)"
 assert_contains "$existing_output" "VERIFIED avatar account=acct-1"
 assert_contains "$existing_output" "uploaded=0"
 assert_not_contains "$(<"$AWS_LOG")" "put-object"
@@ -354,7 +384,7 @@ assert_contains "$(<"$MYSQL_LOG")" "UPDATE user_profiles"
 key_path="$OBJECTS/app__avatars__acct-1__avatar.png"
 printf 'stale-data!' >"$key_path"
 export FAKE_ETAG_MODE=multipart
-multipart_output="$(run_migration --apply --only avatars 2>&1)"
+multipart_output="$(run_migration_allow_pending --apply --only avatars 2>&1)"
 unset FAKE_ETAG_MODE
 assert_contains "$multipart_output" "VERIFIED avatar account=acct-1"
 assert_contains "$multipart_output" "uploaded=1"
@@ -385,7 +415,7 @@ assert_contains "$(<"$MYSQL_LOG")" "LIMIT 1"
 # --only all pushes the remaining row limit into the avatar query and skips
 # the backup query once the shared limit is consumed.
 : >"$MYSQL_LOG"; rm -f -- "$DB_STATE/avatar" "$DB_STATE/backup" "$OBJECTS"/*
-all_limit_output="$(run_migration --only all --limit 1 2>&1)"
+all_limit_output="$(run_migration_allow_pending --only all --limit 1 2>&1)"
 assert_contains "$all_limit_output" "MIGRATION_SUMMARY total=1"
 all_limit_mysql_log="$(<"$MYSQL_LOG")"
 assert_contains "$all_limit_mysql_log" "FROM user_profiles"
@@ -399,7 +429,7 @@ rm -f -- "$DB_STATE/avatar" "$DB_STATE/backup" "$OBJECTS"/*
 export AVATAR_UPLOAD_VOL=legacy-app-upload BACKUP_VOLUME=legacy-backup-data
 export FAKE_USE_LABELS=1 FAKE_LABELLED_AVATAR_VOLUME_NAME=unrelated-app-upload
 export FAKE_LABELLED_BACKUP_VOLUME_NAME=unrelated-backup-data
-volume_output="$(run_migration_without_explicit_dirs --apply 2>&1)"
+volume_output="$(run_migration_without_explicit_dirs_allow_pending --apply 2>&1)"
 assert_contains "$volume_output" "Using legacy avatar volume source: $AVATAR_VOLUME/uploads/avatars"
 assert_contains "$volume_output" "Using legacy backup volume source: $BACKUP_VOLUME_DIR"
 assert_contains "$volume_output" "MIGRATION_SUMMARY total=2 uploaded=2"
@@ -417,7 +447,7 @@ rm -f -- "$DB_STATE/avatar" "$DB_STATE/backup" "$OBJECTS"/*
 export COMPOSE_PROJECT_NAME=legacy-prod FAKE_USE_LABELS=1
 export FAKE_LABELLED_AVATAR_VOLUME_NAME=legacy-prod_app_uploads
 export FAKE_LABELLED_BACKUP_VOLUME_NAME=legacy-prod_backup_data
-labeled_volume_output="$(run_migration_without_explicit_dirs --apply 2>&1)"
+labeled_volume_output="$(run_migration_without_explicit_dirs_allow_pending --apply 2>&1)"
 assert_contains "$labeled_volume_output" "Using legacy avatar volume source: $AVATAR_VOLUME/uploads/avatars"
 assert_contains "$labeled_volume_output" "Using legacy backup volume source: $BACKUP_VOLUME_DIR"
 assert_contains "$labeled_volume_output" "MIGRATION_SUMMARY total=2 uploaded=2"
@@ -439,7 +469,7 @@ assert_not_contains "$(<"$MYSQL_LOG")" "FROM user_profiles"
 : >"$AWS_LOG"; : >"$DOCKER_LOG"; : >"$MYSQL_LOG"
 rm -f -- "$DB_STATE/avatar" "$DB_STATE/backup" "$OBJECTS"/*
 export AWS_BIN="$TMP_DIR/missing-aws"
-fallback_output="$(run_migration --apply 2>&1)"
+fallback_output="$(run_migration_allow_pending --apply 2>&1)"
 assert_contains "$fallback_output" "MIGRATION_SUMMARY total=2 uploaded=2"
 docker_log="$(<"$DOCKER_LOG")"
 assert_contains "$docker_log" "-v $AVATARS:/migration-src/avatar:ro"
@@ -458,7 +488,7 @@ export APP_STORAGE_S3_TLS_ENABLED=true
 export COMPOSE_PROJECT_NAME=ulticode-prod
 export FAKE_DOCKER_NETWORK=ulticode-prod_object-storage
 unset MIGRATION_DOCKER_NETWORK
-production_fallback_output="$(run_migration --apply 2>&1)"
+production_fallback_output="$(run_migration_allow_pending --apply 2>&1)"
 assert_contains "$production_fallback_output" "MIGRATION_SUMMARY total=2 uploaded=2"
 production_docker_log="$(<"$DOCKER_LOG")"
 assert_contains "$production_docker_log" "network inspect ulticode-prod_object-storage"
@@ -470,7 +500,7 @@ assert_not_contains "$production_docker_log" "--network host"
 rm -f -- "$DB_STATE/avatar" "$DB_STATE/backup" "$OBJECTS"/*
 export MIGRATION_DOCKER_NETWORK=custom-object-storage
 export FAKE_DOCKER_NETWORK=custom-object-storage
-override_fallback_output="$(run_migration --apply 2>&1)"
+override_fallback_output="$(run_migration_allow_pending --apply 2>&1)"
 assert_contains "$override_fallback_output" "MIGRATION_SUMMARY total=2 uploaded=2"
 override_docker_log="$(<"$DOCKER_LOG")"
 assert_contains "$override_docker_log" "network inspect custom-object-storage"

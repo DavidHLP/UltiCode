@@ -12,6 +12,7 @@ import com.ulticode.modules.contest.dto.ContestQueryDTO;
 import com.ulticode.modules.contest.dto.ContestRankingVO;
 import com.ulticode.modules.contest.dto.ContestVO;
 import com.ulticode.modules.contest.dto.GlobalContestStatsVO;
+import com.ulticode.modules.user.port.AvatarUrls;
 import com.ulticode.modules.contest.entity.Contest;
 import com.ulticode.modules.contest.entity.ContestAnnouncement;
 import com.ulticode.modules.contest.entity.ContestParticipant;

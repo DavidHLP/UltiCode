@@ -215,6 +215,9 @@ run_static_guardrails() {
   echo "Running owner migration preflight tests..."
   "$ROOT_DIR/scripts/dev/migrate-owner-preflight-test.sh"
 
+  echo "Running legacy object migration gate contract..."
+  "$ROOT_DIR/scripts/test/legacy-object-migration-gate-contract.sh"
+
   echo "Running coverage gate contract..."
   if [[ "$static_only" == "1" ]]; then
     ULTI_STATIC_ONLY=1 "$ROOT_DIR/scripts/test/coverage-contract.sh"

@@ -1,0 +1,90 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Contract for scripts/runbooks/assert-legacy-objects-migrated.sh: the deploy
+# gate must fail closed while any legacy row still needs its object upload,
+# and a broken probe must never read as "nothing left to migrate". Runs with a
+# canned mysql client; no database or Docker is touched.
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+GATE="$ROOT_DIR/scripts/runbooks/assert-legacy-objects-migrated.sh"
+FAILURE_PREFIX='legacy-object-gate-contract: FAIL'
+WORK_DIR="$(mktemp -d)"
+trap 'rm -rf "$WORK_DIR"' EXIT
+
+fail() { echo "$FAILURE_PREFIX $*" >&2; exit 1; }
+
+[[ -x "$GATE" ]] || fail "$GATE is missing or not executable"
+
+mkdir -p "$WORK_DIR/bin"
+cat > "$WORK_DIR/bin/mysql" <<'SHIM'
+#!/usr/bin/env bash
+set -euo pipefail
+sql=""
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -e) sql="$2"; shift 2 ;;
+    *) shift ;;
+  esac
+done
+if [[ "$sql" == *information_schema.tables* ]]; then
+  table=""
+  case "$sql" in
+    *table_name=\'user_profiles\'*) table=user_profiles ;;
+    *table_name=\'backups\'*) table=backups ;;
+  esac
+  [[ -n "$table" ]] || { echo 'unexpected table probe' >&2; exit 3; }
+  if [[ ",${FAKE_MISSING_TABLES:-}," == *",$table,"* ]]; then echo 0; else echo 1; fi
+  exit 0
+fi
+if [[ "$sql" == *user_profiles* ]]; then echo "${FAKE_AVATARS:-0}"; exit 0; fi
+if [[ "$sql" == *backups* ]]; then echo "${FAKE_BACKUPS:-0}"; exit 0; fi
+echo 'unexpected query' >&2
+exit 3
+SHIM
+chmod +x "$WORK_DIR/bin/mysql"
+: > "$WORK_DIR/empty.env"
+
+run_gate() {
+  GATE_STATUS=0
+  GATE_STDOUT="$WORK_DIR/stdout"
+  GATE_STDERR="$WORK_DIR/stderr"
+  MIGRATION_DB_HOST=127.0.0.1 \
+    MIGRATION_DB_PORT=3306 \
+    MIGRATION_DB_NAME=ulticode \
+    MIGRATION_DB_USER=migrator \
+    MIGRATION_DB_PASSWORD=contract-secret \
+    MIGRATION_MYSQL_BIN="$WORK_DIR/bin/mysql" \
+    ENV_FILE="$WORK_DIR/empty.env" \
+    "$GATE" >"$GATE_STDOUT" 2>"$GATE_STDERR" || GATE_STATUS=$?
+}
+
+expect_failure() {
+  local expected="$1"
+  [[ "$GATE_STATUS" == 1 ]] || fail "expected exit 1 (got $GATE_STATUS): $(cat "$GATE_STDERR")"
+  grep -Fq "$expected" "$GATE_STDERR" \
+    || fail "stderr is missing '$expected': $(cat "$GATE_STDERR")"
+}
+
+FAKE_AVATARS=3 FAKE_BACKUPS=0 run_gate
+expect_failure '3 legacy avatar row(s)'
+grep -Fq 'migrate-object-storage.sh' "$GATE_STDERR" \
+  || fail 'the failure must name the migration tool an operator has to run'
+
+FAKE_AVATARS=0 FAKE_BACKUPS=2 run_gate
+expect_failure '2 legacy backup row(s)'
+
+FAKE_AVATARS=garbage FAKE_BACKUPS=0 run_gate
+expect_failure 'invalid app.user_profiles row probe'
+
+FAKE_AVATARS=0 FAKE_BACKUPS=garbage run_gate
+expect_failure 'invalid admin.backups row probe'
+
+FAKE_AVATARS=0 FAKE_BACKUPS=0 run_gate
+[[ "$GATE_STATUS" == 0 ]] || fail "a backfilled database must pass (got $GATE_STATUS)"
+grep -Fq 'LEGACY_OBJECT_MIGRATION status=PASS legacy_avatars=0 legacy_backups=0' "$GATE_STDOUT" \
+  || fail "PASS line is missing: $(cat "$GATE_STDOUT")"
+
+FAKE_MISSING_TABLES=user_profiles,backups FAKE_AVATARS=9 FAKE_BACKUPS=9 run_gate
+[[ "$GATE_STATUS" == 0 ]] || fail "an absent table has nothing to migrate (got $GATE_STATUS)"
+
+echo 'legacy-object-gate-contract: PASS'

@@ -139,11 +139,17 @@ public final class ImageContent {
             int dataOffset = chunkOffset + 8;
             int dataLength = (int) chunkLength;
             if (isChunk(content, chunkOffset, 'V', 'P', '8', 'X')) {
+                if (extendedDimensions != null) {
+                    return null;
+                }
                 extendedDimensions = webpExtendedDimensions(content, dataOffset, dataLength);
                 if (extendedDimensions == null) {
                     return null;
                 }
             } else if (isChunk(content, chunkOffset, 'V', 'P', '8', ' ')) {
+                if (hasFramePayload) {
+                    return null;
+                }
                 long[] dimensions = webpLossyDimensions(content, dataOffset, dataLength);
                 if (dimensions == null) {
                     return null;
@@ -151,6 +157,9 @@ public final class ImageContent {
                 frameDimensions = dimensions;
                 hasFramePayload = true;
             } else if (isChunk(content, chunkOffset, 'V', 'P', '8', 'L')) {
+                if (hasFramePayload) {
+                    return null;
+                }
                 long[] dimensions = webpLosslessDimensions(content, dataOffset, dataLength);
                 if (dimensions == null) {
                     return null;
@@ -165,7 +174,13 @@ public final class ImageContent {
         if (!hasFramePayload) {
             return null;
         }
-        return extendedDimensions != null ? extendedDimensions : frameDimensions;
+        // Decoders report the first image chunk's size while a later header could
+        // overwrite the checked pair, so the canvas and the single frame must agree.
+        if (extendedDimensions != null
+                && (extendedDimensions[0] != frameDimensions[0] || extendedDimensions[1] != frameDimensions[1])) {
+            return null;
+        }
+        return frameDimensions;
     }
 
     private static long[] webpLossyDimensions(byte[] content, int offset, int length) {

@@ -254,16 +254,45 @@ class ImageContentTest {
     void rejectsOversizedWebp() {
         assertThatThrownBy(() -> ImageContent.assertWithinPixelBudget(
                 webp(
-                        webpChunk("VP8X", vp8ExtendedHeader(16_384, 1)),
-                        webpChunk("VP8 ", vp8LossyFrame(1, 1)))))
+                        webpChunk("VP8X", vp8ExtendedHeader(16_383, 1)),
+                        webpChunk("VP8 ", vp8LossyFrame(16_383, 1)))))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("4096x4096");
         assertThatThrownBy(() -> ImageContent.detect(
                 webp(
                         webpChunk("VP8X", vp8ExtendedHeader(4_096, 4_097)),
-                        webpChunk("VP8 ", vp8LossyFrame(1, 1)))))
+                        webpChunk("VP8 ", vp8LossyFrame(4_096, 4_097)))))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("4096x4096");
+    }
+
+    @Test
+    @DisplayName("rejects WebP files that stack conflicting or duplicate image headers")
+    void rejectsConflictingWebpHeaders() {
+        byte[] oversizedBeforeSmallFrame = webp(
+                webpChunk("VP8L", java.util.Arrays.copyOf(vp8LosslessHeader(16_384, 1), 6)),
+                webpChunk("VP8 ", vp8LossyFrame(2, 2)));
+        assertThatThrownBy(() -> ImageContent.assertWithinPixelBudget(oversizedBeforeSmallFrame))
+                .isInstanceOf(IllegalArgumentException.class);
+
+        byte[] oversizedFrameOnSmallCanvas = webp(
+                webpChunk("VP8X", vp8ExtendedHeader(2, 2)),
+                webpChunk("VP8 ", vp8LossyFrame(16_383, 1)));
+        assertThatThrownBy(() -> ImageContent.assertWithinPixelBudget(oversizedFrameOnSmallCanvas))
+                .isInstanceOf(IllegalArgumentException.class);
+
+        byte[] duplicateFrames = webp(
+                webpChunk("VP8 ", vp8LossyFrame(2, 2)),
+                webpChunk("VP8 ", vp8LossyFrame(3, 3)));
+        assertThatThrownBy(() -> ImageContent.assertWithinPixelBudget(duplicateFrames))
+                .isInstanceOf(IllegalArgumentException.class);
+
+        byte[] duplicateCanvases = webp(
+                webpChunk("VP8X", vp8ExtendedHeader(2, 2)),
+                webpChunk("VP8X", vp8ExtendedHeader(3, 3)),
+                webpChunk("VP8 ", vp8LossyFrame(3, 3)));
+        assertThatThrownBy(() -> ImageContent.assertWithinPixelBudget(duplicateCanvases))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test

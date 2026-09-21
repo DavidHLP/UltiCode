@@ -7,6 +7,7 @@ import com.ulticode.modules.backup.dto.CreateBackupDTO;
 import com.ulticode.modules.backup.entity.Backup;
 import com.ulticode.modules.backup.entity.enums.BackupStatus;
 import com.ulticode.modules.backup.entity.enums.BackupType;
+import com.ulticode.modules.backup.mapper.BackupDeletionTombstoneMapper;
 import com.ulticode.modules.backup.mapper.BackupMapper;
 import com.ulticode.modules.backup.port.BackupProcessPort;
 import com.ulticode.modules.backup.projection.BackupReadProjection;
@@ -57,6 +58,9 @@ class BackupServiceTest {
 
     @Mock
     private BackupMapper backupMapper;
+
+    @Mock
+    private BackupDeletionTombstoneMapper backupDeletionTombstoneMapper;
 
     @Mock
     private Clock clock;
@@ -326,6 +330,7 @@ class BackupServiceTest {
                 backupService.deleteBackup(BACKUP_ID);
 
                 verify(backupMapper).deleteById(BACKUP_ID);
+                verify(backupDeletionTombstoneMapper).insert(BACKUP_ID);
                 verify(fileStorage, never()).delete(anyString());
 
                 TransactionSynchronizationManager.getSynchronizations()
@@ -351,6 +356,7 @@ class BackupServiceTest {
 
             verify(fileStorage, never()).delete(anyString());
             verify(backupMapper).deleteById(BACKUP_ID);
+            verify(backupDeletionTombstoneMapper).insert(BACKUP_ID);
         }
 
         @Test

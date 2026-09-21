@@ -8,6 +8,7 @@ import com.ulticode.modules.backup.dto.BackupVO;
 import com.ulticode.modules.backup.dto.CreateBackupDTO;
 import com.ulticode.modules.backup.entity.Backup;
 import com.ulticode.modules.backup.entity.enums.BackupStatus;
+import com.ulticode.modules.backup.mapper.BackupDeletionTombstoneMapper;
 import com.ulticode.modules.backup.mapper.BackupMapper;
 import com.ulticode.modules.backup.port.BackupProcessPort;
 import com.ulticode.modules.backup.projection.BackupReadProjection;
@@ -51,6 +52,7 @@ import java.util.concurrent.RejectedExecutionException;
 public class BackupServiceImpl implements BackupService {
 
     private final BackupMapper backupMapper;
+    private final BackupDeletionTombstoneMapper backupDeletionTombstoneMapper;
     private final Clock clock;
     private final BackupProcessPort backupProcessPort;
     private final BackupReadProjection backupReadProjection;
@@ -209,6 +211,7 @@ public class BackupServiceImpl implements BackupService {
             throw new BusinessException(BaseErrorCode.UNKNOWN_ERROR,
                     "Failed to delete backup record; retry the operation");
         }
+        backupDeletionTombstoneMapper.insert(id);
         if (objectKey != null) {
             deleteObjectAfterCommit(objectKey);
         }

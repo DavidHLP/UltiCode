@@ -31,6 +31,10 @@ grep -Fq 'FROM `ulticode`.`backups`' \
   "$ROOT_DIR/init-db/migrations/post-owner/V20260921120000__Copy_Legacy_Backups_To_Admin.sql"
 grep -Fq 'backup_cutover_state' \
   "$ROOT_DIR/init-db/migrations/post-owner/V20260922120000__Create_Legacy_Backup_Cutover_State.sql"
+grep -Fq 'backup_deletion_tombstones' \
+  "$ROOT_DIR/init-db/migrations/post-owner/V20260923120000__Create_Legacy_Backup_Deletion_Tombstones.sql"
+grep -Fq 'backup_deletion_tombstones' \
+  "$ROOT_DIR/scripts/runbooks/reconcile-legacy-backups.sh"
 grep -Fq 'singleton row is missing' \
   "$ROOT_DIR/scripts/runbooks/reconcile-legacy-backups.sh"
 grep -Fq 'CUTOVER_STATE_SEED_SQL' "$ROOT_DIR/init-db/scripts/baseline-adopt.sh"

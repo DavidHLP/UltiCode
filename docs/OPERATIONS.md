@@ -198,9 +198,11 @@ docker run --rm -v "${RUSTFS_VOLUMES[0]}:/data:ro" -v "$PWD:/backup" alpine \
 - 特权 `post-owner` migration `V20260921120000__Copy_Legacy_Backups_To_Admin.sql`
   在对象回填前幂等地把旧 `ulticode.backups` 元数据复制到 `admin.backups`；
   随后的 `scripts/runbooks/reconcile-legacy-backups.sh` 复制一次性 Flyway copy
-  之后出现的 source rows，拒绝 metadata conflict 和 pre-cutover target-only rows，
-  并在 parity 通过后写入 `admin.backup_cutover_state`。Owner-scoped 的 Admin
-  migration 只负责创建/修复目标表；迁移不会删除旧行或旧文件。
+  之后出现且未被 `admin.backup_deletion_tombstones` 标记的 source rows；删除备份
+  时先在 Admin 事务内持久化 tombstone，避免后续 reconciliation 复活已删除目标。
+  Runbook 仍拒绝 metadata conflict 和 pre-cutover target-only rows，并在 parity
+  通过后写入 `admin.backup_cutover_state`。Owner-scoped 的 Admin migration 只负责
+  创建/修复目标表；迁移不会删除旧行或旧文件。
 - For an internal production endpoint such as `https://rustfs:9000`, the migration script's Docker
   AWS CLI joins `${COMPOSE_PROJECT_NAME:-ulticode}_object-storage`; set `MIGRATION_DOCKER_NETWORK`
   when the Compose project uses a different network. Host AWS CLI mode is intentionally limited to

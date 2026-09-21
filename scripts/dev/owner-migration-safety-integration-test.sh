@@ -264,6 +264,21 @@ grep -q 'status=PASS' "$TEST_DIR/reconcile-restored-metadata.log"
 printf 'post-cutover restore metadata parity: PASS\n'
 
 mysql_root -e "
+DELETE FROM admin.backups WHERE id='legacy-initial';
+INSERT INTO admin.backup_deletion_tombstones (backup_id)
+VALUES ('legacy-initial');"
+env ENV_FILE="$TEST_ENV" \
+  MIGRATION_DB_HOST=127.0.0.1 MIGRATION_DB_PORT="$MYSQL_TEST_PORT" \
+  MIGRATION_DB_NAME=ulticode MIGRATION_DB_USER=root \
+  MIGRATION_DB_PASSWORD="$ROOT_PASSWORD" \
+  bash "$ROOT_DIR/scripts/runbooks/reconcile-legacy-backups.sh" \
+  >"$TEST_DIR/reconcile-deleted-backup.log" 2>&1
+grep -q 'status=PASS' "$TEST_DIR/reconcile-deleted-backup.log"
+DELETED_BACKUP_COUNT="$(mysql_root -N -B -e "SELECT COUNT(*) FROM admin.backups WHERE id='legacy-initial';")"
+[[ "$DELETED_BACKUP_COUNT" == "0" ]]
+printf 'post-cutover deletion tombstone: PASS\n'
+
+mysql_root -e "
 CREATE TABLE ulticode.users LIKE auth.users;
 CREATE TABLE ulticode.user_profiles LIKE app.user_profiles;
 INSERT INTO ulticode.users (id,username,email,password,is_deleted)

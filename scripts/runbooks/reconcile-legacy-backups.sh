@@ -107,6 +107,8 @@ source_checksum_parity='1=1'
 
 marker_exists="$(mysql_query "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='admin' AND table_name='backup_cutover_state' AND table_type='BASE TABLE';")"
 [[ "$marker_exists" == 1 ]] || die 'admin.backup_cutover_state is missing; apply the post-owner migration first'
+tombstone_table_exists="$(mysql_query "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='admin' AND table_name='backup_deletion_tombstones' AND table_type='BASE TABLE';")"
+[[ "$tombstone_table_exists" == 1 ]] || die 'admin.backup_deletion_tombstones is missing; apply the post-owner migration first'
 marker_rows="$(mysql_query "SELECT COUNT(*) FROM admin.backup_cutover_state WHERE id=1;")"
 [[ "$marker_rows" == 1 ]] || die 'admin.backup_cutover_state singleton row is missing'
 marker_completed="$(mysql_query "SELECT COUNT(*) FROM admin.backup_cutover_state WHERE id=1 AND cutover_completed_at IS NOT NULL;")"
@@ -129,12 +131,22 @@ SELECT s.id, s.filename, $source_object_key_expr, s.size, $source_checksum_expr,
        s.metadata, s.error
   FROM ulticode.backups AS s
   LEFT JOIN admin.backups AS d ON d.id = s.id
- WHERE d.id IS NULL;" >/dev/null
+  LEFT JOIN admin.backup_deletion_tombstones AS t
+    ON t.backup_id COLLATE utf8mb4_unicode_ci = s.id COLLATE utf8mb4_unicode_ci
+ WHERE d.id IS NULL
+   AND t.backup_id IS NULL;" >/dev/null
 
-source_only="$(mysql_query "SELECT COUNT(*) FROM ulticode.backups AS s LEFT JOIN admin.backups AS d ON d.id=s.id WHERE d.id IS NULL;")"
+source_only="$(mysql_query "SELECT COUNT(*)
+  FROM ulticode.backups AS s
+  LEFT JOIN admin.backups AS d ON d.id=s.id
+  LEFT JOIN admin.backup_deletion_tombstones AS t
+    ON t.backup_id COLLATE utf8mb4_unicode_ci = s.id COLLATE utf8mb4_unicode_ci
+ WHERE d.id IS NULL AND t.backup_id IS NULL;")"
 mismatch="$(mysql_query "SELECT COUNT(*)
   FROM ulticode.backups AS s
   JOIN admin.backups AS d ON d.id=s.id
+  LEFT JOIN admin.backup_deletion_tombstones AS t
+    ON t.backup_id COLLATE utf8mb4_unicode_ci = s.id COLLATE utf8mb4_unicode_ci
  WHERE NOT (
        s.filename <=> d.filename
    AND s.size <=> d.size
@@ -147,7 +159,8 @@ mismatch="$(mysql_query "SELECT COUNT(*)
    AND $source_object_key_parity
    AND $source_checksum_parity
    AND s.error <=> d.error
- );")"
+ )
+   AND t.backup_id IS NULL;")"
 if [[ "$marker_completed" == 0 ]]; then
   target_extra="$(mysql_query "SELECT COUNT(*) FROM admin.backups AS d LEFT JOIN ulticode.backups AS s ON s.id=d.id WHERE s.id IS NULL;")"
 else

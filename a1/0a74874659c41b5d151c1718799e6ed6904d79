@@ -1,0 +1,30 @@
+.github/actions/host-deploy/action.yml
+  h_77173abe25c3ff 258,262-263,265-292,295-296,314,403-416,420,630
+docs/OPERATIONS.md
+  h_77173abe25c3ff 186-190
+scripts/test/owner-migration-manifest-contract.sh
+  h_77173abe25c3ff 53,76,93,95
+services/admin/src/main/java/com/ulticode/modules/admin/port/adapter/AdminUserProfileAdapter.java
+  h_77173abe25c3ff 121-123
+services/admin/src/main/java/com/ulticode/modules/backup/service/impl/BackupExecutionServiceImpl.java
+  h_77173abe25c3ff 7,44,130,187,191-199
+services/app/app-web/src/main/java/com/ulticode/app/userprofile/provider/ProfileWriteProvider.java
+  h_77173abe25c3ff 24,124,164,197
+services/app/app-web/src/main/java/com/ulticode/modules/user/controller/UserAvatarController.java
+  h_77173abe25c3ff 48-49
+services/app/app-web/src/main/java/com/ulticode/modules/user/port/DefaultAppUserWritePort.java
+  h_77173abe25c3ff 57,67,106-111,119,152-154
+services/core/src/main/java/com/ulticode/core/CoreOwnerBootConfigurations.java
+  h_77173abe25c3ff 51
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a10a74874659c41b5d151c1718799e6ed6904d79",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

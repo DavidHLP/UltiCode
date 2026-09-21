@@ -54,7 +54,7 @@ public class DefaultAppUserWritePort implements AppUserWritePort {
 
     @Override
     @Transactional
-    @CacheEvict(value = "userStats", allEntries = true)
+    @CacheEvict(value = {"userStats", "contestRanking"}, allEntries = true)
     public UserVO updateProfile(String userId, UpdateUserDTO updateDTO) {
         if (userId == null) {
             throw new BusinessException(BaseErrorCode.UNAUTHORIZED);
@@ -64,6 +64,7 @@ public class DefaultAppUserWritePort implements AppUserWritePort {
         // this full-entity update with a stale avatar value.
         UserProfile profile = userProfileMapper.selectByIdForUpdate(userId);
         boolean isNew = profile == null;
+        String previousAvatar = isNew ? null : profile.getAvatar();
         if (isNew) {
             profile = new UserProfile();
             profile.setAccountId(userId);
@@ -102,6 +103,12 @@ public class DefaultAppUserWritePort implements AppUserWritePort {
         } else {
             userProfileMapper.updateById(profile);
         }
+        // A generic profile update may carry the avatar field: the displaced
+        // object needs the same durable cleanup intent as an upload replacement.
+        String displacedKey = AvatarUrls.objectKey(userId, previousAvatar);
+        if (displacedKey != null && !displacedKey.equals(profile.getAvatar())) {
+            queueStagedAvatarCleanup(displacedKey);
+        }
 
         publishUserDocument(userId);
         log.info("User profile updated: {}", userId);
@@ -109,6 +116,7 @@ public class DefaultAppUserWritePort implements AppUserWritePort {
     }
 
     @Override
+    @CacheEvict(value = "contestRanking", allEntries = true)
     public String uploadAvatar(String userId, MultipartFile file) {
         if (userId == null) {
             throw new BusinessException(BaseErrorCode.UNAUTHORIZED);
@@ -141,6 +149,9 @@ public class DefaultAppUserWritePort implements AppUserWritePort {
         try {
             fileStorage.put(key, new ByteArrayInputStream(content), content.length, detected.contentType());
         } catch (RuntimeException exception) {
+            // The PUT may have committed before the error surfaced: queue the key
+            // so the dispatcher deletes it only if no profile references it.
+            queueStagedAvatarCleanup(key);
             log.warn("Avatar upload failed for user {}: {}", userId, exception.getMessage());
             throw new BusinessException(BaseErrorCode.BAD_REQUEST, "Failed to save avatar");
         }

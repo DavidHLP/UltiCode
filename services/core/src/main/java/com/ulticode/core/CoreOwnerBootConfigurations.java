@@ -48,6 +48,7 @@ final class CoreOwnerBootConfigurations {
     @MapperScan({
             "com.ulticode.modules.admin.mapper",
             "com.ulticode.modules.admin.outbox.mapper",
+            "com.ulticode.modules.admin.storage",
             "com.ulticode.modules.event.inbox",
             "com.ulticode.modules.backup.mapper",
             "com.ulticode.modules.lease"

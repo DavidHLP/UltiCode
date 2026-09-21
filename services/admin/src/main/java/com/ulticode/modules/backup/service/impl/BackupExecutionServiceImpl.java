@@ -4,6 +4,7 @@ import com.ulticode.common.storage.FileStoragePort;
 import com.ulticode.common.storage.StorageKeys;
 import com.ulticode.modules.backup.entity.Backup;
 import com.ulticode.modules.backup.entity.enums.BackupStatus;
+import com.ulticode.modules.backup.mapper.BackupDeletionTombstoneMapper;
 import com.ulticode.modules.backup.mapper.BackupMapper;
 import com.ulticode.modules.backup.port.BackupProcessPort;
 import com.ulticode.modules.backup.service.BackupExecutionService;
@@ -40,6 +41,7 @@ import java.util.concurrent.CompletableFuture;
 public class BackupExecutionServiceImpl implements BackupExecutionService {
 
     private final BackupMapper backupMapper;
+    private final BackupDeletionTombstoneMapper backupDeletionTombstoneMapper;
     private final Clock clock;
     private final BackupProcessPort backupProcessPort;
     private final FileStoragePort fileStorage;
@@ -125,7 +127,7 @@ public class BackupExecutionServiceImpl implements BackupExecutionService {
                 }
                 case DEFINITE_FAILURE -> {
                     if (objectKey != null) {
-                        deleteUploadedObject(objectKey);
+                        deleteUploadedObject(backupId, objectKey);
                     }
                     if (exception instanceof InterruptedException) {
                         Thread.currentThread().interrupt();
@@ -182,10 +184,19 @@ public class BackupExecutionServiceImpl implements BackupExecutionService {
         }
     }
 
-    private void deleteUploadedObject(String objectKey) {
+    private void deleteUploadedObject(String backupId, String objectKey) {
         try {
             fileStorage.delete(objectKey);
         } catch (RuntimeException cleanupException) {
+            // The same outage that failed the run can fail this cleanup: record a
+            // tombstone so BackupObjectCleanup retries the deletion instead of
+            // leaving the dump orphaned until an operator notices.
+            try {
+                backupDeletionTombstoneMapper.insert(backupId, objectKey);
+            } catch (RuntimeException tombstoneFailure) {
+                log.warn("Could not record the pending deletion of backup object {}", objectKey,
+                        tombstoneFailure);
+            }
             log.warn("Failed to clean up uploaded backup object: {}", objectKey, cleanupException);
         }
     }

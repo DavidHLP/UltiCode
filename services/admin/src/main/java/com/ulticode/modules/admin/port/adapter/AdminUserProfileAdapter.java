@@ -118,6 +118,9 @@ public class AdminUserProfileAdapter implements UserProfilePort {
         try {
             fileStorage.put(key, new ByteArrayInputStream(content), content.length, detected.contentType());
         } catch (RuntimeException exception) {
+            // The PUT may have committed before the error surfaced: record the key
+            // so the sweep reconciles it against App's profile instead of leaking it.
+            queueForOwnerCheck(key);
             log.warn("Avatar upload failed for user {}: {}", userId, exception.getMessage());
             throw new BusinessException(AdminErrorCode.UNKNOWN_ERROR, "Failed to save avatar");
         }

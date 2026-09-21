@@ -183,9 +183,11 @@ docker run --rm -v "${RUSTFS_VOLUMES[0]}:/data:ro" -v "$PWD:/backup" alpine \
   `--legacy-avatar-dir` / `--legacy-backup-dir` 指向已审计的只读提取目录。源卷和旧文件始终不删除。
 - 头像迁移用原始 SQL 更新 `user_profiles.avatar`，不会自动产生
   `SearchDocumentChanged` outbox 事件。只要本次 `--apply` 更新了头像行，脚本就会
-  输出 `search_backfill=required` 并以非零状态结束，不能把迁移报告为完成；先重启
-  App，临时设置 `APP_SEARCH_BACKFILL_ENABLED=true` 与
-  `APP_SEARCH_BACKFILL_INDEXES=users` 执行用户索引 backfill，确认 runner 完成后再用
+  输出 `search_backfill=required` 并以非零状态结束，不能把迁移报告为完成；backfill 必须用**新
+  artifact**执行（旧镜像的 projection 会把对象键原样写进搜索文档）：先在部署目录
+  `docker compose pull backend-app`，再用一次性任务
+  `docker compose run --rm -e APP_SEARCH_BACKFILL_ENABLED=true -e APP_SEARCH_BACKFILL_INDEXES=users backend-app`，
+  确认 runner 完成后再用
   `--confirm-users-index-backfill`（或 `MIGRATION_SEARCH_BACKFILL_CONFIRMED=true`）
   复核迁移结果。
 - 旧本地文件迁移用 `scripts/dev/migrate-object-storage.sh`：默认 dry-run；`--apply` 才上传；

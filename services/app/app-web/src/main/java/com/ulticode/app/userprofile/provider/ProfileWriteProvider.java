@@ -21,6 +21,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.apache.dubbo.config.annotation.DubboService;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
@@ -120,6 +121,7 @@ public class ProfileWriteProvider implements ProfileWriteService {
             // by this full-entity update with a stale avatar value.
             UserProfile profile = userProfileMapper.selectByIdForUpdate(accountId);
             boolean isNew = profile == null;
+            String previousAvatar = isNew ? null : profile.getAvatar();
             if (isNew) {
                 profile = new UserProfile();
                 profile.setAccountId(accountId);
@@ -159,6 +161,7 @@ public class ProfileWriteProvider implements ProfileWriteService {
                 userProfileMapper.updateById(profile);
             }
 
+            queuePreviousAvatarCleanup(accountId, previousAvatar, profile.getAvatar());
             publishUserDocument(accountId);
             log.info("Profile updated for account: {}", accountId);
 
@@ -191,6 +194,7 @@ public class ProfileWriteProvider implements ProfileWriteService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "contestRanking", allEntries = true)
     public RpcResult<ProfileWriteResult> uploadAvatar(UploadAvatarCommand command) {
         String traceId = command != null && command.trace() != null ? command.trace().traceId() : null;
         if (!trustedActor(command == null ? null : command.actor())) {

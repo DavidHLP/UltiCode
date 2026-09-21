@@ -50,7 +50,7 @@ grep -Fq 'docker start$START_ARGS' \
   "$ROOT_DIR/.github/actions/host-deploy/action.yml"
 grep -Fq 'backend-admin remains stopped' \
   "$ROOT_DIR/.github/actions/host-deploy/action.yml"
-grep -Fq "always() && inputs.skip_migrations != 'true'" \
+grep -Fq "always() && inputs.rollback != 'true'" \
   "$ROOT_DIR/.github/actions/host-deploy/action.yml"
 grep -Fq 'phase=migration-complete' \
   "$ROOT_DIR/.github/actions/host-deploy/action.yml"
@@ -73,7 +73,7 @@ grep -Fq 'rto_seconds' "$ROOT_DIR/scripts/runbooks/owner-backup-restore.sh"
 grep -Fq 'owner-migration-manifest.sh migrate' "$ROOT_DIR/.github/actions/host-deploy/action.yml"
 grep -Fq 'MIGRATION_DB_PASSWORD' "$ROOT_DIR/.github/actions/host-deploy/action.yml"
 grep -Fq "inputs.skip_migrations != 'true'" "$ROOT_DIR/.github/actions/host-deploy/action.yml"
-grep -Fq 'Quiesce legacy Admin backup writer' "$ROOT_DIR/.github/actions/host-deploy/action.yml"
+grep -Fq 'Quiesce legacy owner writers' "$ROOT_DIR/.github/actions/host-deploy/action.yml"
 grep -Fq 'compose_prefix="docker compose --project-directory . -f docker/docker-compose.yml -f docker/docker-compose.prod.yml"' \
   "$ROOT_DIR/.github/actions/host-deploy/action.yml"
 grep -Fq 'remote_command+=" $EXPORTS $compose_prefix stop $service"' \
@@ -90,9 +90,9 @@ grep -Fq 'DEPLOY_SERVICES: ${{ inputs.services }}' \
   "$ROOT_DIR/.github/actions/host-deploy/action.yml"
 grep -Fq 'backend-admin must be included in services when migrations run' \
   "$ROOT_DIR/.github/actions/host-deploy/action.yml"
-grep -Fq 'backend-app must be included in services when migrations run' \
+grep -Fq 'backend-app must be included in services when backend-admin is deployed' \
   "$ROOT_DIR/.github/actions/host-deploy/action.yml"
-quiesce_line="$(grep -n 'Quiesce legacy Admin backup writer' \
+quiesce_line="$(grep -n 'Quiesce legacy owner writers' \
   "$ROOT_DIR/.github/actions/host-deploy/action.yml" | head -1 | cut -d: -f1)"
 migration_line="$(grep -n 'Run ordered owner database migrations' \
   "$ROOT_DIR/.github/actions/host-deploy/action.yml" | head -1 | cut -d: -f1)"

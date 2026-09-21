@@ -46,6 +46,10 @@ Non-loopback endpoints always use the pinned Docker Hub amazon/aws-cli image
 amazon/aws-cli:2.31.0@sha256:d5f18fde2ba3f9205e75d511ca3e6185c144e55df07e50eee16d940994557b40.
 Loopback endpoints use the container fallback when the host binary is absent.
 The container fallback avoids an unpinned host dependency.
+When a legacy Docker volume's data directory is not readable by the current
+user (the normal case for a deployment user with only Docker-group access),
+its layout is probed and each object is extracted lazily through the Docker
+daemon using the same pinned image; no root access is required.
 USAGE
 }
 
@@ -120,15 +124,14 @@ case "${MIGRATION_SEARCH_BACKFILL_CONFIRMED:-false}" in
   *) echo "MIGRATION_SEARCH_BACKFILL_CONFIRMED must be true or false" >&2; exit 2 ;;
 esac
 
-volume_mountpoint() {
-  local logical="$1" explicit="${2:-false}" candidate mountpoint labeled_output
+docker_volume_for() {
+  local logical="$1" explicit="${2:-false}" labeled_output
   [[ "$logical" =~ ^[A-Za-z0-9][A-Za-z0-9_.-]*$ ]] || return 1
   command -v docker >/dev/null 2>&1 || return 1
 
   if [[ "$explicit" == true ]]; then
-    if mountpoint="$(docker volume inspect --format '{{.Mountpoint}}' "$logical" 2>/dev/null)"; then
-      [[ "$mountpoint" == /* && -d "$mountpoint" ]] || return 1
-      realpath -e -- "$mountpoint"
+    if docker volume inspect "$logical" >/dev/null 2>&1; then
+      printf '%s\n' "$logical"
       return 0
     fi
     echo "Explicit Docker volume '$logical' was not found; pass an explicit source directory." >&2
@@ -151,36 +154,71 @@ volume_mountpoint() {
     echo "Multiple Docker Compose volumes match legacy volume '$logical'; set COMPOSE_PROJECT_NAME or pass an explicit source directory." >&2
     return 1
   fi
-
-  local -a candidates=()
-  if ((${#labeled_volumes[@]} == 1)); then
-    candidates+=("${labeled_volumes[0]}")
-  else
+  if ((${#labeled_volumes[@]} == 0)); then
     echo "No uniquely identified Docker Compose volume matches legacy volume '$logical'; pass the actual volume name or an explicit source directory." >&2
     return 1
   fi
-
-  for candidate in "${candidates[@]}"; do
-    mountpoint="$(docker volume inspect --format '{{.Mountpoint}}' "$candidate" 2>/dev/null || true)"
-    [[ "$mountpoint" == /* && -d "$mountpoint" ]] || continue
-    realpath -e -- "$mountpoint"
-    return 0
-  done
-  return 1
+  local resolved="${labeled_volumes[0]}"
+  [[ "$resolved" =~ ^[A-Za-z0-9][A-Za-z0-9_.-]*$ ]] || {
+    echo "Docker volume name '$resolved' contains characters this script cannot handle safely." >&2
+    return 1
+  }
+  printf '%s\n' "$resolved"
 }
 
-resolve_volume_source() {
-  local logical="$1" subdirectory="$2" explicit="${3:-false}" mountpoint candidate
-  mountpoint="$(volume_mountpoint "$logical" "$explicit")" || return 1
-  if [[ -n "$subdirectory" ]]; then
-    for candidate in "$mountpoint/uploads/$subdirectory" "$mountpoint/$subdirectory"; do
-      if [[ -d "$candidate" ]]; then
-        mountpoint="$candidate"
-        break
-      fi
-    done
-  fi
+# A 0711 root-owned mountpoint is stat-able for everyone; only -r/-x on the
+# directory itself proves the current user can actually read volume contents.
+volume_host_path() {
+  local mountpoint
+  mountpoint="$(docker volume inspect --format '{{.Mountpoint}}' "$1" 2>/dev/null)" || return 1
+  [[ "$mountpoint" == /* && -d "$mountpoint" && -r "$mountpoint" && -x "$mountpoint" ]] || return 1
   realpath -e -- "$mountpoint"
+}
+
+# Resolves the effective object directory of a legacy volume. When the Docker
+# data root is not host-readable (the normal case for a deployment user with
+# only Docker-group access), the layout is probed through the Docker daemon
+# and a temp mirror directory is registered so safe_source_file can extract
+# each object lazily instead of failing the documented upgrade path.
+resolve_volume_source() {
+  local logical="$1" subdirectory="$2" explicit="${3:-false}"
+  local volume host_path candidate probe layout="" mirror
+  [[ "$subdirectory" =~ ^[A-Za-z0-9._-]*$ ]] || return 1
+  volume="$(docker_volume_for "$logical" "$explicit")" || return 1
+
+  if host_path="$(volume_host_path "$volume")"; then
+    if [[ -n "$subdirectory" ]]; then
+      for candidate in "$host_path/uploads/$subdirectory" "$host_path/$subdirectory"; do
+        if [[ -d "$candidate" && -r "$candidate" && -x "$candidate" ]]; then
+          realpath -e -- "$candidate"
+          return 0
+        fi
+      done
+    fi
+    realpath -e -- "$host_path"
+    return 0
+  fi
+
+  # The pinned image's entrypoint is `aws`; shell probes need /bin/sh explicitly.
+  if [[ -n "$subdirectory" ]]; then
+    probe="$(docker run --rm -v "$volume:/src:ro" --entrypoint /bin/sh "$AWS_CLI_IMAGE" -c \
+      'for p in "uploads/$1" "$1"; do test -d "/src/$p" && echo "$p" && break; done; exit 0' _ "$subdirectory" \
+      2>/dev/null)" || probe=""
+    layout="$probe"
+  fi
+  if [[ -z "$layout" ]]; then
+    docker run --rm -v "$volume:/src:ro" --entrypoint /bin/sh "$AWS_CLI_IMAGE" -c 'test -d /src' \
+      >/dev/null 2>&1 || {
+      echo "Docker volume '$volume' is not host-readable and could not be probed through the Docker daemon." >&2
+      return 1
+    }
+  fi
+
+  mirror="$TMP_DIR/volume-source-$volume"
+  [[ -z "$layout" ]] || mirror="$mirror/$layout"
+  mkdir -p -- "$mirror"
+  printf '%s\t%s\n' "$volume" "$layout" >"$mirror/.migration-volume-source"
+  printf '%s\n' "$mirror"
 }
 
 legacy_avatar_directory() {
@@ -193,6 +231,14 @@ legacy_avatar_directory() {
   done
   printf '%s\n' "$directory"
 }
+
+# The volume fallback probes legacy volumes through the Docker daemon below,
+# so the helper image and the temp mirror must exist before source resolution.
+TMP_DIR="$(mktemp -d)"
+trap 'rm -r -- "$TMP_DIR"' EXIT
+
+AWS_BIN="${AWS_BIN:-aws}"
+AWS_CLI_IMAGE="${AWS_CLI_IMAGE:-amazon/aws-cli:2.31.0@sha256:d5f18fde2ba3f9205e75d511ca3e6185c144e55df07e50eee16d940994557b40}"
 
 if [[ "$ONLY" == avatars || "$ONLY" == all ]]; then
   if [[ "$AVATAR_DIR_EXPLICIT" == false ]]; then
@@ -307,7 +353,6 @@ if [[ "$ONLY" == avatars || "$ONLY" == all ]]; then require_db_config APP_DB; fi
 if [[ "$ONLY" == backups || "$ONLY" == all ]]; then require_db_config ADMIN_DB; fi
 
 AWS_BIN="${AWS_BIN:-aws}"
-AWS_CLI_IMAGE="${AWS_CLI_IMAGE:-amazon/aws-cli:2.31.0@sha256:d5f18fde2ba3f9205e75d511ca3e6185c144e55df07e50eee16d940994557b40}"
 
 is_loopback_endpoint() {
   local authority="${1#*://}"
@@ -353,8 +398,6 @@ if [[ "$S3_CLIENT_MODE" == container ]]; then
   fi
 fi
 
-TMP_DIR="$(mktemp -d)"
-trap 'rm -r -- "$TMP_DIR"' EXIT
 VERIFIED_FILE="$TMP_DIR/verified"
 PENDING_FILE="$TMP_DIR/pending"
 : >"$VERIFIED_FILE"
@@ -443,9 +486,22 @@ mysql_query() {
 }
 
 safe_source_file() {
-  local directory="$1" name="$2" directory_real source_real
+  local directory="$1" name="$2" directory_real source_real source_ref volume layout
   [[ -n "$name" && "$name" != /* && "$name" != *\\* && "$name" != *"/"* && "$name" != *".."* ]] || return 1
   [[ -d "$directory" ]] || return 1
+  if [[ ! -e "$directory/$name" && -f "$directory/.migration-volume-source" ]]; then
+    # Daemon-materialized mirror: pull just this object from the volume. The
+    # name is DB-derived, so it may only ever be a positional argument — the
+    # image entrypoint is overridden to /bin/sh because `aws` is the default.
+    [[ "$name" =~ ^[A-Za-z0-9._-]+$ ]] || return 1
+    source_ref="$(<"$directory/.migration-volume-source")"
+    volume="${source_ref%%$'\t'*}"
+    layout="${source_ref#*$'\t'}"
+    { docker run --rm -v "$volume:/src:ro" --entrypoint /bin/sh "$AWS_CLI_IMAGE" -c \
+      'test -f "$1" && tar -C "$2" -cf - "$3"' _ \
+      "/src/${layout:+$layout/}$name" "/src/${layout:-.}" "$name" \
+      | tar -x -C "$directory"; } 2>/dev/null || return 1
+  fi
   directory_real="$(realpath -e -- "$directory")" || return 1
   source_real="$(realpath -e -- "$directory/$name")" || return 1
   [[ "$source_real" == "$directory_real"/* && -f "$source_real" ]] || return 1

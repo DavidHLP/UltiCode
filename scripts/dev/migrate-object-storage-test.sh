@@ -189,15 +189,39 @@ fi
 [[ "${1:-}" == run ]] || { echo "unexpected fake docker command" >&2; exit 2; }
 shift
 mounts=()
+entrypoint=""
 while (($#)); do
   case "$1" in
     --rm) shift ;;
     --network) shift 2 ;;
     -e) export "$2"; shift 2 ;;
     -v) mounts+=("$2"); shift 2 ;;
+    --entrypoint) entrypoint="$2"; shift 2 ;;
     *) shift; break ;;
   esac
 done
+if [[ "${1:-}" == -c ]]; then
+  # Model the pinned image: only an explicit /bin/sh entrypoint runs scripts.
+  [[ "$entrypoint" == /bin/sh ]] || { echo "fake docker: script run requires --entrypoint /bin/sh" >&2; exit 3; }
+  script="$2"
+  shift 2
+  rest=("$@")
+  for mount in "${mounts[@]}"; do
+    IFS=: read -r src cp _ <<<"$mount"
+    [[ "$cp" == /src ]] || continue
+    host=""
+    IFS=';' read -ra host_entries <<<"${FAKE_VOLUME_HOSTS:-}"
+    for entry in "${host_entries[@]:-}"; do
+      [[ "${entry%%=*}" == "$src" ]] && host="${entry#*=}"
+    done
+    [[ -n "$host" ]] || { echo "fake docker: no host mapping for volume $src" >&2; exit 1; }
+    script="${script//\/src/$host}"
+    for ((i = 0; i < ${#rest[@]}; i++)); do
+      rest[i]="${rest[i]//\/src/$host}"
+    done
+  done
+  exec sh -c "$script" "${rest[@]}"
+fi
 aws_args=()
 while (($#)); do
   if [[ "$1" == --body && $# -ge 2 ]]; then
@@ -456,6 +480,24 @@ assert_contains "$labeled_volume_docker_log" "volume inspect --format"
 assert_contains "$labeled_volume_docker_log" "legacy-prod_app_uploads"
 assert_contains "$labeled_volume_docker_log" "legacy-prod_backup_data"
 unset COMPOSE_PROJECT_NAME FAKE_USE_LABELS FAKE_LABELLED_AVATAR_VOLUME_NAME FAKE_LABELLED_BACKUP_VOLUME_NAME
+
+# A deployment user with only Docker-group access cannot read the root-owned
+# volume data dir; resolution must still migrate through the Docker daemon.
+: >"$AWS_LOG"; : >"$DOCKER_LOG"; : >"$MYSQL_LOG"
+rm -f -- "$DB_STATE/avatar" "$DB_STATE/backup" "$OBJECTS"/*
+export AVATAR_UPLOAD_VOL=legacy-app-upload BACKUP_VOLUME=legacy-backup-data
+export FAKE_AVATAR_VOLUME_MOUNTPOINT="$TMP_DIR/docker-data-root-inaccessible"
+export FAKE_BACKUP_VOLUME_MOUNTPOINT="$TMP_DIR/docker-data-root-inaccessible-backup"
+export FAKE_VOLUME_HOSTS="legacy-app-upload=$AVATAR_VOLUME;legacy-backup-data=$BACKUP_VOLUME_DIR"
+daemon_volume_output="$(run_migration_without_explicit_dirs_allow_pending --apply 2>&1)"
+assert_contains "$daemon_volume_output" "MIGRATION_SUMMARY total=2 uploaded=2"
+daemon_volume_docker_log="$(<"$DOCKER_LOG")"
+assert_contains "$daemon_volume_docker_log" "-v legacy-app-upload:/src:ro"
+assert_contains "$daemon_volume_docker_log" "-v legacy-backup-data:/src:ro"
+assert_contains "$daemon_volume_docker_log" "--entrypoint /bin/sh"
+unset AVATAR_UPLOAD_VOL BACKUP_VOLUME FAKE_VOLUME_HOSTS
+export FAKE_AVATAR_VOLUME_MOUNTPOINT="$AVATAR_VOLUME"
+export FAKE_BACKUP_VOLUME_MOUNTPOINT="$BACKUP_VOLUME_DIR"
 # Do not guess a default project-scoped volume when Compose labels are absent.
 : >"$DOCKER_LOG"; : >"$MYSQL_LOG"
 unresolved_volume_output=""

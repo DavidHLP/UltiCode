@@ -118,11 +118,13 @@ Auth 独占 account、credential、external identity、refresh session、role/pe
 
 #### Admin
 
-Admin 持有 moderation case/decision、audit、system settings、backup job 和自身 read model。管理页面不是数据所有权依据：创建题目、竞赛、Submission 管理命令仍调用 App/Submission Owner；审计 actor 来自认证或委托 principal，不来自请求 DTO。
+Admin 持有 moderation case/decision、audit、system settings、backup job 和自身 read model。`BackupObjectLifecycle` 统一 Admin backup 的异步执行、状态迁移、对象删除墓碑与有界清理；管理页面不是数据所有权依据：创建题目、竞赛、Submission 管理命令仍调用 App/Submission Owner；审计 actor 来自认证或委托 principal，不来自请求 DTO。
+Management 前端的分页集合请求由各 store 的 `createCollectionSlice` 唯一持有 request lifecycle：创建、终止当前请求，维护 sequence/latest-result、loading/error 和 metadata；`useRemoteTable` 只负责 query、debounce、pagination、route 与 initial-skeleton presentation，不创建第二套请求控制器。
+Moderation 的 `moderationStore` 是 decision seam，拥有 claim、single/batch/appeal mutation 及 server-result reconciliation 和 best-effort stats refresh；`moderationPresentation` 只拥有 action catalog、label/icon/color、route 和纯 UI predicate，不调用 HTTP 或修改 store。
 
 #### App
 
-App 持有普通用户 profile、Problem/Contest/Forum/Solution/Engagement/Achievement/Subscription 和 WebSocket。它发布 `NotificationIntentCreated`、`SearchDocumentChanged` 等事件；Submission 通过 owner contract，Notification 只接收 intent 并负责投递。
+App 持有普通用户 profile、Problem/Contest/Forum/Solution/Engagement/Achievement/Subscription 和 WebSocket。Profile RPC adapter 只负责 trusted actor、command receipt、command/result/error 映射与 cache eviction；共享 `ProfileMutationModule` 负责 profile 行锁、patch/avatar replacement、cleanup intent、Search publication、结果 snapshot 和 App 事务。本地 HTTP adapter 也调用该 module；对象存储 PUT 位于数据库事务之外。它发布 `NotificationIntentCreated`、`SearchDocumentChanged` 等事件；Submission 通过 owner contract，Notification 只接收 intent 并负责投递。
 
 #### Submission
 
@@ -165,11 +167,13 @@ backend-auth -X-> app/admin API
 | --- | --- | --- |
 | 登录/刷新 | Auth Controller → workflow → Auth account/session store → cookies | Auth 本地事务；refresh hash-only CAS |
 | 管理员创建题目 | Admin Controller → App Problem provider → Problem service → local mapper/entity | App Problem Owner 本地事务 |
+| Profile 更新/头像 | Profile RPC adapter → `CommandReceiptExecutor` → `ProfileMutationModule`；HTTP adapter → `ProfileMutationModule` | App 事务；receipt、profile、cleanup intent 与 Search publication 同成同败；object storage PUT 在 DB 事务外 |
 | 普通提交 | App request boundary → immutable facts snapshot → Submission intake → submission/judge outbox | Submission Owner 本地事务；事件异步 |
 | 比赛提交 | Contest eligibility → Submission `submitContest` → created/judge outbox → Contest inbox | 资格同步校验；关联最终一致 |
 | 判题结果 | Judge Stream → sandbox → Submission verdict/fence → result outbox | generation/attempt CAS；下游 Inbox |
 | 通知投递 | App intent outbox → Notification Inbox → delivery ledger → SMTP/Redis relay | intent 本地事务；投递可重试 |
 | 权限写入 | Admin account/version query → Auth `AuthorizationMutationService` delta | Auth 本地事务；direct row + CAS + audit/outbox + receipt |
+| 管理备份创建/删除 | Admin `BackupServiceImpl` → `BackupObjectLifecycle.start/delete` → `adminBackupExecutor` / object storage；tombstone → `adminBackupScheduler` sweep | Admin delete 的 row 与 tombstone 同一事务；对象删除 after-commit，失败对象按 settle window 有界重试 |
 | 公开代码运行 | App `InteractiveCodeRunner` → Judge `JudgeRunService` → Judge runtime `SandboxExecutor`；异步 preview 另走 `submit/poll/cancel` → `AsyncSandboxExecutor` | Judge 独立进程；只运行显式 public cases，缺 provider 映射 503；Judge0 默认关闭且外部证据未验证 |
 | 搜索 | Owner event → Search worker → version ledger → MeiliSearch | 派生索引；旧事件按版本丢弃 |
 
@@ -184,7 +188,7 @@ backend-auth -X-> app/admin API
 
 ### 命令回执
 
-App、Submission 和 Notification 的 claim 型写命令统一通过
+App 的 Profile RPC、Submission 和 Notification 的 claim 型写命令统一通过
 `platform/common` 的 `ReceiptExecutor`：owner adapter 在 mutation 前以
 `(service, operation, idempotency_key)` 抢占 `PROCESSING` 回执，成功后条件更新为
 `SUCCESS` 并保存 owner 编码的结果载荷；相同 fingerprint 的重试只重放载荷，
@@ -197,6 +201,13 @@ payload codec、`ReceiptExecutorFactory.claim` 的 claim profile（共享指纹�
 与委托校验），以及 `CommandReceiptStoreBridge`/`ClaimCommandReceiptStoreBridge`
 参数化 store 桥；owner 仍持有自己的表、entity 转换与错误命名空间，
 `backend-common` 保持 dependency-free。
+
+Profile 的 `ProfileWriteProvider` 只保留 trusted actor 校验、receipt 调用、
+command/result/error 映射与 RPC cache eviction；新 receipt 使用 generic fingerprint，
+仅在 App receipt adapter 内兼容既有 Profile update/avatar legacy fingerprint。共享
+`ProfileMutationModule` 负责 `user_profiles` 行锁、普通 patch、avatar replacement、
+cleanup intent、Search publication 和结果 snapshot；receipt claim/finalize、profile
+row、cleanup intent 与 Search publication 同成同败。
 
 
 ### 事件可靠性
@@ -298,12 +309,13 @@ payload codec、`ReceiptExecutorFactory.claim` 的 claim profile（共享指纹�
 | `virtual_contest_sessions` | 仅 migration；活动态已在 participants | App（R 候选） | App | 核历史数据后合并/R |
 | `email_templates` | email | Notification | Admin、Auth（不共享业务模板） | Notification I；Admin C/Q；Auth 自有安全模板 |
 | `email_logs` | email intake | Notification | Admin | Notification I；Admin Q |
-| `backups` | Backup Entity/Mapper/Service CRUD | Admin/Ops | Admin | I（owner 已迁移至 backend-admin） |
+| `backups` | backup metadata/state；`BackupObjectLifecycle` 负责执行、删除、对象 tombstone 与 settle/sweep | Admin | Admin | lifecycle I；`BackupServiceImpl` 负责请求编排、下载与恢复 |
+| `backup_deletion_tombstones` | 已删除或失败上传对象的持久 cleanup intent | Admin | Admin | `BackupObjectLifecycle` I；after-commit fast path + age-gated sweep |
 
 
 ### 事务边界
 
-必须保持强一致且只在单一 Owner 内：refresh rotation、账号 ban/password、permission grant/revoke、Contest participant/count、Problem aggregate satellites、Submission + judge outbox、verdict fence + result outbox、moderation queue claim/decision、vote ledger invariant。应最终一致：Judge queue、SMTP、WebSocket、cache、对象存储、audit、notification、achievement、Search index、ranking projection 和跨 Owner moderation side effects。
+必须保持强一致且只在单一 Owner 内：refresh rotation、账号 ban/password、permission grant/revoke、Contest participant/count、Problem aggregate satellites、Submission + judge outbox、verdict fence + result outbox、moderation queue claim/decision、backup row delete + tombstone insert、vote ledger invariant。应最终一致：Judge queue、SMTP、WebSocket、cache、对象存储、backup object deletion、audit、notification、achievement、Search index、ranking projection 和跨 Owner moderation side effects。
 
 DB 与 Redis/SMTP/WebSocket/对象存储不由 `@Transactional` 组合；使用 outbox/inbox/lease/fence/补偿。跨服务同步调用只做权威校验或一个 Owner command，不使用 Seata。
 

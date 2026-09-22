@@ -194,7 +194,7 @@ class DefaultAppUserWritePortTest {
 
             assertThatThrownBy(() -> port.updateProfile(userId, dto))
                     .isInstanceOf(BusinessException.class)
-                    .hasMessageContaining(BaseErrorCode.BAD_REQUEST.message());
+                    .hasMessageContaining("avatar upload endpoint");
             verify(userProfileMapper, never()).updateById(any(UserProfile.class));
             verify(storageCleanupOutbox, never()).enqueue(anyString());
         }

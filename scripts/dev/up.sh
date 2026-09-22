@@ -557,6 +557,26 @@ else
   echo "Skipping DEV-LOCAL App Owner seed data (--skip-seed-data / --skip-migrate / --quick / --frontend-only / disabled / App not selected)."
 fi
 
+# ===== 步骤 3.6: 遗留对象 cutover 门禁 =====
+# App reads legacy avatar rows only through the object store now: starting it over
+# a database whose /uploads/avatars/... rows were never uploaded would show every
+# one of them as a proxy URL with no object behind it. The gate is the same
+# fail-closed probe the deploy uses, so an upgraded checkout must backfill first.
+if [[ "$FRONTEND_ONLY" != true && ",$PM2_APPS," == *,ulticode-app,* ]]; then
+  echo "Checking that legacy avatar and backup rows were migrated to object storage..."
+  MIGRATION_DB_HOST="$MIGRATION_DB_HOST" \
+    MIGRATION_DB_PORT="$MIGRATION_DB_PORT" \
+    MIGRATION_DB_NAME=ulticode \
+    MIGRATION_DB_USER="$MIGRATION_DB_USER" \
+    MIGRATION_DB_PASSWORD="$MIGRATION_DB_PASSWORD" \
+    MIGRATION_MYSQL_CONTAINER="${MIGRATION_MYSQL_CONTAINER:-}" \
+    MIGRATION_MYSQL_CONTAINER_PORT="${MIGRATION_MYSQL_CONTAINER_PORT:-3306}" \
+    "$ROOT_DIR/scripts/runbooks/assert-legacy-objects-migrated.sh" || {
+      echo "Legacy objects are not migrated yet: run ./scripts/dev/migrate-object-storage.sh --apply, then ./scripts/dev/up.sh again." >&2
+      exit 1
+    }
+fi
+
 # ===== 步骤 3.75: 可选的 Maven 反应堆重建 (--rebuild) =====
 # Bootstrap and PM2 use per-module spring-boot:run, so current reactor
 # artifacts must be installed before either path resolves sibling modules.

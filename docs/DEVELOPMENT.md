@@ -150,10 +150,15 @@ dependabot-core 当作 support file 丢弃，PR 只改 manifest，必然过不�
   扩展名来自内容嗅探而不是原始文件名），备份 `admin/backups/{yyyy}/{MM}/{backupId}.sql`。
   bucket 保持私有：浏览器只通过后端只读代理 `GET /api/users/avatars/{accountId}/{name}`
   读取头像（允许匿名；代理校验 key 语法与账号绑定，对象名为服务端 UUID），备份只通过 `/admin/backups/**` 鉴权端点下载；数据库保存 object key，
-  不保存带环境地址的完整 URL。
+  不保存带环境地址的完整 URL。通用资料更新（HTTP `PATCH /users/me` 与 Dubbo
+  `UpdateProfileCommand`）不接受指向 object store 的 avatar 值：这类 key 的清理意图可能已入队，
+  只有头像上传端点能让一个 key 成为当前值。
 - 旧本地文件（`uploads/avatars/*`、旧 `BACKUP_DIR/backup_*.sql`）用
   `scripts/dev/migrate-object-storage.sh` 迁移：默认 dry-run，`--apply` 才写入，上传后校验大小与
   checksum 并回读对象，校验通过后才切换数据库，且从不删除旧文件。
+  `./scripts/dev/up.sh` 在启动 backend-app 前用同一个
+  `scripts/runbooks/assert-legacy-objects-migrated.sh` 探针检查这些行，仍有未迁移行就拒绝启动，
+  避免升级后的本地库直接显示指向不存在对象的头像代理 URL。
   RustFS 实例级 smoke test 见 `scripts/dev/rustfs-smoke-test.sh`。
 - Notification 保留 `LoggingSmtpSenderAdapter` 默认路径；真实 SMTP 只通过
   `SMTP_*`/`APP_EMAIL_ENABLED` 配置，不让业务 Module 依赖厂商 SDK。

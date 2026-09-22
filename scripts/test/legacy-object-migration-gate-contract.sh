@@ -26,6 +26,7 @@ while [[ $# -gt 0 ]]; do
     *) shift ;;
   esac
 done
+if [[ -n "${FAKE_SQL_LOG:-}" ]]; then printf '%s\n' "$sql" >>"$FAKE_SQL_LOG"; fi
 if [[ "$sql" == *information_schema.tables* ]]; then
   table=""
   case "$sql" in
@@ -94,5 +95,14 @@ grep -Fq 'LEGACY_OBJECT_MIGRATION status=PASS legacy_avatars=0 legacy_backups=0 
 
 FAKE_MISSING_TABLES=user_profiles,backups,storage_migration_state FAKE_AVATARS=9 FAKE_BACKUPS=9 run_gate
 [[ "$GATE_STATUS" == 0 ]] || fail "an absent table has nothing to migrate (got $GATE_STATUS)"
+
+# A custom prefix may contain `_`, which LIKE treats as a single-character
+# wildcard: /media_v1 must never match /mediaXv1/avatars/a.png.
+: > "$WORK_DIR/avatar-sql.log"
+FAKE_AVATARS=0 FAKE_BACKUPS=0 LEGACY_AVATAR_URL_PREFIX=/media_v1 \
+  FAKE_SQL_LOG="$WORK_DIR/avatar-sql.log" run_gate
+[[ "$GATE_STATUS" == 0 ]] || fail "an escaped predicate must still pass a clean database (got $GATE_STATUS)"
+grep -Fq "avatar LIKE '/media!_v1/avatars/%' ESCAPE '!'" "$WORK_DIR/avatar-sql.log" \
+  || fail "the avatar probe must escape '_' and declare ESCAPE: $(cat "$WORK_DIR/avatar-sql.log")"
 
 echo 'legacy-object-gate-contract: PASS'

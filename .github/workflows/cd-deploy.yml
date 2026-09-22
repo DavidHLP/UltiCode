@@ -15,21 +15,17 @@ on:
           - production
       # Per-service rollout: any subset is pulled/up independently on the
       # host via host-deploy; 'all' keeps the previous whole-stack flow.
+      # A free-text list is required because backend-admin and backend-app
+      # must ship in the same selection.
       services:
-        description: 'Services to deploy'
+        description: >-
+          Services to deploy: 'all', or a comma/space-separated subset of
+          backend-auth backend-admin backend-app backend-submission
+          backend-notification backend-search backend-judge console management.
+          backend-admin and backend-app must be deployed together.
         required: true
-        type: choice
-        options:
-          - all
-          - backend-auth
-          - backend-admin
-          - backend-app
-          - backend-submission
-          - backend-notification
-          - backend-search
-          - backend-judge
-          - console
-          - management
+        type: string
+        default: 'all'
       skip_migrations:
         description: 'Skip database migrations'
         required: false

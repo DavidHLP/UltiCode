@@ -83,7 +83,10 @@ LEGACY_AVATAR_URL_PREFIX="${LEGACY_AVATAR_URL_PREFIX:-/uploads}"
   exit 1
 }
 
-legacy_avatars="$(count_rows app user_profiles "avatar LIKE '${LEGACY_AVATAR_URL_PREFIX}/avatars/%'")"
+# Same escaping as scripts/dev/migrate-object-storage.sh: `_` is a LIKE
+# single-character wildcard, so a custom prefix must match literally.
+legacy_avatars="$(count_rows app user_profiles \
+  "avatar LIKE '${LEGACY_AVATAR_URL_PREFIX//_/!_}/avatars/%' ESCAPE '!'")"
 [[ "$legacy_avatars" =~ ^[0-9]+$ ]] || {
   echo "Legacy object migration gate failed: invalid app.user_profiles row probe" >&2
   exit 1

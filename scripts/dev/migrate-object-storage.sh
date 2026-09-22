@@ -90,7 +90,10 @@ LEGACY_AVATAR_URL_PREFIX="${LEGACY_AVATAR_URL_PREFIX:-/uploads}"
   echo "LEGACY_AVATAR_URL_PREFIX must be an absolute path such as /uploads" >&2
   exit 2
 }
-LEGACY_AVATAR_LIKE="${LEGACY_AVATAR_URL_PREFIX}/avatars/%"
+# `_` is a LIKE single-character wildcard, so a custom prefix such as /media_v1
+# has to be escaped to match literally. `%` cannot appear here: the prefix
+# validation above rejects it.
+LEGACY_AVATAR_LIKE="${LEGACY_AVATAR_URL_PREFIX//_/!_}/avatars/%"
 LEGACY_AVATAR_DIR_PREFIX="${LEGACY_AVATAR_URL_PREFIX}/avatars/"
 
 APPLY=false
@@ -795,7 +798,7 @@ if [[ "$ONLY" == avatars || "$ONLY" == all ]]; then
   if (( LIMIT > 0 )); then
     avatar_limit_clause=" LIMIT $LIMIT"
   fi
-  avatar_rows="$(mysql_query APP_DB "SELECT account_id, avatar FROM user_profiles WHERE avatar LIKE $(sql_quote "$LEGACY_AVATAR_LIKE") ORDER BY account_id${avatar_limit_clause}")"
+  avatar_rows="$(mysql_query APP_DB "SELECT account_id, avatar FROM user_profiles WHERE avatar LIKE $(sql_quote "$LEGACY_AVATAR_LIKE") ESCAPE '!' ORDER BY account_id${avatar_limit_clause}")"
   if [[ "$APPLY" == true && -n "$avatar_rows" ]]; then
     # Before the first rewrite: an interrupted run must not leave rewritten
     # rows with no pending marker, because a rerun then finds no legacy rows

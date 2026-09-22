@@ -199,20 +199,17 @@ describe('useAuditReadWorkspace', () => {
 
     await workspace.refresh()
 
-    expect(store.fetchLogs).toHaveBeenCalledWith(
-      {
-        search: undefined,
-        action: 'CREATE_USER',
-        entityType: undefined,
-        startDate: undefined,
-        endDate: undefined,
-        performerId: undefined,
-        userId: undefined,
-        page: 1,
-        limit: 50,
-      },
-      { signal: expect.any(AbortSignal) },
-    )
+    expect(store.fetchLogs).toHaveBeenCalledWith({
+      search: undefined,
+      action: 'CREATE_USER',
+      entityType: undefined,
+      startDate: undefined,
+      endDate: undefined,
+      performerId: undefined,
+      userId: undefined,
+      page: 1,
+      limit: 50,
+    })
     expect(store.fetchStats).toHaveBeenCalledWith({
       search: undefined,
       action: 'CREATE_USER',

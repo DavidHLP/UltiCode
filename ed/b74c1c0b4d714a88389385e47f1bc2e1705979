@@ -1,0 +1,39 @@
+services/app/app-web/src/test/java/com/ulticode/app/config/AppCacheConfigTest.java
+  s_f4f6b579f3defc::t_6cb6085d1a5437 1-8,10-34,36,38-43,45-53,55-56
+  s_f4f6b579f3defc::t_a4496598eb33ed 35,37
+  s_f4f6b579f3defc::t_eb3ee9424b33fd 44
+  s_f4f6b579f3defc::t_8051afcbf96c25 9
+  s_f4f6b579f3defc::t_23c9c7c0138394 54
+services/platform/redis/src/main/java/com/ulticode/redis/RedisCacheWritePolicy.java
+  s_f4f6b579f3defc::t_6223cf8ec09c3f 1-35
+services/admin/src/test/java/com/ulticode/admin/config/AdminCacheConfigTest.java
+  s_f4f6b579f3defc::t_2cecdfe2bebb6d 43
+  s_f4f6b579f3defc::t_c95dc8e42f4c63 34,36
+  s_f4f6b579f3defc::t_ab8b89787bce8d 1-8,10-33,35,37-42,44-52,54-55
+  s_f4f6b579f3defc::t_32234100945060 9
+  s_f4f6b579f3defc::t_b2fc97b9341b39 53
+services/admin/src/main/java/com/ulticode/admin/config/AdminCacheConfig.java
+  s_f4f6b579f3defc::t_0aec3a77751397 3
+  s_f4f6b579f3defc::t_d44475d9bf159c 41-42
+docs/ARCHITECTURE.md
+  s_f4f6b579f3defc::t_2fdb60cfb160aa 349
+services/app/app-web/src/main/java/com/ulticode/app/config/AppCacheConfig.java
+  s_f4f6b579f3defc::t_861c3a7ee50135 3
+  s_f4f6b579f3defc::t_81efbe1e4ebebd 48-49
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "edb74c1c0b4d714a88389385e47f1bc2e1705979",
+  "prompts": {},
+  "sessions": {
+    "s_f4f6b579f3defc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "82ee6ebd-b69c-433a-882e-5b544efd4374",
+        "model": "deepseek-v4.1-flash"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

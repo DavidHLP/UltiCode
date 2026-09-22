@@ -103,6 +103,10 @@ class ProfileWriteProviderIT {
             .withDatabaseName("ulticode_app_test")
             .withUsername("test")
             .withPassword("test")
+            // The rollback tests install failure-injection triggers; MySQL 8
+            // rejects CREATE TRIGGER under binary logging without SUPER unless
+            // the server trusts function creators.
+            .withCommand("--log-bin-trust-function-creators=1")
             .withCopyFileToContainer(
                     MountableFile.forHostPath(userProfilesMigrationPath().toString()),
                     "/docker-entrypoint-initdb.d/V20260729140400__Create_User_Profiles_Table.sql")

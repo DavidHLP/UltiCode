@@ -33,6 +33,15 @@ public final class AvatarUrls {
         return stored;
     }
 
+    /**
+     * True when a generic profile write would re-point the row at an owned
+     * avatar key it does not currently hold: cleanup for that key may already
+     * be queued, and only the upload path mints keys.
+     */
+    public static boolean reusesOwnedKey(String accountId, String incoming, String current) {
+        return incoming != null && !incoming.equals(current) && objectKey(accountId, incoming) != null;
+    }
+
     public static String objectKey(String accountId, String stored) {
         if (StorageKeys.isAvatarKey(stored)) {
             return accountId != null && accountId.equals(StorageKeys.avatarAccountId(stored)) ? stored : null;

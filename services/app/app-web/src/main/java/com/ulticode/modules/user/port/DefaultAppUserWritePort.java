@@ -77,6 +77,10 @@ public class DefaultAppUserWritePort implements AppUserWritePort {
             profile.setName(updateDTO.getName());
         }
         if (updateDTO.getAvatar() != null) {
+            if (AvatarUrls.reusesOwnedKey(userId, updateDTO.getAvatar(), profile.getAvatar())) {
+                throw new BusinessException(BaseErrorCode.BAD_REQUEST,
+                        "Avatar changes must use the avatar upload endpoint");
+            }
             profile.setAvatar(updateDTO.getAvatar());
         }
         if (updateDTO.getBio() != null) {

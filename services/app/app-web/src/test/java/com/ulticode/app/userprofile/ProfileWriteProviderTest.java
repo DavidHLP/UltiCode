@@ -106,6 +106,25 @@ class ProfileWriteProviderTest {
     }
 
     @Test
+    void profileUpdateRejectsReusingADisplacedAvatarKey() {
+        when(actorAuthorizer.isAuthorized(any())).thenReturn(true);
+        UserProfile existing = new UserProfile();
+        existing.setAccountId("user-2");
+        existing.setAvatar("app/avatars/user-2/current.png");
+        when(userProfileMapper.selectByIdForUpdate("user-2")).thenReturn(existing);
+
+        RpcResult<?> result = provider.updateProfile(new UpdateProfileCommand(
+                "profile-command", IdMetadata.mint(), adminActor(), TraceMetadata.EMPTY,
+                "user-2", null, "app/avatars/user-2/displaced.png",
+                null, null, null, null, null, null, null));
+
+        assertThat(result.success()).isFalse();
+        assertThat(result.error().code()).isEqualTo(AppErrorCode.BAD_REQUEST.code());
+        verify(userProfileMapper, never()).updateById(any(UserProfile.class));
+        verify(userProfileMapper, never()).insert(any(UserProfile.class));
+    }
+
+    @Test
     void avatarUpdatePublishesCompleteUserUpsert() {
         when(actorAuthorizer.isAuthorized(any())).thenReturn(true);
         UserProfile existing = new UserProfile();

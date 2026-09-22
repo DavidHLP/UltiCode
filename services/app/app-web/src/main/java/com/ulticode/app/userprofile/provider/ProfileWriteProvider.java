@@ -16,6 +16,7 @@ import com.ulticode.common.storage.StorageKeys;
 import com.ulticode.common.tracing.TraceMetadata;
 import com.ulticode.modules.search.port.UserDirectoryQueryPort;
 import com.ulticode.modules.search.source.SearchDocumentChangedPublisher;
+import com.ulticode.modules.user.port.AvatarUrls;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -132,6 +133,10 @@ public class ProfileWriteProvider implements ProfileWriteService {
                 profile.setName(command.name());
             }
             if (command.avatar() != null) {
+                if (AvatarUrls.reusesOwnedKey(accountId, command.avatar(), profile.getAvatar())) {
+                    log.warn("Rejected avatar reuse of a displaced object key for account {}", accountId);
+                    return RpcResult.failure(AppErrorCode.BAD_REQUEST, traceId);
+                }
                 profile.setAvatar(command.avatar());
             }
             if (command.bio() != null) {

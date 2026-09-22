@@ -179,6 +179,43 @@ class DefaultAppUserWritePortTest {
             assertThat(inserted.getWebsite()).isEqualTo("W");
             assertThat(inserted.getPreferredLanguage()).isEqualTo("P");
         }
+
+        @Test
+        @DisplayName("avatar field may not re-point the row at a displaced object key")
+        void genericUpdateRejectsOwnedKeyReuse() {
+            String userId = "u-012";
+            UserProfile existing = new UserProfile();
+            existing.setAccountId(userId);
+            existing.setAvatar("app/avatars/u-012/current.png");
+            when(userProfileMapper.selectByIdForUpdate(userId)).thenReturn(existing);
+
+            UpdateUserDTO dto = new UpdateUserDTO();
+            dto.setAvatar("app/avatars/u-012/displaced.png");
+
+            assertThatThrownBy(() -> port.updateProfile(userId, dto))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessageContaining(BaseErrorCode.BAD_REQUEST.message());
+            verify(userProfileMapper, never()).updateById(any(UserProfile.class));
+            verify(storageCleanupOutbox, never()).enqueue(anyString());
+        }
+
+        @Test
+        @DisplayName("avatar field keeps the row's own key as a no-op write")
+        void genericUpdateAllowsUnchangedOwnedKey() {
+            String userId = "u-013";
+            UserProfile existing = new UserProfile();
+            existing.setAccountId(userId);
+            existing.setAvatar("app/avatars/u-013/current.png");
+            when(userProfileMapper.selectByIdForUpdate(userId)).thenReturn(existing);
+
+            UpdateUserDTO dto = new UpdateUserDTO();
+            dto.setAvatar("app/avatars/u-013/current.png");
+            dto.setName("Alice");
+
+            port.updateProfile(userId, dto);
+
+            verify(userProfileMapper).updateById(any(UserProfile.class));
+        }
     }
 
     @Nested

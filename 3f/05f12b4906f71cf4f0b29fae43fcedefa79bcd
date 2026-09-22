@@ -1,0 +1,16 @@
+docs/ARCHITECTURE.md
+  h_77173abe25c3ff 121-123,127,170,176,191,205-211,312-313,318
+docs/OPERATIONS.md
+  h_77173abe25c3ff 220-224,237-239,272-286
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3f05f12b4906f71cf4f0b29fae43fcedefa79bcd",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

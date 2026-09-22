@@ -33,7 +33,6 @@ import com.ulticode.modules.search.port.UserSearchRow;
 import com.ulticode.modules.search.source.SearchDocumentChangedPublisher;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Clock;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
@@ -51,8 +50,6 @@ import org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerA
 import org.springframework.boot.autoconfigure.jdbc.JdbcTemplateAutoConfiguration;
 import org.springframework.boot.autoconfigure.transaction.TransactionAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -82,7 +79,7 @@ import org.testcontainers.utility.MountableFile;
                 AppCommandReceiptMapper.class,
                 StorageCleanupOutbox.class,
                 StorageCleanupOutboxMapper.class,
-                ProfileWriteProviderIT.ProfileReceiptTestConfig.class,
+                ProfileReceiptTestConfig.class,
                 DataSourceAutoConfiguration.class,
                 DataSourceTransactionManagerAutoConfiguration.class,
                 TransactionAutoConfiguration.class,
@@ -771,13 +768,5 @@ class ProfileWriteProviderIT {
             throw new AssertionError(exception);
         }
     }
-
-    @TestConfiguration
-    static class ProfileReceiptTestConfig {
-        @Bean
-        Clock clock() {
-            return Clock.systemUTC();
-        }
-    }
-
 }
+

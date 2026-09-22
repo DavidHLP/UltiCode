@@ -1,7 +1,10 @@
 package com.ulticode.modules.backup.service.impl;
 
+import com.ulticode.common.storage.FileStoragePort;
+import com.ulticode.common.storage.StorageKeys;
 import com.ulticode.modules.backup.entity.Backup;
 import com.ulticode.modules.backup.entity.enums.BackupStatus;
+import com.ulticode.modules.backup.mapper.BackupDeletionTombstoneMapper;
 import com.ulticode.modules.backup.mapper.BackupMapper;
 import com.ulticode.modules.backup.port.BackupProcessPort;
 import com.ulticode.modules.backup.service.BackupExecutionService;
@@ -11,119 +14,247 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.attribute.PosixFilePermissions;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.HexFormat;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 /**
- * Async execution lifecycle for a single backup run.
- *
- * <p>This bean is the {@code @Async} entrypoint that {@link BackupServiceImpl#createBackup}
- * dispatches to. Because it is a separate Spring bean, the call crosses the
- * AOP proxy and the {@code @Async} annotation actually takes effect &mdash;
- * the previous in-class self-invocation silently bypassed the proxy and
- * blocked the HTTP request thread until {@code mysqldump} returned. See
- * {@link BackupExecutionService} for the seam rationale.
- *
- * <p>Owns every lifecycle transition for the run:
- * <ul>
- *   <li>{@code PENDING &rarr; IN_PROGRESS} on entry,</li>
- *   <li>{@code IN_PROGRESS &rarr; COMPLETED} when {@link BackupProcessPort#dump}
- *       reports success and the file exists (records size + metadata),</li>
- *   <li>{@code IN_PROGRESS &rarr; FAILED} when dump reports failure, the file
- *       is missing, or any exception escapes (records the error message).</li>
- * </ul>
- * Process I/O itself stays behind {@link BackupProcessPort}; this class is
- * the lifecycle owner, not the subprocess spawner.
- *
- * @author ulticode
+ * Async backup lifecycle. Dump bytes exist only in a secure container-local
+ * temp file until they are streamed to object storage.
  */
 @Slf4j
 @Service
-@Async
+@Async("adminBackupExecutor")
 @RequiredArgsConstructor
 public class BackupExecutionServiceImpl implements BackupExecutionService {
 
     private final BackupMapper backupMapper;
+    private final BackupDeletionTombstoneMapper backupDeletionTombstoneMapper;
     private final Clock clock;
     private final BackupProcessPort backupProcessPort;
+    private final FileStoragePort fileStorage;
 
-    @Value("${backup.dir:${BACKUP_DIR:/tmp/backups}}")
-    private String backupDir;
-
+    @Value("${backup.temp-dir:${java.io.tmpdir}/ulticode-backups}")
+    private String backupTempDir;
     @Override
-    public void executeBackup(String backupId) {
+    public CompletableFuture<Void> executeBackup(String backupId) {
         Backup backup = backupMapper.selectById(backupId);
         if (backup == null) {
             log.error("Backup not found: {}", backupId);
-            return;
+            return CompletableFuture.completedFuture(null);
         }
 
+        Path tempFile = null;
+        String objectKey = null;
         try {
-            // PENDING -> IN_PROGRESS
             backup.setStatus(BackupStatus.IN_PROGRESS);
-            backupMapper.updateById(backup);
-
-            // Ensure backup directory exists
-            ensureBackupDirectoryExists();
-
-            Path filePath = Paths.get(backupDir, backup.getFilename());
-
-            // Delegate the mysqldump process I/O to the port — the
-            // execution lifecycle no longer spawns the subprocess directly.
-            boolean success = backupProcessPort.dump(filePath);
-
-            if (success && Files.exists(filePath)) {
-                long size = Files.size(filePath);
-                backup.setSize(size);
-                backup.setStatus(BackupStatus.COMPLETED);
-                backup.setCompletedAt(LocalDateTime.now(clock));
-
-                Map<String, Object> metadata = new HashMap<>();
-                metadata.put("databaseName", "see-port-adapter");
-                metadata.put("backupType", backup.getType().name());
-                backup.setMetadata(metadata);
-
-                backupMapper.updateById(backup);
-                log.info("Backup completed successfully: {}, size: {} bytes", backupId, size);
-            } else {
-                fail(backup, backupId, "mysqldump failed — see server logs");
-                log.error("Backup failed: {}", backupId);
+            int inProgressRows = backupMapper.updateById(backup);
+            if (inProgressRows != 1) {
+                throw new IllegalStateException(
+                        "Failed to persist IN_PROGRESS backup state; affected rows: " + inProgressRows);
             }
-        } catch (Exception e) {
-            if (e instanceof InterruptedException) {
-                Thread.currentThread().interrupt();
+
+            tempFile = createSecureTempFile("dump-", ".sql");
+            if (!backupProcessPort.dump(tempFile) || !Files.isRegularFile(tempFile) || Files.size(tempFile) == 0) {
+                throw new IllegalStateException("mysqldump failed — see server logs");
             }
-            log.error("Backup execution failed for: {}", backupId, e);
-            fail(backup, backupId, e.getMessage());
+
+            long size = Files.size(tempFile);
+            String checksum = sha256(tempFile);
+            LocalDate createdDate = backup.getCreatedAt() == null
+                    ? LocalDateTime.now(clock).toLocalDate()
+                    : backup.getCreatedAt().toLocalDate();
+            objectKey = StorageKeys.backupKey(backupId, createdDate);
+            // Persist the planned key before the bytes move: a crash between the
+            // PUT and the completion update must leave a row that names the
+            // uploaded dump instead of an object nothing tracks.
+            backup.setObjectKey(objectKey);
+            int plannedRows = backupMapper.updateById(backup);
+            if (plannedRows != 1) {
+                throw new IllegalStateException(
+                        "Failed to persist the planned backup object key; affected rows: " + plannedRows);
+            }
+            fileStorage.putFile(objectKey, tempFile, "application/sql");
+
+            backup.setSize(size);
+            backup.setChecksum(checksum);
+            backup.setStatus(BackupStatus.COMPLETED);
+            backup.setCompletedAt(LocalDateTime.now(clock));
+            Map<String, Object> metadata = new HashMap<>();
+            metadata.put("databaseName", "see-port-adapter");
+            metadata.put("backupType", backup.getType().name());
+            backup.setMetadata(metadata);
+            int completedRows = backupMapper.updateById(backup);
+            if (completedRows != 1) {
+                throw new IllegalStateException(
+                        "Failed to persist COMPLETED backup state; affected rows: " + completedRows);
+            }
+            log.info("Backup completed successfully: {}, size: {} bytes", backupId, size);
+        } catch (Exception exception) {
+            CompletionOutcome outcome = objectKey == null
+                    ? CompletionOutcome.DEFINITE_FAILURE
+                    : classifyCompletionOutcome(backupId, objectKey);
+            switch (outcome) {
+                case PERSISTED -> log.info("Backup {} completion update raced a database error but the "
+                        + "COMPLETED state persisted; keeping the uploaded object {}", backupId, objectKey);
+                case UNKNOWN -> {
+                    log.error("Backup {} completion outcome is unknown after a database failure; "
+                            + "preserving uploaded object {} instead of deleting it", backupId, objectKey,
+                            exception);
+                    // The drain gate only tolerates terminal rows. Best-effort
+                    // FAILED write naming the preserved key; if the database is
+                    // still unreachable the row stays IN_PROGRESS and the gate
+                    // fails closed, which is the designed outcome.
+                    try {
+                        fail(backup, "Backup completion outcome unknown after a database failure; "
+                                + "uploaded object preserved for reconciliation: " + objectKey);
+                    } catch (RuntimeException stateFailure) {
+                        log.error("Backup {} terminal FAILED state could not be persisted", backupId,
+                                stateFailure);
+                    }
+                }
+                case DEFINITE_FAILURE -> {
+                    // Claim the terminal state first: the ambiguous COMPLETED
+                    // write may still commit, and deleting the bytes before the
+                    // FAILED transition wins would leave it pointing at nothing.
+                    boolean failed = fail(backup, exception.getMessage()) == 1;
+                    if (objectKey != null) {
+                        if (failed) {
+                            // The PUT may still be committing after its timeout:
+                            // record the intent and let the sweep delete it a
+                            // settle window later instead of racing that commit.
+                            deferUploadedObjectCleanup(backupId, objectKey);
+                        } else {
+                            log.warn("Backup {} kept a durable COMPLETED row; preserving uploaded object {}",
+                                    backupId, objectKey);
+                        }
+                    }
+                    if (exception instanceof InterruptedException) {
+                        Thread.currentThread().interrupt();
+                    }
+                    log.error("Backup execution failed for: {}", backupId, exception);
+                }
+            }
+        } finally {
+            deleteTempFile(tempFile);
         }
+        return CompletableFuture.completedFuture(null);
+    }
+
+    private enum CompletionOutcome {
+        PERSISTED,
+        UNKNOWN,
+        DEFINITE_FAILURE
     }
 
     /**
-     * Transition a backup to FAILED and record the error message. Centralised
-     * so every failure path (process failure, missing file, exception)
-     * captures both the terminal status and the error string with the same
-     * invariants.
+     * A completion-state write can commit even when the client observes a
+     * connection error. Re-read the durable row before discarding uploaded
+     * bytes; when the state cannot be read at all, keep the object so a later
+     * reconciliation can adopt it rather than destroying a valid backup.
      */
-    private void fail(Backup backup, String backupId, String error) {
-        backup.setStatus(BackupStatus.FAILED);
-        backup.setCompletedAt(LocalDateTime.now(clock));
-        backup.setError(error);
-        backupMapper.updateById(backup);
+    private CompletionOutcome classifyCompletionOutcome(String backupId, String objectKey) {
+        Backup persisted;
+        try {
+            persisted = backupMapper.selectById(backupId);
+        } catch (RuntimeException readFailure) {
+            return CompletionOutcome.UNKNOWN;
+        }
+        if (persisted == null) {
+            return CompletionOutcome.DEFINITE_FAILURE;
+        }
+        boolean completed = persisted.getStatus() == BackupStatus.COMPLETED
+                && objectKey.equals(persisted.getObjectKey());
+        return completed ? CompletionOutcome.PERSISTED : CompletionOutcome.DEFINITE_FAILURE;
     }
 
-    private void ensureBackupDirectoryExists() {
-        Path path = Paths.get(backupDir);
-        if (!Files.exists(path)) {
-            try {
-                Files.createDirectories(path);
-            } catch (Exception e) {
-                log.warn("Failed to create backup directory: {}", path, e);
+    private int fail(Backup backup, String error) {
+        backup.setStatus(BackupStatus.FAILED);
+        backup.setCompletedAt(LocalDateTime.now(clock));
+        backup.setError(error == null || error.isBlank() ? "Backup execution failed" : error);
+        int failedRows = backupMapper.failUnlessCompleted(
+                backup.getId(), backup.getCompletedAt(), backup.getError(), backup.getObjectKey());
+        if (failedRows == 0) {
+            log.warn("Backup {} already holds a durable COMPLETED row; FAILED transition skipped",
+                    backup.getId());
+        } else if (failedRows != 1) {
+            log.error("Failed to persist FAILED backup state: {}, affected rows: {}",
+                    backup.getId(), failedRows);
+        }
+        return failedRows;
+    }
+
+    /**
+     * Records the cleanup intent instead of deleting now: a PUT that timed out
+     * may still commit server-side, and an inline DELETE could run before that
+     * commit and leave the dump untracked. BackupObjectCleanup sweeps the
+     * tombstone after the settle window.
+     */
+    private void deferUploadedObjectCleanup(String backupId, String objectKey) {
+        try {
+            backupDeletionTombstoneMapper.insert(backupId, objectKey);
+        } catch (RuntimeException tombstoneFailure) {
+            log.error("Could not record the pending deletion of backup object {}; delete backup {} manually",
+                    objectKey, backupId, tombstoneFailure);
+        }
+    }
+
+    private Path createSecureTempFile(String prefix, String suffix) throws IOException {
+        Path directory = Paths.get(backupTempDir).toAbsolutePath().normalize();
+        Files.createDirectories(directory);
+        restrictPermissions(directory, "rwx------");
+        Path file = Files.createTempFile(directory, prefix, suffix);
+        restrictPermissions(file, "rw-------");
+        return file;
+    }
+
+    private static String sha256(Path file) throws IOException {
+        MessageDigest digest;
+        try {
+            digest = MessageDigest.getInstance("SHA-256");
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("SHA-256 is unavailable", exception);
+        }
+        try (InputStream input = Files.newInputStream(file)) {
+            byte[] buffer = new byte[8192];
+            int read;
+            while ((read = input.read(buffer)) >= 0) {
+                if (read > 0) {
+                    digest.update(buffer, 0, read);
+                }
             }
+        }
+        return HexFormat.of().formatHex(digest.digest());
+    }
+
+    private static void restrictPermissions(Path path, String permissions) throws IOException {
+        try {
+            Files.setPosixFilePermissions(path, PosixFilePermissions.fromString(permissions));
+        } catch (UnsupportedOperationException ignored) {
+            // POSIX permissions are unavailable on some local development hosts.
+        }
+    }
+
+    private static void deleteTempFile(Path file) {
+        if (file == null) {
+            return;
+        }
+        try {
+            Files.deleteIfExists(file);
+        } catch (IOException exception) {
+            log.warn("Failed to clean up backup temp file: {}", file, exception);
         }
     }
 }

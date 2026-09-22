@@ -115,6 +115,151 @@ Notification 是 `notifications`、preferences、delivery ledger 的唯一 write
 - [`../scripts/runbooks/owner-migration-manifest.sh`](../scripts/runbooks/owner-migration-manifest.sh)
 - [`../scripts/runbooks/owner-schema-contraction.sh`](../scripts/runbooks/owner-schema-contraction.sh)
 - [`../services/docs/CONTRACT_COMPAT_GATE.md`](../services/docs/CONTRACT_COMPAT_GATE.md)
+## 对象存储（RustFS）
+
+RustFS 是开发、测试、生产共同的必需基础设施，仓库不提供本地磁盘回退。应用在启动时校验
+`APP_STORAGE_S3_*`（endpoint、region、bucket、access key、secret key、TLS 开关），缺失即启动失败；
+随后在**上下文刷新期间**对 bucket 做有界重试探测（`APP_STORAGE_STARTUP_PROBE_*`，默认 30×2s），仍不可用则本次启动失败，
+且此时 HTTP 端口尚未对外服务；两个 owner 的 `/health/ready` 同时报告 `storage` 组件（`UP`/`DOWN`），
+不会在对象存储未经验证时返回就绪。任何情况下都不会静默改写本地目录。
+运行期请求若将共享状态标为 `DOWN`，后续 readiness 检查会异步合并一次有界 bucket 探测；探测成功前仍返回 503，避免健康检查风暴。
+
+### 桶、前缀与权限
+
+- 单一私有 bucket（默认 `ulticode`，`RUSTFS_BUCKET` 可覆盖），由一次性
+  `rustfs-init` 服务幂等创建；随后 `rustfs-iam-init` 用 bootstrap root pair
+  创建两个运行时用户。没有任何匿名读权限，也没有公开 bucket 策略。
+- App 用户只允许 `app/avatars/*`，Admin 用户允许 `app/avatars/*` 与
+  `admin/backups/*`；这两个运行时 pair 不能互换，root pair 只用于 bucket/IAM
+  bootstrap 和受控迁移。
+- `rustfs-iam-init` 可在同一持久卷上重复执行：已有用户走 `rc admin user passwd`，
+  新用户走 `rc admin user add`，随后启用并重新绑定策略；生产 HTTPS 通过
+  `RUSTFS_CA_BUNDLE` 显式传给 `rc alias set --ca-bundle`。
+- 头像前缀 `app/avatars/{accountId}/{uuid}.{ext}`：浏览器通过后端只读代理
+  `GET /api/users/avatars/{accountId}/{name}` 读取（允许匿名，与公开页面的头像展示一致；
+  只允许该前缀、且代理校验 key 语法与账号绑定，对象名为服务端 UUID，bucket 保持私有）。
+  替换头像时，旧对象的删除意图与 profile 更新在同一 App 事务写入
+  `app.storage_cleanup_outbox`，由 `StorageCleanupDispatcher` 持续退避重试（退避上限 1 小时，
+  幂等删除因此不会终止）；删除前复核该 key 已不是当前头像。
+- 备份前缀 `admin/backups/{yyyy}/{MM}/{backupId}.sql`：只能通过 `/admin/backups/**`
+  的 `ADMIN`/`SUPER_ADMIN` 端点下载与恢复。
+- 凭据来自 `.env`/部署密钥系统：`RUSTFS_ACCESS_KEY`/`RUSTFS_SECRET_KEY` 是
+  bootstrap root pair；`RUSTFS_APP_*` 和 `RUSTFS_ADMIN_*` 是 prefix-scoped
+  runtime pairs。禁止使用 RustFS 文档中的默认账号；生产不使用明文 HTTP，后端经
+  `https://rustfs:9000` 访问（只有 RustFS 容器挂载含私钥的 `RUSTFS_TLS_CERT_DIR` 目录；
+  其余服务仅挂载 `rustfs_cert.pem`，运行时读不到 TLS 私钥），证书目录由 `RUSTFS_TLS_CERT_DIR` 提供且证书/CA
+  需被后端 JVM 信任。
+- `.env.example` deliberately leaves all RustFS credentials empty; local development
+  must run `./scripts/dev/init-env.sh`, and production must provide operator-managed
+  secrets.
+
+
+### 卷、备份与恢复
+
+- 数据卷 `rustfs_data` 挂载到 `/data`，容器 UID/GID 为 `10001:10001`；容器重启后对象保留。
+- 卷级备份（示例，停止写入后执行）：
+
+```bash
+# Resolve the project-scoped volume by its Compose label and fail when the
+# result is empty or ambiguous (never guess with `head -1`).
+mapfile -t RUSTFS_VOLUMES < <(docker volume ls \
+  --filter label=com.docker.compose.volume=rustfs_data --format '{{.Name}}')
+if [[ ${#RUSTFS_VOLUMES[@]} -ne 1 ]]; then
+  echo "expected exactly one rustfs_data volume, found ${#RUSTFS_VOLUMES[@]}" >&2
+  exit 1
+fi
+docker run --rm -v "${RUSTFS_VOLUMES[0]}:/data:ro" -v "$PWD:/backup" alpine \
+  tar czf "/backup/rustfs-data-$(date +%Y%m%d_%H%M%S).tgz" -C /data .
+```
+
+  恢复时把归档解回同一卷（保持 `10001:10001` 属主），再启动 RustFS 并运行下面的 smoke test 确认对象可读。
+- 旧生产 Compose 的 named volume 也必须先纳入迁移：脚本会通过 Docker Compose volume
+  label（优先匹配 `COMPOSE_PROJECT_NAME`，无项目名时要求唯一匹配）解析
+  `AVATAR_UPLOAD_VOL`（默认 `app_uploads`）和 `BACKUP_VOLUME`（默认 `backup_data`）；
+  卷数据目录宿主可读时直接使用挂载点，否则（典型为仅有 Docker 组权限的部署用户）改用
+  固定镜像经 Docker daemon 探测卷布局，并按对象惰性提取到临时目录，无需 root。
+  头像卷兼容卷根、`uploads/avatars/` 和 `avatars/` 布局，备份卷读取卷根目录。
+  若 Docker 无法唯一解析 legacy volume（包括默认卷），脚本会 fail closed；也可用
+  `--legacy-avatar-dir` / `--legacy-backup-dir` 指向已审计的只读提取目录。源卷和旧文件始终不删除。
+  若历史上自定义过 `APP_STORAGE_PUBLIC_URL_PREFIX`（例如 `/media`），迁移脚本与部署门禁都要用同一个
+  `LEGACY_AVATAR_URL_PREFIX`（默认 `/uploads`）选行，否则这些行不会被迁移、门禁也不会拦住它们。
+- 头像迁移用原始 SQL 更新 `user_profiles.avatar`，不会自动产生
+  `SearchDocumentChanged` outbox 事件。只要本次 `--apply` 更新了头像行，脚本就会
+  输出 `search_backfill=required` 并以非零状态结束，不能把迁移报告为完成；backfill 必须用**新
+  artifact**执行（旧镜像的 projection 会把对象键原样写进搜索文档）：先在部署目录
+  `docker compose pull backend-app`，再用一次性任务
+  `docker compose run --rm -e APP_SEARCH_BACKFILL_ENABLED=true -e APP_SEARCH_BACKFILL_INDEXES=users backend-app`，
+  确认 runner 完成后再用
+  `--confirm-users-index-backfill`（或 `MIGRATION_SEARCH_BACKFILL_CONFIRMED=true`）
+  复核迁移结果。
+- 旧本地文件迁移用 `scripts/dev/migrate-object-storage.sh`：默认 dry-run；`--apply` 才上传；
+  上传后校验大小/checksum 并回读对象，校验通过后才更新数据库行（`user_profiles.avatar` 与
+  `backups.object_key`）；脚本从不删除旧文件，只有在迁移报告确认全部对象已校验后，operator 才可清理旧目录。
+  `--apply` 更新头像行时会在 `app.storage_migration_state` 记录“已重写、未确认索引”，直到带
+  `--confirm-users-index-backfill` 的确认运行才写入确认时间；部署门禁读取该记录，因此先放行
+  未重建用户索引的部署会被拒绝。
+- 生产 `host-deploy` 在 ordered owner migrations 之后、pull/`up` 之前执行
+  `scripts/runbooks/assert-legacy-objects-migrated.sh`：存在仍指向
+  `/uploads/avatars/...` 的 `app.user_profiles` 行、没有 `object_key` 的
+  `admin.backups` COMPLETED 行，或 `app.storage_migration_state` 中已重写但未确认的
+  头像回填记录时，动作 fail closed 并给出迁移命令；该门禁与迁移脚本
+  使用同一组行谓词，因此“门禁通过”等于“回填没有剩余目标”。只有显式回滚部署
+  （`cd-rollback.yml` 传入 `rollback: 'true'`，还原的是早于对象存储契约的产物）跳过该门禁；
+  跳过 Flyway 的普通部署（`skip_migrations=true`）仍会执行该门禁，缺少 migration 数据库凭据时
+  fail closed。
+- 生产 `host-deploy` 在 ordered owner migrations 之前验证完整的 deploy service
+  allowlist，并要求 migration subset 同时包含 `backend-admin` 与 `backend-app`
+  （对象键写入与头像读取路径随本次发布一起切换）；随后记录原有
+  `backend-admin` 容器 ID，使用已验证 image refs 执行 `docker compose stop`。
+  停止前先等待 `scripts/runbooks/assert-admin-backup-drained.sh` 通过（旧镜像没有 drain-aware
+  executor，直接 stop 会杀掉在跑的 `mysqldump`），超过 `ADMIN_BACKUP_DRAIN_TIMEOUT_SECONDS`
+  （默认 3660s）仍不通过就 fail closed；随后 `backend-admin` 使用独立的
+  `ADMIN_BACKUP_STOP_GRACE_PERIOD`（默认 3660s）和 `adminBackupExecutor` 排空旧 backup writer。
+  本次发布还会在迁移/门禁之前一并停止 `backend-app`：旧 App 到新镜像替换前仍会写
+  `/uploads/avatars/...` 行，门禁通过后再提交的行会指向不存在的对象。失败恢复会按记录
+  逐个 `docker start` 还原此前确实在运行的 `backend-admin` 与 `backend-app` 容器。
+  手工运行 migration 也必须先停止并排空所有旧 writer。
+- 排水或迁移前置检查失败时，动作只恢复此前确实运行的原容器；owner migration
+  一旦开始，动作保持 `backend-admin` 停止并 fail closed，不把旧 image 重新启动到
+  可能已部分迁移的 schema 上。应先检查 migration report，再按兼容 artifact 手工恢复。
+- 特权 `post-owner` migration `V20260921120000__Copy_Legacy_Backups_To_Admin.sql`
+  在对象回填前幂等地把旧 `ulticode.backups` 元数据复制到 `admin.backups`；
+  随后的 `scripts/runbooks/reconcile-legacy-backups.sh` 复制一次性 Flyway copy
+  之后出现且未被 `admin.backup_deletion_tombstones` 标记的 source rows；删除备份
+  时先在 Admin 事务内持久化 tombstone（并记录该行的 `object_key`），避免后续
+  reconciliation 复活已删除目标；提交后立即尝试删除对象，失败时
+  `BackupObjectCleanup` 的定时 sweep 依据 tombstone 重试（对象删除幂等，成功后写
+  `object_deleted_at`）。
+  Runbook 仍拒绝 metadata conflict 和 pre-cutover target-only rows，并在 parity
+  通过后写入 `admin.backup_cutover_state`。Owner-scoped 的 Admin migration 只负责
+  创建/修复目标表；迁移不会删除旧行或旧文件。
+- For an internal production endpoint such as `https://rustfs:9000`, the migration script's Docker
+  AWS CLI joins `${COMPOSE_PROJECT_NAME:-ulticode}_object-storage`; set `MIGRATION_DOCKER_NETWORK`
+  when the Compose project uses a different network. Host AWS CLI mode is intentionally limited to
+  loopback endpoints.
+- **部署顺序要求**：升级到本版本后，尚未迁移的旧头像与旧备份在对象上传前不可用（下载/恢复返回明确的
+  NOT_FOUND，不会回退本地文件）。请在切换后立即执行迁移（先 dry-run 核对计划，再 `--apply`），并核对
+  `MIGRATION_SUMMARY` 全部通过后再对外确认头像与备份功能；迁移脚本幂等，可重复执行。
+  `host-deploy` 已把该回填作为 pull/`up` 之前的门禁，因此首次升级应在部署中断后按提示完成迁移再重跑部署，
+  而不是先放行新 App。
+- RustFS 不可用时：应用启动失败（或既有实例在请求路径上返回明确的存储错误），备份/恢复不会标记成功，
+  也不会回退到本地永久目录。
+- Admin 上传头像的对象键与清理意图：App 拒绝或不可达时对象会被删除，删除失败则记入
+  `admin.storage_cleanup_outbox` 并由 `AdminStorageCleanup` 定时 sweep 幂等重试，避免 App 不可用期间
+  每次重试都泄漏一个对象；RPC 结果未知（post-dispatch 超时）的对象以 `verify_owner_reference` 记录，
+  sweep 先向 App 查询当前头像，仍被引用则保留（`kept_at`），确认未被引用才删除，App 不可达时继续挂起；
+  该判定只在意图超过 `admin.storage-cleanup.owner-check-grace-seconds`（默认 900s，长于 RPC 超时与
+  数据库锁等待）后执行，避免 Dubbo 超时但 provider 事务随后才提交时的误删。
+- 头像清理意图不会因存储长时间不可用而终止：`StorageCleanupDispatcher` 只增退避（上限 1 小时）地重试，
+  并把历史 `DEAD` 行重新排入队列。
+
+### 参考
+
+- [`../scripts/dev/migrate-object-storage.sh`](../scripts/dev/migrate-object-storage.sh)
+- [`../scripts/dev/rustfs-smoke-test.sh`](../scripts/dev/rustfs-smoke-test.sh)
+- [`../docker/docker-compose.yml`](../docker/docker-compose.yml)（`rustfs` /
+  `rustfs-init` / `rustfs-iam-init` 服务）
+
 ## 备份与恢复
 
 ### 责任与范围

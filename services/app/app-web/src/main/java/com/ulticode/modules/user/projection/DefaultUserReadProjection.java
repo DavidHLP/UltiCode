@@ -19,6 +19,7 @@ import com.ulticode.modules.user.dto.ProfileVO;
 import com.ulticode.modules.user.dto.UserSkillsDTO;
 import com.ulticode.modules.user.dto.UserStatsDTO;
 import com.ulticode.modules.user.dto.UserVO;
+import com.ulticode.modules.user.port.AvatarUrls;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
@@ -227,7 +228,7 @@ public class DefaultUserReadProjection implements UserReadProjection {
         vo.setUsername(user.username());
         vo.setName(user.name());
         vo.setEmail(user.email());
-        vo.setAvatar(user.avatar());
+        vo.setAvatar(AvatarUrls.resolve(user.id(), user.avatar()));
         vo.setBio(user.bio());
         vo.setCompany(user.company());
         vo.setGithub(user.github());
@@ -258,7 +259,7 @@ public class DefaultUserReadProjection implements UserReadProjection {
         vo.setId(user.id());
         vo.setUsername(user.username());
         vo.setName(user.name());
-        vo.setAvatar(user.avatar());
+        vo.setAvatar(AvatarUrls.resolve(user.id(), user.avatar()));
         vo.setBio(user.bio());
         vo.setCompany(user.company());
         vo.setGithub(user.github());

@@ -69,6 +69,38 @@ CREATE DATABASE app CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE DATABASE ulticode CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE DATABASE submission CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE TABLE admin.audit_outbox (id VARCHAR(40) NOT NULL PRIMARY KEY, action VARCHAR(64) NOT NULL);
+CREATE TABLE ulticode.backups (
+  id VARCHAR(40) NOT NULL PRIMARY KEY,
+  filename VARCHAR(255) NOT NULL,
+  size BIGINT NOT NULL,
+  type ENUM('FULL', 'INCREMENTAL') NOT NULL,
+  status ENUM('PENDING', 'IN_PROGRESS', 'COMPLETED', 'FAILED') NOT NULL,
+  created_by VARCHAR(40) NOT NULL,
+  created_at DATETIME(3) NOT NULL,
+  completed_at DATETIME(3) NULL,
+  metadata JSON NULL,
+  error TEXT NULL
+);
+CREATE TABLE admin.backups (
+  id VARCHAR(40) NOT NULL PRIMARY KEY,
+  filename VARCHAR(255) NOT NULL,
+  size BIGINT NOT NULL,
+  type ENUM('FULL', 'INCREMENTAL') NOT NULL,
+  status ENUM('PENDING', 'IN_PROGRESS', 'COMPLETED', 'FAILED') NOT NULL,
+  created_by VARCHAR(40) NOT NULL,
+  created_at DATETIME(3) NOT NULL,
+  completed_at DATETIME(3) NULL,
+  metadata JSON NULL,
+  error TEXT NULL,
+  object_key VARCHAR(512) NULL,
+  checksum VARCHAR(128) NULL
+);
+INSERT INTO ulticode.backups
+  (id, filename, size, type, status, created_by, created_at, completed_at, metadata, error)
+VALUES
+  ('legacy-initial', 'legacy-initial.sql', 12, 'FULL', 'COMPLETED',
+   'system', '2026-09-21 12:00:00.000', '2026-09-21 12:01:00.000',
+   JSON_OBJECT('source', 'legacy'), NULL);
 CREATE USER 'auth_rw'@'%' IDENTIFIED BY '$RUNTIME_PASSWORD';
 CREATE USER 'app_rw'@'%' IDENTIFIED BY '$RUNTIME_PASSWORD';
 CREATE USER 'migration_missing'@'%' IDENTIFIED BY '$MIGRATION_PASSWORD';
@@ -121,6 +153,130 @@ grep -q 'BUILD SUCCESS' "$TEST_DIR/migrate-post-owner.log"
 POST_OWNER_GRANTS="$(mysql_root -N -B -e "SELECT COUNT(*) FROM information_schema.table_privileges WHERE GRANTEE IN (CONCAT(CHAR(39),'auth_rw',CHAR(39),'@',CHAR(39),'%',CHAR(39)),CONCAT(CHAR(39),'app_rw',CHAR(39),'@',CHAR(39),'%',CHAR(39))) AND TABLE_SCHEMA='admin' AND TABLE_NAME='audit_outbox' AND PRIVILEGE_TYPE='INSERT';")"
 [[ "$POST_OWNER_GRANTS" == "0" ]]
 printf 'post-owner cross-grant cleanup: PASS\n'
+
+LEGACY_INITIAL_COUNT="$(mysql_root -N -B -e "SELECT COUNT(*) FROM admin.backups WHERE id='legacy-initial';")"
+[[ "$LEGACY_INITIAL_COUNT" == "1" ]]
+printf 'initial legacy backup copy/parity: PASS\n'
+
+mysql_root -e "
+UPDATE admin.backup_cutover_state SET cutover_completed_at=NULL WHERE id=1;
+INSERT INTO admin.backups
+  (id, filename, object_key, size, checksum, type, status, created_by,
+   created_at, completed_at, metadata, error)
+VALUES
+  ('legacy-target-extra', 'legacy-target-extra.sql', NULL, 14, NULL, 'FULL',
+   'COMPLETED', 'system', '2026-09-21 12:04:00.000', NULL,
+   JSON_OBJECT('source', 'admin-only'), NULL);"
+if env ENV_FILE="$TEST_ENV" \
+  MIGRATION_DB_HOST=127.0.0.1 MIGRATION_DB_PORT="$MYSQL_TEST_PORT" \
+  MIGRATION_DB_NAME=ulticode MIGRATION_DB_USER=root \
+  MIGRATION_DB_PASSWORD="$ROOT_PASSWORD" \
+  bash "$ROOT_DIR/scripts/runbooks/reconcile-legacy-backups.sh" \
+  >"$TEST_DIR/reconcile-target-extra.log" 2>&1; then
+  echo 'pre-cutover target-extra gate unexpectedly passed' >&2
+  exit 1
+fi
+grep -q 'pre_cutover_target_extra=1' "$TEST_DIR/reconcile-target-extra.log"
+mysql_root -e "DELETE FROM admin.backups WHERE id='legacy-target-extra';"
+env ENV_FILE="$TEST_ENV" \
+  MIGRATION_DB_HOST=127.0.0.1 MIGRATION_DB_PORT="$MYSQL_TEST_PORT" \
+  MIGRATION_DB_NAME=ulticode MIGRATION_DB_USER=root \
+  MIGRATION_DB_PASSWORD="$ROOT_PASSWORD" \
+  bash "$ROOT_DIR/scripts/runbooks/reconcile-legacy-backups.sh" \
+  >"$TEST_DIR/reconcile-after-extra.log" 2>&1
+grep -q 'status=PASS' "$TEST_DIR/reconcile-after-extra.log"
+printf 'pre-cutover target-extra gate: PASS\n'
+
+mysql_root -e "
+INSERT INTO ulticode.backups
+  (id, filename, size, type, status, created_by, created_at, completed_at, metadata, error)
+VALUES
+  ('legacy-late', 'legacy-late.sql', 13, 'FULL', 'COMPLETED',
+   'system', '2026-09-21 12:02:00.000', '2026-09-21 12:03:00.000',
+   JSON_OBJECT('source', 'legacy'), NULL);"
+env ENV_FILE="$TEST_ENV" \
+  MIGRATION_DB_HOST=127.0.0.1 MIGRATION_DB_PORT="$MYSQL_TEST_PORT" \
+  MIGRATION_DB_NAME=ulticode MIGRATION_DB_USER=root \
+  MIGRATION_DB_PASSWORD="$ROOT_PASSWORD" \
+  bash "$ROOT_DIR/scripts/runbooks/reconcile-legacy-backups.sh" \
+  >"$TEST_DIR/reconcile-late.log" 2>&1
+grep -q 'status=PASS' "$TEST_DIR/reconcile-late.log"
+LATE_COUNT="$(mysql_root -N -B -e "SELECT COUNT(*) FROM admin.backups WHERE id='legacy-late';")"
+[[ "$LATE_COUNT" == "1" ]]
+printf 'late legacy backup reconciliation: PASS\n'
+
+mysql_root -e "UPDATE ulticode.backups SET filename='legacy-conflict.sql' WHERE id='legacy-initial';"
+if env ENV_FILE="$TEST_ENV" \
+  MIGRATION_DB_HOST=127.0.0.1 MIGRATION_DB_PORT="$MYSQL_TEST_PORT" \
+  MIGRATION_DB_NAME=ulticode MIGRATION_DB_USER=root \
+  MIGRATION_DB_PASSWORD="$ROOT_PASSWORD" \
+  bash "$ROOT_DIR/scripts/runbooks/reconcile-legacy-backups.sh" \
+  >"$TEST_DIR/reconcile-conflict.log" 2>&1; then
+  echo 'legacy backup mismatch gate unexpectedly passed' >&2
+  exit 1
+fi
+grep -q 'metadata_mismatch=' "$TEST_DIR/reconcile-conflict.log"
+mysql_root -e "UPDATE ulticode.backups SET filename='legacy-initial.sql' WHERE id='legacy-initial';"
+printf 'legacy backup mismatch gate: PASS\n'
+
+mysql_root -e "
+ALTER TABLE ulticode.backups
+  ADD COLUMN object_key VARCHAR(512) NULL,
+  ADD COLUMN checksum VARCHAR(128) NULL;
+UPDATE ulticode.backups
+   SET object_key='legacy/object.sql', checksum='legacy-checksum'
+ WHERE id='legacy-initial';"
+if env ENV_FILE="$TEST_ENV" \
+  MIGRATION_DB_HOST=127.0.0.1 MIGRATION_DB_PORT="$MYSQL_TEST_PORT" \
+  MIGRATION_DB_NAME=ulticode MIGRATION_DB_USER=root \
+  MIGRATION_DB_PASSWORD="$ROOT_PASSWORD" \
+  bash "$ROOT_DIR/scripts/runbooks/reconcile-legacy-backups.sh" \
+  >"$TEST_DIR/reconcile-object-fields.log" 2>&1; then
+  echo 'object-field parity gate unexpectedly passed' >&2
+  exit 1
+fi
+grep -q 'metadata_mismatch=' "$TEST_DIR/reconcile-object-fields.log"
+mysql_root -e "UPDATE admin.backups
+  SET object_key='legacy/object.sql', checksum='legacy-checksum'
+  WHERE id='legacy-initial';"
+env ENV_FILE="$TEST_ENV" \
+  MIGRATION_DB_HOST=127.0.0.1 MIGRATION_DB_PORT="$MYSQL_TEST_PORT" \
+  MIGRATION_DB_NAME=ulticode MIGRATION_DB_USER=root \
+  MIGRATION_DB_PASSWORD="$ROOT_PASSWORD" \
+  bash "$ROOT_DIR/scripts/runbooks/reconcile-legacy-backups.sh" \
+  >"$TEST_DIR/reconcile-object-fields-fixed.log" 2>&1
+grep -q 'status=PASS' "$TEST_DIR/reconcile-object-fields-fixed.log"
+printf 'legacy object-field parity gate: PASS\n'
+
+mysql_root -e "
+UPDATE admin.backups
+   SET metadata = JSON_SET(COALESCE(metadata, JSON_OBJECT()),
+       '\$.lastRestoredAt', '2026-09-21T12:05:00',
+       '\$.lastRestoredBy', 'admin-1')
+ WHERE id='legacy-initial';"
+env ENV_FILE="$TEST_ENV" \
+  MIGRATION_DB_HOST=127.0.0.1 MIGRATION_DB_PORT="$MYSQL_TEST_PORT" \
+  MIGRATION_DB_NAME=ulticode MIGRATION_DB_USER=root \
+  MIGRATION_DB_PASSWORD="$ROOT_PASSWORD" \
+  bash "$ROOT_DIR/scripts/runbooks/reconcile-legacy-backups.sh" \
+  >"$TEST_DIR/reconcile-restored-metadata.log" 2>&1
+grep -q 'status=PASS' "$TEST_DIR/reconcile-restored-metadata.log"
+printf 'post-cutover restore metadata parity: PASS\n'
+
+mysql_root -e "
+DELETE FROM admin.backups WHERE id='legacy-initial';
+INSERT INTO admin.backup_deletion_tombstones (backup_id)
+VALUES ('legacy-initial');"
+env ENV_FILE="$TEST_ENV" \
+  MIGRATION_DB_HOST=127.0.0.1 MIGRATION_DB_PORT="$MYSQL_TEST_PORT" \
+  MIGRATION_DB_NAME=ulticode MIGRATION_DB_USER=root \
+  MIGRATION_DB_PASSWORD="$ROOT_PASSWORD" \
+  bash "$ROOT_DIR/scripts/runbooks/reconcile-legacy-backups.sh" \
+  >"$TEST_DIR/reconcile-deleted-backup.log" 2>&1
+grep -q 'status=PASS' "$TEST_DIR/reconcile-deleted-backup.log"
+DELETED_BACKUP_COUNT="$(mysql_root -N -B -e "SELECT COUNT(*) FROM admin.backups WHERE id='legacy-initial';")"
+[[ "$DELETED_BACKUP_COUNT" == "0" ]]
+printf 'post-cutover deletion tombstone: PASS\n'
 
 mysql_root -e "
 CREATE TABLE ulticode.users LIKE auth.users;

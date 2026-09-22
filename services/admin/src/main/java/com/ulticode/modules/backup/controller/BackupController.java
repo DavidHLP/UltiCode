@@ -14,7 +14,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -22,7 +22,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.File;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 
@@ -75,16 +74,29 @@ public class BackupController {
     @GetMapping("/{id}/download")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<Resource> downloadBackup(@PathVariable String id) {
-        File file = backupService.getBackupFile(id);
-
-        Resource resource = new FileSystemResource(file);
-        String encodedFilename = URLEncoder.encode(file.getName(), StandardCharsets.UTF_8)
+        BackupService.BackupDownload download = backupService.getBackupFile(id);
+        String encodedFilename = URLEncoder.encode(download.filename(), StandardCharsets.UTF_8)
                 .replace("+", "%20");
+        MediaType contentType = mediaType(download.contentType());
+        ResponseEntity.BodyBuilder response = ResponseEntity.ok()
+                .contentType(contentType)
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename*=UTF-8''" + encodedFilename);
+        if (download.contentLength() >= 0) {
+            response.contentLength(download.contentLength());
+        }
+        return response.body(new InputStreamResource(download.content()));
+    }
 
-        return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename*=UTF-8''" + encodedFilename)
-                .body(resource);
+    private static MediaType mediaType(String contentType) {
+        if (contentType == null || contentType.isBlank()) {
+            return MediaType.APPLICATION_OCTET_STREAM;
+        }
+        try {
+            return MediaType.parseMediaType(contentType);
+        } catch (IllegalArgumentException exception) {
+            return MediaType.APPLICATION_OCTET_STREAM;
+        }
     }
 
     @Operation(summary = "从备份恢复")

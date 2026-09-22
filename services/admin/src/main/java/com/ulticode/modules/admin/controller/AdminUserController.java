@@ -24,8 +24,10 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -71,6 +73,16 @@ public class AdminUserController {
             @PathVariable String id,
             @Valid @RequestBody AdminUpdateUserDTO dto) {
         return Result.success(userManagementService.updateUser(id, dto));
+    }
+
+    @Operation(summary = "Upload user avatar")
+    @RateLimit(key = "admin:user-avatar-upload", limit = 30, period = 60)
+    @PostMapping(value = "/{id}/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public Result<String> uploadAvatar(
+            @PathVariable String id,
+            @RequestPart("file") MultipartFile file) {
+        return Result.success(userManagementService.uploadAvatar(id, file));
     }
 
     @Operation(summary = "Delete user", description = "Delete a user account")

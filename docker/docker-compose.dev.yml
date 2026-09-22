@@ -14,6 +14,13 @@ services:
       - "127.0.0.1:${NACOS_PORT:-28848}:8848"
       - "127.0.0.1:${NACOS_GRPC_PORT:-29848}:9848"
 
+  rustfs:
+    # Host-run PM2 backends use the loopback S3 endpoint; browsers must never
+    # be pointed at the container DNS name. Keep both RustFS listeners loopback-only.
+    ports:
+      - "127.0.0.1:${RUSTFS_API_PORT:-9000}:9000"
+      - "127.0.0.1:${RUSTFS_CONSOLE_PORT:-9001}:9001"
+
 networks:
   sql:
     internal: false

@@ -23,6 +23,20 @@ app:
     use-generation-fence: true
     judge-queue:
       use-port: true
+  storage:
+    type: s3
+    s3:
+      endpoint: http://localhost:9000
+      region: us-east-1
+      bucket: test
+      access-key: test-access
+      secret-key: test-secret
+      tls-enabled: false
+    startup-probe:
+      enabled: false
+    cleanup:
+      dispatcher:
+        enabled: false
 
 dubbo:
   application:

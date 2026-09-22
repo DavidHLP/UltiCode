@@ -1,10 +1,15 @@
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useAuthStore } from "@/stores/auth";
 import { fetchUserProfile, updateMyProfile, type ProfileData } from "@/api/user";
 import { toast } from "vue-sonner";
 import { Loader2 } from "lucide-vue-next";
+import { useAvatar } from "@/composables/useAvatar";
+import {
+  isAvatarUploadSessionCurrent,
+  useAvatarUpload,
+} from "@/composables/useAvatarUpload";
 import {
   Card,
   CardContent,
@@ -20,10 +25,18 @@ import { Textarea } from "@/components/ui/textarea";
 import { Globe, Github, Lock, Mail, MapPin, Twitter } from "lucide-vue-next";
 
 const { t } = useI18n();
+const authStore = useAuthStore();
 const loading = ref(true);
 const saving = ref(false);
 const user = ref<ProfileData | null>(null);
-
+const avatarInput = ref<HTMLInputElement | null>(null);
+const avatarError = ref("");
+const { uploading: avatarUploading, progress: avatarProgress, upload: uploadAvatar } =
+  useAvatarUpload();
+const { normalizedAvatar } = useAvatar(
+  computed(() => user.value?.username),
+  computed(() => user.value?.avatar),
+);
 const saveProfile = async () => {
   if (!user.value) return;
   saving.value = true;
@@ -48,9 +61,32 @@ const saveProfile = async () => {
   }
 };
 
+async function handleAvatarChange(event: Event) {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  input.value = "";
+  if (!file || !user.value) return;
+  const accountId = user.value.id;
+
+  avatarError.value = "";
+  try {
+    const avatar = await uploadAvatar(file);
+    if (!isAvatarUploadSessionCurrent(accountId, user.value?.id, authStore.fetchCurrentUserId())) return;
+    user.value = { ...user.value, avatar };
+    authStore.setUserAvatar(avatar);
+    toast.success(t("personal.profile.avatarUpdated"));
+  } catch (error) {
+    avatarError.value =
+      error instanceof Error
+        ? error.message
+        : t("personal.profile.avatarUploadFailed");
+    toast.error(avatarError.value);
+  }
+}
+
 onMounted(async () => {
   try {
-    const userId = useAuthStore().fetchCurrentUserId();
+    const userId = authStore.fetchCurrentUserId();
     if (!userId) return;
     user.value = await fetchUserProfile(userId);
   } catch (error) {
@@ -89,6 +125,48 @@ onMounted(async () => {
             {{ t("personal.account.sections.publicProfileDesc") }}
           </CardDescription>
         </CardHeader>
+        <div class="flex flex-wrap items-center gap-4 border-b px-6 py-4">
+          <img
+            :src="normalizedAvatar"
+            :alt="t('personal.profile.avatar')"
+            class="h-16 w-16 rounded-full border object-cover"
+          />
+          <div class="min-w-0 flex-1 space-y-1">
+            <p class="text-sm font-medium">{{ t("personal.profile.avatar") }}</p>
+            <p class="text-xs text-muted-foreground">
+              {{ t("personal.profile.avatarUploadHint") }}
+            </p>
+            <p
+              v-if="avatarUploading"
+              role="status"
+              aria-live="polite"
+              class="text-xs text-muted-foreground"
+            >
+              {{ t("personal.profile.avatarUploading", { progress: avatarProgress }) }}
+            </p>
+            <p v-if="avatarError" role="alert" class="text-xs text-destructive">
+              {{ avatarError }}
+            </p>
+          </div>
+          <input
+            ref="avatarInput"
+            type="file"
+            accept=".jpg,.jpeg,.png,.gif,.webp"
+            class="sr-only"
+            :disabled="avatarUploading || saving"
+            :aria-label="t('personal.profile.changeAvatar')"
+            @change="handleAvatarChange"
+          />
+          <Button
+            type="button"
+            variant="outline"
+            :disabled="avatarUploading || saving"
+            @click="avatarInput?.click()"
+          >
+            <Loader2 v-if="avatarUploading" class="mr-2 h-4 w-4 animate-spin" />
+            {{ t("personal.profile.changeAvatar") }}
+          </Button>
+        </div>
         <CardContent class="space-y-6">
           <div class="grid gap-6 md:grid-cols-2">
             <div class="space-y-2">
@@ -244,7 +322,7 @@ onMounted(async () => {
         <CardFooter class="bg-muted/5 border-t justify-end py-4">
           <Button
             @click="saveProfile"
-            :disabled="saving"
+            :disabled="saving || avatarUploading"
             class="rounded-none px-8"
           >
             <Loader2 v-if="saving" class="mr-2 h-4 w-4 animate-spin" />

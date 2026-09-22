@@ -1,4 +1,4 @@
-import { apiGet, apiPatch } from '@/utils/request'
+import { apiGet, apiPatch, apiUpload } from '@/utils/request'
 import type { UserStats, UserSkills } from '@/types/userStats'
 import { decodeProfile } from '@/api/projection'
 
@@ -68,6 +68,13 @@ export async function updateMyProfile(
   data: Partial<UserProfile>,
 ): Promise<ProfileData> {
   return decodeProfile(await apiPatch<unknown>('/users/me', data))
+}
+
+export async function uploadMyAvatar(
+  file: File,
+  onProgress?: (progress: number) => void,
+): Promise<string> {
+  return apiUpload<string>('/users/me/avatar', file, onProgress, { retry: 0 })
 }
 
 export async function changePassword(data: {

@@ -128,21 +128,21 @@ assert_scope_rejected() {
   "ulticode-app,ulticode-submission,ulticode-judge" ]]
 [[ "$(devstack_apps_for_scope search)" == \
   "ulticode-auth,ulticode-app,ulticode-search,ulticode-9002" ]]
-[[ "$(devstack_infra_for_scope dev-lite)" == "mysql,redis,nacos" ]]
-[[ "$(devstack_infra_for_scope app-journey)" == "mysql,redis,nacos" ]]
-[[ "$(devstack_infra_for_scope admin)" == "mysql,redis,nacos" ]]
-[[ "$(devstack_infra_for_scope core)" == "mysql,redis,nacos,meilisearch" ]]
-[[ "$(devstack_infra_for_scope submission-judge)" == "mysql,redis,nacos" ]]
-[[ "$(devstack_infra_for_scope search)" == "mysql,redis,nacos,meilisearch" ]]
-[[ "$(devstack_infra_for_scope full-stack)" == "mysql,redis,nacos,meilisearch" ]]
+[[ "$(devstack_infra_for_scope dev-lite)" == "mysql,redis,nacos,rustfs" ]]
+[[ "$(devstack_infra_for_scope app-journey)" == "mysql,redis,nacos,rustfs" ]]
+[[ "$(devstack_infra_for_scope admin)" == "mysql,redis,nacos,rustfs" ]]
+[[ "$(devstack_infra_for_scope core)" == "mysql,redis,nacos,rustfs,meilisearch" ]]
+[[ "$(devstack_infra_for_scope submission-judge)" == "mysql,redis,nacos,rustfs" ]]
+[[ "$(devstack_infra_for_scope search)" == "mysql,redis,nacos,rustfs,meilisearch" ]]
+[[ "$(devstack_infra_for_scope full-stack)" == "mysql,redis,nacos,rustfs,meilisearch" ]]
 [[ "$(devstack_infra_for_selection dev-lite ulticode-auth,ulticode-app)" == \
-  "mysql,redis,nacos" ]]
+  "mysql,redis,nacos,rustfs" ]]
 [[ "$(devstack_infra_for_selection dev-full ulticode-auth,ulticode-app)" == \
-  "mysql,redis,nacos" ]]
+  "mysql,redis,nacos,rustfs" ]]
 [[ "$(devstack_infra_for_selection dev-full ulticode-search)" == \
-  "mysql,redis,nacos,meilisearch" ]]
+  "mysql,redis,nacos,rustfs,meilisearch" ]]
 [[ "$(devstack_infra_for_selection dev-full ulticode-auth,ulticode-app true)" == \
-  "mysql,redis,nacos,otel-collector,prometheus,alertmanager,tempo,loki,grafana" ]]
+  "mysql,redis,nacos,rustfs,otel-collector,prometheus,alertmanager,tempo,loki,grafana" ]]
 assert_scope_rejected dev-lite ulticode-search
 assert_scope_rejected admin ulticode-judge
 assert_scope_rejected submission-judge ulticode-admin
@@ -151,7 +151,7 @@ assert_scope_rejected unknown ulticode-auth
 resolved_scope="$(devstack_resolve_scope full-stack)"
 [[ "${resolved_scope%%$'\n'*}" == "scope=full-stack" ]]
 [[ "$resolved_scope" == *$'apps=ulticode-auth,ulticode-admin,ulticode-app,ulticode-submission,ulticode-notification,ulticode-judge,ulticode-search,ulticode-9002,ulticode-9003\n'* ]]
-[[ "$resolved_scope" == *$'infra=mysql,redis,nacos,meilisearch\n'* ]]
+[[ "$resolved_scope" == *$'infra=mysql,redis,nacos,rustfs,meilisearch\n'* ]]
 [[ "$resolved_scope" == *'features=search=on;meili=on;judge=on;notification=on;frontend=console,management;observability=off' ]]
 [[ "$(devstack_scope_features core)" == 'search=on;meili=on;judge=on;notification=on;frontend=off;observability=off' ]]
 mapfile -t full_readiness < <(devstack_readiness_for_scope full-stack)
@@ -181,6 +181,26 @@ assert_file_contains services/judge/src/main/resources/application.yml 'use-port
 assert_file_contains services/app/app-web/src/main/resources/application.yml 'mode: ${APP_SEARCH_READ_MODE:database}'
 assert_file_contains services/app/app-web/src/main/resources/application.yml 'fallback-to-database: ${APP_SEARCH_FALLBACK_TO_DATABASE:false}'
 assert_file_contains .env.example 'APP_SUBMISSION_ROUTING_MODE=remote'
+grep -Fxq 'RUSTFS_ACCESS_KEY=' "$ROOT_DIR/.env.example"
+grep -Fxq 'RUSTFS_SECRET_KEY=' "$ROOT_DIR/.env.example"
+grep -Fxq 'RUSTFS_APP_ACCESS_KEY=' "$ROOT_DIR/.env.example"
+grep -Fxq 'RUSTFS_APP_SECRET_KEY=' "$ROOT_DIR/.env.example"
+grep -Fxq 'RUSTFS_ADMIN_ACCESS_KEY=' "$ROOT_DIR/.env.example"
+grep -Fxq 'RUSTFS_ADMIN_SECRET_KEY=' "$ROOT_DIR/.env.example"
+grep -Fxq 'APP_STORAGE_S3_ACCESS_KEY=' "$ROOT_DIR/.env.example"
+grep -Fxq 'APP_STORAGE_S3_SECRET_KEY=' "$ROOT_DIR/.env.example"
+assert_file_contains docker/docker-compose.yml 'rustfs-iam-init'
+assert_file_contains docker/docker-compose.yml 'app/avatars'
+assert_file_contains docker/docker-compose.yml 'admin/backups'
+assert_file_contains docker/docker-compose.prod.yml 'RUSTFS_APP_ACCESS_KEY'
+assert_file_contains docker/docker-compose.prod.yml 'RUSTFS_CA_BUNDLE: /certs/rustfs_cert.pem'
+assert_file_contains docker/docker-compose.yml '--ca-bundle "$$RUSTFS_CA_BUNDLE"'
+assert_file_contains docker/docker-compose.yml 'rc admin user passwd'
+assert_file_contains scripts/dev/rustfs-smoke-test.sh 'printf smoke-body >/tmp/smoke-body'
+assert_file_contains scripts/dev/rustfs-smoke-test.sh 'reapplying RustFS IAM configuration'
+assert_file_contains scripts/dev/up.sh 'rustfs-iam-init'
+assert_file_contains scripts/dev/rustfs-smoke-test.sh '--user "10001:10001"'
+assert_file_contains scripts/dev/rustfs-smoke-test.sh 'RustFS IAM prefix scope: PASS'
 assert_file_contains scripts/dev/init-env.sh 'APP_SUBMISSION_ROUTING_MODE=remote'
 assert_file_contains scripts/dev/up.sh 'source "$ROOT_DIR/scripts/dev/devstack-manifest.sh"'
 assert_file_contains ecosystem.config.cjs "APP_FEATURES_CONTEST_DUBBO_CUTOVER: process.env.APP_FEATURES_CONTEST_DUBBO_CUTOVER || 'true'"

@@ -1,6 +1,7 @@
 package com.ulticode.modules.search.source;
 
 import com.ulticode.common.event.SearchDocumentChangedEventContract;
+import com.ulticode.modules.user.port.AvatarUrls;
 import com.ulticode.modules.problem.port.ProblemSearchReadPort;
 import com.ulticode.modules.event.outbox.IntegrationEventPublisher;
 import com.ulticode.modules.problem.entity.Problem;
@@ -101,7 +102,8 @@ public class SearchDocumentChangedPublisher {
         }
         publishForOwner(SearchDocumentChangedEventContract.AUTH_PUBLISHER,
                 SearchDocumentChangedEventContract.USERS_INDEX, aggregateId,
-                upsert ? SearchDocumentBuilders.user(aggregateId, username, name, avatar) : null,
+                upsert ? SearchDocumentBuilders.user(aggregateId, username, name,
+                        AvatarUrls.resolve(aggregateId, avatar)) : null,
                 clock.instant().toEpochMilli());
     }
 

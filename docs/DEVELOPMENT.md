@@ -130,10 +130,36 @@ dependabot-core 当作 support file 丢弃，PR 只改 manifest，必然过不�
 
 ### Optional external Adapters
 
-- `FileStoragePort` 默认使用 `LocalStorage`；S3-compatible/R2 通过
-  `APP_STORAGE_TYPE=s3`、endpoint、bucket 和 secret-store credentials
-  开启。远程 HTTP endpoint 总是拒绝；HTTP 仅允许 loopback 本地开发，
-  `APP_STORAGE_S3_TLS_ENABLED=true` 时任何 HTTP endpoint 都拒绝。
+- 对象存储是所有环境的必需依赖：`FileStoragePort` 只有 S3/RustFS 实现，
+  `LocalStorage`、`APP_STORAGE_TYPE=local`、dev-lite 本地文件回退和运行时切换都已删除。
+  RustFS 由 `docker/docker-compose.yml` 的 `rustfs` 服务提供，数据落在独立卷
+  `rustfs_data`，容器以 `10001:10001` 运行。开发环境把 API/Console 发布到 loopback
+  （默认 `127.0.0.1:9000`/`9001`，仅宿主机后端与人工排查使用），宿主机 PM2 后端用
+  `APP_STORAGE_S3_ENDPOINT=http://127.0.0.1:9000` + `APP_STORAGE_S3_TLS_ENABLED=false`；
+  生产后端在内部网络用 `https://rustfs:9000` + operator 提供的 `RUSTFS_TLS_CERT_DIR`
+  （`rustfs_cert.pem`/`rustfs_key.pem`，证书/CA 必须被后端 JVM 信任），且不发布任何端口。
+  只有 RustFS 容器挂载整个目录（服务端需要私钥）；`rustfs-init`、`rustfs-iam-init` 与
+  backend-admin/backend-app 仅挂载 `rustfs_cert.pem`，运行时无法读到 TLS 私钥。
+  缺失 endpoint、region、bucket、access key、secret key 或 TLS 配置时应用启动失败，绝不回退本地磁盘；
+  非 loopback 明文 HTTP 仍然拒绝。配置齐备后还会在**上下文刷新期间**（HTTP 端口对外服务之前）对 bucket 做
+  有界重试探测，失败即本次启动失败；`/health/ready` 报告 `storage` 组件，未经验证不会返回就绪。
+  bucket 由一次性 `rustfs-init` 服务幂等创建，随后 `rustfs-iam-init` 创建 prefix-scoped
+  App/Admin 用户；`APP_STORAGE_S3_*` 默认使用 App pair，PM2 的 Admin 进程显式使用
+  Admin pair。凭据只来自 `.env`/部署密钥系统，不使用 RustFS 默认账号。
+- 对象布局与读取策略：头像 `app/avatars/{accountId}/{uuid}.{ext}`（key 全部由服务端生成，
+  扩展名来自内容嗅探而不是原始文件名），备份 `admin/backups/{yyyy}/{MM}/{backupId}.sql`。
+  bucket 保持私有：浏览器只通过后端只读代理 `GET /api/users/avatars/{accountId}/{name}`
+  读取头像（允许匿名；代理校验 key 语法与账号绑定，对象名为服务端 UUID），备份只通过 `/admin/backups/**` 鉴权端点下载；数据库保存 object key，
+  不保存带环境地址的完整 URL。通用资料更新（HTTP `PATCH /users/me` 与 Dubbo
+  `UpdateProfileCommand`）不接受指向 object store 的 avatar 值：这类 key 的清理意图可能已入队，
+  只有头像上传端点能让一个 key 成为当前值。
+- 旧本地文件（`uploads/avatars/*`、旧 `BACKUP_DIR/backup_*.sql`）用
+  `scripts/dev/migrate-object-storage.sh` 迁移：默认 dry-run，`--apply` 才写入，上传后校验大小与
+  checksum 并回读对象，校验通过后才切换数据库，且从不删除旧文件。
+  `./scripts/dev/up.sh` 在启动 backend-app 前用同一个
+  `scripts/runbooks/assert-legacy-objects-migrated.sh` 探针检查这些行，仍有未迁移行就拒绝启动，
+  避免升级后的本地库直接显示指向不存在对象的头像代理 URL。
+  RustFS 实例级 smoke test 见 `scripts/dev/rustfs-smoke-test.sh`。
 - Notification 保留 `LoggingSmtpSenderAdapter` 默认路径；真实 SMTP 只通过
   `SMTP_*`/`APP_EMAIL_ENABLED` 配置，不让业务 Module 依赖厂商 SDK。
 - 本地 observability 使用 `docker/docker-compose.observability.yml`。托管 OTLP

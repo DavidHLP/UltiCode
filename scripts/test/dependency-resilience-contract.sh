@@ -64,7 +64,7 @@ contains services/platform/common/src/main/java/com/ulticode/common/rpc/RpcPolic
 
 for source in \
   services/auth/src/main/java/com/ulticode/auth/security/oauth/OAuthHttp.java \
-  services/app/app-web/src/main/java/com/ulticode/app/storage/S3Storage.java \
+  services/platform/storage/src/main/java/com/ulticode/common/storage/S3Storage.java \
   services/app/app-web/src/main/java/com/ulticode/modules/search/projection/DefaultSearchReadProjection.java \
   services/app/app-web/src/main/java/com/ulticode/modules/search/backfill/SearchBackfillRunner.java \
   services/search/src/main/java/com/ulticode/search/SearchDocumentIndexWorker.java \
@@ -83,7 +83,7 @@ for config in \
   contains "$config" 'stale-if-error-seconds: ${JWT_JWKS_STALE_IF_ERROR_SECONDS:300}'
   contains "$config" 'http-timeout-ms: ${JWT_JWKS_HTTP_TIMEOUT_MS:800}'
 done
-contains services/app/app-web/src/main/java/com/ulticode/app/storage/S3Storage.java \
+contains services/platform/storage/src/main/java/com/ulticode/common/storage/S3Storage.java \
   'READ_ATTEMPTS = 2'
 contains services/auth/src/main/java/com/ulticode/auth/security/oauth/OAuthHttp.java \
   'READ_TIMEOUT_MS = 10_000'
@@ -94,12 +94,12 @@ printf 'dependency timeout/retry/circuit/bulkhead/fallback wiring: PASS\n'
   cd "$ROOT_DIR/services"
   if command -v mise >/dev/null 2>&1; then
     mise exec java@zulu-17.68.203.0 -- bash ./mvnw \
-      -pl platform/common,platform/rpc-resilience,platform/web-security,auth,admin,app/modules/problem,app/modules/contest,app/modules/moderation,app/app-web,notification,submission,search,judge -am \
+      -pl platform/common,platform/storage,platform/rpc-resilience,platform/web-security,auth,admin,app/modules/problem,app/modules/contest,app/modules/moderation,app/app-web,notification,submission,search,judge -am \
       -Dtest='DependencyGuardTest,RpcPolicyBudgetTest,DubboDependencyResilienceFilterTest,JwksPublicKeyProviderTest,OAuthHttpTest,S3StorageTest,IdentityBanCheckAdapterTest,SearchDocumentIndexWorkerTest,DefaultSearchReadProjectionTest,SearchBackfillRunnerTest,RpcPolicyArchTest' \
       -Dsurefire.failIfNoSpecifiedTests=false test -B
   else
     bash ./mvnw \
-      -pl platform/common,platform/rpc-resilience,platform/web-security,auth,admin,app/modules/problem,app/modules/contest,app/modules/moderation,app/app-web,notification,submission,search,judge -am \
+      -pl platform/common,platform/storage,platform/rpc-resilience,platform/web-security,auth,admin,app/modules/problem,app/modules/contest,app/modules/moderation,app/app-web,notification,submission,search,judge -am \
       -Dtest='DependencyGuardTest,RpcPolicyBudgetTest,DubboDependencyResilienceFilterTest,JwksPublicKeyProviderTest,OAuthHttpTest,S3StorageTest,IdentityBanCheckAdapterTest,SearchDocumentIndexWorkerTest,DefaultSearchReadProjectionTest,SearchBackfillRunnerTest,RpcPolicyArchTest' \
       -Dsurefire.failIfNoSpecifiedTests=false test -B
   fi

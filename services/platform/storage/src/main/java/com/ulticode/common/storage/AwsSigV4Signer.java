@@ -1,7 +1,11 @@
-package com.ulticode.app.storage;
+package com.ulticode.common.storage;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
@@ -12,13 +16,7 @@ import java.util.TreeMap;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
-/**
- * Minimal AWS Signature Version 4 request signer (header-based, query-free).
- *
- * <p>Hand-rolled so the S3-compatible storage backend needs no additional
- * dependency; only object-level PUT/GET/DELETE against a path-style URL is
- * supported, which is all {@link S3Storage} requires.
- */
+/** Minimal AWS Signature Version 4 signer for path-style S3 requests. */
 final class AwsSigV4Signer {
 
     static final DateTimeFormatter AMZ_DATE =
@@ -32,12 +30,6 @@ final class AwsSigV4Signer {
     private AwsSigV4Signer() {
     }
 
-    /**
-     * Signs the request described by {@code method}, {@code uri} and
-     * {@code headers} (which must contain {@code host},
-     * {@code x-amz-content-sha256} and {@code x-amz-date}) and returns the
-     * {@code Authorization} header value.
-     */
     static String authorization(String method, URI uri, Map<String, String> headers,
                                 String payloadHash, String accessKey, String secretKey,
                                 String region, String service, ZonedDateTime now) {
@@ -45,18 +37,17 @@ final class AwsSigV4Signer {
         String dateStamp = DATE_STAMP.format(now);
 
         StringBuilder canonicalHeaders = new StringBuilder();
-        StringBuilder signedHeaderNames = new StringBuilder();
         Map<String, String> lowerCased = new TreeMap<>();
         headers.forEach((name, value) -> lowerCased.put(name.toLowerCase(), value.trim()));
         for (Map.Entry<String, String> entry : lowerCased.entrySet()) {
             canonicalHeaders.append(entry.getKey()).append(':').append(entry.getValue()).append('\n');
         }
-        signedHeaderNames.append(String.join(";", lowerCased.keySet()));
-
+        String signedHeaderNames = String.join(";", lowerCased.keySet());
+        String canonicalQuery = uri.getRawQuery() == null ? "" : uri.getRawQuery();
         String canonicalUri = uri.getRawPath().isEmpty() ? "/" : uri.getRawPath();
         String canonicalRequest = method + '\n'
                 + canonicalUri + '\n'
-                + '\n' // no query string
+                + canonicalQuery + '\n'
                 + canonicalHeaders + '\n'
                 + signedHeaderNames + '\n'
                 + payloadHash;
@@ -111,6 +102,24 @@ final class AwsSigV4Signer {
 
     static String sha256Hex(byte[] content) {
         return hex(sha256(content));
+    }
+
+    static String sha256Hex(Path file) {
+        try (InputStream input = Files.newInputStream(file)) {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] buffer = new byte[8192];
+            int read;
+            while ((read = input.read(buffer)) >= 0) {
+                if (read > 0) {
+                    digest.update(buffer, 0, read);
+                }
+            }
+            return hex(digest.digest());
+        } catch (IOException exception) {
+            throw new StorageException("Failed to read file for object storage", exception);
+        } catch (Exception exception) {
+            throw new IllegalStateException("SHA-256 unavailable", exception);
+        }
     }
 
     private static byte[] sha256(byte[] content) {

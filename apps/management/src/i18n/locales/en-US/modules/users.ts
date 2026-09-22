@@ -113,6 +113,8 @@ export default {
     confirmBan: 'Confirm Ban',
     confirmUnban: 'Confirm Unban',
     deleteUsers: 'Delete Users',
+    changeAvatar: 'Change Avatar',
+    avatarUploading: 'Uploading ({progress}%)...',
   },
 
   // Bulk actions
@@ -142,6 +144,9 @@ export default {
     bulkBanFailed: 'Failed to bulk ban users',
     bulkUnbanFailed: 'Failed to bulk unban users',
     bulkDeleteFailed: 'Failed to bulk delete users',
+    avatarUploadSuccess: 'User avatar updated successfully',
+    avatarUploadFailed: 'Failed to upload user avatar',
+    avatarRefreshWarning: 'Avatar updated, but refreshing the user detail failed. Reload the drawer manually.',
   },
 
   // Dialogs

@@ -12,6 +12,7 @@ import com.ulticode.modules.contest.dto.ContestQueryDTO;
 import com.ulticode.modules.contest.dto.ContestRankingVO;
 import com.ulticode.modules.contest.dto.ContestVO;
 import com.ulticode.modules.contest.dto.GlobalContestStatsVO;
+import com.ulticode.modules.user.port.AvatarUrls;
 import com.ulticode.modules.contest.entity.Contest;
 import com.ulticode.modules.contest.entity.ContestAnnouncement;
 import com.ulticode.modules.contest.entity.ContestParticipant;
@@ -541,7 +542,9 @@ public class DefaultContestProjection implements ContestProjection {
         vo.setRank(ranking.getGlobalRank());
         vo.setUserId(ranking.getUserId());
         vo.setUsername(ranking.getUsername());
-        vo.setAvatar(ranking.getAvatar());
+        // Stored values are object keys or legacy paths; the public response
+        // carries the browser-facing proxy path, like every other user read.
+        vo.setAvatar(AvatarUrls.resolve(ranking.getUserId(), ranking.getAvatar()));
         vo.setName(ranking.getName());
         vo.setScore(ranking.getRating().longValue());
         // Global ranking counts contests, not solved contest problems.

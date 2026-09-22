@@ -2,8 +2,9 @@ name: 'Host deploy (SSH + compose)'
 description: >-
   Shared deploy mechanics for cd-deploy/cd-rollback: install the SSH key,
   verify release/Compose/remote sandbox integrity before any migration or ACL
-  mutation, optionally run the ordered owner migration manifest, then pull and
-  `docker compose up` on the host, optionally restricted to a service subset.
+  mutation, quiesce the legacy Admin backup writer, run the ordered owner
+  migration manifest, then pull and `docker compose up` on the host,
+  optionally restricted to a service subset.
 inputs:
   ssh_key:
     description: 'Private SSH key for the deploy host'
@@ -34,13 +35,15 @@ inputs:
     required: true
   deployment_descriptor_file:
     description: 'Remote deployment descriptor path relative to the deploy root'
-    required: false
     default: '.local/deploy/deployment.json'
   services:
     description: >-
       Optional subset of compose services to pull and up (comma/space
       separated, e.g. "backend-auth backend-app"). Empty or "all" reconciles
-      the whole stack.
+      the whole stack. When migrations run with a subset, backend-admin and
+      backend-app must both be included: the legacy backup writer is
+      quiesced and redeployed, and the avatar read path ships with the
+      object-key writes the new Admin sends.
     required: false
     default: ''
   supply_chain_identity:
@@ -61,6 +64,13 @@ inputs:
     default: ''
   skip_migrations:
     description: '"true" skips the Flyway migrate step'
+    required: false
+    default: 'false'
+  rollback:
+    description: >-
+      "true" only for a rollback deployment that restores an already-approved
+      release. It skips the object cutover gate, which the restored artifacts
+      predate; a plain deploy must never set it.
     required: false
     default: 'false'
   registry:
@@ -240,6 +250,222 @@ runs:
         remote_command+=" IMAGE_REF_LIST=$(shell_quote "$IMAGE_REF_LIST") ENV_FILE=.env ./scripts/runbooks/judge-sandbox-preflight.sh"
         "${SSH_CMD[@]}" "$remote_command"
 
+    - name: Validate deploy service compatibility
+      if: ${{ inputs.rollback != 'true' }}
+      shell: bash
+      env:
+        DEPLOY_SERVICES: ${{ inputs.services }}
+        SKIP_MIGRATIONS: ${{ inputs.skip_migrations }}
+      run: |
+        set -euo pipefail
+        # Runs for every rollout of this release, including one that skips
+        # Flyway: the pairing is a compatibility rule, not a migration rule,
+        # and unrelated single-service deploys stay allowed.
+        SERVICES_NORMALIZED="$(printf '%s' "$DEPLOY_SERVICES" | tr ',' ' ' | xargs)"
+        if [[ -z "$SERVICES_NORMALIZED" || "$SERVICES_NORMALIZED" == all ]]; then
+          exit 0
+        fi
+        includes_admin=false
+        includes_app=false
+        for service in $SERVICES_NORMALIZED; do
+          case "$service" in
+            backend-auth|backend-admin|backend-app|backend-submission|backend-notification|backend-search|backend-judge|console|management) ;;
+            *) echo "::error::Invalid deployable service: ${service}" >&2; exit 1 ;;
+          esac
+          [[ "$service" == backend-admin ]] && includes_admin=true
+          [[ "$service" == backend-app ]] && includes_app=true
+        done
+        # Owner migrations quiesce the legacy backup writer, so Admin ships with them.
+        if [[ "$SKIP_MIGRATIONS" != 'true' && "$includes_admin" != true ]]; then
+          echo "::error::backend-admin must be included in services when migrations run" >&2
+          exit 1
+        fi
+        # The avatars this release stores are object keys: an older backend-app
+        # returns them verbatim instead of the /api/users/avatars proxy path,
+        # so the two services cannot be rolled out apart.
+        if [[ "$includes_admin" == true && "$includes_app" != true ]]; then
+          echo "::error::backend-app must be included in services when backend-admin is deployed" >&2
+          exit 1
+        fi
+        if [[ "$includes_app" == true && "$includes_admin" != true && "$SKIP_MIGRATIONS" == 'true' ]]; then
+          echo "::error::backend-admin must be included in services when backend-app is deployed" >&2
+          exit 1
+        fi
+
+    - name: Quiesce legacy owner writers
+      if: ${{ inputs.rollback != 'true' }}
+      shell: bash
+      env:
+        DEPLOY_SERVICES: ${{ inputs.services }}
+        SKIP_MIGRATIONS: ${{ inputs.skip_migrations }}
+        IMAGE_REF_LIST: ${{ inputs.image_refs }}
+        MIGRATION_DB_HOST: ${{ inputs.migration_db_host }}
+        MIGRATION_DB_PORT: ${{ inputs.migration_db_port }}
+        MIGRATION_DB_NAME: ${{ inputs.migration_db_name }}
+        MIGRATION_DB_USER: ${{ inputs.migration_db_user }}
+        MIGRATION_DB_PASSWORD: ${{ inputs.migration_db_password }}
+        MIGRATION_MYSQL_BIN: ${{ inputs.migration_mysql_bin }}
+        MIGRATION_MYSQL_CONTAINER: ${{ inputs.migration_mysql_container }}
+        MIGRATION_MYSQL_CONTAINER_PORT: ${{ inputs.migration_mysql_container_port }}
+      run: |
+        set -euo pipefail
+        shell_quote() { printf '%q' "$1"; }
+        STATE_FILE="${RUNNER_TEMP:-/tmp}/ulticode-backend-admin-quiesce-${GITHUB_RUN_ID:-local}-${GITHUB_RUN_ATTEMPT:-1}.state"
+        rm -f -- "$STATE_FILE"
+        SERVICES_NORMALIZED="$(printf '%s' "$DEPLOY_SERVICES" | tr ',' ' ' | xargs)"
+
+        [[ -n "$IMAGE_REF_LIST" ]] || { echo "::error::image_refs is required" >&2; exit 1; }
+        EXPORTS=""
+        while IFS= read -r pair; do
+          [[ -z "$pair" ]] && continue
+          NAME="${pair%%=*}"
+          VALUE="${pair#*=}"
+          EXPORTS+=" $(shell_quote "$NAME")=$(shell_quote "$VALUE")"
+        done <<< "$IMAGE_REF_LIST"
+        SSH_CMD=(ssh -i ~/.ssh/deploy_key -o BatchMode=yes
+          -o StrictHostKeyChecking=yes
+          -o UserKnownHostsFile="$HOME/.ssh/known_hosts"
+          "${{ inputs.user }}@${{ inputs.host }}" -p "${{ inputs.port }}")
+        compose_prefix="docker compose --project-directory . -f docker/docker-compose.yml -f docker/docker-compose.prod.yml"
+        umask 077
+        mkdir -p "$(dirname "$STATE_FILE")"
+        printf 'phase=quiesce-pending\n' >"$STATE_FILE"
+
+        # The running (pre-upgrade) image has no drain-aware executor, so an
+        # in-flight mysqldump must reach a terminal row before SIGTERM instead
+        # of being killed by the stop grace period.
+        drain_legacy_writer() {
+        for required in MIGRATION_DB_HOST MIGRATION_DB_PORT MIGRATION_DB_NAME \
+          MIGRATION_DB_USER MIGRATION_DB_PASSWORD; do
+          [[ -n "${!required}" ]] || {
+            echo "::error::$required is required to drain the legacy Admin backup writer before stopping it" >&2
+            exit 1
+          }
+        done
+        drain_deadline=$(( SECONDS + ${ADMIN_BACKUP_DRAIN_TIMEOUT_SECONDS:-3660} ))
+        while true; do
+          drain_command="cd $(shell_quote "${{ inputs.path }}") &&"
+          for variable in MIGRATION_DB_HOST MIGRATION_DB_PORT MIGRATION_DB_NAME \
+            MIGRATION_DB_USER MIGRATION_DB_PASSWORD; do
+            drain_command+=" $variable=$(shell_quote "${!variable}")"
+          done
+          drain_command+=" MIGRATION_MYSQL_BIN=$(shell_quote "$MIGRATION_MYSQL_BIN")"
+          drain_command+=" MIGRATION_MYSQL_CONTAINER=$(shell_quote "$MIGRATION_MYSQL_CONTAINER")"
+          drain_command+=" MIGRATION_MYSQL_CONTAINER_PORT=$(shell_quote "$MIGRATION_MYSQL_CONTAINER_PORT")"
+          drain_command+=" ./scripts/runbooks/assert-admin-backup-drained.sh"
+          if drain_output="$("${SSH_CMD[@]}" "$drain_command" 2>&1)"; then
+            break
+          fi
+          if (( SECONDS >= drain_deadline )); then
+            echo "::error::legacy backend-admin still has PENDING/IN_PROGRESS backups after the drain budget; refusing to stop it mid-dump. Last probe: ${drain_output}" >&2
+            exit 1
+          fi
+          sleep 15
+        done
+        }
+
+        # Records the previously running containers of one compose service and
+        # stops it; the failure path restores exactly this set.
+        quiesce_service() {
+          local service="$1" prefix="$2" container_list container_id running ids="" running_flag=0
+          remote_command="cd $(shell_quote "${{ inputs.path }}") &&"
+          remote_command+=" $EXPORTS $compose_prefix ps -q $service"
+          container_list="$("${SSH_CMD[@]}" "$remote_command")"
+          while IFS= read -r container_id; do
+            container_id="${container_id//$'\r'/}"
+            [[ -z "$container_id" ]] && continue
+            [[ "$container_id" =~ ^[0-9a-f]+$ ]] || {
+              echo "::error::Compose returned an invalid $service container id" >&2
+              exit 1
+            }
+            remote_command="cd $(shell_quote "${{ inputs.path }}") &&"
+            remote_command+=" $EXPORTS docker inspect -f '{{.State.Running}}' $(shell_quote "$container_id")"
+            running="$("${SSH_CMD[@]}" "$remote_command")"
+            if [[ "$running" == true ]]; then
+              ids+=" $container_id"
+            fi
+          done <<< "$container_list"
+          ids="${ids# }"
+          [[ -n "$ids" ]] && running_flag=1
+          printf '%s_container_ids=%s\n%s_prior_running=%s\n' \
+            "$prefix" "$ids" "$prefix" "$running_flag" >>"$STATE_FILE"
+          if [[ "$running_flag" == 1 ]]; then
+            remote_command="cd $(shell_quote "${{ inputs.path }}") &&"
+            # Compose applies the service stop grace period while an upgraded
+            # image drains its in-flight work.
+            remote_command+=" $EXPORTS $compose_prefix stop $service"
+            "${SSH_CMD[@]}" "$remote_command"
+          fi
+          echo "$service quiesced; prior_running=$running_flag"
+        }
+
+        # backend-app must stop before the cutover gate: it still writes legacy
+        # /uploads/avatars rows until the new image replaces it, and a row
+        # committed after the gate would resolve to a missing object.
+        admin_replaced=false
+        if [[ "$SKIP_MIGRATIONS" != 'true' ]]; then
+          # Migrations need the legacy backup writer quiesced.
+          admin_replaced=true
+        elif [[ -z "$SERVICES_NORMALIZED" || "$SERVICES_NORMALIZED" == all ]]; then
+          admin_replaced=true
+        else
+          for service in $SERVICES_NORMALIZED; do
+            [[ "$service" == backend-admin ]] && admin_replaced=true
+          done
+        fi
+        if [[ "$admin_replaced" == true ]]; then
+          drain_legacy_writer
+          quiesce_service backend-admin admin
+        fi
+        app_replaced=false
+        if [[ -z "$SERVICES_NORMALIZED" || "$SERVICES_NORMALIZED" == all ]]; then
+          app_replaced=true
+        else
+          for service in $SERVICES_NORMALIZED; do
+            [[ "$service" == backend-app ]] && app_replaced=true
+          done
+        fi
+        if [[ "$app_replaced" == true ]]; then
+          # The legacy App keeps writing /uploads/avatars rows until the new
+          # image replaces it; a row committed after the cutover gate would
+          # resolve to a missing object.
+          quiesce_service backend-app app
+        fi
+        printf 'phase=stopped\n' >>"$STATE_FILE"
+
+    - name: Verify Admin backup writer drained
+      if: >-
+        ${{ inputs.rollback != 'true' && (inputs.skip_migrations != 'true'
+        || inputs.services == '' || inputs.services == 'all'
+        || contains(inputs.services, 'backend-admin')) }}
+      shell: bash
+      env:
+        MIGRATION_DB_HOST: ${{ inputs.migration_db_host }}
+        MIGRATION_DB_PORT: ${{ inputs.migration_db_port }}
+        MIGRATION_DB_NAME: ${{ inputs.migration_db_name }}
+        MIGRATION_DB_USER: ${{ inputs.migration_db_user }}
+        MIGRATION_DB_PASSWORD: ${{ inputs.migration_db_password }}
+        MIGRATION_MYSQL_BIN: ${{ inputs.migration_mysql_bin }}
+        MIGRATION_MYSQL_CONTAINER: ${{ inputs.migration_mysql_container }}
+        MIGRATION_MYSQL_CONTAINER_PORT: ${{ inputs.migration_mysql_container_port }}
+      run: |
+        set -euo pipefail
+        shell_quote() { printf '%q' "$1"; }
+        SSH_CMD=(ssh -i ~/.ssh/deploy_key -o BatchMode=yes
+          -o StrictHostKeyChecking=yes
+          -o UserKnownHostsFile="$HOME/.ssh/known_hosts"
+          "${{ inputs.user }}@${{ inputs.host }}" -p "${{ inputs.port }}")
+        remote_command="cd $(shell_quote "${{ inputs.path }}") &&"
+        for variable in MIGRATION_DB_HOST MIGRATION_DB_PORT MIGRATION_DB_NAME \
+          MIGRATION_DB_USER MIGRATION_DB_PASSWORD; do
+          remote_command+=" $variable=$(shell_quote "${!variable}")"
+        done
+        remote_command+=" MIGRATION_MYSQL_BIN=$(shell_quote "$MIGRATION_MYSQL_BIN")"
+        remote_command+=" MIGRATION_MYSQL_CONTAINER=$(shell_quote "$MIGRATION_MYSQL_CONTAINER")"
+        remote_command+=" MIGRATION_MYSQL_CONTAINER_PORT=$(shell_quote "$MIGRATION_MYSQL_CONTAINER_PORT")"
+        remote_command+=" ./scripts/runbooks/assert-admin-backup-drained.sh"
+        "${SSH_CMD[@]}" "$remote_command"
+
     - name: Run ordered owner database migrations
       if: ${{ inputs.skip_migrations != 'true' }}
       shell: bash
@@ -269,6 +495,8 @@ runs:
           NOTIFICATION_DB_USER SUBMISSION_DB_USER; do
           [[ -n "${!required}" ]] || { echo "::error::$required is required for owner migrations" >&2; exit 1; }
         done
+        STATE_FILE="${RUNNER_TEMP:-/tmp}/ulticode-backend-admin-quiesce-${GITHUB_RUN_ID:-local}-${GITHUB_RUN_ATTEMPT:-1}.state"
+        printf 'phase=migration-running\n' >>"$STATE_FILE"
 
         shell_quote() { printf '%q' "$1"; }
         SSH_CMD=(ssh -i ~/.ssh/deploy_key -o BatchMode=yes
@@ -294,6 +522,46 @@ runs:
         remote_command+=" OWNER_MIGRATION_MYSQL_CONTAINER=$(shell_quote "$MIGRATION_MYSQL_CONTAINER")"
         remote_command+=" OWNER_MIGRATION_MYSQL_CONTAINER_PORT=$(shell_quote "$MIGRATION_MYSQL_CONTAINER_PORT")"
         remote_command+=" ./scripts/runbooks/owner-migration-manifest.sh migrate"
+        "${SSH_CMD[@]}" "$remote_command"
+        printf 'phase=migration-complete\n' >>"$STATE_FILE"
+
+    - name: Verify legacy object backfill before serving
+      if: ${{ inputs.rollback != 'true' }}
+      shell: bash
+      env:
+        MIGRATION_DB_HOST: ${{ inputs.migration_db_host }}
+        MIGRATION_DB_PORT: ${{ inputs.migration_db_port }}
+        MIGRATION_DB_NAME: ${{ inputs.migration_db_name }}
+        MIGRATION_DB_USER: ${{ inputs.migration_db_user }}
+        MIGRATION_DB_PASSWORD: ${{ inputs.migration_db_password }}
+        MIGRATION_MYSQL_BIN: ${{ inputs.migration_mysql_bin }}
+        MIGRATION_MYSQL_CONTAINER: ${{ inputs.migration_mysql_container }}
+        MIGRATION_MYSQL_CONTAINER_PORT: ${{ inputs.migration_mysql_container_port }}
+      run: |
+        set -euo pipefail
+        # The gate guards any rollout of this release, including one that skips
+        # Flyway: skipping migrations must not also skip the cutover check.
+        for required in MIGRATION_DB_HOST MIGRATION_DB_PORT MIGRATION_DB_NAME \
+          MIGRATION_DB_USER MIGRATION_DB_PASSWORD; do
+          [[ -n "${!required}" ]] || {
+            echo "::error::$required is required so the object cutover gate can run; a rollback must use CD Rollback, which sets rollback=true" >&2
+            exit 1
+          }
+        done
+        shell_quote() { printf '%q' "$1"; }
+        SSH_CMD=(ssh -i ~/.ssh/deploy_key -o BatchMode=yes
+          -o StrictHostKeyChecking=yes
+          -o UserKnownHostsFile="$HOME/.ssh/known_hosts"
+          "${{ inputs.user }}@${{ inputs.host }}" -p "${{ inputs.port }}")
+        remote_command="cd $(shell_quote "${{ inputs.path }}") &&"
+        for variable in MIGRATION_DB_HOST MIGRATION_DB_PORT MIGRATION_DB_NAME \
+          MIGRATION_DB_USER MIGRATION_DB_PASSWORD; do
+          remote_command+=" $variable=$(shell_quote "${!variable}")"
+        done
+        remote_command+=" MIGRATION_MYSQL_BIN=$(shell_quote "$MIGRATION_MYSQL_BIN")"
+        remote_command+=" MIGRATION_MYSQL_CONTAINER=$(shell_quote "$MIGRATION_MYSQL_CONTAINER")"
+        remote_command+=" MIGRATION_MYSQL_CONTAINER_PORT=$(shell_quote "$MIGRATION_MYSQL_CONTAINER_PORT")"
+        remote_command+=" ./scripts/runbooks/assert-legacy-objects-migrated.sh"
         "${SSH_CMD[@]}" "$remote_command"
 
     - name: Materialize runtime Redis ACL
@@ -375,3 +643,80 @@ runs:
         remote_command+=" $REMOTE_ENV docker compose --project-directory . -f docker/docker-compose.yml -f docker/docker-compose.prod.yml up -d --remove-orphans$TARGETS &&"
         remote_command+=" $REMOTE_ENV DEPLOYED_SERVICES=$(shell_quote "${DEPLOY_SERVICES:-all}") DEPLOYMENT_STATUS=PENDING_HEALTH ./scripts/runbooks/deployment-integrity.sh record"
         "${SSH_CMD[@]}" "$remote_command"
+        STATE_FILE="${RUNNER_TEMP:-/tmp}/ulticode-backend-admin-quiesce-${GITHUB_RUN_ID:-local}-${GITHUB_RUN_ATTEMPT:-1}.state"
+        rm -f -- "$STATE_FILE"
+
+    - name: Restore quiesced services after deploy failure
+      if: ${{ always() && inputs.rollback != 'true' }}
+      shell: bash
+      run: |
+        set -euo pipefail
+        shell_quote() { printf '%q' "$1"; }
+        STATE_FILE="${RUNNER_TEMP:-/tmp}/ulticode-backend-admin-quiesce-${GITHUB_RUN_ID:-local}-${GITHUB_RUN_ATTEMPT:-1}.state"
+        [[ -s "$STATE_FILE" ]] || exit 0
+        phase=""
+        admin_container_ids=""
+        admin_prior_running=0
+        app_container_ids=""
+        app_prior_running=0
+        while IFS='=' read -r key value; do
+          case "$key" in
+            phase) phase="$value" ;;
+            admin_container_ids) admin_container_ids="$value" ;;
+            admin_prior_running) admin_prior_running="$value" ;;
+            app_container_ids) app_container_ids="$value" ;;
+            app_prior_running) app_prior_running="$value" ;;
+          esac
+        done <"$STATE_FILE"
+
+        SSH_CMD=(ssh -i ~/.ssh/deploy_key -o BatchMode=yes
+          -o StrictHostKeyChecking=yes
+          -o UserKnownHostsFile="$HOME/.ssh/known_hosts"
+          "${{ inputs.user }}@${{ inputs.host }}" -p "${{ inputs.port }}")
+
+        restore_service() {
+          local service="$1" container_ids="$2" prior_running="$3" START_ARGS="" container_id
+          [[ "$prior_running" == 1 ]] || return 0
+          [[ -n "$container_ids" ]] || {
+            echo "::error::$service recovery state has no prior container ids" >&2
+            exit 1
+          }
+          for container_id in $container_ids; do
+            [[ "$container_id" =~ ^[0-9a-f]+$ ]] || {
+              echo "::error::$service recovery state has an invalid container id" >&2
+              exit 1
+            }
+            START_ARGS+=" $(shell_quote "$container_id")"
+          done
+          remote_command="cd $(shell_quote "${{ inputs.path }}") && docker start$START_ARGS"
+          if ! "${SSH_CMD[@]}" "$remote_command"; then
+            echo "::error::Failed to restore the previously running $service container(s)" >&2
+            exit 1
+          fi
+          for container_id in $container_ids; do
+            remote_command="cd $(shell_quote "${{ inputs.path }}") && docker inspect -f '{{.State.Running}}' $(shell_quote "$container_id")"
+            [[ "$("${SSH_CMD[@]}" "$remote_command")" == true ]] || {
+              echo "::error::Restored $service container is not running: $container_id" >&2
+              exit 1
+            }
+          done
+          echo "Restored $service to its pre-migration running state."
+        }
+
+        case "$phase" in
+          quiesce-pending|stopped)
+            restore_service backend-admin "$admin_container_ids" "$admin_prior_running"
+            restore_service backend-app "$app_container_ids" "$app_prior_running"
+            rm -f -- "$STATE_FILE"
+            ;;
+          migration-running|migration-complete)
+            rm -f -- "$STATE_FILE"
+            echo "::error::backend-admin remains stopped: owner migration began; inspect the migration/deployment report before any manual restart" >&2
+            exit 1
+            ;;
+          *)
+            rm -f -- "$STATE_FILE"
+            echo "::error::Unknown backend-admin quiesce phase: ${phase:-missing}" >&2
+            exit 1
+            ;;
+        esac

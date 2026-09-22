@@ -78,6 +78,14 @@ export const useAuthStore = defineStore("auth", () => {
     return session.user.value?.id || null;
   }
 
+  function setUserAvatar(avatar: string): void {
+    const user = session.user.value;
+    if (user) {
+      session.user.value = { ...user, avatar };
+    }
+  }
+
+
   return {
     user: session.user,
     status: session.status,
@@ -99,6 +107,7 @@ export const useAuthStore = defineStore("auth", () => {
     clearUser: session.clearUser,
     reset: session.reset,
     fetchCurrentUserId,
+    setUserAvatar,
     loadPermissions: session.loadPermissions,
     hasPermission: (action: string, resource: string) =>
       checkPermission(session.permissions.value, action, resource),

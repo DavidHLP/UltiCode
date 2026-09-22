@@ -1,8 +1,10 @@
 package com.ulticode.modules.backup.service;
 
 import com.ulticode.modules.backup.entity.Backup;
+import com.ulticode.common.storage.FileStoragePort;
 import com.ulticode.modules.backup.entity.enums.BackupStatus;
 import com.ulticode.modules.backup.entity.enums.BackupType;
+import com.ulticode.modules.backup.mapper.BackupDeletionTombstoneMapper;
 import com.ulticode.modules.backup.mapper.BackupMapper;
 import com.ulticode.modules.backup.port.BackupProcessPort;
 import com.ulticode.modules.backup.service.impl.BackupExecutionServiceImpl;
@@ -13,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -20,10 +23,12 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.util.concurrent.atomic.AtomicReference;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -64,10 +69,16 @@ class BackupExecutionServiceTest {
     private BackupMapper backupMapper;
 
     @Mock
+    private BackupDeletionTombstoneMapper backupDeletionTombstoneMapper;
+
+    @Mock
     private Clock clock;
 
     @Mock
     private BackupProcessPort backupProcessPort;
+
+    @Mock
+    private FileStoragePort fileStorage;
 
     @InjectMocks
     private BackupExecutionServiceImpl executionService;
@@ -77,9 +88,11 @@ class BackupExecutionServiceTest {
 
     @BeforeEach
     void setUp() {
-        ReflectionTestUtils.setField(executionService, "backupDir", tempDir.toString());
+        ReflectionTestUtils.setField(executionService, "backupTempDir", tempDir.toString());
         lenient().when(clock.instant()).thenReturn(Instant.parse("2026-01-01T00:00:00Z"));
         lenient().when(clock.getZone()).thenReturn(ZoneOffset.UTC);
+        lenient().when(backupMapper.updateById(any(Backup.class))).thenReturn(1);
+        lenient().when(backupMapper.failUnlessCompleted(any(), any(), any(), any())).thenReturn(1);
     }
 
     private Backup pendingBackup() {
@@ -93,18 +106,43 @@ class BackupExecutionServiceTest {
         return backup;
     }
 
+    /** A detached row as the database would return it, independent of in-memory mutation. */
+    private Backup durableRow(BackupStatus status, String objectKey) {
+        Backup row = new Backup();
+        row.setId(BACKUP_ID);
+        row.setFilename("backup_full_test.sql");
+        row.setType(BackupType.FULL);
+        row.setStatus(status);
+        row.setObjectKey(objectKey);
+        return row;
+    }
+
+    /** Captures the conditional FAILED transition exactly as the database receives it. */
+    private FailedTransition capturedFailure() {
+        ArgumentCaptor<String> id = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<LocalDateTime> completedAt = ArgumentCaptor.forClass(LocalDateTime.class);
+        ArgumentCaptor<String> error = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<String> objectKey = ArgumentCaptor.forClass(String.class);
+        verify(backupMapper).failUnlessCompleted(
+                id.capture(), completedAt.capture(), error.capture(), objectKey.capture());
+        return new FailedTransition(id.getValue(), completedAt.getValue(), error.getValue(), objectKey.getValue());
+    }
+
+    private record FailedTransition(String id, LocalDateTime completedAt, String error, String objectKey) {
+    }
+
     @Nested
     @DisplayName("lifecycle transitions")
     class LifecycleTransitions {
 
         @Test
-        @DisplayName("PENDING -> IN_PROGRESS -> COMPLETED when dump succeeds and file exists")
+        @DisplayName("PENDING -> IN_PROGRESS -> COMPLETED after object upload")
         void shouldCompleteWhenDumpSucceeds() throws Exception {
             Backup backup = pendingBackup();
             when(backupMapper.selectById(BACKUP_ID)).thenReturn(backup);
-            Path expectedFile = tempDir.resolve("backup_full_test.sql");
-            when(backupProcessPort.dump(eq(expectedFile))).thenAnswer(inv -> {
-                Files.writeString(expectedFile, "-- fake dump");
+            when(backupProcessPort.dump(any(Path.class))).thenAnswer(invocation -> {
+                Path dump = invocation.getArgument(0);
+                Files.writeString(dump, "-- fake dump");
                 return true;
             });
 
@@ -114,12 +152,204 @@ class BackupExecutionServiceTest {
             verify(backupMapper, atLeast(2)).updateById(captor.capture());
             Backup finalState = captor.getAllValues().get(captor.getAllValues().size() - 1);
 
-            assertEquals(BackupStatus.COMPLETED, finalState.getStatus(),
-                    "backup must reach COMPLETED when dump succeeds");
-            assertNotNull(finalState.getCompletedAt(), "completedAt must be recorded");
-            assertTrue(finalState.getSize() > 0, "size must be set from the dumped file");
-            assertNotNull(finalState.getMetadata(), "completion metadata must be recorded");
+            assertEquals(BackupStatus.COMPLETED, finalState.getStatus());
+            assertNotNull(finalState.getCompletedAt());
+            assertTrue(finalState.getSize() > 0);
+            assertNotNull(finalState.getChecksum());
+            assertEquals(64, finalState.getChecksum().length());
+            assertEquals("admin/backups/2026/01/" + BACKUP_ID + ".sql", finalState.getObjectKey());
+            assertNotNull(finalState.getMetadata());
             assertEquals("FULL", finalState.getMetadata().get("backupType"));
+            verify(fileStorage).putFile(eq(finalState.getObjectKey()), any(Path.class), eq("application/sql"));
+        }
+
+        @Test
+        @DisplayName("the planned object key is persisted before the bytes are uploaded")
+        void shouldPersistPlannedKeyBeforeUpload() throws Exception {
+            Backup backup = pendingBackup();
+            when(backupMapper.selectById(BACKUP_ID)).thenReturn(backup);
+            when(backupProcessPort.dump(any(Path.class))).thenAnswer(invocation -> {
+                Path dump = invocation.getArgument(0);
+                Files.writeString(dump, "-- fake dump");
+                return true;
+            });
+
+            executionService.executeBackup(BACKUP_ID);
+
+            String objectKey = "admin/backups/2026/01/" + BACKUP_ID + ".sql";
+            // The PUT must come after the row already names the planned key.
+            InOrder order = inOrder(backupMapper, fileStorage);
+            order.verify(backupMapper, times(2)).updateById(any(Backup.class));
+            order.verify(fileStorage).putFile(eq(objectKey), any(Path.class), eq("application/sql"));
+
+            ArgumentCaptor<Backup> captor = ArgumentCaptor.forClass(Backup.class);
+            verify(backupMapper, times(3)).updateById(captor.capture());
+            // The second write is the planned key; a crash after the PUT leaves
+            // a row that names the dump instead of an untracked object.
+            assertEquals(objectKey, captor.getAllValues().get(1).getObjectKey());
+        }
+
+        @Test
+        @DisplayName("upload failure marks backup FAILED and removes temp file")
+        void shouldFailWhenObjectUploadFailsAndCleanTempFile() throws Exception {
+            Backup backup = pendingBackup();
+            when(backupMapper.selectById(BACKUP_ID)).thenReturn(backup);
+            AtomicReference<Path> dumpPath = new AtomicReference<>();
+            when(backupProcessPort.dump(any(Path.class))).thenAnswer(invocation -> {
+                Path dump = invocation.getArgument(0);
+                dumpPath.set(dump);
+                Files.writeString(dump, "-- fake dump");
+                return true;
+            });
+            doThrow(new RuntimeException("object store unavailable"))
+                    .when(fileStorage).putFile(any(), any(Path.class), any());
+
+            executionService.executeBackup(BACKUP_ID);
+
+            assertEquals(BackupStatus.FAILED, backup.getStatus());
+            assertNotNull(backup.getCompletedAt());
+            assertFalse(Files.exists(dumpPath.get()));
+            verify(fileStorage).putFile(any(), any(Path.class), eq("application/sql"));
+        }
+
+        @Test
+        @DisplayName("no-op IN_PROGRESS update fails the run before dumping")
+        void shouldFailWhenInProgressUpdateAffectsNoRows() {
+            Backup backup = pendingBackup();
+            when(backupMapper.selectById(BACKUP_ID)).thenReturn(backup);
+            when(backupMapper.updateById(any(Backup.class))).thenReturn(0);
+
+            executionService.executeBackup(BACKUP_ID);
+
+            verify(backupProcessPort, never()).dump(any(Path.class));
+            verify(fileStorage, never()).putFile(any(), any(Path.class), any());
+            assertEquals(BackupStatus.FAILED, backup.getStatus());
+        }
+
+        @Test
+        @DisplayName("no-op COMPLETED update fails the run and removes the uploaded object")
+        void shouldFailWhenCompletedUpdateAffectsNoRows() throws Exception {
+            Backup backup = pendingBackup();
+            when(backupMapper.selectById(BACKUP_ID)).thenReturn(backup)
+                    .thenReturn(durableRow(BackupStatus.IN_PROGRESS, null));
+            when(backupProcessPort.dump(any(Path.class))).thenAnswer(invocation -> {
+                Path dump = invocation.getArgument(0);
+                Files.writeString(dump, "-- fake dump");
+                return true;
+            });
+            when(backupMapper.updateById(any(Backup.class))).thenReturn(1, 1, 0, 1);
+
+            executionService.executeBackup(BACKUP_ID);
+
+            String objectKey = "admin/backups/2026/01/" + BACKUP_ID + ".sql";
+            verify(fileStorage).putFile(eq(objectKey), any(Path.class), eq("application/sql"));
+            verify(backupDeletionTombstoneMapper).insert(BACKUP_ID, objectKey);
+            verify(fileStorage, never()).delete(any());
+            assertEquals(BackupStatus.FAILED, backup.getStatus());
+        }
+        @Test
+        @DisplayName("DB update failure after upload removes the uploaded object")
+        void shouldRemoveObjectWhenCompletedStateCannotBePersisted() throws Exception {
+            Backup backup = pendingBackup();
+            when(backupMapper.selectById(BACKUP_ID)).thenReturn(backup)
+                    .thenReturn(durableRow(BackupStatus.IN_PROGRESS, null));
+            when(backupProcessPort.dump(any(Path.class))).thenAnswer(invocation -> {
+                Path dump = invocation.getArgument(0);
+                Files.writeString(dump, "-- fake dump");
+                return true;
+            });
+            when(backupMapper.updateById(any(Backup.class)))
+                    .thenReturn(1, 1)
+                    .thenThrow(new RuntimeException("database unavailable"));
+
+            executionService.executeBackup(BACKUP_ID);
+
+            String objectKey = "admin/backups/2026/01/" + BACKUP_ID + ".sql";
+            verify(fileStorage).putFile(eq(objectKey), any(Path.class), eq("application/sql"));
+            verify(backupDeletionTombstoneMapper).insert(BACKUP_ID, objectKey);
+            verify(fileStorage, never()).delete(any());
+            assertEquals(BackupStatus.FAILED, backup.getStatus());
+        }
+
+        @Test
+        @DisplayName("ambiguous COMPLETED update that persisted keeps the uploaded object")
+        void shouldKeepObjectWhenCompletedStateRacedConnectionError() throws Exception {
+            Backup backup = pendingBackup();
+            String objectKey = "admin/backups/2026/01/" + BACKUP_ID + ".sql";
+            when(backupMapper.selectById(BACKUP_ID)).thenReturn(backup)
+                    .thenReturn(durableRow(BackupStatus.COMPLETED, objectKey));
+            when(backupProcessPort.dump(any(Path.class))).thenAnswer(invocation -> {
+                Path dump = invocation.getArgument(0);
+                Files.writeString(dump, "-- fake dump");
+                return true;
+            });
+            when(backupMapper.updateById(any(Backup.class)))
+                    .thenReturn(1, 1)
+                    .thenThrow(new RuntimeException("connection reset"));
+
+            executionService.executeBackup(BACKUP_ID);
+
+            verify(fileStorage).putFile(eq(objectKey), any(Path.class), eq("application/sql"));
+            verify(fileStorage, never()).delete(any());
+            // exactly the IN_PROGRESS write, the planned key and the raced
+            // COMPLETED write; no FAILED overwrite
+            verify(backupMapper, times(3)).updateById(any(Backup.class));
+        }
+
+        @Test
+        @DisplayName("unreadable completion state keeps the uploaded object and still reaches a terminal row")
+        void shouldKeepObjectWhenCompletionOutcomeIsUnknown() throws Exception {
+            Backup backup = pendingBackup();
+            String objectKey = "admin/backups/2026/01/" + BACKUP_ID + ".sql";
+            when(backupMapper.selectById(BACKUP_ID)).thenReturn(backup)
+                    .thenThrow(new RuntimeException("database unreachable"));
+            when(backupProcessPort.dump(any(Path.class))).thenAnswer(invocation -> {
+                Path dump = invocation.getArgument(0);
+                Files.writeString(dump, "-- fake dump");
+                return true;
+            });
+            when(backupMapper.updateById(any(Backup.class)))
+                    .thenReturn(1, 1)
+                    .thenThrow(new RuntimeException("connection reset"));
+            when(backupMapper.failUnlessCompleted(any(), any(), any(), any())).thenReturn(1);
+
+            executionService.executeBackup(BACKUP_ID);
+
+            verify(fileStorage).putFile(eq(objectKey), any(Path.class), eq("application/sql"));
+            verify(fileStorage, never()).delete(any());
+            // IN_PROGRESS, the planned key and the raced COMPLETED write only:
+            // the terminal FAILED transition must not go through the unguarded
+            // row update.
+            verify(backupMapper, times(3)).updateById(any(Backup.class));
+            assertEquals(BackupStatus.FAILED, backup.getStatus());
+            assertNotNull(backup.getError());
+            assertTrue(backup.getError().contains(objectKey));
+            assertEquals(objectKey, capturedFailure().objectKey(),
+                    "the preserved object key must reach the durable row");
+        }
+
+        @Test
+        @DisplayName("a durable COMPLETED row is never replaced by the FAILED transition")
+        void shouldNotReplaceDurableCompletedRow() throws Exception {
+            Backup backup = pendingBackup();
+            String objectKey = "admin/backups/2026/01/" + BACKUP_ID + ".sql";
+            when(backupMapper.selectById(BACKUP_ID)).thenReturn(backup)
+                    .thenThrow(new RuntimeException("database unreachable"));
+            when(backupProcessPort.dump(any(Path.class))).thenAnswer(invocation -> {
+                Path dump = invocation.getArgument(0);
+                Files.writeString(dump, "-- fake dump");
+                return true;
+            });
+            when(backupMapper.updateById(any(Backup.class)))
+                    .thenReturn(1, 1)
+                    .thenThrow(new RuntimeException("connection reset"));
+            // The row committed COMPLETED while the failure path was running.
+            when(backupMapper.failUnlessCompleted(any(), any(), any(), any())).thenReturn(0);
+
+            executionService.executeBackup(BACKUP_ID);
+
+            verify(fileStorage, never()).delete(any());
+            assertEquals(objectKey, capturedFailure().objectKey());
         }
 
         @Test
@@ -131,14 +361,13 @@ class BackupExecutionServiceTest {
 
             executionService.executeBackup(BACKUP_ID);
 
-            ArgumentCaptor<Backup> captor = ArgumentCaptor.forClass(Backup.class);
-            verify(backupMapper, atLeast(2)).updateById(captor.capture());
-            Backup finalState = captor.getValue();
+            verify(backupMapper).updateById(any(Backup.class));
+            FailedTransition failure = capturedFailure();
 
-            assertEquals(BackupStatus.FAILED, finalState.getStatus(),
+            assertEquals(BackupStatus.FAILED, backup.getStatus(),
                     "backup must reach FAILED when dump reports failure");
-            assertNotNull(finalState.getCompletedAt());
-            assertNotNull(finalState.getError(), "failure must capture an error message");
+            assertNotNull(failure.completedAt());
+            assertNotNull(failure.error(), "failure must capture an error message");
         }
 
         @Test
@@ -151,15 +380,13 @@ class BackupExecutionServiceTest {
 
             executionService.executeBackup(BACKUP_ID);
 
-            ArgumentCaptor<Backup> captor = ArgumentCaptor.forClass(Backup.class);
-            verify(backupMapper, atLeast(2)).updateById(captor.capture());
-            Backup finalState = captor.getValue();
+            verify(backupMapper).updateById(any(Backup.class));
+            FailedTransition failure = capturedFailure();
 
-            assertEquals(BackupStatus.FAILED, finalState.getStatus(),
+            assertEquals(BackupStatus.FAILED, backup.getStatus(),
                     "backup must reach FAILED when the file is missing after dump");
-            assertNotNull(finalState.getError());
+            assertNotNull(failure.error());
         }
-
         @Test
         @DisplayName("IN_PROGRESS -> FAILED when dump throws, error message captured")
         void shouldFailWhenDumpThrows() {
@@ -169,12 +396,11 @@ class BackupExecutionServiceTest {
 
             executionService.executeBackup(BACKUP_ID);
 
-            ArgumentCaptor<Backup> captor = ArgumentCaptor.forClass(Backup.class);
-            verify(backupMapper, atLeast(2)).updateById(captor.capture());
-            Backup finalState = captor.getValue();
+            verify(backupMapper).updateById(any(Backup.class));
+            FailedTransition failure = capturedFailure();
 
-            assertEquals(BackupStatus.FAILED, finalState.getStatus());
-            assertEquals("mysqldump not on PATH", finalState.getError(),
+            assertEquals(BackupStatus.FAILED, backup.getStatus());
+            assertEquals("mysqldump not on PATH", failure.error(),
                     "exception message must be captured on the FAILED record");
         }
     }

@@ -1,5 +1,5 @@
 import type { PageResult } from '@ulticode/domain-types'
-import { apiGet, apiPost, apiPatch, apiDelete } from '@/utils/request'
+import { apiGet, apiPost, apiPatch, apiDelete, apiUpload } from '@/utils/request'
 
 export type UserDegradationStatus = 'OK' | 'PARTIAL' | 'UNAVAILABLE'
 
@@ -129,6 +129,14 @@ export const usersApi = {
 
   async updateUser(id: string, data: UpdateUserDto): Promise<User> {
     return apiPatch<User>(`/admin/users/${id}`, data)
+  },
+
+  async uploadAvatar(
+    id: string,
+    file: File,
+    onProgress?: (progress: number) => void,
+  ): Promise<string> {
+    return apiUpload<string>(`/admin/users/${id}/avatar`, file, onProgress, { retry: 0 })
   },
 
   async deleteUser(id: string): Promise<void> {

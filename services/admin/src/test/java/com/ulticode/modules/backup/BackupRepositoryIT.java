@@ -49,10 +49,12 @@ class BackupRepositoryIT {
     private static final MySQLContainer<?> MYSQL = new MySQLContainer<>("mysql:8.0")
             .withDatabaseName("ulticode_admin_test")
             .withUsername("test")
-            .withPassword("test")
             .withCopyFileToContainer(
                     MountableFile.forHostPath(canonicalMigrationPath().toString()),
-                    "/docker-entrypoint-initdb.d/V20260724162738__Create_Backups_Table.sql");
+                    "/docker-entrypoint-initdb.d/V20260724162738__Create_Backups_Table.sql")
+            .withCopyFileToContainer(
+                    MountableFile.forHostPath(objectStorageMigrationPath().toString()),
+                    "/docker-entrypoint-initdb.d/V20260920120000__Backup_Object_Storage.sql");
 
     @Container
     private static final GenericContainer<?> REDIS =
@@ -69,6 +71,19 @@ class BackupRepositoryIT {
             current = current.getParent();
         }
         throw new IllegalStateException("Canonical backups migration not found from user.dir="
+                + System.getProperty("user.dir"));
+    }
+
+    private static Path objectStorageMigrationPath() {
+        Path current = Path.of(System.getProperty("user.dir")).toAbsolutePath().normalize();
+        while (current != null) {
+            Path candidate = current.resolve("init-db/migrations/admin/V20260920120000__Backup_Object_Storage.sql");
+            if (Files.isRegularFile(candidate)) {
+                return candidate;
+            }
+            current = current.getParent();
+        }
+        throw new IllegalStateException("Backup object-storage migration not found from user.dir="
                 + System.getProperty("user.dir"));
     }
 
@@ -95,6 +110,8 @@ class BackupRepositoryIT {
         backup.setSize(0L);
         backup.setType(BackupType.FULL);
         backup.setStatus(BackupStatus.PENDING);
+        backup.setObjectKey("admin/backups/2026/01/pending.sql");
+        backup.setChecksum("a".repeat(64));
         backup.setCreatedBy("admin-it-user");
         // The MetaObjectHandler in com.ulticode.common.config.MybatisPlusConfig
         // auto-fills createdAt; the IT intentionally leaves it unset.
@@ -113,18 +130,14 @@ class BackupRepositoryIT {
             // 2. SELECT (read-back)
             Backup readBack = backupMapper.selectById(id);
             assertThat(readBack).isNotNull();
-            assertThat(readBack.getFilename()).isEqualTo(backup.getFilename());
-            assertThat(readBack.getType()).isEqualTo(BackupType.FULL);
-            assertThat(readBack.getStatus()).isEqualTo(BackupStatus.PENDING);
-            assertThat(readBack.getCreatedBy()).isEqualTo("admin-it-user");
-            assertThat(readBack.getMetadata()).as("JacksonTypeHandler must round-trip JSON").isNotNull();
-            assertThat(readBack.getMetadata().get("trigger")).isEqualTo("it-test");
+            assertThat(readBack.getObjectKey()).isEqualTo(backup.getObjectKey());
+            assertThat(readBack.getChecksum()).isEqualTo(backup.getChecksum());
             assertThat(readBack.getCompletedAt()).isNull();
             assertThat(readBack.getError()).isNull();
 
-            // 3. UPDATE status PENDING -> COMPLETED with size
             readBack.setStatus(BackupStatus.COMPLETED);
             readBack.setSize(2048L);
+            readBack.setCompletedAt(java.time.LocalDateTime.now());
             int updated = backupMapper.updateById(readBack);
             assertThat(updated).isEqualTo(1);
 

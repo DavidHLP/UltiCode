@@ -38,7 +38,9 @@ PY
 )
 (( ${#release_services[@]} > 0 )) || fail "services matrix contains no backend runtimes"
 for release_service in "${release_services[@]}"; do
-  grep -Fq "          - $release_service" "$CD_DEPLOY" \
+  # `services` is a free-text list here (the Admin/App pairing rule needs two
+  # names in one submission), so selectability is the documented name set.
+  grep -Eq "(^|[[:space:]])${release_service}([[:space:]]|$)" "$CD_DEPLOY" \
     || fail "cd-deploy omits backend service $release_service"
   grep -Fq "\"$release_service\"" "$CD_ROLLBACK" \
     || fail "cd-rollback omits backend service $release_service"

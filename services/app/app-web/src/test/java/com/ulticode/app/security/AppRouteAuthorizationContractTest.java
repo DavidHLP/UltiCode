@@ -61,6 +61,19 @@ class AppRouteAuthorizationContractTest {
     }
 
     @Test
+    void anonymousCanReadAvatarProxy() throws Exception {
+        mockMvc.perform(get("/users/avatars/user-1/avatar.png"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void authenticatedUserCanReadAvatarProxy() throws Exception {
+        mockMvc.perform(get("/users/avatars/user-1/avatar.png")
+                        .with(user("user-1").roles("USER")))
+                .andExpect(status().isOk());
+    }
+
+    @Test
     void authenticatedUserCanCreateModerationReport() throws Exception {
         mockMvc.perform(post("/moderation/reports").with(user("user-1").roles("USER")))
                 .andExpect(status().isOk());
@@ -87,7 +100,8 @@ class AppRouteAuthorizationContractTest {
     @RestController
     static class ProbeController {
         @GetMapping({"/problems/1", "/contest/1", "/forum/posts", "/users/user-1/profile",
-                "/submissions", "/private-probe", "/admin/probe"})
+                "/submissions", "/private-probe", "/admin/probe",
+                "/users/avatars/user-1/avatar.png"})
         String read() {
             return "ok";
         }

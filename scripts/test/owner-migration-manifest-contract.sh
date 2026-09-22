@@ -25,6 +25,43 @@ done
 grep -Fq 'flyway.baselineOnMigrate=true' "$ROOT_DIR/init-db/flyway-post-owner.conf"
 grep -Fq 'migrate-post-owner.sh' "$ROOT_DIR/scripts/dev/up.sh"
 grep -Fq 'flyway-post-owner.conf' "$ROOT_DIR/scripts/dev/migrate-post-owner.sh"
+grep -Fq 'INSERT INTO `admin`.`backups`' \
+  "$ROOT_DIR/init-db/migrations/post-owner/V20260921120000__Copy_Legacy_Backups_To_Admin.sql"
+grep -Fq 'FROM `ulticode`.`backups`' \
+  "$ROOT_DIR/init-db/migrations/post-owner/V20260921120000__Copy_Legacy_Backups_To_Admin.sql"
+grep -Fq 'backup_cutover_state' \
+  "$ROOT_DIR/init-db/migrations/post-owner/V20260922120000__Create_Legacy_Backup_Cutover_State.sql"
+grep -Fq 'backup_deletion_tombstones' \
+  "$ROOT_DIR/init-db/migrations/post-owner/V20260923120000__Create_Legacy_Backup_Deletion_Tombstones.sql"
+grep -Fq 'backup_deletion_tombstones' \
+  "$ROOT_DIR/scripts/runbooks/reconcile-legacy-backups.sh"
+grep -Fq 'singleton row is missing' \
+  "$ROOT_DIR/scripts/runbooks/reconcile-legacy-backups.sh"
+grep -Fq 'CUTOVER_STATE_SEED_SQL' "$ROOT_DIR/init-db/scripts/baseline-adopt.sh"
+grep -Fq 'reconcile-legacy-backups.sh' \
+  "$ROOT_DIR/scripts/runbooks/owner-migration-manifest.sh"
+grep -Fq 'assert-admin-backup-drained.sh' \
+  "$ROOT_DIR/.github/actions/host-deploy/action.yml"
+grep -Fq 'Invalid deployable service' \
+  "$ROOT_DIR/.github/actions/host-deploy/action.yml"
+grep -Fq 'phase=migration-running' \
+  "$ROOT_DIR/.github/actions/host-deploy/action.yml"
+grep -Fq 'docker start$START_ARGS' \
+  "$ROOT_DIR/.github/actions/host-deploy/action.yml"
+grep -Fq 'backend-admin remains stopped' \
+  "$ROOT_DIR/.github/actions/host-deploy/action.yml"
+grep -Fq "always() && inputs.rollback != 'true'" \
+  "$ROOT_DIR/.github/actions/host-deploy/action.yml"
+grep -Fq 'phase=migration-complete' \
+  "$ROOT_DIR/.github/actions/host-deploy/action.yml"
+grep -Fq 'docker inspect -f' \
+  "$ROOT_DIR/.github/actions/host-deploy/action.yml"
+grep -Fq 'Verify Admin backup writer drained' \
+  "$ROOT_DIR/.github/actions/host-deploy/action.yml"
+grep -Fq 'backend-auth|backend-admin|backend-app|backend-submission|backend-notification|backend-search|backend-judge|console|management' \
+  "$ROOT_DIR/.github/actions/host-deploy/action.yml"
+! grep -Fq 'legacy_backups_copy_sql' \
+  "$ROOT_DIR/init-db/migrations/admin/V20260920120000__Backup_Object_Storage.sql"
 grep -Fq 'flyway_post_owner_history' "$ROOT_DIR/init-db/scripts/generate-baseline.sh"
 grep -Fq 'generate-baseline.sh" "$TMP_DUMP"' "$ROOT_DIR/init-db/scripts/validate-baseline.sh"
 grep -Fq 'OWNER_SCHEMAS=(auth admin app notification submission)' \
@@ -36,13 +73,50 @@ grep -Fq 'rto_seconds' "$ROOT_DIR/scripts/runbooks/owner-backup-restore.sh"
 grep -Fq 'owner-migration-manifest.sh migrate' "$ROOT_DIR/.github/actions/host-deploy/action.yml"
 grep -Fq 'MIGRATION_DB_PASSWORD' "$ROOT_DIR/.github/actions/host-deploy/action.yml"
 grep -Fq "inputs.skip_migrations != 'true'" "$ROOT_DIR/.github/actions/host-deploy/action.yml"
+grep -Fq 'Quiesce legacy owner writers' "$ROOT_DIR/.github/actions/host-deploy/action.yml"
+grep -Fq 'compose_prefix="docker compose --project-directory . -f docker/docker-compose.yml -f docker/docker-compose.prod.yml"' \
+  "$ROOT_DIR/.github/actions/host-deploy/action.yml"
+grep -Fq 'remote_command+=" $EXPORTS $compose_prefix stop $service"' \
+  "$ROOT_DIR/.github/actions/host-deploy/action.yml"
+# Both owner writers stop before the cutover gate: the legacy App still writes
+# /uploads/avatars rows until the new image replaces it.
+grep -Fq 'quiesce_service backend-admin admin' \
+  "$ROOT_DIR/.github/actions/host-deploy/action.yml"
+grep -Fq 'quiesce_service backend-app app' \
+  "$ROOT_DIR/.github/actions/host-deploy/action.yml"
+grep -Fq 'remote_command+=" $REMOTE_ENV docker compose' \
+  "$ROOT_DIR/.github/actions/host-deploy/action.yml"
+grep -Fq 'DEPLOY_SERVICES: ${{ inputs.services }}' \
+  "$ROOT_DIR/.github/actions/host-deploy/action.yml"
+grep -Fq 'backend-admin must be included in services when migrations run' \
+  "$ROOT_DIR/.github/actions/host-deploy/action.yml"
+grep -Fq 'backend-app must be included in services when backend-admin is deployed' \
+  "$ROOT_DIR/.github/actions/host-deploy/action.yml"
+quiesce_line="$(grep -n 'Quiesce legacy owner writers' \
+  "$ROOT_DIR/.github/actions/host-deploy/action.yml" | head -1 | cut -d: -f1)"
+migration_line="$(grep -n 'Run ordered owner database migrations' \
+  "$ROOT_DIR/.github/actions/host-deploy/action.yml" | head -1 | cut -d: -f1)"
+[[ "$quiesce_line" -lt "$migration_line" ]] \
+  || { echo 'legacy backup writer is not quiesced before owner migrations' >&2; exit 1; }
+# The object cutover gate must run for every rollout of this release, including
+# one that skips Flyway; only an explicit rollback deployment opts out.
+gate_line="$(grep -n 'Verify legacy object backfill before serving' \
+  "$ROOT_DIR/.github/actions/host-deploy/action.yml" | head -1 | cut -d: -f1)"
+[[ -n "$gate_line" && "$migration_line" -lt "$gate_line" ]] \
+  || { echo 'object cutover gate is missing or runs before the owner migrations' >&2; exit 1; }
+sed -n "${gate_line},$((gate_line + 6))p" "$ROOT_DIR/.github/actions/host-deploy/action.yml" \
+  | grep -Fq "inputs.rollback != 'true'" \
+  || { echo 'object cutover gate is still tied to skip_migrations instead of an explicit rollback input' >&2; exit 1; }
+grep -Fq '  rollback:' "$ROOT_DIR/.github/actions/host-deploy/action.yml"
+grep -Fq "rollback: 'true'" "$ROOT_DIR/.github/workflows/cd-rollback.yml"
 grep -Fq 'migration_db_user:' "$ROOT_DIR/.github/workflows/cd-deploy.yml"
 grep -Fq 'submission_migration_db_password:' "$ROOT_DIR/.github/workflows/cd-deploy.yml"
 grep -Fq "skip_migrations: 'true'" "$ROOT_DIR/.github/workflows/cd-rollback.yml"
 
 MIGRATION_PASSWORD="$(openssl rand -hex 16)"
 SUBMISSION_PASSWORD="$(openssl rand -hex 16)"
-COMMON_ENV=(
+touch "$TEST_DIR/empty.env"
+COMMON_ENV=(ENV_FILE="$TEST_DIR/empty.env"
   MIGRATION_DB_HOST=127.0.0.1
   MIGRATION_DB_PORT=3306
   MIGRATION_DB_NAME=ulticode
@@ -117,6 +191,8 @@ if [[ "$flat_sql" == *"INSERT INTO fenced_job_leases"* ]]; then
   printf '%s\n' "$owner" >"${FAKE_LEASE_STATE:?}"
 elif [[ "$flat_sql" == *"SELECT owner_token, fence_token"* ]]; then
   printf '%s\t1\n' "$(<"${FAKE_LEASE_STATE:?}")"
+elif [[ "$flat_sql" == *"table_schema='ulticode'"* && "$flat_sql" == *"table_name='backups'"* ]]; then
+  printf '0\n'
 elif [[ "$flat_sql" == *"SELECT COUNT(*)"* ]]; then
   printf '1\n'
 fi

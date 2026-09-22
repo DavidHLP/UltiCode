@@ -86,6 +86,8 @@ execute path requires explicit backfill and all-writers quiesce confirmations.
 - `image-reference-policy.sh` — shared production image policy: exact nine-service digest manifest, Cosign signature/SPDX/SLSA verification, Trivy HIGH/CRITICAL scan, and expiring exception gate.
 - `observability-release-annotation.sh` — publish a release/environment marker and immutable image manifest to Grafana without printing the API token.
 - `deployment-integrity.sh` — preflight source commit, migration manifest checksum, required deployment files, atomic release descriptor, and schema-compatible rollback/health state.
+- `assert-admin-backup-drained.sh` — refuse an owner migration while any Admin/legacy `backups` row is still `PENDING`/`IN_PROGRESS`.
+- `assert-legacy-objects-migrated.sh` — fail-closed cutover gate, run by the deploy and by `scripts/dev/up.sh` before backend-app starts: no `app.user_profiles` row may still carry `/uploads/avatars/...` and no `admin.backups` COMPLETED row may lack an `object_key`.
 - `SCHEDULER_RUNBOOK.md` (under `services/docs/`) — owner-local scheduler map, bounds, saturation response, and shutdown behavior.
 - `GRACEFUL_DRAIN_RUNBOOK.md` (under `services/docs/`) — SIGTERM, HTTP/RPC, scheduler, stream PEL, lease recovery, and termination budgets.
 - `redis-acl-rotation.sh` — runtime ACL materialization and `prepare`/`finalize`/`rollback` overlap rotation with atomic replacement and drift-check; state/report files contain only hashes and phase.

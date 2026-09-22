@@ -113,6 +113,8 @@ export default {
     confirmBan: '确认封禁',
     confirmUnban: '确认解封',
     deleteUsers: '批量删除用户',
+    changeAvatar: '更换头像',
+    avatarUploading: '正在上传（{progress}%）...',
   },
 
   // 批量操作
@@ -142,6 +144,9 @@ export default {
     bulkBanFailed: '批量封禁失败',
     bulkUnbanFailed: '批量解封失败',
     bulkDeleteFailed: '批量删除失败',
+    avatarUploadSuccess: '用户头像更新成功',
+    avatarUploadFailed: '用户头像上传失败',
+    avatarRefreshWarning: '头像已更新，但用户详情刷新失败，请手动重新加载',
   },
 
   // 对话框

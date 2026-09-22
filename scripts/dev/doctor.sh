@@ -294,9 +294,22 @@ infra_health() {
       healthy)   printf '  %s  %s (healthy)\n'   "$(color green '[ OK ]')" "$service" ;;
       running)   printf '  %s  %s (running, no healthcheck)\n' "$(color green '[ OK ]')" "$service" ;;
       starting)  printf '  %s  %s (starting)\n' "$(color yellow '[WAIT]')" "$service" ;;
-      unhealthy) printf '  %s  %s (unhealthy)\n' "$(color red '[FAIL]')" "$service" ;;
-      exited)    printf '  %s  %s (exited)\n' "$(color red '[FAIL]')" "$service" ;;
-      absent)    printf '  %s  %s (absent)\n' "$(color yellow '[WARN]')" "$service" ;;
+      unhealthy|exited)
+        if [[ "$service" == rustfs ]]; then
+          printf '  %s  rustfs (%s; verify RustFS /health/ready, credentials, and TLS certs)\n' \
+            "$(color red '[FAIL]')" "$status"
+        else
+          printf '  %s  %s (%s)\n' "$(color red '[FAIL]')" "$service" "$status"
+        fi
+        ;;
+      absent)
+        if [[ "$service" == rustfs ]]; then
+          printf '  %s  rustfs (absent; start RustFS and verify /health/ready, credentials, and TLS certs)\n' \
+            "$(color red '[FAIL]')"
+        else
+          printf '  %s  %s (absent)\n' "$(color yellow '[WARN]')" "$service"
+        fi
+        ;;
       *)         printf '  %s  %s (%s)\n' "$(color yellow '[WARN]')" "$service" "$status" ;;
     esac
   done

@@ -33,6 +33,15 @@
 #   NACOS_AUTH_IDENTITY_KEY, NACOS_AUTH_IDENTITY_VALUE
 #   External owner backup runbook: BACKUP_DB_HOST/PORT/NAME/USER/PASSWORD and
 #   BACKUP_ENCRYPTION_KEY are supplied only to the Ops job, never this app stack.
+#   RUSTFS_ACCESS_KEY, RUSTFS_SECRET_KEY (bootstrap-only root credentials),
+#   RUSTFS_APP_ACCESS_KEY, RUSTFS_APP_SECRET_KEY, RUSTFS_ADMIN_ACCESS_KEY,
+#   RUSTFS_ADMIN_SECRET_KEY, RUSTFS_BUCKET
+#
+# Runtime App uses the app/avatars-scoped pair; Admin uses the pair allowed for
+# app/avatars and admin/backups. Never reuse the root pair for either service.
+#
+#   RUSTFS_TLS_CERT_DIR (operator directory containing rustfs_cert.pem and
+#     rustfs_key.pem; the certificate/CA must be trusted by backend JVMs)
 #   BACKEND_*_IMAGE_REF, CONSOLE_IMAGE_REF, MANAGEMENT_IMAGE_REF (immutable
 #   registry references supplied by the approved release manifest)
 #
@@ -46,6 +55,35 @@
 # external trust-boundary decisions; missing or unverified evidence fails shut.
 
 services:
+  rustfs:
+    # RustFS remains private in production; only backend services share its
+    # internal storage network. TLS is mandatory because storage validation
+    # rejects non-loopback plaintext HTTP.
+    environment:
+      RUSTFS_TLS_PATH: /certs
+    volumes:
+      # The storage server is the only service that may see the TLS private key.
+      - ${RUSTFS_TLS_CERT_DIR:?RUSTFS_TLS_CERT_DIR is required}:/certs:ro
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail --silent --show-error --cacert /certs/rustfs_cert.pem https://rustfs:9000/health/ready >/dev/null"]
+
+  rustfs-init:
+    environment:
+      RUSTFS_ENDPOINT: https://rustfs:9000
+      AWS_CA_BUNDLE: /certs/rustfs_cert.pem
+    volumes:
+      - ${RUSTFS_TLS_CERT_DIR:?RUSTFS_TLS_CERT_DIR is required}/rustfs_cert.pem:/certs/rustfs_cert.pem:ro
+
+  rustfs-iam-init:
+    environment:
+      RUSTFS_ENDPOINT: https://rustfs:9000
+      RUSTFS_CA_BUNDLE: /certs/rustfs_cert.pem
+      AWS_CA_BUNDLE: /certs/rustfs_cert.pem
+      SSL_CERT_FILE: /certs/rustfs_cert.pem
+      CURL_CA_BUNDLE: /certs/rustfs_cert.pem
+    volumes:
+      - ${RUSTFS_TLS_CERT_DIR:?RUSTFS_TLS_CERT_DIR is required}/rustfs_cert.pem:/certs/rustfs_cert.pem:ro
+
   mysql:
     image: mysql@sha256:0255b469f0135a0236d672d60e3154ae2f4538b146744966d96440318cc822c6
 
@@ -204,7 +242,7 @@ services:
   backend-admin:
     image: "${BACKEND_ADMIN_IMAGE_REF:?BACKEND_ADMIN_IMAGE_REF is required}"
     restart: unless-stopped
-    stop_grace_period: ${SERVICE_STOP_GRACE_PERIOD:-60s}
+    stop_grace_period: ${ADMIN_BACKUP_STOP_GRACE_PERIOD:-3660s}
     expose:
       - "9102"
     deploy:
@@ -263,9 +301,20 @@ services:
       - DUBBO_MTLS_SERVICE_IDENTITY=backend-admin
       - DUBBO_MTLS_ALLOWED_CALLERS=
       - SERVER_PORT=9102
-      # Review 2026-08-25 P2: keep backups on a persistent volume instead of
-      # container-local /tmp so multi-replica or recreated instances agree.
-      - BACKUP_DIR=${BACKUP_DIR:-/var/lib/ulticode/backup}
+      # The default covers the 1800s dump timeout plus the 1800s object upload
+      # timeout and a small handoff margin. Keep this no greater than the
+      # dedicated Admin stop grace when overriding either value.
+      - ADMIN_BACKUP_EXECUTOR_AWAIT_TERMINATION_SECONDS=${ADMIN_BACKUP_EXECUTOR_AWAIT_TERMINATION_SECONDS:-3600}
+      # RustFS is private and TLS-only in production. The mounted certificate
+      # gives the storage client a private/self-signed CA trust anchor while
+      # retaining the JVM default truststore.
+      - APP_STORAGE_S3_CA_CERTIFICATE=/certs/rustfs_cert.pem
+      - APP_STORAGE_S3_ENDPOINT=https://rustfs:9000
+      - APP_STORAGE_S3_REGION=us-east-1
+      - APP_STORAGE_S3_BUCKET=${RUSTFS_BUCKET:-ulticode}
+      - APP_STORAGE_S3_ACCESS_KEY=${RUSTFS_ADMIN_ACCESS_KEY:?RUSTFS_ADMIN_ACCESS_KEY is required}
+      - APP_STORAGE_S3_SECRET_KEY=${RUSTFS_ADMIN_SECRET_KEY:?RUSTFS_ADMIN_SECRET_KEY is required}
+      - APP_STORAGE_S3_TLS_ENABLED=true
       - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:?CORS_ALLOWED_ORIGINS is required for production}
     depends_on:
       mysql:
@@ -274,9 +323,12 @@ services:
         condition: service_healthy
       nacos:
         condition: service_healthy
+      rustfs-iam-init:
+        condition: service_completed_successfully
+
     volumes:
-      - backup_data:/var/lib/ulticode/backup
       - ${DUBBO_MTLS_CERT_DIR:?DUBBO_MTLS_CERT_DIR is required}/backend-admin:/run/secrets/dubbo:ro
+      - ${RUSTFS_TLS_CERT_DIR:?RUSTFS_TLS_CERT_DIR is required}/rustfs_cert.pem:/certs/rustfs_cert.pem:ro
     networks:
       - edge
       - sql
@@ -288,6 +340,7 @@ services:
       - rpc-notification
       - observability
       - egress-admin
+      - object-storage
     healthcheck:
       # Readiness probe (review 2026-08-25 P0): verifies DB and Redis, 503 on failure.
       test: ["CMD", "curl", "-f", "http://localhost:9102/api/v1/admin/health/ready"]
@@ -368,18 +421,16 @@ services:
       - SUBMISSION_CUTOVER_COMPLETE=${SUBMISSION_CUTOVER_COMPLETE:?SUBMISSION_CUTOVER_COMPLETE is required after the Submission schema cutover}
       - APP_FEATURES_USE_JUDGE_OUTBOX=true
       - APP_FEATURES_USE_GENERATION_FENCE=true
-      # Review 2026-08-25 P2: avatar uploads persist on a named volume so
-      # multi-replica rollouts serve the same assets (FileStoragePort local
-      # mode). Switch to object storage via APP_STORAGE_TYPE=s3.
-      - APP_STORAGE_LOCAL_ROOT_DIR=${AVATAR_UPLOAD_DIR:-/data/uploads/avatars}
-      - APP_STORAGE_TYPE=${APP_STORAGE_TYPE:-local}
-      - APP_STORAGE_S3_ENDPOINT=${APP_STORAGE_S3_ENDPOINT:-}
-      - APP_STORAGE_S3_REGION=${APP_STORAGE_S3_REGION:-us-east-1}
-      - APP_STORAGE_S3_BUCKET=${APP_STORAGE_S3_BUCKET:-}
-      - APP_STORAGE_S3_ACCESS_KEY=${APP_STORAGE_S3_ACCESS_KEY:-}
-      - APP_STORAGE_S3_SECRET_KEY=${APP_STORAGE_S3_SECRET_KEY:-}
-      - APP_STORAGE_S3_TLS_ENABLED=${APP_STORAGE_S3_TLS_ENABLED:-false}
-      - APP_STORAGE_S3_PUBLIC_BASE_URL=${APP_STORAGE_S3_PUBLIC_BASE_URL:-}
+      # RustFS is private and TLS-only in production. The mounted certificate
+      # gives the storage client a private/self-signed CA trust anchor while
+      # retaining the JVM default truststore.
+      - APP_STORAGE_S3_CA_CERTIFICATE=/certs/rustfs_cert.pem
+      - APP_STORAGE_S3_ENDPOINT=https://rustfs:9000
+      - APP_STORAGE_S3_REGION=us-east-1
+      - APP_STORAGE_S3_BUCKET=${RUSTFS_BUCKET:-ulticode}
+      - APP_STORAGE_S3_ACCESS_KEY=${RUSTFS_APP_ACCESS_KEY:?RUSTFS_APP_ACCESS_KEY is required}
+      - APP_STORAGE_S3_SECRET_KEY=${RUSTFS_APP_SECRET_KEY:?RUSTFS_APP_SECRET_KEY is required}
+      - APP_STORAGE_S3_TLS_ENABLED=true
       - APP_FEATURES_JUDGE_QUEUE_USE_PORT=true
       - APP_SEARCH_READ_MODE=indexed
       - APP_SEARCH_FALLBACK_TO_DATABASE=true
@@ -397,6 +448,8 @@ services:
         condition: service_healthy
       nacos:
         condition: service_healthy
+      rustfs-iam-init:
+        condition: service_completed_successfully
     networks:
       - edge
       - sql
@@ -409,6 +462,7 @@ services:
       - search
       - observability
       - egress-app
+      - object-storage
     healthcheck:
       # Readiness probe (review 2026-08-25 P0): verifies DB and Redis, 503 on failure.
       test: ["CMD", "curl", "-f", "http://localhost:9103/api/v1/app/health/ready"]
@@ -422,8 +476,8 @@ services:
         max-size: "50m"
         max-file: "5"
     volumes:
-      - ${AVATAR_UPLOAD_VOL:-app_uploads}:/data/uploads/avatars
       - ${DUBBO_MTLS_CERT_DIR:?DUBBO_MTLS_CERT_DIR is required}/backend-app:/run/secrets/dubbo:ro
+      - ${RUSTFS_TLS_CERT_DIR:?RUSTFS_TLS_CERT_DIR is required}/rustfs_cert.pem:/certs/rustfs_cert.pem:ro
 
   backend-submission:
     image: "${BACKEND_SUBMISSION_IMAGE_REF:?BACKEND_SUBMISSION_IMAGE_REF is required}"
@@ -881,10 +935,3 @@ services:
       options:
         max-size: "20m"
         max-file: "3"
-
-volumes:
-  # Review 2026-08-25 P2: persistent Admin backup storage.
-  app_uploads:
-    # Review 2026-08-25 P2: shared avatar upload storage for local-mode
-    # FileStoragePort across App replicas.
-  backup_data:

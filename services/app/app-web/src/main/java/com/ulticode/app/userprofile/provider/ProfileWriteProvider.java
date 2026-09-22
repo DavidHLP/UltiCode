@@ -5,20 +5,28 @@ import com.ulticode.app.api.command.UploadAvatarCommand;
 import com.ulticode.app.api.dto.ProfileWriteResult;
 import com.ulticode.app.api.error.AppErrorCode;
 import com.ulticode.app.security.AdminActorAuthorizer;
+import com.ulticode.app.storage.StorageCleanupOutbox;
 import com.ulticode.app.api.service.ProfileWriteService;
 import com.ulticode.app.idempotency.entity.AppCommandReceiptEntity;
 import com.ulticode.app.idempotency.mapper.AppCommandReceiptMapper;
 import com.ulticode.app.userprofile.entity.UserProfile;
 import com.ulticode.app.userprofile.mapper.UserProfileMapper;
 import com.ulticode.common.rpc.RpcResult;
+import com.ulticode.common.storage.StorageKeys;
 import com.ulticode.common.tracing.TraceMetadata;
-
+import com.ulticode.modules.search.port.UserDirectoryQueryPort;
+import com.ulticode.modules.search.source.SearchDocumentChangedPublisher;
+import com.ulticode.modules.user.port.AvatarUrls;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.dubbo.config.annotation.DubboService;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+import org.springframework.transaction.interceptor.TransactionAspectSupport;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.nio.charset.StandardCharsets;
@@ -50,9 +58,29 @@ public class ProfileWriteProvider implements ProfileWriteService {
     private final AppCommandReceiptMapper receiptMapper;
     private final ObjectMapper objectMapper;
     private final AdminActorAuthorizer actorAuthorizer;
+    private final StorageCleanupOutbox storageCleanupOutbox;
+    private final ObjectProvider<UserDirectoryQueryPort> userDirectoryQueryPort;
+    private final ObjectProvider<SearchDocumentChangedPublisher> searchPublisher;
+
+    /** Publish a complete user UPSERT from the row visible in this transaction. */
+    private void publishUserDocument(String accountId) {
+        UserDirectoryQueryPort directory = userDirectoryQueryPort.getIfAvailable();
+        SearchDocumentChangedPublisher publisher = searchPublisher.getIfAvailable();
+        if (directory == null || publisher == null) {
+            return;
+        }
+        var directoryRow = directory.findById(accountId);
+        if (directoryRow == null) {
+            return;
+        }
+        var row = directoryRow.row();
+        publisher.publishUser(row.getId(), row.getUsername(), row.getName(), row.getAvatar(), true);
+    }
+
 
     @Override
     @Transactional
+    @CacheEvict(value = "contestRanking", allEntries = true)
     public RpcResult<ProfileWriteResult> updateProfile(UpdateProfileCommand command) {
         String traceId = safeTraceId(command);
         if (!trustedActor(command == null ? null : command.actor())) {
@@ -91,8 +119,11 @@ public class ProfileWriteProvider implements ProfileWriteService {
             // 2. Execute profile upsert (null-skip semantics, same as legacy)
             String accountId = command.accountId();
 
-            UserProfile profile = userProfileMapper.selectById(accountId);
+            // Locking read: a concurrent avatar upload must not be overwritten
+            // by this full-entity update with a stale avatar value.
+            UserProfile profile = userProfileMapper.selectByIdForUpdate(accountId);
             boolean isNew = profile == null;
+            String previousAvatar = isNew ? null : profile.getAvatar();
             if (isNew) {
                 profile = new UserProfile();
                 profile.setAccountId(accountId);
@@ -102,6 +133,10 @@ public class ProfileWriteProvider implements ProfileWriteService {
                 profile.setName(command.name());
             }
             if (command.avatar() != null) {
+                if (AvatarUrls.reusesOwnedKey(accountId, command.avatar(), profile.getAvatar())) {
+                    log.warn("Rejected avatar reuse of a displaced object key for account {}", accountId);
+                    return RpcResult.failure(AppErrorCode.BAD_REQUEST, traceId);
+                }
                 profile.setAvatar(command.avatar());
             }
             if (command.bio() != null) {
@@ -132,6 +167,8 @@ public class ProfileWriteProvider implements ProfileWriteService {
                 userProfileMapper.updateById(profile);
             }
 
+            queuePreviousAvatarCleanup(accountId, previousAvatar, profile.getAvatar());
+            publishUserDocument(accountId);
             log.info("Profile updated for account: {}", accountId);
 
             ProfileWriteResult result = new ProfileWriteResult(
@@ -154,6 +191,7 @@ public class ProfileWriteProvider implements ProfileWriteService {
             return RpcResult.success(result, traceId);
 
         } catch (Exception e) {
+            markTransactionRollbackOnly();
             log.error("Profile update failed for account: {}", command.accountId(), e);
             return RpcResult.failure(AppErrorCode.UNEXPECTED_APP_STATE, traceId);
         }
@@ -162,6 +200,7 @@ public class ProfileWriteProvider implements ProfileWriteService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "contestRanking", allEntries = true)
     public RpcResult<ProfileWriteResult> uploadAvatar(UploadAvatarCommand command) {
         String traceId = command != null && command.trace() != null ? command.trace().traceId() : null;
         if (!trustedActor(command == null ? null : command.actor())) {
@@ -193,8 +232,11 @@ public class ProfileWriteProvider implements ProfileWriteService {
 
             // 2. Execute avatar upsert
             String accountId = command.accountId();
-            UserProfile profile = userProfileMapper.selectById(accountId);
+            // Locking read: overlapping uploads for one account must each queue
+            // the key their own transaction displaced.
+            UserProfile profile = userProfileMapper.selectByIdForUpdate(accountId);
             boolean isNew = profile == null;
+            String previousAvatar = isNew ? null : profile.getAvatar();
             if (isNew) {
                 profile = new UserProfile();
                 profile.setAccountId(accountId);
@@ -202,11 +244,21 @@ public class ProfileWriteProvider implements ProfileWriteService {
             profile.setAvatar(command.avatarUrl());
 
             if (isNew) {
-                userProfileMapper.insert(profile);
+                int insertedRows = userProfileMapper.insert(profile);
+                if (insertedRows != 1) {
+                    throw new IllegalStateException(
+                            "Avatar profile insert affected " + insertedRows + " rows");
+                }
             } else {
-                userProfileMapper.updateById(profile);
+                int updatedRows = userProfileMapper.updateById(profile);
+                if (updatedRows != 1) {
+                    throw new IllegalStateException(
+                            "Avatar profile update affected " + updatedRows + " rows");
+                }
             }
 
+            publishUserDocument(accountId);
+            queuePreviousAvatarCleanup(accountId, previousAvatar, profile.getAvatar());
             log.info("Avatar updated for account: {}", accountId);
 
             ProfileWriteResult result = new ProfileWriteResult(
@@ -223,6 +275,7 @@ public class ProfileWriteProvider implements ProfileWriteService {
             return RpcResult.success(result, traceId);
 
         } catch (Exception e) {
+            markTransactionRollbackOnly();
             log.error("Avatar update failed for account: {}", command.accountId(), e);
             return RpcResult.failure(AppErrorCode.UNEXPECTED_APP_STATE, traceId);
         }
@@ -275,6 +328,23 @@ public class ProfileWriteProvider implements ProfileWriteService {
             throw new RuntimeException("Idempotency receipt insert failed", e);
         }
     }
+    private void queuePreviousAvatarCleanup(String accountId, String previousAvatar, String currentAvatar) {
+        if (previousAvatar == null || previousAvatar.equals(currentAvatar)
+                || !StorageKeys.isAvatarKey(previousAvatar)
+                || !accountId.equals(StorageKeys.avatarAccountId(previousAvatar))) {
+            return;
+        }
+        // Durable with this transaction: the dispatcher deletes the replaced
+        // object only after the row change commits, retrying transient failures.
+        storageCleanupOutbox.enqueue(previousAvatar);
+    }
+
+    private void markTransactionRollbackOnly() {
+        if (TransactionSynchronizationManager.isActualTransactionActive()) {
+            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+        }
+    }
+
     private boolean trustedActor(com.ulticode.common.command.ActorDelegation actor) {
         return com.ulticode.app.security.TrustedAdminActor.isTrusted(
                 actorAuthorizer, actor, "profile write");

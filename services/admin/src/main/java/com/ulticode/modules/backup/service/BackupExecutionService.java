@@ -1,5 +1,7 @@
 package com.ulticode.modules.backup.service;
 
+import java.util.concurrent.CompletableFuture;
+
 /**
  * Async backup execution lifecycle &mdash; a deep module that owns the
  * {@code PENDING &rarr; IN_PROGRESS &rarr; COMPLETED / FAILED} state
@@ -43,6 +45,7 @@ public interface BackupExecutionService {
      * is crossed and dispatch actually leaves the caller's thread.
      *
      * @param backupId the backup ID to execute
+     * @return a future completed after the lifecycle records its terminal state
      */
-    void executeBackup(String backupId);
+    CompletableFuture<Void> executeBackup(String backupId);
 }

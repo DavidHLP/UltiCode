@@ -1,13 +1,16 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { toast } from 'vue-sonner'
 import { useUsersStore } from '@/stores/admin/users'
+import { useAvatarUpload } from '@/composables/useAvatarUpload'
+import { extractApiErrorMessage } from '@/utils/error'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { IconMail, IconTrophy, IconFlame } from '@tabler/icons-vue'
+import { Button } from '@/components/ui/button'
+import { IconMail, IconTrophy, IconFlame, IconUpload, IconLoader2 } from '@tabler/icons-vue'
 import BaseDetailDrawer from '@/components/shared/BaseDetailDrawer.vue'
 import { DataBlock, SemanticBadge, USER_ROLE_COLOR_MAP } from '@/components/ui/terminal'
 import { formatDateByLocale, formatDateTimeByLocale } from '@/i18n/utils'
-
 const { t } = useI18n()
 
 const props = defineProps<{
@@ -22,6 +25,44 @@ const emit = defineEmits<{
 
 const usersStore = useUsersStore()
 const loading = ref(false)
+const avatarInput = ref<HTMLInputElement | null>(null)
+let loadGeneration = 0
+const {
+  uploading: avatarUploading,
+  progress: avatarProgress,
+  upload: uploadAvatar,
+} = useAvatarUpload(computed(() => props.userId))
+
+async function handleAvatarChange(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = ''
+  const targetUserId = props.userId
+  if (!file || !targetUserId) return
+
+  try {
+    const avatar = await uploadAvatar(file)
+    if (props.userId !== targetUserId) return
+    if (usersStore.currentUser?.id === targetUserId) {
+      usersStore.currentUser = { ...usersStore.currentUser, avatar }
+    }
+    const refreshed = await loadSelectedUser(targetUserId)
+    if (props.userId !== targetUserId) return
+    emit('success')
+    toast.success(t('users.toast.avatarUploadSuccess'))
+    if (!refreshed) {
+      // The upload itself succeeded (the returned URL is already applied above);
+      // the detail refresh failing must be reported instead of silently leaving
+      // the rest of the drawer stale.
+      toast.warning(t('users.toast.avatarRefreshWarning'))
+    }
+  } catch (error) {
+    if (props.userId !== targetUserId) return
+    toast.error(
+      extractApiErrorMessage(error, t('users.toast.avatarUploadFailed')),
+    )
+  }
+}
 
 // Computed stats for progress display
 const acceptanceRate = computed(() => {
@@ -42,21 +83,32 @@ const progressEmpty = computed(() => {
   return '░'.repeat(24 - filledCount)
 })
 
-async function loadUser() {
-  if (!props.userId) return
+async function loadUser(userId: string | null = props.userId) {
+  if (!userId) return null
   loading.value = true
   try {
-    await usersStore.fetchUser(props.userId)
+    return await usersStore.fetchUser(userId, false)
   } finally {
     loading.value = false
   }
 }
 
+async function loadSelectedUser(userId: string) {
+  const generation = ++loadGeneration
+  const user = await loadUser(userId)
+  if (props.userId !== userId || generation !== loadGeneration) return null
+  if (user) {
+    usersStore.currentUser = user
+  }
+  return user
+}
+
 watch(
   () => props.open,
   (newOpen) => {
-    if (newOpen && props.userId) {
-      loadUser()
+    const targetUserId = props.userId
+    if (newOpen && targetUserId) {
+      void loadSelectedUser(targetUserId)
     }
   },
 )
@@ -179,6 +231,36 @@ watch(
                 />
               </div>
             </div>
+          </div>
+          <div class="mt-3 flex flex-wrap items-center gap-2">
+            <input
+              ref="avatarInput"
+              type="file"
+              accept=".jpg,.jpeg,.png,.gif,.webp"
+              class="sr-only"
+              :disabled="avatarUploading"
+              :aria-label="t('users.actions.changeAvatar')"
+              @change="handleAvatarChange"
+            />
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              :disabled="avatarUploading"
+              @click="avatarInput?.click()"
+            >
+              <IconLoader2 v-if="avatarUploading" class="mr-1 h-4 w-4 animate-spin" />
+              <IconUpload v-else class="mr-1 h-4 w-4" />
+              {{ t('users.actions.changeAvatar') }}
+            </Button>
+            <span
+              v-if="avatarUploading"
+              role="status"
+              aria-live="polite"
+              class="font-data text-xs text-[var(--foreground-muted)]"
+            >
+              {{ t('users.actions.avatarUploading', { progress: avatarProgress }) }}
+            </span>
           </div>
         </div>
       </div>

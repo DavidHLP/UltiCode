@@ -2143,7 +2143,7 @@ CREATE TABLE `virtual_contest_sessions` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-30 23:55:41
+-- Dump completed on 2026-09-20 23:03:05
 --
 -- Dumping schema: auth
 --
@@ -2401,7 +2401,7 @@ CREATE TABLE `users` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-30 23:55:41
+-- Dump completed on 2026-09-20 23:03:05
 --
 -- Dumping schema: admin
 --
@@ -2473,6 +2473,8 @@ CREATE TABLE `audit_outbox` (
   `ip_address` varchar(45) DEFAULT 'unknown',
   `user_agent` varchar(255) DEFAULT NULL,
   `state` varchar(16) NOT NULL DEFAULT 'PENDING',
+  `attempts` int NOT NULL DEFAULT '0',
+  `last_error` varchar(500) DEFAULT NULL,
   `resource_type` varchar(60) DEFAULT NULL,
   `resource_id` varchar(60) DEFAULT NULL,
   `details` text,
@@ -2480,9 +2482,69 @@ CREATE TABLE `audit_outbox` (
   `created_at` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   `claimed_at` datetime(3) DEFAULT NULL,
   `claim_owner` varchar(64) DEFAULT NULL,
+  `next_retry_at` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   `processed_at` datetime(3) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  KEY `idx_state_claimed` (`state`,`claimed_at`)
+  KEY `idx_state_claimed` (`state`,`claimed_at`),
+  KEY `idx_audit_outbox_state_retry` (`state`,`next_retry_at`,`attempts`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `backup_cutover_state`
+--
+
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `backup_cutover_state` (
+  `id` tinyint unsigned NOT NULL,
+  `source_row_count` bigint unsigned NOT NULL DEFAULT '0',
+  `target_row_count` bigint unsigned NOT NULL DEFAULT '0',
+  `cutover_completed_at` datetime(3) DEFAULT NULL,
+  `last_reconciled_at` datetime(3) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `backup_deletion_tombstones`
+--
+
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `backup_deletion_tombstones` (
+  `backup_id` varchar(40) NOT NULL,
+  `deleted_at` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `object_key` varchar(512) DEFAULT NULL,
+  `object_deleted_at` datetime(3) DEFAULT NULL,
+  `cleanup_attempts` int NOT NULL DEFAULT '0',
+  `cleanup_error` varchar(500) DEFAULT NULL,
+  PRIMARY KEY (`backup_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `backups`
+--
+
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `backups` (
+  `id` varchar(40) NOT NULL,
+  `filename` varchar(255) NOT NULL,
+  `object_key` varchar(512) DEFAULT NULL,
+  `size` bigint NOT NULL DEFAULT '0',
+  `checksum` char(64) DEFAULT NULL,
+  `type` enum('FULL','INCREMENTAL') NOT NULL,
+  `status` enum('PENDING','IN_PROGRESS','COMPLETED','FAILED') NOT NULL,
+  `created_by` varchar(40) NOT NULL,
+  `created_at` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `completed_at` datetime(3) DEFAULT NULL,
+  `metadata` json DEFAULT NULL,
+  `error` text,
+  PRIMARY KEY (`id`),
+  KEY `idx_status_created_at` (`status`,`created_at`),
+  KEY `idx_created_by` (`created_by`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -2588,6 +2650,25 @@ CREATE TABLE `reconciliation_runs` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `storage_cleanup_outbox`
+--
+
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `storage_cleanup_outbox` (
+  `object_key` varchar(512) NOT NULL,
+  `attempts` int NOT NULL DEFAULT '0',
+  `last_error` varchar(500) DEFAULT NULL,
+  `created_at` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `deleted_at` datetime(3) DEFAULT NULL,
+  `verify_owner_reference` tinyint(1) NOT NULL DEFAULT '0',
+  `kept_at` datetime(3) DEFAULT NULL,
+  PRIMARY KEY (`object_key`),
+  KEY `idx_admin_storage_cleanup_pending` (`deleted_at`,`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `system_settings`
 --
 
@@ -2635,7 +2716,7 @@ CREATE TABLE `user_warnings` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-30 23:55:41
+-- Dump completed on 2026-09-20 23:03:06
 --
 -- Dumping schema: app
 --
@@ -3929,6 +4010,43 @@ CREATE TABLE `solutions` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `storage_cleanup_outbox`
+--
+
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `storage_cleanup_outbox` (
+  `id` varchar(40) NOT NULL,
+  `object_key` varchar(512) NOT NULL,
+  `state` varchar(16) NOT NULL DEFAULT 'PENDING',
+  `attempts` int NOT NULL DEFAULT '0',
+  `last_error` varchar(500) DEFAULT NULL,
+  `next_retry_at` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `claimed_at` datetime(3) DEFAULT NULL,
+  `claim_owner` varchar(80) DEFAULT NULL,
+  `created_at` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `delivered_at` datetime(3) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_storage_cleanup_object_key` (`object_key`),
+  KEY `idx_storage_cleanup_state_retry` (`state`,`next_retry_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `storage_migration_state`
+--
+
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `storage_migration_state` (
+  `id` tinyint NOT NULL,
+  `avatar_rows_rewritten_at` datetime(3) DEFAULT NULL,
+  `users_index_backfill_confirmed_at` datetime(3) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `submission_result_outbox`
 --
 
@@ -4228,7 +4346,7 @@ CREATE TABLE `virtual_contest_sessions` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-30 23:55:41
+-- Dump completed on 2026-09-20 23:03:06
 --
 -- Dumping schema: notification
 --
@@ -4445,7 +4563,7 @@ CREATE TABLE `notifications` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-30 23:55:41
+-- Dump completed on 2026-09-20 23:03:06
 --
 -- Dumping schema: submission
 --
@@ -4639,4 +4757,4 @@ CREATE TABLE `submissions` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-30 23:55:41
+-- Dump completed on 2026-09-20 23:03:06

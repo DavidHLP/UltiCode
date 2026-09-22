@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.modules.backup.entity.Backup;
 import com.ulticode.modules.backup.entity.enums.BackupStatus;
 import com.ulticode.modules.backup.entity.enums.BackupType;
+import com.ulticode.modules.backup.mapper.BackupDeletionTombstoneMapper;
 import com.ulticode.modules.backup.mapper.BackupMapper;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -15,10 +16,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.GenericContainer;
@@ -39,7 +44,7 @@ import org.testcontainers.utility.MountableFile;
         + "org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration,"
         + "org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration,"
         + "org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration,"
-        + "org.apache.dubbo.spring.boot.autoconfigure.DubboAutoConfiguration,"
+@DisplayName("BackupRepositoryIT — Real MySQL backup mapper invariants")
         + "com.alibaba.cloud.dubbo.bootstrap.DubboBootstrapAutoConfiguration")
 @Testcontainers
 @DisplayName("BackupRepositoryIT — Real MySQL CRUD round-trip for /admin/backups")
@@ -100,6 +105,29 @@ class BackupRepositoryIT {
 
     @Autowired
     private BackupMapper backupMapper;
+
+    @Autowired
+    private BackupDeletionTombstoneMapper backupDeletionTombstoneMapper;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+    @Autowired
+    private PlatformTransactionManager transactionManager;
+
+    @BeforeEach
+    void ensureTombstoneTable() {
+        jdbcTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS backup_deletion_tombstones (
+                    backup_id varchar(40) NOT NULL,
+                    deleted_at datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+                    object_key varchar(512) DEFAULT NULL,
+                    object_deleted_at datetime(3) DEFAULT NULL,
+                    cleanup_attempts int NOT NULL DEFAULT 0,
+                    cleanup_error varchar(500) DEFAULT NULL,
+                    PRIMARY KEY (backup_id)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                """);
+    }
 
     @Test
     @DisplayName("INSERT → SELECT → UPDATE status → SELECT by id → DELETE round-trip")
@@ -247,5 +275,111 @@ class BackupRepositoryIT {
         } finally {
             backupMapper.deleteById(uniqueId);
         }
+    }
+    @Test
+    @DisplayName("deleteIfNotRunning refuses a planned key owned by a running row")
+    void deleteIfNotRunningRefusesRunningPlannedRow() {
+        String id = UUID.randomUUID().toString();
+        insertBackup(id, BackupStatus.IN_PROGRESS, "admin/backups/2026/01/" + id + ".sql");
+
+        try {
+            assertThat(backupMapper.deleteIfNotRunning(id)).isZero();
+            assertThat(backupMapper.selectById(id)).isNotNull();
+        } finally {
+            backupMapper.deleteById(id);
+        }
+    }
+
+    @Test
+    @DisplayName("failUnlessCompleted never overwrites a durable COMPLETED row")
+    void failUnlessCompletedPreservesCompletedRow() {
+        String id = UUID.randomUUID().toString();
+        insertBackup(id, BackupStatus.COMPLETED, "admin/backups/2026/01/" + id + ".sql");
+
+        try {
+            assertThat(backupMapper.failUnlessCompleted(
+                    id, java.time.LocalDateTime.now(), "late failure", null)).isZero();
+            Backup persisted = backupMapper.selectById(id);
+            assertThat(persisted.getStatus()).isEqualTo(BackupStatus.COMPLETED);
+            assertThat(persisted.getError()).isNull();
+        } finally {
+            backupMapper.deleteById(id);
+        }
+    }
+
+    @Test
+    @DisplayName("row deletion and tombstone insert roll back together")
+    void rowDeletionAndTombstoneAreAtomic() {
+        String id = UUID.randomUUID().toString();
+        String objectKey = "admin/backups/2026/01/" + id + ".sql";
+        insertBackup(id, BackupStatus.COMPLETED, objectKey);
+
+        try {
+            new TransactionTemplate(transactionManager).executeWithoutResult(status -> {
+                assertThat(backupMapper.deleteIfNotRunning(id)).isEqualTo(1);
+                assertThat(backupDeletionTombstoneMapper.insert(id, objectKey)).isEqualTo(1);
+                status.setRollbackOnly();
+            });
+
+            assertThat(backupMapper.selectById(id)).isNotNull();
+            assertThat(jdbcTemplate.queryForObject(
+                    "SELECT COUNT(*) FROM backup_deletion_tombstones WHERE backup_id = ?",
+                    Integer.class, id)).isZero();
+        } finally {
+            backupMapper.deleteById(id);
+            jdbcTemplate.update("DELETE FROM backup_deletion_tombstones WHERE backup_id = ?", id);
+        }
+    }
+
+    @Test
+    @DisplayName("settle window excludes young tombstones")
+    void settleWindowFiltersYoungTombstones() {
+        String oldId = UUID.randomUUID().toString();
+        String youngId = UUID.randomUUID().toString();
+        String oldKey = "admin/backups/2026/01/" + oldId + ".sql";
+        String youngKey = "admin/backups/2026/01/" + youngId + ".sql";
+        try {
+            backupDeletionTombstoneMapper.insert(oldId, oldKey);
+            backupDeletionTombstoneMapper.insert(youngId, youngKey);
+            jdbcTemplate.update(
+                    "UPDATE backup_deletion_tombstones SET deleted_at = DATE_SUB(NOW(3), INTERVAL 301 SECOND) "
+                            + "WHERE backup_id = ?", oldId);
+
+            assertThat(backupDeletionTombstoneMapper.selectPendingObjectKeys(100, 300))
+                    .containsExactly(oldKey);
+        } finally {
+            jdbcTemplate.update("DELETE FROM backup_deletion_tombstones WHERE backup_id IN (?, ?)",
+                    oldId, youngId);
+        }
+    }
+
+    @Test
+    @DisplayName("completed tombstones are not selected again")
+    void completedTombstoneIsNotSelected() {
+        String id = UUID.randomUUID().toString();
+        String objectKey = "admin/backups/2026/01/" + id + ".sql";
+        try {
+            backupDeletionTombstoneMapper.insert(id, objectKey);
+            jdbcTemplate.update(
+                    "UPDATE backup_deletion_tombstones SET deleted_at = DATE_SUB(NOW(3), INTERVAL 301 SECOND) "
+                            + "WHERE backup_id = ?", id);
+            assertThat(backupDeletionTombstoneMapper.markObjectDeleted(objectKey)).isEqualTo(1);
+
+            assertThat(backupDeletionTombstoneMapper.selectPendingObjectKeys(100, 300))
+                    .doesNotContain(objectKey);
+        } finally {
+            jdbcTemplate.update("DELETE FROM backup_deletion_tombstones WHERE backup_id = ?", id);
+        }
+    }
+
+    private void insertBackup(String id, BackupStatus status, String objectKey) {
+        Backup backup = new Backup();
+        backup.setId(id);
+        backup.setFilename("backup_" + id + ".sql");
+        backup.setObjectKey(objectKey);
+        backup.setType(BackupType.FULL);
+        backup.setStatus(status);
+        backup.setCreatedBy("admin-it-user");
+        assertThat(backupMapper.insert(backup)).isEqualTo(1);
     }
 }

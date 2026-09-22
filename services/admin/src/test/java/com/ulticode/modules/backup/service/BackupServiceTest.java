@@ -7,12 +7,10 @@ import com.ulticode.modules.backup.dto.CreateBackupDTO;
 import com.ulticode.modules.backup.entity.Backup;
 import com.ulticode.modules.backup.entity.enums.BackupStatus;
 import com.ulticode.modules.backup.entity.enums.BackupType;
-import com.ulticode.modules.backup.mapper.BackupDeletionTombstoneMapper;
 import com.ulticode.modules.backup.mapper.BackupMapper;
 import com.ulticode.modules.backup.port.BackupProcessPort;
 import com.ulticode.modules.backup.projection.BackupReadProjection;
-import com.ulticode.modules.backup.service.BackupExecutionService;
-import com.ulticode.modules.backup.service.impl.BackupObjectCleanup;
+import com.ulticode.modules.backup.service.impl.BackupObjectLifecycle;
 import com.ulticode.modules.backup.service.impl.BackupServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -27,11 +25,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.springframework.test.util.ReflectionTestUtils;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermission;
@@ -61,9 +56,6 @@ class BackupServiceTest {
     private BackupMapper backupMapper;
 
     @Mock
-    private BackupDeletionTombstoneMapper backupDeletionTombstoneMapper;
-
-    @Mock
     private Clock clock;
 
     @Mock
@@ -73,13 +65,9 @@ class BackupServiceTest {
     private FileStoragePort fileStorage;
 
     @Mock
-    private BackupExecutionService backupExecutionService;
-
-    @Mock
     private BackupReadProjection backupReadProjection;
-
     @Mock
-    private BackupObjectCleanup backupObjectCleanup;
+    private BackupObjectLifecycle backupObjectLifecycle;
 
     @InjectMocks
     private BackupServiceImpl backupService;
@@ -181,18 +169,9 @@ class BackupServiceTest {
             assertTrue(savedBackup.getFilename().startsWith("backup_incremental_"));
         }
 
-        /**
-         * Dispatch-separation wiring test: createBackup must route the
-         * async run through the injected BackupExecutionService bean, not
-         * via in-class self-invocation. The previous shape called
-         * {@code this.executeBackup(id)} directly, which bypassed the AOP
-         * proxy and silently defeated {@code @Async}. This assertion fails
-         * the day someone reintroduces the self-call.
-         */
         @Test
-        @DisplayName("should dispatch execution via BackupExecutionService (proxy seam)")
-        void shouldDispatchViaBackupExecutionService() {
-            // Arrange
+        @DisplayName("should dispatch execution via BackupObjectLifecycle")
+        void shouldDispatchExecutionViaLifecycle() {
             CreateBackupDTO dto = new CreateBackupDTO();
             dto.setType(BackupType.FULL);
             when(backupMapper.insert(any(Backup.class))).thenAnswer(invocation -> {
@@ -201,20 +180,15 @@ class BackupServiceTest {
                 return 1;
             });
 
-            // Act
             backupService.createBackup(USER_ID, dto);
 
-            // Assert — dispatched through the injected bean, never in-class.
-            verify(backupExecutionService).executeBackup(BACKUP_ID);
-            // The orchestration service no longer owns the lifecycle: it
-            // must not update the status itself on the create path.
+            verify(backupObjectLifecycle).start(BACKUP_ID);
             verify(backupMapper, never()).updateById(any(Backup.class));
         }
 
         @Test
-        @DisplayName("should mark the backup failed when async dispatch is rejected")
-        void shouldMarkBackupFailedWhenAsyncDispatchIsRejected() {
-            // Arrange
+        @DisplayName("should propagate lifecycle executor rejection")
+        void shouldPropagateLifecycleRejection() {
             CreateBackupDTO dto = new CreateBackupDTO();
             dto.setType(BackupType.FULL);
             when(backupMapper.insert(any(Backup.class))).thenAnswer(invocation -> {
@@ -223,35 +197,14 @@ class BackupServiceTest {
                 return 1;
             });
             doThrow(new RejectedExecutionException("executor is shutting down"))
-                    .when(backupExecutionService).executeBackup(BACKUP_ID);
+                    .when(backupObjectLifecycle).start(BACKUP_ID);
 
-            // Act
             assertThrows(RejectedExecutionException.class,
                     () -> backupService.createBackup(USER_ID, dto));
-
-            // Assert
-            ArgumentCaptor<Backup> captor = ArgumentCaptor.forClass(Backup.class);
-            verify(backupMapper).updateById(captor.capture());
-            Backup failed = captor.getValue();
-            assertEquals(BackupStatus.FAILED, failed.getStatus());
-            assertNotNull(failed.getCompletedAt());
-            assertTrue(failed.getError().contains("executor is shutting down"));
+            verify(backupObjectLifecycle).start(BACKUP_ID);
+            verify(backupMapper, never()).updateById(any(Backup.class));
         }
 
-        /**
-         * Proxy-seam regression test: the write service must not declare
-         * {@code executeBackup} on its interface. Declaring it there would
-         * tempt callers back into a self-call. If this fails, the lifecycle
-         * method has leaked back into BackupService.
-         */
-        @Test
-        @DisplayName("BackupService interface must not expose executeBackup")
-        void backupServiceInterfaceMustNotExposeExecuteBackup() throws NoSuchMethodException {
-            // Act & Assert
-            assertThrows(NoSuchMethodException.class,
-                    () -> BackupService.class.getMethod("executeBackup", String.class),
-                    "executeBackup must live only on BackupExecutionService so the @Async proxy seam is preserved");
-        }
     }
 
     @Nested
@@ -334,93 +287,26 @@ class BackupServiceTest {
     class DeleteBackupTests {
 
         @Test
-        @DisplayName("should delete the row before cleaning its object after commit")
-        void shouldDeleteBackupRowBeforeObjectCleanup() {
+        @DisplayName("validates filename before delegating deletion to lifecycle")
+        void shouldValidateAndDelegateDelete() {
             Backup backup = new Backup();
             backup.setId(BACKUP_ID);
             backup.setFilename("test_backup.sql");
-            backup.setObjectKey("admin/backups/2026/01/" + BACKUP_ID + ".sql");
-
+            backup.setStatus(BackupStatus.COMPLETED);
             when(backupMapper.selectById(BACKUP_ID)).thenReturn(backup);
-            when(backupMapper.deleteIfNotRunning(BACKUP_ID)).thenReturn(1);
-
-            TransactionSynchronizationManager.initSynchronization();
-            try {
-                backupService.deleteBackup(BACKUP_ID);
-
-                verify(backupMapper).deleteIfNotRunning(BACKUP_ID);
-                verify(backupDeletionTombstoneMapper).insert(BACKUP_ID, backup.getObjectKey());
-                verify(backupObjectCleanup, never()).deletePending(anyString());
-
-                TransactionSynchronizationManager.getSynchronizations()
-                        .forEach(TransactionSynchronization::afterCommit);
-                verify(backupObjectCleanup, timeout(1000)).deletePending(backup.getObjectKey());
-            } finally {
-                TransactionSynchronizationManager.clearSynchronization();
-            }
-        }
-
-        @Test
-        @DisplayName("should delete a keyless backup row without attempting object deletion")
-        void shouldDeleteKeylessBackupRow() {
-            Backup backup = new Backup();
-            backup.setId(BACKUP_ID);
-            backup.setFilename("abandoned_backup.sql");
-            backup.setStatus(BackupStatus.PENDING);
-
-            when(backupMapper.selectById(BACKUP_ID)).thenReturn(backup);
-            when(backupMapper.deleteIfNotRunning(BACKUP_ID)).thenReturn(1);
 
             backupService.deleteBackup(BACKUP_ID);
 
-            verify(backupObjectCleanup, never()).deletePending(anyString());
-            verify(backupMapper).deleteIfNotRunning(BACKUP_ID);
-            verify(backupDeletionTombstoneMapper).insert(BACKUP_ID, null);
+            verify(backupObjectLifecycle).delete(BACKUP_ID);
         }
 
         @Test
-        @DisplayName("should fail when backup row deletion affects no rows")
-        void shouldFailWhenBackupRowDeletionAffectsNoRows() {
-            Backup backup = new Backup();
-            backup.setId(BACKUP_ID);
-            backup.setFilename("test_backup.sql");
-            backup.setObjectKey("admin/backups/2026/01/" + BACKUP_ID + ".sql");
-
-            when(backupMapper.selectById(BACKUP_ID)).thenReturn(backup);
-            when(backupMapper.deleteIfNotRunning(BACKUP_ID)).thenReturn(0);
-
-            BusinessException exception = assertThrows(BusinessException.class,
-                    () -> backupService.deleteBackup(BACKUP_ID));
-
-            assertTrue(exception.getMessage().contains("Failed to delete backup record"));
-            verify(backupObjectCleanup, never()).deletePending(anyString());
-        }
-        @Test
-        @DisplayName("should preserve the object when row deletion throws")
-        void shouldPreserveObjectWhenRowDeletionThrows() {
-            Backup backup = new Backup();
-            backup.setId(BACKUP_ID);
-            backup.setFilename("test_backup.sql");
-            backup.setObjectKey("admin/backups/2026/01/" + BACKUP_ID + ".sql");
-
-            when(backupMapper.selectById(BACKUP_ID)).thenReturn(backup);
-            doThrow(new IllegalStateException("database unavailable"))
-                    .when(backupMapper).deleteIfNotRunning(BACKUP_ID);
-
-            assertThrows(IllegalStateException.class, () -> backupService.deleteBackup(BACKUP_ID));
-
-            verify(backupObjectCleanup, never()).deletePending(anyString());
-        }
-
-
-        @Test
-        @DisplayName("should throw exception when backup not found")
+        @DisplayName("should reject deletion when backup is not found")
         void shouldThrowExceptionWhenBackupNotFound() {
-            // Arrange
             when(backupMapper.selectById(BACKUP_ID)).thenReturn(null);
 
-            // Act & Assert
             assertThrows(BusinessException.class, () -> backupService.deleteBackup(BACKUP_ID));
+            verifyNoInteractions(backupObjectLifecycle);
         }
     }
 

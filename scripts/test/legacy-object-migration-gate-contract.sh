@@ -58,13 +58,13 @@ run_gate() {
     MIGRATION_DB_PASSWORD=contract-secret \
     MIGRATION_MYSQL_BIN="$WORK_DIR/bin/mysql" \
     ENV_FILE="$WORK_DIR/empty.env" \
-    "$GATE" >"$GATE_STDOUT" 2>"$GATE_STDERR" || GATE_STATUS=$?
+    "$GATE" "$@" >"$GATE_STDOUT" 2>"$GATE_STDERR" || GATE_STATUS=$?
 }
 
 expect_failure() {
   local expected="$1"
   [[ "$GATE_STATUS" == 1 ]] || fail "expected exit 1 (got $GATE_STATUS): $(cat "$GATE_STDERR")"
-  grep -Fq "$expected" "$GATE_STDERR" \
+  grep -Fq -- "$expected" "$GATE_STDERR" \
     || fail "stderr is missing '$expected': $(cat "$GATE_STDERR")"
 }
 
@@ -104,5 +104,37 @@ FAKE_AVATARS=0 FAKE_BACKUPS=0 LEGACY_AVATAR_URL_PREFIX=/media_v1 \
 [[ "$GATE_STATUS" == 0 ]] || fail "an escaped predicate must still pass a clean database (got $GATE_STATUS)"
 grep -Fq "avatar LIKE '/media!_v1/avatars/%' ESCAPE '!'" "$WORK_DIR/avatar-sql.log" \
   || fail "the avatar probe must escape '_' and declare ESCAPE: $(cat "$WORK_DIR/avatar-sql.log")"
+
+# A scoped start gates only the owners it selects: a local App-only scope has no
+# Admin, so a legacy completed backup must not block it, and the owner that is
+# not selected must not be probed at all.
+: > "$WORK_DIR/scoped-sql.log"
+FAKE_AVATARS=0 FAKE_BACKUPS=2 FAKE_SQL_LOG="$WORK_DIR/scoped-sql.log" run_gate --owners app
+[[ "$GATE_STATUS" == 0 ]] || fail "an App-only scope must not be blocked by Admin backups (got $GATE_STATUS): $(cat "$GATE_STDERR")"
+grep -Fq 'LEGACY_OBJECT_MIGRATION status=PASS legacy_avatars=0 legacy_backups=skipped' "$GATE_STDOUT" \
+  || fail "an App-only PASS line must report the skipped owner: $(cat "$GATE_STDOUT")"
+! grep -Fq 'backups' "$WORK_DIR/scoped-sql.log" \
+  || fail "an App-only gate must not probe admin.backups: $(cat "$WORK_DIR/scoped-sql.log")"
+
+FAKE_AVATARS=3 FAKE_BACKUPS=0 FAKE_SQL_LOG="$WORK_DIR/scoped-sql.log" run_gate --owners app
+expect_failure '3 legacy avatar row(s)'
+
+: > "$WORK_DIR/scoped-sql.log"
+FAKE_AVATARS=3 FAKE_BACKUPS=0 FAKE_SQL_LOG="$WORK_DIR/scoped-sql.log" run_gate --owners admin
+[[ "$GATE_STATUS" == 0 ]] || fail "an Admin-only scope must not be blocked by avatars (got $GATE_STATUS): $(cat "$GATE_STDERR")"
+! grep -Fq 'user_profiles' "$WORK_DIR/scoped-sql.log" \
+  || fail "an Admin-only gate must not probe app.user_profiles: $(cat "$WORK_DIR/scoped-sql.log")"
+
+FAKE_AVATARS=0 FAKE_BACKUPS=2 run_gate --owners admin
+expect_failure '2 legacy backup row(s)'
+
+# The owner selection is an argument, and an unusable one fails closed rather
+# than falling back to the full deploy gate or to no gate at all.
+FAKE_AVATARS=0 FAKE_BACKUPS=0 run_gate --owners app,search
+expect_failure '--owners must be app, admin or both'
+FAKE_AVATARS=0 FAKE_BACKUPS=0 run_gate --owners
+expect_failure '--owners requires a value'
+FAKE_AVATARS=0 FAKE_BACKUPS=0 run_gate --owner app
+expect_failure 'unknown argument --owner'
 
 echo 'legacy-object-gate-contract: PASS'

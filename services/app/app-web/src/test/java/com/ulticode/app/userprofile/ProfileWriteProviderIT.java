@@ -6,35 +6,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.time.Clock;
-import java.util.UUID;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.BeforeEach;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
-import org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration;
-import org.springframework.boot.autoconfigure.transaction.TransactionAutoConfiguration;
-import org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.mybatis.spring.annotation.MapperScan;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.MySQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.utility.MountableFile;
 
-import org.springframework.context.annotation.Bean;
-import org.springframework.boot.test.context.TestConfiguration;
-import com.ulticode.common.command.ActorDelegation;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.ulticode.app.api.command.UpdateProfileCommand;
 import com.ulticode.app.api.command.UploadAvatarCommand;
 import com.ulticode.app.api.dto.ProfileWriteResult;
@@ -42,18 +15,49 @@ import com.ulticode.app.api.error.AppErrorCode;
 import com.ulticode.app.api.service.ProfileWriteService;
 import com.ulticode.app.idempotency.entity.AppCommandReceiptEntity;
 import com.ulticode.app.idempotency.mapper.AppCommandReceiptMapper;
+import com.ulticode.app.security.AdminActorAuthorizer;
+import com.ulticode.app.storage.StorageCleanupOutbox;
+import com.ulticode.app.storage.StorageCleanupOutboxMapper;
+import com.ulticode.app.storage.StorageCleanupOutboxRecord;
 import com.ulticode.app.userprofile.entity.UserProfile;
 import com.ulticode.app.userprofile.mapper.UserProfileMapper;
 import com.ulticode.app.userprofile.provider.ProfileWriteProvider;
-import com.ulticode.app.security.AdminActorAuthorizer;
+import com.ulticode.common.command.ActorDelegation;
 import com.ulticode.common.rpc.RpcResult;
-import com.ulticode.common.storage.FileStoragePort;
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
 import com.ulticode.modules.search.port.UserDirectoryQueryPort;
 import com.ulticode.modules.search.port.UserDirectoryRow;
 import com.ulticode.modules.search.port.UserSearchRow;
 import com.ulticode.modules.search.source.SearchDocumentChangedPublisher;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Clock;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.mybatis.spring.annotation.MapperScan;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration;
+import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
+import org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration;
+import org.springframework.boot.autoconfigure.transaction.TransactionAutoConfiguration;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Bean;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.testcontainers.containers.MySQLContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.utility.MountableFile;
 
 /**
  * Real MySQL CRUD round-trip IT for {@link ProfileWriteProvider}.
@@ -69,9 +73,12 @@ import com.ulticode.modules.search.source.SearchDocumentChangedPublisher;
 @SpringBootTest(
         classes = {
                 ProfileWriteProvider.class,
+                ProfileMutationModule.class,
                 com.ulticode.app.idempotency.CommandReceiptExecutor.class,
                 UserProfileMapper.class,
                 AppCommandReceiptMapper.class,
+                StorageCleanupOutbox.class,
+                StorageCleanupOutboxMapper.class,
                 ProfileReceiptTestConfig.class,
                 DataSourceAutoConfiguration.class,
                 DataSourceTransactionManagerAutoConfiguration.class,
@@ -84,7 +91,8 @@ import com.ulticode.modules.search.source.SearchDocumentChangedPublisher;
                 "spring.jpa.hibernate.ddl-auto=none"
         }
 )
-@MapperScan({"com.ulticode.app.userprofile.mapper", "com.ulticode.app.idempotency.mapper"})
+@MapperScan({"com.ulticode.app.userprofile.mapper", "com.ulticode.app.idempotency.mapper",
+        "com.ulticode.app.storage"})
 @Testcontainers
 @DisplayName("ProfileWriteProviderIT — Real MySQL CRUD + idempotency for user_profiles")
 class ProfileWriteProviderIT {
@@ -99,7 +107,10 @@ class ProfileWriteProviderIT {
                     "/docker-entrypoint-initdb.d/V20260729140400__Create_User_Profiles_Table.sql")
             .withCopyFileToContainer(
                     MountableFile.forHostPath(receiptMigrationPath().toString()),
-                    "/docker-entrypoint-initdb.d/V20260801000000__Create_App_Command_Receipt.sql");
+                    "/docker-entrypoint-initdb.d/V20260801000000__Create_App_Command_Receipt.sql")
+            .withCopyFileToContainer(
+                    MountableFile.forHostPath(storageCleanupMigrationPath().toString()),
+                    "/docker-entrypoint-initdb.d/V20260924120000__Create_Storage_Cleanup_Outbox.sql");
 
     private static Path findMigration(String filename) {
         Path current = Path.of(System.getProperty("user.dir")).toAbsolutePath().normalize();
@@ -120,6 +131,9 @@ class ProfileWriteProviderIT {
     private static Path receiptMigrationPath() {
         return findMigration("V20260801000000__Create_App_Command_Receipt.sql");
     }
+    private static Path storageCleanupMigrationPath() {
+        return findMigration("V20260924120000__Create_Storage_Cleanup_Outbox.sql");
+    }
 
     @DynamicPropertySource
     static void configureDatasource(DynamicPropertyRegistry registry) {
@@ -135,11 +149,7 @@ class ProfileWriteProviderIT {
     @MockitoBean
     private AdminActorAuthorizer adminActorAuthorizer;
 
-    @MockitoBean
-    private FileStoragePort fileStorage;
 
-    @MockitoBean
-    private com.ulticode.app.storage.StorageCleanupOutbox storageCleanupOutbox;
 
     @MockitoBean
     private UserDirectoryQueryPort userDirectoryQueryPort;
@@ -157,6 +167,8 @@ class ProfileWriteProviderIT {
 
     @Autowired
     private AppCommandReceiptMapper receiptMapper;
+    @Autowired
+    private StorageCleanupOutboxMapper storageCleanupOutboxMapper;
 
     private static UserDirectoryRow directoryRow(
             String id, String username, String name, String avatar) {
@@ -566,6 +578,73 @@ class ProfileWriteProviderIT {
         UserProfile persisted = userProfileMapper.selectById(accountId);
         assertThat(persisted).isNotNull();
         assertThat(persisted.getName()).isEqualTo("Concurrent");
+    }
+
+    @Test
+    @DisplayName("concurrent avatar replacements lock the row and clean the original plus loser key")
+    void concurrentAvatarReplacementsCleanOriginalAndLoserKey() throws Exception {
+        assertConcurrentAvatarReplacement("first.png", "second.png");
+    }
+
+    @Test
+    @DisplayName("reverse concurrent avatar replacements still clean the original plus loser key")
+    void reverseConcurrentAvatarReplacementsCleanOriginalAndLoserKey() throws Exception {
+        assertConcurrentAvatarReplacement("second.png", "first.png");
+    }
+
+    private void assertConcurrentAvatarReplacement(
+            String firstObjectName, String secondObjectName) throws Exception {
+        String accountId = UUID.randomUUID().toString();
+        String originalKey = "app/avatars/" + accountId + "/original.png";
+        UserProfile seed = new UserProfile();
+        seed.setAccountId(accountId);
+        seed.setAvatar(originalKey);
+        assertThat(userProfileMapper.insert(seed)).isEqualTo(1);
+
+        String firstKey = "app/avatars/" + accountId + "/" + firstObjectName;
+        String secondKey = "app/avatars/" + accountId + "/" + secondObjectName;
+        UploadAvatarCommand firstCommand = avatarReplacement(accountId, firstKey);
+        UploadAvatarCommand secondCommand = avatarReplacement(accountId, secondKey);
+        CountDownLatch start = new CountDownLatch(1);
+        ExecutorService pool = Executors.newFixedThreadPool(2);
+        try {
+            Future<RpcResult<ProfileWriteResult>> first = pool.submit(() -> {
+                start.await();
+                return profileWriteService.uploadAvatar(firstCommand);
+            });
+            Future<RpcResult<ProfileWriteResult>> second = pool.submit(() -> {
+                start.await();
+                return profileWriteService.uploadAvatar(secondCommand);
+            });
+            start.countDown();
+
+            assertThat(first.get().success()).isTrue();
+            assertThat(second.get().success()).isTrue();
+        } finally {
+            pool.shutdownNow();
+        }
+
+        UserProfile persisted = userProfileMapper.selectById(accountId);
+        assertThat(persisted).isNotNull();
+        assertThat(List.of(firstKey, secondKey)).contains(persisted.getAvatar());
+        String loserKey = firstKey.equals(persisted.getAvatar()) ? secondKey : firstKey;
+        List<String> cleanupKeys = storageCleanupOutboxMapper
+                .selectList(new QueryWrapper<StorageCleanupOutboxRecord>())
+                .stream()
+                .map(StorageCleanupOutboxRecord::getObjectKey)
+                .toList();
+        assertThat(cleanupKeys).contains(originalKey, loserKey);
+        assertThat(cleanupKeys).doesNotContain(persisted.getAvatar());
+    }
+
+    private static UploadAvatarCommand avatarReplacement(String accountId, String avatarReference) {
+        return new UploadAvatarCommand(
+                UUID.randomUUID().toString(),
+                IdMetadata.mint(),
+                fixedActor(),
+                TraceMetadata.EMPTY,
+                accountId,
+                avatarReference);
     }
 
     private void insertReceipt(

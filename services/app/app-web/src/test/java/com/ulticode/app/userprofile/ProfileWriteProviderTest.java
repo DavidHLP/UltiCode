@@ -6,20 +6,16 @@ import com.ulticode.app.api.dto.ProfileWriteResult;
 import com.ulticode.app.api.error.AppErrorCode;
 import com.ulticode.app.idempotency.CommandReceiptExecutor;
 import com.ulticode.app.security.AdminActorAuthorizer;
-import com.ulticode.app.storage.StorageCleanupOutbox;
-import com.ulticode.app.userprofile.entity.UserProfile;
-import com.ulticode.app.userprofile.mapper.UserProfileMapper;
 import com.ulticode.app.userprofile.provider.ProfileWriteProvider;
 import com.ulticode.common.command.ActorDelegation;
+import com.ulticode.common.error.BaseErrorCode;
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
-import com.ulticode.modules.search.port.UserDirectoryQueryPort;
-import com.ulticode.modules.search.source.SearchDocumentChangedPublisher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import org.springframework.beans.factory.ObjectProvider;
 
 import java.util.function.Function;
 
@@ -34,107 +30,88 @@ import static org.mockito.Mockito.when;
 
 class ProfileWriteProviderTest {
 
-    private UserProfileMapper userProfileMapper;
+    private ProfileMutationModule profileMutationModule;
     private CommandReceiptExecutor receiptExecutor;
     private AdminActorAuthorizer actorAuthorizer;
-    private StorageCleanupOutbox storageCleanupOutbox;
-    private ObjectProvider<UserDirectoryQueryPort> userDirectoryQueryPort;
-    private ObjectProvider<SearchDocumentChangedPublisher> searchPublisher;
     private ProfileWriteProvider provider;
 
     @BeforeEach
     void setUp() {
-        userProfileMapper = mock(UserProfileMapper.class);
+        profileMutationModule = mock(ProfileMutationModule.class);
         receiptExecutor = mock(CommandReceiptExecutor.class);
         actorAuthorizer = mock(AdminActorAuthorizer.class);
-        storageCleanupOutbox = mock(StorageCleanupOutbox.class);
-        userDirectoryQueryPort = mock(ObjectProvider.class);
-        searchPublisher = mock(ObjectProvider.class);
-        provider = new ProfileWriteProvider(
-                userProfileMapper,
-                receiptExecutor,
-                actorAuthorizer,
-                storageCleanupOutbox,
-                userDirectoryQueryPort,
-                searchPublisher);
+        provider = new ProfileWriteProvider(profileMutationModule, receiptExecutor, actorAuthorizer);
     }
 
     @Test
     void rejectsUntrustedProfileUpdateBeforeReceiptAndMutation() {
         when(actorAuthorizer.isAuthorized(any())).thenReturn(false);
-        UpdateProfileCommand command = updateCommand("user-1", "Name", null);
 
-        RpcResult<?> result = provider.updateProfile(command);
+        RpcResult<?> result = provider.updateProfile(updateCommand("user-1", "Name", null));
 
         assertThat(result.success()).isFalse();
         assertThat(result.error().code()).isEqualTo(AppErrorCode.FORBIDDEN.code());
-        verifyNoInteractions(receiptExecutor, userProfileMapper);
+        verifyNoInteractions(receiptExecutor, profileMutationModule);
     }
 
     @Test
     void rejectsUntrustedAvatarUpdateBeforeReceiptAndMutation() {
         when(actorAuthorizer.isAuthorized(any())).thenReturn(false);
-        UploadAvatarCommand command = avatarCommand("user-1", "app/avatars/user-1/new.png");
 
-        RpcResult<?> result = provider.uploadAvatar(command);
+        RpcResult<?> result = provider.uploadAvatar(avatarCommand("user-1", "app/avatars/user-1/new.png"));
 
         assertThat(result.success()).isFalse();
         assertThat(result.error().code()).isEqualTo(AppErrorCode.FORBIDDEN.code());
-        verifyNoInteractions(receiptExecutor, userProfileMapper);
+        verifyNoInteractions(receiptExecutor, profileMutationModule);
     }
 
     @Test
-    void updateProfileUsesFixedReceiptContractAndMapsProfileFields() {
+    void updateDelegatesProfilePatchThroughReceiptBoundary() {
         when(actorAuthorizer.isAuthorized(any())).thenReturn(true);
         UpdateProfileCommand command = updateCommand("user-1", "Alice", "Engineer");
-        when(userProfileMapper.selectByIdForUpdate("user-1")).thenReturn(null);
-        when(userProfileMapper.insert(any(UserProfile.class))).thenReturn(1);
+        ProfileWriteResult expected = new ProfileWriteResult(
+                "user-1", "Alice", null, "Engineer", null, null, null, null, null, null);
+        when(profileMutationModule.update(any(ProfilePatch.class))).thenReturn(expected);
         when(receiptExecutor.execute(
-                eq("ProfileWriteService"),
-                eq("updateProfile"),
-                eq(command),
-                eq(ProfileWriteResult.class),
-                any())).thenAnswer(invocation -> invokeMutation(invocation, "trace-update"));
+                eq("ProfileWriteService"), eq("updateProfile"), eq(command),
+                eq(ProfileWriteResult.class), any())).thenAnswer(invocation -> invokeMutation(invocation, "trace"));
 
         RpcResult<ProfileWriteResult> result = provider.updateProfile(command);
 
         assertThat(result.success()).isTrue();
-        ArgumentCaptor<UserProfile> profile = ArgumentCaptor.forClass(UserProfile.class);
-        verify(userProfileMapper).insert(profile.capture());
-        assertThat(profile.getValue().getAccountId()).isEqualTo("user-1");
-        assertThat(profile.getValue().getName()).isEqualTo("Alice");
-        assertThat(profile.getValue().getBio()).isEqualTo("Engineer");
+        assertThat(result.data()).isEqualTo(expected);
+        ArgumentCaptor<ProfilePatch> patch = ArgumentCaptor.forClass(ProfilePatch.class);
+        verify(profileMutationModule).update(patch.capture());
+        assertThat(patch.getValue().accountId()).isEqualTo("user-1");
+        assertThat(patch.getValue().name()).isEqualTo("Alice");
+        assertThat(patch.getValue().bio()).isEqualTo("Engineer");
         verify(receiptExecutor).execute(
                 eq("ProfileWriteService"), eq("updateProfile"), eq(command),
                 eq(ProfileWriteResult.class), any());
     }
 
     @Test
-    void uploadAvatarUsesFixedReceiptContractAndMapsAvatarInput() {
+    void uploadDelegatesAvatarReferenceThroughReceiptBoundary() {
         when(actorAuthorizer.isAuthorized(any())).thenReturn(true);
         UploadAvatarCommand command = avatarCommand("user-2", "app/avatars/user-2/new.png");
-        UserProfile existing = new UserProfile();
-        existing.setAccountId("user-2");
-        when(userProfileMapper.selectByIdForUpdate("user-2")).thenReturn(existing);
-        when(userProfileMapper.updateById(any(UserProfile.class))).thenReturn(1);
+        ProfileWriteResult expected = new ProfileWriteResult(
+                "user-2", null, "app/avatars/user-2/new.png", null, null,
+                null, null, null, null, null);
+        when(profileMutationModule.replaceAvatar("user-2", "app/avatars/user-2/new.png"))
+                .thenReturn(expected);
         when(receiptExecutor.execute(
-                eq("ProfileWriteService"),
-                eq("uploadAvatar"),
-                eq(command),
-                eq(ProfileWriteResult.class),
-                any())).thenAnswer(invocation -> invokeMutation(invocation, "trace-avatar"));
+                eq("ProfileWriteService"), eq("uploadAvatar"), eq(command),
+                eq(ProfileWriteResult.class), any())).thenAnswer(invocation -> invokeMutation(invocation, "trace"));
 
         RpcResult<ProfileWriteResult> result = provider.uploadAvatar(command);
 
         assertThat(result.success()).isTrue();
-        assertThat(result.data().avatar()).isEqualTo("app/avatars/user-2/new.png");
-        verify(receiptExecutor).execute(
-                eq("ProfileWriteService"), eq("uploadAvatar"), eq(command),
-                eq(ProfileWriteResult.class), any());
+        assertThat(result.data()).isEqualTo(expected);
+        verify(profileMutationModule).replaceAvatar("user-2", "app/avatars/user-2/new.png");
     }
 
     @Test
-    void mapsMutationResultThroughReceiptExecutor() {
+    void mapsReceiptReplayResultWithoutRunningMutation() {
         when(actorAuthorizer.isAuthorized(any())).thenReturn(true);
         UpdateProfileCommand command = updateCommand("user-3", "Alice", null);
         ProfileWriteResult expected = new ProfileWriteResult(
@@ -146,17 +123,16 @@ class ProfileWriteProviderTest {
         RpcResult<ProfileWriteResult> result = provider.updateProfile(command);
 
         assertThat(result.data()).isEqualTo(expected);
+        verify(profileMutationModule, never()).update(any(ProfilePatch.class));
     }
 
     @Test
-    void mapsDomainRejectionWithoutWritingProfile() {
+    void mapsMutationBusinessFailureAtRpcBoundary() {
         when(actorAuthorizer.isAuthorized(any())).thenReturn(true);
         UpdateProfileCommand command = updateCommand(
                 "user-4", null, "app/avatars/user-4/displaced.png");
-        UserProfile existing = new UserProfile();
-        existing.setAccountId("user-4");
-        existing.setAvatar("app/avatars/user-4/current.png");
-        when(userProfileMapper.selectByIdForUpdate("user-4")).thenReturn(existing);
+        when(profileMutationModule.update(any(ProfilePatch.class)))
+                .thenThrow(new BusinessException(BaseErrorCode.BAD_REQUEST, "avatar upload endpoint"));
         when(receiptExecutor.execute(
                 eq("ProfileWriteService"), eq("updateProfile"), eq(command),
                 eq(ProfileWriteResult.class), any())).thenAnswer(invocation -> invokeMutation(invocation, "trace"));
@@ -165,15 +141,13 @@ class ProfileWriteProviderTest {
 
         assertThat(result.success()).isFalse();
         assertThat(result.error().code()).isEqualTo(AppErrorCode.BAD_REQUEST.code());
-        verify(userProfileMapper, never()).updateById(any(UserProfile.class));
-        verify(userProfileMapper, never()).insert(any(UserProfile.class));
     }
 
     @Test
-    void mapsUnexpectedMutationFailureAfterReceiptBoundary() {
+    void mapsUnexpectedMutationFailureAtRpcBoundary() {
         when(actorAuthorizer.isAuthorized(any())).thenReturn(true);
         UpdateProfileCommand command = updateCommand("user-5", "Alice", null);
-        when(userProfileMapper.selectByIdForUpdate("user-5"))
+        when(profileMutationModule.update(any(ProfilePatch.class)))
                 .thenThrow(new IllegalStateException("database unavailable"));
         when(receiptExecutor.execute(
                 eq("ProfileWriteService"), eq("updateProfile"), eq(command),
@@ -191,13 +165,13 @@ class ProfileWriteProviderTest {
         return mutation.apply(traceId);
     }
 
-    private static UpdateProfileCommand updateCommand(String accountId, String name, String avatar) {
+    private static UpdateProfileCommand updateCommand(String accountId, String name, String bio) {
         return new UpdateProfileCommand(
                 "profile-command-" + accountId,
                 IdMetadata.mint(),
                 adminActor(),
                 new TraceMetadata("trace-update", null, null, null),
-                accountId, name, avatar, name == null ? null : "Engineer",
+                accountId, name, null, bio,
                 null, null, null, null, null, null);
     }
 

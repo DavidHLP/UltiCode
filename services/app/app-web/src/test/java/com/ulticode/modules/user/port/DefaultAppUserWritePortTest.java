@@ -1,7 +1,9 @@
 package com.ulticode.modules.user.port;
 
-import com.ulticode.app.userprofile.entity.UserProfile;
-import com.ulticode.app.userprofile.mapper.UserProfileMapper;
+import com.ulticode.app.api.dto.ProfileWriteResult;
+import com.ulticode.app.storage.StorageCleanupOutbox;
+import com.ulticode.app.userprofile.ProfileMutationModule;
+import com.ulticode.app.userprofile.ProfilePatch;
 import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.storage.FileStoragePort;
@@ -20,8 +22,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.springframework.mock.web.MockMultipartFile;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.imageio.ImageIO;
@@ -34,44 +35,36 @@ import java.util.zip.CRC32;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
-import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-/**
- * Focused tests for {@link DefaultAppUserWritePort} profile write paths.
- *
- * <p>Each profile field must write to {@code user_profiles}
- * (App-owned canonical source).
- */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 @DisplayName("DefaultAppUserWritePort profile writes")
 class DefaultAppUserWritePortTest {
 
-    @Mock private UserProfileMapper userProfileMapper;
-    @Mock private UuidGenerator uuidGenerator;
-    @Mock private FileStoragePort fileStorage;
-    @Mock private com.ulticode.app.storage.StorageCleanupOutbox storageCleanupOutbox;
-    @Mock private com.ulticode.modules.search.port.UserDirectoryQueryPort userDirectoryQueryPort;
-    @Mock private com.ulticode.modules.search.source.SearchDocumentChangedPublisher searchPublisher;
+    @Mock
+    private UuidGenerator uuidGenerator;
+    @Mock
+    private FileStoragePort fileStorage;
+    @Mock
+    private StorageCleanupOutbox storageCleanupOutbox;
+    @Mock
+    private ProfileMutationModule profileMutationModule;
 
     private DefaultAppUserWritePort port;
-    private AvatarProfileMutationService avatarProfileMutationService;
 
     @BeforeEach
     void setUp() {
-        avatarProfileMutationService = new AvatarProfileMutationService(
-                userProfileMapper, storageCleanupOutbox, userDirectoryQueryPort, searchPublisher);
-        port = new DefaultAppUserWritePort(userProfileMapper, uuidGenerator,
-                fileStorage, userDirectoryQueryPort, searchPublisher, avatarProfileMutationService,
-                storageCleanupOutbox);
-        org.springframework.test.util.ReflectionTestUtils.setField(port, "uploadSettleSeconds", 900);
+        port = new DefaultAppUserWritePort(
+                uuidGenerator, fileStorage, profileMutationModule, storageCleanupOutbox);
+        ReflectionTestUtils.setField(port, "uploadSettleSeconds", 900);
     }
 
     @Nested
@@ -87,72 +80,28 @@ class DefaultAppUserWritePortTest {
         }
 
         @Test
-        @DisplayName("new profile: inserts into user_profiles with non-null fields")
-        void newProfileInserts() {
-            String userId = "u-001";
-            when(userProfileMapper.selectByIdForUpdate(userId)).thenReturn(null);
-
+        @DisplayName("delegates a new profile patch to the mutation module")
+        void delegatesUpdate() {
             UpdateUserDTO dto = new UpdateUserDTO();
             dto.setName("Alice");
             dto.setBio("Engineer");
+            when(profileMutationModule.update(any(ProfilePatch.class)))
+                    .thenReturn(result("u-001", "Alice", null, "Engineer"));
 
-            UserVO result = port.updateProfile(userId, dto);
+            UserVO result = port.updateProfile("u-001", dto);
 
-            ArgumentCaptor<UserProfile> captor = ArgumentCaptor.forClass(UserProfile.class);
-            verify(userProfileMapper).insert(captor.capture());
-            assertThat(captor.getValue().getAccountId()).isEqualTo(userId);
-            assertThat(captor.getValue().getName()).isEqualTo("Alice");
-            assertThat(captor.getValue().getBio()).isEqualTo("Engineer");
-
-            assertThat(result.getId()).isEqualTo(userId);
+            ArgumentCaptor<ProfilePatch> patch = ArgumentCaptor.forClass(ProfilePatch.class);
+            verify(profileMutationModule).update(patch.capture());
+            assertThat(patch.getValue().accountId()).isEqualTo("u-001");
+            assertThat(patch.getValue().name()).isEqualTo("Alice");
+            assertThat(patch.getValue().bio()).isEqualTo("Engineer");
+            assertThat(result.getId()).isEqualTo("u-001");
             assertThat(result.getName()).isEqualTo("Alice");
         }
 
         @Test
-        @DisplayName("existing profile: updates user_profiles with changed fields")
-        void existingProfileUpdates() {
-            String userId = "u-002";
-            UserProfile existing = new UserProfile();
-            existing.setAccountId(userId);
-            existing.setName("OldName");
-            when(userProfileMapper.selectByIdForUpdate(userId)).thenReturn(existing);
-
-            UpdateUserDTO dto = new UpdateUserDTO();
-            dto.setName("NewName");
-            dto.setCompany("Acme");
-
-            UserVO result = port.updateProfile(userId, dto);
-
-            verify(userProfileMapper).updateById(any(UserProfile.class));
-            assertThat(result.getCompany()).isEqualTo("Acme");
-        }
-
-        @Test
-        @DisplayName("profile update publishes a complete user document (SEARCH-001)")
-        void profileUpdatePublishesUserDocument() {
-            String userId = "u-002";
-            com.ulticode.modules.search.port.UserSearchRow row =
-                    new com.ulticode.modules.search.port.UserSearchRow();
-            row.setId(userId);
-            row.setUsername("alice");
-            row.setName("NewName");
-            row.setAvatar("/a.png");
-            when(userDirectoryQueryPort.findById(userId))
-                    .thenReturn(com.ulticode.modules.search.port.UserDirectoryRow.from(row));
-            UpdateUserDTO dto = new UpdateUserDTO();
-            dto.setName("NewName");
-
-            port.updateProfile(userId, dto);
-
-            verify(searchPublisher).publishUser(userId, "alice", "NewName", "/a.png", true);
-        }
-
-        @Test
-        @DisplayName("all nine fields written when all non-null in DTO")
-        void allFieldsWritten() {
-            String userId = "u-003";
-            when(userProfileMapper.selectByIdForUpdate(userId)).thenReturn(null);
-
+        @DisplayName("passes all profile fields without changing the adapter contract")
+        void passesAllFields() {
             UpdateUserDTO dto = new UpdateUserDTO();
             dto.setName("N");
             dto.setAvatar("A");
@@ -163,70 +112,43 @@ class DefaultAppUserWritePortTest {
             dto.setTwitter("T");
             dto.setWebsite("W");
             dto.setPreferredLanguage("P");
+            when(profileMutationModule.update(any(ProfilePatch.class)))
+                    .thenReturn(result("u-003", "N", "A", "B"));
 
-            port.updateProfile(userId, dto);
+            port.updateProfile("u-003", dto);
 
-            ArgumentCaptor<UserProfile> captor = ArgumentCaptor.forClass(UserProfile.class);
-            verify(userProfileMapper).insert(captor.capture());
-            UserProfile inserted = captor.getValue();
-            assertThat(inserted.getName()).isEqualTo("N");
-            assertThat(inserted.getAvatar()).isEqualTo("A");
-            assertThat(inserted.getBio()).isEqualTo("B");
-            assertThat(inserted.getCompany()).isEqualTo("C");
-            assertThat(inserted.getGithub()).isEqualTo("G");
-            assertThat(inserted.getLocation()).isEqualTo("L");
-            assertThat(inserted.getTwitter()).isEqualTo("T");
-            assertThat(inserted.getWebsite()).isEqualTo("W");
-            assertThat(inserted.getPreferredLanguage()).isEqualTo("P");
+            ArgumentCaptor<ProfilePatch> patch = ArgumentCaptor.forClass(ProfilePatch.class);
+            verify(profileMutationModule).update(patch.capture());
+            assertThat(patch.getValue().name()).isEqualTo("N");
+            assertThat(patch.getValue().avatar()).isEqualTo("A");
+            assertThat(patch.getValue().bio()).isEqualTo("B");
+            assertThat(patch.getValue().company()).isEqualTo("C");
+            assertThat(patch.getValue().github()).isEqualTo("G");
+            assertThat(patch.getValue().location()).isEqualTo("L");
+            assertThat(patch.getValue().twitter()).isEqualTo("T");
+            assertThat(patch.getValue().website()).isEqualTo("W");
+            assertThat(patch.getValue().preferredLanguage()).isEqualTo("P");
         }
 
         @Test
-        @DisplayName("avatar field may not re-point the row at a displaced object key")
-        void genericUpdateRejectsOwnedKeyReuse() {
-            String userId = "u-012";
-            UserProfile existing = new UserProfile();
-            existing.setAccountId(userId);
-            existing.setAvatar("app/avatars/u-012/current.png");
-            when(userProfileMapper.selectByIdForUpdate(userId)).thenReturn(existing);
-
+        @DisplayName("delegates displaced avatar-key rejection to the mutation module")
+        void delegatesOwnedKeyRejection() {
             UpdateUserDTO dto = new UpdateUserDTO();
             dto.setAvatar("app/avatars/u-012/displaced.png");
+            when(profileMutationModule.update(any(ProfilePatch.class)))
+                    .thenThrow(new BusinessException(BaseErrorCode.BAD_REQUEST,
+                            "Avatar changes must use the avatar upload endpoint"));
 
-            assertThatThrownBy(() -> port.updateProfile(userId, dto))
+            assertThatThrownBy(() -> port.updateProfile("u-012", dto))
                     .isInstanceOf(BusinessException.class)
                     .hasMessageContaining("avatar upload endpoint");
-            verify(userProfileMapper, never()).updateById(any(UserProfile.class));
-            verify(storageCleanupOutbox, never()).enqueue(anyString());
-        }
-
-        @Test
-        @DisplayName("avatar field keeps the row's own key as a no-op write")
-        void genericUpdateAllowsUnchangedOwnedKey() {
-            String userId = "u-013";
-            UserProfile existing = new UserProfile();
-            existing.setAccountId(userId);
-            existing.setAvatar("app/avatars/u-013/current.png");
-            when(userProfileMapper.selectByIdForUpdate(userId)).thenReturn(existing);
-
-            UpdateUserDTO dto = new UpdateUserDTO();
-            dto.setAvatar("app/avatars/u-013/current.png");
-            dto.setName("Alice");
-
-            port.updateProfile(userId, dto);
-
-            verify(userProfileMapper).updateById(any(UserProfile.class));
+            verify(profileMutationModule).update(any(ProfilePatch.class));
         }
     }
 
     @Nested
     @DisplayName("uploadAvatar()")
     class UploadAvatar {
-
-        /** Default: no profile row yet; tests with an existing row override this stub. */
-        @BeforeEach
-        void stubLockedProfileRead() {
-            lenient().when(userProfileMapper.selectByIdForUpdate(anyString())).thenReturn(null);
-        }
 
         @Test
         @DisplayName("null userId throws UNAUTHORIZED")
@@ -245,7 +167,7 @@ class DefaultAppUserWritePortTest {
         }
 
         @Test
-        @DisplayName("non-image content type throws BAD_REQUEST")
+        @DisplayName("non-image content throws BAD_REQUEST")
         void nonImageThrows() {
             MultipartFile file = new MockMultipartFile("file", "test.txt", "text/plain", new byte[]{1, 2, 3});
             assertThatThrownBy(() -> port.uploadAvatar("u-001", file))
@@ -261,8 +183,9 @@ class DefaultAppUserWritePortTest {
             assertThatThrownBy(() -> port.uploadAvatar("u-webp", file))
                     .isInstanceOf(BusinessException.class);
 
-            verify(fileStorage, never()).put(any(), any(), org.mockito.ArgumentMatchers.anyLong(), any());
+            verify(fileStorage, never()).put(any(), any(), anyLong(), any());
         }
+
         @Test
         @DisplayName("oversized dimensions are rejected before decoding")
         void oversizedDimensionsAreRejectedBeforeDecoding() throws IOException {
@@ -273,201 +196,152 @@ class DefaultAppUserWritePortTest {
                     .isInstanceOf(BusinessException.class)
                     .hasMessage("Image dimensions exceed 4096x4096 pixel limit");
 
-            verify(fileStorage, never()).put(any(), any(), org.mockito.ArgumentMatchers.anyLong(), any());
-            verify(userProfileMapper, never()).selectByIdForUpdate("u-003");
+            verify(fileStorage, never()).put(any(), any(), anyLong(), any());
+            verify(profileMutationModule, never()).replaceAvatar(anyString(), anyString());
         }
 
         @Test
-        @DisplayName("existing profile without an avatar is updated instead of inserted")
-        void existingProfileWithoutAvatarUpdates() {
-            String userId = "u-004-existing";
-            UserProfile existing = new UserProfile();
-            existing.setAccountId(userId);
-            when(userProfileMapper.selectByIdForUpdate(userId)).thenReturn(existing);
-            when(userProfileMapper.updateById(any(UserProfile.class))).thenReturn(1);
-            when(uuidGenerator.newId()).thenReturn("uuid-existing");
-            byte[] png = java.util.Base64.getDecoder().decode(
-                    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
-
-            port.uploadAvatar(userId, new MockMultipartFile("file", "photo.png", "image/png", png));
-
-            verify(userProfileMapper).updateById(any(UserProfile.class));
-            verify(userProfileMapper, never()).insert(any(UserProfile.class));
-        }
-
-
-        @Test
-        @DisplayName("valid avatar: uploads before inserting the object key")
+        @DisplayName("valid avatar uploads before invoking the mutation module")
         void validAvatarWrites() {
             String userId = "u-004";
             when(uuidGenerator.newId()).thenReturn("uuid-1");
-            when(userProfileMapper.selectByIdForUpdate(userId)).thenReturn(null);
-            when(userProfileMapper.insert(any(UserProfile.class))).thenReturn(1);
-            byte[] png = java.util.Base64.getDecoder().decode(
-                    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
-            MultipartFile file = new MockMultipartFile("file", "photo.png", "text/plain", png);
-
-            String url = port.uploadAvatar(userId, file);
-
-            assertThat(url).isEqualTo("/api/users/avatars/u-004/uuid-1.png");
-            InOrder order = inOrder(fileStorage, userProfileMapper);
-            order.verify(fileStorage).put(any(), any(), org.mockito.ArgumentMatchers.anyLong(),
-                    org.mockito.ArgumentMatchers.eq("image/png"));
-            ArgumentCaptor<UserProfile> captor = ArgumentCaptor.forClass(UserProfile.class);
-            order.verify(userProfileMapper).insert(captor.capture());
-            assertThat(captor.getValue().getAvatar()).isEqualTo("app/avatars/u-004/uuid-1.png");
-        }
-
-        @Test
-        @DisplayName("replacing an avatar queues durable cleanup after the database update")
-        void replacementQueuesCleanupAfterDatabaseUpdate() {
-            String userId = "u-005";
-            UserProfile existing = new UserProfile();
-            existing.setAccountId(userId);
-            existing.setAvatar("app/avatars/u-005/old.png");
-            when(userProfileMapper.selectByIdForUpdate(userId)).thenReturn(existing);
-            when(userProfileMapper.updateById(any(UserProfile.class))).thenReturn(1);
-            when(uuidGenerator.newId()).thenReturn("uuid-2");
-            byte[] png = java.util.Base64.getDecoder().decode(
-                    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
-
-            port.uploadAvatar(userId, new MockMultipartFile("file", "photo.png", "image/png", png));
-
-            InOrder order = inOrder(fileStorage, userProfileMapper, storageCleanupOutbox);
-            order.verify(fileStorage).put(any(), any(), org.mockito.ArgumentMatchers.anyLong(),
-                    org.mockito.ArgumentMatchers.eq("image/png"));
-            order.verify(userProfileMapper).selectByIdForUpdate(userId);
-            order.verify(userProfileMapper).updateById(any(UserProfile.class));
-            order.verify(storageCleanupOutbox).enqueue("app/avatars/u-005/old.png");
-            verify(fileStorage, never()).delete("app/avatars/u-005/old.png");
-        }
-
-        @Test
-        @DisplayName("first avatar upload queues no cleanup")
-        void firstUploadQueuesNoCleanup() {
-            String userId = "u-005-async";
-            when(userProfileMapper.selectByIdForUpdate(userId)).thenReturn(null);
-            when(userProfileMapper.insert(any(UserProfile.class))).thenReturn(1);
-            when(uuidGenerator.newId()).thenReturn("uuid-2-async");
-            byte[] png = java.util.Base64.getDecoder().decode(
-                    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+            when(profileMutationModule.replaceAvatar(userId, "app/avatars/u-004/uuid-1.png"))
+                    .thenReturn(result(userId, null, "app/avatars/u-004/uuid-1.png", null));
+            byte[] png = png();
 
             String url = port.uploadAvatar(userId,
-                    new MockMultipartFile("file", "photo.png", "image/png", png));
+                    new MockMultipartFile("file", "photo.png", "text/plain", png));
+
+            assertThat(url).isEqualTo("/api/users/avatars/u-004/uuid-1.png");
+            InOrder order = inOrder(fileStorage, profileMutationModule);
+            order.verify(fileStorage).put(any(), any(), anyLong(), eq("image/png"));
+            order.verify(profileMutationModule).replaceAvatar(userId, "app/avatars/u-004/uuid-1.png");
+        }
+
+        @Test
+        @DisplayName("replacement delegates cleanup ownership to the mutation module")
+        void replacementUsesMutationModule() {
+            String userId = "u-005";
+            when(uuidGenerator.newId()).thenReturn("uuid-2");
+            when(profileMutationModule.replaceAvatar(userId, "app/avatars/u-005/uuid-2.png"))
+                    .thenReturn(result(userId, null, "app/avatars/u-005/uuid-2.png", null));
+
+            port.uploadAvatar(userId, new MockMultipartFile("file", "photo.png", "image/png", png()));
+
+            verify(profileMutationModule).replaceAvatar(userId, "app/avatars/u-005/uuid-2.png");
+            verify(fileStorage, never()).delete(anyString());
+        }
+
+        @Test
+        @DisplayName("first avatar upload returns a display URL")
+        void firstUploadReturnsDisplayUrl() {
+            String userId = "u-005-async";
+            when(uuidGenerator.newId()).thenReturn("uuid-2-async");
+            when(profileMutationModule.replaceAvatar(userId,
+                    "app/avatars/u-005-async/uuid-2-async.png"))
+                    .thenReturn(result(userId, null,
+                            "app/avatars/u-005-async/uuid-2-async.png", null));
+
+            String url = port.uploadAvatar(userId,
+                    new MockMultipartFile("file", "photo.png", "image/png", png()));
 
             assertThat(url).isEqualTo("/api/users/avatars/u-005-async/uuid-2-async.png");
-            verify(storageCleanupOutbox, never()).enqueue(any());
         }
 
         @Test
         @DisplayName("database failure queues the staged object for reconciled cleanup")
-        void databaseFailureRemovesUploadedObject() {
+        void databaseFailureQueuesGraceCleanup() {
             String userId = "u-006";
-            when(userProfileMapper.selectByIdForUpdate(userId)).thenReturn(null);
             when(uuidGenerator.newId()).thenReturn("uuid-3");
-            doThrow(new IllegalStateException("db failure"))
-                    .when(userProfileMapper).insert(any(UserProfile.class));
-            byte[] png = java.util.Base64.getDecoder().decode(
-                    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+            when(profileMutationModule.replaceAvatar(userId, "app/avatars/u-006/uuid-3.png"))
+                    .thenThrow(new IllegalStateException("db failure"));
 
             assertThatThrownBy(() -> port.uploadAvatar(userId,
-                    new MockMultipartFile("file", "photo.png", "image/png", png)))
+                    new MockMultipartFile("file", "photo.png", "image/png", png())))
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessage("db failure");
 
             verify(storageCleanupOutbox).enqueueAfterGrace("app/avatars/u-006/uuid-3.png", 900);
-            verify(fileStorage, never()).delete("app/avatars/u-006/uuid-3.png");
+            verify(fileStorage, never()).delete(anyString());
         }
 
         @Test
-        @DisplayName("search publication failure queues the staged object for reconciled cleanup")
-        void searchPublicationFailureRemovesStagedObject() {
+        @DisplayName("mutation failure queues the staged object for reconciled cleanup")
+        void mutationFailureQueuesGraceCleanup() {
             String userId = "u-009";
-            when(userProfileMapper.selectByIdForUpdate(userId)).thenReturn(null);
-            when(userProfileMapper.insert(any(UserProfile.class))).thenReturn(1);
             when(uuidGenerator.newId()).thenReturn("uuid-6");
-            com.ulticode.modules.search.port.UserSearchRow row =
-                    new com.ulticode.modules.search.port.UserSearchRow();
-            row.setId(userId);
-            row.setUsername("alice");
-            row.setName("Alice");
-            row.setAvatar("app/avatars/u-009/uuid-6.png");
-            when(userDirectoryQueryPort.findById(userId))
-                    .thenReturn(com.ulticode.modules.search.port.UserDirectoryRow.from(row));
-            doThrow(new IllegalStateException("search unavailable"))
-                    .when(searchPublisher).publishUser(any(), any(), any(), any(), anyBoolean());
-            byte[] png = java.util.Base64.getDecoder().decode(
-                    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+            when(profileMutationModule.replaceAvatar(userId, "app/avatars/u-009/uuid-6.png"))
+                    .thenThrow(new IllegalStateException("search unavailable"));
 
             assertThatThrownBy(() -> port.uploadAvatar(userId,
-                    new MockMultipartFile("file", "photo.png", "image/png", png)))
+                    new MockMultipartFile("file", "photo.png", "image/png", png())))
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessage("search unavailable");
 
             verify(storageCleanupOutbox).enqueueAfterGrace("app/avatars/u-009/uuid-6.png", 900);
-            verify(fileStorage, never()).delete("app/avatars/u-009/uuid-6.png");
+            verify(fileStorage, never()).delete(anyString());
         }
 
         @Test
-        @DisplayName("an unqueued staged object never masks the write failure")
-        void cleanupQueueFailureDoesNotMaskTheWriteFailure() {
+        @DisplayName("grace cleanup failure does not mask the mutation failure")
+        void cleanupQueueFailureDoesNotMaskWriteFailure() {
             String userId = "u-010";
-            when(userProfileMapper.selectByIdForUpdate(userId)).thenReturn(null);
             when(uuidGenerator.newId()).thenReturn("uuid-7");
-            when(userProfileMapper.insert(any(UserProfile.class))).thenReturn(0);
+            when(profileMutationModule.replaceAvatar(userId, "app/avatars/u-010/uuid-7.png"))
+                    .thenThrow(new IllegalStateException("profile write failed"));
             doThrow(new IllegalStateException("outbox unavailable"))
-                    .when(storageCleanupOutbox).enqueue("app/avatars/u-010/uuid-7.png");
-            byte[] png = java.util.Base64.getDecoder().decode(
-                    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+                    .when(storageCleanupOutbox).enqueueAfterGrace(anyString(), eq(900));
 
             assertThatThrownBy(() -> port.uploadAvatar(userId,
-                    new MockMultipartFile("file", "photo.png", "image/png", png)))
+                    new MockMultipartFile("file", "photo.png", "image/png", png())))
                     .isInstanceOf(IllegalStateException.class)
-                    .hasMessage("Avatar profile update affected 0 rows");
-
-            verify(fileStorage, never()).delete("app/avatars/u-010/uuid-7.png");
+                    .hasMessage("profile write failed");
         }
 
         @Test
-        @DisplayName("zero-row database write removes uploaded object and fails")
-        void zeroRowDatabaseWriteRemovesUploadedObject() {
+        @DisplayName("zero-row mutation failure queues staged object and fails")
+        void zeroRowDatabaseWriteQueuesGraceCleanup() {
             String userId = "u-007";
             when(uuidGenerator.newId()).thenReturn("uuid-4");
-            when(userProfileMapper.insert(any(UserProfile.class))).thenReturn(0);
-            byte[] png = java.util.Base64.getDecoder().decode(
-                    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+            when(profileMutationModule.replaceAvatar(userId, "app/avatars/u-007/uuid-4.png"))
+                    .thenThrow(new IllegalStateException("Profile write affected 0 rows"));
 
             assertThatThrownBy(() -> port.uploadAvatar(userId,
-                    new MockMultipartFile("file", "photo.png", "image/png", png)))
+                    new MockMultipartFile("file", "photo.png", "image/png", png())))
                     .isInstanceOf(IllegalStateException.class)
-                    .hasMessage("Avatar profile update affected 0 rows");
+                    .hasMessage("Profile write affected 0 rows");
 
             verify(storageCleanupOutbox).enqueueAfterGrace("app/avatars/u-007/uuid-4.png", 900);
-            verify(fileStorage, never()).delete("app/avatars/u-007/uuid-4.png");
+            verify(fileStorage, never()).delete(anyString());
         }
 
         @Test
-        @DisplayName("replacement queues the cleanup intent inside the mutation, not as a direct delete")
-        void cleanupIntentCouplesWithTheTransaction() {
+        @DisplayName("replacement never directly deletes the old object")
+        void replacementNeverDeletesObjectDirectly() {
             String userId = "u-008";
-            UserProfile existing = new UserProfile();
-            existing.setAccountId(userId);
-            existing.setAvatar("app/avatars/u-008/old.png");
-            when(userProfileMapper.selectByIdForUpdate(userId)).thenReturn(existing);
             when(uuidGenerator.newId()).thenReturn("uuid-5");
-            when(userProfileMapper.updateById(any(UserProfile.class))).thenReturn(1);
-            byte[] png = java.util.Base64.getDecoder().decode(
-                    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+            when(profileMutationModule.replaceAvatar(userId, "app/avatars/u-008/uuid-5.png"))
+                    .thenReturn(result(userId, null, "app/avatars/u-008/uuid-5.png", null));
 
-            port.uploadAvatar(userId, new MockMultipartFile("file", "photo.png", "image/png", png));
+            port.uploadAvatar(userId,
+                    new MockMultipartFile("file", "photo.png", "image/png", png()));
 
-            // The intent is a row in the same transaction, so a rolled-back
-            // update leaves both the profile row and the previous object intact;
-            // the dispatcher owns the actual delete.
-            verify(storageCleanupOutbox).enqueue("app/avatars/u-008/old.png");
-            verify(fileStorage, never()).delete("app/avatars/u-008/old.png");
+            verify(profileMutationModule).replaceAvatar(userId, "app/avatars/u-008/uuid-5.png");
+            verify(fileStorage, never()).delete(anyString());
         }
     }
+
+    private static ProfileWriteResult result(
+            String accountId, String name, String avatar, String bio) {
+        return new ProfileWriteResult(accountId, name, avatar, bio,
+                null, null, null, null, null, null);
+    }
+
+    private static byte[] png() {
+        return java.util.Base64.getDecoder().decode(
+                "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+    }
+
     private static byte[] webpHeaderOnly() {
         return new byte[]{
                 'R', 'I', 'F', 'F', 22, 0, 0, 0, 'W', 'E', 'B', 'P',
@@ -489,5 +363,4 @@ class DefaultAppUserWritePortTest {
         buffer.putInt(29, (int) crc.getValue());
         return content;
     }
-
 }

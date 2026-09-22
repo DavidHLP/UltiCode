@@ -558,12 +558,39 @@ else
 fi
 
 # ===== 步骤 3.6: 遗留对象 cutover 门禁 =====
-# App reads legacy avatar rows only through the object store now: starting it over
-# a database whose /uploads/avatars/... rows were never uploaded would show every
-# one of them as a proxy URL with no object behind it. The gate is the same
-# fail-closed probe the deploy uses, so an upgraded checkout must backfill first.
-if [[ "$FRONTEND_ONLY" != true && ",$PM2_APPS," == *,ulticode-app,* ]]; then
-  echo "Checking that legacy avatar and backup rows were migrated to object storage..."
+# App and Admin read legacy rows only through the object store now: starting one
+# of them over a database whose /uploads/avatars/... rows, or COMPLETED backup
+# rows without an object key, were never uploaded would serve URLs with no
+# object behind them. The probe is the deploy's own gate, restricted to the
+# owners this start selects, so an App-only scope is not blocked by backups it
+# never serves. A still-running legacy writer can commit a fresh legacy row
+# between the count and the startOrRestart further down, so the selected writers
+# stop first, the same ordering the production rollout uses.
+gate_owners=()
+if [[ "$FRONTEND_ONLY" != true ]]; then
+  if [[ ",$PM2_APPS," == *,ulticode-app,* ]]; then
+    gate_owners+=(app)
+  fi
+  if [[ ",$PM2_APPS," == *,ulticode-admin,* ]]; then
+    gate_owners+=(admin)
+  fi
+fi
+if ((${#gate_owners[@]} > 0)); then
+  pm2_load_records
+  for gate_owner in "${gate_owners[@]}"; do
+    case "$gate_owner" in
+      app) writer_app=ulticode-app ;;
+      admin) writer_app=ulticode-admin ;;
+    esac
+    if [[ -n "$(pm2_record_for "$writer_app")" ]]; then
+      echo "Stopping the running $writer_app writer before the cutover probe..."
+      pm2 stop "$writer_app" >/dev/null || {
+        echo "Could not stop $writer_app; the cutover probe cannot trust a running legacy writer." >&2
+        exit 1
+      }
+    fi
+  done
+  echo "Checking that migrated object storage covers ${gate_owners[*]}..."
   MIGRATION_DB_HOST="$MIGRATION_DB_HOST" \
     MIGRATION_DB_PORT="$MIGRATION_DB_PORT" \
     MIGRATION_DB_NAME=ulticode \
@@ -571,10 +598,11 @@ if [[ "$FRONTEND_ONLY" != true && ",$PM2_APPS," == *,ulticode-app,* ]]; then
     MIGRATION_DB_PASSWORD="$MIGRATION_DB_PASSWORD" \
     MIGRATION_MYSQL_CONTAINER="${MIGRATION_MYSQL_CONTAINER:-}" \
     MIGRATION_MYSQL_CONTAINER_PORT="${MIGRATION_MYSQL_CONTAINER_PORT:-3306}" \
-    "$ROOT_DIR/scripts/runbooks/assert-legacy-objects-migrated.sh" || {
-      echo "Legacy objects are not migrated yet: run ./scripts/dev/migrate-object-storage.sh --apply, then ./scripts/dev/up.sh again." >&2
-      exit 1
-    }
+    "$ROOT_DIR/scripts/runbooks/assert-legacy-objects-migrated.sh" \
+      --owners "$(IFS=,; printf '%s' "${gate_owners[*]}")" || {
+        echo "Legacy objects are not migrated yet: run ./scripts/dev/migrate-object-storage.sh --apply, then ./scripts/dev/up.sh again." >&2
+        exit 1
+      }
 fi
 
 # ===== 步骤 3.75: 可选的 Maven 反应堆重建 (--rebuild) =====

@@ -22,6 +22,12 @@ services:
       - "127.0.0.1:${RUSTFS_CONSOLE_PORT:-9001}:9001"
 
 networks:
+  # An internal network silently drops a published port: the container keeps its
+  # PortBindings but nothing listens on the host, so a host-run backend fails the
+  # object-store startup probe. Every network this overlay publishes from must be
+  # un-internalized here.
+  object-storage:
+    internal: false
   sql:
     internal: false
   cache:

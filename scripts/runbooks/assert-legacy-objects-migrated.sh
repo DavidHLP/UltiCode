@@ -83,33 +83,80 @@ LEGACY_AVATAR_URL_PREFIX="${LEGACY_AVATAR_URL_PREFIX:-/uploads}"
   exit 1
 }
 
-# Same escaping as scripts/dev/migrate-object-storage.sh: `_` is a LIKE
-# single-character wildcard, so a custom prefix must match literally.
-legacy_avatars="$(count_rows app user_profiles \
-  "avatar LIKE '${LEGACY_AVATAR_URL_PREFIX//_/!_}/avatars/%' ESCAPE '!'")"
-[[ "$legacy_avatars" =~ ^[0-9]+$ ]] || {
-  echo "Legacy object migration gate failed: invalid app.user_profiles row probe" >&2
+# Each owner's rows are only gated where that owner participates: a local
+# App-only scope has no Admin to migrate, and its backup source and storage
+# credentials are deliberately absent. The selection is an argument rather than
+# an environment value so a sourced .env can never widen the deploy gate.
+GATE_OWNERS="app,admin"
+case "${1:-}" in
+  "") ;;
+  --owners)
+    [[ $# -ge 2 ]] || {
+      echo "Legacy object migration gate failed: --owners requires a value" >&2
+      exit 1
+    }
+    GATE_OWNERS="$2"
+    shift 2
+    ;;
+  *)
+    echo "Legacy object migration gate failed: unknown argument $1" >&2
+    exit 1
+    ;;
+esac
+[[ "$GATE_OWNERS" =~ ^(app|admin|app,admin|admin,app)$ ]] || {
+  echo "Legacy object migration gate failed: --owners must be app, admin or both" >&2
   exit 1
 }
+GATE_CHECK_AVATARS=false
+GATE_CHECK_BACKUPS=false
+for gate_owner in ${GATE_OWNERS//,/ }; do
+  case "$gate_owner" in
+    app) GATE_CHECK_AVATARS=true ;;
+    admin) GATE_CHECK_BACKUPS=true ;;
+  esac
+done
 
-legacy_backups="$(count_rows admin backups "status='COMPLETED' AND (object_key IS NULL OR object_key='')")"
-[[ "$legacy_backups" =~ ^[0-9]+$ ]] || {
-  echo "Legacy object migration gate failed: invalid admin.backups row probe" >&2
-  exit 1
-}
+legacy_problems=()
+if [[ "$GATE_CHECK_AVATARS" == true ]]; then
+  # Same escaping as scripts/dev/migrate-object-storage.sh: `_` is a LIKE
+  # single-character wildcard, so a custom prefix must match literally.
+  legacy_avatars="$(count_rows app user_profiles \
+    "avatar LIKE '${LEGACY_AVATAR_URL_PREFIX//_/!_}/avatars/%' ESCAPE '!'")"
+  [[ "$legacy_avatars" =~ ^[0-9]+$ ]] || {
+    echo "Legacy object migration gate failed: invalid app.user_profiles row probe" >&2
+    exit 1
+  }
+  (( legacy_avatars == 0 )) || legacy_problems+=("$legacy_avatars legacy avatar row(s)")
 
-# Rewriting the avatar rows is only half the cutover: until the users index is
-# rebuilt, the search documents still advertise the old /uploads/avatars URLs.
-unconfirmed_index="$(count_rows app storage_migration_state "avatar_rows_rewritten_at IS NOT NULL AND users_index_backfill_confirmed_at IS NULL")"
-[[ "$unconfirmed_index" =~ ^[0-9]+$ ]] || {
-  echo "Legacy object migration gate failed: invalid app.storage_migration_state probe" >&2
-  exit 1
-}
+  # Rewriting the avatar rows is only half the cutover: until the users index is
+  # rebuilt, the search documents still advertise the old /uploads/avatars URLs.
+  unconfirmed_index="$(count_rows app storage_migration_state "avatar_rows_rewritten_at IS NOT NULL AND users_index_backfill_confirmed_at IS NULL")"
+  [[ "$unconfirmed_index" =~ ^[0-9]+$ ]] || {
+    echo "Legacy object migration gate failed: invalid app.storage_migration_state probe" >&2
+    exit 1
+  }
+  (( unconfirmed_index == 0 )) || legacy_problems+=("$unconfirmed_index unconfirmed avatar rewrite(s)")
+else
+  legacy_avatars=skipped
+  unconfirmed_index=skipped
+fi
 
-if [[ "$legacy_avatars" != 0 || "$legacy_backups" != 0 || "$unconfirmed_index" != 0 ]]; then
-  echo "Legacy object migration gate failed: $legacy_avatars legacy avatar row(s), $legacy_backups legacy backup row(s) and $unconfirmed_index unconfirmed avatar rewrite(s) still need object storage; the new App and Admin serve these only from the object store." >&2
+if [[ "$GATE_CHECK_BACKUPS" == true ]]; then
+  legacy_backups="$(count_rows admin backups "status='COMPLETED' AND (object_key IS NULL OR object_key='')")"
+  [[ "$legacy_backups" =~ ^[0-9]+$ ]] || {
+    echo "Legacy object migration gate failed: invalid admin.backups row probe" >&2
+    exit 1
+  }
+  (( legacy_backups == 0 )) || legacy_problems+=("$legacy_backups legacy backup row(s)")
+else
+  legacy_backups=skipped
+fi
+
+if ((${#legacy_problems[@]} > 0)); then
+  joined="$(printf '%s, ' "${legacy_problems[@]}")"
+  echo "Legacy object migration gate failed: ${joined%, } still need object storage; the migrated owners serve these only from the object store." >&2
   echo 'Run ./scripts/dev/migrate-object-storage.sh (dry run first, then --apply) on the deploy host, complete the users-index backfill confirmation it requires, and re-run this deployment.' >&2
   exit 1
 fi
 
-echo "LEGACY_OBJECT_MIGRATION status=PASS legacy_avatars=0 legacy_backups=0 unconfirmed_index_backfills=0"
+echo "LEGACY_OBJECT_MIGRATION status=PASS legacy_avatars=$legacy_avatars legacy_backups=$legacy_backups unconfirmed_index_backfills=$unconfirmed_index"

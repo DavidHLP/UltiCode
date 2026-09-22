@@ -1,6 +1,8 @@
 package com.ulticode.app.idempotency;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ulticode.app.api.command.UpdateProfileCommand;
+import com.ulticode.app.api.command.UploadAvatarCommand;
 import com.ulticode.app.api.error.AppErrorCode;
 import com.ulticode.app.idempotency.entity.AppCommandReceiptEntity;
 import com.ulticode.app.idempotency.mapper.AppCommandReceiptMapper;
@@ -18,7 +20,11 @@ import com.ulticode.receipt.ReceiptExecutorFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
+import java.util.HexFormat;
 import java.util.function.Function;
 
 /** Thin App adapter around the owner-neutral claim receipt protocol. */
@@ -28,7 +34,7 @@ public class CommandReceiptExecutor {
     private static final String DEFAULT_SERVICE = "SubmissionAdministrationService";
     private static final ReceiptErrorCatalog ERRORS = new AppReceiptErrors();
     private static final ReceiptFingerprintStrategy<WriteCommand> FINGERPRINTS =
-            new GenericFingerprintStrategy();
+            new AppFingerprintStrategy();
 
     private final ReceiptExecutor<WriteCommand> delegate;
 
@@ -38,7 +44,7 @@ public class CommandReceiptExecutor {
             Clock clock) {
         ClaimCommandReceiptStore store = receiptMapper == null
                 ? null : new AppReceiptStore(receiptMapper);
-        delegate = ReceiptExecutorFactory.claim(store, objectMapper, ERRORS, clock);
+        delegate = ReceiptExecutorFactory.claim(store, objectMapper, FINGERPRINTS, ERRORS, clock);
     }
 
     @Transactional
@@ -64,8 +70,64 @@ public class CommandReceiptExecutor {
         return ReceiptExecutor.traceId(command);
     }
 
+    /** Returns the generic fingerprint used for every newly claimed receipt. */
     public static String fingerprint(WriteCommand command) {
         return FINGERPRINTS.fingerprint(command);
+    }
+
+    private static final class AppFingerprintStrategy implements ReceiptFingerprintStrategy<WriteCommand> {
+
+        private static final GenericFingerprintStrategy GENERIC = new GenericFingerprintStrategy();
+
+        @Override
+        public String fingerprint(WriteCommand command) {
+            return GENERIC.fingerprint(command);
+        }
+
+        @Override
+        public boolean matches(String storedFingerprint, WriteCommand command) {
+            if (GENERIC.matches(storedFingerprint, command)) {
+                return true;
+            }
+            if (command instanceof UpdateProfileCommand profile) {
+                return legacyProfileFingerprint(profile).equals(storedFingerprint);
+            }
+            if (command instanceof UploadAvatarCommand avatar) {
+                return legacyAvatarFingerprint(avatar).equals(storedFingerprint);
+            }
+            return false;
+        }
+
+        private static String legacyProfileFingerprint(UpdateProfileCommand command) {
+            return sha256(String.join("|",
+                    nullSafe(command.accountId()),
+                    nullSafe(command.name()),
+                    nullSafe(command.avatar()),
+                    nullSafe(command.bio()),
+                    nullSafe(command.company()),
+                    nullSafe(command.github()),
+                    nullSafe(command.location()),
+                    nullSafe(command.twitter()),
+                    nullSafe(command.website()),
+                    nullSafe(command.preferredLanguage())));
+        }
+
+        private static String legacyAvatarFingerprint(UploadAvatarCommand command) {
+            return sha256(command.accountId() + "|" + command.avatarUrl());
+        }
+
+        private static String nullSafe(String value) {
+            return value == null ? "" : value;
+        }
+
+        private static String sha256(String value) {
+            try {
+                return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
+                        .digest(value.getBytes(StandardCharsets.UTF_8)));
+            } catch (NoSuchAlgorithmException exception) {
+                throw new IllegalStateException("SHA-256 is unavailable", exception);
+            }
+        }
     }
 
     private static final class AppReceiptStore extends ClaimCommandReceiptStoreBridge<AppCommandReceiptEntity> {

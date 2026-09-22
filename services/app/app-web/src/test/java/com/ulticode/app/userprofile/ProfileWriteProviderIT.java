@@ -8,8 +8,12 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Clock;
 import java.util.UUID;
-
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,7 +32,8 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.MountableFile;
 
-import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.boot.test.context.TestConfiguration;
 import com.ulticode.common.command.ActorDelegation;
 import com.ulticode.app.api.command.UpdateProfileCommand;
 import com.ulticode.app.api.command.UploadAvatarCommand;
@@ -64,8 +69,10 @@ import com.ulticode.modules.search.source.SearchDocumentChangedPublisher;
 @SpringBootTest(
         classes = {
                 ProfileWriteProvider.class,
+                com.ulticode.app.idempotency.CommandReceiptExecutor.class,
                 UserProfileMapper.class,
                 AppCommandReceiptMapper.class,
+                ProfileReceiptTestConfig.class,
                 DataSourceAutoConfiguration.class,
                 DataSourceTransactionManagerAutoConfiguration.class,
                 TransactionAutoConfiguration.class,
@@ -183,10 +190,16 @@ class ProfileWriteProviderIT {
 
     private static UpdateProfileCommand commandWithKey(
             String idempotencyKey, String accountId, String name, String bio) {
+        return commandWithKey(idempotencyKey, accountId, name, bio, testActor());
+    }
+
+    private static UpdateProfileCommand commandWithKey(
+            String idempotencyKey, String accountId, String name, String bio,
+            ActorDelegation actor) {
         return new UpdateProfileCommand(
                 UUID.randomUUID().toString(),
                 new IdMetadata(idempotencyKey, null, null),
-                testActor(),
+                actor,
                 TraceMetadata.EMPTY,
                 accountId, name, null, bio,
                 null, null, null, null, null, null);
@@ -380,18 +393,23 @@ class ProfileWriteProviderIT {
         doThrow(new IllegalStateException("search unavailable"))
                 .when(searchPublisher).publishUser(any(), any(), any(), any(), anyBoolean());
 
-        RpcResult<ProfileWriteResult> result = profileWriteService.uploadAvatar(new UploadAvatarCommand(
+        String key = "rollback-avatar-" + UUID.randomUUID();
+        UploadAvatarCommand avatarCommand = new UploadAvatarCommand(
                 UUID.randomUUID().toString(),
-                IdMetadata.mint(),
+                new IdMetadata(key, null, null),
                 testActor(),
                 TraceMetadata.EMPTY,
                 accountId,
-                "app/avatars/" + accountId + "/new.png"));
+                "app/avatars/" + accountId + "/new.png");
+        RpcResult<ProfileWriteResult> result = profileWriteService.uploadAvatar(avatarCommand);
         assertThat(result.success()).isFalse();
         assertThat(result.error().code()).isEqualTo(AppErrorCode.UNEXPECTED_APP_STATE.code());
 
         UserProfile persisted = userProfileMapper.selectById(accountId);
         assertThat(persisted.getAvatar()).isNull();
+        AppCommandReceiptEntity receipt = receiptMapper.findByReceiptKey(
+                "ProfileWriteService", "uploadAvatar", key);
+        assertThat(receipt).isNull();
     }
 
     @Test
@@ -465,4 +483,154 @@ class ProfileWriteProviderIT {
             assertThat(avatarReceipt.getActorId()).isEqualTo(actor.actorId());
         }
     }
+    @Test
+    @DisplayName("legacy update fingerprint replays without re-running profile mutation")
+    void legacyUpdateReceiptReplaysWithoutMutation() {
+        String accountId = UUID.randomUUID().toString();
+        String key = "legacy-update-" + UUID.randomUUID();
+        UpdateProfileCommand command = commandWithKey(
+                key, accountId, "Legacy Name", "Legacy Bio", fixedActor());
+        insertReceipt(
+                command,
+                "updateProfile",
+                legacyUpdateFingerprint(command),
+                "{\"accountId\":\"" + accountId
+                        + "\",\"name\":\"Legacy Name\",\"bio\":\"Legacy Bio\"}");
+
+        RpcResult<ProfileWriteResult> result = profileWriteService.updateProfile(command);
+
+        assertThat(result.success()).isTrue();
+        assertThat(result.data().name()).isEqualTo("Legacy Name");
+        assertThat(userProfileMapper.selectById(accountId)).isNull();
+    }
+
+    @Test
+    @DisplayName("legacy avatar fingerprint replays without re-running profile mutation")
+    void legacyAvatarReceiptReplaysWithoutMutation() {
+        String accountId = UUID.randomUUID().toString();
+        String key = "legacy-avatar-" + UUID.randomUUID();
+        UploadAvatarCommand command = new UploadAvatarCommand(
+                UUID.randomUUID().toString(),
+                new IdMetadata(key, null, null),
+                fixedActor(),
+                TraceMetadata.EMPTY,
+                accountId,
+                "app/avatars/" + accountId + "/legacy.png");
+        insertReceipt(
+                command,
+                "uploadAvatar",
+                legacyAvatarFingerprint(command),
+                "{\"accountId\":\"" + accountId
+                        + "\",\"avatar\":\"app/avatars/" + accountId + "/legacy.png\"}");
+
+        RpcResult<ProfileWriteResult> result = profileWriteService.uploadAvatar(command);
+
+        assertThat(result.success()).isTrue();
+        assertThat(result.data().avatar()).isEqualTo(command.avatarUrl());
+        assertThat(userProfileMapper.selectById(accountId)).isNull();
+    }
+
+    @Test
+    @DisplayName("concurrent same-key commands claim one receipt and perform one mutation")
+    void concurrentSameKeyClaimsOnlyOnce() throws Exception {
+        String accountId = UUID.randomUUID().toString();
+        String key = "concurrent-" + UUID.randomUUID();
+        ActorDelegation actor = fixedActor();
+        UpdateProfileCommand firstCommand = commandWithKey(
+                key, accountId, "Concurrent", "Only once", actor);
+        UpdateProfileCommand secondCommand = commandWithKey(
+                key, accountId, "Concurrent", "Only once", actor);
+        CountDownLatch start = new CountDownLatch(1);
+        ExecutorService pool = Executors.newFixedThreadPool(2);
+        try {
+            Future<RpcResult<ProfileWriteResult>> first = pool.submit(() -> {
+                start.await();
+                return profileWriteService.updateProfile(firstCommand);
+            });
+            Future<RpcResult<ProfileWriteResult>> second = pool.submit(() -> {
+                start.await();
+                return profileWriteService.updateProfile(secondCommand);
+            });
+            start.countDown();
+
+            assertThat(first.get().success()).isTrue();
+            assertThat(second.get().success()).isTrue();
+        } finally {
+            pool.shutdownNow();
+        }
+
+        AppCommandReceiptEntity receipt = receiptMapper.findByReceiptKey(
+                "ProfileWriteService", "updateProfile", key);
+        assertThat(receipt).isNotNull();
+        assertThat(receipt.getStatus()).isEqualTo("SUCCESS");
+        UserProfile persisted = userProfileMapper.selectById(accountId);
+        assertThat(persisted).isNotNull();
+        assertThat(persisted.getName()).isEqualTo("Concurrent");
+    }
+
+    private void insertReceipt(
+            com.ulticode.common.command.WriteCommand command,
+            String operation,
+            String fingerprint,
+            String payload) {
+        AppCommandReceiptEntity receipt = new AppCommandReceiptEntity();
+        receipt.setId(UUID.randomUUID().toString());
+        receipt.setCommandId(command.commandId());
+        receipt.setService("ProfileWriteService");
+        receipt.setOperation(operation);
+        receipt.setIdempotencyKey(command.idempotency().idempotencyKey());
+        receipt.setRequestFingerprint(fingerprint);
+        receipt.setStatus("SUCCESS");
+        receipt.setResultPayload(payload);
+        receipt.setActorType(command.actor().actorType());
+        receipt.setActorId(command.actor().actorId());
+        receipt.setTraceId("legacy-test");
+        receipt.setCreatedAt(java.time.LocalDateTime.now());
+        assertThat(receiptMapper.insert(receipt)).isEqualTo(1);
+    }
+
+    private static ActorDelegation fixedActor() {
+        return new ActorDelegation("USER", "concurrent-user", "concurrent-user", "test");
+    }
+
+    private static String legacyUpdateFingerprint(UpdateProfileCommand command) {
+        return sha256(String.join("|",
+                nullSafe(command.accountId()),
+                nullSafe(command.name()),
+                nullSafe(command.avatar()),
+                nullSafe(command.bio()),
+                nullSafe(command.company()),
+                nullSafe(command.github()),
+                nullSafe(command.location()),
+                nullSafe(command.twitter()),
+                nullSafe(command.website()),
+                nullSafe(command.preferredLanguage())));
+    }
+
+    private static String legacyAvatarFingerprint(UploadAvatarCommand command) {
+        return sha256(command.accountId() + "|" + command.avatarUrl());
+    }
+
+    private static String nullSafe(String value) {
+        return value == null ? "" : value;
+    }
+
+    private static String sha256(String value) {
+        try {
+            return java.util.HexFormat.of().formatHex(
+                    java.security.MessageDigest.getInstance("SHA-256")
+                            .digest(value.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+        } catch (java.security.NoSuchAlgorithmException exception) {
+            throw new AssertionError(exception);
+        }
+    }
+
+    @TestConfiguration
+    static class ProfileReceiptTestConfig {
+        @Bean
+        Clock clock() {
+            return Clock.systemUTC();
+        }
+    }
+
 }

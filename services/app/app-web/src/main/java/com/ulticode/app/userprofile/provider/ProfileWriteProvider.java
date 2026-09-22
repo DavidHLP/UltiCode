@@ -4,46 +4,36 @@ import com.ulticode.app.api.command.UpdateProfileCommand;
 import com.ulticode.app.api.command.UploadAvatarCommand;
 import com.ulticode.app.api.dto.ProfileWriteResult;
 import com.ulticode.app.api.error.AppErrorCode;
-import com.ulticode.app.security.AdminActorAuthorizer;
-import com.ulticode.app.storage.StorageCleanupOutbox;
 import com.ulticode.app.api.service.ProfileWriteService;
-import com.ulticode.app.idempotency.entity.AppCommandReceiptEntity;
-import com.ulticode.app.idempotency.mapper.AppCommandReceiptMapper;
+import com.ulticode.app.idempotency.CommandReceiptExecutor;
+import com.ulticode.app.security.AdminActorAuthorizer;
+import com.ulticode.app.security.TrustedAdminActor;
+import com.ulticode.app.storage.StorageCleanupOutbox;
 import com.ulticode.app.userprofile.entity.UserProfile;
 import com.ulticode.app.userprofile.mapper.UserProfileMapper;
+import com.ulticode.common.command.ActorDelegation;
+import com.ulticode.common.command.WriteCommand;
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.common.storage.StorageKeys;
-import com.ulticode.common.tracing.TraceMetadata;
 import com.ulticode.modules.search.port.UserDirectoryQueryPort;
 import com.ulticode.modules.search.source.SearchDocumentChangedPublisher;
 import com.ulticode.modules.user.port.AvatarUrls;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
 import org.apache.dubbo.config.annotation.DubboService;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
-import org.springframework.transaction.interceptor.TransactionAspectSupport;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.UUID;
 
 /**
  * Dubbo provider implementing {@link ProfileWriteService}.
  *
  * <p>Writes exclusively to the {@code user_profiles} table. Never reads
  * or writes the Auth-owned {@code users} table.
- *
- * <p>Implements provider-side replay-dedup per §6.2: a command carrying
- * an idempotency key is claimed atomically (receipt lookup) before
- * execution and finalized (receipt insert) in the same transaction as
- * the profile mutation. Retried commands replay the stored result.
+ * <p>The RPC adapter delegates receipt claim, replay, conflict handling,
+ * payload encoding, and transaction-owned finalization to
+ * {@link CommandReceiptExecutor}. Profile mutation remains local until D2.
  */
 @Slf4j
 @DubboService(group = "backend-app", version = "1.0.0", timeout = 5000, retries = 0)
@@ -55,12 +45,137 @@ public class ProfileWriteProvider implements ProfileWriteService {
     private static final String OP_UPLOAD_AVATAR = "uploadAvatar";
 
     private final UserProfileMapper userProfileMapper;
-    private final AppCommandReceiptMapper receiptMapper;
-    private final ObjectMapper objectMapper;
+    private final CommandReceiptExecutor receiptExecutor;
     private final AdminActorAuthorizer actorAuthorizer;
     private final StorageCleanupOutbox storageCleanupOutbox;
     private final ObjectProvider<UserDirectoryQueryPort> userDirectoryQueryPort;
     private final ObjectProvider<SearchDocumentChangedPublisher> searchPublisher;
+
+    @Override
+    @CacheEvict(value = "contestRanking", allEntries = true)
+    public RpcResult<ProfileWriteResult> updateProfile(UpdateProfileCommand command) {
+        RpcResult<ProfileWriteResult> rejected = rejectUntrustedActor(command);
+        if (rejected != null) {
+            return rejected;
+        }
+        try {
+            return receiptExecutor.execute(
+                    SERVICE_NAME,
+                    OP_UPDATE,
+                    command,
+                    ProfileWriteResult.class,
+                    traceId -> mutateProfile(command, traceId));
+        } catch (BusinessException exception) {
+            return mapBusinessFailure(exception, CommandReceiptExecutor.traceId(command));
+        } catch (Exception exception) {
+            log.error("Profile update failed for account: {}", accountId(command), exception);
+            return RpcResult.failure(AppErrorCode.UNEXPECTED_APP_STATE,
+                    CommandReceiptExecutor.traceId(command));
+        }
+    }
+
+    @Override
+    @CacheEvict(value = "contestRanking", allEntries = true)
+    public RpcResult<ProfileWriteResult> uploadAvatar(UploadAvatarCommand command) {
+        RpcResult<ProfileWriteResult> rejected = rejectUntrustedActor(command);
+        if (rejected != null) {
+            return rejected;
+        }
+        try {
+            return receiptExecutor.execute(
+                    SERVICE_NAME,
+                    OP_UPLOAD_AVATAR,
+                    command,
+                    ProfileWriteResult.class,
+                    traceId -> mutateAvatar(command, traceId));
+        } catch (BusinessException exception) {
+            return mapBusinessFailure(exception, CommandReceiptExecutor.traceId(command));
+        } catch (Exception exception) {
+            log.error("Avatar update failed for account: {}", accountId(command), exception);
+            return RpcResult.failure(AppErrorCode.UNEXPECTED_APP_STATE,
+                    CommandReceiptExecutor.traceId(command));
+        }
+    }
+
+    private RpcResult<ProfileWriteResult> mutateProfile(
+            UpdateProfileCommand command, String traceId) {
+        String accountId = command.accountId();
+        UserProfile profile = userProfileMapper.selectByIdForUpdate(accountId);
+        boolean isNew = profile == null;
+        String previousAvatar = isNew ? null : profile.getAvatar();
+        if (isNew) {
+            profile = new UserProfile();
+            profile.setAccountId(accountId);
+        }
+
+        if (command.name() != null) {
+            profile.setName(command.name());
+        }
+        if (command.avatar() != null) {
+            if (AvatarUrls.reusesOwnedKey(accountId, command.avatar(), profile.getAvatar())) {
+                log.warn("Rejected avatar reuse of a displaced object key for account {}", accountId);
+                return RpcResult.failure(AppErrorCode.BAD_REQUEST, traceId);
+            }
+            profile.setAvatar(command.avatar());
+        }
+        if (command.bio() != null) {
+            profile.setBio(command.bio());
+        }
+        if (command.company() != null) {
+            profile.setCompany(command.company());
+        }
+        if (command.github() != null) {
+            profile.setGithub(command.github());
+        }
+        if (command.location() != null) {
+            profile.setLocation(command.location());
+        }
+        if (command.twitter() != null) {
+            profile.setTwitter(command.twitter());
+        }
+        if (command.website() != null) {
+            profile.setWebsite(command.website());
+        }
+        if (command.preferredLanguage() != null) {
+            profile.setPreferredLanguage(command.preferredLanguage());
+        }
+
+        if (isNew) {
+            userProfileMapper.insert(profile);
+        } else {
+            userProfileMapper.updateById(profile);
+        }
+        queuePreviousAvatarCleanup(accountId, previousAvatar, profile.getAvatar());
+        publishUserDocument(accountId);
+        log.info("Profile updated for account: {}", accountId);
+        return RpcResult.success(toResult(profile), traceId);
+    }
+
+    private RpcResult<ProfileWriteResult> mutateAvatar(
+            UploadAvatarCommand command, String traceId) {
+        String accountId = command.accountId();
+        UserProfile profile = userProfileMapper.selectByIdForUpdate(accountId);
+        boolean isNew = profile == null;
+        String previousAvatar = isNew ? null : profile.getAvatar();
+        if (isNew) {
+            profile = new UserProfile();
+            profile.setAccountId(accountId);
+        }
+        profile.setAvatar(command.avatarUrl());
+
+        int affectedRows = isNew
+                ? userProfileMapper.insert(profile)
+                : userProfileMapper.updateById(profile);
+        if (affectedRows != 1) {
+            throw new IllegalStateException(
+                    "Avatar profile write affected " + affectedRows + " rows");
+        }
+
+        publishUserDocument(accountId);
+        queuePreviousAvatarCleanup(accountId, previousAvatar, profile.getAvatar());
+        log.info("Avatar updated for account: {}", accountId);
+        return RpcResult.success(toResult(profile), traceId);
+    }
 
     /** Publish a complete user UPSERT from the row visible in this transaction. */
     private void publishUserDocument(String accountId) {
@@ -77,321 +192,62 @@ public class ProfileWriteProvider implements ProfileWriteService {
         publisher.publishUser(row.getId(), row.getUsername(), row.getName(), row.getAvatar(), true);
     }
 
-
-    @Override
-    @Transactional
-    @CacheEvict(value = "contestRanking", allEntries = true)
-    public RpcResult<ProfileWriteResult> updateProfile(UpdateProfileCommand command) {
-        String traceId = safeTraceId(command);
-        if (!trustedActor(command == null ? null : command.actor())) {
-            return RpcResult.failure(AppErrorCode.FORBIDDEN, traceId);
-        }
-        String idempotencyKey = extractIdempotencyKey(command);
-        String fingerprint = computeFingerprint(command);
-
-        try {
-            // 1. Idempotency claim: check for existing receipt
-            if (idempotencyKey != null) {
-                AppCommandReceiptEntity existing = receiptMapper.findByReceiptKey(
-                        SERVICE_NAME, OP_UPDATE, idempotencyKey);
-                if (existing != null && "SUCCESS".equals(existing.getStatus())) {
-                    String storedFp = existing.getRequestFingerprint();
-                    if (storedFp != null && !storedFp.equals(fingerprint)) {
-                        log.warn("Idempotency key conflict: key={} stored_fp={} received_fp={}",
-                                idempotencyKey, storedFp, fingerprint);
-                        return RpcResult.failure(AppErrorCode.IDEMPOTENCY_KEY_CONFLICT, traceId);
-                    }
-                    // Replay stored result
-                    try {
-                        ProfileWriteResult replayed = objectMapper.readValue(
-                                existing.getResultPayload(), ProfileWriteResult.class);
-                        log.info("Profile update replayed for account: {} (idempotencyKey={})",
-                                command.accountId(), idempotencyKey);
-                        return RpcResult.success(replayed, traceId);
-                    } catch (Exception e) {
-                        log.warn("Failed to replay stored result for key={}, re-executing: {}",
-                                idempotencyKey, e.getMessage());
-                        // Fall through to fresh execution
-                    }
-                }
-            }
-
-            // 2. Execute profile upsert (null-skip semantics, same as legacy)
-            String accountId = command.accountId();
-
-            // Locking read: a concurrent avatar upload must not be overwritten
-            // by this full-entity update with a stale avatar value.
-            UserProfile profile = userProfileMapper.selectByIdForUpdate(accountId);
-            boolean isNew = profile == null;
-            String previousAvatar = isNew ? null : profile.getAvatar();
-            if (isNew) {
-                profile = new UserProfile();
-                profile.setAccountId(accountId);
-            }
-
-            if (command.name() != null) {
-                profile.setName(command.name());
-            }
-            if (command.avatar() != null) {
-                if (AvatarUrls.reusesOwnedKey(accountId, command.avatar(), profile.getAvatar())) {
-                    log.warn("Rejected avatar reuse of a displaced object key for account {}", accountId);
-                    return RpcResult.failure(AppErrorCode.BAD_REQUEST, traceId);
-                }
-                profile.setAvatar(command.avatar());
-            }
-            if (command.bio() != null) {
-                profile.setBio(command.bio());
-            }
-            if (command.company() != null) {
-                profile.setCompany(command.company());
-            }
-            if (command.github() != null) {
-                profile.setGithub(command.github());
-            }
-            if (command.location() != null) {
-                profile.setLocation(command.location());
-            }
-            if (command.twitter() != null) {
-                profile.setTwitter(command.twitter());
-            }
-            if (command.website() != null) {
-                profile.setWebsite(command.website());
-            }
-            if (command.preferredLanguage() != null) {
-                profile.setPreferredLanguage(command.preferredLanguage());
-            }
-
-            if (isNew) {
-                userProfileMapper.insert(profile);
-            } else {
-                userProfileMapper.updateById(profile);
-            }
-
-            queuePreviousAvatarCleanup(accountId, previousAvatar, profile.getAvatar());
-            publishUserDocument(accountId);
-            log.info("Profile updated for account: {}", accountId);
-
-            ProfileWriteResult result = new ProfileWriteResult(
-                    profile.getAccountId(),
-                    profile.getName(),
-                    profile.getAvatar(),
-                    profile.getBio(),
-                    profile.getCompany(),
-                    profile.getGithub(),
-                    profile.getLocation(),
-                    profile.getTwitter(),
-                    profile.getWebsite(),
-                    profile.getPreferredLanguage());
-
-            // 3. Finalize: record receipt in same transaction (atomic with mutation)
-            if (idempotencyKey != null) {
-                recordReceipt(command, idempotencyKey, fingerprint, result, traceId);
-            }
-
-            return RpcResult.success(result, traceId);
-
-        } catch (Exception e) {
-            markTransactionRollbackOnly();
-            log.error("Profile update failed for account: {}", command.accountId(), e);
-            return RpcResult.failure(AppErrorCode.UNEXPECTED_APP_STATE, traceId);
-        }
-    }
-
-
-    @Override
-    @Transactional
-    @CacheEvict(value = "contestRanking", allEntries = true)
-    public RpcResult<ProfileWriteResult> uploadAvatar(UploadAvatarCommand command) {
-        String traceId = command != null && command.trace() != null ? command.trace().traceId() : null;
-        if (!trustedActor(command == null ? null : command.actor())) {
-            return RpcResult.failure(AppErrorCode.FORBIDDEN, traceId);
-        }
-        String idempotencyKey = command.idempotency() != null
-                ? command.idempotency().idempotencyKey() : null;
-        String fingerprint = sha256Hex(command.accountId() + "|" + command.avatarUrl());
-
-        try {
-            // 1. Idempotency claim
-            if (idempotencyKey != null) {
-                AppCommandReceiptEntity existing = receiptMapper.findByReceiptKey(
-                        SERVICE_NAME, OP_UPLOAD_AVATAR, idempotencyKey);
-                if (existing != null && "SUCCESS".equals(existing.getStatus())) {
-                    String storedFp = existing.getRequestFingerprint();
-                    if (storedFp != null && !storedFp.equals(fingerprint)) {
-                        return RpcResult.failure(AppErrorCode.IDEMPOTENCY_KEY_CONFLICT, traceId);
-                    }
-                    try {
-                        ProfileWriteResult replayed = objectMapper.readValue(
-                                existing.getResultPayload(), ProfileWriteResult.class);
-                        return RpcResult.success(replayed, traceId);
-                    } catch (Exception e) {
-                        log.warn("Failed to replay avatar upload result for key={}", idempotencyKey);
-                    }
-                }
-            }
-
-            // 2. Execute avatar upsert
-            String accountId = command.accountId();
-            // Locking read: overlapping uploads for one account must each queue
-            // the key their own transaction displaced.
-            UserProfile profile = userProfileMapper.selectByIdForUpdate(accountId);
-            boolean isNew = profile == null;
-            String previousAvatar = isNew ? null : profile.getAvatar();
-            if (isNew) {
-                profile = new UserProfile();
-                profile.setAccountId(accountId);
-            }
-            profile.setAvatar(command.avatarUrl());
-
-            if (isNew) {
-                int insertedRows = userProfileMapper.insert(profile);
-                if (insertedRows != 1) {
-                    throw new IllegalStateException(
-                            "Avatar profile insert affected " + insertedRows + " rows");
-                }
-            } else {
-                int updatedRows = userProfileMapper.updateById(profile);
-                if (updatedRows != 1) {
-                    throw new IllegalStateException(
-                            "Avatar profile update affected " + updatedRows + " rows");
-                }
-            }
-
-            publishUserDocument(accountId);
-            queuePreviousAvatarCleanup(accountId, previousAvatar, profile.getAvatar());
-            log.info("Avatar updated for account: {}", accountId);
-
-            ProfileWriteResult result = new ProfileWriteResult(
-                    profile.getAccountId(), profile.getName(), profile.getAvatar(),
-                    profile.getBio(), profile.getCompany(), profile.getGithub(),
-                    profile.getLocation(), profile.getTwitter(), profile.getWebsite(),
-                    profile.getPreferredLanguage());
-
-            // 3. Finalize receipt in same transaction
-            if (idempotencyKey != null) {
-                recordAvatarReceipt(command, idempotencyKey, fingerprint, result, traceId);
-            }
-
-            return RpcResult.success(result, traceId);
-
-        } catch (Exception e) {
-            markTransactionRollbackOnly();
-            log.error("Avatar update failed for account: {}", command.accountId(), e);
-            return RpcResult.failure(AppErrorCode.UNEXPECTED_APP_STATE, traceId);
-        }
-    }
-
-    private void recordReceipt(UpdateProfileCommand command, String idempotencyKey,
-                               String fingerprint, ProfileWriteResult result, String traceId) {
-        try {
-            AppCommandReceiptEntity receipt = new AppCommandReceiptEntity();
-            receipt.setId(UUID.randomUUID().toString());
-            receipt.setCommandId(command.commandId());
-            receipt.setService(SERVICE_NAME);
-            receipt.setOperation(OP_UPDATE);
-            receipt.setIdempotencyKey(idempotencyKey);
-            receipt.setRequestFingerprint(fingerprint);
-            receipt.setStatus("SUCCESS");
-            receipt.setResultPayload(objectMapper.writeValueAsString(result));
-            receipt.setActorType(command.actor() != null ? command.actor().actorType() : null);
-            receipt.setActorId(command.actor() != null ? command.actor().actorId() : null);
-            receipt.setTraceId(traceId);
-            receiptMapper.insert(receipt);
-        } catch (Exception e) {
-            log.error("Failed to record idempotency receipt for commandId={}, key={}: {}",
-                    command.commandId(), idempotencyKey, e.getMessage());
-            // Re-throw to rollback the transaction (receipt failure must nullify mutation)
-            throw new RuntimeException("Idempotency receipt insert failed", e);
-        }
-    }
-
-
-    private void recordAvatarReceipt(UploadAvatarCommand command, String idempotencyKey,
-                                     String fingerprint, ProfileWriteResult result, String traceId) {
-        try {
-            AppCommandReceiptEntity receipt = new AppCommandReceiptEntity();
-            receipt.setId(UUID.randomUUID().toString());
-            receipt.setCommandId(command.commandId());
-            receipt.setService(SERVICE_NAME);
-            receipt.setOperation(OP_UPLOAD_AVATAR);
-            receipt.setIdempotencyKey(idempotencyKey);
-            receipt.setRequestFingerprint(fingerprint);
-            receipt.setStatus("SUCCESS");
-            receipt.setResultPayload(objectMapper.writeValueAsString(result));
-            receipt.setActorType(command.actor() != null ? command.actor().actorType() : null);
-            receipt.setActorId(command.actor() != null ? command.actor().actorId() : null);
-            receipt.setTraceId(traceId);
-            receiptMapper.insert(receipt);
-        } catch (Exception e) {
-            log.error("Failed to record avatar receipt for commandId={}, key={}: {}",
-                    command.commandId(), idempotencyKey, e.getMessage());
-            throw new RuntimeException("Idempotency receipt insert failed", e);
-        }
-    }
-    private void queuePreviousAvatarCleanup(String accountId, String previousAvatar, String currentAvatar) {
+    private void queuePreviousAvatarCleanup(
+            String accountId, String previousAvatar, String currentAvatar) {
         if (previousAvatar == null || previousAvatar.equals(currentAvatar)
                 || !StorageKeys.isAvatarKey(previousAvatar)
                 || !accountId.equals(StorageKeys.avatarAccountId(previousAvatar))) {
             return;
         }
-        // Durable with this transaction: the dispatcher deletes the replaced
-        // object only after the row change commits, retrying transient failures.
         storageCleanupOutbox.enqueue(previousAvatar);
     }
 
-    private void markTransactionRollbackOnly() {
-        if (TransactionSynchronizationManager.isActualTransactionActive()) {
-            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+    private <C extends WriteCommand> RpcResult<ProfileWriteResult> rejectUntrustedActor(C command) {
+        if (command == null || hasMissingActorMetadata(command)) {
+            return null;
         }
-    }
-
-    private boolean trustedActor(com.ulticode.common.command.ActorDelegation actor) {
-        return com.ulticode.app.security.TrustedAdminActor.isTrusted(
-                actorAuthorizer, actor, "profile write");
-    }
-
-    private static String extractIdempotencyKey(UpdateProfileCommand command) {
-        if (command.idempotency() != null) {
-            return command.idempotency().idempotencyKey();
+        ActorDelegation actor = command.actor();
+        if (!TrustedAdminActor.isTrusted(actorAuthorizer, actor, "profile write")) {
+            return RpcResult.failure(AppErrorCode.FORBIDDEN, CommandReceiptExecutor.traceId(command));
         }
         return null;
     }
 
-    private static String computeFingerprint(UpdateProfileCommand command) {
-        String payload = String.join("|",
-                nullSafe(command.accountId()),
-                nullSafe(command.name()),
-                nullSafe(command.avatar()),
-                nullSafe(command.bio()),
-                nullSafe(command.company()),
-                nullSafe(command.github()),
-                nullSafe(command.location()),
-                nullSafe(command.twitter()),
-                nullSafe(command.website()),
-                nullSafe(command.preferredLanguage()));
-        return sha256Hex(payload);
+    private static boolean hasMissingActorMetadata(WriteCommand command) {
+        ActorDelegation actor = command.actor();
+        return actor == null
+                || actor.actorId() == null || actor.actorId().isBlank()
+                || actor.delegatorId() == null || actor.delegatorId().isBlank();
     }
 
-    private static String nullSafe(String s) {
-        return s != null ? s : "";
-    }
-
-    private static String sha256Hex(String input) {
-        try {
-            MessageDigest md = MessageDigest.getInstance("SHA-256");
-            byte[] hash = md.digest(input.getBytes(StandardCharsets.UTF_8));
-            StringBuilder hex = new StringBuilder();
-            for (byte b : hash) {
-                hex.append(String.format("%02x", b));
-            }
-            return hex.toString();
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException("SHA-256 not available", e);
+    private static String accountId(WriteCommand command) {
+        if (command instanceof UpdateProfileCommand profile) {
+            return profile.accountId();
         }
+        if (command instanceof UploadAvatarCommand avatar) {
+            return avatar.accountId();
+        }
+        return null;
     }
 
-    private static String safeTraceId(UpdateProfileCommand command) {
-        TraceMetadata trace = command.trace();
-        return trace != null ? trace.traceId() : null;
+    private static ProfileWriteResult toResult(UserProfile profile) {
+        return new ProfileWriteResult(
+                profile.getAccountId(),
+                profile.getName(),
+                profile.getAvatar(),
+                profile.getBio(),
+                profile.getCompany(),
+                profile.getGithub(),
+                profile.getLocation(),
+                profile.getTwitter(),
+                profile.getWebsite(),
+                profile.getPreferredLanguage());
+    }
+
+    private static <T> RpcResult<T> mapBusinessFailure(BusinessException exception, String traceId) {
+        if (exception.getErrorCode() instanceof AppErrorCode appErrorCode) {
+            return RpcResult.failure(appErrorCode, traceId);
+        }
+        return RpcResult.failure(AppErrorCode.UNEXPECTED_APP_STATE, traceId);
     }
 }

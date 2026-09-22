@@ -21,6 +21,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.springframework.core.task.TaskRejectedException;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
@@ -31,8 +33,10 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -442,6 +446,54 @@ class BackupObjectLifecycleTest {
             assertEquals(BackupStatus.PENDING, backup.getStatus(),
                     "the rejected state write uses the guarded mapper contract");
             assertTrue(error.getValue().contains("executor is shutting down"));
+        }
+
+        @Test
+        @DisplayName("a saturated ThreadPoolTaskExecutor records FAILED before rethrowing")
+        void shouldRecordSpringTaskRejectionBeforeRethrowing() throws InterruptedException {
+            Backup backup = pendingBackup();
+            when(backupMapper.selectById(BACKUP_ID)).thenReturn(backup);
+
+            ThreadPoolTaskExecutor saturated = new ThreadPoolTaskExecutor();
+            saturated.setCorePoolSize(1);
+            saturated.setMaxPoolSize(1);
+            saturated.setQueueCapacity(0);
+            saturated.initialize();
+            CountDownLatch occupied = new CountDownLatch(1);
+            CountDownLatch release = new CountDownLatch(1);
+            saturated.execute(() -> {
+                occupied.countDown();
+                try {
+                    release.await(5, TimeUnit.SECONDS);
+                } catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                }
+            });
+            assertTrue(occupied.await(5, TimeUnit.SECONDS), "worker must be busy before dispatch");
+            BackupObjectLifecycle realExecutorLifecycle = new BackupObjectLifecycle(
+                    backupMapper,
+                    backupDeletionTombstoneMapper,
+                    clock,
+                    backupProcessPort,
+                    fileStorage,
+                    saturated,
+                    tempDir.toString(),
+                    300);
+            try {
+                // ThreadPoolTaskExecutor wraps refusal in Spring's TaskRejectedException,
+                // which extends RejectedExecutionException and must still be recorded.
+                assertThrows(TaskRejectedException.class,
+                        () -> realExecutorLifecycle.start(BACKUP_ID));
+
+                ArgumentCaptor<String> error = ArgumentCaptor.forClass(String.class);
+                verify(backupMapper).failUnlessCompleted(
+                        eq(BACKUP_ID), any(), error.capture(), eq(null));
+                assertTrue(error.getValue().contains("Backup execution rejected"),
+                        "production rejection must mark the row FAILED, got: " + error.getValue());
+            } finally {
+                release.countDown();
+                saturated.shutdown();
+            }
         }
 
         @Test

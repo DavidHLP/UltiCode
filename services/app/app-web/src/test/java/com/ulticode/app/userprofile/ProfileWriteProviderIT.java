@@ -8,6 +8,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
 import com.ulticode.app.api.command.UpdateProfileCommand;
 import com.ulticode.app.api.command.UploadAvatarCommand;
 import com.ulticode.app.api.dto.ProfileWriteResult;
@@ -48,6 +49,7 @@ import org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration;
 import org.springframework.boot.autoconfigure.jdbc.JdbcTemplateAutoConfiguration;
+import org.springframework.boot.autoconfigure.transaction.TransactionAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
@@ -85,6 +87,7 @@ import org.testcontainers.utility.MountableFile;
                 DataSourceTransactionManagerAutoConfiguration.class,
                 TransactionAutoConfiguration.class,
                 JdbcTemplateAutoConfiguration.class,
+                MybatisPlusAutoConfiguration.class,
                 JacksonAutoConfiguration.class
         },
         properties = {

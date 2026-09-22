@@ -469,17 +469,17 @@ class BackupObjectLifecycleTest {
                     Thread.currentThread().interrupt();
                 }
             });
-            assertTrue(occupied.await(5, TimeUnit.SECONDS), "worker must be busy before dispatch");
-            BackupObjectLifecycle realExecutorLifecycle = new BackupObjectLifecycle(
-                    backupMapper,
-                    backupDeletionTombstoneMapper,
-                    clock,
-                    backupProcessPort,
-                    fileStorage,
-                    saturated,
-                    tempDir.toString(),
-                    300);
             try {
+                assertTrue(occupied.await(5, TimeUnit.SECONDS), "worker must be busy before dispatch");
+                BackupObjectLifecycle realExecutorLifecycle = new BackupObjectLifecycle(
+                        backupMapper,
+                        backupDeletionTombstoneMapper,
+                        clock,
+                        backupProcessPort,
+                        fileStorage,
+                        saturated,
+                        tempDir.toString(),
+                        300);
                 // ThreadPoolTaskExecutor wraps refusal in Spring's TaskRejectedException,
                 // which extends RejectedExecutionException and must still be recorded.
                 assertThrows(TaskRejectedException.class,

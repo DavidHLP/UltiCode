@@ -1,0 +1,14 @@
+services/admin/src/test/java/com/ulticode/modules/backup/BackupRepositoryIT.java
+  h_77173abe25c3ff 46
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "146886c52f64e5ecb6c9d39de9b15fd9c1c76074",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

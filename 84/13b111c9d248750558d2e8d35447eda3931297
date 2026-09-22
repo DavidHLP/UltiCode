@@ -1,0 +1,36 @@
+scripts/test/legacy-object-migration-gate-contract.sh
+  s_40765406dcdea6::t_6ae83dc733b264 67
+  s_40765406dcdea6::t_98b7a202af1264 61
+  s_40765406dcdea6::t_5f44da58eabb05 108-138
+  s_40765406dcdea6::t_e7a3a7ce3b6102 139
+docs/DEVELOPMENT.md
+  s_40765406dcdea6::t_45216eb3987305 161-163
+docker/docker-compose.prod.yml
+  s_40765406dcdea6::t_1c38e4f0930015 449-452
+  s_40765406dcdea6::t_0c8bdc5c923173 319-322,334,488-491
+  s_40765406dcdea6::t_3cab1c498fe51a 951-958
+scripts/README.md
+  s_40765406dcdea6::t_d1458f7670352d 90
+docs/OPERATIONS.md
+  s_40765406dcdea6::t_2987c16242907e 210-215
+scripts/dev/up.sh
+  s_40765406dcdea6::t_874a4cc2bd5e97 561-593,601-605
+scripts/runbooks/assert-legacy-objects-migrated.sh
+  s_40765406dcdea6::t_f211f795780d8e 86-107,110-117,119-129,131-153,155-157,162
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8413b111c9d248750558d2e8d35447eda3931297",
+  "prompts": {},
+  "sessions": {
+    "s_40765406dcdea6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "db3544fb-0f65-4b67-8f14-eb941fd77316",
+        "model": "deepseek-v4.1-flash"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

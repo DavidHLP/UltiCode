@@ -94,7 +94,7 @@ assert_networks "$BASE_COMPOSE" redis cache
 assert_networks "$BASE_COMPOSE" nacos sql registry egress-nacos
 assert_networks "$BASE_COMPOSE" meilisearch search
 
-for network in sql cache registry search; do
+for network in sql cache registry search object-storage; do
   contains docker/docker-compose.dev.yml "  $network:"
   assert_network_property "$ROOT_DIR/docker/docker-compose.dev.yml" "$network" internal false
 done

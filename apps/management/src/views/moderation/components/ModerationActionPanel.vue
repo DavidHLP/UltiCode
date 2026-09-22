@@ -13,12 +13,11 @@ import {
   actionBgVar,
   actionBorderVar,
   actionColorVar,
-} from '../workflow/moderationWorkflow'
+} from '../presentation/moderationPresentation'
 
 /**
- * Map a workflow ActionColorKey onto the existing CSS variable convention
- * used by the action panel chrome. Kept here so the workflow module stays
- * framework-agnostic.
+ * Map presentation color tokens onto the action panel's CSS variables.
+ * Kept here so the presentation module stays focused on catalog data.
  */
 
 

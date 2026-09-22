@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import {
+  ModerationStatus,
   moderationQueueApi,
   reportsApi,
   appealsApi,
@@ -9,41 +10,37 @@ import {
   type QueryModerationQueueParams,
   type PerformModerationActionDto,
   type BatchModerationActionDto,
-  type AssignModerationDto,
   type Report,
   type QueryReportsParams,
   type Appeal,
   type QueryAppealsParams,
-  type CreateAppealDto,
   type ReviewAppealDto,
 } from '@/api/admin/moderation'
-import { isTerminalStatus } from '@/views/moderation/workflow/moderationWorkflow'
 import { extractApiErrorMessage } from '@/utils/error'
 import { createCollectionSlice } from '@/stores/createCollectionSlice'
 
+export const TERMINAL_STATUSES: Readonly<Partial<Record<ModerationStatus, true>>> = {
+  [ModerationStatus.RESOLVED]: true,
+  [ModerationStatus.DISMISSED]: true,
+}
+
+export const isTerminalStatus = (status: ModerationStatus): boolean =>
+  TERMINAL_STATUSES[status] === true
+
 /**
- * Moderation decision + collection store.
+ * Moderation decision and collection store.
  *
- * <p>Three collection slices (queue / reports / appeals) back the three
- * <code>useRemoteTable</code>-driven views; the stats slice backs the dashboard
- * and the queue header counters. Each collection slice owns cancellation and
- * stale-response protection through <code>createCollectionSlice</code>.
- * <p>Action methods (claim / assign / performAction / batchAction /
- * reviewAppeal) own their post-action state reconciliation: they patch the
- * matching list index in place for non-terminal outcomes, remove terminal
- * (RESOLVED / DISMISSED) items from the queue, and refresh stats so the
- * dashboard stays in sync. The five moderation views layer their own UI
- * state (drawers, dialogs, per-form saving flags) on top of these
- * primitives.
+ * Collection slices own queue, reports, appeals, and stats request state,
+ * including cancellation and stale-response protection. Decision methods
+ * own server-result reconciliation: claim patches its queue row, moderation
+ * actions remove terminal results or patch non-terminal results, batch actions
+ * remove successful queue IDs, and appeal reviews patch their matching appeal.
+ * Successful decisions trigger a best-effort stats refresh; views retain
+ * saving, dialogs, toasts, and accessibility state.
  *
- * <p>Architectural note (architecture-review 2026-07-21, HTML1 C1): the
- * legacy collection-mutation surface (filters / pagination / setPage /
- * setLimit / hasActiveFilters / setFilters / clearFilters) and the per-form
- * loading flags (actionLoading / batchActionLoading / claimLoading) were
- * absorbed by <code>useRemoteTable</code> and per-view saving refs and have
- * been removed; the per-item detail-fetch surface (currentQueueItem /
- * currentAppeal and their fetchers) had no view consumers and has been
- * removed alongside.
+ * The removed legacy collection mutations and per-form loading flags belong to
+ * useRemoteTable and individual views. Assign/unassign/create appeal remain
+ * HTTP adapter capabilities but are not part of this admin decision store.
  */
 export const useModerationStore = defineStore('adminModeration', () => {
   // ============================================================================
@@ -127,35 +124,14 @@ export const useModerationStore = defineStore('adminModeration', () => {
   async function claimItem(id: string) {
     try {
       const item = await moderationQueueApi.claimItem(id)
-      const index = queueItems.value.findIndex((i) => i.id === id)
-      if (index !== -1) queueItems.value[index] = item
+      if (queueItems.value.some((queueItem) => queueItem.id === id)) {
+        queueItems.value = queueItems.value.map((queueItem) =>
+          queueItem.id === id ? item : queueItem,
+        )
+      }
       return item
     } catch (err: unknown) {
       console.error('[ModerationStore] Failed to claim item:', err)
-      throw err
-    }
-  }
-
-  async function assignItem(id: string, data: AssignModerationDto) {
-    try {
-      const item = await moderationQueueApi.assignItem(id, data)
-      const index = queueItems.value.findIndex((i) => i.id === id)
-      if (index !== -1) queueItems.value[index] = item
-      return item
-    } catch (err: unknown) {
-      console.error('[ModerationStore] Failed to assign item:', err)
-      throw err
-    }
-  }
-
-  async function unassignItem(id: string) {
-    try {
-      const item = await moderationQueueApi.unassignItem(id)
-      const index = queueItems.value.findIndex((i) => i.id === id)
-      if (index !== -1) queueItems.value[index] = item
-      return item
-    } catch (err: unknown) {
-      console.error('[ModerationStore] Failed to unassign item:', err)
       throw err
     }
   }
@@ -164,13 +140,14 @@ export const useModerationStore = defineStore('adminModeration', () => {
     try {
       const item = await moderationQueueApi.performAction(id, data)
       if (isTerminalStatus(item.status)) {
-        queueItems.value = queueItems.value.filter((i) => i.id !== id)
+        queueItems.value = queueItems.value.filter((queueItem) => queueItem.id !== id)
         queueTotal.value = Math.max(0, queueTotal.value - 1)
       } else {
-        const index = queueItems.value.findIndex((i) => i.id === id)
-        if (index !== -1) queueItems.value[index] = item
+        queueItems.value = queueItems.value.map((queueItem) =>
+          queueItem.id === id ? item : queueItem,
+        )
       }
-      fetchStats(true)
+      void fetchStats(true)
       return item
     } catch (err: unknown) {
       console.error('[ModerationStore] Failed to perform action:', err)
@@ -181,11 +158,11 @@ export const useModerationStore = defineStore('adminModeration', () => {
   async function batchAction(data: BatchModerationActionDto) {
     try {
       const result = await moderationQueueApi.batchAction(data)
-      const errorIds = result.errors.map((e) => e.queueId)
-      const successfulIds = data.queueIds.filter((id) => !errorIds.includes(id))
-      queueItems.value = queueItems.value.filter((i) => !successfulIds.includes(i.id))
+      const errorIds = new Set(result.errors.map((error) => error.queueId))
+      const successfulIds = data.queueIds.filter((id) => !errorIds.has(id))
+      queueItems.value = queueItems.value.filter((item) => !successfulIds.includes(item.id))
       queueTotal.value = Math.max(0, queueTotal.value - successfulIds.length)
-      fetchStats(true)
+      void fetchStats(true)
       return result
     } catch (err: unknown) {
       console.error('[ModerationStore] Failed to perform batch action:', err)
@@ -206,26 +183,15 @@ export const useModerationStore = defineStore('adminModeration', () => {
   async function reviewAppeal(id: string, data: ReviewAppealDto) {
     try {
       const appeal = await appealsApi.reviewAppeal(id, data)
-      const index = appeals.value.findIndex((a) => a.id === id)
-      if (index !== -1) appeals.value[index] = appeal
-      // Appeal decisions change the dashboard counts (approved/rejected
-      // move items out of PENDING/UNDER_REVIEW). Refresh stats so the
-      // header counters stay in sync; this was previously missing,
-      // leaving the dashboard stale after every appeal review.
-      fetchStats(true)
+      if (appeals.value.some((currentAppeal) => currentAppeal.id === id)) {
+        appeals.value = appeals.value.map((currentAppeal) =>
+          currentAppeal.id === id ? appeal : currentAppeal,
+        )
+      }
+      void fetchStats(true)
       return appeal
     } catch (err: unknown) {
       console.error('[ModerationStore] Failed to review appeal:', err)
-      throw err
-    }
-  }
-
-  async function createAppeal(data: CreateAppealDto) {
-    try {
-      const appeal = await appealsApi.createAppeal(data)
-      return appeal
-    } catch (err: unknown) {
-      console.error('[ModerationStore] Failed to create appeal:', err)
       throw err
     }
   }
@@ -270,8 +236,6 @@ export const useModerationStore = defineStore('adminModeration', () => {
     fetchQueue,
     fetchStats,
     claimItem,
-    assignItem,
-    unassignItem,
     performAction,
     batchAction,
     // Reports
@@ -287,7 +251,6 @@ export const useModerationStore = defineStore('adminModeration', () => {
     appealsError,
     fetchAppeals,
     reviewAppeal,
-    createAppeal,
     // Utility
     clearError,
     reset,

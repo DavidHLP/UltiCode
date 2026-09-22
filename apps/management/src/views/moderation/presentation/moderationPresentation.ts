@@ -1,9 +1,4 @@
-import {
-  ModerationActionType,
-  ModerationStatus,
-  type ModeratableEntityType,
-  type ModerationQueueItem,
-} from '@/api/admin/moderation'
+import { ModerationActionType, type ModeratableEntityType } from '@/api/admin/moderation'
 import {
   IconCheck,
   IconX,
@@ -18,21 +13,10 @@ import {
 import type { SemanticColor } from '@/components/ui/terminal'
 
 /**
- * Single seam for the moderation decision lifecycle. Owns:
- *   - the action catalog (icon, color, requiresDuration, terminal, label key);
- *   - the entity route resolver;
- *   - the terminal-status reconciliation rule;
- *   - a `runDecision` orchestrator that combines HTTP + reconciliation.
+ * Presentation catalog for moderation actions and entity routes.
  *
- * Before this module existed the catalog lived inline in `ModerationQueueView`
- * and `ModerationActionPanel`, the entity route map was duplicated in
- * `QueueView` and `ReportsView`, the terminal-status rule was hard-coded in
- * the store's `performAction`, and the store's `reviewAppeal` did not
- * refresh stats — a silent post-decision inconsistency.
- *
- * All callers now consume the catalog + entity routes + decision lifecycle
- * through this single interface, so an added action type or entity type is
- * a one-line change here, not a sweep across views.
+ * Decision reconciliation belongs to the moderation store; this module only
+ * supplies labels, icons, colors, duration hints, routes, and CSS tokens.
  */
 
 export type ActionColorKey = SemanticColor | 'purple' | 'amber' | 'red' | 'green' | 'cyan'
@@ -49,8 +33,6 @@ export interface ActionDescriptor {
   color: ActionColorKey
   /** True when the action requires a positive duration in days. */
   requiresDuration: boolean
-  /** True when performing this action leaves the queue item in a final state. */
-  terminal: boolean
 }
 
 const ICONS = {
@@ -78,7 +60,6 @@ export const ACTION_CATALOG: ReadonlyArray<ActionDescriptor> = [
     icon: ICONS.x,
     color: 'red',
     requiresDuration: false,
-    terminal: true,
   },
   {
     value: ModerationActionType.RESOLVED,
@@ -87,7 +68,6 @@ export const ACTION_CATALOG: ReadonlyArray<ActionDescriptor> = [
     icon: ICONS.check,
     color: 'green',
     requiresDuration: false,
-    terminal: true,
   },
   {
     value: ModerationActionType.DELETED,
@@ -96,7 +76,6 @@ export const ACTION_CATALOG: ReadonlyArray<ActionDescriptor> = [
     icon: ICONS.trash,
     color: 'red',
     requiresDuration: false,
-    terminal: true,
   },
   {
     value: ModerationActionType.HIDDEN,
@@ -105,7 +84,6 @@ export const ACTION_CATALOG: ReadonlyArray<ActionDescriptor> = [
     icon: ICONS.eyeOff,
     color: 'amber',
     requiresDuration: false,
-    terminal: true,
   },
   {
     value: ModerationActionType.RESTORED,
@@ -114,7 +92,6 @@ export const ACTION_CATALOG: ReadonlyArray<ActionDescriptor> = [
     icon: ICONS.refresh,
     color: 'green',
     requiresDuration: false,
-    terminal: true,
   },
   {
     value: ModerationActionType.WARNED,
@@ -123,7 +100,6 @@ export const ACTION_CATALOG: ReadonlyArray<ActionDescriptor> = [
     icon: ICONS.alertCircle,
     color: 'amber',
     requiresDuration: false,
-    terminal: false,
   },
   {
     value: ModerationActionType.TEMP_BANNED,
@@ -132,7 +108,6 @@ export const ACTION_CATALOG: ReadonlyArray<ActionDescriptor> = [
     icon: ICONS.clock,
     color: 'amber',
     requiresDuration: true,
-    terminal: true,
   },
   {
     value: ModerationActionType.PERM_BANNED,
@@ -141,7 +116,6 @@ export const ACTION_CATALOG: ReadonlyArray<ActionDescriptor> = [
     icon: ICONS.ban,
     color: 'red',
     requiresDuration: false,
-    terminal: true,
   },
   {
     value: ModerationActionType.APPEAL_PENDING,
@@ -150,7 +124,6 @@ export const ACTION_CATALOG: ReadonlyArray<ActionDescriptor> = [
     icon: ICONS.scale,
     color: 'purple',
     requiresDuration: false,
-    terminal: false,
   },
   {
     value: ModerationActionType.APPEAL_APPROVED,
@@ -159,7 +132,6 @@ export const ACTION_CATALOG: ReadonlyArray<ActionDescriptor> = [
     icon: ICONS.check,
     color: 'green',
     requiresDuration: false,
-    terminal: true,
   },
   {
     value: ModerationActionType.APPEAL_REJECTED,
@@ -168,30 +140,10 @@ export const ACTION_CATALOG: ReadonlyArray<ActionDescriptor> = [
     icon: ICONS.x,
     color: 'red',
     requiresDuration: false,
-    terminal: true,
   },
 ]
 
-const ACTION_BY_VALUE: Map<ModerationActionType, ActionDescriptor> = new Map(
-  ACTION_CATALOG.map((a) => [a.value, a]),
-)
 
-export const findAction = (value: ModerationActionType): ActionDescriptor | undefined =>
-  ACTION_BY_VALUE.get(value)
-
-/**
- * Terminal status set. Mirrors the previous hard-coded
- * `item.status === 'RESOLVED' || item.status === 'DISMISSED'` check that
- * lived inline in the store's `performAction`; centralising it here
- * means a new terminal status is one constant, not a code sweep.
- */
-export const TERMINAL_STATUSES: ReadonlySet<ModerationStatus> = new Set([
-  ModerationStatus.RESOLVED,
-  ModerationStatus.DISMISSED,
-])
-
-export const isTerminalStatus = (status: ModerationStatus): boolean =>
-  TERMINAL_STATUSES.has(status)
 
 /**
  * Resolves an entity (post / comment / solution / problem) to its
@@ -209,13 +161,6 @@ export const ENTITY_ROUTES: Readonly<Record<ModeratableEntityType, (id: string) 
 export const entityRoute = (entity: ModeratableEntityType, entityId: string): string =>
   ENTITY_ROUTES[entity](entityId)
 
-/**
- * Whether the queue item is in a state where actions are allowed
- * (PENDING or UNDER_REVIEW). Used by both the actions column and the
- * batch action bar to gate write controls.
- */
-export const isActionable = (item: ModerationQueueItem): boolean =>
-  item.status === ModerationStatus.PENDING || item.status === ModerationStatus.UNDER_REVIEW
 
 /**
  * Centralised CSS variable mapping for the moderation chrome.

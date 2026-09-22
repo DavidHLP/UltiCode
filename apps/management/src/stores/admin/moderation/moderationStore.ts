@@ -140,8 +140,11 @@ export const useModerationStore = defineStore('adminModeration', () => {
     try {
       const item = await moderationQueueApi.performAction(id, data)
       if (isTerminalStatus(item.status)) {
-        queueItems.value = queueItems.value.filter((queueItem) => queueItem.id !== id)
-        queueTotal.value = Math.max(0, queueTotal.value - 1)
+        const hasLocalRow = queueItems.value.some((queueItem) => queueItem.id === id)
+        if (hasLocalRow) {
+          queueItems.value = queueItems.value.filter((queueItem) => queueItem.id !== id)
+          queueTotal.value = Math.max(0, queueTotal.value - 1)
+        }
       } else {
         queueItems.value = queueItems.value.map((queueItem) =>
           queueItem.id === id ? item : queueItem,

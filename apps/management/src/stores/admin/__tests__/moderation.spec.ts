@@ -138,6 +138,19 @@ describe('useModerationStore', () => {
     },
   )
 
+  it('does not decrement total when a terminal result is absent locally', async () => {
+    const store = useModerationStore()
+    store.queueItems = [queueItem('q2')]
+    store.queueTotal = 2
+    mockedQueueApi.performAction.mockResolvedValueOnce(queueItem('q1', ModerationStatus.RESOLVED))
+    mockedQueueApi.getStats.mockResolvedValueOnce({} as never)
+
+    await store.performAction('q1', { action: ModerationActionType.RESOLVED })
+
+    expect(store.queueItems.map((item) => item.id)).toEqual(['q2'])
+    expect(store.queueTotal).toBe(2)
+  })
+
   it('bounds a single terminal decrement at zero', async () => {
     const store = useModerationStore()
     store.queueItems = [queueItem('q1')]

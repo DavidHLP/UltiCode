@@ -16,7 +16,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,7 +43,6 @@ import org.testcontainers.utility.MountableFile;
         + "org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration,"
         + "org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration,"
         + "org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration,"
-@DisplayName("BackupRepositoryIT — Real MySQL backup mapper invariants")
         + "com.alibaba.cloud.dubbo.bootstrap.DubboBootstrapAutoConfiguration")
 @Testcontainers
 @DisplayName("BackupRepositoryIT — Real MySQL CRUD round-trip for /admin/backups")
@@ -52,14 +50,20 @@ class BackupRepositoryIT {
 
     @Container
     private static final MySQLContainer<?> MYSQL = new MySQLContainer<>("mysql:8.0")
-            .withDatabaseName("ulticode_admin_test")
+            .withDatabaseName("admin")
             .withUsername("test")
             .withCopyFileToContainer(
                     MountableFile.forHostPath(canonicalMigrationPath().toString()),
                     "/docker-entrypoint-initdb.d/V20260724162738__Create_Backups_Table.sql")
             .withCopyFileToContainer(
                     MountableFile.forHostPath(objectStorageMigrationPath().toString()),
-                    "/docker-entrypoint-initdb.d/V20260920120000__Backup_Object_Storage.sql");
+                    "/docker-entrypoint-initdb.d/V20260920120000__Backup_Object_Storage.sql")
+            .withCopyFileToContainer(
+                    MountableFile.forHostPath(tombstoneMigrationPath().toString()),
+                    "/docker-entrypoint-initdb.d/V20260923120000__Create_Legacy_Backup_Deletion_Tombstones.sql")
+            .withCopyFileToContainer(
+                    MountableFile.forHostPath(cleanupColumnsMigrationPath().toString()),
+                    "/docker-entrypoint-initdb.d/V20260925120000__Add_Backup_Object_Cleanup_Columns.sql");
 
     @Container
     private static final GenericContainer<?> REDIS =
@@ -91,6 +95,26 @@ class BackupRepositoryIT {
         throw new IllegalStateException("Backup object-storage migration not found from user.dir="
                 + System.getProperty("user.dir"));
     }
+    private static Path tombstoneMigrationPath() {
+        return findPostOwnerMigration("V20260923120000__Create_Legacy_Backup_Deletion_Tombstones.sql");
+    }
+
+    private static Path cleanupColumnsMigrationPath() {
+        return findPostOwnerMigration("V20260925120000__Add_Backup_Object_Cleanup_Columns.sql");
+    }
+
+    private static Path findPostOwnerMigration(String filename) {
+        Path current = Path.of(System.getProperty("user.dir")).toAbsolutePath().normalize();
+        while (current != null) {
+            Path candidate = current.resolve("init-db/migrations/post-owner/" + filename);
+            if (Files.isRegularFile(candidate)) {
+                return candidate;
+            }
+            current = current.getParent();
+        }
+        throw new IllegalStateException(filename + " not found from user.dir="
+                + System.getProperty("user.dir"));
+    }
 
     @DynamicPropertySource
     static void configureDatasource(DynamicPropertyRegistry registry) {
@@ -114,20 +138,6 @@ class BackupRepositoryIT {
     @Autowired
     private PlatformTransactionManager transactionManager;
 
-    @BeforeEach
-    void ensureTombstoneTable() {
-        jdbcTemplate.execute("""
-                CREATE TABLE IF NOT EXISTS backup_deletion_tombstones (
-                    backup_id varchar(40) NOT NULL,
-                    deleted_at datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-                    object_key varchar(512) DEFAULT NULL,
-                    object_deleted_at datetime(3) DEFAULT NULL,
-                    cleanup_attempts int NOT NULL DEFAULT 0,
-                    cleanup_error varchar(500) DEFAULT NULL,
-                    PRIMARY KEY (backup_id)
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-                """);
-    }
 
     @Test
     @DisplayName("INSERT → SELECT → UPDATE status → SELECT by id → DELETE round-trip")

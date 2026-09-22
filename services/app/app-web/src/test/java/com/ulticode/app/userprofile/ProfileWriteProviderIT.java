@@ -49,8 +49,9 @@ import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration;
 import org.springframework.boot.autoconfigure.transaction.TransactionAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Bean;
 import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -169,6 +170,8 @@ class ProfileWriteProviderIT {
     private AppCommandReceiptMapper receiptMapper;
     @Autowired
     private StorageCleanupOutboxMapper storageCleanupOutboxMapper;
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     private static UserDirectoryRow directoryRow(
             String id, String username, String name, String avatar) {
@@ -423,6 +426,68 @@ class ProfileWriteProviderIT {
                 "ProfileWriteService", "uploadAvatar", key);
         assertThat(receipt).isNull();
     }
+    @Test
+    @DisplayName("cleanup outbox failure rolls back profile mutation and receipt claim")
+    void cleanupFailureRollsBackProfileAndReceipt() {
+        String accountId = UUID.randomUUID().toString();
+        String originalAvatar = "app/avatars/" + accountId + "/original.png";
+        UserProfile seed = new UserProfile();
+        seed.setAccountId(accountId);
+        seed.setAvatar(originalAvatar);
+        assertThat(userProfileMapper.insert(seed)).isEqualTo(1);
+
+        String key = "cleanup-failure-" + UUID.randomUUID();
+        String trigger = "reject_cleanup_" + UUID.randomUUID().toString().replace("-", "");
+        jdbcTemplate.execute("CREATE TRIGGER `" + trigger + "` "
+                + "BEFORE INSERT ON `storage_cleanup_outbox` FOR EACH ROW "
+                + "SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'forced cleanup failure'");
+        try {
+            UploadAvatarCommand command = new UploadAvatarCommand(
+                    UUID.randomUUID().toString(),
+                    new IdMetadata(key, null, null),
+                    testActor(),
+                    TraceMetadata.EMPTY,
+                    accountId,
+                    "app/avatars/" + accountId + "/replacement.png");
+
+            RpcResult<ProfileWriteResult> result = profileWriteService.uploadAvatar(command);
+
+            assertThat(result.success()).isFalse();
+            UserProfile persisted = userProfileMapper.selectById(accountId);
+            assertThat(persisted).isNotNull();
+            assertThat(persisted.getAvatar()).isEqualTo(originalAvatar);
+            assertThat(receiptMapper.findByReceiptKey(
+                    "ProfileWriteService", "uploadAvatar", key)).isNull();
+            assertThat(storageCleanupOutboxMapper.selectList(
+                    new QueryWrapper<StorageCleanupOutboxRecord>()
+                            .eq("object_key", originalAvatar))).isEmpty();
+        } finally {
+            jdbcTemplate.execute("DROP TRIGGER `" + trigger + "`");
+        }
+    }
+
+    @Test
+    @DisplayName("receipt finalize failure rolls back profile mutation and receipt claim")
+    void receiptFinalizeFailureRollsBackProfileAndReceipt() {
+        String accountId = UUID.randomUUID().toString();
+        String key = "finalize-failure-" + UUID.randomUUID();
+        String trigger = "reject_finalize_" + UUID.randomUUID().toString().replace("-", "");
+        jdbcTemplate.execute("CREATE TRIGGER `" + trigger + "` "
+                + "BEFORE UPDATE ON `app_command_receipt` FOR EACH ROW "
+                + "SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'forced finalize failure'");
+        try {
+            RpcResult<ProfileWriteResult> result = profileWriteService.updateProfile(
+                    commandWithKey(key, accountId, "Finalize", "must roll back"));
+
+            assertThat(result.success()).isFalse();
+            assertThat(userProfileMapper.selectById(accountId)).isNull();
+            assertThat(receiptMapper.findByReceiptKey(
+                    "ProfileWriteService", "updateProfile", key)).isNull();
+        } finally {
+            jdbcTemplate.execute("DROP TRIGGER `" + trigger + "`");
+        }
+    }
+
 
     @Test
     @DisplayName("uploadAvatar replay with same idempotencyKey returns stored result")

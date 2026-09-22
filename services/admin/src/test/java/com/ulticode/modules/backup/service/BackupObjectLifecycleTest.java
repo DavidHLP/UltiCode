@@ -32,6 +32,7 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -510,6 +511,28 @@ class BackupObjectLifecycleTest {
                 TransactionSynchronizationManager.clearSynchronization();
             }
         }
+        @Test
+        @DisplayName("rolled-back delete transaction never deletes storage bytes")
+        void shouldNotDeleteObjectWhenDeleteTransactionRollsBack() {
+            Backup backup = pendingBackup();
+            backup.setStatus(BackupStatus.COMPLETED);
+            String objectKey = "admin/backups/2026/01/" + BACKUP_ID + ".sql";
+            backup.setObjectKey(objectKey);
+            when(backupMapper.selectById(BACKUP_ID)).thenReturn(backup);
+            when(backupMapper.deleteIfNotRunning(BACKUP_ID)).thenReturn(1);
+
+            TransactionSynchronizationManager.initSynchronization();
+            try {
+                lifecycle.delete(BACKUP_ID);
+
+                TransactionSynchronizationManager.getSynchronizations()
+                        .forEach(sync -> sync.afterCompletion(TransactionSynchronization.STATUS_ROLLED_BACK));
+                verifyNoInteractions(fileStorage);
+            } finally {
+                TransactionSynchronizationManager.clearSynchronization();
+            }
+        }
+
 
         @Test
         @DisplayName("tombstone failure never deletes storage bytes")

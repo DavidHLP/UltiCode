@@ -52,14 +52,14 @@ describe('createCollectionSlice', () => {
   it('cancels the current request without clearing collection state', async () => {
     let resolveLoad: (page: { items: string[]; total: number }) => void = () => undefined
     const load = vi.fn(
-      () =>
+      (_params?: void, _signal?: AbortSignal) =>
         new Promise<{ items: string[]; total: number }>((resolve) => {
           resolveLoad = resolve
         }),
     )
     const slice = createCollectionSlice<string, void>({ load })
     const request = slice.fetch()
-    const signal = load.mock.calls[0][1] as AbortSignal
+    const signal = load.mock.calls[0][1]!
     slice.items.value = ['existing']
     slice.total.value = 4
     slice.error.value = 'existing error'
@@ -99,14 +99,14 @@ describe('createCollectionSlice', () => {
   it('cancels before reset clears collection state', async () => {
     let resolveLoad: (page: { items: string[]; total: number }) => void = () => undefined
     const load = vi.fn(
-      () =>
+      (_params?: void, _signal?: AbortSignal) =>
         new Promise<{ items: string[]; total: number }>((resolve) => {
           resolveLoad = resolve
         }),
     )
     const slice = createCollectionSlice<string, void>({ load })
     const request = slice.fetch()
-    const signal = load.mock.calls[0][1] as AbortSignal
+    const signal = load.mock.calls[0][1]!
     slice.items.value = ['existing']
     slice.total.value = 4
     slice.error.value = 'existing error'

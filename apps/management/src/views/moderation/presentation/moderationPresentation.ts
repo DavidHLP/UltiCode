@@ -10,7 +10,6 @@ import {
   IconBan,
   IconScale,
 } from '@tabler/icons-vue'
-import type { SemanticColor } from '@/components/ui/terminal'
 
 /**
  * Presentation catalog for moderation actions and entity routes.
@@ -19,7 +18,7 @@ import type { SemanticColor } from '@/components/ui/terminal'
  * supplies labels, icons, colors, duration hints, routes, and CSS tokens.
  */
 
-export type ActionColorKey = SemanticColor | 'purple' | 'amber' | 'red' | 'green' | 'cyan'
+export type ActionColorKey = 'purple' | 'amber' | 'red' | 'green'
 
 export interface ActionDescriptor {
   value: ModerationActionType
@@ -168,48 +167,35 @@ export const entityRoute = (entity: ModeratableEntityType, entityId: string): st
  * the same ActionColorKey produces the same visual treatment in every
  * call site. Adding a new color is a one-line change here.
  */
-const ACTION_COLOR_VAR: Readonly<Record<ActionColorKey, string>> = {
-  red: 'text-foreground-strong',
-  amber: 'text-foreground-strong',
-  green: 'text-foreground-strong',
-  cyan: 'text-foreground-strong',
-  purple: 'text-foreground-strong',
-  info: 'text-foreground-strong',
-  error: 'text-foreground-strong',
-  success: 'text-foreground-strong',
-  warning: 'text-foreground-strong',
-  neutral: 'text-[var(--foreground-muted)]',
-  electric: 'text-[var(--accent-primary)]',
-} as const
+interface ActionStyle {
+  color: string
+  background: string
+  border: string
+}
 
-const ACTION_BG_VAR: Readonly<Record<ActionColorKey, string>> = {
-  red: 'bg-[color-mix(in_oklch,_var(--status-error-mark)_15%,_transparent)]',
-  amber: 'bg-[color-mix(in_oklch,_var(--status-warning-mark)_15%,_transparent)]',
-  green: 'bg-[color-mix(in_oklch,_var(--status-success-mark)_15%,_transparent)]',
-  cyan: 'bg-[color-mix(in_oklch,_var(--status-info-mark)_15%,_transparent)]',
-  purple: 'bg-[color-mix(in_oklch,_var(--status-special-mark)_15%,_transparent)]',
-  info: 'bg-[color-mix(in_oklch,_var(--status-info-mark)_15%,_transparent)]',
-  error: 'bg-[color-mix(in_oklch,_var(--status-error-mark)_15%,_transparent)]',
-  success: 'bg-[color-mix(in_oklch,_var(--status-success-mark)_15%,_transparent)]',
-  warning: 'bg-[color-mix(in_oklch,_var(--status-warning-mark)_15%,_transparent)]',
-  neutral: 'bg-[var(--surface-sunken)]',
-  electric: 'bg-[color-mix(in_oklch,_var(--accent-primary)_15%,_transparent)]',
-} as const
+const ACTION_STYLES: Readonly<Record<ActionColorKey, ActionStyle>> = {
+  red: {
+    color: 'text-foreground-strong',
+    background: 'bg-[color-mix(in_oklch,_var(--status-error-mark)_15%,_transparent)]',
+    border: 'border-[color-mix(in_oklch,_var(--status-error-mark)_40%,_transparent)]',
+  },
+  amber: {
+    color: 'text-foreground-strong',
+    background: 'bg-[color-mix(in_oklch,_var(--status-warning-mark)_15%,_transparent)]',
+    border: 'border-[color-mix(in_oklch,_var(--status-warning-mark)_40%,_transparent)]',
+  },
+  green: {
+    color: 'text-foreground-strong',
+    background: 'bg-[color-mix(in_oklch,_var(--status-success-mark)_15%,_transparent)]',
+    border: 'border-[color-mix(in_oklch,_var(--status-success-mark)_40%,_transparent)]',
+  },
+  purple: {
+    color: 'text-foreground-strong',
+    background: 'bg-[color-mix(in_oklch,_var(--status-special-mark)_15%,_transparent)]',
+    border: 'border-[color-mix(in_oklch,_var(--status-special-mark)_40%,_transparent)]',
+  },
+}
 
-const ACTION_BORDER_VAR: Readonly<Record<ActionColorKey, string>> = {
-  red: 'border-[color-mix(in_oklch,_var(--status-error-mark)_40%,_transparent)]',
-  amber: 'border-[color-mix(in_oklch,_var(--status-warning-mark)_40%,_transparent)]',
-  green: 'border-[color-mix(in_oklch,_var(--status-success-mark)_40%,_transparent)]',
-  cyan: 'border-[color-mix(in_oklch,_var(--status-info-mark)_40%,_transparent)]',
-  purple: 'border-[color-mix(in_oklch,_var(--status-special-mark)_40%,_transparent)]',
-  info: 'border-[color-mix(in_oklch,_var(--status-info-mark)_40%,_transparent)]',
-  error: 'border-[color-mix(in_oklch,_var(--status-error-mark)_40%,_transparent)]',
-  success: 'border-[color-mix(in_oklch,_var(--status-success-mark)_40%,_transparent)]',
-  warning: 'border-[color-mix(in_oklch,_var(--status-warning-mark)_40%,_transparent)]',
-  neutral: 'border-[var(--border-subtle)]',
-  electric: 'border-[color-mix(in_oklch,_var(--accent-primary)_40%,_transparent)]',
-} as const
-
-export const actionColorVar = (key: ActionColorKey): string => ACTION_COLOR_VAR[key]
-export const actionBgVar = (key: ActionColorKey): string => ACTION_BG_VAR[key]
-export const actionBorderVar = (key: ActionColorKey): string => ACTION_BORDER_VAR[key]
+export const actionColorVar = (key: ActionColorKey): string => ACTION_STYLES[key].color
+export const actionBgVar = (key: ActionColorKey): string => ACTION_STYLES[key].background
+export const actionBorderVar = (key: ActionColorKey): string => ACTION_STYLES[key].border

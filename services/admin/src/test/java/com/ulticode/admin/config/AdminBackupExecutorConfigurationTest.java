@@ -65,3 +65,4 @@ class AdminBackupExecutorConfigurationTest {
 
         assertThat(namedExecutor).isTrue();
     }
+}

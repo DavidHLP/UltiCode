@@ -1,0 +1,14 @@
+services/admin/src/test/resources/application.yml
+  h_77173abe25c3ff 4-8
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5433e779653ea9a82426476e3a1ec145a9069235",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

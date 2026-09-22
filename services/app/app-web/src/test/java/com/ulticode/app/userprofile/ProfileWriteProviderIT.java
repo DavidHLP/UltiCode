@@ -82,7 +82,7 @@ import org.testcontainers.utility.MountableFile;
                 AppCommandReceiptMapper.class,
                 StorageCleanupOutbox.class,
                 StorageCleanupOutboxMapper.class,
-                ProfileReceiptTestConfig.class,
+                ProfileWriteProviderIT.ProfileReceiptTestConfig.class,
                 DataSourceAutoConfiguration.class,
                 DataSourceTransactionManagerAutoConfiguration.class,
                 TransactionAutoConfiguration.class,

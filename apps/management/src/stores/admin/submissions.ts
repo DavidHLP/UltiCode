@@ -125,6 +125,7 @@ export const useSubmissionsStore = defineStore('admin-submissions', () => {
     items: readonlySubmissions,
     isLoading: loading,
     fetch: collection.fetch,
+    cancel: collection.cancel,
     submissions: readonlySubmissions,
     total,
     loading,

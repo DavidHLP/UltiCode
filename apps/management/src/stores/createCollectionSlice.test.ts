@@ -48,6 +48,79 @@ describe('createCollectionSlice', () => {
     expect(slice.error.value).toBeNull()
     expect(slice.isLoading.value).toBe(false)
   })
+
+  it('cancels the current request without clearing collection state', async () => {
+    let resolveLoad: (page: { items: string[]; total: number }) => void = () => undefined
+    const load = vi.fn(
+      () =>
+        new Promise<{ items: string[]; total: number }>((resolve) => {
+          resolveLoad = resolve
+        }),
+    )
+    const slice = createCollectionSlice<string, void>({ load })
+    const request = slice.fetch()
+    const signal = load.mock.calls[0][1] as AbortSignal
+    slice.items.value = ['existing']
+    slice.total.value = 4
+    slice.error.value = 'existing error'
+
+    slice.cancel()
+    resolveLoad({ items: ['stale'], total: 1 })
+    await request
+
+    expect(signal.aborted).toBe(true)
+    expect(slice.items.value).toEqual(['existing'])
+    expect(slice.total.value).toBe(4)
+    expect(slice.error.value).toBe('existing error')
+    expect(slice.isLoading.value).toBe(false)
+  })
+
+  it('suppresses a canceled rethrow and makes cancel idempotent', async () => {
+    let rejectLoad: (error: Error) => void = () => undefined
+    const load = vi.fn(
+      () =>
+        new Promise<never>((_, reject) => {
+          rejectLoad = reject
+        }),
+    )
+    const slice = createCollectionSlice<string, void>({ load })
+    const request = slice.fetch(undefined, { rethrow: true })
+    slice.error.value = 'existing error'
+
+    slice.cancel()
+    slice.cancel()
+    rejectLoad(new Error('Request canceled'))
+    await request
+
+    expect(slice.error.value).toBe('existing error')
+    expect(slice.isLoading.value).toBe(false)
+  })
+
+  it('cancels before reset clears collection state', async () => {
+    let resolveLoad: (page: { items: string[]; total: number }) => void = () => undefined
+    const load = vi.fn(
+      () =>
+        new Promise<{ items: string[]; total: number }>((resolve) => {
+          resolveLoad = resolve
+        }),
+    )
+    const slice = createCollectionSlice<string, void>({ load })
+    const request = slice.fetch()
+    const signal = load.mock.calls[0][1] as AbortSignal
+    slice.items.value = ['existing']
+    slice.total.value = 4
+    slice.error.value = 'existing error'
+
+    slice.reset()
+    resolveLoad({ items: ['stale'], total: 1 })
+    await request
+
+    expect(signal.aborted).toBe(true)
+    expect(slice.items.value).toEqual([])
+    expect(slice.total.value).toBe(0)
+    expect(slice.error.value).toBeNull()
+    expect(slice.isLoading.value).toBe(false)
+  })
   it('aborts the previous loader when a newer fetch completes', async () => {
     let resolveFirst: (value: { items: string[]; total: number }) => void = () => undefined
     const first = new Promise<{ items: string[]; total: number }>((resolve) => {
@@ -67,6 +140,7 @@ describe('createCollectionSlice', () => {
 
     expect(firstSignal.aborted).toBe(true)
     expect(slice.items.value).toEqual(['new'])
+    expect(slice.isLoading.value).toBe(false)
   })
 
   it('only applies the newest overlapping fetch', async () => {
@@ -87,6 +161,27 @@ describe('createCollectionSlice', () => {
 
     expect(slice.items.value).toEqual(['new'])
     expect(slice.total.value).toBe(1)
+  })
+
+  it('does not let a stale failure overwrite newer success', async () => {
+    let rejectFirst: (error: Error) => void = () => undefined
+    const first = new Promise<never>((_, reject) => {
+      rejectFirst = reject
+    })
+    const load = vi
+      .fn()
+      .mockReturnValueOnce(first)
+      .mockResolvedValueOnce({ items: ['new'], total: 1 })
+    const slice = createCollectionSlice<string, number>({ load })
+
+    const firstFetch = slice.fetch(1)
+    await slice.fetch(2)
+    rejectFirst(new Error('stale failure'))
+    await firstFetch
+
+    expect(slice.items.value).toEqual(['new'])
+    expect(slice.error.value).toBeNull()
+    expect(slice.isLoading.value).toBe(false)
   })
 
   it('only applies metadata from the newest overlapping fetch', async () => {

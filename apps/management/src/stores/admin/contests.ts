@@ -205,6 +205,7 @@ export const useContestsStore = defineStore('adminContests', () => {
     items: contests,
     isLoading: loading,
     fetch: collection.fetch,
+    cancel: collection.cancel,
     contests,
     total,
     loading,

@@ -19,6 +19,7 @@ interface MockAuditStore {
   fetchLogs: ReturnType<typeof vi.fn>
   fetchStats: ReturnType<typeof vi.fn>
   cancelStats: ReturnType<typeof vi.fn>
+  cancel: ReturnType<typeof vi.fn>
 }
 
 const mockedStore = vi.hoisted(() => ({ current: null as MockAuditStore | null }))
@@ -47,6 +48,7 @@ function createStore(): MockAuditStore {
     fetchLogs: vi.fn().mockResolvedValue(undefined),
     fetchStats: vi.fn().mockResolvedValue(null),
     cancelStats: vi.fn(),
+    cancel: vi.fn(),
   }
 }
 

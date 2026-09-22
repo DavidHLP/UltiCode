@@ -183,6 +183,7 @@ export const useForumStore = defineStore('adminForum', () => {
     isLoading: collection.isLoading,
     error: collection.error,
     fetch: collection.fetch,
+    cancel: collection.cancel,
     posts,
     totalPosts,
     postsLoading,

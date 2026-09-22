@@ -76,6 +76,7 @@ export const useNotificationsStore = defineStore('admin-notifications', () => {
   return {
     items: collection.items,
     fetch: collection.fetch,
+    cancel: collection.cancel,
     announcements,
     total,
     isLoading,

@@ -71,6 +71,7 @@ export function useAuditReadWorkspace() {
       isLoading: auditLoading,
       error: auditError,
       fetch: auditStore.fetchLogs,
+      cancel: auditStore.cancel,
     },
     initialQuery: {
       filters: {

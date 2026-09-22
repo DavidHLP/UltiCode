@@ -376,6 +376,7 @@ export const useProblemsStore = defineStore('adminProblems', () => {
     items: problems,
     isLoading: loading,
     fetch: collection.fetch,
+    cancel: collection.cancel,
     problems,
     total,
     loading,

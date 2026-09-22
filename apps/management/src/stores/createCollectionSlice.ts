@@ -21,6 +21,7 @@ export interface CollectionSlice<T, TParams> {
   updateItems: (update: (items: T[]) => T[]) => void
   setTotal: (total: number) => void
   clearError: () => void
+  cancel: () => void
   reset: () => void
 }
 
@@ -133,13 +134,17 @@ export function createCollectionSlice<T, TParams, TMetadata = never>(
     error.value = null
   }
 
-  function reset(): void {
+  function cancel(): void {
     currentController?.abort()
     currentController = null
     requestSequence += 1
+    isLoading.value = false
+  }
+
+  function reset(): void {
+    cancel()
     items.value = []
     total.value = 0
-    isLoading.value = false
     error.value = null
   }
   return {
@@ -152,6 +157,7 @@ export function createCollectionSlice<T, TParams, TMetadata = never>(
     updateItems,
     setTotal,
     clearError,
+    cancel,
     reset,
   }
 }

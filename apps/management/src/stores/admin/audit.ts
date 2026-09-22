@@ -82,6 +82,7 @@ export const useAuditStore = defineStore('adminAudit', () => {
     loading,
     error,
     fetchLogs,
+    cancel: collection.cancel,
     fetchStats,
     cancelStats,
     exportLogs,

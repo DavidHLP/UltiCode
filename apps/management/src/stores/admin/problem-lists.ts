@@ -94,6 +94,7 @@ export const useAdminProblemListsStore = defineStore('admin-problem-lists', () =
   return {
     items: lists,
     fetch: collection.fetch,
+    cancel: collection.cancel,
     lists,
     currentList,
     total,

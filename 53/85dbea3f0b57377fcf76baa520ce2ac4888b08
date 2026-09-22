@@ -1,0 +1,56 @@
+apps/management/src/composables/useRemoteTable.test.ts
+  h_77173abe25c3ff 3,8,34,83,93-98,106,108,110-115,126,129-134,141,143-148,247-257,259,270-271,274-275,278,283,286,301,305,343-344
+apps/management/src/composables/useRemoteTable.ts
+  h_77173abe25c3ff 49-50,116,156,158,184,229,243
+apps/management/src/stores/admin/audit.ts
+  h_77173abe25c3ff 85
+apps/management/src/stores/admin/comments.ts
+  h_77173abe25c3ff 226
+apps/management/src/stores/admin/contests.ts
+  h_77173abe25c3ff 208
+apps/management/src/stores/admin/forum.ts
+  h_77173abe25c3ff 186
+apps/management/src/stores/admin/notifications.ts
+  h_77173abe25c3ff 79
+apps/management/src/stores/admin/problem-lists.ts
+  h_77173abe25c3ff 97
+apps/management/src/stores/admin/problems.ts
+  h_77173abe25c3ff 379
+apps/management/src/stores/admin/solutions.ts
+  h_77173abe25c3ff 172
+apps/management/src/stores/admin/submissions.ts
+  h_77173abe25c3ff 128
+apps/management/src/stores/admin/tags.ts
+  h_77173abe25c3ff 118
+apps/management/src/stores/admin/users.ts
+  h_77173abe25c3ff 182
+apps/management/src/stores/createCollectionSlice.test.ts
+  h_77173abe25c3ff 51-123,143,166-186
+apps/management/src/stores/createCollectionSlice.ts
+  h_77173abe25c3ff 24,137,141-145,160
+apps/management/src/views/audit/useAuditReadWorkspace.ts
+  h_77173abe25c3ff 74
+services/app/app-web/src/main/java/com/ulticode/app/idempotency/CommandReceiptExecutor.java
+  h_77173abe25c3ff 4-5,23-25,27,37,47,73,78-132
+services/app/app-web/src/main/java/com/ulticode/app/userprofile/provider/ProfileWriteProvider.java
+  h_77173abe25c3ff 7-8,10,14-16,34-36,48,57-59,62-73,80-82,85-98,100-109,111-117,119-141,143-146,148-151,154-171,174-178,180-189,191-192,194-196,205-211,213,216-220,223-228,233-244,247-249,251
+services/app/app-web/src/test/java/com/ulticode/app/idempotency/CommandReceiptExecutorTest.java
+  h_77173abe25c3ff 4-5,7,10,14,18,23-24,28,56,66,68,70-71,77-78,96-97,127-249
+services/app/app-web/src/test/java/com/ulticode/app/userprofile/ProfileWriteProviderIT.java
+  h_77173abe25c3ff 11,13-16,35-36,72,75,193-198,202,396-397,399,403-404,410-412,486-635
+services/app/app-web/src/test/java/com/ulticode/app/userprofile/ProfileWriteProviderTest.java
+  h_77173abe25c3ff 5,7,21,24-34,38,41-42,48,51-59,63,65,67,71,75,77,79,83,87,89-99,102-109,113,115,120-125,127,130-133,137,139-144,146,148,152,154-155,157-162,164,166-169,173,175-180,182,188-192,194-201,204-210
+services/platform/receipt/src/main/java/com/ulticode/receipt/ReceiptExecutorFactory.java
+  h_77173abe25c3ff 10,30-31,38-51,55
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5385dbea3f0b57377fcf76baa520ce2ac4888b08",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

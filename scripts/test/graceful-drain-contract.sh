@@ -75,7 +75,7 @@ contains services/admin/src/main/resources/application.yml 'await-termination-se
 contains services/admin/src/main/java/com/ulticode/admin/config/AdminBackupExecutorConfiguration.java '@Value("${admin.backup.executor.await-termination-seconds:3600}")'
 contains services/admin/src/main/resources/application.yml 'queue-capacity: ${ADMIN_BACKUP_EXECUTOR_QUEUE_CAPACITY:0}'
 contains services/admin/src/main/java/com/ulticode/admin/config/AdminBackupExecutorConfiguration.java '@Value("${admin.backup.executor.queue-capacity:0}")'
-contains services/admin/src/main/java/com/ulticode/modules/backup/service/impl/BackupExecutionServiceImpl.java '@Async("adminBackupExecutor")'
+contains services/admin/src/main/java/com/ulticode/modules/backup/service/impl/BackupObjectLifecycle.java 'adminBackupExecutor.execute(() -> execute(backupId))'
 contains services/admin/src/main/java/com/ulticode/admin/config/AdminBackupExecutorConfiguration.java 'setWaitForTasksToCompleteOnShutdown(true)'
 contains services/admin/src/test/java/com/ulticode/admin/config/AdminBackupExecutorConfigurationTest.java 'backupExecutorWaitsForRunningWorkDuringShutdown'
 contains docker/docker-compose.prod.yml 'stop_grace_period: ${ADMIN_BACKUP_STOP_GRACE_PERIOD:-3660s}'

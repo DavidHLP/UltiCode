@@ -316,6 +316,10 @@ services:
       - APP_STORAGE_S3_SECRET_KEY=${RUSTFS_ADMIN_SECRET_KEY:?RUSTFS_ADMIN_SECRET_KEY is required}
       - APP_STORAGE_S3_TLS_ENABLED=true
       - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:?CORS_ALLOWED_ORIGINS is required for production}
+      # Rollback compatibility only: a pre-object-storage Admin image reads and
+      # writes dumps here. The current image stores backups in object storage
+      # and ignores this path.
+      - BACKUP_DIR=${BACKUP_DIR:-/var/lib/ulticode/backup}
     depends_on:
       mysql:
         condition: service_healthy
@@ -327,6 +331,7 @@ services:
         condition: service_completed_successfully
 
     volumes:
+      - backup_data:/var/lib/ulticode/backup
       - ${DUBBO_MTLS_CERT_DIR:?DUBBO_MTLS_CERT_DIR is required}/backend-admin:/run/secrets/dubbo:ro
       - ${RUSTFS_TLS_CERT_DIR:?RUSTFS_TLS_CERT_DIR is required}/rustfs_cert.pem:/certs/rustfs_cert.pem:ro
     networks:
@@ -441,6 +446,10 @@ services:
       - MEILISEARCH_ENABLED=${MEILISEARCH_ENABLED:-true}
       - MEILI_HOST=${MEILI_HOST:-http://meilisearch:7700}
       - MEILI_MASTER_KEY=${MEILI_MASTER_KEY:?MEILI_MASTER_KEY is required}
+      # Rollback compatibility only: a pre-object-storage App image defaults to
+      # local storage and would otherwise resolve its uploads under the process
+      # working directory instead of the mounted volume.
+      - APP_STORAGE_LOCAL_ROOT_DIR=${AVATAR_UPLOAD_DIR:-/data/uploads/avatars}
     depends_on:
       mysql:
         condition: service_healthy
@@ -476,6 +485,10 @@ services:
         max-size: "50m"
         max-file: "5"
     volumes:
+      # Rollback compatibility only: a pre-object-storage App image writes
+      # uploads here; the current image reads and writes avatars in object
+      # storage and never touches this path.
+      - ${AVATAR_UPLOAD_VOL:-app_uploads}:/data/uploads/avatars
       - ${DUBBO_MTLS_CERT_DIR:?DUBBO_MTLS_CERT_DIR is required}/backend-app:/run/secrets/dubbo:ro
       - ${RUSTFS_TLS_CERT_DIR:?RUSTFS_TLS_CERT_DIR is required}/rustfs_cert.pem:/certs/rustfs_cert.pem:ro
 
@@ -935,3 +948,11 @@ services:
       options:
         max-size: "20m"
         max-file: "3"
+
+# Rollback compatibility only: the pre-object-storage App and Admin images keep
+# their avatars and dumps on these named volumes. Declaring them here preserves
+# the existing volumes across redeploys, so a rollback reattaches the historical
+# data instead of starting from an empty volume.
+volumes:
+  app_uploads:
+  backup_data:

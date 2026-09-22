@@ -207,6 +207,12 @@ docker run --rm -v "${RUSTFS_VOLUMES[0]}:/data:ro" -v "$PWD:/backup" alpine \
   （`cd-rollback.yml` 传入 `rollback: 'true'`，还原的是早于对象存储契约的产物）跳过该门禁；
   跳过 Flyway 的普通部署（`skip_migrations=true`）仍会执行该门禁，缺少 migration 数据库凭据时
   fail closed。
+- 生产 Compose 为回滚保留旧镜像的本地存储契约：`backend-app` 继续挂载
+  `${AVATAR_UPLOAD_VOL:-app_uploads}:/data/uploads/avatars` 并保留
+  `APP_STORAGE_LOCAL_ROOT_DIR`，`backend-admin` 继续挂载 `backup_data:/var/lib/ulticode/backup`
+  并保留 `BACKUP_DIR`（默认值即挂载点）。当前镜像只用对象存储、忽略这些路径；早于对象存储契约的
+  镜像仍读本地目录，缺少这些挂载与变量会让回滚“健康”但历史文件不可见、新写入落进临时层。
+  两个 named volume 在 `docker/docker-compose.prod.yml` 顶层声明，重建后仍指向原卷。
 - 生产 `host-deploy` 在 ordered owner migrations 之前验证完整的 deploy service
   allowlist，并要求 migration subset 同时包含 `backend-admin` 与 `backend-app`
   （对象键写入与头像读取路径随本次发布一起切换）；随后记录原有

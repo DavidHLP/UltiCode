@@ -158,7 +158,9 @@ dependabot-core 当作 support file 丢弃，PR 只改 manifest，必然过不�
   checksum 并回读对象，校验通过后才切换数据库，且从不删除旧文件。
   `./scripts/dev/up.sh` 在启动 backend-app 前用同一个
   `scripts/runbooks/assert-legacy-objects-migrated.sh` 探针检查这些行，仍有未迁移行就拒绝启动，
-  避免升级后的本地库直接显示指向不存在对象的头像代理 URL。
+  避免升级后的本地库直接显示指向不存在对象的头像代理 URL。探针只覆盖本次启动选中的 owner
+  （`--scope app-journey` 不会被它不服务的备份行拦住），且先停掉仍在运行的对应旧进程再计数，
+  避免探针与随后的 `startOrRestart` 之间写入新的遗留行。
   RustFS 实例级 smoke test 见 `scripts/dev/rustfs-smoke-test.sh`。
 - Notification 保留 `LoggingSmtpSenderAdapter` 默认路径；真实 SMTP 只通过
   `SMTP_*`/`APP_EMAIL_ENABLED` 配置，不让业务 Module 依赖厂商 SDK。

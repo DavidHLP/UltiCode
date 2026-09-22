@@ -1,5 +1,6 @@
 package com.ulticode.admin.config;
 
+import com.ulticode.redis.RedisCacheWritePolicy;
 import com.ulticode.redis.RedisValueSerializationPolicy;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
@@ -37,7 +38,8 @@ public class AdminCacheConfig {
                 .entryTtl(Duration.ofSeconds(300))
                 .serializeValuesWith(
                         RedisSerializationContext.SerializationPair.fromSerializer(serializer));
-        return RedisCacheManager.builder(connectionFactory)
+        // SCAN-based eviction: the admin role's ACL grants +scan but not +keys.
+        return RedisCacheManager.builder(RedisCacheWritePolicy.scanningWriter(connectionFactory))
                 .cacheDefaults(config)
                 .build();
     }

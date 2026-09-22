@@ -1,5 +1,6 @@
 package com.ulticode.app.config;
 
+import com.ulticode.redis.RedisCacheWritePolicy;
 import com.ulticode.redis.RedisValueSerializationPolicy;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cache.CacheManager;
@@ -44,7 +45,8 @@ public class AppCacheConfig {
                 .entryTtl(Duration.ofSeconds(300))
                 .serializeValuesWith(
                         RedisSerializationContext.SerializationPair.fromSerializer(serializer));
-        return RedisCacheManager.builder(connectionFactory)
+        // SCAN-based eviction: the app role's ACL grants +scan but not +keys.
+        return RedisCacheManager.builder(RedisCacheWritePolicy.scanningWriter(connectionFactory))
                 .cacheDefaults(config)
                 .build();
     }

@@ -346,7 +346,7 @@ WebSocket 只从 handshake 的 `access_token` cookie 获取 token，不接受 qu
 
 ### Redis、部署与敏感信息
 
-Redis ACL deny-by-default，按 Owner 限制命令、key 和 channel；运行时 ACL 在 ignored directory 原子物化，轮换使用 overlap/finalize/rollback。生产 Compose 不挂载 Docker socket；Judge 使用部署拥有的 remote/rootless Docker TLS endpoint、只读证书和共享 workspace。真实证书、私钥、密码、token、生产 endpoint 和 secret-store 状态不得提交或写入文档。
+Redis ACL deny-by-default，按 Owner 限制命令、key 和 channel；运行时 ACL 在 ignored directory 原子物化，轮换使用 overlap/finalize/rollback。命令白名单授予 `+scan` 而不授予 `+keys`，因此 Spring Cache 的 Redis writer 必须使用 SCAN 批量策略（共享 `RedisCacheWritePolicy`）；默认的 `KEYS` writer 会让 `@CacheEvict(allEntries = true)` 与 `Cache#clear()` 以 `NOPERM` 失败。生产 Compose 不挂载 Docker socket；Judge 使用部署拥有的 remote/rootless Docker TLS endpoint、只读证书和共享 workspace。真实证书、私钥、密码、token、生产 endpoint 和 secret-store 状态不得提交或写入文档。
 
 ### 证据入口
 

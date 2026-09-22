@@ -1,0 +1,26 @@
+apps/management/src/stores/admin/__tests__/moderation.spec.ts
+  h_77173abe25c3ff 141-153
+apps/management/src/stores/admin/moderation/moderationStore.ts
+  h_77173abe25c3ff 143-147
+apps/management/src/stores/createCollectionSlice.test.ts
+  h_77173abe25c3ff 55,62,102,109
+apps/management/src/views/moderation/presentation/moderationPresentation.ts
+  h_77173abe25c3ff 21,170-174,176-197,199-201
+services/admin/src/test/java/com/ulticode/modules/backup/BackupRepositoryIT.java
+  h_77173abe25c3ff 53,60-66,98-117
+services/admin/src/test/java/com/ulticode/modules/backup/service/BackupObjectLifecycleTest.java
+  h_77173abe25c3ff 35,514-535
+services/app/app-web/src/test/java/com/ulticode/app/userprofile/ProfileWriteProviderIT.java
+  h_77173abe25c3ff 53-54,173-174,429-490
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "afc48af962457debe3ad24dca4229397aa3d133b",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

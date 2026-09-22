@@ -1,0 +1,16 @@
+services/app/app-web/src/test/java/com/ulticode/app/userprofile/ProfileReceiptTestConfig.java
+  h_77173abe25c3ff 1-14
+services/app/app-web/src/test/java/com/ulticode/app/userprofile/ProfileWriteProviderIT.java
+  h_77173abe25c3ff 82,772
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c39cd897431d83315bb367b1e9f27e9647605146",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

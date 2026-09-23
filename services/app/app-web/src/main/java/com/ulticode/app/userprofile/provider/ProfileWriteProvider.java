@@ -67,7 +67,7 @@ public class ProfileWriteProvider implements ProfileWriteService {
     }
 
     @Override
-    @CacheEvict(value = "contestRanking", allEntries = true)
+    @CacheEvict(value = ProfileMutationModule.CONTEST_RANKING_CACHE, allEntries = true)
     public RpcResult<ProfileWriteResult> uploadAvatar(UploadAvatarCommand command) {
         RpcResult<ProfileWriteResult> rejected = rejectUntrustedActor(command);
         if (rejected != null) {

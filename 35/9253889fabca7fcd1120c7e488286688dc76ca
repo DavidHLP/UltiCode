@@ -1,0 +1,21 @@
+apps/management/src/composables/useRemoteTable.test.ts
+  s_1b41b84f7d1bbe::t_ed3e9dd9bb6912 322-344
+apps/management/src/stores/createCollectionSlice.test.ts
+  s_1b41b84f7d1bbe::t_bd1c369f5f97f6 99-111
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "359253889fabca7fcd1120c7e488286688dc76ca",
+  "prompts": {},
+  "sessions": {
+    "s_1b41b84f7d1bbe": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f73c7ac3-28a6-4b47-827c-4cfce94db949",
+        "model": "unknown"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

@@ -1,0 +1,18 @@
+apps/management/src/stores/admin/__tests__/comments.spec.ts
+  h_77173abe25c3ff 173-189
+apps/management/src/stores/createCollectionSlice.test.ts
+  h_77173abe25c3ff 280,299-314
+apps/management/src/stores/createCollectionSlice.ts
+  h_77173abe25c3ff 97-99
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "bba015eaed7a032b23887368abc9e2d8d510345e",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

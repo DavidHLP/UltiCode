@@ -244,7 +244,7 @@ export const useBookmarkStore = defineStore("bookmark", () => {
   ): Promise<BookmarkItem> {
     return runFolderMutation(folderId, async () => {
       operationError.value = null;
-    detailRequest.error.value = null;
+      detailRequest.error.value = null;
       try {
         const item = await apiAddBookmark(folderId, data);
         const details = selectedFolderDetails.value;
@@ -270,7 +270,7 @@ export const useBookmarkStore = defineStore("bookmark", () => {
   ): Promise<void> {
     return runFolderMutation(folderId, async () => {
       operationError.value = null;
-    detailRequest.error.value = null;
+      detailRequest.error.value = null;
       try {
         await apiRemoveBookmark(folderId, bookmarkId);
         const details = selectedFolderDetails.value;
@@ -294,7 +294,7 @@ export const useBookmarkStore = defineStore("bookmark", () => {
   ): Promise<void> {
     return runFolderMutation(folderId, async () => {
       operationError.value = null;
-    detailRequest.error.value = null;
+      detailRequest.error.value = null;
       try {
         await apiRemoveBookmarkByTarget(folderId, targetType, targetId);
         const details = selectedFolderDetails.value;

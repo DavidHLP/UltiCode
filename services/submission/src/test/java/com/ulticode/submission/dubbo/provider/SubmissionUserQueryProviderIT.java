@@ -137,7 +137,7 @@ class SubmissionUserQueryProviderIT {
         SubmissionProjection projection = new DefaultSubmissionProjection(
                 submissionMapper, userReadPort, problemFacts, new ObjectMapper());
         SubmissionPerformanceStats performanceStats = mock(SubmissionPerformanceStats.class);
-        provider = new SubmissionUserQueryProvider(projection,
+        provider = new SubmissionUserQueryProvider(
                 new SubmissionReadAssembly(submissionMapper, projection, performanceStats, problemFacts));
     }
 
@@ -296,7 +296,7 @@ class SubmissionUserQueryProviderIT {
         SubmissionReadAssembly enrichedAssembly = new SubmissionReadAssembly(
                 submissionMapper, enrichedProjection, mock(SubmissionPerformanceStats.class), problemFacts);
         SubmissionUserQueryProvider enrichedProvider =
-                new SubmissionUserQueryProvider(enrichedProjection, enrichedAssembly);
+                new SubmissionUserQueryProvider(enrichedAssembly);
 
         insertRow("sub-1", 101L, "user-1", "python", "Accepted", 12,
                 LocalDateTime.of(2026, 8, 1, 10, 0));

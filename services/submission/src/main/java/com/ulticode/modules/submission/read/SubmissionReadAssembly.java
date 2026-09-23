@@ -10,6 +10,9 @@ import com.ulticode.modules.submission.mapper.SubmissionMapper;
 import com.ulticode.modules.submission.projection.SubmissionProjection;
 import com.ulticode.modules.submission.stats.SubmissionPerformanceStats;
 import com.ulticode.submission.api.dto.PerformanceStats;
+import com.ulticode.submission.api.dto.LearningProgressDTO;
+import com.ulticode.submission.api.dto.SubmissionHistoryDTO;
+import com.ulticode.submission.api.dto.SubmissionStatusMeta;
 import com.ulticode.submission.api.dto.SubmissionDetailVO;
 import com.ulticode.submission.api.dto.SubmissionListItemVO;
 import com.ulticode.submission.api.dto.SubmissionQueryDTO;
@@ -48,7 +51,8 @@ public class SubmissionReadAssembly {
 
     /**
      * Read submissions by id in bounded chunks while preserving the caller's
-     * first-seen order and omitting missing rows.
+     * first-seen order and omitting missing rows. Empty or null input returns
+     * a non-null empty list.
      */
     public List<SubmissionVO> toVOs(Collection<String> submissionIds) {
         List<String> requested = normalizeIds(submissionIds);
@@ -72,6 +76,27 @@ public class SubmissionReadAssembly {
         return result;
     }
 
+    /** Return the mapper date aggregation unchanged; no matching dates yield its empty list. */
+    public List<String> aggregateDates(String userId, Integer year) {
+        return submissionProjection.aggregateDates(userId, year);
+    }
+
+    /** Return learning progress; empty history is represented by a zero-valued DTO. */
+    public LearningProgressDTO aggregateLearningProgress(String userId) {
+        return submissionProjection.aggregateLearningProgress(userId);
+    }
+
+    /** Return submission history; empty history is represented by a zero-valued DTO. */
+    public SubmissionHistoryDTO aggregateHistory(String userId) {
+        return submissionProjection.aggregateHistory(userId);
+    }
+
+    /** Return the non-null canonical status catalog, independent of user submissions. */
+    public List<SubmissionStatusMeta> getStatusCatalog() {
+        return submissionProjection.getStatusCatalog();
+    }
+
+    /** Return {@code null} for absent submissions, null inputs, or an ownership mismatch. */
     public SubmissionDetailVO findById(String id, String userId) {
         if (id == null) {
             return null;
@@ -90,6 +115,7 @@ public class SubmissionReadAssembly {
         return submissionProjection.toDetailVO(submission, stats, factsFor(List.of(submission)));
     }
 
+    /** Return a non-null page; no matching submissions produce an empty item list. */
     public PageResult<SubmissionVO> findByUserId(String userId, SubmissionQueryDTO query) {
         PaginationRequest pagination = pagination(query);
         IPage<Submission> result = submissionMapper.findByUserId(
@@ -100,6 +126,7 @@ public class SubmissionReadAssembly {
                 result.getTotal(), pagination);
     }
 
+    /** Return an empty non-null page with synthesized default size for null identifiers. */
     public PageResult<SubmissionListItemVO> findByProblemId(
             Long problemId, String userId, SubmissionQueryDTO query) {
         if (problemId == null || userId == null) {
@@ -118,6 +145,7 @@ public class SubmissionReadAssembly {
         return PageResult.of(items, result.getTotal(), pagination);
     }
 
+    /** Return null when identifiers are null or no best submission exists. */
     public SubmissionVO findBest(Long problemId, String userId) {
         if (problemId == null || userId == null) {
             return null;

@@ -1,0 +1,18 @@
+services/admin/src/main/java/com/ulticode/modules/backup/service/impl/BackupObjectLifecycle.java
+  h_77173abe25c3ff 65,162,200,367-370
+services/admin/src/main/java/com/ulticode/modules/backup/service/impl/BackupServiceImpl.java
+  h_77173abe25c3ff 53,103,152,192-193
+services/admin/src/main/java/com/ulticode/modules/backup/service/impl/BackupTempFiles.java
+  h_77173abe25c3ff 1-46
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3eb420eed5dd50e6764c33f5e22bede3402c6bce",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

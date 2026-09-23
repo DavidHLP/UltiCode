@@ -94,8 +94,9 @@ export function createCollectionSlice<T, TParams, TMetadata = never>(
     applyMetadata?: (metadata: TLoadMetadata) => void,
   ): Promise<void> {
     activeFetchOptions = fetchOptions
-    // Combined consumers read fetch + mutation error as one banner: any new
-    // operation resets both channels (base single-ref semantics).
+    // Either operation clears both error channels: combined consumers read
+    // the two distinct refs as one banner, so a new fetch must not leave a
+    // sibling mutation error stale.
     error.value = null
     mutationError.value = null
 

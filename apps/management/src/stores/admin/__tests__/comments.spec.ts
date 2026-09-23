@@ -170,6 +170,23 @@ describe('useCommentsStore', () => {
       expect(store.loading).toBe(false)
     })
 
+    it('recovers the combined banner after a failed mutation once the next fetch succeeds', async () => {
+      vi.mocked(commentsApi.bulkAction).mockRejectedValue(new Error('bulk boom'))
+
+      const store = useCommentsStore()
+      await expect(store.bulkModerate([makeRow('a', 'forum')], 'delete')).rejects.toThrow(
+        'bulk boom',
+      )
+      expect(store.error).not.toBeNull()
+
+      await store.fetch({ page: 1 })
+      expect(store.error).toBeNull()
+
+      vi.mocked(commentsApi.getComments).mockRejectedValue(new Error('refresh boom'))
+      await store.fetch({ page: 1 })
+      expect(store.error).toBe('refresh boom')
+    })
+
     it('does not expose bulkAction on the public store surface', () => {
       const store = useCommentsStore() as unknown as Record<string, unknown>
       expect(store.bulkAction).toBeUndefined()

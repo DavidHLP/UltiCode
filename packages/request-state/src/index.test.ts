@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { createValueRequest } from './index'
 
 describe('createValueRequest', () => {
@@ -35,5 +35,37 @@ describe('createValueRequest', () => {
     await expect(request.run(async () => { throw failure })).rejects.toBe(failure)
     expect(request.error.value).toBe('request failed')
     expect(request.loading.value).toBe(false)
+  })
+
+  it('forwards external abort only to its request and runs success policy while current', async () => {
+    const request = createValueRequest({ errorMessage: 'failed' })
+    const external = new AbortController()
+    const addListener = vi.spyOn(external.signal, 'addEventListener')
+    const removeListener = vi.spyOn(external.signal, 'removeEventListener')
+    let resolveFirst!: (value: string) => void
+    let resolveSecond!: (value: string) => void
+    let firstSignal!: AbortSignal
+    let secondSignal!: AbortSignal
+    const applied: string[] = []
+    const first = request.run((signal) => {
+      firstSignal = signal
+      return new Promise<string>((resolve) => { resolveFirst = resolve })
+    }, external.signal, (value) => applied.push(value))
+    expect(firstSignal.aborted).toBe(false)
+    external.abort()
+    expect(firstSignal.aborted).toBe(true)
+    const second = request.run((signal) => {
+      secondSignal = signal
+      return new Promise<string>((resolve) => { resolveSecond = resolve })
+    }, undefined, (value) => applied.push(value))
+    expect(secondSignal.aborted).toBe(false)
+    resolveFirst('stale')
+    resolveSecond('current')
+    await expect(first).resolves.toBeNull()
+    await expect(second).resolves.toBe('current')
+    expect(applied).toEqual(['current'])
+    expect(addListener).toHaveBeenCalledTimes(1)
+    expect(removeListener).toHaveBeenCalledTimes(1)
+    expect(request.isActive()).toBe(false)
   })
 })

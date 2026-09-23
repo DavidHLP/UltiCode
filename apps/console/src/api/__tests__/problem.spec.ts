@@ -84,7 +84,8 @@ describe("fetchProblems", () => {
       totalPages: 4,
     });
 
-    const result = await fetchProblems({ search: "two sum" }, 2, 1);
+    const signal = new AbortController().signal;
+    const result = await fetchProblems({ search: "two sum" }, 2, 1, signal);
 
     expect(result.items[0]?.title).toBe("Two Sum");
     expect(result.total).toBe(4);
@@ -93,6 +94,7 @@ describe("fetchProblems", () => {
     expect(result.totalPages).toBe(4);
     expect(apiGet).toHaveBeenCalledWith(
       "/problems?page=2&pageSize=1&search=two+sum",
+      { signal },
     );
   });
 });

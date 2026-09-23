@@ -135,10 +135,15 @@ export function createCollectionSlice<T, TParams, TMetadata = never>(
   }
 
   function cancel(): void {
-    currentController?.abort()
-    currentController = null
+    // Only release loading when this slice owns the active request: stores
+    // also alias isLoading for mutations and exports, and a table transition
+    // must not report those complete early.
+    if (currentController) {
+      currentController.abort()
+      currentController = null
+      isLoading.value = false
+    }
     requestSequence += 1
-    isLoading.value = false
   }
 
   function reset(): void {

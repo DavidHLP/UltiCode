@@ -319,6 +319,29 @@ describe('useRemoteTable', () => {
     expect(table.total.value).toBe(1)
   })
 
+  it('keeps mutation-owned loading through a debounced transition', () => {
+    vi.useFakeTimers()
+    const collection = createCollectionSlice<Row, Params>({
+      load: vi.fn().mockResolvedValue({ items: [], total: 0 }),
+    })
+    const table = useRemoteTable<Row, Filters, Params>({
+      store: collection,
+      initialQuery: { filters: { status: 'all' } },
+      toParams: ({ filters, page, limit }) => ({
+        status: filters.status,
+        page,
+        limit,
+      }),
+    })
+
+    // No collection request is active: isLoading belongs to a mutation or
+    // export that is still running when the user starts a table search.
+    collection.isLoading.value = true
+    table.setSearch('graphs')
+
+    expect(collection.isLoading.value).toBe(true)
+  })
+
   it('cancels the collection when the table scope is disposed', async () => {
     const scope = effectScope()
     const store = createStore()

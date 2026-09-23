@@ -96,6 +96,19 @@ describe('createCollectionSlice', () => {
     expect(slice.isLoading.value).toBe(false)
   })
 
+  it('leaves loading untouched when cancel owns no active request', () => {
+    const load = vi.fn().mockResolvedValue({ items: [], total: 0 })
+    const slice = createCollectionSlice<string, void>({ load })
+
+    // Stores alias isLoading for mutations/exports; with no collection
+    // request active, a table transition must not report that work done.
+    slice.isLoading.value = true
+    slice.cancel()
+
+    expect(slice.isLoading.value).toBe(true)
+    expect(load).not.toHaveBeenCalled()
+  })
+
   it('cancels before reset clears collection state', async () => {
     let resolveLoad: (page: { items: string[]; total: number }) => void = () => undefined
     const load = vi.fn(

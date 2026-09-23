@@ -9,7 +9,6 @@ import com.ulticode.submission.api.dto.SubmissionStatusMeta;
 import com.ulticode.submission.api.dto.SubmissionVO;
 import com.ulticode.submission.api.service.SubmissionUserQueryPort;
 import com.ulticode.common.response.PageResult;
-import com.ulticode.modules.submission.projection.SubmissionProjection;
 import com.ulticode.modules.submission.read.SubmissionReadAssembly;
 import lombok.RequiredArgsConstructor;
 import org.apache.dubbo.config.annotation.DubboService;
@@ -42,27 +41,26 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SubmissionUserQueryProvider implements SubmissionUserQueryPort {
 
-    private final SubmissionProjection submissionProjection;
     private final SubmissionReadAssembly readAssembly;
 
     @Override
     public List<String> aggregateDates(String userId, Integer year) {
-        return submissionProjection.aggregateDates(userId, year);
+        return readAssembly.aggregateDates(userId, year);
     }
 
     @Override
     public LearningProgressDTO aggregateLearningProgress(String userId) {
-        return submissionProjection.aggregateLearningProgress(userId);
+        return readAssembly.aggregateLearningProgress(userId);
     }
 
     @Override
     public SubmissionHistoryDTO aggregateHistory(String userId) {
-        return submissionProjection.aggregateHistory(userId);
+        return readAssembly.aggregateHistory(userId);
     }
 
     @Override
     public List<SubmissionStatusMeta> getStatusCatalog() {
-        return submissionProjection.getStatusCatalog();
+        return readAssembly.getStatusCatalog();
     }
 
     @Override

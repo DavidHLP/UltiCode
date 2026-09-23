@@ -1,9 +1,10 @@
 <script setup lang="ts">
+import { contestPermissionRules } from '@/composables/domainPermissionMaps'
+import { usePermissionMap } from '@/composables/usePermissionMap'
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useContestsStore } from '@/stores/admin/contests'
-import { useContestPermissions } from '@/composables/useContestPermissions'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
@@ -29,7 +30,7 @@ import ContestRankingsTab from './components/ContestRankingsTab.vue'
 const route = useRoute()
 const router = useRouter()
 const contestsStore = useContestsStore()
-const { can } = useContestPermissions()
+const can = { contest: usePermissionMap(contestPermissionRules) }
 const { t } = useI18n()
 
 const contestId = computed(() => route.params.id as string)

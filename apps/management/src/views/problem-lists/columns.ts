@@ -14,7 +14,7 @@ import { createEntityActionsMenu } from '@/components/table/entityActions'
 import type { ProblemList } from '@/api/admin/problem-lists'
 import { formatDate } from '@/lib/format/date'
 import { badge } from '@/components/ui/terminal'
-import type { ProblemListPermissionMap } from '@/composables/useProblemListPermissions'
+import type { ProblemListPermissionMap } from '@/composables/domainPermissionMaps'
 
 export interface ProblemListActions {
   editList: (id: string) => void

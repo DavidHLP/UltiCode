@@ -1,9 +1,10 @@
 <script setup lang="ts">
+import { solutionPermissionRules } from '@/composables/domainPermissionMaps'
+import { usePermissionMap } from '@/composables/usePermissionMap'
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useSolutionsStore } from '@/stores/admin/solutions'
-import { useSolutionPermissions } from '@/composables/useSolutionPermissions'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ArrowLeft, Flag, Eye, Trash, FileText, User } from 'lucide-vue-next'
@@ -15,7 +16,7 @@ import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
 const router = useRouter()
 const route = useRoute()
 const solutionsStore = useSolutionsStore()
-const { can } = useSolutionPermissions()
+const can = { solution: usePermissionMap(solutionPermissionRules) }
 const { t } = useI18n()
 
 const isInitialLoad = ref(true)

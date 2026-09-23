@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { solutionPermissionRules } from '@/composables/domainPermissionMaps'
+import { usePermissionMap } from '@/composables/usePermissionMap'
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
@@ -15,11 +17,10 @@ import DataTableToolbar, { type Filter } from '@/components/table/DataTableToolb
 import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
 import { createColumns } from './columns'
 import { useRemoteTable } from '@/composables/useRemoteTable'
-import { useSolutionPermissions } from '@/composables/useSolutionPermissions'
 
 const router = useRouter()
 const solutionsStore = useSolutionsStore()
-const { can } = useSolutionPermissions()
+const can = { solution: usePermissionMap(solutionPermissionRules) }
 const { t } = useI18n()
 
 

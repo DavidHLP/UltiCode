@@ -58,8 +58,7 @@ export const useContestDetailStore = defineStore("contestDetail", () => {
     rethrow: true,
   });
   const loading = detailRequest.loading;
-  const operationError = ref<string | null>(null);
-  const error = computed(() => operationError.value ?? detailRequest.error.value);
+  const error = ref<string | null>(null);
 
   // =========================================================================
   // GETTERS
@@ -78,12 +77,13 @@ export const useContestDetailStore = defineStore("contestDetail", () => {
   // =========================================================================
 
   async function loadContestDetail(contestId: string) {
-    operationError.value = null;
+    error.value = null;
     detailRequest.error.value = null;
     try {
       const contest = await detailRequest.run(() => fetchContestDetail(contestId));
       if (contest) currentContest.value = contest;
     } catch (err) {
+      error.value = detailRequest.error.value;
       throw err;
     }
   }
@@ -111,7 +111,7 @@ export const useContestDetailStore = defineStore("contestDetail", () => {
   // =========================================================================
 
   async function registerForContest(contestId: string) {
-    operationError.value = null;
+    error.value = null;
     detailRequest.error.value = null;
     try {
       await apiRegister(contestId);
@@ -125,14 +125,14 @@ export const useContestDetailStore = defineStore("contestDetail", () => {
           : c,
       );
     } catch (err) {
-      operationError.value =
+      error.value =
         err instanceof Error ? err.message : "Failed to register for contest";
       throw err;
     }
   }
 
   async function unregisterFromContest(contestId: string) {
-    operationError.value = null;
+    error.value = null;
     detailRequest.error.value = null;
     try {
       await apiUnregister(contestId);
@@ -146,7 +146,7 @@ export const useContestDetailStore = defineStore("contestDetail", () => {
           : c,
       );
     } catch (err) {
-      operationError.value =
+      error.value =
         err instanceof Error
           ? err.message
           : "Failed to unregister from contest";
@@ -181,7 +181,7 @@ export const useContestDetailStore = defineStore("contestDetail", () => {
   }
 
   function clearError() {
-    operationError.value = null;
+    error.value = null;
     detailRequest.error.value = null;
   }
 

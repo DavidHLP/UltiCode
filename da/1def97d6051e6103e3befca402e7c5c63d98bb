@@ -1,0 +1,24 @@
+apps/management/src/api/admin/dashboard.ts
+  h_77173abe25c3ff 127-128
+apps/management/src/stores/admin/audit.ts
+  h_77173abe25c3ff 11,24-28,32,35-37,50-51
+apps/management/src/stores/admin/dashboard.ts
+  h_77173abe25c3ff 10,15-21,24-26
+apps/management/src/stores/admin/moderation/moderationStore.ts
+  h_77173abe25c3ff 21,51-56,102-104,199
+apps/management/src/stores/createValueRequest.test.ts
+  h_77173abe25c3ff 1-38
+apps/management/src/stores/createValueRequest.ts
+  h_77173abe25c3ff 1-50
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "da1def97d6051e6103e3befca402e7c5c63d98bb",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

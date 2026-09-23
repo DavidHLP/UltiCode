@@ -94,7 +94,10 @@ export function createCollectionSlice<T, TParams, TMetadata = never>(
     applyMetadata?: (metadata: TLoadMetadata) => void,
   ): Promise<void> {
     activeFetchOptions = fetchOptions
+    // Combined consumers read fetch + mutation error as one banner: any new
+    // operation resets both channels (base single-ref semantics).
     error.value = null
+    mutationError.value = null
 
     await requestState.run(
       (signal) => load(params as TParams, signal),
@@ -132,11 +135,13 @@ export function createCollectionSlice<T, TParams, TMetadata = never>(
 
   function clearError(): void {
     error.value = null
+    mutationError.value = null
   }
 
   async function runMutation<T>(run: () => Promise<T>, errorMessage: string): Promise<T> {
     mutationLoading.value = true
     mutationError.value = null
+    error.value = null
     try {
       return await run()
     } catch (err: unknown) {

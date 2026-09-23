@@ -124,8 +124,8 @@ export interface ChartQueryParams {
 
 export const dashboardApi = {
   // Note: request.ts intercepts and unwraps Result<T>, returning just T
-  async getStats(): Promise<DashboardStats> {
-    return apiGet<DashboardStats>('/admin/dashboard/stats')
+  async getStats(signal?: AbortSignal): Promise<DashboardStats> {
+    return apiGet<DashboardStats>('/admin/dashboard/stats', { signal })
   },
 
   async getChartStats(params: ChartQueryParams = {}): Promise<ChartStatsResponse> {

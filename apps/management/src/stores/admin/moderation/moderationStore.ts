@@ -18,6 +18,7 @@ import {
 } from '@/api/admin/moderation'
 import { extractApiErrorMessage } from '@/utils/error'
 import { createCollectionSlice } from '@/stores/createCollectionSlice'
+import { createValueRequest } from '@/stores/createValueRequest'
 
 export const TERMINAL_STATUSES: Readonly<Partial<Record<ModerationStatus, true>>> = {
   [ModerationStatus.RESOLVED]: true,
@@ -47,8 +48,12 @@ export const useModerationStore = defineStore('adminModeration', () => {
   // Queue State
   // ============================================================================
   const stats = ref<ModerationStats | null>(null)
-  const statsLoading = ref(false)
-  const statsError = ref<string | null>(null)
+  const statsRequest = createValueRequest({
+    errorMessage: 'An error occurred',
+    onError: (err) => console.error('[ModerationStore] Failed to fetch stats:', err),
+  })
+  const statsLoading = statsRequest.loading
+  const statsError = statsRequest.error
 
   const pendingCount = computed(() => stats.value?.pendingCount ?? 0)
   const underReviewCount = computed(() => stats.value?.underReviewCount ?? 0)
@@ -92,33 +97,11 @@ export const useModerationStore = defineStore('adminModeration', () => {
   // ============================================================================
   const fetchQueue = queue.fetch
 
-  let statsController: AbortController | null = null
-  let statsSequence = 0
-
   async function fetchStats(forceRefresh = false) {
     if (!forceRefresh && stats.value) return stats.value
-    statsController?.abort()
-    const controller = new AbortController()
-    statsController = controller
-    const request = ++statsSequence
-    statsLoading.value = true
-    statsError.value = null
-    try {
-      const data = await moderationQueueApi.getStats(controller.signal)
-      if (request !== statsSequence || controller.signal.aborted) return null
-      stats.value = data
-      return data
-    } catch (err: unknown) {
-      if (request !== statsSequence || controller.signal.aborted) return null
-      statsError.value = extractErrorMessage(err)
-      console.error('[ModerationStore] Failed to fetch stats:', err)
-      return null
-    } finally {
-      if (statsController === controller) {
-        statsController = null
-        statsLoading.value = false
-      }
-    }
+    const data = await statsRequest.run((signal) => moderationQueueApi.getStats(signal))
+    if (data !== null) stats.value = data
+    return data
   }
 
   async function claimItem(id: string) {
@@ -213,11 +196,8 @@ export const useModerationStore = defineStore('adminModeration', () => {
     queue.reset()
     reportsCollection.reset()
     appealsCollection.reset()
-    statsController?.abort()
-    statsController = null
-    statsSequence += 1
+    statsRequest.cancel()
     stats.value = null
-    statsLoading.value = false
     statsError.value = null
   }
 

@@ -1,0 +1,16 @@
+apps/console/src/api/__tests__/problem.spec.ts
+  h_77173abe25c3ff 87-88,97
+apps/console/src/stores/contestRanking.ts
+  h_77173abe25c3ff 3
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "92a258f7f895c003bb10afd73038b1b439791dd6",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

@@ -1,0 +1,16 @@
+scripts/dev/owner-migration-safety-integration-test.sh
+  h_77173abe25c3ff 41-43,45,51
+scripts/test/audit-owner-boundary-contract.sh
+  h_77173abe25c3ff 25-27,29,35
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f7ccf98e56c939a96c239cb0a57d9aa93305fd0a",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

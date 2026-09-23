@@ -17,7 +17,7 @@ import { createSelectionColumn } from '@/components/table/selectionColumn'
 import { createEntityActionsMenu } from '@/components/table/entityActions'
 import type { Contest } from '@/api/admin/contests'
 import { formatDate } from '@/lib/format/date'
-import type { ContestPermissionMap } from '@/composables/useContestPermissions'
+import type { ContestPermissionMap } from '@/composables/domainPermissionMaps'
 import { badge, CONTEST_TYPE_COLOR_MAP, CONTEST_STATUS_COLOR_MAP } from '@/components/ui/terminal'
 
 export interface ContestActions {

@@ -67,9 +67,14 @@ function createUntrackedAttempt(callerSignal?: AbortSignal): RequestAttempt {
 
 export class RequestAttemptRegistry {
   private readonly currentAttempts = new Map<string, AttemptRecord>()
+  private readonly untrackedAttempts = new WeakSet<RequestAttempt>()
 
   begin(options: BeginAttemptOptions): RequestAttempt {
-    if (!options.deduplicated) return createUntrackedAttempt(options.callerSignal)
+    if (!options.deduplicated) {
+      const attempt = createUntrackedAttempt(options.callerSignal)
+      this.untrackedAttempts.add(attempt)
+      return attempt
+    }
 
     const attempt = createAttempt(options.callerSignal)
     const current = this.currentAttempts.get(options.key)
@@ -83,8 +88,9 @@ export class RequestAttemptRegistry {
     return attempt
   }
 
-  owns(key: string, attempt: RequestAttempt): boolean {
-    return this.currentAttempts.get(key) === attempt
+  owns(key: string, attempt?: RequestAttempt): boolean {
+    if (!attempt) return false
+    return this.untrackedAttempts.has(attempt) || this.currentAttempts.get(key) === attempt
   }
 
   complete(key: string, attempt: RequestAttempt): void {

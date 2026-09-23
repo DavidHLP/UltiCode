@@ -29,6 +29,7 @@ export async function fetchProblems(
   filters: ProblemFilters = {},
   page: number = 1,
   pageSize: number = 50,
+  signal?: AbortSignal,
 ): Promise<PageResult<Problem>> {
   const params = new URLSearchParams();
   params.append("page", String(page));
@@ -44,7 +45,7 @@ export async function fetchProblems(
   if (filters.sortBy) params.append("sortBy", filters.sortBy);
   if (filters.sortOrder) params.append("sortOrder", filters.sortOrder);
 
-  const response = await apiGet<unknown>(`/problems?${params.toString()}`);
+  const response = await apiGet<unknown>(`/problems?${params.toString()}`, { signal });
   const pageResult = readPage<unknown>(response);
   return {
     ...pageResult,

@@ -1,9 +1,10 @@
 <script setup lang="ts">
+import { forumPermissionRules } from '@/composables/domainPermissionMaps'
+import { usePermissionMap } from '@/composables/usePermissionMap'
 import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useForumStore } from '@/stores/admin/forum'
-import { useForumPermissions } from '@/composables/useForumPermissions'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -29,7 +30,7 @@ const router = useRouter()
 const route = useRoute()
 const { t } = useI18n()
 const forumStore = useForumStore()
-const { can } = useForumPermissions()
+const can = { forum: usePermissionMap(forumPermissionRules) }
 
 const deleteDialogOpen = ref(false)
 const flagDialogOpen = ref(false)

@@ -3,7 +3,6 @@ package com.ulticode.modules.user.port;
 import com.ulticode.app.api.dto.ProfileWriteResult;
 import com.ulticode.app.storage.StorageCleanupOutbox;
 import com.ulticode.app.userprofile.ProfileMutationModule;
-import com.ulticode.app.userprofile.ProfilePatch;
 import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.storage.FileStoragePort;
@@ -43,28 +42,23 @@ public class DefaultAppUserWritePort implements AppUserWritePort {
     private int uploadSettleSeconds;
 
     @Override
-    @CacheEvict(value = {"userStats", "contestRanking"}, allEntries = true)
+    @CacheEvict(value = {
+            ProfileMutationModule.USER_STATS_CACHE, ProfileMutationModule.CONTEST_RANKING_CACHE
+    }, allEntries = true)
     public UserVO updateProfile(String userId, UpdateUserDTO updateDTO) {
         if (userId == null) {
             throw new BusinessException(BaseErrorCode.UNAUTHORIZED);
         }
-        ProfileWriteResult result = profileMutationModule.update(new ProfilePatch(
-                userId,
-                updateDTO.getName(),
-                updateDTO.getAvatar(),
-                updateDTO.getBio(),
-                updateDTO.getCompany(),
-                updateDTO.getGithub(),
-                updateDTO.getLocation(),
-                updateDTO.getTwitter(),
-                updateDTO.getWebsite(),
+        ProfileWriteResult result = profileMutationModule.update(ProfileMutationModule.profilePatch(
+                userId, updateDTO.getName(), updateDTO.getAvatar(), updateDTO.getBio(), updateDTO.getCompany(),
+                updateDTO.getGithub(), updateDTO.getLocation(), updateDTO.getTwitter(), updateDTO.getWebsite(),
                 updateDTO.getPreferredLanguage()));
         log.info("User profile updated: {}", userId);
         return toVO(result);
     }
 
     @Override
-    @CacheEvict(value = "contestRanking", allEntries = true)
+    @CacheEvict(value = ProfileMutationModule.CONTEST_RANKING_CACHE, allEntries = true)
     public String uploadAvatar(String userId, MultipartFile file) {
         if (userId == null) {
             throw new BusinessException(BaseErrorCode.UNAUTHORIZED);

@@ -82,12 +82,25 @@ describe("useContestBrowseStore loading state", () => {
 
     expect(store.loadingContests).toBe(false);
   });
-  it("does not write past-load failures into shared browse error", async () => {
+  it("keeps past-only pagination out of page-wide loading", async () => {
+    type ContestPage = PaginatedResult<ContestListItem>;
+
+    const past = deferred<ContestPage>();
+    vi.mocked(fetchPastContests).mockReturnValue(past.promise);
+
+    const store = useContestBrowseStore();
+    const pastLoad = store.loadPastContests(1, 10);
+    expect(store.loadingContests).toBe(false);
+
+    past.resolve({ items: [], total: 0, page: 1, pageSize: 10, totalPages: 0 });
+    await pastLoad;
+    expect(store.loadingContests).toBe(false);
+  });
+
+  it("exposes past-load failures from request-state", async () => {
     vi.mocked(fetchPastContests).mockRejectedValue(new Error("past failed"));
     const store = useContestBrowseStore();
-    store.error = "ongoing failed";
-
     await expect(store.loadPastContests()).rejects.toThrow("past failed");
-    expect(store.error).toBe("ongoing failed");
+    expect(store.error).toBe("past failed");
   });
 });

@@ -9,7 +9,6 @@ import com.ulticode.app.idempotency.CommandReceiptExecutor;
 import com.ulticode.app.security.AdminActorAuthorizer;
 import com.ulticode.app.security.TrustedAdminActor;
 import com.ulticode.app.userprofile.ProfileMutationModule;
-import com.ulticode.app.userprofile.ProfilePatch;
 import com.ulticode.common.command.ActorDelegation;
 import com.ulticode.common.command.WriteCommand;
 import com.ulticode.common.error.BaseErrorCode;
@@ -40,7 +39,9 @@ public class ProfileWriteProvider implements ProfileWriteService {
     private final AdminActorAuthorizer actorAuthorizer;
 
     @Override
-    @CacheEvict(value = "contestRanking", allEntries = true)
+    @CacheEvict(value = {
+            ProfileMutationModule.USER_STATS_CACHE, ProfileMutationModule.CONTEST_RANKING_CACHE
+    }, allEntries = true)
     public RpcResult<ProfileWriteResult> updateProfile(UpdateProfileCommand command) {
         RpcResult<ProfileWriteResult> rejected = rejectUntrustedActor(command);
         if (rejected != null) {
@@ -52,7 +53,10 @@ public class ProfileWriteProvider implements ProfileWriteService {
                     OP_UPDATE,
                     command,
                     ProfileWriteResult.class,
-                    traceId -> RpcResult.success(profileMutationModule.update(toPatch(command)), traceId));
+                    traceId -> RpcResult.success(profileMutationModule.update(ProfileMutationModule.profilePatch(
+                            command.accountId(), command.name(), command.avatar(), command.bio(), command.company(),
+                            command.github(), command.location(), command.twitter(), command.website(),
+                            command.preferredLanguage())), traceId));
         } catch (BusinessException exception) {
             return mapBusinessFailure(exception, CommandReceiptExecutor.traceId(command));
         } catch (Exception exception) {
@@ -63,7 +67,7 @@ public class ProfileWriteProvider implements ProfileWriteService {
     }
 
     @Override
-    @CacheEvict(value = "contestRanking", allEntries = true)
+    @CacheEvict(value = ProfileMutationModule.CONTEST_RANKING_CACHE, allEntries = true)
     public RpcResult<ProfileWriteResult> uploadAvatar(UploadAvatarCommand command) {
         RpcResult<ProfileWriteResult> rejected = rejectUntrustedActor(command);
         if (rejected != null) {
@@ -87,19 +91,6 @@ public class ProfileWriteProvider implements ProfileWriteService {
         }
     }
 
-    private static ProfilePatch toPatch(UpdateProfileCommand command) {
-        return new ProfilePatch(
-                command.accountId(),
-                command.name(),
-                command.avatar(),
-                command.bio(),
-                command.company(),
-                command.github(),
-                command.location(),
-                command.twitter(),
-                command.website(),
-                command.preferredLanguage());
-    }
 
     private <C extends WriteCommand> RpcResult<ProfileWriteResult> rejectUntrustedActor(C command) {
         if (command == null || hasMissingActorMetadata(command)) {

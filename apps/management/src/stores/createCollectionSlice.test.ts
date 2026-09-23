@@ -96,17 +96,18 @@ describe('createCollectionSlice', () => {
     expect(slice.isLoading.value).toBe(false)
   })
 
-  it('leaves loading untouched when cancel owns no active request', () => {
-    const load = vi.fn().mockResolvedValue({ items: [], total: 0 })
-    const slice = createCollectionSlice<string, void>({ load })
+  it('cancel preserves independent mutation loading', async () => {
+    const slice = createCollectionSlice<string, void>({ load: vi.fn().mockResolvedValue({ items: [], total: 0 }) })
+    let finish!: () => void
+    const mutation = slice.runMutation(() => new Promise<void>((resolve) => { finish = resolve }), 'Failed')
 
-    // Stores alias isLoading for mutations/exports; with no collection
-    // request active, a table transition must not report that work done.
-    slice.isLoading.value = true
     slice.cancel()
 
-    expect(slice.isLoading.value).toBe(true)
-    expect(load).not.toHaveBeenCalled()
+    expect(slice.mutationLoading.value).toBe(true)
+    expect(slice.isLoading.value).toBe(false)
+    finish()
+    await mutation
+    expect(slice.mutationLoading.value).toBe(false)
   })
 
   it('cancels before reset clears collection state', async () => {
@@ -233,4 +234,99 @@ describe('createCollectionSlice', () => {
     expect(slice.items.value).toEqual(['alternate'])
     expect(load).not.toHaveBeenCalled()
   })
+
+
+  it('forwards an external abort only to its fetch and removes the listener', async () => {
+    let resolveFirst!: (page: { items: string[]; total: number }) => void
+    let resolveSecond!: (page: { items: string[]; total: number }) => void
+    let firstSignal!: AbortSignal
+    let secondSignal!: AbortSignal
+    const external = new AbortController()
+    const addListener = vi.spyOn(external.signal, 'addEventListener')
+    const removeListener = vi.spyOn(external.signal, 'removeEventListener')
+    const load = vi.fn((_params: number, signal?: AbortSignal) => {
+      if (_params === 1) {
+        firstSignal = signal!
+        return new Promise<{ items: string[]; total: number }>((resolve) => { resolveFirst = resolve })
+      }
+      secondSignal = signal!
+      return new Promise<{ items: string[]; total: number }>((resolve) => { resolveSecond = resolve })
+    })
+    const slice = createCollectionSlice<string, number>({ load })
+
+    const first = slice.fetch(1, { signal: external.signal })
+    external.abort()
+    expect(firstSignal.aborted).toBe(true)
+    const second = slice.fetch(2)
+    expect(secondSignal.aborted).toBe(false)
+    resolveFirst({ items: ['stale'], total: 1 })
+    resolveSecond({ items: ['current'], total: 1 })
+    await Promise.all([first, second])
+
+    expect(slice.items.value).toEqual(['current'])
+    expect(addListener).toHaveBeenCalledTimes(1)
+    expect(removeListener).toHaveBeenCalledTimes(1)
+  })
+
+  it('uses each fetch error message for its own failure', async () => {
+    const failure = {}
+    const slice = createCollectionSlice<string, void>({ load: vi.fn().mockRejectedValue(failure) })
+    await slice.fetch(undefined, { errorMessage: 'Custom collection failure' })
+    expect(slice.error.value).toBe('Custom collection failure')
+  })
+
+  it('clears the sibling error channel when a new operation starts', async () => {
+    const slice = createCollectionSlice<string, void>({ load: vi.fn() })
+    expect(slice.error).not.toBe(slice.mutationError)
+
+    const exportFailure = Promise.reject(new Error('export failed'))
+    await expect(
+      slice.runMutation(() => exportFailure, 'export failed'),
+    ).rejects.toThrow('export failed')
+    expect(slice.mutationError.value).toBe('export failed')
+
+    await slice.fetch()
+    expect(slice.mutationError.value).toBeNull()
+
+    const failingLoad = createCollectionSlice<string, void>({
+      load: vi.fn().mockRejectedValue(new Error('load failed')),
+    })
+    await failingLoad.fetch()
+    expect(failingLoad.error.value).toBe('load failed')
+
+    await failingLoad.runMutation(() => Promise.resolve('ok'), 'unused')
+    expect(failingLoad.error.value).toBeNull()
+    expect(failingLoad.mutationError.value).toBeNull()
+  })
+
+  it('surfaces a newer failure after clearing the sibling channel', async () => {
+    const slice = createCollectionSlice<string, void>({
+      load: vi.fn().mockRejectedValue(new Error('load failed')),
+    })
+    await slice.fetch()
+    expect(slice.error.value).toBe('load failed')
+
+    await expect(
+      slice.runMutation(() => Promise.reject(new Error('export failed')), 'export failed'),
+    ).rejects.toThrow('export failed')
+
+    expect(slice.error.value).toBeNull()
+    expect(slice.mutationError.value).toBe('export failed')
+  })
+
+  it('clearError dismisses both error channels', async () => {
+    const slice = createCollectionSlice<string, void>({
+      load: vi.fn().mockRejectedValue(new Error('load failed')),
+    })
+    await slice.fetch()
+    await expect(
+      slice.runMutation(() => Promise.reject(new Error('export failed')), 'export failed'),
+    ).rejects.toThrow('export failed')
+
+    slice.clearError()
+
+    expect(slice.error.value).toBeNull()
+    expect(slice.mutationError.value).toBeNull()
+  })
+
 })

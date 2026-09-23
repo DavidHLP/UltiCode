@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { problemListPermissionRules } from '@/composables/domainPermissionMaps'
+import { usePermissionMap } from '@/composables/usePermissionMap'
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
@@ -12,13 +14,12 @@ import DataTable from '@/components/table/DataTable.vue'
 import DataTableToolbar, { type Filter } from '@/components/table/DataTableToolbar.vue'
 import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
 import { useRemoteTable } from '@/composables/useRemoteTable'
-import { useProblemListPermissions } from '@/composables/useProblemListPermissions'
 import { createColumns } from './columns'
 
 const router = useRouter()
 const { t } = useI18n()
 const store = useAdminProblemListsStore()
-const { can } = useProblemListPermissions()
+const can = { problemList: usePermissionMap(problemListPermissionRules) }
 
 
 const selectedListId = ref<string | null>(null)

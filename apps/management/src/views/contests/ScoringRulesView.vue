@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { contestPermissionRules, systemPermissionRules } from '@/composables/domainPermissionMaps'
+import { usePermissionMap } from '@/composables/usePermissionMap'
 import { ref, computed, onMounted, h } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { ColumnDef } from '@tanstack/vue-table'
@@ -24,8 +26,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Switch } from '@/components/ui/switch'
-import { useContestPermissions } from '@/composables/useContestPermissions'
-import { useSystemPermissions } from '@/composables/useSystemPermissions'
 import {
   scoringRulesApi,
   type ScoringRule,
@@ -38,8 +38,8 @@ import ScoringRuleForm from './components/ScoringRuleForm.vue'
 import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
 
 const { t } = useI18n()
-const { can: contestCan } = useContestPermissions()
-const { can: systemCan } = useSystemPermissions()
+const contestCan = { contest: usePermissionMap(contestPermissionRules) }
+const systemCan = { system: usePermissionMap(systemPermissionRules) }
 
 // State
 const includeInactive = ref(false)

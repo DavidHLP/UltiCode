@@ -14,7 +14,7 @@ import { createEntityActionsMenu } from '@/components/table/entityActions'
 import { badge, USER_ROLE_COLOR_MAP } from '@/components/ui/terminal'
 import type { User } from '@/api/admin/users'
 import { formatDate } from '@/lib/format/date'
-import type { UserPermissionMap } from '@/composables/useUserPermissions'
+import type { UserPermissionMap } from '@/composables/domainPermissionMaps'
 
 export interface UserActions {
   viewUser: (user: User) => void

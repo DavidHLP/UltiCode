@@ -227,11 +227,6 @@ public class DefaultSubmissionProjection implements SubmissionProjection {
     }
 
     @Override
-    public SubmissionDetailVO toDetailVO(Submission submission, PerformanceStats stats) {
-        return toDetailVO(submission, stats, null);
-    }
-
-    @Override
     public SubmissionDetailVO toDetailVO(
             Submission submission,
             PerformanceStats stats,

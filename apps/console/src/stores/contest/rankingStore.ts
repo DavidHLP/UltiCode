@@ -1,5 +1,6 @@
 // console/src/stores/contest/rankingStore.ts
 import { defineStore } from "pinia";
+import { createValueRequest } from "@ulticode/request-state";
 import { ref, computed } from "vue";
 import type { RankingEntry } from "@/types/contest";
 import { getRanking } from "@/api/contest";
@@ -13,10 +14,14 @@ export const useRankingStore = defineStore("ranking", () => {
   const rankings = ref<RankingEntry[]>([]);
 
   /** Loading state */
-  const loading = ref(false);
+  const rankingRequest = createValueRequest({
+    errorMessage: "Failed to load ranking",
+    rethrow: true,
+  });
+  const loading = rankingRequest.loading;
 
   /** Error message */
-  const error = ref<string | null>(null);
+  const error = rankingRequest.error;
 
   /** Whether the ranking is frozen (during final minutes of contest) */
   const frozen = ref(false);
@@ -46,17 +51,11 @@ export const useRankingStore = defineStore("ranking", () => {
     slug: string,
     options?: { page?: number; limit?: number; includeVirtual?: boolean },
   ): Promise<void> {
-    loading.value = true;
-    error.value = null;
     try {
-      const result = await getRanking(slug, options);
-      rankings.value = result.items;
+      const result = await rankingRequest.run(() => getRanking(slug, options));
+      if (result) rankings.value = result.items;
     } catch (err) {
-      error.value =
-        err instanceof Error ? err.message : "Failed to load ranking";
       throw err;
-    } finally {
-      loading.value = false;
     }
   }
 
@@ -64,9 +63,10 @@ export const useRankingStore = defineStore("ranking", () => {
    * Clear ranking data
    */
   function clearRanking(): void {
+    rankingRequest.cancel();
+    rankingRequest.error.value = null;
     rankings.value = [];
     frozen.value = false;
-    error.value = null;
   }
 
   /**
@@ -87,16 +87,16 @@ export const useRankingStore = defineStore("ranking", () => {
    * Clear error state
    */
   function clearError(): void {
-    error.value = null;
+    rankingRequest.error.value = null;
   }
 
   /**
    * Reset store to initial state
    */
   function $reset(): void {
+    rankingRequest.cancel();
+    rankingRequest.error.value = null;
     rankings.value = [];
-    loading.value = false;
-    error.value = null;
     frozen.value = false;
   }
 

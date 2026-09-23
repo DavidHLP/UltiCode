@@ -5,6 +5,7 @@ import type { Component } from "vue";
 import type { ProblemExplorerProps } from "../type";
 import { CheckCircle2, FileEdit } from "lucide-vue-next";
 import { fetchProblems } from "@/api/problem";
+import { createValueRequest } from "@ulticode/request-state";
 import { toast } from "vue-sonner";
 import { useRouter } from "vue-router";
 import { PROBLEM_CATEGORIES } from "@/constants/problem-categories";
@@ -33,11 +34,15 @@ export function useProblemExplorer(props: ProblemExplorerProps) {
   const page = ref(1);
   const total = ref(0);
   const totalPages = ref(1);
-  const isLoading = ref(false);
+  const problemRequest = createValueRequest({
+    errorMessage: "Failed to load problems",
+    onError: (error) => {
+      console.error("Failed to load problems", error);
+      toast.error(t("problem.explorer.failedToLoad"));
+    },
+  });
+  const isLoading = problemRequest.loading;
   const searchDebounceTimer = ref<ReturnType<typeof setTimeout> | null>(null);
-  // Monotonic request token: a fresh search/filter bumps it so an in-flight
-  // response that was superseded can detect it is stale and discard itself.
-  const latestRequestToken = ref(0);
 
   const selectedCategory = ref(props.initialCategory || "all");
 
@@ -68,46 +73,28 @@ export function useProblemExplorer(props: ProblemExplorerProps) {
   };
 
   const loadProblems = async (append = false) => {
-    // Supplied mode: the caller passed its own problem list, so there is no
-    // fetch to perform and the watchers/clearFilters/onMounted stay no-op.
     if (props.problems !== undefined) return;
-    // Serialize pagination (scroll-driven load-more can fan); fresh
-    // searches/filters go through and supersede via latestRequestToken.
     if (append && isLoading.value) return;
-    const myToken = ++latestRequestToken.value;
-    isLoading.value = true;
-    try {
-      const currentPage = append ? page.value : 1;
-      const result = await fetchProblems(
-        buildFilters(),
-        currentPage,
-        PROBLEMS_PER_PAGE,
-      );
-      // A newer search/filter superseded this request — discard the stale
-      // response so it cannot overwrite newer state.
-      if (myToken !== latestRequestToken.value) return;
-      if (append) {
-        fallbackProblems.value = [...fallbackProblems.value, ...result.items];
-      } else {
-        fallbackProblems.value = result.items;
-        page.value = 1;
-      }
-      total.value = result.total;
-      totalPages.value = result.totalPages;
-    } catch (error) {
-      if (myToken !== latestRequestToken.value) return;
-      console.error("Failed to load problems", error);
-      toast.error(t("problem.explorer.failedToLoad"));
-      if (!append) {
+    const currentPage = append ? page.value : 1;
+    const result = await problemRequest.run((signal) =>
+      fetchProblems(buildFilters(), currentPage, PROBLEMS_PER_PAGE, signal),
+    );
+    if (!result) {
+      if (problemRequest.error.value && !append) {
         fallbackProblems.value = [];
         total.value = 0;
         totalPages.value = 1;
       }
-    } finally {
-      if (myToken === latestRequestToken.value) {
-        isLoading.value = false;
-      }
+      return;
     }
+    if (append) {
+      fallbackProblems.value = [...fallbackProblems.value, ...result.items];
+    } else {
+      fallbackProblems.value = result.items;
+      page.value = 1;
+    }
+    total.value = result.total;
+    totalPages.value = result.totalPages;
   };
 
   onMounted(() => {

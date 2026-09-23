@@ -9,6 +9,7 @@ Each package owns one focused cross-app seam. Current packages and their manifes
 - `auth-core`, `auth-ui`: authentication state, CSRF, permissions, and reusable auth UI.
 - `http-client`: shared Axios behavior, retries, request deduplication, and auth-failure coordination.
 - `domain-types`, `sandbox-types`: cross-surface contracts.
+- `request-state`: focused newest-wins request-state policy shared by both apps.
 - `markdown-utils`: Markdown/KaTeX rendering and sanitization.
 - `theme`, `design-system`: theme state, bootstrap, tokens, and CSS primitives.
 - `badge-config`, `submission-status`, `sidebar-menu`, `datetime-utils`, `locale-preference`: focused presentation and preference seams.

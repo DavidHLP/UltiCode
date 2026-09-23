@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { tagPermissionRules } from '@/composables/domainPermissionMaps'
+import { usePermissionMap } from '@/composables/usePermissionMap'
 import { ref, computed, onMounted, h } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { ColumnDef } from '@tanstack/vue-table'
@@ -32,11 +34,10 @@ import TagEditDialog from './TagEditDialog.vue'
 import TagMergeDialog from './TagMergeDialog.vue'
 import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
 import { useRemoteTable } from '@/composables/useRemoteTable'
-import { useTagPermissions } from '@/composables/useTagPermissions'
 
 const { t } = useI18n()
 const tagsStore = useTagsStore()
-const { can } = useTagPermissions()
+const can = { tag: usePermissionMap(tagPermissionRules) }
 
 
 const selectedTag = ref<Tag | null>(null)

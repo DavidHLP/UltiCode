@@ -46,13 +46,6 @@ public interface SubmissionProjection {
             List<Submission> submissions,
             Map<Long, com.ulticode.app.api.service.ProblemFactsPort.ProblemDisplayFacts> batchFacts);
 
-    /**
-     * Convert a submission entity to its full user-facing detail VO with
-     * performance stats, applying the same P0-1 filter and enrichment as
-     * App's {@code toDetailVO}. Never {@code null}.
-     */
-    SubmissionDetailVO toDetailVO(Submission submission, PerformanceStats stats);
-
     /** Detail projection after a bounded problem-facts batch. */
     SubmissionDetailVO toDetailVO(
             Submission submission,

@@ -4,7 +4,7 @@ import { createI18n } from 'vue-i18n'
 import { describe, expect, it, vi } from 'vitest'
 import type { Problem } from '@/api/admin/problems'
 import { useProblemColumns, type ProblemActions } from './useProblemColumns'
-import type { ProblemPermissionMap } from '@/composables/useProblemPermissions'
+import type { ProblemPermissionMap } from '@/composables/domainPermissionMaps'
 
 const actions: ProblemActions = {
   viewProblem: vi.fn(),

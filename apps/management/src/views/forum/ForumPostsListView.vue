@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { forumPermissionRules } from '@/composables/domainPermissionMaps'
+import { usePermissionMap } from '@/composables/usePermissionMap'
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
@@ -15,12 +17,11 @@ import DataTableToolbar, { type Filter } from '@/components/table/DataTableToolb
 import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
 import { createColumns } from './columns'
 import { useRemoteTable } from '@/composables/useRemoteTable'
-import { useForumPermissions } from '@/composables/useForumPermissions'
 
 const router = useRouter()
 const { t } = useI18n()
 const forumStore = useForumStore()
-const { can } = useForumPermissions()
+const can = { forum: usePermissionMap(forumPermissionRules) }
 
 
 const selectedPostId = ref<string | null>(null)

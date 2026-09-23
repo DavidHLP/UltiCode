@@ -1,0 +1,20 @@
+services/app/app-web/src/main/java/com/ulticode/app/userprofile/ProfileMutationModule.java
+  h_77173abe25c3ff 26-28,34-40
+services/app/app-web/src/main/java/com/ulticode/app/userprofile/provider/ProfileWriteProvider.java
+  h_77173abe25c3ff 42-44,56-59
+services/app/app-web/src/main/java/com/ulticode/modules/user/port/DefaultAppUserWritePort.java
+  h_77173abe25c3ff 45-47,52-54
+services/app/app-web/src/test/java/com/ulticode/app/userprofile/ProfileWriteProviderTest.java
+  h_77173abe25c3ff 10-11,21,49-62
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "348a0fcfe527444400549d60b9e7cfcfbef6b859",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

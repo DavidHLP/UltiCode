@@ -1,3 +1,4 @@
+import { createValueRequest } from '@ulticode/request-state'
 import { ref, type Ref } from 'vue'
 import { extractApiErrorMessage } from '@/utils/error'
 
@@ -66,12 +67,25 @@ export function createCollectionSlice<T, TParams, TMetadata = never>(
 ): CollectionSlice<T, TParams> {
   const items = ref<T[]>([]) as Ref<T[]>
   const total = ref(0)
-  const isLoading = ref(false)
   const error = ref<string | null>(null)
   const mutationLoading = ref(false)
   const mutationError = ref<string | null>(null)
-  let requestSequence = 0
-  let currentController: AbortController | null = null
+  let activeFetchOptions: CollectionFetchOptions | undefined
+  const requestState = createValueRequest({
+    errorMessage: 'Failed to load collection',
+    getErrorMessage: (err, fallback) =>
+      extractApiErrorMessage(err, activeFetchOptions?.errorMessage ?? fallback),
+    onError: (err) => {
+      if (isCancellationError(err)) return
+      error.value = extractApiErrorMessage(
+        err,
+        activeFetchOptions?.errorMessage ?? 'Failed to load collection',
+      )
+      console.error('Failed to load collection:', err)
+      if (activeFetchOptions?.rethrow) throw err
+    },
+  })
+  const isLoading = requestState.loading
 
   async function runFetch<TLoadMetadata>(
     load: CollectionLoader<T, TParams, TLoadMetadata>,
@@ -79,40 +93,21 @@ export function createCollectionSlice<T, TParams, TMetadata = never>(
     fetchOptions?: CollectionFetchOptions,
     applyMetadata?: (metadata: TLoadMetadata) => void,
   ): Promise<void> {
-    currentController?.abort()
-    const controller = new AbortController()
-    currentController = controller
-    const request = ++requestSequence
-    const externalSignal = fetchOptions?.signal
-    const abortFromExternal = () => controller.abort()
-    externalSignal?.addEventListener('abort', abortFromExternal, { once: true })
-    if (externalSignal?.aborted) controller.abort()
-    isLoading.value = true
+    activeFetchOptions = fetchOptions
     error.value = null
 
-    try {
-      const page = await load(params as TParams, controller.signal)
-      if (request !== requestSequence || controller.signal.aborted || !page) return
-      items.value = page.items
-      total.value = page.total
-      if (page.metadata !== undefined) {
-        applyMetadata?.(page.metadata)
-      }
-    } catch (err: unknown) {
-      if (request !== requestSequence || controller.signal.aborted || isCancellationError(err)) return
-      error.value = extractApiErrorMessage(
-        err,
-        fetchOptions?.errorMessage ?? 'Failed to load collection',
-      )
-      console.error('Failed to load collection:', err)
-      if (fetchOptions?.rethrow) throw err
-    } finally {
-      externalSignal?.removeEventListener('abort', abortFromExternal)
-      if (currentController === controller) {
-        currentController = null
-        isLoading.value = false
-      }
-    }
+    await requestState.run(
+      (signal) => load(params as TParams, signal),
+      fetchOptions?.signal,
+      (page) => {
+        if (!page) return
+        items.value = page.items
+        total.value = page.total
+        if (page.metadata !== undefined) {
+          applyMetadata?.(page.metadata)
+        }
+      },
+    )
   }
 
   function fetch(params?: TParams, fetchOptions?: CollectionFetchOptions): Promise<void> {
@@ -155,12 +150,7 @@ export function createCollectionSlice<T, TParams, TMetadata = never>(
 
   function cancel(): void {
     // Only release loading when this slice owns the active fetch request.
-    if (currentController) {
-      currentController.abort()
-      currentController = null
-      isLoading.value = false
-    }
-    requestSequence += 1
+    if (requestState.isActive()) requestState.cancel()
   }
 
   function reset(): void {

@@ -234,4 +234,45 @@ describe('createCollectionSlice', () => {
     expect(slice.items.value).toEqual(['alternate'])
     expect(load).not.toHaveBeenCalled()
   })
+
+
+  it('forwards an external abort only to its fetch and removes the listener', async () => {
+    let resolveFirst!: (page: { items: string[]; total: number }) => void
+    let resolveSecond!: (page: { items: string[]; total: number }) => void
+    let firstSignal!: AbortSignal
+    let secondSignal!: AbortSignal
+    const external = new AbortController()
+    const addListener = vi.spyOn(external.signal, 'addEventListener')
+    const removeListener = vi.spyOn(external.signal, 'removeEventListener')
+    const load = vi.fn((_params: number, signal?: AbortSignal) => {
+      if (_params === 1) {
+        firstSignal = signal!
+        return new Promise<{ items: string[]; total: number }>((resolve) => { resolveFirst = resolve })
+      }
+      secondSignal = signal!
+      return new Promise<{ items: string[]; total: number }>((resolve) => { resolveSecond = resolve })
+    })
+    const slice = createCollectionSlice<string, number>({ load })
+
+    const first = slice.fetch(1, { signal: external.signal })
+    external.abort()
+    expect(firstSignal.aborted).toBe(true)
+    const second = slice.fetch(2)
+    expect(secondSignal.aborted).toBe(false)
+    resolveFirst({ items: ['stale'], total: 1 })
+    resolveSecond({ items: ['current'], total: 1 })
+    await Promise.all([first, second])
+
+    expect(slice.items.value).toEqual(['current'])
+    expect(addListener).toHaveBeenCalledTimes(1)
+    expect(removeListener).toHaveBeenCalledTimes(1)
+  })
+
+  it('uses each fetch error message for its own failure', async () => {
+    const failure = {}
+    const slice = createCollectionSlice<string, void>({ load: vi.fn().mockRejectedValue(failure) })
+    await slice.fetch(undefined, { errorMessage: 'Custom collection failure' })
+    expect(slice.error.value).toBe('Custom collection failure')
+  })
+
 })

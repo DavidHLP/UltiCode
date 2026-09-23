@@ -16,17 +16,24 @@ export function createValueRequest(options: ValueRequestOptions) {
 
   async function run<T>(
     load: (signal: AbortSignal) => Promise<T>,
+    externalSignal?: AbortSignal,
+    onCurrent?: (value: T) => void,
   ): Promise<T | null> {
     controller?.abort()
     const current = new AbortController()
     controller = current
     const request = ++sequence
+    const abortFromExternal = () => current.abort()
+    externalSignal?.addEventListener('abort', abortFromExternal, { once: true })
+    if (externalSignal?.aborted) current.abort()
     loading.value = true
     error.value = null
 
     try {
       const value = await load(current.signal)
-      return request === sequence && !current.signal.aborted ? value : null
+      if (request !== sequence || current.signal.aborted) return null
+      onCurrent?.(value)
+      return value
     } catch (cause) {
       if (request !== sequence || current.signal.aborted) return null
       error.value =
@@ -36,6 +43,7 @@ export function createValueRequest(options: ValueRequestOptions) {
       if (options.rethrow) throw cause
       return null
     } finally {
+      externalSignal?.removeEventListener('abort', abortFromExternal)
       if (controller === current) {
         controller = null
         loading.value = false
@@ -50,5 +58,5 @@ export function createValueRequest(options: ValueRequestOptions) {
     loading.value = false
   }
 
-  return { loading, error, run, cancel }
+  return { loading, error, run, cancel, isActive: () => controller !== null }
 }

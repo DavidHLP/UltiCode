@@ -223,6 +223,7 @@ export const useCommentsStore = defineStore('adminComments', () => {
     items: collection.items,
     isLoading: collection.isLoading,
     fetch: collection.fetch,
+    cancel: collection.cancel,
     comments,
     total,
     currentComment,

@@ -19,6 +19,7 @@ interface MockAuditStore {
   fetchLogs: ReturnType<typeof vi.fn>
   fetchStats: ReturnType<typeof vi.fn>
   cancelStats: ReturnType<typeof vi.fn>
+  cancel: ReturnType<typeof vi.fn>
 }
 
 const mockedStore = vi.hoisted(() => ({ current: null as MockAuditStore | null }))
@@ -47,6 +48,7 @@ function createStore(): MockAuditStore {
     fetchLogs: vi.fn().mockResolvedValue(undefined),
     fetchStats: vi.fn().mockResolvedValue(null),
     cancelStats: vi.fn(),
+    cancel: vi.fn(),
   }
 }
 
@@ -197,20 +199,17 @@ describe('useAuditReadWorkspace', () => {
 
     await workspace.refresh()
 
-    expect(store.fetchLogs).toHaveBeenCalledWith(
-      {
-        search: undefined,
-        action: 'CREATE_USER',
-        entityType: undefined,
-        startDate: undefined,
-        endDate: undefined,
-        performerId: undefined,
-        userId: undefined,
-        page: 1,
-        limit: 50,
-      },
-      { signal: expect.any(AbortSignal) },
-    )
+    expect(store.fetchLogs).toHaveBeenCalledWith({
+      search: undefined,
+      action: 'CREATE_USER',
+      entityType: undefined,
+      startDate: undefined,
+      endDate: undefined,
+      performerId: undefined,
+      userId: undefined,
+      page: 1,
+      limit: 50,
+    })
     expect(store.fetchStats).toHaveBeenCalledWith({
       search: undefined,
       action: 'CREATE_USER',

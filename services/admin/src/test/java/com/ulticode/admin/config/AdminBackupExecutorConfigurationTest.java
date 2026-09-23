@@ -2,11 +2,14 @@ package com.ulticode.admin.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.ulticode.modules.backup.service.impl.BackupExecutionServiceImpl;
+import com.ulticode.modules.backup.service.impl.BackupObjectLifecycle;
+import java.lang.reflect.Constructor;
+import java.util.Arrays;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
-import org.springframework.scheduling.annotation.Async;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 class AdminBackupExecutorConfigurationTest {
@@ -51,12 +54,15 @@ class AdminBackupExecutorConfigurationTest {
             executor.shutdown();
         }
     }
-
     @Test
-    void backupLifecycleUsesTheDrainedExecutor() {
-        Async async = BackupExecutionServiceImpl.class.getAnnotation(Async.class);
+    void backupLifecycleUsesTheNamedExecutor() {
+        Constructor<?> constructor = BackupObjectLifecycle.class.getDeclaredConstructors()[0];
+        boolean namedExecutor = Arrays.stream(constructor.getParameters())
+                .filter(parameter -> parameter.getType() == Executor.class)
+                .map(parameter -> parameter.getAnnotation(Qualifier.class))
+                .anyMatch(qualifier -> qualifier != null
+                        && qualifier.value().equals("adminBackupExecutor"));
 
-        assertThat(async).isNotNull();
-        assertThat(async.value()).isEqualTo("adminBackupExecutor");
+        assertThat(namedExecutor).isTrue();
     }
 }

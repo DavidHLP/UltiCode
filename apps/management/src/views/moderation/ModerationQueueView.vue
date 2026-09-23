@@ -34,7 +34,7 @@ import {
 import { useRemoteTable } from '@/composables/useRemoteTable'
 import { createColumns, type ModerationActions } from './columns'
 import { useModerationFilters } from './composables/useModerationFilters'
-import { ACTION_CATALOG, actionColorVar, entityRoute } from './workflow/moderationWorkflow'
+import { ACTION_CATALOG, actionColorVar, entityRoute } from './presentation/moderationPresentation'
 import BatchActionDialog from './components/BatchActionDialog.vue'
 
 const { t } = useI18n()
@@ -180,7 +180,7 @@ function handleBatchComplete() {
   loadQueue()
 }
 
-// Action options for drawer — sourced from the workflow module so adding
+// Action options for drawer — sourced from the presentation module so adding
 // a new ModerationActionType is a one-line change there.
 const actionOptions = computed(() => ACTION_CATALOG.map((a) => ({
   value: a.value,

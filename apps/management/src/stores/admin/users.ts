@@ -179,6 +179,7 @@ export const useUsersStore = defineStore('adminUsers', () => {
     items: readonlyUsers,
     isLoading: loading,
     fetch: collection.fetch,
+    cancel: collection.cancel,
     users: readonlyUsers,
     total,
     loading,

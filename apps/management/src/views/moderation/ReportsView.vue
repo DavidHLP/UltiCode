@@ -21,7 +21,7 @@ import {
 import { useRemoteTable } from '@/composables/useRemoteTable'
 import { createReportsColumns, type ReportActions } from './reports-columns'
 import { useModerationFilters } from './composables/useModerationFilters'
-import { entityRoute } from './workflow/moderationWorkflow'
+import { entityRoute } from './presentation/moderationPresentation'
 
 const { t } = useI18n()
 const router = useRouter()

@@ -169,6 +169,7 @@ export const useSolutionsStore = defineStore('adminSolutions', () => {
     items: solutions,
     isLoading: loading,
     fetch: collection.fetch,
+    cancel: collection.cancel,
     solutions,
     total,
     loading,

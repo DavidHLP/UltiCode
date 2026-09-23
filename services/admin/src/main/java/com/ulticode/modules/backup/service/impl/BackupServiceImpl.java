@@ -8,19 +8,14 @@ import com.ulticode.modules.backup.dto.BackupVO;
 import com.ulticode.modules.backup.dto.CreateBackupDTO;
 import com.ulticode.modules.backup.entity.Backup;
 import com.ulticode.modules.backup.entity.enums.BackupStatus;
-import com.ulticode.modules.backup.mapper.BackupDeletionTombstoneMapper;
 import com.ulticode.modules.backup.mapper.BackupMapper;
 import com.ulticode.modules.backup.port.BackupProcessPort;
 import com.ulticode.modules.backup.projection.BackupReadProjection;
-import com.ulticode.modules.backup.service.BackupExecutionService;
 import com.ulticode.modules.backup.service.BackupService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -38,8 +33,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.HexFormat;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.RejectedExecutionException;
 
 /**
  * Write-side orchestration for backups. Durable dump bytes never live on a
@@ -52,13 +45,11 @@ import java.util.concurrent.RejectedExecutionException;
 public class BackupServiceImpl implements BackupService {
 
     private final BackupMapper backupMapper;
-    private final BackupDeletionTombstoneMapper backupDeletionTombstoneMapper;
     private final Clock clock;
     private final BackupProcessPort backupProcessPort;
     private final BackupReadProjection backupReadProjection;
-    private final BackupExecutionService backupExecutionService;
+    private final BackupObjectLifecycle backupObjectLifecycle;
     private final FileStoragePort fileStorage;
-    private final BackupObjectCleanup backupObjectCleanup;
 
     @Value("${backup.temp-dir:${java.io.tmpdir}/ulticode-backups}")
     private String backupTempDir;
@@ -78,44 +69,8 @@ public class BackupServiceImpl implements BackupService {
         backup.setCreatedBy(userId);
 
         backupMapper.insert(backup);
-        try {
-            CompletableFuture<Void> execution = backupExecutionService.executeBackup(backup.getId());
-            if (execution != null) {
-                execution.whenComplete((ignored, failure) -> {
-                    if (isRejected(failure)) {
-                        markExecutionRejected(backup, failure);
-                    }
-                });
-            }
-        } catch (RejectedExecutionException exception) {
-            markExecutionRejected(backup, exception);
-            throw exception;
-        }
+        backupObjectLifecycle.start(backup.getId());
         return backupReadProjection.toVO(backup);
-    }
-
-    private boolean isRejected(Throwable failure) {
-        while (failure != null) {
-            if (failure instanceof RejectedExecutionException) {
-                return true;
-            }
-            failure = failure.getCause();
-        }
-        return false;
-    }
-
-    private void markExecutionRejected(Backup backup, Throwable failure) {
-        backup.setStatus(BackupStatus.FAILED);
-        backup.setCompletedAt(LocalDateTime.now(clock));
-        String message = failure.getMessage();
-        backup.setError(message == null || message.isBlank()
-                ? "Backup execution rejected: executor unavailable"
-                : "Backup execution rejected: " + message);
-        int failedRows = backupMapper.updateById(backup);
-        if (failedRows != 1) {
-            log.error("Failed to persist rejected backup state: {}, affected rows: {}",
-                    backup.getId(), failedRows);
-        }
     }
 
     @Override
@@ -199,66 +154,10 @@ public class BackupServiceImpl implements BackupService {
         }
     }
     @Override
-    @Transactional
     public void deleteBackup(String id) {
         Backup backup = requireBackup(id);
         validateBackupFilePath(backup.getFilename());
-        // A running backup with a planned key may still be uploading: deleting
-        // the row now would let the cleanup delete a not-yet-written object and
-        // leave the late PUT untracked.
-        if (backup.getObjectKey() != null && !backup.getObjectKey().isBlank()
-                && (backup.getStatus() == BackupStatus.PENDING
-                    || backup.getStatus() == BackupStatus.IN_PROGRESS)) {
-            throw new BusinessException(BaseErrorCode.BAD_REQUEST,
-                    "Backup is still running; retry the deletion after it reaches a terminal state");
-        }
-        String objectKey = null;
-        if (backup.getObjectKey() != null && !backup.getObjectKey().isBlank()) {
-            objectKey = requireBackupObjectKey(backup);
-        }
-        int deletedRows = backupMapper.deleteIfNotRunning(id);
-        if (deletedRows != 1) {
-            throw new BusinessException(BaseErrorCode.UNKNOWN_ERROR,
-                    "Failed to delete backup record; retry the operation");
-        }
-        // Same transaction as the row delete: the object key outlives the row,
-        // so the cleanup intent cannot be lost with a crashed request.
-        backupDeletionTombstoneMapper.insert(id, objectKey);
-        // A FAILED row may have failed because its PUT timed out while still
-        // committing: route it through the age-gated sweep instead of deleting now.
-        if (objectKey != null && backup.getStatus() != BackupStatus.FAILED) {
-            deleteObjectAfterCommit(objectKey);
-        }
-        log.info("Deleted backup: {}", id);
-    }
-
-    /**
-     * Delete object bytes only after the database row has committed. The
-     * tombstone holds the same intent, so this path only has to be fast, not
-     * reliable: the scheduled sweep re-drives anything left pending.
-     */
-    private void deleteObjectAfterCommit(String objectKey) {
-        Runnable cleanup = () -> backupObjectCleanup.deletePending(objectKey);
-        Runnable submitCleanup = () -> {
-            try {
-                CompletableFuture.runAsync(cleanup).exceptionally(exception -> {
-                    log.warn("Async backup object cleanup failed: {}", objectKey, exception);
-                    return null;
-                });
-            } catch (RuntimeException exception) {
-                log.warn("Failed to schedule backup object cleanup: {}", objectKey, exception);
-            }
-        };
-        if (TransactionSynchronizationManager.isSynchronizationActive()) {
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCommit() {
-                    submitCleanup.run();
-                }
-            });
-        } else {
-            submitCleanup.run();
-        }
+        backupObjectLifecycle.delete(id);
     }
 
     @Override

@@ -7,6 +7,7 @@ import com.ulticode.common.command.ReceiptCommandMetadata;
 import com.ulticode.common.command.ReceiptCommandValidation;
 import com.ulticode.common.command.ReceiptErrorCatalog;
 import com.ulticode.common.command.ReceiptExecutor;
+import com.ulticode.common.command.ReceiptFingerprintStrategy;
 import com.ulticode.common.command.WriteCommand;
 
 import java.time.Clock;
@@ -26,19 +27,32 @@ public final class ReceiptExecutorFactory {
     }
 
     /**
-     * Creates the claim-mutate-finalize executor used by delegated owner
-     * commands: a processing claim is reserved before the mutation and
-     * finalized or deleted by the shared protocol.
+     * Creates the default claim-mutate-finalize executor using the generic
+     * fingerprint strategy.
      */
     public static <C extends WriteCommand> ReceiptExecutor<C> claim(
             ClaimCommandReceiptStore store,
             ObjectMapper objectMapper,
             ReceiptErrorCatalog errors,
             Clock clock) {
+        return claim(store, objectMapper, new GenericFingerprintStrategy(), errors, clock);
+    }
+
+    /**
+     * Creates a claim-mutate-finalize executor with an owner-local matcher.
+     * New receipts always use the supplied strategy's fingerprint; its
+     * compatibility matcher is consulted only while replaying existing rows.
+     */
+    public static <C extends WriteCommand> ReceiptExecutor<C> claim(
+            ClaimCommandReceiptStore store,
+            ObjectMapper objectMapper,
+            ReceiptFingerprintStrategy<? super C> fingerprintStrategy,
+            ReceiptErrorCatalog errors,
+            Clock clock) {
         return ReceiptExecutor.claimMutateFinalize(
                 store,
                 new JacksonReceiptPayloadCodec(objectMapper),
-                new GenericFingerprintStrategy(),
+                fingerprintStrategy,
                 errors,
                 ReceiptCommandMetadata::from,
                 ReceiptCommandValidation::delegatedCommand,

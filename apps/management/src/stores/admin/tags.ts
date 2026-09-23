@@ -115,6 +115,7 @@ export const useTagsStore = defineStore('admin-tags', () => {
   return {
     items: readonlyTags,
     fetch: collection.fetch,
+    cancel: collection.cancel,
     tags: readonlyTags,
     total,
     isLoading,

@@ -1,6 +1,11 @@
 # P1-INFRA-005: test profile for service shell context-load tests.
 dubbo:
   registry:
+    # This test-classpath file shadows the main application.yml, so the
+    # registry address must be repeated here or full-context tests fail
+    # checkRegistry with an empty <dubbo:registry/> config. Mirrors the
+    # main default; register/subscribe stay off so no connection is made.
+    address: ${DUBBO_REGISTRY_ADDRESS:nacos://127.0.0.1:${NACOS_PORT:28848}?namespace=${DUBBO_NAMESPACE:dev}}
     register: false
     subscribe: false
 

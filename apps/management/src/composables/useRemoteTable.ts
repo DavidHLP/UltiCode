@@ -46,7 +46,8 @@ export interface UseRemoteTableOptions<TData, TFilters, TParams> {
     total: MaybeRefOrGetter<number>
     isLoading: MaybeRefOrGetter<boolean>
     error: MaybeRefOrGetter<string | null>
-    fetch: (params?: TParams, options?: { signal?: AbortSignal }) => Promise<void>
+    fetch: (params?: TParams) => Promise<void>
+    cancel: () => void
   }
   initialQuery: RemoteTableQueryOptions<TFilters>
   toParams: (params: {
@@ -109,14 +110,19 @@ export function useRemoteTable<
     () => readonly(query.value) as DeepReadonly<RemoteTableQuery<TFilters>>,
   )
   const initialLoad = ref(showInitialLoading)
+  // Tracks this table's own in-flight fetches: stores alias isLoading for
+  // mutations too, so a mutation's finally must not report a running fetch
+  // as finished.
   const pendingRequests = ref(0)
   let searchTimer: ReturnType<typeof setTimeout> | undefined
   let routeTimer: ReturnType<typeof setTimeout> | undefined
-  let requestSequence = 0
-  const activeControllers = new Set<AbortController>()
 
   const loading = computed(
-    () => initialLoad.value || pendingRequests.value > 0 || toValue(store.isLoading) || false,
+    () =>
+      initialLoad.value ||
+      pendingRequests.value > 0 ||
+      toValue(store.isLoading) ||
+      false,
   )
   const data = computed<TData[]>(() => {
     const items = toValue(store.items) ?? []
@@ -147,23 +153,7 @@ export function useRemoteTable<
     }
   }
 
-  function abortActiveRequests(): void {
-    requestSequence += 1
-    // Keep controllers until each loader settles so disposal also covers
-    // loaders that do not honor the signal immediately.
-    for (const controller of activeControllers) controller.abort()
-  }
-
-  function disposeActiveRequests(): void {
-    abortActiveRequests()
-    activeControllers.clear()
-  }
-
   async function loadCurrent(): Promise<void> {
-    const request = ++requestSequence
-    const controller = new AbortController()
-    activeControllers.add(controller)
-    pendingRequests.value += 1
     const current = query.value
     const params = toParams({
       search: current.search || undefined,
@@ -172,12 +162,12 @@ export function useRemoteTable<
       limit: current.pagination.pageSize,
     })
 
+    pendingRequests.value += 1
     try {
-      await store.fetch(params, { signal: controller.signal })
+      await store.fetch(params)
     } finally {
-      activeControllers.delete(controller)
       pendingRequests.value -= 1
-      if (request === requestSequence) initialLoad.value = false
+      if (!searchTimer && !toValue(store.isLoading)) initialLoad.value = false
     }
   }
 
@@ -203,7 +193,7 @@ export function useRemoteTable<
       writeRoute?: boolean
     } = {},
   ): Promise<void> | void {
-    abortActiveRequests()
+    store.cancel()
     const current = query.value
     const nextQuery: RemoteTableQuery<TFilters> = {
       search: patch.search ?? current.search,
@@ -248,7 +238,7 @@ export function useRemoteTable<
 
 
   function refresh(): Promise<void> {
-    abortActiveRequests()
+    store.cancel()
     cancelSearchTimer()
     return loadCurrent()
   }
@@ -262,7 +252,7 @@ export function useRemoteTable<
   tryOnScopeDispose(() => {
     cancelSearchTimer()
     cancelRouteTimer()
-    disposeActiveRequests()
+    store.cancel()
     stopRoute?.()
   })
 

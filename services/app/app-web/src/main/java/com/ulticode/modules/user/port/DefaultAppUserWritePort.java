@@ -1,7 +1,9 @@
 package com.ulticode.modules.user.port;
 
-import com.ulticode.app.userprofile.entity.UserProfile;
-import com.ulticode.app.userprofile.mapper.UserProfileMapper;
+import com.ulticode.app.api.dto.ProfileWriteResult;
+import com.ulticode.app.storage.StorageCleanupOutbox;
+import com.ulticode.app.userprofile.ProfileMutationModule;
+import com.ulticode.app.userprofile.ProfilePatch;
 import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.storage.FileStoragePort;
@@ -12,9 +14,9 @@ import com.ulticode.modules.user.dto.UpdateUserDTO;
 import com.ulticode.modules.user.dto.UserVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayInputStream;
@@ -24,104 +26,41 @@ import java.util.Locale;
 /**
  * App-side adapter for {@link AppUserWritePort}.
  *
- * <p>Profile mutations write exclusively to the App-owned
- * {@code user_profiles} table (canonical source). Avatar bytes are stored in
- * the mandatory shared object store before the profile row is updated.
+ * <p>Profile row mutation belongs to {@link ProfileMutationModule}; this
+ * adapter owns the HTTP user, multipart, object-store, and display-URL work.
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class DefaultAppUserWritePort implements AppUserWritePort {
 
-
-    private final UserProfileMapper userProfileMapper;
     private final UuidGenerator uuidGenerator;
     private final FileStoragePort fileStorage;
-    private final com.ulticode.modules.search.port.UserDirectoryQueryPort userDirectoryQueryPort;
-    private final com.ulticode.modules.search.source.SearchDocumentChangedPublisher searchPublisher;
-    private final AvatarProfileMutationService avatarProfileMutationService;
-    private final com.ulticode.app.storage.StorageCleanupOutbox storageCleanupOutbox;
+    private final ProfileMutationModule profileMutationModule;
+    private final StorageCleanupOutbox storageCleanupOutbox;
 
-    @org.springframework.beans.factory.annotation.Value("${app.storage.cleanup.upload-settle-seconds:900}")
+    @Value("${app.storage.cleanup.upload-settle-seconds:900}")
     private int uploadSettleSeconds;
 
-    /** Publish a complete user-document UPSERT after a profile write. */
-    private void publishUserDocument(String userId) {
-        var directoryRow = userDirectoryQueryPort.findById(userId);
-        if (directoryRow == null) {
-            return;
-        }
-        var row = directoryRow.row();
-        searchPublisher.publishUser(row.getId(), row.getUsername(), row.getName(), row.getAvatar(), true);
-    }
-
     @Override
-    @Transactional
     @CacheEvict(value = {"userStats", "contestRanking"}, allEntries = true)
     public UserVO updateProfile(String userId, UpdateUserDTO updateDTO) {
         if (userId == null) {
             throw new BusinessException(BaseErrorCode.UNAUTHORIZED);
         }
-
-        // Locking read: a concurrent avatar upload must not be overwritten by
-        // this full-entity update with a stale avatar value.
-        UserProfile profile = userProfileMapper.selectByIdForUpdate(userId);
-        boolean isNew = profile == null;
-        String previousAvatar = isNew ? null : profile.getAvatar();
-        if (isNew) {
-            profile = new UserProfile();
-            profile.setAccountId(userId);
-        }
-
-        if (updateDTO.getName() != null) {
-            profile.setName(updateDTO.getName());
-        }
-        if (updateDTO.getAvatar() != null) {
-            if (AvatarUrls.reusesOwnedKey(userId, updateDTO.getAvatar(), profile.getAvatar())) {
-                throw new BusinessException(BaseErrorCode.BAD_REQUEST,
-                        "Avatar changes must use the avatar upload endpoint");
-            }
-            profile.setAvatar(updateDTO.getAvatar());
-        }
-        if (updateDTO.getBio() != null) {
-            profile.setBio(updateDTO.getBio());
-        }
-        if (updateDTO.getCompany() != null) {
-            profile.setCompany(updateDTO.getCompany());
-        }
-        if (updateDTO.getGithub() != null) {
-            profile.setGithub(updateDTO.getGithub());
-        }
-        if (updateDTO.getLocation() != null) {
-            profile.setLocation(updateDTO.getLocation());
-        }
-        if (updateDTO.getTwitter() != null) {
-            profile.setTwitter(updateDTO.getTwitter());
-        }
-        if (updateDTO.getWebsite() != null) {
-            profile.setWebsite(updateDTO.getWebsite());
-        }
-        if (updateDTO.getPreferredLanguage() != null) {
-            profile.setPreferredLanguage(updateDTO.getPreferredLanguage());
-        }
-
-        if (isNew) {
-            userProfileMapper.insert(profile);
-        } else {
-            userProfileMapper.updateById(profile);
-        }
-        // A generic profile update may carry the avatar field: the displaced
-        // object needs the same durable cleanup intent as an upload replacement.
-        String displacedKey = AvatarUrls.objectKey(userId, previousAvatar);
-        if (displacedKey != null && !displacedKey.equals(profile.getAvatar())) {
-            // Inside the transaction: a failed insert must roll the profile write
-            // back, otherwise the displaced object loses its only cleanup intent.
-            storageCleanupOutbox.enqueue(displacedKey);
-        }
-
-        publishUserDocument(userId);
+        ProfileWriteResult result = profileMutationModule.update(new ProfilePatch(
+                userId,
+                updateDTO.getName(),
+                updateDTO.getAvatar(),
+                updateDTO.getBio(),
+                updateDTO.getCompany(),
+                updateDTO.getGithub(),
+                updateDTO.getLocation(),
+                updateDTO.getTwitter(),
+                updateDTO.getWebsite(),
+                updateDTO.getPreferredLanguage()));
         log.info("User profile updated: {}", userId);
-        return toVO(profile);
+        return toVO(result);
     }
 
     @Override
@@ -167,7 +106,10 @@ public class DefaultAppUserWritePort implements AppUserWritePort {
         }
 
         try {
-            avatarProfileMutationService.persistAvatar(userId, key);
+            ProfileWriteResult result = profileMutationModule.replaceAvatar(userId, key);
+            String displayUrl = AvatarUrls.resolve(userId, result.avatar());
+            log.info("Avatar uploaded for user {}", userId);
+            return displayUrl;
         } catch (RuntimeException exception) {
             // The profile write may have committed before the error surfaced and
             // may not be visible yet, so the staged object enters the delayed
@@ -176,10 +118,6 @@ public class DefaultAppUserWritePort implements AppUserWritePort {
             queueAmbiguousAvatarCleanup(key);
             throw exception;
         }
-
-        String displayUrl = AvatarUrls.resolve(userId, key);
-        log.info("Avatar uploaded for user {}", userId);
-        return displayUrl;
     }
 
     private static void validateExtension(String originalFilename) {
@@ -227,21 +165,21 @@ public class DefaultAppUserWritePort implements AppUserWritePort {
     private record DetectedImage(String extension, String contentType) {
     }
 
-    private UserVO toVO(UserProfile profile) {
-        if (profile == null) {
+    private UserVO toVO(ProfileWriteResult result) {
+        if (result == null) {
             return null;
         }
         UserVO vo = new UserVO();
-        vo.setId(profile.getAccountId());
-        vo.setName(profile.getName());
-        vo.setAvatar(AvatarUrls.resolve(profile.getAccountId(), profile.getAvatar()));
-        vo.setBio(profile.getBio());
-        vo.setCompany(profile.getCompany());
-        vo.setGithub(profile.getGithub());
-        vo.setLocation(profile.getLocation());
-        vo.setTwitter(profile.getTwitter());
-        vo.setWebsite(profile.getWebsite());
-        vo.setPreferredLanguage(profile.getPreferredLanguage());
+        vo.setId(result.accountId());
+        vo.setName(result.name());
+        vo.setAvatar(AvatarUrls.resolve(result.accountId(), result.avatar()));
+        vo.setBio(result.bio());
+        vo.setCompany(result.company());
+        vo.setGithub(result.github());
+        vo.setLocation(result.location());
+        vo.setTwitter(result.twitter());
+        vo.setWebsite(result.website());
+        vo.setPreferredLanguage(result.preferredLanguage());
         return vo;
     }
 }

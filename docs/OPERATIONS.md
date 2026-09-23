@@ -217,10 +217,11 @@ docker run --rm -v "${RUSTFS_VOLUMES[0]}:/data:ro" -v "$PWD:/backup" alpine \
   allowlist，并要求 migration subset 同时包含 `backend-admin` 与 `backend-app`
   （对象键写入与头像读取路径随本次发布一起切换）；随后记录原有
   `backend-admin` 容器 ID，使用已验证 image refs 执行 `docker compose stop`。
-  停止前先等待 `scripts/runbooks/assert-admin-backup-drained.sh` 通过（旧镜像没有 drain-aware
-  executor，直接 stop 会杀掉在跑的 `mysqldump`），超过 `ADMIN_BACKUP_DRAIN_TIMEOUT_SECONDS`
-  （默认 3660s）仍不通过就 fail closed；随后 `backend-admin` 使用独立的
-  `ADMIN_BACKUP_STOP_GRACE_PERIOD`（默认 3660s）和 `adminBackupExecutor` 排空旧 backup writer。
+  停止前先等待 `scripts/runbooks/assert-admin-backup-drained.sh` 通过；旧镜像可能没有 drain-aware
+  executor，直接 stop 会杀掉在跑的 `mysqldump`，因此超过 `ADMIN_BACKUP_DRAIN_TIMEOUT_SECONDS`
+  （默认 3660s）仍不通过就 fail closed。当前镜像的 `adminBackupExecutor` 拒绝 context close
+  后的新任务，并等待在途 dump/upload/state-transition 工作；`ADMIN_BACKUP_STOP_GRACE_PERIOD`
+  必须覆盖该排空窗口。
   本次发布还会在迁移/门禁之前一并停止 `backend-app`：旧 App 到新镜像替换前仍会写
   `/uploads/avatars/...` 行，门禁通过后再提交的行会指向不存在的对象。失败恢复会按记录
   逐个 `docker start` 还原此前确实在运行的 `backend-admin` 与 `backend-app` 容器。
@@ -233,9 +234,9 @@ docker run --rm -v "${RUSTFS_VOLUMES[0]}:/data:ro" -v "$PWD:/backup" alpine \
   随后的 `scripts/runbooks/reconcile-legacy-backups.sh` 复制一次性 Flyway copy
   之后出现且未被 `admin.backup_deletion_tombstones` 标记的 source rows；删除备份
   时先在 Admin 事务内持久化 tombstone（并记录该行的 `object_key`），避免后续
-  reconciliation 复活已删除目标；提交后立即尝试删除对象，失败时
-  `BackupObjectCleanup` 的定时 sweep 依据 tombstone 重试（对象删除幂等，成功后写
-  `object_deleted_at`）。
+  reconciliation 复活已删除目标；提交后立即尝试删除对象，失败或失败上传对象会由
+  `BackupObjectLifecycle` 的定时 sweep 在 settle window 后依据 tombstone 有界重试（对象删除幂等，
+  成功后写 `object_deleted_at`）。
   Runbook 仍拒绝 metadata conflict 和 pre-cutover target-only rows，并在 parity
   通过后写入 `admin.backup_cutover_state`。Owner-scoped 的 Admin migration 只负责
   创建/修复目标表；迁移不会删除旧行或旧文件。
@@ -267,6 +268,21 @@ docker run --rm -v "${RUSTFS_VOLUMES[0]}:/data:ro" -v "$PWD:/backup" alpine \
   `rustfs-init` / `rustfs-iam-init` 服务）
 
 ## 备份与恢复
+
+### Admin backup object lifecycle
+
+应用层 Admin backup 对象的生命周期由 `BackupObjectLifecycle` 统一负责，不由
+`BackupServiceImpl`、异步执行器和清理任务分别拥有。`BackupServiceImpl` 只编排创建请求
+（插入 `PENDING`）、下载/恢复、投影和删除请求校验；删除状态与对象清理委托生命周期模块。
+生命周期模块通过 named `adminBackupExecutor` 执行 `PENDING → IN_PROGRESS → COMPLETED | FAILED`，在对象 PUT 前持久化 planned key，
+并在临时 dump 文件的所有路径无条件清理。executor rejection 也会记录受保护的 `FAILED`
+状态；不能覆盖已经持久化的 `COMPLETED`。
+
+删除由生命周期模块重新读取权威 backup row：运行中的、已有 planned key 的 backup 拒绝删除；
+row delete 与 `admin.backup_deletion_tombstones` 写入同一 Admin 事务，对象删除只在提交后
+发生。非 `FAILED` 终态可走 after-commit fast path；失败上传对象先写 tombstone，等
+settle window 后由 `adminBackupScheduler` 触发有界 `sweep()`，幂等删除并记录成功或失败，
+直到 tombstone 完成。全 Owner 数据库归档与 restore drill 仍由下述外部 Ops runbook 负责。
 
 ### 责任与范围
 

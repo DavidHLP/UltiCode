@@ -23,10 +23,20 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class ProfileMutationModule {
 
+    public static final String USER_STATS_CACHE = "userStats";
+    public static final String CONTEST_RANKING_CACHE = "contestRanking";
+
     private final UserProfileMapper userProfileMapper;
     private final StorageCleanupOutbox storageCleanupOutbox;
     private final UserDirectoryQueryPort userDirectoryQueryPort;
     private final SearchDocumentChangedPublisher searchPublisher;
+
+    public static ProfilePatch profilePatch(
+            String accountId, String name, String avatar, String bio, String company,
+            String github, String location, String twitter, String website, String preferredLanguage) {
+        return new ProfilePatch(
+                accountId, name, avatar, bio, company, github, location, twitter, website, preferredLanguage);
+    }
 
     @Transactional
     public ProfileWriteResult update(ProfilePatch patch) {

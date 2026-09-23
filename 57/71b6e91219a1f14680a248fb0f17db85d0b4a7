@@ -1,0 +1,26 @@
+apps/management/src/composables/useRemoteTable.test.ts
+  h_77173abe25c3ff 322-323,330,332,334,336-340,343-355,358-361,364
+apps/management/src/stores/admin/audit.ts
+  h_77173abe25c3ff 2,21-22,63,65
+apps/management/src/stores/admin/comments.ts
+  h_77173abe25c3ff 2,36-37,41,45,49,56,60,67,71,81,90,93,175-176,182-183
+apps/management/src/stores/admin/forum.ts
+  h_77173abe25c3ff 2,25-27,56,60,64,75,79,90,94,97,101-102,166
+apps/management/src/stores/admin/notifications.ts
+  h_77173abe25c3ff 2,31-33,39,41,45,47,51,53
+apps/management/src/stores/createCollectionSlice.test.ts
+  h_77173abe25c3ff 99-102,106-110
+apps/management/src/stores/createCollectionSlice.ts
+  h_77173abe25c3ff 15-17,71-72,142-155,157,177-179
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5771b6e91219a1f14680a248fb0f17db85d0b4a7",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

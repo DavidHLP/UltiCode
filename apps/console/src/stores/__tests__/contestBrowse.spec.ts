@@ -82,12 +82,10 @@ describe("useContestBrowseStore loading state", () => {
 
     expect(store.loadingContests).toBe(false);
   });
-  it("does not write past-load failures into shared browse error", async () => {
+  it("exposes past-load failures from request-state", async () => {
     vi.mocked(fetchPastContests).mockRejectedValue(new Error("past failed"));
     const store = useContestBrowseStore();
-    store.error = "ongoing failed";
-
     await expect(store.loadPastContests()).rejects.toThrow("past failed");
-    expect(store.error).toBe("ongoing failed");
+    expect(store.error).toBe("past failed");
   });
 });

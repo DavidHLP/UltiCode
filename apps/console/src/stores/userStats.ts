@@ -13,7 +13,8 @@ export const useUserStatsStore = defineStore("userStats", () => {
   const loading = computed(() => statsRequest.loading.value || skillsRequest.loading.value);
   const lastFetch = ref<number>(0);
   const cacheTTL = 5 * 60 * 1000; // 5 分钟
-  const error = ref<string | null>(null);
+  const operationError = ref<string | null>(null);
+  const error = computed(() => operationError.value ?? statsRequest.error.value ?? skillsRequest.error.value);
 
   // Computed properties
   const easyProgress = computed(() => {
@@ -73,7 +74,9 @@ export const useUserStatsStore = defineStore("userStats", () => {
     const authStore = useAuthStore();
     if (!authStore.userId) return null;
     if (!forceRefresh && isCacheValid.value && stats.value) return stats.value;
-    error.value = null;
+    operationError.value = null;
+    statsRequest.error.value = null;
+    skillsRequest.error.value = null;
     try {
       const result = await statsRequest.run(() => fetchUserStats(authStore.userId!));
       if (!result) return null;
@@ -81,7 +84,6 @@ export const useUserStatsStore = defineStore("userStats", () => {
       lastFetch.value = Date.now();
       return result;
     } catch (err) {
-      error.value = err instanceof Error ? err.message : "Failed to load stats";
       throw err;
     }
   }
@@ -90,24 +92,27 @@ export const useUserStatsStore = defineStore("userStats", () => {
     const authStore = useAuthStore();
     if (!authStore.userId) return null;
     if (!forceRefresh && skills.value) return skills.value;
-    error.value = null;
+    operationError.value = null;
+    statsRequest.error.value = null;
+    skillsRequest.error.value = null;
     try {
       const result = await skillsRequest.run(() => fetchUserSkills(authStore.userId!));
       if (!result) return null;
       skills.value = result;
       return result;
     } catch (err) {
-      error.value = err instanceof Error ? err.message : "Failed to load skills";
       throw err;
     }
   }
 
   async function initialize() {
-    error.value = null;
+    operationError.value = null;
+    statsRequest.error.value = null;
+    skillsRequest.error.value = null;
     try {
       await Promise.all([fetchStats(), fetchSkills()]);
     } catch (err) {
-      error.value =
+      operationError.value =
         err instanceof Error ? err.message : "Failed to initialize user stats";
     }
   }
@@ -117,7 +122,9 @@ export const useUserStatsStore = defineStore("userStats", () => {
   }
 
   function clearError() {
-    error.value = null;
+    operationError.value = null;
+    statsRequest.error.value = null;
+    skillsRequest.error.value = null;
   }
 
   return {

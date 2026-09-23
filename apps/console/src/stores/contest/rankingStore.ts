@@ -15,13 +15,13 @@ export const useRankingStore = defineStore("ranking", () => {
 
   /** Loading state */
   const rankingRequest = createValueRequest({
-    errorMessage: "Failed to load rankings",
+    errorMessage: "Failed to load ranking",
     rethrow: true,
   });
   const loading = rankingRequest.loading;
 
   /** Error message */
-  const error = ref<string | null>(null);
+  const error = rankingRequest.error;
 
   /** Whether the ranking is frozen (during final minutes of contest) */
   const frozen = ref(false);
@@ -51,12 +51,10 @@ export const useRankingStore = defineStore("ranking", () => {
     slug: string,
     options?: { page?: number; limit?: number; includeVirtual?: boolean },
   ): Promise<void> {
-    error.value = null;
     try {
       const result = await rankingRequest.run(() => getRanking(slug, options));
       if (result) rankings.value = result.items;
     } catch (err) {
-      error.value = err instanceof Error ? err.message : "Failed to load ranking";
       throw err;
     }
   }
@@ -66,9 +64,9 @@ export const useRankingStore = defineStore("ranking", () => {
    */
   function clearRanking(): void {
     rankingRequest.cancel();
+    rankingRequest.error.value = null;
     rankings.value = [];
     frozen.value = false;
-    error.value = null;
   }
 
   /**
@@ -89,7 +87,7 @@ export const useRankingStore = defineStore("ranking", () => {
    * Clear error state
    */
   function clearError(): void {
-    error.value = null;
+    rankingRequest.error.value = null;
   }
 
   /**
@@ -97,8 +95,8 @@ export const useRankingStore = defineStore("ranking", () => {
    */
   function $reset(): void {
     rankingRequest.cancel();
+    rankingRequest.error.value = null;
     rankings.value = [];
-    error.value = null;
     frozen.value = false;
   }
 

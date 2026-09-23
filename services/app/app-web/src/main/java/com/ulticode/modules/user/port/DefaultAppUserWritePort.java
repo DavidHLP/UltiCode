@@ -58,7 +58,7 @@ public class DefaultAppUserWritePort implements AppUserWritePort {
     }
 
     @Override
-    @CacheEvict(value = "contestRanking", allEntries = true)
+    @CacheEvict(value = ProfileMutationModule.CONTEST_RANKING_CACHE, allEntries = true)
     public String uploadAvatar(String userId, MultipartFile file) {
         if (userId == null) {
             throw new BusinessException(BaseErrorCode.UNAUTHORIZED);

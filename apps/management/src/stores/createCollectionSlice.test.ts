@@ -269,7 +269,7 @@ describe('createCollectionSlice', () => {
   })
 
   it('uses each fetch error message for its own failure', async () => {
-    const failure = new Error('network failure')
+    const failure = {}
     const slice = createCollectionSlice<string, void>({ load: vi.fn().mockRejectedValue(failure) })
     await slice.fetch(undefined, { errorMessage: 'Custom collection failure' })
     expect(slice.error.value).toBe('Custom collection failure')

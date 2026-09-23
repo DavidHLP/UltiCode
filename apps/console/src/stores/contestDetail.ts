@@ -1,4 +1,5 @@
 import { defineStore } from "pinia";
+import { createValueRequest } from "@ulticode/request-state";
 import { computed, ref } from "vue";
 import type {
   ContestDetail,
@@ -52,7 +53,11 @@ export const useContestDetailStore = defineStore("contestDetail", () => {
 
   const userParticipation = ref<Map<string, ParticipationStatus>>(new Map());
 
-  const loading = ref(false);
+  const detailRequest = createValueRequest({
+    errorMessage: "Failed to load contest details",
+    rethrow: true,
+  });
+  const loading = detailRequest.loading;
   const error = ref<string | null>(null);
 
   // =========================================================================
@@ -72,16 +77,13 @@ export const useContestDetailStore = defineStore("contestDetail", () => {
   // =========================================================================
 
   async function loadContestDetail(contestId: string) {
-    loading.value = true;
     error.value = null;
     try {
-      currentContest.value = await fetchContestDetail(contestId);
+      const contest = await detailRequest.run(() => fetchContestDetail(contestId));
+      if (contest) currentContest.value = contest;
     } catch (err) {
-      error.value =
-        err instanceof Error ? err.message : "Failed to load contest details";
+      error.value = err instanceof Error ? err.message : "Failed to load contest details";
       throw err;
-    } finally {
-      loading.value = false;
     }
   }
 

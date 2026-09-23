@@ -1,5 +1,6 @@
 import { onScopeDispose, ref, type Ref } from "vue";
 import { searchApi } from "@/api/search";
+import { createValueRequest } from "@ulticode/request-state";
 import type { SearchResult } from "@/types/search";
 
 export interface UseSearchOptions {
@@ -29,32 +30,24 @@ export function useSearch(options: UseSearchOptions = {}): UseSearchReturn {
 
   const query = ref("");
   const results = ref<SearchResult[]>([]);
-  const loading = ref(false);
-  const error = ref<string | null>(null);
+  const request = createValueRequest({ errorMessage: "Search failed" });
+  const { loading, error } = request;
   const total = ref(0);
   const selectedIndex = ref(0);
   const isOpen = ref(false);
 
   let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-  let activeController: AbortController | null = null;
-  let latestRequest = 0;
-
   function cancelPendingSearch(): void {
-    latestRequest += 1;
+    request.cancel();
 
     if (debounceTimer) {
       clearTimeout(debounceTimer);
       debounceTimer = null;
     }
-
-    activeController?.abort();
-    activeController = null;
-    loading.value = false;
   }
 
   const search = (q: string): void => {
     cancelPendingSearch();
-    const requestId = latestRequest;
 
     query.value = q;
     error.value = null;
@@ -68,42 +61,12 @@ export function useSearch(options: UseSearchOptions = {}): UseSearchReturn {
 
     debounceTimer = setTimeout(() => {
       debounceTimer = null;
-      if (requestId !== latestRequest) {
-        return;
-      }
-
-      const controller = new AbortController();
-      activeController = controller;
-      loading.value = true;
-
-      void searchApi
-        .search({ query: q, limit }, controller.signal)
-        .then((response) => {
-          if (requestId !== latestRequest || controller.signal.aborted) {
-            return;
-          }
-
-          results.value = response.results;
-          total.value = response.total;
-          selectedIndex.value = 0;
-        })
-        .catch((err: unknown) => {
-          if (requestId !== latestRequest || controller.signal.aborted) {
-            return;
-          }
-
-          error.value = err instanceof Error ? err.message : "Search failed";
-          results.value = [];
-          total.value = 0;
-        })
-        .finally(() => {
-          if (requestId === latestRequest) {
-            loading.value = false;
-            if (activeController === controller) {
-              activeController = null;
-            }
-          }
-        });
+      void request.run((signal) => searchApi.search({ query: q, limit }, signal)).then((response) => {
+        if (!response) return;
+        results.value = response.results;
+        total.value = response.total;
+        selectedIndex.value = 0;
+      });
     }, debounceMs);
   };
 

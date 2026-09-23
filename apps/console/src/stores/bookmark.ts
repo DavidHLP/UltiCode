@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
 import { computed, ref } from "vue";
+import { createValueRequest } from "@ulticode/request-state";
 import type {
   AddBookmarkInput,
   BookmarkFolder,
@@ -28,10 +29,13 @@ export const useBookmarkStore = defineStore("bookmark", () => {
   const selectedFolderId = ref<string | null>(null);
   const selectedFolderDetails = ref<BookmarkFolderDetail | null>(null);
   const isLoading = ref(false);
-  const isLoadingDetails = ref(false);
+  const detailRequest = createValueRequest({
+    errorMessage: "Failed to load folder details",
+    rethrow: true,
+  });
+  const isLoadingDetails = detailRequest.loading;
   const isLoaded = ref(false);
   const error = ref<string | null>(null);
-  let detailRequestId = 0;
 
   const defaultFolder = computed(() => folders.value.find((f) => f.isDefault));
 
@@ -82,24 +86,14 @@ export const useBookmarkStore = defineStore("bookmark", () => {
   }
 
   async function loadFolderDetails(id: string) {
-    const requestId = ++detailRequestId;
-    isLoadingDetails.value = true;
     error.value = null;
     try {
-      const details = await fetchFolder(id);
-      if (requestId === detailRequestId) {
-        selectedFolderDetails.value = details;
-      }
+      const details = await detailRequest.run(() => fetchFolder(id));
+      if (details) selectedFolderDetails.value = details;
     } catch (err) {
-      if (requestId === detailRequestId) {
-        selectedFolderDetails.value = null;
-        error.value = getErrorMessage(err, "Failed to load folder details");
-      }
+      selectedFolderDetails.value = null;
+      error.value = getErrorMessage(err, "Failed to load folder details");
       throw err;
-    } finally {
-      if (requestId === detailRequestId) {
-        isLoadingDetails.value = false;
-      }
     }
   }
 
@@ -117,7 +111,7 @@ export const useBookmarkStore = defineStore("bookmark", () => {
   }
 
   function resetSelection() {
-    detailRequestId += 1;
+    detailRequest.cancel();
     selectedFolderId.value = null;
     selectedFolderDetails.value = null;
     isLoadingDetails.value = false;

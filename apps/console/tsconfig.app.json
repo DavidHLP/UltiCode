@@ -11,6 +11,7 @@
     "../../packages/sidebar-menu/src/**/*.vue",
     "../../packages/markdown-utils/src/**/*",
     "../../packages/http-client/src/**/*",
+    "../../packages/request-state/src/**/*",
     "../../packages/locale-preference/src/**/*",
     "../../packages/datetime-utils/src/**/*",
     "../../packages/badge-config/src/**/*",

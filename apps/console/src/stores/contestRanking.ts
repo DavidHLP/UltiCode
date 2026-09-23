@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import { createValueRequest } from "@ulticode/request-state";
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import type { ContestListItem, GlobalRankingEntry, UserContestHistory } from "@/types/contest";
 import {
   fetchGlobalRankings,

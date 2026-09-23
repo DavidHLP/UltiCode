@@ -342,6 +342,28 @@ describe('useRemoteTable', () => {
     expect(collection.isLoading.value).toBe(true)
   })
 
+  it('keeps collection fetch loading independent from mutations', async () => {
+    const { store, table } = createTable({ showInitialLoading: false })
+    let finishFetch: (() => void) | undefined
+    store.fetch.mockImplementation(
+      () => new Promise<void>((resolve) => { finishFetch = resolve }),
+    )
+
+    // A mutation owns the shared flag when a table transition starts a fetch.
+    store.isLoading.value = true
+    const transition = table.setFilters({ status: 'draft' })
+
+    // The mutation finishes while the collection request is still in flight:
+    // the table must keep reporting loading until its own fetch settles.
+    store.isLoading.value = false
+    expect(finishFetch).toBeDefined()
+    expect(table.loading.value).toBe(true)
+
+    finishFetch!()
+    await transition
+    expect(table.loading.value).toBe(false)
+  })
+
   it('cancels the collection when the table scope is disposed', async () => {
     const scope = effectScope()
     const store = createStore()

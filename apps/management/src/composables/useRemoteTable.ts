@@ -110,10 +110,20 @@ export function useRemoteTable<
     () => readonly(query.value) as DeepReadonly<RemoteTableQuery<TFilters>>,
   )
   const initialLoad = ref(showInitialLoading)
+  // Tracks this table's own in-flight fetches: stores alias isLoading for
+  // mutations too, so a mutation's finally must not report a running fetch
+  // as finished.
+  const pendingRequests = ref(0)
   let searchTimer: ReturnType<typeof setTimeout> | undefined
   let routeTimer: ReturnType<typeof setTimeout> | undefined
 
-  const loading = computed(() => initialLoad.value || toValue(store.isLoading) || false)
+  const loading = computed(
+    () =>
+      initialLoad.value ||
+      pendingRequests.value > 0 ||
+      toValue(store.isLoading) ||
+      false,
+  )
   const data = computed<TData[]>(() => {
     const items = toValue(store.items) ?? []
     return [...items] as TData[]
@@ -152,9 +162,11 @@ export function useRemoteTable<
       limit: current.pagination.pageSize,
     })
 
+    pendingRequests.value += 1
     try {
       await store.fetch(params)
     } finally {
+      pendingRequests.value -= 1
       if (!searchTimer && !toValue(store.isLoading)) initialLoad.value = false
     }
   }

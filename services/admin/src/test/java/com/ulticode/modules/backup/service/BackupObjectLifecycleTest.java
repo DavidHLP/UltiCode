@@ -558,8 +558,12 @@ class BackupObjectLifecycleTest {
 
                 TransactionSynchronizationManager.getSynchronizations()
                         .forEach(TransactionSynchronization::afterCommit);
-                verify(fileStorage).delete(objectKey);
-                verify(backupDeletionTombstoneMapper).markObjectDeleted(objectKey);
+                verify(fileStorage, timeout(5000)).delete(objectKey);
+                verify(backupDeletionTombstoneMapper, timeout(5000)).markObjectDeleted(objectKey);
+                // Object cleanup must never occupy the dedicated backup
+                // executor: a busy single worker would reject an unrelated
+                // backup submission.
+                verify(adminBackupExecutor, never()).execute(any());
             } finally {
                 TransactionSynchronizationManager.clearSynchronization();
             }

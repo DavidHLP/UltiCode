@@ -33,6 +33,7 @@ import java.util.HashMap;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.RejectedExecutionException;
 
@@ -314,7 +315,13 @@ public class BackupObjectLifecycle {
     private void registerAfterCommitCleanup(String objectKey) {
         Runnable submitCleanup = () -> {
             try {
-                adminBackupExecutor.execute(() -> deletePending(objectKey));
+                // Separate common-pool capacity: the dedicated Admin backup
+                // executor has one worker and no queue, so an object delete
+                // there would reject an unrelated backup submission.
+                CompletableFuture.runAsync(() -> deletePending(objectKey)).exceptionally(exception -> {
+                    log.warn("Async backup object cleanup failed: {}", objectKey, exception);
+                    return null;
+                });
             } catch (RuntimeException rejection) {
                 log.warn("Failed to schedule backup object cleanup: {}", objectKey, rejection);
             }

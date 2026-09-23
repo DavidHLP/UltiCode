@@ -7,15 +7,18 @@
  * the app version pulled from Vite's build-time env, and a small set of
  * shortcuts to common admin actions.
  */
+import {
+  userPermissionRules,
+  problemPermissionRules,
+  analyticsPermissionRules,
+} from '@/composables/domainPermissionMaps'
+import { usePermissionMap } from '@/composables/usePermissionMap'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useAuthStore } from '@/stores/auth'
-import { useUserPermissions } from '@/composables/useUserPermissions'
-import { useProblemPermissions } from '@/composables/useProblemPermissions'
-import { useAnalyticsPermissions } from '@/composables/useAnalyticsPermissions'
 import {
   IconKeyboard,
   IconBolt,
@@ -31,9 +34,9 @@ defineOptions({ name: 'HelpView' })
 const { t } = useI18n()
 const router = useRouter()
 const authStore = useAuthStore()
-const { can: userCan } = useUserPermissions()
-const { can: problemCan } = useProblemPermissions()
-const { can: analyticsCan } = useAnalyticsPermissions()
+const userCan = { user: usePermissionMap(userPermissionRules) }
+const problemCan = { problem: usePermissionMap(problemPermissionRules) }
+const analyticsCan = { analytics: usePermissionMap(analyticsPermissionRules) }
 
 /** Build-time injected by Vite. Empty string when not built. */
 const appVersion = computed(() => (import.meta.env.VITE_APP_VERSION as string | undefined) || 'dev')

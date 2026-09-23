@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from "vue";
+import { createValueRequest } from "@ulticode/request-state";
 import { useContestRankingStore } from "@/stores/contestRanking";
 import { useRouter } from "vue-router";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,56 +12,50 @@ import { useI18n } from "vue-i18n";
 
 const contestStore = useContestRankingStore();
 const router = useRouter();
-const loading = ref(true);
+const tabRequest = createValueRequest({
+  errorMessage: "Failed to load contests",
+  rethrow: true,
+});
+const loading = tabRequest.loading;
 const activeTab = ref("registered");
 const { t, locale } = useI18n();
 
-let requestId = 0;
-
 async function loadDataForTab(tab: string) {
-  const currentId = ++requestId;
-  switch (tab) {
-    case "registered": {
-      if (contestStore.registeredContests.length === 0) {
-        await contestStore.loadUserContests("registered");
-      }
-      break;
+  return tabRequest.run(async () => {
+    switch (tab) {
+      case "registered":
+        if (contestStore.registeredContests.length === 0) {
+          await contestStore.loadUserContests("registered");
+        }
+        break;
+      case "participated":
+        if (contestStore.contestHistory.length === 0) {
+          await contestStore.loadContestHistory();
+        }
+        break;
+      case "virtual":
+        if (contestStore.virtualContests.length === 0) {
+          await contestStore.loadUserContests("virtual");
+        }
+        break;
     }
-    case "participated": {
-      if (contestStore.contestHistory.length === 0) {
-        await contestStore.loadContestHistory();
-      }
-      break;
-    }
-    case "virtual": {
-      if (contestStore.virtualContests.length === 0) {
-        await contestStore.loadUserContests("virtual");
-      }
-      break;
-    }
-  }
-  // Only update loading if this is still the latest request
-  if (currentId === requestId) {
-    loading.value = false;
-  }
+    return true;
+  });
 }
 
 onMounted(async () => {
   try {
     await loadDataForTab(activeTab.value);
   } catch {
-    // Error handled by UI state
-    loading.value = false;
+    // Error handled by UI state.
   }
 });
 
 watch(activeTab, async (newTab) => {
-  loading.value = true;
   try {
     await loadDataForTab(newTab);
   } catch {
-    // Error handled by UI state
-    loading.value = false;
+    // Error handled by UI state.
   }
 });
 

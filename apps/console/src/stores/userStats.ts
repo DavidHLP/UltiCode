@@ -3,11 +3,14 @@ import { ref, computed } from "vue";
 import type { UserStats, UserSkills } from "@/types/userStats";
 import { fetchUserStats, fetchUserSkills } from "@/api/user";
 import { useAuthStore } from "./auth";
+import { createValueRequest } from "@ulticode/request-state";
 
 export const useUserStatsStore = defineStore("userStats", () => {
   const stats = ref<UserStats | null>(null);
   const skills = ref<UserSkills | null>(null);
-  const loading = ref(false);
+  const statsRequest = createValueRequest({ errorMessage: "Failed to load stats", rethrow: true });
+  const skillsRequest = createValueRequest({ errorMessage: "Failed to load skills", rethrow: true });
+  const loading = computed(() => statsRequest.loading.value || skillsRequest.loading.value);
   const lastFetch = ref<number>(0);
   const cacheTTL = 5 * 60 * 1000; // 5 分钟
   const error = ref<string | null>(null);
@@ -69,51 +72,44 @@ export const useUserStatsStore = defineStore("userStats", () => {
   async function fetchStats(forceRefresh = false) {
     const authStore = useAuthStore();
     if (!authStore.userId) return null;
-
-    if (!forceRefresh && isCacheValid.value && stats.value) {
-      return stats.value;
-    }
-
-    loading.value = true;
+    if (!forceRefresh && isCacheValid.value && stats.value) return stats.value;
     error.value = null;
+    statsRequest.error.value = null;
+    skillsRequest.error.value = null;
     try {
-      const result = await fetchUserStats(authStore.userId);
+      const result = await statsRequest.run(() => fetchUserStats(authStore.userId!));
+      if (!result) return null;
       stats.value = result;
       lastFetch.value = Date.now();
       return result;
     } catch (err) {
-      error.value = err instanceof Error ? err.message : "Failed to load stats";
+      error.value = statsRequest.error.value;
       throw err;
-    } finally {
-      loading.value = false;
     }
   }
 
   async function fetchSkills(forceRefresh = false) {
     const authStore = useAuthStore();
     if (!authStore.userId) return null;
-
-    if (!forceRefresh && skills.value) {
-      return skills.value;
-    }
-
-    loading.value = true;
+    if (!forceRefresh && skills.value) return skills.value;
     error.value = null;
+    statsRequest.error.value = null;
+    skillsRequest.error.value = null;
     try {
-      const result = await fetchUserSkills(authStore.userId);
+      const result = await skillsRequest.run(() => fetchUserSkills(authStore.userId!));
+      if (!result) return null;
       skills.value = result;
       return result;
     } catch (err) {
-      error.value =
-        err instanceof Error ? err.message : "Failed to load skills";
+      error.value = skillsRequest.error.value;
       throw err;
-    } finally {
-      loading.value = false;
     }
   }
 
   async function initialize() {
     error.value = null;
+    statsRequest.error.value = null;
+    skillsRequest.error.value = null;
     try {
       await Promise.all([fetchStats(), fetchSkills()]);
     } catch (err) {
@@ -128,6 +124,8 @@ export const useUserStatsStore = defineStore("userStats", () => {
 
   function clearError() {
     error.value = null;
+    statsRequest.error.value = null;
+    skillsRequest.error.value = null;
   }
 
   return {

@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
 import { computed, ref } from "vue";
+import { createValueRequest } from "@ulticode/request-state";
 import type {
   AddBookmarkInput,
   BookmarkFolder,
@@ -28,10 +29,14 @@ export const useBookmarkStore = defineStore("bookmark", () => {
   const selectedFolderId = ref<string | null>(null);
   const selectedFolderDetails = ref<BookmarkFolderDetail | null>(null);
   const isLoading = ref(false);
-  const isLoadingDetails = ref(false);
+  const detailRequest = createValueRequest({
+    errorMessage: "Failed to load folder details",
+    rethrow: true,
+  });
+  const isLoadingDetails = detailRequest.loading;
   const isLoaded = ref(false);
-  const error = ref<string | null>(null);
-  let detailRequestId = 0;
+  const operationError = ref<string | null>(null);
+  const error = computed(() => operationError.value ?? detailRequest.error.value);
 
   const defaultFolder = computed(() => folders.value.find((f) => f.isDefault));
 
@@ -51,7 +56,8 @@ export const useBookmarkStore = defineStore("bookmark", () => {
     if (isLoaded.value && !force) return;
 
     isLoading.value = true;
-    error.value = null;
+    operationError.value = null;
+    detailRequest.error.value = null;
     try {
       folders.value = await fetchFolders();
       isLoaded.value = true;
@@ -62,7 +68,7 @@ export const useBookmarkStore = defineStore("bookmark", () => {
         resetSelection();
       }
     } catch (err) {
-      error.value = getErrorMessage(err, "Failed to load folders");
+      operationError.value = getErrorMessage(err, "Failed to load folders");
       throw err;
     } finally {
       isLoading.value = false;
@@ -82,24 +88,14 @@ export const useBookmarkStore = defineStore("bookmark", () => {
   }
 
   async function loadFolderDetails(id: string) {
-    const requestId = ++detailRequestId;
-    isLoadingDetails.value = true;
-    error.value = null;
+    operationError.value = null;
+    detailRequest.error.value = null;
     try {
-      const details = await fetchFolder(id);
-      if (requestId === detailRequestId) {
-        selectedFolderDetails.value = details;
-      }
+      const details = await detailRequest.run(() => fetchFolder(id));
+      if (details) selectedFolderDetails.value = details;
     } catch (err) {
-      if (requestId === detailRequestId) {
-        selectedFolderDetails.value = null;
-        error.value = getErrorMessage(err, "Failed to load folder details");
-      }
+      selectedFolderDetails.value = null;
       throw err;
-    } finally {
-      if (requestId === detailRequestId) {
-        isLoadingDetails.value = false;
-      }
     }
   }
 
@@ -117,23 +113,25 @@ export const useBookmarkStore = defineStore("bookmark", () => {
   }
 
   function resetSelection() {
-    detailRequestId += 1;
+    detailRequest.cancel();
     selectedFolderId.value = null;
     selectedFolderDetails.value = null;
     isLoadingDetails.value = false;
-    error.value = null;
+    operationError.value = null;
+    detailRequest.error.value = null;
   }
 
   async function createFolder(
     data: CreateFolderInput,
   ): Promise<BookmarkFolder> {
-    error.value = null;
+    operationError.value = null;
+    detailRequest.error.value = null;
     try {
       const newFolder = await apiCreateFolder(data);
       folders.value.push(newFolder);
       return newFolder;
     } catch (err) {
-      error.value = getErrorMessage(err, "Failed to create folder");
+      operationError.value = getErrorMessage(err, "Failed to create folder");
       throw err;
     }
   }
@@ -142,7 +140,8 @@ export const useBookmarkStore = defineStore("bookmark", () => {
     id: string,
     data: UpdateFolderInput,
   ): Promise<BookmarkFolder> {
-    error.value = null;
+    operationError.value = null;
+    detailRequest.error.value = null;
     try {
       const updated = await apiUpdateFolder(id, data);
       const index = folders.value.findIndex((f) => f.id === id);
@@ -158,13 +157,14 @@ export const useBookmarkStore = defineStore("bookmark", () => {
       }
       return updated;
     } catch (err) {
-      error.value = getErrorMessage(err, "Failed to update folder");
+      operationError.value = getErrorMessage(err, "Failed to update folder");
       throw err;
     }
   }
 
   async function removeFolder(id: string): Promise<void> {
-    error.value = null;
+    operationError.value = null;
+    detailRequest.error.value = null;
     try {
       await apiDeleteFolder(id);
       folders.value = folders.value.filter((f) => f.id !== id);
@@ -172,13 +172,14 @@ export const useBookmarkStore = defineStore("bookmark", () => {
         resetSelection();
       }
     } catch (err) {
-      error.value = getErrorMessage(err, "Failed to delete folder");
+      operationError.value = getErrorMessage(err, "Failed to delete folder");
       throw err;
     }
   }
 
   async function reorderFolders(ids: string[]): Promise<void> {
-    error.value = null;
+    operationError.value = null;
+    detailRequest.error.value = null;
     try {
       await apiReorderFolders(ids);
       ids.forEach((id, index) => {
@@ -193,7 +194,7 @@ export const useBookmarkStore = defineStore("bookmark", () => {
         return a.sortOrder - b.sortOrder;
       });
     } catch (err) {
-      error.value = getErrorMessage(err, "Failed to reorder folders");
+      operationError.value = getErrorMessage(err, "Failed to reorder folders");
       throw err;
     }
   }
@@ -242,7 +243,8 @@ export const useBookmarkStore = defineStore("bookmark", () => {
     data: AddBookmarkInput,
   ): Promise<BookmarkItem> {
     return runFolderMutation(folderId, async () => {
-      error.value = null;
+      operationError.value = null;
+      detailRequest.error.value = null;
       try {
         const item = await apiAddBookmark(folderId, data);
         const details = selectedFolderDetails.value;
@@ -256,7 +258,7 @@ export const useBookmarkStore = defineStore("bookmark", () => {
         }
         return item;
       } catch (err) {
-        error.value = getErrorMessage(err, "Failed to add bookmark");
+        operationError.value = getErrorMessage(err, "Failed to add bookmark");
         throw err;
       }
     });
@@ -267,7 +269,8 @@ export const useBookmarkStore = defineStore("bookmark", () => {
     bookmarkId: string,
   ): Promise<void> {
     return runFolderMutation(folderId, async () => {
-      error.value = null;
+      operationError.value = null;
+      detailRequest.error.value = null;
       try {
         await apiRemoveBookmark(folderId, bookmarkId);
         const details = selectedFolderDetails.value;
@@ -278,7 +281,7 @@ export const useBookmarkStore = defineStore("bookmark", () => {
           updateItemCount(folderId, -1);
         }
       } catch (err) {
-        error.value = getErrorMessage(err, "Failed to remove bookmark");
+        operationError.value = getErrorMessage(err, "Failed to remove bookmark");
         throw err;
       }
     });
@@ -290,7 +293,8 @@ export const useBookmarkStore = defineStore("bookmark", () => {
     targetId: string,
   ): Promise<void> {
     return runFolderMutation(folderId, async () => {
-      error.value = null;
+      operationError.value = null;
+      detailRequest.error.value = null;
       try {
         await apiRemoveBookmarkByTarget(folderId, targetType, targetId);
         const details = selectedFolderDetails.value;
@@ -304,14 +308,15 @@ export const useBookmarkStore = defineStore("bookmark", () => {
           updateItemCount(folderId, -1);
         }
       } catch (err) {
-        error.value = getErrorMessage(err, "Failed to remove bookmark");
+        operationError.value = getErrorMessage(err, "Failed to remove bookmark");
         throw err;
       }
     });
   }
 
   function clearError() {
-    error.value = null;
+    operationError.value = null;
+    detailRequest.error.value = null;
   }
 
   function reset() {
@@ -319,7 +324,8 @@ export const useBookmarkStore = defineStore("bookmark", () => {
     folders.value = [];
     isLoaded.value = false;
     isLoading.value = false;
-    error.value = null;
+    operationError.value = null;
+    detailRequest.error.value = null;
   }
 
   return {

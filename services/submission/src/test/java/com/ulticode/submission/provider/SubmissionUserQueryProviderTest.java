@@ -49,8 +49,7 @@ class SubmissionUserQueryProviderTest {
                 projection,
                 mock(SubmissionPerformanceStats.class),
                 problemFactsPort);
-        provider = new SubmissionUserQueryProvider(
-                projection, readAssembly);
+        provider = new SubmissionUserQueryProvider(readAssembly);
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})

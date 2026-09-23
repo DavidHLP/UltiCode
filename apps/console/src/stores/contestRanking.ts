@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
-import { ref } from "vue";
+import { createValueRequest } from "@ulticode/request-state";
+import { computed, ref } from "vue";
 import type { ContestListItem, GlobalRankingEntry, UserContestHistory } from "@/types/contest";
 import {
   fetchGlobalRankings,
@@ -30,14 +31,19 @@ export const useContestRankingStore = defineStore("contestRanking", () => {
   // =========================================================================
 
   const globalRankings = ref<GlobalRankingEntry[]>([]);
-  const loadingRankings = ref(false);
+  const rankingsRequest = createValueRequest({
+    errorMessage: "Failed to load rankings",
+    rethrow: true,
+  });
+  const loadingRankings = rankingsRequest.loading;
 
   const registeredContests = ref<ContestListItem[]>([]);
   const participatedContests = ref<ContestListItem[]>([]);
   const virtualContests = ref<ContestListItem[]>([]);
   const contestHistory = ref<UserContestHistory[]>([]);
 
-  const error = ref<string | null>(null);
+  const operationError = ref<string | null>(null);
+  const error = computed(() => operationError.value ?? rankingsRequest.error.value);
 
   // =========================================================================
   // ACTIONS — GLOBAL RANKINGS
@@ -48,21 +54,17 @@ export const useContestRankingStore = defineStore("contestRanking", () => {
     limit?: number;
     country?: string;
   }) {
-    loadingRankings.value = true;
-    error.value = null;
+    operationError.value = null;
+    rankingsRequest.error.value = null;
     try {
-      const result = await fetchGlobalRankings({
+      const result = await rankingsRequest.run(() => fetchGlobalRankings({
         page: options?.page ?? 1,
         limit: options?.limit ?? 10,
         country: options?.country,
-      });
-      globalRankings.value = result.items;
+      }));
+      if (result) globalRankings.value = result.items;
     } catch (err) {
-      error.value =
-        err instanceof Error ? err.message : "Failed to load rankings";
       throw err;
-    } finally {
-      loadingRankings.value = false;
     }
   }
 
@@ -73,7 +75,8 @@ export const useContestRankingStore = defineStore("contestRanking", () => {
   async function loadUserContests(
     type?: "registered" | "participated" | "virtual",
   ) {
-    error.value = null;
+    operationError.value = null;
+    rankingsRequest.error.value = null;
     try {
       if (type) {
         const result = await apiFetchUserContests(type);
@@ -91,25 +94,27 @@ export const useContestRankingStore = defineStore("contestRanking", () => {
         virtualContests.value = virtual.items;
       }
     } catch (err) {
-      error.value =
+      operationError.value =
         err instanceof Error ? err.message : "Failed to load user contests";
       throw err;
     }
   }
 
   async function loadContestHistory() {
-    error.value = null;
+    operationError.value = null;
+    rankingsRequest.error.value = null;
     try {
       contestHistory.value = await fetchUserContestHistory();
     } catch (err) {
-      error.value =
+      operationError.value =
         err instanceof Error ? err.message : "Failed to load contest history";
       throw err;
     }
   }
 
   function clearError() {
-    error.value = null;
+    operationError.value = null;
+    rankingsRequest.error.value = null;
   }
 
   return {

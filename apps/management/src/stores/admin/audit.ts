@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import {
   auditApi,
   type AuditLog,
@@ -8,7 +8,7 @@ import {
   type AuditExportParams,
 } from '@/api/admin/audit'
 import { createCollectionSlice } from '@/stores/createCollectionSlice'
-import { extractApiErrorMessage } from '@/utils/error'
+import { createValueRequest } from '@/stores/createValueRequest'
 export const useAuditStore = defineStore('adminAudit', () => {
   const collection = createCollectionSlice<AuditLog, AuditLogQueryParams>({
     load: async (params = {}, signal) => {
@@ -18,67 +18,37 @@ export const useAuditStore = defineStore('adminAudit', () => {
   })
   const logs = collection.items
   const total = collection.total
-  const loading = collection.isLoading
-  const error = collection.error
+  const loading = computed(() => collection.isLoading.value || collection.mutationLoading.value)
+  const error = computed(() => collection.error.value || collection.mutationError.value)
   const stats = ref<AuditStats | null>(null)
-  const statsLoading = ref(false)
-  const statsError = ref<string | null>(null)
-  let statsController: AbortController | null = null
-  let statsSequence = 0
+  const statsRequest = createValueRequest({
+    errorMessage: 'Failed to fetch audit stats',
+    rethrow: true,
+    onError: (err) => console.error('Failed to fetch audit stats:', err),
+  })
 
   const fetchLogs = collection.fetch
 
-  function cancelStats(): void {
-    statsSequence += 1
-    statsController?.abort()
-    statsController = null
-    statsLoading.value = false
-  }
+  const cancelStats = statsRequest.cancel
 
   async function fetchStats(params?: AuditLogQueryParams) {
-    statsController?.abort()
-    const controller = new AbortController()
-    statsController = controller
-    const request = ++statsSequence
-    statsLoading.value = true
-    statsError.value = null
-    try {
-      const data = await auditApi.getAuditStats(params, controller.signal)
-      if (request === statsSequence && !controller.signal.aborted) stats.value = data
-      return data
-    } catch (err: unknown) {
-      if (controller.signal.aborted || request !== statsSequence) return null
-      statsError.value = extractApiErrorMessage(err, 'Failed to fetch audit stats')
-      console.error('Failed to fetch audit stats:', err)
-      throw err
-    } finally {
-      if (statsController === controller) {
-        statsController = null
-        statsLoading.value = false
-      }
-    }
+    const data = await statsRequest.run((signal) => auditApi.getAuditStats(params, signal))
+    if (data !== null) stats.value = data
+    return data
   }
 
   async function exportLogs(params: AuditExportParams) {
-    loading.value = true
-    error.value = null
-    try {
+    return collection.runMutation(async () => {
       await auditApi.exportAuditLogs(params)
-    } catch (err: unknown) {
-      error.value = extractApiErrorMessage(err, 'Failed to export audit logs')
-      console.error('Failed to export audit logs:', err)
-      throw err
-    } finally {
-      loading.value = false
-    }
+    }, 'Failed to export audit logs')
   }
 
   return {
     logs,
     total,
     stats,
-    statsLoading,
-    statsError,
+    statsLoading: statsRequest.loading,
+    statsError: statsRequest.error,
     loading,
     error,
     fetchLogs,

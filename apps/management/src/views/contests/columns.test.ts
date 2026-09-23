@@ -3,7 +3,7 @@ import { mount } from '@vue/test-utils'
 import { describe, expect, it, vi } from 'vitest'
 import type { Contest } from '@/api/admin/contests'
 import { createColumns, type ContestActions } from './columns'
-import type { ContestPermissionMap } from '@/composables/useContestPermissions'
+import type { ContestPermissionMap } from '@/composables/domainPermissionMaps'
 
 const actions: ContestActions = {
   viewContest: vi.fn(),

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { contestPermissionRules } from '@/composables/domainPermissionMaps'
+import { usePermissionMap } from '@/composables/usePermissionMap'
 import { ref, computed, onMounted } from 'vue'
 import { toast } from 'vue-sonner'
 import { useI18n } from 'vue-i18n'
@@ -16,10 +18,9 @@ import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
 import ContestDetailDrawer from './ContestDetailDrawer.vue'
 import { createColumns } from './columns'
 import { useRemoteTable } from '@/composables/useRemoteTable'
-import { useContestPermissions } from '@/composables/useContestPermissions'
 
 const contestsStore = useContestsStore()
-const { can } = useContestPermissions()
+const can = { contest: usePermissionMap(contestPermissionRules) }
 const { t } = useI18n()
 
 const selectedContestId = ref<string | null>(null)

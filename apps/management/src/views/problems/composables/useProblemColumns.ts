@@ -26,7 +26,7 @@ import { badge, DIFFICULTY_COLOR_MAP } from '@/components/ui/terminal'
 import { createSelectionColumn } from '@/components/table/selectionColumn'
 import { createEntityActionsMenu } from '@/components/table/entityActions'
 import { Difficulty, type Problem } from '@/api/admin/problems'
-import type { ProblemPermissionMap } from '@/composables/useProblemPermissions'
+import type { ProblemPermissionMap } from '@/composables/domainPermissionMaps'
 
 function getDifficultyIcon(difficulty: Difficulty) {
   switch (difficulty) {

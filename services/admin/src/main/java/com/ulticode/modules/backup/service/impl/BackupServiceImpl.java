@@ -23,7 +23,6 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.attribute.PosixFilePermissions;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -51,7 +50,7 @@ public class BackupServiceImpl implements BackupService {
     private final BackupObjectLifecycle backupObjectLifecycle;
     private final FileStoragePort fileStorage;
 
-    @Value("${backup.temp-dir:${java.io.tmpdir}/ulticode-backups}")
+    @Value(BackupTempFiles.TEMP_DIR_PROPERTY)
     private String backupTempDir;
 
     private static final DateTimeFormatter FILE_DATE_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss");
@@ -101,7 +100,7 @@ public class BackupServiceImpl implements BackupService {
         String objectKey = requireBackupObjectKey(backup);
         Path tempFile = null;
         try {
-            tempFile = createSecureTempFile("restore-", ".sql");
+            tempFile = BackupTempFiles.createSecureTempFile(backupTempDir, "restore-", ".sql");
             FileStoragePort.StorageStream stored = fileStorage.openStream(objectKey)
                     .orElseThrow(() -> new BusinessException(BaseErrorCode.NOT_FOUND, "Backup object not found"));
             String checksum = copyAndChecksum(stored.content(), tempFile);
@@ -150,7 +149,7 @@ public class BackupServiceImpl implements BackupService {
             throw new BusinessException(BaseErrorCode.UNKNOWN_ERROR,
                     "Database restore failed. Check server logs for details.");
         } finally {
-            deleteTempFile(tempFile);
+            BackupTempFiles.deleteTempFile(tempFile);
         }
     }
     @Override
@@ -190,6 +189,8 @@ public class BackupServiceImpl implements BackupService {
         return displayPath;
     }
 
+    // The validation tail mirrors BackupObjectLifecycle.requireBackupObjectKey;
+    // keep them aligned while the blank-key entry contracts stay distinct.
     private String requireBackupObjectKey(Backup backup) {
         String objectKey = backup.getObjectKey();
         // Legacy metadata rows stay COMPLETED with a null key until their dump is
@@ -207,34 +208,6 @@ public class BackupServiceImpl implements BackupService {
             throw new BusinessException(BaseErrorCode.BAD_REQUEST, "Invalid backup object key");
         }
         return objectKey;
-    }
-
-    private Path createSecureTempFile(String prefix, String suffix) throws IOException {
-        Path directory = Paths.get(backupTempDir).toAbsolutePath().normalize();
-        Files.createDirectories(directory);
-        restrictPermissions(directory, "rwx------");
-        Path file = Files.createTempFile(directory, prefix, suffix);
-        restrictPermissions(file, "rw-------");
-        return file;
-    }
-
-    private static void restrictPermissions(Path path, String permissions) throws IOException {
-        try {
-            Files.setPosixFilePermissions(path, PosixFilePermissions.fromString(permissions));
-        } catch (UnsupportedOperationException ignored) {
-            // POSIX permissions are unavailable on some local development hosts.
-        }
-    }
-
-    private static void deleteTempFile(Path file) {
-        if (file == null) {
-            return;
-        }
-        try {
-            Files.deleteIfExists(file);
-        } catch (IOException exception) {
-            log.warn("Failed to clean up backup temp file: {}", file, exception);
-        }
     }
 
     private static String copyAndChecksum(InputStream content, Path target) throws IOException {

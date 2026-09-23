@@ -36,6 +36,7 @@
     "@ulticode/i18n-completeness": "workspace:*",
     "@ulticode/locale-preference": "workspace:*",
     "@ulticode/markdown-utils": "workspace:*",
+    "@ulticode/request-state": "workspace:*",
     "@ulticode/sidebar-menu": "workspace:*",
     "@ulticode/submission-status": "workspace:*",
     "@ulticode/theme": "workspace:*",

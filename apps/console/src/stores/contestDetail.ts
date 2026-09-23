@@ -1,4 +1,5 @@
 import { defineStore } from "pinia";
+import { createValueRequest } from "@ulticode/request-state";
 import { computed, ref } from "vue";
 import type {
   ContestDetail,
@@ -52,7 +53,11 @@ export const useContestDetailStore = defineStore("contestDetail", () => {
 
   const userParticipation = ref<Map<string, ParticipationStatus>>(new Map());
 
-  const loading = ref(false);
+  const detailRequest = createValueRequest({
+    errorMessage: "Failed to load contest details",
+    rethrow: true,
+  });
+  const loading = detailRequest.loading;
   const error = ref<string | null>(null);
 
   // =========================================================================
@@ -72,16 +77,14 @@ export const useContestDetailStore = defineStore("contestDetail", () => {
   // =========================================================================
 
   async function loadContestDetail(contestId: string) {
-    loading.value = true;
     error.value = null;
+    detailRequest.error.value = null;
     try {
-      currentContest.value = await fetchContestDetail(contestId);
+      const contest = await detailRequest.run(() => fetchContestDetail(contestId));
+      if (contest) currentContest.value = contest;
     } catch (err) {
-      error.value =
-        err instanceof Error ? err.message : "Failed to load contest details";
+      error.value = detailRequest.error.value;
       throw err;
-    } finally {
-      loading.value = false;
     }
   }
 
@@ -109,6 +112,7 @@ export const useContestDetailStore = defineStore("contestDetail", () => {
 
   async function registerForContest(contestId: string) {
     error.value = null;
+    detailRequest.error.value = null;
     try {
       await apiRegister(contestId);
       const status = await fetchParticipationStatus(contestId);
@@ -129,6 +133,7 @@ export const useContestDetailStore = defineStore("contestDetail", () => {
 
   async function unregisterFromContest(contestId: string) {
     error.value = null;
+    detailRequest.error.value = null;
     try {
       await apiUnregister(contestId);
       const status = await fetchParticipationStatus(contestId);
@@ -177,6 +182,7 @@ export const useContestDetailStore = defineStore("contestDetail", () => {
 
   function clearError() {
     error.value = null;
+    detailRequest.error.value = null;
   }
 
   return {

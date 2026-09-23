@@ -12,6 +12,9 @@ import com.ulticode.modules.submission.read.SubmissionReadAssembly;
 import com.ulticode.modules.submission.stats.SubmissionPerformanceStats;
 import com.ulticode.submission.api.dto.PerformanceStats;
 import com.ulticode.submission.api.dto.SubmissionDetailVO;
+import com.ulticode.submission.api.dto.LearningProgressDTO;
+import com.ulticode.submission.api.dto.SubmissionHistoryDTO;
+import com.ulticode.submission.api.dto.SubmissionStatusMeta;
 import com.ulticode.submission.api.dto.SubmissionListItemVO;
 import com.ulticode.submission.api.dto.SubmissionQueryDTO;
 import com.ulticode.submission.api.dto.SubmissionVO;
@@ -41,6 +44,36 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class SubmissionReadAssemblyTest {
+
+    @Test
+    void absenceContractsRemainDistinctAcrossReadOperations() {
+        SubmissionMapper mapper = mock(SubmissionMapper.class);
+        SubmissionProjection projection = mock(SubmissionProjection.class);
+        SubmissionPerformanceStats stats = mock(SubmissionPerformanceStats.class);
+        ProblemFactsPort facts = mock(ProblemFactsPort.class);
+        SubmissionReadAssembly assembly = newAssembly(mapper, projection, stats, facts);
+        LearningProgressDTO progress = new LearningProgressDTO();
+        SubmissionHistoryDTO history = new SubmissionHistoryDTO();
+        List<SubmissionStatusMeta> catalog = List.of();
+
+        when(projection.aggregateDates("user-1", 2026)).thenReturn(List.of());
+        when(projection.aggregateLearningProgress("user-1")).thenReturn(progress);
+        when(projection.aggregateHistory("user-1")).thenReturn(history);
+        when(projection.getStatusCatalog()).thenReturn(catalog);
+
+        assertThat(assembly.toVOs(null)).isEmpty();
+        assertThat(assembly.findById("missing", "user-1")).isNull();
+        assertThat(assembly.findById(null, "user-1")).isNull();
+        assertThat(assembly.findBest(101L, "user-1")).isNull();
+        var emptyProblemPage = assembly.findByProblemId(null, "user-1", null);
+        assertThat(emptyProblemPage.getItems()).isEmpty();
+        assertThat(emptyProblemPage.getPageSize()).isEqualTo(10);
+        assertThat(assembly.aggregateDates("user-1", 2026)).isEmpty();
+        assertThat(assembly.aggregateLearningProgress("user-1")).isSameAs(progress);
+        assertThat(assembly.aggregateHistory("user-1")).isSameAs(history);
+        assertThat(assembly.getStatusCatalog()).isSameAs(catalog);
+    }
+
 
     @Test
     void findByIdEnforcesOwnershipAndUsesDetailProjection() {

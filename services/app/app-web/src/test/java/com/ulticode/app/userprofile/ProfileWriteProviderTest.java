@@ -7,6 +7,8 @@ import com.ulticode.app.api.error.AppErrorCode;
 import com.ulticode.app.idempotency.CommandReceiptExecutor;
 import com.ulticode.app.security.AdminActorAuthorizer;
 import com.ulticode.app.userprofile.provider.ProfileWriteProvider;
+import com.ulticode.modules.user.dto.UpdateUserDTO;
+import com.ulticode.modules.user.port.DefaultAppUserWritePort;
 import com.ulticode.common.command.ActorDelegation;
 import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.exception.BusinessException;
@@ -16,6 +18,7 @@ import com.ulticode.common.tracing.TraceMetadata;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.cache.annotation.CacheEvict;
 
 import java.util.function.Function;
 
@@ -41,6 +44,20 @@ class ProfileWriteProviderTest {
         receiptExecutor = mock(CommandReceiptExecutor.class);
         actorAuthorizer = mock(AdminActorAuthorizer.class);
         provider = new ProfileWriteProvider(profileMutationModule, receiptExecutor, actorAuthorizer);
+    }
+
+    @Test
+    void updateAdaptersDeclareSameProfileWriteCacheEvictions() throws NoSuchMethodException {
+        CacheEvict rpc = ProfileWriteProvider.class
+                .getMethod("updateProfile", UpdateProfileCommand.class)
+                .getAnnotation(CacheEvict.class);
+        CacheEvict http = DefaultAppUserWritePort.class
+                .getMethod("updateProfile", String.class, UpdateUserDTO.class)
+                .getAnnotation(CacheEvict.class);
+
+        assertThat(rpc.value()).containsExactlyInAnyOrder(
+                ProfileMutationModule.USER_STATS_CACHE, ProfileMutationModule.CONTEST_RANKING_CACHE);
+        assertThat(http.value()).containsExactlyInAnyOrder(rpc.value());
     }
 
     @Test

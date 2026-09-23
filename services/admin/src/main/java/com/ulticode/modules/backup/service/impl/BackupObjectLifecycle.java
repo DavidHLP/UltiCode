@@ -22,8 +22,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.attribute.PosixFilePermissions;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
@@ -64,7 +62,7 @@ public class BackupObjectLifecycle {
             BackupProcessPort backupProcessPort,
             FileStoragePort fileStorage,
             @Qualifier("adminBackupExecutor") Executor adminBackupExecutor,
-            @Value("${backup.temp-dir:${java.io.tmpdir}/ulticode-backups}") String backupTempDir,
+            @Value(BackupTempFiles.TEMP_DIR_PROPERTY) String backupTempDir,
             @Value("${backup.object-cleanup.settle-seconds:300}") int settleSeconds) {
         this.backupMapper = backupMapper;
         this.backupDeletionTombstoneMapper = backupDeletionTombstoneMapper;
@@ -161,7 +159,7 @@ public class BackupObjectLifecycle {
                         "Failed to persist IN_PROGRESS backup state; affected rows: " + inProgressRows);
             }
 
-            tempFile = createSecureTempFile("dump-", ".sql");
+            tempFile = BackupTempFiles.createSecureTempFile(backupTempDir, "dump-", ".sql");
             if (!backupProcessPort.dump(tempFile)
                     || !Files.isRegularFile(tempFile)
                     || Files.size(tempFile) == 0) {
@@ -199,7 +197,7 @@ public class BackupObjectLifecycle {
         } catch (Exception failure) {
             handleFailure(backup, objectKey, failure);
         } finally {
-            deleteTempFile(tempFile);
+            BackupTempFiles.deleteTempFile(tempFile);
         }
     }
 
@@ -366,6 +364,10 @@ public class BackupObjectLifecycle {
         }
     }
 
+    // Validation tail mirrors BackupServiceImpl.requireBackupObjectKey after its
+    // legacy blank-key check. The entry contracts stay distinct on purpose:
+    // callers guard blank keys before deletion, while download/restore maps
+    // legacy blank keys to NOT_FOUND.
     private String requireBackupObjectKey(Backup backup) {
         String objectKey = backup.getObjectKey();
         try {
@@ -377,15 +379,6 @@ public class BackupObjectLifecycle {
             throw new BusinessException(BaseErrorCode.BAD_REQUEST, "Invalid backup object key");
         }
         return objectKey;
-    }
-
-    private Path createSecureTempFile(String prefix, String suffix) throws IOException {
-        Path directory = Paths.get(backupTempDir).toAbsolutePath().normalize();
-        Files.createDirectories(directory);
-        restrictPermissions(directory, "rwx------");
-        Path file = Files.createTempFile(directory, prefix, suffix);
-        restrictPermissions(file, "rw-------");
-        return file;
     }
 
     private static String sha256(Path file) throws IOException {
@@ -405,25 +398,6 @@ public class BackupObjectLifecycle {
             }
         }
         return HexFormat.of().formatHex(digest.digest());
-    }
-
-    private static void restrictPermissions(Path path, String permissions) throws IOException {
-        try {
-            Files.setPosixFilePermissions(path, PosixFilePermissions.fromString(permissions));
-        } catch (UnsupportedOperationException ignored) {
-            // POSIX permissions are unavailable on some local development hosts.
-        }
-    }
-
-    private static void deleteTempFile(Path file) {
-        if (file == null) {
-            return;
-        }
-        try {
-            Files.deleteIfExists(file);
-        } catch (IOException exception) {
-            log.warn("Failed to clean up backup temp file: {}", file, exception);
-        }
     }
 
     private static String describe(RuntimeException failure) {

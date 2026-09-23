@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import {
   commentsApi,
   type Comment,
@@ -7,7 +7,6 @@ import {
   type CommentType,
   type BulkCommentActionDto,
 } from '@/api/admin/comments'
-import { extractApiErrorMessage } from '@/utils/error'
 import { useAuthStore } from '@/stores/auth'
 import { PERM } from '@/constants/permissions'
 import { createCollectionSlice } from '@/stores/createCollectionSlice'
@@ -34,65 +33,42 @@ export const useCommentsStore = defineStore('adminComments', () => {
   const comments = collection.items
   const total = collection.total
   const currentComment = ref<Comment | null>(null)
-  const loading = collection.isLoading
-  const error = collection.error
+  const loading = computed(() => collection.isLoading.value || collection.mutationLoading.value)
+  const error = computed(() => collection.error.value || collection.mutationError.value)
   const fetchComments = collection.fetch
 
   async function fetchComment(id: string, type: CommentType) {
-    loading.value = true
-    error.value = null
-    try {
+    return collection.runMutation(async () => {
       const comment = await commentsApi.getComment(id, type)
       currentComment.value = comment
       return comment
-    } catch (err: unknown) {
-      error.value = extractApiErrorMessage(err, 'Failed to fetch comment')
-      throw err
-    } finally {
-      loading.value = false
-    }
+    }, 'Failed to fetch comment')
   }
 
   async function flagComment(id: string, type: CommentType, reason: string) {
-    loading.value = true
-    error.value = null
-    try {
+    return collection.runMutation(async () => {
       const updatedComment = await commentsApi.flagComment(id, type, reason)
       const index = comments.value.findIndex((c) => c.id === id)
       if (index !== -1 && updatedComment) {
         comments.value = comments.value.map((c) => (c.id === id ? updatedComment : c))
       }
       return updatedComment
-    } catch (err: unknown) {
-      error.value = extractApiErrorMessage(err, 'Failed to flag comment')
-      throw err
-    } finally {
-      loading.value = false
-    }
+    }, 'Failed to flag comment')
   }
 
   async function unflagComment(id: string, type: CommentType) {
-    loading.value = true
-    error.value = null
-    try {
+    return collection.runMutation(async () => {
       const updatedComment = await commentsApi.unflagComment(id, type)
       const index = comments.value.findIndex((c) => c.id === id)
       if (index !== -1 && updatedComment) {
         comments.value = comments.value.map((c) => (c.id === id ? updatedComment : c))
       }
       return updatedComment
-    } catch (err: unknown) {
-      error.value = extractApiErrorMessage(err, 'Failed to unflag comment')
-      throw err
-    } finally {
-      loading.value = false
-    }
+    }, 'Failed to unflag comment')
   }
 
   async function deleteComment(id: string, type: CommentType) {
-    loading.value = true
-    error.value = null
-    try {
+    return collection.runMutation(async () => {
       await commentsApi.deleteComment(id, type)
       const index = comments.value.findIndex((c) => c.id === id)
       if (index !== -1) {
@@ -102,12 +78,7 @@ export const useCommentsStore = defineStore('adminComments', () => {
           ...comments.value.slice(index + 1),
         ]
       }
-    } catch (err: unknown) {
-      error.value = extractApiErrorMessage(err, 'Failed to delete comment')
-      throw err
-    } finally {
-      loading.value = false
-    }
+    }, 'Failed to delete comment')
   }
 
   /**
@@ -116,17 +87,10 @@ export const useCommentsStore = defineStore('adminComments', () => {
    * the {@link bulkModerate} workflow, not on the wire shape.
    */
   async function runBulkAction(data: BulkCommentActionDto): Promise<void> {
-    loading.value = true
-    error.value = null
-    try {
+    return collection.runMutation(async () => {
       await commentsApi.bulkAction(data)
       await fetchComments(lastParams.value)
-    } catch (err: unknown) {
-      error.value = extractApiErrorMessage(err, 'Failed to perform bulk action')
-      throw err
-    } finally {
-      loading.value = false
-    }
+    }, 'Failed to perform bulk action')
   }
 
   /**
@@ -208,14 +172,15 @@ export const useCommentsStore = defineStore('adminComments', () => {
   }
 
   function clearError() {
-    error.value = null
+    collection.clearError()
+    collection.mutationError.value = null
   }
 
   function reset() {
     comments.value = []
     total.value = 0
-    loading.value = false
-    error.value = null
+    collection.clearError()
+    collection.mutationError.value = null
     lastParams.value = {}
   }
 

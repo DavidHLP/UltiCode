@@ -96,17 +96,18 @@ describe('createCollectionSlice', () => {
     expect(slice.isLoading.value).toBe(false)
   })
 
-  it('leaves loading untouched when cancel owns no active request', () => {
-    const load = vi.fn().mockResolvedValue({ items: [], total: 0 })
-    const slice = createCollectionSlice<string, void>({ load })
+  it('cancel preserves independent mutation loading', async () => {
+    const slice = createCollectionSlice<string, void>({ load: vi.fn().mockResolvedValue({ items: [], total: 0 }) })
+    let finish!: () => void
+    const mutation = slice.runMutation(() => new Promise<void>((resolve) => { finish = resolve }), 'Failed')
 
-    // Stores alias isLoading for mutations/exports; with no collection
-    // request active, a table transition must not report that work done.
-    slice.isLoading.value = true
     slice.cancel()
 
-    expect(slice.isLoading.value).toBe(true)
-    expect(load).not.toHaveBeenCalled()
+    expect(slice.mutationLoading.value).toBe(true)
+    expect(slice.isLoading.value).toBe(false)
+    finish()
+    await mutation
+    expect(slice.mutationLoading.value).toBe(false)
   })
 
   it('cancels before reset clears collection state', async () => {

@@ -12,6 +12,9 @@ export interface CollectionSlice<T, TParams> {
   total: Ref<number>
   isLoading: Ref<boolean>
   error: Ref<string | null>
+  mutationLoading: Ref<boolean>
+  mutationError: Ref<string | null>
+  runMutation: <T>(run: () => Promise<T>, errorMessage: string) => Promise<T>
   fetch: (params?: TParams, options?: CollectionFetchOptions) => Promise<void>
   fetchWith: (
     load: CollectionLoader<T, TParams, never>,
@@ -65,6 +68,8 @@ export function createCollectionSlice<T, TParams, TMetadata = never>(
   const total = ref(0)
   const isLoading = ref(false)
   const error = ref<string | null>(null)
+  const mutationLoading = ref(false)
+  const mutationError = ref<string | null>(null)
   let requestSequence = 0
   let currentController: AbortController | null = null
 
@@ -134,10 +139,22 @@ export function createCollectionSlice<T, TParams, TMetadata = never>(
     error.value = null
   }
 
+  async function runMutation<T>(run: () => Promise<T>, errorMessage: string): Promise<T> {
+    mutationLoading.value = true
+    mutationError.value = null
+    try {
+      return await run()
+    } catch (err: unknown) {
+      mutationError.value = extractApiErrorMessage(err, errorMessage)
+      console.error('Collection mutation failed:', err)
+      throw err
+    } finally {
+      mutationLoading.value = false
+    }
+  }
+
   function cancel(): void {
-    // Only release loading when this slice owns the active request: stores
-    // also alias isLoading for mutations and exports, and a table transition
-    // must not report those complete early.
+    // Only release loading when this slice owns the active fetch request.
     if (currentController) {
       currentController.abort()
       currentController = null
@@ -157,6 +174,9 @@ export function createCollectionSlice<T, TParams, TMetadata = never>(
     total,
     isLoading,
     error,
+    mutationLoading,
+    mutationError,
+    runMutation,
     fetch,
     fetchWith,
     updateItems,

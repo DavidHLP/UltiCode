@@ -319,47 +319,49 @@ describe('useRemoteTable', () => {
     expect(table.total.value).toBe(1)
   })
 
-  it('keeps mutation-owned loading through a debounced transition', () => {
-    vi.useFakeTimers()
+  it('keeps mutation loading separate from table fetch loading', async () => {
+    let finishMutation!: () => void
     const collection = createCollectionSlice<Row, Params>({
       load: vi.fn().mockResolvedValue({ items: [], total: 0 }),
     })
     const table = useRemoteTable<Row, Filters, Params>({
       store: collection,
       initialQuery: { filters: { status: 'all' } },
-      toParams: ({ filters, page, limit }) => ({
-        status: filters.status,
-        page,
-        limit,
-      }),
+      toParams: ({ filters, page, limit }) => ({ status: filters.status, page, limit }),
     })
+    const mutation = collection.runMutation(() => new Promise<void>((resolve) => { finishMutation = resolve }), 'Failed')
 
-    // No collection request is active: isLoading belongs to a mutation or
-    // export that is still running when the user starts a table search.
-    collection.isLoading.value = true
-    table.setSearch('graphs')
+    await table.setFilters({ status: 'draft' })
 
-    expect(collection.isLoading.value).toBe(true)
+    expect(collection.mutationLoading.value).toBe(true)
+    expect(collection.isLoading.value).toBe(false)
+    expect(table.loading.value).toBe(false)
+    finishMutation()
+    await mutation
   })
 
-  it('keeps collection fetch loading independent from mutations', async () => {
-    const { store, table } = createTable({ showInitialLoading: false })
-    let finishFetch: (() => void) | undefined
-    store.fetch.mockImplementation(
-      () => new Promise<void>((resolve) => { finishFetch = resolve }),
-    )
-
-    // A mutation owns the shared flag when a table transition starts a fetch.
-    store.isLoading.value = true
+  it('keeps fetch loading active while mutation loading finishes', async () => {
+    let finishFetch!: (page: { items: Row[]; total: number }) => void
+    let finishMutation!: () => void
+    const collection = createCollectionSlice<Row, Params>({
+      load: () => new Promise((resolve) => { finishFetch = resolve }),
+    })
+    const table = useRemoteTable<Row, Filters, Params>({
+      store: collection,
+      initialQuery: { filters: { status: 'all' } },
+      showInitialLoading: false,
+      toParams: ({ filters, page, limit }) => ({ status: filters.status, page, limit }),
+    })
+    const mutation = collection.runMutation(() => new Promise<void>((resolve) => { finishMutation = resolve }), 'Failed')
     const transition = table.setFilters({ status: 'draft' })
 
-    // The mutation finishes while the collection request is still in flight:
-    // the table must keep reporting loading until its own fetch settles.
-    store.isLoading.value = false
-    expect(finishFetch).toBeDefined()
+    expect(collection.isLoading.value).toBe(true)
+    finishMutation()
+    await mutation
+    expect(collection.isLoading.value).toBe(true)
     expect(table.loading.value).toBe(true)
 
-    finishFetch!()
+    finishFetch({ items: [], total: 0 })
     await transition
     expect(table.loading.value).toBe(false)
   })

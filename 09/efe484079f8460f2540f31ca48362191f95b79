@@ -1,0 +1,16 @@
+packages/http-client/src/index.ts
+  h_77173abe25c3ff 412,420
+packages/http-client/src/request-attempt.ts
+  h_77173abe25c3ff 70,73-77,91-93
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "09efe484079f8460f2540f31ca48362191f95b79",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

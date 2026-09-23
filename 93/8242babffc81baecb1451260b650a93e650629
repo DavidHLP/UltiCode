@@ -1,0 +1,14 @@
+apps/management/src/stores/admin/moderation/moderationStore.ts
+  h_77173abe25c3ff 36-38
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "938242babffc81baecb1451260b650a93e650629",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

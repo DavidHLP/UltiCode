@@ -31,8 +31,9 @@ export const isTerminalStatus = (status: ModerationStatus): boolean =>
 /**
  * Moderation decision and collection store.
  *
- * Collection slices own queue, reports, appeals, and stats request state,
- * including cancellation and stale-response protection. Decision methods
+ * Collection slices own queue, reports, and appeals request state; the stats
+ * value-request module owns stats cancellation and stale-response protection.
+ * Decision methods
  * own server-result reconciliation: claim patches its queue row, moderation
  * actions remove terminal results or patch non-terminal results, batch actions
  * remove successful queue IDs, and appeal reviews patch their matching appeal.

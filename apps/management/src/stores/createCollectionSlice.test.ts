@@ -277,6 +277,7 @@ describe('createCollectionSlice', () => {
 
   it('clears the sibling error channel when a new operation starts', async () => {
     const slice = createCollectionSlice<string, void>({ load: vi.fn() })
+    expect(slice.error).not.toBe(slice.mutationError)
 
     const exportFailure = Promise.reject(new Error('export failed'))
     await expect(
@@ -295,6 +296,22 @@ describe('createCollectionSlice', () => {
 
     await failingLoad.runMutation(() => Promise.resolve('ok'), 'unused')
     expect(failingLoad.error.value).toBeNull()
+    expect(failingLoad.mutationError.value).toBeNull()
+  })
+
+  it('surfaces a newer failure after clearing the sibling channel', async () => {
+    const slice = createCollectionSlice<string, void>({
+      load: vi.fn().mockRejectedValue(new Error('load failed')),
+    })
+    await slice.fetch()
+    expect(slice.error.value).toBe('load failed')
+
+    await expect(
+      slice.runMutation(() => Promise.reject(new Error('export failed')), 'export failed'),
+    ).rejects.toThrow('export failed')
+
+    expect(slice.error.value).toBeNull()
+    expect(slice.mutationError.value).toBe('export failed')
   })
 
   it('clearError dismisses both error channels', async () => {

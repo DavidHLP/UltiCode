@@ -38,14 +38,17 @@ docker run -d --name "$MYSQL_TEST_CONTAINER" -e MYSQL_ROOT_PASSWORD="$ROOT_PASSW
 docker run -d --name "$REDIS_TEST_CONTAINER" redis:7-alpine >/dev/null
 
 for _ in $(seq 1 60); do
+  # The image's temporary initialization server only accepts socket
+  # connections, so probe over TCP to wait for the final server instead of
+  # racing its shutdown hand-off.
   if docker exec -e MYSQL_PWD="$ROOT_PASSWORD" "$MYSQL_TEST_CONTAINER" \
-      mysql -uroot -N -B -e 'SELECT 1' >/dev/null 2>&1; then
+      mysql --protocol=tcp -h 127.0.0.1 -uroot -N -B -e 'SELECT 1' >/dev/null 2>&1; then
     break
   fi
   sleep 1
 done
 docker exec -e MYSQL_PWD="$ROOT_PASSWORD" "$MYSQL_TEST_CONTAINER" \
-  mysql -uroot -N -B -e 'SELECT 1' >/dev/null
+  mysql --protocol=tcp -h 127.0.0.1 -uroot -N -B -e 'SELECT 1' >/dev/null
 
 PUBLISHED_ENDPOINT="$(docker port "$MYSQL_TEST_CONTAINER" 3306/tcp)"
 MYSQL_TEST_PORT="${PUBLISHED_ENDPOINT##*:}"

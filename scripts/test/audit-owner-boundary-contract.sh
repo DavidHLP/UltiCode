@@ -22,14 +22,17 @@ docker run -d --name "$MYSQL_CONTAINER" \
   --collation-server=utf8mb4_unicode_ci >/dev/null
 
 for _ in $(seq 1 60); do
+  # The image's temporary initialization server only accepts socket
+  # connections, so probe over TCP to wait for the final server instead of
+  # racing its shutdown hand-off.
   if docker exec -e MYSQL_PWD="$ROOT_PASSWORD" "$MYSQL_CONTAINER" \
-      mysql -uroot -N -B -e 'SELECT 1' >/dev/null 2>&1; then
+      mysql --protocol=tcp -h 127.0.0.1 -uroot -N -B -e 'SELECT 1' >/dev/null 2>&1; then
     break
   fi
   sleep 1
 done
 docker exec -e MYSQL_PWD="$ROOT_PASSWORD" "$MYSQL_CONTAINER" \
-  mysql -uroot -N -B -e 'SELECT 1' >/dev/null
+  mysql --protocol=tcp -h 127.0.0.1 -uroot -N -B -e 'SELECT 1' >/dev/null
 
 mysql_root() {
   docker exec -e MYSQL_PWD="$ROOT_PASSWORD" "$MYSQL_CONTAINER" \

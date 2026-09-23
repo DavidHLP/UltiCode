@@ -279,11 +279,6 @@ export function createHttpClient(config: HttpClientConfig): HttpClient {
       attemptRegistry.complete(getRequestKey(request), cfg._attempt)
     }
   }
-  const ownsPendingRequest = (request: InternalAxiosRequestConfig): boolean => {
-    if (!shouldDeduplicate(request, dedupPolicy)) return true
-    const attempt = (request as ConfigWithMetadata)._attempt
-    return attempt ? attemptRegistry.owns(getRequestKey(request), attempt) : false
-  }
   type ViteImportMeta = ImportMeta & {
     env?: {
       DEV?: boolean
@@ -414,7 +409,7 @@ export function createHttpClient(config: HttpClientConfig): HttpClient {
           retryCount < maxRetry &&
           (!error.response || error.response.status >= 500)
         ) {
-          if (!ownsPendingRequest(cfg)) {
+          if (!attemptRegistry.owns(getRequestKey(cfg), cfg._attempt)) {
             completeAttempt(cfg)
             return Promise.reject(ApiError.fromAxiosError(error))
           }
@@ -422,7 +417,7 @@ export function createHttpClient(config: HttpClientConfig): HttpClient {
           cfg._metadata = metadata
           const delay = cfg.retryDelay || 1000 * (retryCount + 1)
           await new Promise((resolve) => setTimeout(resolve, delay))
-          if (!ownsPendingRequest(cfg)) {
+          if (!attemptRegistry.owns(getRequestKey(cfg), cfg._attempt)) {
             completeAttempt(cfg)
             return Promise.reject(ApiError.fromAxiosError(error))
           }

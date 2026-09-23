@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { computed } from 'vue'
 import {
   adminNotificationsApi,
   type CreateNotificationDto,
@@ -6,7 +7,6 @@ import {
   type SystemAnnouncement,
   type AdminNotificationQueryParams,
 } from '@/api/admin/notifications'
-import { extractApiErrorMessage } from '@/utils/error'
 import { createCollectionSlice } from '@/stores/createCollectionSlice'
 export const useNotificationsStore = defineStore('admin-notifications', () => {
   const collection = createCollectionSlice<
@@ -28,49 +28,29 @@ export const useNotificationsStore = defineStore('admin-notifications', () => {
   })
   const announcements = collection.items
   const total = collection.total
-  const isLoading = collection.isLoading
-  const error = collection.error
+  const mutationLoading = collection.mutationLoading
+  const isLoading = computed(() => collection.isLoading.value || mutationLoading.value)
+  const error = computed(() => collection.error.value || collection.mutationError.value)
   function fetchAnnouncements(params?: AdminNotificationQueryParams) {
     return collection.fetch(params, { rethrow: true })
   }
 
   async function createNotification(data: CreateNotificationDto) {
-    isLoading.value = true
-    error.value = null
-    try {
+    return collection.runMutation(async () => {
       await adminNotificationsApi.create(data)
-    } catch (e: unknown) {
-      error.value = extractApiErrorMessage(e, 'Failed to create notification')
-      throw e
-    } finally {
-      isLoading.value = false
-    }
+    }, 'Failed to create notification')
   }
 
   async function updateNotification(id: string, data: UpdateNotificationDto) {
-    isLoading.value = true
-    error.value = null
-    try {
+    return collection.runMutation(async () => {
       await adminNotificationsApi.update(id, data)
-    } catch (e: unknown) {
-      error.value = extractApiErrorMessage(e, 'Failed to update notification')
-      throw e
-    } finally {
-      isLoading.value = false
-    }
+    }, 'Failed to update notification')
   }
 
   async function deleteAnnouncement(id: string) {
-    isLoading.value = true
-    error.value = null
-    try {
+    return collection.runMutation(async () => {
       await adminNotificationsApi.delete(id)
-    } catch (e: unknown) {
-      error.value = extractApiErrorMessage(e, 'Failed to delete announcement')
-      throw e
-    } finally {
-      isLoading.value = false
-    }
+    }, 'Failed to delete announcement')
   }
 
   return {

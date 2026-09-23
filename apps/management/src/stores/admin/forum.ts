@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import {
   forumApi,
   type ForumPost,
@@ -22,8 +22,9 @@ export const useForumStore = defineStore('adminForum', () => {
   })
   const posts = collection.items
   const totalPosts = collection.total
-  const postsLoading = collection.isLoading
-  const postsError = collection.error
+  const postsLoading = collection.mutationLoading
+  const combinedPostsLoading = computed(() => collection.isLoading.value || postsLoading.value)
+  const postsError = computed(() => collection.error.value || collection.mutationError.value)
   const fetchPosts = collection.fetch
 
   // Communities State
@@ -52,23 +53,15 @@ export const useForumStore = defineStore('adminForum', () => {
   }
 
   async function deletePost(id: string) {
-    postsLoading.value = true
-    try {
+    return collection.runMutation(async () => {
       await forumApi.deletePost(id)
       // Optimistic update or refresh
       await fetchPosts() // Refreshing is safer for pagination
-    } catch (err: unknown) {
-      const msg = extractApiErrorMessage(err, 'Failed to delete post')
-      postsError.value = msg
-      throw err
-    } finally {
-      postsLoading.value = false
-    }
+    }, 'Failed to delete post')
   }
 
   async function togglePin(post: ForumPost) {
-    postsLoading.value = true
-    try {
+    return collection.runMutation(async () => {
       if (post.isPinned) {
         await forumApi.unpinPost(post.id)
       } else {
@@ -79,17 +72,11 @@ export const useForumStore = defineStore('adminForum', () => {
       if (index !== -1 && posts.value[index]) {
         posts.value[index].isPinned = !post.isPinned
       }
-    } catch (err: unknown) {
-      postsError.value = 'Failed to update pin status'
-      throw err
-    } finally {
-      postsLoading.value = false
-    }
+    }, 'Failed to update pin status')
   }
 
   async function toggleLock(post: ForumPost) {
-    postsLoading.value = true
-    try {
+    return collection.runMutation(async () => {
       if (post.isLocked) {
         await forumApi.unlockPost(post.id)
       } else {
@@ -100,29 +87,19 @@ export const useForumStore = defineStore('adminForum', () => {
       if (index !== -1 && posts.value[index]) {
         posts.value[index].isLocked = !post.isLocked
       }
-    } catch (err: unknown) {
-      postsError.value = 'Failed to update lock status'
-      throw err
-    } finally {
-      postsLoading.value = false
-    }
+    }, 'Failed to update lock status')
   }
 
   async function bulkAction(ids: string[], action: BulkForumActionType) {
-    postsLoading.value = true
-    try {
+    return collection.runMutation(async () => {
       await forumApi.bulkAction({ ids, action })
       await fetchPosts()
-    } catch (err: unknown) {
-      postsError.value = 'Failed to perform bulk action'
-      throw err
-    } finally {
-      postsLoading.value = false
-    }
+    }, 'Failed to perform bulk action')
   }
 
   function clearError() {
-    postsError.value = null
+    collection.clearError()
+    collection.mutationError.value = null
   }
 
   // Post Detail Actions
@@ -186,7 +163,7 @@ export const useForumStore = defineStore('adminForum', () => {
     cancel: collection.cancel,
     posts,
     totalPosts,
-    postsLoading,
+    postsLoading: combinedPostsLoading,
     postsError,
     communities,
     communitiesLoading,

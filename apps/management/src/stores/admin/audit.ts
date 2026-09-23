@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import {
   auditApi,
   type AuditLog,
@@ -18,8 +18,8 @@ export const useAuditStore = defineStore('adminAudit', () => {
   })
   const logs = collection.items
   const total = collection.total
-  const loading = collection.isLoading
-  const error = collection.error
+  const loading = computed(() => collection.isLoading.value || collection.mutationLoading.value)
+  const error = computed(() => collection.error.value || collection.mutationError.value)
   const stats = ref<AuditStats | null>(null)
   const statsLoading = ref(false)
   const statsError = ref<string | null>(null)
@@ -60,17 +60,9 @@ export const useAuditStore = defineStore('adminAudit', () => {
   }
 
   async function exportLogs(params: AuditExportParams) {
-    loading.value = true
-    error.value = null
-    try {
+    return collection.runMutation(async () => {
       await auditApi.exportAuditLogs(params)
-    } catch (err: unknown) {
-      error.value = extractApiErrorMessage(err, 'Failed to export audit logs')
-      console.error('Failed to export audit logs:', err)
-      throw err
-    } finally {
-      loading.value = false
-    }
+    }, 'Failed to export audit logs')
   }
 
   return {

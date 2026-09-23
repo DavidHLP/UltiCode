@@ -15,7 +15,7 @@ import { createEntityActionsMenu } from '@/components/table/entityActions'
 import { badge } from '@/components/ui/terminal'
 import type { SolutionListItem } from '@/api/admin/solutions'
 import { formatDate } from '@/lib/format/date'
-import type { SolutionPermissionMap } from '@/composables/useSolutionPermissions'
+import type { SolutionPermissionMap } from '@/composables/domainPermissionMaps'
 
 export interface SolutionActions {
   viewSolution: (id: string) => void

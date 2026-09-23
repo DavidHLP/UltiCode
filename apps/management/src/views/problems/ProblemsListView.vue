@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { problemPermissionRules } from '@/composables/domainPermissionMaps'
+import { usePermissionMap } from '@/composables/usePermissionMap'
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
@@ -34,12 +36,11 @@ import { useRemoteTable } from '@/composables/useRemoteTable'
 import { useProblemFilters, type ProblemTableFilters } from './composables/useProblemFilters'
 import { useProblemActions } from './composables/useProblemActions'
 import { useProblemColumns } from './composables/useProblemColumns'
-import { useProblemPermissions } from '@/composables/useProblemPermissions'
 
 const { t } = useI18n()
 const router = useRouter()
 const problemsStore = useProblemsStore()
-const { can } = useProblemPermissions()
+const can = { problem: usePermissionMap(problemPermissionRules) }
 
 const problemFilters = useProblemFilters()
 const { buildExportParams } = problemFilters

@@ -16,7 +16,7 @@ import { createEntityActionsMenu } from '@/components/table/entityActions'
 import { badge } from '@/components/ui/terminal'
 import type { ForumPost } from '@/api/admin/forum'
 import { formatDate } from '@/lib/format/date'
-import type { ForumPermissionMap } from '@/composables/useForumPermissions'
+import type { ForumPermissionMap } from '@/composables/domainPermissionMaps'
 
 export interface ForumPostActions {
   viewPostDetails: (post: ForumPost) => void

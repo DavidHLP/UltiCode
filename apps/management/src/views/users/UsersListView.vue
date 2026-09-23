@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { userPermissionRules } from '@/composables/domainPermissionMaps'
+import { usePermissionMap } from '@/composables/usePermissionMap'
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
@@ -30,12 +32,11 @@ import UserResetPasswordDialog from './UserResetPasswordDialog.vue'
 // Terminal UI components available for future use
 // import { TerminalBadge, DataBlock } from '@/components/ui/terminal'
 import { useRemoteTable } from '@/composables/useRemoteTable'
-import { useUserPermissions } from '@/composables/useUserPermissions'
 import { createColumns } from './columns'
 
 const { t } = useI18n()
 const usersStore = useUsersStore()
-const { can } = useUserPermissions()
+const can = { user: usePermissionMap(userPermissionRules) }
 
 const selectedUserId = ref<string | null>(null)
 const selectedUsername = ref<string | null>(null)

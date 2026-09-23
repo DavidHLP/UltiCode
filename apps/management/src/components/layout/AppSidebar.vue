@@ -1,17 +1,20 @@
 <script setup lang="ts">
+import {
+  systemPermissionRules,
+  problemPermissionRules,
+  problemListPermissionRules,
+  tagPermissionRules,
+  contestPermissionRules,
+  solutionPermissionRules,
+  forumPermissionRules,
+  userPermissionRules,
+  commentPermissionRules,
+} from '@/composables/domainPermissionMaps'
+import { usePermissionMap } from '@/composables/usePermissionMap'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import { useSearchPalette } from '@/composables/useSearchPalette'
-import { useSystemPermissions } from '@/composables/useSystemPermissions'
-import { useProblemPermissions } from '@/composables/useProblemPermissions'
-import { useProblemListPermissions } from '@/composables/useProblemListPermissions'
-import { useTagPermissions } from '@/composables/useTagPermissions'
-import { useContestPermissions } from '@/composables/useContestPermissions'
-import { useSolutionPermissions } from '@/composables/useSolutionPermissions'
-import { useForumPermissions } from '@/composables/useForumPermissions'
-import { useUserPermissions } from '@/composables/useUserPermissions'
-import { useCommentPermissions } from '@/composables/useCommentPermissions'
 import {
   IconCode,
   IconDashboard,
@@ -51,15 +54,15 @@ const { toggleSidebar } = useSidebar()
 const { t } = useI18n()
 const authStore = useAuthStore()
 const { open: openSearch } = useSearchPalette()
-const { can: systemCan } = useSystemPermissions()
-const { can: problemCan } = useProblemPermissions()
-const { can: problemListCan } = useProblemListPermissions()
-const { can: tagCan } = useTagPermissions()
-const { can: contestCan } = useContestPermissions()
-const { can: solutionCan } = useSolutionPermissions()
-const { can: forumCan } = useForumPermissions()
-const { can: userCan } = useUserPermissions()
-const { can: commentCan } = useCommentPermissions()
+const systemCan = { system: usePermissionMap(systemPermissionRules) }
+const problemCan = { problem: usePermissionMap(problemPermissionRules) }
+const problemListCan = { problemList: usePermissionMap(problemListPermissionRules) }
+const tagCan = { tag: usePermissionMap(tagPermissionRules) }
+const contestCan = { contest: usePermissionMap(contestPermissionRules) }
+const solutionCan = { solution: usePermissionMap(solutionPermissionRules) }
+const forumCan = { forum: usePermissionMap(forumPermissionRules) }
+const userCan = { user: usePermissionMap(userPermissionRules) }
+const commentCan = { comment: usePermissionMap(commentPermissionRules) }
 
 const user = computed(() => ({
   name: authStore.user?.name || 'Admin',

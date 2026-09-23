@@ -40,13 +40,14 @@ export const useContestBrowseStore = defineStore("contestBrowse", () => {
   const loadingContests = computed(
     () => contestsRequest.loading.value || pastContestsRequest.loading.value,
   );
-  const error = computed(() => contestsRequest.error.value ?? pastContestsRequest.error.value);
+  const error = ref<string | null>(null);
 
   // =========================================================================
   // ACTIONS
   // =========================================================================
 
   async function loadContests() {
+    error.value = null;
     contestsRequest.error.value = null;
     pastContestsRequest.error.value = null;
     try {
@@ -59,11 +60,13 @@ export const useContestBrowseStore = defineStore("contestBrowse", () => {
       upcomingContests.value = upcoming.items;
       runningContests.value = running.items;
     } catch (err) {
+      error.value = contestsRequest.error.value;
       throw err;
     }
   }
 
   async function loadPastContests(page: number = 1, pageSize: number = 10) {
+    error.value = null;
     contestsRequest.error.value = null;
     pastContestsRequest.error.value = null;
     try {
@@ -72,11 +75,13 @@ export const useContestBrowseStore = defineStore("contestBrowse", () => {
       pastContests.value = result.items;
       pastContestsTotal.value = result.total;
     } catch (err) {
+      error.value = pastContestsRequest.error.value;
       throw err;
     }
   }
 
   function clearError() {
+    error.value = null;
     contestsRequest.error.value = null;
     pastContestsRequest.error.value = null;
   }

@@ -13,8 +13,7 @@ export const useAchievementStore = defineStore("achievement", () => {
   const userRequest = createValueRequest({ errorMessage: "Failed to load user achievements", rethrow: true });
   const loading = computed(() => allRequest.loading.value || userRequest.loading.value);
   const initialized = ref(false);
-  const operationError = ref<string | null>(null);
-  const error = computed(() => operationError.value ?? allRequest.error.value ?? userRequest.error.value);
+  const error = ref<string | null>(null);
 
   // Computed properties
   const earnedAchievements = computed(() =>
@@ -46,7 +45,7 @@ export const useAchievementStore = defineStore("achievement", () => {
 
   // Actions
   async function fetchAll(params?: { category?: string }) {
-    operationError.value = null;
+    error.value = null;
     allRequest.error.value = null;
     userRequest.error.value = null;
     try {
@@ -55,12 +54,13 @@ export const useAchievementStore = defineStore("achievement", () => {
       achievements.value = result.items;
       return result;
     } catch (err) {
+      error.value = allRequest.error.value;
       throw err;
     }
   }
 
   async function fetchUserAchievements() {
-    operationError.value = null;
+    error.value = null;
     allRequest.error.value = null;
     userRequest.error.value = null;
     try {
@@ -69,12 +69,13 @@ export const useAchievementStore = defineStore("achievement", () => {
       userAchievements.value = result;
       return result;
     } catch (err) {
+      error.value = userRequest.error.value;
       throw err;
     }
   }
 
   async function fetchUserPoints() {
-    operationError.value = null;
+    error.value = null;
     allRequest.error.value = null;
     userRequest.error.value = null;
     try {
@@ -82,7 +83,7 @@ export const useAchievementStore = defineStore("achievement", () => {
       totalPoints.value = result.points;
       return result.points;
     } catch (err) {
-      operationError.value =
+      error.value =
         err instanceof Error ? err.message : "Failed to load points";
       return 0;
     }
@@ -91,14 +92,14 @@ export const useAchievementStore = defineStore("achievement", () => {
   async function initialize() {
     if (initialized.value) return;
 
-    operationError.value = null;
+    error.value = null;
     allRequest.error.value = null;
     userRequest.error.value = null;
     try {
       await Promise.all([fetchUserAchievements(), fetchUserPoints()]);
       initialized.value = true;
     } catch (err) {
-      operationError.value =
+      error.value =
         err instanceof Error
           ? err.message
           : "Failed to initialize achievements";
@@ -137,7 +138,7 @@ export const useAchievementStore = defineStore("achievement", () => {
   setupListeners();
 
   function clearError() {
-    operationError.value = null;
+    error.value = null;
     allRequest.error.value = null;
     userRequest.error.value = null;
   }

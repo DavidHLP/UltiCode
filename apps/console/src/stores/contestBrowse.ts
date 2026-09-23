@@ -40,14 +40,15 @@ export const useContestBrowseStore = defineStore("contestBrowse", () => {
   const loadingContests = computed(
     () => contestsRequest.loading.value || pastContestsRequest.loading.value,
   );
-  const error = ref<string | null>(null);
+  const error = computed(() => contestsRequest.error.value ?? pastContestsRequest.error.value);
 
   // =========================================================================
   // ACTIONS
   // =========================================================================
 
   async function loadContests() {
-    error.value = null;
+    contestsRequest.error.value = null;
+    pastContestsRequest.error.value = null;
     try {
       const lists = await contestsRequest.run(() => Promise.all([
         fetchUpcomingContests(),
@@ -58,26 +59,26 @@ export const useContestBrowseStore = defineStore("contestBrowse", () => {
       upcomingContests.value = upcoming.items;
       runningContests.value = running.items;
     } catch (err) {
-      error.value = err instanceof Error ? err.message : "Failed to load contests";
       throw err;
     }
   }
 
   async function loadPastContests(page: number = 1, pageSize: number = 10) {
-    error.value = null;
+    contestsRequest.error.value = null;
+    pastContestsRequest.error.value = null;
     try {
       const result = await pastContestsRequest.run(() => fetchPastContests(page, pageSize));
       if (!result) return;
       pastContests.value = result.items;
       pastContestsTotal.value = result.total;
     } catch (err) {
-      error.value = err instanceof Error ? err.message : "Failed to load contests";
       throw err;
     }
   }
 
   function clearError() {
-    error.value = null;
+    contestsRequest.error.value = null;
+    pastContestsRequest.error.value = null;
   }
 
   return {

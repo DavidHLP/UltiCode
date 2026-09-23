@@ -42,7 +42,8 @@ export const useContestRankingStore = defineStore("contestRanking", () => {
   const virtualContests = ref<ContestListItem[]>([]);
   const contestHistory = ref<UserContestHistory[]>([]);
 
-  const error = ref<string | null>(null);
+  const operationError = ref<string | null>(null);
+  const error = computed(() => operationError.value ?? rankingsRequest.error.value);
 
   // =========================================================================
   // ACTIONS — GLOBAL RANKINGS
@@ -53,7 +54,8 @@ export const useContestRankingStore = defineStore("contestRanking", () => {
     limit?: number;
     country?: string;
   }) {
-    error.value = null;
+    operationError.value = null;
+    rankingsRequest.error.value = null;
     try {
       const result = await rankingsRequest.run(() => fetchGlobalRankings({
         page: options?.page ?? 1,
@@ -62,7 +64,6 @@ export const useContestRankingStore = defineStore("contestRanking", () => {
       }));
       if (result) globalRankings.value = result.items;
     } catch (err) {
-      error.value = err instanceof Error ? err.message : "Failed to load rankings";
       throw err;
     }
   }
@@ -74,7 +75,8 @@ export const useContestRankingStore = defineStore("contestRanking", () => {
   async function loadUserContests(
     type?: "registered" | "participated" | "virtual",
   ) {
-    error.value = null;
+    operationError.value = null;
+    rankingsRequest.error.value = null;
     try {
       if (type) {
         const result = await apiFetchUserContests(type);
@@ -92,25 +94,27 @@ export const useContestRankingStore = defineStore("contestRanking", () => {
         virtualContests.value = virtual.items;
       }
     } catch (err) {
-      error.value =
+      operationError.value =
         err instanceof Error ? err.message : "Failed to load user contests";
       throw err;
     }
   }
 
   async function loadContestHistory() {
-    error.value = null;
+    operationError.value = null;
+    rankingsRequest.error.value = null;
     try {
       contestHistory.value = await fetchUserContestHistory();
     } catch (err) {
-      error.value =
+      operationError.value =
         err instanceof Error ? err.message : "Failed to load contest history";
       throw err;
     }
   }
 
   function clearError() {
-    error.value = null;
+    operationError.value = null;
+    rankingsRequest.error.value = null;
   }
 
   return {

@@ -58,7 +58,8 @@ export const useContestDetailStore = defineStore("contestDetail", () => {
     rethrow: true,
   });
   const loading = detailRequest.loading;
-  const error = ref<string | null>(null);
+  const operationError = ref<string | null>(null);
+  const error = computed(() => operationError.value ?? detailRequest.error.value);
 
   // =========================================================================
   // GETTERS
@@ -77,12 +78,12 @@ export const useContestDetailStore = defineStore("contestDetail", () => {
   // =========================================================================
 
   async function loadContestDetail(contestId: string) {
-    error.value = null;
+    operationError.value = null;
+    detailRequest.error.value = null;
     try {
       const contest = await detailRequest.run(() => fetchContestDetail(contestId));
       if (contest) currentContest.value = contest;
     } catch (err) {
-      error.value = err instanceof Error ? err.message : "Failed to load contest details";
       throw err;
     }
   }
@@ -110,7 +111,8 @@ export const useContestDetailStore = defineStore("contestDetail", () => {
   // =========================================================================
 
   async function registerForContest(contestId: string) {
-    error.value = null;
+    operationError.value = null;
+    detailRequest.error.value = null;
     try {
       await apiRegister(contestId);
       const status = await fetchParticipationStatus(contestId);
@@ -123,14 +125,15 @@ export const useContestDetailStore = defineStore("contestDetail", () => {
           : c,
       );
     } catch (err) {
-      error.value =
+      operationError.value =
         err instanceof Error ? err.message : "Failed to register for contest";
       throw err;
     }
   }
 
   async function unregisterFromContest(contestId: string) {
-    error.value = null;
+    operationError.value = null;
+    detailRequest.error.value = null;
     try {
       await apiUnregister(contestId);
       const status = await fetchParticipationStatus(contestId);
@@ -143,7 +146,7 @@ export const useContestDetailStore = defineStore("contestDetail", () => {
           : c,
       );
     } catch (err) {
-      error.value =
+      operationError.value =
         err instanceof Error
           ? err.message
           : "Failed to unregister from contest";
@@ -178,7 +181,8 @@ export const useContestDetailStore = defineStore("contestDetail", () => {
   }
 
   function clearError() {
-    error.value = null;
+    operationError.value = null;
+    detailRequest.error.value = null;
   }
 
   return {

@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
-import { ref } from "vue";
+import { computed, ref } from "vue";
+import { createValueRequest } from "@ulticode/request-state";
 import type { ContestListItem } from "@/types/contest";
 import {
   fetchUpcomingContests,
@@ -28,7 +29,17 @@ export const useContestBrowseStore = defineStore("contestBrowse", () => {
   const pastContests = ref<ContestListItem[]>([]);
   const pastContestsTotal = ref(0);
 
-  const loadingContests = ref(false);
+  const contestsRequest = createValueRequest({
+    errorMessage: "Failed to load contests",
+    rethrow: true,
+  });
+  const pastContestsRequest = createValueRequest({
+    errorMessage: "Failed to load contests",
+    rethrow: true,
+  });
+  const loadingContests = computed(
+    () => contestsRequest.loading.value || pastContestsRequest.loading.value,
+  );
   const error = ref<string | null>(null);
 
   // =========================================================================
@@ -36,28 +47,33 @@ export const useContestBrowseStore = defineStore("contestBrowse", () => {
   // =========================================================================
 
   async function loadContests() {
-    loadingContests.value = true;
     error.value = null;
     try {
-      const [upcoming, running] = await Promise.all([
+      const lists = await contestsRequest.run(() => Promise.all([
         fetchUpcomingContests(),
         fetchRunningContests(),
-      ]);
+      ]));
+      if (!lists) return;
+      const [upcoming, running] = lists;
       upcomingContests.value = upcoming.items;
       runningContests.value = running.items;
     } catch (err) {
-      error.value =
-        err instanceof Error ? err.message : "Failed to load contests";
+      error.value = err instanceof Error ? err.message : "Failed to load contests";
       throw err;
-    } finally {
-      loadingContests.value = false;
     }
   }
 
   async function loadPastContests(page: number = 1, pageSize: number = 10) {
-    const result = await fetchPastContests(page, pageSize);
-    pastContests.value = result.items;
-    pastContestsTotal.value = result.total;
+    error.value = null;
+    try {
+      const result = await pastContestsRequest.run(() => fetchPastContests(page, pageSize));
+      if (!result) return;
+      pastContests.value = result.items;
+      pastContestsTotal.value = result.total;
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : "Failed to load contests";
+      throw err;
+    }
   }
 
   function clearError() {

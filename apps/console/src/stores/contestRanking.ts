@@ -1,4 +1,5 @@
 import { defineStore } from "pinia";
+import { createValueRequest } from "@ulticode/request-state";
 import { ref } from "vue";
 import type { ContestListItem, GlobalRankingEntry, UserContestHistory } from "@/types/contest";
 import {
@@ -30,7 +31,11 @@ export const useContestRankingStore = defineStore("contestRanking", () => {
   // =========================================================================
 
   const globalRankings = ref<GlobalRankingEntry[]>([]);
-  const loadingRankings = ref(false);
+  const rankingsRequest = createValueRequest({
+    errorMessage: "Failed to load rankings",
+    rethrow: true,
+  });
+  const loadingRankings = rankingsRequest.loading;
 
   const registeredContests = ref<ContestListItem[]>([]);
   const participatedContests = ref<ContestListItem[]>([]);
@@ -48,21 +53,17 @@ export const useContestRankingStore = defineStore("contestRanking", () => {
     limit?: number;
     country?: string;
   }) {
-    loadingRankings.value = true;
     error.value = null;
     try {
-      const result = await fetchGlobalRankings({
+      const result = await rankingsRequest.run(() => fetchGlobalRankings({
         page: options?.page ?? 1,
         limit: options?.limit ?? 10,
         country: options?.country,
-      });
-      globalRankings.value = result.items;
+      }));
+      if (result) globalRankings.value = result.items;
     } catch (err) {
-      error.value =
-        err instanceof Error ? err.message : "Failed to load rankings";
+      error.value = err instanceof Error ? err.message : "Failed to load rankings";
       throw err;
-    } finally {
-      loadingRankings.value = false;
     }
   }
 

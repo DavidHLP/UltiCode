@@ -3,12 +3,15 @@ import { ref, computed } from "vue";
 import type { Achievement, AchievementProgress } from "@/types/achievement";
 import { achievementApi } from "@/api/achievement";
 import { getSocketManager, NotificationEvent } from "@/lib/socket";
+import { createValueRequest } from "@ulticode/request-state";
 
 export const useAchievementStore = defineStore("achievement", () => {
   const achievements = ref<Achievement[]>([]);
   const userAchievements = ref<AchievementProgress[]>([]);
   const totalPoints = ref(0);
-  const loading = ref(false);
+  const allRequest = createValueRequest({ errorMessage: "Failed to load achievements", rethrow: true });
+  const userRequest = createValueRequest({ errorMessage: "Failed to load user achievements", rethrow: true });
+  const loading = computed(() => allRequest.loading.value || userRequest.loading.value);
   const initialized = ref(false);
   const error = ref<string | null>(null);
 
@@ -42,34 +45,28 @@ export const useAchievementStore = defineStore("achievement", () => {
 
   // Actions
   async function fetchAll(params?: { category?: string }) {
-    loading.value = true;
     error.value = null;
     try {
-      const result = await achievementApi.getAll(params);
+      const result = await allRequest.run(() => achievementApi.getAll(params));
+      if (!result) return null;
       achievements.value = result.items;
       return result;
     } catch (err) {
-      error.value =
-        err instanceof Error ? err.message : "Failed to load achievements";
+      error.value = err instanceof Error ? err.message : "Failed to load achievements";
       throw err;
-    } finally {
-      loading.value = false;
     }
   }
 
   async function fetchUserAchievements() {
-    loading.value = true;
     error.value = null;
     try {
-      const result = await achievementApi.getUserAchievements();
+      const result = await userRequest.run(() => achievementApi.getUserAchievements());
+      if (!result) return null;
       userAchievements.value = result;
       return result;
     } catch (err) {
-      error.value =
-        err instanceof Error ? err.message : "Failed to load user achievements";
+      error.value = err instanceof Error ? err.message : "Failed to load user achievements";
       throw err;
-    } finally {
-      loading.value = false;
     }
   }
 

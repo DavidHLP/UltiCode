@@ -37,9 +37,10 @@ export const useContestBrowseStore = defineStore("contestBrowse", () => {
     errorMessage: "Failed to load contests",
     rethrow: true,
   });
-  const loadingContests = computed(
-    () => contestsRequest.loading.value || pastContestsRequest.loading.value,
-  );
+  // Page-wide loading covers the ongoing/upcoming lists only; past-tab
+  // pagination reports through usePastContestsPager's own tab-level loading
+  // so page turns keep the finished-tab skeleton and pager UI.
+  const loadingContests = computed(() => contestsRequest.loading.value);
   const error = ref<string | null>(null);
 
   // =========================================================================

@@ -30,7 +30,7 @@ contains services/core/src/main/java/com/ulticode/core/CoreLocalContractAssembly
 contains services/core/src/main/java/com/ulticode/core/CoreLocalContractAssembly.java 'static void validate('
 contains services/core/src/main/java/com/ulticode/core/CoreLocalContractAssembly.java \
   'LOCAL_CONTRACTS_ENABLED_PROPERTY'
-contains services/core/src/main/java/com/ulticode/core/CoreOwnerContextManager.java \
+contains services/core/src/main/java/com/ulticode/core/CoreOwnerBootProperties.java \
   'CoreLocalContractAssembly.LOCAL_CONTRACTS_ENABLED_PROPERTY'
 contains services/admin/src/main/java/com/ulticode/modules/admin/port/adapter/AdminDubboReferenceRegistry.java \
   '@ConditionalOnProperty'
@@ -63,11 +63,11 @@ not_contains services/core/src/main/java/com/ulticode/core/CoreOwnerBootConfigur
 not_contains services/core/src/main/java/com/ulticode/core/CoreOwnerBootConfigurations.java '"com.ulticode.modules.reconciliation",'
 contains services/core/src/main/java/com/ulticode/core/CoreReadinessController.java '/api/v1/core/health'
 contains services/core/src/main/java/com/ulticode/core/CoreSecurityConfiguration.java 'anyRequest().denyAll()'
-contains services/core/src/main/java/com/ulticode/core/CoreOwnerContextManager.java 'spring.main.web-application-type=none'
-contains services/core/src/main/java/com/ulticode/core/CoreOwnerContextManager.java 'core.datasource.'
-contains services/core/src/main/java/com/ulticode/core/CoreOwnerContextManager.java 'dubbo.enabled=false'
-contains services/core/src/main/java/com/ulticode/core/CoreOwnerContextManager.java 'security.internal-delegation.private-key='
-contains services/core/src/main/java/com/ulticode/core/CoreOwnerContextManager.java 'INTERNAL_DELEGATION_PUBLIC_KEY'
+contains services/core/src/main/java/com/ulticode/core/CoreOwnerBootProperties.java 'spring.main.web-application-type=none'
+contains services/core/src/main/java/com/ulticode/core/CoreOwnerBootProperties.java 'core.datasource.'
+contains services/core/src/main/java/com/ulticode/core/CoreOwnerBootProperties.java 'dubbo.enabled=false'
+contains services/core/src/main/java/com/ulticode/core/CoreOwnerBootProperties.java 'security.internal-delegation.private-key='
+contains services/core/src/main/java/com/ulticode/core/CoreOwnerBootProperties.java 'INTERNAL_DELEGATION_PUBLIC_KEY'
 not_contains services/core/pom.xml 'backend-judge-runtime'
 
 source "$ROOT_DIR/scripts/dev/devstack-manifest.sh"

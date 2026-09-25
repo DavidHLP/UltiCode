@@ -32,6 +32,7 @@ class FakeClient:
                 "createdAt": "2026-09-25T00:00:00",
             },
         ]
+
     async def __aenter__(self) -> "FakeClient":
         return self
 
@@ -63,43 +64,41 @@ class FakeModel:
         )
 
 
-def test_real_model_smoke_sends_only_projected_facts_and_withholds_answer(
-    monkeypatch, capsys
-) -> None:
+def _run_model(monkeypatch, capsys, model: FakeModel) -> tuple[int, str]:
     monkeypatch.setenv("ULTICODE_E2E_USERNAME", "tester")
     monkeypatch.setenv("ULTICODE_E2E_PASSWORD", "pw")
     monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
     monkeypatch.setattr(module, "UlticodeClient", lambda *args, **kwargs: FakeClient())
-    model = FakeModel()
     monkeypatch.setattr(module, "DeepseekModel", lambda *args, **kwargs: model)
+    return_code = asyncio.run(module.main())
+    return return_code, capsys.readouterr().out
 
-    assert asyncio.run(module.main()) == 0
-    output = capsys.readouterr().out
+
+def test_real_model_smoke_sends_answer_contract_and_withholds_answer(monkeypatch, capsys) -> None:
+    model = FakeModel()
+    return_code, output = _run_model(monkeypatch, capsys, model)
+
+    assert return_code == 0
     assert "E2E SOURCED MODEL PASS | corpus=agent-authored-synthetic | input=validated-user-projection | answer=withheld" in output
     assert "fact and hypothesis separated" not in output
     assert "SECRET" not in output
     assert model.messages
-    assert "Wrong Answer" in str(model.messages[0]["content"])
-    assert "source_code" not in str(model.messages[0]["content"])
-    assert "userId" not in str(model.messages[0]["content"])
+    prompt = str(model.messages[0]["content"])
+    assert "facts, hypotheses, citations" in prompt
+    assert "Wrong Answer" in prompt
+    assert "source_code" not in prompt
+    assert "userId" not in prompt
 
 
 def test_real_model_smoke_rejects_unstructured_answer(monkeypatch, capsys) -> None:
-    monkeypatch.setenv("ULTICODE_E2E_USERNAME", "tester")
-    monkeypatch.setenv("ULTICODE_E2E_PASSWORD", "pw")
-    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
-    monkeypatch.setattr(module, "UlticodeClient", lambda *args, **kwargs: FakeClient())
-
     class InvalidModel(FakeModel):
         async def decide(self, messages: list[dict[str, object]]) -> SimpleNamespace:
             self.messages = messages
             return SimpleNamespace(text="just some prose", tool_call=None)
 
-    model = InvalidModel()
-    monkeypatch.setattr(module, "DeepseekModel", lambda *args, **kwargs: model)
+    return_code, output = _run_model(monkeypatch, capsys, InvalidModel())
 
-    assert asyncio.run(module.main()) == 1
-    output = capsys.readouterr().out
+    assert return_code == 1
     assert "reason=invalid_answer" in output
     assert "just some prose" not in output
 
@@ -116,51 +115,19 @@ def test_real_model_smoke_rejects_unstructured_answer(monkeypatch, capsys) -> No
 def test_real_model_smoke_rejects_invalid_fact_or_hypothesis_structure(
     answer: str, monkeypatch, capsys
 ) -> None:
-    monkeypatch.setenv("ULTICODE_E2E_USERNAME", "tester")
-    monkeypatch.setenv("ULTICODE_E2E_PASSWORD", "pw")
-    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
-    monkeypatch.setattr(module, "UlticodeClient", lambda *args, **kwargs: FakeClient())
-
     class InvalidModel(FakeModel):
         async def decide(self, messages: list[dict[str, object]]) -> SimpleNamespace:
             self.messages = messages
             return SimpleNamespace(text=answer, tool_call=None)
 
-    model = InvalidModel()
-    monkeypatch.setattr(module, "DeepseekModel", lambda *args, **kwargs: model)
+    return_code, output = _run_model(monkeypatch, capsys, InvalidModel())
 
-    assert asyncio.run(module.main()) == 1
-    output = capsys.readouterr().out
+    assert return_code == 1
     assert "reason=invalid_answer" in output
     assert answer not in output
 
 
-def test_real_model_smoke_rejects_tool_call_even_with_text(monkeypatch, capsys) -> None:
-    monkeypatch.setenv("ULTICODE_E2E_USERNAME", "tester")
-    monkeypatch.setenv("ULTICODE_E2E_PASSWORD", "pw")
-    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
-    monkeypatch.setattr(module, "UlticodeClient", lambda *args, **kwargs: FakeClient())
-
-    class ToolCallModel(FakeModel):
-        async def decide(self, messages: list[dict[str, object]]) -> SimpleNamespace:
-            self.messages = messages
-            return SimpleNamespace(text="looks complete", tool_call=SimpleNamespace(name="get_problem"))
-
-    model = ToolCallModel()
-    monkeypatch.setattr(module, "DeepseekModel", lambda *args, **kwargs: model)
-
-    assert asyncio.run(module.main()) == 1
-    output = capsys.readouterr().out
-    assert "reason=tool_call" in output
-    assert "looks complete" not in output
-
-
 def test_real_model_smoke_rejects_unknown_citation(monkeypatch, capsys) -> None:
-    monkeypatch.setenv("ULTICODE_E2E_USERNAME", "tester")
-    monkeypatch.setenv("ULTICODE_E2E_PASSWORD", "pw")
-    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
-    monkeypatch.setattr(module, "UlticodeClient", lambda *args, **kwargs: FakeClient())
-
     class InvalidCitationModel(FakeModel):
         async def decide(self, messages: list[dict[str, object]]) -> SimpleNamespace:
             self.messages = messages
@@ -169,10 +136,23 @@ def test_real_model_smoke_rejects_unknown_citation(monkeypatch, capsys) -> None:
                 tool_call=None,
             )
 
-    model = InvalidCitationModel()
-    monkeypatch.setattr(module, "DeepseekModel", lambda *args, **kwargs: model)
+    return_code, output = _run_model(monkeypatch, capsys, InvalidCitationModel())
 
-    assert asyncio.run(module.main()) == 1
-    output = capsys.readouterr().out
+    assert return_code == 1
     assert "reason=invalid_answer" in output
     assert "missing-doc" not in output
+
+
+def test_real_model_smoke_rejects_tool_call_even_with_text(monkeypatch, capsys) -> None:
+    class ToolCallModel(FakeModel):
+        async def decide(self, messages: list[dict[str, object]]) -> SimpleNamespace:
+            self.messages = messages
+            return SimpleNamespace(
+                text="looks complete", tool_call=SimpleNamespace(name="get_problem")
+            )
+
+    return_code, output = _run_model(monkeypatch, capsys, ToolCallModel())
+
+    assert return_code == 1
+    assert "reason=tool_call" in output
+    assert "looks complete" not in output

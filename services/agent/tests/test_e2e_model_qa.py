@@ -63,40 +63,52 @@ class FakeModel:
         return self._decisions.pop(0)
 
 
-def test_model_qa_requires_problem_and_problem_scoped_submission_evidence(monkeypatch, capsys) -> None:
+def _run_model(monkeypatch, capsys, model: FakeModel) -> tuple[int, str]:
     monkeypatch.setenv("ULTICODE_E2E_USERNAME", "tester")
     monkeypatch.setenv("ULTICODE_E2E_PASSWORD", "pw")
     monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
     monkeypatch.setattr(module, "UlticodeClient", lambda *args, **kwargs: FakeClient())
+    monkeypatch.setattr(module, "DeepseekModel", lambda *args, **kwargs: model)
+    return_code = asyncio.run(module.main())
+    return return_code, capsys.readouterr().out
+
+
+def test_model_qa_requires_problem_and_problem_scoped_submission_evidence(monkeypatch, capsys) -> None:
     model = FakeModel(
         [
             ModelDecision(tool_call=ToolCall("get_problem", {"id": 7})),
-            ModelDecision(
-                tool_call=ToolCall("get_problem_submissions", {"problemId": 7})
-            ),
+            ModelDecision(tool_call=ToolCall("get_problem_submissions", {"problemId": 7})),
             ModelDecision(text="Sample is easy and has a submission"),
         ]
     )
-    monkeypatch.setattr(module, "DeepseekModel", lambda *args, **kwargs: model)
+    return_code, output = _run_model(monkeypatch, capsys, model)
 
-    assert asyncio.run(module.main()) == 0
-    output = capsys.readouterr().out
+    assert return_code == 0
     assert "E2E MODEL QA PASS | scope=REAL model + REAL local stack" in output
 
 
 def test_model_qa_fails_when_only_problem_evidence_is_checked(monkeypatch, capsys) -> None:
-    monkeypatch.setenv("ULTICODE_E2E_USERNAME", "tester")
-    monkeypatch.setenv("ULTICODE_E2E_PASSWORD", "pw")
-    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
-    monkeypatch.setattr(module, "UlticodeClient", lambda *args, **kwargs: FakeClient())
     model = FakeModel(
         [
             ModelDecision(tool_call=ToolCall("get_problem", {"id": 7})),
             ModelDecision(text="Sample is easy"),
         ]
     )
-    monkeypatch.setattr(module, "DeepseekModel", lambda *args, **kwargs: model)
+    return_code, output = _run_model(monkeypatch, capsys, model)
 
-    assert asyncio.run(module.main()) == 1
-    output = capsys.readouterr().out
+    assert return_code == 1
+    assert "reason=tool_contract" in output
+
+
+def test_model_qa_rejects_successful_tools_for_other_problem_ids(monkeypatch, capsys) -> None:
+    model = FakeModel(
+        [
+            ModelDecision(tool_call=ToolCall("get_problem", {"id": 8})),
+            ModelDecision(tool_call=ToolCall("get_problem_submissions", {"problemId": 9})),
+            ModelDecision(text="unrelated problem data"),
+        ]
+    )
+    return_code, output = _run_model(monkeypatch, capsys, model)
+
+    assert return_code == 1
     assert "reason=tool_contract" in output

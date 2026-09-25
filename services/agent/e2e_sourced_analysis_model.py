@@ -22,11 +22,11 @@ from ulticode_tools import build_tools
 
 APP_BASE = os.environ.get("ULTICODE_APP_BASE", "http://localhost:9103")
 AUTH_BASE = os.environ.get("ULTICODE_AUTH_BASE", "http://localhost:9101")
-QUESTION = (
-    "Wrong Answer 状态说明了什么？只依据提交事实和带来源检索结果回答。"
-    "返回一个 JSON 对象字符串，键必须是 facts、hypotheses、citations；"
-    "facts 必须逐字引用 EVIDENCE_JSON.facts，hypotheses 必须是非空字符串数组，"
-    "citations 必须是 EVIDENCE_JSON.citations 中的 doc_id 字符串数组。"
+QUESTION = "Wrong Answer 状态说明了什么？只依据提交事实和带来源检索结果回答。"
+ANSWER_CONTRACT = (
+    "Return one JSON object string with exactly these keys: facts, hypotheses, citations. "
+    "facts must quote EVIDENCE_JSON.facts verbatim; hypotheses must be a non-empty string array; "
+    "citations must contain only doc_id values from EVIDENCE_JSON.citations."
 )
 
 
@@ -90,7 +90,7 @@ async def main() -> int:
                         "role": "user",
                         "content": (
                             "Analyze the submission using only the supplied evidence. "
-                            "Separate confirmed facts from hypotheses. "
+                            f"{ANSWER_CONTRACT} "
                             f"EVIDENCE_JSON={evidence}"
                         ),
                     }

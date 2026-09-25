@@ -100,6 +100,20 @@ def test_model_qa_fails_when_only_problem_evidence_is_checked(monkeypatch, capsy
     assert "reason=tool_contract" in output
 
 
+def test_model_qa_rejects_wrong_answer_after_valid_tool_calls(monkeypatch, capsys) -> None:
+    model = FakeModel(
+        [
+            ModelDecision(tool_call=ToolCall("get_problem", {"id": 7})),
+            ModelDecision(tool_call=ToolCall("get_problem_submissions", {"problemId": 7})),
+            ModelDecision(text='{"title":"Wrong","difficulty":"hard","has_submission":false}'),
+        ]
+    )
+    return_code, output = _run_model(monkeypatch, capsys, model)
+
+    assert return_code == 1
+    assert "reason=answer_contract" in output
+
+
 def test_model_qa_rejects_successful_tools_for_other_problem_ids(monkeypatch, capsys) -> None:
     model = FakeModel(
         [

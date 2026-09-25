@@ -113,6 +113,8 @@ def test_tool_failure_is_redacted_before_reaching_model() -> None:
         assert "u-secret" not in content
         assert "stdin" not in content
 
+    asyncio.run(scenario())
+
 def test_unknown_tool_is_reported_without_echoing_model_name() -> None:
     async def scenario() -> None:
         model = ScriptedModel(

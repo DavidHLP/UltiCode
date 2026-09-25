@@ -47,8 +47,9 @@ def _project(data: object, fields: dict[str, tuple[type, int]]) -> dict[str, obj
     projected: dict[str, object] = {}
     for field, (expected_type, max_value) in fields.items():
         value = data[field]
+        minimum = 1 if field in {"id", "problemId"} else 0
         if expected_type is int and (
-            isinstance(value, bool) or not isinstance(value, int) or not 0 <= value <= max_value
+            isinstance(value, bool) or not isinstance(value, int) or not minimum <= value <= max_value
         ):
             raise ValueError("invalid tool response")
         if expected_type is str and (

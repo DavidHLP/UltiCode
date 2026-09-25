@@ -13,8 +13,8 @@ Java Owner services for identity, submissions, judging, or persistence.
 
 The current migrated slice provides the U01 read-only client, bounded model/tool loop, field
 projection, deterministic tests, a U02 sample-only keyword retrieval/sourced-analysis path, and
-executable keyword evaluation tooling. Full authorized-corpus evaluation, Embedding/Qdrant
-comparison, real-model sourced-analysis evidence, and DAV-53 isolation evidence remain incomplete.
+executable keyword evaluation tooling. Authorized-corpus, vector-retrieval, real-model evaluation,
+and isolation evidence are tracked in the U02 Linear tasks.
 - `src/deepseek_model.py` is an external model adapter. Its API key is read from the environment and
   is never logged or committed.
 - `e2e_*.py` are opt-in smoke scripts against the local UltiCode stack; unit tests use
@@ -57,8 +57,8 @@ is untrusted data, never an instruction source.
 
 The synthetic sample is explicitly `synthetic` and `agent-authored-synthetic`; it is suitable for
 the deterministic sample slice only. The executable keyword evaluation is versioned with the Agent
-module; authorized-corpus evaluation, Embedding/Qdrant comparison, real-model sourced-analysis
-evidence, and DAV-53 isolation evidence remain incomplete.
+module; authorized-corpus, vector-retrieval, real-model evaluation, and isolation evidence are
+tracked in the U02 Linear tasks.
 
 `src/retrieval.py` provides bounded keyword retrieval and source metadata. `src/sourced_analysis.py`
 separates observed submission facts from hypotheses and only cites retrieved fragments. Java services

@@ -17,13 +17,13 @@ UltiCode 已形成五个 Data Owner 与两个不持有业务表的 Worker：
 | Worker | `backend-judge` | 消费 Judge Streams，执行沙箱，回写 Submission verdict |
 | Worker | `backend-search` | 消费 `SearchDocumentChanged`，维护 MeiliSearch 派生索引 |
 | Profile | `backend-core` | opt-in parent process; assembles Owner child contexts and does not own business tables |
-| Standalone | `services/agent` | opt-in Python Agent runtime; U01 read-only loop plus deterministic agent-authored synthetic retrieval/sourced analysis and executable keyword evaluation tooling; authorized-corpus evaluation, Embedding/Qdrant comparison, real-model sourced-analysis evidence, and isolation gates remain incomplete |
+| Standalone | `services/agent` | opt-in Python Agent runtime; U01 read-only loop plus bounded synthetic retrieval/sourced analysis and executable keyword-evaluation tooling; authorized-corpus, vector-retrieval, real-model evaluation, and isolation evidence are tracked in the U02 Linear tasks |
 
 `services/agent` is an independent Python service module, not a Maven reactor module or an Owner/Worker. It calls existing Auth/App HTTP contracts, keeps identity server-side, and must project tool results before they reach a model. Its current retrieval slice is limited to checked-in agent-authored synthetic Markdown; it does not ingest public user solutions. It is not started by the default `dev-lite`/`dev-full` scopes until its runtime, readiness, and secret wiring are explicitly added.
 
 `judge-runtime` 是共享执行依赖，不是进程。Contract modules 在 `services/api/`；共享平台能力在 `services/platform/`。跨 Owner 通过 provider-owned contract 或 consumer-owned port 协作，不共享 Entity、Mapper 或业务 Service。
 `services/agent` 的依赖规则是 `Agent -> existing Auth/App HTTP contracts`；它不得连接业务数据库、读取 Owner Entity/Mapper、共享 Java 业务实现或绕过服务端身份/授权。当前仓库只包含 agent-authored synthetic fixtures；未来真实 corpus 必须来自自有或明确授权资料，公开题解不自动获得 corpus/模型外发许可。
-当前 synthetic source text 只能作为 untrusted data，不是可执行指令；将检索样本文本发送给真实模型前，必须由系统提示和消息封装共同执行该边界。DAV-45 当前尚缺 sourced-analysis 的真实模型评估；完整 U02 的 DAV-22 评估/题集/Embedding-Qdrant 对照和 DAV-53 双账号隔离证据仍未完成。
+当前 synthetic source text 只能作为 untrusted data，不是可执行指令；将检索样本文本发送给真实模型前，必须由系统提示和消息封装共同执行该边界。U02 的评估、授权语料、向量检索和隔离证据状态由对应 Linear 任务维护。
 The checked-in corpus is agent-authored synthetic test material, not a real user submission, an UltiCode DTO, or licensed user material. The live e2e input is the authenticated user's validated read-only submission projection; the sample e2e is not evidence of a real-user sourced-analysis path.
 The opt-in sample e2e entry is `services/agent/e2e_sourced_analysis.py`; it performs no real-model call and only uses the checked-in synthetic corpus.
 

@@ -53,11 +53,11 @@ async def main() -> int:
         )
         raw_tools = build_tools(client)
         observed_problem: dict[str, object] | None = None
-        observed_submission_items: list[dict[str, object]] | None = None
+        observed_submission_total: int | None = None
 
         def track(name: str, handler: object) -> object:
             async def tracked(arguments: dict[str, object]) -> object:
-                nonlocal observed_problem, observed_submission_items
+                nonlocal observed_problem, observed_submission_total
                 result = await handler(arguments)  # type: ignore[operator]
                 if name == "get_problem" and isinstance(result, dict) and result.get("id") == 7:
                     observed_problem = result
@@ -66,9 +66,9 @@ async def main() -> int:
                     and isinstance(arguments.get("problemId"), int)
                     and arguments["problemId"] == 7
                     and isinstance(result, dict)
-                    and isinstance(result.get("items"), list)
+                    and isinstance(result.get("total"), int)
                 ):
-                    observed_submission_items = result["items"]  # type: ignore[assignment]
+                    observed_submission_total = result["total"]  # type: ignore[assignment]
                 return result
 
             return tracked
@@ -93,11 +93,11 @@ async def main() -> int:
         failed_count
         or not required_tools.issubset(tool_names)
         or observed_problem is None
-        or observed_submission_items is None
+        or observed_submission_total is None
     ):
         print("E2E MODEL QA FAIL | reason=tool_contract")
         return 1
-    if not _validate_answer(result.answer, observed_problem, bool(observed_submission_items)):
+    if not _validate_answer(result.answer, observed_problem, observed_submission_total > 0):
         print("E2E MODEL QA FAIL | reason=answer_contract")
         return 1
     print("E2E MODEL QA PASS | scope=REAL model + REAL local stack")

@@ -49,6 +49,53 @@ def test_submission_projection_excludes_source_and_identity_fields() -> None:
     asyncio.run(scenario())
 
 
+def test_problem_scoped_submission_query_uses_problem_scoped_endpoint() -> None:
+    seen: dict[str, str | None] = {}
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        seen["path"] = request.url.path
+        seen["page"] = request.url.params.get("page")
+        seen["page_size"] = request.url.params.get("pageSize")
+        return httpx.Response(
+            200,
+            json={
+                "code": 0,
+                "message": "success",
+                "data": {
+                    "items": [
+                        {
+                            "id": "sub-1",
+                            "language": "java",
+                            "status": "Wrong Answer",
+                            "createdAt": "2026-09-25T00:00:00",
+                            "problem": {"id": 7, "title": "Sample", "slug": "sample"},
+                        }
+                    ],
+                    "total": 1,
+                    "page": 1,
+                },
+            },
+        )
+
+    async def scenario() -> None:
+        async with UlticodeClient(
+            "https://app.test", "https://auth.test", transport=httpx.MockTransport(handler)
+        ) as client:
+            tools = build_tools(client)
+            result = await tools["get_problem_submissions"](
+                {"problemId": 7, "page": 2, "pageSize": 50}
+            )
+
+        assert seen == {
+            "path": "/problems/7/submissions",
+            "page": "2",
+            "page_size": "50",
+        }
+        assert result["items"][0]["problemId"] == 7  # type: ignore[index]
+
+    asyncio.run(scenario())
+
+
 def test_problem_projection_keeps_public_summary_fields_only() -> None:
     async def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(

@@ -48,7 +48,12 @@ def test_normal_path_calls_tool_then_answers() -> None:
         assert result.answer == "the title is sample"
         assert result.rounds == 2
         assert [step["failed"] for step in result.trace] == [False]
-        # the second model turn must see the tool result message
+        # the second model turn must see its tool call and the tool result
+        assistant_messages = [m for m in model.seen[1] if m["role"] == "assistant"]
+        assert len(assistant_messages) == 1
+        assert '{"tool": "get_problem", "args": {"id": 7}}' in str(
+            assistant_messages[0]["content"]
+        )
         tool_messages = [m for m in model.seen[1] if m["role"] == "tool"]
         assert len(tool_messages) == 1
         assert "sample" in str(tool_messages[0]["content"])

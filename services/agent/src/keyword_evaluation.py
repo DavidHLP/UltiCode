@@ -58,6 +58,7 @@ def _evaluate(cases: tuple[KeywordCase, ...], limit: int) -> dict[str, dict[str,
         split: {
             "total": 0,
             "passed": 0,
+            "unexpected_hits": 0,
             "no_evidence": 0,
             "missed_expected": 0,
             "false_positive_no_evidence": 0,
@@ -69,6 +70,8 @@ def _evaluate(cases: tuple[KeywordCase, ...], limit: int) -> dict[str, dict[str,
         summary["total"] += 1
         actual_doc_ids = {hit.doc_id for hit in keyword_search(case.query, limit=limit)}
         expected_doc_ids = set(case.expected_doc_ids)
+        if actual_doc_ids - expected_doc_ids:
+            summary["unexpected_hits"] += 1
         if not expected_doc_ids:
             if actual_doc_ids:
                 summary["false_positive_no_evidence"] += 1
@@ -76,9 +79,7 @@ def _evaluate(cases: tuple[KeywordCase, ...], limit: int) -> dict[str, dict[str,
                 summary["no_evidence"] += 1
         elif not expected_doc_ids.issubset(actual_doc_ids):
             summary["missed_expected"] += 1
-        if expected_doc_ids.issubset(actual_doc_ids) and (
-            expected_doc_ids or not actual_doc_ids
-        ):
+        if actual_doc_ids == expected_doc_ids:
             summary["passed"] += 1
     return results
 

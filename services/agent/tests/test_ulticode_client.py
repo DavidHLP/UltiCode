@@ -196,6 +196,58 @@ def test_failed_relogin_clears_previous_session() -> None:
     assert app_cookie is None
 
 
+def test_failed_relogin_clears_auth_cookie_before_me() -> None:
+    login_count = 0
+    auth_cookie: str | None = None
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal login_count, auth_cookie
+        if request.url.path == "/auth/login":
+            login_count += 1
+            if login_count == 1:
+                return httpx.Response(
+                    200,
+                    json={"code": 0, "message": "success", "data": {}},
+                    headers=[("set-cookie", "access_token=old; Path=/; HttpOnly")],
+                )
+            return httpx.Response(
+                401,
+                json={"code": 40100, "message": "Unauthorized"},
+                headers=[("set-cookie", "access_token=new-invalid; Path=/; HttpOnly")],
+            )
+        if request.url.path == "/auth/me":
+            auth_cookie = request.headers.get("cookie")
+        return httpx.Response(
+            200, json={"code": 0, "message": "success", "data": {"id": "user"}}
+        )
+
+    async def scenario() -> None:
+        async with UlticodeClient(
+            "https://app.test", "https://auth.test", transport=httpx.MockTransport(handler)
+        ) as client:
+            await client.login("old", "pw")
+            with pytest.raises(UlticodeError):
+                await client.login("new", "bad")
+            await client.me()
+
+    asyncio.run(scenario())
+    assert auth_cookie is None
+
+
+def test_non_object_success_data_is_rejected_without_assertions() -> None:
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"code": 0, "message": "success", "data": []})
+
+    async def scenario() -> None:
+        async with UlticodeClient(
+            "https://app.test", "https://auth.test", transport=httpx.MockTransport(handler)
+        ) as client:
+            with pytest.raises(UlticodeError, match="invalid response shape"):
+                await client.list_problems()
+
+    asyncio.run(scenario())
+
+
 def test_app_requests_do_not_forward_refresh_or_csrf_cookies() -> None:
     seen_cookie: str | None = None
 

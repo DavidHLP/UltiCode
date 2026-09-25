@@ -128,7 +128,94 @@ def test_submission_listing_rejects_more_items_than_page_size() -> None:
     asyncio.run(scenario())
 
 
-def test_problem_projection_rejects_oversized_integer() -> None:
+@pytest.mark.parametrize(
+    "arguments",
+    [
+        {},
+        {"problemId": 0},
+        {"problemId": -1},
+        {"problemId": True},
+        {"problemId": 9_223_372_036_854_775_808},
+        {"problemId": 7, "userId": "other-user"},
+        {"problemId": 7, "unexpected": True},
+    ],
+)
+def test_get_problem_submissions_rejects_invalid_model_arguments(
+    arguments: dict[str, object],
+) -> None:
+    async def handler(request: httpx.Request) -> httpx.Response:
+        raise AssertionError("no request should be sent for invalid arguments")
+
+    async def scenario() -> None:
+        async with UlticodeClient(
+            "https://app.test", "https://auth.test", transport=httpx.MockTransport(handler)
+        ) as client:
+            with pytest.raises(ValueError, match="invalid tool arguments"):
+                await build_tools(client)["get_problem_submissions"](arguments)
+
+    asyncio.run(scenario())
+
+
+@pytest.mark.parametrize(
+    "item",
+    [
+        {"id": "sub-1", "language": "java", "status": "Wrong Answer", "createdAt": "2026-09-25T00:00:00"},
+        {"id": "sub-1", "language": "java", "status": "Wrong Answer", "createdAt": "2026-09-25T00:00:00", "problem": {"id": 99}},
+        {"id": "sub-1", "language": "java", "status": "Wrong Answer", "createdAt": "2026-09-25T00:00:00", "problemId": 99},
+    ],
+)
+def test_get_problem_submissions_rejects_mismatched_or_missing_problem_identity(
+    item: dict[str, object],
+) -> None:
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "code": 0,
+                "message": "success",
+                "data": {"items": [item], "total": 1, "page": 1},
+            },
+        )
+
+    async def scenario() -> None:
+        async with UlticodeClient(
+            "https://app.test", "https://auth.test", transport=httpx.MockTransport(handler)
+        ) as client:
+            with pytest.raises(ValueError, match="invalid tool response"):
+                await build_tools(client)["get_problem_submissions"]({"problemId": 7})
+
+    asyncio.run(scenario())
+
+
+def test_problem_projection_accepts_64_bit_integer() -> None:
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "code": 0,
+                "message": "success",
+                "data": {
+                    "id": 2_147_483_648,
+                    "slug": "sample",
+                    "title": "Sample",
+                    "difficulty": "medium",
+                    "submission_count": 9_223_372_036_854_775_807,
+                },
+            },
+        )
+
+    async def scenario() -> None:
+        async with UlticodeClient(
+            "https://app.test", "https://auth.test", transport=httpx.MockTransport(handler)
+        ) as client:
+            result = await build_tools(client)["get_problem"]({"id": 2_147_483_648})
+        assert result["id"] == 2_147_483_648
+        assert result["submission_count"] == 9_223_372_036_854_775_807
+
+    asyncio.run(scenario())
+
+
+def test_problem_projection_rejects_integer_beyond_64_bit() -> None:
     async def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(
             200,
@@ -140,7 +227,7 @@ def test_problem_projection_rejects_oversized_integer() -> None:
                     "slug": "sample",
                     "title": "Sample",
                     "difficulty": "medium",
-                    "submission_count": 2_147_483_648,
+                    "submission_count": 9_223_372_036_854_775_808,
                 },
             },
         )

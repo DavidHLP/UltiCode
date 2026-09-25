@@ -29,12 +29,13 @@ async def main() -> int:
             os.environ["ULTICODE_E2E_USERNAME"], os.environ["ULTICODE_E2E_PASSWORD"]
         )
         tools = build_tools(client)
-        listing = await tools["get_my_submissions"]({"page": 1, "pageSize": 1})
+        listing = await tools["get_my_submissions"]({"page": 1, "pageSize": 100})
         items = listing["items"]  # type: ignore[index]
-        if not items:
-            print("E2E SOURCED ANALYSIS FAIL | reason=no_submission")
+        matching_items = [item for item in items if item.get("status") == "Wrong Answer"]
+        if not matching_items:
+            print("E2E SOURCED ANALYSIS FAIL | reason=no_wrong_answer_submission")
             return 1
-        result = analyze_submission(items[0], QUESTION)
+        result = analyze_submission(matching_items[0], QUESTION)
         if not result["citations"]:
             print("E2E SOURCED ANALYSIS FAIL | reason=no_citation")
             return 1

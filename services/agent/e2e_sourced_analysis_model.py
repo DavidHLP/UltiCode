@@ -22,7 +22,45 @@ from ulticode_tools import build_tools
 
 APP_BASE = os.environ.get("ULTICODE_APP_BASE", "http://localhost:9103")
 AUTH_BASE = os.environ.get("ULTICODE_AUTH_BASE", "http://localhost:9101")
-QUESTION = "Wrong Answer 状态说明了什么？只依据提交事实和带来源检索结果回答。"
+QUESTION = (
+    "Wrong Answer 状态说明了什么？只依据提交事实和带来源检索结果回答。"
+    "返回一个 JSON 对象字符串，键必须是 facts、hypotheses、citations；"
+    "facts 必须逐字引用 EVIDENCE_JSON.facts，hypotheses 必须是非空字符串数组，"
+    "citations 必须是 EVIDENCE_JSON.citations 中的 doc_id 字符串数组。"
+)
+
+
+def _validate_answer(answer: str, evidence: dict[str, object]) -> None:
+    try:
+        parsed = json.loads(answer)
+    except ValueError as exc:
+        raise ValueError("invalid model answer") from exc
+    if not isinstance(parsed, dict) or set(parsed) != {"facts", "hypotheses", "citations"}:
+        raise ValueError("invalid model answer")
+    facts = parsed["facts"]
+    hypotheses = parsed["hypotheses"]
+    citations = parsed["citations"]
+    if not isinstance(facts, list) or not facts or not all(
+        isinstance(item, str) and item.strip() for item in facts
+    ):
+        raise ValueError("invalid model answer")
+    if not isinstance(hypotheses, list) or not hypotheses or not all(
+        isinstance(item, str) and item.strip() for item in hypotheses
+    ):
+        raise ValueError("invalid model answer")
+    if not isinstance(citations, list) or not citations or not all(
+        isinstance(item, str) and item.strip() for item in citations
+    ):
+        raise ValueError("invalid model answer")
+    allowed_facts = set(evidence["facts"])  # type: ignore[arg-type]
+    allowed_citations = {
+        citation["doc_id"]
+        for citation in evidence["citations"]  # type: ignore[index]
+    }
+    if not set(facts) <= allowed_facts:
+        raise ValueError("invalid model answer")
+    if not set(citations) <= allowed_citations:
+        raise ValueError("invalid model answer")
 
 
 async def main() -> int:
@@ -41,10 +79,8 @@ async def main() -> int:
         if not result["citations"]:
             print("E2E SOURCED MODEL FAIL | reason=no_citation")
             return 1
-        evidence = json.dumps(
-            {"facts": result["facts"], "citations": result["citations"]},
-            ensure_ascii=False,
-        )
+        evidence_payload = {"facts": result["facts"], "citations": result["citations"]}
+        evidence = json.dumps(evidence_payload, ensure_ascii=False)
         async with DeepseekModel(
             os.environ["DEEPSEEK_API_KEY"], tool_specs={"none": "No tool call; use supplied evidence."}
         ) as model:
@@ -62,6 +98,11 @@ async def main() -> int:
             )
         if not decision.text:
             print("E2E SOURCED MODEL FAIL | reason=empty_answer")
+            return 1
+        try:
+            _validate_answer(decision.text, evidence_payload)  # type: ignore[arg-type]
+        except ValueError:
+            print("E2E SOURCED MODEL FAIL | reason=invalid_answer")
             return 1
 
     print(

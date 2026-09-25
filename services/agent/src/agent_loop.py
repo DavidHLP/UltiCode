@@ -79,8 +79,8 @@ async def run_tool_loop(
         async with asyncio.timeout(total_timeout):
             for round_no in range(1, max_rounds + 1):
                 decision = await model.decide(messages)
-                messages.append({"role": "assistant", "content": decision.text})
                 if decision.tool_call is None:
+                    messages.append({"role": "assistant", "content": decision.text})
                     return LoopResult(
                         answer=decision.text,
                         rounds=round_no,
@@ -89,6 +89,17 @@ async def run_tool_loop(
 
                 call = decision.tool_call
                 handler = tools.get(call.name)
+                serialized_call = (
+                    {"tool": call.name, "args": call.arguments}
+                    if handler is not None
+                    else {"tool": "unknown_tool", "args": {}}
+                )
+                messages.append(
+                    {
+                        "role": "assistant",
+                        "content": json.dumps(serialized_call, ensure_ascii=False, default=str),
+                    }
+                )
                 if handler is None:
                     result: object = {"error": "unknown_tool"}
                 else:

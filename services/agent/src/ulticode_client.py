@@ -83,6 +83,18 @@ class UlticodeClient:
             return payload.get("data")
         raise UlticodeError("service_error")
 
+    def _clear_session_cookies(self) -> None:
+        self._cookies.clear()
+        self._auth.cookies.clear()
+        self._app.cookies.clear()
+
+    @staticmethod
+    def _unwrap_dict(response: httpx.Response) -> dict[str, object]:
+        data = UlticodeClient._unwrap(response)
+        if not isinstance(data, dict):
+            raise UlticodeError("invalid response shape")
+        return data
+
     def _session_headers(self) -> dict[str, str]:
         access = next(
             (cookie for cookie in self._cookies.jar if cookie.name == "access_token"),
@@ -103,25 +115,30 @@ class UlticodeClient:
         if search:
             params["search"] = search
         response = await self._app.get("/problems", params=params)
-        data = self._unwrap(response)
-        assert isinstance(data, dict)
+        data = self._unwrap_dict(response)
         return data
 
     async def get_problem(self, problem_id: int) -> dict[str, object]:
-        if isinstance(problem_id, bool) or not isinstance(problem_id, int) or problem_id < 1:
+        if (
+            isinstance(problem_id, bool)
+            or not isinstance(problem_id, int)
+            or not 1 <= problem_id <= 9_223_372_036_854_775_807
+        ):
             raise ValueError("problem_id must be a positive integer")
         response = await self._app.get(f"/problems/{problem_id}")
-        data = self._unwrap(response)
-        assert isinstance(data, dict)
+        data = self._unwrap_dict(response)
         return data
 
     async def login(self, username: str, password: str) -> dict[str, object]:
-        self._cookies.clear()
+        self._clear_session_cookies()
         response = await self._auth.post(
             "/auth/login", json={"username": username, "password": password}
         )
-        data = self._unwrap(response)
-        assert isinstance(data, dict)
+        try:
+            data = self._unwrap_dict(response)
+        except Exception:
+            self._clear_session_cookies()
+            raise
         self._cookies.update(response.cookies)
         return data
 
@@ -133,9 +150,24 @@ class UlticodeClient:
             params={"page": page, "pageSize": page_size},
             headers=self._session_headers(),
         )
-        data = self._unwrap(response)
-        assert isinstance(data, dict)
+        data = self._unwrap_dict(response)
         return data
+
+    async def list_problem_submissions(
+        self, problem_id: int, *, page: int = 1, page_size: int = 10
+    ) -> dict[str, object]:
+        if (
+            isinstance(problem_id, bool)
+            or not isinstance(problem_id, int)
+            or not 1 <= problem_id <= 9_223_372_036_854_775_807
+        ):
+            raise ValueError("problem_id must be a positive 64-bit integer")
+        response = await self._app.get(
+            f"/problems/{problem_id}/submissions",
+            params={"page": page, "pageSize": page_size},
+            headers=self._session_headers(),
+        )
+        return self._unwrap_dict(response)
 
     async def get_my_submission(self, submission_id: str) -> dict[str, object]:
         if not isinstance(submission_id, str) or not submission_id.strip():
@@ -143,12 +175,10 @@ class UlticodeClient:
         response = await self._app.get(
             f"/submissions/{submission_id}", headers=self._session_headers()
         )
-        data = self._unwrap(response)
-        assert isinstance(data, dict)
+        data = self._unwrap_dict(response)
         return data
 
     async def me(self) -> dict[str, object]:
         response = await self._auth.get("/auth/me", headers=self._session_headers())
-        data = self._unwrap(response)
-        assert isinstance(data, dict)
+        data = self._unwrap_dict(response)
         return data

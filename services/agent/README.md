@@ -41,8 +41,8 @@ ULTICODE_E2E_USERNAME=... ULTICODE_E2E_PASSWORD=... DEEPSEEK_API_KEY=... \
   uv run python e2e_sourced_analysis_model.py
 ```
 
-The model-backed sourced-analysis smoke requires the authenticated account to have at least one
-`Wrong Answer` submission in the first bounded page; otherwise it exits with a fixed
+Both sourced-analysis smokes require the authenticated account to have at least one
+`Wrong Answer` submission in the first bounded page; otherwise they exit with a fixed
 `no_wrong_answer_submission` status. The smoke scripts emit only fixed status labels and item
 counts. They do not print response bodies, cookie names or values, tokens, submission source,
 usernames, roles, tool names, source text, or model answer content.

@@ -58,6 +58,24 @@ def test_sourced_analysis_e2e_requires_projection_and_citation(monkeypatch, caps
     assert "must-not-enter-analysis" not in output
 
 
+def test_sourced_analysis_e2e_selects_matching_submission(monkeypatch, capsys) -> None:
+    monkeypatch.setenv("ULTICODE_E2E_USERNAME", "tester")
+    monkeypatch.setenv("ULTICODE_E2E_PASSWORD", "pw")
+    items = [
+        {**_projected_submission("Accepted"), "id": "sub-1"},
+        {**_projected_submission("Wrong Answer"), "id": "sub-2"},
+    ]
+    monkeypatch.setattr(
+        e2e_sourced_analysis,
+        "UlticodeClient",
+        lambda *args, **kwargs: FakeClient(items),
+    )
+
+    assert asyncio.run(e2e_sourced_analysis.main()) == 0
+    output = capsys.readouterr().out
+    assert "E2E SOURCED ANALYSIS PASS | corpus=agent-authored-synthetic | input=validated-user-projection" in output
+
+
 def test_sourced_analysis_e2e_fails_for_non_wrong_answer_status(monkeypatch, capsys) -> None:
     monkeypatch.setenv("ULTICODE_E2E_USERNAME", "tester")
     monkeypatch.setenv("ULTICODE_E2E_PASSWORD", "pw")
@@ -69,7 +87,7 @@ def test_sourced_analysis_e2e_fails_for_non_wrong_answer_status(monkeypatch, cap
 
     assert asyncio.run(e2e_sourced_analysis.main()) == 1
     output = capsys.readouterr().out
-    assert "reason=no_citation" in output
+    assert "reason=no_wrong_answer_submission" in output
     assert "sub-1" not in output
     assert "must-not-enter-analysis" not in output
 
@@ -80,7 +98,7 @@ def test_sourced_analysis_e2e_fails_without_citation(monkeypatch, capsys) -> Non
     monkeypatch.setattr(
         e2e_sourced_analysis,
         "UlticodeClient",
-        lambda *args, **kwargs: FakeClient([_projected_submission("Accepted")]),
+        lambda *args, **kwargs: FakeClient([_projected_submission("Wrong Answer")]),
     )
     monkeypatch.setattr(e2e_sourced_analysis, "QUESTION", "量子拓扑")
 

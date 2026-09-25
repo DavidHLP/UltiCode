@@ -38,6 +38,7 @@ TOOL_SPECS = {
 
 
 MAX_LONG = 9_223_372_036_854_775_807
+MAX_INT = 2_147_483_647
 
 
 def _project(data: object, fields: dict[str, tuple[type, int]]) -> dict[str, object]:
@@ -75,6 +76,10 @@ def _positive_int(value: object, *, maximum: int = MAX_LONG) -> int:
     return value
 
 
+def _page_int(value: object) -> int:
+    return _positive_int(value, maximum=MAX_INT)
+
+
 def _exact_keys(arguments: dict[str, object], allowed: set[str], *, required: set[str]) -> None:
     if not required <= arguments.keys() or arguments.keys() - allowed:
         raise ValueError("invalid tool arguments")
@@ -99,7 +104,7 @@ def build_tools(client: UlticodeClient) -> dict[str, object]:
         return {
             "items": items,
             "total": _bounded_int(listing.get("total")),
-            "page": _bounded_int(listing.get("page"), minimum=1),
+            "page": _bounded_int(listing.get("page"), minimum=1, maximum=MAX_INT),
         }
 
     def project_problem_submission_listing(
@@ -116,11 +121,17 @@ def build_tools(client: UlticodeClient) -> dict[str, object]:
             problem = raw_item.get("problem")
             nested_id = problem.get("id") if isinstance(problem, dict) else None
             raw_problem_id = raw_item.get("problemId")
-            if nested_id is None and raw_problem_id is None:
+            if nested_id is not None and (
+                isinstance(nested_id, bool)
+                or not isinstance(nested_id, int)
+                or nested_id != problem_id
+            ):
                 raise ValueError("invalid tool response")
-            if nested_id is not None and nested_id != problem_id:
-                raise ValueError("invalid tool response")
-            if raw_problem_id is not None and raw_problem_id != problem_id:
+            if raw_problem_id is not None and (
+                isinstance(raw_problem_id, bool)
+                or not isinstance(raw_problem_id, int)
+                or raw_problem_id != problem_id
+            ):
                 raise ValueError("invalid tool response")
             normalized_item = dict(raw_item)
             normalized_item["problemId"] = problem_id
@@ -128,12 +139,12 @@ def build_tools(client: UlticodeClient) -> dict[str, object]:
         return {
             "items": items,
             "total": _bounded_int(listing.get("total")),
-            "page": _bounded_int(listing.get("page"), minimum=1),
+            "page": _bounded_int(listing.get("page"), minimum=1, maximum=MAX_INT),
         }
 
     async def get_my_submissions(arguments: dict[str, object]) -> object:
         _exact_keys(arguments, {"page", "pageSize"}, required=set())
-        page = _positive_int(arguments.get("page", 1))
+        page = _page_int(arguments.get("page", 1))
         page_size = _positive_int(arguments.get("pageSize", 5), maximum=100)
         listing = await client.list_my_submissions(page=page, page_size=page_size)
         return project_submission_listing(listing, page_size=page_size)
@@ -141,7 +152,7 @@ def build_tools(client: UlticodeClient) -> dict[str, object]:
     async def get_problem_submissions(arguments: dict[str, object]) -> object:
         _exact_keys(arguments, {"problemId", "page", "pageSize"}, required={"problemId"})
         problem_id = _positive_int(arguments["problemId"])
-        page = _positive_int(arguments.get("page", 1))
+        page = _page_int(arguments.get("page", 1))
         page_size = _positive_int(arguments.get("pageSize", 5), maximum=100)
         listing = await client.list_problem_submissions(
             problem_id, page=page, page_size=page_size

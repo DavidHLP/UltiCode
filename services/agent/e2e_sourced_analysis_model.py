@@ -96,6 +96,9 @@ async def main() -> int:
                     }
                 ]
             )
+        if decision.tool_call is not None:
+            print("E2E SOURCED MODEL FAIL | reason=tool_call")
+            return 1
         if not decision.text:
             print("E2E SOURCED MODEL FAIL | reason=empty_answer")
             return 1

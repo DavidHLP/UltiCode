@@ -108,7 +108,14 @@ async def run_tool_loop(
                     except Exception:
                         result = {"error": "tool_failed"}
                 failed = isinstance(result, dict) and "error" in result
-                trace.append({"round": round_no, "tool": "allowlisted", "failed": failed})
+                trace.append(
+                    {
+                        "round": round_no,
+                        "tool": "allowlisted",
+                        "tool_name": call.name if handler is not None else "unknown_tool",
+                        "failed": failed,
+                    }
+                )
                 messages.append(
                     {
                         "role": "tool",

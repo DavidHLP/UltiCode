@@ -42,15 +42,19 @@ async def main() -> int:
                 model, tools, QUESTION, max_rounds=4, total_timeout=90.0
             )
 
-    tool_count = len(result.trace)
+    tool_names = {step["tool_name"] for step in result.trace}
     failed_count = sum(bool(step["failed"]) for step in result.trace)
     print(
         f"OK model_qa rounds={result.rounds} "
-        f"tool_count={tool_count} failed_count={failed_count}"
+        f"tool_count={len(result.trace)} failed_count={failed_count}"
     )
     print(f"answer_chars={len(result.answer)} (content withheld from logs)")
-    if failed_count or tool_count == 0:
+    required_tools = {"get_problem", "get_problem_submissions"}
+    if failed_count or not required_tools.issubset(tool_names):
         print("E2E MODEL QA FAIL | reason=tool_contract")
+        return 1
+    if not result.answer.strip():
+        print("E2E MODEL QA FAIL | reason=empty_answer")
         return 1
     print("E2E MODEL QA PASS | scope=REAL model + REAL local stack")
     return 0

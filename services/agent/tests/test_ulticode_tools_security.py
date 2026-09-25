@@ -136,6 +136,8 @@ def test_submission_listing_rejects_more_items_than_page_size() -> None:
         {"problemId": -1},
         {"problemId": True},
         {"problemId": 9_223_372_036_854_775_808},
+        {"problemId": 7, "page": 2_147_483_648},
+        {"problemId": 7, "pageSize": 101},
         {"problemId": 7, "userId": "other-user"},
         {"problemId": 7, "unexpected": True},
     ],
@@ -159,9 +161,10 @@ def test_get_problem_submissions_rejects_invalid_model_arguments(
 @pytest.mark.parametrize(
     "item",
     [
-        {"id": "sub-1", "language": "java", "status": "Wrong Answer", "createdAt": "2026-09-25T00:00:00"},
         {"id": "sub-1", "language": "java", "status": "Wrong Answer", "createdAt": "2026-09-25T00:00:00", "problem": {"id": 99}},
+        {"id": "sub-1", "language": "java", "status": "Wrong Answer", "createdAt": "2026-09-25T00:00:00", "problem": {"id": True}},
         {"id": "sub-1", "language": "java", "status": "Wrong Answer", "createdAt": "2026-09-25T00:00:00", "problemId": 99},
+        {"id": "sub-1", "language": "java", "status": "Wrong Answer", "createdAt": "2026-09-25T00:00:00", "problemId": True},
     ],
 )
 def test_get_problem_submissions_rejects_mismatched_or_missing_problem_identity(
@@ -266,13 +269,13 @@ def test_get_problem_rejects_invalid_model_arguments(arguments: dict[str, object
 
     asyncio.run(scenario())
 
-
 @pytest.mark.parametrize(
     "arguments",
     [
         {"page": True},
         {"page": 0},
         {"page": -1},
+        {"page": 2_147_483_648},
         {"pageSize": True},
         {"pageSize": 0},
         {"pageSize": -1},
@@ -291,6 +294,44 @@ def test_get_my_submissions_rejects_invalid_pagination(arguments: dict[str, obje
                 await build_tools(client)["get_my_submissions"](arguments)
 
     asyncio.run(scenario())
+def test_submission_page_max_integer_is_accepted() -> None:
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={"code": 0, "message": "success", "data": {"items": [], "total": 0, "page": 2_147_483_647}},
+        )
+
+    async def scenario() -> None:
+        async with UlticodeClient(
+            "https://app.test", "https://auth.test", transport=httpx.MockTransport(handler)
+        ) as client:
+            tools = build_tools(client)
+            global_result = await tools["get_my_submissions"]({"page": 2_147_483_647})
+            scoped_result = await tools["get_problem_submissions"](
+                {"problemId": 7, "page": 2_147_483_647}
+            )
+        assert global_result["page"] == 2_147_483_647
+        assert scoped_result["page"] == 2_147_483_647
+
+    asyncio.run(scenario())
+
+
+def test_submission_page_response_rejects_above_integer_max() -> None:
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={"code": 0, "message": "success", "data": {"items": [], "total": 0, "page": 2_147_483_648}},
+        )
+
+    async def scenario() -> None:
+        async with UlticodeClient(
+            "https://app.test", "https://auth.test", transport=httpx.MockTransport(handler)
+        ) as client:
+            with pytest.raises(ValueError, match="invalid tool response"):
+                await build_tools(client)["get_my_submissions"]({})
+
+    asyncio.run(scenario())
+
 
 
 @pytest.mark.parametrize(

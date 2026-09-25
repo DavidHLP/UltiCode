@@ -49,11 +49,18 @@ def test_submission_projection_excludes_source_and_identity_fields() -> None:
     asyncio.run(scenario())
 
 
-def test_problem_scoped_submission_query_uses_problem_scoped_endpoint() -> None:
+def test_problem_scoped_submission_query_uses_authenticated_problem_scoped_endpoint() -> None:
     seen: dict[str, str | None] = {}
 
     async def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/auth/login":
+            return httpx.Response(
+                200,
+                json={"code": 0, "message": "success", "data": {}},
+                headers=[("set-cookie", "access_token=access; Path=/; HttpOnly")],
+            )
         seen["path"] = request.url.path
+        seen["cookie"] = request.headers.get("cookie")
         seen["page"] = request.url.params.get("page")
         seen["page_size"] = request.url.params.get("pageSize")
         return httpx.Response(
@@ -81,6 +88,7 @@ def test_problem_scoped_submission_query_uses_problem_scoped_endpoint() -> None:
         async with UlticodeClient(
             "https://app.test", "https://auth.test", transport=httpx.MockTransport(handler)
         ) as client:
+            await client.login("tester", "pw")
             tools = build_tools(client)
             result = await tools["get_problem_submissions"](
                 {"problemId": 7, "page": 2, "pageSize": 50}
@@ -88,9 +96,41 @@ def test_problem_scoped_submission_query_uses_problem_scoped_endpoint() -> None:
 
         assert seen == {
             "path": "/problems/7/submissions",
+            "cookie": "access_token=access",
             "page": "2",
             "page_size": "50",
         }
+        assert result["items"][0]["problemId"] == 7  # type: ignore[index]
+        assert set(result["items"][0]) == {"id", "problemId", "language", "status", "createdAt"}
+
+
+def test_problem_scoped_submission_query_accepts_missing_problem_identity() -> None:
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "code": 0,
+                "message": "success",
+                "data": {
+                    "items": [
+                        {
+                            "id": "sub-1",
+                            "language": "java",
+                            "status": "Wrong Answer",
+                            "createdAt": "2026-09-25T00:00:00",
+                        }
+                    ],
+                    "total": 1,
+                    "page": 1,
+                },
+            },
+        )
+
+    async def scenario() -> None:
+        async with UlticodeClient(
+            "https://app.test", "https://auth.test", transport=httpx.MockTransport(handler)
+        ) as client:
+            result = await build_tools(client)["get_problem_submissions"]({"problemId": 7})
         assert result["items"][0]["problemId"] == 7  # type: ignore[index]
 
     asyncio.run(scenario())

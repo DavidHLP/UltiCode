@@ -120,7 +120,9 @@ def test_unknown_tool_is_reported_without_echoing_model_name() -> None:
             ]
         )
         result = await run_tool_loop(model, {}, "call it", max_rounds=4)
-        assert result.trace == ({"round": 1, "tool": "allowlisted", "failed": True},)
+        assert result.trace == (
+            {"round": 1, "tool": "allowlisted", "tool_name": "unknown_tool", "failed": True},
+        )
         tool_messages = [m for m in model.seen[1] if m["role"] == "tool"]
         assert str(tool_messages[0]["content"]) == '{"error": "unknown_tool"}'
         assert "SECRET" not in str(model.seen[1])

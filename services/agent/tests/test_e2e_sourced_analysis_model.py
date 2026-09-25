@@ -135,6 +135,26 @@ def test_real_model_smoke_rejects_invalid_fact_or_hypothesis_structure(
     assert answer not in output
 
 
+def test_real_model_smoke_rejects_tool_call_even_with_text(monkeypatch, capsys) -> None:
+    monkeypatch.setenv("ULTICODE_E2E_USERNAME", "tester")
+    monkeypatch.setenv("ULTICODE_E2E_PASSWORD", "pw")
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
+    monkeypatch.setattr(module, "UlticodeClient", lambda *args, **kwargs: FakeClient())
+
+    class ToolCallModel(FakeModel):
+        async def decide(self, messages: list[dict[str, object]]) -> SimpleNamespace:
+            self.messages = messages
+            return SimpleNamespace(text="looks complete", tool_call=SimpleNamespace(name="get_problem"))
+
+    model = ToolCallModel()
+    monkeypatch.setattr(module, "DeepseekModel", lambda *args, **kwargs: model)
+
+    assert asyncio.run(module.main()) == 1
+    output = capsys.readouterr().out
+    assert "reason=tool_call" in output
+    assert "looks complete" not in output
+
+
 def test_real_model_smoke_rejects_unknown_citation(monkeypatch, capsys) -> None:
     monkeypatch.setenv("ULTICODE_E2E_USERNAME", "tester")
     monkeypatch.setenv("ULTICODE_E2E_PASSWORD", "pw")

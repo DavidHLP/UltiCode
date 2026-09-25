@@ -8,6 +8,7 @@ This file supplements [`../AGENTS.md`](../AGENTS.md) for `services/`.
 - Shared platform code lives under `platform/` (common, web-security) and Dubbo contracts under `api/`; app-private domains live under `app/modules/`; owner-specific boot code lives in `auth/`, `admin/`, or `app/app-web/`.
 - Use annotation-based MyBatis mappers; the backend does not use XML mappers.
 - Read-side projections own entity-to-VO shaping and cross-mapper enrichment. Cross-module dependencies should use consumer-owned ports rather than reaching through another module's internals.
+`services/agent/` is a standalone Python Agent module, not a Maven/Spring service. It may call the existing Auth/App HTTP contracts, but it does not own business tables, replace an Owner/Worker, or add write tools. Keep its model-input projections, credentials, and runtime verification local to that module.
 
 ## Required patterns
 

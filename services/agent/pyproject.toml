@@ -1,0 +1,17 @@
+[project]
+name = "ulticode-agent"
+version = "0.1.0"
+description = "Standalone read-only Python Agent runtime for UltiCode"
+requires-python = ">=3.11"
+dependencies = ["httpx>=0.28,<1"]
+
+[dependency-groups]
+dev = ["pytest>=8.4,<9"]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+addopts = "-ra"

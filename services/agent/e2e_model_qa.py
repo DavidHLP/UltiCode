@@ -12,6 +12,7 @@ Scope label: REAL model (DeepSeek) + REAL local UltiCode stack.
 from __future__ import annotations
 
 import asyncio
+import json
 import os
 import sys
 from pathlib import Path
@@ -25,7 +26,24 @@ from ulticode_tools import TOOL_SPECS, build_tools
 
 APP_BASE = os.environ.get("ULTICODE_APP_BASE", "http://localhost:9103")
 AUTH_BASE = os.environ.get("ULTICODE_AUTH_BASE", "http://localhost:9101")
-QUESTION = "第 7 题的标题和难度是什么？我在这道题上有提交记录吗？只依据工具结果回答。"
+QUESTION = (
+    "第 7 题的标题和难度是什么？我在这道题上有提交记录吗？只依据工具结果回答。"
+    "返回一个 JSON 对象字符串，键必须是 title、difficulty、has_submission。"
+)
+
+
+def _validate_answer(answer: str, problem: dict[str, object], has_submission: bool) -> bool:
+    try:
+        parsed = json.loads(answer)
+    except ValueError:
+        return False
+    return (
+        isinstance(parsed, dict)
+        and set(parsed) == {"title", "difficulty", "has_submission"}
+        and parsed.get("title") == problem.get("title")
+        and parsed.get("difficulty") == problem.get("difficulty")
+        and parsed.get("has_submission") is has_submission
+    )
 
 
 async def main() -> int:
@@ -34,15 +52,15 @@ async def main() -> int:
             os.environ["ULTICODE_E2E_USERNAME"], os.environ["ULTICODE_E2E_PASSWORD"]
         )
         raw_tools = build_tools(client)
-        observed_problem = False
-        observed_problem_submissions = False
+        observed_problem: dict[str, object] | None = None
+        observed_submission_items: list[dict[str, object]] | None = None
 
         def track(name: str, handler: object) -> object:
             async def tracked(arguments: dict[str, object]) -> object:
-                nonlocal observed_problem, observed_problem_submissions
+                nonlocal observed_problem, observed_submission_items
                 result = await handler(arguments)  # type: ignore[operator]
                 if name == "get_problem" and isinstance(result, dict) and result.get("id") == 7:
-                    observed_problem = True
+                    observed_problem = result
                 if (
                     name == "get_problem_submissions"
                     and isinstance(arguments.get("problemId"), int)
@@ -50,7 +68,7 @@ async def main() -> int:
                     and isinstance(result, dict)
                     and isinstance(result.get("items"), list)
                 ):
-                    observed_problem_submissions = True
+                    observed_submission_items = result["items"]  # type: ignore[assignment]
                 return result
 
             return tracked
@@ -74,13 +92,13 @@ async def main() -> int:
     if (
         failed_count
         or not required_tools.issubset(tool_names)
-        or not observed_problem
-        or not observed_problem_submissions
+        or observed_problem is None
+        or observed_submission_items is None
     ):
         print("E2E MODEL QA FAIL | reason=tool_contract")
         return 1
-    if not result.answer.strip():
-        print("E2E MODEL QA FAIL | reason=empty_answer")
+    if not _validate_answer(result.answer, observed_problem, bool(observed_submission_items)):
+        print("E2E MODEL QA FAIL | reason=answer_contract")
         return 1
     print("E2E MODEL QA PASS | scope=REAL model + REAL local stack")
     return 0

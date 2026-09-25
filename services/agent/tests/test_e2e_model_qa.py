@@ -78,7 +78,7 @@ def test_model_qa_requires_problem_and_problem_scoped_submission_evidence(monkey
         [
             ModelDecision(tool_call=ToolCall("get_problem", {"id": 7})),
             ModelDecision(tool_call=ToolCall("get_problem_submissions", {"problemId": 7})),
-            ModelDecision(text="Sample is easy and has a submission"),
+            ModelDecision(text='{"title":"Sample","difficulty":"easy","has_submission":true}'),
         ]
     )
     return_code, output = _run_model(monkeypatch, capsys, model)
@@ -91,7 +91,7 @@ def test_model_qa_fails_when_only_problem_evidence_is_checked(monkeypatch, capsy
     model = FakeModel(
         [
             ModelDecision(tool_call=ToolCall("get_problem", {"id": 7})),
-            ModelDecision(text="Sample is easy"),
+            ModelDecision(text='{"title":"Sample","difficulty":"easy","has_submission":false}'),
         ]
     )
     return_code, output = _run_model(monkeypatch, capsys, model)

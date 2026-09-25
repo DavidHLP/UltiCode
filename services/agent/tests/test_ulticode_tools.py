@@ -103,6 +103,8 @@ def test_problem_scoped_submission_query_uses_authenticated_problem_scoped_endpo
         assert result["items"][0]["problemId"] == 7  # type: ignore[index]
         assert set(result["items"][0]) == {"id", "problemId", "language", "status", "createdAt"}
 
+    asyncio.run(scenario())
+
 
 def test_problem_scoped_submission_query_accepts_missing_problem_identity() -> None:
     async def handler(request: httpx.Request) -> httpx.Response:

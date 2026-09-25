@@ -103,7 +103,9 @@ def test_tool_failure_is_redacted_before_reaching_model() -> None:
         )
         result = await run_tool_loop(model, {"broken": broken}, "try it", max_rounds=4)
         assert result.answer == "recovered"
-        assert result.trace == ({"round": 1, "tool": "allowlisted", "failed": True},)
+        assert result.trace == (
+            {"round": 1, "tool": "allowlisted", "tool_name": "broken", "failed": True},
+        )
         tool_messages = [m for m in model.seen[1] if m["role"] == "tool"]
         content = str(tool_messages[0]["content"])
         assert content == '{"error": "tool_failed"}'

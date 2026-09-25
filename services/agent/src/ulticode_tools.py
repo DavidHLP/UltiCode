@@ -91,7 +91,10 @@ def build_tools(client: UlticodeClient) -> dict[str, object]:
         _exact_keys(arguments, {"id"}, required={"id"})
         problem_id = _positive_int(arguments["id"])
         detail = await client.get_problem(problem_id)
-        return _project(detail, PROBLEM_FIELDS)
+        projected = _project(detail, PROBLEM_FIELDS)
+        if projected["id"] != problem_id:
+            raise ValueError("invalid tool response")
+        return projected
 
     def project_submission_listing(
         listing: object, *, page_size: int

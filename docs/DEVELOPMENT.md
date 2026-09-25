@@ -67,7 +67,7 @@ uv sync --locked
 uv run pytest -q
 ```
 
-真实 UltiCode HTTP / 模型 e2e 仍是显式 opt-in；`e2e_sourced_analysis.py` 使用 agent-authored synthetic Markdown corpus（不是提交、DTO 或用户授权材料），分析输入则是 authenticated user 的 validated read-only submission projection，且不调用真实模型。`e2e_sourced_analysis_model.py` 是额外的真实模型 sourced-analysis 入口，仍需显式提供现有环境和 `DEEPSEEK_API_KEY`；不得把本地开发账号密码、Cookie、源码、检索文本或模型回答写入日志。DAV-22 当前只有 20 条 development + 10 条 holdout 的确定性关键词基线；Embedding/Qdrant 对照、授权真实资料评估和 DAV-53 双账号隔离证据仍未完成。
+真实 UltiCode HTTP / 模型 e2e 仍是显式 opt-in；`e2e_sourced_analysis.py` 使用 agent-authored synthetic Markdown corpus（不是提交、DTO 或用户授权材料），分析输入则是 authenticated user 的 validated read-only submission projection，且不调用真实模型。`e2e_sourced_analysis_model.py` 是额外的真实模型 sourced-analysis 入口，仍需显式提供现有环境和 `DEEPSEEK_API_KEY`；不得把本地开发账号密码、Cookie、源码、检索文本或模型回答写入日志。可执行题集和当前结果见 `services/agent/data/keyword_cases.json` 与对应 Linear 任务；Embedding/Qdrant 对照、授权真实资料评估和 DAV-53 双账号隔离证据仍未完成。
 
 
 `core` scope 会启动 `ulticode-core`（9108）和独立 `ulticode-judge`；

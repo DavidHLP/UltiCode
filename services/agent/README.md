@@ -12,8 +12,8 @@ Java Owner services for identity, submissions, judging, or persistence.
 - `src/agent_loop.py` owns bounded model → tool → result rounds, timeout, and cancellation behavior.
 
 The current migrated slice provides the U01 read-only client, bounded model/tool loop, field
-projection, deterministic tests, a U02 sample-only keyword retrieval/sourced-analysis path, and a
-20-development/10-holdout keyword baseline. Full authorized-corpus evaluation, Embedding/Qdrant
+projection, deterministic tests, a U02 sample-only keyword retrieval/sourced-analysis path, and
+executable keyword evaluation tooling. Full authorized-corpus evaluation, Embedding/Qdrant
 comparison, real-model sourced-analysis evidence, and DAV-53 isolation evidence remain incomplete.
 - `src/deepseek_model.py` is an external model adapter. Its API key is read from the environment and
   is never logged or committed.
@@ -56,9 +56,9 @@ scope, version, chunk/source position, and the exact model-input projection. Ret
 is untrusted data, never an instruction source.
 
 The synthetic sample is explicitly `synthetic` and `agent-authored-synthetic`; it is suitable for
-the deterministic sample slice only. The repository now includes a 20-development/10-holdout
-keyword evaluation baseline, but authorized-corpus evaluation, Embedding/Qdrant comparison,
-real-model sourced-analysis evidence, and DAV-53 isolation evidence remain incomplete.
+the deterministic sample slice only. The executable keyword evaluation is versioned with the Agent
+module; authorized-corpus evaluation, Embedding/Qdrant comparison, real-model sourced-analysis
+evidence, and DAV-53 isolation evidence remain incomplete.
 
 `src/retrieval.py` provides bounded keyword retrieval and source metadata. `src/sourced_analysis.py`
 separates observed submission facts from hypotheses and only cites retrieved fragments. Java services

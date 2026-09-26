@@ -68,7 +68,7 @@ def analyze_submission(submission: dict[str, object], question: str) -> dict[str
 async def first_wrong_answer_submission(tools: dict[str, object]) -> dict[str, object] | None:
     """Return the first Wrong Answer submission in owner page order, scanning every reported page."""
     get_my_submissions = tools["get_my_submissions"]
-    collected = 0
+    seen: set[str] = set()
     page = 1
     # ponytail: scan length follows the owner-reported total; a dishonest total only
     # costs extra read-only requests, and each page stays projection-validated.
@@ -76,9 +76,12 @@ async def first_wrong_answer_submission(tools: dict[str, object]) -> dict[str, o
         listing = await get_my_submissions({"page": page, "pageSize": 100})
         items = listing["items"]
         for item in items:
+            submission_id = item["id"]
+            if submission_id in seen:
+                raise ValueError("duplicate submission id across pages")
+            seen.add(submission_id)
             if item.get("status") == "Wrong Answer":
                 return item
-        collected += len(items)
-        if not items or collected >= listing["total"]:
+        if not items or len(seen) >= listing["total"]:
             return None
         page += 1

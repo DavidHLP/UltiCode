@@ -20,10 +20,20 @@ from the server-side session cookie — callers cannot inject a user id.
 
 from __future__ import annotations
 
+import json
 import re
 from types import TracebackType
 
 import httpx
+
+
+def _reject_duplicate_keys(pairs: list[tuple[str, object]]) -> dict[str, object]:
+    result: dict[str, object] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("duplicate key")
+        result[key] = value
+    return result
 
 
 SUBMISSION_ID_PATTERN = re.compile(
@@ -73,9 +83,11 @@ class UlticodeClient:
     @staticmethod
     def _unwrap(response: httpx.Response) -> object:
         try:
-            payload = response.json()
-        except ValueError as exc:
+            payload = json.loads(response.text, object_pairs_hook=_reject_duplicate_keys)
+        except json.JSONDecodeError as exc:
             raise UlticodeError(f"non-JSON response (http={response.status_code})") from exc
+        except ValueError as exc:
+            raise UlticodeError("duplicate key in service response") from exc
         if not isinstance(payload, dict) or "code" not in payload:
             raise UlticodeError("invalid Result envelope")
         code = payload["code"]

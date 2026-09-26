@@ -2,6 +2,8 @@ import asyncio
 import importlib.util
 from pathlib import Path
 
+import pytest
+
 _module_spec = importlib.util.spec_from_file_location(
     "e2e_sourced_analysis", Path(__file__).parents[1] / "e2e_sourced_analysis.py"
 )
@@ -162,3 +164,30 @@ def test_sourced_analysis_e2e_scans_past_ten_pages(monkeypatch, capsys) -> None:
 
     assert asyncio.run(e2e_sourced_analysis.main()) == 0
     assert "E2E SOURCED ANALYSIS PASS" in capsys.readouterr().out
+
+
+def test_sourced_analysis_e2e_rejects_cross_page_duplicate_ids(monkeypatch, capsys) -> None:
+    class ShiftingClient(FakeClient):
+        async def list_my_submissions(
+            self, *, page: int, page_size: int
+        ) -> dict[str, object]:
+            return {
+                "items": [
+                    {
+                        **_projected_submission("Accepted"),
+                        "id": f"11111111-1111-4111-8111-{n % 10**12:012d}",
+                    }
+                    for n in range(page_size)
+                ],
+                "total": page_size * 2,
+                "page": page,
+                "pageSize": page_size,
+            }
+
+    monkeypatch.setenv("ULTICODE_E2E_USERNAME", "tester")
+    monkeypatch.setenv("ULTICODE_E2E_PASSWORD", "pw")
+    monkeypatch.setattr(e2e_sourced_analysis, "UlticodeClient", lambda *a, **k: ShiftingClient([]))
+
+    with pytest.raises(ValueError, match="duplicate submission id across pages"):
+        asyncio.run(e2e_sourced_analysis.main())
+    assert "E2E SOURCED ANALYSIS PASS" not in capsys.readouterr().out

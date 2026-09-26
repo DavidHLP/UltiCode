@@ -333,3 +333,20 @@ def test_get_my_submission_rejects_path_traversal_id() -> None:
                     await client.get_my_submission(invalid)  # type: ignore[arg-type]
 
     asyncio.run(scenario())
+
+
+@pytest.mark.parametrize("body", [
+    '{"code":500,"code":0,"message":"success","data":{}}',
+    '{"code":0,"message":"success","data":{"total":1,"total":999}}',
+])
+def test_unwrap_rejects_duplicate_json_keys(body: str) -> None:
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, text=body)
+
+    async def scenario() -> None:
+        async with UlticodeClient(
+            "https://app.test", "https://auth.test", transport=httpx.MockTransport(handler)
+        ) as client:
+            with pytest.raises(UlticodeError, match="duplicate key in service response"):
+                await client.list_my_submissions()
+    asyncio.run(scenario())

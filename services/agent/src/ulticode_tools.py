@@ -115,7 +115,7 @@ def build_tools(client: UlticodeClient) -> dict[str, object]:
         return projected
 
     def project_submission_listing(
-        listing: object, *, page_size: int
+        listing: object, *, page: int, page_size: int
     ) -> dict[str, object]:
         if not isinstance(listing, dict) or not isinstance(listing.get("items"), list):
             raise ValueError("invalid tool response")
@@ -123,16 +123,12 @@ def build_tools(client: UlticodeClient) -> dict[str, object]:
             raise ValueError("invalid tool response")
         items = [_project(item, SUBMISSION_FIELDS) for item in listing["items"]]
         total = _bounded_int(listing.get("total"))
-        if total < len(items):
+        response_page = _bounded_int(listing.get("page"), minimum=1, maximum=MAX_INT)
+        if total < len(items) or response_page != page:
             raise ValueError("invalid tool response")
-        return {
-            "items": items,
-            "total": total,
-            "page": _bounded_int(listing.get("page"), minimum=1, maximum=MAX_INT),
-        }
-
+        return {"items": items, "total": total, "page": response_page}
     def project_problem_submission_listing(
-        listing: object, *, page_size: int, problem_id: int
+        listing: object, *, page: int, page_size: int, problem_id: int
     ) -> dict[str, object]:
         if not isinstance(listing, dict) or not isinstance(listing.get("items"), list):
             raise ValueError("invalid tool response")
@@ -161,20 +157,16 @@ def build_tools(client: UlticodeClient) -> dict[str, object]:
             normalized_item["problemId"] = problem_id
             items.append(_project(normalized_item, SUBMISSION_FIELDS))
         total = _bounded_int(listing.get("total"))
-        if total < len(items):
+        response_page = _bounded_int(listing.get("page"), minimum=1, maximum=MAX_INT)
+        if total < len(items) or response_page != page:
             raise ValueError("invalid tool response")
-        return {
-            "items": items,
-            "total": total,
-            "page": _bounded_int(listing.get("page"), minimum=1, maximum=MAX_INT),
-        }
-
+        return {"items": items, "total": total, "page": response_page}
     async def get_my_submissions(arguments: dict[str, object]) -> object:
         _exact_keys(arguments, {"page", "pageSize"}, required=set())
         page = _page_int(arguments.get("page", 1))
         page_size = _positive_int(arguments.get("pageSize", 5), maximum=100)
         listing = await client.list_my_submissions(page=page, page_size=page_size)
-        return project_submission_listing(listing, page_size=page_size)
+        return project_submission_listing(listing, page=page, page_size=page_size)
 
     async def get_problem_submissions(arguments: dict[str, object]) -> object:
         _exact_keys(arguments, {"problemId", "page", "pageSize"}, required={"problemId"})
@@ -185,7 +177,7 @@ def build_tools(client: UlticodeClient) -> dict[str, object]:
             problem_id, page=page, page_size=page_size
         )
         return project_problem_submission_listing(
-            listing, page_size=page_size, problem_id=problem_id
+            listing, page=page, page_size=page_size, problem_id=problem_id
         )
 
     return {

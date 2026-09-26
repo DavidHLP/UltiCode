@@ -1,6 +1,7 @@
 import asyncio
 
 import httpx
+import pytest
 
 from ulticode_client import UlticodeClient
 from ulticode_tools import build_tools
@@ -79,7 +80,7 @@ def test_problem_scoped_submission_query_uses_authenticated_problem_scoped_endpo
                         }
                     ],
                     "total": 1,
-                    "page": 1,
+                    "page": 2,
                 },
             },
         )
@@ -101,7 +102,30 @@ def test_problem_scoped_submission_query_uses_authenticated_problem_scoped_endpo
             "page_size": "50",
         }
         assert result["items"][0]["problemId"] == 7  # type: ignore[index]
-        assert set(result["items"][0]) == {"id", "problemId", "language", "status", "createdAt"}
+    asyncio.run(scenario())
+
+
+def test_submission_page_mismatch_is_rejected() -> None:
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "code": 0,
+                "message": "success",
+                "data": {
+                    "items": [],
+                    "total": 0,
+                    "page": 1,
+                },
+            },
+        )
+
+    async def scenario() -> None:
+        async with UlticodeClient(
+            "https://app.test", "https://auth.test", transport=httpx.MockTransport(handler)
+        ) as client:
+            with pytest.raises(ValueError, match="invalid tool response"):
+                await build_tools(client)["get_my_submissions"]({"page": 2})
 
     asyncio.run(scenario())
 

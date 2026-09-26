@@ -16,18 +16,20 @@ from retrieval import keyword_search
 def test_dataset_keeps_development_and_holdout_separate() -> None:
     cases = load_cases()
 
-    assert len(cases) == 40
+    assert len(cases) == 30
     assert sum(case.split == "development" for case in cases) == 20
     assert sum(case.split == "holdout" for case in cases) == 10
-    assert sum(case.split == "holdout2" for case in cases) == 10
+    # The one-shot confirmation set must stay out of the routine dataset, or
+    # every ordinary test run would consume it.
+    assert all(case.split != "holdout2" for case in cases)
 
 
 def test_every_case_declares_evidence_and_behaviour_annotations() -> None:
     cases = load_cases()
 
-    assert [case.expected_behavior for case in cases].count("cite") == 33
-    assert [case.expected_behavior for case in cases].count("no_evidence") == 4
-    assert [case.expected_behavior for case in cases].count("refuse") == 3
+    assert [case.expected_behavior for case in cases].count("cite") == 25
+    assert [case.expected_behavior for case in cases].count("no_evidence") == 3
+    assert [case.expected_behavior for case in cases].count("refuse") == 2
     for case in cases:
         # A `no_evidence` case must require nothing; an empty list is the point.
         assert bool(case.required_evidence) == (case.expected_behavior != "no_evidence")
@@ -43,19 +45,18 @@ def test_refuse_cases_forbid_their_own_specific_claim() -> None:
         if case.expected_behavior == "refuse"
     }
 
-    assert set(refuse_rules) == {"dev-10", "holdout-08", "h2-10"}
+    assert set(refuse_rules) == {"dev-10", "holdout-08"}
     # A shared rule would collapse "locate the code line" and "name the runtime
     # cause" into one indistinguishable expectation.
-    assert len(set(refuse_rules.values())) == 3
+    assert len(set(refuse_rules.values())) == 2
     assert "code line" in refuse_rules["dev-10"]
     assert "runtime cause" in refuse_rules["holdout-08"]
-    assert "failing line" in refuse_rules["h2-10"]
 
 
 def test_records_cover_every_required_dimension() -> None:
     records = evaluate_case_records(load_cases(), limit=3)
 
-    assert len(records) == 40
+    assert len(records) == 30
     for record in records:
         assert record.tool_calls == 1
         assert record.elapsed_ms >= 0
@@ -103,8 +104,8 @@ def test_refuse_cases_never_report_an_answer_behaviour() -> None:
         case_id for case_id, case in cases.items() if case.expected_behavior == "refuse"
     ]
 
-    assert len(refuse_ids) == 3
-    assert {cases[case_id].split for case_id in refuse_ids} == set(SPLITS)
+    assert len(refuse_ids) == 2
+    assert {cases[case_id].split for case_id in refuse_ids} == {"development", "holdout"}
     for case_id in refuse_ids:
         record = records[case_id]
         hits = keyword_search(cases[case_id].query, limit=3)
@@ -189,3 +190,16 @@ def test_top_k_comparison_changes_only_retrieval_limit() -> None:
     assert result[1]["holdout"]["total"] == 10
     assert result[3]["development"]["unexpected_hits"] > result[1]["development"]["unexpected_hits"]
     assert result[3]["holdout"]["unexpected_hits"] > result[1]["holdout"]["unexpected_hits"]
+
+
+def test_confirmation_set_is_versioned_separately_and_not_loaded_by_default() -> None:
+    from keyword_evaluation import CONFIRMATION_CASES_PATH
+
+    confirmation = load_cases(CONFIRMATION_CASES_PATH)
+
+    assert len(confirmation) == 10
+    assert all(case.split == "holdout2" for case in confirmation)
+    assert all(case.required_evidence or case.expected_behavior != "cite" for case in confirmation)
+    assert {case.case_id for case in load_cases()}.isdisjoint(
+        case.case_id for case in confirmation
+    )

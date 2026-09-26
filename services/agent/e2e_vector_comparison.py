@@ -37,7 +37,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-from keyword_evaluation import KeywordCase, load_cases, retrieval_outcome
+from keyword_evaluation import (
+    CONFIRMATION_CASES_PATH,
+    KeywordCase,
+    load_cases,
+    retrieval_outcome,
+)
 from retrieval import keyword_search, load_sample_corpus
 from vector_search import (
     COLLECTION,
@@ -85,7 +90,8 @@ def main() -> int:
     cases = load_cases()
     development = tuple(case for case in cases if case.split == "development")
     contaminated = tuple(case for case in cases if case.split == CONTAMINATED_SPLIT)
-    confirmation = tuple(case for case in cases if case.split == CONFIRMATION_SPLIT)
+    # Loaded from its own versioned file so the routine suite never touches it.
+    confirmation = load_cases(CONFIRMATION_CASES_PATH)
 
     client = QdrantClient(url=qdrant_url())
     embedder = FastembedEmbedder()
@@ -146,6 +152,7 @@ def main() -> int:
     print(
         f"OK comparison corpus=agent-authored-synthetic docs={indexed} cases={len(cases)} "
         f"embed_model={EMBED_MODEL} store=qdrant image={image} collection={COLLECTION} "
+        f"confirmation_file=data/holdout-v2.json "
         f"scope=synthetic_slice_not_authorized_corpus"
     )
     return 0

@@ -115,7 +115,7 @@ def test_embedding_count_mismatch_is_rejected() -> None:
 
 def test_every_case_declares_required_evidence_for_the_comparison() -> None:
     cases = load_cases()
-    assert len(cases) == 40
+    assert len(cases) == 30
     assert all(
         case.required_evidence or case.expected_behavior != "cite" for case in cases
     )

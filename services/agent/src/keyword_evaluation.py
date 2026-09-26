@@ -21,6 +21,10 @@ from pathlib import Path
 from retrieval import SourceHit, keyword_search
 
 _CASES_PATH = Path(__file__).resolve().parents[1] / "data" / "keyword_cases.json"
+#: One-shot confirmation set. It lives in its own versioned file so the routine
+#: test suite cannot silently consume it: only an explicitly authorised
+#: evaluation may load it, and its single run is recorded rather than repeated.
+CONFIRMATION_CASES_PATH = Path(__file__).resolve().parents[1] / "data" / "holdout-v2.json"
 EXPECTED_BEHAVIORS = frozenset({"cite", "no_evidence", "refuse"})
 #: "holdout" was already observed during an exploratory run, so it is kept
 #: for continuity; "holdout2" is the never-seen confirmation set.

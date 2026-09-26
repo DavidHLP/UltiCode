@@ -5,12 +5,16 @@ Opt-in and evaluation-only: it needs a single-node Qdrant service, the optional
 UltiCode stack, user data, or a real model. Output is fixed labels and counts
 only.
 
-Protocol, because the holdout set must stay isolated:
+Protocol:
 
 1. Both arms are compared on the **development** split across the candidate
    retrieval limits, and the limit is chosen there.
-2. The **holdout** split is then evaluated exactly once, at the chosen limit.
-3. Nothing is re-tuned after seeing holdout output.
+2. The original **holdout** split is reported as *contaminated*: it was already
+   observed during an exploratory run, so it is continuity evidence only and can
+   never be a clean confirmation.
+3. **holdout2** is the never-seen confirmation set. Its expectations were written
+   from the corpus text and committed before any retrieval ran on it, and it is
+   evaluated once, at the limit chosen in step 1.
 
 Scope: the corpus is the 3-document agent-authored synthetic sample, not the
 authorized 5-10 document corpus, so a "no gain" result is evidence about this
@@ -46,6 +50,8 @@ from vector_search import (
 
 COUNTS = ("matched", "extra_hits", "missed", "false_positive")
 CANDIDATE_LIMITS = (1, 3)
+CONTAMINATED_SPLIT = "holdout"
+CONFIRMATION_SPLIT = "holdout2"
 
 
 def _tally(cases: tuple[KeywordCase, ...], retrieve) -> dict[str, int]:
@@ -56,9 +62,9 @@ def _tally(cases: tuple[KeywordCase, ...], retrieve) -> dict[str, int]:
     return tally
 
 
-def _report(label: str, counts: dict[str, int]) -> None:
+def _report(label: str, counts: dict[str, int], total: int) -> None:
     print(
-        f"{label} matched={counts['matched']} extra={counts['extra_hits']} "
+        f"{label} total={total} matched={counts['matched']} extra={counts['extra_hits']} "
         f"missed={counts['missed']} false_positive={counts['false_positive']}"
     )
 
@@ -78,7 +84,9 @@ def main() -> int:
 
     cases = load_cases()
     development = tuple(case for case in cases if case.split == "development")
-    holdout = tuple(case for case in cases if case.split == "holdout")
+    contaminated = tuple(case for case in cases if case.split == CONTAMINATED_SPLIT)
+    confirmation = tuple(case for case in cases if case.split == CONFIRMATION_SPLIT)
+
     client = QdrantClient(url=qdrant_url())
     embedder = FastembedEmbedder()
     indexed = build_index(client, load_sample_corpus(), embedder=embedder)
@@ -89,39 +97,51 @@ def main() -> int:
     def vector(query: str, limit: int) -> list[str]:
         return search(client, query, limit=limit, embedder=embedder)
 
+    arms = (("keyword", keyword), ("vector", vector))
+
     # Step 1: choose the retrieval limit on the development split only.
-    development_scores: dict[int, int] = {}
+    scores: dict[tuple[int, str], int] = {}
     for limit in CANDIDATE_LIMITS:
-        for arm, retrieve in (("keyword", keyword), ("vector", vector)):
+        for arm, retrieve in arms:
             counts = _tally(development, lambda case: retrieve(case.query, limit))
-            development_scores[(limit, arm)] = counts["matched"]
+            scores[(limit, arm)] = counts["matched"]
             _report(
-                f"stage=select split=development limit={limit} arm={arm} total={len(development)}",
+                f"stage=select split=development limit={limit} arm={arm}",
                 counts,
+                len(development),
             )
     best = max(
         CANDIDATE_LIMITS,
         key=lambda limit: (
-            max(development_scores[(limit, arm)] for arm in ("keyword", "vector")),
+            max(scores[(limit, arm)] for arm, _ in arms),
             -limit,
         ),
     )
-    winning_arm = max(
-        ("keyword", "vector"), key=lambda arm: development_scores[(best, arm)]
-    )
+    winning_arm = max((arm for arm, _ in arms), key=lambda arm: scores[(best, arm)])
     print(
-        f"stage=select chosen_limit={best} chosen_arm={winning_arm} "
-        f"basis=development_only"
+        f"stage=select chosen_limit={best} chosen_arm={winning_arm} basis=development_only"
     )
 
-    # Step 2: the holdout split runs once, at the limit chosen above.
-    for arm, retrieve in (("keyword", keyword), ("vector", vector)):
-        counts = _tally(holdout, lambda case: retrieve(case.query, best))
+    # Step 2: continuity only. This split was already observed once.
+    for arm, retrieve in arms:
+        counts = _tally(contaminated, lambda case: retrieve(case.query, best))
         _report(
-            f"stage=confirm split=holdout limit={best} arm={arm} total={len(holdout)}",
+            f"stage=contaminated split={CONTAMINATED_SPLIT} limit={best} arm={arm} "
+            f"basis=already_observed",
             counts,
+            len(contaminated),
         )
-    print("stage=confirm note=holdout_evaluated_once_no_retuning")
+
+    # Step 3: the never-seen confirmation set, run once at the chosen limit.
+    for arm, retrieve in arms:
+        counts = _tally(confirmation, lambda case: retrieve(case.query, best))
+        _report(
+            f"stage=confirm split={CONFIRMATION_SPLIT} limit={best} arm={arm} "
+            f"basis=predeclared_never_seen",
+            counts,
+            len(confirmation),
+        )
+    print("stage=confirm note=holdout2_evaluated_once_no_retuning")
 
     print(
         f"OK comparison corpus=agent-authored-synthetic docs={indexed} cases={len(cases)} "

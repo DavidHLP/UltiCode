@@ -22,6 +22,9 @@ from retrieval import SourceHit, keyword_search
 
 _CASES_PATH = Path(__file__).resolve().parents[1] / "data" / "keyword_cases.json"
 EXPECTED_BEHAVIORS = frozenset({"cite", "no_evidence", "refuse"})
+#: "holdout" was already observed during an exploratory run, so it is kept
+#: for continuity; "holdout2" is the never-seen confirmation set.
+SPLITS = ("development", "holdout", "holdout2")
 #: Answer-level dimensions this deterministic slice cannot decide.
 DEFERRED = "deferred"
 
@@ -79,7 +82,7 @@ def load_cases(path: Path | None = None) -> tuple[KeywordCase, ...]:
         if (
             not isinstance(case_id, str)
             or not case_id
-            or split not in {"development", "holdout"}
+            or split not in SPLITS
             or not isinstance(query, str)
             or not query.strip()
             or not isinstance(required_evidence, list)
@@ -191,7 +194,7 @@ def summarize_records(
             "tool_calls": 0,
             "elapsed_ms": 0,
         }
-        for split in ("development", "holdout")
+        for split in SPLITS
     }
     for record in records:
         bucket = summary[record.split]
@@ -219,7 +222,7 @@ def _evaluate(cases: tuple[KeywordCase, ...], limit: int) -> dict[str, dict[str,
             "missed_expected": 0,
             "false_positive_no_evidence": 0,
         }
-        for split in ("development", "holdout")
+        for split in SPLITS
     }
     for case in cases:
         summary = results[case.split]

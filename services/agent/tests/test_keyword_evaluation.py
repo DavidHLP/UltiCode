@@ -3,6 +3,7 @@ from pathlib import Path
 
 from keyword_evaluation import (
     DEFERRED,
+    SPLITS,
     compare_limits,
     evaluate_case_records,
     evaluate_cases,
@@ -15,9 +16,10 @@ from retrieval import keyword_search
 def test_dataset_keeps_development_and_holdout_separate() -> None:
     cases = load_cases()
 
-    assert len(cases) == 30
+    assert len(cases) == 40
     assert sum(case.split == "development" for case in cases) == 20
     assert sum(case.split == "holdout" for case in cases) == 10
+    assert sum(case.split == "holdout2" for case in cases) == 10
 
 
 def test_every_case_declares_evidence_and_behaviour_annotations() -> None:
@@ -52,7 +54,7 @@ def test_refuse_cases_forbid_their_own_specific_claim() -> None:
 def test_records_cover_every_required_dimension() -> None:
     records = evaluate_case_records(load_cases(), limit=3)
 
-    assert len(records) == 30
+    assert len(records) == 40
     for record in records:
         assert record.tool_calls == 1
         assert record.elapsed_ms >= 0
@@ -119,7 +121,7 @@ def test_summary_totals_match_the_records() -> None:
     records = evaluate_case_records(load_cases(), limit=3)
     summary = summarize_records(records)
 
-    for split in ("development", "holdout"):
+    for split in SPLITS:
         assert summary[split]["total"] == sum(
             1 for record in records if record.split == split
         )

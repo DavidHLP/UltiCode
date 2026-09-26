@@ -286,8 +286,6 @@ def test_sourced_analysis_e2e_rejects_total_drift_during_scan(monkeypatch, capsy
 
 
 def test_sourced_analysis_e2e_fails_on_unverifiable_citation(monkeypatch, capsys) -> None:
-    import e2e_sourced_analysis as smoke
-
     submission = {
         "id": "11111111-1111-4111-8111-111111111111",
         "status": "Wrong Answer",
@@ -296,28 +294,23 @@ def test_sourced_analysis_e2e_fails_on_unverifiable_citation(monkeypatch, capsys
         "facts": ["fact"],
         "hypotheses": ["hypothesis"],
         "citations": [{"chunk_id": "x"}],
-        "citation_checks": [{"chunk_id": "x", "verdict": "text_not_in_source", "detail": ""}],
+        "citation_checks": [
+            {"chunk_id": "x", "verdict": "text_not_in_source", "detail": ""}
+        ],
     }
 
-    class _Client:
-        def __init__(self, *_args, **_kwargs) -> None:
-            pass
-
-        async def __aenter__(self) -> "_Client":
-            return self
-
-        async def __aexit__(self, *_args: object) -> None:
-            return None
-
-        async def login(self, *_args: object) -> None:
-            return None
+    class _Client(FakeClient):
+        def __init__(self, *_args: object, **_kwargs: object) -> None:
+            super().__init__([submission])
 
     async def _first(_tools: object) -> dict[str, object]:
         return submission
 
-    monkeypatch.setattr(smoke, "UlticodeClient", _Client)
-    monkeypatch.setattr(smoke, "analyze_submission", lambda *_a, **_k: analysis)
-    monkeypatch.setattr(smoke, "first_wrong_answer_submission", _first)
+    monkeypatch.setattr(e2e_sourced_analysis, "UlticodeClient", _Client)
+    monkeypatch.setattr(
+        e2e_sourced_analysis, "analyze_submission", lambda *_a, **_k: analysis
+    )
+    monkeypatch.setattr(e2e_sourced_analysis, "first_wrong_answer_submission", _first)
 
-    assert asyncio.run(smoke.main()) == 1
+    assert asyncio.run(e2e_sourced_analysis.main()) == 1
     assert "reason=unverifiable_citation" in capsys.readouterr().out

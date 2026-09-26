@@ -12,8 +12,11 @@ Why this exists: ``SubmissionController.getSubmission`` forwards the authenticat
 user id to ``findById(id, userId)``, but a call site that forwards an argument is
 not proof that the owner service applies it. DAV-53 requires the refusal to be
 observed. The agent's own read-only client cannot express a cross-account read,
-so this contrast drives the HTTP contracts directly, one cookie session per
-account.
+so this contrast drives the HTTP contracts directly, one session per account.
+
+Verdicts are deliberately narrow: a cross-account read counts as refused only on
+the statuses the contract defines (403/404). A 500 or an empty body is a failure
+of this script, not evidence that isolation held.
 
 Run against the local development stack:
 
@@ -28,16 +31,21 @@ from __future__ import annotations
 import asyncio
 import os
 import secrets
-import sys
-from pathlib import Path
+from typing import Any
 
 import httpx
 
 APP_BASE = os.environ.get("ULTICODE_APP_BASE", "http://localhost:9103")
 AUTH_BASE = os.environ.get("ULTICODE_AUTH_BASE", "http://localhost:9101")
+ACCESS_COOKIE = "access_token"
 PASSWORD_LENGTH = 24
 SUBMISSION_CODE = "print(1)"
 SUBMISSION_LANGUAGE = "python"
+REFUSAL_STATUSES = frozenset({403, 404})
+
+
+class IsolationHarnessError(RuntimeError):
+    """The harness could not reach a verdict; isolation is unproven."""
 
 
 def _synthetic_identity(label: str) -> tuple[str, str, str]:
@@ -50,7 +58,19 @@ def _session() -> httpx.AsyncClient:
     return httpx.AsyncClient(timeout=30.0, follow_redirects=True)
 
 
-def _payload(response: httpx.Response) -> dict[str, object]:
+def _session_headers(cookies: httpx.Cookies) -> dict[str, str]:
+    """Send the access cookie as a header, like UlticodeClient does.
+
+    Copying the jar between clients loses ``Secure`` cookies over plain HTTP, so
+    the value is forwarded explicitly. The value is never logged or returned.
+    """
+    access = [c for c in cookies.jar if c.name == ACCESS_COOKIE and c.value]
+    if len(access) != 1:
+        return {}
+    return {"Cookie": f"{ACCESS_COOKIE}={access[0].value}"}
+
+
+def _payload(response: httpx.Response) -> dict[str, Any]:
     try:
         body = response.json()
     except ValueError:
@@ -58,9 +78,15 @@ def _payload(response: httpx.Response) -> dict[str, object]:
     return body if isinstance(body, dict) else {}
 
 
-def _data(response: httpx.Response) -> dict[str, object]:
+def _data(response: httpx.Response) -> dict[str, Any]:
     data = _payload(response).get("data")
     return data if isinstance(data, dict) else {}
+
+
+def _require_200(response: httpx.Response, what: str) -> httpx.Response:
+    if response.status_code != 200:
+        raise IsolationHarnessError(f"{what} returned {response.status_code}")
+    return response
 
 
 async def _register(client: httpx.AsyncClient, identity: tuple[str, str, str]) -> int:
@@ -72,49 +98,83 @@ async def _register(client: httpx.AsyncClient, identity: tuple[str, str, str]) -
     return response.status_code
 
 
-async def _login(client: httpx.AsyncClient, identity: tuple[str, str, str]) -> int:
+async def _login(client: httpx.AsyncClient, identity: tuple[str, str, str]) -> None:
     username, _email, password = identity
     response = await client.post(
         f"{AUTH_BASE}/auth/login", json={"username": username, "password": password}
     )
-    return response.status_code
+    if response.status_code != 200:
+        raise IsolationHarnessError(f"login returned {response.status_code}")
+    if not _session_headers(client.cookies):
+        raise IsolationHarnessError("login did not establish a single access cookie")
 
 
-async def _first_problem_id(client: httpx.AsyncClient) -> int | None:
-    response = await client.get(f"{APP_BASE}/problems", params={"page": 1, "pageSize": 1})
+async def _first_problem_id(
+    client: httpx.AsyncClient, headers: dict[str, str]
+) -> int:
+    response = _require_200(
+        await client.get(
+            f"{APP_BASE}/problems", params={"page": 1, "pageSize": 1}, headers=headers
+        ),
+        "problem listing",
+    )
     items = _data(response).get("items")
     for item in items if isinstance(items, list) else []:
         if isinstance(item, dict) and isinstance(item.get("id"), int):
             return item["id"]
-    return None
+    raise IsolationHarnessError("no problem available for a submission fixture")
 
 
-async def _submit(client: httpx.AsyncClient, problem_id: int) -> str | None:
-    response = await client.post(
-        f"{APP_BASE}/submissions",
-        json={
-            "problemId": problem_id,
-            "language": SUBMISSION_LANGUAGE,
-            "code": SUBMISSION_CODE,
-        },
+async def _submit(
+    client: httpx.AsyncClient, headers: dict[str, str], problem_id: int
+) -> str:
+    response = _require_200(
+        await client.post(
+            f"{APP_BASE}/submissions",
+            json={
+                "problemId": problem_id,
+                "language": SUBMISSION_LANGUAGE,
+                "code": SUBMISSION_CODE,
+            },
+            headers=headers,
+        ),
+        "submission",
     )
     submission_id = _data(response).get("id")
-    return submission_id if isinstance(submission_id, str) and submission_id else None
+    if not isinstance(submission_id, str) or not submission_id:
+        raise IsolationHarnessError("submission response carried no id")
+    return submission_id
 
 
-async def _detail_status(client: httpx.AsyncClient, submission_id: str) -> int:
-    return (await client.get(f"{APP_BASE}/submissions/{submission_id}")).status_code
-
-
-async def _problem_submission_ids(client: httpx.AsyncClient, problem_id: int) -> set[str]:
+async def _read_detail(
+    client: httpx.AsyncClient, headers: dict[str, str], submission_id: str
+) -> tuple[int, str | None]:
+    """Return the status and, on 200, the id the server actually returned."""
     response = await client.get(
-        f"{APP_BASE}/problems/{problem_id}/submissions",
-        params={"page": 1, "pageSize": 50},
+        f"{APP_BASE}/submissions/{submission_id}", headers=headers
+    )
+    if response.status_code != 200:
+        return response.status_code, None
+    return 200, _data(response).get("id")
+
+
+async def _problem_submission_ids(
+    client: httpx.AsyncClient, headers: dict[str, str], problem_id: int
+) -> set[str]:
+    response = _require_200(
+        await client.get(
+            f"{APP_BASE}/problems/{problem_id}/submissions",
+            params={"page": 1, "pageSize": 50},
+            headers=headers,
+        ),
+        "problem submission listing",
     )
     items = _data(response).get("items")
+    if not isinstance(items, list):
+        raise IsolationHarnessError("listing envelope had no items array")
     return {
         str(item["id"])
-        for item in items if isinstance(items, list)
+        for item in items
         if isinstance(item, dict) and isinstance(item.get("id"), str)
     }
 
@@ -126,7 +186,12 @@ async def main() -> int:
 
     identity_a = _synthetic_identity("a")
     identity_b = _synthetic_identity("b")
-    async with _session() as auth_a, _session() as auth_b, _session() as app_a, _session() as app_b:
+    async with (
+        _session() as auth_a,
+        _session() as auth_b,
+        _session() as app_a,
+        _session() as app_b,
+    ):
         register_a = await _register(auth_a, identity_a)
         register_b = await _register(auth_b, identity_b)
         print(f"register statuses a={register_a} b={register_b}")
@@ -134,48 +199,55 @@ async def main() -> int:
             print("FAIL reason=registration_failed")
             return 1
 
-        login_a = await _login(auth_a, identity_a)
-        login_b = await _login(auth_b, identity_b)
-        print(f"login statuses a={login_a} b={login_b}")
-        if login_a != 200 or login_b != 200:
-            print("FAIL reason=login_failed")
+        try:
+            await _login(auth_a, identity_a)
+            await _login(auth_b, identity_b)
+        except IsolationHarnessError as error:
+            print(f"FAIL reason=login_failed detail={error}")
             return 1
-        # Both accounts now hold their own session cookies on their auth client;
-        # carry them onto the app client, mirroring how the agent client works.
-        app_a.cookies.update(auth_a.cookies)
-        app_b.cookies.update(auth_b.cookies)
+        print("login statuses a=200 b=200")
 
-        problem_id = await _first_problem_id(app_a)
-        if problem_id is None:
-            print("FAIL reason=no_problem_available")
-            return 1
-
-        submission_a = await _submit(app_a, problem_id)
-        submission_b = await _submit(app_b, problem_id)
-        if submission_a is None or submission_b is None:
-            print("FAIL reason=submission_not_created")
+        headers_a = _session_headers(auth_a.cookies)
+        headers_b = _session_headers(auth_b.cookies)
+        try:
+            problem_id = await _first_problem_id(app_a, headers_a)
+            submission_a = await _submit(app_a, headers_a, problem_id)
+            submission_b = await _submit(app_b, headers_b, problem_id)
+        except IsolationHarnessError as error:
+            print(f"FAIL reason=fixture_unavailable detail={error}")
             return 1
         print("submissions created a=1 b=1")
 
-        own_a = await _detail_status(app_a, submission_a)
-        own_b = await _detail_status(app_b, submission_b)
-        print(f"positive control own_a={own_a} own_b={own_b}")
-        if own_a != 200 or own_b != 200:
-            print("FAIL reason=positive_control_failed")
+        try:
+            own_a_status, own_a_id = await _read_detail(app_a, headers_a, submission_a)
+            own_b_status, own_b_id = await _read_detail(app_b, headers_b, submission_b)
+            print(f"positive control own_a={own_a_status} own_b={own_b_status}")
+            # A 200 that returns someone else's id would not be an own-read.
+            if (own_a_status, own_b_status) != (200, 200):
+                print("FAIL reason=positive_control_failed")
+                return 1
+            if own_a_id != submission_a or own_b_id != submission_b:
+                print("FAIL reason=positive_control_returned_other_record")
+                return 1
+
+            cross_a, _ = await _read_detail(app_a, headers_a, submission_b)
+            cross_b, _ = await _read_detail(app_b, headers_b, submission_a)
+            print(f"negative control cross_a={cross_a} cross_b={cross_b}")
+            if cross_a not in REFUSAL_STATUSES or cross_b not in REFUSAL_STATUSES:
+                print("FAIL reason=cross_account_data_exposed")
+                return 1
+
+            listed_by_a = await _problem_submission_ids(app_a, headers_a, problem_id)
+        except IsolationHarnessError as error:
+            print(f"FAIL reason=harness_inconclusive detail={error}")
             return 1
 
-        cross_a = await _detail_status(app_a, submission_b)
-        cross_b = await _detail_status(app_b, submission_a)
-        print(f"negative control cross_a={cross_a} cross_b={cross_b}")
-
-        listed_by_a = await _problem_submission_ids(app_a, problem_id)
         leaked = submission_b in listed_by_a
         print(
             f"listing leak b_visible_to_a={'yes' if leaked else 'no'} "
             f"listed_count={len(listed_by_a)}"
         )
-
-        if cross_a == 200 or cross_b == 200 or leaked:
+        if leaked:
             print("FAIL reason=cross_account_data_exposed")
             return 1
 

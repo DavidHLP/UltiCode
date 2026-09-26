@@ -94,6 +94,7 @@ def test_submission_projection_rejects_unknown_status() -> None:
                     ],
                     "total": 1,
                     "page": 1,
+                    "pageSize": 5,
                 },
             },
         )
@@ -108,13 +109,46 @@ def test_submission_projection_rejects_unknown_status() -> None:
     asyncio.run(scenario())
 
 
+@pytest.mark.parametrize("created_at", ["2026-99-99T99:99:99", "2026-09-25T99:00:00", "2026-09-25T00:00:00Z"])
+def test_submission_projection_rejects_invalid_created_at(created_at: str) -> None:
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "code": 0,
+                "message": "success",
+                "data": {
+                    "items": [
+                        {
+                            "id": "11111111-1111-4111-8111-111111111111",
+                            "problemId": 7,
+                            "language": "java",
+                            "status": "Accepted",
+                            "createdAt": created_at,
+                        }
+                    ],
+                    "total": 1,
+                    "page": 1,
+                    "pageSize": 5,
+                },
+            },
+        )
+
+    async def scenario() -> None:
+        async with UlticodeClient(
+            "https://app.test", "https://auth.test", transport=httpx.MockTransport(handler)
+        ) as client:
+            with pytest.raises(ValueError, match="invalid tool response"):
+                await build_tools(client)["get_my_submissions"]({})
+
+    asyncio.run(scenario())
 
 
 def test_submission_listing_rejects_nested_totals() -> None:
     async def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(
             200,
-            json={"code": 0, "message": "success", "data": {"items": [], "total": {"x": 1}, "page": 1}},
+            json={"code": 0, "message": "success", "data": {"items": [], "total": {"x": 1}, "page": 1, "pageSize": 5}},
         )
 
     async def scenario() -> None:

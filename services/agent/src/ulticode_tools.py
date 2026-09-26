@@ -13,6 +13,7 @@ Two deliberate boundaries:
 from __future__ import annotations
 
 import re
+from datetime import datetime
 
 from ulticode_client import UlticodeClient
 
@@ -90,6 +91,11 @@ def _project(data: object, fields: dict[str, tuple[type, int]]) -> dict[str, obj
             )
         ):
             raise ValueError("invalid tool response")
+        if field == "createdAt":
+            try:
+                datetime.fromisoformat(value)
+            except ValueError as exc:
+                raise ValueError("invalid tool response") from exc
         if expected_type is str and (
             not isinstance(value, str) or not value.strip() or len(value) > max_value
         ):

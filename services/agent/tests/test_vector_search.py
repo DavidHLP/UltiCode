@@ -1,6 +1,17 @@
+import importlib.util
+from pathlib import Path
+
 import pytest
 
 import vector_search
+
+_module_spec = importlib.util.spec_from_file_location(
+    "e2e_vector_comparison",
+    Path(__file__).parents[1] / "e2e_vector_comparison.py",
+)
+assert _module_spec and _module_spec.loader
+e2e_vector_comparison = importlib.util.module_from_spec(_module_spec)
+_module_spec.loader.exec_module(e2e_vector_comparison)
 from keyword_evaluation import load_cases, retrieval_outcome
 from retrieval import load_sample_corpus
 
@@ -181,7 +192,7 @@ def test_vector_search_drops_hits_below_the_relevance_floor() -> None:
 
 def test_confirmation_set_can_only_be_claimed_once(tmp_path, monkeypatch) -> None:
     """An env opt-in alone does not stop a second run; the marker does."""
-    import e2e_vector_comparison as smoke
+    smoke = e2e_vector_comparison
 
     marker = tmp_path / "holdout-v2.consumed"
     monkeypatch.setenv("ULTICODE_VECTOR_CONFIRM_MARKER", str(marker))
@@ -196,7 +207,7 @@ def test_confirmation_set_can_only_be_claimed_once(tmp_path, monkeypatch) -> Non
 
 
 def test_claim_fails_closed_when_the_marker_cannot_be_written(tmp_path, monkeypatch) -> None:
-    import e2e_vector_comparison as smoke
+    smoke = e2e_vector_comparison
 
     unwritable = tmp_path / "missing-dir" / "holdout-v2.consumed"
     monkeypatch.setenv("ULTICODE_VECTOR_CONFIRM_MARKER", str(unwritable))

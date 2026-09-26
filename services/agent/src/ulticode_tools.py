@@ -51,6 +51,7 @@ SUBMISSION_ID_PATTERN = re.compile(
 )
 MAX_LONG = 9_223_372_036_854_775_807
 MAX_INT = 2_147_483_647
+PROBLEM_DIFFICULTIES = frozenset({"EASY", "MEDIUM", "HARD"})
 
 TOOL_SPECS = {
     "get_problem": 'args: {"id": <int problem id>}; returns id/slug/title/difficulty/submission_count',
@@ -77,6 +78,10 @@ def _project(data: object, fields: dict[str, tuple[type, int]]) -> dict[str, obj
         ):
             raise ValueError("invalid tool response")
         if field == "status" and value not in SUBMISSION_STATUSES:
+            raise ValueError("invalid tool response")
+        if field == "difficulty" and (
+            not isinstance(value, str) or value.upper() not in PROBLEM_DIFFICULTIES
+        ):
             raise ValueError("invalid tool response")
         if expected_type is str and (
             not isinstance(value, str) or not value.strip() or len(value) > max_value
@@ -132,7 +137,8 @@ def build_tools(client: UlticodeClient) -> dict[str, object]:
         items = [_project(item, SUBMISSION_FIELDS) for item in listing["items"]]
         total = _bounded_int(listing.get("total"))
         response_page = _bounded_int(listing.get("page"), minimum=1, maximum=MAX_INT)
-        if total < len(items) or response_page != page:
+        minimum_total = (page - 1) * page_size + len(items) if items else 0
+        if total < minimum_total or response_page != page:
             raise ValueError("invalid tool response")
         return {"items": items, "total": total, "page": response_page}
     def project_problem_submission_listing(
@@ -166,7 +172,8 @@ def build_tools(client: UlticodeClient) -> dict[str, object]:
             items.append(_project(normalized_item, SUBMISSION_FIELDS))
         total = _bounded_int(listing.get("total"))
         response_page = _bounded_int(listing.get("page"), minimum=1, maximum=MAX_INT)
-        if total < len(items) or response_page != page:
+        minimum_total = (page - 1) * page_size + len(items) if items else 0
+        if total < minimum_total or response_page != page:
             raise ValueError("invalid tool response")
         return {"items": items, "total": total, "page": response_page}
     async def get_my_submissions(arguments: dict[str, object]) -> object:

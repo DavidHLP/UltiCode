@@ -79,7 +79,7 @@ def test_problem_scoped_submission_query_uses_authenticated_problem_scoped_endpo
                             "problem": {"id": 7, "title": "Sample", "slug": "sample"},
                         }
                     ],
-                    "total": 1,
+                    "total": 51,
                     "page": 2,
                 },
             },

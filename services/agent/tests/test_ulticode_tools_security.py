@@ -490,7 +490,11 @@ def test_submission_page_max_integer_is_accepted() -> None:
     async def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(
             200,
-            json={"code": 0, "message": "success", "data": {"items": [], "total": 0, "page": 2_147_483_647}},
+            json={
+                "code": 0,
+                "message": "success",
+                "data": {"items": [], "total": 0, "page": 2_147_483_647, "pageSize": 5},
+            },
         )
 
     async def scenario() -> None:

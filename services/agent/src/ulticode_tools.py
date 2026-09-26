@@ -137,10 +137,18 @@ def build_tools(client: UlticodeClient) -> dict[str, object]:
         items = [_project(item, SUBMISSION_FIELDS) for item in listing["items"]]
         total = _bounded_int(listing.get("total"))
         response_page = _bounded_int(listing.get("page"), minimum=1, maximum=MAX_INT)
+        response_page_size = _bounded_int(
+            listing.get("pageSize"), minimum=1, maximum=MAX_INT
+        )
         minimum_total = (page - 1) * page_size + len(items) if items else 0
-        if total < minimum_total or response_page != page:
+        if total < minimum_total or response_page != page or response_page_size != page_size:
             raise ValueError("invalid tool response")
-        return {"items": items, "total": total, "page": response_page}
+        return {
+            "items": items,
+            "total": total,
+            "page": response_page,
+            "pageSize": response_page_size,
+        }
     def project_problem_submission_listing(
         listing: object, *, page: int, page_size: int, problem_id: int
     ) -> dict[str, object]:
@@ -172,10 +180,18 @@ def build_tools(client: UlticodeClient) -> dict[str, object]:
             items.append(_project(normalized_item, SUBMISSION_FIELDS))
         total = _bounded_int(listing.get("total"))
         response_page = _bounded_int(listing.get("page"), minimum=1, maximum=MAX_INT)
+        response_page_size = _bounded_int(
+            listing.get("pageSize"), minimum=1, maximum=MAX_INT
+        )
         minimum_total = (page - 1) * page_size + len(items) if items else 0
-        if total < minimum_total or response_page != page:
+        if total < minimum_total or response_page != page or response_page_size != page_size:
             raise ValueError("invalid tool response")
-        return {"items": items, "total": total, "page": response_page}
+        return {
+            "items": items,
+            "total": total,
+            "page": response_page,
+            "pageSize": response_page_size,
+        }
     async def get_my_submissions(arguments: dict[str, object]) -> object:
         _exact_keys(arguments, {"page", "pageSize"}, required=set())
         page = _page_int(arguments.get("page", 1))

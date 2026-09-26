@@ -31,6 +31,7 @@ def test_submission_projection_excludes_source_and_identity_fields() -> None:
                     ],
                     "total": 1,
                     "page": 1,
+                    "pageSize": 5,
                 },
             },
         )
@@ -81,6 +82,7 @@ def test_problem_scoped_submission_query_uses_authenticated_problem_scoped_endpo
                     ],
                     "total": 51,
                     "page": 2,
+                    "pageSize": 50,
                 },
             },
         )
@@ -116,6 +118,7 @@ def test_submission_page_mismatch_is_rejected() -> None:
                     "items": [],
                     "total": 0,
                     "page": 1,
+                    "pageSize": 5,
                 },
             },
         )
@@ -148,6 +151,7 @@ def test_problem_scoped_submission_query_accepts_missing_problem_identity() -> N
                     ],
                     "total": 1,
                     "page": 1,
+                    "pageSize": 5,
                 },
             },
         )

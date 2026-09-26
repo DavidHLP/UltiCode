@@ -43,7 +43,7 @@ class FakeClient:
         return {}
 
     async def list_my_submissions(self, *, page: int, page_size: int) -> dict[str, object]:
-        return {"items": self.items, "total": len(self.items), "page": page}
+        return {"items": self.items, "total": len(self.items), "page": page, "pageSize": page_size}
 
 
 class FakeModel:

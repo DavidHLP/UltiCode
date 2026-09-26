@@ -46,6 +46,7 @@ class FakeClient:
             ],
             "total": 1,
             "page": page,
+            "pageSize": page_size,
         }
 
 

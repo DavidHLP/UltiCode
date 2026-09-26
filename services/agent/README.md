@@ -63,12 +63,16 @@ module; authorized-corpus, vector-retrieval, real-model evaluation, and isolatio
 tracked in the U02 Linear tasks.
 
 `data/keyword_cases.json` annotates every case with `answerable` and `expected_behavior`
-(`cite`, `no_evidence`, or `refuse`), and `src/keyword_evaluation.py` records one entry per case:
-retrieval hit, citation traceability, task completion, expected versus observed behavior,
-tool calls, and elapsed time. `refuse` marks questions the corpus cannot answer — for example
-locating a code line or naming a runtime cause — so a retrieved fragment is never mistaken for
-evidence. Citation *semantics* stay out of this module: whether a fragment supports a conclusion
-requires the model or human pass tracked in DAV-58.
+(`cite`, `no_evidence`, or `refuse`); the required evidence is the case's expected documents,
+exposed as `KeywordCase.required_evidence`. `src/keyword_evaluation.py` pairs each behavior with
+its allowed and forbidden answer (`ALLOWED_BEHAVIORS` / `FORBIDDEN_BEHAVIORS`) and records one
+entry per case: retrieval hit, citation traceability, task completion, expected versus observed
+behavior, tool calls, and elapsed time. `refuse` marks questions the corpus cannot answer — for
+example locating a code line or naming a runtime cause — so a retrieved fragment is never mistaken
+for evidence, and any hit on such a case is recorded as a fabrication risk. A case with no hit is
+not counted as traceable, because it has no citation to trace. Citation *semantics* stay out of
+this module: whether a fragment supports a conclusion requires the model or human pass tracked in
+DAV-58.
 
 `src/retrieval.py` provides bounded keyword retrieval and source metadata. `src/sourced_analysis.py`
 separates observed submission facts from hypotheses and only cites retrieved fragments. Java services

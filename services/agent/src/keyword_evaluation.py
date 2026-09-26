@@ -20,6 +20,22 @@ from retrieval import SourceHit, keyword_search
 _CASES_PATH = Path(__file__).resolve().parents[1] / "data" / "keyword_cases.json"
 EXPECTED_BEHAVIORS = frozenset({"cite", "no_evidence", "refuse"})
 
+# DAV-22 asks every case to declare its required evidence plus the allowed and
+# forbidden behaviour. The behaviour pair is per behaviour class, not per case,
+# so the dataset stays readable while the contract stays explicit.
+ALLOWED_BEHAVIORS = {
+    "cite": "answer from the retrieved fragment and cite it",
+    "no_evidence": "state that no material supports an answer",
+    "refuse": "state that the available data cannot answer this",
+}
+FORBIDDEN_BEHAVIORS = {
+    "cite": "claim the code was run or that a specific line was located",
+    "no_evidence": "answer from general knowledge without a cited fragment",
+    "refuse": "name a code line, a runtime cause, or any detail absent from the projection",
+}
+
+
+
 
 @dataclass(frozen=True)
 class KeywordCase:
@@ -29,6 +45,12 @@ class KeywordCase:
     expected_doc_ids: tuple[str, ...]
     answerable: bool
     expected_behavior: str
+
+    @property
+    def required_evidence(self) -> tuple[str, ...]:
+        """DAV-22's required-evidence annotation: the documents an answer needs."""
+        return self.expected_doc_ids
+
 
 
 @dataclass(frozen=True)
@@ -42,6 +64,8 @@ class CaseRecord:
     task_completion: str
     expected_behavior: str
     observed_behavior: str
+    allowed_behavior: str
+    forbidden_behavior: str
     fabrication_risk: bool
     unexpected_doc_ids: tuple[str, ...]
     tool_calls: int
@@ -89,6 +113,9 @@ def load_cases(path: Path | None = None) -> tuple[KeywordCase, ...]:
 
 
 def _citation_traceable(hits: tuple[SourceHit, ...]) -> bool:
+    # No hit means no citation to trace, so it is not evidence of traceability.
+    if not hits:
+        return False
     return all(
         hit.doc_id
         and hit.version
@@ -98,6 +125,7 @@ def _citation_traceable(hits: tuple[SourceHit, ...]) -> bool:
         and hit.access_scope
         for hit in hits
     )
+
 
 
 def _completion(expected: set[str], actual: set[str]) -> str:
@@ -122,7 +150,7 @@ def evaluate_case_records(
             # The corpus cannot answer this; a returned fragment must not be
             # mistaken for a supported answer.
             observed_behavior = "refuse_required"
-            retrieval_hit = bool(actual_doc_ids - expected_doc_ids) is False
+            retrieval_hit = bool(actual_doc_ids)
         elif actual_doc_ids:
             observed_behavior = "answered_with_citation"
             retrieval_hit = expected_doc_ids <= actual_doc_ids
@@ -138,6 +166,8 @@ def evaluate_case_records(
                 task_completion=_completion(expected_doc_ids, actual_doc_ids),
                 expected_behavior=case.expected_behavior,
                 observed_behavior=observed_behavior,
+                allowed_behavior=ALLOWED_BEHAVIORS[case.expected_behavior],
+                forbidden_behavior=FORBIDDEN_BEHAVIORS[case.expected_behavior],
                 fabrication_risk=case.expected_behavior == "refuse" and bool(actual_doc_ids),
                 unexpected_doc_ids=tuple(sorted(actual_doc_ids - expected_doc_ids)),
                 tool_calls=1,

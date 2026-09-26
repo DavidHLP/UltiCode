@@ -55,24 +55,54 @@ def test_records_cover_every_required_dimension() -> None:
         assert isinstance(record.retrieval_hit, bool)
 
 
-def test_every_returned_hit_is_traceable_to_a_source() -> None:
-    records = evaluate_case_records(load_cases(), limit=3)
+def test_only_cases_with_a_hit_can_be_traceable() -> None:
+    from retrieval import keyword_search
 
-    assert all(record.citation_traceable for record in records)
+    cases = {case.case_id: case for case in load_cases()}
+    traced = 0
+    for record in evaluate_case_records(load_cases(), limit=3):
+        hits = keyword_search(cases[record.case_id].query, limit=3)
+        assert record.citation_traceable is bool(hits)
+        traced += record.citation_traceable
+
+    assert 0 < traced < len(cases)
+
+
+def test_every_case_declares_required_evidence_and_behaviour_rules() -> None:
+    from keyword_evaluation import ALLOWED_BEHAVIORS, FORBIDDEN_BEHAVIORS
+
+    for case in load_cases():
+        assert case.required_evidence == case.expected_doc_ids
+        assert ALLOWED_BEHAVIORS[case.expected_behavior]
+        assert FORBIDDEN_BEHAVIORS[case.expected_behavior]
+
+    records = evaluate_case_records(load_cases(), limit=3)
+    for record in records:
+        assert record.allowed_behavior == ALLOWED_BEHAVIORS[record.expected_behavior]
+        assert record.forbidden_behavior == FORBIDDEN_BEHAVIORS[record.expected_behavior]
+
+    refuse_rule = FORBIDDEN_BEHAVIORS["refuse"]
+    assert "code line" in refuse_rule
 
 
 def test_refuse_cases_never_report_an_answer_behaviour() -> None:
-    records = evaluate_case_records(load_cases(), limit=3)
-    refuse_records = [r for r in records if r.expected_behavior == "refuse"]
+    from retrieval import keyword_search
 
-    assert len(refuse_records) == 2
-    for record in refuse_records:
+    cases = {case.case_id: case for case in load_cases()}
+    records = {record.case_id: record for record in evaluate_case_records(load_cases(), limit=3)}
+    refuse_ids = [case_id for case_id, case in cases.items() if case.expected_behavior == "refuse"]
+
+    assert len(refuse_ids) == 2
+    assert {cases[case_id].split for case_id in refuse_ids} == {"development", "holdout"}
+    for case_id in refuse_ids:
+        record = records[case_id]
+        hits = keyword_search(cases[case_id].query, limit=3)
         assert record.observed_behavior == "refuse_required"
-        # A retrieved fragment is exactly the temptation to fabricate, so the
-        # risk flag must line up with the refuse annotation and nothing else.
-        assert record.fabrication_risk is bool(record.unexpected_doc_ids)
-    assert {r.split for r in refuse_records} == {"development", "holdout"}
-
+        # Any retrieved fragment is the temptation to fabricate, even one that
+        # happens to be an expected document.
+        assert record.fabrication_risk is bool(hits)
+    flagged = {case_id for case_id, record in records.items() if record.fabrication_risk}
+    assert flagged <= set(refuse_ids)
 
 def test_summary_totals_match_the_records() -> None:
     records = evaluate_case_records(load_cases(), limit=3)

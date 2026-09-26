@@ -180,3 +180,84 @@ def test_real_model_smoke_rejects_tool_call_even_with_text(monkeypatch, capsys) 
     assert return_code == 1
     assert "reason=tool_call" in output
     assert "looks complete" not in output
+
+
+def test_model_smoke_fails_closed_without_a_key(monkeypatch, capsys) -> None:
+    import e2e_sourced_analysis_model as smoke
+
+    monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
+
+    assert asyncio.run(smoke.main()) == 1
+    assert "reason=missing_api_key" in capsys.readouterr().out
+
+
+def test_model_smoke_passes_a_one_call_output_cap_by_default(monkeypatch) -> None:
+    """The cap must be visible in the construction, not only in the adapter.
+
+    A live run with the wrong cap is the failure this guards: the request would
+    carry an unbounded output and the loop could repeat.
+    """
+    import e2e_sourced_analysis_model as smoke
+
+    captured: dict[str, object] = {}
+
+    class _CapturingModel:
+        def __init__(self, api_key: str, **kwargs: object) -> None:
+            captured["api_key_present"] = bool(api_key)
+            captured.update(kwargs)
+            self.usage: list[dict[str, int]] = []
+
+        async def __aenter__(self) -> "_CapturingModel":
+            return self
+
+        async def __aexit__(self, *_args: object) -> None:
+            return None
+
+        async def decide(self, _messages: list[dict[str, object]]) -> object:
+            captured["decide_calls"] = int(captured.get("decide_calls", 0)) + 1
+            return type("Decision", (), {"tool_call": None, "text": "{}"})()
+
+    for name in (
+        "DEEPSEEK_MAX_CALLS",
+        "DEEPSEEK_MAX_TOKENS",
+        "DEEPSEEK_MAX_PROMPT_TOKENS",
+        "DEEPSEEK_MODEL",
+    ):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "placeholder-not-a-real-key")
+    monkeypatch.setattr(smoke, "DeepseekModel", _CapturingModel)
+
+    class _Client:
+        def __init__(self, *_args: object, **_kwargs: object) -> None:
+            pass
+
+        async def __aenter__(self) -> "_Client":
+            return self
+
+        async def __aexit__(self, *_args: object) -> None:
+            return None
+
+        async def login(self, *_args: object) -> None:
+            return None
+
+    async def _first(_tools: object) -> dict[str, object]:
+        return {"id": "sub-1", "status": "Wrong Answer"}
+
+    monkeypatch.setattr(smoke, "UlticodeClient", _Client)
+    monkeypatch.setattr(smoke, "build_tools", lambda _client: {})
+    monkeypatch.setattr(smoke, "first_wrong_answer_submission", _first)
+    monkeypatch.setattr(
+        smoke,
+        "analyze_submission",
+        lambda *_a, **_k: {"facts": ["f"], "hypotheses": ["h"], "citations": [{"chunk_id": "c"}]},
+    )
+    monkeypatch.setenv("ULTICODE_E2E_USERNAME", "tester")
+    monkeypatch.setenv("ULTICODE_E2E_PASSWORD", "pw")
+
+    asyncio.run(smoke.main())
+
+    assert captured["max_calls"] == 1
+    assert captured["max_tokens"] == 300
+    assert captured["max_prompt_tokens"] == 24000
+    assert captured["model"] == "deepseek-flash"
+    assert captured["decide_calls"] == 1

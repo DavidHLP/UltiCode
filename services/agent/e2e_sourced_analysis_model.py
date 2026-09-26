@@ -77,6 +77,10 @@ def _validate_answer(answer: str, evidence: dict[str, object]) -> None:
 
 
 async def main() -> int:
+    if not os.environ.get("DEEPSEEK_API_KEY"):
+        # Fail closed: without a key the run must not touch the model at all.
+        print("E2E SOURCED MODEL FAIL | reason=missing_api_key")
+        return 1
     async with UlticodeClient(APP_BASE, AUTH_BASE) as client:
         await client.login(
             os.environ["ULTICODE_E2E_USERNAME"], os.environ["ULTICODE_E2E_PASSWORD"]
@@ -100,6 +104,11 @@ async def main() -> int:
             os.environ["DEEPSEEK_API_KEY"],
             tool_specs={},
             model=os.environ.get("DEEPSEEK_MODEL", "deepseek-flash"),
+            # One decision per run with a bounded output: the worst case is a
+            # single capped call, never an open-ended loop.
+            max_calls=int(os.environ.get("DEEPSEEK_MAX_CALLS", "1")),
+            max_tokens=int(os.environ.get("DEEPSEEK_MAX_TOKENS", "300")),
+            max_prompt_tokens=int(os.environ.get("DEEPSEEK_MAX_PROMPT_TOKENS", "24000")),
         ) as model:
             decision = await model.decide(
                 [
@@ -113,6 +122,10 @@ async def main() -> int:
                     }
                 ]
             )
+        usage = model.usage
+        if usage:
+            total = sum(entry["total_tokens"] for entry in usage)
+            print(f"E2E SOURCED MODEL USAGE | calls={len(usage)} total_tokens={total}")
         if decision.tool_call is not None:
             print("E2E SOURCED MODEL FAIL | reason=tool_call")
             return 1

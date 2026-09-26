@@ -53,6 +53,36 @@ from vector_search import (
     search,
 )
 
+def _consumption_marker() -> Path:
+    """Durable record that the one-shot confirmation set has been used."""
+    override = os.environ.get("ULTICODE_VECTOR_CONFIRM_MARKER")
+    if override:
+        return Path(override)
+    return CONFIRMATION_CASES_PATH.with_suffix(".consumed")
+
+
+def _claim_confirmation_once() -> tuple[bool, str]:
+    """Claim the confirmation set, or refuse.
+
+    An environment opt-in alone does not stop a second run, so the claim is
+    written to disk before the set is evaluated. Removing the marker is a
+    deliberate, visible act.
+    """
+    marker = _consumption_marker()
+    if marker.exists():
+        return False, str(marker)
+    try:
+        marker.write_text(
+            f"confirmation={CONFIRMATION_CASES_PATH.name}\n"
+            f"consumed_at={datetime.now(timezone.utc).isoformat()}\n",
+            encoding="utf-8",
+        )
+    except OSError as error:
+        # Fail closed: without a durable claim the run would be repeatable.
+        raise RuntimeError(f"could not record the confirmation claim: {error}") from None
+    return True, str(marker)
+
+
 COUNTS = ("matched", "extra_hits", "missed", "false_positive")
 CANDIDATE_LIMITS = (1, 3)
 CONTAMINATED_SPLIT = "holdout"
@@ -84,9 +114,12 @@ def main() -> int:
     # The confirmation set is single-use. Without an explicit opt-in this run
     # must not touch it, because re-running would contaminate it while still
     # printing a clean-looking confirmation.
-    confirm = os.environ.get("ULTICODE_VECTOR_CONFIRM") == "1"
-    if not confirm:
+    if os.environ.get("ULTICODE_VECTOR_CONFIRM") != "1":
         print("SKIP reason=confirmation_requires_opt_in")
+        return 0
+    claimed, marker = _claim_confirmation_once()
+    if not claimed:
+        print(f"SKIP reason=confirmation_already_consumed marker={marker}")
         return 0
     try:
         from qdrant_client import QdrantClient  # noqa: PLC0415 - evaluation-only
@@ -163,7 +196,7 @@ def main() -> int:
             counts,
             len(confirmation),
         )
-    print("stage=confirm note=single_use_confirm_stage_repeat_requires_new_set")
+    print(f"stage=confirm note=claim_recorded marker={marker}")
 
     print(
         f"OK comparison corpus=agent-authored-synthetic docs={indexed} "

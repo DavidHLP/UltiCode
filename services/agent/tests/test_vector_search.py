@@ -177,3 +177,29 @@ def test_vector_search_drops_hits_below_the_relevance_floor() -> None:
     vector_search.build_index(low, load_sample_corpus(), embedder=embedder)
 
     assert original(low, "status", limit=2, embedder=embedder) == []
+
+
+def test_confirmation_set_can_only_be_claimed_once(tmp_path, monkeypatch) -> None:
+    """An env opt-in alone does not stop a second run; the marker does."""
+    import e2e_vector_comparison as smoke
+
+    marker = tmp_path / "holdout-v2.consumed"
+    monkeypatch.setenv("ULTICODE_VECTOR_CONFIRM_MARKER", str(marker))
+
+    claimed, path = smoke._claim_confirmation_once()
+    assert claimed is True
+    assert marker.exists()
+    assert "holdout-v2" in path
+
+    claimed_again, _ = smoke._claim_confirmation_once()
+    assert claimed_again is False
+
+
+def test_claim_fails_closed_when_the_marker_cannot_be_written(tmp_path, monkeypatch) -> None:
+    import e2e_vector_comparison as smoke
+
+    unwritable = tmp_path / "missing-dir" / "holdout-v2.consumed"
+    monkeypatch.setenv("ULTICODE_VECTOR_CONFIRM_MARKER", str(unwritable))
+
+    with pytest.raises(RuntimeError, match="could not record"):
+        smoke._claim_confirmation_once()

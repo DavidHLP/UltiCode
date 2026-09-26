@@ -165,3 +165,41 @@ def test_version_drift_is_detected(tmp_path: Path) -> None:
 
     with pytest.raises(ManifestError, match="version"):
         assert_manifest_covers(drifted, CORPUS)
+
+
+def test_corpus_loader_fails_closed_when_the_manifest_is_incomplete(
+    monkeypatch, tmp_path
+) -> None:
+    """Regression on the wiring, not just the helper.
+
+    Testing ``assert_manifest_covers`` alone would stay green if someone removed
+    the call from the corpus load path, leaving undeclared material retrievable.
+    """
+    import corpus_manifest
+    from retrieval import load_sample_corpus
+
+    partial = [
+        entry
+        for entry in json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+        if entry["doc_id"] != "sample-status-only"
+    ]
+    monkeypatch.setattr(
+        corpus_manifest, "MANIFEST_PATH", _write(tmp_path, partial, name="partial.json")
+    )
+
+    with pytest.raises(ManifestError, match="not declared"):
+        load_sample_corpus()
+
+
+def test_corpus_loader_fails_closed_when_a_field_is_blank(monkeypatch, tmp_path) -> None:
+    import corpus_manifest
+    from retrieval import load_sample_corpus
+
+    raw = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+    raw[0]["scope"] = ""
+    monkeypatch.setattr(
+        corpus_manifest, "MANIFEST_PATH", _write(tmp_path, raw, name="blank.json")
+    )
+
+    with pytest.raises(ManifestError, match="scope"):
+        load_sample_corpus()

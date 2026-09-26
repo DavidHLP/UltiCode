@@ -286,6 +286,9 @@ def test_sourced_analysis_e2e_rejects_total_drift_during_scan(monkeypatch, capsy
 
 
 def test_sourced_analysis_e2e_fails_on_unverifiable_citation(monkeypatch, capsys) -> None:
+    monkeypatch.setenv("ULTICODE_E2E_USERNAME", "tester")
+    monkeypatch.setenv("ULTICODE_E2E_PASSWORD", "pw")
+
     submission = {
         "id": "11111111-1111-4111-8111-111111111111",
         "status": "Wrong Answer",

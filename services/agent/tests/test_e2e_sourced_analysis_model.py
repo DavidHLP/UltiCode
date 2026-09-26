@@ -18,14 +18,14 @@ class FakeClient:
     def __init__(self) -> None:
         self.items = [
             {
-                "id": "sub-1",
+                "id": "11111111-1111-4111-8111-111111111111",
                 "problemId": 7,
                 "language": "java",
                 "status": "Accepted",
                 "createdAt": "2026-09-25T00:00:00",
             },
             {
-                "id": "sub-2",
+                "id": "22222222-2222-4222-8222-222222222222",
                 "problemId": 7,
                 "language": "java",
                 "status": "Wrong Answer",
@@ -59,7 +59,7 @@ class FakeModel:
     async def decide(self, messages: list[dict[str, object]]) -> SimpleNamespace:
         self.messages = messages
         return SimpleNamespace(
-            text='{"facts":["提交 sub-2 的状态是 Wrong Answer。"],"hypotheses":["当前只有提交状态，没有源码或失败用例；不能据此定位具体代码行、复现失败输入或断言运行结果。"],"citations":["sample-status-only"]}',
+            text='{"facts":["提交 22222222-2222-4222-8222-222222222222 的状态是 Wrong Answer。"],"hypotheses":["当前只有提交状态，没有源码或失败用例；不能据此定位具体代码行、复现失败输入或断言运行结果。"],"citations":["sample-status-only"]}',
             tool_call=None,
         )
 

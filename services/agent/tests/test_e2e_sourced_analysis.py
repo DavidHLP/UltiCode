@@ -29,7 +29,7 @@ class FakeClient:
 
 def _projected_submission(status: str) -> dict[str, object]:
     return {
-        "id": "sub-1",
+        "id": "11111111-1111-4111-8111-111111111111",
         "problemId": 7,
         "userId": "must-not-enter-analysis",
         "language": "java",
@@ -62,8 +62,8 @@ def test_sourced_analysis_e2e_selects_matching_submission(monkeypatch, capsys) -
     monkeypatch.setenv("ULTICODE_E2E_USERNAME", "tester")
     monkeypatch.setenv("ULTICODE_E2E_PASSWORD", "pw")
     items = [
-        {**_projected_submission("Accepted"), "id": "sub-1"},
-        {**_projected_submission("Wrong Answer"), "id": "sub-2"},
+        {**_projected_submission("Accepted"), "id": "11111111-1111-4111-8111-111111111111"},
+        {**_projected_submission("Wrong Answer"), "id": "22222222-2222-4222-8222-222222222222"},
     ]
     monkeypatch.setattr(
         e2e_sourced_analysis,

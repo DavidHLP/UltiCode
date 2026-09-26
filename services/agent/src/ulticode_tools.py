@@ -12,6 +12,8 @@ Two deliberate boundaries:
 
 from __future__ import annotations
 
+import re
+
 from ulticode_client import UlticodeClient
 
 PROBLEM_FIELDS = {
@@ -44,7 +46,9 @@ SUBMISSION_STATUSES = frozenset(
         "System Error",
     }
 )
-
+SUBMISSION_ID_PATTERN = re.compile(
+    r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}"
+)
 MAX_LONG = 9_223_372_036_854_775_807
 MAX_INT = 2_147_483_647
 
@@ -66,6 +70,10 @@ def _project(data: object, fields: dict[str, tuple[type, int]]) -> dict[str, obj
             isinstance(value, bool)
             or not isinstance(value, int)
             or not minimum <= value <= max_value
+        ):
+            raise ValueError("invalid tool response")
+        if field == "id" and expected_type is str and (
+            not isinstance(value, str) or not SUBMISSION_ID_PATTERN.fullmatch(value)
         ):
             raise ValueError("invalid tool response")
         if field == "status" and value not in SUBMISSION_STATUSES:

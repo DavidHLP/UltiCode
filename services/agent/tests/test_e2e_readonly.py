@@ -30,7 +30,7 @@ class FakeClient:
         return ["access_token"]
 
     async def list_my_submissions(self, *, page: int, page_size: int) -> dict[str, object]:
-        return {"items": [{"id": "sub-1"}], "total": 999, "page": 42}
+        return {"items": [{"id": "11111111-1111-4111-8111-111111111111"}], "total": 999, "page": 42}
 
 
 def test_readonly_smoke_does_not_print_authenticated_totals(monkeypatch, capsys) -> None:

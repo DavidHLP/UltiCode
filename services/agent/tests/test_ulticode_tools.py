@@ -17,7 +17,7 @@ def test_submission_projection_excludes_source_and_identity_fields() -> None:
                 "data": {
                     "items": [
                         {
-                            "id": "sub-1",
+                            "id": "11111111-1111-4111-8111-111111111111",
                             "problemId": 7,
                             "userId": "u-secret",
                             "language": "java",
@@ -72,7 +72,7 @@ def test_problem_scoped_submission_query_uses_authenticated_problem_scoped_endpo
                 "data": {
                     "items": [
                         {
-                            "id": "sub-1",
+                            "id": "11111111-1111-4111-8111-111111111111",
                             "language": "java",
                             "status": "Wrong Answer",
                             "createdAt": "2026-09-25T00:00:00",
@@ -140,7 +140,7 @@ def test_problem_scoped_submission_query_accepts_missing_problem_identity() -> N
                 "data": {
                     "items": [
                         {
-                            "id": "sub-1",
+                            "id": "11111111-1111-4111-8111-111111111111",
                             "language": "java",
                             "status": "Wrong Answer",
                             "createdAt": "2026-09-25T00:00:00",

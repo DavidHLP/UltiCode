@@ -54,7 +54,7 @@ def test_submission_projection_rejects_nested_allowlisted_value() -> None:
                 "data": {
                     "items": [
                         {
-                            "id": "sub-1",
+                            "id": "11111111-1111-4111-8111-111111111111",
                             "problemId": 7,
                             "language": {"nested": "SECRET"},
                             "status": "Accepted",
@@ -85,7 +85,7 @@ def test_submission_projection_rejects_unknown_status() -> None:
                 "data": {
                     "items": [
                         {
-                            "id": "sub-1",
+                            "id": "11111111-1111-4111-8111-111111111111",
                             "problemId": 7,
                             "language": "java",
                             "status": "AC",
@@ -137,7 +137,7 @@ def test_submission_listing_rejects_total_smaller_than_items() -> None:
                 "data": {
                     "items": [
                         {
-                            "id": "sub-1",
+                            "id": "11111111-1111-4111-8111-111111111111",
                             "problemId": 7,
                             "language": "java",
                             "status": "Accepted",
@@ -227,10 +227,10 @@ def test_get_problem_submissions_rejects_invalid_model_arguments(
 @pytest.mark.parametrize(
     "item",
     [
-        {"id": "sub-1", "language": "java", "status": "Wrong Answer", "createdAt": "2026-09-25T00:00:00", "problem": {"id": 99}},
-        {"id": "sub-1", "language": "java", "status": "Wrong Answer", "createdAt": "2026-09-25T00:00:00", "problem": {"id": True}},
-        {"id": "sub-1", "language": "java", "status": "Wrong Answer", "createdAt": "2026-09-25T00:00:00", "problemId": 99},
-        {"id": "sub-1", "language": "java", "status": "Wrong Answer", "createdAt": "2026-09-25T00:00:00", "problemId": True},
+        {"id": "11111111-1111-4111-8111-111111111111", "language": "java", "status": "Wrong Answer", "createdAt": "2026-09-25T00:00:00", "problem": {"id": 99}},
+        {"id": "11111111-1111-4111-8111-111111111111", "language": "java", "status": "Wrong Answer", "createdAt": "2026-09-25T00:00:00", "problem": {"id": True}},
+        {"id": "11111111-1111-4111-8111-111111111111", "language": "java", "status": "Wrong Answer", "createdAt": "2026-09-25T00:00:00", "problemId": 99},
+        {"id": "11111111-1111-4111-8111-111111111111", "language": "java", "status": "Wrong Answer", "createdAt": "2026-09-25T00:00:00", "problemId": True},
     ],
 )
 def test_get_problem_submissions_rejects_mismatched_or_missing_problem_identity(

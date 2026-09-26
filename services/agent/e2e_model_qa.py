@@ -32,9 +32,18 @@ QUESTION = (
 )
 
 
+def _reject_duplicate_keys(pairs: list[tuple[str, object]]) -> dict[str, object]:
+    result: dict[str, object] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("duplicate key")
+        result[key] = value
+    return result
+
+
 def _validate_answer(answer: str, problem: dict[str, object], has_submission: bool) -> bool:
     try:
-        parsed = json.loads(answer)
+        parsed = json.loads(answer, object_pairs_hook=_reject_duplicate_keys)
     except ValueError:
         return False
     return (

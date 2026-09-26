@@ -96,11 +96,14 @@ class UlticodeClient:
         return data
 
     def _session_headers(self) -> dict[str, str]:
-        access = next(
-            (cookie for cookie in self._cookies.jar if cookie.name == "access_token"),
-            None,
-        )
-        return {"Cookie": f"access_token={access.value}"} if access is not None else {}
+        access_cookies = [
+            cookie
+            for cookie in self._cookies.jar
+            if cookie.name == "access_token" and cookie.value
+        ]
+        if len(access_cookies) != 1:
+            return {}
+        return {"Cookie": f"access_token={access_cookies[0].value}"}
 
     def cookie_names(self) -> list[str]:
         """Cookie names only — values must never be printed or persisted."""

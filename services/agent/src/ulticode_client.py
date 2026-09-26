@@ -136,10 +136,17 @@ class UlticodeClient:
         )
         try:
             data = self._unwrap_dict(response)
+            self._cookies.update(response.cookies)
+            access_cookies = [
+                cookie
+                for cookie in self._cookies.jar
+                if cookie.name == "access_token" and cookie.value
+            ]
+            if len(access_cookies) != 1:
+                raise UlticodeError("login_error")
         except Exception:
             self._clear_session_cookies()
             raise
-        self._cookies.update(response.cookies)
         return data
 
     async def list_my_submissions(

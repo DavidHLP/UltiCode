@@ -21,7 +21,7 @@ def test_submission_projection_excludes_source_and_identity_fields() -> None:
                             "userId": "u-secret",
                             "language": "java",
                             "code": "SECRET SOURCE",
-                            "status": "AC",
+                            "status": "Accepted",
                             "input": "stdin",
                             "errorDetail": "boom",
                             "user": {"username": "tester"},

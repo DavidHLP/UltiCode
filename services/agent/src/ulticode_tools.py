@@ -28,17 +28,31 @@ SUBMISSION_FIELDS = {
     "status": (str, 64),
     "createdAt": (str, 64),
 }
+SUBMISSION_STATUSES = frozenset(
+    {
+        "Pending",
+        "Judging",
+        "Accepted",
+        "Presentation Error",
+        "Wrong Answer",
+        "Time Limit Exceeded",
+        "Memory Limit Exceeded",
+        "Output Limit Exceeded",
+        "Runtime Error",
+        "Compile Error",
+        "Sandbox Error",
+        "System Error",
+    }
+)
 
-# Argument contract shown to the model — names here must match the handlers below.
+MAX_LONG = 9_223_372_036_854_775_807
+MAX_INT = 2_147_483_647
+
 TOOL_SPECS = {
     "get_problem": 'args: {"id": <int problem id>}; returns id/slug/title/difficulty/submission_count',
     "get_my_submissions": 'args: optional {"page": <int>, "pageSize": <int>}; returns my submissions (id/problemId/language/status/createdAt) with totals — never source code',
     "get_problem_submissions": 'args: {"problemId": <int>, optional "page": <int>, "pageSize": <int>}; returns my submissions for one problem — never source code',
 }
-
-
-MAX_LONG = 9_223_372_036_854_775_807
-MAX_INT = 2_147_483_647
 
 
 def _project(data: object, fields: dict[str, tuple[type, int]]) -> dict[str, object]:
@@ -49,8 +63,12 @@ def _project(data: object, fields: dict[str, tuple[type, int]]) -> dict[str, obj
         value = data[field]
         minimum = 1 if field in {"id", "problemId"} else 0
         if expected_type is int and (
-            isinstance(value, bool) or not isinstance(value, int) or not minimum <= value <= max_value
+            isinstance(value, bool)
+            or not isinstance(value, int)
+            or not minimum <= value <= max_value
         ):
+            raise ValueError("invalid tool response")
+        if field == "status" and value not in SUBMISSION_STATUSES:
             raise ValueError("invalid tool response")
         if expected_type is str and (
             not isinstance(value, str) or not value.strip() or len(value) > max_value
@@ -86,7 +104,6 @@ def _exact_keys(arguments: dict[str, object], allowed: set[str], *, required: se
         raise ValueError("invalid tool arguments")
 
 
-
 def build_tools(client: UlticodeClient) -> dict[str, object]:
     async def get_problem(arguments: dict[str, object]) -> object:
         _exact_keys(arguments, {"id"}, required={"id"})
@@ -105,9 +122,12 @@ def build_tools(client: UlticodeClient) -> dict[str, object]:
         if len(listing["items"]) > page_size:
             raise ValueError("invalid tool response")
         items = [_project(item, SUBMISSION_FIELDS) for item in listing["items"]]
+        total = _bounded_int(listing.get("total"))
+        if total < len(items):
+            raise ValueError("invalid tool response")
         return {
             "items": items,
-            "total": _bounded_int(listing.get("total")),
+            "total": total,
             "page": _bounded_int(listing.get("page"), minimum=1, maximum=MAX_INT),
         }
 
@@ -140,9 +160,12 @@ def build_tools(client: UlticodeClient) -> dict[str, object]:
             normalized_item = dict(raw_item)
             normalized_item["problemId"] = problem_id
             items.append(_project(normalized_item, SUBMISSION_FIELDS))
+        total = _bounded_int(listing.get("total"))
+        if total < len(items):
+            raise ValueError("invalid tool response")
         return {
             "items": items,
-            "total": _bounded_int(listing.get("total")),
+            "total": total,
             "page": _bounded_int(listing.get("page"), minimum=1, maximum=MAX_INT),
         }
 

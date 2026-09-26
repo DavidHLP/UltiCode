@@ -248,6 +248,21 @@ def test_non_object_success_data_is_rejected_without_assertions() -> None:
     asyncio.run(scenario())
 
 
+def test_login_without_access_cookie_is_rejected_and_clears_session() -> None:
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"code": 0, "message": "success", "data": {}})
+
+    async def scenario() -> None:
+        async with UlticodeClient(
+            "https://app.test", "https://auth.test", transport=httpx.MockTransport(handler)
+        ) as client:
+            with pytest.raises(UlticodeError, match="login_error"):
+                await client.login("tester", "pw")
+            assert client.cookie_names() == []
+
+    asyncio.run(scenario())
+
+
 def test_app_requests_do_not_forward_refresh_or_csrf_cookies() -> None:
     seen_cookie: str | None = None
 

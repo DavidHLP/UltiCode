@@ -57,6 +57,37 @@ def test_submission_projection_rejects_nested_allowlisted_value() -> None:
                             "id": "sub-1",
                             "problemId": 7,
                             "language": {"nested": "SECRET"},
+                            "status": "Accepted",
+                            "createdAt": "2026-09-24T00:00:00",
+                        }
+                    ],
+                    "total": 1,
+                    "page": 1,
+                },
+            },
+        )
+
+    async def scenario() -> None:
+        async with UlticodeClient(
+            "https://app.test", "https://auth.test", transport=httpx.MockTransport(handler)
+        ) as client:
+            with pytest.raises(ValueError, match="invalid tool response"):
+                await build_tools(client)["get_my_submissions"]({})
+
+    asyncio.run(scenario())
+def test_submission_projection_rejects_unknown_status() -> None:
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "code": 0,
+                "message": "success",
+                "data": {
+                    "items": [
+                        {
+                            "id": "sub-1",
+                            "problemId": 7,
+                            "language": "java",
                             "status": "AC",
                             "createdAt": "2026-09-24T00:00:00",
                         }
@@ -77,11 +108,46 @@ def test_submission_projection_rejects_nested_allowlisted_value() -> None:
     asyncio.run(scenario())
 
 
+
+
 def test_submission_listing_rejects_nested_totals() -> None:
     async def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(
             200,
             json={"code": 0, "message": "success", "data": {"items": [], "total": {"x": 1}, "page": 1}},
+        )
+
+    async def scenario() -> None:
+        async with UlticodeClient(
+            "https://app.test", "https://auth.test", transport=httpx.MockTransport(handler)
+        ) as client:
+            with pytest.raises(ValueError, match="invalid tool response"):
+                await build_tools(client)["get_my_submissions"]({})
+
+    asyncio.run(scenario())
+
+
+def test_submission_listing_rejects_total_smaller_than_items() -> None:
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "code": 0,
+                "message": "success",
+                "data": {
+                    "items": [
+                        {
+                            "id": "sub-1",
+                            "problemId": 7,
+                            "language": "java",
+                            "status": "Accepted",
+                            "createdAt": "2026-09-24T00:00:00",
+                        }
+                    ],
+                    "total": 0,
+                    "page": 1,
+                },
+            },
         )
 
     async def scenario() -> None:
@@ -107,7 +173,7 @@ def test_submission_listing_rejects_more_items_than_page_size() -> None:
                             "id": f"sub-{index}",
                             "problemId": 7,
                             "language": "java",
-                            "status": "AC",
+                            "status": "Accepted",
                             "createdAt": "2026-09-24T00:00:00",
                         }
                         for index in range(2)

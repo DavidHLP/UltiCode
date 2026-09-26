@@ -27,7 +27,8 @@ def test_every_case_declares_evidence_and_behaviour_annotations() -> None:
     assert [case.expected_behavior for case in cases].count("no_evidence") == 3
     assert [case.expected_behavior for case in cases].count("refuse") == 2
     for case in cases:
-        assert case.required_evidence, case.case_id
+        # A `no_evidence` case must require nothing; an empty list is the point.
+        assert bool(case.required_evidence) == (case.expected_behavior != "no_evidence")
         assert case.allowed_behavior.strip(), case.case_id
         assert case.forbidden_behavior.strip(), case.case_id
         assert case.answerable is (case.expected_behavior == "cite")

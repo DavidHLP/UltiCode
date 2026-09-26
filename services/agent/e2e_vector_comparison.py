@@ -65,21 +65,23 @@ def _consumption_marker() -> Path:
 def _claim_confirmation_once() -> tuple[bool, str]:
     """Claim the confirmation set, or refuse.
 
-    An environment opt-in alone does not stop a second run, so the claim is
-    written to disk before the set is evaluated. Removing the marker is a
-    deliberate, visible act.
+    The claim is created with exclusive access: an ``exists()`` check followed by
+    a write would let two concurrent runs both believe they own the single-use
+    set. If the marker cannot be written the run aborts rather than proceeding
+    repeatably.
     """
     marker = _consumption_marker()
-    if marker.exists():
-        return False, str(marker)
+    record = (
+        f"confirmation={CONFIRMATION_CASES_PATH.name}\n"
+        f"consumed_at={datetime.now(timezone.utc).isoformat()}\n"
+    )
     try:
-        marker.write_text(
-            f"confirmation={CONFIRMATION_CASES_PATH.name}\n"
-            f"consumed_at={datetime.now(timezone.utc).isoformat()}\n",
-            encoding="utf-8",
-        )
+        # Exclusive creation: the loser of a race gets FileExistsError.
+        with marker.open("x", encoding="utf-8") as handle:
+            handle.write(record)
+    except FileExistsError:
+        return False, str(marker)
     except OSError as error:
-        # Fail closed: without a durable claim the run would be repeatable.
         raise RuntimeError(f"could not record the confirmation claim: {error}") from None
     return True, str(marker)
 

@@ -206,6 +206,22 @@ def test_confirmation_set_can_only_be_claimed_once(tmp_path, monkeypatch) -> Non
     assert claimed_again is False
 
 
+def test_a_concurrent_claim_cannot_overwrite_the_record(tmp_path, monkeypatch) -> None:
+    """Exclusive creation, not exists()-then-write: no lost update."""
+    smoke = e2e_vector_comparison
+
+    marker = tmp_path / "holdout-v2.consumed"
+    monkeypatch.setenv("ULTICODE_VECTOR_CONFIRM_MARKER", str(marker))
+    # Another process already claimed it.
+    marker.write_text("confirmation=holdout-v2.json\nconsumed_at=earlier\n", encoding="utf-8")
+
+    claimed, _ = smoke._claim_confirmation_once()
+
+    assert claimed is False
+    # The existing record must be untouched, not rewritten by the loser.
+    assert "earlier" in marker.read_text(encoding="utf-8")
+
+
 def test_claim_fails_closed_when_the_marker_cannot_be_written(tmp_path, monkeypatch) -> None:
     smoke = e2e_vector_comparison
 

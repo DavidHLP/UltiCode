@@ -1,5 +1,6 @@
 import asyncio
 import importlib.util
+import json
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -262,3 +263,14 @@ def test_model_smoke_passes_a_one_call_output_cap_by_default(monkeypatch) -> Non
     assert captured["max_prompt_tokens"] == 24000
     assert captured["model"] == "deepseek-flash"
     assert captured["decide_calls"] == 1
+
+
+def test_answer_payload_unwraps_the_evidence_json_from_the_envelope() -> None:
+    inner = '{"facts":["f"],"hypotheses":["h"],"citations":["d"]}'
+    envelope = json.dumps({"answer": inner})
+
+    assert module._answer_payload(envelope) == inner
+    # A bare contract object is passed through unchanged.
+    assert module._answer_payload(inner) == inner
+    # Malformed input is left for the contract validator to reject.
+    assert module._answer_payload("not json") == "not json"

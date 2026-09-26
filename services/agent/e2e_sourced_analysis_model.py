@@ -23,11 +23,15 @@ from ulticode_tools import build_tools
 APP_BASE = os.environ.get("ULTICODE_APP_BASE", "http://localhost:9103")
 AUTH_BASE = os.environ.get("ULTICODE_AUTH_BASE", "http://localhost:9101")
 QUESTION = "Wrong Answer 状态说明了什么？只依据提交事实和带来源检索结果回答。"
+# The adapter in answer-only mode requires {"answer": "<text>"}. The evidence
+# contract therefore has to be carried *inside* that answer string, otherwise the
+# two protocols conflict and the model can satisfy only one of them.
 ANSWER_CONTRACT = (
-    "Return one JSON object string with exactly these keys: facts, hypotheses, citations. "
+    "Reply with one JSON object of the form {\"answer\": \"<json string>\"}. The answer "
+    "string must itself be a JSON object with exactly these keys: facts, hypotheses, citations. "
     "facts must quote EVIDENCE_JSON.facts verbatim; hypotheses must be a non-empty string array "
     "drawn from EVIDENCE_JSON.allowed_hypotheses; citations must contain only doc_id values "
-    "from EVIDENCE_JSON.citations."
+    "from EVIDENCE_JSON.citations. Do not add prose outside the JSON object."
 )
 
 
@@ -38,6 +42,23 @@ def _reject_duplicate_keys(pairs: list[tuple[str, object]]) -> dict[str, object]
             raise ValueError("duplicate key")
         result[key] = value
     return result
+
+
+def _answer_payload(answer: str) -> str:
+    """Unwrap the evidence JSON carried inside the adapter's answer string.
+
+    The adapter parses the outer {"answer": ...} envelope; the evidence contract
+    lives in the answer string, so it has to be unwrapped before validation.
+    """
+    try:
+        envelope = json.loads(answer, object_pairs_hook=_reject_duplicate_keys)
+    except (json.JSONDecodeError, ValueError):
+        return answer
+    if isinstance(envelope, dict) and set(envelope) == {"answer"} and isinstance(
+        envelope["answer"], str
+    ):
+        return envelope["answer"]
+    return answer
 
 
 def _validate_answer(answer: str, evidence: dict[str, object]) -> None:

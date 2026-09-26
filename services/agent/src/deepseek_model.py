@@ -57,12 +57,12 @@ MAX_TOKENS = 512
 #: Input cap per request, in the billed unit (tokens), not characters.
 MAX_PROMPT_TOKENS = 24_000
 MAX_CALLS = 8
-#: Deliberately pessimistic prompt tokens per character. Real ratios are lower
-#: for Latin text and near 1 for CJK; assuming 3 keeps the cap safe for any
-#: script without needing the provider tokenizer at request time.
+#: Prompt-tokens-per-character used for the preflight estimate. This is a
+#: heuristic, not a proven bound: it excludes per-message overhead and the
+#: provider tokenizer's own behaviour on emoji or rare Unicode, which can exceed
+#: this ratio. The preflight check therefore rejects an *estimated* overrun; the
+#: only exact accounting is the ``usage`` the provider reports after the call.
 PROMPT_TOKENS_PER_CHAR = 3
-
-
 
 
 class DeepseekModel:

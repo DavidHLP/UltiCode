@@ -320,6 +320,76 @@ def test_problem_scoped_listing_rejects_total_below_page_offset() -> None:
 
 
 
+def test_submission_listing_rejects_stale_page_size() -> None:
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "code": 0,
+                "message": "success",
+                "data": {
+                    "items": [
+                        {
+                            "id": "11111111-1111-4111-8111-111111111111",
+                            "problemId": 7,
+                            "language": "java",
+                            "status": "Accepted",
+                            "createdAt": "2026-09-24T00:00:00",
+                        }
+                    ],
+                    "total": 6,
+                    "page": 1,
+                    "pageSize": 4,
+                },
+            },
+        )
+
+    async def scenario() -> None:
+        async with UlticodeClient(
+            "https://app.test", "https://auth.test", transport=httpx.MockTransport(handler)
+        ) as client:
+            with pytest.raises(ValueError, match="invalid tool response"):
+                await build_tools(client)["get_my_submissions"]({"pageSize": 5})
+
+    asyncio.run(scenario())
+
+
+def test_problem_scoped_listing_rejects_stale_page_size() -> None:
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "code": 0,
+                "message": "success",
+                "data": {
+                    "items": [
+                        {
+                            "id": "11111111-1111-4111-8111-111111111111",
+                            "language": "java",
+                            "status": "Accepted",
+                            "createdAt": "2026-09-24T00:00:00",
+                            "problem": {"id": 7, "title": "Sample", "slug": "sample"},
+                        }
+                    ],
+                    "total": 6,
+                    "page": 1,
+                    "pageSize": 4,
+                },
+            },
+        )
+
+    async def scenario() -> None:
+        async with UlticodeClient(
+            "https://app.test", "https://auth.test", transport=httpx.MockTransport(handler)
+        ) as client:
+            with pytest.raises(ValueError, match="invalid tool response"):
+                await build_tools(client)["get_problem_submissions"](
+                    {"problemId": 7, "pageSize": 5}
+                )
+
+    asyncio.run(scenario())
+
+
 def test_submission_listing_rejects_more_items_than_page_size() -> None:
     async def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(

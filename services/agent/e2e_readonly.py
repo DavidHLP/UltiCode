@@ -37,10 +37,14 @@ async def main() -> int:
         problems = await client.list_problems(page=1, page_size=3)
         items = problems.get("items")
         total = problems.get("total")
+        page = problems.get("page")
+        page_size = problems.get("pageSize")
         if (
             not isinstance(items, list)
-            or problems.get("page") != 1
-            or problems.get("pageSize") != 3
+            or isinstance(page, bool)
+            or page != 1
+            or isinstance(page_size, bool)
+            or page_size != 3
             or isinstance(total, bool)
             or not isinstance(total, int)
             or not 0 <= total <= 9_223_372_036_854_775_807

@@ -84,7 +84,7 @@ class UlticodeClient:
     def _unwrap(response: httpx.Response) -> object:
         try:
             payload = json.loads(response.content, object_pairs_hook=_reject_duplicate_keys)
-        except json.JSONDecodeError as exc:
+        except (json.JSONDecodeError, UnicodeDecodeError) as exc:
             raise UlticodeError(f"non-JSON response (http={response.status_code})") from exc
         except ValueError as exc:
             raise UlticodeError("duplicate key in service response") from exc

@@ -1,0 +1,16 @@
+services/agent/e2e_account_isolation.py
+  h_77173abe25c3ff 41-43,64-68,75-76,78-94,164,174,247-250,253-254
+services/agent/tests/test_e2e_account_isolation.py
+  h_77173abe25c3ff 42-46,173-174
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8331d59adccf08fffc77c240bc65757bc9508952",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

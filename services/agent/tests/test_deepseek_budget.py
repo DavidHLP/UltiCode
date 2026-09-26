@@ -187,7 +187,7 @@ def test_billed_malformed_response_is_still_accounted() -> None:
     asyncio.run(scenario())
 
 
-def test_non_dict_response_is_not_accounted_as_usage() -> None:
+def test_non_dict_response_is_accounted_as_unknown() -> None:
     async def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(200, json=["not", "an", "object"])
 
@@ -197,7 +197,11 @@ def test_non_dict_response_is_not_accounted_as_usage() -> None:
         ) as model:
             with pytest.raises(ModelProtocolError):
                 await model.decide([{"role": "user", "content": "a"}])
-            assert model.usage == []
+            # The request was sent, so the call is accounted as unknown rather
+            # than silently dropped.
+            assert model.usage == [
+                {"prompt_tokens": None, "completion_tokens": None, "total_tokens": None}
+            ]
 
     asyncio.run(scenario())
 

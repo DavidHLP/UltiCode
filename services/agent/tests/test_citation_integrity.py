@@ -29,6 +29,9 @@ def test_every_retrievable_hit_verifies_against_its_own_source() -> None:
                     "source_position": document.source_position,
                     "access_scope": document.access_scope,
                     "sample_kind": document.sample_kind,
+                    # SourceDocument has no trust marker; a citation must carry
+                    # the expected one itself.
+                    "source_trust": "untrusted-data",
                     "text": document.text,
                 }
             ],
@@ -71,6 +74,26 @@ def test_sample_marker_drift_is_caught() -> None:
     citation["sample_kind"] = "real"
 
     assert check_citations([citation], CORPUS)[0].verdict == "provenance_mismatch"
+
+
+def test_regrading_the_source_as_trusted_is_rejected() -> None:
+    citation = _citation_from("Wrong Answer status")
+    citation["source_trust"] = "trusted"
+
+    check = check_citations([citation], CORPUS)[0]
+
+    assert check.verdict == "provenance_mismatch"
+    assert not all_verified((check,))
+
+
+def test_padded_identifier_does_not_verify() -> None:
+    citation = _citation_from("Wrong Answer status")
+    citation["version"] = " v1 "
+
+    check = check_citations([citation], CORPUS)[0]
+
+    assert check.verdict == "provenance_mismatch"
+    assert not all_verified((check,))
 
 
 @pytest.mark.parametrize("field", [*PROVENANCE_FIELDS, "text"])

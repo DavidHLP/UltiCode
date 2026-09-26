@@ -38,6 +38,9 @@ import httpx
 APP_BASE = os.environ.get("ULTICODE_APP_BASE", "http://localhost:9103")
 AUTH_BASE = os.environ.get("ULTICODE_AUTH_BASE", "http://localhost:9101")
 ACCESS_COOKIE = "access_token"
+CSRF_COOKIE = "csrf_token"
+#: Double-submit CSRF: a cookie-authenticated write must echo this header.
+CSRF_HEADER = "X-CSRF-Token"
 PASSWORD_LENGTH = 24
 SUBMISSION_CODE = "print(1)"
 SUBMISSION_LANGUAGE = "python"
@@ -58,16 +61,37 @@ def _session() -> httpx.AsyncClient:
     return httpx.AsyncClient(timeout=30.0, follow_redirects=True)
 
 
+def _cookie(cookies: httpx.Cookies, name: str) -> str | None:
+    found = [c.value for c in cookies.jar if c.name == name and c.value]
+    return found[0] if len(found) == 1 else None
+
+
 def _session_headers(cookies: httpx.Cookies) -> dict[str, str]:
     """Send the access cookie as a header, like UlticodeClient does.
 
     Copying the jar between clients loses ``Secure`` cookies over plain HTTP, so
     the value is forwarded explicitly. The value is never logged or returned.
     """
-    access = [c for c in cookies.jar if c.name == ACCESS_COOKIE and c.value]
-    if len(access) != 1:
+    access = _cookie(cookies, ACCESS_COOKIE)
+    if access is None:
         return {}
-    return {"Cookie": f"{ACCESS_COOKIE}={access[0].value}"}
+    return {"Cookie": f"{ACCESS_COOKIE}={access}"}
+
+
+def _write_headers(cookies: httpx.Cookies) -> dict[str, str]:
+    """Session headers plus the double-submit CSRF header a cookie write needs.
+
+    ``CookieCsrfFilter`` rejects an unsafe method that carries a credential cookie
+    unless ``X-CSRF-Token`` matches the ``csrf_token`` cookie. Neither value is
+    ever printed.
+    """
+    headers = _session_headers(cookies)
+    if not headers:
+        return {}
+    csrf = _cookie(cookies, CSRF_COOKIE)
+    if csrf is None:
+        raise IsolationHarnessError("no csrf_token cookie for a cookie-authenticated write")
+    return {**headers, CSRF_HEADER: csrf}
 
 
 def _payload(response: httpx.Response) -> dict[str, Any]:
@@ -137,7 +161,7 @@ async def _first_problem_id(
 
 
 async def _submit(
-    client: httpx.AsyncClient, headers: dict[str, str], problem_id: int
+    client: httpx.AsyncClient, cookies: httpx.Cookies, problem_id: int
 ) -> str:
     response = _require_200(
         await client.post(
@@ -147,7 +171,7 @@ async def _submit(
                 "language": SUBMISSION_LANGUAGE,
                 "code": SUBMISSION_CODE,
             },
-            headers=headers,
+            headers=_write_headers(cookies),
         ),
         "submission",
     )
@@ -220,10 +244,14 @@ async def main() -> int:
 
         headers_a = _session_headers(auth_a.cookies)
         headers_b = _session_headers(auth_b.cookies)
+        # The write path is cookie-authenticated, so it needs the CSRF echo and
+        # must read its cookies from the session that established them.
+        app_a.cookies.update(auth_a.cookies)
+        app_b.cookies.update(auth_b.cookies)
         try:
             problem_id = await _first_problem_id(app_a, headers_a)
-            submission_a = await _submit(app_a, headers_a, problem_id)
-            submission_b = await _submit(app_b, headers_b, problem_id)
+            submission_a = await _submit(app_a, app_a.cookies, problem_id)
+            submission_b = await _submit(app_b, app_b.cookies, problem_id)
         except IsolationHarnessError as error:
             print(f"FAIL reason=fixture_unavailable detail={error}")
             return 1

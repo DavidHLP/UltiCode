@@ -39,7 +39,11 @@ def _session_response(request: httpx.Request) -> httpx.Response:
     return httpx.Response(
         200,
         json={"data": {"id": account}},
-        headers={"set-cookie": f"access_token={account}; Path=/"},
+        headers={
+            "set-cookie": (
+                f"access_token={account}; Path=/, csrf_token=csrf-{account}; Path=/"
+            )
+        },
     )
 
 
@@ -166,6 +170,8 @@ def test_own_read_returning_another_id_is_a_failure(monkeypatch, capsys) -> None
         if path.endswith("/problems"):
             return httpx.Response(200, json={"data": {"items": [{"id": 7}]}})
         if path.endswith("/submissions") and request.method == "POST":
+            # A cookie write without the CSRF echo is what the filter rejects.
+            assert request.headers.get("X-CSRF-Token") == f"csrf-{account}"
             return httpx.Response(200, json={"data": {"id": OWNED[account]}})
         if "/submissions/" in path:
             return httpx.Response(200, json={"data": {"id": "somebody-elses"}})

@@ -122,7 +122,7 @@ def _citation_traceable(hits: tuple[SourceHit, ...]) -> bool:
     )
 
 
-def _retrieval_outcome(required: set[str], actual: set[str]) -> str:
+def retrieval_outcome(required: set[str], actual: set[str]) -> str:
     if not required:
         return "false_positive" if actual else "matched"
     if not required <= actual:
@@ -157,7 +157,7 @@ def evaluate_case_records(
                 split=case.split,
                 retrieval_hit=retrieval_hit,
                 citation_traceable=_citation_traceable(hits),
-                retrieval_outcome=_retrieval_outcome(required_doc_ids, actual_doc_ids),
+                retrieval_outcome=retrieval_outcome(required_doc_ids, actual_doc_ids),
                 citation_support=DEFERRED,
                 answer_completion=DEFERRED,
                 expected_behavior=case.expected_behavior,

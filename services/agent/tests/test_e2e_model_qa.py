@@ -125,4 +125,16 @@ def test_model_qa_rejects_successful_tools_for_other_problem_ids(monkeypatch, ca
     return_code, output = _run_model(monkeypatch, capsys, model)
 
     assert return_code == 1
-    assert "reason=tool_contract" in output
+
+def test_model_qa_rejects_duplicate_answer_keys(monkeypatch, capsys) -> None:
+    model = FakeModel(
+        [
+            ModelDecision(tool_call=ToolCall("get_problem", {"id": 7})),
+            ModelDecision(tool_call=ToolCall("get_problem_submissions", {"problemId": 7})),
+            ModelDecision(text='{"title":"Wrong","title":"Sample","difficulty":"easy","has_submission":true}'),
+        ]
+    )
+    return_code, output = _run_model(monkeypatch, capsys, model)
+
+    assert return_code == 1
+    assert "reason=answer_contract" in output

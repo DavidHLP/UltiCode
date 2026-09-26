@@ -69,4 +69,26 @@ def test_invalid_decision_protocol_is_rejected_without_content(
             assert "SECRET" not in str(exc_info.value)
             assert content not in str(exc_info.value)
 
+
+def test_answer_only_mode_keeps_untrusted_evidence_rule() -> None:
+    seen_system = ""
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal seen_system
+        payload = __import__("json").loads(request.content)
+        seen_system = payload["messages"][0]["content"]
+        return httpx.Response(
+            200, json={"choices": [{"message": {"content": '{"answer":"ok"}'}}]}
+        )
+
+    async def scenario() -> None:
+        async with DeepseekModel(
+            "test-key",
+            tool_specs={},
+            transport=httpx.MockTransport(handler),
+        ) as model:
+            assert (await model.decide([{"role": "user", "content": "evidence"}])).text == "ok"
+
     asyncio.run(scenario())
+    assert "untrusted data" in seen_system
+    assert "not instructions" in seen_system

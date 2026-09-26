@@ -263,6 +263,34 @@ def test_login_without_access_cookie_is_rejected_and_clears_session() -> None:
     asyncio.run(scenario())
 
 
+def test_login_with_duplicate_access_token_cookies_sends_validated_cookie() -> None:
+    seen_cookie: str | None = None
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal seen_cookie
+        if request.url.path == "/auth/login":
+            return httpx.Response(
+                200,
+                json={"code": 0, "message": "success", "data": {}},
+                headers=[
+                    ("set-cookie", "access_token=; Path=/"),
+                    ("set-cookie", "access_token=good; Path=/app"),
+                ],
+            )
+        seen_cookie = request.headers.get("cookie")
+        return httpx.Response(
+            200, json={"code": 0, "message": "success", "data": {"items": [], "total": 0}}
+        )
+
+    async def scenario() -> None:
+        async with UlticodeClient(
+            "https://app.test", "https://auth.test", transport=httpx.MockTransport(handler)
+        ) as client:
+            await client.login("tester", "pw")
+            await client.list_my_submissions()
+
+    asyncio.run(scenario())
+    assert seen_cookie == "access_token=good"
 def test_app_requests_do_not_forward_refresh_or_csrf_cookies() -> None:
     seen_cookie: str | None = None
 

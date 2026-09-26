@@ -1,0 +1,24 @@
+services/agent/e2e_vector_comparison.py
+  h_77173abe25c3ff 1-99
+services/agent/pyproject.toml
+  h_77173abe25c3ff 10-13
+services/agent/src/keyword_evaluation.py
+  h_77173abe25c3ff 125,160
+services/agent/src/vector_search.py
+  h_77173abe25c3ff 1-91
+services/agent/tests/test_vector_search.py
+  h_77173abe25c3ff 1-121
+services/agent/uv.lock
+  h_77173abe25c3ff 4-18,42-197,207-315,325-370,399-432,452-454,456-461,464-596,599-679,681-795,806-890,900-1095,1121-1270,1279-1335
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b510b29a9aad3d80b85fa3f8b0003cb04dc695b4",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

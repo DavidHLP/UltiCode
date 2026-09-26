@@ -1,5 +1,6 @@
 import asyncio
 import importlib.util
+import json
 from pathlib import Path
 
 import httpx
@@ -15,12 +16,21 @@ _module_spec.loader.exec_module(e2e_account_isolation)
 OWNED: dict[str, str] = {"token-a": "sub-a", "token-b": "sub-b"}
 
 
+def _token_for_username(request: httpx.Request) -> str:
+    """Registration/login carry no cookie yet, so identity comes from the body."""
+    try:
+        username = json.loads(request.content).get("username", "")
+    except ValueError:
+        return "token-a"
+    return "token-b" if "-b-" in str(username) else "token-a"
+
+
 def _account(request: httpx.Request) -> str:
     header = request.headers.get("Cookie", "")
     for token in OWNED:
         if f"access_token={token}" in header:
             return token
-    return "anonymous"
+    return _token_for_username(request)
 
 
 def _install(monkeypatch, handler) -> None:

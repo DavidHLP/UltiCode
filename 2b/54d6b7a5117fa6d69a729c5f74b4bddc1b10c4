@@ -1,0 +1,20 @@
+services/agent/e2e_model_qa.py
+  h_77173abe25c3ff 36-58,74-79,88
+services/agent/e2e_sourced_analysis_model.py
+  h_77173abe25c3ff 25-29,93
+services/agent/tests/test_e2e_model_qa.py
+  h_77173abe25c3ff 66,71-76,80,84,86,97-111,113
+services/agent/tests/test_e2e_sourced_analysis_model.py
+  h_77173abe25c3ff 35,67,73-75,77-81,86-90,99,101,123,125,139,141,144-158
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2b54d6b7a5117fa6d69a729c5f74b4bddc1b10c4",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

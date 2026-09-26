@@ -39,7 +39,15 @@ class _FakeClient:
 
     def get_collections(self) -> object:
         # build_index refuses to touch a collection it does not own.
-        return type("Collections", (), {"collections": list(self.existing)})()
+        return type(
+            "Collections",
+            (),
+            {
+                "collections": [
+                    type("Collection", (), {"name": name})() for name in self.existing
+                ]
+            },
+        )()
 
     def create_payload_index(self, **_: object) -> None:
         self.indexed_field = "doc_id"

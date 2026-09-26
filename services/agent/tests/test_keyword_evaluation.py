@@ -220,7 +220,7 @@ def test_no_evidence_case_with_a_hit_is_not_a_retrieval_hit() -> None:
     assert false_positive, "expected at least one no-evidence case to be a false positive"
     for record in false_positive:
         assert record.retrieval_hit is False
-        assert record.task_completion == "false_positive"
+        assert record.retrieval_outcome == "false_positive"
 
 
 def test_elapsed_microseconds_are_not_truncated_to_zero() -> None:

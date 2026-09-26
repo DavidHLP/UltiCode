@@ -126,12 +126,15 @@ async def main() -> int:
             return 1
         # The evidence sent to the model must already verify; a drifted doc id,
         # version or fabricated quote would otherwise reach the model unchecked.
+        # Fail closed without trusting the shape: a missing or short check list
+        # is as disqualifying as a failed one.
+        checks = list(result.get("citation_checks") or [])  # type: ignore[union-attr]
         unverified = [
             check
-            for check in result["citation_checks"]  # type: ignore[index]
-            if check.get("verdict") != "verified"
+            for check in checks
+            if not isinstance(check, dict) or check.get("verdict") != "verified"
         ]
-        if unverified:
+        if unverified or len(checks) != len(result["citations"]):
             print("E2E SOURCED MODEL FAIL | reason=unverifiable_citation")
             return 1
         evidence_payload = {

@@ -251,7 +251,13 @@ def test_model_smoke_passes_a_one_call_output_cap_by_default(monkeypatch) -> Non
     monkeypatch.setattr(
         smoke,
         "analyze_submission",
-        lambda *_a, **_k: {"facts": ["f"], "hypotheses": ["h"], "citations": [{"chunk_id": "c"}]},
+        lambda *_a, **_k: {
+            "facts": ["f"],
+            "hypotheses": ["h"],
+            "citations": [{"chunk_id": "c"}],
+            # A successful analysis carries a verified check for its citation.
+            "citation_checks": [{"chunk_id": "c", "verdict": "verified", "detail": ""}],
+        },
     )
     monkeypatch.setenv("ULTICODE_E2E_USERNAME", "tester")
     monkeypatch.setenv("ULTICODE_E2E_PASSWORD", "pw")
@@ -325,7 +331,13 @@ def test_usage_is_reported_even_when_decide_raises(monkeypatch, capsys) -> None:
     monkeypatch.setattr(
         smoke,
         "analyze_submission",
-        lambda *_a, **_k: {"facts": ["f"], "hypotheses": ["h"], "citations": [{"chunk_id": "c"}]},
+        lambda *_a, **_k: {
+            "facts": ["f"],
+            "hypotheses": ["h"],
+            "citations": [{"chunk_id": "c"}],
+            # A successful analysis carries a verified check for its citation.
+            "citation_checks": [{"chunk_id": "c", "verdict": "verified", "detail": ""}],
+        },
     )
 
     with pytest.raises(RuntimeError):

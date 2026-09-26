@@ -377,6 +377,33 @@ def test_submission_listing_rejects_empty_page_before_total(
                 await build_tools(client)[tool_name](arguments)
 
     asyncio.run(scenario())
+@pytest.mark.parametrize("tool_name,arguments", [
+    ("get_my_submissions", {"page": 2}),
+    ("get_problem_submissions", {"problemId": 7, "page": 2}),
+])
+def test_submission_listing_accepts_empty_page_beyond_total(
+    tool_name: str, arguments: dict[str, object]
+) -> None:
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "code": 0,
+                "message": "success",
+                "data": {"items": [], "total": 0, "page": 2, "pageSize": 5},
+            },
+        )
+
+    async def scenario() -> None:
+        async with UlticodeClient(
+            "https://app.test", "https://auth.test", transport=httpx.MockTransport(handler)
+        ) as client:
+            result = await build_tools(client)[tool_name](arguments)
+
+        assert result == {"items": [], "total": 0, "page": 2, "pageSize": 5}
+
+    asyncio.run(scenario())
+
 
 
 
@@ -474,7 +501,7 @@ def test_submission_listing_rejects_more_items_than_page_size() -> None:
                     ],
                     "total": 2,
                     "page": 1,
-                    "pageSize": 5,
+                    "pageSize": 1,
                 },
             },
         )

@@ -111,10 +111,9 @@ def test_real_model_smoke_rejects_unstructured_answer(monkeypatch, capsys) -> No
         '{"facts":["提交 22222222-2222-4222-8222-222222222222 的状态是 Wrong Answer。"],"hypotheses":[""],"citations":["sample-status-only"]}',
         '{"facts":["提交 22222222-2222-4222-8222-222222222222 的状态是 Wrong Answer。"],"hypotheses":"not-a-list","citations":["sample-status-only"]}',
         '{"facts":["提交 22222222-2222-4222-8222-222222222222 的状态是 Wrong Answer。"],"hypotheses":["提交一定因为空指针异常。"],"citations":["sample-status-only"]}',
-        '{"facts":["提交 22222222-2222-4222-8222-222222222222 的状态是 Wrong Answer。"],"hypotheses":["当前只有提交状态，没有源码或失败用例；不能据此定位具体代码行、复现失败输入或断言运行结果。"],"citations":["invented-doc"]}',
     ],
 )
-def test_real_model_smoke_rejects_invalid_fact_or_hypothesis_structure(
+def test_real_model_smoke_rejects_invalid_fact_or_hypothesis(
     answer: str, monkeypatch, capsys
 ) -> None:
     class InvalidModel(FakeModel):
@@ -127,6 +126,27 @@ def test_real_model_smoke_rejects_invalid_fact_or_hypothesis_structure(
     assert return_code == 1
     assert "reason=invalid_answer" in output
     assert answer not in output
+
+
+def test_real_model_smoke_rejects_citation_outside_evidence(
+    monkeypatch, capsys
+) -> None:
+    answer = (
+        '{"facts":["提交 22222222-2222-4222-8222-222222222222 的状态是 Wrong Answer。"],'
+        '"hypotheses":["当前只有提交状态，没有源码或失败用例；不能据此定位具体代码行、复现失败输入或断言运行结果。"],'
+        '"citations":["invented-doc"]}'
+    )
+
+    class InventedCitationModel(FakeModel):
+        async def decide(self, messages: list[dict[str, object]]) -> SimpleNamespace:
+            self.messages = messages
+            return SimpleNamespace(text=answer, tool_call=None)
+
+    return_code, output = _run_model(monkeypatch, capsys, InventedCitationModel())
+
+    assert return_code == 1
+    assert "reason=invalid_answer" in output
+    assert "invented-doc" not in output
 
 
 @pytest.mark.parametrize(

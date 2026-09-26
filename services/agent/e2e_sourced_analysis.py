@@ -37,6 +37,14 @@ async def main() -> int:
         if not result["citations"]:
             print("E2E SOURCED ANALYSIS FAIL | reason=no_citation")
             return 1
+        unverified = [
+            check
+            for check in result["citation_checks"]  # type: ignore[index]
+            if check["verdict"] != "verified"
+        ]
+        if unverified:
+            print("E2E SOURCED ANALYSIS FAIL | reason=unverifiable_citation")
+            return 1
 
     print(
         f"OK sourced_analysis facts={len(result['facts'])} "

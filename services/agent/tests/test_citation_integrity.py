@@ -1,14 +1,13 @@
 import pytest
 
-from citation_integrity import all_verified, check_citations
+from citation_integrity import PROVENANCE_FIELDS, all_verified, check_citations
 from retrieval import keyword_search, load_sample_corpus
 
 CORPUS = load_sample_corpus()
 
 
 def _citation_from(query: str) -> dict[str, object]:
-    hit = keyword_search(query, limit=1)[0]
-    return hit.as_model_dict()
+    return keyword_search(query, limit=1)[0].as_model_dict()
 
 
 def test_verbatim_citation_from_the_corpus_verifies() -> None:
@@ -26,6 +25,10 @@ def test_every_retrievable_hit_verifies_against_its_own_source() -> None:
                     "chunk_id": document.chunk_id,
                     "doc_id": document.doc_id,
                     "version": document.version,
+                    "source_path": document.source_path,
+                    "source_position": document.source_position,
+                    "access_scope": document.access_scope,
+                    "sample_kind": document.sample_kind,
                     "text": document.text,
                 }
             ],
@@ -48,23 +51,29 @@ def test_quote_not_present_in_the_source_is_rejected() -> None:
     citation = _citation_from("Wrong Answer status")
     citation["text"] = "the judge accepted this submission"
 
+    assert check_citations([citation], CORPUS)[0].verdict == "text_not_in_source"
+
+
+@pytest.mark.parametrize("field", [f for f in PROVENANCE_FIELDS if f != "chunk_id"])
+def test_any_provenance_drift_is_rejected(field: str) -> None:
+    citation = _citation_from("Wrong Answer status")
+    citation[field] = "drifted-value"
+
     checks = check_citations([citation], CORPUS)
 
-    assert checks[0].verdict == "text_not_in_source"
+    assert checks[0].verdict == "provenance_mismatch"
+    assert field in checks[0].detail
 
 
-def test_version_or_doc_drift_is_rejected() -> None:
+def test_sample_marker_drift_is_caught() -> None:
+    # Flipping synthetic to real must never pass as provenance agreement.
     citation = _citation_from("Wrong Answer status")
-    citation["version"] = "v99"
+    citation["sample_kind"] = "real"
 
-    assert check_citations([citation], CORPUS)[0].verdict == "metadata_mismatch"
-
-    citation = _citation_from("Wrong Answer status")
-    citation["doc_id"] = "sample-citation-record"
-    assert check_citations([citation], CORPUS)[0].verdict == "metadata_mismatch"
+    assert check_citations([citation], CORPUS)[0].verdict == "provenance_mismatch"
 
 
-@pytest.mark.parametrize("field", ["chunk_id", "doc_id", "version", "text"])
+@pytest.mark.parametrize("field", [*PROVENANCE_FIELDS, "text"])
 def test_missing_or_non_text_field_is_malformed(field: str) -> None:
     citation = _citation_from("Wrong Answer status")
     citation[field] = ""

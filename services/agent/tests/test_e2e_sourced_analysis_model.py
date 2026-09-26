@@ -49,6 +49,9 @@ class FakeClient:
 class FakeModel:
     def __init__(self, *args: object, **kwargs: object) -> None:
         self.messages: list[dict[str, object]] = []
+        # The real adapter records token usage; doubles must honour that contract
+        # so the smoke's accounting line is exercised, not skipped.
+        self.usage: list[dict[str, int]] = []
 
     async def __aenter__(self) -> "FakeModel":
         return self

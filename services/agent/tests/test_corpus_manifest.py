@@ -4,43 +4,58 @@ from pathlib import Path
 import pytest
 
 from corpus_manifest import (
+    AUTHORIZATION_FIELDS,
+    DOCUMENT_BINDING_FIELDS,
     MANIFEST_PATH,
+    MANIFEST_PROVENANCE_FIELD,
     REQUIRED_FIELDS,
     ManifestError,
-    covers_corpus,
+    assert_manifest_covers,
     load_manifest,
 )
 from retrieval import load_sample_corpus
 
-CORPUS_IDS = {document.doc_id for document in load_sample_corpus()}
+CORPUS = load_sample_corpus()
+CORPUS_IDS = {document.doc_id for document in CORPUS}
 
 
 def _entry() -> dict[str, object]:
     return json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))[0]
 
 
-def _write(tmp_path: Path, entries: list[object]) -> Path:
-    path = tmp_path / "manifest.json"
-    path.write_text(json.dumps(entries), encoding="utf-8")
+def _write(tmp_path: Path, entries: object, *, name: str = "manifest.json") -> Path:
+    path = tmp_path / name
+    path.write_text(
+        entries if isinstance(entries, str) else json.dumps(entries), encoding="utf-8"
+    )
     return path
 
 
-def test_checked_in_manifest_declares_every_corpus_document() -> None:
+def test_checked_in_manifest_is_complete_and_binds_the_corpus() -> None:
     entries = load_manifest()
 
-    assert covers_corpus(entries, CORPUS_IDS)
+    assert_manifest_covers(entries, CORPUS)
+    assert {entry.doc_id for entry in entries} == CORPUS_IDS
     assert {entry.sample_kind for entry in entries} == {"synthetic"}
 
 
-def test_every_required_field_is_present_and_non_empty() -> None:
-    for entry in load_manifest():
-        for field in REQUIRED_FIELDS:
-            value = getattr(entry, field)
-            assert isinstance(value, str) and value.strip(), (entry.doc_id, field)
+def test_authorization_fields_are_exactly_davs_five() -> None:
+    # Guards against the schema silently growing beyond the exit criterion.
+    assert AUTHORIZATION_FIELDS == (
+        "permission",
+        "scope",
+        "version",
+        "source_position",
+        "model_input_projection",
+    )
+    assert set(REQUIRED_FIELDS) == set(AUTHORIZATION_FIELDS) | set(
+        DOCUMENT_BINDING_FIELDS
+    )
+    assert MANIFEST_PROVENANCE_FIELD == "source_trust"
 
 
-@pytest.mark.parametrize("field", REQUIRED_FIELDS)
-def test_manifest_entry_missing_any_field_is_rejected(tmp_path: Path, field: str) -> None:
+@pytest.mark.parametrize("field", AUTHORIZATION_FIELDS)
+def test_each_authorization_field_is_mandatory(tmp_path: Path, field: str) -> None:
     incomplete = _entry()
     del incomplete[field]
 
@@ -48,8 +63,8 @@ def test_manifest_entry_missing_any_field_is_rejected(tmp_path: Path, field: str
         load_manifest(_write(tmp_path, [incomplete]))
 
 
-@pytest.mark.parametrize("field", REQUIRED_FIELDS)
-def test_blank_field_is_rejected_too(tmp_path: Path, field: str) -> None:
+@pytest.mark.parametrize("field", REQUIRED_FIELDS + (MANIFEST_PROVENANCE_FIELD,))
+def test_blank_field_is_rejected(tmp_path: Path, field: str) -> None:
     blanked = _entry()
     blanked[field] = "   "
 
@@ -57,8 +72,16 @@ def test_blank_field_is_rejected_too(tmp_path: Path, field: str) -> None:
         load_manifest(_write(tmp_path, [blanked]))
 
 
-def test_real_source_cannot_claim_a_synthetic_permission(tmp_path: Path) -> None:
-    # Public API visibility is not a license: this must never pass.
+@pytest.mark.parametrize("field", DOCUMENT_BINDING_FIELDS)
+def test_binding_fields_are_mandatory_too(tmp_path: Path, field: str) -> None:
+    incomplete = _entry()
+    del incomplete[field]
+
+    with pytest.raises(ManifestError):
+        load_manifest(_write(tmp_path, [incomplete]))
+
+
+def test_real_entry_marked_synthetic_permission_is_rejected(tmp_path: Path) -> None:
     forged = _entry()
     forged["doc_id"] = "real-1"
     forged["sample_kind"] = "real"
@@ -68,14 +91,15 @@ def test_real_source_cannot_claim_a_synthetic_permission(tmp_path: Path) -> None
         load_manifest(_write(tmp_path, [forged]))
 
 
-def test_real_source_with_explicit_permission_is_accepted(tmp_path: Path) -> None:
-    authorized = _entry()
-    authorized["doc_id"] = "real-1"
-    authorized["sample_kind"] = "real"
-    authorized["permission"] = "owner-authorized-2026-09-26"
-    authorized["scope"] = "owner-owned study notes; ingest and model egress allowed"
+def test_real_entry_with_any_claim_is_accepted_but_is_not_evidence(tmp_path: Path) -> None:
+    # The gate checks completeness and consistency, not authorization. A claim is
+    # still a claim; the test name records that so nobody mistakes this for proof.
+    claimed = _entry()
+    claimed["doc_id"] = "real-1"
+    claimed["sample_kind"] = "real"
+    claimed["permission"] = "claimed-by-author"
 
-    entries = load_manifest(_write(tmp_path, [authorized]))
+    entries = load_manifest(_write(tmp_path, [claimed]))
 
     assert entries[0].sample_kind == "real"
 
@@ -88,15 +112,56 @@ def test_unknown_sample_kind_is_rejected(tmp_path: Path) -> None:
         load_manifest(_write(tmp_path, [bad]))
 
 
+def test_invalid_json_is_rejected_with_a_clear_error(tmp_path: Path) -> None:
+    with pytest.raises(ManifestError, match="not valid JSON"):
+        load_manifest(_write(tmp_path, "{not json"))
+
+
 def test_empty_or_non_list_manifest_is_rejected(tmp_path: Path) -> None:
     with pytest.raises(ManifestError):
         load_manifest(_write(tmp_path, []))
     with pytest.raises(ManifestError):
-        load_manifest(_write(tmp_path, [{"doc_id": "x"}]))
+        load_manifest(_write(tmp_path, {"doc_id": "x"}))
 
 
-def test_manifest_must_cover_the_retrievable_corpus_exactly() -> None:
+def test_duplicate_declaration_is_rejected(tmp_path: Path) -> None:
+    with pytest.raises(ManifestError, match="declared twice"):
+        load_manifest(_write(tmp_path, [_entry(), _entry()]))
+
+
+def test_retrievable_but_undeclared_document_fails_closed() -> None:
+    partial = tuple(entry for entry in load_manifest() if entry.doc_id != "sample-status-only")
+
+    with pytest.raises(ManifestError, match="not declared"):
+        assert_manifest_covers(partial, CORPUS)
+
+
+def test_manifest_declaring_a_non_retrievable_document_fails() -> None:
     entries = load_manifest()
+    extra = entries[0].__class__(
+        **{
+            **{field: getattr(entries[0], field) for field in entries[0].__dataclass_fields__},
+            "doc_id": "ghost-doc",
+        }
+    )
 
-    assert not covers_corpus(entries, CORPUS_IDS | {"undeclared-doc"})
-    assert not covers_corpus(entries, CORPUS_IDS - {"sample-status-only"})
+    with pytest.raises(ManifestError, match="not retrievable"):
+        assert_manifest_covers((*entries, extra), CORPUS)
+
+
+def test_manifest_metadata_must_match_the_document_it_describes(tmp_path: Path) -> None:
+    raw = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+    raw[0]["source_position"] = "lines 1-999"
+    drifted = load_manifest(_write(tmp_path, raw))
+
+    with pytest.raises(ManifestError, match="source_position"):
+        assert_manifest_covers(drifted, CORPUS)
+
+
+def test_version_drift_is_detected(tmp_path: Path) -> None:
+    raw = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+    raw[0]["version"] = "v99"
+    drifted = load_manifest(_write(tmp_path, raw))
+
+    with pytest.raises(ManifestError, match="version"):
+        assert_manifest_covers(drifted, CORPUS)

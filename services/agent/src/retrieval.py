@@ -6,6 +6,8 @@ import re
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
+from corpus_manifest import assert_manifest_covers, load_manifest
+
 
 MAX_QUERY_CHARS = 200
 MAX_SOURCE_CHARS = 1_200
@@ -84,7 +86,12 @@ def load_sample_corpus() -> tuple[SourceDocument, ...]:
                 source_position=f"lines 1-{line_count}",
             )
         )
-    return tuple(documents)
+    corpus = tuple(documents)
+    # Fail closed: a retrievable document that the authorization manifest does not
+    # declare must never reach retrieval. The manifest also has to agree with the
+    # document it claims to describe.
+    assert_manifest_covers(load_manifest(), corpus)
+    return corpus
 
 
 def keyword_search(query: object, *, limit: int = MAX_RESULTS) -> tuple[SourceHit, ...]:

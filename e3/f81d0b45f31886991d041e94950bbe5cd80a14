@@ -1,0 +1,22 @@
+services/agent/src/ulticode_client.py
+  h_77173abe25c3ff 23,29-33,189-192
+services/agent/src/ulticode_tools.py
+  h_77173abe25c3ff 53,82-85,161-166,208-213
+services/agent/tests/test_e2e_sourced_analysis_model.py
+  h_77173abe25c3ff 110-114
+services/agent/tests/test_ulticode_client.py
+  h_77173abe25c3ff 323-335
+services/agent/tests/test_ulticode_tools_security.py
+  h_77173abe25c3ff 66,184,216,229-261,308,340,355-380,477,540,688
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e3f81d0b45f31886991d041e94950bbe5cd80a14",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

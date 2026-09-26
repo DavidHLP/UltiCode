@@ -2,12 +2,14 @@ import json
 from pathlib import Path
 
 from keyword_evaluation import (
+    DEFERRED,
     compare_limits,
     evaluate_case_records,
     evaluate_cases,
     load_cases,
     summarize_records,
 )
+from retrieval import keyword_search
 
 
 def test_dataset_keeps_development_and_holdout_separate() -> None:
@@ -18,20 +20,32 @@ def test_dataset_keeps_development_and_holdout_separate() -> None:
     assert sum(case.split == "holdout" for case in cases) == 10
 
 
-def test_every_case_declares_answerability_and_expected_behavior() -> None:
+def test_every_case_declares_evidence_and_behaviour_annotations() -> None:
     cases = load_cases()
-    behaviors = [case.expected_behavior for case in cases]
 
-    assert behaviors.count("cite") == 25
-    assert behaviors.count("no_evidence") == 3
-    assert behaviors.count("refuse") == 2
+    assert [case.expected_behavior for case in cases].count("cite") == 25
+    assert [case.expected_behavior for case in cases].count("no_evidence") == 3
+    assert [case.expected_behavior for case in cases].count("refuse") == 2
     for case in cases:
-        assert case.expected_behavior in {"cite", "no_evidence", "refuse"}
-        if case.expected_behavior == "cite":
-            assert case.answerable is True
-            assert case.expected_doc_ids
-        else:
-            assert case.answerable is False
+        assert case.required_evidence, case.case_id
+        assert case.allowed_behavior.strip(), case.case_id
+        assert case.forbidden_behavior.strip(), case.case_id
+        assert case.answerable is (case.expected_behavior == "cite")
+
+
+def test_refuse_cases_forbid_their_own_specific_claim() -> None:
+    refuse_rules = {
+        case.case_id: case.forbidden_behavior
+        for case in load_cases()
+        if case.expected_behavior == "refuse"
+    }
+
+    assert set(refuse_rules) == {"dev-10", "holdout-08"}
+    # A shared rule would collapse "locate the code line" and "name the runtime
+    # cause" into one indistinguishable expectation.
+    assert len(set(refuse_rules.values())) == 2
+    assert "code line" in refuse_rules["dev-10"]
+    assert "runtime cause" in refuse_rules["holdout-08"]
 
 
 def test_records_cover_every_required_dimension() -> None:
@@ -41,23 +55,31 @@ def test_records_cover_every_required_dimension() -> None:
     for record in records:
         assert record.tool_calls == 1
         assert record.elapsed_ms >= 0
+        assert isinstance(record.retrieval_hit, bool)
         assert record.observed_behavior in {
             "answered_with_citation",
             "no_evidence",
             "refuse_required",
         }
-        assert record.task_completion in {
+        assert record.retrieval_outcome in {
             "matched",
             "extra_hits",
             "missed",
             "false_positive",
         }
-        assert isinstance(record.retrieval_hit, bool)
+        assert record.allowed_behavior.strip()
+        assert record.forbidden_behavior.strip()
+
+
+def test_answer_level_dimensions_are_deferred_not_passed() -> None:
+    for record in evaluate_case_records(load_cases(), limit=3):
+        # Retrieval can prove a hit is traceable; it cannot prove the fragment
+        # supports a conclusion. Claiming otherwise would fake DAV-58's gate.
+        assert record.citation_support == DEFERRED
+        assert record.answer_completion == DEFERRED
 
 
 def test_only_cases_with_a_hit_can_be_traceable() -> None:
-    from retrieval import keyword_search
-
     cases = {case.case_id: case for case in load_cases()}
     traced = 0
     for record in evaluate_case_records(load_cases(), limit=3):
@@ -68,41 +90,29 @@ def test_only_cases_with_a_hit_can_be_traceable() -> None:
     assert 0 < traced < len(cases)
 
 
-def test_every_case_declares_required_evidence_and_behaviour_rules() -> None:
-    from keyword_evaluation import ALLOWED_BEHAVIORS, FORBIDDEN_BEHAVIORS
-
-    for case in load_cases():
-        assert case.required_evidence == case.expected_doc_ids
-        assert ALLOWED_BEHAVIORS[case.expected_behavior]
-        assert FORBIDDEN_BEHAVIORS[case.expected_behavior]
-
-    records = evaluate_case_records(load_cases(), limit=3)
-    for record in records:
-        assert record.allowed_behavior == ALLOWED_BEHAVIORS[record.expected_behavior]
-        assert record.forbidden_behavior == FORBIDDEN_BEHAVIORS[record.expected_behavior]
-
-    refuse_rule = FORBIDDEN_BEHAVIORS["refuse"]
-    assert "code line" in refuse_rule
-
-
 def test_refuse_cases_never_report_an_answer_behaviour() -> None:
-    from retrieval import keyword_search
-
     cases = {case.case_id: case for case in load_cases()}
-    records = {record.case_id: record for record in evaluate_case_records(load_cases(), limit=3)}
-    refuse_ids = [case_id for case_id, case in cases.items() if case.expected_behavior == "refuse"]
+    records = {
+        record.case_id: record for record in evaluate_case_records(load_cases(), limit=3)
+    }
+    refuse_ids = [
+        case_id for case_id, case in cases.items() if case.expected_behavior == "refuse"
+    ]
 
     assert len(refuse_ids) == 2
     assert {cases[case_id].split for case_id in refuse_ids} == {"development", "holdout"}
     for case_id in refuse_ids:
         record = records[case_id]
         hits = keyword_search(cases[case_id].query, limit=3)
+        required = set(cases[case_id].required_evidence)
         assert record.observed_behavior == "refuse_required"
         # Any retrieved fragment is the temptation to fabricate, even one that
-        # happens to be an expected document.
+        # happens to be a required document.
         assert record.fabrication_risk is bool(hits)
+        assert record.retrieval_hit is (required <= {hit.doc_id for hit in hits})
     flagged = {case_id for case_id, record in records.items() if record.fabrication_risk}
     assert flagged <= set(refuse_ids)
+
 
 def test_summary_totals_match_the_records() -> None:
     records = evaluate_case_records(load_cases(), limit=3)
@@ -113,6 +123,7 @@ def test_summary_totals_match_the_records() -> None:
             1 for record in records if record.split == split
         )
         assert summary[split]["tool_calls"] == summary[split]["total"]
+        assert summary[split]["answer_level_deferred"] == summary[split]["total"]
         assert summary[split]["refuse_required"] == sum(
             1
             for record in records
@@ -120,27 +131,32 @@ def test_summary_totals_match_the_records() -> None:
         )
 
 
-def test_loader_rejects_case_without_behavior_annotation(tmp_path: Path) -> None:
-    incomplete = tmp_path / "cases.json"
-    incomplete.write_text(
-        json.dumps(
-            [
-                {
-                    "case_id": "dev-01",
-                    "split": "development",
-                    "query": "Wrong Answer status",
-                    "expected_doc_ids": ["sample-status-only"],
-                }
-            ]
-        ),
-        encoding="utf-8",
-    )
-
-    try:
-        load_cases(incomplete)
-    except ValueError:
-        return
-    raise AssertionError("a case without expected_behavior must be rejected")
+def test_loader_rejects_incomplete_annotations(tmp_path: Path) -> None:
+    complete = {
+        "case_id": "dev-01",
+        "split": "development",
+        "query": "Wrong Answer status",
+        "required_evidence": ["sample-status-only"],
+        "answerable": True,
+        "expected_behavior": "cite",
+        "allowed_behavior": "answer from the retrieved fragment and cite it",
+        "forbidden_behavior": "claim the code was executed",
+    }
+    for dropped in (
+        "required_evidence",
+        "answerable",
+        "expected_behavior",
+        "allowed_behavior",
+        "forbidden_behavior",
+    ):
+        incomplete = {key: value for key, value in complete.items() if key != dropped}
+        path = tmp_path / f"cases-{dropped}.json"
+        path.write_text(json.dumps([incomplete]), encoding="utf-8")
+        try:
+            load_cases(path)
+        except ValueError:
+            continue
+        raise AssertionError(f"a case without {dropped} must be rejected")
 
 
 def test_keyword_evaluation_checks_expected_hits_and_no_evidence() -> None:

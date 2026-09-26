@@ -25,8 +25,9 @@ AUTH_BASE = os.environ.get("ULTICODE_AUTH_BASE", "http://localhost:9101")
 QUESTION = "Wrong Answer 状态说明了什么？只依据提交事实和带来源检索结果回答。"
 ANSWER_CONTRACT = (
     "Return one JSON object string with exactly these keys: facts, hypotheses, citations. "
-    "facts must quote EVIDENCE_JSON.facts verbatim; hypotheses must be a non-empty string array; "
-    "citations must contain only doc_id values from EVIDENCE_JSON.citations."
+    "facts must quote EVIDENCE_JSON.facts verbatim; hypotheses must be a non-empty string array "
+    "drawn from EVIDENCE_JSON.allowed_hypotheses; citations must contain only doc_id values "
+    "from EVIDENCE_JSON.citations."
 )
 
 
@@ -53,11 +54,14 @@ def _validate_answer(answer: str, evidence: dict[str, object]) -> None:
     ):
         raise ValueError("invalid model answer")
     allowed_facts = set(evidence["facts"])  # type: ignore[arg-type]
+    allowed_hypotheses = set(evidence["allowed_hypotheses"])  # type: ignore[arg-type]
     allowed_citations = {
         citation["doc_id"]
         for citation in evidence["citations"]  # type: ignore[index]
     }
     if not set(facts) <= allowed_facts:
+        raise ValueError("invalid model answer")
+    if not set(hypotheses) <= allowed_hypotheses:
         raise ValueError("invalid model answer")
     if not set(citations) <= allowed_citations:
         raise ValueError("invalid model answer")
@@ -79,7 +83,11 @@ async def main() -> int:
         if not result["citations"]:
             print("E2E SOURCED MODEL FAIL | reason=no_citation")
             return 1
-        evidence_payload = {"facts": result["facts"], "citations": result["citations"]}
+        evidence_payload = {
+            "facts": result["facts"],
+            "allowed_hypotheses": result["hypotheses"],
+            "citations": result["citations"],
+        }
         evidence = json.dumps(evidence_payload, ensure_ascii=False)
         async with DeepseekModel(
             os.environ["DEEPSEEK_API_KEY"], tool_specs={"none": "No tool call; use supplied evidence."}

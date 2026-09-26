@@ -48,6 +48,16 @@ class ModelProtocolError(RuntimeError):
     """The model returned a response that does not match the expected protocol."""
 
 
+class ModelBudgetExceeded(RuntimeError):
+    """A guarded cost limit was reached; the request was not sent."""
+
+
+MAX_TOKENS = 512
+MAX_PROMPT_CHARS = 8_000
+MAX_CALLS = 8
+
+
+
 class DeepseekModel:
     def __init__(
         self,
@@ -58,9 +68,19 @@ class DeepseekModel:
         base_url: str = "https://api.deepseek.com",
         timeout: float = 30.0,
         transport: httpx.AsyncBaseTransport | None = None,
+        max_tokens: int = MAX_TOKENS,
+        max_prompt_chars: int = MAX_PROMPT_CHARS,
+        max_calls: int = MAX_CALLS,
     ) -> None:
         if not api_key:
             raise ValueError("api_key is required")
+        if max_tokens < 1 or max_prompt_chars < 1 or max_calls < 1:
+            raise ValueError("cost limits must be positive")
+        self._max_tokens = max_tokens
+        self._max_prompt_chars = max_prompt_chars
+        self._max_calls = max_calls
+        self.calls_made = 0
+        self.usage: list[dict[str, int]] = []
         self._model = model
         if tool_specs:
             lines = "\n".join(
@@ -104,9 +124,24 @@ class DeepseekModel:
             elif role in ("user", "assistant"):
                 api_messages.append({"role": role, "content": content})
 
+        # Cost guards run before the request: max_tokens bounds output, but the
+        # prompt side is billed too, so both sides and the call count are capped.
+        prompt_chars = sum(len(message["content"]) for message in api_messages)
+        if prompt_chars > self._max_prompt_chars:
+            raise ModelBudgetExceeded("prompt exceeds the configured character budget")
+        if self.calls_made >= self._max_calls:
+            raise ModelBudgetExceeded("call budget exhausted")
+        self.calls_made += 1
+
+
         response = await self._client.post(
             "/chat/completions",
-            json={"model": self._model, "messages": api_messages, "temperature": 0},
+            json={
+                "model": self._model,
+                "messages": api_messages,
+                "temperature": 0,
+                "max_tokens": self._max_tokens,
+            },
         )
         if response.status_code != 200:
             raise RuntimeError(f"deepseek http={response.status_code}")
@@ -127,6 +162,8 @@ class DeepseekModel:
         if not isinstance(message, dict) or not isinstance(message.get("content"), str):
             raise ModelProtocolError("model response message was malformed")
         content = message["content"].strip()
+        self.usage.append(_usage_of(payload))
+
         return _parse_decision(content)
 
 
@@ -158,3 +195,20 @@ def _parse_decision(content: str) -> ModelDecision:
             tool_call=ToolCall(name=tool, arguments=dict(arguments)),
         )
     raise ModelProtocolError("model decision schema was malformed")
+
+
+def _usage_of(payload: dict[str, object]) -> dict[str, int]:
+    """Token accounting kept as metadata; it never changes the decision protocol."""
+    usage = payload.get("usage")
+    if not isinstance(usage, dict):
+        return {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
+
+    def count(key: str) -> int:
+        value = usage.get(key)
+        return value if isinstance(value, int) and not isinstance(value, bool) and value >= 0 else 0
+
+    return {
+        "prompt_tokens": count("prompt_tokens"),
+        "completion_tokens": count("completion_tokens"),
+        "total_tokens": count("total_tokens"),
+    }

@@ -93,14 +93,22 @@ def test_readonly_smoke_rejects_invalid_problem_detail(detail, monkeypatch, caps
     assert "E2E READ-ONLY PASS" not in capsys.readouterr().out
 
 
-@pytest.mark.parametrize("listing", [
-    {"items": [{"id": 7}], "total": 1, "page": 42, "pageSize": 10},
-    {"items": [{"id": 7}, {"id": 8}, {"id": 9}, {"id": 10}], "total": 4, "page": 1, "pageSize": 3},
-    {"items": [{"id": "7"}], "total": 1, "page": 1, "pageSize": 3},
-    {"items": [], "total": 0, "page": 1, "pageSize": 3},
-])
+@pytest.mark.parametrize(
+    "listing,reason",
+    [
+        ({"items": [{"id": 7}], "total": 1, "page": 42, "pageSize": 10}, "problem_listing_contract"),
+        ({"items": [{"id": 7}, {"id": 8}, {"id": 9}, {"id": 10}], "total": 4, "page": 1, "pageSize": 3}, "problem_listing_contract"),
+        ({"items": [{"id": "7"}], "total": 1, "page": 1, "pageSize": 3}, "problem_listing_contract"),
+        ({"items": [{"id": True}], "total": 1, "page": 1, "pageSize": 3}, "problem_listing_contract"),
+        ({"items": [{"id": 7}], "total": True, "page": 1, "pageSize": 3}, "problem_listing_contract"),
+        ({"items": [{"id": 7}], "total": -1, "page": 1, "pageSize": 3}, "problem_listing_contract"),
+        ({"items": [{"id": 7}], "total": 999, "page": 1, "pageSize": 3}, "problem_listing_contract"),
+        ({"items": [{"id": 7}, {"id": 8}], "total": 3, "page": 1, "pageSize": 3}, "problem_listing_contract"),
+        ({"items": [], "total": 0, "page": 1, "pageSize": 3}, "no_problem_to_inspect"),
+    ],
+)
 def test_readonly_smoke_rejects_malformed_problem_listing(
-    listing: dict[str, object], monkeypatch, capsys
+    listing: dict[str, object], reason: str, monkeypatch, capsys
 ) -> None:
     class MalformedProblemsClient(FakeClient):
         async def list_problems(self, *, page: int, page_size: int) -> dict[str, object]:
@@ -112,5 +120,5 @@ def test_readonly_smoke_rejects_malformed_problem_listing(
 
     assert asyncio.run(e2e_readonly.main()) == 1
     output = capsys.readouterr().out
-    assert "reason=problem_listing_contract" in output
+    assert f"reason={reason}" in output
     assert "E2E READ-ONLY PASS" not in output

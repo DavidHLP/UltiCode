@@ -36,21 +36,27 @@ async def main() -> int:
 
         problems = await client.list_problems(page=1, page_size=3)
         items = problems.get("items")
+        total = problems.get("total")
         if (
             not isinstance(items, list)
-            or not items
-            or len(items) > 3
             or problems.get("page") != 1
             or problems.get("pageSize") != 3
-            or not isinstance(problems.get("total"), int)
+            or isinstance(total, bool)
+            or not isinstance(total, int)
+            or not 0 <= total <= 9_223_372_036_854_775_807
+            or len(items) != min(3, total)
             or any(
                 not isinstance(item, dict)
+                or isinstance(item.get("id"), bool)
                 or not isinstance(item.get("id"), int)
                 or item["id"] < 1
                 for item in items
             )
         ):
             print("E2E READ-ONLY FAIL | reason=problem_listing_contract")
+            return 1
+        if not items:
+            print("E2E READ-ONLY FAIL | reason=no_problem_to_inspect")
             return 1
         print(f"OK GET /problems code=0 items={len(items)}")
 

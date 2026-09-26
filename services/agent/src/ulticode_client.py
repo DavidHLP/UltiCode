@@ -83,7 +83,7 @@ class UlticodeClient:
     @staticmethod
     def _unwrap(response: httpx.Response) -> object:
         try:
-            payload = json.loads(response.text, object_pairs_hook=_reject_duplicate_keys)
+            payload = json.loads(response.content, object_pairs_hook=_reject_duplicate_keys)
         except json.JSONDecodeError as exc:
             raise UlticodeError(f"non-JSON response (http={response.status_code})") from exc
         except ValueError as exc:

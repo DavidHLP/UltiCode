@@ -171,14 +171,25 @@ def test_sourced_analysis_e2e_rejects_cross_page_duplicate_ids(monkeypatch, caps
         async def list_my_submissions(
             self, *, page: int, page_size: int
         ) -> dict[str, object]:
-            return {
-                "items": [
+            # Later pages repeat the first page's records and hide a real Wrong
+            # Answer behind them; a scan that counts repeats as progress would
+            # return that record and report PASS on a self-contradictory page.
+            items = [
+                {
+                    **_projected_submission("Accepted"),
+                    "id": f"11111111-1111-4111-8111-{n % 10**12:012d}",
+                }
+                for n in range(page_size if page == 1 else page_size - 1)
+            ]
+            if page > 1:
+                items.append(
                     {
-                        **_projected_submission("Accepted"),
-                        "id": f"11111111-1111-4111-8111-{n % 10**12:012d}",
+                        **_projected_submission("Wrong Answer"),
+                        "id": "22222222-2222-4222-8222-222222222222",
                     }
-                    for n in range(page_size)
-                ],
+                )
+            return {
+                "items": items,
                 "total": page_size * 2,
                 "page": page,
                 "pageSize": page_size,

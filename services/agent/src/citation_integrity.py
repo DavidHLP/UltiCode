@@ -39,9 +39,11 @@ PROVENANCE_FIELDS = (
     "source_position",
     "access_scope",
     "sample_kind",
-    "source_trust",
 )
-_REQUIRED_FIELDS = (*PROVENANCE_FIELDS, "text")
+#: Carried by a citation but not by a SourceDocument, so it is checked against
+#: the expected marker instead of against the document.
+_TRUST_FIELD = "source_trust"
+_REQUIRED_FIELDS = (*PROVENANCE_FIELDS, _TRUST_FIELD, "text")
 #: Retrieved text is always untrusted data; a citation claiming otherwise is
 #: re-grading the source and must not verify.
 EXPECTED_SOURCE_TRUST = "untrusted-data"
@@ -83,9 +85,11 @@ def check_citations(
         if document is None:
             checks.append(CitationCheck(chunk_id, "unknown_source", "no such chunk"))
             continue
-        if _exact(getattr(document, "source_trust", EXPECTED_SOURCE_TRUST)) != EXPECTED_SOURCE_TRUST:
+        if _exact(citation[_TRUST_FIELD]) != EXPECTED_SOURCE_TRUST:
             checks.append(
-                CitationCheck(chunk_id, "provenance_mismatch", "source is not untrusted-data")
+                CitationCheck(
+                    chunk_id, "provenance_mismatch", f"{_TRUST_FIELD} must be {EXPECTED_SOURCE_TRUST!r}"
+                )
             )
             continue
         drifted = [

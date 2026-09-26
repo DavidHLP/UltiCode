@@ -177,7 +177,7 @@ def test_problem_projection_keeps_public_summary_fields_only() -> None:
                     "id": 7,
                     "slug": "sample",
                     "title": "Sample problem",
-                    "difficulty": "medium",
+                    "difficulty": "MEDIUM",
                     "submission_count": 12,
                     "detail": {"content": "long statement"},
                     "viewer": {"some": "personal state"},

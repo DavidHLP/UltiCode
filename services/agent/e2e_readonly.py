@@ -21,6 +21,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from ulticode_client import UlticodeClient
+from ulticode_tools import build_tools
 
 APP_BASE = os.environ.get("ULTICODE_APP_BASE", "http://localhost:9103")
 AUTH_BASE = os.environ.get("ULTICODE_AUTH_BASE", "http://localhost:9101")
@@ -31,12 +32,14 @@ async def main() -> int:
     password = os.environ["ULTICODE_E2E_PASSWORD"]
 
     async with UlticodeClient(APP_BASE, AUTH_BASE) as client:
+        tools = build_tools(client)
+
         problems = await client.list_problems(page=1, page_size=3)
         print(f"OK GET /problems code=0 items={len(problems['items'])}")
 
         first_id = int(problems["items"][0]["id"])
-        await client.get_problem(first_id)
-        print("OK GET /problems/{id} code=0")
+        detail = await tools["get_problem"]({"id": first_id})
+        print(f"OK GET /problems/{{id}} code=0 difficulty={detail['difficulty']}")
 
         await client.login(username, password)
         print("OK POST /auth/login code=0 session=established")

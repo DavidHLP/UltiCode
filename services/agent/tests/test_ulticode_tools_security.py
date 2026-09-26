@@ -28,7 +28,7 @@ def test_problem_projection_rejects_non_scalar_or_oversized_values(
                     "id": 7,
                     "slug": "sample",
                     "title": bad_value,
-                    "difficulty": "medium",
+                    "difficulty": "MEDIUM",
                     "submission_count": 12,
                 },
             },
@@ -284,6 +284,35 @@ def test_problem_projection_rejects_unknown_difficulty() -> None:
                 await build_tools(client)["get_problem"]({"id": 7})
 
     asyncio.run(scenario())
+@pytest.mark.parametrize("difficulty", ["medium", "Medium", "easy "])
+def test_problem_projection_rejects_noncanonical_difficulty_casing(
+    difficulty: str,
+) -> None:
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "code": 0,
+                "message": "success",
+                "data": {
+                    "id": 7,
+                    "slug": "sample",
+                    "title": "Sample",
+                    "difficulty": difficulty,
+                    "submission_count": 1,
+                },
+            },
+        )
+
+    async def scenario() -> None:
+        async with UlticodeClient(
+            "https://app.test", "https://auth.test", transport=httpx.MockTransport(handler)
+        ) as client:
+            with pytest.raises(ValueError, match="invalid tool response"):
+                await build_tools(client)["get_problem"]({"id": 7})
+
+    asyncio.run(scenario())
+
 
 
 def test_submission_listing_rejects_total_below_page_offset() -> None:
@@ -669,7 +698,7 @@ def test_problem_projection_accepts_64_bit_integer() -> None:
                     "id": 2_147_483_648,
                     "slug": "sample",
                     "title": "Sample",
-                    "difficulty": "medium",
+                    "difficulty": "MEDIUM",
                     "submission_count": 9_223_372_036_854_775_807,
                 },
             },
@@ -697,7 +726,7 @@ def test_problem_projection_rejects_integer_beyond_64_bit() -> None:
                     "id": 7,
                     "slug": "sample",
                     "title": "Sample",
-                    "difficulty": "medium",
+                    "difficulty": "MEDIUM",
                     "submission_count": 9_223_372_036_854_775_808,
                 },
             },
@@ -850,7 +879,7 @@ def test_problem_projection_requires_all_fields_and_rejects_negative_values() ->
                     "id": 7,
                     "slug": "sample",
                     "title": "Sample",
-                    "difficulty": "medium",
+                    "difficulty": "MEDIUM",
                     "submission_count": -1,
                 },
             },

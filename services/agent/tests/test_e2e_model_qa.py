@@ -27,7 +27,7 @@ class FakeClient:
             "id": problem_id,
             "slug": "sample",
             "title": "Sample",
-            "difficulty": "easy",
+            "difficulty": "EASY",
             "submission_count": 1,
         }
 
@@ -79,7 +79,7 @@ def test_model_qa_requires_problem_and_problem_scoped_submission_evidence(monkey
         [
             ModelDecision(tool_call=ToolCall("get_problem", {"id": 7})),
             ModelDecision(tool_call=ToolCall("get_problem_submissions", {"problemId": 7})),
-            ModelDecision(text='{"title":"Sample","difficulty":"easy","has_submission":true}'),
+            ModelDecision(text='{"title":"Sample","difficulty":"EASY","has_submission":true}'),
         ]
     )
     return_code, output = _run_model(monkeypatch, capsys, model)
@@ -92,7 +92,7 @@ def test_model_qa_fails_when_only_problem_evidence_is_checked(monkeypatch, capsy
     model = FakeModel(
         [
             ModelDecision(tool_call=ToolCall("get_problem", {"id": 7})),
-            ModelDecision(text='{"title":"Sample","difficulty":"easy","has_submission":false}'),
+            ModelDecision(text='{"title":"Sample","difficulty":"EASY","has_submission":false}'),
         ]
     )
     return_code, output = _run_model(monkeypatch, capsys, model)
@@ -106,7 +106,7 @@ def test_model_qa_rejects_wrong_answer_after_valid_tool_calls(monkeypatch, capsy
         [
             ModelDecision(tool_call=ToolCall("get_problem", {"id": 7})),
             ModelDecision(tool_call=ToolCall("get_problem_submissions", {"problemId": 7})),
-            ModelDecision(text='{"title":"Wrong","difficulty":"hard","has_submission":false}'),
+            ModelDecision(text='{"title":"Wrong","difficulty":"HARD","has_submission":false}'),
         ]
     )
     return_code, output = _run_model(monkeypatch, capsys, model)
@@ -121,7 +121,7 @@ def test_model_qa_rejects_successful_tools_for_other_problem_ids(monkeypatch, ca
             ModelDecision(tool_call=ToolCall("get_problem", {"id": 8})),
             ModelDecision(tool_call=ToolCall("get_problem_submissions", {"problemId": 9})),
             ModelDecision(
-                text='{"title":"Sample","difficulty":"easy","has_submission":true}'
+                text='{"title":"Sample","difficulty":"EASY","has_submission":true}'
             ),
         ]
     )
@@ -135,7 +135,7 @@ def test_model_qa_rejects_duplicate_answer_keys(monkeypatch, capsys) -> None:
         [
             ModelDecision(tool_call=ToolCall("get_problem", {"id": 7})),
             ModelDecision(tool_call=ToolCall("get_problem_submissions", {"problemId": 7})),
-            ModelDecision(text='{"title":"Wrong","title":"Sample","difficulty":"easy","has_submission":true}'),
+            ModelDecision(text='{"title":"Wrong","title":"Sample","difficulty":"EASY","has_submission":true}'),
         ]
     )
     return_code, output = _run_model(monkeypatch, capsys, model)

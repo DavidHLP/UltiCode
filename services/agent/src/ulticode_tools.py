@@ -86,7 +86,7 @@ def _project(data: object, fields: dict[str, tuple[type, int]]) -> dict[str, obj
         if field == "status" and value not in SUBMISSION_STATUSES:
             raise ValueError("invalid tool response")
         if field == "difficulty" and (
-            not isinstance(value, str) or value.upper() not in PROBLEM_DIFFICULTIES
+            not isinstance(value, str) or value not in PROBLEM_DIFFICULTIES
         ):
             raise ValueError("invalid tool response")
         if field == "createdAt" and (

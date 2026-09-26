@@ -24,6 +24,20 @@ DOCUMENTS = load_project_authored_corpus()
 MANIFEST = load_manifest(MANIFEST_PATH)
 
 
+def _citation(document):
+    """A citation shaped exactly like the ones the pipeline emits."""
+    return {
+        "doc_id": document.doc_id,
+        "version": document.version,
+        "chunk_id": document.chunk_id,
+        "source_path": document.source_path,
+        "source_position": document.source_position,
+        "access_scope": document.access_scope,
+        "sample_kind": document.sample_kind,
+        "text": document.text,
+    }
+
+
 def _worksheet(citations=None, *, claim=CLAIM):
     return build_worksheet(
         claim=claim,
@@ -113,9 +127,11 @@ def test_worksheet_serialises_with_unset_verdicts() -> None:
 
 
 def test_verdicts_must_cover_every_reviewed_citation(tmp_path) -> None:
-    two = [ANSWER["citations"][0], ANSWER["citations"][0]]
+    # Two *distinct* citations, so dropping one leaves a real gap.
+    two = [_citation(DOCUMENTS[0]), _citation(DOCUMENTS[1])]
     items = _worksheet(two)
     assert len(items) == 2
+    assert items[0].chunk_id != items[1].chunk_id
     partial = _verdict_file(tmp_path, [item.chunk_id for item in items], complete=False)
 
     with pytest.raises(VerdictError, match="no verdict"):

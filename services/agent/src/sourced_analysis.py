@@ -69,8 +69,10 @@ async def first_wrong_answer_submission(tools: dict[str, object]) -> dict[str, o
     """Return the first Wrong Answer submission in owner page order, scanning every reported page."""
     get_my_submissions = tools["get_my_submissions"]
     collected = 0
-    # ponytail: bounded scan; raise the cap if an account ever exceeds 1000 submissions.
-    for page in range(1, 11):
+    page = 1
+    # ponytail: scan length follows the owner-reported total; a dishonest total only
+    # costs extra read-only requests, and each page stays projection-validated.
+    while True:
         listing = await get_my_submissions({"page": page, "pageSize": 100})
         items = listing["items"]
         for item in items:
@@ -79,4 +81,4 @@ async def first_wrong_answer_submission(tools: dict[str, object]) -> dict[str, o
         collected += len(items)
         if not items or collected >= listing["total"]:
             return None
-    return None
+        page += 1

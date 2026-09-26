@@ -132,3 +132,33 @@ def test_sourced_analysis_e2e_finds_wrong_answer_on_later_page(monkeypatch, caps
 
     assert asyncio.run(e2e_sourced_analysis.main()) == 0
     assert "E2E SOURCED ANALYSIS PASS" in capsys.readouterr().out
+
+
+def test_sourced_analysis_e2e_scans_past_ten_pages(monkeypatch, capsys) -> None:
+    target_page = 12
+    total = 100 * (target_page - 1) + 1
+
+    class DeepPagedClient(FakeClient):
+        async def list_my_submissions(
+            self, *, page: int, page_size: int
+        ) -> dict[str, object]:
+            if page == target_page:
+                items = [
+                    {**_projected_submission("Wrong Answer"), "id": "22222222-2222-4222-8222-222222222222"}
+                ]
+            else:
+                items = [
+                    {
+                        **_projected_submission("Accepted"),
+                        "id": f"11111111-1111-4111-8111-1{page:011d}",
+                    }
+                    for _ in range(page_size)
+                ]
+            return {"items": items, "total": total, "page": page, "pageSize": page_size}
+
+    monkeypatch.setenv("ULTICODE_E2E_USERNAME", "tester")
+    monkeypatch.setenv("ULTICODE_E2E_PASSWORD", "pw")
+    monkeypatch.setattr(e2e_sourced_analysis, "UlticodeClient", lambda *a, **k: DeepPagedClient([]))
+
+    assert asyncio.run(e2e_sourced_analysis.main()) == 0
+    assert "E2E SOURCED ANALYSIS PASS" in capsys.readouterr().out

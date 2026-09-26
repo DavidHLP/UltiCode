@@ -31,6 +31,7 @@ Run with a disposable single-node Qdrant, for example:
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 import os
 import sys
 from pathlib import Path

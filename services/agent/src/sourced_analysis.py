@@ -63,3 +63,19 @@ def analyze_submission(submission: dict[str, object], question: str) -> dict[str
         ],
         "citations": [hit.as_model_dict() for hit in hits],
     }
+
+
+    """Return the first Wrong Answer submission in owner page order, scanning every reported page."""
+    get_my_submissions = tools["get_my_submissions"]
+    collected = 0
+    # ponytail: bounded scan; raise the cap if an account ever exceeds 1000 submissions.
+    for page in range(1, 11):
+        listing = await get_my_submissions({"page": page, "pageSize": 100})
+        items = listing["items"]
+        for item in items:
+            if item.get("status") == "Wrong Answer":
+                return item
+        collected += len(items)
+        if not items or collected >= listing["total"]:
+            return None
+    return None

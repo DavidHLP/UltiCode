@@ -16,7 +16,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from deepseek_model import DeepseekModel
-from sourced_analysis import analyze_submission
+from sourced_analysis import analyze_submission, first_wrong_answer_submission
 from ulticode_client import UlticodeClient
 from ulticode_tools import build_tools
 
@@ -82,13 +82,11 @@ async def main() -> int:
             os.environ["ULTICODE_E2E_USERNAME"], os.environ["ULTICODE_E2E_PASSWORD"]
         )
         tools = build_tools(client)
-        listing = await tools["get_my_submissions"]({"page": 1, "pageSize": 100})
-        items = listing["items"]  # type: ignore[index]
-        matching_items = [item for item in items if item.get("status") == "Wrong Answer"]
-        if not matching_items:
+        matching = await first_wrong_answer_submission(tools)
+        if matching is None:
             print("E2E SOURCED MODEL FAIL | reason=no_wrong_answer_submission")
             return 1
-        result = analyze_submission(matching_items[0], QUESTION)
+        result = analyze_submission(matching, QUESTION)
         if not result["citations"]:
             print("E2E SOURCED MODEL FAIL | reason=no_citation")
             return 1

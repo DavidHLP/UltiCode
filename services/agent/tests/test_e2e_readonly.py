@@ -35,9 +35,22 @@ class FakeClient:
 
     def cookie_names(self) -> list[str]:
         return ["access_token"]
-
     async def list_my_submissions(self, *, page: int, page_size: int) -> dict[str, object]:
-        return {"items": [{"id": "11111111-1111-4111-8111-111111111111"}], "total": 999, "page": 42, "pageSize": 10}
+        return {
+            "items": [
+                {
+                    "id": f"11111111-1111-4111-8111-1111111111{index:02d}",
+                    "problemId": 7,
+                    "language": "java",
+                    "status": "Accepted",
+                    "createdAt": "2026-09-24T00:00:00",
+                }
+                for index in range(page_size)
+            ],
+            "total": 999,
+            "page": page,
+            "pageSize": page_size,
+        }
 
 
 def test_readonly_smoke_does_not_print_authenticated_totals(monkeypatch, capsys) -> None:
@@ -47,9 +60,23 @@ def test_readonly_smoke_does_not_print_authenticated_totals(monkeypatch, capsys)
 
     assert asyncio.run(e2e_readonly.main()) == 0
     output = capsys.readouterr().out
-    assert "items=1" in output
+    assert "items=3" in output
     assert "total=999" not in output
-    assert "page=42" not in output
+    assert "pageSize" not in output
+
+
+def test_readonly_smoke_rejects_malformed_submission_page(monkeypatch, capsys) -> None:
+    class MalformedListingClient(FakeClient):
+        async def list_my_submissions(self, *, page: int, page_size: int) -> dict[str, object]:
+            return {"items": [], "total": 999, "page": 42, "pageSize": 10}
+
+    monkeypatch.setenv("ULTICODE_E2E_USERNAME", "tester")
+    monkeypatch.setenv("ULTICODE_E2E_PASSWORD", "pw")
+    monkeypatch.setattr(e2e_readonly, "UlticodeClient", lambda *a, **k: MalformedListingClient())
+
+    with pytest.raises(ValueError, match="invalid tool response"):
+        asyncio.run(e2e_readonly.main())
+    assert "E2E READ-ONLY PASS" not in capsys.readouterr().out
 
 
 @pytest.mark.parametrize("detail", [{}, {"id": 99, "slug": "s", "title": "S", "difficulty": "EASY", "submission_count": 0}])

@@ -107,3 +107,28 @@ def test_sourced_analysis_e2e_fails_without_citation(monkeypatch, capsys) -> Non
     assert "reason=no_citation" in output
     assert "sub-1" not in output
     assert "must-not-enter-analysis" not in output
+
+
+def test_sourced_analysis_e2e_finds_wrong_answer_on_later_page(monkeypatch, capsys) -> None:
+    class PagedClient(FakeClient):
+        async def list_my_submissions(
+            self, *, page: int, page_size: int
+        ) -> dict[str, object]:
+            first = [
+                {**_projected_submission("Accepted"), "id": f"11111111-1111-4111-8111-1111111111{n:02d}"}
+                for n in range(page_size)
+            ]
+            second = [{**_projected_submission("Wrong Answer"), "id": "22222222-2222-4222-8222-222222222222"}]
+            return {
+                "items": first if page == 1 else second,
+                "total": page_size + 1,
+                "page": page,
+                "pageSize": page_size,
+            }
+
+    monkeypatch.setenv("ULTICODE_E2E_USERNAME", "tester")
+    monkeypatch.setenv("ULTICODE_E2E_PASSWORD", "pw")
+    monkeypatch.setattr(e2e_sourced_analysis, "UlticodeClient", lambda *a, **k: PagedClient([]))
+
+    assert asyncio.run(e2e_sourced_analysis.main()) == 0
+    assert "E2E SOURCED ANALYSIS PASS" in capsys.readouterr().out

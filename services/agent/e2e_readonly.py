@@ -44,8 +44,8 @@ async def main() -> int:
         await client.login(username, password)
         print("OK POST /auth/login code=0 session=established")
 
-        submissions = await client.list_my_submissions(page=1, page_size=3)
-        print(f"OK GET /submissions code=0 items={len(submissions['items'])}")
+        listing = await tools["get_my_submissions"]({"page": 1, "pageSize": 3})
+        print(f"OK GET /submissions code=0 items={len(listing['items'])}")
 
     print(
         "E2E READ-ONLY PASS | scope=REAL local stack | "

@@ -1,0 +1,25 @@
+services/agent/e2e_readonly.py
+  s_bbcc2e0b5a1509::t_e90d2e2cd21b0d 67-68
+services/agent/src/sourced_analysis.py
+  s_bbcc2e0b5a1509::t_bd8312946738c1 83
+services/agent/src/ulticode_tools.py
+  s_bbcc2e0b5a1509::t_6cf5dc00649b47 201,203-209
+services/agent/tests/test_ulticode_tools.py
+  s_bbcc2e0b5a1509::t_224d0341748214 136,163-164
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "633f2fd6cea9e3a74b110d62a28b8985698fa4ea",
+  "prompts": {},
+  "sessions": {
+    "s_bbcc2e0b5a1509": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0dbab-1ce3-7d31-a82d-3bb82ef6222b",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

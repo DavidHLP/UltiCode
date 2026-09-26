@@ -320,3 +320,16 @@ def test_app_requests_do_not_forward_refresh_or_csrf_cookies() -> None:
 
     asyncio.run(scenario())
     assert seen_cookie == "access_token=access"
+def test_get_my_submission_rejects_path_traversal_id() -> None:
+    async def handler(request: httpx.Request) -> httpx.Response:
+        raise AssertionError("no request should be sent for an invalid submission id")
+
+    async def scenario() -> None:
+        async with UlticodeClient(
+            "https://app.test", "https://auth.test", transport=httpx.MockTransport(handler)
+        ) as client:
+            for invalid in ("../problems", "", "  ", 7):
+                with pytest.raises(ValueError, match="submission UUID"):
+                    await client.get_my_submission(invalid)  # type: ignore[arg-type]
+
+    asyncio.run(scenario())

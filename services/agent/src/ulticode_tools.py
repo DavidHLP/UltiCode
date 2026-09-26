@@ -50,6 +50,7 @@ SUBMISSION_STATUSES = frozenset(
 SUBMISSION_ID_PATTERN = re.compile(
     r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}"
 )
+SUBMISSION_LANGUAGES = frozenset({"javascript", "python", "java", "c", "cpp"})
 MAX_LONG = 9_223_372_036_854_775_807
 MAX_INT = 2_147_483_647
 PROBLEM_DIFFICULTIES = frozenset({"EASY", "MEDIUM", "HARD"})
@@ -76,6 +77,10 @@ def _project(data: object, fields: dict[str, tuple[type, int]]) -> dict[str, obj
             raise ValueError("invalid tool response")
         if field == "id" and expected_type is str and (
             not isinstance(value, str) or not SUBMISSION_ID_PATTERN.fullmatch(value)
+        ):
+            raise ValueError("invalid tool response")
+        if field == "language" and (
+            not isinstance(value, str) or value not in SUBMISSION_LANGUAGES
         ):
             raise ValueError("invalid tool response")
         if field == "status" and value not in SUBMISSION_STATUSES:
@@ -153,8 +158,12 @@ def build_tools(client: UlticodeClient) -> dict[str, object]:
         response_page_size = _bounded_int(
             listing.get("pageSize"), minimum=1, maximum=MAX_INT
         )
-        minimum_total = (page - 1) * page_size + len(items) if items else 0
-        if total < minimum_total or response_page != page or response_page_size != page_size:
+        offset_total = (page - 1) * page_size
+        if (not items and total > offset_total) or (
+            items and total < offset_total + len(items)
+        ):
+            raise ValueError("invalid tool response")
+        if response_page != page or response_page_size != page_size:
             raise ValueError("invalid tool response")
         return {
             "items": items,
@@ -196,8 +205,12 @@ def build_tools(client: UlticodeClient) -> dict[str, object]:
         response_page_size = _bounded_int(
             listing.get("pageSize"), minimum=1, maximum=MAX_INT
         )
-        minimum_total = (page - 1) * page_size + len(items) if items else 0
-        if total < minimum_total or response_page != page or response_page_size != page_size:
+        offset_total = (page - 1) * page_size
+        if (not items and total > offset_total) or (
+            items and total < offset_total + len(items)
+        ):
+            raise ValueError("invalid tool response")
+        if response_page != page or response_page_size != page_size:
             raise ValueError("invalid tool response")
         return {
             "items": items,

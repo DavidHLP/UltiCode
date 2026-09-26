@@ -20,9 +20,15 @@ from the server-side session cookie — callers cannot inject a user id.
 
 from __future__ import annotations
 
+import re
 from types import TracebackType
 
 import httpx
+
+
+SUBMISSION_ID_PATTERN = re.compile(
+    r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}"
+)
 
 
 class UlticodeError(RuntimeError):
@@ -180,8 +186,10 @@ class UlticodeClient:
         return self._unwrap_dict(response)
 
     async def get_my_submission(self, submission_id: str) -> dict[str, object]:
-        if not isinstance(submission_id, str) or not submission_id.strip():
-            raise ValueError("submission_id must be a non-empty string")
+        if not isinstance(submission_id, str) or not SUBMISSION_ID_PATTERN.fullmatch(
+            submission_id
+        ):
+            raise ValueError("submission_id must be a submission UUID")
         response = await self._app.get(
             f"/submissions/{submission_id}", headers=self._session_headers()
         )

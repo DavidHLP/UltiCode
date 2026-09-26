@@ -63,6 +63,7 @@ def test_submission_projection_rejects_nested_allowlisted_value() -> None:
                     ],
                     "total": 1,
                     "page": 1,
+                    "pageSize": 5,
                 },
             },
         )
@@ -180,6 +181,7 @@ def test_submission_listing_rejects_total_smaller_than_items() -> None:
                     ],
                     "total": 0,
                     "page": 1,
+                    "pageSize": 5,
                 },
             },
         )
@@ -211,6 +213,7 @@ def test_submission_projection_rejects_malformed_id() -> None:
                     ],
                     "total": 1,
                     "page": 1,
+                    "pageSize": 5,
                 },
             },
         )
@@ -223,6 +226,39 @@ def test_submission_projection_rejects_malformed_id() -> None:
                 await build_tools(client)["get_my_submissions"]({})
 
     asyncio.run(scenario())
+def test_submission_projection_rejects_language_outside_contract() -> None:
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "code": 0,
+                "message": "success",
+                "data": {
+                    "items": [
+                        {
+                            "id": "11111111-1111-4111-8111-111111111111",
+                            "problemId": 7,
+                            "language": "JAVA",
+                            "status": "Accepted",
+                            "createdAt": "2026-09-24T00:00:00",
+                        }
+                    ],
+                    "total": 1,
+                    "page": 1,
+                    "pageSize": 5,
+                },
+            },
+        )
+
+    async def scenario() -> None:
+        async with UlticodeClient(
+            "https://app.test", "https://auth.test", transport=httpx.MockTransport(handler)
+        ) as client:
+            with pytest.raises(ValueError, match="invalid tool response"):
+                await build_tools(client)["get_my_submissions"]({})
+
+    asyncio.run(scenario())
+
 def test_problem_projection_rejects_unknown_difficulty() -> None:
     async def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(
@@ -269,6 +305,7 @@ def test_submission_listing_rejects_total_below_page_offset() -> None:
                     ],
                     "total": 1,
                     "page": 2,
+                    "pageSize": 1,
                 },
             },
         )
@@ -300,6 +337,7 @@ def test_problem_scoped_listing_rejects_total_below_page_offset() -> None:
                     ],
                     "total": 1,
                     "page": 2,
+                    "pageSize": 1,
                 },
             },
         )
@@ -314,6 +352,32 @@ def test_problem_scoped_listing_rejects_total_below_page_offset() -> None:
                 )
 
     asyncio.run(scenario())
+@pytest.mark.parametrize("tool_name,arguments", [
+    ("get_my_submissions", {}),
+    ("get_problem_submissions", {"problemId": 7}),
+])
+def test_submission_listing_rejects_empty_page_before_total(
+    tool_name: str, arguments: dict[str, object]
+) -> None:
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "code": 0,
+                "message": "success",
+                "data": {"items": [], "total": 1, "page": 1, "pageSize": 5},
+            },
+        )
+
+    async def scenario() -> None:
+        async with UlticodeClient(
+            "https://app.test", "https://auth.test", transport=httpx.MockTransport(handler)
+        ) as client:
+            with pytest.raises(ValueError, match="invalid tool response"):
+                await build_tools(client)[tool_name](arguments)
+
+    asyncio.run(scenario())
+
 
 
 
@@ -410,6 +474,7 @@ def test_submission_listing_rejects_more_items_than_page_size() -> None:
                     ],
                     "total": 2,
                     "page": 1,
+                    "pageSize": 5,
                 },
             },
         )
@@ -472,7 +537,7 @@ def test_get_problem_submissions_rejects_mismatched_or_missing_problem_identity(
             json={
                 "code": 0,
                 "message": "success",
-                "data": {"items": [item], "total": 1, "page": 1},
+                "data": {"items": [item], "total": 1, "page": 1, "pageSize": 5},
             },
         )
 
@@ -620,7 +685,7 @@ def test_submission_page_response_rejects_above_integer_max() -> None:
     async def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(
             200,
-            json={"code": 0, "message": "success", "data": {"items": [], "total": 0, "page": 2_147_483_648}},
+            json={"code": 0, "message": "success", "data": {"items": [], "total": 0, "page": 2_147_483_648, "pageSize": 5}},
         )
 
     async def scenario() -> None:

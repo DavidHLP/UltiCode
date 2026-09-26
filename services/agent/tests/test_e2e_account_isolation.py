@@ -39,11 +39,10 @@ def _session_response(request: httpx.Request) -> httpx.Response:
     return httpx.Response(
         200,
         json={"data": {"id": account}},
-        headers={
-            "set-cookie": (
-                f"access_token={account}; Path=/, csrf_token=csrf-{account}; Path=/"
-            )
-        },
+        headers=[
+            ("set-cookie", f"access_token={account}; Path=/"),
+            ("set-cookie", f"csrf_token=csrf-{account}; Path=/"),
+        ],
     )
 
 

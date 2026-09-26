@@ -186,8 +186,7 @@ def test_real_model_smoke_rejects_tool_call_even_with_text(monkeypatch, capsys) 
 
 
 def test_model_smoke_fails_closed_without_a_key(monkeypatch, capsys) -> None:
-    import e2e_sourced_analysis_model as smoke
-
+    smoke = module
     monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
 
     assert asyncio.run(smoke.main()) == 1
@@ -200,8 +199,7 @@ def test_model_smoke_passes_a_one_call_output_cap_by_default(monkeypatch) -> Non
     A live run with the wrong cap is the failure this guards: the request would
     carry an unbounded output and the loop could repeat.
     """
-    import e2e_sourced_analysis_model as smoke
-
+    smoke = module
     captured: dict[str, object] = {}
 
     class _CapturingModel:

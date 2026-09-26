@@ -13,7 +13,8 @@ assert _module_spec and _module_spec.loader
 e2e_account_isolation = importlib.util.module_from_spec(_module_spec)
 _module_spec.loader.exec_module(e2e_account_isolation)
 
-OWNED: dict[str, str] = {"token-a": "sub-a", "token-b": "sub-b"}
+#: token -> the submission that account owns
+OWNED = {"token-a": "sub-a", "token-b": "sub-b"}
 
 
 def _token_for_username(request: httpx.Request) -> str:
@@ -33,6 +34,15 @@ def _account(request: httpx.Request) -> str:
     return _token_for_username(request)
 
 
+def _session_response(request: httpx.Request) -> httpx.Response:
+    account = _account(request)
+    return httpx.Response(
+        200,
+        json={"data": {"id": account}},
+        headers={"set-cookie": f"access_token={account}; Path=/"},
+    )
+
+
 def _install(monkeypatch, handler) -> None:
     """Route every session in the script through one mock transport."""
     monkeypatch.setattr(
@@ -44,50 +54,34 @@ def _install(monkeypatch, handler) -> None:
     )
 
 
-def _contract_handler(
-    *,
-    detail_status: int = 404,
-    listing_status: int = 200,
-    listed_ids: list[str] | None = None,
-    listing_items: object = "valid",
-) -> object:
-    """Mock that actually knows which account owns which submission."""
+def correct_service(foreign_status: int = 404, listing: object = "own_only") -> object:
+    """A service that serves the caller's own records and refuses others."""
 
     def handler(request: httpx.Request) -> httpx.Response:
         path = request.url.path
         account = _account(request)
-        if path.endswith("/auth/register"):
-            return httpx.Response(
-                200,
-                json={"data": {"id": account}},
-                headers={"set-cookie": f"access_token={account}; Path=/"},
-            )
-        if path.endswith("/auth/login"):
-            return httpx.Response(
-                200,
-                json={"data": {"id": account}},
-                headers={"set-cookie": f"access_token={account}; Path=/"},
-            )
+        if path.endswith("/auth/register") or path.endswith("/auth/login"):
+            return _session_response(request)
         if path.endswith("/problems"):
             return httpx.Response(200, json={"data": {"items": [{"id": 7}]}})
         if path.endswith("/submissions") and request.method == "POST":
             return httpx.Response(200, json={"data": {"id": OWNED[account]}})
-        if path.endswith("/submissions") and listing_status != 200:
-            return httpx.Response(listing_status, json={"message": "boom"})
         if path.endswith("/submissions"):
-            if listing_items == "invalid":
+            if listing == "broken_envelope":
                 return httpx.Response(200, json={"data": {}})
-            ids = listed_ids if listed_ids is not None else [OWNED["token-a"]]
+            if listing == "server_error":
+                return httpx.Response(500, json={"message": "boom"})
+            if listing == "leaks_other":
+                return httpx.Response(
+                    200, json={"data": {"items": [{"id": value} for value in OWNED.values()]}}
+                )
             return httpx.Response(
-                200, json={"data": {"items": [{"id": value} for value in ids]}}
+                200, json={"data": {"items": [{"id": OWNED[account]}]}}
             )
         if "/submissions/" in path:
             wanted = path.rsplit("/", 1)[-1]
-            if detail_status != 200:
-                return httpx.Response(detail_status, json={"message": "not found"})
             if wanted != OWNED[account]:
-                # A correct service never serves another account's record.
-                return httpx.Response(404, json={"message": "not found"})
+                return httpx.Response(foreign_status, json={"message": "not found"})
             return httpx.Response(200, json={"data": {"id": wanted}})
         return httpx.Response(404, json={"message": "not found"})
 
@@ -103,7 +97,7 @@ def test_script_is_opt_in(monkeypatch, capsys) -> None:
 
 def test_isolated_stack_passes_both_controls(monkeypatch, capsys) -> None:
     monkeypatch.setenv("ULTICODE_E2E_ISOLATION", "1")
-    _install(monkeypatch, _contract_handler())
+    _install(monkeypatch, correct_service())
 
     assert asyncio.run(e2e_account_isolation.main()) == 0
     output = capsys.readouterr().out
@@ -114,38 +108,17 @@ def test_isolated_stack_passes_both_controls(monkeypatch, capsys) -> None:
     assert "OK isolation" in output
 
 
-def test_served_foreign_record_is_reported_as_exposure(monkeypatch, capsys) -> None:
+def test_forbidden_counts_as_a_refusal(monkeypatch, capsys) -> None:
     monkeypatch.setenv("ULTICODE_E2E_ISOLATION", "1")
+    _install(monkeypatch, correct_service(foreign_status=403))
 
-    def handler(request: httpx.Request) -> httpx.Response:
-        account = _account(request)
-        path = request.url.path
-        if path.endswith("/auth/register") or path.endswith("/auth/login"):
-            return httpx.Response(
-                200,
-                json={"data": {"id": account}},
-                headers={"set-cookie": f"access_token={account}; Path=/"},
-            )
-        if path.endswith("/problems"):
-            return httpx.Response(200, json={"data": {"items": [{"id": 7}]}})
-        if path.endswith("/submissions") and request.method == "POST":
-            return httpx.Response(200, json={"data": {"id": OWNED[account]}})
-        if "/submissions/" in path:
-            # Serves whatever was asked for, ignoring ownership.
-            return httpx.Response(
-                200, json={"data": {"id": path.rsplit("/", 1)[-1], "userId": "other"}}
-            )
-        return httpx.Response(200, json={"data": {"items": [{"id": "sub-b"}]}})
-
-    _install(monkeypatch, handler)
-
-    assert asyncio.run(e2e_account_isolation.main()) == 1
-    assert "reason=cross_account_data_exposed" in capsys.readouterr().out
+    assert asyncio.run(e2e_account_isolation.main()) == 0
+    assert "negative control cross_a=403 cross_b=403" in capsys.readouterr().out
 
 
 def test_server_error_is_not_mistaken_for_a_refusal(monkeypatch, capsys) -> None:
     monkeypatch.setenv("ULTICODE_E2E_ISOLATION", "1")
-    _install(monkeypatch, _contract_handler(detail_status=500))
+    _install(monkeypatch, correct_service(foreign_status=500))
 
     assert asyncio.run(e2e_account_isolation.main()) == 1
     output = capsys.readouterr().out
@@ -154,9 +127,19 @@ def test_server_error_is_not_mistaken_for_a_refusal(monkeypatch, capsys) -> None
     assert "OK isolation" not in output
 
 
+def test_listing_that_leaks_is_reported_as_exposure(monkeypatch, capsys) -> None:
+    monkeypatch.setenv("ULTICODE_E2E_ISOLATION", "1")
+    _install(monkeypatch, correct_service(listing="leaks_other"))
+
+    assert asyncio.run(e2e_account_isolation.main()) == 1
+    output = capsys.readouterr().out
+    assert "b_visible_to_a=yes" in output
+    assert "reason=cross_account_data_exposed" in output
+
+
 def test_failing_listing_is_inconclusive_rather_than_clean(monkeypatch, capsys) -> None:
     monkeypatch.setenv("ULTICODE_E2E_ISOLATION", "1")
-    _install(monkeypatch, _contract_handler(listing_status=500))
+    _install(monkeypatch, correct_service(listing="server_error"))
 
     assert asyncio.run(e2e_account_isolation.main()) == 1
     output = capsys.readouterr().out
@@ -166,7 +149,7 @@ def test_failing_listing_is_inconclusive_rather_than_clean(monkeypatch, capsys) 
 
 def test_listing_without_items_array_is_inconclusive(monkeypatch, capsys) -> None:
     monkeypatch.setenv("ULTICODE_E2E_ISOLATION", "1")
-    _install(monkeypatch, _contract_handler(listing_items="invalid"))
+    _install(monkeypatch, correct_service(listing="broken_envelope"))
 
     assert asyncio.run(e2e_account_isolation.main()) == 1
     assert "reason=harness_inconclusive" in capsys.readouterr().out
@@ -176,14 +159,10 @@ def test_own_read_returning_another_id_is_a_failure(monkeypatch, capsys) -> None
     monkeypatch.setenv("ULTICODE_E2E_ISOLATION", "1")
 
     def handler(request: httpx.Request) -> httpx.Response:
-        account = _account(request)
         path = request.url.path
+        account = _account(request)
         if path.endswith("/auth/register") or path.endswith("/auth/login"):
-            return httpx.Response(
-                200,
-                json={"data": {"id": account}},
-                headers={"set-cookie": f"access_token={account}; Path=/"},
-            )
+            return _session_response(request)
         if path.endswith("/problems"):
             return httpx.Response(200, json={"data": {"items": [{"id": 7}]}})
         if path.endswith("/submissions") and request.method == "POST":
@@ -202,11 +181,10 @@ def test_missing_access_cookie_is_inconclusive(monkeypatch, capsys) -> None:
     monkeypatch.setenv("ULTICODE_E2E_ISOLATION", "1")
 
     def handler(request: httpx.Request) -> httpx.Response:
-        path = request.url.path
-        if path.endswith("/auth/register"):
+        # 200 everywhere but login never establishes a session cookie.
+        if request.url.path.endswith("/auth/login"):
             return httpx.Response(200, json={"data": {"id": "u"}})
-        if path.endswith("/auth/login"):
-            # 200 but no session cookie: the harness must not pretend to be logged in.
+        if request.url.path.endswith("/auth/register"):
             return httpx.Response(200, json={"data": {"id": "u"}})
         return httpx.Response(404, json={"message": "not found"})
 

@@ -80,6 +80,7 @@ async def first_wrong_answer_submission(tools: dict[str, object]) -> dict[str, o
             if submission_id in seen:
                 raise ValueError("duplicate submission id across pages")
             seen.add(submission_id)
+        for item in items:
             if item.get("status") == "Wrong Answer":
                 return item
         if not items or len(seen) >= listing["total"]:

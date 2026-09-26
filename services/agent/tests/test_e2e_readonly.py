@@ -161,3 +161,26 @@ def test_readonly_smoke_rejects_corrupt_problem_list_item(
     output = capsys.readouterr().out
     assert "reason=problem_listing_contract" in output
     assert "E2E READ-ONLY PASS" not in output
+
+
+def test_readonly_smoke_rejects_duplicate_problem_ids(monkeypatch, capsys) -> None:
+    problem = {
+        "id": 7,
+        "slug": "sample",
+        "title": "Sample",
+        "difficulty": "EASY",
+        "submission_count": 1,
+    }
+
+    class DuplicateClient(FakeClient):
+        async def list_problems(self, *, page: int, page_size: int) -> dict[str, object]:
+            return {"items": [problem, problem], "total": 2, "page": page, "pageSize": page_size}
+
+    monkeypatch.setenv("ULTICODE_E2E_USERNAME", "tester")
+    monkeypatch.setenv("ULTICODE_E2E_PASSWORD", "pw")
+    monkeypatch.setattr(e2e_readonly, "UlticodeClient", lambda *a, **k: DuplicateClient())
+
+    assert asyncio.run(e2e_readonly.main()) == 1
+    output = capsys.readouterr().out
+    assert "reason=problem_listing_contract" in output
+    assert "E2E READ-ONLY PASS" not in output

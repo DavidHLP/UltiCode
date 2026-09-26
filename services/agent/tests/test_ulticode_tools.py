@@ -133,7 +133,7 @@ def test_submission_page_mismatch_is_rejected() -> None:
     asyncio.run(scenario())
 
 
-def test_problem_scoped_submission_query_accepts_missing_problem_identity() -> None:
+def test_problem_scoped_submission_query_rejects_missing_problem_identity() -> None:
     async def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(
             200,
@@ -160,8 +160,8 @@ def test_problem_scoped_submission_query_accepts_missing_problem_identity() -> N
         async with UlticodeClient(
             "https://app.test", "https://auth.test", transport=httpx.MockTransport(handler)
         ) as client:
-            result = await build_tools(client)["get_problem_submissions"]({"problemId": 7})
-        assert result["items"][0]["problemId"] == 7  # type: ignore[index]
+            with pytest.raises(ValueError, match="invalid tool response"):
+                await build_tools(client)["get_problem_submissions"]({"problemId": 7})
 
     asyncio.run(scenario())
 

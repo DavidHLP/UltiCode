@@ -198,18 +198,15 @@ def build_tools(client: UlticodeClient) -> dict[str, object]:
             problem = raw_item.get("problem")
             nested_id = problem.get("id") if isinstance(problem, dict) else None
             raw_problem_id = raw_item.get("problemId")
-            if nested_id is not None and (
-                isinstance(nested_id, bool)
-                or not isinstance(nested_id, int)
-                or nested_id != problem_id
-            ):
+            if nested_id is None and raw_problem_id is None:
                 raise ValueError("invalid tool response")
-            if raw_problem_id is not None and (
-                isinstance(raw_problem_id, bool)
-                or not isinstance(raw_problem_id, int)
-                or raw_problem_id != problem_id
-            ):
-                raise ValueError("invalid tool response")
+            for identity in (nested_id, raw_problem_id):
+                if identity is not None and (
+                    isinstance(identity, bool)
+                    or not isinstance(identity, int)
+                    or identity != problem_id
+                ):
+                    raise ValueError("invalid tool response")
             normalized_item = dict(raw_item)
             normalized_item["problemId"] = problem_id
             items.append(_project(normalized_item, SUBMISSION_FIELDS))

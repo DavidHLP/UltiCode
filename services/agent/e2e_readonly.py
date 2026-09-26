@@ -64,6 +64,8 @@ async def main() -> int:
             return 1
         try:
             summaries = [project_problem_summary(item) for item in items]
+            if len({summary["id"] for summary in summaries}) != len(summaries):
+                raise ValueError("duplicate problem id")
         except ValueError:
             print("E2E READ-ONLY FAIL | reason=problem_listing_contract")
             return 1

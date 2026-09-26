@@ -37,12 +37,12 @@ async def main() -> int:
         if not result["citations"]:
             print("E2E SOURCED ANALYSIS FAIL | reason=no_citation")
             return 1
-        unverified = [
-            check
-            for check in result["citation_checks"]  # type: ignore[index]
-            if check["verdict"] != "verified"
-        ]
-        if unverified:
+        # A missing check must never read as a passing check: the count has to
+        # match the citation count and every verdict has to be verified.
+        checks = list(result["citation_checks"])  # type: ignore[arg-type]
+        if len(checks) != len(result["citations"]) or any(  # type: ignore[arg-type]
+            check.get("verdict") != "verified" for check in checks
+        ):
             print("E2E SOURCED ANALYSIS FAIL | reason=unverifiable_citation")
             return 1
 

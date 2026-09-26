@@ -317,3 +317,34 @@ def test_sourced_analysis_e2e_fails_on_unverifiable_citation(monkeypatch, capsys
 
     assert asyncio.run(e2e_sourced_analysis.main()) == 1
     assert "reason=unverifiable_citation" in capsys.readouterr().out
+
+
+def test_sourced_analysis_e2e_fails_when_citation_checks_are_missing(monkeypatch, capsys) -> None:
+    monkeypatch.setenv("ULTICODE_E2E_USERNAME", "tester")
+    monkeypatch.setenv("ULTICODE_E2E_PASSWORD", "pw")
+    analysis = {
+        "facts": ["fact"],
+        "hypotheses": ["hypothesis"],
+        "citations": [{"chunk_id": "a"}, {"chunk_id": "b"}],
+        # Fewer checks than citations: an absent check must not read as a pass.
+        "citation_checks": [{"chunk_id": "a", "verdict": "verified", "detail": ""}],
+    }
+
+    async def _first(_tools: object) -> dict[str, object]:
+        return {
+            "id": "11111111-1111-4111-8111-111111111111",
+            "status": "Wrong Answer",
+        }
+
+    monkeypatch.setattr(
+        e2e_sourced_analysis,
+        "UlticodeClient",
+        lambda *args, **kwargs: FakeClient([]),
+    )
+    monkeypatch.setattr(
+        e2e_sourced_analysis, "analyze_submission", lambda *_a, **_k: analysis
+    )
+    monkeypatch.setattr(e2e_sourced_analysis, "first_wrong_answer_submission", _first)
+
+    assert asyncio.run(e2e_sourced_analysis.main()) == 1
+    assert "reason=unverifiable_citation" in capsys.readouterr().out

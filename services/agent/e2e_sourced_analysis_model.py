@@ -97,7 +97,9 @@ async def main() -> int:
         }
         evidence = json.dumps(evidence_payload, ensure_ascii=False)
         async with DeepseekModel(
-            os.environ["DEEPSEEK_API_KEY"], tool_specs={}
+            os.environ["DEEPSEEK_API_KEY"],
+            tool_specs={},
+            model=os.environ.get("DEEPSEEK_MODEL", "deepseek-flash"),
         ) as model:
             decision = await model.decide(
                 [

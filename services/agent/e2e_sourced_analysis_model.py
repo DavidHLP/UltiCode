@@ -124,6 +124,16 @@ async def main() -> int:
         if not result["citations"]:
             print("E2E SOURCED MODEL FAIL | reason=no_citation")
             return 1
+        # The evidence sent to the model must already verify; a drifted doc id,
+        # version or fabricated quote would otherwise reach the model unchecked.
+        unverified = [
+            check
+            for check in result["citation_checks"]  # type: ignore[index]
+            if check.get("verdict") != "verified"
+        ]
+        if unverified:
+            print("E2E SOURCED MODEL FAIL | reason=unverifiable_citation")
+            return 1
         evidence_payload = {
             "facts": result["facts"],
             "allowed_hypotheses": result["hypotheses"],

@@ -39,8 +39,12 @@ PROVENANCE_FIELDS = (
     "source_position",
     "access_scope",
     "sample_kind",
+    "source_trust",
 )
 _REQUIRED_FIELDS = (*PROVENANCE_FIELDS, "text")
+#: Retrieved text is always untrusted data; a citation claiming otherwise is
+#: re-grading the source and must not verify.
+EXPECTED_SOURCE_TRUST = "untrusted-data"
 
 
 @dataclass(frozen=True)
@@ -52,6 +56,11 @@ class CitationCheck:
 
 def _text(value: object) -> str:
     return value.strip() if isinstance(value, str) else ""
+
+
+def _exact(value: object) -> str:
+    """Untrimmed: identifiers are compared byte for byte, so ``" v1 "`` fails."""
+    return value if isinstance(value, str) else ""
 
 
 def check_citations(
@@ -74,10 +83,15 @@ def check_citations(
         if document is None:
             checks.append(CitationCheck(chunk_id, "unknown_source", "no such chunk"))
             continue
+        if _exact(getattr(document, "source_trust", EXPECTED_SOURCE_TRUST)) != EXPECTED_SOURCE_TRUST:
+            checks.append(
+                CitationCheck(chunk_id, "provenance_mismatch", "source is not untrusted-data")
+            )
+            continue
         drifted = [
             field
             for field in PROVENANCE_FIELDS
-            if _text(citation[field]) != _text(getattr(document, field))
+            if _exact(citation[field]) != _exact(getattr(document, field, None))
         ]
         if drifted:
             checks.append(
@@ -86,7 +100,7 @@ def check_citations(
                 )
             )
             continue
-        if _text(citation["text"]) not in document.text:
+        if _exact(citation["text"]) not in document.text:
             checks.append(
                 CitationCheck(chunk_id, "text_not_in_source", "text is not verbatim")
             )

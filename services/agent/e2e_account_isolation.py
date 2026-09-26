@@ -31,6 +31,7 @@ from __future__ import annotations
 import asyncio
 import os
 import secrets
+import string
 from typing import Any
 
 import httpx
@@ -41,7 +42,6 @@ ACCESS_COOKIE = "access_token"
 CSRF_COOKIE = "csrf_token"
 #: Double-submit CSRF: a cookie-authenticated write must echo this header.
 CSRF_HEADER = "X-CSRF-Token"
-PASSWORD_LENGTH = 24
 SUBMISSION_CODE = "print(1)"
 SUBMISSION_LANGUAGE = "python"
 REFUSAL_STATUSES = frozenset({403, 404})
@@ -51,10 +51,20 @@ class IsolationHarnessError(RuntimeError):
     """The harness could not reach a verdict; isolation is unproven."""
 
 
+def _synthetic_password() -> str:
+    """Registration requires upper, lower and digit; random text need not have all three."""
+    return (
+        f"{secrets.token_urlsafe(12)}"
+        f"{secrets.choice(string.ascii_uppercase)}"
+        f"{secrets.choice(string.ascii_lowercase)}"
+        f"{secrets.choice(string.digits)}"
+    )
+
+
 def _synthetic_identity(label: str) -> tuple[str, str, str]:
     """Throwaway credentials for a local stack. Values are never printed."""
     username = f"u02-{label}-{secrets.token_hex(6)}"
-    return username, f"{username}@local.invalid", secrets.token_urlsafe(PASSWORD_LENGTH)
+    return username, f"{username}@local.invalid", _synthetic_password()
 
 
 def _session() -> httpx.AsyncClient:
@@ -280,15 +290,19 @@ async def main() -> int:
                 print("FAIL reason=cross_account_data_exposed")
                 return 1
 
+            # Leakage can be directional: B's listing could expose A's rows
+            # while A's stays scoped, so both directions are checked.
             listed_by_a = await _problem_submission_ids(app_a, headers_a, problem_id)
+            listed_by_b = await _problem_submission_ids(app_b, headers_b, problem_id)
         except IsolationHarnessError as error:
             print(f"FAIL reason=harness_inconclusive detail={error}")
             return 1
 
-        leaked = submission_b in listed_by_a
+        leaked = submission_b in listed_by_a or submission_a in listed_by_b
         print(
-            f"listing leak b_visible_to_a={'yes' if leaked else 'no'} "
-            f"listed_count={len(listed_by_a)}"
+            f"listing leak b_visible_to_a={'yes' if submission_b in listed_by_a else 'no'} "
+            f"a_visible_to_b={'yes' if submission_a in listed_by_b else 'no'} "
+            f"listed_count_a={len(listed_by_a)} listed_count_b={len(listed_by_b)}"
         )
         if leaked:
             print("FAIL reason=cross_account_data_exposed")

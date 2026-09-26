@@ -1,6 +1,8 @@
 import json
 from pathlib import Path
 
+import pytest
+
 from keyword_evaluation import (
     DEFERRED,
     SPLITS,
@@ -59,12 +61,12 @@ def test_records_cover_every_required_dimension() -> None:
     assert len(records) == 30
     for record in records:
         assert record.tool_calls == 1
-        assert record.elapsed_ms >= 0
+        assert record.elapsed_us >= 0
         assert isinstance(record.retrieval_hit, bool)
         assert record.observed_behavior in {
             "answered_with_citation",
             "no_evidence",
-            "refuse_required",
+            "not_measured",
         }
         assert record.retrieval_outcome in {
             "matched",
@@ -110,7 +112,8 @@ def test_refuse_cases_never_report_an_answer_behaviour() -> None:
         record = records[case_id]
         hits = keyword_search(cases[case_id].query, limit=3)
         required = set(cases[case_id].required_evidence)
-        assert record.observed_behavior == "refuse_required"
+        # The refusal is expected, never observed: this slice produces no answer.
+        assert record.observed_behavior == "not_measured"
         # Any retrieved fragment is the temptation to fabricate, even one that
         # happens to be a required document.
         assert record.fabrication_risk is bool(hits)
@@ -129,10 +132,10 @@ def test_summary_totals_match_the_records() -> None:
         )
         assert summary[split]["tool_calls"] == summary[split]["total"]
         assert summary[split]["answer_level_deferred"] == summary[split]["total"]
-        assert summary[split]["refuse_required"] == sum(
+        assert summary[split]["behavior_not_measured"] == sum(
             1
             for record in records
-            if record.split == split and record.observed_behavior == "refuse_required"
+            if record.split == split and record.observed_behavior == "not_measured"
         )
 
 
@@ -203,3 +206,43 @@ def test_confirmation_set_is_versioned_separately_and_not_loaded_by_default() ->
     assert {case.case_id for case in load_cases()}.isdisjoint(
         case.case_id for case in confirmation
     )
+
+
+def test_no_evidence_case_with_a_hit_is_not_a_retrieval_hit() -> None:
+    """An empty required set is contained in everything, so containment lies."""
+    records = {record.case_id: record for record in evaluate_case_records(load_cases(), limit=3)}
+    false_positive = [
+        record
+        for record in records.values()
+        if record.expected_behavior == "no_evidence" and record.unexpected_doc_ids
+    ]
+
+    assert false_positive, "expected at least one no-evidence case to be a false positive"
+    for record in false_positive:
+        assert record.retrieval_hit is False
+        assert record.task_completion == "false_positive"
+
+
+def test_elapsed_microseconds_are_not_truncated_to_zero() -> None:
+    records = evaluate_case_records(load_cases(), limit=3)
+
+    assert all(record.elapsed_us > 0 for record in records)
+
+
+def test_loader_rejects_contradictory_annotations(tmp_path: Path) -> None:
+    base = json.loads((Path(__file__).parents[1] / "data/keyword_cases.json").read_text(encoding="utf-8"))
+
+    contradicted = json.loads(json.dumps(base[0]))
+    contradicted["answerable"] = False
+    path = tmp_path / "contradicted.json"
+    path.write_text(json.dumps([contradicted]), encoding="utf-8")
+    with pytest.raises(ValueError, match="answerable must agree"):
+        load_cases(path)
+
+    citable_without_evidence = json.loads(json.dumps(base[0]))
+    citable_without_evidence["expected_behavior"] = "cite"
+    citable_without_evidence["required_evidence"] = []
+    path = tmp_path / "no-evidence-cite.json"
+    path.write_text(json.dumps([citable_without_evidence]), encoding="utf-8")
+    with pytest.raises(ValueError, match="must name its required evidence"):
+        load_cases(path)

@@ -17,7 +17,7 @@ UltiCode 已形成五个 Data Owner 与两个不持有业务表的 Worker：
 | Worker | `backend-judge` | 消费 Judge Streams，执行沙箱，回写 Submission verdict |
 | Worker | `backend-search` | 消费 `SearchDocumentChanged`，维护 MeiliSearch 派生索引 |
 | Profile | `backend-core` | opt-in parent process; assembles Owner child contexts and does not own business tables |
-| Standalone | `services/agent` | opt-in Python Agent runtime; U01 read-only loop plus bounded synthetic retrieval/sourced analysis and executable keyword-evaluation tooling; authorized-corpus, vector-retrieval, real-model evaluation, and isolation evidence are tracked in the U02 Linear tasks |
+| Standalone | `services/agent` | opt-in Python Agent runtime; U01 read-only loop plus bounded synthetic retrieval/sourced analysis, executable keyword-evaluation tooling, and an evaluation-only vector comparison (one embedding model + single-node Qdrant, `e2e_vector_comparison.py`) that never replaces the keyword main path; licensed-corpus, real-model evaluation, and isolation evidence are tracked in the U02 Linear tasks |
 
 `services/agent` is an independent Python service module, not a Maven reactor module or an Owner/Worker. It calls existing Auth/App HTTP contracts, keeps identity server-side, and must project tool results before they reach a model. Its current retrieval slice is limited to checked-in agent-authored synthetic Markdown; it does not ingest public user solutions. It is not started by the default `dev-lite`/`dev-full` scopes until its runtime, readiness, and secret wiring are explicitly added.
 

@@ -63,6 +63,10 @@ MAX_CALLS = 8
 #: this ratio. The preflight check therefore rejects an *estimated* overrun; the
 #: only exact accounting is the ``usage`` the provider reports after the call.
 PROMPT_TOKENS_PER_CHAR = 3
+#: Per-message role/framing overhead the content ratio cannot see. Without it a
+#: long list of short or empty messages stays under the cap while the billed
+#: prompt does not.
+PROMPT_TOKENS_PER_MESSAGE = 8
 
 
 class DeepseekModel:
@@ -135,6 +139,7 @@ class DeepseekModel:
         # prompt side is billed too, so both sides and the call count are capped.
         prompt_tokens_estimate = (
             sum(len(message["content"]) for message in api_messages) * PROMPT_TOKENS_PER_CHAR
+            + len(api_messages) * PROMPT_TOKENS_PER_MESSAGE
         )
         if prompt_tokens_estimate > self._max_prompt_tokens:
             raise ModelBudgetExceeded("prompt exceeds the configured token budget")

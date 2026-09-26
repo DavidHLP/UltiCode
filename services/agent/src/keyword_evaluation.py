@@ -47,7 +47,12 @@ class KeywordCase:
 
 @dataclass(frozen=True)
 class CaseRecord:
-    """One evaluated case. ``tool_calls`` counts retrieval calls only."""
+    """One evaluated case.
+
+    ``tool_calls`` counts retrieval calls only. ``observed_behavior`` is
+    ``not_measured`` whenever the behaviour is an answer-level property this
+    deterministic slice cannot observe.
+    """
 
     case_id: str
     split: str
@@ -63,7 +68,7 @@ class CaseRecord:
     fabrication_risk: bool
     unexpected_doc_ids: tuple[str, ...]
     tool_calls: int
-    elapsed_ms: int
+    elapsed_us: int
 
 
 def load_cases(path: Path | None = None) -> tuple[KeywordCase, ...]:
@@ -99,6 +104,10 @@ def load_cases(path: Path | None = None) -> tuple[KeywordCase, ...]:
             or not forbidden_behavior.strip()
         ):
             raise ValueError("invalid keyword case")
+        if answerable is not (expected_behavior == "cite"):
+            raise ValueError("answerable must agree with expected_behavior")
+        if expected_behavior == "cite" and not required_evidence:
+            raise ValueError("a citable case must name its required evidence")
         cases.append(
             KeywordCase(
                 case_id=case_id,
@@ -144,16 +153,20 @@ def evaluate_case_records(
     for case in cases:
         started = time.perf_counter()
         hits = keyword_search(case.query, limit=limit)
-        elapsed_ms = int((time.perf_counter() - started) * 1000)
+        # Microseconds: the sample corpus answers in well under a millisecond, so
+        # integer milliseconds truncated the whole latency dimension to zero.
+        elapsed_us = int((time.perf_counter() - started) * 1_000_000)
         actual_doc_ids = {hit.doc_id for hit in hits}
         required_doc_ids = set(case.required_evidence)
         retrieval_hit = (
             required_doc_ids <= actual_doc_ids if required_doc_ids else not actual_doc_ids
         )
         if case.expected_behavior == "refuse":
-            # The corpus cannot answer this; a returned fragment must not be
-            # mistaken for a supported answer.
-            observed_behavior = "refuse_required"
+            # No answer is produced here, so nothing about the answer can be
+            # observed. Presenting the *expected* refusal as an observed one
+            # would let a fabricated code line pass unnoticed; the risk is
+            # recorded separately and the answer-level check stays deferred.
+            observed_behavior = "not_measured"
         elif actual_doc_ids:
             observed_behavior = "answered_with_citation"
         else:
@@ -174,7 +187,7 @@ def evaluate_case_records(
                 fabrication_risk=case.expected_behavior == "refuse" and bool(actual_doc_ids),
                 unexpected_doc_ids=tuple(sorted(actual_doc_ids - required_doc_ids)),
                 tool_calls=1,
-                elapsed_ms=elapsed_ms,
+                elapsed_us=elapsed_us,
             )
         )
     return tuple(records)
@@ -193,10 +206,10 @@ def summarize_records(
             "retrieval_missed": 0,
             "retrieval_false_positive": 0,
             "answer_level_deferred": 0,
-            "refuse_required": 0,
+            "behavior_not_measured": 0,
             "fabrication_risk": 0,
             "tool_calls": 0,
-            "elapsed_ms": 0,
+            "elapsed_us": 0,
         }
         for split in SPLITS
     }
@@ -209,10 +222,10 @@ def summarize_records(
         bucket["answer_level_deferred"] += (
             record.citation_support == DEFERRED and record.answer_completion == DEFERRED
         )
-        bucket["refuse_required"] += record.observed_behavior == "refuse_required"
+        bucket["behavior_not_measured"] += record.observed_behavior == "not_measured"
         bucket["fabrication_risk"] += record.fabrication_risk
         bucket["tool_calls"] += record.tool_calls
-        bucket["elapsed_ms"] += record.elapsed_ms
+        bucket["elapsed_us"] += record.elapsed_us
     return summary
 
 

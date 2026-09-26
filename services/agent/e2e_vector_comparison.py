@@ -81,6 +81,13 @@ def main() -> int:
         # irreproducible.
         print("FAIL reason=unpinned_qdrant_image")
         return 1
+    # The confirmation set is single-use. Without an explicit opt-in this run
+    # must not touch it, because re-running would contaminate it while still
+    # printing a clean-looking confirmation.
+    confirm = os.environ.get("ULTICODE_VECTOR_CONFIRM") == "1"
+    if not confirm:
+        print("SKIP reason=confirmation_requires_opt_in")
+        return 0
     try:
         from qdrant_client import QdrantClient  # noqa: PLC0415 - evaluation-only
     except ImportError:
@@ -95,7 +102,13 @@ def main() -> int:
 
     client = QdrantClient(url=qdrant_url())
     embedder = FastembedEmbedder()
-    indexed = build_index(client, load_sample_corpus(), embedder=embedder)
+    indexed = build_index(
+        client,
+        load_sample_corpus(),
+        embedder=embedder,
+        # Only ever pointed at a disposable instance; see build_index.
+        allow_recreate=os.environ.get("QDRANT_ALLOW_RECREATE") == "1",
+    )
 
     def keyword(query: str, limit: int) -> list[str]:
         return [hit.doc_id for hit in keyword_search(query, limit=limit)]
@@ -116,23 +129,26 @@ def main() -> int:
                 counts,
                 len(development),
             )
-    best = max(
-        CANDIDATE_LIMITS,
-        key=lambda limit: (
-            max(scores[(limit, arm)] for arm, _ in arms),
-            -limit,
-        ),
-    )
-    winning_arm = max((arm for arm, _ in arms), key=lambda arm: scores[(best, arm)])
-    print(
-        f"stage=select chosen_limit={best} chosen_arm={winning_arm} basis=development_only"
-    )
+    # Each arm keeps its own development optimum. Picking one joint limit would
+    # hand the tuned setting to the winner and evaluate the loser off-peak.
+    best: dict[str, int] = {}
+    for arm, _ in arms:
+        best[arm] = max(
+            CANDIDATE_LIMITS, key=lambda limit: (scores[(limit, arm)], -limit)
+        )
+    for arm, _ in arms:
+        print(
+            f"stage=select chosen_arm={arm} chosen_limit={best[arm]} "
+            f"basis=development_only_per_arm"
+        )
+    winning_arm = max((arm for arm, _ in arms), key=lambda arm: scores[(best[arm], arm)])
+    print(f"stage=select best_arm={winning_arm}")
 
     # Step 2: continuity only. This split was already observed once.
     for arm, retrieve in arms:
-        counts = _tally(contaminated, lambda case: retrieve(case.query, best))
+        counts = _tally(contaminated, lambda case: retrieve(case.query, best[arm]))
         _report(
-            f"stage=contaminated split={CONTAMINATED_SPLIT} limit={best} arm={arm} "
+            f"stage=contaminated split={CONTAMINATED_SPLIT} limit={best[arm]} arm={arm} "
             f"basis=already_observed",
             counts,
             len(contaminated),
@@ -140,19 +156,24 @@ def main() -> int:
 
     # Step 3: the never-seen confirmation set, run once at the chosen limit.
     for arm, retrieve in arms:
-        counts = _tally(confirmation, lambda case: retrieve(case.query, best))
+        counts = _tally(confirmation, lambda case: retrieve(case.query, best[arm]))
         _report(
-            f"stage=confirm split={CONFIRMATION_SPLIT} limit={best} arm={arm} "
+            f"stage=confirm split={CONFIRMATION_SPLIT} limit={best[arm]} arm={arm} "
             f"basis=predeclared_never_seen",
             counts,
             len(confirmation),
         )
-    print("stage=confirm note=holdout2_evaluated_once_no_retuning")
+    print("stage=confirm note=single_use_confirm_stage_repeat_requires_new_set")
 
     print(
-        f"OK comparison corpus=agent-authored-synthetic docs={indexed} cases={len(cases)} "
-        f"embed_model={EMBED_MODEL} store=qdrant image={image} collection={COLLECTION} "
-        f"confirmation_file=data/holdout-v2.json "
+        f"OK comparison corpus=agent-authored-synthetic docs={indexed} "
+        f"development={len(development)} contaminated={len(contaminated)} "
+        f"confirmation={len(confirmation)} evaluated_total="
+        f"{len(development) + len(contaminated) + len(confirmation)} "
+        f"embed_model={EMBED_MODEL} store=qdrant collection={COLLECTION} "
+        # A caller-supplied label, not something this run verified against the
+        # server; saying so keeps the evidence honest.
+        f"image_asserted_by_caller={image} image_verified_against_server=false "
         f"scope=synthetic_slice_not_authorized_corpus"
     )
     return 0

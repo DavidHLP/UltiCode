@@ -27,6 +27,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from citation_integrity import all_verified, check_citations
+from corpus_manifest import assert_manifest_covers
 from corpus_manifest import ManifestEntry
 from retrieval import SourceDocument
 
@@ -63,12 +64,19 @@ def build_worksheet(
     """
     if not isinstance(claim, str) or not claim.strip():
         raise ValueError("claim must be stated explicitly for review")
+    # A stale manifest would label the wrong permission for a resolved
+    # citation, so the pair is validated before any manifest field is read.
+    assert_manifest_covers(manifest, documents)
     by_chunk = {document.chunk_id: document for document in documents}
     by_doc = {entry.doc_id: entry for entry in manifest}
     rows: list[ReviewItem] = []
-    for citation in citations if isinstance(citations, list) else []:
+    if not isinstance(citations, list):
+        raise VerdictError("citations must be a list")
+    for index, citation in enumerate(citations):
         if not isinstance(citation, dict):
-            continue
+            # Dropping it would let the remaining rows pass a gate that never saw
+            # this entry, so the whole worksheet is refused.
+            raise VerdictError(f"citation {index} is not an object")
         checks = check_citations([citation], documents)
         verdict = checks[0].verdict if checks else "malformed"
         chunk_id = str(citation.get("chunk_id", ""))
@@ -134,6 +142,9 @@ def load_verdicts(path: Path, items: tuple[ReviewItem, ...]) -> dict[str, dict[s
         chunk_id = entry.get("chunk_id")
         if not isinstance(chunk_id, str) or not chunk_id:
             raise VerdictError("verdict entry needs a chunk_id")
+        if chunk_id in verdicts:
+            # Last-write-wins would erase an earlier rejection.
+            raise VerdictError(f"duplicate verdict for {chunk_id}")
         values = entry.get("verdicts")
         if not isinstance(values, dict) or any(
             not isinstance(values.get(key), bool) for key in VERDICT_KEYS
@@ -147,6 +158,10 @@ def load_verdicts(path: Path, items: tuple[ReviewItem, ...]) -> dict[str, dict[s
     missing = expected - set(verdicts)
     if missing:
         raise VerdictError(f"no verdict for: {sorted(missing)}")
+    unexpected = set(verdicts) - expected
+    if unexpected:
+        # Exact set equality: a stale verdict must not pass unnoticed.
+        raise VerdictError(f"verdicts for unreviewed chunks: {sorted(unexpected)}")
     return verdicts
 
 

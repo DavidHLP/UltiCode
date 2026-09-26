@@ -19,6 +19,8 @@ from retrieval import SourceDocument
 COLLECTION = "u02-eval"
 EMBED_MODEL = "BAAI/bge-small-en-v1.5"
 VECTOR_SIZE = 384
+#: Cosine relevance floor: below this the nearest point is not evidence.
+MIN_SCORE = 0.35
 
 
 class Embedder(Protocol):
@@ -45,12 +47,28 @@ def qdrant_url() -> str:
 
 
 def build_index(
-    client: object, documents: tuple[SourceDocument, ...], *, embedder: Embedder | None = None
+    client: object,
+    documents: tuple[SourceDocument, ...],
+    *,
+    embedder: Embedder | None = None,
+    allow_recreate: bool = False,
 ) -> int:
-    """Upsert one point per source document and return how many were indexed."""
+    """Upsert one point per source document and return how many were indexed.
+
+    ``recreate_collection`` drops an existing collection, so it only runs on a
+    collection this harness owns *and* the caller opted into. A pre-existing
+    collection on a shared instance is never silently deleted.
+    """
     vectors = (embedder or FastembedEmbedder()).embed([doc.text for doc in documents])
     if len(vectors) != len(documents):
         raise ValueError("embedding count did not match the corpus")
+    existing = client.get_collections().collections  # type: ignore[attr-defined]
+    already_there = any(collection.name == COLLECTION for collection in existing)
+    if already_there and not allow_recreate:
+        raise ValueError(
+            f"collection {COLLECTION!r} already exists; pass allow_recreate=True "
+            "only on a disposable instance"
+        )
     client.recreate_collection(  # type: ignore[attr-defined]
         collection_name=COLLECTION,
         vectors_config={"size": VECTOR_SIZE, "distance": "Cosine"},
@@ -79,8 +97,20 @@ def build_index(
     return len(documents)
 
 
-def search(client: object, query: str, *, limit: int, embedder: Embedder | None = None) -> list[str]:
-    """Return retrieved doc ids, closest first."""
+def search(
+    client: object,
+    query: str,
+    *,
+    limit: int,
+    embedder: Embedder | None = None,
+    min_score: float = MIN_SCORE,
+) -> list[str]:
+    """Return retrieved doc ids above ``min_score``, closest first.
+
+    Without a relevance floor the vector arm always returns its nearest point,
+    so a ``no_evidence`` query could never score as no evidence and the
+    keyword/vector comparison would be decided by that artefact.
+    """
     vector = (embedder or FastembedEmbedder()).embed([query])[0]
     hits = client.query_points(  # type: ignore[attr-defined]
         collection_name=COLLECTION,
@@ -88,4 +118,4 @@ def search(client: object, query: str, *, limit: int, embedder: Embedder | None 
         limit=limit,
         with_payload=True,
     ).points
-    return [str(hit.payload["doc_id"]) for hit in hits]
+    return [str(hit.payload["doc_id"]) for hit in hits if hit.score >= min_score]

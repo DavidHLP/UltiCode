@@ -69,6 +69,18 @@ uv run pytest -q
 
 真实 UltiCode HTTP / 模型 e2e 仍是显式 opt-in；`e2e_sourced_analysis.py` 使用 agent-authored synthetic Markdown corpus（不是提交、DTO 或用户授权材料），分析输入则是 authenticated user 的 validated read-only submission projection，且不调用真实模型。`e2e_sourced_analysis_model.py` 是额外的真实模型 sourced-analysis 入口，仍需显式提供现有环境和 `DEEPSEEK_API_KEY`；不得把本地开发账号密码、Cookie、源码、检索文本或模型回答写入日志。可执行题集和当前评估状态见 `services/agent/data/keyword_cases.json` 与对应 Linear 任务。
 
+关键词 vs 向量的最小对照是**评测专用**的，不切换主路径，且需要一次性单机 Qdrant 与 `eval` 依赖组：
+
+```bash
+docker run --rm -p 6333:6333 qdrant/qdrant@sha256:<digest>
+cd services/agent
+uv sync --locked --group eval
+QDRANT_IMAGE=qdrant/qdrant@sha256:<digest> QDRANT_URL=http://localhost:6333 \
+QDRANT_ALLOW_RECREATE=1 ULTICODE_VECTOR_CONFIRM=1 uv run python e2e_vector_comparison.py
+```
+
+要点：`QDRANT_IMAGE` 只是调用方声明的标签，脚本不据此校验服务端实际版本，输出会显式标注这一点；`QDRANT_ALLOW_RECREATE=1` 才会允许重建既有集合，只能指向一次性实例；确认集（`data/holdout-v2.json`）为**一次性**，未设 `ULTICODE_VECTOR_CONFIRM=1` 时脚本直接跳过确认阶段。
+
 
 `core` scope 会启动 `ulticode-core`（9108）和独立 `ulticode-judge`；
 通用配置与 PM2 默认不启动 Owner contexts，named `core` scope 才显式启用

@@ -169,7 +169,10 @@ def test_own_read_returning_another_id_is_a_failure(monkeypatch, capsys) -> None
         if path.endswith("/problems"):
             return httpx.Response(200, json={"data": {"items": [{"id": 7}]}})
         if path.endswith("/submissions") and request.method == "POST":
-            # A cookie write without the CSRF echo is what the filter rejects.
+            # The write must carry the CSRF cookie *and* the matching header;
+            # a header without the cookie is exactly what the filter rejects.
+            cookie_header = request.headers.get("Cookie", "")
+            assert f"csrf_token=csrf-{account}" in cookie_header
             assert request.headers.get("X-CSRF-Token") == f"csrf-{account}"
             return httpx.Response(200, json={"data": {"id": OWNED[account]}})
         if "/submissions/" in path:

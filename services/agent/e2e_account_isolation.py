@@ -91,6 +91,10 @@ def _write_headers(cookies: httpx.Cookies) -> dict[str, str]:
     csrf = _cookie(cookies, CSRF_COOKIE)
     if csrf is None:
         raise IsolationHarnessError("no csrf_token cookie for a cookie-authenticated write")
+    # The double-submit check compares the cookie against the header, so the
+    # csrf cookie has to travel in the Cookie header too — sending only the
+    # header yields "Invalid CSRF token".
+    headers["Cookie"] = f"{headers['Cookie']}; {CSRF_COOKIE}={csrf}"
     return {**headers, CSRF_HEADER: csrf}
 
 

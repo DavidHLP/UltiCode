@@ -49,6 +49,9 @@ REQUIRED_FIELDS = DOCUMENT_BINDING_FIELDS + AUTHORIZATION_FIELDS
 #: Manifest-only provenance: present on a SourceHit, not on a SourceDocument.
 MANIFEST_PROVENANCE_FIELD = "source_trust"
 SYNTHETIC_PERMISSIONS = frozenset({"agent-authored-synthetic", "synthetic"})
+#: The projection retrieval actually emits. A manifest may not claim a narrower
+#: egress than the code performs, so an unsupported name is rejected.
+SUPPORTED_PROJECTIONS = ("SourceHit.as_model_dict()",)
 
 
 class ManifestError(ValueError):
@@ -99,6 +102,11 @@ def load_manifest(path: Path | None = None) -> tuple[ManifestEntry, ...]:
             field: _require_text(item, field, doc_id)
             for field in (*REQUIRED_FIELDS, MANIFEST_PROVENANCE_FIELD)
         }
+        if values["model_input_projection"] not in SUPPORTED_PROJECTIONS:
+            raise ManifestError(
+                f"{doc_id}: model_input_projection must be one of {SUPPORTED_PROJECTIONS}, "
+                "so the record cannot understate what retrieval sends to the model"
+            )
         if values["sample_kind"] not in {"synthetic", "real"}:
             raise ManifestError(f"{doc_id}: sample_kind must be synthetic or real")
         if values["sample_kind"] == "real" and values["permission"] in SYNTHETIC_PERMISSIONS:

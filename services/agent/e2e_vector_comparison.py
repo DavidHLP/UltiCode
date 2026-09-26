@@ -26,7 +26,8 @@ Run with a disposable single-node Qdrant, for example:
     cd services/agent
     uv sync --locked --group eval
     QDRANT_IMAGE=qdrant/qdrant@sha256:<digest> \\
-    QDRANT_URL=http://localhost:6333 uv run python e2e_vector_comparison.py
+    QDRANT_URL=http://localhost:6333 QDRANT_ALLOW_RECREATE=1 \\
+    ULTICODE_VECTOR_CONFIRM=1 uv run python e2e_vector_comparison.py
 """
 
 from __future__ import annotations
@@ -117,12 +118,9 @@ def main() -> int:
     # The confirmation set is single-use. Without an explicit opt-in this run
     # must not touch it, because re-running would contaminate it while still
     # printing a clean-looking confirmation.
-    if os.environ.get("ULTICODE_VECTOR_CONFIRM") != "1":
+    confirm_opt_in = os.environ.get("ULTICODE_VECTOR_CONFIRM") == "1"
+    if not confirm_opt_in:
         print("SKIP reason=confirmation_requires_opt_in")
-        return 0
-    claimed, marker = _claim_confirmation_once()
-    if not claimed:
-        print(f"SKIP reason=confirmation_already_consumed marker={marker}")
         return 0
     try:
         from qdrant_client import QdrantClient  # noqa: PLC0415 - evaluation-only
@@ -190,7 +188,13 @@ def main() -> int:
             len(contaminated),
         )
 
-    # Step 3: the never-seen confirmation set, run once at the chosen limit.
+    # Step 3: the never-seen confirmation set, claimed only now. A failure
+    # during dependency import or index setup must not burn the one-shot set, so
+    # the claim is deliberately taken after that preflight has succeeded.
+    claimed, marker = _claim_confirmation_once()
+    if not claimed:
+        print(f"SKIP reason=confirmation_already_consumed marker={marker}")
+        return 0
     for arm, retrieve in arms:
         counts = _tally(confirmation, lambda case: retrieve(case.query, best[arm]))
         _report(

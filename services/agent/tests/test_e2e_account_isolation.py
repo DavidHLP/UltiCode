@@ -225,3 +225,31 @@ def test_missing_access_cookie_is_inconclusive(monkeypatch, capsys) -> None:
     output = capsys.readouterr().out
     assert "reason=session_not_established" in output
     assert "access cookie" in output
+
+
+def test_non_loopback_targets_are_refused_without_a_remote_opt_in(monkeypatch, capsys) -> None:
+    smoke = e2e_account_isolation
+    monkeypatch.setenv("ULTICODE_E2E_ISOLATION", "1")
+    monkeypatch.setattr(smoke, "APP_BASE", "https://staging.example.com")
+    monkeypatch.delenv("ULTICODE_E2E_ISOLATION_ALLOW_REMOTE", raising=False)
+
+    assert asyncio.run(smoke.main()) == 1
+    assert "not loopback" in capsys.readouterr().out
+
+
+def test_loopback_targets_pass_the_guard(monkeypatch) -> None:
+    smoke = e2e_account_isolation
+    monkeypatch.setenv("ULTICODE_E2E_ISOLATION", "1")
+    monkeypatch.setattr(smoke, "APP_BASE", "http://127.0.0.1:9103")
+    monkeypatch.setattr(smoke, "AUTH_BASE", "http://localhost:9101")
+    monkeypatch.delenv("ULTICODE_E2E_ISOLATION_ALLOW_REMOTE", raising=False)
+
+    assert smoke._require_local_targets() is None
+
+
+def test_remote_opt_in_is_explicit(monkeypatch) -> None:
+    smoke = e2e_account_isolation
+    monkeypatch.setenv(smoke.REMOTE_WRITE_OPT_IN, "1")
+    monkeypatch.setattr(smoke, "APP_BASE", "https://staging.example.com")
+
+    assert smoke._require_local_targets() is None

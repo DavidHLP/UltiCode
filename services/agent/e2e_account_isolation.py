@@ -67,6 +67,29 @@ def _synthetic_identity(label: str) -> tuple[str, str, str]:
     return username, f"{username}@local.invalid", _synthetic_password()
 
 
+LOOPBACK_HOSTS = frozenset({"127.0.0.1", "localhost", "::1", "[::1]"})
+#: Set only when the target really is a disposable stack you own.
+REMOTE_WRITE_OPT_IN = "ULTICODE_E2E_ISOLATION_ALLOW_REMOTE"
+
+
+def _require_local_targets() -> str | None:
+    """Refuse to register accounts and submit on a non-loopback stack.
+
+    This harness *writes* (two accounts, two submissions). Inheriting a
+    base URL that points at staging or production would mutate shared data, so a
+    remote target needs a separate, explicit opt-in.
+    """
+    from urllib.parse import urlparse
+
+    if os.environ.get(REMOTE_WRITE_OPT_IN) == "1":
+        return None
+    for name, base in (("app", APP_BASE), ("auth", AUTH_BASE)):
+        host = (urlparse(base).hostname or "").lower()
+        if host not in LOOPBACK_HOSTS:
+            return f"{name} target {host!r} is not loopback"
+    return None
+
+
 def _session() -> httpx.AsyncClient:
     return httpx.AsyncClient(timeout=30.0, follow_redirects=True)
 
@@ -232,6 +255,10 @@ async def main() -> int:
     if os.environ.get("ULTICODE_E2E_ISOLATION") != "1":
         print("SKIP reason=opt_in_not_set")
         return 0
+    unsafe = _require_local_targets()
+    if unsafe is not None:
+        print(f"FAIL reason={unsafe}")
+        return 1
 
     identity_a = _synthetic_identity("a")
     identity_b = _synthetic_identity("b")

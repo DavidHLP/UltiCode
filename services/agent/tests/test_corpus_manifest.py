@@ -5,6 +5,7 @@ import pytest
 
 from corpus_manifest import (
     AUTHORIZATION_FIELDS,
+    SUPPORTED_PROJECTIONS,
     DOCUMENT_BINDING_FIELDS,
     MANIFEST_PATH,
     MANIFEST_PROVENANCE_FIELD,
@@ -203,3 +204,20 @@ def test_corpus_loader_fails_closed_when_a_field_is_blank(monkeypatch, tmp_path)
 
     with pytest.raises(ManifestError, match="scope"):
         load_sample_corpus()
+
+
+def test_projection_must_be_the_one_retrieval_actually_emits(tmp_path: Path) -> None:
+    """A record may not understate what the model receives."""
+    understated = _entry()
+    understated["model_input_projection"] = "doc_id only"
+
+    with pytest.raises(ManifestError, match="understate"):
+        load_manifest(_write(tmp_path, [understated]))
+
+
+def test_supported_projection_is_accepted(tmp_path: Path) -> None:
+    entries = load_manifest()
+
+    assert {entry.model_input_projection for entry in entries} <= set(
+        SUPPORTED_PROJECTIONS
+    )

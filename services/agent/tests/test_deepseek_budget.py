@@ -200,3 +200,45 @@ def test_non_dict_response_is_not_accounted_as_usage() -> None:
             assert model.usage == []
 
     asyncio.run(scenario())
+
+
+def test_billed_call_with_a_malformed_body_still_records_usage() -> None:
+    """A sent-and-billed request must leave an accounting trace either way."""
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, text="not json at all")
+
+    async def scenario() -> None:
+        async with DeepseekModel(
+            "key", tool_specs={}, transport=httpx.MockTransport(handler)
+        ) as model:
+            with pytest.raises(ModelProtocolError):
+                await model.decide([{"role": "user", "content": "a"}])
+            # Recorded before parsing, so a billed call is never invisible.
+            assert model.usage == [
+                {"prompt_tokens": None, "completion_tokens": None, "total_tokens": None}
+            ]
+
+    asyncio.run(scenario())
+
+
+def test_reported_usage_replaces_the_placeholder() -> None:
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "choices": [{"message": {"content": '{"answer":"ok"}'}}],
+                "usage": {"prompt_tokens": 7, "completion_tokens": 3, "total_tokens": 10},
+            },
+        )
+
+    async def scenario() -> None:
+        async with DeepseekModel(
+            "key", tool_specs={}, transport=httpx.MockTransport(handler)
+        ) as model:
+            await model.decide([{"role": "user", "content": "a"}])
+            assert model.usage == [
+                {"prompt_tokens": 7, "completion_tokens": 3, "total_tokens": 10}
+            ]
+
+    asyncio.run(scenario())

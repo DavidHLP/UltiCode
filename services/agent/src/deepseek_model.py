@@ -67,6 +67,13 @@ PROMPT_TOKENS_PER_CHAR = 3
 #: long list of short or empty messages stays under the cap while the billed
 #: prompt does not.
 PROMPT_TOKENS_PER_MESSAGE = 8
+#: Placeholder appended before the response is parsed; every token count is
+#: unknown until the provider reports otherwise.
+_UNKNOWN_USAGE: dict[str, int | None] = {
+    "prompt_tokens": None,
+    "completion_tokens": None,
+    "total_tokens": None,
+}
 
 
 class DeepseekModel:
@@ -150,6 +157,9 @@ class DeepseekModel:
         self.calls_made += 1
 
 
+        # Recorded before the body is read: a billed call whose payload turns out
+        # to be malformed must still leave an accounting trace.
+        self.usage.append(dict(_UNKNOWN_USAGE))  # a copy, not the shared constant
         response = await self._client.post(
             "/chat/completions",
             json={
@@ -161,6 +171,7 @@ class DeepseekModel:
         )
         if response.status_code != 200:
             raise RuntimeError(f"deepseek http={response.status_code}")
+
         try:
             payload = json.loads(
                 response.content,
@@ -173,7 +184,8 @@ class DeepseekModel:
             raise ModelProtocolError("model response was not an object")
         # A billed response must be accounted for even when the protocol is
         # malformed, so usage is recorded before any structural validation.
-        self.usage.append(_usage_of(payload))
+        # Replace the placeholder with whatever the provider actually reported.
+        self.usage[-1] = _usage_of(payload)
         choices = payload.get("choices")
         if not isinstance(choices, list) or not choices or not isinstance(choices[0], dict):
             raise ModelProtocolError("model response choices were malformed")

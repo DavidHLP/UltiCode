@@ -48,6 +48,13 @@ class _FakeClient:
         assert collection_name == self.collection["name"]
         self.points = points
 
+    def create_collection(self, *, collection_name: str, vectors_config: object) -> None:
+        if collection_name in self.existing:
+            raise ValueError(f"Collection {collection_name!r} already exists!")
+        self.existing = (*self.existing, collection_name)
+        self.collection["name"] = collection_name
+        self.collection["vectors_config"] = vectors_config
+
     def get_collections(self) -> object:
         # build_index refuses to touch a collection it does not own.
         return type(

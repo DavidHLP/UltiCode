@@ -62,17 +62,21 @@ def build_index(
     vectors = (embedder or FastembedEmbedder()).embed([doc.text for doc in documents])
     if len(vectors) != len(documents):
         raise ValueError("embedding count did not match the corpus")
-    existing = client.get_collections().collections  # type: ignore[attr-defined]
-    already_there = any(collection.name == COLLECTION for collection in existing)
-    if already_there and not allow_recreate:
-        raise ValueError(
-            f"collection {COLLECTION!r} already exists; pass allow_recreate=True "
-            "only on a disposable instance"
-        )
-    client.recreate_collection(  # type: ignore[attr-defined]
-        collection_name=COLLECTION,
-        vectors_config={"size": VECTOR_SIZE, "distance": "Cosine"},
-    )
+    config = {"size": VECTOR_SIZE, "distance": "Cosine"}
+    if allow_recreate:
+        client.recreate_collection(collection_name=COLLECTION, vectors_config=config)  # type: ignore[attr-defined]
+    else:
+        # Non-destructive create: a check-then-recreate sequence could still
+        # delete a collection another process created in between.
+        try:
+            client.create_collection(collection_name=COLLECTION, vectors_config=config)  # type: ignore[attr-defined]
+        except Exception as error:  # noqa: BLE001 - qdrant raises its own conflict type
+            if "already exist" in str(error).lower():
+                raise ValueError(
+                    f"collection {COLLECTION!r} already exists; pass allow_recreate=True "
+                    "only on a disposable instance"
+                ) from None
+            raise
     client.upsert(  # type: ignore[attr-defined]
         collection_name=COLLECTION,
         points=[

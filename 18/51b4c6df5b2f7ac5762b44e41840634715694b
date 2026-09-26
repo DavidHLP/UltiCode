@@ -1,0 +1,22 @@
+services/agent/corpus_project_authored/judging-status-semantics.md
+  h_77173abe25c3ff 7-10
+services/agent/data/project_authored_manifest.json
+  h_77173abe25c3ff 4
+services/agent/src/citation_review.py
+  h_77173abe25c3ff 1-133
+services/agent/tests/test_citation_review.py
+  h_77173abe25c3ff 1-137
+services/agent/tests/test_project_authored_corpus.py
+  h_77173abe25c3ff 97-101,106-107,109-110
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1851b4c6df5b2f7ac5762b44e41840634715694b",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

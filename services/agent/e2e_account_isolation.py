@@ -98,7 +98,17 @@ async def _register(client: httpx.AsyncClient, identity: tuple[str, str, str]) -
     return response.status_code
 
 
-async def _login(client: httpx.AsyncClient, identity: tuple[str, str, str]) -> None:
+async def _establish_session(
+    client: httpx.AsyncClient, identity: tuple[str, str, str]
+) -> str:
+    """Prefer the session the register call already issued; fall back to login.
+
+    ``AuthController.register`` applies a session cookie itself, so a registered
+    account normally never needs a second call. Returns how the session was
+    established so the evidence records it.
+    """
+    if _session_headers(client.cookies):
+        return "register"
     username, _email, password = identity
     response = await client.post(
         f"{AUTH_BASE}/auth/login", json={"username": username, "password": password}
@@ -107,6 +117,7 @@ async def _login(client: httpx.AsyncClient, identity: tuple[str, str, str]) -> N
         raise IsolationHarnessError(f"login returned {response.status_code}")
     if not _session_headers(client.cookies):
         raise IsolationHarnessError("login did not establish a single access cookie")
+    return "login"
 
 
 async def _first_problem_id(
@@ -200,12 +211,12 @@ async def main() -> int:
             return 1
 
         try:
-            await _login(auth_a, identity_a)
-            await _login(auth_b, identity_b)
+            session_a = await _establish_session(auth_a, identity_a)
+            session_b = await _establish_session(auth_b, identity_b)
         except IsolationHarnessError as error:
-            print(f"FAIL reason=login_failed detail={error}")
+            print(f"FAIL reason=session_not_established detail={error}")
             return 1
-        print("login statuses a=200 b=200")
+        print(f"sessions established a={session_a} b={session_b}")
 
         headers_a = _session_headers(auth_a.cookies)
         headers_b = _session_headers(auth_b.cookies)

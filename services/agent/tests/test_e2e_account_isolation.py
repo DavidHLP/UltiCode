@@ -101,7 +101,7 @@ def test_isolated_stack_passes_both_controls(monkeypatch, capsys) -> None:
 
     assert asyncio.run(e2e_account_isolation.main()) == 0
     output = capsys.readouterr().out
-    assert "login statuses a=200 b=200" in output
+    assert "sessions established a=register b=register" in output
     assert "positive control own_a=200 own_b=200" in output
     assert "negative control cross_a=404 cross_b=404" in output
     assert "b_visible_to_a=no" in output
@@ -177,6 +177,29 @@ def test_own_read_returning_another_id_is_a_failure(monkeypatch, capsys) -> None
     assert "reason=positive_control_returned_other_record" in capsys.readouterr().out
 
 
+def test_session_falls_back_to_login_when_register_sets_no_cookie(monkeypatch, capsys) -> None:
+    monkeypatch.setenv("ULTICODE_E2E_ISOLATION", "1")
+    seen: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        path = request.url.path
+        account = _account(request)
+        if path.endswith("/auth/register"):
+            seen.append("register")
+            return httpx.Response(200, json={"data": {"id": account}})
+        if path.endswith("/auth/login"):
+            seen.append("login")
+            return _session_response(request)
+        return httpx.Response(404, json={"message": "not found"})
+
+    _install(monkeypatch, handler)
+
+    # No cookie from register, so the script must fall back to login; login then
+    # works but the fixture stage still fails, which is fine for this assertion.
+    asyncio.run(e2e_account_isolation.main())
+    assert "login" in seen
+
+
 def test_missing_access_cookie_is_inconclusive(monkeypatch, capsys) -> None:
     monkeypatch.setenv("ULTICODE_E2E_ISOLATION", "1")
 
@@ -192,5 +215,5 @@ def test_missing_access_cookie_is_inconclusive(monkeypatch, capsys) -> None:
 
     assert asyncio.run(e2e_account_isolation.main()) == 1
     output = capsys.readouterr().out
-    assert "reason=login_failed" in output
+    assert "reason=session_not_established" in output
     assert "access cookie" in output

@@ -3,13 +3,13 @@ from pathlib import Path
 
 import pytest
 
-import authorized_corpus
-from authorized_corpus import (
+import project_authored_corpus
+from project_authored_corpus import (
     MANIFEST_PATH,
     PERMISSION,
-    answer_with_authorized_evidence,
-    load_authorized_corpus,
-    search_authorized,
+    answer_with_project_evidence,
+    load_project_authored_corpus,
+    search_project_corpus,
 )
 from citation_integrity import check_citations
 from corpus_manifest import AUTHORIZATION_FIELDS, ManifestError
@@ -19,7 +19,7 @@ SUBMISSION = {"id": "sub-1", "status": "Wrong Answer"}
 
 
 def test_pinned_sample_baseline_is_untouched() -> None:
-    """The authorized corpus must not disturb the recorded deterministic baseline."""
+    """The project-authored corpus must not disturb the recorded baseline."""
     documents = load_sample_corpus()
 
     assert len(documents) == 3
@@ -28,17 +28,17 @@ def test_pinned_sample_baseline_is_untouched() -> None:
     assert [hit.doc_id for hit in baseline] == [
         hit.doc_id for hit in keyword_search("Wrong Answer status", limit=3)
     ]
-    assert all("authorized-" not in hit.doc_id for hit in baseline)
+    assert all(hit.doc_id.startswith("sample-") for hit in baseline)
 
 
-def test_authorized_corpus_loads_and_validates() -> None:
-    documents = load_authorized_corpus()
+def test_project_authored_corpus_loads_and_validates() -> None:
+    documents = load_project_authored_corpus()
 
     assert len(documents) == 5
     assert {document.sample_kind for document in documents} == {"synthetic"}
 
 
-def test_authorized_manifest_declares_the_five_authorization_fields() -> None:
+def test_project_authored_manifest_declares_the_five_authorization_fields() -> None:
     raw = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
 
     assert len(raw) == 5
@@ -49,7 +49,7 @@ def test_authorized_manifest_declares_the_five_authorization_fields() -> None:
         assert "not licensed third-party" in entry["scope"]
 
 
-def test_authorized_corpus_never_claims_real_license() -> None:
+def test_project_authored_corpus_never_claims_real_license() -> None:
     raw = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
 
     # Loading this corpus does NOT satisfy DAV-58's licensed-source gate, and the
@@ -58,30 +58,30 @@ def test_authorized_corpus_never_claims_real_license() -> None:
     assert all("not licensed third-party material" in entry["scope"] for entry in raw)
 
 
-def test_search_over_authorized_corpus_ranks_within_that_corpus() -> None:
-    hits = search_authorized("Wrong Answer 状态语义", limit=2)
+def test_search_over_project_authored_corpus_ranks_within_that_corpus() -> None:
+    hits = search_project_corpus("Wrong Answer 状态语义", limit=2)
 
     assert hits
-    assert all(hit.doc_id.startswith("authorized-") for hit in hits)
+    assert all(hit.doc_id.startswith("project-") for hit in hits)
     assert any("judging-status-semantics" in hit.doc_id for hit in hits)
 
 
 def test_minimal_end_to_end_answer_cites_and_verifies() -> None:
-    answer = answer_with_authorized_evidence(
+    answer = answer_with_project_evidence(
         "Wrong Answer 状态说明了什么？", SUBMISSION
     )
 
     assert answer["citations"]
     assert answer["citations_verified"] is True
-    checks = check_citations(answer["citations"], load_authorized_corpus())
+    checks = check_citations(answer["citations"], load_project_authored_corpus())
     assert [check.verdict for check in checks] == ["verified"] * len(checks)
     # Facts stay separate from hypotheses, and no code line is claimed.
     assert all("状态是" in fact for fact in answer["facts"])
     assert any("不能据此定位具体代码行" in item for item in answer["hypotheses"])
 
 
-def test_answer_refuses_when_no_authorized_evidence_matches() -> None:
-    answer = answer_with_authorized_evidence(
+def test_answer_refuses_when_no_corpus_evidence_matches() -> None:
+    answer = answer_with_project_evidence(
         "quantum topology rebalance window", SUBMISSION
     )
 
@@ -90,15 +90,15 @@ def test_answer_refuses_when_no_authorized_evidence_matches() -> None:
     assert any("不据此提出具体诊断" in item for item in answer["hypotheses"])
 
 
-def test_authorized_corpus_fails_closed_on_a_manifest_gap(monkeypatch, tmp_path) -> None:
+def test_project_authored_corpus_fails_closed_on_a_manifest_gap(monkeypatch, tmp_path) -> None:
     raw = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
     trimmed = [entry for entry in raw if entry["doc_id"] != raw[0]["doc_id"]]
     monkeypatch.setattr(
-        authorized_corpus,
+        project_authored_corpus,
         "MANIFEST_PATH",
         tmp_path / "partial.json",
     )
     (tmp_path / "partial.json").write_text(json.dumps(trimmed), encoding="utf-8")
 
     with pytest.raises(ManifestError, match="not declared"):
-        load_authorized_corpus()
+        load_project_authored_corpus()

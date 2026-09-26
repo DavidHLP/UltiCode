@@ -274,3 +274,62 @@ def test_answer_payload_unwraps_the_evidence_json_from_the_envelope() -> None:
     assert module._answer_payload(inner) == inner
     # Malformed input is left for the contract validator to reject.
     assert module._answer_payload("not json") == "not json"
+
+
+def test_usage_is_reported_even_when_decide_raises(monkeypatch, capsys) -> None:
+    """A billed call that fails the protocol must still report its tokens.
+
+    The provider records usage before the response is parsed, so printing it only
+    on the success path loses the exact accounting you need after a failure.
+    """
+    smoke = module
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "placeholder-not-a-real-key")
+    monkeypatch.setenv("ULTICODE_E2E_USERNAME", "tester")
+    monkeypatch.setenv("ULTICODE_E2E_PASSWORD", "pw")
+
+    class _BillingThenFailingModel:
+        def __init__(self, *_args: object, **_kwargs: object) -> None:
+            self.usage: list[dict[str, int]] = []
+
+        async def __aenter__(self) -> "_BillingThenFailingModel":
+            return self
+
+        async def __aexit__(self, *_args: object) -> None:
+            return None
+
+        async def decide(self, _messages: list[dict[str, object]]) -> object:
+            # Usage is recorded by the adapter before parsing the decision.
+            self.usage = [{"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15}]
+            raise RuntimeError("protocol failure after billing")
+
+    class _Client:
+        def __init__(self, *_args: object, **_kwargs: object) -> None:
+            pass
+
+        async def __aenter__(self) -> "_Client":
+            return self
+
+        async def __aexit__(self, *_args: object) -> None:
+            return None
+
+        async def login(self, *_args: object) -> None:
+            return None
+
+    async def _first(_tools: object) -> dict[str, object]:
+        return {"id": "sub-1", "status": "Wrong Answer"}
+
+    monkeypatch.setattr(smoke, "DeepseekModel", _BillingThenFailingModel)
+    monkeypatch.setattr(smoke, "UlticodeClient", _Client)
+    monkeypatch.setattr(smoke, "build_tools", lambda _client: {})
+    monkeypatch.setattr(smoke, "first_wrong_answer_submission", _first)
+    monkeypatch.setattr(
+        smoke,
+        "analyze_submission",
+        lambda *_a, **_k: {"facts": ["f"], "hypotheses": ["h"], "citations": [{"chunk_id": "c"}]},
+    )
+
+    with pytest.raises(RuntimeError):
+        asyncio.run(smoke.main())
+
+    output = capsys.readouterr().out
+    assert "E2E SOURCED MODEL USAGE | calls=1 total_tokens=15" in output

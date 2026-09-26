@@ -97,6 +97,15 @@ def _validate_answer(answer: str, evidence: dict[str, object]) -> None:
         raise ValueError("invalid model answer")
 
 
+def _report_usage(model: object) -> None:
+    """Emit token accounting. Values only; no prompt, answer, or token content."""
+    usage = getattr(model, "usage", None) or []
+    if not usage:
+        return
+    total = sum(entry.get("total_tokens", 0) for entry in usage)
+    print(f"E2E SOURCED MODEL USAGE | calls={len(usage)} total_tokens={total}")
+
+
 async def main() -> int:
     if not os.environ.get("DEEPSEEK_API_KEY"):
         # Fail closed: without a key the run must not touch the model at all.
@@ -131,22 +140,23 @@ async def main() -> int:
             max_tokens=int(os.environ.get("DEEPSEEK_MAX_TOKENS", "300")),
             max_prompt_tokens=int(os.environ.get("DEEPSEEK_MAX_PROMPT_TOKENS", "24000")),
         ) as model:
-            decision = await model.decide(
-                [
-                    {
-                        "role": "user",
-                        "content": (
-                            "Analyze the submission using only the supplied evidence. "
-                            f"{ANSWER_CONTRACT} "
-                            f"EVIDENCE_JSON={evidence}"
-                        ),
-                    }
-                ]
-            )
-        usage = model.usage
-        if usage:
-            total = sum(entry["total_tokens"] for entry in usage)
-            print(f"E2E SOURCED MODEL USAGE | calls={len(usage)} total_tokens={total}")
+            try:
+                decision = await model.decide(
+                    [
+                        {
+                            "role": "user",
+                            "content": (
+                                "Analyze the submission using only the supplied evidence. "
+                                f"{ANSWER_CONTRACT} "
+                                f"EVIDENCE_JSON={evidence}"
+                            ),
+                        }
+                    ]
+                )
+            finally:
+                # The provider bills the call before the protocol is parsed, so the
+                # usage record has to be emitted even when decide() raises.
+                _report_usage(model)
         if decision.tool_call is not None:
             print("E2E SOURCED MODEL FAIL | reason=tool_call")
             return 1

@@ -1,0 +1,16 @@
+services/agent/src/deepseek_model.py
+  h_77173abe25c3ff 55,57-58,60-64,79,84,87,136-140
+services/agent/tests/test_deepseek_budget.py
+  h_77173abe25c3ff 7-14,56,67-85
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "bb0185b9fa9620e670a27b6d35ccbd5c4e5a9d8d",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

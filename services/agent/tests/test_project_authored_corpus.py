@@ -90,6 +90,21 @@ def test_answer_refuses_when_no_corpus_evidence_matches() -> None:
     assert any("不据此提出具体诊断" in item for item in answer["hypotheses"])
 
 
+def test_corpus_text_does_not_attribute_runtime_error_to_a_cause() -> None:
+    """The corpus must not seed the unsupported diagnosis it was written to avoid.
+
+    An earlier draft claimed Runtime Error commonly means a program exception or a
+    timeout. Repository paths can also map harness / D-form / sandbox failures to
+    that status, and timeouts usually get their own verdict, so the corpus states
+    the limitation instead of guessing.
+    """
+    text = "\n".join(document.text for document in load_project_authored_corpus())
+
+    assert "Runtime Error" in text
+    assert "不能仅凭状态本身推断" in text
+    assert "常见原因是程序异常退出或超时" not in text
+
+
 def test_project_authored_corpus_fails_closed_on_a_manifest_gap(monkeypatch, tmp_path) -> None:
     raw = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
     trimmed = [entry for entry in raw if entry["doc_id"] != raw[0]["doc_id"]]

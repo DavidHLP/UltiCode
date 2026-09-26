@@ -158,6 +158,37 @@ def test_submission_listing_rejects_total_smaller_than_items() -> None:
                 await build_tools(client)["get_my_submissions"]({})
 
     asyncio.run(scenario())
+def test_submission_projection_rejects_malformed_id() -> None:
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "code": 0,
+                "message": "success",
+                "data": {
+                    "items": [
+                        {
+                            "id": "not-a-uuid",
+                            "problemId": 7,
+                            "language": "java",
+                            "status": "Accepted",
+                            "createdAt": "2026-09-24T00:00:00",
+                        }
+                    ],
+                    "total": 1,
+                    "page": 1,
+                },
+            },
+        )
+
+    async def scenario() -> None:
+        async with UlticodeClient(
+            "https://app.test", "https://auth.test", transport=httpx.MockTransport(handler)
+        ) as client:
+            with pytest.raises(ValueError, match="invalid tool response"):
+                await build_tools(client)["get_my_submissions"]({})
+
+    asyncio.run(scenario())
 
 
 def test_submission_listing_rejects_more_items_than_page_size() -> None:

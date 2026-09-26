@@ -319,15 +319,31 @@ def test_sourced_analysis_e2e_fails_on_unverifiable_citation(monkeypatch, capsys
     assert "reason=unverifiable_citation" in capsys.readouterr().out
 
 
-def test_sourced_analysis_e2e_fails_when_citation_checks_are_missing(monkeypatch, capsys) -> None:
+@pytest.mark.parametrize(
+    ("citation_ids", "checks"),
+    [
+        pytest.param(["a", "b"], [], id="no_checks_at_all"),
+        pytest.param(["a", "b"], [("a", "verified")], id="fewer_checks_than_citations"),
+        pytest.param(["a"], [("a", None)], id="check_without_verdict"),
+    ],
+)
+def test_sourced_analysis_e2e_fails_when_a_citation_is_unverified(
+    monkeypatch, capsys, citation_ids: list[str], checks: list[tuple[str, str | None]]
+) -> None:
     monkeypatch.setenv("ULTICODE_E2E_USERNAME", "tester")
     monkeypatch.setenv("ULTICODE_E2E_PASSWORD", "pw")
+    # An absent or incomplete check must never read as a passing check.
+    citation_checks: list[dict[str, object]] = []
+    for doc_id, verdict in checks:
+        check: dict[str, object] = {"chunk_id": doc_id, "detail": ""}
+        if verdict is not None:
+            check["verdict"] = verdict
+        citation_checks.append(check)
     analysis = {
         "facts": ["fact"],
         "hypotheses": ["hypothesis"],
-        "citations": [{"chunk_id": "a"}, {"chunk_id": "b"}],
-        # Fewer checks than citations: an absent check must not read as a pass.
-        "citation_checks": [{"chunk_id": "a", "verdict": "verified", "detail": ""}],
+        "citations": [{"chunk_id": doc_id} for doc_id in citation_ids],
+        "citation_checks": citation_checks,
     }
 
     async def _first(_tools: object) -> dict[str, object]:

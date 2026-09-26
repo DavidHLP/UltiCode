@@ -52,9 +52,16 @@ class ModelBudgetExceeded(RuntimeError):
     """A guarded cost limit was reached; the request was not sent."""
 
 
+#: Output cap per request, in the billed unit.
 MAX_TOKENS = 512
-MAX_PROMPT_CHARS = 8_000
+#: Input cap per request, in the billed unit (tokens), not characters.
+MAX_PROMPT_TOKENS = 24_000
 MAX_CALLS = 8
+#: Deliberately pessimistic prompt tokens per character. Real ratios are lower
+#: for Latin text and near 1 for CJK; assuming 3 keeps the cap safe for any
+#: script without needing the provider tokenizer at request time.
+PROMPT_TOKENS_PER_CHAR = 3
+
 
 
 
@@ -69,15 +76,15 @@ class DeepseekModel:
         timeout: float = 30.0,
         transport: httpx.AsyncBaseTransport | None = None,
         max_tokens: int = MAX_TOKENS,
-        max_prompt_chars: int = MAX_PROMPT_CHARS,
+        max_prompt_tokens: int = MAX_PROMPT_TOKENS,
         max_calls: int = MAX_CALLS,
     ) -> None:
         if not api_key:
             raise ValueError("api_key is required")
-        if max_tokens < 1 or max_prompt_chars < 1 or max_calls < 1:
+        if max_tokens < 1 or max_prompt_tokens < 1 or max_calls < 1:
             raise ValueError("cost limits must be positive")
         self._max_tokens = max_tokens
-        self._max_prompt_chars = max_prompt_chars
+        self._max_prompt_tokens = max_prompt_tokens
         self._max_calls = max_calls
         self.calls_made = 0
         self.usage: list[dict[str, int]] = []
@@ -126,9 +133,11 @@ class DeepseekModel:
 
         # Cost guards run before the request: max_tokens bounds output, but the
         # prompt side is billed too, so both sides and the call count are capped.
-        prompt_chars = sum(len(message["content"]) for message in api_messages)
-        if prompt_chars > self._max_prompt_chars:
-            raise ModelBudgetExceeded("prompt exceeds the configured character budget")
+        prompt_tokens_estimate = (
+            sum(len(message["content"]) for message in api_messages) * PROMPT_TOKENS_PER_CHAR
+        )
+        if prompt_tokens_estimate > self._max_prompt_tokens:
+            raise ModelBudgetExceeded("prompt exceeds the configured token budget")
         if self.calls_made >= self._max_calls:
             raise ModelBudgetExceeded("call budget exhausted")
         self.calls_made += 1

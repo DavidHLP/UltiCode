@@ -4,7 +4,14 @@ import json
 import httpx
 import pytest
 
-from deepseek_model import MAX_TOKENS, DeepseekModel, ModelBudgetExceeded, ModelProtocolError
+from deepseek_model import (
+    MAX_PROMPT_TOKENS,
+    MAX_TOKENS,
+    PROMPT_TOKENS_PER_CHAR,
+    DeepseekModel,
+    ModelBudgetExceeded,
+    ModelProtocolError,
+)
 
 _USAGE = {"prompt_tokens": 120, "completion_tokens": 30, "total_tokens": 150}
 
@@ -46,7 +53,7 @@ def test_oversized_prompt_is_rejected_before_any_request() -> None:
         async with DeepseekModel(
             "key",
             tool_specs={},
-            max_prompt_chars=10,
+            max_prompt_tokens=10,
             transport=httpx.MockTransport(_handler(captured)),
         ) as model:
             with pytest.raises(ModelBudgetExceeded):
@@ -55,6 +62,25 @@ def test_oversized_prompt_is_rejected_before_any_request() -> None:
 
     asyncio.run(scenario())
     assert captured == []
+
+
+def test_prompt_budget_is_measured_in_tokens_not_characters() -> None:
+    captured: list[httpx.Request] = []
+    # The system prompt alone is counted, so the usable user budget is smaller
+    # than the nominal token cap.
+    budget_chars = MAX_PROMPT_TOKENS // PROMPT_TOKENS_PER_CHAR
+
+    async def scenario() -> None:
+        async with DeepseekModel(
+            "key", tool_specs={}, transport=httpx.MockTransport(_handler(captured))
+        ) as model:
+            with pytest.raises(ModelBudgetExceeded):
+                await model.decide([{"role": "user", "content": "x" * (budget_chars + 500)}])
+            assert model.calls_made == 0
+            await model.decide([{"role": "user", "content": "x" * 100}])
+
+    asyncio.run(scenario())
+    assert len(captured) == 1
 
 
 def test_call_budget_stops_the_loop_and_bounds_requests() -> None:

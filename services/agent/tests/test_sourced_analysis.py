@@ -20,6 +20,20 @@ def test_sourced_analysis_separates_fact_hypothesis_and_citations() -> None:
     assert "源码" in result["hypotheses"][0]
 
 
+def test_sourced_analysis_matches_accepted_status_case_insensitively() -> None:
+    result = analyze_submission(
+        {
+            "id": "11111111-1111-4111-8111-111111111111",
+            "language": "java",
+            "status": "Accepted",
+            "createdAt": "2026-09-25T00:00:00",
+        },
+        "Accepted submission",
+    )
+
+    assert result["citations"]
+
+
 def test_sourced_analysis_does_not_attach_wrong_answer_source_to_other_status() -> None:
     result = analyze_submission(
         {

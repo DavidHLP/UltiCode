@@ -45,7 +45,10 @@ def analyze_submission(submission: dict[str, object], question: str) -> dict[str
     if status not in _ALLOWED_STATUSES:
         raise ValueError("invalid submission facts")
     facts = [f"提交 {submission_id} 的状态是 {status}。"]
-    hits = tuple(hit for hit in keyword_search(question) if status in hit.text)
+    normalized_status = status.casefold()
+    hits = tuple(
+        hit for hit in keyword_search(question) if normalized_status in hit.text.casefold()
+    )
     if not hits:
         return {
             "facts": facts,

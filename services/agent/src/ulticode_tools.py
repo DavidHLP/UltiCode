@@ -83,6 +83,13 @@ def _project(data: object, fields: dict[str, tuple[type, int]]) -> dict[str, obj
             not isinstance(value, str) or value.upper() not in PROBLEM_DIFFICULTIES
         ):
             raise ValueError("invalid tool response")
+        if field == "createdAt" and (
+            not isinstance(value, str)
+            or not re.fullmatch(
+                r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?", value
+            )
+        ):
+            raise ValueError("invalid tool response")
         if expected_type is str and (
             not isinstance(value, str) or not value.strip() or len(value) > max_value
         ):

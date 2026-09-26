@@ -35,9 +35,26 @@ async def main() -> int:
         tools = build_tools(client)
 
         problems = await client.list_problems(page=1, page_size=3)
-        print(f"OK GET /problems code=0 items={len(problems['items'])}")
+        items = problems.get("items")
+        if (
+            not isinstance(items, list)
+            or not items
+            or len(items) > 3
+            or problems.get("page") != 1
+            or problems.get("pageSize") != 3
+            or not isinstance(problems.get("total"), int)
+            or any(
+                not isinstance(item, dict)
+                or not isinstance(item.get("id"), int)
+                or item["id"] < 1
+                for item in items
+            )
+        ):
+            print("E2E READ-ONLY FAIL | reason=problem_listing_contract")
+            return 1
+        print(f"OK GET /problems code=0 items={len(items)}")
 
-        first_id = int(problems["items"][0]["id"])
+        first_id = items[0]["id"]
         detail = await tools["get_problem"]({"id": first_id})
         print(f"OK GET /problems/{{id}} code=0 difficulty={detail['difficulty']}")
 

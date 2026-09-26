@@ -312,6 +312,41 @@ def test_problem_projection_rejects_noncanonical_difficulty_casing(
                 await build_tools(client)["get_problem"]({"id": 7})
 
     asyncio.run(scenario())
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("slug", "../admin"),
+        ("slug", "Sample-Problem"),
+        ("slug", "a" * 121),
+        ("title", "t" * 256),
+    ],
+)
+def test_problem_projection_rejects_slug_and_title_outside_owner_contract(
+    field: str, value: str
+) -> None:
+    detail = {
+        "id": 7,
+        "slug": "sample",
+        "title": "Sample",
+        "difficulty": "EASY",
+        "submission_count": 1,
+    }
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={"code": 0, "message": "success", "data": {**detail, field: value}},
+        )
+
+    async def scenario() -> None:
+        async with UlticodeClient(
+            "https://app.test", "https://auth.test", transport=httpx.MockTransport(handler)
+        ) as client:
+            with pytest.raises(ValueError, match="invalid tool response"):
+                await build_tools(client)["get_problem"]({"id": 7})
+
+    asyncio.run(scenario())
+
 
 
 

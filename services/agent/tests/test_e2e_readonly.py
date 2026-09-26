@@ -19,7 +19,7 @@ class FakeClient:
         return None
 
     async def list_problems(self, *, page: int, page_size: int) -> dict[str, object]:
-        return {"items": [{"id": 7}], "total": 1, "page": page}
+        return {"items": [{"id": 7}], "total": 1, "page": page, "pageSize": page_size}
 
     async def get_problem(self, problem_id: int) -> dict[str, object]:
         return {
@@ -91,3 +91,26 @@ def test_readonly_smoke_rejects_invalid_problem_detail(detail, monkeypatch, caps
     with pytest.raises(ValueError, match="invalid tool response"):
         asyncio.run(e2e_readonly.main())
     assert "E2E READ-ONLY PASS" not in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("listing", [
+    {"items": [{"id": 7}], "total": 1, "page": 42, "pageSize": 10},
+    {"items": [{"id": 7}, {"id": 8}, {"id": 9}, {"id": 10}], "total": 4, "page": 1, "pageSize": 3},
+    {"items": [{"id": "7"}], "total": 1, "page": 1, "pageSize": 3},
+    {"items": [], "total": 0, "page": 1, "pageSize": 3},
+])
+def test_readonly_smoke_rejects_malformed_problem_listing(
+    listing: dict[str, object], monkeypatch, capsys
+) -> None:
+    class MalformedProblemsClient(FakeClient):
+        async def list_problems(self, *, page: int, page_size: int) -> dict[str, object]:
+            return dict(listing)
+
+    monkeypatch.setenv("ULTICODE_E2E_USERNAME", "tester")
+    monkeypatch.setenv("ULTICODE_E2E_PASSWORD", "pw")
+    monkeypatch.setattr(e2e_readonly, "UlticodeClient", lambda *a, **k: MalformedProblemsClient())
+
+    assert asyncio.run(e2e_readonly.main()) == 1
+    output = capsys.readouterr().out
+    assert "reason=problem_listing_contract" in output
+    assert "E2E READ-ONLY PASS" not in output

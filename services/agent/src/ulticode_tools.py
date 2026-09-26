@@ -19,8 +19,8 @@ from ulticode_client import UlticodeClient
 
 PROBLEM_FIELDS = {
     "id": (int, 9_223_372_036_854_775_807),
-    "slug": (str, 256),
-    "title": (str, 512),
+    "slug": (str, 120),
+    "title": (str, 255),
     "difficulty": (str, 64),
     "submission_count": (int, 9_223_372_036_854_775_807),
 }
@@ -77,6 +77,10 @@ def _project(data: object, fields: dict[str, tuple[type, int]]) -> dict[str, obj
             raise ValueError("invalid tool response")
         if field == "id" and expected_type is str and (
             not isinstance(value, str) or not SUBMISSION_ID_PATTERN.fullmatch(value)
+        ):
+            raise ValueError("invalid tool response")
+        if field == "slug" and (
+            not isinstance(value, str) or not re.fullmatch(r"[a-z0-9-]+", value)
         ):
             raise ValueError("invalid tool response")
         if field == "language" and (

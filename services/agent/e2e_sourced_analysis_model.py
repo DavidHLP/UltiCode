@@ -31,10 +31,19 @@ ANSWER_CONTRACT = (
 )
 
 
+def _reject_duplicate_keys(pairs: list[tuple[str, object]]) -> dict[str, object]:
+    result: dict[str, object] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("duplicate key")
+        result[key] = value
+    return result
+
+
 def _validate_answer(answer: str, evidence: dict[str, object]) -> None:
     try:
-        parsed = json.loads(answer)
-    except ValueError as exc:
+        parsed = json.loads(answer, object_pairs_hook=_reject_duplicate_keys)
+    except (json.JSONDecodeError, ValueError) as exc:
         raise ValueError("invalid model answer") from exc
     if not isinstance(parsed, dict) or set(parsed) != {"facts", "hypotheses", "citations"}:
         raise ValueError("invalid model answer")
@@ -90,7 +99,7 @@ async def main() -> int:
         }
         evidence = json.dumps(evidence_payload, ensure_ascii=False)
         async with DeepseekModel(
-            os.environ["DEEPSEEK_API_KEY"], tool_specs={"none": "No tool call; use supplied evidence."}
+            os.environ["DEEPSEEK_API_KEY"], tool_specs={}
         ) as model:
             decision = await model.decide(
                 [

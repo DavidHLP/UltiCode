@@ -127,20 +127,22 @@ def test_real_model_smoke_rejects_invalid_fact_or_hypothesis_structure(
     assert answer not in output
 
 
-def test_real_model_smoke_rejects_unknown_citation(monkeypatch, capsys) -> None:
-    class InvalidCitationModel(FakeModel):
+@pytest.mark.parametrize(
+    "answer",
+    [
+        '{"facts":["invented"],"facts":["提交 sub-2 的状态是 Wrong Answer。"],"hypotheses":["当前只有提交状态，没有源码或失败用例；不能据此定位具体代码行、复现失败输入或断言运行结果。"],"citations":["sample-status-only"]}',
+    ],
+)
+def test_real_model_smoke_rejects_duplicate_answer_keys(answer, monkeypatch, capsys) -> None:
+    class DuplicateKeyModel(FakeModel):
         async def decide(self, messages: list[dict[str, object]]) -> SimpleNamespace:
             self.messages = messages
-            return SimpleNamespace(
-                text='{"facts":["提交 sub-2 的状态是 Wrong Answer。"],"hypotheses":["unverified"],"citations":["missing-doc"]}',
-                tool_call=None,
-            )
+            return SimpleNamespace(text=answer, tool_call=None)
 
-    return_code, output = _run_model(monkeypatch, capsys, InvalidCitationModel())
+    return_code, output = _run_model(monkeypatch, capsys, DuplicateKeyModel())
 
     assert return_code == 1
     assert "reason=invalid_answer" in output
-    assert "missing-doc" not in output
 
 
 def test_real_model_smoke_rejects_tool_call_even_with_text(monkeypatch, capsys) -> None:

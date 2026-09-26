@@ -61,13 +61,18 @@ class DeepseekModel:
     ) -> None:
         if not api_key:
             raise ValueError("api_key is required")
-        if not tool_specs:
-            raise ValueError("tool_specs must not be empty")
         self._model = model
-        lines = "\n".join(
-            f"  - {name}: {spec}" for name, spec in sorted(tool_specs.items())
-        )
-        self._system = _SYSTEM_TEMPLATE.format(tools=lines)
+        if tool_specs:
+            lines = "\n".join(
+                f"  - {name}: {spec}" for name, spec in sorted(tool_specs.items())
+            )
+            self._system = _SYSTEM_TEMPLATE.format(tools=lines)
+        else:
+            self._system = (
+                "You are a read-only assistant for the UltiCode platform. "
+                'Reply with one JSON object and no prose: {"answer": "<answer>"}. '
+                "Do not call tools; use only the evidence in the user message."
+            )
         self._client = httpx.AsyncClient(
             base_url=base_url,
             timeout=timeout,

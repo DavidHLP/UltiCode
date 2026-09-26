@@ -29,3 +29,11 @@
 **/dist/
 **/coverage/
 **/.vite/
+**/.venv/
+**/venv/
+**/__pycache__/
+**/*.py[co]
+**/.pytest_cache/
+**/.mypy_cache/
+**/.ruff_cache/
+**/.uv/

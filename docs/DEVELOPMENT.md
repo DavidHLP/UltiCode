@@ -59,6 +59,16 @@ Maven 离线缓存，不启动全栈；容器启动后的默认检查仅执行
 ```
 
 Search/Meili、Judge、observability 与前端只在被选中 scope 需要时才启动；`dev-lite` 默认不创建 Meili 容器。生命周期操作消费同一集合：`./scripts/dev/up.sh status|logs|health --scope <name>`，`./scripts/dev/stop.sh --scope <name>`（`--all` 停止全部）。`up.sh` 对已退役的 `legacy-rollback` 和未知 mode/scope fail closed。生产回滚使用部署方保留并校验的上一份完整 release descriptor，不能通过当前二进制恢复旧实现（见[部署、发布与回滚](OPERATIONS.md#部署发布与回滚)）。`up.sh` 消费 `scripts/dev/devstack-manifest.sh` 的 route、flag、worker、readiness 和 failure policy，不要直接用 Maven 或 PM2 启动 runtime。
+`services/agent/` 是独立的 Python Agent 服务模块，不加入 Maven reactor，也不进入默认 `dev-lite`/`dev-full` 进程集合。其本地确定性验证入口为：
+
+```bash
+cd services/agent
+uv sync --locked
+uv run pytest -q
+```
+
+真实 UltiCode HTTP / 模型 e2e 仍是显式 opt-in；`e2e_sourced_analysis.py` 使用 agent-authored synthetic Markdown corpus（不是提交、DTO 或用户授权材料），分析输入则是 authenticated user 的 validated read-only submission projection，且不调用真实模型。`e2e_sourced_analysis_model.py` 是额外的真实模型 sourced-analysis 入口，仍需显式提供现有环境和 `DEEPSEEK_API_KEY`；不得把本地开发账号密码、Cookie、源码、检索文本或模型回答写入日志。可执行题集和当前评估状态见 `services/agent/data/keyword_cases.json` 与对应 Linear 任务。
+
 
 `core` scope 会启动 `ulticode-core`（9108）和独立 `ulticode-judge`；
 通用配置与 PM2 默认不启动 Owner contexts，named `core` scope 才显式启用
@@ -93,7 +103,7 @@ pm2 status
 pm2 logs ulticode-auth --nostream --lines 200
 ```
 
-验证入口分 `static` / `unit` / `quick` / `full-local` / `full` / `integration` 六层，见本页“测试与质量”；快速只读结构检查使用 `./scripts/dev/test.sh static`，完整本地门禁使用 `./scripts/dev/test.sh full-local`。
+验证入口由 `./scripts/dev/test.sh` 的 `static`、`unit`、`quick`、`full-local`、`full`、`integration`、`core` 和 `agent` 模式组成；其中 `agent` 只运行 `services/agent` 的 Python 单元测试，不是 Maven/Owner 验证。快速只读结构检查使用 `./scripts/dev/test.sh static`，完整本地门禁使用 `./scripts/dev/test.sh full-local`。
 
 ### 访问入口
 

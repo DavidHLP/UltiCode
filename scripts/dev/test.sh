@@ -16,7 +16,7 @@ MAVEN=()
 
 usage() {
   cat >&2 <<'USAGE'
-Usage: ./scripts/dev/test.sh [--describe|quick|full-local|full|integration|core|static|unit]
+Usage: ./scripts/dev/test.sh [--describe|quick|full-local|full|integration|core|static|unit|agent]
 
 Modes:
   static       Read-only zero-infrastructure guardrails and contracts.
@@ -28,6 +28,9 @@ Modes:
   full         full-local plus production builds, audits, and i18n checks.
   integration  full-local plus sandbox/Testcontainers and migration drills.
   core         Core boot assembly and readiness smoke without Owner side effects.
+  agent       Standalone Python Agent unit tests under services/agent.
+               The Agent module is independent from the Maven reactor and default backend scopes;
+               it must not be added to services/pom.xml without an explicit service-runtime decision.
 USAGE
 }
 
@@ -41,6 +44,7 @@ full-local|MySQL + Redis Compose|pnpm install allowed|Maven verify|migration and
 full|MySQL + Redis Compose|pnpm install allowed|Maven verify|build, audit, i18n
 integration|MySQL + Redis + sandbox/Testcontainers|pnpm install allowed|Maven verify + *IT|migration safety drill
 core|none (no Docker/DB/services)|none|Core parent/config/readiness smoke with Owner contexts disabled|explicit scans, datasource factories, readiness
+agent|none (no Docker/DB/services)|none|Python Agent module (not Maven)|uv sync --locked + pytest
 TABLE
 }
 
@@ -61,7 +65,7 @@ if [[ "$#" -gt 1 ]]; then
 fi
 
 case "$MODE" in
-  static|unit|quick|full-local|full|integration|core)
+  static|unit|quick|full-local|full|integration|core|agent)
     ;;
   *)
     die_usage "unknown mode: $MODE"
@@ -275,6 +279,12 @@ run_unit_checks() {
   require_frontend_toolchain
   run_frontend_unit_checks
   run_backend_unit_checks
+}
+
+run_agent_checks() {
+  require_command uv "Agent validation"
+  echo "Running standalone Python Agent tests..."
+  (cd "$ROOT_DIR/services/agent" && uv sync --locked && uv run pytest -q)
 }
 run_core_checks() {
   require_maven_toolchain
@@ -492,6 +502,9 @@ case "$MODE" in
     ;;
   core)
     run_core_checks
+    ;;
+  agent)
+    run_agent_checks
     ;;
 esac
 

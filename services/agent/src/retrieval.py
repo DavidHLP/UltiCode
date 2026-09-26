@@ -94,7 +94,18 @@ def load_sample_corpus() -> tuple[SourceDocument, ...]:
     return corpus
 
 
-def keyword_search(query: object, *, limit: int = MAX_RESULTS) -> tuple[SourceHit, ...]:
+def keyword_search(
+    query: object,
+    *,
+    limit: int = MAX_RESULTS,
+    documents: tuple[SourceDocument, ...] | None = None,
+) -> tuple[SourceHit, ...]:
+    """Rank documents by shared query terms.
+
+    ``documents`` defaults to the pinned sample corpus, so the recorded
+    deterministic baseline is unchanged; an authorised corpus passes its own
+    documents instead of duplicating the ranking logic.
+    """
     if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= MAX_RESULTS:
         raise ValueError("invalid search limit")
     query_text = _validate_query(query)
@@ -103,7 +114,7 @@ def keyword_search(query: object, *, limit: int = MAX_RESULTS) -> tuple[SourceHi
         return ()
 
     hits: list[tuple[int, str, SourceDocument, tuple[str, ...]]] = []
-    for document in load_sample_corpus():
+    for document in documents if documents is not None else load_sample_corpus():
         haystack = document.text.casefold()
         matched = tuple(term for term in query_terms if term in haystack)
         if matched:

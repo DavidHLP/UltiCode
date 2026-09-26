@@ -201,7 +201,7 @@ def test_submission_listing_rejects_more_items_than_page_size() -> None:
                 "data": {
                     "items": [
                         {
-                            "id": f"sub-{index}",
+                            "id": f"11111111-1111-4111-8111-1111111111{index:02d}",
                             "problemId": 7,
                             "language": "java",
                             "status": "Accepted",

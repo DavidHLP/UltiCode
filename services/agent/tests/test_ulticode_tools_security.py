@@ -108,6 +108,40 @@ def test_submission_projection_rejects_unknown_status() -> None:
                 await build_tools(client)["get_my_submissions"]({})
 
     asyncio.run(scenario())
+@pytest.mark.parametrize("tool_name,arguments", [
+    ("get_my_submissions", {}),
+    ("get_problem_submissions", {"problemId": 7}),
+])
+def test_submission_listing_rejects_duplicate_ids(
+    tool_name: str, arguments: dict[str, object]
+) -> None:
+    item = {
+        "id": "11111111-1111-4111-8111-111111111111",
+        "problemId": 7,
+        "language": "java",
+        "status": "Accepted",
+        "createdAt": "2026-09-24T00:00:00",
+    }
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "code": 0,
+                "message": "success",
+                "data": {"items": [item, item], "total": 2, "page": 1, "pageSize": 5},
+            },
+        )
+
+    async def scenario() -> None:
+        async with UlticodeClient(
+            "https://app.test", "https://auth.test", transport=httpx.MockTransport(handler)
+        ) as client:
+            with pytest.raises(ValueError, match="invalid tool response"):
+                await build_tools(client)[tool_name](arguments)
+
+    asyncio.run(scenario())
+
 
 
 @pytest.mark.parametrize("created_at", ["2026-99-99T99:99:99", "2026-09-25T99:00:00", "2026-09-25T00:00:00Z"])

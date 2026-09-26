@@ -19,7 +19,20 @@ class FakeClient:
         return None
 
     async def list_problems(self, *, page: int, page_size: int) -> dict[str, object]:
-        return {"items": [{"id": 7}], "total": 1, "page": page, "pageSize": page_size}
+        return {
+            "items": [
+                {
+                    "id": 7,
+                    "slug": "sample",
+                    "title": "Sample",
+                    "difficulty": "EASY",
+                    "submission_count": 1,
+                }
+            ],
+            "total": 1,
+            "page": page,
+            "pageSize": page_size,
+        }
 
     async def get_problem(self, problem_id: int) -> dict[str, object]:
         return {
@@ -124,4 +137,27 @@ def test_readonly_smoke_rejects_malformed_problem_listing(
     assert asyncio.run(e2e_readonly.main()) == 1
     output = capsys.readouterr().out
     assert f"reason={reason}" in output
+    assert "E2E READ-ONLY PASS" not in output
+
+
+@pytest.mark.parametrize("corrupt", [
+    {"id": 7, "title": "Sample", "difficulty": "EASY", "submission_count": 1},
+    {"id": 7, "slug": "../admin", "title": "Sample", "difficulty": "EASY", "submission_count": 1},
+    {"id": 7, "slug": "sample", "title": "S", "difficulty": "medium", "submission_count": 1},
+    {"id": 7, "slug": "sample", "title": "S", "difficulty": "EASY", "submission_count": "1"},
+])
+def test_readonly_smoke_rejects_corrupt_problem_list_item(
+    corrupt: dict[str, object], monkeypatch, capsys
+) -> None:
+    class CorruptItemClient(FakeClient):
+        async def list_problems(self, *, page: int, page_size: int) -> dict[str, object]:
+            return {"items": [corrupt], "total": 1, "page": page, "pageSize": page_size}
+
+    monkeypatch.setenv("ULTICODE_E2E_USERNAME", "tester")
+    monkeypatch.setenv("ULTICODE_E2E_PASSWORD", "pw")
+    monkeypatch.setattr(e2e_readonly, "UlticodeClient", lambda *a, **k: CorruptItemClient())
+
+    assert asyncio.run(e2e_readonly.main()) == 1
+    output = capsys.readouterr().out
+    assert "reason=problem_listing_contract" in output
     assert "E2E READ-ONLY PASS" not in output

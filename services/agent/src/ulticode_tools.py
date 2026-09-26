@@ -113,6 +113,11 @@ def _project(data: object, fields: dict[str, tuple[type, int]]) -> dict[str, obj
     return projected
 
 
+def project_problem_summary(data: object) -> dict[str, object]:
+    """Project the public problem summary shared by list and detail responses."""
+    return _project(data, PROBLEM_FIELDS)
+
+
 def _bounded_int(value: object, *, minimum: int = 0, maximum: int = MAX_LONG) -> int:
     if (
         isinstance(value, bool)
@@ -169,6 +174,8 @@ def build_tools(client: UlticodeClient) -> dict[str, object]:
             raise ValueError("invalid tool response")
         if len(items) != min(page_size, max(total - offset_total, 0)):
             raise ValueError("invalid tool response")
+        if len({item["id"] for item in items}) != len(items):
+            raise ValueError("invalid tool response")
         if response_page != page or response_page_size != page_size:
             raise ValueError("invalid tool response")
         return {
@@ -217,6 +224,8 @@ def build_tools(client: UlticodeClient) -> dict[str, object]:
         ):
             raise ValueError("invalid tool response")
         if len(items) != min(page_size, max(total - offset_total, 0)):
+            raise ValueError("invalid tool response")
+        if len({item["id"] for item in items}) != len(items):
             raise ValueError("invalid tool response")
         if response_page != page or response_page_size != page_size:
             raise ValueError("invalid tool response")

@@ -21,7 +21,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from ulticode_client import UlticodeClient
-from ulticode_tools import build_tools
+from ulticode_tools import build_tools, project_problem_summary
 
 APP_BASE = os.environ.get("ULTICODE_APP_BASE", "http://localhost:9103")
 AUTH_BASE = os.environ.get("ULTICODE_AUTH_BASE", "http://localhost:9101")
@@ -62,9 +62,14 @@ async def main() -> int:
         if not items:
             print("E2E READ-ONLY FAIL | reason=no_problem_to_inspect")
             return 1
-        print(f"OK GET /problems code=0 items={len(items)}")
+        try:
+            summaries = [project_problem_summary(item) for item in items]
+        except ValueError:
+            print("E2E READ-ONLY FAIL | reason=problem_listing_contract")
+            return 1
+        print(f"OK GET /problems code=0 items={len(summaries)}")
 
-        first_id = items[0]["id"]
+        first_id = summaries[0]["id"]
         detail = await tools["get_problem"]({"id": first_id})
         print(f"OK GET /problems/{{id}} code=0 difficulty={detail['difficulty']}")
 

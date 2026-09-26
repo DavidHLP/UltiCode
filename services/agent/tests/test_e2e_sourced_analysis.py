@@ -150,9 +150,9 @@ def test_sourced_analysis_e2e_scans_past_ten_pages(monkeypatch, capsys) -> None:
                 items = [
                     {
                         **_projected_submission("Accepted"),
-                        "id": f"11111111-1111-4111-8111-1{page:011d}",
+                        "id": f"11111111-1111-4111-8111-{(page * 1000 + n) % 10**12:012d}",
                     }
-                    for _ in range(page_size)
+                    for n in range(page_size)
                 ]
             return {"items": items, "total": total, "page": page, "pageSize": page_size}
 

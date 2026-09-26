@@ -1,0 +1,18 @@
+services/agent/src/sourced_analysis.py
+  h_77173abe25c3ff 48-51
+services/agent/src/ulticode_tools.py
+  h_77173abe25c3ff 86-92
+services/agent/tests/test_sourced_analysis.py
+  h_77173abe25c3ff 23-36
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "679542f066df7a00dae955370471b83113ea81ba",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

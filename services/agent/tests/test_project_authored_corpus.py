@@ -107,7 +107,7 @@ def test_corpus_text_does_not_attribute_runtime_error_to_a_cause() -> None:
     assert "不指向任何具体原因" in text
     assert "常见原因是程序异常退出或超时" not in text
     # Never claim an unverified mapping as fact.
-    assert "都不能据此推断评测框架或信封层的失败" in text
+    assert "不能据此推断评测框架或信封层的失败" in text
 
 
 def test_project_authored_corpus_fails_closed_on_a_manifest_gap(monkeypatch, tmp_path) -> None:

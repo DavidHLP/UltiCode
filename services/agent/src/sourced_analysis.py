@@ -43,12 +43,11 @@ def _fact_text(value: object, *, name: str, max_length: int) -> str:
     return value
 
 
-def analyze_submission(submission: dict[str, object], question: str) -> dict[str, object]:
-    """Return facts, hypotheses, citations, and per-citation integrity checks.
+def validate_submission_facts(submission: dict[str, object]) -> tuple[str, str]:
+    """Return the (id, status) pair after boundary validation.
 
-    ``citation_checks`` records whether each citation is traceable to its source
-    document. A ``verified`` verdict means the citation and its text come from
-    the recorded source; it does not mean the fragment supports the conclusion.
+    A blank status would otherwise match every retrieved fragment when used as a
+    substring filter, so validation happens before any fact is built.
     """
     if not isinstance(submission, dict):
         raise ValueError("invalid submission facts")
@@ -56,6 +55,17 @@ def analyze_submission(submission: dict[str, object], question: str) -> dict[str
     status = _fact_text(submission.get("status"), name="status", max_length=64)
     if status not in _ALLOWED_STATUSES:
         raise ValueError("invalid submission facts")
+    return submission_id, status
+
+
+def analyze_submission(submission: dict[str, object], question: str) -> dict[str, object]:
+    """Return facts, hypotheses, citations, and per-citation integrity checks.
+
+    ``citation_checks`` records whether each citation is traceable to its source
+    document. A ``verified`` verdict means the citation and its text come from
+    the recorded source; it does not mean the fragment supports the conclusion.
+    """
+    submission_id, status = validate_submission_facts(submission)
     facts = [f"提交 {submission_id} 的状态是 {status}。"]
     normalized_status = status.casefold()
     hits = tuple(

@@ -345,3 +345,63 @@ def test_usage_is_reported_even_when_decide_raises(monkeypatch, capsys) -> None:
 
     output = capsys.readouterr().out
     assert "E2E SOURCED MODEL USAGE | calls=1 total_tokens=15" in output
+
+
+def test_unreported_usage_is_printed_as_unknown_not_zero(monkeypatch, capsys) -> None:
+    smoke = module
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "placeholder-not-a-real-key")
+    monkeypatch.setenv("ULTICODE_E2E_USERNAME", "tester")
+    monkeypatch.setenv("ULTICODE_E2E_PASSWORD", "pw")
+
+    class _UnreportedModel:
+        def __init__(self, *_args: object, **_kwargs: object) -> None:
+            self.usage: list[dict[str, int | None]] = [
+                {"prompt_tokens": None, "completion_tokens": None, "total_tokens": None}
+            ]
+
+        async def __aenter__(self) -> "_UnreportedModel":
+            return self
+
+        async def __aexit__(self, *_args: object) -> None:
+            return None
+
+        async def decide(self, _messages: list[dict[str, object]]) -> object:
+            raise RuntimeError("stop after billing")
+
+    class _Client:
+        def __init__(self, *_args: object, **_kwargs: object) -> None:
+            pass
+
+        async def __aenter__(self) -> "_Client":
+            return self
+
+        async def __aexit__(self, *_args: object) -> None:
+            return None
+
+        async def login(self, *_args: object) -> None:
+            return None
+
+    async def _first(_tools: object) -> dict[str, object]:
+        return {"id": "sub-1", "status": "Wrong Answer"}
+
+    monkeypatch.setattr(smoke, "DeepseekModel", _UnreportedModel)
+    monkeypatch.setattr(smoke, "UlticodeClient", _Client)
+    monkeypatch.setattr(smoke, "build_tools", lambda _client: {})
+    monkeypatch.setattr(smoke, "first_wrong_answer_submission", _first)
+    monkeypatch.setattr(
+        smoke,
+        "analyze_submission",
+        lambda *_a, **_k: {
+            "facts": ["f"],
+            "hypotheses": ["h"],
+            "citations": [{"chunk_id": "c"}],
+            "citation_checks": [{"chunk_id": "c", "verdict": "verified", "detail": ""}],
+        },
+    )
+
+    with pytest.raises(RuntimeError):
+        asyncio.run(smoke.main())
+
+    output = capsys.readouterr().out
+    assert "total_tokens=unknown" in output
+    assert "total_tokens=0" not in output

@@ -120,7 +120,7 @@ def test_token_usage_is_recorded_for_cost_accounting() -> None:
     asyncio.run(scenario())
 
 
-def test_missing_usage_is_reported_as_zero_not_guessed() -> None:
+def test_missing_usage_is_reported_as_unknown_not_zero() -> None:
     captured: list[httpx.Request] = []
 
     async def scenario() -> None:
@@ -129,13 +129,13 @@ def test_missing_usage_is_reported_as_zero_not_guessed() -> None:
         ) as model:
             await model.decide([{"role": "user", "content": "a"}])
             assert model.usage == [
-                {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
+                {"prompt_tokens": None, "completion_tokens": None, "total_tokens": None}
             ]
 
     asyncio.run(scenario())
 
 
-def test_broken_usage_values_are_treated_as_zero() -> None:
+def test_broken_usage_values_are_treated_as_unknown() -> None:
     captured: list[httpx.Request] = []
     broken = {"prompt_tokens": -5, "completion_tokens": True, "total_tokens": "9"}
 
@@ -147,7 +147,7 @@ def test_broken_usage_values_are_treated_as_zero() -> None:
         ) as model:
             await model.decide([{"role": "user", "content": "a"}])
             assert model.usage == [
-                {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
+                {"prompt_tokens": None, "completion_tokens": None, "total_tokens": None}
             ]
 
     asyncio.run(scenario())

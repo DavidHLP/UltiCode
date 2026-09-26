@@ -98,12 +98,22 @@ def _validate_answer(answer: str, evidence: dict[str, object]) -> None:
 
 
 def _report_usage(model: object) -> None:
-    """Emit token accounting. Values only; no prompt, answer, or token content."""
+    """Emit token accounting. Values only; no prompt, answer, or token content.
+
+    An unreported block prints ``unknown`` rather than 0: the call was sent and
+    may have been billed, so a zero would be a false claim about cost.
+    """
     usage = getattr(model, "usage", None) or []
     if not usage:
         return
-    total = sum(entry.get("total_tokens", 0) for entry in usage)
-    print(f"E2E SOURCED MODEL USAGE | calls={len(usage)} total_tokens={total}")
+    totals = [entry.get("total_tokens") for entry in usage]
+    if any(total is None for total in totals):
+        print(
+            f"E2E SOURCED MODEL USAGE | calls={len(usage)} total_tokens=unknown "
+            "reason=provider_did_not_report_usage"
+        )
+        return
+    print(f"E2E SOURCED MODEL USAGE | calls={len(usage)} total_tokens={sum(totals)}")
 
 
 async def main() -> int:
@@ -129,12 +139,14 @@ async def main() -> int:
         # Fail closed without trusting the shape: a missing or short check list
         # is as disqualifying as a failed one.
         checks = list(result.get("citation_checks") or [])  # type: ignore[union-attr]
+        cited = sorted(str(c.get("chunk_id")) for c in result["citations"])  # type: ignore[union-attr]
+        checked = sorted(str(c.get("chunk_id")) for c in checks)
         unverified = [
             check
             for check in checks
             if not isinstance(check, dict) or check.get("verdict") != "verified"
         ]
-        if unverified or len(checks) != len(result["citations"]):
+        if unverified or checked != cited:
             print("E2E SOURCED MODEL FAIL | reason=unverifiable_citation")
             return 1
         evidence_payload = {

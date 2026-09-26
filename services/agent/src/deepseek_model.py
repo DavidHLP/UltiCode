@@ -91,7 +91,9 @@ class DeepseekModel:
         self._max_prompt_tokens = max_prompt_tokens
         self._max_calls = max_calls
         self.calls_made = 0
-        self.usage: list[dict[str, int]] = []
+        # Each entry's token counts may be None when the provider did not report
+        # usage; that is recorded as unknown, never as zero.
+        self.usage: list[dict[str, int | None]] = []
         self._model = model
         if tool_specs:
             lines = "\n".join(
@@ -213,15 +215,27 @@ def _parse_decision(content: str) -> ModelDecision:
     raise ModelProtocolError("model decision schema was malformed")
 
 
-def _usage_of(payload: dict[str, object]) -> dict[str, int]:
-    """Token accounting kept as metadata; it never changes the decision protocol."""
+def _usage_of(payload: dict[str, object]) -> dict[str, int | None]:
+    """Token accounting kept as metadata; it never changes the decision protocol.
+
+    A missing or malformed ``usage`` block means the accounting is *unknown*,
+    which is not the same as zero: the call was still sent and may have been
+    billed. Unknown values stay ``None`` so the caller cannot mistake silence for
+    free usage.
+    """
     usage = payload.get("usage")
     if not isinstance(usage, dict):
-        return {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
+        return {
+            "prompt_tokens": None,
+            "completion_tokens": None,
+            "total_tokens": None,
+        }
 
-    def count(key: str) -> int:
+    def count(key: str) -> int | None:
         value = usage.get(key)
-        return value if isinstance(value, int) and not isinstance(value, bool) and value >= 0 else 0
+        if isinstance(value, int) and not isinstance(value, bool) and value >= 0:
+            return value
+        return None
 
     return {
         "prompt_tokens": count("prompt_tokens"),

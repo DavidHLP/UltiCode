@@ -72,12 +72,16 @@ def answer_with_project_evidence(question: str, submission: dict[str, str]) -> d
     verifies against the authorised corpus.
     """
     from citation_integrity import all_verified, check_citations
+    from sourced_analysis import validate_submission_facts
 
-    facts = [f"提交 {submission['id']} 的状态是 {submission['status']}。"]
+    # Same boundary validation as the main path: a blank status is a substring of
+    # every fragment, so filtering on it would cite everything.
+    submission_id, status = validate_submission_facts(dict(submission))
+    facts = [f"提交 {submission_id} 的状态是 {status}。"]
     hits = tuple(
         hit
         for hit in search_project_corpus(question)
-        if submission["status"].casefold() in hit.text.casefold()
+        if status.casefold() in hit.text.casefold()
     )
     if not hits:
         return {

@@ -31,7 +31,7 @@
   },
   "dependencies": {
     "clsx": "^2.1.1",
-    "lucide-vue-next": "^0.552.0",
+    "lucide-vue-next": "^1.0.0",
     "tailwind-merge": "^3.6.0"
   },
   "devDependencies": {

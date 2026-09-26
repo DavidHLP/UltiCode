@@ -1,0 +1,16 @@
+services/agent/e2e_sourced_analysis_model.py
+  h_77173abe25c3ff 28-30,57,64-65,86-90
+services/agent/tests/test_e2e_sourced_analysis_model.py
+  h_77173abe25c3ff 62
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c8be8928a0bd5a732a9b129748a91bcbf61c2e33",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

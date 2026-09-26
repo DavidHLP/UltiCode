@@ -1,14 +1,24 @@
-"""Deterministic keyword retrieval evaluation for the U02 development slice."""
+"""Deterministic keyword retrieval evaluation for the U02 development slice.
+
+Besides the pass/miss summary, every case produces a record covering the
+dimensions the DAV-45 acceptance list asks for: retrieval hit, citation
+traceability, task completion, clarify/refuse behaviour, tool calls and elapsed
+time. Citation *semantics* are deliberately not judged here — whether a
+fragment supports a conclusion needs the model or human pass tracked in DAV-58,
+so this module only proves every returned hit is traceable to a document.
+"""
 
 from __future__ import annotations
 
 import json
+import time
 from dataclasses import dataclass
 from pathlib import Path
 
-from retrieval import keyword_search
+from retrieval import SourceHit, keyword_search
 
 _CASES_PATH = Path(__file__).resolve().parents[1] / "data" / "keyword_cases.json"
+EXPECTED_BEHAVIORS = frozenset({"cite", "no_evidence", "refuse"})
 
 
 @dataclass(frozen=True)
@@ -17,6 +27,25 @@ class KeywordCase:
     split: str
     query: str
     expected_doc_ids: tuple[str, ...]
+    answerable: bool
+    expected_behavior: str
+
+
+@dataclass(frozen=True)
+class CaseRecord:
+    """One evaluated case. ``tool_calls`` counts retrieval calls only."""
+
+    case_id: str
+    split: str
+    retrieval_hit: bool
+    citation_traceable: bool
+    task_completion: str
+    expected_behavior: str
+    observed_behavior: str
+    fabrication_risk: bool
+    unexpected_doc_ids: tuple[str, ...]
+    tool_calls: int
+    elapsed_ms: int
 
 
 def load_cases(path: Path | None = None) -> tuple[KeywordCase, ...]:
@@ -32,6 +61,8 @@ def load_cases(path: Path | None = None) -> tuple[KeywordCase, ...]:
         split = raw_case.get("split")
         query = raw_case.get("query")
         expected_doc_ids = raw_case.get("expected_doc_ids")
+        answerable = raw_case.get("answerable")
+        expected_behavior = raw_case.get("expected_behavior")
         if (
             not isinstance(case_id, str)
             or not case_id
@@ -40,6 +71,8 @@ def load_cases(path: Path | None = None) -> tuple[KeywordCase, ...]:
             or not query.strip()
             or not isinstance(expected_doc_ids, list)
             or not all(isinstance(doc_id, str) and doc_id for doc_id in expected_doc_ids)
+            or not isinstance(answerable, bool)
+            or expected_behavior not in EXPECTED_BEHAVIORS
         ):
             raise ValueError("invalid keyword case")
         cases.append(
@@ -48,9 +81,102 @@ def load_cases(path: Path | None = None) -> tuple[KeywordCase, ...]:
                 split=split,
                 query=query,
                 expected_doc_ids=tuple(expected_doc_ids),
+                answerable=answerable,
+                expected_behavior=expected_behavior,
             )
         )
     return tuple(cases)
+
+
+def _citation_traceable(hits: tuple[SourceHit, ...]) -> bool:
+    return all(
+        hit.doc_id
+        and hit.version
+        and hit.chunk_id
+        and hit.source_path
+        and hit.source_position
+        and hit.access_scope
+        for hit in hits
+    )
+
+
+def _completion(expected: set[str], actual: set[str]) -> str:
+    if not expected:
+        return "false_positive" if actual else "matched"
+    if not expected <= actual:
+        return "missed"
+    return "matched" if actual == expected else "extra_hits"
+
+
+def evaluate_case_records(
+    cases: tuple[KeywordCase, ...], *, limit: int
+) -> tuple[CaseRecord, ...]:
+    records: list[CaseRecord] = []
+    for case in cases:
+        started = time.perf_counter()
+        hits = keyword_search(case.query, limit=limit)
+        elapsed_ms = int((time.perf_counter() - started) * 1000)
+        actual_doc_ids = {hit.doc_id for hit in hits}
+        expected_doc_ids = set(case.expected_doc_ids)
+        if case.expected_behavior == "refuse":
+            # The corpus cannot answer this; a returned fragment must not be
+            # mistaken for a supported answer.
+            observed_behavior = "refuse_required"
+            retrieval_hit = bool(actual_doc_ids - expected_doc_ids) is False
+        elif actual_doc_ids:
+            observed_behavior = "answered_with_citation"
+            retrieval_hit = expected_doc_ids <= actual_doc_ids
+        else:
+            observed_behavior = "no_evidence"
+            retrieval_hit = not expected_doc_ids
+        records.append(
+            CaseRecord(
+                case_id=case.case_id,
+                split=case.split,
+                retrieval_hit=retrieval_hit,
+                citation_traceable=_citation_traceable(hits),
+                task_completion=_completion(expected_doc_ids, actual_doc_ids),
+                expected_behavior=case.expected_behavior,
+                observed_behavior=observed_behavior,
+                fabrication_risk=case.expected_behavior == "refuse" and bool(actual_doc_ids),
+                unexpected_doc_ids=tuple(sorted(actual_doc_ids - expected_doc_ids)),
+                tool_calls=1,
+                elapsed_ms=elapsed_ms,
+            )
+        )
+    return tuple(records)
+
+
+def summarize_records(
+    records: tuple[CaseRecord, ...],
+) -> dict[str, dict[str, int]]:
+    summary = {
+        split: {
+            "total": 0,
+            "retrieval_hit": 0,
+            "citation_traceable": 0,
+            "task_matched": 0,
+            "task_extra_hits": 0,
+            "task_missed": 0,
+            "task_false_positive": 0,
+            "refuse_required": 0,
+            "fabrication_risk": 0,
+            "tool_calls": 0,
+            "elapsed_ms": 0,
+        }
+        for split in ("development", "holdout")
+    }
+    for record in records:
+        bucket = summary[record.split]
+        bucket["total"] += 1
+        bucket["retrieval_hit"] += record.retrieval_hit
+        bucket["citation_traceable"] += record.citation_traceable
+        bucket[f"task_{record.task_completion}"] += 1
+        bucket["refuse_required"] += record.observed_behavior == "refuse_required"
+        bucket["fabrication_risk"] += record.fabrication_risk
+        bucket["tool_calls"] += record.tool_calls
+        bucket["elapsed_ms"] += record.elapsed_ms
+    return summary
 
 
 def _evaluate(cases: tuple[KeywordCase, ...], limit: int) -> dict[str, dict[str, int]]:

@@ -62,6 +62,14 @@ the deterministic sample slice only. The executable keyword evaluation is versio
 module; authorized-corpus, vector-retrieval, real-model evaluation, and isolation evidence are
 tracked in the U02 Linear tasks.
 
+`data/keyword_cases.json` annotates every case with `answerable` and `expected_behavior`
+(`cite`, `no_evidence`, or `refuse`), and `src/keyword_evaluation.py` records one entry per case:
+retrieval hit, citation traceability, task completion, expected versus observed behavior,
+tool calls, and elapsed time. `refuse` marks questions the corpus cannot answer — for example
+locating a code line or naming a runtime cause — so a retrieved fragment is never mistaken for
+evidence. Citation *semantics* stay out of this module: whether a fragment supports a conclusion
+requires the model or human pass tracked in DAV-58.
+
 `src/retrieval.py` provides bounded keyword retrieval and source metadata. `src/sourced_analysis.py`
 separates observed submission facts from hypotheses and only cites retrieved fragments. Java services
 remain the authority for identity, ownership, publication, and submission facts. The tool projections

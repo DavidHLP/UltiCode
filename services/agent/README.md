@@ -42,8 +42,10 @@ ULTICODE_E2E_USERNAME=... ULTICODE_E2E_PASSWORD=... DEEPSEEK_API_KEY=... \
 ```
 
 Both sourced-analysis smokes require the authenticated account to have at least one
-`Wrong Answer` submission in the first bounded page; otherwise they exit with a fixed
-`no_wrong_answer_submission` status. The smoke scripts emit only fixed status labels and item
+`Wrong Answer` submission anywhere in its reported pages; otherwise they exit with a fixed
+`no_wrong_answer_submission` status. The scan continues until it finds a match or exhausts the
+owner-reported total, so an account with a long submission history issues one read-only listing
+request per page. The smoke scripts emit only fixed status labels and item
 counts. They do not print response bodies, cookie names or values, tokens, submission source,
 usernames, roles, tool names, source text, or model answer content.
 ## U02 boundary

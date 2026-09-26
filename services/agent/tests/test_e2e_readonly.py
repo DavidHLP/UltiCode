@@ -107,6 +107,7 @@ def test_readonly_smoke_rejects_invalid_problem_detail(detail, monkeypatch, caps
         ({"items": [], "total": 0, "page": 1, "pageSize": 3}, "no_problem_to_inspect"),
         ({"items": [{"id": 7}], "total": 1, "page": True, "pageSize": 3}, "problem_listing_contract"),
         ({"items": [{"id": 7}], "total": 1, "page": 1, "pageSize": True}, "problem_listing_contract"),
+        ({"items": [{"id": 7}], "total": 0, "page": 1, "pageSize": 3}, "problem_listing_contract"),
     ],
 )
 def test_readonly_smoke_rejects_malformed_problem_listing(

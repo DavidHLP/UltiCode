@@ -18,7 +18,7 @@
   },
   "dependencies": {
     "@mdit/plugin-katex": "^1.1.1",
-    "dompurify": "^3.4.5",
+    "dompurify": "^3.4.15",
     "highlight.js": "^11.11.1",
     "markdown-it": "^15.0.2"
   },

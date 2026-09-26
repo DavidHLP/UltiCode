@@ -140,3 +140,37 @@ def test_rejected_protocol_still_never_echoes_content() -> None:
             assert "SECRET" not in str(error.value)
 
     asyncio.run(scenario())
+
+
+def test_billed_malformed_response_is_still_accounted() -> None:
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"choices": [], "usage": dict(_USAGE)})
+
+    async def scenario() -> None:
+        async with DeepseekModel(
+            "key", tool_specs={}, transport=httpx.MockTransport(handler)
+        ) as model:
+            with pytest.raises(ModelProtocolError):
+                await model.decide([{"role": "user", "content": "a"}])
+            # The provider billed this call; the cost record must survive the
+            # protocol error, otherwise the spend is invisible exactly when
+            # something already went wrong.
+            assert model.usage == [dict(_USAGE)]
+            assert model.calls_made == 1
+
+    asyncio.run(scenario())
+
+
+def test_non_dict_response_is_not_accounted_as_usage() -> None:
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json=["not", "an", "object"])
+
+    async def scenario() -> None:
+        async with DeepseekModel(
+            "key", tool_specs={}, transport=httpx.MockTransport(handler)
+        ) as model:
+            with pytest.raises(ModelProtocolError):
+                await model.decide([{"role": "user", "content": "a"}])
+            assert model.usage == []
+
+    asyncio.run(scenario())

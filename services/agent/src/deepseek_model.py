@@ -155,6 +155,9 @@ class DeepseekModel:
             raise ModelProtocolError("model response was not JSON") from exc
         if not isinstance(payload, dict):
             raise ModelProtocolError("model response was not an object")
+        # A billed response must be accounted for even when the protocol is
+        # malformed, so usage is recorded before any structural validation.
+        self.usage.append(_usage_of(payload))
         choices = payload.get("choices")
         if not isinstance(choices, list) or not choices or not isinstance(choices[0], dict):
             raise ModelProtocolError("model response choices were malformed")
@@ -162,7 +165,6 @@ class DeepseekModel:
         if not isinstance(message, dict) or not isinstance(message.get("content"), str):
             raise ModelProtocolError("model response message was malformed")
         content = message["content"].strip()
-        self.usage.append(_usage_of(payload))
 
         return _parse_decision(content)
 

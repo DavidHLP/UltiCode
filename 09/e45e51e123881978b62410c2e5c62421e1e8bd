@@ -1,0 +1,18 @@
+services/agent/src/citation_review.py
+  h_77173abe25c3ff 9-20,29-30,44-45,48,53-57,59-65,67-69,72-73,76-79,82,84-91,95,107-108,111,142-145,159,166-167,172-176
+services/agent/tests/test_citation_review.py
+  h_77173abe25c3ff 13-18,22-24,27-33,42,51-114,116-118,126,130,140,143,150,159-173,177,183,185,187
+services/agent/tests/test_project_authored_corpus.py
+  h_77173abe25c3ff 110
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "09e45e51e123881978b62410c2e5c62421e1e8bd",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

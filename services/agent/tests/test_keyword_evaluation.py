@@ -25,9 +25,9 @@ def test_dataset_keeps_development_and_holdout_separate() -> None:
 def test_every_case_declares_evidence_and_behaviour_annotations() -> None:
     cases = load_cases()
 
-    assert [case.expected_behavior for case in cases].count("cite") == 25
-    assert [case.expected_behavior for case in cases].count("no_evidence") == 3
-    assert [case.expected_behavior for case in cases].count("refuse") == 2
+    assert [case.expected_behavior for case in cases].count("cite") == 33
+    assert [case.expected_behavior for case in cases].count("no_evidence") == 4
+    assert [case.expected_behavior for case in cases].count("refuse") == 3
     for case in cases:
         # A `no_evidence` case must require nothing; an empty list is the point.
         assert bool(case.required_evidence) == (case.expected_behavior != "no_evidence")
@@ -43,12 +43,13 @@ def test_refuse_cases_forbid_their_own_specific_claim() -> None:
         if case.expected_behavior == "refuse"
     }
 
-    assert set(refuse_rules) == {"dev-10", "holdout-08"}
+    assert set(refuse_rules) == {"dev-10", "holdout-08", "h2-10"}
     # A shared rule would collapse "locate the code line" and "name the runtime
     # cause" into one indistinguishable expectation.
-    assert len(set(refuse_rules.values())) == 2
+    assert len(set(refuse_rules.values())) == 3
     assert "code line" in refuse_rules["dev-10"]
     assert "runtime cause" in refuse_rules["holdout-08"]
+    assert "failing line" in refuse_rules["h2-10"]
 
 
 def test_records_cover_every_required_dimension() -> None:
@@ -102,8 +103,8 @@ def test_refuse_cases_never_report_an_answer_behaviour() -> None:
         case_id for case_id, case in cases.items() if case.expected_behavior == "refuse"
     ]
 
-    assert len(refuse_ids) == 2
-    assert {cases[case_id].split for case_id in refuse_ids} == {"development", "holdout"}
+    assert len(refuse_ids) == 3
+    assert {cases[case_id].split for case_id in refuse_ids} == set(SPLITS)
     for case_id in refuse_ids:
         record = records[case_id]
         hits = keyword_search(cases[case_id].query, limit=3)

@@ -403,6 +403,86 @@ def test_submission_listing_accepts_empty_page_beyond_total(
         assert result == {"items": [], "total": 0, "page": 2, "pageSize": 5}
 
     asyncio.run(scenario())
+@pytest.mark.parametrize("tool_name,arguments", [
+    ("get_my_submissions", {}),
+    ("get_problem_submissions", {"problemId": 7}),
+])
+def test_submission_listing_rejects_underfilled_non_final_page(
+    tool_name: str, arguments: dict[str, object]
+) -> None:
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "code": 0,
+                "message": "success",
+                "data": {
+                    "items": [
+                        {
+                            "id": "11111111-1111-4111-8111-111111111111",
+                            "problemId": 7,
+                            "language": "java",
+                            "status": "Accepted",
+                            "createdAt": "2026-09-24T00:00:00",
+                        }
+                    ],
+                    "total": 100,
+                    "page": 1,
+                    "pageSize": 5,
+                },
+            },
+        )
+
+    async def scenario() -> None:
+        async with UlticodeClient(
+            "https://app.test", "https://auth.test", transport=httpx.MockTransport(handler)
+        ) as client:
+            with pytest.raises(ValueError, match="invalid tool response"):
+                await build_tools(client)[tool_name](arguments)
+
+    asyncio.run(scenario())
+
+
+@pytest.mark.parametrize("tool_name,arguments", [
+    ("get_my_submissions", {"page": 2}),
+    ("get_problem_submissions", {"problemId": 7, "page": 2}),
+])
+def test_submission_listing_accepts_underfilled_final_page(
+    tool_name: str, arguments: dict[str, object]
+) -> None:
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "code": 0,
+                "message": "success",
+                "data": {
+                    "items": [
+                        {
+                            "id": "11111111-1111-4111-8111-111111111111",
+                            "problemId": 7,
+                            "language": "java",
+                            "status": "Accepted",
+                            "createdAt": "2026-09-24T00:00:00",
+                        }
+                    ],
+                    "total": 6,
+                    "page": 2,
+                    "pageSize": 5,
+                },
+            },
+        )
+
+    async def scenario() -> None:
+        async with UlticodeClient(
+            "https://app.test", "https://auth.test", transport=httpx.MockTransport(handler)
+        ) as client:
+            result = await build_tools(client)[tool_name](arguments)
+
+        assert result["items"] and result["total"] == 6
+
+    asyncio.run(scenario())
+
 
 
 

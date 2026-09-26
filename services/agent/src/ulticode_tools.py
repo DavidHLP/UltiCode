@@ -163,6 +163,8 @@ def build_tools(client: UlticodeClient) -> dict[str, object]:
             items and total < offset_total + len(items)
         ):
             raise ValueError("invalid tool response")
+        if len(items) != min(page_size, max(total - offset_total, 0)):
+            raise ValueError("invalid tool response")
         if response_page != page or response_page_size != page_size:
             raise ValueError("invalid tool response")
         return {
@@ -209,6 +211,8 @@ def build_tools(client: UlticodeClient) -> dict[str, object]:
         if (not items and total > offset_total) or (
             items and total < offset_total + len(items)
         ):
+            raise ValueError("invalid tool response")
+        if len(items) != min(page_size, max(total - offset_total, 0)):
             raise ValueError("invalid tool response")
         if response_page != page or response_page_size != page_size:
             raise ValueError("invalid tool response")

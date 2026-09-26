@@ -111,8 +111,12 @@ class DeepseekModel:
         if response.status_code != 200:
             raise RuntimeError(f"deepseek http={response.status_code}")
         try:
-            payload = response.json()
-        except ValueError as exc:
+            payload = json.loads(
+                response.content,
+                parse_constant=_reject_json_constant,
+                object_pairs_hook=_reject_duplicate_keys,
+            )
+        except (json.JSONDecodeError, ValueError) as exc:
             raise ModelProtocolError("model response was not JSON") from exc
         if not isinstance(payload, dict):
             raise ModelProtocolError("model response was not an object")

@@ -35,6 +35,30 @@ def test_malformed_success_response_is_rejected_without_echoing_content(
 
 
 @pytest.mark.parametrize(
+    "body",
+    [
+        '{"choices":[],"choices":[{"message":{"content":"{\\"answer\\":\\"SECRET\\"}"}}]}',
+        '{"choices":[{"message":{"content":"{\\"answer\\":\\"SECRET\\"}"}}],"choices":[]}',
+    ],
+)
+def test_duplicate_keys_in_model_response_are_rejected(body: str) -> None:
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, text=body)
+
+    async def scenario() -> None:
+        async with DeepseekModel(
+            "test-key",
+            tool_specs={"get_problem": "args"},
+            transport=httpx.MockTransport(handler),
+        ) as model:
+            with pytest.raises(ModelProtocolError) as exc_info:
+                await model.decide([{"role": "user", "content": "question"}])
+            assert "SECRET" not in str(exc_info.value)
+
+    asyncio.run(scenario())
+
+
+@pytest.mark.parametrize(
     "content",
     [
         "SECRET malformed response",

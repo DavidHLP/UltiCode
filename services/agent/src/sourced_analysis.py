@@ -70,11 +70,17 @@ async def first_wrong_answer_submission(tools: dict[str, object]) -> dict[str, o
     get_my_submissions = tools["get_my_submissions"]
     seen: set[str] = set()
     page = 1
+    expected_total: int | None = None
     # ponytail: scan length follows the owner-reported total; a dishonest total only
     # costs extra read-only requests, and each page stays projection-validated.
     while True:
         listing = await get_my_submissions({"page": page, "pageSize": 100})
         items = listing["items"]
+        total = listing["total"]
+        if expected_total is None:
+            expected_total = total
+        elif total != expected_total:
+            raise ValueError("submission total changed during scan")
         for item in items:
             submission_id = item["id"]
             if submission_id in seen:
@@ -83,6 +89,6 @@ async def first_wrong_answer_submission(tools: dict[str, object]) -> dict[str, o
         for item in items:
             if item.get("status") == "Wrong Answer":
                 return item
-        if not items or len(seen) >= listing["total"]:
+        if not items or len(seen) >= total:
             return None
         page += 1

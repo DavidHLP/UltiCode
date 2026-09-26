@@ -250,3 +250,36 @@ def test_sourced_analysis_e2e_rejects_duplicate_after_a_match_on_the_same_page(
     with pytest.raises(ValueError, match="duplicate submission id across pages"):
         asyncio.run(e2e_sourced_analysis.main())
     assert "E2E SOURCED ANALYSIS PASS" not in capsys.readouterr().out
+
+
+def test_sourced_analysis_e2e_rejects_total_drift_during_scan(monkeypatch, capsys) -> None:
+    class DriftingTotalClient(FakeClient):
+        async def list_my_submissions(
+            self, *, page: int, page_size: int
+        ) -> dict[str, object]:
+            if page == 1:
+                return {
+                    "items": [
+                        {
+                            **_projected_submission("Accepted"),
+                            "id": f"11111111-1111-4111-8111-{n % 10**12:012d}",
+                        }
+                        for n in range(page_size)
+                    ],
+                    "total": page_size * 2,
+                    "page": page,
+                    "pageSize": page_size,
+                }
+            # The collection shrinks mid-scan; page 3 is never requested, so a
+            # scan that trusts the smaller total reports absence on a real record.
+            return {"items": [], "total": page_size, "page": page, "pageSize": page_size}
+
+    monkeypatch.setenv("ULTICODE_E2E_USERNAME", "tester")
+    monkeypatch.setenv("ULTICODE_E2E_PASSWORD", "pw")
+    monkeypatch.setattr(
+        e2e_sourced_analysis, "UlticodeClient", lambda *a, **k: DriftingTotalClient([])
+    )
+
+    with pytest.raises(ValueError, match="submission total changed during scan"):
+        asyncio.run(e2e_sourced_analysis.main())
+    assert "E2E SOURCED ANALYSIS PASS" not in capsys.readouterr().out

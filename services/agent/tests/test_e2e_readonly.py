@@ -172,9 +172,15 @@ def test_readonly_smoke_rejects_duplicate_problem_ids(monkeypatch, capsys) -> No
         "submission_count": 1,
     }
 
+    detail_calls: list[int] = []
+
     class DuplicateClient(FakeClient):
         async def list_problems(self, *, page: int, page_size: int) -> dict[str, object]:
             return {"items": [problem, problem], "total": 2, "page": page, "pageSize": page_size}
+
+        async def get_problem(self, problem_id: int) -> dict[str, object]:
+            detail_calls.append(problem_id)
+            return await super().get_problem(problem_id)
 
     monkeypatch.setenv("ULTICODE_E2E_USERNAME", "tester")
     monkeypatch.setenv("ULTICODE_E2E_PASSWORD", "pw")
@@ -184,3 +190,4 @@ def test_readonly_smoke_rejects_duplicate_problem_ids(monkeypatch, capsys) -> No
     output = capsys.readouterr().out
     assert "reason=problem_listing_contract" in output
     assert "E2E READ-ONLY PASS" not in output
+    assert detail_calls == []

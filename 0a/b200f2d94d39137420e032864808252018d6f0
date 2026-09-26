@@ -1,0 +1,30 @@
+services/agent/corpus_authorized/answering-without-evidence.md
+  h_77173abe25c3ff 1-7
+services/agent/corpus_authorized/citation-provenance-fields.md
+  h_77173abe25c3ff 1-7
+services/agent/corpus_authorized/judging-status-semantics.md
+  h_77173abe25c3ff 1-9
+services/agent/corpus_authorized/readonly-retrieval-boundaries.md
+  h_77173abe25c3ff 1-7
+services/agent/corpus_authorized/submission-projection.md
+  h_77173abe25c3ff 1-8
+services/agent/data/authorized_manifest.json
+  h_77173abe25c3ff 1-7
+services/agent/src/authorized_corpus.py
+  h_77173abe25c3ff 1-98
+services/agent/src/retrieval.py
+  h_77173abe25c3ff 97-108,117
+services/agent/tests/test_authorized_corpus.py
+  h_77173abe25c3ff 1-104
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0ab200f2d94d39137420e032864808252018d6f0",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

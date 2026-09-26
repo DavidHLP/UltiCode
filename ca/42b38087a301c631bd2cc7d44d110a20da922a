@@ -1,0 +1,16 @@
+services/agent/src/citation_integrity.py
+  h_77173abe25c3ff 43-46,88,90-92
+services/agent/tests/test_vector_search.py
+  h_77173abe25c3ff 26,28,40-43,51,58-66,136-171
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ca42b38087a301c631bd2cc7d44d110a20da922a",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

@@ -65,6 +65,7 @@ def analyze_submission(submission: dict[str, object], question: str) -> dict[str
     }
 
 
+async def first_wrong_answer_submission(tools: dict[str, object]) -> dict[str, object] | None:
     """Return the first Wrong Answer submission in owner page order, scanning every reported page."""
     get_my_submissions = tools["get_my_submissions"]
     collected = 0

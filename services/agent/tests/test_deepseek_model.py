@@ -69,6 +69,8 @@ def test_invalid_decision_protocol_is_rejected_without_content(
             assert "SECRET" not in str(exc_info.value)
             assert content not in str(exc_info.value)
 
+    asyncio.run(scenario())
+
 
 def test_answer_only_mode_keeps_untrusted_evidence_rule() -> None:
     seen_system = ""

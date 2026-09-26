@@ -16,6 +16,12 @@ def test_sourced_analysis_separates_fact_hypothesis_and_citations() -> None:
     assert result["citations"]
     assert all(citation["sample_kind"] == "synthetic" for citation in result["citations"])
     assert all(citation["source_trust"] == "untrusted-data" for citation in result["citations"])
+    # The evidence handed to the model is integrity-checked before use.
+    assert result["citation_checks"]
+    assert all(check["verdict"] == "verified" for check in result["citation_checks"])
+    assert {check["chunk_id"] for check in result["citation_checks"]} == {
+        citation["chunk_id"] for citation in result["citations"]
+    }
     assert result["hypotheses"]
     assert "源码" in result["hypotheses"][0]
 
@@ -47,6 +53,7 @@ def test_sourced_analysis_does_not_attach_wrong_answer_source_to_other_status() 
 
     assert result["facts"] == ["提交 sub-2 的状态是 Pending。"]
     assert result["citations"] == []
+    assert result["citation_checks"] == []
     assert result["hypotheses"] == ["当前没有检索到授权资料，不能据此提出具体诊断。"]
 
 
@@ -63,6 +70,7 @@ def test_sourced_analysis_refuses_to_invent_evidence() -> None:
 
     assert result["facts"] == ["提交 sub-3 的状态是 Accepted。"]
     assert result["citations"] == []
+    assert result["citation_checks"] == []
     assert result["hypotheses"] == ["当前没有检索到授权资料，不能据此提出具体诊断。"]
 
 

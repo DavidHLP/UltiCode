@@ -5,7 +5,8 @@ from __future__ import annotations
 import re
 import unicodedata
 
-from retrieval import keyword_search
+from citation_integrity import check_citations
+from retrieval import keyword_search, load_sample_corpus
 
 
 _ALLOWED_STATUSES = {
@@ -23,6 +24,11 @@ _ALLOWED_STATUSES = {
     "System Error",
 }
 
+_NO_EVIDENCE_HYPOTHESIS = "当前没有检索到授权资料，不能据此提出具体诊断。"
+_METADATA_ONLY_HYPOTHESIS = (
+    "当前只有提交状态，没有源码或失败用例；不能据此定位具体代码行、复现失败输入或断言运行结果。"
+)
+
 
 def _fact_text(value: object, *, name: str, max_length: int) -> str:
     if not isinstance(value, str) or not value.strip() or len(value) > max_length:
@@ -37,13 +43,29 @@ def _fact_text(value: object, *, name: str, max_length: int) -> str:
     return value
 
 
-def analyze_submission(submission: dict[str, object], question: str) -> dict[str, object]:
+def validate_submission_facts(submission: dict[str, object]) -> tuple[str, str]:
+    """Return the (id, status) pair after boundary validation.
+
+    A blank status would otherwise match every retrieved fragment when used as a
+    substring filter, so validation happens before any fact is built.
+    """
     if not isinstance(submission, dict):
         raise ValueError("invalid submission facts")
     submission_id = _fact_text(submission.get("id"), name="id", max_length=40)
     status = _fact_text(submission.get("status"), name="status", max_length=64)
     if status not in _ALLOWED_STATUSES:
         raise ValueError("invalid submission facts")
+    return submission_id, status
+
+
+def analyze_submission(submission: dict[str, object], question: str) -> dict[str, object]:
+    """Return facts, hypotheses, citations, and per-citation integrity checks.
+
+    ``citation_checks`` records whether each citation is traceable to its source
+    document. A ``verified`` verdict means the citation and its text come from
+    the recorded source; it does not mean the fragment supports the conclusion.
+    """
+    submission_id, status = validate_submission_facts(submission)
     facts = [f"提交 {submission_id} 的状态是 {status}。"]
     normalized_status = status.casefold()
     hits = tuple(
@@ -52,16 +74,20 @@ def analyze_submission(submission: dict[str, object], question: str) -> dict[str
     if not hits:
         return {
             "facts": facts,
-            "hypotheses": ["当前没有检索到授权资料，不能据此提出具体诊断。"],
+            "hypotheses": [_NO_EVIDENCE_HYPOTHESIS],
             "citations": [],
+            "citation_checks": [],
         }
 
+    citations = [hit.as_model_dict() for hit in hits]
     return {
         "facts": facts,
-        "hypotheses": [
-            "当前只有提交状态，没有源码或失败用例；不能据此定位具体代码行、复现失败输入或断言运行结果。",
+        "hypotheses": [_METADATA_ONLY_HYPOTHESIS],
+        "citations": citations,
+        "citation_checks": [
+            {"chunk_id": check.chunk_id, "verdict": check.verdict, "detail": check.detail}
+            for check in check_citations(citations, load_sample_corpus())
         ],
-        "citations": [hit.as_model_dict() for hit in hits],
     }
 
 

@@ -84,7 +84,11 @@ async def main() -> int:
 
         tools = {name: track(name, handler) for name, handler in raw_tools.items()}
         async with DeepseekModel(
-            os.environ["DEEPSEEK_API_KEY"], tool_specs=TOOL_SPECS
+            os.environ["DEEPSEEK_API_KEY"],
+            tool_specs=TOOL_SPECS,
+            # Priced explicitly: the adapter's legacy default is not on the
+            # current DeepSeek price list, so a costed run must name the model.
+            model=os.environ.get("DEEPSEEK_MODEL", "deepseek-flash"),
         ) as model:
             result = await run_tool_loop(
                 model, tools, QUESTION, max_rounds=4, total_timeout=90.0

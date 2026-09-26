@@ -1,5 +1,6 @@
 import asyncio
 import importlib.util
+import json
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -49,6 +50,9 @@ class FakeClient:
 class FakeModel:
     def __init__(self, *args: object, **kwargs: object) -> None:
         self.messages: list[dict[str, object]] = []
+        # The real adapter records token usage; doubles must honour that contract
+        # so the smoke's accounting line is exercised, not skipped.
+        self.usage: list[dict[str, int]] = []
 
     async def __aenter__(self) -> "FakeModel":
         return self
@@ -180,3 +184,224 @@ def test_real_model_smoke_rejects_tool_call_even_with_text(monkeypatch, capsys) 
     assert return_code == 1
     assert "reason=tool_call" in output
     assert "looks complete" not in output
+
+
+def test_model_smoke_fails_closed_without_a_key(monkeypatch, capsys) -> None:
+    smoke = module
+    monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
+
+    assert asyncio.run(smoke.main()) == 1
+    assert "reason=missing_api_key" in capsys.readouterr().out
+
+
+def test_model_smoke_passes_a_one_call_output_cap_by_default(monkeypatch) -> None:
+    """The cap must be visible in the construction, not only in the adapter.
+
+    A live run with the wrong cap is the failure this guards: the request would
+    carry an unbounded output and the loop could repeat.
+    """
+    smoke = module
+    captured: dict[str, object] = {}
+
+    class _CapturingModel:
+        def __init__(self, api_key: str, **kwargs: object) -> None:
+            captured["api_key_present"] = bool(api_key)
+            captured.update(kwargs)
+            self.usage: list[dict[str, int]] = []
+
+        async def __aenter__(self) -> "_CapturingModel":
+            return self
+
+        async def __aexit__(self, *_args: object) -> None:
+            return None
+
+        async def decide(self, _messages: list[dict[str, object]]) -> object:
+            captured["decide_calls"] = int(captured.get("decide_calls", 0)) + 1
+            return type("Decision", (), {"tool_call": None, "text": "{}"})()
+
+    for name in (
+        "DEEPSEEK_MAX_CALLS",
+        "DEEPSEEK_MAX_TOKENS",
+        "DEEPSEEK_MAX_PROMPT_TOKENS",
+        "DEEPSEEK_MODEL",
+    ):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "placeholder-not-a-real-key")
+    monkeypatch.setattr(smoke, "DeepseekModel", _CapturingModel)
+
+    class _Client:
+        def __init__(self, *_args: object, **_kwargs: object) -> None:
+            pass
+
+        async def __aenter__(self) -> "_Client":
+            return self
+
+        async def __aexit__(self, *_args: object) -> None:
+            return None
+
+        async def login(self, *_args: object) -> None:
+            return None
+
+    async def _first(_tools: object) -> dict[str, object]:
+        return {"id": "sub-1", "status": "Wrong Answer"}
+
+    monkeypatch.setattr(smoke, "UlticodeClient", _Client)
+    monkeypatch.setattr(smoke, "build_tools", lambda _client: {})
+    monkeypatch.setattr(smoke, "first_wrong_answer_submission", _first)
+    monkeypatch.setattr(
+        smoke,
+        "analyze_submission",
+        lambda *_a, **_k: {
+            "facts": ["f"],
+            "hypotheses": ["h"],
+            "citations": [{"chunk_id": "c"}],
+            # A successful analysis carries a verified check for its citation.
+            "citation_checks": [{"chunk_id": "c", "verdict": "verified", "detail": ""}],
+        },
+    )
+    monkeypatch.setenv("ULTICODE_E2E_USERNAME", "tester")
+    monkeypatch.setenv("ULTICODE_E2E_PASSWORD", "pw")
+
+    asyncio.run(smoke.main())
+
+    assert captured["max_calls"] == 1
+    assert captured["max_tokens"] == 300
+    assert captured["max_prompt_tokens"] == 24000
+    assert captured["model"] == "deepseek-flash"
+    assert captured["decide_calls"] == 1
+
+
+def test_answer_payload_unwraps_the_evidence_json_from_the_envelope() -> None:
+    inner = '{"facts":["f"],"hypotheses":["h"],"citations":["d"]}'
+    envelope = json.dumps({"answer": inner})
+
+    assert module._answer_payload(envelope) == inner
+    # A bare contract object is passed through unchanged.
+    assert module._answer_payload(inner) == inner
+    # Malformed input is left for the contract validator to reject.
+    assert module._answer_payload("not json") == "not json"
+
+
+def test_usage_is_reported_even_when_decide_raises(monkeypatch, capsys) -> None:
+    """A billed call that fails the protocol must still report its tokens.
+
+    The provider records usage before the response is parsed, so printing it only
+    on the success path loses the exact accounting you need after a failure.
+    """
+    smoke = module
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "placeholder-not-a-real-key")
+    monkeypatch.setenv("ULTICODE_E2E_USERNAME", "tester")
+    monkeypatch.setenv("ULTICODE_E2E_PASSWORD", "pw")
+
+    class _BillingThenFailingModel:
+        def __init__(self, *_args: object, **_kwargs: object) -> None:
+            self.usage: list[dict[str, int]] = []
+
+        async def __aenter__(self) -> "_BillingThenFailingModel":
+            return self
+
+        async def __aexit__(self, *_args: object) -> None:
+            return None
+
+        async def decide(self, _messages: list[dict[str, object]]) -> object:
+            # Usage is recorded by the adapter before parsing the decision.
+            self.usage = [{"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15}]
+            raise RuntimeError("protocol failure after billing")
+
+    class _Client:
+        def __init__(self, *_args: object, **_kwargs: object) -> None:
+            pass
+
+        async def __aenter__(self) -> "_Client":
+            return self
+
+        async def __aexit__(self, *_args: object) -> None:
+            return None
+
+        async def login(self, *_args: object) -> None:
+            return None
+
+    async def _first(_tools: object) -> dict[str, object]:
+        return {"id": "sub-1", "status": "Wrong Answer"}
+
+    monkeypatch.setattr(smoke, "DeepseekModel", _BillingThenFailingModel)
+    monkeypatch.setattr(smoke, "UlticodeClient", _Client)
+    monkeypatch.setattr(smoke, "build_tools", lambda _client: {})
+    monkeypatch.setattr(smoke, "first_wrong_answer_submission", _first)
+    monkeypatch.setattr(
+        smoke,
+        "analyze_submission",
+        lambda *_a, **_k: {
+            "facts": ["f"],
+            "hypotheses": ["h"],
+            "citations": [{"chunk_id": "c"}],
+            # A successful analysis carries a verified check for its citation.
+            "citation_checks": [{"chunk_id": "c", "verdict": "verified", "detail": ""}],
+        },
+    )
+
+    with pytest.raises(RuntimeError):
+        asyncio.run(smoke.main())
+
+    output = capsys.readouterr().out
+    assert "E2E SOURCED MODEL USAGE | calls=1 total_tokens=15" in output
+
+
+def test_unreported_usage_is_printed_as_unknown_not_zero(monkeypatch, capsys) -> None:
+    smoke = module
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "placeholder-not-a-real-key")
+    monkeypatch.setenv("ULTICODE_E2E_USERNAME", "tester")
+    monkeypatch.setenv("ULTICODE_E2E_PASSWORD", "pw")
+
+    class _UnreportedModel:
+        def __init__(self, *_args: object, **_kwargs: object) -> None:
+            self.usage: list[dict[str, int | None]] = [
+                {"prompt_tokens": None, "completion_tokens": None, "total_tokens": None}
+            ]
+
+        async def __aenter__(self) -> "_UnreportedModel":
+            return self
+
+        async def __aexit__(self, *_args: object) -> None:
+            return None
+
+        async def decide(self, _messages: list[dict[str, object]]) -> object:
+            raise RuntimeError("stop after billing")
+
+    class _Client:
+        def __init__(self, *_args: object, **_kwargs: object) -> None:
+            pass
+
+        async def __aenter__(self) -> "_Client":
+            return self
+
+        async def __aexit__(self, *_args: object) -> None:
+            return None
+
+        async def login(self, *_args: object) -> None:
+            return None
+
+    async def _first(_tools: object) -> dict[str, object]:
+        return {"id": "sub-1", "status": "Wrong Answer"}
+
+    monkeypatch.setattr(smoke, "DeepseekModel", _UnreportedModel)
+    monkeypatch.setattr(smoke, "UlticodeClient", _Client)
+    monkeypatch.setattr(smoke, "build_tools", lambda _client: {})
+    monkeypatch.setattr(smoke, "first_wrong_answer_submission", _first)
+    monkeypatch.setattr(
+        smoke,
+        "analyze_submission",
+        lambda *_a, **_k: {
+            "facts": ["f"],
+            "hypotheses": ["h"],
+            "citations": [{"chunk_id": "c"}],
+            "citation_checks": [{"chunk_id": "c", "verdict": "verified", "detail": ""}],
+        },
+    )
+
+    with pytest.raises(RuntimeError):
+        asyncio.run(smoke.main())
+
+    output = capsys.readouterr().out
+    assert "total_tokens=unknown" in output
+    assert "total_tokens=0" not in output

@@ -37,6 +37,18 @@ async def main() -> int:
         if not result["citations"]:
             print("E2E SOURCED ANALYSIS FAIL | reason=no_citation")
             return 1
+        # A missing check must never read as a passing check, and the checks must
+        # correspond one-to-one: a verified check for a different chunk would leave
+        # the cited one unchecked while this still reported success.
+        checks = list(result["citation_checks"])  # type: ignore[arg-type]
+        cited = sorted(str(c.get("chunk_id")) for c in result["citations"])  # type: ignore[union-attr]
+        checked = sorted(str(c.get("chunk_id")) for c in checks)
+        if checked != cited or any(
+            not isinstance(check, dict) or check.get("verdict") != "verified"
+            for check in checks
+        ):
+            print("E2E SOURCED ANALYSIS FAIL | reason=unverifiable_citation")
+            return 1
 
     print(
         f"OK sourced_analysis facts={len(result['facts'])} "

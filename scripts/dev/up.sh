@@ -34,7 +34,8 @@ capture_env_vars MIGRATION_DB_HOST MIGRATION_DB_PORT MIGRATION_DB_NAME MIGRATION
   REDIS_REPLICATION_PASSWORD REDIS_SENTINEL_PASSWORD DUBBO_NAMESPACE \
   REDIS_ACL_DIR REDIS_ACL_FILE \
   APP_NACOS_USERNAME APP_NACOS_PASSWORD SUBMISSION_NACOS_USERNAME SUBMISSION_NACOS_PASSWORD \
-  NOTIFICATION_NACOS_USERNAME NOTIFICATION_NACOS_PASSWORD JUDGE_NACOS_USERNAME JUDGE_NACOS_PASSWORD
+  NOTIFICATION_NACOS_USERNAME NOTIFICATION_NACOS_PASSWORD JUDGE_NACOS_USERNAME JUDGE_NACOS_PASSWORD \
+  DEV_SEED_USERS_ENABLED DEV_SEED_DATA_ENABLED
 
 # ===== 参数解析 =====
 SKIP_INSTALL=false
@@ -920,15 +921,12 @@ for _ in $(seq 1 "$DEVSTACK_SERVICE_READINESS_ATTEMPTS"); do
     if [[ ",$INFRA_TARGETS," == *,nacos,* ]]; then
       echo "  Nacos:                   http://localhost:28848/nacos"
     fi
-    # admin 凭据只在起了后端时显示 (admin 由 dev-admin bootstrap 维护)
+    # 提示管理员已配置但不回显任何凭据：口令进日志就会泄漏到终端历史、CI
+    # 产物与转录里。需要取值时自行读取 .env。
     if [[ ",$PM2_APPS," == *,ulticode-auth,* || ",$PM2_APPS," == *,ulticode-admin,* || ",$PM2_APPS," == *,ulticode-app,* ]] \
       && [[ "$DEV_SEED_USERS_ENABLED" == "true" ]]; then
-      cat <<EOF
-
-Local development administrator:
-  Username: $DEV_SEED_ADMIN_USERNAME
-  Password: $DEV_SEED_ADMIN_PASSWORD
-EOF
+      echo
+      echo "Local development administrator: configured via DEV_SEED_ADMIN_* in .env (values not printed)"
     else
       echo
     fi

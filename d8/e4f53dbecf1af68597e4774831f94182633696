@@ -1,0 +1,20 @@
+services/agent/README.md
+  h_77173abe25c3ff 65-72
+services/agent/data/keyword_cases.json
+  h_77173abe25c3ff 2-31
+services/agent/src/keyword_evaluation.py
+  h_77173abe25c3ff 1-9,14,18,21,30-48,64-65,74-75,84-85,91-181
+services/agent/tests/test_keyword_evaluation.py
+  h_77173abe25c3ff 1-10,21-115
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d8e4f53dbecf1af68597e4774831f94182633696",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

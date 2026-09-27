@@ -195,6 +195,18 @@ def main() -> int:
             f"expected_split={CONFIRMATION_SPLIT}"
         )
         return 1
+    # The selection and continuity stages must be non-empty too: an empty or
+    # drifted split would otherwise be reported as a completed comparison.
+    for name, rows, expected in (
+        ("development", development, "development"),
+        ("contaminated", contaminated, CONTAMINATED_SPLIT),
+    ):
+        if not rows or any(case.split != expected for case in rows):
+            print(
+                f"FAIL reason=split_fixture_invalid split={name} loaded={len(rows)} "
+                f"expected_split={expected}"
+            )
+            return 1
 
     try:
         from qdrant_client import QdrantClient  # noqa: PLC0415 - evaluation-only

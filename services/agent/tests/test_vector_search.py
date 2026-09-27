@@ -426,3 +426,30 @@ def test_a_directory_at_the_marker_path_is_a_configuration_error(tmp_path, monke
 
     with pytest.raises(RuntimeError, match="is a directory"):
         smoke._claim_confirmation_once()
+
+
+def test_an_empty_development_split_is_rejected(monkeypatch, capsys, tmp_path) -> None:
+    """An empty selection stage must not be reported as a completed comparison."""
+    smoke = e2e_vector_comparison
+    empty_dev = tmp_path / "keyword_cases_empty_dev.json"
+    rows = json.loads(
+        (smoke.CONFIRMATION_CASES_PATH.parent / "keyword_cases.json").read_text(encoding="utf-8")
+    )
+    # Keep holdout rows only, so `development` becomes empty.
+    empty_dev.write_text(
+        json.dumps([row for row in rows if row["split"] != "development"]), encoding="utf-8"
+    )
+
+    monkeypatch.setenv("ULTICODE_VECTOR_CONFIRM", "1")
+    monkeypatch.setenv("QDRANT_IMAGE", "qdrant/qdrant@sha256:" + "a" * 64)
+    monkeypatch.setenv("ULTICODE_VECTOR_CONFIRM_MARKER", str(tmp_path / "marker"))
+    monkeypatch.setattr(smoke, "EMBED_MODEL_PATH", str(tmp_path))
+    monkeypatch.setattr(smoke, "_CASES_PATH", empty_dev, raising=False)
+    monkeypatch.setattr(smoke, "load_cases", lambda path=None: tuple(
+        __import__("keyword_evaluation").load_cases(
+            empty_dev if path == smoke.CONFIRMATION_CASES_PATH else empty_dev
+        )
+    ))
+
+    assert smoke.main() == 1
+    assert "split_fixture_invalid" in capsys.readouterr().out

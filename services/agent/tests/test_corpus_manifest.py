@@ -50,8 +50,12 @@ def test_authorization_fields_are_exactly_davs_five() -> None:
         "source_position",
         "model_input_projection",
     )
-    assert set(REQUIRED_FIELDS) == (
-        set(AUTHORIZATION_FIELDS) | set(DOCUMENT_BINDING_FIELDS) | {CONTENT_DIGEST_FIELD}
+    # The DAV-58 authorization contract stays exactly five fields; the content
+    # digest is a document-binding field, not an authorization field.
+    assert CONTENT_DIGEST_FIELD in DOCUMENT_BINDING_FIELDS
+    assert CONTENT_DIGEST_FIELD not in AUTHORIZATION_FIELDS
+    assert set(REQUIRED_FIELDS) == set(AUTHORIZATION_FIELDS) | set(
+        DOCUMENT_BINDING_FIELDS
     )
     assert MANIFEST_PROVENANCE_FIELD == "source_trust"
 

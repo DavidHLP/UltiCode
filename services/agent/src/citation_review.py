@@ -78,6 +78,7 @@ def build_worksheet(
             # Dropping it would let the remaining rows pass a gate that never saw
             # this entry, so the whole worksheet is refused.
             raise VerdictError(f"citation {index} is not an object")
+        chunk_id = str(citation.get("chunk_id", ""))
         if chunk_id in seen_chunks:
             # Two rows sharing a chunk id would collapse into one expected id, so a
             # single verdict could approve a fragment nobody reviewed.
@@ -85,7 +86,6 @@ def build_worksheet(
         seen_chunks.add(chunk_id)
         checks = check_citations([citation], documents)
         verdict = checks[0].verdict if checks else "malformed"
-        chunk_id = str(citation.get("chunk_id", ""))
         document = by_chunk.get(chunk_id)
         # Identity comes from the resolved document, not from the citation.
         doc_id = document.doc_id if document else str(citation.get("doc_id", ""))

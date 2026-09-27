@@ -318,3 +318,19 @@ def test_serialized_worksheet_carries_the_review_id() -> None:
 
     assert {row["review_id"] for row in payload} == {item.review_id for item in items}
     assert all(row["review_id"] for row in payload)
+
+
+def test_review_id_separates_components_that_contain_the_separator() -> None:
+    """A delimiter inside a component must not let two pairs share one id.
+
+    `load_verdicts` recomputes the id from the verdict's own claim and quote, so a
+    collision would apply one row's verdict to a different claim/quote pair.
+    """
+    chunk = "chunk-1"
+
+    first = review_row_id(chunk, "a\0b", "q")
+    second = review_row_id(chunk, "a", "b\0q")
+
+    assert first != second
+    # The prefix is still the chunk id, so rows stay grouped by source.
+    assert first.startswith(f"{chunk}:") and second.startswith(f"{chunk}:")

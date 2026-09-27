@@ -45,8 +45,13 @@ def review_row_id(chunk_id: str, claim: str, quote: str) -> str:
 
     digest = hashlib.sha256()
     for part in (chunk_id, claim, quote):
-        digest.update(part.encode("utf-8"))
-        digest.update(b"\0")
+        encoded = part.encode("utf-8")
+        # Length-prefix each component. NUL is a legal character in a claim or a
+        # corpus quote, so a bare delimiter would let `("a\0b", "q")` and
+        # `("a", "b\0q")` hash to the same id — and `load_verdicts` recomputes the
+        # same collision, applying one row's verdict to the other.
+        digest.update(len(encoded).to_bytes(8, "big"))
+        digest.update(encoded)
     return f"{chunk_id}:{digest.hexdigest()[:16]}"
 
 

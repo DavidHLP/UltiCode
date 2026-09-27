@@ -659,6 +659,52 @@ def test_a_date_only_or_naive_timestamp_is_not_our_claim(tmp_path: Path) -> None
         assert not smoke._is_our_claim_record(marker), stamp
 
 
+def test_selection_rewards_a_correct_refusal() -> None:
+    """The declared behaviour classes must steer the development choice.
+
+    Both arms below match the same citable case; they differ only in whether the
+    `refuse` case's forbidden document is retrieved. Scoring `matched` alone gives
+    them equal development scores, so the risky arm can win the tie-break.
+    """
+    smoke = e2e_vector_comparison
+    from keyword_evaluation import KeywordCase
+
+    citable = KeywordCase(
+        case_id="dev-cite",
+        split="development",
+        query="cite",
+        required_evidence=("sample-status-only",),
+        answerable=True,
+        expected_behavior="cite",
+        allowed_behavior="cite the fragment",
+        forbidden_behavior="claim more",
+    )
+    refuse = KeywordCase(
+        case_id="dev-refuse",
+        split="development",
+        query="refuse",
+        required_evidence=("sample-status-only",),
+        answerable=False,
+        expected_behavior="refuse",
+        allowed_behavior="state the data cannot answer",
+        forbidden_behavior="name a code line",
+    )
+    development = (citable, refuse)
+
+    def clean(query: str, limit: int) -> list[str]:
+        return ["sample-status-only"] if query == "cite" else []
+
+    def risky(query: str, limit: int) -> list[str]:
+        return ["sample-status-only"]
+
+    scores = smoke._score_development(
+        development, (("clean", clean), ("risky", risky))
+    )
+
+    for limit in smoke.CANDIDATE_LIMITS:
+        assert scores[(limit, "clean")] > scores[(limit, "risky")], limit
+
+
 def test_the_canonical_isoformat_timestamp_is_our_claim(tmp_path: Path) -> None:
     """The tightened check must still accept what the harness actually writes."""
     smoke = e2e_vector_comparison

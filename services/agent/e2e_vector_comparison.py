@@ -204,6 +204,34 @@ def _tally(cases: tuple[KeywordCase, ...], retrieve) -> dict[str, int]:
     return tally
 
 
+def _selection_score(counts: dict[str, int]) -> int:
+    """The development score used to pick a limit: behaviour-correct outcomes.
+
+    ``matched`` alone counts only the ``cite`` cases whose required evidence came
+    back. A ``refuse`` case that retrieved nothing is just as correct, and the
+    declared behaviour classes are supposed to steer the choice, so a correct
+    refusal is rewarded here too. A refusal that *did* retrieve its forbidden
+    document stays at zero rather than going negative: the risk is reported
+    through ``refused_with_evidence`` and must not be hidden by a score.
+    """
+    return counts["matched"] + counts["refused_without_evidence"]
+
+
+def _score_development(development, arms) -> dict[tuple[int, str], int]:
+    """Score every (limit, arm) on the development split, reporting each one."""
+    scores: dict[tuple[int, str], int] = {}
+    for limit in CANDIDATE_LIMITS:
+        for arm, retrieve in arms:
+            counts = _tally(development, lambda case: retrieve(case.query, limit))
+            scores[(limit, arm)] = _selection_score(counts)
+            _report(
+                f"stage=select split=development limit={limit} arm={arm}",
+                counts,
+                len(development),
+            )
+    return scores
+
+
 def _corpus_digest(documents: tuple[object, ...]) -> str:
     """Content digest of the captured corpus, so the evidence names it exactly."""
     import hashlib
@@ -377,16 +405,7 @@ def main() -> int:
     arms = (("keyword", keyword), ("vector", vector))
 
     # Step 1: choose the retrieval limit on the development split only.
-    scores: dict[tuple[int, str], int] = {}
-    for limit in CANDIDATE_LIMITS:
-        for arm, retrieve in arms:
-            counts = _tally(development, lambda case: retrieve(case.query, limit))
-            scores[(limit, arm)] = counts["matched"]
-            _report(
-                f"stage=select split=development limit={limit} arm={arm}",
-                counts,
-                len(development),
-            )
+    scores = _score_development(development, arms)
     # Each arm keeps its own development optimum. Picking one joint limit would
     # hand the tuned setting to the winner and evaluate the loser off-peak.
     best: dict[str, int] = {}

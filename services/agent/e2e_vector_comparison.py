@@ -64,8 +64,14 @@ def _consumption_marker() -> Path:
 
     Deliberately outside the checkout: a marker inside the repository is either
     committed or gitignored, and a gitignored one disappears with every fresh
-    clone or ephemeral CI workspace, which would let the confirmation set be
-    evaluated again while still claiming to be never seen.
+    clone, which would let the confirmation set be evaluated again while still
+    claiming to be never seen.
+
+    Scope: the single-use guarantee is **per marker location**, so by default it
+    holds for one workspace on one machine only. Cross-runner or cross-machine
+    use needs ``ULTICODE_VECTOR_CONFIRM_MARKER`` pointed at a shared durable path
+    (a mounted volume or an external store); the run reports which scope it is in
+    so an ephemeral runner cannot silently look like a fresh confirmation.
     """
     override = os.environ.get("ULTICODE_VECTOR_CONFIRM_MARKER")
     if override:
@@ -255,7 +261,11 @@ def main() -> int:
             counts,
             len(confirmation),
         )
-    print(f"stage=confirm note=claim_recorded marker={marker}")
+    scope = "workspace" if not os.environ.get("ULTICODE_VECTOR_CONFIRM_MARKER") else "shared"
+    print(
+        f"stage=confirm note=claim_recorded marker={marker} "
+        f"single_use_scope={scope}"
+    )
 
     print(
         f"OK comparison corpus=agent-authored-synthetic docs={indexed} "

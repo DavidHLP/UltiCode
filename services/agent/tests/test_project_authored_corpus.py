@@ -190,9 +190,12 @@ def test_an_oversized_project_document_is_rejected(tmp_path, monkeypatch) -> Non
 
 def test_unverified_citations_are_withheld_entirely(monkeypatch) -> None:
     """A failed gate must not ship the quote with a false flag."""
+    import citation_integrity
     import project_authored_corpus as module
 
-    real_check = module.check_citations
+    # The helper imports check_citations inside the function, so the seam to patch
+    # is citation_integrity, not the module attribute.
+    real_check = citation_integrity.check_citations
 
     def failing_check(citations, documents):
         checks = real_check(citations, documents)
@@ -203,7 +206,7 @@ def test_unverified_citations_are_withheld_entirely(monkeypatch) -> None:
             for c in checks
         )
 
-    monkeypatch.setattr(module, "check_citations", failing_check)
+    monkeypatch.setattr(citation_integrity, "check_citations", failing_check)
 
     answer = module.answer_with_project_evidence(
         "Wrong Answer 状态说明了什么？", {"id": "sub-1", "status": "Wrong Answer"}

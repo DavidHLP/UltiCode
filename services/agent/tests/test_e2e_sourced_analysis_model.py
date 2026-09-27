@@ -190,6 +190,7 @@ def test_real_model_smoke_rejects_tool_call_even_with_text(monkeypatch, capsys) 
 def test_model_smoke_fails_closed_without_a_key(monkeypatch, capsys) -> None:
     smoke = module
     monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
+    monkeypatch.setenv("DEEPSEEK_MODEL", "test-model")
 
     assert asyncio.run(smoke.main()) == 1
     assert "reason=missing_api_key" in capsys.readouterr().out
@@ -269,7 +270,8 @@ def test_model_smoke_passes_a_one_call_output_cap_by_default(monkeypatch) -> Non
     assert captured["max_calls"] == 1
     assert captured["max_tokens"] == 300
     assert captured["max_prompt_tokens"] == 24000
-    assert captured["model"] == "deepseek-flash"
+    # A billed run names its model; there is no inherited default to assert.
+    assert captured["model"] == "test-model"
     assert captured["decide_calls"] == 1
 
 

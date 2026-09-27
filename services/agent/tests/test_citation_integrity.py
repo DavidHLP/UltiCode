@@ -1,3 +1,4 @@
+import json
 import pytest
 
 from citation_integrity import PROVENANCE_FIELDS, all_verified, check_citations

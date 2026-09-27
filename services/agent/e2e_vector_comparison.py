@@ -35,6 +35,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 import os
+import atexit
 import re
 import sys
 from pathlib import Path
@@ -83,6 +84,51 @@ def _consumption_marker() -> Path:
         os.environ.get("XDG_STATE_HOME", str(Path.home() / ".local" / "state"))
     )
     return state_home / "ulticode" / "holdout-v2.consumed"
+
+
+#: Serialises the whole collection lifecycle of one comparison run.
+RUN_LOCK_ENV = "ULTICODE_VECTOR_RUN_LOCK"
+_DEFAULT_RUN_LOCK_NAME = "holdout-v2.running"
+
+
+def _run_lock_path() -> Path:
+    """Where the run lock lives; ``ULTICODE_VECTOR_RUN_LOCK`` overrides it."""
+    override = os.environ.get(RUN_LOCK_ENV)
+    if override:
+        return Path(override)
+    return _consumption_marker().with_name(_DEFAULT_RUN_LOCK_NAME)
+
+
+def _release_run_lock(lock: Path) -> None:
+    try:
+        lock.unlink()
+    except OSError:
+        pass
+
+
+def _acquire_run_lock() -> Path:
+    """Hold the collection lifecycle, or refuse to start.
+
+    Exclusive creation, so two opted-in runs sharing ``QDRANT_URL`` cannot
+    interleave: without it the loser can rebuild or upsert the collection while
+    the winner is scoring, and the winner then consumes the one-shot set with
+    vectors another run produced. Released on exit, failures included. A killed
+    process leaves the file behind, which fails closed with the path in the
+    message rather than racing.
+    """
+    lock = _run_lock_path()
+    try:
+        lock.parent.mkdir(parents=True, exist_ok=True)
+        with lock.open("x", encoding="utf-8") as handle:
+            handle.write(f"pid={os.getpid()}\n")
+    except FileExistsError:
+        raise RuntimeError(
+            f"another comparison run holds {lock}; remove it only if no run is active"
+        ) from None
+    except OSError as error:
+        raise RuntimeError(f"could not take the comparison run lock: {error}") from None
+    atexit.register(_release_run_lock, lock)
+    return lock
 
 
 def _is_our_claim_record(marker: Path) -> bool:
@@ -251,16 +297,35 @@ def _choose_limit(scores: dict[tuple[int, str], tuple[int, int]], arm: str) -> i
     return max(CANDIDATE_LIMITS, key=lambda limit: (scores[(limit, arm)], -limit))
 
 
+#: Every field of a source document that reaches retrieval. `source_path`,
+#: `access_scope` and `sample_kind` decide what the model was allowed to see, so a
+#: corpus that changes them is a different corpus and must not keep the digest.
+_DIGEST_FIELDS = (
+    "doc_id",
+    "version",
+    "source_path",
+    "source_position",
+    "access_scope",
+    "sample_kind",
+    "text",
+)
+
+
 def _corpus_digest(documents: tuple[object, ...]) -> str:
-    """Content digest of the captured corpus, so the evidence names it exactly."""
+    """Content digest of the captured corpus, so the evidence names it exactly.
+
+    Each field is length-prefixed: a bare separator would let shifted field
+    boundaries produce the same byte stream, e.g. a different `doc_id` padded by
+    a longer `version`.
+    """
     import hashlib
 
     digest = hashlib.sha256()
     for document in documents:
-        digest.update(str(getattr(document, "doc_id", "")).encode("utf-8"))
-        digest.update(str(getattr(document, "version", "")).encode("utf-8"))
-        digest.update(str(getattr(document, "text", "")).encode("utf-8"))
-        digest.update(b"\0")
+        for name in _DIGEST_FIELDS:
+            encoded = str(getattr(document, name, "")).encode("utf-8")
+            digest.update(len(encoded).to_bytes(8, "big"))
+            digest.update(encoded)
     return f"sha256:{digest.hexdigest()[:16]}"
 
 
@@ -393,6 +458,13 @@ def main() -> int:
 
     # One snapshot for both arms: reloading per query could index the vector arm
     # on text the keyword arm no longer sees.
+    # Held for the whole collection lifecycle, not just the confirmation
+    # claim: the index is shared state between runs.
+    try:
+        _acquire_run_lock()
+    except RuntimeError as error:
+        print(f"FAIL reason=run_lock_unavailable detail={error}")
+        return 1
     corpus = load_sample_corpus()
     client = QdrantClient(url=qdrant_url())
     # The validated value is the one passed to the embedder and printed.
@@ -482,7 +554,12 @@ def main() -> int:
         f"confirmation_cases_digest={confirmation_digest} "
         f"qdrant_image_asserted_by_caller={image} "
         f"qdrant_image_verified_against_server=false "
-        f"embed_artifact={embed_identity} min_score={MIN_SCORE} "
+        f"embed_artifact={embed_identity} "
+        # The artifact digest pins the weights, not the pipeline: FastEmbed takes
+        # the model name separately, and it selects the registry config and the
+        # preprocessing applied to those bytes.
+        f"embed_model={EMBED_MODEL} "
+        f"min_score={MIN_SCORE} "
         f"collection={COLLECTION} "
         f"development={len(development)} contaminated={len(contaminated)} "
         f"confirmation={len(confirmation)} "

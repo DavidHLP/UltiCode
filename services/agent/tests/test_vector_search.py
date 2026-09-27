@@ -1,4 +1,5 @@
 import asyncio
+import dataclasses
 import importlib.util
 from datetime import datetime, timezone
 from pathlib import Path
@@ -719,6 +720,40 @@ def test_limit_selection_never_prefers_forbidden_evidence() -> None:
     }
 
     assert smoke._choose_limit(scores, "arm") == 1
+
+
+def test_corpus_digest_covers_provenance_not_only_text() -> None:
+    """`source_path`/`access_scope` decide what the model may see: they are identity."""
+    smoke = e2e_vector_comparison
+    corpus = load_sample_corpus()
+    base = smoke._corpus_digest(corpus)
+
+    re_path = tuple(
+        dataclasses.replace(document, source_path="other/place.md")
+        for document in corpus
+    )
+    re_scope = tuple(
+        dataclasses.replace(document, access_scope="restricted")
+        for document in corpus
+    )
+
+    assert smoke._corpus_digest(re_path) != base
+    assert smoke._corpus_digest(re_scope) != base
+
+
+def test_a_second_comparison_run_cannot_hold_the_collection(tmp_path, monkeypatch) -> None:
+    """Two runs sharing one Qdrant collection must not interleave."""
+    smoke = e2e_vector_comparison
+    monkeypatch.setenv(smoke.RUN_LOCK_ENV, str(tmp_path / "run.lock"))
+
+    first = smoke._acquire_run_lock()
+    assert first.exists()
+    with pytest.raises(RuntimeError, match="another comparison run"):
+        smoke._acquire_run_lock()
+
+    smoke._release_run_lock(first)
+    assert not first.exists()
+    assert smoke._acquire_run_lock().exists()
 
 
 def test_the_canonical_isoformat_timestamp_is_our_claim(tmp_path: Path) -> None:

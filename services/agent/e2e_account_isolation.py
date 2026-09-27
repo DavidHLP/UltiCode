@@ -410,11 +410,30 @@ async def main() -> int:
                 f"{APP_BASE}/problems", params={"page": 1, "pageSize": 1}
             )
             public_detail = await anonymous.get(f"{APP_BASE}/problems/{problem_id}")
+        # A status code alone is not readability: a proxy fallback, or a handler
+        # that exposes no problem data, can still answer 200. Parse the same
+        # Result envelope the authenticated controls use, and require the selected
+        # problem to come back from the detail.
+        public_items = (
+            _data(public_listing).get("items")
+            if public_listing.status_code == 200
+            else None
+        )
+        public_detail_id = (
+            _data(public_detail).get("id")
+            if public_detail.status_code == 200
+            else None
+        )
         print(
             f"public control anonymous_listing={public_listing.status_code} "
-            f"anonymous_detail={public_detail.status_code}"
+            f"anonymous_detail={public_detail.status_code} "
+            f"listing_rows={len(public_items) if isinstance(public_items, list) else 'none'} "
+            f"detail_id_matches={'yes' if public_detail_id == problem_id else 'no'}"
         )
-        if (public_listing.status_code, public_detail.status_code) != (200, 200):
+        if not isinstance(public_items, list) or not public_items:
+            print("FAIL reason=public_content_not_readable")
+            return 1
+        if public_detail_id != problem_id:
             print("FAIL reason=public_content_not_readable")
             return 1
 

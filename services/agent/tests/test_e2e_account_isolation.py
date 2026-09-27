@@ -91,6 +91,7 @@ def correct_service(
     listing: object = "own_only",
     starter: object = "present",
     public_status: int = 200,
+    public_body: object = "valid",
     seen: list | None = None,
 ) -> object:
     """A service that serves the caller's own records and refuses others."""
@@ -101,8 +102,12 @@ def correct_service(
         if path.endswith("/auth/register") or path.endswith("/auth/login"):
             return _session_response(request)
         if path.endswith("/problems") or _problem_detail_id(path) is not None:
-            if public_status != 200 and _is_anonymous(request):
-                return httpx.Response(public_status, json={"message": "forbidden"})
+            if _is_anonymous(request):
+                if public_status != 200:
+                    return httpx.Response(public_status, json={"message": "forbidden"})
+                if public_body == "empty":
+                    # 200 with nothing in the envelope is not readability.
+                    return httpx.Response(200, json={"data": {}})
         if path.endswith("/problems"):
             return httpx.Response(
                 200, json={"data": {"items": [LISTED_PROBLEM], "total": 1}}
@@ -114,10 +119,11 @@ def correct_service(
                 200,
                 json={
                     "data": {
+                        "id": int(_problem_detail_id(path) or 0),
                         "languages": [
                             {"value": "java", "starter_code": "class Solution {}"},
                             {"value": "python", "starter_code": STARTER},
-                        ]
+                        ],
                     }
                 },
             )
@@ -211,13 +217,25 @@ def test_public_content_stays_readable_without_a_session(monkeypatch, capsys) ->
 
     assert asyncio.run(e2e_account_isolation.main()) == 0
     output = capsys.readouterr().out
-    assert "public control anonymous_listing=200 anonymous_detail=200" in output
+    assert (
+        "public control anonymous_listing=200 anonymous_detail=200 "
+        "listing_rows=1 detail_id_matches=yes"
+    ) in output
     assert "OK isolation" in output
 
 
 def test_a_stack_that_denies_public_content_is_not_a_pass(monkeypatch, capsys) -> None:
     monkeypatch.setenv("ULTICODE_E2E_ISOLATION", "1")
     _install(monkeypatch, correct_service(public_status=403))
+
+    assert asyncio.run(e2e_account_isolation.main()) == 1
+    assert "FAIL reason=public_content_not_readable" in capsys.readouterr().out
+
+
+def test_an_empty_public_envelope_is_not_readability(monkeypatch, capsys) -> None:
+    """Status alone is not readability: 200 with no problem data must not pass."""
+    monkeypatch.setenv("ULTICODE_E2E_ISOLATION", "1")
+    _install(monkeypatch, correct_service(public_body="empty"))
 
     assert asyncio.run(e2e_account_isolation.main()) == 1
     assert "FAIL reason=public_content_not_readable" in capsys.readouterr().out

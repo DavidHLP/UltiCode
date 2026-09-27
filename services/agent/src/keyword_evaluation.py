@@ -291,6 +291,11 @@ def _evaluate(cases: tuple[KeywordCase, ...], limit: int) -> dict[str, dict[str,
                 summary["false_positive_no_evidence"] += 1
             else:
                 summary["no_evidence"] += 1
+        elif case.expected_behavior == "refuse":
+            # A refusal case retrieving nothing is the correct outcome, so it must
+            # not also be recorded as a retrieval failure; it is reported by the
+            # refusal counters below and nowhere else.
+            pass
         elif not required_doc_ids.issubset(actual_doc_ids):
             summary["missed_expected"] += 1
         if case.expected_behavior == "refuse":

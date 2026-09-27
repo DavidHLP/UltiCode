@@ -110,10 +110,12 @@ def _is_our_claim_record(marker: Path) -> bool:
     # The harness always writes an ISO timestamp; "garbage" is not a record it
     # could have produced, so it must not disable the confirmation run.
     try:
-        datetime.fromisoformat(fields.get("consumed_at", "").strip())
+        consumed_at = datetime.fromisoformat(fields.get("consumed_at", "").strip())
     except ValueError:
         return False
-    return True
+    # The writer emits `datetime.now(timezone.utc).isoformat()`. A bare date or a
+    # naive timestamp parses but could not come from this writer.
+    return consumed_at.tzinfo is not None and consumed_at.utcoffset() is not None
 
 
 def _claim_confirmation_once() -> tuple[bool, str]:

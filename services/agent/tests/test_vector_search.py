@@ -247,7 +247,9 @@ def test_a_concurrent_claim_cannot_overwrite_the_record(tmp_path, monkeypatch) -
 
     assert claimed is False
     # The existing record must be untouched, not rewritten by the loser.
-    assert "consumed_at=2026-09-27T08:00:00+00:00" in marker.read_text(encoding="utf-8")
+    assert marker.read_text(encoding="utf-8") == (
+        "confirmation=holdout-v2.json\nconsumed_at=2026-09-27T08:00:00+00:00\n"
+    )
 
 
 def test_claim_fails_closed_when_the_marker_cannot_be_written(tmp_path, monkeypatch) -> None:
@@ -629,3 +631,15 @@ def test_a_garbage_consumed_at_is_not_treated_as_our_claim(tmp_path: Path) -> No
     )
 
     assert not smoke._is_our_claim_record(marker)
+
+
+def test_a_date_only_or_naive_timestamp_is_not_our_claim(tmp_path: Path) -> None:
+    """`fromisoformat` accepts values this writer cannot produce; they must not count."""
+    smoke = e2e_vector_comparison
+    for stamp in ("2026-01-01", "2026-01-01T00:00:00"):
+        marker = tmp_path / f"claim-{stamp}.txt"
+        marker.write_text(
+            f"confirmation={smoke.CONFIRMATION_CASES_PATH.name}\nconsumed_at={stamp}\n",
+            encoding="utf-8",
+        )
+        assert not smoke._is_our_claim_record(marker), stamp

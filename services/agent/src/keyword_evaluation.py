@@ -37,15 +37,15 @@ class _DuplicateKey(ValueError):
     """A repeated key in a case object, reported instead of silently kept."""
 
 
-def _reject_duplicate_keys(pairs: list[tuple[str, object]]) -> list[tuple[str, object]]:
-    seen: set[str] = set()
-    for key, _ in pairs:
-        if key in seen:
+def _reject_duplicate_keys(pairs: list[tuple[str, object]]) -> dict[str, object]:
+    result: dict[str, object] = {}
+    for key, value in pairs:
+        if key in result:
             # Last-write-wins could turn a restrictive annotation into a
             # permissive one before validation ever sees it.
             raise _DuplicateKey(key)
-        seen.add(key)
-    return pairs
+        result[key] = value
+    return result
 
 
 @dataclass(frozen=True)

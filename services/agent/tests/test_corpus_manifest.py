@@ -234,3 +234,22 @@ def test_duplicate_keys_in_a_manifest_entry_are_rejected(tmp_path: Path) -> None
 
     with pytest.raises(ManifestError, match="duplicate key"):
         load_manifest(path)
+
+
+def test_duplicate_document_identity_with_differing_text_is_rejected() -> None:
+    """A chunk-keyed lookup would keep one and verify the wrong text."""
+    from retrieval import SourceDocument
+
+    documents = load_sample_corpus()
+    twin = SourceDocument(
+        doc_id=documents[0].doc_id,
+        version=documents[0].version,
+        source_path=documents[0].source_path,
+        access_scope=documents[0].access_scope,
+        sample_kind=documents[0].sample_kind,
+        text=documents[0].text + "\nappended",
+        source_position=documents[0].source_position,
+    )
+
+    with pytest.raises(ManifestError, match="duplicate document identity"):
+        assert_manifest_covers(load_manifest(), (*documents, twin))

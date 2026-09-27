@@ -545,3 +545,52 @@ def test_loopback_qdrant_needs_no_opt_in(monkeypatch) -> None:
     monkeypatch.delenv(vector_search.REMOTE_QDRANT_OPT_IN, raising=False)
 
     assert smoke.qdrant_url() == "http://127.0.0.1:6333"
+
+
+def test_evidence_digests_change_with_the_inputs(tmp_path, monkeypatch) -> None:
+    """Two runs over different corpora or expectations must be distinguishable."""
+    import hashlib
+
+    smoke = e2e_vector_comparison
+
+    corpus_digest = smoke._corpus_digest(load_sample_corpus())
+    assert corpus_digest.startswith("sha256:")
+    assert corpus_digest == smoke._corpus_digest(load_sample_corpus())
+
+    cases_digest = smoke._cases_digest()
+    assert cases_digest.startswith("sha256:")
+    edited = tmp_path / "cases.json"
+    edited.write_bytes(
+        (smoke.CONFIRMATION_CASES_PATH).read_bytes() + b"\n"
+    )
+    assert smoke._cases_digest(edited) != smoke._cases_digest(
+        smoke.CONFIRMATION_CASES_PATH
+    )
+
+
+def test_a_snapshot_changed_during_load_is_refused(monkeypatch, capsys, tmp_path) -> None:
+    """The reported digest must describe the weights the run actually used."""
+    smoke = e2e_vector_comparison
+    snapshot = tmp_path / "snapshot"
+    snapshot.mkdir()
+    (snapshot / "model.onnx").write_bytes(b"weights")
+    marker = tmp_path / "marker"
+
+    def mutating_embedder(**kwargs: object) -> object:
+        # Someone updates the snapshot between the preflight hash and the load.
+        (snapshot / "model.onnx").write_bytes(b"other")
+        return object()
+
+    monkeypatch.setenv("ULTICODE_VECTOR_CONFIRM", "1")
+    monkeypatch.setenv("QDRANT_IMAGE", "qdrant/qdrant@sha256:" + "a" * 64)
+    monkeypatch.setenv("ULTICODE_VECTOR_CONFIRM_MARKER", str(marker))
+    monkeypatch.setattr(smoke, "EMBED_MODEL_PATH", str(snapshot))
+    monkeypatch.setattr(smoke, "FastembedEmbedder", mutating_embedder)
+
+    # The confirmation fixture and image gate pass first; the artifact check runs
+    # in the preflight and the post-load re-check is what must catch the change.
+    with pytest.raises(Exception):
+        # Either the re-check refuses, or an earlier precondition stops the run;
+        # what must never happen is a PASS with a stale digest.
+        asyncio.run(smoke.main())
+    assert "embed_artifact_changed_during_load" in capsys.readouterr().out

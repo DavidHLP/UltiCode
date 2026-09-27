@@ -77,6 +77,20 @@ def correct_service(foreign_status: int = 404, listing: object = "own_only") -> 
                 return httpx.Response(200, json={"data": {}})
             if listing == "server_error":
                 return httpx.Response(500, json={"message": "boom"})
+            if listing == "third_party":
+                # A third user's submission, with neither account's row present:
+                # the paired-account checks alone would see nothing wrong.
+                return httpx.Response(
+                    200, json={"data": {"items": [{"id": "third-party-1"}], "total": 1}}
+                )
+            if listing == "malformed_row":
+                return httpx.Response(
+                    200, json={"data": {"items": [{"no_id": True}], "total": 1}}
+                )
+            if listing == "truncated":
+                return httpx.Response(
+                    200, json={"data": {"items": [{"id": OWNED[account]}], "total": 90}}
+                )
             if listing == "leaks_other":
                 return httpx.Response(
                     200, json={"data": {"items": [{"id": value} for value in OWNED.values()]}}
@@ -298,3 +312,32 @@ def test_a_loopback_run_is_labelled_local(monkeypatch, capsys) -> None:
 
     assert asyncio.run(smoke.main()) == 0
     assert "local_stack_only" in capsys.readouterr().out
+
+
+def test_a_third_party_row_is_treated_as_a_leak(monkeypatch, capsys) -> None:
+    """Neither account's own row is present, yet the listing leaks someone else."""
+    monkeypatch.setenv("ULTICODE_E2E_ISOLATION", "1")
+    _install(monkeypatch, correct_service(listing="third_party"))
+
+    assert asyncio.run(e2e_account_isolation.main()) == 1
+    output = capsys.readouterr().out
+    assert "reason=cross_account_data_exposed" in output
+    assert "unexpected_a=1" in output or "unexpected_b=1" in output
+
+
+def test_a_malformed_listing_row_is_inconclusive(monkeypatch, capsys) -> None:
+    """A row we cannot parse must not be silently skipped."""
+    monkeypatch.setenv("ULTICODE_E2E_ISOLATION", "1")
+    _install(monkeypatch, correct_service(listing="malformed_row"))
+
+    assert asyncio.run(e2e_account_isolation.main()) == 1
+    assert "harness_inconclusive" in capsys.readouterr().out
+
+
+def test_a_truncated_listing_page_is_inconclusive(monkeypatch, capsys) -> None:
+    """A page shorter than the reported total means hidden rows."""
+    monkeypatch.setenv("ULTICODE_E2E_ISOLATION", "1")
+    _install(monkeypatch, correct_service(listing="truncated"))
+
+    assert asyncio.run(e2e_account_isolation.main()) == 1
+    assert "harness_inconclusive" in capsys.readouterr().out

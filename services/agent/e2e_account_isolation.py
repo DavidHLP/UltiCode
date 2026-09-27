@@ -333,13 +333,18 @@ async def main() -> int:
 
         own_a_visible = submission_a in listed_by_a
         own_b_visible = submission_b in listed_by_b
-        leaked = submission_b in listed_by_a or submission_a in listed_by_b
+        # Isolation means each account sees only its own row: a third user's
+        # submission is just as much a leak as the paired account's.
+        unexpected_a = listed_by_a - {submission_a}
+        unexpected_b = listed_by_b - {submission_b}
+        leaked = bool(unexpected_a) or bool(unexpected_b)
         print(
             f"listing own_a_visible={'yes' if own_a_visible else 'no'} "
             f"own_b_visible={'yes' if own_b_visible else 'no'} "
             f"b_visible_to_a={'yes' if submission_b in listed_by_a else 'no'} "
             f"a_visible_to_b={'yes' if submission_a in listed_by_b else 'no'} "
-            f"listed_count_a={len(listed_by_a)} listed_count_b={len(listed_by_b)}"
+            f"listed_count_a={len(listed_by_a)} listed_count_b={len(listed_by_b)} "
+            f"unexpected_a={len(unexpected_a)} unexpected_b={len(unexpected_b)}"
         )
         if leaked:
             print("FAIL reason=cross_account_data_exposed")

@@ -177,3 +177,14 @@ def assert_manifest_covers(
     undeclared = set(by_doc) - {getattr(document, "doc_id", "") for document in documents}
     if undeclared:
         raise ManifestError(f"manifest declares documents that are not retrievable: {sorted(undeclared)}")
+    # Two documents sharing an identity but differing in text would collapse in
+    # any chunk-keyed lookup, so one manifest entry would verify the wrong text.
+    seen: dict[tuple[str, str], str] = {}
+    for document in documents:
+        identity = (getattr(document, "doc_id", ""), getattr(document, "version", ""))
+        text = getattr(document, "text", "")
+        if identity in seen and seen[identity] != text:
+            raise ManifestError(
+                f"{identity[0]}: duplicate document identity with differing text"
+            )
+        seen[identity] = text

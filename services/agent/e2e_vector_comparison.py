@@ -43,6 +43,7 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from keyword_evaluation import (
     CONFIRMATION_CASES_PATH,
+    _CASES_PATH as DEFAULT_CASES_PATH,
     KeywordCase,
     load_cases,
     retrieval_outcome,
@@ -169,11 +170,32 @@ def _tally(cases: tuple[KeywordCase, ...], retrieve) -> dict[str, int]:
     return tally
 
 
+def _corpus_digest(documents: tuple[object, ...]) -> str:
+    """Content digest of the captured corpus, so the evidence names it exactly."""
+    import hashlib
+
+    digest = hashlib.sha256()
+    for document in documents:
+        digest.update(str(getattr(document, "doc_id", "")).encode("utf-8"))
+        digest.update(str(getattr(document, "version", "")).encode("utf-8"))
+        digest.update(str(getattr(document, "text", "")).encode("utf-8"))
+        digest.update(b"\0")
+    return f"sha256:{digest.hexdigest()[:16]}"
+
+
 def _arm_outcome(winners: list[str]) -> str:
     """A tie must not be reported as a unique winner."""
     if len(winners) == 1:
         return winners[0]
     return "tie:" + "+".join(sorted(winners))
+
+
+def _cases_digest(path: Path | None = None) -> str:
+    """Digest of a case file, so the evidence names the exact expectations used."""
+    import hashlib
+
+    cases_path = path or DEFAULT_CASES_PATH
+    return f"sha256:{hashlib.sha256(cases_path.read_bytes()).hexdigest()[:16]}"
 
 
 def _report(label: str, counts: dict[str, int], total: int) -> None:
@@ -258,6 +280,15 @@ def main() -> int:
     client = QdrantClient(url=qdrant_url())
     # The validated value is the one passed to the embedder and printed.
     embedder = FastembedEmbedder(model_path=model_path)
+    # Re-verify after loading: the snapshot can be updated between the preflight
+    # hash and the model load, which would make the reported digest a lie.
+    embed_identity_after_load = artifact_identity(model_path)
+    if embed_identity_after_load != embed_identity:
+        print(
+            "FAIL reason=embed_artifact_changed_during_load "
+            f"before={embed_identity} after={embed_identity_after_load}"
+        )
+        return 1
     indexed = build_index(
         client,
         corpus,

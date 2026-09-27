@@ -17,12 +17,28 @@ _module_spec.loader.exec_module(e2e_account_isolation)
 #: token -> the submission that account owns
 OWNED = {"token-a": "sub-a", "token-b": "sub-b"}
 
-#: The problem's own starter code, i.e. the only D-form-valid fixture shape.
+#: The problem's own starter code for problem 1: a fixture that satisfies the
+#: D-form harness contract, so the submission is judged instead of panicking.
 STARTER = (
     "class Solution:\n"
     "    def twoSum(self, nums: List[int], target: int) -> List[int]:\n"
     "        return []\n"
 )
+
+#: The problem the listing exposes; the detail below must describe the same one.
+LISTED_PROBLEM = {"id": 1}
+
+
+def _problem_detail_id(path: str) -> str | None:
+    """The id of an exact ``/problems/{id}`` request, else None.
+
+    A substring test would also match ``/problems/{id}/submissions``, which is a
+    different call with a different envelope.
+    """
+    parts = path.strip("/").split("/")
+    if len(parts) == 2 and parts[0] == "problems" and parts[1].isdigit():
+        return parts[1]
+    return None
 
 
 def _token_for_username(request: httpx.Request) -> str:
@@ -79,8 +95,10 @@ def correct_service(
         if path.endswith("/auth/register") or path.endswith("/auth/login"):
             return _session_response(request)
         if path.endswith("/problems"):
-            return httpx.Response(200, json={"data": {"items": [{"id": 7}], "total": 1}})
-        if len(path.strip("/").split("/")) == 2 and "/problems/" in path:
+            return httpx.Response(
+                200, json={"data": {"items": [LISTED_PROBLEM], "total": 1}}
+            )
+        if _problem_detail_id(path) is not None:
             if starter == "missing":
                 return httpx.Response(200, json={"data": {"languages": []}})
             return httpx.Response(
@@ -248,8 +266,10 @@ def test_own_read_returning_another_id_is_a_failure(monkeypatch, capsys) -> None
         if path.endswith("/auth/register") or path.endswith("/auth/login"):
             return _session_response(request)
         if path.endswith("/problems"):
-            return httpx.Response(200, json={"data": {"items": [{"id": 7}], "total": 1}})
-        if len(path.strip("/").split("/")) == 2 and "/problems/" in path:
+            return httpx.Response(
+                200, json={"data": {"items": [LISTED_PROBLEM], "total": 1}}
+            )
+        if _problem_detail_id(path) is not None:
             return httpx.Response(
                 200, json={"data": {"languages": [{"value": "python", "starter_code": STARTER}]}}
             )

@@ -613,3 +613,18 @@ def test_refusal_cases_are_not_scored_as_matches() -> None:
 
     assert counted["refused_with_evidence"] == 1
     assert counted["matched"] == 0
+
+
+def test_a_garbage_consumed_at_is_not_treated_as_our_claim(tmp_path: Path) -> None:
+    """A marker with an unparsable timestamp is not a record this harness wrote.
+
+    The harness always writes an ISO timestamp, so `consumed_at=garbage` must not
+    silently disable the one-shot confirmation run.
+    """
+    marker = tmp_path / "confirmation-claim.txt"
+    marker.write_text(
+        f"confirmation={smoke.CONFIRMATION_CASES_PATH.name}\nconsumed_at=garbage\n",
+        encoding="utf-8",
+    )
+
+    assert not smoke._is_our_claim_record(marker)

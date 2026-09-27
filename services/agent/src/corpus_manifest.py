@@ -172,16 +172,17 @@ def assert_manifest_covers(
     ``source_position`` are compared.
     """
     by_doc = {entry.doc_id: entry for entry in entries}
-    # Identity first: a repeated doc_id/version with differing text is the more
-    # specific fault, and it must not be masked by the content binding below.
+    # Identity first: a repeated doc_id/version is the more specific fault, and it
+    # must not be masked by the content binding below.
     seen: dict[tuple[str, str], str] = {}
     for document in documents:
         identity = (getattr(document, "doc_id", ""), getattr(document, "version", ""))
         text = getattr(document, "text", "")
-        if identity in seen and seen[identity] != text:
-            raise ManifestError(
-                f"{identity[0]}: duplicate document identity with differing text"
-            )
+        if identity in seen:
+            # Even a byte-identical duplicate is refused: keyword_search would emit
+            # it twice and the second copy could consume a result slot, hiding
+            # another required document.
+            raise ManifestError(f"{identity[0]}: duplicate document identity")
         seen[identity] = text
 
     for document in documents:

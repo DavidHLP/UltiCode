@@ -88,6 +88,11 @@ def _report_usage(model: object) -> None:
 
 
 async def main() -> int:
+    if not os.environ.get("DEEPSEEK_MODEL", "").strip():
+        # Fail closed: the adapter default and the provider's current model
+        # identifiers have both changed, so assume nothing on a billed run.
+        print("E2E MODEL QA FAIL | reason=deepseek_model_required")
+        return 1
     async with UlticodeClient(APP_BASE, AUTH_BASE) as client:
         await client.login(
             os.environ["ULTICODE_E2E_USERNAME"], os.environ["ULTICODE_E2E_PASSWORD"]

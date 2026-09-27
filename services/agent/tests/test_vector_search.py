@@ -530,18 +530,18 @@ def test_a_non_loopback_qdrant_needs_its_own_opt_in(monkeypatch) -> None:
     """Creating a collection and upserting are writes the confirmation opt-in cannot authorise."""
     smoke = e2e_vector_comparison
     monkeypatch.setenv("QDRANT_URL", "http://qdrant.internal.example:6333")
-    monkeypatch.delenv(smoke.REMOTE_QDRANT_OPT_IN, raising=False)
+    monkeypatch.delenv(vector_search.REMOTE_QDRANT_OPT_IN, raising=False)
 
     with pytest.raises(ValueError, match="not loopback"):
         smoke.qdrant_url()
 
-    monkeypatch.setenv(smoke.REMOTE_QDRANT_OPT_IN, "1")
+    monkeypatch.setenv(vector_search.REMOTE_QDRANT_OPT_IN, "1")
     assert smoke.qdrant_url() == "http://qdrant.internal.example:6333"
 
 
 def test_loopback_qdrant_needs_no_opt_in(monkeypatch) -> None:
     smoke = e2e_vector_comparison
     monkeypatch.setenv("QDRANT_URL", "http://127.0.0.1:6333")
-    monkeypatch.delenv(smoke.REMOTE_QDRANT_OPT_IN, raising=False)
+    monkeypatch.delenv(vector_search.REMOTE_QDRANT_OPT_IN, raising=False)
 
     assert smoke.qdrant_url() == "http://127.0.0.1:6333"

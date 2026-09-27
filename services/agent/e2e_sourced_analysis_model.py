@@ -97,6 +97,17 @@ def _validate_answer(answer: str, evidence: dict[str, object]) -> None:
         raise ValueError("invalid model answer")
 
 
+class ModelNotNamed(RuntimeError):
+    """A billed run must name the model instead of inheriting a default."""
+
+
+def _priced_model() -> str:
+    model = os.environ.get("DEEPSEEK_MODEL", "").strip()
+    if not model:
+        raise ModelNotNamed("DEEPSEEK_MODEL must be set for a real-model run")
+    return model
+
+
 def _report_usage(model: object) -> None:
     """Emit token accounting. Values only; no prompt, answer, or token content.
 
@@ -117,6 +128,11 @@ def _report_usage(model: object) -> None:
 
 
 async def main() -> int:
+    if not os.environ.get("DEEPSEEK_MODEL", "").strip():
+        # Fail closed: the adapter default and the provider's current model
+        # identifiers have both changed, so assume nothing on a billed run.
+        print("E2E MODEL FAIL | reason=deepseek_model_required")
+        return 1
     if not os.environ.get("DEEPSEEK_API_KEY"):
         # Fail closed: without a key the run must not touch the model at all.
         print("E2E SOURCED MODEL FAIL | reason=missing_api_key")
@@ -158,7 +174,7 @@ async def main() -> int:
         async with DeepseekModel(
             os.environ["DEEPSEEK_API_KEY"],
             tool_specs={},
-            model=os.environ.get("DEEPSEEK_MODEL", "deepseek-flash"),
+            model=_priced_model(),
             # One decision per run with a bounded output: the worst case is a
             # single capped call, never an open-ended loop.
             max_calls=int(os.environ.get("DEEPSEEK_MAX_CALLS", "1")),

@@ -66,6 +66,10 @@ def _validate_query(query: object) -> str:
 
 
 def load_sample_corpus() -> tuple[SourceDocument, ...]:
+    # Resolving a symlinked root would adopt an external directory as trusted,
+    # so every child would then pass the per-file containment check below.
+    if _CORPUS_DIR.is_symlink():
+        raise ValueError("sample corpus root must not be a symlink")
     documents: list[SourceDocument] = []
     for doc_id, version, filename in _SAMPLE_DOCS:
         path = (_CORPUS_DIR / filename).resolve()

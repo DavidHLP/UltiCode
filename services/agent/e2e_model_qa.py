@@ -55,6 +55,17 @@ def _validate_answer(answer: str, problem: dict[str, object], has_submission: bo
     )
 
 
+class ModelNotNamed(RuntimeError):
+    """A billed run must name the model instead of inheriting a default."""
+
+
+def _priced_model() -> str:
+    model = os.environ.get("DEEPSEEK_MODEL", "").strip()
+    if not model:
+        raise ModelNotNamed("DEEPSEEK_MODEL must be set for a real-model run")
+    return model
+
+
 def _report_usage(model: object) -> None:
     """Token accounting for billed calls. Values only, never prompt or answer text.
 
@@ -107,9 +118,9 @@ async def main() -> int:
         async with DeepseekModel(
             os.environ["DEEPSEEK_API_KEY"],
             tool_specs=TOOL_SPECS,
-            # Priced explicitly: the adapter's legacy default is not on the
-            # current DeepSeek price list, so a costed run must name the model.
-            model=os.environ.get("DEEPSEEK_MODEL", "deepseek-flash"),
+            # Named explicitly: the adapter default and the provider's current
+            # identifiers have both changed, so a costed run must not assume one.
+            model=_priced_model(),
             # Cost guard rails: bounded output and a bounded number of calls.
             max_calls=int(os.environ.get("DEEPSEEK_MAX_CALLS", "8")),
             max_tokens=int(os.environ.get("DEEPSEEK_MAX_TOKENS", "300")),

@@ -124,3 +124,16 @@ def test_one_bad_citation_fails_the_whole_gate() -> None:
 
     assert [check.verdict for check in checks] == ["verified", "text_not_in_source"]
     assert not all_verified(checks)
+
+
+def test_a_manifest_may_not_regrade_the_source_trust(tmp_path: Path) -> None:
+    """Retrieval always emits untrusted-data; the manifest cannot claim else."""
+    from corpus_manifest import ManifestError, load_manifest
+
+    raw = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+    raw[0]["source_trust"] = "trusted"
+    path = tmp_path / "trusted.json"
+    path.write_text(json.dumps(raw), encoding="utf-8")
+
+    with pytest.raises(ManifestError, match="source_trust"):
+        load_manifest(path)

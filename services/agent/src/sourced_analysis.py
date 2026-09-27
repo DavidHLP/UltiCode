@@ -68,8 +68,13 @@ def analyze_submission(submission: dict[str, object], question: str) -> dict[str
     submission_id, status = validate_submission_facts(submission)
     facts = [f"提交 {submission_id} 的状态是 {status}。"]
     normalized_status = status.casefold()
+    # One snapshot for retrieval and verification: a reload could check the
+    # quotes against text the hits never came from.
+    corpus = load_sample_corpus()
     hits = tuple(
-        hit for hit in keyword_search(question) if normalized_status in hit.text.casefold()
+        hit
+        for hit in keyword_search(question, documents=corpus)
+        if normalized_status in hit.text.casefold()
     )
     if not hits:
         return {
@@ -86,7 +91,7 @@ def analyze_submission(submission: dict[str, object], question: str) -> dict[str
         "citations": citations,
         "citation_checks": [
             {"chunk_id": check.chunk_id, "verdict": check.verdict, "detail": check.detail}
-            for check in check_citations(citations, load_sample_corpus())
+            for check in check_citations(citations, corpus)
         ],
     }
 

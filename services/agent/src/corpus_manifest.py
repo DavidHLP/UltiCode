@@ -48,6 +48,9 @@ DOCUMENT_BINDING_FIELDS = (
 REQUIRED_FIELDS = DOCUMENT_BINDING_FIELDS + AUTHORIZATION_FIELDS
 #: Manifest-only provenance: present on a SourceHit, not on a SourceDocument.
 MANIFEST_PROVENANCE_FIELD = "source_trust"
+#: Retrieval always emits this marker and citation verification enforces it, so a
+#: manifest may not claim anything else for the same field.
+EXPECTED_SOURCE_TRUST = "untrusted-data"
 SYNTHETIC_PERMISSIONS = frozenset({"agent-authored-synthetic", "synthetic"})
 #: The projection retrieval actually emits. A manifest may not claim a narrower
 #: egress than the code performs, so an unsupported name is rejected.
@@ -124,6 +127,11 @@ def load_manifest(path: Path | None = None) -> tuple[ManifestEntry, ...]:
             field: _require_text(item, field, doc_id)
             for field in (*REQUIRED_FIELDS, MANIFEST_PROVENANCE_FIELD)
         }
+        if values[MANIFEST_PROVENANCE_FIELD] != EXPECTED_SOURCE_TRUST:
+            raise ManifestError(
+                f"{doc_id}: {MANIFEST_PROVENANCE_FIELD} must be "
+                f"{EXPECTED_SOURCE_TRUST!r}, which is what retrieval emits"
+            )
         if values["model_input_projection"] not in SUPPORTED_PROJECTIONS:
             raise ManifestError(
                 f"{doc_id}: model_input_projection must be one of {SUPPORTED_PROJECTIONS}, "

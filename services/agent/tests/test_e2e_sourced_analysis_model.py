@@ -405,3 +405,13 @@ def test_unreported_usage_is_printed_as_unknown_not_zero(monkeypatch, capsys) ->
     output = capsys.readouterr().out
     assert "total_tokens=unknown" in output
     assert "total_tokens=0" not in output
+
+
+def test_a_billed_run_must_name_its_model(monkeypatch, capsys) -> None:
+    """The adapter default and the provider's identifiers have both changed."""
+    smoke = module
+    monkeypatch.delenv("DEEPSEEK_MODEL", raising=False)
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "placeholder-not-a-real-key")
+
+    assert asyncio.run(smoke.main()) == 1
+    assert "reason=deepseek_model_required" in capsys.readouterr().out

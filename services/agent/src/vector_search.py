@@ -75,10 +75,25 @@ class FastembedEmbedder:
         return [vector.tolist() for vector in self._model.embed(texts)]
 
 
+LOOPBACK_HOSTS = frozenset({"127.0.0.1", "localhost", "::1", "[::1]"})
+#: Set only when the endpoint really is a disposable Qdrant you own.
+REMOTE_QDRANT_OPT_IN = "ULTICODE_QDRANT_ALLOW_REMOTE"
+
+
 def qdrant_url() -> str:
     url = os.environ.get("QDRANT_URL")
     if not url:
         raise ValueError("QDRANT_URL must point at the single-node Qdrant service")
+    from urllib.parse import urlparse
+
+    host = (urlparse(url).hostname or "").lower()
+    # Creating a collection, upserting points and a payload index are writes; a
+    # confirmation opt-in does not authorise mutating an arbitrary endpoint.
+    if host not in LOOPBACK_HOSTS and os.environ.get(REMOTE_QDRANT_OPT_IN) != "1":
+        raise ValueError(
+            f"Qdrant target {host!r} is not loopback; set {REMOTE_QDRANT_OPT_IN}=1 "
+            "only for a disposable instance you own"
+        )
     return url
 
 

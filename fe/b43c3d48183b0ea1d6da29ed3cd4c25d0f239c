@@ -1,0 +1,14 @@
+services/agent/src/corpus_manifest.py
+  h_77173abe25c3ff 192-194,200-204
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "feb43c3d48183b0ea1d6da29ed3cd4c25d0f239c",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

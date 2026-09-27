@@ -103,11 +103,17 @@ def _is_our_claim_record(marker: Path) -> bool:
             # would let an unrelated first value be overwritten into a match.
             return False
         fields[key] = value
-    return (
-        set(fields) == {"confirmation", "consumed_at"}
-        and fields.get("confirmation") == CONFIRMATION_CASES_PATH.name
-        and bool(fields.get("consumed_at", "").strip())
-    )
+    if set(fields) != {"confirmation", "consumed_at"}:
+        return False
+    if fields.get("confirmation") != CONFIRMATION_CASES_PATH.name:
+        return False
+    # The harness always writes an ISO timestamp; "garbage" is not a record it
+    # could have produced, so it must not disable the confirmation run.
+    try:
+        datetime.fromisoformat(fields.get("consumed_at", "").strip())
+    except ValueError:
+        return False
+    return True
 
 
 def _claim_confirmation_once() -> tuple[bool, str]:
@@ -223,19 +229,34 @@ def _cases_digest_from_loaded(cases: tuple[KeywordCase, ...]) -> str:
 
     digest = hashlib.sha256()
     for case in sorted(cases, key=lambda item: item.case_id):
-        digest.update(case.case_id.encode("utf-8"))
-        digest.update(case.split.encode("utf-8"))
-        digest.update(case.query.encode("utf-8"))
-        digest.update(",".join(case.required_evidence).encode("utf-8"))
-        digest.update(case.expected_behavior.encode("utf-8"))
-        digest.update(b"\0")
+        # Every field, with a length prefix so no boundary can be forged by
+        # concatenation.
+        for value in (
+            case.case_id,
+            case.split,
+            case.query,
+            "\x1f".join(case.required_evidence),
+            str(case.answerable),
+            case.expected_behavior,
+            case.allowed_behavior,
+            case.forbidden_behavior,
+        ):
+            encoded = value.encode("utf-8")
+            digest.update(str(len(encoded)).encode("ascii"))
+            digest.update(b":")
+            digest.update(encoded)
+        digest.update(b"\x1e")
     return f"sha256:{digest.hexdigest()[:16]}"
 
 
 def _report(label: str, counts: dict[str, int], total: int) -> None:
     print(
         f"{label} total={total} matched={counts['matched']} extra={counts['extra_hits']} "
-        f"missed={counts['missed']} false_positive={counts['false_positive']}"
+        f"missed={counts['missed']} false_positive={counts['false_positive']} "
+        # Refusal outcomes must be visible: every split contains such cases, and a
+        # forbidden retrieval is exactly what a confirmation run must be able to show.
+        f"refused_with_evidence={counts['refused_with_evidence']} "
+        f"refused_without_evidence={counts['refused_without_evidence']}"
     )
 
 

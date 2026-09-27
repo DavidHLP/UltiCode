@@ -274,6 +274,8 @@ def _evaluate(cases: tuple[KeywordCase, ...], limit: int) -> dict[str, dict[str,
             "no_evidence": 0,
             "missed_expected": 0,
             "false_positive_no_evidence": 0,
+            "refused_with_evidence": 0,
+            "refused_without_evidence": 0,
         }
         for split in SPLITS
     }
@@ -291,7 +293,11 @@ def _evaluate(cases: tuple[KeywordCase, ...], limit: int) -> dict[str, dict[str,
                 summary["no_evidence"] += 1
         elif not required_doc_ids.issubset(actual_doc_ids):
             summary["missed_expected"] += 1
-        if actual_doc_ids == required_doc_ids:
+        if case.expected_behavior == "refuse":
+            # Retrieving a refusal case's document is a fabrication risk, never a
+            # pass; counting it would reward the forbidden behaviour.
+            summary["refused_with_evidence" if actual_doc_ids else "refused_without_evidence"] += 1
+        elif actual_doc_ids == required_doc_ids:
             summary["passed"] += 1
     return results
 

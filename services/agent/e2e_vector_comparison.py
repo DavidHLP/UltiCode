@@ -33,7 +33,7 @@ Run with a disposable single-node Qdrant, for example:
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import os
 import re
 import sys
@@ -113,9 +113,9 @@ def _is_our_claim_record(marker: Path) -> bool:
         consumed_at = datetime.fromisoformat(fields.get("consumed_at", "").strip())
     except ValueError:
         return False
-    # The writer emits `datetime.now(timezone.utc).isoformat()`. A bare date or a
-    # naive timestamp parses but could not come from this writer.
-    return consumed_at.tzinfo is not None and consumed_at.utcoffset() is not None
+    # The writer emits `datetime.now(timezone.utc).isoformat()`. A bare date, a
+    # naive timestamp or another offset parses but could not come from this writer.
+    return consumed_at.tzinfo is not None and consumed_at.utcoffset() == timedelta(0)
 
 
 def _claim_confirmation_once() -> tuple[bool, str]:

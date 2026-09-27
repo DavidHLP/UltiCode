@@ -705,6 +705,22 @@ def test_selection_rewards_a_correct_refusal() -> None:
         assert scores[(limit, "clean")] > scores[(limit, "risky")], limit
 
 
+def test_limit_selection_never_prefers_forbidden_evidence() -> None:
+    """More `cite` matches must not outvote a fabrication risk.
+
+    The chosen ordering is what `main()` uses, so pairing a safety priority with
+    a volume score is not enough — the unsafe setting has to lose here.
+    """
+    smoke = e2e_vector_comparison
+    # (clear_of_forbidden_retrieval, behaviour-correct outcomes)
+    scores = {
+        (1, "arm"): (1, 1),
+        (3, "arm"): (0, 9),
+    }
+
+    assert smoke._choose_limit(scores, "arm") == 1
+
+
 def test_the_canonical_isoformat_timestamp_is_our_claim(tmp_path: Path) -> None:
     """The tightened check must still accept what the harness actually writes."""
     smoke = e2e_vector_comparison

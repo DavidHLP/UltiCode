@@ -204,22 +204,32 @@ def _tally(cases: tuple[KeywordCase, ...], retrieve) -> dict[str, int]:
     return tally
 
 
-def _selection_score(counts: dict[str, int]) -> int:
-    """The development score used to pick a limit: behaviour-correct outcomes.
+def _selection_score(counts: dict[str, int]) -> tuple[int, int]:
+    """Rank a development setting: safety first, then behaviour-correct outcomes.
 
-    ``matched`` alone counts only the ``cite`` cases whose required evidence came
-    back. A ``refuse`` case that retrieved nothing is just as correct, and the
-    declared behaviour classes are supposed to steer the choice, so a correct
-    refusal is rewarded here too. A refusal that *did* retrieve its forbidden
-    document stays at zero rather than going negative: the risk is reported
-    through ``refused_with_evidence`` and must not be hidden by a score.
+    Retrieving a ``refuse`` case's declared document *is* the fabrication risk the
+    behaviour classes exist to catch, so it must not be outvoted: a setting that
+    fetched forbidden evidence never ranks above one that did not, however many
+    extra ``cite`` cases it matched. Settings with the same exposure then compete
+    on correctness — ``matched`` plus a refusal that retrieved nothing, which is
+    just as correct as a citable match and would otherwise count for nothing.
+
+    Trade-off, stated so it can be revisited deliberately: on a small corpus every
+    high-limit setting retrieves something, so safety outranking volume pushes the
+    choice toward lower limits. That is the intended reading of "the declared
+    behaviour classes steer selection"; the confirm stage still reports the counts
+    it observed, so an off-volume choice stays visible in the evidence.
     """
-    return counts["matched"] + counts["refused_without_evidence"]
+    clear_of_forbidden_retrieval = 0 if counts["refused_with_evidence"] else 1
+    return (
+        clear_of_forbidden_retrieval,
+        counts["matched"] + counts["refused_without_evidence"],
+    )
 
 
-def _score_development(development, arms) -> dict[tuple[int, str], int]:
+def _score_development(development, arms) -> dict[tuple[int, str], tuple[int, int]]:
     """Score every (limit, arm) on the development split, reporting each one."""
-    scores: dict[tuple[int, str], int] = {}
+    scores: dict[tuple[int, str], tuple[int, int]] = {}
     for limit in CANDIDATE_LIMITS:
         for arm, retrieve in arms:
             counts = _tally(development, lambda case: retrieve(case.query, limit))
@@ -230,6 +240,15 @@ def _score_development(development, arms) -> dict[tuple[int, str], int]:
                 len(development),
             )
     return scores
+
+
+def _choose_limit(scores: dict[tuple[int, str], tuple[int, int]], arm: str) -> int:
+    """One arm's development optimum: best score, smallest limit on a tie.
+
+    The ordering is owned here so a refusal-safety policy cannot drift apart from
+    the scoring that feeds it.
+    """
+    return max(CANDIDATE_LIMITS, key=lambda limit: (scores[(limit, arm)], -limit))
 
 
 def _corpus_digest(documents: tuple[object, ...]) -> str:
@@ -410,9 +429,7 @@ def main() -> int:
     # hand the tuned setting to the winner and evaluate the loser off-peak.
     best: dict[str, int] = {}
     for arm, _ in arms:
-        best[arm] = max(
-            CANDIDATE_LIMITS, key=lambda limit: (scores[(limit, arm)], -limit)
-        )
+        best[arm] = _choose_limit(scores, arm)
     for arm, _ in arms:
         print(
             f"stage=select chosen_arm={arm} chosen_limit={best[arm]} "

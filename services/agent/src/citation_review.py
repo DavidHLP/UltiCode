@@ -130,9 +130,26 @@ class VerdictError(ValueError):
     """The verdict set is missing, malformed, or contradicts the integrity gate."""
 
 
+def _reject_duplicate_keys(pairs: list[tuple[str, object]]) -> dict[str, object]:
+    """Duplicate keys would silently keep the last value and erase a rejection."""
+    result: dict[str, object] = {}
+    for key, value in pairs:
+        if key in result:
+            raise VerdictError(f"duplicate key in a verdict object: {key!r}")
+        result[key] = value
+    return result
+
+
 def load_verdicts(path: Path, items: tuple[ReviewItem, ...]) -> dict[str, dict[str, object]]:
     """Read verdicts, requiring one complete entry per reviewed citation."""
-    raw = json.loads(path.read_text(encoding="utf-8"))
+    try:
+        raw = json.loads(
+            path.read_text(encoding="utf-8"), object_pairs_hook=_reject_duplicate_keys
+        )
+    except VerdictError:
+        raise
+    except ValueError as error:
+        raise VerdictError(f"verdict file is not valid JSON: {error}") from None
     if not isinstance(raw, list) or not raw:
         raise VerdictError("verdicts must be a non-empty list")
     verdicts: dict[str, dict[str, object]] = {}

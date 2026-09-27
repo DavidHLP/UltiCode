@@ -237,3 +237,22 @@ def test_claim_fails_closed_when_the_marker_cannot_be_written(tmp_path, monkeypa
 
     with pytest.raises(RuntimeError, match="could not record"):
         smoke._claim_confirmation_once()
+
+
+def test_tied_arms_are_reported_as_a_tie() -> None:
+    smoke = e2e_vector_comparison
+
+    assert smoke._arm_outcome(["keyword"]) == "keyword"
+    assert smoke._arm_outcome(["vector", "keyword"]) == "tie:keyword+vector"
+
+
+def test_confirmation_refuses_to_run_with_an_unpinned_embedding(monkeypatch, capsys) -> None:
+    """Honest reporting is not reproducibility: the run must refuse."""
+    smoke = e2e_vector_comparison
+    monkeypatch.setenv("ULTICODE_E2E_ISOLATION", "1")
+    monkeypatch.setenv("ULTICODE_VECTOR_CONFIRM", "1")
+    monkeypatch.delenv("ULTICODE_EMBED_MODEL_REVISION", raising=False)
+    monkeypatch.setattr(smoke, "EMBED_MODEL_REVISION", "")
+
+    assert asyncio.run(smoke.main()) == 0
+    assert "embed_model_revision_unpinned" in capsys.readouterr().out

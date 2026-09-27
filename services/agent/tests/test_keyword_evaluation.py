@@ -246,3 +246,14 @@ def test_loader_rejects_contradictory_annotations(tmp_path: Path) -> None:
     path.write_text(json.dumps([citable_without_evidence]), encoding="utf-8")
     with pytest.raises(ValueError, match="must name its required evidence"):
         load_cases(path)
+
+
+def test_duplicate_case_identifiers_are_rejected(tmp_path: Path) -> None:
+    base = json.loads(
+        (Path(__file__).parents[1] / "data/keyword_cases.json").read_text(encoding="utf-8")
+    )
+    path = tmp_path / "duplicated.json"
+    path.write_text(json.dumps([base[0], dict(base[0])]), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="duplicate case id"):
+        load_cases(path)

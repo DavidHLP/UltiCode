@@ -215,3 +215,17 @@ def test_partial_verdicts_are_counted_separately(tmp_path) -> None:
 
 def test_empty_worksheet_never_passes() -> None:
     assert summarize((), {})["gate_passed"] is False
+
+
+def test_duplicate_keys_in_a_verdict_object_are_rejected(tmp_path) -> None:
+    """Last-write-wins would erase a rejection inside one entry."""
+    items = _worksheet()
+    path = tmp_path / "verdicts.json"
+    path.write_text(
+        '[{"chunk_id": "%s", "verdicts": {"exists": true, "supports": false, '
+        '"supports": true, "derivable": true}}]' % items[0].chunk_id,
+        encoding="utf-8",
+    )
+
+    with pytest.raises(VerdictError, match="duplicate key"):
+        load_verdicts(path, items)

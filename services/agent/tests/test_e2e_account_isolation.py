@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 import httpx
+import pytest
 
 _module_spec = importlib.util.spec_from_file_location(
     "e2e_account_isolation",

@@ -77,6 +77,7 @@ def load_cases(path: Path | None = None) -> tuple[KeywordCase, ...]:
     if not isinstance(raw_cases, list):
         raise ValueError("keyword cases must be a list")
     cases: list[KeywordCase] = []
+    seen_ids: set[str] = set()
     for raw_case in raw_cases:
         if not isinstance(raw_case, dict):
             raise ValueError("invalid keyword case")
@@ -104,6 +105,11 @@ def load_cases(path: Path | None = None) -> tuple[KeywordCase, ...]:
             or not forbidden_behavior.strip()
         ):
             raise ValueError("invalid keyword case")
+        if case_id in seen_ids:
+            # Two rows with one id make per-case records indistinguishable and
+            # silently overwrite each other downstream.
+            raise ValueError(f"duplicate case id: {case_id}")
+        seen_ids.add(case_id)
         if answerable is not (expected_behavior == "cite"):
             raise ValueError("answerable must agree with expected_behavior")
         if expected_behavior == "cite" and not required_evidence:

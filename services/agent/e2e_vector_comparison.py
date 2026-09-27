@@ -49,6 +49,7 @@ from retrieval import keyword_search, load_sample_corpus
 from vector_search import (
     COLLECTION,
     EMBED_MODEL,
+    EMBED_MODEL_REVISION,
     FastembedEmbedder,
     build_index,
     qdrant_url,
@@ -101,6 +102,13 @@ def _tally(cases: tuple[KeywordCase, ...], retrieve) -> dict[str, int]:
     return tally
 
 
+def _arm_outcome(winners: list[str]) -> str:
+    """A tie must not be reported as a unique winner."""
+    if len(winners) == 1:
+        return winners[0]
+    return "tie:" + "+".join(sorted(winners))
+
+
 def _report(label: str, counts: dict[str, int], total: int) -> None:
     print(
         f"{label} total={total} matched={counts['matched']} extra={counts['extra_hits']} "
@@ -135,7 +143,13 @@ def main() -> int:
     confirmation = load_cases(CONFIRMATION_CASES_PATH)
 
     client = QdrantClient(url=qdrant_url())
-    embedder = FastembedEmbedder()
+    if not EMBED_MODEL_REVISION:
+        # Reporting "unpinned" is honest but not reproducible: the same model
+        # name can resolve to different weights, so scores and the relevance
+        # threshold could not be compared with any later run.
+        print("SKIP reason=embed_model_revision_unpinned")
+        return 0
+    embedder = FastembedEmbedder(revision=EMBED_MODEL_REVISION)
     indexed = build_index(
         client,
         load_sample_corpus(),
@@ -175,8 +189,11 @@ def main() -> int:
             f"stage=select chosen_arm={arm} chosen_limit={best[arm]} "
             f"basis=development_only_per_arm"
         )
-    winning_arm = max((arm for arm, _ in arms), key=lambda arm: scores[(best[arm], arm)])
-    print(f"stage=select best_arm={winning_arm}")
+    top_score = max(scores[(best[arm], arm)] for arm, _ in arms)
+    outcome = _arm_outcome(
+        [arm for arm, _ in arms if scores[(best[arm], arm)] == top_score]
+    )
+    print(f"stage=select best_arm={outcome} top_score={top_score}")
 
     # Step 2: continuity only. This split was already observed once.
     for arm, retrieve in arms:
@@ -210,7 +227,8 @@ def main() -> int:
         f"development={len(development)} contaminated={len(contaminated)} "
         f"confirmation={len(confirmation)} evaluated_total="
         f"{len(development) + len(contaminated) + len(confirmation)} "
-        f"embed_model={EMBED_MODEL} store=qdrant collection={COLLECTION} "
+        f"embed_model={EMBED_MODEL} embed_model_revision={EMBED_MODEL_REVISION} "
+        f"store=qdrant collection={COLLECTION} "
         # A caller-supplied label, not something this run verified against the
         # server; saying so keeps the evidence honest.
         f"image_asserted_by_caller={image} image_verified_against_server=false "

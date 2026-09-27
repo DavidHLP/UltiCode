@@ -57,12 +57,13 @@ MAX_TOKENS = 512
 #: Input cap per request, in the billed unit (tokens), not characters.
 MAX_PROMPT_TOKENS = 24_000
 MAX_CALLS = 8
-#: Prompt-tokens-per-character used for the preflight estimate. This is a
-#: heuristic, not a proven bound: it excludes per-message overhead and the
-#: provider tokenizer's own behaviour on emoji or rare Unicode, which can exceed
-#: this ratio. The preflight check therefore rejects an *estimated* overrun; the
-#: only exact accounting is the ``usage`` the provider reports after the call.
-PROMPT_TOKENS_PER_CHAR = 3
+#: Prompt cost is estimated in UTF-8 **bytes**: every token consumes at least one
+#: byte, so byte count is a genuine upper bound on prompt tokens for a
+#: byte-level tokenizer. A characters-per-token ratio cannot do this — rare
+#: Unicode can tokenize to more tokens than a fixed ratio predicts, which is why
+#: the earlier character-based estimate was not an enforced limit. Exact
+#: accounting still comes from the ``usage`` the provider reports after the call.
+PROMPT_TOKEN_UPPER_BYTES = 1
 #: Per-message role/framing overhead the content ratio cannot see. Without it a
 #: long list of short or empty messages stays under the cap while the billed
 #: prompt does not.
@@ -147,7 +148,10 @@ class DeepseekModel:
         # Cost guards run before the request: max_tokens bounds output, but the
         # prompt side is billed too, so both sides and the call count are capped.
         prompt_tokens_estimate = (
-            sum(len(message["content"]) for message in api_messages) * PROMPT_TOKENS_PER_CHAR
+            sum(
+                len(message["content"].encode("utf-8")) * PROMPT_TOKEN_UPPER_BYTES
+                for message in api_messages
+            )
             + len(api_messages) * PROMPT_TOKENS_PER_MESSAGE
         )
         if prompt_tokens_estimate > self._max_prompt_tokens:

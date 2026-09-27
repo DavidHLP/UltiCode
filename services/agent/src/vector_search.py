@@ -18,6 +18,10 @@ from retrieval import SourceDocument
 
 COLLECTION = "u02-eval"
 EMBED_MODEL = "BAAI/bge-small-en-v1.5"
+#: Set ULTICODE_EMBED_MODEL_REVISION to a pinned model revision (or a commit sha)
+#: for a reproducible comparison. Unpinned, the same model name can resolve to
+#: different weights over time, so the run is only comparable to itself.
+EMBED_MODEL_REVISION = os.environ.get("ULTICODE_EMBED_MODEL_REVISION", "")
 VECTOR_SIZE = 384
 #: Cosine relevance floor: below this the nearest point is not evidence.
 MIN_SCORE = 0.35
@@ -30,10 +34,13 @@ class Embedder(Protocol):
 class FastembedEmbedder:
     """One small ONNX embedding model. Loaded once per comparison run."""
 
-    def __init__(self, model_name: str = EMBED_MODEL) -> None:
+    def __init__(
+        self, model_name: str = EMBED_MODEL, revision: str | None = None
+    ) -> None:
         from fastembed import TextEmbedding  # noqa: PLC0415 - evaluation-only
 
-        self._model = TextEmbedding(model_name=model_name)
+        kwargs = {"revision": revision} if revision else {}
+        self._model = TextEmbedding(model_name=model_name, **kwargs)
 
     def embed(self, texts: list[str]) -> list[list[float]]:
         return [vector.tolist() for vector in self._model.embed(texts)]

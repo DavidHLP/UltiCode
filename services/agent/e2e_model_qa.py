@@ -55,6 +55,27 @@ def _validate_answer(answer: str, problem: dict[str, object], has_submission: bo
     )
 
 
+def _report_usage(model: object) -> None:
+    """Token accounting for billed calls. Values only, never prompt or answer text.
+
+    An unreported block prints ``unknown``: the call was sent and may have been
+    billed, so a zero would misstate the cost.
+    """
+    usage = getattr(model, "usage", None) or []
+    if not usage:
+        return
+    totals = [entry.get("total_tokens") for entry in usage]
+    if any(total is None for total in totals):
+        print(
+            f"E2E MODEL QA USAGE | calls={len(usage)} total_tokens=unknown "
+            "reason=provider_did_not_report_usage"
+        )
+        return
+    print(f"E2E MODEL QA USAGE | calls={len(usage)} total_tokens={sum(totals)}")
+
+
+
+
 async def main() -> int:
     async with UlticodeClient(APP_BASE, AUTH_BASE) as client:
         await client.login(
@@ -89,10 +110,16 @@ async def main() -> int:
             # Priced explicitly: the adapter's legacy default is not on the
             # current DeepSeek price list, so a costed run must name the model.
             model=os.environ.get("DEEPSEEK_MODEL", "deepseek-flash"),
+            # Cost guard rails: bounded output and a bounded number of calls.
+            max_calls=int(os.environ.get("DEEPSEEK_MAX_CALLS", "8")),
+            max_tokens=int(os.environ.get("DEEPSEEK_MAX_TOKENS", "300")),
         ) as model:
-            result = await run_tool_loop(
-                model, tools, QUESTION, max_rounds=4, total_timeout=90.0
-            )
+            try:
+                result = await run_tool_loop(
+                    model, tools, QUESTION, max_rounds=4, total_timeout=90.0
+                )
+            finally:
+                _report_usage(model)
 
     tool_names = {step["tool_name"] for step in result.trace}
     failed_count = sum(bool(step["failed"]) for step in result.trace)

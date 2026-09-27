@@ -246,3 +246,24 @@ def test_reported_usage_replaces_the_placeholder() -> None:
             ]
 
     asyncio.run(scenario())
+
+
+def test_prompt_budget_is_enforced_in_bytes_not_a_guessed_ratio() -> None:
+    """A character ratio can under-count; UTF-8 bytes are a real upper bound."""
+    captured: list[httpx.Request] = []
+    cjk = "错" * 200  # 3 UTF-8 bytes each, so bytes >> characters
+
+    async def scenario() -> None:
+        async with DeepseekModel(
+            "key",
+            tool_specs={},
+            # 400 tokens: the character count alone would fit, the byte count must not.
+            max_prompt_tokens=400,
+            transport=httpx.MockTransport(_ok_handler(captured)),
+        ) as model:
+            with pytest.raises(ModelBudgetExceeded):
+                await model.decide([{"role": "user", "content": cjk}])
+            assert model.calls_made == 0
+
+    asyncio.run(scenario())
+    assert captured == []

@@ -45,9 +45,12 @@ DOCUMENT_BINDING_FIELDS = (
     "access_scope",
     "sample_kind",
 )
-REQUIRED_FIELDS = DOCUMENT_BINDING_FIELDS + AUTHORIZATION_FIELDS
+REQUIRED_FIELDS = DOCUMENT_BINDING_FIELDS + AUTHORIZATION_FIELDS + (CONTENT_DIGEST_FIELD,)
 #: Manifest-only provenance: present on a SourceHit, not on a SourceDocument.
 MANIFEST_PROVENANCE_FIELD = "source_trust"
+#: Digest binding a manifest entry to the exact text it authorised, so replacing a
+#: file's content cannot ride in on the old permission and scope.
+CONTENT_DIGEST_FIELD = "content_digest"
 #: Retrieval always emits this marker and citation verification enforces it, so a
 #: manifest may not claim anything else for the same field.
 EXPECTED_SOURCE_TRUST = "untrusted-data"
@@ -59,6 +62,13 @@ SUPPORTED_PROJECTIONS = ("SourceHit.as_model_dict()",)
 
 class _DuplicateKey(ValueError):
     """A repeated key in a manifest entry, reported instead of silently kept."""
+
+
+def content_digest(text: str) -> str:
+    """Digest of the authorised text."""
+    import hashlib
+
+    return "sha256:" + hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
 def _reject_duplicate_keys(pairs: list[tuple[str, object]]) -> dict[str, object]:
@@ -89,6 +99,7 @@ class ManifestEntry:
     source_position: str
     model_input_projection: str
     source_trust: str
+    content_digest: str
 
 
 def _require_text(entry: dict[str, object], field: str, doc_id: str) -> str:
@@ -127,6 +138,8 @@ def load_manifest(path: Path | None = None) -> tuple[ManifestEntry, ...]:
             field: _require_text(item, field, doc_id)
             for field in (*REQUIRED_FIELDS, MANIFEST_PROVENANCE_FIELD)
         }
+        if CONTENT_DIGEST_FIELD not in values:
+            raise ManifestError(f"{doc_id}: missing {CONTENT_DIGEST_FIELD}")
         if values[MANIFEST_PROVENANCE_FIELD] != EXPECTED_SOURCE_TRUST:
             raise ManifestError(
                 f"{doc_id}: {MANIFEST_PROVENANCE_FIELD} must be "
@@ -163,7 +176,7 @@ def assert_manifest_covers(
             raise ManifestError(
                 f"{getattr(document, 'doc_id', '?')}: retrievable but not declared"
             )
-        for field in ("chunk_id", "source_path", "access_scope", "sample_kind", "source_position"):
+        for field in ("chunk_id", "source_path", "access_scope", "sample_kind", "source_position", CONTENT_DIGEST_FIELD):
             declared = getattr(entry, field)
             actual = getattr(document, field, None)
             if actual is not None and declared != actual:

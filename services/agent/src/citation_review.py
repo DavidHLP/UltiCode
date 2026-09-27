@@ -191,6 +191,14 @@ def load_verdicts(path: Path, items: tuple[ReviewItem, ...]) -> dict[str, dict[s
         review_id = entry.get("review_id")
         if not isinstance(review_id, str) or not review_id:
             raise VerdictError("verdict entry needs a review_id")
+        # Recompute from what the reviewer actually submitted: if claim or quote
+        # was edited, the old id must not still approve the original citation.
+        submitted_claim = entry.get("claim", claim_by_chunk.get(chunk_id))
+        submitted_quote = entry.get("quote", quote_by_chunk.get(chunk_id))
+        if review_id != review_row_id(chunk_id, submitted_claim or "", submitted_quote or ""):
+            raise VerdictError(
+                f"verdict for {chunk_id} does not match the submitted claim and quote"
+            )
         if review_id in verdicts:
             # Last-write-wins would erase an earlier rejection.
             raise VerdictError(f"duplicate verdict for review {review_id!r}")
@@ -203,6 +211,8 @@ def load_verdicts(path: Path, items: tuple[ReviewItem, ...]) -> dict[str, dict[s
             **{key: values[key] for key in VERDICT_KEYS},
             "note": str(entry.get("note", "")),
         }
+    claim_by_chunk = {item.chunk_id: item.claim for item in items}
+    quote_by_chunk = {item.chunk_id: item.quote for item in items}
     expected = {item.review_id for item in items}
     missing = expected - set(verdicts)
     if missing:

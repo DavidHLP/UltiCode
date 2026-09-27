@@ -374,15 +374,17 @@ def main() -> int:
     )
 
     print(
-        f"OK comparison corpus=agent-authored-synthetic docs={indexed} "
+        f"OK comparison corpus=agent-authored-synthetic "
+        f"corpus_digest={_corpus_digest(corpus)} "
+        f"development_cases_digest={_cases_digest(DEFAULT_CASES_PATH)} "
+        f"contaminated_cases_digest={_cases_digest(DEFAULT_CASES_PATH)} "
+        f"confirmation_cases_digest={_cases_digest(CONFIRMATION_CASES_PATH)} "
+        f"embed_artifact={embed_identity} min_score={MIN_SCORE} "
+        f"collection={COLLECTION} "
         f"development={len(development)} contaminated={len(contaminated)} "
-        f"confirmation={len(confirmation)} evaluated_total="
-        f"{len(development) + len(contaminated) + len(confirmation)} "
-        f"embed_model={EMBED_MODEL} embed_artifact={embed_identity} "
-        f"store=qdrant collection={COLLECTION} min_score={MIN_SCORE} "
-        # A caller-supplied label, not something this run verified against the
-        # server; saying so keeps the evidence honest.
-        f"image_asserted_by_caller={image} image_verified_against_server=false "
+        f"confirmation={len(confirmation)} "
+        f"evaluated_total={len(development) + len(contaminated) + len(confirmation)} "
+        f"docs={indexed} "
         f"scope=synthetic_slice_not_authorized_corpus"
     )
     return 0

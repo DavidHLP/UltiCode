@@ -1,381 +1,416 @@
-"""DAV-53 dual-account read-only isolation contrast against a local stack.
+"""U02.c keyword-vs-vector comparison over the same corpus and question set.
 
-Opt-in and local-only: it registers two throwaway non-admin accounts on the
-development stack, gives each one submission, and records the positive control
-(each account reads its own) next to the negative control (account A asks for
-account B's submission by id).
+Opt-in and evaluation-only: it needs a single-node Qdrant service, the optional
+``eval`` dependency group, and a pinned container image. It never touches the
+UltiCode stack, user data, or a real model. Output is fixed labels and counts
+only.
 
-It never touches real user data and never prints a credential, a token, a cookie,
-or any response body: output is fixed labels and status codes only.
+Protocol:
 
-Why this exists: ``SubmissionController.getSubmission`` forwards the authenticated
-user id to ``findById(id, userId)``, but a call site that forwards an argument is
-not proof that the owner service applies it. DAV-53 requires the refusal to be
-observed. The agent's own read-only client cannot express a cross-account read,
-so this contrast drives the HTTP contracts directly, one session per account.
+1. Both arms are compared on the **development** split across the candidate
+   retrieval limits, and the limit is chosen there.
+2. The original **holdout** split is reported as *contaminated*: it was already
+   observed during an exploratory run, so it is continuity evidence only and can
+   never be a clean confirmation.
+3. **holdout2** is the never-seen confirmation set. Its expectations were written
+   from the corpus text and committed before any retrieval ran on it, and it is
+   evaluated once, at the limit chosen in step 1.
 
-Verdicts are deliberately narrow: a cross-account read counts as refused only on
-the statuses the contract defines (403/404). A 500 or an empty body is a failure
-of this script, not evidence that isolation held.
+Scope: the corpus is the 3-document agent-authored synthetic sample, not the
+authorized 5-10 document corpus, so a "no gain" result is evidence about this
+slice only.
 
-Run against the local development stack:
+Run with a disposable single-node Qdrant, for example:
 
-    ULTICODE_E2E_ISOLATION=1 \\
-    ULTICODE_APP_BASE=http://localhost:9103 \\
-    ULTICODE_AUTH_BASE=http://localhost:9101 \\
-    uv run python e2e_account_isolation.py
+    docker run --rm -p 127.0.0.1:6333:6333 qdrant/qdrant@sha256:<digest>
+    cd services/agent
+    uv sync --locked --group eval
+    QDRANT_IMAGE=qdrant/qdrant@sha256:<digest> \\
+    QDRANT_URL=http://localhost:6333 QDRANT_ALLOW_RECREATE=1 \\
+    ULTICODE_EMBED_MODEL_PATH=<snapshot-dir> \\
+    ULTICODE_VECTOR_CONFIRM=1 uv run python e2e_vector_comparison.py
 """
 
 from __future__ import annotations
 
-import asyncio
+from datetime import datetime, timezone
 import os
-import secrets
-import string
-from typing import Any
+import re
+import sys
+from pathlib import Path
 
-import httpx
+sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-APP_BASE = os.environ.get("ULTICODE_APP_BASE", "http://localhost:9103")
-AUTH_BASE = os.environ.get("ULTICODE_AUTH_BASE", "http://localhost:9101")
-ACCESS_COOKIE = "access_token"
-CSRF_COOKIE = "csrf_token"
-#: Double-submit CSRF: a cookie-authenticated write must echo this header.
-CSRF_HEADER = "X-CSRF-Token"
-SUBMISSION_CODE = "print(1)"
-SUBMISSION_LANGUAGE = "python"
-REFUSAL_STATUSES = frozenset({403, 404})
+from keyword_evaluation import (
+    CONFIRMATION_CASES_PATH,
+    _CASES_PATH as DEFAULT_CASES_PATH,
+    KeywordCase,
+    load_cases,
+    retrieval_outcome,
+)
+from retrieval import keyword_search, load_sample_corpus
+from vector_search import (
+    COLLECTION,
+    EMBED_MODEL,
+    MIN_SCORE,
+    EMBED_MODEL_PATH,
+    artifact_identity,
+    FastembedEmbedder,
+    build_index,
+    qdrant_url,
+    search,
+)
 
+def _consumption_marker() -> Path:
+    """Durable record that the one-shot confirmation set has been used.
 
-class IsolationHarnessError(RuntimeError):
-    """The harness could not reach a verdict; isolation is unproven."""
+    Deliberately outside the checkout: a marker inside the repository is either
+    committed or gitignored, and a gitignored one disappears with every fresh
+    clone, which would let the confirmation set be evaluated again while still
+    claiming to be never seen.
 
-
-def _synthetic_password() -> str:
-    """Registration requires upper, lower and digit; random text need not have all three."""
-    return (
-        f"{secrets.token_urlsafe(12)}"
-        f"{secrets.choice(string.ascii_uppercase)}"
-        f"{secrets.choice(string.ascii_lowercase)}"
-        f"{secrets.choice(string.digits)}"
+    Scope: the guarantee is **per marker location**, so by default it covers one
+    workspace on one machine only. Spreading runs across machines or runners
+    needs the operator to point ``ULTICODE_VECTOR_CONFIRM_MARKER`` at a shared
+    durable path they control (a mounted volume or an external store). This code
+    cannot verify that a configured path is shared or durable, so it reports only
+    whether a path was configured, never that cross-runner protection exists.
+    """
+    override = os.environ.get("ULTICODE_VECTOR_CONFIRM_MARKER")
+    if override:
+        return Path(override)
+    state_home = Path(
+        os.environ.get("XDG_STATE_HOME", str(Path.home() / ".local" / "state"))
     )
+    return state_home / "ulticode" / "holdout-v2.consumed"
 
 
-def _synthetic_identity(label: str) -> tuple[str, str, str]:
-    """Throwaway credentials for a local stack. Values are never printed."""
-    username = f"u02-{label}-{secrets.token_hex(6)}"
-    return username, f"{username}@local.invalid", _synthetic_password()
-
-
-LOOPBACK_HOSTS = frozenset({"127.0.0.1", "localhost", "::1", "[::1]"})
-#: Set only when the target really is a disposable stack you own.
-REMOTE_WRITE_OPT_IN = "ULTICODE_E2E_ISOLATION_ALLOW_REMOTE"
-
-
-def _require_local_targets() -> str | None:
-    """Refuse to register accounts and submit on a non-loopback stack.
-
-    This harness *writes* (two accounts, two submissions). Inheriting a
-    base URL that points at staging or production would mutate shared data, so a
-    remote target needs a separate, explicit opt-in.
-    """
-    from urllib.parse import urlparse
-
-    if os.environ.get(REMOTE_WRITE_OPT_IN) == "1":
-        return None
-    for name, base in (("app", APP_BASE), ("auth", AUTH_BASE)):
-        host = (urlparse(base).hostname or "").lower()
-        if host not in LOOPBACK_HOSTS:
-            return f"{name} target {host!r} is not loopback"
-    return None
-
-
-def _session() -> httpx.AsyncClient:
-    # Redirects are not followed: a 307/308 from a loopback endpoint would
-    # replay the POST body against a staging or production host, which the
-    # base-URL guard cannot see.
-    # trust_env=False: with HTTP_PROXY/ALL_PROXY set, httpx would otherwise send
-    # these loopback requests — carrying generated credentials, session cookies
-    # and submission bodies — through a remote proxy.
-    return httpx.AsyncClient(timeout=30.0, follow_redirects=False, trust_env=False)
-
-
-def _cookie(cookies: httpx.Cookies, name: str) -> str | None:
-    found = [c.value for c in cookies.jar if c.name == name and c.value]
-    return found[0] if len(found) == 1 else None
-
-
-def _session_headers(cookies: httpx.Cookies) -> dict[str, str]:
-    """Send the access cookie as a header, like UlticodeClient does.
-
-    Copying the jar between clients loses ``Secure`` cookies over plain HTTP, so
-    the value is forwarded explicitly. The value is never logged or returned.
-    """
-    access = _cookie(cookies, ACCESS_COOKIE)
-    if access is None:
-        return {}
-    return {"Cookie": f"{ACCESS_COOKIE}={access}"}
-
-
-def _write_headers(cookies: httpx.Cookies) -> dict[str, str]:
-    """Session headers plus the double-submit CSRF header a cookie write needs.
-
-    ``CookieCsrfFilter`` rejects an unsafe method that carries a credential cookie
-    unless ``X-CSRF-Token`` matches the ``csrf_token`` cookie. Neither value is
-    ever printed.
-    """
-    headers = _session_headers(cookies)
-    if not headers:
-        return {}
-    csrf = _cookie(cookies, CSRF_COOKIE)
-    if csrf is None:
-        raise IsolationHarnessError("no csrf_token cookie for a cookie-authenticated write")
-    # The double-submit check compares the cookie against the header, so the
-    # csrf cookie has to travel in the Cookie header too — sending only the
-    # header yields "Invalid CSRF token".
-    headers["Cookie"] = f"{headers['Cookie']}; {CSRF_COOKIE}={csrf}"
-    return {**headers, CSRF_HEADER: csrf}
-
-
-def _payload(response: httpx.Response) -> dict[str, Any]:
+def _is_our_claim_record(marker: Path) -> bool:
+    """True only for a record this harness wrote for this confirmation set."""
     try:
-        body = response.json()
-    except ValueError:
-        return {}
-    return body if isinstance(body, dict) else {}
-
-
-def _data(response: httpx.Response) -> dict[str, Any]:
-    data = _payload(response).get("data")
-    return data if isinstance(data, dict) else {}
-
-
-def _require_200(response: httpx.Response, what: str) -> httpx.Response:
-    if response.status_code != 200:
-        raise IsolationHarnessError(f"{what} returned {response.status_code}")
-    return response
-
-
-async def _register(client: httpx.AsyncClient, identity: tuple[str, str, str]) -> int:
-    username, email, password = identity
-    response = await client.post(
-        f"{AUTH_BASE}/auth/register",
-        json={"username": username, "email": email, "password": password},
+        raw_lines = marker.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return False
+    # This harness writes exactly two assignments. An extra field, a comment or
+    # any non-assignment line means the file is not our record.
+    if any(not line.strip() or "=" not in line for line in raw_lines):
+        return False
+    lines = [line.split("=", 1) for line in raw_lines]
+    fields: dict[str, str] = {}
+    for key, value in lines:
+        if key in fields:
+            # A record this harness writes never repeats a field; last-write-wins
+            # would let an unrelated first value be overwritten into a match.
+            return False
+        fields[key] = value
+    return (
+        set(fields) == {"confirmation", "consumed_at"}
+        and fields.get("confirmation") == CONFIRMATION_CASES_PATH.name
+        and bool(fields.get("consumed_at", "").strip())
     )
-    return response.status_code
 
 
-async def _establish_session(
-    client: httpx.AsyncClient, identity: tuple[str, str, str]
-) -> str:
-    """Prefer the session the register call already issued; fall back to login.
+def _claim_confirmation_once() -> tuple[bool, str]:
+    """Claim the confirmation set, or refuse.
 
-    ``AuthController.register`` applies a session cookie itself, so a registered
-    account normally never needs a second call. Returns how the session was
-    established so the evidence records it.
+    The claim is created with exclusive access: an ``exists()`` check followed by
+    a write would let two concurrent runs both believe they own the single-use
+    set. If the marker cannot be written the run aborts rather than proceeding
+    repeatably.
     """
-    if _session_headers(client.cookies):
-        return "register"
-    username, _email, password = identity
-    response = await client.post(
-        f"{AUTH_BASE}/auth/login", json={"username": username, "password": password}
+    marker = _consumption_marker()
+    record = (
+        f"confirmation={CONFIRMATION_CASES_PATH.name}\n"
+        f"consumed_at={datetime.now(timezone.utc).isoformat()}\n"
     )
-    if response.status_code != 200:
-        raise IsolationHarnessError(f"login returned {response.status_code}")
-    if not _session_headers(client.cookies):
-        raise IsolationHarnessError("login did not establish a single access cookie")
-    return "login"
+    try:
+        # Kept out of the exclusive-create try: mkdir also raises
+        # FileExistsError, which must not be read as "already consumed".
+        marker.parent.mkdir(parents=True, exist_ok=True)
+    except OSError as error:
+        raise RuntimeError(f"could not record the confirmation claim: {error}") from None
+    try:
+        # Exclusive creation: the loser of a race gets FileExistsError.
+        with marker.open("x", encoding="utf-8") as handle:
+            handle.write(record)
+    except FileExistsError:
+        # A directory (or any non-record) at the marker path is a bad
+        # configuration, not a previous claim; reporting "already consumed" would
+        # silently prevent the confirmation run.
+        if marker.is_dir() or not (marker.is_file() and not marker.is_symlink()):
+            # A symlink, FIFO, socket or device also raises FileExistsError;
+            # treating those as a previous claim would skip the run and exit 0.
+            raise RuntimeError(
+                f"marker path is not a regular claim record: {marker}"
+            ) from None
+        # A regular file only counts as our claim if it parses as the record this
+        # harness writes. A loose substring test would accept any file that
+        # happens to mention the confirmation set.
+        if not _is_our_claim_record(marker):
+            raise RuntimeError(
+                f"marker exists but is not this harness's claim record: {marker}"
+            ) from None
+        return False, str(marker)
+    except OSError as error:
+        raise RuntimeError(f"could not record the confirmation claim: {error}") from None
+    return True, str(marker)
 
 
-async def _first_problem_id(
-    client: httpx.AsyncClient, headers: dict[str, str]
-) -> int:
-    response = _require_200(
-        await client.get(
-            f"{APP_BASE}/problems", params={"page": 1, "pageSize": 1}, headers=headers
-        ),
-        "problem listing",
+COUNTS = (
+    "matched",
+    "extra_hits",
+    "missed",
+    "false_positive",
+    "refused_with_evidence",
+    "refused_without_evidence",
+)
+CANDIDATE_LIMITS = (1, 3)
+CONTAMINATED_SPLIT = "holdout"
+CONFIRMATION_SPLIT = "holdout2"
+
+
+def _tally(cases: tuple[KeywordCase, ...], retrieve) -> dict[str, int]:
+    """Tally outcomes per class.
+
+    A ``refuse`` case is never scored as a successful citable match: retrieving
+    the declared document is exactly the fabrication risk, and counting it as
+    ``matched`` would both reward the arm for it and contradict the per-case
+    evaluation, which marks any such retrieval as a risk.
+    """
+    tally = {name: 0 for name in COUNTS}
+    for case in cases:
+        expected = set(case.required_evidence)
+        actual = set(retrieve(case))
+        if case.expected_behavior == "refuse":
+            tally["refused_with_evidence" if actual else "refused_without_evidence"] += 1
+            continue
+        tally[retrieval_outcome(expected, actual)] += 1
+    return tally
+
+
+def _corpus_digest(documents: tuple[object, ...]) -> str:
+    """Content digest of the captured corpus, so the evidence names it exactly."""
+    import hashlib
+
+    digest = hashlib.sha256()
+    for document in documents:
+        digest.update(str(getattr(document, "doc_id", "")).encode("utf-8"))
+        digest.update(str(getattr(document, "version", "")).encode("utf-8"))
+        digest.update(str(getattr(document, "text", "")).encode("utf-8"))
+        digest.update(b"\0")
+    return f"sha256:{digest.hexdigest()[:16]}"
+
+
+def _arm_outcome(winners: list[str]) -> str:
+    """A tie must not be reported as a unique winner."""
+    if len(winners) == 1:
+        return winners[0]
+    return "tie:" + "+".join(sorted(winners))
+
+
+def _artifact_unchanged(model_path: str, before: str) -> bool:
+    """True only when the snapshot still hashes to the preflight digest."""
+    return artifact_identity(model_path) == before
+
+
+def _cases_digest(path: Path | None = None) -> str:
+    """Digest of a case file, so the evidence names the exact expectations used."""
+    import hashlib
+
+    cases_path = path or DEFAULT_CASES_PATH
+    return f"sha256:{hashlib.sha256(cases_path.read_bytes()).hexdigest()[:16]}"
+
+
+def _report(label: str, counts: dict[str, int], total: int) -> None:
+    print(
+        f"{label} total={total} matched={counts['matched']} extra={counts['extra_hits']} "
+        f"missed={counts['missed']} false_positive={counts['false_positive']}"
     )
-    items = _data(response).get("items")
-    for item in items if isinstance(items, list) else []:
-        if isinstance(item, dict) and isinstance(item.get("id"), int):
-            return item["id"]
-    raise IsolationHarnessError("no problem available for a submission fixture")
 
 
-async def _submit(
-    client: httpx.AsyncClient, cookies: httpx.Cookies, problem_id: int
-) -> str:
-    response = _require_200(
-        await client.post(
-            f"{APP_BASE}/submissions",
-            json={
-                "problemId": problem_id,
-                "language": SUBMISSION_LANGUAGE,
-                "code": SUBMISSION_CODE,
-            },
-            headers=_write_headers(cookies),
-        ),
-        "submission",
-    )
-    submission_id = _data(response).get("id")
-    if not isinstance(submission_id, str) or not submission_id:
-        raise IsolationHarnessError("submission response carried no id")
-    return submission_id
-
-
-async def _read_detail(
-    client: httpx.AsyncClient, headers: dict[str, str], submission_id: str
-) -> tuple[int, str | None]:
-    """Return the status and, on 200, the id the server actually returned."""
-    response = await client.get(
-        f"{APP_BASE}/submissions/{submission_id}", headers=headers
-    )
-    if response.status_code != 200:
-        return response.status_code, None
-    return 200, _data(response).get("id")
-
-
-async def _problem_submission_ids(
-    client: httpx.AsyncClient, headers: dict[str, str], problem_id: int
-) -> set[str]:
-    response = _require_200(
-        await client.get(
-            f"{APP_BASE}/problems/{problem_id}/submissions",
-            params={"page": 1, "pageSize": 50},
-            headers=headers,
-        ),
-        "problem submission listing",
-    )
-    payload = _data(response)
-    items = payload.get("items")
-    total = payload.get("total")
-    if not isinstance(items, list) or not isinstance(total, int) or isinstance(total, bool):
-        raise IsolationHarnessError("listing envelope had no items array or total")
-    ids: set[str] = set()
-    for item in items:
-        # A row we cannot parse must not be skipped: it could be the very row
-        # that leaked.
-        if not isinstance(item, dict) or not isinstance(item.get("id"), str):
-            raise IsolationHarnessError("listing had a malformed row")
-        ids.add(item["id"])
-    if len(items) < min(total, 50):
-        # A page shorter than the reported total means unseen rows.
-        raise IsolationHarnessError("listing page was truncated")
-    return ids
-
-
-async def main() -> int:
-    if os.environ.get("ULTICODE_E2E_ISOLATION") != "1":
-        print("SKIP reason=opt_in_not_set")
+def main() -> int:
+    image = os.environ.get("QDRANT_IMAGE")
+    # A bare "@sha256:" or a non-hex suffix would pass a substring check and let
+    # the run record a non-immutable image identity.
+    if not image or not re.fullmatch(r"[^\s@]+@sha256:[0-9a-f]{64}", image):
+        # `latest` silently changes between runs, which makes the evidence
+        # irreproducible.
+        print("FAIL reason=unpinned_qdrant_image")
+        return 1
+    # The confirmation set is single-use. Without an explicit opt-in this run
+    # must not touch it, because re-running would contaminate it while still
+    # printing a clean-looking confirmation.
+    confirm_opt_in = os.environ.get("ULTICODE_VECTOR_CONFIRM") == "1"
+    if not confirm_opt_in:
+        print("SKIP reason=confirmation_requires_opt_in")
         return 0
-    unsafe = _require_local_targets()
-    if unsafe is not None:
-        print(f"FAIL reason={unsafe}")
+    # Loaded from its own versioned file so the routine suite never touches it.
+    confirmation = load_cases(CONFIRMATION_CASES_PATH)
+    cases = load_cases()
+    development = tuple(case for case in cases if case.split == "development")
+    contaminated = tuple(case for case in cases if case.split == CONTAMINATED_SPLIT)
+    model_path = EMBED_MODEL_PATH.strip()
+    if not model_path:
+        # Reporting "unpinned" is honest but not reproducible: the same model
+        # name can resolve to different weights, so scores and the relevance
+        # threshold could not be compared with any later run. Checked first so an
+        # unreproducible run does not even install the optional dependencies.
+        # The run was requested, so a missing pinned artifact is a failure, not
+        # a skip: exiting 0 would report a comparison that never happened.
+        print("FAIL reason=embed_model_path_required")
+        return 1
+    try:
+        # The checksum is the artifact identity actually used by this run. Checked
+        # in the preflight so a bad path costs nothing, with or without the
+        # optional dependencies installed.
+        embed_identity = artifact_identity(model_path)
+    except ValueError as error:
+        # The run was requested, so exiting 0 would report success for a
+        # comparison that never happened.
+        print(f"FAIL reason=embed_artifact_unusable detail={error}")
+        return 1
+    # Checked in the preflight: an empty or mislabelled fixture would burn the
+    # one-shot set and could still report a comparison with zero cases, and this
+    # check must not require the optional dependency to be installed.
+    if not confirmation or any(case.split != CONFIRMATION_SPLIT for case in confirmation):
+        print(
+            f"FAIL reason=confirmation_fixture_invalid loaded={len(confirmation)} "
+            f"expected_split={CONFIRMATION_SPLIT}"
+        )
+        return 1
+    # The selection and continuity stages must be non-empty too: an empty or
+    # drifted split would otherwise be reported as a completed comparison.
+    for name, rows, expected in (
+        ("development", development, "development"),
+        ("contaminated", contaminated, CONTAMINATED_SPLIT),
+    ):
+        if not rows or any(case.split != expected for case in rows):
+            print(
+                f"FAIL reason=split_fixture_invalid split={name} loaded={len(rows)} "
+                f"expected_split={expected}"
+            )
+            return 1
+
+    try:
+        from qdrant_client import QdrantClient  # noqa: PLC0415 - evaluation-only
+    except ImportError:
+        print("FAIL reason=missing_eval_dependency")
         return 1
 
-    identity_a = _synthetic_identity("a")
-    identity_b = _synthetic_identity("b")
-    async with (
-        _session() as auth_a,
-        _session() as auth_b,
-        _session() as app_a,
-        _session() as app_b,
-    ):
-        register_a = await _register(auth_a, identity_a)
-        register_b = await _register(auth_b, identity_b)
-        print(f"register statuses a={register_a} b={register_b}")
-        if register_a not in (200, 201) or register_b not in (200, 201):
-            print("FAIL reason=registration_failed")
-            return 1
-
-        try:
-            session_a = await _establish_session(auth_a, identity_a)
-            session_b = await _establish_session(auth_b, identity_b)
-        except IsolationHarnessError as error:
-            print(f"FAIL reason=session_not_established detail={error}")
-            return 1
-        print(f"sessions established a={session_a} b={session_b}")
-
-        headers_a = _session_headers(auth_a.cookies)
-        headers_b = _session_headers(auth_b.cookies)
-        # The write path is cookie-authenticated, so it needs the CSRF echo and
-        # must read its cookies from the session that established them.
-        app_a.cookies.update(auth_a.cookies)
-        app_b.cookies.update(auth_b.cookies)
-        try:
-            problem_id = await _first_problem_id(app_a, headers_a)
-            submission_a = await _submit(app_a, app_a.cookies, problem_id)
-            submission_b = await _submit(app_b, app_b.cookies, problem_id)
-        except IsolationHarnessError as error:
-            print(f"FAIL reason=fixture_unavailable detail={error}")
-            return 1
-        print("submissions created a=1 b=1")
-
-        try:
-            own_a_status, own_a_id = await _read_detail(app_a, headers_a, submission_a)
-            own_b_status, own_b_id = await _read_detail(app_b, headers_b, submission_b)
-            print(f"positive control own_a={own_a_status} own_b={own_b_status}")
-            # A 200 that returns someone else's id would not be an own-read.
-            if (own_a_status, own_b_status) != (200, 200):
-                print("FAIL reason=positive_control_failed")
-                return 1
-            if own_a_id != submission_a or own_b_id != submission_b:
-                print("FAIL reason=positive_control_returned_other_record")
-                return 1
-
-            cross_a, _ = await _read_detail(app_a, headers_a, submission_b)
-            cross_b, _ = await _read_detail(app_b, headers_b, submission_a)
-            print(f"negative control cross_a={cross_a} cross_b={cross_b}")
-            if cross_a not in REFUSAL_STATUSES or cross_b not in REFUSAL_STATUSES:
-                print("FAIL reason=cross_account_data_exposed")
-                return 1
-
-            # Leakage can be directional: B's listing could expose A's rows
-            # while A's stays scoped, so both directions are checked.
-            listed_by_a = await _problem_submission_ids(app_a, headers_a, problem_id)
-            listed_by_b = await _problem_submission_ids(app_b, headers_b, problem_id)
-        except IsolationHarnessError as error:
-            print(f"FAIL reason=harness_inconclusive detail={error}")
-            return 1
-
-        own_a_visible = submission_a in listed_by_a
-        own_b_visible = submission_b in listed_by_b
-        # Isolation means each account sees only its own row: a third user's
-        # submission is just as much a leak as the paired account's.
-        unexpected_a = listed_by_a - {submission_a}
-        unexpected_b = listed_by_b - {submission_b}
-        leaked = bool(unexpected_a) or bool(unexpected_b)
+    # One snapshot for both arms: reloading per query could index the vector arm
+    # on text the keyword arm no longer sees.
+    corpus = load_sample_corpus()
+    client = QdrantClient(url=qdrant_url())
+    # The validated value is the one passed to the embedder and printed.
+    embedder = FastembedEmbedder(model_path=model_path)
+    # Re-verify after loading: the snapshot can be updated between the preflight
+    # hash and the model load, which would make the reported digest a lie.
+    if not _artifact_unchanged(model_path, embed_identity):
         print(
-            f"listing own_a_visible={'yes' if own_a_visible else 'no'} "
-            f"own_b_visible={'yes' if own_b_visible else 'no'} "
-            f"b_visible_to_a={'yes' if submission_b in listed_by_a else 'no'} "
-            f"a_visible_to_b={'yes' if submission_a in listed_by_b else 'no'} "
-            f"listed_count_a={len(listed_by_a)} listed_count_b={len(listed_by_b)} "
-            f"unexpected_a={len(unexpected_a)} unexpected_b={len(unexpected_b)}"
+            "FAIL reason=embed_artifact_changed_during_load "
+            f"before={embed_identity} after={artifact_identity(model_path)}"
         )
-        if leaked:
-            print("FAIL reason=cross_account_data_exposed")
-            return 1
-        if not (own_a_visible and own_b_visible):
-            # Empty listings would make the foreign-absence checks vacuously
-            # true, so the listing path must first show it returns own rows.
-            print("FAIL reason=listing_positive_control_failed")
-            return 1
+        return 1
+    indexed = build_index(
+        client,
+        corpus,
+        embedder=embedder,
+        # Only ever pointed at a disposable instance; see build_index.
+        allow_recreate=os.environ.get("QDRANT_ALLOW_RECREATE") == "1",
+    )
 
-    # The label must follow the targets actually validated: evidence gathered
-    # through the remote opt-in is not local.
-    remote = os.environ.get(REMOTE_WRITE_OPT_IN) == "1"
+    def keyword(query: str, limit: int) -> list[str]:
+        return [
+            hit.doc_id for hit in keyword_search(query, limit=limit, documents=corpus)
+        ]
+
+    def vector(query: str, limit: int) -> list[str]:
+        return search(client, query, limit=limit, embedder=embedder)
+
+    arms = (("keyword", keyword), ("vector", vector))
+
+    # Step 1: choose the retrieval limit on the development split only.
+    scores: dict[tuple[int, str], int] = {}
+    for limit in CANDIDATE_LIMITS:
+        for arm, retrieve in arms:
+            counts = _tally(development, lambda case: retrieve(case.query, limit))
+            scores[(limit, arm)] = counts["matched"]
+            _report(
+                f"stage=select split=development limit={limit} arm={arm}",
+                counts,
+                len(development),
+            )
+    # Each arm keeps its own development optimum. Picking one joint limit would
+    # hand the tuned setting to the winner and evaluate the loser off-peak.
+    best: dict[str, int] = {}
+    for arm, _ in arms:
+        best[arm] = max(
+            CANDIDATE_LIMITS, key=lambda limit: (scores[(limit, arm)], -limit)
+        )
+    for arm, _ in arms:
+        print(
+            f"stage=select chosen_arm={arm} chosen_limit={best[arm]} "
+            f"basis=development_only_per_arm"
+        )
+    top_score = max(scores[(best[arm], arm)] for arm, _ in arms)
+    outcome = _arm_outcome(
+        [arm for arm, _ in arms if scores[(best[arm], arm)] == top_score]
+    )
+    print(f"stage=select best_arm={outcome} top_score={top_score}")
+
+    # Step 2: continuity only. This split was already observed once.
+    for arm, retrieve in arms:
+        counts = _tally(contaminated, lambda case: retrieve(case.query, best[arm]))
+        _report(
+            f"stage=contaminated split={CONTAMINATED_SPLIT} limit={best[arm]} arm={arm} "
+            f"basis=already_observed",
+            counts,
+            len(contaminated),
+        )
+
+    # Step 3: the never-seen confirmation set, claimed only now. A failure
+    # during dependency import or index setup must not burn the one-shot set, so
+    # the claim is deliberately taken after that preflight has succeeded.
+    claimed, marker = _claim_confirmation_once()
+    if not claimed:
+        print(f"SKIP reason=confirmation_already_consumed marker={marker}")
+        return 0
+    for arm, retrieve in arms:
+        counts = _tally(confirmation, lambda case: retrieve(case.query, best[arm]))
+        _report(
+            f"stage=confirm split={CONFIRMATION_SPLIT} limit={best[arm]} arm={arm} "
+            f"basis=predeclared_never_seen",
+            counts,
+            len(confirmation),
+        )
+    # Report only what is observable: whether a path was configured. Whether it is
+    # genuinely shared and durable is the operator's claim, not this run's.
+    scope = "configured" if os.environ.get("ULTICODE_VECTOR_CONFIRM_MARKER") else "default_workspace"
     print(
-        "OK isolation dual_account_contrast "
-        + ("remote_opt_in" if remote else "local_stack_only")
+        f"stage=confirm note=claim_recorded marker={marker} "
+        f"marker_location={scope} shared_durability=unverified_by_this_run"
+    )
+
+    print(
+        f"OK comparison corpus=agent-authored-synthetic "
+        f"corpus_digest={_corpus_digest(corpus)} "
+        f"development_cases_digest={_cases_digest(DEFAULT_CASES_PATH)} "
+        f"contaminated_cases_digest={_cases_digest(DEFAULT_CASES_PATH)} "
+        f"confirmation_cases_digest={_cases_digest(CONFIRMATION_CASES_PATH)} "
+        f"embed_artifact={embed_identity} min_score={MIN_SCORE} "
+        f"collection={COLLECTION} "
+        f"development={len(development)} contaminated={len(contaminated)} "
+        f"confirmation={len(confirmation)} "
+        f"evaluated_total={len(development) + len(contaminated) + len(confirmation)} "
+        f"docs={indexed} "
+        f"scope=synthetic_slice_not_authorized_corpus"
     )
     return 0
 
 
 if __name__ == "__main__":
     try:
-        raise SystemExit(asyncio.run(main()))
+        raise SystemExit(main())
     except Exception as exc:  # noqa: BLE001 - fixed status label only
         print(f"FAIL error={type(exc).__name__}")
         raise SystemExit(1) from None

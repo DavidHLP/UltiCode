@@ -277,42 +277,24 @@ def test_a_remote_opt_in_run_is_not_labelled_local(monkeypatch, capsys) -> None:
     smoke = e2e_account_isolation
     monkeypatch.setenv("ULTICODE_E2E_ISOLATION", "1")
     monkeypatch.setenv(smoke.REMOTE_WRITE_OPT_IN, "1")
-
-    class _Client:
-        def __init__(self, *_args: object, **_kwargs: object) -> None:
-            pass
-
-        async def __aenter__(self) -> "_Client":
-            return self
-
-        async def __aexit__(self, *_args: object) -> None:
-            return None
-
-        async def login(self, *_args: object) -> None:
-            return None
-
-    async def _first(_tools: object) -> dict[str, object]:
-        return {"id": "11111111-1111-4111-8111-111111111111", "status": "Wrong Answer"}
-
-    async def _submit(_client: object, _headers: object, _pid: int) -> str:
-        return "sub-1"
-
-    async def _pid(_client: object, _headers: object) -> int:
-        return 7
-
-    async def _read(_client: object, _headers: object, _sid: str) -> tuple[int, str | None]:
-        return 200, "sub-1"
-
-    async def _ids(_client: object, _headers: object, _p: int) -> set[str]:
-        return {"sub-1"}
-
-    monkeypatch.setattr(smoke, "UlticodeClient", _Client)
-    monkeypatch.setattr(smoke, "first_wrong_answer_submission", _first)
-    monkeypatch.setattr(smoke, "_first_problem_id", _pid)
-    monkeypatch.setattr(smoke, "_submit", _submit)
-    monkeypatch.setattr(smoke, "_read_detail", _read)
-    monkeypatch.setattr(smoke, "_problem_submission_ids", _ids)
+    # A non-loopback target is only reachable with the remote opt-in.
+    monkeypatch.setattr(smoke, "APP_BASE", "https://staging.example.invalid")
+    monkeypatch.setattr(smoke, "AUTH_BASE", "https://staging.example.invalid")
+    _install(monkeypatch, correct_service())
 
     assert asyncio.run(smoke.main()) == 0
-    assert "remote_opt_in" in capsys.readouterr().out
-    assert "local_stack_only" not in capsys.readouterr().out
+    output = capsys.readouterr().out
+    assert "remote_opt_in" in output
+    assert "local_stack_only" not in output
+
+
+def test_a_loopback_run_is_labelled_local(monkeypatch, capsys) -> None:
+    smoke = e2e_account_isolation
+    monkeypatch.setenv("ULTICODE_E2E_ISOLATION", "1")
+    monkeypatch.delenv(smoke.REMOTE_WRITE_OPT_IN, raising=False)
+    monkeypatch.setattr(smoke, "APP_BASE", "http://127.0.0.1:9103")
+    monkeypatch.setattr(smoke, "AUTH_BASE", "http://127.0.0.1:9101")
+    _install(monkeypatch, correct_service())
+
+    assert asyncio.run(smoke.main()) == 0
+    assert "local_stack_only" in capsys.readouterr().out

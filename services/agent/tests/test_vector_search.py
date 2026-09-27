@@ -277,6 +277,7 @@ def test_artifact_identity_tracks_the_local_snapshot(tmp_path) -> None:
     import vector_search
 
     snapshot = tmp_path / "snapshot"
+    snapshot.mkdir()
     (snapshot / "model.onnx").write_bytes(b"weights")
     (snapshot / "config.json").write_text("{}")
 

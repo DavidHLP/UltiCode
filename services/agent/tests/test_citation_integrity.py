@@ -128,7 +128,7 @@ def test_one_bad_citation_fails_the_whole_gate() -> None:
 
 def test_a_manifest_may_not_regrade_the_source_trust(tmp_path: Path) -> None:
     """Retrieval always emits untrusted-data; the manifest cannot claim else."""
-    from corpus_manifest import ManifestError, load_manifest
+    from corpus_manifest import MANIFEST_PATH, ManifestError, load_manifest
 
     raw = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
     raw[0]["source_trust"] = "trusted"

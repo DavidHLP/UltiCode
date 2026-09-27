@@ -72,6 +72,7 @@ def _run_model(monkeypatch, capsys, model: FakeModel) -> tuple[int, str]:
     monkeypatch.setenv("ULTICODE_E2E_USERNAME", "tester")
     monkeypatch.setenv("ULTICODE_E2E_PASSWORD", "pw")
     monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
+    monkeypatch.setenv("DEEPSEEK_MODEL", "test-model")
     monkeypatch.setattr(module, "UlticodeClient", lambda *args, **kwargs: FakeClient())
     monkeypatch.setattr(module, "DeepseekModel", lambda *args, **kwargs: model)
     return_code = asyncio.run(module.main())
@@ -227,6 +228,7 @@ def test_model_smoke_passes_a_one_call_output_cap_by_default(monkeypatch) -> Non
     ):
         monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("DEEPSEEK_API_KEY", "placeholder-not-a-real-key")
+    monkeypatch.setenv("DEEPSEEK_MODEL", "test-model")
     monkeypatch.setattr(smoke, "DeepseekModel", _CapturingModel)
 
     class _Client:
@@ -290,6 +292,7 @@ def test_usage_is_reported_even_when_decide_raises(monkeypatch, capsys) -> None:
     """
     smoke = module
     monkeypatch.setenv("DEEPSEEK_API_KEY", "placeholder-not-a-real-key")
+    monkeypatch.setenv("DEEPSEEK_MODEL", "test-model")
     monkeypatch.setenv("ULTICODE_E2E_USERNAME", "tester")
     monkeypatch.setenv("ULTICODE_E2E_PASSWORD", "pw")
 
@@ -350,6 +353,7 @@ def test_usage_is_reported_even_when_decide_raises(monkeypatch, capsys) -> None:
 def test_unreported_usage_is_printed_as_unknown_not_zero(monkeypatch, capsys) -> None:
     smoke = module
     monkeypatch.setenv("DEEPSEEK_API_KEY", "placeholder-not-a-real-key")
+    monkeypatch.setenv("DEEPSEEK_MODEL", "test-model")
     monkeypatch.setenv("ULTICODE_E2E_USERNAME", "tester")
     monkeypatch.setenv("ULTICODE_E2E_PASSWORD", "pw")
 
@@ -412,6 +416,7 @@ def test_a_billed_run_must_name_its_model(monkeypatch, capsys) -> None:
     smoke = module
     monkeypatch.delenv("DEEPSEEK_MODEL", raising=False)
     monkeypatch.setenv("DEEPSEEK_API_KEY", "placeholder-not-a-real-key")
+    monkeypatch.setenv("DEEPSEEK_MODEL", "test-model")
 
     assert asyncio.run(smoke.main()) == 1
     assert "reason=deepseek_model_required" in capsys.readouterr().out

@@ -51,6 +51,7 @@ from vector_search import (
     EMBED_MODEL,
     EMBED_MODEL_REVISION,
     is_immutable_revision,
+    normalized_revision,
     FastembedEmbedder,
     build_index,
     qdrant_url,
@@ -131,7 +132,8 @@ def main() -> int:
     if not confirm_opt_in:
         print("SKIP reason=confirmation_requires_opt_in")
         return 0
-    if not EMBED_MODEL_REVISION or not is_immutable_revision(EMBED_MODEL_REVISION):
+    pinned_revision = normalized_revision(EMBED_MODEL_REVISION)
+    if not pinned_revision or not is_immutable_revision(pinned_revision):
         # Reporting "unpinned" is honest but not reproducible: the same model
         # name can resolve to different weights, so scores and the relevance
         # threshold could not be compared with any later run. Checked first so an
@@ -156,7 +158,8 @@ def main() -> int:
     confirmation = load_cases(CONFIRMATION_CASES_PATH)
 
     client = QdrantClient(url=qdrant_url())
-    embedder = FastembedEmbedder(revision=EMBED_MODEL_REVISION)
+    # The validated value is the one passed to the embedder and printed.
+    embedder = FastembedEmbedder(revision=pinned_revision)
     indexed = build_index(
         client,
         load_sample_corpus(),

@@ -28,9 +28,14 @@ EMBED_MODEL_REVISION = os.environ.get("ULTICODE_EMBED_MODEL_REVISION", "")
 IMMUTABLE_REVISION = re.compile(r"^[0-9a-f]{40}$")
 
 
+def normalized_revision(revision: str) -> str:
+    """One normalisation point, so what is validated is what is used and printed."""
+    return revision.strip()
+
+
 def is_immutable_revision(revision: str) -> bool:
     """A movable ref is not a pin, whatever the operator intended."""
-    return bool(IMMUTABLE_REVISION.fullmatch(revision.strip()))
+    return bool(IMMUTABLE_REVISION.fullmatch(normalized_revision(revision)))
 
 
 VECTOR_SIZE = 384

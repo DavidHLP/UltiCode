@@ -280,3 +280,15 @@ def test_mutable_revision_stops_the_run(monkeypatch, capsys) -> None:
 
     assert smoke.main() == 0
     assert "embed_model_revision_not_immutable" in capsys.readouterr().out
+
+
+def test_a_padded_sha_normalises_to_the_value_that_is_used() -> None:
+    """A padded sha must not validate while a different string is sent."""
+    import vector_search
+
+    padded = "  " + "b" * 40 + "\n"
+    assert vector_search.is_immutable_revision(padded) is True
+    # What is validated, passed to the embedder and printed must be one value.
+    assert vector_search.normalized_revision(padded) == "b" * 40
+    assert vector_search.normalized_revision("main") == "main"
+    assert vector_search.is_immutable_revision("") is False

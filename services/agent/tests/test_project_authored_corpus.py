@@ -140,4 +140,4 @@ def test_manifest_may_not_claim_licensed_or_user_authored_material(
     monkeypatch.setattr(module, "MANIFEST_PATH", path)
 
     with pytest.raises(ManifestError, match="must declare"):
-        module.load_authorized_corpus()
+        module.load_project_authored_corpus()

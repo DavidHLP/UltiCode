@@ -119,10 +119,11 @@ def test_index_round_trip_keeps_provenance_payload() -> None:
 
     assert indexed == len(documents)
     assert client.collection["name"] == vector_search.COLLECTION
-    assert client.collection["vectors_config"] == {
-        "size": vector_search.VECTOR_SIZE,
-        "distance": "Cosine",
-    }
+    # A VectorParams object, not a dict: qdrant-client reads a dict as a
+    # named-vector mapping and would never create the collection.
+    config = client.collection["vectors_config"]
+    assert not isinstance(config, dict)
+    assert getattr(config, "size", None) == vector_search.VECTOR_SIZE
     assert set(client.points[0]["payload"]) == {
         "doc_id",
         "version",

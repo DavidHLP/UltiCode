@@ -171,16 +171,19 @@ def evaluate_case_records(
         retrieval_hit = (
             required_doc_ids <= actual_doc_ids if required_doc_ids else not actual_doc_ids
         )
-        if case.expected_behavior == "refuse":
-            # No answer is produced here, so nothing about the answer can be
-            # observed. Presenting the *expected* refusal as an observed one
-            # would let a fabricated code line pass unnoticed; the risk is
-            # recorded separately and the answer-level check stays deferred.
-            observed_behavior = "not_measured"
+        # This evaluator runs retrieval only: it never produces an answer, so
+        # nothing about answer behaviour is observable for *any* class. Recording
+        # "answered_with_citation" from document availability would turn
+        # retrieval into a claimed answer and understate what is unmeasured.
+        observed_behavior = "not_measured"
+        if case.expected_behavior == "no_evidence":
+            # An empty required set is a subset of everything, so containment
+            # would mark any hit as a pass. A hit here is a false positive.
+            retrieval_hit = not actual_doc_ids
         elif actual_doc_ids:
-            observed_behavior = "answered_with_citation"
+            retrieval_hit = required_doc_ids <= actual_doc_ids
         else:
-            observed_behavior = "no_evidence"
+            retrieval_hit = not required_doc_ids
         records.append(
             CaseRecord(
                 case_id=case.case_id,

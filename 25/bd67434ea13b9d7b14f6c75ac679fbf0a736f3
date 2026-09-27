@@ -1,0 +1,26 @@
+services/agent/e2e_vector_comparison.py
+  h_77173abe25c3ff 110-116,198-205
+services/agent/src/citation_review.py
+  h_77173abe25c3ff 107-109,111
+services/agent/src/corpus_manifest.py
+  h_77173abe25c3ff 57-71,102-109
+services/agent/src/project_authored_corpus.py
+  h_77173abe25c3ff 36-39
+services/agent/tests/test_corpus_manifest.py
+  h_77173abe25c3ff 224-236
+services/agent/tests/test_project_authored_corpus.py
+  h_77173abe25c3ff 160-174
+services/agent/tests/test_vector_search.py
+  h_77173abe25c3ff 393-428
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "25bd67434ea13b9d7b14f6c75ac679fbf0a736f3",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

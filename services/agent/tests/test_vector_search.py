@@ -392,25 +392,29 @@ def test_a_well_formed_digest_gets_past_the_image_guard(monkeypatch, capsys) -> 
     assert "embed_model_path_required" in capsys.readouterr().out
 
 
-def test_an_empty_confirmation_fixture_is_rejected_before_claiming(monkeypatch, capsys) -> None:
+def test_an_empty_confirmation_fixture_is_rejected_before_claiming(
+    monkeypatch, capsys, tmp_path
+) -> None:
     """An empty fixture must not consume the one-shot set or report OK."""
     import pathlib as _pathlib
 
     smoke = e2e_vector_comparison
+    # tmp_path, never the repository's data directory: a test that writes there
+    # leaves the checkout dirty and risks the fixture being committed.
     work = _pathlib.Path(smoke.CONFIRMATION_CASES_PATH).parent
-    marker = work.parent / "holdout-empty-marker"
+    marker = _pathlib.Path(tmp_path) / "holdout-empty-marker"
     for stale in (marker,):
         if stale.exists():
             stale.unlink()
-    empty_cases = work / "holdout-empty.json"
+    empty_cases = _pathlib.Path(tmp_path) / "holdout-empty.json"
     empty_cases.write_text("[]", encoding="utf-8")
 
     monkeypatch.setenv("ULTICODE_VECTOR_CONFIRM", "1")
     monkeypatch.setenv("QDRANT_IMAGE", "qdrant/qdrant@sha256:" + "a" * 64)
-    monkeypatch.setenv("ULTICODE_EMBED_MODEL_PATH", str(work))
+    monkeypatch.setenv("ULTICODE_EMBED_MODEL_PATH", str(_pathlib.Path(tmp_path)))
     monkeypatch.setenv("ULTICODE_VECTOR_CONFIRM_MARKER", str(marker))
     monkeypatch.setattr(smoke, "CONFIRMATION_CASES_PATH", empty_cases)
-    monkeypatch.setattr(smoke, "EMBED_MODEL_PATH", str(work))
+    monkeypatch.setattr(smoke, "EMBED_MODEL_PATH", str(_pathlib.Path(tmp_path)))
 
     assert smoke.main() == 1
     assert "confirmation_fixture_invalid" in capsys.readouterr().out

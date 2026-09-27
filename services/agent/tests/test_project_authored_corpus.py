@@ -186,3 +186,28 @@ def test_an_oversized_project_document_is_rejected(tmp_path, monkeypatch) -> Non
 
     with pytest.raises(ManifestError, match="exceeds the"):
         module.load_project_authored_corpus()
+
+
+def test_unverified_citations_are_withheld_entirely(monkeypatch) -> None:
+    """A failed gate must not ship the quote with a false flag."""
+    import project_authored_corpus as module
+
+    real_check = module.check_citations
+
+    def failing_check(citations, documents):
+        checks = real_check(citations, documents)
+        return tuple(
+            type(c)(
+                c.chunk_id, "text_not_in_source", c.detail
+            )
+            for c in checks
+        )
+
+    monkeypatch.setattr(module, "check_citations", failing_check)
+
+    answer = module.answer_with_project_evidence(
+        "Wrong Answer 状态说明了什么？", {"id": "sub-1", "status": "Wrong Answer"}
+    )
+
+    assert answer["citations_verified"] is False
+    assert answer["citations"] == []

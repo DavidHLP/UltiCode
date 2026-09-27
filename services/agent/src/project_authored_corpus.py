@@ -87,8 +87,14 @@ def load_project_authored_corpus() -> tuple[SourceDocument, ...]:
     return documents
 
 
-def search_project_corpus(query: str, *, limit: int = 3) -> tuple[object, ...]:
-    return keyword_search(query, limit=limit, documents=load_project_authored_corpus())
+def search_project_corpus(
+    query: str, *, limit: int = 3, documents: tuple[SourceDocument, ...] | None = None
+) -> tuple[object, ...]:
+    return keyword_search(
+        query,
+        limit=limit,
+        documents=load_project_authored_corpus() if documents is None else documents,
+    )
 
 
 def answer_with_project_evidence(question: str, submission: dict[str, str]) -> dict[str, object]:
@@ -104,9 +110,12 @@ def answer_with_project_evidence(question: str, submission: dict[str, str]) -> d
     # every fragment, so filtering on it would cite everything.
     submission_id, status = validate_submission_facts(dict(submission))
     facts = [f"提交 {submission_id} 的状态是 {status}。"]
+    # One snapshot for both retrieval and verification: a reload could let the
+    # gate judge a different text than the quotes come from.
+    corpus = load_project_authored_corpus()
     hits = tuple(
         hit
-        for hit in search_project_corpus(question)
+        for hit in search_project_corpus(question, documents=corpus)
         if status.casefold() in hit.text.casefold()
     )
     if not hits:
@@ -117,13 +126,14 @@ def answer_with_project_evidence(question: str, submission: dict[str, str]) -> d
             "citations_verified": False,
         }
     citations = [hit.as_model_dict() for hit in hits]
+    verified = all_verified(check_citations(citations, corpus))
     return {
         "facts": facts,
         "hypotheses": [
             "只有状态与授权片段，没有源码或失败用例；不能据此定位具体代码行或断言运行结果。"
         ],
-        "citations": citations,
-        "citations_verified": all_verified(
-            check_citations(citations, load_project_authored_corpus())
-        ),
+        # A failed gate withholds the evidence entirely rather than shipping an
+        # unverified quote alongside a false flag.
+        "citations": citations if verified else [],
+        "citations_verified": verified,
     }

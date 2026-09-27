@@ -87,13 +87,14 @@ def _consumption_marker() -> Path:
 def _is_our_claim_record(marker: Path) -> bool:
     """True only for a record this harness wrote for this confirmation set."""
     try:
-        lines = [
-            line.split("=", 1)
-            for line in marker.read_text(encoding="utf-8").splitlines()
-            if "=" in line
-        ]
+        raw_lines = marker.read_text(encoding="utf-8").splitlines()
     except OSError:
         return False
+    # This harness writes exactly two assignments. An extra field, a comment or
+    # any non-assignment line means the file is not our record.
+    if any(not line.strip() or "=" not in line for line in raw_lines):
+        return False
+    lines = [line.split("=", 1) for line in raw_lines]
     fields: dict[str, str] = {}
     for key, value in lines:
         if key in fields:
@@ -102,7 +103,8 @@ def _is_our_claim_record(marker: Path) -> bool:
             return False
         fields[key] = value
     return (
-        fields.get("confirmation") == CONFIRMATION_CASES_PATH.name
+        set(fields) == {"confirmation", "consumed_at"}
+        and fields.get("confirmation") == CONFIRMATION_CASES_PATH.name
         and bool(fields.get("consumed_at", "").strip())
     )
 

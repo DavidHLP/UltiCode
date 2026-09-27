@@ -122,3 +122,22 @@ def test_project_authored_corpus_fails_closed_on_a_manifest_gap(monkeypatch, tmp
 
     with pytest.raises(ManifestError, match="not declared"):
         load_project_authored_corpus()
+
+
+def test_manifest_may_not_claim_licensed_or_user_authored_material(
+    monkeypatch, tmp_path
+) -> None:
+    """This corpus is project-authored; the manifest must not say otherwise."""
+    import json as _json
+
+    import project_authored_corpus as module
+
+    raw = _json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+    raw[0]["permission"] = "owner-authorized"
+    raw[0]["scope"] = "user-authored material"
+    path = tmp_path / "forged.json"
+    path.write_text(_json.dumps(raw), encoding="utf-8")
+    monkeypatch.setattr(module, "MANIFEST_PATH", path)
+
+    with pytest.raises(ManifestError, match="must declare"):
+        module.load_authorized_corpus()

@@ -57,7 +57,17 @@ def _load_documents() -> tuple[SourceDocument, ...]:
 def load_project_authored_corpus() -> tuple[SourceDocument, ...]:
     """Load and validate. Fails closed if the manifest and corpus disagree."""
     documents = _load_documents()
-    assert_manifest_covers(load_manifest(MANIFEST_PATH), documents)
+    manifest = load_manifest(MANIFEST_PATH)
+    assert_manifest_covers(manifest, documents)
+    # A manifest that claims licensed or user-authored material would defeat the
+    # point of this corpus, so the declared metadata must match the only values
+    # this module stands behind.
+    for entry in manifest:
+        if entry.permission != PERMISSION or entry.scope != SCOPE:
+            raise ManifestError(
+                f"{entry.doc_id}: project-authored material must declare "
+                f"permission={PERMISSION!r} and the project scope"
+            )
     return documents
 
 

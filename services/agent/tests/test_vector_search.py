@@ -304,3 +304,28 @@ def test_tied_arms_are_reported_as_a_tie() -> None:
 
     assert smoke._arm_outcome(["keyword"]) == "keyword"
     assert smoke._arm_outcome(["vector", "keyword"]) == "tie:keyword+vector"
+
+
+def test_collection_config_is_not_a_plain_dict() -> None:
+    """qdrant-client 1.19.1 reads a plain dict as a named-vector mapping."""
+    import vector_search
+
+    try:
+        config = vector_search._collection_config()
+    except ImportError:
+        # The default runtime has no qdrant-client; the fake-based tests still
+        # cover the call shape.
+        return
+    assert not isinstance(config, dict)
+    assert getattr(config, "size", None) == vector_search.VECTOR_SIZE
+
+
+def test_artifact_is_validated_before_the_optional_dependencies(monkeypatch, capsys) -> None:
+    """A bad artifact must stop the run with or without qdrant installed."""
+    smoke = e2e_vector_comparison
+    monkeypatch.setenv("ULTICODE_VECTOR_CONFIRM", "1")
+    monkeypatch.setenv("QDRANT_IMAGE", "qdrant/qdrant@sha256:" + "0" * 64)
+    monkeypatch.setattr(smoke, "EMBED_MODEL_PATH", "/nonexistent/snapshot")
+
+    assert smoke.main() == 0
+    assert "embed_artifact_unusable" in capsys.readouterr().out

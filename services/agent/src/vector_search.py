@@ -82,6 +82,18 @@ def qdrant_url() -> str:
     return url
 
 
+def _collection_config() -> object:
+    """Build a real VectorParams.
+
+    With qdrant-client 1.19.1 a plain dict is read as a *named vector* mapping,
+    so ``size``/``distance`` are treated as vector names and the call fails on a
+    real client even though a permissive fake accepts it.
+    """
+    from qdrant_client.models import Distance, VectorParams  # noqa: PLC0415
+
+    return VectorParams(size=VECTOR_SIZE, distance=Distance.COSINE)
+
+
 def build_index(
     client: object,
     documents: tuple[SourceDocument, ...],
@@ -98,7 +110,7 @@ def build_index(
     vectors = (embedder or FastembedEmbedder()).embed([doc.text for doc in documents])
     if len(vectors) != len(documents):
         raise ValueError("embedding count did not match the corpus")
-    config = {"size": VECTOR_SIZE, "distance": "Cosine"}
+    config = _collection_config()
     if allow_recreate:
         client.recreate_collection(collection_name=COLLECTION, vectors_config=config)  # type: ignore[attr-defined]
     else:

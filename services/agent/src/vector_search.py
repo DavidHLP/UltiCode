@@ -12,30 +12,37 @@ reranker, no second index, no migration of the working keyword path.
 from __future__ import annotations
 
 import os
-import re
+from pathlib import Path
 from typing import Protocol
 
 from retrieval import SourceDocument
 
 COLLECTION = "u02-eval"
 EMBED_MODEL = "BAAI/bge-small-en-v1.5"
-#: Set ULTICODE_EMBED_MODEL_REVISION to an **immutable** model commit sha for a
-#: reproducible comparison. A branch name or tag can move, so it is rejected:
-#: the same model name could otherwise resolve to different weights on a later
-#: run, and the scores plus the relevance threshold would not be comparable.
-EMBED_MODEL_REVISION = os.environ.get("ULTICODE_EMBED_MODEL_REVISION", "")
-#: A full 40-character lowercase git commit sha.
-IMMUTABLE_REVISION = re.compile(r"^[0-9a-f]{40}$")
+#: FastEmbed 0.8.1 accepts **kwargs but its download_model call forwards only
+#: ``local_files_only`` and ``specific_model_path``, so a ``revision=`` argument is
+#: silently ignored. The supported way to pin the artifact is therefore a
+#: pre-downloaded snapshot directory, which this module identifies by checksum.
+EMBED_MODEL_PATH = os.environ.get("ULTICODE_EMBED_MODEL_PATH", "")
 
 
-def normalized_revision(revision: str) -> str:
-    """One normalisation point, so what is validated is what is used and printed."""
-    return revision.strip()
+def artifact_identity(model_path: str) -> str:
+    """Checksum of a local snapshot: sorted (relative path, size) pairs.
 
+    Cheap enough for a ~100 MB model and stable across runs, so two runs can be
+    shown to have used the same weights. Names and sizes only — hashing content
+    would add nothing for detecting a changed download.
+    """
+    import hashlib
 
-def is_immutable_revision(revision: str) -> bool:
-    """A movable ref is not a pin, whatever the operator intended."""
-    return bool(IMMUTABLE_REVISION.fullmatch(normalized_revision(revision)))
+    root = Path(model_path).resolve()
+    if not root.is_dir():
+        raise ValueError(f"embedding artifact is not a directory: {root}")
+    digest = hashlib.sha256()
+    for path in sorted(p for p in root.rglob("*") if p.is_file()):
+        digest.update(str(path.relative_to(root)).encode("utf-8"))
+        digest.update(str(path.stat().st_size).encode("utf-8"))
+    return f"sha256:{digest.hexdigest()}"
 
 
 VECTOR_SIZE = 384
@@ -51,11 +58,12 @@ class FastembedEmbedder:
     """One small ONNX embedding model. Loaded once per comparison run."""
 
     def __init__(
-        self, model_name: str = EMBED_MODEL, revision: str | None = None
+        self, model_name: str = EMBED_MODEL, model_path: str | None = None
     ) -> None:
         from fastembed import TextEmbedding  # noqa: PLC0415 - evaluation-only
 
-        kwargs = {"revision": revision} if revision else {}
+        # `specific_model_path` is the one pin FastEmbed 0.8.1 actually forwards.
+        kwargs = {"specific_model_path": model_path} if model_path else {}
         self._model = TextEmbedding(model_name=model_name, **kwargs)
 
     def embed(self, texts: list[str]) -> list[list[float]]:

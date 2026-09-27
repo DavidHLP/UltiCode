@@ -260,35 +260,48 @@ def test_confirmation_refuses_to_run_with_an_unpinned_embedding(monkeypatch, cap
     assert "embed_model_revision_unpinned" in capsys.readouterr().out
 
 
-def test_a_mutable_embedding_ref_is_rejected() -> None:
-    """A branch or tag can move, so it is not a pin."""
-    import vector_search
-
-    assert vector_search.is_immutable_revision("a" * 40) is True
-    assert vector_search.is_immutable_revision("main") is False
-    assert vector_search.is_immutable_revision("v1.0") is False
-    assert vector_search.is_immutable_revision("") is False
-    assert vector_search.is_immutable_revision("A" * 40) is False
-    assert vector_search.is_immutable_revision("a" * 39) is False
-
-
-def test_mutable_revision_stops_the_run(monkeypatch, capsys) -> None:
+def test_a_missing_embedding_path_stops_the_run(monkeypatch, capsys, tmp_path) -> None:
+    """Without a pinned local snapshot the run cannot be reproducible."""
     smoke = e2e_vector_comparison
     monkeypatch.setenv("ULTICODE_VECTOR_CONFIRM", "1")
     monkeypatch.setenv("QDRANT_IMAGE", "qdrant/qdrant@sha256:" + "0" * 64)
-    monkeypatch.setattr(smoke, "EMBED_MODEL_REVISION", "main")
+    monkeypatch.setattr(smoke, "EMBED_MODEL_PATH", "")
 
     assert smoke.main() == 0
-    assert "embed_model_revision_not_immutable" in capsys.readouterr().out
+    assert "embed_model_path_required" in capsys.readouterr().out
 
 
-def test_a_padded_sha_normalises_to_the_value_that_is_used() -> None:
-    """A padded sha must not validate while a different string is sent."""
+def test_an_unusable_embedding_path_stops_the_run(monkeypatch, capsys, tmp_path) -> None:
+    smoke = e2e_vector_comparison
+    monkeypatch.setenv("ULTICODE_VECTOR_CONFIRM", "1")
+    monkeypatch.setenv("QDRANT_IMAGE", "qdrant/qdrant@sha256:" + "0" * 64)
+    monkeypatch.setattr(smoke, "EMBED_MODEL_PATH", str(tmp_path / "missing"))
+
+    assert smoke.main() == 0
+    assert "embed_artifact_unusable" in capsys.readouterr().out
+
+
+def test_artifact_identity_tracks_the_local_snapshot(tmp_path) -> None:
+    """Two runs can be shown to have used the same weights."""
     import vector_search
 
-    padded = "  " + "b" * 40 + "\n"
-    assert vector_search.is_immutable_revision(padded) is True
-    # What is validated, passed to the embedder and printed must be one value.
-    assert vector_search.normalized_revision(padded) == "b" * 40
-    assert vector_search.normalized_revision("main") == "main"
-    assert vector_search.is_immutable_revision("") is False
+    snapshot = tmp_path / "snapshot"
+    (snapshot / "model.onnx").write_bytes(b"weights")
+    (snapshot / "config.json").write_text("{}")
+
+    first = vector_search.artifact_identity(str(snapshot))
+    assert first.startswith("sha256:")
+    assert vector_search.artifact_identity(str(snapshot)) == first
+
+    (snapshot / "extra.bin").write_bytes(b"more")
+    assert vector_search.artifact_identity(str(snapshot)) != first
+
+    with pytest.raises(ValueError, match="not a directory"):
+        vector_search.artifact_identity(str(tmp_path / "nope"))
+
+
+def test_tied_arms_are_reported_as_a_tie() -> None:
+    smoke = e2e_vector_comparison
+
+    assert smoke._arm_outcome(["keyword"]) == "keyword"
+    assert smoke._arm_outcome(["vector", "keyword"]) == "tie:keyword+vector"

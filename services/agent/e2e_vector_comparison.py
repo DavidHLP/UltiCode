@@ -49,9 +49,8 @@ from retrieval import keyword_search, load_sample_corpus
 from vector_search import (
     COLLECTION,
     EMBED_MODEL,
-    EMBED_MODEL_REVISION,
-    is_immutable_revision,
-    normalized_revision,
+    EMBED_MODEL_PATH,
+    artifact_identity,
     FastembedEmbedder,
     build_index,
     qdrant_url,
@@ -132,18 +131,13 @@ def main() -> int:
     if not confirm_opt_in:
         print("SKIP reason=confirmation_requires_opt_in")
         return 0
-    pinned_revision = normalized_revision(EMBED_MODEL_REVISION)
-    if not pinned_revision or not is_immutable_revision(pinned_revision):
+    model_path = EMBED_MODEL_PATH.strip()
+    if not model_path:
         # Reporting "unpinned" is honest but not reproducible: the same model
         # name can resolve to different weights, so scores and the relevance
         # threshold could not be compared with any later run. Checked first so an
         # unreproducible run does not even install the optional dependencies.
-        reason = (
-            "embed_model_revision_unpinned"
-            if not EMBED_MODEL_REVISION
-            else "embed_model_revision_not_immutable"
-        )
-        print(f"SKIP reason={reason}")
+        print("SKIP reason=embed_model_path_required")
         return 0
     try:
         from qdrant_client import QdrantClient  # noqa: PLC0415 - evaluation-only
@@ -159,7 +153,13 @@ def main() -> int:
 
     client = QdrantClient(url=qdrant_url())
     # The validated value is the one passed to the embedder and printed.
-    embedder = FastembedEmbedder(revision=pinned_revision)
+    try:
+        # The checksum is the artifact identity actually used by this run.
+        embed_identity = artifact_identity(model_path)
+    except ValueError as error:
+        print(f"SKIP reason=embed_artifact_unusable detail={error}")
+        return 0
+    embedder = FastembedEmbedder(model_path=model_path)
     indexed = build_index(
         client,
         load_sample_corpus(),
@@ -237,7 +237,7 @@ def main() -> int:
         f"development={len(development)} contaminated={len(contaminated)} "
         f"confirmation={len(confirmation)} evaluated_total="
         f"{len(development) + len(contaminated) + len(confirmation)} "
-        f"embed_model={EMBED_MODEL} embed_model_revision={EMBED_MODEL_REVISION} "
+        f"embed_model={EMBED_MODEL} embed_artifact={embed_identity} "
         f"store=qdrant collection={COLLECTION} "
         # A caller-supplied label, not something this run verified against the
         # server; saying so keeps the evidence honest.

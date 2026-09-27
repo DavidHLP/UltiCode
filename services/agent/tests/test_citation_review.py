@@ -229,3 +229,9 @@ def test_duplicate_keys_in_a_verdict_object_are_rejected(tmp_path) -> None:
 
     with pytest.raises(VerdictError, match="duplicate key"):
         load_verdicts(path, items)
+
+
+def test_duplicate_chunk_rows_are_rejected() -> None:
+    """One verdict must not silently cover two different quoted fragments."""
+    with pytest.raises(VerdictError, match="duplicate citation for chunk"):
+        _worksheet([_citation(DOCUMENTS[0]), _citation(DOCUMENTS[0])])

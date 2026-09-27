@@ -70,6 +70,7 @@ def build_worksheet(
     by_chunk = {document.chunk_id: document for document in documents}
     by_doc = {entry.doc_id: entry for entry in manifest}
     rows: list[ReviewItem] = []
+    seen_chunks: set[str] = set()
     if not isinstance(citations, list):
         raise VerdictError("citations must be a list")
     for index, citation in enumerate(citations):
@@ -77,6 +78,11 @@ def build_worksheet(
             # Dropping it would let the remaining rows pass a gate that never saw
             # this entry, so the whole worksheet is refused.
             raise VerdictError(f"citation {index} is not an object")
+        if chunk_id in seen_chunks:
+            # Two rows sharing a chunk id would collapse into one expected id, so a
+            # single verdict could approve a fragment nobody reviewed.
+            raise VerdictError(f"duplicate citation for chunk {chunk_id!r}")
+        seen_chunks.add(chunk_id)
         checks = check_citations([citation], documents)
         verdict = checks[0].verdict if checks else "malformed"
         chunk_id = str(citation.get("chunk_id", ""))

@@ -1,0 +1,36 @@
+services/agent/e2e_model_qa.py
+  h_77173abe25c3ff 58-78,113-115,117-122
+services/agent/e2e_vector_comparison.py
+  h_77173abe25c3ff 52,105-111,146-152,192-196,230-231
+services/agent/src/citation_review.py
+  h_77173abe25c3ff 133-142,145-152
+services/agent/src/deepseek_model.py
+  h_77173abe25c3ff 60-66,151-154
+services/agent/src/keyword_evaluation.py
+  h_77173abe25c3ff 80,108-112
+services/agent/src/vector_search.py
+  h_77173abe25c3ff 21-24,37-39,42-43
+services/agent/tests/test_citation_review.py
+  h_77173abe25c3ff 218-231
+services/agent/tests/test_deepseek_budget.py
+  h_77173abe25c3ff 249-269
+services/agent/tests/test_e2e_account_isolation.py
+  h_77173abe25c3ff 7
+services/agent/tests/test_e2e_model_qa.py
+  h_77173abe25c3ff 5-6,147-195
+services/agent/tests/test_keyword_evaluation.py
+  h_77173abe25c3ff 249-259
+services/agent/tests/test_vector_search.py
+  h_77173abe25c3ff 240-258
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "213ece349b82d16f62bcdd7135f9c56072bef5fe",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

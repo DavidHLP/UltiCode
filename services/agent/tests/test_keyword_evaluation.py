@@ -169,7 +169,10 @@ def test_keyword_evaluation_checks_expected_hits_and_no_evidence() -> None:
     assert result["development"]["total"] == 20
     assert result["holdout"]["total"] == 10
     assert result["development"]["passed"] == 12
-    assert result["holdout"]["passed"] == 5
+    # The holdout split contains a refusal case; retrieving its document is a
+    # fabrication risk and is tallied separately, never as a pass.
+    assert result["holdout"]["refused_with_evidence"] == 1
+    assert result["holdout"]["passed"] == 4
     assert result["development"]["unexpected_hits"] == 8
     assert result["holdout"]["unexpected_hits"] == 4
     assert result["development"]["no_evidence"] == 2

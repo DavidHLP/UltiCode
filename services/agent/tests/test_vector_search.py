@@ -241,7 +241,7 @@ def test_a_concurrent_claim_cannot_overwrite_the_record(tmp_path, monkeypatch) -
     marker = tmp_path / "holdout-v2.consumed"
     monkeypatch.setenv("ULTICODE_VECTOR_CONFIRM_MARKER", str(marker))
     # Another process already claimed it.
-    marker.write_text("confirmation=holdout-v2.json\nconsumed_at=earlier\n", encoding="utf-8")
+    marker.write_text("confirmation=holdout-v2.json\nconsumed_at=2026-09-27T08:00:00+00:00\n", encoding="utf-8")
 
     claimed, _ = smoke._claim_confirmation_once()
 
@@ -472,7 +472,7 @@ def test_our_own_claim_record_still_reports_already_consumed(tmp_path, monkeypat
     smoke = e2e_vector_comparison
     record = tmp_path / "holdout-v2.consumed"
     record.write_text(
-        f"confirmation={smoke.CONFIRMATION_CASES_PATH.name}\nconsumed_at=earlier\n",
+        f"confirmation={smoke.CONFIRMATION_CASES_PATH.name}\nconsumed_at=2026-09-27T08:00:00+00:00\n",
         encoding="utf-8",
     )
     monkeypatch.setenv("ULTICODE_VECTOR_CONFIRM_MARKER", str(record))
@@ -517,7 +517,7 @@ def test_a_claim_record_with_a_duplicated_field_is_rejected(tmp_path, monkeypatc
     record.write_text(
         "confirmation=unrelated\n"
         f"confirmation={smoke.CONFIRMATION_CASES_PATH.name}\n"
-        "consumed_at=earlier\n",
+        "consumed_at=2026-09-27T08:00:00+00:00\n",
         encoding="utf-8",
     )
     monkeypatch.setenv("ULTICODE_VECTOR_CONFIRM_MARKER", str(record))

@@ -261,9 +261,6 @@ def test_a_duplicated_document_identity_is_rejected() -> None:
         source_position=documents[0].source_position,
     )
 
-    with pytest.raises(ManifestError) as error:
+    # The identity prepass runs first, so the specific fault is reported.
+    with pytest.raises(ManifestError, match="duplicate document identity"):
         assert_manifest_covers(load_manifest(), (*documents, twin))
-
-    assert "content_digest" in str(error.value) or "duplicate document identity" in str(
-        error.value
-    )

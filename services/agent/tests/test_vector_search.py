@@ -504,3 +504,19 @@ def test_a_claim_record_without_a_timestamp_is_rejected(tmp_path, monkeypatch) -
 
     with pytest.raises(RuntimeError, match="not this harness's claim record"):
         smoke._claim_confirmation_once()
+
+
+def test_a_claim_record_with_a_duplicated_field_is_rejected(tmp_path, monkeypatch) -> None:
+    """Last-write-wins would turn an unrelated first value into a match."""
+    smoke = e2e_vector_comparison
+    record = tmp_path / "duplicated"
+    record.write_text(
+        "confirmation=unrelated\n"
+        f"confirmation={smoke.CONFIRMATION_CASES_PATH.name}\n"
+        "consumed_at=earlier\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("ULTICODE_VECTOR_CONFIRM_MARKER", str(record))
+
+    with pytest.raises(RuntimeError, match="not this harness's claim record"):
+        smoke._claim_confirmation_once()

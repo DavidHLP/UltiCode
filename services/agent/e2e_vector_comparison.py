@@ -87,13 +87,20 @@ def _consumption_marker() -> Path:
 def _is_our_claim_record(marker: Path) -> bool:
     """True only for a record this harness wrote for this confirmation set."""
     try:
-        fields = dict(
+        lines = [
             line.split("=", 1)
             for line in marker.read_text(encoding="utf-8").splitlines()
             if "=" in line
-        )
-    except (OSError, ValueError):
+        ]
+    except OSError:
         return False
+    fields: dict[str, str] = {}
+    for key, value in lines:
+        if key in fields:
+            # A record this harness writes never repeats a field; last-write-wins
+            # would let an unrelated first value be overwritten into a match.
+            return False
+        fields[key] = value
     return (
         fields.get("confirmation") == CONFIRMATION_CASES_PATH.name
         and bool(fields.get("consumed_at", "").strip())

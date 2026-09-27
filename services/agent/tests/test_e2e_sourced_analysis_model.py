@@ -416,9 +416,9 @@ def test_unreported_usage_is_printed_as_unknown_not_zero(monkeypatch, capsys) ->
 def test_a_billed_run_must_name_its_model(monkeypatch, capsys) -> None:
     """The adapter default and the provider's identifiers have both changed."""
     smoke = module
+    # Model deliberately unset: the run must refuse before any billed call.
     monkeypatch.delenv("DEEPSEEK_MODEL", raising=False)
     monkeypatch.setenv("DEEPSEEK_API_KEY", "placeholder-not-a-real-key")
-    monkeypatch.setenv("DEEPSEEK_MODEL", "test-model")
 
     assert asyncio.run(smoke.main()) == 1
     assert "reason=deepseek_model_required" in capsys.readouterr().out

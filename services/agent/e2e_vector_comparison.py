@@ -27,7 +27,7 @@ Run with a disposable single-node Qdrant, for example:
     uv sync --locked --group eval
     QDRANT_IMAGE=qdrant/qdrant@sha256:<digest> \\
     QDRANT_URL=http://localhost:6333 QDRANT_ALLOW_RECREATE=1 \\
-    ULTICODE_EMBED_MODEL_PATH=<snapshot-dir> \\\
+    ULTICODE_EMBED_MODEL_PATH=<snapshot-dir> \\
     ULTICODE_VECTOR_CONFIRM=1 uv run python e2e_vector_comparison.py
 """
 
@@ -146,8 +146,10 @@ def main() -> int:
         # optional dependencies installed.
         embed_identity = artifact_identity(model_path)
     except ValueError as error:
-        print(f"SKIP reason=embed_artifact_unusable detail={error}")
-        return 0
+        # The run was requested, so exiting 0 would report success for a
+        # comparison that never happened.
+        print(f"FAIL reason=embed_artifact_unusable detail={error}")
+        return 1
     try:
         from qdrant_client import QdrantClient  # noqa: PLC0415 - evaluation-only
     except ImportError:

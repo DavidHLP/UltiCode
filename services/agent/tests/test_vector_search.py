@@ -269,7 +269,8 @@ def test_an_unusable_embedding_path_stops_the_run(monkeypatch, capsys, tmp_path)
     monkeypatch.setenv("QDRANT_URL", "http://127.0.0.1:6333")
     monkeypatch.setattr(smoke, "EMBED_MODEL_PATH", str(tmp_path / "missing"))
 
-    assert smoke.main() == 0
+    # A requested run that cannot use a pinned artifact fails closed.
+    assert smoke.main() == 1
     assert "embed_artifact_unusable" in capsys.readouterr().out
 
 
@@ -328,5 +329,5 @@ def test_artifact_is_validated_before_the_optional_dependencies(monkeypatch, cap
     monkeypatch.setenv("QDRANT_IMAGE", "qdrant/qdrant@sha256:" + "0" * 64)
     monkeypatch.setattr(smoke, "EMBED_MODEL_PATH", "/nonexistent/snapshot")
 
-    assert smoke.main() == 0
+    assert smoke.main() == 1
     assert "embed_artifact_unusable" in capsys.readouterr().out

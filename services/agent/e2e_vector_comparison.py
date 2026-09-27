@@ -67,11 +67,12 @@ def _consumption_marker() -> Path:
     clone, which would let the confirmation set be evaluated again while still
     claiming to be never seen.
 
-    Scope: the single-use guarantee is **per marker location**, so by default it
-    holds for one workspace on one machine only. Cross-runner or cross-machine
-    use needs ``ULTICODE_VECTOR_CONFIRM_MARKER`` pointed at a shared durable path
-    (a mounted volume or an external store); the run reports which scope it is in
-    so an ephemeral runner cannot silently look like a fresh confirmation.
+    Scope: the guarantee is **per marker location**, so by default it covers one
+    workspace on one machine only. Spreading runs across machines or runners
+    needs the operator to point ``ULTICODE_VECTOR_CONFIRM_MARKER`` at a shared
+    durable path they control (a mounted volume or an external store). This code
+    cannot verify that a configured path is shared or durable, so it reports only
+    whether a path was configured, never that cross-runner protection exists.
     """
     override = os.environ.get("ULTICODE_VECTOR_CONFIRM_MARKER")
     if override:
@@ -261,10 +262,12 @@ def main() -> int:
             counts,
             len(confirmation),
         )
-    scope = "workspace" if not os.environ.get("ULTICODE_VECTOR_CONFIRM_MARKER") else "shared"
+    # Report only what is observable: whether a path was configured. Whether it is
+    # genuinely shared and durable is the operator's claim, not this run's.
+    scope = "configured" if os.environ.get("ULTICODE_VECTOR_CONFIRM_MARKER") else "default_workspace"
     print(
         f"stage=confirm note=claim_recorded marker={marker} "
-        f"single_use_scope={scope}"
+        f"marker_location={scope} shared_durability=unverified_by_this_run"
     )
 
     print(

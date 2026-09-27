@@ -67,14 +67,14 @@ def correct_service(foreign_status: int = 404, listing: object = "own_only") -> 
         if path.endswith("/auth/register") or path.endswith("/auth/login"):
             return _session_response(request)
         if path.endswith("/problems"):
-            return httpx.Response(200, json={"data": {"items": [{"id": 7}]}})
+            return httpx.Response(200, json={"data": {"items": [{"id": 7}], "total": 1}})
         if path.endswith("/submissions") and request.method == "POST":
             return httpx.Response(200, json={"data": {"id": OWNED[account]}})
         if path.endswith("/submissions"):
             if listing == "empty":
-                return httpx.Response(200, json={"data": {"items": []}})
+                return httpx.Response(200, json={"data": {"items": [], "total": 0}})
             if listing == "broken_envelope":
-                return httpx.Response(200, json={"data": {}})
+                return httpx.Response(200, json={"data": {"items": [], "total": 0}})
             if listing == "server_error":
                 return httpx.Response(500, json={"message": "boom"})
             if listing == "third_party":
@@ -186,7 +186,7 @@ def test_own_read_returning_another_id_is_a_failure(monkeypatch, capsys) -> None
         if path.endswith("/auth/register") or path.endswith("/auth/login"):
             return _session_response(request)
         if path.endswith("/problems"):
-            return httpx.Response(200, json={"data": {"items": [{"id": 7}]}})
+            return httpx.Response(200, json={"data": {"items": [{"id": 7}], "total": 1}})
         if path.endswith("/submissions") and request.method == "POST":
             # The write must carry the CSRF cookie *and* the matching header;
             # a header without the cookie is exactly what the filter rejects.
@@ -196,7 +196,7 @@ def test_own_read_returning_another_id_is_a_failure(monkeypatch, capsys) -> None
             return httpx.Response(200, json={"data": {"id": OWNED[account]}})
         if "/submissions/" in path:
             return httpx.Response(200, json={"data": {"id": "somebody-elses"}})
-        return httpx.Response(200, json={"data": {"items": []}})
+        return httpx.Response(200, json={"data": {"items": [], "total": 0}})
 
     _install(monkeypatch, handler)
 

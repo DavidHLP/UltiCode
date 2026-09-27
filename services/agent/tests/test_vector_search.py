@@ -424,7 +424,7 @@ def test_a_directory_at_the_marker_path_is_a_configuration_error(tmp_path, monke
     as_directory.mkdir()
     monkeypatch.setenv("ULTICODE_VECTOR_CONFIRM_MARKER", str(as_directory))
 
-    with pytest.raises(RuntimeError, match="is a directory"):
+    with pytest.raises(RuntimeError, match="not a regular claim record"):
         smoke._claim_confirmation_once()
 
 

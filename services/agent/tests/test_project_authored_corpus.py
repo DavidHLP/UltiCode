@@ -172,3 +172,17 @@ def test_a_symlinked_corpus_root_is_rejected(tmp_path, monkeypatch) -> None:
 
     with pytest.raises(ManifestError, match="root must not be a symlink"):
         module.load_project_authored_corpus()
+
+
+def test_an_oversized_project_document_is_rejected(tmp_path, monkeypatch) -> None:
+    """An unbounded document would be returned whole in every hit."""
+    import project_authored_corpus as module
+    from retrieval import MAX_SOURCE_CHARS
+
+    corpus = tmp_path / "corpus"
+    corpus.mkdir()
+    (corpus / "huge.md").write_text("x" * (MAX_SOURCE_CHARS + 1), encoding="utf-8")
+    monkeypatch.setattr(module, "CORPUS_DIR", corpus)
+
+    with pytest.raises(ManifestError, match="exceeds the"):
+        module.load_project_authored_corpus()

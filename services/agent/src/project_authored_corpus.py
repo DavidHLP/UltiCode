@@ -18,7 +18,7 @@ import json
 from pathlib import Path
 
 from corpus_manifest import ManifestError, assert_manifest_covers, load_manifest
-from retrieval import SourceDocument, keyword_search
+from retrieval import MAX_SOURCE_CHARS, SourceDocument, keyword_search
 
 CORPUS_DIR = Path(__file__).resolve().parents[1] / "corpus_project_authored"
 MANIFEST_PATH = Path(__file__).resolve().parents[1] / "data" / "project_authored_manifest.json"
@@ -47,6 +47,12 @@ def _load_documents() -> tuple[SourceDocument, ...]:
         text = path.read_text(encoding="utf-8").strip()
         if not text:
             raise ManifestError(f"{path.name}: empty project-authored document")
+        if len(text) > MAX_SOURCE_CHARS:
+            # Without this bound a large file lands whole in every SourceHit and in
+            # the declared model-input projection, blowing memory and prompt budget.
+            raise ManifestError(
+                f"{path.name}: {len(text)} chars exceeds the {MAX_SOURCE_CHARS} source cap"
+            )
         lines = len(text.splitlines())
         documents.append(
             SourceDocument(

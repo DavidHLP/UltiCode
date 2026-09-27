@@ -109,17 +109,18 @@ def _is_our_claim_record(marker: Path) -> bool:
         return False
     # The harness always writes an ISO timestamp; "garbage" is not a record it
     # could have produced, so it must not disable the confirmation run.
-    raw_consumed_at = fields.get("consumed_at", "").strip()
+    raw_consumed_at = fields.get("consumed_at", "")
     try:
         consumed_at = datetime.fromisoformat(raw_consumed_at)
     except ValueError:
         return False
     # The writer emits `datetime.now(timezone.utc).isoformat()`, so the text has to
-    # round-trip through `isoformat()` unchanged. A bare date, a naive timestamp or
-    # another offset parses but could not come from this writer — and neither could
-    # the ISO week-date or space-separated `Z` spellings `fromisoformat` also
-    # accepts, which would otherwise let an unrelated file read as our claim and
-    # silently skip the requested one-shot run.
+    # equal it exactly. A bare date, a naive timestamp or another offset parses but
+    # could not come from this writer — and neither could the ISO week-date or
+    # space-separated `Z` spellings `fromisoformat` also accepts, nor a padded
+    # value. The comparison deliberately does not trim: accepting whitespace would
+    # let a file this writer never produced read as our claim and silently skip the
+    # requested one-shot run.
     if consumed_at.isoformat() != raw_consumed_at:
         return False
     return consumed_at.tzinfo is not None and consumed_at.utcoffset() == timedelta(0)

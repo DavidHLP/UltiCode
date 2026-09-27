@@ -646,6 +646,10 @@ def test_a_date_only_or_naive_timestamp_is_not_our_claim(tmp_path: Path) -> None
         # "already consumed" and skip the requested run with exit 0.
         "2026-W01-1T00:00:00+00:00",
         "2026-01-01 00:00:00Z",
+        # The comparison must not trim: padding is still not a value this writer
+        # can emit, and accepting it would skip the run the same way.
+        " 2026-01-01T00:00:00+00:00",
+        "2026-01-01T00:00:00+00:00 ",
     ):
         marker = tmp_path / f"claim-{stamp}.txt"
         marker.write_text(

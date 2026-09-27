@@ -91,7 +91,10 @@ def _require_local_targets() -> str | None:
 
 
 def _session() -> httpx.AsyncClient:
-    return httpx.AsyncClient(timeout=30.0, follow_redirects=True)
+    # Redirects are not followed: a 307/308 from a loopback endpoint would
+    # replay the POST body against a staging or production host, which the
+    # base-URL guard cannot see.
+    return httpx.AsyncClient(timeout=30.0, follow_redirects=False)
 
 
 def _cookie(cookies: httpx.Cookies, name: str) -> str | None:

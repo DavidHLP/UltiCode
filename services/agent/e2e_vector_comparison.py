@@ -35,6 +35,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -120,7 +121,9 @@ def _report(label: str, counts: dict[str, int], total: int) -> None:
 
 def main() -> int:
     image = os.environ.get("QDRANT_IMAGE")
-    if not image or "@sha256:" not in image:
+    # A bare "@sha256:" or a non-hex suffix would pass a substring check and let
+    # the run record a non-immutable image identity.
+    if not image or not re.fullmatch(r"[^\s@]+@sha256:[0-9a-f]{64}", image):
         # `latest` silently changes between runs, which makes the evidence
         # irreproducible.
         print("FAIL reason=unpinned_qdrant_image")

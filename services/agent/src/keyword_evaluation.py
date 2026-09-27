@@ -114,6 +114,10 @@ def load_cases(path: Path | None = None) -> tuple[KeywordCase, ...]:
             raise ValueError("answerable must agree with expected_behavior")
         if expected_behavior == "cite" and not required_evidence:
             raise ValueError("a citable case must name its required evidence")
+        if expected_behavior == "no_evidence" and required_evidence:
+            raise ValueError("a no-evidence case cannot require evidence")
+        if expected_behavior == "refuse" and not required_evidence:
+            raise ValueError("a refuse case must name the evidence it resists")
         cases.append(
             KeywordCase(
                 case_id=case_id,

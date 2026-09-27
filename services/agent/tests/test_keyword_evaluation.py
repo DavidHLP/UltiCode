@@ -63,11 +63,8 @@ def test_records_cover_every_required_dimension() -> None:
         assert record.tool_calls == 1
         assert record.elapsed_us >= 0
         assert isinstance(record.retrieval_hit, bool)
-        assert record.observed_behavior in {
-            "answered_with_citation",
-            "no_evidence",
-            "not_measured",
-        }
+        # Retrieval-only evaluator: answer behaviour is never observed.
+        assert record.observed_behavior == "not_measured"
         assert record.retrieval_outcome in {
             "matched",
             "extra_hits",
@@ -112,7 +109,6 @@ def test_refuse_cases_never_report_an_answer_behaviour() -> None:
         record = records[case_id]
         hits = keyword_search(cases[case_id].query, limit=3)
         required = set(cases[case_id].required_evidence)
-        # The refusal is expected, never observed: this slice produces no answer.
         assert record.observed_behavior == "not_measured"
         # Any retrieved fragment is the temptation to fabricate, even one that
         # happens to be a required document.

@@ -4,6 +4,7 @@ import pytest
 
 from citation_review import (
     VERDICT_KEYS,
+    review_row_id,
     VerdictError,
     build_worksheet,
     load_verdicts,
@@ -53,13 +54,23 @@ def _verdict_file(tmp_path, chunk_ids, *, supports=True, complete=True):
     path.write_text(
         json.dumps(
             [
-                {"chunk_id": chunk_id, "verdicts": {k: supports for k in VERDICT_KEYS}, "note": ""}
-                for chunk_id in selected
+                {
+                    # A verdict is bound to the row, not to a bare chunk id.
+                    "chunk_id": chunk_id,
+                    "review_id": review_id,
+                    "verdicts": {k: supports for k in VERDICT_KEYS},
+                    "note": "",
+                }
+                for chunk_id, review_id in selected
             ]
         ),
         encoding="utf-8",
     )
     return path
+
+
+def _row_ids(items):
+    return [(item.chunk_id, item.review_id) for item in items]
 
 
 def test_claim_must_be_stated_explicitly() -> None:
@@ -132,7 +143,7 @@ def test_verdicts_must_cover_every_reviewed_citation(tmp_path) -> None:
     items = _worksheet(two)
     assert len(items) == 2
     assert items[0].chunk_id != items[1].chunk_id
-    partial = _verdict_file(tmp_path, [item.chunk_id for item in items], complete=False)
+    partial = _verdict_file(tmp_path, _row_ids(items), complete=False)
 
     with pytest.raises(VerdictError, match="no verdict"):
         load_verdicts(partial, items)
@@ -143,7 +154,14 @@ def test_verdicts_must_be_booleans(tmp_path) -> None:
     path = tmp_path / "verdicts.json"
     path.write_text(
         json.dumps(
-            [{"chunk_id": item.chunk_id, "verdicts": {k: "yes" for k in VERDICT_KEYS}} for item in items]
+            [
+                {
+                    "chunk_id": item.chunk_id,
+                    "review_id": item.review_id,
+                    "verdicts": {k: "yes" for k in VERDICT_KEYS},
+                }
+                for item in items
+            ]
         ),
         encoding="utf-8",
     )
@@ -154,7 +172,7 @@ def test_verdicts_must_be_booleans(tmp_path) -> None:
 
 def test_gate_fails_closed_on_an_unsupported_citation(tmp_path) -> None:
     items = _worksheet()
-    path = _verdict_file(tmp_path, [item.chunk_id for item in items], supports=False)
+    path = _verdict_file(tmp_path, _row_ids(items), supports=False)
 
     result = summarize(items, load_verdicts(path, items))
 
@@ -164,7 +182,7 @@ def test_gate_fails_closed_on_an_unsupported_citation(tmp_path) -> None:
 
 def test_gate_passes_only_when_every_citation_is_fully_supported(tmp_path) -> None:
     items = _worksheet()
-    path = _verdict_file(tmp_path, [item.chunk_id for item in items])
+    path = _verdict_file(tmp_path, _row_ids(items))
 
     result = summarize(items, load_verdicts(path, items))
 
@@ -180,7 +198,7 @@ def test_human_approval_cannot_override_a_failed_integrity_gate(tmp_path) -> Non
     tampered["text"] = "a sentence the corpus never contained"
     items = _worksheet([tampered])
     # A reviewer marks everything as supported; the gate must still refuse.
-    path = _verdict_file(tmp_path, [items[0].chunk_id], supports=True)
+    path = _verdict_file(tmp_path, _row_ids(items), supports=True)
 
     result = summarize(items, load_verdicts(path, items))
 
@@ -197,6 +215,7 @@ def test_partial_verdicts_are_counted_separately(tmp_path) -> None:
             [
                 {
                     "chunk_id": item.chunk_id,
+                    "review_id": item.review_id,
                     "verdicts": {"exists": True, "supports": False, "derivable": False},
                     "note": "fragment is about provenance, not this status",
                 }

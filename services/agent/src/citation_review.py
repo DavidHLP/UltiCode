@@ -34,10 +34,27 @@ from retrieval import SourceDocument
 VERDICT_KEYS = ("exists", "supports", "derivable")
 
 
+def review_row_id(chunk_id: str, claim: str, quote: str) -> str:
+    """Identify one worksheet row by what it actually asks the reviewer.
+
+    A verdict is only meaningful for the claim and the quote it was written
+    against, so the id covers both; keying on chunk id alone would let a verdict
+    file be reused across worksheets.
+    """
+    import hashlib
+
+    digest = hashlib.sha256()
+    for part in (chunk_id, claim, quote):
+        digest.update(part.encode("utf-8"))
+        digest.update(b"\0")
+    return f"{chunk_id}:{digest.hexdigest()[:16]}"
+
+
 @dataclass(frozen=True)
 class ReviewItem:
     """One citation awaiting judgement. Verdicts are deliberately unset."""
 
+    review_id: str
     chunk_id: str
     doc_id: str
     source_position: str
@@ -92,6 +109,7 @@ def build_worksheet(
         entry = by_doc.get(doc_id)
         rows.append(
             ReviewItem(
+                review_id=review_row_id(chunk_id, claim, str(citation.get("text", ""))),
                 chunk_id=chunk_id,
                 doc_id=doc_id,
                 source_position=document.source_position if document else "unknown",
@@ -165,6 +183,9 @@ def load_verdicts(path: Path, items: tuple[ReviewItem, ...]) -> dict[str, dict[s
         chunk_id = entry.get("chunk_id")
         if not isinstance(chunk_id, str) or not chunk_id:
             raise VerdictError("verdict entry needs a chunk_id")
+        review_id = entry.get("review_id")
+        if not isinstance(review_id, str) or not review_id:
+            raise VerdictError("verdict entry needs a review_id")
         if chunk_id in verdicts:
             # Last-write-wins would erase an earlier rejection.
             raise VerdictError(f"duplicate verdict for {chunk_id}")
@@ -173,11 +194,11 @@ def load_verdicts(path: Path, items: tuple[ReviewItem, ...]) -> dict[str, dict[s
             not isinstance(values.get(key), bool) for key in VERDICT_KEYS
         ):
             raise VerdictError(f"{chunk_id}: all of {VERDICT_KEYS} must be booleans")
-        verdicts[chunk_id] = {
+        verdicts[review_id] = {
             **{key: values[key] for key in VERDICT_KEYS},
             "note": str(entry.get("note", "")),
         }
-    expected = {item.chunk_id for item in items}
+    expected = {item.review_id for item in items}
     missing = expected - set(verdicts)
     if missing:
         raise VerdictError(f"no verdict for: {sorted(missing)}")
@@ -196,7 +217,7 @@ def summarize(
     disagreements: list[str] = []
     unverified: list[str] = []
     for item in items:
-        verdict = verdicts[item.chunk_id]
+        verdict = verdicts[item.review_id]
         for key in VERDICT_KEYS:
             counts[key] += 1 if verdict[key] else 0
         if not (verdict["exists"] and verdict["supports"] and verdict["derivable"]):

@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Protocol
+from typing import Callable, Protocol
 
 from retrieval import SourceDocument
 
@@ -100,6 +100,7 @@ def build_index(
     *,
     embedder: Embedder | None = None,
     allow_recreate: bool = False,
+    config_factory: Callable[[], object] | None = None,
 ) -> int:
     """Upsert one point per source document and return how many were indexed.
 
@@ -110,7 +111,9 @@ def build_index(
     vectors = (embedder or FastembedEmbedder()).embed([doc.text for doc in documents])
     if len(vectors) != len(documents):
         raise ValueError("embedding count did not match the corpus")
-    config = _collection_config()
+    # Injected so the wiring can be tested without the optional qdrant-client,
+    # while a real run always uses the real VectorParams builder.
+    config = (config_factory or _collection_config)()
     if allow_recreate:
         client.recreate_collection(collection_name=COLLECTION, vectors_config=config)  # type: ignore[attr-defined]
     else:

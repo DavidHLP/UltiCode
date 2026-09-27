@@ -32,6 +32,11 @@ class _FakePoint:
         self.payload = payload
 
 
+def _stub_config() -> object:
+    """Stand-in for VectorParams so the wiring tests need no qdrant-client."""
+    return type("VectorParams", (), {"size": vector_search.VECTOR_SIZE, "distance": "Cosine"})()
+
+
 class _FakeClient:
     """Stands in for a single-node Qdrant client; records the calls we make."""
 
@@ -115,7 +120,9 @@ def test_index_round_trip_keeps_provenance_payload() -> None:
     client = _FakeClient()
     documents = load_sample_corpus()
 
-    indexed = vector_search.build_index(client, documents, embedder=_FakeEmbedder())
+    indexed = vector_search.build_index(
+        client, documents, embedder=_FakeEmbedder(), config_factory=_stub_config
+    )
 
     assert indexed == len(documents)
     assert client.collection["name"] == vector_search.COLLECTION
@@ -138,7 +145,9 @@ def test_index_round_trip_keeps_provenance_payload() -> None:
 def test_search_returns_payload_doc_ids_and_passes_the_limit() -> None:
     client = _FakeClient()
     embedder = _FakeEmbedder()
-    vector_search.build_index(client, load_sample_corpus(), embedder=embedder)
+    vector_search.build_index(
+        client, load_sample_corpus(), embedder=embedder, config_factory=_stub_config
+    )
 
     found = vector_search.search(client, "status", limit=2, embedder=embedder)
 
@@ -152,7 +161,9 @@ def test_embedding_count_mismatch_is_rejected() -> None:
             return super().embed(texts)[:-1]
 
     with pytest.raises(ValueError):
-        vector_search.build_index(_FakeClient(), load_sample_corpus(), embedder=_WrongSize())
+        vector_search.build_index(
+            _FakeClient(), load_sample_corpus(), embedder=_WrongSize(), config_factory=_stub_config
+        )
 
 
 def test_every_case_declares_required_evidence_for_the_comparison() -> None:
@@ -167,14 +178,18 @@ def test_index_refuses_to_delete_a_collection_it_does_not_own() -> None:
     client = _FakeClient(existing=(vector_search.COLLECTION,))
 
     with pytest.raises(ValueError, match="already exists"):
-        vector_search.build_index(client, load_sample_corpus(), embedder=_FakeEmbedder())
+        vector_search.build_index(client, load_sample_corpus(), embedder=_FakeEmbedder(), config_factory=_stub_config)
 
 
 def test_index_recreates_only_with_an_explicit_opt_in() -> None:
     client = _FakeClient(existing=(vector_search.COLLECTION,))
 
     indexed = vector_search.build_index(
-        client, load_sample_corpus(), embedder=_FakeEmbedder(), allow_recreate=True
+        client,
+        load_sample_corpus(),
+        embedder=_FakeEmbedder(),
+        allow_recreate=True,
+        config_factory=_stub_config,
     )
 
     assert indexed == len(load_sample_corpus())
@@ -183,7 +198,9 @@ def test_index_recreates_only_with_an_explicit_opt_in() -> None:
 def test_vector_search_drops_hits_below_the_relevance_floor() -> None:
     client = _FakeClient()
     embedder = _FakeEmbedder()
-    vector_search.build_index(client, load_sample_corpus(), embedder=embedder)
+    vector_search.build_index(
+        client, load_sample_corpus(), embedder=embedder, config_factory=_stub_config
+    )
 
     original = vector_search.search
 
@@ -194,7 +211,9 @@ def test_vector_search_drops_hits_below_the_relevance_floor() -> None:
             return result
 
     low = _LowScoreClient()
-    vector_search.build_index(low, load_sample_corpus(), embedder=embedder)
+    vector_search.build_index(
+        low, load_sample_corpus(), embedder=embedder, config_factory=_stub_config
+    )
 
     assert original(low, "status", limit=2, embedder=embedder) == []
 

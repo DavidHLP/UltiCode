@@ -132,44 +132,41 @@ def _acquire_run_lock() -> Path:
 
 
 def _is_our_claim_record(marker: Path) -> bool:
-    """True only for a record this harness wrote for this confirmation set."""
+    """True only for the bytes this harness would have written.
+
+    The record is two ordered assignments — ``confirmation`` then ``consumed_at`` —
+    with a trailing newline and a timestamp the writer's ``isoformat()`` would
+    reproduce exactly. Anything else (reordered, padded, unterminated, or a
+    spelling ``fromisoformat`` happens to accept) is not our claim and must not
+    disable the one-shot run.
+    """
     try:
-        raw_lines = marker.read_text(encoding="utf-8").splitlines()
+        raw = marker.read_text(encoding="utf-8")
     except OSError:
         return False
+    lines = raw.splitlines()
     # This harness writes exactly two assignments. An extra field, a comment or
     # any non-assignment line means the file is not our record.
-    if any(not line.strip() or "=" not in line for line in raw_lines):
+    if len(lines) != 2 or any(not line or "=" not in line for line in lines):
         return False
-    lines = [line.split("=", 1) for line in raw_lines]
-    fields: dict[str, str] = {}
-    for key, value in lines:
-        if key in fields:
-            # A record this harness writes never repeats a field; last-write-wins
-            # would let an unrelated first value be overwritten into a match.
-            return False
-        fields[key] = value
-    if set(fields) != {"confirmation", "consumed_at"}:
+    pairs = [line.split("=", 1) for line in lines]
+    if [key for key, _ in pairs] != ["confirmation", "consumed_at"]:
+        # A record this harness writes never repeats a field or reverses them;
+        # last-write-wins would let an unrelated value be overwritten into a match.
         return False
-    if fields.get("confirmation") != CONFIRMATION_CASES_PATH.name:
+    if pairs[0][1] != CONFIRMATION_CASES_PATH.name:
         return False
-    # The harness always writes an ISO timestamp; "garbage" is not a record it
-    # could have produced, so it must not disable the confirmation run.
-    raw_consumed_at = fields.get("consumed_at", "")
+    raw_consumed_at = pairs[1][1]
     try:
         consumed_at = datetime.fromisoformat(raw_consumed_at)
     except ValueError:
         return False
-    # The writer emits `datetime.now(timezone.utc).isoformat()`, so the text has to
-    # equal it exactly. A bare date, a naive timestamp or another offset parses but
-    # could not come from this writer — and neither could the ISO week-date or
-    # space-separated `Z` spellings `fromisoformat` also accepts, nor a padded
-    # value. The comparison deliberately does not trim: accepting whitespace would
-    # let a file this writer never produced read as our claim and silently skip the
-    # requested one-shot run.
-    if consumed_at.isoformat() != raw_consumed_at:
+    if consumed_at.tzinfo is None or consumed_at.utcoffset() != timedelta(0):
         return False
-    return consumed_at.tzinfo is not None and consumed_at.utcoffset() == timedelta(0)
+    return raw == (
+        f"confirmation={CONFIRMATION_CASES_PATH.name}\n"
+        f"consumed_at={consumed_at.isoformat()}\n"
+    )
 
 
 def _claim_confirmation_once() -> tuple[bool, str]:

@@ -75,13 +75,37 @@ def _session_response(request: httpx.Request) -> httpx.Response:
     )
 
 
+def _enveloped(handler):
+    """Mirror the real Result envelope: a 200 body carries ``code: 0``.
+
+    The script now requires a successful envelope, so the mocks have to speak the
+    contract they are standing in for.
+    """
+
+    def wrapped(request: httpx.Request) -> httpx.Response:
+        response = handler(request)
+        if response.status_code != 200:
+            return response
+        body = json.loads(response.content)
+        if not isinstance(body, dict) or "code" in body:
+            return response
+        headers = [
+            (name, value)
+            for name, value in response.headers.multi_items()
+            if name.lower() != "content-length"
+        ]
+        return httpx.Response(200, json={"code": 0, **body}, headers=headers)
+
+    return wrapped
+
+
 def _install(monkeypatch, handler) -> None:
     """Route every session in the script through one mock transport."""
     monkeypatch.setattr(
         e2e_account_isolation,
         "_session",
         lambda: httpx.AsyncClient(
-            transport=httpx.MockTransport(handler), follow_redirects=True
+            transport=httpx.MockTransport(_enveloped(handler)), follow_redirects=True
         ),
     )
 
@@ -208,6 +232,36 @@ def test_forbidden_counts_as_a_refusal(monkeypatch, capsys) -> None:
 
     assert asyncio.run(e2e_account_isolation.main()) == 0
     assert "negative control cross_a=403 cross_b=403" in capsys.readouterr().out
+
+
+def test_a_nonzero_envelope_is_not_isolation_evidence(monkeypatch, capsys) -> None:
+    """200 with a plausible data object is not a successful Result.
+
+    The payload below is the same one the passing tests use; only the Result code
+    says the call failed, so a status-and-body check would call this isolation
+    evidence.
+    """
+    monkeypatch.setenv("ULTICODE_E2E_ISOLATION", "1")
+    inner = correct_service()
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        response = inner(request)
+        if response.status_code != 200:
+            return response
+        body = json.loads(response.content)
+        headers = [
+            (name, value)
+            for name, value in response.headers.multi_items()
+            if name.lower() != "content-length"
+        ]
+        return httpx.Response(
+            200, json={"code": 30001, "message": "failed", **body}, headers=headers
+        )
+
+    _install(monkeypatch, handler)
+
+    assert asyncio.run(e2e_account_isolation.main()) == 1
+    assert "FAIL reason=fixture_unavailable" in capsys.readouterr().out
 
 
 def test_public_content_stays_readable_without_a_session(monkeypatch, capsys) -> None:

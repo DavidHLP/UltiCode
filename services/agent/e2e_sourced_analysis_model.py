@@ -15,7 +15,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-from deepseek_model import DeepseekModel
+from deepseek_model import DeepseekModel, model_label
 from sourced_analysis import analyze_submission, first_wrong_answer_submission
 from ulticode_client import UlticodeClient
 from ulticode_tools import build_tools
@@ -171,10 +171,12 @@ async def main() -> int:
             "citations": result["citations"],
         }
         evidence = json.dumps(evidence_payload, ensure_ascii=False)
+        # Bound once so the evidence names the model that was billed.
+        model_name = _priced_model()
         async with DeepseekModel(
             os.environ["DEEPSEEK_API_KEY"],
             tool_specs={},
-            model=_priced_model(),
+            model=model_name,
             # One decision per run with a bounded output: the worst case is a
             # single capped call, never an open-ended loop.
             max_calls=int(os.environ.get("DEEPSEEK_MAX_CALLS", "1")),
@@ -211,7 +213,8 @@ async def main() -> int:
             return 1
 
     print(
-        "E2E SOURCED MODEL PASS | corpus=agent-authored-synthetic "
+        f"E2E SOURCED MODEL PASS | model={model_label(model_name)} "
+        "| corpus=agent-authored-synthetic "
         "| input=validated-user-projection | answer=withheld"
     )
     return 0

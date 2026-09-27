@@ -20,7 +20,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from agent_loop import run_tool_loop
-from deepseek_model import DeepseekModel
+from deepseek_model import DeepseekModel, model_label
 from ulticode_client import UlticodeClient
 from ulticode_tools import TOOL_SPECS, build_tools
 
@@ -120,12 +120,14 @@ async def main() -> int:
             return tracked
 
         tools = {name: track(name, handler) for name, handler in raw_tools.items()}
+        # Bound once so the evidence names the model that was billed.
+        model_name = _priced_model()
         async with DeepseekModel(
             os.environ["DEEPSEEK_API_KEY"],
             tool_specs=TOOL_SPECS,
             # Named explicitly: the adapter default and the provider's current
             # identifiers have both changed, so a costed run must not assume one.
-            model=_priced_model(),
+            model=model_name,
             # Cost guard rails: bounded output and a bounded number of calls.
             max_calls=int(os.environ.get("DEEPSEEK_MAX_CALLS", "8")),
             max_tokens=int(os.environ.get("DEEPSEEK_MAX_TOKENS", "300")),
@@ -140,7 +142,7 @@ async def main() -> int:
     tool_names = {step["tool_name"] for step in result.trace}
     failed_count = sum(bool(step["failed"]) for step in result.trace)
     print(
-        f"OK model_qa rounds={result.rounds} "
+        f"OK model_qa model={model_label(model_name)} rounds={result.rounds} "
         f"tool_count={len(result.trace)} failed_count={failed_count}"
     )
     print(f"answer_chars={len(result.answer)} (content withheld from logs)")

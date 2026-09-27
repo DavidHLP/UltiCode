@@ -236,6 +236,27 @@ def test_confirmation_set_can_only_be_claimed_once(tmp_path, monkeypatch) -> Non
     assert claimed_again is False
 
 
+def test_a_reordered_or_unterminated_record_is_not_our_claim(tmp_path: Path) -> None:
+    """Only the bytes this writer emits count, not an equivalent-looking file."""
+    smoke = e2e_vector_comparison
+    name = smoke.CONFIRMATION_CASES_PATH.name
+    stamp = "2026-09-27T08:00:00+00:00"
+    canonical = f"confirmation={name}\nconsumed_at={stamp}\n"
+
+    for label, text in (
+        ("reordered", f"consumed_at={stamp}\nconfirmation={name}\n"),
+        ("unterminated", f"confirmation={name}\nconsumed_at={stamp}"),
+        ("padded-key", f"confirmation={name}\n consumed_at={stamp}\n"),
+    ):
+        marker = tmp_path / f"claim-{label}.txt"
+        marker.write_text(text, encoding="utf-8")
+        assert not smoke._is_our_claim_record(marker), label
+
+    marker = tmp_path / "claim-canonical.txt"
+    marker.write_text(canonical, encoding="utf-8")
+    assert smoke._is_our_claim_record(marker)
+
+
 def test_a_concurrent_claim_cannot_overwrite_the_record(tmp_path, monkeypatch) -> None:
     """Exclusive creation, not exists()-then-write: no lost update."""
     smoke = e2e_vector_comparison

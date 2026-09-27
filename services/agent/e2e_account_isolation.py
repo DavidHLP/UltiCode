@@ -153,7 +153,16 @@ def _payload(response: httpx.Response) -> dict[str, Any]:
 
 
 def _data(response: httpx.Response) -> dict[str, Any]:
-    data = _payload(response).get("data")
+    """The envelope's ``data``, but only for a successful ``Result``.
+
+    ``UlticodeClient._unwrap`` requires an integer ``code == 0``. Accepting a
+    plausible ``data`` object without it would let a nonzero envelope — a
+    gateway error that still carries a body — read as isolation evidence.
+    """
+    payload = _payload(response)
+    if payload.get("code") != 0:
+        return {}
+    data = payload.get("data")
     return data if isinstance(data, dict) else {}
 
 

@@ -84,7 +84,11 @@ def test_real_model_smoke_sends_answer_contract_and_withholds_answer(monkeypatch
     return_code, output = _run_model(monkeypatch, capsys, model)
 
     assert return_code == 0
-    assert "E2E SOURCED MODEL PASS | corpus=agent-authored-synthetic | input=validated-user-projection | answer=withheld" in output
+    # The billed model has to be attributable from the evidence alone.
+    assert (
+        "E2E SOURCED MODEL PASS | model=test-model | corpus=agent-authored-synthetic "
+        "| input=validated-user-projection | answer=withheld"
+    ) in output
     assert "fact and hypothesis separated" not in output
     assert "SECRET" not in output
     assert model.messages

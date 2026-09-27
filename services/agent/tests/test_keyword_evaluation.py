@@ -184,10 +184,15 @@ def test_top_k_comparison_changes_only_retrieval_limit() -> None:
     cases = load_cases()
     result = compare_limits(cases, limits=(1, 3))
 
-    assert result[1]["development"]["passed"] == 13
+    # Each split carries one refusal case, which is tallied apart from `passed`:
+    # retrieving a refusal case's document is a fabrication risk, never a pass.
+    for limit in (1, 3):
+        for split in ("development", "holdout"):
+            assert result[limit][split]["refused_with_evidence"] == 1
+    assert result[1]["development"]["passed"] == 12
     assert result[3]["development"]["passed"] == 12
-    assert result[1]["holdout"]["passed"] == 6
-    assert result[3]["holdout"]["passed"] == 5
+    assert result[1]["holdout"]["passed"] == 5
+    assert result[3]["holdout"]["passed"] == 4
     assert result[1]["development"]["total"] == 20
     assert result[1]["holdout"]["total"] == 10
     assert result[3]["development"]["unexpected_hits"] > result[1]["development"]["unexpected_hits"]

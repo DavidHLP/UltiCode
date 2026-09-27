@@ -247,7 +247,7 @@ def test_a_concurrent_claim_cannot_overwrite_the_record(tmp_path, monkeypatch) -
 
     assert claimed is False
     # The existing record must be untouched, not rewritten by the loser.
-    assert "earlier" in marker.read_text(encoding="utf-8")
+    assert "consumed_at=2026-09-27T08:00:00+00:00" in marker.read_text(encoding="utf-8")
 
 
 def test_claim_fails_closed_when_the_marker_cannot_be_written(tmp_path, monkeypatch) -> None:
@@ -621,6 +621,7 @@ def test_a_garbage_consumed_at_is_not_treated_as_our_claim(tmp_path: Path) -> No
     The harness always writes an ISO timestamp, so `consumed_at=garbage` must not
     silently disable the one-shot confirmation run.
     """
+    smoke = e2e_vector_comparison
     marker = tmp_path / "confirmation-claim.txt"
     marker.write_text(
         f"confirmation={smoke.CONFIRMATION_CASES_PATH.name}\nconsumed_at=garbage\n",

@@ -7,7 +7,7 @@ import pytest
 from deepseek_model import (
     MAX_PROMPT_TOKENS,
     MAX_TOKENS,
-    PROMPT_TOKENS_PER_CHAR,
+    PROMPT_TOKEN_UPPER_BYTES,
     DeepseekModel,
     ModelBudgetExceeded,
     ModelProtocolError,
@@ -68,7 +68,8 @@ def test_prompt_budget_is_measured_in_tokens_not_characters() -> None:
     captured: list[httpx.Request] = []
     # The system prompt alone is counted, so the usable user budget is smaller
     # than the nominal token cap.
-    budget_chars = MAX_PROMPT_TOKENS // PROMPT_TOKENS_PER_CHAR
+    # ASCII is one UTF-8 byte per character, so bytes == chars here.
+    budget_chars = MAX_PROMPT_TOKENS // PROMPT_TOKEN_UPPER_BYTES
 
     async def scenario() -> None:
         async with DeepseekModel(

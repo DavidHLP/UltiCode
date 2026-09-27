@@ -84,6 +84,22 @@ def _consumption_marker() -> Path:
     return state_home / "ulticode" / "holdout-v2.consumed"
 
 
+def _is_our_claim_record(marker: Path) -> bool:
+    """True only for a record this harness wrote for this confirmation set."""
+    try:
+        fields = dict(
+            line.split("=", 1)
+            for line in marker.read_text(encoding="utf-8").splitlines()
+            if "=" in line
+        )
+    except (OSError, ValueError):
+        return False
+    return (
+        fields.get("confirmation") == CONFIRMATION_CASES_PATH.name
+        and bool(fields.get("consumed_at", "").strip())
+    )
+
+
 def _claim_confirmation_once() -> tuple[bool, str]:
     """Claim the confirmation set, or refuse.
 
@@ -117,10 +133,10 @@ def _claim_confirmation_once() -> tuple[bool, str]:
             raise RuntimeError(
                 f"marker path is not a regular claim record: {marker}"
             ) from None
-        # A regular file only counts as our claim if it carries our record; an
-        # unrelated file pointed at by the marker variable is a configuration
-        # error, not evidence that the confirmation set was consumed.
-        if CONFIRMATION_CASES_PATH.name not in marker.read_text(encoding="utf-8"):
+        # A regular file only counts as our claim if it parses as the record this
+        # harness writes. A loose substring test would accept any file that
+        # happens to mention the confirmation set.
+        if not _is_our_claim_record(marker):
             raise RuntimeError(
                 f"marker exists but is not this harness's claim record: {marker}"
             ) from None

@@ -476,3 +476,31 @@ def test_our_own_claim_record_still_reports_already_consumed(tmp_path, monkeypat
     claimed, _ = smoke._claim_confirmation_once()
 
     assert claimed is False
+
+
+def test_a_file_merely_mentioning_the_confirmation_name_is_not_a_claim(
+    tmp_path, monkeypatch
+) -> None:
+    """A loose substring match would accept an unrelated file."""
+    smoke = e2e_vector_comparison
+    lookalike = tmp_path / "lookalike.txt"
+    lookalike.write_text(
+        f"notes: {smoke.CONFIRMATION_CASES_PATH.name} was evaluated at some point\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("ULTICODE_VECTOR_CONFIRM_MARKER", str(lookalike))
+
+    with pytest.raises(RuntimeError, match="not this harness's claim record"):
+        smoke._claim_confirmation_once()
+
+
+def test_a_claim_record_without_a_timestamp_is_rejected(tmp_path, monkeypatch) -> None:
+    smoke = e2e_vector_comparison
+    partial = tmp_path / "partial"
+    partial.write_text(
+        f"confirmation={smoke.CONFIRMATION_CASES_PATH.name}\n", encoding="utf-8"
+    )
+    monkeypatch.setenv("ULTICODE_VECTOR_CONFIRM_MARKER", str(partial))
+
+    with pytest.raises(RuntimeError, match="not this harness's claim record"):
+        smoke._claim_confirmation_once()

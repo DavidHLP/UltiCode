@@ -27,11 +27,12 @@ EMBED_MODEL_PATH = os.environ.get("ULTICODE_EMBED_MODEL_PATH", "")
 
 
 def artifact_identity(model_path: str) -> str:
-    """Checksum of a local snapshot: sorted (relative path, size) pairs.
+    """Content checksum of a local snapshot, so two runs can be shown identical.
 
-    Cheap enough for a ~100 MB model and stable across runs, so two runs can be
-    shown to have used the same weights. Names and sizes only — hashing content
-    would add nothing for detecting a changed download.
+    Every regular file's bytes are hashed in sorted relative-path order with a
+    path delimiter, so a same-size edit to the weights changes the digest. Names
+    and sizes alone would collide by construction, which is exactly the case this
+    has to catch.
     """
     import hashlib
 
@@ -41,7 +42,11 @@ def artifact_identity(model_path: str) -> str:
     digest = hashlib.sha256()
     for path in sorted(p for p in root.rglob("*") if p.is_file()):
         digest.update(str(path.relative_to(root)).encode("utf-8"))
-        digest.update(str(path.stat().st_size).encode("utf-8"))
+        digest.update(b"\0")
+        with path.open("rb") as handle:
+            for chunk in iter(lambda: handle.read(1 << 20), b""):
+                digest.update(chunk)
+        digest.update(b"\0")
     return f"sha256:{digest.hexdigest()}"
 
 

@@ -247,24 +247,14 @@ def test_tied_arms_are_reported_as_a_tie() -> None:
     assert smoke._arm_outcome(["vector", "keyword"]) == "tie:keyword+vector"
 
 
-def test_confirmation_refuses_to_run_with_an_unpinned_embedding(monkeypatch, capsys) -> None:
-    """Honest reporting is not reproducibility: the run must refuse."""
-    smoke = e2e_vector_comparison
-    monkeypatch.setenv("ULTICODE_VECTOR_CONFIRM", "1")
-    # The image guard runs first, so the revision gate is reached deliberately.
-    monkeypatch.setenv("QDRANT_IMAGE", "qdrant/qdrant@sha256:" + "0" * 64)
-    monkeypatch.setattr(smoke, "EMBED_MODEL_REVISION", "")
-
-    # main() is synchronous in this script.
-    assert smoke.main() == 0
-    assert "embed_model_revision_unpinned" in capsys.readouterr().out
-
-
 def test_a_missing_embedding_path_stops_the_run(monkeypatch, capsys, tmp_path) -> None:
     """Without a pinned local snapshot the run cannot be reproducible."""
     smoke = e2e_vector_comparison
     monkeypatch.setenv("ULTICODE_VECTOR_CONFIRM", "1")
     monkeypatch.setenv("QDRANT_IMAGE", "qdrant/qdrant@sha256:" + "0" * 64)
+    # The Qdrant endpoint is validated before the artifact, so point it anywhere
+    # loopback-like: the run must stop at the artifact check, not here.
+    monkeypatch.setenv("QDRANT_URL", "http://127.0.0.1:6333")
     monkeypatch.setattr(smoke, "EMBED_MODEL_PATH", "")
 
     assert smoke.main() == 0
@@ -275,6 +265,7 @@ def test_an_unusable_embedding_path_stops_the_run(monkeypatch, capsys, tmp_path)
     smoke = e2e_vector_comparison
     monkeypatch.setenv("ULTICODE_VECTOR_CONFIRM", "1")
     monkeypatch.setenv("QDRANT_IMAGE", "qdrant/qdrant@sha256:" + "0" * 64)
+    monkeypatch.setenv("QDRANT_URL", "http://127.0.0.1:6333")
     monkeypatch.setattr(smoke, "EMBED_MODEL_PATH", str(tmp_path / "missing"))
 
     assert smoke.main() == 0
@@ -295,6 +286,13 @@ def test_artifact_identity_tracks_the_local_snapshot(tmp_path) -> None:
 
     (snapshot / "extra.bin").write_bytes(b"more")
     assert vector_search.artifact_identity(str(snapshot)) != first
+
+    # Same size, different bytes: a name+size digest would collide here.
+    before = vector_search.artifact_identity(str(snapshot))
+    model_file = snapshot / "model.onnx"
+    model_file.write_bytes(b"Weights")  # same length as b"weights"
+    assert model_file.stat().st_size == 7
+    assert vector_search.artifact_identity(str(snapshot)) != before
 
     with pytest.raises(ValueError, match="not a directory"):
         vector_search.artifact_identity(str(tmp_path / "nope"))

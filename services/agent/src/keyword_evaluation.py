@@ -33,6 +33,21 @@ SPLITS = ("development", "holdout", "holdout2")
 DEFERRED = "deferred"
 
 
+class _DuplicateKey(ValueError):
+    """A repeated key in a case object, reported instead of silently kept."""
+
+
+def _reject_duplicate_keys(pairs: list[tuple[str, object]]) -> list[tuple[str, object]]:
+    seen: set[str] = set()
+    for key, _ in pairs:
+        if key in seen:
+            # Last-write-wins could turn a restrictive annotation into a
+            # permissive one before validation ever sees it.
+            raise _DuplicateKey(key)
+        seen.add(key)
+    return pairs
+
+
 @dataclass(frozen=True)
 class KeywordCase:
     case_id: str
@@ -73,7 +88,10 @@ class CaseRecord:
 
 def load_cases(path: Path | None = None) -> tuple[KeywordCase, ...]:
     case_path = path or _CASES_PATH
-    raw_cases = json.loads(case_path.read_text(encoding="utf-8"))
+    raw_cases = json.loads(
+        case_path.read_text(encoding="utf-8"),
+        object_pairs_hook=_reject_duplicate_keys,
+    )
     if not isinstance(raw_cases, list):
         raise ValueError("keyword cases must be a list")
     cases: list[KeywordCase] = []

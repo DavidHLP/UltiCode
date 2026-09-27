@@ -51,6 +51,7 @@ from retrieval import keyword_search, load_sample_corpus
 from vector_search import (
     COLLECTION,
     EMBED_MODEL,
+    MIN_SCORE,
     EMBED_MODEL_PATH,
     artifact_identity,
     FastembedEmbedder,
@@ -110,9 +111,11 @@ def _claim_confirmation_once() -> tuple[bool, str]:
         # A directory (or any non-record) at the marker path is a bad
         # configuration, not a previous claim; reporting "already consumed" would
         # silently prevent the confirmation run.
-        if marker.is_dir():
+        if marker.is_dir() or not (marker.is_file() and not marker.is_symlink()):
+            # A symlink, FIFO, socket or device also raises FileExistsError;
+            # treating those as a previous claim would skip the run and exit 0.
             raise RuntimeError(
-                f"marker path is a directory, not a claim record: {marker}"
+                f"marker path is not a regular claim record: {marker}"
             ) from None
         return False, str(marker)
     except OSError as error:
@@ -217,6 +220,9 @@ def main() -> int:
         print("FAIL reason=missing_eval_dependency")
         return 1
 
+    # One snapshot for both arms: reloading per query could index the vector arm
+    # on text the keyword arm no longer sees.
+    corpus = load_sample_corpus()
     client = QdrantClient(url=qdrant_url())
     # The validated value is the one passed to the embedder and printed.
     embedder = FastembedEmbedder(model_path=model_path)
@@ -229,7 +235,9 @@ def main() -> int:
     )
 
     def keyword(query: str, limit: int) -> list[str]:
-        return [hit.doc_id for hit in keyword_search(query, limit=limit)]
+        return [
+            hit.doc_id for hit in keyword_search(query, limit=limit, documents=corpus)
+        ]
 
     def vector(query: str, limit: int) -> list[str]:
         return search(client, query, limit=limit, embedder=embedder)
@@ -304,7 +312,7 @@ def main() -> int:
         f"confirmation={len(confirmation)} evaluated_total="
         f"{len(development) + len(contaminated) + len(confirmation)} "
         f"embed_model={EMBED_MODEL} embed_artifact={embed_identity} "
-        f"store=qdrant collection={COLLECTION} "
+        f"store=qdrant collection={COLLECTION} min_score={MIN_SCORE} "
         # A caller-supplied label, not something this run verified against the
         # server; saying so keeps the evidence honest.
         f"image_asserted_by_caller={image} image_verified_against_server=false "

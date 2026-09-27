@@ -156,17 +156,35 @@ def _claim_confirmation_once() -> tuple[bool, str]:
     return True, str(marker)
 
 
-COUNTS = ("matched", "extra_hits", "missed", "false_positive")
+COUNTS = (
+    "matched",
+    "extra_hits",
+    "missed",
+    "false_positive",
+    "refused_with_evidence",
+    "refused_without_evidence",
+)
 CANDIDATE_LIMITS = (1, 3)
 CONTAMINATED_SPLIT = "holdout"
 CONFIRMATION_SPLIT = "holdout2"
 
 
 def _tally(cases: tuple[KeywordCase, ...], retrieve) -> dict[str, int]:
+    """Tally outcomes per behaviour class.
+
+    A ``refuse`` case is never scored through the citable-evidence path: fetching
+    its declared document is exactly the fabrication risk, and counting it as a
+    match would both reward the arm and contradict the per-case evaluation, which
+    marks any such retrieval as a risk.
+    """
     tally = {name: 0 for name in COUNTS}
     for case in cases:
         expected = set(case.required_evidence)
-        tally[retrieval_outcome(expected, set(retrieve(case)))] += 1
+        actual = set(retrieve(case))
+        if case.expected_behavior == "refuse":
+            tally["refused_with_evidence" if actual else "refused_without_evidence"] += 1
+            continue
+        tally[retrieval_outcome(expected, actual)] += 1
     return tally
 
 
@@ -231,6 +249,11 @@ def main() -> int:
     cases = load_cases()
     development = tuple(case for case in cases if case.split == "development")
     contaminated = tuple(case for case in cases if case.split == CONTAMINATED_SPLIT)
+    # Captured now: a later edit to the file must not change the reported digest
+    # for expectations that were already scored.
+    development_digest = _cases_digest(DEFAULT_CASES_PATH)
+    contaminated_digest = _cases_digest(DEFAULT_CASES_PATH)
+    confirmation_digest = _cases_digest(CONFIRMATION_CASES_PATH)
     model_path = EMBED_MODEL_PATH.strip()
     if not model_path:
         # Reporting "unpinned" is honest but not reproducible: the same model
@@ -376,9 +399,11 @@ def main() -> int:
     print(
         f"OK comparison corpus=agent-authored-synthetic "
         f"corpus_digest={_corpus_digest(corpus)} "
-        f"development_cases_digest={_cases_digest(DEFAULT_CASES_PATH)} "
-        f"contaminated_cases_digest={_cases_digest(DEFAULT_CASES_PATH)} "
-        f"confirmation_cases_digest={_cases_digest(CONFIRMATION_CASES_PATH)} "
+        f"development_cases_digest={development_digest} "
+        f"contaminated_cases_digest={contaminated_digest} "
+        f"confirmation_cases_digest={confirmation_digest} "
+        f"qdrant_image_asserted_by_caller={image} "
+        f"qdrant_image_verified_against_server=false "
         f"embed_artifact={embed_identity} min_score={MIN_SCORE} "
         f"collection={COLLECTION} "
         f"development={len(development)} contaminated={len(contaminated)} "

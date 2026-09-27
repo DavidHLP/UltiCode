@@ -580,3 +580,25 @@ def test_a_snapshot_changed_during_load_is_refused(tmp_path) -> None:
 
     (snapshot / "model.onnx").write_bytes(b"other")
     assert smoke._artifact_unchanged(str(snapshot), before) is False
+
+
+def test_refusal_cases_are_not_scored_as_matches() -> None:
+    """Retrieving a refusal case's document must not read as a citable match."""
+    smoke = e2e_vector_comparison
+    from keyword_evaluation import KeywordCase
+
+    refuse = KeywordCase(
+        case_id="dev-x",
+        split="development",
+        query="q",
+        required_evidence=("sample-status-only",),
+        answerable=False,
+        expected_behavior="refuse",
+        allowed_behavior="state the data cannot answer",
+        forbidden_behavior="name a code line",
+    )
+
+    counted = smoke._tally((refuse,), lambda _case: ["sample-status-only"])
+
+    assert counted["refused_with_evidence"] == 1
+    assert counted["matched"] == 0

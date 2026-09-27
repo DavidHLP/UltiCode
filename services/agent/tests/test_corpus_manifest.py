@@ -258,3 +258,28 @@ def test_duplicate_document_identity_with_differing_text_is_rejected() -> None:
 
     with pytest.raises(ManifestError, match="duplicate document identity"):
         assert_manifest_covers(load_manifest(), (*documents, twin))
+
+
+def test_changed_content_is_rejected_even_with_matching_metadata(tmp_path: Path) -> None:
+    """A SourceDocument has no content_digest attribute; it must be recomputed."""
+    from corpus_manifest import content_digest
+    from retrieval import SourceDocument
+
+    documents = load_sample_corpus()
+    edited = SourceDocument(
+        doc_id=documents[0].doc_id,
+        version=documents[0].version,
+        source_path=documents[0].source_path,
+        access_scope=documents[0].access_scope,
+        sample_kind=documents[0].sample_kind,
+        text=documents[0].text + "\nquietly replaced",
+        source_position=documents[0].source_position,
+    )
+    # Same path, version and line-independent metadata: only the text differs.
+    replaced = (*documents[1:], edited)
+
+    with pytest.raises(ManifestError, match="content_digest"):
+        assert_manifest_covers(load_manifest(), replaced)
+
+    # And the digest helper is what the comparison uses.
+    assert content_digest(edited.text) != content_digest(documents[0].text)

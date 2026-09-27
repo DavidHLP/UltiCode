@@ -178,13 +178,20 @@ def assert_manifest_covers(
             raise ManifestError(
                 f"{getattr(document, 'doc_id', '?')}: retrievable but not declared"
             )
-        for field in ("chunk_id", "source_path", "access_scope", "sample_kind", "source_position", CONTENT_DIGEST_FIELD):
+        for field in ("chunk_id", "source_path", "access_scope", "sample_kind", "source_position"):
             declared = getattr(entry, field)
             actual = getattr(document, field, None)
             if actual is not None and declared != actual:
                 raise ManifestError(
                     f"{entry.doc_id}: manifest {field} does not match the corpus"
                 )
+        # A SourceDocument exposes only `text`, so the digest must be recomputed
+        # from it; reading a non-existent attribute would skip the comparison.
+        actual_digest = content_digest(getattr(document, "text", ""))
+        if entry.content_digest != actual_digest:
+            raise ManifestError(
+                f"{entry.doc_id}: manifest content_digest does not match the corpus text"
+            )
         declared_version = entry.version
         actual_version = getattr(document, "version", None)
         if actual_version is not None and declared_version != actual_version:

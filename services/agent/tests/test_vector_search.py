@@ -250,10 +250,11 @@ def test_tied_arms_are_reported_as_a_tie() -> None:
 def test_confirmation_refuses_to_run_with_an_unpinned_embedding(monkeypatch, capsys) -> None:
     """Honest reporting is not reproducibility: the run must refuse."""
     smoke = e2e_vector_comparison
-    monkeypatch.setenv("ULTICODE_E2E_ISOLATION", "1")
     monkeypatch.setenv("ULTICODE_VECTOR_CONFIRM", "1")
-    monkeypatch.delenv("ULTICODE_EMBED_MODEL_REVISION", raising=False)
+    # The image guard runs first, so the revision gate is reached deliberately.
+    monkeypatch.setenv("QDRANT_IMAGE", "qdrant/qdrant@sha256:" + "0" * 64)
     monkeypatch.setattr(smoke, "EMBED_MODEL_REVISION", "")
 
-    assert asyncio.run(smoke.main()) == 0
+    # main() is synchronous in this script.
+    assert smoke.main() == 0
     assert "embed_model_revision_unpinned" in capsys.readouterr().out

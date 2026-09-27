@@ -72,7 +72,7 @@ uv run pytest -q
 关键词 vs 向量的最小对照是**评测专用**的，不切换主路径，且需要一次性单机 Qdrant 与 `eval` 依赖组：
 
 ```bash
-docker run --rm -p 6333:6333 qdrant/qdrant@sha256:<digest>
+docker run --rm -p 127.0.0.1:6333:6333 qdrant/qdrant@sha256:<digest>
 cd services/agent
 uv sync --locked --group eval
 QDRANT_IMAGE=qdrant/qdrant@sha256:<digest> QDRANT_URL=http://localhost:6333 \

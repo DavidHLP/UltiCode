@@ -22,7 +22,7 @@ slice only.
 
 Run with a disposable single-node Qdrant, for example:
 
-    docker run --rm -p 6333:6333 qdrant/qdrant@sha256:<digest>
+    docker run --rm -p 127.0.0.1:6333:6333 qdrant/qdrant@sha256:<digest>
     cd services/agent
     uv sync --locked --group eval
     QDRANT_IMAGE=qdrant/qdrant@sha256:<digest> \\

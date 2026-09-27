@@ -108,6 +108,8 @@ def test_isolated_stack_passes_both_controls(monkeypatch, capsys) -> None:
     assert "positive control own_a=200 own_b=200" in output
     assert "negative control cross_a=404 cross_b=404" in output
     assert "b_visible_to_a=no" in output
+    assert "own_a_visible=yes" in output
+    assert "own_b_visible=yes" in output
     assert "OK isolation" in output
 
 
@@ -253,3 +255,46 @@ def test_remote_opt_in_is_explicit(monkeypatch) -> None:
     monkeypatch.setattr(smoke, "APP_BASE", "https://staging.example.com")
 
     assert smoke._require_local_targets() is None
+
+
+def test_empty_listings_do_not_count_as_isolation(monkeypatch, capsys) -> None:
+    """Foreign absence is only evidence once own rows are shown to appear."""
+    smoke = e2e_account_isolation
+    monkeypatch.setenv("ULTICODE_E2E_ISOLATION", "1")
+    monkeypatch.setenv(smoke.REMOTE_WRITE_OPT_IN, "1")
+    monkeypatch.setattr(smoke, "APP_BASE", "http://127.0.0.1:9103")
+    monkeypatch.setattr(smoke, "AUTH_BASE", "http://127.0.0.1:9101")
+
+    async def _script(scenario: str) -> None:
+        async def _client_factory(*_a: object, **_k: object) -> object:
+            return _FakeClient()
+
+        class _EmptyListingClient(_FakeClient):
+            async def _get(self, path: str, **kwargs: object) -> httpx.Response:
+                if "/problems/" in path and path.endswith("/submissions"):
+                    # Own rows are missing, so nothing was ever proven.
+                    return httpx.Response(200, json={"data": {"items": []}})
+                return await _FakeClient._get(self, path, **kwargs)
+
+        async def _first(_tools: object) -> dict[str, object]:
+            return {"id": "11111111-1111-4111-8111-111111111111", "status": "Wrong Answer"}
+
+        async def _submit(_client: object, _headers: object, _pid: int) -> str:
+            return "sub-1"
+
+        async def _problem_id(_client: object, _headers: object) -> int:
+            return 7
+
+        async def _ids(_client: object, _headers: object, _pid: int) -> set[str]:
+            return set()
+
+        monkeypatch.setattr(smoke, "UlticodeClient", _client_factory)
+        monkeypatch.setattr(smoke, "first_problem_id", _problem_id, raising=False)
+        monkeypatch.setattr(smoke, "first_wrong_answer_submission", _first)
+        monkeypatch.setattr(smoke, "_first_problem_id", _problem_id, raising=False)
+        monkeypatch.setattr(smoke, "_submit", _submit)
+        monkeypatch.setattr(smoke, "_problem_submission_ids", _ids)
+        assert asyncio.run(smoke.main()) == 1
+        assert "reason=listing_positive_control_failed" in capsys.readouterr().out
+
+    asyncio.run(_script("empty"))

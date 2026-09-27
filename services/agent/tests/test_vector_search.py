@@ -328,18 +328,22 @@ def test_tied_arms_are_reported_as_a_tie() -> None:
     assert smoke._arm_outcome(["vector", "keyword"]) == "tie:keyword+vector"
 
 
-def test_collection_config_is_not_a_plain_dict() -> None:
-    """qdrant-client 1.19.1 reads a plain dict as a named-vector mapping."""
+def test_default_collection_config_is_real_qdrant_vector_params() -> None:
+    """qdrant-client 1.19.1 reads a plain dict as a named-vector mapping.
+
+    Skipped in the default runtime, which deliberately has no qdrant-client; the
+    wiring tests above inject a non-dict stub so the default suite still covers
+    the call shape without the optional dependency.
+    """
+    models = pytest.importorskip("qdrant_client.models")
     import vector_search
 
-    try:
-        config = vector_search._collection_config()
-    except ImportError:
-        # The default runtime has no qdrant-client; the fake-based tests still
-        # cover the call shape.
-        return
+    config = vector_search._collection_config()
+
+    assert isinstance(config, models.VectorParams)
     assert not isinstance(config, dict)
-    assert getattr(config, "size", None) == vector_search.VECTOR_SIZE
+    assert config.size == vector_search.VECTOR_SIZE
+    assert config.distance == models.Distance.COSINE
 
 
 def test_artifact_is_validated_before_the_optional_dependencies(monkeypatch, capsys) -> None:

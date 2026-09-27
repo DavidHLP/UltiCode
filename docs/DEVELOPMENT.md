@@ -93,7 +93,7 @@ QDRANT_ALLOW_RECREATE=1 ULTICODE_EMBED_MODEL_PATH=<snapshot-dir> \
 ULTICODE_VECTOR_CONFIRM=1 uv run python e2e_vector_comparison.py
 ```
 
-双账号只读隔离对照是**会写入本地栈**的工作流（注册两个普通账号、各自提交一条），仅限回环地址：
+双账号只读隔离对照是**会写入本地栈**的工作流（注册两个普通账号、各自提交一条题目自带的 starter code），仅限回环地址：
 
 ```bash
 cd services/agent

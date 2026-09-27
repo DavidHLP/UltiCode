@@ -17,6 +17,13 @@ _module_spec.loader.exec_module(e2e_account_isolation)
 #: token -> the submission that account owns
 OWNED = {"token-a": "sub-a", "token-b": "sub-b"}
 
+#: The problem's own starter code, i.e. the only D-form-valid fixture shape.
+STARTER = (
+    "class Solution:\n"
+    "    def twoSum(self, nums: List[int], target: int) -> List[int]:\n"
+    "        return []\n"
+)
+
 
 def _token_for_username(request: httpx.Request) -> str:
     """Registration/login carry no cookie yet, so identity comes from the body."""
@@ -58,7 +65,12 @@ def _install(monkeypatch, handler) -> None:
     )
 
 
-def correct_service(foreign_status: int = 404, listing: object = "own_only") -> object:
+def correct_service(
+    foreign_status: int = 404,
+    listing: object = "own_only",
+    starter: object = "present",
+    seen: list | None = None,
+) -> object:
     """A service that serves the caller's own records and refuses others."""
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -68,7 +80,23 @@ def correct_service(foreign_status: int = 404, listing: object = "own_only") -> 
             return _session_response(request)
         if path.endswith("/problems"):
             return httpx.Response(200, json={"data": {"items": [{"id": 7}], "total": 1}})
+        if len(path.strip("/").split("/")) == 2 and "/problems/" in path:
+            if starter == "missing":
+                return httpx.Response(200, json={"data": {"languages": []}})
+            return httpx.Response(
+                200,
+                json={
+                    "data": {
+                        "languages": [
+                            {"value": "java", "starter_code": "class Solution {}"},
+                            {"value": "python", "starter_code": STARTER},
+                        ]
+                    }
+                },
+            )
         if path.endswith("/submissions") and request.method == "POST":
+            if seen is not None:
+                seen.append(json.loads(request.content))
             return httpx.Response(200, json={"data": {"id": OWNED[account]}})
         if path.endswith("/submissions"):
             if listing == "empty":
@@ -149,6 +177,29 @@ def test_forbidden_counts_as_a_refusal(monkeypatch, capsys) -> None:
     assert "negative control cross_a=403 cross_b=403" in capsys.readouterr().out
 
 
+def test_the_fixture_is_the_problems_own_starter_code(monkeypatch, capsys) -> None:
+    """A bare script is a harness panic, so the fixture must hold the contract."""
+    monkeypatch.setenv("ULTICODE_E2E_ISOLATION", "1")
+    seen: list = []
+    _install(monkeypatch, correct_service(seen=seen))
+
+    assert asyncio.run(e2e_account_isolation.main()) == 0
+    assert "OK isolation" in capsys.readouterr().out
+    assert len(seen) == 2
+    assert {body["code"] for body in seen} == {STARTER}
+    assert {body["language"] for body in seen} == {"python"}
+
+
+def test_a_problem_without_a_python_starter_code_is_inconclusive(
+    monkeypatch, capsys
+) -> None:
+    monkeypatch.setenv("ULTICODE_E2E_ISOLATION", "1")
+    _install(monkeypatch, correct_service(starter="missing"))
+
+    assert asyncio.run(e2e_account_isolation.main()) == 1
+    assert "FAIL reason=fixture_unavailable" in capsys.readouterr().out
+
+
 def test_server_error_is_not_mistaken_for_a_refusal(monkeypatch, capsys) -> None:
     monkeypatch.setenv("ULTICODE_E2E_ISOLATION", "1")
     _install(monkeypatch, correct_service(foreign_status=500))
@@ -198,6 +249,10 @@ def test_own_read_returning_another_id_is_a_failure(monkeypatch, capsys) -> None
             return _session_response(request)
         if path.endswith("/problems"):
             return httpx.Response(200, json={"data": {"items": [{"id": 7}], "total": 1}})
+        if len(path.strip("/").split("/")) == 2 and "/problems/" in path:
+            return httpx.Response(
+                200, json={"data": {"languages": [{"value": "python", "starter_code": STARTER}]}}
+            )
         if path.endswith("/submissions") and request.method == "POST":
             # The write must carry the CSRF cookie *and* the matching header;
             # a header without the cookie is exactly what the filter rejects.

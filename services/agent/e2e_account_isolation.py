@@ -8,6 +8,14 @@ account B's submission by id).
 It never touches real user data and never prints a credential, a token, a cookie,
 or any response body: output is fixed labels and status codes only.
 
+The submission fixture is the target problem's **own** Python starter code, read
+from the public problem detail. The D-form harness requires a ``Solution`` class
+and the problem's method signature: a bare ``print(1)`` is a harness panic
+(stderr traceback, exit 2, no envelope), which the judge reports as
+``Runtime Error``. Such a submission still yields the id this contrast needs, but
+it exercises nothing and leaves rows that read like an environment failure, so
+the fixture holds the contract instead.
+
 Why this exists: ``SubmissionController.getSubmission`` forwards the authenticated
 user id to ``findById(id, userId)``, but a call site that forwards an argument is
 not proof that the owner service applies it. DAV-53 requires the refusal to be
@@ -42,7 +50,6 @@ ACCESS_COOKIE = "access_token"
 CSRF_COOKIE = "csrf_token"
 #: Double-submit CSRF: a cookie-authenticated write must echo this header.
 CSRF_HEADER = "X-CSRF-Token"
-SUBMISSION_CODE = "print(1)"
 SUBMISSION_LANGUAGE = "python"
 REFUSAL_STATUSES = frozenset({403, 404})
 
@@ -203,8 +210,31 @@ async def _first_problem_id(
     raise IsolationHarnessError("no problem available for a submission fixture")
 
 
+async def _starter_code(
+    client: httpx.AsyncClient, headers: dict[str, str], problem_id: int
+) -> str:
+    """The problem's own starter code for ``SUBMISSION_LANGUAGE``.
+
+    It is the only fixture shape that satisfies the D-form harness contract, so it
+    is read from the contract rather than guessed: a submission the harness cannot
+    load is a harness panic, not a judged submission.
+    """
+    response = _require_200(
+        await client.get(f"{APP_BASE}/problems/{problem_id}", headers=headers),
+        "problem detail",
+    )
+    languages = _data(response).get("languages")
+    for language in languages if isinstance(languages, list) else []:
+        if not isinstance(language, dict) or language.get("value") != SUBMISSION_LANGUAGE:
+            continue
+        code = language.get("starter_code")
+        if isinstance(code, str) and code.strip():
+            return code
+    raise IsolationHarnessError("problem carries no starter code for this language")
+
+
 async def _submit(
-    client: httpx.AsyncClient, cookies: httpx.Cookies, problem_id: int
+    client: httpx.AsyncClient, cookies: httpx.Cookies, problem_id: int, code: str
 ) -> str:
     response = _require_200(
         await client.post(
@@ -212,7 +242,7 @@ async def _submit(
             json={
                 "problemId": problem_id,
                 "language": SUBMISSION_LANGUAGE,
-                "code": SUBMISSION_CODE,
+                "code": code,
             },
             headers=_write_headers(cookies),
         ),
@@ -312,8 +342,9 @@ async def main() -> int:
         app_b.cookies.update(auth_b.cookies)
         try:
             problem_id = await _first_problem_id(app_a, headers_a)
-            submission_a = await _submit(app_a, app_a.cookies, problem_id)
-            submission_b = await _submit(app_b, app_b.cookies, problem_id)
+            code = await _starter_code(app_a, headers_a, problem_id)
+            submission_a = await _submit(app_a, app_a.cookies, problem_id, code)
+            submission_b = await _submit(app_b, app_b.cookies, problem_id, code)
         except IsolationHarnessError as error:
             print(f"FAIL reason=fixture_unavailable detail={error}")
             return 1

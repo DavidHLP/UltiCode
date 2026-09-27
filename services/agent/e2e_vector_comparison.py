@@ -190,6 +190,11 @@ def _arm_outcome(winners: list[str]) -> str:
     return "tie:" + "+".join(sorted(winners))
 
 
+def _artifact_unchanged(model_path: str, before: str) -> bool:
+    """True only when the snapshot still hashes to the preflight digest."""
+    return artifact_identity(model_path) == before
+
+
 def _cases_digest(path: Path | None = None) -> str:
     """Digest of a case file, so the evidence names the exact expectations used."""
     import hashlib
@@ -282,11 +287,10 @@ def main() -> int:
     embedder = FastembedEmbedder(model_path=model_path)
     # Re-verify after loading: the snapshot can be updated between the preflight
     # hash and the model load, which would make the reported digest a lie.
-    embed_identity_after_load = artifact_identity(model_path)
-    if embed_identity_after_load != embed_identity:
+    if not _artifact_unchanged(model_path, embed_identity):
         print(
             "FAIL reason=embed_artifact_changed_during_load "
-            f"before={embed_identity} after={embed_identity_after_load}"
+            f"before={embed_identity} after={artifact_identity(model_path)}"
         )
         return 1
     indexed = build_index(

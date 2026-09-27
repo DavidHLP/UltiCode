@@ -247,14 +247,22 @@ async def _problem_submission_ids(
         ),
         "problem submission listing",
     )
-    items = _data(response).get("items")
-    if not isinstance(items, list):
-        raise IsolationHarnessError("listing envelope had no items array")
-    return {
-        str(item["id"])
-        for item in items
-        if isinstance(item, dict) and isinstance(item.get("id"), str)
-    }
+    payload = _data(response)
+    items = payload.get("items")
+    total = payload.get("total")
+    if not isinstance(items, list) or not isinstance(total, int) or isinstance(total, bool):
+        raise IsolationHarnessError("listing envelope had no items array or total")
+    ids: set[str] = set()
+    for item in items:
+        # A row we cannot parse must not be skipped: it could be the very row
+        # that leaked.
+        if not isinstance(item, dict) or not isinstance(item.get("id"), str):
+            raise IsolationHarnessError("listing had a malformed row")
+        ids.add(item["id"])
+    if len(items) < min(total, 50):
+        # A page shorter than the reported total means unseen rows.
+        raise IsolationHarnessError("listing page was truncated")
+    return ids
 
 
 async def main() -> int:

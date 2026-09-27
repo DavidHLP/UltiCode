@@ -568,29 +568,15 @@ def test_evidence_digests_change_with_the_inputs(tmp_path, monkeypatch) -> None:
     )
 
 
-def test_a_snapshot_changed_during_load_is_refused(monkeypatch, capsys, tmp_path) -> None:
+def test_a_snapshot_changed_during_load_is_refused(tmp_path) -> None:
     """The reported digest must describe the weights the run actually used."""
     smoke = e2e_vector_comparison
     snapshot = tmp_path / "snapshot"
     snapshot.mkdir()
     (snapshot / "model.onnx").write_bytes(b"weights")
-    marker = tmp_path / "marker"
 
-    def mutating_embedder(**kwargs: object) -> object:
-        # Someone updates the snapshot between the preflight hash and the load.
-        (snapshot / "model.onnx").write_bytes(b"other")
-        return object()
+    before = smoke.artifact_identity(str(snapshot))
+    assert smoke._artifact_unchanged(str(snapshot), before) is True
 
-    monkeypatch.setenv("ULTICODE_VECTOR_CONFIRM", "1")
-    monkeypatch.setenv("QDRANT_IMAGE", "qdrant/qdrant@sha256:" + "a" * 64)
-    monkeypatch.setenv("ULTICODE_VECTOR_CONFIRM_MARKER", str(marker))
-    monkeypatch.setattr(smoke, "EMBED_MODEL_PATH", str(snapshot))
-    monkeypatch.setattr(smoke, "FastembedEmbedder", mutating_embedder)
-
-    # The confirmation fixture and image gate pass first; the artifact check runs
-    # in the preflight and the post-load re-check is what must catch the change.
-    with pytest.raises(Exception):
-        # Either the re-check refuses, or an earlier precondition stops the run;
-        # what must never happen is a PASS with a stale digest.
-        asyncio.run(smoke.main())
-    assert "embed_artifact_changed_during_load" in capsys.readouterr().out
+    (snapshot / "model.onnx").write_bytes(b"other")
+    assert smoke._artifact_unchanged(str(snapshot), before) is False

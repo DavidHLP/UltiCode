@@ -90,7 +90,12 @@ def _claim_confirmation_once() -> tuple[bool, str]:
         f"consumed_at={datetime.now(timezone.utc).isoformat()}\n"
     )
     try:
+        # Kept out of the exclusive-create try: mkdir also raises
+        # FileExistsError, which must not be read as "already consumed".
         marker.parent.mkdir(parents=True, exist_ok=True)
+    except OSError as error:
+        raise RuntimeError(f"could not record the confirmation claim: {error}") from None
+    try:
         # Exclusive creation: the loser of a race gets FileExistsError.
         with marker.open("x", encoding="utf-8") as handle:
             handle.write(record)

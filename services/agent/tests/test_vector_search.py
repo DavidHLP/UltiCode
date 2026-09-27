@@ -449,3 +449,30 @@ def test_an_empty_development_split_is_rejected(monkeypatch, capsys, tmp_path) -
 
     assert smoke.main() == 1
     assert "split_fixture_invalid" in capsys.readouterr().out
+
+
+def test_an_unrelated_regular_file_at_the_marker_is_a_configuration_error(
+    tmp_path, monkeypatch
+) -> None:
+    """Only our own claim record may count as 'already consumed'."""
+    smoke = e2e_vector_comparison
+    unrelated = tmp_path / "unrelated.txt"
+    unrelated.write_text("some other file\n", encoding="utf-8")
+    monkeypatch.setenv("ULTICODE_VECTOR_CONFIRM_MARKER", str(unrelated))
+
+    with pytest.raises(RuntimeError, match="not this harness's claim record"):
+        smoke._claim_confirmation_once()
+
+
+def test_our_own_claim_record_still_reports_already_consumed(tmp_path, monkeypatch) -> None:
+    smoke = e2e_vector_comparison
+    record = tmp_path / "holdout-v2.consumed"
+    record.write_text(
+        f"confirmation={smoke.CONFIRMATION_CASES_PATH.name}\nconsumed_at=earlier\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("ULTICODE_VECTOR_CONFIRM_MARKER", str(record))
+
+    claimed, _ = smoke._claim_confirmation_once()
+
+    assert claimed is False

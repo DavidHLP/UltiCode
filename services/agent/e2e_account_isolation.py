@@ -350,7 +350,13 @@ async def main() -> int:
             print("FAIL reason=listing_positive_control_failed")
             return 1
 
-    print("OK isolation dual_account_contrast local_stack_only")
+    # The label must follow the targets actually validated: evidence gathered
+    # through the remote opt-in is not local.
+    remote = os.environ.get(REMOTE_WRITE_OPT_IN) == "1"
+    print(
+        "OK isolation dual_account_contrast "
+        + ("remote_opt_in" if remote else "local_stack_only")
+    )
     return 0
 
 

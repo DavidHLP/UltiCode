@@ -117,6 +117,13 @@ def _claim_confirmation_once() -> tuple[bool, str]:
             raise RuntimeError(
                 f"marker path is not a regular claim record: {marker}"
             ) from None
+        # A regular file only counts as our claim if it carries our record; an
+        # unrelated file pointed at by the marker variable is a configuration
+        # error, not evidence that the confirmation set was consumed.
+        if CONFIRMATION_CASES_PATH.name not in marker.read_text(encoding="utf-8"):
+            raise RuntimeError(
+                f"marker exists but is not this harness's claim record: {marker}"
+            ) from None
         return False, str(marker)
     except OSError as error:
         raise RuntimeError(f"could not record the confirmation claim: {error}") from None
@@ -228,7 +235,7 @@ def main() -> int:
     embedder = FastembedEmbedder(model_path=model_path)
     indexed = build_index(
         client,
-        load_sample_corpus(),
+        corpus,
         embedder=embedder,
         # Only ever pointed at a disposable instance; see build_index.
         allow_recreate=os.environ.get("QDRANT_ALLOW_RECREATE") == "1",

@@ -45,12 +45,12 @@ DOCUMENT_BINDING_FIELDS = (
     "access_scope",
     "sample_kind",
 )
-REQUIRED_FIELDS = DOCUMENT_BINDING_FIELDS + AUTHORIZATION_FIELDS + (CONTENT_DIGEST_FIELD,)
-#: Manifest-only provenance: present on a SourceHit, not on a SourceDocument.
-MANIFEST_PROVENANCE_FIELD = "source_trust"
 #: Digest binding a manifest entry to the exact text it authorised, so replacing a
 #: file's content cannot ride in on the old permission and scope.
 CONTENT_DIGEST_FIELD = "content_digest"
+REQUIRED_FIELDS = DOCUMENT_BINDING_FIELDS + AUTHORIZATION_FIELDS + (CONTENT_DIGEST_FIELD,)
+#: Manifest-only provenance: present on a SourceHit, not on a SourceDocument.
+MANIFEST_PROVENANCE_FIELD = "source_trust"
 #: Retrieval always emits this marker and citation verification enforces it, so a
 #: manifest may not claim anything else for the same field.
 EXPECTED_SOURCE_TRUST = "untrusted-data"

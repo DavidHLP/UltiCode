@@ -19,10 +19,20 @@ from retrieval import SourceDocument
 
 COLLECTION = "u02-eval"
 EMBED_MODEL = "BAAI/bge-small-en-v1.5"
-#: Set ULTICODE_EMBED_MODEL_REVISION to a pinned model revision (or a commit sha)
-#: for a reproducible comparison. Unpinned, the same model name can resolve to
-#: different weights over time, so the run is only comparable to itself.
+#: Set ULTICODE_EMBED_MODEL_REVISION to an **immutable** model commit sha for a
+#: reproducible comparison. A branch name or tag can move, so it is rejected:
+#: the same model name could otherwise resolve to different weights on a later
+#: run, and the scores plus the relevance threshold would not be comparable.
 EMBED_MODEL_REVISION = os.environ.get("ULTICODE_EMBED_MODEL_REVISION", "")
+#: A full 40-character lowercase git commit sha.
+IMMUTABLE_REVISION = re.compile(r"^[0-9a-f]{40}$")
+
+
+def is_immutable_revision(revision: str) -> bool:
+    """A movable ref is not a pin, whatever the operator intended."""
+    return bool(IMMUTABLE_REVISION.fullmatch(revision.strip()))
+
+
 VECTOR_SIZE = 384
 #: Cosine relevance floor: below this the nearest point is not evidence.
 MIN_SCORE = 0.35

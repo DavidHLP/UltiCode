@@ -252,8 +252,11 @@ def test_a_concurrent_claim_cannot_overwrite_the_record(tmp_path, monkeypatch) -
 
 def test_claim_fails_closed_when_the_marker_cannot_be_written(tmp_path, monkeypatch) -> None:
     smoke = e2e_vector_comparison
+    # The parent is a regular file, so creating the marker directory must fail.
+    blocker = tmp_path / "not-a-dir"
+    blocker.write_text("x", encoding="utf-8")
 
-    unwritable = tmp_path / "missing-dir" / "holdout-v2.consumed"
+    unwritable = blocker / "holdout-v2.consumed"
     monkeypatch.setenv("ULTICODE_VECTOR_CONFIRM_MARKER", str(unwritable))
 
     with pytest.raises(RuntimeError, match="could not record"):

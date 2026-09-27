@@ -1,0 +1,20 @@
+docs/DEVELOPMENT.md
+  h_77173abe25c3ff 79-80
+services/agent/e2e_vector_comparison.py
+  h_77173abe25c3ff 52-53,134-135,140,156-162,240
+services/agent/src/vector_search.py
+  h_77173abe25c3ff 15,22-26,29-30,32-36,38-45,61,65-66
+services/agent/tests/test_vector_search.py
+  h_77173abe25c3ff 263-268,270-271,274,278,281,284-285,288-307
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1e6c029dee6fbfcb9864636fff6b965616f6bf67",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

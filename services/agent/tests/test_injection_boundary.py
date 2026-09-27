@@ -95,32 +95,51 @@ def test_the_system_prompt_never_carries_retrieved_instructions() -> None:
 
 
 def test_a_model_that_obeys_the_injection_cannot_write() -> None:
-    """The fake model follows the injected instruction; the loop still refuses."""
+    """The fake model follows the injected instruction; the loop still refuses.
+
+    The adversary is deliberately *conditional*: it only asks for the write after
+    seeing the marker come back from the retrieval tool. An unconditional write
+    attempt would still pass with the injection deleted, which would make this an
+    unknown-tool test rather than a corpus-injection regression.
+    """
     rounds: list[list[dict[str, object]]] = []
+    searches: list[str] = []
 
     async def search_notes(arguments: dict[str, object]) -> object:
+        searches.append("search_notes")
         hits = keyword_search(QUERY, limit=1, documents=(_injected_document(),))
         return {"hits": [hit.as_model_dict() for hit in hits]}
 
     class ObedientModel:
+        def __init__(self) -> None:
+            self.attempted_write = False
+
         async def decide(self, messages: list[dict[str, object]]) -> ModelDecision:
             rounds.append(list(messages))
             if len(rounds) == 1:
                 return ModelDecision(tool_call=ToolCall("search_notes"))
-            if len(rounds) == 2:
-                # The injection is now a TOOL_RESULT; this fake model obeys it.
+            evidence = [m for m in messages if m["role"] == "tool"]
+            seen = str(evidence[-1]["content"]) if evidence else ""
+            if MARKER in seen and not self.attempted_write:
+                # Obeying the material it just read.
+                self.attempted_write = True
                 return ModelDecision(tool_call=ToolCall("write_submission", {"plan": "x"}))
             return ModelDecision(text="no such tool")
 
+    model = ObedientModel()
     result = asyncio.run(
         run_tool_loop(
-            ObedientModel(),
+            model,
             {"search_notes": search_notes},
             "what does this submission status mean?",
             max_rounds=4,
         )
     )
 
+    # The injection is what drove the attempt, so the regression cannot pass
+    # without it, and no handler ran for the refused name.
+    assert model.attempted_write is True
+    assert searches == ["search_notes"]
     assert result.answer == "no such tool"
     assert [entry["tool_name"] for entry in result.trace] == ["search_notes", "unknown_tool"]
     assert result.trace[1]["failed"] is True

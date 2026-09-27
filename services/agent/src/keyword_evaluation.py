@@ -67,6 +67,13 @@ class CaseRecord:
     ``tool_calls`` counts retrieval calls only. ``observed_behavior`` is
     ``not_measured`` whenever the behaviour is an answer-level property this
     deterministic slice cannot observe.
+
+    ``retrieval_hit`` reads the same way for every behaviour class: *did the
+    retrieval outcome this class expects happen?* For a `cite` case that is the
+    required documents coming back; for `no_evidence` and `refuse` it is nothing
+    coming back, because a fragment is the temptation to fabricate. It is not raw
+    document containment — a `refuse` case that fetched its forbidden document is
+    a miss here even though a required set would contain it.
     """
 
     case_id: str

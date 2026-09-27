@@ -1,5 +1,6 @@
 import asyncio
 import importlib.util
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
@@ -636,10 +637,32 @@ def test_a_garbage_consumed_at_is_not_treated_as_our_claim(tmp_path: Path) -> No
 def test_a_date_only_or_naive_timestamp_is_not_our_claim(tmp_path: Path) -> None:
     """`fromisoformat` accepts values this writer cannot produce; they must not count."""
     smoke = e2e_vector_comparison
-    for stamp in ("2026-01-01", "2026-01-01T00:00:00", "2026-01-01T00:00:00+08:00"):
+    for stamp in (
+        "2026-01-01",
+        "2026-01-01T00:00:00",
+        "2026-01-01T00:00:00+08:00",
+        # Both parse with a UTC offset yet are not what `isoformat()` emits: an
+        # ISO week date and a space-separated `Z`. Accepting them would report
+        # "already consumed" and skip the requested run with exit 0.
+        "2026-W01-1T00:00:00+00:00",
+        "2026-01-01 00:00:00Z",
+    ):
         marker = tmp_path / f"claim-{stamp}.txt"
         marker.write_text(
             f"confirmation={smoke.CONFIRMATION_CASES_PATH.name}\nconsumed_at={stamp}\n",
             encoding="utf-8",
         )
         assert not smoke._is_our_claim_record(marker), stamp
+
+
+def test_the_canonical_isoformat_timestamp_is_our_claim(tmp_path: Path) -> None:
+    """The tightened check must still accept what the harness actually writes."""
+    smoke = e2e_vector_comparison
+    marker = tmp_path / "claim-canonical.txt"
+    marker.write_text(
+        f"confirmation={smoke.CONFIRMATION_CASES_PATH.name}\n"
+        f"consumed_at={datetime.now(timezone.utc).isoformat()}\n",
+        encoding="utf-8",
+    )
+
+    assert smoke._is_our_claim_record(marker)

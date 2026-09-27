@@ -401,6 +401,23 @@ async def main() -> int:
             print("FAIL reason=listing_positive_control_failed")
             return 1
 
+        # Isolation must not be a blanket deny. Content the contract marks public
+        # stays readable with no session at all — that is what separates "scoped
+        # to the caller" from "everything forbidden", and a stack that refuses
+        # both would otherwise look like a passing contrast.
+        async with _session() as anonymous:
+            public_listing = await anonymous.get(
+                f"{APP_BASE}/problems", params={"page": 1, "pageSize": 1}
+            )
+            public_detail = await anonymous.get(f"{APP_BASE}/problems/{problem_id}")
+        print(
+            f"public control anonymous_listing={public_listing.status_code} "
+            f"anonymous_detail={public_detail.status_code}"
+        )
+        if (public_listing.status_code, public_detail.status_code) != (200, 200):
+            print("FAIL reason=public_content_not_readable")
+            return 1
+
     # The label must follow the targets actually validated: evidence gathered
     # through the remote opt-in is not local.
     remote = os.environ.get(REMOTE_WRITE_OPT_IN) == "1"

@@ -58,6 +58,11 @@ def _account(request: httpx.Request) -> str:
     return _token_for_username(request)
 
 
+def _is_anonymous(request: httpx.Request) -> bool:
+    """No session cookie: these calls carry no credential at all."""
+    return "access_token=" not in request.headers.get("Cookie", "")
+
+
 def _session_response(request: httpx.Request) -> httpx.Response:
     account = _account(request)
     return httpx.Response(
@@ -85,6 +90,7 @@ def correct_service(
     foreign_status: int = 404,
     listing: object = "own_only",
     starter: object = "present",
+    public_status: int = 200,
     seen: list | None = None,
 ) -> object:
     """A service that serves the caller's own records and refuses others."""
@@ -94,6 +100,9 @@ def correct_service(
         account = _account(request)
         if path.endswith("/auth/register") or path.endswith("/auth/login"):
             return _session_response(request)
+        if path.endswith("/problems") or _problem_detail_id(path) is not None:
+            if public_status != 200 and _is_anonymous(request):
+                return httpx.Response(public_status, json={"message": "forbidden"})
         if path.endswith("/problems"):
             return httpx.Response(
                 200, json={"data": {"items": [LISTED_PROBLEM], "total": 1}}
@@ -193,6 +202,25 @@ def test_forbidden_counts_as_a_refusal(monkeypatch, capsys) -> None:
 
     assert asyncio.run(e2e_account_isolation.main()) == 0
     assert "negative control cross_a=403 cross_b=403" in capsys.readouterr().out
+
+
+def test_public_content_stays_readable_without_a_session(monkeypatch, capsys) -> None:
+    """Isolation must not be a blanket deny: the public control is part of the verdict."""
+    monkeypatch.setenv("ULTICODE_E2E_ISOLATION", "1")
+    _install(monkeypatch, correct_service())
+
+    assert asyncio.run(e2e_account_isolation.main()) == 0
+    output = capsys.readouterr().out
+    assert "public control anonymous_listing=200 anonymous_detail=200" in output
+    assert "OK isolation" in output
+
+
+def test_a_stack_that_denies_public_content_is_not_a_pass(monkeypatch, capsys) -> None:
+    monkeypatch.setenv("ULTICODE_E2E_ISOLATION", "1")
+    _install(monkeypatch, correct_service(public_status=403))
+
+    assert asyncio.run(e2e_account_isolation.main()) == 1
+    assert "FAIL reason=public_content_not_readable" in capsys.readouterr().out
 
 
 def test_the_fixture_is_the_problems_own_starter_code(monkeypatch, capsys) -> None:

@@ -103,7 +103,7 @@ ULTICODE_AUTH_BASE=http://localhost:9101 \
 uv run python e2e_account_isolation.py
 ```
 
-安全约束：脚本会**拒绝非回环**的 base URL，除非显式设置 `ULTICODE_E2E_ISOLATION_ALLOW_REMOTE=1` 表明目标确实是你可丢弃的自有栈。它只输出固定标签与状态码，不回显任何凭据、Cookie 或响应正文；跨账号读取只接受契约定义的 403/404 视为拒绝，5xx 或信封异常一律判为脚本不成立。**不要**把生产或共享环境作为目标。
+安全约束：脚本会**拒绝非回环**的 base URL，除非显式设置 `ULTICODE_E2E_ISOLATION_ALLOW_REMOTE=1` 表明目标确实是你可丢弃的自有栈。它只输出固定标签与状态码，不回显任何凭据、Cookie 或响应正文；跨账号读取只接受契约定义的 403/404 视为拒绝，5xx 或信封异常一律判为脚本不成立。脚本同时检查**公开内容的匿名正对照**（`GET /problems`、`GET /problems/{id}` 无会话应仍为 200）：把「所有跨账号请求都拒绝」当成隔离通过是错的。**不要**把生产或共享环境作为目标。
 
 要点：`QDRANT_IMAGE` 只是调用方声明的标签，脚本不据此校验服务端实际版本，输出会显式标注这一点；`QDRANT_ALLOW_RECREATE=1` 才会允许重建既有集合，只能指向一次性实例；确认集（`data/holdout-v2.json`）为**一次性**，未设 `ULTICODE_VECTOR_CONFIRM=1` 时脚本直接跳过确认阶段。
 

@@ -258,3 +258,25 @@ def test_confirmation_refuses_to_run_with_an_unpinned_embedding(monkeypatch, cap
     # main() is synchronous in this script.
     assert smoke.main() == 0
     assert "embed_model_revision_unpinned" in capsys.readouterr().out
+
+
+def test_a_mutable_embedding_ref_is_rejected() -> None:
+    """A branch or tag can move, so it is not a pin."""
+    import vector_search
+
+    assert vector_search.is_immutable_revision("a" * 40) is True
+    assert vector_search.is_immutable_revision("main") is False
+    assert vector_search.is_immutable_revision("v1.0") is False
+    assert vector_search.is_immutable_revision("") is False
+    assert vector_search.is_immutable_revision("A" * 40) is False
+    assert vector_search.is_immutable_revision("a" * 39) is False
+
+
+def test_mutable_revision_stops_the_run(monkeypatch, capsys) -> None:
+    smoke = e2e_vector_comparison
+    monkeypatch.setenv("ULTICODE_VECTOR_CONFIRM", "1")
+    monkeypatch.setenv("QDRANT_IMAGE", "qdrant/qdrant@sha256:" + "0" * 64)
+    monkeypatch.setattr(smoke, "EMBED_MODEL_REVISION", "main")
+
+    assert smoke.main() == 0
+    assert "embed_model_revision_not_immutable" in capsys.readouterr().out

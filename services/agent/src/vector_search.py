@@ -12,6 +12,7 @@ reranker, no second index, no migration of the working keyword path.
 from __future__ import annotations
 
 import os
+import re
 from typing import Protocol
 
 from retrieval import SourceDocument

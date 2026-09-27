@@ -5,6 +5,7 @@ import pytest
 
 from corpus_manifest import (
     AUTHORIZATION_FIELDS,
+    CONTENT_DIGEST_FIELD,
     SUPPORTED_PROJECTIONS,
     DOCUMENT_BINDING_FIELDS,
     MANIFEST_PATH,
@@ -49,8 +50,8 @@ def test_authorization_fields_are_exactly_davs_five() -> None:
         "source_position",
         "model_input_projection",
     )
-    assert set(REQUIRED_FIELDS) == set(AUTHORIZATION_FIELDS) | set(
-        DOCUMENT_BINDING_FIELDS
+    assert set(REQUIRED_FIELDS) == (
+        set(AUTHORIZATION_FIELDS) | set(DOCUMENT_BINDING_FIELDS) | {CONTENT_DIGEST_FIELD}
     )
     assert MANIFEST_PROVENANCE_FIELD == "source_trust"
 

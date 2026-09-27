@@ -175,6 +175,7 @@ def assert_manifest_covers(
     # Identity first: a repeated doc_id/version is the more specific fault, and it
     # must not be masked by the content binding below.
     seen: dict[tuple[str, str], str] = {}
+    chunk_ids: dict[str, tuple[str, str]] = {}
     for document in documents:
         identity = (getattr(document, "doc_id", ""), getattr(document, "version", ""))
         text = getattr(document, "text", "")
@@ -184,6 +185,14 @@ def assert_manifest_covers(
             # another required document.
             raise ManifestError(f"{identity[0]}: duplicate document identity")
         seen[identity] = text
+        chunk_id = str(getattr(document, "chunk_id", ""))
+        # Two *distinct* identities can still reach one chunk key when a separator
+        # appears inside doc_id or version (`a` + `b:c` and `a:b` + `c` both make
+        # `a:b:c:1`). Chunk-keyed lookups keep one, so the corpus would silently
+        # lose a document.
+        if chunk_id in chunk_ids:
+            raise ManifestError(f"{chunk_id}: two documents share one chunk id")
+        chunk_ids[chunk_id] = identity
 
     for document in documents:
         entry = by_doc.get(getattr(document, "doc_id", ""))

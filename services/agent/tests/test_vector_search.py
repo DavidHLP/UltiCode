@@ -394,6 +394,10 @@ def test_artifact_is_validated_before_the_optional_dependencies(monkeypatch, cap
         "qdrant/qdrant@sha256:" + "a" * 63,
         "qdrant/qdrant:latest",
         "qdrant/qdrant",
+        # Control characters are non-whitespace, so `[^\s@]+` admitted them and the
+        # evidence line printed them verbatim.
+        "\x1b[31mqdrant/qdrant@sha256:" + "a" * 64,
+        "qdrant/qdrant\x1b[0m@sha256:" + "a" * 64,
     ],
 )
 def test_a_malformed_image_identity_cannot_pass_the_guard(monkeypatch, capsys, image) -> None:
@@ -775,6 +779,27 @@ def test_a_second_comparison_run_cannot_hold_the_collection(tmp_path, monkeypatc
     smoke._release_run_lock(first)
     assert not first.exists()
     assert smoke._acquire_run_lock().exists()
+
+
+def test_artifact_identity_separates_layouts_that_share_a_byte_stream(tmp_path) -> None:
+    """Snapshot bytes are arbitrary, so names and contents need lengths.
+
+    With a NUL delimiter, one file holding `x\0b\0y` produced the same digest as
+    two files holding `x` and `y` under those names.
+    """
+    from vector_search import artifact_identity
+
+    one = tmp_path / "one"
+    two = tmp_path / "two"
+    one.mkdir()
+    two.mkdir()
+    (one / "a").write_bytes(b"x\0b\0y")
+    (two / "a").write_bytes(b"x")
+    (two / "b").write_bytes(b"y")
+
+    assert artifact_identity(str(one)) != artifact_identity(str(two))
+    # Same layout still hashes the same, so the guard is not simply always-different.
+    assert artifact_identity(str(one)) == artifact_identity(str(one))
 
 
 def test_the_canonical_isoformat_timestamp_is_our_claim(tmp_path: Path) -> None:

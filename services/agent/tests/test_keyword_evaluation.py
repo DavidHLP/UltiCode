@@ -70,6 +70,10 @@ def test_records_cover_every_required_dimension() -> None:
             "extra_hits",
             "missed",
             "false_positive",
+            # A `refuse` case is classified apart: the citable vocabulary would
+            # report the forbidden retrieval as a match.
+            "refused_with_evidence",
+            "refused_without_evidence",
         }
         assert record.allowed_behavior.strip()
         assert record.forbidden_behavior.strip()
@@ -113,7 +117,12 @@ def test_refuse_cases_never_report_an_answer_behaviour() -> None:
         # Any retrieved fragment is the temptation to fabricate, even one that
         # happens to be a required document.
         assert record.fabrication_risk is bool(hits)
-        assert record.retrieval_hit is (required <= {hit.doc_id for hit in hits})
+        # Not the citable formula: for a refusal, retrieving the required
+        # document is precisely the failure this case exists to catch.
+        assert record.retrieval_hit is (not hits)
+        assert record.retrieval_outcome == (
+            "refused_with_evidence" if hits else "refused_without_evidence"
+        )
     flagged = {case_id for case_id, record in records.items() if record.fabrication_risk}
     assert flagged <= set(refuse_ids)
 

@@ -41,12 +41,17 @@ def artifact_identity(model_path: str) -> str:
         raise ValueError(f"embedding artifact is not a directory: {root}")
     digest = hashlib.sha256()
     for path in sorted(p for p in root.rglob("*") if p.is_file()):
-        digest.update(str(path.relative_to(root)).encode("utf-8"))
-        digest.update(b"\0")
+        # Lengths, not delimiters: snapshot bytes are arbitrary, so a NUL inside a
+        # file could otherwise make two different layouts hash the same.
+        name = str(path.relative_to(root)).encode("utf-8")
+        digest.update(len(name).to_bytes(8, "big"))
+        digest.update(name)
+        size = 0
         with path.open("rb") as handle:
             for chunk in iter(lambda: handle.read(1 << 20), b""):
+                size += len(chunk)
                 digest.update(chunk)
-        digest.update(b"\0")
+        digest.update(size.to_bytes(8, "big"))
     return f"sha256:{digest.hexdigest()}"
 
 

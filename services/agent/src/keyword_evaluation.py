@@ -199,21 +199,33 @@ def evaluate_case_records(
         # "answered_with_citation" from document availability would turn
         # retrieval into a claimed answer and understate what is unmeasured.
         observed_behavior = "not_measured"
-        if case.expected_behavior == "no_evidence":
+        if case.expected_behavior == "refuse":
+            # A refusal is correct when the forbidden document stays out of the
+            # results, and fetching it *is* the fabrication risk. Scoring it
+            # through the citable path would call that risk a match and a clean
+            # refusal a miss, contradicting `fabrication_risk` on the same record.
+            retrieval_hit = not actual_doc_ids
+            outcome = (
+                "refused_with_evidence" if actual_doc_ids else "refused_without_evidence"
+            )
+        elif case.expected_behavior == "no_evidence":
             # An empty required set is a subset of everything, so containment
             # would mark any hit as a pass. A hit here is a false positive.
             retrieval_hit = not actual_doc_ids
+            outcome = retrieval_outcome(required_doc_ids, actual_doc_ids)
         elif actual_doc_ids:
             retrieval_hit = required_doc_ids <= actual_doc_ids
+            outcome = retrieval_outcome(required_doc_ids, actual_doc_ids)
         else:
             retrieval_hit = not required_doc_ids
+            outcome = retrieval_outcome(required_doc_ids, actual_doc_ids)
         records.append(
             CaseRecord(
                 case_id=case.case_id,
                 split=case.split,
                 retrieval_hit=retrieval_hit,
                 citation_traceable=_citation_traceable(hits),
-                retrieval_outcome=retrieval_outcome(required_doc_ids, actual_doc_ids),
+                retrieval_outcome=outcome,
                 citation_support=DEFERRED,
                 answer_completion=DEFERRED,
                 expected_behavior=case.expected_behavior,
@@ -241,6 +253,8 @@ def summarize_records(
             "retrieval_extra_hits": 0,
             "retrieval_missed": 0,
             "retrieval_false_positive": 0,
+            "retrieval_refused_with_evidence": 0,
+            "retrieval_refused_without_evidence": 0,
             "answer_level_deferred": 0,
             "behavior_not_measured": 0,
             "fabrication_risk": 0,

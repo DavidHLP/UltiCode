@@ -288,3 +288,31 @@ def test_a_byte_identical_duplicate_identity_is_refused() -> None:
 
     with pytest.raises(ManifestError, match="duplicate document identity"):
         assert_manifest_covers(load_manifest(), (*documents, twin))
+
+
+def test_two_identities_that_generate_one_chunk_id_are_rejected() -> None:
+    """Distinct accepted identities must not reach the same chunk key.
+
+    `check_citations()` and the worksheet are keyed by chunk id, so a collision
+    would silently keep one of the two documents. The identity prepass reports it
+    before the binding checks, so an empty manifest is enough to reach the guard.
+    """
+    from retrieval import SourceDocument
+
+    def document(doc_id: str, version: str) -> SourceDocument:
+        return SourceDocument(
+            doc_id=doc_id,
+            version=version,
+            source_path="authorised/one.md",
+            access_scope="authorised-u02",
+            sample_kind="authorised-real",
+            text="text",
+            source_position="1",
+        )
+
+    first = document("a", "b:c")
+    second = document("a:b", "c")
+    assert first.chunk_id == second.chunk_id
+
+    with pytest.raises(ManifestError, match="share one chunk id"):
+        assert_manifest_covers([], [first, second])

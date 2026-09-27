@@ -383,7 +383,9 @@ def main() -> int:
     image = os.environ.get("QDRANT_IMAGE")
     # A bare "@sha256:" or a non-hex suffix would pass a substring check and let
     # the run record a non-immutable image identity.
-    if not image or not re.fullmatch(r"[^\s@]+@sha256:[0-9a-f]{64}", image):
+    # An OCI-safe repository part: `[^\s@]+` also admitted control characters,
+    # which the evidence line prints verbatim.
+    if not image or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._/:+-]*@sha256:[0-9a-f]{64}", image):
         # `latest` silently changes between runs, which makes the evidence
         # irreproducible.
         print("FAIL reason=unpinned_qdrant_image")

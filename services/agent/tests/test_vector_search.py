@@ -355,3 +355,35 @@ def test_artifact_is_validated_before_the_optional_dependencies(monkeypatch, cap
 
     assert smoke.main() == 1
     assert "embed_artifact_unusable" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize(
+    "image",
+    [
+        "qdrant/qdrant@sha256:",
+        "qdrant/qdrant@sha256:abc",
+        "qdrant/qdrant@sha256:" + "z" * 64,
+        "qdrant/qdrant@sha256:" + "a" * 63,
+        "qdrant/qdrant:latest",
+        "qdrant/qdrant",
+    ],
+)
+def test_a_malformed_image_identity_cannot_pass_the_guard(monkeypatch, capsys, image) -> None:
+    """A substring check let an empty or non-hex digest through."""
+    smoke = e2e_vector_comparison
+    monkeypatch.setenv("ULTICODE_VECTOR_CONFIRM", "1")
+    monkeypatch.setenv("QDRANT_IMAGE", image)
+
+    assert smoke.main() == 1
+    assert "unpinned_qdrant_image" in capsys.readouterr().out
+
+
+def test_a_well_formed_digest_gets_past_the_image_guard(monkeypatch, capsys) -> None:
+    smoke = e2e_vector_comparison
+    monkeypatch.setenv("ULTICODE_VECTOR_CONFIRM", "1")
+    monkeypatch.setenv("QDRANT_IMAGE", "qdrant/qdrant@sha256:" + "a" * 64)
+    monkeypatch.setattr(smoke, "EMBED_MODEL_PATH", "")
+
+    # Past the image guard: it stops at the next precondition instead.
+    assert smoke.main() == 1
+    assert "embed_model_path_required" in capsys.readouterr().out

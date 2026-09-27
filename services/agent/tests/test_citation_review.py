@@ -254,3 +254,42 @@ def test_duplicate_chunk_rows_are_rejected() -> None:
     """One verdict must not silently cover two different quoted fragments."""
     with pytest.raises(VerdictError, match="duplicate citation for chunk"):
         _worksheet([_citation(DOCUMENTS[0]), _citation(DOCUMENTS[0])])
+
+
+def test_a_verdict_from_another_worksheet_is_rejected(tmp_path) -> None:
+    """Support is specific to the claim and quote, so a stale verdict must not fit."""
+    first = _worksheet()
+    stale = _verdict_file(tmp_path, _row_ids(first))
+    # Same chunk, but the claim and therefore the quote differ.
+    other_claim = ANSWER["facts"][0]
+    second = build_worksheet(
+        claim=other_claim,
+        citations=ANSWER["citations"],
+        documents=DOCUMENTS,
+        manifest=MANIFEST,
+    )
+    assert second[0].chunk_id == first[0].chunk_id
+    assert second[0].review_id != first[0].review_id
+
+    with pytest.raises(VerdictError):
+        load_verdicts(stale, second)
+
+
+def test_a_verdict_without_a_review_id_is_rejected(tmp_path) -> None:
+    items = _worksheet()
+    path = tmp_path / "verdicts.json"
+    path.write_text(
+        json.dumps(
+            [
+                {
+                    "chunk_id": item.chunk_id,
+                    "verdicts": {key: True for key in VERDICT_KEYS},
+                }
+                for item in items
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(VerdictError, match="review_id"):
+        load_verdicts(path, items)

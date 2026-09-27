@@ -253,3 +253,33 @@ def test_duplicate_case_identifiers_are_rejected(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError, match="duplicate case id"):
         load_cases(path)
+
+
+def test_no_evidence_case_cannot_declare_required_evidence(tmp_path: Path) -> None:
+    """Self-contradictory annotations would be scored as a retrieval success."""
+    base = json.loads(
+        (Path(__file__).parents[1] / "data/keyword_cases.json").read_text(encoding="utf-8")
+    )
+    negative = next(case for case in base if case["expected_behavior"] == "no_evidence")
+    contradictory = dict(negative)
+    contradictory["required_evidence"] = ["sample-status-only"]
+
+    path = tmp_path / "contradictory.json"
+    path.write_text(json.dumps([contradictory]), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="no-evidence case cannot require evidence"):
+        load_cases(path)
+
+
+def test_refuse_case_must_declare_the_evidence_it_resists(tmp_path: Path) -> None:
+    base = json.loads(
+        (Path(__file__).parents[1] / "data/keyword_cases.json").read_text(encoding="utf-8")
+    )
+    refuse = dict(next(case for case in base if case["expected_behavior"] == "refuse"))
+    refuse["required_evidence"] = []
+
+    path = tmp_path / "refuse-without-evidence.json"
+    path.write_text(json.dumps([refuse]), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="refuse case must name the evidence"):
+        load_cases(path)

@@ -160,7 +160,9 @@ def _data(response: httpx.Response) -> dict[str, Any]:
     gateway error that still carries a body — read as isolation evidence.
     """
     payload = _payload(response)
-    if payload.get("code") != 0:
+    code = payload.get("code")
+    # `False == 0` in Python, so a boolean would otherwise pass as success.
+    if isinstance(code, bool) or not isinstance(code, int) or code != 0:
         return {}
     data = payload.get("data")
     return data if isinstance(data, dict) else {}

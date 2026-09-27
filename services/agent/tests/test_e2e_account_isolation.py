@@ -264,6 +264,29 @@ def test_a_nonzero_envelope_is_not_isolation_evidence(monkeypatch, capsys) -> No
     assert "FAIL reason=fixture_unavailable" in capsys.readouterr().out
 
 
+def test_a_boolean_result_code_is_not_a_success(monkeypatch, capsys) -> None:
+    """`False == 0` in Python, so a boolean must not read as a successful Result."""
+    monkeypatch.setenv("ULTICODE_E2E_ISOLATION", "1")
+    inner = correct_service()
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        response = inner(request)
+        if response.status_code != 200:
+            return response
+        body = json.loads(response.content)
+        headers = [
+            (name, value)
+            for name, value in response.headers.multi_items()
+            if name.lower() != "content-length"
+        ]
+        return httpx.Response(200, json={"code": False, **body}, headers=headers)
+
+    _install(monkeypatch, handler)
+
+    assert asyncio.run(e2e_account_isolation.main()) == 1
+    assert "FAIL reason=fixture_unavailable" in capsys.readouterr().out
+
+
 def test_public_content_stays_readable_without_a_session(monkeypatch, capsys) -> None:
     """Isolation must not be a blanket deny: the public control is part of the verdict."""
     monkeypatch.setenv("ULTICODE_E2E_ISOLATION", "1")

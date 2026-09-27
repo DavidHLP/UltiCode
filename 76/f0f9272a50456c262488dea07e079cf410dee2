@@ -1,0 +1,16 @@
+services/agent/tests/test_deepseek_budget.py
+  h_77173abe25c3ff 263
+services/agent/tests/test_vector_search.py
+  h_77173abe25c3ff 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "76f0f9272a50456c262488dea07e079cf410dee2",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

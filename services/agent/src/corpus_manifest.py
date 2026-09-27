@@ -185,13 +185,6 @@ def assert_manifest_covers(
                 raise ManifestError(
                     f"{entry.doc_id}: manifest {field} does not match the corpus"
                 )
-        # A SourceDocument exposes only `text`, so the digest must be recomputed
-        # from it; reading a non-existent attribute would skip the comparison.
-        actual_digest = content_digest(getattr(document, "text", ""))
-        if entry.content_digest != actual_digest:
-            raise ManifestError(
-                f"{entry.doc_id}: manifest content_digest does not match the corpus text"
-            )
         declared_version = entry.version
         actual_version = getattr(document, "version", None)
         if actual_version is not None and declared_version != actual_version:
@@ -201,6 +194,14 @@ def assert_manifest_covers(
         raise ManifestError(f"manifest declares documents that are not retrievable: {sorted(undeclared)}")
     # Two documents sharing an identity but differing in text would collapse in
     # any chunk-keyed lookup, so one manifest entry would verify the wrong text.
+            # A SourceDocument exposes only `text`, so the digest must be recomputed
+        # from it; reading a non-existent attribute would skip the comparison.
+        actual_digest = content_digest(getattr(document, "text", ""))
+        if entry.content_digest != actual_digest:
+            raise ManifestError(
+                f"{entry.doc_id}: manifest content_digest does not match the corpus text"
+            )
+
     seen: dict[tuple[str, str], str] = {}
     for document in documents:
         identity = (getattr(document, "doc_id", ""), getattr(document, "version", ""))

@@ -213,12 +213,23 @@ def _artifact_unchanged(model_path: str, before: str) -> bool:
     return artifact_identity(model_path) == before
 
 
-def _cases_digest(path: Path | None = None) -> str:
-    """Digest of a case file, so the evidence names the exact expectations used."""
+def _cases_digest_from_loaded(cases: tuple[KeywordCase, ...]) -> str:
+    """Digest derived from the cases actually scored.
+
+    Reading the file again at output time would report bytes that were never
+    evaluated if the file changed during the run.
+    """
     import hashlib
 
-    cases_path = path or DEFAULT_CASES_PATH
-    return f"sha256:{hashlib.sha256(cases_path.read_bytes()).hexdigest()[:16]}"
+    digest = hashlib.sha256()
+    for case in sorted(cases, key=lambda item: item.case_id):
+        digest.update(case.case_id.encode("utf-8"))
+        digest.update(case.split.encode("utf-8"))
+        digest.update(case.query.encode("utf-8"))
+        digest.update(",".join(case.required_evidence).encode("utf-8"))
+        digest.update(case.expected_behavior.encode("utf-8"))
+        digest.update(b"\0")
+    return f"sha256:{digest.hexdigest()[:16]}"
 
 
 def _report(label: str, counts: dict[str, int], total: int) -> None:
@@ -251,9 +262,9 @@ def main() -> int:
     contaminated = tuple(case for case in cases if case.split == CONTAMINATED_SPLIT)
     # Captured now: a later edit to the file must not change the reported digest
     # for expectations that were already scored.
-    development_digest = _cases_digest(DEFAULT_CASES_PATH)
-    contaminated_digest = _cases_digest(DEFAULT_CASES_PATH)
-    confirmation_digest = _cases_digest(CONFIRMATION_CASES_PATH)
+    development_digest = _cases_digest_from_loaded(development)
+    contaminated_digest = _cases_digest_from_loaded(contaminated)
+    confirmation_digest = _cases_digest_from_loaded(confirmation)
     model_path = EMBED_MODEL_PATH.strip()
     if not model_path:
         # Reporting "unpinned" is honest but not reproducible: the same model

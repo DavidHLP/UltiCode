@@ -557,15 +557,26 @@ def test_evidence_digests_change_with_the_inputs(tmp_path, monkeypatch) -> None:
     assert corpus_digest.startswith("sha256:")
     assert corpus_digest == smoke._corpus_digest(load_sample_corpus())
 
-    cases_digest = smoke._cases_digest()
-    assert cases_digest.startswith("sha256:")
-    edited = tmp_path / "cases.json"
-    edited.write_bytes(
-        (smoke.CONFIRMATION_CASES_PATH).read_bytes() + b"\n"
+    from keyword_evaluation import load_cases
+
+    loaded = load_cases()
+    digest = smoke._cases_digest_from_loaded(loaded)
+    assert digest.startswith("sha256:")
+    assert smoke._cases_digest_from_loaded(loaded) == digest
+    # A different expectation set yields a different digest.
+    changed = loaded[:1] + (
+        type(loaded[0])(
+            case_id=loaded[0].case_id,
+            split=loaded[0].split,
+            query="different",
+            required_evidence=loaded[0].required_evidence,
+            answerable=loaded[0].answerable,
+            expected_behavior=loaded[0].expected_behavior,
+            allowed_behavior=loaded[0].allowed_behavior,
+            forbidden_behavior=loaded[0].forbidden_behavior,
+        ),
     )
-    assert smoke._cases_digest(edited) != smoke._cases_digest(
-        smoke.CONFIRMATION_CASES_PATH
-    )
+    assert smoke._cases_digest_from_loaded(changed) != digest
 
 
 def test_a_snapshot_changed_during_load_is_refused(tmp_path) -> None:

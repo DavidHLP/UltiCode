@@ -182,6 +182,9 @@ def load_verdicts(path: Path, items: tuple[ReviewItem, ...]) -> dict[str, dict[s
     if not isinstance(raw, list) or not raw:
         raise VerdictError("verdicts must be a non-empty list")
     verdicts: dict[str, dict[str, object]] = {}
+    # Built before the loop: the submitted claim/quote are what the id binds to.
+    claim_by_chunk = {item.chunk_id: item.claim for item in items}
+    quote_by_chunk = {item.chunk_id: item.quote for item in items}
     for entry in raw:
         if not isinstance(entry, dict):
             raise VerdictError("verdict entries must be objects")
@@ -211,8 +214,6 @@ def load_verdicts(path: Path, items: tuple[ReviewItem, ...]) -> dict[str, dict[s
             **{key: values[key] for key in VERDICT_KEYS},
             "note": str(entry.get("note", "")),
         }
-    claim_by_chunk = {item.chunk_id: item.claim for item in items}
-    quote_by_chunk = {item.chunk_id: item.quote for item in items}
     expected = {item.review_id for item in items}
     missing = expected - set(verdicts)
     if missing:

@@ -91,6 +91,16 @@ def correct_service(foreign_status: int = 404, listing: object = "own_only") -> 
                 return httpx.Response(
                     200, json={"data": {"items": [{"id": OWNED[account]}], "total": 90}}
                 )
+            if listing == "total_zero_with_row":
+                # An own row reported with total=0 is an invalid contract.
+                return httpx.Response(
+                    200, json={"data": {"items": [{"id": OWNED[account]}], "total": 0}}
+                )
+            if listing == "duplicate_rows":
+                return httpx.Response(
+                    200,
+                    json={"data": {"items": [{"id": OWNED[account]}] * 2, "total": 2}},
+                )
             if listing == "leaks_other":
                 rows = list(OWNED.values())
                 return httpx.Response(
@@ -339,6 +349,22 @@ def test_a_truncated_listing_page_is_inconclusive(monkeypatch, capsys) -> None:
     """A page shorter than the reported total means hidden rows."""
     monkeypatch.setenv("ULTICODE_E2E_ISOLATION", "1")
     _install(monkeypatch, correct_service(listing="truncated"))
+
+    assert asyncio.run(e2e_account_isolation.main()) == 1
+    assert "harness_inconclusive" in capsys.readouterr().out
+
+
+def test_an_own_row_reported_with_total_zero_is_inconclusive(monkeypatch, capsys) -> None:
+    monkeypatch.setenv("ULTICODE_E2E_ISOLATION", "1")
+    _install(monkeypatch, correct_service(listing="total_zero_with_row"))
+
+    assert asyncio.run(e2e_account_isolation.main()) == 1
+    assert "harness_inconclusive" in capsys.readouterr().out
+
+
+def test_duplicate_listing_rows_are_inconclusive(monkeypatch, capsys) -> None:
+    monkeypatch.setenv("ULTICODE_E2E_ISOLATION", "1")
+    _install(monkeypatch, correct_service(listing="duplicate_rows"))
 
     assert asyncio.run(e2e_account_isolation.main()) == 1
     assert "harness_inconclusive" in capsys.readouterr().out

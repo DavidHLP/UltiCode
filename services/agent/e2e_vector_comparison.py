@@ -130,6 +130,13 @@ def main() -> int:
     if not confirm_opt_in:
         print("SKIP reason=confirmation_requires_opt_in")
         return 0
+    if not EMBED_MODEL_REVISION:
+        # Reporting "unpinned" is honest but not reproducible: the same model
+        # name can resolve to different weights, so scores and the relevance
+        # threshold could not be compared with any later run. Checked first so an
+        # unreproducible run does not even install the optional dependencies.
+        print("SKIP reason=embed_model_revision_unpinned")
+        return 0
     try:
         from qdrant_client import QdrantClient  # noqa: PLC0415 - evaluation-only
     except ImportError:
@@ -143,12 +150,6 @@ def main() -> int:
     confirmation = load_cases(CONFIRMATION_CASES_PATH)
 
     client = QdrantClient(url=qdrant_url())
-    if not EMBED_MODEL_REVISION:
-        # Reporting "unpinned" is honest but not reproducible: the same model
-        # name can resolve to different weights, so scores and the relevance
-        # threshold could not be compared with any later run.
-        print("SKIP reason=embed_model_revision_unpinned")
-        return 0
     embedder = FastembedEmbedder(revision=EMBED_MODEL_REVISION)
     indexed = build_index(
         client,

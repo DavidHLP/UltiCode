@@ -166,6 +166,9 @@ def main() -> int:
         return 0
     # Loaded from its own versioned file so the routine suite never touches it.
     confirmation = load_cases(CONFIRMATION_CASES_PATH)
+    cases = load_cases()
+    development = tuple(case for case in cases if case.split == "development")
+    contaminated = tuple(case for case in cases if case.split == CONTAMINATED_SPLIT)
     model_path = EMBED_MODEL_PATH.strip()
     if not model_path:
         # Reporting "unpinned" is honest but not reproducible: the same model
@@ -214,9 +217,6 @@ def main() -> int:
         print("FAIL reason=missing_eval_dependency")
         return 1
 
-    cases = load_cases()
-    development = tuple(case for case in cases if case.split == "development")
-    contaminated = tuple(case for case in cases if case.split == CONTAMINATED_SPLIT)
     client = QdrantClient(url=qdrant_url())
     # The validated value is the one passed to the embedder and printed.
     embedder = FastembedEmbedder(model_path=model_path)

@@ -205,9 +205,6 @@ def main() -> int:
     cases = load_cases()
     development = tuple(case for case in cases if case.split == "development")
     contaminated = tuple(case for case in cases if case.split == CONTAMINATED_SPLIT)
-    # Loaded from its own versioned file so the routine suite never touches it.
-    confirmation = load_cases(CONFIRMATION_CASES_PATH)
-
     client = QdrantClient(url=qdrant_url())
     # The validated value is the one passed to the embedder and printed.
     embedder = FastembedEmbedder(model_path=model_path)

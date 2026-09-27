@@ -164,6 +164,8 @@ def main() -> int:
     if not confirm_opt_in:
         print("SKIP reason=confirmation_requires_opt_in")
         return 0
+    # Loaded from its own versioned file so the routine suite never touches it.
+    confirmation = load_cases(CONFIRMATION_CASES_PATH)
     model_path = EMBED_MODEL_PATH.strip()
     if not model_path:
         # Reporting "unpinned" is honest but not reproducible: the same model
@@ -184,6 +186,16 @@ def main() -> int:
         # comparison that never happened.
         print(f"FAIL reason=embed_artifact_unusable detail={error}")
         return 1
+    # Checked in the preflight: an empty or mislabelled fixture would burn the
+    # one-shot set and could still report a comparison with zero cases, and this
+    # check must not require the optional dependency to be installed.
+    if not confirmation or any(case.split != CONFIRMATION_SPLIT for case in confirmation):
+        print(
+            f"FAIL reason=confirmation_fixture_invalid loaded={len(confirmation)} "
+            f"expected_split={CONFIRMATION_SPLIT}"
+        )
+        return 1
+
     try:
         from qdrant_client import QdrantClient  # noqa: PLC0415 - evaluation-only
     except ImportError:
@@ -195,14 +207,6 @@ def main() -> int:
     contaminated = tuple(case for case in cases if case.split == CONTAMINATED_SPLIT)
     # Loaded from its own versioned file so the routine suite never touches it.
     confirmation = load_cases(CONFIRMATION_CASES_PATH)
-    # Before the marker is claimed: an empty or mislabelled fixture would burn
-    # the one-shot set and could still report a comparison with zero cases.
-    if not confirmation or any(case.split != CONFIRMATION_SPLIT for case in confirmation):
-        print(
-            f"FAIL reason=confirmation_fixture_invalid loaded={len(confirmation)} "
-            f"expected_split={CONFIRMATION_SPLIT}"
-        )
-        return 1
 
     client = QdrantClient(url=qdrant_url())
     # The validated value is the one passed to the embedder and printed.

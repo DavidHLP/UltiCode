@@ -138,8 +138,10 @@ def main() -> int:
         # name can resolve to different weights, so scores and the relevance
         # threshold could not be compared with any later run. Checked first so an
         # unreproducible run does not even install the optional dependencies.
-        print("SKIP reason=embed_model_path_required")
-        return 0
+        # The run was requested, so a missing pinned artifact is a failure, not
+        # a skip: exiting 0 would report a comparison that never happened.
+        print("FAIL reason=embed_model_path_required")
+        return 1
     try:
         # The checksum is the artifact identity actually used by this run. Checked
         # in the preflight so a bad path costs nothing, with or without the

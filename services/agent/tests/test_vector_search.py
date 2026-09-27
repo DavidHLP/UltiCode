@@ -258,7 +258,8 @@ def test_a_missing_embedding_path_stops_the_run(monkeypatch, capsys, tmp_path) -
     monkeypatch.setenv("QDRANT_URL", "http://127.0.0.1:6333")
     monkeypatch.setattr(smoke, "EMBED_MODEL_PATH", "")
 
-    assert smoke.main() == 0
+    # Requested but unrun must not look successful.
+    assert smoke.main() == 1
     assert "embed_model_path_required" in capsys.readouterr().out
 
 

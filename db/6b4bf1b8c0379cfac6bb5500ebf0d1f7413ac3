@@ -1,0 +1,14 @@
+docs/DEVELOPMENT.md
+  h_77173abe25c3ff 72-84
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "db6b4bf1b8c0379cfac6bb5500ebf0d1f7413ac3",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

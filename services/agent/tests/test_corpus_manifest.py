@@ -246,13 +246,15 @@ def test_duplicate_document_identity_with_differing_text_is_rejected() -> None:
     from retrieval import SourceDocument
 
     documents = load_sample_corpus()
+    # Same content as the first document, so the content binding passes, and the
+    # only defect left is the duplicated identity.
     twin = SourceDocument(
         doc_id=documents[0].doc_id,
         version=documents[0].version,
         source_path=documents[0].source_path,
         access_scope=documents[0].access_scope,
         sample_kind=documents[0].sample_kind,
-        text=documents[0].text + "\nappended",
+        text=documents[0].text,
         source_position=documents[0].source_position,
     )
 

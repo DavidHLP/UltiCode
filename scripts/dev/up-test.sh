@@ -46,6 +46,13 @@ assert_contains 'values not printed' \
 assert_contains 'DEV_SEED_USERS_ENABLED DEV_SEED_DATA_ENABLED' \
   "seed switches must be captured so caller overrides survive load_env_file"
 
+# 3. The same applies to the administrator identity and credential: a caller
+#    passing DEV_SEED_ADMIN_PASSWORD (e.g. from a CI secret) must not be handed
+#    the .env password instead.
+for var in DEV_SEED_ADMIN_USERNAME DEV_SEED_ADMIN_EMAIL DEV_SEED_ADMIN_PASSWORD DEV_SEED_ADMIN_ROLE; do
+  assert_contains "$var" "caller-provided $var must survive load_env_file"
+done
+
 if ((failures > 0)); then
   echo "up-test.sh: $failures failure(s)" >&2
   exit 1

@@ -1,0 +1,16 @@
+services/agent/tests/test_keyword_evaluation.py
+  h_77173abe25c3ff 187-192,194-195
+services/agent/tests/test_vector_search.py
+  h_77173abe25c3ff 250,624
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b0c51f80e2fa93c6bbe624fc0c5a0017a087a497",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

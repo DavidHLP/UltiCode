@@ -260,7 +260,7 @@ def test_prompt_budget_is_enforced_in_bytes_not_a_guessed_ratio() -> None:
             tool_specs={},
             # 400 tokens: the character count alone would fit, the byte count must not.
             max_prompt_tokens=400,
-            transport=httpx.MockTransport(_ok_handler(captured)),
+            transport=httpx.MockTransport(_handler(captured)),
         ) as model:
             with pytest.raises(ModelBudgetExceeded):
                 await model.decide([{"role": "user", "content": cjk}])

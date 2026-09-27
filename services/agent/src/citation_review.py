@@ -104,9 +104,11 @@ def build_worksheet(
         checks = check_citations([citation], documents)
         verdict = checks[0].verdict if checks else "malformed"
         document = by_chunk.get(chunk_id)
-        # Identity comes from the resolved document, not from the citation.
+        # Identity and authorization metadata come from the resolved document and
+        # its manifest entry only. An unresolved chunk must never inherit the
+        # permission of a doc_id the citation merely claims.
         doc_id = document.doc_id if document else str(citation.get("doc_id", ""))
-        entry = by_doc.get(doc_id)
+        entry = by_doc.get(doc_id) if document else None
         rows.append(
             ReviewItem(
                 review_id=review_row_id(chunk_id, claim, str(citation.get("text", ""))),

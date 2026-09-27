@@ -107,6 +107,13 @@ def _claim_confirmation_once() -> tuple[bool, str]:
         with marker.open("x", encoding="utf-8") as handle:
             handle.write(record)
     except FileExistsError:
+        # A directory (or any non-record) at the marker path is a bad
+        # configuration, not a previous claim; reporting "already consumed" would
+        # silently prevent the confirmation run.
+        if marker.is_dir():
+            raise RuntimeError(
+                f"marker path is a directory, not a claim record: {marker}"
+            ) from None
         return False, str(marker)
     except OSError as error:
         raise RuntimeError(f"could not record the confirmation claim: {error}") from None
@@ -188,6 +195,14 @@ def main() -> int:
     contaminated = tuple(case for case in cases if case.split == CONTAMINATED_SPLIT)
     # Loaded from its own versioned file so the routine suite never touches it.
     confirmation = load_cases(CONFIRMATION_CASES_PATH)
+    # Before the marker is claimed: an empty or mislabelled fixture would burn
+    # the one-shot set and could still report a comparison with zero cases.
+    if not confirmation or any(case.split != CONFIRMATION_SPLIT for case in confirmation):
+        print(
+            f"FAIL reason=confirmation_fixture_invalid loaded={len(confirmation)} "
+            f"expected_split={CONFIRMATION_SPLIT}"
+        )
+        return 1
 
     client = QdrantClient(url=qdrant_url())
     # The validated value is the one passed to the embedder and printed.

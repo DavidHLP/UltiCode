@@ -221,3 +221,16 @@ def test_supported_projection_is_accepted(tmp_path: Path) -> None:
     assert {entry.model_input_projection for entry in entries} <= set(
         SUPPORTED_PROJECTIONS
     )
+
+
+def test_duplicate_keys_in_a_manifest_entry_are_rejected(tmp_path: Path) -> None:
+    """Last-write-wins could erase a restrictive first declaration."""
+    raw = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+    body = json.dumps(raw[0])
+    # Splice a second, conflicting "permission" into the same object.
+    spliced = body[:-1] + ', "permission": "owner-authorized"}'
+    path = tmp_path / "manifest.json"
+    path.write_text(f"[{spliced}]", encoding="utf-8")
+
+    with pytest.raises(ManifestError, match="duplicate key"):
+        load_manifest(path)

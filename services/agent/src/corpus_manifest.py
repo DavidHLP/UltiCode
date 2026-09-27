@@ -54,6 +54,21 @@ SYNTHETIC_PERMISSIONS = frozenset({"agent-authored-synthetic", "synthetic"})
 SUPPORTED_PROJECTIONS = ("SourceHit.as_model_dict()",)
 
 
+class _DuplicateKey(ValueError):
+    """A repeated key in a manifest entry, reported instead of silently kept."""
+
+
+def _reject_duplicate_keys(pairs: list[tuple[str, object]]) -> dict[str, object]:
+    result: dict[str, object] = {}
+    for key, value in pairs:
+        if key in result:
+            # Last-write-wins could erase a restrictive first declaration, which
+            # in the authorization gate is the dangerous direction.
+            raise _DuplicateKey(key)
+        result[key] = value
+    return result
+
+
 class ManifestError(ValueError):
     """The manifest is incomplete or inconsistent with the corpus."""
 
@@ -84,7 +99,14 @@ def load_manifest(path: Path | None = None) -> tuple[ManifestEntry, ...]:
     """Parse a manifest, rejecting incomplete or self-contradictory entries."""
     manifest_path = path or MANIFEST_PATH
     try:
-        raw = json.loads(manifest_path.read_text(encoding="utf-8"))
+        raw = json.loads(
+            manifest_path.read_text(encoding="utf-8"),
+            object_pairs_hook=_reject_duplicate_keys,
+        )
+    except _DuplicateKey as error:
+        raise ManifestError(
+            f"corpus manifest has a duplicate key: {error}"
+        ) from None
     except ValueError as error:
         raise ManifestError(f"corpus manifest is not valid JSON: {error}") from None
     if not isinstance(raw, list) or not raw:

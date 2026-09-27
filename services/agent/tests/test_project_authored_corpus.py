@@ -157,3 +157,18 @@ def test_a_symlinked_corpus_entry_is_rejected(tmp_path, monkeypatch) -> None:
 
     with pytest.raises(ManifestError, match="escapes"):
         module.load_project_authored_corpus()
+
+
+def test_a_symlinked_corpus_root_is_rejected(tmp_path, monkeypatch) -> None:
+    """A symlinked root would make an external directory the trusted root."""
+    import project_authored_corpus as module
+
+    external = tmp_path / "external"
+    external.mkdir()
+    (external / "note.md").write_text("not authorized", encoding="utf-8")
+    linked_root = tmp_path / "corpus"
+    linked_root.symlink_to(external, target_is_directory=True)
+    monkeypatch.setattr(module, "CORPUS_DIR", linked_root)
+
+    with pytest.raises(ManifestError, match="root must not be a symlink"):
+        module.load_project_authored_corpus()

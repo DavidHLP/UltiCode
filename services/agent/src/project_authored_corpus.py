@@ -33,6 +33,10 @@ PROJECTION = "SourceHit.as_model_dict()"
 
 def _load_documents() -> tuple[SourceDocument, ...]:
     documents: list[SourceDocument] = []
+    if CORPUS_DIR.is_symlink():
+        # Resolving a symlinked root would make an external directory the trusted
+        # root, so every child would then pass the per-file containment check.
+        raise ManifestError(f"corpus root must not be a symlink: {CORPUS_DIR}")
     root = CORPUS_DIR.resolve()
     for path in sorted(CORPUS_DIR.glob("*.md")):
         # Resolve before reading: a symlink would otherwise expose content from

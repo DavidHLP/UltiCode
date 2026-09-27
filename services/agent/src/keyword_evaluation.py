@@ -78,6 +78,9 @@ def load_cases(path: Path | None = None) -> tuple[KeywordCase, ...]:
         raise ValueError("keyword cases must be a list")
     cases: list[KeywordCase] = []
     seen_ids: set[str] = set()
+    # Both arms are wired to the sample corpus, so an id that cannot be retrieved
+    # would silently move the limit or arm selection instead of being rejected.
+    known_doc_ids = {document.doc_id for document in load_sample_corpus()}
     for raw_case in raw_cases:
         if not isinstance(raw_case, dict):
             raise ValueError("invalid keyword case")

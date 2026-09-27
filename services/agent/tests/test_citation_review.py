@@ -293,3 +293,28 @@ def test_a_verdict_without_a_review_id_is_rejected(tmp_path) -> None:
 
     with pytest.raises(VerdictError, match="review_id"):
         load_verdicts(path, items)
+
+
+def test_duplicate_review_id_entries_are_rejected(tmp_path) -> None:
+    """A later all-true entry must not overwrite an earlier rejection."""
+    items = _worksheet()
+    row = (items[0].chunk_id, items[0].review_id)
+    path = tmp_path / "verdicts.json"
+    entry = {"chunk_id": row[0], "review_id": row[1],
+             "verdicts": {k: False for k in VERDICT_KEYS}}
+    path.write_text(
+        json.dumps([entry, {**entry, "verdicts": {k: True for k in VERDICT_KEYS}}]),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(VerdictError, match="duplicate verdict for review"):
+        load_verdicts(path, items)
+
+
+def test_serialized_worksheet_carries_the_review_id() -> None:
+    """The documented fill-in-the-workspace flow must round-trip."""
+    items = _worksheet()
+    payload = json.loads(worksheet_to_json(items))
+
+    assert {row["review_id"] for row in payload} == {item.review_id for item in items}
+    assert all(row["review_id"] for row in payload)

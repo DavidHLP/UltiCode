@@ -18,7 +18,7 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 
-from retrieval import SourceHit, keyword_search
+from retrieval import SourceHit, keyword_search, load_sample_corpus
 
 _CASES_PATH = Path(__file__).resolve().parents[1] / "data" / "keyword_cases.json"
 #: One-shot confirmation set. It lives in its own versioned file so the routine
@@ -110,6 +110,8 @@ def load_cases(path: Path | None = None) -> tuple[KeywordCase, ...]:
             # silently overwrite each other downstream.
             raise ValueError(f"duplicate case id: {case_id}")
         seen_ids.add(case_id)
+        if not isinstance(required_evidence, list) or not set(required_evidence) <= known_doc_ids:
+            raise ValueError("required_evidence must name documents in the corpus")
         if answerable is not (expected_behavior == "cite"):
             raise ValueError("answerable must agree with expected_behavior")
         if expected_behavior == "cite" and not required_evidence:

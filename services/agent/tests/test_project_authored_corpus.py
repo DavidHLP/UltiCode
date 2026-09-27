@@ -141,3 +141,19 @@ def test_manifest_may_not_claim_licensed_or_user_authored_material(
 
     with pytest.raises(ManifestError, match="must declare"):
         module.load_project_authored_corpus()
+
+
+def test_a_symlinked_corpus_entry_is_rejected(tmp_path, monkeypatch) -> None:
+    """A symlink would expose content from outside the authorized directory."""
+    import project_authored_corpus as module
+
+    outside = tmp_path / "outside.md"
+    outside.write_text("not authorized material", encoding="utf-8")
+    real_corpus = tmp_path / "corpus"
+    real_corpus.mkdir()
+    link = real_corpus / "linked.md"
+    link.symlink_to(outside)
+    monkeypatch.setattr(module, "CORPUS_DIR", real_corpus)
+
+    with pytest.raises(ManifestError, match="escapes"):
+        module.load_project_authored_corpus()

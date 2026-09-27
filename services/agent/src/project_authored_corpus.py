@@ -33,7 +33,13 @@ PROJECTION = "SourceHit.as_model_dict()"
 
 def _load_documents() -> tuple[SourceDocument, ...]:
     documents: list[SourceDocument] = []
+    root = CORPUS_DIR.resolve()
     for path in sorted(CORPUS_DIR.glob("*.md")):
+        # Resolve before reading: a symlink would otherwise expose content from
+        # outside the authorized directory while the document still claims a
+        # repository-local path and project-authored permission.
+        if path.is_symlink() or path.resolve().parent != root:
+            raise ManifestError(f"{path.name}: corpus entry escapes {root}")
         text = path.read_text(encoding="utf-8").strip()
         if not text:
             raise ManifestError(f"{path.name}: empty project-authored document")

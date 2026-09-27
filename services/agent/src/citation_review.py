@@ -132,6 +132,9 @@ def worksheet_to_json(items: tuple[ReviewItem, ...]) -> str:
     return json.dumps(
         [
             {
+                # The reviewer fills this file in and feeds it back, so the id the
+                # loader binds on has to be present.
+                "review_id": item.review_id,
                 "chunk_id": item.chunk_id,
                 "doc_id": item.doc_id,
                 "source_position": item.source_position,
@@ -186,9 +189,9 @@ def load_verdicts(path: Path, items: tuple[ReviewItem, ...]) -> dict[str, dict[s
         review_id = entry.get("review_id")
         if not isinstance(review_id, str) or not review_id:
             raise VerdictError("verdict entry needs a review_id")
-        if chunk_id in verdicts:
+        if review_id in verdicts:
             # Last-write-wins would erase an earlier rejection.
-            raise VerdictError(f"duplicate verdict for {chunk_id}")
+            raise VerdictError(f"duplicate verdict for review {review_id!r}")
         values = entry.get("verdicts")
         if not isinstance(values, dict) or any(
             not isinstance(values.get(key), bool) for key in VERDICT_KEYS

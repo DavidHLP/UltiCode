@@ -283,3 +283,18 @@ def test_refuse_case_must_declare_the_evidence_it_resists(tmp_path: Path) -> Non
 
     with pytest.raises(ValueError, match="refuse case must name the evidence"):
         load_cases(path)
+
+
+def test_required_evidence_must_name_a_real_corpus_document(tmp_path: Path) -> None:
+    """An unretrievable id would quietly move limit or arm selection."""
+    base = json.loads(
+        (Path(__file__).parents[1] / "data/keyword_cases.json").read_text(encoding="utf-8")
+    )
+    typo = dict(base[0])
+    typo["required_evidence"] = ["sample-status_only"]  # misspelt
+
+    path = tmp_path / "typo.json"
+    path.write_text(json.dumps([typo]), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="must name documents in the corpus"):
+        load_cases(path)

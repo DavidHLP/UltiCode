@@ -60,11 +60,20 @@ from vector_search import (
 )
 
 def _consumption_marker() -> Path:
-    """Durable record that the one-shot confirmation set has been used."""
+    """Durable record that the one-shot confirmation set has been used.
+
+    Deliberately outside the checkout: a marker inside the repository is either
+    committed or gitignored, and a gitignored one disappears with every fresh
+    clone or ephemeral CI workspace, which would let the confirmation set be
+    evaluated again while still claiming to be never seen.
+    """
     override = os.environ.get("ULTICODE_VECTOR_CONFIRM_MARKER")
     if override:
         return Path(override)
-    return CONFIRMATION_CASES_PATH.with_suffix(".consumed")
+    state_home = Path(
+        os.environ.get("XDG_STATE_HOME", str(Path.home() / ".local" / "state"))
+    )
+    return state_home / "ulticode" / "holdout-v2.consumed"
 
 
 def _claim_confirmation_once() -> tuple[bool, str]:
@@ -81,6 +90,7 @@ def _claim_confirmation_once() -> tuple[bool, str]:
         f"consumed_at={datetime.now(timezone.utc).isoformat()}\n"
     )
     try:
+        marker.parent.mkdir(parents=True, exist_ok=True)
         # Exclusive creation: the loser of a race gets FileExistsError.
         with marker.open("x", encoding="utf-8") as handle:
             handle.write(record)

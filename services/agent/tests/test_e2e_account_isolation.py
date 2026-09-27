@@ -74,7 +74,7 @@ def correct_service(foreign_status: int = 404, listing: object = "own_only") -> 
             if listing == "empty":
                 return httpx.Response(200, json={"data": {"items": [], "total": 0}})
             if listing == "broken_envelope":
-                return httpx.Response(200, json={"data": {"items": [], "total": 0}})
+                return httpx.Response(200, json={"data": {}})
             if listing == "server_error":
                 return httpx.Response(500, json={"message": "boom"})
             if listing == "third_party":
@@ -92,11 +92,12 @@ def correct_service(foreign_status: int = 404, listing: object = "own_only") -> 
                     200, json={"data": {"items": [{"id": OWNED[account]}], "total": 90}}
                 )
             if listing == "leaks_other":
+                rows = list(OWNED.values())
                 return httpx.Response(
-                    200, json={"data": {"items": [{"id": value} for value in OWNED.values()]}}
+                    200, json={"data": {"items": [{"id": value} for value in rows], "total": len(rows)}}
                 )
             return httpx.Response(
-                200, json={"data": {"items": [{"id": OWNED[account]}]}}
+                200, json={"data": {"items": [{"id": OWNED[account]}], "total": 1}}
             )
         if "/submissions/" in path:
             wanted = path.rsplit("/", 1)[-1]

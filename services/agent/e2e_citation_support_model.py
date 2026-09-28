@@ -128,6 +128,17 @@ def _unlink_if_empty(candidate: Path) -> None:
         pass
 
 
+def _publish(target: Path, text: str) -> None:
+    """Write one artifact atomically.
+
+    A reader watching the destination — an automation step, or the next run — must
+    never observe a half-written file, so the content lands via a rename.
+    """
+    temporary = target.with_suffix(target.suffix + ".part")
+    temporary.write_text(text, encoding="utf-8")
+    os.replace(temporary, target)
+
+
 def _discard_artifacts(path: Path) -> None:
     """Remove both artifacts, filled or not: they belong to this failed run."""
     for candidate in (path, _meta_path(path)):
@@ -339,12 +350,8 @@ async def main() -> int:
     try:
         # Metadata first, verdicts last: a reader keyed on the verdict file then
         # never sees verdicts whose sidecar is missing.
-        _meta_path(path).write_text(
-            json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8"
-        )
-        path.write_text(
-            json.dumps(verdicts, ensure_ascii=False, indent=2), encoding="utf-8"
-        )
+        _publish(_meta_path(path), json.dumps(meta, ensure_ascii=False, indent=2))
+        _publish(path, json.dumps(verdicts, ensure_ascii=False, indent=2))
     except OSError as error:
         # Both artifacts go: a populated sidecar left next to a missing verdict
         # file would make every later run on this explicit path fail.

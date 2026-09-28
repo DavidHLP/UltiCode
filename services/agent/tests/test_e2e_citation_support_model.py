@@ -120,6 +120,8 @@ def test_the_model_judges_one_row_per_question(monkeypatch, capsys, tmp_path) ->
     assert all(row["verdicts"]["supports"] is True for row in verdicts)
     assert "USAGE | calls=3" in output
     # The artifact says who judged it, so it cannot be mistaken for a human pass.
+    # Published by rename: no partial file is left behind for a reader to see.
+    assert not list(tmp_path.glob("*.part"))
     meta = json.loads(
         (tmp_path / "verdicts.json.meta.json").read_text(encoding="utf-8")
     )

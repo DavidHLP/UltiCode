@@ -28,7 +28,7 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 from citation_review import build_worksheet, load_verdicts, summarize
 from corpus_manifest import load_manifest
 from deepseek_model import DeepseekModel, ModelProtocolError, model_label
-from retrieval import load_sample_corpus
+from retrieval import MAX_RESULTS, keyword_search, load_sample_corpus
 from sourced_analysis import analyze_submission, first_wrong_answer_submission
 from ulticode_client import UlticodeClient
 from ulticode_tools import build_tools
@@ -36,14 +36,10 @@ from ulticode_tools import build_tools
 APP_BASE = os.environ.get("ULTICODE_APP_BASE", "http://localhost:9103")
 AUTH_BASE = os.environ.get("ULTICODE_AUTH_BASE", "http://localhost:9101")
 
-#: One analysis per question, so the corpus yields at least the three rows the
-#: acceptance criteria name. Each is an explicit claim: the module refuses to
-#: invent the link between a citation and a conclusion.
-QUESTIONS = (
-    "Wrong Answer 状态说明了什么？",
-    "这些资料对引用记录提出了什么要求？",
-    "只拿到提交状态的资料能定位失败原因吗？",
-)
+#: The question whose retrieval covers the whole synthetic corpus. The review
+#: question is per fragment — "does this quoted fragment support the claim?" — so
+#: one claim is paired with every retrieved fragment rather than with one.
+QUESTION = "submission status source citation record"
 
 JUDGE_CONTRACT = (
     "You are checking citations, not answering the question. "
@@ -86,7 +82,6 @@ async def main() -> int:
 
     documents = load_sample_corpus()
     manifest = load_manifest()
-    rows = []
     async with UlticodeClient(APP_BASE, AUTH_BASE) as client:
         await client.login(
             os.environ["ULTICODE_E2E_USERNAME"], os.environ["ULTICODE_E2E_PASSWORD"]
@@ -96,31 +91,26 @@ async def main() -> int:
         if matching is None:
             print("FAIL reason=no_wrong_answer_submission")
             return 1
-        for question in QUESTIONS:
-            analysis = analyze_submission(matching, question)
-            citations = analysis.get("citations") or []
-            hypotheses = analysis.get("hypotheses") or []
-            if not citations:
-                continue
-            if len(hypotheses) != 1:
-                print(f"FAIL reason=ambiguous_claim question_index={QUESTIONS.index(question)}")
-                return 1
-            rows.extend(
-                build_worksheet(
-                    claim=str(hypotheses[0]),
-                    citations=citations,
-                    documents=documents,
-                    manifest=manifest,
-                )
-            )
+        analysis = analyze_submission(matching, QUESTION)
 
-    # Two questions can cite the same fragment for the same claim; judging the
-    # pair twice would write two verdicts for one review id, which the loader
-    # refuses. Keep the first.
-    unique: dict[str, object] = {}
-    for row in rows:
-        unique.setdefault(row.review_id, row)
-    rows = list(unique.values())
+    hypotheses = analysis.get("hypotheses") or []
+    if len(hypotheses) != 1:
+        # The worksheet refuses to invent the claim link, so an analysis that does
+        # not carry exactly one claim cannot be reviewed.
+        print(f"FAIL reason=ambiguous_claim hypotheses={len(hypotheses)}")
+        return 1
+    # Every retrieved fragment, not only the ones the analysis kept: the review
+    # question is per fragment. Each is checked by the deterministic integrity
+    # gate before the model is asked anything.
+    citations = [hit.as_model_dict() for hit in keyword_search(QUESTION, limit=MAX_RESULTS)]
+    rows = list(
+        build_worksheet(
+            claim=str(hypotheses[0]),
+            citations=citations,
+            documents=documents,
+            manifest=manifest,
+        )
+    )
 
     if len(rows) < 3:
         # The acceptance names three citations; saying so is better than reporting a

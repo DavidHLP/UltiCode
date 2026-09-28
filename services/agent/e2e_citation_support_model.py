@@ -128,6 +128,15 @@ def _unlink_if_empty(candidate: Path) -> None:
         pass
 
 
+def _discard_artifacts(path: Path) -> None:
+    """Remove both artifacts, filled or not: they belong to this failed run."""
+    for candidate in (path, _meta_path(path)):
+        try:
+            candidate.unlink()
+        except OSError:
+            pass
+
+
 def _release_unfinished_claim(path: Path) -> None:
     """Remove placeholders this run claimed but never filled.
 
@@ -263,6 +272,13 @@ async def main() -> int:
     if max_calls < 1 or max_tokens < 1:
         print("FAIL reason=model_budget_invalid")
         return 1
+    if max_calls < len(rows):
+        # Otherwise some judgements are billed and then the adapter refuses the
+        # rest, leaving a paid partial run.
+        print(
+            f"FAIL reason=call_budget_below_rows rows={len(rows)} max_calls={max_calls}"
+        )
+        return 1
 
     async with DeepseekModel(
         os.environ["DEEPSEEK_API_KEY"],
@@ -330,7 +346,9 @@ async def main() -> int:
             json.dumps(verdicts, ensure_ascii=False, indent=2), encoding="utf-8"
         )
     except OSError as error:
-        _release_unfinished_claim(path)
+        # Both artifacts go: a populated sidecar left next to a missing verdict
+        # file would make every later run on this explicit path fail.
+        _discard_artifacts(path)
         print(
             f"FAIL reason=verdict_write_failed detail={_path_label(path)} "
             f"({type(error).__name__})"

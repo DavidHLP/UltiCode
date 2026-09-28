@@ -386,3 +386,42 @@ def test_invalid_budget_overrides_fail_cleanly(monkeypatch, capsys, tmp_path) ->
     assert smoke.main_sync() == 1
     assert "reason=model_budget_invalid" in capsys.readouterr().out
     assert calls == []
+
+
+def test_a_failed_verdict_write_discards_the_sidecar(
+    monkeypatch, capsys, tmp_path
+) -> None:
+    """A populated sidecar beside a missing verdicts file blocks every retry."""
+    calls: list[str] = []
+    destination = tmp_path / "verdicts.json"
+    _install(monkeypatch, tmp_path, ['{"supports": true, "derivable": true}'] * 3, calls)
+    monkeypatch.setenv("ULTICODE_CITATION_VERDICTS", str(destination))
+
+    original = Path.write_text
+    seen = {"n": 0}
+
+    def flaky(self, data, *args, **kwargs):
+        seen["n"] += 1
+        if seen["n"] == 2:
+            raise OSError("no space left on device")
+        return original(self, data, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "write_text", flaky)
+
+    assert smoke.main_sync() == 1
+    assert "reason=verdict_write_failed" in capsys.readouterr().out
+    assert not destination.exists()
+    assert not smoke._meta_path(destination).exists()
+
+
+def test_a_call_budget_below_the_row_count_is_refused(
+    monkeypatch, capsys, tmp_path
+) -> None:
+    """Paying for part of the judgements and then hitting the cap is not a run."""
+    calls: list[str] = []
+    _install(monkeypatch, tmp_path, ['{"supports": true, "derivable": true}'] * 3, calls)
+    monkeypatch.setenv("DEEPSEEK_MAX_CALLS", "1")
+
+    assert smoke.main_sync() == 1
+    assert "reason=call_budget_below_rows rows=3 max_calls=1" in capsys.readouterr().out
+    assert calls == []

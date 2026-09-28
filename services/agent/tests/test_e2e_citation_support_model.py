@@ -316,7 +316,7 @@ def test_an_aborted_run_releases_the_claimed_destination(
     assert smoke.main_sync() == 1
     assert "reason=citation_integrity_failed" in capsys.readouterr().out
     # The claim is released, so a later run can use the same path.
-    smoke._release_unfinished_claim(destination)
+    smoke._release_unfinished_claim(smoke._verdict_lock(destination))
     assert not destination.exists()
 
 
@@ -352,7 +352,7 @@ def test_a_write_failure_releases_the_claim(monkeypatch, capsys, tmp_path) -> No
 
     assert smoke.main_sync() == 1
     assert "reason=verdict_write_failed" in capsys.readouterr().out
-    smoke._release_unfinished_claim(destination)
+    smoke._release_unfinished_claim(smoke._verdict_lock(destination))
     assert not destination.exists()
 
 
@@ -510,3 +510,18 @@ def test_an_artifact_that_appears_under_the_lock_is_refused(tmp_path) -> None:
 
     # The reservation it took is released, so the retry after the clash works.
     assert not (tmp_path / "verdicts.json.lock").exists()
+
+
+def test_a_rejected_reservation_leaves_existing_artifacts_alone(tmp_path) -> None:
+    """Refusing the destination must not delete what is already there."""
+    destination = tmp_path / "verdicts.json"
+    # Empty, but not this run's: another run may have created it and not filled it.
+    destination.write_text("", encoding="utf-8")
+    smoke._meta_path(destination).write_text("", encoding="utf-8")
+
+    with pytest.raises(RuntimeError, match="already exists"):
+        smoke._claim_verdict_file(destination)
+
+    assert destination.exists() and destination.stat().st_size == 0
+    assert smoke._meta_path(destination).exists()
+    assert not smoke._verdict_lock(destination).exists()

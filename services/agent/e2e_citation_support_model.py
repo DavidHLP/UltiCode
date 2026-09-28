@@ -120,14 +120,6 @@ def _meta_path(path: Path) -> Path:
     return path.with_suffix(path.suffix + ".meta.json")
 
 
-def _unlink_if_empty(candidate: Path) -> None:
-    try:
-        if candidate.exists() and candidate.stat().st_size == 0:
-            candidate.unlink()
-    except OSError:
-        pass
-
-
 def _publish(target: Path, text: str) -> None:
     """Write one artifact atomically.
 
@@ -149,19 +141,22 @@ def _discard_artifacts(path: Path) -> None:
                 pass
 
 
-def _release_unfinished_claim(path: Path, lock: Path | None = None) -> None:
-    """Drop this run's reservation, and any placeholder it never filled.
+def _verdict_lock(path: Path) -> Path:
+    """The path this run reserves. Never the artifact itself."""
+    return path.with_name(f"{path.name}.lock")
 
-    An aborted run would otherwise leave its lock behind, and an explicit
-    `ULTICODE_CITATION_VERDICTS` path would then refuse every later run.
+
+def _release_unfinished_claim(lock: Path) -> None:
+    """Drop this run's reservation.
+
+    Only the lock: this run never creates the artifacts before publication, so
+    touching them here could delete a file another run already owned — including an
+    empty one that is only empty because that run has not filled it yet.
     """
-    if lock is not None:
-        try:
-            lock.unlink()
-        except OSError:
-            pass
-    for candidate in (path, _meta_path(path)):
-        _unlink_if_empty(candidate)
+    try:
+        lock.unlink()
+    except OSError:
+        pass
 
 
 def _claim_verdict_file(path: Path) -> Path:
@@ -172,7 +167,7 @@ def _claim_verdict_file(path: Path) -> Path:
     judging. A missing parent, a directory, or a reservation another run holds is a
     failure of this run, and finding out after the model calls would waste them.
     """
-    lock = path.with_name(f"{path.name}.lock")
+    lock = _verdict_lock(path)
     try:
         lock.parent.mkdir(parents=True, exist_ok=True)
         with lock.open("x", encoding="utf-8"):
@@ -186,12 +181,12 @@ def _claim_verdict_file(path: Path) -> Path:
             f"verdict destination is not writable: {_path_label(lock)} "
             f"({type(error).__name__})"
         ) from None
-    atexit.register(_release_unfinished_claim, path, lock)
+    atexit.register(_release_unfinished_claim, lock)
     # Checked *after* the lock: two runs can both see an empty destination before
     # either holds it, and the loser would then replace the winner's verdicts.
     for existing in (path, _meta_path(path)):
         if existing.exists():
-            _release_unfinished_claim(path, lock)
+            _release_unfinished_claim(lock)
             raise RuntimeError(
                 f"verdict destination already exists: {_path_label(existing)}"
             )
@@ -361,8 +356,8 @@ async def main() -> int:
         # never sees verdicts whose sidecar is missing.
         _publish(_meta_path(path), json.dumps(meta, ensure_ascii=False, indent=2))
         _publish(path, json.dumps(verdicts, ensure_ascii=False, indent=2))
-        # Published: the reservation goes, and the placeholder cleanup with it.
-        _release_unfinished_claim(path, lock)
+        # Published: the reservation goes.
+        _release_unfinished_claim(lock)
     except OSError as error:
         # Both artifacts go: a populated sidecar left next to a missing verdict
         # file would make every later run on this explicit path fail.

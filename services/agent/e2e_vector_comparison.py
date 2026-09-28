@@ -1,0 +1,680 @@
+"""U02.c keyword-vs-vector comparison over the same corpus and question set.
+
+Opt-in and evaluation-only: it needs a single-node Qdrant service, the optional
+``eval`` dependency group, and a pinned container image. It never touches the
+UltiCode stack, user data, or a real model. Output is fixed labels and counts
+only.
+
+Protocol:
+
+1. Both arms are compared on the **development** split across the candidate
+   retrieval limits, and the limit is chosen there.
+2. The original **holdout** split is reported as *contaminated*: it was already
+   observed during an exploratory run, so it is continuity evidence only and can
+   never be a clean confirmation.
+3. **holdout2** is the never-seen confirmation set. Its expectations were written
+   from the corpus text and committed before any retrieval ran on it, and it is
+   evaluated once, at the limit chosen in step 1.
+
+Scope: the corpus is the 3-document agent-authored synthetic sample, not the
+authorized 5-10 document corpus, so a "no gain" result is evidence about this
+slice only.
+
+Run with a disposable single-node Qdrant, for example:
+
+    docker run --rm -p 127.0.0.1:6333:6333 qdrant/qdrant@sha256:<digest>
+    cd services/agent
+    uv sync --locked --group eval
+    QDRANT_IMAGE=qdrant/qdrant@sha256:<digest> \\
+    QDRANT_URL=http://localhost:6333 QDRANT_ALLOW_RECREATE=1 \\
+    ULTICODE_EMBED_MODEL_PATH=<snapshot-dir> \\
+    ULTICODE_VECTOR_CONFIRM=1 uv run python e2e_vector_comparison.py
+"""
+
+from __future__ import annotations
+
+from datetime import datetime, timedelta, timezone
+import os
+import atexit
+import re
+import secrets
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent / "src"))
+
+from keyword_evaluation import (
+    CONFIRMATION_CASES_PATH,
+    _CASES_PATH as DEFAULT_CASES_PATH,
+    KeywordCase,
+    load_cases,
+    retrieval_outcome,
+)
+from retrieval import keyword_search, load_sample_corpus
+from vector_search import (
+    COLLECTION,
+    EMBED_MODEL,
+    MIN_SCORE,
+    EMBED_MODEL_PATH,
+    artifact_identity,
+    FastembedEmbedder,
+    build_index,
+    qdrant_url,
+    search,
+)
+
+def _consumption_marker() -> Path:
+    """Durable record that the one-shot confirmation set has been used.
+
+    Deliberately outside the checkout: a marker inside the repository is either
+    committed or gitignored, and a gitignored one disappears with every fresh
+    clone, which would let the confirmation set be evaluated again while still
+    claiming to be never seen.
+
+    Scope: the guarantee is **per marker location**, so by default it covers one
+    workspace on one machine only. Spreading runs across machines or runners
+    needs the operator to point ``ULTICODE_VECTOR_CONFIRM_MARKER`` at a shared
+    durable path they control (a mounted volume or an external store). This code
+    cannot verify that a configured path is shared or durable, so it reports only
+    whether a path was configured, never that cross-runner protection exists.
+    """
+    override = os.environ.get("ULTICODE_VECTOR_CONFIRM_MARKER")
+    if override:
+        # An explicit override is an instruction, so a relative one is refused
+        # rather than ignored: quietly using a different location could let the
+        # confirmation set be evaluated twice, which is exactly what this marker
+        # exists to prevent.
+        if not os.path.isabs(override):
+            raise RuntimeError(
+                "ULTICODE_VECTOR_CONFIRM_MARKER must be an absolute path"
+            )
+        return Path(override)
+    # Only an absolute path is a state directory. An exported-but-empty value would
+    # make `Path("")`, i.e. the current working directory, and a relative one would
+    # put the one-shot marker inside the checkout, where it disappears with the
+    # working tree — letting the confirmation set be evaluated a second time.
+    configured = os.environ.get("XDG_STATE_HOME", "")
+    if os.path.isabs(configured):
+        state_home = Path(configured)
+    else:
+        # `Path.home()` follows HOME, which can itself be relative; that would put
+        # the marker inside the invocation directory exactly like a relative
+        # override, so an unusable home fails closed instead of guessing.
+        home = Path.home()
+        if not home.is_absolute():
+            raise RuntimeError(
+                "cannot locate a durable state directory: HOME is not absolute and "
+                "XDG_STATE_HOME is unset"
+            )
+        state_home = home / ".local" / "state"
+    return state_home / "ulticode" / "holdout-v2.consumed"
+
+
+#: Serialises the whole collection lifecycle of one comparison run.
+RUN_LOCK_ENV = "ULTICODE_VECTOR_RUN_LOCK"
+_DEFAULT_RUN_LOCK_NAME = "holdout-v2.running"
+
+
+def _run_lock_path() -> Path:
+    """Where the run lock lives; ``ULTICODE_VECTOR_RUN_LOCK`` overrides it."""
+    override = os.environ.get(RUN_LOCK_ENV)
+    if override:
+        return Path(override)
+    return _consumption_marker().with_name(_DEFAULT_RUN_LOCK_NAME)
+
+
+def _release_run_lock(lock: Path) -> None:
+    try:
+        lock.unlink()
+    except OSError:
+        pass
+
+
+def _collection_cleanup(client: object, collection: str) -> None:
+    """Delete this run's collection; reported, never raised."""
+    try:
+        client.delete_collection(collection_name=collection)  # type: ignore[attr-defined]
+    except Exception:  # noqa: BLE001 - cleanup must not fail the run
+        print(f"collection_cleanup=failed name={collection}")
+    else:
+        print(f"collection_cleanup=deleted name={collection}")
+
+
+def _index_and_own(
+    client: object,
+    corpus,
+    embedder: object,
+    collection: str,
+    config_factory: object = None,
+) -> int:
+    """Index into this run's collection and arrange its deletion.
+
+    The ordering matters: on the name-collision path ``build_index`` raises
+    *without* having created anything, and a cleanup registered before that would
+    delete a collection this run does not own.
+    """
+    indexed = build_index(
+        client,
+        corpus,
+        embedder=embedder,
+        # The generated name is fresh, so nothing pre-existing is recreated; the
+        # opt-in survives for callers that pass the historical fixed name.
+        allow_recreate=os.environ.get("QDRANT_ALLOW_RECREATE") == "1",
+        collection=collection,
+        # Injected by tests, exactly as `build_index` allows, so the collision path
+        # is exercised without the optional client installed.
+        config_factory=config_factory,
+    )
+    _register_collection_cleanup(client, collection)
+    return indexed
+
+
+def _register_collection_cleanup(client: object, collection: str) -> None:
+    """Arrange the delete for however the run ends.
+
+    Registered rather than called inline: a failure after indexing returns with
+    exit 1, and those are exactly the paths that must not leave a collection
+    behind on the instance.
+    """
+    atexit.register(_collection_cleanup, client, collection)
+
+
+def _run_collection() -> str:
+    """This run's own collection name.
+
+    A fixed name is shared mutable state: two runs on one Qdrant could rebuild or
+    upsert it concurrently, and the loser's vectors could decide the winner's
+    score. A run-scoped name removes the shared resource instead of serialising
+    access to it, and nothing pre-existing is ever dropped.
+    """
+    return f"{COLLECTION}-{secrets.token_hex(4)}"
+
+
+def _report_run_lock_failure(error: BaseException) -> None:
+    """Emit the lock failure without echoing a caller-supplied path verbatim."""
+    print(f"FAIL reason=run_lock_unavailable detail={_evidence_path(error)}")
+
+
+def _acquire_run_lock() -> Path:
+    """Hold the collection lifecycle, or refuse to start.
+
+    One comparison run per state directory. The index itself is run-scoped
+    (:func:`_run_collection`), so concurrent runs on one Qdrant no longer share
+    mutable state; what this serialises is the run's own one-shot marker and its
+    billed calls. Released on exit, failures included. A killed process leaves the
+    file behind, which fails closed with the path in the message rather than
+    racing.
+    """
+    lock = _run_lock_path()
+    try:
+        lock.parent.mkdir(parents=True, exist_ok=True)
+        with lock.open("x", encoding="utf-8") as handle:
+            handle.write(f"pid={os.getpid()}\n")
+    except FileExistsError:
+        raise RuntimeError(
+            f"another comparison run holds {lock}; remove it only if no run is active"
+        ) from None
+    except OSError as error:
+        raise RuntimeError(f"could not take the comparison run lock: {error}") from None
+    atexit.register(_release_run_lock, lock)
+    return lock
+
+
+def _evidence_path(value: object) -> str:
+    """A path safe to put on one evidence line.
+
+    A Unix path may contain whitespace or control characters, and this value is
+    caller-supplied (`ULTICODE_VECTOR_CONFIRM_MARKER`), so printing it verbatim
+    could split or forge a line of the run's own evidence.
+    """
+    return "".join(
+        char if char.isprintable() and not char.isspace() else "?" for char in str(value)
+    )
+
+
+def _is_our_claim_record(marker: Path) -> bool:
+    """True only for the bytes this harness would have written.
+
+    The record is two ordered assignments — ``confirmation`` then ``consumed_at`` —
+    with a trailing newline and a timestamp the writer's ``isoformat()`` would
+    reproduce exactly. Anything else (reordered, padded, unterminated, or a
+    spelling ``fromisoformat`` happens to accept) is not our claim and must not
+    disable the one-shot run.
+    """
+    try:
+        raw = marker.read_text(encoding="utf-8")
+    except OSError:
+        return False
+    lines = raw.splitlines()
+    # This harness writes exactly two assignments. An extra field, a comment or
+    # any non-assignment line means the file is not our record.
+    if len(lines) != 2 or any(not line or "=" not in line for line in lines):
+        return False
+    pairs = [line.split("=", 1) for line in lines]
+    if [key for key, _ in pairs] != ["confirmation", "consumed_at"]:
+        # A record this harness writes never repeats a field or reverses them;
+        # last-write-wins would let an unrelated value be overwritten into a match.
+        return False
+    if pairs[0][1] != CONFIRMATION_CASES_PATH.name:
+        return False
+    raw_consumed_at = pairs[1][1]
+    try:
+        consumed_at = datetime.fromisoformat(raw_consumed_at)
+    except ValueError:
+        return False
+    if consumed_at.tzinfo is None or consumed_at.utcoffset() != timedelta(0):
+        return False
+    return raw == (
+        f"confirmation={CONFIRMATION_CASES_PATH.name}\n"
+        f"consumed_at={consumed_at.isoformat()}\n"
+    )
+
+
+def _claim_confirmation_once() -> tuple[bool, str]:
+    """Claim the confirmation set, or refuse.
+
+    The claim is created with exclusive access: an ``exists()`` check followed by
+    a write would let two concurrent runs both believe they own the single-use
+    set. If the marker cannot be written the run aborts rather than proceeding
+    repeatably.
+    """
+    marker = _consumption_marker()
+    record = (
+        f"confirmation={CONFIRMATION_CASES_PATH.name}\n"
+        f"consumed_at={datetime.now(timezone.utc).isoformat()}\n"
+    )
+    try:
+        # Kept out of the exclusive-create try: mkdir also raises
+        # FileExistsError, which must not be read as "already consumed".
+        marker.parent.mkdir(parents=True, exist_ok=True)
+    except OSError as error:
+        raise RuntimeError(f"could not record the confirmation claim: {error}") from None
+    try:
+        # Exclusive creation: the loser of a race gets FileExistsError.
+        with marker.open("x", encoding="utf-8") as handle:
+            handle.write(record)
+    except FileExistsError:
+        # A directory (or any non-record) at the marker path is a bad
+        # configuration, not a previous claim; reporting "already consumed" would
+        # silently prevent the confirmation run.
+        if marker.is_dir() or not (marker.is_file() and not marker.is_symlink()):
+            # A symlink, FIFO, socket or device also raises FileExistsError;
+            # treating those as a previous claim would skip the run and exit 0.
+            raise RuntimeError(
+                f"marker path is not a regular claim record: {marker}"
+            ) from None
+        # A regular file only counts as our claim if it parses as the record this
+        # harness writes. A loose substring test would accept any file that
+        # happens to mention the confirmation set.
+        if not _is_our_claim_record(marker):
+            raise RuntimeError(
+                f"marker exists but is not this harness's claim record: {marker}"
+            ) from None
+        return False, str(marker)
+    except OSError as error:
+        raise RuntimeError(f"could not record the confirmation claim: {error}") from None
+    return True, str(marker)
+
+
+COUNTS = (
+    "matched",
+    "extra_hits",
+    "missed",
+    "false_positive",
+    "refused_with_evidence",
+    "refused_without_evidence",
+)
+CANDIDATE_LIMITS = (1, 3)
+CONTAMINATED_SPLIT = "holdout"
+CONFIRMATION_SPLIT = "holdout2"
+
+
+def _tally(cases: tuple[KeywordCase, ...], retrieve) -> dict[str, int]:
+    """Tally outcomes per behaviour class.
+
+    A ``refuse`` case is never scored through the citable-evidence path: fetching
+    its declared document is exactly the fabrication risk, and counting it as a
+    match would both reward the arm and contradict the per-case evaluation, which
+    marks any such retrieval as a risk.
+    """
+    tally = {name: 0 for name in COUNTS}
+    for case in cases:
+        expected = set(case.required_evidence)
+        actual = set(retrieve(case))
+        if case.expected_behavior == "refuse":
+            tally["refused_with_evidence" if actual else "refused_without_evidence"] += 1
+            continue
+        tally[retrieval_outcome(expected, actual)] += 1
+    return tally
+
+
+def _selection_score(counts: dict[str, int]) -> tuple[int, int]:
+    """Rank a development setting: safety first, then behaviour-correct outcomes.
+
+    Retrieving a ``refuse`` case's declared document *is* the fabrication risk the
+    behaviour classes exist to catch, so it must not be outvoted: a setting that
+    fetched forbidden evidence never ranks above one that did not, however many
+    extra ``cite`` cases it matched. Settings with the same exposure then compete
+    on correctness — ``matched`` plus a refusal that retrieved nothing, which is
+    just as correct as a citable match and would otherwise count for nothing.
+
+    Trade-off, stated so it can be revisited deliberately: on a small corpus every
+    high-limit setting retrieves something, so safety outranking volume pushes the
+    choice toward lower limits. That is the intended reading of "the declared
+    behaviour classes steer selection"; the confirm stage still reports the counts
+    it observed, so an off-volume choice stays visible in the evidence.
+    """
+    clear_of_forbidden_retrieval = 0 if counts["refused_with_evidence"] else 1
+    return (
+        clear_of_forbidden_retrieval,
+        counts["matched"] + counts["refused_without_evidence"],
+    )
+
+
+def _score_development(development, arms) -> dict[tuple[int, str], tuple[int, int]]:
+    """Score every (limit, arm) on the development split, reporting each one."""
+    scores: dict[tuple[int, str], tuple[int, int]] = {}
+    for limit in CANDIDATE_LIMITS:
+        for arm, retrieve in arms:
+            counts = _tally(development, lambda case: retrieve(case.query, limit))
+            scores[(limit, arm)] = _selection_score(counts)
+            _report(
+                f"stage=select split=development limit={limit} arm={arm}",
+                counts,
+                len(development),
+            )
+    return scores
+
+
+def _choose_limit(scores: dict[tuple[int, str], tuple[int, int]], arm: str) -> int:
+    """One arm's development optimum: best score, smallest limit on a tie.
+
+    The ordering is owned here so a refusal-safety policy cannot drift apart from
+    the scoring that feeds it.
+    """
+    return max(CANDIDATE_LIMITS, key=lambda limit: (scores[(limit, arm)], -limit))
+
+
+#: Every field of a source document that reaches retrieval. `source_path`,
+#: `access_scope` and `sample_kind` decide what the model was allowed to see, so a
+#: corpus that changes them is a different corpus and must not keep the digest.
+_DIGEST_FIELDS = (
+    "doc_id",
+    "version",
+    "source_path",
+    "source_position",
+    "access_scope",
+    "sample_kind",
+    "text",
+)
+
+
+def _corpus_digest(documents: tuple[object, ...]) -> str:
+    """Content digest of the captured corpus, so the evidence names it exactly.
+
+    Each field is length-prefixed: a bare separator would let shifted field
+    boundaries produce the same byte stream, e.g. a different `doc_id` padded by
+    a longer `version`.
+    """
+    import hashlib
+
+    digest = hashlib.sha256()
+    for document in documents:
+        for name in _DIGEST_FIELDS:
+            encoded = str(getattr(document, name, "")).encode("utf-8")
+            digest.update(len(encoded).to_bytes(8, "big"))
+            digest.update(encoded)
+    return f"sha256:{digest.hexdigest()[:16]}"
+
+
+def _arm_outcome(winners: list[str]) -> str:
+    """A tie must not be reported as a unique winner."""
+    if len(winners) == 1:
+        return winners[0]
+    return "tie:" + "+".join(sorted(winners))
+
+
+def _artifact_unchanged(model_path: str, before: str) -> bool:
+    """True only when the snapshot still hashes to the preflight digest."""
+    return artifact_identity(model_path) == before
+
+
+def _cases_digest_from_loaded(cases: tuple[KeywordCase, ...]) -> str:
+    """Digest derived from the cases actually scored.
+
+    Reading the file again at output time would report bytes that were never
+    evaluated if the file changed during the run.
+    """
+    import hashlib
+
+    digest = hashlib.sha256()
+    for case in sorted(cases, key=lambda item: item.case_id):
+        # Every field, with a length prefix so no boundary can be forged by
+        # concatenation.
+        for value in (
+            case.case_id,
+            case.split,
+            case.query,
+            "\x1f".join(case.required_evidence),
+            str(case.answerable),
+            case.expected_behavior,
+            case.allowed_behavior,
+            case.forbidden_behavior,
+        ):
+            encoded = value.encode("utf-8")
+            digest.update(str(len(encoded)).encode("ascii"))
+            digest.update(b":")
+            digest.update(encoded)
+        digest.update(b"\x1e")
+    return f"sha256:{digest.hexdigest()[:16]}"
+
+
+def _report(label: str, counts: dict[str, int], total: int) -> None:
+    print(
+        f"{label} total={total} matched={counts['matched']} extra={counts['extra_hits']} "
+        f"missed={counts['missed']} false_positive={counts['false_positive']} "
+        # Refusal outcomes must be visible: every split contains such cases, and a
+        # forbidden retrieval is exactly what a confirmation run must be able to show.
+        f"refused_with_evidence={counts['refused_with_evidence']} "
+        f"refused_without_evidence={counts['refused_without_evidence']}"
+    )
+
+
+def main() -> int:
+    image = os.environ.get("QDRANT_IMAGE")
+    # A bare "@sha256:" or a non-hex suffix would pass a substring check and let
+    # the run record a non-immutable image identity.
+    # An OCI-safe repository part: `[^\s@]+` also admitted control characters,
+    # which the evidence line prints verbatim.
+    if not image or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._/:+-]*@sha256:[0-9a-f]{64}", image):
+        # `latest` silently changes between runs, which makes the evidence
+        # irreproducible.
+        print("FAIL reason=unpinned_qdrant_image")
+        return 1
+    # The confirmation set is single-use. Without an explicit opt-in this run
+    # must not touch it, because re-running would contaminate it while still
+    # printing a clean-looking confirmation.
+    confirm_opt_in = os.environ.get("ULTICODE_VECTOR_CONFIRM") == "1"
+    if not confirm_opt_in:
+        print("SKIP reason=confirmation_requires_opt_in")
+        return 0
+    # Loaded from its own versioned file so the routine suite never touches it.
+    confirmation = load_cases(CONFIRMATION_CASES_PATH)
+    cases = load_cases()
+    development = tuple(case for case in cases if case.split == "development")
+    contaminated = tuple(case for case in cases if case.split == CONTAMINATED_SPLIT)
+    # Captured now: a later edit to the file must not change the reported digest
+    # for expectations that were already scored.
+    development_digest = _cases_digest_from_loaded(development)
+    contaminated_digest = _cases_digest_from_loaded(contaminated)
+    confirmation_digest = _cases_digest_from_loaded(confirmation)
+    model_path = EMBED_MODEL_PATH.strip()
+    if not model_path:
+        # Reporting "unpinned" is honest but not reproducible: the same model
+        # name can resolve to different weights, so scores and the relevance
+        # threshold could not be compared with any later run. Checked first so an
+        # unreproducible run does not even install the optional dependencies.
+        # The run was requested, so a missing pinned artifact is a failure, not
+        # a skip: exiting 0 would report a comparison that never happened.
+        print("FAIL reason=embed_model_path_required")
+        return 1
+    try:
+        # The checksum is the artifact identity actually used by this run. Checked
+        # in the preflight so a bad path costs nothing, with or without the
+        # optional dependencies installed.
+        embed_identity = artifact_identity(model_path)
+    except ValueError as error:
+        # The run was requested, so exiting 0 would report success for a
+        # comparison that never happened.
+        print(f"FAIL reason=embed_artifact_unusable detail={_evidence_path(error)}")
+        return 1
+    # Checked in the preflight: an empty or mislabelled fixture would burn the
+    # one-shot set and could still report a comparison with zero cases, and this
+    # check must not require the optional dependency to be installed.
+    if not confirmation or any(case.split != CONFIRMATION_SPLIT for case in confirmation):
+        print(
+            f"FAIL reason=confirmation_fixture_invalid loaded={len(confirmation)} "
+            f"expected_split={CONFIRMATION_SPLIT}"
+        )
+        return 1
+    # The selection and continuity stages must be non-empty too: an empty or
+    # drifted split would otherwise be reported as a completed comparison.
+    for name, rows, expected in (
+        ("development", development, "development"),
+        ("contaminated", contaminated, CONTAMINATED_SPLIT),
+    ):
+        if not rows or any(case.split != expected for case in rows):
+            print(
+                f"FAIL reason=split_fixture_invalid split={name} loaded={len(rows)} "
+                f"expected_split={expected}"
+            )
+            return 1
+
+    try:
+        from qdrant_client import QdrantClient  # noqa: PLC0415 - evaluation-only
+    except ImportError:
+        print("FAIL reason=missing_eval_dependency")
+        return 1
+
+    # One snapshot for both arms: reloading per query could index the vector arm
+    # on text the keyword arm no longer sees.
+    # The collection is run-scoped, so Qdrant no longer carries state two runs
+    # could fight over. The lock keeps one comparison run per state directory:
+    # the one-shot set and the billed calls are still worth serialising.
+    try:
+        _acquire_run_lock()
+    except RuntimeError as error:
+        _report_run_lock_failure(error)
+        return 1
+    corpus = load_sample_corpus()
+    client = QdrantClient(url=qdrant_url())
+    # The validated value is the one passed to the embedder and printed.
+    embedder = FastembedEmbedder(model_path=model_path)
+    # Re-verify after loading: the snapshot can be updated between the preflight
+    # hash and the model load, which would make the reported digest a lie.
+    if not _artifact_unchanged(model_path, embed_identity):
+        print(
+            "FAIL reason=embed_artifact_changed_during_load "
+            f"before={embed_identity} after={artifact_identity(model_path)}"
+        )
+        return 1
+    collection = _run_collection()
+    indexed = _index_and_own(client, corpus, embedder, collection)
+
+    def keyword(query: str, limit: int) -> list[str]:
+        return [
+            hit.doc_id for hit in keyword_search(query, limit=limit, documents=corpus)
+        ]
+
+    def vector(query: str, limit: int) -> list[str]:
+        return search(client, query, limit=limit, embedder=embedder, collection=collection)
+
+    arms = (("keyword", keyword), ("vector", vector))
+
+    # Step 1: choose the retrieval limit on the development split only.
+    scores = _score_development(development, arms)
+    # Each arm keeps its own development optimum. Picking one joint limit would
+    # hand the tuned setting to the winner and evaluate the loser off-peak.
+    best: dict[str, int] = {}
+    for arm, _ in arms:
+        best[arm] = _choose_limit(scores, arm)
+    for arm, _ in arms:
+        print(
+            f"stage=select chosen_arm={arm} chosen_limit={best[arm]} "
+            f"basis=development_only_per_arm"
+        )
+    top_score = max(scores[(best[arm], arm)] for arm, _ in arms)
+    outcome = _arm_outcome(
+        [arm for arm, _ in arms if scores[(best[arm], arm)] == top_score]
+    )
+    print(f"stage=select best_arm={outcome} top_score={top_score}")
+
+    # Step 2: continuity only. This split was already observed once.
+    for arm, retrieve in arms:
+        counts = _tally(contaminated, lambda case: retrieve(case.query, best[arm]))
+        _report(
+            f"stage=contaminated split={CONTAMINATED_SPLIT} limit={best[arm]} arm={arm} "
+            f"basis=already_observed",
+            counts,
+            len(contaminated),
+        )
+
+    # Step 3: the never-seen confirmation set, claimed only now. A failure
+    # during dependency import or index setup must not burn the one-shot set, so
+    # the claim is deliberately taken after that preflight has succeeded.
+    try:
+        claimed, marker = _claim_confirmation_once()
+    except RuntimeError as error:
+        # Reported, not raised: a bad marker configuration is a failed run, and
+        # the claim path must not die with a traceback.
+        print(f"FAIL reason=confirmation_marker_invalid detail={_evidence_path(error)}")
+        return 1
+    if not claimed:
+        print(f"SKIP reason=confirmation_already_consumed marker={_evidence_path(marker)}")
+        return 0
+    for arm, retrieve in arms:
+        counts = _tally(confirmation, lambda case: retrieve(case.query, best[arm]))
+        _report(
+            f"stage=confirm split={CONFIRMATION_SPLIT} limit={best[arm]} arm={arm} "
+            f"basis=predeclared_never_seen",
+            counts,
+            len(confirmation),
+        )
+    # Report only what is observable: whether a path was configured. Whether it is
+    # genuinely shared and durable is the operator's claim, not this run's.
+    scope = "configured" if os.environ.get("ULTICODE_VECTOR_CONFIRM_MARKER") else "default_workspace"
+    print(
+        f"stage=confirm note=claim_recorded marker={_evidence_path(marker)} "
+        f"marker_location={_evidence_path(scope)} shared_durability=unverified_by_this_run"
+    )
+
+    print(
+        f"OK comparison corpus=agent-authored-synthetic "
+        f"corpus_digest={_corpus_digest(corpus)} "
+        f"development_cases_digest={development_digest} "
+        f"contaminated_cases_digest={contaminated_digest} "
+        f"confirmation_cases_digest={confirmation_digest} "
+        f"qdrant_image_asserted_by_caller={image} "
+        f"qdrant_image_verified_against_server=false "
+        f"embed_artifact={embed_identity} "
+        # The artifact digest pins the weights, not the pipeline: FastEmbed takes
+        # the model name separately, and it selects the registry config and the
+        # preprocessing applied to those bytes.
+        f"embed_model={EMBED_MODEL} "
+        f"min_score={MIN_SCORE} "
+        f"collection={collection} collection_scope=run_unique "
+        f"development={len(development)} contaminated={len(contaminated)} "
+        f"confirmation={len(confirmation)} "
+        f"evaluated_total={len(development) + len(contaminated) + len(confirmation)} "
+        f"docs={indexed} "
+        f"scope=synthetic_slice_not_authorized_corpus"
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    try:
+        raise SystemExit(main())
+    except Exception as exc:  # noqa: BLE001 - fixed status label only
+        print(f"FAIL error={type(exc).__name__}")
+        raise SystemExit(1) from None

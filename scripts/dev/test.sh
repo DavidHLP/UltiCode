@@ -219,6 +219,9 @@ run_static_guardrails() {
   echo "Running owner migration preflight tests..."
   "$ROOT_DIR/scripts/dev/migrate-owner-preflight-test.sh"
 
+  echo "Running dev up.sh credential-output contract..."
+  "$ROOT_DIR/scripts/dev/up-test.sh"
+
   echo "Running legacy object migration gate contract..."
   "$ROOT_DIR/scripts/test/legacy-object-migration-gate-contract.sh"
 

@@ -15,7 +15,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-from deepseek_model import DeepseekModel
+from deepseek_model import DeepseekModel, model_label
 from sourced_analysis import analyze_submission, first_wrong_answer_submission
 from ulticode_client import UlticodeClient
 from ulticode_tools import build_tools
@@ -23,11 +23,15 @@ from ulticode_tools import build_tools
 APP_BASE = os.environ.get("ULTICODE_APP_BASE", "http://localhost:9103")
 AUTH_BASE = os.environ.get("ULTICODE_AUTH_BASE", "http://localhost:9101")
 QUESTION = "Wrong Answer 状态说明了什么？只依据提交事实和带来源检索结果回答。"
+# The adapter in answer-only mode requires {"answer": "<text>"}. The evidence
+# contract therefore has to be carried *inside* that answer string, otherwise the
+# two protocols conflict and the model can satisfy only one of them.
 ANSWER_CONTRACT = (
-    "Return one JSON object string with exactly these keys: facts, hypotheses, citations. "
+    "Reply with one JSON object of the form {\"answer\": \"<json string>\"}. The answer "
+    "string must itself be a JSON object with exactly these keys: facts, hypotheses, citations. "
     "facts must quote EVIDENCE_JSON.facts verbatim; hypotheses must be a non-empty string array "
     "drawn from EVIDENCE_JSON.allowed_hypotheses; citations must contain only doc_id values "
-    "from EVIDENCE_JSON.citations."
+    "from EVIDENCE_JSON.citations. Do not add prose outside the JSON object."
 )
 
 
@@ -38,6 +42,23 @@ def _reject_duplicate_keys(pairs: list[tuple[str, object]]) -> dict[str, object]
             raise ValueError("duplicate key")
         result[key] = value
     return result
+
+
+def _answer_payload(answer: str) -> str:
+    """Unwrap the evidence JSON carried inside the adapter's answer string.
+
+    The adapter parses the outer {"answer": ...} envelope; the evidence contract
+    lives in the answer string, so it has to be unwrapped before validation.
+    """
+    try:
+        envelope = json.loads(answer, object_pairs_hook=_reject_duplicate_keys)
+    except (json.JSONDecodeError, ValueError):
+        return answer
+    if isinstance(envelope, dict) and set(envelope) == {"answer"} and isinstance(
+        envelope["answer"], str
+    ):
+        return envelope["answer"]
+    return answer
 
 
 def _validate_answer(answer: str, evidence: dict[str, object]) -> None:
@@ -76,7 +97,46 @@ def _validate_answer(answer: str, evidence: dict[str, object]) -> None:
         raise ValueError("invalid model answer")
 
 
+class ModelNotNamed(RuntimeError):
+    """A billed run must name the model instead of inheriting a default."""
+
+
+def _priced_model() -> str:
+    model = os.environ.get("DEEPSEEK_MODEL", "").strip()
+    if not model:
+        raise ModelNotNamed("DEEPSEEK_MODEL must be set for a real-model run")
+    return model
+
+
+def _report_usage(model: object) -> None:
+    """Emit token accounting. Values only; no prompt, answer, or token content.
+
+    An unreported block prints ``unknown`` rather than 0: the call was sent and
+    may have been billed, so a zero would be a false claim about cost.
+    """
+    usage = getattr(model, "usage", None) or []
+    if not usage:
+        return
+    totals = [entry.get("total_tokens") for entry in usage]
+    if any(total is None for total in totals):
+        print(
+            f"E2E SOURCED MODEL USAGE | calls={len(usage)} total_tokens=unknown "
+            "reason=provider_did_not_report_usage"
+        )
+        return
+    print(f"E2E SOURCED MODEL USAGE | calls={len(usage)} total_tokens={sum(totals)}")
+
+
 async def main() -> int:
+    if not os.environ.get("DEEPSEEK_MODEL", "").strip():
+        # Fail closed: the adapter default and the provider's current model
+        # identifiers have both changed, so assume nothing on a billed run.
+        print("E2E MODEL FAIL | reason=deepseek_model_required")
+        return 1
+    if not os.environ.get("DEEPSEEK_API_KEY"):
+        # Fail closed: without a key the run must not touch the model at all.
+        print("E2E SOURCED MODEL FAIL | reason=missing_api_key")
+        return 1
     async with UlticodeClient(APP_BASE, AUTH_BASE) as client:
         await client.login(
             os.environ["ULTICODE_E2E_USERNAME"], os.environ["ULTICODE_E2E_PASSWORD"]
@@ -90,27 +150,60 @@ async def main() -> int:
         if not result["citations"]:
             print("E2E SOURCED MODEL FAIL | reason=no_citation")
             return 1
+        # The evidence sent to the model must already verify; a drifted doc id,
+        # version or fabricated quote would otherwise reach the model unchecked.
+        # Fail closed without trusting the shape: a missing or short check list
+        # is as disqualifying as a failed one.
+        checks = list(result.get("citation_checks") or [])  # type: ignore[union-attr]
+        cited = sorted(str(c.get("chunk_id")) for c in result["citations"])  # type: ignore[union-attr]
+        checked = sorted(str(c.get("chunk_id")) for c in checks)
+        unverified = [
+            check
+            for check in checks
+            if not isinstance(check, dict) or check.get("verdict") != "verified"
+        ]
+        if unverified or checked != cited:
+            print("E2E SOURCED MODEL FAIL | reason=unverifiable_citation")
+            return 1
         evidence_payload = {
             "facts": result["facts"],
             "allowed_hypotheses": result["hypotheses"],
             "citations": result["citations"],
         }
         evidence = json.dumps(evidence_payload, ensure_ascii=False)
+        # Bound once so the evidence names the model that was billed.
+        model_name = _priced_model()
         async with DeepseekModel(
-            os.environ["DEEPSEEK_API_KEY"], tool_specs={}
+            os.environ["DEEPSEEK_API_KEY"],
+            tool_specs={},
+            model=model_name,
+            # One decision per run with a bounded output: the worst case is a
+            # single capped call, never an open-ended loop.
+            max_calls=int(os.environ.get("DEEPSEEK_MAX_CALLS", "1")),
+            # Measured on the real model: at 300 the single decision came back
+            # truncated (`finish_reason=length`, content_len=150) and the run failed
+            # with `ModelProtocolError`; at 2000 the same prompt passed. One call per
+            # run, so the larger default is bounded.
+            max_tokens=int(os.environ.get("DEEPSEEK_MAX_TOKENS", "2000")),
+            max_prompt_tokens=int(os.environ.get("DEEPSEEK_MAX_PROMPT_TOKENS", "24000")),
         ) as model:
-            decision = await model.decide(
-                [
-                    {
-                        "role": "user",
-                        "content": (
-                            "Analyze the submission using only the supplied evidence. "
-                            f"{ANSWER_CONTRACT} "
-                            f"EVIDENCE_JSON={evidence}"
-                        ),
-                    }
-                ]
-            )
+            try:
+                decision = await model.decide(
+                    [
+                        {
+                            "role": "user",
+                            "content": (
+                                "Analyze the submission using only the supplied evidence. "
+                                f"{ANSWER_CONTRACT} "
+                                f"EVIDENCE_JSON={evidence}"
+                            ),
+                        }
+                    ]
+                )
+            finally:
+                # The provider bills the call before the protocol is parsed, so the
+                # usage record has to be emitted even when decide() raises.
+                _report_usage(model)
         if decision.tool_call is not None:
             print("E2E SOURCED MODEL FAIL | reason=tool_call")
             return 1
@@ -124,7 +217,8 @@ async def main() -> int:
             return 1
 
     print(
-        "E2E SOURCED MODEL PASS | corpus=agent-authored-synthetic "
+        f"E2E SOURCED MODEL PASS | model={model_label(model_name)} "
+        "| corpus=agent-authored-synthetic "
         "| input=validated-user-projection | answer=withheld"
     )
     return 0

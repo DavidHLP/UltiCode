@@ -2,6 +2,8 @@ import asyncio
 import importlib.util
 from pathlib import Path
 
+import pytest
+
 from agent_loop import ModelDecision, ToolCall
 
 _module_spec = importlib.util.spec_from_file_location(
@@ -68,6 +70,7 @@ def _run_model(monkeypatch, capsys, model: FakeModel) -> tuple[int, str]:
     monkeypatch.setenv("ULTICODE_E2E_USERNAME", "tester")
     monkeypatch.setenv("ULTICODE_E2E_PASSWORD", "pw")
     monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
+    monkeypatch.setenv("DEEPSEEK_MODEL", "test-model")
     monkeypatch.setattr(module, "UlticodeClient", lambda *args, **kwargs: FakeClient())
     monkeypatch.setattr(module, "DeepseekModel", lambda *args, **kwargs: model)
     return_code = asyncio.run(module.main())
@@ -142,3 +145,53 @@ def test_model_qa_rejects_duplicate_answer_keys(monkeypatch, capsys) -> None:
 
     assert return_code == 1
     assert "reason=answer_contract" in output
+
+
+def test_model_qa_reports_usage_even_when_the_loop_raises(monkeypatch, capsys) -> None:
+    """A billed run must leave a cost record on the abort path too."""
+    # Reuse the module this file already loaded via importlib.
+    smoke = module
+
+    class _BillingModel:
+        def __init__(self, *_args: object, **kwargs: object) -> None:
+            self.kwargs = kwargs
+            self.usage: list[dict[str, int]] = [
+                {"prompt_tokens": 20, "completion_tokens": 6, "total_tokens": 26}
+            ]
+
+        async def __aenter__(self) -> "_BillingModel":
+            return self
+
+        async def __aexit__(self, *_args: object) -> None:
+            return None
+
+    async def _boom(*_args: object, **_kwargs: object) -> object:
+        raise RuntimeError("loop aborted")
+
+    class _Client:
+        def __init__(self, *_args: object, **_kwargs: object) -> None:
+            pass
+
+        async def __aenter__(self) -> "_Client":
+            return self
+
+        async def __aexit__(self, *_args: object) -> None:
+            return None
+
+        async def login(self, *_args: object) -> None:
+            return None
+
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "placeholder-not-a-real-key")
+    monkeypatch.setenv("DEEPSEEK_MODEL", "test-model")
+    monkeypatch.setenv("ULTICODE_E2E_USERNAME", "tester")
+    monkeypatch.setenv("ULTICODE_E2E_PASSWORD", "pw")
+    monkeypatch.setattr(smoke, "DeepseekModel", _BillingModel)
+    monkeypatch.setattr(smoke, "UlticodeClient", _Client)
+    monkeypatch.setattr(smoke, "build_tools", lambda _client: {})
+    monkeypatch.setattr(smoke, "run_tool_loop", _boom)
+
+    with pytest.raises(RuntimeError):
+        asyncio.run(smoke.main())
+
+    output = capsys.readouterr().out
+    assert "E2E MODEL QA USAGE | calls=1 total_tokens=26" in output

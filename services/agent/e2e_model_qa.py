@@ -20,7 +20,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from agent_loop import run_tool_loop
-from deepseek_model import DeepseekModel
+from deepseek_model import DeepseekModel, model_label
 from ulticode_client import UlticodeClient
 from ulticode_tools import TOOL_SPECS, build_tools
 
@@ -55,7 +55,44 @@ def _validate_answer(answer: str, problem: dict[str, object], has_submission: bo
     )
 
 
+class ModelNotNamed(RuntimeError):
+    """A billed run must name the model instead of inheriting a default."""
+
+
+def _priced_model() -> str:
+    model = os.environ.get("DEEPSEEK_MODEL", "").strip()
+    if not model:
+        raise ModelNotNamed("DEEPSEEK_MODEL must be set for a real-model run")
+    return model
+
+
+def _report_usage(model: object) -> None:
+    """Token accounting for billed calls. Values only, never prompt or answer text.
+
+    An unreported block prints ``unknown``: the call was sent and may have been
+    billed, so a zero would misstate the cost.
+    """
+    usage = getattr(model, "usage", None) or []
+    if not usage:
+        return
+    totals = [entry.get("total_tokens") for entry in usage]
+    if any(total is None for total in totals):
+        print(
+            f"E2E MODEL QA USAGE | calls={len(usage)} total_tokens=unknown "
+            "reason=provider_did_not_report_usage"
+        )
+        return
+    print(f"E2E MODEL QA USAGE | calls={len(usage)} total_tokens={sum(totals)}")
+
+
+
+
 async def main() -> int:
+    if not os.environ.get("DEEPSEEK_MODEL", "").strip():
+        # Fail closed: the adapter default and the provider's current model
+        # identifiers have both changed, so assume nothing on a billed run.
+        print("E2E MODEL QA FAIL | reason=deepseek_model_required")
+        return 1
     async with UlticodeClient(APP_BASE, AUTH_BASE) as client:
         await client.login(
             os.environ["ULTICODE_E2E_USERNAME"], os.environ["ULTICODE_E2E_PASSWORD"]
@@ -83,17 +120,32 @@ async def main() -> int:
             return tracked
 
         tools = {name: track(name, handler) for name, handler in raw_tools.items()}
+        # Bound once so the evidence names the model that was billed.
+        model_name = _priced_model()
         async with DeepseekModel(
-            os.environ["DEEPSEEK_API_KEY"], tool_specs=TOOL_SPECS
+            os.environ["DEEPSEEK_API_KEY"],
+            tool_specs=TOOL_SPECS,
+            # Named explicitly: the adapter default and the provider's current
+            # identifiers have both changed, so a costed run must not assume one.
+            model=model_name,
+            # Cost guard rails: bounded output and a bounded number of calls.
+            max_calls=int(os.environ.get("DEEPSEEK_MAX_CALLS", "8")),
+            # Left at 300 deliberately: this loop may make up to 8 calls, and the
+            # real-model run passes at 300. Only the single-call sourced-analysis
+            # smoke needed a larger cap (see its `finish_reason=length` note).
+            max_tokens=int(os.environ.get("DEEPSEEK_MAX_TOKENS", "300")),
         ) as model:
-            result = await run_tool_loop(
-                model, tools, QUESTION, max_rounds=4, total_timeout=90.0
-            )
+            try:
+                result = await run_tool_loop(
+                    model, tools, QUESTION, max_rounds=4, total_timeout=90.0
+                )
+            finally:
+                _report_usage(model)
 
     tool_names = {step["tool_name"] for step in result.trace}
     failed_count = sum(bool(step["failed"]) for step in result.trace)
     print(
-        f"OK model_qa rounds={result.rounds} "
+        f"OK model_qa model={model_label(model_name)} rounds={result.rounds} "
         f"tool_count={len(result.trace)} failed_count={failed_count}"
     )
     print(f"answer_chars={len(result.answer)} (content withheld from logs)")

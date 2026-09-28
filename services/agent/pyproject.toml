@@ -7,6 +7,10 @@ dependencies = ["httpx>=0.28,<1"]
 
 [dependency-groups]
 dev = ["pytest>=8.4,<9"]
+# Evaluation-only extras for the U02 keyword-vs-vector comparison. The default
+# runtime and `uv sync --locked` do not install these, so the read-only agent
+# path keeps its current dependency surface.
+eval = ["qdrant-client>=1.12,<2", "fastembed>=0.4,<1"]
 
 [tool.uv]
 package = false

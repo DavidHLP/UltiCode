@@ -1,0 +1,979 @@
+import asyncio
+import dataclasses
+import importlib.util
+from datetime import datetime, timezone
+from pathlib import Path
+
+import pytest
+
+import vector_search
+
+_module_spec = importlib.util.spec_from_file_location(
+    "e2e_vector_comparison",
+    Path(__file__).parents[1] / "e2e_vector_comparison.py",
+)
+assert _module_spec and _module_spec.loader
+e2e_vector_comparison = importlib.util.module_from_spec(_module_spec)
+_module_spec.loader.exec_module(e2e_vector_comparison)
+from keyword_evaluation import load_cases, retrieval_outcome
+from retrieval import load_sample_corpus
+
+
+class _FakeEmbedder:
+    """Deterministic stand-in for the small ONNX embedding model."""
+
+    def embed(self, texts: list[str]) -> list[list[float]]:
+        return [
+            [float(len(text) % 7), *([1.0] * (vector_search.VECTOR_SIZE - 1))]
+            for text in texts
+        ]
+
+
+class _FakePoint:
+    def __init__(self, payload: dict[str, object]) -> None:
+        self.payload = payload
+
+
+def _stub_config() -> object:
+    """Stand-in for VectorParams so the wiring tests need no qdrant-client."""
+    return type("VectorParams", (), {"size": vector_search.VECTOR_SIZE, "distance": "Cosine"})()
+
+
+class _FakeClient:
+    """Stands in for a single-node Qdrant client; records the calls we make."""
+
+    def __init__(self, existing: tuple[str, ...] = ()) -> None:
+        self.collection: dict[str, object] = {}
+        self.existing = existing
+        self.points: list[dict[str, object]] = []
+        self.queries: list[tuple[str, int]] = []
+
+    def recreate_collection(self, *, collection_name: str, vectors_config: object) -> None:
+        self.collection["name"] = collection_name
+        self.collection["vectors_config"] = vectors_config
+
+    def upsert(self, *, collection_name: str, points: list[dict[str, object]]) -> None:
+        assert collection_name == self.collection["name"]
+        self.points = points
+
+    def create_collection(self, *, collection_name: str, vectors_config: object) -> None:
+        if collection_name in self.existing:
+            raise ValueError(f"Collection {collection_name!r} already exists!")
+        self.existing = (*self.existing, collection_name)
+        self.collection["name"] = collection_name
+        self.collection["vectors_config"] = vectors_config
+
+    def get_collections(self) -> object:
+        # build_index refuses to touch a collection it does not own.
+        return type(
+            "Collections",
+            (),
+            {
+                "collections": [
+                    type("Collection", (), {"name": name})() for name in self.existing
+                ]
+            },
+        )()
+
+    def create_payload_index(self, **_: object) -> None:
+        self.indexed_field = "doc_id"
+
+    def query_points(
+        self, *, collection_name: str, query: list[float], limit: int, **_: object
+    ) -> object:
+        self.queries.append((collection_name, limit))
+        # Every point scores above the relevance floor unless a test says otherwise.
+        best = min(
+            range(len(self.points)),
+            key=lambda index: sum(
+                a * b for a, b in zip(query, self.points[index]["vector"])
+            ),
+        )
+        return type(
+            "Result",
+            (),
+            {
+                "points": [
+                    type("Point", (), {"payload": self.points[best]["payload"], "score": 0.99})()
+                ]
+            },
+        )()
+
+
+def test_both_arms_are_judged_by_one_classifier() -> None:
+    # Otherwise the comparison measures the scoring code, not the retriever.
+    assert retrieval_outcome(set(), set()) == "matched"
+    assert retrieval_outcome(set(), {"a"}) == "false_positive"
+    assert retrieval_outcome({"a"}, {"a"}) == "matched"
+    assert retrieval_outcome({"a"}, {"a", "b"}) == "extra_hits"
+    assert retrieval_outcome({"a"}, {"b"}) == "missed"
+
+
+def test_qdrant_url_must_be_configured(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("QDRANT_URL", raising=False)
+    with pytest.raises(ValueError):
+        vector_search.qdrant_url()
+
+    monkeypatch.setenv("QDRANT_URL", "http://localhost:6333")
+    assert vector_search.qdrant_url() == "http://localhost:6333"
+
+
+def test_index_round_trip_keeps_provenance_payload() -> None:
+    client = _FakeClient()
+    documents = load_sample_corpus()
+
+    indexed = vector_search.build_index(
+        client, documents, embedder=_FakeEmbedder(), config_factory=_stub_config
+    )
+
+    assert indexed == len(documents)
+    assert client.collection["name"] == vector_search.COLLECTION
+    # A VectorParams object, not a dict: qdrant-client reads a dict as a
+    # named-vector mapping and would never create the collection.
+    config = client.collection["vectors_config"]
+    assert not isinstance(config, dict)
+    assert getattr(config, "size", None) == vector_search.VECTOR_SIZE
+    assert set(client.points[0]["payload"]) == {
+        "doc_id",
+        "version",
+        "source_position",
+        "access_scope",
+    }
+    assert [point["payload"]["doc_id"] for point in client.points] == [
+        document.doc_id for document in documents
+    ]
+
+
+def test_search_returns_payload_doc_ids_and_passes_the_limit() -> None:
+    client = _FakeClient()
+    embedder = _FakeEmbedder()
+    vector_search.build_index(
+        client, load_sample_corpus(), embedder=embedder, config_factory=_stub_config
+    )
+
+    found = vector_search.search(client, "status", limit=2, embedder=embedder)
+
+    assert found[0] in {document.doc_id for document in load_sample_corpus()}
+    assert client.queries == [(vector_search.COLLECTION, 2)]
+
+
+def test_embedding_count_mismatch_is_rejected() -> None:
+    class _WrongSize(_FakeEmbedder):
+        def embed(self, texts: list[str]) -> list[list[float]]:
+            return super().embed(texts)[:-1]
+
+    with pytest.raises(ValueError):
+        vector_search.build_index(
+            _FakeClient(), load_sample_corpus(), embedder=_WrongSize(), config_factory=_stub_config
+        )
+
+
+def test_every_case_declares_required_evidence_for_the_comparison() -> None:
+    cases = load_cases()
+    assert len(cases) == 30
+    assert all(
+        case.required_evidence or case.expected_behavior != "cite" for case in cases
+    )
+
+
+def test_index_refuses_to_delete_a_collection_it_does_not_own() -> None:
+    client = _FakeClient(existing=(vector_search.COLLECTION,))
+
+    with pytest.raises(ValueError, match="already exists"):
+        vector_search.build_index(client, load_sample_corpus(), embedder=_FakeEmbedder(), config_factory=_stub_config)
+
+
+def test_index_recreates_only_with_an_explicit_opt_in() -> None:
+    client = _FakeClient(existing=(vector_search.COLLECTION,))
+
+    indexed = vector_search.build_index(
+        client,
+        load_sample_corpus(),
+        embedder=_FakeEmbedder(),
+        allow_recreate=True,
+        config_factory=_stub_config,
+    )
+
+    assert indexed == len(load_sample_corpus())
+
+
+def test_vector_search_drops_hits_below_the_relevance_floor() -> None:
+    client = _FakeClient()
+    embedder = _FakeEmbedder()
+    vector_search.build_index(
+        client, load_sample_corpus(), embedder=embedder, config_factory=_stub_config
+    )
+
+    original = vector_search.search
+
+    class _LowScoreClient(_FakeClient):
+        def query_points(self, **kwargs: object) -> object:
+            result = _FakeClient.query_points(self, **kwargs)  # type: ignore[arg-type]
+            result.points[0].score = 0.01
+            return result
+
+    low = _LowScoreClient()
+    vector_search.build_index(
+        low, load_sample_corpus(), embedder=embedder, config_factory=_stub_config
+    )
+
+    assert original(low, "status", limit=2, embedder=embedder) == []
+
+
+def test_confirmation_set_can_only_be_claimed_once(tmp_path, monkeypatch) -> None:
+    """An env opt-in alone does not stop a second run; the marker does."""
+    smoke = e2e_vector_comparison
+
+    marker = tmp_path / "holdout-v2.consumed"
+    monkeypatch.setenv("ULTICODE_VECTOR_CONFIRM_MARKER", str(marker))
+
+    claimed, path = smoke._claim_confirmation_once()
+    assert claimed is True
+    assert marker.exists()
+    assert "holdout-v2" in path
+
+    claimed_again, _ = smoke._claim_confirmation_once()
+    assert claimed_again is False
+
+
+def test_a_reordered_or_unterminated_record_is_not_our_claim(tmp_path: Path) -> None:
+    """Only the bytes this writer emits count, not an equivalent-looking file."""
+    smoke = e2e_vector_comparison
+    name = smoke.CONFIRMATION_CASES_PATH.name
+    stamp = "2026-09-27T08:00:00+00:00"
+    canonical = f"confirmation={name}\nconsumed_at={stamp}\n"
+
+    for label, text in (
+        ("reordered", f"consumed_at={stamp}\nconfirmation={name}\n"),
+        ("unterminated", f"confirmation={name}\nconsumed_at={stamp}"),
+        ("padded-key", f"confirmation={name}\n consumed_at={stamp}\n"),
+    ):
+        marker = tmp_path / f"claim-{label}.txt"
+        marker.write_text(text, encoding="utf-8")
+        assert not smoke._is_our_claim_record(marker), label
+
+    marker = tmp_path / "claim-canonical.txt"
+    marker.write_text(canonical, encoding="utf-8")
+    assert smoke._is_our_claim_record(marker)
+
+
+def test_a_concurrent_claim_cannot_overwrite_the_record(tmp_path, monkeypatch) -> None:
+    """Exclusive creation, not exists()-then-write: no lost update."""
+    smoke = e2e_vector_comparison
+
+    marker = tmp_path / "holdout-v2.consumed"
+    monkeypatch.setenv("ULTICODE_VECTOR_CONFIRM_MARKER", str(marker))
+    # Another process already claimed it.
+    marker.write_text("confirmation=holdout-v2.json\nconsumed_at=2026-09-27T08:00:00+00:00\n", encoding="utf-8")
+
+    claimed, _ = smoke._claim_confirmation_once()
+
+    assert claimed is False
+    # The existing record must be untouched, not rewritten by the loser.
+    assert marker.read_text(encoding="utf-8") == (
+        "confirmation=holdout-v2.json\nconsumed_at=2026-09-27T08:00:00+00:00\n"
+    )
+
+
+def test_claim_fails_closed_when_the_marker_cannot_be_written(tmp_path, monkeypatch) -> None:
+    smoke = e2e_vector_comparison
+    # The parent is a regular file, so creating the marker directory must fail.
+    blocker = tmp_path / "not-a-dir"
+    blocker.write_text("x", encoding="utf-8")
+
+    unwritable = blocker / "holdout-v2.consumed"
+    monkeypatch.setenv("ULTICODE_VECTOR_CONFIRM_MARKER", str(unwritable))
+
+    with pytest.raises(RuntimeError, match="could not record"):
+        smoke._claim_confirmation_once()
+
+
+def test_tied_arms_are_reported_as_a_tie() -> None:
+    smoke = e2e_vector_comparison
+
+    assert smoke._arm_outcome(["keyword"]) == "keyword"
+    assert smoke._arm_outcome(["vector", "keyword"]) == "tie:keyword+vector"
+
+
+def test_a_missing_embedding_path_stops_the_run(monkeypatch, capsys, tmp_path) -> None:
+    """Without a pinned local snapshot the run cannot be reproducible."""
+    smoke = e2e_vector_comparison
+    monkeypatch.setenv("ULTICODE_VECTOR_CONFIRM", "1")
+    monkeypatch.setenv("QDRANT_IMAGE", "qdrant/qdrant@sha256:" + "0" * 64)
+    # The Qdrant endpoint is validated before the artifact, so point it anywhere
+    # loopback-like: the run must stop at the artifact check, not here.
+    monkeypatch.setenv("QDRANT_URL", "http://127.0.0.1:6333")
+    monkeypatch.setattr(smoke, "EMBED_MODEL_PATH", "")
+
+    # Requested but unrun must not look successful.
+    assert smoke.main() == 1
+    assert "embed_model_path_required" in capsys.readouterr().out
+
+
+def test_an_unusable_embedding_path_stops_the_run(monkeypatch, capsys, tmp_path) -> None:
+    smoke = e2e_vector_comparison
+    monkeypatch.setenv("ULTICODE_VECTOR_CONFIRM", "1")
+    monkeypatch.setenv("QDRANT_IMAGE", "qdrant/qdrant@sha256:" + "0" * 64)
+    monkeypatch.setenv("QDRANT_URL", "http://127.0.0.1:6333")
+    monkeypatch.setattr(smoke, "EMBED_MODEL_PATH", str(tmp_path / "missing"))
+
+    # A requested run that cannot use a pinned artifact fails closed.
+    assert smoke.main() == 1
+    assert "embed_artifact_unusable" in capsys.readouterr().out
+
+
+def test_artifact_identity_tracks_the_local_snapshot(tmp_path) -> None:
+    """Two runs can be shown to have used the same weights."""
+    import vector_search
+
+    snapshot = tmp_path / "snapshot"
+    snapshot.mkdir()
+    (snapshot / "model.onnx").write_bytes(b"weights")
+    (snapshot / "config.json").write_text("{}")
+
+    first = vector_search.artifact_identity(str(snapshot))
+    assert first.startswith("sha256:")
+    assert vector_search.artifact_identity(str(snapshot)) == first
+
+    (snapshot / "extra.bin").write_bytes(b"more")
+    assert vector_search.artifact_identity(str(snapshot)) != first
+
+    # Same size, different bytes: a name+size digest would collide here.
+    before = vector_search.artifact_identity(str(snapshot))
+    model_file = snapshot / "model.onnx"
+    model_file.write_bytes(b"Weights")  # same length as b"weights"
+    assert model_file.stat().st_size == 7
+    assert vector_search.artifact_identity(str(snapshot)) != before
+
+    with pytest.raises(ValueError, match="not a directory"):
+        vector_search.artifact_identity(str(tmp_path / "nope"))
+
+
+def test_tied_arms_are_reported_as_a_tie() -> None:
+    smoke = e2e_vector_comparison
+
+    assert smoke._arm_outcome(["keyword"]) == "keyword"
+    assert smoke._arm_outcome(["vector", "keyword"]) == "tie:keyword+vector"
+
+
+def test_default_collection_config_is_real_qdrant_vector_params() -> None:
+    """qdrant-client 1.19.1 reads a plain dict as a named-vector mapping.
+
+    Skipped in the default runtime, which deliberately has no qdrant-client; the
+    wiring tests above inject a non-dict stub so the default suite still covers
+    the call shape without the optional dependency.
+    """
+    models = pytest.importorskip("qdrant_client.models")
+    import vector_search
+
+    config = vector_search._collection_config()
+
+    assert isinstance(config, models.VectorParams)
+    assert not isinstance(config, dict)
+    assert config.size == vector_search.VECTOR_SIZE
+    assert config.distance == models.Distance.COSINE
+
+
+def test_artifact_is_validated_before_the_optional_dependencies(monkeypatch, capsys) -> None:
+    """A bad artifact must stop the run with or without qdrant installed."""
+    smoke = e2e_vector_comparison
+    monkeypatch.setenv("ULTICODE_VECTOR_CONFIRM", "1")
+    monkeypatch.setenv("QDRANT_IMAGE", "qdrant/qdrant@sha256:" + "0" * 64)
+    monkeypatch.setattr(smoke, "EMBED_MODEL_PATH", "/nonexistent/snapshot")
+
+    assert smoke.main() == 1
+    assert "embed_artifact_unusable" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize(
+    "image",
+    [
+        "qdrant/qdrant@sha256:",
+        "qdrant/qdrant@sha256:abc",
+        "qdrant/qdrant@sha256:" + "z" * 64,
+        "qdrant/qdrant@sha256:" + "a" * 63,
+        "qdrant/qdrant:latest",
+        "qdrant/qdrant",
+        # Control characters are non-whitespace, so `[^\s@]+` admitted them and the
+        # evidence line printed them verbatim.
+        "\x1b[31mqdrant/qdrant@sha256:" + "a" * 64,
+        "qdrant/qdrant\x1b[0m@sha256:" + "a" * 64,
+    ],
+)
+def test_a_malformed_image_identity_cannot_pass_the_guard(monkeypatch, capsys, image) -> None:
+    """A substring check let an empty or non-hex digest through."""
+    smoke = e2e_vector_comparison
+    monkeypatch.setenv("ULTICODE_VECTOR_CONFIRM", "1")
+    monkeypatch.setenv("QDRANT_IMAGE", image)
+
+    assert smoke.main() == 1
+    assert "unpinned_qdrant_image" in capsys.readouterr().out
+
+
+def test_a_well_formed_digest_gets_past_the_image_guard(monkeypatch, capsys) -> None:
+    smoke = e2e_vector_comparison
+    monkeypatch.setenv("ULTICODE_VECTOR_CONFIRM", "1")
+    monkeypatch.setenv("QDRANT_IMAGE", "qdrant/qdrant@sha256:" + "a" * 64)
+    monkeypatch.setattr(smoke, "EMBED_MODEL_PATH", "")
+
+    # Past the image guard: it stops at the next precondition instead.
+    assert smoke.main() == 1
+    assert "embed_model_path_required" in capsys.readouterr().out
+
+
+def test_an_empty_confirmation_fixture_is_rejected_before_claiming(
+    monkeypatch, capsys, tmp_path
+) -> None:
+    """An empty fixture must not consume the one-shot set or report OK."""
+    import pathlib as _pathlib
+
+    smoke = e2e_vector_comparison
+    # tmp_path, never the repository's data directory: a test that writes there
+    # leaves the checkout dirty and risks the fixture being committed.
+    work = _pathlib.Path(smoke.CONFIRMATION_CASES_PATH).parent
+    marker = _pathlib.Path(tmp_path) / "holdout-empty-marker"
+    for stale in (marker,):
+        if stale.exists():
+            stale.unlink()
+    empty_cases = _pathlib.Path(tmp_path) / "holdout-empty.json"
+    empty_cases.write_text("[]", encoding="utf-8")
+
+    monkeypatch.setenv("ULTICODE_VECTOR_CONFIRM", "1")
+    monkeypatch.setenv("QDRANT_IMAGE", "qdrant/qdrant@sha256:" + "a" * 64)
+    monkeypatch.setenv("ULTICODE_EMBED_MODEL_PATH", str(_pathlib.Path(tmp_path)))
+    monkeypatch.setenv("ULTICODE_VECTOR_CONFIRM_MARKER", str(marker))
+    monkeypatch.setattr(smoke, "CONFIRMATION_CASES_PATH", empty_cases)
+    monkeypatch.setattr(smoke, "EMBED_MODEL_PATH", str(_pathlib.Path(tmp_path)))
+
+    assert smoke.main() == 1
+    assert "confirmation_fixture_invalid" in capsys.readouterr().out
+    # The one-shot marker must not have been consumed by a rejected fixture.
+    assert not marker.exists()
+
+
+def test_a_directory_at_the_marker_path_is_a_configuration_error(tmp_path, monkeypatch) -> None:
+    smoke = e2e_vector_comparison
+    as_directory = tmp_path / "marker-dir"
+    as_directory.mkdir()
+    monkeypatch.setenv("ULTICODE_VECTOR_CONFIRM_MARKER", str(as_directory))
+
+    with pytest.raises(RuntimeError, match="not a regular claim record"):
+        smoke._claim_confirmation_once()
+
+
+def test_an_empty_development_split_is_rejected(monkeypatch, capsys, tmp_path) -> None:
+    """An empty selection stage must not be reported as a completed comparison."""
+    import keyword_evaluation
+
+    smoke = e2e_vector_comparison
+    real_load = keyword_evaluation.load_cases
+
+    def fake_load(path=None):
+        # No path: the default dataset. Empty, so `development` has no rows.
+        if path is None:
+            return ()
+        return real_load(smoke.CONFIRMATION_CASES_PATH)
+
+    monkeypatch.setenv("ULTICODE_VECTOR_CONFIRM", "1")
+    monkeypatch.setenv("QDRANT_IMAGE", "qdrant/qdrant@sha256:" + "a" * 64)
+    monkeypatch.setenv("ULTICODE_VECTOR_CONFIRM_MARKER", str(tmp_path / "marker"))
+    monkeypatch.setattr(smoke, "EMBED_MODEL_PATH", str(tmp_path))
+    monkeypatch.setattr(smoke, "load_cases", fake_load)
+
+    assert smoke.main() == 1
+    assert "split_fixture_invalid" in capsys.readouterr().out
+
+
+def test_an_unrelated_regular_file_at_the_marker_is_a_configuration_error(
+    tmp_path, monkeypatch
+) -> None:
+    """Only our own claim record may count as 'already consumed'."""
+    smoke = e2e_vector_comparison
+    unrelated = tmp_path / "unrelated.txt"
+    unrelated.write_text("some other file\n", encoding="utf-8")
+    monkeypatch.setenv("ULTICODE_VECTOR_CONFIRM_MARKER", str(unrelated))
+
+    with pytest.raises(RuntimeError, match="not this harness's claim record"):
+        smoke._claim_confirmation_once()
+
+
+def test_our_own_claim_record_still_reports_already_consumed(tmp_path, monkeypatch) -> None:
+    smoke = e2e_vector_comparison
+    record = tmp_path / "holdout-v2.consumed"
+    record.write_text(
+        f"confirmation={smoke.CONFIRMATION_CASES_PATH.name}\nconsumed_at=2026-09-27T08:00:00+00:00\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("ULTICODE_VECTOR_CONFIRM_MARKER", str(record))
+
+    claimed, _ = smoke._claim_confirmation_once()
+
+    assert claimed is False
+
+
+def test_a_file_merely_mentioning_the_confirmation_name_is_not_a_claim(
+    tmp_path, monkeypatch
+) -> None:
+    """A loose substring match would accept an unrelated file."""
+    smoke = e2e_vector_comparison
+    lookalike = tmp_path / "lookalike.txt"
+    lookalike.write_text(
+        f"notes: {smoke.CONFIRMATION_CASES_PATH.name} was evaluated at some point\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("ULTICODE_VECTOR_CONFIRM_MARKER", str(lookalike))
+
+    with pytest.raises(RuntimeError, match="not this harness's claim record"):
+        smoke._claim_confirmation_once()
+
+
+def test_a_claim_record_without_a_timestamp_is_rejected(tmp_path, monkeypatch) -> None:
+    smoke = e2e_vector_comparison
+    partial = tmp_path / "partial"
+    partial.write_text(
+        f"confirmation={smoke.CONFIRMATION_CASES_PATH.name}\n", encoding="utf-8"
+    )
+    monkeypatch.setenv("ULTICODE_VECTOR_CONFIRM_MARKER", str(partial))
+
+    with pytest.raises(RuntimeError, match="not this harness's claim record"):
+        smoke._claim_confirmation_once()
+
+
+def test_a_claim_record_with_a_duplicated_field_is_rejected(tmp_path, monkeypatch) -> None:
+    """Last-write-wins would turn an unrelated first value into a match."""
+    smoke = e2e_vector_comparison
+    record = tmp_path / "duplicated"
+    record.write_text(
+        "confirmation=unrelated\n"
+        f"confirmation={smoke.CONFIRMATION_CASES_PATH.name}\n"
+        "consumed_at=2026-09-27T08:00:00+00:00\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("ULTICODE_VECTOR_CONFIRM_MARKER", str(record))
+
+    with pytest.raises(RuntimeError, match="not this harness's claim record"):
+        smoke._claim_confirmation_once()
+
+
+def test_a_non_loopback_qdrant_needs_its_own_opt_in(monkeypatch) -> None:
+    """Creating a collection and upserting are writes the confirmation opt-in cannot authorise."""
+    smoke = e2e_vector_comparison
+    monkeypatch.setenv("QDRANT_URL", "http://qdrant.internal.example:6333")
+    monkeypatch.delenv(vector_search.REMOTE_QDRANT_OPT_IN, raising=False)
+
+    with pytest.raises(ValueError, match="not loopback"):
+        smoke.qdrant_url()
+
+    monkeypatch.setenv(vector_search.REMOTE_QDRANT_OPT_IN, "1")
+    assert smoke.qdrant_url() == "http://qdrant.internal.example:6333"
+
+
+def test_loopback_qdrant_needs_no_opt_in(monkeypatch) -> None:
+    smoke = e2e_vector_comparison
+    monkeypatch.setenv("QDRANT_URL", "http://127.0.0.1:6333")
+    monkeypatch.delenv(vector_search.REMOTE_QDRANT_OPT_IN, raising=False)
+
+    assert smoke.qdrant_url() == "http://127.0.0.1:6333"
+
+
+def test_evidence_digests_change_with_the_inputs(tmp_path, monkeypatch) -> None:
+    """Two runs over different corpora or expectations must be distinguishable."""
+    import hashlib
+
+    smoke = e2e_vector_comparison
+
+    corpus_digest = smoke._corpus_digest(load_sample_corpus())
+    assert corpus_digest.startswith("sha256:")
+    assert corpus_digest == smoke._corpus_digest(load_sample_corpus())
+
+    from keyword_evaluation import load_cases
+
+    loaded = load_cases()
+    digest = smoke._cases_digest_from_loaded(loaded)
+    assert digest.startswith("sha256:")
+    assert smoke._cases_digest_from_loaded(loaded) == digest
+    # A different expectation set yields a different digest.
+    changed = loaded[:1] + (
+        type(loaded[0])(
+            case_id=loaded[0].case_id,
+            split=loaded[0].split,
+            query="different",
+            required_evidence=loaded[0].required_evidence,
+            answerable=loaded[0].answerable,
+            expected_behavior=loaded[0].expected_behavior,
+            allowed_behavior=loaded[0].allowed_behavior,
+            forbidden_behavior=loaded[0].forbidden_behavior,
+        ),
+    )
+    assert smoke._cases_digest_from_loaded(changed) != digest
+
+
+def test_a_snapshot_changed_during_load_is_refused(tmp_path) -> None:
+    """The reported digest must describe the weights the run actually used."""
+    smoke = e2e_vector_comparison
+    snapshot = tmp_path / "snapshot"
+    snapshot.mkdir()
+    (snapshot / "model.onnx").write_bytes(b"weights")
+
+    before = smoke.artifact_identity(str(snapshot))
+    assert smoke._artifact_unchanged(str(snapshot), before) is True
+
+    (snapshot / "model.onnx").write_bytes(b"other")
+    assert smoke._artifact_unchanged(str(snapshot), before) is False
+
+
+def test_refusal_cases_are_not_scored_as_matches() -> None:
+    """Retrieving a refusal case's document must not read as a citable match."""
+    smoke = e2e_vector_comparison
+    from keyword_evaluation import KeywordCase
+
+    refuse = KeywordCase(
+        case_id="dev-x",
+        split="development",
+        query="q",
+        required_evidence=("sample-status-only",),
+        answerable=False,
+        expected_behavior="refuse",
+        allowed_behavior="state the data cannot answer",
+        forbidden_behavior="name a code line",
+    )
+
+    counted = smoke._tally((refuse,), lambda _case: ["sample-status-only"])
+
+    assert counted["refused_with_evidence"] == 1
+    assert counted["matched"] == 0
+
+
+def test_a_garbage_consumed_at_is_not_treated_as_our_claim(tmp_path: Path) -> None:
+    """A marker with an unparsable timestamp is not a record this harness wrote.
+
+    The harness always writes an ISO timestamp, so `consumed_at=garbage` must not
+    silently disable the one-shot confirmation run.
+    """
+    smoke = e2e_vector_comparison
+    marker = tmp_path / "confirmation-claim.txt"
+    marker.write_text(
+        f"confirmation={smoke.CONFIRMATION_CASES_PATH.name}\nconsumed_at=garbage\n",
+        encoding="utf-8",
+    )
+
+    assert not smoke._is_our_claim_record(marker)
+
+
+def test_a_date_only_or_naive_timestamp_is_not_our_claim(tmp_path: Path) -> None:
+    """`fromisoformat` accepts values this writer cannot produce; they must not count."""
+    smoke = e2e_vector_comparison
+    for stamp in (
+        "2026-01-01",
+        "2026-01-01T00:00:00",
+        "2026-01-01T00:00:00+08:00",
+        # Both parse with a UTC offset yet are not what `isoformat()` emits: an
+        # ISO week date and a space-separated `Z`. Accepting them would report
+        # "already consumed" and skip the requested run with exit 0.
+        "2026-W01-1T00:00:00+00:00",
+        "2026-01-01 00:00:00Z",
+        # The comparison must not trim: padding is still not a value this writer
+        # can emit, and accepting it would skip the run the same way.
+        " 2026-01-01T00:00:00+00:00",
+        "2026-01-01T00:00:00+00:00 ",
+    ):
+        marker = tmp_path / f"claim-{stamp}.txt"
+        marker.write_text(
+            f"confirmation={smoke.CONFIRMATION_CASES_PATH.name}\nconsumed_at={stamp}\n",
+            encoding="utf-8",
+        )
+        assert not smoke._is_our_claim_record(marker), stamp
+
+
+def test_selection_rewards_a_correct_refusal() -> None:
+    """The declared behaviour classes must steer the development choice.
+
+    Both arms below match the same citable case; they differ only in whether the
+    `refuse` case's forbidden document is retrieved. Scoring `matched` alone gives
+    them equal development scores, so the risky arm can win the tie-break.
+    """
+    smoke = e2e_vector_comparison
+    from keyword_evaluation import KeywordCase
+
+    citable = KeywordCase(
+        case_id="dev-cite",
+        split="development",
+        query="cite",
+        required_evidence=("sample-status-only",),
+        answerable=True,
+        expected_behavior="cite",
+        allowed_behavior="cite the fragment",
+        forbidden_behavior="claim more",
+    )
+    refuse = KeywordCase(
+        case_id="dev-refuse",
+        split="development",
+        query="refuse",
+        required_evidence=("sample-status-only",),
+        answerable=False,
+        expected_behavior="refuse",
+        allowed_behavior="state the data cannot answer",
+        forbidden_behavior="name a code line",
+    )
+    development = (citable, refuse)
+
+    def clean(query: str, limit: int) -> list[str]:
+        return ["sample-status-only"] if query == "cite" else []
+
+    def risky(query: str, limit: int) -> list[str]:
+        return ["sample-status-only"]
+
+    scores = smoke._score_development(
+        development, (("clean", clean), ("risky", risky))
+    )
+
+    for limit in smoke.CANDIDATE_LIMITS:
+        assert scores[(limit, "clean")] > scores[(limit, "risky")], limit
+
+
+def test_limit_selection_never_prefers_forbidden_evidence() -> None:
+    """More `cite` matches must not outvote a fabrication risk.
+
+    The chosen ordering is what `main()` uses, so pairing a safety priority with
+    a volume score is not enough — the unsafe setting has to lose here.
+    """
+    smoke = e2e_vector_comparison
+    # (clear_of_forbidden_retrieval, behaviour-correct outcomes)
+    scores = {
+        (1, "arm"): (1, 1),
+        (3, "arm"): (0, 9),
+    }
+
+    assert smoke._choose_limit(scores, "arm") == 1
+
+
+def test_corpus_digest_covers_provenance_not_only_text() -> None:
+    """`source_path`/`access_scope` decide what the model may see: they are identity."""
+    smoke = e2e_vector_comparison
+    corpus = load_sample_corpus()
+    base = smoke._corpus_digest(corpus)
+
+    re_path = tuple(
+        dataclasses.replace(document, source_path="other/place.md")
+        for document in corpus
+    )
+    re_scope = tuple(
+        dataclasses.replace(document, access_scope="restricted")
+        for document in corpus
+    )
+
+    assert smoke._corpus_digest(re_path) != base
+    assert smoke._corpus_digest(re_scope) != base
+
+
+def test_a_second_comparison_run_cannot_hold_the_collection(tmp_path, monkeypatch) -> None:
+    """Two runs sharing one Qdrant collection must not interleave."""
+    smoke = e2e_vector_comparison
+    monkeypatch.setenv(smoke.RUN_LOCK_ENV, str(tmp_path / "run.lock"))
+
+    first = smoke._acquire_run_lock()
+    assert first.exists()
+    with pytest.raises(RuntimeError, match="another comparison run"):
+        smoke._acquire_run_lock()
+
+    smoke._release_run_lock(first)
+    assert not first.exists()
+    assert smoke._acquire_run_lock().exists()
+
+
+def test_artifact_identity_separates_layouts_that_share_a_byte_stream(tmp_path) -> None:
+    """Snapshot bytes are arbitrary, so names and contents need lengths.
+
+    With a NUL delimiter, one file holding `x\0b\0y` produced the same digest as
+    two files holding `x` and `y` under those names.
+    """
+    from vector_search import artifact_identity
+
+    one = tmp_path / "one"
+    two = tmp_path / "two"
+    one.mkdir()
+    two.mkdir()
+    (one / "a").write_bytes(b"x\0b\0y")
+    (two / "a").write_bytes(b"x")
+    (two / "b").write_bytes(b"y")
+
+    assert artifact_identity(str(one)) != artifact_identity(str(two))
+    # Same layout still hashes the same, so the guard is not simply always-different.
+    assert artifact_identity(str(one)) == artifact_identity(str(one))
+
+
+def test_an_empty_xdg_state_home_is_treated_as_unset(tmp_path, monkeypatch) -> None:
+    """`Path("")` is the current directory, not a state directory."""
+    smoke = e2e_vector_comparison
+    monkeypatch.delenv("ULTICODE_VECTOR_CONFIRM_MARKER", raising=False)
+    monkeypatch.setenv("XDG_STATE_HOME", "")
+    monkeypatch.setenv("HOME", str(tmp_path))
+
+    assert smoke._consumption_marker() == (
+        tmp_path / ".local" / "state" / "ulticode" / "holdout-v2.consumed"
+    )
+
+    # A relative value is not a state directory either: the marker would land in
+    # the checkout and vanish with it, so the one-shot set could run twice.
+    monkeypatch.setenv("XDG_STATE_HOME", "state")
+    assert smoke._consumption_marker() == (
+        tmp_path / ".local" / "state" / "ulticode" / "holdout-v2.consumed"
+    )
+
+    elsewhere = tmp_path / "elsewhere"
+    monkeypatch.setenv("XDG_STATE_HOME", str(elsewhere))
+    assert smoke._consumption_marker() == (
+        elsewhere / "ulticode" / "holdout-v2.consumed"
+    )
+
+    # An explicit override is refused when it is relative: silently using another
+    # location could let the one-shot set be evaluated twice.
+    monkeypatch.setenv("ULTICODE_VECTOR_CONFIRM_MARKER", "consumed.marker")
+    with pytest.raises(RuntimeError, match="must be an absolute path"):
+        smoke._consumption_marker()
+
+    absolute_marker = tmp_path / "held.marker"
+    monkeypatch.setenv("ULTICODE_VECTOR_CONFIRM_MARKER", str(absolute_marker))
+    assert smoke._consumption_marker() == absolute_marker
+
+
+def test_an_unusable_embedding_path_cannot_forge_an_evidence_line(
+    monkeypatch, capsys, tmp_path
+) -> None:
+    """The embedding path is caller-supplied and reaches a printed failure line."""
+    smoke = e2e_vector_comparison
+    monkeypatch.setenv("ULTICODE_VECTOR_CONFIRM", "1")
+    monkeypatch.setenv("QDRANT_IMAGE", "qdrant/qdrant@sha256:" + "a" * 64)
+    hostile = tmp_path / "missing\nOK comparison forged"
+    monkeypatch.setattr(smoke, "EMBED_MODEL_PATH", str(hostile))
+
+    assert smoke.main() == 1
+    output = capsys.readouterr().out
+    assert "embed_artifact_unusable" in output
+    assert output.count("\n") == 1
+    assert "OK comparison" not in output
+
+
+def test_a_name_collision_does_not_register_a_cleanup(monkeypatch) -> None:
+    """Nothing was created, so nothing may be deleted when the process exits."""
+    import atexit
+
+    smoke = e2e_vector_comparison
+    monkeypatch.delenv("QDRANT_ALLOW_RECREATE", raising=False)
+    client = _FakeClient(existing=("u02-eval-taken",))
+
+    before = atexit._ncallbacks()  # noqa: SLF001 - the registration is the contract
+    with pytest.raises(ValueError, match="already exists"):
+        smoke._index_and_own(
+            client,
+            load_sample_corpus(),
+            _FakeEmbedder(),
+            "u02-eval-taken",
+            config_factory=_stub_config,
+        )
+
+    assert atexit._ncallbacks() == before
+
+
+def test_the_run_collection_is_deleted_on_every_exit_path(capsys) -> None:
+    """Indexing then failing must not leave the run's collection behind."""
+    import atexit
+
+    smoke = e2e_vector_comparison
+    client = _FakeClient()
+    client.deleted = []
+
+    def delete_collection(*, collection_name: str) -> None:
+        client.deleted.append(collection_name)
+
+    client.delete_collection = delete_collection  # type: ignore[attr-defined]
+
+    before = atexit._ncallbacks()  # noqa: SLF001 - the registration is the contract
+    smoke._register_collection_cleanup(client, "u02-eval-test")
+    assert atexit._ncallbacks() == before + 1
+
+    smoke._collection_cleanup(client, "u02-eval-test")
+    assert client.deleted == ["u02-eval-test"]
+    assert "collection_cleanup=deleted name=u02-eval-test" in capsys.readouterr().out
+
+    # A cleanup that cannot delete is reported, not raised.
+    class _Stubborn:
+        def delete_collection(self, *, collection_name: str) -> None:
+            raise RuntimeError(collection_name)
+
+    smoke._collection_cleanup(_Stubborn(), "u02-eval-stuck")
+    assert "collection_cleanup=failed name=u02-eval-stuck" in capsys.readouterr().out
+
+
+def test_a_run_scoped_collection_replaces_the_shared_one() -> None:
+    """A fixed collection is shared mutable state between runs."""
+    smoke = e2e_vector_comparison
+    from vector_search import COLLECTION, build_index
+
+    first = smoke._run_collection()
+    second = smoke._run_collection()
+
+    assert first != second
+    assert first.startswith(f"{COLLECTION}-") and second.startswith(f"{COLLECTION}-")
+
+    client = _FakeClient()
+    embedder = _FakeEmbedder()
+    build_index(
+        client,
+        load_sample_corpus(),
+        embedder=embedder,
+        config_factory=_stub_config,
+        collection=first,
+    )
+    assert client.collection["name"] == first
+    assert COLLECTION not in client.existing
+
+
+def test_a_relative_home_cannot_place_the_marker(tmp_path, monkeypatch) -> None:
+    """`Path.home()` follows HOME, so a relative HOME is not a state directory."""
+    smoke = e2e_vector_comparison
+    monkeypatch.delenv("ULTICODE_VECTOR_CONFIRM_MARKER", raising=False)
+    monkeypatch.delenv("XDG_STATE_HOME", raising=False)
+    monkeypatch.setenv("HOME", "relative-home")
+
+    with pytest.raises(RuntimeError, match="HOME is not absolute"):
+        smoke._consumption_marker()
+
+
+def test_the_run_lock_failure_detail_is_sanitized(tmp_path, monkeypatch, capsys) -> None:
+    """The lock path is caller-supplied and reaches a printed failure line.
+
+    This environment cannot reach that line end to end — the run stops earlier at
+    the optional `eval` dependency — so this pins the two halves it can: the
+    internal error carries the raw path, and the label the harness prints from it
+    cannot start a new line.
+    """
+    smoke = e2e_vector_comparison
+    held = tmp_path / "a\nOK comparison forged"
+    held.write_text("pid=1\n", encoding="utf-8")
+    monkeypatch.setenv(smoke.RUN_LOCK_ENV, str(held))
+
+    with pytest.raises(RuntimeError) as error:
+        smoke._acquire_run_lock()
+
+    assert "\n" in str(error.value)
+    assert "\n" not in smoke._evidence_path(error.value)
+
+    smoke._report_run_lock_failure(error.value)
+    output = capsys.readouterr().out
+    assert output.count("\n") == 1  # one line, no forged fields
+    assert "OK comparison" not in output
+    assert "run_lock_unavailable" in output
+
+
+def test_the_canonical_isoformat_timestamp_is_our_claim(tmp_path: Path) -> None:
+    """The tightened check must still accept what the harness actually writes."""
+    smoke = e2e_vector_comparison
+    marker = tmp_path / "claim-canonical.txt"
+    marker.write_text(
+        f"confirmation={smoke.CONFIRMATION_CASES_PATH.name}\n"
+        f"consumed_at={datetime.now(timezone.utc).isoformat()}\n",
+        encoding="utf-8",
+    )
+
+    assert smoke._is_our_claim_record(marker)

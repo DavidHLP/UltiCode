@@ -67,7 +67,45 @@ uv sync --locked
 uv run pytest -q
 ```
 
-真实 UltiCode HTTP / 模型 e2e 仍是显式 opt-in；`e2e_sourced_analysis.py` 使用 agent-authored synthetic Markdown corpus（不是提交、DTO 或用户授权材料），分析输入则是 authenticated user 的 validated read-only submission projection，且不调用真实模型。`e2e_sourced_analysis_model.py` 是额外的真实模型 sourced-analysis 入口，仍需显式提供现有环境和 `DEEPSEEK_API_KEY`；不得把本地开发账号密码、Cookie、源码、检索文本或模型回答写入日志。可执行题集和当前评估状态见 `services/agent/data/keyword_cases.json` 与对应 Linear 任务。
+真实 UltiCode HTTP / 模型 e2e 仍是显式 opt-in；`e2e_sourced_analysis.py` 使用 agent-authored synthetic Markdown corpus（不是提交、DTO 或用户授权材料），分析输入则是 authenticated user 的 validated read-only submission projection，且不调用真实模型。`e2e_sourced_analysis_model.py` / `e2e_model_qa.py` 是真实模型入口，调用形如 `DEEPSEEK_API_KEY=... DEEPSEEK_MODEL=<model> uv run python e2e_sourced_analysis_model.py`，仍需显式提供现有环境和 `DEEPSEEK_API_KEY` 与 `DEEPSEEK_MODEL`；不得把本地开发账号密码、Cookie、源码、检索文本或模型回答写入日志。可执行题集和当前评估状态见 `services/agent/data/keyword_cases.json` 与对应 Linear 任务。
+
+真实模型入口的调用形式（`DEEPSEEK_MODEL` 为必填，脚本不再继承任何默认模型标识。`DEEPSEEK_MAX_TOKENS` 默认值按入口不同：`e2e_sourced_analysis_model.py`（每次运行仅 1 次调用）默认 2000——实测 300 时该次决策被输出上限截断（`finish_reason=length`、`content_len=150`）而报 `ModelProtocolError`，2000 时同一 prompt 通过；`e2e_model_qa.py`（最多 8 次调用）保持 300，真实运行在 300 下即通过，不应无证据地抬高其每次上限）：
+
+```bash
+cd services/agent
+ULTICODE_E2E_USERNAME=... ULTICODE_E2E_PASSWORD=... \
+DEEPSEEK_API_KEY=... DEEPSEEK_MODEL=<model> \
+uv run python e2e_sourced_analysis_model.py
+
+ULTICODE_E2E_USERNAME=... ULTICODE_E2E_PASSWORD=... \
+DEEPSEEK_API_KEY=... DEEPSEEK_MODEL=<model> \
+uv run python e2e_model_qa.py
+```
+
+关键词 vs 向量的最小对照是**评测专用**的，不切换主路径，且需要一次性单机 Qdrant 与 `eval` 依赖组：
+
+```bash
+docker run --rm -p 127.0.0.1:6333:6333 qdrant/qdrant@sha256:<digest>
+cd services/agent
+uv sync --locked --group eval
+QDRANT_IMAGE=qdrant/qdrant@sha256:<digest> QDRANT_URL=http://localhost:6333 \
+QDRANT_ALLOW_RECREATE=1 ULTICODE_EMBED_MODEL_PATH=<snapshot-dir> \
+ULTICODE_VECTOR_CONFIRM=1 uv run python e2e_vector_comparison.py
+```
+
+双账号只读隔离对照是**会写入本地栈**的工作流（注册两个普通账号、各自提交一条题目自带的 starter code），仅限回环地址：
+
+```bash
+cd services/agent
+ULTICODE_E2E_ISOLATION=1 \
+ULTICODE_APP_BASE=http://localhost:9103 \
+ULTICODE_AUTH_BASE=http://localhost:9101 \
+uv run python e2e_account_isolation.py
+```
+
+安全约束：脚本会**拒绝非回环**的 base URL，除非显式设置 `ULTICODE_E2E_ISOLATION_ALLOW_REMOTE=1` 表明目标确实是你可丢弃的自有栈。它只输出固定标签与状态码，不回显任何凭据、Cookie 或响应正文；跨账号读取只接受契约定义的 403/404 视为拒绝，5xx 或信封异常一律判为脚本不成立。夹具选择不再假定列表第一题可用：它按列表自身的 `total` 分页扫描，找一道提供 `SUBMISSION_LANGUAGE` 的题目（页数上限由 `ULTICODE_E2E_FIXTURE_MAX_PAGES` 控制，默认 20 页，仅为防止异常列表死循环）。脚本同时检查**公开内容的匿名正对照**（`GET /problems`、`GET /problems/{id}` 无会话应仍为 200，且信封里确有题目数据）：把「所有跨账号请求都拒绝」当成隔离通过是错的。**不要**把生产或共享环境作为目标。
+
+要点：`QDRANT_IMAGE` 只是调用方声明的标签，脚本不据此校验服务端实际版本，输出会显式标注这一点；每次运行使用**本次运行专用的集合名**（`u02-eval-<随机>`，结束时尽力删除），因此不会删除任何既有集合，`QDRANT_ALLOW_RECREATE=1` 只在调用方显式沿用历史固定集合名时才需要；运行前会独占一把运行锁（`ULTICODE_VECTOR_RUN_LOCK`，默认在确认标记旁）包住整个集合生命周期，两个并发运行不会在同一集合上交错；被 kill 的运行会留下锁文件并 fail closed 报出路径，确认无人运行后再手工删除；一次性标记的位置：`ULTICODE_VECTOR_CONFIRM_MARKER` 若设置**必须是绝对路径**，相对路径直接 fail closed（不会退回默认位置——静默换位置会让确认集被跑第二次）；`XDG_STATE_HOME` 也只在为绝对路径时才用作状态目录，否则使用家目录默认值。确认集（`data/holdout-v2.json`）为**一次性**，未设 `ULTICODE_VECTOR_CONFIRM=1` 时脚本直接跳过确认阶段。
 
 
 `core` scope 会启动 `ulticode-core`（9108）和独立 `ulticode-judge`；

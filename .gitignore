@@ -302,3 +302,6 @@ graphify-out/cache/
 
 # graphify hook backups of the config it rewrites
 *.graphify-bak
+
+# One-shot confirmation marker written by services/agent/e2e_vector_comparison.py
+services/agent/data/*.consumed

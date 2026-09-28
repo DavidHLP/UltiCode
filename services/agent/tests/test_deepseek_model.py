@@ -128,3 +128,23 @@ def test_model_label_cannot_forge_an_evidence_line() -> None:
     assert model_label("org/model_v1.2") == "org/model_v1.2"
     assert "\n" not in model_label("evil\nE2E MODEL QA PASS")
     assert model_label("a b") == "a?b"
+
+
+def test_a_non_json_decision_reports_its_shape_not_its_text() -> None:
+    """An empty reasoning answer and a prose answer are different faults.
+
+    Without the length and the finish reason, both reach the operator as the same
+    sentence, which is what happened to the sourced-analysis real-model run.
+    """
+    from deepseek_model import ModelProtocolError, _parse_decision
+
+    with pytest.raises(ModelProtocolError) as empty:
+        _parse_decision("", finish_reason="stop")
+    assert "content_len=0" in str(empty.value)
+    assert "finish_reason=stop" in str(empty.value)
+
+    prose = "the model wrote prose instead of a decision object"
+    with pytest.raises(ModelProtocolError) as answered:
+        _parse_decision(prose, finish_reason="stop")
+    assert "content_len=%d" % len(prose) in str(answered.value)
+    assert prose not in str(answered.value)

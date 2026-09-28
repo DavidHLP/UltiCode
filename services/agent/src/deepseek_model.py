@@ -209,10 +209,16 @@ class DeepseekModel:
             raise ModelProtocolError("model response message was malformed")
         content = message["content"].strip()
 
-        return _parse_decision(content)
+        return _parse_decision(content, finish_reason=choices[0].get("finish_reason"))
 
 
-def _parse_decision(content: str) -> ModelDecision:
+def _parse_decision(content: str, *, finish_reason: object = None) -> ModelDecision:
+    """Parse one decision.
+
+    A non-JSON decision reports its shape, never its text: an empty `content` from
+    a reasoning model and a prose answer are different faults, and without the
+    length and `finish_reason` the caller cannot tell them apart from the message.
+    """
     try:
         parsed = json.loads(
             content,
@@ -220,7 +226,10 @@ def _parse_decision(content: str) -> ModelDecision:
             object_pairs_hook=_reject_duplicate_keys,
         )
     except (json.JSONDecodeError, ValueError) as exc:
-        raise ModelProtocolError("model decision was not valid JSON") from exc
+        raise ModelProtocolError(
+            "model decision was not valid JSON "
+            f"(content_len={len(content)}, finish_reason={finish_reason})"
+        ) from exc
     if not isinstance(parsed, dict):
         raise ModelProtocolError("model decision was not an object")
 

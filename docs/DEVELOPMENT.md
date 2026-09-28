@@ -69,7 +69,7 @@ uv run pytest -q
 
 真实 UltiCode HTTP / 模型 e2e 仍是显式 opt-in；`e2e_sourced_analysis.py` 使用 agent-authored synthetic Markdown corpus（不是提交、DTO 或用户授权材料），分析输入则是 authenticated user 的 validated read-only submission projection，且不调用真实模型。`e2e_sourced_analysis_model.py` / `e2e_model_qa.py` 是真实模型入口，调用形如 `DEEPSEEK_API_KEY=... DEEPSEEK_MODEL=<model> uv run python e2e_sourced_analysis_model.py`，仍需显式提供现有环境和 `DEEPSEEK_API_KEY` 与 `DEEPSEEK_MODEL`；不得把本地开发账号密码、Cookie、源码、检索文本或模型回答写入日志。可执行题集和当前评估状态见 `services/agent/data/keyword_cases.json` 与对应 Linear 任务。
 
-真实模型入口的调用形式（`DEEPSEEK_MODEL` 为必填，脚本不再继承任何默认模型标识；`DEEPSEEK_MAX_TOKENS` 默认 2000，因为推理模型会把一部分输出预算花在推理 token 上——实测 300 时答案通道被截断（`finish_reason=length`）而报 `ModelProtocolError`，2000 时同一 prompt 通过）：
+真实模型入口的调用形式（`DEEPSEEK_MODEL` 为必填，脚本不再继承任何默认模型标识。`DEEPSEEK_MAX_TOKENS` 默认值按入口不同：`e2e_sourced_analysis_model.py`（每次运行仅 1 次调用）默认 2000——实测 300 时该次决策被输出上限截断（`finish_reason=length`、`content_len=150`）而报 `ModelProtocolError`，2000 时同一 prompt 通过；`e2e_model_qa.py`（最多 8 次调用）保持 300，真实运行在 300 下即通过，不应无证据地抬高其每次上限）：
 
 ```bash
 cd services/agent

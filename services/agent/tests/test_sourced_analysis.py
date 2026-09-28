@@ -138,3 +138,19 @@ def test_the_answer_emits_the_three_citations_the_acceptance_requires() -> None:
     assert {c["chunk_id"] for c in result["citations"]} == {
         check["chunk_id"] for check in result["citation_checks"]
     }
+
+
+def test_without_a_supplied_corpus_the_pinned_baseline_stands() -> None:
+    """The no-argument path is the recorded baseline: one status fragment, not three."""
+    result = analyze_submission(
+        {
+            "id": "sub-1",
+            "language": "java",
+            "status": "Wrong Answer",
+            "createdAt": "2026-09-25T00:00:00",
+        },
+        "Wrong Answer 状态说明了什么？",
+    )
+
+    assert len(result["citations"]) == 1
+    assert result["citations"][0]["doc_id"] == "sample-status-only"

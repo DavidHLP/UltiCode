@@ -71,8 +71,11 @@ def analyze_submission(
     the recorded source; it does not mean the fragment supports the conclusion.
 
     ``documents`` defaults to the pinned sample corpus so the recorded baseline is
-    unchanged. An authorised corpus passes its own, so how many citations an answer
-    can emit is a property of the material in front of it, not of the default.
+    unchanged. It is a test seam, not an authorization path: nothing here checks a
+    supplied corpus against the manifest — ``load_sample_corpus`` is what enforces
+    that, and only for the default. A caller passing its own corpus must have
+    authorized it itself. How many citations an answer can emit is a property of the
+    material in front of it, not of the default.
     """
     submission_id, status = validate_submission_facts(submission)
     facts = [f"提交 {submission_id} 的状态是 {status}。"]

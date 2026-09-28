@@ -422,6 +422,22 @@ def test_the_fixture_scan_follows_the_total_and_honours_the_bound(
     assert "FAIL reason=fixture_unavailable" in capsys.readouterr().out
 
 
+def test_a_row_less_public_listing_is_not_readability(monkeypatch, capsys) -> None:
+    """A non-empty array of unusable rows proves nothing was exposed."""
+    monkeypatch.setenv("ULTICODE_E2E_ISOLATION", "1")
+    inner = correct_service()
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/problems") and _is_anonymous(request):
+            return httpx.Response(200, json={"code": 0, "data": {"items": [None], "total": 1}})
+        return inner(request)
+
+    _install(monkeypatch, handler)
+
+    assert asyncio.run(e2e_account_isolation.main()) == 1
+    assert "FAIL reason=public_content_not_readable" in capsys.readouterr().out
+
+
 def test_a_boolean_detail_id_is_not_a_match(monkeypatch, capsys) -> None:
     """`True == 1`, so a boolean id must not satisfy the public control."""
     monkeypatch.setenv("ULTICODE_E2E_ISOLATION", "1")
@@ -456,7 +472,7 @@ def test_public_content_stays_readable_without_a_session(monkeypatch, capsys) ->
     output = capsys.readouterr().out
     assert (
         "public control anonymous_listing=200 anonymous_detail=200 "
-        "listing_rows=1 detail_id_matches=yes"
+        "listing_rows=1 listing_usable_rows=1 detail_id_matches=yes"
     ) in output
     assert "OK isolation" in output
 

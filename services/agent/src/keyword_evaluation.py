@@ -215,17 +215,24 @@ def evaluate_case_records(
             outcome = (
                 "refused_with_evidence" if actual_doc_ids else "refused_without_evidence"
             )
+            # `required_evidence` on a refusal row names the evidence the case must
+            # resist, so every retrieved document is unexpected — subtracting it
+            # would hide the very document that caused the fabrication risk.
+            unexpected = set(actual_doc_ids)
         elif case.expected_behavior == "no_evidence":
             # An empty required set is a subset of everything, so containment
             # would mark any hit as a pass. A hit here is a false positive.
             retrieval_hit = not actual_doc_ids
             outcome = retrieval_outcome(required_doc_ids, actual_doc_ids)
+            unexpected = actual_doc_ids - required_doc_ids
         elif actual_doc_ids:
             retrieval_hit = required_doc_ids <= actual_doc_ids
             outcome = retrieval_outcome(required_doc_ids, actual_doc_ids)
+            unexpected = actual_doc_ids - required_doc_ids
         else:
             retrieval_hit = not required_doc_ids
             outcome = retrieval_outcome(required_doc_ids, actual_doc_ids)
+            unexpected = actual_doc_ids - required_doc_ids
         records.append(
             CaseRecord(
                 case_id=case.case_id,
@@ -240,7 +247,7 @@ def evaluate_case_records(
                 allowed_behavior=case.allowed_behavior,
                 forbidden_behavior=case.forbidden_behavior,
                 fabrication_risk=case.expected_behavior == "refuse" and bool(actual_doc_ids),
-                unexpected_doc_ids=tuple(sorted(actual_doc_ids - required_doc_ids)),
+                unexpected_doc_ids=tuple(sorted(unexpected)),
                 tool_calls=1,
                 elapsed_us=elapsed_us,
             )

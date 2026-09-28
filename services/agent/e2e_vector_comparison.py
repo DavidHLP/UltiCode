@@ -93,11 +93,19 @@ def _consumption_marker() -> Path:
     # put the one-shot marker inside the checkout, where it disappears with the
     # working tree — letting the confirmation set be evaluated a second time.
     configured = os.environ.get("XDG_STATE_HOME", "")
-    state_home = (
-        Path(configured)
-        if os.path.isabs(configured)
-        else Path.home() / ".local" / "state"
-    )
+    if os.path.isabs(configured):
+        state_home = Path(configured)
+    else:
+        # `Path.home()` follows HOME, which can itself be relative; that would put
+        # the marker inside the invocation directory exactly like a relative
+        # override, so an unusable home fails closed instead of guessing.
+        home = Path.home()
+        if not home.is_absolute():
+            raise RuntimeError(
+                "cannot locate a durable state directory: HOME is not absolute and "
+                "XDG_STATE_HOME is unset"
+            )
+        state_home = home / ".local" / "state"
     return state_home / "ulticode" / "holdout-v2.consumed"
 
 

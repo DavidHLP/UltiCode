@@ -485,13 +485,24 @@ async def main() -> int:
             if public_detail.status_code == 200
             else None
         )
+        # A non-empty array is not readability: a row that is null, or that has no
+        # usable problem id, exposes nothing to prove the public read worked.
+        public_rows = public_items if isinstance(public_items, list) else []
+        usable_rows = [
+            row
+            for row in public_rows
+            if isinstance(row, dict)
+            and not isinstance(row.get("id"), bool)
+            and isinstance(row.get("id"), int)
+        ]
         print(
             f"public control anonymous_listing={public_listing.status_code} "
             f"anonymous_detail={public_detail.status_code} "
-            f"listing_rows={len(public_items) if isinstance(public_items, list) else 'none'} "
+            f"listing_rows={len(public_rows)} "
+            f"listing_usable_rows={len(usable_rows)} "
             f"detail_id_matches={'yes' if public_detail_id == problem_id else 'no'}"
         )
-        if not isinstance(public_items, list) or not public_items:
+        if not usable_rows or len(usable_rows) != len(public_rows):
             print("FAIL reason=public_content_not_readable")
             return 1
         if isinstance(public_detail_id, bool) or public_detail_id != problem_id:

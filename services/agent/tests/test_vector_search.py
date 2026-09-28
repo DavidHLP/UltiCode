@@ -854,6 +854,17 @@ def test_an_unusable_embedding_path_cannot_forge_an_evidence_line(
     assert "OK comparison" not in output
 
 
+def test_a_relative_home_cannot_place_the_marker(tmp_path, monkeypatch) -> None:
+    """`Path.home()` follows HOME, so a relative HOME is not a state directory."""
+    smoke = e2e_vector_comparison
+    monkeypatch.delenv("ULTICODE_VECTOR_CONFIRM_MARKER", raising=False)
+    monkeypatch.delenv("XDG_STATE_HOME", raising=False)
+    monkeypatch.setenv("HOME", "relative-home")
+
+    with pytest.raises(RuntimeError, match="HOME is not absolute"):
+        smoke._consumption_marker()
+
+
 def test_the_run_lock_failure_detail_is_sanitized(tmp_path, monkeypatch, capsys) -> None:
     """The lock path is caller-supplied and reaches a printed failure line.
 

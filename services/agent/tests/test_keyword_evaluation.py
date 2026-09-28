@@ -315,3 +315,16 @@ def test_required_evidence_must_name_a_real_corpus_document(tmp_path: Path) -> N
 
     with pytest.raises(ValueError, match="must name documents in the corpus"):
         load_cases(path)
+
+
+def test_a_refusal_hit_reports_every_retrieved_document_as_unexpected() -> None:
+    """`required_evidence` on a refusal row names what the case must resist."""
+    records = {record.case_id: record for record in evaluate_case_records(load_cases(), limit=3)}
+    cases = {case.case_id: case for case in load_cases()}
+
+    for case_id, case in cases.items():
+        if case.expected_behavior != "refuse":
+            continue
+        record = records[case_id]
+        hits = {hit.doc_id for hit in keyword_search(case.query, limit=3)}
+        assert record.unexpected_doc_ids == tuple(sorted(hits)), case_id

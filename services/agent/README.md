@@ -101,13 +101,19 @@ Contract — every violation is a fixed `FAIL reason=...` evidence line and exit
   `corpus_entry_missing`; two entries resolving to the *same file* — including two hard-link
   names for one inode — → `corpus_entry_duplicate_source`, and byte-for-byte copies under
   separate names → `corpus_entry_duplicate_content` (one fragment must never count as several
-  citations); unreadable, not UTF-8, empty, over `MAX_SOURCE_CHARS`, or a read that stops
-  short of EOF — a prefix that passes the size check while a suffix stays unread →
-  `corpus_entry_unusable`.
+  citations); unreadable, not UTF-8, empty, over `MAX_SOURCE_CHARS`, containing a NUL
+  byte in the declared path, or a read that stops short of EOF — a prefix that passes the
+  size check while a suffix stays unread → `corpus_entry_unusable`.
 - **Positions are derived from the raw file**, spanning the first to the last non-blank
   physical line, so leading blank lines are covered and content starting on line 3 reports
   `lines 3-5` rather than `lines 1-5`. A manifest position that does not match →
   `corpus_entry_position_mismatch`, so a citation cannot cite a location that does not exist.
+- **The manifest is bound to its files at preflight**: entries whose `content_digest` or
+  derived `chunk_id` disagree with the document they describe are refused before the run
+  logs in → `corpus_entry_unbound`.
+- **`ULTICODE_CITATION_REQUIRED_ROWS` above the retrieval limit is refused** rather than
+  reported as a material gap: retrieval caps at `MAX_RESULTS` (3), so a higher bar is
+  unreachable for any corpus → `citation_threshold_above_retrieval_limit`.
 - With neither variable set, behaviour is exactly the pinned, manifest-gated sample corpus.
 
 The policy is two pinned constants in `e2e_citation_support_model.py`. Authorised material

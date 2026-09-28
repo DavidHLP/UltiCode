@@ -35,6 +35,7 @@ from citation_review import build_worksheet, load_verdicts, summarize
 from corpus_manifest import (
     ManifestEmpty,
     ManifestError,
+    assert_manifest_covers,
     load_manifest,
     parse_manifest_text,
 )
@@ -44,7 +45,12 @@ from deepseek_model import (
     _reject_duplicate_keys,
     model_label,
 )
-from retrieval import MAX_SOURCE_CHARS, SourceDocument, load_sample_corpus
+from retrieval import (
+    MAX_RESULTS,
+    MAX_SOURCE_CHARS,
+    SourceDocument,
+    load_sample_corpus,
+)
 from sourced_analysis import ValidatedCorpus, analyze_submission, analyze_authorized_submission, first_wrong_answer_submission
 from ulticode_client import UlticodeClient
 from ulticode_tools import build_tools
@@ -361,6 +367,11 @@ def _corpus_override() -> ValidatedCorpus | None:
                 descriptor = os.open(
                     filename, os.O_RDONLY | os.O_NOFOLLOW, dir_fd=root_fd
                 )
+            except ValueError:
+                # os.open rejects an embedded NUL before any descriptor exists, and
+                # raises ValueError rather than OSError, so the documented reason has
+                # to catch it explicitly instead of surfacing as a generic error.
+                raise _CorpusSourceError("corpus_entry_unusable") from None
             except OSError as error:
                 if error.errno == errno.ELOOP:
                     raise _CorpusSourceError("corpus_entry_escapes_root") from None
@@ -440,6 +451,13 @@ def _corpus_override() -> ValidatedCorpus | None:
 
     if not documents:
         raise _CorpusSourceError("corpus_empty")
+    try:
+        # Bound here, not after login and a submission scan: a manifest that disagrees
+        # with its own files is a corpus failure, and the workflow must report it as
+        # one instead of failing generically half a run later.
+        assert_manifest_covers(entries, tuple(documents))
+    except ManifestError:
+        raise _CorpusSourceError("corpus_entry_unbound") from None
     return ValidatedCorpus(
         documents=tuple(documents),
         entries=entries,
@@ -519,6 +537,14 @@ async def main() -> int:
         print(
             f"FAIL reason=citation_threshold_below_minimum required={required} "
             f"minimum={DEFAULT_REQUIRED_ROWS}"
+        )
+        return 1
+    if required > MAX_RESULTS:
+        # Retrieval caps at MAX_RESULTS, so anything above it is unreachable and the
+        # run would otherwise report a material gap no corpus could close.
+        print(
+            f"FAIL reason=citation_threshold_above_retrieval_limit required={required} "
+            f"retrieval_limit={MAX_RESULTS}"
         )
         return 1
     if len(rows) < required:

@@ -997,6 +997,7 @@ def test_the_gap_line_names_the_selected_corpus(monkeypatch, capsys, tmp_path) -
     _write_corpus(
         tmp_path,
         monkeypatch,
+        status_bearing=2,  # below the required three, so the run reports a gap
         sample_kind="real",
         access_scope="authorized-u02-sources",
         permission="authorized-for-u02",
@@ -1006,8 +1007,6 @@ def test_the_gap_line_names_the_selected_corpus(monkeypatch, capsys, tmp_path) -
     monkeypatch.setattr(smoke, "ACCEPTED_SCOPE", scope)
     monkeypatch.setattr(smoke, "ACCEPTED_SAMPLE_KIND", "real")
     monkeypatch.setattr(smoke, "ACCEPTED_ACCESS_SCOPE", "authorized-u02-sources")
-    # Set after `_install`, which pins it to 3: `_run_override` would re-pin it.
-    monkeypatch.setenv("ULTICODE_CITATION_REQUIRED_ROWS", "5")  # above the fixture
 
     assert smoke.main_sync() == 1
     assert "corpus=authorized-for-u02" in capsys.readouterr().out
@@ -1163,3 +1162,55 @@ def test_the_run_does_not_reopen_a_manifest_it_already_validated(
     assert "rows=3" in output
     rows = json.loads((tmp_path / "verdicts.json").read_text(encoding="utf-8"))
     assert rows and all(str(r["chunk_id"]).startswith("external-status-") for r in rows)
+
+
+def test_a_manifest_that_disagrees_with_its_files_is_refused_at_preflight(
+    monkeypatch, capsys, tmp_path
+) -> None:
+    """Binding happens before the run logs in, not halfway through it."""
+    calls: list[str] = []
+    _install(monkeypatch, tmp_path, ['{"supports": true, "derivable": true}'] * 3, calls)
+    _write_corpus(tmp_path, monkeypatch)
+    manifest = tmp_path / "external-manifest.json"
+    entries = _load_entries(manifest)
+    entries[0]["content_digest"] = content_digest("a different document entirely")
+    entries[0]["chunk_id"] = "external-status-1:v9:7"
+    manifest.write_text(json.dumps(entries, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    assert smoke.main_sync() == 1
+    output = capsys.readouterr().out
+    assert "FAIL reason=corpus_entry_unbound" in output
+    assert "ManifestError" not in output
+    assert calls == []
+
+
+def test_a_threshold_above_the_retrieval_limit_is_refused(
+    monkeypatch, capsys, tmp_path
+) -> None:
+    """A bar retrieval cannot reach must not be reported as a material gap."""
+    calls: list[str] = []
+    _install(monkeypatch, tmp_path, ['{"supports": true, "derivable": true}'] * 3, calls)
+    monkeypatch.setenv("ULTICODE_CITATION_REQUIRED_ROWS", "4")
+
+    assert smoke.main_sync() == 1
+    output = capsys.readouterr().out
+    assert "FAIL reason=citation_threshold_above_retrieval_limit" in output
+    assert "retrieval_limit=3" in output
+    assert "insufficient_citations" not in output
+    assert calls == []
+
+
+def test_a_source_path_containing_a_nul_is_a_structured_failure(
+    monkeypatch, capsys, tmp_path
+) -> None:
+    """os.open refuses a NUL with ValueError, which must still map to a reason."""
+    _write_corpus(tmp_path, monkeypatch)
+    manifest = tmp_path / "external-manifest.json"
+    entries = _load_entries(manifest)
+    entries[0]["source_path"] = "external/bad\u0000.md"
+    manifest.write_text(json.dumps(entries, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    assert _run_override(monkeypatch, tmp_path) == 1
+    output = capsys.readouterr().out
+    assert "FAIL reason=corpus_entry_unusable" in output
+    assert "ValueError" not in output

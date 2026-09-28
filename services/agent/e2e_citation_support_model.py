@@ -260,7 +260,11 @@ async def main() -> int:
         model=model_name,
         # The configured ceiling, not the row count: the adapter owns the guard.
         max_calls=int(os.environ.get("DEEPSEEK_MAX_CALLS", "8")),
-        max_tokens=int(os.environ.get("DEEPSEEK_MAX_TOKENS", "2000")),
+        # A two-boolean judgement needs far less than a full analysis; 512 still
+        # leaves room for a reasoning model's reasoning tokens, which are billed
+        # inside the same budget. Raise it via the environment if a provider
+        # truncates (`finish_reason=length`).
+        max_tokens=int(os.environ.get("DEEPSEEK_MAX_TOKENS", "512")),
     ) as model:
         try:
             for item in rows:
@@ -321,23 +325,23 @@ async def main() -> int:
     loaded = load_verdicts(path, tuple(rows))
     summary = summarize(tuple(rows), loaded)
 
-    print(
-        f"OK citation_support model={model_label(model_name)} judge=model "
-        f"rows={summary['reviewed']} calls={calls} "
-        f"supports={summary['counts']['supports']} "
+    counts = (
+        f"model={model_label(model_name)} judge=model rows={summary['reviewed']} "
+        f"calls={calls} supports={summary['counts']['supports']} "
         f"not_supported={len(summary['not_supported'])} "
         f"integrity_unverified={len(summary['integrity_unverified'])} "
-        f"gate_passed={summary['gate_passed']} verdicts={_path_label(path)} "
+        f"verdicts={_path_label(path)}"
     )
+    if not summary["gate_passed"]:
+        # A citation the model does not support is a failed run, not a pass with a
+        # low score — so no line of this run may start with `OK`.
+        print(f"FAIL reason=citation_gate_failed {counts}")
+        return 1
+    print(f"OK citation_support {counts}")
     print(
         "E2E CITATION SUPPORT | reviewer=model | corpus=agent-authored-synthetic "
         "| human_review=not_performed"
     )
-    if not summary["gate_passed"]:
-        # A citation the model does not support, or one the integrity gate could
-        # not verify, is a failed run — not a pass with a low score.
-        print("FAIL reason=citation_gate_failed")
-        return 1
     return 0
 
 

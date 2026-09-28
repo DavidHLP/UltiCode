@@ -139,6 +139,8 @@ def test_an_unsupported_citation_fails_the_gate(monkeypatch, capsys, tmp_path) -
     output = capsys.readouterr().out
     assert "supports=0" in output
     assert "FAIL reason=citation_gate_failed" in output
+    # No line of a failing run may read as a pass.
+    assert not any(line.startswith("OK ") for line in output.splitlines())
 
 
 def test_fewer_emitted_citations_than_required_is_a_material_gap(

@@ -180,6 +180,34 @@ def test_gate_fails_closed_on_an_unsupported_citation(tmp_path) -> None:
     assert len(result["not_supported"]) == len(items)
 
 
+def test_support_and_derivability_are_reported_separately(tmp_path) -> None:
+    """A citation can support its claim without the claim following from the facts."""
+    items = _worksheet()
+    path = tmp_path / "verdicts.json"
+    path.write_text(
+        json.dumps(
+            [
+                {
+                    "chunk_id": item.chunk_id,
+                    "review_id": item.review_id,
+                    "verdicts": {"exists": True, "supports": True, "derivable": False},
+                    "note": "",
+                }
+                for item in items
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    result = summarize(items, load_verdicts(path, items))
+
+    assert result["not_supported"] == []
+    assert len(result["not_derivable"]) == len(items)
+    assert result["citation_missing"] == []
+    # Still a failed gate: the claim has to follow from the submission facts too.
+    assert result["gate_passed"] is False
+
+
 def test_gate_passes_only_when_every_citation_is_fully_supported(tmp_path) -> None:
     items = _worksheet()
     path = _verdict_file(tmp_path, _row_ids(items))

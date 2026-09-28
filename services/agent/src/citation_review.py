@@ -241,20 +241,33 @@ def summarize(
 ) -> dict[str, object]:
     """Counts plus an explicit pass decision. Disagreement is preserved."""
     counts = {key: 0 for key in VERDICT_KEYS}
-    disagreements: list[str] = []
+    not_supported: list[str] = []
+    not_derivable: list[str] = []
+    missing: list[str] = []
     unverified: list[str] = []
     for item in items:
         verdict = verdicts[item.review_id]
         for key in VERDICT_KEYS:
             counts[key] += 1 if verdict[key] else 0
-        if not (verdict["exists"] and verdict["supports"] and verdict["derivable"]):
-            disagreements.append(item.chunk_id)
+        # Three different findings, reported apart: a fragment that does not
+        # support the claim, a claim that does not follow from the facts alone, and
+        # a citation that is not there at all. Collapsing them hides which one a
+        # row failed on.
+        if not verdict["exists"]:
+            missing.append(item.chunk_id)
+        if not verdict["supports"]:
+            not_supported.append(item.chunk_id)
+        if not verdict["derivable"]:
+            not_derivable.append(item.chunk_id)
         if item.integrity_verdict != "verified":
             unverified.append(item.chunk_id)
+    disagreements = sorted(set(missing) | set(not_supported) | set(not_derivable))
     return {
         "reviewed": len(items),
         "counts": counts,
-        "not_supported": disagreements,
+        "not_supported": not_supported,
+        "not_derivable": not_derivable,
+        "citation_missing": missing,
         "integrity_unverified": unverified,
         # Fails closed on two independent counts: a human must support every
         # citation, and every citation must already have passed the integrity

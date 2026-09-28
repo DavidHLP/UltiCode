@@ -92,6 +92,8 @@ ULTICODE_CITATION_SUPPORT=1 DEEPSEEK_MODEL=<model> \
 uv run python e2e_citation_support_model.py
 ```
 
+`DEEPSEEK_API_KEY` 只在真正进入判定阶段才需要：检索、完整性门禁与引用条数不足（`insufficient_citations`）都在**只读预检**里完成，因此没有凭据也能看到材料缺口。
+
 它只判定**分析实际发出的引用**：每条引用一次模型调用，只问「片段是否支持结论」（`supports` / `derivable`）；`exists` 始终取自确定性完整性门禁，不由模型决定。verdict 写盘后经 `load_verdicts` 读回再汇总，因此仍按重算 id 绑定到具体 claim/quote。少于 `ULTICODE_CITATION_REQUIRED_ROWS`（默认 3）报 `insufficient_citations`；未过**完整性门禁**的引用在**发起任何模型调用之前**就报 `citation_integrity_failed`；verdict 汇总阶段发现不支持的引用报 `citation_gate_failed`。这些都以至退出码 1 结束，不报「低分通过」。输出行标注 `judge=model` 与 `human_review=not_performed`，以便与将来的人工复核记录区分。verdict 默认写到**状态目录**（`$XDG_STATE_HOME` 为绝对路径时用它，否则 `~/.local/state`）下的 `ulticode/citation-verdicts-<随机>.json`：每次运行独立，且不落在 checkout 里，可用 `ULTICODE_CITATION_VERDICTS` 改路径；无论哪种，目标位置都会在**付费调用之前**被独占占位，不可写或已被占用即 `verdict_destination_unusable`；写盘同时生成 `<path>.meta.json` 附属文件，记录判定者（`judge=model`）、模型标签、语料、阈值与提交事实摘要，使 verdict 脱离本次会话仍可解释。密钥只从环境读取，不得写入日志或仓库；上面两条真实模型入口示例中的 `DEEPSEEK_API_KEY=...` 只是占位符，实际运行同样应先在环境中导出。
 
 关键词 vs 向量的最小对照是**评测专用**的，不切换主路径，且需要一次性单机 Qdrant 与 `eval` 依赖组：

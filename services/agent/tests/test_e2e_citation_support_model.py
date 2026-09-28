@@ -604,3 +604,29 @@ def test_the_configured_prompt_budget_reaches_the_adapter(monkeypatch, tmp_path)
     smoke.main_sync()
 
     assert built and built[0].kwargs.get("max_prompt_tokens") == 8000
+
+
+def test_the_corpus_gap_is_reported_without_a_credential(
+    monkeypatch, capsys, tmp_path
+) -> None:
+    """The read-only preflight must not demand a key to report a material gap."""
+    calls: list[str] = []
+    _install(monkeypatch, tmp_path, [], calls)
+    monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
+    monkeypatch.delenv("DEEPSEEK_MODEL", raising=False)
+    monkeypatch.setattr(
+        smoke,
+        "analyze_submission",
+        lambda *_a, **_k: {
+            "facts": ["f"],
+            "hypotheses": ["the status alone does not locate a code line"],
+            "citations": [],
+            "citation_checks": [],
+        },
+    )
+
+    assert smoke.main_sync() == 1
+    output = capsys.readouterr().out
+    assert "reason=insufficient_citations" in output
+    assert "deepseek_api_key_required" not in output
+    assert calls == []

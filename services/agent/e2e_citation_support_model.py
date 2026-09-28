@@ -215,14 +215,6 @@ async def main() -> int:
     if os.environ.get("ULTICODE_CITATION_SUPPORT") != "1":
         print("SKIP reason=opt_in_not_set")
         return 0
-    model_name = os.environ.get("DEEPSEEK_MODEL", "").strip()
-    if not model_name:
-        print("FAIL reason=deepseek_model_required")
-        return 1
-    if not os.environ.get("DEEPSEEK_API_KEY", "").strip():
-        print("FAIL reason=deepseek_api_key_required")
-        return 1
-
     documents = load_sample_corpus()
     manifest = load_manifest()
     async with UlticodeClient(APP_BASE, AUTH_BASE) as client:
@@ -275,6 +267,16 @@ async def main() -> int:
             f"FAIL reason=insufficient_citations emitted={len(rows)} required={required} "
             f"corpus=agent-authored-synthetic"
         )
+        return 1
+
+    # Everything above is read-only, so a corpus gap is reported without asking for a
+    # credential. Required from here on: the next step is a billed call.
+    model_name = os.environ.get("DEEPSEEK_MODEL", "").strip()
+    if not model_name:
+        print("FAIL reason=deepseek_model_required")
+        return 1
+    if not os.environ.get("DEEPSEEK_API_KEY", "").strip():
+        print("FAIL reason=deepseek_api_key_required")
         return 1
 
     facts = json.dumps(matching, ensure_ascii=False, default=str)

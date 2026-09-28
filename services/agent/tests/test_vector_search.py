@@ -854,6 +854,30 @@ def test_an_unusable_embedding_path_cannot_forge_an_evidence_line(
     assert "OK comparison" not in output
 
 
+def test_a_run_scoped_collection_replaces_the_shared_one() -> None:
+    """A fixed collection is shared mutable state between runs."""
+    smoke = e2e_vector_comparison
+    from vector_search import COLLECTION, build_index
+
+    first = smoke._run_collection()
+    second = smoke._run_collection()
+
+    assert first != second
+    assert first.startswith(f"{COLLECTION}-") and second.startswith(f"{COLLECTION}-")
+
+    client = _FakeClient()
+    embedder = _FakeEmbedder()
+    build_index(
+        client,
+        load_sample_corpus(),
+        embedder=embedder,
+        config_factory=_stub_config,
+        collection=first,
+    )
+    assert client.collection["name"] == first
+    assert COLLECTION not in client.existing
+
+
 def test_a_relative_home_cannot_place_the_marker(tmp_path, monkeypatch) -> None:
     """`Path.home()` follows HOME, so a relative HOME is not a state directory."""
     smoke = e2e_vector_comparison

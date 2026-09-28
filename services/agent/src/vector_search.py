@@ -121,6 +121,7 @@ def build_index(
     embedder: Embedder | None = None,
     allow_recreate: bool = False,
     config_factory: Callable[[], object] | None = None,
+    collection: str = COLLECTION,
 ) -> int:
     """Upsert one point per source document and return how many were indexed.
 
@@ -135,21 +136,21 @@ def build_index(
     # while a real run always uses the real VectorParams builder.
     config = (config_factory or _collection_config)()
     if allow_recreate:
-        client.recreate_collection(collection_name=COLLECTION, vectors_config=config)  # type: ignore[attr-defined]
+        client.recreate_collection(collection_name=collection, vectors_config=config)  # type: ignore[attr-defined]
     else:
         # Non-destructive create: a check-then-recreate sequence could still
         # delete a collection another process created in between.
         try:
-            client.create_collection(collection_name=COLLECTION, vectors_config=config)  # type: ignore[attr-defined]
+            client.create_collection(collection_name=collection, vectors_config=config)  # type: ignore[attr-defined]
         except Exception as error:  # noqa: BLE001 - qdrant raises its own conflict type
             if "already exist" in str(error).lower():
                 raise ValueError(
-                    f"collection {COLLECTION!r} already exists; pass allow_recreate=True "
+                    f"collection {collection!r} already exists; pass allow_recreate=True "
                     "only on a disposable instance"
                 ) from None
             raise
     client.upsert(  # type: ignore[attr-defined]
-        collection_name=COLLECTION,
+        collection_name=collection,
         points=[
             {
                 "id": index,
@@ -165,7 +166,7 @@ def build_index(
         ],
     )
     client.create_payload_index(  # type: ignore[attr-defined]
-        collection_name=COLLECTION,
+        collection_name=collection,
         field_name="doc_id",
         field_schema="keyword",
     )
@@ -179,6 +180,7 @@ def search(
     limit: int,
     embedder: Embedder | None = None,
     min_score: float = MIN_SCORE,
+    collection: str = COLLECTION,
 ) -> list[str]:
     """Return retrieved doc ids above ``min_score``, closest first.
 
@@ -188,7 +190,7 @@ def search(
     """
     vector = (embedder or FastembedEmbedder()).embed([query])[0]
     hits = client.query_points(  # type: ignore[attr-defined]
-        collection_name=COLLECTION,
+        collection_name=collection,
         query=vector,
         limit=limit,
         with_payload=True,

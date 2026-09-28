@@ -37,6 +37,7 @@ from datetime import datetime, timedelta, timezone
 import os
 import atexit
 import re
+import secrets
 import sys
 from pathlib import Path
 
@@ -129,6 +130,17 @@ def _release_run_lock(lock: Path) -> None:
         pass
 
 
+def _run_collection() -> str:
+    """This run's own collection name.
+
+    A fixed name is shared mutable state: two runs on one Qdrant could rebuild or
+    upsert it concurrently, and the loser's vectors could decide the winner's
+    score. A run-scoped name removes the shared resource instead of serialising
+    access to it, and nothing pre-existing is ever dropped.
+    """
+    return f"{COLLECTION}-{secrets.token_hex(4)}"
+
+
 def _report_run_lock_failure(error: BaseException) -> None:
     """Emit the lock failure without echoing a caller-supplied path verbatim."""
     print(f"FAIL reason=run_lock_unavailable detail={_evidence_path(error)}")
@@ -137,12 +149,12 @@ def _report_run_lock_failure(error: BaseException) -> None:
 def _acquire_run_lock() -> Path:
     """Hold the collection lifecycle, or refuse to start.
 
-    Exclusive creation, so two opted-in runs sharing ``QDRANT_URL`` cannot
-    interleave: without it the loser can rebuild or upsert the collection while
-    the winner is scoring, and the winner then consumes the one-shot set with
-    vectors another run produced. Released on exit, failures included. A killed
-    process leaves the file behind, which fails closed with the path in the
-    message rather than racing.
+    One comparison run per state directory. The index itself is run-scoped
+    (:func:`_run_collection`), so concurrent runs on one Qdrant no longer share
+    mutable state; what this serialises is the run's own one-shot marker and its
+    billed calls. Released on exit, failures included. A killed process leaves the
+    file behind, which fails closed with the path in the message rather than
+    racing.
     """
     lock = _run_lock_path()
     try:
@@ -497,8 +509,9 @@ def main() -> int:
 
     # One snapshot for both arms: reloading per query could index the vector arm
     # on text the keyword arm no longer sees.
-    # Held for the whole collection lifecycle, not just the confirmation
-    # claim: the index is shared state between runs.
+    # The collection is run-scoped, so Qdrant no longer carries state two runs
+    # could fight over. The lock keeps one comparison run per state directory:
+    # the one-shot set and the billed calls are still worth serialising.
     try:
         _acquire_run_lock()
     except RuntimeError as error:
@@ -516,12 +529,15 @@ def main() -> int:
             f"before={embed_identity} after={artifact_identity(model_path)}"
         )
         return 1
+    collection = _run_collection()
     indexed = build_index(
         client,
         corpus,
         embedder=embedder,
-        # Only ever pointed at a disposable instance; see build_index.
+        # The name is fresh, so nothing pre-existing is ever recreated; the
+        # opt-in survives for callers that pass the historical fixed name.
         allow_recreate=os.environ.get("QDRANT_ALLOW_RECREATE") == "1",
+        collection=collection,
     )
 
     def keyword(query: str, limit: int) -> list[str]:
@@ -530,7 +546,7 @@ def main() -> int:
         ]
 
     def vector(query: str, limit: int) -> list[str]:
-        return search(client, query, limit=limit, embedder=embedder)
+        return search(client, query, limit=limit, embedder=embedder, collection=collection)
 
     arms = (("keyword", keyword), ("vector", vector))
 
@@ -591,6 +607,15 @@ def main() -> int:
         f"marker_location={_evidence_path(scope)} shared_durability=unverified_by_this_run"
     )
 
+    # Best effort: the collection belongs to this run, so nothing else can be
+    # relying on it and a failed delete is reported rather than raised.
+    try:
+        client.delete_collection(collection_name=collection)
+    except Exception:  # noqa: BLE001 - cleanup must not fail the run
+        print(f"collection_cleanup=failed name={collection}")
+    else:
+        print(f"collection_cleanup=deleted name={collection}")
+
     print(
         f"OK comparison corpus=agent-authored-synthetic "
         f"corpus_digest={_corpus_digest(corpus)} "
@@ -605,7 +630,7 @@ def main() -> int:
         # preprocessing applied to those bytes.
         f"embed_model={EMBED_MODEL} "
         f"min_score={MIN_SCORE} "
-        f"collection={COLLECTION} "
+        f"collection={collection} collection_scope=run_unique "
         f"development={len(development)} contaminated={len(contaminated)} "
         f"confirmation={len(confirmation)} "
         f"evaluated_total={len(development) + len(contaminated) + len(confirmation)} "

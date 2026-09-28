@@ -82,17 +82,18 @@ DEEPSEEK_API_KEY=... DEEPSEEK_MODEL=<model> \
 uv run python e2e_model_qa.py
 ```
 
-引用支持判定（**模型执行**，不是人工核对）是另一条显式 opt-in 的真实模型入口：
+引用支持判定由**模型执行**（所有者已把本阶段改为 AI 执行；人工复核保留为后续可选的学习补充，不是验收前提）。它是另一条显式 opt-in 的真实模型入口：
 
 ```bash
 cd services/agent
+# DEEPSEEK_API_KEY 先在环境中导出；不要把值内联进命令，shell 历史会留下它。
 ULTICODE_CITATION_SUPPORT=1 \
 ULTICODE_E2E_USERNAME=... ULTICODE_E2E_PASSWORD=... \
-DEEPSEEK_API_KEY=... DEEPSEEK_MODEL=<model> \
+DEEPSEEK_MODEL=<model> \
 uv run python e2e_citation_support_model.py
 ```
 
-它只判定**分析实际发出的引用**：每条引用一次模型调用，只问「片段是否支持结论」（`supports` / `derivable`）；`exists` 始终取自确定性完整性门禁，不由模型决定。verdict 写盘后经 `load_verdicts` 读回再汇总，因此仍按重算 id 绑定到具体 claim/quote。少于 `ULTICODE_CITATION_REQUIRED_ROWS`（默认 3）报 `insufficient_citations`，不支持的引用或未过完整性门禁的行报 `citation_gate_failed`，两者都以退出码 1 结束，不报「低分通过」。输出行标注 `judge=model` 与 `human_review=not_performed`：它**不能**替代验收中的人工语义复核，人工部分保留为后续补充。密钥只从环境读取，不得写入日志或仓库，也不要放进可见的命令行参数。
+它只判定**分析实际发出的引用**：每条引用一次模型调用，只问「片段是否支持结论」（`supports` / `derivable`）；`exists` 始终取自确定性完整性门禁，不由模型决定。verdict 写盘后经 `load_verdicts` 读回再汇总，因此仍按重算 id 绑定到具体 claim/quote。少于 `ULTICODE_CITATION_REQUIRED_ROWS`（默认 3）报 `insufficient_citations`，不支持的引用或未过完整性门禁的行报 `citation_gate_failed`，两者都以退出码 1 结束，不报「低分通过」。输出行标注 `judge=model` 与 `human_review=not_performed`，以便与将来的人工复核记录区分。密钥只从环境读取，不得写入日志或仓库；上面两条真实模型入口示例中的 `DEEPSEEK_API_KEY=...` 只是占位符，实际运行同样应先在环境中导出。
 
 关键词 vs 向量的最小对照是**评测专用**的，不切换主路径，且需要一次性单机 Qdrant 与 `eval` 依赖组：
 

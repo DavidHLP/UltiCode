@@ -858,3 +858,77 @@ def test_a_colliding_temporary_is_not_unlinked(tmp_path, monkeypatch) -> None:
     # Created by someone else, so this run's cleanup must not have touched it.
     assert other.read_text(encoding="utf-8") == "another publisher's bytes"
     assert not destination.exists()
+
+
+def _load_entries(manifest) -> list[dict]:
+    return json.loads(manifest.read_text(encoding="utf-8"))
+
+
+def _run_override(monkeypatch, tmp_path) -> int:
+    calls: list[str] = []
+    _install(monkeypatch, tmp_path, ['{"supports": true, "derivable": true}'] * 3, calls)
+    return smoke.main_sync()
+
+
+def test_two_entries_over_one_file_are_refused(monkeypatch, capsys, tmp_path) -> None:
+    """One fragment counted three times must not satisfy a three-citation gate."""
+    _write_corpus(tmp_path, monkeypatch)
+    manifest = tmp_path / "external-manifest.json"
+    entries = _load_entries(manifest)
+    entries[1]["source_path"] = entries[0]["source_path"]  # distinct ids, one file
+    manifest.write_text(json.dumps(entries, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    assert _run_override(monkeypatch, tmp_path) == 1
+    assert "FAIL reason=corpus_entry_duplicate_source" in capsys.readouterr().out
+
+
+def test_a_declared_position_the_file_does_not_have_is_refused(
+    monkeypatch, capsys, tmp_path
+) -> None:
+    """A location that does not exist must not reach the citation as verified."""
+    _write_corpus(tmp_path, monkeypatch)
+    manifest = tmp_path / "external-manifest.json"
+    entries = _load_entries(manifest)
+    entries[0]["source_position"] = "lines 900-999"
+    manifest.write_text(json.dumps(entries, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    assert _run_override(monkeypatch, tmp_path) == 1
+    assert "FAIL reason=corpus_entry_position_mismatch" in capsys.readouterr().out
+
+
+def test_a_malformed_manifest_is_a_structured_failure(
+    monkeypatch, capsys, tmp_path
+) -> None:
+    """A broken manifest must produce the evidence line, not a traceback."""
+    _write_corpus(tmp_path, monkeypatch)
+    manifest = tmp_path / "external-manifest.json"
+    manifest.write_text("{not json", encoding="utf-8")
+
+    assert _run_override(monkeypatch, tmp_path) == 1
+    output = capsys.readouterr().out
+    assert "FAIL reason=corpus_manifest_unusable" in output
+    assert "Traceback" not in output
+
+
+def test_the_evidence_label_comes_from_the_pinned_policy(
+    monkeypatch, capsys, tmp_path
+) -> None:
+    """A non-synthetic corpus must not be reported as synthetic in its own metadata."""
+    scope = "operator-authorized U02 sources for the acceptance run"
+    _write_corpus(
+        tmp_path,
+        monkeypatch,
+        sample_kind="real",
+        access_scope="authorized-u02-sources",
+        permission="authorized-for-u02",
+        scope=scope,
+    )
+    monkeypatch.setattr(smoke, "ACCEPTED_PERMISSION", "authorized-for-u02")
+    monkeypatch.setattr(smoke, "ACCEPTED_SCOPE", scope)
+
+    assert _run_override(monkeypatch, tmp_path) == 0
+    meta = json.loads(
+        (tmp_path / "verdicts.json.meta.json").read_text(encoding="utf-8")
+    )
+    assert meta["corpus"] == "authorized-for-u02"
+    assert "corpus=authorized-for-u02" in capsys.readouterr().out

@@ -446,3 +446,23 @@ def test_the_unit_seam_still_refuses_authorized_material(tmp_path) -> None:
             documents=documents,
             manifest_path=manifest,
         )
+
+
+def test_the_seam_refuses_a_licensed_permission_on_a_synthetic_document(
+    tmp_path,
+) -> None:
+    """Document fields are half the claim; the manifest permission is the other half."""
+    documents = tuple(_synthetic_status_document(i) for i in (1, 2, 3))
+    entries = _manifest_entries(documents)
+    for entry in entries:
+        entry["permission"] = "licensed-third-party"
+        entry["scope"] = "licensed material"
+    manifest = _write_manifest(entries, tmp_path)
+
+    with pytest.raises(ValueError, match="synthetic permission"):
+        analyze_submission(
+            {"id": "sub-1", "status": "Wrong Answer"},
+            "Wrong Answer citation",
+            documents=documents,
+            manifest_path=manifest,
+        )

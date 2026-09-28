@@ -7,7 +7,11 @@ from pathlib import Path
 import unicodedata
 
 from citation_integrity import check_citations
-from corpus_manifest import assert_manifest_covers, load_manifest
+from corpus_manifest import (
+    SYNTHETIC_PERMISSIONS,
+    assert_manifest_covers,
+    load_manifest,
+)
 from retrieval import (
     MAX_SOURCE_CHARS,
     SourceDocument,
@@ -106,6 +110,12 @@ def _validated_corpus(
                 or document.access_scope != "agent-authored-synthetic"
             ):
                 raise ValueError("supplied corpus must be agent-authored synthetic")
+        for entry in entries:
+            # The document fields are only half of the claim: load_manifest accepts a
+            # synthetic document whose manifest entry declares a licensed permission,
+            # and that is precisely what this seam must never let through.
+            if entry.permission not in SYNTHETIC_PERMISSIONS:
+                raise ValueError("supplied corpus must declare a synthetic permission")
     if accepted is not None:
         permission, scope = accepted
         for entry in entries:

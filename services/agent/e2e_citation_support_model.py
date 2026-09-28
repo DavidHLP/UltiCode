@@ -31,7 +31,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from citation_review import build_worksheet, load_verdicts, summarize
-from corpus_manifest import load_manifest
+from corpus_manifest import ManifestError, load_manifest
 from deepseek_model import (
     DeepseekModel,
     ModelProtocolError,
@@ -296,9 +296,18 @@ def _corpus_override() -> tuple[tuple[SourceDocument, ...] | None, Path | None]:
     root = Path(directory)
     if root.is_symlink() or not root.is_dir():
         raise _CorpusSourceError("corpus_root_unusable")
+    try:
+        entries = load_manifest(Path(manifest))
+    except ManifestError:
+        # Validation failures are already precise, but the operator contract is one
+        # evidence line, not a traceback that leaks configured paths.
+        raise _CorpusSourceError("corpus_manifest_unusable") from None
+    except (OSError, UnicodeError):
+        raise _CorpusSourceError("corpus_manifest_unusable") from None
     resolved_root = root.resolve()
     documents: list[SourceDocument] = []
-    for entry in load_manifest(Path(manifest)):
+    seen_sources: dict[Path, str] = {}
+    for entry in entries:
         if entry.permission != ACCEPTED_PERMISSION or entry.scope != ACCEPTED_SCOPE:
             raise _CorpusSourceError("corpus_declaration_unsupported")
         path = root / Path(entry.source_path).name
@@ -308,9 +317,21 @@ def _corpus_override() -> tuple[tuple[SourceDocument, ...] | None, Path | None]:
             raise _CorpusSourceError("corpus_entry_escapes_root")
         if not path.is_file():
             raise _CorpusSourceError("corpus_entry_missing")
+        # Distinct ids over one resolved file would count a single fragment as
+        # several citations — enough to pass the three-citation gate on a repeat.
+        resolved = path.resolve()
+        if resolved in seen_sources:
+            raise _CorpusSourceError("corpus_entry_duplicate_source")
+        seen_sources[resolved] = entry.doc_id
         text = path.read_text(encoding="utf-8").strip()
         if not text or len(text) > MAX_SOURCE_CHARS:
             raise _CorpusSourceError("corpus_entry_unusable")
+        # Derived from the file, never copied from the manifest: a one-line document
+        # declaring `lines 900-999` would otherwise travel into the citation as a
+        # verified location that does not exist.
+        source_position = f"lines 1-{len(text.splitlines())}"
+        if entry.source_position != source_position:
+            raise _CorpusSourceError("corpus_entry_position_mismatch")
         documents.append(
             SourceDocument(
                 doc_id=entry.doc_id,
@@ -319,7 +340,7 @@ def _corpus_override() -> tuple[tuple[SourceDocument, ...] | None, Path | None]:
                 access_scope=entry.access_scope,
                 sample_kind=entry.sample_kind,
                 text=text,
-                source_position=entry.source_position,
+                source_position=source_position,
             )
         )
     if not documents:
@@ -340,9 +361,13 @@ async def main() -> int:
     if corpus is None:
         documents = load_sample_corpus()
         manifest = load_manifest()
+        corpus_label = "agent-authored-synthetic"
     else:
         documents = corpus
         manifest = load_manifest(manifest_path)
+        # Whatever the run pinned and validated — not a hardcoded "synthetic", which
+        # would misreport authorised material in the persisted verdict metadata.
+        corpus_label = ACCEPTED_PERMISSION
     async with UlticodeClient(APP_BASE, AUTH_BASE) as client:
         await client.login(
             os.environ["ULTICODE_E2E_USERNAME"], os.environ["ULTICODE_E2E_PASSWORD"]
@@ -509,7 +534,7 @@ async def main() -> int:
         "judge": "model",
         "model": model_label(model_name),
         "human_review": "not_performed",
-        "corpus": "agent-authored-synthetic",
+        "corpus": corpus_label,
         "submission_facts_digest": facts_digest,
         "required_rows": required,
     }
@@ -552,7 +577,7 @@ async def main() -> int:
         return 1
     print(f"OK citation_support {counts}")
     print(
-        "E2E CITATION SUPPORT | reviewer=model | corpus=agent-authored-synthetic "
+        f"E2E CITATION SUPPORT | reviewer=model | corpus={corpus_label} "
         "| human_review=not_performed"
     )
     return 0

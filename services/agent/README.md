@@ -62,6 +62,41 @@ the deterministic sample slice only. The executable keyword evaluation is versio
 module; authorized-corpus, vector-retrieval, real-model evaluation, and isolation evidence are
 tracked in the U02 Linear tasks.
 
+### Corpus override for the acceptance entry point
+
+`e2e_citation_support_model.py` can analyse a corpus outside the repository instead of the
+pinned sample, without editing either:
+
+```bash
+ULTICODE_CITATION_SUPPORT=1 DEEPSEEK_MODEL=<model> \
+ULTICODE_CITATION_CORPUS_DIR=/absolute/path/to/corpus \
+ULTICODE_CITATION_CORPUS_MANIFEST=/absolute/path/to/manifest.json \
+uv run python e2e_citation_support_model.py
+```
+
+Contract — every violation is a fixed `FAIL reason=...` evidence line and exit 1:
+
+- **Both variables or neither.** One set alone → `corpus_source_incomplete`. The run never
+  falls back to the pinned corpus: reporting evidence from a different corpus than the one it
+  was asked for is worse than stopping.
+- **Declarations come from the manifest.** Missing, unreadable, invalid or non-conforming
+  manifest → `corpus_manifest_unusable`. Every entry must declare exactly `ACCEPTED_PERMISSION`
+  and `ACCEPTED_SCOPE`, the policy the run pins in source → `corpus_declaration_unsupported`.
+- **One file per entry**, resolved through the manifest's own `source_path` basename under the
+  corpus directory: symlinked entry → `corpus_entry_escapes_root`; missing file →
+  `corpus_entry_missing`; two entries resolving to one file → `corpus_entry_duplicate_source`
+  (a single fragment must never count as several citations); empty or over `MAX_SOURCE_CHARS`
+  → `corpus_entry_unusable`.
+- **Positions are derived from the loaded text.** A manifest position that does not match the
+  file → `corpus_entry_position_mismatch`, so a citation cannot cite a location that does not
+  exist.
+- With neither variable set, behaviour is exactly the pinned, manifest-gated sample corpus.
+
+The policy is two pinned constants in `e2e_citation_support_model.py`. Authorised material
+(DAV-58) changes them together with its manifest in a reviewed commit; a corpus file cannot
+grant itself a policy. The evidence line and the verdict metadata report that pinned permission
+as `corpus=...`, so a non-synthetic corpus is never labelled synthetic.
+
 `data/keyword_cases.json` annotates every case with `required_evidence`, `answerable`,
 `expected_behavior` (`cite`, `no_evidence`, or `refuse`), `allowed_behavior`, and
 `forbidden_behavior`; the loader rejects a case missing any of them. `refuse` marks questions the

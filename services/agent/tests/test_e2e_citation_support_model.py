@@ -143,8 +143,9 @@ def test_an_unsupported_citation_fails_the_gate(monkeypatch, capsys, tmp_path) -
     assert "FAIL reason=citation_gate_failed" in output
     # No line of a failing run may read as a pass.
     assert not any(line.startswith("OK ") for line in output.splitlines())
-    # The failure names which check rejected the citations.
-    assert "not_derivable=0" in output
+    # The failure names which check rejected the citations: the fixture's verdicts
+    # are `supports=false, derivable=false`, so both counts are visible.
+    assert f"not_derivable={len(calls)}" in output
     assert "citation_missing=0" in output
 
 

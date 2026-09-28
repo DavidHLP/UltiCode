@@ -19,12 +19,12 @@ from __future__ import annotations
 
 import asyncio
 import atexit
+import errno
 import fcntl
 import hashlib
 import json
 import os
 import secrets
-import stat as stat_module
 import stat
 import sys
 from pathlib import Path
@@ -40,7 +40,7 @@ from deepseek_model import (
     model_label,
 )
 from retrieval import MAX_SOURCE_CHARS, SourceDocument, load_sample_corpus
-from sourced_analysis import analyze_submission, analyze_authorized_submission, first_wrong_answer_submission
+from sourced_analysis import ValidatedCorpus, analyze_submission, analyze_authorized_submission, first_wrong_answer_submission
 from ulticode_client import UlticodeClient
 from ulticode_tools import build_tools
 
@@ -270,26 +270,37 @@ ACCEPTED_SCOPE = (
     "synthetic sample corpus for the local deterministic slice; "
     "not user or licensed material"
 )
+#: The rest of the material class. Permission alone would let a synthetic document
+#: ride under an authorised permission once those two constants change for DAV-58, so
+#: all four travel together in one reviewed change.
+ACCEPTED_SAMPLE_KIND = "synthetic"
+ACCEPTED_ACCESS_SCOPE = "agent-authored-synthetic"
 
 
 class _CorpusSourceError(ValueError):
     """A half-configured or unusable corpus override."""
 
 
-def _corpus_override() -> tuple[tuple[SourceDocument, ...] | None, Path | None]:
-    """The corpus this run points at, or ``(None, None)`` for the pinned default.
+def _corpus_override() -> ValidatedCorpus | None:
+    """The corpus this run points at, or ``None`` for the pinned default.
 
-    Everything comes from the manifest: declarations first (`load_manifest` checks
-    permission, scope, projection and source trust), then one file per entry under the
-    corpus directory, keyed by the manifest's own ``source_path`` basename. Nothing is
-    inferred from filenames alone, so a file the manifest does not declare cannot
-    reach the model, and a declared file that is missing or over the source cap stops
-    the run instead of silently shrinking the corpus.
+    The manifest is read **once** here. Its parsed entries, the documents they
+    describe, and the four pinned declarations travel together as one immutable
+    snapshot, so retrieval, the worksheet and the verdict metadata all describe the
+    same material even if the file is replaced mid-run.
+
+    Declarations come first (`load_manifest` checks permission, scope, projection and
+    source trust), and every entry must declare exactly the material class this run
+    pins — permission, scope, sample kind and access scope. Files are opened relative
+    to one root descriptor opened with `O_DIRECTORY|O_NOFOLLOW`, so neither the root
+    nor an entry can be swapped for a link between the check and the read; `fstat`
+    gives the identity of the bytes actually read, and the bounded read must reach
+    EOF, so a size check can never be satisfied by a prefix of a larger file.
     """
     directory = os.environ.get(CORPUS_DIR_ENV, "").strip()
     manifest = os.environ.get(CORPUS_MANIFEST_ENV, "").strip()
     if not directory and not manifest:
-        return None, None
+        return None
     if not directory or not manifest:
         # Falling back to the pinned corpus here would report evidence from a
         # different corpus than the one this run asked for.
@@ -314,92 +325,123 @@ def _corpus_override() -> tuple[tuple[SourceDocument, ...] | None, Path | None]:
         raise _CorpusSourceError("corpus_manifest_unusable") from None
     except (OSError, UnicodeError):
         raise _CorpusSourceError("corpus_manifest_unusable") from None
+
+    pinned = (
+        ACCEPTED_PERMISSION,
+        ACCEPTED_SCOPE,
+        ACCEPTED_SAMPLE_KIND,
+        ACCEPTED_ACCESS_SCOPE,
+    )
+    for entry in entries:
+        declared = (entry.permission, entry.scope, entry.sample_kind, entry.access_scope)
+        if declared != pinned:
+            raise _CorpusSourceError("corpus_declaration_unsupported")
+
+    try:
+        root_fd = os.open(root, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    except OSError:
+        raise _CorpusSourceError("corpus_root_unusable") from None
+
     documents: list[SourceDocument] = []
     seen_sources: dict[tuple[int, int], str] = {}
     seen_texts: dict[str, str] = {}
-    for entry in entries:
-        if entry.permission != ACCEPTED_PERMISSION or entry.scope != ACCEPTED_SCOPE:
-            raise _CorpusSourceError("corpus_declaration_unsupported")
-        path = root / Path(entry.source_path).name
-        # The manifest supplies the basename, so the entry lives directly under the
-        # root; a symlink there would pull text from outside the authorised directory.
-        if path.is_symlink():
-            raise _CorpusSourceError("corpus_entry_escapes_root")
-        if not path.is_file():
-            raise _CorpusSourceError("corpus_entry_missing")
-        # Distinct ids over one *file* would count a single fragment as several
-        # citations — enough to pass the three-citation gate on a repeat. Resolved
-        # pathnames do not catch a hard link exposed under two names, so identity is
-        # the filesystem's: device and inode.
-        # One open, once: a directory that can be modified between the symlink check
-        # and the read would otherwise let this entry be swapped for a link that the
-        # second open follows. O_NOFOLLOW refuses it at the kernel, and fstat gives
-        # the identity of the bytes actually read rather than of the path.
-        try:
-            descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
-        except OSError:
-            raise _CorpusSourceError("corpus_entry_escapes_root") from None
-        try:
-            info = os.fstat(descriptor)
-            if not stat_module.S_ISREG(info.st_mode):
-                raise _CorpusSourceError("corpus_entry_escapes_root")
-            identity = (info.st_dev, info.st_ino)
-            if identity in seen_sources:
-                raise _CorpusSourceError("corpus_entry_duplicate_source")
-            seen_sources[identity] = entry.doc_id
-            with os.fdopen(descriptor, "rb") as stream:
-                payload = stream.read(MAX_SOURCE_CHARS * 4 + 1)
-            descriptor = -1
-        except _CorpusSourceError:
-            raise
-        except OSError:
-            raise _CorpusSourceError("corpus_entry_unusable") from None
-        finally:
-            if descriptor >= 0:
+    try:
+        for entry in entries:
+            filename = Path(entry.source_path).name
+            # Relative to the anchored root, with O_NOFOLLOW for the name itself: a
+            # symlink cannot be followed, and a missing file is its own reason.
+            try:
+                descriptor = os.open(
+                    filename, os.O_RDONLY | os.O_NOFOLLOW, dir_fd=root_fd
+                )
+            except OSError as error:
+                if error.errno == errno.ELOOP:
+                    raise _CorpusSourceError("corpus_entry_escapes_root") from None
+                if error.errno in (errno.ENOENT, errno.ENOTDIR):
+                    raise _CorpusSourceError("corpus_entry_missing") from None
+                raise _CorpusSourceError("corpus_entry_unusable") from None
+            try:
+                info = os.fstat(descriptor)
+                if not stat.S_ISREG(info.st_mode):
+                    raise _CorpusSourceError("corpus_entry_escapes_root")
+                identity = (info.st_dev, info.st_ino)
+                if identity in seen_sources:
+                    raise _CorpusSourceError("corpus_entry_duplicate_source")
+                seen_sources[identity] = entry.doc_id
+            except _CorpusSourceError:
                 os.close(descriptor)
-        try:
-            raw = payload.decode("utf-8")
-        except UnicodeError:
-            # Not UTF-8 is an unusable entry, not a crash: automation keys off the
-            # documented reason.
-            raise _CorpusSourceError("corpus_entry_unusable") from None
-        text = raw.strip()
-        # Byte-for-byte copies under separate names have separate inodes, so identity
-        # alone would let one fragment be counted three times.
-        digest = hashlib.sha256(text.encode("utf-8")).hexdigest()
-        if digest in seen_texts:
-            raise _CorpusSourceError("corpus_entry_duplicate_content")
-        seen_texts[digest] = entry.doc_id
-        if not text or len(text) > MAX_SOURCE_CHARS:
-            raise _CorpusSourceError("corpus_entry_unusable")
-        # Derived from the raw file, never copied from the manifest: a one-line
-        # document declaring `lines 900-999` would otherwise travel into the citation
-        # as a verified location that does not exist, and leading blank lines are
-        # still physical lines the position has to cover.
-        physical = raw.splitlines()
-        # First and last *non-blank* physical line: the range has to name where the
-        # content actually sits, so a file with leading blanks reads `lines 3-5`, not
-        # `lines 1-5`.
-        populated = [
-            index + 1 for index, line in enumerate(physical) if line.strip()
-        ]
-        source_position = f"lines {populated[0]}-{populated[-1]}"
-        if entry.source_position != source_position:
-            raise _CorpusSourceError("corpus_entry_position_mismatch")
-        documents.append(
-            SourceDocument(
-                doc_id=entry.doc_id,
-                version=entry.version,
-                source_path=entry.source_path,
-                access_scope=entry.access_scope,
-                sample_kind=entry.sample_kind,
-                text=text,
-                source_position=source_position,
+                raise
+            except OSError:
+                os.close(descriptor)
+                raise _CorpusSourceError("corpus_entry_unusable") from None
+            try:
+                stream = os.fdopen(descriptor, "rb")
+            except OSError:
+                os.close(descriptor)
+                raise _CorpusSourceError("corpus_entry_unusable") from None
+            # Ownership moves with fdopen: the context manager closes it, so no later
+            # cleanup may close this descriptor again and mask the real reason.
+            descriptor = -1
+            try:
+                with stream:
+                    payload = stream.read(MAX_SOURCE_CHARS * 4 + 1)
+                    if stream.read(1):
+                        # The file does not end inside the bounded read. Decoding and
+                        # stripping would accept a prefix while an arbitrarily large
+                        # suffix stayed unread, binding the size check and the digest
+                        # to a prefix instead of the file.
+                        raise _CorpusSourceError("corpus_entry_unusable")
+            except OSError:
+                raise _CorpusSourceError("corpus_entry_unusable") from None
+            try:
+                raw = payload.decode("utf-8")
+            except UnicodeError:
+                # Not UTF-8 is an unusable entry, not a crash: automation keys off
+                # the documented reason.
+                raise _CorpusSourceError("corpus_entry_unusable") from None
+            text = raw.strip()
+            if not text or len(text) > MAX_SOURCE_CHARS:
+                raise _CorpusSourceError("corpus_entry_unusable")
+            # Byte-for-byte copies under separate names have separate inodes, so
+            # identity alone would let one fragment be counted several times.
+            digest = hashlib.sha256(text.encode("utf-8")).hexdigest()
+            if digest in seen_texts:
+                raise _CorpusSourceError("corpus_entry_duplicate_content")
+            seen_texts[digest] = entry.doc_id
+            # Derived from the raw file, never copied from the manifest: a document
+            # declaring `lines 900-999` would otherwise travel into the citation as a
+            # verified location that does not exist, and leading blank lines are still
+            # physical lines the position has to cover. First and last non-blank.
+            physical = raw.splitlines()
+            populated = [index + 1 for index, line in enumerate(physical) if line.strip()]
+            source_position = f"lines {populated[0]}-{populated[-1]}"
+            if entry.source_position != source_position:
+                raise _CorpusSourceError("corpus_entry_position_mismatch")
+            documents.append(
+                SourceDocument(
+                    doc_id=entry.doc_id,
+                    version=entry.version,
+                    source_path=entry.source_path,
+                    access_scope=entry.access_scope,
+                    sample_kind=entry.sample_kind,
+                    text=text,
+                    source_position=source_position,
+                )
             )
-        )
+    finally:
+        os.close(root_fd)
+
     if not documents:
         raise _CorpusSourceError("corpus_empty")
-    return tuple(documents), Path(manifest)
+    return ValidatedCorpus(
+        documents=tuple(documents),
+        entries=entries,
+        accepted_permission=ACCEPTED_PERMISSION,
+        accepted_scope=ACCEPTED_SCOPE,
+        accepted_sample_kind=ACCEPTED_SAMPLE_KIND,
+        accepted_access_scope=ACCEPTED_ACCESS_SCOPE,
+    )
+
 
 async def main() -> int:
     if os.environ.get("ULTICODE_CITATION_SUPPORT") != "1":
@@ -408,20 +450,20 @@ async def main() -> int:
     # Resolved before the first request: a half-configured corpus must not cost a
     # login and a submission scan before it is refused.
     try:
-        corpus, manifest_path = _corpus_override()
+        override = _corpus_override()
     except _CorpusSourceError as error:
         print(f"FAIL reason={error}")
         return 1
-    if corpus is None:
+    if override is None:
         documents = load_sample_corpus()
         manifest = load_manifest()
         corpus_label = "agent-authored-synthetic"
     else:
-        documents = corpus
-        manifest = load_manifest(manifest_path)
-        # Whatever the run pinned and validated — not a hardcoded "synthetic", which
-        # would misreport authorised material in the persisted verdict metadata.
-        corpus_label = ACCEPTED_PERMISSION
+        # One snapshot for every consumer: the worksheet, the analyzer and the
+        # verdict metadata all see the entries this preflight validated.
+        documents = override.documents
+        manifest = tuple(override.entries)
+        corpus_label = override.accepted_permission
     async with UlticodeClient(APP_BASE, AUTH_BASE) as client:
         await client.login(
             os.environ["ULTICODE_E2E_USERNAME"], os.environ["ULTICODE_E2E_PASSWORD"]
@@ -431,18 +473,13 @@ async def main() -> int:
         if matching is None:
             print("FAIL reason=no_wrong_answer_submission")
             return 1
-        if corpus is None:
+        if override is None:
             analysis = analyze_submission(matching, QUESTION)
         else:
-            # The pinned default is still the manifest-gated loader; an override is
-            # parsed, pinned and covered before it reaches the same evidence path.
+            # The pinned default is still the manifest-gated loader; an override
+            # reaches the same evidence path through the snapshot its preflight built.
             analysis = analyze_authorized_submission(
-                matching,
-                QUESTION,
-                documents=corpus,
-                manifest_path=manifest_path,
-                accepted_permission=ACCEPTED_PERMISSION,
-                accepted_scope=ACCEPTED_SCOPE,
+                matching, QUESTION, validated=override
             )
 
     hypotheses = analysis.get("hypotheses") or []

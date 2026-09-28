@@ -782,6 +782,8 @@ def test_the_acceptance_entry_point_takes_authorised_material(
     )
     monkeypatch.setattr(smoke, "ACCEPTED_PERMISSION", "authorized-for-u02")
     monkeypatch.setattr(smoke, "ACCEPTED_SCOPE", scope)
+    monkeypatch.setattr(smoke, "ACCEPTED_SAMPLE_KIND", "real")
+    monkeypatch.setattr(smoke, "ACCEPTED_ACCESS_SCOPE", "authorized-u02-sources")
 
     assert smoke.main_sync() == 0
     output = capsys.readouterr().out
@@ -925,6 +927,8 @@ def test_the_evidence_label_comes_from_the_pinned_policy(
     )
     monkeypatch.setattr(smoke, "ACCEPTED_PERMISSION", "authorized-for-u02")
     monkeypatch.setattr(smoke, "ACCEPTED_SCOPE", scope)
+    monkeypatch.setattr(smoke, "ACCEPTED_SAMPLE_KIND", "real")
+    monkeypatch.setattr(smoke, "ACCEPTED_ACCESS_SCOPE", "authorized-u02-sources")
 
     assert _run_override(monkeypatch, tmp_path) == 0
     meta = json.loads(
@@ -1000,6 +1004,8 @@ def test_the_gap_line_names_the_selected_corpus(monkeypatch, capsys, tmp_path) -
     )
     monkeypatch.setattr(smoke, "ACCEPTED_PERMISSION", "authorized-for-u02")
     monkeypatch.setattr(smoke, "ACCEPTED_SCOPE", scope)
+    monkeypatch.setattr(smoke, "ACCEPTED_SAMPLE_KIND", "real")
+    monkeypatch.setattr(smoke, "ACCEPTED_ACCESS_SCOPE", "authorized-u02-sources")
     # Set after `_install`, which pins it to 3: `_run_override` would re-pin it.
     monkeypatch.setenv("ULTICODE_CITATION_REQUIRED_ROWS", "5")  # above the fixture
 
@@ -1062,3 +1068,98 @@ def test_the_entry_is_read_through_a_no_follow_descriptor(
     output = capsys.readouterr().out
     assert "FAIL reason=corpus_entry_escapes_root" in output
     assert victim.read_text(encoding="utf-8") == original
+
+
+def test_a_file_larger_than_the_bounded_read_is_refused(monkeypatch, capsys, tmp_path) -> None:
+    """A prefix that passes the size check is not the file.
+
+    Stripping turns a 1200-character prefix plus trailing whitespace into exactly the
+    cap, so only noticing that the read stopped short of EOF catches the suffix.
+    """
+    _write_corpus(tmp_path, monkeypatch)
+    target = tmp_path / "external-corpus" / "status-1.md"
+    target.write_text("a" * smoke.MAX_SOURCE_CHARS + " " * 5000 + "\n", encoding="utf-8")
+    manifest = tmp_path / "external-manifest.json"
+    entries = _load_entries(manifest)
+    text = target.read_text(encoding="utf-8").strip()
+    entries[0]["content_digest"] = content_digest(text)
+    entries[0]["source_position"] = "lines 1-1"
+    manifest.write_text(json.dumps(entries, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    assert _run_override(monkeypatch, tmp_path) == 1
+    assert "FAIL reason=corpus_entry_unusable" in capsys.readouterr().out
+
+
+def test_a_symlinked_root_is_refused_even_when_the_path_check_is_blind(
+    monkeypatch, capsys, tmp_path
+) -> None:
+    """O_NOFOLLOW on the root descriptor is what anchors entries to one directory."""
+    _write_corpus(tmp_path, monkeypatch)
+    real = tmp_path / "real-root"
+    (tmp_path / "external-corpus").rename(real)
+    (tmp_path / "external-corpus").symlink_to(real)
+    monkeypatch.setattr(type(tmp_path / "x"), "is_symlink", lambda self: False)
+
+    assert _run_override(monkeypatch, tmp_path) == 1
+    assert "FAIL reason=corpus_root_unusable" in capsys.readouterr().out
+
+
+def test_a_failed_read_reports_its_reason_once(monkeypatch, capsys, tmp_path) -> None:
+    """The descriptor is owned by fdopen; a second close would mask the real reason."""
+    _write_corpus(tmp_path, monkeypatch)
+    real_fdopen = smoke.os.fdopen
+
+    class _Broken:
+        def __init__(self, stream):
+            self._stream = stream
+
+        def read(self, _size=-1):
+            raise OSError("simulated read failure")
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            self._stream.close()
+            return False
+
+    monkeypatch.setattr(smoke.os, "fdopen", lambda fd, mode: _Broken(real_fdopen(fd, mode)))
+
+    assert _run_override(monkeypatch, tmp_path) == 1
+    output = capsys.readouterr().out
+    assert "FAIL reason=corpus_entry_unusable" in output
+    assert "EBADF" not in output and "Traceback" not in output
+
+
+def test_the_policy_covers_the_material_class(monkeypatch, capsys, tmp_path) -> None:
+    """Permission and scope matching is not enough if the class itself differs."""
+    _write_corpus(tmp_path, monkeypatch)
+    manifest = tmp_path / "external-manifest.json"
+    entries = _load_entries(manifest)
+    # `sample_kind="real"` with the pinned synthetic permission is refused by
+    # load_manifest itself, so the dimension under test is the access scope: it stays
+    # parseable and only the run's pin can catch it.
+    entries[0]["access_scope"] = "authorized-u02-sources"
+    manifest.write_text(json.dumps(entries, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    assert _run_override(monkeypatch, tmp_path) == 1
+    assert "FAIL reason=corpus_declaration_unsupported" in capsys.readouterr().out
+
+
+def test_the_run_does_not_reopen_a_manifest_it_already_validated(
+    monkeypatch, capsys, tmp_path
+) -> None:
+    """One preflight read: replacing the file mid-run cannot change what is judged."""
+    _write_corpus(tmp_path, monkeypatch)
+    calls: list[str] = []
+    _install(monkeypatch, tmp_path, ['{"supports": true, "derivable": true}'] * 3, calls)
+    snapshot = smoke._corpus_override()
+    manifest = tmp_path / "external-manifest.json"
+    manifest.write_text("[]", encoding="utf-8")  # replaced after preflight
+    monkeypatch.setattr(smoke, "_corpus_override", lambda: snapshot)
+
+    assert smoke.main_sync() == 0
+    output = capsys.readouterr().out
+    assert "rows=3" in output
+    rows = json.loads((tmp_path / "verdicts.json").read_text(encoding="utf-8"))
+    assert rows and all(str(r["chunk_id"]).startswith("external-status-") for r in rows)

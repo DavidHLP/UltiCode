@@ -86,16 +86,23 @@ Contract — every violation is a fixed `FAIL reason=...` evidence line and exit
   declares nothing at all → `corpus_empty`, distinguished from a manifest that will not parse
   (`corpus_manifest_unusable`).
 - **Declarations come from the manifest.** Missing, unreadable, invalid or non-conforming
-  manifest → `corpus_manifest_unusable`. Every entry must declare exactly `ACCEPTED_PERMISSION`
-  and `ACCEPTED_SCOPE`, the policy the run pins in source → `corpus_declaration_unsupported`.
+  manifest → `corpus_manifest_unusable`. Every entry must declare exactly the material class
+  the run pins in source — `ACCEPTED_PERMISSION`, `ACCEPTED_SCOPE`, `ACCEPTED_SAMPLE_KIND` and
+  `ACCEPTED_ACCESS_SCOPE` (all four change together for authorised material) →
+  `corpus_declaration_unsupported`. The manifest is read **once**: its entries, the documents
+  they describe and the pinned class travel as one immutable snapshot through retrieval, the
+  worksheet and the verdict metadata, so replacing the file mid-run cannot leave them
+  describing different material.
 - **One file per entry**, resolved through the manifest's own `source_path` basename under the
-  corpus directory, opened once with `O_NOFOLLOW` so a path swapped for a link between the
-  check and the read is refused by the kernel: symlinked entry → `corpus_entry_escapes_root`;
+  corpus directory, which is itself opened once with `O_DIRECTORY|O_NOFOLLOW` with every entry
+  opened relative to that descriptor — so neither the root nor an entry can be swapped for a
+  link between the check and the read: symlinked entry → `corpus_entry_escapes_root`;
   missing file →
   `corpus_entry_missing`; two entries resolving to the *same file* — including two hard-link
   names for one inode — → `corpus_entry_duplicate_source`, and byte-for-byte copies under
   separate names → `corpus_entry_duplicate_content` (one fragment must never count as several
-  citations); unreadable, not UTF-8, empty or over `MAX_SOURCE_CHARS` →
+  citations); unreadable, not UTF-8, empty, over `MAX_SOURCE_CHARS`, or a read that stops
+  short of EOF — a prefix that passes the size check while a suffix stays unread →
   `corpus_entry_unusable`.
 - **Positions are derived from the raw file**, spanning the first to the last non-blank
   physical line, so leading blank lines are covered and content starting on line 3 reports

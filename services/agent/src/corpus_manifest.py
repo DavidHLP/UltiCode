@@ -159,7 +159,50 @@ def load_manifest(path: Path | None = None) -> tuple[ManifestEntry, ...]:
                 f"{doc_id}: a real source cannot carry a synthetic permission marker"
             )
         entries.append(ManifestEntry(**values))
-    return tuple(entries)
+    validated = tuple(entries)
+    validate_entries(validated)
+    return validated
+
+
+def validate_entries(entries: tuple[ManifestEntry, ...]) -> None:
+    """Re-apply the declaration rules to already-parsed entries.
+
+    ``load_manifest`` applies them while parsing; a caller that is handed a snapshot
+    instead of a path must not be able to skip them, so the rules live in one place
+    and both callers run them. Every check mirrors what parsing enforces: fields
+    present and non-blank, declared once, an expected source trust, a supported
+    projection, a known material class, and no real source hiding behind a synthetic
+    permission marker.
+    """
+    seen: set[str] = set()
+    for entry in entries:
+        doc_id = entry.doc_id
+        if not str(doc_id or "").strip():
+            raise ManifestError("manifest entry has a blank doc_id")
+        if doc_id in seen:
+            raise ManifestError(f"{doc_id}: declared twice")
+        seen.add(doc_id)
+        for field in (*REQUIRED_FIELDS, MANIFEST_PROVENANCE_FIELD):
+            value = getattr(entry, field, None)
+            if not isinstance(value, str) or not value.strip():
+                raise ManifestError(f"{doc_id}: missing or blank {field}")
+        if entry.source_trust != EXPECTED_SOURCE_TRUST:
+            raise ManifestError(
+                f"{doc_id}: source_trust must be {EXPECTED_SOURCE_TRUST!r}, "
+                "which is what retrieval emits"
+            )
+        if entry.model_input_projection not in SUPPORTED_PROJECTIONS:
+            raise ManifestError(
+                f"{doc_id}: model_input_projection must be one of "
+                f"{SUPPORTED_PROJECTIONS}, so the record cannot understate what "
+                "retrieval sends to the model"
+            )
+        if entry.sample_kind not in {"synthetic", "real"}:
+            raise ManifestError(f"{doc_id}: sample_kind must be synthetic or real")
+        if entry.sample_kind == "real" and entry.permission in SYNTHETIC_PERMISSIONS:
+            raise ManifestError(
+                f"{doc_id}: a real source cannot carry a synthetic permission marker"
+            )
 
 
 def assert_manifest_covers(

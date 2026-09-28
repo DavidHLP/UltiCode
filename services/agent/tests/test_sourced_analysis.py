@@ -6,7 +6,7 @@ import pytest
 
 from corpus_manifest import content_digest, load_manifest
 from retrieval import SourceDocument
-from sourced_analysis import analyze_authorized_submission, analyze_submission
+from sourced_analysis import ValidatedCorpus, analyze_authorized_submission, analyze_submission
 
 
 def test_sourced_analysis_separates_fact_hypothesis_and_citations() -> None:
@@ -239,7 +239,7 @@ def test_a_supplied_corpus_cannot_claim_real_material(tmp_path) -> None:
     documents = (document, _synthetic_status_document(2), _synthetic_status_document(3))
     manifest = _manifest_for(documents, tmp_path)
 
-    with pytest.raises(ValueError, match="agent-authored synthetic"):
+    with pytest.raises(ValueError, match="synthetic material"):
         analyze_submission(
             {"id": "sub-1", "status": "Wrong Answer"},
             "Wrong Answer citation",
@@ -405,13 +405,19 @@ def test_authorized_material_reaches_the_evidence_path(tmp_path) -> None:
     documents = _authorized_documents()
     manifest = _authorized_manifest(documents, tmp_path)
 
+    validated = ValidatedCorpus(
+        documents=documents,
+        entries=load_manifest(manifest),
+        accepted_permission="authorized-for-u02",
+        accepted_scope="operator-authorized U02 sources for the acceptance run",
+        accepted_sample_kind="real",
+        accepted_access_scope="authorized-u02-sources",
+    )
+
     result = analyze_authorized_submission(
         {"id": "sub-1", "status": "Wrong Answer"},
         "Wrong Answer citation",
-        documents=documents,
-        manifest_path=manifest,
-        accepted_permission="authorized-for-u02",
-        accepted_scope="operator-authorized U02 sources for the acceptance run",
+        validated=validated,
     )
 
     assert len(result["citations"]) >= 3
@@ -423,14 +429,21 @@ def test_a_policy_mismatch_is_refused_before_any_citation(tmp_path) -> None:
     documents = _authorized_documents()
     manifest = _authorized_manifest(documents, tmp_path)
 
+    validated = ValidatedCorpus(
+        documents=documents,
+        entries=load_manifest(manifest),
+        accepted_permission="agent-authored-synthetic",
+        accepted_scope="synthetic sample corpus for the local deterministic slice; "
+        "not user or licensed material",
+        accepted_sample_kind="synthetic",
+        accepted_access_scope="agent-authored-synthetic",
+    )
+
     with pytest.raises(ValueError, match="declarations not accepted"):
         analyze_authorized_submission(
             {"id": "sub-1", "status": "Wrong Answer"},
             "Wrong Answer citation",
-            documents=documents,
-            manifest_path=manifest,
-            accepted_permission="agent-authored-synthetic",
-            accepted_scope="synthetic sample corpus for the local deterministic slice",
+            validated=validated,
         )
 
 
@@ -439,7 +452,7 @@ def test_the_unit_seam_still_refuses_authorized_material(tmp_path) -> None:
     documents = _authorized_documents()
     manifest = _authorized_manifest(documents, tmp_path)
 
-    with pytest.raises(ValueError, match="agent-authored synthetic"):
+    with pytest.raises(ValueError, match="synthetic material"):
         analyze_submission(
             {"id": "sub-1", "status": "Wrong Answer"},
             "Wrong Answer citation",
@@ -482,3 +495,26 @@ def test_the_seam_refuses_a_scope_the_contract_does_not_pin(tmp_path) -> None:
             documents=documents,
             manifest_path=manifest,
         )
+
+
+def test_a_forged_snapshot_cannot_skip_the_declaration_rules(tmp_path) -> None:
+    """Parsing happened at preflight; a hand-built wrapper must not skip it."""
+    documents = _authorized_documents()
+    entries = load_manifest(_authorized_manifest(documents, tmp_path))
+    base = {
+        "accepted_permission": "authorized-for-u02",
+        "accepted_scope": "operator-authorized U02 sources for the acceptance run",
+        "accepted_sample_kind": "real",
+        "accepted_access_scope": "authorized-u02-sources",
+    }
+
+    for field, value in (("source_trust", "trusted"), ("model_input_projection", "everything")):
+        forged = tuple(replace(entry, **{field: value}) for entry in entries)
+        validated = ValidatedCorpus(documents=documents, entries=forged, **base)
+
+        with pytest.raises(ValueError, match="ManifestError|must be"):
+            analyze_authorized_submission(
+                {"id": "sub-1", "status": "Wrong Answer"},
+                "Wrong Answer citation",
+                validated=validated,
+            )

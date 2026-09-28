@@ -148,3 +148,32 @@ def test_a_non_json_decision_reports_its_shape_not_its_text() -> None:
         _parse_decision(prose, finish_reason="stop")
     assert "content_len=%d" % len(prose) in str(answered.value)
     assert prose not in str(answered.value)
+
+
+def test_a_length_terminated_decision_is_rejected() -> None:
+    """A closing brace just before the cap does not make the answer complete."""
+    seen: dict[str, object] = {}
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "choices": [
+                    {"message": {"content": '{"answer":"looks complete"}'}, "finish_reason": "length"}
+                ],
+                "usage": {"prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2},
+            },
+        )
+
+    async def scenario() -> None:
+        async with DeepseekModel(
+            "test-key", tool_specs={}, transport=httpx.MockTransport(handler)
+        ) as model:
+            with pytest.raises(ModelProtocolError) as error:
+                await model.decide([{"role": "user", "content": "q"}])
+            seen["message"] = str(error.value)
+
+    asyncio.run(scenario())
+
+    assert "truncated" in str(seen["message"])
+    assert "finish_reason=length" in str(seen["message"])

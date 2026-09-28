@@ -285,7 +285,14 @@ async def _starter_code(
         await client.get(f"{APP_BASE}/problems/{problem_id}", headers=headers),
         "problem detail",
     )
-    languages = _data(response).get("languages")
+    payload = _data(response)
+    detail_id = payload.get("id")
+    if isinstance(detail_id, bool) or detail_id != problem_id:
+        # A stale cache or routing defect would otherwise let another problem's
+        # starter be submitted under this id — the harness panic this fixture
+        # exists to avoid.
+        raise IsolationHarnessError("problem detail did not identify the requested id")
+    languages = payload.get("languages")
     for language in languages if isinstance(languages, list) else []:
         if not isinstance(language, dict) or language.get("value") != SUBMISSION_LANGUAGE:
             continue

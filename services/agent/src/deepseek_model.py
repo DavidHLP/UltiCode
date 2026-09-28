@@ -209,7 +209,15 @@ class DeepseekModel:
             raise ModelProtocolError("model response message was malformed")
         content = message["content"].strip()
 
-        return _parse_decision(content, finish_reason=choices[0].get("finish_reason"))
+        finish_reason = choices[0].get("finish_reason")
+        if finish_reason == "length":
+            # The provider says the cap cut the answer off; a closing brace just
+            # before the cut does not make it complete.
+            raise ModelProtocolError(
+                "model decision was truncated by the output cap "
+                f"(content_len={len(content)}, finish_reason=length)"
+            )
+        return _parse_decision(content, finish_reason=finish_reason)
 
 
 def _parse_decision(content: str, *, finish_reason: object = None) -> ModelDecision:

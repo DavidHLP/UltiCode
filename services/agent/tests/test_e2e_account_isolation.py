@@ -422,6 +422,30 @@ def test_the_fixture_scan_follows_the_total_and_honours_the_bound(
     assert "FAIL reason=fixture_unavailable" in capsys.readouterr().out
 
 
+def test_a_detail_for_another_problem_is_not_a_fixture(monkeypatch, capsys) -> None:
+    """A stale cache or routing defect must not supply another problem's starter."""
+    monkeypatch.setenv("ULTICODE_E2E_ISOLATION", "1")
+    inner = correct_service()
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if _problem_detail_id(request.url.path) == "1":
+            return httpx.Response(
+                200,
+                json={
+                    "data": {
+                        "id": 2,
+                        "languages": [{"value": "python", "starter_code": STARTER}],
+                    }
+                },
+            )
+        return inner(request)
+
+    _install(monkeypatch, handler)
+
+    assert asyncio.run(e2e_account_isolation.main()) == 1
+    assert "FAIL reason=fixture_unavailable" in capsys.readouterr().out
+
+
 def test_a_row_less_public_listing_is_not_readability(monkeypatch, capsys) -> None:
     """A non-empty array of unusable rows proves nothing was exposed."""
     monkeypatch.setenv("ULTICODE_E2E_ISOLATION", "1")
@@ -569,8 +593,16 @@ def test_own_read_returning_another_id_is_a_failure(monkeypatch, capsys) -> None
                 200, json={"data": {"items": [LISTED_PROBLEM], "total": 1}}
             )
         if _problem_detail_id(path) is not None:
+            # The detail has to identify the requested problem: the fixture refuses
+            # another problem's starter under this id.
             return httpx.Response(
-                200, json={"data": {"languages": [{"value": "python", "starter_code": STARTER}]}}
+                200,
+                json={
+                    "data": {
+                        "id": int(_problem_detail_id(path) or 0),
+                        "languages": [{"value": "python", "starter_code": STARTER}],
+                    }
+                },
             )
         if path.endswith("/submissions") and request.method == "POST":
             # The write must carry the CSRF cookie *and* the matching header;

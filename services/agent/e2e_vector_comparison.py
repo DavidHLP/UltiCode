@@ -140,6 +140,35 @@ def _collection_cleanup(client: object, collection: str) -> None:
         print(f"collection_cleanup=deleted name={collection}")
 
 
+def _index_and_own(
+    client: object,
+    corpus,
+    embedder: object,
+    collection: str,
+    config_factory: object = None,
+) -> int:
+    """Index into this run's collection and arrange its deletion.
+
+    The ordering matters: on the name-collision path ``build_index`` raises
+    *without* having created anything, and a cleanup registered before that would
+    delete a collection this run does not own.
+    """
+    indexed = build_index(
+        client,
+        corpus,
+        embedder=embedder,
+        # The generated name is fresh, so nothing pre-existing is recreated; the
+        # opt-in survives for callers that pass the historical fixed name.
+        allow_recreate=os.environ.get("QDRANT_ALLOW_RECREATE") == "1",
+        collection=collection,
+        # Injected by tests, exactly as `build_index` allows, so the collision path
+        # is exercised without the optional client installed.
+        config_factory=config_factory,
+    )
+    _register_collection_cleanup(client, collection)
+    return indexed
+
+
 def _register_collection_cleanup(client: object, collection: str) -> None:
     """Arrange the delete for however the run ends.
 
@@ -550,16 +579,7 @@ def main() -> int:
         )
         return 1
     collection = _run_collection()
-    _register_collection_cleanup(client, collection)
-    indexed = build_index(
-        client,
-        corpus,
-        embedder=embedder,
-        # The name is fresh, so nothing pre-existing is ever recreated; the
-        # opt-in survives for callers that pass the historical fixed name.
-        allow_recreate=os.environ.get("QDRANT_ALLOW_RECREATE") == "1",
-        collection=collection,
-    )
+    indexed = _index_and_own(client, corpus, embedder, collection)
 
     def keyword(query: str, limit: int) -> list[str]:
         return [

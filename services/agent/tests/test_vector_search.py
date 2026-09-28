@@ -854,6 +854,27 @@ def test_an_unusable_embedding_path_cannot_forge_an_evidence_line(
     assert "OK comparison" not in output
 
 
+def test_a_name_collision_does_not_register_a_cleanup(monkeypatch) -> None:
+    """Nothing was created, so nothing may be deleted when the process exits."""
+    import atexit
+
+    smoke = e2e_vector_comparison
+    monkeypatch.delenv("QDRANT_ALLOW_RECREATE", raising=False)
+    client = _FakeClient(existing=("u02-eval-taken",))
+
+    before = atexit._ncallbacks()  # noqa: SLF001 - the registration is the contract
+    with pytest.raises(ValueError, match="already exists"):
+        smoke._index_and_own(
+            client,
+            load_sample_corpus(),
+            _FakeEmbedder(),
+            "u02-eval-taken",
+            config_factory=_stub_config,
+        )
+
+    assert atexit._ncallbacks() == before
+
+
 def test_the_run_collection_is_deleted_on_every_exit_path(capsys) -> None:
     """Indexing then failing must not leave the run's collection behind."""
     import atexit

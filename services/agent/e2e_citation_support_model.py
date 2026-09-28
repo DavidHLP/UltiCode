@@ -28,7 +28,7 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 from citation_review import build_worksheet, load_verdicts, summarize
 from corpus_manifest import load_manifest
 from deepseek_model import DeepseekModel, ModelProtocolError, model_label
-from retrieval import MAX_RESULTS, keyword_search, load_sample_corpus
+from retrieval import load_sample_corpus
 from sourced_analysis import analyze_submission, first_wrong_answer_submission
 from ulticode_client import UlticodeClient
 from ulticode_tools import build_tools
@@ -36,10 +36,13 @@ from ulticode_tools import build_tools
 APP_BASE = os.environ.get("ULTICODE_APP_BASE", "http://localhost:9103")
 AUTH_BASE = os.environ.get("ULTICODE_AUTH_BASE", "http://localhost:9101")
 
-#: The question whose retrieval covers the whole synthetic corpus. The review
-#: question is per fragment — "does this quoted fragment support the claim?" — so
-#: one claim is paired with every retrieved fragment rather than with one.
-QUESTION = "submission status source citation record"
+QUESTION = "Wrong Answer 状态说明了什么？"
+
+#: The acceptance names three citations. On the agent-authored synthetic corpus the
+#: analysis emits fewer, because a status-filtered retrieval only keeps fragments
+#: whose text carries that status; authorized, richer material is DAV-58. The
+#: threshold is configurable so that run can raise it without a code change.
+DEFAULT_REQUIRED_ROWS = 3
 
 JUDGE_CONTRACT = (
     "You are checking citations, not answering the question. "
@@ -99,10 +102,10 @@ async def main() -> int:
         # not carry exactly one claim cannot be reviewed.
         print(f"FAIL reason=ambiguous_claim hypotheses={len(hypotheses)}")
         return 1
-    # Every retrieved fragment, not only the ones the analysis kept: the review
-    # question is per fragment. Each is checked by the deterministic integrity
-    # gate before the model is asked anything.
-    citations = [hit.as_model_dict() for hit in keyword_search(QUESTION, limit=MAX_RESULTS)]
+    # Only the citations the analysis actually emitted are reviewed. Retrieved
+    # fragments it did not cite are a different question (relevance of candidates)
+    # and are deliberately not judged here.
+    citations = analysis.get("citations") or []
     rows = list(
         build_worksheet(
             claim=str(hypotheses[0]),
@@ -112,10 +115,14 @@ async def main() -> int:
         )
     )
 
-    if len(rows) < 3:
-        # The acceptance names three citations; saying so is better than reporting a
-        # pass from one row.
-        print(f"FAIL reason=insufficient_rows rows={len(rows)} required=3")
+    required = int(os.environ.get("ULTICODE_CITATION_REQUIRED_ROWS", DEFAULT_REQUIRED_ROWS))
+    if len(rows) < required:
+        # Reported as a material gap, not as a pass from fewer rows: the corpus is
+        # synthetic, and a status-filtered retrieval emits one citation per status.
+        print(
+            f"FAIL reason=insufficient_citations emitted={len(rows)} required={required} "
+            f"corpus=agent-authored-synthetic"
+        )
         return 1
 
     facts = json.dumps(matching, ensure_ascii=False, default=str)

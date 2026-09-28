@@ -61,15 +61,15 @@ def _install(monkeypatch, tmp_path: Path, judgements: list[str], calls: list[str
     async def _first(_tools: object) -> dict[str, object]:
         return {"id": "sub-1", "status": "Wrong Answer"}
 
-    def _analyze(_submission: object, question: str) -> dict[str, object]:
-        citation = _citation()
+    def _analyze(_submission: object, _question: str) -> dict[str, object]:
+        citations = keyword_search("submission status source citation record", limit=3)
         return {
             "facts": ["f"],
-            # Question-specific, like the real path: a claim is what a verdict binds to.
-            "hypotheses": [f"{question} -> the status alone does not locate a code line"],
-            "citations": [citation],
+            "hypotheses": ["the status alone does not locate a code line"],
+            "citations": [hit.as_model_dict() for hit in citations],
             "citation_checks": [
-                {"chunk_id": citation["chunk_id"], "verdict": "verified", "detail": ""}
+                {"chunk_id": hit.chunk_id, "verdict": "verified", "detail": ""}
+                for hit in citations
             ],
         }
 
@@ -120,6 +120,30 @@ def test_an_unsupported_citation_fails_the_gate(monkeypatch, capsys, tmp_path) -
     output = capsys.readouterr().out
     assert "supports=0" in output
     assert "FAIL reason=citation_gate_failed" in output
+
+
+def test_fewer_emitted_citations_than_required_is_a_material_gap(
+    monkeypatch, capsys, tmp_path
+) -> None:
+    """One emitted citation is not three; the run must say so."""
+    calls: list[str] = []
+    _install(monkeypatch, tmp_path, ['{"supports": true, "derivable": true}'] * 3, calls)
+    one = _citation()
+    monkeypatch.setattr(
+        smoke,
+        "analyze_submission",
+        lambda *_a, **_k: {
+            "facts": ["f"],
+            "hypotheses": ["the status alone does not locate a code line"],
+            "citations": [one],
+            "citation_checks": [
+                {"chunk_id": one["chunk_id"], "verdict": "verified", "detail": ""}
+            ],
+        },
+    )
+
+    assert smoke.main_sync() == 1
+    assert "reason=insufficient_citations emitted=1 required=3" in capsys.readouterr().out
 
 
 def test_a_non_boolean_judgement_is_a_protocol_failure(monkeypatch, capsys, tmp_path) -> None:

@@ -120,6 +120,14 @@ def _meta_path(path: Path) -> Path:
     return path.with_suffix(path.suffix + ".meta.json")
 
 
+def _unlink_if_empty(candidate: Path) -> None:
+    try:
+        if candidate.exists() and candidate.stat().st_size == 0:
+            candidate.unlink()
+    except OSError:
+        pass
+
+
 def _release_unfinished_claim(path: Path) -> None:
     """Remove placeholders this run claimed but never filled.
 
@@ -127,11 +135,7 @@ def _release_unfinished_claim(path: Path) -> None:
     `ULTICODE_CITATION_VERDICTS` path would then refuse every later run.
     """
     for candidate in (path, _meta_path(path)):
-        try:
-            if candidate.exists() and candidate.stat().st_size == 0:
-                candidate.unlink()
-        except OSError:
-            pass
+        _unlink_if_empty(candidate)
 
 
 def _claim_verdict_file(path: Path) -> None:
@@ -140,20 +144,28 @@ def _claim_verdict_file(path: Path) -> None:
     A missing parent, a directory, or an already-claimed path is a failure of this
     run, and finding out after the model calls would waste them.
     """
+    claimed: list[Path] = []
     for target in (path, _meta_path(path)):
         try:
             target.parent.mkdir(parents=True, exist_ok=True)
             with target.open("x", encoding="utf-8"):
                 pass
         except FileExistsError:
+            # Roll back what this call claimed: a half-claimed pair would block
+            # every later run that reuses an explicit path.
+            for done in claimed:
+                _unlink_if_empty(done)
             raise RuntimeError(
                 f"verdict destination already exists: {_path_label(target)}"
             ) from None
         except OSError as error:
+            for done in claimed:
+                _unlink_if_empty(done)
             raise RuntimeError(
                 f"verdict destination is not writable: {_path_label(target)} "
                 f"({type(error).__name__})"
             ) from None
+        claimed.append(target)
     atexit.register(_release_unfinished_claim, path)
 
 

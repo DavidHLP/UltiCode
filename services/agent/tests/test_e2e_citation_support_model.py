@@ -307,3 +307,20 @@ def test_an_aborted_run_releases_the_claimed_destination(
     # The claim is released, so a later run can use the same path.
     smoke._release_unfinished_claim(destination)
     assert not destination.exists()
+
+
+def test_a_failed_sidecar_claim_rolls_back_the_primary(
+    monkeypatch, capsys, tmp_path
+) -> None:
+    """A half-claimed pair must not leave the primary file behind."""
+    calls: list[str] = []
+    destination = tmp_path / "verdicts.json"
+    # The primary is free, the sidecar is taken: the claim must fail and undo.
+    (tmp_path / "verdicts.json.meta.json").write_text("{}", encoding="utf-8")
+    _install(monkeypatch, tmp_path, ['{"supports": true, "derivable": true}'] * 3, calls)
+    monkeypatch.setenv("ULTICODE_CITATION_VERDICTS", str(destination))
+
+    assert smoke.main_sync() == 1
+    assert "reason=verdict_destination_unusable" in capsys.readouterr().out
+    assert not destination.exists()
+    assert calls == []

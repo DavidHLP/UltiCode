@@ -18,6 +18,7 @@ authorized material is DAV-58.
 from __future__ import annotations
 
 import asyncio
+import atexit
 import hashlib
 import json
 import os
@@ -99,7 +100,38 @@ def _verdict_file() -> Path:
     override = os.environ.get("ULTICODE_CITATION_VERDICTS", "").strip()
     if override:
         return Path(override)
-    return Path(f"citation-verdicts-{secrets.token_hex(4)}.json")
+    # State, not the working directory: the documented invocation runs from
+    # `services/agent`, and an artifact written there would dirty the checkout.
+    configured = os.environ.get("XDG_STATE_HOME", "")
+    if os.path.isabs(configured):
+        state_home = Path(configured)
+    else:
+        home = Path.home()
+        if not home.is_absolute():
+            raise RuntimeError(
+                "cannot locate a state directory: HOME is not absolute and "
+                "XDG_STATE_HOME is unset"
+            )
+        state_home = home / ".local" / "state"
+    return state_home / "ulticode" / f"citation-verdicts-{secrets.token_hex(4)}.json"
+
+
+def _meta_path(path: Path) -> Path:
+    return path.with_suffix(path.suffix + ".meta.json")
+
+
+def _release_unfinished_claim(path: Path) -> None:
+    """Remove placeholders this run claimed but never filled.
+
+    An aborted run would otherwise leave empty files behind, and an explicit
+    `ULTICODE_CITATION_VERDICTS` path would then refuse every later run.
+    """
+    for candidate in (path, _meta_path(path)):
+        try:
+            if candidate.exists() and candidate.stat().st_size == 0:
+                candidate.unlink()
+        except OSError:
+            pass
 
 
 def _claim_verdict_file(path: Path) -> None:
@@ -108,16 +140,21 @@ def _claim_verdict_file(path: Path) -> None:
     A missing parent, a directory, or an already-claimed path is a failure of this
     run, and finding out after the model calls would waste them.
     """
-    try:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        with path.open("x", encoding="utf-8"):
-            pass
-    except FileExistsError:
-        raise RuntimeError(f"verdict destination already exists: {_path_label(path)}") from None
-    except OSError as error:
-        raise RuntimeError(
-            f"verdict destination is not writable: {_path_label(path)} ({type(error).__name__})"
-        ) from None
+    for target in (path, _meta_path(path)):
+        try:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            with target.open("x", encoding="utf-8"):
+                pass
+        except FileExistsError:
+            raise RuntimeError(
+                f"verdict destination already exists: {_path_label(target)}"
+            ) from None
+        except OSError as error:
+            raise RuntimeError(
+                f"verdict destination is not writable: {_path_label(target)} "
+                f"({type(error).__name__})"
+            ) from None
+    atexit.register(_release_unfinished_claim, path)
 
 
 async def main() -> int:
@@ -164,7 +201,12 @@ async def main() -> int:
         )
     )
 
-    required = int(os.environ.get("ULTICODE_CITATION_REQUIRED_ROWS", DEFAULT_REQUIRED_ROWS))
+    raw_required = os.environ.get("ULTICODE_CITATION_REQUIRED_ROWS", str(DEFAULT_REQUIRED_ROWS))
+    try:
+        required = int(raw_required)
+    except ValueError:
+        print(f"FAIL reason=citation_threshold_invalid raw={model_label(raw_required)}")
+        return 1
     if required < DEFAULT_REQUIRED_ROWS:
         # The environment may raise the bar, never lower it below the acceptance's.
         print(
@@ -247,7 +289,7 @@ async def main() -> int:
     # The full digest: a truncated one would weaken the binding between the
     # verdicts and the exact facts they were judged against.
     facts_digest = "sha256:" + hashlib.sha256(facts.encode("utf-8")).hexdigest()
-    path.with_suffix(path.suffix + ".meta.json").write_text(
+    _meta_path(path).write_text(
         json.dumps(
             {
                 "judge": "model",

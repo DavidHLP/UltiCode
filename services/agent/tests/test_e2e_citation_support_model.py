@@ -256,3 +256,54 @@ def test_an_unusable_verdict_destination_fails_before_any_call(
     output = capsys.readouterr().out
     assert "reason=verdict_destination_unusable" in output
     assert calls == []
+
+
+def test_a_non_integer_threshold_fails_cleanly(monkeypatch, capsys, tmp_path) -> None:
+    calls: list[str] = []
+    _install(monkeypatch, tmp_path, ['{"supports": true, "derivable": true}'] * 3, calls)
+    monkeypatch.setenv("ULTICODE_CITATION_REQUIRED_ROWS", "three")
+
+    assert smoke.main_sync() == 1
+    assert "reason=citation_threshold_invalid" in capsys.readouterr().out
+
+
+def test_the_default_artifact_stays_out_of_the_worktree(monkeypatch, tmp_path) -> None:
+    """The documented invocation runs from `services/agent`; state is not the checkout."""
+    monkeypatch.delenv("ULTICODE_CITATION_VERDICTS", raising=False)
+    monkeypatch.delenv("XDG_STATE_HOME", raising=False)
+    monkeypatch.setenv("HOME", str(tmp_path))
+
+    path = smoke._verdict_file()
+
+    assert path.is_absolute()
+    assert path.parent == tmp_path / ".local" / "state" / "ulticode"
+    assert not str(path).startswith(str(Path.cwd()))
+
+
+def test_an_aborted_run_releases_the_claimed_destination(
+    monkeypatch, capsys, tmp_path
+) -> None:
+    """An empty placeholder would block every later run on an explicit path."""
+    calls: list[str] = []
+    destination = tmp_path / "verdicts.json"
+    _install(monkeypatch, tmp_path, ['{"supports": true, "derivable": true}'] * 3, calls)
+    monkeypatch.setenv("ULTICODE_CITATION_VERDICTS", str(destination))
+    hits = keyword_search("submission status source citation record", limit=3)
+    citations = [hit.as_model_dict() for hit in hits]
+    citations[0]["version"] = "v2"
+    monkeypatch.setattr(
+        smoke,
+        "analyze_submission",
+        lambda *_a, **_k: {
+            "facts": ["f"],
+            "hypotheses": ["the status alone does not locate a code line"],
+            "citations": citations,
+            "citation_checks": [],
+        },
+    )
+
+    assert smoke.main_sync() == 1
+    assert "reason=citation_integrity_failed" in capsys.readouterr().out
+    # The claim is released, so a later run can use the same path.
+    smoke._release_unfinished_claim(destination)
+    assert not destination.exists()

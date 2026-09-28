@@ -79,11 +79,15 @@ def _consumption_marker() -> Path:
     """
     override = os.environ.get("ULTICODE_VECTOR_CONFIRM_MARKER")
     if override:
-        # Same rule as XDG_STATE_HOME below: a relative override resolves inside
-        # the invocation directory, so the one-shot marker would live in a
-        # disposable checkout and the set could be evaluated twice.
-        if os.path.isabs(override):
-            return Path(override)
+        # An explicit override is an instruction, so a relative one is refused
+        # rather than ignored: quietly using a different location could let the
+        # confirmation set be evaluated twice, which is exactly what this marker
+        # exists to prevent.
+        if not os.path.isabs(override):
+            raise RuntimeError(
+                "ULTICODE_VECTOR_CONFIRM_MARKER must be an absolute path"
+            )
+        return Path(override)
     # Only an absolute path is a state directory. An exported-but-empty value would
     # make `Path("")`, i.e. the current working directory, and a relative one would
     # put the one-shot marker inside the checkout, where it disappears with the
@@ -553,7 +557,13 @@ def main() -> int:
     # Step 3: the never-seen confirmation set, claimed only now. A failure
     # during dependency import or index setup must not burn the one-shot set, so
     # the claim is deliberately taken after that preflight has succeeded.
-    claimed, marker = _claim_confirmation_once()
+    try:
+        claimed, marker = _claim_confirmation_once()
+    except RuntimeError as error:
+        # Reported, not raised: a bad marker configuration is a failed run, and
+        # the claim path must not die with a traceback.
+        print(f"FAIL reason=confirmation_marker_invalid detail={_evidence_path(error)}")
+        return 1
     if not claimed:
         print(f"SKIP reason=confirmation_already_consumed marker={_evidence_path(marker)}")
         return 0

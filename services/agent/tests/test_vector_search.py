@@ -826,12 +826,12 @@ def test_an_empty_xdg_state_home_is_treated_as_unset(tmp_path, monkeypatch) -> N
         elsewhere / "ulticode" / "holdout-v2.consumed"
     )
 
-    # An explicit override obeys the same rule: relative means "inside the
-    # checkout", which is not a durable location for a one-shot marker.
+    # An explicit override is refused when it is relative: silently using another
+    # location could let the one-shot set be evaluated twice.
     monkeypatch.setenv("ULTICODE_VECTOR_CONFIRM_MARKER", "consumed.marker")
-    assert smoke._consumption_marker() == (
-        elsewhere / "ulticode" / "holdout-v2.consumed"
-    )
+    with pytest.raises(RuntimeError, match="must be an absolute path"):
+        smoke._consumption_marker()
+
     absolute_marker = tmp_path / "held.marker"
     monkeypatch.setenv("ULTICODE_VECTOR_CONFIRM_MARKER", str(absolute_marker))
     assert smoke._consumption_marker() == absolute_marker

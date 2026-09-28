@@ -130,6 +130,26 @@ def _release_run_lock(lock: Path) -> None:
         pass
 
 
+def _collection_cleanup(client: object, collection: str) -> None:
+    """Delete this run's collection; reported, never raised."""
+    try:
+        client.delete_collection(collection_name=collection)  # type: ignore[attr-defined]
+    except Exception:  # noqa: BLE001 - cleanup must not fail the run
+        print(f"collection_cleanup=failed name={collection}")
+    else:
+        print(f"collection_cleanup=deleted name={collection}")
+
+
+def _register_collection_cleanup(client: object, collection: str) -> None:
+    """Arrange the delete for however the run ends.
+
+    Registered rather than called inline: a failure after indexing returns with
+    exit 1, and those are exactly the paths that must not leave a collection
+    behind on the instance.
+    """
+    atexit.register(_collection_cleanup, client, collection)
+
+
 def _run_collection() -> str:
     """This run's own collection name.
 
@@ -530,6 +550,7 @@ def main() -> int:
         )
         return 1
     collection = _run_collection()
+    _register_collection_cleanup(client, collection)
     indexed = build_index(
         client,
         corpus,
@@ -606,15 +627,6 @@ def main() -> int:
         f"stage=confirm note=claim_recorded marker={_evidence_path(marker)} "
         f"marker_location={_evidence_path(scope)} shared_durability=unverified_by_this_run"
     )
-
-    # Best effort: the collection belongs to this run, so nothing else can be
-    # relying on it and a failed delete is reported rather than raised.
-    try:
-        client.delete_collection(collection_name=collection)
-    except Exception:  # noqa: BLE001 - cleanup must not fail the run
-        print(f"collection_cleanup=failed name={collection}")
-    else:
-        print(f"collection_cleanup=deleted name={collection}")
 
     print(
         f"OK comparison corpus=agent-authored-synthetic "

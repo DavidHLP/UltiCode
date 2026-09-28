@@ -854,6 +854,36 @@ def test_an_unusable_embedding_path_cannot_forge_an_evidence_line(
     assert "OK comparison" not in output
 
 
+def test_the_run_collection_is_deleted_on_every_exit_path(capsys) -> None:
+    """Indexing then failing must not leave the run's collection behind."""
+    import atexit
+
+    smoke = e2e_vector_comparison
+    client = _FakeClient()
+    client.deleted = []
+
+    def delete_collection(*, collection_name: str) -> None:
+        client.deleted.append(collection_name)
+
+    client.delete_collection = delete_collection  # type: ignore[attr-defined]
+
+    before = atexit._ncallbacks()  # noqa: SLF001 - the registration is the contract
+    smoke._register_collection_cleanup(client, "u02-eval-test")
+    assert atexit._ncallbacks() == before + 1
+
+    smoke._collection_cleanup(client, "u02-eval-test")
+    assert client.deleted == ["u02-eval-test"]
+    assert "collection_cleanup=deleted name=u02-eval-test" in capsys.readouterr().out
+
+    # A cleanup that cannot delete is reported, not raised.
+    class _Stubborn:
+        def delete_collection(self, *, collection_name: str) -> None:
+            raise RuntimeError(collection_name)
+
+    smoke._collection_cleanup(_Stubborn(), "u02-eval-stuck")
+    assert "collection_cleanup=failed name=u02-eval-stuck" in capsys.readouterr().out
+
+
 def test_a_run_scoped_collection_replaces_the_shared_one() -> None:
     """A fixed collection is shared mutable state between runs."""
     smoke = e2e_vector_comparison

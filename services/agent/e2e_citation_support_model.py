@@ -140,12 +140,13 @@ def _publish(target: Path, text: str) -> None:
 
 
 def _discard_artifacts(path: Path) -> None:
-    """Remove both artifacts, filled or not: they belong to this failed run."""
-    for candidate in (path, _meta_path(path)):
-        try:
-            candidate.unlink()
-        except OSError:
-            pass
+    """Remove this run's artifacts and temporaries, filled or not."""
+    for target in (path, _meta_path(path)):
+        for candidate in (target, *target.parent.glob(f"{target.name}.*.part")):
+            try:
+                candidate.unlink()
+            except OSError:
+                pass
 
 
 def _release_unfinished_claim(path: Path, lock: Path | None = None) -> None:
@@ -171,6 +172,13 @@ def _claim_verdict_file(path: Path) -> Path:
     judging. A missing parent, a directory, or a reservation another run holds is a
     failure of this run, and finding out after the model calls would waste them.
     """
+    for existing in (path, _meta_path(path)):
+        if existing.exists():
+            # An earlier run's verdicts are evidence; overwriting them silently is
+            # what the caller cannot detect afterwards.
+            raise RuntimeError(
+                f"verdict destination already exists: {_path_label(existing)}"
+            )
     lock = path.with_name(f"{path.name}.lock")
     try:
         lock.parent.mkdir(parents=True, exist_ok=True)

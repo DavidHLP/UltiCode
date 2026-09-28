@@ -455,3 +455,40 @@ def test_a_provider_failure_reports_a_fixed_label(monkeypatch, capsys, tmp_path)
     output = capsys.readouterr().out
     assert "error=RuntimeError" in output
     assert "provider returned 503" not in output  # the message is not echoed
+
+
+def test_an_existing_artifact_is_not_overwritten(monkeypatch, capsys, tmp_path) -> None:
+    """An earlier run's verdicts are evidence; clobbering them is silent."""
+    calls: list[str] = []
+    destination = tmp_path / "verdicts.json"
+    destination.write_text("[]", encoding="utf-8")
+    _install(monkeypatch, tmp_path, ['{"supports": true, "derivable": true}'] * 3, calls)
+    monkeypatch.setenv("ULTICODE_CITATION_VERDICTS", str(destination))
+
+    assert smoke.main_sync() == 1
+    assert "reason=verdict_destination_unusable" in capsys.readouterr().out
+    assert calls == []
+    assert destination.read_text(encoding="utf-8") == "[]"
+
+
+def test_a_failed_publication_leaves_no_temporary(monkeypatch, capsys, tmp_path) -> None:
+    """A leftover `.part` file is this run's litter, not an artifact."""
+    calls: list[str] = []
+    destination = tmp_path / "verdicts.json"
+    _install(monkeypatch, tmp_path, ['{"supports": true, "derivable": true}'] * 3, calls)
+    monkeypatch.setenv("ULTICODE_CITATION_VERDICTS", str(destination))
+
+    original = Path.write_text
+    seen = {"n": 0}
+
+    def flaky(self, data, *args, **kwargs):
+        seen["n"] += 1
+        if seen["n"] == 2:  # the verdict publish
+            raise OSError("no space left on device")
+        return original(self, data, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "write_text", flaky)
+
+    assert smoke.main_sync() == 1
+    assert "reason=verdict_write_failed" in capsys.readouterr().out
+    assert not list(tmp_path.glob("*.part"))

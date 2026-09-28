@@ -254,17 +254,27 @@ async def main() -> int:
 
     verdicts: list[dict[str, object]] = []
     calls = 0
+    try:
+        max_calls = int(os.environ.get("DEEPSEEK_MAX_CALLS", "8"))
+        max_tokens = int(os.environ.get("DEEPSEEK_MAX_TOKENS", "512"))
+    except ValueError:
+        print("FAIL reason=model_budget_invalid")
+        return 1
+    if max_calls < 1 or max_tokens < 1:
+        print("FAIL reason=model_budget_invalid")
+        return 1
+
     async with DeepseekModel(
         os.environ["DEEPSEEK_API_KEY"],
         tool_specs={},
         model=model_name,
         # The configured ceiling, not the row count: the adapter owns the guard.
-        max_calls=int(os.environ.get("DEEPSEEK_MAX_CALLS", "8")),
+        max_calls=max_calls,
         # A two-boolean judgement needs far less than a full analysis; 512 still
         # leaves room for a reasoning model's reasoning tokens, which are billed
         # inside the same budget. Raise it via the environment if a provider
         # truncates (`finish_reason=length`).
-        max_tokens=int(os.environ.get("DEEPSEEK_MAX_TOKENS", "512")),
+        max_tokens=max_tokens,
     ) as model:
         try:
             for item in rows:
@@ -299,27 +309,33 @@ async def main() -> int:
             printed = "unknown" if len(known) != len(totals) else str(sum(known))
             print(f"E2E CITATION SUPPORT USAGE | calls={len(model.usage)} total_tokens={printed}")
 
-    path.write_text(json.dumps(verdicts, ensure_ascii=False, indent=2), encoding="utf-8")
-    # The verdicts are only interpretable next to who judged them and against which
-    # facts, so the sidecar names both rather than leaving it to the run's memory.
     # The full digest: a truncated one would weaken the binding between the
     # verdicts and the exact facts they were judged against.
     facts_digest = "sha256:" + hashlib.sha256(facts.encode("utf-8")).hexdigest()
-    _meta_path(path).write_text(
-        json.dumps(
-            {
-                "judge": "model",
-                "model": model_label(model_name),
-                "human_review": "not_performed",
-                "corpus": "agent-authored-synthetic",
-                "submission_facts_digest": facts_digest,
-                "required_rows": required,
-            },
-            ensure_ascii=False,
-            indent=2,
-        ),
-        encoding="utf-8",
-    )
+    meta = {
+        "judge": "model",
+        "model": model_label(model_name),
+        "human_review": "not_performed",
+        "corpus": "agent-authored-synthetic",
+        "submission_facts_digest": facts_digest,
+        "required_rows": required,
+    }
+    try:
+        # Metadata first, verdicts last: a reader keyed on the verdict file then
+        # never sees verdicts whose sidecar is missing.
+        _meta_path(path).write_text(
+            json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+        path.write_text(
+            json.dumps(verdicts, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+    except OSError as error:
+        _release_unfinished_claim(path)
+        print(
+            f"FAIL reason=verdict_write_failed detail={_path_label(path)} "
+            f"({type(error).__name__})"
+        )
+        return 1
     # Read back through the same loader the human worksheet uses, so the verdicts
     # are bound to their rows before anything is summarised.
     loaded = load_verdicts(path, tuple(rows))
@@ -350,7 +366,10 @@ def main_sync() -> int:
     try:
         return asyncio.run(main())
     except ModelProtocolError as exc:
-        print(f"E2E CITATION SUPPORT FAIL error=ModelProtocolError detail={exc}")
+        print(
+            "E2E CITATION SUPPORT FAIL error=ModelProtocolError "
+            f"detail={model_label(str(exc))}"
+        )
         return 1
 
 

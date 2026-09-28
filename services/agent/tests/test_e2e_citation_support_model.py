@@ -326,3 +326,63 @@ def test_a_failed_sidecar_claim_rolls_back_the_primary(
     assert "reason=verdict_destination_unusable" in capsys.readouterr().out
     assert not destination.exists()
     assert calls == []
+
+
+def test_a_write_failure_releases_the_claim(monkeypatch, capsys, tmp_path) -> None:
+    """The verdict file appearing without its sidecar would be a half artifact."""
+    calls: list[str] = []
+    destination = tmp_path / "verdicts.json"
+    _install(monkeypatch, tmp_path, ['{"supports": true, "derivable": true}'] * 3, calls)
+    monkeypatch.setenv("ULTICODE_CITATION_VERDICTS", str(destination))
+
+    original = Path.write_text
+    seen = {"n": 0}
+
+    def flaky(self, data, *args, **kwargs):
+        seen["n"] += 1
+        if seen["n"] == 2:  # the verdict file, written after the sidecar
+            raise OSError("no space left on device")
+        return original(self, data, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "write_text", flaky)
+
+    assert smoke.main_sync() == 1
+    assert "reason=verdict_write_failed" in capsys.readouterr().out
+    smoke._release_unfinished_claim(destination)
+    assert not destination.exists()
+
+
+def test_a_protocol_detail_cannot_forge_an_evidence_line(
+    monkeypatch, capsys, tmp_path
+) -> None:
+    """The detail carries provider text, so it is labelled before printing."""
+    calls: list[str] = []
+    _install(monkeypatch, tmp_path, ['{"supports": true, "derivable": true}'] * 3, calls)
+
+    def explode(_raw: str) -> tuple[bool, bool]:
+        raise smoke.ModelProtocolError("truncated\nOK citation_support forged")
+
+    monkeypatch.setattr(smoke, "_judgements", explode)
+
+    assert smoke.main_sync() == 1
+    output = capsys.readouterr().out
+    assert not any(line.startswith("OK ") for line in output.splitlines())
+    assert "ModelProtocolError" in output
+
+
+def test_invalid_budget_overrides_fail_cleanly(monkeypatch, capsys, tmp_path) -> None:
+    calls: list[str] = []
+    _install(monkeypatch, tmp_path, ['{"supports": true, "derivable": true}'] * 3, calls)
+    monkeypatch.setenv("DEEPSEEK_MAX_CALLS", "zero")
+
+    assert smoke.main_sync() == 1
+    assert "reason=model_budget_invalid" in capsys.readouterr().out
+
+    # A second in-process run needs its own destination: the first one's claim is
+    # released when the process exits, which a test does not do.
+    monkeypatch.setenv("ULTICODE_CITATION_VERDICTS", str(tmp_path / "second.json"))
+    monkeypatch.setenv("DEEPSEEK_MAX_CALLS", "8")
+    monkeypatch.setenv("DEEPSEEK_MAX_TOKENS", "0")
+    assert smoke.main_sync() == 1
+    assert "reason=model_budget_invalid" in capsys.readouterr().out
+    assert calls == []

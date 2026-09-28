@@ -7,7 +7,12 @@ import unicodedata
 
 from citation_integrity import check_citations
 from corpus_manifest import assert_manifest_covers
-from retrieval import SourceDocument, keyword_search, load_sample_corpus
+from retrieval import (
+    MAX_SOURCE_CHARS,
+    SourceDocument,
+    keyword_search,
+    load_sample_corpus,
+)
 
 
 _ALLOWED_STATUSES = {
@@ -97,6 +102,11 @@ def analyze_submission(
             raise ValueError("invalid corpus")
         assert_manifest_covers(manifest, documents)
         for document in documents:
+            # Both checked-in loaders apply this bound; a supplied corpus must not
+            # become the one path that ships whole documents into every citation and
+            # from there into the model prompt.
+            if not document.text or len(document.text) > MAX_SOURCE_CHARS:
+                raise ValueError("supplied corpus document exceeds the source cap")
             if (
                 document.sample_kind != "synthetic"
                 or document.access_scope != "agent-authored-synthetic"

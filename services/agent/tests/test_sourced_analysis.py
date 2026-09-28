@@ -285,3 +285,19 @@ def test_the_status_requirement_applies_before_the_result_limit(tmp_path) -> Non
         "fixture-status-bearing"
     ]
     assert all(check["verdict"] == "verified" for check in result["citation_checks"])
+
+
+def test_an_oversized_supplied_document_is_refused(tmp_path) -> None:
+    """Both checked-in loaders cap source size; the seam must not be the way around."""
+    documents = tuple(_synthetic_status_document(i) for i in (1, 2, 3))
+    oversized = replace(documents[0], text=documents[0].text + " pad" * 400)
+    corpus = (oversized, documents[1], documents[2])
+    manifest = _manifest_for(corpus, tmp_path)
+
+    with pytest.raises(ValueError, match="source cap"):
+        analyze_submission(
+            {"id": "sub-1", "status": "Wrong Answer"},
+            "Wrong Answer citation",
+            documents=corpus,
+            manifest=manifest,
+        )

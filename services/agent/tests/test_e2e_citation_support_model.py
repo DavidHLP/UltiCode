@@ -671,3 +671,18 @@ def test_a_symlinked_temporary_cannot_be_published(tmp_path, monkeypatch) -> Non
 
     assert victim.read_text(encoding="utf-8") == "other content"
     assert not destination.exists()
+
+
+def test_a_colliding_temporary_is_not_unlinked(tmp_path, monkeypatch) -> None:
+    """Failing to create the name must leave whoever owns it alone."""
+    destination = tmp_path / "verdicts.json"
+    other = tmp_path / "verdicts.json.deadbeef.part"
+    other.write_text("another publisher's bytes", encoding="utf-8")
+    monkeypatch.setattr(smoke.secrets, "token_hex", lambda _n: "deadbeef")
+
+    with pytest.raises(OSError):
+        smoke._publish(destination, '{"ours": true}')
+
+    # Created by someone else, so this run's cleanup must not have touched it.
+    assert other.read_text(encoding="utf-8") == "another publisher's bytes"
+    assert not destination.exists()

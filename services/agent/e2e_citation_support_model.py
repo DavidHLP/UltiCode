@@ -129,6 +129,10 @@ def _publish(target: Path, text: str) -> None:
     never observe a half-written file, so the content lands via a rename.
     """
     temporary = target.with_name(f"{target.name}.{secrets.token_hex(4)}.part")
+    # Whether *this* invocation created the path. An O_EXCL failure means the name
+    # was already there — a random-name collision, or a pre-created symlink this run
+    # must not follow — and unlinking it would destroy someone else's temporary.
+    created = False
     try:
         # Exclusive and no-follow: in a shared destination directory a pre-created
         # symlink at the temporary's name would otherwise be written through, and the
@@ -138,17 +142,21 @@ def _publish(target: Path, text: str) -> None:
             os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
             0o600,
         )
+        created = True
         with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
             stream.write(text)
         os.replace(temporary, target)
+        created = False  # the rename consumed it
     finally:
-        # Only this exact path. A glob by target prefix would also match a *different*
+        # Only this exact path, and only when we created it. A glob by target prefix
+        # would also match a *different*
         # run's temporary — `verdicts.json.backup.<random>.part` when this target is
         # `verdicts.json` — and delete work that run still needs for its own rename.
-        try:
-            temporary.unlink()
-        except OSError:
-            pass
+        if created:
+            try:
+                temporary.unlink()
+            except OSError:
+                pass
 
 
 def _discard_artifacts(path: Path) -> None:

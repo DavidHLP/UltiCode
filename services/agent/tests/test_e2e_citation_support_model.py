@@ -630,3 +630,37 @@ def test_the_corpus_gap_is_reported_without_a_credential(
     assert "reason=insufficient_citations" in output
     assert "deepseek_api_key_required" not in output
     assert calls == []
+
+
+def test_a_symlinked_lock_is_refused_and_its_target_survives(tmp_path) -> None:
+    """A predictable name in a shared directory must not redirect the lock write."""
+    destination = tmp_path / "verdicts.json"
+    victim = tmp_path / "victim.txt"
+    victim.write_text("important", encoding="utf-8")
+    smoke._verdict_lock(destination).symlink_to(victim)
+
+    with pytest.raises(RuntimeError, match="not writable"):
+        smoke._claim_verdict_file(destination)
+
+    assert victim.read_text(encoding="utf-8") == "important"
+
+
+def test_cleanup_leaves_a_sibling_destination_temporary_alone(tmp_path) -> None:
+    """A prefix-matching name belongs to another run, which still needs its temp."""
+    destination = tmp_path / "verdicts.json"
+    other = tmp_path / "verdicts.json.backup.abc123.part"
+    other.write_text("another run's publication", encoding="utf-8")
+
+    smoke._discard_artifacts(destination)
+
+    assert other.read_text(encoding="utf-8") == "another run's publication"
+
+
+def test_a_failed_publication_leaves_no_temporary_of_its_own(tmp_path) -> None:
+    """The writer removes its own temp when the rename cannot happen."""
+    destination = tmp_path / "verdicts.json"
+
+    with pytest.raises(OSError):
+        smoke._publish(destination / "nested" / "verdicts.json", "{}")
+
+    assert not list(tmp_path.rglob("*.part"))

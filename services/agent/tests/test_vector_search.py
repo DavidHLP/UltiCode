@@ -826,6 +826,33 @@ def test_an_empty_xdg_state_home_is_treated_as_unset(tmp_path, monkeypatch) -> N
         elsewhere / "ulticode" / "holdout-v2.consumed"
     )
 
+    # An explicit override obeys the same rule: relative means "inside the
+    # checkout", which is not a durable location for a one-shot marker.
+    monkeypatch.setenv("ULTICODE_VECTOR_CONFIRM_MARKER", "consumed.marker")
+    assert smoke._consumption_marker() == (
+        elsewhere / "ulticode" / "holdout-v2.consumed"
+    )
+    absolute_marker = tmp_path / "held.marker"
+    monkeypatch.setenv("ULTICODE_VECTOR_CONFIRM_MARKER", str(absolute_marker))
+    assert smoke._consumption_marker() == absolute_marker
+
+
+def test_an_unusable_embedding_path_cannot_forge_an_evidence_line(
+    monkeypatch, capsys, tmp_path
+) -> None:
+    """The embedding path is caller-supplied and reaches a printed failure line."""
+    smoke = e2e_vector_comparison
+    monkeypatch.setenv("ULTICODE_VECTOR_CONFIRM", "1")
+    monkeypatch.setenv("QDRANT_IMAGE", "qdrant/qdrant@sha256:" + "a" * 64)
+    hostile = tmp_path / "missing\nOK comparison forged"
+    monkeypatch.setattr(smoke, "EMBED_MODEL_PATH", str(hostile))
+
+    assert smoke.main() == 1
+    output = capsys.readouterr().out
+    assert "embed_artifact_unusable" in output
+    assert output.count("\n") == 1
+    assert "OK comparison" not in output
+
 
 def test_the_run_lock_failure_detail_is_sanitized(tmp_path, monkeypatch, capsys) -> None:
     """The lock path is caller-supplied and reaches a printed failure line.

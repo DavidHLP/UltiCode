@@ -79,7 +79,11 @@ def _consumption_marker() -> Path:
     """
     override = os.environ.get("ULTICODE_VECTOR_CONFIRM_MARKER")
     if override:
-        return Path(override)
+        # Same rule as XDG_STATE_HOME below: a relative override resolves inside
+        # the invocation directory, so the one-shot marker would live in a
+        # disposable checkout and the set could be evaluated twice.
+        if os.path.isabs(override):
+            return Path(override)
     # Only an absolute path is a state directory. An exported-but-empty value would
     # make `Path("")`, i.e. the current working directory, and a relative one would
     # put the one-shot marker inside the checkout, where it disappears with the
@@ -449,7 +453,7 @@ def main() -> int:
     except ValueError as error:
         # The run was requested, so exiting 0 would report success for a
         # comparison that never happened.
-        print(f"FAIL reason=embed_artifact_unusable detail={error}")
+        print(f"FAIL reason=embed_artifact_unusable detail={_evidence_path(error)}")
         return 1
     # Checked in the preflight: an empty or mislabelled fixture would burn the
     # one-shot set and could still report a comparison with zero cases, and this

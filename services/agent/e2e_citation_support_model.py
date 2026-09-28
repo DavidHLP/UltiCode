@@ -172,13 +172,6 @@ def _claim_verdict_file(path: Path) -> Path:
     judging. A missing parent, a directory, or a reservation another run holds is a
     failure of this run, and finding out after the model calls would waste them.
     """
-    for existing in (path, _meta_path(path)):
-        if existing.exists():
-            # An earlier run's verdicts are evidence; overwriting them silently is
-            # what the caller cannot detect afterwards.
-            raise RuntimeError(
-                f"verdict destination already exists: {_path_label(existing)}"
-            )
     lock = path.with_name(f"{path.name}.lock")
     try:
         lock.parent.mkdir(parents=True, exist_ok=True)
@@ -194,6 +187,14 @@ def _claim_verdict_file(path: Path) -> Path:
             f"({type(error).__name__})"
         ) from None
     atexit.register(_release_unfinished_claim, path, lock)
+    # Checked *after* the lock: two runs can both see an empty destination before
+    # either holds it, and the loser would then replace the winner's verdicts.
+    for existing in (path, _meta_path(path)):
+        if existing.exists():
+            _release_unfinished_claim(path, lock)
+            raise RuntimeError(
+                f"verdict destination already exists: {_path_label(existing)}"
+            )
     return lock
 
 

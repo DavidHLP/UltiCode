@@ -496,3 +496,17 @@ def test_a_failed_publication_leaves_no_temporary(monkeypatch, capsys, tmp_path)
     assert smoke.main_sync() == 1
     assert "reason=verdict_write_failed" in capsys.readouterr().out
     assert not list(tmp_path.glob("*.part"))
+
+
+def test_an_artifact_that_appears_under_the_lock_is_refused(tmp_path) -> None:
+    """Two runs can both pass a pre-lock check; the loser must not overwrite."""
+    destination = tmp_path / "verdicts.json"
+    # The destination was empty when the run started and holds another run's
+    # verdicts by the time this one takes the lock.
+    destination.write_text("[]", encoding="utf-8")
+
+    with pytest.raises(RuntimeError, match="already exists"):
+        smoke._claim_verdict_file(destination)
+
+    # The reservation it took is released, so the retry after the clash works.
+    assert not (tmp_path / "verdicts.json.lock").exists()

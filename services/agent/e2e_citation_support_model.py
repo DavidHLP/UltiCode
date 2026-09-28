@@ -24,6 +24,7 @@ import hashlib
 import json
 import os
 import secrets
+import stat
 import sys
 from pathlib import Path
 
@@ -128,18 +129,48 @@ def _publish(target: Path, text: str) -> None:
     never observe a half-written file, so the content lands via a rename.
     """
     temporary = target.with_name(f"{target.name}.{secrets.token_hex(4)}.part")
-    temporary.write_text(text, encoding="utf-8")
-    os.replace(temporary, target)
+    # Whether *this* invocation created the path. An O_EXCL failure means the name
+    # was already there — a random-name collision, or a pre-created symlink this run
+    # must not follow — and unlinking it would destroy someone else's temporary.
+    created = False
+    try:
+        # Exclusive and no-follow: in a shared destination directory a pre-created
+        # symlink at the temporary's name would otherwise be written through, and the
+        # rename would then publish the link's target as this run's verdicts.
+        descriptor = os.open(
+            temporary,
+            os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+            0o600,
+        )
+        created = True
+        with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
+            stream.write(text)
+        os.replace(temporary, target)
+        created = False  # the rename consumed it
+    finally:
+        # Only this exact path, and only when we created it. A glob by target prefix
+        # would also match a *different*
+        # run's temporary — `verdicts.json.backup.<random>.part` when this target is
+        # `verdicts.json` — and delete work that run still needs for its own rename.
+        if created:
+            try:
+                temporary.unlink()
+            except OSError:
+                pass
 
 
 def _discard_artifacts(path: Path) -> None:
-    """Remove this run's artifacts and temporaries, filled or not."""
+    """Remove the artifacts this run published or half-published.
+
+    Only the two exact destinations: the claim refused the path when either already
+    existed, so whatever is here is this run's. Temporaries are removed by the writer
+    that created them.
+    """
     for target in (path, _meta_path(path)):
-        for candidate in (target, *target.parent.glob(f"{target.name}.*.part")):
-            try:
-                candidate.unlink()
-            except OSError:
-                pass
+        try:
+            target.unlink()
+        except OSError:
+            pass
 
 
 def _verdict_lock(path: Path) -> Path:
@@ -179,12 +210,21 @@ def _claim_verdict_file(path: Path) -> Path:
     lock = _verdict_lock(path)
     try:
         lock.parent.mkdir(parents=True, exist_ok=True)
-        handle = lock.open("a+", encoding="utf-8")
+        # O_NOFOLLOW: in a shared directory such as /tmp another local user could
+        # pre-create this predictable name as a symlink, and opening it would make
+        # the truncate-and-write below edit whatever it points at.
+        descriptor = os.open(lock, os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o600)
     except OSError as error:
         raise RuntimeError(
             f"verdict destination is not writable: {_path_label(lock)} "
             f"({type(error).__name__})"
         ) from None
+    if not stat.S_ISREG(os.fstat(descriptor).st_mode):
+        os.close(descriptor)
+        raise RuntimeError(
+            f"verdict destination is not writable: {_path_label(lock)} (not a regular file)"
+        )
+    handle = os.fdopen(descriptor, "r+", encoding="utf-8")
     try:
         fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
     except OSError:

@@ -83,18 +83,21 @@ Contract — every violation is a fixed `FAIL reason=...` evidence line and exit
   falls back to the pinned corpus: reporting evidence from a different corpus than the one it
   was asked for is worse than stopping.
 - **The root is a real directory**, not a symlink (`corpus_root_unusable`), and the manifest
-  must declare at least one entry (`corpus_empty`).
+  declares nothing at all → `corpus_empty`, distinguished from a manifest that will not parse
+  (`corpus_manifest_unusable`).
 - **Declarations come from the manifest.** Missing, unreadable, invalid or non-conforming
   manifest → `corpus_manifest_unusable`. Every entry must declare exactly `ACCEPTED_PERMISSION`
   and `ACCEPTED_SCOPE`, the policy the run pins in source → `corpus_declaration_unsupported`.
 - **One file per entry**, resolved through the manifest's own `source_path` basename under the
   corpus directory: symlinked entry → `corpus_entry_escapes_root`; missing file →
-  `corpus_entry_missing`; two entries resolving to one file → `corpus_entry_duplicate_source`
-  (a single fragment must never count as several citations); empty or over `MAX_SOURCE_CHARS`
-  → `corpus_entry_unusable`.
-- **Positions are derived from the loaded text.** A manifest position that does not match the
-  file → `corpus_entry_position_mismatch`, so a citation cannot cite a location that does not
-  exist.
+  `corpus_entry_missing`; two entries resolving to the *same file* — including two hard-link
+  names for one inode — → `corpus_entry_duplicate_source` (a single fragment must never count
+  as several citations); unreadable, not UTF-8, empty or over `MAX_SOURCE_CHARS` →
+  `corpus_entry_unusable`.
+- **Positions are derived from the raw file**, spanning the first to the last non-blank
+  physical line, so leading blank lines are covered and content starting on line 3 reports
+  `lines 3-5` rather than `lines 1-5`. A manifest position that does not match →
+  `corpus_entry_position_mismatch`, so a citation cannot cite a location that does not exist.
 - With neither variable set, behaviour is exactly the pinned, manifest-gated sample corpus.
 
 The policy is two pinned constants in `e2e_citation_support_model.py`. Authorised material

@@ -814,16 +814,30 @@ def test_an_empty_xdg_state_home_is_treated_as_unset(tmp_path, monkeypatch) -> N
     )
 
 
-def test_a_marker_path_cannot_forge_an_evidence_line() -> None:
-    """The marker path is caller-supplied and is printed as run evidence."""
+def test_the_run_lock_failure_detail_is_sanitized(tmp_path, monkeypatch, capsys) -> None:
+    """The lock path is caller-supplied and reaches a printed failure line.
+
+    This environment cannot reach that line end to end — the run stops earlier at
+    the optional `eval` dependency — so this pins the two halves it can: the
+    internal error carries the raw path, and the label the harness prints from it
+    cannot start a new line.
+    """
     smoke = e2e_vector_comparison
+    held = tmp_path / "a\nOK comparison forged"
+    held.write_text("pid=1\n", encoding="utf-8")
+    monkeypatch.setenv(smoke.RUN_LOCK_ENV, str(held))
 
-    label = smoke._evidence_path("/tmp/a\nOK comparison forged")
+    with pytest.raises(RuntimeError) as error:
+        smoke._acquire_run_lock()
 
-    # Nothing on the line can start a new field or a new line.
-    assert not any(char.isspace() for char in label)
-    assert label == "/tmp/a?OK?comparison?forged"
-    assert smoke._evidence_path("/tmp/plain/path") == "/tmp/plain/path"
+    assert "\n" in str(error.value)
+    assert "\n" not in smoke._evidence_path(error.value)
+
+    smoke._report_run_lock_failure(error.value)
+    output = capsys.readouterr().out
+    assert output.count("\n") == 1  # one line, no forged fields
+    assert "OK comparison" not in output
+    assert "run_lock_unavailable" in output
 
 
 def test_the_canonical_isoformat_timestamp_is_our_claim(tmp_path: Path) -> None:

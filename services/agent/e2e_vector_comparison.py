@@ -108,6 +108,11 @@ def _release_run_lock(lock: Path) -> None:
         pass
 
 
+def _report_run_lock_failure(error: BaseException) -> None:
+    """Emit the lock failure without echoing a caller-supplied path verbatim."""
+    print(f"FAIL reason=run_lock_unavailable detail={_evidence_path(error)}")
+
+
 def _acquire_run_lock() -> Path:
     """Hold the collection lifecycle, or refuse to start.
 
@@ -476,7 +481,7 @@ def main() -> int:
     try:
         _acquire_run_lock()
     except RuntimeError as error:
-        print(f"FAIL reason=run_lock_unavailable detail={error}")
+        _report_run_lock_failure(error)
         return 1
     corpus = load_sample_corpus()
     client = QdrantClient(url=qdrant_url())

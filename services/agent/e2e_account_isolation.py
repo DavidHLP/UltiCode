@@ -51,10 +51,11 @@ CSRF_COOKIE = "csrf_token"
 #: Double-submit CSRF: a cookie-authenticated write must echo this header.
 CSRF_HEADER = "X-CSRF-Token"
 SUBMISSION_LANGUAGE = "python"
-#: The fixture scan follows the listing's pagination; a dev stack is far
-#: smaller, and the bound stops a broken `total` from looping forever.
+#: The fixture scan follows the listing's own `total`, and this is only a safety
+#: net against a pathological listing. Raise it with
+#: `ULTICODE_E2E_FIXTURE_MAX_PAGES` rather than editing the code.
 PROBLEM_SCAN_PAGE_SIZE = 50
-PROBLEM_SCAN_PAGE_LIMIT = 5
+DEFAULT_PROBLEM_SCAN_PAGES = 20
 REFUSAL_STATUSES = frozenset({403, 404})
 
 
@@ -209,6 +210,22 @@ async def _establish_session(
     return "login"
 
 
+def _scan_page_limit() -> int:
+    """How many listing pages the fixture scan may read before giving up."""
+    raw = os.environ.get("ULTICODE_E2E_FIXTURE_MAX_PAGES", "").strip()
+    if not raw:
+        return DEFAULT_PROBLEM_SCAN_PAGES
+    try:
+        value = int(raw)
+    except ValueError:
+        raise IsolationHarnessError(
+            "ULTICODE_E2E_FIXTURE_MAX_PAGES must be an integer"
+        ) from None
+    if value < 1:
+        raise IsolationHarnessError("ULTICODE_E2E_FIXTURE_MAX_PAGES must be at least 1")
+    return value
+
+
 async def _fixture_problem(
     client: httpx.AsyncClient, headers: dict[str, str]
 ) -> tuple[int, str]:
@@ -220,7 +237,8 @@ async def _fixture_problem(
     listing's own pagination, bounded so a broken `total` cannot spin here.
     """
     page = 1
-    while page <= PROBLEM_SCAN_PAGE_LIMIT:
+    page_limit = _scan_page_limit()
+    while page <= page_limit:
         response = _require_200(
             await client.get(
                 f"{APP_BASE}/problems",

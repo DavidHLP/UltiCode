@@ -18,6 +18,7 @@ authorized material is DAV-58.
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import os
 import secrets
@@ -243,9 +244,9 @@ async def main() -> int:
     path.write_text(json.dumps(verdicts, ensure_ascii=False, indent=2), encoding="utf-8")
     # The verdicts are only interpretable next to who judged them and against which
     # facts, so the sidecar names both rather than leaving it to the run's memory.
-    facts_digest = "sha256:" + __import__("hashlib").sha256(
-        facts.encode("utf-8")
-    ).hexdigest()[:16]
+    # The full digest: a truncated one would weaken the binding between the
+    # verdicts and the exact facts they were judged against.
+    facts_digest = "sha256:" + hashlib.sha256(facts.encode("utf-8")).hexdigest()
     path.with_suffix(path.suffix + ".meta.json").write_text(
         json.dumps(
             {

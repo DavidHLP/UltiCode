@@ -125,7 +125,10 @@ def test_the_model_judges_one_row_per_question(monkeypatch, capsys, tmp_path) ->
     )
     assert meta["judge"] == "model"
     assert meta["human_review"] == "not_performed"
-    assert meta["submission_facts_digest"].startswith("sha256:")
+    digest = meta["submission_facts_digest"]
+    assert digest.startswith("sha256:")
+    # Full length: a truncated digest would weaken the binding it exists for.
+    assert len(digest) == len("sha256:") + 64
 
 
 def test_an_unsupported_citation_fails_the_gate(monkeypatch, capsys, tmp_path) -> None:

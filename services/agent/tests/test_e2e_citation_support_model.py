@@ -216,3 +216,40 @@ def test_duplicate_judgement_keys_are_refused(monkeypatch, capsys, tmp_path) -> 
     output = capsys.readouterr().out
     assert "ModelProtocolError" in output
     assert "USAGE | calls=1" in output  # the billed call is still accounted for
+
+
+def test_extra_judgement_fields_are_refused(monkeypatch, capsys, tmp_path) -> None:
+    """The contract names two fields; an explanation must not ride along unread."""
+    calls: list[str] = []
+    extra = '{"supports": true, "derivable": true, "explanation": "because"}'
+    _install(monkeypatch, tmp_path, [extra] * 3, calls)
+
+    assert smoke.main_sync() == 1
+    assert "ModelProtocolError" in capsys.readouterr().out
+
+
+def test_the_default_verdict_path_is_run_scoped(monkeypatch) -> None:
+    """Two runs from the documented directory must not write one file."""
+    monkeypatch.delenv("ULTICODE_CITATION_VERDICTS", raising=False)
+
+    first = smoke._verdict_file()
+    second = smoke._verdict_file()
+
+    assert first != second
+    assert first.name.startswith("citation-verdicts-") and first.suffix == ".json"
+
+
+def test_an_unusable_verdict_destination_fails_before_any_call(
+    monkeypatch, capsys, tmp_path
+) -> None:
+    """Discovering a bad destination after paying for judgements wastes them."""
+    calls: list[str] = []
+    _install(monkeypatch, tmp_path, ['{"supports": true, "derivable": true}'] * 3, calls)
+    taken = tmp_path / "already-there.json"
+    taken.write_text("{}", encoding="utf-8")
+    monkeypatch.setenv("ULTICODE_CITATION_VERDICTS", str(taken))
+
+    assert smoke.main_sync() == 1
+    output = capsys.readouterr().out
+    assert "reason=verdict_destination_unusable" in output
+    assert calls == []

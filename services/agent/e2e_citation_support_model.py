@@ -20,6 +20,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import secrets
 import sys
 from pathlib import Path
 
@@ -59,6 +60,11 @@ JUDGE_CONTRACT = (
 )
 
 
+def _path_label(path: object) -> str:
+    """A path safe to put on one evidence line: caller-supplied, so not verbatim."""
+    return model_label(str(path))
+
+
 def _judgements(raw: str) -> tuple[bool, bool]:
     """The model's two booleans, or a protocol failure.
 
@@ -71,6 +77,10 @@ def _judgements(raw: str) -> tuple[bool, bool]:
         raise ModelProtocolError("citation judgement was not JSON") from None
     if not isinstance(parsed, dict):
         raise ModelProtocolError("citation judgement was not an object")
+    if set(parsed) != {"supports", "derivable"}:
+        # The contract names exactly two fields; an extra explanation field would
+        # otherwise ride along unread.
+        raise ModelProtocolError("citation judgement had unexpected fields")
     supports = parsed.get("supports")
     derivable = parsed.get("derivable")
     if not isinstance(supports, bool) or not isinstance(derivable, bool):
@@ -78,8 +88,35 @@ def _judgements(raw: str) -> tuple[bool, bool]:
     return supports, derivable
 
 
-def _verdict_file(rows: object) -> Path:
-    return Path(os.environ.get("ULTICODE_CITATION_VERDICTS", "citation-verdicts.json"))
+def _verdict_file() -> Path:
+    """Where this run's verdicts go.
+
+    The default is run-scoped: two evaluations started from the documented working
+    directory would otherwise write the same file, and the loser's verdicts would
+    replace the winner's before either is read back.
+    """
+    override = os.environ.get("ULTICODE_CITATION_VERDICTS", "").strip()
+    if override:
+        return Path(override)
+    return Path(f"citation-verdicts-{secrets.token_hex(4)}.json")
+
+
+def _claim_verdict_file(path: Path) -> None:
+    """Take the destination before any billed call.
+
+    A missing parent, a directory, or an already-claimed path is a failure of this
+    run, and finding out after the model calls would waste them.
+    """
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("x", encoding="utf-8"):
+            pass
+    except FileExistsError:
+        raise RuntimeError(f"verdict destination already exists: {_path_label(path)}") from None
+    except OSError as error:
+        raise RuntimeError(
+            f"verdict destination is not writable: {_path_label(path)} ({type(error).__name__})"
+        ) from None
 
 
 async def main() -> int:
@@ -144,6 +181,15 @@ async def main() -> int:
         return 1
 
     facts = json.dumps(matching, ensure_ascii=False, default=str)
+    path = _verdict_file()
+    try:
+        # Claimed here, before any billed call: an unusable destination is a
+        # failed run, not something to discover after paying for the judgements.
+        _claim_verdict_file(path)
+    except RuntimeError as error:
+        print(f"FAIL reason=verdict_destination_unusable detail={error}")
+        return 1
+
     unverified = [row.chunk_id for row in rows if row.integrity_verdict != "verified"]
     if unverified:
         # Judging an unverified citation would spend a call on a row that can never
@@ -194,7 +240,6 @@ async def main() -> int:
             printed = "unknown" if len(known) != len(totals) else str(sum(known))
             print(f"E2E CITATION SUPPORT USAGE | calls={len(model.usage)} total_tokens={printed}")
 
-    path = _verdict_file(rows)
     path.write_text(json.dumps(verdicts, ensure_ascii=False, indent=2), encoding="utf-8")
     # The verdicts are only interpretable next to who judged them and against which
     # facts, so the sidecar names both rather than leaving it to the run's memory.
@@ -227,7 +272,7 @@ async def main() -> int:
         f"supports={summary['counts']['supports']} "
         f"not_supported={len(summary['not_supported'])} "
         f"integrity_unverified={len(summary['integrity_unverified'])} "
-        f"gate_passed={summary['gate_passed']} verdicts={model_label(str(path))}"
+        f"gate_passed={summary['gate_passed']} verdicts={_path_label(path)} "
     )
     print(
         "E2E CITATION SUPPORT | reviewer=model | corpus=agent-authored-synthetic "

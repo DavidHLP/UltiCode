@@ -287,6 +287,65 @@ def test_a_boolean_result_code_is_not_a_success(monkeypatch, capsys) -> None:
     assert "FAIL reason=fixture_unavailable" in capsys.readouterr().out
 
 
+def test_the_fixture_skips_a_problem_without_the_language(monkeypatch, capsys) -> None:
+    """A Java-only first row must not fail the whole contrast.
+
+    Languages are configured per problem, so scanning for one that offers the
+    fixture language is what keeps a legitimate stack from failing closed.
+    """
+    monkeypatch.setenv("ULTICODE_E2E_ISOLATION", "1")
+    inner = correct_service()
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        path = request.url.path
+        if path.endswith("/problems"):
+            return httpx.Response(
+                200, json={"data": {"items": [{"id": 7}, {"id": 1}], "total": 2}}
+            )
+        detail = _problem_detail_id(path)
+        if detail == "7":
+            return httpx.Response(
+                200,
+                json={"data": {"id": 7, "languages": [{"value": "java", "starter_code": "class Solution {}"}]}},
+            )
+        if detail == "1":
+            return httpx.Response(
+                200,
+                json={"data": {"id": 1, "languages": [{"value": "python", "starter_code": STARTER}]}},
+            )
+        return inner(request)
+
+    _install(monkeypatch, handler)
+
+    assert asyncio.run(e2e_account_isolation.main()) == 0
+    assert "OK isolation" in capsys.readouterr().out
+
+
+def test_a_boolean_detail_id_is_not_a_match(monkeypatch, capsys) -> None:
+    """`True == 1`, so a boolean id must not satisfy the public control."""
+    monkeypatch.setenv("ULTICODE_E2E_ISOLATION", "1")
+    inner = correct_service()
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if _problem_detail_id(request.url.path) == "1" and _is_anonymous(request):
+            return httpx.Response(
+                200,
+                json={
+                    "code": 0,
+                    "data": {
+                        "id": True,
+                        "languages": [{"value": "python", "starter_code": STARTER}],
+                    },
+                },
+            )
+        return inner(request)
+
+    _install(monkeypatch, handler)
+
+    assert asyncio.run(e2e_account_isolation.main()) == 1
+    assert "FAIL reason=public_content_not_readable" in capsys.readouterr().out
+
+
 def test_public_content_stays_readable_without_a_session(monkeypatch, capsys) -> None:
     """Isolation must not be a blanket deny: the public control is part of the verdict."""
     monkeypatch.setenv("ULTICODE_E2E_ISOLATION", "1")

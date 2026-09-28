@@ -802,6 +802,30 @@ def test_artifact_identity_separates_layouts_that_share_a_byte_stream(tmp_path) 
     assert artifact_identity(str(one)) == artifact_identity(str(one))
 
 
+def test_an_empty_xdg_state_home_is_treated_as_unset(tmp_path, monkeypatch) -> None:
+    """`Path("")` is the current directory, not a state directory."""
+    smoke = e2e_vector_comparison
+    monkeypatch.delenv("ULTICODE_VECTOR_CONFIRM_MARKER", raising=False)
+    monkeypatch.setenv("XDG_STATE_HOME", "")
+    monkeypatch.setenv("HOME", str(tmp_path))
+
+    assert smoke._consumption_marker() == (
+        tmp_path / ".local" / "state" / "ulticode" / "holdout-v2.consumed"
+    )
+
+
+def test_a_marker_path_cannot_forge_an_evidence_line() -> None:
+    """The marker path is caller-supplied and is printed as run evidence."""
+    smoke = e2e_vector_comparison
+
+    label = smoke._evidence_path("/tmp/a\nOK comparison forged")
+
+    # Nothing on the line can start a new field or a new line.
+    assert not any(char.isspace() for char in label)
+    assert label == "/tmp/a?OK?comparison?forged"
+    assert smoke._evidence_path("/tmp/plain/path") == "/tmp/plain/path"
+
+
 def test_the_canonical_isoformat_timestamp_is_our_claim(tmp_path: Path) -> None:
     """The tightened check must still accept what the harness actually writes."""
     smoke = e2e_vector_comparison

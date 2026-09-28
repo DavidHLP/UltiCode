@@ -203,6 +203,12 @@ def load_verdicts(path: Path, items: tuple[ReviewItem, ...]) -> dict[str, dict[s
         # was edited, the old id must not still approve the original citation.
         submitted_claim = entry.get("claim", claim_by_chunk.get(chunk_id))
         submitted_quote = entry.get("quote", quote_by_chunk.get(chunk_id))
+        # A truthy non-string (object, list, number) reaches `encode` and crashes
+        # the loader instead of being rejected as an invalid entry.
+        if not isinstance(submitted_claim, str) or not isinstance(submitted_quote, str):
+            raise VerdictError(
+                f"verdict for {chunk_id} needs string claim and quote values"
+            )
         if review_id != review_row_id(chunk_id, submitted_claim or "", submitted_quote or ""):
             raise VerdictError(
                 f"verdict for {chunk_id} does not match the submitted claim and quote"

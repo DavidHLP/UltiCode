@@ -205,20 +205,35 @@ async def _establish_session(
     return "login"
 
 
-async def _first_problem_id(
+async def _fixture_problem(
     client: httpx.AsyncClient, headers: dict[str, str]
-) -> int:
+) -> tuple[int, str]:
+    """A problem the harness can actually submit to, with its own starter code.
+
+    The first listing row is not necessarily one this harness can use: languages
+    are configured per problem, so a Java-only first row would fail the run closed
+    even though a later problem offers the fixture language.
+    """
     response = _require_200(
         await client.get(
-            f"{APP_BASE}/problems", params={"page": 1, "pageSize": 1}, headers=headers
+            f"{APP_BASE}/problems", params={"page": 1, "pageSize": 50}, headers=headers
         ),
         "problem listing",
     )
     items = _data(response).get("items")
     for item in items if isinstance(items, list) else []:
-        if isinstance(item, dict) and isinstance(item.get("id"), int):
-            return item["id"]
-    raise IsolationHarnessError("no problem available for a submission fixture")
+        if not isinstance(item, dict):
+            continue
+        problem_id = item.get("id")
+        if isinstance(problem_id, bool) or not isinstance(problem_id, int):
+            # `True` is an int in Python, so a boolean id is not a problem id.
+            continue
+        try:
+            return problem_id, await _starter_code(client, headers, problem_id)
+        except IsolationHarnessError:
+            # No starter for this language here; the listing may still offer one.
+            continue
+    raise IsolationHarnessError("no problem offers a fixture for this language")
 
 
 async def _starter_code(
@@ -352,8 +367,7 @@ async def main() -> int:
         app_a.cookies.update(auth_a.cookies)
         app_b.cookies.update(auth_b.cookies)
         try:
-            problem_id = await _first_problem_id(app_a, headers_a)
-            code = await _starter_code(app_a, headers_a, problem_id)
+            problem_id, code = await _fixture_problem(app_a, headers_a)
             submission_a = await _submit(app_a, app_a.cookies, problem_id, code)
             submission_b = await _submit(app_b, app_b.cookies, problem_id, code)
         except IsolationHarnessError as error:
@@ -444,7 +458,8 @@ async def main() -> int:
         if not isinstance(public_items, list) or not public_items:
             print("FAIL reason=public_content_not_readable")
             return 1
-        if public_detail_id != problem_id:
+        if isinstance(public_detail_id, bool) or public_detail_id != problem_id:
+            # `True == 1`, so a boolean id must not match problem 1.
             print("FAIL reason=public_content_not_readable")
             return 1
 

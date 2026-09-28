@@ -80,8 +80,10 @@ def _consumption_marker() -> Path:
     override = os.environ.get("ULTICODE_VECTOR_CONFIRM_MARKER")
     if override:
         return Path(override)
+    # `or` not `get` default: an exported-but-empty XDG_STATE_HOME would otherwise
+    # make `Path("")`, i.e. the current working directory.
     state_home = Path(
-        os.environ.get("XDG_STATE_HOME", str(Path.home() / ".local" / "state"))
+        os.environ.get("XDG_STATE_HOME") or str(Path.home() / ".local" / "state")
     )
     return state_home / "ulticode" / "holdout-v2.consumed"
 
@@ -129,6 +131,18 @@ def _acquire_run_lock() -> Path:
         raise RuntimeError(f"could not take the comparison run lock: {error}") from None
     atexit.register(_release_run_lock, lock)
     return lock
+
+
+def _evidence_path(value: object) -> str:
+    """A path safe to put on one evidence line.
+
+    A Unix path may contain whitespace or control characters, and this value is
+    caller-supplied (`ULTICODE_VECTOR_CONFIRM_MARKER`), so printing it verbatim
+    could split or forge a line of the run's own evidence.
+    """
+    return "".join(
+        char if char.isprintable() and not char.isspace() else "?" for char in str(value)
+    )
 
 
 def _is_our_claim_record(marker: Path) -> bool:
@@ -527,7 +541,7 @@ def main() -> int:
     # the claim is deliberately taken after that preflight has succeeded.
     claimed, marker = _claim_confirmation_once()
     if not claimed:
-        print(f"SKIP reason=confirmation_already_consumed marker={marker}")
+        print(f"SKIP reason=confirmation_already_consumed marker={_evidence_path(marker)}")
         return 0
     for arm, retrieve in arms:
         counts = _tally(confirmation, lambda case: retrieve(case.query, best[arm]))
@@ -541,8 +555,8 @@ def main() -> int:
     # genuinely shared and durable is the operator's claim, not this run's.
     scope = "configured" if os.environ.get("ULTICODE_VECTOR_CONFIRM_MARKER") else "default_workspace"
     print(
-        f"stage=confirm note=claim_recorded marker={marker} "
-        f"marker_location={scope} shared_durability=unverified_by_this_run"
+        f"stage=confirm note=claim_recorded marker={_evidence_path(marker)} "
+        f"marker_location={_evidence_path(scope)} shared_durability=unverified_by_this_run"
     )
 
     print(

@@ -334,3 +334,27 @@ def test_review_id_separates_components_that_contain_the_separator() -> None:
     assert first != second
     # The prefix is still the chunk id, so rows stay grouped by source.
     assert first.startswith(f"{chunk}:") and second.startswith(f"{chunk}:")
+
+
+def test_non_string_claim_or_quote_is_rejected(tmp_path) -> None:
+    """A truthy non-string reached `encode` and crashed instead of being refused."""
+    items = _worksheet()
+    row = items[0]
+    path = tmp_path / "verdicts.json"
+    path.write_text(
+        json.dumps(
+            [
+                {
+                    "chunk_id": row.chunk_id,
+                    "review_id": row.review_id,
+                    "claim": {"nested": True},
+                    "quote": ["not", "a", "string"],
+                    "verdicts": {key: True for key in VERDICT_KEYS},
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(VerdictError, match="string claim and quote"):
+        load_verdicts(path, items)

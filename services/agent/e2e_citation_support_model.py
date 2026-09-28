@@ -130,7 +130,16 @@ def _publish(target: Path, text: str) -> None:
     """
     temporary = target.with_name(f"{target.name}.{secrets.token_hex(4)}.part")
     try:
-        temporary.write_text(text, encoding="utf-8")
+        # Exclusive and no-follow: in a shared destination directory a pre-created
+        # symlink at the temporary's name would otherwise be written through, and the
+        # rename would then publish the link's target as this run's verdicts.
+        descriptor = os.open(
+            temporary,
+            os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+            0o600,
+        )
+        with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
+            stream.write(text)
         os.replace(temporary, target)
     finally:
         # Only this exact path. A glob by target prefix would also match a *different*

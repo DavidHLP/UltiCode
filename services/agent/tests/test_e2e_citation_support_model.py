@@ -43,6 +43,25 @@ def _hold(lock: Path) -> object:
     return handle
 
 
+def _fail_second_publish(monkeypatch) -> None:
+    """Fail the verdict publication, after the sidecar has been published.
+
+    The artifacts land through an exclusive write plus a rename, so the failure is
+    injected at the rename rather than at a `Path.write_text` the writer no longer
+    calls.
+    """
+    original = smoke.os.replace
+    seen = {"n": 0}
+
+    def flaky(source, target):
+        seen["n"] += 1
+        if seen["n"] == 2:  # the verdict artifact, published after the sidecar
+            raise OSError("no space left on device")
+        return original(source, target)
+
+    monkeypatch.setattr(smoke.os, "replace", flaky)
+
+
 def _citation(index: int = 0) -> dict[str, object]:
     hits = keyword_search("submission status", limit=1)
     assert hits, "the sample corpus must return a hit for this query"
@@ -366,16 +385,7 @@ def test_a_write_failure_releases_the_claim(monkeypatch, capsys, tmp_path) -> No
     _install(monkeypatch, tmp_path, ['{"supports": true, "derivable": true}'] * 3, calls)
     monkeypatch.setenv("ULTICODE_CITATION_VERDICTS", str(destination))
 
-    original = Path.write_text
-    seen = {"n": 0}
-
-    def flaky(self, data, *args, **kwargs):
-        seen["n"] += 1
-        if seen["n"] == 2:  # the verdict file, written after the sidecar
-            raise OSError("no space left on device")
-        return original(self, data, *args, **kwargs)
-
-    monkeypatch.setattr(Path, "write_text", flaky)
+    _fail_second_publish(monkeypatch)
 
     assert smoke.main_sync() == 1
     assert "reason=verdict_write_failed" in capsys.readouterr().out
@@ -428,16 +438,7 @@ def test_a_failed_verdict_write_discards_the_sidecar(
     _install(monkeypatch, tmp_path, ['{"supports": true, "derivable": true}'] * 3, calls)
     monkeypatch.setenv("ULTICODE_CITATION_VERDICTS", str(destination))
 
-    original = Path.write_text
-    seen = {"n": 0}
-
-    def flaky(self, data, *args, **kwargs):
-        seen["n"] += 1
-        if seen["n"] == 2:
-            raise OSError("no space left on device")
-        return original(self, data, *args, **kwargs)
-
-    monkeypatch.setattr(Path, "write_text", flaky)
+    _fail_second_publish(monkeypatch)
 
     assert smoke.main_sync() == 1
     assert "reason=verdict_write_failed" in capsys.readouterr().out
@@ -509,16 +510,7 @@ def test_a_failed_publication_leaves_no_temporary(monkeypatch, capsys, tmp_path)
     _install(monkeypatch, tmp_path, ['{"supports": true, "derivable": true}'] * 3, calls)
     monkeypatch.setenv("ULTICODE_CITATION_VERDICTS", str(destination))
 
-    original = Path.write_text
-    seen = {"n": 0}
-
-    def flaky(self, data, *args, **kwargs):
-        seen["n"] += 1
-        if seen["n"] == 2:  # the verdict publish
-            raise OSError("no space left on device")
-        return original(self, data, *args, **kwargs)
-
-    monkeypatch.setattr(Path, "write_text", flaky)
+    _fail_second_publish(monkeypatch)
 
     assert smoke.main_sync() == 1
     assert "reason=verdict_write_failed" in capsys.readouterr().out
@@ -664,3 +656,18 @@ def test_a_failed_publication_leaves_no_temporary_of_its_own(tmp_path) -> None:
         smoke._publish(destination / "nested" / "verdicts.json", "{}")
 
     assert not list(tmp_path.rglob("*.part"))
+
+
+def test_a_symlinked_temporary_cannot_be_published(tmp_path, monkeypatch) -> None:
+    """The published bytes must be this run's text, not a link's target."""
+    destination = tmp_path / "verdicts.json"
+    victim = tmp_path / "victim.txt"
+    victim.write_text("other content", encoding="utf-8")
+    monkeypatch.setattr(smoke.secrets, "token_hex", lambda _n: "deadbeef")
+    (tmp_path / "verdicts.json.deadbeef.part").symlink_to(victim)
+
+    with pytest.raises(OSError):
+        smoke._publish(destination, '{"ours": true}')
+
+    assert victim.read_text(encoding="utf-8") == "other content"
+    assert not destination.exists()

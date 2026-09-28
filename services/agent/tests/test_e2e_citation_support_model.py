@@ -1041,11 +1041,17 @@ def test_byte_identical_copies_are_refused(monkeypatch, capsys, tmp_path) -> Non
 def test_the_entry_is_read_through_a_no_follow_descriptor(
     monkeypatch, capsys, tmp_path
 ) -> None:
-    """Even with the path check blind to links, the open itself must refuse one."""
+    """Even with the path check blind to links, the open itself must refuse one.
+
+    The target is byte-identical to the manifest-bound entry — same digest, same
+    position — so a read that follows the link is indistinguishable from a valid
+    read: only refusing the link itself keeps outside bytes out of the model input.
+    """
     _write_corpus(tmp_path, monkeypatch)
     directory = tmp_path / "external-corpus"
+    original = (directory / "status-1.md").read_text(encoding="utf-8")
     victim = tmp_path / "victim.txt"
-    victim.write_text("outside content", encoding="utf-8")
+    victim.write_text(original, encoding="utf-8")
     (directory / "status-1.md").unlink()
     (directory / "status-1.md").symlink_to(victim)
     # Blind the pre-check so only O_NOFOLLOW on the descriptor can catch it — this is
@@ -1055,4 +1061,4 @@ def test_the_entry_is_read_through_a_no_follow_descriptor(
     assert _run_override(monkeypatch, tmp_path) == 1
     output = capsys.readouterr().out
     assert "FAIL reason=corpus_entry_escapes_root" in output
-    assert victim.read_text(encoding="utf-8") == "outside content"
+    assert victim.read_text(encoding="utf-8") == original

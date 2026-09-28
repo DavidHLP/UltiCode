@@ -1016,3 +1016,43 @@ def test_an_empty_manifest_is_its_own_failure(monkeypatch, capsys, tmp_path) -> 
     output = capsys.readouterr().out
     assert "FAIL reason=corpus_empty" in output
     assert "corpus_manifest_unusable" not in output
+
+
+def test_byte_identical_copies_are_refused(monkeypatch, capsys, tmp_path) -> None:
+    """Separate inodes, same bytes: one fragment still must not count three times."""
+    _write_corpus(tmp_path, monkeypatch)
+    directory = tmp_path / "external-corpus"
+    (directory / "copy.md").write_text(
+        (directory / "status-1.md").read_text(encoding="utf-8"), encoding="utf-8"
+    )
+    manifest = tmp_path / "external-manifest.json"
+    entries = _load_entries(manifest)
+    copy = dict(entries[0])
+    copy["doc_id"] = "external-copy"
+    copy["chunk_id"] = "external-copy:v1:1"
+    copy["source_path"] = "external/copy.md"
+    entries.append(copy)
+    manifest.write_text(json.dumps(entries, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    assert _run_override(monkeypatch, tmp_path) == 1
+    assert "FAIL reason=corpus_entry_duplicate_content" in capsys.readouterr().out
+
+
+def test_the_entry_is_read_through_a_no_follow_descriptor(
+    monkeypatch, capsys, tmp_path
+) -> None:
+    """Even with the path check blind to links, the open itself must refuse one."""
+    _write_corpus(tmp_path, monkeypatch)
+    directory = tmp_path / "external-corpus"
+    victim = tmp_path / "victim.txt"
+    victim.write_text("outside content", encoding="utf-8")
+    (directory / "status-1.md").unlink()
+    (directory / "status-1.md").symlink_to(victim)
+    # Blind the pre-check so only O_NOFOLLOW on the descriptor can catch it — this is
+    # the swap that can happen between a check and a separate open.
+    monkeypatch.setattr(type(tmp_path / "x"), "is_symlink", lambda self: False)
+
+    assert _run_override(monkeypatch, tmp_path) == 1
+    output = capsys.readouterr().out
+    assert "FAIL reason=corpus_entry_escapes_root" in output
+    assert victim.read_text(encoding="utf-8") == "outside content"

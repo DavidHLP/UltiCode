@@ -24,6 +24,7 @@ import hashlib
 import json
 import os
 import secrets
+import stat as stat_module
 import stat
 import sys
 from pathlib import Path
@@ -315,6 +316,7 @@ def _corpus_override() -> tuple[tuple[SourceDocument, ...] | None, Path | None]:
         raise _CorpusSourceError("corpus_manifest_unusable") from None
     documents: list[SourceDocument] = []
     seen_sources: dict[tuple[int, int], str] = {}
+    seen_texts: dict[str, str] = {}
     for entry in entries:
         if entry.permission != ACCEPTED_PERMISSION or entry.scope != ACCEPTED_SCOPE:
             raise _CorpusSourceError("corpus_declaration_unsupported")
@@ -329,21 +331,45 @@ def _corpus_override() -> tuple[tuple[SourceDocument, ...] | None, Path | None]:
         # citations — enough to pass the three-citation gate on a repeat. Resolved
         # pathnames do not catch a hard link exposed under two names, so identity is
         # the filesystem's: device and inode.
+        # One open, once: a directory that can be modified between the symlink check
+        # and the read would otherwise let this entry be swapped for a link that the
+        # second open follows. O_NOFOLLOW refuses it at the kernel, and fstat gives
+        # the identity of the bytes actually read rather than of the path.
         try:
-            stat = path.stat()
+            descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
+        except OSError:
+            raise _CorpusSourceError("corpus_entry_escapes_root") from None
+        try:
+            info = os.fstat(descriptor)
+            if not stat_module.S_ISREG(info.st_mode):
+                raise _CorpusSourceError("corpus_entry_escapes_root")
+            identity = (info.st_dev, info.st_ino)
+            if identity in seen_sources:
+                raise _CorpusSourceError("corpus_entry_duplicate_source")
+            seen_sources[identity] = entry.doc_id
+            with os.fdopen(descriptor, "rb") as stream:
+                payload = stream.read(MAX_SOURCE_CHARS * 4 + 1)
+            descriptor = -1
+        except _CorpusSourceError:
+            raise
         except OSError:
             raise _CorpusSourceError("corpus_entry_unusable") from None
-        identity = (stat.st_dev, stat.st_ino)
-        if identity in seen_sources:
-            raise _CorpusSourceError("corpus_entry_duplicate_source")
-        seen_sources[identity] = entry.doc_id
+        finally:
+            if descriptor >= 0:
+                os.close(descriptor)
         try:
-            raw = path.read_text(encoding="utf-8")
-        except (OSError, UnicodeError):
-            # Unreadable or not UTF-8 is an unusable entry, not a crash: automation
-            # keys off the documented reason.
+            raw = payload.decode("utf-8")
+        except UnicodeError:
+            # Not UTF-8 is an unusable entry, not a crash: automation keys off the
+            # documented reason.
             raise _CorpusSourceError("corpus_entry_unusable") from None
         text = raw.strip()
+        # Byte-for-byte copies under separate names have separate inodes, so identity
+        # alone would let one fragment be counted three times.
+        digest = hashlib.sha256(text.encode("utf-8")).hexdigest()
+        if digest in seen_texts:
+            raise _CorpusSourceError("corpus_entry_duplicate_content")
+        seen_texts[digest] = entry.doc_id
         if not text or len(text) > MAX_SOURCE_CHARS:
             raise _CorpusSourceError("corpus_entry_unusable")
         # Derived from the raw file, never copied from the manifest: a one-line

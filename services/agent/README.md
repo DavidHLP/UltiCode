@@ -89,10 +89,13 @@ Contract — every violation is a fixed `FAIL reason=...` evidence line and exit
   manifest → `corpus_manifest_unusable`. Every entry must declare exactly `ACCEPTED_PERMISSION`
   and `ACCEPTED_SCOPE`, the policy the run pins in source → `corpus_declaration_unsupported`.
 - **One file per entry**, resolved through the manifest's own `source_path` basename under the
-  corpus directory: symlinked entry → `corpus_entry_escapes_root`; missing file →
+  corpus directory, opened once with `O_NOFOLLOW` so a path swapped for a link between the
+  check and the read is refused by the kernel: symlinked entry → `corpus_entry_escapes_root`;
+  missing file →
   `corpus_entry_missing`; two entries resolving to the *same file* — including two hard-link
-  names for one inode — → `corpus_entry_duplicate_source` (a single fragment must never count
-  as several citations); unreadable, not UTF-8, empty or over `MAX_SOURCE_CHARS` →
+  names for one inode — → `corpus_entry_duplicate_source`, and byte-for-byte copies under
+  separate names → `corpus_entry_duplicate_content` (one fragment must never count as several
+  citations); unreadable, not UTF-8, empty or over `MAX_SOURCE_CHARS` →
   `corpus_entry_unusable`.
 - **Positions are derived from the raw file**, spanning the first to the last non-blank
   physical line, so leading blank lines are covered and content starting on line 3 reports

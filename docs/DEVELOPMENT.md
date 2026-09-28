@@ -97,13 +97,15 @@ uv run python e2e_citation_support_model.py
 它只判定**分析实际发出的引用**：每条引用一次模型调用，只问「片段是否支持结论」（`supports` / `derivable`）；`exists` 始终取自确定性完整性门禁，不由模型决定。verdict 写盘后经 `load_verdicts` 读回再汇总，因此仍按重算 id 绑定到具体 claim/quote。可选地用仓库外的语料替换默认样本（**两个变量都要或都不要**，否则 `FAIL reason=corpus_source_incomplete`，且不会回退到默认语料）：
 
 ```bash
+# DEEPSEEK_API_KEY 必须已由操作者导出或由密钥存储注入到环境，绝不出现在本命令行；
+# 缺失时以 deepseek_api_key_required 结束。
 ULTICODE_CITATION_SUPPORT=1 DEEPSEEK_MODEL=<model> \
 ULTICODE_CITATION_CORPUS_DIR=/绝对路径/语料目录 \
 ULTICODE_CITATION_CORPUS_MANIFEST=/绝对路径/manifest.json \
 uv run python e2e_citation_support_model.py
 ```
 
-声明一律以 manifest 为准（缺失/不可读/非法 JSON/校验不过 → `corpus_manifest_unusable`），每条必须逐字等于源码里钉死的 `ACCEPTED_PERMISSION` 与 `ACCEPTED_SCOPE`（`corpus_declaration_unsupported`）；目录内按 manifest 自身 `source_path` 的文件名解析，一条对应一个文件，符号链接（`corpus_entry_escapes_root`）、缺失（`corpus_entry_missing`）、两个条目指向同一文件（`corpus_entry_duplicate_source`，单片段不得被计成多条引用）、空或超 `MAX_SOURCE_CHARS`（`corpus_entry_unusable`）都直接失败；`source_position` 由实际文件推导，与 manifest 不符即 `corpus_entry_position_mismatch`。不设这两个变量时行为与默认完全一致。证据行与 verdict 元数据里的 `corpus=` 取自钉死的 permission，因此非 synthetic 材料不会被标成 synthetic。契约细节见 `services/agent/README.md`。
+声明一律以 manifest 为准（缺失/不可读/非法 JSON/校验不过 → `corpus_manifest_unusable`），每条必须逐字等于源码里钉死的 `ACCEPTED_PERMISSION` 与 `ACCEPTED_SCOPE`（`corpus_declaration_unsupported`）；根目录必须是真实目录而非符号链接（`corpus_root_unusable`），manifest 至少声明一条（`corpus_empty`）；目录内按 manifest 自身 `source_path` 的文件名解析，一条对应一个文件，符号链接（`corpus_entry_escapes_root`）、缺失（`corpus_entry_missing`）、两个条目指向同一文件（`corpus_entry_duplicate_source`，单片段不得被计成多条引用）、空或超 `MAX_SOURCE_CHARS`（`corpus_entry_unusable`）都直接失败；`source_position` 由实际文件推导，与 manifest 不符即 `corpus_entry_position_mismatch`。不设这两个变量时行为与默认完全一致。证据行与 verdict 元数据里的 `corpus=` 取自钉死的 permission，因此非 synthetic 材料不会被标成 synthetic。契约细节见 `services/agent/README.md`。
 
 少于 `ULTICODE_CITATION_REQUIRED_ROWS`（默认 3）报 `insufficient_citations`；未过**完整性门禁**的引用在**发起任何模型调用之前**就报 `citation_integrity_failed`；verdict 汇总阶段发现不支持的引用报 `citation_gate_failed`。这些都以至退出码 1 结束，不报「低分通过」。输出行标注 `judge=model` 与 `human_review=not_performed`，以便与将来的人工复核记录区分。verdict 默认写到**状态目录**（`$XDG_STATE_HOME` 为绝对路径时用它，否则 `~/.local/state`）下的 `ulticode/citation-verdicts-<随机>.json`：每次运行独立，且不落在 checkout 里，可用 `ULTICODE_CITATION_VERDICTS` 改路径；无论哪种，目标位置都会在**付费调用之前**被独占占位，不可写或已被占用即 `verdict_destination_unusable`；写盘同时生成 `<path>.meta.json` 附属文件，记录判定者（`judge=model`）、模型标签、语料、阈值与提交事实摘要，使 verdict 脱离本次会话仍可解释。密钥只从环境读取，不得写入日志或仓库；上面两条真实模型入口示例中的 `DEEPSEEK_API_KEY=...` 只是占位符，实际运行同样应先在环境中导出。
 

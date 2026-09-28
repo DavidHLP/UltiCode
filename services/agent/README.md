@@ -68,6 +68,9 @@ tracked in the U02 Linear tasks.
 pinned sample, without editing either:
 
 ```bash
+# `DEEPSEEK_API_KEY` must already be in the environment (exported by the operator or
+# injected by the secret store) — it is never part of this command line, and without
+# it the run stops at `deepseek_api_key_required`.
 ULTICODE_CITATION_SUPPORT=1 DEEPSEEK_MODEL=<model> \
 ULTICODE_CITATION_CORPUS_DIR=/absolute/path/to/corpus \
 ULTICODE_CITATION_CORPUS_MANIFEST=/absolute/path/to/manifest.json \
@@ -79,6 +82,8 @@ Contract — every violation is a fixed `FAIL reason=...` evidence line and exit
 - **Both variables or neither.** One set alone → `corpus_source_incomplete`. The run never
   falls back to the pinned corpus: reporting evidence from a different corpus than the one it
   was asked for is worse than stopping.
+- **The root is a real directory**, not a symlink (`corpus_root_unusable`), and the manifest
+  must declare at least one entry (`corpus_empty`).
 - **Declarations come from the manifest.** Missing, unreadable, invalid or non-conforming
   manifest → `corpus_manifest_unusable`. Every entry must declare exactly `ACCEPTED_PERMISSION`
   and `ACCEPTED_SCOPE`, the policy the run pins in source → `corpus_declaration_unsupported`.

@@ -86,10 +86,9 @@ uv run python e2e_model_qa.py
 
 ```bash
 cd services/agent
-# DEEPSEEK_API_KEY 先在环境中导出；不要把值内联进命令，shell 历史会留下它。
-ULTICODE_CITATION_SUPPORT=1 \
-ULTICODE_E2E_USERNAME=... ULTICODE_E2E_PASSWORD=... \
-DEEPSEEK_MODEL=<model> \
+# 凭据（ULTICODE_E2E_USERNAME / ULTICODE_E2E_PASSWORD / DEEPSEEK_API_KEY）先在环境中
+# 导出；不要把值内联进命令，shell 历史会留下它们。
+ULTICODE_CITATION_SUPPORT=1 DEEPSEEK_MODEL=<model> \
 uv run python e2e_citation_support_model.py
 ```
 

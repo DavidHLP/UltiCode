@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+import fcntl
 import importlib.util
 import json
+import os
 from pathlib import Path
 
+import subprocess
+import sys
 import pytest
 
 from retrieval import keyword_search, load_sample_corpus
@@ -17,6 +21,26 @@ _module_spec = importlib.util.spec_from_file_location(
 assert _module_spec and _module_spec.loader
 smoke = importlib.util.module_from_spec(_module_spec)
 _module_spec.loader.exec_module(smoke)
+
+
+def _lock_is_free(lock: Path) -> bool:
+    """True when no run holds the reservation. The file itself may remain."""
+    handle = lock.open("a+", encoding="utf-8")
+    try:
+        fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        return False
+    finally:
+        handle.close()
+    return True
+
+
+def _hold(lock: Path) -> object:
+    """A live rival holding the reservation, released when the test ends."""
+    lock.parent.mkdir(parents=True, exist_ok=True)
+    handle = lock.open("a+", encoding="utf-8")
+    fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+    return handle
 
 
 def _citation(index: int = 0) -> dict[str, object]:
@@ -35,6 +59,8 @@ def _install(monkeypatch, tmp_path: Path, judgements: list[str], calls: list[str
         def __init__(self, *_args: object, **_kwargs: object) -> None:
             # The adapter records one usage entry per sent call, unknowns included.
             self.usage: list[dict[str, object]] = []
+            self.kwargs = _kwargs
+            self.kwargs = _kwargs
 
         async def __aenter__(self) -> "_Model":
             return self
@@ -257,8 +283,8 @@ def test_an_unusable_verdict_destination_fails_before_any_call(
     calls: list[str] = []
     _install(monkeypatch, tmp_path, ['{"supports": true, "derivable": true}'] * 3, calls)
     destination = tmp_path / "verdicts.json"
-    # Another run holds the reservation.
-    (tmp_path / "verdicts.json.lock").write_text("pid=1\n", encoding="utf-8")
+    # Another run holds the reservation right now.
+    held = _hold(tmp_path / "verdicts.json.lock")
     monkeypatch.setenv("ULTICODE_CITATION_VERDICTS", str(destination))
 
     assert smoke.main_sync() == 1
@@ -267,6 +293,7 @@ def test_an_unusable_verdict_destination_fails_before_any_call(
     assert calls == []
     # Automation keyed on the artifact's existence must not see it yet.
     assert not destination.exists()
+    held.close()
 
 
 def test_a_non_integer_threshold_fails_cleanly(monkeypatch, capsys, tmp_path) -> None:
@@ -329,7 +356,7 @@ def test_a_successful_run_releases_its_reservation(monkeypatch, capsys, tmp_path
 
     assert smoke.main_sync() == 0
     assert destination.exists()
-    assert not (tmp_path / "verdicts.json.lock").exists()
+    assert _lock_is_free(tmp_path / "verdicts.json.lock")
 
 
 def test_a_write_failure_releases_the_claim(monkeypatch, capsys, tmp_path) -> None:
@@ -509,7 +536,7 @@ def test_an_artifact_that_appears_under_the_lock_is_refused(tmp_path) -> None:
         smoke._claim_verdict_file(destination)
 
     # The reservation it took is released, so the retry after the clash works.
-    assert not (tmp_path / "verdicts.json.lock").exists()
+    assert _lock_is_free(tmp_path / "verdicts.json.lock")
 
 
 def test_a_rejected_reservation_leaves_existing_artifacts_alone(tmp_path) -> None:
@@ -524,4 +551,56 @@ def test_a_rejected_reservation_leaves_existing_artifacts_alone(tmp_path) -> Non
 
     assert destination.exists() and destination.stat().st_size == 0
     assert smoke._meta_path(destination).exists()
-    assert not smoke._verdict_lock(destination).exists()
+    # The reservation it took is released, so a later run can still claim it.
+    smoke._release_unfinished_claim(smoke._verdict_lock(destination))
+    assert _lock_is_free(smoke._verdict_lock(destination))
+
+
+def test_a_live_owner_blocks_the_claim_and_a_dead_one_does_not(tmp_path) -> None:
+    """Ownership is an OS lock, so death releases it and a rival cannot steal it."""
+    destination = tmp_path / "verdicts.json"
+    lock = smoke._verdict_lock(destination)
+    lock.parent.mkdir(parents=True, exist_ok=True)
+
+    # A live rival: a second descriptor on the same inode holds the lock.
+    rival = lock.open("a+", encoding="utf-8")
+    fcntl.flock(rival.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+    with pytest.raises(RuntimeError, match="already claimed"):
+        smoke._claim_verdict_file(destination)
+    rival.close()
+
+    # A dead owner: the kernel drops the lock with the process, so the claim works
+    # even though the lock file — pid and all — is still on disk.
+    subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "import fcntl,os,sys;f=open(sys.argv[1],'a+');"
+            "fcntl.flock(f.fileno(),fcntl.LOCK_EX);os.kill(os.getpid(),9)",
+            str(lock),
+        ],
+        check=False,
+    )
+    assert smoke._claim_verdict_file(destination) == lock
+    assert f"pid={os.getpid()}" in lock.read_text(encoding="utf-8")
+    smoke._release_unfinished_claim(lock)
+
+
+def test_the_configured_prompt_budget_reaches_the_adapter(monkeypatch, tmp_path) -> None:
+    """An operator-set prompt budget must not be silently replaced by a default."""
+    built: list[object] = []
+    calls: list[str] = []
+    _install(monkeypatch, tmp_path, ['{"supports": true, "derivable": true}'] * 3, calls)
+    real = smoke.DeepseekModel
+
+    def spy(*args, **kwargs):
+        model = real(*args, **kwargs)
+        built.append(model)
+        return model
+
+    monkeypatch.setattr(smoke, "DeepseekModel", spy)
+    monkeypatch.setenv("DEEPSEEK_MAX_PROMPT_TOKENS", "8000")
+    monkeypatch.setenv("ULTICODE_CITATION_VERDICTS", str(tmp_path / "verdicts.json"))
+    smoke.main_sync()
+
+    assert built and built[0].kwargs.get("max_prompt_tokens") == 8000

@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import asyncio
 import atexit
+import fcntl
 import hashlib
 import json
 import os
@@ -146,15 +147,22 @@ def _verdict_lock(path: Path) -> Path:
     return path.with_name(f"{path.name}.lock")
 
 
+_HELD_LOCKS: dict[Path, object] = {}
+
+
 def _release_unfinished_claim(lock: Path) -> None:
     """Drop this run's reservation.
 
-    Only the lock: this run never creates the artifacts before publication, so
-    touching them here could delete a file another run already owned — including an
-    empty one that is only empty because that run has not filled it yet.
+    Closing the descriptor releases the kernel lock, so a crashed run cannot leave
+    the destination unusable: the OS drops it when the process dies. The lock file
+    itself stays on disk — deleting it would let a later run lock a fresh inode while
+    this run still held the old one, which is two writers on one destination.
     """
+    handle = _HELD_LOCKS.pop(lock, None)
+    if handle is None:
+        return
     try:
-        lock.unlink()
+        handle.close()
     except OSError:
         pass
 
@@ -162,25 +170,35 @@ def _release_unfinished_claim(lock: Path) -> None:
 def _claim_verdict_file(path: Path) -> Path:
     """Reserve the destination before any billed call, without creating it.
 
-    The reservation is a lock file, not the artifact: automation that treats the
-    verdict path's existence as "published" must not see it while the run is still
-    judging. A missing parent, a directory, or a reservation another run holds is a
-    failure of this run, and finding out after the model calls would waste them.
+    The reservation is an OS advisory lock on a sidecar file, not the artifact:
+    automation that treats the verdict path's existence as "published" must not see
+    it while the run is still judging. A missing parent, a directory, or a lock
+    another live run holds is a failure of this run, and finding out after the model
+    calls would waste them.
     """
     lock = _verdict_lock(path)
     try:
         lock.parent.mkdir(parents=True, exist_ok=True)
-        with lock.open("x", encoding="utf-8"):
-            pass
-    except FileExistsError:
-        raise RuntimeError(
-            f"verdict destination is already claimed: {_path_label(lock)}"
-        ) from None
+        handle = lock.open("a+", encoding="utf-8")
     except OSError as error:
         raise RuntimeError(
             f"verdict destination is not writable: {_path_label(lock)} "
             f"({type(error).__name__})"
         ) from None
+    try:
+        fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        handle.close()
+        raise RuntimeError(
+            f"verdict destination is already claimed: {_path_label(lock)}"
+        ) from None
+    _HELD_LOCKS[lock] = handle
+    try:  # informational: who holds it, for a human debugging a refused run
+        handle.truncate(0)
+        handle.write(f"pid={os.getpid()}\n")
+        handle.flush()
+    except OSError:
+        pass
     atexit.register(_release_unfinished_claim, lock)
     # Checked *after* the lock: two runs can both see an empty destination before
     # either holds it, and the loser would then replace the winner's verdicts.
@@ -281,10 +299,11 @@ async def main() -> int:
     try:
         max_calls = int(os.environ.get("DEEPSEEK_MAX_CALLS", "8"))
         max_tokens = int(os.environ.get("DEEPSEEK_MAX_TOKENS", "512"))
+        max_prompt_tokens = int(os.environ.get("DEEPSEEK_MAX_PROMPT_TOKENS", "24000"))
     except ValueError:
         print("FAIL reason=model_budget_invalid")
         return 1
-    if max_calls < 1 or max_tokens < 1:
+    if max_calls < 1 or max_tokens < 1 or max_prompt_tokens < 1:
         print("FAIL reason=model_budget_invalid")
         return 1
     if max_calls < len(rows):
@@ -306,6 +325,9 @@ async def main() -> int:
         # inside the same budget. Raise it via the environment if a provider
         # truncates (`finish_reason=length`).
         max_tokens=max_tokens,
+        # Honoured, not silently defaulted: an operator setting this expects the
+        # prompt side of the budget to follow.
+        max_prompt_tokens=max_prompt_tokens,
     ) as model:
         try:
             for item in rows:

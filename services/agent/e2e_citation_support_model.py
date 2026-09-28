@@ -27,7 +27,12 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from citation_review import build_worksheet, load_verdicts, summarize
 from corpus_manifest import load_manifest
-from deepseek_model import DeepseekModel, ModelProtocolError, model_label
+from deepseek_model import (
+    DeepseekModel,
+    ModelProtocolError,
+    _reject_duplicate_keys,
+    model_label,
+)
 from retrieval import load_sample_corpus
 from sourced_analysis import analyze_submission, first_wrong_answer_submission
 from ulticode_client import UlticodeClient
@@ -44,18 +49,24 @@ QUESTION = "Wrong Answer 状态说明了什么？"
 #: threshold is configurable so that run can raise it without a code change.
 DEFAULT_REQUIRED_ROWS = 3
 
+#: The adapter's system message asks for `{"answer": ...}`, so the judgement is the
+#: answer text rather than a competing envelope.
 JUDGE_CONTRACT = (
-    "You are checking citations, not answering the question. "
-    "Given CLAIM and QUOTE, reply with ONE JSON object and nothing else: "
-    '{"supports": <true if the quote supports the claim, else false>, '
-    '"derivable": <true if the claim follows from SUBMISSION_FACTS alone, else false>}'
+    "You are checking citations, not answering the question. Given CLAIM, QUOTE and "
+    "SUBMISSION_FACTS, make the answer a JSON object with exactly two boolean fields: "
+    '{"supports": <does the quote support the claim>, '
+    '"derivable": <does the claim follow from SUBMISSION_FACTS alone>}'
 )
 
 
 def _judgements(raw: str) -> tuple[bool, bool]:
-    """The model's two booleans, or a protocol failure."""
+    """The model's two booleans, or a protocol failure.
+
+    Duplicate keys are refused rather than last-write-wins: `{"supports": false,
+    "supports": true}` must not read as support.
+    """
     try:
-        parsed = json.loads(raw)
+        parsed = json.loads(raw, object_pairs_hook=_reject_duplicate_keys)
     except ValueError:
         raise ModelProtocolError("citation judgement was not JSON") from None
     if not isinstance(parsed, dict):
@@ -116,6 +127,13 @@ async def main() -> int:
     )
 
     required = int(os.environ.get("ULTICODE_CITATION_REQUIRED_ROWS", DEFAULT_REQUIRED_ROWS))
+    if required < DEFAULT_REQUIRED_ROWS:
+        # The environment may raise the bar, never lower it below the acceptance's.
+        print(
+            f"FAIL reason=citation_threshold_below_minimum required={required} "
+            f"minimum={DEFAULT_REQUIRED_ROWS}"
+        )
+        return 1
     if len(rows) < required:
         # Reported as a material gap, not as a pass from fewer rows: the corpus is
         # synthetic, and a status-filtered retrieval emits one citation per status.
@@ -126,40 +144,78 @@ async def main() -> int:
         return 1
 
     facts = json.dumps(matching, ensure_ascii=False, default=str)
+    unverified = [row.chunk_id for row in rows if row.integrity_verdict != "verified"]
+    if unverified:
+        # Judging an unverified citation would spend a call on a row that can never
+        # pass the gate.
+        print(f"FAIL reason=citation_integrity_failed rows={len(unverified)}")
+        return 1
+
     verdicts: list[dict[str, object]] = []
     calls = 0
     async with DeepseekModel(
         os.environ["DEEPSEEK_API_KEY"],
         tool_specs={},
         model=model_name,
-        max_calls=len(rows),
+        # The configured ceiling, not the row count: the adapter owns the guard.
+        max_calls=int(os.environ.get("DEEPSEEK_MAX_CALLS", "8")),
         max_tokens=int(os.environ.get("DEEPSEEK_MAX_TOKENS", "2000")),
     ) as model:
-        for item in rows:
-            prompt = (
-                f"{JUDGE_CONTRACT}\nCLAIM: {item.claim}\nQUOTE: {item.quote}\n"
-                f"SUBMISSION_FACTS: {facts}"
-            )
-            decision = await model.decide([{"role": "user", "content": prompt}])
-            calls += 1
-            supports, derivable = _judgements(decision.text)
-            verdicts.append(
-                {
-                    "chunk_id": item.chunk_id,
-                    "review_id": item.review_id,
-                    "claim": item.claim,
-                    "quote": item.quote,
-                    "verdicts": {
-                        # Deterministic, never the model's call.
-                        "exists": item.integrity_verdict == "verified",
-                        "supports": supports,
-                        "derivable": derivable,
-                    },
-                }
-            )
+        try:
+            for item in rows:
+                prompt = (
+                    f"{JUDGE_CONTRACT}\nCLAIM: {item.claim}\nQUOTE: {item.quote}\n"
+                    f"SUBMISSION_FACTS: {facts}"
+                )
+                decision = await model.decide([{"role": "user", "content": prompt}])
+                calls += 1
+                supports, derivable = _judgements(decision.text)
+                verdicts.append(
+                    {
+                        "chunk_id": item.chunk_id,
+                        "review_id": item.review_id,
+                        "claim": item.claim,
+                        "quote": item.quote,
+                        "verdicts": {
+                            # Deterministic, never the model's call.
+                            "exists": item.integrity_verdict == "verified",
+                            "supports": supports,
+                            "derivable": derivable,
+                        },
+                    }
+                )
+        finally:
+            # Every call is billed even when a later row fails to parse, so the
+            # accounting is emitted on the failure path too.
+            totals = [
+                entry.get("total_tokens") for entry in model.usage if isinstance(entry, dict)
+            ]
+            known = [value for value in totals if isinstance(value, int)]
+            printed = "unknown" if len(known) != len(totals) else str(sum(known))
+            print(f"E2E CITATION SUPPORT USAGE | calls={len(model.usage)} total_tokens={printed}")
 
     path = _verdict_file(rows)
     path.write_text(json.dumps(verdicts, ensure_ascii=False, indent=2), encoding="utf-8")
+    # The verdicts are only interpretable next to who judged them and against which
+    # facts, so the sidecar names both rather than leaving it to the run's memory.
+    facts_digest = "sha256:" + __import__("hashlib").sha256(
+        facts.encode("utf-8")
+    ).hexdigest()[:16]
+    path.with_suffix(path.suffix + ".meta.json").write_text(
+        json.dumps(
+            {
+                "judge": "model",
+                "model": model_label(model_name),
+                "human_review": "not_performed",
+                "corpus": "agent-authored-synthetic",
+                "submission_facts_digest": facts_digest,
+                "required_rows": required,
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
     # Read back through the same loader the human worksheet uses, so the verdicts
     # are bound to their rows before anything is summarised.
     loaded = load_verdicts(path, tuple(rows))
@@ -171,7 +227,7 @@ async def main() -> int:
         f"supports={summary['counts']['supports']} "
         f"not_supported={len(summary['not_supported'])} "
         f"integrity_unverified={len(summary['integrity_unverified'])} "
-        f"gate_passed={summary['gate_passed']} verdicts={path}"
+        f"gate_passed={summary['gate_passed']} verdicts={model_label(str(path))}"
     )
     print(
         "E2E CITATION SUPPORT | reviewer=model | corpus=agent-authored-synthetic "

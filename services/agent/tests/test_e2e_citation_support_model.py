@@ -33,7 +33,8 @@ def _install(monkeypatch, tmp_path: Path, judgements: list[str], calls: list[str
 
     class _Model:
         def __init__(self, *_args: object, **_kwargs: object) -> None:
-            pass
+            # The adapter records one usage entry per sent call, unknowns included.
+            self.usage: list[dict[str, object]] = []
 
         async def __aenter__(self) -> "_Model":
             return self
@@ -43,6 +44,7 @@ def _install(monkeypatch, tmp_path: Path, judgements: list[str], calls: list[str
 
         async def decide(self, messages: list[dict[str, object]]) -> object:
             calls.append(str(messages[-1]["content"]))
+            self.usage.append({"total_tokens": 10})
             return _Decision(judgements[len(calls) - 1])
 
     class _Client:
@@ -86,6 +88,9 @@ def _install(monkeypatch, tmp_path: Path, judgements: list[str], calls: list[str
     monkeypatch.setenv("ULTICODE_CITATION_VERDICTS", str(tmp_path / "verdicts.json"))
     for name in ("DEEPSEEK_MAX_CALLS", "DEEPSEEK_MAX_TOKENS"):
         monkeypatch.delenv(name, raising=False)
+    # The threshold is read from the environment; pin it so the result cannot
+    # depend on the developer's shell.
+    monkeypatch.setenv("ULTICODE_CITATION_REQUIRED_ROWS", "3")
 
 
 def test_opt_in_is_required_and_no_key_is_used_without_it(monkeypatch, capsys) -> None:
@@ -104,12 +109,23 @@ def test_the_model_judges_one_row_per_question(monkeypatch, capsys, tmp_path) ->
     assert "judge=model" in output
     assert "rows=3 calls=3" in output
     assert "human_review=not_performed" in output
-    # `exists` is never asked of the model: the prompt carries no file or source path.
     assert all("SUBMISSION_FACTS" in prompt for prompt in calls)
+    # The judgement must be the adapter's own answer field: `tool_specs={}` makes the
+    # system message ask for `{"answer": ...}`, so a competing envelope fails.
+    assert all("make the answer a JSON object" in prompt for prompt in calls)
+    assert all("CLAIM:" in prompt and "QUOTE:" in prompt for prompt in calls)
     verdicts = json.loads((tmp_path / "verdicts.json").read_text(encoding="utf-8"))
     assert len(verdicts) == 3
     assert all(row["verdicts"]["exists"] is True for row in verdicts)
     assert all(row["verdicts"]["supports"] is True for row in verdicts)
+    assert "USAGE | calls=3" in output
+    # The artifact says who judged it, so it cannot be mistaken for a human pass.
+    meta = json.loads(
+        (tmp_path / "verdicts.json.meta.json").read_text(encoding="utf-8")
+    )
+    assert meta["judge"] == "model"
+    assert meta["human_review"] == "not_performed"
+    assert meta["submission_facts_digest"].startswith("sha256:")
 
 
 def test_an_unsupported_citation_fails_the_gate(monkeypatch, capsys, tmp_path) -> None:
@@ -152,3 +168,51 @@ def test_a_non_boolean_judgement_is_a_protocol_failure(monkeypatch, capsys, tmp_
 
     assert smoke.main_sync() == 1
     assert "ModelProtocolError" in capsys.readouterr().out
+
+
+def test_a_threshold_below_the_acceptance_is_refused(monkeypatch, capsys, tmp_path) -> None:
+    """The environment may raise the bar, never lower it under the acceptance's."""
+    calls: list[str] = []
+    _install(monkeypatch, tmp_path, ['{"supports": true, "derivable": true}'] * 3, calls)
+    monkeypatch.setenv("ULTICODE_CITATION_REQUIRED_ROWS", "1")
+
+    assert smoke.main_sync() == 1
+    assert "reason=citation_threshold_below_minimum" in capsys.readouterr().out
+    assert calls == []
+
+
+def test_unverified_citations_fail_before_any_call(monkeypatch, capsys, tmp_path) -> None:
+    """An unverified row can never pass the gate, so it must not be billed."""
+    calls: list[str] = []
+    _install(monkeypatch, tmp_path, ['{"supports": true, "derivable": true}'] * 3, calls)
+    hits = keyword_search("submission status source citation record", limit=3)
+    citations = [hit.as_model_dict() for hit in hits]
+    # A drifted version: the worksheet's own integrity check must mark the row
+    # unverified, and the run must fail before spending a call on it.
+    citations[0]["version"] = "v2"
+    monkeypatch.setattr(
+        smoke,
+        "analyze_submission",
+        lambda *_a, **_k: {
+            "facts": ["f"],
+            "hypotheses": ["the status alone does not locate a code line"],
+            "citations": citations,
+            "citation_checks": [],
+        },
+    )
+
+    assert smoke.main_sync() == 1
+    assert "reason=citation_integrity_failed" in capsys.readouterr().out
+    assert calls == []
+
+
+def test_duplicate_judgement_keys_are_refused(monkeypatch, capsys, tmp_path) -> None:
+    """`{"supports": false, "supports": true}` must not read as support."""
+    calls: list[str] = []
+    duplicated = '{"supports": false, "supports": true, "derivable": true}'
+    _install(monkeypatch, tmp_path, [duplicated] * 3, calls)
+
+    assert smoke.main_sync() == 1
+    output = capsys.readouterr().out
+    assert "ModelProtocolError" in output
+    assert "USAGE | calls=1" in output  # the billed call is still accounted for

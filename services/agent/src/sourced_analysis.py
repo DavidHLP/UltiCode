@@ -36,6 +36,15 @@ _ALLOWED_STATUSES = {
 }
 
 _NO_EVIDENCE_HYPOTHESIS = "当前没有检索到授权资料，不能据此提出具体诊断。"
+#: The exact scope the checked-in synthetic corpus declares. The seam requires this
+#: value verbatim: a substring test would accept arbitrary scope text that happens to
+#: contain the phrase while still claiming licensed or user material, and the
+#: worksheet publishes this string as `permission_scope`.
+SYNTHETIC_SCOPE = (
+    "synthetic sample corpus for the local deterministic slice; "
+    "not user or licensed material"
+)
+
 _METADATA_ONLY_HYPOTHESIS = (
     "当前只有提交状态，没有源码或失败用例；不能据此定位具体代码行、复现失败输入或断言运行结果。"
 )
@@ -116,6 +125,8 @@ def _validated_corpus(
             # and that is precisely what this seam must never let through.
             if entry.permission not in SYNTHETIC_PERMISSIONS:
                 raise ValueError("supplied corpus must declare a synthetic permission")
+            if entry.scope != SYNTHETIC_SCOPE:
+                raise ValueError("supplied corpus must declare the synthetic scope")
     if accepted is not None:
         permission, scope = accepted
         for entry in entries:

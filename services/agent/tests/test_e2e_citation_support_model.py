@@ -162,7 +162,7 @@ def _install(monkeypatch, tmp_path: Path, judgements: list[str], calls: list[str
 
 
 DEFAULT_OVERRIDE_SCOPE = (
-    "synthetic corpus supplied by the operator for this run; "
+    "synthetic sample corpus for the local deterministic slice; "
     "not user or licensed material"
 )
 
@@ -932,3 +932,87 @@ def test_the_evidence_label_comes_from_the_pinned_policy(
     )
     assert meta["corpus"] == "authorized-for-u02"
     assert "corpus=authorized-for-u02" in capsys.readouterr().out
+
+
+def test_one_file_with_two_names_is_refused(monkeypatch, capsys, tmp_path) -> None:
+    """A hard link has two pathnames and one inode; identities, not names, count."""
+    _write_corpus(tmp_path, monkeypatch)
+    directory = tmp_path / "external-corpus"
+    os.link(directory / "status-1.md", directory / "alias.md")
+    manifest = tmp_path / "external-manifest.json"
+    entries = _load_entries(manifest)
+    alias = dict(entries[0])
+    alias["doc_id"] = "external-alias"
+    alias["chunk_id"] = "external-alias:v1:1"
+    alias["source_path"] = "external/alias.md"
+    entries.append(alias)
+    manifest.write_text(json.dumps(entries, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    assert _run_override(monkeypatch, tmp_path) == 1
+    assert "FAIL reason=corpus_entry_duplicate_source" in capsys.readouterr().out
+
+
+def test_positions_cover_the_raw_file_including_leading_blanks(
+    monkeypatch, capsys, tmp_path
+) -> None:
+    """Stripping the text must not shift the lines the citation claims to cover."""
+    _write_corpus(tmp_path, monkeypatch)
+    directory = tmp_path / "external-corpus"
+    target = directory / "status-1.md"
+    stripped = target.read_text(encoding="utf-8").strip()
+    target.write_text("\n\n" + stripped + "\n", encoding="utf-8")  # two blank lines
+    manifest = tmp_path / "external-manifest.json"
+    entries = _load_entries(manifest)
+    entries[0]["content_digest"] = content_digest(stripped)
+    # Two blank lines precede the content: the range names lines 3-5, not 1-5.
+    entries[0]["source_position"] = "lines 3-5"
+    manifest.write_text(json.dumps(entries, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    assert _run_override(monkeypatch, tmp_path) == 0
+    assert "rows=3" in capsys.readouterr().out
+
+
+def test_an_unreadable_entry_is_a_structured_failure(
+    monkeypatch, capsys, tmp_path
+) -> None:
+    """Invalid UTF-8 is an unusable entry, not a decode traceback."""
+    _write_corpus(tmp_path, monkeypatch)
+    (tmp_path / "external-corpus" / "status-1.md").write_bytes(b"\xff\xfe not utf-8")
+
+    assert _run_override(monkeypatch, tmp_path) == 1
+    output = capsys.readouterr().out
+    assert "FAIL reason=corpus_entry_unusable" in output
+    assert "UnicodeDecodeError" not in output
+
+
+def test_the_gap_line_names_the_selected_corpus(monkeypatch, capsys, tmp_path) -> None:
+    """A material gap has to blame the corpus the run actually used."""
+    calls: list[str] = []
+    _install(monkeypatch, tmp_path, ['{"supports": true, "derivable": true}'] * 5, calls)
+    scope = "operator-authorized U02 sources for the acceptance run"
+    _write_corpus(
+        tmp_path,
+        monkeypatch,
+        sample_kind="real",
+        access_scope="authorized-u02-sources",
+        permission="authorized-for-u02",
+        scope=scope,
+    )
+    monkeypatch.setattr(smoke, "ACCEPTED_PERMISSION", "authorized-for-u02")
+    monkeypatch.setattr(smoke, "ACCEPTED_SCOPE", scope)
+    # Set after `_install`, which pins it to 3: `_run_override` would re-pin it.
+    monkeypatch.setenv("ULTICODE_CITATION_REQUIRED_ROWS", "5")  # above the fixture
+
+    assert smoke.main_sync() == 1
+    assert "corpus=authorized-for-u02" in capsys.readouterr().out
+
+
+def test_an_empty_manifest_is_its_own_failure(monkeypatch, capsys, tmp_path) -> None:
+    """Declared nothing is a different mistake from a manifest that will not parse."""
+    _write_corpus(tmp_path, monkeypatch)
+    (tmp_path / "external-manifest.json").write_text("[]", encoding="utf-8")
+
+    assert _run_override(monkeypatch, tmp_path) == 1
+    output = capsys.readouterr().out
+    assert "FAIL reason=corpus_empty" in output
+    assert "corpus_manifest_unusable" not in output

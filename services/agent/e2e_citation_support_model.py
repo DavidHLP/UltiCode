@@ -266,7 +266,7 @@ CORPUS_MANIFEST_ENV = "ULTICODE_CITATION_CORPUS_MANIFEST"
 #: a reviewed edit, not something a corpus file can talk its way into.
 ACCEPTED_PERMISSION = "agent-authored-synthetic"
 ACCEPTED_SCOPE = (
-    "synthetic corpus supplied by the operator for this run; "
+    "synthetic sample corpus for the local deterministic slice; "
     "not user or licensed material"
 )
 
@@ -297,6 +297,15 @@ def _corpus_override() -> tuple[tuple[SourceDocument, ...] | None, Path | None]:
     if root.is_symlink() or not root.is_dir():
         raise _CorpusSourceError("corpus_root_unusable")
     try:
+        raw_manifest = json.loads(Path(manifest).read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, ValueError):
+        raise _CorpusSourceError("corpus_manifest_unusable") from None
+    if raw_manifest == []:
+        # An operator who declared nothing at all asked for an empty corpus; that is
+        # a different mistake from a manifest that will not parse, so it keeps its own
+        # reason instead of being normalised into `corpus_manifest_unusable`.
+        raise _CorpusSourceError("corpus_empty")
+    try:
         entries = load_manifest(Path(manifest))
     except ManifestError:
         # Validation failures are already precise, but the operator contract is one
@@ -304,9 +313,8 @@ def _corpus_override() -> tuple[tuple[SourceDocument, ...] | None, Path | None]:
         raise _CorpusSourceError("corpus_manifest_unusable") from None
     except (OSError, UnicodeError):
         raise _CorpusSourceError("corpus_manifest_unusable") from None
-    resolved_root = root.resolve()
     documents: list[SourceDocument] = []
-    seen_sources: dict[Path, str] = {}
+    seen_sources: dict[tuple[int, int], str] = {}
     for entry in entries:
         if entry.permission != ACCEPTED_PERMISSION or entry.scope != ACCEPTED_SCOPE:
             raise _CorpusSourceError("corpus_declaration_unsupported")
@@ -317,19 +325,39 @@ def _corpus_override() -> tuple[tuple[SourceDocument, ...] | None, Path | None]:
             raise _CorpusSourceError("corpus_entry_escapes_root")
         if not path.is_file():
             raise _CorpusSourceError("corpus_entry_missing")
-        # Distinct ids over one resolved file would count a single fragment as
-        # several citations — enough to pass the three-citation gate on a repeat.
-        resolved = path.resolve()
-        if resolved in seen_sources:
+        # Distinct ids over one *file* would count a single fragment as several
+        # citations — enough to pass the three-citation gate on a repeat. Resolved
+        # pathnames do not catch a hard link exposed under two names, so identity is
+        # the filesystem's: device and inode.
+        try:
+            stat = path.stat()
+        except OSError:
+            raise _CorpusSourceError("corpus_entry_unusable") from None
+        identity = (stat.st_dev, stat.st_ino)
+        if identity in seen_sources:
             raise _CorpusSourceError("corpus_entry_duplicate_source")
-        seen_sources[resolved] = entry.doc_id
-        text = path.read_text(encoding="utf-8").strip()
+        seen_sources[identity] = entry.doc_id
+        try:
+            raw = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeError):
+            # Unreadable or not UTF-8 is an unusable entry, not a crash: automation
+            # keys off the documented reason.
+            raise _CorpusSourceError("corpus_entry_unusable") from None
+        text = raw.strip()
         if not text or len(text) > MAX_SOURCE_CHARS:
             raise _CorpusSourceError("corpus_entry_unusable")
-        # Derived from the file, never copied from the manifest: a one-line document
-        # declaring `lines 900-999` would otherwise travel into the citation as a
-        # verified location that does not exist.
-        source_position = f"lines 1-{len(text.splitlines())}"
+        # Derived from the raw file, never copied from the manifest: a one-line
+        # document declaring `lines 900-999` would otherwise travel into the citation
+        # as a verified location that does not exist, and leading blank lines are
+        # still physical lines the position has to cover.
+        physical = raw.splitlines()
+        # First and last *non-blank* physical line: the range has to name where the
+        # content actually sits, so a file with leading blanks reads `lines 3-5`, not
+        # `lines 1-5`.
+        populated = [
+            index + 1 for index, line in enumerate(physical) if line.strip()
+        ]
+        source_position = f"lines {populated[0]}-{populated[-1]}"
         if entry.source_position != source_position:
             raise _CorpusSourceError("corpus_entry_position_mismatch")
         documents.append(
@@ -428,7 +456,7 @@ async def main() -> int:
         # synthetic, and a status-filtered retrieval emits one citation per status.
         print(
             f"FAIL reason=insufficient_citations emitted={len(rows)} required={required} "
-            f"corpus=agent-authored-synthetic"
+            f"corpus={corpus_label}"
         )
         return 1
 

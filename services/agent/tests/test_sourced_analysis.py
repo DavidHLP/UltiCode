@@ -466,3 +466,19 @@ def test_the_seam_refuses_a_licensed_permission_on_a_synthetic_document(
             documents=documents,
             manifest_path=manifest,
         )
+
+
+def test_the_seam_refuses_a_scope_the_contract_does_not_pin(tmp_path) -> None:
+    """The scope is published as `permission_scope`, so it must be the pinned one."""
+    documents = tuple(_synthetic_status_document(i) for i in (1, 2, 3))
+    entries = _manifest_entries(documents)
+    entries[0]["scope"] = "licensed material for redistribution"
+    manifest = _write_manifest(entries, tmp_path)
+
+    with pytest.raises(ValueError, match="synthetic scope"):
+        analyze_submission(
+            {"id": "sub-1", "status": "Wrong Answer"},
+            "Wrong Answer citation",
+            documents=documents,
+            manifest_path=manifest,
+        )

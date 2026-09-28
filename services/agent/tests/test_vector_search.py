@@ -813,6 +813,19 @@ def test_an_empty_xdg_state_home_is_treated_as_unset(tmp_path, monkeypatch) -> N
         tmp_path / ".local" / "state" / "ulticode" / "holdout-v2.consumed"
     )
 
+    # A relative value is not a state directory either: the marker would land in
+    # the checkout and vanish with it, so the one-shot set could run twice.
+    monkeypatch.setenv("XDG_STATE_HOME", "state")
+    assert smoke._consumption_marker() == (
+        tmp_path / ".local" / "state" / "ulticode" / "holdout-v2.consumed"
+    )
+
+    elsewhere = tmp_path / "elsewhere"
+    monkeypatch.setenv("XDG_STATE_HOME", str(elsewhere))
+    assert smoke._consumption_marker() == (
+        elsewhere / "ulticode" / "holdout-v2.consumed"
+    )
+
 
 def test_the_run_lock_failure_detail_is_sanitized(tmp_path, monkeypatch, capsys) -> None:
     """The lock path is caller-supplied and reaches a printed failure line.

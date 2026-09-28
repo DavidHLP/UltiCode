@@ -80,10 +80,15 @@ def _consumption_marker() -> Path:
     override = os.environ.get("ULTICODE_VECTOR_CONFIRM_MARKER")
     if override:
         return Path(override)
-    # `or` not `get` default: an exported-but-empty XDG_STATE_HOME would otherwise
-    # make `Path("")`, i.e. the current working directory.
-    state_home = Path(
-        os.environ.get("XDG_STATE_HOME") or str(Path.home() / ".local" / "state")
+    # Only an absolute path is a state directory. An exported-but-empty value would
+    # make `Path("")`, i.e. the current working directory, and a relative one would
+    # put the one-shot marker inside the checkout, where it disappears with the
+    # working tree — letting the confirmation set be evaluated a second time.
+    configured = os.environ.get("XDG_STATE_HOME", "")
+    state_home = (
+        Path(configured)
+        if os.path.isabs(configured)
+        else Path.home() / ".local" / "state"
     )
     return state_home / "ulticode" / "holdout-v2.consumed"
 

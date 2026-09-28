@@ -142,10 +142,25 @@ def _install(monkeypatch, tmp_path: Path, judgements: list[str], calls: list[str
     monkeypatch.setenv("ULTICODE_CITATION_REQUIRED_ROWS", "3")
 
 
-def _write_corpus(tmp_path, monkeypatch, *, status_bearing: int = 3):
+DEFAULT_OVERRIDE_SCOPE = (
+    "synthetic corpus supplied by the operator for this run; "
+    "not user or licensed material"
+)
+
+
+def _write_corpus(
+    tmp_path,
+    monkeypatch,
+    *,
+    status_bearing: int = 3,
+    sample_kind: str = "synthetic",
+    access_scope: str = "agent-authored-synthetic",
+    permission: str = "agent-authored-synthetic",
+    scope: str = DEFAULT_OVERRIDE_SCOPE,
+):
     """A manifest-gated corpus outside the repository, wired through the env pair."""
     directory = tmp_path / "external-corpus"
-    directory.mkdir()
+    directory.mkdir(exist_ok=True)
     provenance = (
         "> Provenance: agent-authored synthetic example; not a real UltiCode "
         "submission, DTO, or user-authorized material.\n\n"
@@ -164,13 +179,10 @@ def _write_corpus(tmp_path, monkeypatch, *, status_bearing: int = 3):
                 "version": "v1",
                 "chunk_id": f"external-status-{i}:v1:1",
                 "source_path": f"external/{name}",
-                "access_scope": "agent-authored-synthetic",
-                "sample_kind": "synthetic",
-                "permission": "agent-authored-synthetic",
-                "scope": (
-                    "synthetic corpus supplied by the operator for this run; "
-                    "not user or licensed material"
-                ),
+                "access_scope": access_scope,
+                "sample_kind": sample_kind,
+                "permission": permission,
+                "scope": scope,
                 "source_position": "lines 1-3",
                 "model_input_projection": "SourceHit.as_model_dict()",
                 "source_trust": "untrusted-data",
@@ -759,3 +771,36 @@ def test_an_unsupported_declaration_is_refused_before_any_call(
     assert smoke.main_sync() == 1
     assert "FAIL reason=corpus_declaration_unsupported" in capsys.readouterr().out
     assert calls == []
+
+
+def test_the_acceptance_entry_point_takes_authorised_material(
+    monkeypatch, capsys, tmp_path
+) -> None:
+    """The whole path — not just the analyzer — accepts material under a pinned policy."""
+    calls: list[str] = []
+    _install(monkeypatch, tmp_path, ['{"supports": true, "derivable": true}'] * 3, calls)
+    scope = "operator-authorized U02 sources for the acceptance run"
+    _write_corpus(
+        tmp_path,
+        monkeypatch,
+        sample_kind="real",
+        access_scope="authorized-u02-sources",
+        permission="authorized-for-u02",
+        scope=scope,
+    )
+    monkeypatch.setattr(smoke, "ACCEPTED_PERMISSION", "authorized-for-u02")
+    monkeypatch.setattr(smoke, "ACCEPTED_SCOPE", scope)
+
+    assert smoke.main_sync() == 0
+    output = capsys.readouterr().out
+    assert "rows=3" in output
+    assert "not_supported=0" in output
+    assert "insufficient_citations" not in output
+
+    rows = json.loads((tmp_path / "verdicts.json").read_text(encoding="utf-8"))
+    assert rows and all(
+        str(row["chunk_id"]).startswith("external-status-") for row in rows
+    ), rows
+    assert not any(
+        str(row["chunk_id"]).startswith("sample-") for row in rows
+    ), "the pinned corpus must not be the material these verdicts describe"

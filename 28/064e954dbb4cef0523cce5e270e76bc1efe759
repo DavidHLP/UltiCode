@@ -1,0 +1,16 @@
+services/agent/e2e_citation_support_model.py
+  h_77173abe25c3ff 35-40,297-299,317-319,321-322,325-330
+services/agent/src/corpus_manifest.py
+  h_77173abe25c3ff 114-128,130,138-139,155-157,163-174
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "28064e954dbb4cef0523cce5e270e76bc1efe759",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

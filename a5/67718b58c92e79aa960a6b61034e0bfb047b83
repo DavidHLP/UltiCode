@@ -1,0 +1,18 @@
+services/agent/src/retrieval.py
+  h_77173abe25c3ff 68-75,114,121-126,134,139-140
+services/agent/src/sourced_analysis.py
+  h_77173abe25c3ff 9,67,76-82,89-108,110
+services/agent/tests/test_sourced_analysis.py
+  h_77173abe25c3ff 1-6,121-154,162,173,198-287
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a567718b58c92e79aa960a6b61034e0bfb047b83",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

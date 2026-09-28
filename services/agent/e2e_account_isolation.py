@@ -51,6 +51,10 @@ CSRF_COOKIE = "csrf_token"
 #: Double-submit CSRF: a cookie-authenticated write must echo this header.
 CSRF_HEADER = "X-CSRF-Token"
 SUBMISSION_LANGUAGE = "python"
+#: The fixture scan follows the listing's pagination; a dev stack is far
+#: smaller, and the bound stops a broken `total` from looping forever.
+PROBLEM_SCAN_PAGE_SIZE = 50
+PROBLEM_SCAN_PAGE_LIMIT = 5
 REFUSAL_STATUSES = frozenset({403, 404})
 
 
@@ -212,27 +216,41 @@ async def _fixture_problem(
 
     The first listing row is not necessarily one this harness can use: languages
     are configured per problem, so a Java-only first row would fail the run closed
-    even though a later problem offers the fixture language.
+    even though a later problem offers the fixture language. The scan follows the
+    listing's own pagination, bounded so a broken `total` cannot spin here.
     """
-    response = _require_200(
-        await client.get(
-            f"{APP_BASE}/problems", params={"page": 1, "pageSize": 50}, headers=headers
-        ),
-        "problem listing",
-    )
-    items = _data(response).get("items")
-    for item in items if isinstance(items, list) else []:
-        if not isinstance(item, dict):
-            continue
-        problem_id = item.get("id")
-        if isinstance(problem_id, bool) or not isinstance(problem_id, int):
-            # `True` is an int in Python, so a boolean id is not a problem id.
-            continue
-        try:
-            return problem_id, await _starter_code(client, headers, problem_id)
-        except IsolationHarnessError:
-            # No starter for this language here; the listing may still offer one.
-            continue
+    page = 1
+    while page <= PROBLEM_SCAN_PAGE_LIMIT:
+        response = _require_200(
+            await client.get(
+                f"{APP_BASE}/problems",
+                params={"page": page, "pageSize": PROBLEM_SCAN_PAGE_SIZE},
+                headers=headers,
+            ),
+            "problem listing",
+        )
+        payload = _data(response)
+        items = payload.get("items")
+        if not isinstance(items, list) or not items:
+            break
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            problem_id = item.get("id")
+            if isinstance(problem_id, bool) or not isinstance(problem_id, int):
+                # `True` is an int in Python, so a boolean id is not a problem id.
+                continue
+            try:
+                return problem_id, await _starter_code(client, headers, problem_id)
+            except IsolationHarnessError:
+                # No starter for this language here; the listing may still offer one.
+                continue
+        total = payload.get("total")
+        if not isinstance(total, int) or isinstance(total, bool):
+            break
+        if page * PROBLEM_SCAN_PAGE_SIZE >= total:
+            break
+        page += 1
     raise IsolationHarnessError("no problem offers a fixture for this language")
 
 

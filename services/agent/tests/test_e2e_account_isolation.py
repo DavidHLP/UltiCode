@@ -321,6 +321,54 @@ def test_the_fixture_skips_a_problem_without_the_language(monkeypatch, capsys) -
     assert "OK isolation" in capsys.readouterr().out
 
 
+def test_the_fixture_scan_follows_the_listing_pagination(monkeypatch, capsys) -> None:
+    """A supported problem on a later page must still be found."""
+    monkeypatch.setenv("ULTICODE_E2E_ISOLATION", "1")
+    inner = correct_service()
+    java_only = [
+        {"id": 100 + index} for index in range(50)
+    ]
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        path = request.url.path
+        if path.endswith("/problems"):
+            page = int(request.url.params.get("page", "1"))
+            if page == 1:
+                return httpx.Response(
+                    200, json={"data": {"items": java_only, "total": 51}}
+                )
+            return httpx.Response(
+                200, json={"data": {"items": [{"id": 1}], "total": 51}}
+            )
+        detail = _problem_detail_id(path)
+        if detail == "1":
+            return httpx.Response(
+                200,
+                json={
+                    "data": {
+                        "id": 1,
+                        "languages": [{"value": "python", "starter_code": STARTER}],
+                    }
+                },
+            )
+        if detail is not None:
+            return httpx.Response(
+                200,
+                json={
+                    "data": {
+                        "id": int(detail),
+                        "languages": [{"value": "java", "starter_code": "class Solution {}"}],
+                    }
+                },
+            )
+        return inner(request)
+
+    _install(monkeypatch, handler)
+
+    assert asyncio.run(e2e_account_isolation.main()) == 0
+    assert "OK isolation" in capsys.readouterr().out
+
+
 def test_a_boolean_detail_id_is_not_a_match(monkeypatch, capsys) -> None:
     """`True == 1`, so a boolean id must not satisfy the public control."""
     monkeypatch.setenv("ULTICODE_E2E_ISOLATION", "1")

@@ -180,7 +180,10 @@ async def main() -> int:
             # One decision per run with a bounded output: the worst case is a
             # single capped call, never an open-ended loop.
             max_calls=int(os.environ.get("DEEPSEEK_MAX_CALLS", "1")),
-            max_tokens=int(os.environ.get("DEEPSEEK_MAX_TOKENS", "300")),
+            # A reasoning model spends part of this budget on its reasoning
+            # tokens, so a small cap truncates the answer channel mid-JSON
+            # (`finish_reason=length`). Measured: 300 failed, 2000 passed.
+            max_tokens=int(os.environ.get("DEEPSEEK_MAX_TOKENS", "2000")),
             max_prompt_tokens=int(os.environ.get("DEEPSEEK_MAX_PROMPT_TOKENS", "24000")),
         ) as model:
             try:

@@ -272,7 +272,10 @@ def test_model_smoke_passes_a_one_call_output_cap_by_default(monkeypatch) -> Non
     asyncio.run(smoke.main())
 
     assert captured["max_calls"] == 1
-    assert captured["max_tokens"] == 300
+    # 2000, not 300: a reasoning model spends part of this budget on its reasoning
+    # tokens, and the live run at 300 was truncated mid-JSON (`finish_reason=length`)
+    # while the same prompt passed at 2000.
+    assert captured["max_tokens"] == 2000
     assert captured["max_prompt_tokens"] == 24000
     # A billed run names its model; there is no inherited default to assert.
     assert captured["model"] == "test-model"

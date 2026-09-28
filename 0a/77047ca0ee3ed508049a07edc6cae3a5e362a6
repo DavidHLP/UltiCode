@@ -1,0 +1,30 @@
+services/agent/e2e_account_isolation.py
+  h_77173abe25c3ff 156-165
+services/agent/e2e_model_qa.py
+  h_77173abe25c3ff 23,123-124,130,145
+services/agent/e2e_sourced_analysis_model.py
+  h_77173abe25c3ff 18,174-175,179,216-217
+services/agent/e2e_vector_comparison.py
+  h_77173abe25c3ff 135-142,144,147,150,152-155,157,159,164,166-169
+services/agent/src/deepseek_model.py
+  h_77173abe25c3ff 47-57
+services/agent/tests/test_deepseek_model.py
+  h_77173abe25c3ff 121-130
+services/agent/tests/test_e2e_account_isolation.py
+  h_77173abe25c3ff 78-101,108,237-266
+services/agent/tests/test_e2e_sourced_analysis_model.py
+  h_77173abe25c3ff 87-91
+services/agent/tests/test_vector_search.py
+  h_77173abe25c3ff 239-259
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0a77047ca0ee3ed508049a07edc6cae3a5e362a6",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

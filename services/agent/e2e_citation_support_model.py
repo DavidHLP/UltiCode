@@ -380,7 +380,12 @@ async def main() -> int:
 
 
 def main_sync() -> int:
-    """Run :func:`main` in a fresh event loop, mapping protocol failures to exit 1."""
+    """Run :func:`main` in a fresh event loop, mapping failures to exit 1.
+
+    A provider outage (non-200, transport error) must leave the same fixed,
+    sanitized labels as the other entry points rather than a traceback; only the
+    exception type is reported, never its message.
+    """
     try:
         return asyncio.run(main())
     except ModelProtocolError as exc:
@@ -388,6 +393,9 @@ def main_sync() -> int:
             "E2E CITATION SUPPORT FAIL error=ModelProtocolError "
             f"detail={model_label(str(exc))}"
         )
+        return 1
+    except Exception as exc:  # noqa: BLE001 - operational failures are reported, not raised
+        print(f"E2E CITATION SUPPORT FAIL error={type(exc).__name__}")
         return 1
 
 

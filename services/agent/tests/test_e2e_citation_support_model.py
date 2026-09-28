@@ -425,3 +425,33 @@ def test_a_call_budget_below_the_row_count_is_refused(
     assert smoke.main_sync() == 1
     assert "reason=call_budget_below_rows rows=3 max_calls=1" in capsys.readouterr().out
     assert calls == []
+
+
+def test_a_provider_failure_reports_a_fixed_label(monkeypatch, capsys, tmp_path) -> None:
+    """A routine outage must not escape as a traceback."""
+    calls: list[str] = []
+    _install(monkeypatch, tmp_path, ['{"supports": true, "derivable": true}'] * 3, calls)
+
+    async def boom(self, _messages):
+        raise RuntimeError("provider returned 503")
+
+    original = smoke.DeepseekModel
+
+    class Failing(original):
+        def __init__(self, *_args, **_kwargs) -> None:
+            self.usage = []
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args) -> None:
+            return None
+
+        decide = boom
+
+    monkeypatch.setattr(smoke, "DeepseekModel", Failing)
+
+    assert smoke.main_sync() == 1
+    output = capsys.readouterr().out
+    assert "error=RuntimeError" in output
+    assert "provider returned 503" not in output  # the message is not echoed

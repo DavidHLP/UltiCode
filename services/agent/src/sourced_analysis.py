@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import re
+from pathlib import Path
 import unicodedata
 
 from citation_integrity import check_citations
-from corpus_manifest import assert_manifest_covers
+from corpus_manifest import assert_manifest_covers, load_manifest
 from retrieval import (
     MAX_SOURCE_CHARS,
     SourceDocument,
@@ -69,7 +70,7 @@ def analyze_submission(
     question: str,
     *,
     documents: tuple[SourceDocument, ...] | None = None,
-    manifest: tuple[object, ...] | None = None,
+    manifest_path: Path | None = None,
 ) -> dict[str, object]:
     """Return facts, hypotheses, citations, and per-citation integrity checks.
 
@@ -79,9 +80,12 @@ def analyze_submission(
 
     ``documents`` defaults to the pinned sample corpus so the recorded baseline is
     unchanged, and that default is gated by ``load_sample_corpus``. A supplied corpus
-    must arrive with its own manifest and passes the same gate here — content digests
-    and declared fields bound to the exact text — before a single citation can be
-    built from it. It must also declare itself agent-authored synthetic: this
+    must arrive with the path to its own manifest, which is parsed and validated here
+    the same way the checked-in manifests are (permission, scope, projection, source
+    trust, then content digests bound to the exact text) before a single citation can
+    be built from it. Entries assembled in memory are not accepted: a caller could
+    forge them, and ``assert_manifest_covers`` alone does not validate their
+    declarations. It must also declare itself agent-authored synthetic: this
     parameter is a test seam, so it may exercise the evidence path but may never
     launder a document into real or licensed material. How many citations an answer
     can emit is a property of the material in front of it, not of the default.
@@ -96,11 +100,13 @@ def analyze_submission(
     else:
         # Fail closed: no manifest, no evidence. A caller that skips this hands the
         # model documents nothing binds to the text they claim to be.
-        if manifest is None:
+        if manifest_path is None:
             raise ValueError("supplied corpus requires manifest validation")
         if not isinstance(documents, tuple) or not documents:
             raise ValueError("invalid corpus")
-        assert_manifest_covers(manifest, documents)
+        # Parsed here, not passed in: validate_manifest is what checks permission,
+        # scope, projection and source trust, and in-memory entries would skip it.
+        assert_manifest_covers(load_manifest(Path(manifest_path)), documents)
         for document in documents:
             # Both checked-in loaders apply this bound; a supplied corpus must not
             # become the one path that ships whole documents into every citation and

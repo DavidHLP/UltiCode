@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 from dataclasses import replace
 
 import pytest
@@ -118,9 +119,9 @@ def _synthetic_status_document(index: int) -> SourceDocument:
     )
 
 
-def _manifest_for(documents: tuple[SourceDocument, ...], tmp_path) -> tuple[object, ...]:
-    """The manifest a supplied corpus has to arrive with to become evidence."""
-    entries = [
+def _manifest_entries(documents: tuple[SourceDocument, ...]) -> list[dict[str, object]]:
+    """Raw manifest records, so a test can tamper with one field at a time."""
+    return [
         {
             "doc_id": document.doc_id,
             "version": document.version,
@@ -146,9 +147,15 @@ def _manifest_for(documents: tuple[SourceDocument, ...], tmp_path) -> tuple[obje
         }
         for document in documents
     ]
+def _manifest_for(documents: tuple[SourceDocument, ...], tmp_path) -> Path:
+    """Write the manifest a supplied corpus has to arrive with to become evidence."""
+    return _write_manifest(_manifest_entries(documents), tmp_path)
+
+
+def _write_manifest(entries: list[dict[str, object]], tmp_path) -> Path:
     path = tmp_path / "fixture_manifest.json"
     path.write_text(json.dumps(entries, ensure_ascii=False, indent=2), encoding="utf-8")
-    return load_manifest(path)
+    return path
 
 
 def test_the_answer_emits_the_three_citations_the_acceptance_requires(tmp_path) -> None:
@@ -170,7 +177,7 @@ def test_the_answer_emits_the_three_citations_the_acceptance_requires(tmp_path) 
         },
         "Wrong Answer citation",
         documents=documents,
-        manifest=manifest,
+        manifest_path=manifest,
     )
 
     assert len(result["citations"]) >= 3
@@ -220,7 +227,7 @@ def test_a_manifest_that_does_not_cover_the_text_is_refused(tmp_path) -> None:
             {"id": "sub-1", "status": "Wrong Answer"},
             "Wrong Answer citation",
             documents=(documents[0], replaced, documents[2]),
-            manifest=manifest,
+            manifest_path=manifest,
         )
 
 
@@ -237,7 +244,7 @@ def test_a_supplied_corpus_cannot_claim_real_material(tmp_path) -> None:
             {"id": "sub-1", "status": "Wrong Answer"},
             "Wrong Answer citation",
             documents=documents,
-            manifest=manifest,
+            manifest_path=manifest,
         )
 
 
@@ -276,7 +283,7 @@ def test_the_status_requirement_applies_before_the_result_limit(tmp_path) -> Non
         {"id": "sub-1", "status": "Wrong Answer"},
         "alpha beta gamma",
         documents=documents,
-        manifest=manifest,
+        manifest_path=manifest,
     )
 
     # Without the ordering fix the three fillers take the whole limit, all of them
@@ -299,5 +306,47 @@ def test_an_oversized_supplied_document_is_refused(tmp_path) -> None:
             {"id": "sub-1", "status": "Wrong Answer"},
             "Wrong Answer citation",
             documents=corpus,
-            manifest=manifest,
+            manifest_path=manifest,
+        )
+
+
+def test_a_manifest_declaration_is_validated_at_the_seam(tmp_path) -> None:
+    """Blank permission, an unsupported projection and trusted provenance are refused.
+
+    These are the declarations `load_manifest` checks and `assert_manifest_covers`
+    does not: a caller assembling entries in memory would otherwise skip them, and
+    the citation still read `verified`.
+    """
+    documents = tuple(_synthetic_status_document(i) for i in (1, 2, 3))
+    cases = (
+        ("permission", ""),
+        ("model_input_projection", "everything"),
+        ("source_trust", "trusted"),
+        ("scope", ""),
+    )
+
+    for field, value in cases:
+        entries = _manifest_entries(documents)
+        entries[0][field] = value
+        with pytest.raises(ValueError, match="(?i)(permission|scope|projection|source_trust)"):
+            analyze_submission(
+                {"id": "sub-1", "status": "Wrong Answer"},
+                "Wrong Answer citation",
+                documents=documents,
+                manifest_path=_write_manifest(entries, tmp_path),
+            )
+
+
+def test_in_memory_manifest_entries_are_not_accepted(tmp_path) -> None:
+    """The seam takes a path, so entries built in memory cannot reach the gate."""
+    documents = tuple(_synthetic_status_document(i) for i in (1, 2, 3))
+    entries = _manifest_entries(documents)
+    forged = tuple(load_manifest(_write_manifest(entries, tmp_path)))
+
+    with pytest.raises(TypeError):
+        analyze_submission(
+            {"id": "sub-1", "status": "Wrong Answer"},
+            "Wrong Answer citation",
+            documents=documents,
+            manifest=forged,
         )

@@ -1,3 +1,4 @@
+from retrieval import SourceDocument
 from sourced_analysis import analyze_submission
 
 
@@ -90,3 +91,50 @@ def test_sourced_analysis_rejects_untrusted_facts() -> None:
             assert "invalid submission facts" in str(exc)
         else:
             raise AssertionError("untrusted facts were accepted")
+
+
+def _synthetic_status_document(index: int) -> SourceDocument:
+    """One self-authored source that carries the status the analysis filters on."""
+    text = (
+        "> Provenance: agent-authored synthetic example; not a real UltiCode "
+        "submission, DTO, or user-authorized material.\n\n"
+        f"Fixture source {index}: a Wrong Answer citation record for status evidence, "
+        "written for this acceptance check and no other use."
+    ).strip()
+    return SourceDocument(
+        doc_id=f"fixture-wa-{index}",
+        version="v1",
+        source_path=f"services/agent/tests/fixtures/status-{index}.md",
+        access_scope="agent-authored-synthetic",
+        sample_kind="synthetic",
+        text=text,
+        source_position=f"lines 1-{len(text.splitlines())}",
+    )
+
+
+def test_the_answer_emits_the_three_citations_the_acceptance_requires() -> None:
+    """Three status-bearing sources are enough for three emitted citations.
+
+    The pinned sample corpus stays untouched, so this runs the same analysis over a
+    separately versioned fixture: with material for it, the answer emits three
+    distinct citations and every one of them passes the integrity gate.
+    """
+    documents = tuple(_synthetic_status_document(i) for i in (1, 2, 3))
+
+    result = analyze_submission(
+        {
+            "id": "sub-1",
+            "language": "java",
+            "status": "Wrong Answer",
+            "createdAt": "2026-09-25T00:00:00",
+        },
+        "Wrong Answer citation",
+        documents=documents,
+    )
+
+    assert len(result["citations"]) >= 3
+    assert len({c["chunk_id"] for c in result["citations"]}) == len(result["citations"])
+    assert all(check["verdict"] == "verified" for check in result["citation_checks"])
+    assert {c["chunk_id"] for c in result["citations"]} == {
+        check["chunk_id"] for check in result["citation_checks"]
+    }

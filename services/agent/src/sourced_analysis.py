@@ -6,7 +6,7 @@ import re
 import unicodedata
 
 from citation_integrity import check_citations
-from retrieval import keyword_search, load_sample_corpus
+from retrieval import SourceDocument, keyword_search, load_sample_corpus
 
 
 _ALLOWED_STATUSES = {
@@ -58,19 +58,30 @@ def validate_submission_facts(submission: dict[str, object]) -> tuple[str, str]:
     return submission_id, status
 
 
-def analyze_submission(submission: dict[str, object], question: str) -> dict[str, object]:
+def analyze_submission(
+    submission: dict[str, object],
+    question: str,
+    *,
+    documents: tuple[SourceDocument, ...] | None = None,
+) -> dict[str, object]:
     """Return facts, hypotheses, citations, and per-citation integrity checks.
 
     ``citation_checks`` records whether each citation is traceable to its source
     document. A ``verified`` verdict means the citation and its text come from
     the recorded source; it does not mean the fragment supports the conclusion.
+
+    ``documents`` defaults to the pinned sample corpus so the recorded baseline is
+    unchanged. An authorised corpus passes its own, so how many citations an answer
+    can emit is a property of the material in front of it, not of the default.
     """
     submission_id, status = validate_submission_facts(submission)
     facts = [f"提交 {submission_id} 的状态是 {status}。"]
     normalized_status = status.casefold()
     # One snapshot for retrieval and verification: a reload could check the
     # quotes against text the hits never came from.
-    corpus = load_sample_corpus()
+    corpus = documents if documents is not None else load_sample_corpus()
+    if not isinstance(corpus, tuple):
+        raise ValueError("invalid corpus")
     hits = tuple(
         hit
         for hit in keyword_search(question, documents=corpus)

@@ -1,3 +1,9 @@
+import json
+from dataclasses import replace
+
+import pytest
+
+from corpus_manifest import content_digest, load_manifest
 from retrieval import SourceDocument
 from sourced_analysis import analyze_submission
 
@@ -112,7 +118,40 @@ def _synthetic_status_document(index: int) -> SourceDocument:
     )
 
 
-def test_the_answer_emits_the_three_citations_the_acceptance_requires() -> None:
+def _manifest_for(documents: tuple[SourceDocument, ...], tmp_path) -> tuple[object, ...]:
+    """The manifest a supplied corpus has to arrive with to become evidence."""
+    entries = [
+        {
+            "doc_id": document.doc_id,
+            "version": document.version,
+            "chunk_id": document.chunk_id,
+            "source_path": document.source_path,
+            "access_scope": document.access_scope,
+            "sample_kind": document.sample_kind,
+            "content_digest": content_digest(document.text),
+            # A manifest declaring synthetic permission for a real source is refused
+            # by the loader itself, so the declared permission follows the document.
+            "permission": (
+                "agent-authored-synthetic"
+                if document.sample_kind == "synthetic"
+                else "licensed-third-party"
+            ),
+            "scope": (
+                "synthetic sample corpus for the local deterministic slice; "
+                "not user or licensed material"
+            ),
+            "source_position": document.source_position,
+            "model_input_projection": "SourceHit.as_model_dict()",
+            "source_trust": "untrusted-data",
+        }
+        for document in documents
+    ]
+    path = tmp_path / "fixture_manifest.json"
+    path.write_text(json.dumps(entries, ensure_ascii=False, indent=2), encoding="utf-8")
+    return load_manifest(path)
+
+
+def test_the_answer_emits_the_three_citations_the_acceptance_requires(tmp_path) -> None:
     """Three status-bearing sources are enough for three emitted citations.
 
     The pinned sample corpus stays untouched, so this runs the same analysis over a
@@ -120,6 +159,7 @@ def test_the_answer_emits_the_three_citations_the_acceptance_requires() -> None:
     distinct citations and every one of them passes the integrity gate.
     """
     documents = tuple(_synthetic_status_document(i) for i in (1, 2, 3))
+    manifest = _manifest_for(documents, tmp_path)
 
     result = analyze_submission(
         {
@@ -130,6 +170,7 @@ def test_the_answer_emits_the_three_citations_the_acceptance_requires() -> None:
         },
         "Wrong Answer citation",
         documents=documents,
+        manifest=manifest,
     )
 
     assert len(result["citations"]) >= 3
@@ -154,3 +195,93 @@ def test_without_a_supplied_corpus_the_pinned_baseline_stands() -> None:
 
     assert len(result["citations"]) == 1
     assert result["citations"][0]["doc_id"] == "sample-status-only"
+
+
+def test_a_supplied_corpus_without_a_manifest_is_refused(tmp_path) -> None:
+    """No manifest means nothing binds the documents to the text they claim."""
+    documents = tuple(_synthetic_status_document(i) for i in (1, 2, 3))
+
+    with pytest.raises(ValueError, match="manifest validation"):
+        analyze_submission(
+            {"id": "sub-1", "status": "Wrong Answer"},
+            "Wrong Answer citation",
+            documents=documents,
+        )
+
+
+def test_a_manifest_that_does_not_cover_the_text_is_refused(tmp_path) -> None:
+    """A document swapped after authorization must not ride in on its old entry."""
+    documents = tuple(_synthetic_status_document(i) for i in (1, 2, 3))
+    manifest = _manifest_for(documents, tmp_path)
+    replaced = replace(documents[1], text=documents[1].text + "\n\nSwapped afterwards.")
+
+    with pytest.raises(ValueError):
+        analyze_submission(
+            {"id": "sub-1", "status": "Wrong Answer"},
+            "Wrong Answer citation",
+            documents=(documents[0], replaced, documents[2]),
+            manifest=manifest,
+        )
+
+
+def test_a_supplied_corpus_cannot_claim_real_material(tmp_path) -> None:
+    """The seam is a test seam: it may not launder a document into licensed material."""
+    document = replace(_synthetic_status_document(1),
+        access_scope="licensed-third-party", sample_kind="real"
+    )
+    documents = (document, _synthetic_status_document(2), _synthetic_status_document(3))
+    manifest = _manifest_for(documents, tmp_path)
+
+    with pytest.raises(ValueError, match="agent-authored synthetic"):
+        analyze_submission(
+            {"id": "sub-1", "status": "Wrong Answer"},
+            "Wrong Answer citation",
+            documents=documents,
+            manifest=manifest,
+        )
+
+
+def test_the_status_requirement_applies_before_the_result_limit(tmp_path) -> None:
+    """Ranking first would let higher-ranked documents without the status evict it."""
+    provenance = (
+        "> Provenance: agent-authored synthetic example; not a real UltiCode "
+        "submission, DTO, or user-authorized material.\n\n"
+    )
+    outranking = tuple(
+        SourceDocument(
+            doc_id=f"fixture-outrank-{i}",
+            version="v1",
+            source_path=f"services/agent/tests/fixtures/outrank-{i}.md",
+            access_scope="agent-authored-synthetic",
+            sample_kind="synthetic",
+            text=provenance + f"Ranking filler {i}: alpha beta gamma for the query terms.",
+            source_position="lines 1-3",
+        )
+        for i in (1, 2, 3)
+    )
+    status_bearing = SourceDocument(
+        doc_id="fixture-status-bearing",
+        version="v1",
+        source_path="services/agent/tests/fixtures/status-bearing.md",
+        access_scope="agent-authored-synthetic",
+        sample_kind="synthetic",
+        text=provenance
+        + "Alpha only, plus the verdict: a Wrong Answer record that answers the question.",
+        source_position="lines 1-3",
+    )
+    documents = (*outranking, status_bearing)
+    manifest = _manifest_for(documents, tmp_path)
+
+    result = analyze_submission(
+        {"id": "sub-1", "status": "Wrong Answer"},
+        "alpha beta gamma",
+        documents=documents,
+        manifest=manifest,
+    )
+
+    # Without the ordering fix the three fillers take the whole limit, all of them
+    # fail the status filter, and the answer reports no evidence at all.
+    assert [citation["doc_id"] for citation in result["citations"]] == [
+        "fixture-status-bearing"
+    ]
+    assert all(check["verdict"] == "verified" for check in result["citation_checks"])

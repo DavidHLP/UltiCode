@@ -6,6 +6,7 @@ import re
 import unicodedata
 
 from citation_integrity import check_citations
+from corpus_manifest import assert_manifest_covers
 from retrieval import SourceDocument, keyword_search, load_sample_corpus
 
 
@@ -63,6 +64,7 @@ def analyze_submission(
     question: str,
     *,
     documents: tuple[SourceDocument, ...] | None = None,
+    manifest: tuple[object, ...] | None = None,
 ) -> dict[str, object]:
     """Return facts, hypotheses, citations, and per-citation integrity checks.
 
@@ -71,24 +73,41 @@ def analyze_submission(
     the recorded source; it does not mean the fragment supports the conclusion.
 
     ``documents`` defaults to the pinned sample corpus so the recorded baseline is
-    unchanged. It is a test seam, not an authorization path: nothing here checks a
-    supplied corpus against the manifest — ``load_sample_corpus`` is what enforces
-    that, and only for the default. A caller passing its own corpus must have
-    authorized it itself. How many citations an answer can emit is a property of the
-    material in front of it, not of the default.
+    unchanged, and that default is gated by ``load_sample_corpus``. A supplied corpus
+    must arrive with its own manifest and passes the same gate here — content digests
+    and declared fields bound to the exact text — before a single citation can be
+    built from it. It must also declare itself agent-authored synthetic: this
+    parameter is a test seam, so it may exercise the evidence path but may never
+    launder a document into real or licensed material. How many citations an answer
+    can emit is a property of the material in front of it, not of the default.
     """
     submission_id, status = validate_submission_facts(submission)
     facts = [f"提交 {submission_id} 的状态是 {status}。"]
     normalized_status = status.casefold()
     # One snapshot for retrieval and verification: a reload could check the
     # quotes against text the hits never came from.
-    corpus = documents if documents is not None else load_sample_corpus()
-    if not isinstance(corpus, tuple):
-        raise ValueError("invalid corpus")
+    if documents is None:
+        corpus = load_sample_corpus()
+    else:
+        # Fail closed: no manifest, no evidence. A caller that skips this hands the
+        # model documents nothing binds to the text they claim to be.
+        if manifest is None:
+            raise ValueError("supplied corpus requires manifest validation")
+        if not isinstance(documents, tuple) or not documents:
+            raise ValueError("invalid corpus")
+        assert_manifest_covers(manifest, documents)
+        for document in documents:
+            if (
+                document.sample_kind != "synthetic"
+                or document.access_scope != "agent-authored-synthetic"
+            ):
+                raise ValueError("supplied corpus must be agent-authored synthetic")
+        corpus = documents
+    # The status is a hard requirement, so it narrows the corpus before ranking and
+    # before the result limit: otherwise higher-ranked documents without it could
+    # consume the slots a status-bearing document needs.
     hits = tuple(
-        hit
-        for hit in keyword_search(question, documents=corpus)
-        if normalized_status in hit.text.casefold()
+        keyword_search(question, documents=corpus, require_text=normalized_status)
     )
     if not hits:
         return {

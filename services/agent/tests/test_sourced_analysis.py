@@ -6,7 +6,7 @@ import pytest
 
 from corpus_manifest import content_digest, load_manifest
 from retrieval import SourceDocument
-from sourced_analysis import analyze_submission
+from sourced_analysis import analyze_authorized_submission, analyze_submission
 
 
 def test_sourced_analysis_separates_fact_hypothesis_and_citations() -> None:
@@ -349,4 +349,100 @@ def test_in_memory_manifest_entries_are_not_accepted(tmp_path) -> None:
             "Wrong Answer citation",
             documents=documents,
             manifest=forged,
+        )
+
+
+def _authorized_documents() -> tuple[SourceDocument, ...]:
+    """Material that is *not* synthetic — the shape DAV-58 will supply."""
+    provenance = (
+        "> Provenance: authorized U02 source; not agent-authored synthetic "
+        "material.\n\n"
+    )
+    return tuple(
+        SourceDocument(
+            doc_id=f"authorized-{i}",
+            version="v1",
+            source_path=f"authorized/status-{i}.md",
+            access_scope="authorized-u02-sources",
+            sample_kind="real",
+            text=(
+                provenance
+                + f"Authorized source {i}: a Wrong Answer citation record for the question."
+            ).strip(),
+            source_position="lines 1-3",
+        )
+        for i in (1, 2, 3)
+    )
+
+
+def _authorized_manifest(documents: tuple[SourceDocument, ...], tmp_path) -> Path:
+    permission = "authorized-for-u02"
+    scope = "operator-authorized U02 sources for the acceptance run"
+    entries = [
+        {
+            "doc_id": document.doc_id,
+            "version": document.version,
+            "chunk_id": document.chunk_id,
+            "source_path": document.source_path,
+            "access_scope": document.access_scope,
+            "sample_kind": document.sample_kind,
+            "content_digest": content_digest(document.text),
+            "permission": permission,
+            "scope": scope,
+            "source_position": document.source_position,
+            "model_input_projection": "SourceHit.as_model_dict()",
+            "source_trust": "untrusted-data",
+        }
+        for document in documents
+    ]
+    path = tmp_path / "authorized_manifest.json"
+    path.write_text(json.dumps(entries, ensure_ascii=False, indent=2), encoding="utf-8")
+    return path
+
+
+def test_authorized_material_reaches_the_evidence_path(tmp_path) -> None:
+    """The acceptance policy, not the synthetic rule, decides what material may run."""
+    documents = _authorized_documents()
+    manifest = _authorized_manifest(documents, tmp_path)
+
+    result = analyze_authorized_submission(
+        {"id": "sub-1", "status": "Wrong Answer"},
+        "Wrong Answer citation",
+        documents=documents,
+        manifest_path=manifest,
+        accepted_permission="authorized-for-u02",
+        accepted_scope="operator-authorized U02 sources for the acceptance run",
+    )
+
+    assert len(result["citations"]) >= 3
+    assert all(check["verdict"] == "verified" for check in result["citation_checks"])
+
+
+def test_a_policy_mismatch_is_refused_before_any_citation(tmp_path) -> None:
+    """The same corpus under a policy the run did not pin must not produce evidence."""
+    documents = _authorized_documents()
+    manifest = _authorized_manifest(documents, tmp_path)
+
+    with pytest.raises(ValueError, match="declarations not accepted"):
+        analyze_authorized_submission(
+            {"id": "sub-1", "status": "Wrong Answer"},
+            "Wrong Answer citation",
+            documents=documents,
+            manifest_path=manifest,
+            accepted_permission="agent-authored-synthetic",
+            accepted_scope="synthetic sample corpus for the local deterministic slice",
+        )
+
+
+def test_the_unit_seam_still_refuses_authorized_material(tmp_path) -> None:
+    """The test seam keeps its synthetic-only rule; only the pinned policy path may not."""
+    documents = _authorized_documents()
+    manifest = _authorized_manifest(documents, tmp_path)
+
+    with pytest.raises(ValueError, match="agent-authored synthetic"):
+        analyze_submission(
+            {"id": "sub-1", "status": "Wrong Answer"},
+            "Wrong Answer citation",
+            documents=documents,
+            manifest_path=manifest,
         )

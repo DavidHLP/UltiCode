@@ -12,7 +12,8 @@ import subprocess
 import sys
 import pytest
 
-from retrieval import keyword_search, load_sample_corpus
+from corpus_manifest import content_digest
+from retrieval import SourceHit, keyword_search, load_sample_corpus
 
 _module_spec = importlib.util.spec_from_file_location(
     "citation_support_smoke",
@@ -89,15 +90,37 @@ def _install(monkeypatch, tmp_path: Path, judgements: list[str], calls: list[str
     async def _first(_tools: object) -> dict[str, object]:
         return {"id": "sub-1", "status": "Wrong Answer"}
 
-    def _analyze(_submission: object, _question: str) -> dict[str, object]:
-        citations = keyword_search("submission status source citation record", limit=3)
+    def _analyze(
+        _submission: object, _question: str, **_kwargs: object
+    ) -> dict[str, object]:
+        # Honour an injected corpus: citing whatever the caller handed over is what
+        # proves the entry point analysed *that* material, not the pinned one.
+        documents = _kwargs.get("documents")
+        if isinstance(documents, tuple) and documents:
+            hits = [
+                SourceHit(
+                    doc_id=document.doc_id,
+                    version=document.version,
+                    chunk_id=document.chunk_id,
+                    source_path=document.source_path,
+                    source_position=document.source_position,
+                    access_scope=document.access_scope,
+                    sample_kind=document.sample_kind,
+                    source_trust="untrusted-data",
+                    matched_terms=("wrong", "answer"),
+                    text=document.text,
+                )
+                for document in documents
+            ]
+        else:
+            hits = list(keyword_search("submission status source citation record", limit=3))
         return {
             "facts": ["f"],
             "hypotheses": ["the status alone does not locate a code line"],
-            "citations": [hit.as_model_dict() for hit in citations],
+            "citations": [hit.as_model_dict() for hit in hits],
             "citation_checks": [
                 {"chunk_id": hit.chunk_id, "verdict": "verified", "detail": ""}
-                for hit in citations
+                for hit in hits
             ],
         }
 
@@ -117,6 +140,48 @@ def _install(monkeypatch, tmp_path: Path, judgements: list[str], calls: list[str
     # The threshold is read from the environment; pin it so the result cannot
     # depend on the developer's shell.
     monkeypatch.setenv("ULTICODE_CITATION_REQUIRED_ROWS", "3")
+
+
+def _write_corpus(tmp_path, monkeypatch, *, status_bearing: int = 3):
+    """A manifest-gated corpus outside the repository, wired through the env pair."""
+    directory = tmp_path / "external-corpus"
+    directory.mkdir()
+    provenance = (
+        "> Provenance: agent-authored synthetic example; not a real UltiCode "
+        "submission, DTO, or user-authorized material.\n\n"
+    )
+    entries = []
+    for i in range(1, status_bearing + 1):
+        name = f"status-{i}.md"
+        text = (
+            provenance
+            + f"External source {i}: a Wrong Answer citation record for the question."
+        ).strip()
+        (directory / name).write_text(text + "\n", encoding="utf-8")
+        entries.append(
+            {
+                "doc_id": f"external-status-{i}",
+                "version": "v1",
+                "chunk_id": f"external-status-{i}:v1:1",
+                "source_path": f"external/{name}",
+                "access_scope": "agent-authored-synthetic",
+                "sample_kind": "synthetic",
+                "permission": "agent-authored-synthetic",
+                "scope": (
+                    "synthetic corpus supplied by the operator for this run; "
+                    "not user or licensed material"
+                ),
+                "source_position": "lines 1-3",
+                "model_input_projection": "SourceHit.as_model_dict()",
+                "source_trust": "untrusted-data",
+                "content_digest": content_digest(text),
+            }
+        )
+    manifest = tmp_path / "external-manifest.json"
+    manifest.write_text(json.dumps(entries, ensure_ascii=False, indent=2), encoding="utf-8")
+    monkeypatch.setenv("ULTICODE_CITATION_CORPUS_DIR", str(directory))
+    monkeypatch.setenv("ULTICODE_CITATION_CORPUS_MANIFEST", str(manifest))
+    return directory, manifest
 
 
 def test_opt_in_is_required_and_no_key_is_used_without_it(monkeypatch, capsys) -> None:
@@ -629,4 +694,68 @@ def test_the_corpus_gap_is_reported_without_a_credential(
     output = capsys.readouterr().out
     assert "reason=insufficient_citations" in output
     assert "deepseek_api_key_required" not in output
+    assert calls == []
+
+
+def test_a_half_configured_corpus_override_is_refused(monkeypatch, capsys, tmp_path) -> None:
+    """A directory without its manifest cannot be authorized, and vice versa."""
+    calls: list[str] = []
+    _install(monkeypatch, tmp_path, ['{"supports": true, "derivable": true}'] * 3, calls)
+    monkeypatch.setenv("ULTICODE_CITATION_CORPUS_DIR", str(tmp_path / "somewhere"))
+
+    assert smoke.main_sync() == 1
+    assert "FAIL reason=corpus_source_incomplete" in capsys.readouterr().out
+    assert calls == []
+
+
+def test_an_override_manifest_without_its_file_is_refused(monkeypatch, capsys, tmp_path) -> None:
+    """A declared file that is missing stops the run instead of shrinking the corpus."""
+    calls: list[str] = []
+    _install(monkeypatch, tmp_path, ['{"supports": true, "derivable": true}'] * 3, calls)
+    directory, manifest = _write_corpus(tmp_path, monkeypatch)
+    (directory / "status-3.md").unlink()
+
+    assert smoke.main_sync() == 1
+    assert "FAIL reason=corpus_entry_missing" in capsys.readouterr().out
+    assert calls == []
+
+
+def test_the_override_corpus_is_the_one_that_is_analysed(monkeypatch, capsys, tmp_path) -> None:
+    """The acceptance entry point reaches the behaviour, not just the unit test."""
+    calls: list[str] = []
+    _install(monkeypatch, tmp_path, ['{"supports": true, "derivable": true}'] * 3, calls)
+    _write_corpus(tmp_path, monkeypatch)
+
+    assert smoke.main_sync() == 0
+    output = capsys.readouterr().out
+    # Three rows judged from the *override* corpus, all of them supported, so the
+    # run never reaches the material-gap failure it reports on the pinned corpus.
+    assert "rows=3" in output
+    assert "judge=model" in output
+    assert "not_supported=0" in output
+    assert "insufficient_citations" not in output
+    # Nothing about the pinned corpus changed; this run simply did not use it.
+    assert [hit.doc_id for hit in keyword_search("Wrong Answer 状态说明了什么？")] == [
+        "sample-status-only"
+    ]
+
+
+def test_an_unsupported_declaration_is_refused_before_any_call(
+    monkeypatch, capsys, tmp_path
+) -> None:
+    """The run pins what it accepts; a manifest cannot grant it to itself."""
+    calls: list[str] = []
+    _install(monkeypatch, tmp_path, ['{"supports": true, "derivable": true}'] * 3, calls)
+    directory, manifest = _write_corpus(tmp_path, monkeypatch)
+    entries = json.loads(manifest.read_text(encoding="utf-8"))
+    entries[0]["permission"] = "licensed-third-party"
+    entries[0]["scope"] = "licensed material the operator uploaded"
+    manifest.write_text(json.dumps(entries, ensure_ascii=False, indent=2), encoding="utf-8")
+    # Keep the document self-consistent so the refusal is the pin, not the digest.
+    (directory / "status-1.md").write_text(
+        (directory / "status-1.md").read_text(encoding="utf-8"), encoding="utf-8"
+    )
+
+    assert smoke.main_sync() == 1
+    assert "FAIL reason=corpus_declaration_unsupported" in capsys.readouterr().out
     assert calls == []

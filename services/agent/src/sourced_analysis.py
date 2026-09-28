@@ -65,60 +65,63 @@ def validate_submission_facts(submission: dict[str, object]) -> tuple[str, str]:
     return submission_id, status
 
 
-def analyze_submission(
-    submission: dict[str, object],
-    question: str,
+def _validated_corpus(
+    documents: tuple[SourceDocument, ...] | None,
+    manifest_path: Path | None,
     *,
-    documents: tuple[SourceDocument, ...] | None = None,
-    manifest_path: Path | None = None,
-) -> dict[str, object]:
-    """Return facts, hypotheses, citations, and per-citation integrity checks.
+    synthetic_only: bool,
+    accepted: tuple[str, str] | None,
+) -> tuple[SourceDocument, ...]:
+    """Parse, bind and apply a material policy to a caller-supplied corpus.
 
-    ``citation_checks`` records whether each citation is traceable to its source
-    document. A ``verified`` verdict means the citation and its text come from
-    the recorded source; it does not mean the fragment supports the conclusion.
+    The manifest is parsed here rather than handed in: ``load_manifest`` is what
+    checks permission, scope, projection and source trust, and entries assembled in
+    memory would skip every one of those. ``assert_manifest_covers`` then binds each
+    declared field and content digest to the exact text, and the source cap stops a
+    single document from shipping whole into every citation and on into the prompt.
 
-    ``documents`` defaults to the pinned sample corpus so the recorded baseline is
-    unchanged, and that default is gated by ``load_sample_corpus``. A supplied corpus
-    must arrive with the path to its own manifest, which is parsed and validated here
-    the same way the checked-in manifests are (permission, scope, projection, source
-    trust, then content digests bound to the exact text) before a single citation can
-    be built from it. Entries assembled in memory are not accepted: a caller could
-    forge them, and ``assert_manifest_covers`` alone does not validate their
-    declarations. It must also declare itself agent-authored synthetic: this
-    parameter is a test seam, so it may exercise the evidence path but may never
-    launder a document into real or licensed material. How many citations an answer
-    can emit is a property of the material in front of it, not of the default.
+    ``synthetic_only`` is the unit-seam rule: a test fixture may exercise the
+    evidence path but may never present itself as real or licensed material.
+    ``accepted`` is the acceptance rule instead: the caller pins the permission and
+    scope it will take, and the manifest either declares exactly those or the run
+    stops — a corpus document cannot grant itself a policy.
     """
-    submission_id, status = validate_submission_facts(submission)
-    facts = [f"提交 {submission_id} 的状态是 {status}。"]
-    normalized_status = status.casefold()
-    # One snapshot for retrieval and verification: a reload could check the
-    # quotes against text the hits never came from.
     if documents is None:
-        corpus = load_sample_corpus()
-    else:
-        # Fail closed: no manifest, no evidence. A caller that skips this hands the
-        # model documents nothing binds to the text they claim to be.
-        if manifest_path is None:
-            raise ValueError("supplied corpus requires manifest validation")
-        if not isinstance(documents, tuple) or not documents:
-            raise ValueError("invalid corpus")
-        # Parsed here, not passed in: validate_manifest is what checks permission,
-        # scope, projection and source trust, and in-memory entries would skip it.
-        assert_manifest_covers(load_manifest(Path(manifest_path)), documents)
+        return load_sample_corpus()
+    if manifest_path is None:
+        # Fail closed: a caller that skips this hands the model documents nothing
+        # binds to the text they claim to be.
+        raise ValueError("supplied corpus requires manifest validation")
+    if not isinstance(documents, tuple) or not documents:
+        raise ValueError("invalid corpus")
+    entries = load_manifest(Path(manifest_path))
+    assert_manifest_covers(entries, documents)
+    for document in documents:
+        if not document.text or len(document.text) > MAX_SOURCE_CHARS:
+            raise ValueError("supplied corpus document exceeds the source cap")
+    if synthetic_only:
         for document in documents:
-            # Both checked-in loaders apply this bound; a supplied corpus must not
-            # become the one path that ships whole documents into every citation and
-            # from there into the model prompt.
-            if not document.text or len(document.text) > MAX_SOURCE_CHARS:
-                raise ValueError("supplied corpus document exceeds the source cap")
             if (
                 document.sample_kind != "synthetic"
                 or document.access_scope != "agent-authored-synthetic"
             ):
                 raise ValueError("supplied corpus must be agent-authored synthetic")
-        corpus = documents
+    if accepted is not None:
+        permission, scope = accepted
+        for entry in entries:
+            if entry.permission != permission or entry.scope != scope:
+                raise ValueError("supplied corpus declarations not accepted")
+    return documents
+
+
+def _analyze_with_corpus(
+    submission_id: str,
+    status: str,
+    question: str,
+    corpus: tuple[SourceDocument, ...],
+) -> dict[str, object]:
+    facts = [f"提交 {submission_id} 的状态是 {status}。"]
+    normalized_status = status.casefold()
     # The status is a hard requirement, so it narrows the corpus before ranking and
     # before the result limit: otherwise higher-ranked documents without it could
     # consume the slots a status-bearing document needs.
@@ -143,6 +146,60 @@ def analyze_submission(
             for check in check_citations(citations, corpus)
         ],
     }
+
+
+def analyze_submission(
+    submission: dict[str, object],
+    question: str,
+    *,
+    documents: tuple[SourceDocument, ...] | None = None,
+    manifest_path: Path | None = None,
+) -> dict[str, object]:
+    """Return facts, hypotheses, citations, and per-citation integrity checks.
+
+    ``citation_checks`` records whether each citation is traceable to its source
+    document. A ``verified`` verdict means the citation and its text come from
+    the recorded source; it does not mean the fragment supports the conclusion.
+
+    ``documents`` defaults to the pinned sample corpus so the recorded baseline is
+    unchanged. This parameter is a **test seam**: a supplied corpus must carry its
+    own manifest and is restricted to agent-authored synthetic material, so it can
+    exercise the evidence path but can never present itself as real or licensed
+    material. The acceptance workflow uses ``analyze_authorized_submission`` with an
+    explicitly pinned permission and scope instead.
+    """
+    submission_id, status = validate_submission_facts(submission)
+    corpus = _validated_corpus(
+        documents, manifest_path, synthetic_only=True, accepted=None
+    )
+    return _analyze_with_corpus(submission_id, status, question, corpus)
+
+
+def analyze_authorized_submission(
+    submission: dict[str, object],
+    question: str,
+    *,
+    documents: tuple[SourceDocument, ...],
+    manifest_path: Path,
+    accepted_permission: str,
+    accepted_scope: str,
+) -> dict[str, object]:
+    """The acceptance path: same core, with a material policy pinned by the caller.
+
+    Nothing in the corpus decides what it is allowed to be. The run states the
+    permission and scope it accepts; every manifest entry must declare exactly that,
+    after the same parse, binding and source-cap checks the test seam gets. Synthetic
+    fixtures pass because they declare what they are; authorised material passes
+    because the run pinned its policy — not because the file said so.
+    """
+    submission_id, status = validate_submission_facts(submission)
+    corpus = _validated_corpus(
+        documents,
+        manifest_path,
+        synthetic_only=False,
+        accepted=(accepted_permission, accepted_scope),
+    )
+    return _analyze_with_corpus(submission_id, status, question, corpus)
 
 
 async def first_wrong_answer_submission(tools: dict[str, object]) -> dict[str, object] | None:

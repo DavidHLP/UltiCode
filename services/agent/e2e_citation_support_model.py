@@ -37,8 +37,8 @@ from deepseek_model import (
     _reject_duplicate_keys,
     model_label,
 )
-from retrieval import load_sample_corpus
-from sourced_analysis import analyze_submission, first_wrong_answer_submission
+from retrieval import MAX_SOURCE_CHARS, SourceDocument, load_sample_corpus
+from sourced_analysis import analyze_submission, analyze_authorized_submission, first_wrong_answer_submission
 from ulticode_client import UlticodeClient
 from ulticode_tools import build_tools
 
@@ -211,12 +211,98 @@ def _claim_verdict_file(path: Path) -> Path:
     return lock
 
 
+
+
+#: Optional override: point this run at a corpus outside the repository without
+#: editing it. Both halves or neither — see `_corpus_override`.
+CORPUS_DIR_ENV = "ULTICODE_CITATION_CORPUS_DIR"
+CORPUS_MANIFEST_ENV = "ULTICODE_CITATION_CORPUS_MANIFEST"
+
+
+#: The declarations this acceptance run accepts. Pinned here, not read from the
+#: manifest: a manifest is only as trustworthy as the review that merged it, so the
+#: run states what it will take and refuses everything else. Authorised material for
+#: DAV-58 changes these two constants together with the seam's own restriction —
+#: a reviewed edit, not something a corpus file can talk its way into.
+ACCEPTED_PERMISSION = "agent-authored-synthetic"
+ACCEPTED_SCOPE = (
+    "synthetic corpus supplied by the operator for this run; "
+    "not user or licensed material"
+)
+
+
+class _CorpusSourceError(ValueError):
+    """A half-configured or unusable corpus override."""
+
+
+def _corpus_override() -> tuple[tuple[SourceDocument, ...] | None, Path | None]:
+    """The corpus this run points at, or ``(None, None)`` for the pinned default.
+
+    Everything comes from the manifest: declarations first (`load_manifest` checks
+    permission, scope, projection and source trust), then one file per entry under the
+    corpus directory, keyed by the manifest's own ``source_path`` basename. Nothing is
+    inferred from filenames alone, so a file the manifest does not declare cannot
+    reach the model, and a declared file that is missing or over the source cap stops
+    the run instead of silently shrinking the corpus.
+    """
+    directory = os.environ.get(CORPUS_DIR_ENV, "").strip()
+    manifest = os.environ.get(CORPUS_MANIFEST_ENV, "").strip()
+    if not directory and not manifest:
+        return None, None
+    if not directory or not manifest:
+        # Falling back to the pinned corpus here would report evidence from a
+        # different corpus than the one this run asked for.
+        raise _CorpusSourceError("corpus_source_incomplete")
+    root = Path(directory)
+    if root.is_symlink() or not root.is_dir():
+        raise _CorpusSourceError("corpus_root_unusable")
+    resolved_root = root.resolve()
+    documents: list[SourceDocument] = []
+    for entry in load_manifest(Path(manifest)):
+        if entry.permission != ACCEPTED_PERMISSION or entry.scope != ACCEPTED_SCOPE:
+            raise _CorpusSourceError("corpus_declaration_unsupported")
+        path = root / Path(entry.source_path).name
+        # The manifest supplies the basename, so the entry lives directly under the
+        # root; a symlink there would pull text from outside the authorised directory.
+        if path.is_symlink():
+            raise _CorpusSourceError("corpus_entry_escapes_root")
+        if not path.is_file():
+            raise _CorpusSourceError("corpus_entry_missing")
+        text = path.read_text(encoding="utf-8").strip()
+        if not text or len(text) > MAX_SOURCE_CHARS:
+            raise _CorpusSourceError("corpus_entry_unusable")
+        documents.append(
+            SourceDocument(
+                doc_id=entry.doc_id,
+                version=entry.version,
+                source_path=entry.source_path,
+                access_scope=entry.access_scope,
+                sample_kind=entry.sample_kind,
+                text=text,
+                source_position=entry.source_position,
+            )
+        )
+    if not documents:
+        raise _CorpusSourceError("corpus_empty")
+    return tuple(documents), Path(manifest)
+
 async def main() -> int:
     if os.environ.get("ULTICODE_CITATION_SUPPORT") != "1":
         print("SKIP reason=opt_in_not_set")
         return 0
-    documents = load_sample_corpus()
-    manifest = load_manifest()
+    # Resolved before the first request: a half-configured corpus must not cost a
+    # login and a submission scan before it is refused.
+    try:
+        corpus, manifest_path = _corpus_override()
+    except _CorpusSourceError as error:
+        print(f"FAIL reason={error}")
+        return 1
+    if corpus is None:
+        documents = load_sample_corpus()
+        manifest = load_manifest()
+    else:
+        documents = corpus
+        manifest = load_manifest(manifest_path)
     async with UlticodeClient(APP_BASE, AUTH_BASE) as client:
         await client.login(
             os.environ["ULTICODE_E2E_USERNAME"], os.environ["ULTICODE_E2E_PASSWORD"]
@@ -226,7 +312,19 @@ async def main() -> int:
         if matching is None:
             print("FAIL reason=no_wrong_answer_submission")
             return 1
-        analysis = analyze_submission(matching, QUESTION)
+        if corpus is None:
+            analysis = analyze_submission(matching, QUESTION)
+        else:
+            # The pinned default is still the manifest-gated loader; an override is
+            # parsed, pinned and covered before it reaches the same evidence path.
+            analysis = analyze_authorized_submission(
+                matching,
+                QUESTION,
+                documents=corpus,
+                manifest_path=manifest_path,
+                accepted_permission=ACCEPTED_PERMISSION,
+                accepted_scope=ACCEPTED_SCOPE,
+            )
 
     hypotheses = analysis.get("hypotheses") or []
     if len(hypotheses) != 1:

@@ -1,0 +1,26 @@
+services/agent/e2e_vector_comparison.py
+  h_77173abe25c3ff 386-388
+services/agent/src/corpus_manifest.py
+  h_77173abe25c3ff 178,188-195
+services/agent/src/keyword_evaluation.py
+  h_77173abe25c3ff 202-211,215,218,221,228,256-257
+services/agent/src/vector_search.py
+  h_77173abe25c3ff 44-49,52,54
+services/agent/tests/test_corpus_manifest.py
+  h_77173abe25c3ff 291-318
+services/agent/tests/test_keyword_evaluation.py
+  h_77173abe25c3ff 73-76,120-125
+services/agent/tests/test_vector_search.py
+  h_77173abe25c3ff 397-400,784-804
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8d3052513913baed10f2d4a2cf4969b6b1c3720c",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

@@ -1,0 +1,24 @@
+docs/DEVELOPMENT.md
+  h_77173abe25c3ff 97-108
+services/agent/README.md
+  h_77173abe25c3ff 65-99
+services/agent/e2e_citation_support_model.py
+  h_77173abe25c3ff 34,299-306,309-310,320-325,329-334,343,364,368-370,537,580
+services/agent/src/sourced_analysis.py
+  h_77173abe25c3ff 10-14,113-118
+services/agent/tests/test_e2e_citation_support_model.py
+  h_77173abe25c3ff 861-934
+services/agent/tests/test_sourced_analysis.py
+  h_77173abe25c3ff 449-468
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c2230302ca3aca1a7bcef5b5859fe5f52f7e4f68",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

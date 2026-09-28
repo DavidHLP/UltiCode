@@ -134,7 +134,7 @@ def _publish(target: Path, text: str) -> None:
     A reader watching the destination — an automation step, or the next run — must
     never observe a half-written file, so the content lands via a rename.
     """
-    temporary = target.with_suffix(target.suffix + ".part")
+    temporary = target.with_name(f"{target.name}.{secrets.token_hex(4)}.part")
     temporary.write_text(text, encoding="utf-8")
     os.replace(temporary, target)
 
@@ -148,45 +148,45 @@ def _discard_artifacts(path: Path) -> None:
             pass
 
 
-def _release_unfinished_claim(path: Path) -> None:
-    """Remove placeholders this run claimed but never filled.
+def _release_unfinished_claim(path: Path, lock: Path | None = None) -> None:
+    """Drop this run's reservation, and any placeholder it never filled.
 
-    An aborted run would otherwise leave empty files behind, and an explicit
+    An aborted run would otherwise leave its lock behind, and an explicit
     `ULTICODE_CITATION_VERDICTS` path would then refuse every later run.
     """
+    if lock is not None:
+        try:
+            lock.unlink()
+        except OSError:
+            pass
     for candidate in (path, _meta_path(path)):
         _unlink_if_empty(candidate)
 
 
-def _claim_verdict_file(path: Path) -> None:
-    """Take the destination before any billed call.
+def _claim_verdict_file(path: Path) -> Path:
+    """Reserve the destination before any billed call, without creating it.
 
-    A missing parent, a directory, or an already-claimed path is a failure of this
-    run, and finding out after the model calls would waste them.
+    The reservation is a lock file, not the artifact: automation that treats the
+    verdict path's existence as "published" must not see it while the run is still
+    judging. A missing parent, a directory, or a reservation another run holds is a
+    failure of this run, and finding out after the model calls would waste them.
     """
-    claimed: list[Path] = []
-    for target in (path, _meta_path(path)):
-        try:
-            target.parent.mkdir(parents=True, exist_ok=True)
-            with target.open("x", encoding="utf-8"):
-                pass
-        except FileExistsError:
-            # Roll back what this call claimed: a half-claimed pair would block
-            # every later run that reuses an explicit path.
-            for done in claimed:
-                _unlink_if_empty(done)
-            raise RuntimeError(
-                f"verdict destination already exists: {_path_label(target)}"
-            ) from None
-        except OSError as error:
-            for done in claimed:
-                _unlink_if_empty(done)
-            raise RuntimeError(
-                f"verdict destination is not writable: {_path_label(target)} "
-                f"({type(error).__name__})"
-            ) from None
-        claimed.append(target)
-    atexit.register(_release_unfinished_claim, path)
+    lock = path.with_name(f"{path.name}.lock")
+    try:
+        lock.parent.mkdir(parents=True, exist_ok=True)
+        with lock.open("x", encoding="utf-8"):
+            pass
+    except FileExistsError:
+        raise RuntimeError(
+            f"verdict destination is already claimed: {_path_label(lock)}"
+        ) from None
+    except OSError as error:
+        raise RuntimeError(
+            f"verdict destination is not writable: {_path_label(lock)} "
+            f"({type(error).__name__})"
+        ) from None
+    atexit.register(_release_unfinished_claim, path, lock)
+    return lock
 
 
 async def main() -> int:
@@ -258,9 +258,9 @@ async def main() -> int:
     facts = json.dumps(matching, ensure_ascii=False, default=str)
     path = _verdict_file()
     try:
-        # Claimed here, before any billed call: an unusable destination is a
+        # Reserved here, before any billed call: an unusable destination is a
         # failed run, not something to discover after paying for the judgements.
-        _claim_verdict_file(path)
+        lock = _claim_verdict_file(path)
     except RuntimeError as error:
         print(f"FAIL reason=verdict_destination_unusable detail={error}")
         return 1
@@ -352,6 +352,8 @@ async def main() -> int:
         # never sees verdicts whose sidecar is missing.
         _publish(_meta_path(path), json.dumps(meta, ensure_ascii=False, indent=2))
         _publish(path, json.dumps(verdicts, ensure_ascii=False, indent=2))
+        # Published: the reservation goes, and the placeholder cleanup with it.
+        _release_unfinished_claim(path, lock)
     except OSError as error:
         # Both artifacts go: a populated sidecar left next to a missing verdict
         # file would make every later run on this explicit path fail.

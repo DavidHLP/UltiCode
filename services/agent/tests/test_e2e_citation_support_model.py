@@ -252,14 +252,17 @@ def test_an_unusable_verdict_destination_fails_before_any_call(
     """Discovering a bad destination after paying for judgements wastes them."""
     calls: list[str] = []
     _install(monkeypatch, tmp_path, ['{"supports": true, "derivable": true}'] * 3, calls)
-    taken = tmp_path / "already-there.json"
-    taken.write_text("{}", encoding="utf-8")
-    monkeypatch.setenv("ULTICODE_CITATION_VERDICTS", str(taken))
+    destination = tmp_path / "verdicts.json"
+    # Another run holds the reservation.
+    (tmp_path / "verdicts.json.lock").write_text("pid=1\n", encoding="utf-8")
+    monkeypatch.setenv("ULTICODE_CITATION_VERDICTS", str(destination))
 
     assert smoke.main_sync() == 1
     output = capsys.readouterr().out
     assert "reason=verdict_destination_unusable" in output
     assert calls == []
+    # Automation keyed on the artifact's existence must not see it yet.
+    assert not destination.exists()
 
 
 def test_a_non_integer_threshold_fails_cleanly(monkeypatch, capsys, tmp_path) -> None:
@@ -313,21 +316,16 @@ def test_an_aborted_run_releases_the_claimed_destination(
     assert not destination.exists()
 
 
-def test_a_failed_sidecar_claim_rolls_back_the_primary(
-    monkeypatch, capsys, tmp_path
-) -> None:
-    """A half-claimed pair must not leave the primary file behind."""
+def test_a_successful_run_releases_its_reservation(monkeypatch, capsys, tmp_path) -> None:
+    """The lock is this run's; leaving it behind blocks the next one."""
     calls: list[str] = []
     destination = tmp_path / "verdicts.json"
-    # The primary is free, the sidecar is taken: the claim must fail and undo.
-    (tmp_path / "verdicts.json.meta.json").write_text("{}", encoding="utf-8")
     _install(monkeypatch, tmp_path, ['{"supports": true, "derivable": true}'] * 3, calls)
     monkeypatch.setenv("ULTICODE_CITATION_VERDICTS", str(destination))
 
-    assert smoke.main_sync() == 1
-    assert "reason=verdict_destination_unusable" in capsys.readouterr().out
-    assert not destination.exists()
-    assert calls == []
+    assert smoke.main_sync() == 0
+    assert destination.exists()
+    assert not (tmp_path / "verdicts.json.lock").exists()
 
 
 def test_a_write_failure_releases_the_claim(monkeypatch, capsys, tmp_path) -> None:

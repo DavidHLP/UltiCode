@@ -380,6 +380,10 @@ async def main() -> int:
         f"model={model_label(model_name)} judge=model rows={summary['reviewed']} "
         f"calls={calls} supports={summary['counts']['supports']} "
         f"not_supported={len(summary['not_supported'])} "
+        # A failed gate has to say which check failed: support, derivability, or a
+        # citation that is not there at all.
+        f"not_derivable={len(summary['not_derivable'])} "
+        f"citation_missing={len(summary['citation_missing'])} "
         f"integrity_unverified={len(summary['integrity_unverified'])} "
         f"verdicts={_path_label(path)}"
     )

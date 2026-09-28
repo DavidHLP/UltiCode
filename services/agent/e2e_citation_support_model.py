@@ -32,7 +32,12 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from citation_review import build_worksheet, load_verdicts, summarize
-from corpus_manifest import ManifestError, load_manifest
+from corpus_manifest import (
+    ManifestEmpty,
+    ManifestError,
+    load_manifest,
+    parse_manifest_text,
+)
 from deepseek_model import (
     DeepseekModel,
     ModelProtocolError,
@@ -289,8 +294,9 @@ def _corpus_override() -> ValidatedCorpus | None:
     snapshot, so retrieval, the worksheet and the verdict metadata all describe the
     same material even if the file is replaced mid-run.
 
-    Declarations come first (`load_manifest` checks permission, scope, projection and
-    source trust), and every entry must declare exactly the material class this run
+    Declarations come first (`parse_manifest_text` checks permission, scope, projection
+    and source trust — the same rules `load_manifest` applies), and every entry must
+    declare exactly the material class this run
     pins — permission, scope, sample kind and access scope. Files are opened relative
     to one root descriptor opened with `O_DIRECTORY|O_NOFOLLOW`, so neither the root
     nor an entry can be swapped for a link between the check and the read; `fstat`
@@ -308,22 +314,23 @@ def _corpus_override() -> ValidatedCorpus | None:
     root = Path(directory)
     if root.is_symlink() or not root.is_dir():
         raise _CorpusSourceError("corpus_root_unusable")
+    # Read once. The same text feeds the empty-list classification and the declaration
+    # validation, so this preflight cannot disagree with itself about which manifest it
+    # validated, and a file replaced afterwards never reaches the snapshot.
     try:
-        raw_manifest = json.loads(Path(manifest).read_text(encoding="utf-8"))
-    except (OSError, UnicodeError, ValueError):
+        manifest_text = Path(manifest).read_text(encoding="utf-8")
+    except (OSError, UnicodeError):
         raise _CorpusSourceError("corpus_manifest_unusable") from None
-    if raw_manifest == []:
-        # An operator who declared nothing at all asked for an empty corpus; that is
-        # a different mistake from a manifest that will not parse, so it keeps its own
-        # reason instead of being normalised into `corpus_manifest_unusable`.
-        raise _CorpusSourceError("corpus_empty")
     try:
-        entries = load_manifest(Path(manifest))
+        entries = parse_manifest_text(manifest_text)
+    except ManifestEmpty:
+        # An operator who declared nothing at all asked for an empty corpus; that is a
+        # different mistake from a manifest that will not parse, so it keeps its own
+        # reason instead of being normalised into `corpus_manifest_unusable`.
+        raise _CorpusSourceError("corpus_empty") from None
     except ManifestError:
         # Validation failures are already precise, but the operator contract is one
         # evidence line, not a traceback that leaks configured paths.
-        raise _CorpusSourceError("corpus_manifest_unusable") from None
-    except (OSError, UnicodeError):
         raise _CorpusSourceError("corpus_manifest_unusable") from None
 
     pinned = (

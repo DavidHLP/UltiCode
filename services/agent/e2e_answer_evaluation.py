@@ -31,7 +31,12 @@ from answer_evaluation import (
     evaluate_answer_cases,
     summarize,
 )
-from deepseek_model import DeepseekModel, ModelBudgetExceeded, model_label
+from deepseek_model import (
+    DeepseekModel,
+    ModelBudgetExceeded,
+    ModelProtocolError,
+    model_label,
+)
 from keyword_evaluation import load_cases
 
 OPT_IN = "ULTICODE_ANSWER_EVAL"
@@ -152,7 +157,7 @@ async def main() -> int:
             # 40 sequential billed calls over a reasoning model: the adapter's 30s
             # default is per request, and one stall aborts the whole batch.
             timeout=_float("DEEPSEEK_TIMEOUT", 120.0),
-            max_tokens=_int("DEEPSEEK_MAX_TOKENS", 2000),
+            max_tokens=_int("DEEPSEEK_MAX_TOKENS", 4000),
             max_prompt_tokens=_int("DEEPSEEK_MAX_PROMPT_TOKENS", 24000),
         ) as model:
             rows = await evaluate_answer_cases(cases, model=model)
@@ -161,6 +166,14 @@ async def main() -> int:
             printed = "unknown" if len(known) != len(totals) else str(sum(known))
     except ModelBudgetExceeded as error:
         print(f"FAIL reason=model_budget_exceeded detail={error}")
+        return 1
+    except ModelProtocolError as error:
+        # A truncated answer is a cap problem, not a contract problem: the fix is
+        # DEEPSEEK_MAX_TOKENS, and reporting it as a bare protocol failure sends
+        # the next reader looking at the JSON shape instead.
+        detail = str(error)
+        hint = " raise DEEPSEEK_MAX_TOKENS" if "finish_reason=length" in detail else ""
+        print(f"FAIL reason=model_protocol detail={detail}{hint}")
         return 1
     except AnswerEvaluationError as error:
         print(f"FAIL reason=protocol detail={error}")

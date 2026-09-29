@@ -66,13 +66,20 @@ QUESTION = "Wrong Answer 状态说明了什么？"
 #: threshold is configurable so that run can raise it without a code change.
 DEFAULT_REQUIRED_ROWS = 3
 
-#: The adapter's system message asks for `{"answer": ...}`, so the judgement is the
-#: answer text rather than a competing envelope.
+#: The adapter's system message asks for `{"answer": "<answer>"}` and
+#: `_parse_decision` refuses any other top-level shape, so the judgement travels
+#: *inside* that envelope as a JSON string, which `_judgements` then parses.
+#: Asking directly for the two booleans makes a compliant model emit
+#: `{"supports": ..., "derivable": ...}` at the top level and the first billed call
+#: dies with `model decision schema was malformed`.
 JUDGE_CONTRACT = (
     "You are checking citations, not answering the question. Given CLAIM, QUOTE and "
-    "SUBMISSION_FACTS, make the answer a JSON object with exactly two boolean fields: "
+    "SUBMISSION_FACTS, reply with exactly one JSON object of the form "
+    '{"answer": "<json-string>"} where <json-string> is itself a JSON object with '
+    "exactly two boolean fields: "
     '{"supports": <does the quote support the claim>, '
-    '"derivable": <does the claim follow from SUBMISSION_FACTS alone>}'
+    '"derivable": <does the claim follow from SUBMISSION_FACTS alone>}. '
+    "Do not put any other key at the top level."
 )
 
 

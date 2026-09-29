@@ -233,8 +233,10 @@ def test_the_model_judges_one_row_per_question(monkeypatch, capsys, tmp_path) ->
     assert "human_review=not_performed" in output
     assert all("SUBMISSION_FACTS" in prompt for prompt in calls)
     # The judgement must be the adapter's own answer field: `tool_specs={}` makes the
-    # system message ask for `{"answer": ...}`, so a competing envelope fails.
-    assert all("make the answer a JSON object" in prompt for prompt in calls)
+    # system message ask for `{"answer": ...}`, so the contract has to send the two
+    # booleans inside that envelope rather than competing with it at the top level.
+    assert '{"answer"' in smoke.JUDGE_CONTRACT
+    assert all('"derivable"' in prompt for prompt in calls)
     assert all("CLAIM:" in prompt and "QUOTE:" in prompt for prompt in calls)
     verdicts = json.loads((tmp_path / "verdicts.json").read_text(encoding="utf-8"))
     assert len(verdicts) == 3
@@ -1214,3 +1216,48 @@ def test_a_source_path_containing_a_nul_is_a_structured_failure(
     output = capsys.readouterr().out
     assert "FAIL reason=corpus_entry_unusable" in output
     assert "ValueError" not in output
+
+
+def test_the_judge_contract_demands_the_adapter_answer_envelope() -> None:
+    """The prompt must ask for the envelope the adapter actually parses.
+
+    `DeepseekModel.decide` finishes on `{"answer": "<string>"}` and refuses any
+    other top-level shape, while `_judgements` parses that inner string. A
+    contract that asks for the two booleans *directly* makes a compliant model
+    emit `{"supports": ..., "derivable": ...}` at the top level, which the adapter
+    rejects as `model decision schema was malformed` — the run then dies on the
+    first billed call and no verdict is ever produced. That mismatch is invisible
+    to the suite because every test here replaces `DeepseekModel` with a stub that
+    hands back the inner string without the adapter ever parsing a response.
+    """
+    assert '{"answer"' in smoke.JUDGE_CONTRACT, (
+        "JUDGE_CONTRACT must require the adapter's `answer` envelope"
+    )
+    # The inner object stays exactly two booleans; the envelope must not become a
+    # licence to add fields the judgement parser would then reject.
+    assert '"supports"' in smoke.JUDGE_CONTRACT
+    assert '"derivable"' in smoke.JUDGE_CONTRACT
+
+
+def test_a_model_that_obeys_the_contract_passes_the_adapter_parser() -> None:
+    """The shape the contract asks for must be the shape `_parse_decision` accepts.
+
+    This exercises the real adapter parser against the real contract, which is the
+    seam the stubbed tests skip: it fails if either side of that agreement moves.
+    """
+    import deepseek_model
+    from deepseek_model import _parse_decision
+
+    inner = '{"supports": true, "derivable": false}'
+    # What a model produces when told to answer with the two-field object.
+    decision = _parse_decision(json.dumps({"answer": inner}), finish_reason="stop")
+    assert json.loads(decision.text) == {"supports": True, "derivable": False}
+    assert smoke._judgements(decision.text) == (True, False)
+
+    # The shape the old wording elicited, kept as the regression that matters.
+    with pytest.raises(deepseek_model.ModelProtocolError):
+        _parse_decision(inner, finish_reason="stop")
+
+    # And the contract must not contradict the no-tools system message, which
+    # already asks for `{"answer": "<answer>"}`.
+    assert '{"answer"' in smoke.JUDGE_CONTRACT

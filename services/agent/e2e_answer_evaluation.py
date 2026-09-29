@@ -1,0 +1,171 @@
+"""Real-model answer-level evaluation over the U02 development split.
+
+Fills the three columns `keyword_evaluation` leaves as `DEFERRED` /
+`not_measured`: for each development case it generates an answer from the
+retrieved fragments and then judges that answer, recording citation support,
+task completion and the observed behaviour.
+
+Scope is enforced by `answer_evaluation` itself: `holdout` and `holdout2` are
+refused, so this entry can never consume a sealed set. Retrieval stays the pinned
+keyword path — this adds an answer layer on top of it, not a second retriever.
+
+Opt in with `ULTICODE_ANSWER_EVAL=1`. Like the other model entries the key is
+read from the environment and never logged, and the run stops at
+`deepseek_api_key_required` before any call.
+"""
+
+from __future__ import annotations
+
+import asyncio
+import json
+import os
+import secrets
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent / "src"))
+
+from answer_evaluation import (
+    AnswerEvaluationError,
+    development_cases,
+    evaluate_answer_cases,
+    summarize,
+)
+from deepseek_model import DeepseekModel, ModelBudgetExceeded, model_label
+from keyword_evaluation import load_cases
+
+OPT_IN = "ULTICODE_ANSWER_EVAL"
+DEFAULT_MAX_CALLS = 64
+#: Two calls per case: one to answer, one to judge.
+CALLS_PER_CASE = 2
+
+
+def _artifact_path() -> Path:
+    """A run-scoped artifact under state, never the working tree."""
+    override = os.environ.get("ULTICODE_ANSWER_EVAL_RESULT", "").strip()
+    if override:
+        return Path(override)
+    configured = os.environ.get("XDG_STATE_HOME", "")
+    if os.path.isabs(configured):
+        state_home = Path(configured)
+    else:
+        home = Path.home()
+        if not home.is_absolute():
+            raise RuntimeError("HOME is not absolute and XDG_STATE_HOME is unset")
+        state_home = home / ".local" / "state"
+    return state_home / "ulticode" / f"answer-eval-{secrets.token_hex(4)}.json"
+
+
+def _int(name: str, default: int) -> int:
+    raw = os.environ.get(name, str(default)).strip()
+    try:
+        value = int(raw)
+    except ValueError:
+        raise AnswerEvaluationError(f"{name} must be an integer") from None
+    if value < 1:
+        raise AnswerEvaluationError(f"{name} must be at least 1")
+    return value
+
+
+async def main() -> int:
+    if os.environ.get(OPT_IN) != "1":
+        print("SKIP reason=opt_in_not_set")
+        return 0
+
+    cases = development_cases(load_cases())
+    if not cases:
+        print("FAIL reason=no_development_cases")
+        return 1
+
+    # Configured ceiling, not the row count: the adapter owns the guard, and a
+    # budget below the plan would bill a partial run before refusing the rest.
+    max_calls = _int("DEEPSEEK_MAX_CALLS", DEFAULT_MAX_CALLS)
+    if max_calls < len(cases) * CALLS_PER_CASE:
+        print(
+            f"FAIL reason=call_budget_below_plan cases={len(cases)} "
+            f"required={len(cases) * CALLS_PER_CASE} max_calls={max_calls}"
+        )
+        return 1
+
+    model_name = os.environ.get("DEEPSEEK_MODEL", "").strip()
+    if not model_name:
+        print("FAIL reason=deepseek_model_required")
+        return 1
+    if not os.environ.get("DEEPSEEK_API_KEY", "").strip():
+        print("FAIL reason=deepseek_api_key_required")
+        return 1
+
+    started = len(cases)
+    try:
+        async with DeepseekModel(
+            os.environ["DEEPSEEK_API_KEY"],
+            tool_specs={},
+            model=model_name,
+            max_calls=max_calls,
+            max_tokens=_int("DEEPSEEK_MAX_TOKENS", 2000),
+            max_prompt_tokens=_int("DEEPSEEK_MAX_PROMPT_TOKENS", 24000),
+        ) as model:
+            rows = await evaluate_answer_cases(cases, model=model)
+            totals = [e.get("total_tokens") for e in model.usage if isinstance(e, dict)]
+            known = [v for v in totals if isinstance(v, int)]
+            printed = "unknown" if len(known) != len(totals) else str(sum(known))
+    except ModelBudgetExceeded as error:
+        print(f"FAIL reason=model_budget_exceeded detail={error}")
+        return 1
+    except AnswerEvaluationError as error:
+        print(f"FAIL reason=protocol detail={error}")
+        return 1
+
+    summary = summarize(rows)
+    if summary["cases"] != started:
+        # A short run would otherwise read as a completed evaluation.
+        print(
+            f"FAIL reason=incomplete cases={summary['cases']} planned={started}"
+        )
+        return 1
+
+    artifact = _artifact_path()
+    artifact.parent.mkdir(parents=True, exist_ok=True)
+    artifact.write_text(
+        json.dumps(
+            {
+                "scope": "development_only",
+                "sealed_splits": ["holdout", "holdout2"],
+                "model": model_label(model_name),
+                "judge": "model",
+                "human_review": "not_performed",
+                "summary": summary,
+                "rows": [row.__dict__ for row in rows],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    print(
+        f"ANSWER EVAL USAGE | cases={summary['cases']} "
+        f"calls={summary['model_calls']} total_tokens={printed}"
+    )
+    print(
+        f"OK answer_eval scope=development_only "
+        f"supported={summary['supported']} unsupported={summary['unsupported']} "
+        f"not_applicable={summary['not_applicable']} "
+        f"completed={summary['completed']} incomplete={summary['incomplete']} "
+        f"behavior_match={summary['behavior_match']} deferred={summary['deferred']} "
+        f"sealed=holdout,holdout2"
+    )
+    return 0
+
+
+def main_sync() -> int:
+    try:
+        return asyncio.run(main())
+    except Exception as error:  # noqa: BLE001 - fixed status label only
+        print(f"FAIL error={type(error).__name__}")
+        return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main_sync())

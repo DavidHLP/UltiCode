@@ -98,8 +98,8 @@ def test_development_cases_drops_both_holdouts() -> None:
 
 
 def test_answer_level_columns_are_measured_not_deferred() -> None:
-    answers = {"dev-01": '{"text": "状态为 Wrong Answer，说明输出与预期不一致。", "behavior": "cite"}'}
-    judgements = {"dev-01": '{"citation_support": true, "answer_completed": true}'}
+    answers = {"dev-01": '{"text": "状态为 Wrong Answer，说明输出与预期不一致，来源 sample-status-only。"}'}
+    judgements = {"dev-01": '{"citation_support": true, "answer_completed": true, "observed_behavior": "cite"}'}
     rows, model = _run([_case()], answers, judgements)
 
     row = rows[0]
@@ -119,8 +119,8 @@ def test_no_retrieval_marks_citation_support_not_applicable() -> None:
     # natural-language sentence would still match some word and the fixture would
     # silently exercise the cited path instead of the empty one.
     case = _case(query="zzqqxx", expected="no_evidence")
-    answers = {case.case_id: '{"text": "没有检索到可用资料。", "behavior": "no_evidence"}'}
-    judgements = {case.case_id: '{"citation_support": false, "answer_completed": true}'}
+    answers = {case.case_id: '{"text": "没有检索到可用资料，无法给出结论。"}'}
+    judgements = {case.case_id: '{"citation_support": false, "answer_completed": true, "observed_behavior": "no_evidence"}'}
     rows, _model = _run([case], answers, judgements)
 
     row = rows[0]
@@ -131,8 +131,8 @@ def test_no_retrieval_marks_citation_support_not_applicable() -> None:
 
 
 def test_a_behavior_mismatch_is_recorded_not_hidden() -> None:
-    answers = {"dev-01": '{"text": "看起来是第 42 行出错。", "behavior": "cite"}'}
-    judgements = {"dev-01": '{"citation_support": false, "answer_completed": false}'}
+    answers = {"dev-01": '{"text": "看起来是第 42 行出错。"}'}
+    judgements = {"dev-01": '{"citation_support": false, "answer_completed": false, "observed_behavior": "cite"}'}
     rows, _model = _run([_case(expected="refuse")], answers, judgements)
 
     row = rows[0]
@@ -144,30 +144,47 @@ def test_a_behavior_mismatch_is_recorded_not_hidden() -> None:
 
 
 def test_an_unknown_behavior_label_is_a_protocol_failure() -> None:
-    answers = {"dev-01": '{"text": "x", "behavior": "hallucinate"}'}
+    # The answer no longer declares its own behaviour, so an unknown label can only
+    # arrive through the judge — which is the pass that owns the classification.
+    answers = {"dev-01": '{"text": "x 的回答文本。"}'}
     with pytest.raises(AnswerEvaluationError):
-        _run([_case()], answers, {"dev-01": '{"citation_support": true, "answer_completed": true}'})
+        _run(
+            [_case()],
+            answers,
+            {"dev-01": '{"citation_support": true, "answer_completed": true, "observed_behavior": "hallucinate"}'},
+        )
 
 
-def test_a_judgement_that_is_not_boolean_is_a_protocol_failure() -> None:
-    answers = {"dev-01": '{"text": "x", "behavior": "cite"}'}
-    with pytest.raises(AnswerEvaluationError):
-        _run([_case()], answers, {"dev-01": '{"citation_support": "yes", "answer_completed": true}'})
-
-
-def test_a_judgement_with_extra_fields_is_a_protocol_failure() -> None:
+def test_an_answer_that_declares_its_own_behaviour_is_refused() -> None:
+    """A self-declared label would make `observed_behavior` a self-report."""
     answers = {"dev-01": '{"text": "x", "behavior": "cite"}'}
     with pytest.raises(AnswerEvaluationError):
         _run(
             [_case()],
             answers,
-            {"dev-01": '{"citation_support": true, "answer_completed": true, "note": "x"}'},
+            {"dev-01": '{"citation_support": true, "answer_completed": true, "observed_behavior": "cite"}'},
+        )
+
+
+def test_a_judgement_that_is_not_boolean_is_a_protocol_failure() -> None:
+    answers = {"dev-01": '{"text": "x 的回答文本。"}'}
+    with pytest.raises(AnswerEvaluationError):
+        _run([_case()], answers, {"dev-01": '{"citation_support": "yes", "answer_completed": true, "observed_behavior": "cite"}'})
+
+
+def test_a_judgement_with_extra_fields_is_a_protocol_failure() -> None:
+    answers = {"dev-01": '{"text": "x 的回答文本。"}'}
+    with pytest.raises(AnswerEvaluationError):
+        _run(
+            [_case()],
+            answers,
+            {"dev-01": '{"citation_support": true, "answer_completed": true, "observed_behavior": "cite", "note": "x"}'},
         )
 
 
 def test_summary_counts_every_answer_level_dimension() -> None:
-    answers = {"dev-01": '{"text": "x", "behavior": "cite"}'}
-    judgements = {"dev-01": '{"citation_support": true, "answer_completed": true}'}
+    answers = {"dev-01": '{"text": "x 的回答文本。"}'}
+    judgements = {"dev-01": '{"citation_support": true, "answer_completed": true, "observed_behavior": "cite"}'}
     rows, _model = _run([_case()], answers, judgements)
 
     summary = summarize(rows)
@@ -202,8 +219,8 @@ def test_a_stalled_call_is_retried_without_restarting_the_batch() -> None:
     """A transport stall must not abort the batch or rebill completed cases."""
     import asyncio
 
-    answers = {"dev-01": '{"text": "x", "behavior": "cite"}'}
-    judgements = {"dev-01": '{"citation_support": true, "answer_completed": true}'}
+    answers = {"dev-01": '{"text": "x 的回答文本。"}'}
+    judgements = {"dev-01": '{"citation_support": true, "answer_completed": true, "observed_behavior": "cite"}'}
     model = _FlakyModel(answers, judgements, failures=2)
 
     rows = asyncio.run(evaluate_answer_cases([_case()], model=model))
@@ -219,7 +236,7 @@ def test_a_persistent_failure_is_reported_not_swallowed() -> None:
 
     import pytest as _pytest
 
-    answers = {"dev-01": '{"text": "x", "behavior": "cite"}'}
+    answers = {"dev-01": '{"text": "x 的回答文本。"}'}
     model = _FlakyModel(answers, {}, failures=99)
 
     with _pytest.raises(AnswerEvaluationError):

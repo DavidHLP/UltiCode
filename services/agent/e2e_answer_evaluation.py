@@ -78,6 +78,42 @@ def _float(name: str, default: float) -> float:
     return value
 
 
+def _corpus_identity() -> dict[str, object]:
+    """Which corpus produced the retrieved fragments, by digest and version.
+
+    A row of judgements is meaningless without pinning the material it judged, so
+    the manifest digest and each declared version travel with the artifact instead
+    of being inferable only by rerunning against whatever the corpus is that day.
+    """
+    import hashlib
+
+    from corpus_manifest import MANIFEST_PATH
+    from retrieval import load_sample_corpus
+
+    manifest_bytes = MANIFEST_PATH.read_bytes()
+    documents = load_sample_corpus()
+    return {
+        "manifest": MANIFEST_PATH.name,
+        "manifest_sha256": hashlib.sha256(manifest_bytes).hexdigest(),
+        "documents": [
+            {"doc_id": doc.doc_id, "version": doc.version} for doc in documents
+        ],
+    }
+
+
+def _cases_identity() -> dict[str, object]:
+    """Which case file the development split was read from, by digest."""
+    import hashlib
+
+    from keyword_evaluation import _CASES_PATH
+
+    return {
+        "file": _CASES_PATH.name,
+        "sha256": hashlib.sha256(_CASES_PATH.read_bytes()).hexdigest(),
+        "split": "development",
+    }
+
+
 async def main() -> int:
     if os.environ.get(OPT_IN) != "1":
         print("SKIP reason=opt_in_not_set")
@@ -148,6 +184,11 @@ async def main() -> int:
                 "model": model_label(model_name),
                 "judge": "model",
                 "human_review": "not_performed",
+                # The classification is the judge's, from the returned text; the
+                # raw answers live in `rows[].answer_text`, never on stdout.
+                "behavior_source": "judge_classified_from_answer_text",
+                "corpus": _corpus_identity(),
+                "cases": _cases_identity(),
                 "summary": summary,
                 "rows": [row.__dict__ for row in rows],
             },

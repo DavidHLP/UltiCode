@@ -39,22 +39,31 @@ _JUDGE_MARKER = "JUDGE_CONTRACT"
 #: The adapter's system message asks for ``{"answer": "<answer>"}`` and
 #: ``_parse_decision`` refuses any other top-level shape, so the payload travels
 #: inside that envelope as a JSON string.
+#:
+#: The answer is asked for *text only*. Declaring its own behaviour would make
+#: ``observed_behavior`` a self-reported label — the model saying what it thinks it
+#: did — rather than a property of the response that was actually returned. The
+#: classification happens in the judging pass, which reads the raw text.
 ANSWER_CONTRACT = (
     f"{_ANSWER_MARKER}: answer the CASE using only the RETRIEVED fragments. "
     'Reply with exactly one JSON object of the form {"answer": "<json-string>"} '
-    "where <json-string> is itself a JSON object with exactly two fields: "
-    '{"text": "<your answer>", "behavior": "<cite|no_evidence|refuse|clarify>"}. '
-    "behavior must be the observed behaviour: `cite` when you answer from a "
-    "fragment, `no_evidence` when retrieval returned nothing usable, `refuse` "
-    "when the case forbids the claim, `clarify` when the question is "
-    "underspecified. Do not put any other key at the top level."
+    "where <json-string> is itself a JSON object with exactly one field: "
+    '{"text": "<your answer>"}. '
+    "Let the text itself do the work: cite a fragment, state that nothing usable "
+    "was retrieved, refuse a claim the case forbids, or ask for clarification. "
+    "Do not put any other key at the top level, and do not announce which of "
+    "those you are doing."
 )
+#: The judging pass reads the raw answer text and classifies it. It never sees the
+#: answer's self-description, because there is none to see.
 JUDGE_CONTRACT = (
     f"{_JUDGE_MARKER}: judge the ANSWER against the CASE, not the question. "
     'Reply with exactly one JSON object of the form {"answer": "<json-string>"} '
-    "where <json-string> is itself a JSON object with exactly two boolean fields: "
+    "where <json-string> is itself a JSON object with exactly three fields: "
     '{"citation_support": <do the cited fragments support the answer>, '
-    '"answer_completed": <does the answer satisfy the case expectation>}. '
+    '"answer_completed": <does the answer satisfy the case expectation>, '
+    '"observed_behavior": "<cite|no_evidence|refuse|clarify>" — classify it from '
+    "what the ANSWER text actually does, not from what it claims about itself. "
     "Do not put any other key at the top level."
 )
 
@@ -65,7 +74,14 @@ class AnswerEvaluationError(RuntimeError):
 
 @dataclass(frozen=True)
 class AnswerJudgement:
-    """One development case after both passes."""
+    """One development case after both passes.
+
+    ``observed_behavior`` is classified from the returned text by the judging pass,
+    so it describes what the response did rather than what the answering model
+    called itself. ``answer_text`` keeps the raw response: the metric is a label
+    and the evidence is the string it was derived from, and the string belongs in
+    the artifact rather than on stdout.
+    """
 
     case_id: str
     split: str
@@ -75,6 +91,7 @@ class AnswerJudgement:
     citation_support: str
     answer_completion: str
     citations: tuple[str, ...]
+    answer_text: str
     model_calls: int
     elapsed_us: int
 
@@ -94,28 +111,28 @@ def _payload(raw: str, what: str) -> dict[str, Any]:
     return parsed
 
 
-def _answer_of(raw: str) -> tuple[str, str]:
+def _answer_of(raw: str) -> str:
     parsed = _payload(raw, "answer")
-    if set(parsed) != {"text", "behavior"}:
+    if set(parsed) != {"text"}:
         raise AnswerEvaluationError("answer had unexpected fields")
     text = parsed.get("text")
-    behavior = parsed.get("behavior")
-    if not isinstance(text, str) or not isinstance(behavior, str):
-        raise AnswerEvaluationError("answer fields were not strings")
-    if behavior not in KNOWN_BEHAVIORS:
-        raise AnswerEvaluationError("answer carried an unknown behaviour")
-    return text, behavior
+    if not isinstance(text, str) or not text.strip():
+        raise AnswerEvaluationError("answer text was not a non-empty string")
+    return text
 
 
-def _judgement_of(raw: str) -> tuple[bool, bool]:
+def _judgement_of(raw: str) -> tuple[bool, bool, str]:
     parsed = _payload(raw, "judgement")
-    if set(parsed) != {"citation_support", "answer_completed"}:
+    if set(parsed) != {"citation_support", "answer_completed", "observed_behavior"}:
         raise AnswerEvaluationError("judgement had unexpected fields")
     support = parsed.get("citation_support")
     completion = parsed.get("answer_completed")
+    behavior = parsed.get("observed_behavior")
     if not isinstance(support, bool) or not isinstance(completion, bool):
-        raise AnswerEvaluationError("judgement was not two booleans")
-    return support, completion
+        raise AnswerEvaluationError("judgement flags were not booleans")
+    if not isinstance(behavior, str) or behavior not in KNOWN_BEHAVIORS:
+        raise AnswerEvaluationError("judgement carried an unknown behaviour")
+    return support, completion, behavior
 
 
 def _case_block(case: KeywordCase) -> str:
@@ -192,15 +209,17 @@ async def evaluate_answer_cases(
         answer_prompt = (
             f"{ANSWER_CONTRACT}\n{_case_block(case)}\n{_fragment_block(hits)}"
         )
-        answer_raw = await _call_with_retry(model, answer_prompt, attempts)
-        answer_text, observed = _answer_of(answer_raw)
+        # Unwrapped here, not trusted as-is: a raw response that never carried the
+        # envelope would otherwise flow into the judge and the artifact as if it
+        # had been validated.
+        answer_text = _answer_of(await _call_with_retry(model, answer_prompt, attempts))
 
         judge_prompt = (
             f"{JUDGE_CONTRACT}\n{_case_block(case)}\n{_fragment_block(hits)}\n"
             f"ANSWER {answer_text}"
         )
         verdict_raw = await _call_with_retry(model, judge_prompt, attempts)
-        support, completed = _judgement_of(verdict_raw)
+        support, completed, observed = _judgement_of(verdict_raw)
 
         elapsed_us = int((time.perf_counter() - started) * 1_000_000)
         judgements.append(
@@ -208,6 +227,8 @@ async def evaluate_answer_cases(
                 case_id=case.case_id,
                 split=case.split,
                 expected_behavior=case.expected_behavior,
+                # Classified from the returned text by the judging pass, not
+                # declared by the model that produced it.
                 observed_behavior=observed,
                 behavior_match=observed == case.expected_behavior,
                 # No citation means nothing to support: a false support flag from
@@ -218,6 +239,7 @@ async def evaluate_answer_cases(
                 ),
                 answer_completion="completed" if completed else "incomplete",
                 citations=citations,
+                answer_text=answer_text,
                 model_calls=2,
                 elapsed_us=elapsed_us,
             )

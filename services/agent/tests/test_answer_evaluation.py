@@ -115,7 +115,10 @@ def test_answer_level_columns_are_measured_not_deferred() -> None:
 
 
 def test_no_retrieval_marks_citation_support_not_applicable() -> None:
-    case = _case(query="no such fragment anywhere zzqq", expected="no_evidence")
+    # A single token absent from the corpus: `_terms` splits on ASCII words, so a
+    # natural-language sentence would still match some word and the fixture would
+    # silently exercise the cited path instead of the empty one.
+    case = _case(query="zzqqxx", expected="no_evidence")
     answers = {case.case_id: '{"text": "没有检索到可用资料。", "behavior": "no_evidence"}'}
     judgements = {case.case_id: '{"citation_support": false, "answer_completed": true}'}
     rows, _model = _run([case], answers, judgements)

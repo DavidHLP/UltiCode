@@ -1,0 +1,14 @@
+services/agent/README.md
+  h_77173abe25c3ff 51-76,161-166
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "46371f5d270a5ac91940efaf71e4edb5d26fd754",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

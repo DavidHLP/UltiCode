@@ -1,0 +1,18 @@
+services/agent/e2e_answer_evaluation.py
+  h_77173abe25c3ff 70-80,116-118
+services/agent/src/answer_evaluation.py
+  h_77173abe25c3ff 141-164,170,195-196,202-203
+services/agent/tests/test_answer_evaluation.py
+  h_77173abe25c3ff 181-226
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7313ea4d1f4cd0017c9a38eabcb48f52d4c40e31",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

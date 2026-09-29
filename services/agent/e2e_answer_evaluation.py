@@ -67,6 +67,17 @@ def _int(name: str, default: int) -> int:
     return value
 
 
+def _float(name: str, default: float) -> float:
+    raw = os.environ.get(name, str(default)).strip()
+    try:
+        value = float(raw)
+    except ValueError:
+        raise AnswerEvaluationError(f"{name} must be a number") from None
+    if value <= 0:
+        raise AnswerEvaluationError(f"{name} must be positive")
+    return value
+
+
 async def main() -> int:
     if os.environ.get(OPT_IN) != "1":
         print("SKIP reason=opt_in_not_set")
@@ -102,6 +113,9 @@ async def main() -> int:
             tool_specs={},
             model=model_name,
             max_calls=max_calls,
+            # 40 sequential billed calls over a reasoning model: the adapter's 30s
+            # default is per request, and one stall aborts the whole batch.
+            timeout=_float("DEEPSEEK_TIMEOUT", 120.0),
             max_tokens=_int("DEEPSEEK_MAX_TOKENS", 2000),
             max_prompt_tokens=_int("DEEPSEEK_MAX_PROMPT_TOKENS", 24000),
         ) as model:

@@ -178,3 +178,49 @@ def test_summary_counts_every_answer_level_dimension() -> None:
     assert summary["model_calls"] == 2
     # A deferred value in a summary would silently reintroduce the placeholder.
     assert summary["deferred"] == 0
+
+
+class _FlakyModel(_StubModel):
+    """Fails the first N calls with a transport error, then behaves."""
+
+    def __init__(self, answers, judgements, failures: int) -> None:
+        super().__init__(answers, judgements)
+        self.failures = failures
+        self.attempts = 0
+
+    async def decide(self, messages):
+        self.attempts += 1
+        if self.attempts <= self.failures:
+            class ReadTimeout(Exception):
+                pass
+
+            raise ReadTimeout("simulated stall")
+        return await super().decide(messages)
+
+
+def test_a_stalled_call_is_retried_without_restarting_the_batch() -> None:
+    """A transport stall must not abort the batch or rebill completed cases."""
+    import asyncio
+
+    answers = {"dev-01": '{"text": "x", "behavior": "cite"}'}
+    judgements = {"dev-01": '{"citation_support": true, "answer_completed": true}'}
+    model = _FlakyModel(answers, judgements, failures=2)
+
+    rows = asyncio.run(evaluate_answer_cases([_case()], model=model))
+
+    assert len(rows) == 1
+    assert rows[0].citation_support == "supported"
+    # Two simulated stalls consumed attempts but only two billed calls succeeded.
+    assert model.attempts == 4
+
+
+def test_a_persistent_failure_is_reported_not_swallowed() -> None:
+    import asyncio
+
+    import pytest as _pytest
+
+    answers = {"dev-01": '{"text": "x", "behavior": "cite"}'}
+    model = _FlakyModel(answers, {}, failures=99)
+
+    with _pytest.raises(AnswerEvaluationError):
+        asyncio.run(evaluate_answer_cases([_case()], model=model, attempts=2))

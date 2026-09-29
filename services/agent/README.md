@@ -48,6 +48,32 @@ owner-reported total, so an account with a long submission history issues one re
 request per page. The smoke scripts emit only fixed status labels and item
 counts. They do not print response bodies, cookie names or values, tokens, submission source,
 usernames, roles, tool names, source text, or model answer content.
+
+### Answer-level evaluation (development split only)
+
+`src/keyword_evaluation.py` measures retrieval only, so it records `citation_support` and
+`answer_completion` as `DEFERRED` and `observed_behavior` as `not_measured` — a traceable
+source id says where a fragment came from, not that it supports a conclusion. The answer-level
+columns come from `src/answer_evaluation.py`, which adds an answer pass and a judging pass on
+top of the same pinned keyword retrieval:
+
+```bash
+ULTICODE_ANSWER_EVAL=1 DEEPSEEK_MODEL=<model> uv run python e2e_answer_evaluation.py
+```
+
+Scope is enforced by the evaluator, not by the caller: it raises on any case outside
+`development`, so `holdout` and `holdout2` stay sealed. An empty retrieval records
+`citation_support` as `not_applicable` rather than as a failed citation check. The run writes a
+run-scoped artifact under the state directory carrying `scope=development_only`,
+`sealed_splits`, `judge=model`, `human_review=not_performed` and every row — the model judged
+each answer, so this is machine evidence, not the human support check.
+
+Budget: two calls per case, and the entry refuses `DEEPSEEK_MAX_CALLS` below that plan before
+the first billed call. A stalled request is retried per call rather than restarting the batch;
+a protocol failure is not retried because the same input yields the same shape. Tune
+`DEEPSEEK_TIMEOUT` (seconds, default 120) for a reasoning model that can exceed the adapter's
+30s default on one response.
+
 ## U02 boundary
 
 U02 is preparing authorized-corpus retrieval and sourced analysis. The checked-in corpus is an
@@ -132,10 +158,12 @@ retrieval outcome, expected versus observed behavior, fabrication risk, tool cal
 time. Any hit on a `refuse` case is recorded as a fabrication risk, and a case with no hit is not
 counted as traceable because it has no citation to trace.
 
-Retrieval facts and answer judgements are kept apart on purpose. `citation_support` and
-`answer_completion` are recorded as `DEFERRED`: a traceable source id proves where a fragment came
-from, not that it supports a conclusion, and deciding that needs the model or human pass tracked in
-DAV-58.
+Retrieval facts and answer judgements are kept apart on purpose. In the retrieval slice
+`citation_support` and `answer_completion` are recorded as `DEFERRED`: a traceable source id
+proves where a fragment came from, not that it supports a conclusion. The development split
+fills those columns through `src/answer_evaluation.py`, which judges a generated answer rather
+than reading them off document availability; the human support check tracked in DAV-58 remains
+separate, and an artifact carrying `human_review=not_performed` is machine evidence only.
 
 `src/retrieval.py` provides bounded keyword retrieval and source metadata. `src/sourced_analysis.py`
 separates observed submission facts from hypotheses and only cites retrieved fragments. Java services

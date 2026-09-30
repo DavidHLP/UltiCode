@@ -69,6 +69,22 @@ uv run pytest -q
 
 真实 UltiCode HTTP / 模型 e2e 仍是显式 opt-in；`e2e_sourced_analysis.py` 使用 agent-authored synthetic Markdown corpus（不是提交、DTO 或用户授权材料），分析输入则是 authenticated user 的 validated read-only submission projection，且不调用真实模型。`e2e_sourced_analysis_model.py` / `e2e_model_qa.py` 是真实模型入口，调用形如 `DEEPSEEK_API_KEY=... DEEPSEEK_MODEL=<model> uv run python e2e_sourced_analysis_model.py`，仍需显式提供现有环境和 `DEEPSEEK_API_KEY` 与 `DEEPSEEK_MODEL`；不得把本地开发账号密码、Cookie、源码、检索文本或模型回答写入日志。可执行题集和当前评估状态见 `services/agent/data/keyword_cases.json` 与对应 Linear 任务。
 
+`e2e_answer_evaluation.py` evaluates generated answers on the development split only. Its answer
+pass receives the case question and retrieved evidence, not expected/allowed/forbidden outcomes;
+it must return explicit retrieved chunk IDs in `citations`, and judging checks only those citations.
+Holdouts remain sealed. Export the existing `DEEPSEEK_API_KEY` before this opt-in call; the entry
+requires `DEEPSEEK_MODEL`, budgets two **logical** passes per development case (answer then judge;
+default ceiling 64 — a retried transport error or timeout is billed again and counted in the row's
+`model_calls`), reserves the artifact destination before the first billed call and never overwrites
+an existing one, snapshots the corpus and case file once before the calls so the artifact identifies
+the material actually judged, and writes results under the user state directory without printing
+answer text:
+
+```bash
+cd services/agent
+ULTICODE_ANSWER_EVAL=1 DEEPSEEK_MODEL=<model> uv run python e2e_answer_evaluation.py
+```
+
 真实模型入口的调用形式（`DEEPSEEK_MODEL` 为必填，脚本不再继承任何默认模型标识。`DEEPSEEK_MAX_TOKENS` 默认值按入口不同：`e2e_sourced_analysis_model.py`（每次运行仅 1 次调用）默认 2000——实测 300 时该次决策被输出上限截断（`finish_reason=length`、`content_len=150`）而报 `ModelProtocolError`，2000 时同一 prompt 通过；`e2e_model_qa.py`（最多 8 次调用）保持 300，真实运行在 300 下即通过，不应无证据地抬高其每次上限）：
 
 ```bash
@@ -105,9 +121,9 @@ ULTICODE_CITATION_CORPUS_MANIFEST=/绝对路径/manifest.json \
 uv run python e2e_citation_support_model.py
 ```
 
-声明一律以 manifest 为准（缺失/不可读/非法 JSON/校验不过 → `corpus_manifest_unusable`），每条必须逐字等于源码里钉死的**材料类别**——`ACCEPTED_PERMISSION` / `ACCEPTED_SCOPE` / `ACCEPTED_SAMPLE_KIND` / `ACCEPTED_ACCESS_SCOPE`（授权材料时四个一起改）（`corpus_declaration_unsupported`）；manifest **只读一次**，其条目、对应文档与钉死类别作为同一份不可变快照贯穿检索、worksheet 与 verdict 元数据，运行中途替换文件不会让它们描述不同材料；根目录必须是真实目录而非符号链接（`corpus_root_unusable`），manifest 至少声明一条（`corpus_empty`）；根目录本身用 `O_DIRECTORY|O_NOFOLLOW` 打开一次，条目相对该描述符打开（根与条目在检查与读取之间被换成链接都会被内核拒绝），按 manifest 自身 `source_path` 的文件名解析，一条对应一个文件，符号链接（`corpus_entry_escapes_root`）、缺失（`corpus_entry_missing`）、两个条目指向同一个**文件**（含同一 inode 的两个硬链接名，`corpus_entry_duplicate_source`；逐字节相同的副本 `corpus_entry_duplicate_content`；条目用 `O_NOFOLLOW` 单次打开，检查与读取之间被换成符号链接也由内核拒绝——总之单片段不得被计成多条引用）、不可读/非 UTF-8/为空/超 `MAX_SOURCE_CHARS`/有界读取未到 EOF（前缀过检而后缀未读）（`corpus_entry_unusable`）都直接失败；空 manifest 列表单列为 `corpus_empty`（区别于解析不了的 `corpus_manifest_unusable`）；`source_position` 由**原始文件**推导（首末非空物理行，前导空行也计入），与 manifest 不符即 `corpus_entry_position_mismatch`。不设这两个变量时行为与默认完全一致。证据行与 verdict 元数据里的 `corpus=` 取自钉死的 permission，因此非 synthetic 材料不会被标成 synthetic。契约细节见 `services/agent/README.md`。
+声明一律以 manifest 为准（缺失/不可读/非法 JSON/校验不过 → `corpus_manifest_unusable`），每条必须逐字等于源码里钉死的**材料类别**——`ACCEPTED_PERMISSION` / `ACCEPTED_SCOPE` / `ACCEPTED_SAMPLE_KIND` / `ACCEPTED_ACCESS_SCOPE`（授权材料时四个一起改）（`corpus_declaration_unsupported`）；manifest **只读一次**，其条目、对应文档与钉死类别作为同一份不可变快照贯穿检索、worksheet 与 verdict 元数据，运行中途替换文件不会让它们描述不同材料；根目录必须是真实目录而非符号链接（`corpus_root_unusable`），manifest 至少声明一条（`corpus_empty`）；根目录本身用 `O_DIRECTORY|O_NOFOLLOW` 打开一次，条目相对该描述符打开（根与条目在检查与读取之间被换成链接都会被内核拒绝），按 manifest 自身 `source_path` 的**纯文件名**解析（绝对路径或外部路径不是实际打开的文件，报 `corpus_entry_path_not_relative`；引用里记录的 `source_path` 即该已验证文件名），一条对应一个文件，符号链接（`corpus_entry_escapes_root`）、缺失（`corpus_entry_missing`）、两个条目指向同一个**文件**（含同一 inode 的两个硬链接名，`corpus_entry_duplicate_source`；副本按规范化文本比较，仅 CRLF/LF 或无关空白差异也算同一片段 → `corpus_entry_duplicate_content`；条目用 `O_NOFOLLOW` 单次打开，检查与读取之间被换成符号链接也由内核拒绝——总之单片段不得被计成多条引用）、不可读/非 UTF-8/为空/超 `MAX_SOURCE_CHARS`/有界读取未到 EOF（前缀过检而后缀未读）（`corpus_entry_unusable`）都直接失败；空 manifest 列表单列为 `corpus_empty`（区别于解析不了的 `corpus_manifest_unusable`）；`source_position` 由**原始文件**推导（首末非空物理行，前导空行也计入），与 manifest 不符即 `corpus_entry_position_mismatch`。不设这两个变量时行为与默认完全一致。证据行与 verdict 元数据里的 `corpus=` 取自钉死的 permission，因此非 synthetic 材料不会被标成 synthetic。契约细节见 `services/agent/README.md`。
 
-少于 `ULTICODE_CITATION_REQUIRED_ROWS`（默认 3）报 `insufficient_citations`；阈值**高于检索上限**（`MAX_RESULTS=3`，任何语料都够不到）直接报 `citation_threshold_above_retrieval_limit`，不冒充材料缺口；preflight 阶段就做 manifest↔文件绑定，摘要或 `chunk_id` 对不上报 `corpus_entry_unbound`（在登录之前，不进半程失败）；`source_path` 含 NUL 字节报 `corpus_entry_unusable`（`os.open` 抛 `ValueError`，已归一）；未过**完整性门禁**的引用在**发起任何模型调用之前**就报 `citation_integrity_failed`；verdict 汇总阶段发现不支持的引用报 `citation_gate_failed`。这些都以至退出码 1 结束，不报「低分通过」。输出行标注 `judge=model` 与 `human_review=not_performed`，以便与将来的人工复核记录区分。verdict 默认写到**状态目录**（`$XDG_STATE_HOME` 为绝对路径时用它，否则 `~/.local/state`）下的 `ulticode/citation-verdicts-<随机>.json`：每次运行独立，且不落在 checkout 里，可用 `ULTICODE_CITATION_VERDICTS` 改路径；无论哪种，目标位置都会在**付费调用之前**被独占占位，不可写或已被占用即 `verdict_destination_unusable`；写盘同时生成 `<path>.meta.json` 附属文件，记录判定者（`judge=model`）、模型标签、语料、阈值与提交事实摘要，使 verdict 脱离本次会话仍可解释。密钥只从环境读取，不得写入日志或仓库；上面两条真实模型入口示例中的 `DEEPSEEK_API_KEY=...` 只是占位符，实际运行同样应先在环境中导出。
+少于 `ULTICODE_CITATION_REQUIRED_ROWS`（默认 3）报 `insufficient_citations`；阈值**高于检索上限**（`MAX_RESULTS=3`，任何语料都够不到）直接报 `citation_threshold_above_retrieval_limit`，不冒充材料缺口；preflight 阶段就做 manifest↔文件绑定，摘要或 `chunk_id` 对不上报 `corpus_entry_unbound`（在登录之前，不进半程失败）；`source_path` 含 NUL 字节报 `corpus_entry_unusable`（`os.open` 抛 `ValueError`，已归一）；未过**完整性门禁**的引用在**发起任何模型调用之前**就报 `citation_integrity_failed`；verdict 汇总阶段发现不支持的引用报 `citation_gate_failed`。这些都以至退出码 1 结束，不报「低分通过」。输出行标注 `judge=model` 与 `human_review=not_performed`，以便与将来的人工复核记录区分。verdict 默认写到**状态目录**（`$XDG_STATE_HOME` 为绝对路径时用它，否则 `~/.local/state`）下的 `ulticode/citation-verdicts-<随机>.json`：每次运行独立，且不落在 checkout 里，可用 `ULTICODE_CITATION_VERDICTS` 改路径；无论哪种，目标位置都会在**付费调用之前**被独占占位，不可写或已被占用即 `verdict_destination_unusable`；写盘同时生成 `<path>.meta.json` 附属文件，记录判定者（`judge=model`）、模型标签、语料、阈值、提交事实摘要，以及 `validated_corpus`——manifest 的 SHA-256 加上每条被判定文档的 id、version、已验证文件名、位置与内容摘要，使 verdict 与判定时的确切材料绑定、脱离本次会话仍可解释。密钥只从环境读取，不得写入日志或仓库；上面两条真实模型入口示例中的 `DEEPSEEK_API_KEY=...` 只是占位符，实际运行同样应先在环境中导出。
 
 关键词 vs 向量的最小对照是**评测专用**的，不切换主路径，且需要一次性单机 Qdrant 与 `eval` 依赖组：
 

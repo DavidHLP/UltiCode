@@ -73,7 +73,9 @@ def _validate_requirement(require_text: str | None) -> str | None:
     return require_text.casefold()
 
 
-def load_sample_corpus() -> tuple[SourceDocument, ...]:
+def load_sample_corpus(
+    manifest: tuple[object, ...] | None = None,
+) -> tuple[SourceDocument, ...]:
     # Resolving a symlinked root would adopt an external directory as trusted,
     # so every child would then pass the per-file containment check below.
     if _CORPUS_DIR.is_symlink():
@@ -101,8 +103,10 @@ def load_sample_corpus() -> tuple[SourceDocument, ...]:
     corpus = tuple(documents)
     # Fail closed: a retrievable document that the authorization manifest does not
     # declare must never reach retrieval. The manifest also has to agree with the
-    # document it claims to describe.
-    assert_manifest_covers(load_manifest(), corpus)
+    # document it claims to describe. A caller that already parsed the bytes it will
+    # later identify passes them here, so validation and that identity cannot come
+    # from two different reads of the file.
+    assert_manifest_covers(manifest if manifest is not None else load_manifest(), corpus)
     return corpus
 
 

@@ -24,6 +24,7 @@ import fcntl
 import hashlib
 import json
 import os
+import re
 import secrets
 import stat
 import sys
@@ -33,10 +34,10 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from citation_review import build_worksheet, load_verdicts, summarize
 from corpus_manifest import (
+    MANIFEST_PATH,
     ManifestEmpty,
     ManifestError,
     assert_manifest_covers,
-    load_manifest,
     parse_manifest_text,
 )
 from deepseek_model import (
@@ -51,7 +52,11 @@ from retrieval import (
     SourceDocument,
     load_sample_corpus,
 )
-from sourced_analysis import ValidatedCorpus, analyze_submission, analyze_authorized_submission, first_wrong_answer_submission
+from sourced_analysis import (
+    ValidatedCorpus,
+    analyze_authorized_submission,
+    first_wrong_answer_submission,
+)
 from ulticode_client import UlticodeClient
 from ulticode_tools import build_tools
 
@@ -299,6 +304,40 @@ class _CorpusSourceError(ValueError):
     """A half-configured or unusable corpus override."""
 
 
+#: CRLF and lone CR are one line break, and trailing horizontal whitespace at the
+#: end of a line is invisible. Neither is content.
+_CARRIAGE_RETURN = re.compile(r"\r\n?")
+_TRAILING_HORIZONTAL = re.compile(r"[ \t]+$", re.MULTILINE)
+
+
+def _canonical_text(text: str) -> str:
+    """Text normalised for duplicate-content detection only.
+
+    Line endings and insignificant trailing horizontal whitespace are not content,
+    so two files that differ only there are one fragment and must not each consume a
+    result slot. Blank lines, indentation and line structure are preserved: a
+    paragraph break is not the same fragment as a space, which a blanket whitespace
+    collapse would have wrongly made it. The document keeps its original text; only
+    this comparison uses the canonical form.
+    """
+    return _TRAILING_HORIZONTAL.sub("", _CARRIAGE_RETURN.sub("\n", text))
+
+
+def _source_name(declared: str) -> str | None:
+    """The verified name of the opened file, or ``None`` when it is not a name.
+
+    The manifest declares a path; the citation must name the file that was
+    actually opened under the anchored root. An absolute path, a sub-path, or
+    ``.``/``..`` is not that name, and presenting it as verified would bind the
+    citation to a location no read ever confirmed.
+    """
+    if os.path.isabs(declared) or declared in {".", ".."}:
+        return None
+    if os.path.basename(declared) != declared:
+        return None
+    return declared
+
+
 def _corpus_override() -> ValidatedCorpus | None:
     """The corpus this run points at, or ``None`` for the pinned default.
 
@@ -327,12 +366,18 @@ def _corpus_override() -> ValidatedCorpus | None:
     root = Path(directory)
     if root.is_symlink() or not root.is_dir():
         raise _CorpusSourceError("corpus_root_unusable")
-    # Read once. The same text feeds the empty-list classification and the declaration
-    # validation, so this preflight cannot disagree with itself about which manifest it
-    # validated, and a file replaced afterwards never reaches the snapshot.
+    # Read once, as bytes. The same bytes feed the declaration validation and the
+    # metadata digest, so this preflight cannot disagree with itself about which
+    # manifest it validated, and a file replaced afterwards never reaches the
+    # snapshot. Decoding is a separate step so a CRLF file is hashed as written
+    # rather than as text mode normalised it.
     try:
-        manifest_text = Path(manifest).read_text(encoding="utf-8")
-    except (OSError, UnicodeError):
+        manifest_bytes = Path(manifest).read_bytes()
+    except OSError:
+        raise _CorpusSourceError("corpus_manifest_unusable") from None
+    try:
+        manifest_text = manifest_bytes.decode("utf-8")
+    except UnicodeError:
         raise _CorpusSourceError("corpus_manifest_unusable") from None
     try:
         entries = parse_manifest_text(manifest_text)
@@ -367,7 +412,13 @@ def _corpus_override() -> ValidatedCorpus | None:
     seen_texts: dict[str, str] = {}
     try:
         for entry in entries:
-            filename = Path(entry.source_path).name
+            # The citation names the verified file, so the manifest must declare a
+            # plain name directly under the anchored root: an absolute or external
+            # path would otherwise be recorded as a verified location that was never
+            # opened.
+            filename = _source_name(entry.source_path)
+            if filename is None:
+                raise _CorpusSourceError("corpus_entry_path_not_relative")
             # Relative to the anchored root, with O_NOFOLLOW for the name itself: a
             # symlink cannot be followed, and a missing file is its own reason.
             try:
@@ -428,8 +479,10 @@ def _corpus_override() -> ValidatedCorpus | None:
             if not text or len(text) > MAX_SOURCE_CHARS:
                 raise _CorpusSourceError("corpus_entry_unusable")
             # Byte-for-byte copies under separate names have separate inodes, so
-            # identity alone would let one fragment be counted several times.
-            digest = hashlib.sha256(text.encode("utf-8")).hexdigest()
+            # identity alone would let one fragment be counted several times. The
+            # digest is over the canonical text so a CRLF copy, or one padded with
+            # insignificant whitespace, is the same fragment too.
+            digest = hashlib.sha256(_canonical_text(text).encode("utf-8")).hexdigest()
             if digest in seen_texts:
                 raise _CorpusSourceError("corpus_entry_duplicate_content")
             seen_texts[digest] = entry.doc_id
@@ -472,7 +525,80 @@ def _corpus_override() -> ValidatedCorpus | None:
         accepted_scope=ACCEPTED_SCOPE,
         accepted_sample_kind=ACCEPTED_SAMPLE_KIND,
         accepted_access_scope=ACCEPTED_ACCESS_SCOPE,
+        # Digest of the exact manifest bytes this preflight validated, carried so the
+        # verdict metadata can name the declaration without reopening the file, and
+        # so the digest is over what was written rather than a text-mode re-encode.
+        manifest_digest="sha256:" + hashlib.sha256(manifest_bytes).hexdigest(),
     )
+
+
+def _default_corpus() -> ValidatedCorpus:
+    """The pinned manifest and corpus, read as one immutable snapshot.
+
+    The default path is the same material as an override, just pinned in-tree. The
+    manifest is read **once** here, so the declaration validation, the corpus the
+    analyzer retrieves over and the verdict metadata all describe one read of one
+    file. A read, decode or parse failure is a corpus failure with a fixed reason,
+    never a traceback that leaks a configured path.
+    """
+    try:
+        manifest_bytes = MANIFEST_PATH.read_bytes()
+    except OSError:
+        raise _CorpusSourceError("corpus_manifest_unusable") from None
+    try:
+        manifest_text = manifest_bytes.decode("utf-8")
+    except UnicodeError:
+        raise _CorpusSourceError("corpus_manifest_unusable") from None
+    try:
+        entries = parse_manifest_text(manifest_text)
+    except ManifestEmpty:
+        raise _CorpusSourceError("corpus_empty") from None
+    except ManifestError:
+        raise _CorpusSourceError("corpus_manifest_unusable") from None
+    try:
+        # The loader still re-binds the manifest to the documents it produced; a
+        # mismatch is one fixed corpus reason here, not a halfway-run failure.
+        documents = load_sample_corpus(manifest=entries)
+    except (OSError, ValueError):
+        raise _CorpusSourceError("corpus_entry_unbound") from None
+    return ValidatedCorpus(
+        documents=documents,
+        entries=entries,
+        accepted_permission=ACCEPTED_PERMISSION,
+        accepted_scope=ACCEPTED_SCOPE,
+        accepted_sample_kind=ACCEPTED_SAMPLE_KIND,
+        accepted_access_scope=ACCEPTED_ACCESS_SCOPE,
+        # Digest of the exact manifest bytes read above, so the metadata names the
+        # pinned declaration without reopening the file.
+        manifest_digest="sha256:" + hashlib.sha256(manifest_bytes).hexdigest(),
+    )
+
+
+def _corpus_identity(
+    manifest_digest: str, documents: tuple[SourceDocument, ...]
+) -> dict[str, object]:
+    """The exact validated corpus the verdicts were judged against.
+
+    The manifest digest names the declaration that authorised the run; each
+    document's id, version, verified name and position say what was judged, and a
+    content digest binds the text itself, so a verdict cannot outlive the material
+    it was made from without the mismatch showing in the artifact.
+    """
+    return {
+        "manifest_sha256": manifest_digest,
+        "documents": [
+            {
+                "doc_id": document.doc_id,
+                "version": document.version,
+                "chunk_id": document.chunk_id,
+                "source_path": document.source_path,
+                "source_position": document.source_position,
+                "content_sha256": "sha256:"
+                + hashlib.sha256(document.text.encode("utf-8")).hexdigest(),
+            }
+            for document in documents
+        ],
+    }
 
 
 async def main() -> int:
@@ -482,20 +608,18 @@ async def main() -> int:
     # Resolved before the first request: a half-configured corpus must not cost a
     # login and a submission scan before it is refused.
     try:
-        override = _corpus_override()
+        # One snapshot for every consumer: the worksheet, the analyzer and the
+        # verdict metadata all see the entries and documents this preflight bound.
+        # The default is the pinned in-tree material; an override is the file pair
+        # the environment named.
+        corpus = _corpus_override() or _default_corpus()
     except _CorpusSourceError as error:
         print(f"FAIL reason={error}")
         return 1
-    if override is None:
-        documents = load_sample_corpus()
-        manifest = load_manifest()
-        corpus_label = "agent-authored-synthetic"
-    else:
-        # One snapshot for every consumer: the worksheet, the analyzer and the
-        # verdict metadata all see the entries this preflight validated.
-        documents = override.documents
-        manifest = tuple(override.entries)
-        corpus_label = override.accepted_permission
+    documents = corpus.documents
+    manifest = tuple(corpus.entries)
+    corpus_label = corpus.accepted_permission
+    manifest_digest = corpus.manifest_digest
     async with UlticodeClient(APP_BASE, AUTH_BASE) as client:
         await client.login(
             os.environ["ULTICODE_E2E_USERNAME"], os.environ["ULTICODE_E2E_PASSWORD"]
@@ -505,14 +629,9 @@ async def main() -> int:
         if matching is None:
             print("FAIL reason=no_wrong_answer_submission")
             return 1
-        if override is None:
-            analysis = analyze_submission(matching, QUESTION)
-        else:
-            # The pinned default is still the manifest-gated loader; an override
-            # reaches the same evidence path through the snapshot its preflight built.
-            analysis = analyze_authorized_submission(
-                matching, QUESTION, validated=override
-            )
+        # Both corpora reach the same evidence path: the default is the pinned
+        # manifest, the override is the snapshot its preflight built.
+        analysis = analyze_authorized_submission(matching, QUESTION, validated=corpus)
 
     hypotheses = analysis.get("hypotheses") or []
     if len(hypotheses) != 1:
@@ -666,6 +785,10 @@ async def main() -> int:
         "model": model_label(model_name),
         "human_review": "not_performed",
         "corpus": corpus_label,
+        # The declaration and the exact documents it authorised, so the verdicts are
+        # reproducible against the same material rather than "whatever the corpus is
+        # that day".
+        "validated_corpus": _corpus_identity(manifest_digest, tuple(documents)),
         "submission_facts_digest": facts_digest,
         "required_rows": required,
     }

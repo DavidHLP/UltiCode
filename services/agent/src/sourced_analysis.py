@@ -222,6 +222,10 @@ class ValidatedCorpus:
     accepted_scope: str
     accepted_sample_kind: str
     accepted_access_scope: str
+    #: Digest of the manifest bytes the preflight validated, when it read one. Empty
+    #: for a hand-assembled snapshot; the acceptance path fills it so the verdict
+    #: metadata can bind the verdicts to the declaration that authorised them.
+    manifest_digest: str = ""
 
 
 def analyze_authorized_submission(

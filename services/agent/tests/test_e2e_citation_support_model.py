@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import fcntl
+import hashlib
 import importlib.util
 import json
 import os
@@ -112,9 +113,10 @@ def _install(monkeypatch, tmp_path: Path, judgements: list[str], calls: list[str
     def _analyze(
         _submission: object, _question: str, **_kwargs: object
     ) -> dict[str, object]:
-        # Honour an injected corpus: citing whatever the caller handed over is what
+        # Honour the injected snapshot: citing whatever the caller handed over is what
         # proves the entry point analysed *that* material, not the pinned one.
-        documents = _kwargs.get("documents")
+        validated = _kwargs.get("validated")
+        documents = getattr(validated, "documents", None)
         if isinstance(documents, tuple) and documents:
             hits = [
                 SourceHit(
@@ -147,7 +149,7 @@ def _install(monkeypatch, tmp_path: Path, judgements: list[str], calls: list[str
     monkeypatch.setattr(smoke, "UlticodeClient", _Client)
     monkeypatch.setattr(smoke, "build_tools", lambda _client: {})
     monkeypatch.setattr(smoke, "first_wrong_answer_submission", _first)
-    monkeypatch.setattr(smoke, "analyze_submission", _analyze)
+    monkeypatch.setattr(smoke, "analyze_authorized_submission", _analyze)
     monkeypatch.setenv("ULTICODE_E2E_USERNAME", "tester")
     monkeypatch.setenv("ULTICODE_E2E_PASSWORD", "pw")
     monkeypatch.setenv("ULTICODE_CITATION_SUPPORT", "1")
@@ -197,7 +199,7 @@ def _write_corpus(
                 "doc_id": f"external-status-{i}",
                 "version": "v1",
                 "chunk_id": f"external-status-{i}:v1:1",
-                "source_path": f"external/{name}",
+                "source_path": name,
                 "access_scope": access_scope,
                 "sample_kind": sample_kind,
                 "permission": permission,
@@ -282,7 +284,7 @@ def test_fewer_emitted_citations_than_required_is_a_material_gap(
     one = _citation()
     monkeypatch.setattr(
         smoke,
-        "analyze_submission",
+        "analyze_authorized_submission",
         lambda *_a, **_k: {
             "facts": ["f"],
             "hypotheses": ["the status alone does not locate a code line"],
@@ -327,7 +329,7 @@ def test_unverified_citations_fail_before_any_call(monkeypatch, capsys, tmp_path
     citations[0]["version"] = "v2"
     monkeypatch.setattr(
         smoke,
-        "analyze_submission",
+        "analyze_authorized_submission",
         lambda *_a, **_k: {
             "facts": ["f"],
             "hypotheses": ["the status alone does not locate a code line"],
@@ -429,7 +431,7 @@ def test_an_aborted_run_releases_the_claimed_destination(
     citations[0]["version"] = "v2"
     monkeypatch.setattr(
         smoke,
-        "analyze_submission",
+        "analyze_authorized_submission",
         lambda *_a, **_k: {
             "facts": ["f"],
             "hypotheses": ["the status alone does not locate a code line"],
@@ -687,7 +689,7 @@ def test_the_corpus_gap_is_reported_without_a_credential(
     monkeypatch.delenv("DEEPSEEK_MODEL", raising=False)
     monkeypatch.setattr(
         smoke,
-        "analyze_submission",
+        "analyze_authorized_submission",
         lambda *_a, **_k: {
             "facts": ["f"],
             "hypotheses": ["the status alone does not locate a code line"],
@@ -940,6 +942,35 @@ def test_the_evidence_label_comes_from_the_pinned_policy(
     assert "corpus=authorized-for-u02" in capsys.readouterr().out
 
 
+def test_the_verdict_metadata_binds_the_validated_corpus(
+    monkeypatch, capsys, tmp_path
+) -> None:
+    """The sidecar must name the declaration and the exact documents judged.
+
+    A manifest digest plus each document's verified name, position and content
+    digest means a verdict cannot outlive the material it was made from without
+    the mismatch showing in the artifact.
+    """
+    _write_corpus(tmp_path, monkeypatch)
+
+    assert _run_override(monkeypatch, tmp_path) == 0
+    meta = json.loads(
+        (tmp_path / "verdicts.json.meta.json").read_text(encoding="utf-8")
+    )
+    identity = meta["validated_corpus"]
+    assert identity["manifest_sha256"].startswith("sha256:")
+    # The manifest digest is of the file the preflight actually validated.
+    assert identity["manifest_sha256"] == "sha256:" + hashlib.sha256(
+        (tmp_path / "external-manifest.json").read_bytes()
+    ).hexdigest()
+    docs = {document["doc_id"]: document for document in identity["documents"]}
+    first = docs["external-status-1"]
+    # The verified name, not the caller-declared path it was read through.
+    assert first["source_path"] == "status-1.md"
+    assert first["source_position"].startswith("lines ")
+    assert first["content_sha256"].startswith("sha256:")
+
+
 def test_one_file_with_two_names_is_refused(monkeypatch, capsys, tmp_path) -> None:
     """A hard link has two pathnames and one inode; identities, not names, count."""
     _write_corpus(tmp_path, monkeypatch)
@@ -950,7 +981,7 @@ def test_one_file_with_two_names_is_refused(monkeypatch, capsys, tmp_path) -> No
     alias = dict(entries[0])
     alias["doc_id"] = "external-alias"
     alias["chunk_id"] = "external-alias:v1:1"
-    alias["source_path"] = "external/alias.md"
+    alias["source_path"] = "alias.md"
     entries.append(alias)
     manifest.write_text(json.dumps(entries, ensure_ascii=False, indent=2), encoding="utf-8")
 
@@ -1037,7 +1068,70 @@ def test_byte_identical_copies_are_refused(monkeypatch, capsys, tmp_path) -> Non
     copy = dict(entries[0])
     copy["doc_id"] = "external-copy"
     copy["chunk_id"] = "external-copy:v1:1"
-    copy["source_path"] = "external/copy.md"
+    copy["source_path"] = "copy.md"
+    entries.append(copy)
+    manifest.write_text(json.dumps(entries, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    assert _run_override(monkeypatch, tmp_path) == 1
+    assert "FAIL reason=corpus_entry_duplicate_content" in capsys.readouterr().out
+
+
+def test_a_crlf_copy_is_the_same_fragment_as_an_lf_copy(
+    monkeypatch, capsys, tmp_path
+) -> None:
+    """Line endings and insignificant whitespace are not content.
+
+    A CRLF (or space-padded) copy under a new name is still the same fragment, so
+    it must not be counted as a second citation.
+    """
+    _write_corpus(tmp_path, monkeypatch)
+    directory = tmp_path / "external-corpus"
+    original = (directory / "status-1.md").read_text(encoding="utf-8")
+    (directory / "crlf.md").write_text(
+        original.replace("\n", "\r\n") + "\n\n", encoding="utf-8"
+    )
+    manifest = tmp_path / "external-manifest.json"
+    entries = _load_entries(manifest)
+    copy = dict(entries[0])
+    copy["doc_id"] = "external-crlf"
+    copy["chunk_id"] = "external-crlf:v1:1"
+    copy["source_path"] = "crlf.md"
+    copy["content_digest"] = content_digest(original)
+    entries.append(copy)
+    manifest.write_text(json.dumps(entries, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    assert _run_override(monkeypatch, tmp_path) == 1
+    assert "FAIL reason=corpus_entry_duplicate_content" in capsys.readouterr().out
+
+
+def test_canonical_text_normalises_only_insignificant_differences() -> None:
+    """Line endings and trailing spaces are not content; structure is."""
+    assert smoke._canonical_text("a\r\nb") == smoke._canonical_text("a\nb")
+    assert smoke._canonical_text("a  \nb\t\nc") == smoke._canonical_text("a\nb\nc")
+    # A blank line, an indented line, and a space are semantic structure, not the
+    # insignificant whitespace this normalisation removes.
+    assert smoke._canonical_text("a\n\nb") != smoke._canonical_text("a\nb")
+    assert smoke._canonical_text("a b") != smoke._canonical_text("a\nb")
+    assert smoke._canonical_text("  indented") == "  indented"
+
+
+def test_a_trailing_space_copy_is_the_same_fragment(
+    monkeypatch, capsys, tmp_path
+) -> None:
+    """Invisible end-of-line spaces do not make a second fragment."""
+    _write_corpus(tmp_path, monkeypatch)
+    directory = tmp_path / "external-corpus"
+    original = (directory / "status-1.md").read_text(encoding="utf-8")
+    lines = original.split("\n")
+    lines[0] = lines[0] + "   "  # trailing spaces on a real content line
+    (directory / "spaced.md").write_text("\n".join(lines), encoding="utf-8")
+    manifest = tmp_path / "external-manifest.json"
+    entries = _load_entries(manifest)
+    copy = dict(entries[0])
+    copy["doc_id"] = "external-spaced"
+    copy["chunk_id"] = "external-spaced:v1:1"
+    copy["source_path"] = "spaced.md"
+    copy["content_digest"] = content_digest(original)
     entries.append(copy)
     manifest.write_text(json.dumps(entries, ensure_ascii=False, indent=2), encoding="utf-8")
 
@@ -1166,6 +1260,72 @@ def test_the_run_does_not_reopen_a_manifest_it_already_validated(
     assert rows and all(str(r["chunk_id"]).startswith("external-status-") for r in rows)
 
 
+def test_the_override_manifest_digest_hashes_the_raw_bytes(
+    monkeypatch, capsys, tmp_path
+) -> None:
+    """CRLF must not be normalised before hashing: the digest names what was written."""
+    _write_corpus(tmp_path, monkeypatch)
+    manifest = tmp_path / "external-manifest.json"
+    raw = manifest.read_text(encoding="utf-8").replace("\n", "\r\n").encode("utf-8")
+    manifest.write_bytes(raw)
+    # A text-mode read would have collapsed the CRLF and produced this digest instead.
+    softened = "sha256:" + hashlib.sha256(raw.replace(b"\r\n", b"\n")).hexdigest()
+
+    assert _run_override(monkeypatch, tmp_path) == 0
+    meta = json.loads(
+        (tmp_path / "verdicts.json.meta.json").read_text(encoding="utf-8")
+    )
+    digest = meta["validated_corpus"]["manifest_sha256"]
+    assert digest == "sha256:" + hashlib.sha256(raw).hexdigest()
+    assert digest != softened
+
+
+def test_the_default_runner_binds_one_pinned_manifest_snapshot(
+    monkeypatch, capsys, tmp_path
+) -> None:
+    """The pinned manifest is read once: parse, loader and metadata share the bytes."""
+    calls: list[str] = []
+    _install(monkeypatch, tmp_path, ['{"supports": true, "derivable": true}'] * 3, calls)
+    parsed: list[object] = []
+    loaded: list[object] = []
+    seen: list[object] = []
+    real_parse = smoke.parse_manifest_text
+    real_load = smoke.load_sample_corpus
+    real_analyze = smoke.analyze_authorized_submission
+
+    def _parse(text: str):
+        entries = real_parse(text)
+        parsed.append(entries)
+        return entries
+
+    def _load(*, manifest=None):
+        documents = real_load(manifest=manifest)
+        loaded.append((manifest, documents))
+        return documents
+
+    def _capture(submission, question, *, validated):
+        seen.append(validated)
+        return real_analyze(submission, question, validated=validated)
+
+    monkeypatch.setattr(smoke, "parse_manifest_text", _parse)
+    monkeypatch.setattr(smoke, "load_sample_corpus", _load)
+    monkeypatch.setattr(smoke, "analyze_authorized_submission", _capture)
+
+    assert smoke.main_sync() == 0
+    # One read of the manifest and one load: the snapshot is not rebuilt per consumer,
+    # and the analyzer sees exactly the entries and documents the loader produced.
+    assert len(parsed) == 1 and len(loaded) == 1
+    assert loaded[0][0] == parsed[0]
+    assert seen and tuple(seen[0].entries) == parsed[0]
+    assert seen[0].documents == loaded[0][1]
+    meta = json.loads(
+        (tmp_path / "verdicts.json.meta.json").read_text(encoding="utf-8")
+    )
+    assert meta["validated_corpus"]["manifest_sha256"] == "sha256:" + hashlib.sha256(
+        smoke.MANIFEST_PATH.read_bytes()
+    ).hexdigest()
+
+
 def test_a_manifest_that_disagrees_with_its_files_is_refused_at_preflight(
     monkeypatch, capsys, tmp_path
 ) -> None:
@@ -1209,13 +1369,51 @@ def test_a_source_path_containing_a_nul_is_a_structured_failure(
     _write_corpus(tmp_path, monkeypatch)
     manifest = tmp_path / "external-manifest.json"
     entries = _load_entries(manifest)
-    entries[0]["source_path"] = "external/bad\u0000.md"
+    entries[0]["source_path"] = "bad\u0000.md"
     manifest.write_text(json.dumps(entries, ensure_ascii=False, indent=2), encoding="utf-8")
 
     assert _run_override(monkeypatch, tmp_path) == 1
     output = capsys.readouterr().out
     assert "FAIL reason=corpus_entry_unusable" in output
     assert "ValueError" not in output
+
+
+def test_a_caller_declared_external_source_path_is_refused_before_any_call(
+    monkeypatch, capsys, tmp_path
+) -> None:
+    """A declared absolute or external path is not the file that would be opened.
+
+    Recording it as the citation's `source_path` would present a location as
+    verified that no read ever confirmed, so the run refuses the entry outright.
+    """
+    calls: list[str] = []
+    _install(monkeypatch, tmp_path, ['{"supports": true, "derivable": true}'] * 3, calls)
+    _write_corpus(tmp_path, monkeypatch)
+    manifest = tmp_path / "external-manifest.json"
+    entries = _load_entries(manifest)
+    entries[0]["source_path"] = "/etc/passwd"
+    manifest.write_text(json.dumps(entries, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    assert smoke.main_sync() == 1
+    assert "FAIL reason=corpus_entry_path_not_relative" in capsys.readouterr().out
+    assert calls == []
+
+
+def test_a_sub_path_source_declaration_is_refused_before_any_call(
+    monkeypatch, capsys, tmp_path
+) -> None:
+    """A directory component means the declared path is not the opened name."""
+    calls: list[str] = []
+    _install(monkeypatch, tmp_path, ['{"supports": true, "derivable": true}'] * 3, calls)
+    _write_corpus(tmp_path, monkeypatch)
+    manifest = tmp_path / "external-manifest.json"
+    entries = _load_entries(manifest)
+    entries[0]["source_path"] = "nested/status-1.md"
+    manifest.write_text(json.dumps(entries, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    assert smoke.main_sync() == 1
+    assert "FAIL reason=corpus_entry_path_not_relative" in capsys.readouterr().out
+    assert calls == []
 
 
 def test_the_judge_contract_demands_the_adapter_answer_envelope() -> None:

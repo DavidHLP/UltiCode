@@ -55,24 +55,32 @@ usernames, roles, tool names, source text, or model answer content.
 `answer_completion` as `DEFERRED` and `observed_behavior` as `not_measured` — a traceable
 source id says where a fragment came from, not that it supports a conclusion. The answer-level
 columns come from `src/answer_evaluation.py`, which adds an answer pass and a judging pass on
-top of the same pinned keyword retrieval:
+top of the same pinned keyword retrieval. The answer pass sees only the question and retrieved
+fragments; expected/allowed/forbidden outcomes are withheld until judging. It returns explicit
+retrieved chunk IDs as citations, and the judge/artifact use only those IDs, not every retrieval hit.
 
 ```bash
 ULTICODE_ANSWER_EVAL=1 DEEPSEEK_MODEL=<model> uv run python e2e_answer_evaluation.py
 ```
 
 Scope is enforced by the evaluator, not by the caller: it raises on any case outside
-`development`, so `holdout` and `holdout2` stay sealed. An empty retrieval records
-`citation_support` as `not_applicable` rather than as a failed citation check. The run writes a
-run-scoped artifact under the state directory carrying `scope=development_only`,
-`sealed_splits`, `judge=model`, `human_review=not_performed` and every row — the model judged
-each answer, so this is machine evidence, not the human support check.
+`development`, so `holdout` and `holdout2` stay sealed. The answer response must include `text`
+and a `citations` array containing unique IDs from that case's retrieved fragments; empty citations
+are valid when the answer cites nothing. An empty citation list records `citation_support` as
+`not_applicable` rather than as a failed check. The run writes a run-scoped artifact under the
+state directory carrying `scope=development_only`, `sealed_splits`, `judge=model`,
+`human_review=not_performed` and every row — this is machine evidence, not human review.
 
-Budget: two calls per case, and the entry refuses `DEEPSEEK_MAX_CALLS` below that plan before
-the first billed call. A stalled request is retried per call rather than restarting the batch;
-a protocol failure is not retried because the same input yields the same shape. Tune
-`DEEPSEEK_TIMEOUT` (seconds, default 120) for a reasoning model that can exceed the adapter's
-30s default on one response.
+Budget: two logical passes per case (answer, then judge), and the entry refuses
+`DEEPSEEK_MAX_CALLS` below that plan before the first billed call. A stalled request — a
+transport error or a timeout — is retried per call rather than restarting the batch, and a
+retried attempt is billed, so each row records the attempts actually made in `model_calls`
+rather than a fixed two. A protocol failure is not retried because the same input yields the
+same shape. The destination artifact is reserved before the first billed call, an existing
+artifact is never overwritten, it is published by rename, and the corpus and case file are
+snapshotted once before the calls so the artifact identifies the material actually judged.
+Tune `DEEPSEEK_TIMEOUT` (seconds, default 120) for a reasoning model that can exceed the
+adapter's 30s default on one response.
 
 ## U02 boundary
 
@@ -119,14 +127,17 @@ Contract — every violation is a fixed `FAIL reason=...` evidence line and exit
   they describe and the pinned class travel as one immutable snapshot through retrieval, the
   worksheet and the verdict metadata, so replacing the file mid-run cannot leave them
   describing different material.
-- **One file per entry**, resolved through the manifest's own `source_path` basename under the
-  corpus directory, which is itself opened once with `O_DIRECTORY|O_NOFOLLOW` with every entry
-  opened relative to that descriptor — so neither the root nor an entry can be swapped for a
-  link between the check and the read: symlinked entry → `corpus_entry_escapes_root`;
+- **One file per entry**, named by the manifest's own `source_path`, which must be a plain
+  name directly under the corpus directory — an absolute or external path is not the file that
+  was opened and is refused as `corpus_entry_path_not_relative`. The root is opened once with
+  `O_DIRECTORY|O_NOFOLLOW` and every entry relative to that descriptor — so neither the root nor
+  an entry can be swapped for a link between the check and the read: symlinked entry →
+  `corpus_entry_escapes_root`;
   missing file →
   `corpus_entry_missing`; two entries resolving to the *same file* — including two hard-link
-  names for one inode — → `corpus_entry_duplicate_source`, and byte-for-byte copies under
-  separate names → `corpus_entry_duplicate_content` (one fragment must never count as several
+  names for one inode — → `corpus_entry_duplicate_source`, and copies under separate names →
+  `corpus_entry_duplicate_content`, compared on the canonical text so CRLF/LF and insignificant
+  whitespace variants are the same fragment (one fragment must never count as several
   citations); unreadable, not UTF-8, empty, over `MAX_SOURCE_CHARS`, containing a NUL
   byte in the declared path, or a read that stops short of EOF — a prefix that passes the
   size check while a suffix stays unread → `corpus_entry_unusable`.
@@ -142,10 +153,13 @@ Contract — every violation is a fixed `FAIL reason=...` evidence line and exit
   unreachable for any corpus → `citation_threshold_above_retrieval_limit`.
 - With neither variable set, behaviour is exactly the pinned, manifest-gated sample corpus.
 
-The policy is two pinned constants in `e2e_citation_support_model.py`. Authorised material
-(DAV-58) changes them together with its manifest in a reviewed commit; a corpus file cannot
-grant itself a policy. The evidence line and the verdict metadata report that pinned permission
-as `corpus=...`, so a non-synthetic corpus is never labelled synthetic.
+The policy is four pinned constants in `e2e_citation_support_model.py`. Authorised material
+(DAV-58) changes all four together with its manifest in a reviewed commit; a corpus file cannot
+grant itself a policy. The evidence line and verdict metadata report that pinned permission as
+`corpus=...`, so a non-synthetic corpus is never labelled synthetic. The verdict sidecar also
+carries `validated_corpus`: the manifest SHA-256 plus each judged document's id, version, verified
+source name, position and content digest, so the verdicts are bound to the exact material rather
+than to whatever the files hold after the run.
 
 `data/keyword_cases.json` annotates every case with `required_evidence`, `answerable`,
 `expected_behavior` (`cite`, `no_evidence`, or `refuse`), `allowed_behavior`, and

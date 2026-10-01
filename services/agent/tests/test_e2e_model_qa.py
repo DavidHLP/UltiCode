@@ -70,7 +70,7 @@ def _run_model(monkeypatch, capsys, model: FakeModel) -> tuple[int, str]:
     monkeypatch.setenv("ULTICODE_E2E_USERNAME", "tester")
     monkeypatch.setenv("ULTICODE_E2E_PASSWORD", "pw")
     monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
-    monkeypatch.setenv("DEEPSEEK_MODEL", "test-model")
+    monkeypatch.setenv("DEEPSEEK_MODEL", "deepseek-flash")
     monkeypatch.setattr(module, "UlticodeClient", lambda *args, **kwargs: FakeClient())
     monkeypatch.setattr(module, "DeepseekModel", lambda *args, **kwargs: model)
     return_code = asyncio.run(module.main())
@@ -182,7 +182,7 @@ def test_model_qa_reports_usage_even_when_the_loop_raises(monkeypatch, capsys) -
             return None
 
     monkeypatch.setenv("DEEPSEEK_API_KEY", "placeholder-not-a-real-key")
-    monkeypatch.setenv("DEEPSEEK_MODEL", "test-model")
+    monkeypatch.setenv("DEEPSEEK_MODEL", "deepseek-flash")
     monkeypatch.setenv("ULTICODE_E2E_USERNAME", "tester")
     monkeypatch.setenv("ULTICODE_E2E_PASSWORD", "pw")
     monkeypatch.setattr(smoke, "DeepseekModel", _BillingModel)

@@ -99,7 +99,7 @@ def _install(monkeypatch, *, on_call=None, answers=None, judgements=None, real_c
         monkeypatch.setattr("retrieval.load_sample_corpus", _documents)
     monkeypatch.setenv("ULTICODE_ANSWER_EVAL", "1")
     monkeypatch.setenv("DEEPSEEK_API_KEY", "placeholder-not-a-real-key")
-    monkeypatch.setenv("DEEPSEEK_MODEL", "test-model")
+    monkeypatch.setenv("DEEPSEEK_MODEL", "deepseek-flash")
     for name in (
         "DEEPSEEK_MAX_CALLS",
         "DEEPSEEK_MAX_TOKENS",

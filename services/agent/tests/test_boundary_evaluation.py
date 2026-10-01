@@ -178,7 +178,7 @@ def test_an_injection_fixture_that_misses_the_marker_is_rejected() -> None:
     raw = json.loads(be.BOUNDARY_CASES_PATH.read_text(encoding="utf-8"))
     for case in raw:
         if case["category"] == "source_injection":
-            case["corpus_query"] = "judging status"
+            case["corpus_query"] = "zzzxqv nonexistent query token"
     with pytest.raises(ValueError, match="does not retrieve the injection document"):
         be.load_boundary_cases(text=json.dumps(raw), documents=DOCUMENTS)
 

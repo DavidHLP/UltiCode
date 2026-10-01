@@ -316,3 +316,15 @@ def test_two_identities_that_generate_one_chunk_id_are_rejected() -> None:
 
     with pytest.raises(ManifestError, match="share one chunk id"):
         assert_manifest_covers([], [first, second])
+
+
+@pytest.mark.parametrize("closed", [False, True])
+def test_parser_depth_failure_is_a_manifest_error(closed):
+    from corpus_manifest import parse_manifest_text
+    # CPython versions differ in whether JSON uses Python or C stack limits.
+    depth = 100000
+    payload = "[" * depth + "0" + ("]" * depth if closed else "")
+    with pytest.raises(RecursionError):
+        json.loads(payload)
+    with pytest.raises(ManifestError, match="not valid JSON"):
+        parse_manifest_text(payload)

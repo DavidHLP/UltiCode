@@ -45,6 +45,8 @@ from deepseek_model import (
 from e2e_citation_support_model import (
     _claim_verdict_file as _claim_artifact,
     _publish,
+    _discard_artifacts,
+    _assert_artifact_directory,
     _release_unfinished_claim,
 )
 from keyword_evaluation import load_cases
@@ -235,10 +237,11 @@ async def main() -> int:
             )
             return 1
 
+        owned = {}
         try:
             # Publish complete bytes without replacing a late-arriving destination.
-            # On failure no artifact belongs to us; _publish cleans its own temp.
-            _publish(
+            # Publication and cleanup stay in the directory reserved before billing.
+            owned[artifact] = _publish(
                 artifact,
                 json.dumps(
                     {
@@ -260,7 +263,9 @@ async def main() -> int:
                 )
                 + "\n",
             )
+            _assert_artifact_directory(artifact)
         except OSError as error:
+            _discard_artifacts(owned)
             print(
                 f"FAIL reason=answer_artifact_write_failed "
                 f"detail={artifact.name} ({type(error).__name__})"

@@ -1819,12 +1819,12 @@ def test_relative_external_manifest_is_read_from_anchored_parent(monkeypatch, tm
 
 def test_artifact_lstat_failure_releases_claim(monkeypatch, tmp_path):
     destination = tmp_path / "verdicts.json"
-    real_lstat = Path.lstat
-    def lstat(path, *args, **kwargs):
-        if path == destination:
+    real_stat = smoke.os.stat
+    def failed_stat(path, *args, **kwargs):
+        if path == destination.name and kwargs.get("dir_fd") is not None:
             raise PermissionError("private path details")
-        return real_lstat(path, *args, **kwargs)
-    monkeypatch.setattr(Path, "lstat", lstat)
+        return real_stat(path, *args, **kwargs)
+    monkeypatch.setattr(smoke.os, "stat", failed_stat)
     with pytest.raises(RuntimeError, match="not usable") as error:
         smoke._claim_verdict_file(destination)
     assert "private path details" not in str(error.value)
@@ -1843,6 +1843,132 @@ def test_failed_manifest_final_open_closes_parent_fd(monkeypatch, tmp_path):
     monkeypatch.setattr(smoke.os, "open", opening)
     with pytest.raises(OSError):
         smoke._read_external_manifest(manifest)
+    for fd in set(opened):
+        with pytest.raises(OSError):
+            os.fstat(fd)
+
+
+@pytest.mark.parametrize("during_publish", [False, True])
+@pytest.mark.parametrize("replacement_is_link", [False, True])
+def test_citation_artifact_parent_swap_never_redirects_bytes(monkeypatch, capsys, tmp_path, during_publish, replacement_is_link):
+    calls = []
+    _install(monkeypatch, tmp_path, ['{"supports": true, "derivable": true}'] * 3, calls)
+    parent = tmp_path / "reserved"
+    parent.mkdir()
+    moved = tmp_path / "original"
+    replacement = tmp_path / "replacement"
+    replacement.mkdir()
+    destination = parent / "verdicts.json"
+    monkeypatch.setenv("ULTICODE_CITATION_VERDICTS", str(destination))
+    def swap():
+        parent.rename(moved)
+        if replacement_is_link:
+            parent.symlink_to(replacement, target_is_directory=True)
+        else:
+            parent.mkdir()
+    if during_publish:
+        real_link = smoke.os.link
+        def link(*args, **kwargs):
+            if not moved.exists():
+                swap()
+            return real_link(*args, **kwargs)
+        monkeypatch.setattr(smoke.os, "link", link)
+    else:
+        model = smoke.DeepseekModel
+        original = model.decide
+        async def decide(self, messages):
+            if not calls:
+                swap()
+            return await original(self, messages)
+        monkeypatch.setattr(model, "decide", decide)
+    assert smoke.main_sync() == 1
+    assert len(calls) == 3
+    assert not list((replacement if replacement_is_link else parent).iterdir())
+    assert sorted(p.name for p in moved.iterdir()) == ["verdicts.json.lock"]
+    assert _lock_is_free(moved / "verdicts.json.lock")
+    output = capsys.readouterr().out
+    assert "verdict_write_failed" in output
+    assert "OK citation_support" not in output
+    assert not smoke._TARGET_DIRECTORY_FDS
+
+
+@pytest.mark.parametrize("valid_json", [False, True])
+def test_deep_manifest_fails_before_external_calls(monkeypatch, tmp_path, valid_json):
+    _, manifest = _write_corpus(tmp_path, monkeypatch)
+    payload = "[" * 100000 + "0" + ("]" * 100000 if valid_json else "")
+    assert len(payload.encode()) < smoke.MAX_MANIFEST_BYTES
+    manifest.write_text(payload, encoding="utf-8")
+    environment = os.environ.copy()
+    environment["ULTICODE_CITATION_SUPPORT"] = "1"
+    code = '''import e2e_citation_support_model as s
+
+def unexpected(*args, **kwargs):
+    raise AssertionError("external calls must not run")
+s.UlticodeClient = unexpected
+s.DeepseekModel = unexpected
+raise SystemExit(s.main_sync())
+'''
+    result = subprocess.run([sys.executable, "-c", code], cwd=Path(__file__).parents[1],
+                            env=environment, capture_output=True, text=True, timeout=5)
+    assert result.returncode == 1
+    assert result.stdout.strip() == "FAIL reason=corpus_manifest_unusable"
+    assert not result.stderr
+
+
+def test_invalid_artifact_name_closes_reserved_directory(monkeypatch, tmp_path):
+    destination = tmp_path / "invalid\x00.json"
+    real_open = smoke.os.open
+    opened = []
+    def opening(*args, **kwargs):
+        fd = real_open(*args, **kwargs)
+        opened.append(fd)
+        return fd
+    monkeypatch.setattr(smoke.os, "open", opening)
+    with pytest.raises(RuntimeError, match="ValueError"):
+        smoke._claim_verdict_file(destination)
+    for fd in set(opened):
+        with pytest.raises(OSError):
+            os.fstat(fd)
+    assert not smoke._TARGET_DIRECTORY_FDS
+
+
+@pytest.mark.parametrize("replacement_kind", ["file", "directory"])
+def test_verdict_readback_rejects_foreign_bytes_and_keeps_foreign_inode(monkeypatch, capsys, tmp_path, replacement_kind):
+    real_open = smoke.os.open
+    opened = []
+    def opening(*args, **kwargs):
+        fd = real_open(*args, **kwargs)
+        opened.append(fd)
+        return fd
+    monkeypatch.setattr(smoke.os, "open", opening)
+    calls = []
+    _install(monkeypatch, tmp_path, ['{"supports": true, "derivable": true}'] * 3, calls)
+    destination = tmp_path / "verdicts.json"
+    original = smoke._publish
+    foreign = tmp_path / "foreign"
+    def publish(target, text):
+        identity = original(target, text)
+        if target == destination:
+            if replacement_kind == "file":
+                foreign.write_bytes(b"foreign bytes")
+            else:
+                foreign.mkdir()
+                destination.unlink()
+            foreign.replace(destination)
+        return identity
+    monkeypatch.setattr(smoke, "_publish", publish)
+    assert smoke.main_sync() == 1
+    output = capsys.readouterr().out
+    assert "verdict_write_failed" in output
+    assert "OK citation_support" not in output
+    if replacement_kind == "file":
+        assert destination.read_bytes() == b"foreign bytes"
+    else:
+        import stat
+        assert stat.S_ISDIR(destination.lstat().st_mode)
+    assert not smoke._meta_path(destination).exists()
+    assert _lock_is_free(smoke._verdict_lock(destination))
+    assert not smoke._TARGET_DIRECTORY_FDS
     for fd in set(opened):
         with pytest.raises(OSError):
             os.fstat(fd)

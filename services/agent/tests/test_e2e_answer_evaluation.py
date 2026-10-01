@@ -415,3 +415,39 @@ def test_dangling_artifact_symlinks_fail_without_model_calls(monkeypatch, capsys
     assert occupied.is_symlink()
     assert occupied.readlink() == missing
     assert not missing.exists()
+
+
+@pytest.mark.parametrize("during_publish", [False, True])
+@pytest.mark.parametrize("replacement_is_link", [False, True])
+def test_answer_artifact_parent_swap_never_redirects_bytes(monkeypatch, capsys, tmp_path, during_publish, replacement_is_link):
+    parent = tmp_path / "reserved"
+    parent.mkdir()
+    moved = tmp_path / "original"
+    replacement = tmp_path / "replacement"
+    replacement.mkdir()
+    destination = parent / "artifact.json"
+    monkeypatch.setenv("ULTICODE_ANSWER_EVAL_RESULT", str(destination))
+    def swap():
+        parent.rename(moved)
+        if replacement_is_link:
+            parent.symlink_to(replacement, target_is_directory=True)
+        else:
+            parent.mkdir()
+    def on_call(number):
+        if number == 1 and not during_publish:
+            swap()
+    calls = _install(monkeypatch, on_call=on_call)
+    if during_publish:
+        import e2e_citation_support_model as shared
+        real_link = shared.os.link
+        def link(*args, **kwargs):
+            swap()
+            return real_link(*args, **kwargs)
+        monkeypatch.setattr(shared.os, "link", link)
+    assert e2e.main_sync() == 1
+    assert len(calls) == 2
+    assert not list((replacement if replacement_is_link else parent).iterdir())
+    assert sorted(p.name for p in moved.iterdir()) == ["artifact.json.lock"]
+    output = capsys.readouterr().out
+    assert "answer_artifact_write_failed" in output
+    assert "OK answer_eval" not in output

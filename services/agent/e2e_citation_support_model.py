@@ -151,53 +151,93 @@ def _meta_path(path: Path) -> Path:
     return path.with_suffix(path.suffix + ".meta.json")
 
 
-def _publish(target: Path, text: str) -> tuple[int, int]:
-    """Write one artifact atomically.
+def _artifact_directory(target: Path) -> tuple[int, bool]:
+    held = _TARGET_DIRECTORY_FDS.get(target)
+    if held is not None:
+        return held, False
+    return _open_directory_nofollow(target.parent), True
 
-    A reader watching the destination — an automation step, or the next run — must
-    never observe a half-written file, so the content lands via an exclusive hard link.
-    """
-    temporary = target.with_name(f"{target.name}.{secrets.token_hex(4)}.part")
-    # Whether *this* invocation created the path. An O_EXCL failure means the name
-    # was already there — a random-name collision, or a pre-created symlink this run
-    # must not follow — and unlinking it would destroy someone else's temporary.
+
+def _assert_artifact_directory(target: Path) -> None:
+    """Do not report success through a display path that no longer names our directory."""
+    held = _TARGET_DIRECTORY_FDS.get(target)
+    if held is None:
+        return
+    current = _open_directory_nofollow(target.parent)
+    try:
+        original = os.fstat(held)
+        visible = os.fstat(current)
+        if (original.st_dev, original.st_ino) != (visible.st_dev, visible.st_ino):
+            raise OSError("artifact directory changed")
+    finally:
+        os.close(current)
+
+
+def _publish(target: Path, text: str) -> tuple[int, int]:
+    """Publish complete bytes without clobbering, relative to the reserved directory."""
+    directory, close_directory = _artifact_directory(target)
+    temporary = f"{target.name}.{secrets.token_hex(4)}.part"
     created = False
     try:
-        # Exclusive and no-follow: in a shared destination directory a pre-created
-        # symlink at the temporary's name would otherwise be written through, and the
-        # publication could otherwise expose foreign bytes as this run's verdicts.
+        _assert_artifact_directory(target)
         descriptor = os.open(
-            temporary,
-            os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
-            0o600,
+            temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+            0o600, dir_fd=directory,
         )
         created = True
         with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
             stream.write(text)
             info = os.fstat(stream.fileno())
-        os.link(temporary, target, follow_symlinks=False)
+        os.link(temporary, target.name, src_dir_fd=directory, dst_dir_fd=directory,
+                follow_symlinks=False)
         return info.st_dev, info.st_ino
     finally:
-        # Only this exact path, and only when we created it. A glob by target prefix
-        # would also match a *different*
-        # run's temporary — `verdicts.json.backup.<random>.part` when this target is
-        # `verdicts.json` — and delete work that run still needs for its own publication.
         if created:
             try:
-                temporary.unlink()
+                os.unlink(temporary, dir_fd=directory)
             except OSError:
                 pass
+        if close_directory:
+            os.close(directory)
 
 
 def _discard_artifacts(owned: dict[Path, tuple[int, int]]) -> None:
     """Check our published inode before cleanup; this is not atomic compare-and-unlink."""
     for target, identity in owned.items():
         try:
-            info = target.lstat()
+            directory, close_directory = _artifact_directory(target)
+        except OSError:
+            continue
+        try:
+            info = os.stat(target.name, dir_fd=directory, follow_symlinks=False)
             if (info.st_dev, info.st_ino) == identity:
-                target.unlink()
+                os.unlink(target.name, dir_fd=directory)
         except OSError:
             pass
+        finally:
+            if close_directory:
+                os.close(directory)
+
+
+def _read_published_artifact(target: Path, expected: str) -> str:
+    """Read back exactly our bounded bytes through the reservation, never its display path."""
+    directory = _TARGET_DIRECTORY_FDS[target]
+    descriptor = os.open(target.name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK,
+                         dir_fd=directory)
+    try:
+        if not stat.S_ISREG(os.fstat(descriptor).st_mode):
+            raise OSError("published artifact is not regular")
+        stream = os.fdopen(descriptor, "rb")
+        descriptor = None  # ownership transfers only after fdopen succeeds
+        with stream:
+            expected_bytes = expected.encode("utf-8")
+            payload = stream.read(len(expected_bytes) + 1)
+            if payload != expected_bytes:
+                raise OSError("published artifact changed")
+            return payload.decode("utf-8")
+    finally:
+        if descriptor is not None:
+            os.close(descriptor)
 
 
 def _verdict_lock(path: Path) -> Path:
@@ -206,6 +246,8 @@ def _verdict_lock(path: Path) -> Path:
 
 
 _HELD_LOCKS: dict[Path, object] = {}
+_HELD_DIRECTORY_FDS: dict[Path, int] = {}
+_TARGET_DIRECTORY_FDS: dict[Path, int] = {}
 
 
 def _release_unfinished_claim(lock: Path) -> None:
@@ -217,12 +259,17 @@ def _release_unfinished_claim(lock: Path) -> None:
     this run still held the old one, which is two writers on one destination.
     """
     handle = _HELD_LOCKS.pop(lock, None)
-    if handle is None:
-        return
-    try:
-        handle.close()
-    except OSError:
-        pass
+    if handle is not None:
+        try:
+            handle.close()
+        except OSError:
+            pass
+    directory = _HELD_DIRECTORY_FDS.pop(lock, None)
+    if directory is not None:
+        for target, fd in list(_TARGET_DIRECTORY_FDS.items()):
+            if fd == directory:
+                del _TARGET_DIRECTORY_FDS[target]
+        os.close(directory)
 
 
 def _claim_verdict_file(path: Path) -> Path:
@@ -230,36 +277,38 @@ def _claim_verdict_file(path: Path) -> Path:
 
     The reservation is an OS advisory lock on a sidecar file, not the artifact:
     automation that treats the verdict path's existence as "published" must not see
-    it while the run is still judging. A missing parent, a directory, or a lock
-    another live run holds is a failure of this run, and finding out after the model
+    it while the run is still judging. An unusable parent, an occupied destination,
+    or another live run holding the lock is a failure; finding out after the model
     calls would waste them.
     """
     lock = _verdict_lock(path)
+    directory = None
+    descriptor = None
+    handle = None
     try:
-        lock.parent.mkdir(parents=True, exist_ok=True)
-        # O_NOFOLLOW: in a shared directory such as /tmp another local user could
-        # pre-create this predictable name as a symlink, and opening it would make
-        # the truncate-and-write below edit whatever it points at.
-        descriptor = os.open(lock, os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o600)
-    except OSError as error:
+        directory = _open_directory_nofollow(path.parent, create=True)
+        descriptor = os.open(lock.name, os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW | os.O_NONBLOCK,
+                             0o600, dir_fd=directory)
+        if not stat.S_ISREG(os.fstat(descriptor).st_mode):
+            raise OSError("lock is not regular")
+        handle = os.fdopen(descriptor, "r+", encoding="utf-8")
+        descriptor = None
+        fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except (OSError, ValueError) as error:
+        if handle is not None:
+            handle.close()
+        if descriptor is not None:
+            os.close(descriptor)
+        if directory is not None:
+            os.close(directory)
         raise RuntimeError(
-            f"verdict destination is not writable: {_path_label(lock)} "
+            f"verdict destination is not writable or already claimed: {_path_label(lock)} "
             f"({type(error).__name__})"
         ) from None
-    if not stat.S_ISREG(os.fstat(descriptor).st_mode):
-        os.close(descriptor)
-        raise RuntimeError(
-            f"verdict destination is not writable: {_path_label(lock)} (not a regular file)"
-        )
-    handle = os.fdopen(descriptor, "r+", encoding="utf-8")
-    try:
-        fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-    except OSError:
-        handle.close()
-        raise RuntimeError(
-            f"verdict destination is already claimed: {_path_label(lock)}"
-        ) from None
     _HELD_LOCKS[lock] = handle
+    _HELD_DIRECTORY_FDS[lock] = directory
+    _TARGET_DIRECTORY_FDS[path] = directory
+    _TARGET_DIRECTORY_FDS[_meta_path(path)] = directory
     try:  # informational: who holds it, for a human debugging a refused run
         handle.truncate(0)
         handle.write(f"pid={os.getpid()}\n")
@@ -271,7 +320,7 @@ def _claim_verdict_file(path: Path) -> Path:
     # either holds it, and the loser would then replace the winner's verdicts.
     for existing in (path, _meta_path(path)):
         try:
-            existing.lstat()
+            os.stat(existing.name, dir_fd=directory, follow_symlinks=False)
         except FileNotFoundError:
             continue
         except OSError as error:
@@ -394,14 +443,23 @@ def _source_name(declared: str) -> str | None:
     return declared
 
 
-def _open_directory_nofollow(root: Path) -> int:
+def _open_directory_nofollow(root: Path, *, create: bool = False) -> int:
     """Anchor every path component without following ancestor symlinks."""
     flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
     descriptor = os.open(root.anchor if root.is_absolute() else ".", flags)
     try:
         parts = root.parts[1:] if root.is_absolute() else root.parts
         for component in parts:
-            child = os.open(component, flags, dir_fd=descriptor)
+            try:
+                child = os.open(component, flags, dir_fd=descriptor)
+            except FileNotFoundError:
+                if not create:
+                    raise
+                try:
+                    os.mkdir(component, mode=0o700, dir_fd=descriptor)
+                except FileExistsError:
+                    pass
+                child = os.open(component, flags, dir_fd=descriptor)
             os.close(descriptor)
             descriptor = child
         return descriptor
@@ -768,142 +826,146 @@ async def main() -> int:
         print(f"FAIL reason=verdict_destination_unusable detail={error}")
         return 1
 
-    unverified = [row.chunk_id for row in rows if row.integrity_verdict != "verified"]
-    if unverified:
-        # Judging an unverified citation would spend a call on a row that can never
-        # pass the gate.
-        print(f"FAIL reason=citation_integrity_failed rows={len(unverified)}")
-        return 1
-
-    verdicts: list[dict[str, object]] = []
-    calls = 0
     try:
-        max_calls = int(os.environ.get("DEEPSEEK_MAX_CALLS", "8"))
-        max_tokens = int(os.environ.get("DEEPSEEK_MAX_TOKENS", "512"))
-        max_prompt_tokens = int(os.environ.get("DEEPSEEK_MAX_PROMPT_TOKENS", "24000"))
-    except ValueError:
-        print("FAIL reason=model_budget_invalid")
-        return 1
-    if max_calls < 1 or max_tokens < 1 or max_prompt_tokens < 1:
-        print("FAIL reason=model_budget_invalid")
-        return 1
-    if max_calls < len(rows):
-        # Otherwise some judgements are billed and then the adapter refuses the
-        # rest, leaving a paid partial run.
-        print(
-            f"FAIL reason=call_budget_below_rows rows={len(rows)} max_calls={max_calls}"
-        )
-        return 1
+        unverified = [row.chunk_id for row in rows if row.integrity_verdict != "verified"]
+        if unverified:
+            # Judging an unverified citation would spend a call on a row that can never
+            # pass the gate.
+            print(f"FAIL reason=citation_integrity_failed rows={len(unverified)}")
+            return 1
 
-    async with DeepseekModel(
-        os.environ["DEEPSEEK_API_KEY"],
-        tool_specs={},
-        model=model_name,
-        # The configured ceiling, not the row count: the adapter owns the guard.
-        max_calls=max_calls,
-        # A two-boolean judgement needs far less than a full analysis; 512 still
-        # leaves room for a reasoning model's reasoning tokens, which are billed
-        # inside the same budget. Raise it via the environment if a provider
-        # truncates (`finish_reason=length`).
-        max_tokens=max_tokens,
-        # Honoured, not silently defaulted: an operator setting this expects the
-        # prompt side of the budget to follow.
-        max_prompt_tokens=max_prompt_tokens,
-    ) as model:
+        verdicts: list[dict[str, object]] = []
+        calls = 0
         try:
-            for item in rows:
-                data = json.dumps(
-                    {"CLAIM": item.claim, "QUOTE": item.quote, "SUBMISSION_FACTS": facts},
-                    ensure_ascii=True,
-                )
-                prompt = f"{JUDGE_CONTRACT}\nINPUT_JSON {data}"
-                decision = await model.decide([{"role": "user", "content": prompt}])
-                calls += 1
-                supports, derivable = _judgements(decision.text)
-                verdicts.append(
-                    {
-                        "chunk_id": item.chunk_id,
-                        "review_id": item.review_id,
-                        "claim": item.claim,
-                        "quote": item.quote,
-                        "verdicts": {
-                            # Deterministic, never the model's call.
-                            "exists": item.integrity_verdict == "verified",
-                            "supports": supports,
-                            "derivable": derivable,
-                        },
-                    }
-                )
-        finally:
-            # Every call is billed even when a later row fails to parse, so the
-            # accounting is emitted on the failure path too.
-            totals = [
-                entry.get("total_tokens") for entry in model.usage if isinstance(entry, dict)
-            ]
-            known = [value for value in totals if isinstance(value, int)]
-            printed = "unknown" if len(known) != len(totals) else str(sum(known))
-            print(f"E2E CITATION SUPPORT USAGE | calls={len(model.usage)} total_tokens={printed}")
+            max_calls = int(os.environ.get("DEEPSEEK_MAX_CALLS", "8"))
+            max_tokens = int(os.environ.get("DEEPSEEK_MAX_TOKENS", "512"))
+            max_prompt_tokens = int(os.environ.get("DEEPSEEK_MAX_PROMPT_TOKENS", "24000"))
+        except ValueError:
+            print("FAIL reason=model_budget_invalid")
+            return 1
+        if max_calls < 1 or max_tokens < 1 or max_prompt_tokens < 1:
+            print("FAIL reason=model_budget_invalid")
+            return 1
+        if max_calls < len(rows):
+            # Otherwise some judgements are billed and then the adapter refuses the
+            # rest, leaving a paid partial run.
+            print(
+                f"FAIL reason=call_budget_below_rows rows={len(rows)} max_calls={max_calls}"
+            )
+            return 1
 
-    # The full digest: a truncated one would weaken the binding between the
-    # verdicts and the exact facts they were judged against.
-    facts_digest = "sha256:" + hashlib.sha256(facts.encode("utf-8")).hexdigest()
-    meta = {
-        "judge": "model",
-        "model": model_label(model_name),
-        "human_review": "not_performed",
-        "corpus": corpus_label,
-        # The declaration and the exact documents it authorised, so the verdicts are
-        # reproducible against the same material rather than "whatever the corpus is
-        # that day".
-        "validated_corpus": _corpus_identity(manifest_digest, tuple(documents)),
-        "submission_facts_digest": facts_digest,
-        "required_rows": required,
-    }
-    owned: dict[Path, tuple[int, int]] = {}
-    try:
-        # Metadata first, verdicts last: a reader keyed on the verdict file then
-        # never sees verdicts whose sidecar is missing.
-        owned[_meta_path(path)] = _publish(
-            _meta_path(path), json.dumps(meta, ensure_ascii=False, indent=2)
+        async with DeepseekModel(
+            os.environ["DEEPSEEK_API_KEY"],
+            tool_specs={},
+            model=model_name,
+            # The configured ceiling, not the row count: the adapter owns the guard.
+            max_calls=max_calls,
+            # A two-boolean judgement needs far less than a full analysis; 512 still
+            # leaves room for a reasoning model's reasoning tokens, which are billed
+            # inside the same budget. Raise it via the environment if a provider
+            # truncates (`finish_reason=length`).
+            max_tokens=max_tokens,
+            # Honoured, not silently defaulted: an operator setting this expects the
+            # prompt side of the budget to follow.
+            max_prompt_tokens=max_prompt_tokens,
+        ) as model:
+            try:
+                for item in rows:
+                    data = json.dumps(
+                        {"CLAIM": item.claim, "QUOTE": item.quote, "SUBMISSION_FACTS": facts},
+                        ensure_ascii=True,
+                    )
+                    prompt = f"{JUDGE_CONTRACT}\nINPUT_JSON {data}"
+                    decision = await model.decide([{"role": "user", "content": prompt}])
+                    calls += 1
+                    supports, derivable = _judgements(decision.text)
+                    verdicts.append(
+                        {
+                            "chunk_id": item.chunk_id,
+                            "review_id": item.review_id,
+                            "claim": item.claim,
+                            "quote": item.quote,
+                            "verdicts": {
+                                # Deterministic, never the model's call.
+                                "exists": item.integrity_verdict == "verified",
+                                "supports": supports,
+                                "derivable": derivable,
+                            },
+                        }
+                    )
+            finally:
+                # Every call is billed even when a later row fails to parse, so the
+                # accounting is emitted on the failure path too.
+                totals = [
+                    entry.get("total_tokens") for entry in model.usage if isinstance(entry, dict)
+                ]
+                known = [value for value in totals if isinstance(value, int)]
+                printed = "unknown" if len(known) != len(totals) else str(sum(known))
+                print(f"E2E CITATION SUPPORT USAGE | calls={len(model.usage)} total_tokens={printed}")
+
+        # The full digest: a truncated one would weaken the binding between the
+        # verdicts and the exact facts they were judged against.
+        facts_digest = "sha256:" + hashlib.sha256(facts.encode("utf-8")).hexdigest()
+        meta = {
+            "judge": "model",
+            "model": model_label(model_name),
+            "human_review": "not_performed",
+            "corpus": corpus_label,
+            # The declaration and the exact documents it authorised, so the verdicts are
+            # reproducible against the same material rather than "whatever the corpus is
+            # that day".
+            "validated_corpus": _corpus_identity(manifest_digest, tuple(documents)),
+            "submission_facts_digest": facts_digest,
+            "required_rows": required,
+        }
+        owned: dict[Path, tuple[int, int]] = {}
+        try:
+            # Metadata first, verdicts last: a reader keyed on the verdict file then
+            # never sees verdicts whose sidecar is missing.
+            owned[_meta_path(path)] = _publish(
+                _meta_path(path), json.dumps(meta, ensure_ascii=False, indent=2)
+            )
+            verdict_text = json.dumps(verdicts, ensure_ascii=False, indent=2)
+            owned[path] = _publish(path, verdict_text)
+            readback = _read_published_artifact(path, verdict_text)
+            _assert_artifact_directory(path)
+        except OSError as error:
+            # Remove our published sidecar, but preserve late foreign destinations.
+            _discard_artifacts(owned)
+            print(
+                f"FAIL reason=verdict_write_failed detail={_path_label(path)} "
+                f"({type(error).__name__})"
+            )
+            return 1
+        # Read back through the same loader the human worksheet uses, so the verdicts
+        # are bound to their rows before anything is summarised.
+        loaded = load_verdicts(path, tuple(rows), text=readback)
+        summary = summarize(tuple(rows), loaded)
+
+        counts = (
+            f"model={model_label(model_name)} judge=model rows={summary['reviewed']} "
+            f"calls={calls} supports={summary['counts']['supports']} "
+            f"not_supported={len(summary['not_supported'])} "
+            # A failed gate has to say which check failed: support, derivability, or a
+            # citation that is not there at all.
+            f"not_derivable={len(summary['not_derivable'])} "
+            f"citation_missing={len(summary['citation_missing'])} "
+            f"integrity_unverified={len(summary['integrity_unverified'])} "
+            f"verdicts={_path_label(path)}"
         )
-        owned[path] = _publish(path, json.dumps(verdicts, ensure_ascii=False, indent=2))
-        # Published: the reservation goes.
-        _release_unfinished_claim(lock)
-    except OSError as error:
-        # Remove our published sidecar, but preserve late foreign destinations.
-        _discard_artifacts(owned)
+        if not summary["gate_passed"]:
+            # A citation the model does not support is a failed run, not a pass with a
+            # low score — so no line of this run may start with `OK`.
+            print(f"FAIL reason=citation_gate_failed {counts}")
+            return 1
+        print(f"OK citation_support {counts}")
         print(
-            f"FAIL reason=verdict_write_failed detail={_path_label(path)} "
-            f"({type(error).__name__})"
+            f"E2E CITATION SUPPORT | reviewer=model | corpus={corpus_label} "
+            "| human_review=not_performed"
         )
-        return 1
-    # Read back through the same loader the human worksheet uses, so the verdicts
-    # are bound to their rows before anything is summarised.
-    loaded = load_verdicts(path, tuple(rows))
-    summary = summarize(tuple(rows), loaded)
-
-    counts = (
-        f"model={model_label(model_name)} judge=model rows={summary['reviewed']} "
-        f"calls={calls} supports={summary['counts']['supports']} "
-        f"not_supported={len(summary['not_supported'])} "
-        # A failed gate has to say which check failed: support, derivability, or a
-        # citation that is not there at all.
-        f"not_derivable={len(summary['not_derivable'])} "
-        f"citation_missing={len(summary['citation_missing'])} "
-        f"integrity_unverified={len(summary['integrity_unverified'])} "
-        f"verdicts={_path_label(path)}"
-    )
-    if not summary["gate_passed"]:
-        # A citation the model does not support is a failed run, not a pass with a
-        # low score — so no line of this run may start with `OK`.
-        print(f"FAIL reason=citation_gate_failed {counts}")
-        return 1
-    print(f"OK citation_support {counts}")
-    print(
-        f"E2E CITATION SUPPORT | reviewer=model | corpus={corpus_label} "
-        "| human_review=not_performed"
-    )
-    return 0
+        return 0
+    finally:
+        _release_unfinished_claim(lock)
 
 
 def main_sync() -> int:

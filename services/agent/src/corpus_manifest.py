@@ -132,7 +132,7 @@ def parse_manifest_text(text: str) -> tuple[ManifestEntry, ...]:
         raise ManifestError(
             f"corpus manifest has a duplicate key: {error}"
         ) from None
-    except ValueError as error:
+    except (ValueError, RecursionError) as error:
         raise ManifestError(f"corpus manifest is not valid JSON: {error}") from None
     if not isinstance(raw, list) or not raw:
         if raw == []:

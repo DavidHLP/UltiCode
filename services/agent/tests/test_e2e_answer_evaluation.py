@@ -399,3 +399,19 @@ def test_success_reports_usage_once(monkeypatch, capsys, tmp_path):
     output = capsys.readouterr().out
     assert output.count("ANSWER EVAL USAGE") == 1
     assert "calls=2 total_tokens=20" in output
+
+
+@pytest.mark.parametrize("sidecar", [False, True])
+def test_dangling_artifact_symlinks_fail_without_model_calls(monkeypatch, capsys, tmp_path, sidecar):
+    calls = _install(monkeypatch)
+    destination = tmp_path / "artifact.json"
+    occupied = destination.with_suffix(".json.meta.json") if sidecar else destination
+    missing = tmp_path / "missing"
+    occupied.symlink_to(missing)
+    monkeypatch.setenv("ULTICODE_ANSWER_EVAL_RESULT", str(destination))
+    assert e2e.main_sync() == 1
+    assert calls == []
+    assert "answer_artifact_unusable" in capsys.readouterr().out
+    assert occupied.is_symlink()
+    assert occupied.readlink() == missing
+    assert not missing.exists()

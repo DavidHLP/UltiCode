@@ -1664,7 +1664,7 @@ def test_failed_root_walk_closes_opened_descriptors(monkeypatch, tmp_path):
         return fd
     monkeypatch.setattr(smoke.os, "open", opening)
     with pytest.raises(OSError):
-        smoke._open_corpus_root(parent / "missing")
+        smoke._open_directory_nofollow(parent / "missing")
     for fd in set(opened):
         with pytest.raises(OSError):
             os.fstat(fd)
@@ -1735,3 +1735,114 @@ raise SystemExit(s.main_sync())
     assert not result.stderr
     assert not destination.exists()
     assert not smoke._verdict_lock(destination).exists()
+
+
+@pytest.mark.parametrize("left,right", [("caf\u00e9", "cafe\u0301"), ("\uac00", "\u1100\u1161")])
+def test_unicode_canonical_equivalent_sources_are_duplicates(monkeypatch, tmp_path, left, right):
+    directory, manifest = _write_corpus(tmp_path, monkeypatch)
+    entries = _load_entries(manifest)
+    for index, variant in enumerate((left, right)):
+        text = "Wrong Answer evidence " + variant
+        (directory / entries[index]["source_path"]).write_bytes(text.encode("utf-8"))
+        entries[index]["source_position"] = "lines 1-1"
+        entries[index]["content_digest"] = content_digest(text)
+    manifest.write_text(json.dumps(entries), encoding="utf-8")
+    with pytest.raises(smoke._CorpusSourceError, match="corpus_entry_duplicate_content"):
+        smoke._corpus_override()
+
+
+def test_unicode_dedup_keeps_raw_evidence_and_positions(monkeypatch, tmp_path):
+    directory, manifest = _write_corpus(tmp_path, monkeypatch)
+    entries = _load_entries(manifest)
+    text = "\nWrong Answer cafe\u0301\nsecond line\n"
+    (directory / "status-1.md").write_bytes(text.encode("utf-8"))
+    entries[0]["source_position"] = "lines 2-3"
+    entries[0]["content_digest"] = content_digest(text.strip())
+    manifest.write_text(json.dumps(entries), encoding="utf-8")
+    document = smoke._corpus_override().documents[0]
+    assert document.text == text.strip()
+    assert document.source_position == "lines 2-3"
+    assert content_digest(document.text) == entries[0]["content_digest"]
+    assert "\u00e9" not in document.text
+    # NFC preserves compatibility distinctions; this is not NFKC folding.
+    assert smoke._canonical_text("1") != smoke._canonical_text("\u2460")
+
+
+@pytest.mark.parametrize("sidecar", [False, True])
+def test_dangling_citation_destinations_fail_before_model_calls(monkeypatch, capsys, tmp_path, sidecar):
+    calls = []
+    _install(monkeypatch, tmp_path, ['{"supports": true, "derivable": true}'] * 3, calls)
+    destination = tmp_path / "verdicts.json"
+    occupied = smoke._meta_path(destination) if sidecar else destination
+    missing = tmp_path / "missing"
+    occupied.symlink_to(missing)
+    assert smoke.main_sync() == 1
+    assert calls == []
+    assert "verdict_destination_unusable" in capsys.readouterr().out
+    assert occupied.is_symlink()
+    assert occupied.readlink() == missing
+    assert not missing.exists()
+
+
+@pytest.mark.parametrize("swap_during_open", [False, True])
+def test_manifest_ancestor_symlink_is_refused(monkeypatch, tmp_path, swap_during_open):
+    _, manifest = _write_corpus(tmp_path, monkeypatch)
+    parent = tmp_path / "manifest-parent"
+    parent.mkdir()
+    selected = parent / manifest.name
+    manifest.rename(selected)
+    moved = tmp_path / "manifest-moved"
+    monkeypatch.setenv(smoke.CORPUS_MANIFEST_ENV, str(selected))
+    real_open = smoke.os.open
+    def swap():
+        parent.rename(moved)
+        parent.symlink_to(moved, target_is_directory=True)
+    if swap_during_open:
+        def opening(path, flags, *args, **kwargs):
+            if path == parent.name and kwargs.get("dir_fd") is not None:
+                swap()
+            return real_open(path, flags, *args, **kwargs)
+        monkeypatch.setattr(smoke.os, "open", opening)
+    else:
+        swap()
+    with pytest.raises(smoke._CorpusSourceError, match="corpus_manifest_unusable"):
+        smoke._corpus_override()
+    assert (moved / selected.name).is_file()
+
+
+def test_relative_external_manifest_is_read_from_anchored_parent(monkeypatch, tmp_path):
+    _, manifest = _write_corpus(tmp_path, monkeypatch)
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv(smoke.CORPUS_MANIFEST_ENV, manifest.name)
+    assert smoke._corpus_override().documents
+
+
+def test_artifact_lstat_failure_releases_claim(monkeypatch, tmp_path):
+    destination = tmp_path / "verdicts.json"
+    real_lstat = Path.lstat
+    def lstat(path, *args, **kwargs):
+        if path == destination:
+            raise PermissionError("private path details")
+        return real_lstat(path, *args, **kwargs)
+    monkeypatch.setattr(Path, "lstat", lstat)
+    with pytest.raises(RuntimeError, match="not usable") as error:
+        smoke._claim_verdict_file(destination)
+    assert "private path details" not in str(error.value)
+    assert _lock_is_free(smoke._verdict_lock(destination))
+
+
+def test_failed_manifest_final_open_closes_parent_fd(monkeypatch, tmp_path):
+    manifest = tmp_path / "manifest"
+    manifest.symlink_to(tmp_path / "missing")
+    real_open = smoke.os.open
+    opened = []
+    def opening(*args, **kwargs):
+        fd = real_open(*args, **kwargs)
+        opened.append(fd)
+        return fd
+    monkeypatch.setattr(smoke.os, "open", opening)
+    with pytest.raises(OSError):
+        smoke._read_external_manifest(manifest)
+    for fd in set(opened):
+        with pytest.raises(OSError):
+            os.fstat(fd)

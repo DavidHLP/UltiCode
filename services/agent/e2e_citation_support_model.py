@@ -28,6 +28,7 @@ import re
 import secrets
 import stat
 import sys
+import unicodedata
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "src"))
@@ -269,11 +270,20 @@ def _claim_verdict_file(path: Path) -> Path:
     # Checked *after* the lock: two runs can both see an empty destination before
     # either holds it, and the loser would then replace the winner's verdicts.
     for existing in (path, _meta_path(path)):
-        if existing.exists():
+        try:
+            existing.lstat()
+        except FileNotFoundError:
+            continue
+        except OSError as error:
             _release_unfinished_claim(lock)
             raise RuntimeError(
-                f"verdict destination already exists: {_path_label(existing)}"
-            )
+                f"verdict destination is not usable: {_path_label(existing)} "
+                f"({type(error).__name__})"
+            ) from None
+        _release_unfinished_claim(lock)
+        raise RuntimeError(
+            f"verdict destination already exists: {_path_label(existing)}"
+        )
     return lock
 
 
@@ -311,7 +321,13 @@ MAX_MANIFEST_BYTES = 1024 * 1024
 
 
 def _read_external_manifest(path: Path) -> bytes:
-    descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    parent_fd = _open_directory_nofollow(path.parent)
+    try:
+        descriptor = os.open(
+            path.name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=parent_fd
+        )
+    finally:
+        os.close(parent_fd)
     try:
         info = os.fstat(descriptor)
         if not stat.S_ISREG(info.st_mode) or info.st_size > MAX_MANIFEST_BYTES:
@@ -352,14 +368,15 @@ _TRAILING_HORIZONTAL = re.compile(r"[ \t]+$", re.MULTILINE)
 def _canonical_text(text: str) -> str:
     """Text normalised for duplicate-content detection only.
 
-    Line endings and insignificant trailing horizontal whitespace are not content,
-    so two files that differ only there are one fragment and must not each consume a
+    Canonically equivalent Unicode, line endings and trailing horizontal whitespace
+    are not distinct content, so two files that differ only there are one fragment and must not each consume a
     result slot. Blank lines, indentation and line structure are preserved: a
     paragraph break is not the same fragment as a space, which a blanket whitespace
     collapse would have wrongly made it. The document keeps its original text; only
     this comparison uses the canonical form.
     """
-    return _TRAILING_HORIZONTAL.sub("", _CARRIAGE_RETURN.sub("\n", text))
+    canonical = _TRAILING_HORIZONTAL.sub("", _CARRIAGE_RETURN.sub("\n", text))
+    return unicodedata.normalize("NFC", canonical)
 
 
 def _source_name(declared: str) -> str | None:
@@ -377,7 +394,7 @@ def _source_name(declared: str) -> str | None:
     return declared
 
 
-def _open_corpus_root(root: Path) -> int:
+def _open_directory_nofollow(root: Path) -> int:
     """Anchor every path component without following ancestor symlinks."""
     flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
     descriptor = os.open(root.anchor if root.is_absolute() else ".", flags)
@@ -450,7 +467,7 @@ def _corpus_override() -> ValidatedCorpus | None:
     _require_supported_declarations(entries)
 
     try:
-        root_fd = _open_corpus_root(root)
+        root_fd = _open_directory_nofollow(root)
     except (OSError, ValueError):
         raise _CorpusSourceError("corpus_root_unusable") from None
 

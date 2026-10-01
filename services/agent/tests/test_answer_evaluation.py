@@ -9,6 +9,9 @@ evaluation that was only ever meant for the development set.
 
 from __future__ import annotations
 
+import asyncio
+
+import httpx
 import pytest
 
 from answer_evaluation import (
@@ -17,6 +20,7 @@ from answer_evaluation import (
     evaluate_answer_cases,
     summarize,
 )
+from deepseek_model import ModelProtocolError
 from keyword_evaluation import DEFERRED, KeywordCase, load_cases
 
 
@@ -317,8 +321,8 @@ def test_summary_counts_every_answer_level_dimension() -> None:
     assert summary["deferred"] == 0
 
 
-class ReadTimeout(Exception):
-    """A transport stall the adapter retries — same name httpcore raises."""
+class ReadTimeout(httpx.ReadTimeout):
+    """A concrete HTTPX transport stall."""
 
 
 class _FlakyModel(_StubModel):
@@ -395,6 +399,64 @@ def test_a_timed_out_call_is_retried_like_a_transport_failure() -> None:
     assert model.calls_made == 3
 
 
+@pytest.mark.parametrize(
+    "transport_error",
+    [
+        httpx.ConnectError,
+        httpx.ReadError,
+        httpx.WriteError,
+        httpx.PoolTimeout,
+        httpx.RemoteProtocolError,
+    ],
+)
+def test_every_httpx_transport_error_is_retried(
+    transport_error: type[Exception],
+) -> None:
+    answers = {
+        "dev-01": '{"text": "状态说明。", "citations": ["sample-status-only:v1:1"]}'
+    }
+    judgements = {
+        "dev-01": '{"citation_support": true, "answer_completed": true, "observed_behavior": "cite"}'
+    }
+    model = _FlakyModel(answers, judgements, failures=1, error=transport_error)
+
+    rows = asyncio.run(evaluate_answer_cases([_case()], model=model))
+
+    assert rows[0].model_calls == 3
+    assert model.attempts == 3
+    assert model.calls_made == 3
+
+
+def test_a_protocol_error_is_not_retried() -> None:
+    class _ProtocolFailure:
+        attempts = 0
+
+        async def decide(self, _messages):
+            self.attempts += 1
+            raise ModelProtocolError("model decision schema was malformed")
+
+    model = _ProtocolFailure()
+    with pytest.raises(ModelProtocolError):
+        asyncio.run(evaluate_answer_cases([_case()], model=model, attempts=3))
+
+    assert model.attempts == 1
+
+
+def test_cancellation_propagates_without_retrying() -> None:
+    class _Cancelled:
+        attempts = 0
+
+        async def decide(self, _messages):
+            self.attempts += 1
+            raise asyncio.CancelledError()
+
+    model = _Cancelled()
+    with pytest.raises(asyncio.CancelledError):
+        asyncio.run(evaluate_answer_cases([_case()], model=model, attempts=3))
+
+    assert model.attempts == 1
+
+
 def test_a_persistent_timeout_is_reported_not_swallowed() -> None:
     import asyncio
 
@@ -404,3 +466,5 @@ def test_a_persistent_timeout_is_reported_not_swallowed() -> None:
     model = _FlakyModel(answers, {}, failures=99, error=TimeoutError)
     with _pytest.raises(AnswerEvaluationError, match="timed out"):
         asyncio.run(evaluate_answer_cases([_case()], model=model, attempts=2))
+    assert model.attempts == 2
+    assert model.calls_made == 2

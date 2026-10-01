@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import math
 import os
 import secrets
 import sys
@@ -90,8 +91,8 @@ def _float(name: str, default: float) -> float:
         value = float(raw)
     except ValueError:
         raise AnswerEvaluationError(f"{name} must be a number") from None
-    if value <= 0:
-        raise AnswerEvaluationError(f"{name} must be positive")
+    if not math.isfinite(value) or value <= 0:
+        raise AnswerEvaluationError(f"{name} must be finite and positive")
     return value
 
 

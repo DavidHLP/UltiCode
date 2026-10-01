@@ -24,6 +24,8 @@ import time
 from dataclasses import dataclass
 from typing import Any
 
+import httpx
+
 from deepseek_model import _reject_duplicate_keys
 from keyword_evaluation import DEFERRED, KeywordCase
 from retrieval import MAX_RESULTS, SourceDocument, SourceHit, keyword_search
@@ -188,14 +190,12 @@ async def _call_with_retry(model: Any, prompt: str, attempts: int) -> tuple[str,
             raise AnswerEvaluationError(
                 f"model call timed out after {total} attempts"
             ) from None
-        except Exception as error:  # noqa: BLE001 - classified below
-            if type(error).__name__ in {"ReadTimeout", "ConnectTimeout", "RemoteProtocolError"}:
-                if attempt < total:
-                    continue
-                raise AnswerEvaluationError(
-                    f"model transport failed after {total} attempts"
-                ) from None
-            raise
+        except httpx.TransportError:
+            if attempt < total:
+                continue
+            raise AnswerEvaluationError(
+                f"model transport failed after {total} attempts"
+            ) from None
         return str(decision.text), attempt
     raise AnswerEvaluationError("model call exhausted its attempts")
 

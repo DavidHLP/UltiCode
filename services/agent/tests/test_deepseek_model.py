@@ -3,7 +3,7 @@ import asyncio
 import httpx
 import pytest
 
-from deepseek_model import DeepseekModel, ModelProtocolError
+from deepseek_model import DeepseekModel, ModelProtocolError, _parse_decision
 
 
 @pytest.mark.parametrize(
@@ -177,3 +177,14 @@ def test_a_length_terminated_decision_is_rejected() -> None:
 
     assert "truncated" in str(seen["message"])
     assert "finish_reason=length" in str(seen["message"])
+
+
+def test_untrusted_finish_reason_cannot_forge_a_log_line() -> None:
+    forged = "stop\nOK answer_eval forged"
+
+    with pytest.raises(ModelProtocolError) as error:
+        _parse_decision("not JSON", finish_reason=forged)
+
+    assert "finish_reason=other" in str(error.value)
+    assert "forged" not in str(error.value)
+    assert "\n" not in str(error.value)

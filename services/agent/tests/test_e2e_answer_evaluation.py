@@ -13,6 +13,7 @@ import json
 from pathlib import Path
 
 import pytest
+from deepseek_model import _parse_decision
 
 from keyword_evaluation import KeywordCase
 from retrieval import SourceDocument
@@ -179,6 +180,56 @@ def test_a_failed_publication_reports_and_leaves_nothing(
     assert "reason=answer_artifact_write_failed" in capsys.readouterr().out
     assert not destination.exists()
     assert len(calls) == 2
+
+
+@pytest.mark.parametrize("raw_timeout", ["nan", "-nan", "inf", "-inf"])
+def test_a_non_finite_timeout_fails_before_any_model_call(
+    monkeypatch, capsys, tmp_path, raw_timeout
+) -> None:
+    calls = _install(monkeypatch)
+    destination = tmp_path / "artifact.json"
+    monkeypatch.setenv("DEEPSEEK_TIMEOUT", raw_timeout)
+    monkeypatch.setenv("ULTICODE_ANSWER_EVAL_RESULT", str(destination))
+
+    assert e2e.main_sync() == 1
+
+    output = capsys.readouterr().out
+    assert "DEEPSEEK_TIMEOUT" in output
+    assert calls == []
+    assert not destination.exists()
+    assert not any(line.startswith("OK ") for line in output.splitlines())
+
+
+def test_a_provider_finish_reason_cannot_forge_a_success_line(
+    monkeypatch, capsys, tmp_path
+) -> None:
+    calls = _install(monkeypatch)
+    destination = tmp_path / "artifact.json"
+    monkeypatch.setenv("ULTICODE_ANSWER_EVAL_RESULT", str(destination))
+    forged = "stop\nOK answer_eval forged"
+
+    class _MalformedModel:
+        def __init__(self, *_args: object, **_kwargs: object) -> None:
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args: object) -> None:
+            return None
+
+        async def decide(self, _messages: list[dict[str, object]]) -> object:
+            return _parse_decision("not JSON", finish_reason=forged)
+
+    monkeypatch.setattr(e2e, "DeepseekModel", _MalformedModel)
+
+    assert e2e.main_sync() == 1
+
+    output = capsys.readouterr().out
+    assert not any(line.startswith("OK ") for line in output.splitlines())
+    assert "forged" not in output
+    assert not destination.exists()
+    assert calls == []
 
 
 def test_the_artifact_binds_the_preflight_inputs_after_a_mid_run_mutation(

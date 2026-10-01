@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import json
 import re
+from collections.abc import Callable
 from types import TracebackType
 
 import httpx
@@ -40,9 +41,43 @@ SUBMISSION_ID_PATTERN = re.compile(
     r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}"
 )
 
+SEARCH_QUERY_MIN = 2
+SEARCH_QUERY_MAX = 200
+SEARCH_LIMIT_MAX = 100
+
 
 class UlticodeError(RuntimeError):
     """The Result envelope reported failure, or the body was not a valid envelope."""
+
+
+def _validate_search_payload(
+    data: dict[str, object], *, page: int, limit: int
+) -> dict[str, object]:
+    """A ``/search`` page must describe itself, or the caller cannot scan it.
+
+    ``page``/``limit`` echo the request (the DTO binds them) and ``total`` is the
+    population the page came from; a payload that disagrees with the request is not
+    a page this client can walk. A bool is not an int here: ``True == 1``, so a
+    ``true`` page echo would otherwise pass as page 1. A negative ``total`` is not
+    a population this client can bound.
+    """
+    results = data.get("results")
+    total = data.get("total")
+    if (
+        not isinstance(results, list)
+        or not isinstance(total, int)
+        or isinstance(total, bool)
+        or total < 0
+    ):
+        raise UlticodeError("invalid search response")
+    if (
+        isinstance(data.get("page"), bool)
+        or isinstance(data.get("limit"), bool)
+        or data.get("page") != page
+        or data.get("limit") != limit
+    ):
+        raise UlticodeError("invalid search response")
+    return data
 
 
 class UlticodeClient:
@@ -208,6 +243,51 @@ class UlticodeClient:
             headers=self._session_headers(),
         )
         return self._unwrap_dict(response)
+
+    async def search_problems(
+        self,
+        query: str,
+        *,
+        page: int = 1,
+        limit: int = 10,
+        on_payload: Callable[[dict[str, object]], None] | None = None,
+    ) -> dict[str, object]:
+        """Public full-text search over problems/users/posts/solutions.
+
+        The endpoint is ``permitAll``, so an anonymous client sends no cookie and
+        still works. When this client *is* authenticated, the request carries its
+        current ``access_token`` cookie — and nothing else: the refresh and CSRF
+        cookies are never forwarded, and no refresh is attempted.
+
+        ``on_payload`` sees the successful Result's ``data`` *before* the page
+        contract is checked. A page that does not describe itself is still
+        rejected — nothing here is relaxed — but a caller scanning for leaked rows
+        gets the hits that did arrive instead of losing them to the error. A body
+        that is not a successful envelope with a dict ``data`` never reaches the
+        callback.
+        """
+        if (
+            not isinstance(query, str)
+            or not SEARCH_QUERY_MIN <= len(query) <= SEARCH_QUERY_MAX
+        ):
+            raise ValueError("query must be 2-200 characters")
+        if isinstance(page, bool) or not isinstance(page, int) or page < 1:
+            raise ValueError("page must be a positive integer")
+        if (
+            isinstance(limit, bool)
+            or not isinstance(limit, int)
+            or not 1 <= limit <= SEARCH_LIMIT_MAX
+        ):
+            raise ValueError("limit must be between 1 and 100")
+        response = await self._app.get(
+            "/search",
+            params={"query": query, "page": page, "limit": limit},
+            headers=self._session_headers(),
+        )
+        data = self._unwrap_dict(response)
+        if on_payload is not None:
+            on_payload(data)
+        return _validate_search_payload(data, page=page, limit=limit)
 
     async def get_my_submission(self, submission_id: str) -> dict[str, object]:
         if not isinstance(submission_id, str) or not SUBMISSION_ID_PATTERN.fullmatch(

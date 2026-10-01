@@ -1617,3 +1617,53 @@ def test_manifest_byte_limit_accepts_exact_boundary(tmp_path):
     payload = b" " * smoke.MAX_MANIFEST_BYTES
     manifest.write_bytes(payload)
     assert smoke._read_external_manifest(manifest) == payload
+
+
+@pytest.mark.parametrize("swap_during_open", [False, True])
+def test_corpus_root_ancestor_symlink_is_refused(monkeypatch, tmp_path, swap_during_open):
+    directory, _ = _write_corpus(tmp_path, monkeypatch)
+    parent = tmp_path / "trusted-parent"
+    parent.mkdir()
+    directory.rename(parent / "corpus")
+    moved = tmp_path / "moved-parent"
+    root = parent / "corpus"
+    monkeypatch.setenv(smoke.CORPUS_DIR_ENV, str(root))
+    real_open = smoke.os.open
+    def swap():
+        parent.rename(moved)
+        parent.symlink_to(moved, target_is_directory=True)
+    if swap_during_open:
+        def opening(path, flags, *args, **kwargs):
+            if path == parent.name and kwargs.get("dir_fd") is not None:
+                swap()
+            return real_open(path, flags, *args, **kwargs)
+        monkeypatch.setattr(smoke.os, "open", opening)
+    else:
+        swap()
+    with pytest.raises(smoke._CorpusSourceError, match="corpus_root_unusable"):
+        smoke._corpus_override()
+    assert (moved / "corpus" / "status-1.md").is_file()
+
+
+def test_relative_corpus_root_walks_each_component(monkeypatch, tmp_path):
+    directory, _ = _write_corpus(tmp_path, monkeypatch)
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv(smoke.CORPUS_DIR_ENV, directory.name)
+    assert smoke._corpus_override().documents
+
+
+def test_failed_root_walk_closes_opened_descriptors(monkeypatch, tmp_path):
+    parent = tmp_path / "parent"
+    parent.mkdir()
+    real_open = smoke.os.open
+    opened = []
+    def opening(*args, **kwargs):
+        fd = real_open(*args, **kwargs)
+        opened.append(fd)
+        return fd
+    monkeypatch.setattr(smoke.os, "open", opening)
+    with pytest.raises(OSError):
+        smoke._open_corpus_root(parent / "missing")
+    for fd in set(opened):
+        with pytest.raises(OSError):
+            os.fstat(fd)

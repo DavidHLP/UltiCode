@@ -201,10 +201,17 @@ async def main() -> int:
                 max_tokens=_int("DEEPSEEK_MAX_TOKENS", 4000),
                 max_prompt_tokens=_int("DEEPSEEK_MAX_PROMPT_TOKENS", 24000),
             ) as model:
-                rows = await evaluate_answer_cases(cases, model=model, documents=documents)
-                totals = [e.get("total_tokens") for e in model.usage if isinstance(e, dict)]
-                known = [v for v in totals if isinstance(v, int)]
-                printed = "unknown" if len(known) != len(totals) else str(sum(known))
+                try:
+                    rows = await evaluate_answer_cases(cases, model=model, documents=documents)
+                finally:
+                    # Every sent request remains billed even if a later pass aborts.
+                    totals = [e.get("total_tokens") for e in model.usage if isinstance(e, dict)]
+                    known = [v for v in totals if isinstance(v, int)]
+                    printed = "unknown" if len(known) != len(totals) else str(sum(known))
+                    print(
+                        f"ANSWER EVAL USAGE | cases={started} "
+                        f"calls={len(model.usage)} total_tokens={printed}"
+                    )
         except ModelBudgetExceeded as error:
             print(f"FAIL reason=model_budget_exceeded detail={error}")
             return 1
@@ -265,10 +272,6 @@ async def main() -> int:
         # now, not at process exit, so a later run can take the same destination.
         _release_unfinished_claim(lock)
 
-    print(
-        f"ANSWER EVAL USAGE | cases={summary['cases']} "
-        f"calls={summary['model_calls']} total_tokens={printed}"
-    )
     print(
         f"OK answer_eval scope=development_only "
         f"supported={summary['supported']} unsupported={summary['unsupported']} "

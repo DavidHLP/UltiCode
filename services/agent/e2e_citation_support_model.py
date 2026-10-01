@@ -374,6 +374,22 @@ def _source_name(declared: str) -> str | None:
     return declared
 
 
+def _open_corpus_root(root: Path) -> int:
+    """Anchor every path component without following ancestor symlinks."""
+    flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
+    descriptor = os.open(root.anchor if root.is_absolute() else ".", flags)
+    try:
+        parts = root.parts[1:] if root.is_absolute() else root.parts
+        for component in parts:
+            child = os.open(component, flags, dir_fd=descriptor)
+            os.close(descriptor)
+            descriptor = child
+        return descriptor
+    except BaseException:
+        os.close(descriptor)
+        raise
+
+
 def _corpus_override() -> ValidatedCorpus | None:
     """The corpus this run points at, or ``None`` for the pinned default.
 
@@ -386,8 +402,9 @@ def _corpus_override() -> ValidatedCorpus | None:
     and source trust — the same rules `load_manifest` applies), and every entry must
     declare exactly the material class this run
     pins — permission, scope, sample kind and access scope. Files are opened relative
-    to one root descriptor opened with `O_DIRECTORY|O_NOFOLLOW`, so neither the root
-    nor an entry can be swapped for a link between the check and the read; `fstat`
+    to one root descriptor obtained by opening each ancestor with
+    `O_DIRECTORY|O_NOFOLLOW`, so neither an ancestor, the root nor an entry can
+    be swapped for a symlink between the check and the read; `fstat`
     gives the identity of the bytes actually read, and the bounded read must reach
     EOF, so a size check can never be satisfied by a prefix of a larger file.
     """
@@ -430,8 +447,8 @@ def _corpus_override() -> ValidatedCorpus | None:
     _require_supported_declarations(entries)
 
     try:
-        root_fd = os.open(root, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
-    except OSError:
+        root_fd = _open_corpus_root(root)
+    except (OSError, ValueError):
         raise _CorpusSourceError("corpus_root_unusable") from None
 
     documents: list[SourceDocument] = []

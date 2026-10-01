@@ -61,7 +61,7 @@ def _case() -> KeywordCase:
     )
 
 
-def _install(monkeypatch, *, on_call=None, answers=None, judgements=None, real_corpus=False):
+def _install(monkeypatch, *, on_call=None, answers=None, judgements=None, real_corpus=False, usage_total=10):
     """Stub the adapter, corpus and case file so only the entry point runs."""
     calls: list[str] = []
     answers = answers if answers is not None else _ANSWERS
@@ -86,7 +86,7 @@ def _install(monkeypatch, *, on_call=None, answers=None, judgements=None, real_c
         async def decide(self, messages: list[dict[str, object]]) -> object:
             content = str(messages[-1]["content"])
             calls.append(content)
-            self.usage.append({"total_tokens": 10})
+            self.usage.append({"total_tokens": usage_total})
             if on_call is not None:
                 on_call(len(calls))
             if "ANSWER_CONTRACT" in content:
@@ -344,3 +344,58 @@ def test_foreign_artifact_created_during_model_call_survives(monkeypatch, capsys
     assert destination.read_bytes() == foreign
     assert "answer_artifact_write_failed" in capsys.readouterr().out
     assert not list(tmp_path.glob("*.part"))
+
+
+@pytest.mark.parametrize("failure", ["malformed", "transport", "runtime"])
+def test_aborted_evaluation_reports_all_sent_usage(monkeypatch, capsys, tmp_path, failure):
+    destination = tmp_path / "artifact.json"
+    monkeypatch.setenv("ULTICODE_ANSWER_EVAL_RESULT", str(destination))
+    def on_call(number):
+        if number >= 2:
+            if failure == "transport":
+                import httpx
+                raise httpx.ReadTimeout("provider response secret")
+            if failure == "runtime":
+                raise RuntimeError("provider response secret")
+    judgements = {"dev-01": "malformed"} if failure == "malformed" else None
+    calls = _install(monkeypatch, on_call=on_call, judgements=judgements)
+    assert e2e.main_sync() == 1
+    output = capsys.readouterr().out
+    expected_calls = 4 if failure == "transport" else 2
+    assert len(calls) == expected_calls
+    assert output.count("ANSWER EVAL USAGE") == 1
+    assert f"calls={expected_calls} total_tokens={expected_calls * 10}" in output
+    assert "provider response secret" not in output
+    assert not destination.exists()
+    # Failure also releases the reservation immediately.
+    _install(monkeypatch)
+    assert e2e.main_sync() == 0
+
+
+@pytest.mark.parametrize("usage_total", [10, None])
+def test_later_answer_abort_keeps_previous_case_usage(monkeypatch, capsys, tmp_path, usage_total):
+    destination = tmp_path / "artifact.json"
+    monkeypatch.setenv("ULTICODE_ANSWER_EVAL_RESULT", str(destination))
+    def on_call(number):
+        if number == 3:
+            raise RuntimeError("private provider payload")
+    calls = _install(monkeypatch, on_call=on_call, usage_total=usage_total)
+    monkeypatch.setattr(e2e, "load_cases", lambda **kwargs: (_case(), _case()))
+    assert e2e.main_sync() == 1
+    output = capsys.readouterr().out
+    assert len(calls) == 3
+    tokens = "unknown" if usage_total is None else "30"
+    assert f"ANSWER EVAL USAGE | cases=2 calls=3 total_tokens={tokens}" in output
+    assert output.count("ANSWER EVAL USAGE") == 1
+    assert "private provider payload" not in output
+    assert "OK answer_eval" not in output
+    assert not destination.exists()
+
+
+def test_success_reports_usage_once(monkeypatch, capsys, tmp_path):
+    _install(monkeypatch)
+    monkeypatch.setenv("ULTICODE_ANSWER_EVAL_RESULT", str(tmp_path / "artifact.json"))
+    assert e2e.main_sync() == 0
+    output = capsys.readouterr().out
+    assert output.count("ANSWER EVAL USAGE") == 1
+    assert "calls=2 total_tokens=20" in output

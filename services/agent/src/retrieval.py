@@ -65,7 +65,17 @@ def _validate_query(query: object) -> str:
     return query
 
 
-def load_sample_corpus() -> tuple[SourceDocument, ...]:
+def _validate_requirement(require_text: str | None) -> str | None:
+    if require_text is None:
+        return None
+    if not isinstance(require_text, str) or not require_text.strip():
+        raise ValueError("invalid search requirement")
+    return require_text.casefold()
+
+
+def load_sample_corpus(
+    manifest: tuple[object, ...] | None = None,
+) -> tuple[SourceDocument, ...]:
     # Resolving a symlinked root would adopt an external directory as trusted,
     # so every child would then pass the per-file containment check below.
     if _CORPUS_DIR.is_symlink():
@@ -93,8 +103,10 @@ def load_sample_corpus() -> tuple[SourceDocument, ...]:
     corpus = tuple(documents)
     # Fail closed: a retrievable document that the authorization manifest does not
     # declare must never reach retrieval. The manifest also has to agree with the
-    # document it claims to describe.
-    assert_manifest_covers(load_manifest(), corpus)
+    # document it claims to describe. A caller that already parsed the bytes it will
+    # later identify passes them here, so validation and that identity cannot come
+    # from two different reads of the file.
+    assert_manifest_covers(manifest if manifest is not None else load_manifest(), corpus)
     return corpus
 
 
@@ -103,12 +115,19 @@ def keyword_search(
     *,
     limit: int = MAX_RESULTS,
     documents: tuple[SourceDocument, ...] | None = None,
+    require_text: str | None = None,
 ) -> tuple[SourceHit, ...]:
     """Rank documents by shared query terms.
 
     ``documents`` defaults to the pinned sample corpus, so the recorded
     deterministic baseline is unchanged; an authorised corpus passes its own
     documents instead of duplicating the ranking logic.
+
+    ``require_text`` restricts the corpus *before* ranking and before the result
+    limit. A caller with a hard requirement — the submission status, for instance
+    — needs that order: filtering afterwards would rank first and then drop
+    documents the requirement excludes, so a lower-ranked document that satisfies
+    it could be pushed out by higher-ranked ones that do not.
     """
     if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= MAX_RESULTS:
         raise ValueError("invalid search limit")
@@ -116,10 +135,13 @@ def keyword_search(
     query_terms = _terms(query_text)
     if not query_terms:
         return ()
+    requirement = _validate_requirement(require_text)
 
     hits: list[tuple[int, str, SourceDocument, tuple[str, ...]]] = []
     for document in documents if documents is not None else load_sample_corpus():
         haystack = document.text.casefold()
+        if requirement is not None and requirement not in haystack:
+            continue
         matched = tuple(term for term in query_terms if term in haystack)
         if matched:
             hits.append((len(set(matched)), document.doc_id, document, matched))

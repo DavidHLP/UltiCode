@@ -18,7 +18,7 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 
-from retrieval import SourceHit, keyword_search, load_sample_corpus
+from retrieval import SourceDocument, SourceHit, keyword_search, load_sample_corpus
 
 _CASES_PATH = Path(__file__).resolve().parents[1] / "data" / "keyword_cases.json"
 #: One-shot confirmation set. It lives in its own versioned file so the routine
@@ -93,10 +93,24 @@ class CaseRecord:
     elapsed_us: int
 
 
-def load_cases(path: Path | None = None) -> tuple[KeywordCase, ...]:
+def load_cases(
+    path: Path | None = None,
+    *,
+    text: str | None = None,
+    documents: tuple[SourceDocument, ...] | None = None,
+) -> tuple[KeywordCase, ...]:
+    """Load and validate the cases.
+
+    ``text`` and ``documents`` let a caller that already snapshotted the case file
+    and the corpus parse the exact bytes it will later identify in its artifact,
+    instead of reopening both and risking a mid-run replacement making the two
+    disagree.
+    """
     case_path = path or _CASES_PATH
+    if text is None:
+        text = case_path.read_text(encoding="utf-8")
     raw_cases = json.loads(
-        case_path.read_text(encoding="utf-8"),
+        text,
         object_pairs_hook=_reject_duplicate_keys,
     )
     if not isinstance(raw_cases, list):
@@ -105,7 +119,10 @@ def load_cases(path: Path | None = None) -> tuple[KeywordCase, ...]:
     seen_ids: set[str] = set()
     # Both arms are wired to the sample corpus, so an id that cannot be retrieved
     # would silently move the limit or arm selection instead of being rejected.
-    known_doc_ids = {document.doc_id for document in load_sample_corpus()}
+    known_doc_ids = {
+        document.doc_id
+        for document in (documents if documents is not None else load_sample_corpus())
+    }
     for raw_case in raw_cases:
         if not isinstance(raw_case, dict):
             raise ValueError("invalid keyword case")

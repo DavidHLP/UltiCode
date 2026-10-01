@@ -31,6 +31,20 @@ def _reject_duplicate_keys(pairs: list[tuple[str, object]]) -> dict[str, object]
         result[key] = value
     return result
 
+
+_SAFE_FINISH_REASONS = frozenset(
+    {"stop", "length", "tool_calls", "content_filter", "function_call"}
+)
+
+
+def _finish_reason_label(value: object) -> str:
+    """Keep provider-controlled finish details out of diagnostics."""
+    if value is None:
+        return "none"
+    if type(value) is str and value in _SAFE_FINISH_REASONS:
+        return value
+    return "other"
+
 _SYSTEM_TEMPLATE = """You are a read-only assistant for the UltiCode platform.
 Reply with ONE JSON object per turn and no prose:
   {{"tool": "<name>", "args": {{...}}}}  to call a tool
@@ -224,9 +238,10 @@ def _parse_decision(content: str, *, finish_reason: object = None) -> ModelDecis
     """Parse one decision.
 
     A non-JSON decision reports its shape, never its text: an empty `content` from
-    a reasoning model and a prose answer are different faults, and without the
-    length and `finish_reason` the caller cannot tell them apart from the message.
+    a reasoning model and a prose answer are different faults. The provider's
+    `finish_reason` is reduced to a fixed label before it reaches diagnostics.
     """
+    finish_label = _finish_reason_label(finish_reason)
     try:
         parsed = json.loads(
             content,
@@ -236,7 +251,7 @@ def _parse_decision(content: str, *, finish_reason: object = None) -> ModelDecis
     except (json.JSONDecodeError, ValueError) as exc:
         raise ModelProtocolError(
             "model decision was not valid JSON "
-            f"(content_len={len(content)}, finish_reason={finish_reason})"
+            f"(content_len={len(content)}, finish_reason={finish_label})"
         ) from exc
     if not isinstance(parsed, dict):
         raise ModelProtocolError("model decision was not an object")

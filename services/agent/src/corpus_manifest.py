@@ -111,21 +111,32 @@ def _require_text(entry: dict[str, object], field: str, doc_id: str) -> str:
     return value.strip()
 
 
-def load_manifest(path: Path | None = None) -> tuple[ManifestEntry, ...]:
-    """Parse a manifest, rejecting incomplete or self-contradictory entries."""
-    manifest_path = path or MANIFEST_PATH
+class ManifestEmpty(ManifestError):
+    """The manifest parsed fine and declared nothing at all.
+
+    A caller that can then tell an intentionally empty corpus from a manifest that
+    will not parse has a reason for each, instead of one generic failure.
+    """
+
+
+def parse_manifest_text(text: str) -> tuple[ManifestEntry, ...]:
+    """Parse manifest **text** into entries, validating every declaration.
+
+    Split from ``load_manifest`` so a caller that already read the file can parse the
+    same bytes once instead of reopening it: empty-list classification and declaration
+    validation then consume one snapshot.
+    """
     try:
-        raw = json.loads(
-            manifest_path.read_text(encoding="utf-8"),
-            object_pairs_hook=_reject_duplicate_keys,
-        )
+        raw = json.loads(text, object_pairs_hook=_reject_duplicate_keys)
     except _DuplicateKey as error:
         raise ManifestError(
             f"corpus manifest has a duplicate key: {error}"
         ) from None
-    except ValueError as error:
+    except (ValueError, RecursionError) as error:
         raise ManifestError(f"corpus manifest is not valid JSON: {error}") from None
     if not isinstance(raw, list) or not raw:
+        if raw == []:
+            raise ManifestEmpty("corpus manifest declares no entries")
         raise ManifestError("corpus manifest must be a non-empty list")
     entries: list[ManifestEntry] = []
     seen: set[str] = set()
@@ -140,26 +151,66 @@ def load_manifest(path: Path | None = None) -> tuple[ManifestEntry, ...]:
             field: _require_text(item, field, doc_id)
             for field in (*REQUIRED_FIELDS, MANIFEST_PROVENANCE_FIELD)
         }
-        if CONTENT_DIGEST_FIELD not in values:
-            raise ManifestError(f"{doc_id}: missing {CONTENT_DIGEST_FIELD}")
-        if values[MANIFEST_PROVENANCE_FIELD] != EXPECTED_SOURCE_TRUST:
+        entries.append(ManifestEntry(**values))
+    # Declaration rules live in one place: parsed entries and entries arriving in a
+    # snapshot from the acceptance preflight run the same checks, so the two cannot
+    # drift apart. Parsing above only assembles and enforces field presence.
+    validated = tuple(entries)
+    validate_entries(validated)
+    return validated
+
+
+def load_manifest(path: Path | None = None) -> tuple[ManifestEntry, ...]:
+    """Read and parse a manifest, rejecting incomplete or self-contradictory entries."""
+    manifest_path = path or MANIFEST_PATH
+    try:
+        text = manifest_path.read_text(encoding="utf-8")
+    except OSError as error:
+        raise ManifestError(f"corpus manifest is unreadable: {error}") from None
+    except UnicodeError as error:
+        raise ManifestError(f"corpus manifest is not UTF-8: {error}") from None
+    return parse_manifest_text(text)
+
+
+def validate_entries(entries: tuple[ManifestEntry, ...]) -> None:
+    """Re-apply the declaration rules to already-parsed entries.
+
+    ``load_manifest`` applies them while parsing; a caller that is handed a snapshot
+    instead of a path must not be able to skip them, so the rules live in one place
+    and both callers run them. Every check mirrors what parsing enforces: fields
+    present and non-blank, declared once, an expected source trust, a supported
+    projection, a known material class, and no real source hiding behind a synthetic
+    permission marker.
+    """
+    seen: set[str] = set()
+    for entry in entries:
+        doc_id = entry.doc_id
+        if not str(doc_id or "").strip():
+            raise ManifestError("manifest entry has a blank doc_id")
+        if doc_id in seen:
+            raise ManifestError(f"{doc_id}: declared twice")
+        seen.add(doc_id)
+        for field in (*REQUIRED_FIELDS, MANIFEST_PROVENANCE_FIELD):
+            value = getattr(entry, field, None)
+            if not isinstance(value, str) or not value.strip():
+                raise ManifestError(f"{doc_id}: missing or blank {field}")
+        if entry.source_trust != EXPECTED_SOURCE_TRUST:
             raise ManifestError(
-                f"{doc_id}: {MANIFEST_PROVENANCE_FIELD} must be "
-                f"{EXPECTED_SOURCE_TRUST!r}, which is what retrieval emits"
+                f"{doc_id}: source_trust must be {EXPECTED_SOURCE_TRUST!r}, "
+                "which is what retrieval emits"
             )
-        if values["model_input_projection"] not in SUPPORTED_PROJECTIONS:
+        if entry.model_input_projection not in SUPPORTED_PROJECTIONS:
             raise ManifestError(
-                f"{doc_id}: model_input_projection must be one of {SUPPORTED_PROJECTIONS}, "
-                "so the record cannot understate what retrieval sends to the model"
+                f"{doc_id}: model_input_projection must be one of "
+                f"{SUPPORTED_PROJECTIONS}, so the record cannot understate what "
+                "retrieval sends to the model"
             )
-        if values["sample_kind"] not in {"synthetic", "real"}:
+        if entry.sample_kind not in {"synthetic", "real"}:
             raise ManifestError(f"{doc_id}: sample_kind must be synthetic or real")
-        if values["sample_kind"] == "real" and values["permission"] in SYNTHETIC_PERMISSIONS:
+        if entry.sample_kind == "real" and entry.permission in SYNTHETIC_PERMISSIONS:
             raise ManifestError(
                 f"{doc_id}: a real source cannot carry a synthetic permission marker"
             )
-        entries.append(ManifestEntry(**values))
-    return tuple(entries)
 
 
 def assert_manifest_covers(

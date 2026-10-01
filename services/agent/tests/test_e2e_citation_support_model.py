@@ -48,20 +48,20 @@ def _hold(lock: Path) -> object:
 def _fail_second_publish(monkeypatch) -> None:
     """Fail the verdict publication, after the sidecar has been published.
 
-    The artifacts land through an exclusive write plus a rename, so the failure is
-    injected at the rename rather than at a `Path.write_text` the writer no longer
+    The artifacts land through an exclusive write plus a no-clobber hard link, so the failure is
+    injected at the link rather than at a `Path.write_text` the writer no longer
     calls.
     """
-    original = smoke.os.replace
+    original = smoke.os.link
     seen = {"n": 0}
 
-    def flaky(source, target):
+    def flaky(source, target, **kwargs):
         seen["n"] += 1
         if seen["n"] == 2:  # the verdict artifact, published after the sidecar
             raise OSError("no space left on device")
-        return original(source, target)
+        return original(source, target, **kwargs)
 
-    monkeypatch.setattr(smoke.os, "replace", flaky)
+    monkeypatch.setattr(smoke.os, "link", flaky)
 
 
 def _citation(index: int = 0) -> dict[str, object]:
@@ -821,13 +821,13 @@ def test_cleanup_leaves_a_sibling_destination_temporary_alone(tmp_path) -> None:
     other = tmp_path / "verdicts.json.backup.abc123.part"
     other.write_text("another run's publication", encoding="utf-8")
 
-    smoke._discard_artifacts(destination)
+    smoke._discard_artifacts({})
 
     assert other.read_text(encoding="utf-8") == "another run's publication"
 
 
 def test_a_failed_publication_leaves_no_temporary_of_its_own(tmp_path) -> None:
-    """The writer removes its own temp when the rename cannot happen."""
+    """The writer removes its own temp when publication cannot happen."""
     destination = tmp_path / "verdicts.json"
 
     with pytest.raises(OSError):
@@ -1511,3 +1511,109 @@ def test_a_model_that_obeys_the_contract_passes_the_adapter_parser() -> None:
     # And the contract must not contradict the no-tools system message, which
     # already asks for `{"answer": "<answer>"}`.
     assert '{"answer"' in smoke.JUDGE_CONTRACT
+
+
+@pytest.mark.parametrize("separator", ["\u2028", "\u0085", "\v", "\f", "\n", "\r\n", "\r"])
+def test_source_positions_count_only_cr_lf(monkeypatch, tmp_path, separator):
+    directory, manifest = _write_corpus(tmp_path, monkeypatch)
+    entries = _load_entries(manifest)
+    text = "Wrong Answer first" + separator + "second"
+    (directory / "status-1.md").write_bytes(text.encode("utf-8"))
+    entries[0]["source_position"] = "lines 1-2" if separator in ("\n", "\r\n", "\r") else "lines 1-1"
+    entries[0]["content_digest"] = content_digest(text)
+    manifest.write_text(json.dumps(entries), encoding="utf-8")
+    snapshot = smoke._corpus_override()
+    assert snapshot.documents[0].source_position == entries[0]["source_position"]
+    entries[0]["source_position"] = "lines 1-9"
+    manifest.write_text(json.dumps(entries), encoding="utf-8")
+    with pytest.raises(smoke._CorpusSourceError, match="position_mismatch"):
+        smoke._corpus_override()
+
+
+@pytest.mark.parametrize("kind", ["fifo", "directory", "symlink", "oversize"])
+def test_external_manifest_unsafe_inputs_fail_without_blocking(monkeypatch, tmp_path, kind):
+    _, manifest = _write_corpus(tmp_path, monkeypatch)
+    manifest.unlink()
+    if kind == "fifo":
+        os.mkfifo(manifest)
+    elif kind == "directory":
+        manifest.mkdir()
+    elif kind == "symlink":
+        manifest.symlink_to(tmp_path / "missing")
+    else:
+        with manifest.open("wb") as stream:
+            stream.truncate(smoke.MAX_MANIFEST_BYTES + 1)
+    code = "import e2e_citation_support_model as s; " + "\ntry: s._corpus_override()\nexcept s._CorpusSourceError as e: print(str(e))\nelse: raise AssertionError('accepted')"
+    result = subprocess.run([sys.executable, "-c", code], cwd=Path(__file__).parents[1],
+                            env=os.environ.copy(), capture_output=True, text=True, timeout=5)
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.strip() == "corpus_manifest_unusable"
+
+
+def test_manifest_growth_is_bounded_even_if_stat_size_was_small(monkeypatch, tmp_path):
+    manifest = tmp_path / "manifest"
+    manifest.write_bytes(b"x" * (smoke.MAX_MANIFEST_BYTES + 1))
+    real_fstat = smoke.os.fstat
+    def small_stat(fd):
+        values = list(real_fstat(fd))
+        values[6] = 0
+        return os.stat_result(values)
+    monkeypatch.setattr(smoke.os, "fstat", small_stat)
+    with pytest.raises(OSError, match="byte limit"):
+        smoke._read_external_manifest(manifest)
+
+
+def test_cleanup_preserves_replacement_of_owned_artifact(tmp_path):
+    destination = tmp_path / "verdicts.json"
+    identity = smoke._publish(destination, "ours")
+    foreign = tmp_path / "foreign"
+    foreign.write_bytes(b"foreign")
+    foreign.replace(destination)
+    smoke._discard_artifacts({destination: identity})
+    assert destination.read_bytes() == b"foreign"
+
+
+@pytest.mark.parametrize("sidecar", [False, True])
+def test_late_foreign_citation_destination_survives(monkeypatch, tmp_path, capsys, sidecar):
+    calls = []
+    _install(monkeypatch, tmp_path, ['{"supports": true, "derivable": true}'] * 3, calls)
+    destination = tmp_path / "verdicts.json"
+    foreign_path = smoke._meta_path(destination) if sidecar else destination
+    foreign = b"foreign\x00\xff"
+    model_type = smoke.DeepseekModel
+    original = model_type.decide
+    async def decide(self, messages):
+        if not calls:
+            foreign_path.write_bytes(foreign)
+        return await original(self, messages)
+    monkeypatch.setattr(model_type, "decide", decide)
+    assert smoke.main_sync() == 1
+    assert foreign_path.read_bytes() == foreign
+    assert "verdict_write_failed" in capsys.readouterr().out
+    if not sidecar:
+        assert not smoke._meta_path(destination).exists()
+    assert not list(tmp_path.glob("*.part"))
+
+
+def test_nonregular_manifest_is_rejected_before_any_read(monkeypatch, tmp_path):
+    manifest = tmp_path / "manifest"
+    manifest.write_bytes(b"data")
+    real_fstat = smoke.os.fstat
+    def device_stat(fd):
+        import stat
+        values = list(real_fstat(fd))
+        values[0] = stat.S_IFCHR | 0o600
+        return os.stat_result(values)
+    def forbidden_read(*args):
+        raise AssertionError("nonregular descriptor must never be read")
+    monkeypatch.setattr(smoke.os, "fstat", device_stat)
+    monkeypatch.setattr(smoke.os, "read", forbidden_read)
+    with pytest.raises(OSError, match="regular file"):
+        smoke._read_external_manifest(manifest)
+
+
+def test_manifest_byte_limit_accepts_exact_boundary(tmp_path):
+    manifest = tmp_path / "manifest"
+    payload = b" " * smoke.MAX_MANIFEST_BYTES
+    manifest.write_bytes(payload)
+    assert smoke._read_external_manifest(manifest) == payload

@@ -147,11 +147,11 @@ def _meta_path(path: Path) -> Path:
     return path.with_suffix(path.suffix + ".meta.json")
 
 
-def _publish(target: Path, text: str) -> None:
+def _publish(target: Path, text: str) -> tuple[int, int]:
     """Write one artifact atomically.
 
     A reader watching the destination — an automation step, or the next run — must
-    never observe a half-written file, so the content lands via a rename.
+    never observe a half-written file, so the content lands via an exclusive hard link.
     """
     temporary = target.with_name(f"{target.name}.{secrets.token_hex(4)}.part")
     # Whether *this* invocation created the path. An O_EXCL failure means the name
@@ -161,7 +161,7 @@ def _publish(target: Path, text: str) -> None:
     try:
         # Exclusive and no-follow: in a shared destination directory a pre-created
         # symlink at the temporary's name would otherwise be written through, and the
-        # rename would then publish the link's target as this run's verdicts.
+        # publication could otherwise expose foreign bytes as this run's verdicts.
         descriptor = os.open(
             temporary,
             os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
@@ -170,13 +170,14 @@ def _publish(target: Path, text: str) -> None:
         created = True
         with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
             stream.write(text)
-        os.replace(temporary, target)
-        created = False  # the rename consumed it
+            info = os.fstat(stream.fileno())
+        os.link(temporary, target, follow_symlinks=False)
+        return info.st_dev, info.st_ino
     finally:
         # Only this exact path, and only when we created it. A glob by target prefix
         # would also match a *different*
         # run's temporary — `verdicts.json.backup.<random>.part` when this target is
-        # `verdicts.json` — and delete work that run still needs for its own rename.
+        # `verdicts.json` — and delete work that run still needs for its own publication.
         if created:
             try:
                 temporary.unlink()
@@ -184,16 +185,13 @@ def _publish(target: Path, text: str) -> None:
                 pass
 
 
-def _discard_artifacts(path: Path) -> None:
-    """Remove the artifacts this run published or half-published.
-
-    Only the two exact destinations: the claim refused the path when either already
-    existed, so whatever is here is this run's. Temporaries are removed by the writer
-    that created them.
-    """
-    for target in (path, _meta_path(path)):
+def _discard_artifacts(owned: dict[Path, tuple[int, int]]) -> None:
+    """Check our published inode before cleanup; this is not atomic compare-and-unlink."""
+    for target, identity in owned.items():
         try:
-            target.unlink()
+            info = target.lstat()
+            if (info.st_dev, info.st_ino) == identity:
+                target.unlink()
         except OSError:
             pass
 
@@ -305,6 +303,29 @@ class _CorpusSourceError(ValueError):
     """A half-configured or unusable corpus override."""
 
 
+# A declaration file is small metadata; read at most this many bytes plus EOF probe.
+MAX_MANIFEST_BYTES = 1024 * 1024
+
+
+def _read_external_manifest(path: Path) -> bytes:
+    descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    try:
+        info = os.fstat(descriptor)
+        if not stat.S_ISREG(info.st_mode) or info.st_size > MAX_MANIFEST_BYTES:
+            raise OSError("manifest must be a bounded regular file")
+        chunks = []
+        remaining = MAX_MANIFEST_BYTES + 1
+        while remaining:
+            chunk = os.read(descriptor, min(remaining, 65536))
+            if not chunk:
+                return b"".join(chunks)
+            chunks.append(chunk)
+            remaining -= len(chunk)
+        raise OSError("manifest exceeds byte limit")
+    finally:
+        os.close(descriptor)
+
+
 def _require_supported_declarations(entries: tuple[ManifestEntry, ...]) -> None:
     """Keep corpus authorization policy pinned in code, not self-declared in data."""
     pinned = (
@@ -387,8 +408,8 @@ def _corpus_override() -> ValidatedCorpus | None:
     # snapshot. Decoding is a separate step so a CRLF file is hashed as written
     # rather than as text mode normalised it.
     try:
-        manifest_bytes = Path(manifest).read_bytes()
-    except OSError:
+        manifest_bytes = _read_external_manifest(Path(manifest))
+    except (OSError, ValueError):
         raise _CorpusSourceError("corpus_manifest_unusable") from None
     try:
         manifest_text = manifest_bytes.decode("utf-8")
@@ -496,7 +517,7 @@ def _corpus_override() -> ValidatedCorpus | None:
             # declaring `lines 900-999` would otherwise travel into the citation as a
             # verified location that does not exist, and leading blank lines are still
             # physical lines the position has to cover. First and last non-blank.
-            physical = raw.splitlines()
+            physical = re.split(r"\r\n|\r|\n", raw)
             populated = [index + 1 for index, line in enumerate(physical) if line.strip()]
             source_position = f"lines {populated[0]}-{populated[-1]}"
             if entry.source_position != source_position:
@@ -549,7 +570,7 @@ def _default_corpus() -> ValidatedCorpus:
     """
     try:
         manifest_bytes = MANIFEST_PATH.read_bytes()
-    except OSError:
+    except (OSError, ValueError):
         raise _CorpusSourceError("corpus_manifest_unusable") from None
     try:
         manifest_text = manifest_bytes.decode("utf-8")
@@ -799,17 +820,19 @@ async def main() -> int:
         "submission_facts_digest": facts_digest,
         "required_rows": required,
     }
+    owned: dict[Path, tuple[int, int]] = {}
     try:
         # Metadata first, verdicts last: a reader keyed on the verdict file then
         # never sees verdicts whose sidecar is missing.
-        _publish(_meta_path(path), json.dumps(meta, ensure_ascii=False, indent=2))
-        _publish(path, json.dumps(verdicts, ensure_ascii=False, indent=2))
+        owned[_meta_path(path)] = _publish(
+            _meta_path(path), json.dumps(meta, ensure_ascii=False, indent=2)
+        )
+        owned[path] = _publish(path, json.dumps(verdicts, ensure_ascii=False, indent=2))
         # Published: the reservation goes.
         _release_unfinished_claim(lock)
     except OSError as error:
-        # Both artifacts go: a populated sidecar left next to a missing verdict
-        # file would make every later run on this explicit path fail.
-        _discard_artifacts(path)
+        # Remove our published sidecar, but preserve late foreign destinations.
+        _discard_artifacts(owned)
         print(
             f"FAIL reason=verdict_write_failed detail={_path_label(path)} "
             f"({type(error).__name__})"

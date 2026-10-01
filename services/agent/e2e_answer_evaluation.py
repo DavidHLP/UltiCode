@@ -44,7 +44,6 @@ from deepseek_model import (
 )
 from e2e_citation_support_model import (
     _claim_verdict_file as _claim_artifact,
-    _discard_artifacts,
     _publish,
     _release_unfinished_claim,
 )
@@ -230,8 +229,8 @@ async def main() -> int:
             return 1
 
         try:
-            # Published by rename, from the reserved run: a reader never sees a
-            # half-written artifact, and two runs cannot land on one destination.
+            # Publish complete bytes without replacing a late-arriving destination.
+            # On failure no artifact belongs to us; _publish cleans its own temp.
             _publish(
                 artifact,
                 json.dumps(
@@ -255,7 +254,6 @@ async def main() -> int:
                 + "\n",
             )
         except OSError as error:
-            _discard_artifacts(artifact)
             print(
                 f"FAIL reason=answer_artifact_write_failed "
                 f"detail={artifact.name} ({type(error).__name__})"

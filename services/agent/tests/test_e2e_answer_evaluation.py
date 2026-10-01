@@ -329,3 +329,18 @@ def test_a_runtime_failure_releases_the_claim(monkeypatch, capsys, tmp_path) -> 
     _install(monkeypatch)
     assert e2e.main_sync() == 0
     assert destination.exists()
+
+
+def test_foreign_artifact_created_during_model_call_survives(monkeypatch, capsys, tmp_path):
+    destination = tmp_path / "artifact.json"
+    foreign = b'foreign evidence\x00\xff'
+    def on_call(number):
+        if number == 1:
+            destination.write_bytes(foreign)
+    calls = _install(monkeypatch, on_call=on_call)
+    monkeypatch.setenv("ULTICODE_ANSWER_EVAL_RESULT", str(destination))
+    assert e2e.main_sync() == 1
+    assert len(calls) == 2
+    assert destination.read_bytes() == foreign
+    assert "answer_artifact_write_failed" in capsys.readouterr().out
+    assert not list(tmp_path.glob("*.part"))

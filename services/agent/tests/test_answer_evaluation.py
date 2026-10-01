@@ -10,17 +10,21 @@ evaluation that was only ever meant for the development set.
 from __future__ import annotations
 
 import asyncio
+import json
 
 import httpx
 import pytest
 
 from answer_evaluation import (
     AnswerEvaluationError,
+    JUDGE_CONTRACT,
+    JUDGE_EXAMPLE,
+    _judgement_of,
     development_cases,
     evaluate_answer_cases,
     summarize,
 )
-from deepseek_model import ModelProtocolError
+from deepseek_model import ModelProtocolError, _parse_decision
 from keyword_evaluation import DEFERRED, KeywordCase, load_cases
 
 
@@ -140,6 +144,31 @@ def test_answer_generation_does_not_see_expected_outcomes() -> None:
     assert "EXPECTED" not in answer_prompt
     assert "ALLOWED" not in answer_prompt
     assert "FORBIDDEN" not in answer_prompt
+
+
+def test_a_judge_cannot_classify_an_uncited_answer_as_cite() -> None:
+    answers = {"dev-01": '{"text": "没有可引用的来源。", "citations": []}'}
+    judgements = {
+        "dev-01": '{"citation_support": false, "answer_completed": true, "observed_behavior": "cite"}'
+    }
+
+    with pytest.raises(AnswerEvaluationError, match="no selected citations as cite"):
+        _run([_case()], answers, judgements)
+
+
+def test_judge_contract_example_is_valid_adapter_output() -> None:
+    assert JUDGE_EXAMPLE in JUDGE_CONTRACT
+    outer = json.loads(JUDGE_EXAMPLE)
+    assert set(outer) == {"answer"}
+    assert isinstance(outer["answer"], str)
+    inner = json.loads(outer["answer"])
+    assert set(inner) == {
+        "citation_support",
+        "answer_completed",
+        "observed_behavior",
+    }
+    assert _parse_decision(JUDGE_EXAMPLE, finish_reason="stop").text == outer["answer"]
+    assert _judgement_of(outer["answer"]) == (False, False, "no_evidence")
 
 
 def test_only_answer_citations_are_recorded_and_judged(monkeypatch) -> None:

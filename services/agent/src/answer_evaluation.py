@@ -54,13 +54,27 @@ ANSWER_CONTRACT = (
     "citations array when the answer cites no retrieved fragment."
 )
 #: Only the judging pass sees the case's expected, allowed, and forbidden outcomes.
+JUDGE_EXAMPLE = json.dumps(
+    {
+        "answer": json.dumps(
+            {
+                "citation_support": False,
+                "answer_completed": False,
+                "observed_behavior": "no_evidence",
+            },
+            separators=(",", ":"),
+        )
+    },
+    separators=(",", ":"),
+)
 JUDGE_CONTRACT = (
     f"{_JUDGE_MARKER}: judge the ANSWER against the CASE, not the question. "
-    'Reply with exactly one JSON object of the form {"answer": "<json-string>"} '
-    "where <json-string> is itself a JSON object with exactly three fields: "
-    '{"citation_support": <do the cited fragments support the answer>, '
-    '"answer_completed": <does the answer satisfy the case expectation>, '
-    '"observed_behavior": "<cite|no_evidence|refuse|clarify>" — classify it from '
+    'Reply with exactly one JSON object having the single string field "answer". '
+    "That string must contain a JSON object with exactly three fields: "
+    '"citation_support" and "answer_completed" are booleans; '
+    '"observed_behavior" is one of "cite", "no_evidence", "refuse", or "clarify". '
+    f"For example, a valid response is {JUDGE_EXAMPLE}. "
+    "Classify observed behavior from "
     "what the ANSWER text actually does, not from what it claims about itself. "
     "Do not put any other key at the top level."
 )
@@ -248,6 +262,10 @@ async def evaluate_answer_cases(
         )
         verdict_raw, judge_attempts = await _call_with_retry(model, judge_prompt, attempts)
         support, completed, observed = _judgement_of(verdict_raw)
+        if observed == "cite" and not citations:
+            raise AnswerEvaluationError(
+                "judge classified an answer with no selected citations as cite"
+            )
 
         elapsed_us = int((time.perf_counter() - started) * 1_000_000)
         judgements.append(

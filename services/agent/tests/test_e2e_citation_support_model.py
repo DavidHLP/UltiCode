@@ -1326,6 +1326,58 @@ def test_the_default_runner_binds_one_pinned_manifest_snapshot(
     ).hexdigest()
 
 
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [("permission", "unreviewed-permission"), ("scope", "unreviewed scope")],
+)
+def test_the_default_manifest_policy_is_pinned_before_external_calls(
+    monkeypatch, capsys, tmp_path, field, value
+) -> None:
+    """A valid content binding cannot change the default corpus policy or reach login."""
+    monkeypatch.delenv("ULTICODE_CITATION_CORPUS_DIR", raising=False)
+    monkeypatch.delenv("ULTICODE_CITATION_CORPUS_MANIFEST", raising=False)
+    model_calls: list[str] = []
+    _install(
+        monkeypatch,
+        tmp_path,
+        ['{"supports": true, "derivable": true}'] * 3,
+        model_calls,
+    )
+    entries = json.loads(smoke.MANIFEST_PATH.read_text(encoding="utf-8"))
+    entries[0][field] = value
+    manifest = tmp_path / "default-manifest.json"
+    manifest.write_text(json.dumps(entries, ensure_ascii=False), encoding="utf-8")
+    monkeypatch.setattr(smoke, "MANIFEST_PATH", manifest)
+
+    external_calls: list[str] = []
+
+    class _GuardClient:
+        def __init__(self, *_args: object, **_kwargs: object) -> None:
+            external_calls.append("client")
+
+        async def __aenter__(self):
+            external_calls.append("login_context")
+            return self
+
+        async def __aexit__(self, *_args: object) -> None:
+            return None
+
+        async def login(self, *_args: object) -> None:
+            external_calls.append("login")
+
+    async def _first_submission(_tools: object):
+        external_calls.append("submission_scan")
+        return None
+
+    monkeypatch.setattr(smoke, "UlticodeClient", _GuardClient)
+    monkeypatch.setattr(smoke, "first_wrong_answer_submission", _first_submission)
+
+    assert smoke.main_sync() == 1
+    assert "FAIL reason=corpus_declaration_unsupported" in capsys.readouterr().out
+    assert external_calls == []
+    assert model_calls == []
+
+
 def test_a_manifest_that_disagrees_with_its_files_is_refused_at_preflight(
     monkeypatch, capsys, tmp_path
 ) -> None:

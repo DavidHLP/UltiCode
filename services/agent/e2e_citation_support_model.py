@@ -35,6 +35,7 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 from citation_review import build_worksheet, load_verdicts, summarize
 from corpus_manifest import (
     MANIFEST_PATH,
+    ManifestEntry,
     ManifestEmpty,
     ManifestError,
     assert_manifest_covers,
@@ -304,6 +305,20 @@ class _CorpusSourceError(ValueError):
     """A half-configured or unusable corpus override."""
 
 
+def _require_supported_declarations(entries: tuple[ManifestEntry, ...]) -> None:
+    """Keep corpus authorization policy pinned in code, not self-declared in data."""
+    pinned = (
+        ACCEPTED_PERMISSION,
+        ACCEPTED_SCOPE,
+        ACCEPTED_SAMPLE_KIND,
+        ACCEPTED_ACCESS_SCOPE,
+    )
+    for entry in entries:
+        declared = (entry.permission, entry.scope, entry.sample_kind, entry.access_scope)
+        if declared != pinned:
+            raise _CorpusSourceError("corpus_declaration_unsupported")
+
+
 #: CRLF and lone CR are one line break, and trailing horizontal whitespace at the
 #: end of a line is invisible. Neither is content.
 _CARRIAGE_RETURN = re.compile(r"\r\n?")
@@ -391,16 +406,7 @@ def _corpus_override() -> ValidatedCorpus | None:
         # evidence line, not a traceback that leaks configured paths.
         raise _CorpusSourceError("corpus_manifest_unusable") from None
 
-    pinned = (
-        ACCEPTED_PERMISSION,
-        ACCEPTED_SCOPE,
-        ACCEPTED_SAMPLE_KIND,
-        ACCEPTED_ACCESS_SCOPE,
-    )
-    for entry in entries:
-        declared = (entry.permission, entry.scope, entry.sample_kind, entry.access_scope)
-        if declared != pinned:
-            raise _CorpusSourceError("corpus_declaration_unsupported")
+    _require_supported_declarations(entries)
 
     try:
         root_fd = os.open(root, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
@@ -555,6 +561,7 @@ def _default_corpus() -> ValidatedCorpus:
         raise _CorpusSourceError("corpus_empty") from None
     except ManifestError:
         raise _CorpusSourceError("corpus_manifest_unusable") from None
+    _require_supported_declarations(entries)
     try:
         # The loader still re-binds the manifest to the documents it produced; a
         # mismatch is one fixed corpus reason here, not a halfway-run failure.

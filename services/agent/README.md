@@ -96,6 +96,56 @@ the deterministic sample slice only. The executable keyword evaluation is versio
 module; authorized-corpus, vector-retrieval, real-model evaluation, and isolation evidence are
 tracked in the U02 Linear tasks.
 
+### Six-category boundary evaluation (DAV-58)
+
+`e2e_boundary_evaluation.py` runs the *real* model through the *real* tool loop
+(`get_problem`, `get_my_submissions`, `get_problem_submissions` plus a bounded
+`search_evidence(query)`) over a separate synthetic boundary corpus, and records
+one row per case for the six categories: `missing_id`, `no_tool`, `no_hit`,
+`tool_failure`, `source_injection`, `wrong_citation`. Behaviour ("did the expected
+boundary hold") and the citation gate (`exists` / `supports` / `derivable`) are
+reported apart, and a negative is retained rather than dropped. The only injected
+fault is the `tool_failure` handler wrapper, labelled as injected; the model is
+always real. The run fails closed when the citation gate rejects an emitted
+citation, when a behaviour misses, or when a program-level negative control (a
+forged citation, an unsupported claim) is not rejected.
+
+```bash
+ULTICODE_BOUNDARY_EVAL=1 DEEPSEEK_MODEL=deepseek-flash DEEPSEEK_API_KEY=... \
+  uv run python e2e_boundary_evaluation.py
+```
+
+It is opt-in (`ULTICODE_BOUNDARY_EVAL=1`) and needs only the explicitly authorized
+model alias and the process-shared budget ledger — the read-only tool set is backed
+by an in-memory synthetic client (`SyntheticBoundaryClient`), so no real stack
+credential or user data is sent to the model or written to the artifact. The run
+emits only counts and labels on stdout; the synthetic material and answers go to
+the run-scoped artifact under the state directory. Each case carries an explicit,
+non-vacuous predicate (required tools, forbidden tools, forbidden citations, a
+required failure or injection delivery, and any required refusal/clarify marker),
+so a case cannot pass by answering nothing. The `corpus_boundary/…` material is
+synthetic and bound to `data/boundary_manifest.json`; it is separate from the
+pinned sample corpus.
+The boundary runner refuses a dirty or unidentified checkout before any provider call. Its
+protected run artifact records UTC start/end, full Git SHA, clean state, source/prompt/schema/
+tool/config digests, token usage, and per-case actual versus reserved micro-USD; unknown provider
+usage remains unknown while its reservation stays charged.
+
+### Dual-account isolation contrast (DAV-53)
+
+`e2e_account_isolation.py` registers two throwaway non-admin accounts, gives each
+one submission whose source carries a distinct synthetic canary comment, and
+checks the HTTP contrast (own / cross / by-problem listing / anonymous / public).
+It scans refusal bodies and private listings for foreign IDs, canaries, source-bearing
+fields, and the fixture code even when its canary comment was stripped. Public problem
+`starter_code` remains allowed. A correct refusal status with leaked content still fails.
+When an authorized model is configured it also runs the agent leg: the same session, the
+real read-only tool set, and a model prompted to switch identity and read the other
+account's id — the harness asserts foreign ids/canaries and source never reach tool
+results or model context, and fails on any unexposed tool attempt. Without a configured
+model, the HTTP contrast is reported but the run exits nonzero as `INCOMPLETE`;
+that is not a full DAV-53 pass.
+
 ### Corpus override for the acceptance entry point
 
 `e2e_citation_support_model.py` can analyse a corpus outside the repository instead of the

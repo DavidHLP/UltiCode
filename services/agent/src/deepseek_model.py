@@ -17,6 +17,7 @@ from types import TracebackType
 import httpx
 
 from agent_loop import ModelDecision, ToolCall
+from model_budget import BudgetLimitExceeded, ModelBudget, worst_case_micro_usd
 
 
 def _reject_json_constant(_: str) -> object:
@@ -115,19 +116,29 @@ class DeepseekModel:
         max_tokens: int = MAX_TOKENS,
         max_prompt_tokens: int = MAX_PROMPT_TOKENS,
         max_calls: int = MAX_CALLS,
+        budget: ModelBudget | None = None,
+        budget_purpose: str = "ordinary",
+        thinking_type: str | None = None,
     ) -> None:
         if not api_key:
             raise ValueError("api_key is required")
         if max_tokens < 1 or max_prompt_tokens < 1 or max_calls < 1:
             raise ValueError("cost limits must be positive")
+        if thinking_type not in {None, "disabled", "enabled"}:
+            raise ValueError("invalid thinking type")
         self._max_tokens = max_tokens
         self._max_prompt_tokens = max_prompt_tokens
         self._max_calls = max_calls
         self.calls_made = 0
-        # Each entry's token counts may be None when the provider did not report
-        # usage; that is recorded as unknown, never as zero.
         self.usage: list[dict[str, int | None]] = []
+        #: Sanitized provider response ``model`` identifiers, one per sent call.
+        #: ``unknown`` when the provider did not report one.
+        self.response_models: list[str] = []
+        self.metering: list[dict[str, int | None]] = []
         self._model = model
+        self._budget = budget
+        self._budget_purpose = budget_purpose
+        self._thinking_type = thinking_type
         if tool_specs:
             lines = "\n".join(
                 f"  - {name}: {spec}" for name, spec in sorted(tool_specs.items())
@@ -170,8 +181,6 @@ class DeepseekModel:
             elif role in ("user", "assistant"):
                 api_messages.append({"role": role, "content": content})
 
-        # Cost guards run before the request: max_tokens bounds output, but the
-        # prompt side is billed too, so both sides and the call count are capped.
         prompt_tokens_estimate = (
             sum(
                 len(message["content"].encode("utf-8")) * PROMPT_TOKEN_UPPER_BYTES
@@ -183,22 +192,43 @@ class DeepseekModel:
             raise ModelBudgetExceeded("prompt exceeds the configured token budget")
         if self.calls_made >= self._max_calls:
             raise ModelBudgetExceeded("call budget exhausted")
+        reservation = None
+        if self._budget is not None:
+            try:
+                reservation = self._budget.reserve(
+                    prompt_tokens_estimate,
+                    self._max_tokens,
+                    purpose=self._budget_purpose,
+                )
+            except BudgetLimitExceeded as exc:
+                raise ModelBudgetExceeded(str(exc)) from None
         self.calls_made += 1
 
 
-        # Recorded before the body is read: a billed call whose payload turns out
-        # to be malformed must still leave an accounting trace.
-        self.usage.append(dict(_UNKNOWN_USAGE))  # a copy, not the shared constant
-        response = await self._client.post(
-            "/chat/completions",
-            json={
-                "model": self._model,
-                "messages": api_messages,
-                "temperature": 0,
-                "max_tokens": self._max_tokens,
-            },
-        )
+        body: dict[str, object] = {
+            "model": self._model,
+            "messages": api_messages,
+            "temperature": 0,
+            "max_tokens": self._max_tokens,
+        }
+        if self._thinking_type is not None:
+            body["thinking"] = {"type": self._thinking_type}
+        self.usage.append(dict(_UNKNOWN_USAGE))
+        self.response_models.append("unknown")
+        meter = {
+            "reserved_micro_usd": reservation.reserved_micro_usd if reservation else None,
+            "actual_micro_usd": None,
+        }
+        self.metering.append(meter)
+        try:
+            response = await self._client.post("/chat/completions", json=body)
+        except BaseException:
+            if reservation is not None:
+                self._budget.settle(reservation, None)
+            raise
         if response.status_code != 200:
+            if reservation is not None:
+                self._budget.settle(reservation, None)
             raise RuntimeError(f"deepseek http={response.status_code}")
 
         try:
@@ -208,13 +238,27 @@ class DeepseekModel:
                 object_pairs_hook=_reject_duplicate_keys,
             )
         except (json.JSONDecodeError, ValueError) as exc:
+            if reservation is not None:
+                self._budget.settle(reservation, None)
             raise ModelProtocolError("model response was not JSON") from exc
         if not isinstance(payload, dict):
+            if reservation is not None:
+                self._budget.settle(reservation, None)
             raise ModelProtocolError("model response was not an object")
-        # A billed response must be accounted for even when the protocol is
-        # malformed, so usage is recorded before any structural validation.
-        # Replace the placeholder with whatever the provider actually reported.
         self.usage[-1] = _usage_of(payload)
+        self.response_models[-1] = _response_model_of(payload)
+        usage = self.usage[-1]
+        prompt_tokens = usage.get("prompt_tokens")
+        completion_tokens = usage.get("completion_tokens")
+        if isinstance(prompt_tokens, int) and isinstance(completion_tokens, int):
+            meter["actual_micro_usd"] = worst_case_micro_usd(
+                prompt_tokens, completion_tokens
+            )
+        if reservation is not None:
+            try:
+                self._budget.settle(reservation, usage)
+            except BudgetLimitExceeded as exc:
+                raise ModelBudgetExceeded(str(exc)) from None
         choices = payload.get("choices")
         if not isinstance(choices, list) or not choices or not isinstance(choices[0], dict):
             raise ModelProtocolError("model response choices were malformed")
@@ -301,3 +345,16 @@ def _usage_of(payload: dict[str, object]) -> dict[str, int | None]:
         "completion_tokens": count("completion_tokens"),
         "total_tokens": count("total_tokens"),
     }
+
+
+def _response_model_of(payload: dict[str, object]) -> str:
+    """The provider's response ``model`` identifier, sanitized for an evidence line.
+
+    Provider metadata is untrusted: it is reduced to a fixed label with any
+    line-breaking or control character replaced, and a missing/blank/non-string
+    value becomes ``unknown`` rather than an empty field.
+    """
+    value = payload.get("model")
+    if not isinstance(value, str) or not value.strip():
+        return "unknown"
+    return model_label(value)

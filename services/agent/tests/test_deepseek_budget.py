@@ -245,6 +245,9 @@ def test_reported_usage_replaces_the_placeholder() -> None:
             assert model.usage == [
                 {"prompt_tokens": 7, "completion_tokens": 3, "total_tokens": 10}
             ]
+            assert model.metering == [
+                {"reserved_micro_usd": None, "actual_micro_usd": 6}
+            ]
 
     asyncio.run(scenario())
 
@@ -268,3 +271,62 @@ def test_prompt_budget_is_enforced_in_bytes_not_a_guessed_ratio() -> None:
 
     asyncio.run(scenario())
     assert captured == []
+
+
+def test_provider_response_model_is_captured_and_sanitized() -> None:
+    """Provider metadata is untrusted: it is recorded sanitized, never raw."""
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "model": "deepseek-v4.1-flash\nX-Injected: 1",
+                "choices": [{"message": {"content": '{"answer":"ok"}'}}],
+            },
+        )
+
+    async def scenario() -> None:
+        async with DeepseekModel(
+            "key", tool_specs={}, transport=httpx.MockTransport(handler)
+        ) as model:
+            await model.decide([{"role": "user", "content": "a"}])
+            assert model.response_models == ["deepseek-v4.1-flash?X-Injected??1"]
+
+    asyncio.run(scenario())
+
+
+@pytest.mark.parametrize("reported", [None, "", "   ", 7])
+def test_missing_provider_response_model_is_unknown(reported: object) -> None:
+    async def handler(request: httpx.Request) -> httpx.Response:
+        body: dict[str, object] = {
+            "choices": [{"message": {"content": '{"answer":"ok"}'}}]
+        }
+        if reported is not None:
+            body["model"] = reported
+        return httpx.Response(200, json=body)
+
+    async def scenario() -> None:
+        async with DeepseekModel(
+            "key", tool_specs={}, transport=httpx.MockTransport(handler)
+        ) as model:
+            await model.decide([{"role": "user", "content": "a"}])
+            assert model.response_models == ["unknown"]
+
+    asyncio.run(scenario())
+
+
+def test_response_identity_stays_aligned_with_every_sent_call() -> None:
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"choices": []})
+
+    async def scenario() -> None:
+        async with DeepseekModel(
+            "key", tool_specs={}, transport=httpx.MockTransport(handler)
+        ) as model:
+            with pytest.raises(ModelProtocolError):
+                await model.decide([{"role": "user", "content": "a"}])
+            # A billed call with no reported model still leaves an identity slot.
+            assert model.response_models == ["unknown"]
+            assert len(model.response_models) == len(model.usage) == 1
+
+    asyncio.run(scenario())

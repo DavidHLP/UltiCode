@@ -53,14 +53,26 @@ class UlticodeClient:
         *,
         total_timeout: float = 10.0,
         transport: httpx.AsyncBaseTransport | None = None,
+        trust_env: bool = False,
     ) -> None:
         if total_timeout <= 0:
             raise ValueError("total_timeout must be positive")
+        # trust_env=False by default: with HTTP_PROXY/ALL_PROXY set, httpx would
+        # otherwise send these session-carrying requests through a remote proxy.
+        # Redirects stay off so a 307/308 cannot replay a body against another host.
         self._app = httpx.AsyncClient(
-            base_url=app_base_url, timeout=total_timeout, transport=transport
+            base_url=app_base_url,
+            timeout=total_timeout,
+            transport=transport,
+            trust_env=trust_env,
+            follow_redirects=False,
         )
         self._auth = httpx.AsyncClient(
-            base_url=auth_base_url, timeout=total_timeout, transport=transport
+            base_url=auth_base_url,
+            timeout=total_timeout,
+            transport=transport,
+            trust_env=trust_env,
+            follow_redirects=False,
         )
         self._cookies = httpx.Cookies()
 

@@ -150,6 +150,12 @@ uv run python e2e_account_isolation.py
 
 安全约束：脚本会**拒绝非回环**的 base URL，除非显式设置 `ULTICODE_E2E_ISOLATION_ALLOW_REMOTE=1` 表明目标确实是你可丢弃的自有栈。它只输出固定标签与状态码，不回显任何凭据、Cookie 或响应正文；跨账号读取只接受契约定义的 403/404 视为拒绝，5xx 或信封异常一律判为脚本不成立。夹具选择不再假定列表第一题可用：它按列表自身的 `total` 分页扫描，找一道提供 `SUBMISSION_LANGUAGE` 的题目（页数上限由 `ULTICODE_E2E_FIXTURE_MAX_PAGES` 控制，默认 20 页，仅为防止异常列表死循环）。脚本同时检查**公开内容的匿名正对照**（`GET /problems`、`GET /problems/{id}` 无会话应仍为 200，且信封里确有题目数据）：把「所有跨账号请求都拒绝」当成隔离通过是错的。**不要**把生产或共享环境作为目标。
 
+未配置授权模型时，脚本会保留 HTTP 对照结果，但以 `INCOMPLETE` 和非零状态结束；
+仅当真实模型 agent 隔离对照也通过时，才报告完整隔离成功。
+
+A/B 响应与私有列表还会检查 source-bearing 字段及去除 synthetic canary 后的夹具源码；
+公开题目详情中的 `starter_code` 仍允许返回。
+
 要点：`QDRANT_IMAGE` 只是调用方声明的标签，脚本不据此校验服务端实际版本，输出会显式标注这一点；每次运行使用**本次运行专用的集合名**（`u02-eval-<随机>`，结束时尽力删除），因此不会删除任何既有集合，`QDRANT_ALLOW_RECREATE=1` 只在调用方显式沿用历史固定集合名时才需要；运行前会独占一把运行锁（`ULTICODE_VECTOR_RUN_LOCK`，默认在确认标记旁）包住整个集合生命周期，两个并发运行不会在同一集合上交错；被 kill 的运行会留下锁文件并 fail closed 报出路径，确认无人运行后再手工删除；一次性标记的位置：`ULTICODE_VECTOR_CONFIRM_MARKER` 若设置**必须是绝对路径**，相对路径直接 fail closed（不会退回默认位置——静默换位置会让确认集被跑第二次）；`XDG_STATE_HOME` 也只在为绝对路径时才用作状态目录，否则使用家目录默认值。确认集（`data/holdout-v2.json`）为**一次性**，未设 `ULTICODE_VECTOR_CONFIRM=1` 时脚本直接跳过确认阶段。
 
 

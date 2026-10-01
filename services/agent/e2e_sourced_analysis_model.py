@@ -19,6 +19,7 @@ from deepseek_model import DeepseekModel, model_label
 from sourced_analysis import analyze_submission, first_wrong_answer_submission
 from ulticode_client import UlticodeClient
 from ulticode_tools import build_tools
+from model_budget import authorized_model
 
 APP_BASE = os.environ.get("ULTICODE_APP_BASE", "http://localhost:9103")
 AUTH_BASE = os.environ.get("ULTICODE_AUTH_BASE", "http://localhost:9101")
@@ -137,6 +138,11 @@ async def main() -> int:
         # Fail closed: without a key the run must not touch the model at all.
         print("E2E SOURCED MODEL FAIL | reason=missing_api_key")
         return 1
+    try:
+        model_name, model_budget = authorized_model()
+    except ValueError:
+        print("E2E SOURCED MODEL FAIL | reason=model_configuration_invalid")
+        return 1
     async with UlticodeClient(APP_BASE, AUTH_BASE) as client:
         await client.login(
             os.environ["ULTICODE_E2E_USERNAME"], os.environ["ULTICODE_E2E_PASSWORD"]
@@ -171,21 +177,15 @@ async def main() -> int:
             "citations": result["citations"],
         }
         evidence = json.dumps(evidence_payload, ensure_ascii=False)
-        # Bound once so the evidence names the model that was billed.
-        model_name = _priced_model()
         async with DeepseekModel(
             os.environ["DEEPSEEK_API_KEY"],
             tool_specs={},
             model=model_name,
-            # One decision per run with a bounded output: the worst case is a
-            # single capped call, never an open-ended loop.
             max_calls=int(os.environ.get("DEEPSEEK_MAX_CALLS", "1")),
-            # Measured on the real model: at 300 the single decision came back
-            # truncated (`finish_reason=length`, content_len=150) and the run failed
-            # with `ModelProtocolError`; at 2000 the same prompt passed. One call per
-            # run, so the larger default is bounded.
             max_tokens=int(os.environ.get("DEEPSEEK_MAX_TOKENS", "2000")),
             max_prompt_tokens=int(os.environ.get("DEEPSEEK_MAX_PROMPT_TOKENS", "24000")),
+            budget=model_budget,
+            thinking_type="disabled",
         ) as model:
             try:
                 decision = await model.decide(

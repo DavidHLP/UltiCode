@@ -1704,3 +1704,34 @@ def test_malicious_quote_claim_and_facts_are_untrusted_json_values(monkeypatch, 
     assert "citation_gate_failed" in output
     assert "OK citation_support" not in output
     assert "forged facts" not in output
+
+
+@pytest.mark.parametrize("kind", ["fifo", "directory"])
+def test_nonregular_corpus_entry_fails_before_external_calls(monkeypatch, tmp_path, kind):
+    directory, _ = _write_corpus(tmp_path, monkeypatch)
+    target = directory / "status-1.md"
+    target.unlink()
+    if kind == "fifo":
+        os.mkfifo(target)
+    else:
+        target.mkdir()
+    destination = tmp_path / "verdicts.json"
+    environment = os.environ.copy()
+    environment.update({"ULTICODE_CITATION_SUPPORT": "1",
+                        "ULTICODE_CITATION_VERDICTS": str(destination)})
+    code = '''import e2e_citation_support_model as s
+
+def unexpected(*args, **kwargs):
+    raise AssertionError("external calls must not run")
+s.UlticodeClient = unexpected
+s.DeepseekModel = unexpected
+raise SystemExit(s.main_sync())
+'''
+    # No FIFO writer is started. A blocking-open regression cannot hang pytest.
+    result = subprocess.run([sys.executable, "-c", code], cwd=Path(__file__).parents[1],
+                            env=environment, capture_output=True, text=True, timeout=5)
+    assert result.returncode == 1
+    assert result.stdout.strip() == "FAIL reason=corpus_entry_escapes_root"
+    assert not result.stderr
+    assert not destination.exists()
+    assert not smoke._verdict_lock(destination).exists()

@@ -468,9 +468,10 @@ def _corpus_override() -> ValidatedCorpus | None:
                 raise _CorpusSourceError("corpus_entry_path_not_relative")
             # Relative to the anchored root, with O_NOFOLLOW for the name itself: a
             # symlink cannot be followed, and a missing file is its own reason.
+            # Nonblocking open lets fstat reject a FIFO even when it has no writer.
             try:
                 descriptor = os.open(
-                    filename, os.O_RDONLY | os.O_NOFOLLOW, dir_fd=root_fd
+                    filename, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=root_fd
                 )
             except ValueError:
                 # os.open rejects an embedded NUL before any descriptor exists, and

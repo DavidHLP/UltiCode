@@ -163,6 +163,11 @@
 			</dependency>
 			<dependency>
 				<groupId>com.ulticode</groupId>
+				<artifactId>backend-learning-plan-domain</artifactId>
+				<version>${service.version.app}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.ulticode</groupId>
 				<artifactId>backend-auth</artifactId>
 				<version>${service.version.auth}</version>
 			</dependency>

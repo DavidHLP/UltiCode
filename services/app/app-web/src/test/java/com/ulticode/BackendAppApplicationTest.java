@@ -319,6 +319,9 @@ class BackendAppApplicationTest {
     // Pre-existing shell-test wiring gap (P7-INFRA-MODERATION-BRIDGE-001): ModerationServiceImpl needs this port
     @MockitoBean private com.ulticode.modules.moderation.port.ContentModerationPort contentModerationPort;
 
+    // U03: App-private learning plan mapper (scan is excluded under the test profile)
+    @MockitoBean private com.ulticode.modules.learningplan.mapper.LearningPlanMapper learningPlanMapper;
+
 
     @Test
     @DisplayName("context loads and /actuator/health is UP")

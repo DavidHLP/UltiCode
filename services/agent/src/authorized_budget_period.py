@@ -140,7 +140,39 @@ def prepare_period(path: Path, period_id: str, config_sha256: str) -> PeriodSnap
     return PeriodSnapshot(identity, "prepared")
 
 
-def _access(path: Path, expected: PeriodIdentity, target: str | None) -> PeriodSnapshot:
+@dataclass
+class _LockedPeriod:
+    snapshot: PeriodSnapshot
+    state_fd: int
+    directory_fd: int
+    parent_fd: int
+    path: Path
+
+    def confirm(self) -> None:
+        with _parent(self.path) as parent:
+            if (os.fstat(parent).st_dev, os.fstat(parent).st_ino) != (os.fstat(self.parent_fd).st_dev, os.fstat(self.parent_fd).st_ino):
+                raise PeriodError("period parent path replaced")
+        if os.stat("state.jsonl", dir_fd=self.directory_fd, follow_symlinks=False) != os.fstat(self.state_fd):
+            raise PeriodError("state file replaced")
+        current = os.stat(self.path.name, dir_fd=self.parent_fd, follow_symlinks=False)
+        pinned = os.fstat(self.directory_fd)
+        if (current.st_dev, current.st_ino) != (pinned.st_dev, pinned.st_ino):
+            raise PeriodError("period directory replaced")
+        os.fsync(self.state_fd)
+
+    def append(self, target: str) -> None:
+        if (self.snapshot.state, target) not in (
+            ("prepared", "active"), ("prepared", "halted"), ("active", "halted"),
+        ):
+            raise PeriodError("invalid lifecycle transition")
+        self.confirm()
+        os.lseek(self.state_fd, 0, os.SEEK_END)
+        _write(self.state_fd, {"state": target})
+        self.snapshot = PeriodSnapshot(self.snapshot.identity, target)
+
+
+@contextmanager
+def _locked_period(path: Path, expected: PeriodIdentity, *, exclusive: bool = True):
     if not isinstance(expected, PeriodIdentity):
         raise PeriodError("expected identity required")
     _validate(expected.period_id, expected.config_sha256, expected.policy_id)
@@ -151,9 +183,9 @@ def _access(path: Path, expected: PeriodIdentity, target: str | None) -> PeriodS
         with _parent(path) as parent:
             directory = os.open(path.name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=parent)
             try:
-                state = _file(directory, "state.jsonl", os.O_RDWR if target else os.O_RDONLY)
+                state = _file(directory, "state.jsonl", os.O_RDWR if exclusive else os.O_RDONLY)
                 try:
-                    fcntl.flock(state, fcntl.LOCK_EX if target else fcntl.LOCK_SH)
+                    fcntl.flock(state, fcntl.LOCK_EX if exclusive else fcntl.LOCK_SH)
                     marker = _file(directory, "identity.json", os.O_RDONLY)
                     try:
                         records = _read(marker)
@@ -173,25 +205,20 @@ def _access(path: Path, expected: PeriodIdentity, target: str | None) -> PeriodS
                     )]
                     if states not in valid:
                         raise PeriodError("invalid lifecycle history")
-                    current = states[-1]["state"]
-                    if target:
-                        if (current, target) not in (("prepared", "active"), ("prepared", "halted"), ("active", "halted")):
-                            raise PeriodError("invalid lifecycle transition")
-                        # Detect replacement between initial opening and mutation.
-                        if os.stat("state.jsonl", dir_fd=directory, follow_symlinks=False) != os.fstat(state):
-                            raise PeriodError("state file replaced")
-                        if os.stat(path.name, dir_fd=parent, follow_symlinks=False).st_ino != os.fstat(directory).st_ino:
-                            raise PeriodError("period directory replaced")
-                        os.lseek(state, 0, os.SEEK_END)
-                        _write(state, {"state": target})
-                        current = target
-                    return PeriodSnapshot(expected, current)
+                    yield _LockedPeriod(PeriodSnapshot(expected, states[-1]["state"]), state, directory, parent, path)
                 finally:
                     os.close(state)
             finally:
                 os.close(directory)
     except OSError as exc:
         raise PeriodError("period metadata unavailable; no files created or repaired") from exc
+
+
+def _access(path: Path, expected: PeriodIdentity, target: str | None) -> PeriodSnapshot:
+    with _locked_period(path, expected, exclusive=target is not None) as locked:
+        if target:
+            locked.append(target)
+        return locked.snapshot
 
 
 def read_period(path: Path, expected: PeriodIdentity) -> PeriodSnapshot:

@@ -17,12 +17,12 @@
     "test:watch": "vitest"
   },
   "peerDependencies": {
-    "vue": "^3.5.0"
+    "vue": "^3.5.43"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
     "typescript": "~5.9.3",
     "vitest": "^4.1.4",
-    "vue": "^3.5.0"
+    "vue": "^3.5.43"
   }
 }

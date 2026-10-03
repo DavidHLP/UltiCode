@@ -10,10 +10,12 @@
 | --- | --- | --- |
 | Auth | `http://localhost:9101` / `/auth/**` | `backend-auth` |
 | Admin | `http://localhost:9102` / `/admin/**`、`/moderation/**` | `backend-admin` |
-| App | `http://localhost:9103` / `/users`、`/problems`、`/contests`、`/solutions`、`/forum`、`/search`、`/ws/**` | `backend-app` |
+| App | `http://localhost:9103` / `/users`、`/problems`、`/contests`、`/solutions`、`/forum`、`/learning-plans/**`、`/search`、`/ws/**` | `backend-app` |
 | Notification | `http://localhost:9105` / `/notifications/**` | `backend-notification` |
 | Submission | internal `9106` / Dubbo `20886` | `backend-submission` |
 | Judge | internal Dubbo `20884` | `backend-judge` |
+
+`POST /learning-plans` 为当前已认证、有效且未封禁的用户保存已确认的学习计划。请求必须携带规范 UUID 格式的 `Idempotency-Key`，且来源提交必须属于当前用户。相同 key 和请求内容重试时返回原记录；同一 key 携带不同内容时返回 HTTP 409（业务码 `40900`）。`GET /learning-plans/{id}` 和 `GET /learning-plans/by-key/{key}` 仅返回当前用户拥有的记录。
 
 浏览器通常通过前端 Nginx/gateway 访问 `/api`；不要把内部 Dubbo、数据库、Redis、Nacos 或 worker 端口发布到公网。
 

@@ -69,6 +69,49 @@ uv run pytest -q
 
 真实 UltiCode HTTP / 模型 e2e 仍是显式 opt-in；`e2e_sourced_analysis.py` 使用 agent-authored synthetic Markdown corpus（不是提交、DTO 或用户授权材料），分析输入则是 authenticated user 的 validated read-only submission projection，且不调用真实模型。`e2e_sourced_analysis_model.py` / `e2e_model_qa.py` 是真实模型入口，调用形如 `DEEPSEEK_API_KEY=... DEEPSEEK_MODEL=<model> uv run python e2e_sourced_analysis_model.py`，仍需显式提供现有环境和 `DEEPSEEK_API_KEY` 与 `DEEPSEEK_MODEL`；不得把本地开发账号密码、Cookie、源码、检索文本或模型回答写入日志。可执行题集和当前评估状态见 `services/agent/data/keyword_cases.json` 与对应 Linear 任务。
 
+授权周期的 `authorized_budget_period` 仍只保存生命周期元数据；其快照始终明确
+`runtime_accounting_connected=False`、`spend_limit_enforced=False`。独立的
+`ModelBudget.bind_prepared(identity)` 只为已显式 prepared 的规范周期绑定一次新账本；
+`ModelBudget.bound(identity)` 的运行时读取不创建或修复文件、表或行。固定槽位为 OS passwd
+当前 UID 的家目录下 `.local/state/ulticode/dav58-dav53-v1`，该槽位须已存在；生命周期目录
+固定为 `period`，一次性绑定目录为 `accounting`。生产绑定接口不接受路径或 HOME/XDG
+覆盖，测试只能替换私有 `_authorization_slot` 解析器到临时目录。构造
+`ModelBudget(path=规范账本)` 也不能通过旧账本初始化路径绕过绑定。
+
+规范配置由 `authorized_period_config()` 生成并以规范 JSON 的 SHA256 固定到周期身份；
+schema 为 `ulticode-authorized-budget-v1`，模型别名为 `deepseek-flash`，策略为
+`dav58-dav53-v1`：US$1 / 78 次尝试，三个 purpose 分别为 24 `dav58_loop`、42
+`dav58_judge`、12 `dav53_scenarios`，prompt 上限 24000，输出上限 2000/2000/1000，
+rounds 描述为 4/1/4。每次 reserve 按完整 purpose token 上限计费，沿用现有
+`model_budget` 的 `ceil((prompt*3 + completion*12)/10)` micro-USD 公式
+（输入 US$0.30/M、输出 US$1.20/M）；这些是继承的冻结价格假设，没有重新查询或确认
+供应商当前价格。新周期计数从零开始，历史用量另记为字面量 `UNKNOWN`，不读取或重置旧账本。
+
+绑定协调器 `activate()` 在同一生命周期锁内先 fsync active 元数据再提交 SQL active gate；
+`halt()` 先提交 SQL halted gate 再 fsync halted 元数据。reserve 保持共享生命周期锁直到
+SQLite 事务提交，转换及 settle 保持独占锁；HALT 前已提交的 reservation 不退款且仍可
+settle，未知 usage 仍计入完整预留，超界 usage 同事务记录并关闭 SQL gate。
+失败后只读取原身份、原文件与原账本核对两种状态；只允许对同一 activate/halt 显式重试，
+完整记录先确认持久化再推进待完成转换，缺失或撕裂记录拒绝，不自动准备、重置或换路径。
+绑定账本 API 有独立 SQL gate 与计数；全局快照标志仍为
+`runtime_accounting_connected=False`、`spend_limit_enforced=False`，因为这不是所有入口的
+全局切换；除下述 DAV-58 显式绑定路径外，其他入口仍沿用旧工厂。SQLite 使用 `synchronous=FULL`
+确认账本提交；运行时仅 stat 检查账本身份，SQLite 独占管理账本描述符的生命周期，
+避免额外 open/close 取消其他线程的 POSIX 锁。
+
+DAV-58 的 `e2e_boundary_evaluation.py` 通过显式身份调用 `authorized_model(expected)`
+选择绑定账本；只有真正无参调用保留旧工厂，显式 `None` 或错误身份不回退。
+该 runner 的 CLI 必须给出三个非秘密字段 `--period-id`、`--period-identity`、
+`--config-sha256`（policy 固定），不接受 ledger/lifecycle 路径，不自动准备或激活。
+启动适配器前要求元数据与 SQL gate 均 active；每次 POST 前在原子账本路径按
+`dav58_loop` 或 `dav58_judge` 预留完整 24000/2000 上限，rounds 不得超过 4；
+负对照也使用 judge purpose，未接入 DAV-53 purpose。账本错误转换为
+`ModelBudgetExceeded` 后停止余下案例与负对照 HTTP，不自动重试，也不退回旧账本。
+artifact 固定周期身份、配置 hash、purpose、前后账本快照及逐调用 receipt，不记录 key
+或 Authorization header。其他入口仍保留无参旧工厂；全局 runtime/enforcement 标志
+仍为 False。这里只用临时账本与 MockTransport 验证，没有执行真实调用，确定性测试
+不构成 DAV-58 的真实模型验收。
+
 `e2e_answer_evaluation.py` evaluates generated answers on the development split only. Its answer
 pass receives the case question and retrieved evidence, not expected/allowed/forbidden outcomes;
 it must return explicit retrieved chunk IDs in `citations`, and judging checks only those citations.
@@ -149,6 +192,12 @@ uv run python e2e_account_isolation.py
 ```
 
 安全约束：脚本会**拒绝非回环**的 base URL，除非显式设置 `ULTICODE_E2E_ISOLATION_ALLOW_REMOTE=1` 表明目标确实是你可丢弃的自有栈。它只输出固定标签与状态码，不回显任何凭据、Cookie 或响应正文；跨账号读取只接受契约定义的 403/404 视为拒绝，5xx 或信封异常一律判为脚本不成立。夹具选择不再假定列表第一题可用：它按列表自身的 `total` 分页扫描，找一道提供 `SUBMISSION_LANGUAGE` 的题目（页数上限由 `ULTICODE_E2E_FIXTURE_MAX_PAGES` 控制，默认 20 页，仅为防止异常列表死循环）。脚本同时检查**公开内容的匿名正对照**（`GET /problems`、`GET /problems/{id}` 无会话应仍为 200，且信封里确有题目数据）：把「所有跨账号请求都拒绝」当成隔离通过是错的。**不要**把生产或共享环境作为目标。
+
+未配置授权模型时，脚本会保留 HTTP 对照结果，但以 `INCOMPLETE` 和非零状态结束；
+仅当真实模型 agent 隔离对照也通过时，才报告完整隔离成功。
+
+A/B 响应与私有列表还会检查 source-bearing 字段及去除 synthetic canary 后的夹具源码；
+公开题目详情中的 `starter_code` 仍允许返回。
 
 要点：`QDRANT_IMAGE` 只是调用方声明的标签，脚本不据此校验服务端实际版本，输出会显式标注这一点；每次运行使用**本次运行专用的集合名**（`u02-eval-<随机>`，结束时尽力删除），因此不会删除任何既有集合，`QDRANT_ALLOW_RECREATE=1` 只在调用方显式沿用历史固定集合名时才需要；运行前会独占一把运行锁（`ULTICODE_VECTOR_RUN_LOCK`，默认在确认标记旁）包住整个集合生命周期，两个并发运行不会在同一集合上交错；被 kill 的运行会留下锁文件并 fail closed 报出路径，确认无人运行后再手工删除；一次性标记的位置：`ULTICODE_VECTOR_CONFIRM_MARKER` 若设置**必须是绝对路径**，相对路径直接 fail closed（不会退回默认位置——静默换位置会让确认集被跑第二次）；`XDG_STATE_HOME` 也只在为绝对路径时才用作状态目录，否则使用家目录默认值。确认集（`data/holdout-v2.json`）为**一次性**，未设 `ULTICODE_VECTOR_CONFIRM=1` 时脚本直接跳过确认阶段。
 
@@ -454,3 +503,19 @@ Codex 前缀规则只能识别已列出的参数排列，无法覆盖任意脚�
 - [部署与回滚](OPERATIONS.md#部署发布与回滚)
 - [Services 问题注册表](../services/docs/SERVICES_ISSUES.md)
 - [Worker SLO Runbook](../services/docs/WORKER_SLO_RUNBOOK.md)
+
+
+### DAV-58 真实模型边界评估失败记录｜2026-10-03
+
+本次六类 synthetic 边界矩阵保留为失败结果，不因后续评估器修正而改判。执行对象为 `9e9d4b5dda1bd0e9de76eb4fc1509c8f23b36563`，配置 SHA-256 `edf4ae8520baf9fb6a530495355976c9350495d6bd0c6b8a72af29f12ea7d1ef`；artifact SHA-256 `c6033d0b313bd24dec6c6eb9f0258dd7e9df19dfc39f2919dc0e6b3a8fb137d3`。UTC 运行时间为 `2026-10-03T10:35:03.185582Z` 至 `2026-10-03T10:35:17.496447Z`；退出码 1，4/6 行为通过、2/6 失败、0 evaluator errors。原 artifact 是判定依据，必须保持不变。
+
+失败样本：`boundary-missing-id` 未调用工具、未猜测 ID，但最终答复提出“确认后列出最近提交”作为下一步，没有直接把缺失的具体 submission ID 作为澄清条件；此偏离不能因为其中提到可提供 ID 而通过。`boundary-no-tool` 未调用工具，给出了正确的数组下标范围解释，但固定 required-marker 列表没有覆盖实际使用的“超出该数组有效下标范围”表达，导致 lexical predicate 误报失败。以上是观测事实；具体语义断言须经后续针对性判定，不覆盖本次真实输出。
+
+本次合计 12 次请求、8,401 tokens；ledger/evaluator 记录 usage known，actual `3,867` micro-USD，reserved/committed `115,200` micro-USD。实际用量与保守预扣不同，且均不代表已核对的 provider 账单。历史用量仍 UNKNOWN，`runtime_accounting_connected=false`、`spend_limit_enforced=false`。本次不重试，不消耗剩余 slots，不 reset period。
+
+离线最小修正计划（本检查点不含行为代码改动）：
+
+1. 仅在既有 `boundary_evaluation.py`、六类 fixture 与 focused tests 中改进 no-tool 判定：接受等价的有效范围/下标表达；验证多种正确释义，并拒绝错误定义、否定、无关回答及任何私人工具调用。保留独立的零私人工具门禁，不以答案白名单或放宽工具限制代替判定。
+2. 明确 missing-ID 策略为直接询问具体 submission ID；“确认后列最近提交”不能替代澄清。测试应区分对无法取得源码/判题日志的范围说明，与对最近提交状态或原因作无依据断言；不得用宽松 marker 令本次旧答案通过。
+3. 修正 `_response_identity` 的零调用表现：无请求返回空列表或明确 not-applicable；至少一次请求但响应缺少 `payload.model` 时才标记 unknown。保留全部已发送调用数和费用记录。
+4. 只补充上述 case 与边界 focused tests；不新增付费 judge、通用评估框架或新 provider，不触及 DB/DAV-53/U03，不更改预算或启用标志。本轮未修改行为代码，也未重新运行模型。

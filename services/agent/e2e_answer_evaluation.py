@@ -50,6 +50,7 @@ from e2e_citation_support_model import (
     _release_unfinished_claim,
 )
 from keyword_evaluation import load_cases
+from model_budget import authorized_model
 
 OPT_IN = "ULTICODE_ANSWER_EVAL"
 DEFAULT_MAX_CALLS = 64
@@ -171,12 +172,10 @@ async def main() -> int:
         )
         return 1
 
-    model_name = os.environ.get("DEEPSEEK_MODEL", "").strip()
-    if not model_name:
-        print("FAIL reason=deepseek_model_required")
-        return 1
-    if not os.environ.get("DEEPSEEK_API_KEY", "").strip():
-        print("FAIL reason=deepseek_api_key_required")
+    try:
+        model_name, model_budget = authorized_model()
+    except ValueError:
+        print("FAIL reason=model_configuration_invalid")
         return 1
 
     artifact = _artifact_path()
@@ -197,11 +196,11 @@ async def main() -> int:
                 tool_specs={},
                 model=model_name,
                 max_calls=max_calls,
-                # 40 sequential billed calls over a reasoning model: the adapter's 30s
-                # default is per request, and one stall aborts the whole batch.
                 timeout=_float("DEEPSEEK_TIMEOUT", 120.0),
                 max_tokens=_int("DEEPSEEK_MAX_TOKENS", 4000),
                 max_prompt_tokens=_int("DEEPSEEK_MAX_PROMPT_TOKENS", 24000),
+                budget=model_budget,
+                thinking_type="disabled",
             ) as model:
                 try:
                     rows = await evaluate_answer_cases(cases, model=model, documents=documents)

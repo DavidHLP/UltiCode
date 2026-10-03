@@ -61,6 +61,7 @@ from sourced_analysis import (
 )
 from ulticode_client import UlticodeClient
 from ulticode_tools import build_tools
+from model_budget import authorized_model
 
 APP_BASE = os.environ.get("ULTICODE_APP_BASE", "http://localhost:9103")
 AUTH_BASE = os.environ.get("ULTICODE_AUTH_BASE", "http://localhost:9101")
@@ -808,12 +809,10 @@ async def main() -> int:
 
     # Everything above is read-only, so a corpus gap is reported without asking for a
     # credential. Required from here on: the next step is a billed call.
-    model_name = os.environ.get("DEEPSEEK_MODEL", "").strip()
-    if not model_name:
-        print("FAIL reason=deepseek_model_required")
-        return 1
-    if not os.environ.get("DEEPSEEK_API_KEY", "").strip():
-        print("FAIL reason=deepseek_api_key_required")
+    try:
+        model_name, model_budget = authorized_model()
+    except ValueError:
+        print("FAIL reason=model_configuration_invalid")
         return 1
 
     facts = json.dumps(matching, ensure_ascii=False, default=str)
@@ -858,16 +857,11 @@ async def main() -> int:
             os.environ["DEEPSEEK_API_KEY"],
             tool_specs={},
             model=model_name,
-            # The configured ceiling, not the row count: the adapter owns the guard.
             max_calls=max_calls,
-            # A two-boolean judgement needs far less than a full analysis; 512 still
-            # leaves room for a reasoning model's reasoning tokens, which are billed
-            # inside the same budget. Raise it via the environment if a provider
-            # truncates (`finish_reason=length`).
             max_tokens=max_tokens,
-            # Honoured, not silently defaulted: an operator setting this expects the
-            # prompt side of the budget to follow.
             max_prompt_tokens=max_prompt_tokens,
+            budget=model_budget,
+            thinking_type="disabled",
         ) as model:
             try:
                 for item in rows:

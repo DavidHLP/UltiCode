@@ -364,3 +364,233 @@ def test_unwrap_reports_malformed_utf8_as_non_json() -> None:
                 await client.list_my_submissions()
 
     asyncio.run(scenario())
+
+def test_search_problems_sends_the_query_page_and_limit() -> None:
+    seen: dict[str, object] = {}
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        seen["path"] = request.url.path
+        seen["query"] = request.url.params.get("query")
+        seen["page"] = request.url.params.get("page")
+        seen["limit"] = request.url.params.get("limit")
+        return httpx.Response(
+            200,
+            json={
+                "code": 0,
+                "message": "success",
+                "data": {
+                    "query": "Two Sum",
+                    "total": 1,
+                    "page": 2,
+                    "limit": 5,
+                    "results": [{"id": "1", "title": "Two Sum"}],
+                },
+            },
+        )
+
+    async def scenario() -> None:
+        async with UlticodeClient(
+            "https://app.test", "https://auth.test", transport=httpx.MockTransport(handler)
+        ) as client:
+            data = await client.search_problems("Two Sum", page=2, limit=5)
+            assert data["total"] == 1
+            assert data["page"] == 2
+
+    asyncio.run(scenario())
+    assert seen == {"path": "/search", "query": "Two Sum", "page": "2", "limit": "5"}
+
+
+@pytest.mark.parametrize(
+    ("query", "page", "limit"),
+    [
+        ("a", 1, 10),
+        ("x" * 201, 1, 10),
+        ("ok", 0, 10),
+        ("ok", 1, 0),
+        ("ok", 1, 101),
+        ("ok", True, 10),
+    ],
+)
+def test_search_problems_rejects_invalid_arguments(
+    query: object, page: object, limit: object
+) -> None:
+    async def handler(request: httpx.Request) -> httpx.Response:
+        raise AssertionError("no request for invalid search arguments")
+
+    async def scenario() -> None:
+        async with UlticodeClient(
+            "https://app.test", "https://auth.test", transport=httpx.MockTransport(handler)
+        ) as client:
+            with pytest.raises(ValueError):
+                await client.search_problems(  # type: ignore[arg-type]
+                    query, page=page, limit=limit
+                )
+
+    asyncio.run(scenario())
+
+
+def test_search_problems_forwards_only_the_current_access_cookie() -> None:
+    """A logged-in search carries the session cookie; an anonymous one carries none."""
+    seen: list[str | None] = []
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/auth/login":
+            return httpx.Response(
+                200,
+                json={"code": 0, "message": "success", "data": {}},
+                headers=[
+                    ("set-cookie", "access_token=at-1; Path=/; HttpOnly"),
+                    ("set-cookie", "refresh_token=rt-1; Path=/; HttpOnly"),
+                    ("set-cookie", "csrf_token=cs-1; Path=/"),
+                ],
+            )
+        seen.append(request.headers.get("cookie"))
+        return httpx.Response(
+            200,
+            json={
+                "code": 0,
+                "message": "success",
+                "data": {"query": "Two Sum", "total": 0, "page": 1, "limit": 10, "results": []},
+            },
+        )
+
+    async def scenario() -> None:
+        async with UlticodeClient(
+            "https://app.test", "https://auth.test", transport=httpx.MockTransport(handler)
+        ) as client:
+            # Anonymous: the endpoint is public, so no cookie is sent at all.
+            await client.search_problems("Two Sum")
+            await client.login("tester", "pw")
+            await client.search_problems("Two Sum")
+
+    asyncio.run(scenario())
+    # Only the access cookie travels; refresh/csrf stay in the jar.
+    assert seen == [None, "access_token=at-1"]
+
+
+def test_search_problems_rejects_a_page_that_does_not_echo_the_request() -> None:
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "code": 0,
+                "message": "success",
+                "data": {"query": "Two Sum", "total": 1, "page": 3, "limit": 10, "results": []},
+            },
+        )
+
+    async def scenario() -> None:
+        async with UlticodeClient(
+            "https://app.test", "https://auth.test", transport=httpx.MockTransport(handler)
+        ) as client:
+            with pytest.raises(UlticodeError, match="invalid search response"):
+                await client.search_problems("Two Sum", page=1, limit=10)
+
+    asyncio.run(scenario())
+
+
+def test_search_problems_rejects_a_bool_echo() -> None:
+    """``True == 1`` in Python, so a bool page/limit echo must be rejected explicitly."""
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "code": 0,
+                "message": "success",
+                "data": {"query": "Two Sum", "total": 0, "page": True, "limit": 10, "results": []},
+            },
+        )
+
+    async def scenario() -> None:
+        async with UlticodeClient(
+            "https://app.test", "https://auth.test", transport=httpx.MockTransport(handler)
+        ) as client:
+            with pytest.raises(UlticodeError, match="invalid search response"):
+                await client.search_problems("Two Sum", page=1, limit=10)
+
+    asyncio.run(scenario())
+
+
+def test_search_problems_rejects_a_negative_total() -> None:
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "code": 0,
+                "message": "success",
+                "data": {"query": "Two Sum", "total": -1, "page": 1, "limit": 10, "results": []},
+            },
+        )
+
+    async def scenario() -> None:
+        async with UlticodeClient(
+            "https://app.test", "https://auth.test", transport=httpx.MockTransport(handler)
+        ) as client:
+            with pytest.raises(UlticodeError, match="invalid search response"):
+                await client.search_problems("Two Sum", page=1, limit=10)
+
+    asyncio.run(scenario())
+
+
+def test_search_problems_hands_over_a_page_before_rejecting_it() -> None:
+    """A page that carries hits but does not describe itself still reaches the sink.
+
+    The contract check is not relaxed — the page is still rejected — but a caller
+    scanning for leaked rows sees the hits that did arrive, instead of losing them
+    to the error that follows. Only a successful envelope with a dict ``data`` is
+    handed over: a failed or shapeless Result never reaches the callback.
+    """
+    seen: list[dict[str, object]] = []
+
+    async def invalid_page(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "code": 0,
+                "message": "success",
+                "data": {
+                    "query": "Two Sum",
+                    "total": 1,
+                    "page": 3,
+                    "limit": 10,
+                    "results": [{"id": "1", "title": "u02-canary-a"}],
+                },
+            },
+        )
+
+    async def failed_envelope(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "code": 50000,
+                "message": "SECRET",
+                "data": {"results": [{"id": "1", "title": "u02-canary-a"}]},
+            },
+        )
+
+    async def scenario() -> None:
+        async with UlticodeClient(
+            "https://app.test",
+            "https://auth.test",
+            transport=httpx.MockTransport(invalid_page),
+        ) as client:
+            with pytest.raises(UlticodeError, match="invalid search response"):
+                await client.search_problems(
+                    "Two Sum", page=1, limit=10, on_payload=seen.append
+                )
+        async with UlticodeClient(
+            "https://app.test",
+            "https://auth.test",
+            transport=httpx.MockTransport(failed_envelope),
+        ) as client:
+            with pytest.raises(UlticodeError, match="service_error"):
+                await client.search_problems(
+                    "Two Sum", page=1, limit=10, on_payload=seen.append
+                )
+
+    asyncio.run(scenario())
+    # The invalid-but-successful page was handed over once; the failed envelope
+    # never was.
+    assert [page["results"] for page in seen] == [
+        [{"id": "1", "title": "u02-canary-a"}]
+    ]

@@ -43,7 +43,7 @@ This runs the full incremental migration set (`baselineOnMigrate=false`).
 
 Adoption requires per-schema `flyway baseline` at the auto-detected max
 versions (shared `20260822120000`, `auth` `20260821100000`,
-`admin` `20260822120001`, `app` `20260811180000`,
+`admin` `20260822120001`, `app` `20261001120000`,
 `notification` `20260815100200`, `submission` `20260817000000`):
 
 ```bash

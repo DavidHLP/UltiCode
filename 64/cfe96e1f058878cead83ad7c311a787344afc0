@@ -1,0 +1,17 @@
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "64cfe96e1f058878cead83ad7c311a787344afc0",
+  "prompts": {},
+  "sessions": {
+    "s_78e381cfffd90a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f221ea9e-5fe5-49df-a788-9b37732ebf4e",
+        "model": "deepseek-v4.1-flash"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

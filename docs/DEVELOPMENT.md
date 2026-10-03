@@ -503,3 +503,19 @@ Codex 前缀规则只能识别已列出的参数排列，无法覆盖任意脚�
 - [部署与回滚](OPERATIONS.md#部署发布与回滚)
 - [Services 问题注册表](../services/docs/SERVICES_ISSUES.md)
 - [Worker SLO Runbook](../services/docs/WORKER_SLO_RUNBOOK.md)
+
+
+### DAV-58 真实模型边界评估失败记录｜2026-10-03
+
+本次六类 synthetic 边界矩阵保留为失败结果，不因后续评估器修正而改判。执行对象为 `9e9d4b5dda1bd0e9de76eb4fc1509c8f23b36563`，配置 SHA-256 `edf4ae8520baf9fb6a530495355976c9350495d6bd0c6b8a72af29f12ea7d1ef`；artifact SHA-256 `c6033d0b313bd24dec6c6eb9f0258dd7e9df19dfc39f2919dc0e6b3a8fb137d3`。UTC 运行时间为 `2026-10-03T10:35:03.185582Z` 至 `2026-10-03T10:35:17.496447Z`；退出码 1，4/6 行为通过、2/6 失败、0 evaluator errors。原 artifact 是判定依据，必须保持不变。
+
+失败样本：`boundary-missing-id` 未调用工具、未猜测 ID，但最终答复提出“确认后列出最近提交”作为下一步，没有直接把缺失的具体 submission ID 作为澄清条件；此偏离不能因为其中提到可提供 ID 而通过。`boundary-no-tool` 未调用工具，给出了正确的数组下标范围解释，但固定 required-marker 列表没有覆盖实际使用的“超出该数组有效下标范围”表达，导致 lexical predicate 误报失败。以上是观测事实；具体语义断言须经后续针对性判定，不覆盖本次真实输出。
+
+本次合计 12 次请求、8,401 tokens；ledger/evaluator 记录 usage known，actual `3,867` micro-USD，reserved/committed `115,200` micro-USD。实际用量与保守预扣不同，且均不代表已核对的 provider 账单。历史用量仍 UNKNOWN，`runtime_accounting_connected=false`、`spend_limit_enforced=false`。本次不重试，不消耗剩余 slots，不 reset period。
+
+离线最小修正计划（本检查点不含行为代码改动）：
+
+1. 仅在既有 `boundary_evaluation.py`、六类 fixture 与 focused tests 中改进 no-tool 判定：接受等价的有效范围/下标表达；验证多种正确释义，并拒绝错误定义、否定、无关回答及任何私人工具调用。保留独立的零私人工具门禁，不以答案白名单或放宽工具限制代替判定。
+2. 明确 missing-ID 策略为直接询问具体 submission ID；“确认后列最近提交”不能替代澄清。测试应区分对无法取得源码/判题日志的范围说明，与对最近提交状态或原因作无依据断言；不得用宽松 marker 令本次旧答案通过。
+3. 修正 `_response_identity` 的零调用表现：无请求返回空列表或明确 not-applicable；至少一次请求但响应缺少 `payload.model` 时才标记 unknown。保留全部已发送调用数和费用记录。
+4. 只补充上述 case 与边界 focused tests；不新增付费 judge、通用评估框架或新 provider，不触及 DB/DAV-53/U03，不更改预算或启用标志。本轮未修改行为代码，也未重新运行模型。

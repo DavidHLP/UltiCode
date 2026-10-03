@@ -12,12 +12,13 @@ The API key comes from the environment and is never logged.
 from __future__ import annotations
 
 import json
+import sqlite3
 from types import TracebackType
 
 import httpx
 
 from agent_loop import ModelDecision, ToolCall
-from model_budget import BudgetLimitExceeded, ModelBudget, worst_case_micro_usd
+from model_budget import BudgetLimitExceeded, ModelBudget, Reservation, worst_case_micro_usd
 
 
 def _reject_json_constant(_: str) -> object:
@@ -134,9 +135,10 @@ class DeepseekModel:
         #: Sanitized provider response ``model`` identifiers, one per sent call.
         #: ``unknown`` when the provider did not report one.
         self.response_models: list[str] = []
-        self.metering: list[dict[str, int | None]] = []
+        self.metering: list[dict[str, int | str | None]] = []
         self._model = model
         self._budget = budget
+        self._budget_failed = False
         self._budget_purpose = budget_purpose
         self._thinking_type = thinking_type
         if tool_specs:
@@ -171,7 +173,19 @@ class DeepseekModel:
     ) -> None:
         await self._client.__aexit__(exc_type, exc_value, traceback)
 
+    def _settle(self, reservation: Reservation, usage: dict[str, int | None] | None) -> None:
+        try:
+            self._budget.settle(reservation, usage)
+        except BudgetLimitExceeded as exc:
+            self._budget_failed = True
+            raise ModelBudgetExceeded(str(exc)) from None
+        except (ValueError, sqlite3.Error, OSError, RuntimeError):
+            self._budget_failed = True
+            raise ModelBudgetExceeded("shared budget unavailable during settlement") from None
+
     async def decide(self, messages: list[dict[str, object]]) -> ModelDecision:
+        if self._budget_failed:
+            raise ModelBudgetExceeded("shared budget stopped after accounting failure")
         api_messages: list[dict[str, str]] = [{"role": "system", "content": self._system}]
         for message in messages:
             role = str(message.get("role", "user"))
@@ -201,7 +215,11 @@ class DeepseekModel:
                     purpose=self._budget_purpose,
                 )
             except BudgetLimitExceeded as exc:
+                self._budget_failed = True
                 raise ModelBudgetExceeded(str(exc)) from None
+            except (ValueError, sqlite3.Error, OSError, RuntimeError):
+                self._budget_failed = True
+                raise ModelBudgetExceeded("shared budget unavailable during reservation") from None
         self.calls_made += 1
 
 
@@ -219,16 +237,21 @@ class DeepseekModel:
             "reserved_micro_usd": reservation.reserved_micro_usd if reservation else None,
             "actual_micro_usd": None,
         }
+        if reservation is not None and reservation.period_identity is not None:
+            meter.update({"attempt_id": reservation.attempt_id,
+                          "period_identity": reservation.period_identity,
+                          "config_sha256": reservation.config_sha256,
+                          "purpose": reservation.purpose})
         self.metering.append(meter)
         try:
             response = await self._client.post("/chat/completions", json=body)
         except BaseException:
             if reservation is not None:
-                self._budget.settle(reservation, None)
+                self._settle(reservation, None)
             raise
         if response.status_code != 200:
             if reservation is not None:
-                self._budget.settle(reservation, None)
+                self._settle(reservation, None)
             raise RuntimeError(f"deepseek http={response.status_code}")
 
         try:
@@ -239,11 +262,11 @@ class DeepseekModel:
             )
         except (json.JSONDecodeError, ValueError) as exc:
             if reservation is not None:
-                self._budget.settle(reservation, None)
+                self._settle(reservation, None)
             raise ModelProtocolError("model response was not JSON") from exc
         if not isinstance(payload, dict):
             if reservation is not None:
-                self._budget.settle(reservation, None)
+                self._settle(reservation, None)
             raise ModelProtocolError("model response was not an object")
         self.usage[-1] = _usage_of(payload)
         self.response_models[-1] = _response_model_of(payload)
@@ -255,10 +278,7 @@ class DeepseekModel:
                 prompt_tokens, completion_tokens
             )
         if reservation is not None:
-            try:
-                self._budget.settle(reservation, usage)
-            except BudgetLimitExceeded as exc:
-                raise ModelBudgetExceeded(str(exc)) from None
+            self._settle(reservation, usage)
         choices = payload.get("choices")
         if not isinstance(choices, list) or not choices or not isinstance(choices[0], dict):
             raise ModelProtocolError("model response choices were malformed")

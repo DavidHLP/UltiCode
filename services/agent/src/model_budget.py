@@ -559,11 +559,20 @@ class ModelBudget:
         }
 
 
-def authorized_model() -> tuple[str, ModelBudget]:
+_LEGACY_MODEL = object()
+
+
+def authorized_model(expected: period.PeriodIdentity | object = _LEGACY_MODEL) -> tuple[str, ModelBudget]:
     """Return only the explicitly approved model alias and shared ledger."""
     model = os.environ.get("DEEPSEEK_MODEL")
     if model != MODEL_ALIAS:
         raise ValueError("authorized DeepSeek model alias is not configured")
+    budget = None
+    if expected is not _LEGACY_MODEL:
+        budget = ModelBudget.bound(expected)
+        snapshot = budget.snapshot()
+        if snapshot["state"] != "active" or snapshot["sql_gate"] != "active" or snapshot["halted"]:
+            raise BudgetLimitExceeded("bound period is not active")
     if not os.environ.get("DEEPSEEK_API_KEY", "").strip():
         raise ValueError("DeepSeek API key is not configured")
-    return model, ModelBudget()
+    return model, budget if budget is not None else ModelBudget()

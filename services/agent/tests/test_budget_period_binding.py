@@ -432,3 +432,22 @@ def test_real_commit_acknowledgement_failure_preserves_charged_attempt(slot, mon
     with pytest.raises(period.PeriodError):
         ModelBudget.bind_prepared(identity)
     assert ModelBudget.bound(identity).snapshot()["attempts"] == 1
+
+
+def test_explicit_authorized_factory_never_falls_back_to_legacy(slot, monkeypatch):
+    monkeypatch.setenv("DEEPSEEK_MODEL", "deepseek-flash")
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "dummy-mock-token")
+    monkeypatch.setenv("XDG_STATE_HOME", str(slot))
+    assert accounting.authorized_model()[1]._identity is None
+    with pytest.raises(period.PeriodError):
+        accounting.authorized_model(None)
+    with pytest.raises(period.PeriodError):
+        accounting.authorized_model(object())
+    identity, budget = bound(slot, active=False)
+    with pytest.raises(BudgetLimitExceeded):
+        accounting.authorized_model(identity)
+    budget.activate()
+    alias, connected = accounting.authorized_model(identity)
+    assert alias == "deepseek-flash"
+    assert connected.snapshot()["period_identity"] == identity.identity
+    assert connected.snapshot()["legacy_history"] == "UNKNOWN"

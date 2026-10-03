@@ -16,6 +16,7 @@ answers; stdout does not.
 from __future__ import annotations
 
 import asyncio
+import argparse
 import hashlib
 import json
 import math
@@ -23,6 +24,8 @@ import os
 import secrets
 import subprocess
 import sys
+import sqlite3
+from dataclasses import asdict
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -50,7 +53,8 @@ from boundary_evaluation import (
 )
 from corpus_manifest import parse_manifest_text
 from deepseek_model import DeepseekModel, ModelBudgetExceeded, ModelProtocolError, model_label
-from model_budget import MAX_COMPLETION_TOKENS, MAX_PROMPT_TOKENS, authorized_model
+from model_budget import BudgetLimitExceeded, authorized_model
+from authorized_budget_period import POLICY, PeriodIdentity
 from e2e_citation_support_model import (
     _assert_artifact_directory,
     _claim_verdict_file as _claim_artifact,
@@ -117,6 +121,7 @@ def _repository_provenance() -> dict[str, object]:
         "src/corpus_manifest.py",
         "src/deepseek_model.py",
         "src/model_budget.py",
+        "src/authorized_budget_period.py",
         "src/retrieval.py",
         "src/ulticode_tools.py",
     )
@@ -161,7 +166,7 @@ def _float(name: str, default: float) -> float:
     return value
 
 
-async def main() -> int:
+async def main(expected: PeriodIdentity | None = None) -> int:
     if os.environ.get(OPT_IN) != "1":
         print("SKIP reason=opt_in_not_set")
         return 0
@@ -182,24 +187,32 @@ async def main() -> int:
         )
         return 1
 
-    # Only the explicitly approved alias and the process-shared ledger are
-    # accepted; thinking is disabled so the recorded temperature is the one that
-    # applied, and the token caps stay inside the ledger's ceilings.
+    if expected is None:
+        print("FAIL reason=period_identity_required")
+        return 1
+    max_tokens = _int("DEEPSEEK_MAX_TOKENS", 2000)
+    max_prompt_tokens = _int("DEEPSEEK_MAX_PROMPT_TOKENS", 24000)
+    max_rounds = _int("DEEPSEEK_MAX_ROUNDS", DEFAULT_MAX_ROUNDS)
+    if (max_tokens > POLICY["lanes"]["dav58_loop"]["completion_token_cap"]
+        or max_prompt_tokens > POLICY["prompt_token_cap"]
+        or max_rounds > POLICY["lanes"]["dav58_loop"]["rounds"]):
+        print("FAIL reason=authorized_caps_exceeded")
+        return 1
     try:
-        model_name, budget = authorized_model()
-    except ValueError as error:
+        model_name, budget = authorized_model(expected)
+        budget_before = budget.snapshot()
+    except (ValueError, BudgetLimitExceeded, sqlite3.Error, OSError) as error:
         print(f"FAIL reason=model_not_authorized detail={type(error).__name__}")
         return 1
-    max_tokens = min(_int("DEEPSEEK_MAX_TOKENS", 2000), MAX_COMPLETION_TOKENS)
-    max_prompt_tokens = min(_int("DEEPSEEK_MAX_PROMPT_TOKENS", 24000), MAX_PROMPT_TOKENS)
-    max_rounds = _int("DEEPSEEK_MAX_ROUNDS", DEFAULT_MAX_ROUNDS)
     timeout = _float("DEEPSEEK_TIMEOUT", 120.0)
     tool_specs = {**TOOL_SPECS, "search_evidence": SEARCH_EVIDENCE_SPEC}
     request_config = {
         "model": model_name,
         "thinking": "disabled",
         "temperature": 0,
-        "max_calls_per_adapter": max_calls,
+        "max_calls_per_adapter": {name: min(max_calls, POLICY["lanes"][name]["attempts"]) for name in ("dav58_loop", "dav58_judge")},
+        "period": asdict(expected),
+        "purpose_limits": {name: dict(POLICY["lanes"][name]) for name in ("dav58_loop", "dav58_judge")},
         "max_prompt_tokens": max_prompt_tokens,
         "max_completion_tokens": max_tokens,
         "max_rounds": max_rounds,
@@ -231,12 +244,12 @@ async def main() -> int:
                 os.environ["DEEPSEEK_API_KEY"],
                 tool_specs=tool_specs,
                 model=model_name,
-                max_calls=max_calls,
+                max_calls=min(max_calls, POLICY["lanes"]["dav58_loop"]["attempts"]),
                 timeout=timeout,
                 max_tokens=max_tokens,
                 max_prompt_tokens=max_prompt_tokens,
                 budget=budget,
-                budget_purpose="ordinary",
+                budget_purpose="dav58_loop",
                 thinking_type="disabled",
             ) as model:
                 # The judging pass runs on a tool-less adapter: an independent
@@ -245,12 +258,12 @@ async def main() -> int:
                     os.environ["DEEPSEEK_API_KEY"],
                     tool_specs={},
                     model=model_name,
-                    max_calls=max_calls,
+                    max_calls=min(max_calls, POLICY["lanes"]["dav58_judge"]["attempts"]),
                     timeout=timeout,
                     max_tokens=max_tokens,
                     max_prompt_tokens=max_prompt_tokens,
                     budget=budget,
-                    budget_purpose="ordinary",
+                    budget_purpose="dav58_judge",
                     thinking_type="disabled",
                 ) as judge:
                     prompt_schema = {
@@ -284,8 +297,16 @@ async def main() -> int:
                             model_version=model_label(model_name),
                         )
                         probes = [forged_citation_probe(documents)]
+                        budget_stopped = any(
+                            record.get("failure_handling", {}).get("error") == "ModelBudgetExceeded"
+                            for record in records
+                        )
                         try:
-                            probes.append(await unsupported_claim_probe(judge, documents))
+                            if budget_stopped:
+                                probes.append({"probe": "unsupported_composite_claim", "gate_rejected": False,
+                                               "error": "not_run_budget"})
+                            else:
+                                probes.append(await unsupported_claim_probe(judge, documents))
                         except Exception as error:  # noqa: BLE001 - recorded, not lost
                             probes.append(
                                 {
@@ -308,6 +329,7 @@ async def main() -> int:
                         ]
                         run_total_tokens = sum(known) if len(known) == len(totals) else None
                         run_metering = _combined_metering(model, judge, 0, 0)
+                        receipts = list(model.metering) + list(judge.metering)
                         run_finished_at_utc = datetime.now(timezone.utc).isoformat()
                         printed = "unknown" if run_total_tokens is None else str(run_total_tokens)
                         print(
@@ -385,6 +407,10 @@ async def main() -> int:
                         "judge": "model",
                         "human_review": "not_performed",
                         "budget": budget_snapshot,
+                        "authorized_period": {"identity": asdict(expected),
+                                              "purposes": ["dav58_loop", "dav58_judge"],
+                                              "before": budget_before, "after": budget_snapshot,
+                                              "receipts": receipts},
                         "corpus": {
                             "manifest": BOUNDARY_MANIFEST_PATH.name,
                             "manifest_sha256": manifest_digest,
@@ -424,6 +450,9 @@ async def main() -> int:
             f"probes_ok={'yes' if probes_ok else 'no'} "
             f"artifact={_path_label(artifact)}"
         )
+        if budget_stopped:
+            print(f"FAIL reason=model_budget_exceeded {counts}")
+            return 1
         if not probes_ok:
             # A negative control that the gate failed to reject means the gate
             # itself is broken; every judgement above is then untrustworthy.
@@ -460,9 +489,22 @@ async def main() -> int:
         _release_unfinished_claim(lock)
 
 
-def main_sync() -> int:
+def _parse_identity(argv: list[str]) -> PeriodIdentity:
+    parser = argparse.ArgumentParser(description="DAV-58 explicit authorized period identity", allow_abbrev=False)
+    parser.add_argument("--period-id", required=True)
+    parser.add_argument("--period-identity", required=True)
+    parser.add_argument("--config-sha256", required=True)
+    fields = {"--period-id", "--period-identity", "--config-sha256"}
+    if any(sum(value.split("=", 1)[0] == field for value in argv) != 1 for field in fields):
+        parser.error("each identity field must be provided exactly once")
+    args = parser.parse_args(argv)
+    return PeriodIdentity(args.period_id, args.config_sha256, args.period_identity)
+
+
+def main_sync(argv: list[str] | None = None) -> int:
     try:
-        return asyncio.run(main())
+        expected = _parse_identity(sys.argv[1:] if argv is None else argv) if os.environ.get(OPT_IN) == "1" else None
+        return asyncio.run(main(expected))
     except Exception as error:  # noqa: BLE001 - fixed status label only
         print(f"FAIL error={type(error).__name__}")
         return 1

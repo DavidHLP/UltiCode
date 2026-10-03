@@ -330,3 +330,116 @@ def test_response_identity_stays_aligned_with_every_sent_call() -> None:
             assert len(model.response_models) == len(model.usage) == 1
 
     asyncio.run(scenario())
+
+
+def _bound_budget(tmp_path, monkeypatch):
+    import authorized_budget_period as period
+    import model_budget as accounting
+    root = tmp_path / "slot"
+    root.mkdir()
+    monkeypatch.setattr(accounting, "_authorization_slot", lambda: root)
+    identity = period.prepare_period(root / "period", "test", accounting.authorized_period_config_sha256()).identity
+    budget = accounting.ModelBudget.bind_prepared(identity)
+    budget.activate()
+    return identity, budget
+
+
+def test_bound_adapters_share_full_caps_and_independent_purposes(tmp_path, monkeypatch):
+    identity, budget = _bound_budget(tmp_path, monkeypatch)
+    captured = []
+    async def scenario():
+        async with DeepseekModel("dummy-mock-token", tool_specs={}, model="deepseek-flash",
+                                 budget=budget, budget_purpose="dav58_loop", max_tokens=2000,
+                                 max_calls=30, transport=httpx.MockTransport(_handler(captured))) as loop:
+            for _ in range(24):
+                await loop.decide([{"role": "user", "content": "synthetic"}])
+            with pytest.raises(ModelBudgetExceeded):
+                await loop.decide([{"role": "user", "content": "blocked"}])
+            assert all(row["reserved_micro_usd"] == 9600 for row in loop.metering)
+            assert all(row["period_identity"] == identity.identity for row in loop.metering)
+        async with DeepseekModel("dummy-mock-token", tool_specs={}, model="deepseek-flash",
+                                 budget=budget, budget_purpose="dav58_judge", max_tokens=2000,
+                                 transport=httpx.MockTransport(_handler(captured))) as judge:
+            await judge.decide([{"role": "user", "content": "synthetic judge"}])
+            assert judge.metering[0]["purpose"] == "dav58_judge"
+            assert judge.metering[0]["config_sha256"] == identity.config_sha256
+    asyncio.run(scenario())
+    assert len(captured) == 25
+    assert all(json.loads(request.content)["max_tokens"] == 2000 for request in captured)
+    assert budget.snapshot()["attempts"] == 25
+    assert budget.snapshot()["reserved_micro_usd"] == 25 * 9600
+    assert budget.snapshot()["legacy_history"] == "UNKNOWN"
+
+
+@pytest.mark.parametrize("failure", ["http", "timeout", "cancel", "unknown"])
+def test_bound_failed_cancelled_and_unknown_calls_stay_fully_charged(tmp_path, monkeypatch, failure):
+    identity, budget = _bound_budget(tmp_path, monkeypatch)
+    captured = []
+    async def handler(request):
+        captured.append(request)
+        if failure == "timeout":
+            raise httpx.ReadTimeout("dummy timeout")
+        if failure == "cancel":
+            raise asyncio.CancelledError()
+        if failure == "http":
+            return httpx.Response(503)
+        return httpx.Response(200, json={"choices": [{"message": {"content": '{"answer":"ok"}'}}]})
+    async def scenario():
+        async with DeepseekModel("dummy-mock-token", tool_specs={}, model="deepseek-flash", budget=budget,
+                                 budget_purpose="dav58_loop", max_tokens=2000,
+                                 transport=httpx.MockTransport(handler)) as model:
+            if failure == "unknown":
+                await model.decide([{"role": "user", "content": "synthetic"}])
+            else:
+                exception = {"http": RuntimeError, "timeout": httpx.ReadTimeout, "cancel": asyncio.CancelledError}[failure]
+                with pytest.raises(exception):
+                    await model.decide([{"role": "user", "content": "synthetic"}])
+            assert model.calls_made == 1
+            assert model.metering[0]["actual_micro_usd"] is None
+            assert model.metering[0]["reserved_micro_usd"] == 9600
+    asyncio.run(scenario())
+    assert len(captured) == 1
+    assert budget.snapshot()["reserved_micro_usd"] == 9600
+    assert budget.snapshot()["attempts"] == 1
+
+
+@pytest.mark.parametrize("phase", ["reserve", "settle"])
+def test_ledger_commit_ack_failure_stops_every_later_http(tmp_path, monkeypatch, phase):
+    import sqlite3
+    from model_budget import ModelBudget
+    identity, budget = _bound_budget(tmp_path, monkeypatch)
+    captured = []
+    original = ModelBudget._commit
+    def commit_then_fail(self, db, locked):
+        settled = db.execute("SELECT MAX(settled) FROM attempts").fetchone()[0]
+        original(self, db, locked)
+        if (phase == "reserve" and settled == 0) or (phase == "settle" and settled == 1):
+            raise sqlite3.OperationalError("dummy lost acknowledgement")
+    monkeypatch.setattr(ModelBudget, "_commit", commit_then_fail)
+    async def scenario():
+        async with DeepseekModel("dummy-mock-token", tool_specs={}, model="deepseek-flash", budget=budget,
+                                 budget_purpose="dav58_loop", max_tokens=2000,
+                                 transport=httpx.MockTransport(_handler(captured))) as model:
+            for _ in range(2):
+                with pytest.raises(ModelBudgetExceeded):
+                    await model.decide([{"role": "user", "content": "synthetic"}])
+    asyncio.run(scenario())
+    monkeypatch.setattr(ModelBudget, "_commit", original)
+    assert len(captured) == int(phase == "settle")
+    assert ModelBudget.bound(identity).snapshot()["attempts"] == 1
+    assert budget.snapshot()["reserved_micro_usd"] == 9600
+
+
+@pytest.mark.parametrize("cap", ["prompt", "output"])
+def test_bound_policy_caps_fail_before_http(tmp_path, monkeypatch, cap):
+    identity, budget = _bound_budget(tmp_path, monkeypatch)
+    captured = []
+    async def scenario():
+        async with DeepseekModel("dummy-mock-token", tool_specs={}, model="deepseek-flash", budget=budget,
+                                 budget_purpose="dav58_loop", max_tokens=2001 if cap == "output" else 2000,
+                                 max_prompt_tokens=30000, transport=httpx.MockTransport(_handler(captured))) as model:
+            with pytest.raises(ModelBudgetExceeded):
+                await model.decide([{"role": "user", "content": "x" * 24001 if cap == "prompt" else "synthetic"}])
+    asyncio.run(scenario())
+    assert captured == []
+    assert budget.snapshot()["attempts"] == 0

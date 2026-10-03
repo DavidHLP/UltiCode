@@ -94,10 +94,23 @@ settle，未知 usage 仍计入完整预留，超界 usage 同事务记录并关
 失败后只读取原身份、原文件与原账本核对两种状态；只允许对同一 activate/halt 显式重试，
 完整记录先确认持久化再推进待完成转换，缺失或撕裂记录拒绝，不自动准备、重置或换路径。
 绑定账本 API 有独立 SQL gate 与计数；全局快照标志仍为
-`runtime_accounting_connected=False`、`spend_limit_enforced=False`，因为现有模型工厂、
-provider 与 runner 仍沿用旧工厂，尚未接入绑定门禁。SQLite 使用 `synchronous=FULL`
+`runtime_accounting_connected=False`、`spend_limit_enforced=False`，因为这不是所有入口的
+全局切换；除下述 DAV-58 显式绑定路径外，其他入口仍沿用旧工厂。SQLite 使用 `synchronous=FULL`
 确认账本提交；运行时仅 stat 检查账本身份，SQLite 独占管理账本描述符的生命周期，
-避免额外 open/close 取消其他线程的 POSIX 锁。这层绑定没有执行真实调用，确定性测试不构成 DAV-58 的真实模型验收。
+避免额外 open/close 取消其他线程的 POSIX 锁。
+
+DAV-58 的 `e2e_boundary_evaluation.py` 通过显式身份调用 `authorized_model(expected)`
+选择绑定账本；只有真正无参调用保留旧工厂，显式 `None` 或错误身份不回退。
+该 runner 的 CLI 必须给出三个非秘密字段 `--period-id`、`--period-identity`、
+`--config-sha256`（policy 固定），不接受 ledger/lifecycle 路径，不自动准备或激活。
+启动适配器前要求元数据与 SQL gate 均 active；每次 POST 前在原子账本路径按
+`dav58_loop` 或 `dav58_judge` 预留完整 24000/2000 上限，rounds 不得超过 4；
+负对照也使用 judge purpose，未接入 DAV-53 purpose。账本错误转换为
+`ModelBudgetExceeded` 后停止余下案例与负对照 HTTP，不自动重试，也不退回旧账本。
+artifact 固定周期身份、配置 hash、purpose、前后账本快照及逐调用 receipt，不记录 key
+或 Authorization header。其他入口仍保留无参旧工厂；全局 runtime/enforcement 标志
+仍为 False。这里只用临时账本与 MockTransport 验证，没有执行真实调用，确定性测试
+不构成 DAV-58 的真实模型验收。
 
 `e2e_answer_evaluation.py` evaluates generated answers on the development split only. Its answer
 pass receives the case question and retrieved evidence, not expected/allowed/forbidden outcomes;

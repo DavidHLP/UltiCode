@@ -16,8 +16,8 @@ if ! [[ -v __ULTICODE_SQL_SOURCED ]]; then
   # _mysql_query_via_adapter SQL DATABASE_OVERRIDE CONTAINER CONTAINER_PORT \
   #   HOST PORT USER PASSWORD DATABASE [EXTRA_FLAGS...]
   #
-  #   - CONTAINER non-empty -> docker exec -e MYSQL_PWD=PASSWORD CONTAINER mysql
-  #     [EXTRA_FLAGS...] [--protocol=tcp -h 127.0.0.1 -P CONTAINER_PORT]
+  #   - CONTAINER non-empty -> docker exec -i CONTAINER sh -c ... mysql
+  #     (PASSWORD is sent on stdin, then placed only in mysql's environment)
   #     [-u USER] [DATABASE] -e SQL
   #   - otherwise           -> MYSQL_PWD=PASSWORD mysql --protocol=tcp
   #     -h HOST -P PORT [EXTRA_FLAGS...] [-u USER] [DATABASE] -e SQL
@@ -38,7 +38,7 @@ if ! [[ -v __ULTICODE_SQL_SOURCED ]]; then
 
     local -a cmd
     if [[ -n "$container" ]]; then
-      cmd=(docker exec -e "MYSQL_PWD=$password" "$container" mysql)
+      cmd=(mysql)
       if [[ -n "$container_port" ]]; then
         cmd+=(--protocol=tcp -h 127.0.0.1 -P "$container_port")
       fi
@@ -51,7 +51,14 @@ if ! [[ -v __ULTICODE_SQL_SOURCED ]]; then
     cmd+=(-u "$user")
     [[ -n "$effective_database" ]] && cmd+=("$effective_database")
     cmd+=(-e "$sql")
-    "${cmd[@]}"
+    if [[ -n "$container" ]]; then
+      printf '%s\n' "$password" \
+        | docker exec -i "$container" sh -c \
+          'IFS= read -r MYSQL_PWD || exit 125; export MYSQL_PWD; exec "$@"' \
+          sql-adapter "${cmd[@]}"
+    else
+      "${cmd[@]}"
+    fi
   }
 
   # define_mysql_query_adapter NAME CONTAINER CONTAINER_PORT HOST PORT \

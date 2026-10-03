@@ -69,6 +69,36 @@ uv run pytest -q
 
 真实 UltiCode HTTP / 模型 e2e 仍是显式 opt-in；`e2e_sourced_analysis.py` 使用 agent-authored synthetic Markdown corpus（不是提交、DTO 或用户授权材料），分析输入则是 authenticated user 的 validated read-only submission projection，且不调用真实模型。`e2e_sourced_analysis_model.py` / `e2e_model_qa.py` 是真实模型入口，调用形如 `DEEPSEEK_API_KEY=... DEEPSEEK_MODEL=<model> uv run python e2e_sourced_analysis_model.py`，仍需显式提供现有环境和 `DEEPSEEK_API_KEY` 与 `DEEPSEEK_MODEL`；不得把本地开发账号密码、Cookie、源码、检索文本或模型回答写入日志。可执行题集和当前评估状态见 `services/agent/data/keyword_cases.json` 与对应 Linear 任务。
 
+授权周期的 `authorized_budget_period` 仍只保存生命周期元数据；其快照始终明确
+`runtime_accounting_connected=False`、`spend_limit_enforced=False`。独立的
+`ModelBudget.bind_prepared(identity)` 只为已显式 prepared 的规范周期绑定一次新账本；
+`ModelBudget.bound(identity)` 的运行时读取不创建或修复文件、表或行。固定槽位为 OS passwd
+当前 UID 的家目录下 `.local/state/ulticode/dav58-dav53-v1`，该槽位须已存在；生命周期目录
+固定为 `period`，一次性绑定目录为 `accounting`。生产绑定接口不接受路径或 HOME/XDG
+覆盖，测试只能替换私有 `_authorization_slot` 解析器到临时目录。构造
+`ModelBudget(path=规范账本)` 也不能通过旧账本初始化路径绕过绑定。
+
+规范配置由 `authorized_period_config()` 生成并以规范 JSON 的 SHA256 固定到周期身份；
+schema 为 `ulticode-authorized-budget-v1`，模型别名为 `deepseek-flash`，策略为
+`dav58-dav53-v1`：US$1 / 78 次尝试，三个 purpose 分别为 24 `dav58_loop`、42
+`dav58_judge`、12 `dav53_scenarios`，prompt 上限 24000，输出上限 2000/2000/1000，
+rounds 描述为 4/1/4。每次 reserve 按完整 purpose token 上限计费，沿用现有
+`model_budget` 的 `ceil((prompt*3 + completion*12)/10)` micro-USD 公式
+（输入 US$0.30/M、输出 US$1.20/M）；这些是继承的冻结价格假设，没有重新查询或确认
+供应商当前价格。新周期计数从零开始，历史用量另记为字面量 `UNKNOWN`，不读取或重置旧账本。
+
+绑定协调器 `activate()` 在同一生命周期锁内先 fsync active 元数据再提交 SQL active gate；
+`halt()` 先提交 SQL halted gate 再 fsync halted 元数据。reserve 保持共享生命周期锁直到
+SQLite 事务提交，转换及 settle 保持独占锁；HALT 前已提交的 reservation 不退款且仍可
+settle，未知 usage 仍计入完整预留，超界 usage 同事务记录并关闭 SQL gate。
+失败后只读取原身份、原文件与原账本核对两种状态；只允许对同一 activate/halt 显式重试，
+完整记录先确认持久化再推进待完成转换，缺失或撕裂记录拒绝，不自动准备、重置或换路径。
+绑定账本 API 有独立 SQL gate 与计数；全局快照标志仍为
+`runtime_accounting_connected=False`、`spend_limit_enforced=False`，因为现有模型工厂、
+provider 与 runner 仍沿用旧工厂，尚未接入绑定门禁。SQLite 使用 `synchronous=FULL`
+确认账本提交；运行时仅 stat 检查账本身份，SQLite 独占管理账本描述符的生命周期，
+避免额外 open/close 取消其他线程的 POSIX 锁。这层绑定没有执行真实调用，确定性测试不构成 DAV-58 的真实模型验收。
+
 `e2e_answer_evaluation.py` evaluates generated answers on the development split only. Its answer
 pass receives the case question and retrieved evidence, not expected/allowed/forbidden outcomes;
 it must return explicit retrieved chunk IDs in `citations`, and judging checks only those citations.

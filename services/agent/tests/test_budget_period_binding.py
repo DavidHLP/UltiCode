@@ -7,6 +7,7 @@ import sqlite3
 import subprocess
 import sys
 from threading import Event, current_thread
+import selectors
 
 import pytest
 
@@ -52,7 +53,7 @@ budget = ModelBudget.bound(identity)
 """ + body
     env = {"PATH": os.defpath, "HOME": str(slot), "XDG_STATE_HOME": str(slot / "ignored"),
            "PYTHONDONTWRITEBYTECODE": "1",
-           "PYTHONPATH": str(Path(__file__).resolve().parents[1] / "src")}
+           "PYTHONPATH": os.pathsep.join((str(Path(accounting.__file__).parent), str(Path(period.__file__).parent)))}
     process = subprocess.Popen([sys.executable, "-c", script, str(slot), json.dumps(asdict(identity))],
                                env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     if not wait:
@@ -76,7 +77,8 @@ def test_explicit_binding_read_and_full_cap_receipt(slot):
     assert receipt.purpose == "dav58_loop"
     assert budget.snapshot()["attempts"] == 1
     assert period.read_period(slot / "period", identity).runtime_accounting_connected is False
-    assert budget.snapshot()["runtime_accounting_connected"] is True
+    assert budget.snapshot()["runtime_accounting_connected"] is False
+    assert budget.snapshot()["spend_limit_enforced"] is False
     for purpose in ("ordinary", "frozen_evaluation", "other"):
         with pytest.raises(ValueError):
             reserve(budget, purpose)
@@ -114,7 +116,7 @@ print(json.dumps({'accepted': accepted, 'snapshot': budget.snapshot()}))
     assert snapshot["legacy_history"] == "UNKNOWN"
     with pytest.raises(BudgetLimitExceeded):
         reserve(ModelBudget.bound(identity))
-    with pytest.raises(FileExistsError):
+    with pytest.raises(period.PeriodError):
         ModelBudget.bind_prepared(identity)
     assert budget.snapshot()["attempts"] == 78
 
@@ -254,12 +256,12 @@ def test_partial_bind_retains_tombstone(slot, monkeypatch):
             raise OSError("injected binding write failure")
         original(fd, value)
     monkeypatch.setattr(period, "_write", fail)
-    with pytest.raises(OSError):
+    with pytest.raises(period.PeriodError):
         ModelBudget.bind_prepared(identity)
     assert (slot / "accounting").is_dir()
-    with pytest.raises(FileExistsError):
+    with pytest.raises(period.PeriodError):
         ModelBudget.bind_prepared(identity)
-    with pytest.raises(OSError):
+    with pytest.raises(period.PeriodError):
         ModelBudget.bound(identity)
     assert period.read_period(slot / "period", identity).state == "prepared"
 
@@ -347,3 +349,86 @@ def test_legacy_mode_cannot_open_bound_ledger(slot):
             legacy.reserve(1, 1)
     assert budget.snapshot()["attempts"] == 0
     assert budget.snapshot()["sql_gate"] == "prepared"
+
+
+@pytest.mark.parametrize("exception_cleanup", [False, True])
+def test_thread_cleanup_preserves_live_sqlite_locks_across_processes(slot, monkeypatch, exception_cleanup):
+    identity, budget = bound(slot)
+    entered, release = Event(), Event()
+    original = ModelBudget._commit
+    def pause(self, db, locked, *ledger_fd):
+        if current_thread().name.startswith("fd-owner"):
+            entered.set()
+            assert release.wait(5)
+        original(self, db, locked, *ledger_fd)
+    monkeypatch.setattr(ModelBudget, "_commit", pause)
+    def cleanup():
+        with ModelBudget.bound(identity)._accounting() as (db, locked, *unused):
+            db.execute("SELECT attempts FROM budget").fetchone()
+            if exception_cleanup:
+                raise RuntimeError("injected read cleanup failure")
+    with ThreadPoolExecutor(max_workers=1, thread_name_prefix="fd-owner") as owner:
+        writer = owner.submit(reserve, budget)
+        assert entered.wait(5)
+        try:
+            with ThreadPoolExecutor(max_workers=1) as readers:
+                reader = readers.submit(cleanup)
+                if exception_cleanup:
+                    with pytest.raises(RuntimeError):
+                        reader.result(timeout=5)
+                else:
+                    reader.result(timeout=5)
+            body = """import fcntl,os
+fd = os.open(budget.path, os.O_RDWR)
+try:
+    try:
+        fcntl.lockf(fd, fcntl.LOCK_EX | fcntl.LOCK_NB, 1, 0x40000001, os.SEEK_SET)
+        held = False
+    except BlockingIOError:
+        held = True
+finally:
+    os.close(fd)
+print('HELD' if held else 'RELEASED', flush=True)
+if not held:
+    raise RuntimeError('other thread cleanup canceled live SQLite RESERVED lock')
+budget.reserve(1, 1, purpose='dav58_loop')
+print(json.dumps(budget.snapshot()))
+"""
+            process = run_process(slot, identity, body, wait=False)
+            try:
+                with selectors.DefaultSelector() as selector:
+                    selector.register(process.stdout, selectors.EVENT_READ)
+                    assert selector.select(timeout=5), "probe did not finish within bound"
+                assert process.stdout.readline().strip() == "HELD"
+                assert process.poll() is None
+                release.set()
+                writer.result(timeout=5)
+                stdout, stderr = process.communicate(timeout=10)
+                assert process.returncode == 0, stderr
+                assert json.loads(stdout)["attempts"] == 2
+            finally:
+                if process.poll() is None:
+                    process.kill()
+                process.communicate(timeout=5)
+        finally:
+            release.set()
+        writer.result(timeout=5)
+    assert budget.snapshot()["attempts"] == 2
+
+
+def test_real_commit_acknowledgement_failure_preserves_charged_attempt(slot, monkeypatch):
+    identity, budget = bound(slot)
+    original = ModelBudget._commit
+    def commit_then_fail(self, db, locked):
+        original(self, db, locked)
+        raise sqlite3.OperationalError("injected lost commit acknowledgement")
+    monkeypatch.setattr(ModelBudget, "_commit", commit_then_fail)
+    with pytest.raises(sqlite3.OperationalError):
+        reserve(budget)
+    monkeypatch.setattr(ModelBudget, "_commit", original)
+    snapshot = run_process(slot, identity, "print(json.dumps(budget.snapshot()))")
+    assert snapshot["attempts"] == 1
+    assert snapshot["reserved_micro_usd"] == 9600
+    with pytest.raises(period.PeriodError):
+        ModelBudget.bind_prepared(identity)
+    assert ModelBudget.bound(identity).snapshot()["attempts"] == 1

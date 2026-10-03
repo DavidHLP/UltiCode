@@ -7,6 +7,7 @@ import hashlib
 import json
 import pwd
 import sqlite3
+import stat
 import uuid
 from dataclasses import dataclass
 from contextlib import contextmanager
@@ -75,6 +76,14 @@ def _authorization_slot() -> Path:
 
 def _inode(fd: int) -> list[int]:
     info = os.fstat(fd)
+    return [info.st_dev, info.st_ino]
+
+
+def _ledger_inode(directory: int) -> list[int]:
+    # stat does not open or close a ledger fd outside SQLite's Unix VFS.
+    info = os.stat("budget.sqlite3", dir_fd=directory, follow_symlinks=False)
+    if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1:
+        raise period.PeriodError("regular single-link ledger required")
     return [info.st_dev, info.st_ino]
 
 
@@ -162,31 +171,32 @@ class ModelBudget:
                                   "period_path": str(slot / "period"), "ledger_path": str(slot / "accounting/budget.sqlite3"),
                                   "directory": _inode(directory), "ledger": _inode(fd),
                                   "ledger_uuid": uuid.uuid4().hex, "legacy_history": "UNKNOWN"}
-                        db = sqlite3.connect(f"file:/proc/self/fd/{directory}/budget.sqlite3?mode=rw", uri=True, isolation_level=None)
-                        try:
-                            db.execute("BEGIN IMMEDIATE")
-                            _initialize_tables(db)
-                            db.execute("CREATE TABLE binding (singleton INTEGER PRIMARY KEY CHECK(singleton=1), payload TEXT NOT NULL, gate TEXT NOT NULL)")
-                            db.execute("INSERT INTO binding VALUES (1,?, 'prepared')", (_json(anchor),))
-                            db.execute("CREATE TABLE purposes (purpose TEXT PRIMARY KEY, attempts INTEGER NOT NULL, attempt_limit INTEGER NOT NULL, completion_cap INTEGER NOT NULL)")
-                            db.executemany("INSERT INTO purposes VALUES (?,0,?,?)", [
-                                (name, lane["attempts"], lane["completion_token_cap"])
-                                for name, lane in period.POLICY["lanes"].items()
-                            ])
-                            locked.confirm()
-                            db.commit()
-                        finally:
-                            db.close()
                         os.fsync(fd)
-                        marker = period._file(directory, "binding.json", os.O_WRONLY | os.O_CREAT | os.O_EXCL)
-                        try:
-                            period._write(marker, anchor)
-                        finally:
-                            os.close(marker)
-                        os.fsync(directory)
-                        os.fsync(parent)
                     finally:
-                        os.close(fd)
+                        os.close(fd)  # No auxiliary ledger fd remains when SQLite opens.
+                    db = sqlite3.connect(f"file:/proc/self/fd/{directory}/budget.sqlite3?mode=rw", uri=True, isolation_level=None)
+                    try:
+                        db.execute("PRAGMA synchronous=FULL")
+                        db.execute("BEGIN IMMEDIATE")
+                        _initialize_tables(db)
+                        db.execute("CREATE TABLE binding (singleton INTEGER PRIMARY KEY CHECK(singleton=1), payload TEXT NOT NULL, gate TEXT NOT NULL)")
+                        db.execute("INSERT INTO binding VALUES (1,?, 'prepared')", (_json(anchor),))
+                        db.execute("CREATE TABLE purposes (purpose TEXT PRIMARY KEY, attempts INTEGER NOT NULL, attempt_limit INTEGER NOT NULL, completion_cap INTEGER NOT NULL)")
+                        db.executemany("INSERT INTO purposes VALUES (?,0,?,?)", [
+                            (name, lane["attempts"], lane["completion_token_cap"])
+                            for name, lane in period.POLICY["lanes"].items()
+                        ])
+                        locked.confirm()
+                        db.commit()
+                    finally:
+                        db.close()
+                    marker = period._file(directory, "binding.json", os.O_WRONLY | os.O_CREAT | os.O_EXCL)
+                    try:
+                        period._write(marker, anchor)
+                    finally:
+                        os.close(marker)
+                    os.fsync(directory)
+                    os.fsync(parent)
                 finally:
                     os.close(directory)
         return cls.bound(expected)
@@ -207,42 +217,38 @@ class ModelBudget:
                     records = period._read(marker)
                 finally:
                     os.close(marker)
-                fd = period._file(directory, "budget.sqlite3", os.O_RDWR)
+                if len(records) != 1 or not isinstance(records[0], dict):
+                    raise period.PeriodError("invalid binding anchor")
+                anchor = records[0]
+                required = {**self._identity.__dict__, "config": authorized_period_config(),
+                            "period_path": str(slot / "period"), "ledger_path": str(self.path),
+                            "directory": _inode(directory), "ledger": _ledger_inode(directory),
+                            "ledger_uuid": anchor.get("ledger_uuid"), "legacy_history": "UNKNOWN"}
+                if anchor != required or not isinstance(anchor["ledger_uuid"], str) or len(anchor["ledger_uuid"]) != 32:
+                    raise period.PeriodError("binding identity or ledger drift")
+                db = sqlite3.connect(f"file:/proc/self/fd/{directory}/budget.sqlite3?mode=rw", uri=True, timeout=5, isolation_level=None)
                 try:
-                    if len(records) != 1 or not isinstance(records[0], dict):
-                        raise period.PeriodError("invalid binding anchor")
-                    anchor = records[0]
-                    required = {**self._identity.__dict__, "config": authorized_period_config(),
-                                "period_path": str(slot / "period"), "ledger_path": str(self.path),
-                                "directory": _inode(directory), "ledger": _inode(fd),
-                                "ledger_uuid": anchor.get("ledger_uuid"), "legacy_history": "UNKNOWN"}
-                    if anchor != required or not isinstance(anchor["ledger_uuid"], str) or len(anchor["ledger_uuid"]) != 32:
-                        raise period.PeriodError("binding identity or ledger drift")
-                    db = sqlite3.connect(f"file:/proc/self/fd/{directory}/budget.sqlite3?mode=rw", uri=True, timeout=5, isolation_level=None)
-                    try:
-                        if db.execute("SELECT payload,gate FROM binding").fetchall() not in (
-                            [(_json(anchor), "prepared")], [(_json(anchor), "active")], [(_json(anchor), "halted")],
-                        ):
-                            raise period.PeriodError("SQL binding identity or gate drift")
-                        rows = db.execute("SELECT purpose,attempts,attempt_limit,completion_cap FROM purposes").fetchall()
-                        lanes = period.POLICY["lanes"]
-                        if len(rows) != len(lanes) or any(
-                            name not in lanes or not 0 <= used <= lanes[name]["attempts"]
-                            or (limit, cap) != (lanes[name]["attempts"], lanes[name]["completion_token_cap"])
-                            for name, used, limit, cap in rows
-                        ):
-                            raise period.PeriodError("purpose rows missing or changed")
-                        budget = db.execute("SELECT singleton,attempts,reserved_micro_usd,actual_micro_usd,halted FROM budget").fetchall()
-                        if len(budget) != 1 or budget[0][0] != 1:
-                            raise period.PeriodError("budget row missing or counters changed")
-                        if _inode(fd) != [os.stat("budget.sqlite3", dir_fd=directory, follow_symlinks=False).st_dev,
-                                          os.stat("budget.sqlite3", dir_fd=directory, follow_symlinks=False).st_ino]:
-                            raise period.PeriodError("ledger replaced")
-                        yield db, locked
-                    finally:
-                        db.close()
+                    db.execute("PRAGMA synchronous=FULL")
+                    if db.execute("SELECT payload,gate FROM binding").fetchall() not in (
+                        [(_json(anchor), "prepared")], [(_json(anchor), "active")], [(_json(anchor), "halted")],
+                    ):
+                        raise period.PeriodError("SQL binding identity or gate drift")
+                    rows = db.execute("SELECT purpose,attempts,attempt_limit,completion_cap FROM purposes").fetchall()
+                    lanes = period.POLICY["lanes"]
+                    if len(rows) != len(lanes) or any(
+                        name not in lanes or not 0 <= used <= lanes[name]["attempts"]
+                        or (limit, cap) != (lanes[name]["attempts"], lanes[name]["completion_token_cap"])
+                        for name, used, limit, cap in rows
+                    ):
+                        raise period.PeriodError("purpose rows missing or changed")
+                    budget = db.execute("SELECT singleton,attempts,reserved_micro_usd,actual_micro_usd,halted FROM budget").fetchall()
+                    if len(budget) != 1 or budget[0][0] != 1:
+                        raise period.PeriodError("budget row missing or counters changed")
+                    if _ledger_inode(directory) != anchor["ledger"]:
+                        raise period.PeriodError("ledger replaced")
+                    yield db, locked
                 finally:
-                    os.close(fd)
+                    db.close()
 
     def _commit(self, db: sqlite3.Connection, locked) -> None:
         if locked is not None:
@@ -250,16 +256,16 @@ class ModelBudget:
             with period._parent(self.path) as directory:
                 if _inode(directory) != anchor["directory"]:
                     raise period.PeriodError("accounting directory replaced")
-                for name in ("binding.json", "budget.sqlite3"):
-                    fd = period._file(directory, name, os.O_RDONLY)
-                    try:
-                        if name == "budget.sqlite3" and _inode(fd) != anchor["ledger"]:
-                            raise period.PeriodError("ledger replaced")
-                        if name == "binding.json" and period._read(fd) != [anchor]:
-                            raise period.PeriodError("binding anchor changed")
-                        os.fsync(fd)
-                    finally:
-                        os.close(fd)
+                if _ledger_inode(directory) != anchor["ledger"]:
+                    raise period.PeriodError("ledger replaced")
+                # SQLite synchronous=FULL owns ledger durability and fd lifetimes.
+                marker = period._file(directory, "binding.json", os.O_RDONLY)
+                try:
+                    if period._read(marker) != [anchor]:
+                        raise period.PeriodError("binding anchor changed")
+                    os.fsync(marker)
+                finally:
+                    os.close(marker)
                 os.fsync(directory)
             locked.confirm()
         db.commit()
@@ -533,8 +539,8 @@ class ModelBudget:
                 "period_identity": self._identity.identity, "config_sha256": self._identity.config_sha256,
                 "state": locked.snapshot.state,
                 "sql_gate": db.execute("SELECT gate FROM binding WHERE singleton=1").fetchone()[0],
-                "legacy_history": "UNKNOWN", "runtime_accounting_connected": True,
-                "spend_limit_enforced": True,
+                "legacy_history": "UNKNOWN", "runtime_accounting_connected": False,
+                "spend_limit_enforced": False,
             }
         committed = reserved + eval_micro
         max_attempts = period.POLICY["attempts"] if self._identity else MAX_ATTEMPTS

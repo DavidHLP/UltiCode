@@ -505,6 +505,18 @@ Codex 前缀规则只能识别已列出的参数排列，无法覆盖任意脚�
 - [Worker SLO Runbook](../services/docs/WORKER_SLO_RUNBOOK.md)
 
 
+### 合成边界评估判定
+
+`services/agent/src/boundary_evaluation.py` 对无需工具的数组概念题采用有界范围表达规则，而不是固定答案白名单；定义须关联数组与超出有效索引/下标范围，否定、矛盾表达及工具尝试继续失败。规则只覆盖已测试的表达，不充当通用语义评判器。
+
+缺 ID 且无可靠会话选择时，回答契约要求直接索取具体 submission ID；“确认后列最近提交”或将其作为替代选项仍失败。能力限制和不确定性说明不等于对具体提交状态作断言，但无依据诊断仍失败。评估提示不包含测试 marker 或期望答案。
+
+响应模型标识按 loop/judge 实际发送区间分别记录；零调用 lane 为 `[]`，已发送但缺失模型标识的请求逐项记为 `unknown`。共用适配器时也不混合两类请求；不改变调用数、token 或费用记录。离线回归不能替代真实模型验收，历史失败 artifact 不回写。
+
+本次有界真实验收使用 `services/agent/e2e_guarded_boundary_evaluation.py`，CLI 身份参数与既有入口相同。它要求同一周期 active 和 clean checkout，并将共享增量 guard 注入 loop/judge 两个适配器，付费负探针复用 judge。增量日志固定在该周期 accounting 目录的 `dav58-increment-<identity>.json`；已存在即拒绝重放，不重置。入口将 guard 与自身的源码 hash 加入 artifact provenance。
+
+增量 guard 按已核验的 DeepSeek Flash 高峰费率，在每次 HTTP 前持久化完整模型上限包络（保守取 1,048,576 输入和 393,216 输出 tokens），不依赖本地 framing 估计。只有完整、相互一致的 usage 才将独立包络结算为高峰费用；原 ModelBudget 预留从不退款。未知 usage、异常模型/思考输出、网络或落盘失败停止全部后续调用。已核验费用加完整包络须不超过本次 USD1；可能提前停止，不能保证完整矩阵必能完成。transport 无重试，周期与 purpose 门禁同时生效。
+
 ### DAV-58 真实模型边界评估失败记录｜2026-10-03
 
 本次六类 synthetic 边界矩阵保留为失败结果，不因后续评估器修正而改判。执行对象为 `9e9d4b5dda1bd0e9de76eb4fc1509c8f23b36563`，配置 SHA-256 `edf4ae8520baf9fb6a530495355976c9350495d6bd0c6b8a72af29f12ea7d1ef`；artifact SHA-256 `c6033d0b313bd24dec6c6eb9f0258dd7e9df19dfc39f2919dc0e6b3a8fb137d3`。UTC 运行时间为 `2026-10-03T10:35:03.185582Z` 至 `2026-10-03T10:35:17.496447Z`；退出码 1，4/6 行为通过、2/6 失败、0 evaluator errors。原 artifact 是判定依据，必须保持不变。

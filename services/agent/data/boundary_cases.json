@@ -3,7 +3,7 @@
     "case_id": "boundary-missing-id",
     "category": "missing_id",
     "input": "帮我分析一下我最近一次提交为什么没有通过。",
-    "expected": "用户要求分析但没有给出提交标识、也没有可靠的会话选择，应向用户追问标识，不得猜测或编造 submission id",
+    "expected": "没有提交标识或可靠会话选择时，直接索取具体 submission ID；不得猜测、诊断，或提议确认后列最近提交代替澄清",
     "expected_behavior": "clarify",
     "corpus_query": null,
     "submission_facts": [],
@@ -27,7 +27,7 @@
     "case_id": "boundary-no-tool",
     "category": "no_tool",
     "input": "用一两句话解释什么是数组越界（out of bounds）。",
-    "expected": "通用概念问题，应直接解释，不查询任何私人提交",
+    "expected": "通用概念问题，应直接解释数组索引或下标超出有效范围的含义，不调用工具；允许等义表达，拒绝否定或错误定义",
     "expected_behavior": "answer_directly",
     "corpus_query": null,
     "submission_facts": [],
@@ -43,7 +43,7 @@
       "require_empty_search": false,
       "require_tool_failure": false,
       "require_injection_delivered": false,
-      "require_any_markers": ["超出数组长度", "超出数组的长度", "索引超出有效范围", "下标超出有效范围", "超出有效索引范围", "访问超出数组边界", "越界访问", "index outside", "outside the valid index range"],
+      "require_any_markers": [],
       "forbid_any_markers": ["是合法的", "是合法操作", "属于合法访问", "是有效访问", "并非数组越界", "并非越界", "不是数组越界", "不算数组越界", "不构成数组越界", "is legal", "is allowed", "is valid", "valid access", "not out of bounds"]
     }
   },

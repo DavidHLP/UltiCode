@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -471,7 +472,10 @@ BOUNDARY_ANSWER_CONTRACT = (
     "cite a chunk you did not retrieve. Use an empty citations array when no retrieved "
     "fragment supports the answer. Never invent identity, user ids, or submission ids: "
     "the server session owns identity. If a required input such as a submission id is "
-    "missing, ask for it instead of guessing. When EVIDENCE_QUERY is present, call "
+    "missing and no reliable session selection is available, directly ask the user "
+    "for the specific submission id before proceeding. Do not offer to list recent "
+    "submissions after confirmation as a substitute or alternative to that clarification. "
+    "Do not diagnose a submission before it is identified. When EVIDENCE_QUERY is present, call "
     "search_evidence with exactly that query string before answering."
 )
 
@@ -520,18 +524,22 @@ def _usage_slice(model: object, start: int) -> tuple[int, object]:
     return max(calls, 0), tokens
 
 
-def _response_identity(model: object, start: int) -> list[str]:
+def _response_identity(model: object, start: int, end: int | None = None) -> list[str]:
     """Sanitized provider response ``model`` ids observed for one case's calls.
 
-    One entry per sent call, ``unknown`` when the provider reported none, and
-    ``unknown`` for an adapter that does not capture response identity at all.
+    One entry per sent call; an empty lane is empty, not an unknown provider.
+    Missing labels on sent calls remain ``unknown`` at their original positions.
     The labels are already sanitized by the adapter; nothing raw is emitted.
     """
     labels = getattr(model, "response_models", None)
-    if not isinstance(labels, list):
-        return ["unknown"]
-    observed = [label for label in labels[start:] if isinstance(label, str) and label]
-    return observed or ["unknown"]
+    labels = labels if isinstance(labels, list) else []
+    usage = getattr(model, "usage", None)
+    stop = end if end is not None else len(usage) if isinstance(usage, list) else len(labels)
+    return [
+        labels[index] if index < len(labels) and isinstance(labels[index], str) and labels[index]
+        else "unknown"
+        for index in range(start, stop)
+    ]
 
 
 def _combined_usage(
@@ -794,7 +802,11 @@ def _behavior_ok(
         ]
         if not queries or any(query != case.corpus_query for query in queries):
             return False
-    if case.require_any_markers and not any(
+    if case.category == "no_tool" and not _array_range_definition(text):
+        return False
+    if case.category == "missing_id" and not _direct_id_clarification(text, case):
+        return False
+    if case.category not in {"no_tool", "missing_id"} and case.require_any_markers and not any(
         # A required marker must be *asserted*: ``数组越界不是访问超出数组边界``
         # contains the phrase only under a negation and states the opposite, so a
         # bare substring match would pass a case that denies the required claim.
@@ -802,10 +814,66 @@ def _behavior_ok(
         for marker in case.require_any_markers
     ):
         return False
-    if case.forbid_any_markers and any(
+    if case.category != "missing_id" and case.forbid_any_markers and any(
         _unnegated_claim(text, marker) for marker in case.forbid_any_markers
     ):
         return False
+    return True
+
+
+def _array_range_definition(text: str) -> bool:
+    """Bounded range grammar, not an answer whitelist or general semantic judge.
+
+    A definition must name the array concept and assert an out-of-range access.
+    Existing forbidden/negation and tool predicates remain independent gates.
+    """
+    lowered = text.casefold()
+    patterns = (
+        r"(?:索引|下标)(?:落在)?(?:超出|超过|不在)[^。；;!?？]{0,16}(?:有效|合法)[^。；;!?？]{0,8}范围(?:内)?",
+        r"(?:索引|下标)落在(?:有效|合法)范围(?:之外|以外)",
+        r"(?:访问)?(?:超出|超过)[^。；;!?？]{0,12}数组(?:的)?(?:有效|合法)?(?:索引|下标)?(?:范围|边界|长度)",
+        r"越界访问",
+        r"index outside[^.;!?]{0,24}(?:valid (?:index )?range|array)",
+        r"outside the valid index range",
+    )
+    for sentence in re.split(r"[。；;.!?？]", lowered):
+        if not re.search(r"数组|array", sentence):
+            continue
+        for pattern in patterns:
+            for match in re.finditer(pattern, sentence):
+                # Copula bridges must not hide a negation of the definition.
+                prefix = re.sub(r"(?:指的是|指|意味着|表示|说)$", "", sentence[:match.start()])
+                claim = prefix + sentence[match.start():]
+                if _unnegated_claim(claim, match.group()):
+                    return True
+    return False
+
+
+def _direct_id_clarification(text: str, case: BoundaryCase) -> bool:
+    """Require an ID request; reject listing alternatives and unsupported diagnosis.
+
+    Capability/uncertainty clauses may mention verdict names without asserting a
+    verdict for a submission. This exception is local to the clause, not global.
+    """
+    lowered = text.casefold()
+    identifier = r"(?:submission[ _]*id|提交(?:标识|编号|\s*id))"
+    request = rf"请(?:提供|告诉我)[^。；;!?？]{{0,12}}{identifier}|请把\s*{identifier}\s*(?:发给我|告诉我)"
+    asks = any(_unnegated_claim(lowered, marker) for marker in case.require_any_markers)
+    asks = asks or any(_unnegated_claim(lowered, match.group()) for match in re.finditer(request, lowered))
+    if not asks:
+        return False
+    listing = r"(?:列出|查询|获取|查看)[^。；;!?？]{0,16}提交|(?:list|fetch|retrieve|look up)[^.;!?]{0,32}submissions"
+    listing_text = re.sub(r"(?:cannot|can't|unable to)\s+", lambda match: match.group().rstrip(), lowered)
+    if any(_unnegated_claim(listing_text, match.group()) for match in re.finditer(listing, listing_text)):
+        return False
+    for clause in re.split(r"[。；;，,!！?？]|\bbut\b|但是|但", lowered):
+        for marker in case.forbid_any_markers:
+            if not _unnegated_claim(clause, marker):
+                continue
+            prefix = clause[:clause.find(marker)]
+            if re.search(r"(?:无法|不能|尚不能|不确定)(?:取得|获取|访问|判断|确认|确定)[^。；;]{0,20}$", prefix):
+                continue
+            return False
     return True
 
 
@@ -975,6 +1043,9 @@ async def _evaluate_one(
         answer = ""
         rounds = 0
 
+    loop_usage_end = len(getattr(model, "usage", []) or [])
+    judge_lane_start = loop_usage_end if judge_model is model else judge_usage_start
+    loop_identity = _response_identity(model, usage_start, loop_usage_end)
     text = ""
     citations: tuple[dict[str, object], ...] = ()
     malformed_citations: tuple[dict[str, object], ...] = ()
@@ -994,6 +1065,8 @@ async def _evaluate_one(
         "parse_failure": parse_failure,
         "citation_checks": (),
         "exists": "failed",
+        "loop_response_models": loop_identity,
+        "judge_lane_start": judge_lane_start,
     }
     try:
         checks = check_citations(citations, documents) if citations else ()
@@ -1082,8 +1155,8 @@ async def _evaluate_one(
         "failure_handling": failure_handling,
         "tool_trace_sha256": hashlib.sha256(trace.encode("utf-8")).hexdigest(),
         "model_version": model_version,
-        "loop_response_models": _response_identity(model, usage_start),
-        "judge_response_models": _response_identity(judge_model, judge_usage_start),
+        "loop_response_models": loop_identity,
+        "judge_response_models": _response_identity(judge_model, judge_lane_start),
         "model_calls": loop_calls_total,
         "usage": {"total_tokens": tokens},
         "metering": metering,
@@ -1213,13 +1286,17 @@ def _error_record(
         "actual_micro_usd": None,
         "usage_known": False,
     }
-    loop_response_models = ["unknown"]
-    judge_response_models = ["unknown"]
+    loop_response_models: list[str] = []
+    judge_response_models: list[str] = []
     if model is not None and judge_model is not None:
         calls, tokens = _combined_usage(model, judge_model, usage_start, judge_usage_start)
         metering = _combined_metering(model, judge_model, usage_start, judge_usage_start)
-        loop_response_models = _response_identity(model, usage_start)
-        judge_response_models = _response_identity(judge_model, judge_usage_start)
+        loop_response_models = list(partial.get("loop_response_models", _response_identity(model, usage_start)))
+        judge_lane_start = partial.get("judge_lane_start")
+        if isinstance(judge_lane_start, int):
+            judge_response_models = _response_identity(judge_model, judge_lane_start)
+        elif judge_model is not model:
+            judge_response_models = _response_identity(judge_model, judge_usage_start)
     if not partial:
         answer_parse = "not_attempted"
     else:

@@ -680,7 +680,9 @@ def test_answer_artifact_parent_swap_never_redirects_bytes(monkeypatch, capsys, 
     assert e2e.main_sync() == 1
     assert len(calls) == 2
     assert not list((replacement if replacement_is_link else parent).iterdir())
-    assert sorted(p.name for p in moved.iterdir()) == ["artifact.json.lock"]
+    assert sorted(p.name for p in moved.iterdir()) == [
+        "artifact.json.lock", "artifact.json.meta.json.lock"
+    ]
     output = capsys.readouterr().out
     assert "answer_artifact_write_failed" in output
     assert "OK answer_eval" not in output

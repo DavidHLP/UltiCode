@@ -416,26 +416,30 @@ def test_overlapping_verdict_metadata_paths_are_reserved_before_calls(
     monkeypatch, capsys, tmp_path
 ) -> None:
     calls: list[str] = []
-    first_destination = tmp_path / "a.json"
-    overlapping_destination = smoke._meta_path(first_destination)
+    destination = tmp_path / "a.json"
+    overlapping_destination = smoke._meta_path(destination)
     _install(
         monkeypatch, tmp_path,
         ['{"supports": true, "derivable": true}'] * 3, calls,
     )
-    first_lock = smoke._claim_verdict_file(first_destination)
+    first_lock = smoke._claim_verdict_file(overlapping_destination)
 
     try:
-        monkeypatch.setenv("ULTICODE_CITATION_VERDICTS", str(overlapping_destination))
+        monkeypatch.setenv("ULTICODE_CITATION_VERDICTS", str(destination))
         assert smoke.main_sync() == 1
         output = capsys.readouterr().out
         assert "reason=verdict_destination_unusable" in output
         assert calls == []
-        assert not overlapping_destination.exists()
+        assert not destination.exists()
+        # The failed multi-lock claim releases its first lock but not the rival's.
+        assert _lock_is_free(smoke._verdict_lock(destination))
     finally:
         smoke._release_unfinished_claim(first_lock)
 
-    assert _lock_is_free(smoke._verdict_lock(first_destination))
+    assert _lock_is_free(smoke._verdict_lock(destination))
     assert _lock_is_free(smoke._verdict_lock(overlapping_destination))
+    assert _lock_is_free(smoke._verdict_lock(smoke._meta_path(overlapping_destination)))
+
 
 
 def test_a_non_integer_threshold_fails_cleanly(monkeypatch, capsys, tmp_path) -> None:
@@ -1994,7 +1998,9 @@ def test_citation_artifact_parent_swap_never_redirects_bytes(monkeypatch, capsys
     assert smoke.main_sync() == 1
     assert len(calls) == 3
     assert not list((replacement if replacement_is_link else parent).iterdir())
-    assert sorted(p.name for p in moved.iterdir()) == ["verdicts.json.lock"]
+    assert sorted(p.name for p in moved.iterdir()) == [
+        "verdicts.json.lock", "verdicts.json.meta.json.lock"
+    ]
     assert _lock_is_free(moved / "verdicts.json.lock")
     output = capsys.readouterr().out
     assert "verdict_write_failed" in output

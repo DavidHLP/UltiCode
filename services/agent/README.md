@@ -60,7 +60,8 @@ fragments; expected/allowed/forbidden outcomes are withheld until judging. It re
 retrieved chunk IDs as citations, and the judge/artifact use only those IDs, not every retrieval hit.
 
 ```bash
-ULTICODE_ANSWER_EVAL=1 DEEPSEEK_MODEL=<model> uv run python e2e_answer_evaluation.py
+ULTICODE_ANSWER_EVAL=1 DEEPSEEK_MODEL=<model> DEEPSEEK_MAX_CALLS=120 \
+  uv run python e2e_answer_evaluation.py
 ```
 
 Scope is enforced by the evaluator, not by the caller: it raises on any case outside
@@ -71,12 +72,13 @@ are valid when the answer cites nothing. An empty citation list records `citatio
 state directory carrying `scope=development_only`, `sealed_splits`, `judge=model`,
 `human_review=not_performed` and every row — this is machine evidence, not human review.
 
-Budget: two logical passes per case (answer, then judge), with up to three attempts per pass.
-Before the first billed call, the entry requires `DEEPSEEK_MAX_CALLS` to cover six calls per case,
-including retry capacity. The default ceiling remains 64; larger batches require an explicit
-ceiling covering the full plan. A transport error or timeout is retried per call, not per batch, and a
-retried attempt is billed, so each row records the attempts actually made in `model_calls`
-rather than a fixed two. A protocol failure is not retried because the same input yields the
+Budget: two logical passes per case (answer, then judge), with up to three attempts per pass. The
+checked-in development split currently contains 20 cases, so worst-case retry capacity requires 120
+calls; the command above sets that ceiling explicitly. The default remains 64, and a lower ceiling
+fails before the first provider call. Recalculate the explicit ceiling if the case count changes.
+A transport error or timeout is retried per call, not per batch, and each retried attempt is billed,
+so each row records attempts actually made in `model_calls` rather than a fixed two. A protocol failure
+is not retried because the same input yields the
 same shape. The destination artifact is reserved before the first billed call, an existing
 artifact is never overwritten: complete bytes are published through a no-clobber hard link. The corpus
 and case file are snapshotted once before the calls so the artifact identifies the material actually judged.

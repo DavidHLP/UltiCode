@@ -84,6 +84,21 @@ def _reject_duplicate_keys(pairs: list[tuple[str, object]]) -> dict[str, object]
     return result
 
 
+def _contains_non_scalar_string(value: object) -> bool:
+    pending = [value]
+    while pending:
+        current = pending.pop()
+        if isinstance(current, str):
+            if any(0xD800 <= ord(character) <= 0xDFFF for character in current):
+                return True
+        elif isinstance(current, dict):
+            pending.extend(current.keys())
+            pending.extend(current.values())
+        elif isinstance(current, list):
+            pending.extend(current)
+    return False
+
+
 class ManifestError(ValueError):
     """The manifest is incomplete or inconsistent with the corpus."""
 
@@ -105,6 +120,11 @@ class ManifestEntry:
 
 
 def _require_text(entry: dict[str, object], field: str, doc_id: str) -> str:
+    # Validate the full raw entry before using any identifier or discarding extensions.
+    if field == "doc_id" and _contains_non_scalar_string(entry):
+        raise ManifestError(
+            "corpus manifest strings must contain only Unicode scalar values"
+        )
     value = entry.get(field)
     if not isinstance(value, str) or not value.strip():
         raise ManifestError(f"{doc_id}: missing or blank {field}")

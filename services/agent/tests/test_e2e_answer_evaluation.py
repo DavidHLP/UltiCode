@@ -16,6 +16,7 @@ from pathlib import Path
 import pytest
 from deepseek_model import _parse_decision
 
+import answer_evaluation
 from keyword_evaluation import KeywordCase
 from retrieval import MAX_QUERY_CHARS, SourceDocument
 from retrieval import load_sample_corpus as _real_load_sample_corpus
@@ -161,8 +162,15 @@ def test_nested_json_depth_error_is_sanitized_as_protocol(
     monkeypatch, capsys, tmp_path
 ) -> None:
     answer = "[" * 2000 + "0" + "]" * 2000
-    with pytest.raises(RecursionError):
-        json.loads(answer)
+    # Keep this regression independent of Python's decoder nesting limit.
+    real_json_loads = answer_evaluation.json.loads
+
+    def raise_depth_error(raw: str, **kwargs: object) -> object:
+        if raw == answer:
+            raise RecursionError("maximum recursion depth exceeded")
+        return real_json_loads(raw, **kwargs)
+
+    monkeypatch.setattr(answer_evaluation.json, "loads", raise_depth_error)
     calls = _install(monkeypatch, answers={"dev-01": answer})
     destination = tmp_path / "artifact.json"
     monkeypatch.setenv("ULTICODE_ANSWER_EVAL_RESULT", str(destination))

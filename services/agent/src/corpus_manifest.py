@@ -120,11 +120,6 @@ class ManifestEntry:
 
 
 def _require_text(entry: dict[str, object], field: str, doc_id: str) -> str:
-    # Validate the full raw entry before using any identifier or discarding extensions.
-    if field == "doc_id" and _contains_non_scalar_string(entry):
-        raise ManifestError(
-            "corpus manifest strings must contain only Unicode scalar values"
-        )
     value = entry.get(field)
     if not isinstance(value, str) or not value.strip():
         raise ManifestError(f"{doc_id}: missing or blank {field}")
@@ -154,6 +149,10 @@ def parse_manifest_text(text: str) -> tuple[ManifestEntry, ...]:
         ) from None
     except (ValueError, RecursionError) as error:
         raise ManifestError(f"corpus manifest is not valid JSON: {error}") from None
+    if _contains_non_scalar_string(raw):
+        raise ManifestError(
+            "corpus manifest strings must contain only Unicode scalar values"
+        )
     if not isinstance(raw, list) or not raw:
         if raw == []:
             raise ManifestEmpty("corpus manifest declares no entries")

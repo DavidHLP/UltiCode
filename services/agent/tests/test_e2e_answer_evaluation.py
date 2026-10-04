@@ -10,13 +10,14 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import json
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
 from deepseek_model import _parse_decision
 
 from keyword_evaluation import KeywordCase
-from retrieval import SourceDocument
+from retrieval import MAX_QUERY_CHARS, SourceDocument
 from retrieval import load_sample_corpus as _real_load_sample_corpus
 
 _module_spec = importlib.util.spec_from_file_location(
@@ -71,6 +72,8 @@ def _install(
     usage_total=10,
     fail_judge_preflight=False,
     preflight_checks=None,
+    cases=None,
+    model_entries=None,
 ):
     """Stub the adapter, corpus and case file so only the entry point runs."""
     calls: list[str] = []
@@ -88,6 +91,8 @@ def _install(
             self.kwargs = _kwargs
 
         async def __aenter__(self) -> "_Model":
+            if model_entries is not None:
+                model_entries.append(True)
             return self
 
         async def __aexit__(self, *_args: object) -> None:
@@ -113,7 +118,11 @@ def _install(
             return _Decision(judgements["dev-01"])
 
     monkeypatch.setattr(e2e, "DeepseekModel", _Model)
-    monkeypatch.setattr(e2e, "load_cases", lambda **_kwargs: (_case(),))
+    monkeypatch.setattr(
+        e2e,
+        "load_cases",
+        lambda **_kwargs: cases if cases is not None else (_case(),),
+    )
     if not real_corpus:
         monkeypatch.setattr("retrieval.load_sample_corpus", _documents)
     monkeypatch.setenv("ULTICODE_ANSWER_EVAL", "1")
@@ -165,6 +174,24 @@ def test_an_answer_over_the_text_limit_is_not_sent_to_the_judge(
 
     assert len(calls) == 1
     assert "reason=protocol" in capsys.readouterr().out
+
+
+def test_an_overlong_case_query_is_rejected_before_model_session(
+    monkeypatch, capsys, tmp_path
+) -> None:
+    model_entries: list[bool] = []
+    case = replace(_case(), query="q" * (MAX_QUERY_CHARS + 1))
+    calls = _install(
+        monkeypatch,
+        cases=(case,),
+        model_entries=model_entries,
+    )
+    monkeypatch.setenv("ULTICODE_ANSWER_EVAL_RESULT", str(tmp_path / "artifact.json"))
+
+    assert e2e.main_sync() == 1
+    assert model_entries == []
+    assert calls == []
+    assert "reason=query_too_long" in capsys.readouterr().out
 
 
 def test_opt_in_is_required_and_no_key_is_used_without_it(monkeypatch, capsys) -> None:

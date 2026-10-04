@@ -8,7 +8,7 @@ packages:
   - "apps/*"
   - "packages/*"
 overrides:
-  dompurify: 3.4.5
+  dompurify: 3.4.16
   lodash-es: 4.18.1
   protocol-buffers-schema: 3.6.1
   # GHSA-jrc7-96c5-q579: patched MapLibre pulled in by Unovis.

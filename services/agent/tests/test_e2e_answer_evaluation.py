@@ -331,7 +331,7 @@ def test_an_existing_lock_does_not_skip_the_artifact_write_probe(
     original_open = e2e.os.open
 
     def deny_probe(name, *args, **kwargs):
-        if isinstance(name, str) and name.endswith(".part"):
+        if isinstance(name, str) and name.endswith(".probe"):
             raise PermissionError("artifact directory is not writable")
         return original_open(name, *args, **kwargs)
 
@@ -341,7 +341,7 @@ def test_an_existing_lock_does_not_skip_the_artifact_write_probe(
 
     assert "reason=answer_artifact_unusable" in capsys.readouterr().out
     assert calls == []
-    assert not list(tmp_path.glob("*.part"))
+    assert not list(tmp_path.glob("*.probe"))
 
 
 def test_a_failed_publication_reports_and_leaves_nothing(

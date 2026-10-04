@@ -124,7 +124,7 @@ def _payload(raw: str, what: str) -> dict[str, Any]:
         # nested object it carries: `{"text": "a", "text": "b"}` must fail rather
         # than read as silently last-write-wins.
         parsed = json.loads(raw, object_pairs_hook=_reject_duplicate_keys)
-    except ValueError:
+    except (ValueError, RecursionError):
         raise AnswerEvaluationError(f"{what} was not JSON or repeated a key") from None
     if not isinstance(parsed, dict):
         raise AnswerEvaluationError(f"{what} was not an object")

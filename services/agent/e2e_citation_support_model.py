@@ -360,6 +360,41 @@ def _claim_verdict_file(path: Path) -> Path:
         raise RuntimeError(
             f"verdict destination already exists: {_path_label(existing)}"
         )
+    probe = f"{path.name}.{secrets.token_hex(16)}.probe"
+    probe_descriptor = None
+    probe_identity = None
+    try:
+        probe_descriptor = os.open(
+            probe, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+            0o600, dir_fd=directory,
+        )
+        probe_info = os.fstat(probe_descriptor)
+        probe_identity = (probe_info.st_dev, probe_info.st_ino)
+        os.close(probe_descriptor)
+        probe_descriptor = None
+        visible = os.stat(probe, dir_fd=directory, follow_symlinks=False)
+        if (visible.st_dev, visible.st_ino) != probe_identity:
+            raise OSError("artifact probe inode changed")
+        os.unlink(probe, dir_fd=directory)
+    except OSError as error:
+        if probe_descriptor is not None:
+            try:
+                os.close(probe_descriptor)
+            except OSError:
+                pass
+        if probe_identity is not None:
+            try:
+                visible = os.stat(probe, dir_fd=directory, follow_symlinks=False)
+                if (visible.st_dev, visible.st_ino) == probe_identity:
+                    os.unlink(probe, dir_fd=directory)
+            except OSError:
+                pass
+        _release_unfinished_claim(lock)
+        raise RuntimeError(
+            f"verdict destination is not writable: {_path_label(path)} "
+            f"({type(error).__name__})"
+        ) from None
+
     return lock
 
 

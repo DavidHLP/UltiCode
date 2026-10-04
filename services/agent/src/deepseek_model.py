@@ -261,7 +261,7 @@ def _parse_decision(content: str, *, finish_reason: object = None) -> ModelDecis
             parse_constant=_reject_json_constant,
             object_pairs_hook=_reject_duplicate_keys,
         )
-    except (json.JSONDecodeError, ValueError) as exc:
+    except (json.JSONDecodeError, ValueError, RecursionError) as exc:
         raise ModelProtocolError(
             "model decision was not valid JSON "
             f"(content_len={len(content)}, finish_reason={finish_label})"

@@ -183,6 +183,8 @@ def _publish(target: Path, text: str) -> tuple[int, int]:
     created = False
     descriptor: int | None = None
     identity: tuple[int, int] | None = None
+    published = False
+    verified = False
     try:
         _assert_artifact_directory(target)
         descriptor = os.open(
@@ -202,13 +204,22 @@ def _publish(target: Path, text: str) -> tuple[int, int]:
                 raise OSError("temporary artifact inode changed")
             os.link(temporary, target.name, src_dir_fd=directory, dst_dir_fd=directory,
                     follow_symlinks=False)
+            published = True
             _read_published_artifact(
                 target, text, directory=directory, expected_identity=identity
             )
+            verified = True
         return identity
     finally:
         if descriptor is not None:
             os.close(descriptor)
+        if published and not verified and identity is not None:
+            try:
+                info = os.stat(target.name, dir_fd=directory, follow_symlinks=False)
+                if (info.st_dev, info.st_ino) == identity:
+                    os.unlink(target.name, dir_fd=directory)
+            except OSError:
+                pass
         if created and identity is not None:
             try:
                 info = os.stat(temporary, dir_fd=directory, follow_symlinks=False)

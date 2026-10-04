@@ -14,6 +14,7 @@ import sys
 import pytest
 
 from corpus_manifest import content_digest
+from deepseek_model import ModelBudgetExceeded
 from retrieval import SourceHit, keyword_search, load_sample_corpus
 
 _module_spec = importlib.util.spec_from_file_location(
@@ -70,7 +71,14 @@ def _citation(index: int = 0) -> dict[str, object]:
     return hits[index].as_model_dict()
 
 
-def _install(monkeypatch, tmp_path: Path, judgements: list[str], calls: list[str]) -> None:
+def _install(
+    monkeypatch,
+    tmp_path: Path,
+    judgements: list[str],
+    calls: list[str],
+    prompt_checks: list[str] | None = None,
+    reject_prompt_check: int | None = None,
+) -> None:
     class _Decision:
         def __init__(self, text: str) -> None:
             self.text = text
@@ -88,6 +96,13 @@ def _install(monkeypatch, tmp_path: Path, judgements: list[str], calls: list[str
 
         async def __aexit__(self, *_args: object) -> None:
             return None
+
+        def check_prompt_budget(self, messages: list[dict[str, object]]) -> None:
+            prompt = str(messages[-1]["content"])
+            if prompt_checks is not None:
+                prompt_checks.append(prompt)
+                if reject_prompt_check == len(prompt_checks):
+                    raise ModelBudgetExceeded("prompt exceeds test budget")
 
         async def decide(self, messages: list[dict[str, object]]) -> object:
             calls.append(str(messages[-1]["content"]))
@@ -541,6 +556,32 @@ def test_a_call_budget_below_the_row_count_is_refused(
     assert calls == []
 
 
+def test_all_citation_prompts_are_preflighted_before_any_call(
+    monkeypatch, capsys, tmp_path
+) -> None:
+    calls: list[str] = []
+    checked_prompts: list[str] = []
+    destination = tmp_path / "verdicts.json"
+    _install(
+        monkeypatch,
+        tmp_path,
+        ['{"supports": true, "derivable": true}'] * 3,
+        calls,
+        prompt_checks=checked_prompts,
+        reject_prompt_check=3,
+    )
+
+    assert smoke.main_sync() == 1
+
+    output = capsys.readouterr().out
+    assert len(checked_prompts) == 3
+    assert calls == []
+    assert "E2E CITATION SUPPORT USAGE | calls=0" in output
+    assert "FAIL error=ModelBudgetExceeded" in output
+    assert not destination.exists()
+    assert not smoke._meta_path(destination).exists()
+
+
 def test_a_provider_failure_reports_a_fixed_label(monkeypatch, capsys, tmp_path) -> None:
     """A routine outage must not escape as a traceback."""
     calls: list[str] = []
@@ -882,6 +923,32 @@ def test_a_colliding_temporary_is_not_unlinked(tmp_path, monkeypatch) -> None:
     # Created by someone else, so this run's cleanup must not have touched it.
     assert other.read_text(encoding="utf-8") == "another publisher's bytes"
     assert not destination.exists()
+
+
+def test_publish_rejects_temporary_path_replacement(monkeypatch, tmp_path) -> None:
+    destination = tmp_path / "verdicts.json"
+    expected = b'{"ours": true}'
+    monkeypatch.setattr(smoke.secrets, "token_hex", lambda _n: "deadbeef")
+    original_link = smoke.os.link
+
+    def replace_temporary(source, target, **kwargs):
+        if source == "verdicts.json.deadbeef.part":
+            directory = kwargs["src_dir_fd"]
+            os.unlink(source, dir_fd=directory)
+            descriptor = os.open(
+                source, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600, dir_fd=directory
+            )
+            os.write(descriptor, b"foreign bytes")
+            os.close(descriptor)
+        return original_link(source, target, **kwargs)
+
+    monkeypatch.setattr(smoke.os, "link", replace_temporary)
+    with pytest.raises(OSError, match="published artifact inode changed"):
+        smoke._publish(destination, expected.decode("utf-8"))
+
+    assert destination.read_bytes() == b"foreign bytes"
+    temporary = tmp_path / "verdicts.json.deadbeef.part"
+    assert temporary.read_bytes() == b"foreign bytes"
 
 
 def _load_entries(manifest) -> list[dict]:

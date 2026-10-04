@@ -215,6 +215,22 @@ def test_a_completed_run_publishes_the_artifact(monkeypatch, capsys, tmp_path) -
     assert len(calls) == 2
 
 
+def test_success_line_identifies_the_default_generated_artifact(
+    monkeypatch, capsys, tmp_path
+) -> None:
+    calls = _install(monkeypatch)
+    monkeypatch.delenv("ULTICODE_ANSWER_EVAL_RESULT", raising=False)
+    monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path))
+
+    assert e2e.main_sync() == 0
+
+    artifacts = list((tmp_path / "ulticode").glob("answer-eval-*.json"))
+    assert len(artifacts) == 1
+    output = capsys.readouterr().out
+    assert f"artifact={e2e._artifact_label(artifacts[0])}" in output
+    assert len(calls) == 2
+
+
 def test_a_lone_surrogate_answer_is_escaped_in_the_published_artifact(
     monkeypatch, capsys, tmp_path
 ) -> None:

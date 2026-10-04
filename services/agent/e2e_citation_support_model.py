@@ -404,7 +404,7 @@ def _claim_verdict_file(path: Path) -> Path:
             os.stat(existing.name, dir_fd=artifact_directory, follow_symlinks=False)
         except FileNotFoundError:
             continue
-        except OSError as error:
+        except (OSError, ValueError) as error:
             _release_unfinished_claim(lock)
             raise RuntimeError(
                 f"verdict destination is not usable: {_path_label(existing)} "

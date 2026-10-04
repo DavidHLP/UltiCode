@@ -958,6 +958,7 @@ def test_a_hard_linked_lock_is_refused_without_mutating_its_target(tmp_path) -> 
     victim = tmp_path / "important.txt"
     victim.write_text("preserve this file", encoding="utf-8")
     lock = smoke._verdict_lock(destination)
+    _prepare_lock_parent(lock)
     os.link(victim, lock)
 
     try:

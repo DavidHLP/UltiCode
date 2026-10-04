@@ -10,6 +10,7 @@ import sqlite3
 import stat
 import uuid
 from datetime import datetime, timezone
+from budget_binding_migration import resolve_pair
 from dataclasses import dataclass
 from contextlib import contextmanager
 from typing import Iterator
@@ -262,7 +263,7 @@ class ModelBudget:
                 anchor = records[0]
                 required = {**self._identity.__dict__, "config": authorized_period_config(),
                             "period_path": str(slot / "period"), "ledger_path": str(self.path),
-                            "directory": _inode(directory), "ledger": _ledger_inode(directory),
+                            "directory": resolve_pair(slot, self._identity.__dict__, "accounting_directory", anchor.get("directory"), _inode(directory)), "ledger": resolve_pair(slot, self._identity.__dict__, "ledger", anchor.get("ledger"), _ledger_inode(directory)),
                             "ledger_uuid": anchor.get("ledger_uuid"), "legacy_history": "UNKNOWN"}
                 if anchor != required or not isinstance(anchor["ledger_uuid"], str) or len(anchor["ledger_uuid"]) != 32:
                     raise period.PeriodError("binding identity or ledger drift")
@@ -286,7 +287,7 @@ class ModelBudget:
                     budget = db.execute("SELECT singleton,attempts,reserved_micro_usd,actual_micro_usd,halted FROM budget").fetchall()
                     if len(budget) != 1 or budget[0][0] != 1:
                         raise period.PeriodError("budget row missing or counters changed")
-                    if _ledger_inode(directory) != anchor["ledger"]:
+                    if resolve_pair(slot, self._identity.__dict__, "ledger", anchor["ledger"], _ledger_inode(directory)) != anchor["ledger"]:
                         raise period.PeriodError("ledger replaced")
                     yield db, locked
                 finally:
@@ -296,9 +297,9 @@ class ModelBudget:
         if locked is not None:
             anchor = json.loads(db.execute("SELECT payload FROM binding WHERE singleton=1").fetchone()[0])
             with period._parent(self.path) as directory:
-                if _inode(directory) != anchor["directory"]:
+                if resolve_pair(_authorization_slot(), self._identity.__dict__, "accounting_directory", anchor["directory"], _inode(directory)) != anchor["directory"]:
                     raise period.PeriodError("accounting directory replaced")
-                if _ledger_inode(directory) != anchor["ledger"]:
+                if resolve_pair(_authorization_slot(), self._identity.__dict__, "ledger", anchor["ledger"], _ledger_inode(directory)) != anchor["ledger"]:
                     raise period.PeriodError("ledger replaced")
                 # SQLite synchronous=FULL owns ledger durability and fd lifetimes.
                 marker = period._file(directory, "binding.json", os.O_RDONLY)

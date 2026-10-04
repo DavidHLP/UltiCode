@@ -571,3 +571,18 @@ and uses an 8000-token input cap with the existing 2000-token output cap. It che
 the complete conservative plan before any send; the full provider envelope is
 still reserved before every request. A receipt exceeding the continuation input
 cap retains the envelope and stops both lanes. No automatic retries are added.
+
+
+A dedicated, explicitly authorized Btrfs device-binding migration is available
+through `services/agent/migrate_dav58_binding.py` (dry-run; `--apply` publishes).
+It is pinned to the reviewed state fingerprints and exact device transition; it
+is not a general rebind facility. Under the lifecycle and original guard locks,
+it verifies filesystem/subvolume evidence, owner/mode and inode identities,
+original binding contents, SQLite integrity, all ordered settled receipts,
+lifecycle, configuration and baseline counters. It retains original metadata and
+ledger bytes and publishes a separate migration event. The validators recognize
+only that event's specific objects in the same boot; other drift still fails.
+Complete interrupted publications can be resumed after repeating the checks;
+partial or altered metadata, a completed duplicate migration, concurrent owners
+or pending usage stop without repairing files. The migration itself sends no HTTP
+and grants no additional model calls; audited quota extension remains separate.

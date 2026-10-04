@@ -14,6 +14,7 @@ import re
 import stat
 import uuid
 from types import MappingProxyType
+from budget_binding_migration import resolve_pair
 
 POLICY_ID = "dav58-dav53-v1"
 POLICY = MappingProxyType({
@@ -191,10 +192,12 @@ def _locked_period(path: Path, expected: PeriodIdentity, *, exclusive: bool = Tr
                         records = _read(marker)
                     finally:
                         os.close(marker)
+                    if len(records) != 1 or not isinstance(records[0], dict):
+                        raise PeriodError("invalid period identity metadata")
                     required = {
                         **expected.__dict__, "path": str(path),
-                        "directory": [os.fstat(directory).st_dev, os.fstat(directory).st_ino],
-                        "state_file": [os.fstat(state).st_dev, os.fstat(state).st_ino],
+                        "directory": resolve_pair(path.parent, expected.__dict__, "period_directory", records[0].get("directory"), [os.fstat(directory).st_dev, os.fstat(directory).st_ino]),
+                        "state_file": resolve_pair(path.parent, expected.__dict__, "state_file", records[0].get("state_file"), [os.fstat(state).st_dev, os.fstat(state).st_ino]),
                     }
                     if records != [required]:
                         raise PeriodError("period identity, config, policy or path drift")

@@ -78,6 +78,17 @@ def test_blank_field_is_rejected(tmp_path: Path, field: str) -> None:
         load_manifest(_write(tmp_path, [blanked]))
 
 
+@pytest.mark.parametrize("field", ["doc_id", "chunk_id", "version"])
+def test_unpaired_surrogates_in_manifest_text_are_rejected(
+    tmp_path: Path, field: str
+) -> None:
+    invalid = _entry()
+    invalid[field] = chr(0xD800)
+
+    with pytest.raises(ManifestError, match="Unicode scalar"):
+        load_manifest(_write(tmp_path, [invalid]))
+
+
 @pytest.mark.parametrize("field", DOCUMENT_BINDING_FIELDS)
 def test_binding_fields_are_mandatory_too(tmp_path: Path, field: str) -> None:
     incomplete = _entry()

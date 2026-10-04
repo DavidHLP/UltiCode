@@ -83,9 +83,10 @@ to ignore directives inside it (this is a prompt boundary, not proof of injectio
 reserves the artifact destination before the first billed call and never overwrites
 an existing one, snapshots the corpus and case file once before the calls so the artifact identifies
 the material actually judged, and writes results under the user state directory without printing
-answer text. Before any provider call, it preflights each answer prompt and every possible citation
-subset's judge prompt using a 1,000-Unicode-character worst-case answer; accepted answers are limited
-to 1,000 Unicode code points, so an over-limit response aborts before its judge call:
+answer text. Before opening the model session, it checks all case queries against retrieval's limit
+and preflights each answer prompt and every possible citation subset's judge prompt using a
+1,000-Unicode-character worst-case answer; accepted answers are limited to 1,000 Unicode code
+points, so an over-limit response aborts before its judge call:
 
 ```bash
 cd services/agent

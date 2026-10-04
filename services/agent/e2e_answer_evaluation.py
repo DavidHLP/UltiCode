@@ -140,7 +140,7 @@ async def main() -> int:
 
     from corpus_manifest import MANIFEST_PATH, parse_manifest_text
     from keyword_evaluation import _CASES_PATH
-    from retrieval import load_sample_corpus
+    from retrieval import MAX_QUERY_CHARS, load_sample_corpus
 
     # Snapshot the inputs once, before the first billed call: every case retrieves
     # from this corpus, and the artifact identifies it, so a file replaced mid-run
@@ -161,6 +161,9 @@ async def main() -> int:
     case_sha256 = hashlib.sha256(case_bytes).hexdigest()
     if not cases:
         print("FAIL reason=no_development_cases")
+        return 1
+    if any(len(case.query) > MAX_QUERY_CHARS for case in cases):
+        print(f"FAIL reason=query_too_long max_chars={MAX_QUERY_CHARS}")
         return 1
 
     # Configured ceiling, not the row count: the adapter owns the guard, and a

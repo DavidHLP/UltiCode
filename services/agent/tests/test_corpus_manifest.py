@@ -88,6 +88,16 @@ def test_unpaired_surrogates_in_manifest_text_are_rejected(
     with pytest.raises(ManifestError, match="Unicode scalar"):
         load_manifest(_write(tmp_path, [invalid]))
 
+def test_nested_unpaired_surrogate_in_manifest_value_is_rejected(
+    tmp_path: Path,
+) -> None:
+    invalid = _entry()
+    invalid["extension"] = {"nested": [chr(0xD800)]}
+
+    with pytest.raises(ManifestError, match="Unicode scalar"):
+        load_manifest(_write(tmp_path, [invalid]))
+
+
 
 @pytest.mark.parametrize("field", DOCUMENT_BINDING_FIELDS)
 def test_binding_fields_are_mandatory_too(tmp_path: Path, field: str) -> None:

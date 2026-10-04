@@ -15,7 +15,7 @@
 import type { HTMLAttributes } from "vue";
 import { computed } from "vue";
 import { cn } from "./cn";
-import { Github } from "lucide-vue-next";
+import { IconBrandGithub } from "@tabler/icons-vue";
 import { useI18n } from "vue-i18n";
 
 const props = withDefaults(
@@ -70,7 +70,7 @@ function handleOAuth() {
     :class="cn('oauth-button', props.class)"
     @click="handleOAuth"
   >
-    <Github v-if="provider === 'github'" class="oauth-button__icon" />
+    <IconBrandGithub v-if="provider === 'github'" class="oauth-button__icon" />
     <svg
       v-else-if="provider === 'google'"
       xmlns="http://www.w3.org/2000/svg"

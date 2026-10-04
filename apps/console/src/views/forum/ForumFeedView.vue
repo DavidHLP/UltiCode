@@ -21,7 +21,7 @@ import {
 } from "@/api/forum";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Plus } from "lucide-vue-next";
+import { Search, Plus } from "@lucide/vue";
 import {
   Select,
   SelectContent,

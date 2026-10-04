@@ -16,7 +16,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { defineComponent, h, type PropType } from "vue";
 import { mount, type VueWrapper } from "@vue/test-utils";
-import { CheckCircle2, FileEdit } from "lucide-vue-next";
+import { CheckCircle2, FileEdit } from "@lucide/vue";
 import type { Problem } from "@/types/problem";
 import type { ProblemExplorerProps } from "../../type";
 import { useProblemExplorer } from "../useProblemExplorer";
@@ -49,7 +49,7 @@ vi.mock("vue-sonner", () => ({
   toast: { error: mocks.toastError, warning: mocks.toastError },
 }));
 
-vi.mock("lucide-vue-next", () => ({
+vi.mock("@lucide/vue", () => ({
   CheckCircle2: { name: "CheckCircle2" },
   FileEdit: { name: "FileEdit" },
   CircleDot: { name: "CircleDot" },

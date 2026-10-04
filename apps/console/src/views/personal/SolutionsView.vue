@@ -22,7 +22,7 @@ import {
   Code2,
   Loader2,
   Plus,
-} from "lucide-vue-next";
+} from "@lucide/vue";
 import { onMounted, ref } from "vue";
 import {
   fetchUserSolutions,

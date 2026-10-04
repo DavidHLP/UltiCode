@@ -212,7 +212,7 @@ import { toast } from "vue-sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, Download, Loader2, Settings } from "lucide-vue-next";
+import { Check, Download, Loader2, Settings } from "@lucide/vue";
 import { formatDate as sharedFormatDate } from "@/utils/datetime";
 import {
   subscriptionApi,

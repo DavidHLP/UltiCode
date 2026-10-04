@@ -9,7 +9,7 @@ import {
 } from "@internationalized/date";
 import { Badge } from "@/components/ui/badge";
 import { type Ref, ref, onMounted, computed } from "vue";
-import { Trophy, ChevronDown, ChevronUp } from "lucide-vue-next";
+import { Trophy, ChevronDown, ChevronUp } from "@lucide/vue";
 import { fetchDailyActivity } from "@/api/submission";
 import { useI18n } from "vue-i18n";
 import { RouterLink } from "vue-router";

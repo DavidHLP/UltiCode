@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Lock, Target, Award, Check, Play } from "lucide-vue-next";
+import { Lock, Target, Award, Check, Play } from "@lucide/vue";
 import { useI18n } from "vue-i18n";
 import type { ContestDetail, ContestProblemSummary } from "@/types/contest";
 import {

@@ -1,4 +1,4 @@
-import { LayoutGrid, Code2, Database, Terminal, Cpu } from "lucide-vue-next";
+import { LayoutGrid, Code2, Database, Terminal, Cpu } from "@lucide/vue";
 
 export const PROBLEM_CATEGORIES = [
   {

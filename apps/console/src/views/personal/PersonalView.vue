@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Activity } from "lucide-vue-next";
+import { Activity } from "@lucide/vue";
 import { onMounted, ref, computed } from "vue";
 import { RouterLink } from "vue-router";
 import PersonalPageShell from "./components/PersonalPageShell.vue";

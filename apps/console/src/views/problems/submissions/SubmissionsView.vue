@@ -18,7 +18,7 @@ import { useAuthStore } from "@/stores/auth";
 import { problemHooks } from "@/hooks/problem-hooks";
 import { useErrorHandler } from "@/composables/useErrorHandler";
 import { useSocket } from "@/composables/useSocket";
-import { Loader2 } from "lucide-vue-next";
+import { Loader2 } from "@lucide/vue";
 
 const props = defineProps<{
   problemId: number;

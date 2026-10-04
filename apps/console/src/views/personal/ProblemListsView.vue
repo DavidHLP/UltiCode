@@ -15,7 +15,7 @@ import {
   Save,
   BookmarkMinus,
   List,
-} from "lucide-vue-next";
+} from "@lucide/vue";
 import { useI18n } from "vue-i18n";
 import PersonalPageHeader from "./components/PersonalPageHeader.vue";
 import PersonalPageShell from "./components/PersonalPageShell.vue";

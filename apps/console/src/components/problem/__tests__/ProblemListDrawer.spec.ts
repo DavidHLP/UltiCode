@@ -24,8 +24,8 @@ vi.mock("@/lib/utils", () => ({
   cn: (...inputs: unknown[]) => inputs.filter(Boolean).join(" "),
 }));
 
-// Stub the lucide-vue-next icons that the drawer template imports.
-vi.mock("lucide-vue-next", () => ({
+// Stub the @lucide/vue icons that the drawer template imports.
+vi.mock("@lucide/vue", () => ({
   Search: { name: "Search", template: "<i />" },
   ArrowUpDown: { name: "ArrowUpDown", template: "<i />" },
   Filter: { name: "Filter", template: "<i />" },

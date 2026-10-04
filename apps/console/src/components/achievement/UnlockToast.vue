@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from "vue";
-import { Trophy, X, Sparkles } from "lucide-vue-next";
+import { Trophy, X, Sparkles } from "@lucide/vue";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 

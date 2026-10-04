@@ -2,7 +2,7 @@
 import { ref, onMounted } from "vue";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Save, Loader2 } from "lucide-vue-next";
+import { Save, Loader2 } from "@lucide/vue";
 import { fetchProblemNote, saveProblemNote } from "@/api/interaction";
 import { toast } from "vue-sonner";
 import { useI18n } from "vue-i18n";

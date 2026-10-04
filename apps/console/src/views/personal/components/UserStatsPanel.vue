@@ -18,7 +18,7 @@ import {
   Activity,
   GitCommit,
   ChevronRight,
-} from "lucide-vue-next";
+} from "@lucide/vue";
 import { RouterLink } from "vue-router";
 import { useI18n } from "vue-i18n";
 import ActivityHeatmap from "./ActivityHeatmap.vue";

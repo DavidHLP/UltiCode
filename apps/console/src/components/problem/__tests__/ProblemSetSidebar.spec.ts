@@ -36,7 +36,7 @@ vi.mock("@/components/ui/badge", () => ({
   Badge: { template: "<span><slot /></span>" },
 }));
 
-vi.mock("lucide-vue-next", () => ({
+vi.mock("@lucide/vue", () => ({
   Trophy: { template: "<svg />" },
   ChevronDown: { template: "<svg />" },
   ChevronUp: { template: "<svg />" },

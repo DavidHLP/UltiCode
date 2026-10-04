@@ -4,7 +4,7 @@
  */
 import type { HTMLAttributes } from "vue";
 import { cn } from "./cn";
-import { Loader2 } from "lucide-vue-next";
+import { Loader2 } from "@lucide/vue";
 
 const props = withDefaults(
   defineProps<{

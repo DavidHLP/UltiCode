@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, Users, Trophy, PlayCircle } from "lucide-vue-next";
+import { Calendar, Clock, Users, Trophy, PlayCircle } from "@lucide/vue";
 import { useI18n } from "vue-i18n";
 import type { ContestDetail } from "@/types/contest";
 import { computed } from "vue";

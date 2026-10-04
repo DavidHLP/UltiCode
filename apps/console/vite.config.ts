@@ -96,13 +96,14 @@ export default defineConfig({
       // specifiers. Resolve them from console/node_modules rather than
       // letting Vite walk up from a package's physical location (which has
       // no node_modules in the Docker build). Covers axios, clsx,
-      // tailwind-merge, lucide-vue-next, and the peer deps vue-router /
+      // tailwind-merge, @lucide/vue, @tabler/icons-vue, and the peer deps vue-router /
       // vue-i18n / reka-ui consumed by auth-ui and sidebar-menu. `vue` itself
       // is resolved by the plugin, so it needs no alias here.
       { find: /^axios$/, replacement: fileURLToPath(new URL('./node_modules/axios', import.meta.url)) },
       { find: /^clsx$/, replacement: fileURLToPath(new URL('./node_modules/clsx', import.meta.url)) },
       { find: /^tailwind-merge$/, replacement: fileURLToPath(new URL('./node_modules/tailwind-merge', import.meta.url)) },
-      { find: /^lucide-vue-next$/, replacement: fileURLToPath(new URL('./node_modules/lucide-vue-next', import.meta.url)) },
+      { find: /^@lucide\/vue$/, replacement: fileURLToPath(new URL('./node_modules/@lucide/vue', import.meta.url)) },
+      { find: /^@tabler\/icons-vue$/, replacement: fileURLToPath(new URL('./node_modules/@tabler/icons-vue', import.meta.url)) },
       { find: /^vue-router$/, replacement: fileURLToPath(new URL('./node_modules/vue-router', import.meta.url)) },
       { find: /^vue-i18n$/, replacement: fileURLToPath(new URL('./node_modules/vue-i18n', import.meta.url)) },
       { find: /^reka-ui$/, replacement: fileURLToPath(new URL('./node_modules/reka-ui', import.meta.url)) },
@@ -170,7 +171,7 @@ export default defineConfig({
           if (id.includes('node_modules')) {
             if (id.includes('monaco-editor')) return 'monaco-editor'
             if (id.includes('vue') || id.includes('pinia') || id.includes('vue-router')) return 'vue-vendor'
-            if (id.includes('reka-ui') || id.includes('lucide-vue-next') || id.includes('@tabler')) return 'ui-vendor'
+            if (id.includes('reka-ui') || id.includes('@lucide/vue') || id.includes('@tabler')) return 'ui-vendor'
             if (id.includes('markdown-it') || id.includes('highlight.js') || id.includes('katex')) return 'markdown'
           }
         },

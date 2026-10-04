@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Button } from "@/components/ui/button";
-import { Video, Lock, Trash2 } from "lucide-vue-next";
+import { Video, Lock, Trash2 } from "@lucide/vue";
 import { DataTable, type ColumnDef } from "@/components/common/data-table";
 import { useI18n } from "vue-i18n";
 import { getDifficultyBadgeClass } from "@ulticode/design-system";

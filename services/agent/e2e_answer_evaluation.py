@@ -53,10 +53,10 @@ from keyword_evaluation import load_cases
 
 OPT_IN = "ULTICODE_ANSWER_EVAL"
 DEFAULT_MAX_CALLS = 64
-#: Two logical passes per case: one to answer, one to judge. The plan is a floor —
-#: a retried transport error or timeout bills another call, and the row records the
-#: attempts actually made.
-CALLS_PER_CASE = 2
+# Two passes per case, each with a bounded retry envelope. Keep the preflight
+# requirement and the evaluator's actual retry limit tied to the same value.
+ATTEMPTS_PER_PASS = 3
+CALLS_PER_CASE = 2 * ATTEMPTS_PER_PASS
 
 
 def _artifact_path() -> Path:
@@ -204,7 +204,9 @@ async def main() -> int:
                 max_prompt_tokens=_int("DEEPSEEK_MAX_PROMPT_TOKENS", 24000),
             ) as model:
                 try:
-                    rows = await evaluate_answer_cases(cases, model=model, documents=documents)
+                    rows = await evaluate_answer_cases(
+                        cases, model=model, documents=documents, attempts=ATTEMPTS_PER_PASS
+                    )
                 finally:
                     # Every sent request remains billed even if a later pass aborts.
                     totals = [e.get("total_tokens") for e in model.usage if isinstance(e, dict)]

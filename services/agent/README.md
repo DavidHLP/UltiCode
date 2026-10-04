@@ -71,9 +71,10 @@ are valid when the answer cites nothing. An empty citation list records `citatio
 state directory carrying `scope=development_only`, `sealed_splits`, `judge=model`,
 `human_review=not_performed` and every row — this is machine evidence, not human review.
 
-Budget: two logical passes per case (answer, then judge), and the entry refuses
-`DEEPSEEK_MAX_CALLS` below that plan before the first billed call. A stalled request — a
-transport error or a timeout — is retried per call rather than restarting the batch, and a
+Budget: two logical passes per case (answer, then judge), with up to three attempts per pass.
+Before the first billed call, the entry requires `DEEPSEEK_MAX_CALLS` to cover six calls per case,
+including retry capacity. The default ceiling remains 64; larger batches require an explicit
+ceiling covering the full plan. A transport error or timeout is retried per call, not per batch, and a
 retried attempt is billed, so each row records the attempts actually made in `model_calls`
 rather than a fixed two. A protocol failure is not retried because the same input yields the
 same shape. The destination artifact is reserved before the first billed call, an existing

@@ -737,6 +737,26 @@ def test_an_existing_artifact_is_not_overwritten(monkeypatch, capsys, tmp_path) 
     assert destination.read_text(encoding="utf-8") == "[]"
 
 
+def test_readback_failure_removes_our_published_target(monkeypatch, tmp_path) -> None:
+    destination = tmp_path / "verdicts.json"
+    lock = smoke._claim_verdict_file(destination)
+    original_read = smoke._read_published_artifact
+
+    def corrupt_through_temporary(target, expected, **kwargs):
+        temporary = next(tmp_path.glob("*.part"))
+        temporary.write_text("tampered", encoding="utf-8")
+        return original_read(target, expected, **kwargs)
+
+    monkeypatch.setattr(smoke, "_read_published_artifact", corrupt_through_temporary)
+    try:
+        with pytest.raises(OSError, match="published artifact changed"):
+            smoke._publish(destination, "expected")
+        assert not destination.exists()
+        assert not list(tmp_path.glob("*.part"))
+    finally:
+        smoke._release_unfinished_claim(lock)
+
+
 def test_a_failed_publication_leaves_no_temporary(monkeypatch, capsys, tmp_path) -> None:
     """A leftover `.part` file is this run's litter, not an artifact."""
     calls: list[str] = []

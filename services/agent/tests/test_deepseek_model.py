@@ -96,6 +96,34 @@ def test_invalid_decision_protocol_is_rejected_without_content(
     asyncio.run(scenario())
 
 
+def test_deeply_nested_outer_decision_is_a_protocol_error() -> None:
+    nested = "[" * 1100 + "0" + "]" * 1100
+    content = '{"answer":' + nested + "}"
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "choices": [{"message": {"content": content}}],
+                "usage": {"prompt_tokens": 3, "completion_tokens": 2, "total_tokens": 5},
+            },
+        )
+
+    async def scenario() -> None:
+        async with DeepseekModel(
+            "test-key",
+            tool_specs={},
+            transport=httpx.MockTransport(handler),
+        ) as model:
+            with pytest.raises(ModelProtocolError, match="model decision was not valid JSON"):
+                await model.decide([{"role": "user", "content": "question"}])
+            assert model.usage == [
+                {"prompt_tokens": 3, "completion_tokens": 2, "total_tokens": 5}
+            ]
+
+    asyncio.run(scenario())
+
+
 def test_answer_only_mode_keeps_untrusted_evidence_rule() -> None:
     seen_system = ""
 

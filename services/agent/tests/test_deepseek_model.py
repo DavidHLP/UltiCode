@@ -1,5 +1,6 @@
 import asyncio
 
+import deepseek_model
 import httpx
 import pytest
 
@@ -96,9 +97,17 @@ def test_invalid_decision_protocol_is_rejected_without_content(
     asyncio.run(scenario())
 
 
-def test_deeply_nested_outer_decision_is_a_protocol_error() -> None:
+def test_deeply_nested_outer_decision_is_a_protocol_error(monkeypatch) -> None:
     nested = "[" * 1100 + "0" + "]" * 1100
     content = '{"answer":' + nested + "}"
+    real_loads = deepseek_model.json.loads
+
+    def raise_depth_error(raw, *args, **kwargs):
+        if raw == content:
+            raise RecursionError("maximum recursion depth exceeded")
+        return real_loads(raw, *args, **kwargs)
+
+    monkeypatch.setattr(deepseek_model.json, "loads", raise_depth_error)
 
     async def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(

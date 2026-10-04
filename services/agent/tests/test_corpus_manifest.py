@@ -99,6 +99,14 @@ def test_nested_unpaired_surrogate_in_manifest_value_is_rejected(
 
 
 
+@pytest.mark.parametrize("payload", [json.dumps(chr(0xD800)), json.dumps([chr(0xD800)])])
+def test_unpaired_surrogates_outside_manifest_entries_are_rejected(
+    tmp_path: Path, payload: str
+) -> None:
+    with pytest.raises(ManifestError, match="Unicode scalar"):
+        load_manifest(_write(tmp_path, payload))
+
+
 @pytest.mark.parametrize("field", DOCUMENT_BINDING_FIELDS)
 def test_binding_fields_are_mandatory_too(tmp_path: Path, field: str) -> None:
     incomplete = _entry()

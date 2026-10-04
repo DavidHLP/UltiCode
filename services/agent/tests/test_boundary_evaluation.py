@@ -1129,6 +1129,8 @@ def test_source_refusal_with_valid_generic_evidence_still_requires_zero_citation
     "reference",
     [
         "[资料](https://example.invalid/source)",
+        "www.example.invalid/source",
+        "![资料](/source.png)",
         "https://example.invalid/source",
         "[1]",
         "[^source]",
@@ -1159,6 +1161,8 @@ def test_source_refusal_with_valid_generic_evidence_still_requires_zero_citation
     ],
     ids=[
         "markdown-link",
+        "www-url",
+        "markdown-image",
         "bare-url",
         "bracket-citation",
         "footnote",

@@ -34,6 +34,7 @@ from answer_evaluation import (
     AnswerEvaluationError,
     development_cases,
     evaluate_answer_cases,
+    preflight_answer_case_prompts,
     summarize,
 )
 from deepseek_model import (
@@ -205,6 +206,9 @@ async def main() -> int:
                 max_prompt_tokens=_int("DEEPSEEK_MAX_PROMPT_TOKENS", 24000),
             ) as model:
                 try:
+                    preflight_answer_case_prompts(
+                        cases, model=model, documents=documents
+                    )
                     rows = await evaluate_answer_cases(
                         cases, model=model, documents=documents, attempts=ATTEMPTS_PER_PASS
                     )

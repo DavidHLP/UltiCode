@@ -160,7 +160,9 @@ class DeepseekModel:
     ) -> None:
         await self._client.__aexit__(exc_type, exc_value, traceback)
 
-    async def decide(self, messages: list[dict[str, object]]) -> ModelDecision:
+    def _api_messages(
+        self, messages: list[dict[str, object]]
+    ) -> list[dict[str, str]]:
         api_messages: list[dict[str, str]] = [{"role": "system", "content": self._system}]
         for message in messages:
             role = str(message.get("role", "user"))
@@ -169,9 +171,9 @@ class DeepseekModel:
                 api_messages.append({"role": "user", "content": f"TOOL_RESULT: {content}"})
             elif role in ("user", "assistant"):
                 api_messages.append({"role": role, "content": content})
+        return api_messages
 
-        # Cost guards run before the request: max_tokens bounds output, but the
-        # prompt side is billed too, so both sides and the call count are capped.
+    def _check_prompt_budget(self, api_messages: list[dict[str, str]]) -> None:
         prompt_tokens_estimate = (
             sum(
                 len(message["content"].encode("utf-8")) * PROMPT_TOKEN_UPPER_BYTES
@@ -181,6 +183,17 @@ class DeepseekModel:
         )
         if prompt_tokens_estimate > self._max_prompt_tokens:
             raise ModelBudgetExceeded("prompt exceeds the configured token budget")
+
+    def check_prompt_budget(self, messages: list[dict[str, object]]) -> None:
+        """Apply the same prompt guard as decide without sending or counting a call."""
+        self._check_prompt_budget(self._api_messages(messages))
+
+    async def decide(self, messages: list[dict[str, object]]) -> ModelDecision:
+        api_messages = self._api_messages(messages)
+
+        # Cost guards run before the request: max_tokens bounds output, but the
+        # prompt side is billed too, so both sides and the call count are capped.
+        self._check_prompt_budget(api_messages)
         if self.calls_made >= self._max_calls:
             raise ModelBudgetExceeded("call budget exhausted")
         self.calls_made += 1

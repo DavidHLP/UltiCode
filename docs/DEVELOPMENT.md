@@ -531,3 +531,22 @@ Codex 前缀规则只能识别已列出的参数排列，无法覆盖任意脚�
 2. 明确 missing-ID 策略为直接询问具体 submission ID；“确认后列最近提交”不能替代澄清。测试应区分对无法取得源码/判题日志的范围说明，与对最近提交状态或原因作无依据断言；不得用宽松 marker 令本次旧答案通过。
 3. 修正 `_response_identity` 的零调用表现：无请求返回空列表或明确 not-applicable；至少一次请求但响应缺少 `payload.model` 时才标记 unknown。保留全部已发送调用数和费用记录。
 4. 只补充上述 case 与边界 focused tests；不新增付费 judge、通用评估框架或新 provider，不触及 DB/DAV-53/U03，不更改预算或启用标志。本轮未修改行为代码，也未重新运行模型。
+
+
+### DAV-58 local continuation guard
+
+The guarded standalone entry supports explicit continuation with
+`--resume-journal-sha256 <sha256-of-the-existing-canonical-journal>` alongside the
+same three period identity arguments. It never creates a replacement journal on
+resume. The supplied fingerprint pins prior receipts; identity/config, model,
+peak pricing, receipt totals and the canonical ledger must agree. Pending,
+unknown, halted, corrupt or concurrently owned journals stop before HTTP.
+Prior receipts and conservative ModelBudget reservations remain cumulative.
+The continuation is not an automatic retry policy or acceptance result.
+
+Boundary generation now receives server-observed tool outcomes each turn and
+must execute a requested evidence search before narrating its outcome. The
+bounded trace assertion gate rejects observed classes of fabricated attempts,
+failures and empty search results; it does not claim general factual validation.
+A specific-ID request followed by viewing that single submission is allowed;
+listing recent submissions remains an invalid clarification alternative.

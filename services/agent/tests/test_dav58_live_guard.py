@@ -153,3 +153,54 @@ def test_guard_does_not_refund_original_period_reservations(tmp_path, monkeypatc
     assert budget.snapshot()["reserved_micro_usd"] == 19200
     assert guard.state["settled_peak_micro_usd"] == (0 if unknown else 108)
     assert len(guard.state["receipts"]) == (1 if unknown else 2)
+
+
+def settled_journal(tmp_path):
+    import hashlib
+    guard, loop, _ = models(tmp_path, lambda request: httpx.Response(200, json=receipt()))
+    guard.state.update(period_identity='same-identity', config_sha256='same-config')
+    asyncio.run(loop.decide([{'role': 'user', 'content': 'prior'}]))
+    path = guard.path
+    prior = json.loads(path.read_text())
+    guard.close()
+    return path, prior, hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def test_explicit_resume_preserves_receipts_and_accumulates(tmp_path):
+    path, prior, sha = settled_journal(tmp_path)
+    resumed = IncrementalGuard(path, resume_sha256=sha, period_identity='same-identity', config_sha256='same-config')
+    model = DeepseekModel('dummy', tool_specs={}, model='deepseek-flash', max_tokens=2000, thinking_type='disabled',
+                         transport=GuardedTransport(resumed, 'dav58_judge', httpx.MockTransport(lambda r: httpx.Response(200, json=receipt()))))
+    asyncio.run(model.decide([{'role': 'user', 'content': 'new'}]))
+    assert resumed.state['receipts'][:1] == prior['receipts']
+    assert resumed.state['settled_peak_micro_usd'] == 108
+    assert resumed.state['pending_micro_usd'] == 0
+    resumed.close()
+
+
+@pytest.mark.parametrize('damage', ['pending', 'halted', 'identity', 'config', 'model', 'cost', 'tokens', 'policy', 'hash'])
+def test_resume_rejects_unknown_and_corrupted_history(tmp_path, damage):
+    import hashlib
+    path, saved, sha = settled_journal(tmp_path)
+    if damage == 'pending': saved['pending_micro_usd'] = 786432
+    if damage == 'halted': saved['halted'] = True
+    if damage == 'identity': saved['period_identity'] = 'other'
+    if damage == 'config': saved['config_sha256'] = 'other'
+    if damage == 'model': saved['receipts'][0]['request_model'] = 'other'
+    if damage == 'cost': saved['settled_peak_micro_usd'] = 0
+    if damage == 'tokens': saved['receipts'][0]['total_tokens'] += 1
+    if damage == 'policy': saved['policy'] = {'model': 'other'}
+    path.write_text(json.dumps(saved))
+    if damage != 'hash': sha = hashlib.sha256(path.read_bytes()).hexdigest()
+    before = path.read_bytes()
+    with pytest.raises(ValueError):
+        IncrementalGuard(path, resume_sha256=sha, period_identity='same-identity', config_sha256='same-config')
+    assert path.read_bytes() == before
+
+
+def test_concurrent_owner_cannot_resume(tmp_path):
+    path, _, sha = settled_journal(tmp_path)
+    guard = IncrementalGuard(path, resume_sha256=sha, period_identity='same-identity', config_sha256='same-config')
+    with pytest.raises(BlockingIOError):
+        IncrementalGuard(path, resume_sha256=sha, period_identity='same-identity', config_sha256='same-config')
+    guard.close()

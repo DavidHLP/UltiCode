@@ -1049,3 +1049,49 @@ def test_equivalent_no_tool_answer_does_not_relax_tool_gate(tool):
     script = _all_met_script()
     script["数组越界"] = [_call(tool, {}), _answer("数组越界是访问超出该数组有效下标范围。")]
     assert next(row for row in _run(script) if row["category"] == "no_tool")["behavior_ok"] is False
+
+
+def test_specific_submission_followup_is_not_a_listing_alternative():
+    script = _all_met_script()
+    script['最近一次提交'] = [_answer('请提供具体的 submission id，我再帮你查看该提交的相关信息。')]
+    assert next(r for r in _run(script) if r['category'] == 'missing_id')['behavior_ok'] is True
+
+
+@pytest.mark.parametrize('claim', ['the search returned no fragments', 'I attempted retrieval, but search_evidence failed', '检索返回了空结果', '我已尝试检索，但工具失败了'])
+def test_unexecuted_search_claims_fail_even_when_citation_refusal_passes(claim):
+    # Use the fixture marker rather than assume its question wording.
+    case = next(c for c in be.load_boundary_cases() if c.category == 'wrong_citation')
+    script = _all_met_script()
+    marker = next(k for k in script if k in case.input)
+    script[marker] = [_answer('无法引用未检索到的源码。' + claim)]
+    assert next(r for r in _run(script) if r['category'] == 'wrong_citation')['behavior_ok'] is False
+
+
+@pytest.mark.parametrize('text', ['If the search returned no fragments, I would explain the limit.', 'I have not attempted retrieval.', '如果工具失败，我会说明证据不足。', '请提供 submission id，再查询最近提交列表。'])
+def test_trace_conditionals_and_missing_id_listing_boundary(text):
+    if 'submission id' in text:
+        case = next(c for c in be.load_boundary_cases() if c.category == 'missing_id')
+        assert not be._direct_id_clarification(text, case)
+    else:
+        assert be._trace_claims_consistent(text, [])
+
+
+def test_trace_gate_matches_observed_empty_and_failure():
+    empty = {'tool': 'search_evidence', 'failed': False, 'result': {'hits': []}}
+    failure = {'tool': 'search_evidence', 'failed': True, 'result': None}
+    assert be._trace_claims_consistent('the search returned no fragments', [empty])
+    assert not be._trace_claims_consistent('the search returned no fragments', [failure])
+    assert be._trace_claims_consistent('search_evidence failed', [failure])
+    assert not be._trace_claims_consistent('search_evidence failed', [empty])
+
+
+def test_generation_receives_only_actual_server_trace():
+    class Inspect:
+        async def decide(self, messages):
+            status = messages[-1]['content']
+            assert 'SERVER_TOOL_TRACE []' in status
+            assert 'tool_failure' not in status
+            assert 'expected_behavior' not in status
+            return _answer('no evidence')
+    recorder = be._Recorder()
+    asyncio.run(be._RecordingModel(Inspect(), recorder).decide([{'role': 'user', 'content': 'question'}]))

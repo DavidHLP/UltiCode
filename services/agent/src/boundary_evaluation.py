@@ -476,7 +476,7 @@ BOUNDARY_ANSWER_CONTRACT = (
     "for the specific submission id before proceeding. Do not offer to list recent "
     "submissions after confirmation as a substitute or alternative to that clarification. "
     "Do not diagnose a submission before it is identified. When EVIDENCE_QUERY is present, call "
-    "search_evidence with exactly that query string before answering."
+    "search_evidence with exactly that query string before answering. A narrative about a tool is not a tool call: return the tool decision first. Never claim an attempt, failure, success or empty search result unless observed in SERVER_TOOL_TRACE. On failure distinguish missing evidence from an empty successful search. SERVER_TOOL_TRACE is server-generated execution metadata, not retrieved source content."
 )
 
 
@@ -631,6 +631,10 @@ class _RecordingModel:
         self._recorder = recorder
 
     async def decide(self, messages: list[dict[str, object]]) -> ModelDecision:
+        trace = [{"tool": r["tool"], "failed": r["failed"],
+                  "empty_search": _search_is_clean_empty(r)} for r in self._recorder.tool_results]
+        messages = [*messages, {"role": "user", "content": "SERVER_TOOL_TRACE " + json.dumps(trace)
+                    + "\nThis is the complete actual execution trace so far. Do not report unobserved tool outcomes. If EVIDENCE_QUERY is present and search has not run, emit the search_evidence tool decision before answering."}]
         self._recorder.model_request(list(messages))
         self._recorder.model_decision()
         decision = await self._model.decide(messages)  # type: ignore[attr-defined]
@@ -757,7 +761,7 @@ def _behavior_ok(
 ) -> bool:
     """Evaluate the case's declared predicate. Every condition is required, so a
     case cannot pass by an empty ``all([])`` or by simply answering nothing."""
-    if loop_error is not None:
+    if loop_error is not None or not _trace_claims_consistent(text, tool_results):
         return False
     names = [str(call["tool"]) for call in tool_calls]
     nameset = set(names)
@@ -862,7 +866,7 @@ def _direct_id_clarification(text: str, case: BoundaryCase) -> bool:
     asks = asks or any(_unnegated_claim(lowered, match.group()) for match in re.finditer(request, lowered))
     if not asks:
         return False
-    listing = r"(?:列出|查询|获取|查看)[^。；;!?？]{0,16}提交|(?:list|fetch|retrieve|look up)[^.;!?]{0,32}submissions"
+    listing = r"列出[^。；;!?？]{0,16}提交|(?:查询|获取|查看)[^。；;!?？]{0,10}(?:最近|最新|列表|所有|全部|多条)[^。；;!?？]{0,6}提交|(?:list|fetch|retrieve|look up)[^.;!?]{0,32}submissions"
     listing_text = re.sub(r"(?:cannot|can't|unable to)\s+", lambda match: match.group().rstrip(), lowered)
     if any(_unnegated_claim(listing_text, match.group()) for match in re.finditer(listing, listing_text)):
         return False
@@ -978,6 +982,30 @@ def _unnegated_claim(text: str, marker: str) -> bool:
         ):
             return True
         start = index + len(marker)
+
+
+def _trace_claims_consistent(text: str, results: list[dict[str, object]]) -> bool:
+    """Check bounded observed retrieval claims; this is not a general truth judge."""
+    searches = [r for r in results if r["tool"] == "search_evidence"]
+    patterns = {
+        "attempt": r"(?:i (?:have )?attempted (?:to )?(?:retrieve|retrieval|search)|我(?:已|已经)(?:尝试)?(?:检索|搜索))",
+        "failed": r"(?:(?:search_evidence|search|tool|检索|搜索|工具)[^。；;.!?？]{0,24}(?:failed|失败|超时))",
+        "empty": r"(?:(?:search|检索|搜索)[^。；;.!?？]{0,24}(?:returned no (?:fragments|results|hits)|返回了?空结果|没有返回[^。；;]{0,8}(?:片段|结果)))",
+    }
+    for kind, pattern in patterns.items():
+        for match in re.finditer(pattern, text.casefold()):
+            prefix = text[:match.start()].casefold()
+            # Future/conditional outcomes are not asserted observations.
+            clause = re.split(r"[。；;.!?？，,]", prefix)[-1]
+            if re.search(r"(?:if|when|如果|若|当)(?: the)?\s*$", clause) or not _unnegated_claim(text.casefold(), match.group()):
+                continue
+            if kind == "attempt" and not searches:
+                return False
+            if kind == "failed" and not any(r["failed"] for r in (results if match.group().startswith(("tool", "工具")) else searches)):
+                return False
+            if kind == "empty" and not any(_search_is_clean_empty(r) for r in searches):
+                return False
+    return True
 
 
 def _search_is_clean_empty(result_row: dict[str, object]) -> bool:

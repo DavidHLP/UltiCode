@@ -72,6 +72,22 @@ def test_complete_runner_shared_guard_and_unknown_usage_stop(tmp_path, monkeypat
         assert journal["pending_micro_usd"] == 786432
         assert saved["probes"][1]["error"] == "not_run_budget"
         assert requests[-1] == failure_lane
+    import hashlib
+    resume_sha = hashlib.sha256(entry.journal_path(identity).read_bytes()).hexdigest()
+    if failure_lane is None:
+        positions.clear()
+        monkeypatch.setattr(entry.runner, "_artifact_path", lambda: tmp_path / "resumed-result.json")
+        prior_receipts = journal["receipts"]
+        assert asyncio.run(entry.run(identity, resume_sha256=resume_sha)) == 0
+        resumed = json.loads(entry.journal_path(identity).read_text())
+        assert resumed["receipts"][:len(prior_receipts)] == prior_receipts
+        assert resumed["settled_peak_micro_usd"] == 1188
+        assert budget.snapshot()["committed_micro_usd"] == 211200
+    else:
+        prior_requests = list(requests)
+        with pytest.raises(ValueError):
+            asyncio.run(entry.run(identity, resume_sha256=resume_sha))
+        assert requests == prior_requests
     previous = list(requests)
     with pytest.raises(FileExistsError): asyncio.run(entry.run(identity))
     assert requests == previous  # fixed journal refuses reset/replay

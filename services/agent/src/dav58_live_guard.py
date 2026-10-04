@@ -4,6 +4,7 @@ The reservation covers the published full model context/output maxima, not a
 local tokenizer/framing guess. Valid usage reconciles this independent envelope;
 the original ModelBudget's conservative reservations are never refunded.
 """
+import fcntl
 import hashlib
 import json
 import os
@@ -20,14 +21,66 @@ ENVELOPE_MICRO_USD = (INPUT_MAX * 3 + OUTPUT_MAX * 12 + 9) // 10
 
 
 class IncrementalGuard:
-    def __init__(self, path: Path):
+    def __init__(self, path: Path, *, resume_sha256=None, period_identity=None, config_sha256=None):
         self.path = path
         self.lock = threading.Lock()
         self.state = {"limit_micro_usd": 1_000_000, "settled_peak_micro_usd": 0,
                       "pending_micro_usd": 0, "halted": False, "receipts": []}
-        # An existing journal is a recovery point, never an invitation to reset.
-        with path.open("x") as stream:
-            stream.write(json.dumps(self.state) + "\n")
+        self._ownership = path.with_suffix(path.suffix + ".lock").open("a")
+        try:
+            fcntl.flock(self._ownership, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            if resume_sha256 is None:
+                with path.open("x") as stream:
+                    stream.write(json.dumps(self.state) + "\n")
+            else:
+                raw = path.read_bytes()
+                if hashlib.sha256(raw).hexdigest() != resume_sha256:
+                    raise ValueError("resume journal fingerprint mismatch")
+                saved = json.loads(raw, object_pairs_hook=_reject_duplicate_keys, parse_constant=_reject_json_constant)
+                self._validate_resume(saved, period_identity, config_sha256)
+                self.state = saved
+        except BaseException:
+            self.close()
+            raise
+
+    @staticmethod
+    def _validate_resume(saved, identity, config):
+        if (not identity or not config or saved.get("period_identity") != identity
+                or saved.get("config_sha256") != config or saved.get("limit_micro_usd") != 1_000_000
+                or saved.get("halted") is not False or type(saved.get("pending_micro_usd")) is not int
+                or saved["pending_micro_usd"] != 0):
+            raise ValueError("unsafe resume identity, limit or pending state")
+        policy = {"model": "deepseek-flash", "input_rate_tenths": 3, "output_rate_tenths": 12,
+                  "input_max": INPUT_MAX, "output_max": OUTPUT_MAX}
+        if "policy" in saved and saved["policy"] != policy:
+            raise ValueError("resume model or pricing mismatch")
+        receipts = saved.get("receipts")
+        if not isinstance(receipts, list) or not receipts:
+            raise ValueError("resume requires prior receipts")
+        total = 0
+        for r in receipts:
+            if (not isinstance(r, dict) or r.get("status") != "settled"
+                    or r.get("lane") not in {"dav58_loop", "dav58_judge"}
+                    or r.get("request_model") != "deepseek-flash"
+                    or r.get("response_model") not in {"deepseek-flash", "deepseek-v4.1-flash"}
+                    or r.get("reserved_micro_usd") != ENVELOPE_MICRO_USD
+                    or not isinstance(r.get("request_sha256"), str) or len(r["request_sha256"]) != 64):
+                raise ValueError("unsafe prior receipt")
+            prompt, completion, tokens = (r.get(k) for k in ("prompt_tokens", "completion_tokens", "total_tokens"))
+            if (any(type(v) is not int or v < 0 for v in (prompt, completion, tokens))
+                    or tokens != prompt + completion or prompt > 24000 or completion > 2000):
+                raise ValueError("invalid prior usage")
+            cost = (prompt * 3 + completion * 12 + 9) // 10
+            if type(r.get("peak_micro_usd")) is not int or r["peak_micro_usd"] != cost:
+                raise ValueError("invalid prior cost")
+            total += cost
+        if type(saved.get("settled_peak_micro_usd")) is not int or saved["settled_peak_micro_usd"] != total or total > 1_000_000:
+            raise ValueError("invalid cumulative cost")
+        # Legacy log is pinned by its caller-supplied SHA; receipt history is preserved.
+        saved["policy"] = policy
+
+    def close(self):
+        self._ownership.close()
 
     def _save(self):
         temp = self.path.with_suffix(self.path.suffix + ".tmp")

@@ -16,14 +16,19 @@ def journal_path(identity):
     return _authorization_slot() / "accounting" / f"dav58-increment-{identity.identity}.json"
 
 
-async def run(expected):
+async def run(expected, *, resume_sha256=None):
     # Read-only provenance/budget gates precede the one-shot journal claim.
     provenance = runner._repository_provenance()
     _, budget = authorized_model(expected)
     snapshot = budget.snapshot()
     if snapshot["state"] != "active" or snapshot["sql_gate"] != "active" or snapshot["halted"]:
         raise ValueError("same period must be active before guarded execution")
-    guard = IncrementalGuard(journal_path(expected))
+    guard = IncrementalGuard(journal_path(expected), resume_sha256=resume_sha256,
+                             period_identity=expected.identity, config_sha256=expected.config_sha256)
+    if resume_sha256 is not None and (snapshot["attempts"] != len(guard.state["receipts"])
+            or snapshot["actual_micro_usd"] != guard.state["settled_peak_micro_usd"]):
+        guard.close()
+        raise ValueError("canonical ledger and journal disagree")
     guard.state["period_identity"] = expected.identity
     guard.state["config_sha256"] = expected.config_sha256
     guard._save()
@@ -48,6 +53,7 @@ async def run(expected):
         return await runner.main(expected)
     finally:
         runner.DeepseekModel, runner._repository_provenance = original_model, original_provenance
+        guard.close()
 
 
 def main_sync(argv=None):
@@ -55,8 +61,14 @@ def main_sync(argv=None):
         print("SKIP reason=opt_in_not_set")
         return 0
     try:
-        expected = runner._parse_identity(sys.argv[1:] if argv is None else argv)
-        return asyncio.run(run(expected))
+        args = list(sys.argv[1:] if argv is None else argv)
+        resume_sha256 = None
+        if "--resume-journal-sha256" in args:
+            index = args.index("--resume-journal-sha256")
+            resume_sha256 = args[index + 1]
+            del args[index:index + 2]
+        expected = runner._parse_identity(args)
+        return asyncio.run(run(expected, resume_sha256=resume_sha256))
     except Exception as error:
         print(f"FAIL guarded_preflight={type(error).__name__}")
         return 1

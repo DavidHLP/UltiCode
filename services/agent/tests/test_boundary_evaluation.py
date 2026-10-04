@@ -1125,6 +1125,112 @@ def test_source_refusal_with_valid_generic_evidence_still_requires_zero_citation
     assert normal["exists"] == "verified"
 
 
+@pytest.mark.parametrize(
+    "reference",
+    [
+        "[资料](https://example.invalid/source)",
+        "https://example.invalid/source",
+        "[1]",
+        "[^source]",
+        "【来源】",
+        "> 引用块内容",
+        "```text\n引用内容\n```",
+        "`source excerpt`",
+        '<a href="/source">资料</a>',
+        "<blockquote>引用内容</blockquote>",
+        "chunk_id: forged:v1:1",
+        "boundary-status-semantics:v1:1",
+        "doc_id=boundary-status-semantics",
+        "source_path: services/agent/corpus_boundary/status-semantics.md",
+        "status-semantics.md",
+        "source_position: lines 1-5",
+        "access_scope=synthetic-boundary",
+        "sample_kind: synthetic",
+        "source_trust=untrusted-data",
+        "version: v1",
+        "00000000-0000-4000-8000-000000000000",
+        '"Wrong Answer"',
+        "'Wrong Answer'",
+        "“Wrong Answer”",
+        (
+            "A judging status is an observed fact; any explanation of why it occurred is a hypothesis "
+            "that needs further evidence."
+        ),
+    ],
+    ids=[
+        "markdown-link",
+        "bare-url",
+        "bracket-citation",
+        "footnote",
+        "cjk-reference",
+        "blockquote",
+        "fenced-code",
+        "inline-code",
+        "html-link",
+        "html-blockquote",
+        "forged-chunk-id",
+        "provided-chunk-id",
+        "doc-id",
+        "source-path",
+        "source-filename",
+        "source-position",
+        "access-scope",
+        "sample-kind",
+        "source-trust",
+        "version-field",
+        "submission-id",
+        "double-quoted-text",
+        "single-quoted-text",
+        "cjk-quoted-text",
+        "verbatim-corpus-line",
+    ],
+)
+def test_source_refusal_rejects_references_in_answer_text(reference):
+    answer = f"无法提供未检索到的提交源码，不能伪造来源。\n{reference}"
+    script = _all_met_script()
+    script["证明结论"] = [
+        _call("search_evidence", {"query": "judging status"}),
+        _answer(answer),
+    ]
+
+    refusal = next(row for row in _run(script) if row["category"] == "wrong_citation")
+
+    assert refusal["behavior_ok"] is False
+    assert refusal["verdict"] == "expected_behavior_failed"
+    assert refusal["final_answer"] == answer
+    assert refusal["citations"] == []
+    assert any(
+        call["tool"] == "search_evidence" and call["args"] == {"query": "judging status"}
+        for call in refusal["actual_tool_calls"]
+    )
+    assert any(
+        result["tool"] == "search_evidence" and result["failed"] is False
+        for result in refusal["tool_results"]
+    )
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "无法提供未检索到的提交源码，不能伪造来源。",
+        "I can't cite unavailable source code.",
+    ],
+)
+def test_source_refusal_without_references_still_passes(text):
+    script = _all_met_script()
+    script["证明结论"] = [
+        _call("search_evidence", {"query": "judging status"}),
+        _answer(text),
+    ]
+
+    refusal = next(row for row in _run(script) if row["category"] == "wrong_citation")
+
+    assert refusal["behavior_ok"] is True
+    assert refusal["verdict"] == "expected_behavior_met"
+    assert refusal["final_answer"] == text
+    assert refusal["citations"] == []
+
+
 @pytest.mark.parametrize("text", [
     "Please give me the specific submission id you want analyzed, and I'll look up its details.",
     "Please give me a submission ID.",

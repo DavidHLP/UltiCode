@@ -351,6 +351,29 @@ def test_an_existing_lock_does_not_skip_the_artifact_write_probe(
     assert calls == []
     assert not list(tmp_path.glob("*.probe"))
 
+def test_hard_link_publication_is_preflighted_before_model_calls(
+    monkeypatch, capsys, tmp_path
+) -> None:
+    calls = _install(monkeypatch)
+    destination = tmp_path / "artifact.json"
+    monkeypatch.setenv("ULTICODE_ANSWER_EVAL_RESULT", str(destination))
+
+    import e2e_citation_support_model as shared
+
+    real_link = shared.os.link
+
+    def deny_probe_link(src, dst, *args, **kwargs):
+        if isinstance(src, str) and src.endswith(".probe"):
+            raise OSError("hard links unavailable")
+        return real_link(src, dst, *args, **kwargs)
+
+    monkeypatch.setattr(shared.os, "link", deny_probe_link)
+
+    assert e2e.main_sync() == 1
+    assert "reason=answer_artifact_unusable" in capsys.readouterr().out
+    assert calls == []
+    assert not list(tmp_path.glob("*.probe*"))
+
 
 def test_a_failed_publication_reports_and_leaves_nothing(
     monkeypatch, capsys, tmp_path

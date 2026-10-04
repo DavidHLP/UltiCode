@@ -471,6 +471,19 @@ def test_replacing_output_lock_paths_cannot_split_a_live_claim(monkeypatch, tmp_
         smoke._release_unfinished_claim(first_lock)
 
 
+def test_writable_state_ancestor_is_refused_for_artifact_locks(monkeypatch, tmp_path):
+    shared_state = tmp_path / "shared-state"
+    shared_state.mkdir(mode=0o777)
+    shared_state.chmod(0o777)
+    monkeypatch.setenv("XDG_STATE_HOME", str(shared_state))
+    destination = tmp_path / "artifacts" / "a.json"
+
+    with pytest.raises(RuntimeError, match="not writable"):
+        smoke._claim_verdict_file(destination)
+
+    assert not destination.parent.exists()
+
+
 def test_a_non_integer_threshold_fails_cleanly(monkeypatch, capsys, tmp_path) -> None:
     calls: list[str] = []
     _install(monkeypatch, tmp_path, ['{"supports": true, "derivable": true}'] * 3, calls)

@@ -1,4 +1,5 @@
 import json
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -14,6 +15,7 @@ from corpus_manifest import (
     ManifestError,
     assert_manifest_covers,
     load_manifest,
+    validate_entries,
 )
 from retrieval import load_sample_corpus
 
@@ -88,6 +90,15 @@ def test_unpaired_surrogates_in_manifest_text_are_rejected(
     with pytest.raises(ManifestError, match="Unicode scalar"):
         load_manifest(_write(tmp_path, [invalid]))
 
+@pytest.mark.parametrize("field", ["doc_id", "chunk_id"])
+def test_hand_built_manifest_snapshot_rejects_unpaired_surrogates(field: str) -> None:
+    entry = load_manifest()[0]
+    value = getattr(entry, field)
+
+    with pytest.raises(ManifestError, match="Unicode scalar"):
+        validate_entries((replace(entry, **{field: value + chr(0xD800)}),))
+
+
 def test_nested_unpaired_surrogate_in_manifest_value_is_rejected(
     tmp_path: Path,
 ) -> None:
@@ -150,6 +161,15 @@ def test_unknown_sample_kind_is_rejected(tmp_path: Path) -> None:
 def test_invalid_json_is_rejected_with_a_clear_error(tmp_path: Path) -> None:
     with pytest.raises(ManifestError, match="not valid JSON"):
         load_manifest(_write(tmp_path, "{not json"))
+
+
+@pytest.mark.parametrize("constant", ["NaN", "Infinity", "-Infinity"])
+def test_nonstandard_json_constants_are_rejected(tmp_path: Path, constant: str) -> None:
+    entry = json.dumps(_entry())
+    malformed = entry[:-1] + f', "extension": {constant}' + "}"
+
+    with pytest.raises(ManifestError, match="not valid JSON"):
+        load_manifest(_write(tmp_path, f"[{malformed}]"))
 
 
 def test_empty_or_non_list_manifest_is_rejected(tmp_path: Path) -> None:

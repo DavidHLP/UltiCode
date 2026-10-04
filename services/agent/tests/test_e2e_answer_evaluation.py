@@ -61,7 +61,17 @@ def _case() -> KeywordCase:
     )
 
 
-def _install(monkeypatch, *, on_call=None, answers=None, judgements=None, real_corpus=False, usage_total=10):
+def _install(
+    monkeypatch,
+    *,
+    on_call=None,
+    answers=None,
+    judgements=None,
+    real_corpus=False,
+    usage_total=10,
+    fail_judge_preflight=False,
+    preflight_checks=None,
+):
     """Stub the adapter, corpus and case file so only the entry point runs."""
     calls: list[str] = []
     answers = answers if answers is not None else _ANSWERS
@@ -82,6 +92,15 @@ def _install(monkeypatch, *, on_call=None, answers=None, judgements=None, real_c
 
         async def __aexit__(self, *_args: object) -> None:
             return None
+
+        def check_prompt_budget(self, messages: list[dict[str, object]]) -> None:
+            content = str(messages[-1]["content"])
+            if preflight_checks is not None:
+                preflight_checks.append(content)
+            if fail_judge_preflight and "JUDGE_CONTRACT" in content:
+                raise e2e.ModelBudgetExceeded(
+                    "prompt exceeds the configured token budget"
+                )
 
         async def decide(self, messages: list[dict[str, object]]) -> object:
             content = str(messages[-1]["content"])
@@ -108,6 +127,44 @@ def _install(monkeypatch, *, on_call=None, answers=None, judgements=None, real_c
     ):
         monkeypatch.delenv(name, raising=False)
     return calls
+
+
+def test_judge_prompt_budget_is_preflighted_before_any_model_call(
+    monkeypatch, capsys, tmp_path
+) -> None:
+    preflight_checks: list[str] = []
+    calls = _install(
+        monkeypatch,
+        fail_judge_preflight=True,
+        preflight_checks=preflight_checks,
+    )
+    monkeypatch.setenv("ULTICODE_ANSWER_EVAL_RESULT", str(tmp_path / "artifact.json"))
+
+    assert e2e.main_sync() == 1
+
+    assert calls == []
+    assert any("JUDGE_CONTRACT" in prompt for prompt in preflight_checks)
+    assert any(r"\udbff\udfff" in prompt for prompt in preflight_checks)
+    assert "reason=model_budget_exceeded" in capsys.readouterr().out
+
+
+def test_an_answer_over_the_text_limit_is_not_sent_to_the_judge(
+    monkeypatch, capsys, tmp_path
+) -> None:
+    calls = _install(
+        monkeypatch,
+        answers={
+            "dev-01": json.dumps(
+                {"text": "x" * 1001, "citations": ["snap-doc:v1:1"]}
+            )
+        },
+    )
+    monkeypatch.setenv("ULTICODE_ANSWER_EVAL_RESULT", str(tmp_path / "artifact.json"))
+
+    assert e2e.main_sync() == 1
+
+    assert len(calls) == 1
+    assert "reason=protocol" in capsys.readouterr().out
 
 
 def test_opt_in_is_required_and_no_key_is_used_without_it(monkeypatch, capsys) -> None:

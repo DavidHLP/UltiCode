@@ -157,6 +157,25 @@ def test_judge_prompt_budget_is_preflighted_before_any_model_call(
     assert "reason=model_budget_exceeded" in capsys.readouterr().out
 
 
+def test_nested_json_depth_error_is_sanitized_as_protocol(
+    monkeypatch, capsys, tmp_path
+) -> None:
+    answer = "[" * 2000 + "0" + "]" * 2000
+    with pytest.raises(RecursionError):
+        json.loads(answer)
+    calls = _install(monkeypatch, answers={"dev-01": answer})
+    destination = tmp_path / "artifact.json"
+    monkeypatch.setenv("ULTICODE_ANSWER_EVAL_RESULT", str(destination))
+
+    assert e2e.main_sync() == 1
+
+    output = capsys.readouterr().out
+    assert "FAIL reason=protocol" in output
+    assert "RecursionError" not in output
+    assert len(calls) == 1
+    assert not destination.exists()
+
+
 def test_an_answer_over_the_text_limit_is_not_sent_to_the_judge(
     monkeypatch, capsys, tmp_path
 ) -> None:
@@ -300,6 +319,29 @@ def test_an_unwritable_artifact_destination_fails_before_any_call(
 
     assert "reason=answer_artifact_unusable" in capsys.readouterr().out
     assert calls == []
+
+
+def test_an_existing_lock_does_not_skip_the_artifact_write_probe(
+    monkeypatch, capsys, tmp_path
+) -> None:
+    calls = _install(monkeypatch)
+    destination = tmp_path / "artifact.json"
+    destination.with_name(f"{destination.name}.lock").touch()
+    monkeypatch.setenv("ULTICODE_ANSWER_EVAL_RESULT", str(destination))
+    original_open = e2e.os.open
+
+    def deny_probe(name, *args, **kwargs):
+        if isinstance(name, str) and name.endswith(".part"):
+            raise PermissionError("artifact directory is not writable")
+        return original_open(name, *args, **kwargs)
+
+    monkeypatch.setattr(e2e.os, "open", deny_probe)
+
+    assert e2e.main_sync() == 1
+
+    assert "reason=answer_artifact_unusable" in capsys.readouterr().out
+    assert calls == []
+    assert not list(tmp_path.glob("*.part"))
 
 
 def test_a_failed_publication_reports_and_leaves_nothing(

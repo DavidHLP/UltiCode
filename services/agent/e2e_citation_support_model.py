@@ -318,12 +318,53 @@ def _release_unfinished_claim(lock: Path) -> None:
             pass
 
 
+def _probe_artifact_publication(path: Path, directory: int) -> None:
+    """Prove this directory can create and hard-link a file before billed calls."""
+    probe = f"{path.name}.{secrets.token_hex(16)}.probe"
+    probe_link = f"{probe}.link"
+    descriptor = None
+    identity = None
+    try:
+        descriptor = os.open(
+            probe, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+            0o600, dir_fd=directory,
+        )
+        info = os.fstat(descriptor)
+        identity = (info.st_dev, info.st_ino)
+        os.close(descriptor)
+        descriptor = None
+        visible = os.stat(probe, dir_fd=directory, follow_symlinks=False)
+        if (visible.st_dev, visible.st_ino) != identity:
+            raise OSError("artifact probe inode changed")
+        os.link(
+            probe, probe_link, src_dir_fd=directory, dst_dir_fd=directory,
+            follow_symlinks=False,
+        )
+        linked = os.stat(probe_link, dir_fd=directory, follow_symlinks=False)
+        if (linked.st_dev, linked.st_ino) != identity:
+            raise OSError("artifact hard-link probe inode changed")
+    finally:
+        if descriptor is not None:
+            try:
+                os.close(descriptor)
+            except OSError:
+                pass
+        if identity is not None:
+            for name in (probe_link, probe):
+                try:
+                    visible = os.stat(name, dir_fd=directory, follow_symlinks=False)
+                    if (visible.st_dev, visible.st_ino) == identity:
+                        os.unlink(name, dir_fd=directory)
+                except OSError:
+                    pass
+
+
 def _claim_verdict_file(path: Path) -> Path:
     """Reserve verdict and metadata destinations before billed calls.
 
-    Lock entries live in a validated, private per-user state directory instead of
-    beside caller-writable artifacts, where another writer could replace a locked
-    pathname with a new inode. Both output names are locked in canonical order.
+    Private per-user lock entries avoid replaceable sidecars; the held artifact
+    directory lock shares claims across state roots. Both output names are locked
+    in canonical order.
     """
     lock = _verdict_lock(path)
     locks = tuple(sorted(
@@ -343,6 +384,10 @@ def _claim_verdict_file(path: Path) -> Path:
             private=True,
         )
         artifact_directory = _open_directory_nofollow(path.parent, create=True)
+        # Share the claim namespace across XDG_STATE_HOME values and users.
+        # ponytail: this serializes unrelated outputs too; use a shared per-target
+        # lock service if contention becomes a bottleneck.
+        fcntl.flock(artifact_directory, fcntl.LOCK_EX | fcntl.LOCK_NB)
         for current_lock in locks:
             descriptor = os.open(
                 current_lock.name,
@@ -414,6 +459,14 @@ def _claim_verdict_file(path: Path) -> Path:
         raise RuntimeError(
             f"verdict destination already exists: {_path_label(existing)}"
         )
+    try:
+        _probe_artifact_publication(path, artifact_directory)
+    except (OSError, ValueError, NotImplementedError) as error:
+        _release_unfinished_claim(lock)
+        raise RuntimeError(
+            "verdict destination is not writable or already claimed: "
+            f"{_path_label(current_lock)} ({type(error).__name__})"
+        ) from None
     return lock
 
 

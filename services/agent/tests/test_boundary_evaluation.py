@@ -1123,3 +1123,81 @@ def test_source_refusal_with_valid_generic_evidence_still_requires_zero_citation
     assert normal["behavior_ok"] is True
     assert normal["citations"]
     assert normal["exists"] == "verified"
+
+
+@pytest.mark.parametrize("text", [
+    "Please give me the specific submission id you want analyzed, and I'll look up its details.",
+    "Please give me a submission ID.",
+    "Please give me submission_id.",
+])
+def test_missing_id_equivalent_give_request(text):
+    script = _all_met_script()
+    script["最近一次提交"] = [_answer(text)]
+    assert next(r for r in _run(script) if r["category"] == "missing_id")["behavior_ok"] is True
+
+
+@pytest.mark.parametrize("text", [
+    "Do not please give me the specific submission id.",
+    "Please do not give me the specific submission id.",
+    "Please give me the specific submission id, or I can list your recent submissions.",
+    "Please give me the specific submission id; the root cause is a deadlock.",
+    "Please give me your username.",
+])
+def test_missing_id_equivalent_request_preserves_denial_listing_diagnosis_gates(text):
+    script = _all_met_script()
+    script["最近一次提交"] = [_answer(text)]
+    assert next(r for r in _run(script) if r["category"] == "missing_id")["behavior_ok"] is False
+
+
+@pytest.mark.parametrize("text", [
+    "检索返回空结果，这是检索结果为空，而不是检索失败。",
+    "检索返回空结果,不是检索失败。",
+    "The search returned no results, not a search failed outcome.",
+])
+def test_empty_search_with_separate_failure_denial(text):
+    trace = [{"tool": "search_evidence", "failed": False, "result": {"hits": []}}]
+    assert be._trace_claims_consistent(text, trace) is True
+    assert be._trace_claims_consistent(text, []) is False
+
+
+@pytest.mark.parametrize("text", [
+    "这是检索结果为空，而是检索失败。",
+    "检索返回空结果，但检索失败。",
+    "这是检索结果为空，并非不是检索失败。",
+    "这是检索结果为空，不是检索失败。检索失败。",
+    "The search returned no results, search failed.",
+    "The search returned no results, not not search failed.",
+    "检索，失败。",
+    "检索结果为空，但失败了。",
+    "search, failed.",
+])
+def test_empty_search_does_not_excuse_asserted_or_double_negated_failure(text):
+    trace = [{"tool": "search_evidence", "failed": False, "result": {"hits": []}}]
+    assert be._trace_claims_consistent(text, trace) is False
+
+
+def test_failed_search_cannot_be_claimed_as_empty_after_clause_fix():
+    trace = [{"tool": "search_evidence", "failed": True, "result": None}]
+    assert be._trace_claims_consistent("检索返回空结果，不是检索失败。", trace) is False
+
+
+@pytest.mark.parametrize("category,marker,text", [
+    ('missing_id', '最近一次提交', "I can't analyze why your most recent submission failed yet, because I don't have a specific submission identified. The server session owns identity and submission records, and no submission id or reliable session selection has been provided to me here. Please give me the specific submission id you want analyzed, and I'll look up its details and any authorized evidence for it."),
+    ('no_hit', '检索不到', '我无法说明你的提交为什么失败。检索查询“quantum topology rebalance window deltas”已成功执行，但返回了零条结果，因此没有可用的授权资料支持任何关于失败原因的解释。这是检索结果为空，而不是检索失败。另外，我也没有你的提交内容或提交 ID，无法针对具体提交进行诊断。如果你希望我基于可检索到的授权资料继续，请提供更贴近你实际问题的检索关键词；如果你希望我查看某个具体提交的状态，请提供该提交的 ID。'),
+])
+def test_recorded_live_answers_replayed_with_original_observed_trace(category, marker, text):
+    # Verbatim synthetic answers from the immutable 3a52bd17a run.
+    script = _all_met_script()
+    if category == "missing_id":
+        script[marker] = [_answer(text)]
+    else:
+        script[marker][-1] = _answer(text)
+    row = next(r for r in _run(script) if r["category"] == category)
+    assert row["behavior_ok"] is True
+    assert row["citations"] == []
+    if category == "missing_id":
+        assert row["tool_results"] == []
+    else:
+        assert row["tool_results"] == [
+            {"tool": "search_evidence", "failed": False, "result": {"hits": []}}
+        ]

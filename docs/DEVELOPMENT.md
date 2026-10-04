@@ -552,3 +552,7 @@ bounded trace assertion gate rejects observed classes of fabricated attempts,
 failures and empty search results; it does not claim general factual validation.
 A specific-ID request followed by viewing that single submission is allowed;
 listing recent submissions remains an invalid clarification alternative.
+The bounded ID-request grammar accepts “Please give me the specific submission id”
+while preserving denial, listing and diagnosis checks. Retrieval failure claims
+are matched within comma-delimited clauses so a separate negated failure clause
+does not turn an observed empty search into a claimed failure.

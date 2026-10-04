@@ -867,7 +867,11 @@ def _direct_id_clarification(text: str, case: BoundaryCase) -> bool:
     """
     lowered = text.casefold()
     identifier = r"(?:submission[ _]*id|提交(?:标识|编号|\s*id))"
-    request = rf"请(?:提供|告诉我)[^。；;!?？]{{0,12}}{identifier}|请把\s*{identifier}\s*(?:发给我|告诉我)"
+    request = (
+        rf"请(?:提供|告诉我)[^。；;!?？]{{0,12}}{identifier}|"
+        rf"请把\s*{identifier}\s*(?:发给我|告诉我)|"
+        rf"please give me (?:the |a )?(?:specific )?{identifier}\b"
+    )
     asks = any(_unnegated_claim(lowered, marker) for marker in case.require_any_markers)
     asks = asks or any(_unnegated_claim(lowered, match.group()) for match in re.finditer(request, lowered))
     if not asks:
@@ -995,7 +999,9 @@ def _trace_claims_consistent(text: str, results: list[dict[str, object]]) -> boo
     searches = [r for r in results if r["tool"] == "search_evidence"]
     patterns = {
         "attempt": r"(?:i (?:have )?attempted (?:to )?(?:retrieve|retrieval|search)|我(?:已|已经)(?:尝试)?(?:检索|搜索))",
-        "failed": r"(?:(?:search_evidence|search|tool|检索|搜索|工具)[^。；;.!?？]{0,24}(?:failed|失败|超时))",
+        # Keep each outcome claim within its comma-delimited clause so a
+        # denial in the next clause retains its own adjacent negation.
+        "failed": r"(?:(?:search_evidence|search|tool|检索|搜索|工具)[^。；;.!?？，,]{0,24}(?:[,，]\s*(?:但|而|but\s+)?\s*)?(?:failed|失败|超时))",
         "empty": r"(?:(?:search|检索|搜索)[^。；;.!?？]{0,24}(?:returned no (?:fragments|results|hits)|返回了?空结果|没有返回[^。；;]{0,8}(?:片段|结果)))",
     }
     for kind, pattern in patterns.items():

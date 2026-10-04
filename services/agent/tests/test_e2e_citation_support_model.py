@@ -412,6 +412,32 @@ def test_an_unusable_verdict_destination_fails_before_any_call(
     held.close()
 
 
+def test_overlapping_verdict_metadata_paths_are_reserved_before_calls(
+    monkeypatch, capsys, tmp_path
+) -> None:
+    calls: list[str] = []
+    first_destination = tmp_path / "a.json"
+    overlapping_destination = smoke._meta_path(first_destination)
+    _install(
+        monkeypatch, tmp_path,
+        ['{"supports": true, "derivable": true}'] * 3, calls,
+    )
+    first_lock = smoke._claim_verdict_file(first_destination)
+
+    try:
+        monkeypatch.setenv("ULTICODE_CITATION_VERDICTS", str(overlapping_destination))
+        assert smoke.main_sync() == 1
+        output = capsys.readouterr().out
+        assert "reason=verdict_destination_unusable" in output
+        assert calls == []
+        assert not overlapping_destination.exists()
+    finally:
+        smoke._release_unfinished_claim(first_lock)
+
+    assert _lock_is_free(smoke._verdict_lock(first_destination))
+    assert _lock_is_free(smoke._verdict_lock(overlapping_destination))
+
+
 def test_a_non_integer_threshold_fails_cleanly(monkeypatch, capsys, tmp_path) -> None:
     calls: list[str] = []
     _install(monkeypatch, tmp_path, ['{"supports": true, "derivable": true}'] * 3, calls)

@@ -1235,6 +1235,7 @@ def test_source_refusal_rejects_references_in_answer_text(reference):
         "无法提供未检索到的提交源码，不能伪造来源。",
         "I can't cite unavailable source code.",
         "I can't cite unavailable source code, and I don't know the exact lines.",
+        "I can't provide the unavailable source code. [No source was provided.]",
     ],
 )
 def test_source_refusal_without_references_still_passes(text):

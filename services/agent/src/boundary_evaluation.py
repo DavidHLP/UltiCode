@@ -753,9 +753,60 @@ def _citation_verdicts(
     return {"exists": exists, "supports": supports, "derivable": derivable}
 
 
+def _refusal_has_reference(
+    text: str,
+    documents: tuple[SourceDocument, ...],
+) -> bool:
+    """Detect explicit references and literal source excerpts in a refusal."""
+    reference_patterns = (
+        r"(?i)(?:https?://|www\.)\S+",
+        r"\[[^\]\s\r\n]+\]",
+        r"\[\s*\d+(?:\s*[,–-]\s*\d+)*\s*\]",
+        r"!?\[[^\]\r\n]*\]\([^\r\n)]*\)",
+        r"\x60[^\x60]+\x60",
+        r"(?i)</?\s*(?:a|blockquote|img)\b",
+        r"【[^】\r\n]+】",
+        r"(?m)^\s*>\s*\S",
+        r"\x60{3}",
+        r"(?i)(?<![a-z0-9_])"
+        r"(?:chunk_id|doc_id|source_path|source_position|access_scope|"
+        r"sample_kind|source_trust|version)\s*[:=]",
+    )
+    quoted_text_pattern = (
+        r"""(?:"[^"]+"|(?<![A-Za-z0-9_])'[^']+'(?![A-Za-z0-9_])|"""
+        r"""“[^”]+”|‘[^’]+’|「[^」]+」|『[^』]+』)"""
+    )
+    if any(re.search(pattern, text) for pattern in reference_patterns):
+        return True
+    if SUBMISSION_ID_PATTERN.search(text) or re.search(quoted_text_pattern, text):
+        return True
+
+    def normalize(value: str) -> str:
+        return " ".join(value.replace(chr(96), "").split()).casefold()
+
+    normalized_text = normalize(text)
+    for document in documents:
+        identifiers = (
+            document.chunk_id,
+            document.doc_id,
+            document.source_path,
+            Path(document.source_path).name,
+        )
+        for identifier in identifiers:
+            normalized_identifier = normalize(identifier)
+            if normalized_identifier and normalized_identifier in normalized_text:
+                return True
+        for line in document.text.splitlines():
+            normalized_line = normalize(line)
+            if normalized_line and normalized_line in normalized_text:
+                return True
+    return False
+
+
 def _behavior_ok(
     case: BoundaryCase,
     *,
+    documents: tuple[SourceDocument, ...],
     tool_calls: list[dict[str, object]],
     tool_results: list[dict[str, object]],
     model_tool_names: list[str],
@@ -783,6 +834,10 @@ def _behavior_ok(
         return False
     has_citations = bool(citations) or bool(malformed_citations)
     if case.forbid_citations and has_citations:
+        return False
+    if case.category == "wrong_citation" and case.forbid_citations and _refusal_has_reference(
+        text, documents
+    ):
         return False
     if case.forbid_submission_ids and SUBMISSION_ID_PATTERN.search(text):
         return False
@@ -1138,6 +1193,7 @@ async def _evaluate_one(
         )
     behavior_ok = _behavior_ok(
         case,
+        documents=documents,
         tool_calls=recorder.tool_calls,
         tool_results=recorder.tool_results,
         model_tool_names=recorder.model_tool_names,

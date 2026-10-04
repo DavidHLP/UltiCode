@@ -1,4 +1,5 @@
 import json
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -14,6 +15,7 @@ from corpus_manifest import (
     ManifestError,
     assert_manifest_covers,
     load_manifest,
+    validate_entries,
 )
 from retrieval import load_sample_corpus
 
@@ -78,6 +80,44 @@ def test_blank_field_is_rejected(tmp_path: Path, field: str) -> None:
         load_manifest(_write(tmp_path, [blanked]))
 
 
+@pytest.mark.parametrize("field", ["doc_id", "chunk_id", "version"])
+def test_unpaired_surrogates_in_manifest_text_are_rejected(
+    tmp_path: Path, field: str
+) -> None:
+    invalid = _entry()
+    invalid[field] = chr(0xD800)
+
+    with pytest.raises(ManifestError, match="Unicode scalar"):
+        load_manifest(_write(tmp_path, [invalid]))
+
+@pytest.mark.parametrize("field", ["doc_id", "chunk_id"])
+def test_hand_built_manifest_snapshot_rejects_unpaired_surrogates(field: str) -> None:
+    entry = load_manifest()[0]
+    value = getattr(entry, field)
+
+    with pytest.raises(ManifestError, match="Unicode scalar"):
+        validate_entries((replace(entry, **{field: value + chr(0xD800)}),))
+
+
+def test_nested_unpaired_surrogate_in_manifest_value_is_rejected(
+    tmp_path: Path,
+) -> None:
+    invalid = _entry()
+    invalid["extension"] = {"nested": [chr(0xD800)]}
+
+    with pytest.raises(ManifestError, match="Unicode scalar"):
+        load_manifest(_write(tmp_path, [invalid]))
+
+
+
+@pytest.mark.parametrize("payload", [json.dumps(chr(0xD800)), json.dumps([chr(0xD800)])])
+def test_unpaired_surrogates_outside_manifest_entries_are_rejected(
+    tmp_path: Path, payload: str
+) -> None:
+    with pytest.raises(ManifestError, match="Unicode scalar"):
+        load_manifest(_write(tmp_path, payload))
+
+
 @pytest.mark.parametrize("field", DOCUMENT_BINDING_FIELDS)
 def test_binding_fields_are_mandatory_too(tmp_path: Path, field: str) -> None:
     incomplete = _entry()
@@ -121,6 +161,15 @@ def test_unknown_sample_kind_is_rejected(tmp_path: Path) -> None:
 def test_invalid_json_is_rejected_with_a_clear_error(tmp_path: Path) -> None:
     with pytest.raises(ManifestError, match="not valid JSON"):
         load_manifest(_write(tmp_path, "{not json"))
+
+
+@pytest.mark.parametrize("constant", ["NaN", "Infinity", "-Infinity"])
+def test_nonstandard_json_constants_are_rejected(tmp_path: Path, constant: str) -> None:
+    entry = json.dumps(_entry())
+    malformed = entry[:-1] + f', "extension": {constant}' + "}"
+
+    with pytest.raises(ManifestError, match="not valid JSON"):
+        load_manifest(_write(tmp_path, f"[{malformed}]"))
 
 
 def test_empty_or_non_list_manifest_is_rejected(tmp_path: Path) -> None:
@@ -316,3 +365,15 @@ def test_two_identities_that_generate_one_chunk_id_are_rejected() -> None:
 
     with pytest.raises(ManifestError, match="share one chunk id"):
         assert_manifest_covers([], [first, second])
+
+
+@pytest.mark.parametrize("closed", [False, True])
+def test_parser_depth_failure_is_a_manifest_error(closed):
+    from corpus_manifest import parse_manifest_text
+    # CPython versions differ in whether JSON uses Python or C stack limits.
+    depth = 100000
+    payload = "[" * depth + "0" + ("]" * depth if closed else "")
+    with pytest.raises(RecursionError):
+        json.loads(payload)
+    with pytest.raises(ManifestError, match="not valid JSON"):
+        parse_manifest_text(payload)

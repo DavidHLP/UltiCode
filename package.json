@@ -1,7 +1,7 @@
 {
   "dependencies": {
-    "@letta-ai/letta-client": "^1.10.3",
-    "@vitejs/plugin-vue": "^6.0.7",
+    "@letta-ai/letta-client": "^1.12.1",
+    "@vitejs/plugin-vue": "^6.0.9",
     "dotenv": "^17.4.2"
   },
   "devDependencies": {

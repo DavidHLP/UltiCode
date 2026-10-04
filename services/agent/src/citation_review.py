@@ -174,11 +174,14 @@ def _reject_duplicate_keys(pairs: list[tuple[str, object]]) -> dict[str, object]
     return result
 
 
-def load_verdicts(path: Path, items: tuple[ReviewItem, ...]) -> dict[str, dict[str, object]]:
-    """Read verdicts, requiring one complete entry per reviewed citation."""
+def load_verdicts(
+    path: Path, items: tuple[ReviewItem, ...], *, text: str | None = None
+) -> dict[str, dict[str, object]]:
+    """Parse a supplied snapshot or read the path, requiring one entry per citation."""
     try:
         raw = json.loads(
-            path.read_text(encoding="utf-8"), object_pairs_hook=_reject_duplicate_keys
+            path.read_text(encoding="utf-8") if text is None else text,
+            object_pairs_hook=_reject_duplicate_keys,
         )
     except VerdictError:
         raise

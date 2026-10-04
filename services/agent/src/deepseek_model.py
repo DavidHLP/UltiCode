@@ -31,6 +31,20 @@ def _reject_duplicate_keys(pairs: list[tuple[str, object]]) -> dict[str, object]
         result[key] = value
     return result
 
+
+_SAFE_FINISH_REASONS = frozenset(
+    {"stop", "length", "tool_calls", "content_filter", "function_call"}
+)
+
+
+def _finish_reason_label(value: object) -> str:
+    """Keep provider-controlled finish details out of diagnostics."""
+    if value is None:
+        return "none"
+    if type(value) is str and value in _SAFE_FINISH_REASONS:
+        return value
+    return "other"
+
 _SYSTEM_TEMPLATE = """You are a read-only assistant for the UltiCode platform.
 Reply with ONE JSON object per turn and no prose:
   {{"tool": "<name>", "args": {{...}}}}  to call a tool
@@ -146,7 +160,9 @@ class DeepseekModel:
     ) -> None:
         await self._client.__aexit__(exc_type, exc_value, traceback)
 
-    async def decide(self, messages: list[dict[str, object]]) -> ModelDecision:
+    def _api_messages(
+        self, messages: list[dict[str, object]]
+    ) -> list[dict[str, str]]:
         api_messages: list[dict[str, str]] = [{"role": "system", "content": self._system}]
         for message in messages:
             role = str(message.get("role", "user"))
@@ -155,9 +171,9 @@ class DeepseekModel:
                 api_messages.append({"role": "user", "content": f"TOOL_RESULT: {content}"})
             elif role in ("user", "assistant"):
                 api_messages.append({"role": role, "content": content})
+        return api_messages
 
-        # Cost guards run before the request: max_tokens bounds output, but the
-        # prompt side is billed too, so both sides and the call count are capped.
+    def _check_prompt_budget(self, api_messages: list[dict[str, str]]) -> None:
         prompt_tokens_estimate = (
             sum(
                 len(message["content"].encode("utf-8")) * PROMPT_TOKEN_UPPER_BYTES
@@ -167,6 +183,17 @@ class DeepseekModel:
         )
         if prompt_tokens_estimate > self._max_prompt_tokens:
             raise ModelBudgetExceeded("prompt exceeds the configured token budget")
+
+    def check_prompt_budget(self, messages: list[dict[str, object]]) -> None:
+        """Apply the same prompt guard as decide without sending or counting a call."""
+        self._check_prompt_budget(self._api_messages(messages))
+
+    async def decide(self, messages: list[dict[str, object]]) -> ModelDecision:
+        api_messages = self._api_messages(messages)
+
+        # Cost guards run before the request: max_tokens bounds output, but the
+        # prompt side is billed too, so both sides and the call count are capped.
+        self._check_prompt_budget(api_messages)
         if self.calls_made >= self._max_calls:
             raise ModelBudgetExceeded("call budget exhausted")
         self.calls_made += 1
@@ -224,19 +251,20 @@ def _parse_decision(content: str, *, finish_reason: object = None) -> ModelDecis
     """Parse one decision.
 
     A non-JSON decision reports its shape, never its text: an empty `content` from
-    a reasoning model and a prose answer are different faults, and without the
-    length and `finish_reason` the caller cannot tell them apart from the message.
+    a reasoning model and a prose answer are different faults. The provider's
+    `finish_reason` is reduced to a fixed label before it reaches diagnostics.
     """
+    finish_label = _finish_reason_label(finish_reason)
     try:
         parsed = json.loads(
             content,
             parse_constant=_reject_json_constant,
             object_pairs_hook=_reject_duplicate_keys,
         )
-    except (json.JSONDecodeError, ValueError) as exc:
+    except (json.JSONDecodeError, ValueError, RecursionError) as exc:
         raise ModelProtocolError(
             "model decision was not valid JSON "
-            f"(content_len={len(content)}, finish_reason={finish_reason})"
+            f"(content_len={len(content)}, finish_reason={finish_label})"
         ) from exc
     if not isinstance(parsed, dict):
         raise ModelProtocolError("model decision was not an object")

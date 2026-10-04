@@ -26,6 +26,11 @@ smoke = importlib.util.module_from_spec(_module_spec)
 _module_spec.loader.exec_module(smoke)
 
 
+@pytest.fixture(autouse=True)
+def _isolated_artifact_lock_state(monkeypatch, tmp_path):
+    monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path / "state"))
+
+
 def _lock_is_free(lock: Path) -> bool:
     """True when no run holds the reservation. The file itself may remain."""
     handle = lock.open("a+", encoding="utf-8")
@@ -38,9 +43,14 @@ def _lock_is_free(lock: Path) -> bool:
     return True
 
 
+def _prepare_lock_parent(lock: Path) -> None:
+    lock.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    lock.parent.chmod(0o700)
+
+
 def _hold(lock: Path) -> object:
     """A live rival holding the reservation, released when the test ends."""
-    lock.parent.mkdir(parents=True, exist_ok=True)
+    _prepare_lock_parent(lock)
     handle = lock.open("a+", encoding="utf-8")
     fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
     return handle
@@ -400,7 +410,7 @@ def test_an_unusable_verdict_destination_fails_before_any_call(
     _install(monkeypatch, tmp_path, ['{"supports": true, "derivable": true}'] * 3, calls)
     destination = tmp_path / "verdicts.json"
     # Another run holds the reservation right now.
-    held = _hold(tmp_path / "verdicts.json.lock")
+    held = _hold(smoke._verdict_lock(destination))
     monkeypatch.setenv("ULTICODE_CITATION_VERDICTS", str(destination))
 
     assert smoke.main_sync() == 1
@@ -451,9 +461,12 @@ def test_replacing_output_lock_paths_cannot_split_a_live_claim(monkeypatch, tmp_
         destination.with_name(f"{destination.name}.lock"),
         metadata.with_name(f"{metadata.name}.lock"),
     )
+    assert first_lock.parent != destination.parent
     second_lock = None
 
     try:
+        for output_lock in replacement_paths:
+            output_lock.touch(mode=0o600, exist_ok=True)
         old_inodes = [lock.stat().st_ino for lock in replacement_paths]
         for lock in replacement_paths:
             lock.unlink()
@@ -471,11 +484,20 @@ def test_replacing_output_lock_paths_cannot_split_a_live_claim(monkeypatch, tmp_
         smoke._release_unfinished_claim(first_lock)
 
 
-def test_writable_state_ancestor_is_refused_for_artifact_locks(monkeypatch, tmp_path):
-    shared_state = tmp_path / "shared-state"
-    shared_state.mkdir(mode=0o777)
-    shared_state.chmod(0o777)
-    monkeypatch.setenv("XDG_STATE_HOME", str(shared_state))
+@pytest.mark.parametrize("unsafe_root", ["ancestor", "lock_directory"])
+def test_untrusted_state_lock_directories_are_refused(
+    monkeypatch, tmp_path, unsafe_root
+):
+    state_home = tmp_path / "state"
+    state_home.mkdir(mode=0o700)
+    state_home.chmod(0o700)
+    if unsafe_root == "ancestor":
+        state_home.chmod(0o777)
+    else:
+        lock_directory = state_home / "ulticode" / "artifact-locks"
+        lock_directory.mkdir(parents=True, mode=0o700)
+        lock_directory.chmod(0o755)
+    monkeypatch.setenv("XDG_STATE_HOME", str(state_home))
     destination = tmp_path / "artifacts" / "a.json"
 
     with pytest.raises(RuntimeError, match="not writable"):
@@ -544,7 +566,7 @@ def test_a_successful_run_releases_its_reservation(monkeypatch, capsys, tmp_path
 
     assert smoke.main_sync() == 0
     assert destination.exists()
-    assert _lock_is_free(tmp_path / "verdicts.json.lock")
+    assert _lock_is_free(smoke._verdict_lock(destination))
 
 
 def test_a_write_failure_releases_the_claim(monkeypatch, capsys, tmp_path) -> None:
@@ -723,7 +745,7 @@ def test_an_artifact_that_appears_under_the_lock_is_refused(tmp_path) -> None:
         smoke._claim_verdict_file(destination)
 
     # The reservation it took is released, so the retry after the clash works.
-    assert _lock_is_free(tmp_path / "verdicts.json.lock")
+    assert _lock_is_free(smoke._verdict_lock(destination))
 
 
 def test_a_rejected_reservation_leaves_existing_artifacts_alone(tmp_path) -> None:
@@ -747,7 +769,7 @@ def test_a_live_owner_blocks_the_claim_and_a_dead_one_does_not(tmp_path) -> None
     """Ownership is an OS lock, so death releases it and a rival cannot steal it."""
     destination = tmp_path / "verdicts.json"
     lock = smoke._verdict_lock(destination)
-    lock.parent.mkdir(parents=True, exist_ok=True)
+    _prepare_lock_parent(lock)
 
     # A live rival: a second descriptor on the same inode holds the lock.
     rival = lock.open("a+", encoding="utf-8")
@@ -921,7 +943,9 @@ def test_a_symlinked_lock_is_refused_and_its_target_survives(tmp_path) -> None:
     destination = tmp_path / "verdicts.json"
     victim = tmp_path / "victim.txt"
     victim.write_text("important", encoding="utf-8")
-    smoke._verdict_lock(destination).symlink_to(victim)
+    lock = smoke._verdict_lock(destination)
+    _prepare_lock_parent(lock)
+    lock.symlink_to(victim)
 
     with pytest.raises(RuntimeError, match="not writable"):
         smoke._claim_verdict_file(destination)
@@ -2040,10 +2064,8 @@ def test_citation_artifact_parent_swap_never_redirects_bytes(monkeypatch, capsys
     assert smoke.main_sync() == 1
     assert len(calls) == 3
     assert not list((replacement if replacement_is_link else parent).iterdir())
-    assert sorted(p.name for p in moved.iterdir()) == [
-        "verdicts.json.lock", "verdicts.json.meta.json.lock"
-    ]
-    assert _lock_is_free(moved / "verdicts.json.lock")
+    assert not list(moved.iterdir())
+    assert _lock_is_free(smoke._verdict_lock(destination))
     output = capsys.readouterr().out
     assert "verdict_write_failed" in output
     assert "OK citation_support" not in output

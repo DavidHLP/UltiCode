@@ -30,6 +30,11 @@ e2e = importlib.util.module_from_spec(_module_spec)
 _module_spec.loader.exec_module(e2e)
 
 
+@pytest.fixture(autouse=True)
+def _isolated_artifact_lock_state(monkeypatch, tmp_path):
+    monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path / "state"))
+
+
 _ANSWERS = {"dev-01": '{"text": "状态说明。", "citations": ["snap-doc:v1:1"]}'}
 _JUDGEMENTS = {
     "dev-01": '{"citation_support": true, "answer_completed": true, "observed_behavior": "cite"}'
@@ -680,9 +685,7 @@ def test_answer_artifact_parent_swap_never_redirects_bytes(monkeypatch, capsys, 
     assert e2e.main_sync() == 1
     assert len(calls) == 2
     assert not list((replacement if replacement_is_link else parent).iterdir())
-    assert sorted(p.name for p in moved.iterdir()) == [
-        "artifact.json.lock", "artifact.json.meta.json.lock"
-    ]
+    assert not list(moved.iterdir())
     output = capsys.readouterr().out
     assert "answer_artifact_write_failed" in output
     assert "OK answer_eval" not in output

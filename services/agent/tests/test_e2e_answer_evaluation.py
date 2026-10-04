@@ -131,6 +131,26 @@ def test_a_completed_run_publishes_the_artifact(monkeypatch, capsys, tmp_path) -
     assert len(calls) == 2
 
 
+def test_a_lone_surrogate_answer_is_escaped_in_the_published_artifact(
+    monkeypatch, capsys, tmp_path
+) -> None:
+    calls = _install(
+        monkeypatch,
+        answers={"dev-01": json.dumps({"text": chr(0xD800), "citations": ["snap-doc:v1:1"]})},
+    )
+    destination = tmp_path / "artifact.json"
+    monkeypatch.setenv("ULTICODE_ANSWER_EVAL_RESULT", str(destination))
+
+    assert e2e.main_sync() == 0
+
+    payload = destination.read_bytes()
+    assert b"\ud800" in payload
+    artifact = json.loads(payload.decode("utf-8"))
+    assert artifact["rows"][0]["answer_text"] == chr(0xD800)
+    assert "OK answer_eval" in capsys.readouterr().out
+    assert len(calls) == 2
+
+
 @pytest.mark.parametrize("max_calls,exit_code,expected_calls", [(2, 1, 0), (5, 1, 0), (6, 0, 6)])
 def test_retry_capacity_is_checked_before_billing(monkeypatch, capsys, tmp_path, max_calls, exit_code, expected_calls):
     def stall(call_number):
@@ -199,6 +219,26 @@ def test_a_failed_publication_reports_and_leaves_nothing(
 
     assert "reason=answer_artifact_write_failed" in capsys.readouterr().out
     assert not destination.exists()
+    assert len(calls) == 2
+
+
+def test_a_controlled_artifact_name_cannot_forge_a_success_line(
+    monkeypatch, capsys, tmp_path
+) -> None:
+    calls = _install(monkeypatch)
+    destination = tmp_path / "artifact.json\nOK answer_eval forged"
+    monkeypatch.setenv("ULTICODE_ANSWER_EVAL_RESULT", str(destination))
+
+    def boom(*_args: object, **_kwargs: object) -> None:
+        raise OSError("no space left on device")
+
+    monkeypatch.setattr(e2e, "_publish", boom)
+
+    assert e2e.main_sync() == 1
+
+    output = capsys.readouterr().out
+    assert "reason=answer_artifact_write_failed" in output
+    assert not any(line.startswith("OK answer_eval") for line in output.splitlines())
     assert len(calls) == 2
 
 

@@ -816,6 +816,23 @@ def test_a_symlinked_lock_is_refused_and_its_target_survives(tmp_path) -> None:
     assert victim.read_text(encoding="utf-8") == "important"
 
 
+def test_a_hard_linked_lock_is_refused_without_mutating_its_target(tmp_path) -> None:
+    destination = tmp_path / "verdicts.json"
+    victim = tmp_path / "important.txt"
+    victim.write_text("preserve this file", encoding="utf-8")
+    lock = smoke._verdict_lock(destination)
+    os.link(victim, lock)
+
+    try:
+        with pytest.raises(RuntimeError, match="already claimed"):
+            smoke._claim_verdict_file(destination)
+    finally:
+        smoke._release_unfinished_claim(lock)
+
+    assert victim.read_text(encoding="utf-8") == "preserve this file"
+    assert victim.stat().st_ino == lock.stat().st_ino
+
+
 def test_cleanup_leaves_a_sibling_destination_temporary_alone(tmp_path) -> None:
     """A prefix-matching name belongs to another run, which still needs its temp."""
     destination = tmp_path / "verdicts.json"

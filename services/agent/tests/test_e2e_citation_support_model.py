@@ -442,6 +442,35 @@ def test_overlapping_verdict_metadata_paths_are_reserved_before_calls(
 
 
 
+def test_replacing_output_lock_paths_cannot_split_a_live_claim(monkeypatch, tmp_path):
+    monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path / "state"))
+    destination = tmp_path / "artifacts" / "a.json"
+    metadata = smoke._meta_path(destination)
+    first_lock = smoke._claim_verdict_file(destination)
+    replacement_paths = (
+        destination.with_name(f"{destination.name}.lock"),
+        metadata.with_name(f"{metadata.name}.lock"),
+    )
+    second_lock = None
+
+    try:
+        old_inodes = [lock.stat().st_ino for lock in replacement_paths]
+        for lock in replacement_paths:
+            lock.unlink()
+            lock.touch(mode=0o600)
+        assert all(
+            lock.stat().st_ino != old_inode
+            for lock, old_inode in zip(replacement_paths, old_inodes, strict=True)
+        )
+
+        with pytest.raises(RuntimeError, match="already claimed"):
+            second_lock = smoke._claim_verdict_file(destination)
+    finally:
+        if second_lock is not None:
+            smoke._release_unfinished_claim(second_lock)
+        smoke._release_unfinished_claim(first_lock)
+
+
 def test_a_non_integer_threshold_fails_cleanly(monkeypatch, capsys, tmp_path) -> None:
     calls: list[str] = []
     _install(monkeypatch, tmp_path, ['{"supports": true, "derivable": true}'] * 3, calls)

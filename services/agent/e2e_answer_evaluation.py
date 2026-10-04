@@ -48,6 +48,7 @@ from e2e_citation_support_model import (
     _discard_artifacts,
     _assert_artifact_directory,
     _release_unfinished_claim,
+    _path_label as _artifact_label,
 )
 from keyword_evaluation import load_cases
 
@@ -260,7 +261,9 @@ async def main() -> int:
                         "summary": summary,
                         "rows": [row.__dict__ for row in rows],
                     },
-                    ensure_ascii=False,
+                    # Provider output may contain lone surrogates; ASCII escaping keeps
+                    # the artifact UTF-8 writable and preserves strings on JSON read-back.
+                    ensure_ascii=True,
                     indent=2,
                 )
                 + "\n",
@@ -270,7 +273,7 @@ async def main() -> int:
             _discard_artifacts(owned)
             print(
                 f"FAIL reason=answer_artifact_write_failed "
-                f"detail={artifact.name} ({type(error).__name__})"
+                f"detail={_artifact_label(artifact)} ({type(error).__name__})"
             )
             return 1
     finally:

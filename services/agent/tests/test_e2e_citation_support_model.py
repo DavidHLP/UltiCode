@@ -644,7 +644,7 @@ def test_a_live_owner_blocks_the_claim_and_a_dead_one_does_not(tmp_path) -> None
     rival.close()
 
     # A dead owner: the kernel drops the lock with the process, so the claim works
-    # even though the lock file — pid and all — is still on disk.
+    # even though the persistent lock file is still on disk.
     subprocess.run(
         [
             sys.executable,
@@ -656,7 +656,7 @@ def test_a_live_owner_blocks_the_claim_and_a_dead_one_does_not(tmp_path) -> None
         check=False,
     )
     assert smoke._claim_verdict_file(destination) == lock
-    assert f"pid={os.getpid()}" in lock.read_text(encoding="utf-8")
+    assert lock.read_text(encoding="utf-8") == ""
     smoke._release_unfinished_claim(lock)
 
 

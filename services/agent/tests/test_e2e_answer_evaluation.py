@@ -144,7 +144,7 @@ def test_a_lone_surrogate_answer_is_escaped_in_the_published_artifact(
     assert e2e.main_sync() == 0
 
     payload = destination.read_bytes()
-    assert b"\ud800" in payload
+    assert bytes([0x5C]) + b"ud800" in payload
     artifact = json.loads(payload.decode("utf-8"))
     assert artifact["rows"][0]["answer_text"] == chr(0xD800)
     assert "OK answer_eval" in capsys.readouterr().out

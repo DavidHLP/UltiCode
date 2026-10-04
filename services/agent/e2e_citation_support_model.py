@@ -289,8 +289,9 @@ def _claim_verdict_file(path: Path) -> Path:
         directory = _open_directory_nofollow(path.parent, create=True)
         descriptor = os.open(lock.name, os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW | os.O_NONBLOCK,
                              0o600, dir_fd=directory)
-        if not stat.S_ISREG(os.fstat(descriptor).st_mode):
-            raise OSError("lock is not regular")
+        lock_info = os.fstat(descriptor)
+        if not stat.S_ISREG(lock_info.st_mode) or lock_info.st_nlink != 1:
+            raise OSError("lock is not a singly-linked regular file")
         handle = os.fdopen(descriptor, "r+", encoding="utf-8")
         descriptor = None
         fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -309,12 +310,8 @@ def _claim_verdict_file(path: Path) -> Path:
     _HELD_DIRECTORY_FDS[lock] = directory
     _TARGET_DIRECTORY_FDS[path] = directory
     _TARGET_DIRECTORY_FDS[_meta_path(path)] = directory
-    try:  # informational: who holds it, for a human debugging a refused run
-        handle.truncate(0)
-        handle.write(f"pid={os.getpid()}\n")
-        handle.flush()
-    except OSError:
-        pass
+    # Never write the persistent sidecar: a hard link can be added after the
+    # link-count check, and the kernel lock works without diagnostic file data.
     atexit.register(_release_unfinished_claim, lock)
     # Checked *after* the lock: two runs can both see an empty destination before
     # either holds it, and the loser would then replace the winner's verdicts.

@@ -451,3 +451,64 @@ def test_explicit_authorized_factory_never_falls_back_to_legacy(slot, monkeypatc
     assert alias == "deepseek-flash"
     assert connected.snapshot()["period_identity"] == identity.identity
     assert connected.snapshot()["legacy_history"] == "UNKNOWN"
+
+
+
+def consume_continuation_baseline(budget):
+    for purpose, count in (("dav58_loop", 24), ("dav58_judge", 8)):
+        for _ in range(count):
+            receipt = reserve(budget, purpose)
+            budget.settle(receipt, {"prompt_tokens": 100, "completion_tokens": 20})
+
+
+def test_one_audited_extension_preserves_identity_history_and_global_budget(slot):
+    identity, budget = bound(slot)
+    consume_continuation_baseline(budget)
+    before = budget.snapshot()
+    with sqlite3.connect(budget.path) as db:
+        history = db.execute("SELECT * FROM attempts ORDER BY attempt_id").fetchall()
+    event = budget.extend_dav58_once("explicit user requests one complete real validation")
+    assert (event["before"], event["after"]) == (24, 48)
+    assert event["identity"] == identity.__dict__
+    assert event["usage_before"]["attempts"] == 32
+    assert budget.snapshot() == before
+    assert ModelBudget.bound(identity).continuation() == event
+    with sqlite3.connect(budget.path) as db:
+        assert db.execute("SELECT * FROM attempts ORDER BY attempt_id").fetchall() == history
+    with pytest.raises(period.PeriodError, match="already allocated"):
+        budget.extend_dav58_once("repeat")
+    for _ in range(24):
+        receipt = reserve(budget)
+        budget.settle(receipt, {"prompt_tokens": 100, "completion_tokens": 20})
+    with pytest.raises(BudgetLimitExceeded):
+        reserve(budget)
+    assert budget.snapshot()["attempts"] == 56
+
+
+@pytest.mark.parametrize("failure", ["not_exhausted", "unknown", "pending", "cost", "global", "judge"])
+def test_extension_rejects_incomplete_or_unfunded_plan(slot, failure):
+    _, budget = bound(slot)
+    if failure != "not_exhausted":
+        consume_continuation_baseline(budget)
+        with sqlite3.connect(budget.path) as db:
+            if failure == "unknown": db.execute("UPDATE attempts SET usage_known=0")
+            if failure == "pending": db.execute("UPDATE attempts SET settled=0")
+            if failure == "cost": db.execute("UPDATE budget SET reserved_micro_usd=900000")
+            if failure == "global": db.execute("UPDATE budget SET attempts=40")
+            if failure == "judge": db.execute("UPDATE purposes SET attempts=30 WHERE purpose='dav58_judge'")
+    with pytest.raises(BudgetLimitExceeded):
+        budget.extend_dav58_once("explicit one run")
+    assert budget.continuation() is None
+
+
+@pytest.mark.parametrize("tamper", ["digest", "limit", "delete"])
+def test_extension_audit_or_limit_drift_fails_closed(slot, tamper):
+    identity, budget = bound(slot)
+    consume_continuation_baseline(budget)
+    budget.extend_dav58_once("explicit one run")
+    with sqlite3.connect(budget.path) as db:
+        if tamper == "digest": db.execute("UPDATE dav58_continuation SET sha256=?", ("0" * 64,))
+        if tamper == "limit": db.execute("UPDATE purposes SET attempt_limit=49 WHERE purpose='dav58_loop'")
+        if tamper == "delete": db.execute("DROP TABLE dav58_continuation")
+    with pytest.raises(period.PeriodError):
+        ModelBudget.bound(identity)

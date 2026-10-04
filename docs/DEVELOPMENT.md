@@ -556,3 +556,18 @@ The bounded ID-request grammar accepts “Please give me the specific submission
 while preserving denial, listing and diagnosis checks. Retrieval failure claims
 are matched within comma-delimited clauses so a separate negated failure clause
 does not turn an observed empty search into a claimed failure.
+
+
+The bound budget supports one explicitly authorized DAV-58 continuation after
+the original loop allocation is exhausted. `extend_dav58_once` atomically records
+a UTC authorization event, unchanged identity/base configuration, before/after
+loop limits, baseline counters and a separate effective configuration digest in
+the same SQLite ledger. It adds only 24 loop calls; existing attempts, reservations,
+receipts, the global 78-call ceiling and USD1 ceiling are preserved. Unknown usage,
+pending attempts, insufficient judge/global/cost allowance or a repeated extension
+fail closed. The guarded entry claims this continuation once in the original
+journal, caps its lanes at 24 loop/19 judge calls (including the negative probe),
+and uses an 8000-token input cap with the existing 2000-token output cap. It checks
+the complete conservative plan before any send; the full provider envelope is
+still reserved before every request. A receipt exceeding the continuation input
+cap retains the envelope and stops both lanes. No automatic retries are added.

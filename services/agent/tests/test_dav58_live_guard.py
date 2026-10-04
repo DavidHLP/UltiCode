@@ -204,3 +204,34 @@ def test_concurrent_owner_cannot_resume(tmp_path):
     with pytest.raises(BlockingIOError):
         IncrementalGuard(path, resume_sha256=sha, period_identity='same-identity', config_sha256='same-config')
     guard.close()
+
+
+
+def test_continuation_guard_rejects_over_cap_usage_retains_envelope(tmp_path):
+    guard, loop, judge = models(tmp_path, lambda request: httpx.Response(200, json=receipt(
+        usage={"prompt_tokens": 8001, "completion_tokens": 20, "total_tokens": 8021})))
+    guard.continuation_start = 0
+    async def run():
+        with pytest.raises(ModelBudgetExceeded): await loop.decide([{"role": "user", "content": "case"}])
+        with pytest.raises(ModelBudgetExceeded): await judge.decide([{"role": "user", "content": "probe"}])
+    asyncio.run(run())
+    assert len(guard.state["receipts"]) == 1
+    assert guard.state["pending_micro_usd"] == ENVELOPE_MICRO_USD
+    assert guard.state["halted"] is True
+
+
+def test_continuation_guard_enforces_shared_lane_ceiling_before_send(tmp_path):
+    requests = []
+    def handler(request):
+        requests.append(request)
+        return httpx.Response(200, json=receipt())
+    guard, loop, judge = models(tmp_path, handler)
+    judge._max_calls = 25
+    guard.continuation_start = 0
+    async def run():
+        for _ in range(19): await judge.decide([{"role": "user", "content": "probe"}])
+        with pytest.raises(ModelBudgetExceeded): await judge.decide([{"role": "user", "content": "extra"}])
+        await loop.decide([{"role": "user", "content": "case"}])
+    asyncio.run(run())
+    assert len(requests) == 20
+    assert guard.state["pending_micro_usd"] == 0

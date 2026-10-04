@@ -204,14 +204,16 @@ async def main(expected: PeriodIdentity | None = None) -> int:
     except (ValueError, BudgetLimitExceeded, sqlite3.Error, OSError) as error:
         print(f"FAIL reason=model_not_authorized detail={type(error).__name__}")
         return 1
+    judge_max_calls = min(max_calls, _int("DEEPSEEK_JUDGE_MAX_CALLS", POLICY["lanes"]["dav58_judge"]["attempts"]), POLICY["lanes"]["dav58_judge"]["attempts"])
     timeout = _float("DEEPSEEK_TIMEOUT", 120.0)
     tool_specs = {**TOOL_SPECS, "search_evidence": SEARCH_EVIDENCE_SPEC}
     request_config = {
         "model": model_name,
         "thinking": "disabled",
         "temperature": 0,
-        "max_calls_per_adapter": {name: min(max_calls, POLICY["lanes"][name]["attempts"]) for name in ("dav58_loop", "dav58_judge")},
+        "max_calls_per_adapter": {"dav58_loop": min(max_calls, POLICY["lanes"]["dav58_loop"]["attempts"]), "dav58_judge": judge_max_calls},
         "period": asdict(expected),
+        "continuation_audit": budget.continuation(),
         "purpose_limits": {name: dict(POLICY["lanes"][name]) for name in ("dav58_loop", "dav58_judge")},
         "max_prompt_tokens": max_prompt_tokens,
         "max_completion_tokens": max_tokens,
@@ -258,7 +260,7 @@ async def main(expected: PeriodIdentity | None = None) -> int:
                     os.environ["DEEPSEEK_API_KEY"],
                     tool_specs={},
                     model=model_name,
-                    max_calls=min(max_calls, POLICY["lanes"]["dav58_judge"]["attempts"]),
+                    max_calls=judge_max_calls,
                     timeout=timeout,
                     max_tokens=max_tokens,
                     max_prompt_tokens=max_prompt_tokens,

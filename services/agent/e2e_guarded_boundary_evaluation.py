@@ -9,7 +9,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
 import e2e_boundary_evaluation as runner
 from dav58_live_guard import GuardedTransport, IncrementalGuard
 from deepseek_model import DeepseekModel
-from model_budget import authorized_model, _authorization_slot
+from model_budget import authorized_model, _authorization_slot, worst_case_micro_usd
+from dav58_live_guard import ENVELOPE_MICRO_USD
 
 
 def journal_path(identity):
@@ -29,10 +30,28 @@ async def run(expected, *, resume_sha256=None):
             or snapshot["actual_micro_usd"] != guard.state["settled_peak_micro_usd"]):
         guard.close()
         raise ValueError("canonical ledger and journal disagree")
+    continuation = budget.continuation()
+    if continuation:
+        baseline = continuation["usage_before"]
+        if (resume_sha256 is None or guard.state.get("continuation_run") is not None
+                or snapshot["attempts"] != baseline["attempts"]
+                or snapshot["reserved_micro_usd"] != baseline["reserved_micro_usd"]
+                or snapshot["actual_micro_usd"] != baseline["actual_micro_usd"]
+                or snapshot["committed_micro_usd"] + 43 * worst_case_micro_usd(24000, 2000) > 1_000_000
+                or snapshot["remaining_attempts"] < 43
+                or guard.state["settled_peak_micro_usd"] + 42 * worst_case_micro_usd(8000, 2000) + ENVELOPE_MICRO_USD > 1_000_000):
+            guard.close()
+            raise ValueError("complete continuation plan unavailable or already claimed")
+        guard.continuation_start = len(guard.state["receipts"])
+        guard.state["continuation_run"] = {"audit": continuation, "receipt_start": guard.continuation_start,
+                                           "prompt_cap": 8000, "lane_calls": {"dav58_loop": 24, "dav58_judge": 19}}
+        os.environ["DEEPSEEK_MAX_PROMPT_TOKENS"] = "8000"
+        os.environ["DEEPSEEK_JUDGE_MAX_CALLS"] = "19"
     guard.state["period_identity"] = expected.identity
     guard.state["config_sha256"] = expected.config_sha256
     guard._save()
     agent_root = Path(__file__).resolve().parent
+    provenance["continuation_audit"] = continuation
     provenance["execution_entry"] = "e2e_guarded_boundary_evaluation.py"
     provenance["incremental_journal"] = str(guard.path)
     for relative in ("e2e_guarded_boundary_evaluation.py", "src/dav58_live_guard.py"):

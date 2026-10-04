@@ -104,6 +104,10 @@ class IncrementalGuard:
                     or request.url.path != "/chat/completions"
                     or request.url.query or lane not in {"dav58_loop", "dav58_judge"}):
                 raise ModelBudgetExceeded("unexpected paid route or lane")
+            if hasattr(self, "continuation_start"):
+                used = sum(r["lane"] == lane for r in self.state["receipts"][self.continuation_start:])
+                if used >= {"dav58_loop": 24, "dav58_judge": 19}[lane]:
+                    raise ModelBudgetExceeded("continuation lane allocation exhausted")
             body = json.loads(request.content)
             if (set(body) != {"model", "messages", "temperature", "max_tokens", "thinking"}
                     or body["model"] != "deepseek-flash"
@@ -154,6 +158,8 @@ class IncrementalGuard:
             if (any(type(v) is not int or v < 0 for v in (prompt, completion, total))
                     or total != prompt + completion or prompt > 24000 or completion > 2000):
                 raise ValueError("unusable_or_over_envelope_usage")
+            if hasattr(self, "continuation_start") and prompt > 8000:
+                raise ValueError("continuation_input_cap_exceeded")
             details = usage.get("completion_tokens_details", {})
             if not isinstance(details, dict) or details.get("reasoning_tokens", 0) != 0:
                 raise ValueError("unexpected_reasoning_usage")

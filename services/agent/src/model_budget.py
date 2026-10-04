@@ -9,6 +9,7 @@ import pwd
 import sqlite3
 import stat
 import uuid
+from datetime import datetime, timezone
 from dataclasses import dataclass
 from contextlib import contextmanager
 from typing import Iterator
@@ -128,6 +129,45 @@ def _initialize_tables(connection: sqlite3.Connection) -> None:
     )
 
 
+
+# One explicitly authorized continuation; base policy/identity stay immutable.
+DAV58_CONTINUATION_PLAN = {"dav58_loop": 24, "dav58_judge": 19}
+
+
+def _continuation(db, identity):
+    if not db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='dav58_continuation'").fetchone():
+        return None
+    rows = db.execute("SELECT payload,sha256 FROM dav58_continuation").fetchall()
+    if len(rows) != 1:
+        raise period.PeriodError("invalid continuation audit count")
+    raw, digest = rows[0]
+    event = json.loads(raw)
+    if (hashlib.sha256(raw.encode()).hexdigest() != digest
+            or set(event) != {"schema", "identity", "authorization", "utc", "before", "after", "plan", "usage_before", "effective_config_sha256"}
+            or event["schema"] != "dav58-one-continuation-v1"
+            or event["identity"] != identity.__dict__
+            or event["before"] != 24 or event["after"] != 48
+            or event["plan"] != DAV58_CONTINUATION_PLAN
+            or not isinstance(event["authorization"], str) or not event["authorization"].strip()
+            or not isinstance(event["utc"], str)):
+        raise period.PeriodError("invalid continuation audit")
+    config = {"base_config_sha256": identity.config_sha256, "loop_attempt_limit": 48,
+              "plan": DAV58_CONTINUATION_PLAN, "prompt_cap": 8000, "completion_cap": 2000}
+    if event["effective_config_sha256"] != hashlib.sha256(_json(config).encode()).hexdigest():
+        raise period.PeriodError("continuation configuration drift")
+    usage = event["usage_before"]
+    if (not isinstance(usage, dict) or set(usage) != {"attempts", "reserved_micro_usd", "actual_micro_usd"}
+            or any(type(v) is not int or v < 0 for v in usage.values())):
+        raise period.PeriodError("invalid continuation baseline")
+    try:
+        parsed_utc = datetime.fromisoformat(event["utc"])
+        if parsed_utc.utcoffset() != timezone.utc.utcoffset(parsed_utc):
+            raise ValueError("not UTC")
+    except (ValueError, TypeError):
+        raise period.PeriodError("invalid continuation timestamp") from None
+    return event
+
+
 class ModelBudget:
     """Atomic cross-process request and worst-case cost accounting.
 
@@ -235,9 +275,11 @@ class ModelBudget:
                         raise period.PeriodError("SQL binding identity or gate drift")
                     rows = db.execute("SELECT purpose,attempts,attempt_limit,completion_cap FROM purposes").fetchall()
                     lanes = period.POLICY["lanes"]
+                    continuation = _continuation(db, self._identity)
+                    limits = {name: (48 if continuation and name == "dav58_loop" else lane["attempts"]) for name, lane in lanes.items()}
                     if len(rows) != len(lanes) or any(
-                        name not in lanes or not 0 <= used <= lanes[name]["attempts"]
-                        or (limit, cap) != (lanes[name]["attempts"], lanes[name]["completion_token_cap"])
+                        name not in lanes or not 0 <= used <= limits[name]
+                        or (limit, cap) != (limits[name], lanes[name]["completion_token_cap"])
                         for name, used, limit, cap in rows
                     ):
                         raise period.PeriodError("purpose rows missing or changed")
@@ -269,6 +311,41 @@ class ModelBudget:
                 os.fsync(directory)
             locked.confirm()
         db.commit()
+
+    def extend_dav58_once(self, authorization: str) -> dict:
+        """Atomically audit a single +24 loop allocation, without resetting usage."""
+        if self._identity is None or not isinstance(authorization, str) or not authorization.strip():
+            raise period.PeriodError("explicit continuation authorization required")
+        with self._accounting(exclusive=True) as (db, locked):
+            db.execute("BEGIN IMMEDIATE")
+            if _continuation(db, self._identity) is not None:
+                raise period.PeriodError("continuation already allocated")
+            snapshot = db.execute("SELECT attempts,reserved_micro_usd,actual_micro_usd,halted FROM budget").fetchone()
+            quotas = {name: (used, limit) for name, used, limit in db.execute("SELECT purpose,attempts,attempt_limit FROM purposes")}
+            if (locked.snapshot.state != "active" or db.execute("SELECT gate FROM binding").fetchone()[0] != "active"
+                    or snapshot[3] or quotas["dav58_loop"] != (24, 24)
+                    or quotas["dav58_judge"][1] - quotas["dav58_judge"][0] < 19
+                    or snapshot[0] + 43 > period.POLICY["attempts"]
+                    or snapshot[1] + 43 * worst_case_micro_usd(24000, 2000) > 1_000_000
+                    or db.execute("SELECT count(*) FROM attempts WHERE settled=0 OR usage_known!=1").fetchone()[0]):
+                raise BudgetLimitExceeded("continuation cannot reserve complete plan")
+            config = {"base_config_sha256": self._identity.config_sha256, "loop_attempt_limit": 48,
+                      "plan": DAV58_CONTINUATION_PLAN, "prompt_cap": 8000, "completion_cap": 2000}
+            event = {"schema": "dav58-one-continuation-v1", "identity": self._identity.__dict__,
+                     "authorization": authorization, "utc": datetime.now(timezone.utc).isoformat(),
+                     "before": 24, "after": 48, "plan": DAV58_CONTINUATION_PLAN,
+                     "usage_before": dict(zip(("attempts", "reserved_micro_usd", "actual_micro_usd"), snapshot[:3])),
+                     "effective_config_sha256": hashlib.sha256(_json(config).encode()).hexdigest()}
+            raw = _json(event)
+            db.execute("CREATE TABLE dav58_continuation (singleton INTEGER PRIMARY KEY CHECK(singleton=1),payload TEXT NOT NULL,sha256 TEXT NOT NULL)")
+            db.execute("INSERT INTO dav58_continuation VALUES (1,?,?)", (raw, hashlib.sha256(raw.encode()).hexdigest()))
+            db.execute("UPDATE purposes SET attempt_limit=48 WHERE purpose='dav58_loop'")
+            self._commit(db, locked)
+            return event
+
+    def continuation(self):
+        with self._accounting() as (db, _):
+            return _continuation(db, self._identity) if self._identity else None
 
     def activate(self) -> None:
         if self._identity is None:

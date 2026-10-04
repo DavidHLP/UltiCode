@@ -122,3 +122,72 @@ def test_invalid_configuration_does_not_claim_journal(tmp_path, monkeypatch, mod
     monkeypatch.setenv("DEEPSEEK_API_KEY", key)
     with pytest.raises(ValueError): asyncio.run(entry.run(identity))
     assert not entry.journal_path(identity).exists()
+
+
+def test_audited_continuation_runs_once_preserves_baseline(tmp_path, monkeypatch):
+    from deepseek_model import DeepseekModel
+    from dav58_live_guard import IncrementalGuard
+    import hashlib
+    slot = tmp_path / "slot"
+    slot.mkdir()
+    monkeypatch.setattr(accounting, "_authorization_slot", lambda: slot)
+    monkeypatch.setattr(entry, "_authorization_slot", lambda: slot)
+    identity = period.prepare_period(slot / "period", "offline", accounting.authorized_period_config_sha256()).identity
+    budget = accounting.ModelBudget.bind_prepared(identity)
+    budget.activate()
+    monkeypatch.setenv("ULTICODE_BOUNDARY_EVAL", "1")
+    monkeypatch.setenv("DEEPSEEK_MODEL", "deepseek-flash")
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "dummy")
+    guard = IncrementalGuard(entry.journal_path(identity))
+    guard.state.update(period_identity=identity.identity, config_sha256=identity.config_sha256)
+    def response(content):
+        return httpx.Response(200, json={"model": "deepseek-flash", "usage": {
+            "prompt_tokens": 100, "completion_tokens": 20, "total_tokens": 120},
+            "choices": [{"message": {"content": content}, "finish_reason": "stop"}]})
+    async def baseline():
+        for lane, count in (("dav58_loop", 24), ("dav58_judge", 8)):
+            async with DeepseekModel("dummy", tool_specs={}, model="deepseek-flash", thinking_type="disabled",
+                    max_tokens=2000, max_calls=count, budget=budget, budget_purpose=lane,
+                    transport=GuardedTransport(guard, lane, httpx.MockTransport(lambda r: response('{"answer":"ok"}')))) as model:
+                for _ in range(count): await model.decide([{"role": "user", "content": "baseline"}])
+    asyncio.run(baseline())
+    prior = list(guard.state["receipts"])
+    guard._save()
+    guard.close()
+    monkeypatch.setenv("DEEPSEEK_MAX_PROMPT_TOKENS", "8000")
+    monkeypatch.setenv("DEEPSEEK_JUDGE_MAX_CALLS", "19")
+    event = budget.extend_dav58_once("explicit user one complete validation")
+    script, positions, requests = _all_met_script(), {}, []
+    def transport(guard, lane):
+        def handler(request):
+            requests.append(lane)
+            body = json.loads(request.content)
+            user = body["messages"][1]["content"]
+            if lane == "dav58_judge":
+                content = json.dumps({"answer": json.dumps({"supports": "42" not in user, "derivable": False})})
+            else:
+                marker = next(m for m in script if m in user)
+                index = positions.get(marker, 0)
+                positions[marker] = index + 1
+                decision = script[marker][min(index, len(script[marker]) - 1)]
+                content = json.dumps({"answer": decision.text} if decision.tool_call is None else {
+                    "tool": decision.tool_call.name, "args": decision.tool_call.arguments})
+            return response(content)
+        return GuardedTransport(guard, lane, httpx.MockTransport(handler))
+    monkeypatch.setattr(entry, "GuardedTransport", transport)
+    monkeypatch.setattr(entry.runner, "_repository_provenance", lambda: {"git_sha": "a" * 40, "source_sha256": {"src/boundary_evaluation.py": "b" * 64}, "clean": True})
+    monkeypatch.setattr(entry.runner, "_artifact_path", lambda: tmp_path / "result.json")
+    sha = hashlib.sha256(entry.journal_path(identity).read_bytes()).hexdigest()
+    assert asyncio.run(entry.run(identity, resume_sha256=sha)) == 0
+    journal = json.loads(entry.journal_path(identity).read_text())
+    assert journal["receipts"][:32] == prior
+    assert journal["continuation_run"]["audit"] == event
+    saved = json.loads((tmp_path / "result.json").read_text())
+    assert saved["run"]["configuration"]["max_prompt_tokens"] == 8000
+    assert saved["run"]["configuration"]["max_calls_per_adapter"]["dav58_judge"] == 19
+    assert saved["summary"]["behavior_met"] == 6
+    assert len(requests) == 11
+    sha = hashlib.sha256(entry.journal_path(identity).read_bytes()).hexdigest()
+    with pytest.raises(ValueError, match="already claimed"):
+        asyncio.run(entry.run(identity, resume_sha256=sha))
+    assert len(requests) == 11

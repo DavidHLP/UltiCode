@@ -68,6 +68,12 @@ the deterministic sample slice only. The executable keyword evaluation is versio
 module; authorized-corpus, vector-retrieval, real-model evaluation, and isolation evidence are
 tracked in the U02 Linear tasks.
 
+U02 and later phases must preserve U01's regression coverage for unknown tools, invalid arguments,
+tool failure, timeout, cancellation, and the absence of raw source/error data in captured model
+messages. Do not add write tools until the corresponding DAV-53 isolation and confirmation gates are
+satisfied.
+
+
 ### Corpus override for the acceptance entry point
 
 The corpus-override command and validation contract for

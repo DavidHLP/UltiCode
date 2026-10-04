@@ -533,6 +533,8 @@ Codex 前缀规则只能识别已列出的参数排列，无法覆盖任意脚�
 4. 只补充上述 case 与边界 focused tests；不新增付费 judge、通用评估框架或新 provider，不触及 DB/DAV-53/U03，不更改预算或启用标志。本轮未修改行为代码，也未重新运行模型。
 
 
+拒绝不可用提交源码或伪造来源请求时，生成契约要求 `citations: []`，回答正文也不附引用、链接、来源标识、摘录或来源元数据；即使检索到了有效通用资料也不能把它附到此类拒绝回答。普通证据摘要仍可引用实际检索到且支持结论的片段，原有完整性、支持性和工具轨迹门禁保持生效。
+
 ### DAV-58 local continuation guard
 
 The guarded standalone entry supports explicit continuation with

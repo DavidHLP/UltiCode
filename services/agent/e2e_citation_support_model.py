@@ -277,74 +277,103 @@ def _verdict_lock(path: Path) -> Path:
 
 _HELD_LOCKS: dict[Path, object] = {}
 _HELD_DIRECTORY_FDS: dict[Path, int] = {}
+_CLAIM_LOCK_SETS: dict[Path, tuple[Path, ...]] = {}
 _TARGET_DIRECTORY_FDS: dict[Path, int] = {}
 
 
 def _release_unfinished_claim(lock: Path) -> None:
-    """Drop this run's reservation.
-
-    Closing the descriptor releases the kernel lock, so a crashed run cannot leave
-    the destination unusable: the OS drops it when the process dies. The lock file
-    itself stays on disk — deleting it would let a later run lock a fresh inode while
-    this run still held the old one, which is two writers on one destination.
-    """
-    handle = _HELD_LOCKS.pop(lock, None)
-    if handle is not None:
-        try:
-            handle.close()
-        except OSError:
-            pass
-    directory = _HELD_DIRECTORY_FDS.pop(lock, None)
-    if directory is not None:
+    """Drop every lock and directory descriptor held for this claim."""
+    locks = _CLAIM_LOCK_SETS.pop(lock, (lock,))
+    directories: set[int] = set()
+    for claimed_lock in locks:
+        handle = _HELD_LOCKS.pop(claimed_lock, None)
+        if handle is not None:
+            try:
+                handle.close()
+            except OSError:
+                pass
+        directory = _HELD_DIRECTORY_FDS.pop(claimed_lock, None)
+        if directory is not None:
+            directories.add(directory)
+    for directory in directories:
         for target, fd in list(_TARGET_DIRECTORY_FDS.items()):
             if fd == directory:
                 del _TARGET_DIRECTORY_FDS[target]
-        os.close(directory)
+        try:
+            os.close(directory)
+        except OSError:
+            pass
 
 
 def _claim_verdict_file(path: Path) -> Path:
-    """Reserve the destination before billed calls, without creating the artifact.
+    """Reserve the verdict and metadata destinations before billed calls.
 
-    The reservation is an OS advisory lock on a sidecar file, not the artifact:
-    automation that treats the verdict path's existence as "published" must not see
-    it while the run is still judging. An unusable parent, an occupied destination,
-    or another live run holding the lock is a failure; finding out after the model
-    calls would waste them.
+    Each output owns its own metadata sidecar. Locking both destinations in a
+    canonical order prevents overlapping runs (for example, a.json and its
+    a.json.meta.json sidecar) from both passing preflight.
     """
     lock = _verdict_lock(path)
+    locks = tuple(sorted(
+        (lock, _verdict_lock(_meta_path(path))), key=os.fspath
+    ))
     directory = None
     descriptor = None
     handle = None
+    acquired: dict[Path, object] = {}
+    current_lock = lock
     try:
         directory = _open_directory_nofollow(path.parent, create=True)
-        descriptor = os.open(lock.name, os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW | os.O_NONBLOCK,
-                             0o600, dir_fd=directory)
-        lock_info = os.fstat(descriptor)
-        if not stat.S_ISREG(lock_info.st_mode) or lock_info.st_nlink != 1:
-            raise OSError("lock is not a singly-linked regular file")
-        handle = os.fdopen(descriptor, "r+", encoding="utf-8")
-        descriptor = None
-        fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        for current_lock in locks:
+            descriptor = os.open(
+                current_lock.name,
+                os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW | os.O_NONBLOCK,
+                0o600, dir_fd=directory,
+            )
+            lock_info = os.fstat(descriptor)
+            if not stat.S_ISREG(lock_info.st_mode) or lock_info.st_nlink != 1:
+                raise OSError("lock is not a singly-linked regular file")
+            handle = os.fdopen(descriptor, "r+", encoding="utf-8")
+            descriptor = None
+            fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            acquired[current_lock] = handle
+            handle = None
     except (OSError, ValueError) as error:
         if handle is not None:
-            handle.close()
+            try:
+                handle.close()
+            except OSError:
+                pass
         if descriptor is not None:
-            os.close(descriptor)
+            try:
+                os.close(descriptor)
+            except OSError:
+                pass
+        for acquired_handle in acquired.values():
+            try:
+                acquired_handle.close()
+            except OSError:
+                pass
         if directory is not None:
-            os.close(directory)
+            try:
+                os.close(directory)
+            except OSError:
+                pass
         raise RuntimeError(
-            f"verdict destination is not writable or already claimed: {_path_label(lock)} "
+            f"verdict destination is not writable or already claimed: {_path_label(current_lock)} "
             f"({type(error).__name__})"
         ) from None
-    _HELD_LOCKS[lock] = handle
-    _HELD_DIRECTORY_FDS[lock] = directory
+
+    for claimed_lock, claimed_handle in acquired.items():
+        _HELD_LOCKS[claimed_lock] = claimed_handle
+        _HELD_DIRECTORY_FDS[claimed_lock] = directory
+    _CLAIM_LOCK_SETS[lock] = locks
     _TARGET_DIRECTORY_FDS[path] = directory
     _TARGET_DIRECTORY_FDS[_meta_path(path)] = directory
     # Never write the persistent sidecar: a hard link can be added after the
     # link-count check, and the kernel lock works without diagnostic file data.
     atexit.register(_release_unfinished_claim, lock)
-    # Checked *after* the lock: two runs can both see an empty destination before
-    # either holds it, and the loser would then replace the winner's verdicts.
+    # Checked after both locks: overlapping runs must not both see an empty
+    # artifact namespace before either owns all of its destinations.
     for existing in (path, _meta_path(path)):
         try:
             os.stat(existing.name, dir_fd=directory, follow_symlinks=False)
@@ -412,10 +441,6 @@ def _claim_verdict_file(path: Path) -> Path:
         ) from None
 
     return lock
-
-
-
-
 #: Optional override: point this run at a corpus outside the repository without
 #: editing it. Both halves or neither — see `_corpus_override`.
 CORPUS_DIR_ENV = "ULTICODE_CITATION_CORPUS_DIR"

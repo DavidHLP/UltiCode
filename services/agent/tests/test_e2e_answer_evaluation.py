@@ -131,6 +131,26 @@ def test_a_completed_run_publishes_the_artifact(monkeypatch, capsys, tmp_path) -
     assert len(calls) == 2
 
 
+@pytest.mark.parametrize("max_calls,exit_code,expected_calls", [(2, 1, 0), (5, 1, 0), (6, 0, 6)])
+def test_retry_capacity_is_checked_before_billing(monkeypatch, capsys, tmp_path, max_calls, exit_code, expected_calls):
+    def stall(call_number):
+        if call_number % 3:
+            raise TimeoutError("retryable timeout")
+
+    calls = _install(monkeypatch, on_call=stall)
+    destination = tmp_path / "artifact.json"
+    monkeypatch.setenv("ULTICODE_ANSWER_EVAL_RESULT", str(destination))
+    monkeypatch.setenv("DEEPSEEK_MAX_CALLS", str(max_calls))
+
+    assert e2e.main_sync() == exit_code
+    assert len(calls) == expected_calls
+    assert destination.exists() == (exit_code == 0)
+    if exit_code:
+        assert "reason=call_budget_below_plan cases=1 required=6" in capsys.readouterr().out
+    else:
+        assert json.loads(destination.read_text(encoding="utf-8"))["rows"][0]["model_calls"] == 6
+
+
 def test_an_existing_artifact_is_not_overwritten_before_any_call(
     monkeypatch, capsys, tmp_path
 ) -> None:

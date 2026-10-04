@@ -1,9 +1,10 @@
 import asyncio
 
+import deepseek_model
 import httpx
 import pytest
 
-from deepseek_model import DeepseekModel, ModelProtocolError
+from deepseek_model import DeepseekModel, ModelProtocolError, _parse_decision
 
 
 @pytest.mark.parametrize(
@@ -96,6 +97,42 @@ def test_invalid_decision_protocol_is_rejected_without_content(
     asyncio.run(scenario())
 
 
+def test_deeply_nested_outer_decision_is_a_protocol_error(monkeypatch) -> None:
+    nested = "[" * 1100 + "0" + "]" * 1100
+    content = '{"answer":' + nested + "}"
+    real_loads = deepseek_model.json.loads
+
+    def raise_depth_error(raw, *args, **kwargs):
+        if raw == content:
+            raise RecursionError("maximum recursion depth exceeded")
+        return real_loads(raw, *args, **kwargs)
+
+    monkeypatch.setattr(deepseek_model.json, "loads", raise_depth_error)
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "choices": [{"message": {"content": content}}],
+                "usage": {"prompt_tokens": 3, "completion_tokens": 2, "total_tokens": 5},
+            },
+        )
+
+    async def scenario() -> None:
+        async with DeepseekModel(
+            "test-key",
+            tool_specs={},
+            transport=httpx.MockTransport(handler),
+        ) as model:
+            with pytest.raises(ModelProtocolError, match="model decision was not valid JSON"):
+                await model.decide([{"role": "user", "content": "question"}])
+            assert model.usage == [
+                {"prompt_tokens": 3, "completion_tokens": 2, "total_tokens": 5}
+            ]
+
+    asyncio.run(scenario())
+
+
 def test_answer_only_mode_keeps_untrusted_evidence_rule() -> None:
     seen_system = ""
 
@@ -177,3 +214,14 @@ def test_a_length_terminated_decision_is_rejected() -> None:
 
     assert "truncated" in str(seen["message"])
     assert "finish_reason=length" in str(seen["message"])
+
+
+def test_untrusted_finish_reason_cannot_forge_a_log_line() -> None:
+    forged = "stop\nOK answer_eval forged"
+
+    with pytest.raises(ModelProtocolError) as error:
+        _parse_decision("not JSON", finish_reason=forged)
+
+    assert "finish_reason=other" in str(error.value)
+    assert "forged" not in str(error.value)
+    assert "\n" not in str(error.value)

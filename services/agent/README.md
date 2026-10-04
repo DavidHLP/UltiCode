@@ -48,6 +48,12 @@ owner-reported total, so an account with a long submission history issues one re
 request per page. The smoke scripts emit only fixed status labels and item
 counts. They do not print response bodies, cookie names or values, tokens, submission source,
 usernames, roles, tool names, source text, or model answer content.
+
+### Answer-level evaluation (development split only)
+
+For the answer-evaluation contract, dynamic call-budget calculation, opt-in command and artifact
+behavior, see the canonical [Development and testing guide](../../docs/DEVELOPMENT.md).
+
 ## U02 boundary
 
 U02 is preparing authorized-corpus retrieval and sourced analysis. The checked-in corpus is an
@@ -62,28 +68,14 @@ the deterministic sample slice only. The executable keyword evaluation is versio
 module; authorized-corpus, vector-retrieval, real-model evaluation, and isolation evidence are
 tracked in the U02 Linear tasks.
 
-`data/keyword_cases.json` annotates every case with `required_evidence`, `answerable`,
-`expected_behavior` (`cite`, `no_evidence`, or `refuse`), `allowed_behavior`, and
-`forbidden_behavior`; the loader rejects a case missing any of them. `refuse` marks questions the
-corpus cannot answer, and each one forbids its own specific claim — locating a code line and naming
-a runtime cause are different errors, so they are not collapsed into one rule.
-
-`src/keyword_evaluation.py` records one entry per case: retrieval hit, citation traceability,
-retrieval outcome, expected versus observed behavior, fabrication risk, tool calls, and elapsed
-time. Any hit on a `refuse` case is recorded as a fabrication risk, and a case with no hit is not
-counted as traceable because it has no citation to trace.
-
-Retrieval facts and answer judgements are kept apart on purpose. `citation_support` and
-`answer_completion` are recorded as `DEFERRED`: a traceable source id proves where a fragment came
-from, not that it supports a conclusion, and deciding that needs the model or human pass tracked in
-DAV-58.
-
-`src/retrieval.py` provides bounded keyword retrieval and source metadata. `src/sourced_analysis.py`
-separates observed submission facts from hypotheses and only cites retrieved fragments. Java services
-remain the authority for identity, ownership, publication, and submission facts. The tool projections
-validate scalar types and bounded string lengths before returning data to the model.
-
 U02 and later phases must preserve U01's regression coverage for unknown tools, invalid arguments,
 tool failure, timeout, cancellation, and the absence of raw source/error data in captured model
 messages. Do not add write tools until the corresponding DAV-53 isolation and confirmation gates are
 satisfied.
+
+
+### Corpus override for the acceptance entry point
+
+The corpus-override command and validation contract for
+`e2e_citation_support_model.py` are documented in the canonical
+[Development and testing guide](../../docs/DEVELOPMENT.md).

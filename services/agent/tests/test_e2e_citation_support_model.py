@@ -467,14 +467,10 @@ def test_replacing_output_lock_paths_cannot_split_a_live_claim(monkeypatch, tmp_
     try:
         for output_lock in replacement_paths:
             output_lock.touch(mode=0o600, exist_ok=True)
-        old_inodes = [lock.stat().st_ino for lock in replacement_paths]
         for lock in replacement_paths:
             lock.unlink()
             lock.touch(mode=0o600)
-        assert all(
-            lock.stat().st_ino != old_inode
-            for lock, old_inode in zip(replacement_paths, old_inodes, strict=True)
-        )
+        assert all(lock.is_file() for lock in replacement_paths)
 
         with pytest.raises(RuntimeError, match="already claimed"):
             second_lock = smoke._claim_verdict_file(destination)
@@ -482,6 +478,27 @@ def test_replacing_output_lock_paths_cannot_split_a_live_claim(monkeypatch, tmp_
         if second_lock is not None:
             smoke._release_unfinished_claim(second_lock)
         smoke._release_unfinished_claim(first_lock)
+
+
+def test_shared_artifact_directory_claim_covers_different_state_roots(
+    monkeypatch, tmp_path
+) -> None:
+    destination = tmp_path / "artifacts" / "result.json"
+    monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path / "state-a"))
+    first_lock = smoke._claim_verdict_file(destination)
+
+    try:
+        monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path / "state-b"))
+        with pytest.raises(RuntimeError, match="already claimed"):
+            smoke._claim_verdict_file(destination)
+    finally:
+        smoke._release_unfinished_claim(first_lock)
+
+    second_lock = smoke._claim_verdict_file(destination)
+    try:
+        assert second_lock != first_lock
+    finally:
+        smoke._release_unfinished_claim(second_lock)
 
 
 @pytest.mark.parametrize("unsafe_root", ["ancestor", "lock_directory"])

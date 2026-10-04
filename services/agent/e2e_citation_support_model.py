@@ -303,7 +303,7 @@ def _release_unfinished_claim(lock: Path) -> None:
 
 
 def _claim_verdict_file(path: Path) -> Path:
-    """Reserve the destination before any billed call, without creating it.
+    """Reserve the destination before billed calls, without creating the artifact.
 
     The reservation is an OS advisory lock on a sidecar file, not the artifact:
     automation that treats the verdict path's existence as "published" must not see
@@ -361,6 +361,7 @@ def _claim_verdict_file(path: Path) -> Path:
             f"verdict destination already exists: {_path_label(existing)}"
         )
     probe = f"{path.name}.{secrets.token_hex(16)}.probe"
+    probe_link = f"{probe}.link"
     probe_descriptor = None
     probe_identity = None
     try:
@@ -375,11 +376,26 @@ def _claim_verdict_file(path: Path) -> Path:
         visible = os.stat(probe, dir_fd=directory, follow_symlinks=False)
         if (visible.st_dev, visible.st_ino) != probe_identity:
             raise OSError("artifact probe inode changed")
+        os.link(
+            probe, probe_link, src_dir_fd=directory, dst_dir_fd=directory,
+            follow_symlinks=False,
+        )
+        linked = os.stat(probe_link, dir_fd=directory, follow_symlinks=False)
+        if (linked.st_dev, linked.st_ino) != probe_identity:
+            raise OSError("artifact hard-link probe inode changed")
+        os.unlink(probe_link, dir_fd=directory)
         os.unlink(probe, dir_fd=directory)
     except OSError as error:
         if probe_descriptor is not None:
             try:
                 os.close(probe_descriptor)
+            except OSError:
+                pass
+        if probe_identity is not None:
+            try:
+                linked = os.stat(probe_link, dir_fd=directory, follow_symlinks=False)
+                if (linked.st_dev, linked.st_ino) == probe_identity:
+                    os.unlink(probe_link, dir_fd=directory)
             except OSError:
                 pass
         if probe_identity is not None:
@@ -391,7 +407,7 @@ def _claim_verdict_file(path: Path) -> Path:
                 pass
         _release_unfinished_claim(lock)
         raise RuntimeError(
-            f"verdict destination is not writable: {_path_label(path)} "
+            f"verdict destination cannot be safely published: {_path_label(path)} "
             f"({type(error).__name__})"
         ) from None
 

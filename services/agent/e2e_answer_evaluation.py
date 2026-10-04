@@ -295,7 +295,7 @@ async def main() -> int:
         f"not_applicable={summary['not_applicable']} "
         f"completed={summary['completed']} incomplete={summary['incomplete']} "
         f"behavior_match={summary['behavior_match']} deferred={summary['deferred']} "
-        f"sealed=holdout,holdout2"
+        f"sealed=holdout,holdout2 artifact={_artifact_label(artifact)}"
     )
     return 0
 

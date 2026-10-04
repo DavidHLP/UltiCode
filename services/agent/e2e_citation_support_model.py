@@ -178,6 +178,8 @@ def _publish(target: Path, text: str) -> tuple[int, int]:
     directory, close_directory = _artifact_directory(target)
     temporary = f"{target.name}.{secrets.token_hex(4)}.part"
     created = False
+    descriptor: int | None = None
+    identity: tuple[int, int] | None = None
     try:
         _assert_artifact_directory(target)
         descriptor = os.open(
@@ -185,16 +187,30 @@ def _publish(target: Path, text: str) -> tuple[int, int]:
             0o600, dir_fd=directory,
         )
         created = True
-        with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
-            stream.write(text)
+        info = os.fstat(descriptor)
+        identity = (info.st_dev, info.st_ino)
+        stream = os.fdopen(descriptor, "wb")
+        descriptor = None  # ownership transfers only after fdopen succeeds
+        with stream:
+            stream.write(text.encode("utf-8"))
+            stream.flush()
             info = os.fstat(stream.fileno())
-        os.link(temporary, target.name, src_dir_fd=directory, dst_dir_fd=directory,
-                follow_symlinks=False)
-        return info.st_dev, info.st_ino
+            if (info.st_dev, info.st_ino) != identity:
+                raise OSError("temporary artifact inode changed")
+            os.link(temporary, target.name, src_dir_fd=directory, dst_dir_fd=directory,
+                    follow_symlinks=False)
+            _read_published_artifact(
+                target, text, directory=directory, expected_identity=identity
+            )
+        return identity
     finally:
-        if created:
+        if descriptor is not None:
+            os.close(descriptor)
+        if created and identity is not None:
             try:
-                os.unlink(temporary, dir_fd=directory)
+                info = os.stat(temporary, dir_fd=directory, follow_symlinks=False)
+                if (info.st_dev, info.st_ino) == identity:
+                    os.unlink(temporary, dir_fd=directory)
             except OSError:
                 pass
         if close_directory:
@@ -219,14 +235,25 @@ def _discard_artifacts(owned: dict[Path, tuple[int, int]]) -> None:
                 os.close(directory)
 
 
-def _read_published_artifact(target: Path, expected: str) -> str:
-    """Read back exactly our bounded bytes through the reservation, never its display path."""
-    directory = _TARGET_DIRECTORY_FDS[target]
+def _read_published_artifact(
+    target: Path,
+    expected: str,
+    *,
+    directory: int | None = None,
+    expected_identity: tuple[int, int] | None = None,
+) -> str:
+    """Read back exact bytes and verify the path still names the opened inode."""
+    if directory is None:
+        directory = _TARGET_DIRECTORY_FDS[target]
     descriptor = os.open(target.name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK,
                          dir_fd=directory)
     try:
-        if not stat.S_ISREG(os.fstat(descriptor).st_mode):
+        opened = os.fstat(descriptor)
+        identity = (opened.st_dev, opened.st_ino)
+        if not stat.S_ISREG(opened.st_mode):
             raise OSError("published artifact is not regular")
+        if expected_identity is not None and identity != expected_identity:
+            raise OSError("published artifact inode changed")
         stream = os.fdopen(descriptor, "rb")
         descriptor = None  # ownership transfers only after fdopen succeeds
         with stream:
@@ -234,6 +261,9 @@ def _read_published_artifact(target: Path, expected: str) -> str:
             payload = stream.read(len(expected_bytes) + 1)
             if payload != expected_bytes:
                 raise OSError("published artifact changed")
+            named = os.stat(target.name, dir_fd=directory, follow_symlinks=False)
+            if not stat.S_ISREG(named.st_mode) or (named.st_dev, named.st_ino) != identity:
+                raise OSError("published artifact inode changed")
             return payload.decode("utf-8")
     finally:
         if descriptor is not None:
@@ -867,12 +897,19 @@ async def main() -> int:
             max_prompt_tokens=max_prompt_tokens,
         ) as model:
             try:
-                for item in rows:
-                    data = json.dumps(
+                prompts = tuple(
+                    f"{JUDGE_CONTRACT}\nINPUT_JSON "
+                    + json.dumps(
                         {"CLAIM": item.claim, "QUOTE": item.quote, "SUBMISSION_FACTS": facts},
                         ensure_ascii=True,
                     )
-                    prompt = f"{JUDGE_CONTRACT}\nINPUT_JSON {data}"
+                    for item in rows
+                )
+                # Check every row before the first billed call so a late oversized
+                # citation cannot leave a partially judged, charged run.
+                for prompt in prompts:
+                    model.check_prompt_budget([{"role": "user", "content": prompt}])
+                for item, prompt in zip(rows, prompts):
                     decision = await model.decide([{"role": "user", "content": prompt}])
                     calls += 1
                     supports, derivable = _judgements(decision.text)

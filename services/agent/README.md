@@ -51,39 +51,8 @@ usernames, roles, tool names, source text, or model answer content.
 
 ### Answer-level evaluation (development split only)
 
-`src/keyword_evaluation.py` measures retrieval only, so it records `citation_support` and
-`answer_completion` as `DEFERRED` and `observed_behavior` as `not_measured` — a traceable
-source id says where a fragment came from, not that it supports a conclusion. The answer-level
-columns come from `src/answer_evaluation.py`, which adds an answer pass and a judging pass on
-top of the same pinned keyword retrieval. The answer pass sees only the question and retrieved
-fragments; expected/allowed/forbidden outcomes are withheld until judging. It returns explicit
-retrieved chunk IDs as citations, and the judge/artifact use only those IDs, not every retrieval hit.
-
-```bash
-ULTICODE_ANSWER_EVAL=1 DEEPSEEK_MODEL=<model> DEEPSEEK_MAX_CALLS=120 \
-  uv run python e2e_answer_evaluation.py
-```
-
-Scope is enforced by the evaluator, not by the caller: it raises on any case outside
-`development`, so `holdout` and `holdout2` stay sealed. The answer response must include `text`
-and a `citations` array containing unique IDs from that case's retrieved fragments; empty citations
-are valid when the answer cites nothing. An empty citation list records `citation_support` as
-`not_applicable` rather than as a failed check. The run writes a run-scoped artifact under the
-state directory carrying `scope=development_only`, `sealed_splits`, `judge=model`,
-`human_review=not_performed` and every row — this is machine evidence, not human review.
-
-Budget: two logical passes per case (answer, then judge), with up to three attempts per pass. The
-checked-in development split currently contains 20 cases, so worst-case retry capacity requires 120
-calls; the command above sets that ceiling explicitly. The default remains 64, and a lower ceiling
-fails before the first provider call. Recalculate the explicit ceiling if the case count changes.
-A transport error or timeout is retried per call, not per batch, and each retried attempt is billed,
-so each row records attempts actually made in `model_calls` rather than a fixed two. A protocol failure
-is not retried because the same input yields the
-same shape. The destination artifact is reserved before the first billed call, an existing
-artifact is never overwritten: complete bytes are published through a no-clobber hard link. The corpus
-and case file are snapshotted once before the calls so the artifact identifies the material actually judged.
-Tune `DEEPSEEK_TIMEOUT` (seconds, default 120) for a reasoning model that can exceed the
-adapter's 30s default on one response.
+For the answer-evaluation contract, dynamic call-budget calculation, opt-in command and artifact
+behavior, see the canonical [Development and testing guide](../../docs/DEVELOPMENT.md).
 
 ## U02 boundary
 

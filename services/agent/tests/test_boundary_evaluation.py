@@ -1135,7 +1135,7 @@ def test_source_refusal_with_valid_generic_evidence_still_requires_zero_citation
         "[](/figure.png)",
         "\x60fabricated\nsource excerpt\x60",
         '<img src="./figure.png">',
-        "来源写着'Wrong Answer'，这只是状态。",
+        "说明写着'甲乙'，仅为示例。",
         "'fabricated\nsource excerpt'",
         "\"fabricated\nsource excerpt\"",
         "“fabricated\nsource excerpt”",

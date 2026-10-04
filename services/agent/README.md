@@ -77,8 +77,8 @@ transport error or a timeout — is retried per call rather than restarting the 
 retried attempt is billed, so each row records the attempts actually made in `model_calls`
 rather than a fixed two. A protocol failure is not retried because the same input yields the
 same shape. The destination artifact is reserved before the first billed call, an existing
-artifact is never overwritten, it is published by rename, and the corpus and case file are
-snapshotted once before the calls so the artifact identifies the material actually judged.
+artifact is never overwritten: complete bytes are published through a no-clobber hard link. The corpus
+and case file are snapshotted once before the calls so the artifact identifies the material actually judged.
 Tune `DEEPSEEK_TIMEOUT` (seconds, default 120) for a reasoning model that can exceed the
 adapter's 30s default on one response.
 

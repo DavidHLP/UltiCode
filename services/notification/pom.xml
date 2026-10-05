@@ -14,7 +14,7 @@
         <!-- Authoritative release version of this owner service; bump independently
              to release it without touching other services. Cross-service test
              dependencies resolve the default copy in the root pom. -->
-        <service.version.notification>1.0.0</service.version.notification>
+        <service.version.notification>1.0.1</service.version.notification>
     </properties>
     <artifactId>backend-notification</artifactId>
     <version>${service.version.notification}</version>

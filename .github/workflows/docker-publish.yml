@@ -1,7 +1,5 @@
-# Publishes one image per deployable service on every main push.
-# The service list lives in .github/services-matrix.json, shared with the
-# _docker.yml CI verification so a service can never be publishable but
-# unverifiable (or vice versa). Adding a service means adding one JSON entry.
+# Build, scan, and attest digest-only candidates; promote release tags only after
+# every service candidate in this source revision has passed verification.
 name: Docker Publish
 
 on:
@@ -9,14 +7,15 @@ on:
     branches: [main]
 
 concurrency:
-  group: docker-publish
-  cancel-in-progress: true
+  group: ulticode-release-tag-writer
+  cancel-in-progress: false
 
 permissions:
   contents: read
   packages: write
   id-token: write
   attestations: write
+
 
 env:
   REGISTRY: ghcr.io
@@ -31,16 +30,15 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
       - name: Read services matrix
         id: m
         run: |
-          jq -e 'type == "array" and length > 0' .github/services-matrix.json > /dev/null \
-            || { echo "::error::.github/services-matrix.json must be a non-empty array"; exit 1; }
+          jq -e 'type == "array" and length == 9' .github/services-matrix.json > /dev/null \
+            || { echo "::error::.github/services-matrix.json must contain exactly nine services"; exit 1; }
           echo "matrix=$(jq -c . .github/services-matrix.json)" >> "$GITHUB_OUTPUT"
 
   build-and-push:
-    name: Build & Push (${{ matrix.service.name }})
+    name: Build & Verify Candidate (${{ matrix.service.name }})
     needs: load-matrix
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -51,62 +49,42 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
-
       - name: Resolve service release version
         id: svcver
+        env:
+          PROP: ${{ matrix.service.maven_version_property }}
         run: |
-          # Per-service Maven release version (services/pom.xml service.version.*)
-          PROP="${{ matrix.service.maven_version_property }}"
+          set -euo pipefail
           VERSION=""
           if [ -n "$PROP" ]; then
-            VERSION="$(awk -v prop="$PROP" '
-              $0 ~ "<" prop ">" {
-                value = $0
-                sub(".*<" prop ">", "", value)
-                sub("</" prop ">.*", "", value)
-                print value
-                exit
-              }
-            ' services/pom.xml)"
-            if [ -z "$VERSION" ]; then
-              echo "::error::Property <$PROP> not found in services/pom.xml"
-              exit 1
-            fi
+            VERSION="$(awk -v prop="$PROP" '$0 ~ "<" prop ">" { value=$0; sub(".*<" prop ">", "", value); sub("</" prop ">.*", "", value); print value; exit }' services/pom.xml)"
+            [ -n "$VERSION" ] || { echo "::error::Property <$PROP> not found"; exit 1; }
           fi
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "Service version: ${VERSION:-<none (non-Maven image)>}"
-
       - name: Log in to GHCR
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Normalize image repository
         id: normalize
         run: echo "image_name=${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
-
-      - name: Extract metadata (tags, labels)
+      - name: Extract image labels
         id: meta
         uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6
         with:
           images: ${{ env.REGISTRY }}/${{ steps.normalize.outputs.image_name }}/${{ matrix.service.name }}
-          tags: |
-            type=sha
-            type=raw,value=v${{ steps.svcver.outputs.version }},enable=${{ steps.svcver.outputs.version != '' }}
-
-      - name: Build and push Docker image
+          flavor: latest=false
+      - name: Build and push digest-only candidate
         id: build
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:
           context: .
           file: ${{ matrix.service.dockerfile }}
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
+          outputs: type=image,name=${{ env.REGISTRY }}/${{ steps.normalize.outputs.image_name }}/${{ matrix.service.name }},push-by-digest=true,name-canonical=true,push=true
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             SERVICE_MODULE=${{ matrix.service.module }}
@@ -120,15 +98,9 @@ jobs:
           provenance: mode=max
           cache-from: type=gha,scope=publish-${{ matrix.service.name }}
           cache-to: type=gha,mode=max,scope=publish-${{ matrix.service.name }},ignore-error=true
-
-      - name: Install Cosign
-        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
-        with:
-          cosign-release: v2.5.3
-
-      - name: Scan pushed image
+      - name: Scan pushed candidate
         id: scan
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0 (Trivy v0.74.0)
         with:
           image-ref: ${{ env.REGISTRY }}/${{ steps.normalize.outputs.image_name }}/${{ matrix.service.name }}@${{ steps.build.outputs.digest }}
           format: json
@@ -138,8 +110,7 @@ jobs:
           vuln-type: os,library
           severity: HIGH,CRITICAL
           version: v0.74.0
-
-      - name: Upload image scan report
+      - name: Upload candidate scan report
         if: ${{ always() && steps.scan.outcome != 'skipped' && steps.scan.outcome != '' }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
@@ -147,68 +118,93 @@ jobs:
           path: ${{ runner.temp }}/${{ matrix.service.name }}.trivy.json
           if-no-files-found: warn
           retention-days: 30
-
-      - name: Sign image and attest SBOM/provenance
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+        with:
+          cosign-release: v2.5.3
+      - name: Sign candidate and attest SBOM/provenance
         env:
           IMAGE_REF: ${{ env.REGISTRY }}/${{ steps.normalize.outputs.image_name }}/${{ matrix.service.name }}@${{ steps.build.outputs.digest }}
+          SERVICE: ${{ matrix.service.name }}
+          SOURCE_SHA: ${{ github.sha }}
+          VERSION: ${{ steps.svcver.outputs.version }}
           SIGNER_IDENTITY: https://github.com/${{ github.repository }}/.github/workflows/docker-publish.yml@refs/heads/main
           SIGNER_ISSUER: https://token.actions.githubusercontent.com
           SBOM_PATH: ${{ runner.temp }}/${{ matrix.service.name }}.spdx.json
           PROVENANCE_PATH: ${{ runner.temp }}/${{ matrix.service.name }}.provenance.json
         run: |
           set -euo pipefail
-          [[ "$IMAGE_REF" =~ @sha256:[0-9a-f]{64}$ ]] || {
-            echo "::error::Build did not emit an immutable image digest"
-            exit 1
-          }
+          [[ "$IMAGE_REF" =~ @sha256:[0-9a-f]{64}$ ]] || { echo "::error::Build did not emit immutable digest"; exit 1; }
           trivy image --format spdx-json --output "$SBOM_PATH" "$IMAGE_REF"
           jq -e . "$SBOM_PATH" >/dev/null
-          jq -n \
-            --arg subject "$IMAGE_REF" \
-            --arg source "https://github.com/${{ github.repository }}@${{ github.sha }}" \
-            --arg workflow "${{ github.workflow_ref }}" \
-            '{buildType:"https://slsa.dev/provenance/v1", builder:{id:$workflow}, invocation:{configSource:{uri:$source}}, subject:[{name:$subject,digest:{sha256:($subject|split("@sha256:")[1])}}]}' \
-            > "$PROVENANCE_PATH"
+          jq -n --arg source "https://github.com/${{ github.repository }}@${{ github.sha }}" --arg workflow "${{ github.workflow_ref }}" \
+            '{buildType:"https://slsa.dev/provenance/v1", builder:{id:$workflow}, invocation:{configSource:{uri:$source}}}' > "$PROVENANCE_PATH"
           cosign sign --yes "$IMAGE_REF"
           cosign attest --yes --type spdxjson --predicate "$SBOM_PATH" "$IMAGE_REF"
           cosign attest --yes --type slsaprovenance --predicate "$PROVENANCE_PATH" "$IMAGE_REF"
-          cosign verify \
-            --certificate-identity "$SIGNER_IDENTITY" \
-            --certificate-oidc-issuer "$SIGNER_ISSUER" \
-            "$IMAGE_REF" >/dev/null
-          cosign verify-attestation \
-            --type spdxjson \
-            --certificate-identity "$SIGNER_IDENTITY" \
-            --certificate-oidc-issuer "$SIGNER_ISSUER" \
-            "$IMAGE_REF" >/dev/null
-          cosign verify-attestation \
-            --type slsaprovenance \
-            --certificate-identity "$SIGNER_IDENTITY" \
-            --certificate-oidc-issuer "$SIGNER_ISSUER" \
-            "$IMAGE_REF" >/dev/null
-
-      - name: Publish immutable release manifest
+          cosign verify --certificate-identity "$SIGNER_IDENTITY" --certificate-oidc-issuer "$SIGNER_ISSUER" "$IMAGE_REF" >/dev/null
+          cosign verify-attestation --type spdxjson --certificate-identity "$SIGNER_IDENTITY" --certificate-oidc-issuer "$SIGNER_ISSUER" "$IMAGE_REF" >/dev/null
+          cosign verify-attestation --type slsaprovenance --certificate-identity "$SIGNER_IDENTITY" --certificate-oidc-issuer "$SIGNER_ISSUER" "$IMAGE_REF" >/dev/null
+      - name: Assemble candidate evidence
         env:
-          SERVICE: ${{ matrix.service.name }}
           IMAGE_REF: ${{ env.REGISTRY }}/${{ steps.normalize.outputs.image_name }}/${{ matrix.service.name }}@${{ steps.build.outputs.digest }}
+          SERVICE: ${{ matrix.service.name }}
+          VERSION: ${{ steps.svcver.outputs.version }}
+          SOURCE_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
-          [[ "$IMAGE_REF" =~ @sha256:[0-9a-f]{64}$ ]] || exit 1
-          manifest_dir="$RUNNER_TEMP/supply-chain"
-          mkdir -p "$manifest_dir"
-          variable="${SERVICE^^}_IMAGE_REF"
-          variable="${variable//-/_}"
-          printf '%s=%s\n' "$variable" "$IMAGE_REF" > "$manifest_dir/${SERVICE}.image-ref"
-          cp "$RUNNER_TEMP/${SERVICE}.spdx.json" "$manifest_dir/${SERVICE}.spdx.json"
-          cp "$RUNNER_TEMP/${SERVICE}.provenance.json" "$manifest_dir/${SERVICE}.provenance.json"
-          cp "$RUNNER_TEMP/${SERVICE}.trivy.json" "$manifest_dir/${SERVICE}.trivy.json"
-          jq -n --arg service "$SERVICE" --arg image "$IMAGE_REF" \
-            '{service:$service,image_ref:$image}' > "$manifest_dir/${SERVICE}.release.json"
-
-      - name: Upload immutable release evidence
+          out="$RUNNER_TEMP/candidate-evidence-$SERVICE"
+          mkdir -p "$out"
+          variable="${SERVICE^^}"; variable="${variable//-/_}"
+          printf '%s_IMAGE_REF=%s\n' "$variable" "$IMAGE_REF" > "$out/$SERVICE.image-ref"
+          cp "$RUNNER_TEMP/$SERVICE.spdx.json" "$out/$SERVICE.spdx.json"
+          cp "$RUNNER_TEMP/$SERVICE.provenance.json" "$out/$SERVICE.provenance.json"
+          cp "$RUNNER_TEMP/$SERVICE.trivy.json" "$out/$SERVICE.trivy.json"
+          printf '%s\n' "$VERSION" > "$out/$SERVICE.version"
+          printf '%s\n' "$SOURCE_SHA" > "$out/$SERVICE.source-commit"
+          jq -n --arg service "$SERVICE" --arg image "$IMAGE_REF" '{service:$service,image_ref:$image}' > "$out/$SERVICE.release.json"
+      - name: Upload candidate evidence
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: supply-chain-${{ matrix.service.name }}
-          path: ${{ runner.temp }}/supply-chain/
+          name: candidate-evidence-${{ matrix.service.name }}
+          path: ${{ runner.temp }}/candidate-evidence-${{ matrix.service.name }}/
           if-no-files-found: error
           retention-days: 30
+
+  promote:
+    name: Validate and Promote Complete Release
+    needs: [load-matrix, build-and-push]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Download this run's candidate evidence
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          pattern: candidate-evidence-*
+          path: ${{ runner.temp }}/candidate-evidence
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+        with:
+          cosign-release: v2.5.3
+      - name: Log in to GHCR
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Validate candidates and promote release tags
+        run: scripts/runbooks/promote-release.sh "$RUNNER_TEMP/candidate-evidence" "${GITHUB_SHA}" ghcr.io/davidhlp/ulticode --execute
+      - name: Upload complete release manifest and evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: release-manifest
+          path: |
+            ${{ runner.temp }}/candidate-evidence/release-manifest.txt
+            ${{ runner.temp }}/candidate-evidence/release-set.json
+            ${{ runner.temp }}/candidate-evidence/candidate-evidence-*/
+          if-no-files-found: error
+          retention-days: 90

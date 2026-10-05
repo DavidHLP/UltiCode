@@ -48,12 +48,15 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
 
-      - name: Build Docker image (no push)
+      - name: Build Docker image locally (no push)
+        id: build
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:
           context: .
           file: ${{ matrix.service.dockerfile }}
           push: false
+          load: true
+          tags: local/ulticode-${{ matrix.service.name }}:${{ github.sha }}
           build-args: |
             SERVICE_MODULE=${{ matrix.service.module }}
             SERVICE_ARTIFACT=${{ matrix.service.artifact }}
@@ -63,3 +66,27 @@ jobs:
             SERVICE_HEALTHCHECK=${{ matrix.service.healthcheck || true }}
           cache-from: type=gha,scope=verify-${{ matrix.service.name }}
           cache-to: type=gha,mode=max,scope=verify-${{ matrix.service.name }},ignore-error=true
+
+      - name: Scan local image
+        id: scan
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0 (Trivy v0.74.0)
+        env:
+          TRIVY_IMAGE_SRC: docker
+        with:
+          image-ref: local/ulticode-${{ matrix.service.name }}:${{ github.sha }}
+          format: json
+          output: ${{ runner.temp }}/${{ matrix.service.name }}.trivy.json
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: os,library
+          severity: HIGH,CRITICAL
+          version: v0.74.0
+
+      - name: Upload local Trivy report
+        if: ${{ always() && steps.scan.outcome != 'skipped' && steps.scan.outcome != '' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: trivy-verify-${{ matrix.service.name }}
+          path: ${{ runner.temp }}/${{ matrix.service.name }}.trivy.json
+          if-no-files-found: warn
+          retention-days: 30

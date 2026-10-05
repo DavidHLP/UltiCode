@@ -15,7 +15,7 @@
         <!-- Authoritative release version of this owner service; bump independently
              to release it without touching other services. Cross-service test
              dependencies resolve the default copy in the root pom. -->
-        <service.version.submission>1.0.0</service.version.submission>
+        <service.version.submission>1.0.1</service.version.submission>
 	</properties>
 
     <artifactId>backend-submission</artifactId>

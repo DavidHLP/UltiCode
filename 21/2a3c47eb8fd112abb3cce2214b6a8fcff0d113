@@ -1,0 +1,19 @@
+pnpm-lock.yaml
+  s_3602fa48cb9bd2::t_ad3544fa234b3e 17,51-53,148-149,289-291,386-387,537-542,614-615,1678-1682,4311-4312,6916-6923,6969,7307-7311,9659
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "212a3c47eb8fd112abb3cce2214b6a8fcff0d113",
+  "prompts": {},
+  "sessions": {
+    "s_3602fa48cb9bd2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "771ce81c-9f6f-4b0c-a21c-2b784a5d57d3",
+        "model": "deepseek-v4.1-flash"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

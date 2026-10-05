@@ -14,6 +14,7 @@ overrides:
   linkify-it: ^6.0.0
   nanoid: ^3.3.18
   postcss: ^8.5.18
+  katex: 0.18.9
 
 importers:
 
@@ -47,6 +48,9 @@ importers:
       '@internationalized/date':
         specifier: ^3.12.4
         version: 3.12.4
+      '@lucide/vue':
+        specifier: 1.50.0
+        version: 1.50.0(vue@3.5.43(typescript@6.0.3))
       '@monaco-editor/loader':
         specifier: ^1.7.0
         version: 1.7.0
@@ -141,11 +145,8 @@ importers:
         specifier: ^8.0.3
         version: 8.0.3
       katex:
-        specifier: ^0.18.9
-        version: 0.18.11
-      lucide-vue-next:
-        specifier: ^1.0.0
-        version: 1.0.0(vue@3.5.43(typescript@6.0.3))
+        specifier: 0.18.9
+        version: 0.18.9
       monaco-editor:
         specifier: ^0.57.0
         version: 0.57.0
@@ -285,6 +286,9 @@ importers:
       '@internationalized/date':
         specifier: ^3.12.4
         version: 3.12.4
+      '@lucide/vue':
+        specifier: 1.50.0
+        version: 1.50.0(vue@3.5.43(typescript@6.0.3))
       '@tabler/icons-vue':
         specifier: ^3.48.0
         version: 3.48.0(vue@3.5.43(typescript@6.0.3))
@@ -379,11 +383,8 @@ importers:
         specifier: ^11.12.0
         version: 11.12.0
       katex:
-        specifier: ^0.18.9
-        version: 0.18.11
-      lucide-vue-next:
-        specifier: ^1.0.0
-        version: 1.0.0(vue@3.5.43(typescript@6.0.3))
+        specifier: 0.18.9
+        version: 0.18.9
       pinia:
         specifier: ^4.0.3
         version: 4.0.3(@vue/devtools-api@8.2.1)(typescript@6.0.3)(vue@3.5.43(typescript@6.0.3))
@@ -533,12 +534,15 @@ importers:
 
   packages/auth-ui:
     dependencies:
+      '@lucide/vue':
+        specifier: 1.50.0
+        version: 1.50.0(vue@3.5.43(typescript@5.9.3))
+      '@tabler/icons-vue':
+        specifier: ^3.46.0
+        version: 3.48.0(vue@3.5.43(typescript@5.9.3))
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
-      lucide-vue-next:
-        specifier: ^0.552.0
-        version: 0.552.0(vue@3.5.43(typescript@5.9.3))
       tailwind-merge:
         specifier: ^3.7.0
         version: 3.7.0
@@ -607,8 +611,8 @@ importers:
         specifier: ^2.1.1
         version: 2.1.1
       katex:
-        specifier: ^0.18.9
-        version: 0.18.11
+        specifier: 0.18.9
+        version: 0.18.9
       reka-ui:
         specifier: ^2.9.0
         version: 2.10.4(vue@3.5.43(typescript@5.9.3))
@@ -1670,6 +1674,11 @@ packages:
 
   '@letta-ai/letta-client@1.12.1':
     resolution: {integrity: sha512-rYjXMXpkfssj7VBBX3qCp6mdpNRv6YPNrliYsjkhWoQDqGg3J9bsgIQ28ZhQTddabYxRUIwcdzuaizFx8pvZ7A==}
+
+  '@lucide/vue@1.50.0':
+    resolution: {integrity: sha512-/cYAYqHIMUcVbhGYPk+GqgPqlqTKCFfyGrpXvH/6z5v7sWRoWBHViYwO3cNgmupZCBY+4WB016wN6CkXNcy0Yw==}
+    peerDependencies:
+      vue: '>=3.0.1'
 
   '@mapbox/jsonlint-lines-primitives@2.0.3':
     resolution: {integrity: sha512-0SElaV0uMxEnxzBhhX9WTuPyUeMsAN/SS0i16tjuba4/mio63MG9khjC1a0JAiPGXAwvwm4UfHJURCN7nyudQg==}
@@ -4299,9 +4308,8 @@ packages:
     resolution: {integrity: sha512-p/nXbhSEcu3pZRdkW1OfJhpsVtW1gd4Wa1fnQc9YLiTfAjn0312eMKimbdIQzuZl9aa9xUGaRlP9T/CJE/ditQ==}
     engines: {node: '>=0.10.0'}
 
-  katex@0.18.11:
-    resolution: {integrity: sha512-yvyz/2VMKqoho/35Hat5w37wIEdWJ5ElVMidTAlWrxr5uW4aBGsEpveTmKh18/zw08v/7lGswCPon4OhqmqrTA==}
-    deprecated: Accidentally published with breaking changes. Use 0.19.0 instead.
+  katex@0.18.9:
+    resolution: {integrity: sha512-8ad9RyoKsb/g8/yLFE+KAlP+DhbCTRUNi/V9XGsxn0R+trJJltNwzcDNo0q/DEkOy5fQUQTAQyCXCYSE+OakTQ==}
     hasBin: true
 
   kdbush@3.0.0:
@@ -4509,18 +4517,6 @@ packages:
 
   lru-cache@5.1.1:
     resolution: {integrity: sha512-KpNARQA3Iwv+jTA0utUVVbrh+Jlrr1Fv0e56GGzAFOXN7dk/FviaDW8LHmK52DlcH4WP2n6gI8vN1aesBFgo9w==}
-
-  lucide-vue-next@0.552.0:
-    resolution: {integrity: sha512-xbP3UBwNkGoCl1ezW/zsGHtyJ1rOowPmSpUG1f7V38YvZBlGiV3BxL+4mu9C9i0EjfJ6ca066FpnB3VK+HN92g==}
-    deprecated: Package deprecated. Please use @lucide/vue instead.
-    peerDependencies:
-      vue: '>=3.0.1'
-
-  lucide-vue-next@1.0.0:
-    resolution: {integrity: sha512-V6SPvx1IHTj/UY+FrIYWV5faISsPSb8BnWSFDxAtezWKvWc9ZZ40PDrdu1/Qb5vg4lHWr1hs1BAMGVGm6V1Xdg==}
-    deprecated: Package deprecated. Please use @lucide/vue instead.
-    peerDependencies:
-      vue: '>=3.0.1'
 
   magic-string-ast@1.0.3:
     resolution: {integrity: sha512-CvkkH1i81zl7mmb94DsRiFeG9V2fR2JeuK8yDgS8oiZSFa++wWLEgZ5ufEOyLHbvSbD1gTRKv9NdX69Rnvr9JA==}
@@ -6917,6 +6913,14 @@ snapshots:
 
   '@letta-ai/letta-client@1.12.1': {}
 
+  '@lucide/vue@1.50.0(vue@3.5.43(typescript@5.9.3))':
+    dependencies:
+      vue: 3.5.43(typescript@5.9.3)
+
+  '@lucide/vue@1.50.0(vue@3.5.43(typescript@6.0.3))':
+    dependencies:
+      vue: 3.5.43(typescript@6.0.3)
+
   '@mapbox/jsonlint-lines-primitives@2.0.3': {}
 
   '@mapbox/point-geometry@1.1.0': {}
@@ -6962,7 +6966,7 @@ snapshots:
     dependencies:
       '@mdit/helper': 1.1.2(markdown-it@15.0.2)
       '@mdit/plugin-tex': 1.1.2(markdown-it@15.0.2)
-      katex: 0.18.11
+      katex: 0.18.9
     optionalDependencies:
       markdown-it: 15.0.2
 
@@ -7299,6 +7303,11 @@ snapshots:
   '@swc/helpers@0.5.23':
     dependencies:
       tslib: 2.8.1
+
+  '@tabler/icons-vue@3.48.0(vue@3.5.43(typescript@5.9.3))':
+    dependencies:
+      '@tabler/icons': 3.48.0
+      vue: 3.5.43(typescript@5.9.3)
 
   '@tabler/icons-vue@3.48.0(vue@3.5.43(typescript@6.0.3))':
     dependencies:
@@ -9647,7 +9656,7 @@ snapshots:
 
   jsonpointer@5.0.1: {}
 
-  katex@0.18.11:
+  katex@0.18.9:
     dependencies:
       commander: 15.0.0
 
@@ -9811,14 +9820,6 @@ snapshots:
   lru-cache@5.1.1:
     dependencies:
       yallist: 3.1.1
-
-  lucide-vue-next@0.552.0(vue@3.5.43(typescript@5.9.3)):
-    dependencies:
-      vue: 3.5.43(typescript@5.9.3)
-
-  lucide-vue-next@1.0.0(vue@3.5.43(typescript@6.0.3)):
-    dependencies:
-      vue: 3.5.43(typescript@6.0.3)
 
   magic-string-ast@1.0.3:
     dependencies:

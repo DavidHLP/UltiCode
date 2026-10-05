@@ -1,0 +1,397 @@
+apps/console/src/views/contest/ContestRankingsView.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 4
+apps/console/src/views/personal/ProblemListsView.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 18
+apps/console/src/views/problems/components/ContestProblemShell.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 27
+apps/management/src/components/ui/breadcrumb/BreadcrumbEllipsis.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 3
+apps/console/src/components/search/GlobalSearch.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 8
+apps/console/src/views/contest/ContestHomeView.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 3
+apps/console/src/components/problem/components/ProblemFilterPanel.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 15
+apps/console/src/components/ui/accordion/AccordionTrigger.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 5
+apps/console/src/views/contest/components/ContestCard.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 12
+apps/console/src/components/edge-operations/ProblemSaveButton.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 10
+apps/console/src/views/users/UserProfileView.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 23
+apps/console/src/components/bookmark/CreateFolderDialog.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 15
+apps/console/src/components/common/data-table/DataTable.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 11
+apps/console/src/components/ui/calendar/CalendarPrevButton.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 5
+apps/console/src/components/ui/select/SelectScrollUpButton.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 5
+apps/console/src/components/search/SearchBar.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 11
+apps/console/vite.config.ts
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 99,105-106,174
+apps/console/src/constants/problem-categories.ts
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 1
+apps/console/src/components/problem/__tests__/ProblemListDrawer.spec.ts
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 27-28
+apps/management/src/components/ui/dropdown-menu/DropdownMenuRadioItem.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 5
+apps/console/src/components/comments/CommentNode.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 277
+apps/console/src/components/common/PWAUpdatePrompt.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 10
+apps/console/src/views/personal/components/SavedListsTab.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 38
+apps/console/src/components/editor/EditorToolbar.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 30
+apps/console/src/features/sider/NavUser.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 14
+apps/console/src/views/forum/ForumEditorView.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 34
+apps/management/src/components/ui/dropdown-menu/DropdownMenuCheckboxItem.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 5
+apps/management/src/components/ui/command/CommandInput.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 5
+apps/console/src/features/layout/panels/LayoutPanelHeader.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 6
+apps/console/src/features/sider/Calendars.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 3
+apps/management/src/components/ui/context-menu/ContextMenuCheckboxItem.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 5
+apps/console/src/views/problems/submissions/SubmissionsView.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 21
+apps/console/src/views/forum/components/ThreadContent.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 10
+apps/console/src/components/common/data-table/DataTableToolbar.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 4
+apps/console/src/components/problem/ProblemSetSidebar.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 12
+apps/console/src/views/contest/detailed/components/ContestRegistration.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 4
+apps/console/src/views/problems/headers/LayoutHeaderCenter.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 4
+apps/console/src/views/contest/components/VirtualContestTimer.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 17
+apps/console/src/views/contest/detailed/components/ContestHeader.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 4
+apps/console/src/components/edge-operations/vote-control/VoteControl.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 3
+apps/console/src/views/contest/detailed/ContestDetailView.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 20
+apps/console/src/views/personal/NotificationsView.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 28
+apps/console/src/views/forum/ForumFeedView.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 24
+apps/console/src/views/personal/SolutionsView.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 25
+apps/console/src/views/personal/SubscriptionView.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 215
+apps/console/src/views/personal/components/MyListsTab.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 28
+apps/console/src/components/comments/CommentForm.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 69
+apps/console/src/views/profile/ProfileView.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 34
+apps/console/src/components/comments/CommentThreadView.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 63
+apps/console/src/components/ui/dropdown-menu/DropdownMenuSubTrigger.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 5
+apps/console/src/components/common/loading/ErrorBoundary.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 4
+apps/console/src/views/submissions/SubmissionsDetailView.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 5
+apps/management/src/components/ui/combobox/ComboboxInput.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 5
+apps/console/src/components/problem/ProblemListDrawer.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 15
+apps/console/src/views/contest/components/PastContests.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 10
+apps/console/src/views/contest/detailed/components/ContestProblemList.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 14
+apps/console/src/components/notification/NotificationPreferencesPanel.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 13
+apps/console/src/features/sider/SidebarNav.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 14
+apps/console/src/views/problems/components/ContestProblemDock.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 15
+apps/console/src/views/personal/components/UserProfileCard.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 12-13,130,137
+apps/console/src/components/editor/CodeTemplatesModal.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 18
+apps/console/src/components/comments/CommentThread.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 4
+apps/console/src/views/personal/ForumPostsView.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 35
+apps/management/src/components/problem/MarkdownEditor.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 7
+apps/console/src/components/ui/navigation-menu/NavigationMenuTrigger.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 5
+apps/console/src/views/problems/components/ContestReviewPanel.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 26
+apps/console/src/views/personal/SubmissionsView.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 18,40
+apps/management/src/components/ui/dialog/DialogScrollContent.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 5
+apps/console/src/components/editor/AccessibilitySettings.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 12
+apps/console/src/components/problem/composables/__tests__/useProblemExplorer.spec.ts
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 19,52
+apps/console/src/views/problems/code/CodeView.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 22
+apps/management/src/components/ui/context-menu/ContextMenuSubTrigger.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 5
+apps/console/src/components/LanguageSwitcher.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 10
+apps/console/src/components/achievement/AchievementBadge.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 10
+apps/console/src/views/forum/ForumThreadView.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 8
+apps/console/src/components/ui/dialog/DialogContent.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 5
+apps/console/src/views/problems/components/ContestAnnouncementBell.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 24
+apps/console/src/features/sider/components/SidebarListSections.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 30
+apps/console/src/views/contest/components/ContestTimer.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 13
+apps/console/tsconfig.app.json
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 55-59
+apps/console/src/views/post-editor/solutions/SolutionsEditView.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 162
+apps/console/src/components/achievement/UnlockToast.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 3
+apps/console/src/views/contest/ContestMyView.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 3
+apps/console/src/views/personal/PersonalView.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 4
+apps/console/src/views/problem-list/components/AddProblemsDialog.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 17
+apps/console/src/components/ui/select/SelectItem.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 5
+apps/management/src/components/ui/checkbox/Checkbox.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 5
+apps/console/src/components/problem/ProblemNotesDrawer.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 5
+apps/console/src/components/problem/components/ProblemResultList.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 3
+apps/console/src/views/problems/solutions/components/SolutionCard.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 7
+apps/console/src/components/problem/__tests__/ProblemSetSidebar.spec.ts
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 39
+apps/console/src/components/ui/combobox/ComboboxInput.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 5
+apps/console/src/views/contest/components/RunningContests.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 5
+apps/console/src/components/dashboard/RecentActivity.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 4
+apps/console/src/views/contest/ContestBrowseView.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 17
+apps/console/src/views/problems/solutions/components/SolutionDetail.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 27
+apps/console/src/views/personal/AccountNotificationsView.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 5
+apps/management/src/components/problem/TestCasesEditor.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 7
+apps/console/src/components/ThemeSwitcher.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 11
+apps/console/src/features/sider/sidebar.data.ts
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 22
+apps/console/src/components/problem/FeaturedBanners.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 15-16
+apps/console/src/views/personal/AccountSecurityView.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 5
+apps/console/src/components/comments/__tests__/CommentThreadView.spec.ts
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 25
+apps/management/src/components/ui/dropdown-menu/DropdownMenuSubTrigger.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 5
+apps/console/src/views/problems/submissions/SubmissionsListView.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 8
+apps/console/src/views/personal/components/CategoriesTab.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 25
+apps/console/src/views/problems/solutions/SolutionListView.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 27
+apps/console/src/components/ui/sidebar/SidebarTrigger.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 3
+apps/console/src/views/problems/components/MobileProblemLayout.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 21
+apps/console/src/views/contest/components/MyContests.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 10
+apps/console/src/views/problem-list/ProblemListView.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 21
+apps/management/src/components/ui/context-menu/ContextMenuRadioItem.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 5
+apps/console/src/views/dashboard/PersonalDashboardView.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 12
+apps/console/src/views/personal/BookmarksView.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 16
+apps/console/src/components/common/loading/RetryButton.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 4
+apps/console/src/views/forum/components/ForumPostCard.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 8
+apps/console/src/views/personal/components/UserStatsPanel.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 21
+apps/management/package.json
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 76-77
+apps/console/package.json
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 76-77
+apps/console/src/views/problems/submissions/components/SubmissionPerformancePanel.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 5
+apps/console/src/views/problems/headers/LayoutHeaderControls.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 14
+apps/console/src/components/ui/sheet/SheetContent.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 5
+apps/management/src/components/ui/accordion/AccordionTrigger.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 5
+apps/management/src/components/ui/dialog/DialogContent.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 5
+apps/console/src/components/achievement/AchievementCard.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 9
+apps/console/src/components/ui/dropdown-menu/DropdownMenuRadioItem.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 8
+apps/console/vitest.config.ts
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 68-69
+apps/management/src/components/LanguageSwitcher.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 9
+apps/console/src/components/ui/select/SelectTrigger.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 5
+apps/console/src/components/bookmark/BookmarkFolderList.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 9
+apps/console/src/components/ui/dialog/DialogScrollContent.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 5
+apps/console/src/components/ui/dropdown-menu/DropdownMenuCheckboxItem.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 8
+apps/console/src/views/achievements/AchievementGalleryView.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 17
+apps/console/src/views/contest/components/UpcomingContests.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 5
+apps/console/src/components/ui/select/SelectScrollDownButton.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 5
+apps/console/src/views/problems/components/ContestProblemNotInContest.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 4
+apps/console/src/views/problems/submissions/SubmissionsDetail.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 10
+apps/console/src/components/common/data-table/TagFilter.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 9
+apps/console/src/components/problem/composables/useProblemExplorer.ts
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 6
+apps/console/src/views/problems/test/TestCaseView.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 4
+apps/console/src/components/edge-operations/PostActions.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 11
+apps/console/src/views/problems/test/TestResultsView.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 3
+apps/console/src/views/personal/AccountGeneralView.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 7,25-26,297,311
+apps/console/src/views/problems/headers/LayoutHeaderLeft.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 12
+apps/management/src/components/ui/breadcrumb/BreadcrumbSeparator.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 3
+apps/management/src/components/ThemeSwitcher.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 11
+apps/console/src/components/ui/calendar/CalendarNextButton.vue
+  s_3602fa48cb9bd2::t_f8868bf6c9ba2a 5
+apps/management/src/components/ui/menubar/MenubarCheckboxItem.vue
+  s_3602fa48cb9bd2::t_d1da2a3538ebb1 5
+apps/management/src/components/ui/menubar/MenubarRadioItem.vue
+  s_3602fa48cb9bd2::t_90a4cca99b7fe1 5
+apps/management/src/components/ui/menubar/MenubarSubTrigger.vue
+  s_3602fa48cb9bd2::t_1b52d3094b4881 5
+apps/management/src/components/ui/native-select/NativeSelect.vue
+  s_3602fa48cb9bd2::t_4476ddd1c34112 5
+apps/management/src/components/ui/navigation-menu/NavigationMenuTrigger.vue
+  s_3602fa48cb9bd2::t_1da54a9fc9f97e 5
+apps/management/src/components/ui/number-field/NumberFieldDecrement.vue
+  s_3602fa48cb9bd2::t_3d61c74f5e3fbd 5
+apps/management/src/components/ui/number-field/NumberFieldIncrement.vue
+  s_3602fa48cb9bd2::t_c6f242b3493e0a 5
+apps/management/src/components/ui/pagination/PaginationEllipsis.vue
+  s_3602fa48cb9bd2::t_85ab28fc88565e 5
+apps/management/src/components/ui/pagination/PaginationFirst.vue
+  s_3602fa48cb9bd2::t_d3769d2268bfde 6
+apps/management/src/components/ui/pagination/PaginationLast.vue
+  s_3602fa48cb9bd2::t_0cbbfefb66d936 6
+apps/management/src/components/ui/pagination/PaginationNext.vue
+  s_3602fa48cb9bd2::t_30d294617de15e 6
+apps/management/src/components/ui/pagination/PaginationPrevious.vue
+  s_3602fa48cb9bd2::t_a1f2e2514c8e8e 6
+apps/management/src/components/ui/pin-input/PinInputSeparator.vue
+  s_3602fa48cb9bd2::t_7124417b383044 3
+apps/management/src/components/ui/radio-group/RadioGroupItem.vue
+  s_3602fa48cb9bd2::t_859d3eedf93aea 5
+apps/management/src/components/ui/range-calendar/RangeCalendarNextButton.vue
+  s_3602fa48cb9bd2::t_8a748cc3aab343 5
+apps/management/src/components/ui/range-calendar/RangeCalendarPrevButton.vue
+  s_3602fa48cb9bd2::t_d02e71aa705aeb 5
+apps/management/src/components/ui/resizable/ResizableHandle.vue
+  s_3602fa48cb9bd2::t_6d6d2c7c58a38c 5
+apps/management/src/components/ui/select/SelectItem.vue
+  s_3602fa48cb9bd2::t_39772f216037ff 5
+apps/management/src/components/ui/select/SelectScrollDownButton.vue
+  s_3602fa48cb9bd2::t_88aa3247ddd2a6 5
+apps/management/src/components/ui/select/SelectScrollUpButton.vue
+  s_3602fa48cb9bd2::t_ec6b8c9748205a 5
+apps/management/src/components/ui/select/SelectTrigger.vue
+  s_3602fa48cb9bd2::t_5530a36eec30af 5
+apps/management/src/components/ui/sheet/SheetContent.vue
+  s_3602fa48cb9bd2::t_69b4a6b2d2f008 5
+apps/management/src/components/ui/sidebar/SidebarTrigger.vue
+  s_3602fa48cb9bd2::t_77d29f11f6ff96 3
+apps/management/src/components/ui/sonner/Sonner.vue
+  s_3602fa48cb9bd2::t_ae3388cb9d61dc 11
+apps/management/src/components/ui/tags-input/TagsInputItemDelete.vue
+  s_3602fa48cb9bd2::t_f0b578ff672bd2 5
+apps/management/src/views/audit/AuditReportView.vue
+  s_3602fa48cb9bd2::t_a4ca7072276dca 16
+apps/management/src/views/contests/components/ContestProblemPicker.vue
+  s_3602fa48cb9bd2::t_a1ef01fc43670d 20
+apps/management/src/views/problem-lists/ProblemListDetailView.vue
+  s_3602fa48cb9bd2::t_95de3d5f2f5c2b 8
+apps/management/src/views/problems/ProblemDetailView.vue
+  s_3602fa48cb9bd2::t_f39d9e33061d9f 10
+apps/management/src/views/problems/components/ExamplesEditor.vue
+  s_3602fa48cb9bd2::t_e1290162320f61 9
+apps/management/src/views/settings/components/GeneralSettings.vue
+  s_3602fa48cb9bd2::t_00c7445002cb83 12
+apps/management/src/views/solutions/SolutionDetailView.vue
+  s_3602fa48cb9bd2::t_95041c1845fbbc 10
+apps/management/tsconfig.app.json
+  s_3602fa48cb9bd2::t_39b9a897d859d0 55-59
+apps/management/vite.config.ts
+  s_3602fa48cb9bd2::t_7bbdb04b409651 17,42,45-52,122
+apps/management/vitest.config.ts
+  s_3602fa48cb9bd2::t_2736b3c76fbc8d 34-35
+packages/auth-ui/package.json
+  s_3602fa48cb9bd2::t_b161b83d45bc9f 34-36
+packages/auth-ui/src/components/AuthButton.vue
+  s_3602fa48cb9bd2::t_f027ad19da42e2 7
+packages/auth-ui/src/components/AuthThemeToggle.vue
+  s_3602fa48cb9bd2::t_1f7a2e98f0957f 15
+packages/auth-ui/src/components/LoginForm.vue
+  s_3602fa48cb9bd2::t_6cf1a2d15f6b8c 24
+packages/auth-ui/src/components/OAuthButton.vue
+  s_3602fa48cb9bd2::t_c5ce372446bc01 18,73
+packages/auth-ui/src/layouts/AuthLayout.vue
+  s_3602fa48cb9bd2::t_967c7d00f8ec2d 15
+packages/submission-status/src/index.ts
+  s_3602fa48cb9bd2::t_a023cbea277922 95
+pnpm-workspace.yaml
+  s_3602fa48cb9bd2::t_71983c5b0440e8 26-31
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "03cccca93e623cb1d72aab49871307b3eff73aa4",
+  "prompts": {},
+  "sessions": {
+    "s_3602fa48cb9bd2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "771ce81c-9f6f-4b0c-a21c-2b784a5d57d3",
+        "model": "deepseek-v4.1-flash"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

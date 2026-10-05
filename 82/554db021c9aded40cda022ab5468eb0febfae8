@@ -1,0 +1,28 @@
+docs/DEVELOPMENT.md
+  h_77173abe25c3ff 559-573
+services/agent/e2e_boundary_evaluation.py
+  h_77173abe25c3ff 207,214,216,263
+services/agent/e2e_guarded_boundary_evaluation.py
+  h_77173abe25c3ff 12-13,33-49,54
+services/agent/src/dav58_live_guard.py
+  h_77173abe25c3ff 107-110,161-162
+services/agent/src/model_budget.py
+  h_77173abe25c3ff 12,132-170,278-279,281-282,315-349
+services/agent/tests/test_budget_period_binding.py
+  h_77173abe25c3ff 454-514
+services/agent/tests/test_dav58_live_guard.py
+  h_77173abe25c3ff 207-237
+services/agent/tests/test_e2e_guarded_boundary_evaluation.py
+  h_77173abe25c3ff 125-193
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "82554db021c9aded40cda022ab5468eb0febfae8",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

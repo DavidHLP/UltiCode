@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
-import { AlertTriangle } from "lucide-vue-next";
+import { AlertTriangle } from "@lucide/vue";
 import { Button } from "@/components/ui/button";
 import type { ContestDetail } from "@/types/contest";
 

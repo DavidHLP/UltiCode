@@ -159,7 +159,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
-import { SendHorizonal, Tag, X, ArrowLeft, Check } from "lucide-vue-next";
+import { SendHorizonal, Tag, X, ArrowLeft, Check } from "@lucide/vue";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "vue-i18n";

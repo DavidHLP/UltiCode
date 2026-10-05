@@ -2,7 +2,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import * as echarts from "echarts";
 import type { ECharts } from "echarts";
-import { Clock, Microchip } from "lucide-vue-next";
+import { Clock, Microchip } from "@lucide/vue";
 import { useI18n } from "vue-i18n";
 import { useChartPalette, type ChartPalette } from "@ulticode/design-system";
 import {

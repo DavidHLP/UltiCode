@@ -12,7 +12,7 @@
  */
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
-import { Sun, Moon, Monitor } from "lucide-vue-next";
+import { Sun, Moon, Monitor } from "@lucide/vue";
 import { cycleTheme, useColorTheme } from "../../../theme/src";
 
 defineOptions({

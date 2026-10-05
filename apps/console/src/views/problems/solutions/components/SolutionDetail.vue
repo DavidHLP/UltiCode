@@ -24,7 +24,7 @@ import { formatRelativeTime } from "@/utils/datetime";
 import { extractHeadings } from "@ulticode/markdown-utils";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "vue-router";
-import { Pencil, Trash2, Flag, List } from "lucide-vue-next";
+import { Pencil, Trash2, Flag, List } from "@lucide/vue";
 import { useI18n } from "vue-i18n";
 import { useErrorHandler } from "@/composables/useErrorHandler";
 import { useContentNavigation } from "@/composables/useContentNavigation";

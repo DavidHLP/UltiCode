@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
 import { useDebounceFn } from "@vueuse/core";
-import { X } from "lucide-vue-next";
+import { X } from "@lucide/vue";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useBottomPanelStore } from "./test";

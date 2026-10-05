@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import ContestStatusBadge from "./ContestStatusBadge.vue";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Trophy } from "lucide-vue-next";
+import { Calendar, Trophy } from "@lucide/vue";
 import { useI18n } from "vue-i18n";
 
 const contestStore = useContestRankingStore();

@@ -17,7 +17,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { toast } from "vue-sonner";
-import { Trophy, Calendar, Clock, Users, ChevronDown } from "lucide-vue-next";
+import { Trophy, Calendar, Clock, Users, ChevronDown } from "@lucide/vue";
 import { useI18n } from "vue-i18n";
 import VirtualContestTimer from "../components/VirtualContestTimer.vue";
 import ContestHeader from "./components/ContestHeader.vue";

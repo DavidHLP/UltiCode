@@ -2,7 +2,7 @@
 import { ref, onMounted, onUnmounted, watch } from "vue";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, PlayCircle, Users } from "lucide-vue-next";
+import { Calendar, Clock, PlayCircle, Users } from "@lucide/vue";
 import { useRouter } from "vue-router";
 import type { ContestListItem } from "@/types/contest";
 import { formatDateTime } from "@/utils/datetime";

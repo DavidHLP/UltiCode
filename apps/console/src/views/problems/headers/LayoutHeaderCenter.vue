@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Button } from "@/components/ui/button";
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
-import { Play, CloudUpload } from "lucide-vue-next";
+import { Play, CloudUpload } from "@lucide/vue";
 import {
   HoverCard,
   HoverCardContent,

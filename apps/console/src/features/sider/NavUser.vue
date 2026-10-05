@@ -11,7 +11,7 @@ import {
   MessageSquare,
   List,
   CheckCircle2,
-} from "lucide-vue-next";
+} from "@lucide/vue";
 import { IconDotsVertical } from "@tabler/icons-vue";
 import { onMounted, computed } from "vue";
 

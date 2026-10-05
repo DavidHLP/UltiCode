@@ -14,7 +14,7 @@ import { ref, computed, onMounted, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { storeToRefs } from "pinia";
 import { useI18n } from "vue-i18n";
-import { Trophy, Calendar, CheckCircle, PlayCircle } from "lucide-vue-next";
+import { Trophy, Calendar, CheckCircle, PlayCircle } from "@lucide/vue";
 import { useContestBrowseStore } from "@/stores/contestBrowse";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";

@@ -22,7 +22,7 @@ vi.mock("vue-i18n", async (importOriginal) => {
   };
 });
 
-vi.mock("lucide-vue-next", () => ({
+vi.mock("@lucide/vue", () => ({
   Loader2: { name: "Loader2", template: "<i />" },
   MessageSquare: { name: "MessageSquare", template: "<i />" },
 }));

@@ -24,7 +24,7 @@
  */
 import { computed, inject, onBeforeUnmount, onMounted, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import { ArrowLeft, Target, Trophy, Timer, Lightbulb } from "lucide-vue-next";
+import { ArrowLeft, Target, Trophy, Timer, Lightbulb } from "@lucide/vue";
 import { Badge } from "@/components/ui/badge";
 import ContestStatusBadge from "@/views/contest/components/ContestStatusBadge.vue";
 import ContestTimer from "@/views/contest/components/ContestTimer.vue";

@@ -5,7 +5,7 @@ import type {
   SubmissionRecord,
   SubmissionStatusMeta,
 } from "@/types/submission";
-import { Loader2, Inbox } from "lucide-vue-next";
+import { Loader2, Inbox } from "@lucide/vue";
 import {
   Table,
   TableBody,

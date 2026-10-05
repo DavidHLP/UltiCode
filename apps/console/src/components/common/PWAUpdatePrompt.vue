@@ -7,7 +7,7 @@
  */
 
 import { usePWA } from "@/composables/usePWA";
-import { RefreshCw, X } from "lucide-vue-next";
+import { RefreshCw, X } from "@lucide/vue";
 import { useI18n } from "vue-i18n";
 
 const { needRefresh, updateServiceWorker, close } = usePWA();

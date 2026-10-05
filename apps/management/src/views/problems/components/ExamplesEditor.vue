@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
-import { ChevronDown, Plus, Trash2, ArrowUp, ArrowDown } from 'lucide-vue-next'
+import { ChevronDown, Plus, Trash2, ArrowUp, ArrowDown } from '@lucide/vue'
 import type { Example } from '@/lib/schemas/problemDescription'
 
 const props = withDefaults(

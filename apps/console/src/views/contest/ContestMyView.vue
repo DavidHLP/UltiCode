@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted } from "vue";
-import { Trophy } from "lucide-vue-next";
+import { Trophy } from "@lucide/vue";
 import { useContestRankingStore } from "@/stores/contestRanking";
 import { Separator } from "@/components/ui/separator";
 import MyContests from "./components/MyContests.vue";

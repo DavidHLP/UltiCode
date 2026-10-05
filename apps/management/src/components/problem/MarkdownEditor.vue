@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { renderMarkdown } from '@ulticode/markdown-utils'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
-import { Bold, Italic, Code, Link, Image, Maximize2, Minimize2 } from 'lucide-vue-next'
+import { Bold, Italic, Code, Link, Image, Maximize2, Minimize2 } from '@lucide/vue'
 
 const props = defineProps<{
   modelValue: string

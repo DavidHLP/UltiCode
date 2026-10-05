@@ -4,7 +4,7 @@ import { useI18n } from "vue-i18n";
 import { useAuthStore } from "@/stores/auth";
 import { fetchUserProfile, updateMyProfile, type ProfileData } from "@/api/user";
 import { toast } from "vue-sonner";
-import { Loader2 } from "lucide-vue-next";
+import { Loader2 } from "@lucide/vue";
 import { useAvatar } from "@/composables/useAvatar";
 import {
   isAvatarUploadSessionCurrent,
@@ -22,7 +22,8 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Globe, Github, Lock, Mail, MapPin, Twitter } from "lucide-vue-next";
+import { IconBrandGithub, IconBrandTwitter } from "@tabler/icons-vue";
+import { Globe, Lock, Mail, MapPin } from "@lucide/vue";
 
 const { t } = useI18n();
 const authStore = useAuthStore();
@@ -293,7 +294,7 @@ onMounted(async () => {
               <div
                 class="flex h-9 w-9 items-center justify-center rounded-none bg-muted"
               >
-                <Twitter class="h-4 w-4 text-muted-foreground" />
+                <IconBrandTwitter class="h-4 w-4 text-muted-foreground" />
               </div>
               <div class="flex-1">
                 <Input
@@ -307,7 +308,7 @@ onMounted(async () => {
               <div
                 class="flex h-9 w-9 items-center justify-center rounded-none bg-muted"
               >
-                <Github class="h-4 w-4 text-muted-foreground" />
+                <IconBrandGithub class="h-4 w-4 text-muted-foreground" />
               </div>
               <div class="flex-1">
                 <Input

@@ -8,7 +8,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Search } from "lucide-vue-next";
+import { Search } from "@lucide/vue";
 import GlobalSearch from "./GlobalSearch.vue";
 
 const { t } = useI18n();

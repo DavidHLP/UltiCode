@@ -23,7 +23,7 @@
 import { computed, inject, onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRoute } from "vue-router";
-import { RefreshCw, BookPlus, CheckCircle2, Clock } from "lucide-vue-next";
+import { RefreshCw, BookPlus, CheckCircle2, Clock } from "@lucide/vue";
 import { Button } from "@/components/ui/button";
 import { fetchContestProblemSubmissions } from "@/api/contest";
 import { ContestProblemContextKey, ToggleNotesKey } from "../problem-context";

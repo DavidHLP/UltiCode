@@ -21,7 +21,7 @@ import AuthInput from "./AuthInput.vue";
 import AuthButton from "./AuthButton.vue";
 import AuthDivider from "./AuthDivider.vue";
 import OAuthButton from "./OAuthButton.vue";
-import { ArrowRight } from "lucide-vue-next";
+import { ArrowRight } from "@lucide/vue";
 
 const props = withDefaults(
   defineProps<{

@@ -35,7 +35,7 @@ import {
   Trash2,
   List,
   MoreVertical,
-} from "lucide-vue-next";
+} from "@lucide/vue";
 import { useI18n } from "vue-i18n";
 import type { ProblemList, ProblemListCategory } from "@/types/problem-list";
 

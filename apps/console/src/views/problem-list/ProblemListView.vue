@@ -18,7 +18,7 @@ import {
   FolderInput,
   BookmarkMinus,
   ListX,
-} from "lucide-vue-next";
+} from "@lucide/vue";
 import {
   DropdownMenu,
   DropdownMenuContent,

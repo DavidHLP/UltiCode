@@ -7,7 +7,7 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import IconGlobe from "~icons/lucide/globe";
-import { Check } from "lucide-vue-next";
+import { Check } from "@lucide/vue";
 
 const { availableLocales, setLocale, isCurrentLocale } = useLocale();
 </script>

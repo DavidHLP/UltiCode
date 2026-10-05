@@ -9,7 +9,7 @@ import SkillRadarChart from "@/components/dashboard/SkillRadarChart.vue";
 import RecentActivity from "@/components/dashboard/RecentActivity.vue";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Trophy, Flame, Target, BarChart3 } from "lucide-vue-next";
+import { Trophy, Flame, Target, BarChart3 } from "@lucide/vue";
 import type { RecentActivity as RecentActivityType } from "@/types/userStats";
 
 const { t } = useI18n();

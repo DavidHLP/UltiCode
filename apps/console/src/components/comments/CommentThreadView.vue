@@ -60,7 +60,7 @@ import type { Comment } from "@/types/comment";
 import { fetchForumThread } from "@/api/forum";
 import CommentNode from "./CommentNode.vue";
 import { buildCommentTree, countComments } from "./comment-tree-builder";
-import { Loader2, MessageSquare } from "lucide-vue-next";
+import { Loader2, MessageSquare } from "@lucide/vue";
 import { useI18n } from "vue-i18n";
 
 defineOptions({

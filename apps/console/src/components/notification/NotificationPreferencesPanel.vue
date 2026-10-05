@@ -10,7 +10,7 @@ import {
   updateNotificationPreferences,
 } from "@/api/notification";
 import type { NotificationPreferences } from "@/types/notification";
-import { MessageSquare, Megaphone, ShieldAlert, Bell } from "lucide-vue-next";
+import { MessageSquare, Megaphone, ShieldAlert, Bell } from "@lucide/vue";
 
 const { t } = useI18n();
 const loading = ref(false);

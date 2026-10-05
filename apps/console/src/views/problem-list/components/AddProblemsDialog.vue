@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Search, Plus, Check } from "lucide-vue-next";
+import { Search, Plus, Check } from "@lucide/vue";
 import { getDifficultyBadgeClass } from "@ulticode/design-system";
 import { searchProblems } from "@/api/problem";
 

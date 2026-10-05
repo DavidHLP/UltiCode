@@ -2,7 +2,7 @@
 import { computed, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
-import { Loader2 } from "lucide-vue-next";
+import { Loader2 } from "@lucide/vue";
 import { fetchSubmission, fetchSubmissionStatuses } from "@/api/submission";
 import { useErrorHandler } from "@/composables/useErrorHandler";
 import type {

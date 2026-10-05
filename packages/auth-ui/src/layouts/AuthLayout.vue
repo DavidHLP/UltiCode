@@ -12,7 +12,7 @@
  * consumer customizes them via props (`badge`, `version`, `statusText`,
  * `homeHref`).
  */
-import { Terminal } from "lucide-vue-next";
+import { Terminal } from "@lucide/vue";
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import AuthThemeToggle from "../components/AuthThemeToggle.vue";

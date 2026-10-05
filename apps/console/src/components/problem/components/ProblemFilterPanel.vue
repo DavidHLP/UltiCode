@@ -12,7 +12,7 @@ import {
   TagFilter,
 } from "@/components/common/data-table";
 import CheckIcon from "~icons/radix-icons/check";
-import { Shuffle } from "lucide-vue-next";
+import { Shuffle } from "@lucide/vue";
 import { useI18n } from "vue-i18n";
 
 const { t } = useI18n();

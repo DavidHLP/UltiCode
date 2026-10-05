@@ -8,7 +8,7 @@ import {
   TableRow,
   TableHead,
 } from "@/components/ui/table";
-import { SearchX } from "lucide-vue-next";
+import { SearchX } from "@lucide/vue";
 import { useVirtualizer } from "@tanstack/vue-virtual";
 import { cn } from "@/lib/utils";
 

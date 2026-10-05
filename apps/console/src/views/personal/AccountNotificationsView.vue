@@ -2,7 +2,7 @@
 import { onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { toast } from "vue-sonner";
-import { Bell, Mail, ShieldCheck, Loader2 } from "lucide-vue-next";
+import { Bell, Mail, ShieldCheck, Loader2 } from "@lucide/vue";
 import {
   fetchNotificationPreferences,
   updateNotificationPreferences,

@@ -6,7 +6,7 @@ import {
 } from "@/types/achievement";
 import AchievementBadge from "./AchievementBadge.vue";
 import { cn } from "@/lib/utils";
-import { Check, Calendar } from "lucide-vue-next";
+import { Check, Calendar } from "@lucide/vue";
 
 const props = defineProps<{
   achievement: AchievementProgress;

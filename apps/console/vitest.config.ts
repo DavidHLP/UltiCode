@@ -65,7 +65,8 @@ export default defineConfig({
       axios: fileURLToPath(new URL("./node_modules/axios", import.meta.url)),
       clsx: fileURLToPath(new URL("./node_modules/clsx", import.meta.url)),
       "tailwind-merge": fileURLToPath(new URL("./node_modules/tailwind-merge", import.meta.url)),
-      "lucide-vue-next": fileURLToPath(new URL("./node_modules/lucide-vue-next", import.meta.url)),
+      "@lucide/vue": fileURLToPath(new URL("./node_modules/@lucide/vue", import.meta.url)),
+      "@tabler/icons-vue": fileURLToPath(new URL("./node_modules/@tabler/icons-vue", import.meta.url)),
     },
   },
 });

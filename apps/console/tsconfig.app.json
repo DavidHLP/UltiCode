@@ -52,8 +52,11 @@
       "tailwind-merge": [
         "./node_modules/tailwind-merge"
       ],
-      "lucide-vue-next": [
-        "./node_modules/lucide-vue-next"
+      "@lucide/vue": [
+        "./node_modules/@lucide/vue"
+      ],
+      "@tabler/icons-vue": [
+        "./node_modules/@tabler/icons-vue"
       ],
       "reka-ui": [
         "./node_modules/reka-ui"

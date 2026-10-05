@@ -24,7 +24,7 @@ import {
   ArrowDownAZ,
   Check,
   Lightbulb,
-} from "lucide-vue-next";
+} from "@lucide/vue";
 import {
   Empty,
   EmptyContent,

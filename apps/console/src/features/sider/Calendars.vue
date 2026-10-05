@@ -1,6 +1,6 @@
 <!-- eslint-disable vue/multi-word-component-names -->
 <script setup lang="ts">
-import { ListPlus, Plus } from "lucide-vue-next";
+import { ListPlus, Plus } from "@lucide/vue";
 import { useI18n } from "vue-i18n";
 import { useSidebarLists } from "./composables/useSidebarLists";
 import SidebarListSections from "./components/SidebarListSections.vue";

@@ -19,7 +19,7 @@ import {
   CheckIcon,
   Wand2,
   ChevronDown,
-} from "lucide-vue-next";
+} from "@lucide/vue";
 import { problemHooks } from "@/hooks/problem-hooks";
 import { useProblemEditorStore } from "@/stores/problemEditorStore";
 import { useEditorSettingsStore } from "@/stores/editorSettings";

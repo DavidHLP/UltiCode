@@ -14,7 +14,7 @@ export default defineConfig({
       { find: '@', replacement: fileURLToPath(new URL('./src', import.meta.url)) },
       // Workspace packages import their runtime + peer deps as bare
       // specifiers. The packages have no node_modules, so resolve them from
-      // the app's own node_modules — clsx/tailwind-merge/axios/lucide-vue-next
+      // the app's own node_modules — clsx/tailwind-merge/axios/@lucide/vue/@tabler/icons-vue
       // plus the peer deps vue-router/vue-i18n/reka-ui consumed by auth-ui and
       // sidebar-menu. `vue` itself is handled by the plugin + dedupe.
       {
@@ -39,10 +39,17 @@ export default defineConfig({
         ),
       },
       {
-        find: /^lucide-vue-next$/,
+        find: /^@lucide\/vue$/,
         replacement: path.resolve(
           fileURLToPath(new URL('.', import.meta.url)),
-          'node_modules/lucide-vue-next',
+          'node_modules/@lucide/vue',
+        ),
+      },
+      {
+        find: /^@tabler\/icons-vue$/,
+        replacement: path.resolve(
+          fileURLToPath(new URL('.', import.meta.url)),
+          'node_modules/@tabler/icons-vue',
         ),
       },
       {
@@ -112,7 +119,7 @@ export default defineConfig({
           if (id.includes('node_modules')) {
             if (id.includes('vue') || id.includes('pinia') || id.includes('vue-router'))
               return 'vue-vendor'
-            if (id.includes('reka-ui') || id.includes('lucide-vue-next') || id.includes('@tabler'))
+            if (id.includes('reka-ui') || id.includes('@lucide/vue') || id.includes('@tabler'))
               return 'ui-vendor'
             if (id.includes('markdown-it')) return 'markdown'
           }

@@ -3,7 +3,7 @@ import { useI18n } from "vue-i18n";
 import type { Problem } from "@/types/problem";
 import type { Component } from "vue";
 import type { ProblemExplorerProps } from "../type";
-import { CheckCircle2, FileEdit } from "lucide-vue-next";
+import { CheckCircle2, FileEdit } from "@lucide/vue";
 import { fetchProblems } from "@/api/problem";
 import { createValueRequest } from "@ulticode/request-state";
 import { toast } from "vue-sonner";

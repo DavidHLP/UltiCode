@@ -8,7 +8,7 @@ import {
   BookmarkCheck,
   Eye,
   MessageSquare,
-} from "lucide-vue-next";
+} from "@lucide/vue";
 import { computed } from "vue";
 
 export interface PostActionsConfig {

@@ -6,12 +6,11 @@ import { formatDate } from "@/utils/datetime";
 import {
   MapPin,
   Link as LinkIcon,
-  Twitter,
-  Github,
   Calendar,
   Zap,
   Edit,
-} from "lucide-vue-next";
+} from "@lucide/vue";
+import { IconBrandGithub, IconBrandTwitter } from "@tabler/icons-vue";
 import { RouterLink } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { computed } from "vue";
@@ -128,14 +127,14 @@ const { normalizedAvatar } = useAvatar(
             class="flex items-center gap-1.5 text-muted-foreground"
             v-if="user.github"
           >
-            <Github class="h-4 w-4 text-primary/70" />
+            <IconBrandGithub class="h-4 w-4 text-primary/70" />
             <span>{{ user.github }}</span>
           </div>
           <div
             class="flex items-center gap-1.5 text-muted-foreground"
             v-if="user.twitter"
           >
-            <Twitter class="h-4 w-4 text-primary/70" />
+            <IconBrandTwitter class="h-4 w-4 text-primary/70" />
             <span>{{ user.twitter }}</span>
           </div>
           <div class="flex items-center gap-1.5 text-muted-foreground">

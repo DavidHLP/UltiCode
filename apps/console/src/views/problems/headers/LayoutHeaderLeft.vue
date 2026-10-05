@@ -9,7 +9,7 @@ import {
   ChevronRight,
   Shuffle,
   ArrowLeft,
-} from "lucide-vue-next";
+} from "@lucide/vue";
 import logoIcon from "@/ico/favicon.ico";
 import {
   HoverCard,

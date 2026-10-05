@@ -19,7 +19,7 @@ import {
   CheckCircle2,
   Bell,
   Lock,
-} from "lucide-vue-next";
+} from "@lucide/vue";
 
 export interface SidebarItem {
   title: string;

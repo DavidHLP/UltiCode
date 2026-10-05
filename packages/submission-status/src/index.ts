@@ -92,7 +92,7 @@ export const VERDICT_IS_INFRA: Record<DFormVerdict, boolean> = {
 
 /**
  * Stable icon-key per verdict. Returns a small framework-agnostic token that
- * each surface maps to its own icon set (e.g. lucide-vue-next). Centralizing
+ * each surface maps to its own icon set (e.g. @lucide/vue). Centralizing
  * the verdict→icon mapping here stops every surface from hand-rolling a
  * 12-arm switch that can silently drift (e.g. collapsing every non-Accepted
  * verdict to a single "Clock" icon — the historical bug).

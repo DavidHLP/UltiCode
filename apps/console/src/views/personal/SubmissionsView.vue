@@ -15,7 +15,7 @@ import {
   ExternalLink,
   Loader2,
   ListX,
-} from "lucide-vue-next";
+} from "@lucide/vue";
 import { RouterLink, useRouter } from "vue-router";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "vue-i18n";
@@ -37,7 +37,7 @@ import type { VerdictIconKey } from "@ulticode/submission-status";
 /**
  * Stable verdict→icon map for this surface. The verdict→icon-key mapping
  * lives in shared/submission-status (the single source of truth); the
- * icon-key → lucide-vue-next component mapping is local because the icon
+ * icon-key → @lucide/vue component mapping is local because the icon
  * set is a framework choice that does not belong in the shared seam.
  */
 const ICON_BY_KEY: Record<VerdictIconKey, typeof CheckCircle2> = {

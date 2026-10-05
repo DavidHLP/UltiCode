@@ -12,7 +12,7 @@ import {
   ArrowUpDown,
   Filter,
   ChevronRight,
-} from "lucide-vue-next";
+} from "@lucide/vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 

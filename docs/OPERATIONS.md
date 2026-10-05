@@ -16,13 +16,17 @@
 
 ### 生产发布前
 
-Docker Verify 与 Docker Publish 按工作流和服务隔离 GHA 构建缓存。缓存导出使用 `ignore-error=true`，仅将缓存上传作为尽力完成的加速步骤；镜像构建、推送、扫描和签名失败仍阻断任务。
+Docker Verify builds each service locally (`load: true`, no push) and runs pinned Trivy v0.74.0 against that local image. Docker Publish pushes digest-only candidates: it does not assign normal `sha-*` or `v*` release tags while individual service gates are running.
 
-Docker Publish 将 GitHub 仓库名统一转为小写，再用于镜像标签、Trivy 扫描、Cosign 签名和不可变发布清单；签名证书身份及源码 URL 保留 GitHub 原始大小写。
+Each service must pass HIGH/CRITICAL Trivy scanning, then be signed and receive SPDX/SLSA attestations for the same candidate digest. The `promote` job runs only after all nine matrix builds succeed; it validates all nine reports, source commit, digest subjects, signer identity, and verified DSSE predicates before inspecting or writing any tags.
 
-Trivy 扫描完成后，无论门禁是否通过，都上传独立的 `trivy-<service>` JSON 报告；扫描失败仍阻止签名和发布清单生成。排查漏洞时从该报告读取受影响包、已安装版本和修复版本。
+Use `release-manifest` artifact from successful Docker Publish run as canonical deployment input. It contains complete nine-service `release-manifest.txt`, `release-set.json`, and per-service evidence. Local `scripts/runbooks/promote-release.sh EVIDENCE_DIR SOURCE_SHA ghcr.io/davidhlp/ulticode` supports read-only dry-run only; `--execute` is restricted to Docker Publish on `main`. The workflow uses repository-wide `ulticode-release-tag-writer` concurrency with cancellation disabled. If promotion fails after candidate builds succeed, rerun only the failed `promote` job in that same Actions run, while its nine candidate artifacts remain within their retention period; do not rerun successful `build-and-push` jobs, since a rebuild may produce a different digest and collide with immutable tags. The workflow is push-only and has no `workflow_dispatch`. Do not promote tags through local commands or other writers. This serializes repository-controlled writers, not external registry actors, and GHCR offers no compare-and-swap guarantee here. Existing manifest conflicts fail before registry inspection/writes; all planned tags are read back after promotion, including tags that already existed, before complete manifests are written. Matching existing tags are idempotent; a different digest is a hard failure. A mid-promotion failure may leave already verified tags in place, but emits no complete manifest. Never retarget or delete old tags/digests; retain previous successful release artifact for rollback.
 
-运行镜像保留固定的基础镜像 digest，并在构建时通过 `apk upgrade --no-cache` 安装该 Alpine 分支的安全更新。后端依赖由 `services/pom.xml` 的 Spring Boot BOM 统一管理；BOM 尚未包含的安全修复使用集中版本覆盖。发布前以最终镜像扫描结果为准。
+After validating the manifest locally, provide its nine lines to the manual `cd-deploy.yml` or `cd-rollback.yml` `image_refs` input. Do not hand-assemble a partial candidate list. Deployment still independently verifies immutable digest references and supply-chain evidence before mutating the host.
+
+Trivy JSON reports are uploaded per candidate even when scanning fails; a failed or skipped scan cannot produce candidate evidence or reach promotion. For vulnerability triage, inspect affected package, installed version, and fixed version.
+
+Runtime images retain pinned base-image digests and apply `apk upgrade --no-cache` for Alpine security updates. Both Verify and Publish bypass cache only for the final `runtime` (backend) or `production` (frontend) stage, so cached upgrade layers cannot retain newly vulnerable packages; builder caches remain enabled. Backend dependencies use Spring Boot's BOM with narrowly scoped security overrides; verify final dependency resolution and image scan results before release.
 
 `host-deploy` 在任何 migration、Redis ACL materialization、Judge sandbox provisioning 或 Compose mutation 前检查：
 

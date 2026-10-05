@@ -13,7 +13,7 @@
 		<!-- Authoritative release version of this owner service; bump independently
 		     to release it without touching other services. Cross-service test
 		     dependencies resolve the default copy in the root pom. -->
-		<service.version.app>1.0.0</service.version.app>
+		<service.version.app>1.0.1</service.version.app>
 	</properties>
 	<artifactId>backend-app</artifactId>
 	<version>${service.version.app}</version>

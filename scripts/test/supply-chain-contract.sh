@@ -111,37 +111,61 @@ for workflow in "$ROOT_DIR"/.github/workflows/*.yml; do
   done < <(grep -E '^[[:space:]]*uses:' "$workflow")
 done
 
-python3 - "$ROOT_DIR/.github/workflows/docker-publish.yml" <<'PY'
+python3 - "$ROOT_DIR/.github/workflows/docker-publish.yml" "$ROOT_DIR" <<'PY'
+import json
 import os
 from pathlib import Path
 import re
 import subprocess
 import sys
 import tempfile
-import textwrap
+import xml.etree.ElementTree as ET
 
 workflow = Path(sys.argv[1]).read_text()
-step = re.search(r'      - name: Normalize image repository\n        id: normalize\n        run: echo "image_name=\$\{GITHUB_REPOSITORY,,}" >> "\$GITHUB_OUTPUT"\n', workflow)
-assert step, 'publish must normalize the image repository before metadata'
-assert step.start() < workflow.index('      - name: Extract metadata')
+step = re.search(r'      - name: Normalize image repository\n        id: normalize\n        run: echo "image_name=\$\{GITHUB_REPOSITORY,,\}" >> "\$GITHUB_OUTPUT"\n', workflow)
+assert step, 'publish must normalize image repository before metadata'
+assert step.start() < workflow.index('      - name: Extract image labels')
 with tempfile.NamedTemporaryFile() as output:
     subprocess.run(['bash', '-euo', 'pipefail', '-c', 'echo "image_name=${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"'],
                    env={**os.environ, 'GITHUB_REPOSITORY': 'DavidHLP/UltiCode',
                         'GITHUB_OUTPUT': output.name}, check=True)
     assert Path(output.name).read_text() == 'image_name=davidhlp/ulticode\n'
 image = '${{ env.REGISTRY }}/${{ steps.normalize.outputs.image_name }}/${{ matrix.service.name }}'
-references = re.findall(r'^\s+(?:images|image-ref|IMAGE_REF): (.+)$', workflow, re.M)
-assert references == [image] + [image + '@${{ steps.build.outputs.digest }}'] * 3, \
-    'metadata, scan, signing and manifest must share the normalized repository'
-print('mixed-case publish repository normalization: PASS')
-scan = workflow.split('      - name: Scan pushed image\n', 1)[1].split('      - name:', 1)[0]
+assert f'outputs: type=image,name={image},push-by-digest=true,name-canonical=true,push=true' in workflow
+assert 'tags: ${{ steps.meta.outputs.tags }}' not in workflow
+assert 'needs: [load-matrix, build-and-push]' in workflow
+assert 'cancel-in-progress: false' in workflow
+assert 'group: ulticode-release-tag-writer' in workflow
+repo = Path(sys.argv[2])
+ns = {'m': 'http://maven.apache.org/POM/4.0.0'}
+root_properties = ET.parse(repo / 'services/pom.xml').getroot().find('m:properties', ns)
+matrix = json.loads((repo / '.github/services-matrix.json').read_text())
+owner_services = [entry for entry in matrix if entry.get('maven_version_property')]
+assert len(owner_services) == 7, 'release matrix must have seven Maven owner services'
+for service in owner_services:
+    prop = service['maven_version_property']
+    root_version = root_properties.findtext(f'm:{prop}', namespaces=ns)
+    owner_pom = repo / 'services' / service['module'].split('/', 1)[0] / 'pom.xml'
+    owner_properties = ET.parse(owner_pom).getroot().find('m:properties', ns)
+    owner_version = owner_properties.findtext(f'm:{prop}', namespaces=ns)
+    assert root_version == owner_version == '1.0.1', f'{service["name"]}: release version mismatch ({root_version!r} != {owner_version!r})'
+assert 'actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131' in workflow
+print('digest-only candidates, common normalized repo and all-service promote gate: PASS')
+scan = workflow.split('      - name: Scan pushed candidate\n', 1)[1].split('      - name:', 1)[0]
 assert "exit-code: '1'" in scan and 'continue-on-error' not in scan
-upload = workflow.split('      - name: Upload image scan report\n', 1)[1].split('      - name:', 1)[0]
+upload = workflow.split('      - name: Upload candidate scan report\n', 1)[1].split('      - name:', 1)[0]
 assert "always()" in upload and "steps.scan.outcome" in upload
-assert 'path: ${{ runner.temp }}/${{ matrix.service.name }}.trivy.json' in upload
-assert workflow.index('      - name: Upload image scan report') < workflow.index('      - name: Sign image')
-print('failed scans retain reports and block signing: PASS')
+assert workflow.index('      - name: Upload candidate scan report') < workflow.index('      - name: Sign candidate')
+assert 'name: candidate-evidence-${{ matrix.service.name }}' in workflow
+assert 'name: release-manifest' in workflow
 PY
+
+python3 "$ROOT_DIR/scripts/test/promote-release-contract.py"
+
+contains .github/workflows/_docker.yml 'load: true'
+contains .github/workflows/_docker.yml 'TRIVY_IMAGE_SRC: docker'
+contains .github/workflows/_docker.yml 'name: trivy-verify-${{ matrix.service.name }}'
+contains services/pom.xml '<jackson-bom.version>2.21.7</jackson-bom.version>'
 
 contains .github/workflows/docker-publish.yml 'sbom: true'
 for entry in '_docker.yml:verify' 'docker-publish.yml:publish'; do
@@ -149,6 +173,8 @@ for entry in '_docker.yml:verify' 'docker-publish.yml:publish'; do
   scope="${entry#*:}"
   contains ".github/workflows/$workflow" "cache-from: type=gha,scope=$scope-\${{ matrix.service.name }}"
   contains ".github/workflows/$workflow" "cache-to: type=gha,mode=max,scope=$scope-\${{ matrix.service.name }},ignore-error=true"
+  contains ".github/workflows/$workflow" "no-cache-filters: \${{ matrix.service.module && 'runtime' || 'production' }}"
+  not_contains ".github/workflows/$workflow" 'no-cache: true'
   not_contains ".github/workflows/$workflow" 'continue-on-error:'
 done
 contains .github/workflows/docker-publish.yml 'provenance: mode=max'

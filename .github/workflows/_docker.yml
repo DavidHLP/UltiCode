@@ -54,6 +54,7 @@ jobs:
         with:
           context: .
           file: ${{ matrix.service.dockerfile }}
+          no-cache-filters: ${{ matrix.service.module && 'runtime' || 'production' }}
           push: false
           load: true
           tags: local/ulticode-${{ matrix.service.name }}:${{ github.sha }}

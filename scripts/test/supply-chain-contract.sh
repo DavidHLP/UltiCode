@@ -173,6 +173,8 @@ for entry in '_docker.yml:verify' 'docker-publish.yml:publish'; do
   scope="${entry#*:}"
   contains ".github/workflows/$workflow" "cache-from: type=gha,scope=$scope-\${{ matrix.service.name }}"
   contains ".github/workflows/$workflow" "cache-to: type=gha,mode=max,scope=$scope-\${{ matrix.service.name }},ignore-error=true"
+  contains ".github/workflows/$workflow" "no-cache-filters: \${{ matrix.service.module && 'runtime' || 'production' }}"
+  not_contains ".github/workflows/$workflow" 'no-cache: true'
   not_contains ".github/workflows/$workflow" 'continue-on-error:'
 done
 contains .github/workflows/docker-publish.yml 'provenance: mode=max'

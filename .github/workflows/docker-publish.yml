@@ -84,6 +84,7 @@ jobs:
         with:
           context: .
           file: ${{ matrix.service.dockerfile }}
+          no-cache-filters: ${{ matrix.service.module && 'runtime' || 'production' }}
           outputs: type=image,name=${{ env.REGISTRY }}/${{ steps.normalize.outputs.image_name }}/${{ matrix.service.name }},push-by-digest=true,name-canonical=true,push=true
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |

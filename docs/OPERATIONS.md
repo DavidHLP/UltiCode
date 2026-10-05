@@ -26,7 +26,7 @@ After validating the manifest locally, provide its nine lines to the manual `cd-
 
 Trivy JSON reports are uploaded per candidate even when scanning fails; a failed or skipped scan cannot produce candidate evidence or reach promotion. For vulnerability triage, inspect affected package, installed version, and fixed version.
 
-Runtime images retain pinned base-image digests and apply `apk upgrade --no-cache` for Alpine security updates. Backend dependencies use Spring Boot's BOM with narrowly scoped security overrides; verify final dependency resolution and image scan results before release.
+Runtime images retain pinned base-image digests and apply `apk upgrade --no-cache` for Alpine security updates. Both Verify and Publish bypass cache only for the final `runtime` (backend) or `production` (frontend) stage, so cached upgrade layers cannot retain newly vulnerable packages; builder caches remain enabled. Backend dependencies use Spring Boot's BOM with narrowly scoped security overrides; verify final dependency resolution and image scan results before release.
 
 `host-deploy` 在任何 migration、Redis ACL materialization、Judge sandbox provisioning 或 Compose mutation 前检查：
 

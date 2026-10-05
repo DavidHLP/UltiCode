@@ -1,27 +1,15 @@
-"""Read-only UltiCode HTTP client: Result envelope + cookie session.
+"""UltiCode HTTP client: Result envelope, cookie session, and offline write contract.
 
-Contract facts (verified against the local stack, 2026-09-24):
-
-- Success envelope: ``{"code": 0, "message": "success", "data": ...}``;
-  failures carry a non-zero ``code`` plus HTTP error status.
-- ``POST /auth/login`` (auth service) sets ``Set-Cookie`` for ``access_token``
-  / ``refresh_token`` / ``csrf_token``. Access/refresh JWTs are issued only as
-  HttpOnly cookies; the JSON body additionally returns ``csrfToken`` plus the
-  user profile. ``csrf_token`` is a readable double-submit cookie — state-
-  changing requests would send ``X-CSRF-Token``; this client is GET-only and
-  never mutates, so no CSRF header is involved.
-- Cookies are stored in an ``httpx.Cookies`` jar and sent as one explicit
-  ``Cookie`` header, because the local stack is plain http while cookies may
-  be Secure-flagged (jar-only attachment would silently drop them).
-
-Read-only by design: no method mutates server state. Identity always comes
-from the server-side session cookie — callers cannot inject a user id.
+The client exposes the Java LearningPlan wire contract for offline preparation;
+it does not register tools or enable confirmation/runtime flows. Access and
+refresh JWTs are issued only as HttpOnly cookies, and refresh is never forwarded.
 """
 
 from __future__ import annotations
 
 import json
 import re
+import unicodedata
 from collections.abc import Callable
 from types import TracebackType
 
@@ -48,6 +36,33 @@ SEARCH_LIMIT_MAX = 100
 
 class UlticodeError(RuntimeError):
     """The Result envelope reported failure, or the body was not a valid envelope."""
+
+
+class UlticodeServiceError(UlticodeError):
+    """A non-zero Result code, retained without exposing server text."""
+
+    def __init__(self, code: int) -> None:
+        super().__init__("service_error")
+        self.code = code
+
+
+LEARNING_PLAN_UUID_PATTERN = re.compile(
+    r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+)
+
+
+def _java_blank(value: str) -> bool:
+    """Mirror ``LearningPlanController.isBlankLikePythonStrip``.
+
+    Java ORs ``Character.isWhitespace`` with ``Character.isSpaceChar`` (so NBSP,
+    U+2007 and U+202F count via Zs) plus an explicit U+0085; NEL is not
+    ``isWhitespace`` in Java, which is why it is listed here explicitly.
+    """
+    return all(
+        unicodedata.category(character) in {"Zs", "Zl", "Zp"}
+        or ord(character) in {*range(0x09, 0x0E), 0x85, *range(0x1C, 0x20)}
+        for character in value
+    )
 
 
 def _validate_search_payload(
@@ -146,7 +161,7 @@ class UlticodeClient:
             raise UlticodeError("invalid Result envelope")
         if response.is_success and code == 0:
             return payload.get("data")
-        raise UlticodeError("service_error")
+        raise UlticodeServiceError(code)
 
     def _clear_session_cookies(self) -> None:
         self._cookies.clear()
@@ -173,6 +188,73 @@ class UlticodeClient:
     def cookie_names(self) -> list[str]:
         """Cookie names only — values must never be printed or persisted."""
         return sorted(cookie.name for cookie in self._cookies.jar)
+
+    def _write_session_headers(self, idempotency_key: str) -> dict[str, str]:
+        access = [cookie.value for cookie in self._cookies.jar if cookie.name == "access_token"]
+        csrf = [cookie.value for cookie in self._cookies.jar if cookie.name == "csrf_token"]
+        if len(access) != 1 or not access[0]:
+            raise UlticodeError("session_required")
+        if len(csrf) != 1 or not csrf[0]:
+            raise UlticodeError("csrf_token_required")
+        if not isinstance(idempotency_key, str) or not LEARNING_PLAN_UUID_PATTERN.fullmatch(idempotency_key):
+            raise ValueError("idempotency_key must be a canonical UUID")
+        csrf_value = csrf[0]
+        return {
+            "Cookie": f"access_token={access[0]}; csrf_token={csrf_value}",
+            "X-CSRF-Token": csrf_value,
+            "Idempotency-Key": idempotency_key,
+        }
+
+    @staticmethod
+    def _validate_learning_plan_payload(
+        source_submission_id: str, draft_version: int, title: str, content: str
+    ) -> None:
+        if not isinstance(source_submission_id, str) or not LEARNING_PLAN_UUID_PATTERN.fullmatch(source_submission_id):
+            raise ValueError("source_submission_id must be a canonical UUID")
+        if type(draft_version) is not int or not 1 <= draft_version <= 2_147_483_647:
+            raise ValueError("draft_version must be a positive 32-bit integer")
+        for name, value, limit in (("title", title, 200), ("content", content, 16000)):
+            if not isinstance(value, str) or _java_blank(value) or len(value) > limit:
+                raise ValueError(f"{name} must be non-blank and within its code-point limit")
+
+    async def save_learning_plan(
+        self,
+        *,
+        source_submission_id: str,
+        draft_version: int,
+        title: str,
+        content: str,
+        idempotency_key: str,
+    ) -> dict[str, object]:
+        self._validate_learning_plan_payload(source_submission_id, draft_version, title, content)
+        headers = self._write_session_headers(idempotency_key)
+        response = await self._app.post(
+            "/learning-plans",
+            json={
+                "sourceSubmissionId": source_submission_id,
+                "draftVersion": draft_version,
+                "title": title,
+                "content": content,
+            },
+            headers=headers,
+        )
+        return self._unwrap_dict(response)
+
+    async def get_learning_plan(self, plan_id: str) -> dict[str, object]:
+        if not isinstance(plan_id, str) or not LEARNING_PLAN_UUID_PATTERN.fullmatch(plan_id):
+            raise ValueError("plan_id must be a canonical UUID")
+        response = await self._app.get(
+            f"/learning-plans/{plan_id}", headers=self._session_headers()
+        )
+        return self._unwrap_dict(response)
+
+    async def get_learning_plan_by_key(self, key: str) -> dict[str, object]:
+        if not isinstance(key, str) or not LEARNING_PLAN_UUID_PATTERN.fullmatch(key):
+            raise ValueError("key must be a canonical UUID")
+        response = await self._app.get(
+            f"/learning-plans/by-key/{key}", headers=self._session_headers()
+        )
+        return self._unwrap_dict(response)
 
     # -- read-only operations -----------------------------------------
 

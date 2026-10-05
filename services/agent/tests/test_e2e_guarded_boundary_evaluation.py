@@ -85,11 +85,16 @@ def test_complete_runner_shared_guard_and_unknown_usage_stop(tmp_path, monkeypat
         assert budget.snapshot()["committed_micro_usd"] == 211200
     else:
         prior_requests = list(requests)
-        with pytest.raises(ValueError):
+        prior_artifact = artifact.read_bytes()
+        prior_journal = entry.journal_path(identity).read_bytes()
+        with pytest.raises(accounting.BudgetLimitExceeded):
             asyncio.run(entry.run(identity, resume_sha256=resume_sha))
         assert requests == prior_requests
+        assert artifact.read_bytes() == prior_artifact
+        assert entry.journal_path(identity).read_bytes() == prior_journal
     previous = list(requests)
-    with pytest.raises(FileExistsError): asyncio.run(entry.run(identity))
+    expected_error = FileExistsError if failure_lane is None else accounting.BudgetLimitExceeded
+    with pytest.raises(expected_error): asyncio.run(entry.run(identity))
     assert requests == previous  # fixed journal refuses reset/replay
 
 

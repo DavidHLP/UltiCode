@@ -1329,3 +1329,27 @@ def test_recorded_live_answers_replayed_with_original_observed_trace(category, m
         assert row["tool_results"] == [
             {"tool": "search_evidence", "failed": False, "result": {"hits": []}}
         ]
+
+
+def test_round_limit_error_preserves_all_four_recorded_decisions():
+    case = next(item for item in CASES if item.category == "no_tool")
+
+    class FourToolRounds:
+        usage = []
+
+        async def decide(self, messages):
+            self.usage.append({"total_tokens": 1})
+            return _call("get_my_submissions", {})
+
+    model = FourToolRounds()
+    (row,) = asyncio.run(be.evaluate_boundary_cases(
+        (case,),
+        model=model,
+        client=_client(),
+        documents=DOCUMENTS,
+        manifest=MANIFEST,
+        max_rounds=4,
+    ))
+    assert row["rounds"] == 4
+    assert row["model_calls"] == 4
+    assert row["failure_handling"]["loop_error"] == "ModelLoopExceeded"

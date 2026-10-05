@@ -1,9 +1,10 @@
+import json
 import asyncio
 
 import httpx
 import pytest
 
-from ulticode_client import UlticodeClient, UlticodeError
+from ulticode_client import UlticodeClient, UlticodeError, UlticodeServiceError
 
 
 def test_unwraps_result_envelope_to_data() -> None:
@@ -594,3 +595,179 @@ def test_search_problems_hands_over_a_page_before_rejecting_it() -> None:
     assert [page["results"] for page in seen] == [
         [{"id": "1", "title": "u02-canary-a"}]
     ]
+
+
+PLAN_ID = "11111111-2222-3333-4444-555555555555"
+SUBMISSION_ID = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+
+
+def test_learning_plan_wire_contract_uses_cookie_csrf_and_idempotency_without_refresh():
+    seen = []
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/auth/login":
+            return httpx.Response(
+                200,
+                json={"code": 0, "message": "success", "data": {}},
+                headers=[
+                    ("set-cookie", "access_token=access; Path=/; HttpOnly"),
+                    ("set-cookie", "refresh_token=refresh; Path=/; HttpOnly"),
+                    ("set-cookie", "csrf_token=csrf; Path=/"),
+                ],
+            )
+        seen.append(request)
+        return httpx.Response(
+            200,
+            json={"code": 0, "message": "success", "data": {"id": PLAN_ID}},
+        )
+
+    async def scenario():
+        async with UlticodeClient(
+            "https://app.test",
+            "https://auth.test",
+            transport=httpx.MockTransport(handler),
+        ) as client:
+            await client.login("test", "dummy")
+            saved = await client.save_learning_plan(
+                source_submission_id=SUBMISSION_ID,
+                draft_version=2,
+                title="😀" * 200,
+                content="课" * 16000,
+                idempotency_key=PLAN_ID,
+            )
+            by_id = await client.get_learning_plan(PLAN_ID)
+            by_key = await client.get_learning_plan_by_key(PLAN_ID)
+        assert saved == by_id == by_key == {"id": PLAN_ID}
+
+    asyncio.run(scenario())
+    post, get_id, get_key = seen
+    assert (post.method, post.url.path) == ("POST", "/learning-plans")
+    assert json.loads(post.content) == {
+        "sourceSubmissionId": SUBMISSION_ID,
+        "draftVersion": 2,
+        "title": "😀" * 200,
+        "content": "课" * 16000,
+    }
+    assert post.headers["cookie"] == "access_token=access; csrf_token=csrf"
+    assert post.headers["x-csrf-token"] == "csrf"
+    assert post.headers["idempotency-key"] == PLAN_ID
+    assert "refresh_token" not in post.headers["cookie"]
+    for request, path in ((get_id, f"/learning-plans/{PLAN_ID}"), (get_key, f"/learning-plans/by-key/{PLAN_ID}")):
+        assert (request.method, request.url.path) == ("GET", path)
+        assert request.headers["cookie"] == "access_token=access"
+        assert "csrf_token" not in request.headers["cookie"]
+        assert "x-csrf-token" not in request.headers
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("source_submission_id", "1-1-1-1-1"),
+        ("draft_version", True),
+        ("draft_version", 0),
+        ("draft_version", 2_147_483_648),
+        ("title", "\u00a0"),
+        ("title", "😀" * 201),
+        ("content", "x" * 16001),
+    ],
+)
+def test_learning_plan_invalid_payload_is_rejected_before_http(field, value):
+    requests = []
+
+    async def handler(request):
+        requests.append(request)
+        raise AssertionError("invalid DTO must not issue HTTP")
+
+    async def scenario():
+        async with UlticodeClient(
+            "https://app.test", "https://auth.test", transport=httpx.MockTransport(handler)
+        ) as client:
+            payload = {
+                "source_submission_id": SUBMISSION_ID,
+                "draft_version": 1,
+                "title": "Plan",
+                "content": "Content",
+            }
+            payload[field] = value
+            with pytest.raises(ValueError):
+                await client.save_learning_plan(**payload, idempotency_key=PLAN_ID)
+
+    asyncio.run(scenario())
+    assert requests == []
+
+
+@pytest.mark.parametrize(
+    "duplicate_cookie,error",
+    [("access_token", "session_required"), ("csrf_token", "csrf_token_required")],
+)
+def test_learning_plan_write_rejects_duplicate_session_cookies_before_http(duplicate_cookie, error):
+    requests = []
+
+    async def handler(request):
+        requests.append(request)
+        raise AssertionError("ambiguous cookies must not issue HTTP")
+
+    async def scenario():
+        async with UlticodeClient(
+            "https://app.test", "https://auth.test", transport=httpx.MockTransport(handler)
+        ) as client:
+            client._cookies.set("access_token", "access", domain="app.test", path="/")
+            client._cookies.set("csrf_token", "csrf", domain="app.test", path="/")
+            client._cookies.set(
+                duplicate_cookie, "duplicate", domain="app.test", path="/learning-plans"
+            )
+            with pytest.raises(UlticodeError, match=error):
+                await client.save_learning_plan(
+                    source_submission_id=SUBMISSION_ID,
+                    draft_version=1,
+                    title="Plan",
+                    content="Content",
+                    idempotency_key=PLAN_ID,
+                )
+
+    asyncio.run(scenario())
+    assert requests == []
+
+
+@pytest.mark.parametrize(
+    "status,code",
+    [(400, 40000), (401, 40100), (403, 40300), (404, 40400), (409, 40900)],
+)
+def test_learning_plan_result_codes_survive_without_server_message(status, code):
+    requests = []
+
+    async def handler(request):
+        if request.url.path == "/auth/login":
+            return httpx.Response(
+                200,
+                json={"code": 0, "message": "success", "data": {}},
+                headers=[("set-cookie", "access_token=access; Path=/; HttpOnly"),
+                         ("set-cookie", "csrf_token=csrf; Path=/")],
+            )
+        requests.append(request)
+        return httpx.Response(
+            status,
+            json={"code": code, "message": "SECRET service detail", "data": {"private": True}},
+        )
+
+    async def scenario():
+        async with UlticodeClient(
+            "https://app.test",
+            "https://auth.test",
+            transport=httpx.MockTransport(handler),
+        ) as client:
+            await client.login("test", "dummy")
+            with pytest.raises(UlticodeServiceError) as error:
+                await client.save_learning_plan(
+                    source_submission_id=SUBMISSION_ID,
+                    draft_version=1,
+                    title="Plan",
+                    content="Content",
+                    idempotency_key=PLAN_ID,
+                )
+            assert error.value.code == code
+            assert str(error.value) == "service_error"
+            assert "SECRET" not in str(error.value)
+
+    asyncio.run(scenario())
+    assert len(requests) == 1

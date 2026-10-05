@@ -368,7 +368,7 @@ def test_bound_adapters_share_full_caps_and_independent_purposes(tmp_path, monke
     async def scenario():
         async with DeepseekModel("dummy-mock-token", tool_specs={}, model="deepseek-flash",
                                  budget=budget, budget_purpose="dav58_loop", max_tokens=2000,
-                                 max_calls=30, transport=httpx.MockTransport(_handler(captured))) as loop:
+                                 max_calls=30, transport=httpx.MockTransport(_handler(captured, _USAGE))) as loop:
             for _ in range(24):
                 await loop.decide([{"role": "user", "content": "synthetic"}])
             with pytest.raises(ModelBudgetExceeded):
@@ -377,7 +377,7 @@ def test_bound_adapters_share_full_caps_and_independent_purposes(tmp_path, monke
             assert all(row["period_identity"] == identity.identity for row in loop.metering)
         async with DeepseekModel("dummy-mock-token", tool_specs={}, model="deepseek-flash",
                                  budget=budget, budget_purpose="dav58_judge", max_tokens=2000,
-                                 transport=httpx.MockTransport(_handler(captured))) as judge:
+                                 transport=httpx.MockTransport(_handler(captured, _USAGE))) as judge:
             await judge.decide([{"role": "user", "content": "synthetic judge"}])
             assert judge.metering[0]["purpose"] == "dav58_judge"
             assert judge.metering[0]["config_sha256"] == identity.config_sha256
@@ -419,6 +419,48 @@ def test_bound_failed_cancelled_and_unknown_calls_stay_fully_charged(tmp_path, m
     assert len(captured) == 1
     assert budget.snapshot()["reserved_micro_usd"] == 9600
     assert budget.snapshot()["attempts"] == 1
+
+
+def test_bound_unknown_usage_after_tool_call_blocks_next_http(tmp_path, monkeypatch):
+    _, budget = _bound_budget(tmp_path, monkeypatch)
+    captured = []
+
+    async def handler(request):
+        captured.append(request)
+        return httpx.Response(200, json={
+            "choices": [{
+                "message": {"content": '{"tool":"get_my_submissions","args":{}}'},
+                "finish_reason": "tool_calls",
+            }]
+        })
+
+    async def scenario():
+        async with DeepseekModel(
+            "dummy-mock-token",
+            tool_specs={"get_my_submissions": "read owner submissions"},
+            model="deepseek-flash",
+            budget=budget,
+            budget_purpose="dav53_scenarios",
+            max_tokens=1000,
+            max_calls=4,
+            transport=httpx.MockTransport(handler),
+        ) as model:
+            decision = await model.decide([{"role": "user", "content": "synthetic"}])
+            assert decision.tool_call.name == "get_my_submissions"
+            assert model.usage[0]["prompt_tokens"] is None
+            with pytest.raises(ModelBudgetExceeded):
+                await model.decide([
+                    {"role": "user", "content": "synthetic"},
+                    {"role": "tool", "content": '{"items":[]}'} ,
+                ])
+            assert model.calls_made == 1
+
+    asyncio.run(scenario())
+    snapshot = budget.snapshot()
+    assert len(captured) == 1
+    assert snapshot["attempts"] == 1
+    assert snapshot["reserved_micro_usd"] == 8400
+    assert snapshot["unknown_usage_attempts"] == 1
 
 
 @pytest.mark.parametrize("phase", ["reserve", "settle"])

@@ -112,6 +112,14 @@ artifact 固定周期身份、配置 hash、purpose、前后账本快照及逐�
 仍为 False。这里只用临时账本与 MockTransport 验证，没有执行真实调用，确定性测试
 不构成 DAV-58 的真实模型验收。
 
+绑定账本的 `reserve()` 在同一个 `BEGIN IMMEDIATE` 事务里、于任何计数/费用/attempt 写入之前
+先检查是否存在 `settled=0` 或 `usage_known!=1` 的 attempt；存在即 rollback 并抛
+`BudgetLimitExceeded`，不更新闩锁、费用或历史 attempt。`snapshot()` 在同一锁内额外只读
+暴露 `unknown_usage_attempts` 与 `unsettled_attempts`，显式 `authorized_model(expected)`
+工厂也把这两项非零视为未激活而拒绝。这样一次缺 usage 的合法 tool-call 之后，下一次
+round 与后续 purpose 都无法再发出模型 HTTP；未知用量永远保留完整预留，不退旧账本。
+legacy 无参工厂行为不变，本任务的 live 入口一律走显式绑定身份。
+
 `e2e_answer_evaluation.py` evaluates generated answers on the development split only. Its answer
 pass receives the case question and retrieved evidence, not expected/allowed/forbidden outcomes;
 it must return explicit retrieved chunk IDs in `citations`, and judging checks only those citations.
@@ -203,10 +211,42 @@ ULTICODE_AUTH_BASE=http://localhost:9101 \
 uv run python e2e_account_isolation.py
 ```
 
+模型腿需要显式绑定身份（三个字段各一次，且与环境中的 `DEEPSEEK_MODEL`/`DEEPSEEK_API_KEY`
+同时提供）：
+
+```bash
+cd services/agent
+ULTICODE_E2E_ISOLATION=1 \
+ULTICODE_APP_BASE=http://localhost:9103 \
+ULTICODE_AUTH_BASE=http://localhost:9101 \
+uv run python e2e_account_isolation.py \
+  --period-id <period> --period-identity <identity> --config-sha256 <sha256>
+```
+
 安全约束：脚本会**拒绝非回环**的 base URL，除非显式设置 `ULTICODE_E2E_ISOLATION_ALLOW_REMOTE=1` 表明目标确实是你可丢弃的自有栈。它只输出固定标签与状态码，不回显任何凭据、Cookie 或响应正文；跨账号读取只接受契约定义的 403/404 视为拒绝，5xx 或信封异常一律判为脚本不成立。夹具选择不再假定列表第一题可用：它按列表自身的 `total` 分页扫描，找一道提供 `SUBMISSION_LANGUAGE` 的题目（页数上限由 `ULTICODE_E2E_FIXTURE_MAX_PAGES` 控制，默认 20 页，仅为防止异常列表死循环）。脚本同时检查**公开内容的匿名正对照**（`GET /problems`、`GET /problems/{id}` 无会话应仍为 200，且信封里确有题目数据）：把「所有跨账号请求都拒绝」当成隔离通过是错的。**不要**把生产或共享环境作为目标。
 
 未配置授权模型时，脚本会保留 HTTP 对照结果，但以 `INCOMPLETE` 和非零状态结束；
-仅当真实模型 agent 隔离对照也通过时，才报告完整隔离成功。
+仅当真实模型 agent 隔离对照也通过时，才报告完整隔离成功。配置了模型时，脚本必须同时
+收到三个显式的、各出现一次的绑定身份字段 `--period-id`、`--period-identity`、
+`--config-sha256`；缺任一项、重复、或在不配置模型时给出这些字段都 fail closed
+（`reason=model_budget_binding_required`），不使用无参 legacy 工厂。模型腿只经
+`authorized_model(expected)` 使用该绑定周期，三条攻击腿共用 `dav53_scenarios` purpose
+（12 次尝试、每次 completion 上限 1000、rounds 4、每腿最多 4 次调用），与 DAV-58 的
+loop/judge 一样计入同一个 USD 1 周期，不新增周期、不追加第二条账本。任一未知用量或被
+拒绝的预留会立即中断当前腿并跳过其余腿（记为 `not_run`），不自动重试；artifact 保留
+每条腿的绑定身份、purpose、前后账本快照、逐调用 receipt 与真实 answer/tool trace。
+
+`services/agent/src/ulticode_client.py` 现在额外提供 Java LearningPlan 的**离线 wire 契约**
+（`save_learning_plan` / `get_learning_plan` / `get_learning_plan_by_key`），仅用于准备
+U03：它不注册任何工具、不进入 tool registry、不实现确认或回放运行时。写请求要求会话中
+恰好一个非空 `access_token` 与一个非空 `csrf_token`，Cookie 只带这两个值，
+`X-CSRF-Token` 与 `csrf_token` 一致，并带 `Idempotency-Key`；缺任一 cookie 或重复 cookie
+在发出 HTTP 之前以 `session_required` / `csrf_token_required` 失败，绝不转发 refresh、
+不自动重试或换 key。请求体只含 `sourceSubmissionId`（Java canonical 36 字符 UUID）、
+`draftVersion`（正 32 位整数）、`title`/`content`（非空白、Unicode **code point** 上限
+200/16000，与 Java controller 与 MySQL utf8mb4 一致）；读路径只带 `access_token`。
+`UlticodeServiceError` 保留已验证的业务整数 `.code`，但绝不外泄服务端 message/body，
+失败响应体的字段不进入异常文本。U02/DAV-53 未通过前不能据此执行真实草稿确认。
 
 A/B 响应与私有列表还会检查 source-bearing 字段及去除 synthetic canary 后的夹具源码；
 公开题目详情中的 `starter_code` 仍允许返回。

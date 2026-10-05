@@ -471,6 +471,13 @@ class ModelBudget:
                 # can be sent on this budget.
                 db.rollback()
                 raise BudgetLimitExceeded("shared budget halted after over-bound usage")
+            if locked is not None:
+                unknown, unsettled = db.execute(
+                    "SELECT SUM(settled=0 OR usage_known!=1), SUM(settled=0) FROM attempts"
+                ).fetchone()
+                if unknown or unsettled:
+                    db.rollback()
+                    raise BudgetLimitExceeded("bound period has unknown or unsettled usage")
             if attempts >= max_attempts or reserved + reserve > max_cost:
                 db.rollback()
                 raise BudgetLimitExceeded("shared request/cost budget exhausted")
@@ -613,14 +620,22 @@ class ModelBudget:
                 "evaluation_remaining_calls,evaluation_remaining_micro_usd,halted "
                 "FROM budget WHERE singleton=1"
             ).fetchone()
+            committed = reserved + eval_micro
+            if locked is not None:
+                unknown_attempts, unsettled_attempts = db.execute(
+                    "SELECT SUM(usage_known!=1), SUM(settled=0) FROM attempts"
+                ).fetchone()
+                unknown_attempts = unknown_attempts or 0
+                unsettled_attempts = unsettled_attempts or 0
             binding = {} if locked is None else {
                 "period_identity": self._identity.identity, "config_sha256": self._identity.config_sha256,
                 "state": locked.snapshot.state,
                 "sql_gate": db.execute("SELECT gate FROM binding WHERE singleton=1").fetchone()[0],
                 "legacy_history": "UNKNOWN", "runtime_accounting_connected": False,
                 "spend_limit_enforced": False,
+                "unknown_usage_attempts": unknown_attempts,
+                "unsettled_attempts": unsettled_attempts,
             }
-        committed = reserved + eval_micro
         max_attempts = period.POLICY["attempts"] if self._identity else MAX_ATTEMPTS
         max_cost = period.POLICY["limit_micro_usd"] if self._identity else MAX_MICRO_USD
         return {
@@ -649,8 +664,10 @@ def authorized_model(expected: period.PeriodIdentity | object = _LEGACY_MODEL) -
     if expected is not _LEGACY_MODEL:
         budget = ModelBudget.bound(expected)
         snapshot = budget.snapshot()
-        if snapshot["state"] != "active" or snapshot["sql_gate"] != "active" or snapshot["halted"]:
-            raise BudgetLimitExceeded("bound period is not active")
+        if (snapshot["state"] != "active" or snapshot["sql_gate"] != "active"
+                or snapshot["halted"] or snapshot["unknown_usage_attempts"]
+                or snapshot["unsettled_attempts"]):
+            raise BudgetLimitExceeded("bound period is not active or has unresolved usage")
     if not os.environ.get("DEEPSEEK_API_KEY", "").strip():
         raise ValueError("DeepSeek API key is not configured")
     return model, budget if budget is not None else ModelBudget()

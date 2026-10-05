@@ -35,6 +35,7 @@ def prepared_migration(tmp_path, monkeypatch):
                "limit_micro_usd": 1000000, "pending_micro_usd": 0, "halted": False,
                "settled_peak_micro_usd": 10774, "receipts": receipts}
     (slot / migration.FILES["journal"]).write_text(json.dumps(journal))
+    (slot / migration.FILES["journal"]).chmod(0o644)
     (slot / (migration.FILES["journal"] + ".lock")).touch(mode=0o600)
     original = json.loads((slot / migration.FILES["identity"]).read_text())
     for key in ("directory", "state_file"): original[key][0] = migration.SOURCE_DEVICE

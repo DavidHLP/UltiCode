@@ -150,7 +150,9 @@ def test_guard_does_not_refund_original_period_reservations(tmp_path, monkeypatc
     asyncio.run(run())
     # Existing adapter reserves before transport; even a guard-rejected call is
     # kept conservatively. The independent envelope never refunds this ledger.
-    assert budget.snapshot()["reserved_micro_usd"] == 19200
+    # A first call whose usage never came back leaves an unknown attempt, so the
+    # bound ledger refuses to reserve for the second lane at all.
+    assert budget.snapshot()["reserved_micro_usd"] == (9600 if unknown else 19200)
     assert guard.state["settled_peak_micro_usd"] == (0 if unknown else 108)
     assert len(guard.state["receipts"]) == (1 if unknown else 2)
 
@@ -196,6 +198,23 @@ def test_resume_rejects_unknown_and_corrupted_history(tmp_path, damage):
     with pytest.raises(ValueError):
         IncrementalGuard(path, resume_sha256=sha, period_identity='same-identity', config_sha256='same-config')
     assert path.read_bytes() == before
+
+
+def test_resume_accepts_uppercase_response_model_without_rewriting_receipt(tmp_path):
+    path, saved, _ = settled_journal(tmp_path)
+    saved["receipts"][0]["response_model"] = "DEEPSEEK-V4.1-FLASH"
+    path.write_text(json.dumps(saved) + "\n")
+    before = path.read_bytes()
+    import hashlib
+    resumed = IncrementalGuard(
+        path,
+        resume_sha256=hashlib.sha256(before).hexdigest(),
+        period_identity="same-identity",
+        config_sha256="same-config",
+    )
+    assert resumed.state["receipts"][0]["response_model"] == "DEEPSEEK-V4.1-FLASH"
+    assert path.read_bytes() == before
+    resumed.close()
 
 
 def test_concurrent_owner_cannot_resume(tmp_path):

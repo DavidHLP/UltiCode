@@ -1,6 +1,7 @@
 import asyncio
 import importlib.util
 import json
+import sqlite3
 import tempfile
 from pathlib import Path
 
@@ -3831,16 +3832,304 @@ def test_a_failed_private_login_is_attributed_to_its_own_query(monkeypatch) -> N
         )
 
     a_failed = run(identity_a[0])
-    assert a_failed["walk_error"] == "UlticodeError"
+    assert a_failed["walk_error"] == "UlticodeServiceError"
     assert a_failed["public_query"]["error"] is None
     assert a_failed["public_query"]["complete"] is True
-    assert a_failed["a_query"]["error"] == "UlticodeError"
+    assert a_failed["a_query"]["error"] == "UlticodeServiceError"
     assert a_failed["a_query"]["pages"] == 0
     assert a_failed["b_query"]["error"] is None
 
     b_failed = run(identity_b[0])
-    assert b_failed["walk_error"] == "UlticodeError"
+    assert b_failed["walk_error"] == "UlticodeServiceError"
     assert b_failed["a_query"]["error"] is None
     assert b_failed["a_query"]["complete"] is True
-    assert b_failed["b_query"]["error"] == "UlticodeError"
+    assert b_failed["b_query"]["error"] == "UlticodeServiceError"
     assert b_failed["b_query"]["pages"] == 0
+
+
+def test_model_probe_requires_one_explicit_bound_identity(monkeypatch):
+    monkeypatch.setenv(e2e_account_isolation.MODEL_ENV, "deepseek-flash")
+    monkeypatch.setenv(e2e_account_isolation.MODEL_KEY_ENV, "dummy-mock-token")
+    args = [
+        "--period-id", "offline-period",
+        "--period-identity", "b" * 32,
+        "--config-sha256", "a" * 64,
+    ]
+    identity = e2e_account_isolation._expected_period_identity(args)
+    assert identity.period_id == "offline-period"
+    assert identity.identity == "b" * 32
+    assert identity.config_sha256 == "a" * 64
+    with pytest.raises(ValueError):
+        e2e_account_isolation._expected_period_identity(args + ["--period-id", "other"])
+    with pytest.raises(ValueError):
+        e2e_account_isolation._expected_period_identity(args[:-2])
+
+
+
+
+def _run_real_bound_probe(monkeypatch, tmp_path, responses, *, fail_snapshot_at=None):
+    import authorized_budget_period as period
+    import model_budget as accounting
+    from deepseek_model import DeepseekModel
+
+    slot = tmp_path / "authorization"
+    slot.mkdir()
+    monkeypatch.setattr(accounting, "_authorization_slot", lambda: slot)
+    identity = period.prepare_period(
+        slot / "period", "offline-probe", accounting.authorized_period_config_sha256()
+    ).identity
+    budget = accounting.ModelBudget.bind_prepared(identity)
+    budget.activate()
+
+    class Client:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return None
+
+        async def login(self, username, password):
+            return {}
+
+        async def list_my_submissions(self, **kwargs):
+            return {"items": [{"id": "11111111-1111-4111-8111-111111111111"}]}
+
+    async def list_tool(arguments):
+        return {"items": [{"id": "11111111-1111-4111-8111-111111111111"}]}
+
+    monkeypatch.setattr(
+        e2e_account_isolation, "UlticodeClient", lambda *args, **kwargs: Client()
+    )
+    monkeypatch.setattr(
+        e2e_account_isolation, "build_tools", lambda client: {"get_my_submissions": list_tool}
+    )
+
+    async def principal(client):
+        return ("user-a", "USER")
+
+    monkeypatch.setattr(e2e_account_isolation, "_client_principal", principal)
+    monkeypatch.setattr(
+        e2e_account_isolation, "_owner_listing_exposure",
+        lambda *args, **kwargs: (False, False, []),
+    )
+    requests = []
+    response_index = 0
+
+    async def handler(request):
+        nonlocal response_index
+        requests.append(request)
+        content, has_usage = responses[response_index]
+        response_index += 1
+        payload = {
+            "model": "deepseek-flash",
+            "choices": [{"message": {"content": content}}],
+        }
+        if has_usage:
+            payload["usage"] = {
+                "prompt_tokens": 100, "completion_tokens": 20, "total_tokens": 120,
+            }
+        return httpx.Response(200, json=payload)
+
+    monkeypatch.setenv(e2e_account_isolation.MODEL_KEY_ENV, "mock-only-key")
+    monkeypatch.setenv(e2e_account_isolation.MODEL_ENV, "deepseek-flash")
+    monkeypatch.setattr(
+        e2e_account_isolation,
+        "DeepseekModel",
+        lambda api_key, **kwargs: DeepseekModel(
+            api_key,
+            base_url="https://model.test",
+            transport=httpx.MockTransport(handler),
+            **kwargs,
+        ),
+    )
+    if fail_snapshot_at is not None:
+        original_snapshot = budget.snapshot
+        snapshot_calls = 0
+
+        def snapshot():
+            nonlocal snapshot_calls
+            snapshot_calls += 1
+            if snapshot_calls == fail_snapshot_at:
+                raise OSError("injected snapshot failure")
+            return original_snapshot()
+
+        budget.snapshot = snapshot
+
+    submission_a = "11111111-1111-4111-8111-111111111111"
+    submission_b = "22222222-2222-4222-8222-222222222222"
+    result = asyncio.run(e2e_account_isolation._agent_isolation_probe(
+        identity_a=("user-a", "a@example.test", "synthetic-password"),
+        account_b_id="user-b",
+        submission_a=submission_a,
+        submission_b=submission_b,
+        canary_a="synthetic-canary-a",
+        canary_b="synthetic-canary-b",
+        starter_code="synthetic starter",
+        expected_identity=identity,
+        model_binding=("deepseek-flash", budget),
+    ))
+    return result, budget, requests
+
+
+def _known_tool_call(tool="get_my_submissions", args=None):
+    return (json.dumps({"tool": tool, "args": args or {}}), True)
+
+
+def _known_answer(text="synthetic answer"):
+    return (json.dumps({"answer": text}), True)
+
+
+def test_real_probe_unknown_toolcall_stops_round_and_remaining_legs(monkeypatch, tmp_path):
+    (verdict, evidence), budget, requests = _run_real_bound_probe(
+        monkeypatch,
+        tmp_path,
+        [(json.dumps({
+            "tool": "get_my_submissions",
+            "args": {},
+        }), False)],
+    )
+    assert len(requests) == 1
+    assert [row["interrupted"] for row in evidence["scenarios"]] == [
+        "ModelBudgetExceeded", "not_run", "not_run",
+    ]
+    first = evidence["scenarios"][0]
+    assert first["ok"] is False
+    assert first["usage_entries"] == [{
+        "prompt_tokens": None, "completion_tokens": None, "total_tokens": None,
+    }]
+    assert first["response_models"] == ["deepseek-flash"]
+    assert evidence["response_models"] == ["deepseek-flash"]
+    assert first["metering_entries"][0]["actual_micro_usd"] is None
+    assert len(first["tool_trace"]) == 1
+    assert evidence["model_calls"] == 1
+    assert verdict == "incomplete"
+    assert budget.snapshot()["unknown_usage_attempts"] == 1
+    receipt = first["metering_entries"][0]
+    assert receipt["period_identity"] == evidence["budget_binding"]["period_identity"]
+    assert receipt["config_sha256"] == evidence["budget_binding"]["config_sha256"]
+    assert receipt["purpose"] == "dav53_scenarios"
+    connection = sqlite3.connect(budget.path)
+    ledger = connection.execute(
+        "SELECT attempt_id,purpose,reserved_micro_usd,actual_micro_usd,usage_known,settled "
+        "FROM attempts"
+    ).fetchone()
+    connection.close()
+    assert ledger[0] == receipt["attempt_id"]
+    assert ledger[1] == receipt["purpose"]
+    assert ledger[2] == receipt["reserved_micro_usd"]
+    assert ledger[3] is None and receipt["actual_micro_usd"] is None
+    assert ledger[4:] == (0, 1)
+
+
+def test_real_probe_terminal_unknown_in_final_injection_leg_is_not_ok(monkeypatch, tmp_path):
+    responses = [
+        _known_tool_call(), _known_answer(),
+        _known_tool_call(), _known_answer(),
+        _known_tool_call(
+            "search_evidence", {"query": e2e_account_isolation.INJECTION_QUERY},
+        ),
+        _known_tool_call(), (json.dumps({"answer": "answer retained"}), False),
+    ]
+    (verdict, evidence), budget, requests = _run_real_bound_probe(
+        monkeypatch, tmp_path, responses,
+    )
+    last = evidence["scenarios"][-1]
+    assert len(requests) == 7
+    assert last["scenario"] == "source_injection"
+    assert last["interrupted"] == "ModelBudgetExceeded"
+    assert last["ok"] is False
+    assert last["final_answer"] == "answer retained"
+    assert last["usage_entries"][-1]["total_tokens"] is None
+    assert last["metering_entries"][-1]["actual_micro_usd"] is None
+    assert evidence["budget_binding"]["period_identity"] == last["budget_binding"]["period_identity"]
+    assert evidence["budget_binding"]["config_sha256"] == last["budget_binding"]["config_sha256"]
+    assert evidence["budget_binding"]["purpose"] == "dav53_scenarios"
+    assert verdict == "incomplete"
+    assert budget.snapshot()["unknown_usage_attempts"] == 1
+
+
+def test_real_probe_snapshot_failure_preserves_paid_receipts_and_stops(monkeypatch, tmp_path):
+    responses = [
+        _known_tool_call(), _known_answer(),
+        _known_tool_call(), _known_answer(),
+    ]
+    (verdict, evidence), budget, requests = _run_real_bound_probe(
+        monkeypatch, tmp_path, responses, fail_snapshot_at=4,
+    )
+    artifact = tmp_path / "model-evidence.json"
+    artifact.write_text(json.dumps(evidence), encoding="utf-8")
+    artifact.chmod(0o600)
+    saved = json.loads(artifact.read_text(encoding="utf-8"))
+    assert len(requests) == 4
+    assert [row["interrupted"] for row in saved["scenarios"]] == [
+        None, "BudgetSnapshotError", "not_run",
+    ]
+    assert len(saved["metering_entries"]) == len(saved["usage_entries"]) == 4
+    assert saved["budget_binding"]["purpose"] == "dav53_scenarios"
+    assert saved["scenarios"][1]["budget_snapshot_error"] == "unavailable"
+    assert saved["scenarios"][1]["final_answer"] == "synthetic answer"
+    assert sum(len(row["tool_trace"]) for row in saved["scenarios"]) == 2
+    assert saved["scenarios"][0]["final_answer"] == "synthetic answer"
+    assert artifact.stat().st_mode & 0o777 == 0o600
+    assert "mock-only-key" not in artifact.read_text(encoding="utf-8")
+    connection = sqlite3.connect(budget.path)
+    rows = connection.execute(
+        "SELECT attempt_id,purpose,reserved_micro_usd,actual_micro_usd,usage_known,settled "
+        "FROM attempts"
+    ).fetchall()
+    connection.close()
+    by_id = {row[0]: row for row in rows}
+    assert len(rows) == 4
+    for receipt, usage in zip(saved["metering_entries"], saved["usage_entries"]):
+        sql_row = by_id[receipt["attempt_id"]]
+        assert receipt["period_identity"] == saved["budget_binding"]["period_identity"]
+        assert receipt["config_sha256"] == saved["budget_binding"]["config_sha256"]
+        assert receipt["purpose"] == sql_row[1] == "dav53_scenarios"
+        assert receipt["reserved_micro_usd"] == sql_row[2]
+        assert receipt["actual_micro_usd"] == sql_row[3]
+        assert sql_row[4:] == (1, 1)
+        assert usage["total_tokens"] == 120
+    assert saved["metering_entries"][-1]["actual_micro_usd"] is not None
+    assert verdict == "incomplete"
+
+
+def test_real_probe_before_snapshot_failure_keeps_prior_paid_evidence(monkeypatch, tmp_path):
+    responses = [_known_tool_call(), _known_answer()]
+    (verdict, evidence), _budget, requests = _run_real_bound_probe(
+        monkeypatch, tmp_path, responses, fail_snapshot_at=3,
+    )
+    assert len(requests) == 2
+    assert [row["interrupted"] for row in evidence["scenarios"]] == [
+        None, "BudgetSnapshotError", "not_run",
+    ]
+    assert evidence["scenarios"][1]["model_calls"] == 0
+    assert evidence["scenarios"][1]["metering_entries"] == []
+    assert evidence["scenarios"][1]["usage_entries"] == []
+    assert len(evidence["metering_entries"]) == len(evidence["usage_entries"]) == 2
+    assert evidence["metering_entries"] == evidence["scenarios"][0]["metering_entries"]
+    assert evidence["usage_entries"] == evidence["scenarios"][0]["usage_entries"]
+    assert verdict == "incomplete"
+
+
+def test_bound_snapshot_gate_accepts_sqlite_zero_and_rejects_malformed_counts():
+    healthy = {
+        "state": "active",
+        "sql_gate": "active",
+        "halted": 0,
+        "unknown_usage_attempts": 0,
+        "unsettled_attempts": 0,
+    }
+    assert not e2e_account_isolation._budget_snapshot_blocks(healthy)
+    for key, value in (
+        ("halted", 1),
+        ("halted", True),
+        ("halted", 0.0),
+        ("halted", "0"),
+        ("unknown_usage_attempts", 1),
+        ("unknown_usage_attempts", False),
+        ("unknown_usage_attempts", 0.0),
+        ("unsettled_attempts", 1),
+        ("unsettled_attempts", False),
+        ("unsettled_attempts", 0.0),
+    ):
+        assert e2e_account_isolation._budget_snapshot_blocks({**healthy, key: value})

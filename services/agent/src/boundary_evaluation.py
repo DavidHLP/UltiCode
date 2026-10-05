@@ -1136,7 +1136,7 @@ async def _evaluate_one(
     except (ModelLoopExceeded, ModelLoopTimeout) as error:
         loop_error = type(error).__name__
         answer = ""
-        rounds = 0
+        rounds = recorder.decisions
 
     loop_usage_end = len(getattr(model, "usage", []) or [])
     judge_lane_start = loop_usage_end if judge_model is model else judge_usage_start

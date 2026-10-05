@@ -51,12 +51,13 @@ The artifact destination is reserved before the first registration or model call
 and the definitive OK is printed only after the artifact was published and read
 back.
 
-Every run publishes one sanitized, no-clobber artifact to
+Every run publishes one no-clobber artifact to
 ``$XDG_STATE_HOME/ulticode/first-delivery/`` (override with
-``ULTICODE_E2E_ISOLATION_RESULT``) for success, failure and incomplete alike: run
-id, UTC time, code provenance, role labels, the boolean matrix, model identity
-and usage. It never carries a credential, cookie, private source or canary
-literal.
+``ULTICODE_E2E_ISOLATION_RESULT``) for success, failure and incomplete alike. It
+contains bound per-call budget receipts and usage, plus the observed model
+answer/tool trace needed to audit an interrupted leg. Credential-bearing fields
+and known canary, fixture-source and submission-id strings are redacted; stdout
+remains fixed labels and never includes a response body.
 
 Run against the local development stack:
 
@@ -68,6 +69,7 @@ Run against the local development stack:
 
 from __future__ import annotations
 
+import argparse
 import asyncio
 import hashlib
 import json
@@ -100,6 +102,7 @@ from e2e_citation_support_model import (
     _release_unfinished_claim,
 )
 from model_budget import MAX_COMPLETION_TOKENS, MAX_PROMPT_TOKENS, authorized_model
+from authorized_budget_period import POLICY_ID, PeriodIdentity
 from retrieval import SourceDocument
 from ulticode_client import (
     SEARCH_QUERY_MAX,
@@ -1725,6 +1728,51 @@ class _ProbeScenario(NamedTuple):
     inject: bool
 
 
+def _budget_snapshot_blocks(snapshot: object) -> bool:
+    """Fail closed when the bound lane has unresolved usage or is inactive."""
+    if not isinstance(snapshot, dict):
+        return True
+    halted = snapshot.get("halted")
+    unknown = snapshot.get("unknown_usage_attempts")
+    unsettled = snapshot.get("unsettled_attempts")
+    return (
+        snapshot.get("state") != "active"
+        or snapshot.get("sql_gate") != "active"
+        or type(halted) not in (bool, int)
+        or halted != 0
+        or type(unknown) is not int
+        or unknown != 0
+        or type(unsettled) is not int
+        or unsettled != 0
+        or snapshot.get("snapshot_error") is not None
+    )
+
+
+def _redact_probe_artifact(value: object, hidden: tuple[str, ...] = ()) -> object:
+    """Retain answer/tool evidence while excluding credentials and known fixtures."""
+    if isinstance(value, dict):
+        return {
+            str(key): (
+                "<redacted>"
+                if any(word in str(key).casefold() for word in (
+                    "token", "cookie", "password", "authorization", "secret", "api_key",
+                ))
+                else _redact_probe_artifact(item, hidden)
+            )
+            for key, item in value.items()
+        }
+    if isinstance(value, list):
+        return [_redact_probe_artifact(item, hidden) for item in value]
+    if isinstance(value, tuple):
+        return [_redact_probe_artifact(item, hidden) for item in value]
+    if isinstance(value, str):
+        for text in hidden:
+            if text:
+                value = value.replace(text, "<redacted>")
+        return value
+    return value
+
+
 async def _run_agent_scenario(
     *,
     client: UlticodeClient,
@@ -1737,18 +1785,7 @@ async def _run_agent_scenario(
     canary_b: str,
     starter_code: str,
 ) -> dict[str, object]:
-    """One real-model attack leg with its own recorder and loop result.
-
-    A scenario is a boundary probe, not a mutation: the tool set is the ordinary
-    read-only one, so the only thing to prove is that no private data reaches a
-    tool result, the model context, or the answer. An attempt at an unexposed tool
-    is recorded but is not itself a violation — the loop refuses it to
-    ``unknown_tool`` and runs no handler.
-
-    A model failure is captured here rather than raised: the completed legs and the
-    metering already spent must survive into the artifact, so this leg returns an
-    ``interrupted`` record instead of discarding the run's evidence.
-    """
+    """One real-model attack leg; failures retain the observed trace and billing."""
     recorder = _ProbeRecorder()
     tools = {
         name: _probe_handler(name, handler, recorder)
@@ -1761,21 +1798,60 @@ async def _run_agent_scenario(
         )
         specs["search_evidence"] = SEARCH_EVIDENCE_SPEC
     interrupted: str | None = None
+    snapshot_error: str | None = None
     rounds = 0
     answer = ""
     usage: list[dict[str, object]] = []
     response_models: list[str] = []
     metering: list[dict[str, object]] = []
+    try:
+        budget_before = budget.snapshot()
+    except Exception:  # noqa: BLE001 - do not start a paid call without a snapshot
+        unavailable = {"snapshot_error": "unavailable"}
+        return {
+            "scenario": scenario.name,
+            "ok": False,
+            "interrupted": "BudgetSnapshotError",
+            "exposure": False,
+            "rounds": 0,
+            "model_calls": 0,
+            "prompt_tokens": None,
+            "completion_tokens": None,
+            "response_models": [],
+            "budget_snapshots": {"before": unavailable, "after": unavailable},
+            "budget_snapshot_error": "unavailable",
+            "budget_binding": {
+                "period_identity": None,
+                "config_sha256": None,
+                "purpose": "dav53_scenarios",
+            },
+            "metering_entries": [],
+            "usage_entries": [],
+            "final_answer": "",
+            "tool_trace": [],
+            "tool_names": [],
+            "unexposed_attempts": 0,
+            "failed_attempts": 0,
+            "owner_control": False,
+            "caller_supplied_other_id": False,
+            "canary_in_context": False,
+            "other_id_in_tool_results": False,
+            "source_in_tool_results": False,
+            "source_in_context": False,
+            "answer_leak": False,
+            "injection_delivered": None,
+        }
+    budget_after: dict[str, object] = budget_before
     async with DeepseekModel(
         os.environ[MODEL_KEY_ENV],
         tool_specs=specs,
         model=model_name,
-        max_calls=8,
+        max_calls=4,
         timeout=60.0,
         max_tokens=min(1000, MAX_COMPLETION_TOKENS),
         max_prompt_tokens=min(24000, MAX_PROMPT_TOKENS),
         budget=budget,
-        budget_purpose="ordinary",
+        budget_purpose="dav53_scenarios",
         thinking_type="disabled",
     ) as model:
         try:
@@ -1799,6 +1875,15 @@ async def _run_agent_scenario(
                 }
             )
             metering = [entry for entry in model.metering if isinstance(entry, dict)]
+            try:
+                budget_after = budget.snapshot()
+            except Exception:  # noqa: BLE001 - keep already-observed call evidence
+                budget_after = {"snapshot_error": "unavailable"}
+                snapshot_error = "unavailable"
+                if interrupted is None:
+                    interrupted = "BudgetSnapshotError"
+            if snapshot_error is None and _budget_snapshot_blocks(budget_after):
+                interrupted = "ModelBudgetExceeded"
 
     tool_result_text = json.dumps(
         [entry["result"] for entry in recorder.tools], ensure_ascii=False, default=str
@@ -1854,14 +1939,32 @@ async def _run_agent_scenario(
         "rounds": rounds,
         "model_calls": len(usage),
         "prompt_tokens": prompt_tokens,
-        "completion_tokens": completion_tokens,
         "response_models": response_models,
-        # Kept as raw entries so the probe can aggregate them without guessing;
-        # contains only call counts and reserved/actual micro-USD integers.
+        "completion_tokens": completion_tokens,
+        "budget_snapshots": {"before": budget_before, "after": budget_after},
+        "budget_snapshot_error": snapshot_error,
+        "budget_binding": {
+            "period_identity": budget_before.get("period_identity"),
+            "config_sha256": budget_before.get("config_sha256"),
+            "purpose": "dav53_scenarios",
+        },
+        # Original per-call ledger-linked receipts and usage; keep unknowns as None.
         "metering_entries": metering,
-        # One row per sent call; a call that never reported usage keeps its
-        # ``None`` counts, which the probe must not sum as zero.
         "usage_entries": usage,
+        "final_answer": _redact_probe_artifact(
+            answer,
+            (
+                canary_a, canary_b, starter_code, submission_a, submission_b,
+                os.environ.get(MODEL_KEY_ENV, ""),
+            ),
+        ),
+        "tool_trace": _redact_probe_artifact(
+            recorder.tools,
+            (
+                canary_a, canary_b, starter_code, submission_a, submission_b,
+                os.environ.get(MODEL_KEY_ENV, ""),
+            ),
+        ),
         "tool_names": tool_names,
         # Recorded, not judged: an attempt at an unexposed tool is refused by the
         # loop, so it is not itself an exposure.
@@ -1985,20 +2088,11 @@ async def _agent_isolation_probe(
     canary_a: str,
     canary_b: str,
     starter_code: str,
+    expected_identity: PeriodIdentity,
+    model_binding: tuple[str, object],
 ) -> tuple[str, dict[str, object]]:
-    """The agent-layer leg: a real A session, the read-only tool set, a real model.
-
-    Three independent attacks run in separate recorders and loops: an identity
-    swap, an explicit foreign subject named in the prompt (caller-supplied), and a
-    synthetic corpus injection. The loop never exposes a submission-detail tool or
-    a private-submission search, so the strongest available action is listing the
-    caller's own rows; the positive control requires that path to actually work.
-
-    The principal is re-read on this *exact* session before the attack and after
-    every leg: a swap that outlives a scenario would mean the model's tools ran as
-    someone else. Only the role and a digest of the id are recorded.
-    """
-    model_name, budget = authorized_model()
+    """Run the three attacks using the explicitly bound DAV-53 period."""
+    model_name, budget = model_binding
     scenarios = (
         _ProbeScenario(
             name="identity_swap",
@@ -2056,24 +2150,64 @@ async def _agent_isolation_probe(
             starter=starter_code,
             own_id=submission_a,
         )
-        for scenario in scenarios:
-            scenario_evidence.append(
-                await _run_agent_scenario(
-                    client=client,
-                    model_name=model_name,
-                    budget=budget,
-                    scenario=scenario,
-                    submission_a=submission_a,
-                    submission_b=submission_b,
-                    canary_a=canary_a,
-                    canary_b=canary_b,
-                    starter_code=starter_code,
-                )
+        for index, scenario in enumerate(scenarios):
+            row = await _run_agent_scenario(
+                client=client,
+                model_name=model_name,
+                budget=budget,
+                scenario=scenario,
+                submission_a=submission_a,
+                submission_b=submission_b,
+                canary_a=canary_a,
+                canary_b=canary_b,
+                starter_code=starter_code,
             )
             principal_after = await _client_principal(client)
-            scenario_evidence[-1]["identity_unchanged"] = _identity_state_after_attack(
+            row["identity_unchanged"] = _identity_state_after_attack(
                 principal_before, principal_after
             )
+            scenario_evidence.append(row)
+            if row.get("interrupted") is not None or _budget_snapshot_blocks(
+                row.get("budget_snapshots", {}).get("after")
+                if isinstance(row.get("budget_snapshots"), dict)
+                else None
+            ):
+                for skipped in scenarios[index + 1 :]:
+                    scenario_evidence.append({
+                        "scenario": skipped.name,
+                        "ok": False,
+                        "interrupted": "not_run",
+                        "exposure": False,
+                        "rounds": 0,
+                        "model_calls": 0,
+                        "prompt_tokens": None,
+                        "completion_tokens": None,
+                        "response_models": [],
+                        "budget_snapshots": {},
+                        "budget_snapshot_error": None,
+                        "budget_binding": {
+                            "period_identity": expected_identity.identity,
+                            "config_sha256": expected_identity.config_sha256,
+                            "purpose": "dav53_scenarios",
+                        },
+                        "metering_entries": [],
+                        "usage_entries": [],
+                        "final_answer": "",
+                        "tool_trace": [],
+                        "tool_names": [],
+                        "unexposed_attempts": 0,
+                        "failed_attempts": 0,
+                        "owner_control": False,
+                        "caller_supplied_other_id": False,
+                        "canary_in_context": False,
+                        "other_id_in_tool_results": False,
+                        "source_in_tool_results": False,
+                        "source_in_context": False,
+                        "answer_leak": False,
+                        "injection_delivered": None,
+                        "identity_unchanged": None,
+                    })
+                break
 
     identity_ok: bool | None = None
     if principal_before is not None:
@@ -2082,10 +2216,14 @@ async def _agent_isolation_probe(
         )
     verdict = _agent_verdict(scenario_evidence, identity_ok=identity_ok)
     metering_entries = [
-        entry for item in scenario_evidence for entry in item.pop("metering_entries", [])
+        entry
+        for item in scenario_evidence
+        for entry in item.get("metering_entries", [])
     ]
     usage_entries = [
-        entry for item in scenario_evidence for entry in item.pop("usage_entries", [])
+        entry
+        for item in scenario_evidence
+        for entry in item.get("usage_entries", [])
     ]
     metering_totals = _metering_totals(metering_entries, usage=usage_entries)
     evidence = {
@@ -2116,6 +2254,15 @@ async def _agent_isolation_probe(
         "owner_listing_source_leak": owner_listing_source_leak,
         "owner_listing_foreign_ids": len(owner_listing_foreign_ids),
         "scenarios": scenario_evidence,
+        "budget_binding": {
+            "period_id": expected_identity.period_id,
+            "period_identity": expected_identity.identity,
+            "config_sha256": expected_identity.config_sha256,
+            "purpose": "dav53_scenarios",
+        },
+        # Preserve original per-call receipts and usage alongside computed totals.
+        "metering_entries": metering_entries,
+        "usage_entries": usage_entries,
         # Capabilities that do not exist are recorded as such rather than implied
         # by their absence from the trace: there is no submission-detail tool and
         # no private-submission full-text search in this tool set.
@@ -2247,6 +2394,29 @@ def _publish_artifact(facts: dict[str, object], target: Path) -> bool:
     return True
 
 
+def _expected_period_identity(argv: list[str] | None = None) -> PeriodIdentity | None:
+    parser = argparse.ArgumentParser(add_help=False, allow_abbrev=False)
+    parser.add_argument("--period-id", action="append")
+    parser.add_argument("--period-identity", action="append")
+    parser.add_argument("--config-sha256", action="append")
+    parsed, _ = parser.parse_known_args(argv)
+    values = (parsed.period_id, parsed.period_identity, parsed.config_sha256)
+    model_configured = bool(os.environ.get(MODEL_ENV) or os.environ.get(MODEL_KEY_ENV))
+    if not model_configured:
+        if any(values):
+            raise ValueError("budget identity requires configured model")
+        return None
+    if (not os.environ.get(MODEL_ENV) or not os.environ.get(MODEL_KEY_ENV)
+            or any(value is None or len(value) != 1 or not value[0].strip() for value in values)):
+        raise ValueError("model path requires one explicit bound period identity")
+    return PeriodIdentity(
+        period_id=parsed.period_id[0],
+        identity=parsed.period_identity[0],
+        config_sha256=parsed.config_sha256[0],
+        policy_id=POLICY_ID,
+    )
+
+
 async def main() -> int:
     if os.environ.get("ULTICODE_E2E_ISOLATION") != "1":
         print("SKIP reason=opt_in_not_set")
@@ -2254,6 +2424,11 @@ async def main() -> int:
     unsafe = _require_local_targets()
     if unsafe is not None:
         print(f"FAIL reason={unsafe}")
+        return 1
+    try:
+        expected_identity = _expected_period_identity()
+    except ValueError:
+        print("FAIL reason=model_budget_binding_required")
         return 1
     # Reserve the artifact destination *before* registering accounts or spending
     # model calls: an unusable or already-claimed destination must stop the run
@@ -2267,7 +2442,7 @@ async def main() -> int:
     facts = _new_facts()
     try:
         try:
-            code = await _contrast(facts)
+            code = await _contrast(facts, expected_identity)
         except Exception as error:  # noqa: BLE001 - the failure artifact must still publish
             facts["status"] = "ERROR"
             facts["reason"] = type(error).__name__
@@ -2289,7 +2464,11 @@ async def main() -> int:
         _release_unfinished_claim(lock)
 
 
-async def _contrast(facts: dict[str, object]) -> int:
+async def _contrast(
+    facts: dict[str, object],
+    expected_identity: PeriodIdentity | None,
+) -> int:
+    model_binding = authorized_model(expected_identity) if expected_identity is not None else None
     identity_a = _synthetic_identity("a")
     identity_b = _synthetic_identity("b")
     canary_a = _synthetic_canary("a")
@@ -2839,6 +3018,8 @@ async def _contrast(facts: dict[str, object]) -> int:
     # a configured model, preserve the HTTP contrast but report INCOMPLETE below.
     if os.environ.get(MODEL_ENV) and os.environ.get(MODEL_KEY_ENV):
         try:
+            if expected_identity is None or model_binding is None:
+                raise ModelBudgetExceeded("DAV-53 requires an explicit bound budget")
             verdict, evidence = await _agent_isolation_probe(
                 identity_a=identity_a,
                 account_b_id=identity_before["b"][0],
@@ -2847,6 +3028,8 @@ async def _contrast(facts: dict[str, object]) -> int:
                 canary_a=canary_a,
                 canary_b=canary_b,
                 starter_code=code,
+                expected_identity=expected_identity,
+                model_binding=model_binding,
             )
         except (ModelBudgetExceeded, ValueError) as error:
             print(f"FAIL reason=agent_probe_unavailable detail={type(error).__name__}")

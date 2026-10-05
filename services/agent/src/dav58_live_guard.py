@@ -59,10 +59,12 @@ class IncrementalGuard:
             raise ValueError("resume requires prior receipts")
         total = 0
         for r in receipts:
+            response_model = r.get("response_model") if isinstance(r, dict) else None
             if (not isinstance(r, dict) or r.get("status") != "settled"
                     or r.get("lane") not in {"dav58_loop", "dav58_judge"}
                     or r.get("request_model") != "deepseek-flash"
-                    or r.get("response_model") not in {"deepseek-flash", "deepseek-v4.1-flash"}
+                    or not isinstance(response_model, str)
+                    or response_model.casefold() not in {"deepseek-flash", "deepseek-v4.1-flash"}
                     or r.get("reserved_micro_usd") != ENVELOPE_MICRO_USD
                     or not isinstance(r.get("request_sha256"), str) or len(r["request_sha256"]) != 64):
                 raise ValueError("unsafe prior receipt")

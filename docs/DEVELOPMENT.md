@@ -465,7 +465,7 @@ enabled-owner wiring 或业务 journey。
 | `REDIS_HOST/PORT/USERNAME/PASSWORD` | Redis 连接 | ACL principal 按 Owner 分开，命令/key/channel 受限 |
 | `JWT_SECRET` | 仅 local compatibility profile 的 HMAC secret | 至少 32 字符；生产 access token 使用 RS256/JWKS |
 | `NACOS_SERVER_ADDR` / `NACOS_SERVERS` | 服务发现 | dev 使用显式 standalone；prod/HA 使用 cluster peer list |
-| `NACOS_USERNAME/PASSWORD` 及 `*_NACOS_*` | Nacos workload identity | 每个 workload 使用独立、namespace-scoped 账号；内置账号禁用 |
+| `NACOS_USERNAME/PASSWORD` 及 `*_NACOS_*` | Nacos workload identity | 每个 workload 使用独立、namespace-scoped 账号；内置账号禁用。`DEFAULT_GROUP` 普通配置只读；Dubbo 元数据写入仅允许 `interface:version:serviceGroup:provider或consumer:backend-<owner>` 中本 workload 的 application 后缀，不授予整组配置写权限 |
 | `DUBBO_NAMESPACE` | Dubbo 环境隔离 | prod 必须非空，不能静默回退到 dev |
 | `CORS_ALLOWED_ORIGINS` / `FRONTEND_URL` | 浏览器来源与链接 | 生产使用部署域名，不能使用 wildcard |
 | `SPRING_PROFILES_ACTIVE` | Spring profile | `Secure=false` 只允许全 local profile |

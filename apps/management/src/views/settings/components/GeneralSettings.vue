@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { IconSettings, IconUsers, IconServer } from '@tabler/icons-vue'
 import type { SystemSettings } from '@/api/admin/settings'
 import { useColorTheme } from '@ulticode/theme'
-import { Sun, Moon, Laptop } from 'lucide-vue-next'
+import { Sun, Moon, Laptop } from '@lucide/vue'
 
 const { t } = useI18n()
 const { theme: themeRef, setTheme } = useColorTheme()

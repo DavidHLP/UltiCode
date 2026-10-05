@@ -14,7 +14,7 @@ import {
   Flame,
   Medal,
   Sparkles,
-} from "lucide-vue-next";
+} from "@lucide/vue";
 
 const { t } = useI18n();
 const achievementStore = useAchievementStore();

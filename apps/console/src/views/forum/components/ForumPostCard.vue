@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 
 import { AspectRatio } from "@/components/ui/aspect-ratio";
-import { Link as LinkIcon } from "lucide-vue-next";
+import { Link as LinkIcon } from "@lucide/vue";
 import { PostActions } from "@/components/edge-operations";
 import { computed, ref, watch } from "vue";
 import { useAvatar } from "@/composables/useAvatar";

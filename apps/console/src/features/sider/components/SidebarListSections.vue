@@ -27,7 +27,7 @@ import {
   Pencil,
   AlertCircle,
   RefreshCw,
-} from "lucide-vue-next";
+} from "@lucide/vue";
 import type { ProblemList, ProblemListCategory } from "@/types/problem-list";
 import { RouterLink, useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";

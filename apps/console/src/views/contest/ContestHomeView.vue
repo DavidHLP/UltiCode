@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from "vue";
-import { Trophy } from "lucide-vue-next";
+import { Trophy } from "@lucide/vue";
 import { useContestBrowseStore } from "@/stores/contestBrowse";
 import { useContestRankingStore } from "@/stores/contestRanking";
 import { storeToRefs } from "pinia";

@@ -6,7 +6,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Check, Globe } from 'lucide-vue-next'
+import { Check, Globe } from '@lucide/vue'
 
 const { availableLocales, setLocale, isCurrentLocale } = useLocale()
 </script>

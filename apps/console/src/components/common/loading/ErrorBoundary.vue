@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onErrorCaptured, type ComponentPublicInstance } from "vue";
 import { useI18n } from "vue-i18n";
-import { AlertTriangle, RefreshCw, Home, Bug } from "lucide-vue-next";
+import { AlertTriangle, RefreshCw, Home, Bug } from "@lucide/vue";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 

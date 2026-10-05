@@ -20,7 +20,7 @@ import {
   BarChart3,
   Calendar,
   Globe,
-} from "lucide-vue-next";
+} from "@lucide/vue";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 

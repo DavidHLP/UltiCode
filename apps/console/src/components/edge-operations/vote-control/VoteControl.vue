@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Button } from "@/components/ui/button";
-import { ThumbsUp, ThumbsDown } from "lucide-vue-next";
+import { ThumbsUp, ThumbsDown } from "@lucide/vue";
 import { computed } from "vue";
 
 const props = defineProps<{

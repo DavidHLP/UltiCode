@@ -7,7 +7,7 @@ import {
   Trophy,
   Calendar,
   Clock,
-} from "lucide-vue-next";
+} from "@lucide/vue";
 import { useRouter } from "vue-router";
 import type { ContestListItem } from "@/types/contest";
 import { formatDateTime, getDurationMinutes } from "@/utils/datetime";

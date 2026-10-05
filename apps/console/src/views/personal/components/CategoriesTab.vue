@@ -22,7 +22,7 @@ import {
   List,
   Pencil,
   Trash2,
-} from "lucide-vue-next";
+} from "@lucide/vue";
 import { useI18n } from "vue-i18n";
 import type { ProblemListCategory } from "@/types/problem-list";
 

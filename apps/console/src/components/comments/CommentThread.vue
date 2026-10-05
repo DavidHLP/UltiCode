@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useAuthStore } from "@/stores/auth";
 import type { ForumComment, SolutionComment } from "@/types/comment";
-import { Lock, MessageSquare } from "lucide-vue-next";
+import { Lock, MessageSquare } from "@lucide/vue";
 import CommentNode from "./CommentNode.vue";
 import CommentForm from "./CommentForm.vue";
 import {

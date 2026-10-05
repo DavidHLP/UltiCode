@@ -9,7 +9,7 @@ import { computed } from "vue";
 import { useRouter } from "vue-router";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, Users, Trophy } from "lucide-vue-next";
+import { Calendar, Clock, Users, Trophy } from "@lucide/vue";
 import { useI18n } from "vue-i18n";
 import type { ContestListItem } from "@/types/contest";
 import { formatDateTime, getDurationMinutes } from "@/utils/datetime";

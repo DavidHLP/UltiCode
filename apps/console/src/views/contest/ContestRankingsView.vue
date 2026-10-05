@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed, watch } from "vue";
 import { useRoute } from "vue-router";
-import { Trophy, Globe, MapPin } from "lucide-vue-next";
+import { Trophy, Globe, MapPin } from "@lucide/vue";
 import { useContestRankingStore } from "@/stores/contestRanking";
 import { useAuthStore } from "@/stores/auth";
 import { storeToRefs } from "pinia";

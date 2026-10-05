@@ -14,7 +14,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { toast } from "vue-sonner";
-import { Clock, Trophy } from "lucide-vue-next";
+import { Clock, Trophy } from "@lucide/vue";
 import { useI18n } from "vue-i18n";
 import { formatPenaltyTime } from "@/utils/datetime";
 

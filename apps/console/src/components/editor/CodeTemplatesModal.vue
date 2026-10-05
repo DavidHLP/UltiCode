@@ -15,7 +15,7 @@ import {
   getTemplateCategories,
   type CodeTemplate,
 } from "@/constants/codeTemplates";
-import { FileCode, Plus } from "lucide-vue-next";
+import { FileCode, Plus } from "@lucide/vue";
 
 const { t } = useI18n();
 

@@ -11,7 +11,7 @@ import {
   CollapsibleTrigger,
   CollapsibleContent,
 } from "@/components/ui/collapsible";
-import { ChevronRight } from "lucide-vue-next";
+import { ChevronRight } from "@lucide/vue";
 import { Badge } from "@/components/ui/badge";
 import { useI18n } from "vue-i18n";
 import { computed } from "vue";

@@ -9,7 +9,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import { Accessibility, Minus, Contrast } from "lucide-vue-next";
+import { Accessibility, Minus, Contrast } from "@lucide/vue";
 
 const { t } = useI18n();
 const editorSettings = useEditorSettingsStore();

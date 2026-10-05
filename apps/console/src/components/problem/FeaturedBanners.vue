@@ -12,8 +12,8 @@ import {
   ArrowUpDown,
   ChevronLeft,
   ChevronRight,
-} from "lucide-vue-next";
-import type { LucideIcon } from "lucide-vue-next";
+} from "@lucide/vue";
+import type { LucideIcon } from "@lucide/vue";
 import { useI18n } from "vue-i18n";
 import { useProblemListsStore } from "@/stores/problemLists";
 

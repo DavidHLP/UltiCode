@@ -7,7 +7,7 @@ import type {
 } from "@/types/forum";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Share2, Pin, Lock } from "lucide-vue-next";
+import { Share2, Pin, Lock } from "@lucide/vue";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { PostActions } from "@/components/edge-operations";
 import { computed, ref, watch } from "vue";

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, ListFilter, X } from "lucide-vue-next";
+import { Search, ListFilter, X } from "@lucide/vue";
 import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,

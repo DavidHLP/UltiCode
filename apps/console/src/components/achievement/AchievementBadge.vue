@@ -7,7 +7,7 @@ import {
   AchievementCategoryColors,
 } from "@/types/achievement";
 import { cn } from "@/lib/utils";
-import { Trophy, Lock } from "lucide-vue-next";
+import { Trophy, Lock } from "@lucide/vue";
 
 const props = defineProps<{
   achievement: AchievementProgress;

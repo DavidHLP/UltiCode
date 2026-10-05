@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { X, Plus } from 'lucide-vue-next'
+import { X, Plus } from '@lucide/vue'
 
 export interface TestCaseExample {
   id: string

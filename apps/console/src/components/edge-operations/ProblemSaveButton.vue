@@ -7,7 +7,7 @@ import {
   FolderPlus,
   Loader2,
   Check,
-} from "lucide-vue-next";
+} from "@lucide/vue";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,

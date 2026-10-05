@@ -66,7 +66,7 @@
 import { ref } from "vue";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Image as ImageIcon, Type } from "lucide-vue-next";
+import { Image as ImageIcon, Type } from "@lucide/vue";
 import { useI18n } from "vue-i18n";
 
 defineOptions({

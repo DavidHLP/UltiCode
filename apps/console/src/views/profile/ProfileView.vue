@@ -31,7 +31,7 @@ import {
   Calendar,
   MapPin,
   Link as LinkIcon,
-} from "lucide-vue-next";
+} from "@lucide/vue";
 
 async function fetchUserAchievementsById(
   userId: string,

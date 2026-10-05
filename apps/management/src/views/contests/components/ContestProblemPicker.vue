@@ -17,7 +17,7 @@ import {
   CommandList,
 } from '@/components/ui/command'
 import { Button } from '@/components/ui/button'
-import { Plus, Loader2 } from 'lucide-vue-next'
+import { Plus, Loader2 } from '@lucide/vue'
 import { SemanticBadge, DIFFICULTY_COLOR_MAP } from '@/components/ui/terminal'
 import { useProblemsStore } from '@/stores/admin/problems'
 import { useDebounceFn } from '@vueuse/core'

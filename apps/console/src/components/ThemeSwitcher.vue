@@ -8,7 +8,7 @@ import {
   DropdownMenuSubContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
-import { Sun, Moon, Laptop, Check } from "lucide-vue-next";
+import { Sun, Moon, Laptop, Check } from "@lucide/vue";
 
 const { theme: themeRef, setTheme } = useColorTheme();
 // vue-tsc 3.x does not auto-unwrap `Ref<T>` in template comparisons or

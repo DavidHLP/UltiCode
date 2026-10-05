@@ -7,7 +7,7 @@ import type {
   SubmissionRecord,
   SubmissionStatusMeta,
 } from "@/types/submission";
-import { ArrowLeft, Loader2 } from "lucide-vue-next";
+import { ArrowLeft, Loader2 } from "@lucide/vue";
 import { useI18n } from "vue-i18n";
 import SubmissionTestResults from "./components/SubmissionTestResults.vue";
 import SubmissionCodeBlock from "./components/SubmissionCodeBlock.vue";

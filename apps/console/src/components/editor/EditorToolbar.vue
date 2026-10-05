@@ -27,7 +27,7 @@ import {
   Keyboard,
   Code2,
   RotateCcw,
-} from "lucide-vue-next";
+} from "@lucide/vue";
 import KeyboardShortcutsModal from "./KeyboardShortcutsModal.vue";
 import CodeTemplatesModal from "./CodeTemplatesModal.vue";
 import AccessibilitySettings from "./AccessibilitySettings.vue";

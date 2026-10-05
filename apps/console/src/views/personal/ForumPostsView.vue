@@ -32,7 +32,7 @@ import {
   Plus,
   Loader2,
   Calendar,
-} from "lucide-vue-next";
+} from "@lucide/vue";
 import { fetchMyForumPosts, deleteForumPost } from "@/api/forum";
 import type { ForumPost } from "@/types/forum";
 import { toast } from "vue-sonner";

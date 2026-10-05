@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { CalendarIcon, RotateCcw } from 'lucide-vue-next'
+import { CalendarIcon, RotateCcw } from '@lucide/vue'
 import { useAuditStore } from '@/stores/admin/audit'
 import { toAuditStatsQueryParams } from './useAuditReadWorkspace'
 import {

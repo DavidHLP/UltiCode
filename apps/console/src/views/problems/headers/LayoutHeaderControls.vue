@@ -11,7 +11,7 @@ import {
   Settings,
   LogOut,
   LogIn,
-} from "lucide-vue-next";
+} from "@lucide/vue";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,

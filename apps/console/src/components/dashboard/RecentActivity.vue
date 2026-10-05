@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { RecentActivity } from "@/types/userStats";
 import { cn } from "@/lib/utils";
-import { CheckCircle, MessageSquare, FileText, Clock } from "lucide-vue-next";
+import { CheckCircle, MessageSquare, FileText, Clock } from "@lucide/vue";
 import { useI18n } from "vue-i18n";
 import type { SemanticColor } from "@ulticode/badge-config";
 import {

@@ -18,7 +18,7 @@ import {
   Code2,
   SquareCheck,
   Terminal,
-} from "lucide-vue-next";
+} from "@lucide/vue";
 import { useProblemContext } from "../useProblemContext";
 
 const { t } = useI18n();

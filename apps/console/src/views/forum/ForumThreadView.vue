@@ -5,7 +5,7 @@ import ThreadContent from "@/views/forum/components/ThreadContent.vue";
 import { CommentThread } from "@/components/comments";
 import { ref, computed } from "vue";
 import { RouterLink } from "vue-router";
-import { ArrowLeft, MessageSquare, Flag, List } from "lucide-vue-next";
+import { ArrowLeft, MessageSquare, Flag, List } from "@lucide/vue";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "vue-i18n";
 import {

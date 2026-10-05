@@ -13,7 +13,7 @@
 		<!-- Authoritative release version of this owner service; bump independently
 		     to release it without touching other services. Cross-service test
 		     dependencies resolve the default copy in the root pom. -->
-		<service.version.admin>1.0.0</service.version.admin>
+		<service.version.admin>1.0.1</service.version.admin>
 	</properties>
 	<artifactId>backend-admin</artifactId>
 	<version>${service.version.admin}</version>

@@ -33,9 +33,8 @@ on:
         default: false
       image_refs:
         description: >-
-          Required nine-line immutable release manifest with
-          NAME=registry/path/service@sha256:digest entries. Obtain it from the
-          Docker Publish supply-chain artifacts.
+          Required nine-line immutable release manifest. Download `release-manifest`
+          artifact from a successful Docker Publish run; do not assemble candidates manually.
         required: true
         type: string
 

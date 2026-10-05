@@ -15,7 +15,7 @@
         <!-- Authoritative release version of this owner service; bump independently
              to release it without touching other services. Cross-service test
              dependencies resolve the default copy in the root pom. -->
-        <service.version.judge>1.0.0</service.version.judge>
+        <service.version.judge>1.0.1</service.version.judge>
     </properties>
 
     <artifactId>backend-judge</artifactId>

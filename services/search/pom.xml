@@ -14,7 +14,7 @@
         <!-- Authoritative release version of this owner service; bump independently
              to release it without touching other services. Cross-service test
              dependencies resolve the default copy in the root pom. -->
-        <service.version.search>1.0.0</service.version.search>
+        <service.version.search>1.0.1</service.version.search>
     </properties>
 
     <artifactId>backend-search</artifactId>

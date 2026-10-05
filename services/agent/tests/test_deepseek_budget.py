@@ -64,6 +64,24 @@ def test_oversized_prompt_is_rejected_before_any_request() -> None:
     assert captured == []
 
 
+
+def test_preflight_budget_check_uses_the_same_guard_without_a_request() -> None:
+    captured: list[httpx.Request] = []
+
+    async def scenario() -> None:
+        async with DeepseekModel(
+            "key",
+            tool_specs={},
+            max_prompt_tokens=10,
+            transport=httpx.MockTransport(_handler(captured)),
+        ) as model:
+            with pytest.raises(ModelBudgetExceeded):
+                model.check_prompt_budget([{"role": "user", "content": "x" * 500}])
+            assert model.calls_made == 0
+
+    asyncio.run(scenario())
+    assert captured == []
+
 def test_prompt_budget_is_measured_in_tokens_not_characters() -> None:
     captured: list[httpx.Request] = []
     # The system prompt alone is counted, so the usable user budget is smaller

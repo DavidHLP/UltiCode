@@ -84,6 +84,25 @@ def _reject_duplicate_keys(pairs: list[tuple[str, object]]) -> dict[str, object]
     return result
 
 
+def _reject_json_constant(_: str) -> object:
+    raise ValueError("non-standard JSON constant")
+
+
+def _contains_non_scalar_string(value: object) -> bool:
+    pending = [value]
+    while pending:
+        current = pending.pop()
+        if isinstance(current, str):
+            if any(0xD800 <= ord(character) <= 0xDFFF for character in current):
+                return True
+        elif isinstance(current, dict):
+            pending.extend(current.keys())
+            pending.extend(current.values())
+        elif isinstance(current, list):
+            pending.extend(current)
+    return False
+
+
 class ManifestError(ValueError):
     """The manifest is incomplete or inconsistent with the corpus."""
 
@@ -127,13 +146,21 @@ def parse_manifest_text(text: str) -> tuple[ManifestEntry, ...]:
     validation then consume one snapshot.
     """
     try:
-        raw = json.loads(text, object_pairs_hook=_reject_duplicate_keys)
+        raw = json.loads(
+            text,
+            parse_constant=_reject_json_constant,
+            object_pairs_hook=_reject_duplicate_keys,
+        )
     except _DuplicateKey as error:
         raise ManifestError(
             f"corpus manifest has a duplicate key: {error}"
         ) from None
     except (ValueError, RecursionError) as error:
         raise ManifestError(f"corpus manifest is not valid JSON: {error}") from None
+    if _contains_non_scalar_string(raw):
+        raise ManifestError(
+            "corpus manifest strings must contain only Unicode scalar values"
+        )
     if not isinstance(raw, list) or not raw:
         if raw == []:
             raise ManifestEmpty("corpus manifest declares no entries")
@@ -185,8 +212,12 @@ def validate_entries(entries: tuple[ManifestEntry, ...]) -> None:
     seen: set[str] = set()
     for entry in entries:
         doc_id = entry.doc_id
-        if not str(doc_id or "").strip():
+        if not isinstance(doc_id, str) or not doc_id.strip():
             raise ManifestError("manifest entry has a blank doc_id")
+        if _contains_non_scalar_string(doc_id):
+            raise ManifestError(
+                "manifest strings must contain only Unicode scalar values"
+            )
         if doc_id in seen:
             raise ManifestError(f"{doc_id}: declared twice")
         seen.add(doc_id)
@@ -194,6 +225,10 @@ def validate_entries(entries: tuple[ManifestEntry, ...]) -> None:
             value = getattr(entry, field, None)
             if not isinstance(value, str) or not value.strip():
                 raise ManifestError(f"{doc_id}: missing or blank {field}")
+            if _contains_non_scalar_string(value):
+                raise ManifestError(
+                    f"{doc_id}: {field} must contain only Unicode scalar values"
+                )
         if entry.source_trust != EXPECTED_SOURCE_TRUST:
             raise ManifestError(
                 f"{doc_id}: source_trust must be {EXPECTED_SOURCE_TRUST!r}, "

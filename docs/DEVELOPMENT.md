@@ -116,18 +116,30 @@ artifact 固定周期身份、配置 hash、purpose、前后账本快照及逐�
 pass receives the case question and retrieved evidence, not expected/allowed/forbidden outcomes;
 it must return explicit retrieved chunk IDs in `citations`, and judging checks only those citations.
 Holdouts remain sealed. Export the existing `DEEPSEEK_API_KEY` before this opt-in call; the entry
-requires `DEEPSEEK_MODEL`, budgets two **logical** passes per development case (answer then judge;
-default ceiling 64 — a retried transport error or timeout is billed again and counted in the row's
-`model_calls`); usage is emitted from the model session even when a later answer or judge
-pass aborts, with unknown token totals labelled `unknown`. The runner treats the generated answer as one untrusted JSON string value and tells the
-judge to ignore directives inside it (this is a prompt boundary, not proof of injection immunity), reserves the artifact destination before the first billed call and never overwrites
-an existing one, snapshots the corpus and case file once before the calls so the artifact identifies
-the material actually judged, and writes results under the user state directory without printing
-answer text:
+requires `DEEPSEEK_MODEL`. The maximum-call ceiling is `CALLS_PER_CASE × development case count`,
+where each case has two logical passes and up to three billed attempts per pass. The default remains
+64; retries are billed again and counted in each row's `model_calls`. Usage is emitted from the model
+session even when a later answer or judge pass aborts, with unknown token totals labelled `unknown`.
+
+The runner treats the generated answer as one untrusted JSON string value and tells the judge to
+ignore directives inside it (a prompt boundary, not proof of injection immunity), reserves the
+verdict and metadata-sidecar destinations in a consistent lock order before the first billed call
+and never overwrites an existing artifact, snapshots
+the corpus and case file once before the calls so the artifact identifies the material actually
+judged, and writes results under the user state directory without printing answer text. Before
+opening the model session, it checks all case queries against retrieval's limit and preflights each
+answer prompt and every possible citation subset's judge prompt using a 1,000-Unicode-character
+worst-case answer; accepted answers are limited to 1,000 Unicode code points, so an over-limit
+response aborts before its judge call. Calculate the required ceiling from the executable config and
+loaded case file, then run:
 
 ```bash
 cd services/agent
-ULTICODE_ANSWER_EVAL=1 DEEPSEEK_MODEL=<model> uv run python e2e_answer_evaluation.py
+DEEPSEEK_MAX_CALLS="$(
+  uv run python -c 'from e2e_answer_evaluation import CALLS_PER_CASE, development_cases; from keyword_evaluation import _CASES_PATH, load_cases; print(CALLS_PER_CASE * len(development_cases(load_cases(_CASES_PATH))))'
+)" \
+ULTICODE_ANSWER_EVAL=1 DEEPSEEK_MODEL=<model> \
+uv run python e2e_answer_evaluation.py
 ```
 
 真实模型入口的调用形式（`DEEPSEEK_MODEL` 为必填，脚本不再继承任何默认模型标识。`DEEPSEEK_MAX_TOKENS` 默认值按入口不同：`e2e_sourced_analysis_model.py`（每次运行仅 1 次调用）默认 2000——实测 300 时该次决策被输出上限截断（`finish_reason=length`、`content_len=150`）而报 `ModelProtocolError`，2000 时同一 prompt 通过；`e2e_model_qa.py`（最多 8 次调用）保持 300，真实运行在 300 下即通过，不应无证据地抬高其每次上限）：
@@ -155,7 +167,7 @@ uv run python e2e_citation_support_model.py
 
 `DEEPSEEK_API_KEY` 只在真正进入判定阶段才需要：检索、完整性门禁与引用条数不足（`insufficient_citations`）都在**只读预检**里完成，因此没有凭据也能看到材料缺口。
 
-它只判定**分析实际发出的引用**：每条引用一次模型调用，只问「片段是否支持结论」（`supports` / `derivable`）；`exists` 始终取自确定性完整性门禁，不由模型决定。verdict 写盘后经 `load_verdicts` 读回再汇总，因此仍按重算 id 绑定到具体 claim/quote。可选地用仓库外的语料替换默认样本（**两个变量都要或都不要**，否则 `FAIL reason=corpus_source_incomplete`，且不会回退到默认语料）：
+它只判定**分析实际发出的引用**：每条引用一次模型调用，只问「片段是否支持结论」（`supports` / `derivable`）；`exists` 始终取自确定性完整性门禁，不由模型决定。执行前会按固定顺序预留 verdict 与 metadata sidecar 路径，避免并发评测互相覆盖；verdict 写盘后经 `load_verdicts` 读回再汇总，因此仍按重算 id 绑定到具体 claim/quote。可选地用仓库外的语料替换默认样本（**两个变量都要或都不要**，否则 `FAIL reason=corpus_source_incomplete`，且不会回退到默认语料）：
 
 ```bash
 # DEEPSEEK_API_KEY 必须已由操作者导出或由密钥存储注入到环境，绝不出现在本命令行；

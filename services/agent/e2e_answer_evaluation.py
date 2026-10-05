@@ -34,6 +34,7 @@ from answer_evaluation import (
     AnswerEvaluationError,
     development_cases,
     evaluate_answer_cases,
+    preflight_answer_case_prompts,
     summarize,
 )
 from deepseek_model import (
@@ -48,16 +49,17 @@ from e2e_citation_support_model import (
     _discard_artifacts,
     _assert_artifact_directory,
     _release_unfinished_claim,
+    _path_label as _artifact_label,
 )
 from keyword_evaluation import load_cases
 from model_budget import authorized_model
 
 OPT_IN = "ULTICODE_ANSWER_EVAL"
 DEFAULT_MAX_CALLS = 64
-#: Two logical passes per case: one to answer, one to judge. The plan is a floor —
-#: a retried transport error or timeout bills another call, and the row records the
-#: attempts actually made.
-CALLS_PER_CASE = 2
+# Two passes per case, each with a bounded retry envelope. Keep the preflight
+# requirement and the evaluator's actual retry limit tied to the same value.
+ATTEMPTS_PER_PASS = 3
+CALLS_PER_CASE = 2 * ATTEMPTS_PER_PASS
 
 
 def _artifact_path() -> Path:
@@ -139,7 +141,7 @@ async def main() -> int:
 
     from corpus_manifest import MANIFEST_PATH, parse_manifest_text
     from keyword_evaluation import _CASES_PATH
-    from retrieval import load_sample_corpus
+    from retrieval import MAX_QUERY_CHARS, load_sample_corpus
 
     # Snapshot the inputs once, before the first billed call: every case retrieves
     # from this corpus, and the artifact identifies it, so a file replaced mid-run
@@ -160,6 +162,9 @@ async def main() -> int:
     case_sha256 = hashlib.sha256(case_bytes).hexdigest()
     if not cases:
         print("FAIL reason=no_development_cases")
+        return 1
+    if any(len(case.query) > MAX_QUERY_CHARS for case in cases):
+        print(f"FAIL reason=query_too_long max_chars={MAX_QUERY_CHARS}")
         return 1
 
     # Configured ceiling, not the row count: the adapter owns the guard, and a
@@ -203,7 +208,12 @@ async def main() -> int:
                 thinking_type="disabled",
             ) as model:
                 try:
-                    rows = await evaluate_answer_cases(cases, model=model, documents=documents)
+                    preflight_answer_case_prompts(
+                        cases, model=model, documents=documents
+                    )
+                    rows = await evaluate_answer_cases(
+                        cases, model=model, documents=documents, attempts=ATTEMPTS_PER_PASS
+                    )
                 finally:
                     # Every sent request remains billed even if a later pass aborts.
                     totals = [e.get("total_tokens") for e in model.usage if isinstance(e, dict)]
@@ -257,7 +267,9 @@ async def main() -> int:
                         "summary": summary,
                         "rows": [row.__dict__ for row in rows],
                     },
-                    ensure_ascii=False,
+                    # Provider output may contain lone surrogates; ASCII escaping keeps
+                    # the artifact UTF-8 writable and preserves strings on JSON read-back.
+                    ensure_ascii=True,
                     indent=2,
                 )
                 + "\n",
@@ -267,7 +279,7 @@ async def main() -> int:
             _discard_artifacts(owned)
             print(
                 f"FAIL reason=answer_artifact_write_failed "
-                f"detail={artifact.name} ({type(error).__name__})"
+                f"detail={_artifact_label(artifact)} ({type(error).__name__})"
             )
             return 1
     finally:
@@ -282,7 +294,7 @@ async def main() -> int:
         f"not_applicable={summary['not_applicable']} "
         f"completed={summary['completed']} incomplete={summary['incomplete']} "
         f"behavior_match={summary['behavior_match']} deferred={summary['deferred']} "
-        f"sealed=holdout,holdout2"
+        f"sealed=holdout,holdout2 artifact={_artifact_label(artifact)}"
     )
     return 0
 

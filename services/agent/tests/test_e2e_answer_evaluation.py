@@ -10,13 +10,15 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import json
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
 from deepseek_model import _parse_decision
 
+import answer_evaluation
 from keyword_evaluation import KeywordCase
-from retrieval import SourceDocument
+from retrieval import MAX_QUERY_CHARS, SourceDocument
 from retrieval import load_sample_corpus as _real_load_sample_corpus
 
 _module_spec = importlib.util.spec_from_file_location(
@@ -26,6 +28,11 @@ _module_spec = importlib.util.spec_from_file_location(
 assert _module_spec and _module_spec.loader
 e2e = importlib.util.module_from_spec(_module_spec)
 _module_spec.loader.exec_module(e2e)
+
+
+@pytest.fixture(autouse=True)
+def _isolated_artifact_lock_state(monkeypatch, tmp_path):
+    monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path / "state"))
 
 
 _ANSWERS = {"dev-01": '{"text": "状态说明。", "citations": ["snap-doc:v1:1"]}'}
@@ -61,7 +68,19 @@ def _case() -> KeywordCase:
     )
 
 
-def _install(monkeypatch, *, on_call=None, answers=None, judgements=None, real_corpus=False, usage_total=10):
+def _install(
+    monkeypatch,
+    *,
+    on_call=None,
+    answers=None,
+    judgements=None,
+    real_corpus=False,
+    usage_total=10,
+    fail_judge_preflight=False,
+    preflight_checks=None,
+    cases=None,
+    model_entries=None,
+):
     """Stub the adapter, corpus and case file so only the entry point runs."""
     calls: list[str] = []
     answers = answers if answers is not None else _ANSWERS
@@ -78,10 +97,21 @@ def _install(monkeypatch, *, on_call=None, answers=None, judgements=None, real_c
             self.kwargs = _kwargs
 
         async def __aenter__(self) -> "_Model":
+            if model_entries is not None:
+                model_entries.append(True)
             return self
 
         async def __aexit__(self, *_args: object) -> None:
             return None
+
+        def check_prompt_budget(self, messages: list[dict[str, object]]) -> None:
+            content = str(messages[-1]["content"])
+            if preflight_checks is not None:
+                preflight_checks.append(content)
+            if fail_judge_preflight and "JUDGE_CONTRACT" in content:
+                raise e2e.ModelBudgetExceeded(
+                    "prompt exceeds the configured token budget"
+                )
 
         async def decide(self, messages: list[dict[str, object]]) -> object:
             content = str(messages[-1]["content"])
@@ -94,7 +124,11 @@ def _install(monkeypatch, *, on_call=None, answers=None, judgements=None, real_c
             return _Decision(judgements["dev-01"])
 
     monkeypatch.setattr(e2e, "DeepseekModel", _Model)
-    monkeypatch.setattr(e2e, "load_cases", lambda **_kwargs: (_case(),))
+    monkeypatch.setattr(
+        e2e,
+        "load_cases",
+        lambda **_kwargs: cases if cases is not None else (_case(),),
+    )
     if not real_corpus:
         monkeypatch.setattr("retrieval.load_sample_corpus", _documents)
     monkeypatch.setenv("ULTICODE_ANSWER_EVAL", "1")
@@ -108,6 +142,88 @@ def _install(monkeypatch, *, on_call=None, answers=None, judgements=None, real_c
     ):
         monkeypatch.delenv(name, raising=False)
     return calls
+
+
+def test_judge_prompt_budget_is_preflighted_before_any_model_call(
+    monkeypatch, capsys, tmp_path
+) -> None:
+    preflight_checks: list[str] = []
+    calls = _install(
+        monkeypatch,
+        fail_judge_preflight=True,
+        preflight_checks=preflight_checks,
+    )
+    monkeypatch.setenv("ULTICODE_ANSWER_EVAL_RESULT", str(tmp_path / "artifact.json"))
+
+    assert e2e.main_sync() == 1
+
+    assert calls == []
+    assert any("JUDGE_CONTRACT" in prompt for prompt in preflight_checks)
+    assert any(r"\udbff\udfff" in prompt for prompt in preflight_checks)
+    assert "reason=model_budget_exceeded" in capsys.readouterr().out
+
+
+def test_nested_json_depth_error_is_sanitized_as_protocol(
+    monkeypatch, capsys, tmp_path
+) -> None:
+    answer = "[" * 2000 + "0" + "]" * 2000
+    # Keep this regression independent of Python's decoder nesting limit.
+    real_json_loads = answer_evaluation.json.loads
+
+    def raise_depth_error(raw: str, **kwargs: object) -> object:
+        if raw == answer:
+            raise RecursionError("maximum recursion depth exceeded")
+        return real_json_loads(raw, **kwargs)
+
+    monkeypatch.setattr(answer_evaluation.json, "loads", raise_depth_error)
+    calls = _install(monkeypatch, answers={"dev-01": answer})
+    destination = tmp_path / "artifact.json"
+    monkeypatch.setenv("ULTICODE_ANSWER_EVAL_RESULT", str(destination))
+
+    assert e2e.main_sync() == 1
+
+    output = capsys.readouterr().out
+    assert "FAIL reason=protocol" in output
+    assert "RecursionError" not in output
+    assert len(calls) == 1
+    assert not destination.exists()
+
+
+def test_an_answer_over_the_text_limit_is_not_sent_to_the_judge(
+    monkeypatch, capsys, tmp_path
+) -> None:
+    calls = _install(
+        monkeypatch,
+        answers={
+            "dev-01": json.dumps(
+                {"text": "x" * 1001, "citations": ["snap-doc:v1:1"]}
+            )
+        },
+    )
+    monkeypatch.setenv("ULTICODE_ANSWER_EVAL_RESULT", str(tmp_path / "artifact.json"))
+
+    assert e2e.main_sync() == 1
+
+    assert len(calls) == 1
+    assert "reason=protocol" in capsys.readouterr().out
+
+
+def test_an_overlong_case_query_is_rejected_before_model_session(
+    monkeypatch, capsys, tmp_path
+) -> None:
+    model_entries: list[bool] = []
+    case = replace(_case(), query="q" * (MAX_QUERY_CHARS + 1))
+    calls = _install(
+        monkeypatch,
+        cases=(case,),
+        model_entries=model_entries,
+    )
+    monkeypatch.setenv("ULTICODE_ANSWER_EVAL_RESULT", str(tmp_path / "artifact.json"))
+
+    assert e2e.main_sync() == 1
+    assert model_entries == []
+    assert calls == []
+    assert "reason=query_too_long" in capsys.readouterr().out
 
 
 def test_opt_in_is_required_and_no_key_is_used_without_it(monkeypatch, capsys) -> None:
@@ -129,6 +245,62 @@ def test_a_completed_run_publishes_the_artifact(monkeypatch, capsys, tmp_path) -
     assert artifact["rows"][0]["model_calls"] == 2
     assert "OK answer_eval" in capsys.readouterr().out
     assert len(calls) == 2
+
+
+def test_success_line_identifies_the_default_generated_artifact(
+    monkeypatch, capsys, tmp_path
+) -> None:
+    calls = _install(monkeypatch)
+    monkeypatch.delenv("ULTICODE_ANSWER_EVAL_RESULT", raising=False)
+    monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path))
+
+    assert e2e.main_sync() == 0
+
+    artifacts = list((tmp_path / "ulticode").glob("answer-eval-*.json"))
+    assert len(artifacts) == 1
+    output = capsys.readouterr().out
+    assert f"artifact={e2e._artifact_label(artifacts[0])}" in output
+    assert len(calls) == 2
+
+
+def test_a_lone_surrogate_answer_is_escaped_in_the_published_artifact(
+    monkeypatch, capsys, tmp_path
+) -> None:
+    calls = _install(
+        monkeypatch,
+        answers={"dev-01": json.dumps({"text": chr(0xD800), "citations": ["snap-doc:v1:1"]})},
+    )
+    destination = tmp_path / "artifact.json"
+    monkeypatch.setenv("ULTICODE_ANSWER_EVAL_RESULT", str(destination))
+
+    assert e2e.main_sync() == 0
+
+    payload = destination.read_bytes()
+    assert bytes([0x5C]) + b"ud800" in payload
+    artifact = json.loads(payload.decode("utf-8"))
+    assert artifact["rows"][0]["answer_text"] == chr(0xD800)
+    assert "OK answer_eval" in capsys.readouterr().out
+    assert len(calls) == 2
+
+
+@pytest.mark.parametrize("max_calls,exit_code,expected_calls", [(2, 1, 0), (5, 1, 0), (6, 0, 6)])
+def test_retry_capacity_is_checked_before_billing(monkeypatch, capsys, tmp_path, max_calls, exit_code, expected_calls):
+    def stall(call_number):
+        if call_number % 3:
+            raise TimeoutError("retryable timeout")
+
+    calls = _install(monkeypatch, on_call=stall)
+    destination = tmp_path / "artifact.json"
+    monkeypatch.setenv("ULTICODE_ANSWER_EVAL_RESULT", str(destination))
+    monkeypatch.setenv("DEEPSEEK_MAX_CALLS", str(max_calls))
+
+    assert e2e.main_sync() == exit_code
+    assert len(calls) == expected_calls
+    assert destination.exists() == (exit_code == 0)
+    if exit_code:
+        assert "reason=call_budget_below_plan cases=1 required=6" in capsys.readouterr().out
+    else:
+        assert json.loads(destination.read_text(encoding="utf-8"))["rows"][0]["model_calls"] == 6
 
 
 def test_an_existing_artifact_is_not_overwritten_before_any_call(
@@ -162,6 +334,52 @@ def test_an_unwritable_artifact_destination_fails_before_any_call(
     assert calls == []
 
 
+def test_an_existing_lock_does_not_skip_the_artifact_write_probe(
+    monkeypatch, capsys, tmp_path
+) -> None:
+    calls = _install(monkeypatch)
+    destination = tmp_path / "artifact.json"
+    destination.with_name(f"{destination.name}.lock").touch()
+    monkeypatch.setenv("ULTICODE_ANSWER_EVAL_RESULT", str(destination))
+    original_open = e2e.os.open
+
+    def deny_probe(name, *args, **kwargs):
+        if isinstance(name, str) and name.endswith(".probe"):
+            raise PermissionError("artifact directory is not writable")
+        return original_open(name, *args, **kwargs)
+
+    monkeypatch.setattr(e2e.os, "open", deny_probe)
+
+    assert e2e.main_sync() == 1
+
+    assert "reason=answer_artifact_unusable" in capsys.readouterr().out
+    assert calls == []
+    assert not list(tmp_path.glob("*.probe"))
+
+def test_hard_link_publication_is_preflighted_before_model_calls(
+    monkeypatch, capsys, tmp_path
+) -> None:
+    calls = _install(monkeypatch)
+    destination = tmp_path / "artifact.json"
+    monkeypatch.setenv("ULTICODE_ANSWER_EVAL_RESULT", str(destination))
+
+    import e2e_citation_support_model as shared
+
+    real_link = shared.os.link
+
+    def deny_probe_link(src, dst, *args, **kwargs):
+        if isinstance(src, str) and src.endswith(".probe"):
+            raise OSError("hard links unavailable")
+        return real_link(src, dst, *args, **kwargs)
+
+    monkeypatch.setattr(shared.os, "link", deny_probe_link)
+
+    assert e2e.main_sync() == 1
+    assert "reason=answer_artifact_unusable" in capsys.readouterr().out
+    assert calls == []
+    assert not list(tmp_path.glob("*.probe*"))
+
+
 def test_a_failed_publication_reports_and_leaves_nothing(
     monkeypatch, capsys, tmp_path
 ) -> None:
@@ -179,6 +397,26 @@ def test_a_failed_publication_reports_and_leaves_nothing(
 
     assert "reason=answer_artifact_write_failed" in capsys.readouterr().out
     assert not destination.exists()
+    assert len(calls) == 2
+
+
+def test_a_controlled_artifact_name_cannot_forge_a_success_line(
+    monkeypatch, capsys, tmp_path
+) -> None:
+    calls = _install(monkeypatch)
+    destination = tmp_path / "artifact.json\nOK answer_eval forged"
+    monkeypatch.setenv("ULTICODE_ANSWER_EVAL_RESULT", str(destination))
+
+    def boom(*_args: object, **_kwargs: object) -> None:
+        raise OSError("no space left on device")
+
+    monkeypatch.setattr(e2e, "_publish", boom)
+
+    assert e2e.main_sync() == 1
+
+    output = capsys.readouterr().out
+    assert "reason=answer_artifact_write_failed" in output
+    assert not any(line.startswith("OK answer_eval") for line in output.splitlines())
     assert len(calls) == 2
 
 
@@ -447,7 +685,7 @@ def test_answer_artifact_parent_swap_never_redirects_bytes(monkeypatch, capsys, 
     assert e2e.main_sync() == 1
     assert len(calls) == 2
     assert not list((replacement if replacement_is_link else parent).iterdir())
-    assert sorted(p.name for p in moved.iterdir()) == ["artifact.json.lock"]
+    assert not list(moved.iterdir())
     output = capsys.readouterr().out
     assert "answer_artifact_write_failed" in output
     assert "OK answer_eval" not in output

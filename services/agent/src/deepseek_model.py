@@ -183,9 +183,9 @@ class DeepseekModel:
             self._budget_failed = True
             raise ModelBudgetExceeded("shared budget unavailable during settlement") from None
 
-    async def decide(self, messages: list[dict[str, object]]) -> ModelDecision:
-        if self._budget_failed:
-            raise ModelBudgetExceeded("shared budget stopped after accounting failure")
+    def _api_messages(
+        self, messages: list[dict[str, object]]
+    ) -> list[dict[str, str]]:
         api_messages: list[dict[str, str]] = [{"role": "system", "content": self._system}]
         for message in messages:
             role = str(message.get("role", "user"))
@@ -194,16 +194,34 @@ class DeepseekModel:
                 api_messages.append({"role": "user", "content": f"TOOL_RESULT: {content}"})
             elif role in ("user", "assistant"):
                 api_messages.append({"role": role, "content": content})
+        return api_messages
 
-        prompt_tokens_estimate = (
+    def _prompt_tokens_estimate(self, api_messages: list[dict[str, str]]) -> int:
+        return (
             sum(
                 len(message["content"].encode("utf-8")) * PROMPT_TOKEN_UPPER_BYTES
                 for message in api_messages
             )
             + len(api_messages) * PROMPT_TOKENS_PER_MESSAGE
         )
-        if prompt_tokens_estimate > self._max_prompt_tokens:
+
+    def _check_prompt_budget(self, api_messages: list[dict[str, str]]) -> None:
+        if self._prompt_tokens_estimate(api_messages) > self._max_prompt_tokens:
             raise ModelBudgetExceeded("prompt exceeds the configured token budget")
+
+    def check_prompt_budget(self, messages: list[dict[str, object]]) -> None:
+        """Apply the same prompt guard as decide without sending or counting a call."""
+        self._check_prompt_budget(self._api_messages(messages))
+
+    async def decide(self, messages: list[dict[str, object]]) -> ModelDecision:
+        if self._budget_failed:
+            raise ModelBudgetExceeded("shared budget stopped after accounting failure")
+        api_messages = self._api_messages(messages)
+        prompt_tokens_estimate = self._prompt_tokens_estimate(api_messages)
+
+        # Cost guards run before the request: max_tokens bounds output, but the
+        # prompt side is billed too, so both sides and the call count are capped.
+        self._check_prompt_budget(api_messages)
         if self.calls_made >= self._max_calls:
             raise ModelBudgetExceeded("call budget exhausted")
         reservation = None
@@ -312,7 +330,7 @@ def _parse_decision(content: str, *, finish_reason: object = None) -> ModelDecis
             parse_constant=_reject_json_constant,
             object_pairs_hook=_reject_duplicate_keys,
         )
-    except (json.JSONDecodeError, ValueError) as exc:
+    except (json.JSONDecodeError, ValueError, RecursionError) as exc:
         raise ModelProtocolError(
             "model decision was not valid JSON "
             f"(content_len={len(content)}, finish_reason={finish_label})"

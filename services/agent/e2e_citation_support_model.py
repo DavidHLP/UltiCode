@@ -122,6 +122,20 @@ def _judgements(raw: str) -> tuple[bool, bool]:
     return supports, derivable
 
 
+def _state_home() -> Path:
+    """The state root shared by default artifacts and protected claim locks."""
+    configured = os.environ.get("XDG_STATE_HOME", "")
+    if os.path.isabs(configured):
+        return Path(configured)
+    home = Path.home()
+    if not home.is_absolute():
+        raise RuntimeError(
+            "cannot locate a state directory: HOME is not absolute and "
+            "XDG_STATE_HOME is unset"
+        )
+    return home / ".local" / "state"
+
+
 def _verdict_file() -> Path:
     """Where this run's verdicts go.
 
@@ -133,19 +147,8 @@ def _verdict_file() -> Path:
     if override:
         return Path(override)
     # State, not the working directory: the documented invocation runs from
-    # `services/agent`, and an artifact written there would dirty the checkout.
-    configured = os.environ.get("XDG_STATE_HOME", "")
-    if os.path.isabs(configured):
-        state_home = Path(configured)
-    else:
-        home = Path.home()
-        if not home.is_absolute():
-            raise RuntimeError(
-                "cannot locate a state directory: HOME is not absolute and "
-                "XDG_STATE_HOME is unset"
-            )
-        state_home = home / ".local" / "state"
-    return state_home / "ulticode" / f"citation-verdicts-{secrets.token_hex(4)}.json"
+    # services/agent, and an artifact written there would dirty the checkout.
+    return _state_home() / "ulticode" / f"citation-verdicts-{secrets.token_hex(4)}.json"
 
 
 def _meta_path(path: Path) -> Path:
@@ -179,6 +182,10 @@ def _publish(target: Path, text: str) -> tuple[int, int]:
     directory, close_directory = _artifact_directory(target)
     temporary = f"{target.name}.{secrets.token_hex(4)}.part"
     created = False
+    descriptor: int | None = None
+    identity: tuple[int, int] | None = None
+    published = False
+    verified = False
     try:
         _assert_artifact_directory(target)
         descriptor = os.open(
@@ -186,16 +193,39 @@ def _publish(target: Path, text: str) -> tuple[int, int]:
             0o600, dir_fd=directory,
         )
         created = True
-        with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
-            stream.write(text)
+        info = os.fstat(descriptor)
+        identity = (info.st_dev, info.st_ino)
+        stream = os.fdopen(descriptor, "wb")
+        descriptor = None  # ownership transfers only after fdopen succeeds
+        with stream:
+            stream.write(text.encode("utf-8"))
+            stream.flush()
             info = os.fstat(stream.fileno())
-        os.link(temporary, target.name, src_dir_fd=directory, dst_dir_fd=directory,
-                follow_symlinks=False)
-        return info.st_dev, info.st_ino
+            if (info.st_dev, info.st_ino) != identity:
+                raise OSError("temporary artifact inode changed")
+            os.link(temporary, target.name, src_dir_fd=directory, dst_dir_fd=directory,
+                    follow_symlinks=False)
+            published = True
+            _read_published_artifact(
+                target, text, directory=directory, expected_identity=identity
+            )
+            verified = True
+        return identity
     finally:
-        if created:
+        if descriptor is not None:
+            os.close(descriptor)
+        if published and not verified and identity is not None:
             try:
-                os.unlink(temporary, dir_fd=directory)
+                info = os.stat(target.name, dir_fd=directory, follow_symlinks=False)
+                if (info.st_dev, info.st_ino) == identity:
+                    os.unlink(target.name, dir_fd=directory)
+            except OSError:
+                pass
+        if created and identity is not None:
+            try:
+                info = os.stat(temporary, dir_fd=directory, follow_symlinks=False)
+                if (info.st_dev, info.st_ino) == identity:
+                    os.unlink(temporary, dir_fd=directory)
             except OSError:
                 pass
         if close_directory:
@@ -220,14 +250,25 @@ def _discard_artifacts(owned: dict[Path, tuple[int, int]]) -> None:
                 os.close(directory)
 
 
-def _read_published_artifact(target: Path, expected: str) -> str:
-    """Read back exactly our bounded bytes through the reservation, never its display path."""
-    directory = _TARGET_DIRECTORY_FDS[target]
+def _read_published_artifact(
+    target: Path,
+    expected: str,
+    *,
+    directory: int | None = None,
+    expected_identity: tuple[int, int] | None = None,
+) -> str:
+    """Read back exact bytes and verify the path still names the opened inode."""
+    if directory is None:
+        directory = _TARGET_DIRECTORY_FDS[target]
     descriptor = os.open(target.name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK,
                          dir_fd=directory)
     try:
-        if not stat.S_ISREG(os.fstat(descriptor).st_mode):
+        opened = os.fstat(descriptor)
+        identity = (opened.st_dev, opened.st_ino)
+        if not stat.S_ISREG(opened.st_mode):
             raise OSError("published artifact is not regular")
+        if expected_identity is not None and identity != expected_identity:
+            raise OSError("published artifact inode changed")
         stream = os.fdopen(descriptor, "rb")
         descriptor = None  # ownership transfers only after fdopen succeeds
         with stream:
@@ -235,6 +276,9 @@ def _read_published_artifact(target: Path, expected: str) -> str:
             payload = stream.read(len(expected_bytes) + 1)
             if payload != expected_bytes:
                 raise OSError("published artifact changed")
+            named = os.stat(target.name, dir_fd=directory, follow_symlinks=False)
+            if not stat.S_ISREG(named.st_mode) or (named.st_dev, named.st_ino) != identity:
+                raise OSError("published artifact inode changed")
             return payload.decode("utf-8")
     finally:
         if descriptor is not None:
@@ -242,89 +286,182 @@ def _read_published_artifact(target: Path, expected: str) -> str:
 
 
 def _verdict_lock(path: Path) -> Path:
-    """The path this run reserves. Never the artifact itself."""
-    return path.with_name(f"{path.name}.lock")
+    """A per-user lock pathname outside the caller-writable artifact directory."""
+    canonical = os.path.abspath(os.fspath(path))
+    key = hashlib.sha256(os.fsencode(canonical)).hexdigest()
+    return _state_home() / "ulticode" / "artifact-locks" / f"{key}.lock"
 
 
 _HELD_LOCKS: dict[Path, object] = {}
 _HELD_DIRECTORY_FDS: dict[Path, int] = {}
+_CLAIM_LOCK_SETS: dict[Path, tuple[Path, ...]] = {}
+_HELD_ARTIFACT_DIRECTORY_FDS: dict[Path, int] = {}
 _TARGET_DIRECTORY_FDS: dict[Path, int] = {}
 
 
 def _release_unfinished_claim(lock: Path) -> None:
-    """Drop this run's reservation.
-
-    Closing the descriptor releases the kernel lock, so a crashed run cannot leave
-    the destination unusable: the OS drops it when the process dies. The lock file
-    itself stays on disk — deleting it would let a later run lock a fresh inode while
-    this run still held the old one, which is two writers on one destination.
-    """
-    handle = _HELD_LOCKS.pop(lock, None)
-    if handle is not None:
+    """Drop every lock and directory descriptor held for this claim."""
+    locks = _CLAIM_LOCK_SETS.pop(lock, (lock,))
+    lock_directories: set[int] = set()
+    for claimed_lock in locks:
+        handle = _HELD_LOCKS.pop(claimed_lock, None)
+        if handle is not None:
+            try:
+                handle.close()
+            except OSError:
+                pass
+        directory = _HELD_DIRECTORY_FDS.pop(claimed_lock, None)
+        if directory is not None:
+            lock_directories.add(directory)
+    for directory in lock_directories:
         try:
-            handle.close()
+            os.close(directory)
         except OSError:
             pass
-    directory = _HELD_DIRECTORY_FDS.pop(lock, None)
-    if directory is not None:
+
+    artifact_directory = _HELD_ARTIFACT_DIRECTORY_FDS.pop(lock, None)
+    if artifact_directory is not None:
         for target, fd in list(_TARGET_DIRECTORY_FDS.items()):
-            if fd == directory:
+            if fd == artifact_directory:
                 del _TARGET_DIRECTORY_FDS[target]
-        os.close(directory)
+        try:
+            os.close(artifact_directory)
+        except OSError:
+            pass
+
+
+def _probe_artifact_publication(path: Path, directory: int) -> None:
+    """Prove this directory can create and hard-link a file before billed calls."""
+    probe = f"{path.name}.{secrets.token_hex(16)}.probe"
+    probe_link = f"{probe}.link"
+    descriptor = None
+    identity = None
+    try:
+        descriptor = os.open(
+            probe, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+            0o600, dir_fd=directory,
+        )
+        info = os.fstat(descriptor)
+        identity = (info.st_dev, info.st_ino)
+        os.close(descriptor)
+        descriptor = None
+        visible = os.stat(probe, dir_fd=directory, follow_symlinks=False)
+        if (visible.st_dev, visible.st_ino) != identity:
+            raise OSError("artifact probe inode changed")
+        os.link(
+            probe, probe_link, src_dir_fd=directory, dst_dir_fd=directory,
+            follow_symlinks=False,
+        )
+        linked = os.stat(probe_link, dir_fd=directory, follow_symlinks=False)
+        if (linked.st_dev, linked.st_ino) != identity:
+            raise OSError("artifact hard-link probe inode changed")
+    finally:
+        if descriptor is not None:
+            try:
+                os.close(descriptor)
+            except OSError:
+                pass
+        if identity is not None:
+            for name in (probe_link, probe):
+                try:
+                    visible = os.stat(name, dir_fd=directory, follow_symlinks=False)
+                    if (visible.st_dev, visible.st_ino) == identity:
+                        os.unlink(name, dir_fd=directory)
+                except OSError:
+                    pass
 
 
 def _claim_verdict_file(path: Path) -> Path:
-    """Reserve the destination before any billed call, without creating it.
+    """Reserve verdict and metadata destinations before billed calls.
 
-    The reservation is an OS advisory lock on a sidecar file, not the artifact:
-    automation that treats the verdict path's existence as "published" must not see
-    it while the run is still judging. An unusable parent, an occupied destination,
-    or another live run holding the lock is a failure; finding out after the model
-    calls would waste them.
+    Private per-user lock entries avoid replaceable sidecars; the held artifact
+    directory lock shares claims across state roots. Both output names are locked
+    in canonical order.
     """
     lock = _verdict_lock(path)
-    directory = None
+    locks = tuple(sorted(
+        (lock, _verdict_lock(_meta_path(path))), key=os.fspath
+    ))
+    lock_directory = None
+    artifact_directory = None
     descriptor = None
     handle = None
+    acquired: dict[Path, object] = {}
+    current_lock = lock
     try:
-        directory = _open_directory_nofollow(path.parent, create=True)
-        descriptor = os.open(lock.name, os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW | os.O_NONBLOCK,
-                             0o600, dir_fd=directory)
-        if not stat.S_ISREG(os.fstat(descriptor).st_mode):
-            raise OSError("lock is not regular")
-        handle = os.fdopen(descriptor, "r+", encoding="utf-8")
-        descriptor = None
-        fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        # Fail closed on an unsafe state root before creating the output directory.
+        lock_directory = _open_directory_nofollow(
+            _state_home() / "ulticode" / "artifact-locks",
+            create=True,
+            private=True,
+        )
+        artifact_directory = _open_directory_nofollow(path.parent, create=True)
+        # Share the claim namespace across XDG_STATE_HOME values and users.
+        # ponytail: this serializes unrelated outputs too; use a shared per-target
+        # lock service if contention becomes a bottleneck.
+        fcntl.flock(artifact_directory, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        for current_lock in locks:
+            descriptor = os.open(
+                current_lock.name,
+                os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW | os.O_NONBLOCK,
+                0o600,
+                dir_fd=lock_directory,
+            )
+            lock_info = os.fstat(descriptor)
+            if (
+                not stat.S_ISREG(lock_info.st_mode)
+                or lock_info.st_uid != os.geteuid()
+                or lock_info.st_nlink != 1
+            ):
+                raise OSError("lock is not a private regular file")
+            handle = os.fdopen(descriptor, "r+", encoding="utf-8")
+            descriptor = None
+            fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            acquired[current_lock] = handle
+            handle = None
     except (OSError, ValueError) as error:
         if handle is not None:
-            handle.close()
+            try:
+                handle.close()
+            except OSError:
+                pass
         if descriptor is not None:
-            os.close(descriptor)
-        if directory is not None:
-            os.close(directory)
+            try:
+                os.close(descriptor)
+            except OSError:
+                pass
+        for acquired_handle in acquired.values():
+            try:
+                acquired_handle.close()
+            except OSError:
+                pass
+        for directory in (artifact_directory, lock_directory):
+            if directory is not None:
+                try:
+                    os.close(directory)
+                except OSError:
+                    pass
         raise RuntimeError(
-            f"verdict destination is not writable or already claimed: {_path_label(lock)} "
-            f"({type(error).__name__})"
+            "verdict destination is not writable or already claimed: "
+            f"{_path_label(current_lock)} ({type(error).__name__})"
         ) from None
-    _HELD_LOCKS[lock] = handle
-    _HELD_DIRECTORY_FDS[lock] = directory
-    _TARGET_DIRECTORY_FDS[path] = directory
-    _TARGET_DIRECTORY_FDS[_meta_path(path)] = directory
-    try:  # informational: who holds it, for a human debugging a refused run
-        handle.truncate(0)
-        handle.write(f"pid={os.getpid()}\n")
-        handle.flush()
-    except OSError:
-        pass
+
+    for claimed_lock, claimed_handle in acquired.items():
+        _HELD_LOCKS[claimed_lock] = claimed_handle
+        _HELD_DIRECTORY_FDS[claimed_lock] = lock_directory
+    _CLAIM_LOCK_SETS[lock] = locks
+    _HELD_ARTIFACT_DIRECTORY_FDS[lock] = artifact_directory
+    _TARGET_DIRECTORY_FDS[path] = artifact_directory
+    _TARGET_DIRECTORY_FDS[_meta_path(path)] = artifact_directory
+    # Checked after both locks: overlapping runs must not both see an empty
+    # artifact namespace before either owns all of its destinations.
     atexit.register(_release_unfinished_claim, lock)
-    # Checked *after* the lock: two runs can both see an empty destination before
-    # either holds it, and the loser would then replace the winner's verdicts.
     for existing in (path, _meta_path(path)):
         try:
-            os.stat(existing.name, dir_fd=directory, follow_symlinks=False)
+            os.stat(existing.name, dir_fd=artifact_directory, follow_symlinks=False)
         except FileNotFoundError:
             continue
-        except OSError as error:
+        except (OSError, ValueError) as error:
             _release_unfinished_claim(lock)
             raise RuntimeError(
                 f"verdict destination is not usable: {_path_label(existing)} "
@@ -334,9 +471,15 @@ def _claim_verdict_file(path: Path) -> Path:
         raise RuntimeError(
             f"verdict destination already exists: {_path_label(existing)}"
         )
+    try:
+        _probe_artifact_publication(path, artifact_directory)
+    except (OSError, ValueError, NotImplementedError) as error:
+        _release_unfinished_claim(lock)
+        raise RuntimeError(
+            "verdict destination is not writable or already claimed: "
+            f"{_path_label(current_lock)} ({type(error).__name__})"
+        ) from None
     return lock
-
-
 
 
 #: Optional override: point this run at a corpus outside the repository without
@@ -444,13 +587,22 @@ def _source_name(declared: str) -> str | None:
     return declared
 
 
-def _open_directory_nofollow(root: Path, *, create: bool = False) -> int:
-    """Anchor every path component without following ancestor symlinks."""
+def _open_directory_nofollow(
+    root: Path, *, create: bool = False, private: bool = False
+) -> int:
+    """Anchor path components; optionally require an unreplaceable private leaf."""
     flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
     descriptor = os.open(root.anchor if root.is_absolute() else ".", flags)
     try:
         parts = root.parts[1:] if root.is_absolute() else root.parts
         for component in parts:
+            if private:
+                parent = os.fstat(descriptor)
+                if parent.st_uid not in (0, os.geteuid()):
+                    raise PermissionError("lock directory ancestor has an untrusted owner")
+                writable = stat.S_IWGRP | stat.S_IWOTH
+                if parent.st_mode & writable and not parent.st_mode & stat.S_ISVTX:
+                    raise PermissionError("lock directory ancestor is writable by others")
             try:
                 child = os.open(component, flags, dir_fd=descriptor)
             except FileNotFoundError:
@@ -463,10 +615,19 @@ def _open_directory_nofollow(root: Path, *, create: bool = False) -> int:
                 child = os.open(component, flags, dir_fd=descriptor)
             os.close(descriptor)
             descriptor = child
+        if private:
+            leaf = os.fstat(descriptor)
+            if (
+                leaf.st_uid != os.geteuid()
+                or (leaf.st_mode & 0o700) != 0o700
+                or leaf.st_mode & 0o077
+            ):
+                raise PermissionError("lock directory must be owned and private")
         return descriptor
     except BaseException:
         os.close(descriptor)
         raise
+
 
 
 def _corpus_override() -> ValidatedCorpus | None:
@@ -864,12 +1025,19 @@ async def main() -> int:
             thinking_type="disabled",
         ) as model:
             try:
-                for item in rows:
-                    data = json.dumps(
+                prompts = tuple(
+                    f"{JUDGE_CONTRACT}\nINPUT_JSON "
+                    + json.dumps(
                         {"CLAIM": item.claim, "QUOTE": item.quote, "SUBMISSION_FACTS": facts},
                         ensure_ascii=True,
                     )
-                    prompt = f"{JUDGE_CONTRACT}\nINPUT_JSON {data}"
+                    for item in rows
+                )
+                # Check every row before the first billed call so a late oversized
+                # citation cannot leave a partially judged, charged run.
+                for prompt in prompts:
+                    model.check_prompt_budget([{"role": "user", "content": prompt}])
+                for item, prompt in zip(rows, prompts):
                     decision = await model.decide([{"role": "user", "content": prompt}])
                     calls += 1
                     supports, derivable = _judgements(decision.text)

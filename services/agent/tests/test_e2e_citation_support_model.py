@@ -14,6 +14,7 @@ import sys
 import pytest
 
 from corpus_manifest import content_digest
+from deepseek_model import ModelBudgetExceeded
 from retrieval import SourceHit, keyword_search, load_sample_corpus
 
 _module_spec = importlib.util.spec_from_file_location(
@@ -23,6 +24,11 @@ _module_spec = importlib.util.spec_from_file_location(
 assert _module_spec and _module_spec.loader
 smoke = importlib.util.module_from_spec(_module_spec)
 _module_spec.loader.exec_module(smoke)
+
+
+@pytest.fixture(autouse=True)
+def _isolated_artifact_lock_state(monkeypatch, tmp_path):
+    monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path / "state"))
 
 
 def _lock_is_free(lock: Path) -> bool:
@@ -37,9 +43,14 @@ def _lock_is_free(lock: Path) -> bool:
     return True
 
 
+def _prepare_lock_parent(lock: Path) -> None:
+    lock.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    lock.parent.chmod(0o700)
+
+
 def _hold(lock: Path) -> object:
     """A live rival holding the reservation, released when the test ends."""
-    lock.parent.mkdir(parents=True, exist_ok=True)
+    _prepare_lock_parent(lock)
     handle = lock.open("a+", encoding="utf-8")
     fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
     return handle
@@ -70,7 +81,14 @@ def _citation(index: int = 0) -> dict[str, object]:
     return hits[index].as_model_dict()
 
 
-def _install(monkeypatch, tmp_path: Path, judgements: list[str], calls: list[str]) -> None:
+def _install(
+    monkeypatch,
+    tmp_path: Path,
+    judgements: list[str],
+    calls: list[str],
+    prompt_checks: list[str] | None = None,
+    reject_prompt_check: int | None = None,
+) -> None:
     class _Decision:
         def __init__(self, text: str) -> None:
             self.text = text
@@ -88,6 +106,13 @@ def _install(monkeypatch, tmp_path: Path, judgements: list[str], calls: list[str
 
         async def __aexit__(self, *_args: object) -> None:
             return None
+
+        def check_prompt_budget(self, messages: list[dict[str, object]]) -> None:
+            prompt = str(messages[-1]["content"])
+            if prompt_checks is not None:
+                prompt_checks.append(prompt)
+                if reject_prompt_check == len(prompt_checks):
+                    raise ModelBudgetExceeded("prompt exceeds test budget")
 
         async def decide(self, messages: list[dict[str, object]]) -> object:
             calls.append(str(messages[-1]["content"]))
@@ -385,7 +410,7 @@ def test_an_unusable_verdict_destination_fails_before_any_call(
     _install(monkeypatch, tmp_path, ['{"supports": true, "derivable": true}'] * 3, calls)
     destination = tmp_path / "verdicts.json"
     # Another run holds the reservation right now.
-    held = _hold(tmp_path / "verdicts.json.lock")
+    held = _hold(smoke._verdict_lock(destination))
     monkeypatch.setenv("ULTICODE_CITATION_VERDICTS", str(destination))
 
     assert smoke.main_sync() == 1
@@ -395,6 +420,107 @@ def test_an_unusable_verdict_destination_fails_before_any_call(
     # Automation keyed on the artifact's existence must not see it yet.
     assert not destination.exists()
     held.close()
+
+
+def test_overlapping_verdict_metadata_paths_are_reserved_before_calls(
+    monkeypatch, capsys, tmp_path
+) -> None:
+    calls: list[str] = []
+    destination = tmp_path / "a.json"
+    overlapping_destination = smoke._meta_path(destination)
+    _install(
+        monkeypatch, tmp_path,
+        ['{"supports": true, "derivable": true}'] * 3, calls,
+    )
+    first_lock = smoke._claim_verdict_file(overlapping_destination)
+
+    try:
+        monkeypatch.setenv("ULTICODE_CITATION_VERDICTS", str(destination))
+        assert smoke.main_sync() == 1
+        output = capsys.readouterr().out
+        assert "reason=verdict_destination_unusable" in output
+        assert calls == []
+        assert not destination.exists()
+        # The failed multi-lock claim releases its first lock but not the rival's.
+        assert _lock_is_free(smoke._verdict_lock(destination))
+    finally:
+        smoke._release_unfinished_claim(first_lock)
+
+    assert _lock_is_free(smoke._verdict_lock(destination))
+    assert _lock_is_free(smoke._verdict_lock(overlapping_destination))
+    assert _lock_is_free(smoke._verdict_lock(smoke._meta_path(overlapping_destination)))
+
+
+
+def test_replacing_output_lock_paths_cannot_split_a_live_claim(monkeypatch, tmp_path):
+    monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path / "state"))
+    destination = tmp_path / "artifacts" / "a.json"
+    metadata = smoke._meta_path(destination)
+    first_lock = smoke._claim_verdict_file(destination)
+    replacement_paths = (
+        destination.with_name(f"{destination.name}.lock"),
+        metadata.with_name(f"{metadata.name}.lock"),
+    )
+    assert first_lock.parent != destination.parent
+    second_lock = None
+
+    try:
+        for output_lock in replacement_paths:
+            output_lock.touch(mode=0o600, exist_ok=True)
+        for lock in replacement_paths:
+            lock.unlink()
+            lock.touch(mode=0o600)
+        assert all(lock.is_file() for lock in replacement_paths)
+
+        with pytest.raises(RuntimeError, match="already claimed"):
+            second_lock = smoke._claim_verdict_file(destination)
+    finally:
+        if second_lock is not None:
+            smoke._release_unfinished_claim(second_lock)
+        smoke._release_unfinished_claim(first_lock)
+
+
+def test_shared_artifact_directory_claim_covers_different_state_roots(
+    monkeypatch, tmp_path
+) -> None:
+    destination = tmp_path / "artifacts" / "result.json"
+    monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path / "state-a"))
+    first_lock = smoke._claim_verdict_file(destination)
+
+    try:
+        monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path / "state-b"))
+        with pytest.raises(RuntimeError, match="already claimed"):
+            smoke._claim_verdict_file(destination)
+    finally:
+        smoke._release_unfinished_claim(first_lock)
+
+    second_lock = smoke._claim_verdict_file(destination)
+    try:
+        assert second_lock != first_lock
+    finally:
+        smoke._release_unfinished_claim(second_lock)
+
+
+@pytest.mark.parametrize("unsafe_root", ["ancestor", "lock_directory"])
+def test_untrusted_state_lock_directories_are_refused(
+    monkeypatch, tmp_path, unsafe_root
+):
+    state_home = tmp_path / "state"
+    state_home.mkdir(mode=0o700)
+    state_home.chmod(0o700)
+    if unsafe_root == "ancestor":
+        state_home.chmod(0o777)
+    else:
+        lock_directory = state_home / "ulticode" / "artifact-locks"
+        lock_directory.mkdir(parents=True, mode=0o700)
+        lock_directory.chmod(0o755)
+    monkeypatch.setenv("XDG_STATE_HOME", str(state_home))
+    destination = tmp_path / "artifacts" / "a.json"
+
+    with pytest.raises(RuntimeError, match="not writable"):
+        smoke._claim_verdict_file(destination)
+
+    assert not destination.parent.exists()
 
 
 def test_a_non_integer_threshold_fails_cleanly(monkeypatch, capsys, tmp_path) -> None:
@@ -457,7 +583,7 @@ def test_a_successful_run_releases_its_reservation(monkeypatch, capsys, tmp_path
 
     assert smoke.main_sync() == 0
     assert destination.exists()
-    assert _lock_is_free(tmp_path / "verdicts.json.lock")
+    assert _lock_is_free(smoke._verdict_lock(destination))
 
 
 def test_a_write_failure_releases_the_claim(monkeypatch, capsys, tmp_path) -> None:
@@ -541,6 +667,32 @@ def test_a_call_budget_below_the_row_count_is_refused(
     assert calls == []
 
 
+def test_all_citation_prompts_are_preflighted_before_any_call(
+    monkeypatch, capsys, tmp_path
+) -> None:
+    calls: list[str] = []
+    checked_prompts: list[str] = []
+    destination = tmp_path / "verdicts.json"
+    _install(
+        monkeypatch,
+        tmp_path,
+        ['{"supports": true, "derivable": true}'] * 3,
+        calls,
+        prompt_checks=checked_prompts,
+        reject_prompt_check=3,
+    )
+
+    assert smoke.main_sync() == 1
+
+    output = capsys.readouterr().out
+    assert len(checked_prompts) == 3
+    assert calls == []
+    assert "E2E CITATION SUPPORT USAGE | calls=0" in output
+    assert "FAIL error=ModelBudgetExceeded" in output
+    assert not destination.exists()
+    assert not smoke._meta_path(destination).exists()
+
+
 def test_a_provider_failure_reports_a_fixed_label(monkeypatch, capsys, tmp_path) -> None:
     """A routine outage must not escape as a traceback."""
     calls: list[str] = []
@@ -585,6 +737,26 @@ def test_an_existing_artifact_is_not_overwritten(monkeypatch, capsys, tmp_path) 
     assert destination.read_text(encoding="utf-8") == "[]"
 
 
+def test_readback_failure_removes_our_published_target(monkeypatch, tmp_path) -> None:
+    destination = tmp_path / "verdicts.json"
+    lock = smoke._claim_verdict_file(destination)
+    original_read = smoke._read_published_artifact
+
+    def corrupt_through_temporary(target, expected, **kwargs):
+        temporary = next(tmp_path.glob("*.part"))
+        temporary.write_text("tampered", encoding="utf-8")
+        return original_read(target, expected, **kwargs)
+
+    monkeypatch.setattr(smoke, "_read_published_artifact", corrupt_through_temporary)
+    try:
+        with pytest.raises(OSError, match="published artifact changed"):
+            smoke._publish(destination, "expected")
+        assert not destination.exists()
+        assert not list(tmp_path.glob("*.part"))
+    finally:
+        smoke._release_unfinished_claim(lock)
+
+
 def test_a_failed_publication_leaves_no_temporary(monkeypatch, capsys, tmp_path) -> None:
     """A leftover `.part` file is this run's litter, not an artifact."""
     calls: list[str] = []
@@ -610,7 +782,7 @@ def test_an_artifact_that_appears_under_the_lock_is_refused(tmp_path) -> None:
         smoke._claim_verdict_file(destination)
 
     # The reservation it took is released, so the retry after the clash works.
-    assert _lock_is_free(tmp_path / "verdicts.json.lock")
+    assert _lock_is_free(smoke._verdict_lock(destination))
 
 
 def test_a_rejected_reservation_leaves_existing_artifacts_alone(tmp_path) -> None:
@@ -634,7 +806,7 @@ def test_a_live_owner_blocks_the_claim_and_a_dead_one_does_not(tmp_path) -> None
     """Ownership is an OS lock, so death releases it and a rival cannot steal it."""
     destination = tmp_path / "verdicts.json"
     lock = smoke._verdict_lock(destination)
-    lock.parent.mkdir(parents=True, exist_ok=True)
+    _prepare_lock_parent(lock)
 
     # A live rival: a second descriptor on the same inode holds the lock.
     rival = lock.open("a+", encoding="utf-8")
@@ -644,7 +816,7 @@ def test_a_live_owner_blocks_the_claim_and_a_dead_one_does_not(tmp_path) -> None
     rival.close()
 
     # A dead owner: the kernel drops the lock with the process, so the claim works
-    # even though the lock file — pid and all — is still on disk.
+    # even though the persistent lock file is still on disk.
     subprocess.run(
         [
             sys.executable,
@@ -656,7 +828,7 @@ def test_a_live_owner_blocks_the_claim_and_a_dead_one_does_not(tmp_path) -> None
         check=False,
     )
     assert smoke._claim_verdict_file(destination) == lock
-    assert f"pid={os.getpid()}" in lock.read_text(encoding="utf-8")
+    assert lock.read_text(encoding="utf-8") == ""
     smoke._release_unfinished_claim(lock)
 
 
@@ -808,12 +980,32 @@ def test_a_symlinked_lock_is_refused_and_its_target_survives(tmp_path) -> None:
     destination = tmp_path / "verdicts.json"
     victim = tmp_path / "victim.txt"
     victim.write_text("important", encoding="utf-8")
-    smoke._verdict_lock(destination).symlink_to(victim)
+    lock = smoke._verdict_lock(destination)
+    _prepare_lock_parent(lock)
+    lock.symlink_to(victim)
 
     with pytest.raises(RuntimeError, match="not writable"):
         smoke._claim_verdict_file(destination)
 
     assert victim.read_text(encoding="utf-8") == "important"
+
+
+def test_a_hard_linked_lock_is_refused_without_mutating_its_target(tmp_path) -> None:
+    destination = tmp_path / "verdicts.json"
+    victim = tmp_path / "important.txt"
+    victim.write_text("preserve this file", encoding="utf-8")
+    lock = smoke._verdict_lock(destination)
+    _prepare_lock_parent(lock)
+    os.link(victim, lock)
+
+    try:
+        with pytest.raises(RuntimeError, match="already claimed"):
+            smoke._claim_verdict_file(destination)
+    finally:
+        smoke._release_unfinished_claim(lock)
+
+    assert victim.read_text(encoding="utf-8") == "preserve this file"
+    assert victim.stat().st_ino == lock.stat().st_ino
 
 
 def test_cleanup_leaves_a_sibling_destination_temporary_alone(tmp_path) -> None:
@@ -865,6 +1057,32 @@ def test_a_colliding_temporary_is_not_unlinked(tmp_path, monkeypatch) -> None:
     # Created by someone else, so this run's cleanup must not have touched it.
     assert other.read_text(encoding="utf-8") == "another publisher's bytes"
     assert not destination.exists()
+
+
+def test_publish_rejects_temporary_path_replacement(monkeypatch, tmp_path) -> None:
+    destination = tmp_path / "verdicts.json"
+    expected = b'{"ours": true}'
+    monkeypatch.setattr(smoke.secrets, "token_hex", lambda _n: "deadbeef")
+    original_link = smoke.os.link
+
+    def replace_temporary(source, target, **kwargs):
+        if source == "verdicts.json.deadbeef.part":
+            directory = kwargs["src_dir_fd"]
+            os.unlink(source, dir_fd=directory)
+            descriptor = os.open(
+                source, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600, dir_fd=directory
+            )
+            os.write(descriptor, b"foreign bytes")
+            os.close(descriptor)
+        return original_link(source, target, **kwargs)
+
+    monkeypatch.setattr(smoke.os, "link", replace_temporary)
+    with pytest.raises(OSError, match="published artifact inode changed"):
+        smoke._publish(destination, expected.decode("utf-8"))
+
+    assert destination.read_bytes() == b"foreign bytes"
+    temporary = tmp_path / "verdicts.json.deadbeef.part"
+    assert temporary.read_bytes() == b"foreign bytes"
 
 
 def _load_entries(manifest) -> list[dict]:
@@ -1884,8 +2102,8 @@ def test_citation_artifact_parent_swap_never_redirects_bytes(monkeypatch, capsys
     assert smoke.main_sync() == 1
     assert len(calls) == 3
     assert not list((replacement if replacement_is_link else parent).iterdir())
-    assert sorted(p.name for p in moved.iterdir()) == ["verdicts.json.lock"]
-    assert _lock_is_free(moved / "verdicts.json.lock")
+    assert not list(moved.iterdir())
+    assert _lock_is_free(smoke._verdict_lock(destination))
     output = capsys.readouterr().out
     assert "verdict_write_failed" in output
     assert "OK citation_support" not in output

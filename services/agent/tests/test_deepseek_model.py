@@ -1,5 +1,6 @@
 import asyncio
 
+import deepseek_model
 import httpx
 import pytest
 
@@ -92,6 +93,42 @@ def test_invalid_decision_protocol_is_rejected_without_content(
                 await model.decide([{"role": "user", "content": "question"}])
             assert "SECRET" not in str(exc_info.value)
             assert content not in str(exc_info.value)
+
+    asyncio.run(scenario())
+
+
+def test_deeply_nested_outer_decision_is_a_protocol_error(monkeypatch) -> None:
+    nested = "[" * 1100 + "0" + "]" * 1100
+    content = '{"answer":' + nested + "}"
+    real_loads = deepseek_model.json.loads
+
+    def raise_depth_error(raw, *args, **kwargs):
+        if raw == content:
+            raise RecursionError("maximum recursion depth exceeded")
+        return real_loads(raw, *args, **kwargs)
+
+    monkeypatch.setattr(deepseek_model.json, "loads", raise_depth_error)
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "choices": [{"message": {"content": content}}],
+                "usage": {"prompt_tokens": 3, "completion_tokens": 2, "total_tokens": 5},
+            },
+        )
+
+    async def scenario() -> None:
+        async with DeepseekModel(
+            "test-key",
+            tool_specs={},
+            transport=httpx.MockTransport(handler),
+        ) as model:
+            with pytest.raises(ModelProtocolError, match="model decision was not valid JSON"):
+                await model.decide([{"role": "user", "content": "question"}])
+            assert model.usage == [
+                {"prompt_tokens": 3, "completion_tokens": 2, "total_tokens": 5}
+            ]
 
     asyncio.run(scenario())
 

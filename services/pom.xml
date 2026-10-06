@@ -62,6 +62,8 @@
 		<java.version>17</java.version>
 		<!-- Security fixes newer than the Spring Boot dependency BOM. -->
 		<jackson-2-bom.version>2.21.7</jackson-2-bom.version>
+		<jackson-bom.version>3.1.7</jackson-bom.version>
+		<tomcat.version>11.0.25</tomcat.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<mybatis-plus.version>3.5.17</mybatis-plus.version>
 		<jjwt.version>0.13.0</jjwt.version>

@@ -107,7 +107,7 @@ public class LearningPlanService {
             return row;
         });
 
-        log.info("Learning plan confirmed");
+        log.info("Learning plan confirmed planId={}", stored.getId());
         return toVO(stored);
     }
 

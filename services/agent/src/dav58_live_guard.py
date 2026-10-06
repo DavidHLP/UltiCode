@@ -8,16 +8,30 @@ import fcntl
 import hashlib
 import json
 import os
+import stat
 import threading
 from datetime import datetime, timezone
 from pathlib import Path
 
 import httpx
+import authorized_budget_period
 from deepseek_model import ModelBudgetExceeded, _reject_duplicate_keys, _reject_json_constant
 
 INPUT_MAX = 1_048_576  # conservatively interpret published 1M context as 2**20
 OUTPUT_MAX = 393_216  # published 384K full output, including any reasoning
 ENVELOPE_MICRO_USD = (INPUT_MAX * 3 + OUTPUT_MAX * 12 + 9) // 10
+
+
+def _lane_caps(lane):
+    try:
+        completion = authorized_budget_period.POLICY["lanes"][lane]["completion_token_cap"]
+        prompt = authorized_budget_period.POLICY["prompt_token_cap"]
+    except (KeyError, TypeError):
+        raise ModelBudgetExceeded("unexpected paid lane or policy") from None
+    if (type(completion) is not int or not 1 <= completion <= OUTPUT_MAX
+            or type(prompt) is not int or not 1 <= prompt <= INPUT_MAX):
+        raise ModelBudgetExceeded("invalid trusted policy caps")
+    return prompt, completion
 
 
 class IncrementalGuard:
@@ -26,13 +40,23 @@ class IncrementalGuard:
         self.lock = threading.Lock()
         self.state = {"limit_micro_usd": 1_000_000, "settled_peak_micro_usd": 0,
                       "pending_micro_usd": 0, "halted": False, "receipts": []}
+        if period_identity is not None or config_sha256 is not None:
+            if not period_identity or not config_sha256:
+                raise ValueError("guard requires both period identity and config")
+            self.state.update(period_identity=period_identity, config_sha256=config_sha256)
         self._ownership = path.with_suffix(path.suffix + ".lock").open("a")
         try:
             fcntl.flock(self._ownership, fcntl.LOCK_EX | fcntl.LOCK_NB)
             if resume_sha256 is None:
-                with path.open("x") as stream:
+                fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+                with os.fdopen(fd, "w") as stream:
                     stream.write(json.dumps(self.state) + "\n")
+                    stream.flush()
+                    os.fsync(stream.fileno())
             else:
+                info = os.lstat(path)
+                if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1 or (info.st_mode & 0o777) != 0o600:
+                    raise ValueError("guard journal is not private")
                 raw = path.read_bytes()
                 if hashlib.sha256(raw).hexdigest() != resume_sha256:
                     raise ValueError("resume journal fingerprint mismatch")
@@ -58,10 +82,30 @@ class IncrementalGuard:
         if not isinstance(receipts, list) or not receipts:
             raise ValueError("resume requires prior receipts")
         total = 0
-        for r in receipts:
+        continuation = saved.get("continuation_run")
+        continuation_start = continuation.get("receipt_start") if isinstance(continuation, dict) else None
+        for index, r in enumerate(receipts):
             response_model = r.get("response_model") if isinstance(r, dict) else None
+            lane = r.get("lane") if isinstance(r, dict) else None
+            completion_cap = 1000 if lane == "dav53_scenarios" else 2000
+            prompt_cap = 8000 if type(continuation_start) is int and index >= continuation_start else 24000
+            if isinstance(r, dict) and "prompt_token_cap" in r:
+                try:
+                    trusted_caps = _lane_caps(lane)
+                except ModelBudgetExceeded:
+                    raise ValueError("unsafe prior lane") from None
+                prompt_cap, completion_cap = r["prompt_token_cap"], r.get("completion_token_cap")
+                if (type(prompt_cap) is not int or not 1 <= prompt_cap <= INPUT_MAX
+                        or type(completion_cap) is not int or not 1 <= completion_cap <= OUTPUT_MAX):
+                    raise ValueError("invalid prior caps")
+                if type(continuation_start) is int and index >= continuation_start:
+                    if lane not in {"dav58_loop", "dav58_judge"} or completion_cap != 2000 or prompt_cap != 8000:
+                        raise ValueError("invalid continuation caps")
+                elif (prompt_cap, completion_cap) != trusted_caps:
+                    raise ValueError("prior caps differ from trusted policy")
             if (not isinstance(r, dict) or r.get("status") != "settled"
-                    or r.get("lane") not in {"dav58_loop", "dav58_judge"}
+                    or (lane not in {"dav58_loop", "dav58_judge", "dav53_scenarios"}
+                        and "prompt_token_cap" not in r)
                     or r.get("request_model") != "deepseek-flash"
                     or not isinstance(response_model, str)
                     or response_model.casefold() not in {"deepseek-flash", "deepseek-v4.1-flash"}
@@ -70,7 +114,7 @@ class IncrementalGuard:
                 raise ValueError("unsafe prior receipt")
             prompt, completion, tokens = (r.get(k) for k in ("prompt_tokens", "completion_tokens", "total_tokens"))
             if (any(type(v) is not int or v < 0 for v in (prompt, completion, tokens))
-                    or tokens != prompt + completion or prompt > 24000 or completion > 2000):
+                    or tokens != prompt + completion or prompt > prompt_cap or completion > completion_cap):
                 raise ValueError("invalid prior usage")
             cost = (prompt * 3 + completion * 12 + 9) // 10
             if type(r.get("peak_micro_usd")) is not int or r["peak_micro_usd"] != cost:
@@ -86,12 +130,13 @@ class IncrementalGuard:
 
     def _save(self):
         temp = self.path.with_suffix(self.path.suffix + ".tmp")
-        with temp.open("w") as stream:
+        fd = os.open(temp, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+        with os.fdopen(fd, "w") as stream:
             stream.write(json.dumps(self.state, sort_keys=True) + "\n")
             stream.flush()
             os.fsync(stream.fileno())
         os.replace(temp, self.path)
-        fd = os.open(self.path.parent, os.O_RDONLY | os.O_DIRECTORY)
+        fd = os.open(self.path.parent, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
         try:
             os.fsync(fd)
         finally:
@@ -103,18 +148,24 @@ class IncrementalGuard:
                 raise ModelBudgetExceeded("incremental guard stopped or request already pending")
             if (request.method != "POST" or request.url.scheme != "https"
                     or request.url.host != "api.deepseek.com"
-                    or request.url.path != "/chat/completions"
-                    or request.url.query or lane not in {"dav58_loop", "dav58_judge"}):
+                    or request.url.path != "/chat/completions" or request.url.query):
                 raise ModelBudgetExceeded("unexpected paid route or lane")
             if hasattr(self, "continuation_start"):
+                if lane not in {"dav58_loop", "dav58_judge"}:
+                    raise ModelBudgetExceeded("continuation lane is not authorized")
                 used = sum(r["lane"] == lane for r in self.state["receipts"][self.continuation_start:])
                 if used >= {"dav58_loop": 24, "dav58_judge": 19}[lane]:
                     raise ModelBudgetExceeded("continuation lane allocation exhausted")
+                prompt_cap, completion_cap = 8000, 2000
+            else:
+                prompt_cap, completion_cap = _lane_caps(lane)
             body = json.loads(request.content)
-            if (set(body) != {"model", "messages", "temperature", "max_tokens", "thinking"}
+            if (not isinstance(body, dict)
+                    or set(body) != {"model", "messages", "temperature", "max_tokens", "thinking"}
                     or body["model"] != "deepseek-flash"
                     or body["thinking"] != {"type": "disabled"}
-                    or type(body["max_tokens"]) is not int or not 1 <= body["max_tokens"] <= 2000
+                    or type(body["max_tokens"]) is not int
+                    or not 1 <= body["max_tokens"] <= completion_cap
                     or body["temperature"] != 0
                     or not isinstance(body["messages"], list) or not body["messages"]):
                 raise ModelBudgetExceeded("unexpected model, thinking, output cap or payload")
@@ -126,12 +177,13 @@ class IncrementalGuard:
                 raise ModelBudgetExceeded("insufficient increment for full provider envelope")
             receipt = {"lane": lane, "request_sha256": hashlib.sha256(request.content).hexdigest(),
                        "request_bytes": len(request.content), "request_model": body["model"],
+                       "prompt_token_cap": prompt_cap, "completion_token_cap": completion_cap,
                        "reserved_micro_usd": ENVELOPE_MICRO_USD,
                        "started_at_utc": datetime.now(timezone.utc).isoformat(), "status": "pending"}
             self.state["receipts"].append(receipt)
             self.state["pending_micro_usd"] = ENVELOPE_MICRO_USD
             try:
-                self._save()  # durable BEFORE the underlying network request
+                self._save()
             except BaseException:
                 self.state["halted"] = True
                 raise ModelBudgetExceeded("incremental guard could not persist reservation") from None
@@ -157,8 +209,9 @@ class IncrementalGuard:
             if not isinstance(usage, dict):
                 raise ValueError("missing_usage")
             prompt, completion, total = (usage.get(k) for k in ("prompt_tokens", "completion_tokens", "total_tokens"))
+            prompt_cap, lane_cap = receipt["prompt_token_cap"], receipt["completion_token_cap"]
             if (any(type(v) is not int or v < 0 for v in (prompt, completion, total))
-                    or total != prompt + completion or prompt > 24000 or completion > 2000):
+                    or total != prompt + completion or prompt > prompt_cap or completion > lane_cap):
                 raise ValueError("unusable_or_over_envelope_usage")
             if hasattr(self, "continuation_start") and prompt > 8000:
                 raise ValueError("continuation_input_cap_exceeded")
@@ -192,6 +245,7 @@ class IncrementalGuard:
 
 
 class GuardedTransport(httpx.AsyncBaseTransport):
+    """Enforce shared full-envelope metering for accepted DAV58/DAV53 calls."""
     def __init__(self, guard, lane, inner=None):
         self.guard, self.lane = guard, lane
         # No redirects, SDK retries or HTTP transport retries are installed.

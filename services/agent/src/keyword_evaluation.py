@@ -28,7 +28,7 @@ CONFIRMATION_CASES_PATH = Path(__file__).resolve().parents[1] / "data" / "holdou
 EXPECTED_BEHAVIORS = frozenset({"cite", "no_evidence", "refuse"})
 #: "holdout" was already observed during an exploratory run, so it is kept
 #: for continuity; "holdout2" is the never-seen confirmation set.
-SPLITS = ("development", "holdout", "holdout2")
+SPLITS = ("development", "holdout", "holdout2", "holdout3")
 #: Answer-level dimensions this deterministic slice cannot decide.
 DEFERRED = "deferred"
 

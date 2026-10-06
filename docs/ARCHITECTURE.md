@@ -17,9 +17,9 @@ UltiCode 已形成五个 Data Owner 与两个不持有业务表的 Worker：
 | Worker | `backend-judge` | 消费 Judge Streams，执行沙箱，回写 Submission verdict |
 | Worker | `backend-search` | 消费 `SearchDocumentChanged`，维护 MeiliSearch 派生索引 |
 | Profile | `backend-core` | opt-in parent process; assembles Owner child contexts and does not own business tables |
-| Standalone | `services/agent` | opt-in Python Agent runtime; U01 read-only loop plus bounded synthetic retrieval/sourced analysis, executable keyword-evaluation tooling, and an evaluation-only vector comparison (one embedding model + single-node Qdrant, `e2e_vector_comparison.py`) that never replaces the keyword main path; licensed-corpus, real-model evaluation, and isolation evidence are tracked in the U02 Linear tasks |
+| Standalone | `services/agent` | opt-in Python Agent service; one LangGraph read-only model/tool kernel, U03 workflow orchestration and private workflow state; no UltiCode business-table ownership |
 
-`services/agent` is an independent Python service module, not a Maven reactor module or an Owner/Worker. It calls existing Auth/App HTTP contracts, keeps identity server-side, and must project tool results before they reach a model. Its current retrieval slice is limited to checked-in agent-authored synthetic Markdown; it does not ingest public user solutions. It is not started by the default `dev-lite`/`dev-full` scopes until its runtime, readiness, and secret wiring are explicitly added.
+`services/agent` is independent of Maven and the Owner/Worker topology. It calls existing Auth/App and LearningPlan HTTP contracts; it never connects to business databases or reads Owner Entities/Mappers. The checked-in retrieval corpus is agent-authored synthetic material, not user source or licensed corpus. The Agent is not started by default `dev-lite`/`dev-full` scopes.
 
 `judge-runtime` 是共享执行依赖，不是进程。Contract modules 在 `services/api/`；共享平台能力在 `services/platform/`。跨 Owner 通过 provider-owned contract 或 consumer-owned port 协作，不共享 Entity、Mapper 或业务 Service。
 `services/agent` 的依赖规则是 `Agent -> existing Auth/App HTTP contracts`；它不得连接业务数据库、读取 Owner Entity/Mapper、共享 Java 业务实现或绕过服务端身份/授权。当前仓库只包含 agent-authored synthetic fixtures；未来真实 corpus 必须来自自有或明确授权资料，公开题解不自动获得 corpus/模型外发许可。
@@ -145,6 +145,11 @@ Notification 是 notifications、preferences、delivery ledger 和 email 的唯�
 #### Judge / Search
 
 Judge 通过 Redis Streams 异步接收 Submission outbox，使用 Problem facts 和沙箱控制执行，失败留在 PEL 或进入 DLQ。Search 只消费 allowlisted、版本化事件并更新 MeiliSearch；删除是 tombstone，业务写路径不得直写索引。
+#### Agent
+
+The Agent is a standalone consumer of existing Auth/App/LearningPlan HTTP contracts; it never connects to business databases or adds model-controlled write tools. The only bounded model/tool loop is `agent_service.graph`; `agent_loop.run_tool_loop` delegates to it. The checkpointed workflow graph dispatches server-validated actions and reuses that read-only loop for analysis. Offline scripted-model injection and guarded live-provider analysis use the same workflow and kernel. Live analysis is fail-closed unless the evidence-bound U02 gate, expected budget period, shared guard, and authorized `u03_analysis` purpose are valid; its citation judge uses the separate `u03_citation_judge` purpose.
+
+Drafts and events live in canonical private Agent SQLite state; LangGraph checkpoints are resumable control state. Confirming a draft is not a Java write; only explicit save can persist a LearningPlan through Java. Uncertain writes remain `unknown` and reconcile through the original idempotency key. `/auth/me` is the identity source; unsafe Agent requests require the access/CSRF pair and matching header. Confirm/save/recover routes are registered only with valid evidence-bound U02 gate material; model calls additionally require the current gate and budget authorization. Nonempty citations are checked against same-run retrieval, document integrity, and support/derivability; answer text also passes bounded source-fact and tool-trace checks. These are fail-closed safeguards, not a claim of perfect semantic verification. The candidate and evidence-bound U02/U03/U04 release sequence is documented in [Development and testing](DEVELOPMENT.md#u02-u03-u04-immutable-acceptance-chain); it does not itself authorize production deployment.
 
 ### 依赖规则
 

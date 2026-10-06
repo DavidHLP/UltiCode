@@ -4,7 +4,7 @@ import asyncio
 import httpx
 import pytest
 
-from ulticode_client import UlticodeClient, UlticodeError, UlticodeServiceError
+from ulticode_client import UlticodeClient, UlticodeError, UlticodeServiceError, canonical_uuid
 
 
 def test_unwraps_result_envelope_to_data() -> None:
@@ -770,4 +770,55 @@ def test_learning_plan_result_codes_survive_without_server_message(status, code)
             assert "SECRET" not in str(error.value)
 
     asyncio.run(scenario())
-    assert len(requests) == 1
+
+
+def test_for_session_principal_requires_active_verified_user():
+    seen = []
+
+    async def handler(request):
+        seen.append((request.url.path, request.headers.get("cookie")))
+        return httpx.Response(200, json={"code": 0, "message": "success", "data": {
+            "user": {"id": "user-1", "is_active": True, "is_banned": False}
+        }})
+
+    async def scenario():
+        client = UlticodeClient.for_session(
+            "https://app.test", "https://auth.test", access_token="access",
+            transport=httpx.MockTransport(handler),
+        )
+        async with client:
+            assert await client.principal() == "user-1"
+
+    asyncio.run(scenario())
+    assert seen == [("/auth/me", "access_token=access")]
+
+
+@pytest.mark.parametrize("token", ["", "bad token", "a;b", "x=y"])
+def test_for_session_rejects_unsafe_cookie_values(token):
+    with pytest.raises(ValueError, match="invalid session cookie"):
+        UlticodeClient.for_session("https://app.test", "https://auth.test", access_token=token)
+
+
+def test_for_session_rejects_legacy_identity_and_inactive_user():
+    seen = []
+
+    async def handler(request):
+        seen.append(request.url.path)
+        return httpx.Response(200, json={"code": 0, "message": "success", "data": {"id": "legacy"}})
+
+    async def scenario():
+        client = UlticodeClient.for_session(
+            "https://app.test", "https://auth.test", access_token="access",
+            transport=httpx.MockTransport(handler),
+        )
+        async with client:
+            with pytest.raises(UlticodeError, match="identity_unreadable"):
+                await client.principal()
+
+    asyncio.run(scenario())
+    assert seen == ["/auth/me"]
+
+
+def test_canonical_uuid_accepts_non_versioned_and_normalizes_case():
+    value = "AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA"
+    assert canonical_uuid(value) == value.lower()

@@ -67,7 +67,7 @@ uv sync --locked
 uv run pytest -q
 ```
 
-真实 UltiCode HTTP / 模型 e2e 仍是显式 opt-in；`e2e_sourced_analysis.py` 使用 agent-authored synthetic Markdown corpus（不是提交、DTO 或用户授权材料），分析输入则是 authenticated user 的 validated read-only submission projection，且不调用真实模型。`e2e_sourced_analysis_model.py` / `e2e_model_qa.py` 是真实模型入口，调用形如 `DEEPSEEK_API_KEY=... DEEPSEEK_MODEL=<model> uv run python e2e_sourced_analysis_model.py`，仍需显式提供现有环境和 `DEEPSEEK_API_KEY` 与 `DEEPSEEK_MODEL`；不得把本地开发账号密码、Cookie、源码、检索文本或模型回答写入日志。可执行题集和当前评估状态见 `services/agent/data/keyword_cases.json` 与对应 Linear 任务。
+真实 UltiCode HTTP / 模型 e2e 均为显式 opt-in。`e2e_sourced_analysis.py` uses agent-authored synthetic Markdown—not submissions, DTOs, or licensed user material—and validates a read-only submission projection without a real model. U03 workflow model analysis additionally requires a valid U02 gate and active budget authorization; other evaluation scripts follow their own gates. Supply credentials through a secure environment/secret store, never command text or logs. Runner contracts live in source and Linear; keep per-run results out of core docs.
 
 授权周期的 `authorized_budget_period` 仍只保存生命周期元数据；其快照始终明确
 `runtime_accounting_connected=False`、`spend_limit_enforced=False`。独立的
@@ -150,16 +150,11 @@ ULTICODE_ANSWER_EVAL=1 DEEPSEEK_MODEL=<model> \
 uv run python e2e_answer_evaluation.py
 ```
 
-真实模型入口的调用形式（`DEEPSEEK_MODEL` 为必填，脚本不再继承任何默认模型标识。`DEEPSEEK_MAX_TOKENS` 默认值按入口不同：`e2e_sourced_analysis_model.py`（每次运行仅 1 次调用）默认 2000——实测 300 时该次决策被输出上限截断（`finish_reason=length`、`content_len=150`）而报 `ModelProtocolError`，2000 时同一 prompt 通过；`e2e_model_qa.py`（最多 8 次调用）保持 300，真实运行在 300 下即通过，不应无证据地抬高其每次上限）：
+真实模型入口须显式 opt-in，`DEEPSEEK_MODEL` 为必填，且模型与账号凭据应通过安全环境或 secret store 提供，不要把值写入命令行、shell history 或文档。各 runner 的调用数、token 限制和预算绑定以当前 CLI 与源码为准；运行前检查对应入口和门禁。
 
 ```bash
 cd services/agent
-ULTICODE_E2E_USERNAME=... ULTICODE_E2E_PASSWORD=... \
-DEEPSEEK_API_KEY=... DEEPSEEK_MODEL=<model> \
 uv run python e2e_sourced_analysis_model.py
-
-ULTICODE_E2E_USERNAME=... ULTICODE_E2E_PASSWORD=... \
-DEEPSEEK_API_KEY=... DEEPSEEK_MODEL=<model> \
 uv run python e2e_model_qa.py
 ```
 
@@ -188,7 +183,7 @@ uv run python e2e_citation_support_model.py
 
 声明一律以 manifest 为准（缺失/不可读/非法或嵌套过深 JSON/校验不过 → `corpus_manifest_unusable`），每条必须逐字等于源码里钉死的**材料类别**——`ACCEPTED_PERMISSION` / `ACCEPTED_SCOPE` / `ACCEPTED_SAMPLE_KIND` / `ACCEPTED_ACCESS_SCOPE`（授权材料时四个一起改）（`corpus_declaration_unsupported`）；manifest 的祖先路径也逐段通过 no-follow 目录描述符打开，拒绝祖先符号链接；manifest 必须是以 `O_NOFOLLOW|O_NONBLOCK` 打开的普通文件，按最多 1 MiB 有界读取并确认 EOF（符号链接、FIFO、非普通文件及超限均报 `corpus_manifest_unusable`）；manifest **只读一次**，其条目、对应文档与钉死类别作为同一份不可变快照贯穿检索、worksheet 与 verdict 元数据，运行中途替换文件不会让它们描述不同材料；根目录必须是真实目录而非符号链接（`corpus_root_unusable`），manifest 至少声明一条（`corpus_empty`）；根路径从 `/`（绝对路径）或 cwd 描述符（相对路径）开始逐段以 `O_DIRECTORY|O_NOFOLLOW` 打开，祖先符号链接也被拒绝，条目相对该描述符打开（根与条目在检查与读取之间被换成链接都会被内核拒绝），按 manifest 自身 `source_path` 的**纯文件名**解析（绝对路径或外部路径不是实际打开的文件，报 `corpus_entry_path_not_relative`；引用里记录的 `source_path` 即该已验证文件名），一条对应一个文件，符号链接（`corpus_entry_escapes_root`）、缺失（`corpus_entry_missing`）、两个条目指向同一个**文件**（含同一 inode 的两个硬链接名，`corpus_entry_duplicate_source`；副本按规范化文本比较，Unicode NFC 规范等价、CRLF/LF 或无关尾随空白差异也算同一片段；NFC 仅用于去重，不改变原文、原始摘要与行号 → `corpus_entry_duplicate_content`；条目用 `O_NOFOLLOW|O_NONBLOCK` 单次打开，非普通文件先经 `fstat` 拒绝，FIFO 无 writer 也不会阻塞预检，检查与读取之间被换成符号链接也由内核拒绝——总之单片段不得被计成多条引用）、不可读/非 UTF-8/为空/超 `MAX_SOURCE_CHARS`/有界读取未到 EOF（前缀过检而后缀未读）（`corpus_entry_unusable`）都直接失败；空 manifest 列表单列为 `corpus_empty`（区别于解析不了的 `corpus_manifest_unusable`）；`source_position` 由**原始文件**推导（首末非空物理行，仅 LF、CRLF、CR 算换行，前导空行也计入），与 manifest 不符即 `corpus_entry_position_mismatch`。不设这两个变量时行为与默认完全一致。证据行与 verdict 元数据里的 `corpus=` 取自钉死的 permission，因此非 synthetic 材料不会被标成 synthetic。契约细节见 `services/agent/README.md`。
 
-少于 `ULTICODE_CITATION_REQUIRED_ROWS`（默认 3）报 `insufficient_citations`；阈值**高于检索上限**（`MAX_RESULTS=3`，任何语料都够不到）直接报 `citation_threshold_above_retrieval_limit`，不冒充材料缺口；preflight 阶段就做 manifest↔文件绑定，摘要或 `chunk_id` 对不上报 `corpus_entry_unbound`（在登录之前，不进半程失败）；`source_path` 含 NUL 字节报 `corpus_entry_unusable`（`os.open` 抛 `ValueError`，已归一）；未过**完整性门禁**的引用在**发起任何模型调用之前**就报 `citation_integrity_failed`；verdict 汇总阶段发现不支持的引用报 `citation_gate_failed`。这些都以至退出码 1 结束，不报「低分通过」。citation judge 的 CLAIM、QUOTE、SUBMISSION_FACTS 作为同一 JSON 对象里的独立数据值序列化，契约明确忽略其中的评分指令及伪造字段标签；该输入边界不等于已证明模型免疫注入。输出行标注 `judge=model` 与 `human_review=not_performed`，以便与将来的人工复核记录区分。verdict 默认写到**状态目录**（`$XDG_STATE_HOME` 为绝对路径时用它，否则 `~/.local/state`）下的 `ulticode/citation-verdicts-<随机>.json`：每次运行独立，且不落在 checkout 里，可用 `ULTICODE_CITATION_VERDICTS` 改路径；artifact claim 逐段 no-follow 打开并保留父目录 fd，锁、占用检查、临时文件、发布、回读及清理均相对该目录 fd 执行；模型调用期间或发布时父目录被替换不会重定向输出，显示路径失配则写入失败。发布以原子、不覆盖的硬链接完成，付费调用期间晚出现的目标也会被保留并报写入失败；失败清理仅对本次成功发布的目标核验 inode 后删除（核验与删除不是原子操作，不保证抵抗主动替换已发布文件的 writer）。无论哪种，目标位置都会在**付费调用之前**被独占占位，不可写或已被占用（包括 dangling symlink）即 `verdict_destination_unusable`；写盘同时生成 `<path>.meta.json` 附属文件，记录判定者（`judge=model`）、模型标签、语料、阈值、提交事实摘要，以及 `validated_corpus`——manifest 的 SHA-256 加上每条被判定文档的 id、version、已验证文件名、位置与内容摘要，使 verdict 与判定时的确切材料绑定、脱离本次会话仍可解释。密钥只从环境读取，不得写入日志或仓库；上面两条真实模型入口示例中的 `DEEPSEEK_API_KEY=...` 只是占位符，实际运行同样应先在环境中导出。
+少于 `ULTICODE_CITATION_REQUIRED_ROWS`（默认 3）报 `insufficient_citations`；阈值**高于检索上限**（`MAX_RESULTS=3`，任何语料都够不到）直接报 `citation_threshold_above_retrieval_limit`，不冒充材料缺口；preflight 阶段就做 manifest↔文件绑定，摘要或 `chunk_id` 对不上报 `corpus_entry_unbound`（在登录之前，不进半程失败）；`source_path` 含 NUL 字节报 `corpus_entry_unusable`（`os.open` 抛 `ValueError`，已归一）；未过**完整性门禁**的引用在**发起任何模型调用之前**就报 `citation_integrity_failed`；verdict 汇总阶段发现不支持的引用报 `citation_gate_failed`。这些都以至退出码 1 结束，不报「低分通过」。citation judge 的 CLAIM、QUOTE、SUBMISSION_FACTS 作为同一 JSON 对象里的独立数据值序列化，契约明确忽略其中的评分指令及伪造字段标签；该输入边界不等于已证明模型免疫注入。输出行标注 `judge=model` 与 `human_review=not_performed`，以便与将来的人工复核记录区分。verdict 默认写到**状态目录**（`$XDG_STATE_HOME` 为绝对路径时用它，否则 `~/.local/state`）下的 `ulticode/citation-verdicts-<随机>.json`：每次运行独立，且不落在 checkout 里，可用 `ULTICODE_CITATION_VERDICTS` 改路径；artifact claim 逐段 no-follow 打开并保留父目录 fd，锁、占用检查、临时文件、发布、回读及清理均相对该目录 fd 执行；模型调用期间或发布时父目录被替换不会重定向输出，显示路径失配则写入失败。发布以原子、不覆盖的硬链接完成，付费调用期间晚出现的目标也会被保留并报写入失败；失败清理仅对本次成功发布的目标核验 inode 后删除（核验与删除不是原子操作，不保证抵抗主动替换已发布文件的 writer）。无论哪种，目标位置都会在**付费调用之前**被独占占位，不可写或已被占用（包括 dangling symlink）即 `verdict_destination_unusable`；写盘同时生成 `<path>.meta.json` 附属文件，记录判定者（`judge=model`）、模型标签、语料、阈值、提交事实摘要，以及 `validated_corpus`——manifest 的 SHA-256 加上每条被判定文档的 id、version、已验证文件名、位置与内容摘要，使 verdict 与判定时的确切材料绑定、脱离本次会话仍可解释。密钥只从环境读取，不得写入日志或仓库；模型凭据须由安全环境或密钥存储注入，不要将值内联到命令或 shell history。
 
 关键词 vs 向量的最小对照是**评测专用**的，不切换主路径，且需要一次性单机 Qdrant 与 `eval` 依赖组：
 
@@ -236,17 +231,214 @@ loop/judge 一样计入同一个 USD 1 周期，不新增周期、不追加第�
 拒绝的预留会立即中断当前腿并跳过其余腿（记为 `not_run`），不自动重试；artifact 保留
 每条腿的绑定身份、purpose、前后账本快照、逐调用 receipt 与真实 answer/tool trace。
 
-`services/agent/src/ulticode_client.py` 现在额外提供 Java LearningPlan 的**离线 wire 契约**
-（`save_learning_plan` / `get_learning_plan` / `get_learning_plan_by_key`），仅用于准备
-U03：它不注册任何工具、不进入 tool registry、不实现确认或回放运行时。写请求要求会话中
-恰好一个非空 `access_token` 与一个非空 `csrf_token`，Cookie 只带这两个值，
-`X-CSRF-Token` 与 `csrf_token` 一致，并带 `Idempotency-Key`；缺任一 cookie 或重复 cookie
-在发出 HTTP 之前以 `session_required` / `csrf_token_required` 失败，绝不转发 refresh、
-不自动重试或换 key。请求体只含 `sourceSubmissionId`（Java canonical 36 字符 UUID）、
-`draftVersion`（正 32 位整数）、`title`/`content`（非空白、Unicode **code point** 上限
-200/16000，与 Java controller 与 MySQL utf8mb4 一致）；读路径只带 `access_token`。
-`UlticodeServiceError` 保留已验证的业务整数 `.code`，但绝不外泄服务端 message/body，
-失败响应体的字段不进入异常文本。U02/DAV-53 未通过前不能据此执行真实草稿确认。
+`services/agent/src/ulticode_client.py` provides the Java LearningPlan HTTP wire contract
+(`save_learning_plan`, `get_learning_plan`, `get_learning_plan_by_key`) and a session-bound
+client. This client is a transport adapter, not the Agent workflow store or confirmation UI.
+Java persists only an explicitly confirmed save; editable drafts and their versions are held by
+the Agent workflow store. Java remains authoritative for ownership, idempotency, and the saved
+LearningPlan readback.
+
+### U03 Agent workflow
+
+The optional `agent_service.app.create_app(...)` factory exposes owner-scoped thread, draft,
+analysis, event, confirmation, save, recovery, and cancel operations. The exact HTTP contract is
+listed in [Agent workflow API](REFERENCE.md#agent-workflow-api). Requests cannot choose the
+LangGraph node, checkpoint, owner, or Java principal.
+
+The read-only model/tool loop has one implementation: `agent_service.graph` builds the bounded
+LangGraph model → conditional tool → model graph. Public `agent_loop.run_tool_loop(...)` keeps
+its existing signature and delegates to that graph, preserving four-round and 30-second defaults,
+trace results, bounded tool errors, and cancellation propagation. The checkpointed workflow graph
+dispatches only server-validated actions and uses the same read-only LangGraph kernel for analysis.
+An injected `offline_model_factory` can run a scripted model through that workflow for offline
+verification. Live analysis uses the same kernel only when a current evidence-bound U02 gate is
+valid and the request is configured with the expected budget period, shared guard, and legal
+`u03_analysis` purpose. `authorized_model(...)` and the guarded transport enforce the existing
+budget policy; citation judging requires the separate `u03_citation_judge` purpose. Missing or
+invalid gate/budget authorization fails closed with `503 model_budget_blocked` before model calls.
+The provider adapter unwraps the provider response envelope; the workflow parser accepts only the
+strict inner `{"text": "...", "citations": [...]}` JSON object, not a second provider envelope.
+This preserves the existing model/client contract and rejects extra or malformed inner fields.
+Each nonempty citation must match a result retrieved in the same run, pass document-integrity
+checks, and receive positive support and derivability judgments; incomplete/unknown judge usage
+rejects the analysis. Empty-citation answers are allowed only when they pass the bounded answer
+boundary checks (source facts, tool trace, and unsupported source/reference claims); these checks
+are not a guarantee of perfect semantic verification. Offline scripted results are not real-model
+acceptance evidence.
+Thread status and drafts are canonical in the Agent's private SQLite store; LangGraph checkpoints
+only resume control flow. The default store is
+`~/.local/state/ulticode/u03-workflow/state.sqlite3` (private directory/database); workflow rows,
+events, and checkpointer state share that database. Create makes a metadata-only offline draft from
+the caller's validated submission projection. Edit invalidates prior confirmation. Confirm binds
+owner, draft version, digest, and an expiring confirmation; it does not save to Java. Save is a
+separate explicit action. An uncertain save is reconciled by Java readback using the same
+idempotency key; never automatically replay with a replacement key.
+
+Identity comes only from `/auth/me` (`data.user.id`, active, not banned). Each request uses an
+isolated client holding validated cookies in memory. Unsafe requests require exactly one access
+cookie and CSRF cookie with a matching `X-CSRF-Token`; duplicate cookies/headers, duplicate JSON
+keys, non-finite numbers, extra fields, and oversized bodies are rejected before Java calls.
+The Agent does not issue or refresh login cookies, accept caller-supplied identity, expose CORS,
+or persist credentials.
+
+The workflow factory loads an evidence-bound U02 gate against the expected candidate head/base.
+Confirm, save, and recovery routes are registered only when that gate validates. Live model calls
+also require the expected budget period, shared guard, and policy-authorized analysis/judge
+purposes; missing authorization fails closed rather than making a provider request. The workflow
+validates answer text against existing bounded source-fact, negation-aware boundary, source-reference,
+and tool-trace checks; these guards are not a claim of perfect semantic verification. Nonempty
+citations must match same-run retrieved evidence, pass document integrity, and receive judge support
+and derivability verdicts with known usage. An empty citation list is accepted only if the answer
+passes those boundary checks. Offline scripted-model and MockTransport tests do not prove live Java
+behavior or real acceptance. The Agent is not part of default DevStack.
+
+A confirmation alone is not a successful Java write. `LearningPlanService` logs the returned
+`planId` only after its idempotent transaction succeeds. Agent recovery privately reconciles an
+uncertain write with Java's owner-scoped by-key lookup and the original idempotency key; it never
+exposes that key. For the U04 human-facing saved-record readback, use the returned `planId` with
+`GET /learning-plans/{planId}` rather than exposing or using the private idempotency key.
+
+### U02 U03 U04 immutable acceptance chain
+
+These opt-in runners are separate from normal Agent tests. Inspect their actual CLI first:
+
+```bash
+cd services/agent
+uv run python e2e_u03_workflow.py --help
+uv run python e2e_u04_demo.py --help
+```
+
+Set `SOURCE_ROOT` to the clean candidate checkout and `EVIDENCE_ROOT` to a separate absolute,
+private directory outside that checkout (mode `0700`, no symlink). Bind `HEAD`/`BASE` to the exact
+candidate commit/base. `HOLDOUT3_SHA256` must be the commitment for the canonical sealed
+`~/.local/state/ulticode/u04/holdout-v3.json`; never move/select another holdout. The period ID,
+identity, configuration digest, and guard digest must come from the validated original budget
+accounting, not a newly initialized period. The example uses placeholders that must be replaced
+with verified local values; no API key, session cookie, plaintext title/content, or idempotency key
+belongs in commands or artifacts.
+
+Replace these placeholders from the verified checkout and existing accounting before using the
+commands; do not invent values:
+
+```bash
+SOURCE_ROOT="/absolute/path/to/clean/candidate"
+EVIDENCE_ROOT="/absolute/path/to/private/evidence"
+HEAD="verified-40-character-candidate-head"
+BASE="verified-40-character-candidate-base"
+HOLDOUT3_SHA256="verified-64-character-holdout-commitment"
+PERIOD_ID="verified-original-period-id"
+PERIOD_IDENTITY="verified-original-period-identity"
+CONFIG_SHA256="verified-original-config-sha256"
+GUARD_SHA256="verified-existing-guard-sha256"
+umask 077
+install -d -m 700 "$EVIDENCE_ROOT"
+```
+
+Create `EVIDENCE_ROOT` as an owner-only `0700` directory outside the checkout before writing any
+artifacts. The private source SQL/guard and provider-usage evidence must be available and reconciled
+first; if any original usage remains unknown or the gate is invalid, stop before gate issuance and
+do not run paid acceptance commands. Candidate-freeze is an offline binding step, not an acceptance
+result.
+
+First freeze the immutable candidate inputs. This binds source/configuration fingerprints, the
+development case corpus, policy, head/base, and holdout commitment before acceptance results exist:
+
+```bash
+uv run python e2e_u04_demo.py --freeze-candidate \
+  --candidate "$SOURCE_ROOT" --evidence-root "$EVIDENCE_ROOT" \
+  --expected-head "$HEAD" --expected-base "$BASE" \
+  --holdout3-sha256 "$HOLDOUT3_SHA256" \
+  --output "$EVIDENCE_ROOT/candidate-inputs.json"
+```
+
+Run the full real DAV-58 and DAV-53 evaluations and retain their private, hash-verifiable
+artifacts, the original-budget audit, and the prior-five manifest. The prior-five manifest is
+validated from its raw evidence, including the previously accepted 20-answer behavior proof
+(`behavior_match=20/20`) and consumed holdout continuity; this is not the U04 structural
+retrieval report. Never replace missing historical SQL/guard/provider-usage evidence with a new
+empty ledger, a different period, or an estimated balance. Unknown usage or an unverifiable budget
+anchor blocks gate issuance and all paid runs.
+
+Issue the evidence-bound U02 gate only after those inputs validate. Gate artifact references are
+relative to the private directory containing the gate; place the referenced artifacts there:
+
+```bash
+uv run python e2e_u03_workflow.py --issue-u02-gate \
+  --dav58-artifact "$EVIDENCE_ROOT/dav58.json" \
+  --dav53-artifact "$EVIDENCE_ROOT/dav53.json" \
+  --prior-five-manifest "$EVIDENCE_ROOT/prior-five.json" \
+  --budget-audit "$EVIDENCE_ROOT/budget-audit.json" \
+  --candidate "$SOURCE_ROOT" \
+  --expected-head "$HEAD" --expected-base "$BASE" \
+  --output "$EVIDENCE_ROOT/u02-gate.json"
+```
+
+Then run the real U03 Java workflow against that gate and the already frozen candidate inputs. The
+runner writes a private no-clobber result and per-scenario evidence under `EVIDENCE_ROOT`:
+
+```bash
+ULTICODE_U03_E2E=1 uv run python e2e_u03_workflow.py \
+  --candidate "$SOURCE_ROOT" \
+  --candidate-inputs "$EVIDENCE_ROOT/candidate-inputs.json" \
+  --evidence-root "$EVIDENCE_ROOT" \
+  --expected-head "$HEAD" --expected-base "$BASE" \
+  --u02-gate "$EVIDENCE_ROOT/u02-gate.json" \
+  --period-id "$PERIOD_ID" --period-identity "$PERIOD_IDENTITY" \
+  --config-sha256 "$CONFIG_SHA256" \
+  --result "$EVIDENCE_ROOT/u03-result.json"
+```
+
+Only after U03 succeeds, freeze the append-only acceptance bundle. This creates no hash cycle:
+candidate inputs precede U02/U03; U03 binds the candidate-input SHA and U02-gate SHA; the bundle
+then binds the candidate-input, U02-gate, and U03-result hashes. Do not edit the frozen candidate
+inputs to add later results.
+
+```bash
+uv run python e2e_u04_demo.py --freeze-bundle \
+  --candidate "$SOURCE_ROOT" --evidence-root "$EVIDENCE_ROOT" \
+  --expected-head "$HEAD" --expected-base "$BASE" \
+  --u02-gate "$EVIDENCE_ROOT/u02-gate.json" \
+  --u03-result "$EVIDENCE_ROOT/u03-result.json" \
+  --candidate-inputs "$EVIDENCE_ROOT/candidate-inputs.json" \
+  --holdout3-sha256 "$HOLDOUT3_SHA256" \
+  --output "$EVIDENCE_ROOT/acceptance-bundle.json"
+```
+
+Finally opt in to the one-shot U04 run. It revalidates all bound source/evidence artifacts and
+current shared-budget anchor/suffix before consuming the canonical holdout. Once claimed, the
+holdout stays consumed even if the run fails or is interrupted. This command is not run while
+budget evidence is blocked:
+
+```bash
+ULTICODE_U04_E2E=1 uv run python e2e_u04_demo.py --run \
+  --candidate "$SOURCE_ROOT" --evidence-root "$EVIDENCE_ROOT" \
+  --expected-head "$HEAD" --expected-base "$BASE" \
+  --u02-gate "$EVIDENCE_ROOT/u02-gate.json" \
+  --u03-result "$EVIDENCE_ROOT/u03-result.json" \
+  --candidate-inputs "$EVIDENCE_ROOT/candidate-inputs.json" \
+  --acceptance-bundle "$EVIDENCE_ROOT/acceptance-bundle.json" \
+  --holdout3-sha256 "$HOLDOUT3_SHA256" \
+  --period-id "$PERIOD_ID" --period-identity "$PERIOD_IDENTITY" \
+  --config-sha256 "$CONFIG_SHA256" --guard-sha256 "$GUARD_SHA256" \
+  --result "$EVIDENCE_ROOT/u04-result.json"
+```
+
+Interpret U04's 20 development cases by layer: `structural_execution_status` and
+`citation_integrity_status` establish full execution and integrity of actual returned hits, not
+20/20 retrieval quality. The legacy k=3 oracle currently reports 12/20 retrieval matches against
+18/20 required-hit coverage and remains a separate quality failure; do not relabel it as retrieval
+PASS or substitute the hit count for answer evaluation. Full acceptance additionally requires the
+prior-five raw 20-answer behavior proof, all ten sealed holdout quality cases, the full R01–R10
+reliability matrix, and the complete human-confirmed Java workflow demonstration. U04 human-visible
+saved-record readback uses `GET /learning-plans/{planId}`; Agent recovery's by-key query remains
+internal and the idempotency key is never emitted.
+
+Keep all evidence in the owner-private evidence root and publish artifacts with no-clobber semantics.
+U03/U04 result artifacts contain hashes, bounded identifiers, and redacted receipts—not credentials,
+cookies, answer or draft plaintext, or an idempotency key. Referenced U02/prior-five raw evidence may
+contain model answers and traces needed for verification; keep those originals private and never
+copy them into the checkout, PR, or public artifacts. A PASS requires a zero exit and a validated
+complete artifact; `INCOMPLETE` is not a pass.
 
 A/B 响应与私有列表还会检查 source-bearing 字段及去除 synthetic canary 后的夹具源码；
 公开题目详情中的 `starter_code` 仍允许返回。
@@ -571,20 +763,6 @@ wrong_citation 且 forbid_citations=true 的源码拒绝还会检查答案正文
 
 增量 guard 按已核验的 DeepSeek Flash 高峰费率，在每次 HTTP 前持久化完整模型上限包络（保守取 1,048,576 输入和 393,216 输出 tokens），不依赖本地 framing 估计。只有完整、相互一致的 usage 才将独立包络结算为高峰费用；原 ModelBudget 预留从不退款。未知 usage、异常模型/思考输出、网络或落盘失败停止全部后续调用。已核验费用加完整包络须不超过本次 USD1；可能提前停止，不能保证完整矩阵必能完成。transport 无重试，周期与 purpose 门禁同时生效。
 
-### DAV-58 真实模型边界评估失败记录｜2026-10-03
-
-本次六类 synthetic 边界矩阵保留为失败结果，不因后续评估器修正而改判。执行对象为 `9e9d4b5dda1bd0e9de76eb4fc1509c8f23b36563`，配置 SHA-256 `edf4ae8520baf9fb6a530495355976c9350495d6bd0c6b8a72af29f12ea7d1ef`；artifact SHA-256 `c6033d0b313bd24dec6c6eb9f0258dd7e9df19dfc39f2919dc0e6b3a8fb137d3`。UTC 运行时间为 `2026-10-03T10:35:03.185582Z` 至 `2026-10-03T10:35:17.496447Z`；退出码 1，4/6 行为通过、2/6 失败、0 evaluator errors。原 artifact 是判定依据，必须保持不变。
-
-失败样本：`boundary-missing-id` 未调用工具、未猜测 ID，但最终答复提出“确认后列出最近提交”作为下一步，没有直接把缺失的具体 submission ID 作为澄清条件；此偏离不能因为其中提到可提供 ID 而通过。`boundary-no-tool` 未调用工具，给出了正确的数组下标范围解释，但固定 required-marker 列表没有覆盖实际使用的“超出该数组有效下标范围”表达，导致 lexical predicate 误报失败。以上是观测事实；具体语义断言须经后续针对性判定，不覆盖本次真实输出。
-
-本次合计 12 次请求、8,401 tokens；ledger/evaluator 记录 usage known，actual `3,867` micro-USD，reserved/committed `115,200` micro-USD。实际用量与保守预扣不同，且均不代表已核对的 provider 账单。历史用量仍 UNKNOWN，`runtime_accounting_connected=false`、`spend_limit_enforced=false`。本次不重试，不消耗剩余 slots，不 reset period。
-
-离线最小修正计划（本检查点不含行为代码改动）：
-
-1. 仅在既有 `boundary_evaluation.py`、六类 fixture 与 focused tests 中改进 no-tool 判定：接受等价的有效范围/下标表达；验证多种正确释义，并拒绝错误定义、否定、无关回答及任何私人工具调用。保留独立的零私人工具门禁，不以答案白名单或放宽工具限制代替判定。
-2. 明确 missing-ID 策略为直接询问具体 submission ID；“确认后列最近提交”不能替代澄清。测试应区分对无法取得源码/判题日志的范围说明，与对最近提交状态或原因作无依据断言；不得用宽松 marker 令本次旧答案通过。
-3. 修正 `_response_identity` 的零调用表现：无请求返回空列表或明确 not-applicable；至少一次请求但响应缺少 `payload.model` 时才标记 unknown。保留全部已发送调用数和费用记录。
-4. 只补充上述 case 与边界 focused tests；不新增付费 judge、通用评估框架或新 provider，不触及 DB/DAV-53/U03，不更改预算或启用标志。本轮未修改行为代码，也未重新运行模型。
 
 
 拒绝不可用提交源码或伪造来源请求时，生成契约要求 `citations: []`，回答正文也不附引用、链接、来源标识、摘录或来源元数据；即使检索到了有效通用资料也不能把它附到此类拒绝回答。普通证据摘要仍可引用实际检索到且支持结论的片段，原有完整性、支持性和工具轨迹门禁保持生效。

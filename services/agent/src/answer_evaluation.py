@@ -32,7 +32,7 @@ from keyword_evaluation import DEFERRED, KeywordCase
 from retrieval import MAX_RESULTS, SourceDocument, SourceHit, keyword_search
 
 DEVELOPMENT_SPLIT = "development"
-SEALED_SPLITS = frozenset({"holdout", "holdout2"})
+SEALED_SPLITS = frozenset({"holdout", "holdout2", "holdout3"})
 KNOWN_BEHAVIORS = frozenset({"cite", "no_evidence", "refuse", "clarify"})
 MAX_ANSWER_CHARS = 1000
 

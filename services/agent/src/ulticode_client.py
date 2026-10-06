@@ -26,7 +26,7 @@ def _reject_duplicate_keys(pairs: list[tuple[str, object]]) -> dict[str, object]
 
 
 SUBMISSION_ID_PATTERN = re.compile(
-    r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}"
+    r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
 )
 
 SEARCH_QUERY_MIN = 2
@@ -39,16 +39,21 @@ class UlticodeError(RuntimeError):
 
 
 class UlticodeServiceError(UlticodeError):
-    """A non-zero Result code, retained without exposing server text."""
+    """A Result error retaining safe status and code, never server text."""
 
-    def __init__(self, code: int) -> None:
+    def __init__(self, code: int, status_code: int = 200) -> None:
         super().__init__("service_error")
         self.code = code
+        self.status_code = status_code
 
 
-LEARNING_PLAN_UUID_PATTERN = re.compile(
-    r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
-)
+LEARNING_PLAN_UUID_PATTERN = SUBMISSION_ID_PATTERN
+
+
+def canonical_uuid(value: object, name: str = "value") -> str:
+    if not isinstance(value, str) or not LEARNING_PLAN_UUID_PATTERN.fullmatch(value):
+        raise ValueError(f"{name} must be a canonical UUID")
+    return value.lower()
 
 
 def _java_blank(value: str) -> bool:
@@ -126,6 +131,43 @@ class UlticodeClient:
         )
         self._cookies = httpx.Cookies()
 
+    @classmethod
+    def for_session(
+        cls,
+        app_base_url: str,
+        auth_base_url: str,
+        *,
+        access_token: str,
+        csrf_token: str | None = None,
+        transport: httpx.AsyncBaseTransport | None = None,
+    ) -> "UlticodeClient":
+        """Create an isolated request client from already-validated session cookies."""
+        cookie_value = re.compile(r"^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$")
+        values = (access_token,) if csrf_token is None else (access_token, csrf_token)
+        if any(not isinstance(value, str) or not cookie_value.fullmatch(value) for value in values):
+            raise ValueError("invalid session cookie")
+        client = cls(
+            app_base_url, auth_base_url, transport=transport, trust_env=False
+        )
+        client._cookies.set("access_token", access_token)
+        if csrf_token is not None:
+            client._cookies.set("csrf_token", csrf_token)
+        return client
+
+    async def principal(self) -> str:
+        """Return verified /auth/me principal id; legacy `data.id` is not accepted."""
+        data = await self.me()
+        user = data.get("user")
+        if (
+            not isinstance(user, dict)
+            or not isinstance(user.get("id"), str)
+            or not user["id"].strip()
+            or user.get("is_active") is not True
+            or user.get("is_banned") is not False
+        ):
+            raise UlticodeError("identity_unreadable")
+        return user["id"]
+
     async def __aenter__(self) -> "UlticodeClient":
         await self._app.__aenter__()
         await self._auth.__aenter__()
@@ -161,7 +203,7 @@ class UlticodeClient:
             raise UlticodeError("invalid Result envelope")
         if response.is_success and code == 0:
             return payload.get("data")
-        raise UlticodeServiceError(code)
+        raise UlticodeServiceError(code, response.status_code)
 
     def _clear_session_cookies(self) -> None:
         self._cookies.clear()
@@ -196,8 +238,7 @@ class UlticodeClient:
             raise UlticodeError("session_required")
         if len(csrf) != 1 or not csrf[0]:
             raise UlticodeError("csrf_token_required")
-        if not isinstance(idempotency_key, str) or not LEARNING_PLAN_UUID_PATTERN.fullmatch(idempotency_key):
-            raise ValueError("idempotency_key must be a canonical UUID")
+        idempotency_key = canonical_uuid(idempotency_key, "idempotency_key")
         csrf_value = csrf[0]
         return {
             "Cookie": f"access_token={access[0]}; csrf_token={csrf_value}",
@@ -209,13 +250,16 @@ class UlticodeClient:
     def _validate_learning_plan_payload(
         source_submission_id: str, draft_version: int, title: str, content: str
     ) -> None:
-        if not isinstance(source_submission_id, str) or not LEARNING_PLAN_UUID_PATTERN.fullmatch(source_submission_id):
-            raise ValueError("source_submission_id must be a canonical UUID")
+        canonical_uuid(source_submission_id, "source_submission_id")
         if type(draft_version) is not int or not 1 <= draft_version <= 2_147_483_647:
             raise ValueError("draft_version must be a positive 32-bit integer")
         for name, value, limit in (("title", title, 200), ("content", content, 16000)):
             if not isinstance(value, str) or _java_blank(value) or len(value) > limit:
                 raise ValueError(f"{name} must be non-blank and within its code-point limit")
+            try:
+                value.encode("utf-8")
+            except UnicodeEncodeError:
+                raise ValueError(f"{name} must be valid UTF-8") from None
 
     async def save_learning_plan(
         self,
@@ -227,6 +271,7 @@ class UlticodeClient:
         idempotency_key: str,
     ) -> dict[str, object]:
         self._validate_learning_plan_payload(source_submission_id, draft_version, title, content)
+        source_submission_id = canonical_uuid(source_submission_id, "source_submission_id")
         headers = self._write_session_headers(idempotency_key)
         response = await self._app.post(
             "/learning-plans",
@@ -241,16 +286,14 @@ class UlticodeClient:
         return self._unwrap_dict(response)
 
     async def get_learning_plan(self, plan_id: str) -> dict[str, object]:
-        if not isinstance(plan_id, str) or not LEARNING_PLAN_UUID_PATTERN.fullmatch(plan_id):
-            raise ValueError("plan_id must be a canonical UUID")
+        plan_id = canonical_uuid(plan_id, "plan_id")
         response = await self._app.get(
             f"/learning-plans/{plan_id}", headers=self._session_headers()
         )
         return self._unwrap_dict(response)
 
     async def get_learning_plan_by_key(self, key: str) -> dict[str, object]:
-        if not isinstance(key, str) or not LEARNING_PLAN_UUID_PATTERN.fullmatch(key):
-            raise ValueError("key must be a canonical UUID")
+        key = canonical_uuid(key, "key")
         response = await self._app.get(
             f"/learning-plans/by-key/{key}", headers=self._session_headers()
         )
@@ -372,10 +415,10 @@ class UlticodeClient:
         return _validate_search_payload(data, page=page, limit=limit)
 
     async def get_my_submission(self, submission_id: str) -> dict[str, object]:
-        if not isinstance(submission_id, str) or not SUBMISSION_ID_PATTERN.fullmatch(
-            submission_id
-        ):
-            raise ValueError("submission_id must be a submission UUID")
+        try:
+            submission_id = canonical_uuid(submission_id, "submission_id")
+        except ValueError:
+            raise ValueError("submission UUID must be canonical") from None
         response = await self._app.get(
             f"/submissions/{submission_id}", headers=self._session_headers()
         )

@@ -76,6 +76,7 @@ import json
 import os
 import secrets
 import string
+import stat
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -101,7 +102,8 @@ from e2e_citation_support_model import (
     _read_published_artifact,
     _release_unfinished_claim,
 )
-from model_budget import MAX_COMPLETION_TOKENS, MAX_PROMPT_TOKENS, authorized_model
+from model_budget import MAX_COMPLETION_TOKENS, MAX_PROMPT_TOKENS, authorized_model, _authorization_slot
+from dav58_live_guard import GuardedTransport, IncrementalGuard
 from authorized_budget_period import POLICY_ID, PeriodIdentity
 from retrieval import SourceDocument
 from ulticode_client import (
@@ -111,6 +113,7 @@ from ulticode_client import (
     UlticodeError,
 )
 from ulticode_tools import SUBMISSION_ID_PATTERN, TOOL_SPECS, build_tools
+LIVE_GUARD: IncrementalGuard | None = None
 
 APP_BASE = os.environ.get("ULTICODE_APP_BASE", "http://localhost:9103")
 AUTH_BASE = os.environ.get("ULTICODE_AUTH_BASE", "http://localhost:9101")
@@ -1842,18 +1845,15 @@ async def _run_agent_scenario(
             "injection_delivered": None,
         }
     budget_after: dict[str, object] = budget_before
-    async with DeepseekModel(
-        os.environ[MODEL_KEY_ENV],
-        tool_specs=specs,
-        model=model_name,
-        max_calls=4,
-        timeout=60.0,
-        max_tokens=min(1000, MAX_COMPLETION_TOKENS),
-        max_prompt_tokens=min(24000, MAX_PROMPT_TOKENS),
-        budget=budget,
-        budget_purpose="dav53_scenarios",
-        thinking_type="disabled",
-    ) as model:
+    model_kwargs = {
+        "tool_specs": specs, "model": model_name, "max_calls": 4, "timeout": 60.0,
+        "max_tokens": min(1000, MAX_COMPLETION_TOKENS),
+        "max_prompt_tokens": min(24000, MAX_PROMPT_TOKENS),
+        "budget": budget, "budget_purpose": "dav53_scenarios", "thinking_type": "disabled",
+    }
+    if LIVE_GUARD is not None:
+        model_kwargs["transport"] = GuardedTransport(LIVE_GUARD, "dav53_scenarios")
+    async with DeepseekModel(os.environ[MODEL_KEY_ENV], **model_kwargs) as model:
         try:
             loop = await run_tool_loop(
                 _ProbeModel(model, recorder),
@@ -2297,6 +2297,9 @@ SOURCE_FILES = (
     "src/retrieval.py",
     "src/ulticode_client.py",
     "src/ulticode_tools.py",
+    "src/dav58_live_guard.py",
+    "src/model_budget.py",
+    "src/authorized_budget_period.py",
 )
 
 
@@ -2356,7 +2359,7 @@ def _new_facts() -> dict[str, object]:
         "status": "FAIL",
         "reason": "unset",
         "provenance": _source_provenance(),
-        "identity": {},
+        "guard": {},
         "matrix": {},
         "search": {},
         "model": {},
@@ -2418,6 +2421,7 @@ def _expected_period_identity(argv: list[str] | None = None) -> PeriodIdentity |
 
 
 async def main() -> int:
+    global LIVE_GUARD
     if os.environ.get("ULTICODE_E2E_ISOLATION") != "1":
         print("SKIP reason=opt_in_not_set")
         return 0
@@ -2430,9 +2434,6 @@ async def main() -> int:
     except ValueError:
         print("FAIL reason=model_budget_binding_required")
         return 1
-    # Reserve the artifact destination *before* registering accounts or spending
-    # model calls: an unusable or already-claimed destination must stop the run
-    # while it is still free of side effects and cost.
     try:
         target = _artifact_path()
         lock = _claim_verdict_file(target)
@@ -2440,27 +2441,91 @@ async def main() -> int:
         print(f"FAIL reason=isolation_artifact_unusable detail={type(error).__name__}")
         return 1
     facts = _new_facts()
+    guard = None
     try:
+        if expected_identity is not None:
+            try:
+                _, budget = authorized_model(expected_identity)
+                snapshot = budget.snapshot()
+                if _budget_snapshot_blocks(snapshot):
+                    _finish(facts, "INCOMPLETE", "budget_unavailable", 1)
+                    _publish_artifact(facts, target)
+                    return 1
+                guard_path = _authorization_slot() / "accounting" / f"dav58-increment-{expected_identity.identity}.json"
+                resume_sha = os.environ.get("ULTICODE_DAV53_GUARD_RESUME_SHA256")
+                try:
+                    journal_info = os.lstat(guard_path)
+                    journal_exists = True
+                    if (not stat.S_ISREG(journal_info.st_mode) or journal_info.st_nlink != 1
+                            or stat.S_IMODE(journal_info.st_mode) != 0o600):
+                        raise ValueError("guard_journal_file_invalid")
+                except FileNotFoundError:
+                    journal_exists = False
+                if journal_exists and not resume_sha:
+                    _finish(facts, "INCOMPLETE", "guard_journal_resume_required", 1)
+                    _publish_artifact(facts, target)
+                    return 1
+                if resume_sha and not journal_exists:
+                    _finish(facts, "INCOMPLETE", "guard_journal_missing", 1)
+                    _publish_artifact(facts, target)
+                    return 1
+                if not journal_exists and (
+                    snapshot["attempts"] != 0 or snapshot["actual_micro_usd"] != 0
+                    or snapshot["unknown_usage_attempts"] != 0 or snapshot["unsettled_attempts"] != 0
+                ):
+                    _finish(facts, "INCOMPLETE", "guard_journal_missing_for_history", 1)
+                    _publish_artifact(facts, target)
+                    return 1
+                guard = IncrementalGuard(
+                    guard_path,
+                    resume_sha256=resume_sha,
+                    period_identity=expected_identity.identity,
+                    config_sha256=expected_identity.config_sha256,
+                )
+                if (snapshot["attempts"] != len(guard.state["receipts"])
+                        or snapshot["actual_micro_usd"] != guard.state["settled_peak_micro_usd"]
+                        or guard.state["halted"] or guard.state["pending_micro_usd"]):
+                    _finish(facts, "INCOMPLETE", "budget_guard_disagreement", 1)
+                    _publish_artifact(facts, target)
+                    return 1
+                facts["guard"] = {
+                    "journal_sha256_before": hashlib.sha256(guard_path.read_bytes()).hexdigest(),
+                    "receipts_before": len(guard.state["receipts"]),
+                    "period_identity": expected_identity.identity,
+                    "config_sha256": expected_identity.config_sha256,
+                }
+                LIVE_GUARD = guard
+            except Exception as error:  # noqa: BLE001 - fixed sanitized failure only
+                _finish(facts, "INCOMPLETE", f"guard_preflight_{type(error).__name__}", 1)
+                _publish_artifact(facts, target)
+                return 1
         try:
             code = await _contrast(facts, expected_identity)
-        except Exception as error:  # noqa: BLE001 - the failure artifact must still publish
+        except Exception as error:  # noqa: BLE001 - failure artifact retains status
             facts["status"] = "ERROR"
             facts["reason"] = type(error).__name__
             _publish_artifact(facts, target)
             raise
+        if guard is not None:
+            facts["guard"].update({
+                "journal_sha256_after": hashlib.sha256(guard.path.read_bytes()).hexdigest(),
+                "receipts_after": len(guard.state["receipts"]),
+                "halted": guard.state["halted"],
+                "pending_micro_usd": guard.state["pending_micro_usd"],
+            })
         published = _publish_artifact(facts, target)
         if code == 0:
             if not published:
-                # Isolation is not proven without its published evidence.
                 return 1
-            # The definitive OK is printed only after the artifact was published
-            # and read back: a run that cannot show its evidence is not a pass.
             print(
                 f"OK isolation dual_account_contrast scope=synthetic_nonproduction "
                 f"target_host={_target_host()}"
             )
         return code
     finally:
+        LIVE_GUARD = None
+        if guard is not None:
+            guard.close()
         _release_unfinished_claim(lock)
 
 

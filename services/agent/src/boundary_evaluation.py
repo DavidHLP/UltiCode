@@ -503,8 +503,10 @@ async def judge_citation(
     claim: str,
     quote: str,
     facts: tuple[dict[str, object], ...],
+    raw_capture: list[dict[str, object]] | None = None,
+    role: str = "answer_citation",
 ) -> tuple[bool, bool]:
-    """One independent judge pass for one claim + its verbatim quote."""
+    """One independent judge pass; optionally retain actual private evidence."""
     prompt = (
         f"{JUDGE_CONTRACT}\nINPUT_JSON "
         + json.dumps(
@@ -512,8 +514,80 @@ async def judge_citation(
             ensure_ascii=True,
         )
     )
-    decision = await model.decide([{"role": "user", "content": prompt}])
-    return _judgement(str(decision.text))
+    messages = [{"role": "user", "content": prompt}]
+    request_body = _request_body(model, messages)
+    body_sha256 = (
+        hashlib.sha256(
+            json.dumps(request_body, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+        ).hexdigest()
+        if request_body is not None else None
+    )
+    transport = getattr(getattr(model, "_client", None), "_transport", None)
+    guard = getattr(transport, "guard", None)
+    guard_before = len(
+        getattr(getattr(guard, "state", None), "get", lambda *_: [])("receipts", [])
+    )
+    decision = await model.decide(messages)
+    raw_response = str(decision.text)
+    metering = getattr(model, "metering", []) or []
+    usage_rows = getattr(model, "usage", []) or []
+    model_rows = getattr(model, "response_models", []) or []
+    meter = metering[-1] if metering else {}
+    guard_receipts = getattr(getattr(guard, "state", None), "get", lambda *_: [])("receipts", [])
+    guard_index = len(guard_receipts) - 1 if len(guard_receipts) > guard_before else None
+    guard_receipt = guard_receipts[guard_index] if guard_index is not None else None
+    evidence = {
+        "schema": "ulticode-dav58-judge-raw-v1",
+        "role": role,
+        "claim": claim,
+        "quote": quote,
+        "submission_facts": list(facts),
+        "facts_sha256": hashlib.sha256(_canonical_json(list(facts))).hexdigest(),
+        "raw_response": raw_response,
+        "response_model": model_rows[-1] if model_rows else None,
+        "usage": usage_rows[-1] if usage_rows else None,
+        "attempt_id": meter.get("attempt_id") if isinstance(meter, dict) else None,
+        "request_body": request_body,
+        "request_sha256": body_sha256,
+        "guard_receipt_index": guard_index,
+        "guard_receipt_sha256": (
+            hashlib.sha256(_canonical_json(guard_receipt)).hexdigest()
+            if isinstance(guard_receipt, dict) else None
+        ),
+        "metering_receipt_index": len(metering) - 1 if metering else None,
+        "metering_receipt_sha256": (
+            hashlib.sha256(_canonical_json(meter)).hexdigest()
+            if isinstance(meter, dict) and meter else None
+        ),
+    }
+    if raw_capture is not None:
+        raw_capture.append(evidence)
+    return _judgement(raw_response)
+
+
+def _canonical_json(value: object) -> bytes:
+    return json.dumps(
+        value, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+    ).encode("utf-8")
+
+
+def _request_body(
+    model: object, messages: list[dict[str, object]]
+) -> dict[str, object] | None:
+    """Reconstruct exact Deepseek JSON body; this adapter sends it via httpx json=."""
+    api_messages = getattr(model, "_api_messages", None)
+    if not callable(api_messages):
+        return None
+    body: dict[str, object] = {
+        "model": getattr(model, "_model", None),
+        "messages": api_messages(messages),
+        "temperature": 0,
+        "max_tokens": getattr(model, "_max_tokens", None),
+    }
+    thinking = getattr(model, "_thinking_type", None)
+    if thinking is not None:
+        body["thinking"] = {"type": thinking}
+    return body
 
 
 def _model_version(model: object) -> str:
@@ -697,6 +771,7 @@ async def _judge_citations(
     manifest: tuple[object, ...],
     judge_model: object,
     facts: tuple[dict[str, object], ...],
+    raw_judgements: list[dict[str, object]] | None = None,
 ) -> list[tuple[bool, bool]]:
     """One judge verdict per citation, in order; unverified rows skip the call."""
     judgements: list[tuple[bool, bool]] = []
@@ -707,10 +782,7 @@ async def _judge_citations(
             documents=documents,
             manifest=manifest,
         )
-        row = rows[0]
-        if row.integrity_verdict != "verified":
-            # Judging a citation that does not exist would spend a call on a row
-            # that can never pass; the gate already failed it.
+        if rows[0].integrity_verdict != "verified":
             judgements.append((False, False))
             continue
         try:
@@ -720,6 +792,7 @@ async def _judge_citations(
                     claim=str(citation["claim"]),
                     quote=str(citation["text"]),
                     facts=facts,
+                    raw_capture=raw_judgements,
                 )
             )
         except BoundaryEvaluationError:
@@ -732,6 +805,39 @@ def _citation_check_rows(checks: tuple[object, ...]) -> list[dict[str, object]]:
         {"chunk_id": check.chunk_id, "verdict": check.verdict, "detail": check.detail}
         for check in checks
     ]
+
+
+def _citation_judgement_rows(
+    citations: tuple[dict[str, object], ...],
+    checks: tuple[object, ...],
+    raw_judgements: list[dict[str, object]],
+) -> tuple[list[dict[str, object]], str | None]:
+    rows: list[dict[str, object]] = []
+    raw_index = 0
+    parse_error = None
+    for citation, check in zip(citations, checks):
+        raw = None
+        if check.verdict == "verified":
+            if raw_index < len(raw_judgements):
+                raw = raw_judgements[raw_index]
+                raw_index += 1
+            else:
+                parse_error = "missing_judgement_receipt"
+        else:
+            parse_error = "unverified_citation_not_judged"
+        supports = derivable = False
+        if raw is not None:
+            try:
+                supports, derivable = _judgement(str(raw["raw_response"]))
+            except (BoundaryEvaluationError, KeyError, TypeError):
+                parse_error = "malformed_judgement"
+        item = {"supports": supports, "derivable": derivable, "receipt": None}
+        if raw is not None:
+            item["_raw_receipt"] = raw
+        rows.append(item)
+    if len(citations) != len(checks) or raw_index != len(raw_judgements):
+        parse_error = parse_error or "judgement_count_mismatch"
+    return rows, parse_error
 
 
 def _citation_verdicts(
@@ -1153,12 +1259,14 @@ async def _evaluate_one(
     # Whatever the loop already produced is snapshotted before judging: a judge (or
     # provenance) failure must not erase a paid answer. The row still becomes an
     # error, so the snapshot only records what was actually determined.
+    raw_judgements: list[dict[str, object]] = []
     partial: dict[str, object] = {
         "text": text,
         "citations": citations,
         "malformed_citations": malformed_citations,
         "parse_failure": parse_failure,
         "citation_checks": (),
+        "raw_judgements": raw_judgements,
         "exists": "failed",
         "loop_response_models": loop_identity,
         "judge_lane_start": judge_lane_start,
@@ -1175,7 +1283,13 @@ async def _evaluate_one(
             manifest=manifest,
             judge_model=judge_model,
             facts=case.submission_facts,
+            raw_judgements=raw_judgements,
         )
+        citation_judgements, judgement_error = _citation_judgement_rows(
+            citations, tuple(checks), raw_judgements
+        )
+        partial["citation_judgements"] = citation_judgements
+        partial["citation_judgement_error"] = judgement_error
     except Exception as error:  # noqa: BLE001 - keep the paid answer, then fail closed
         try:
             error.boundary_partial = partial  # type: ignore[attr-defined]
@@ -1243,6 +1357,10 @@ async def _evaluate_one(
         "malformed_citations": list(malformed_citations),
         "answer_parse_error": parse_failure,
         "citation_checks": _citation_check_rows(checks),
+        "citation_judgements": citation_judgements,
+        "citation_judgement_error": (
+            judgement_error or parse_failure or ("malformed_citations" if malformed_citations else None)
+        ),
         "exists": verdicts["exists"],
         "supports": verdicts["supports"],
         "derivable": verdicts["derivable"],
@@ -1393,6 +1511,12 @@ def _error_record(
             judge_response_models = _response_identity(judge_model, judge_lane_start)
         elif judge_model is not model:
             judge_response_models = _response_identity(judge_model, judge_usage_start)
+    citations = tuple(partial.get("citations") or ())
+    citation_judgements, judgement_error = _citation_judgement_rows(
+        citations, checks, list(partial.get("raw_judgements") or ())
+    )
+    citation_judgements = list(partial.get("citation_judgements") or citation_judgements)
+    judgement_error = partial.get("citation_judgement_error") or judgement_error
     if not partial:
         answer_parse = "not_attempted"
     else:
@@ -1412,6 +1536,12 @@ def _error_record(
         "malformed_citations": list(partial.get("malformed_citations") or ()),
         "answer_parse_error": partial.get("parse_failure"),
         "citation_checks": _citation_check_rows(checks),
+        "citation_judgements": citation_judgements,
+        "citation_judgement_error": (
+            judgement_error or partial.get("parse_failure")
+            or ("malformed_citations" if partial.get("malformed_citations") else None)
+            or ("not_attempted" if status == "not_run" or not partial.get("citations") else None)
+        ),
         "exists": str(partial.get("exists", "failed")),
         "supports": "failed",
         "derivable": "failed",
@@ -1469,11 +1599,7 @@ def summarize_boundary(records: tuple[dict[str, object], ...]) -> dict[str, obje
 
 
 def forged_citation_probe(documents: tuple[SourceDocument, ...]) -> dict[str, object]:
-    """A program-level control: the gate must reject a citation that does not exist.
-
-    This is a controlled probe, not model output — it is labelled as such so its
-    passing is never read as the model refusing a forgery.
-    """
+    """A program-level control: the gate must reject a citation that does not exist."""
     forged = {
         "claim": "forged claim",
         "chunk_id": "forged:v1:1",
@@ -1491,6 +1617,12 @@ def forged_citation_probe(documents: tuple[SourceDocument, ...]) -> dict[str, ob
     return {
         "probe": "forged_citation",
         "inject": "program_level_control",
+        "actualcitations": [forged],
+        "citations": [forged],
+        "citation_checks": _citation_check_rows(checks),
+        "integritychecks": _citation_check_rows(checks),
+        "malformed_citations": [],
+        "parse_error": None,
         "integrity_verdict": verdict,
         "gate_rejected": verdict != "verified",
     }
@@ -1499,12 +1631,7 @@ def forged_citation_probe(documents: tuple[SourceDocument, ...]) -> dict[str, ob
 async def unsupported_claim_probe(
     model: object, documents: tuple[SourceDocument, ...]
 ) -> dict[str, object]:
-    """A program-level control: the judge must not support a claim the quote cannot.
-
-    The quote is a real, verbatim fragment; the claim overreaches it, so a judge
-    that returns ``supports=true`` is a gate failure. Labelled as a probe so it is
-    never counted as a model-generated answer.
-    """
+    """A real-quote control for a claim that overreaches its evidence."""
     document = documents[0]
     citation = {
         "claim": "该提交的源码第 42 行就是导致 Runtime Error 的具体原因。",
@@ -1518,22 +1645,53 @@ async def unsupported_claim_probe(
         "source_trust": "untrusted-data",
         "text": document.text,
     }
-    rows = build_worksheet(
+    worksheet = build_worksheet(
         claim=str(citation["claim"]),
         citations=[citation],
         documents=documents,
         manifest=load_manifest(BOUNDARY_MANIFEST_PATH),
-    )
-    row = rows[0]
-    supports, derivable = await judge_citation(
-        model, claim=str(citation["claim"]), quote=document.text, facts=()
-    )
+    )[0]
+    checks = check_citations([citation], documents)
+    raw_receipts: list[dict[str, object]] = []
+    parse_error = None
+    try:
+        supports, derivable = await judge_citation(
+            model, claim=str(citation["claim"]), quote=document.text, facts=(),
+            raw_capture=raw_receipts, role="unsupported_probe",
+        )
+    except BoundaryEvaluationError:
+        supports = derivable = False
+        parse_error = "malformed_judgement"
+    except Exception as error:  # noqa: BLE001 - preserve evidence without inventing a verdict
+        supports = derivable = False
+        parse_error = f"judge_call_failed:{type(error).__name__}"
     return {
         "probe": "unsupported_composite_claim",
         "inject": "program_level_control",
-        "review_id": row.review_id,
-        "integrity_verdict": row.integrity_verdict,
+        "actualcitation": citation,
+        "integritychecks": _citation_check_rows(checks),
+        "citations": [citation],
+        "citation_checks": _citation_check_rows(checks),
+        "worksheet": {
+            "review_id": worksheet.review_id,
+            "chunk_id": worksheet.chunk_id,
+            "doc_id": worksheet.doc_id,
+            "source_position": worksheet.source_position,
+            "permission": worksheet.permission,
+            "permission_scope": worksheet.permission_scope,
+            "access_scope": worksheet.access_scope,
+            "quote": worksheet.quote,
+            "claim": worksheet.claim,
+            "integrity_verdict": worksheet.integrity_verdict,
+            "verdicts": worksheet.verdicts,
+        },
+        "review_id": worksheet.review_id,
+        "integrity_verdict": worksheet.integrity_verdict,
         "supports": supports,
         "derivable": derivable,
-        "gate_rejected": not supports,
+        "judge_receipt": None,
+        "_judge_receipt_raw": raw_receipts[0] if raw_receipts else None,
+        "malformed_citations": [],
+        "parse_error": parse_error,
+        "gate_rejected": parse_error is None and not supports,
     }

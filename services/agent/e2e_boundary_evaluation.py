@@ -144,6 +144,43 @@ def _digest_json(value: object) -> str:
     return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
 
 
+def _publish_judge_receipt(
+    raw: object, artifact: Path, owned: dict[Path, tuple[int, int]]
+) -> dict[str, str]:
+    path = artifact.with_name(f"{artifact.name}.judge-{secrets.token_hex(6)}.json")
+    text = (
+        json.dumps(raw, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n"
+    )
+    digest = hashlib.sha256(text.encode("utf-8")).hexdigest()
+    owned[path] = _publish(path, text)
+    _assert_artifact_directory(path)
+    return {"path": path.name, "sha256": digest}
+
+
+def _publish_judge_evidence(
+    records: list[dict[str, object]],
+    probes: list[dict[str, object]],
+    artifact: Path,
+    owned: dict[Path, tuple[int, int]],
+    loop_receipt_count: int,
+) -> None:
+    for record in records:
+        for item in record.get("citation_judgements", []):
+            raw = item.pop("_raw_receipt", None)
+            if isinstance(raw, dict):
+                index = raw.get("metering_receipt_index")
+                if isinstance(index, int):
+                    raw["metering_receipt_index"] = loop_receipt_count + index
+                item["receipt"] = _publish_judge_receipt(raw, artifact, owned)
+    for probe in probes:
+        raw = probe.pop("_judge_receipt_raw", None)
+        if isinstance(raw, dict):
+            index = raw.get("metering_receipt_index")
+            if isinstance(index, int):
+                raw["metering_receipt_index"] = loop_receipt_count + index
+            probe["judge_receipt"] = _publish_judge_receipt(raw, artifact, owned)
+
+
 def _int(name: str, default: int) -> int:
     raw = os.environ.get(name, str(default)).strip()
     try:
@@ -305,19 +342,36 @@ async def main(expected: PeriodIdentity | None = None) -> int:
                         )
                         try:
                             if budget_stopped:
-                                probes.append({"probe": "unsupported_composite_claim", "gate_rejected": False,
-                                               "error": "not_run_budget"})
+                                probes.append({
+                                    "probe": "unsupported_composite_claim",
+                                    "gate_rejected": False,
+                                    "error": "not_run_budget",
+                                    "parse_error": "not_run_budget",
+                                    "actualcitation": None,
+                                    "citations": [],
+                                    "malformed_citations": [],
+                                    "integritychecks": [],
+                                    "citation_checks": [],
+                                    "worksheet": None,
+                                    "judge_receipt": None,
+                                })
                             else:
                                 probes.append(await unsupported_claim_probe(judge, documents))
                         except Exception as error:  # noqa: BLE001 - recorded, not lost
-                            probes.append(
-                                {
-                                    "probe": "unsupported_composite_claim",
-                                    "inject": "program_level_control",
-                                    "gate_rejected": False,
-                                    "error": type(error).__name__,
-                                }
-                            )
+                            probes.append({
+                                "probe": "unsupported_composite_claim",
+                                "inject": "program_level_control",
+                                "gate_rejected": False,
+                                "error": type(error).__name__,
+                                "parse_error": type(error).__name__,
+                                "actualcitation": None,
+                                "citations": [],
+                                "malformed_citations": [],
+                                "integritychecks": [],
+                                "citation_checks": [],
+                                "worksheet": None,
+                                "judge_receipt": None,
+                            })
                     finally:
                         usage = list(model.usage) + list(judge.usage)
                         totals = [
@@ -331,6 +385,7 @@ async def main(expected: PeriodIdentity | None = None) -> int:
                         ]
                         run_total_tokens = sum(known) if len(known) == len(totals) else None
                         run_metering = _combined_metering(model, judge, 0, 0)
+                        loop_receipt_count = len(model.metering)
                         receipts = list(model.metering) + list(judge.metering)
                         run_finished_at_utc = datetime.now(timezone.utc).isoformat()
                         printed = "unknown" if run_total_tokens is None else str(run_total_tokens)
@@ -360,6 +415,9 @@ async def main(expected: PeriodIdentity | None = None) -> int:
         )
         owned: dict[Path, tuple[int, int]] = {}
         try:
+            _publish_judge_evidence(
+                list(records), probes, artifact, owned, loop_receipt_count
+            )
             owned[artifact] = _publish(
                 artifact,
                 json.dumps(

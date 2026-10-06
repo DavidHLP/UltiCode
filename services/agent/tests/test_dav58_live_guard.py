@@ -24,6 +24,54 @@ def models(tmp_path, handler):
     return guard, loop, judge
 
 
+@pytest.mark.parametrize("identity,config", [("same-identity", None), (None, "same-config"),
+    ("", "same-config"), ("same-identity", "")])
+def test_fresh_guard_rejects_partial_binding_before_writing(tmp_path, identity, config):
+    path = tmp_path / "increment.json"
+    with pytest.raises(ValueError):
+        IncrementalGuard(path, period_identity=identity, config_sha256=config)
+    assert not path.exists()
+    assert not path.with_suffix(".json.lock").exists()
+
+
+def test_fresh_dav53_binding_survives_close_and_resume(tmp_path):
+    import hashlib
+    path = tmp_path / "increment.json"
+    guard = IncrementalGuard(path, period_identity="same-identity", config_sha256="same-config")
+    initial = json.loads(path.read_text())
+    assert initial["period_identity"] == "same-identity"
+    assert initial["config_sha256"] == "same-config"
+    async def call(current, content):
+        model = DeepseekModel("dummy", tool_specs={}, model="deepseek-flash", max_tokens=1000,
+                              thinking_type="disabled", transport=GuardedTransport(
+                                  current, "dav53_scenarios",
+                                  httpx.MockTransport(lambda r: httpx.Response(200, json=receipt()))))
+        async with model:
+            await model.decide([{"role": "user", "content": content}])
+    try:
+        asyncio.run(call(guard, "first"))
+    finally:
+        guard.close()
+    before = path.read_bytes()
+    prior = json.loads(before)
+    sha = hashlib.sha256(before).hexdigest()
+    with pytest.raises(ValueError):
+        IncrementalGuard(path, resume_sha256=sha, period_identity="wrong-identity", config_sha256="same-config")
+    assert path.read_bytes() == before
+    resumed = IncrementalGuard(path, resume_sha256=sha, period_identity="same-identity", config_sha256="same-config")
+    try:
+        asyncio.run(call(resumed, "second"))
+        assert resumed.state["receipts"][:1] == prior["receipts"]
+        assert len(resumed.state["receipts"]) == 2
+        assert all(r["lane"] == "dav53_scenarios" for r in resumed.state["receipts"])
+        assert prior["settled_peak_micro_usd"] == 54
+        assert resumed.state["settled_peak_micro_usd"] == 108
+        assert resumed.state["pending_micro_usd"] == 0
+        assert json.loads(path.read_text()) == resumed.state
+    finally:
+        resumed.close()
+
+
 def test_full_provider_envelope_avoids_framing_estimate(tmp_path):
     guard, loop, judge = models(tmp_path, lambda request: httpx.Response(200, json=receipt()))
     assert ENVELOPE_MICRO_USD == 786432
@@ -254,3 +302,130 @@ def test_continuation_guard_enforces_shared_lane_ceiling_before_send(tmp_path):
     asyncio.run(run())
     assert len(requests) == 20
     assert guard.state["pending_micro_usd"] == 0
+
+
+@pytest.mark.parametrize("lane", ["u03", "u04", "u03_analysis", "u04_demo"])
+def test_unknown_product_lane_has_zero_http(tmp_path, lane):
+    requests = []
+    guard = IncrementalGuard(tmp_path / "increment.json")
+    model = DeepseekModel("dummy", tool_specs={}, model="deepseek-flash", max_tokens=1000,
+                          thinking_type="disabled", transport=GuardedTransport(
+                              guard, lane, httpx.MockTransport(lambda r: requests.append(r))))
+    try:
+        with pytest.raises(ModelBudgetExceeded):
+            asyncio.run(model.decide([{"role": "user", "content": "synthetic only"}]))
+        assert requests == []
+        assert guard.state["receipts"] == []
+        assert guard.state["pending_micro_usd"] == 0
+    finally:
+        guard.close()
+
+
+@pytest.mark.parametrize("lane", ["dav58_loop", "dav58_judge", "dav53_scenarios"])
+def test_current_lane_caps_match_trusted_declaration(tmp_path, lane):
+    from authorized_budget_period import POLICY
+    guard = IncrementalGuard(tmp_path / "increment.json")
+    cap = POLICY["lanes"][lane]["completion_token_cap"]
+    body = {"model": "deepseek-flash", "messages": [{"role": "user", "content": "x"}],
+            "max_tokens": cap, "temperature": 0, "thinking": {"type": "disabled"}}
+    try:
+        body["max_tokens"] = cap + 1
+        with pytest.raises(ModelBudgetExceeded):
+            guard.begin(httpx.Request("POST", "https://api.deepseek.com/chat/completions", json=body), lane)
+        body["max_tokens"] = cap
+        reserved = guard.begin(httpx.Request("POST", "https://api.deepseek.com/chat/completions", json=body), lane)
+        assert reserved["completion_token_cap"] == cap
+        assert reserved["prompt_token_cap"] == POLICY["prompt_token_cap"]
+        guard.finish(reserved, httpx.Response(200, json=receipt(usage={
+            "prompt_tokens": POLICY["prompt_token_cap"], "completion_tokens": cap,
+            "total_tokens": POLICY["prompt_token_cap"] + cap})))
+        assert reserved["status"] == "settled"
+    finally:
+        guard.close()
+
+
+@pytest.mark.parametrize("prompt,completion", [(321, 123), (True, 123), (321, True),
+    (0, 123), (321, 0), (-1, 123), (321, -1), (1_048_577, 123),
+    (321, 393_217), ("321", 123), (321, 1.5)])
+def test_synthetic_only_trusted_policy_lane_no_real_grant(tmp_path, monkeypatch, prompt, completion):
+    import authorized_budget_period as period
+    monkeypatch.setattr(period, "POLICY", {**period.POLICY, "prompt_token_cap": prompt,
+        "lanes": {**period.POLICY["lanes"], "synthetic_only": {"completion_token_cap": completion}}})
+    guard = IncrementalGuard(tmp_path / "increment.json")
+    body = {"model": "deepseek-flash", "messages": [{"role": "user", "content": "x"}],
+            "max_tokens": 123, "temperature": 0, "thinking": {"type": "disabled"}}
+    try:
+        request = httpx.Request("POST", "https://api.deepseek.com/chat/completions", json=body)
+        if (prompt, completion) == (321, 123):
+            guard.continuation_start = 0
+            with pytest.raises(ModelBudgetExceeded):
+                guard.begin(request, "synthetic_only")
+            del guard.continuation_start
+            reserved = guard.begin(request, "synthetic_only")
+            assert reserved["prompt_token_cap"] == 321
+            assert reserved["completion_token_cap"] == 123
+            with pytest.raises(ModelBudgetExceeded):
+                guard.finish(reserved, httpx.Response(200, json=receipt(usage={
+                    "prompt_tokens": 322, "completion_tokens": 20, "total_tokens": 342})))
+            assert guard.state["halted"] is True
+        else:
+            with pytest.raises(ModelBudgetExceeded):
+                guard.begin(request, "synthetic_only")
+            assert guard.state["receipts"] == []
+    finally:
+        guard.close()
+
+
+@pytest.mark.parametrize("lane,cap", [("dav58_loop", 2000), ("dav58_judge", 2000), ("dav53_scenarios", 1000)])
+def test_legacy_receipt_caps_survive_current_policy_change(tmp_path, monkeypatch, lane, cap):
+    import hashlib
+    import authorized_budget_period as period
+    path, saved, _ = settled_journal(tmp_path)
+    prior = saved["receipts"][0]
+    prior.pop("prompt_token_cap")
+    prior.pop("completion_token_cap")
+    prior.update(lane=lane, prompt_tokens=24000, completion_tokens=cap, total_tokens=24000 + cap,
+                 peak_micro_usd=(24000 * 3 + cap * 12 + 9) // 10)
+    saved["settled_peak_micro_usd"] = prior["peak_micro_usd"]
+    path.write_text(json.dumps(saved))
+    before = path.read_bytes()
+    monkeypatch.setattr(period, "POLICY", {**period.POLICY, "prompt_token_cap": 100,
+        "lanes": {lane: {"completion_token_cap": 10}}})
+    resumed = IncrementalGuard(path, resume_sha256=hashlib.sha256(before).hexdigest(),
+                              period_identity="same-identity", config_sha256="same-config")
+    try:
+        assert resumed.state["receipts"] == saved["receipts"]
+        assert path.read_bytes() == before
+    finally:
+        resumed.close()
+
+
+@pytest.mark.parametrize("with_caps", [False, True])
+def test_unknown_lane_receipt_cannot_authorize_resume(tmp_path, with_caps):
+    import hashlib
+    path, saved, _ = settled_journal(tmp_path)
+    saved["receipts"][0]["lane"] = "u03"
+    if not with_caps:
+        saved["receipts"][0].pop("prompt_token_cap")
+        saved["receipts"][0].pop("completion_token_cap")
+    path.write_text(json.dumps(saved))
+    before = path.read_bytes()
+    with pytest.raises(ValueError):
+        IncrementalGuard(path, resume_sha256=hashlib.sha256(before).hexdigest(),
+                         period_identity="same-identity", config_sha256="same-config")
+    assert path.read_bytes() == before
+
+
+@pytest.mark.parametrize("field,value", [("prompt_token_cap", 24001),
+    ("completion_token_cap", 2001), ("prompt_token_cap", 23999),
+    ("completion_token_cap", 1999)])
+def test_resume_rejects_receipt_caps_differing_from_trusted_policy(tmp_path, field, value):
+    import hashlib
+    path, saved, _ = settled_journal(tmp_path)
+    saved["receipts"][0][field] = value
+    path.write_text(json.dumps(saved))
+    before = path.read_bytes()
+    with pytest.raises(ValueError, match="prior caps differ from trusted policy"):
+        IncrementalGuard(path, resume_sha256=hashlib.sha256(before).hexdigest(),
+                         period_identity="same-identity", config_sha256="same-config")
+    assert path.read_bytes() == before

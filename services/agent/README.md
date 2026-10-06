@@ -1,20 +1,39 @@
 # UltiCode Agent
 
-Python agent runtime for UltiCode's read-only learning workflow. It is a standalone service
-module: it does not own business tables, does not write UltiCode data, and never replaces the
-Java Owner services for identity, submissions, judging, or persistence.
+Python Agent runtime for owner-scoped, read-only analysis and an explicit learning-plan workflow.
+It is a standalone module, not a Maven service or business-data owner. The Java App remains the
+authority for identity, submission access, and persisted LearningPlan records; Agent SQLite stores
+only local draft/workflow state and events.
 
 ## Runtime boundary
 
-- `src/ulticode_client.py` calls existing Auth/App HTTP contracts with a server-side cookie session.
-- `src/ulticode_tools.py` projects tool results to the model; submission source, identity, error
-  details, test payloads, and nested user/problem objects are excluded by default.
-- `src/agent_loop.py` owns bounded model → tool → result rounds, timeout, and cancellation behavior.
+- `src/ulticode_client.py` calls existing Auth/App and LearningPlan HTTP contracts.
+- `src/ulticode_tools.py` exposes allowlisted read-only tools and projects results before model use.
+- `src/agent_service/graph.py` implements the single bounded LangGraph model/tool kernel.
+  `src/agent_loop.py:run_tool_loop` remains a compatibility wrapper over that graph.
+- `src/agent_service/app.py` is the opt-in workflow API factory. It uses canonical private SQLite
+  state plus resumable LangGraph checkpoints; checkpoints are not business records.
+- Session identity comes only from `/auth/me`. Each request has an isolated, in-memory cookie client;
+  unsafe Agent requests require the access + CSRF cookie pair and matching CSRF header.
+- A Java LearningPlan is persisted only after a separate explicit confirmation and save. Unknown
+  write outcomes remain unresolved until same-key Java readback; no automatic retry or new key.
 
-The current migrated slice provides the U01 read-only client, bounded model/tool loop, field
-projection, deterministic tests, a U02 sample-only keyword retrieval/sourced-analysis path, and
-executable keyword evaluation tooling. Authorized-corpus, vector-retrieval, real-model evaluation,
-and isolation evidence are tracked in the U02 Linear tasks.
+Workflow route and field contracts, U02 evidence gate, and budget behavior are in the canonical
+[API reference](../../docs/REFERENCE.md#agent-workflow-api) and
+[Development guide](../../docs/DEVELOPMENT.md#u03-agent-workflow).
+
+Offline scripted-model analysis can be injected into the checkpointed workflow and uses the same
+bounded read-only LangGraph kernel. Live analysis is fail-closed unless the evidence-bound U02 gate,
+expected budget period, shared budget guard, and authorized `u03_analysis` purpose are valid;
+citation judging uses the separate `u03_citation_judge` purpose. Missing authorization returns
+`503 model_budget_blocked` before provider calls. Nonempty citations must match same-run retrieved
+evidence, pass integrity checks, and be judged as supporting and derivable; unknown judge usage
+rejects analysis. Empty citations are accepted only after the bounded source-fact/tool-trace/source-
+reference answer checks. These are fail-closed safeguards, not perfect semantic verification.
+Offline scripted models and `httpx.MockTransport` do not establish real-model acceptance, live Java
+persistence, or complete U03 acceptance.
+
+Runtime notes:
 - `src/deepseek_model.py` is an external model adapter. Its API key is read from the environment and
   is never logged or committed.
 - `e2e_*.py` are opt-in smoke scripts against the local UltiCode stack; unit tests use
@@ -30,15 +49,15 @@ uv sync --locked
 uv run pytest -q
 ```
 
-Real local-stack smoke checks are opt-in and require the existing UltiCode environment:
+Real-stack smoke checks are opt-in. Supply account/model credentials through an existing secure
+environment or secret store; never put their values in commands, shell history, or documentation.
+Run from `services/agent`:
 
 ```bash
-ULTICODE_E2E_USERNAME=... ULTICODE_E2E_PASSWORD=... uv run python e2e_readonly.py
-ULTICODE_E2E_USERNAME=... ULTICODE_E2E_PASSWORD=... DEEPSEEK_API_KEY=... DEEPSEEK_MODEL=... \
-  uv run python e2e_model_qa.py
-ULTICODE_E2E_USERNAME=... ULTICODE_E2E_PASSWORD=... uv run python e2e_sourced_analysis.py
-ULTICODE_E2E_USERNAME=... ULTICODE_E2E_PASSWORD=... DEEPSEEK_API_KEY=... DEEPSEEK_MODEL=... \
-  uv run python e2e_sourced_analysis_model.py
+uv run python e2e_readonly.py
+uv run python e2e_model_qa.py
+uv run python e2e_sourced_analysis.py
+uv run python e2e_sourced_analysis_model.py
 ```
 
 Both sourced-analysis smokes require the authenticated account to have at least one
@@ -56,22 +75,22 @@ behavior, see the canonical [Development and testing guide](../../docs/DEVELOPME
 
 ## U02 boundary
 
-U02 is preparing authorized-corpus retrieval and sourced analysis. The checked-in corpus is an
+U02 covers authorized-corpus retrieval and sourced analysis. The checked-in corpus is an
 agent-authored synthetic sample for local tests only: it is not a real user submission, an
 UltiCode DTO, or licensed user material. Public user solutions are not a licensed corpus merely
-because their API is public. Before any future source is sent to a model, record its permission,
-scope, version, chunk/source position, and the exact model-input projection. Retrieved source text
-is untrusted data, never an instruction source.
+because their API is public. Any source sent to a model requires recorded permission, scope,
+version, chunk/source position, and exact model-input projection. Retrieved source text is
+untrusted data, never an instruction source.
 
 The synthetic sample is explicitly `synthetic` and `agent-authored-synthetic`; it is suitable for
 the deterministic sample slice only. The executable keyword evaluation is versioned with the Agent
 module; authorized-corpus, vector-retrieval, real-model evaluation, and isolation evidence are
 tracked in the U02 Linear tasks.
 
-U02 and later phases must preserve U01's regression coverage for unknown tools, invalid arguments,
-tool failure, timeout, cancellation, and the absence of raw source/error data in captured model
-messages. Do not add write tools until the corresponding DAV-53 isolation and confirmation gates are
-satisfied.
+U02 and later phases preserve U01 regression coverage for unknown tools, invalid arguments, tool
+failure, timeout, cancellation, and exclusion of raw source/error data from model messages. Model-
+facing tools remain read-only. The explicit Agent save route is separate and remains unavailable
+unless its evidence-bound U02 gate validates.
 
 
 ### Opt-in acceptance runners (DAV-58 / DAV-53)
@@ -84,8 +103,10 @@ satisfied.
   positive control. Without a configured model the run reports the HTTP contrast and exits
   non-zero as `INCOMPLETE`; that is not a DAV-53 pass.
 
-Commands, ledger binding and the full validation contracts live in the canonical
-[Development and testing guide](../../docs/DEVELOPMENT.md).
+Existing runner commands, ledger binding, and validation contracts live in the canonical
+[Development and testing guide](../../docs/DEVELOPMENT.md). The frozen-candidate U02 → U03 → U04
+commands, evidence bindings, and quality-layer interpretation are documented in the
+[immutable acceptance workflow](../../docs/DEVELOPMENT.md#u02-u03-u04-immutable-acceptance-chain).
 
 ### Corpus override for the acceptance entry point
 

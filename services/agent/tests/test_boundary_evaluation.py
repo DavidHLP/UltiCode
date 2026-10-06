@@ -702,6 +702,21 @@ def test_missing_id_case_rejects_a_fabricated_submission_id() -> None:
     assert missing["verdict"] == "expected_behavior_failed"
 
 
+def test_case_citation_judgement_keeps_per_citation_raw_evidence() -> None:
+    injection = next(
+        record for record in _run(_all_met_script())
+        if record["category"] == "source_injection"
+    )
+
+    assert len(injection["citations"]) == len(injection["citation_judgements"]) == 1
+    judgement = injection["citation_judgements"][0]
+    assert judgement["supports"] is True and judgement["derivable"] is True
+    raw = judgement["_raw_receipt"]
+    assert raw["role"] == "answer_citation"
+    assert raw["claim"] == injection["citations"][0]["claim"]
+    assert raw["quote"] == injection["citations"][0]["text"]
+
+
 def test_forged_citation_probe_is_rejected() -> None:
     probe = be.forged_citation_probe(DOCUMENTS)
 
@@ -725,6 +740,46 @@ def test_unsupported_claim_probe_reflects_the_judge() -> None:
     assert rejecting["gate_rejected"] is True
     assert rejecting["integrity_verdict"] == "verified"
     assert accepting["gate_rejected"] is False
+    assert accepting["_judge_receipt_raw"]["raw_response"] == (
+        '{"supports": true, "derivable": true}'
+    )
+
+
+def test_unsupported_probe_keeps_exact_synthetic_raw_judgement() -> None:
+    probe = asyncio.run(
+        be.unsupported_claim_probe(
+            FakeModel({}, judge={"supports": False, "derivable": False}), DOCUMENTS
+        )
+    )
+
+    raw = probe["_judge_receipt_raw"]
+    assert raw["schema"] == "ulticode-dav58-judge-raw-v1"
+    assert raw["role"] == "unsupported_probe"
+    assert raw["claim"] == probe["actualcitation"]["claim"]
+    assert raw["quote"] == probe["actualcitation"]["text"]
+    assert raw["submission_facts"] == []
+    assert raw["raw_response"] == '{"supports": false, "derivable": false}'
+    assert probe["worksheet"]["review_id"] == probe["review_id"]
+    assert probe["integritychecks"][0]["verdict"] == "verified"
+
+
+def test_unsupported_probe_marks_malformed_judgement_not_empty_pass() -> None:
+    probe = asyncio.run(
+        be.unsupported_claim_probe(FakeModel({}, judge="not-json"), DOCUMENTS)
+    )
+
+    assert probe["parse_error"] == "malformed_judgement"
+    assert probe["gate_rejected"] is False
+    assert probe["_judge_receipt_raw"]["raw_response"] == '"not-json"'
+
+
+def test_forged_probe_retains_actual_citation_and_integrity_rows() -> None:
+    probe = be.forged_citation_probe(DOCUMENTS)
+
+    assert probe["actualcitations"][0]["chunk_id"] == "forged:v1:1"
+    assert probe["integritychecks"] == be._citation_check_rows(
+        be.check_citations(probe["actualcitations"], DOCUMENTS)
+    )
 
 
 def test_missing_id_rejects_an_unsupported_diagnosis_after_clarifying() -> None:
@@ -1353,3 +1408,107 @@ def test_round_limit_error_preserves_all_four_recorded_decisions():
     assert row["rounds"] == 4
     assert row["model_calls"] == 4
     assert row["failure_handling"]["loop_error"] == "ModelLoopExceeded"
+
+
+def test_real_judge_capture_publishes_receipt_gate_reparses(tmp_path, monkeypatch) -> None:
+    import importlib.util
+    import json
+    from pathlib import Path
+
+    import authorized_budget_period as period
+    import model_budget as accounting
+    from agent_service.gate import _check_dav58_raw_judge
+    from dav58_live_guard import GuardedTransport, IncrementalGuard
+    from deepseek_model import DeepseekModel
+
+    slot = tmp_path / "budget-slot"
+    slot.mkdir(mode=0o700)
+    monkeypatch.setattr(accounting, "_authorization_slot", lambda: slot)
+    identity = period.prepare_period(
+        slot / "period", "synthetic-receipt-test", accounting.authorized_period_config_sha256()
+    ).identity
+    budget = accounting.ModelBudget.bind_prepared(identity)
+    budget.activate()
+    guard_path = tmp_path / "guard" / "journal.json"
+    guard_path.parent.mkdir(mode=0o700)
+    guard = IncrementalGuard(
+        guard_path, period_identity=identity.identity, config_sha256=identity.config_sha256
+    )
+    response_content = json.dumps({
+        "model": "deepseek-flash",
+        "usage": {
+            "prompt_tokens": 17,
+            "completion_tokens": 4,
+            "total_tokens": 21,
+            "completion_tokens_details": {"reasoning_tokens": 0},
+        },
+        "choices": [{
+            "message": {
+                "content": json.dumps({
+                    "answer": json.dumps({"supports": False, "derivable": True})
+                })
+            }
+        }],
+    })
+    requests = []
+
+    async def provider(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return httpx.Response(200, text=response_content)
+
+    async def scenario():
+        raw_capture = []
+        async with DeepseekModel(
+            "test-only-key",
+            tool_specs={},
+            model="deepseek-flash",
+            base_url="https://api.deepseek.com",
+            transport=GuardedTransport(
+                guard, "dav58_judge", inner=httpx.MockTransport(provider)
+            ),
+            max_tokens=2000,
+            max_prompt_tokens=24000,
+            budget=budget,
+            budget_purpose="dav58_judge",
+            thinking_type="disabled",
+        ) as model:
+            verdict = await be.judge_citation(
+                model,
+                claim="synthetic overclaim",
+                quote="synthetic source fragment",
+                facts=(),
+                raw_capture=raw_capture,
+                role="unsupported_probe",
+            )
+            return verdict, raw_capture[0], list(model.metering)
+
+    try:
+        verdict, raw, metering = asyncio.run(scenario())
+    finally:
+        guard.close()
+    assert verdict == (False, True)
+    assert len(requests) == 1
+
+    runner_path = Path(be.__file__).resolve().parents[1] / "e2e_boundary_evaluation.py"
+    spec = importlib.util.spec_from_file_location("boundary_runner_receipt_test", runner_path)
+    assert spec is not None and spec.loader is not None
+    runner = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(runner)
+    evidence_root = tmp_path / "private-evidence"
+    evidence_root.mkdir(mode=0o700)
+    evidence_root.chmod(0o700)
+    artifact = evidence_root / "boundary.json"
+    ref = runner._publish_judge_receipt(raw, artifact, {})
+    verified = _check_dav58_raw_judge(
+        ref,
+        role="unsupported_probe",
+        claim="synthetic overclaim",
+        quote="synthetic source fragment",
+        facts=[],
+        evidence_root=evidence_root,
+        period_receipts=metering,
+        canonical_guard_receipts=guard.state["receipts"],
+        used_guard_receipts=set(),
+        used_attempts=set(),
+    )
+    assert verified == {"supports": False, "derivable": True}

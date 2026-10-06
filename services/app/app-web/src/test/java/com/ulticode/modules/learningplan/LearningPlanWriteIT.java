@@ -14,11 +14,11 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration;
-import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
-import org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration;
-import org.springframework.boot.autoconfigure.jdbc.JdbcTemplateAutoConfiguration;
-import org.springframework.boot.autoconfigure.transaction.TransactionAutoConfiguration;
+import org.springframework.boot.jackson2.autoconfigure.Jackson2AutoConfiguration;
+import org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration;
+import org.springframework.boot.jdbc.autoconfigure.DataSourceTransactionManagerAutoConfiguration;
+import org.springframework.boot.jdbc.autoconfigure.JdbcTemplateAutoConfiguration;
+import org.springframework.boot.transaction.autoconfigure.TransactionAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
@@ -59,8 +59,7 @@ import static org.assertj.core.api.Assertions.catchThrowableOfType;
  * snapshot gap, replay of an identical payload, {@code 40900} on a reused key
  * with a different payload, and owner-scoped reads.
  *
- * <p><b>Not executed in this session</b> — the remote runner is unavailable; run
- * with {@code ./mvnw -pl app/app-web -am -Dtest='LearningPlan*IT' -Dsurefire.failIfNoSpecifiedTests=false test -B}.
+ * <p>Run with {@code ./mvnw -pl app/app-web -am -Dtest='LearningPlan*IT' -Dsurefire.failIfNoSpecifiedTests=false test -B}.
  */
 @SpringBootTest(
         classes = {
@@ -72,7 +71,7 @@ import static org.assertj.core.api.Assertions.catchThrowableOfType;
                 TransactionAutoConfiguration.class,
                 JdbcTemplateAutoConfiguration.class,
                 MybatisPlusAutoConfiguration.class,
-                JacksonAutoConfiguration.class
+                Jackson2AutoConfiguration.class
         },
         properties = {
                 "spring.flyway.enabled=false",

@@ -23,7 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
                         "spring.autoconfigure.exclude="
                                 + "org.apache.dubbo.spring.boot.autoconfigure.DubboAutoConfiguration,"
                                 + "com.alibaba.cloud.dubbo.bootstrap.DubboBootstrapAutoConfiguration,"
-                                + "org.springframework.boot.actuate.autoconfigure.metrics.SystemMetricsAutoConfiguration",
+                                + "org.springframework.boot.micrometer.metrics.autoconfigure.system.SystemMetricsAutoConfiguration",
                         "SUBMISSION_DB_HOST=localhost",
                         "SUBMISSION_DB_PORT=1",
                         "SUBMISSION_DB_NAME=none",

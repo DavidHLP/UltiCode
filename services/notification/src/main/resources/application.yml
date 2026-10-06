@@ -3,14 +3,17 @@ server:
   shutdown: graceful
 
 spring:
+  http:
+    converters:
+      preferred-json-mapper: jackson2
   application:
     name: backend-notification
   lifecycle:
     timeout-per-shutdown-phase: ${SPRING_LIFECYCLE_TIMEOUT_PER_SHUTDOWN_PHASE:45s}
   autoconfigure:
     exclude:
-      - org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration
-      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+      - org.springframework.boot.flyway.autoconfigure.FlywayAutoConfiguration
+      - org.springframework.boot.hibernate.autoconfigure.HibernateJpaAutoConfiguration
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: ${NOTIFICATION_DB_URL:jdbc:mysql://${NOTIFICATION_DB_HOST}:${NOTIFICATION_DB_PORT}/${NOTIFICATION_DB_NAME}?useUnicode=true&characterEncoding=UTF-8&characterSetResults=utf8mb4&connectionCollation=utf8mb4_unicode_ci&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&sslMode=${NOTIFICATION_DB_SSL_MODE:REQUIRED}&useAffectedRows=true}
@@ -168,12 +171,14 @@ management:
   tracing:
     sampling:
       probability: ${MANAGEMENT_TRACING_SAMPLING_PROBABILITY:1.0}
-  otlp:
+  opentelemetry:
     tracing:
-      endpoint: ${MANAGEMENT_OTLP_TRACING_ENDPOINT:http://localhost:4318/v1/traces}
-      headers:
-        Authorization: ${MANAGEMENT_OTLP_AUTHORIZATION:}
-      timeout: 5s
+      export:
+        otlp:
+          endpoint: ${MANAGEMENT_OTLP_TRACING_ENDPOINT:http://localhost:4318/v1/traces}
+          headers:
+            Authorization: ${MANAGEMENT_OTLP_AUTHORIZATION:}
+          timeout: 5s
     metrics:
       export:
         enabled: ${MANAGEMENT_OTLP_METRICS_ENABLED:false}

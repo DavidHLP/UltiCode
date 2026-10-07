@@ -6,13 +6,23 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
 from authorized_budget_period import PeriodIdentity
-from budget_binding_migration import migrate, REVIEWED_HASHES, AUTHORIZATION, FILESYSTEM_EVIDENCE
+from budget_binding_migration import (
+    migrate, rehearse_audit_recovery, REVIEWED_HASHES, AUTHORIZATION, FILESYSTEM_EVIDENCE,
+)
 
 
 def main():
     parser = argparse.ArgumentParser(allow_abbrev=False)
     parser.add_argument("--apply", action="store_true")
+    parser.add_argument("--rehearse-audit-copy", type=Path)
+    parser.add_argument("--destination", type=Path)
     args = parser.parse_args()
+    if args.rehearse_audit_copy is not None or args.destination is not None:
+        if args.apply or args.rehearse_audit_copy is None or args.destination is None:
+            parser.error("audit copy requires source and destination, without --apply")
+        event = rehearse_audit_recovery(args.rehearse_audit_copy, args.destination)
+        print(json.dumps(event, ensure_ascii=False))
+        return 0
     expected = PeriodIdentity("dav58-local-20261003T171726Z",
         "3382b52dd15c0f390028defa92d9219e14ad3c2d05bb1a4e90d56948af0d50a7",
         "b7131661377941b3b3627adaefa8d887")

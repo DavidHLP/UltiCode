@@ -284,3 +284,150 @@ def migrate(expected, expected_hashes, authorization, *, filesystem_evidence, be
             for fd in (lock_fd, state_fd, afd, pfd):
                 if fd is not None:
                     os.close(fd)
+
+
+# This copy rehearsal never participates in resolve_pair or live authorization.
+def _audit_recovery_snapshot(db):
+    manifest_rows = db.execute("SELECT payload FROM audit_manifest ORDER BY singleton").fetchall()
+    if len(manifest_rows) != 1:
+        raise ValueError("one locked audit manifest required")
+    manifest = json.loads(manifest_rows[0][0])
+    if (manifest.get("status") != "BLOCKED_AUDIT_ONLY"
+            or manifest.get("authorization_applied") is not False
+            or manifest.get("paid_calls_enabled") is not False
+            or type(manifest.get("approved_cumulative_attempts")) is not int
+            or manifest["approved_cumulative_attempts"] != 180
+            or type(manifest.get("approved_cumulative_micro_usd")) is not int
+            or manifest["approved_cumulative_micro_usd"] != 2200000):
+        raise ValueError("audit copy cannot activate or change an approval")
+    attempts = db.execute("SELECT attempt_id,created_at,purpose,prompt_tokens,completion_cap,"
+                          "reserved_micro_usd,actual_micro_usd,usage_known,settled "
+                          "FROM attempts ORDER BY attempt_id").fetchall()
+    if not attempts or len(attempts) > 180:
+        raise ValueError("invalid cumulative audit history")
+    for row in attempts:
+        if (any(type(row[index]) is not int or row[index] < 0 for index in (3, 4, 5, 7, 8))
+                or row[7] not in (0, 1) or row[8] not in (0, 1)
+                or (row[6] is not None and (type(row[6]) is not int or row[6] < 0))
+                or (row[7] == 1 and row[6] is None)
+                or (row[7] == 0 and row[6] is not None)):
+            raise ValueError("inconsistent original usage")
+    reserved = sum(row[5] for row in attempts)
+    actual = sum(row[6] or 0 for row in attempts)
+    unknown = sum(row[7] != 1 or row[8] != 1 for row in attempts)
+    budget = db.execute("SELECT attempts,reserved_micro_usd,actual_micro_usd,evaluation_started,"
+                        "evaluation_remaining_calls,evaluation_remaining_micro_usd,halted "
+                        "FROM budget WHERE singleton=1").fetchall()
+    if budget != [(len(attempts), reserved, actual, 0, 0, 0, 1)]:
+        raise ValueError("audit counters or halt disagree with original rows")
+    totals = {"historical_attempts": len(attempts), "sql_reserved_micro_usd": reserved,
+              "known_actual_micro_usd": actual, "unknown_attempts": unknown}
+    if any(type(manifest.get(key)) is not int or manifest[key] != value for key, value in totals.items()):
+        raise ValueError("audit manifest understates history or unknown exposure")
+    pending = manifest.get("original_guard_pending_micro_usd")
+    if type(pending) is not int or pending < 0 or (unknown and pending == 0):
+        raise ValueError("unknown provider exposure must remain recorded")
+    sources = db.execute("SELECT ledger_uuid,payload FROM audit_sources ORDER BY ledger_uuid").fetchall()
+    mapping = db.execute("SELECT attempt_id,ledger_uuid FROM attempt_source ORDER BY attempt_id").fetchall()
+    source_ids = {row[0] for row in sources}
+    if ({row[0] for row in mapping} != {row[0] for row in attempts}
+            or len(mapping) != len(attempts) or {row[1] for row in mapping} != source_ids):
+        raise ValueError("every original request needs an exact source mapping")
+    bindings = {}
+    for ledger_uuid, raw in sources:
+        source = json.loads(raw)
+        pair = source.get("recorded_ledger", source.get("ledger"))
+        if (source.get("ledger_uuid") != ledger_uuid or not isinstance(pair, list) or len(pair) != 2
+                or any(type(value) is not int or value < 0 for value in pair)):
+            raise ValueError("original device binding missing or inconsistent")
+        bindings[ledger_uuid] = pair
+    if db.execute("PRAGMA integrity_check").fetchone() != ("ok",):
+        raise ValueError("audit SQLite integrity failed")
+    schema = db.execute("SELECT type,name,tbl_name,sql FROM sqlite_master ORDER BY type,name").fetchall()
+    return {"manifest": manifest, "attempts": attempts, "budget": budget,
+            "sources": sources, "mapping": mapping, "schema": schema, "source_bindings": bindings}
+
+
+def _audit_private(info, *, directory=False):
+    required = stat.S_ISDIR if directory else stat.S_ISREG
+    if (not required(info.st_mode) or info.st_uid != os.getuid()
+            or stat.S_IMODE(info.st_mode) != (0o700 if directory else 0o600)
+            or (not directory and info.st_nlink != 1)):
+        raise ValueError("private owned audit object required")
+
+
+def rehearse_audit_recovery(source, destination):
+    """Copy locked accounting and record new file bindings without granting use.
+
+    Original bindings remain evidence, not device exceptions. A failure retains
+    a pending tombstone; retry requires a different, explicitly unused directory.
+    """
+    from contextlib import closing
+    import uuid
+    from urllib.parse import quote
+    import authorized_budget_period as period
+    import model_budget as accounting
+
+    source, destination = Path(os.path.abspath(source)), Path(os.path.abspath(destination))
+    if (destination.is_relative_to(accounting._authorization_slot())
+            or destination.is_relative_to(accounting._state_db().parent)):
+        raise ValueError("rehearsal cannot replace a runtime authorization slot")
+    with period._parent(source) as source_directory, period._parent(destination) as parent:
+        _audit_private(os.fstat(source_directory), directory=True)
+        _audit_private(os.fstat(parent), directory=True)
+        info = os.stat(source.name, dir_fd=source_directory, follow_symlinks=False)
+        _audit_private(info)
+        source_binding = [info.st_dev, info.st_ino]
+        uri = f"file:/proc/self/fd/{source_directory}/{quote(source.name, safe='')}?mode=ro"
+        with closing(sqlite3.connect(uri, uri=True, isolation_level=None)) as original:
+            original.execute("BEGIN")
+            snapshot = _audit_recovery_snapshot(original)
+            os.mkdir(destination.name, 0o700, dir_fd=parent)
+            directory = os.open(destination.name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=parent)
+            try:
+                claim = period._file(directory, "recovery.pending.json", os.O_WRONLY | os.O_CREAT | os.O_EXCL)
+                try:
+                    period._write(claim, {"status": "PENDING_AUDIT_COPY", "paid_calls_enabled": False})
+                finally:
+                    os.close(claim)
+                fd = period._file(directory, "budget.sqlite3", os.O_RDWR | os.O_CREAT | os.O_EXCL)
+                copy_info = os.fstat(fd)
+                os.close(fd)
+                target_uri = f"file:/proc/self/fd/{directory}/budget.sqlite3?mode=rw"
+                with closing(sqlite3.connect(target_uri, uri=True, isolation_level=None)) as copy:
+                    original.backup(copy)
+                    if _audit_recovery_snapshot(copy) != snapshot:
+                        raise ValueError("recovery copy changed original accounting")
+                    event = {"schema": "ulticode-audit-copy-recovery-v1", "operation_id": uuid.uuid4().hex,
+                             "utc": datetime.now(timezone.utc).isoformat(), "status": "BLOCKED_AUDIT_ONLY",
+                             "paid_calls_enabled": False, "authorization_applied": False,
+                             "source_binding": source_binding, "copy_binding": [copy_info.st_dev, copy_info.st_ino],
+                             "source_bindings": snapshot["source_bindings"],
+                             "ledger_uuid": snapshot["manifest"]["ledger_uuid"],
+                             "unknown_attempts": snapshot["manifest"]["unknown_attempts"],
+                             "approved_cumulative_attempts": 180, "approved_cumulative_micro_usd": 2200000,
+                             "runtime_device_exception": False}
+                    copy.execute("PRAGMA synchronous=FULL")
+                    copy.execute("BEGIN IMMEDIATE")
+                    copy.execute("CREATE TABLE recovery_event(singleton INTEGER PRIMARY KEY CHECK(singleton=1),payload TEXT NOT NULL)")
+                    copy.execute("INSERT INTO recovery_event VALUES(1,?)", (json.dumps(event, sort_keys=True),))
+                    copy.commit()
+                observed = os.stat(source.name, dir_fd=source_directory, follow_symlinks=False)
+                if [observed.st_dev, observed.st_ino] != source_binding:
+                    raise ValueError("source audit file replaced during copy")
+                with period._parent(destination) as checked_parent:
+                    if os.fstat(checked_parent) != os.fstat(parent):
+                        raise ValueError("recovery parent replaced during copy")
+                if os.stat(destination.name, dir_fd=parent, follow_symlinks=False) != os.fstat(directory):
+                    raise ValueError("recovery directory replaced during copy")
+                marker = period._file(directory, "recovery.json", os.O_WRONLY | os.O_CREAT | os.O_EXCL)
+                try:
+                    period._write(marker, event)
+                finally:
+                    os.close(marker)
+                os.unlink("recovery.pending.json", dir_fd=directory)
+                os.fsync(directory)
+                os.fsync(parent)
+                return event
+            finally:
+                os.close(directory)

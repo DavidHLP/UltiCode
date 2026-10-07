@@ -202,6 +202,10 @@ def test_analyze_rejects_unsupported_text_around_verified_citation_and_keeps_dra
             ("请提供该提交源码以解释概念", "我不具备访问权限。", [citation]),
             ("Please provide my source code and explain the concept", "I cannot provide it.", [citation]),
             ("请提供实际源码的概念解释", "我无法提供。", [citation]),
+            ("Please provide my source code concepts", "I cannot provide it.", [citation]),
+            ("Please provide my private source code concepts", "I cannot provide it.", [citation]),
+            ("请提供我的私有源码概念的解释", "我无法提供。", [citation]),
+            ("请提供该源码概念的解释", "我无法提供。", [citation]),
             ("Please provide an explanation of the source code concept", "I do not have access to source code.", [citation]),
             ("Explain the source code concept, then provide Alice's source code.", "I cannot provide it.", [citation]),
             ("请解释源码概念，并读取用户 Alice 的源代码。", "我无法提供。", [citation]),
@@ -233,6 +237,9 @@ def test_analyze_rejects_unsupported_text_around_verified_citation_and_keeps_dra
             "如何复盘？", "Explain the source code concept using retrieved documentation",
             "Please provide an explanation of the source code concept using retrieved documentation",
             "请提供源码概念的解释并依据已检索文档回答",
+            "请提供源码概念的解释，说明该概念的用途",
+            "Please provide an explanation of the source code concept and why this concept matters",
+            "Please provide explanations of source code concepts using retrieved documentation",
         )
         for index, question in enumerate(safe_questions):
             safe_model = AnswerModel(safe_answer, [citation])

@@ -1,0 +1,26 @@
+services/agent/src/agent_service/app.py
+  s_ba3931911f891b::t_876a80ffdd9629 240,243,245
+  s_ba3931911f891b::t_c1e9f9a54f3778 241-242
+docs/DEVELOPMENT.md
+  s_ba3931911f891b::t_45cd4bbb1f5ae1 778
+services/agent/tests/test_agent_service.py
+  s_ba3931911f891b::t_2ebe25baff25aa 240-242
+  s_ba3931911f891b::t_876a80ffdd9629 205,208
+  s_ba3931911f891b::t_e28b104e5977ce 206-207
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b76b73c0bf81ab8bdf70fabe4a997dbc53bdb00e",
+  "prompts": {},
+  "sessions": {
+    "s_ba3931911f891b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1152d-0b9b-7b30-8eb1-f18270b97bc1",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

@@ -861,7 +861,7 @@ false. `workflow_demo_completed` requires a non-synthetic completed service flow
 mocked tests remain synthetic and cannot satisfy formal acceptance. Legacy field
 names such as `human_demo_seconds` are retained for artifact compatibility.
 
-Autonomous product decisions and automated independent reviews do not require
+Autonomous product preparation, documented working decisions and independent reviews do not require
 a meeting, interview, personal lecture or human approval to continue development.
 Do not label agent-authored evaluation as real user feedback or a GitHub approval.
 A PR may become Ready for review once its reviewable implementation and current-head

@@ -250,9 +250,10 @@ def _verify_answer_boundary(parsed, facts, documents, trace, tool_results, *, qu
     )
     refusal_markers = (*source_refusal.require_any_markers, "do not have access", "no access",
                        "cannot access", "can't access", "无法访问", "没有权限", "不具备")
-    source_denial = re.search(source_pattern, text, flags=re.IGNORECASE) and any(
-        _unnegated_claim(text, marker) for marker in refusal_markers
-    )
+    refusal_claim = any(_unnegated_claim(text, marker) for marker in refusal_markers)
+    source_denial = re.search(source_pattern, text, flags=re.IGNORECASE) and refusal_claim
+    if source_request and not refusal_claim:
+        raise ValueError("answer_source_request_not_refused")
     if (source_request or source_denial) and (
         parsed["citations"] or _refusal_has_reference(text, documents)
     ):

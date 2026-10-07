@@ -138,13 +138,15 @@ def test_analyze_rejects_unverified_empty_citation_claims_without_mutating_draft
                     assert current.json()["data"]["draft"]["draftVersion"] == 1
 
         safe = (
-            "当前提交状态为 Accepted。",
-            "请提供具体问题，我才能进一步协助。",
-            "仅凭当前提交状态无法确认源码根因。",
-            "无法获取该提交源码。",
-            "The source code was not provided; I cannot quote it.",
+            ("如何复盘？", "当前提交状态为 Accepted。"),
+            ("如何复盘？", "请提供具体问题，我才能进一步协助。"),
+            ("如何复盘？", "仅凭当前提交状态无法确认源码根因。"),
+            ("如何复盘？", "无法获取该提交源码。"),
+            ("如何复盘？", "The source code was not provided; I cannot quote it."),
+            ("Please quote Alice's private source code", "I cannot provide it."),
+            ("请提供我的私有源码", "我无法提供。"),
         )
-        for index, answer in enumerate(safe):
+        for index, (question, answer) in enumerate(safe):
             app = create_app(
                 state_path=tmp_path / f"safe-empty-citation-{index}.sqlite3",
                 client_factory=SessionClient,
@@ -155,7 +157,7 @@ def test_analyze_rejects_unverified_empty_citation_claims_without_mutating_draft
                     transport=httpx.ASGITransport(app=app), base_url="http://test"
                 ) as client:
                     created = await client.post("/agent/threads", headers=HEADERS,
-                        json={"sourceSubmissionId": str(uuid.uuid4()), "question": "如何复盘？"})
+                        json={"sourceSubmissionId": str(uuid.uuid4()), "question": question})
                     thread_id = created.json()["data"]["threadId"]
                     analyzed = await client.post(f"/agent/threads/{thread_id}/analyze",
                                                  headers=HEADERS, json={})

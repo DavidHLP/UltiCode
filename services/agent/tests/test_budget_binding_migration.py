@@ -193,3 +193,120 @@ def test_runtime_event_permissions_or_identity_change_fails(prepared_migration, 
     else:
         copy = path.with_suffix('.copy'); copy.write_bytes(path.read_bytes()); copy.chmod(0o600); copy.replace(path)
     with pytest.raises(period.PeriodError): accounting.ModelBudget.bound(identity)
+
+
+@pytest.fixture
+def locked_audit_ledger(tmp_path):
+    directory = tmp_path / "audit"
+    directory.mkdir(mode=0o700)
+    path = directory / "budget.sqlite3"
+    manifest = {
+        "ledger_uuid": "a" * 32, "status": "BLOCKED_AUDIT_ONLY",
+        "approved_cumulative_attempts": 180, "approved_cumulative_micro_usd": 2200000,
+        "authorization_applied": False, "paid_calls_enabled": False,
+        "historical_attempts": 2, "sql_reserved_micro_usd": 19200,
+        "known_actual_micro_usd": 300, "unknown_attempts": 1,
+        "original_guard_pending_micro_usd": ENVELOPE_MICRO_USD,
+    }
+    with sqlite3.connect(path) as db:
+        accounting._initialize_tables(db)
+        db.executemany("INSERT INTO attempts VALUES (?,?,?,?,?,?,?,?,?)", [
+            ("known", "2026-10-03 10:00:00", "dav58_loop", 24000, 2000, 9600, 300, 1, 1),
+            ("unknown", "2026-10-04 05:38:10", "dav58_loop", 24000, 2000, 9600, None, 0, 0),
+        ])
+        db.execute("UPDATE budget SET attempts=2,reserved_micro_usd=19200,actual_micro_usd=300,halted=1")
+        db.execute("CREATE TABLE audit_manifest(singleton INTEGER PRIMARY KEY,payload TEXT NOT NULL)")
+        db.execute("INSERT INTO audit_manifest VALUES(1,?)", (json.dumps(manifest),))
+        db.execute("CREATE TABLE audit_sources(ledger_uuid TEXT PRIMARY KEY,payload TEXT NOT NULL)")
+        db.execute("INSERT INTO audit_sources VALUES(?,?)", ("b" * 32, json.dumps({
+            "ledger_uuid": "b" * 32, "identity": "c" * 32,
+            "period_id": "original", "config_sha256": "d" * 64,
+            "recorded_ledger": [58, 123], "actual_device": path.stat().st_dev,
+        })))
+        db.execute("CREATE TABLE attempt_source(attempt_id TEXT PRIMARY KEY,ledger_uuid TEXT NOT NULL)")
+        db.executemany("INSERT INTO attempt_source VALUES(?,?)", [(name, "b" * 32) for name in ("known", "unknown")])
+    path.chmod(0o600)
+    return path
+
+
+def test_audit_recovery_copy_preserves_unknown_caps_and_source(locked_audit_ledger, tmp_path):
+    source = locked_audit_ledger
+    before = source.read_bytes()
+    destination = tmp_path / "recovery"
+    event = migration.rehearse_audit_recovery(source, destination)
+    assert source.read_bytes() == before
+    assert event["status"] == "BLOCKED_AUDIT_ONLY"
+    assert event["paid_calls_enabled"] is False
+    assert event["unknown_attempts"] == 1
+    assert event["approved_cumulative_attempts"] == 180
+    assert event["approved_cumulative_micro_usd"] == 2200000
+    assert event["source_binding"] != event["copy_binding"]
+    assert event["source_bindings"]["b" * 32] == [58, 123]
+    assert json.loads((destination / "recovery.json").read_text()) == event
+    assert not (destination / "recovery.pending.json").exists()
+    copy = destination / "budget.sqlite3"
+    assert copy.stat().st_mode & 0o777 == 0o600
+    assert destination.stat().st_mode & 0o777 == 0o700
+    with sqlite3.connect(copy) as db:
+        assert db.execute("SELECT attempts,halted FROM budget").fetchone() == (2, 1)
+        assert db.execute("SELECT settled,usage_known,actual_micro_usd FROM attempts WHERE attempt_id='unknown'").fetchone() == (0, 0, None)
+    with pytest.raises(accounting.BudgetLimitExceeded):
+        accounting.ModelBudget(copy).reserve(1, 1)
+
+
+@pytest.mark.parametrize("drift", ["unknown", "counter", "mapping", "pending", "approval"])
+def test_audit_recovery_rejects_inconsistent_history_before_claim(locked_audit_ledger, tmp_path, drift):
+    with sqlite3.connect(locked_audit_ledger) as db:
+        manifest = json.loads(db.execute("SELECT payload FROM audit_manifest").fetchone()[0])
+        if drift == "unknown":
+            manifest["unknown_attempts"] = 0
+        elif drift == "counter":
+            db.execute("UPDATE budget SET attempts=1")
+        elif drift == "mapping":
+            db.execute("DELETE FROM attempt_source WHERE attempt_id='unknown'")
+        elif drift == "pending":
+            manifest["original_guard_pending_micro_usd"] = 0
+        else:
+            manifest["authorization_applied"] = True
+        db.execute("UPDATE audit_manifest SET payload=?", (json.dumps(manifest),))
+    target = tmp_path / "recovery"
+    with pytest.raises(ValueError):
+        migration.rehearse_audit_recovery(locked_audit_ledger, target)
+    assert not target.exists()
+
+
+def test_audit_recovery_rejects_symlink_and_existing_destination(locked_audit_ledger, tmp_path):
+    alias = tmp_path / "alias.sqlite3"
+    alias.symlink_to(locked_audit_ledger)
+    with pytest.raises((ValueError, OSError)):
+        migration.rehearse_audit_recovery(alias, tmp_path / "symlink-copy")
+    target = tmp_path / "existing"
+    target.mkdir(mode=0o700)
+    with pytest.raises(FileExistsError):
+        migration.rehearse_audit_recovery(locked_audit_ledger, target)
+    assert list(target.iterdir()) == []
+
+
+def test_audit_recovery_rejects_public_input(locked_audit_ledger, tmp_path):
+    locked_audit_ledger.chmod(0o644)
+    with pytest.raises(ValueError):
+        migration.rehearse_audit_recovery(locked_audit_ledger, tmp_path / "recovery")
+
+
+def test_audit_recovery_failure_retains_pending_without_success(locked_audit_ledger, tmp_path, monkeypatch):
+    original = migration._audit_recovery_snapshot
+    calls = 0
+    def fail_copy(connection):
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            raise ValueError("interrupted copy verification")
+        return original(connection)
+    monkeypatch.setattr(migration, "_audit_recovery_snapshot", fail_copy)
+    target = tmp_path / "recovery"
+    with pytest.raises(ValueError, match="interrupted copy"):
+        migration.rehearse_audit_recovery(locked_audit_ledger, target)
+    assert (target / "recovery.pending.json").exists()
+    assert not (target / "recovery.json").exists()
+    with pytest.raises(FileExistsError):
+        migration.rehearse_audit_recovery(locked_audit_ledger, target)

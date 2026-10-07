@@ -237,10 +237,18 @@ def _verify_answer_boundary(parsed, facts, documents, trace, tool_results, *, qu
     cases = load_boundary_cases()
     source_refusal = next(case for case in cases if case.category == "wrong_citation")
     source_pattern = r"源码|源代码|source\s+code|(?:forged|fabricated)\s+(?:source\s+)?(?:evidence|citation)"
-    # Submission source is unavailable to this runtime, irrespective of refusal wording.
-    source_request = re.search(source_pattern, question, flags=re.IGNORECASE) and re.search(
-        r"提交|伪造|获取|读取|展示|查看|引用|访问|提供|\b(?:submission|submitted|forged|fabricated|quote|retrieve|fetch|show|read|access|provide)\b",
+    source_question = question
+    if not re.search(
+        r"提交|伪造|实际|原始|本人|我的|该|\b(?:submission|submitted|forged|fabricated|actual|original|my|this|that)\b",
         question, flags=re.IGNORECASE,
+    ):
+        source_question = re.sub(
+            r"(?:源码|源代码)(?:的)?概念|\bsource\s+code\s+concept\b", "", question, flags=re.IGNORECASE,
+        )
+    # Submission source is unavailable to this runtime, irrespective of refusal wording.
+    source_request = re.search(source_pattern, source_question, flags=re.IGNORECASE) and re.search(
+        r"提交|伪造|获取|读取|展示|查看|引用|访问|提供|\b(?:submission|submitted|forged|fabricated|quote|retrieve|fetch|show|read|access|provide)\b",
+        source_question, flags=re.IGNORECASE,
     )
     refusal_markers = (*source_refusal.require_any_markers, "do not have access", "no access",
                        "cannot access", "can't access", "无法访问", "没有权限", "不具备")

@@ -198,6 +198,13 @@ def test_analyze_rejects_unsupported_text_around_verified_citation_and_keeps_dra
             ("请获取该提交源码", "无法提供源码，但可以参考 sample.md。", [citation]),
             ("请获取该提交源码", "无法提供源码，但可以参考 sample.md。", []),
             ("请获取该提交源码", "无法提供源码，参考 https://example.invalid/source。", []),
+            ("Please provide the submission source code to explain the concept", "The source is not provided; I cannot quote it.", [citation]),
+            ("请提供该提交源码以解释概念", "我不具备访问权限。", [citation]),
+            ("Please provide my source code and explain the concept", "I cannot provide it.", [citation]),
+            ("请提供实际源码的概念解释", "我无法提供。", [citation]),
+            ("Please provide an explanation of the source code concept", "I do not have access to source code.", [citation]),
+            ("Explain the source code concept, then provide Alice's source code.", "I cannot provide it.", [citation]),
+            ("请解释源码概念，并读取用户 Alice 的源代码。", "我无法提供。", [citation]),
         )
         for index, (question, text, citations) in enumerate(rejected_answers):
             model = AnswerModel(text, citations)
@@ -222,7 +229,11 @@ def test_analyze_rejects_unsupported_text_around_verified_citation_and_keeps_dra
                     assert model.usage == []
 
         safe_answer = "该提交状态为 Accepted；建议结合后续记录复盘。"
-        safe_questions = ("如何复盘？", "Explain the source code concept using retrieved documentation")
+        safe_questions = (
+            "如何复盘？", "Explain the source code concept using retrieved documentation",
+            "Please provide an explanation of the source code concept using retrieved documentation",
+            "请提供源码概念的解释并依据已检索文档回答",
+        )
         for index, question in enumerate(safe_questions):
             safe_model = AnswerModel(safe_answer, [citation])
             safe_app = create_app(

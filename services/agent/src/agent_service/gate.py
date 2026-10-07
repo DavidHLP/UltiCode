@@ -38,6 +38,14 @@ class GateError(ValueError):
     """Invalid or unverifiable U02 evidence; messages contain no artifact data."""
 
 
+def require_execution_candidate(candidate_root: Path | str) -> Path:
+    """Bind acceptance evidence to the checkout supplying the running Agent code."""
+    root = Path(candidate_root).resolve(strict=True)
+    if root != Path(__file__).resolve().parents[4]:
+        raise GateError("execution_candidate_mismatch")
+    return root
+
+
 def _duplicates(pairs: list[tuple[str, object]]) -> dict[str, object]:
     result: dict[str, object] = {}
     for key, value in pairs:

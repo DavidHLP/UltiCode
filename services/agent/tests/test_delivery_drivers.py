@@ -27,6 +27,35 @@ u03 = _load("e2e_u03_workflow_delivery_test", _AGENT / "e2e_u03_workflow.py")
 u04 = _load("e2e_u04_demo_delivery_test", _AGENT / "e2e_u04_demo.py")
 
 
+def test_execution_candidate_accepts_same_checkout_and_resolved_alias(tmp_path):
+    from agent_service.gate import require_execution_candidate
+
+    root = _AGENT.resolve().parents[1]
+    alias = tmp_path / "candidate-alias"
+    alias.symlink_to(root, target_is_directory=True)
+    assert require_execution_candidate(root) == root
+    assert require_execution_candidate(alias) == root
+
+
+@pytest.mark.parametrize("operation", ["u03", "u04"])
+def test_acceptance_rejects_another_checkout_before_side_effects(monkeypatch, tmp_path, operation):
+    from types import SimpleNamespace
+    from agent_service.gate import GateError
+
+    def unexpected(*args, **kwargs):
+        pytest.fail("mismatched candidate reached evidence or process execution")
+
+    monkeypatch.setattr(u03, "load_u02_gate", unexpected)
+    monkeypatch.setattr(u04, "load_u02_gate", unexpected)
+    args = SimpleNamespace(candidate=str(tmp_path), expected_head="a" * 40,
+                           expected_base="b" * 40, u02_gate="unused", evidence_root=str(tmp_path))
+    with pytest.raises(GateError, match="execution_candidate_mismatch"):
+        if operation == "u03":
+            asyncio.run(u03._run_u03(args))
+        else:
+            u04._run_preflight(args)
+
+
 def test_holdout3_is_sealed_for_answer_evaluation():
     case = KeywordCase(
         case_id="synthetic-only",
@@ -508,6 +537,7 @@ def test_u03_result_artifact_must_share_evidence_root(tmp_path):
         u03._evidence_output(evidence_root, nested / "result.json")
 
 def test_u03_orchestrator_binds_first_scenario_timestamp(monkeypatch, tmp_path):
+    monkeypatch.setattr(u03, "require_execution_candidate", lambda path: Path(path))
     candidate_root = tmp_path / "candidate"
     candidate_root.mkdir()
     evidence_root = tmp_path / "evidence"
@@ -818,7 +848,9 @@ def test_u04_demo_artifacts_hash_body_text_before_persisting():
 
 
 
-def test_u04_refusal_allows_no_tool_call_and_no_citation():
+@pytest.mark.parametrize("reference", ["", " See [1].", " See https://example.invalid/source.",
+                                       ' Quote: "unavailable source excerpt".'])
+def test_u04_refusal_requires_no_tool_call_and_no_body_reference(reference):
     from agent_loop import ModelDecision
 
     class Scripted:
@@ -831,7 +863,7 @@ def test_u04_refusal_allows_no_tool_call_and_no_citation():
             return self.result
 
     answer_model = Scripted(ModelDecision(text=json.dumps({
-        "text": "I cannot provide source code that is unavailable here.",
+        "text": "I cannot provide source code that is unavailable here." + reference,
         "citations": [],
     })))
     judge_model = Scripted(ModelDecision(text=json.dumps({
@@ -845,7 +877,9 @@ def test_u04_refusal_allows_no_tool_call_and_no_citation():
     rows = asyncio.run(u04._evaluate_holdout(
         (case,), model=answer_model, judge=judge_model, documents=(),
     ))
-    assert rows[0]["status"] == "PASS"
+    assert rows[0]["status"] == ("FAIL" if reference else "PASS")
+    assert rows[0]["reason"] == ("refusal_used_citations" if reference else None)
+    assert judge_model.calls == (0 if reference else 1)
     assert rows[0]["graph_rounds"] == 1
     assert rows[0]["citation_count"] == 0
 async def _u04_offline_reliability_probes():
@@ -988,6 +1022,7 @@ def test_u04_uncompleted_human_demo_blocks_holdout_claim(monkeypatch, tmp_path):
 
 
 def test_u04_preflight_ignores_u03_human_demo_flags(monkeypatch, tmp_path):
+    monkeypatch.setattr(u04.delivery, "require_execution_candidate", lambda path: Path(path))
     import hashlib
     from types import SimpleNamespace
 

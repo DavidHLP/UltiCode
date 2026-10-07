@@ -340,6 +340,11 @@ first; if any original usage remains unknown or the gate is invalid, stop before
 do not run paid acceptance commands. Candidate-freeze is an offline binding step, not an acceptance
 result.
 
+Run U03/U04 acceptance commands from the candidate checkout itself. The runtime and runners reject
+`--candidate` paths that resolve to another checkout before creating workflow state or executing
+acceptance; fingerprinting a different revision cannot attest the code loaded by this process.
+Offline candidate/bundle fingerprinting remains separate from execution.
+
 First freeze the immutable candidate inputs. This binds source/configuration fingerprints, the
 development case corpus, policy, head/base, and holdout commitment before acceptance results exist:
 

@@ -22,7 +22,7 @@ from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from langgraph.types import Command
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from agent_service.gate import GateError, load_u02_gate
+from agent_service.gate import GateError, load_u02_gate, require_execution_candidate
 from agent_service.graph import ainvoke_untraced, build_workflow_graph
 from agent_service.state import WorkflowAction, make_draft, params_digest
 from agent_service.store import Conflict, NotFound, WorkflowStore
@@ -218,7 +218,7 @@ async def _verify_citations(parsed, retrieved, documents, facts, judge_model):
     return results
 
 
-def _verify_answer_boundary(parsed, facts, documents, trace, tool_results):
+def _verify_answer_boundary(parsed, facts, documents, trace, tool_results, *, question: str):
     from boundary_evaluation import (
         _refusal_has_reference, _trace_claims_consistent, _unnegated_claim, load_boundary_cases,
     )
@@ -235,6 +235,22 @@ def _verify_answer_boundary(parsed, facts, documents, trace, tool_results):
             or not _trace_claims_consistent(text, tool_results)):
         raise ValueError("answer_tool_trace_inconsistent")
     cases = load_boundary_cases()
+    source_refusal = next(case for case in cases if case.category == "wrong_citation")
+    source_pattern = r"源码|源代码|source\s+code|(?:forged|fabricated)\s+(?:source\s+)?(?:evidence|citation)"
+    # Submission source is unavailable to this runtime, irrespective of refusal wording.
+    source_request = re.search(source_pattern, question, flags=re.IGNORECASE) and re.search(
+        r"提交|伪造|获取|读取|展示|查看|引用|访问|提供|\b(?:submission|submitted|forged|fabricated|quote|retrieve|fetch|show|read|access|provide)\b",
+        question, flags=re.IGNORECASE,
+    )
+    refusal_markers = (*source_refusal.require_any_markers, "do not have access", "no access",
+                       "cannot access", "can't access", "无法访问", "没有权限", "不具备")
+    source_denial = re.search(source_pattern, text, flags=re.IGNORECASE) and any(
+        _unnegated_claim(text, marker) for marker in refusal_markers
+    )
+    if (source_request or source_denial) and (
+        parsed["citations"] or _refusal_has_reference(text, documents)
+    ):
+        raise ValueError("answer_source_refusal_has_reference")
     actual_status = facts[0].get("status") if facts and isinstance(facts[0], dict) else None
     status_claim = re.search(
         r"\bstatus\s*(?:is|=|:)\s*([A-Za-z_-]+)|状态\s*(?:为|是|=|：)\s*([A-Za-z_-]+)",
@@ -369,6 +385,8 @@ def create_app(
     expected_period: object | None = None, budget_guard: object | None = None,
     model_purpose: str | None = None,
 ) -> FastAPI:
+    if candidate_root is not None:
+        candidate_root = require_execution_candidate(candidate_root)
     workflow_store = store or WorkflowStore.open(state_path)
     gate: dict[str, object] | None = None
     if u02_gate_path is not None and expected_head:
@@ -729,7 +747,8 @@ def create_app(
                                         "result": observed,
                                     })
                                     search_index += 1
-                            _verify_answer_boundary(parsed, (facts,), documents, trace, trace_results)
+                            _verify_answer_boundary(parsed, (facts,), documents, trace, trace_results,
+                                                    question=str(row["question"]))
                             citation_checks = await _verify_citations(
                                 parsed, retrieved, documents, (facts,), judge_model,
                             )

@@ -26,7 +26,8 @@ import httpx
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
 from agent_service.gate import (
-    GateError, current_budget_anchor, load_u02_gate, validate_u02_gate_payload, validate_u03_result,
+    GateError, current_budget_anchor, load_u02_gate, require_execution_candidate,
+    validate_u02_gate_payload, validate_u03_result,
 )
 from authorized_budget_period import POLICY
 from ulticode_client import UlticodeClient, UlticodeServiceError
@@ -1434,7 +1435,7 @@ async def _java_idempotency_matrix(
 async def _run_u03(args: argparse.Namespace) -> tuple[dict, int]:
     start = datetime.now(timezone.utc).isoformat()
     expected_head, expected_base = args.expected_head, args.expected_base
-    root = Path(args.candidate).resolve(strict=True)
+    root = require_execution_candidate(args.candidate)
     gate_path = Path(args.u02_gate)
     load_u02_gate(gate_path, expected_head, expected_base=expected_base, candidate_root=root)
     _, gate_raw = _read_json(gate_path)

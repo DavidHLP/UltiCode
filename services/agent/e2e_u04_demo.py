@@ -358,7 +358,7 @@ def _load_claimed_holdout(candidate_sha256: str, bundle_sha256: str,
 
 
 def _run_preflight(args: argparse.Namespace) -> dict:
-    root = Path(args.candidate).resolve(strict=True)
+    root = delivery.require_execution_candidate(args.candidate)
     evidence_root = _private_root(Path(args.evidence_root))
     gate_path = Path(args.u02_gate)
     candidate_path = _within(evidence_root, Path(args.candidate_inputs))
@@ -471,7 +471,7 @@ async def _evaluate_holdout(cases, *, model, judge, documents,
     )
     from boundary_evaluation import (
         BOUNDARY_ANSWER_CONTRACT, CITATION_FIELDS, BoundaryEvaluationError,
-        judge_citation, search_evidence_tool,
+        _refusal_has_reference, judge_citation, search_evidence_tool,
     )
     from citation_integrity import check_citations
     from retrieval import SourceHit
@@ -591,7 +591,9 @@ async def _evaluate_holdout(cases, *, model, judge, documents,
         elif fail_reason is None and case.expected_behavior == "no_evidence":
             if citations or actual:
                 fail_reason = "unanswerable_case_used_evidence"
-        elif fail_reason is None and case.expected_behavior == "refuse" and citations:
+        elif fail_reason is None and case.expected_behavior == "refuse" and (
+            citations or _refusal_has_reference(text, documents)
+        ):
             fail_reason = "refusal_used_citations"
         hit_by_chunk = {str(hit.get("chunk_id")): hit for hit in captured}
         if fail_reason is None and any(

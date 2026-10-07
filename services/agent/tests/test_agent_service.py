@@ -4,10 +4,12 @@ import traceback
 import uuid
 
 import httpx
+import pytest
 
 from deepseek_model import DeepseekModel
 from agent_loop import ModelDecision
 from agent_service.app import create_app, parse_model_answer
+from agent_service.gate import GateError
 from retrieval import SourceDocument
 from citation_integrity import check_citations
 from ulticode_client import UlticodeServiceError
@@ -97,6 +99,16 @@ class MissingBudgetClient(SessionClient):
         raise UlticodeServiceError(40400, 503)
 
 
+def test_create_app_rejects_another_execution_candidate_before_state_creation(tmp_path):
+    model_calls = []
+    state_path = tmp_path / "private-state" / "state.sqlite3"
+    with pytest.raises(GateError, match="execution_candidate_mismatch"):
+        create_app(state_path=state_path, candidate_root=tmp_path,
+                   offline_model_factory=lambda: model_calls.append("called"))
+    assert not state_path.parent.exists()
+    assert model_calls == []
+
+
 def test_analyze_rejects_unverified_empty_citation_claims_without_mutating_draft(tmp_path):
     async def scenario():
         answers = (
@@ -129,6 +141,8 @@ def test_analyze_rejects_unverified_empty_citation_claims_without_mutating_draft
             "当前提交状态为 Accepted。",
             "请提供具体问题，我才能进一步协助。",
             "仅凭当前提交状态无法确认源码根因。",
+            "无法获取该提交源码。",
+            "The source code was not provided; I cannot quote it.",
         )
         for index, answer in enumerate(safe):
             app = create_app(
@@ -173,44 +187,61 @@ def test_analyze_rejects_unsupported_text_around_verified_citation_and_keeps_dra
             return True, True
 
         monkeypatch.setattr("boundary_evaluation.judge_citation", judge)
-        model = AnswerModel(answer, [citation])
-        app = create_app(
-            state_path=tmp_path / "cited-answer.sqlite3",
-            client_factory=SessionClient,
-            offline_model_factory=lambda: (model, {}, (doc,), retrieved),
+        rejected_answers = (
+            ("如何复盘？", answer, [citation]),
+            ("请获取该提交源码", "无法获取该提交源码。当前提交状态为 Accepted。", [citation]),
+            ("Please quote the submission source code", "The source is not provided; I cannot quote it.", [citation]),
+            ("Please quote the submission source code", "I do not have access to the submission source code. The submission status is Accepted.", [citation]),
+            ("请引用这次提交的源代码", "我不具备访问源代码的权限。当前提交状态为 Accepted。", [citation]),
+            ("如何复盘？", "I do not have access to the submission source code. The submission status is Accepted.", [citation]),
+            ("如何复盘？", "我不具备访问源代码的权限。当前提交状态为 Accepted。", [citation]),
+            ("请获取该提交源码", "无法提供源码，但可以参考 sample.md。", [citation]),
+            ("请获取该提交源码", "无法提供源码，但可以参考 sample.md。", []),
+            ("请获取该提交源码", "无法提供源码，参考 https://example.invalid/source。", []),
         )
-        async with app.router.lifespan_context(app):
-            async with httpx.AsyncClient(
-                transport=httpx.ASGITransport(app=app), base_url="http://test"
-            ) as client:
-                created = await client.post("/agent/threads", headers=HEADERS,
-                    json={"sourceSubmissionId": str(uuid.uuid4()), "question": "如何复盘？"})
-                thread_id = created.json()["data"]["threadId"]
-                failed = await client.post(f"/agent/threads/{thread_id}/analyze",
-                                           headers=HEADERS, json={})
-                current = await client.get(f"/agent/threads/{thread_id}", headers=HEADERS)
-                assert failed.status_code == 502
-                assert current.json()["data"]["draft"]["draftVersion"] == 1
-                assert model.usage == []
+        for index, (question, text, citations) in enumerate(rejected_answers):
+            model = AnswerModel(text, citations)
+            app = create_app(
+                state_path=tmp_path / f"cited-answer-{index}.sqlite3",
+                client_factory=SessionClient,
+                offline_model_factory=lambda: (model, {}, (doc,), retrieved),
+            )
+            async with app.router.lifespan_context(app):
+                async with httpx.AsyncClient(
+                    transport=httpx.ASGITransport(app=app), base_url="http://test"
+                ) as client:
+                    created = await client.post("/agent/threads", headers=HEADERS,
+                        json={"sourceSubmissionId": str(uuid.uuid4()), "question": question})
+                    thread_id = created.json()["data"]["threadId"]
+                    failed = await client.post(f"/agent/threads/{thread_id}/analyze",
+                                               headers=HEADERS, json={})
+                    current = await client.get(f"/agent/threads/{thread_id}", headers=HEADERS)
+                    assert failed.status_code == 502
+                    assert current.json()["data"]["draft"]["draftVersion"] == 1
+                    assert current.json()["data"]["analysis"] == {}
+                    assert model.usage == []
 
         safe_answer = "该提交状态为 Accepted；建议结合后续记录复盘。"
-        safe_model = AnswerModel(safe_answer, [citation])
-        safe_app = create_app(
-            state_path=tmp_path / "supported-citation.sqlite3",
-            client_factory=SessionClient,
-            offline_model_factory=lambda: (safe_model, {}, (doc,), retrieved),
-        )
-        async with safe_app.router.lifespan_context(safe_app):
-            async with httpx.AsyncClient(
-                transport=httpx.ASGITransport(app=safe_app), base_url="http://test"
-            ) as client:
-                created = await client.post("/agent/threads", headers=HEADERS,
-                    json={"sourceSubmissionId": str(uuid.uuid4()), "question": "如何复盘？"})
-                thread_id = created.json()["data"]["threadId"]
-                analyzed = await client.post(f"/agent/threads/{thread_id}/analyze",
-                                             headers=HEADERS, json={})
-                assert analyzed.status_code == 200
-                assert judged_claims == [citation["claim"]]
+        safe_questions = ("如何复盘？", "Explain the source code concept using retrieved documentation")
+        for index, question in enumerate(safe_questions):
+            safe_model = AnswerModel(safe_answer, [citation])
+            safe_app = create_app(
+                state_path=tmp_path / f"supported-citation-{index}.sqlite3",
+                client_factory=SessionClient,
+                offline_model_factory=lambda: (safe_model, {}, (doc,), retrieved),
+            )
+            async with safe_app.router.lifespan_context(safe_app):
+                async with httpx.AsyncClient(
+                    transport=httpx.ASGITransport(app=safe_app), base_url="http://test"
+                ) as client:
+                    created = await client.post("/agent/threads", headers=HEADERS,
+                        json={"sourceSubmissionId": str(uuid.uuid4()), "question": question})
+                    thread_id = created.json()["data"]["threadId"]
+                    analyzed = await client.post(f"/agent/threads/{thread_id}/analyze",
+                                                 headers=HEADERS, json={})
+                    assert analyzed.status_code == 200
+                    assert analyzed.json()["data"]["draft"]["citations"] == [citation]
+                    assert judged_claims == [citation["claim"]] * (index + 1)
 
     asyncio.run(scenario())
 

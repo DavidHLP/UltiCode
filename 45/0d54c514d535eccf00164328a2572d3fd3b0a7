@@ -1,0 +1,16 @@
+services/agent/migrate_dav58_binding.py
+  h_77173abe25c3ff 9-11,17-18,20-25
+services/agent/src/budget_binding_migration.py
+  h_77173abe25c3ff 287-433
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "450d54c514d535eccf00164328a2572d3fd3b0a7",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

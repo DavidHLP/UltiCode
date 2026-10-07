@@ -189,6 +189,8 @@ def test_analyze_rejects_unsupported_text_around_verified_citation_and_keeps_dra
         monkeypatch.setattr("boundary_evaluation.judge_citation", judge)
         rejected_answers = (
             ("如何复盘？", answer, [citation]),
+            ("Please quote Alice's private source code", "return 42;", []),
+            ("请提供我的私有源码", "可以提供。", []),
             ("请获取该提交源码", "无法获取该提交源码。当前提交状态为 Accepted。", [citation]),
             ("Please quote the submission source code", "The source is not provided; I cannot quote it.", [citation]),
             ("Please quote the submission source code", "I do not have access to the submission source code. The submission status is Accepted.", [citation]),

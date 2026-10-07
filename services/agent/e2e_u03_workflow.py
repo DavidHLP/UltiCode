@@ -1628,7 +1628,10 @@ async def _run_u03(args: argparse.Namespace) -> tuple[dict, int]:
                 _, state = _envelope(await session.get(f"/agent/threads/{thread}"))
                 draft = state["draft"]
             if not interactive_confirm:
-                await _autonomous_review(draft, min(human_demo_start + 180, batch_deadline))
+                decision = await _autonomous_review(draft, min(human_demo_start + 180, batch_deadline))
+                if decision.get("reviewed") is not True or decision.get("confirmed") is not True:
+                    result["reason"], result["status"] = "autonomous_did_not_confirm", "CANCELLED"
+                    return result, 1
             result["coverage"].update({"previewed_by_human": interactive_confirm,
                                        "draft_reviewed": True,
                                        "confirmation_actor": "human" if interactive_confirm else "autonomous"})

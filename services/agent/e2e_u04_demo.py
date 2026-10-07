@@ -418,12 +418,14 @@ def _run_preflight(args: argparse.Namespace) -> dict:
 def _open_paid_runtime(args: argparse.Namespace, *, required_calls: int = 88):
     """Open only existing shared accounting; no flag or fresh journal grants spend."""
     _authorize_before_holdout()
+    if type(required_calls) is not int or required_calls < 1:
+        raise ValueError("u04_call_bound_invalid")
     required = (args.period_id, args.period_identity, args.config_sha256, args.guard_sha256)
     if any(not value for value in required):
         raise ValueError("u04_budget_identity_required")
     from authorized_budget_period import PeriodIdentity
     from dav58_live_guard import ENVELOPE_MICRO_USD, IncrementalGuard
-    from model_budget import authorized_model, _authorization_slot
+    from model_budget import authorized_model, _authorization_slot, worst_case_micro_usd
 
     identity = PeriodIdentity(args.period_id, args.config_sha256, args.period_identity)
     model_alias, budget = authorized_model(identity)
@@ -440,9 +442,15 @@ def _open_paid_runtime(args: argparse.Namespace, *, required_calls: int = 88):
         or snapshot.get("halted") or snapshot.get("pending_micro_usd", 0)
         or snapshot.get("remaining_attempts", 0) < required_calls
         or lane["attempts"] < required_calls
-        or snapshot.get("committed_micro_usd", POLICY["limit_micro_usd"])
-        + required_calls * ENVELOPE_MICRO_USD > POLICY["limit_micro_usd"]
     ):
+        raise ValueError("u04_shared_budget_preflight_blocked")
+    completion_caps = [entry.get("completion_token_cap") for entry in (lane, u03_analysis, u03_judge)]
+    prompt_cap = POLICY.get("prompt_token_cap")
+    if (type(prompt_cap) is not int or prompt_cap < 1
+            or any(type(cap) is not int or cap < 1 for cap in completion_caps)):
+        raise ValueError("u04_shared_budget_preflight_blocked")
+    per_call = worst_case_micro_usd(prompt_cap, max(completion_caps))
+    if snapshot.get("committed_micro_usd", POLICY["limit_micro_usd"]) + required_calls * per_call > POLICY["limit_micro_usd"]:
         raise ValueError("u04_shared_budget_preflight_blocked")
     journal = _authorization_slot() / "accounting" / f"dav58-increment-{identity.identity}.json"
     guard = IncrementalGuard(
@@ -454,6 +462,9 @@ def _open_paid_runtime(args: argparse.Namespace, *, required_calls: int = 88):
             or guard.state.get("halted") or guard.state.get("pending_micro_usd")):
         guard.close()
         raise ValueError("u04_shared_budget_journal_mismatch")
+    if guard.state["settled_peak_micro_usd"] + (required_calls - 1) * per_call + ENVELOPE_MICRO_USD > POLICY["limit_micro_usd"]:
+        guard.close()
+        raise ValueError("u04_shared_budget_preflight_blocked")
     return identity, model_alias, budget, guard, lane, len(guard.state["receipts"]), purpose
 class HoldoutEvaluationIncomplete(RuntimeError):
     def __init__(self, completed_rows: list[dict[str, object]]):

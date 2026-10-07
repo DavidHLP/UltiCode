@@ -12,6 +12,58 @@ sys.path.insert(0, str(Path(__file__).parents[1]))
 import e2e_u04_demo as u04
 
 
+@pytest.mark.parametrize("required_calls", [0, -1, True, 1.5])
+def test_paid_preflight_rejects_invalid_call_bound_before_accounting(monkeypatch, required_calls):
+    monkeypatch.setattr(u04, "_authorize_before_holdout", lambda: None)
+    with pytest.raises(ValueError, match="u04_call_bound_invalid"):
+        u04._open_paid_runtime(None, required_calls=required_calls)
+
+
+@pytest.mark.parametrize("blocked_by", [None, "sql", "guard", "larger_u03_cap"])
+def test_paid_preflight_checks_sql_reservations_and_one_sequential_guard_envelope(
+    monkeypatch, tmp_path, blocked_by,
+):
+    import model_budget
+    import dav58_live_guard
+
+    policy = {
+        "runtime_accounting_connected": True, "spend_limit_enforced": True,
+        "limit_micro_usd": 1_000_000, "prompt_token_cap": 24_000,
+        "u04_authorized_purpose": "dav58_loop",
+        "lanes": {
+            "dav58_loop": {"attempts": 100, "completion_token_cap": 1000},
+            "u03_analysis": {"attempts": 4, "completion_token_cap": 2000},
+            "u03_citation_judge": {"attempts": 3, "completion_token_cap": 3000},
+        },
+    }
+    actual = 195_000 if blocked_by == "larger_u03_cap" else 1000
+    snapshot = {
+        "state": "active", "sql_gate": "active", "halted": False,
+        "remaining_attempts": 100, "attempts": 1, "actual_micro_usd": actual,
+        "committed_micro_usd": 980_000 if blocked_by == "sql" else 100_000,
+    }
+    guard = SimpleNamespace(
+        state={"receipts": [{}], "settled_peak_micro_usd": actual,
+               "halted": False, "pending_micro_usd": 0},
+        close=lambda: None,
+    )
+    if blocked_by == "guard":
+        guard.state["settled_peak_micro_usd"] = snapshot["actual_micro_usd"] = 900_000
+    monkeypatch.setattr(u04, "POLICY", policy)
+    monkeypatch.setattr(model_budget, "authorized_model", lambda _identity: (
+        "synthetic-model", SimpleNamespace(snapshot=lambda: snapshot),
+    ))
+    monkeypatch.setattr(model_budget, "_authorization_slot", lambda: tmp_path)
+    monkeypatch.setattr(dav58_live_guard, "IncrementalGuard", lambda *args, **kwargs: guard)
+    args = SimpleNamespace(period_id="synthetic", period_identity="a" * 32,
+                           config_sha256="b" * 64, guard_sha256="c" * 64)
+    if blocked_by:
+        with pytest.raises(ValueError, match="u04_shared_budget_preflight_blocked"):
+            u04._open_paid_runtime(args, required_calls=3)
+    else:
+        assert u04._open_paid_runtime(args, required_calls=3)[3] is guard
+
+
 def _case(case_id, query, *, split="holdout3", evidence=("synthetic-doc",), behavior="cite"):
     return SimpleNamespace(
         case_id=case_id,

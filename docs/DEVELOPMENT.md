@@ -414,6 +414,11 @@ current shared-budget anchor/suffix before consuming the canonical holdout. Once
 holdout stays consumed even if the run fails or is interrupted. This command is not run while
 budget evidence is blocked:
 
+The preflight checks SQL's accumulated reservations plus the plan's worst-case costs separately
+from the guard's settled costs plus preceding calls and one outstanding provider envelope. It uses
+the largest authorized lane token cap as a conservative bound; passing this arithmetic does not
+grant a purpose, clear unknown usage, or increase the shared budget.
+
 ```bash
 ULTICODE_U04_E2E=1 uv run python e2e_u04_demo.py --run \
   --candidate "$SOURCE_ROOT" --evidence-root "$EVIDENCE_ROOT" \

@@ -1,0 +1,20 @@
+docs/DEVELOPMENT.md
+  h_77173abe25c3ff 298,442,850-872
+services/agent/e2e_u03_workflow.py
+  h_77173abe25c3ff 1140-1151,1612-1613,1615-1618,1630-1635,1661-1662,1753
+services/agent/e2e_u04_demo.py
+  h_77173abe25c3ff 897,901-902,904-905,945,947,949,998-1001,1012-1021,1023,1113-1114,1116,1266-1268,1270,1272,1341,1395,1449
+services/agent/tests/test_delivery_drivers.py
+  h_77173abe25c3ff 889
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "31b079f0f185d177576cb1bb33292776791741c9",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

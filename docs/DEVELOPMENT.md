@@ -828,3 +828,23 @@ Complete interrupted publications can be resumed after repeating the checks;
 partial or altered metadata, a completed duplicate migration, concurrent owners
 or pending usage stop without repairing files. The migration itself sends no HTTP
 and grants no additional model calls; audited quota extension remains separate.
+
+Locked audit accounting can be rehearsed on a new private copy without applying
+any device exception, resolving unknown usage, or activating paid calls:
+
+```bash
+cd services/agent
+uv run --locked python migrate_dav58_binding.py \
+  --rehearse-audit-copy /absolute/private/accounting/budget.sqlite3 \
+  --destination /absolute/private/recovery/new-copy
+```
+
+The source file must be owner-private (0600), and both parent directories must
+be owner-private (0700). The destination must not exist or be a runtime budget
+slot; `--apply` cannot be combined with this mode. The helper checks original
+rows, counters, source mappings, pending exposure and locked approval metadata
+before copying. Original device bindings remain historical evidence; the new
+copy binding is only an audit event, never a live authorization. Unknown rows,
+halted state and approved limits are preserved. Failed copies retain a pending
+marker and require a new destination, not an overwrite or automatic retry.
+This mode is recovery preparation, not formal model/Java/human acceptance.

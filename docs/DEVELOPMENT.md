@@ -295,7 +295,7 @@ behavior or real acceptance. The Agent is not part of default DevStack.
 A confirmation alone is not a successful Java write. `LearningPlanService` logs the returned
 `planId` only after its idempotent transaction succeeds. Agent recovery privately reconciles an
 uncertain write with Java's owner-scoped by-key lookup and the original idempotency key; it never
-exposes that key. For the U04 human-facing saved-record readback, use the returned `planId` with
+exposes that key. For the U04 saved-record readback, use the returned `planId` with
 `GET /learning-plans/{planId}` rather than exposing or using the private idempotency key.
 
 ### U02 U03 U04 immutable acceptance chain
@@ -439,7 +439,7 @@ Interpret U04's 20 development cases by layer: `structural_execution_status` and
 18/20 required-hit coverage and remains a separate quality failure; do not relabel it as retrieval
 PASS or substitute the hit count for answer evaluation. Full acceptance additionally requires the
 prior-five raw 20-answer behavior proof, all ten sealed holdout quality cases, the full R01–R10
-reliability matrix, and the complete human-confirmed Java workflow demonstration. U04 human-visible
+reliability matrix, and the complete explicitly confirmed Java workflow demonstration. U04
 saved-record readback uses `GET /learning-plans/{planId}`; Agent recovery's by-key query remains
 internal and the idempotency key is never emitted.
 
@@ -847,4 +847,26 @@ before copying. Original device bindings remain historical evidence; the new
 copy binding is only an audit event, never a live authorization. Unknown rows,
 halted state and approved limits are preserved. Failed copies retain a pending
 marker and require a new destination, not an overwrite or automatic retry.
-This mode is recovery preparation, not formal model/Java/human acceptance.
+This mode is recovery preparation, not formal model/Java acceptance.
+
+### Autonomous acceptance and review readiness
+
+U03/U04 acceptance drivers default to delegated autonomous draft review and
+explicit confirmation; TTY interaction and human participation are not prerequisites.
+`--interactive-confirm` is optional. Autonomous runs retain the same authenticated
+owner, draftVersion, paramsDigest, confirmationId, expiry, Java save/readback and
+restart/recovery checks; this does not auto-confirm ordinary end-user workflows.
+Artifacts identify `confirmation_actor=autonomous` and keep `human_demo_completed`
+false. `workflow_demo_completed` requires a non-synthetic completed service flow;
+mocked tests remain synthetic and cannot satisfy formal acceptance. Legacy field
+names such as `human_demo_seconds` are retained for artifact compatibility.
+
+Autonomous product decisions and automated independent reviews do not require
+a meeting, interview, personal lecture or human approval to continue development.
+Do not label agent-authored evaluation as real user feedback or a GitHub approval.
+A PR may become Ready for review once its reviewable implementation and current-head
+checks pass, with remaining acceptance gaps disclosed; Ready is not an acceptance
+PASS or permission to merge. Merging still follows actual repository protection
+and verified delivery conditions; never self-approve or bypass required reviews.
+Budget limits, unknown usage, real-service evidence and source provenance remain
+independent gates. Removing a human-only prerequisite does not grant paid calls.

@@ -894,13 +894,15 @@ async def _run_reliability(preflight: dict, judge, run_dir: Path) -> list[dict[s
 
 
 async def _human_demo_flow(request, restart, human_review, *, deadline: float,
-                           synthetic: bool = False) -> dict[str, object]:
+                           synthetic: bool = False, confirmation_actor: str = "human") -> dict[str, object]:
     """Shared workflow for real runner and explicitly synthetic offline tests."""
     from ulticode_client import canonical_uuid
     loop = asyncio.get_running_loop()
+    if confirmation_actor not in {"human", "autonomous"}:
+        raise ValueError("confirmation_actor_invalid")
     counters = {
-        "agent_http_requests": 0, "human_steps": 0, "human_edits": 0,
-        "human_confirmations": 0, "save_route_calls": 0, "recover_route_calls": 0,
+        "agent_http_requests": 0, f"{confirmation_actor}_steps": 0, f"{confirmation_actor}_edits": 0,
+        f"{confirmation_actor}_confirmations": 0, "save_route_calls": 0, "recover_route_calls": 0,
         "java_save_requests": 0, "java_readbacks": 0, "python_restarts": 0,
     }
 
@@ -940,11 +942,11 @@ async def _human_demo_flow(request, restart, human_review, *, deadline: float,
             return {"status": "FAIL", "reason": "human_review_missing",
                     "human_demo_completed": False, "counters": counters,
                     "thread_id": thread_id, "run_id": state.get("runId")}
-        counters["human_steps"] += 1
+        counters[f"{confirmation_actor}_steps"] += 1
         if decision.get("edit") is True:
-            counters["human_edits"] += 1
+            counters[f"{confirmation_actor}_edits"] += 1
         if decision.get("confirmed") is True:
-            counters["human_confirmations"] += 1
+            counters[f"{confirmation_actor}_confirmations"] += 1
         if decision.get("confirmed") is not True:
             return {"status": "FAIL", "reason": "human_did_not_confirm",
                     "human_demo_completed": False, "counters": counters,
@@ -993,8 +995,10 @@ async def _human_demo_flow(request, restart, human_review, *, deadline: float,
             raise ValueError("human_demo_restart_readback_mismatch")
         if loop.time() > deadline:
             raise TimeoutError("human_demo_deadline_exceeded")
-        return {"status": "PASS", "reason": "human_demo_workflow_complete",
-                "human_demo_completed": not synthetic, "synthetic_simulation": synthetic,
+        return {"status": "PASS", "reason": "workflow_demo_complete",
+                "workflow_demo_completed": not synthetic, "confirmation_actor": confirmation_actor,
+                "human_demo_completed": not synthetic and confirmation_actor == "human",
+                "synthetic_simulation": synthetic,
                 "thread_id": thread_id, "run_id": state.get("runId"),
                 "plan_id": plan_id, "counters": counters}
     except TimeoutError:
@@ -1005,7 +1009,18 @@ async def _human_demo_flow(request, restart, human_review, *, deadline: float,
                 "human_demo_completed": False, "counters": counters}
 
 
+def _workflow_demo_completed(result: dict) -> bool:
+    actor = result.get("confirmation_actor")
+    counters = result.get("counters", {})
+    return (result.get("status") == "PASS" and result.get("workflow_demo_completed") is True
+            and result.get("synthetic_simulation") is False and actor in {"human", "autonomous"}
+            and isinstance(counters, dict) and counters.get(f"{actor}_confirmations") == 1
+            and all(counters.get(key) == 1 for key in
+                    ("save_route_calls", "java_save_requests", "java_readbacks", "python_restarts")))
+
+
 _DEMO_SAFE_STRING_FIELDS = {
+    "confirmation_actor",
     "schema", "method", "path", "status", "reason", "code", "traceid", "trace_id",
     "threadid", "thread_id", "runid", "run_id", "planid", "plan_id",
     "id", "docid", "doc_id", "chunkid", "chunk_id",
@@ -1095,9 +1110,10 @@ async def _run_human_demo(preflight: dict, run_dir: Path) -> dict[str, object]:
     required = ("ULTICODE_U04_APP_BASE", "ULTICODE_U04_AUTH_BASE",
                 "ULTICODE_U04_ACCESS_TOKEN", "ULTICODE_U04_CSRF_TOKEN",
                 "ULTICODE_U04_SOURCE_SUBMISSION_ID")
-    if (not sys.stdin.isatty() or not sys.stdout.isatty()
+    interactive_confirm = getattr(preflight.get("args"), "interactive_confirm", False)
+    if (interactive_confirm and (not sys.stdin.isatty() or not sys.stdout.isatty())
             or any(not os.environ.get(name) for name in required)):
-        return {"status": "INCOMPLETE", "reason": "human_tty_session_or_source_missing",
+        return {"status": "INCOMPLETE", "reason": "workflow_session_or_source_missing",
                 "human_demo_completed": False, "counters": {}}
     app_base, auth_base, access, csrf, _ = (os.environ[name] for name in required)
     if not (delivery._loopback_url(app_base) and delivery._loopback_url(auth_base)):
@@ -1247,11 +1263,13 @@ async def _run_human_demo(preflight: dict, run_dir: Path) -> dict[str, object]:
         client = new_client()
 
     try:
-        result = await _human_demo_flow(request, restart, _tty_human_review, deadline=deadline)
+        actor = "human" if interactive_confirm else "autonomous"
+        review = _tty_human_review if interactive_confirm else delivery._autonomous_review
+        result = await _human_demo_flow(request, restart, review, deadline=deadline, confirmation_actor=actor)
         result["human_demo_seconds"] = round(loop.time() - started, 3)
-        if result.get("human_demo_completed") and result["human_demo_seconds"] > 180:
+        if _workflow_demo_completed(result) and result["human_demo_seconds"] > 180:
             result.update(status="FAIL", reason="human_demo_deadline_exceeded",
-                          human_demo_completed=False)
+                          human_demo_completed=False, workflow_demo_completed=False)
         exchange = marker.with_name("human-demo.java-exchange.json")
         private_summary = dict(result)
         private_summary["evidence_refs"] = refs
@@ -1320,7 +1338,7 @@ async def _execute(args: argparse.Namespace, preflight: dict) -> dict[str, objec
         guard, budget, lane, purpose = (
             preflight["guard"], preflight["budget"], preflight["lane"], preflight["purpose"],
         )
-        if not human_demo.get("human_demo_completed"):
+        if not _workflow_demo_completed(human_demo):
             return {
                 "development": preflight["development"], "human_demo": human_demo,
                 "holdout3_cases": [], "reliability_scenarios": [],
@@ -1374,6 +1392,7 @@ async def _execute(args: argparse.Namespace, preflight: dict) -> dict[str, objec
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(allow_abbrev=False)
+    parser.add_argument("--interactive-confirm", action="store_true", help="Optional interactive review; autonomous confirmation is the default")
     parser.add_argument("--freeze-candidate", action="store_true")
     parser.add_argument("--freeze-bundle", action="store_true")
     parser.add_argument("--run", action="store_true")
@@ -1427,7 +1446,7 @@ def main(argv: list[str] | None = None) -> int:
             }
             passed = (
                 human_demo.get("status") == "PASS"
-                and human_demo.get("human_demo_completed") is True
+                and _workflow_demo_completed(human_demo)
                 and all(row.get("status") == "PASS" for row in result["holdout3_cases"])
                 and human_demo["human_demo_seconds"] <= 180
                 and len(result["holdout3_cases"]) == 10

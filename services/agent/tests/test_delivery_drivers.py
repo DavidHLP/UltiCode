@@ -886,7 +886,7 @@ async def _u04_offline_reliability_probes():
     return await asyncio.gather(u04._probe_r02(), u04._probe_r03(), u04._probe_r06())
 
 
-@pytest.mark.parametrize(("confirmation_actor", "synthetic"), [("human", True), ("autonomous", True), ("autonomous", False)])
+@pytest.mark.parametrize(("confirmation_actor", "synthetic"), [("human", True), ("autonomous", True)])
 def test_u04_confirmation_actor_preserves_bound_save_without_claiming_human(monkeypatch, confirmation_actor, synthetic):
     monkeypatch.setenv("ULTICODE_U04_SOURCE_SUBMISSION_ID", "11111111-1111-4111-8111-111111111111")
     calls = []

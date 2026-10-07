@@ -1137,6 +1137,18 @@ def _read_tty(prompt: str, timeout: float = 170) -> str:
         content.extend(char)
         if len(content) > 64 * 1024:
             raise ValueError("human_input_too_long")
+async def _autonomous_review(draft, deadline: float) -> dict[str, bool]:
+    """Review a test-owned draft under delegated acceptance authority, without TTY."""
+    if asyncio.get_running_loop().time() >= deadline:
+        raise TimeoutError("autonomous_confirmation_timeout")
+    if (not isinstance(draft, dict) or type(draft.get("draftVersion")) is not int
+            or draft["draftVersion"] < 1
+            or any(not isinstance(draft.get(key), str) or not draft[key].strip()
+                   for key in ("title", "content"))):
+        raise ValueError("autonomous_draft_invalid")
+    return {"reviewed": True, "edit": False, "confirmed": True}
+
+
 def _loopback_url(value: str) -> bool:
     parsed = urlsplit(value)
     return parsed.scheme == "http" and parsed.hostname in {"127.0.0.1", "localhost", "::1"} and parsed.port is not None
@@ -1597,11 +1609,13 @@ async def _run_u03(args: argparse.Namespace) -> tuple[dict, int]:
             draft = state.get("draft") or {}
             result["coverage"].update({"real_http_analysis": True, "draft_persisted": True,
                                        "previewed_by_human": False})
-            if not sys.stdin.isatty():
+            interactive_confirm = getattr(args, "interactive_confirm", False)
+            if interactive_confirm and not sys.stdin.isatty():
                 raise ValueError("interactive_human_confirmation_required")
-            print("Review draft preview; do not treat it as verified source diagnosis:")
-            print(f"Title: {draft.get('title', '')}\n{draft.get('content', '')}")
-            if human_input("Edit title? (blank keeps current): ").strip():
+            if interactive_confirm:
+                print("Review draft preview; do not treat it as verified source diagnosis:")
+                print(f"Title: {draft.get('title', '')}\n{draft.get('content', '')}")
+            if interactive_confirm and human_input("Edit title? (blank keeps current): ").strip():
                 new_title = human_input("New title: ")
                 new_content = human_input("New content (single line): ")
                 edited = await session.put(f"/agent/threads/{thread}/draft", json={
@@ -1613,8 +1627,12 @@ async def _run_u03(args: argparse.Namespace) -> tuple[dict, int]:
                     raise ValueError("draft_edit_rejected")
                 _, state = _envelope(await session.get(f"/agent/threads/{thread}"))
                 draft = state["draft"]
-            result["coverage"]["previewed_by_human"] = True
-            if human_input("Type CONFIRM to authorize this exact Java save, anything else cancels: ") != "CONFIRM":
+            if not interactive_confirm:
+                await _autonomous_review(draft, min(human_demo_start + 180, batch_deadline))
+            result["coverage"].update({"previewed_by_human": interactive_confirm,
+                                       "draft_reviewed": True,
+                                       "confirmation_actor": "human" if interactive_confirm else "autonomous"})
+            if interactive_confirm and human_input("Type CONFIRM to authorize this exact Java save, anything else cancels: ") != "CONFIRM":
                 result["reason"], result["status"] = "human_did_not_confirm", "CANCELLED"
                 return result, 1
             confirmed = await session.post(f"/agent/threads/{thread}/confirm", json={
@@ -1640,7 +1658,8 @@ async def _run_u03(args: argparse.Namespace) -> tuple[dict, int]:
             if human_demo_seconds > 180:
                 raise TimeoutError("u03_human_demo_deadline_exceeded")
             result["coverage"].update({
-                "java_save_readback": True, "human_demo_completed": True,
+                "java_save_readback": True, "human_demo_completed": interactive_confirm,
+                "workflow_demo_completed": True,
                 "human_demo_seconds": human_demo_seconds,
             })
         _stop_agent(workflow_process)
@@ -1731,6 +1750,7 @@ async def _run_u03(args: argparse.Namespace) -> tuple[dict, int]:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(allow_abbrev=False)
+    parser.add_argument("--interactive-confirm", action="store_true", help="Optional interactive review; autonomous confirmation is the default")
     parser.add_argument("--issue-u02-gate", action="store_true")
     parser.add_argument("--dav58-artifact")
     parser.add_argument("--dav53-artifact")

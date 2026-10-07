@@ -886,7 +886,8 @@ async def _u04_offline_reliability_probes():
     return await asyncio.gather(u04._probe_r02(), u04._probe_r03(), u04._probe_r06())
 
 
-def test_u04_synthetic_human_demo_runs_same_flow_without_real_acceptance(monkeypatch):
+@pytest.mark.parametrize(("confirmation_actor", "synthetic"), [("human", True), ("autonomous", True), ("autonomous", False)])
+def test_u04_confirmation_actor_preserves_bound_save_without_claiming_human(monkeypatch, confirmation_actor, synthetic):
     monkeypatch.setenv("ULTICODE_U04_SOURCE_SUBMISSION_ID", "11111111-1111-4111-8111-111111111111")
     calls = []
     reads = 0
@@ -934,13 +935,17 @@ def test_u04_synthetic_human_demo_runs_same_flow_without_real_acceptance(monkeyp
     async def scenario():
         result = await u04._human_demo_flow(
             request, restart, explicit_synthetic_human_input,
-            deadline=asyncio.get_running_loop().time() + 60, synthetic=True,
+            deadline=asyncio.get_running_loop().time() + 60, synthetic=synthetic,
+            confirmation_actor=confirmation_actor,
         )
-        assert result["synthetic_simulation"] is True
+        assert result["synthetic_simulation"] is synthetic
+        assert result["workflow_demo_completed"] is (not synthetic)
+        assert result["confirmation_actor"] == confirmation_actor
+        assert u04._workflow_demo_completed(result) is (not synthetic)
         assert result["human_demo_completed"] is False
         assert result["counters"] == {
-            "agent_http_requests": 9, "human_steps": 1, "human_edits": 1,
-            "human_confirmations": 1, "save_route_calls": 1, "recover_route_calls": 1,
+            "agent_http_requests": 9, f"{confirmation_actor}_steps": 1, f"{confirmation_actor}_edits": 1,
+            f"{confirmation_actor}_confirmations": 1, "save_route_calls": 1, "recover_route_calls": 1,
             "java_save_requests": 1, "java_readbacks": 1, "python_restarts": 1,
         }
         assert len(restarts) == 1
@@ -1213,3 +1218,31 @@ def test_u03_stop_agent_unregisters_exited_child():
     u03._stop_active_agents()
     assert process.joined
     assert process not in u03._ACTIVE_AGENT_PROCESSES
+
+
+@pytest.mark.parametrize("draft", [None, {}, {"draftVersion": True, "title": "t", "content": "c"}, {"draftVersion": 1, "title": " ", "content": "c"}])
+def test_autonomous_review_rejects_unreviewable_drafts(draft):
+    with pytest.raises(ValueError, match="autonomous_draft_invalid"):
+        asyncio.run(u03._autonomous_review(draft, float("inf")))
+
+
+def test_autonomous_review_keeps_exact_draft_without_tty(monkeypatch):
+    monkeypatch.setattr(u03, "_read_tty", lambda *_: pytest.fail("TTY must not be used"))
+    draft = {"draftVersion": 2, "title": "Review", "content": "One bounded step"}
+    decision = asyncio.run(u03._autonomous_review(draft, float("inf")))
+    assert decision == {"reviewed": True, "edit": False, "confirmed": True}
+    assert draft == {"draftVersion": 2, "title": "Review", "content": "One bounded step"}
+
+
+def test_autonomous_u04_requires_real_inputs_but_not_tty(monkeypatch, tmp_path):
+    from types import SimpleNamespace
+    for name in ("ULTICODE_U04_APP_BASE", "ULTICODE_U04_AUTH_BASE"):
+        monkeypatch.setenv(name, "http://127.0.0.1:9100")
+    for name in ("ULTICODE_U04_ACCESS_TOKEN", "ULTICODE_U04_CSRF_TOKEN", "ULTICODE_U04_SOURCE_SUBMISSION_ID"):
+        monkeypatch.setenv(name, "fixture")
+    monkeypatch.setattr(u04.sys.stdin, "isatty", lambda: False)
+    monkeypatch.setattr(u04.sys.stdout, "isatty", lambda: False)
+    monkeypatch.setattr(u04, "POLICY", {"lanes": {}})
+    result = asyncio.run(u04._run_human_demo({"args": SimpleNamespace(interactive_confirm=False)}, tmp_path))
+    assert result["reason"] == "u03_model_purpose_blocked"
+    assert result["human_demo_completed"] is False

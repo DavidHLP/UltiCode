@@ -52,11 +52,13 @@ def worst_case_micro_usd(prompt_tokens: int, completion_tokens: int) -> int:
     return _ceil_tenths(prompt_tokens * INPUT_RATE_TENTHS + completion_tokens * OUTPUT_RATE_TENTHS)
 
 
-def authorized_period_config() -> dict:
+def authorized_period_config(policy_id: str = period.POLICY_ID) -> dict:
+    policy = period.policy_for(policy_id)
     return {
-        "schema": "ulticode-authorized-budget-v1", "policy_id": period.POLICY_ID,
+        "schema": "ulticode-authorized-budget-v1", "policy_id": policy_id,
         "model_alias": MODEL_ALIAS,
-        "policy": {**period.POLICY, "lanes": {k: dict(v) for k, v in period.POLICY["lanes"].items()}},
+        "policy": {**policy, **({"history": dict(policy["history"])} if "history" in policy else {}),
+                   "lanes": {k: dict(v) for k, v in policy["lanes"].items()}},
         "pricing": {"input_micro_usd_tenths_per_token": INPUT_RATE_TENTHS,
                     "output_micro_usd_tenths_per_token": OUTPUT_RATE_TENTHS,
                     "rounding": "ceil(sum/10)", "source": "inherited-model-budget-v1"},
@@ -67,13 +69,20 @@ def _json(value: dict) -> str:
     return json.dumps(value, sort_keys=True, separators=(",", ":"))
 
 
-def authorized_period_config_sha256() -> str:
-    return hashlib.sha256(_json(authorized_period_config()).encode()).hexdigest()
+def authorized_period_config_sha256(policy_id: str = period.POLICY_ID) -> str:
+    return hashlib.sha256(_json(authorized_period_config(policy_id)).encode()).hexdigest()
 
 
 def _authorization_slot() -> Path:
     # Fixed OS identity, independent of HOME/XDG and caller-selected paths.
     return Path(pwd.getpwuid(os.getuid()).pw_dir) / ".local/state/ulticode/dav58-dav53-v1"
+
+
+def authorization_slot(expected: period.PeriodIdentity) -> Path:
+    period.policy_for(expected.policy_id)
+    if expected.policy_id == period.POLICY_ID:
+        return _authorization_slot()
+    return _authorization_slot().parent / expected.policy_id
 
 
 def _inode(fd: int) -> list[int]:
@@ -182,22 +191,33 @@ class ModelBudget:
         if not self.path.is_absolute():
             raise ValueError("budget path must be absolute")
 
+    @property
+    def policy(self):
+        return period.policy_for(self._identity.policy_id if self._identity else period.POLICY_ID)
+
     @classmethod
     def bound(cls, expected: period.PeriodIdentity) -> ModelBudget:
-        if not isinstance(expected, period.PeriodIdentity) or expected.config_sha256 != authorized_period_config_sha256():
+        if not isinstance(expected, period.PeriodIdentity) or expected.config_sha256 != authorized_period_config_sha256(expected.policy_id):
             raise period.PeriodError("canonical configuration identity required")
         instance = cls.__new__(cls)
         instance._identity = expected
-        instance.path = _authorization_slot() / "accounting/budget.sqlite3"
+        instance.path = authorization_slot(expected) / "accounting/budget.sqlite3"
         with instance._accounting():
             pass
         return instance
 
     @classmethod
-    def bind_prepared(cls, expected: period.PeriodIdentity) -> ModelBudget:
-        if not isinstance(expected, period.PeriodIdentity) or expected.config_sha256 != authorized_period_config_sha256():
+    def bind_prepared(cls, expected: period.PeriodIdentity, *, history_sources=None) -> ModelBudget:
+        if not isinstance(expected, period.PeriodIdentity) or expected.config_sha256 != authorized_period_config_sha256(expected.policy_id):
             raise period.PeriodError("canonical configuration identity required")
-        slot = _authorization_slot()
+        history = None
+        if expected.policy_id == period.REVALIDATION_POLICY_ID:
+            from revalidation_history import validate_history
+            history = validate_history(history_sources)
+        elif history_sources is not None:
+            raise period.PeriodError("historical baseline requires the fresh acceptance policy")
+        policy = period.policy_for(expected.policy_id)
+        slot = authorization_slot(expected)
         with period._locked_period(slot / "period", expected) as locked:
             if locked.snapshot.state != "prepared":
                 raise period.PeriodError("binding requires a prepared period")
@@ -208,10 +228,12 @@ class ModelBudget:
                 try:
                     fd = period._file(directory, "budget.sqlite3", os.O_RDWR | os.O_CREAT | os.O_EXCL)
                     try:
-                        anchor = {**expected.__dict__, "config": authorized_period_config(),
+                        anchor = {**expected.__dict__, "config": authorized_period_config(expected.policy_id),
                                   "period_path": str(slot / "period"), "ledger_path": str(slot / "accounting/budget.sqlite3"),
                                   "directory": _inode(directory), "ledger": _inode(fd),
                                   "ledger_uuid": uuid.uuid4().hex, "legacy_history": "UNKNOWN"}
+                        if history is not None:
+                            anchor["retained_history"] = history
                         os.fsync(fd)
                     finally:
                         os.close(fd)  # No auxiliary ledger fd remains when SQLite opens.
@@ -220,12 +242,14 @@ class ModelBudget:
                         db.execute("PRAGMA synchronous=FULL")
                         db.execute("BEGIN IMMEDIATE")
                         _initialize_tables(db)
+                        if history is not None:
+                            db.execute("CREATE TABLE dispatches (attempt_id TEXT PRIMARY KEY,request_sha256 TEXT NOT NULL)")
                         db.execute("CREATE TABLE binding (singleton INTEGER PRIMARY KEY CHECK(singleton=1), payload TEXT NOT NULL, gate TEXT NOT NULL)")
                         db.execute("INSERT INTO binding VALUES (1,?, 'prepared')", (_json(anchor),))
                         db.execute("CREATE TABLE purposes (purpose TEXT PRIMARY KEY, attempts INTEGER NOT NULL, attempt_limit INTEGER NOT NULL, completion_cap INTEGER NOT NULL)")
                         db.executemany("INSERT INTO purposes VALUES (?,0,?,?)", [
                             (name, lane["attempts"], lane["completion_token_cap"])
-                            for name, lane in period.POLICY["lanes"].items()
+                            for name, lane in policy["lanes"].items()
                         ])
                         locked.confirm()
                         db.commit()
@@ -248,8 +272,8 @@ class ModelBudget:
             with self._connect() as db:
                 yield db, None
             return
-        slot = _authorization_slot()
-        if self.path != slot / "accounting/budget.sqlite3" or self._identity.config_sha256 != authorized_period_config_sha256():
+        slot = authorization_slot(self._identity)
+        if self.path != slot / "accounting/budget.sqlite3" or self._identity.config_sha256 != authorized_period_config_sha256(self._identity.policy_id):
             raise period.PeriodError("canonical path or configuration drift")
         with period._locked_period(slot / "period", self._identity, exclusive=exclusive) as locked:
             with period._parent(self.path) as directory:
@@ -261,10 +285,16 @@ class ModelBudget:
                 if len(records) != 1 or not isinstance(records[0], dict):
                     raise period.PeriodError("invalid binding anchor")
                 anchor = records[0]
-                required = {**self._identity.__dict__, "config": authorized_period_config(),
+                required = {**self._identity.__dict__, "config": authorized_period_config(self._identity.policy_id),
                             "period_path": str(slot / "period"), "ledger_path": str(self.path),
                             "directory": resolve_pair(slot, self._identity.__dict__, "accounting_directory", anchor.get("directory"), _inode(directory)), "ledger": resolve_pair(slot, self._identity.__dict__, "ledger", anchor.get("ledger"), _ledger_inode(directory)),
                             "ledger_uuid": anchor.get("ledger_uuid"), "legacy_history": "UNKNOWN"}
+                if self._identity.policy_id == period.REVALIDATION_POLICY_ID:
+                    from revalidation_history import validate_history
+                    history = anchor.get("retained_history")
+                    if not isinstance(history, dict):
+                        raise period.PeriodError("retained historical liability required")
+                    required["retained_history"] = validate_history(history.get("sources"))
                 if anchor != required or not isinstance(anchor["ledger_uuid"], str) or len(anchor["ledger_uuid"]) != 32:
                     raise period.PeriodError("binding identity or ledger drift")
                 db = sqlite3.connect(f"file:/proc/self/fd/{directory}/budget.sqlite3?mode=rw", uri=True, timeout=5, isolation_level=None)
@@ -275,7 +305,7 @@ class ModelBudget:
                     ):
                         raise period.PeriodError("SQL binding identity or gate drift")
                     rows = db.execute("SELECT purpose,attempts,attempt_limit,completion_cap FROM purposes").fetchall()
-                    lanes = period.POLICY["lanes"]
+                    lanes = self.policy["lanes"]
                     continuation = _continuation(db, self._identity)
                     limits = {name: (48 if continuation and name == "dav58_loop" else lane["attempts"]) for name, lane in lanes.items()}
                     if len(rows) != len(lanes) or any(
@@ -287,6 +317,15 @@ class ModelBudget:
                     budget = db.execute("SELECT singleton,attempts,reserved_micro_usd,actual_micro_usd,halted FROM budget").fetchall()
                     if len(budget) != 1 or budget[0][0] != 1:
                         raise period.PeriodError("budget row missing or counters changed")
+                    if "history" in self.policy:
+                        totals = db.execute("SELECT count(*),COALESCE(SUM(MAX(reserved_micro_usd,"
+                                            "COALESCE(actual_micro_usd,0))),0),"
+                                            "COALESCE(SUM(CASE WHEN usage_known=1 THEN actual_micro_usd ELSE 0 END),0) "
+                                            "FROM attempts").fetchone()
+                        counts = dict(db.execute("SELECT purpose,count(*) FROM attempts GROUP BY purpose"))
+                        if (budget[0][1:4] != totals or any(used != counts.get(name, 0) for name, used, _, _ in rows)
+                                or set(counts) - set(lanes)):
+                            raise period.PeriodError("fresh budget counters disagree with its attempts")
                     if resolve_pair(slot, self._identity.__dict__, "ledger", anchor["ledger"], _ledger_inode(directory)) != anchor["ledger"]:
                         raise period.PeriodError("ledger replaced")
                     yield db, locked
@@ -297,9 +336,9 @@ class ModelBudget:
         if locked is not None:
             anchor = json.loads(db.execute("SELECT payload FROM binding WHERE singleton=1").fetchone()[0])
             with period._parent(self.path) as directory:
-                if resolve_pair(_authorization_slot(), self._identity.__dict__, "accounting_directory", anchor["directory"], _inode(directory)) != anchor["directory"]:
+                if resolve_pair(authorization_slot(self._identity), self._identity.__dict__, "accounting_directory", anchor["directory"], _inode(directory)) != anchor["directory"]:
                     raise period.PeriodError("accounting directory replaced")
-                if resolve_pair(_authorization_slot(), self._identity.__dict__, "ledger", anchor["ledger"], _ledger_inode(directory)) != anchor["ledger"]:
+                if resolve_pair(authorization_slot(self._identity), self._identity.__dict__, "ledger", anchor["ledger"], _ledger_inode(directory)) != anchor["ledger"]:
                     raise period.PeriodError("ledger replaced")
                 # SQLite synchronous=FULL owns ledger durability and fd lifetimes.
                 marker = period._file(directory, "binding.json", os.O_RDONLY)
@@ -317,6 +356,8 @@ class ModelBudget:
         """Atomically audit a single +24 loop allocation, without resetting usage."""
         if self._identity is None or not isinstance(authorization, str) or not authorization.strip():
             raise period.PeriodError("explicit continuation authorization required")
+        if self._identity.policy_id != period.POLICY_ID:
+            raise period.PeriodError("continuation applies only to the original policy")
         with self._accounting(exclusive=True) as (db, locked):
             db.execute("BEGIN IMMEDIATE")
             if _continuation(db, self._identity) is not None:
@@ -381,7 +422,8 @@ class ModelBudget:
     @contextmanager
     def _connect(self) -> Iterator[sqlite3.Connection]:
         canonical = _authorization_slot() / "accounting/budget.sqlite3"
-        if self._identity is not None or self.path.resolve() == canonical.resolve():
+        fresh = _authorization_slot().parent / period.REVALIDATION_POLICY_ID / "accounting/budget.sqlite3"
+        if self._identity is not None or self.path.resolve() in {canonical.resolve(), fresh.resolve()}:
             raise period.PeriodError("canonical period ledger requires bound accounting")
         directory = self.path.parent
         directory.mkdir(mode=0o700, parents=True, exist_ok=True)
@@ -431,6 +473,48 @@ class ModelBudget:
             )
             self._commit(db, None)
 
+    def verify_pending(self, reservation: Reservation) -> dict:
+        """Bind a guard's next actual request to an existing unsettled SQL attempt."""
+        if self._identity is None or (reservation.period_identity, reservation.config_sha256) != (
+                self._identity.identity, self._identity.config_sha256):
+            raise period.PeriodError("guard reservation scope mismatch")
+        with self._accounting() as (db, locked):
+            row = db.execute("SELECT purpose,reserved_micro_usd,settled FROM attempts WHERE attempt_id=?",
+                             (reservation.attempt_id,)).fetchone()
+            if (locked.snapshot.state != "active" or row != (reservation.purpose, reservation.reserved_micro_usd, 0)
+                    or db.execute("SELECT count(*) FROM attempts WHERE settled=0").fetchone()[0] != 1):
+                raise period.PeriodError("guard requires one matching pending attempt")
+        return self.snapshot()
+
+    def verify_guard_history(self, receipts) -> None:
+        with self._accounting() as (db, _):
+            rows = db.execute("SELECT a.attempt_id,a.purpose,a.actual_micro_usd,d.request_sha256 FROM attempts a "
+                              "LEFT JOIN dispatches d ON d.attempt_id=a.attempt_id "
+                              "WHERE a.settled=1 AND a.usage_known=1 ORDER BY a.attempt_id").fetchall()
+            if any(not isinstance(r.get("attempt_id"), str) for r in receipts):
+                raise period.PeriodError("explicit guard attempt IDs required")
+            expected = sorted((r["attempt_id"], r.get("lane"), r.get("peak_micro_usd"), r.get("request_sha256")) for r in receipts)
+            if rows != expected:
+                raise period.PeriodError("guard request bindings disagree with SQL attempts")
+
+    def claim_dispatch(self, reservation: Reservation, request_sha256: str) -> None:
+        if (self._identity is None or self._identity.policy_id != period.REVALIDATION_POLICY_ID
+                or not isinstance(request_sha256, str) or len(request_sha256) != 64
+                or any(c not in "0123456789abcdef" for c in request_sha256)
+                or (reservation.period_identity, reservation.config_sha256) != (
+                    self._identity.identity, self._identity.config_sha256)):
+            raise period.PeriodError("valid bound dispatch required")
+        with self._accounting() as (db, locked):
+            db.execute("BEGIN IMMEDIATE")
+            row = db.execute("SELECT purpose,reserved_micro_usd,settled FROM attempts WHERE attempt_id=?",
+                             (reservation.attempt_id,)).fetchone()
+            if (locked.snapshot.state != "active" or row != (reservation.purpose, reservation.reserved_micro_usd, 0)
+                    or db.execute("SELECT count(*) FROM attempts WHERE settled=0").fetchone()[0] != 1
+                    or db.execute("SELECT 1 FROM dispatches WHERE attempt_id=?", (reservation.attempt_id,)).fetchone()):
+                raise period.PeriodError("dispatch already claimed or reservation invalid")
+            db.execute("INSERT INTO dispatches VALUES (?,?)", (reservation.attempt_id, request_sha256))
+            self._commit(db, locked)
+
     def reserve(
         self,
         prompt_tokens: int,
@@ -444,16 +528,18 @@ class ModelBudget:
             raise BudgetLimitExceeded("prompt exceeds shared token ceiling")
         if not 1 <= completion_cap <= MAX_COMPLETION_TOKENS:
             raise BudgetLimitExceeded("completion exceeds shared token ceiling")
-        lane = period.POLICY["lanes"].get(purpose) if self._identity is not None else None
+        lane = self.policy["lanes"].get(purpose) if self._identity is not None else None
         if self._identity is not None:
             if lane is None or completion_cap > lane["completion_token_cap"]:
                 raise ValueError("invalid bound purpose or completion cap")
-            prompt_tokens, completion_cap = period.POLICY["prompt_token_cap"], lane["completion_token_cap"]
+            if prompt_tokens > lane.get("prompt_token_cap", self.policy["prompt_token_cap"]):
+                raise BudgetLimitExceeded("prompt exceeds bound lane ceiling")
+            prompt_tokens, completion_cap = lane.get("prompt_token_cap", self.policy["prompt_token_cap"]), lane["completion_token_cap"]
         elif purpose not in {"ordinary", "frozen_evaluation"}:
             raise ValueError("invalid budget purpose")
         reserve = worst_case_micro_usd(prompt_tokens, completion_cap)
-        max_attempts = period.POLICY["attempts"] if lane else MAX_ATTEMPTS
-        max_cost = period.POLICY["limit_micro_usd"] if lane else MAX_MICRO_USD
+        max_attempts = self.policy["attempts"] if lane else MAX_ATTEMPTS
+        max_cost = self.policy["limit_micro_usd"] if lane else MAX_MICRO_USD
         attempt_id = str(uuid.uuid4())
         with self._accounting() as (db, locked):
             db.execute("BEGIN IMMEDIATE")
@@ -557,12 +643,15 @@ class ModelBudget:
                 raise RuntimeError("budget reservation not found")
             reserved, settled, bound_prompt, bound_completion, purpose = row
             if locked is not None:
-                lane = period.POLICY["lanes"].get(purpose)
+                lane = self.policy["lanes"].get(purpose)
                 if (lane is None or reservation.reserved_micro_usd != reserved or reservation.purpose != purpose
-                    or bound_prompt != period.POLICY["prompt_token_cap"]
+                    or bound_prompt != lane.get("prompt_token_cap", self.policy["prompt_token_cap"])
                     or bound_completion != lane["completion_token_cap"]
                     or reserved != worst_case_micro_usd(bound_prompt, bound_completion)):
                     raise period.PeriodError("reservation receipt mismatch")
+                if known and "history" in self.policy and not db.execute(
+                        "SELECT 1 FROM dispatches WHERE attempt_id=?", (reservation.attempt_id,)).fetchone():
+                    raise period.PeriodError("known usage requires its one-shot dispatch claim")
             if settled:
                 db.rollback()
                 raise RuntimeError("budget reservation already settled")
@@ -609,9 +698,16 @@ class ModelBudget:
             raise BudgetLimitExceeded(
                 "reported usage exceeded the reserved token bound; budget halted"
             )
-        if total > (period.POLICY["limit_micro_usd"] if self._identity else MAX_MICRO_USD):
+        if total > (self.policy["limit_micro_usd"] if self._identity else MAX_MICRO_USD):
             raise BudgetLimitExceeded("reported usage exceeded authorized cost ceiling")
         return actual
+
+    def remaining_purpose_attempts(self, purpose: str) -> int:
+        if self._identity is None or purpose not in self.policy["lanes"]:
+            raise ValueError("bound purpose required")
+        with self._accounting() as (db, _):
+            used, limit = db.execute("SELECT attempts,attempt_limit FROM purposes WHERE purpose=?", (purpose,)).fetchone()
+            return limit - used
 
     def snapshot(self) -> dict[str, int | str | bool]:
         with self._accounting() as (db, locked):
@@ -636,8 +732,15 @@ class ModelBudget:
                 "unknown_usage_attempts": unknown_attempts,
                 "unsettled_attempts": unsettled_attempts,
             }
-        max_attempts = period.POLICY["attempts"] if self._identity else MAX_ATTEMPTS
-        max_cost = period.POLICY["limit_micro_usd"] if self._identity else MAX_MICRO_USD
+        if self._identity and "history" in self.policy:
+            history = self.policy["history"]
+            binding.update(policy_id=self._identity.policy_id, legacy_history="retained_unknown_encumbered",
+                           runtime_accounting_connected=True, spend_limit_enforced=True,
+                           retained_history=dict(history), cumulative_attempts=history["attempts"] + attempts,
+                           cumulative_committed_micro_usd=history["known_actual_micro_usd"]
+                           + history["unknown_encumbrance_micro_usd"] + committed)
+        max_attempts = self.policy["attempts"] if self._identity else MAX_ATTEMPTS
+        max_cost = self.policy["limit_micro_usd"] if self._identity else MAX_MICRO_USD
         return {
             **binding,
             "attempts": attempts,
@@ -655,12 +758,48 @@ class ModelBudget:
 _LEGACY_MODEL = object()
 
 
+def expected_identity_from_environment() -> period.PeriodIdentity | None:
+    raw = os.environ.get("ULTICODE_ACCEPTANCE_IDENTITY")
+    if raw is None:
+        return None
+    if not raw or len(raw) > 4096:
+        raise period.PeriodError("explicit acceptance identity required")
+    def unique(pairs):
+        result = dict(pairs)
+        if len(result) != len(pairs):
+            raise period.PeriodError("duplicate acceptance identity field")
+        return result
+    value = json.loads(raw, object_pairs_hook=unique)
+    if not isinstance(value, dict) or set(value) != {"period_id", "identity", "config_sha256", "policy_id"}:
+        raise period.PeriodError("complete acceptance identity required")
+    expected = period.PeriodIdentity(**value)
+    if expected.policy_id != period.REVALIDATION_POLICY_ID:
+        raise period.PeriodError("explicit fresh acceptance policy required")
+    return expected
+
+
+def acceptance_transport(budget, purpose):
+    """Give opted-in standalone evaluators the same bound one-shot guard."""
+    if not isinstance(budget, ModelBudget) or "history" not in budget.policy:
+        return None
+    from dav58_live_guard import GuardedTransport, IncrementalGuard
+    path = budget.path.parent / f"dav58-increment-{budget._identity.identity}.json"
+    resume = hashlib.sha256(path.read_bytes()).hexdigest() if path.exists() else None
+    guard = IncrementalGuard(path, budget=budget, resume_sha256=resume,
+                             period_identity=budget._identity.identity, config_sha256=budget._identity.config_sha256)
+    return GuardedTransport(guard, purpose, owns_guard=True)
+
+
 def authorized_model(expected: period.PeriodIdentity | object = _LEGACY_MODEL) -> tuple[str, ModelBudget]:
     """Return only the explicitly approved model alias and shared ledger."""
     model = os.environ.get("DEEPSEEK_MODEL")
     if model != MODEL_ALIAS:
         raise ValueError("authorized DeepSeek model alias is not configured")
     budget = None
+    if expected is _LEGACY_MODEL:
+        selected = expected_identity_from_environment()
+        if selected is not None:
+            expected = selected
     if expected is not _LEGACY_MODEL:
         budget = ModelBudget.bound(expected)
         snapshot = budget.snapshot()

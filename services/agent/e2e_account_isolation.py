@@ -102,7 +102,7 @@ from e2e_citation_support_model import (
     _read_published_artifact,
     _release_unfinished_claim,
 )
-from model_budget import MAX_COMPLETION_TOKENS, MAX_PROMPT_TOKENS, authorized_model, _authorization_slot
+from model_budget import MAX_COMPLETION_TOKENS, MAX_PROMPT_TOKENS, authorized_model, _authorization_slot, authorization_slot
 from dav58_live_guard import GuardedTransport, IncrementalGuard
 from authorized_budget_period import POLICY_ID, PeriodIdentity
 from retrieval import SourceDocument
@@ -2258,6 +2258,7 @@ async def _agent_isolation_probe(
             "period_id": expected_identity.period_id,
             "period_identity": expected_identity.identity,
             "config_sha256": expected_identity.config_sha256,
+            "policy_id": expected_identity.policy_id,
             "purpose": "dav53_scenarios",
         },
         # Preserve original per-call receipts and usage alongside computed totals.
@@ -2402,6 +2403,7 @@ def _expected_period_identity(argv: list[str] | None = None) -> PeriodIdentity |
     parser.add_argument("--period-id", action="append")
     parser.add_argument("--period-identity", action="append")
     parser.add_argument("--config-sha256", action="append")
+    parser.add_argument("--policy-id", default=POLICY_ID)
     parsed, _ = parser.parse_known_args(argv)
     values = (parsed.period_id, parsed.period_identity, parsed.config_sha256)
     model_configured = bool(os.environ.get(MODEL_ENV) or os.environ.get(MODEL_KEY_ENV))
@@ -2416,7 +2418,7 @@ def _expected_period_identity(argv: list[str] | None = None) -> PeriodIdentity |
         period_id=parsed.period_id[0],
         identity=parsed.period_identity[0],
         config_sha256=parsed.config_sha256[0],
-        policy_id=POLICY_ID,
+        policy_id=parsed.policy_id,
     )
 
 
@@ -2441,6 +2443,9 @@ async def main() -> int:
         print(f"FAIL reason=isolation_artifact_unusable detail={type(error).__name__}")
         return 1
     facts = _new_facts()
+    if expected_identity is not None and expected_identity.policy_id != POLICY_ID:
+        facts["provenance"]["source_sha256"]["src/revalidation_history.py"] = hashlib.sha256(
+            (Path(__file__).resolve().parent / "src/revalidation_history.py").read_bytes()).hexdigest()
     guard = None
     try:
         if expected_identity is not None:
@@ -2451,7 +2456,7 @@ async def main() -> int:
                     _finish(facts, "INCOMPLETE", "budget_unavailable", 1)
                     _publish_artifact(facts, target)
                     return 1
-                guard_path = _authorization_slot() / "accounting" / f"dav58-increment-{expected_identity.identity}.json"
+                guard_path = authorization_slot(expected_identity) / "accounting" / f"dav58-increment-{expected_identity.identity}.json"
                 resume_sha = os.environ.get("ULTICODE_DAV53_GUARD_RESUME_SHA256")
                 try:
                     journal_info = os.lstat(guard_path)
@@ -2481,6 +2486,7 @@ async def main() -> int:
                     resume_sha256=resume_sha,
                     period_identity=expected_identity.identity,
                     config_sha256=expected_identity.config_sha256,
+                    budget=budget if expected_identity.policy_id != POLICY_ID else None,
                 )
                 if (snapshot["attempts"] != len(guard.state["receipts"])
                         or snapshot["actual_micro_usd"] != guard.state["settled_peak_micro_usd"]

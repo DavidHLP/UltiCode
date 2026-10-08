@@ -160,12 +160,13 @@ def _uuid(value: object) -> str:
 
 def _authorized_model_for_purpose(expected: object, purpose: str, guard: object, tool_specs: dict[str, str]):
     """Build only a model purpose authorized by existing policy and shared guard."""
-    from authorized_budget_period import POLICY
+    from authorized_budget_period import policy_for
     from dav58_live_guard import GuardedTransport
     from deepseek_model import DeepseekModel
     from model_budget import authorized_model
 
     try:
+        POLICY = policy_for(expected.policy_id)
         if purpose not in {"u03_analysis", "u03_citation_judge"} or purpose not in POLICY["lanes"]:
             raise AgentError(503, "model_budget_blocked", 50000)
         if guard is None:

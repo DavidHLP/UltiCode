@@ -364,6 +364,25 @@ retrieval report. Never replace missing historical SQL/guard/provider-usage evid
 empty ledger, a different period, or an estimated balance. Unknown usage or an unverifiable budget
 anchor blocks gate issuance and all paid runs.
 
+If the user explicitly abandons missing historical acceptance and authorizes fresh validation,
+the separate `acceptance-revalidation-v1` policy retains the original ledgers and guard by their
+pinned fingerprints. It carries historical attempts, known charges, and the full unknown liability
+as an immutable baseline, without representing them as fresh receipts or releasing the unknown.
+Its preparation/binding API requires those private retained sources; each new dispatch consumes
+a one-shot SQL claim bound to the actual request hash, and the guard reserves the full published
+provider envelope against the cumulative limit. Callers must explicitly select this policy with
+`--policy-id` and pass its bound identity and guard. Prior-five model entry points select it with
+`ULTICODE_ACCEPTANCE_IDENTITY`, a JSON object containing `period_id`, `identity`, `config_sha256`,
+and `policy_id`; absent this variable, their original behavior is preserved. The sourced-analysis
+entry can retain its private raw result with `ULTICODE_SOURCE_ANALYSIS_ARTIFACT`. Fresh citation
+validation uses those verified source facts with two supported current synthetic-corpus quotes
+and one explicit unsupported bug claim. It retains complete provider exchanges; gates verify the
+request and response hashes and replay the resulting judgments instead of trusting PASS flags.
+Prior-five proof
+records must bind their real attempt IDs to the complete canonical guard prefix ending at DAV58's
+initial snapshot. U04 checks the frozen policy, runtime identity, and remaining purpose quotas
+before consuming the sealed holdout. The original policy and historical accounting stay unchanged.
+
 Issue the evidence-bound U02 gate only after those inputs validate. Gate artifact references are
 relative to the private directory containing the gate; place the referenced artifacts there:
 

@@ -61,7 +61,7 @@ from sourced_analysis import (
 )
 from ulticode_client import UlticodeClient
 from ulticode_tools import build_tools
-from model_budget import authorized_model
+from model_budget import authorized_model, acceptance_transport
 
 APP_BASE = os.environ.get("ULTICODE_APP_BASE", "http://localhost:9103")
 AUTH_BASE = os.environ.get("ULTICODE_AUTH_BASE", "http://localhost:9101")
@@ -887,10 +887,61 @@ def _corpus_identity(
     }
 
 
+async def _fresh_main(expected) -> int:
+    from citation_review import revalidation_citation_cases
+    from agent_service.gate import (_fresh_live_budget, _verified_prior_exchanges,
+                                    _check_prior_model_records, _derive_prior_five_raw)
+    from e2e_u03_workflow import _read_json
+    model_name, budget = authorized_model(expected)
+    source, _ = _read_json(Path(os.environ["ULTICODE_SOURCE_ANALYSIS_ARTIFACT"]))
+    canonical = _fresh_live_budget(expected)["receipts"]
+    if len(canonical) != 1 or canonical[0]["lane"] != "prior_source":
+        raise ValueError("fresh citation stage requires its verified source prefix")
+    _derive_prior_five_raw("本人提交检索分析", source)
+    _check_prior_model_records("本人提交检索分析", source, _verified_prior_exchanges(source, canonical))
+    probes = revalidation_citation_cases(source["records"]["facts"])
+    prompts = [JUDGE_CONTRACT + "\nINPUT_JSON " + json.dumps(
+        {"CLAIM": p["row"].claim, "QUOTE": p["row"].quote, "SUBMISSION_FACTS": p["facts"]},
+        ensure_ascii=True) for p in probes]
+    if any(p["row"].integrity_verdict != "verified" for p in probes):
+        raise ValueError("fresh citation integrity failure")
+    path = _verdict_file()
+    lock = _claim_verdict_file(path)
+    try:
+        async with DeepseekModel(os.environ["DEEPSEEK_API_KEY"], model=model_name, tool_specs={},
+                                 max_calls=3, max_tokens=2000, max_prompt_tokens=24000,
+                                 budget=budget, budget_purpose="prior_citation_judge", thinking_type="disabled",
+                                 transport=acceptance_transport(budget, "prior_citation_judge")) as model:
+            for prompt in prompts:
+                model.check_prompt_budget([{"role": "user", "content": prompt}])
+            rows = []
+            for probe, prompt in zip(probes, prompts):
+                decision = await model.decide([{"role": "user", "content": prompt}])
+                supports, derivable = _judgements(decision.text)
+                exists = probe["row"].integrity_verdict == "verified"
+                rows.append({"exists": exists, "supports": supports, "derivable": derivable,
+                             "gate_rejected": not exists or not supports})
+        payload = {"schema": "ulticode-prior-five-raw-record-v1", "name": "三引用支持负例",
+                   "attempt_ids": [entry["attempt_id"] for entry in model.metering],
+                   "provider_exchanges": model._transport.exchanges, "records": {"citations": rows}}
+        raw = json.dumps(payload, ensure_ascii=True)
+        _publish(path, raw)
+        _read_published_artifact(path, raw)
+        passed = [row["supports"] for row in rows] == [True, True, False]
+        print(f"E2E CITATION SUPPORT {'PASS' if passed else 'FAIL'} | fresh_verified_source | rows=3")
+        return 0 if passed else 1
+    finally:
+        _release_unfinished_claim(lock)
+
+
 async def main() -> int:
     if os.environ.get("ULTICODE_CITATION_SUPPORT") != "1":
         print("SKIP reason=opt_in_not_set")
         return 0
+    from model_budget import expected_identity_from_environment
+    expected = expected_identity_from_environment()
+    if expected is not None:
+        return await _fresh_main(expected)
     # Resolved before the first request: a half-configured corpus must not cost a
     # login and a submission scan before it is refused.
     try:
@@ -1022,6 +1073,8 @@ async def main() -> int:
             max_tokens=max_tokens,
             max_prompt_tokens=max_prompt_tokens,
             budget=model_budget,
+            budget_purpose="prior_citation_judge" if getattr(model_budget, "_identity", None) is not None else "ordinary",
+            transport=acceptance_transport(model_budget, "prior_citation_judge"),
             thinking_type="disabled",
         ) as model:
             try:
@@ -1079,6 +1132,9 @@ async def main() -> int:
             "validated_corpus": _corpus_identity(manifest_digest, tuple(documents)),
             "submission_facts_digest": facts_digest,
             "required_rows": required,
+            **({"attempt_ids": [entry["attempt_id"] for entry in model.metering],
+                "provider_exchanges": model._transport.exchanges}
+               if getattr(model_budget, "_identity", None) is not None else {}),
         }
         owned: dict[Path, tuple[int, int]] = {}
         try:

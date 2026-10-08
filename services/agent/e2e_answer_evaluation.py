@@ -52,7 +52,7 @@ from e2e_citation_support_model import (
     _path_label as _artifact_label,
 )
 from keyword_evaluation import load_cases
-from model_budget import authorized_model
+from model_budget import authorized_model, acceptance_transport
 
 OPT_IN = "ULTICODE_ANSWER_EVAL"
 DEFAULT_MAX_CALLS = 64
@@ -205,6 +205,8 @@ async def main() -> int:
                 max_tokens=_int("DEEPSEEK_MAX_TOKENS", 4000),
                 max_prompt_tokens=_int("DEEPSEEK_MAX_PROMPT_TOKENS", 24000),
                 budget=model_budget,
+                budget_purpose="prior_development" if getattr(model_budget, "_identity", None) is not None else "ordinary",
+                transport=acceptance_transport(model_budget, "prior_development"),
                 thinking_type="disabled",
             ) as model:
                 try:
@@ -266,6 +268,9 @@ async def main() -> int:
                         "cases": _cases_identity(case_sha256),
                         "summary": summary,
                         "rows": [row.__dict__ for row in rows],
+                        **({"attempt_ids": [entry["attempt_id"] for entry in model.metering],
+                            "provider_exchanges": model._transport.exchanges}
+                           if getattr(model_budget, "_identity", None) is not None else {}),
                     },
                     # Provider output may contain lone surrogates; ASCII escaping keeps
                     # the artifact UTF-8 writable and preserves strings on JSON read-back.

@@ -29,6 +29,44 @@ POLICY = MappingProxyType({
     }),
 })
 
+# A fresh acceptance cycle retains the old liability outside its own receipts.
+# The original policy and its device-bound ledger remain unchanged.
+REVALIDATION_POLICY_ID = "acceptance-revalidation-v1"
+REVALIDATION_HISTORY = MappingProxyType({
+    "attempts": 47, "known_actual_micro_usd": 15_314,
+    "unknown_attempts": 1, "unknown_encumbrance_micro_usd": 786_432,
+    "cumulative_attempt_limit": 328, "cumulative_limit_micro_usd": 4_100_000,
+})
+REVALIDATION_POLICY = MappingProxyType({
+    "limit_micro_usd": 3_298_254, "attempts": 281, "prompt_token_cap": 24_000,
+    "runtime_accounting_connected": True, "spend_limit_enforced": True,
+    "u04_authorized_purpose": "u04_post_demo",
+    "history": REVALIDATION_HISTORY,
+    "lanes": MappingProxyType({
+        name: MappingProxyType({"attempts": attempts, "completion_token_cap": output,
+                                "prompt_token_cap": prompt, "rounds": rounds})
+        for name, attempts, prompt, output, rounds in (
+            ("prior_source", 1, 24_000, 2000, 1),
+            ("prior_citation_judge", 3, 24_000, 2000, 1),
+            ("prior_development", 120, 24_000, 2000, 1),
+            ("dav58_loop", 24, 8000, 2000, 4),
+            ("dav58_judge", 19, 8000, 2000, 1),
+            ("dav53_scenarios", 12, 24_000, 1000, 4),
+            ("u03_analysis", 12, 24_000, 2000, 4),
+            ("u03_citation_judge", 9, 24_000, 2000, 1),
+            ("u04_post_demo", 81, 24_000, 2000, 4),
+        )
+    }),
+})
+
+
+def policy_for(policy_id: str):
+    if policy_id == POLICY_ID:
+        return POLICY
+    if policy_id == REVALIDATION_POLICY_ID:
+        return REVALIDATION_POLICY
+    raise PeriodError("unsupported policy")
+
 
 class PeriodError(ValueError):
     pass
@@ -58,8 +96,7 @@ def _validate(period_id: str, config_sha256: str, policy_id: str) -> None:
         raise PeriodError("invalid period ID")
     if not isinstance(config_sha256, str) or not re.fullmatch(r"[0-9a-f]{64}", config_sha256):
         raise PeriodError("config must be a lower-case SHA256")
-    if policy_id != POLICY_ID:
-        raise PeriodError("unsupported policy")
+    policy_for(policy_id)
 
 
 @contextmanager
@@ -108,11 +145,11 @@ def _read(fd: int) -> list[dict]:
         raise PeriodError("invalid metadata") from exc
 
 
-def prepare_period(path: Path, period_id: str, config_sha256: str) -> PeriodSnapshot:
+def prepare_period(path: Path, period_id: str, config_sha256: str, *, policy_id: str = POLICY_ID) -> PeriodSnapshot:
     """Prepare only; runtime_accounting_connected=False, spend_limit_enforced=False."""
-    _validate(period_id, config_sha256, POLICY_ID)
+    _validate(period_id, config_sha256, policy_id)
     path = Path(path)
-    identity = PeriodIdentity(period_id, config_sha256, uuid.uuid4().hex)
+    identity = PeriodIdentity(period_id, config_sha256, uuid.uuid4().hex, policy_id)
     try:
         with _parent(path) as parent:
             # Retain this one-shot tombstone even if a later write fails.

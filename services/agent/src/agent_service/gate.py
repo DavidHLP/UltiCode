@@ -295,12 +295,15 @@ def _check_budget_anchor(
     if not isinstance(expected, dict) or set(expected) != fields:
         raise GateError("budget_anchor_schema_invalid")
     count, actual = expected.get("attempts"), expected.get("actual_micro_usd")
+    from authorized_budget_period import REVALIDATION_POLICY_ID, policy_for
+    fresh = binding.get("policy_id") == REVALIDATION_POLICY_ID
+    allowed_lanes = set(policy_for(REVALIDATION_POLICY_ID)["lanes"]) if fresh else _BASELINE_BUDGET_LANES
     if (expected.get("schema") != _BUDGET_ANCHOR_SCHEMA
-            or expected.get("period_id") != _ORIGINAL_PERIOD_ID
-            or expected.get("identity") != _ORIGINAL_PERIOD_IDENTITY
-            or expected.get("policy_id") != "dav58-dav53-v1"
+            or expected.get("period_id") != (binding.get("period_id") if fresh else _ORIGINAL_PERIOD_ID)
+            or expected.get("identity") != (binding.get("identity") if fresh else _ORIGINAL_PERIOD_IDENTITY)
+            or expected.get("policy_id") != (REVALIDATION_POLICY_ID if fresh else "dav58-dav53-v1")
             or expected.get("config_sha256") != binding.get("config_sha256")
-            or type(count) is not int or count < _ORIGINAL_ATTEMPTS or count > current_count
+            or type(count) is not int or count < (0 if fresh else _ORIGINAL_ATTEMPTS) or count > current_count
             or type(actual) is not int or actual < 0
             or not isinstance(expected.get("sql_prefix_sha256"), str)
             or not _SHA.fullmatch(expected["sql_prefix_sha256"])
@@ -308,7 +311,7 @@ def _check_budget_anchor(
             or not _SHA.fullmatch(expected["guard_prefix_sha256"])):
         raise GateError("budget_anchor_identity_invalid")
     prefix_rows = row_prefix[:count]
-    if any(row[2] not in _BASELINE_BUDGET_LANES for row in prefix_rows):
+    if any(row[2] not in allowed_lanes for row in prefix_rows):
         raise GateError("budget_anchor_prefix_lane_invalid")
     prefix_guard = guard_receipts[:count]
     sql_rows = [list(row) for row in prefix_rows]
@@ -323,10 +326,44 @@ def _check_budget_anchor(
     return expected
 
 
+def _fresh_live_budget(expected, expected_anchor=None, *, runtime=False):
+    from model_budget import ModelBudget
+    from dav58_live_guard import IncrementalGuard
+    budget = ModelBudget.bound(expected)
+    snapshot = budget.snapshot()
+    if (snapshot["state"] != "active" or snapshot["sql_gate"] != "active" or snapshot["halted"]
+            or snapshot["unknown_usage_attempts"] or snapshot["unsettled_attempts"]):
+        raise GateError("fresh_budget_unresolved")
+    _, guard = _read(budget.path.parent / f"dav58-increment-{expected.identity}.json", private=True)
+    try:
+        IncrementalGuard._validate_resume(guard, expected.identity, expected.config_sha256, budget.policy, budget)
+    except (ValueError, TypeError, KeyError) as exc:
+        raise GateError("fresh_guard_reconciliation_failed") from exc
+    with budget._accounting() as (db, _):
+        binding = json.loads(db.execute("SELECT payload FROM binding WHERE singleton=1").fetchone()[0])
+        rows = db.execute("SELECT rowid,attempt_id,purpose,actual_micro_usd,usage_known,settled FROM attempts ORDER BY rowid").fetchall()
+    if (len(rows) != snapshot["attempts"] or len(guard["receipts"]) != len(rows)
+            or sum(row[3] for row in rows) != snapshot["actual_micro_usd"]
+            or guard["settled_peak_micro_usd"] != snapshot["actual_micro_usd"]):
+        raise GateError("fresh_budget_counters_disagree")
+    anchor = {"schema": _BUDGET_ANCHOR_SCHEMA, **expected.__dict__,
+              "attempts": snapshot["attempts"], "actual_micro_usd": snapshot["actual_micro_usd"],
+              "sql_prefix_sha256": _canonical_sha256([list(row) for row in rows]),
+              "guard_prefix_sha256": _canonical_sha256(guard["receipts"])}
+    if expected_anchor is not None:
+        _check_budget_anchor(expected_anchor, binding=binding, row_prefix=rows, guard_receipts=guard["receipts"],
+                             current_count=len(rows), current_actual=snapshot["actual_micro_usd"], runtime=runtime)
+    return {"receipts": guard["receipts"], "anchor": anchor}
+
+
 def _check_live_budget_identity(
     expected_anchor: object | None = None, *, runtime: bool = False,
 ) -> dict[str, object]:
     """Read-only reconciliation; runtime may accept only a fully known anchored suffix."""
+    from authorized_budget_period import REVALIDATION_POLICY_ID, PeriodIdentity
+    if isinstance(expected_anchor, dict) and expected_anchor.get("policy_id") == REVALIDATION_POLICY_ID:
+        expected = PeriodIdentity(**{k: expected_anchor[k] for k in ("period_id", "identity", "config_sha256", "policy_id")})
+        return _fresh_live_budget(expected, expected_anchor, runtime=runtime)
     accounting = Path(pwd.getpwuid(os.getuid()).pw_dir) / ".local/state/ulticode/dav58-dav53-v1/accounting"
     database = accounting / "budget.sqlite3"
     binding_file = accounting / "binding.json"
@@ -402,8 +439,11 @@ def _check_live_budget_identity(
     return {"receipts": guard["receipts"], "anchor": anchor}
 
 
-def current_budget_anchor() -> dict[str, object]:
+def current_budget_anchor(expected=None) -> dict[str, object]:
     """Snapshot private canonical accounting for the U02 issuer to freeze into its proof."""
+    from authorized_budget_period import REVALIDATION_POLICY_ID
+    if expected is not None and expected.policy_id == REVALIDATION_POLICY_ID:
+        return _fresh_live_budget(expected)["anchor"]
     return _check_live_budget_identity()["anchor"]
 
 
@@ -429,6 +469,9 @@ def _source_bindings(payload: dict[str, object], artifact: dict[str, object], ro
             "src/retrieval.py", "src/ulticode_client.py", "src/ulticode_tools.py",
             "src/dav58_live_guard.py", "src/model_budget.py", "src/authorized_budget_period.py",
         }
+    from authorized_budget_period import REVALIDATION_POLICY_ID
+    if payload.get("budget_anchor", {}).get("policy_id") == REVALIDATION_POLICY_ID:
+        expected.add("src/revalidation_history.py")
     if set(hashes) != expected:
         raise GateError("artifact_source_coverage_incomplete")
     for relative, digest in hashes.items():
@@ -440,6 +483,14 @@ def _source_bindings(payload: dict[str, object], artifact: dict[str, object], ro
 
 
 def _expected_identity(value: object) -> dict[str, object]:
+    from authorized_budget_period import REVALIDATION_POLICY_ID, PeriodIdentity
+    if isinstance(value, dict) and value.get("policy_id") == REVALIDATION_POLICY_ID:
+        from model_budget import ModelBudget
+        if set(value) != {"period_id", "identity", "config_sha256", "policy_id"}:
+            raise GateError("budget_config_unbound")
+        expected = PeriodIdentity(**value)
+        ModelBudget.bound(expected)
+        return value
     expected = {
         "period_id": _ORIGINAL_PERIOD_ID,
         "identity": _ORIGINAL_PERIOD_IDENTITY,
@@ -453,12 +504,37 @@ def _expected_identity(value: object) -> dict[str, object]:
     return value
 
 
+def _check_fresh_snapshot(snapshot: dict[str, object], identity: dict[str, object]) -> None:
+    from authorized_budget_period import REVALIDATION_POLICY_ID, REVALIDATION_POLICY
+    if identity.get("policy_id") != REVALIDATION_POLICY_ID:
+        return
+    history = dict(REVALIDATION_POLICY["history"])
+    attempts, committed = snapshot.get("attempts"), snapshot.get("committed_micro_usd")
+    if (snapshot.get("policy_id") != REVALIDATION_POLICY_ID
+            or snapshot.get("period_identity") != identity["identity"]
+            or snapshot.get("config_sha256") != identity["config_sha256"]
+            or snapshot.get("state") != "active" or snapshot.get("sql_gate") != "active"
+            or snapshot.get("halted") != 0
+            or type(committed) is not int or not 0 <= committed <= REVALIDATION_POLICY["limit_micro_usd"]
+            or type(snapshot.get("actual_micro_usd")) is not int
+            or not 0 <= snapshot["actual_micro_usd"] <= committed
+            or snapshot.get("retained_history") != history
+            or snapshot.get("legacy_history") != "retained_unknown_encumbered"
+            or type(attempts) is not int or not 0 <= attempts <= REVALIDATION_POLICY["attempts"]
+            or snapshot.get("cumulative_attempts") != history["attempts"] + attempts
+            or snapshot.get("cumulative_committed_micro_usd") != history["known_actual_micro_usd"]
+            + history["unknown_encumbrance_micro_usd"] + committed):
+        raise GateError("budget_retained_history_mismatch")
+
+
 def _check_period_usage(
     value: object, *, expected_purposes: set[str], expected_before: dict[str, object] | None = None,
 ) -> dict[str, object]:
     if not isinstance(value, dict):
         raise GateError("budget_audit_missing")
     identity = _expected_identity(value.get("identity"))
+    from authorized_budget_period import POLICY_ID, policy_for
+    fresh = identity["policy_id"] != POLICY_ID
     purposes = value.get("purposes")
     if not isinstance(purposes, list) or not expected_purposes <= set(purposes):
         raise GateError("budget_purpose_missing")
@@ -466,9 +542,10 @@ def _check_period_usage(
     if not isinstance(before, dict) or not isinstance(after, dict) or not isinstance(receipts, list):
         raise GateError("budget_audit_missing")
     for snapshot in (before, after):
+        _check_fresh_snapshot(snapshot, identity)
         if snapshot.get("unknown_usage_attempts") != 0 or snapshot.get("unsettled_attempts") != 0:
             raise GateError("budget_unresolved")
-        if snapshot.get("legacy_history") != "reconciled":
+        if not fresh and snapshot.get("legacy_history") != "reconciled":
             raise GateError("budget_legacy_history_unknown")
     ids: set[str] = set()
     actual = 0
@@ -487,7 +564,7 @@ def _check_period_usage(
     if not receipts:
         raise GateError("budget_receipt_unknown")
     before_attempts = before.get("attempts")
-    if type(before_attempts) is not int or before_attempts < _ORIGINAL_ATTEMPTS:
+    if type(before_attempts) is not int or before_attempts < (0 if fresh else _ORIGINAL_ATTEMPTS):
         raise GateError("budget_historical_attempt_count_mismatch")
     if (expected_before is not None
             and any(before.get(key) != expected_before.get(key) for key in ("attempts", "actual_micro_usd"))):
@@ -498,7 +575,7 @@ def _check_period_usage(
         raise GateError("budget_actual_total_mismatch")
     if type(before.get("actual_micro_usd")) is not int or type(after.get("actual_micro_usd")) is not int:
         raise GateError("budget_actual_total_invalid")
-    if after["actual_micro_usd"] > _BUDGET_CEILING_MICRO_USD:
+    if after["actual_micro_usd"] > policy_for(identity["policy_id"])["limit_micro_usd"]:
         raise GateError("budget_usd1_ceiling_exceeded")
     return identity
 
@@ -562,17 +639,18 @@ def _check_dav58(
     }
     if set(config) != allowed_config_keys:
         raise GateError("dav58_configuration_schema_unsupported")
+    from authorized_budget_period import policy_for, POLICY_ID
+    period = _expected_identity(config.get("period"))
+    policy = policy_for(period["policy_id"])
+    fresh = period["policy_id"] != POLICY_ID
+    expected_limits = {name: dict(policy["lanes"][name]) for name in ("dav58_loop", "dav58_judge")}
     if (config.get("model") != "deepseek-flash" or config.get("thinking") != "disabled"
-            or config.get("temperature") != 0 or config.get("max_prompt_tokens") != 24000
+            or config.get("temperature") != 0 or config.get("max_prompt_tokens") != (8000 if fresh else 24000)
             or config.get("max_completion_tokens") != 2000 or config.get("max_rounds") != 4
             or type(config.get("timeout_seconds")) not in (int, float)
             or not 0 < config["timeout_seconds"] <= 120 or config.get("continuation_audit") is not None
-            or config.get("max_calls_per_adapter") != {"dav58_loop": 24, "dav58_judge": 42}):
+            or config.get("max_calls_per_adapter") != {name: lane["attempts"] for name, lane in expected_limits.items()}):
         raise GateError("dav58_configuration_not_authorized")
-    expected_limits = {
-        "dav58_loop": {"attempts": 24, "completion_token_cap": 2000, "rounds": 4},
-        "dav58_judge": {"attempts": 42, "completion_token_cap": 2000, "rounds": 1},
-    }
     if config.get("purpose_limits") != expected_limits:
         raise GateError("dav58_purpose_limits_mismatch")
     from boundary_evaluation import SEARCH_EVIDENCE_SPEC
@@ -917,6 +995,8 @@ def _check_dav58_raw_judge(
 def _check_dav53_budget_chain(
     scenarios: list[dict[str, object]], *, expected_before: dict[str, object], period_identity: dict[str, object],
 ) -> dict[str, object]:
+    from authorized_budget_period import POLICY_ID
+    minimum = 0 if period_identity.get("policy_id", POLICY_ID) != POLICY_ID else _ORIGINAL_ATTEMPTS
     previous = expected_before
     for row in scenarios:
         snapshots, charges = row.get("budget_snapshots"), row.get("metering_entries")
@@ -926,9 +1006,10 @@ def _check_dav53_budget_chain(
         if not isinstance(before, dict) or not isinstance(after, dict):
             raise GateError("dav53_budget_snapshot_missing")
         for snapshot in (before, after):
+            _check_fresh_snapshot(snapshot, period_identity)
             if (snapshot.get("period_identity") != period_identity["identity"]
                     or snapshot.get("config_sha256") != period_identity["config_sha256"]
-                    or type(snapshot.get("attempts")) is not int or snapshot["attempts"] < _ORIGINAL_ATTEMPTS
+                    or type(snapshot.get("attempts")) is not int or snapshot["attempts"] < minimum
                     or type(snapshot.get("actual_micro_usd")) is not int or snapshot["actual_micro_usd"] < 0
                     or snapshot.get("unknown_usage_attempts") != 0 or snapshot.get("unsettled_attempts") != 0):
                 raise GateError("dav53_budget_snapshot_invalid")
@@ -970,7 +1051,7 @@ def _check_dav53(
         "period_id": budget_binding.get("period_id"),
         "identity": budget_binding.get("period_identity"),
         "config_sha256": budget_binding.get("config_sha256"),
-        "policy_id": "dav58-dav53-v1",
+        "policy_id": budget_binding.get("policy_id", "dav58-dav53-v1"),
     })
     if identity.get("a_role") != "USER" or identity.get("b_role") != "USER" or identity.get("distinct") is not True or identity.get("unchanged") is not True:
         raise GateError("dav53_identity_failed")
@@ -1188,6 +1269,162 @@ def _derive_prior_five_raw(name: str, raw: dict[str, object]) -> dict[str, objec
                 "dav59_complete": all(isinstance(row, dict) and row.get("result") == "complete" for row in dav59)}
     raise GateError("prior_five_raw_record_name_invalid")
 
+def _verified_prior_exchanges(raw, receipts):
+    from deepseek_model import _reject_duplicate_keys, _reject_json_constant
+    exchanges = raw.get("provider_exchanges")
+    if not isinstance(exchanges, list) or len(exchanges) != len(receipts):
+        raise GateError("prior_five_provider_exchange_missing")
+    verified = []
+    for exchange, receipt in zip(exchanges, receipts):
+        try:
+            if set(exchange) != {"attempt_id", "request_json", "response_hex"}:
+                raise ValueError("unsupported exchange")
+            request_bytes = exchange["request_json"].encode("utf-8")
+            response_bytes = bytes.fromhex(exchange["response_hex"])
+            if (exchange["attempt_id"] != receipt["attempt_id"]
+                    or hashlib.sha256(request_bytes).hexdigest() != receipt["request_sha256"]
+                    or hashlib.sha256(response_bytes).hexdigest() != receipt.get("response_sha256")):
+                raise ValueError("exchange does not match provider receipt")
+            parse = lambda value: json.loads(value, object_pairs_hook=_reject_duplicate_keys,
+                                            parse_constant=_reject_json_constant)
+            request, response = parse(request_bytes), parse(response_bytes)
+            usage = response["usage"]
+            if (any(usage.get(key) != receipt.get(key) for key in ("prompt_tokens", "completion_tokens", "total_tokens"))
+                    or response.get("model") != receipt.get("response_model")):
+                raise ValueError("provider usage mismatch")
+            choice = response["choices"][0]
+            verified.append((request, choice["message"]["content"], choice["finish_reason"]))
+        except (ValueError, TypeError, KeyError, IndexError, AttributeError):
+            raise GateError("prior_five_provider_exchange_mismatch") from None
+    return verified
+
+
+def _check_prior_model_records(name, raw, exchanges, source_facts=None):
+    from deepseek_model import _parse_decision, ModelProtocolError
+    from e2e_citation_support_model import JUDGE_CONTRACT
+    records = raw.get("records", {})
+
+    def answer(exchange, prompt=None):
+        request, content, finish = exchange
+        messages = request.get("messages")
+        if (finish != "stop" or not isinstance(messages, list) or len(messages) != 2
+                or messages[-1].get("role") != "user"
+                or (prompt is not None and messages[-1].get("content") != prompt)):
+            raise ValueError("unexpected prior-stage prompt or completion")
+        decision = _parse_decision(content, finish_reason=finish)
+        if decision.tool_call is not None or not decision.text:
+            raise ValueError("prior-stage answer missing")
+        return decision.text
+
+    try:
+        if name == "本人提交检索分析":
+            from e2e_sourced_analysis_model import ANSWER_CONTRACT, QUESTION, _validate_answer
+            text = answer(exchanges[0])
+            prompt = exchanges[0][0]["messages"][-1]["content"]
+            evidence = json.loads(prompt.split("EVIDENCE_JSON=", 1)[1])
+            expected_prompt = ("Analyze the submission using only the supplied evidence. "
+                               f"{ANSWER_CONTRACT} EVIDENCE_JSON={json.dumps(evidence, ensure_ascii=False)}")
+            if prompt != expected_prompt:
+                raise ValueError("source prompt differs from contract")
+            _validate_answer(text, evidence)
+            parsed = json.loads(text)
+            if (text != records.get("model_answer") or records.get("facts") != evidence["facts"]
+                    or records.get("citations") != evidence["citations"]
+                    or set(parsed) != {"facts", "hypotheses", "citations"}
+                    or not parsed["facts"] or not parsed["hypotheses"] or not parsed["citations"]
+                    or not set(parsed["facts"]) <= set(evidence["facts"])
+                    or not set(parsed["hypotheses"]) <= set(evidence["allowed_hypotheses"])
+                    or not set(parsed["citations"]) <= {c["doc_id"] for c in evidence["citations"]}):
+                raise ValueError("source answer was replaced")
+            if records.get("retrieval_calls") != [{"query": QUESTION, "results": evidence["citations"]}]:
+                raise ValueError("source retrieval was replaced")
+        elif name == "三引用支持负例":
+            from e2e_citation_support_model import _judgements
+            from citation_review import revalidation_citation_cases
+            if not isinstance(source_facts, list) or not source_facts:
+                raise ValueError("citation source facts missing")
+            probes = revalidation_citation_cases(source_facts)
+            for exchange, observed, probe in zip(exchanges, records["citations"], probes):
+                prompt = JUDGE_CONTRACT + "\nINPUT_JSON " + json.dumps(
+                    {"CLAIM": probe["row"].claim, "QUOTE": probe["row"].quote, "SUBMISSION_FACTS": source_facts},
+                    ensure_ascii=True)
+                supports, derivable = _judgements(answer(exchange, prompt))
+                exists = probe["row"].integrity_verdict == "verified"
+                if (observed != {"exists": exists, "supports": supports, "derivable": derivable,
+                                 "gate_rejected": not exists or not supports}):
+                    raise ValueError("citation verdict was replaced")
+        elif name == "20dev评估":
+            from answer_evaluation import _answer_prompt, _answer_of, _judge_prompt, _judgement_of, development_cases
+            from keyword_evaluation import load_cases
+            from retrieval import keyword_search, load_sample_corpus
+            cases, documents = development_cases(load_cases()), load_sample_corpus()
+            passes = records.get("development_passes")
+            if (not isinstance(passes, list) or len(passes) != 2 or len(exchanges) != len(cases) * 4
+                    or records.get("rows") != passes[0]):
+                raise ValueError("two development passes required")
+            cursor = 0
+            for rows in passes:
+                if not isinstance(rows, list) or len(rows) != len(cases):
+                    raise ValueError("development pass incomplete")
+                for case, row in zip(cases, rows):
+                    hits = keyword_search(case.query, limit=3, documents=documents)
+                    text, citations = _answer_of(answer(exchanges[cursor], _answer_prompt(case, hits)),
+                                                {hit.chunk_id for hit in hits})
+                    cited_hits = tuple(hit for hit in hits if hit.chunk_id in set(citations))
+                    support, complete, observed = _judgement_of(answer(
+                        exchanges[cursor + 1], _judge_prompt(case, citations, cited_hits, text)))
+                    expected = {"case_id": case.case_id, "split": case.split, "expected_behavior": case.expected_behavior,
+                                "observed_behavior": observed, "behavior_match": observed == case.expected_behavior,
+                                "citation_support": "not_applicable" if not citations else "supported" if support else "unsupported",
+                                "answer_completion": "completed" if complete else "incomplete",
+                                "citations": list(citations), "answer_text": text, "model_calls": 2}
+                    if any(row.get(key) != value for key, value in expected.items()):
+                        raise ValueError("development result was replaced")
+                    cursor += 2
+    except (ValueError, TypeError, KeyError, IndexError, AttributeError, ModelProtocolError):
+        raise GateError("prior_five_provider_result_mismatch") from None
+
+
+def _check_prior_budget_prefix(prior, before, identity, canonical, evidence_root):
+    lanes = {"本人提交检索分析": "prior_source", "三引用支持负例": "prior_citation_judge",
+             "20dev评估": "prior_development"}
+    usage = prior.get("authorized_period")
+    if _check_period_usage(usage, expected_purposes=set(lanes.values())) != identity:
+        raise GateError("budget_cross_artifact_identity_mismatch")
+    start, end = usage["before"], usage["after"]
+    if start["attempts"] != 0 or start["actual_micro_usd"] != 0 or end != before:
+        raise GateError("budget_initial_prefix_mismatch")
+    prefix = canonical[:end["attempts"]]
+    receipts = usage["receipts"]
+    if len(prefix) != len(receipts):
+        raise GateError("prior_five_budget_receipt_mismatch")
+    for recorded, trusted in zip(receipts, prefix):
+        if (recorded.get("attempt_id") != trusted.get("attempt_id")
+                or recorded.get("actual_micro_usd") != trusted.get("peak_micro_usd")
+                or recorded.get("purpose") != trusted.get("lane")
+                or recorded.get("request_sha256") != trusted.get("request_sha256")):
+            raise GateError("prior_five_budget_receipt_mismatch")
+    by_lane = {lane: [r["attempt_id"] for r in prefix if r.get("lane") == lane] for lane in lanes.values()}
+    if (len(by_lane["prior_source"]) != 1 or len(by_lane["prior_citation_judge"]) != 3
+            or not 40 <= len(by_lane["prior_development"]) <= 120
+            or sum(map(len, by_lane.values())) != len(prefix)):
+        raise GateError("prior_five_budget_lane_mismatch")
+    source_facts = None
+    by_name = {item.get("name"): item for item in prior.get("items", [])}
+    for name, lane in lanes.items():
+        item = by_name.get(name)
+        if item is None:
+            raise GateError("prior_five_items_invalid")
+        if lane is not None:
+            raw, _ = _verified_reference(item.get("raw_record"), root=evidence_root, label="prior_five_raw")
+            if raw.get("attempt_ids") != by_lane[lane]:
+                raise GateError("prior_five_raw_budget_binding_missing")
+            exchanges = _verified_prior_exchanges(raw, [r for r in prefix if r["lane"] == lane])
+            _check_prior_model_records(name, raw, exchanges, source_facts)
+            if lane == "prior_source":
+                source_facts = raw["records"]["facts"]
+
+
 def validate_u02_gate_payload(
     payload: dict[str, object], *, expected_head: str, expected_base: str | None = None,
     candidate_root: Path | str | None = None, evidence_root: Path | str | None = None,
@@ -1225,7 +1462,10 @@ def validate_u02_gate_payload(
     )
     dav58_period = dav58["authorized_period"]
     dav58_before, dav58_after = dav58_period["before"], dav58_period["after"]
-    if dav58_before.get("attempts") != _ORIGINAL_ATTEMPTS:
+    from authorized_budget_period import REVALIDATION_POLICY_ID
+    if identity58["policy_id"] == REVALIDATION_POLICY_ID:
+        _check_prior_budget_prefix(prior, dav58_before, identity58, canonical_guard_receipts, evidence)
+    elif dav58_before.get("attempts") != _ORIGINAL_ATTEMPTS:
         raise GateError("budget_initial_prefix_mismatch")
     identity53, dav53_after = _check_dav53(
         dav53, candidate_head=head, payload=payload, root=root, expected_budget_before=dav58_after,

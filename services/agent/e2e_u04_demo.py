@@ -26,7 +26,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
 import e2e_u03_workflow as delivery
 from agent_service.gate import GateError, load_u02_gate
 import httpx
-from authorized_budget_period import POLICY, POLICY_ID
+from authorized_budget_period import POLICY, POLICY_ID, policy_for
 from keyword_evaluation import load_cases
 
 
@@ -61,25 +61,50 @@ def _within(root: Path, path: Path) -> Path:
     if not resolved.is_absolute() or resolved_root not in resolved.parents:
         raise ValueError("artifact_outside_evidence_root")
     return resolved
-def _u04_authorized() -> bool:
+def _u04_authorized(policy=None) -> bool:
     """Require policy-owned purpose mapping; environment flags cannot grant spend."""
-    purpose = POLICY.get("u04_authorized_purpose")
-    lanes = POLICY.get("lanes", {})
+    policy = POLICY if policy is None else policy
+    purpose = policy.get("u04_authorized_purpose")
+    lanes = policy.get("lanes", {})
     lane = lanes.get(purpose) if isinstance(lanes, Mapping) and isinstance(purpose, str) else None
     return bool(
-        POLICY.get("runtime_accounting_connected") is True
-        and POLICY.get("spend_limit_enforced") is True
+        policy.get("runtime_accounting_connected") is True
+        and policy.get("spend_limit_enforced") is True
         and isinstance(lane, Mapping)
-        and purpose in {"dav58_loop", "dav58_judge", "dav53_scenarios"}
+        and purpose in {"dav58_loop", "dav58_judge", "dav53_scenarios", "u04_post_demo"}
         and type(lane.get("attempts")) is int and lane["attempts"] >= 1
         and type(lane.get("completion_token_cap")) is int and lane["completion_token_cap"] > 0
-        and type(POLICY.get("limit_micro_usd")) is int and POLICY["limit_micro_usd"] > 0
+        and type(policy.get("limit_micro_usd")) is int and policy["limit_micro_usd"] > 0
     )
 
 
-def _authorize_before_holdout() -> None:
-    if not _u04_authorized():
+def _authorize_before_holdout(policy=None) -> None:
+    if not (_u04_authorized() if policy is None else _u04_authorized(policy)):
         raise ValueError("u04_budget_purpose_gate_blocked")
+
+
+def _selected_policy(args):
+    policy_id = getattr(args, "policy_id", POLICY_ID)
+    return POLICY if policy_id == POLICY_ID else policy_for(policy_id)
+
+
+def _check_candidate_policy(args, candidate, gate):
+    if getattr(args, "policy_id", POLICY_ID) == POLICY_ID:
+        return
+    selected = _selected_policy(args)
+    expected_policy = {
+        "policy_id": args.policy_id, "limit_micro_usd": selected["limit_micro_usd"],
+        "attempts": selected["attempts"], "prompt_token_cap": selected["prompt_token_cap"],
+        "lanes": {name: dict(lane) for name, lane in selected["lanes"].items()},
+    }
+    if candidate.get("model_budget_policy") != expected_policy:
+        raise ValueError("candidate_budget_policy_mismatch")
+    anchor = gate.get("budget_anchor", {})
+    if any(anchor.get(key) != value for key, value in {
+        "period_id": args.period_id, "identity": args.period_identity,
+        "config_sha256": args.config_sha256, "policy_id": args.policy_id,
+    }.items()):
+        raise ValueError("u04_budget_identity_mismatch")
 
 
 def _development_record_pass(row) -> bool:
@@ -154,6 +179,7 @@ def _development_complete(development: object) -> bool:
     )
 
 def freeze_candidate(args: argparse.Namespace) -> int:
+    selected = _selected_policy(args)
     root = Path(args.candidate).resolve(strict=True)
     evidence_root = _private_root(Path(args.evidence_root))
     output = _within(evidence_root, Path(args.output))
@@ -168,11 +194,11 @@ def freeze_candidate(args: argparse.Namespace) -> int:
         "configuration_fingerprint": delivery._candidate_configuration_fingerprint(root),
         "development_cases_sha256": hashlib.sha256((root / "services/agent/data/keyword_cases.json").read_bytes()).hexdigest(),
         "model_budget_policy": {
-            "policy_id": POLICY_ID,
-            "limit_micro_usd": POLICY["limit_micro_usd"],
-            "attempts": POLICY["attempts"],
-            "prompt_token_cap": POLICY["prompt_token_cap"],
-            "lanes": {key: dict(value) for key, value in POLICY["lanes"].items()},
+            "policy_id": getattr(args, "policy_id", POLICY_ID),
+            "limit_micro_usd": selected["limit_micro_usd"],
+            "attempts": selected["attempts"],
+            "prompt_token_cap": selected["prompt_token_cap"],
+            "lanes": {key: dict(value) for key, value in selected["lanes"].items()},
         },
         "holdout3_sha256": args.holdout3_sha256,
         "sealed_cases_path": "~/.local/state/ulticode/u04/holdout-v3.json",
@@ -197,6 +223,7 @@ def freeze_bundle(args: argparse.Namespace) -> int:
     candidate_inputs, candidate_raw = delivery._read_json(candidate_path)
     u03, u03_raw = delivery._read_json(u03_path)
     candidate_sha = hashlib.sha256(candidate_raw).hexdigest()
+    _check_candidate_policy(args, candidate_inputs, gate)
     gate_sha = hashlib.sha256(gate_raw).hexdigest()
     u03_evidence_root = _private_root(u03_path.parent)
     delivery.validate_u03_result(
@@ -253,9 +280,9 @@ def _evidence_bytes(path: Path) -> bytes:
         os.close(fd)
 
 
-def claim_holdout_once(*, candidate_sha256: str, bundle_sha256: str, holdout_sha256: str) -> Path:
+def claim_holdout_once(*, candidate_sha256: str, bundle_sha256: str, holdout_sha256: str, policy=None) -> Path:
     """Consume canonical holdout before first read; never reset the marker."""
-    _authorize_before_holdout()
+    _authorize_before_holdout() if policy is None else _authorize_before_holdout(policy)
     holdout = canonical_holdout3()
     if not delivery._SHA.fullmatch(holdout_sha256):
         raise ValueError("invalid_holdout_commitment")
@@ -281,9 +308,9 @@ def claim_holdout_once(*, candidate_sha256: str, bundle_sha256: str, holdout_sha
         os.close(lock_fd)
 
 
-def _read_case_list(path: Path, *, claimed_marker: Path | None = None) -> tuple[list, bytes]:
+def _read_case_list(path: Path, *, claimed_marker: Path | None = None, policy=None) -> tuple[list, bytes]:
     if path == canonical_holdout3():
-        _authorize_before_holdout()
+        _authorize_before_holdout() if policy is None else _authorize_before_holdout(policy)
         marker = path.with_name("holdout-v3.consumed")
         if claimed_marker != marker:
             raise ValueError("sealed_holdout_must_be_claimed")
@@ -328,17 +355,17 @@ def _case_semantics(case) -> tuple:
 
 
 def _load_claimed_holdout(candidate_sha256: str, bundle_sha256: str,
-                          holdout_sha256: str) -> tuple:
+                          holdout_sha256: str, policy=None) -> tuple:
     """Claim once at execution start, then read and validate canonical holdout."""
     marker = claim_holdout_once(candidate_sha256=candidate_sha256, bundle_sha256=bundle_sha256,
-                                holdout_sha256=holdout_sha256)
+                                holdout_sha256=holdout_sha256, **({"policy": policy} if policy is not None else {}))
     holdout = canonical_holdout3()
     claim, _ = delivery._read_json(marker)
     if (claim.get("candidate_inputs_sha256") != candidate_sha256
             or claim.get("acceptance_bundle_sha256") != bundle_sha256
             or claim.get("holdout_sha256") != holdout_sha256):
         raise ValueError("sealed_holdout_claim_mismatch")
-    _, raw = _read_case_list(holdout, claimed_marker=marker)
+    _, raw = _read_case_list(holdout, claimed_marker=marker, **({"policy": policy} if policy is not None else {}))
     if hashlib.sha256(raw).hexdigest() != holdout_sha256:
         raise ValueError("holdout_commitment_mismatch")
     cases = load_cases(path=holdout, text=raw.decode("utf-8"))
@@ -369,6 +396,7 @@ def _run_preflight(args: argparse.Namespace) -> dict:
     candidate, candidate_raw = delivery._read_json(candidate_path)
     bundle, bundle_raw = delivery._read_json(bundle_path)
     u03, u03_raw = delivery._read_json(u03_path)
+    _check_candidate_policy(args, candidate, gate)
     gate_sha = hashlib.sha256(gate_raw).hexdigest()
     u03_sha = hashlib.sha256(u03_raw).hexdigest()
     candidate_sha = hashlib.sha256(candidate_raw).hexdigest()
@@ -398,7 +426,10 @@ def _run_preflight(args: argparse.Namespace) -> dict:
     if (bundle.get("u03_receipts") != u03["receipts"]
             or bundle.get("u03_scenarios") != sorted(item["scenario"] for item in u03["scenarios"])):
         raise ValueError("acceptance_bundle_u03_receipts_mismatch")
-    _authorize_before_holdout()
+    if getattr(args, "policy_id", POLICY_ID) == POLICY_ID:
+        _authorize_before_holdout()
+    else:
+        _authorize_before_holdout(_selected_policy(args))
     development = _run_development(root)
     identity, model_alias, budget, guard, lane, receipt_start, purpose = _open_paid_runtime(args)
     return {
@@ -417,7 +448,11 @@ def _run_preflight(args: argparse.Namespace) -> dict:
     }
 def _open_paid_runtime(args: argparse.Namespace, *, required_calls: int = 88):
     """Open only existing shared accounting; no flag or fresh journal grants spend."""
-    _authorize_before_holdout()
+    selected = _selected_policy(args)
+    if getattr(args, "policy_id", POLICY_ID) == POLICY_ID:
+        _authorize_before_holdout()
+    else:
+        _authorize_before_holdout(selected)
     if type(required_calls) is not int or required_calls < 1:
         raise ValueError("u04_call_bound_invalid")
     required = (args.period_id, args.period_identity, args.config_sha256, args.guard_sha256)
@@ -425,15 +460,22 @@ def _open_paid_runtime(args: argparse.Namespace, *, required_calls: int = 88):
         raise ValueError("u04_budget_identity_required")
     from authorized_budget_period import PeriodIdentity
     from dav58_live_guard import ENVELOPE_MICRO_USD, IncrementalGuard
-    from model_budget import authorized_model, _authorization_slot, worst_case_micro_usd
+    from model_budget import authorized_model, authorization_slot, worst_case_micro_usd
 
-    identity = PeriodIdentity(args.period_id, args.config_sha256, args.period_identity)
+    identity = PeriodIdentity(args.period_id, args.config_sha256, args.period_identity,
+                              policy_id=getattr(args, "policy_id", POLICY_ID))
     model_alias, budget = authorized_model(identity)
     snapshot = budget.snapshot()
-    purpose = POLICY["u04_authorized_purpose"]
-    lane = POLICY["lanes"][purpose]
-    u03_analysis = POLICY["lanes"].get("u03_analysis")
-    u03_judge = POLICY["lanes"].get("u03_citation_judge")
+    purpose = selected["u04_authorized_purpose"]
+    lane = selected["lanes"][purpose]
+    u03_analysis = selected["lanes"].get("u03_analysis")
+    u03_judge = selected["lanes"].get("u03_citation_judge")
+    if identity.policy_id != POLICY_ID:
+        required_lanes = {purpose: 81}
+        if required_calls == 88:
+            required_lanes.update(u03_analysis=4, u03_citation_judge=3)
+        if any(budget.remaining_purpose_attempts(name) < count for name, count in required_lanes.items()):
+            raise ValueError("u04_shared_budget_preflight_blocked")
     if (
         not isinstance(u03_analysis, Mapping) or not isinstance(u03_judge, Mapping)
         or type(u03_analysis.get("attempts")) is not int or u03_analysis["attempts"] < 4
@@ -441,28 +483,29 @@ def _open_paid_runtime(args: argparse.Namespace, *, required_calls: int = 88):
         or snapshot.get("state") != "active" or snapshot.get("sql_gate") != "active"
         or snapshot.get("halted") or snapshot.get("pending_micro_usd", 0)
         or snapshot.get("remaining_attempts", 0) < required_calls
-        or lane["attempts"] < required_calls
+        or lane["attempts"] < min(required_calls, 81)
     ):
         raise ValueError("u04_shared_budget_preflight_blocked")
     completion_caps = [entry.get("completion_token_cap") for entry in (lane, u03_analysis, u03_judge)]
-    prompt_cap = POLICY.get("prompt_token_cap")
+    prompt_cap = selected.get("prompt_token_cap")
     if (type(prompt_cap) is not int or prompt_cap < 1
             or any(type(cap) is not int or cap < 1 for cap in completion_caps)):
         raise ValueError("u04_shared_budget_preflight_blocked")
     per_call = worst_case_micro_usd(prompt_cap, max(completion_caps))
-    if snapshot.get("committed_micro_usd", POLICY["limit_micro_usd"]) + required_calls * per_call > POLICY["limit_micro_usd"]:
+    if snapshot.get("committed_micro_usd", selected["limit_micro_usd"]) + required_calls * per_call > selected["limit_micro_usd"]:
         raise ValueError("u04_shared_budget_preflight_blocked")
-    journal = _authorization_slot() / "accounting" / f"dav58-increment-{identity.identity}.json"
+    journal = authorization_slot(identity) / "accounting" / f"dav58-increment-{identity.identity}.json"
     guard = IncrementalGuard(
         journal, resume_sha256=args.guard_sha256,
         period_identity=identity.identity, config_sha256=identity.config_sha256,
+        budget=budget if identity.policy_id != POLICY_ID else None,
     )
     if (snapshot.get("attempts") != len(guard.state["receipts"])
             or snapshot.get("actual_micro_usd") != guard.state["settled_peak_micro_usd"]
             or guard.state.get("halted") or guard.state.get("pending_micro_usd")):
         guard.close()
         raise ValueError("u04_shared_budget_journal_mismatch")
-    if guard.state["settled_peak_micro_usd"] + (required_calls - 1) * per_call + ENVELOPE_MICRO_USD > POLICY["limit_micro_usd"]:
+    if guard.state["settled_peak_micro_usd"] + (required_calls - 1) * per_call + ENVELOPE_MICRO_USD > selected["limit_micro_usd"]:
         guard.close()
         raise ValueError("u04_shared_budget_preflight_blocked")
     return identity, model_alias, budget, guard, lane, len(guard.state["receipts"]), purpose
@@ -1120,7 +1163,8 @@ async def _run_human_demo(preflight: dict, run_dir: Path) -> dict[str, object]:
         return {"status": "INCOMPLETE", "reason": "human_demo_loopback_required",
                 "human_demo_completed": False, "counters": {}}
 
-    if not {"u03_analysis", "u03_citation_judge"} <= set(POLICY.get("lanes", {})):
+    selected = _selected_policy(preflight.get("args"))
+    if not {"u03_analysis", "u03_citation_judge"} <= set(selected.get("lanes", {})):
         return {"status": "INCOMPLETE", "reason": "u03_model_purpose_blocked",
                 "human_demo_completed": False, "counters": {}}
     run_dir.mkdir(mode=0o700)
@@ -1317,6 +1361,7 @@ async def _execute(args: argparse.Namespace, preflight: dict) -> dict[str, objec
 
     guard = preflight["guard"]
     budget, lane, purpose = preflight["budget"], preflight["lane"], preflight["purpose"]
+    selected = _selected_policy(args)
     try:
         documents = load_sample_corpus()
         run_dir = preflight["evidence_root"] / f"u04-run-{uuid.uuid4()}"
@@ -1352,13 +1397,13 @@ async def _execute(args: argparse.Namespace, preflight: dict) -> dict[str, objec
         api_key = os.environ.get("DEEPSEEK_API_KEY", "")
         model = DeepseekModel(
             api_key, model=preflight["model_alias"], thinking_type="disabled", tool_specs=specs,
-            max_tokens=lane["completion_token_cap"], max_prompt_tokens=POLICY["prompt_token_cap"],
+            max_tokens=lane["completion_token_cap"], max_prompt_tokens=selected["prompt_token_cap"],
             max_calls=lane["attempts"], budget=budget, budget_purpose=purpose,
             transport=transport(),
         )
         judge = DeepseekModel(
             api_key, model=preflight["model_alias"], thinking_type="disabled", tool_specs={},
-            max_tokens=lane["completion_token_cap"], max_prompt_tokens=POLICY["prompt_token_cap"],
+            max_tokens=lane["completion_token_cap"], max_prompt_tokens=selected["prompt_token_cap"],
             max_calls=lane["attempts"], budget=budget, budget_purpose=purpose,
             transport=transport(),
         )
@@ -1366,6 +1411,7 @@ async def _execute(args: argparse.Namespace, preflight: dict) -> dict[str, objec
             cases, raw = _load_claimed_holdout(
                 preflight["candidate_sha256"], preflight["bundle_sha256"],
                 preflight["candidate"]["holdout3_sha256"],
+                **({"policy": selected} if getattr(args, "policy_id", POLICY_ID) != POLICY_ID else {}),
             )
             rows = await _evaluate_holdout(
                 cases, model=model, judge=judge, documents=documents,
@@ -1406,6 +1452,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--acceptance-bundle")
     parser.add_argument("--holdout3-sha256")
     parser.add_argument("--period-id")
+    parser.add_argument("--policy-id", default=POLICY_ID)
     parser.add_argument("--period-identity")
     parser.add_argument("--config-sha256")
     parser.add_argument("--guard-sha256")

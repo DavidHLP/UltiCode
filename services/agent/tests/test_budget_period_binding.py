@@ -592,3 +592,195 @@ def test_extension_audit_or_limit_drift_fails_closed(slot, tamper):
         if tamper == "delete": db.execute("DROP TABLE dav58_continuation")
     with pytest.raises(period.PeriodError):
         ModelBudget.bound(identity)
+
+
+def fresh_history(slot, monkeypatch):
+    """Synthetic unit inputs only; never acceptance evidence."""
+    ledgers = []
+    for label, count, actual, unknown in (("local", 35, 11447, True), ("remote", 12, 3867, False)):
+        path = slot / f"{label}.sqlite3"
+        with sqlite3.connect(path) as db:
+            accounting._initialize_tables(db)
+            for i in range(count):
+                missing = unknown and i == count - 1
+                db.execute("INSERT INTO attempts(attempt_id,purpose,prompt_tokens,completion_cap,reserved_micro_usd,"
+                           "actual_micro_usd,usage_known,settled) VALUES (?,?,?,?,?,?,?,?)",
+                           (f"{label}-{i}", "dav58_loop", 24000, 2000, 9600,
+                            None if missing else actual if i == 0 else 0, int(not missing), int(not missing)))
+            db.execute("UPDATE budget SET attempts=?,actual_micro_usd=?", (count, actual))
+        path.chmod(0o600)
+        ledgers.append(str(path))
+    guard = slot / "retained-guard.json"
+    guard.write_text(json.dumps({"receipts": [
+        {"status": "settled", "peak_micro_usd": 11447 if i == 0 else 0} for i in range(34)
+    ] + [{"status": "pending", "reserved_micro_usd": 786432}],
+        "settled_peak_micro_usd": 11447, "pending_micro_usd": 786432}))
+    guard.chmod(0o600)
+    import hashlib
+    import revalidation_history
+    monkeypatch.setattr(revalidation_history, "HISTORY_SOURCE_SHA256", frozenset(
+        hashlib.sha256(Path(name).read_bytes()).hexdigest() for name in [*ledgers, str(guard)]))
+    return {"ledgers": ledgers, "guard": str(guard)}
+
+
+def fresh_bound(slot, monkeypatch):
+    policy_id = period.REVALIDATION_POLICY_ID
+    root = slot.parent / policy_id
+    root.mkdir()
+    identity = period.prepare_period(root / "period", "fresh-test",
+                                    authorized_period_config_sha256(policy_id), policy_id=policy_id).identity
+    sources = fresh_history(slot, monkeypatch)
+    budget = ModelBudget.bind_prepared(identity, history_sources=sources)
+    budget.activate()
+    return identity, budget, sources
+
+
+def test_fresh_budget_preserves_history_and_lane_ceiling(slot, monkeypatch):
+    identity, budget, sources = fresh_bound(slot, monkeypatch)
+    snapshot = budget.snapshot()
+    assert snapshot["attempts"] == 0
+    assert snapshot["cumulative_attempts"] == 47
+    assert snapshot["cumulative_committed_micro_usd"] == 801746
+    assert snapshot["retained_history"]["unknown_attempts"] == 1
+    assert budget.path.parent.parent.name == period.REVALIDATION_POLICY_ID
+    with pytest.raises(BudgetLimitExceeded):
+        budget.reserve(8001, 2000, purpose="dav58_loop")
+    reservation = budget.reserve(1, 1, purpose="prior_source")
+    assert budget.verify_pending(reservation)["cumulative_attempts"] == 48
+    budget.claim_dispatch(reservation, "a" * 64)
+    with pytest.raises(period.PeriodError):
+        budget.claim_dispatch(reservation, "a" * 64)
+    budget.settle(reservation, {"prompt_tokens": 1, "completion_tokens": 1})
+    budget.verify_guard_history([{"attempt_id": reservation.attempt_id, "lane": "prior_source", "peak_micro_usd": 2,
+                                 "request_sha256": "a" * 64}])
+    with pytest.raises(period.PeriodError):
+        budget.verify_guard_history([{"attempt_id": "replayed", "lane": "prior_source", "peak_micro_usd": 2}])
+    with pytest.raises(BudgetLimitExceeded):
+        budget.reserve(1, 1, purpose="prior_source")
+    with sqlite3.connect(sources["ledgers"][0]) as db:
+        db.execute("UPDATE attempts SET attempt_id='replaced' WHERE attempt_id='local-0'")
+    with pytest.raises(period.PeriodError):
+        ModelBudget.bound(identity)
+
+
+def test_fresh_period_cannot_bind_without_retained_history(slot):
+    policy_id = period.REVALIDATION_POLICY_ID
+    root = slot.parent / policy_id
+    root.mkdir()
+    identity = period.prepare_period(root / "period", "missing-history",
+                                    authorized_period_config_sha256(policy_id), policy_id=policy_id).identity
+    with pytest.raises(period.PeriodError):
+        ModelBudget.bind_prepared(identity)
+    assert not (root / "accounting").exists()
+
+
+def test_fresh_guard_records_real_request_bindings_and_resumes(slot, monkeypatch):
+    import asyncio
+    import hashlib
+    import httpx
+    from dav58_live_guard import GuardedTransport, IncrementalGuard
+    from deepseek_model import DeepseekModel
+
+    identity, budget, _ = fresh_bound(slot, monkeypatch)
+    path = budget.path.parent / f"dav58-increment-{identity.identity}.json"
+    guard = IncrementalGuard(path, budget=budget, period_identity=identity.identity,
+                             config_sha256=identity.config_sha256)
+    with pytest.raises(ValueError):
+        DeepseekModel("dummy", tool_specs={}, model="deepseek-flash", budget=budget)
+    with pytest.raises(ValueError):
+        IncrementalGuard(path.parent / "other.json", budget=budget, period_identity=identity.identity,
+                         config_sha256=identity.config_sha256)
+
+    async def call(purpose):
+        transport = GuardedTransport(guard, purpose, httpx.MockTransport(lambda request: httpx.Response(200, json={
+            "model": "deepseek-v4.1-flash", "usage": {"prompt_tokens": 100, "completion_tokens": 20, "total_tokens": 120},
+            "choices": [{"finish_reason": "stop", "message": {"content": '{"answer":"ok"}'}}],
+        })))
+        async with DeepseekModel("dummy", tool_specs={}, model="deepseek-flash", budget=budget,
+                                 budget_purpose=purpose, max_tokens=2000, thinking_type="disabled",
+                                 transport=transport) as model:
+            await model.decide([{"role": "user", "content": "same actual request"}])
+            return transport.exchanges
+
+    try:
+        exchanges = asyncio.run(call("prior_source"))
+        asyncio.run(call("prior_citation_judge"))
+        first, second = guard.state["receipts"]
+        assert first["request_sha256"] == second["request_sha256"]
+        assert first["attempt_id"] != second["attempt_id"]
+        assert budget.snapshot()["cumulative_attempts"] == 49
+        from agent_service.gate import _check_fresh_snapshot, _verified_prior_exchanges, GateError
+        snapshot = budget.snapshot()
+        assert snapshot["actual_micro_usd"] < snapshot["committed_micro_usd"]
+        _check_fresh_snapshot(snapshot, vars(identity))
+        _verified_prior_exchanges({"provider_exchanges": exchanges}, [first])
+        exchanges[0]["response_hex"] = bytes.fromhex(exchanges[0]["response_hex"]).replace(b"ok", b"forged").hex()
+        with pytest.raises(GateError, match="prior_five_provider_exchange_mismatch"):
+            _verified_prior_exchanges({"provider_exchanges": exchanges}, [first])
+    finally:
+        guard.close()
+    resumed = IncrementalGuard(path, budget=budget, period_identity=identity.identity,
+                               config_sha256=identity.config_sha256,
+                               resume_sha256=hashlib.sha256(path.read_bytes()).hexdigest())
+    resumed.close()
+
+
+def test_fresh_three_citations_replay_verified_source_and_capture_raw(slot, monkeypatch):
+    import asyncio
+    import hashlib
+    import httpx
+    import e2e_citation_support_model as citation
+    from e2e_sourced_analysis_model import ANSWER_CONTRACT, QUESTION
+    from sourced_analysis import analyze_submission
+    from dav58_live_guard import GuardedTransport, IncrementalGuard
+    from deepseek_model import DeepseekModel
+    from agent_service.gate import _fresh_live_budget, _verified_prior_exchanges, _check_prior_model_records
+
+    identity, budget, _ = fresh_bound(slot, monkeypatch)
+    analysis = analyze_submission({"id": "22222222-2222-4222-8222-222222222222", "status": "Wrong Answer"}, QUESTION)
+    evidence = {"facts": analysis["facts"], "allowed_hypotheses": analysis["hypotheses"], "citations": analysis["citations"]}
+    answer = json.dumps({"facts": evidence["facts"], "hypotheses": evidence["allowed_hypotheses"],
+                         "citations": [row["doc_id"] for row in evidence["citations"]]})
+    journal = budget.path.parent / f"dav58-increment-{identity.identity}.json"
+    guard = IncrementalGuard(journal, budget=budget, period_identity=identity.identity, config_sha256=identity.config_sha256)
+    def response(text):
+        return httpx.Response(200, json={"model": "deepseek-v4.1-flash",
+            "usage": {"prompt_tokens": 100, "completion_tokens": 20, "total_tokens": 120},
+            "choices": [{"finish_reason": "stop", "message": {"content": json.dumps({"answer": text})}}]})
+    transport = GuardedTransport(guard, "prior_source", httpx.MockTransport(lambda _request: response(answer)))
+    async def source_call():
+        async with DeepseekModel("dummy", model="deepseek-flash", tool_specs={}, budget=budget,
+                                 budget_purpose="prior_source", max_tokens=2000, thinking_type="disabled",
+                                 transport=transport) as model:
+            await model.decide([{"role": "user", "content": "Analyze the submission using only the supplied evidence. "
+                                f"{ANSWER_CONTRACT} EVIDENCE_JSON={json.dumps(evidence, ensure_ascii=False)}"}])
+    try:
+        asyncio.run(source_call())
+    finally:
+        guard.close()
+    source_path, output = slot / "source.json", slot / "citation.json"
+    source_path.write_text(json.dumps({"schema": "ulticode-prior-five-raw-record-v1", "name": "本人提交检索分析",
+        "attempt_ids": [transport.exchanges[0]["attempt_id"]], "provider_exchanges": transport.exchanges,
+        "records": {"owner_verified": True, "facts": analysis["facts"], "citations": analysis["citations"],
+                    "citation_checks": analysis["citation_checks"], "model_answer": answer,
+                    "retrieval_calls": [{"query": QUESTION, "results": analysis["citations"]}]}}))
+    source_path.chmod(0o600)
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "dummy")
+    monkeypatch.setenv("XDG_STATE_HOME", str(slot / "state"))
+    monkeypatch.setenv("ULTICODE_SOURCE_ANALYSIS_ARTIFACT", str(source_path))
+    monkeypatch.setenv("ULTICODE_CITATION_VERDICTS", str(output))
+    monkeypatch.setattr(citation, "authorized_model", lambda expected: ("deepseek-flash", budget))
+    replies = iter((True, True, False))
+    def fresh_transport(bound, purpose):
+        resumed = IncrementalGuard(journal, budget=bound, period_identity=identity.identity,
+            config_sha256=identity.config_sha256, resume_sha256=hashlib.sha256(journal.read_bytes()).hexdigest())
+        return GuardedTransport(resumed, purpose, httpx.MockTransport(lambda _request: response(
+            json.dumps({"supports": next(replies), "derivable": False}))), owns_guard=True)
+    monkeypatch.setattr(citation, "acceptance_transport", fresh_transport)
+    assert asyncio.run(citation._fresh_main(identity)) == 0
+    raw = json.loads(output.read_bytes())
+    assert len(raw["provider_exchanges"]) == 3
+    canonical = _fresh_live_budget(identity)["receipts"]
+    exchanges = _verified_prior_exchanges(raw, canonical[1:])
+    _check_prior_model_records("三引用支持负例", raw, exchanges, analysis["facts"])
+    assert budget.remaining_purpose_attempts("prior_citation_judge") == 0

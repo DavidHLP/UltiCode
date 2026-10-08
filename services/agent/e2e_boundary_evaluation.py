@@ -54,7 +54,7 @@ from boundary_evaluation import (
 from corpus_manifest import parse_manifest_text
 from deepseek_model import DeepseekModel, ModelBudgetExceeded, ModelProtocolError, model_label
 from model_budget import BudgetLimitExceeded, authorized_model
-from authorized_budget_period import POLICY, PeriodIdentity
+from authorized_budget_period import POLICY, POLICY_ID, PeriodIdentity, policy_for
 from e2e_citation_support_model import (
     _assert_artifact_directory,
     _claim_verdict_file as _claim_artifact,
@@ -227,11 +227,13 @@ async def main(expected: PeriodIdentity | None = None) -> int:
     if expected is None:
         print("FAIL reason=period_identity_required")
         return 1
+    POLICY = policy_for(expected.policy_id)
     max_tokens = _int("DEEPSEEK_MAX_TOKENS", 2000)
-    max_prompt_tokens = _int("DEEPSEEK_MAX_PROMPT_TOKENS", 24000)
+    prompt_cap = POLICY["lanes"]["dav58_loop"].get("prompt_token_cap", POLICY["prompt_token_cap"])
+    max_prompt_tokens = _int("DEEPSEEK_MAX_PROMPT_TOKENS", prompt_cap)
     max_rounds = _int("DEEPSEEK_MAX_ROUNDS", DEFAULT_MAX_ROUNDS)
     if (max_tokens > POLICY["lanes"]["dav58_loop"]["completion_token_cap"]
-        or max_prompt_tokens > POLICY["prompt_token_cap"]
+        or max_prompt_tokens > prompt_cap
         or max_rounds > POLICY["lanes"]["dav58_loop"]["rounds"]):
         print("FAIL reason=authorized_caps_exceeded")
         return 1
@@ -554,11 +556,12 @@ def _parse_identity(argv: list[str]) -> PeriodIdentity:
     parser.add_argument("--period-id", required=True)
     parser.add_argument("--period-identity", required=True)
     parser.add_argument("--config-sha256", required=True)
+    parser.add_argument("--policy-id", default=POLICY_ID)
     fields = {"--period-id", "--period-identity", "--config-sha256"}
     if any(sum(value.split("=", 1)[0] == field for value in argv) != 1 for field in fields):
         parser.error("each identity field must be provided exactly once")
     args = parser.parse_args(argv)
-    return PeriodIdentity(args.period_id, args.config_sha256, args.period_identity)
+    return PeriodIdentity(args.period_id, args.config_sha256, args.period_identity, args.policy_id)
 
 
 def main_sync(argv: list[str] | None = None) -> int:

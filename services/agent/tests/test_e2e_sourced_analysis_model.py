@@ -99,6 +99,26 @@ def test_real_model_smoke_sends_answer_contract_and_withholds_answer(monkeypatch
     assert "userId" not in prompt
 
 
+def test_private_source_record_captures_real_result_and_refuses_clobber(monkeypatch, capsys, tmp_path):
+    monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path / "state"))
+    path = tmp_path / "evidence" / "source.json"
+    monkeypatch.setenv("ULTICODE_SOURCE_ANALYSIS_ARTIFACT", str(path))
+    model = FakeModel()
+    model.metering = [{"attempt_id": "synthetic-offline-attempt"}]
+    model._transport = SimpleNamespace(exchanges=[])
+    code, output = _run_model(monkeypatch, capsys, model)
+    assert code == 0
+    raw = json.loads(path.read_bytes())
+    assert raw["attempt_ids"] == ["synthetic-offline-attempt"]
+    assert raw["records"]["owner_verified"] is True
+    assert raw["records"]["model_answer"] not in output
+    assert path.stat().st_mode & 0o777 == 0o600
+    saved = path.read_bytes()
+    with pytest.raises(RuntimeError):
+        _run_model(monkeypatch, capsys, FakeModel())
+    assert path.read_bytes() == saved
+
+
 def test_real_model_smoke_rejects_unstructured_answer(monkeypatch, capsys) -> None:
     class InvalidModel(FakeModel):
         async def decide(self, messages: list[dict[str, object]]) -> SimpleNamespace:

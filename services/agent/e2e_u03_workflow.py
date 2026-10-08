@@ -493,11 +493,11 @@ def _agent_child(
 
         expected_period = PeriodIdentity(
             period_id=period_values[0], identity=period_values[1], config_sha256=period_values[2],
-            policy_id=POLICY_ID,
+            policy_id=period_values[3] if len(period_values) == 4 else POLICY_ID,
         )
         _, budget = authorized_model(expected_period)
         snapshot = budget.snapshot()
-        anchor = current_budget_anchor()
+        anchor = current_budget_anchor(expected_period) if expected_period.policy_id != POLICY_ID else current_budget_anchor()
         if (guard_path is None or guard_sha256 is None or model_purpose != "u03_analysis"
                 or anchor.get("identity") != expected_period.identity
                 or anchor.get("config_sha256") != expected_period.config_sha256
@@ -515,6 +515,7 @@ def _agent_child(
         guard = IncrementalGuard(
             private_guard_path, resume_sha256=guard_sha256,
             period_identity=expected_period.identity, config_sha256=expected_period.config_sha256,
+            budget=budget if expected_period.policy_id != POLICY_ID else None,
         )
         if (len(guard.state["receipts"]) != snapshot["attempts"]
                 or guard.state["settled_peak_micro_usd"] != snapshot["actual_micro_usd"]
@@ -613,9 +614,9 @@ async def _start_agent(
 
 
 def _shared_guard_path(identity) -> Path:
-    from model_budget import _authorization_slot
+    from model_budget import authorization_slot
 
-    return _authorization_slot() / "accounting" / f"dav58-increment-{identity.identity}.json"
+    return authorization_slot(identity) / "accounting" / f"dav58-increment-{identity.identity}.json"
 
 
 def _read_existing_guard(path: Path) -> tuple[dict, str]:
@@ -632,7 +633,8 @@ def _read_existing_guard(path: Path) -> tuple[dict, str]:
 
 
 def _u03_runtime_binding(args: argparse.Namespace):
-    from authorized_budget_period import POLICY_ID, POLICY as PERIOD_POLICY, PeriodIdentity
+    from authorized_budget_period import POLICY_ID, policy_for, PeriodIdentity
+    PERIOD_POLICY = policy_for(getattr(args, "policy_id", POLICY_ID))
     purposes = {"u03_analysis", "u03_citation_judge"}
     if not purposes <= set(PERIOD_POLICY["lanes"]):
         raise ValueError("model_budget_purpose_blocked")
@@ -644,10 +646,11 @@ def _u03_runtime_binding(args: argparse.Namespace):
         raise ValueError("model_budget_binding_required")
     expected = PeriodIdentity(
         period_id=args.period_id, identity=args.period_identity, config_sha256=args.config_sha256,
-        policy_id=POLICY_ID,
+        policy_id=getattr(args, "policy_id", POLICY_ID),
     )
     _, budget = authorized_model(expected)
-    snapshot, anchor = budget.snapshot(), current_budget_anchor()
+    snapshot = budget.snapshot()
+    anchor = current_budget_anchor(expected) if expected.policy_id != POLICY_ID else current_budget_anchor()
     if (anchor.get("identity") != expected.identity or anchor.get("period_id") != expected.period_id
             or anchor.get("config_sha256") != expected.config_sha256 or anchor.get("policy_id") != expected.policy_id
             or snapshot.get("period_identity") != expected.identity
@@ -665,7 +668,10 @@ def _u03_runtime_binding(args: argparse.Namespace):
             or len(guard_data["receipts"]) != anchor.get("attempts")
             or guard_data.get("settled_peak_micro_usd") != anchor.get("actual_micro_usd")):
         raise ValueError("u03_guard_prefix_mismatch")
-    return (expected.period_id, expected.identity, expected.config_sha256), guard_path, guard_sha
+    values = (expected.period_id, expected.identity, expected.config_sha256)
+    if expected.policy_id != POLICY_ID:
+        values += (expected.policy_id,)
+    return values, guard_path, guard_sha
 
 
 async def start_u03_agent(
@@ -680,7 +686,7 @@ async def start_u03_agent(
         state_path=state_path, gate_path=gate_path, head=head, expected_base=expected_base,
         agent_base=agent_base, app_base=app_base, auth_base=auth_base,
         candidate_root=candidate_root, marker_path=marker_path,
-        period_values=(expected_period.period_id, expected_period.identity, expected_period.config_sha256),
+        period_values=(expected_period.period_id, expected_period.identity, expected_period.config_sha256, expected_period.policy_id),
         guard_path=budget_guard_path, guard_sha256=budget_guard_sha256, model_purpose="u03_analysis",
     )
 
@@ -1095,6 +1101,10 @@ def issue_u02_gate(args: argparse.Namespace) -> int:
     if (not stat.S_ISDIR(info.st_mode) or stat.S_ISLNK(info.st_mode)
             or info.st_uid != os.getuid() or stat.S_IMODE(info.st_mode) != 0o700):
         raise ValueError("gate_evidence_directory_not_private")
+    from authorized_budget_period import POLICY_ID, PeriodIdentity
+    expected = None
+    if getattr(args, "policy_id", POLICY_ID) != POLICY_ID:
+        expected = PeriodIdentity(args.period_id, args.config_sha256, args.period_identity, args.policy_id)
     payload = {
         "schema": "ulticode-u02-gate-v1",
         "candidate_head": args.expected_head,
@@ -1104,7 +1114,7 @@ def issue_u02_gate(args: argparse.Namespace) -> int:
         "dav53_artifact": _relative_ref(evidence_root, Path(args.dav53_artifact)),
         "budget_audit": _relative_ref(evidence_root, Path(args.budget_audit)),
         "prior_five_manifest": _relative_ref(evidence_root, Path(args.prior_five_manifest)),
-        "budget_anchor": current_budget_anchor(),
+        "budget_anchor": current_budget_anchor(expected) if expected is not None else current_budget_anchor(),
         "source_fingerprint": _candidate_fingerprint(root, args.expected_head),
     }
     validate_u02_gate_payload(payload, expected_head=args.expected_head, expected_base=args.expected_base,
@@ -1445,6 +1455,8 @@ async def _java_idempotency_matrix(
         return observations, raw_refs, projections, foreign_read_receipt
 
 async def _run_u03(args: argparse.Namespace) -> tuple[dict, int]:
+    from authorized_budget_period import policy_for, POLICY_ID
+    PERIOD_POLICY = POLICY if getattr(args, "policy_id", POLICY_ID) == POLICY_ID else policy_for(args.policy_id)
     start = datetime.now(timezone.utc).isoformat()
     expected_head, expected_base = args.expected_head, args.expected_base
     root = require_execution_candidate(args.candidate)
@@ -1475,7 +1487,7 @@ async def _run_u03(args: argparse.Namespace) -> tuple[dict, int]:
     result.update({"candidate_inputs_sha256": candidate_ref["sha256"], "candidate_inputs": candidate_ref,
                    "source_fingerprint": candidate["source_fingerprint"],
                    "configuration_fingerprint": candidate["configuration_fingerprint"]})
-    lanes = POLICY.get("lanes", {})
+    lanes = PERIOD_POLICY.get("lanes", {})
     if not {"u03_analysis", "u03_citation_judge"} <= set(lanes):
         result["reason"] = "model_budget_purpose_blocked"
         result["coverage"] = {"external_calls": 0, "condition_scenarios_unexecuted": list(_U03_SCENARIOS)}
@@ -1558,7 +1570,7 @@ async def _run_u03(args: argparse.Namespace) -> tuple[dict, int]:
         from authorized_budget_period import POLICY_ID, PeriodIdentity
         expected_period = PeriodIdentity(
             period_id=period_values[0], identity=period_values[1], config_sha256=period_values[2],
-            policy_id=POLICY_ID,
+            policy_id=period_values[3] if len(period_values) == 4 else POLICY_ID,
         )
         workflow_base = _agent_base()
         workflow_process = await start_u03_agent(
@@ -1767,6 +1779,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--result", "--output", dest="output")
     parser.add_argument("--period-id")
     parser.add_argument("--period-identity")
+    parser.add_argument("--policy-id", default="dav58-dav53-v1")
     parser.add_argument("--config-sha256")
     parser.add_argument("--u02-gate")
     args = parser.parse_args(argv)

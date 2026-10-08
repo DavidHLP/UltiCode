@@ -9,12 +9,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
 import e2e_boundary_evaluation as runner
 from dav58_live_guard import GuardedTransport, IncrementalGuard
 from deepseek_model import DeepseekModel
-from model_budget import authorized_model, _authorization_slot, worst_case_micro_usd
+from model_budget import authorized_model, _authorization_slot, authorization_slot, worst_case_micro_usd
 from dav58_live_guard import ENVELOPE_MICRO_USD
 
 
 def journal_path(identity):
-    return _authorization_slot() / "accounting" / f"dav58-increment-{identity.identity}.json"
+    return authorization_slot(identity) / "accounting" / f"dav58-increment-{identity.identity}.json"
 
 
 async def run(expected, *, resume_sha256=None):
@@ -25,7 +25,8 @@ async def run(expected, *, resume_sha256=None):
     if snapshot["state"] != "active" or snapshot["sql_gate"] != "active" or snapshot["halted"]:
         raise ValueError("same period must be active before guarded execution")
     guard = IncrementalGuard(journal_path(expected), resume_sha256=resume_sha256,
-                             period_identity=expected.identity, config_sha256=expected.config_sha256)
+                             period_identity=expected.identity, config_sha256=expected.config_sha256,
+                             budget=budget if expected.policy_id != runner.POLICY_ID else None)
     if resume_sha256 is not None and (snapshot["attempts"] != len(guard.state["receipts"])
             or snapshot["actual_micro_usd"] != guard.state["settled_peak_micro_usd"]):
         guard.close()
@@ -56,6 +57,9 @@ async def run(expected, *, resume_sha256=None):
     provenance["incremental_journal"] = str(guard.path)
     for relative in ("e2e_guarded_boundary_evaluation.py", "src/dav58_live_guard.py"):
         provenance["source_sha256"][relative] = hashlib.sha256((agent_root / relative).read_bytes()).hexdigest()
+    if expected.policy_id != runner.POLICY_ID:
+        provenance["source_sha256"]["src/revalidation_history.py"] = hashlib.sha256(
+            (agent_root / "src/revalidation_history.py").read_bytes()).hexdigest()
 
     def guarded_model(*args, **kwargs):
         if "transport" in kwargs:

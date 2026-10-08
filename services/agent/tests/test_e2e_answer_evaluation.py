@@ -310,6 +310,8 @@ def test_rollover_single_attempt_plan_checks_purpose_before_billing(monkeypatch,
     calls = _install(monkeypatch)
     budget = SimpleNamespace(_identity=SimpleNamespace(policy_id=REVALIDATION_V2_POLICY_ID),
                              remaining_purpose_attempts=lambda purpose: remaining)
+    e2e.DeepseekModel.metering = []
+    e2e.DeepseekModel._transport = SimpleNamespace(exchanges=[])
     monkeypatch.setattr(e2e, "authorized_model", lambda: ("deepseek-flash", budget))
     monkeypatch.setattr(e2e, "acceptance_transport", lambda *args: None)
     monkeypatch.setenv("DEEPSEEK_MAX_CALLS", "2")

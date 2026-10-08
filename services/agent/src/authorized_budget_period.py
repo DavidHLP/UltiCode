@@ -4,8 +4,9 @@ Explicit paths and preparation are required. Active metadata grants no spending
 allowance. Legacy accounting is never read; its historical usage remains UNKNOWN.
 """
 
+from collections.abc import Mapping
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import fcntl
 import json
 import os
@@ -14,7 +15,7 @@ import re
 import stat
 import uuid
 from types import MappingProxyType
-from budget_binding_migration import resolve_pair
+from budget_binding_migration import RecoverySourceEvidence, resolve_pair
 
 POLICY_ID = "dav58-dav53-v1"
 POLICY = MappingProxyType({
@@ -237,3 +238,188 @@ def activate_period(path: Path, expected: PeriodIdentity) -> PeriodSnapshot:
 def halt_period(path: Path, expected: PeriodIdentity) -> PeriodSnapshot:
     """Halt metadata only; runtime_accounting_connected=False, spend_limit_enforced=False."""
     return _access(path, expected, "halted")
+
+
+# Conditional offline recovery plan. Explicit inputs only: no ledger is read,
+# nothing is written or applied and no paid authorization is granted. Every
+# total is re-derived, so missing lanes, pricing/envelope drift or an approval
+# below the computed peak fail closed. The recorded unknown exposure is carried
+# as an UNKNOWN legacy encumbrance, never treated as settled spend.
+RECOVERY_PURPOSES = ("dav58_loop", "dav58_judge", "dav53_scenarios",
+                     "u03_analysis", "u03_citation_judge", "u04_post_demo")
+RECOVERY_PRICING_KEYS = ("input_tenths_micro_usd_per_token", "output_tenths_micro_usd_per_token")
+RECOVERY_ENVELOPE_KEYS = ("input_context_token_cap", "output_token_cap", "envelope_micro_usd",
+                          "unknown_pending_micro_usd", "legacy_unknown_encumbrance_micro_usd")
+_RECOVERY_LANE_KEYS = ("attempts", "prompt_token_cap", "completion_token_cap")
+_TENTHS_PER_MICRO_USD = 10
+# Finite ceiling for every declared integer: JSON-exact, so magnitudes are
+# bounded before multiplication instead of merely type-checked.
+_MAX_RECOVERY_MAGNITUDE = 2 ** 53
+# Reviewed published maxima. The guard derives its per-attempt envelope from the
+# same caps, so the plan pins them instead of accepting arbitrary token maxima
+# that would silently shrink the reserved envelope and the computed peak.
+RECOVERY_CONTEXT_TOKEN_CAP = 1_048_576
+RECOVERY_OUTPUT_TOKEN_CAP = 393_216
+# Private mint token: a plan is only produced by compile_recovery_plan below.
+_RECOVERY_PLAN_TOKEN = object()
+
+
+@dataclass(frozen=True)
+class RecoveryPlan:
+    """Conditional plan only: paid_authorized=False and runtime_applied=False."""
+
+    approved_attempts: int
+    approved_limit_micro_usd: int
+    future_attempts: int
+    purpose_caps: Mapping
+    u04_demo_attempts: int
+    u04_post_demo_attempts: int
+    u04_total_attempts: int
+    pricing: Mapping
+    envelopes: Mapping
+    cost_components_micro_usd: Mapping
+    peak_micro_usd: int
+    remaining_micro_usd: int
+    legacy_encumbrance_status: str
+    legacy_encumbrance_micro_usd: int
+    source_sha256_by_ledger: Mapping
+    source_provenance_by_ledger: Mapping
+    paid_authorized: bool = False
+    runtime_applied: bool = False
+    _origin: object = field(default=None, repr=False, compare=False)
+
+    def __post_init__(self):
+        # Only compile_recovery_plan may mint a plan; a hand-built instance would
+        # otherwise bypass the re-derived caps, pricing and approval checks.
+        if self._origin is not _RECOVERY_PLAN_TOKEN:
+            raise ValueError("recovery plan must come from compile_recovery_plan")
+
+
+def _recovery_int(value, name):
+    if type(value) is not int or not 0 <= value <= _MAX_RECOVERY_MAGNITUDE:
+        raise PeriodError(f"{name} must be a bounded non-negative integer")
+    return value
+
+
+def _recovery_declared(value, keys, name):
+    if not isinstance(value, dict) or set(value) != set(keys):
+        raise PeriodError(f"{name} must declare exactly {sorted(keys)}")
+    return MappingProxyType(dict(value))
+
+
+def _micro_usd(input_tokens, output_tokens, pricing):
+    # The same ceiling the guard applies: a partial tenth of a micro-USD is never
+    # free, so reservations and the per-call envelope never round down.
+    return (input_tokens * pricing["input_tenths_micro_usd_per_token"]
+            + output_tokens * pricing["output_tenths_micro_usd_per_token"] + 9) // _TENTHS_PER_MICRO_USD
+
+
+def compile_recovery_plan(*, source_evidence, approval, purpose_caps, pricing, envelopes, stage_caps):
+    """Compile an immutable conditional recovery plan from explicit inputs only.
+
+    Offline and side-effect free: it reads no ledger, writes nothing, applies
+    nothing at runtime and grants no paid authorization. Approval terms, purpose
+    caps, pricing and envelopes are explicit required inputs; every total, peak
+    and remainder is re-derived from them, and missing lanes, pricing/envelope
+    drift or an approval below the computed peak fail closed.
+    Caller-declared lane caps are hypothetical, not runtime policy. This result
+    must not be consumed as an authorization or device-migration grant: a runtime
+    must separately bind and enforce the exact policy, provenance and approval.
+    """
+    if not isinstance(source_evidence, RecoverySourceEvidence):
+        raise PeriodError("validated recovery source evidence required")
+    recorded_attempts = _recovery_int(source_evidence.historical_attempts, "recorded attempts")
+    recorded_actual = _recovery_int(source_evidence.known_actual_micro_usd, "recorded known actual")
+    recorded_pending = _recovery_int(source_evidence.pending_micro_usd, "recorded unknown exposure")
+    if not isinstance(approval, dict) or set(approval) != {"cumulative_attempts", "limit_micro_usd"}:
+        raise PeriodError("explicit approval terms required")
+    approved_attempts = _recovery_int(approval["cumulative_attempts"], "approved attempts")
+    approved_limit_micro_usd = _recovery_int(approval["limit_micro_usd"], "approved limit")
+    price = _recovery_declared(pricing, RECOVERY_PRICING_KEYS, "pricing")
+    for key in RECOVERY_PRICING_KEYS:
+        if _recovery_int(price[key], key) <= 0:
+            raise PeriodError("pricing must be positive")
+    pool = _recovery_declared(envelopes, RECOVERY_ENVELOPE_KEYS, "envelopes")
+    for key in RECOVERY_ENVELOPE_KEYS:
+        _recovery_int(pool[key], key)
+    if (pool["input_context_token_cap"] != RECOVERY_CONTEXT_TOKEN_CAP
+            or pool["output_token_cap"] != RECOVERY_OUTPUT_TOKEN_CAP):
+        raise PeriodError("envelope caps must be the reviewed published maxima")
+    if pool["envelope_micro_usd"] != _micro_usd(
+            pool["input_context_token_cap"], pool["output_token_cap"], price):
+        raise PeriodError("declared envelope disagrees with its caps and pricing")
+    # unknown_pending_micro_usd is a validation input only: it must cover the
+    # recorded exposure but is not a cost component. The U component is the
+    # legacy unknown encumbrance and the E component is the guard per-call
+    # envelope; the two are distinct inputs that merely coincide in some data.
+    if pool["unknown_pending_micro_usd"] < recorded_pending:
+        raise PeriodError("declared unknown pending understates the recorded exposure")
+    if pool["legacy_unknown_encumbrance_micro_usd"] < recorded_pending:
+        raise PeriodError("legacy unknown encumbrance understates the recorded exposure")
+    if not isinstance(purpose_caps, dict) or set(purpose_caps) != set(RECOVERY_PURPOSES):
+        raise PeriodError("every recovery purpose lane needs explicit caps")
+    caps = {}
+    for name in RECOVERY_PURPOSES:
+        lane = purpose_caps[name]
+        if not isinstance(lane, dict) or set(lane) != set(_RECOVERY_LANE_KEYS):
+            raise PeriodError("purpose lane must declare attempts and both token caps")
+        attempts = _recovery_int(lane["attempts"], "lane attempts")
+        prompt_cap = _recovery_int(lane["prompt_token_cap"], "lane prompt cap")
+        completion_cap = _recovery_int(lane["completion_token_cap"], "lane completion cap")
+        if (attempts < 1 or not 1 <= prompt_cap <= pool["input_context_token_cap"]
+                or not 1 <= completion_cap <= pool["output_token_cap"]):
+            raise PeriodError("purpose lane caps outside the declared envelope")
+        caps[name] = MappingProxyType({"attempts": attempts, "prompt_token_cap": prompt_cap,
+                                       "completion_token_cap": completion_cap})
+    if not isinstance(stage_caps, dict) or set(stage_caps) != {"u04_demo_attempts", "u04_total_attempts"}:
+        raise PeriodError("explicit u04 stage caps required")
+    demo_attempts = _recovery_int(stage_caps["u04_demo_attempts"], "u04 demo attempts")
+    total_attempts = _recovery_int(stage_caps["u04_total_attempts"], "u04 total attempts")
+    future_attempts = sum(cap["attempts"] for cap in caps.values())
+    if total_attempts != demo_attempts + caps["u04_post_demo"]["attempts"]:
+        raise PeriodError("u04 stage caps disagree with the purpose lanes")
+    if approved_attempts < recorded_attempts + future_attempts:
+        raise PeriodError("approval does not cover the recorded and future attempts")
+    reserved_micro_usd = sum(
+        cap["attempts"] * _micro_usd(cap["prompt_token_cap"], cap["completion_token_cap"], price)
+        for cap in caps.values())
+    largest_reservation_micro_usd = max(
+        _micro_usd(cap["prompt_token_cap"], cap["completion_token_cap"], price)
+        for cap in caps.values())
+    smallest_reservation_micro_usd = min(
+        _micro_usd(cap["prompt_token_cap"], cap["completion_token_cap"], price)
+        for cap in caps.values())
+    components = {
+        "A": recorded_actual,
+        "U": pool["legacy_unknown_encumbrance_micro_usd"],
+        "R": reserved_micro_usd,
+        "cmin": smallest_reservation_micro_usd,
+        "cmax": largest_reservation_micro_usd,
+        "E": pool["envelope_micro_usd"],
+    }
+    # Calls may settle in any order, so the one reservation still outstanding at
+    # the peak may be the cheapest call, not the dearest: only cmin is exempt
+    # from the peak stack. Subtracting cmax would understate the peak.
+    peak_micro_usd = (components["A"] + components["U"]
+                      + (components["R"] - components["cmin"]) + components["E"])
+    if approved_limit_micro_usd < peak_micro_usd:
+        raise PeriodError("approved limit is below the computed recovery peak")
+    return RecoveryPlan(
+        approved_attempts=approved_attempts,
+        approved_limit_micro_usd=approved_limit_micro_usd,
+        future_attempts=future_attempts,
+        purpose_caps=MappingProxyType(caps),
+        u04_demo_attempts=demo_attempts,
+        u04_post_demo_attempts=caps["u04_post_demo"]["attempts"],
+        u04_total_attempts=total_attempts,
+        pricing=price,
+        envelopes=pool,
+        cost_components_micro_usd=MappingProxyType(components),
+        peak_micro_usd=peak_micro_usd,
+        remaining_micro_usd=approved_limit_micro_usd - peak_micro_usd,
+        legacy_encumbrance_status="UNKNOWN",
+        legacy_encumbrance_micro_usd=pool["legacy_unknown_encumbrance_micro_usd"],
+        source_sha256_by_ledger=source_evidence.source_sha256_by_ledger,
+        source_provenance_by_ledger=source_evidence.source_provenance_by_ledger,
+        _origin=_RECOVERY_PLAN_TOKEN,
+    )

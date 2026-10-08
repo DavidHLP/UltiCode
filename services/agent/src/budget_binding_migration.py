@@ -1,4 +1,5 @@
 """Explicit, one-shot device identity migration; never edits original bindings."""
+import copy
 import fcntl
 import hashlib
 import json
@@ -7,8 +8,11 @@ import sqlite3
 import stat
 import subprocess
 import re
+from collections.abc import Mapping
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
+from types import MappingProxyType
 
 SOURCE_DEVICE = 58
 TARGET_DEVICE = 59
@@ -431,3 +435,378 @@ def rehearse_audit_recovery(source, destination):
                 return event
             finally:
                 os.close(directory)
+
+
+# Offline recovery-source validation. A snapshot digest proves recorded content
+# only: it never proves that a live physical source ledger, guard journal or
+# approval still exists on the recorded device, so no caller-supplied
+# provenance is trusted without re-derivation against the snapshot itself.
+_LEDGER_ID = re.compile(r"[0-9a-f]{32}")
+_SHA256 = re.compile(r"[0-9a-f]{64}")
+_PERIOD_ID_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{0,63}")
+_MAX_RECOVERY_ATTEMPTS = 180
+_MAX_PROVENANCE_BYTES = 4096
+_MAX_ROW_TEXT = 128
+_MAX_SCHEMA_ROWS = 256
+_SCHEMA_COLUMNS = 8
+_MAX_SCHEMA_TEXT = 16384
+_MAX_MANIFEST_FIELDS = 32
+_MAX_MANIFEST_TEXT = 256
+_RECOVERY_ROW_FIELDS = 9
+_RECOVERY_BUDGET_FIELDS = 7
+_MAX_LEDGER_TEXT = 64
+# Reviewed field catalogues for the recorded guard snapshot: unknown fields are
+# refused so a caller cannot smuggle an unbounded payload past the digest.
+_GUARD_STATE_KEYS = ("config_sha256", "continuation_run", "halted", "limit_micro_usd",
+                     "pending_micro_usd", "period_identity", "policy", "receipts",
+                     "settled_peak_micro_usd")
+_GUARD_RECEIPT_KEYS = ("completion_token_cap", "completion_tokens", "finished_at_utc", "lane",
+                       "peak_micro_usd", "prompt_token_cap", "prompt_tokens", "reason",
+                       "request_bytes", "request_model", "request_sha256", "reserved_micro_usd",
+                       "response_model", "started_at_utc", "status", "total_tokens")
+_MAX_LANE_TEXT = 64
+# Exactly the fields the unknown-row binding declares; extras are refused so the
+# binding cannot smuggle an unexamined field alongside the checked ones.
+_UNKNOWN_MATCH_KEYS = ("attempt_id", "config_sha256", "ledger_uuid", "pending_micro_usd",
+                       "period_identity", "request_sha256")
+_MAX_GUARD_TEXT = 256
+# Finite ceiling for every recorded integer: JSON-exact, so magnitudes are
+# bounded (not just type-checked) before serialization and arithmetic.
+_MAX_RECOVERY_MAGNITUDE = 2 ** 53
+# Private mint token: evidence is only produced by the validator below.
+_RECOVERY_EVIDENCE_TOKEN = object()
+# The contract fields every recovery snapshot must carry; the locked audit
+# producer may add its bounded `manifest` summary alongside them.
+_RECOVERY_SNAPSHOT_KEYS = ("attempts", "budget", "mapping", "request_bindings", "schema",
+                           "source_bindings", "sources")
+
+
+def _recovery_digest(value):
+    try:
+        raw = json.dumps(value, sort_keys=True, separators=(",", ":")).encode()
+    except (TypeError, ValueError):
+        raise ValueError("recovery snapshot is not a plain JSON record") from None
+    return hashlib.sha256(raw).hexdigest()
+
+
+def _bounded_count(value):
+    return type(value) is int and 0 <= value <= _MAX_RECOVERY_MAGNITUDE
+
+
+def _frozen_metadata(value):
+    # Deep-freeze metadata: mappings become read-only views and every sequence
+    # becomes a tuple, so the evidence keeps no mutable alias of its inputs.
+    if isinstance(value, Mapping):
+        return MappingProxyType({key: _frozen_metadata(item) for key, item in value.items()})
+    if isinstance(value, (list, tuple)):
+        return tuple(_frozen_metadata(item) for item in value)
+    return copy.deepcopy(value)
+
+
+@dataclass(frozen=True)
+class RecoverySourceEvidence:
+    """Frozen offline evidence of recorded content; mappings are read-only.
+
+    Metadata mappings are read-only and sequences become tuples, so neither
+    later input mutation nor mutation through an evidence leaf changes it.
+    """
+
+    historical_attempts: int
+    known_attempts: int
+    unknown_attempts: int
+    known_actual_micro_usd: int
+    pending_micro_usd: int
+    unknown_attempt_id: str
+    source_attempt_counts: Mapping
+    source_sha256_by_ledger: Mapping
+    source_provenance_by_ledger: Mapping
+    guard_source_sha256: str
+    unknown_guard_match: Mapping
+    _origin: object = field(default=None, repr=False, compare=False)
+
+    def __post_init__(self):
+        # Only validate_recovery_sources may mint evidence; a hand-built instance
+        # would otherwise bypass every re-derived row, receipt and digest check.
+        if self._origin is not _RECOVERY_EVIDENCE_TOKEN:
+            raise ValueError("recovery evidence must come from validate_recovery_sources")
+
+
+def _recovery_provenance(ledger_uuid, raw, source_bindings):
+    try:
+        provenance = json.loads(raw)
+    except (TypeError, ValueError):
+        raise ValueError("recovery provenance is not valid JSON") from None
+    if (not isinstance(ledger_uuid, str) or not _LEDGER_ID.fullmatch(ledger_uuid)
+            or not isinstance(provenance, dict) or provenance.get("ledger_uuid") != ledger_uuid
+            or not isinstance(provenance.get("period_id"), str)
+            or not _PERIOD_ID_PATTERN.fullmatch(provenance["period_id"])
+            or not isinstance(provenance.get("identity"), str)
+            or not _LEDGER_ID.fullmatch(provenance["identity"])
+            or not isinstance(provenance.get("config_sha256"), str)
+            or not _SHA256.fullmatch(provenance["config_sha256"])):
+        raise ValueError("recovery provenance identity or ledger drift")
+    pair = provenance.get("recorded_ledger", provenance.get("ledger"))
+    if (not isinstance(pair, list) or len(pair) != 2
+            or any(not _bounded_count(value) for value in pair)
+            or not _bounded_count(provenance.get("actual_device"))
+            or provenance["actual_device"] != pair[0]
+            or source_bindings != {ledger_uuid: pair}):
+        raise ValueError("recovery device binding missing or inconsistent")
+    return provenance
+
+
+def _bounded_scalar(value):
+    # Guard fields are bounded strings, bounded non-negative integers, bool or None.
+    if value is None or type(value) is bool:
+        return True
+    if type(value) is int:
+        return 0 <= value <= _MAX_RECOVERY_MAGNITUDE
+    return isinstance(value, str) and len(value) <= _MAX_GUARD_TEXT
+
+
+def _bounded_schema(schema):
+    for row in schema:
+        if (not isinstance(row, (list, tuple)) or len(row) > _SCHEMA_COLUMNS
+                or any(value is not None and (not isinstance(value, str)
+                                              or len(value) > _MAX_SCHEMA_TEXT)
+                       for value in row)):
+            raise ValueError("recovery schema listing is unbounded")
+    return schema
+
+
+def _bounded_manifest(manifest):
+    if not isinstance(manifest, dict) or len(manifest) > _MAX_MANIFEST_FIELDS:
+        raise ValueError("recovery manifest missing or unbounded")
+    for value in manifest.values():
+        if isinstance(value, str):
+            if len(value) > _MAX_MANIFEST_TEXT:
+                raise ValueError("recovery manifest missing or unbounded")
+        elif value is not None and type(value) not in (int, bool):
+            raise ValueError("recovery manifest missing or unbounded")
+    return manifest
+
+
+def validate_recovery_sources(sources, guard, unknown_match):
+    """Re-derive every recovered row, total, ledger id, guard receipt and digest.
+
+    Accepts only bounded per-ledger projections whose digests, counters, source
+    mappings, explicit request-binding crosswalk, provenance and device bindings
+    agree exactly; the single unknown row must bind to exactly one guard receipt
+    through that crosswalk. Each element of `sources` carries exactly one ledger:
+    a whole-ledger audit snapshot that lists several ledgers must first be split
+    by ledger id, because one ledger per element is required. The crosswalk is
+    caller-supplied conditional input -- the ledger tables hold no request hash
+    -- so these checks prove internal consistency with the recorded receipts
+    only. They never prove that a real request-body hash, a live physical
+    source, the guard journal or an unspent approval has been recovered.
+    """
+    if (not isinstance(sources, (list, tuple)) or not sources or len(sources) > _MAX_RECOVERY_ATTEMPTS
+            or not isinstance(guard, dict) or not isinstance(unknown_match, dict)):
+        raise ValueError("recovery snapshots, guard snapshot and unknown binding required")
+    if set(unknown_match) != set(_UNKNOWN_MATCH_KEYS):
+        raise ValueError("unknown binding must declare exactly its six fields")
+    state = guard.get("state")
+    if (not isinstance(state, dict) or not set(state) <= set(_GUARD_STATE_KEYS)
+            or not isinstance(state.get("receipts"), (list, tuple))
+            or not state["receipts"] or len(state["receipts"]) > _MAX_RECOVERY_ATTEMPTS):
+        raise ValueError("guard snapshot declares missing or unbounded fields")
+    for key, value in state.items():
+        if key not in ("receipts", "policy", "continuation_run") and not _bounded_scalar(value):
+            raise ValueError("guard snapshot declares out-of-range fields")
+    for key in ("policy", "continuation_run"):
+        if key in state:
+            _bounded_manifest(state[key])
+    for receipt in state["receipts"]:
+        peak_micro_usd = receipt.get("peak_micro_usd") if isinstance(receipt, dict) else None
+        if (not isinstance(receipt, dict) or not set(receipt) <= set(_GUARD_RECEIPT_KEYS)
+                or not isinstance(receipt.get("lane"), str)
+                or not 1 <= len(receipt["lane"]) <= _MAX_LANE_TEXT
+                or (peak_micro_usd is not None and not _bounded_count(peak_micro_usd))
+                or any(not _bounded_scalar(value) for value in receipt.values())):
+            raise ValueError("guard receipt declares missing or unbounded fields")
+    if (not isinstance(guard.get("source_sha256"), str)
+            or not _SHA256.fullmatch(guard["source_sha256"])
+            or _recovery_digest(state) != guard["source_sha256"]):
+        raise ValueError("guard snapshot digest drifted")
+
+    attempt_ids = set()
+    manifest_pending = []
+    rows_by_ledger, counts, sha_by_ledger, provenance_by_ledger = {}, {}, {}, {}
+    request_bindings_by_ledger = {}
+    for source in sources:
+        if not isinstance(source, dict) or not isinstance(source.get("snapshot"), dict):
+            raise ValueError("snapshot-shaped recovery source required")
+        snapshot = source["snapshot"]
+        if not set(_RECOVERY_SNAPSHOT_KEYS) <= set(snapshot) <= set(_RECOVERY_SNAPSHOT_KEYS) | {"manifest"}:
+            raise ValueError("recovery snapshot must declare exactly the bounded fields")
+        if "manifest" in snapshot:
+            manifest = _bounded_manifest(snapshot["manifest"])
+            if "original_guard_pending_micro_usd" in manifest:
+                declared_pending = manifest["original_guard_pending_micro_usd"]
+                if not _bounded_count(declared_pending):
+                    raise ValueError("recovery manifest pending exposure missing or unbounded")
+                manifest_pending.append(declared_pending)
+        attempts, mapping, budget = snapshot["attempts"], snapshot["mapping"], snapshot["budget"]
+        declared, schema = snapshot["sources"], snapshot["schema"]
+        if (not isinstance(attempts, (list, tuple)) or not attempts
+                or len(attempts) > _MAX_RECOVERY_ATTEMPTS
+                or len(attempt_ids) + len(attempts) > _MAX_RECOVERY_ATTEMPTS
+                or not isinstance(mapping, (list, tuple)) or len(mapping) != len(attempts)
+                or not isinstance(budget, (list, tuple)) or len(budget) != 1
+                or not isinstance(budget[0], (list, tuple))
+                or not isinstance(declared, (list, tuple)) or len(declared) != 1
+                or not isinstance(schema, (list, tuple)) or len(schema) > _MAX_SCHEMA_ROWS):
+            raise ValueError("recovery snapshot is missing or unbounded")
+        _bounded_schema(schema)
+        for row in attempts:
+            if (not isinstance(row, (list, tuple)) or len(row) != _RECOVERY_ROW_FIELDS
+                    or any(not isinstance(value, str) or not value or len(value) > _MAX_ROW_TEXT
+                           for value in row[:3])
+                    or any(not _bounded_count(value) for value in row[3:6])):
+                raise ValueError("recovery attempt row is missing or unbounded")
+        for entry_ in mapping:
+            if (not isinstance(entry_, (list, tuple)) or len(entry_) != 2
+                    or not isinstance(entry_[0], str) or not entry_[0]
+                    or len(entry_[0]) > _MAX_ROW_TEXT
+                    or not isinstance(entry_[1], str) or not entry_[1]
+                    or len(entry_[1]) > _MAX_LEDGER_TEXT):
+                raise ValueError("recovery source mapping is missing or unbounded")
+        if len(budget[0]) != _RECOVERY_BUDGET_FIELDS or any(
+                not _bounded_count(value) for value in budget[0]):
+            raise ValueError("recovery counters are missing or unbounded")
+        bindings = snapshot["source_bindings"]
+        if (not isinstance(bindings, dict) or not 1 <= len(bindings) <= 4
+                or any(not isinstance(key, str) or not 1 <= len(key) <= _MAX_LEDGER_TEXT
+                       for key in bindings)
+                or any(not isinstance(value, (list, tuple)) or len(value) != 2
+                       or any(not _bounded_count(item) for item in value)
+                       for value in bindings.values())):
+            raise ValueError("recovery source bindings are missing or unbounded")
+        request_bindings = snapshot["request_bindings"]
+        if (not isinstance(request_bindings, dict) or len(request_bindings) != len(attempts)
+                or any(not isinstance(key, str) or not key or len(key) > _MAX_ROW_TEXT
+                       for key in request_bindings)
+                or any(not isinstance(value, str) or not _SHA256.fullmatch(value)
+                       for value in request_bindings.values())):
+            raise ValueError("recovery request bindings are missing or unbounded")
+        entry = declared[0]
+        if (not isinstance(entry, (list, tuple)) or len(entry) != 2
+                or not isinstance(entry[0], str) or not 1 <= len(entry[0]) <= _MAX_LEDGER_TEXT):
+            raise ValueError("one ledger provenance per recovery source required")
+        ledger_uuid, raw = entry
+        if (ledger_uuid in rows_by_ledger or not isinstance(raw, str)
+                or len(raw) > _MAX_PROVENANCE_BYTES):
+            raise ValueError("recovery ledger or provenance missing or unbounded")
+        if (not isinstance(source.get("source_sha256"), str)
+                or not _SHA256.fullmatch(source["source_sha256"])
+                or _recovery_digest(snapshot) != source["source_sha256"]):
+            raise ValueError("recovery source digest drifted")
+        provenance = _recovery_provenance(ledger_uuid, raw, snapshot["source_bindings"])
+        rows = []
+        for row in attempts:
+            if (not isinstance(row, (list, tuple)) or len(row) != _RECOVERY_ROW_FIELDS
+                    or not isinstance(row[0], str) or not row[0] or row[0] in attempt_ids
+                    or not isinstance(row[1], str) or not row[1]
+                    or not isinstance(row[2], str) or not row[2]):
+                raise ValueError("recovery attempt row or identifier drift")
+            if any(not _bounded_count(row[index]) for index in (3, 4, 5)):
+                raise ValueError("recovery attempt token or reservation drift")
+            if (type(row[7]) is not int or row[7] not in (0, 1)
+                    or type(row[8]) is not int or row[8] not in (0, 1)
+                    or (row[6] is not None and not _bounded_count(row[6]))
+                    or (row[7] == 1 and row[8] == 1) != (row[6] is not None)):
+                raise ValueError("inconsistent recovered usage")
+            attempt_ids.add(row[0])
+            rows.append(row)
+        mapped = set()
+        for entry in mapping:
+            if (not isinstance(entry, (list, tuple)) or len(entry) != 2
+                    or not isinstance(entry[0], str) or entry[1] != ledger_uuid):
+                raise ValueError("every recovered attempt needs an exact one-ledger mapping")
+            mapped.add(entry[0])
+        if mapped != {row[0] for row in rows}:
+            raise ValueError("every recovered attempt needs an exact one-ledger mapping")
+        if set(request_bindings) != {row[0] for row in rows}:
+            raise ValueError("every recovered attempt needs an explicit request binding")
+        if tuple(budget[0]) != (len(rows), sum(row[5] for row in rows),
+                                sum(row[6] or 0 for row in rows), 0, 0, 0, 1):
+            raise ValueError("recovery counters disagree with recovered rows")
+        rows_by_ledger[ledger_uuid] = rows
+        counts[ledger_uuid] = len(rows)
+        sha_by_ledger[ledger_uuid] = source["source_sha256"]
+        provenance_by_ledger[ledger_uuid] = provenance
+        request_bindings_by_ledger[ledger_uuid] = request_bindings
+    if not 1 <= len(attempt_ids) <= _MAX_RECOVERY_ATTEMPTS:
+        raise ValueError("invalid cumulative recovery history")
+
+    all_rows = [row for rows in rows_by_ledger.values() for row in rows]
+    unknown_rows = [row for row in all_rows if not (row[7] == 1 and row[8] == 1)]
+    if len(unknown_rows) != 1:
+        raise ValueError("exactly one unknown recovered attempt required")
+
+    guard_ledgers = [ledger_uuid for ledger_uuid, provenance in provenance_by_ledger.items()
+                     if provenance["identity"] == state.get("period_identity")
+                     and provenance["config_sha256"] == state.get("config_sha256")]
+    if len(guard_ledgers) != 1:
+        raise ValueError("exactly one recovered ledger must match the guard period")
+    guard_ledger = guard_ledgers[0]
+    receipts = state.get("receipts")
+    if not isinstance(receipts, (list, tuple)) or not receipts:
+        raise ValueError("guard receipts missing")
+    by_request = {}
+    for receipt in receipts:
+        if (not isinstance(receipt, dict) or not isinstance(receipt.get("request_sha256"), str)
+                or not _SHA256.fullmatch(receipt["request_sha256"])
+                or not _bounded_count(receipt.get("reserved_micro_usd"))
+                or receipt["request_sha256"] in by_request):
+            raise ValueError("guard receipt drift")
+        by_request[receipt["request_sha256"]] = receipt
+    guard_rows = rows_by_ledger[guard_ledger]
+    guard_bindings = request_bindings_by_ledger[guard_ledger]
+    if not guard_bindings:
+        raise ValueError("guard ledger has no explicit request binding crosswalk")
+    if set(by_request) != {guard_bindings[row[0]] for row in guard_rows}:
+        raise ValueError("guard receipts disagree with the recovered request bindings")
+    settled_peak_micro_usd = pending_micro_usd = 0
+    for row in guard_rows:
+        receipt = by_request[guard_bindings[row[0]]]
+        is_known = row[7] == 1 and row[8] == 1
+        if (receipt.get("status") != ("settled" if is_known else "unknown_or_unsafe")
+                or receipt.get("lane") != row[2]
+                or receipt.get("peak_micro_usd") != row[6]):
+            raise ValueError("guard receipt disagrees with its recovered attempt")
+        if is_known:
+            settled_peak_micro_usd += row[6]
+        else:
+            pending_micro_usd += receipt["reserved_micro_usd"]
+    if (state.get("settled_peak_micro_usd") != settled_peak_micro_usd
+            or state.get("pending_micro_usd") != pending_micro_usd):
+        raise ValueError("guard exposure disagrees with the recovered rows")
+    if any(declared_pending != pending_micro_usd for declared_pending in manifest_pending):
+        raise ValueError("recovered manifest exposure disagrees with the guard")
+
+    unknown_row = unknown_rows[0]
+    if (unknown_row[0] not in {row[0] for row in guard_rows}
+            or unknown_match.get("ledger_uuid") != guard_ledger
+            or unknown_match.get("attempt_id") != unknown_row[0]
+            or unknown_match.get("request_sha256") != guard_bindings[unknown_row[0]]
+            or unknown_match.get("period_identity") != state.get("period_identity")
+            or unknown_match.get("config_sha256") != state.get("config_sha256")
+            or unknown_match.get("pending_micro_usd") != pending_micro_usd):
+        raise ValueError("unknown attempt is not bound to its unique guard receipt")
+
+    return RecoverySourceEvidence(
+        historical_attempts=len(attempt_ids),
+        known_attempts=len(attempt_ids) - len(unknown_rows),
+        unknown_attempts=len(unknown_rows),
+        known_actual_micro_usd=sum(row[6] or 0 for row in all_rows),
+        pending_micro_usd=pending_micro_usd,
+        unknown_attempt_id=unknown_row[0],
+        source_attempt_counts=MappingProxyType(dict(counts)),
+        source_sha256_by_ledger=MappingProxyType(dict(sha_by_ledger)),
+        source_provenance_by_ledger=MappingProxyType(
+            {ledger: _frozen_metadata(provenance) for ledger, provenance in provenance_by_ledger.items()}),
+        guard_source_sha256=guard["source_sha256"],
+        unknown_guard_match=_frozen_metadata(unknown_match),
+        _origin=_RECOVERY_EVIDENCE_TOKEN,
+    )

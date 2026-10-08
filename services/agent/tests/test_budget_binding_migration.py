@@ -478,7 +478,7 @@ def test_recovery_source_evidence_holds_no_mutable_alias_of_its_inputs():
     assert evidence.pending_micro_usd == 786432
 
 
-@pytest.mark.parametrize("drift", ["row_loss", "unknown_forgery", "guard_mismatch", "guard_receipt_mismatch", "unknown_match", "unknown_request_hash", "missing_crosswalk", "crosswalk_drift", "source_hash", "provenance"])
+@pytest.mark.parametrize("drift", ["row_loss", "unknown_forgery", "guard_mismatch", "guard_receipt_mismatch", "unknown_match", "unknown_request_hash", "missing_crosswalk", "crosswalk_drift", "source_hash", "provenance", "guard_not_halted", "manifest_key", "crosswalk_reuse"])
 def test_recovery_source_snapshot_rejects_row_loss_unknown_forgery_or_unbound_provenance(drift):
     sources, guard, unknown_match = deepcopy(_synthetic_recovery_inputs())
     if drift == "row_loss":
@@ -516,6 +516,17 @@ def test_recovery_source_snapshot_rejects_row_loss_unknown_forgery_or_unbound_pr
         unknown_row = snapshot["attempts"][-1]
         snapshot["request_bindings"][unknown_row[0]] = "0" * 64
         sources[0]["source_sha256"] = _recovery_digest(snapshot)
+    elif drift == "guard_not_halted":
+        guard["state"]["halted"] = False
+        guard["source_sha256"] = _recovery_digest(guard["state"])
+    elif drift == "manifest_key":
+        guard["state"]["policy"] = {"x" * 257: 1}
+        guard["source_sha256"] = _recovery_digest(guard["state"])
+    elif drift == "crosswalk_reuse":
+        snapshot = sources[1]["snapshot"]
+        first, second = snapshot["attempts"][:2]
+        snapshot["request_bindings"][second[0]] = snapshot["request_bindings"][first[0]]
+        sources[1]["source_sha256"] = _recovery_digest(snapshot)
     elif drift == "source_hash":
         sources[0]["source_sha256"] = "0" * 64
     else:

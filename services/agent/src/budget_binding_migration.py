@@ -577,6 +577,8 @@ def _bounded_schema(schema):
 def _bounded_manifest(manifest):
     if not isinstance(manifest, dict) or len(manifest) > _MAX_MANIFEST_FIELDS:
         raise ValueError("recovery manifest missing or unbounded")
+    if any(not isinstance(key, str) or not 1 <= len(key) <= _MAX_MANIFEST_TEXT for key in manifest):
+        raise ValueError("recovery manifest keys missing or unbounded")
     for value in manifest.values():
         if isinstance(value, str):
             if len(value) > _MAX_MANIFEST_TEXT:
@@ -610,6 +612,8 @@ def validate_recovery_sources(sources, guard, unknown_match):
             or not isinstance(state.get("receipts"), (list, tuple))
             or not state["receipts"] or len(state["receipts"]) > _MAX_RECOVERY_ATTEMPTS):
         raise ValueError("guard snapshot declares missing or unbounded fields")
+    if state.get("halted") is not True:
+        raise ValueError("unknown recovery guard must remain halted")
     for key, value in state.items():
         if key not in ("receipts", "policy", "continuation_run") and not _bounded_scalar(value):
             raise ValueError("guard snapshot declares out-of-range fields")
@@ -728,6 +732,8 @@ def validate_recovery_sources(sources, guard, unknown_match):
             raise ValueError("every recovered attempt needs an exact one-ledger mapping")
         if set(request_bindings) != {row[0] for row in rows}:
             raise ValueError("every recovered attempt needs an explicit request binding")
+        if len(set(request_bindings.values())) != len(rows):
+            raise ValueError("recovery requires an unambiguous per-attempt request crosswalk")
         if tuple(budget[0]) != (len(rows), sum(row[5] for row in rows),
                                 sum(row[6] or 0 for row in rows), 0, 0, 0, 1):
             raise ValueError("recovery counters disagree with recovered rows")

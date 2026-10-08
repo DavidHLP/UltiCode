@@ -4,6 +4,7 @@ import hashlib
 import json
 import os
 import sqlite3
+from copy import deepcopy
 from pathlib import Path
 
 import pytest
@@ -310,3 +311,192 @@ def test_audit_recovery_failure_retains_pending_without_success(locked_audit_led
     assert not (target / "recovery.json").exists()
     with pytest.raises(FileExistsError):
         migration.rehearse_audit_recovery(locked_audit_ledger, target)
+
+
+def _recovery_digest(value):
+    raw = json.dumps(value, sort_keys=True, separators=(",", ":")).encode()
+    return hashlib.sha256(raw).hexdigest()
+
+
+def _synthetic_recovery_inputs():
+    """Snapshot-shaped validator inputs only; never a ledger or approval manifest."""
+    ids = ("a" * 32, "b" * 32)
+    known_amounts = iter([333] * 42 + [332] * 4)
+
+    def make_source(index, ledger_uuid, count, unknown=False):
+        prefix = "legacy-58" if index == 0 else "legacy-53"
+        rows = []
+        for attempt_index in range(count):
+            is_unknown = unknown and attempt_index == count - 1
+            purpose = ("dav58_loop" if attempt_index < 24 else "dav58_judge") if index == 0 else "dav53_scenarios"
+            rows.append((
+                f"{prefix}-{attempt_index + 1:02d}",
+                f"2026-10-{3 + index:02d} 10:{attempt_index:02d}:00",
+                purpose,
+                24000,
+                1000 if purpose == "dav53_scenarios" else 2000,
+                9600,
+                None if is_unknown else next(known_amounts),
+                0 if is_unknown else 1,
+                0 if is_unknown else 1,
+            ))
+        provenance = {
+            "ledger_uuid": ledger_uuid,
+            "identity": ("c" if index == 0 else "e") * 32,
+            "period_id": f"source-{index + 1}",
+            "config_sha256": ("d" if index == 0 else "f") * 64,
+            "recorded_ledger": [58, 123 + index],
+            "actual_device": 58,
+        }
+        snapshot = {
+            "attempts": tuple(rows),
+            "budget": [(len(rows), sum(row[5] for row in rows), sum(row[6] or 0 for row in rows), 0, 0, 0, 1)],
+            "sources": [(ledger_uuid, json.dumps(provenance, sort_keys=True, separators=(",", ":")))],
+            "mapping": [(row[0], ledger_uuid) for row in rows],
+            "schema": [],
+            "source_bindings": {ledger_uuid: provenance["recorded_ledger"]},
+        }
+        return {"snapshot": snapshot, "source_sha256": _recovery_digest(snapshot)}
+
+    sources = (
+        make_source(0, ids[0], 35, unknown=True),
+        make_source(1, ids[1], 12),
+    )
+    first_provenance = json.loads(sources[0]["snapshot"]["sources"][0][1])
+    guard_state = {
+        "period_identity": first_provenance["identity"],
+        "config_sha256": first_provenance["config_sha256"],
+        "limit_micro_usd": 1_000_000,
+        "settled_peak_micro_usd": sum(row[6] or 0 for row in sources[0]["snapshot"]["attempts"]),
+        "pending_micro_usd": 786432,
+        "halted": True,
+        "receipts": [
+            {
+                "lane": row[2],
+                "request_sha256": hashlib.sha256(row[0].encode()).hexdigest(),
+                "reserved_micro_usd": 786432,
+                "peak_micro_usd": row[6],
+                "status": "unknown_or_unsafe" if row[7] == 0 or row[8] == 0 else "settled",
+            }
+            for row in sources[0]["snapshot"]["attempts"]
+        ],
+    }
+    guard = {"state": guard_state, "source_sha256": _recovery_digest(guard_state)}
+    return sources, guard
+
+
+def test_recovery_source_snapshot_preserves_exact_47_rows_and_unknown_guard_provenance():
+    ids = ("a" * 32, "b" * 32)
+    sources, guard = _synthetic_recovery_inputs()
+    evidence = migration.validate_recovery_sources(sources, guard)
+    provenance = {
+        ledger_uuid: json.loads(raw)
+        for source in sources
+        for ledger_uuid, raw in source["snapshot"]["sources"]
+    }
+    unknown_rows = [
+        row for source in sources for row in source["snapshot"]["attempts"]
+        if row[7] != 1 or row[8] != 1
+    ]
+
+    assert evidence.historical_attempts == 47
+    assert evidence.known_attempts == 46
+    assert evidence.unknown_attempts == 1
+    assert evidence.known_actual_micro_usd == 15314
+    assert evidence.source_attempt_counts == {ids[0]: 35, ids[1]: 12}
+    assert evidence.unknown_attempt_id == unknown_rows[0][0]
+    assert evidence.pending_micro_usd == 786432
+    assert evidence.source_sha256_by_ledger == {
+        ledger_uuid: source["source_sha256"]
+        for source in sources
+        for ledger_uuid, _ in source["snapshot"]["sources"]
+    }
+    assert evidence.source_provenance_by_ledger == provenance
+    assert evidence.guard_source_sha256 == guard["source_sha256"]
+    with pytest.raises(TypeError):
+        evidence.source_sha256_by_ledger[ids[0]] = "0" * 64
+    with pytest.raises(TypeError):
+        evidence.source_provenance_by_ledger[ids[0]]["period_id"] = "forged"
+
+
+@pytest.mark.parametrize("drift", ["row_loss", "unknown_forgery", "guard_mismatch", "source_hash", "provenance"])
+def test_recovery_source_snapshot_rejects_row_loss_unknown_forgery_or_unbound_provenance(drift):
+    sources, guard = deepcopy(_synthetic_recovery_inputs())
+    if drift == "row_loss":
+        snapshot = sources[0]["snapshot"]
+        snapshot["attempts"] = snapshot["attempts"][:-1]
+        snapshot["mapping"] = snapshot["mapping"][:-1]
+        rows = snapshot["attempts"]
+        snapshot["budget"] = [(len(rows), sum(row[5] for row in rows), sum(row[6] or 0 for row in rows), 0, 0, 0, 1)]
+        sources[0]["source_sha256"] = _recovery_digest(snapshot)
+    elif drift == "unknown_forgery":
+        snapshot = sources[0]["snapshot"]
+        rows = list(snapshot["attempts"])
+        row = list(rows[-1])
+        row[6], row[7], row[8] = 0, 1, 1
+        rows[-1] = tuple(row)
+        snapshot["attempts"] = tuple(rows)
+        sources[0]["source_sha256"] = _recovery_digest(snapshot)
+    elif drift == "guard_mismatch":
+        guard["state"]["pending_micro_usd"] = 786431
+        guard["source_sha256"] = _recovery_digest(guard["state"])
+    elif drift == "source_hash":
+        sources[0]["source_sha256"] = "0" * 64
+    else:
+        snapshot = sources[0]["snapshot"]
+        ledger_uuid, raw = snapshot["sources"][0]
+        provenance = json.loads(raw)
+        provenance["ledger_uuid"] = "9" * 32
+        snapshot["sources"] = [(ledger_uuid, json.dumps(provenance, sort_keys=True, separators=(",", ":")))]
+        sources[0]["source_sha256"] = _recovery_digest(snapshot)
+
+    with pytest.raises(ValueError):
+        migration.validate_recovery_sources(sources, guard)
+
+
+def test_recovery_plan_compiles_exact_immutable_budget_and_purpose_caps():
+    sources, guard = _synthetic_recovery_inputs()
+    evidence = migration.validate_recovery_sources(sources, guard)
+    plan = period.compile_recovery_plan(evidence)
+
+    assert period.POLICY_ID == "dav58-dav53-v1"
+    assert period.POLICY["limit_micro_usd"] == 1_000_000
+    assert period.POLICY["attempts"] == 78
+    assert dict(period.POLICY["lanes"]["dav58_loop"]) == {
+        "attempts": 24, "completion_token_cap": 2000, "rounds": 4,
+    }
+    assert dict(period.POLICY["lanes"]["dav58_judge"]) == {
+        "attempts": 42, "completion_token_cap": 2000, "rounds": 1,
+    }
+    assert dict(period.POLICY["lanes"]["dav53_scenarios"]) == {
+        "attempts": 12, "completion_token_cap": 1000, "rounds": 4,
+    }
+    assert plan.approved_attempts == 204
+    assert plan.future_attempts == 157
+    assert {name: dict(cap) for name, cap in plan.purpose_caps.items()} == {
+        "dav58_loop": {"attempts": 24, "prompt_token_cap": 8000, "completion_token_cap": 2000},
+        "dav58_judge": {"attempts": 19, "prompt_token_cap": 8000, "completion_token_cap": 2000},
+        "dav53_scenarios": {"attempts": 12, "prompt_token_cap": 24000, "completion_token_cap": 1000},
+        "u03_analysis": {"attempts": 12, "prompt_token_cap": 24000, "completion_token_cap": 2000},
+        "u03_citation_judge": {"attempts": 9, "prompt_token_cap": 24000, "completion_token_cap": 2000},
+        "u04_post_demo": {"attempts": 81, "prompt_token_cap": 24000, "completion_token_cap": 2000},
+    }
+    assert sum(cap["attempts"] for cap in plan.purpose_caps.values()) == 157
+    assert (plan.u04_demo_attempts, plan.u04_post_demo_attempts, plan.u04_total_attempts) == (7, 81, 88)
+    assert plan.cost_components_micro_usd == {
+        "A": 15314, "U": 786432, "R": 1286400, "cmax": 9600, "E": 786432,
+    }
+    assert plan.peak_micro_usd == 15314 + 786432 + (1286400 - 9600) + 786432 == 2864978
+    assert plan.approved_limit_micro_usd == 2900000
+    assert plan.remaining_micro_usd == 35022
+    assert plan.legacy_encumbrance_status == "UNKNOWN"
+    assert plan.legacy_encumbrance_micro_usd == 786432
+    assert plan.source_sha256_by_ledger == evidence.source_sha256_by_ledger
+    assert plan.source_provenance_by_ledger == evidence.source_provenance_by_ledger
+
+    with pytest.raises(AttributeError):
+        plan.future_attempts = 0
+    with pytest.raises(TypeError):
+        plan.purpose_caps["dav58_loop"] = {}
+    with pytest.raises(TypeError):
+        plan.purpose_caps["dav58_loop"]["attempts"] = 0

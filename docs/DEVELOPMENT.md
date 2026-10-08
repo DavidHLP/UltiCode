@@ -849,6 +849,15 @@ halted state and approved limits are preserved. Failed copies retain a pending
 marker and require a new destination, not an overwrite or automatic retry.
 This mode is recovery preparation, not formal model/Java acceptance.
 
+For offline preparation, `validate_recovery_sources` checks bounded source
+snapshots against an explicit attempt-to-request-body-hash crosswalk; SQL attempt
+IDs do not supply that crosswalk. Missing original mappings must not be synthesized.
+`compile_recovery_plan` derives conditional costs from explicit approval, pricing
+and lane caps using `A + U + R - cmin + E` for a single in-flight request. Its result
+has `paid_authorized=False` and `runtime_applied=False`: caller-declared caps are
+not runtime policy, and this result cannot grant spending or device migration.
+Original evidence gates and unknown usage remain unchanged.
+
 ### Autonomous acceptance and review readiness
 
 U03/U04 acceptance drivers default to delegated autonomous draft review and

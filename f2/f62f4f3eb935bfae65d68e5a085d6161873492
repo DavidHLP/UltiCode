@@ -1,0 +1,38 @@
+services/agent/src/authorized_budget_period.py
+  s_c1c1bb99787bb6::t_1ed39d59025585 63-83,89-90
+services/agent/tests/test_e2e_answer_evaluation.py
+  s_c1c1bb99787bb6::t_29e7a8c188830d 321-350
+  s_c1c1bb99787bb6::t_c75af178978cd9 306-320
+services/agent/src/revalidation_history.py
+  s_c1c1bb99787bb6::t_1ed39d59025585 75,77-82
+  s_c1c1bb99787bb6::t_91dc294fe22a4e 18-29,31-73
+  s_c1c1bb99787bb6::t_33bf0ff2c39887 74
+services/agent/src/model_budget.py
+  s_c1c1bb99787bb6::t_1ed39d59025585 214,216,292,297,425-427,502,741,777
+docs/DEVELOPMENT.md
+  s_c1c1bb99787bb6::t_fad33ef869b2f2 390-398
+services/agent/src/agent_service/gate.py
+  s_c1c1bb99787bb6::t_fd623efd9b0c98 298-300,304,363-364,444-445,472-473,486-487,508-509,511-512,514,519,524,526,1468-1469
+  s_c1c1bb99787bb6::t_8214044c95db59 1409-1410,1412
+services/agent/tests/test_revalidation_gate.py
+  s_c1c1bb99787bb6::t_fad33ef869b2f2 80-102
+services/agent/e2e_answer_evaluation.py
+  s_c1c1bb99787bb6::t_8214044c95db59 172-180,182,185,188-189,223
+  s_c1c1bb99787bb6::t_29e7a8c188830d 225-235
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f2f62f4f3eb935bfae65d68e5a085d6161873492",
+  "prompts": {},
+  "sessions": {
+    "s_c1c1bb99787bb6": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1198a-cf4e-7f23-81dd-601d007adaf7",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

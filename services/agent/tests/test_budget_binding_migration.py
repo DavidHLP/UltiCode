@@ -319,7 +319,7 @@ def _recovery_digest(value):
 
 
 def _synthetic_recovery_inputs():
-    """Snapshot-shaped validator inputs only; never a ledger or approval manifest."""
+    """Synthetic snapshot-shaped unit inputs only; never a ledger, guard file, or approval manifest."""
     ids = ("a" * 32, "b" * 32)
     known_amounts = iter([333] * 42 + [332] * 4)
 
@@ -382,13 +382,26 @@ def _synthetic_recovery_inputs():
         ],
     }
     guard = {"state": guard_state, "source_sha256": _recovery_digest(guard_state)}
-    return sources, guard
+    unknown_row = sources[0]["snapshot"]["attempts"][-1]
+    unknown_row_sha256 = hashlib.sha256(unknown_row[0].encode()).hexdigest()
+    bound_receipts = [receipt for receipt in guard_state["receipts"] if receipt["request_sha256"] == unknown_row_sha256]
+    assert len(bound_receipts) == 1  # the unique unknown row binds to exactly one guard receipt by request hash
+    unknown_receipt = bound_receipts[0]
+    unknown_match = {
+        "ledger_uuid": ids[0],
+        "attempt_id": unknown_row[0],
+        "request_sha256": unknown_receipt["request_sha256"],
+        "period_identity": guard_state["period_identity"],
+        "config_sha256": guard_state["config_sha256"],
+        "pending_micro_usd": guard_state["pending_micro_usd"],
+    }
+    return sources, guard, unknown_match
 
 
 def test_recovery_source_snapshot_preserves_exact_47_rows_and_unknown_guard_provenance():
     ids = ("a" * 32, "b" * 32)
-    sources, guard = _synthetic_recovery_inputs()
-    evidence = migration.validate_recovery_sources(sources, guard)
+    sources, guard, unknown_match = _synthetic_recovery_inputs()
+    evidence = migration.validate_recovery_sources(sources, guard, unknown_match)
     provenance = {
         ledger_uuid: json.loads(raw)
         for source in sources
@@ -398,14 +411,18 @@ def test_recovery_source_snapshot_preserves_exact_47_rows_and_unknown_guard_prov
         row for source in sources for row in source["snapshot"]["attempts"]
         if row[7] != 1 or row[8] != 1
     ]
+    pending_receipts = [receipt for receipt in guard["state"]["receipts"] if receipt["status"] == "unknown_or_unsafe"]
 
     assert evidence.historical_attempts == 47
     assert evidence.known_attempts == 46
     assert evidence.unknown_attempts == 1
     assert evidence.known_actual_micro_usd == 15314
     assert evidence.source_attempt_counts == {ids[0]: 35, ids[1]: 12}
-    assert evidence.unknown_attempt_id == unknown_rows[0][0]
-    assert evidence.pending_micro_usd == 786432
+    assert evidence.unknown_attempt_id == unknown_rows[0][0] == unknown_match["attempt_id"]
+    assert len(pending_receipts) == 1
+    assert pending_receipts[0]["request_sha256"] == unknown_match["request_sha256"]
+    assert pending_receipts[0]["reserved_micro_usd"] == evidence.pending_micro_usd == 786432
+    assert evidence.unknown_guard_match == unknown_match
     assert evidence.source_sha256_by_ledger == {
         ledger_uuid: source["source_sha256"]
         for source in sources
@@ -419,9 +436,9 @@ def test_recovery_source_snapshot_preserves_exact_47_rows_and_unknown_guard_prov
         evidence.source_provenance_by_ledger[ids[0]]["period_id"] = "forged"
 
 
-@pytest.mark.parametrize("drift", ["row_loss", "unknown_forgery", "guard_mismatch", "source_hash", "provenance"])
+@pytest.mark.parametrize("drift", ["row_loss", "unknown_forgery", "guard_mismatch", "guard_receipt_mismatch", "unknown_match", "unknown_request_hash", "source_hash", "provenance"])
 def test_recovery_source_snapshot_rejects_row_loss_unknown_forgery_or_unbound_provenance(drift):
-    sources, guard = deepcopy(_synthetic_recovery_inputs())
+    sources, guard, unknown_match = deepcopy(_synthetic_recovery_inputs())
     if drift == "row_loss":
         snapshot = sources[0]["snapshot"]
         snapshot["attempts"] = snapshot["attempts"][:-1]
@@ -440,6 +457,13 @@ def test_recovery_source_snapshot_rejects_row_loss_unknown_forgery_or_unbound_pr
     elif drift == "guard_mismatch":
         guard["state"]["pending_micro_usd"] = 786431
         guard["source_sha256"] = _recovery_digest(guard["state"])
+    elif drift == "guard_receipt_mismatch":
+        guard["state"]["receipts"][-1]["request_sha256"] = "0" * 64
+        guard["source_sha256"] = _recovery_digest(guard["state"])
+    elif drift == "unknown_match":
+        unknown_match["attempt_id"] = sources[0]["snapshot"]["attempts"][-2][0]
+    elif drift == "unknown_request_hash":
+        unknown_match["request_sha256"] = "0" * 64
     elif drift == "source_hash":
         sources[0]["source_sha256"] = "0" * 64
     else:
@@ -451,13 +475,39 @@ def test_recovery_source_snapshot_rejects_row_loss_unknown_forgery_or_unbound_pr
         sources[0]["source_sha256"] = _recovery_digest(snapshot)
 
     with pytest.raises(ValueError):
-        migration.validate_recovery_sources(sources, guard)
+        migration.validate_recovery_sources(sources, guard, unknown_match)
 
 
-def test_recovery_plan_compiles_exact_immutable_budget_and_purpose_caps():
-    sources, guard = _synthetic_recovery_inputs()
-    evidence = migration.validate_recovery_sources(sources, guard)
-    plan = period.compile_recovery_plan(evidence)
+def _recovery_plan_inputs(evidence):
+    """Synthetic condition inputs only; not an approval manifest and not evidence."""
+    return {
+        "source_evidence": evidence,
+        "approval": {"cumulative_attempts": 204, "limit_micro_usd": 2900000},
+        "purpose_caps": {
+            "dav58_loop": {"attempts": 24, "prompt_token_cap": 8000, "completion_token_cap": 2000},
+            "dav58_judge": {"attempts": 19, "prompt_token_cap": 8000, "completion_token_cap": 2000},
+            "dav53_scenarios": {"attempts": 12, "prompt_token_cap": 24000, "completion_token_cap": 1000},
+            "u03_analysis": {"attempts": 12, "prompt_token_cap": 24000, "completion_token_cap": 2000},
+            "u03_citation_judge": {"attempts": 9, "prompt_token_cap": 24000, "completion_token_cap": 2000},
+            "u04_post_demo": {"attempts": 81, "prompt_token_cap": 24000, "completion_token_cap": 2000},
+        },
+        "pricing": {"input_tenths_micro_usd_per_token": 3, "output_tenths_micro_usd_per_token": 12},
+        "envelopes": {
+            "input_context_token_cap": 1048576,
+            "output_token_cap": 393216,
+            "envelope_micro_usd": ENVELOPE_MICRO_USD,
+            "unknown_pending_micro_usd": 786432,
+            "legacy_unknown_encumbrance_micro_usd": 786432,
+        },
+        "stage_caps": {"u04_demo_attempts": 7, "u04_total_attempts": 88},
+    }
+
+
+def test_recovery_plan_compiles_only_from_explicit_immutable_approval_caps_and_pricing():
+    sources, guard, unknown_match = _synthetic_recovery_inputs()
+    evidence = migration.validate_recovery_sources(sources, guard, unknown_match)
+    inputs = _recovery_plan_inputs(evidence)
+    plan = period.compile_recovery_plan(**inputs)
 
     assert period.POLICY_ID == "dav58-dav53-v1"
     assert period.POLICY["limit_micro_usd"] == 1_000_000
@@ -471,26 +521,28 @@ def test_recovery_plan_compiles_exact_immutable_budget_and_purpose_caps():
     assert dict(period.POLICY["lanes"]["dav53_scenarios"]) == {
         "attempts": 12, "completion_token_cap": 1000, "rounds": 4,
     }
-    assert plan.approved_attempts == 204
-    assert plan.future_attempts == 157
-    assert {name: dict(cap) for name, cap in plan.purpose_caps.items()} == {
-        "dav58_loop": {"attempts": 24, "prompt_token_cap": 8000, "completion_token_cap": 2000},
-        "dav58_judge": {"attempts": 19, "prompt_token_cap": 8000, "completion_token_cap": 2000},
-        "dav53_scenarios": {"attempts": 12, "prompt_token_cap": 24000, "completion_token_cap": 1000},
-        "u03_analysis": {"attempts": 12, "prompt_token_cap": 24000, "completion_token_cap": 2000},
-        "u03_citation_judge": {"attempts": 9, "prompt_token_cap": 24000, "completion_token_cap": 2000},
-        "u04_post_demo": {"attempts": 81, "prompt_token_cap": 24000, "completion_token_cap": 2000},
-    }
-    assert sum(cap["attempts"] for cap in plan.purpose_caps.values()) == 157
+    assert plan.approved_attempts == inputs["approval"]["cumulative_attempts"] == 204
+    assert plan.approved_limit_micro_usd == inputs["approval"]["limit_micro_usd"] == 2900000
+    assert plan.future_attempts == sum(cap["attempts"] for cap in inputs["purpose_caps"].values()) == 157
+    assert {name: dict(cap) for name, cap in plan.purpose_caps.items()} == inputs["purpose_caps"]
     assert (plan.u04_demo_attempts, plan.u04_post_demo_attempts, plan.u04_total_attempts) == (7, 81, 88)
+    assert plan.pricing == inputs["pricing"]
+    assert plan.envelopes == inputs["envelopes"]
+    caps, price = inputs["envelopes"], inputs["pricing"]
+    envelope = plan.envelopes["envelope_micro_usd"]
+    assert envelope == ENVELOPE_MICRO_USD == 786432
+    assert envelope == (
+        caps["input_context_token_cap"] * price["input_tenths_micro_usd_per_token"]
+        + caps["output_token_cap"] * price["output_tenths_micro_usd_per_token"] + 9) // 10
     assert plan.cost_components_micro_usd == {
-        "A": 15314, "U": 786432, "R": 1286400, "cmax": 9600, "E": 786432,
+        "A": 15314, "U": envelope, "R": 1286400, "cmax": 9600, "E": envelope,
     }
-    assert plan.peak_micro_usd == 15314 + 786432 + (1286400 - 9600) + 786432 == 2864978
-    assert plan.approved_limit_micro_usd == 2900000
+    assert plan.peak_micro_usd == 15314 + envelope + (1286400 - 9600) + envelope == 2864978
     assert plan.remaining_micro_usd == 35022
     assert plan.legacy_encumbrance_status == "UNKNOWN"
     assert plan.legacy_encumbrance_micro_usd == 786432
+    assert plan.paid_authorized is False
+    assert plan.runtime_applied is False
     assert plan.source_sha256_by_ledger == evidence.source_sha256_by_ledger
     assert plan.source_provenance_by_ledger == evidence.source_provenance_by_ledger
 
@@ -500,3 +552,31 @@ def test_recovery_plan_compiles_exact_immutable_budget_and_purpose_caps():
         plan.purpose_caps["dav58_loop"] = {}
     with pytest.raises(TypeError):
         plan.purpose_caps["dav58_loop"]["attempts"] = 0
+    with pytest.raises(TypeError):
+        plan.pricing["output_tenths_micro_usd_per_token"] = 0
+
+
+def test_recovery_plan_rejects_an_approval_limit_below_computed_peak():
+    sources, guard, unknown_match = _synthetic_recovery_inputs()
+    evidence = migration.validate_recovery_sources(sources, guard, unknown_match)
+    inputs = _recovery_plan_inputs(evidence)
+    inputs["approval"]["limit_micro_usd"] = 2864977
+
+    with pytest.raises(ValueError):
+        period.compile_recovery_plan(**inputs)
+
+
+@pytest.mark.parametrize("drift", ["missing_purpose", "price", "envelope"])
+def test_recovery_plan_rejects_missing_purpose_or_pricing_envelope_drift(drift):
+    sources, guard, unknown_match = _synthetic_recovery_inputs()
+    evidence = migration.validate_recovery_sources(sources, guard, unknown_match)
+    inputs = _recovery_plan_inputs(evidence)
+    if drift == "missing_purpose":
+        inputs["purpose_caps"].pop("u03_citation_judge")
+    elif drift == "price":
+        inputs["pricing"]["output_tenths_micro_usd_per_token"] += 1
+    else:
+        inputs["envelopes"]["input_context_token_cap"] -= 1
+
+    with pytest.raises(ValueError):
+        period.compile_recovery_plan(**inputs)

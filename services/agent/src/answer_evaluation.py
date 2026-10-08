@@ -54,6 +54,7 @@ ANSWER_CONTRACT = (
     'Reply with exactly one JSON object of the form {"answer": "<json-string>"} '
     "where <json-string> is itself a JSON object with exactly two fields: "
     '{"text": "<your answer>", "citations": ["<cited chunk id>", ...]}. '
+    f"Keep the text at most {MAX_ANSWER_CHARS} characters. "
     "List only retrieved chunk IDs that the answer actually cites. Use an empty "
     "citations array when the answer cites no retrieved fragment."
 )

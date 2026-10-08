@@ -125,6 +125,8 @@ pass receives the case question and retrieved evidence, not expected/allowed/for
 it must return explicit retrieved chunk IDs in `citations`, and judging checks only those citations.
 For a topic phrase, the answer explains the retrieved material about that topic without assuming
 the question requests a particular submission's private implementation.
+The answer prompt declares the same character limit enforced by the parser; oversized answers
+remain protocol failures and are never silently truncated.
 Holdouts remain sealed. Export the existing `DEEPSEEK_API_KEY` before this opt-in call; the entry
 requires `DEEPSEEK_MODEL`. The maximum-call ceiling is `CALLS_PER_CASE × development case count`,
 where each case has two logical passes and up to three billed attempts per pass. The default remains

@@ -17,9 +17,12 @@ import pytest
 
 from answer_evaluation import (
     AnswerEvaluationError,
+    MAX_ANSWER_CHARS,
     JUDGE_CONTRACT,
     JUDGE_EXAMPLE,
     _judgement_of,
+    _answer_of,
+    _answer_prompt,
     development_cases,
     evaluate_answer_cases,
     summarize,
@@ -144,6 +147,15 @@ def test_answer_generation_does_not_see_expected_outcomes() -> None:
     assert "EXPECTED" not in answer_prompt
     assert "ALLOWED" not in answer_prompt
     assert "FORBIDDEN" not in answer_prompt
+
+
+@pytest.mark.parametrize('character', ['x', '\U0001f600'])
+def test_answer_prompt_declares_the_enforced_text_limit(character: str) -> None:
+    assert f'at most {MAX_ANSWER_CHARS} characters' in _answer_prompt(_case(), ())
+    text = character * MAX_ANSWER_CHARS
+    assert _answer_of(json.dumps({'text': text, 'citations': []}), set()) == (text, ())
+    with pytest.raises(AnswerEvaluationError, match='character limit'):
+        _answer_of(json.dumps({'text': text + character, 'citations': []}), set())
 
 
 def test_a_judge_cannot_classify_an_uncited_answer_as_cite() -> None:

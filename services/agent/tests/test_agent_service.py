@@ -17,6 +17,78 @@ from ulticode_client import UlticodeServiceError
 HEADERS = {"cookie": "access_token=access; csrf_token=csrf", "x-csrf-token": "csrf"}
 
 
+@pytest.mark.parametrize("status", ["Wrong Answer", "Time Limit Exceeded", "Runtime Error"])
+def test_complete_submission_status_claim(status):
+    from agent_service.app import _verify_answer_boundary
+
+    for text in (f"The submission status is {status}.", f"提交状态为 {status}。"):
+        parsed = {"text": text, "citations": []}
+        _verify_answer_boundary(parsed, [{"status": status}], (), (), (), question="如何复盘？")
+        with pytest.raises(ValueError, match="answer_submission_fact_mismatch"):
+            _verify_answer_boundary(parsed, [{"status": "Accepted"}], (), (), (), question="如何复盘？")
+
+
+@pytest.mark.parametrize("status,code,terminal", [
+    (401, 40100, False), (403, 40300, False), (200, 40100, False),
+    (200, 40300, False), (400, 40000, True), (409, 40900, True),
+    (200, 40900, True), (503, 40000, False),
+])
+def test_only_payload_and_idempotency_errors_block_retry(status, code, terminal):
+    from agent_service.app import _deterministic_business_error
+
+    assert _deterministic_business_error(UlticodeServiceError(code, status)) is terminal
+
+
+@pytest.mark.parametrize("status,code,expected", [
+    (404, 40400, 404), (503, 40400, 502), (401, 40100, 401), (403, 40300, 401),
+])
+def test_source_errors_during_create_and_analyze(tmp_path, status, code, expected):
+    class SourceClient(SessionClient):
+        fail = False
+
+        async def get_my_submission(self, submission_id):
+            if self.fail:
+                raise UlticodeServiceError(code, status)
+            return await super().get_my_submission(submission_id)
+
+    async def scenario():
+        app = create_app(state_path=tmp_path / "source.sqlite3", client_factory=SourceClient,
+                         offline_model_factory=lambda: (ScriptedModel(), {}))
+        async with app.router.lifespan_context(app):
+            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
+                body = {"sourceSubmissionId": str(uuid.uuid4()), "question": "如何复盘？"}
+                created = await client.post("/agent/threads", headers=HEADERS, json=body)
+                thread_id = created.json()["data"]["threadId"]
+                SourceClient.fail = True
+                for path, payload in (("/agent/threads", body), (f"/agent/threads/{thread_id}/analyze", {})):
+                    response = await client.post(path, headers=HEADERS, json=payload)
+                    assert response.status_code == expected
+                    assert response.json()["data"]["reason"] == (
+                        {404: "source_not_owned", 502: "upstream_unavailable", 401: "session_rejected"}[expected])
+
+    asyncio.run(scenario())
+
+
+def test_event_cursor_bounds_and_malformed_session_cookies(tmp_path):
+    async def scenario():
+        app = create_app(state_path=tmp_path / "boundary.sqlite3", client_factory=SessionClient)
+        async with app.router.lifespan_context(app):
+            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
+                created = await client.post("/agent/threads", headers=HEADERS,
+                    json={"sourceSubmissionId": str(uuid.uuid4()), "question": "如何复盘？"})
+                path = f'/agent/threads/{created.json()["data"]["threadId"]}/events'
+                for after, expected in ((2**63 - 1, 200), (2**63, 400), (-1, 400)):
+                    response = await client.get(path, headers=HEADERS, params={"after": after})
+                    assert response.status_code == expected
+                for cookie, expected in (("access_token=bad/value", 401),
+                                         ("access_token=access; csrf_token=bad/value", 403)):
+                    response = await client.get(path, headers={"cookie": cookie})
+                    assert response.status_code == expected
+                    assert response.json()["data"]["reason"] == "session_rejected"
+
+    asyncio.run(scenario())
+
+
 def _dispatch_on_stack() -> bool:
     """True when the graph's dispatch node is an ancestor of the current frame."""
     return any(
@@ -599,5 +671,41 @@ def test_recover_503_with_business_40400_stays_unknown_and_never_reposts(tmp_pat
                 assert recovered.status_code == 502
                 assert current.json()["data"]["status"] == "unknown"
                 assert posts["count"] == 1
+
+    asyncio.run(scenario())
+
+
+@pytest.mark.parametrize("status,code", [(401, 40100), (403, 40300)])
+def test_authorization_outage_allows_explicit_save_recovery(tmp_path, monkeypatch, status, code):
+    monkeypatch.setattr("agent_service.app.load_u02_gate", lambda *args, **kwargs: {"test_only": True})
+    posts, saved, flags = {"count": 0}, {}, []
+    base = _write_client(posts, saved, flags)
+
+    class RetryClient(base):
+        async def save_learning_plan(self, **payload):
+            if posts["count"] == 0:
+                posts["count"] += 1
+                raise UlticodeServiceError(code, status)
+            return await super().save_learning_plan(**payload)
+
+    async def scenario():
+        app = create_app(state_path=tmp_path / "retry.sqlite3", client_factory=RetryClient,
+                         u02_gate_path=tmp_path / "test-gate.json", expected_head="0" * 40)
+        async with app.router.lifespan_context(app):
+            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
+                created = await client.post("/agent/threads", headers=HEADERS,
+                    json={"sourceSubmissionId": str(uuid.uuid4()), "question": "如何复盘？"})
+                state = created.json()["data"]
+                path = f'/agent/threads/{state["threadId"]}'
+                confirmed = await client.post(f"{path}/confirm", headers=HEADERS,
+                    json={"draftVersion": 1, "paramsDigest": state["paramsDigest"], "confirm": True})
+                response = await client.post(f"{path}/save", headers=HEADERS,
+                    json={"confirmationId": confirmed.json()["data"]["confirmation"]["id"]})
+                assert response.status_code == 200
+                assert response.json()["data"]["status"] == "unknown"
+                recovered = await client.post(f"{path}/recover", headers=HEADERS, json={"retry": True})
+                assert recovered.status_code == 200
+                assert recovered.json()["data"]["status"] == "saved"
+                assert posts["count"] == 2
 
     asyncio.run(scenario())

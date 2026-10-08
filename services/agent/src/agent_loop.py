@@ -77,7 +77,7 @@ async def run_tool_loop(
     try:
         async with asyncio.timeout(total_timeout):
             return await run_readonly_graph(
-                model, tools, user_input, max_rounds=max_rounds
+                model, tools, user_input, max_rounds=max_rounds, total_timeout=total_timeout
             )
     except TimeoutError as exc:
         raise ModelLoopTimeout(f"exceeded total_timeout={total_timeout}s") from exc

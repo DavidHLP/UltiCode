@@ -1,5 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+import sqlite3
 
 import pytest
 
@@ -51,6 +52,28 @@ def test_concurrent_reservations_cannot_exceed_request_limit(tmp_path: Path) -> 
         outcomes = list(workers.map(reserve, range(224)))
     assert sum(outcomes) == 140  # 60 requests remain protected for frozen evaluation.
     assert ModelBudget(path).snapshot()["attempts"] == 140
+
+
+def test_initial_wal_busy_retries_without_duplicate_reservation(tmp_path: Path, monkeypatch) -> None:
+    original_connect = sqlite3.connect
+    wal_attempts = []
+
+    class BusyOnceConnection(sqlite3.Connection):
+        def execute(self, sql, *args, **kwargs):
+            if sql == "PRAGMA journal_mode=WAL":
+                wal_attempts.append(sql)
+                if len(wal_attempts) == 1:
+                    error = sqlite3.OperationalError("database is locked")
+                    error.sqlite_errorcode = sqlite3.SQLITE_BUSY
+                    raise error
+            return super().execute(sql, *args, **kwargs)
+
+    monkeypatch.setattr(sqlite3, "connect", lambda *args, **kwargs:
+        original_connect(*args, **kwargs, factory=BusyOnceConnection))
+    budget = ModelBudget(tmp_path / "budget.sqlite3")
+    budget.reserve(1, 1)
+    assert len(wal_attempts) == 2
+    assert budget.snapshot()["attempts"] == 1
 
 
 def test_frozen_evaluation_requires_and_consumes_whole_group_reservation(tmp_path: Path) -> None:

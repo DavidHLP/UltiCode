@@ -8,6 +8,7 @@ import json
 import pwd
 import sqlite3
 import stat
+import time
 import uuid
 from datetime import datetime, timezone
 from budget_binding_migration import resolve_pair
@@ -437,7 +438,16 @@ class ModelBudget:
         try:
             os.chmod(self.path, 0o600)
             connection.execute("PRAGMA busy_timeout=5000")
-            connection.execute("PRAGMA journal_mode=WAL")
+            deadline = time.monotonic() + 5
+            while True:
+                try:
+                    connection.execute("PRAGMA journal_mode=WAL")
+                    break
+                except sqlite3.OperationalError as error:
+                    # Concurrent first-open WAL conversion can bypass SQLite's busy timeout.
+                    if error.sqlite_errorcode != sqlite3.SQLITE_BUSY or time.monotonic() >= deadline:
+                        raise
+                    time.sleep(0.05)
             _initialize_tables(connection)
             yield connection
         finally:

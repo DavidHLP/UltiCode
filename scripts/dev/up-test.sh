@@ -31,6 +31,9 @@ assert_contains() {
   fi
 }
 
+assert_contains '    --skip-install)   SKIP_INSTALL=true; shift ;;' \
+  "documented skip-install option must be accepted by the CLI parser"
+
 # 1. The startup banner must never echo a credential value. AGENTS.md forbids
 #    printing credentials, and a banner is copied into terminal scrollback, CI
 #    artifacts and transcripts.

@@ -26,7 +26,7 @@ from agent_service.gate import GateError, load_u02_gate, require_execution_candi
 from agent_service.graph import ainvoke_untraced, build_workflow_graph
 from agent_service.state import WorkflowAction, make_draft, params_digest
 from agent_service.store import Conflict, NotFound, WorkflowStore
-from sourced_analysis import validate_submission_facts
+from sourced_analysis import _ALLOWED_STATUSES, validate_submission_facts
 from ulticode_client import (
     UlticodeClient, UlticodeError, UlticodeServiceError, _java_blank, canonical_uuid,
 )
@@ -259,12 +259,13 @@ def _verify_answer_boundary(parsed, facts, documents, trace, tool_results, *, qu
     ):
         raise ValueError("answer_source_refusal_has_reference")
     actual_status = facts[0].get("status") if facts and isinstance(facts[0], dict) else None
+    status_values = "|".join(re.escape(value) for value in sorted(_ALLOWED_STATUSES, key=len, reverse=True))
     status_claim = re.search(
-        r"\bstatus\s*(?:is|=|:)\s*([A-Za-z_-]+)|状态\s*(?:为|是|=|：)\s*([A-Za-z_-]+)",
+        rf"(?:\bstatus\s*(?:is|=|:)|状态\s*(?:为|是|=|：))\s*({status_values}|[A-Za-z_-]+)\b",
         text, flags=re.IGNORECASE,
     )
     if status_claim and isinstance(actual_status, str) and (
-        (status_claim.group(1) or status_claim.group(2)).casefold() != actual_status.casefold()
+        status_claim.group(1).casefold() != actual_status.casefold()
     ):
         raise ValueError("answer_submission_fact_mismatch")
     source_injection = next(case for case in cases if case.category == "source_injection")
@@ -279,8 +280,12 @@ def _verify_answer_boundary(parsed, facts, documents, trace, tool_results, *, qu
     diagnostic_markers = {
         marker for case in cases if case.category in diagnostic_cases for marker in case.forbid_any_markers
     }
+    diagnostic_text = text
+    if status_claim and isinstance(actual_status, str):
+        # A verified status is metadata, not a diagnosis of unavailable source.
+        diagnostic_text = text[:status_claim.start()] + text[status_claim.end():]
     if any(
-        _unnegated_claim(text, marker)
+        _unnegated_claim(diagnostic_text, marker)
         and not any(_unnegated_claim(item["claim"], marker) for item in parsed["citations"])
         for marker in diagnostic_markers
     ):
@@ -303,8 +308,8 @@ def _verify_answer_boundary(parsed, facts, documents, trace, tool_results, *, qu
 
 
 def _deterministic_business_error(exc: UlticodeServiceError) -> bool:
-    return exc.status_code in {400, 401, 403, 409} or (
-        exc.status_code == 200 and exc.code in {40000, 40100, 40300, 40900}
+    return exc.status_code in {400, 409} or (
+        exc.status_code == 200 and exc.code in {40000, 40900}
     )
 
 
@@ -346,6 +351,11 @@ def _session_values(request: Request, *, unsafe: bool, trusted_origin: str | Non
     csrf = cookies.get("csrf_token")
     if not access:
         raise AgentError(401, "session_required", 40100)
+    cookie_value = r"[!#$%&'*+\-.^_`|~0-9A-Za-z]+"
+    if not re.fullmatch(cookie_value, access):
+        raise AgentError(401, "session_rejected", 40100)
+    if csrf is not None and not re.fullmatch(cookie_value, csrf):
+        raise AgentError(403, "session_rejected", 40300)
     if unsafe:
         if not csrf:
             raise AgentError(403, "csrf_token_required", 40300)
@@ -488,19 +498,23 @@ def create_app(
             raise AgentError(404, "thread_not_found", 40400)
         return row
 
-    async def _verify_source(client: UlticodeClient, row: dict[str, object]) -> tuple[str, str]:
+    async def _source_facts(client: UlticodeClient, source_id: str) -> tuple[str, str]:
         try:
-            submission = await client.get_my_submission(str(row["source_submission_id"]))
+            submission = await client.get_my_submission(source_id)
             source, status = validate_submission_facts(submission)
         except UlticodeServiceError as exc:
-            if exc.code == 40400 or exc.status_code == 404:
+            if exc.code == 40400 and exc.status_code == 404:
                 raise AgentError(404, "source_not_owned", 40400) from None
-            raise AgentError(502, "upstream_unavailable", 50000) from None
+            raise
         except (UlticodeError, ValueError):
             raise AgentError(502, "upstream_unavailable", 50000) from None
         source = source.lower()
-        if source != str(row["source_submission_id"]).lower():
+        if source != source_id.lower():
             raise AgentError(404, "source_not_owned", 40400)
+        return source, status
+
+    async def _verify_source(client: UlticodeClient, row: dict[str, object]) -> tuple[str, str]:
+        source, status = await _source_facts(client, str(row["source_submission_id"]))
         if row["source_facts"] != {"id": source, "status": status}:
             raise AgentError(409, "confirmation_mismatch", 40900)
         return source, status
@@ -577,11 +591,7 @@ def create_app(
             raise AgentError(400, "validation_error")
 
         async def operation(client: UlticodeClient, owner: str):
-            submission = await client.get_my_submission(source_id)
-            source, status = validate_submission_facts(submission)
-            if source.lower() != source_id:
-                raise AgentError(404, "source_not_owned", 40400)
-            source = source.lower()
+            source, status = await _source_facts(client, source_id)
             facts = {"id": source, "status": status}
             draft = make_draft(facts, question)
             row = {
@@ -611,7 +621,7 @@ def create_app(
     @app.get("/agent/threads/{thread_id}/events")
     async def get_events(thread_id: str, request: Request, after: int = 0):
         _uuid(thread_id)
-        if after < 0:
+        if not 0 <= after <= 2**63 - 1:
             raise AgentError(400, "validation_error")
         async def operation(_: UlticodeClient, owner: str):
             _owned(thread_id, owner)
@@ -665,13 +675,8 @@ def create_app(
                     _require_current_gate()
                 if row["status"] not in {"awaiting_confirmation", "confirmed"} or row["save_attempted"] or row["cancel_requested"]:
                     raise AgentError(409, "confirmation_mismatch", 40900)
-                submission = await client.get_my_submission(str(row["source_submission_id"]))
-                source, status = validate_submission_facts(submission)
-                if source.lower() != str(row["source_submission_id"]).lower():
-                    raise AgentError(404, "source_not_owned", 40400)
-                facts = {"id": source.lower(), "status": status}
-                if row["source_facts"] != facts:
-                    raise AgentError(409, "confirmation_mismatch", 40900)
+                source, status = await _verify_source(client, row)
+                facts = {"id": source, "status": status}
                 version = int(row["draft_version"])
                 run_id = str(uuid.uuid4())
                 analyzing = workflow_store.transition(thread_id, owner, expected_run=str(row["run_id"]),

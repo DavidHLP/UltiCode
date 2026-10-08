@@ -90,6 +90,18 @@ def test_total_timeout_is_raised_for_a_hanging_model() -> None:
     asyncio.run(scenario())
 
 
+def test_requested_timeout_reaches_graph(monkeypatch) -> None:
+    from agent_loop import LoopResult
+
+    async def graph(model, tools, user_input, *, max_rounds, total_timeout=30.0):
+        assert total_timeout == 90.0
+        return LoopResult("done", 1, ())
+
+    monkeypatch.setattr("agent_service.graph.run_readonly_graph", graph)
+    result = asyncio.run(run_tool_loop(HangingModel(), {}, "test", total_timeout=90.0))
+    assert result.answer == "done"
+
+
 def test_tool_failure_is_redacted_before_reaching_model() -> None:
     async def broken(arguments: dict[str, object]) -> object:
         raise RuntimeError("SECRET SOURCE user=u-secret input=stdin")

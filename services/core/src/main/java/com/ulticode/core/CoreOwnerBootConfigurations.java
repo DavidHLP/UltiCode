@@ -74,6 +74,7 @@ final class CoreOwnerBootConfigurations {
             "com.ulticode.modules.event.replay",
             "com.ulticode.modules.follow",
             "com.ulticode.modules.forum",
+            "com.ulticode.modules.learningplan",
             "com.ulticode.modules.moderation",
             "com.ulticode.modules.notification.event",
             "com.ulticode.modules.notification.intent",

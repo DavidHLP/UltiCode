@@ -59,7 +59,12 @@ for owner-scoped by-key reconciliation; a user-facing saved-record readback uses
 Use the GET `paramsDigest` and current `draftVersion` in the confirmation request. The returned
 confirmation summary contains its id, action, bound version/digest, and expiry; it never contains
 the idempotency key.
-Events return `{events, next}` with a bounded page.
+Events return `{events, next}` with a bounded page; `after` must be between 0 and
+`2^63 - 1`. Invalid or foreign submission sources return `404 source_not_owned`
+during creation and analysis. Authorization failures during Java save leave the outcome
+`unknown` and permit explicit recovery after session and ownership checks; payload and
+idempotency rejections remain terminal. Learning-plan routes are also registered in the
+opt-in Core App context.
 
 Agent responses use `{code,message,data,traceId}` with a server-generated `traceId`; upstream
 response bodies are not exposed. Request bodies require `application/json`, are strict and bounded
@@ -71,7 +76,8 @@ limits of 200/16,000 Unicode code points. Event reads are bounded and read-only.
 
 `/auth/me` is the sole principal source; accept only nonempty `data.user.id` with `is_active=true`
 and `is_banned=false`. Each request gets an isolated client with access cookie held only in memory.
-Reads require one access cookie. Unsafe calls require exactly one access cookie, one CSRF cookie,
+Reads require one access cookie. Malformed access/CSRF cookie values return 401/403 before
+client construction. Unsafe calls require exactly one access cookie, one CSRF cookie,
 and a constant-time match with `X-CSRF-Token`; ambiguous duplicate Cookie/header input fails before
 upstream HTTP. If an unsafe request includes `Origin`, it must match the configured trusted origin.
 Request bodies reject identity fields. The service does not refresh sessions, set login cookies, or

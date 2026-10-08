@@ -26,6 +26,9 @@ def test_complete_submission_status_claim(status):
         _verify_answer_boundary(parsed, [{"status": status}], (), (), (), question="如何复盘？")
         with pytest.raises(ValueError, match="answer_submission_fact_mismatch"):
             _verify_answer_boundary(parsed, [{"status": "Accepted"}], (), (), (), question="如何复盘？")
+        with pytest.raises(ValueError, match="answer_source_diagnosis_unverified"):
+            _verify_answer_boundary({"text": text + " 根因是数组越界。", "citations": []},
+                                    [{"status": status}], (), (), (), question="如何复盘？")
 
 
 @pytest.mark.parametrize("status,code,terminal", [

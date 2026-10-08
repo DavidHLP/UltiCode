@@ -280,8 +280,12 @@ def _verify_answer_boundary(parsed, facts, documents, trace, tool_results, *, qu
     diagnostic_markers = {
         marker for case in cases if case.category in diagnostic_cases for marker in case.forbid_any_markers
     }
+    diagnostic_text = text
+    if status_claim and isinstance(actual_status, str):
+        # A verified status is metadata, not a diagnosis of unavailable source.
+        diagnostic_text = text[:status_claim.start()] + text[status_claim.end():]
     if any(
-        _unnegated_claim(text, marker)
+        _unnegated_claim(diagnostic_text, marker)
         and not any(_unnegated_claim(item["claim"], marker) for item in parsed["citations"])
         for marker in diagnostic_markers
     ):

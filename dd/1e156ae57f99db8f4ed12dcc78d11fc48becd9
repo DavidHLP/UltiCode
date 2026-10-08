@@ -1,0 +1,21 @@
+services/agent/src/agent_service/app.py
+  s_c1c1bb99787bb6::t_6cfc70aac76d24 283-286,288
+services/agent/tests/test_agent_service.py
+  s_c1c1bb99787bb6::t_6cfc70aac76d24 29-31
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "dd1e156ae57f99db8f4ed12dcc78d11fc48becd9",
+  "prompts": {},
+  "sessions": {
+    "s_c1c1bb99787bb6": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1198a-cf4e-7f23-81dd-601d007adaf7",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

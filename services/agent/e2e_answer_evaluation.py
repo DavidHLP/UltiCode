@@ -169,18 +169,24 @@ async def main() -> int:
 
     # Configured ceiling, not the row count: the adapter owns the guard, and a
     # budget below the plan would bill a partial run before refusing the rest.
-    max_calls = _int("DEEPSEEK_MAX_CALLS", DEFAULT_MAX_CALLS)
-    if max_calls < len(cases) * CALLS_PER_CASE:
-        print(
-            f"FAIL reason=call_budget_below_plan cases={len(cases)} "
-            f"required={len(cases) * CALLS_PER_CASE} max_calls={max_calls}"
-        )
-        return 1
-
     try:
         model_name, model_budget = authorized_model()
     except ValueError:
         print("FAIL reason=model_configuration_invalid")
+        return 1
+    from authorized_budget_period import REVALIDATION_V2_POLICY_ID
+    identity = getattr(model_budget, "_identity", None)
+    attempts_per_pass = 1 if identity is not None and identity.policy_id == REVALIDATION_V2_POLICY_ID else ATTEMPTS_PER_PASS
+    required_calls = len(cases) * 2 * attempts_per_pass
+    max_calls = _int("DEEPSEEK_MAX_CALLS", DEFAULT_MAX_CALLS)
+    if max_calls < required_calls:
+        print(
+            f"FAIL reason=call_budget_below_plan cases={len(cases)} "
+            f"required={required_calls} max_calls={max_calls}"
+        )
+        return 1
+    if identity is not None and model_budget.remaining_purpose_attempts("prior_development") < required_calls:
+        print("FAIL reason=purpose_budget_below_plan")
         return 1
 
     artifact = _artifact_path()
@@ -214,8 +220,19 @@ async def main() -> int:
                         cases, model=model, documents=documents
                     )
                     rows = await evaluate_answer_cases(
-                        cases, model=model, documents=documents, attempts=ATTEMPTS_PER_PASS
+                        cases, model=model, documents=documents, attempts=attempts_per_pass
                     )
+                except BaseException as error:
+                    if identity is not None:
+                        _publish(artifact, json.dumps({
+                            "scope": "development_only", "status": "INCOMPLETE",
+                            "error_class": type(error).__name__,
+                            "corpus": _corpus_identity(manifest_sha256, documents),
+                            "cases": _cases_identity(case_sha256),
+                            "attempt_ids": [entry["attempt_id"] for entry in model.metering],
+                            "provider_exchanges": model._transport.exchanges,
+                        }, ensure_ascii=True, indent=2) + "\n")
+                    raise
                 finally:
                     # Every sent request remains billed even if a later pass aborts.
                     totals = [e.get("total_tokens") for e in model.usage if isinstance(e, dict)]

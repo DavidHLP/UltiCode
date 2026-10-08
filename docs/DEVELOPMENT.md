@@ -387,6 +387,15 @@ records must bind their real attempt IDs to the complete canonical guard prefix 
 initial snapshot. U04 checks the frozen policy, runtime identity, and remaining purpose quotas
 before consuming the sealed holdout. The original policy and historical accounting stay unchanged.
 
+An explicitly approved replacement run uses `acceptance-revalidation-v2` only after the previous
+revalidation period is permanently halted. Its binding verifies the sealed ledger, binding, and
+guard fingerprints, all prior receipts, and the original historical sources on every access.
+Actual charges and retained conservative commitments remain separate; the latter, together with
+the original unknown liability, reduce the new allowance. No old receipt becomes fresh acceptance.
+This policy permits one attempt per development pass (two full passes still required), checks
+remaining purpose quota before billing, and retains failures rather than silently rerunning them.
+Policy selection never changes or reopens either earlier period.
+
 Issue the evidence-bound U02 gate only after those inputs validate. Gate artifact references are
 relative to the private directory containing the gate; place the referenced artifacts there:
 

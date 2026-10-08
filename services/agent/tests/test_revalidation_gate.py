@@ -77,6 +77,29 @@ def test_u04_frozen_policy_and_runtime_identity_are_equal():
         u04._check_candidate_policy(args, candidate, proof)
 
 
+def test_rollover_snapshot_retains_conservative_liability_instead_of_actual():
+    from authorized_budget_period import REVALIDATION_V2_POLICY_ID, REVALIDATION_V2_POLICY
+    policy = REVALIDATION_V2_POLICY
+    history = dict(policy["history"])
+    identity = {"policy_id": REVALIDATION_V2_POLICY_ID, "identity": "a" * 32, "config_sha256": "b" * 64}
+    assert history["attempts"] + policy["attempts"] == history["cumulative_attempt_limit"] == 412
+    assert sum(lane["attempts"] for lane in policy["lanes"].values()) == policy["attempts"]
+    assert history["known_committed_micro_usd"] + history["unknown_encumbrance_micro_usd"] + policy["limit_micro_usd"] == 4_870_000
+    snapshot = {"policy_id": REVALIDATION_V2_POLICY_ID, "period_identity": identity["identity"],
+                "config_sha256": identity["config_sha256"], "state": "active", "sql_gate": "active",
+                "halted": 0, "attempts": 248, "actual_micro_usd": 1, "committed_micro_usd": policy["limit_micro_usd"],
+                "retained_history": history, "legacy_history": "retained_unknown_encumbered",
+                "cumulative_attempts": 412, "cumulative_committed_micro_usd": 4_870_000}
+    gate._check_fresh_snapshot(snapshot, identity)
+    snapshot["cumulative_committed_micro_usd"] -= history["known_committed_micro_usd"] - history["known_actual_micro_usd"]
+    with pytest.raises(gate.GateError, match="budget_retained_history_mismatch"):
+        gate._check_fresh_snapshot(snapshot, identity)
+    snapshot["cumulative_committed_micro_usd"] = 4_870_000
+    snapshot["retained_history"]["unknown_encumbrance_micro_usd"] = 0
+    with pytest.raises(gate.GateError, match="budget_retained_history_mismatch"):
+        gate._check_fresh_snapshot(snapshot, identity)
+
+
 def test_provider_verified_source_answer_cannot_be_replaced():
     from e2e_sourced_analysis_model import ANSWER_CONTRACT, QUESTION
     evidence = {"facts": ["synthetic fact"], "allowed_hypotheses": ["synthetic hypothesis"],

@@ -303,6 +303,51 @@ def test_retry_capacity_is_checked_before_billing(monkeypatch, capsys, tmp_path,
         assert json.loads(destination.read_text(encoding="utf-8"))["rows"][0]["model_calls"] == 6
 
 
+@pytest.mark.parametrize("remaining,expected_calls", [(1, 0), (2, 2)])
+def test_rollover_single_attempt_plan_checks_purpose_before_billing(monkeypatch, tmp_path, remaining, expected_calls):
+    from types import SimpleNamespace
+    from authorized_budget_period import REVALIDATION_V2_POLICY_ID
+    calls = _install(monkeypatch)
+    budget = SimpleNamespace(_identity=SimpleNamespace(policy_id=REVALIDATION_V2_POLICY_ID),
+                             remaining_purpose_attempts=lambda purpose: remaining)
+    monkeypatch.setattr(e2e, "authorized_model", lambda: ("deepseek-flash", budget))
+    monkeypatch.setattr(e2e, "acceptance_transport", lambda *args: None)
+    monkeypatch.setenv("DEEPSEEK_MAX_CALLS", "2")
+    monkeypatch.setenv("ULTICODE_ANSWER_EVAL_RESULT", str(tmp_path / "rollover.json"))
+    assert e2e.main_sync() == (0 if expected_calls else 1)
+    assert len(calls) == expected_calls
+
+
+def test_bound_failure_retains_raw_record_and_prevents_clobber(monkeypatch, tmp_path):
+    from types import SimpleNamespace
+    from authorized_budget_period import REVALIDATION_V2_POLICY_ID
+    calls = _install(monkeypatch, answers={"dev-01": "invalid protocol"})
+    budget = SimpleNamespace(_identity=SimpleNamespace(policy_id=REVALIDATION_V2_POLICY_ID),
+                             remaining_purpose_attempts=lambda purpose: 2)
+    monkeypatch.setattr(e2e, "authorized_model", lambda: ("deepseek-flash", budget))
+    monkeypatch.setattr(e2e, "acceptance_transport", lambda *args: None)
+    original_model = e2e.DeepseekModel
+    class RecordingModel(original_model):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.metering = [{"attempt_id": "synthetic-failed-attempt"}]
+            self._transport = SimpleNamespace(exchanges=[{"synthetic": "failed response"}])
+    monkeypatch.setattr(e2e, "DeepseekModel", RecordingModel)
+    destination = tmp_path / "failed.json"
+    monkeypatch.setenv("DEEPSEEK_MAX_CALLS", "2")
+    monkeypatch.setenv("ULTICODE_ANSWER_EVAL_RESULT", str(destination))
+    assert e2e.main_sync() == 1
+    raw = destination.read_bytes()
+    record = json.loads(raw)
+    assert record["status"] == "INCOMPLETE"
+    assert record["attempt_ids"] == ["synthetic-failed-attempt"]
+    assert record["provider_exchanges"] == [{"synthetic": "failed response"}]
+    assert "summary" not in record
+    sent = len(calls)
+    assert e2e.main_sync() == 1
+    assert len(calls) == sent and destination.read_bytes() == raw
+
+
 def test_an_existing_artifact_is_not_overwritten_before_any_call(
     monkeypatch, capsys, tmp_path
 ) -> None:

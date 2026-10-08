@@ -295,13 +295,13 @@ def _check_budget_anchor(
     if not isinstance(expected, dict) or set(expected) != fields:
         raise GateError("budget_anchor_schema_invalid")
     count, actual = expected.get("attempts"), expected.get("actual_micro_usd")
-    from authorized_budget_period import REVALIDATION_POLICY_ID, policy_for
-    fresh = binding.get("policy_id") == REVALIDATION_POLICY_ID
-    allowed_lanes = set(policy_for(REVALIDATION_POLICY_ID)["lanes"]) if fresh else _BASELINE_BUDGET_LANES
+    from authorized_budget_period import REVALIDATION_POLICY_IDS, policy_for
+    fresh = binding.get("policy_id") in REVALIDATION_POLICY_IDS
+    allowed_lanes = set(policy_for(binding["policy_id"])["lanes"]) if fresh else _BASELINE_BUDGET_LANES
     if (expected.get("schema") != _BUDGET_ANCHOR_SCHEMA
             or expected.get("period_id") != (binding.get("period_id") if fresh else _ORIGINAL_PERIOD_ID)
             or expected.get("identity") != (binding.get("identity") if fresh else _ORIGINAL_PERIOD_IDENTITY)
-            or expected.get("policy_id") != (REVALIDATION_POLICY_ID if fresh else "dav58-dav53-v1")
+            or expected.get("policy_id") != (binding["policy_id"] if fresh else "dav58-dav53-v1")
             or expected.get("config_sha256") != binding.get("config_sha256")
             or type(count) is not int or count < (0 if fresh else _ORIGINAL_ATTEMPTS) or count > current_count
             or type(actual) is not int or actual < 0
@@ -360,8 +360,8 @@ def _check_live_budget_identity(
     expected_anchor: object | None = None, *, runtime: bool = False,
 ) -> dict[str, object]:
     """Read-only reconciliation; runtime may accept only a fully known anchored suffix."""
-    from authorized_budget_period import REVALIDATION_POLICY_ID, PeriodIdentity
-    if isinstance(expected_anchor, dict) and expected_anchor.get("policy_id") == REVALIDATION_POLICY_ID:
+    from authorized_budget_period import REVALIDATION_POLICY_IDS, PeriodIdentity
+    if isinstance(expected_anchor, dict) and expected_anchor.get("policy_id") in REVALIDATION_POLICY_IDS:
         expected = PeriodIdentity(**{k: expected_anchor[k] for k in ("period_id", "identity", "config_sha256", "policy_id")})
         return _fresh_live_budget(expected, expected_anchor, runtime=runtime)
     accounting = Path(pwd.getpwuid(os.getuid()).pw_dir) / ".local/state/ulticode/dav58-dav53-v1/accounting"
@@ -441,8 +441,8 @@ def _check_live_budget_identity(
 
 def current_budget_anchor(expected=None) -> dict[str, object]:
     """Snapshot private canonical accounting for the U02 issuer to freeze into its proof."""
-    from authorized_budget_period import REVALIDATION_POLICY_ID
-    if expected is not None and expected.policy_id == REVALIDATION_POLICY_ID:
+    from authorized_budget_period import REVALIDATION_POLICY_IDS
+    if expected is not None and expected.policy_id in REVALIDATION_POLICY_IDS:
         return _fresh_live_budget(expected)["anchor"]
     return _check_live_budget_identity()["anchor"]
 
@@ -469,8 +469,8 @@ def _source_bindings(payload: dict[str, object], artifact: dict[str, object], ro
             "src/retrieval.py", "src/ulticode_client.py", "src/ulticode_tools.py",
             "src/dav58_live_guard.py", "src/model_budget.py", "src/authorized_budget_period.py",
         }
-    from authorized_budget_period import REVALIDATION_POLICY_ID
-    if payload.get("budget_anchor", {}).get("policy_id") == REVALIDATION_POLICY_ID:
+    from authorized_budget_period import REVALIDATION_POLICY_IDS
+    if payload.get("budget_anchor", {}).get("policy_id") in REVALIDATION_POLICY_IDS:
         expected.add("src/revalidation_history.py")
     if set(hashes) != expected:
         raise GateError("artifact_source_coverage_incomplete")
@@ -483,8 +483,8 @@ def _source_bindings(payload: dict[str, object], artifact: dict[str, object], ro
 
 
 def _expected_identity(value: object) -> dict[str, object]:
-    from authorized_budget_period import REVALIDATION_POLICY_ID, PeriodIdentity
-    if isinstance(value, dict) and value.get("policy_id") == REVALIDATION_POLICY_ID:
+    from authorized_budget_period import REVALIDATION_POLICY_IDS, PeriodIdentity
+    if isinstance(value, dict) and value.get("policy_id") in REVALIDATION_POLICY_IDS:
         from model_budget import ModelBudget
         if set(value) != {"period_id", "identity", "config_sha256", "policy_id"}:
             raise GateError("budget_config_unbound")
@@ -505,24 +505,25 @@ def _expected_identity(value: object) -> dict[str, object]:
 
 
 def _check_fresh_snapshot(snapshot: dict[str, object], identity: dict[str, object]) -> None:
-    from authorized_budget_period import REVALIDATION_POLICY_ID, REVALIDATION_POLICY
-    if identity.get("policy_id") != REVALIDATION_POLICY_ID:
+    from authorized_budget_period import REVALIDATION_POLICY_IDS, policy_for
+    if identity.get("policy_id") not in REVALIDATION_POLICY_IDS:
         return
-    history = dict(REVALIDATION_POLICY["history"])
+    policy = policy_for(identity["policy_id"])
+    history = dict(policy["history"])
     attempts, committed = snapshot.get("attempts"), snapshot.get("committed_micro_usd")
-    if (snapshot.get("policy_id") != REVALIDATION_POLICY_ID
+    if (snapshot.get("policy_id") != identity["policy_id"]
             or snapshot.get("period_identity") != identity["identity"]
             or snapshot.get("config_sha256") != identity["config_sha256"]
             or snapshot.get("state") != "active" or snapshot.get("sql_gate") != "active"
             or snapshot.get("halted") != 0
-            or type(committed) is not int or not 0 <= committed <= REVALIDATION_POLICY["limit_micro_usd"]
+            or type(committed) is not int or not 0 <= committed <= policy["limit_micro_usd"]
             or type(snapshot.get("actual_micro_usd")) is not int
             or not 0 <= snapshot["actual_micro_usd"] <= committed
             or snapshot.get("retained_history") != history
             or snapshot.get("legacy_history") != "retained_unknown_encumbered"
-            or type(attempts) is not int or not 0 <= attempts <= REVALIDATION_POLICY["attempts"]
+            or type(attempts) is not int or not 0 <= attempts <= policy["attempts"]
             or snapshot.get("cumulative_attempts") != history["attempts"] + attempts
-            or snapshot.get("cumulative_committed_micro_usd") != history["known_actual_micro_usd"]
+            or snapshot.get("cumulative_committed_micro_usd") != history.get("known_committed_micro_usd", history["known_actual_micro_usd"])
             + history["unknown_encumbrance_micro_usd"] + committed):
         raise GateError("budget_retained_history_mismatch")
 
@@ -1405,8 +1406,10 @@ def _check_prior_budget_prefix(prior, before, identity, canonical, evidence_root
                 or recorded.get("request_sha256") != trusted.get("request_sha256")):
             raise GateError("prior_five_budget_receipt_mismatch")
     by_lane = {lane: [r["attempt_id"] for r in prefix if r.get("lane") == lane] for lane in lanes.values()}
+    from authorized_budget_period import policy_for
+    development_limit = policy_for(identity["policy_id"])["lanes"]["prior_development"]["attempts"]
     if (len(by_lane["prior_source"]) != 1 or len(by_lane["prior_citation_judge"]) != 3
-            or not 40 <= len(by_lane["prior_development"]) <= 120
+            or not 40 <= len(by_lane["prior_development"]) <= development_limit
             or sum(map(len, by_lane.values())) != len(prefix)):
         raise GateError("prior_five_budget_lane_mismatch")
     source_facts = None
@@ -1462,8 +1465,8 @@ def validate_u02_gate_payload(
     )
     dav58_period = dav58["authorized_period"]
     dav58_before, dav58_after = dav58_period["before"], dav58_period["after"]
-    from authorized_budget_period import REVALIDATION_POLICY_ID
-    if identity58["policy_id"] == REVALIDATION_POLICY_ID:
+    from authorized_budget_period import REVALIDATION_POLICY_IDS
+    if identity58["policy_id"] in REVALIDATION_POLICY_IDS:
         _check_prior_budget_prefix(prior, dav58_before, identity58, canonical_guard_receipts, evidence)
     elif dav58_before.get("attempts") != _ORIGINAL_ATTEMPTS:
         raise GateError("budget_initial_prefix_mismatch")

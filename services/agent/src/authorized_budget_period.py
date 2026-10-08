@@ -60,11 +60,34 @@ REVALIDATION_POLICY = MappingProxyType({
 })
 
 
+# Separate immutable allowance after the first revalidation was halted.
+REVALIDATION_V2_POLICY_ID = "acceptance-revalidation-v2"
+REVALIDATION_POLICY_IDS = frozenset({REVALIDATION_POLICY_ID, REVALIDATION_V2_POLICY_ID})
+REVALIDATION_V2_HISTORY = MappingProxyType({
+    "attempts": 164, "known_actual_micro_usd": 42_307,
+    "known_committed_micro_usd": 1_138_514,
+    "unknown_attempts": 1, "unknown_encumbrance_micro_usd": 786_432,
+    "cumulative_attempt_limit": 412, "cumulative_limit_micro_usd": 4_870_000,
+})
+REVALIDATION_V2_POLICY = MappingProxyType({
+    **REVALIDATION_POLICY, "limit_micro_usd": 2_945_054, "attempts": 248,
+    "history": REVALIDATION_V2_HISTORY,
+    "lanes": MappingProxyType({
+        **REVALIDATION_POLICY["lanes"],
+        "prior_development": MappingProxyType({
+            **REVALIDATION_POLICY["lanes"]["prior_development"], "attempts": 87,
+        }),
+    }),
+})
+
+
 def policy_for(policy_id: str):
     if policy_id == POLICY_ID:
         return POLICY
     if policy_id == REVALIDATION_POLICY_ID:
         return REVALIDATION_POLICY
+    if policy_id == REVALIDATION_V2_POLICY_ID:
+        return REVALIDATION_V2_POLICY
     raise PeriodError("unsupported policy")
 
 

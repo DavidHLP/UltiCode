@@ -15,9 +15,71 @@ HISTORY_SOURCE_SHA256 = frozenset({
     "b5b7bc94896e2f28df24c3f6c345948d4b91617388719a9eeb4dbfdc3239367d",
 })
 
+ROLLOVER_IDENTITY = {
+    "period_id": "revalidation-20261008",
+    "identity": "c40d43be75664951b0b3272081a222f5",
+    "config_sha256": "38374da506a36779c4c48e5582c9cf1bb2e571e2fb775e0dbb0f255f9c70701c",
+    "policy_id": "acceptance-revalidation-v1",
+}
+# Read after canonical receipt audit and permanent halt; not fresh acceptance.
+ROLLOVER_SHA256 = {
+    "budget.sqlite3": "cb708b4ffcaba41e241ea0a84f8e1969b3f0f853f82f063f872bb6ee7338058f",
+    "binding.json": "02dae1dff3ced4f6379a12421fa313810f6f35cf9a86120e057fd384a63aeebb",
+    "dav58-increment-c40d43be75664951b0b3272081a222f5.json": "62d66f25b487503d236ece4a26b3b95c38554ef1f9a91a8fdb269d4c850f254d",
+}
 
-def validate_history(sources):
+
+def _validate_rollover_history(sources):
+    from authorized_budget_period import PeriodError, PeriodIdentity, REVALIDATION_V2_HISTORY, _parent, _file
+    from model_budget import ModelBudget, authorization_slot
+    from dav58_live_guard import IncrementalGuard
+
+    original = validate_history(sources)
+    expected = PeriodIdentity(**ROLLOVER_IDENTITY)
+    accounting = authorization_slot(expected) / "accounting"
+    hashes, guard = {}, None
+    for name, digest in ROLLOVER_SHA256.items():
+        path = accounting / name
+        with _parent(path) as directory:
+            fd = _file(directory, path.name, os.O_RDONLY)
+            try:
+                info = os.fstat(fd)
+                if info.st_uid != os.getuid() or stat.S_IMODE(info.st_mode) != 0o600:
+                    raise PeriodError("private rollover history required")
+                with os.fdopen(os.dup(fd), "rb") as stream:
+                    raw = stream.read(8_388_609)
+            finally:
+                os.close(fd)
+        if len(raw) > 8_388_608 or hashlib.sha256(raw).hexdigest() != digest:
+            raise PeriodError("sealed rollover history changed")
+        hashes[str(path)] = digest
+        if name.endswith(".json") and name.startswith("dav58-increment-"):
+            guard = json.loads(raw)
+    budget = ModelBudget.bound(expected)
+    snapshot = budget.snapshot()
+    if (snapshot["state"] != "halted" or snapshot["sql_gate"] != "halted"
+            or snapshot["halted"] != 1 or snapshot["attempts"] != 117
+            or snapshot["actual_micro_usd"] != 26_993
+            or snapshot["committed_micro_usd"] != 1_123_200
+            or snapshot["unknown_usage_attempts"] or snapshot["unsettled_attempts"]):
+        raise PeriodError("previous period must be sealed with all liabilities retained")
+    try:
+        IncrementalGuard._validate_resume(guard, expected.identity, expected.config_sha256, budget.policy, budget)
+    except ValueError as error:
+        raise PeriodError("sealed rollover receipts invalid") from error
+    return {"sources": sources, "sha256": {**original["sha256"], **hashes},
+            "baseline": dict(REVALIDATION_V2_HISTORY), "acceptance_evidence": False,
+            "unknown_released": False}
+
+
+def validate_history(sources, *, policy_id="acceptance-revalidation-v1"):
     from authorized_budget_period import PeriodError, REVALIDATION_HISTORY, _parent, _file
+    from authorized_budget_period import REVALIDATION_POLICY_ID, REVALIDATION_V2_POLICY_ID
+
+    if policy_id == REVALIDATION_V2_POLICY_ID:
+        return _validate_rollover_history(sources)
+    if policy_id != REVALIDATION_POLICY_ID:
+        raise PeriodError("unsupported retained history policy")
 
     if (not isinstance(sources, dict) or set(sources) != {"ledgers", "guard"}
             or not isinstance(sources["ledgers"], list) or len(sources["ledgers"]) != 2):

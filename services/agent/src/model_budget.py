@@ -211,9 +211,9 @@ class ModelBudget:
         if not isinstance(expected, period.PeriodIdentity) or expected.config_sha256 != authorized_period_config_sha256(expected.policy_id):
             raise period.PeriodError("canonical configuration identity required")
         history = None
-        if expected.policy_id == period.REVALIDATION_POLICY_ID:
+        if expected.policy_id in period.REVALIDATION_POLICY_IDS:
             from revalidation_history import validate_history
-            history = validate_history(history_sources)
+            history = validate_history(history_sources, policy_id=expected.policy_id)
         elif history_sources is not None:
             raise period.PeriodError("historical baseline requires the fresh acceptance policy")
         policy = period.policy_for(expected.policy_id)
@@ -289,12 +289,12 @@ class ModelBudget:
                             "period_path": str(slot / "period"), "ledger_path": str(self.path),
                             "directory": resolve_pair(slot, self._identity.__dict__, "accounting_directory", anchor.get("directory"), _inode(directory)), "ledger": resolve_pair(slot, self._identity.__dict__, "ledger", anchor.get("ledger"), _ledger_inode(directory)),
                             "ledger_uuid": anchor.get("ledger_uuid"), "legacy_history": "UNKNOWN"}
-                if self._identity.policy_id == period.REVALIDATION_POLICY_ID:
+                if self._identity.policy_id in period.REVALIDATION_POLICY_IDS:
                     from revalidation_history import validate_history
                     history = anchor.get("retained_history")
                     if not isinstance(history, dict):
                         raise period.PeriodError("retained historical liability required")
-                    required["retained_history"] = validate_history(history.get("sources"))
+                    required["retained_history"] = validate_history(history.get("sources"), policy_id=self._identity.policy_id)
                 if anchor != required or not isinstance(anchor["ledger_uuid"], str) or len(anchor["ledger_uuid"]) != 32:
                     raise period.PeriodError("binding identity or ledger drift")
                 db = sqlite3.connect(f"file:/proc/self/fd/{directory}/budget.sqlite3?mode=rw", uri=True, timeout=5, isolation_level=None)
@@ -422,8 +422,9 @@ class ModelBudget:
     @contextmanager
     def _connect(self) -> Iterator[sqlite3.Connection]:
         canonical = _authorization_slot() / "accounting/budget.sqlite3"
-        fresh = _authorization_slot().parent / period.REVALIDATION_POLICY_ID / "accounting/budget.sqlite3"
-        if self._identity is not None or self.path.resolve() in {canonical.resolve(), fresh.resolve()}:
+        fresh = {_authorization_slot().parent / policy / "accounting/budget.sqlite3"
+                 for policy in period.REVALIDATION_POLICY_IDS}
+        if self._identity is not None or self.path.resolve() in {canonical.resolve(), *(p.resolve() for p in fresh)}:
             raise period.PeriodError("canonical period ledger requires bound accounting")
         directory = self.path.parent
         directory.mkdir(mode=0o700, parents=True, exist_ok=True)
@@ -498,7 +499,7 @@ class ModelBudget:
                 raise period.PeriodError("guard request bindings disagree with SQL attempts")
 
     def claim_dispatch(self, reservation: Reservation, request_sha256: str) -> None:
-        if (self._identity is None or self._identity.policy_id != period.REVALIDATION_POLICY_ID
+        if (self._identity is None or self._identity.policy_id not in period.REVALIDATION_POLICY_IDS
                 or not isinstance(request_sha256, str) or len(request_sha256) != 64
                 or any(c not in "0123456789abcdef" for c in request_sha256)
                 or (reservation.period_identity, reservation.config_sha256) != (
@@ -737,7 +738,7 @@ class ModelBudget:
             binding.update(policy_id=self._identity.policy_id, legacy_history="retained_unknown_encumbered",
                            runtime_accounting_connected=True, spend_limit_enforced=True,
                            retained_history=dict(history), cumulative_attempts=history["attempts"] + attempts,
-                           cumulative_committed_micro_usd=history["known_actual_micro_usd"]
+                           cumulative_committed_micro_usd=history.get("known_committed_micro_usd", history["known_actual_micro_usd"])
                            + history["unknown_encumbrance_micro_usd"] + committed)
         max_attempts = self.policy["attempts"] if self._identity else MAX_ATTEMPTS
         max_cost = self.policy["limit_micro_usd"] if self._identity else MAX_MICRO_USD
@@ -773,7 +774,7 @@ def expected_identity_from_environment() -> period.PeriodIdentity | None:
     if not isinstance(value, dict) or set(value) != {"period_id", "identity", "config_sha256", "policy_id"}:
         raise period.PeriodError("complete acceptance identity required")
     expected = period.PeriodIdentity(**value)
-    if expected.policy_id != period.REVALIDATION_POLICY_ID:
+    if expected.policy_id not in period.REVALIDATION_POLICY_IDS:
         raise period.PeriodError("explicit fresh acceptance policy required")
     return expected
 

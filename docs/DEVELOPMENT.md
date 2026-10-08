@@ -123,6 +123,8 @@ legacy 无参工厂行为不变，本任务的 live 入口一律走显式绑定�
 `e2e_answer_evaluation.py` evaluates generated answers on the development split only. Its answer
 pass receives the case question and retrieved evidence, not expected/allowed/forbidden outcomes;
 it must return explicit retrieved chunk IDs in `citations`, and judging checks only those citations.
+For a topic phrase, the answer explains the retrieved material about that topic without assuming
+the question requests a particular submission's private implementation.
 Holdouts remain sealed. Export the existing `DEEPSEEK_API_KEY` before this opt-in call; the entry
 requires `DEEPSEEK_MODEL`. The maximum-call ceiling is `CALLS_PER_CASE × development case count`,
 where each case has two logical passes and up to three billed attempts per pass. The default remains

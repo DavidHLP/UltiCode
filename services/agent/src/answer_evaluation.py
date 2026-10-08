@@ -49,6 +49,8 @@ _JUDGE_MARKER = "JUDGE_CONTRACT"
 #: allowed, and forbidden outcomes belong exclusively to the judging pass.
 ANSWER_CONTRACT = (
     f"{_ANSWER_MARKER}: answer the QUESTION using only the RETRIEVED fragments. "
+    "For a topic phrase, explain what the fragments say about that topic; "
+    "do not assume it asks for a particular submission's private implementation. "
     'Reply with exactly one JSON object of the form {"answer": "<json-string>"} '
     "where <json-string> is itself a JSON object with exactly two fields: "
     '{"text": "<your answer>", "citations": ["<cited chunk id>", ...]}. '

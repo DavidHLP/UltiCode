@@ -1,0 +1,24 @@
+services/agent/src/answer_evaluation.py
+  s_c1c1bb99787bb6::t_29303ae7c2a183 57
+docs/DEVELOPMENT.md
+  s_c1c1bb99787bb6::t_29303ae7c2a183 128-129
+services/agent/tests/test_answer_evaluation.py
+  s_c1c1bb99787bb6::t_b7b7e42d236cbf 20,24-25,152-158
+  s_c1c1bb99787bb6::t_c346c8eed7951b 159-160
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "81d6b0a0e75591ba8e36c567137af47190ec5483",
+  "prompts": {},
+  "sessions": {
+    "s_c1c1bb99787bb6": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1198a-cf4e-7f23-81dd-601d007adaf7",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

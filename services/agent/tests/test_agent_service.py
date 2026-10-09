@@ -3,6 +3,7 @@ import json
 import socket
 import traceback
 import uuid
+from types import SimpleNamespace
 
 import httpx
 import pytest
@@ -231,6 +232,62 @@ def test_stream_drains_completion_committed_during_event_read(tmp_path, monkeypa
                 assert frames[-1]["status"] == "failed"
                 assert frames[-1]["reason"] == "analysis_failed"
                 assert frames[-2]["seq"] == frames[-1]["seq"] == 3
+    asyncio.run(scenario())
+
+
+def test_stream_pagination_resume_and_consumer_deduplication(tmp_path):
+    async def scenario():
+        app = create_app(state_path=tmp_path / "stream-pages.sqlite3", client_factory=SessionClient)
+        async with app.router.lifespan_context(app):
+            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
+                created = await client.post("/agent/threads", headers=HEADERS,
+                    json={"sourceSubmissionId": str(uuid.uuid4()), "question": "如何复盘？"})
+                row = created.json()["data"]
+                for _ in range(204):
+                    app.state.store.transition(row["threadId"], "owner-1", expected_run=row["runId"],
+                        expected_version=1, statuses={"awaiting_confirmation"}, changes={}, kind="draft_edited")
+                path = f'/agent/threads/{row["threadId"]}/events/stream'
+                full = await client.get(path, headers=HEADERS)
+                resumed = await client.get(path, headers=HEADERS, params={"after": 100})
+                frames = [json.loads(line[6:]) for line in full.text.splitlines() if line.startswith("data: ")]
+                tail = [json.loads(line[6:]) for line in resumed.text.splitlines() if line.startswith("data: ")]
+                assert [frame["seq"] for frame in frames[:-1]] == list(range(1, 206))
+                assert [frame["seq"] for frame in tail[:-1]] == list(range(101, 206))
+                assert frames[-1]["status"] == tail[-1]["status"] == "awaiting_confirmation"
+                ids = [line[4:] for line in full.text.splitlines() if line.startswith("id: ")]
+                replay_ids = [line[4:] for line in resumed.text.splitlines() if line.startswith("id: ")]
+                # A consumer must not apply the same terminal or workflow event twice on reconnect.
+                seen, applied = set(), []
+                for event_id in [*ids, *replay_ids]:
+                    if event_id not in seen:
+                        seen.add(event_id)
+                        applied.append(event_id)
+                assert len(ids) == len(set(ids)) == len(applied) == 206
+                assert set(replay_ids) <= set(ids)
+    asyncio.run(scenario())
+
+
+def test_stream_timeout_closes_subscription_without_changing_business_state(tmp_path, monkeypatch):
+    import agent_service.app as app_module
+    ticks = iter([0.0, 31.0])
+    monkeypatch.setattr(app_module, "time", SimpleNamespace(monotonic=lambda: next(ticks), time=lambda: 1.0))
+    async def scenario():
+        app = create_app(state_path=tmp_path / "stream-timeout.sqlite3", client_factory=SessionClient)
+        async with app.router.lifespan_context(app):
+            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
+                created = await client.post("/agent/threads", headers=HEADERS,
+                    json={"sourceSubmissionId": str(uuid.uuid4()), "question": "如何复盘？"})
+                row = created.json()["data"]
+                app.state.store.transition(row["threadId"], "owner-1", expected_run=row["runId"],
+                    expected_version=1, statuses={"awaiting_confirmation"}, changes={"status": "analyzing"},
+                    kind="analysis_started")
+                stream = await client.get(f'/agent/threads/{row["threadId"]}/events/stream', headers=HEADERS)
+                assert '"reason": "stream_timeout"' in stream.text
+                assert "event: terminal" not in stream.text
+                current = app.state.store.get(row["threadId"], "owner-1")
+                assert current["status"] == "analyzing"
+                assert current["event_seq"] == 2
+                assert not current["cancel_requested"]
     asyncio.run(scenario())
 
 

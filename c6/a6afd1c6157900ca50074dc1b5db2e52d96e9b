@@ -1,0 +1,33 @@
+services/core/src/main/java/com/ulticode/core/CoreOwnerContextManager.java
+  s_d7d89ac5ed97cf::t_18b3a55d8a0b14 6,259-261,265-273
+services/docs/SERVICES_ISSUES.md
+  s_d7d89ac5ed97cf::t_797826a8211e41 42,79-85
+services/core/src/main/java/com/ulticode/core/CoreOwnerBootProperties.java
+  s_d7d89ac5ed97cf::t_478ed3e5ed884e 18,103-123
+services/core/src/main/java/com/ulticode/core/CoreOwnerHttpConfiguration.java
+  s_d7d89ac5ed97cf::t_18b3a55d8a0b14 1-90
+services/core/src/test/java/com/ulticode/core/CoreOwnerHttpConfigurationTest.java
+  s_d7d89ac5ed97cf::t_9a6a7782ffc841 1-70
+services/core/src/test/java/com/ulticode/core/CoreEnabledOwnerJourneyIT.java
+  s_d7d89ac5ed97cf::t_797826a8211e41 72,77
+  s_d7d89ac5ed97cf::t_97de473217d262 437-438
+  s_d7d89ac5ed97cf::t_5ec10847281471 250-252,340-414
+  s_d7d89ac5ed97cf::t_4048f1e55cbf4c 23-27,43-49,90-93,148,157,246-248,324-327,331-336,432,439-447,604
+  s_d7d89ac5ed97cf::t_c7800bccf4e5c5 415
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c6a6afd1c6157900ca50074dc1b5db2e52d96e9b",
+  "prompts": {},
+  "sessions": {
+    "s_d7d89ac5ed97cf": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12170-8d3d-7ec1-a9e0-ff3da265f589",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

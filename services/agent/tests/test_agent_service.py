@@ -1,9 +1,14 @@
 import asyncio
 import json
+import os
+import selectors
 import socket
+import subprocess
+import sys
 import traceback
 import uuid
 from types import SimpleNamespace
+from pathlib import Path
 
 import httpx
 import pytest
@@ -862,6 +867,86 @@ def test_every_action_leaves_graph_at_await_action_and_restart_replays_nothing(t
                 assert await paused(restarted, fresh["threadId"]) == ("await_action",)
 
     asyncio.run(scenario())
+
+
+def test_new_process_resumes_durable_graph_without_replaying_model(tmp_path):
+    child = r'''
+import asyncio, json, os, sys, uuid
+import httpx
+from agent_service.app import create_app
+from test_agent_service import HEADERS, ScriptedModel, SessionClient
+
+class OwnerClient(SessionClient):
+    def __init__(self, access_token, **kwargs):
+        self.owner = "owner-2" if access_token == "foreign" else "owner-1"
+    async def principal(self):
+        return self.owner
+
+async def main():
+    model = ScriptedModel()
+    app = create_app(state_path=sys.argv[1], client_factory=OwnerClient,
+                     offline_model_factory=lambda: (model, {}))
+    async with app.router.lifespan_context(app):
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
+            if sys.argv[2] == "prepare":
+                created = await client.post("/agent/threads", headers=HEADERS,
+                    json={"sourceSubmissionId": str(uuid.uuid4()), "question": "如何复盘？"})
+                thread_id = created.json()["data"]["threadId"]
+                analyzed = await client.post(f"/agent/threads/{thread_id}/analyze", headers=HEADERS, json={})
+                assert analyzed.status_code == 200
+                row = analyzed.json()["data"]
+            else:
+                thread_id = sys.argv[3]
+                row = (await client.get(f"/agent/threads/{thread_id}", headers=HEADERS)).json()["data"]
+            config = {"configurable": {"thread_id": thread_id}}
+            snapshot = await app.state.workflow.aget_state(config)
+            assert tuple(snapshot.next) == ("await_action",)
+            proof = {"pid": os.getpid(), "threadId": thread_id, "runId": row["runId"],
+                     "version": row["draft"]["draftVersion"], "calls": model.calls,
+                     "checkpoint": snapshot.config["configurable"]["checkpoint_id"]}
+            if sys.argv[2] == "prepare":
+                print(json.dumps(proof), flush=True)
+                await asyncio.Event().wait()
+            else:
+                payload = {"draftVersion": 2, "title": row["draft"]["title"], "content": "进程恢复后的编辑"}
+                foreign = {**HEADERS, "cookie": "access_token=foreign; csrf_token=csrf"}
+                denied = await client.put(f"/agent/threads/{thread_id}/draft", headers=foreign, json=payload)
+                assert denied.status_code == 404
+                unchanged = await app.state.workflow.aget_state(config)
+                assert unchanged.config == snapshot.config
+                edited = await client.put(f"/agent/threads/{thread_id}/draft", headers=HEADERS, json=payload)
+                assert edited.status_code == 200
+                assert edited.json()["data"]["draft"]["draftVersion"] == 3
+                resumed = await app.state.workflow.aget_state(config)
+                assert tuple(resumed.next) == ("await_action",)
+                assert resumed.config["configurable"]["checkpoint_id"] != proof["checkpoint"]
+                assert model.calls == 0
+                print(json.dumps(proof), flush=True)
+asyncio.run(main())
+'''
+    tests = Path(__file__).resolve().parent
+    env = {**os.environ, "PYTHONPATH": os.pathsep.join((str(tests.parent / "src"), str(tests)))}
+    state = str(tmp_path / "process-checkpoint.sqlite3")
+    proc = subprocess.Popen([sys.executable, "-c", child, state, "prepare"], env=env,
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    try:
+        with selectors.DefaultSelector() as selector:
+            selector.register(proc.stdout, selectors.EVENT_READ)
+            assert selector.select(timeout=15), "child did not persist its graph checkpoint"
+        before = json.loads(proc.stdout.readline())
+    finally:
+        if proc.poll() is None:
+            proc.kill()
+        proc.communicate(timeout=5)
+    assert proc.returncode != 0
+    restored = subprocess.run([sys.executable, "-c", child, state, "restore", before["threadId"]],
+                              env=env, capture_output=True, text=True, timeout=30, check=True)
+    after = json.loads(restored.stdout)
+    assert before["pid"] != after["pid"]
+    assert before["calls"] == 1 and after["calls"] == 0
+    assert before["version"] == after["version"] == 2
+    for key in ("threadId", "runId", "checkpoint"):
+        assert before[key] == after[key]
 
 
 def test_cancel_is_a_short_store_fence_that_never_dispatches(tmp_path, monkeypatch):

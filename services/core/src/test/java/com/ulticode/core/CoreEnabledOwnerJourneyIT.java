@@ -63,6 +63,7 @@ import static org.mockito.Mockito.spy;
  */
 class CoreEnabledOwnerJourneyIT {
     private static final String GATE_PROPERTY = "core.enabled.owner.journey";
+    private static final long OWNER_STARTUP_TIMEOUT_MS = 120_000L;
     private static final LocalDateTime PERMISSION_EXPIRY =
             LocalDateTime.of(2099, 1, 1, 0, 0);
     private static int fixtureSequence;
@@ -258,7 +259,8 @@ class CoreEnabledOwnerJourneyIT {
                 .withProperty("ulticode.app.inbox.enabled", "false")
                 .withProperty("spring.autoconfigure.exclude",
                         "org.springframework.boot.micrometer.metrics.autoconfigure.system.SystemMetricsAutoConfiguration");
-        ownerContexts = new CoreOwnerContextManager(new CoreModuleRegistry(), environment, true, 60_000L);
+        ownerContexts = new CoreOwnerContextManager(
+                new CoreModuleRegistry(), environment, true, OWNER_STARTUP_TIMEOUT_MS);
         ownerContexts.startOwnerModules();
         awaitOwnerStartup();
     }
@@ -449,7 +451,10 @@ class CoreEnabledOwnerJourneyIT {
 
     private static void awaitOwnerStartup() {
         try {
-            ownerContexts.startupCompletion().toCompletableFuture().get(120, TimeUnit.SECONDS);
+            // Match the runtime owner budget and allow each sequential attempt its fresh drain budget.
+            long startupBudgetMs = 2L * OWNER_STARTUP_TIMEOUT_MS
+                    * new CoreModuleRegistry().enabledModules().size();
+            ownerContexts.startupCompletion().toCompletableFuture().get(startupBudgetMs, TimeUnit.MILLISECONDS);
         } catch (InterruptedException interrupted) {
             Thread.currentThread().interrupt();
             throw new AssertionError("Interrupted while waiting for Core owner readiness", interrupted);

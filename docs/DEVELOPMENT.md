@@ -533,7 +533,9 @@ smoke。Core enabled-owner wiring 另有显式 opt-in 的 disposable 门禁：
 migrations，启动真实 Auth/Admin child，验证 readiness、local identity read、
 合法 permission grant、missing signer fail-closed 与 cleanup；它是 bounded
 wiring proof，不是四步业务 journey、生产 parity 或全量 Admin bean graph
-健康证明。分布式普通用户首旅程使用 `app-journey` scope。
+健康证明。该门禁的每个 Owner 启动预算与运行时默认值一致；总等待预算
+覆盖启用 Owner 的顺序启动及各次尝试的独立 drain，避免外层等待先于
+内部生命周期协议超时。分布式普通用户首旅程使用 `app-journey` scope。
 
 常用变体：
 

@@ -198,6 +198,40 @@ def test_stream_exposes_tool_metadata_without_private_payload(tmp_path, failed):
     asyncio.run(scenario())
 
 
+def test_stream_drains_completion_committed_during_event_read(tmp_path, monkeypatch):
+    async def scenario():
+        app = create_app(state_path=tmp_path / "stream-race.sqlite3", client_factory=SessionClient)
+        async with app.router.lifespan_context(app):
+            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
+                created = await client.post("/agent/threads", headers=HEADERS,
+                    json={"sourceSubmissionId": str(uuid.uuid4()), "question": "如何复盘？"})
+                row = created.json()["data"]
+                store = app.state.store
+                store.transition(row["threadId"], "owner-1", expected_run=row["runId"],
+                    expected_version=1, statuses={"awaiting_confirmation"},
+                    changes={"status": "analyzing"}, kind="analysis_started")
+                original = store.events
+                completed = False
+                def finish_during_read(*args, **kwargs):
+                    nonlocal completed
+                    result = original(*args, **kwargs)
+                    if not completed:
+                        completed = True
+                        store.transition(row["threadId"], "owner-1", expected_run=row["runId"],
+                            expected_version=1, statuses={"analyzing"}, changes={"status": "failed",
+                            "failure_reason": "analysis_failed"}, kind="analysis_failed")
+                    return result
+                monkeypatch.setattr(store, "events", finish_during_read)
+                stream = await client.get(f'/agent/threads/{row["threadId"]}/events/stream', headers=HEADERS)
+                frames = [json.loads(line[6:]) for line in stream.text.splitlines() if line.startswith("data: ")]
+                assert [frame.get("kind") for frame in frames[:-1]] == [
+                    "thread_created", "analysis_started", "analysis_failed"]
+                assert frames[-1]["status"] == "failed"
+                assert frames[-1]["reason"] == "analysis_failed"
+                assert frames[-2]["seq"] == frames[-1]["seq"] == 3
+    asyncio.run(scenario())
+
+
 class MissingBudgetClient(SessionClient):
     def __init__(self, posts):
         self.posts = posts

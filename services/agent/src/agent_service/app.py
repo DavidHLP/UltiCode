@@ -661,6 +661,8 @@ def create_app(
                 if row["run_id"] != run_id:
                     yield frame("stream_closed", {"reason": "run_replaced"})
                     return
+                if cursor < int(row["event_seq"]):
+                    continue
                 if row["status"] not in {"analyzing", "saving"}:
                     answer = row["analysis"].get("answer")
                     if isinstance(answer, str) and answer and not row["cancel_requested"]:

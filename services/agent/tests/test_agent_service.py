@@ -1,10 +1,12 @@
 import asyncio
 import json
+import socket
 import traceback
 import uuid
 
 import httpx
 import pytest
+import uvicorn
 
 from deepseek_model import DeepseekModel
 from agent_loop import ModelDecision, ToolCall
@@ -229,6 +231,81 @@ def test_stream_drains_completion_committed_during_event_read(tmp_path, monkeypa
                 assert frames[-1]["status"] == "failed"
                 assert frames[-1]["reason"] == "analysis_failed"
                 assert frames[-2]["seq"] == frames[-1]["seq"] == 3
+    asyncio.run(scenario())
+
+
+@pytest.mark.parametrize("action", ["disconnect", "cancel", "replace"])
+def test_live_stream_lifecycle_and_late_tool_fence(tmp_path, action):
+    async def scenario():
+        entered, release, stream_closed = asyncio.Event(), asyncio.Event(), asyncio.Event()
+        class ToolModel(ScriptedModel):
+            async def decide(self, messages):
+                self.calls += 1
+                if self.calls == 1:
+                    return ModelDecision(tool_call=ToolCall("probe", {}))
+                return ModelDecision(text=json.dumps({"text": "建议核对状态", "citations": []}))
+        async def tool(_):
+            entered.set()
+            await release.wait()
+            return {"ok": True}
+        app = create_app(state_path=tmp_path / "live-stream.sqlite3", client_factory=SessionClient,
+                         offline_model_factory=lambda: (ToolModel(), {"probe": tool}))
+        async def tracked(scope, receive, send):
+            try:
+                await app(scope, receive, send)
+            finally:
+                if scope.get("path", "").endswith("/events/stream"):
+                    stream_closed.set()
+        sock = socket.socket()
+        sock.bind(("127.0.0.1", 0))
+        server = uvicorn.Server(uvicorn.Config(tracked, log_level="critical", access_log=False))
+        serving = asyncio.create_task(server.serve(sockets=[sock]))
+        analyzing = None
+        try:
+            async with asyncio.timeout(10):
+                while not server.started:
+                    await asyncio.sleep(0.01)
+                async with httpx.AsyncClient(base_url=f"http://127.0.0.1:{sock.getsockname()[1]}") as client:
+                    created = await client.post("/agent/threads", headers=HEADERS,
+                        json={"sourceSubmissionId": str(uuid.uuid4()), "question": "如何复盘？"})
+                    row = created.json()["data"]
+                    path = f'/agent/threads/{row["threadId"]}'
+                    analyzing = asyncio.create_task(client.post(path + "/analyze", headers=HEADERS, json={}))
+                    await entered.wait()
+                    current = (await client.get(path, headers=HEADERS)).json()["data"]
+                    async with client.stream("GET", path + "/events/stream", headers=HEADERS) as stream:
+                        lines = stream.aiter_lines()
+                        assert (await anext(lines)).startswith("id: " + current["runId"])
+                        if action == "cancel":
+                            cancelled = await client.post(path + "/cancel", headers=HEADERS, json={})
+                            assert cancelled.json()["data"]["status"] == "cancelled"
+                        elif action == "replace":
+                            app.state.store.transition(row["threadId"], "owner-1", expected_run=current["runId"],
+                                expected_version=1, statuses={"analyzing"}, changes={"run_id": str(uuid.uuid4()),
+                                "status": "awaiting_confirmation"}, kind="analysis_interrupted")
+                        if action != "disconnect":
+                            tail = "\n".join([line async for line in lines])
+                            assert "event: text" not in tail
+                            assert ('"status": "cancelled"' if action == "cancel" else '"reason": "run_replaced"') in tail
+                    await stream_closed.wait()
+                    release.set()
+                    response = await analyzing
+                    assert response.status_code == 200
+                    result = response.json()["data"]
+                    if action == "disconnect":
+                        assert result["analysis"]["answer"] == "建议核对状态"
+                    else:
+                        assert not result["analysis"]
+                        events = (await client.get(path + "/events", headers=HEADERS)).json()["data"]["events"]
+                        assert not any(event["kind"] in {"tool_completed", "analysis_completed"} for event in events)
+        finally:
+            release.set()
+            if analyzing is not None and not analyzing.done():
+                analyzing.cancel()
+                await asyncio.gather(analyzing, return_exceptions=True)
+            server.should_exit = True
+            await asyncio.wait_for(serving, 5)
+            sock.close()
     asyncio.run(scenario())
 
 

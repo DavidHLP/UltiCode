@@ -51,6 +51,25 @@ def test_case_records_use_the_supplied_repository_corpus(corpus_root):
     assert record.observed_behavior == "not_measured"
 
 
+def test_repository_development_cases_are_predeclared_and_answer_level_deferred(corpus_root):
+    documents = load_repository_corpus(corpus_root)
+    path = ROOT / "services/agent/data/repository_development_cases.json"
+    annotations = json.loads(path.read_text())
+    assert len(annotations) == 20
+    assert {row["category"] for row in annotations} == {
+        "normal_call", "no_tool", "clarification", "tool_failure", "no_evidence",
+    }
+    assert all(row["precondition"] and row["user_scope"] == "repository-public"
+               for row in annotations)
+    cases = load_cases(path, documents=documents)
+    assert all(case.split == "development" for case in cases)
+    records = evaluate_case_records(cases, limit=3, documents=documents)
+    assert len(records) == 20
+    assert all(record.observed_behavior == "not_measured"
+               and record.citation_support == record.answer_completion == "deferred"
+               for record in records)
+
+
 @pytest.mark.parametrize("field,value", [
     ("source_path", "../../outside.md"),
     ("source_position", "lines 1-999999"),

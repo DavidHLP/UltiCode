@@ -255,6 +255,12 @@ updated. Source data stays untrusted; license metadata does not authorize tool e
 This offline corpus is separate from the pinned synthetic keyword baseline and sealed
 holdout. It does not change the default Agent corpus or prove real-model acceptance.
 
+`data/repository_development_cases.json` declares 20 development-only cases before
+evaluation, including clarification, staged tool failures and insufficient evidence.
+Load them with `load_cases(path, documents=corpus)` and pass the same corpus to
+`evaluate_case_records(..., documents=corpus)`. Retrieval records leave answer-level
+judgments deferred; staged errors do not establish real HTTP failure behavior.
+
 ### U03 Agent workflow
 
 The optional `agent_service.app.create_app(...)` factory exposes owner-scoped thread, draft,

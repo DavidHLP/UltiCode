@@ -563,7 +563,7 @@ smoke。Core enabled-owner wiring 另有显式 opt-in 的 disposable 门禁：
 在 disposable Testcontainers MySQL/Redis 上应用 canonical Auth/Admin
 migrations，启动真实 Auth/Admin child，验证 readiness、local identity read、
 HTTP login/me、grant/权限回读、普通用户与 CSRF 拒绝、missing signer 与 cleanup；
-HTTP 断言仍待实际运行通过，不是 App 四步 journey、生产 parity 或全量 Admin bean graph
+该门禁已有真实 HTTP 旅程通过证据（测试使用 HS256），不证明 RSA/JWKS、App 四步 journey、生产 parity 或全量 Admin bean graph
 健康证明。该门禁的每个 Owner 启动预算与运行时默认值一致；总等待预算
 覆盖启用 Owner 的顺序启动及各次尝试的独立 drain，避免外层等待先于
 内部生命周期协议超时。分布式普通用户首旅程使用 `app-journey` scope。
@@ -696,7 +696,7 @@ owner/module 的 declarative source contract registry 由 scripts/test/owner-arc
 | `core` | Core Maven parent/config/readiness smoke；Owner contexts disabled | Core parent、显式扫描、数据源工厂、readiness 语义 | enabled-owner bean graph、业务 HTTP/WS、数据库/Redis |
 | enabled-owner wiring | disposable Owner artifacts + MySQL/Redis as required | 选定 Owner 的真实 child wiring 与 local Adapter 注入 | 完整业务旅程、生产 SLO/HA |
 | distributed journey | disposable `app-journey` scope、seeded account/problem | login → Problem read → Bookmark write → ordinary-user denial | Core parity、Judge sandbox、生产流量 |
-| Core journey | 显式 `CORE_ENABLED_OWNER_JOURNEY=1` disposable 门禁（Testcontainers）；默认不可执行 | Auth/Admin enabled wiring、readiness、identity/grant/fail-closed | 业务 journey 或同构结论 |
+| Core journey | 显式 `CORE_ENABLED_OWNER_JOURNEY=1` disposable 门禁（Testcontainers）；默认不可执行 | Auth/Admin enabled wiring、readiness、HTTP login/grant/DB 持久化/重新登录权限读取、local read parity、fail-closed | RSA/JWKS、App 四步 journey、distributed transport 或生产同构结论 |
 
 第一条代表性业务旅程固定为：`POST /auth/login`、`GET /problems/{id}`、
 `POST /bookmarks/quick`、普通用户 `POST /problems` 得到 403/typed denial。

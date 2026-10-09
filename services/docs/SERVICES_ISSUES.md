@@ -24,7 +24,7 @@
 发布拓扑，也不取得业务表写入权。当前 Core 只启用 Auth/Admin；其余四个
 模块保持注册但 `DISABLED`。服务边界、Submission 单写者、Contract 收敛、
 验证层级、DevStack 场景化、Admin 用户详情深 Module、协调发布控制面和
-App interface locality 已闭环；Core 的边界与未完成门禁见 SVC-025。
+App interface locality 已闭环；Core 的边界与验证范围见 SVC-025。
 
 项目当前没有生产环境，是正在开发的开源项目。仓库内的生产 profile 只描述安全边界；凡是可复现的运行行为统一使用短时、隔离、可销毁的 disposable 模拟环境验证，不把模拟结果写成生产证据。不为形式上的“企业级”提前引入 Kubernetes、Service Mesh、新 MQ 或分布式事务框架。
 
@@ -32,11 +32,13 @@ App interface locality 已闭环；Core 的边界与未完成门禁见 SVC-025�
 
 ## OPEN
 
-Core profile 仍有一个仓库可执行 OPEN 项：SVC-025 的完整 local Adapter
-parity 和业务 journey 尚未闭环；Auth/Admin bounded enabled-owner wiring 已有本地 disposable 证据，不得切换默认拓扑。
+本文件当前无 OPEN 项；Core Auth/Admin bounded testbed 已取得 local Adapter
+parity 和真实 HTTP disposable journey 证据，不得切换默认拓扑。
+
+## CLOSED
 
 <a id="svc-025-core-profile-local-parity"></a>
-### SVC-025 Core profile local parity（OPEN）
+### SVC-025 Core profile local parity（CLOSED）
 
 现状：`services/core` 已提供显式 Core parent、五组 Owner 数据源/事务/
 MapperScan、独立 Owner child contexts、9108 readiness 和独立 Judge
@@ -48,7 +50,7 @@ registration 与 `AccountReadAdapter` identity wiring、`UserPermissionServiceIm
 `CoreEnabledOwnerJourneyIT` 另在真实 Testcontainers MySQL/Redis 中应用 canonical
 Auth/Admin migrations，启动真实 `CoreOwnerBootConfigurations.Auth/Admin` child，
 并验证 readiness、local identity/account read、合法 permission grant、missing signer
-fail-closed 与 cleanup。该证据为本地 disposable bounded proof，不是完整业务
+fail-closed 与 cleanup。该证据为本地 disposable bounded proof，不是 App 四步
 journey、生产 parity 或全量 Admin bean graph 健康证明。
 同一 opt-in IT 还将三个 IdentityQuery 和八个 AccountQuery 方法与真实 Auth
 Owner provider 对照，覆盖分页、缺失账户及非法 trend 的 typed 结果；这只验证
@@ -80,8 +82,10 @@ Admin local contract registration 才是 Core assembly contract。Core parent �
 `/api/v1/core/health/ready` 继续独立。`CoreOwnerHttpConfiguration` 将 `/auth/**`
 与 `/admin/**` 分派到独立 Owner Web context 的原安全链与原 DispatcherServlet；
 child 不启动独立 HTTP server，也不继承 parent business BeanFactory。
-当前装配及真实登录/权限变更/读回旅程仍待对应代码的远端验证，不能以
-router mock 回归证明业务可用。App 仍 disabled；分布式 `app-journey` 的
+真实登录/权限变更/读回旅程已在远端 disposable MySQL/Redis 上通过：普通用户、
+匿名与缺 CSRF 请求被拒绝且不写入；合法 Admin grant 持久化到 Auth DB，用户
+重新登录后读取新增权限。测试使用 HS256，不证明 RSA/JWKS；不能以
+router mock 回归代替这些断言。App 仍 disabled；分布式 `app-journey` 的
 四步参考旅程没有因此通过。
 
 `CoreOwnerContextManager` 现在对每个 child 启动使用有界 timeout，且
@@ -92,14 +96,12 @@ timeout/cancel 与 child 启动完成之间通过单 CAS ownership handoff 协�
 URL/credentials 与 Redis host/password 仍强制非空（缺失即 fail closed），
 Search child 不注入 datasource 属性。
 
-关闭条件：保持 distributed 为唯一默认；在不增加 broad parent coupling、
+已满足的关闭条件：保持 distributed 为唯一默认；在不增加 broad parent coupling、
 复制业务实现或重新引入旧 Contract 的前提下，先取得 Auth/Admin enabled
-wiring 与 disposable journey 证据。若至 `2026-10-06` 仍不能证明 bounded
-testbed 的价值，则依据 `docs/ARCHITECTURE.md`、Core profile 源码与门禁结果删除 Core-only artifacts。外部 Judge remote
+wiring 与 disposable journey 证据。bounded testbed 的价值由上述真实断言证明，
+保留显式 opt-in Core artifacts。外部 Judge remote
 TLS、生产 HA 和真实流量属于当前项目范围外，不阻塞本开源仓库验收。
 
-
-## CLOSED
 
 ### SVC-019 Admin 用户详情深 Module（CLOSED）
 

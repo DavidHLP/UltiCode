@@ -267,6 +267,15 @@ Load them with `load_cases(path, documents=corpus)` and pass the same corpus to
 `evaluate_case_records(..., documents=corpus)`. Retrieval records leave answer-level
 judgments deferred; staged errors do not establish real HTTP failure behavior.
 
+`data/repository_holdout_cases.json` separately declares ten holdout annotations.
+They are author-visible, unevaluated cases, not unseen confirmation data or a
+replacement for sealed U04 holdout. Routine tests must not retrieve or grade them;
+validate their schema with `load_cases(..., documents=corpus)` only. Evaluate them
+only after freezing the intended strategy, record any exposure or consumption,
+and never use their output to tune that strategy. Clarification cases use
+`no_evidence` as a retrieval label; answer grading must follow their category and
+allowed behavior instead of treating that label as a refusal requirement.
+
 ### U03 Agent workflow
 
 The optional `agent_service.app.create_app(...)` factory exposes owner-scoped thread, draft,

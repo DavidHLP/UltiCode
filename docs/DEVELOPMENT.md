@@ -807,6 +807,8 @@ wrong_citation 且 forbid_citations=true 的源码拒绝还会检查答案正文
 
 缺 ID 且无可靠会话选择时，回答契约要求直接索取具体 submission ID；“确认后列最近提交”或将其作为替代选项仍失败。能力限制和不确定性说明不等于对具体提交状态作断言，但无依据诊断仍失败。评估提示不包含测试 marker 或期望答案。
 
+列举建议的匹配不跨越逗号连接不同子句；“检索到的证据”中提及提交失败也不等于声明检索工具失败。独立的列举建议和工具失败断言仍按原规则检查。拒绝不可用源码时，不复述请求内的 submission ID 或引文。
+
 响应模型标识按 loop/judge 实际发送区间分别记录；零调用 lane 为 `[]`，已发送但缺失模型标识的请求逐项记为 `unknown`。共用适配器时也不混合两类请求；不改变调用数、token 或费用记录。离线回归不能替代真实模型验收，历史失败 artifact 不回写。
 
 本次有界真实验收使用 `services/agent/e2e_guarded_boundary_evaluation.py`，CLI 身份参数与既有入口相同。它要求同一周期 active 和 clean checkout，并将共享增量 guard 注入 loop/judge 两个适配器，付费负探针复用 judge。增量日志固定在该周期 accounting 目录的 `dav58-increment-<identity>.json`；已存在即拒绝重放，不重置。入口将 guard 与自身的源码 hash 加入 artifact provenance。

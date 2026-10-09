@@ -1364,6 +1364,41 @@ def test_failed_search_cannot_be_claimed_as_empty_after_clause_fix():
     assert be._trace_claims_consistent("检索返回空结果，不是检索失败。", trace) is False
 
 
+@pytest.mark.parametrize("separator", ["，", ","])
+def test_missing_id_denial_cannot_be_joined_to_a_later_listing_phrase(separator):
+    script = _all_met_script()
+    script["最近一次提交"] = [_answer(
+        f"我没有执行过任何查询{separator}因此无法确定最近一次提交。请提供具体的提交 ID。"
+    )]
+    row = next(r for r in _run(script) if r["category"] == "missing_id")
+    assert row["behavior_ok"] is True
+
+
+def test_retrieved_evidence_about_submission_failure_is_not_a_tool_failure_claim():
+    script = _all_met_script()
+    script["检索不到"][-1] = _answer(
+        "检索返回空结果，没有任何检索到的证据能支持关于失败原因的解释。"
+    )
+    row = next(r for r in _run(script) if r["category"] == "no_hit")
+    assert row["behavior_ok"] is True
+
+
+def test_evidence_clause_does_not_excuse_a_separate_tool_failure_claim():
+    trace = [{"tool": "search_evidence", "failed": False, "result": {"hits": []}}]
+    text = "没有检索到的证据能支持关于失败原因的解释，但检索失败了。"
+    assert be._trace_claims_consistent(text, trace) is False
+
+
+def test_source_refusal_contract_forbids_echoing_supplied_submission_id():
+    assert "do not repeat a supplied submission id" in be.BOUNDARY_ANSWER_CONTRACT
+    script = _all_met_script()
+    script["证明结论"] = [_answer(
+        "I cannot read submission source code for 00000000-0000-4000-8000-000000000000."
+    )]
+    row = next(r for r in _run(script) if r["category"] == "wrong_citation")
+    assert row["behavior_ok"] is False
+
+
 @pytest.mark.parametrize("category,marker,text", [
     ('missing_id', '最近一次提交', "I can't analyze why your most recent submission failed yet, because I don't have a specific submission identified. The server session owns identity and submission records, and no submission id or reliable session selection has been provided to me here. Please give me the specific submission id you want analyzed, and I'll look up its details and any authorized evidence for it."),
     ('no_hit', '检索不到', '我无法说明你的提交为什么失败。检索查询“quantum topology rebalance window deltas”已成功执行，但返回了零条结果，因此没有可用的授权资料支持任何关于失败原因的解释。这是检索结果为空，而不是检索失败。另外，我也没有你的提交内容或提交 ID，无法针对具体提交进行诊断。如果你希望我基于可检索到的授权资料继续，请提供更贴近你实际问题的检索关键词；如果你希望我查看某个具体提交的状态，请提供该提交的 ID。'),

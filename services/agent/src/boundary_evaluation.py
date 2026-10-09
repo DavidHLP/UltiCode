@@ -474,6 +474,7 @@ BOUNDARY_ANSWER_CONTRACT = (
     "source code or fabricated source evidence, return citations: [] and include no "
     "references, links, source identifiers, quotes, or provenance in the answer text, "
     "even if retrieved generic fragments are valid. Explain the limitation plainly; "
+    "do not repeat a supplied submission id or quote the request in that refusal. "
     "do not append generic citations to that refusal. For ordinary evidence summaries, "
     "continue citing retrieved fragments that support the claims. Never invent "
     "identity, user ids, or submission ids: "
@@ -1037,7 +1038,7 @@ def _direct_id_clarification(text: str, case: BoundaryCase) -> bool:
     asks = asks or any(_unnegated_claim(lowered, match.group()) for match in re.finditer(request, lowered))
     if not asks:
         return False
-    listing = r"列出[^。；;!?？]{0,16}提交|(?:查询|获取|查看)[^。；;!?？]{0,10}(?:最近|最新|列表|所有|全部|多条)[^。；;!?？]{0,6}提交|(?:list|fetch|retrieve|look up)[^.;!?]{0,32}submissions"
+    listing = r"列出[^。；;，,!！?？]{0,16}提交|(?:查询|获取|查看)[^。；;，,!！?？]{0,10}(?:最近|最新|列表|所有|全部|多条)[^。；;，,!！?？]{0,6}提交|(?:list|fetch|retrieve|look up)[^.;,!！?？]{0,32}submissions"
     listing_text = re.sub(r"(?:cannot|can't|unable to)\s+", lambda match: match.group().rstrip(), lowered)
     if any(_unnegated_claim(listing_text, match.group()) for match in re.finditer(listing, listing_text)):
         return False
@@ -1162,7 +1163,7 @@ def _trace_claims_consistent(text: str, results: list[dict[str, object]]) -> boo
         "attempt": r"(?:i (?:have )?attempted (?:to )?(?:retrieve|retrieval|search)|我(?:已|已经)(?:尝试)?(?:检索|搜索))",
         # Keep each outcome claim within its comma-delimited clause so a
         # denial in the next clause retains its own adjacent negation.
-        "failed": r"(?:(?:search_evidence|search|tool|检索|搜索|工具)[^。；;.!?？，,]{0,24}(?:[,，]\s*(?:但|而|but\s+)?\s*)?(?:failed|失败|超时))",
+        "failed": r"(?:(?:search_evidence|search|tool|检索(?!到的)|搜索|工具)[^。；;.!?？，,]{0,24}(?:[,，]\s*(?:但|而|but\s+)?\s*)?(?:failed|失败|超时))",
         "empty": r"(?:(?:search|检索|搜索)[^。；;.!?？]{0,24}(?:returned no (?:fragments|results|hits)|返回了?空结果|没有返回[^。；;]{0,8}(?:片段|结果)))",
     }
     for kind, pattern in patterns.items():

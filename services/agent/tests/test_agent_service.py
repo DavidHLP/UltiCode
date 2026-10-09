@@ -852,8 +852,9 @@ def test_state_mutations_run_inside_dispatch_node(tmp_path, monkeypatch):
         in_dispatch = {kind for kind, flag in seen if flag}
         outside_dispatch = {kind for kind, flag in seen if not flag}
         assert {"analysis_completed", "draft_edited", "confirmed", "save_intent", "plan_saved"} <= in_dispatch
-        # only the pre-dispatch run fence and reconcile stay in the route
-        assert outside_dispatch <= {"analysis_started", "analysis_interrupted"}
+        # Business mutations remain in dispatch; model nodes persist observation metadata.
+        assert outside_dispatch <= {"analysis_started", "analysis_interrupted", "model_started", "model_completed"}
+        assert {"model_started", "model_completed"} <= outside_dispatch
         assert post_flags == [True]
         assert posts["count"] == 1
 

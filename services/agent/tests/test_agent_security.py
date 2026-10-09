@@ -324,6 +324,6 @@ def test_cancel_during_analysis_discards_late_answer_without_sleep(tmp_path):
         assert data["draft"]["draftVersion"] == 1
         events = await client.get(f"/agent/threads/{thread_id}/events", headers=HEADERS)
         kinds = [event["kind"] for event in events.json()["data"]["events"]]
-        assert kinds == ["thread_created", "analysis_started", "cancel_requested"]
+        assert kinds == ["thread_created", "analysis_started", "model_started", "cancel_requested"]
 
     asyncio.run(with_client(app, scenario))

@@ -248,8 +248,9 @@ def test_live_stream_lifecycle_and_late_tool_fence(tmp_path, action):
             entered.set()
             await release.wait()
             return {"ok": True}
+        model = ToolModel()
         app = create_app(state_path=tmp_path / "live-stream.sqlite3", client_factory=SessionClient,
-                         offline_model_factory=lambda: (ToolModel(), {"probe": tool}))
+                         offline_model_factory=lambda: (model, {"probe": tool}))
         async def tracked(scope, receive, send):
             try:
                 await app(scope, receive, send)
@@ -296,6 +297,7 @@ def test_live_stream_lifecycle_and_late_tool_fence(tmp_path, action):
                         assert result["analysis"]["answer"] == "建议核对状态"
                     else:
                         assert not result["analysis"]
+                        assert model.calls == 1
                         events = (await client.get(path + "/events", headers=HEADERS)).json()["data"]["events"]
                         assert not any(event["kind"] in {"tool_completed", "analysis_completed"} for event in events)
         finally:

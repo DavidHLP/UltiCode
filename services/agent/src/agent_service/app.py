@@ -41,10 +41,6 @@ class AgentError(Exception):
         self.status, self.reason, self.code = status, reason, code
 
 
-class _AnalysisSuperseded(asyncio.CancelledError):
-    """Stop a stale tool graph without cancelling the HTTP request task."""
-
-
 class _StrictBody(BaseModel):
     model_config = ConfigDict(strict=True, extra="forbid")
 
@@ -798,7 +794,7 @@ def create_app(
                                             expected_version=version, statuses={"analyzing"}, changes={},
                                             kind=kind, detail={"toolName": name, "failed": failed})
                                     except Conflict:
-                                        raise _AnalysisSuperseded from None
+                                        raise asyncio.CancelledError from None
                                 record("tool_started")
                                 failed = True
                                 try:
@@ -860,8 +856,6 @@ def create_app(
                             {"analysis_runtime": (model, tools)},
                         )
                         return result["action_result"]["response"]
-                except _AnalysisSuperseded:
-                    return _thread_response(_owned(thread_id, owner), owner)
                 except Conflict:
                     return _thread_response(_owned(thread_id, owner), owner)
                 except AgentError:
@@ -873,6 +867,9 @@ def create_app(
                     raise
                 except Exception:
                     current = _owned(thread_id, owner)
+                    # A fenced graph can finish without an answer; report canonical state.
+                    if current["run_id"] != run_id or current["cancel_requested"]:
+                        return _thread_response(current, owner)
                     if current["status"] == "analyzing" and current["run_id"] == run_id:
                         workflow_store.transition(thread_id, owner, expected_run=run_id, expected_version=version,
                             statuses={"analyzing"}, changes={"status": "awaiting_confirmation",

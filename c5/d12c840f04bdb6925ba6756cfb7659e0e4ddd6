@@ -1,0 +1,19 @@
+services/agent/data/repository_corpus_manifest.json
+  s_d7d89ac5ed97cf::t_2b44a8e192de51 18-19,25,60-61,67
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c5d12c840f04bdb6925ba6756cfb7659e0e4ddd6",
+  "prompts": {},
+  "sessions": {
+    "s_d7d89ac5ed97cf": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12170-8d3d-7ec1-a9e0-ff3da265f589",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

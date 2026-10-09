@@ -1,0 +1,72 @@
+[
+  {
+    "doc_id": "repository-product",
+    "version": "sha256-0fa94edbcdfd23e172cf7858158a2cea037461a31b9fd085e7f929a94ca04586",
+    "chunk_id": "repository-product:sha256-0fa94edbcdfd23e172cf7858158a2cea037461a31b9fd085e7f929a94ca04586:1",
+    "source_path": "docs/PRODUCT.md",
+    "access_scope": "repository-public",
+    "sample_kind": "real",
+    "permission": "MIT:LICENSE:sha256:2be36e9d56578c1111740b6fe339ea3619cf1f2000af718f1a59e97d2e5d995c",
+    "scope": "Repository documentation; local retrieval and evaluation under the included MIT license",
+    "source_position": "lines 5-15",
+    "model_input_projection": "SourceHit.as_model_dict()",
+    "source_trust": "untrusted-data",
+    "content_digest": "sha256:d6e122722eb635fcb9471572ae40aca0dafee2d883adbb9176fc8497840e64d2"
+  },
+  {
+    "doc_id": "repository-architecture",
+    "version": "sha256-24ab8298a459fd59d3439d3d92df003342de9bdd6ac00a971c9ae073ed2d0b44",
+    "chunk_id": "repository-architecture:sha256-24ab8298a459fd59d3439d3d92df003342de9bdd6ac00a971c9ae073ed2d0b44:1",
+    "source_path": "docs/ARCHITECTURE.md",
+    "access_scope": "repository-public",
+    "sample_kind": "real",
+    "permission": "MIT:LICENSE:sha256:2be36e9d56578c1111740b6fe339ea3619cf1f2000af718f1a59e97d2e5d995c",
+    "scope": "Repository documentation; local retrieval and evaluation under the included MIT license",
+    "source_position": "lines 87-101",
+    "model_input_projection": "SourceHit.as_model_dict()",
+    "source_trust": "untrusted-data",
+    "content_digest": "sha256:605b2687d6a09ca54e4fa168e5f2ed72f03d9d9fe2a97b3314efb94c0fbdf67d"
+  },
+  {
+    "doc_id": "repository-development",
+    "version": "sha256-85ffbdabb33140225b8863bd2f1bd456f969122c70336f968ea3f87ac1996575",
+    "chunk_id": "repository-development:sha256-85ffbdabb33140225b8863bd2f1bd456f969122c70336f968ea3f87ac1996575:1",
+    "source_path": "docs/DEVELOPMENT.md",
+    "access_scope": "repository-public",
+    "sample_kind": "real",
+    "permission": "MIT:LICENSE:sha256:2be36e9d56578c1111740b6fe339ea3619cf1f2000af718f1a59e97d2e5d995c",
+    "scope": "Repository documentation; local retrieval and evaluation under the included MIT license",
+    "source_position": "lines 5-14",
+    "model_input_projection": "SourceHit.as_model_dict()",
+    "source_trust": "untrusted-data",
+    "content_digest": "sha256:66a4a01de85f21052d5d603241ac54d7a0e6cc5ef5a2b01b935816a37e15ce2e"
+  },
+  {
+    "doc_id": "repository-operations",
+    "version": "sha256-e929ca3e5f09b497144ff497a68745c3964aabbf9db206f8c0f37ce1842e251a",
+    "chunk_id": "repository-operations:sha256-e929ca3e5f09b497144ff497a68745c3964aabbf9db206f8c0f37ce1842e251a:1",
+    "source_path": "docs/OPERATIONS.md",
+    "access_scope": "repository-public",
+    "sample_kind": "real",
+    "permission": "MIT:LICENSE:sha256:2be36e9d56578c1111740b6fe339ea3619cf1f2000af718f1a59e97d2e5d995c",
+    "scope": "Repository documentation; local retrieval and evaluation under the included MIT license",
+    "source_position": "lines 46-70",
+    "model_input_projection": "SourceHit.as_model_dict()",
+    "source_trust": "untrusted-data",
+    "content_digest": "sha256:3a9f6c3ddffd550c395ab993b521dd14f396a253dbdcd5842b293e15b35ba33c"
+  },
+  {
+    "doc_id": "repository-reference",
+    "version": "sha256-f8b18ae789275f497534d7bf46b2ffe01e25a74ca930e09a2cc3c5365bffa8a3",
+    "chunk_id": "repository-reference:sha256-f8b18ae789275f497534d7bf46b2ffe01e25a74ca930e09a2cc3c5365bffa8a3:1",
+    "source_path": "docs/REFERENCE.md",
+    "access_scope": "repository-public",
+    "sample_kind": "real",
+    "permission": "MIT:LICENSE:sha256:2be36e9d56578c1111740b6fe339ea3619cf1f2000af718f1a59e97d2e5d995c",
+    "scope": "Repository documentation; local retrieval and evaluation under the included MIT license",
+    "source_position": "lines 159-175",
+    "model_input_projection": "SourceHit.as_model_dict()",
+    "source_trust": "untrusted-data",
+    "content_digest": "sha256:2bfd12ab6b6dc61d6e9fc80afd8337e6639509336df35a3d77bbd37757e6f036"
+  }
+]

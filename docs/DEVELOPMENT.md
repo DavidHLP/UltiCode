@@ -245,6 +245,16 @@ Java persists only an explicitly confirmed save; editable drafts and their versi
 the Agent workflow store. Java remains authoritative for ownership, idempotency, and the saved
 LearningPlan readback.
 
+### Licensed repository corpus
+
+`repository_corpus.load_repository_corpus()` reads five bounded excerpts directly from
+the MIT-licensed core documents. `data/repository_corpus_manifest.json` binds each excerpt
+to its source lines, whole-file SHA-256 version, content digest and the repository license
+digest. Changed documents or license bytes fail closed until the manifest is deliberately
+updated. Source data stays untrusted; license metadata does not authorize tool execution.
+This offline corpus is separate from the pinned synthetic keyword baseline and sealed
+holdout. It does not change the default Agent corpus or prove real-model acceptance.
+
 ### U03 Agent workflow
 
 The optional `agent_service.app.create_app(...)` factory exposes owner-scoped thread, draft,

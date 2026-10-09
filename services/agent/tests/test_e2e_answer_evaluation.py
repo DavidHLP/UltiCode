@@ -304,11 +304,11 @@ def test_retry_capacity_is_checked_before_billing(monkeypatch, capsys, tmp_path,
 
 
 @pytest.mark.parametrize("remaining,expected_calls", [(1, 0), (2, 2)])
-def test_rollover_single_attempt_plan_checks_purpose_before_billing(monkeypatch, tmp_path, remaining, expected_calls):
+@pytest.mark.parametrize("policy_id", ["acceptance-revalidation-v2", "acceptance-revalidation-v3"])
+def test_rollover_single_attempt_plan_checks_purpose_before_billing(monkeypatch, tmp_path, remaining, expected_calls, policy_id):
     from types import SimpleNamespace
-    from authorized_budget_period import REVALIDATION_V2_POLICY_ID
     calls = _install(monkeypatch)
-    budget = SimpleNamespace(_identity=SimpleNamespace(policy_id=REVALIDATION_V2_POLICY_ID),
+    budget = SimpleNamespace(_identity=SimpleNamespace(policy_id=policy_id),
                              remaining_purpose_attempts=lambda purpose: remaining)
     e2e.DeepseekModel.metering = []
     e2e.DeepseekModel._transport = SimpleNamespace(exchanges=[])

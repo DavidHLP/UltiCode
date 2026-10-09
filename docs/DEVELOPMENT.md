@@ -396,6 +396,14 @@ This policy permits one attempt per development pass (two full passes still requ
 remaining purpose quota before billing, and retains failures rather than silently rerunning them.
 Policy selection never changes or reopens either earlier period.
 
+Recovery after an unknown request uses the separately approved `acceptance-revalidation-v3`.
+Every binding verifies both sealed earlier periods and the original history, including the
+unknown request's SQL dispatch identity and the guard's full pending liability. Only the settled
+historical prefix is validated as receipt history; neither unknown becomes a fresh receipt or a
+zero-cost settlement. The new period retains both full unknown envelopes and conservative known
+commitments, requires two fresh complete development passes, and provides no extra retry quota.
+Earlier SQL and guard states remain halted. Approval alone does not activate the new binding.
+
 Issue the evidence-bound U02 gate only after those inputs validate. Gate artifact references are
 relative to the private directory containing the gate; place the referenced artifacts there:
 

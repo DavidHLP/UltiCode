@@ -63,7 +63,8 @@ REVALIDATION_POLICY = MappingProxyType({
 # Separate immutable allowance after the first revalidation was halted.
 REVALIDATION_V2_POLICY_ID = "acceptance-revalidation-v2"
 REVALIDATION_V3_POLICY_ID = "acceptance-revalidation-v3"
-REVALIDATION_POLICY_IDS = frozenset({REVALIDATION_POLICY_ID, REVALIDATION_V2_POLICY_ID, REVALIDATION_V3_POLICY_ID})
+REVALIDATION_V4_POLICY_ID = "acceptance-revalidation-v4"
+REVALIDATION_POLICY_IDS = frozenset({REVALIDATION_POLICY_ID, REVALIDATION_V2_POLICY_ID, REVALIDATION_V3_POLICY_ID, REVALIDATION_V4_POLICY_ID})
 REVALIDATION_V2_HISTORY = MappingProxyType({
     "attempts": 164, "known_actual_micro_usd": 42_307,
     "known_committed_micro_usd": 1_138_514,
@@ -99,6 +100,18 @@ REVALIDATION_V3_POLICY = MappingProxyType({
 })
 
 
+REVALIDATION_V4_HISTORY = MappingProxyType({
+    "attempts": 304, "known_actual_micro_usd": 80_719,
+    "known_committed_micro_usd": 2_345_714,
+    "unknown_attempts": 2, "unknown_encumbrance_micro_usd": 1_572_864,
+    "cumulative_attempt_limit": 545, "cumulative_limit_micro_usd": 6_800_000,
+})
+REVALIDATION_V4_POLICY = MappingProxyType({
+    **REVALIDATION_V3_POLICY, "limit_micro_usd": 2_881_422,
+    "history": REVALIDATION_V4_HISTORY,
+})
+
+
 def policy_for(policy_id: str):
     if policy_id == POLICY_ID:
         return POLICY
@@ -108,6 +121,8 @@ def policy_for(policy_id: str):
         return REVALIDATION_V2_POLICY
     if policy_id == REVALIDATION_V3_POLICY_ID:
         return REVALIDATION_V3_POLICY
+    if policy_id == REVALIDATION_V4_POLICY_ID:
+        return REVALIDATION_V4_POLICY
     raise PeriodError("unsupported policy")
 
 

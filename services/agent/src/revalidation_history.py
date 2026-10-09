@@ -109,16 +109,32 @@ def _check_unknown_rollover(snapshot, guard):
         raise PeriodError("retained unknown identity differs")
 
 
-def _validate_rollover_history(sources):
-    from authorized_budget_period import PeriodError, PeriodIdentity, REVALIDATION_V2_HISTORY, _parent, _file
+SETTLED_ROLLOVER_IDENTITY = {
+    "period_id": "revalidation-v3-20261008",
+    "identity": "7ac6d260692b43bea0ea9e3c56bc3043",
+    "config_sha256": "ade2d5e3609fce97c300aee447a82c9ca996151ba7b4e8a3f61ca0021b9b70c5",
+    "policy_id": "acceptance-revalidation-v3",
+}
+SETTLED_ROLLOVER_SHA256 = {
+    "budget.sqlite3": "5f824cadffc4eafebbab8f8dbd388f2d3d757bde2b47e316da53d8c6949302c8",
+    "binding.json": "121f200e1aff16d51fa7d65194b60c75678c12365afa34b86a426cc2282ad23f",
+    "dav58-increment-7ac6d260692b43bea0ea9e3c56bc3043.json": "42bc536128d190f959b1d886d9f46d08227123e1713e97de02e1e702301b5292",
+}
+
+
+def _validate_rollover_history(sources, *, settled_v3=False):
+    from authorized_budget_period import PeriodError, PeriodIdentity, REVALIDATION_V2_HISTORY, REVALIDATION_V4_HISTORY, _parent, _file
     from model_budget import ModelBudget, authorization_slot
     from dav58_live_guard import IncrementalGuard
 
-    original = validate_history(sources)
-    expected = PeriodIdentity(**ROLLOVER_IDENTITY)
+    original = _validate_unknown_rollover_history(sources) if settled_v3 else validate_history(sources)
+    expected = PeriodIdentity(**(SETTLED_ROLLOVER_IDENTITY if settled_v3 else ROLLOVER_IDENTITY))
+    fingerprints = SETTLED_ROLLOVER_SHA256 if settled_v3 else ROLLOVER_SHA256
+    totals = (115, 32_484, 976_800) if settled_v3 else (117, 26_993, 1_123_200)
+    history = REVALIDATION_V4_HISTORY if settled_v3 else REVALIDATION_V2_HISTORY
     accounting = authorization_slot(expected) / "accounting"
     hashes, guard = {}, None
-    for name, digest in ROLLOVER_SHA256.items():
+    for name, digest in fingerprints.items():
         path = accounting / name
         with _parent(path) as directory:
             fd = _file(directory, path.name, os.O_RDONLY)
@@ -138,9 +154,8 @@ def _validate_rollover_history(sources):
     budget = ModelBudget.bound(expected)
     snapshot = budget.snapshot()
     if (snapshot["state"] != "halted" or snapshot["sql_gate"] != "halted"
-            or snapshot["halted"] != 1 or snapshot["attempts"] != 117
-            or snapshot["actual_micro_usd"] != 26_993
-            or snapshot["committed_micro_usd"] != 1_123_200
+            or snapshot["halted"] != 1
+            or (snapshot["attempts"], snapshot["actual_micro_usd"], snapshot["committed_micro_usd"]) != totals
             or snapshot["unknown_usage_attempts"] or snapshot["unsettled_attempts"]):
         raise PeriodError("previous period must be sealed with all liabilities retained")
     try:
@@ -148,18 +163,20 @@ def _validate_rollover_history(sources):
     except ValueError as error:
         raise PeriodError("sealed rollover receipts invalid") from error
     return {"sources": sources, "sha256": {**original["sha256"], **hashes},
-            "baseline": dict(REVALIDATION_V2_HISTORY), "acceptance_evidence": False,
+            "baseline": dict(history), "acceptance_evidence": False,
             "unknown_released": False}
 
 
 def validate_history(sources, *, policy_id="acceptance-revalidation-v1"):
     from authorized_budget_period import PeriodError, REVALIDATION_HISTORY, _parent, _file
-    from authorized_budget_period import REVALIDATION_POLICY_ID, REVALIDATION_V2_POLICY_ID, REVALIDATION_V3_POLICY_ID
+    from authorized_budget_period import REVALIDATION_POLICY_ID, REVALIDATION_V2_POLICY_ID, REVALIDATION_V3_POLICY_ID, REVALIDATION_V4_POLICY_ID
 
     if policy_id == REVALIDATION_V2_POLICY_ID:
         return _validate_rollover_history(sources)
     if policy_id == REVALIDATION_V3_POLICY_ID:
         return _validate_unknown_rollover_history(sources)
+    if policy_id == REVALIDATION_V4_POLICY_ID:
+        return _validate_rollover_history(sources, settled_v3=True)
     if policy_id != REVALIDATION_POLICY_ID:
         raise PeriodError("unsupported retained history policy")
 

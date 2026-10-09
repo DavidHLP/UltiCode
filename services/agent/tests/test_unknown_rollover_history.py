@@ -1,8 +1,10 @@
 import copy
+import hashlib
+import json
 
 import pytest
 
-from authorized_budget_period import PeriodError, REVALIDATION_V3_POLICY
+from authorized_budget_period import PeriodError, REVALIDATION_V3_POLICY, REVALIDATION_V4_POLICY, policy_for
 from revalidation_history import _check_unknown_rollover
 
 
@@ -50,3 +52,69 @@ def test_recovery_budget_retains_both_unknowns_and_reserves_complete_nominal_pla
     assert reservations == 2_092_800
     peak = history["known_committed_micro_usd"] + history["unknown_encumbrance_micro_usd"] + reservations - min(cost for _, cost in caps) + 786_432
     assert peak == 5_816_210 <= history["cumulative_limit_micro_usd"] == 5_820_000
+
+
+def test_v4_preserves_sealed_liabilities_and_complete_four_round_plan():
+    policy = policy_for("acceptance-revalidation-v4")
+    assert policy is REVALIDATION_V4_POLICY
+    history = policy["history"]
+    previous = REVALIDATION_V3_POLICY["history"]
+    assert history["attempts"] == previous["attempts"] + 115 == 304
+    assert history["known_actual_micro_usd"] == previous["known_actual_micro_usd"] + 32_484
+    assert history["known_committed_micro_usd"] == previous["known_committed_micro_usd"] + 976_800
+    assert history["unknown_attempts"] == previous["unknown_attempts"] == 2
+    assert history["unknown_encumbrance_micro_usd"] == previous["unknown_encumbrance_micro_usd"] == 1_572_864
+    assert policy["lanes"] == REVALIDATION_V3_POLICY["lanes"]
+    caps = [(v["attempts"], (v["prompt_token_cap"] * 3 + v["completion_token_cap"] * 12 + 9) // 10)
+            for v in policy["lanes"].values()]
+    assert sum(n for n, _ in caps) == policy["attempts"] == 241
+    assert history["attempts"] + policy["attempts"] == history["cumulative_attempt_limit"] == 545
+    retained = history["known_committed_micro_usd"] + history["unknown_encumbrance_micro_usd"]
+    assert retained + policy["limit_micro_usd"] == history["cumulative_limit_micro_usd"] == 6_800_000
+    assert retained + sum(n * cost for n, cost in caps) - min(cost for _, cost in caps) + 786_432 == 6_793_010
+
+
+@pytest.mark.parametrize("mutation", [None, "fingerprint", "active", "unsettled", "unknown", "commit", "receipts"])
+def test_v4_binding_rejects_changed_or_unsealed_v3(monkeypatch, tmp_path, mutation):
+    from types import SimpleNamespace
+    import model_budget
+    import revalidation_history as history
+    from dav58_live_guard import IncrementalGuard
+
+    accounting = tmp_path / "accounting"
+    accounting.mkdir(mode=0o700)
+    pins = {}
+    guard_name = f'dav58-increment-{history.SETTLED_ROLLOVER_IDENTITY["identity"]}.json'
+    for name, raw in {"budget.sqlite3": b"sealed fixture", "binding.json": b"{}",
+                      guard_name: json.dumps({"receipts": []}).encode()}.items():
+        path = accounting / name
+        path.write_bytes(raw)
+        path.chmod(0o600)
+        pins[name] = hashlib.sha256(raw).hexdigest()
+    monkeypatch.setattr(history, "SETTLED_ROLLOVER_SHA256", pins)
+    monkeypatch.setattr(history, "_validate_unknown_rollover_history", lambda sources: {"sha256": {"older": "retained"}})
+    monkeypatch.setattr(model_budget, "authorization_slot", lambda expected: tmp_path)
+    snapshot = {"state": "halted", "sql_gate": "halted", "halted": 1, "attempts": 115,
+                "actual_micro_usd": 32_484, "committed_micro_usd": 976_800,
+                "unknown_usage_attempts": 0, "unsettled_attempts": 0}
+    if mutation == "fingerprint":
+        (accounting / "budget.sqlite3").write_bytes(b"changed")
+    for case, key, value in [("active", "state", "active"), ("unsettled", "unsettled_attempts", 1),
+                             ("unknown", "unknown_usage_attempts", 1), ("commit", "committed_micro_usd", 32_484)]:
+        if mutation == case:
+            snapshot[key] = value
+    monkeypatch.setattr(model_budget.ModelBudget, "bound", lambda expected: SimpleNamespace(snapshot=lambda: snapshot, policy={}))
+    checked = []
+    def validate(*args):
+        checked.append(True)
+        if mutation == "receipts":
+            raise ValueError("dispatch mismatch")
+    monkeypatch.setattr(IncrementalGuard, "_validate_resume", validate)
+    if mutation:
+        with pytest.raises(PeriodError):
+            history.validate_history({}, policy_id="acceptance-revalidation-v4")
+    else:
+        audit = history.validate_history({}, policy_id="acceptance-revalidation-v4")
+        assert checked and audit["sha256"]["older"] == "retained"
+        assert audit["baseline"] == dict(REVALIDATION_V4_POLICY["history"])
+        assert audit["acceptance_evidence"] is audit["unknown_released"] is False

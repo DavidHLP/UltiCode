@@ -406,6 +406,14 @@ zero-cost settlement. The new period retains both full unknown envelopes and con
 commitments, requires two fresh complete development passes, and provides no extra retry quota.
 Earlier SQL and guard states remain halted. Approval alone does not activate the new binding.
 
+An approved full rerun uses `acceptance-revalidation-v4` after permanently halting v3 with
+all its fresh attempts settled. Every binding verifies v3's sealed ledger, binding and complete
+guard receipt prefix, plus the entire earlier history chain. Known actual charges, conservative
+commitments and both unknown liabilities remain separate and retained. The new period keeps
+the original per-purpose limits and four-round requirements; its source, citation and two
+development passes must form a fresh prefix in that same period. No earlier receipt or approval
+substitutes for that prefix, and no automatic retry allowance is added.
+
 Issue the evidence-bound U02 gate only after those inputs validate. Gate artifact references are
 relative to the private directory containing the gate; place the referenced artifacts there:
 

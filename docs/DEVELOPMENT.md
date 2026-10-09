@@ -546,8 +546,8 @@ A/B 响应与私有列表还会检查 source-bearing 字段及去除 synthetic c
 
 `core` scope 会启动 `ulticode-core`（9108）和独立 `ulticode-judge`；
 通用配置与 PM2 默认不启动 Owner contexts，named `core` scope 才显式启用
-Auth/Admin，并将 Judge readiness 设为 optional。Core parent 没有业务
-HTTP/WS 聚合路由，readiness 不是业务可用性证明。启用 Owner 需要
+Auth/Admin，并将 Judge readiness 设为 optional。Core parent 将 Auth/Admin HTTP
+路由交给独立 Owner 的安全链与 MVC；readiness 不是业务可用性证明。启用 Owner 需要
 disposable MySQL/Redis、Owner artifacts 和完整凭据；缺少这些输入时
 必须 fail closed，不能把 parent smoke 当成 enabled-owner wiring。Core
 专用门禁：
@@ -562,8 +562,8 @@ smoke。Core enabled-owner wiring 另有显式 opt-in 的 disposable 门禁：
 `CORE_ENABLED_OWNER_JOURNEY=1 ./scripts/test/core-enabled-owner-journey.sh`
 在 disposable Testcontainers MySQL/Redis 上应用 canonical Auth/Admin
 migrations，启动真实 Auth/Admin child，验证 readiness、local identity read、
-合法 permission grant、missing signer fail-closed 与 cleanup；它是 bounded
-wiring proof，不是四步业务 journey、生产 parity 或全量 Admin bean graph
+HTTP login/me、grant/权限回读、普通用户与 CSRF 拒绝、missing signer 与 cleanup；
+HTTP 断言仍待实际运行通过，不是 App 四步 journey、生产 parity 或全量 Admin bean graph
 健康证明。该门禁的每个 Owner 启动预算与运行时默认值一致；总等待预算
 覆盖启用 Owner 的顺序启动及各次尝试的独立 drain，避免外层等待先于
 内部生命周期协议超时。分布式普通用户首旅程使用 `app-journey` scope。

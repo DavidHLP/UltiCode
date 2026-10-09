@@ -282,6 +282,9 @@ class CoreEnabledOwnerJourneyIT {
 
     private static void startOwnerContexts(KeyPair delegationKeyPair) {
         MockEnvironment environment = new MockEnvironment()
+                .withProperty("JWT_SECRET", jwtSecret)
+                .withProperty("JWT_COOKIE_SECURE", "false")
+                .withProperty("JWT_RSA_ENABLED", "false")
                 .withProperty("AUTH_DB_URL", jdbcUrl("auth"))
                 .withProperty("ADMIN_DB_URL", jdbcUrl("admin"))
                 .withProperty("AUTH_DB_USER", "auth_rw")

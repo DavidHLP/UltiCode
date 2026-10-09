@@ -47,13 +47,19 @@ _JUDGE_MARKER = "JUDGE_CONTRACT"
 #:
 #: The answer receives the question and retrieved evidence only. Expected,
 #: allowed, and forbidden outcomes belong exclusively to the judging pass.
+ANSWER_EXAMPLE = json.dumps(
+    {"answer": json.dumps({"text": "<your answer>", "citations": []}, separators=(",", ":"))},
+    separators=(",", ":"),
+)
 ANSWER_CONTRACT = (
     f"{_ANSWER_MARKER}: answer the QUESTION using only the RETRIEVED fragments. "
     "For a topic phrase, explain what the fragments say about that topic; "
     "do not assume it asks for a particular submission's private implementation. "
     'Reply with exactly one JSON object of the form {"answer": "<json-string>"} '
-    "where <json-string> is itself a JSON object with exactly two fields: "
+    "The answer field must be a string, never an object. Serialize a JSON object "
+    "with exactly two fields into that string, escaping its inner quotes: "
     '{"text": "<your answer>", "citations": ["<cited chunk id>", ...]}. '
+    f"For example, a valid response is {ANSWER_EXAMPLE}. "
     f"Keep the text at most {MAX_ANSWER_CHARS} characters. "
     "Aim for 600 characters or fewer to leave room below the hard limit; "
     "omit preambles and repeated evidence. "

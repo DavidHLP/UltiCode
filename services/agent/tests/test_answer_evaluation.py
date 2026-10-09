@@ -16,6 +16,8 @@ import httpx
 import pytest
 
 from answer_evaluation import (
+    ANSWER_CONTRACT,
+    ANSWER_EXAMPLE,
     AnswerEvaluationError,
     MAX_ANSWER_CHARS,
     JUDGE_CONTRACT,
@@ -167,6 +169,20 @@ def test_a_judge_cannot_classify_an_uncited_answer_as_cite() -> None:
 
     with pytest.raises(AnswerEvaluationError, match="no selected citations as cite"):
         _run([_case()], answers, judgements)
+
+
+def test_answer_contract_example_is_a_string_envelope() -> None:
+    assert ANSWER_EXAMPLE in ANSWER_CONTRACT
+    assert 'must be a string, never an object' in ANSWER_CONTRACT
+    outer = json.loads(ANSWER_EXAMPLE)
+    assert set(outer) == {"answer"}
+    assert isinstance(outer["answer"], str)
+    inner = json.loads(outer["answer"])
+    assert set(inner) == {"text", "citations"}
+    decision = _parse_decision(ANSWER_EXAMPLE, finish_reason="stop")
+    assert _answer_of(decision.text, set()) == (inner["text"], ())
+    with pytest.raises(ModelProtocolError, match="model answer was malformed"):
+        _parse_decision(json.dumps({"answer": inner}), finish_reason="stop")
 
 
 def test_judge_contract_example_is_valid_adapter_output() -> None:

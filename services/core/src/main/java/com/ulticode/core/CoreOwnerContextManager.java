@@ -3,6 +3,7 @@ package com.ulticode.core;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.WebApplicationType;
+import org.springframework.boot.ApplicationContextFactory;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
@@ -255,9 +256,21 @@ public class CoreOwnerContextManager implements ApplicationContextAware {
         ClassLoader previous = current.getContextClassLoader();
         current.setContextClassLoader(ownerClassLoader);
         try {
+            jakarta.servlet.ServletContext servletContext = ownerContext instanceof
+                    org.springframework.web.context.WebApplicationContext webContext
+                    ? webContext.getServletContext() : null;
             org.springframework.context.ConfigurableApplicationContext context =
                     new SpringApplicationBuilder(module.bootConfiguration())
                             .web(WebApplicationType.NONE)
+                            .contextFactory(type -> {
+                                if (servletContext == null) {
+                                    return ApplicationContextFactory.DEFAULT.create(type);
+                                }
+                                // Share the HTTP container, never the parent's business bean factory.
+                                var child = new org.springframework.web.context.support.GenericWebApplicationContext();
+                                child.setServletContext(servletContext);
+                                return child;
+                            })
                             .initializers(child ->
                                     CoreLocalContractAssembly.register(child, module, this))
                             .properties(properties.toArray(String[]::new))

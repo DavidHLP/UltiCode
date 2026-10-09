@@ -39,7 +39,7 @@ parity 和业务 journey 尚未闭环；Auth/Admin bounded enabled-owner wiring 
 ### SVC-025 Core profile local parity（OPEN）
 
 现状：`services/core` 已提供显式 Core parent、五组 Owner 数据源/事务/
-MapperScan、非 Web Owner child contexts、9108 readiness 和独立 Judge
+MapperScan、独立 Owner child contexts、9108 readiness 和独立 Judge
 进程。`CoreModuleRegistry` 仅启用 Auth/Admin；App/Submission/Notification/
 Search 保持 `DISABLED`。G1/G2、parent smoke、readiness fail-closed、生命周期
 close-once 和本地断言载体已有仓库证据；Admin child 的显式 local contract
@@ -76,10 +76,13 @@ contract consumers remain registered and missing providers fail closed.
 
 当前边界：`CoreOwnerClassLoaders` 只负责 child startup 的 TCCL 与 close
 lifecycle；显式 `@ComponentScan`、`CoreModuleRegistry.enabledModules()` 和
-Admin local contract registration 才是 Core assembly contract。Core parent
-只提供 `/api/v1/core/health/ready`，child 为 non-Web；Core 没有可运行的
-业务 HTTP/WS journey。分布式 `app-journey` 是四步参考旅程，Core 变体
-在业务入口存在前不可执行。
+Admin local contract registration 才是 Core assembly contract。Core parent 的
+`/api/v1/core/health/ready` 继续独立。`CoreOwnerHttpConfiguration` 将 `/auth/**`
+与 `/admin/**` 分派到独立 Owner Web context 的原安全链与原 DispatcherServlet；
+child 不启动独立 HTTP server，也不继承 parent business BeanFactory。
+当前装配及真实登录/权限变更/读回旅程仍待对应代码的远端验证，不能以
+router mock 回归证明业务可用。App 仍 disabled；分布式 `app-journey` 的
+四步参考旅程没有因此通过。
 
 `CoreOwnerContextManager` 现在对每个 child 启动使用有界 timeout，且
 timeout/cancel 与 child 启动完成之间通过单 CAS ownership handoff 协议

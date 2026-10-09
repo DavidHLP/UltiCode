@@ -20,6 +20,11 @@ import org.junit.jupiter.api.Test;
 import org.redisson.api.RBucket;
 import org.redisson.api.RedissonClient;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.boot.WebApplicationType;
+import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.boot.web.server.servlet.context.ServletWebServerApplicationContext;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.mock.env.MockEnvironment;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -35,6 +40,13 @@ import org.flywaydb.core.Flyway;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.net.CookieManager;
+import java.net.CookiePolicy;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.SecureRandom;
@@ -57,12 +69,12 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 
 /**
- * Opt-in proof of real Auth/Admin child wiring; it is intentionally not part of the Core smoke.
+ * Opt-in proof of real Auth/Admin child wiring and its bounded HTTP journey.
  *
  * <p>The test creates no container unless the shell gate supplies the explicit system property.
  * It applies the repository-owned Auth/Admin migrations to disposable schemas, boots the real
  * {@link CoreOwnerBootConfigurations.Admin} configuration through {@link CoreOwnerContextManager},
- * and exercises only local contract seams.
+ * and exercises the original HTTP controllers/security plus local contract seams.
  */
 class CoreEnabledOwnerJourneyIT {
     private static final String GATE_PROPERTY = "core.enabled.owner.journey";
@@ -75,6 +87,10 @@ class CoreEnabledOwnerJourneyIT {
     private static MySQLContainer<?> mysql;
     private static GenericContainer<?> redis;
     private static CoreOwnerContextManager ownerContexts;
+    private static ConfigurableApplicationContext parentContext;
+    private static URI httpRoot;
+    private static String userPassword;
+    private static String adminPassword;
     private static Path repositoryRoot;
 
     private static String mysqlPassword;
@@ -129,7 +145,7 @@ class CoreEnabledOwnerJourneyIT {
 
 
     @Test
-    void bootsReadyOwnersReadsIdentityGrantsPermissionAndFailsClosedWithoutSigner() {
+    void bootsReadyOwnersReadsIdentityGrantsPermissionAndFailsClosedWithoutSigner() throws Exception {
         assertThat(ownerContexts.allReady()).isTrue();
         assertThat(ownerContexts.states())
                 .containsEntry("auth", CoreOwnerContextManager.State.READY)
@@ -138,6 +154,7 @@ class CoreEnabledOwnerJourneyIT {
         RBucket<String> redissonProbe = authRedisson.getBucket("auth:core-redisson-probe");
         redissonProbe.set("ok", 30, TimeUnit.SECONDS);
         assertThat(redissonProbe.get()).isEqualTo("ok");
+        verifyHttpJourney();
 
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken(
@@ -226,8 +243,13 @@ class CoreEnabledOwnerJourneyIT {
     @AfterAll
     static void closeJourney() {
         try {
+            if (parentContext != null) {
+                parentContext.close();
+            }
             if (ownerContexts != null) {
-                ownerContexts.onContextClosed(new ContextClosedEvent(mock(ApplicationContext.class)));
+                if (parentContext == null) {
+                    ownerContexts.onContextClosed(new ContextClosedEvent(mock(ApplicationContext.class)));
+                }
                 assertThat(ownerContexts.contextsSnapshot()).isEmpty();
                 assertThat(ownerContexts.states())
                         .containsEntry("auth", CoreOwnerContextManager.State.STOPPED)
@@ -299,13 +321,96 @@ class CoreEnabledOwnerJourneyIT {
                 .withProperty("APP_STORAGE_STARTUP_PROBE_ATTEMPTS", "1")
                 .withProperty("APP_STORAGE_STARTUP_PROBE_DELAY_MS", "0")
                 .withProperty("spring.main.lazy-initialization", "true")
+                .withProperty("server.port", "0")
+                .withProperty("core.owner-contexts.enabled", "true")
+                .withProperty("core.judge.required", "false")
+                .withProperty("spring.flyway.enabled", "false")
                 .withProperty("ulticode.app.inbox.enabled", "false")
                 .withProperty("spring.autoconfigure.exclude",
                         "org.springframework.boot.micrometer.metrics.autoconfigure.system.SystemMetricsAutoConfiguration");
-        ownerContexts = new CoreOwnerContextManager(
-                new CoreModuleRegistry(), environment, true, OWNER_STARTUP_TIMEOUT_MS);
-        ownerContexts.startOwnerModules();
+        environment.setActiveProfiles("test");
+        parentContext = new SpringApplicationBuilder(CoreApplication.class)
+                .environment(environment).web(WebApplicationType.SERVLET).run();
+        ownerContexts = parentContext.getBean(CoreOwnerContextManager.class);
+        int port = ((ServletWebServerApplicationContext) parentContext).getWebServer().getPort();
+        httpRoot = URI.create("http://127.0.0.1:" + port);
         awaitOwnerStartup();
+    }
+
+    private record HttpSession(HttpClient client, CookieManager cookies) {
+    }
+
+    private static HttpSession login(String username, String password) throws Exception {
+        CookieManager cookies = new CookieManager(null, CookiePolicy.ACCEPT_ALL);
+        HttpClient client = HttpClient.newBuilder().cookieHandler(cookies)
+                .connectTimeout(Duration.ofSeconds(5)).build();
+        String body = new com.fasterxml.jackson.databind.ObjectMapper()
+                .writeValueAsString(Map.of("username", username, "password", password));
+        HttpResponse<String> response = send(client, "/auth/login", "POST", body, null);
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(new com.fasterxml.jackson.databind.ObjectMapper().readTree(response.body())
+                .path("code").asInt(-1)).isZero();
+        assertThat(cookies.getCookieStore().getCookies().stream()
+                .anyMatch(cookie -> cookie.getName().equals("access_token"))).isTrue();
+        return new HttpSession(client, cookies);
+    }
+
+    private static HttpResponse<String> send(HttpClient client, String path, String method,
+                                             String body, String csrf) throws Exception {
+        var builder = HttpRequest.newBuilder(httpRoot.resolve(path)).timeout(Duration.ofSeconds(15));
+        if (csrf != null) {
+            builder.header("X-CSRF-Token", csrf);
+        }
+        if (body != null) {
+            builder.header("Content-Type", "application/json");
+        }
+        return client.send(builder.method(method, body == null ? HttpRequest.BodyPublishers.noBody()
+                : HttpRequest.BodyPublishers.ofString(body)).build(), HttpResponse.BodyHandlers.ofString());
+    }
+
+    private static String csrf(HttpSession session) {
+        return session.cookies().getCookieStore().getCookies().stream()
+                .filter(cookie -> cookie.getName().equals("csrf_token"))
+                .findFirst().orElseThrow().getValue();
+    }
+
+    private static long directHttpPermissionRows() throws Exception {
+        try (Connection connection = DriverManager.getConnection(jdbcUrl("auth"), mysql.getUsername(), mysqlPassword);
+             PreparedStatement query = connection.prepareStatement(
+                     "SELECT COUNT(*) FROM user_permissions WHERE user_id = ? AND action = ? AND resource = ?")) {
+            query.setString(1, "core-user");
+            query.setString(2, "CREATE");
+            query.setString(3, "PROBLEM");
+            try (var rows = query.executeQuery()) {
+                assertThat(rows.next()).isTrue();
+                return rows.getLong(1);
+            }
+        }
+    }
+
+    private static void verifyHttpJourney() throws Exception {
+        var json = new com.fasterxml.jackson.databind.ObjectMapper();
+        HttpSession user = login("core-user", userPassword);
+        HttpSession admin = login("core-admin", adminPassword);
+        HttpResponse<String> identity = send(user.client(), "/auth/me", "GET", null, null);
+        assertThat(identity.statusCode()).isEqualTo(200);
+        assertThat(json.readTree(identity.body()).at("/data/user/id").asText()).isEqualTo("core-user");
+        assertThat(send(HttpClient.newHttpClient(), "/auth/me", "GET", null, null).statusCode()).isEqualTo(401);
+        String grant = "{\"action\":\"CREATE\",\"resource\":\"PROBLEM\",\"expiresAt\":\"2099-01-01T00:00:00\"}";
+        String endpoint = "/admin/users/core-user/permissions";
+        assertThat(directHttpPermissionRows()).isZero();
+        assertThat(send(user.client(), endpoint, "POST", grant, csrf(user)).statusCode()).isEqualTo(403);
+        assertThat(send(admin.client(), endpoint, "POST", grant, null).statusCode()).isEqualTo(403);
+        assertThat(directHttpPermissionRows()).isZero();
+        HttpResponse<String> granted = send(admin.client(), endpoint, "POST", grant, csrf(admin));
+        assertThat(granted.statusCode()).isEqualTo(200);
+        assertThat(json.readTree(granted.body()).path("code").asInt(-1)).isZero();
+        assertThat(json.readTree(granted.body()).at("/data/changed").asBoolean()).isTrue();
+        assertThat(directHttpPermissionRows()).isEqualTo(1L);
+        HttpSession refreshedUser = login("core-user", userPassword);
+        HttpResponse<String> readback = send(refreshedUser.client(), "/auth/permissions", "GET", null, null);
+        assertThat(readback.statusCode()).isEqualTo(200);
+        assertThat(json.readTree(readback.body()).path("data").toString()).contains("CREATE:PROBLEM");
     }
 
     private static void prepareSchemasAndFixtures() throws Exception {
@@ -324,12 +429,22 @@ class CoreEnabledOwnerJourneyIT {
              PreparedStatement insert = connection.prepareStatement("""
                      INSERT INTO users (id, username, email, password, role, is_active, is_banned,
                                         is_deleted, authz_version)
-                     VALUES (?, ?, ?, ?, 'USER', 1, 0, 0, 0)
+                     VALUES (?, ?, ?, ?, ?, 1, 0, 0, 0)
                      """)) {
             insert.setString(1, "core-user");
             insert.setString(2, "core-user");
             insert.setString(3, "core-user@example.invalid");
-            insert.setString(4, fixtureSecret());
+            userPassword = UUID.randomUUID().toString();
+            adminPassword = UUID.randomUUID().toString();
+            BCryptPasswordEncoder passwords = new BCryptPasswordEncoder();
+            insert.setString(4, passwords.encode(userPassword));
+            insert.setString(5, "USER");
+            insert.executeUpdate();
+            insert.setString(1, "core-admin");
+            insert.setString(2, "core-admin");
+            insert.setString(3, "core-admin@example.invalid");
+            insert.setString(4, passwords.encode(adminPassword));
+            insert.setString(5, "SUPER_ADMIN");
             insert.executeUpdate();
         }
     }
@@ -486,6 +601,7 @@ class CoreEnabledOwnerJourneyIT {
         setSystemProperty("APP_STORAGE_STARTUP_PROBE_DELAY_MS", "0");
         setSystemProperty("JWT_SECRET", jwtSecret);
         setSystemProperty("JWT_RSA_ENABLED", "false");
+        setSystemProperty("JWT_COOKIE_SECURE", "false");
         setSystemProperty("AUTH_AUDIT_OUTBOX_DISPATCHER_ENABLED", "false");
         setSystemProperty("AUTH_SEARCH_OUTBOX_DISPATCHER_ENABLED", "false");
         setSystemProperty("ADMIN_AUDIT_INBOX_ENABLED", "false");

@@ -16,7 +16,7 @@ from typing import Callable, Literal
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, ConfigDict, StrictBool, StrictInt, StrictStr, ValidationError
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from langgraph.types import Command
@@ -630,6 +630,54 @@ def create_app(
             return {"events": rows, "next": cursor}
         return _response(await with_session(request, unsafe=False, operation=operation))
 
+    @app.get("/agent/threads/{thread_id}/events/stream")
+    async def stream_events(thread_id: str, request: Request, after: int = 0):
+        _uuid(thread_id)
+        if not 0 <= after <= 2**63 - 1:
+            raise AgentError(400, "validation_error")
+        async def operation(_: UlticodeClient, owner: str):
+            return owner, str(_owned(thread_id, owner)["run_id"])
+        owner, run_id = await with_session(request, unsafe=False, operation=operation)
+
+        async def generate():
+            cursor = after
+            deadline = time.monotonic() + 30.0
+            def frame(kind, payload):
+                return "id: " + run_id + ":" + str(payload.get("seq", cursor)) + ":" + kind + "\nevent: " + kind + "\ndata: " + json.dumps(
+                    {"runId": run_id, **payload}, ensure_ascii=False
+                ) + "\n\n"
+            while not await request.is_disconnected():
+                row = _owned(thread_id, owner)
+                if row["run_id"] != run_id:
+                    yield frame("stream_closed", {"reason": "run_replaced"})
+                    return
+                events, cursor = workflow_store.events(thread_id, after=cursor, limit=100)
+                for event in events:
+                    if event["detail"].get("runId") == run_id:
+                        yield frame("workflow", event)
+                if cursor < int(row["event_seq"]):
+                    continue
+                row = _owned(thread_id, owner)
+                if row["run_id"] != run_id:
+                    yield frame("stream_closed", {"reason": "run_replaced"})
+                    return
+                if row["status"] not in {"analyzing", "saving"}:
+                    answer = row["analysis"].get("answer")
+                    if isinstance(answer, str) and answer and not row["cancel_requested"]:
+                        # Only validated, persisted answer text crosses the stream boundary.
+                        yield frame("text", {"seq": row["event_seq"], "text": answer})
+                    yield frame("terminal", {"status": row["status"],
+                        "seq": row["event_seq"],
+                        "reason": row["failure_reason"], "cancelRequested": bool(row["cancel_requested"])})
+                    return
+                if time.monotonic() >= deadline:
+                    yield frame("stream_closed", {"reason": "stream_timeout"})
+                    return
+                await asyncio.sleep(0.1)
+
+        return StreamingResponse(generate(), media_type="text/event-stream",
+            headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"})
+
     @app.put("/agent/threads/{thread_id}/draft")
     async def edit_draft(thread_id: str, request: Request):
         _uuid(thread_id)
@@ -736,6 +784,25 @@ def create_app(
                                     raise
 
                             tools["search_evidence"] = recorded_search
+                        def observed_tool(name, handler):
+                            async def invoke(arguments):
+                                def record(kind, failed=False):
+                                    try:
+                                        workflow_store.transition(thread_id, owner, expected_run=run_id,
+                                            expected_version=version, statuses={"analyzing"}, changes={},
+                                            kind=kind, detail={"toolName": name, "failed": failed})
+                                    except Conflict:
+                                        raise asyncio.CancelledError from None
+                                record("tool_started")
+                                failed = True
+                                try:
+                                    result = await handler(arguments)
+                                    failed = isinstance(result, dict) and "error" in result
+                                    return result
+                                finally:
+                                    record("tool_completed", failed)
+                            return invoke
+                        tools = {name: observed_tool(name, handler) for name, handler in tools.items()}
                         resources = {id(value): value for value in (model, judge_model) if value is not None}
                         for resource in resources.values():
                             if hasattr(resource, "__aenter__"):

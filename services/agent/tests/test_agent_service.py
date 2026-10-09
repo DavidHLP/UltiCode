@@ -7,7 +7,7 @@ import httpx
 import pytest
 
 from deepseek_model import DeepseekModel
-from agent_loop import ModelDecision
+from agent_loop import ModelDecision, ToolCall
 from agent_service.app import create_app, parse_model_answer
 from agent_service.gate import GateError
 from retrieval import SourceDocument
@@ -160,6 +160,42 @@ class SessionClient:
 
     async def get_my_submission(self, submission_id):
         return {"id": submission_id, "status": "Accepted"}
+
+
+@pytest.mark.parametrize("failed", [False, True])
+def test_stream_exposes_tool_metadata_without_private_payload(tmp_path, failed):
+    class ToolModel(ScriptedModel):
+        async def decide(self, messages):
+            self.calls += 1
+            if self.calls == 1:
+                return ModelDecision(tool_call=ToolCall("probe", {"private": "secret-argument"}))
+            return ModelDecision(text=json.dumps({"text": "建议核对状态", "citations": []}))
+
+    async def tool(_):
+        if failed:
+            raise ValueError("secret-error")
+        return {"private": "secret-result"}
+
+    async def scenario():
+        app = create_app(state_path=tmp_path / "tool-stream.sqlite3", client_factory=SessionClient,
+                         offline_model_factory=lambda: (ToolModel(), {"probe": tool}))
+        async with app.router.lifespan_context(app):
+            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
+                created = await client.post("/agent/threads", headers=HEADERS,
+                    json={"sourceSubmissionId": str(uuid.uuid4()), "question": "如何复盘？"})
+                thread_id = created.json()["data"]["threadId"]
+                analyzed = await client.post(f"/agent/threads/{thread_id}/analyze", headers=HEADERS, json={})
+                assert analyzed.status_code == 200
+                stream = await client.get(f"/agent/threads/{thread_id}/events/stream", headers=HEADERS)
+                frames = [json.loads(line[6:]) for line in stream.text.splitlines() if line.startswith("data: ")]
+                tools = [frame for frame in frames if frame.get("kind") in {"tool_started", "tool_completed"}]
+                assert [frame["kind"] for frame in tools] == ["tool_started", "tool_completed"]
+                assert tools[-1]["detail"] == {"toolName": "probe", "failed": failed,
+                    "runId": analyzed.json()["data"]["runId"]}
+                assert "secret-" not in stream.text
+                replay = await client.get(f"/agent/threads/{thread_id}/events/stream", headers=HEADERS)
+                assert replay.text == stream.text
+    asyncio.run(scenario())
 
 
 class MissingBudgetClient(SessionClient):
@@ -368,6 +404,20 @@ def test_offline_analyze_resumes_same_graph_and_cas_persists_answer(tmp_path):
                 assert "模型建议（待验证）：建议核对状态" in result["draft"]["content"]
                 assert result["analysis"]["answer"] == "建议核对状态"
                 assert model.calls == 1
+                streamed = await client.get(f"/agent/threads/{thread_id}/events/stream", headers=headers)
+                assert streamed.status_code == 200
+                assert streamed.headers["content-type"].startswith("text/event-stream")
+                assert streamed.headers["cache-control"] == "no-store"
+                frames = [json.loads(line[6:]) for line in streamed.text.splitlines() if line.startswith("data: ")]
+                assert all(frame["runId"] == result["runId"] for frame in frames)
+                assert not any(frame.get("kind") == "thread_created" for frame in frames)
+                assert [frame["text"] for frame in frames if "text" in frame] == ["建议核对状态"]
+                assert frames[-1]["status"] == "awaiting_confirmation"
+                cancelled = await client.post(f"/agent/threads/{thread_id}/cancel", headers=headers, json={})
+                assert cancelled.status_code == 200
+                cancelled_stream = await client.get(f"/agent/threads/{thread_id}/events/stream", headers=headers)
+                assert "event: text" not in cancelled_stream.text
+                assert '"status": "cancelled"' in cancelled_stream.text
 
     asyncio.run(scenario())
 

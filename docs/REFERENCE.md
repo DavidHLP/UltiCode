@@ -62,6 +62,14 @@ the idempotency key.
 Events return `{events, next}` with a bounded page. New events persist the authoritative
 run identifier in `detail.runId` in the same transaction as their state transition;
 older events without it retain their original payload and must not be assigned the current run.
+`GET /agent/threads/{thread_id}/events/stream?after=...` authenticates the owner and
+returns SSE for the run current at subscription time. `workflow` events retain their
+durable sequence and include tool start/completion metadata without arguments or results.
+`text` contains only validated, persisted answer text; `terminal` reports canonical status,
+failure reason and cancellation intent. SSE IDs bind run, sequence and event kind for replay
+deduplication. Run replacement or the 30-second subscription limit emits `stream_closed`;
+this is a transport outcome, not business completion. Disconnect ends the subscription,
+while explicit cancellation uses the existing cancel endpoint and does not undo Java writes.
 `after` must be between 0 and
 `2^63 - 1`. Invalid or foreign submission sources return `404 source_not_owned`
 during creation and analysis. Authorization failures during Java save leave the outcome

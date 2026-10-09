@@ -112,6 +112,30 @@ def test_extra_identity_field_rejected(tmp_path):
     asyncio.run(with_client(app, scenario))
 
 
+@pytest.mark.parametrize("headers", [{}, {"authorization": "Bearer forged"}])
+@pytest.mark.parametrize("operation", ["create", "get", "analyze"])
+def test_missing_session_rejected_before_client_creation(tmp_path, headers, operation):
+    def forbidden_client(**_):
+        pytest.fail("A missing cookie identity must not construct an upstream client")
+
+    async def scenario(client):
+        thread_path = f"/agent/threads/{uuid.uuid4()}"
+        if operation == "create":
+            response = await client.post("/agent/threads", headers=headers, json={
+                "sourceSubmissionId": str(uuid.uuid4()), "question": "如何复盘？",
+            })
+        elif operation == "get":
+            response = await client.get(thread_path, headers=headers)
+        else:
+            response = await client.post(thread_path + "/analyze", headers=headers, json={})
+        assert response.status_code == 401
+        assert response.json()["code"] == 40100
+        assert response.json()["data"]["reason"] == "session_required"
+
+    app = create_app(state_path=tmp_path / "missing-session.sqlite3", client_factory=forbidden_client)
+    asyncio.run(with_client(app, scenario))
+
+
 @pytest.mark.parametrize("operation", ["get", "events", "edit", "analyze", "confirm", "save", "recover", "cancel"])
 def test_foreign_owner_is_uniform_404_without_lock_file(tmp_path, monkeypatch, operation):
     gated(monkeypatch)

@@ -1,0 +1,22 @@
+services/docs/SERVICES_ISSUES.md
+  s_d7d89ac5ed97cf::t_0af339d4af9807 50,53-55
+services/core/src/test/java/com/ulticode/core/CoreEnabledOwnerJourneyIT.java
+  s_d7d89ac5ed97cf::t_7cc5082b22b1ef 6-7,49,156-194
+  s_d7d89ac5ed97cf::t_8039bc1ecb16a2 195
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "200bf88f585ca4ec861d16b4444c9d23542d950e",
+  "prompts": {},
+  "sessions": {
+    "s_d7d89ac5ed97cf": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12170-8d3d-7ec1-a9e0-ff3da265f589",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

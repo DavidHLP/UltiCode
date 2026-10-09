@@ -55,6 +55,8 @@ ANSWER_CONTRACT = (
     "where <json-string> is itself a JSON object with exactly two fields: "
     '{"text": "<your answer>", "citations": ["<cited chunk id>", ...]}. '
     f"Keep the text at most {MAX_ANSWER_CHARS} characters. "
+    "Aim for 600 characters or fewer to leave room below the hard limit; "
+    "omit preambles and repeated evidence. "
     "List only retrieved chunk IDs that the answer actually cites. Use an empty "
     "citations array when the answer cites no retrieved fragment."
 )

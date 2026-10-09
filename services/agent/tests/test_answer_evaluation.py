@@ -152,6 +152,7 @@ def test_answer_generation_does_not_see_expected_outcomes() -> None:
 @pytest.mark.parametrize('character', ['x', '\U0001f600'])
 def test_answer_prompt_declares_the_enforced_text_limit(character: str) -> None:
     assert f'at most {MAX_ANSWER_CHARS} characters' in _answer_prompt(_case(), ())
+    assert 'Aim for 600 characters or fewer' in _answer_prompt(_case(), ())
     text = character * MAX_ANSWER_CHARS
     assert _answer_of(json.dumps({'text': text, 'citations': []}), set()) == (text, ())
     with pytest.raises(AnswerEvaluationError, match='character limit'):

@@ -77,7 +77,7 @@ def test_u04_frozen_policy_and_runtime_identity_are_equal():
         u04._check_candidate_policy(args, candidate, proof)
 
 
-@pytest.mark.parametrize("policy_id", ["acceptance-revalidation-v2", "acceptance-revalidation-v3", "acceptance-revalidation-v4"])
+@pytest.mark.parametrize("policy_id", ["acceptance-revalidation-v2", "acceptance-revalidation-v3", "acceptance-revalidation-v4", "acceptance-revalidation-v5"])
 def test_rollover_snapshot_retains_conservative_liability_instead_of_actual(policy_id):
     from authorized_budget_period import policy_for
     policy = policy_for(policy_id)

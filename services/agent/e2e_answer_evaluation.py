@@ -174,9 +174,9 @@ async def main() -> int:
     except ValueError:
         print("FAIL reason=model_configuration_invalid")
         return 1
-    from authorized_budget_period import REVALIDATION_V2_POLICY_ID, REVALIDATION_V3_POLICY_ID, REVALIDATION_V4_POLICY_ID
+    from authorized_budget_period import REVALIDATION_POLICY_ID, REVALIDATION_POLICY_IDS
     identity = getattr(model_budget, "_identity", None)
-    attempts_per_pass = 1 if identity is not None and identity.policy_id in {REVALIDATION_V2_POLICY_ID, REVALIDATION_V3_POLICY_ID, REVALIDATION_V4_POLICY_ID} else ATTEMPTS_PER_PASS
+    attempts_per_pass = 1 if identity is not None and identity.policy_id in REVALIDATION_POLICY_IDS - {REVALIDATION_POLICY_ID} else ATTEMPTS_PER_PASS
     required_calls = len(cases) * 2 * attempts_per_pass
     max_calls = _int("DEEPSEEK_MAX_CALLS", DEFAULT_MAX_CALLS)
     if max_calls < required_calls:

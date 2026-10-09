@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from authorized_budget_period import PeriodError, REVALIDATION_V3_POLICY, REVALIDATION_V4_POLICY, policy_for
+from authorized_budget_period import PeriodError, REVALIDATION_V3_POLICY, REVALIDATION_V4_POLICY, REVALIDATION_V5_POLICY, policy_for
 from revalidation_history import _check_unknown_rollover
 
 
@@ -74,8 +74,24 @@ def test_v4_preserves_sealed_liabilities_and_complete_four_round_plan():
     assert retained + sum(n * cost for n, cost in caps) - min(cost for _, cost in caps) + 786_432 == 6_793_010
 
 
+def test_v5_retains_failed_run_without_reducing_complete_plan():
+    policy, previous = REVALIDATION_V5_POLICY, REVALIDATION_V4_POLICY
+    history = policy["history"]
+    assert policy_for("acceptance-revalidation-v5") is policy
+    assert history["attempts"] == previous["history"]["attempts"] + 35 == 339
+    assert history["known_actual_micro_usd"] == previous["history"]["known_actual_micro_usd"] + 9123
+    assert history["known_committed_micro_usd"] == previous["history"]["known_committed_micro_usd"] + 336_000
+    assert history["unknown_attempts"] == 2 and history["unknown_encumbrance_micro_usd"] == 1_572_864
+    assert policy["lanes"] == previous["lanes"]
+    assert history["attempts"] + policy["attempts"] == history["cumulative_attempt_limit"] == 580
+    retained = history["known_committed_micro_usd"] + history["unknown_encumbrance_micro_usd"]
+    assert retained + policy["limit_micro_usd"] == history["cumulative_limit_micro_usd"] == 7_140_000
+    assert retained + 2_092_800 - 4800 + 786_432 == 7_129_010
+
+
+@pytest.mark.parametrize("policy_id", ["acceptance-revalidation-v4", "acceptance-revalidation-v5"])
 @pytest.mark.parametrize("mutation", [None, "fingerprint", "active", "unsettled", "unknown", "commit", "receipts"])
-def test_v4_binding_rejects_changed_or_unsealed_v3(monkeypatch, tmp_path, mutation):
+def test_binding_rejects_changed_or_unsealed_history(monkeypatch, tmp_path, mutation, policy_id):
     from types import SimpleNamespace
     import model_budget
     import revalidation_history as history
@@ -84,19 +100,30 @@ def test_v4_binding_rejects_changed_or_unsealed_v3(monkeypatch, tmp_path, mutati
     accounting = tmp_path / "accounting"
     accounting.mkdir(mode=0o700)
     pins = {}
-    guard_name = f'dav58-increment-{history.SETTLED_ROLLOVER_IDENTITY["identity"]}.json'
+    v5 = policy_id == "acceptance-revalidation-v5"
+    identity = history.V4_ROLLOVER_IDENTITY if v5 else history.SETTLED_ROLLOVER_IDENTITY
+    guard_name = f'dav58-increment-{identity["identity"]}.json'
     for name, raw in {"budget.sqlite3": b"sealed fixture", "binding.json": b"{}",
                       guard_name: json.dumps({"receipts": []}).encode()}.items():
         path = accounting / name
         path.write_bytes(raw)
         path.chmod(0o600)
         pins[name] = hashlib.sha256(raw).hexdigest()
-    monkeypatch.setattr(history, "SETTLED_ROLLOVER_SHA256", pins)
+    monkeypatch.setattr(history, "V4_ROLLOVER_SHA256" if v5 else "SETTLED_ROLLOVER_SHA256", pins)
     monkeypatch.setattr(history, "_validate_unknown_rollover_history", lambda sources: {"sha256": {"older": "retained"}})
+    if v5:
+        real_validate = history._validate_rollover_history
+        def previous(sources, *, settled_policy="v1"):
+            if settled_policy == "v3":
+                return {"sha256": {"older": "retained"}}
+            return real_validate(sources, settled_policy=settled_policy)
+        monkeypatch.setattr(history, "_validate_rollover_history", previous)
     monkeypatch.setattr(model_budget, "authorization_slot", lambda expected: tmp_path)
     snapshot = {"state": "halted", "sql_gate": "halted", "halted": 1, "attempts": 115,
                 "actual_micro_usd": 32_484, "committed_micro_usd": 976_800,
                 "unknown_usage_attempts": 0, "unsettled_attempts": 0}
+    if v5:
+        snapshot.update(attempts=35, actual_micro_usd=9123, committed_micro_usd=336_000)
     if mutation == "fingerprint":
         (accounting / "budget.sqlite3").write_bytes(b"changed")
     for case, key, value in [("active", "state", "active"), ("unsettled", "unsettled_attempts", 1),
@@ -112,9 +139,9 @@ def test_v4_binding_rejects_changed_or_unsealed_v3(monkeypatch, tmp_path, mutati
     monkeypatch.setattr(IncrementalGuard, "_validate_resume", validate)
     if mutation:
         with pytest.raises(PeriodError):
-            history.validate_history({}, policy_id="acceptance-revalidation-v4")
+            history.validate_history({}, policy_id=policy_id)
     else:
-        audit = history.validate_history({}, policy_id="acceptance-revalidation-v4")
+        audit = history.validate_history({}, policy_id=policy_id)
         assert checked and audit["sha256"]["older"] == "retained"
-        assert audit["baseline"] == dict(REVALIDATION_V4_POLICY["history"])
+        assert audit["baseline"] == dict(policy_for(policy_id)["history"])
         assert audit["acceptance_evidence"] is audit["unknown_released"] is False

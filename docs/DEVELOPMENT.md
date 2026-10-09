@@ -127,7 +127,8 @@ pass receives the case question and retrieved evidence, not expected/allowed/for
 it must return explicit retrieved chunk IDs in `citations`, and judging checks only those citations.
 For a topic phrase, the answer explains the retrieved material about that topic without assuming
 the question requests a particular submission's private implementation.
-The answer prompt declares the same character limit enforced by the parser; oversized answers
+The answer prompt declares the same character limit enforced by the parser and asks for a
+shorter answer with headroom; oversized answers
 remain protocol failures and are never silently truncated.
 Holdouts remain sealed. Export the existing `DEEPSEEK_API_KEY` before this opt-in call; the entry
 requires `DEEPSEEK_MODEL`. The maximum-call ceiling is `CALLS_PER_CASE × development case count`,
@@ -413,6 +414,12 @@ commitments and both unknown liabilities remain separate and retained. The new p
 the original per-purpose limits and four-round requirements; its source, citation and two
 development passes must form a fresh prefix in that same period. No earlier receipt or approval
 substitutes for that prefix, and no automatic retry allowance is added.
+
+The separately approved `acceptance-revalidation-v5` applies the same rules after sealing
+the incomplete v4 run with every attempt settled. Binding verifies v4's fixed fingerprints
+and complete receipts before the earlier chain. All failed-run commitments and unknown
+liabilities remain retained; the replacement requires a fresh complete prefix on the repaired
+candidate, rather than resuming or relabeling the incomplete development run.
 
 Issue the evidence-bound U02 gate only after those inputs validate. Gate artifact references are
 relative to the private directory containing the gate; place the referenced artifacts there:

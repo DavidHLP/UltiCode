@@ -11,6 +11,7 @@ reranker, no second index, no migration of the working keyword path.
 
 from __future__ import annotations
 
+import math
 import os
 from pathlib import Path
 from typing import Callable, Protocol
@@ -80,6 +81,17 @@ class FastembedEmbedder:
         return [vector.tolist() for vector in self._model.embed(texts)]
 
 
+def _embed(embedder: Embedder | None, texts: list[str]) -> list[list[float]]:
+    vectors = (embedder or FastembedEmbedder()).embed(texts)
+    if len(vectors) != len(texts):
+        raise ValueError("embedding count did not match the input")
+    if any(len(vector) != VECTOR_SIZE or any(
+            isinstance(value, bool) or not isinstance(value, (int, float))
+            or not math.isfinite(value) for value in vector) for vector in vectors):
+        raise ValueError("embedding dimensions or values are invalid")
+    return vectors
+
+
 LOOPBACK_HOSTS = frozenset({"127.0.0.1", "localhost", "::1", "[::1]"})
 #: Set only when the endpoint really is a disposable Qdrant you own.
 REMOTE_QDRANT_OPT_IN = "ULTICODE_QDRANT_ALLOW_REMOTE"
@@ -129,9 +141,7 @@ def build_index(
     collection this harness owns *and* the caller opted into. A pre-existing
     collection on a shared instance is never silently deleted.
     """
-    vectors = (embedder or FastembedEmbedder()).embed([doc.text for doc in documents])
-    if len(vectors) != len(documents):
-        raise ValueError("embedding count did not match the corpus")
+    vectors = _embed(embedder, [doc.text for doc in documents])
     # Injected so the wiring can be tested without the optional qdrant-client,
     # while a real run always uses the real VectorParams builder.
     config = (config_factory or _collection_config)()
@@ -181,6 +191,7 @@ def search(
     embedder: Embedder | None = None,
     min_score: float = MIN_SCORE,
     collection: str = COLLECTION,
+    access_scope: str = "agent-authored-synthetic",
 ) -> list[str]:
     """Return retrieved doc ids above ``min_score``, closest first.
 
@@ -188,11 +199,16 @@ def search(
     so a ``no_evidence`` query could never score as no evidence and the
     keyword/vector comparison would be decided by that artefact.
     """
-    vector = (embedder or FastembedEmbedder()).embed([query])[0]
+    # Scope comes from the trusted evaluation caller, never model tool arguments.
+    if not isinstance(access_scope, str) or not access_scope.strip():
+        raise ValueError("invalid access scope")
+    vector = _embed(embedder, [query])[0]
     hits = client.query_points(  # type: ignore[attr-defined]
         collection_name=collection,
         query=vector,
         limit=limit,
         with_payload=True,
+        query_filter={"must": [{"key": "access_scope", "match": {"value": access_scope}}]},
     ).points
-    return [str(hit.payload["doc_id"]) for hit in hits if hit.score >= min_score]
+    return [str(hit.payload["doc_id"]) for hit in hits
+            if hit.score >= min_score and hit.payload.get("access_scope") == access_scope]

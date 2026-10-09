@@ -679,10 +679,10 @@ def test_model_answer_rejects_lone_surrogate():
         raise AssertionError("unpaired surrogate was accepted")
 
 
-@pytest.mark.parametrize("mode", ["known", "malformed", "budget"])
+@pytest.mark.parametrize("mode", ["known", "malformed", "budget", "protocol", "cancel"])
 def test_model_observation_uses_existing_metadata_without_payloads(mode):
     from agent_service.observation import ObservedModel
-    from deepseek_model import ModelBudgetExceeded
+    from deepseek_model import ModelBudgetExceeded, ModelProtocolError
     events = []
     attempt = str(uuid.uuid4())
     class MeteredModel:
@@ -690,6 +690,10 @@ def test_model_observation_uses_existing_metadata_without_payloads(mode):
         async def decide(self, messages):
             if mode == "budget":
                 raise ModelBudgetExceeded("secret-provider-error")
+            if mode == "protocol":
+                raise ModelProtocolError("secret-provider-error")
+            if mode == "cancel":
+                raise asyncio.CancelledError
             self.usage.append({"prompt_tokens": 3 if mode == "known" else True,
                                "completion_tokens": 2 if mode == "known" else -1, "total_tokens": 5})
             self.response_models.append("deepseek-flash" if mode == "known" else "secret-label\n")
@@ -697,8 +701,10 @@ def test_model_observation_uses_existing_metadata_without_payloads(mode):
             return ModelDecision(text="secret-answer")
     async def scenario():
         observed = ObservedModel(MeteredModel(), lambda kind, detail: events.append((kind, detail)), node="model")
-        if mode == "budget":
-            with pytest.raises(ModelBudgetExceeded):
+        if mode in {"budget", "protocol", "cancel"}:
+            error = {"budget": ModelBudgetExceeded, "protocol": ModelProtocolError,
+                     "cancel": asyncio.CancelledError}[mode]
+            with pytest.raises(error):
                 await observed.decide([{"content": "secret-prompt"}])
         else:
             assert (await observed.decide([{"content": "secret-prompt"}])).text == "secret-answer"
@@ -714,7 +720,11 @@ def test_model_observation_uses_existing_metadata_without_payloads(mode):
             assert detail["usage"]["prompt_tokens"] is None
             assert detail["usage"]["completion_tokens"] is None
         else:
-            assert detail["outcome"] == "failed" and detail["reason"] == "budget_blocked"
+            assert detail["outcome"] == ("cancelled" if mode == "cancel" else "failed")
+            assert detail["reason"] == {"budget": "budget_blocked", "protocol": "model_protocol",
+                                        "cancel": "cancelled"}[mode]
+        if mode == "cancel":
+            assert getattr(ObservedModel(ScriptedModel(), lambda *_: None, node="model"), "usage", []) == []
     asyncio.run(scenario())
 
 

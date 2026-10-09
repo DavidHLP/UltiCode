@@ -19,7 +19,7 @@ class ObservedModel:
 
     @property
     def usage(self):
-        return getattr(self.model, "usage", None)
+        return self.model.usage
 
     async def decide(self, messages):
         call_id = str(uuid.uuid4())

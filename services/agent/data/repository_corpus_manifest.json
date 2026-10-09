@@ -50,10 +50,10 @@
     "sample_kind": "real",
     "permission": "MIT:LICENSE:sha256:2be36e9d56578c1111740b6fe339ea3619cf1f2000af718f1a59e97d2e5d995c",
     "scope": "Repository documentation; local retrieval and evaluation under the included MIT license",
-    "source_position": "lines 46-70",
+    "source_position": "lines 46-50",
     "model_input_projection": "SourceHit.as_model_dict()",
     "source_trust": "untrusted-data",
-    "content_digest": "sha256:3a9f6c3ddffd550c395ab993b521dd14f396a253dbdcd5842b293e15b35ba33c"
+    "content_digest": "sha256:8cdce9bf04fd009be5726563b6978c373ec9180b667128a2333b74744e30a4db"
   },
   {
     "doc_id": "repository-reference",

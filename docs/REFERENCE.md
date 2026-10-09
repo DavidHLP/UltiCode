@@ -82,8 +82,9 @@ during creation and analysis. Authorization failures during Java save leave the 
 idempotency rejections remain terminal. Learning-plan routes are also registered in the
 opt-in Core App context.
 
-Agent responses use `{code,message,data,traceId}` with a server-generated `traceId`; upstream
-response bodies are not exposed. Request bodies require `application/json`, are strict and bounded
+Agent responses use `{code,message,data,traceId}` with a server-generated `traceId`; the envelope
+is validated by a strict Pydantic response schema before serialization, including JSON-only data
+and rejection of non-finite numbers. Upstream response bodies are not exposed. Request bodies require `application/json`, are strict and bounded
 to 128 KiB, use canonical UUIDs and exact integer versions, reject extra/duplicate JSON keys and
 non-finite numbers, and enforce question length 2–200 plus Java-compatible nonblank title/content
 limits of 200/16,000 Unicode code points. Event reads are bounded and read-only.

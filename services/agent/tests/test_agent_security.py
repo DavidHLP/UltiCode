@@ -4,12 +4,34 @@ import uuid
 
 import httpx
 import pytest
+from pydantic import ValidationError
 
-from agent_service.app import create_app
+from agent_service.app import _response, create_app
 from agent_loop import ModelDecision
 from ulticode_client import UlticodeClient, UlticodeServiceError
 
 HEADERS = {"cookie": "access_token=access; csrf_token=csrf", "x-csrf-token": "csrf"}
+
+
+@pytest.mark.parametrize("data,code,message", [
+    ({"value": object()}, 0, "success"),
+    ({"value": float("nan")}, 0, "success"),
+    ({"value": "ok"}, True, "success"),
+    ({"value": "ok"}, 0, 123),
+])
+def test_invalid_response_envelope_is_not_serialized_as_success(data, code, message):
+    with pytest.raises(ValidationError):
+        _response(data, code=code, message=message)
+
+
+def test_response_schema_preserves_wire_contract():
+    response = _response({"reason": "session_required"}, code=40100,
+                         message="session_required", status=401)
+    body = json.loads(response.body)
+    assert response.status_code == 401
+    assert body == {"code": 40100, "message": "session_required",
+                    "data": {"reason": "session_required"}, "traceId": body["traceId"]}
+    assert str(uuid.UUID(body["traceId"])) == body["traceId"]
 
 
 class Session:

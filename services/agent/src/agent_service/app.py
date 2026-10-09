@@ -17,7 +17,7 @@ from typing import Callable, Literal
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, StreamingResponse
-from pydantic import BaseModel, ConfigDict, StrictBool, StrictInt, StrictStr, ValidationError
+from pydantic import BaseModel, ConfigDict, JsonValue, StrictBool, StrictInt, StrictStr, ValidationError
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from langgraph.types import Command
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -44,6 +44,13 @@ class AgentError(Exception):
 
 class _StrictBody(BaseModel):
     model_config = ConfigDict(strict=True, extra="forbid")
+
+class _ResponseEnvelope(_StrictBody):
+    model_config = ConfigDict(strict=True, extra="forbid", allow_inf_nan=False)
+    code: StrictInt
+    message: StrictStr
+    data: JsonValue
+    traceId: StrictStr
 
 
 class _CreateBody(_StrictBody):
@@ -332,7 +339,8 @@ def _receipt_plan_id(vo: object, row: dict[str, object], version: int) -> str | 
     return plan_id
 
 def _response(data: object, *, code: int = 0, message: str = "success", status: int = 200) -> JSONResponse:
-    return JSONResponse({"code": code, "message": message, "data": data, "traceId": str(uuid.uuid4())}, status_code=status)
+    envelope = _ResponseEnvelope(code=code, message=message, data=data, traceId=str(uuid.uuid4()))
+    return JSONResponse(envelope.model_dump(mode="json"), status_code=status)
 
 
 def _cookie_headers(request: Request) -> list[str]:

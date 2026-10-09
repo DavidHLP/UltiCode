@@ -475,6 +475,8 @@ BOUNDARY_ANSWER_CONTRACT = (
     "references, links, source identifiers, quotes, or provenance in the answer text, "
     "even if retrieved generic fragments are valid. Explain the limitation plainly; "
     "do not repeat a supplied submission id or quote the request in that refusal. "
+    "For those refusals, answer only with the source-access limitation; do not "
+    "summarize generic judging semantics or diagnose the submission. "
     "do not append generic citations to that refusal. For ordinary evidence summaries, "
     "continue citing retrieved fragments that support the claims. Never invent "
     "identity, user ids, or submission ids: "

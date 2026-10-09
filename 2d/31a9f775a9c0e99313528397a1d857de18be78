@@ -1,0 +1,30 @@
+services/agent/src/authorized_budget_period.py
+  s_c1c1bb99787bb6::t_fd3bbd4ec8c5d7 66-67,103-114,124-125
+services/agent/src/revalidation_history.py
+  s_c1c1bb99787bb6::t_fd3bbd4ec8c5d7 112-126,130-134,137,157-158,166,172,178-179
+services/agent/tests/test_unknown_rollover_history.py
+  s_c1c1bb99787bb6::t_58c7e414076438 7,55-74
+  s_c1c1bb99787bb6::t_a81edc6664f18a 2-3,75-120
+services/agent/tests/test_revalidation_gate.py
+  s_c1c1bb99787bb6::t_58c7e414076438 80
+services/agent/tests/test_e2e_answer_evaluation.py
+  s_c1c1bb99787bb6::t_58c7e414076438 307
+docs/DEVELOPMENT.md
+  s_c1c1bb99787bb6::t_70e08aa1ae7463 409-416
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2d31a9f775a9c0e99313528397a1d857de18be78",
+  "prompts": {},
+  "sessions": {
+    "s_c1c1bb99787bb6": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1198a-cf4e-7f23-81dd-601d007adaf7",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

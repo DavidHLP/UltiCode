@@ -1,0 +1,24 @@
+docs/REFERENCE.md
+  s_d7d89ac5ed97cf::t_4344794d123ef4 62-65
+services/agent/src/agent_service/store.py
+  s_d7d89ac5ed97cf::t_c9b0188cc5496b 272,329-330,354
+services/agent/tests/test_agent_store.py
+  s_d7d89ac5ed97cf::t_c9b0188cc5496b 54,193
+  s_d7d89ac5ed97cf::t_4344794d123ef4 48-49,55,61-63
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7d9fed91ec1a49c94021455a334000888e3674c5",
+  "prompts": {},
+  "sessions": {
+    "s_d7d89ac5ed97cf": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12170-8d3d-7ec1-a9e0-ff3da265f589",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

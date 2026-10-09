@@ -608,6 +608,15 @@ def test_offline_analyze_resumes_same_graph_and_cas_persists_answer(tmp_path):
                 assert "模型建议（待验证）：建议核对状态" in result["draft"]["content"]
                 assert result["analysis"]["answer"] == "建议核对状态"
                 assert model.calls == 1
+                events = (await client.get(f"/agent/threads/{thread_id}/events", headers=headers)).json()["data"]["events"]
+                calls = [event for event in events if event["kind"].startswith("model_")]
+                assert [event["kind"] for event in calls] == ["model_started", "model_completed"]
+                assert calls[0]["detail"]["callId"] == calls[1]["detail"]["callId"]
+                assert calls[1]["detail"]["usageStatus"] == "unavailable"
+                assert calls[1]["detail"]["usage"] == {
+                    "prompt_tokens": None, "completion_tokens": None, "total_tokens": None}
+                assert calls[1]["detail"]["attemptId"] is None
+                assert calls[1]["detail"]["elapsedMs"] >= 0
                 streamed = await client.get(f"/agent/threads/{thread_id}/events/stream", headers=headers)
                 assert streamed.status_code == 200
                 assert streamed.headers["content-type"].startswith("text/event-stream")
@@ -668,6 +677,45 @@ def test_model_answer_rejects_lone_surrogate():
         pass
     else:
         raise AssertionError("unpaired surrogate was accepted")
+
+
+@pytest.mark.parametrize("mode", ["known", "malformed", "budget"])
+def test_model_observation_uses_existing_metadata_without_payloads(mode):
+    from agent_service.observation import ObservedModel
+    from deepseek_model import ModelBudgetExceeded
+    events = []
+    attempt = str(uuid.uuid4())
+    class MeteredModel:
+        usage, response_models, metering = [], [], []
+        async def decide(self, messages):
+            if mode == "budget":
+                raise ModelBudgetExceeded("secret-provider-error")
+            self.usage.append({"prompt_tokens": 3 if mode == "known" else True,
+                               "completion_tokens": 2 if mode == "known" else -1, "total_tokens": 5})
+            self.response_models.append("deepseek-flash" if mode == "known" else "secret-label\n")
+            self.metering.append({"attempt_id": attempt if mode == "known" else "secret-attempt"})
+            return ModelDecision(text="secret-answer")
+    async def scenario():
+        observed = ObservedModel(MeteredModel(), lambda kind, detail: events.append((kind, detail)), node="model")
+        if mode == "budget":
+            with pytest.raises(ModelBudgetExceeded):
+                await observed.decide([{"content": "secret-prompt"}])
+        else:
+            assert (await observed.decide([{"content": "secret-prompt"}])).text == "secret-answer"
+        assert [kind for kind, _ in events] == ["model_started", "model_completed"]
+        detail = events[-1][1]
+        assert detail["callId"] == events[0][1]["callId"]
+        assert "secret-" not in json.dumps(events)
+        assert detail["usageStatus"] == ("known" if mode == "known" else "unavailable")
+        assert detail["attemptId"] == (attempt if mode == "known" else None)
+        if mode == "known":
+            assert detail["usage"] == {"prompt_tokens": 3, "completion_tokens": 2, "total_tokens": 5}
+        elif mode == "malformed":
+            assert detail["usage"]["prompt_tokens"] is None
+            assert detail["usage"]["completion_tokens"] is None
+        else:
+            assert detail["outcome"] == "failed" and detail["reason"] == "budget_blocked"
+    asyncio.run(scenario())
 
 
 def test_model_answer_parser_accepts_actual_inner_contract_and_rejects_malformed_envelopes():

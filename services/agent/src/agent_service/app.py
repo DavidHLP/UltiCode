@@ -26,6 +26,7 @@ from agent_service.gate import GateError, load_u02_gate, require_execution_candi
 from agent_service.graph import ainvoke_untraced, build_workflow_graph
 from agent_service.state import WorkflowAction, make_draft, params_digest
 from agent_service.store import Conflict, NotFound, WorkflowStore
+from agent_service.observation import ObservedModel
 from sourced_analysis import _ALLOWED_STATUSES, validate_submission_facts
 from ulticode_client import (
     UlticodeClient, UlticodeError, UlticodeServiceError, _java_blank, canonical_uuid,
@@ -786,15 +787,18 @@ def create_app(
                                     raise
 
                             tools["search_evidence"] = recorded_search
+                        def record_event(kind, detail):
+                            try:
+                                workflow_store.transition(thread_id, owner, expected_run=run_id,
+                                    expected_version=version, statuses={"analyzing"}, changes={},
+                                    kind=kind, detail=detail)
+                            except Conflict:
+                                raise asyncio.CancelledError from None
+
                         def observed_tool(name, handler):
                             async def invoke(arguments):
                                 def record(kind, failed=False):
-                                    try:
-                                        workflow_store.transition(thread_id, owner, expected_run=run_id,
-                                            expected_version=version, statuses={"analyzing"}, changes={},
-                                            kind=kind, detail={"toolName": name, "failed": failed})
-                                    except Conflict:
-                                        raise asyncio.CancelledError from None
+                                    record_event(kind, {"toolName": name, "failed": failed})
                                 record("tool_started")
                                 failed = True
                                 try:
@@ -832,7 +836,8 @@ def create_app(
                             _verify_answer_boundary(parsed, (facts,), documents, trace, trace_results,
                                                     question=str(row["question"]))
                             citation_checks = await _verify_citations(
-                                parsed, retrieved, documents, (facts,), judge_model,
+                                parsed, retrieved, documents, (facts,),
+                                ObservedModel(judge_model, record_event, node="citation_judge"),
                             )
                             draft = dict(row["draft"])
                             answer = parsed["text"]
@@ -853,7 +858,7 @@ def create_app(
 
                         result = await _checkpoint_resume(
                             analyzing, WorkflowAction("analyze", {}, run_id, version), execute_action,
-                            {"analysis_runtime": (model, tools)},
+                            {"analysis_runtime": (ObservedModel(model, record_event, node="model"), tools)},
                         )
                         return result["action_result"]["response"]
                 except Conflict:

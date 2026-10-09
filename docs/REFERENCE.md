@@ -65,6 +65,11 @@ older events without it retain their original payload and must not be assigned t
 `GET /agent/threads/{thread_id}/events/stream?after=...` authenticates the owner and
 returns SSE for the run current at subscription time. `workflow` events retain their
 durable sequence and include tool start/completion metadata without arguments or results.
+Model start/completion events associate a server-generated call ID and node with the run;
+completion records elapsed milliseconds, a bounded provider model label, budget attempt ID
+when available, and nonnegative token counts. Missing usage is `null` with `usageStatus=unavailable`,
+never inferred as zero. Errors use fixed reasons, without prompts, answers, credentials or
+provider error bodies. The observer delegates to the existing authorized model and budget.
 `text` contains only validated, persisted answer text; `terminal` reports canonical status,
 failure reason and cancellation intent. SSE IDs bind run, sequence and event kind for replay
 deduplication. Run replacement or the 30-second subscription limit emits `stream_closed`;

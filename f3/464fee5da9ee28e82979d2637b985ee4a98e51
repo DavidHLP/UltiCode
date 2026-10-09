@@ -1,0 +1,22 @@
+services/agent/tests/test_repository_corpus.py
+  s_d7d89ac5ed97cf::t_d912f608448370 7,39-51
+  s_d7d89ac5ed97cf::t_c5d95d519aca81 52-53
+services/agent/src/keyword_evaluation.py
+  s_d7d89ac5ed97cf::t_d912f608448370 207-208,213
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f3464fee5da9ee28e82979d2637b985ee4a98e51",
+  "prompts": {},
+  "sessions": {
+    "s_d7d89ac5ed97cf": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12170-8d3d-7ec1-a9e0-ff3da265f589",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

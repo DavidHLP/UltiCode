@@ -197,6 +197,8 @@ uv run python e2e_citation_support_model.py
 向量查询的 `access_scope` 由可信评测调用方确定；默认仅检索原 synthetic 范围。
 Qdrant HTTP 查询在 Top-k 前过滤范围，返回值再次校验范围；scope 不来自模型参数。
 入库与查询均检查向量维度和有限数值，非法向量不会触发索引写入。
+`search_owned(..., session_client=...)` 每次通过既有 Auth 客户端验证 principal，
+只查询对应 `owner:<principal>` 范围；该评测入口不接受 scope 覆盖，也不注册新的 Agent 工具。
 
 ```bash
 docker run --rm -p 127.0.0.1:6333:6333 qdrant/qdrant@sha256:<digest>

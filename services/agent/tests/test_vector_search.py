@@ -194,6 +194,47 @@ def test_unexpected_foreign_payload_is_not_returned() -> None:
                                 embedder=_FakeEmbedder(), access_scope="owner:A") == []
 
 
+def test_owned_search_refreshes_principal_and_rejects_scope_override() -> None:
+    class Session:
+        owner = "A"
+        reads = 0
+
+        async def principal(self):
+            self.reads += 1
+            return self.owner
+
+    client = _FakeClient()
+    session = Session()
+    source = load_sample_corpus()[0]
+    documents = tuple(dataclasses.replace(source, doc_id=owner, access_scope=f"owner:{owner}")
+                      for owner in ("A", "B"))
+    vector_search.build_index(client, documents, embedder=_FakeEmbedder(), config_factory=_stub_config)
+    assert asyncio.run(vector_search.search_owned(client, "status", session_client=session,
+                                                 limit=1, embedder=_FakeEmbedder())) == ["A"]
+    session.owner = "B"
+    assert asyncio.run(vector_search.search_owned(client, "status", session_client=session,
+                                                 limit=1, embedder=_FakeEmbedder())) == ["B"]
+    assert session.reads == 2
+    with pytest.raises(TypeError):
+        asyncio.run(vector_search.search_owned(client, "status", session_client=session,
+                                               limit=1, access_scope="owner:A"))
+    assert session.reads == 2
+
+
+def test_owned_search_denied_identity_never_queries_vectors() -> None:
+    from ulticode_client import UlticodeError
+
+    class DeniedSession:
+        async def principal(self):
+            raise UlticodeError("identity_unreadable")
+
+    client = _FakeClient()
+    with pytest.raises(UlticodeError):
+        asyncio.run(vector_search.search_owned(client, "status", session_client=DeniedSession(),
+                                               limit=1, embedder=_FakeEmbedder()))
+    assert not client.queries
+
+
 @pytest.mark.parametrize("value", [None, "", " "])
 def test_invalid_scope_is_rejected_before_query(value) -> None:
     client = _FakeClient()

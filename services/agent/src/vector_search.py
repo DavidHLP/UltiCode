@@ -11,12 +11,14 @@ reranker, no second index, no migration of the working keyword path.
 
 from __future__ import annotations
 
+import asyncio
 import math
 import os
 from pathlib import Path
 from typing import Callable, Protocol
 
 from retrieval import SourceDocument
+from ulticode_client import UlticodeClient
 
 COLLECTION = "u02-eval"
 EMBED_MODEL = "BAAI/bge-small-en-v1.5"
@@ -212,3 +214,21 @@ def search(
     ).points
     return [str(hit.payload["doc_id"]) for hit in hits
             if hit.score >= min_score and hit.payload.get("access_scope") == access_scope]
+
+
+async def search_owned(
+    client: object,
+    query: str,
+    *,
+    session_client: UlticodeClient,
+    limit: int,
+    embedder: Embedder | None = None,
+    min_score: float = MIN_SCORE,
+    collection: str = COLLECTION,
+) -> list[str]:
+    """Evaluation entry: derive owner scope from a fresh verified Auth session."""
+    principal = await session_client.principal()
+    return await asyncio.to_thread(
+        search, client, query, limit=limit, embedder=embedder,
+        min_score=min_score, collection=collection, access_scope=f"owner:{principal}",
+    )

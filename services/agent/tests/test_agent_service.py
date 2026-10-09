@@ -304,8 +304,37 @@ def test_live_stream_lifecycle_and_late_tool_fence(tmp_path, action):
                 analyzing.cancel()
                 await asyncio.gather(analyzing, return_exceptions=True)
             server.should_exit = True
-            await asyncio.wait_for(serving, 5)
-            sock.close()
+            try:
+                await asyncio.wait_for(serving, 5)
+            finally:
+                sock.close()
+    asyncio.run(scenario())
+
+
+def test_analysis_preserves_genuine_task_cancellation(tmp_path):
+    async def scenario():
+        entered = asyncio.Event()
+        class WaitingModel(ScriptedModel):
+            async def decide(self, messages):
+                entered.set()
+                await asyncio.Event().wait()
+        app = create_app(state_path=tmp_path / "task-cancel.sqlite3", client_factory=SessionClient,
+                         offline_model_factory=lambda: (WaitingModel(), {}))
+        async with app.router.lifespan_context(app):
+            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
+                created = await client.post("/agent/threads", headers=HEADERS,
+                    json={"sourceSubmissionId": str(uuid.uuid4()), "question": "如何复盘？"})
+                thread_id = created.json()["data"]["threadId"]
+                task = asyncio.create_task(client.post(f"/agent/threads/{thread_id}/analyze", headers=HEADERS, json={}))
+                try:
+                    await asyncio.wait_for(entered.wait(), 3)
+                    task.cancel()
+                    with pytest.raises(asyncio.CancelledError):
+                        await task
+                finally:
+                    if not task.done():
+                        task.cancel()
+                        await asyncio.gather(task, return_exceptions=True)
     asyncio.run(scenario())
 
 

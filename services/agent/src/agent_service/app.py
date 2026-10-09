@@ -41,6 +41,10 @@ class AgentError(Exception):
         self.status, self.reason, self.code = status, reason, code
 
 
+class _AnalysisSuperseded(asyncio.CancelledError):
+    """Stop a stale tool graph without cancelling the HTTP request task."""
+
+
 class _StrictBody(BaseModel):
     model_config = ConfigDict(strict=True, extra="forbid")
 
@@ -794,7 +798,7 @@ def create_app(
                                             expected_version=version, statuses={"analyzing"}, changes={},
                                             kind=kind, detail={"toolName": name, "failed": failed})
                                     except Conflict:
-                                        raise asyncio.CancelledError from None
+                                        raise _AnalysisSuperseded from None
                                 record("tool_started")
                                 failed = True
                                 try:
@@ -856,6 +860,8 @@ def create_app(
                             {"analysis_runtime": (model, tools)},
                         )
                         return result["action_result"]["response"]
+                except _AnalysisSuperseded:
+                    return _thread_response(_owned(thread_id, owner), owner)
                 except Conflict:
                     return _thread_response(_owned(thread_id, owner), owner)
                 except AgentError:

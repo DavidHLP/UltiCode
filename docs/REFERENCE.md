@@ -59,7 +59,10 @@ for owner-scoped by-key reconciliation; a user-facing saved-record readback uses
 Use the GET `paramsDigest` and current `draftVersion` in the confirmation request. The returned
 confirmation summary contains its id, action, bound version/digest, and expiry; it never contains
 the idempotency key.
-Events return `{events, next}` with a bounded page; `after` must be between 0 and
+Events return `{events, next}` with a bounded page. New events persist the authoritative
+run identifier in `detail.runId` in the same transaction as their state transition;
+older events without it retain their original payload and must not be assigned the current run.
+`after` must be between 0 and
 `2^63 - 1`. Invalid or foreign submission sources return `404 source_not_owned`
 during creation and analysis. Authorization failures during Java save leave the outcome
 `unknown` and permit explicit recovery after session and ownership checks; payload and

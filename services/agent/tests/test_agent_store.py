@@ -45,16 +45,22 @@ def test_state_and_event_transition_commit_atomically(tmp_path):
     row = store.create(_row())
     changed = store.transition(row["thread_id"], row["owner_id"], expected_run=row["run_id"],
         expected_version=1, statuses={"awaiting_confirmation"},
-        changes={"status": "analyzing", "run_id": "next-run"}, kind="analysis_started")
+        changes={"status": "analyzing", "run_id": "next-run"}, kind="analysis_started",
+        detail={"runId": "forged-run", "phase": "model"})
     events, cursor = store.events(row["thread_id"], after=0)
     assert changed["status"] == "analyzing"
     assert changed["run_id"] == "next-run"
     assert [event["kind"] for event in events] == ["thread_created", "analysis_started"]
+    assert [event["detail"]["runId"] for event in events] == [row["run_id"], "next-run"]
+    assert events[1]["detail"]["phase"] == "model"
     assert cursor == 2
     with pytest.raises(Conflict):
         store.transition(row["thread_id"], row["owner_id"], expected_run=row["run_id"],
             expected_version=1, statuses={"awaiting_confirmation"}, changes={"status": "failed"}, kind="late")
     store.close()
+    reopened = WorkflowStore.open(tmp_path / "state.sqlite3")
+    assert reopened.events(row["thread_id"], after=0)[0] == events
+    reopened.close()
 
 
 def test_cancel_fence_and_dispatch_binding_are_atomic(tmp_path):
@@ -184,6 +190,7 @@ def test_cancelled_orphan_analysis_cannot_be_reconciled_back_to_active(tmp_path)
     assert current["status"] == "cancelled"
     assert current["draft"] == row["draft"]
     assert current["event_seq"] == cursor == 3
+    assert [event["detail"]["runId"] for event in events] == [row["run_id"], "cancelled-run", "cancelled-run"]
     assert [event["kind"] for event in events] == [
         "thread_created", "analysis_started", "cancel_requested",
     ]

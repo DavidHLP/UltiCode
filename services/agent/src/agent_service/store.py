@@ -269,7 +269,7 @@ class WorkflowStore:
             db.execute("BEGIN IMMEDIATE")
             try:
                 db.execute(f"INSERT INTO threads ({columns}) VALUES ({','.join('?' for _ in values)})", values)
-                self._event(db, str(row["thread_id"]), 1, kind, {})
+                self._event(db, str(row["thread_id"]), 1, kind, {"runId": row["run_id"]})
                 db.execute("UPDATE threads SET event_seq=1 WHERE thread_id=?", (row["thread_id"],))
                 db.commit()
             except Exception:
@@ -326,7 +326,8 @@ class WorkflowStore:
                 )
                 if result.rowcount != 1:
                     raise Conflict("state_changed")
-                self._event(db, thread_id, seq, kind, detail or {})
+                self._event(db, thread_id, seq, kind,
+                            {**(detail or {}), "runId": changes.get("run_id", current["run_id"])})
                 db.commit()
             except Exception:
                 db.rollback()
@@ -350,7 +351,7 @@ class WorkflowStore:
                     status = "cancelled"
                 db.execute("UPDATE threads SET status=?,cancel_requested=1,event_seq=?,updated_at=? WHERE thread_id=?",
                            (status, seq, time.time(), thread_id))
-                self._event(db, thread_id, seq, "cancel_requested", {})
+                self._event(db, thread_id, seq, "cancel_requested", {"runId": current["run_id"]})
                 db.commit()
             except Exception:
                 db.rollback()

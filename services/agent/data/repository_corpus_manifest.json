@@ -64,7 +64,7 @@
     "sample_kind": "real",
     "permission": "MIT:LICENSE:sha256:2be36e9d56578c1111740b6fe339ea3619cf1f2000af718f1a59e97d2e5d995c",
     "scope": "Repository documentation; local retrieval and evaluation under the included MIT license",
-    "source_position": "lines 161-177",
+    "source_position": "lines 160-176",
     "model_input_projection": "SourceHit.as_model_dict()",
     "source_trust": "untrusted-data",
     "content_digest": "sha256:2bfd12ab6b6dc61d6e9fc80afd8337e6639509336df35a3d77bbd37757e6f036"

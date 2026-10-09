@@ -204,12 +204,13 @@ def retrieval_outcome(required: set[str], actual: set[str]) -> str:
 
 
 def evaluate_case_records(
-    cases: tuple[KeywordCase, ...], *, limit: int
+    cases: tuple[KeywordCase, ...], *, limit: int,
+    documents: tuple[SourceDocument, ...] | None = None,
 ) -> tuple[CaseRecord, ...]:
     records: list[CaseRecord] = []
     for case in cases:
         started = time.perf_counter()
-        hits = keyword_search(case.query, limit=limit)
+        hits = keyword_search(case.query, limit=limit, documents=documents)
         # Microseconds: the sample corpus answers in well under a millisecond, so
         # integer milliseconds truncated the whole latency dimension to zero.
         elapsed_us = int((time.perf_counter() - started) * 1_000_000)

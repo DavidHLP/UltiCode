@@ -4,6 +4,7 @@ import shutil
 import pytest
 
 from corpus_manifest import ManifestError
+from keyword_evaluation import evaluate_case_records, load_cases
 from repository_corpus import MANIFEST, ROOT, SOURCES, load_repository_corpus
 from retrieval import keyword_search
 
@@ -33,6 +34,21 @@ def test_changed_license_or_source_fails_closed(corpus_root, source):
     path.write_text(path.read_text() + "\nChanged.")
     with pytest.raises(ManifestError):
         load_repository_corpus(corpus_root)
+
+
+def test_case_records_use_the_supplied_repository_corpus(corpus_root):
+    documents = load_repository_corpus(corpus_root)
+    cases = load_cases(text=json.dumps([{
+        "case_id": "repository-dev-auth", "split": "development",
+        "query": "HttpOnly", "required_evidence": ["repository-reference"],
+        "answerable": True, "expected_behavior": "cite",
+        "allowed_behavior": "Explain the documented cookie flow with source evidence.",
+        "forbidden_behavior": "Claim that a live authentication request was verified.",
+    }]), documents=documents)
+    record, = evaluate_case_records(cases, limit=3, documents=documents)
+    assert record.retrieval_hit and record.citation_traceable
+    assert record.citation_support == record.answer_completion == "deferred"
+    assert record.observed_behavior == "not_measured"
 
 
 @pytest.mark.parametrize("field,value", [

@@ -42,10 +42,13 @@ Judge0 默认关闭且没有外部实例验证；async receipt 当前仅进程�
 默认七进程 topology 仍保持为 distributed profile 与回滚路径；另有 opt-in
 `core` profile（Core 9108 + 独立 Judge）用于同进程 owner assembly 验证。
 Core 已通过显式扫描、多数据源/事务、readiness 和 judge-runtime classpath
-静态段测试；但 enabled Owner child assembly 的 exec-jar smoke 当前因同一
-classpath 的跨 Owner package leakage 在 bean wiring 阶段失败。完整 local
-Adapter parity、同进程业务路由、远端 Judge TLS 和生产性能/HA 仍未证明，
-不得切换默认或推断生产可用性。
+静态段测试。显式 opt-in 的 disposable Auth/Admin 门禁已验证真实 child
+装配、本地 identity/account 只读委派与合法 permission grant；历史 exec-jar
+装配失败保留为风险记录，不能代替当前门禁结果。该门禁仍不是完整业务
+journey、全量 Admin bean graph 或 distributed RPC transport/filter parity
+证明；同进程业务路由、远端 Judge TLS 和生产性能/HA 仍未证明，不得切换
+默认或推断生产可用性。具体证据边界见
+[`SERVICES_ISSUES.md` 的 SVC-025](../services/docs/SERVICES_ISSUES.md)。
 
 Core 的 enabled Owner child 启动使用单一尝试协议：每个模块的内部对象
 `CoreOwnerContextManager.OwnerStartup` 从线程提交前就注册并持有资源身份，

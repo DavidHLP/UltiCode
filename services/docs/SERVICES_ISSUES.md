@@ -47,9 +47,12 @@ registration 与 `AccountReadAdapter` identity wiring、`UserPermissionServiceIm
 通过 account-query/mutation seams 的合法 grant 都有单测。显式 opt-in 的
 `CoreEnabledOwnerJourneyIT` 另在真实 Testcontainers MySQL/Redis 中应用 canonical
 Auth/Admin migrations，启动真实 `CoreOwnerBootConfigurations.Auth/Admin` child，
-并验证 readiness、local identity read、合法 permission grant、missing signer
+并验证 readiness、local identity/account read、合法 permission grant、missing signer
 fail-closed 与 cleanup。该证据为本地 disposable bounded proof，不是完整业务
 journey、生产 parity 或全量 Admin bean graph 健康证明。
+同一 opt-in IT 还将三个 IdentityQuery 和八个 AccountQuery 方法与真实 Auth
+Owner provider 对照，覆盖分页、缺失账户及非法 trend 的 typed 结果；这只验证
+本地只读委派，不证明 distributed RPC transport/filter parity。
 
 Core child additionally sets `core.local-contracts.enabled=true`; the Admin
 registry therefore does not publish its `@Primary` AccountQuery/Identity

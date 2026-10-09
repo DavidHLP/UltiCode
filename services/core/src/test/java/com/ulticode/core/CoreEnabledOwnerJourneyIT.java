@@ -3,6 +3,8 @@ package com.ulticode.core;
 import com.ulticode.admin.security.DelegationAssertionSigner;
 import com.ulticode.auth.api.command.ActorDelegation;
 import com.ulticode.auth.api.command.PermissionMutationCommand;
+import com.ulticode.auth.api.dto.AccountQueryDTO;
+import com.ulticode.auth.api.dto.AuthUserTrendAggregateQuery;
 import com.ulticode.auth.api.dto.AuthorizationMutationDTO;
 import com.ulticode.auth.api.dto.UserIdentityDTO;
 import com.ulticode.auth.api.service.AccountQueryService;
@@ -44,6 +46,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -149,6 +152,46 @@ class CoreEnabledOwnerJourneyIT {
             assertThat(identity.success()).isTrue();
             assertThat(identity.data()).extracting(UserIdentityDTO::accountId, UserIdentityDTO::username)
                     .containsExactly("core-user", "core-user");
+
+            IdentityQueryService authIdentity = ownerContexts.bean("auth", IdentityQueryService.class);
+            Set<String> accountIds = Set.of("core-user");
+            assertThat(identity).isEqualTo(authIdentity.getIdentity("core-user"));
+            assertThat(identityQuery.batchGetIdentity(accountIds))
+                    .isEqualTo(authIdentity.batchGetIdentity(accountIds));
+            assertThat(identityQuery.findActiveAccountIds())
+                    .isEqualTo(authIdentity.findActiveAccountIds());
+            assertThat(identityQuery.getIdentity("missing-core-user"))
+                    .isEqualTo(authIdentity.getIdentity("missing-core-user"));
+            assertThat(identityQuery.getIdentity("missing-core-user").success()).isFalse();
+
+            AccountQueryService authAccounts = ownerContexts.bean("auth", AccountQueryService.class);
+            assertThat(accountQuery.getAccountById("core-user").data().accountId()).isEqualTo("core-user");
+            assertThat(accountQuery.getAccountById("core-user"))
+                    .isEqualTo(authAccounts.getAccountById("core-user"));
+            assertThat(accountQuery.getAccountByUsername("core-user"))
+                    .isEqualTo(authAccounts.getAccountByUsername("core-user"));
+            assertThat(accountQuery.getAccountByEmail("core-user@example.invalid"))
+                    .isEqualTo(authAccounts.getAccountByEmail("core-user@example.invalid"));
+            AccountQueryDTO query = new AccountQueryDTO(
+                    "core-user", "USER", true, false, 1, 10, "username", "asc", true);
+            assertThat(accountQuery.queryAccounts(query)).isEqualTo(authAccounts.queryAccounts(query));
+            assertThat(accountQuery.queryAccounts(query).page().total()).isEqualTo(1L);
+            assertThat(accountQuery.getAccountsByIds(accountIds))
+                    .isEqualTo(authAccounts.getAccountsByIds(accountIds));
+            assertThat(accountQuery.countAccountsByIdsExcludingUsernameMatch(accountIds, "not-core-user"))
+                    .isEqualTo(authAccounts.countAccountsByIdsExcludingUsernameMatch(accountIds, "not-core-user"));
+            assertThat(accountQuery.countAccountsByIdsExcludingUsernameMatch(accountIds, "not-core-user").data())
+                    .isEqualTo(1L);
+            assertThat(accountQuery.getDashboardStatsSummary()).isEqualTo(authAccounts.getDashboardStatsSummary());
+            AuthUserTrendAggregateQuery trend = new AuthUserTrendAggregateQuery(
+                    LocalDateTime.of(2000, 1, 1, 0, 0), LocalDateTime.of(2100, 1, 1, 0, 0), "year", 101);
+            assertThat(accountQuery.getUserTrend(trend)).isEqualTo(authAccounts.getUserTrend(trend));
+            assertThat(accountQuery.getUserTrend(trend).data()).isNotEmpty();
+            assertThat(accountQuery.getAccountById("missing-core-user"))
+                    .isEqualTo(authAccounts.getAccountById("missing-core-user"));
+            assertThat(accountQuery.getAccountById("missing-core-user").success()).isFalse();
+            assertThat(accountQuery.getUserTrend(null)).isEqualTo(authAccounts.getUserTrend(null));
+            assertThat(accountQuery.getUserTrend(null).success()).isFalse();
 
             UserPermissionService permissionService = ownerContexts.bean("admin", UserPermissionService.class);
             AuthorizationMutationDTO grant = permissionService.assignUserPermission(

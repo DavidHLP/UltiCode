@@ -188,6 +188,18 @@ def _file_digest(root: Path, relative: str) -> str:
     return hashlib.sha256(raw).hexdigest()
 
 
+def _corpus_content_digest(root: Path, relative: str) -> str:
+    from corpus_manifest import content_digest
+
+    target = _under_root(root, relative, label="source")
+    raw, _ = _read(target, json_object=False, limit=_MAX_SOURCE)
+    try:
+        text = raw.decode("utf-8").replace("\r\n", "\n").replace("\r", "\n").strip()
+    except UnicodeDecodeError as error:
+        raise GateError("dav58_corpus_encoding_invalid") from error
+    return content_digest(text)
+
+
 def _trusted_budget_lanes() -> tuple[dict[str, dict[str, int]], int, int]:
     import authorized_budget_period
 
@@ -622,7 +634,7 @@ def _check_dav58(
     for item in manifests:
         source, digest = item.get("source_path"), item.get("content_digest")
         if (not isinstance(source, str) or not isinstance(digest, str) or not digest.startswith("sha256:")
-                or digest.removeprefix("sha256:") != _file_digest(root, source)):
+                or digest != _corpus_content_digest(root, source)):
             raise GateError("dav58_corpus_content_mismatch")
     case_expectations = {row["category"]: row["expected_behavior"] for row in case_rows}
     expected_categories = {"missing_id", "no_tool", "no_hit", "tool_failure", "source_injection", "wrong_citation"}

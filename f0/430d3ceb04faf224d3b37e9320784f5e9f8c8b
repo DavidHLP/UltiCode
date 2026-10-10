@@ -1,0 +1,21 @@
+.github/workflows/ci.yml
+  s_d7d89ac5ed97cf::t_9ce39a4c3d89c2 69-71,78-80,96-98
+docs/DEVELOPMENT.md
+  s_d7d89ac5ed97cf::t_9ce39a4c3d89c2 640-641
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f0430d3ceb04faf224d3b37e9320784f5e9f8c8b",
+  "prompts": {},
+  "sessions": {
+    "s_d7d89ac5ed97cf": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12170-8d3d-7ec1-a9e0-ff3da265f589",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

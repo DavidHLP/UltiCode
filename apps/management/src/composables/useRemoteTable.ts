@@ -5,6 +5,7 @@ import {
   shallowRef,
   toValue,
   type ComputedRef,
+  type WritableComputedRef,
   type DeepReadonly,
   type MaybeRefOrGetter,
 } from 'vue'
@@ -64,8 +65,8 @@ export interface UseRemoteTableOptions<TData, TFilters, TParams> {
 
 export interface UseRemoteTableReturn<TData, TFilters> {
   query: ComputedRef<DeepReadonly<RemoteTableQuery<TFilters>>>
-  searchQuery: ComputedRef<string>
-  tablePagination: ComputedRef<PaginationState>
+  searchQuery: WritableComputedRef<string>
+  tablePagination: WritableComputedRef<PaginationState>
   loading: ComputedRef<boolean>
   data: ComputedRef<TData[]>
   total: ComputedRef<number>

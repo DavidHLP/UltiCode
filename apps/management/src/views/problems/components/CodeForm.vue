@@ -253,7 +253,7 @@ defineExpose({
             }}</Label>
             <Textarea
               :model-value="lang.starterCode"
-              @update:model-value="(v) => updateStarterCode(index, String(v))"
+              @update:model-value="updateStarterCode(index, String($event))"
               rows="12"
               :placeholder="`// Starter code for ${lang.language}...`"
               class="font-mono text-sm bg-background"

@@ -875,7 +875,7 @@ wrong_citation 且 forbid_citations=true 的源码拒绝还会检查答案正文
 
 本次有界真实验收使用 `services/agent/e2e_guarded_boundary_evaluation.py`，CLI 身份参数与既有入口相同。它要求同一周期 active 和 clean checkout，并将共享增量 guard 注入 loop/judge 两个适配器，付费负探针复用 judge。增量日志固定在该周期 accounting 目录的 `dav58-increment-<identity>.json`；已存在即拒绝重放，不重置。入口将 guard 与自身的源码 hash 加入 artifact provenance。
 
-增量 guard 按已核验的 DeepSeek Flash 高峰费率，在每次 HTTP 前持久化完整模型上限包络（保守取 1,048,576 输入和 393,216 输出 tokens），不依赖本地 framing 估计。只有完整、相互一致的 usage 才将独立包络结算为高峰费用；原 ModelBudget 预留从不退款。未知 usage、异常模型/思考输出、网络或落盘失败停止全部后续调用。已核验费用加完整包络须不超过本次 USD1；可能提前停止，不能保证完整矩阵必能完成。transport 无重试，周期与 purpose 门禁同时生效。
+增量 guard 按已核验的 DeepSeek Flash 高峰费率，在每次 HTTP 前持久化完整模型上限包络（保守取 1,048,576 输入和 393,216 输出 tokens），不依赖本地 framing 估计。只有完整、相互一致的 usage 才将独立包络结算为高峰费用；原 ModelBudget 预留从不退款。未知 usage、异常模型/思考输出、网络或落盘失败停止全部后续调用。网络或读取失败回执记录 `network_error_class`：HTTPX 原生连接/读取错误与超时仅记录类型名，其他异常归为 `transport_failure`，不记录异常消息、URL 或请求内容。已核验费用加完整包络须不超过本次 USD1；可能提前停止，不能保证完整矩阵必能完成。transport 无重试，周期与 purpose 门禁同时生效。
 
 
 

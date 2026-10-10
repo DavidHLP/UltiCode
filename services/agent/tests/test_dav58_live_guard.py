@@ -131,6 +131,7 @@ def test_failure_retains_full_envelope_and_blocks_other_adapter(tmp_path, failur
     (httpx.ConnectError("private-token private-request"), "ConnectError"),
     (httpx.ReadTimeout("private-token private-request"), "ReadTimeout"),
     (RuntimeError("private-token private-request"), "transport_failure"),
+    (type("private_token", (httpx.ConnectError,), {})("private-token private-request"), "transport_failure"),
 ])
 def test_network_failure_records_safe_type_without_message_or_retry(tmp_path, error, expected):
     requests = []

@@ -69,7 +69,7 @@ uv run pytest -q
 
 真实 UltiCode HTTP / 模型 e2e 均为显式 opt-in。`e2e_sourced_analysis.py` uses agent-authored synthetic Markdown—not submissions, DTOs, or licensed user material—and validates a read-only submission projection without a real model. U03 workflow model analysis additionally requires a valid U02 gate and active budget authorization; other evaluation scripts follow their own gates. Supply credentials through a secure environment/secret store, never command text or logs. Runner contracts live in source and Linear; keep per-run results out of core docs.
 
-只读工具模型遇到混合请求时拒绝越权部分，继续执行独立且已授权的部分；工具仍绑定当前服务端会话，不能因请求要求切换身份。隔离验收同时要求没有泄露和本人数据的正向工具对照，不能以整段拒绝冒充完整通过。
+只读工具模型遇到混合请求时拒绝越权部分，继续执行独立且已授权的部分；用户已明确要求的合法只读操作应直接调用工具，不再次征求确认或只提出执行建议。工具仍绑定当前服务端会话，不能因请求要求切换身份。隔离验收同时要求没有泄露和本人数据的正向工具对照，不能以整段拒绝冒充完整通过。
 
 授权周期的 `authorized_budget_period` 仍只保存生命周期元数据；其快照始终明确
 `runtime_accounting_connected=False`、`spend_limit_enforced=False`。独立的

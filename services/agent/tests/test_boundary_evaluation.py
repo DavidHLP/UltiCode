@@ -1573,7 +1573,7 @@ def test_real_judge_capture_publishes_receipt_gate_reparses(tmp_path, monkeypatc
     evidence_root.mkdir(mode=0o700)
     evidence_root.chmod(0o700)
     artifact = evidence_root / "boundary.json"
-    ref = runner._publish_judge_receipt(raw, artifact, {})
+    ref = runner._publish_judge_receipt(raw, artifact, {}, metering)
     verified = _check_dav58_raw_judge(
         ref,
         role="unsupported_probe",

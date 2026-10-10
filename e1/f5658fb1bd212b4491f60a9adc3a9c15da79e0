@@ -1,0 +1,24 @@
+services/agent/tests/test_unknown_rollover_history.py
+  s_d7d89ac5ed97cf::t_24a53df16375f3 155-159,171
+services/agent/src/revalidation_history.py
+  s_d7d89ac5ed97cf::t_24a53df16375f3 68,194
+services/agent/src/model_budget.py
+  s_d7d89ac5ed97cf::t_24a53df16375f3 211-228,291-293,302-303,322-323,326-327,347-349
+  s_d7d89ac5ed97cf::t_15c819f7804cef 210
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e1f5658fb1bd212b4491f60a9adc3a9c15da79e0",
+  "prompts": {},
+  "sessions": {
+    "s_d7d89ac5ed97cf": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12170-8d3d-7ec1-a9e0-ff3da265f589",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

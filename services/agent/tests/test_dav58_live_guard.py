@@ -127,6 +127,37 @@ def test_failure_retains_full_envelope_and_blocks_other_adapter(tmp_path, failur
     assert guard.state["pending_micro_usd"] == 786432
 
 
+@pytest.mark.parametrize("error,expected", [
+    (httpx.ConnectError("private-token private-request"), "ConnectError"),
+    (httpx.ReadTimeout("private-token private-request"), "ReadTimeout"),
+    (RuntimeError("private-token private-request"), "transport_failure"),
+])
+def test_network_failure_records_safe_type_without_message_or_retry(tmp_path, error, expected):
+    requests = []
+    def handler(request):
+        requests.append(request)
+        raise error
+    guard, loop, judge = models(tmp_path, handler)
+    try:
+        async def run():
+            for model in (loop, judge):
+                with pytest.raises(ModelBudgetExceeded) as failure:
+                    await model.decide([{"role": "user", "content": "case"}])
+                assert "private-token" not in str(failure.value)
+        asyncio.run(run())
+        saved = json.loads(guard.path.read_text())
+        assert len(requests) == len(saved["receipts"]) == 1
+        assert saved["receipts"][0]["network_error_class"] == expected
+        assert saved["receipts"][0]["reason"] == "network_or_read_failure"
+        assert saved["receipts"][0]["status"] == "unknown_or_unsafe"
+        assert saved["halted"] is True
+        assert saved["pending_micro_usd"] == ENVELOPE_MICRO_USD
+        assert "private-token" not in guard.path.read_text()
+        assert "private-request" not in guard.path.read_text()
+    finally:
+        guard.close()
+
+
 def test_total_increment_ceiling_checks_before_transport(tmp_path):
     requests = []
     guard, loop, judge = models(tmp_path, lambda request: requests.append(request) or httpx.Response(200, json=receipt()))

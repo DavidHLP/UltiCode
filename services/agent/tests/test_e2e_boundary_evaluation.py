@@ -179,7 +179,19 @@ def test_runner_bound_receipts_and_budget_failure_stop_both_adapters(isolated_sl
     assert authorization["before"]["attempts"] == 0
     assert authorization["after"]["attempts"] == (13 if failure_lane is None else (1 if failure_lane == "loop" else 2))
     assert all(row["purpose"] in ("dav58_loop", "dav58_judge") for row in authorization["receipts"])
+    if failure_lane is None:
+        assert all(row["usage_known"] is True and row["settled"] is True for row in authorization["receipts"])
     assert authorization["after"]["legacy_history"] == "UNKNOWN"
     assert authorization["after"]["runtime_accounting_connected"] is False
     assert "dummy-mock-token" not in artifact.read_text()
     assert "Authorization" not in artifact.read_text()
+
+
+@pytest.mark.parametrize("actual,unknown,pending,accepted", [(10, 0, 0, True), (None, 1, 0, False), (10, 0, 1, False), (10, 1, 0, False)])
+def test_period_receipts_never_confirm_unknown_or_pending_usage(actual, unknown, pending, accepted):
+    receipts = e2e_boundary_evaluation._period_receipts(
+        [{"attempt_id": "test-attempt", "actual_micro_usd": actual}],
+        {"unknown_usage_attempts": unknown, "unsettled_attempts": pending},
+    )
+    assert receipts[0]["settled"] is accepted
+    assert receipts[0]["usage_known"] is (actual is not None)

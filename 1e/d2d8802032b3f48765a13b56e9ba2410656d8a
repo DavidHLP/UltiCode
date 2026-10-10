@@ -1,0 +1,28 @@
+services/agent/tests/test_e2e_answer_evaluation.py
+  s_d7d89ac5ed97cf::t_07c899331e1b14 307
+services/agent/src/authorized_budget_period.py
+  s_d7d89ac5ed97cf::t_7de184e39b0b6e 68-69,129-139,153-154
+services/agent/tests/test_unknown_rollover_history.py
+  s_d7d89ac5ed97cf::t_07c899331e1b14 7,92-111,123-124,132,134,137,147-148
+services/agent/tests/test_revalidation_gate.py
+  s_d7d89ac5ed97cf::t_275fd1f83ff688 88-89
+  s_d7d89ac5ed97cf::t_07c899331e1b14 80
+services/agent/src/revalidation_history.py
+  s_d7d89ac5ed97cf::t_7de184e39b0b6e 138-150,152,156-160,212,222-223
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1ed2d8802032b3f48765a13b56e9ba2410656d8a",
+  "prompts": {},
+  "sessions": {
+    "s_d7d89ac5ed97cf": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12170-8d3d-7ec1-a9e0-ff3da265f589",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

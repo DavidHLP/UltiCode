@@ -1689,11 +1689,13 @@ def _check_u03_scenario(
 
         try:
             before = database["before"]
-            owner_sha, key_sha = before["owner_sha256"], before["business_key_sha256"]
+            owner_sha, key_sha = obs.get("ownerSha256"), obs.get("businessKeySha256")
             if not isinstance(owner_sha, str) or not _SHA.fullmatch(owner_sha) or not isinstance(key_sha, str) or not _SHA.fullmatch(key_sha):
                 raise ValueError("invalid_database_identity")
             validate_business_rows(before, owner_sha, key_sha, None, 0)
             validate_business_rows(database["after"], owner_sha, key_sha, None, 0)
+            if any(not isinstance(obs.get(field), str) or not obs[field] for field in ("threadId", "runId")):
+                raise ValueError("workflow_identity_missing")
             if any(before[field] != database["after"][field] for field in ("database_sha256", "container_sha256")):
                 raise ValueError("database_changed")
         except (ValueError, KeyError, TypeError):
@@ -1721,6 +1723,8 @@ def _check_u03_scenario(
     }
     expected = predicates[name]
     required = set(expected) | {"planId", "threadId", "runId", "businessKeySha256", "receiptSha256"}
+    if name == "kill_intent_pre_http":
+        required.add("ownerSha256")
     if name == "java_foreign_owner_read":
         required.update({"owner_hash", "foreign_owner_hash"})
     raw_refs = data.get("raw_receipts")
@@ -1802,6 +1806,10 @@ def _check_u03_scenario(
             if len(successful) != 1 or obs["java_post_count"] != int(successful[0]["javaPostCount"]):
                 raise GateError("u03_receipt_workflow_count_mismatch")
         return successful
+    if name == "kill_intent_pre_http":
+        if obs["planId"] is not None or obs["receiptSha256"] is not None:
+            raise GateError("u03_receipt_metadata_inconsistent")
+        return []
     empty_metadata = ("planId", "threadId", "runId", "receiptSha256")
     has_unbound_key = name != "java_foreign_owner_read" and obs["businessKeySha256"] is not None
     if has_unbound_key or any(obs[key] is not None for key in empty_metadata):

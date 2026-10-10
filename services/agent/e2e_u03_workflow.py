@@ -960,7 +960,7 @@ async def _save_crash_scenario(
         "restart_pid_changed": child_pid != restart_pid,
         "sqlite_quick_check": post_state["sqliteQuickCheck"],
         "planId": (receipt or {}).get("planId"), "threadId": thread["thread_id"],
-        "runId": thread["run_id"], "businessKeySha256": key_sha, "ownerSha256": owner_sha,
+        "runId": thread["run_id"], "businessKeySha256": key_sha, "ownerSha256": owner_sha or before["owner_sha256"],
         "receiptSha256": (receipt or {}).get("receiptSha256"),
         "database_observations": {"before": before, "after": after} if not receipt else None,
     }, receipt)
@@ -1748,6 +1748,9 @@ async def _run_u03(args: argparse.Namespace) -> tuple[dict, int]:
             if receipt:
                 common["ownerSha256"] = observation["ownerSha256"]
             if scenario == "kill_intent_pre_http":
+                common.update({key: observation[key] for key in (
+                    "threadId", "runId", "businessKeySha256", "ownerSha256",
+                )})
                 observations = {**common, "fault_point": point, "child_exit": observation["child_exit"],
                                 "java_post_count": observation["java_post_count"],
                                 "restart_by_key_status": observation["restart_by_key_status"],

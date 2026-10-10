@@ -744,6 +744,9 @@ def _complete_u03_fixture(tmp_path, monkeypatch):
                 "database_sha256": "d" * 64, "container_sha256": "e" * 64,
             }
             evidence["database_observations"] = {"before": zero.copy(), "after": zero.copy()}
+            observations.update({"ownerSha256": zero["owner_sha256"],
+                                 "businessKeySha256": zero["business_key_sha256"],
+                                 "threadId": "pre-http-thread", "runId": "pre-http-run"})
         scenario_items.append({"scenario": name, "status": "PASS",
                                "evidence": save(f"scenario-{name}.json", evidence)})
     payload = {
@@ -820,6 +823,19 @@ def test_u03_pre_http_crash_rejects_nonzero_or_changed_database(tmp_path, monkey
     _, _, evidence_root, head, _, gate_sha = _complete_u03_fixture(tmp_path, monkeypatch)
     scenario = json.loads((evidence_root / "scenario-kill_intent_pre_http.json").read_text())
     scenario["database_observations"]["after"][field] = value
+    with pytest.raises(GateError, match="u03_java_database_readback_invalid"):
+        gate._check_u03_scenario(scenario, "kill_intent_pre_http", head, gate_sha,
+                                 evidence_root=evidence_root)
+
+
+@pytest.mark.parametrize("field", ["owner_sha256", "business_key_sha256"])
+def test_u03_pre_http_crash_rejects_unrelated_empty_database_key(tmp_path, monkeypatch, field):
+    import agent_service.gate as gate
+
+    _, _, evidence_root, head, _, gate_sha = _complete_u03_fixture(tmp_path, monkeypatch)
+    scenario = json.loads((evidence_root / "scenario-kill_intent_pre_http.json").read_text())
+    for proof in scenario["database_observations"].values():
+        proof[field] = "f" * 64
     with pytest.raises(GateError, match="u03_java_database_readback_invalid"):
         gate._check_u03_scenario(scenario, "kill_intent_pre_http", head, gate_sha,
                                  evidence_root=evidence_root)

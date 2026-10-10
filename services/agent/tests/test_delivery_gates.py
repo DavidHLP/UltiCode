@@ -672,6 +672,13 @@ def _complete_u03_fixture(tmp_path, monkeypatch):
                 "readback_payload_sha256": None if changed else hashlib.sha256(response_body.encode()).hexdigest(),
                 "readback_vo": None if changed else vo,
                 "business_rows": 1, "java_post_count": 2 if direct else 1,
+                "database_before": {
+                    "schema": "ulticode-u03-mysql-readback-v1", "owner_sha256": owner_sha,
+                    "business_key_sha256": key_sha,
+                    "plan_id_sha256": hashlib.sha256(b"").hexdigest(),
+                    "row_count": 0, "matching_plan_rows": 0, "raw_counts": "0\t0",
+                    "database_sha256": "d" * 64, "container_sha256": "e" * 64,
+                },
                 "database_readback": {
                     "schema": "ulticode-u03-mysql-readback-v1", "owner_sha256": owner_sha,
                     "business_key_sha256": key_sha,
@@ -789,13 +796,16 @@ def test_u03_raw_receipt_requires_actual_database_readback(tmp_path, monkeypatch
     ("plan_id_sha256", "f" * 64), ("row_count", 2), ("row_count", True),
     ("matching_plan_rows", 0), ("raw_counts", "2\t1"), ("database_sha256", "invalid"),
 ])
-def test_u03_raw_receipt_rejects_wrong_database_count_or_binding(tmp_path, monkeypatch, field, value):
+@pytest.mark.parametrize("proof", ["database_before", "database_readback"])
+def test_u03_raw_receipt_rejects_wrong_database_count_or_binding(tmp_path, monkeypatch, field, value, proof):
     import agent_service.gate as gate
 
     _, _, evidence_root, head, _, gate_sha = _complete_u03_fixture(tmp_path, monkeypatch)
     scenario = json.loads((evidence_root / "scenario-java_same_key_same_payload.json").read_text())
     receipt = json.loads((evidence_root / scenario["raw_receipts"][0]["path"]).read_text())
-    receipt["database_readback"][field] = value
+    if proof == "database_before" and field == "matching_plan_rows" and value == 0:
+        value = 1
+    receipt[proof][field] = value
     digest = u03._private_no_clobber(evidence_root / "wrong-database.json", receipt)
     with pytest.raises(GateError, match="u03_java_database_readback_invalid"):
         gate._check_u03_raw_receipt(

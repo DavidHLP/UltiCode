@@ -360,6 +360,7 @@ def _write_java_receipts(
     thread_id: str | None, run_id: str | None, head: str, gate_sha: str,
     evidence_dir: Path, readbacks: dict[str, tuple[int, dict[str, object]]],
     principal_evidence: dict[str, object], readback_fingerprints: dict[str, str],
+    database_before: dict[str, dict],
     response_received: bool = True,
 ) -> list[dict[str, str]]:
     refs = []
@@ -386,7 +387,11 @@ def _write_java_receipts(
         if key not in database_by_key:
             database_by_key[key] = read_business_rows(owner_id, key, readbacks[key][1]["id"])
         database = database_by_key[key]
+        before = database_before[key]
+        validate_business_rows(before, owner_sha, hashlib.sha256(key.encode()).hexdigest(), None, 0)
         validate_business_rows(database, owner_sha, hashlib.sha256(key.encode()).hexdigest(), readbacks[key][1]["id"])
+        if any(before[field] != database[field] for field in ("database_sha256", "container_sha256")):
+            raise ValueError("u03_java_database_readback_invalid")
         successful = post.get("http_status") == 200
         readback_status, readback_vo = readbacks[key] if successful else (None, None)
         request_projection = _payload_projection(payload)
@@ -423,6 +428,7 @@ def _write_java_receipts(
             "readback_vo_sha256": _projection_sha256(readback_projection) if readback_projection else None,
             "readback_payload_sha256": readback_fingerprints.get(key) if successful else None,
             "business_rows": database["row_count"], "database_readback": database,
+            "database_before": before,
             "java_post_count": index + 1,
         }
         target = evidence_dir / f"{scenario}.receipt-{index + 1}.json"
@@ -795,6 +801,11 @@ async def _save_crash_scenario(
     key = str(pre["businessKey"])
     key_sha = hashlib.sha256(key.encode()).hexdigest()
 
+    async with UlticodeClient(app_base, auth_base, access_token=access, csrf_token=csrf) as java_client:
+        before_owner = await java_client.principal()
+    before = read_business_rows(before_owner, key, None)
+    validate_business_rows(before, hashlib.sha256(before_owner.encode()).hexdigest(), key_sha, None, 0)
+
     agent_base = _agent_base()
     child = await _start_agent(
         state_path=state_path, gate_path=gate_path, head=head, expected_base=expected_base,
@@ -883,6 +894,7 @@ async def _save_crash_scenario(
             evidence_dir=evidence_dir, readbacks={key: (200, vo)},
             principal_evidence=owner_capture.principal_evidence,
             readback_fingerprints=owner_capture.readback_fingerprints,
+            database_before={key: before},
             response_received=not drop_response,
         )
         receipt = {"scenario": scenario, "planId": plan_id, "threadId": thread["thread_id"],
@@ -1323,7 +1335,16 @@ async def _java_idempotency_matrix(
             return await client.save_learning_plan(**data, idempotency_key=key)
 
         keys: dict[str, str] = {}
+        database_before = {}
+
+        def require_empty(key: str):
+            before = read_business_rows(owner_id, key, None)
+            validate_business_rows(before, hashlib.sha256(owner_id.encode()).hexdigest(),
+                                   hashlib.sha256(key.encode()).hexdigest(), None, 0)
+            database_before[key] = before
+
         same_key = keys["java_same_key_same_payload"] = str(uuid.uuid4())
+        require_empty(same_key)
         first, second = await save(owner, same_key, payload), await save(owner, same_key, payload)
         readback = await owner.get_learning_plan_by_key(same_key)
         if (first.get("id") != second.get("id") or readback.get("id") != first.get("id")
@@ -1334,6 +1355,7 @@ async def _java_idempotency_matrix(
             raise ValueError("u03_java_idempotent_readback_mismatch")
 
         concurrent_key = keys["java_concurrent_same_key"] = str(uuid.uuid4())
+        require_empty(concurrent_key)
         concurrent = await asyncio.gather(save(owner, concurrent_key, payload),
                                           save(owner, concurrent_key, payload))
         concurrent_readback = await owner.get_learning_plan_by_key(concurrent_key)
@@ -1342,6 +1364,7 @@ async def _java_idempotency_matrix(
             raise ValueError("u03_java_concurrent_idempotency_mismatch")
 
         mismatch_key = keys["java_same_key_payload_mismatch"] = str(uuid.uuid4())
+        require_empty(mismatch_key)
         original = await save(owner, mismatch_key, payload)
         changed = {**payload, "content": payload["content"] + " altered"}
         mismatch_status, mismatch_code = 0, 0
@@ -1382,6 +1405,7 @@ async def _java_idempotency_matrix(
                 thread_id=None, run_id=None, head=head, gate_sha=gate_sha,
                 evidence_dir=evidence_dir, readbacks=reads, principal_evidence=principal_evidence,
                 readback_fingerprints=capture.readback_fingerprints,
+                database_before=database_before,
             )
             for ref in raw_refs[name]:
                 raw_receipt, _ = _read_json(evidence_dir.parent / ref["path"])

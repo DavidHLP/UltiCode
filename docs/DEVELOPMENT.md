@@ -393,7 +393,10 @@ U03's runner also requires `ULTICODE_U03_MYSQL_CONTAINER`, `ULTICODE_U03_MYSQL_U
 `ULTICODE_U03_MYSQL_PASSWORD`, and `APP_DB_NAME` from the verified isolated App stack's private
 environment. The selected container/database must be the one used by that App service. The
 runner executes only a read-only MySQL transaction through `docker exec` and verifies both the
-owner/key row count and the returned plan ID. Credentials travel through `MYSQL_PWD`, never
+owner/key row count and the returned plan ID. Before each key's first business write, the runner
+requires zero rows; this checks database configuration and access before writing. The receipt
+binds that zero-row observation to the final one-row readback in the same database/container.
+Credentials travel through `MYSQL_PWD`, never
 command arguments or evidence. Java receipt schema v2 includes the redacted database readback;
 missing counts, multiple rows, or a plan mismatch reject acceptance. HTTP by-key readback and
 the unique-key migration alone are not substitutes for this observation. This test-only reader

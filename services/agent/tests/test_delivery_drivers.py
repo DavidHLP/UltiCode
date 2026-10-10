@@ -34,8 +34,9 @@ def _synthetic_database_readback(owner_id, key, plan_id):
         "schema": "ulticode-u03-mysql-readback-v1",
         "owner_sha256": hashlib.sha256(owner_id.encode()).hexdigest(),
         "business_key_sha256": hashlib.sha256(key.encode()).hexdigest(),
-        "plan_id_sha256": hashlib.sha256(plan_id.encode()).hexdigest(),
-        "row_count": 1, "matching_plan_rows": 1, "raw_counts": "1\t1",
+        "plan_id_sha256": hashlib.sha256((plan_id or "").encode()).hexdigest(),
+        "row_count": int(plan_id is not None), "matching_plan_rows": int(plan_id is not None),
+        "raw_counts": "1\t1" if plan_id is not None else "0\t0",
         "database_sha256": "d" * 64, "container_sha256": "e" * 64,
     }
 
@@ -478,7 +479,8 @@ def test_u03_scenario_evidence_is_private_and_hash_bound(tmp_path):
     assert hashlib.sha256(path.read_bytes()).hexdigest() == reference["sha256"]
 
 
-def test_u03_java_idempotency_matrix_uses_mock_java_wire_contract(monkeypatch, tmp_path):
+@pytest.mark.parametrize("database_available", [True, False])
+def test_u03_java_idempotency_matrix_uses_mock_java_wire_contract(monkeypatch, tmp_path, database_available):
     from urllib.parse import unquote
 
     owner_id = "33333333-3333-4333-8333-333333333333"
@@ -526,6 +528,11 @@ def test_u03_java_idempotency_matrix_uses_mock_java_wire_contract(monkeypatch, t
 
     monkeypatch.setattr(u03.httpx, "AsyncHTTPTransport", lambda **_kwargs: httpx.MockTransport(handler))
     monkeypatch.setattr(u03, "read_business_rows", _synthetic_database_readback)
+    if not database_available:
+        def unavailable(*_args):
+            assert not backend
+            raise ValueError("u03_database_readback_configuration_missing")
+        monkeypatch.setattr(u03, "read_business_rows", unavailable)
     candidate_root = tmp_path / "candidate"
     candidate_root.mkdir()
     evidence_root = tmp_path / "evidence"
@@ -534,6 +541,17 @@ def test_u03_java_idempotency_matrix_uses_mock_java_wire_contract(monkeypatch, t
     evidence_dir.mkdir(mode=0o700)
 
     async def scenario():
+        if not database_available:
+            with pytest.raises(ValueError, match="u03_database_readback_configuration_missing"):
+                await u03._java_idempotency_matrix(
+                    app_base="http://127.0.0.1:8000", auth_base="http://127.0.0.1:8001",
+                    owner_access="owner-token", owner_csrf="owner-csrf",
+                    foreign_access="foreign-token", foreign_csrf="foreign-csrf",
+                    source_id=source_id, foreign_source_id=foreign_source_id,
+                    head="a" * 40, gate_sha="b" * 64, evidence_dir=evidence_dir,
+                )
+            assert not backend
+            return
         observations, raw_refs, _projections, foreign_ref = await u03._java_idempotency_matrix(
             app_base="http://127.0.0.1:8000", auth_base="http://127.0.0.1:8001",
             owner_access="owner-token", owner_csrf="owner-csrf",
@@ -1184,6 +1202,7 @@ def test_u03_private_receipt_producer_matches_frozen_gate_projection(tmp_path, m
         source_id=source_id, thread_id=None, run_id=None, head="a" * 40,
         gate_sha="b" * 64, evidence_dir=run, readbacks={key: (200, vo)},
         principal_evidence=principal,
+        database_before={key: _synthetic_database_readback(owner_id, key, None)},
         readback_fingerprints={key: hashlib.sha256(b"synthetic readback").hexdigest()},
     )
     projection = _check_u03_raw_receipt(

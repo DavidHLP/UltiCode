@@ -50,7 +50,8 @@ def read_business_rows(owner_id: str, key: str, plan_id: str | None) -> dict:
     }
 
 
-def validate_business_rows(value: object, owner_sha: str, key_sha: str, plan_id: str | None) -> None:
+def validate_business_rows(value: object, owner_sha: str, key_sha: str, plan_id: str | None,
+                           expected_rows: int = 1) -> None:
     fields = {
         "schema", "owner_sha256", "business_key_sha256", "plan_id_sha256", "row_count",
         "matching_plan_rows", "raw_counts", "database_sha256", "container_sha256",
@@ -61,8 +62,9 @@ def validate_business_rows(value: object, owner_sha: str, key_sha: str, plan_id:
             or any(not isinstance(value.get(field), str)
                    or not re.fullmatch(r"[0-9a-f]{64}", value[field])
                    for field in ("plan_id_sha256", "database_sha256", "container_sha256"))
-            or (plan_id is not None and value.get("plan_id_sha256") != _sha(plan_id))
-            or type(value.get("row_count")) is not int or value["row_count"] != 1
-            or type(value.get("matching_plan_rows")) is not int or value["matching_plan_rows"] != 1
-            or value.get("raw_counts") != "1\t1"):
+            or ((plan_id is not None or expected_rows == 0)
+                and value.get("plan_id_sha256") != _sha(plan_id or ""))
+            or type(value.get("row_count")) is not int or value["row_count"] != expected_rows
+            or type(value.get("matching_plan_rows")) is not int or value["matching_plan_rows"] != expected_rows
+            or value.get("raw_counts") != f"{expected_rows}\t{expected_rows}"):
         raise ValueError("u03_java_database_readback_invalid")

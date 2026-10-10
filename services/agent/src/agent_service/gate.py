@@ -1800,9 +1800,9 @@ def _check_u03_raw_receipt(
         "request_payload", "request_payload_sha256", "request_projection_sha256", "http_status", "http_code",
         "response_received", "response_vo_sha256", "response_payload_sha256", "response_vo",
         "readback_status", "readback_vo_sha256", "readback_payload_sha256", "readback_vo",
-        "business_rows", "java_post_count", "database_readback",
+        "business_rows", "java_post_count", "database_readback", "database_before",
     }
-    if "database_readback" not in data:
+    if "database_readback" not in data or "database_before" not in data:
         raise GateError("u03_java_database_readback_missing")
     if (set(data) != required or data.get("schema") != "ulticode-u03-java-receipt-v2"
             or data.get("scenario") != scenario or data.get("candidate_head") != head
@@ -1919,6 +1919,10 @@ def _check_u03_raw_receipt(
 
     try:
         validate_business_rows(data["database_readback"], owner_sha, key_sha, plan_id or None)
+        validate_business_rows(data["database_before"], owner_sha, key_sha, None, 0)
+        if any(data["database_before"][field] != data["database_readback"][field]
+               for field in ("database_sha256", "container_sha256")):
+            raise ValueError("u03_java_database_readback_invalid")
     except ValueError:
         raise GateError("u03_java_database_readback_invalid") from None
     return {

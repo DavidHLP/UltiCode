@@ -90,7 +90,7 @@
         <dependency>
             <groupId>com.meilisearch.sdk</groupId>
             <artifactId>meilisearch-java</artifactId>
-            <version>0.21.0</version>
+            <version>0.22.1</version>
         </dependency>
 
         <dependency>

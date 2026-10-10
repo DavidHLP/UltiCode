@@ -109,9 +109,9 @@ def test_prior_five_tampered_summary_is_not_canonical_raw_evidence(tmp_path, mon
         _check_prior_five(manifest, payload=payload, root=tmp_path, evidence_root=evidence_root)
 
 
-@pytest.mark.parametrize("mutation", [None, "development_score", "holdout_continuity",
-                                     "unsupported_not_rejected", "vector_gain", "vector_keep_k",
-                                     "calibration_pending"])
+@pytest.mark.parametrize("mutation", [None, "development_score", "second_development_score", "holdout_continuity",
+                                     "unsupported_not_rejected", "supported_count", "vector_gain", "vector_keep_k",
+                                     "vector_limit_type", "calibration_pending"])
 def test_prior_five_matching_raw_and_summary_must_still_meet_requirements(tmp_path, monkeypatch, mutation):
     records = {
         "本人提交检索分析": {"owner_verified": True, "facts": [{"status": "Wrong Answer"}],
@@ -128,16 +128,24 @@ def test_prior_five_matching_raw_and_summary_must_still_meet_requirements(tmp_pa
         "C-U02校准": {"calibration_records": [{"result": "complete"}],
                       "dav59_records": [{"result": "complete"}]},
     }
+    records["20dev评估"]["development_passes"] = [records["20dev评估"]["rows"],
+                                                [{"behavior_match": True} for _ in range(20)]]
     if mutation == "development_score":
         records["20dev评估"]["rows"][0]["behavior_match"] = False
+    elif mutation == "second_development_score":
+        records["20dev评估"]["development_passes"][1][0]["behavior_match"] = False
     elif mutation == "holdout_continuity":
         records["20dev评估"]["consumed_splits"].remove("holdout2")
     elif mutation == "unsupported_not_rejected":
         records["三引用支持负例"]["citations"][-1]["gate_rejected"] = False
+    elif mutation == "supported_count":
+        records["三引用支持负例"]["citations"][0].update(supports=False, gate_rejected=True)
     elif mutation == "vector_gain":
         records["向量对照"]["comparison"]["gain"] = True
     elif mutation == "vector_keep_k":
         records["向量对照"]["comparison"]["keep_k"] = 1
+    elif mutation == "vector_limit_type":
+        records["向量对照"]["comparison"]["vector_limit"] = 3.0
     elif mutation == "calibration_pending":
         records["C-U02校准"]["calibration_records"][0]["result"] = "pending"
     manifest, payload, evidence_root = _prior_five_fixture(tmp_path, monkeypatch, raw_records=records)

@@ -73,8 +73,11 @@ def isolated_slot(tmp_path, monkeypatch):
     return root
 
 
-def prepare_binding(root, *, active=True):
-    identity = period.prepare_period(root / "period", "test", accounting.authorized_period_config_sha256()).identity
+def prepare_binding(root, *, active=True, policy_id=period.POLICY_ID):
+    if policy_id != period.POLICY_ID:
+        root = root.parent / policy_id
+        root.mkdir(mode=0o700)
+    identity = period.prepare_period(root / "period", "test", accounting.authorized_period_config_sha256(policy_id), policy_id=policy_id).identity
     budget = accounting.ModelBudget.bind_prepared(identity)
     if active:
         budget.activate()
@@ -125,10 +128,18 @@ def test_cli_only_accepts_explicit_three_identity_fields():
 
 
 @pytest.mark.parametrize("failure_lane", [None, "loop", "judge"])
-def test_runner_bound_receipts_and_budget_failure_stop_both_adapters(isolated_slot, tmp_path, monkeypatch, failure_lane):
-    identity, budget = prepare_binding(isolated_slot)
+@pytest.mark.parametrize("policy_id", [period.POLICY_ID, period.REVALIDATION_V8_POLICY_ID])
+def test_runner_bound_receipts_and_budget_failure_stop_both_adapters(isolated_slot, tmp_path, monkeypatch, failure_lane, policy_id):
+    fresh = policy_id != period.POLICY_ID
+    if fresh:
+        import revalidation_history
+        monkeypatch.setattr(revalidation_history, "validate_history", lambda sources, **kwargs: {
+            "sources": sources, "baseline": dict(period.policy_for(policy_id)["history"]),
+            "sha256": {}, "acceptance_evidence": False, "unknown_released": False,
+        })
+    identity, budget = prepare_binding(isolated_slot, policy_id=policy_id)
     artifact = tmp_path / "result.json"
-    requests, purposes = [], []
+    requests, purposes, guards = [], [], []
     async def handler(request):
         requests.append(request)
         return httpx.Response(200, json={"choices": [{"message": {"content": '{"answer":"ok"}'}}],
@@ -137,8 +148,18 @@ def test_runner_bound_receipts_and_budget_failure_stop_both_adapters(isolated_sl
         purposes.append(kwargs["budget_purpose"])
         assert kwargs["max_tokens"] <= 2000
         assert kwargs["max_prompt_tokens"] <= 24000
-        assert kwargs["max_calls"] == (24 if kwargs["budget_purpose"] == "dav58_loop" else 42)
-        return DeepseekModel(*args, transport=httpx.MockTransport(handler), **kwargs)
+        assert kwargs["max_calls"] == (24 if kwargs["budget_purpose"] == "dav58_loop" else 19 if fresh else 42)
+        transport = kwargs.pop("transport", None)
+        if fresh:
+            from dav58_live_guard import GuardedTransport
+            assert isinstance(transport, GuardedTransport)
+            assert transport.lane == kwargs["budget_purpose"]
+            transport.inner = httpx.MockTransport(handler)
+            guards.append(transport.guard)
+        else:
+            assert transport is None
+            transport = httpx.MockTransport(handler)
+        return DeepseekModel(*args, transport=transport, **kwargs)
     monkeypatch.setattr(e2e_boundary_evaluation, "DeepseekModel", adapter)
     monkeypatch.setattr(e2e_boundary_evaluation, "_artifact_path", lambda: artifact)
     monkeypatch.setattr(e2e_boundary_evaluation, "_repository_provenance", lambda: {"git_sha": "a" * 40, "clean": True, "source_sha256": {"src/boundary_evaluation.py": "b" * 64}})
@@ -171,6 +192,9 @@ def test_runner_bound_receipts_and_budget_failure_stop_both_adapters(isolated_sl
     assert asyncio.run(e2e_boundary_evaluation.main(identity)) == int(failure_lane is not None)
     monkeypatch.setattr(accounting.ModelBudget, "_commit", original)
     assert purposes == ["dav58_loop", "dav58_judge"]
+    if fresh:
+        assert len(guards) == 2 and guards[0] is guards[1]
+        assert guards[0]._ownership.closed
     assert len(requests) == (13 if failure_lane is None else int(failure_lane == "judge"))
     saved = json.loads(artifact.read_text())
     authorization = saved["authorized_period"]

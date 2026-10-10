@@ -17,12 +17,22 @@ import e2e_guarded_boundary_evaluation as entry
 
 
 @pytest.mark.parametrize("failure_lane", [None, "dav58_loop", "dav58_judge"])
-def test_complete_runner_shared_guard_and_unknown_usage_stop(tmp_path, monkeypatch, failure_lane):
+@pytest.mark.parametrize("policy_id", [period.POLICY_ID, period.REVALIDATION_V8_POLICY_ID])
+def test_complete_runner_shared_guard_and_unknown_usage_stop(tmp_path, monkeypatch, failure_lane, policy_id):
+    fresh = policy_id != period.POLICY_ID
     slot = tmp_path / "slot"
     slot.mkdir()
     monkeypatch.setattr(accounting, "_authorization_slot", lambda: slot)
     monkeypatch.setattr(entry, "_authorization_slot", lambda: slot)
-    identity = period.prepare_period(slot / "period", "offline", accounting.authorized_period_config_sha256()).identity
+    root = slot.parent / policy_id if fresh else slot
+    if fresh:
+        root.mkdir(mode=0o700)
+        import revalidation_history
+        monkeypatch.setattr(revalidation_history, "validate_history", lambda sources, **kwargs: {
+            "sources": sources, "baseline": dict(period.policy_for(policy_id)["history"]),
+            "sha256": {}, "acceptance_evidence": False, "unknown_released": False,
+        })
+    identity = period.prepare_period(root / "period", "offline", accounting.authorized_period_config_sha256(policy_id), policy_id=policy_id).identity
     budget = accounting.ModelBudget.bind_prepared(identity)
     budget.activate()  # ONLY this temporary test period
     monkeypatch.setenv("ULTICODE_BOUNDARY_EVAL", "1")
@@ -52,11 +62,16 @@ def test_complete_runner_shared_guard_and_unknown_usage_stop(tmp_path, monkeypat
                 "choices": [{"finish_reason": "stop", "message": {"content": content}}]})
         return GuardedTransport(guard, lane, httpx.MockTransport(handler))
     monkeypatch.setattr(entry, "GuardedTransport", transport)
+    original_transport = entry.runner.acceptance_transport
     assert asyncio.run(entry.run(identity)) == int(failure_lane is not None)
+    assert entry.runner.acceptance_transport is original_transport
     saved = json.loads(artifact.read_text())
     journal = json.loads(entry.journal_path(identity).read_text())
     assert saved["run"]["repository"]["execution_entry"] == "e2e_guarded_boundary_evaluation.py"
-    assert set(saved["run"]["repository"]["source_sha256"]) == {"src/boundary_evaluation.py", "e2e_guarded_boundary_evaluation.py", "src/dav58_live_guard.py"}
+    expected_sources = {"src/boundary_evaluation.py", "e2e_guarded_boundary_evaluation.py", "src/dav58_live_guard.py"}
+    if fresh:
+        expected_sources.add("src/revalidation_history.py")
+    assert set(saved["run"]["repository"]["source_sha256"]) == expected_sources
     assert journal["period_identity"] == identity.identity
     assert len(journal["receipts"]) == len(requests)
     assert "dummy-mock-token" not in artifact.read_text() + entry.journal_path(identity).read_text()

@@ -203,6 +203,16 @@ def _float(name: str, default: float) -> float:
     return value
 
 
+def _period_receipts(entries: list[dict], snapshot: dict) -> list[dict]:
+    reconciled = snapshot.get("unknown_usage_attempts") == 0 and snapshot.get("unsettled_attempts") == 0
+    receipts = []
+    for entry in entries:
+        amount = entry.get("actual_micro_usd")
+        known = type(amount) is int and amount >= 0
+        receipts.append({**entry, "usage_known": known, "settled": known and reconciled})
+    return receipts
+
+
 async def main(expected: PeriodIdentity | None = None) -> int:
     if os.environ.get(OPT_IN) != "1":
         print("SKIP reason=opt_in_not_set")
@@ -472,7 +482,7 @@ async def main(expected: PeriodIdentity | None = None) -> int:
                         "authorized_period": {"identity": asdict(expected),
                                               "purposes": ["dav58_loop", "dav58_judge"],
                                               "before": budget_before, "after": budget_snapshot,
-                                              "receipts": receipts},
+                                              "receipts": _period_receipts(receipts, budget_snapshot)},
                         "corpus": {
                             "manifest": BOUNDARY_MANIFEST_PATH.name,
                             "manifest_sha256": manifest_digest,

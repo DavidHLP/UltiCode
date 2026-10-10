@@ -187,6 +187,11 @@ def test_answer_contract_example_is_a_string_envelope() -> None:
 
 def test_judge_contract_example_is_valid_adapter_output() -> None:
     assert JUDGE_EXAMPLE in JUDGE_CONTRACT
+    assert "CITED_CHUNK_IDS is the answer's citation list" in JUDGE_CONTRACT
+    assert "a nonempty citation list alone does not establish support" in JUDGE_CONTRACT
+    assert "no_evidence means the answer reports insufficient relevant evidence" in JUDGE_CONTRACT
+    assert "Do not copy EXPECTED into observed_behavior" in JUDGE_CONTRACT
+    assert "a supported paraphrase need not be a verbatim quote" in JUDGE_CONTRACT
     outer = json.loads(JUDGE_EXAMPLE)
     assert set(outer) == {"answer"}
     assert isinstance(outer["answer"], str)

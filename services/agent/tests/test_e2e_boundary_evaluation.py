@@ -212,3 +212,15 @@ def test_judge_publication_binds_serialized_period_receipt(tmp_path, probe):
     saved = json.loads((tmp_path / ref["path"]).read_text())
     assert saved["metering_receipt_index"] == 1
     assert saved["metering_receipt_sha256"] == e2e_boundary_evaluation._digest_json(published_meter)
+
+
+@pytest.mark.parametrize("field,value", [("metering_receipt_index", -1), ("metering_receipt_index", True), ("attempt_id", "foreign"), ("metering_receipt_sha256", "tampered")])
+def test_judge_publication_rejects_invalid_metering_binding(tmp_path, field, value):
+    meter = {"attempt_id": "judge-attempt", "actual_micro_usd": 10}
+    raw = {"attempt_id": meter["attempt_id"], "metering_receipt_index": 0,
+           "metering_receipt_sha256": e2e_boundary_evaluation._digest_json(meter), field: value}
+    with pytest.raises(ValueError, match="judge_metering"):
+        e2e_boundary_evaluation._publish_judge_receipt(
+            raw, tmp_path / "result.json", {}, [{**meter, "usage_known": True, "settled": True}],
+        )
+    assert not list(tmp_path.glob("*.judge-*.json"))

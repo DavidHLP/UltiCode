@@ -145,8 +145,17 @@ def _digest_json(value: object) -> str:
 
 
 def _publish_judge_receipt(
-    raw: object, artifact: Path, owned: dict[Path, tuple[int, int]]
+    raw: dict, artifact: Path, owned: dict[Path, tuple[int, int]], receipts: list[dict]
 ) -> dict[str, str]:
+    index = raw.get("metering_receipt_index")
+    if type(index) is not int or not 0 <= index < len(receipts):
+        raise ValueError("judge_metering_index_invalid")
+    meter = receipts[index]
+    original = {key: value for key, value in meter.items() if key not in {"usage_known", "settled"}}
+    if (raw.get("attempt_id") != meter.get("attempt_id")
+            or raw.get("metering_receipt_sha256") != _digest_json(original)):
+        raise ValueError("judge_metering_binding_invalid")
+    raw["metering_receipt_sha256"] = _digest_json(meter)
     path = artifact.with_name(f"{artifact.name}.judge-{secrets.token_hex(6)}.json")
     text = (
         json.dumps(raw, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n"
@@ -163,6 +172,7 @@ def _publish_judge_evidence(
     artifact: Path,
     owned: dict[Path, tuple[int, int]],
     loop_receipt_count: int,
+    receipts: list[dict],
 ) -> None:
     for record in records:
         for item in record.get("citation_judgements", []):
@@ -171,14 +181,14 @@ def _publish_judge_evidence(
                 index = raw.get("metering_receipt_index")
                 if isinstance(index, int):
                     raw["metering_receipt_index"] = loop_receipt_count + index
-                item["receipt"] = _publish_judge_receipt(raw, artifact, owned)
+                item["receipt"] = _publish_judge_receipt(raw, artifact, owned, receipts)
     for probe in probes:
         raw = probe.pop("_judge_receipt_raw", None)
         if isinstance(raw, dict):
             index = raw.get("metering_receipt_index")
             if isinstance(index, int):
                 raw["metering_receipt_index"] = loop_receipt_count + index
-            probe["judge_receipt"] = _publish_judge_receipt(raw, artifact, owned)
+            probe["judge_receipt"] = _publish_judge_receipt(raw, artifact, owned, receipts)
 
 
 def _int(name: str, default: int) -> int:
@@ -421,6 +431,7 @@ async def main(expected: PeriodIdentity | None = None) -> int:
 
         summary = summarize_boundary(records)
         budget_snapshot = budget.snapshot()
+        receipts = _period_receipts(receipts, budget_snapshot)
         print(
             f"BOUNDARY EVAL BUDGET | remaining_attempts={budget_snapshot['remaining_attempts']} "
             f"remaining_micro_usd={budget_snapshot['remaining_micro_usd']}"
@@ -428,7 +439,7 @@ async def main(expected: PeriodIdentity | None = None) -> int:
         owned: dict[Path, tuple[int, int]] = {}
         try:
             _publish_judge_evidence(
-                list(records), probes, artifact, owned, loop_receipt_count
+                list(records), probes, artifact, owned, loop_receipt_count, receipts
             )
             owned[artifact] = _publish(
                 artifact,
@@ -482,7 +493,7 @@ async def main(expected: PeriodIdentity | None = None) -> int:
                         "authorized_period": {"identity": asdict(expected),
                                               "purposes": ["dav58_loop", "dav58_judge"],
                                               "before": budget_before, "after": budget_snapshot,
-                                              "receipts": _period_receipts(receipts, budget_snapshot)},
+                                              "receipts": receipts},
                         "corpus": {
                             "manifest": BOUNDARY_MANIFEST_PATH.name,
                             "manifest_sha256": manifest_digest,

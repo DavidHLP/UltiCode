@@ -126,7 +126,24 @@ def test_v7_retains_sealed_v6_and_complete_reviewed_acceptance_package():
     assert retained + policy["limit_micro_usd"] == 8_827_200 < history["cumulative_limit_micro_usd"]
 
 
-@pytest.mark.parametrize("policy_id", ["acceptance-revalidation-v4", "acceptance-revalidation-v5", "acceptance-revalidation-v6", "acceptance-revalidation-v7"])
+def test_v8_retains_sealed_v7_under_authorized_two_hundred_dollar_ceiling():
+    policy = policy_for("acceptance-revalidation-v8")
+    previous = policy_for("acceptance-revalidation-v7")
+    history = policy["history"]
+    assert history["attempts"] == previous["history"]["attempts"] + 104 == 627
+    assert history["known_actual_micro_usd"] == previous["history"]["known_actual_micro_usd"] + 28_239 == 167_047
+    assert history["known_committed_micro_usd"] == previous["history"]["known_committed_micro_usd"] + 927_600 == 5_296_514
+    assert history["unknown_attempts"] == 2
+    assert history["unknown_encumbrance_micro_usd"] == 1_572_864
+    assert policy["lanes"] == previous["lanes"]
+    assert policy["attempts"] == 241
+    assert history["attempts"] + policy["attempts"] == history["cumulative_attempt_limit"] == 868
+    assert policy["limit_micro_usd"] == 2_885_422
+    assert history["cumulative_limit_micro_usd"] == 200_000_000
+    assert history["known_committed_micro_usd"] + history["unknown_encumbrance_micro_usd"] + policy["limit_micro_usd"] == 9_754_800
+
+
+@pytest.mark.parametrize("policy_id", ["acceptance-revalidation-v4", "acceptance-revalidation-v5", "acceptance-revalidation-v6", "acceptance-revalidation-v7", "acceptance-revalidation-v8"])
 @pytest.mark.parametrize("mutation", [None, "fingerprint", "active", "unsettled", "unknown", "commit", "receipts"])
 def test_binding_rejects_changed_or_unsealed_history(monkeypatch, tmp_path, mutation, policy_id):
     from types import SimpleNamespace
@@ -140,7 +157,8 @@ def test_binding_rejects_changed_or_unsealed_history(monkeypatch, tmp_path, muta
     v5 = policy_id == "acceptance-revalidation-v5"
     v6 = policy_id == "acceptance-revalidation-v6"
     v7 = policy_id == "acceptance-revalidation-v7"
-    identity = history.V6_ROLLOVER_IDENTITY if v7 else history.V5_ROLLOVER_IDENTITY if v6 else history.V4_ROLLOVER_IDENTITY if v5 else history.SETTLED_ROLLOVER_IDENTITY
+    v8 = policy_id == "acceptance-revalidation-v8"
+    identity = history.V7_ROLLOVER_IDENTITY if v8 else history.V6_ROLLOVER_IDENTITY if v7 else history.V5_ROLLOVER_IDENTITY if v6 else history.V4_ROLLOVER_IDENTITY if v5 else history.SETTLED_ROLLOVER_IDENTITY
     guard_name = f'dav58-increment-{identity["identity"]}.json'
     for name, raw in {"budget.sqlite3": b"sealed fixture", "binding.json": b"{}",
                       guard_name: json.dumps({"receipts": []}).encode()}.items():
@@ -148,12 +166,12 @@ def test_binding_rejects_changed_or_unsealed_history(monkeypatch, tmp_path, muta
         path.write_bytes(raw)
         path.chmod(0o600)
         pins[name] = hashlib.sha256(raw).hexdigest()
-    monkeypatch.setattr(history, "V6_ROLLOVER_SHA256" if v7 else "V5_ROLLOVER_SHA256" if v6 else "V4_ROLLOVER_SHA256" if v5 else "SETTLED_ROLLOVER_SHA256", pins)
+    monkeypatch.setattr(history, "V7_ROLLOVER_SHA256" if v8 else "V6_ROLLOVER_SHA256" if v7 else "V5_ROLLOVER_SHA256" if v6 else "V4_ROLLOVER_SHA256" if v5 else "SETTLED_ROLLOVER_SHA256", pins)
     monkeypatch.setattr(history, "_validate_unknown_rollover_history", lambda sources: {"sha256": {"older": "retained"}})
-    if v5 or v6 or v7:
+    if v5 or v6 or v7 or v8:
         real_validate = history._validate_rollover_history
         def previous(sources, *, settled_policy="v1"):
-            if settled_policy == ("v5" if v7 else "v4" if v6 else "v3"):
+            if settled_policy == ("v6" if v8 else "v5" if v7 else "v4" if v6 else "v3"):
                 return {"sha256": {"older": "retained"}}
             return real_validate(sources, settled_policy=settled_policy)
         monkeypatch.setattr(history, "_validate_rollover_history", previous)
@@ -167,6 +185,8 @@ def test_binding_rejects_changed_or_unsealed_history(monkeypatch, tmp_path, muta
         snapshot.update(attempts=79, actual_micro_usd=20_433, committed_micro_usd=758_400)
     if v7:
         snapshot.update(attempts=105, actual_micro_usd=28_533, committed_micro_usd=928_800)
+    if v8:
+        snapshot.update(attempts=104, actual_micro_usd=28_239, committed_micro_usd=927_600)
     if mutation == "fingerprint":
         (accounting / "budget.sqlite3").write_bytes(b"changed")
     for case, key, value in [("active", "state", "active"), ("unsettled", "unsettled_attempts", 1),

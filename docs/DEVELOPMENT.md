@@ -416,6 +416,8 @@ entry can retain its private raw result with `ULTICODE_SOURCE_ANALYSIS_ARTIFACT`
 validation uses those verified source facts with two supported current synthetic-corpus quotes
 and one explicit unsupported bug claim. It retains complete provider exchanges; gates verify the
 request and response hashes and replay the resulting judgments instead of trusting PASS flags.
+The six-case boundary entry resumes the bound guard once, shares it between the loop and judge
+transports under their separate purposes, and closes it when both adapters finish or fail.
 Prior-five proof
 records must bind their real attempt IDs to the complete canonical guard prefix ending at DAV58's
 initial snapshot. U04 checks the frozen policy, runtime identity, and remaining purpose quotas

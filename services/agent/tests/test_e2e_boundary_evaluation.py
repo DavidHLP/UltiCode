@@ -142,7 +142,7 @@ def test_runner_bound_receipts_and_budget_failure_stop_both_adapters(isolated_sl
     requests, purposes, guards = [], [], []
     async def handler(request):
         requests.append(request)
-        return httpx.Response(200, json={"choices": [{"message": {"content": '{"answer":"ok"}'}}],
+        return httpx.Response(200, json={"model": "deepseek-flash", "choices": [{"message": {"content": '{"answer":"ok"}'}}],
                                          "usage": {"prompt_tokens": 100, "completion_tokens": 20, "total_tokens": 120}})
     def adapter(*args, **kwargs):
         purposes.append(kwargs["budget_purpose"])

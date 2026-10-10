@@ -396,6 +396,7 @@ runner executes only a read-only MySQL transaction through `docker exec` and ver
 owner/key row count and the returned plan ID. Before each key's first business write, the runner
 requires zero rows; this checks database configuration and access before writing. The receipt
 binds that zero-row observation to the final one-row readback in the same database/container.
+The pre-HTTP crash scenario instead requires zero rows both before the fault and after recovery.
 Credentials travel through `MYSQL_PWD`, never
 command arguments or evidence. Java receipt schema v2 includes the redacted database readback;
 missing counts, multiple rows, or a plan mismatch reject acceptance. HTTP by-key readback and

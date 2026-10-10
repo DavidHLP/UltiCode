@@ -736,6 +736,14 @@ def _complete_u03_fixture(tmp_path, monkeypatch):
         }
         if foreign_ref is not None:
             evidence["foreign_read_receipt"] = foreign_ref
+        if name == "kill_intent_pre_http":
+            zero = {
+                "schema": "ulticode-u03-mysql-readback-v1", "owner_sha256": "a" * 64,
+                "business_key_sha256": "b" * 64, "plan_id_sha256": hashlib.sha256(b"").hexdigest(),
+                "row_count": 0, "matching_plan_rows": 0, "raw_counts": "0\t0",
+                "database_sha256": "d" * 64, "container_sha256": "e" * 64,
+            }
+            evidence["database_observations"] = {"before": zero.copy(), "after": zero.copy()}
         scenario_items.append({"scenario": name, "status": "PASS",
                                "evidence": save(f"scenario-{name}.json", evidence)})
     payload = {
@@ -800,6 +808,21 @@ def test_u03_raw_receipt_requires_actual_database_readback(tmp_path, monkeypatch
             {"path": "without-database.json", "sha256": digest},
             root=evidence_root, scenario="java_same_key_same_payload", head=head, gate_sha=gate_sha,
         )
+
+
+@pytest.mark.parametrize("field,value", [
+    ("row_count", 1), ("row_count", False), ("business_key_sha256", "f" * 64),
+    ("owner_sha256", "f" * 64), ("container_sha256", "f" * 64),
+])
+def test_u03_pre_http_crash_rejects_nonzero_or_changed_database(tmp_path, monkeypatch, field, value):
+    import agent_service.gate as gate
+
+    _, _, evidence_root, head, _, gate_sha = _complete_u03_fixture(tmp_path, monkeypatch)
+    scenario = json.loads((evidence_root / "scenario-kill_intent_pre_http.json").read_text())
+    scenario["database_observations"]["after"][field] = value
+    with pytest.raises(GateError, match="u03_java_database_readback_invalid"):
+        gate._check_u03_scenario(scenario, "kill_intent_pre_http", head, gate_sha,
+                                 evidence_root=evidence_root)
 
 
 @pytest.mark.parametrize("field,value", [

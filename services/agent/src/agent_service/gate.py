@@ -1681,6 +1681,25 @@ def _check_u03_scenario(
     if start.tzinfo is None or end.tzinfo is None or end < start:
         raise GateError("u03_scenario_time_invalid")
     obs = data["observations"]
+    if name == "kill_intent_pre_http":
+        database = data.get("database_observations")
+        if not isinstance(database, dict) or set(database) != {"before", "after"}:
+            raise GateError("u03_java_database_readback_missing")
+        from u03_database_readback import validate_business_rows
+
+        try:
+            before = database["before"]
+            owner_sha, key_sha = before["owner_sha256"], before["business_key_sha256"]
+            if not isinstance(owner_sha, str) or not _SHA.fullmatch(owner_sha) or not isinstance(key_sha, str) or not _SHA.fullmatch(key_sha):
+                raise ValueError("invalid_database_identity")
+            validate_business_rows(before, owner_sha, key_sha, None, 0)
+            validate_business_rows(database["after"], owner_sha, key_sha, None, 0)
+            if any(before[field] != database["after"][field] for field in ("database_sha256", "container_sha256")):
+                raise ValueError("database_changed")
+        except (ValueError, KeyError, TypeError):
+            raise GateError("u03_java_database_readback_invalid") from None
+    elif data.get("database_observations") is not None:
+        raise GateError("u03_java_database_readback_unexpected")
     predicates: dict[str, dict[str, object]] = {
         "java_same_key_same_payload": {"attempts": 2, "successful": 2, "distinct_plan_ids": 1, "matching_payload": True, "business_rows": 1},
         "java_concurrent_same_key": {"requests": 2, "successes": 2, "distinct_plan_ids": 1, "business_rows": 1},

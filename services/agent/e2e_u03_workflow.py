@@ -162,6 +162,7 @@ def _scenario_evidence(
     observations: dict[str, object], *, started_at: str, completed_at: str,
     evidence_dir: Path, exit_code: int = 0, raw_receipts: list[dict[str, str]] | None = None,
     foreign_read_receipt: dict[str, str] | None = None,
+    database_observations: dict[str, dict] | None = None,
 ) -> dict[str, str]:
     """Publish one private immutable observation, separate from the checkout."""
     if scenario not in _U03_SCENARIOS:
@@ -184,6 +185,8 @@ def _scenario_evidence(
         evidence["raw_receipts"] = raw_receipts
     if foreign_read_receipt:
         evidence["foreign_read_receipt"] = foreign_read_receipt
+    if database_observations is not None:
+        evidence["database_observations"] = database_observations
     digest = _private_no_clobber(target, evidence)
     return {"path": target.relative_to(run_dir.parent).as_posix(), "sha256": digest}
 
@@ -801,7 +804,7 @@ async def _save_crash_scenario(
     key = str(pre["businessKey"])
     key_sha = hashlib.sha256(key.encode()).hexdigest()
 
-    async with UlticodeClient(app_base, auth_base, access_token=access, csrf_token=csrf) as java_client:
+    async with UlticodeClient.for_session(app_base, auth_base, access_token=access, csrf_token=csrf) as java_client:
         before_owner = await java_client.principal()
     before = read_business_rows(before_owner, key, None)
     validate_business_rows(before, hashlib.sha256(before_owner.encode()).hexdigest(), key_sha, None, 0)
@@ -914,6 +917,11 @@ async def _save_crash_scenario(
             else:
                 _stop_agent(restarted)
                 raise ValueError("u03_intent_pre_http_found_business_write")
+        after = read_business_rows(before_owner, key, None)
+        validate_business_rows(after, before["owner_sha256"], key_sha, None, 0)
+        if any(before[field] != after[field] for field in ("database_sha256", "container_sha256")):
+            _stop_agent(restarted)
+            raise ValueError("u03_java_database_readback_invalid")
     marker = None
     if marker_path.exists():
         marker, _ = _read_json(marker_path)
@@ -954,6 +962,7 @@ async def _save_crash_scenario(
         "planId": (receipt or {}).get("planId"), "threadId": thread["thread_id"],
         "runId": thread["run_id"], "businessKeySha256": key_sha, "ownerSha256": owner_sha,
         "receiptSha256": (receipt or {}).get("receiptSha256"),
+        "database_observations": {"before": before, "after": after} if not receipt else None,
     }, receipt)
 
 async def _expired_confirmation_guard(
@@ -1767,6 +1776,7 @@ async def _run_u03(args: argparse.Namespace) -> tuple[dict, int]:
                 root, scenario, expected_head, gate_sha, observations, started_at=start,
                 completed_at=datetime.now(timezone.utc).isoformat(), evidence_dir=evidence_dir,
                 raw_receipts=raw_refs or None,
+                database_observations=observation["database_observations"] if scenario == "kill_intent_pre_http" else None,
             )
             _record_validated_scenario(
                 scenarios, ref, scenario=scenario, evidence_root=evidence_root,

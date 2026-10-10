@@ -139,7 +139,8 @@ def test_binding_rejects_changed_or_unsealed_history(monkeypatch, tmp_path, muta
     pins = {}
     v5 = policy_id == "acceptance-revalidation-v5"
     v6 = policy_id == "acceptance-revalidation-v6"
-    identity = history.V5_ROLLOVER_IDENTITY if v6 else history.V4_ROLLOVER_IDENTITY if v5 else history.SETTLED_ROLLOVER_IDENTITY
+    v7 = policy_id == "acceptance-revalidation-v7"
+    identity = history.V6_ROLLOVER_IDENTITY if v7 else history.V5_ROLLOVER_IDENTITY if v6 else history.V4_ROLLOVER_IDENTITY if v5 else history.SETTLED_ROLLOVER_IDENTITY
     guard_name = f'dav58-increment-{identity["identity"]}.json'
     for name, raw in {"budget.sqlite3": b"sealed fixture", "binding.json": b"{}",
                       guard_name: json.dumps({"receipts": []}).encode()}.items():
@@ -147,12 +148,12 @@ def test_binding_rejects_changed_or_unsealed_history(monkeypatch, tmp_path, muta
         path.write_bytes(raw)
         path.chmod(0o600)
         pins[name] = hashlib.sha256(raw).hexdigest()
-    monkeypatch.setattr(history, "V5_ROLLOVER_SHA256" if v6 else "V4_ROLLOVER_SHA256" if v5 else "SETTLED_ROLLOVER_SHA256", pins)
+    monkeypatch.setattr(history, "V6_ROLLOVER_SHA256" if v7 else "V5_ROLLOVER_SHA256" if v6 else "V4_ROLLOVER_SHA256" if v5 else "SETTLED_ROLLOVER_SHA256", pins)
     monkeypatch.setattr(history, "_validate_unknown_rollover_history", lambda sources: {"sha256": {"older": "retained"}})
-    if v5 or v6:
+    if v5 or v6 or v7:
         real_validate = history._validate_rollover_history
         def previous(sources, *, settled_policy="v1"):
-            if settled_policy == ("v4" if v6 else "v3"):
+            if settled_policy == ("v5" if v7 else "v4" if v6 else "v3"):
                 return {"sha256": {"older": "retained"}}
             return real_validate(sources, settled_policy=settled_policy)
         monkeypatch.setattr(history, "_validate_rollover_history", previous)
@@ -164,6 +165,8 @@ def test_binding_rejects_changed_or_unsealed_history(monkeypatch, tmp_path, muta
         snapshot.update(attempts=35, actual_micro_usd=9123, committed_micro_usd=336_000)
     if v6:
         snapshot.update(attempts=79, actual_micro_usd=20_433, committed_micro_usd=758_400)
+    if v7:
+        snapshot.update(attempts=105, actual_micro_usd=28_533, committed_micro_usd=928_800)
     if mutation == "fingerprint":
         (accounting / "budget.sqlite3").write_bytes(b"changed")
     for case, key, value in [("active", "state", "active"), ("unsettled", "unsettled_attempts", 1),

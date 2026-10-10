@@ -148,12 +148,29 @@ V5_ROLLOVER_SHA256 = {
 }
 
 
+V6_ROLLOVER_IDENTITY = {
+    "period_id": "revalidation-v6-20261009",
+    "identity": "6e18a8ccca1541a6953b849f4200fd86",
+    "config_sha256": "35175b6be002b4f14695f0ed13ee2f49e6a2a357d18a8106c34ca387cb5bd506",
+    "policy_id": "acceptance-revalidation-v6",
+}
+V6_ROLLOVER_SHA256 = {
+    "budget.sqlite3": "d9938bcc8ae6410189e5a953a25ec21f6f6209682f073a91118a0ed9fa6edf9d",
+    "binding.json": "4ac0023aab255fd28c2afe976bee8374c9d4ea5843b8a588835350ffd02d2fe9",
+    "dav58-increment-6e18a8ccca1541a6953b849f4200fd86.json": "1d0e0b885e73ace9fa74d423fcf8d5e4ea090baa5e196debce2802e2648ec5e9",
+}
+
+
 def _validate_rollover_history(sources, *, settled_policy="v1"):
-    from authorized_budget_period import PeriodError, PeriodIdentity, REVALIDATION_V2_HISTORY, REVALIDATION_V4_HISTORY, REVALIDATION_V5_HISTORY, REVALIDATION_V6_HISTORY, _parent, _file
+    from authorized_budget_period import PeriodError, PeriodIdentity, REVALIDATION_V2_HISTORY, REVALIDATION_V4_HISTORY, REVALIDATION_V5_HISTORY, REVALIDATION_V6_HISTORY, REVALIDATION_V7_HISTORY, _parent, _file
     from model_budget import ModelBudget, authorization_slot
     from dav58_live_guard import IncrementalGuard
 
-    if settled_policy == "v5":
+    if settled_policy == "v6":
+        original = _validate_rollover_history(sources, settled_policy="v5")
+        identity, fingerprints = V6_ROLLOVER_IDENTITY, V6_ROLLOVER_SHA256
+        totals, history = (105, 28_533, 928_800), REVALIDATION_V7_HISTORY
+    elif settled_policy == "v5":
         original = _validate_rollover_history(sources, settled_policy="v4")
         identity, fingerprints = V5_ROLLOVER_IDENTITY, V5_ROLLOVER_SHA256
         totals, history = (79, 20_433, 758_400), REVALIDATION_V6_HISTORY
@@ -209,7 +226,7 @@ def _validate_rollover_history(sources, *, settled_policy="v1"):
 
 def validate_history(sources, *, policy_id="acceptance-revalidation-v1"):
     from authorized_budget_period import PeriodError, REVALIDATION_HISTORY, _parent, _file
-    from authorized_budget_period import REVALIDATION_POLICY_ID, REVALIDATION_V2_POLICY_ID, REVALIDATION_V3_POLICY_ID, REVALIDATION_V4_POLICY_ID, REVALIDATION_V5_POLICY_ID, REVALIDATION_V6_POLICY_ID
+    from authorized_budget_period import REVALIDATION_POLICY_ID, REVALIDATION_V2_POLICY_ID, REVALIDATION_V3_POLICY_ID, REVALIDATION_V4_POLICY_ID, REVALIDATION_V5_POLICY_ID, REVALIDATION_V6_POLICY_ID, REVALIDATION_V7_POLICY_ID
 
     if policy_id == REVALIDATION_V2_POLICY_ID:
         return _validate_rollover_history(sources)
@@ -221,6 +238,8 @@ def validate_history(sources, *, policy_id="acceptance-revalidation-v1"):
         return _validate_rollover_history(sources, settled_policy="v4")
     if policy_id == REVALIDATION_V6_POLICY_ID:
         return _validate_rollover_history(sources, settled_policy="v5")
+    if policy_id == REVALIDATION_V7_POLICY_ID:
+        return _validate_rollover_history(sources, settled_policy="v6")
     if policy_id != REVALIDATION_POLICY_ID:
         raise PeriodError("unsupported retained history policy")
 

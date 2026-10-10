@@ -205,8 +205,8 @@ def test_runner_bound_receipts_and_budget_failure_stop_both_adapters(isolated_sl
     assert all(row["purpose"] in ("dav58_loop", "dav58_judge") for row in authorization["receipts"])
     if failure_lane is None:
         assert all(row["usage_known"] is True and row["settled"] is True for row in authorization["receipts"])
-    assert authorization["after"]["legacy_history"] == "UNKNOWN"
-    assert authorization["after"]["runtime_accounting_connected"] is False
+    assert authorization["after"]["legacy_history"] == ("retained_unknown_encumbered" if fresh else "UNKNOWN")
+    assert authorization["after"]["runtime_accounting_connected"] is fresh
     assert "dummy-mock-token" not in artifact.read_text()
     assert "Authorization" not in artifact.read_text()
 

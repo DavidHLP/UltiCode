@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from authorized_budget_period import PeriodError, REVALIDATION_V3_POLICY, REVALIDATION_V4_POLICY, REVALIDATION_V5_POLICY, policy_for
+from authorized_budget_period import PeriodError, REVALIDATION_V3_POLICY, REVALIDATION_V4_POLICY, REVALIDATION_V5_POLICY, REVALIDATION_V6_POLICY, policy_for
 from revalidation_history import _check_unknown_rollover
 
 
@@ -89,7 +89,26 @@ def test_v5_retains_failed_run_without_reducing_complete_plan():
     assert retained + 2_092_800 - 4800 + 786_432 == 7_129_010
 
 
-@pytest.mark.parametrize("policy_id", ["acceptance-revalidation-v4", "acceptance-revalidation-v5"])
+def test_v6_retains_all_failed_attempts_under_owner_cumulative_ceiling():
+    policy = policy_for("acceptance-revalidation-v6")
+    assert policy is REVALIDATION_V6_POLICY
+    history = policy["history"]
+    previous = REVALIDATION_V5_POLICY["history"]
+    assert history["attempts"] == previous["attempts"] + 79 == 418
+    assert history["known_actual_micro_usd"] == previous["known_actual_micro_usd"] + 20_433 == 110_275
+    assert history["known_committed_micro_usd"] == previous["known_committed_micro_usd"] + 758_400 == 3_440_114
+    assert history["unknown_attempts"] == previous["unknown_attempts"] == 2
+    assert history["unknown_encumbrance_micro_usd"] == previous["unknown_encumbrance_micro_usd"] == 1_572_864
+    assert policy["lanes"] == REVALIDATION_V5_POLICY["lanes"]
+    assert policy["attempts"] == 241
+    assert history["attempts"] + policy["attempts"] == history["cumulative_attempt_limit"] == 659
+    assert history["cumulative_limit_micro_usd"] == 100_000_000
+    assert policy["limit_micro_usd"] == 2_885_422
+    retained = history["known_committed_micro_usd"] + history["unknown_encumbrance_micro_usd"]
+    assert retained + policy["limit_micro_usd"] == 7_898_400 < history["cumulative_limit_micro_usd"]
+
+
+@pytest.mark.parametrize("policy_id", ["acceptance-revalidation-v4", "acceptance-revalidation-v5", "acceptance-revalidation-v6"])
 @pytest.mark.parametrize("mutation", [None, "fingerprint", "active", "unsettled", "unknown", "commit", "receipts"])
 def test_binding_rejects_changed_or_unsealed_history(monkeypatch, tmp_path, mutation, policy_id):
     from types import SimpleNamespace
@@ -101,7 +120,8 @@ def test_binding_rejects_changed_or_unsealed_history(monkeypatch, tmp_path, muta
     accounting.mkdir(mode=0o700)
     pins = {}
     v5 = policy_id == "acceptance-revalidation-v5"
-    identity = history.V4_ROLLOVER_IDENTITY if v5 else history.SETTLED_ROLLOVER_IDENTITY
+    v6 = policy_id == "acceptance-revalidation-v6"
+    identity = history.V5_ROLLOVER_IDENTITY if v6 else history.V4_ROLLOVER_IDENTITY if v5 else history.SETTLED_ROLLOVER_IDENTITY
     guard_name = f'dav58-increment-{identity["identity"]}.json'
     for name, raw in {"budget.sqlite3": b"sealed fixture", "binding.json": b"{}",
                       guard_name: json.dumps({"receipts": []}).encode()}.items():
@@ -109,12 +129,12 @@ def test_binding_rejects_changed_or_unsealed_history(monkeypatch, tmp_path, muta
         path.write_bytes(raw)
         path.chmod(0o600)
         pins[name] = hashlib.sha256(raw).hexdigest()
-    monkeypatch.setattr(history, "V4_ROLLOVER_SHA256" if v5 else "SETTLED_ROLLOVER_SHA256", pins)
+    monkeypatch.setattr(history, "V5_ROLLOVER_SHA256" if v6 else "V4_ROLLOVER_SHA256" if v5 else "SETTLED_ROLLOVER_SHA256", pins)
     monkeypatch.setattr(history, "_validate_unknown_rollover_history", lambda sources: {"sha256": {"older": "retained"}})
-    if v5:
+    if v5 or v6:
         real_validate = history._validate_rollover_history
         def previous(sources, *, settled_policy="v1"):
-            if settled_policy == "v3":
+            if settled_policy == ("v4" if v6 else "v3"):
                 return {"sha256": {"older": "retained"}}
             return real_validate(sources, settled_policy=settled_policy)
         monkeypatch.setattr(history, "_validate_rollover_history", previous)
@@ -124,6 +144,8 @@ def test_binding_rejects_changed_or_unsealed_history(monkeypatch, tmp_path, muta
                 "unknown_usage_attempts": 0, "unsettled_attempts": 0}
     if v5:
         snapshot.update(attempts=35, actual_micro_usd=9123, committed_micro_usd=336_000)
+    if v6:
+        snapshot.update(attempts=79, actual_micro_usd=20_433, committed_micro_usd=758_400)
     if mutation == "fingerprint":
         (accounting / "budget.sqlite3").write_bytes(b"changed")
     for case, key, value in [("active", "state", "active"), ("unsettled", "unsettled_attempts", 1),

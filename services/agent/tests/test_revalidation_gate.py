@@ -77,7 +77,7 @@ def test_u04_frozen_policy_and_runtime_identity_are_equal():
         u04._check_candidate_policy(args, candidate, proof)
 
 
-@pytest.mark.parametrize("policy_id", ["acceptance-revalidation-v2", "acceptance-revalidation-v3", "acceptance-revalidation-v4", "acceptance-revalidation-v5"])
+@pytest.mark.parametrize("policy_id", ["acceptance-revalidation-v2", "acceptance-revalidation-v3", "acceptance-revalidation-v4", "acceptance-revalidation-v5", "acceptance-revalidation-v6"])
 def test_rollover_snapshot_retains_conservative_liability_instead_of_actual(policy_id):
     from authorized_budget_period import policy_for
     policy = policy_for(policy_id)
@@ -85,8 +85,8 @@ def test_rollover_snapshot_retains_conservative_liability_instead_of_actual(poli
     identity = {"policy_id": policy_id, "identity": "a" * 32, "config_sha256": "b" * 64}
     assert history["attempts"] + policy["attempts"] == history["cumulative_attempt_limit"]
     assert sum(lane["attempts"] for lane in policy["lanes"].values()) == policy["attempts"]
-    limit = history["cumulative_limit_micro_usd"]
-    assert history["known_committed_micro_usd"] + history["unknown_encumbrance_micro_usd"] + policy["limit_micro_usd"] == limit
+    limit = history["known_committed_micro_usd"] + history["unknown_encumbrance_micro_usd"] + policy["limit_micro_usd"]
+    assert limit <= history["cumulative_limit_micro_usd"]
     snapshot = {"policy_id": policy_id, "period_identity": identity["identity"],
                 "config_sha256": identity["config_sha256"], "state": "active", "sql_gate": "active",
                 "halted": 0, "attempts": policy["attempts"], "actual_micro_usd": 1, "committed_micro_usd": policy["limit_micro_usd"],

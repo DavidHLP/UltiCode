@@ -404,7 +404,9 @@ Run the full real DAV-58 and DAV-53 evaluations and retain their private, hash-v
 artifacts, the original-budget audit, and the prior-five manifest. The prior-five manifest is
 validated from its raw evidence, including the previously accepted 20-answer behavior proof
 (`behavior_match=20/20`) and consumed holdout continuity; this is not the U04 structural
-retrieval report. Never replace missing historical SQL/guard/provider-usage evidence with a new
+retrieval report. Raw-summary agreement alone is insufficient: all five evidence sets must meet
+their required observations with the expected types, and every recorded development pass must
+achieve 20/20 behavior matches. Never replace missing historical SQL/guard/provider-usage evidence with a new
 empty ledger, a different period, or an estimated balance. Unknown usage or an unverifiable budget
 anchor blocks gate issuance and all paid runs.
 

@@ -27,6 +27,42 @@ u03 = _load("e2e_u03_workflow_delivery_test", _AGENT / "e2e_u03_workflow.py")
 u04 = _load("e2e_u04_demo_delivery_test", _AGENT / "e2e_u04_demo.py")
 
 
+@pytest.mark.parametrize("output", ["1\t1\n", "0\t0\n"])
+def test_u03_database_readback_uses_read_only_mysql_and_private_environment(monkeypatch, output):
+    import hashlib
+    import subprocess
+    from u03_database_readback import read_business_rows
+
+    for name, value in {
+        "ULTICODE_U03_MYSQL_CONTAINER": "isolated-test-mysql",
+        "ULTICODE_U03_MYSQL_USER": "test_reader",
+        "ULTICODE_U03_MYSQL_PASSWORD": "private-test-password",
+        "APP_DB_NAME": "app",
+    }.items():
+        monkeypatch.setenv(name, value)
+    seen = []
+
+    def run(command, **kwargs):
+        seen.append((command, kwargs))
+        assert "private-test-password" not in " ".join(command)
+        assert kwargs["env"]["MYSQL_PWD"] == "private-test-password"
+        assert command[:3] == ["docker", "exec", "-i"]
+        assert "shell" not in kwargs
+        assert kwargs["input"].startswith("START TRANSACTION READ ONLY;\nSELECT COUNT(*)")
+        assert kwargs["input"].endswith("\nROLLBACK;\n")
+        assert "owner-private" not in kwargs["input"]
+        return subprocess.CompletedProcess(command, 0, stdout=output, stderr="")
+
+    monkeypatch.setattr(subprocess, "run", run)
+    proof = read_business_rows("owner-private", "key-private", "plan-private")
+    assert len(seen) == 1
+    assert proof["owner_sha256"] == hashlib.sha256(b"owner-private").hexdigest()
+    assert proof["business_key_sha256"] == hashlib.sha256(b"key-private").hexdigest()
+    assert proof["plan_id_sha256"] == hashlib.sha256(b"plan-private").hexdigest()
+    assert proof["raw_counts"] == output.strip()
+    assert proof["row_count"] == proof["matching_plan_rows"] == int(output[0])
+
+
 def test_execution_candidate_accepts_same_checkout_and_resolved_alias(tmp_path):
     from agent_service.gate import require_execution_candidate
 

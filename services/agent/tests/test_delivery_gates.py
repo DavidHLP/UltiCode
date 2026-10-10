@@ -762,6 +762,21 @@ def test_u03_raw_receipt_rejects_hash_mismatch_between_request_vo_and_readback(t
         )
 
 
+def test_u03_raw_receipt_requires_actual_database_readback(tmp_path, monkeypatch):
+    import agent_service.gate as gate
+
+    _, _, evidence_root, head, _, gate_sha = _complete_u03_fixture(tmp_path, monkeypatch)
+    scenario = json.loads((evidence_root / "scenario-java_same_key_same_payload.json").read_text())
+    receipt = json.loads((evidence_root / scenario["raw_receipts"][0]["path"]).read_text())
+    receipt.pop("database_readback", None)
+    digest = u03._private_no_clobber(evidence_root / "without-database.json", receipt)
+    with pytest.raises(GateError, match="u03_java_database_readback_missing"):
+        gate._check_u03_raw_receipt(
+            {"path": "without-database.json", "sha256": digest},
+            root=evidence_root, scenario="java_same_key_same_payload", head=head, gate_sha=gate_sha,
+        )
+
+
 
 
 @pytest.mark.parametrize("tamper", ["head", "config", "scenario", "receipt", "raw_file", "scenario_receipt", "foreign_read"])

@@ -776,6 +776,17 @@ def test_u03_raw_receipt_rejects_hash_mismatch_between_request_vo_and_readback(t
         )
 
 
+def test_u03_pre_http_crash_requires_database_zero_row_evidence(tmp_path, monkeypatch):
+    import agent_service.gate as gate
+
+    _, _, evidence_root, head, _, gate_sha = _complete_u03_fixture(tmp_path, monkeypatch)
+    scenario = json.loads((evidence_root / "scenario-kill_intent_pre_http.json").read_text())
+    scenario.pop("database_observations", None)
+    with pytest.raises(GateError, match="u03_java_database_readback_missing"):
+        gate._check_u03_scenario(scenario, "kill_intent_pre_http", head, gate_sha,
+                                 evidence_root=evidence_root)
+
+
 def test_u03_raw_receipt_requires_actual_database_readback(tmp_path, monkeypatch):
     import agent_service.gate as gate
 

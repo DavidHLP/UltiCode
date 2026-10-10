@@ -179,15 +179,17 @@ def _publish_judge_evidence(
             raw = item.pop("_raw_receipt", None)
             if isinstance(raw, dict):
                 index = raw.get("metering_receipt_index")
-                if isinstance(index, int):
-                    raw["metering_receipt_index"] = loop_receipt_count + index
+                if type(index) is not int or index < 0:
+                    raise ValueError("judge_metering_index_invalid")
+                raw["metering_receipt_index"] = loop_receipt_count + index
                 item["receipt"] = _publish_judge_receipt(raw, artifact, owned, receipts)
     for probe in probes:
         raw = probe.pop("_judge_receipt_raw", None)
         if isinstance(raw, dict):
             index = raw.get("metering_receipt_index")
-            if isinstance(index, int):
-                raw["metering_receipt_index"] = loop_receipt_count + index
+            if type(index) is not int or index < 0:
+                raise ValueError("judge_metering_index_invalid")
+            raw["metering_receipt_index"] = loop_receipt_count + index
             probe["judge_receipt"] = _publish_judge_receipt(raw, artifact, owned, receipts)
 
 

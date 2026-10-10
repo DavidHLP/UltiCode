@@ -224,3 +224,15 @@ def test_judge_publication_rejects_invalid_metering_binding(tmp_path, field, val
             raw, tmp_path / "result.json", {}, [{**meter, "usage_known": True, "settled": True}],
         )
     assert not list(tmp_path.glob("*.judge-*.json"))
+
+
+@pytest.mark.parametrize("probe", [False, True])
+@pytest.mark.parametrize("index", [True, -1])
+def test_judge_publication_rejects_bad_index_before_offset(tmp_path, probe, index):
+    item = {"_judge_receipt_raw" if probe else "_raw_receipt": {"metering_receipt_index": index}}
+    with pytest.raises(ValueError, match="judge_metering_index_invalid"):
+        e2e_boundary_evaluation._publish_judge_evidence(
+            [] if probe else [{"citation_judgements": [item]}], [item] if probe else [],
+            tmp_path / "result.json", {}, 2, [{}, {}, {}],
+        )
+    assert not list(tmp_path.glob("*.judge-*.json"))

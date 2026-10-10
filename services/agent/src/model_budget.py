@@ -208,6 +208,25 @@ class ModelBudget:
         return instance
 
     @classmethod
+    def _sealed_history_view(cls, expected: period.PeriodIdentity, history: dict) -> ModelBudget:
+        # The enclosing history traversal has already verified this predecessor.
+        if (not isinstance(expected, period.PeriodIdentity)
+                or expected.policy_id not in period.REVALIDATION_POLICY_IDS
+                or expected.config_sha256 != authorized_period_config_sha256(expected.policy_id)
+                or not isinstance(history, dict)
+                or history.get("baseline") != dict(period.policy_for(expected.policy_id)["history"])
+                or history.get("acceptance_evidence") is not False
+                or history.get("unknown_released") is not False):
+            raise period.PeriodError("verified sealed historical liability required")
+        instance = cls.__new__(cls)
+        instance._identity = expected
+        instance.path = authorization_slot(expected) / "accounting/budget.sqlite3"
+        instance._sealed_retained_history = json.loads(_json(history))
+        with instance._accounting():
+            pass
+        return instance
+
+    @classmethod
     def bind_prepared(cls, expected: period.PeriodIdentity, *, history_sources=None) -> ModelBudget:
         if not isinstance(expected, period.PeriodIdentity) or expected.config_sha256 != authorized_period_config_sha256(expected.policy_id):
             raise period.PeriodError("canonical configuration identity required")
@@ -269,6 +288,9 @@ class ModelBudget:
 
     @contextmanager
     def _accounting(self, *, exclusive: bool = False):
+        sealed_history = getattr(self, "_sealed_retained_history", None)
+        if sealed_history is not None and exclusive:
+            raise period.PeriodError("sealed history view is read-only")
         if self._identity is None:
             with self._connect() as db:
                 yield db, None
@@ -277,6 +299,8 @@ class ModelBudget:
         if self.path != slot / "accounting/budget.sqlite3" or self._identity.config_sha256 != authorized_period_config_sha256(self._identity.policy_id):
             raise period.PeriodError("canonical path or configuration drift")
         with period._locked_period(slot / "period", self._identity, exclusive=exclusive) as locked:
+            if sealed_history is not None and locked.snapshot.state != "halted":
+                raise period.PeriodError("sealed history period must be halted")
             with period._parent(self.path) as directory:
                 marker = period._file(directory, "binding.json", os.O_RDONLY)
                 try:
@@ -295,10 +319,12 @@ class ModelBudget:
                     history = anchor.get("retained_history")
                     if not isinstance(history, dict):
                         raise period.PeriodError("retained historical liability required")
-                    required["retained_history"] = validate_history(history.get("sources"), policy_id=self._identity.policy_id)
+                    required["retained_history"] = (sealed_history if sealed_history is not None else
+                                                    validate_history(history.get("sources"), policy_id=self._identity.policy_id))
                 if anchor != required or not isinstance(anchor["ledger_uuid"], str) or len(anchor["ledger_uuid"]) != 32:
                     raise period.PeriodError("binding identity or ledger drift")
-                db = sqlite3.connect(f"file:/proc/self/fd/{directory}/budget.sqlite3?mode=rw", uri=True, timeout=5, isolation_level=None)
+                mode = "ro" if sealed_history is not None else "rw"
+                db = sqlite3.connect(f"file:/proc/self/fd/{directory}/budget.sqlite3?mode={mode}", uri=True, timeout=5, isolation_level=None)
                 try:
                     db.execute("PRAGMA synchronous=FULL")
                     if db.execute("SELECT payload,gate FROM binding").fetchall() not in (
@@ -318,6 +344,9 @@ class ModelBudget:
                     budget = db.execute("SELECT singleton,attempts,reserved_micro_usd,actual_micro_usd,halted FROM budget").fetchall()
                     if len(budget) != 1 or budget[0][0] != 1:
                         raise period.PeriodError("budget row missing or counters changed")
+                    if sealed_history is not None and (budget[0][4] != 1
+                            or db.execute("SELECT gate FROM binding").fetchall() != [("halted",)]):
+                        raise period.PeriodError("sealed history SQL budget must be halted")
                     if "history" in self.policy:
                         totals = db.execute("SELECT count(*),COALESCE(SUM(MAX(reserved_micro_usd,"
                                             "COALESCE(actual_micro_usd,0))),0),"

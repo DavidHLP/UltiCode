@@ -65,7 +65,7 @@ def _validate_unknown_rollover_history(sources):
         if len(raw) > 8_388_608 or hashlib.sha256(raw).hexdigest() != digest:
             raise PeriodError("sealed unknown rollover history changed")
         hashes[str(path)], files[name] = digest, raw
-    budget = ModelBudget.bound(expected)
+    budget = ModelBudget._sealed_history_view(expected, previous)
     snapshot = budget.snapshot()
     guard = json.loads(files[f"dav58-increment-{expected.identity}.json"])
     _check_unknown_rollover(snapshot, guard)
@@ -191,7 +191,7 @@ def _validate_rollover_history(sources, *, settled_policy="v1"):
         hashes[str(path)] = digest
         if name.endswith(".json") and name.startswith("dav58-increment-"):
             guard = json.loads(raw)
-    budget = ModelBudget.bound(expected)
+    budget = ModelBudget._sealed_history_view(expected, original)
     snapshot = budget.snapshot()
     if (snapshot["state"] != "halted" or snapshot["sql_gate"] != "halted"
             or snapshot["halted"] != 1

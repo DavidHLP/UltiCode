@@ -152,7 +152,11 @@ def test_binding_rejects_changed_or_unsealed_history(monkeypatch, tmp_path, muta
                              ("unknown", "unknown_usage_attempts", 1), ("commit", "committed_micro_usd", 32_484)]:
         if mutation == case:
             snapshot[key] = value
-    monkeypatch.setattr(model_budget.ModelBudget, "bound", lambda expected: SimpleNamespace(snapshot=lambda: snapshot, policy={}))
+    predecessors = []
+    def sealed_view(expected, predecessor):
+        predecessors.append(predecessor)
+        return SimpleNamespace(snapshot=lambda: snapshot, policy={})
+    monkeypatch.setattr(model_budget.ModelBudget, "_sealed_history_view", sealed_view)
     checked = []
     def validate(*args):
         checked.append(True)
@@ -164,6 +168,7 @@ def test_binding_rejects_changed_or_unsealed_history(monkeypatch, tmp_path, muta
             history.validate_history({}, policy_id=policy_id)
     else:
         audit = history.validate_history({}, policy_id=policy_id)
+        assert len(predecessors) == 1 and predecessors[0]["sha256"] == {"older": "retained"}
         assert checked and audit["sha256"]["older"] == "retained"
         assert audit["baseline"] == dict(policy_for(policy_id)["history"])
         assert audit["acceptance_evidence"] is audit["unknown_released"] is False

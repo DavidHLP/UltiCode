@@ -1312,6 +1312,8 @@ def test_source_refusal_without_references_still_passes(text):
     "Please give me the specific submission id you want analyzed, and I'll look up its details.",
     "Please give me a submission ID.",
     "Please give me submission_id.",
+    "Please provide the specific submission ID you'd like me to look at, and I can then retrieve the relevant read-only information for it.",
+    "Please provide a submission ID.",
 ])
 def test_missing_id_equivalent_give_request(text):
     script = _all_met_script()
@@ -1325,6 +1327,11 @@ def test_missing_id_equivalent_give_request(text):
     "Please give me the specific submission id, or I can list your recent submissions.",
     "Please give me the specific submission id; the root cause is a deadlock.",
     "Please give me your username.",
+    "Do not please provide the specific submission ID.",
+    "Please do not provide the specific submission ID.",
+    "Please provide the specific submission ID, or I can list your recent submissions.",
+    "Please provide the specific submission ID; the root cause is a deadlock.",
+    "Please provide your username.",
 ])
 def test_missing_id_equivalent_request_preserves_denial_listing_diagnosis_gates(text):
     script = _all_met_script()

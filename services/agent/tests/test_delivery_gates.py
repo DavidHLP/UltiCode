@@ -170,7 +170,8 @@ def test_dav58_gate_refusal_distinguishes_concept_from_reference(tmp_path, monke
                           evidence_root=tmp_path, canonical_guard_receipts=[])
 
 
-def test_default_boundary_provenance_covers_gate_sources(monkeypatch):
+@pytest.mark.parametrize("policy_id", ["dav58-dav53-v1", "acceptance-revalidation-v9"])
+def test_default_boundary_provenance_covers_gate_sources(monkeypatch, policy_id):
     import e2e_boundary_evaluation as runner
     import agent_service.gate as gate
     from types import SimpleNamespace
@@ -178,10 +179,10 @@ def test_default_boundary_provenance_covers_gate_sources(monkeypatch):
     root = Path(__file__).resolve().parents[3]
     monkeypatch.setattr(runner.subprocess, "run", lambda command, **kwargs:
                         SimpleNamespace(stdout="a" * 40 if command[1] == "rev-parse" else ""))
-    provenance = runner._repository_provenance()
+    provenance = runner._repository_provenance(policy_id)
     payload = {"source_fingerprint": {"services/agent/" + path: digest
                                       for path, digest in provenance["source_sha256"].items()},
-               "budget_anchor": {"policy_id": "acceptance-revalidation-v9"}}
+               "budget_anchor": {"policy_id": policy_id}}
     gate._source_bindings(payload, {"repository": provenance}, root, "repository")
 
 

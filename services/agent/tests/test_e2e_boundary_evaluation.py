@@ -162,7 +162,7 @@ def test_runner_bound_receipts_and_budget_failure_stop_both_adapters(isolated_sl
         return DeepseekModel(*args, transport=transport, **kwargs)
     monkeypatch.setattr(e2e_boundary_evaluation, "DeepseekModel", adapter)
     monkeypatch.setattr(e2e_boundary_evaluation, "_artifact_path", lambda: artifact)
-    monkeypatch.setattr(e2e_boundary_evaluation, "_repository_provenance", lambda: {"git_sha": "a" * 40, "clean": True, "source_sha256": {"src/boundary_evaluation.py": "b" * 64}})
+    monkeypatch.setattr(e2e_boundary_evaluation, "_repository_provenance", lambda *a: {"git_sha": "a" * 40, "clean": True, "source_sha256": {"src/boundary_evaluation.py": "b" * 64}})
     original = accounting.ModelBudget._commit
     def fail_after_commit(self, db, locked):
         original(self, db, locked)

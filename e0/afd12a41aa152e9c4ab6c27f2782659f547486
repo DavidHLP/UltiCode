@@ -1,0 +1,21 @@
+services/agent/src/revalidation_history.py
+  s_d7d89ac5ed97cf::t_d4e43d9db54d25 215-227,229,233-237,313,335-336
+services/agent/src/authorized_budget_period.py
+  s_d7d89ac5ed97cf::t_d4e43d9db54d25 74-75,195-204,231-232
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e0afd12a41aa152e9c4ab6c27f2782659f547486",
+  "prompts": {},
+  "sessions": {
+    "s_d7d89ac5ed97cf": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12170-8d3d-7ec1-a9e0-ff3da265f589",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

@@ -653,7 +653,7 @@ def _complete_u03_fixture(tmp_path, monkeypatch):
                 vo, ensure_ascii=False, sort_keys=True, separators=(",", ":"),
             ).encode()).hexdigest()
             receipt = {
-                "schema": "ulticode-u03-java-receipt-v1", "scenario": name, "candidate_head": head,
+                "schema": "ulticode-u03-java-receipt-v2", "scenario": name, "candidate_head": head,
                 "u02_gate_sha256": gate_sha, "operation": "save_learning_plan",
                 "request_id": str(uuid.uuid4()), "thread_id": None if direct else "thread-one",
                 "run_id": None if direct else "run-one", "owner_sha256": owner_sha,
@@ -672,6 +672,13 @@ def _complete_u03_fixture(tmp_path, monkeypatch):
                 "readback_payload_sha256": None if changed else hashlib.sha256(response_body.encode()).hexdigest(),
                 "readback_vo": None if changed else vo,
                 "business_rows": 1, "java_post_count": 2 if direct else 1,
+                "database_readback": {
+                    "schema": "ulticode-u03-mysql-readback-v1", "owner_sha256": owner_sha,
+                    "business_key_sha256": key_sha,
+                    "plan_id_sha256": hashlib.sha256(b"plan-one").hexdigest(),
+                    "row_count": 1, "matching_plan_rows": 1, "raw_counts": "1\t1",
+                    "database_sha256": "d" * 64, "container_sha256": "e" * 64,
+                },
             }
             ref = save(f"{name}-{index}.json", receipt)
             refs.append(ref)
@@ -773,6 +780,26 @@ def test_u03_raw_receipt_requires_actual_database_readback(tmp_path, monkeypatch
     with pytest.raises(GateError, match="u03_java_database_readback_missing"):
         gate._check_u03_raw_receipt(
             {"path": "without-database.json", "sha256": digest},
+            root=evidence_root, scenario="java_same_key_same_payload", head=head, gate_sha=gate_sha,
+        )
+
+
+@pytest.mark.parametrize("field,value", [
+    ("owner_sha256", "f" * 64), ("business_key_sha256", "f" * 64),
+    ("plan_id_sha256", "f" * 64), ("row_count", 2), ("row_count", True),
+    ("matching_plan_rows", 0), ("raw_counts", "2\t1"), ("database_sha256", "invalid"),
+])
+def test_u03_raw_receipt_rejects_wrong_database_count_or_binding(tmp_path, monkeypatch, field, value):
+    import agent_service.gate as gate
+
+    _, _, evidence_root, head, _, gate_sha = _complete_u03_fixture(tmp_path, monkeypatch)
+    scenario = json.loads((evidence_root / "scenario-java_same_key_same_payload.json").read_text())
+    receipt = json.loads((evidence_root / scenario["raw_receipts"][0]["path"]).read_text())
+    receipt["database_readback"][field] = value
+    digest = u03._private_no_clobber(evidence_root / "wrong-database.json", receipt)
+    with pytest.raises(GateError, match="u03_java_database_readback_invalid"):
+        gate._check_u03_raw_receipt(
+            {"path": "wrong-database.json", "sha256": digest},
             root=evidence_root, scenario="java_same_key_same_payload", head=head, gate_sha=gate_sha,
         )
 

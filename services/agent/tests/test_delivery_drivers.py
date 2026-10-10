@@ -27,6 +27,19 @@ u03 = _load("e2e_u03_workflow_delivery_test", _AGENT / "e2e_u03_workflow.py")
 u04 = _load("e2e_u04_demo_delivery_test", _AGENT / "e2e_u04_demo.py")
 
 
+def _synthetic_database_readback(owner_id, key, plan_id):
+    import hashlib
+
+    return {
+        "schema": "ulticode-u03-mysql-readback-v1",
+        "owner_sha256": hashlib.sha256(owner_id.encode()).hexdigest(),
+        "business_key_sha256": hashlib.sha256(key.encode()).hexdigest(),
+        "plan_id_sha256": hashlib.sha256(plan_id.encode()).hexdigest(),
+        "row_count": 1, "matching_plan_rows": 1, "raw_counts": "1\t1",
+        "database_sha256": "d" * 64, "container_sha256": "e" * 64,
+    }
+
+
 @pytest.mark.parametrize("output", ["1\t1\n", "0\t0\n"])
 def test_u03_database_readback_uses_read_only_mysql_and_private_environment(monkeypatch, output):
     import hashlib
@@ -512,6 +525,7 @@ def test_u03_java_idempotency_matrix_uses_mock_java_wire_contract(monkeypatch, t
         return envelope(None, status=404, code=40400)
 
     monkeypatch.setattr(u03.httpx, "AsyncHTTPTransport", lambda **_kwargs: httpx.MockTransport(handler))
+    monkeypatch.setattr(u03, "read_business_rows", _synthetic_database_readback)
     candidate_root = tmp_path / "candidate"
     candidate_root.mkdir()
     evidence_root = tmp_path / "evidence"
@@ -1134,9 +1148,10 @@ def test_u04_preflight_ignores_u03_human_demo_flags(monkeypatch, tmp_path):
     assert preflight["candidate"]["candidate_head"] == head
 
 
-def test_u03_private_receipt_producer_matches_frozen_gate_projection(tmp_path):
+def test_u03_private_receipt_producer_matches_frozen_gate_projection(tmp_path, monkeypatch):
     import hashlib
     from agent_service.gate import _check_u03_raw_receipt
+    monkeypatch.setattr(u03, "read_business_rows", _synthetic_database_readback)
 
     evidence_root = tmp_path / "private"
     evidence_root.mkdir(mode=0o700)

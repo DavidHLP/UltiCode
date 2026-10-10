@@ -31,6 +31,7 @@ from agent_service.gate import (
 )
 from authorized_budget_period import POLICY
 from ulticode_client import UlticodeClient, UlticodeServiceError
+from u03_database_readback import read_business_rows, validate_business_rows
 
 _ACTIVE_AGENT_PROCESSES = set()
 
@@ -362,6 +363,7 @@ def _write_java_receipts(
     response_received: bool = True,
 ) -> list[dict[str, str]]:
     refs = []
+    database_by_key = {}
     owner_sha = hashlib.sha256(owner_id.encode()).hexdigest()
     principal = {
         "user_id_sha256": owner_sha, "response_status": principal_evidence.get("response_status"),
@@ -381,6 +383,10 @@ def _write_java_receipts(
                         if hashlib.sha256(value.encode()).hexdigest() == post.get("business_key_sha256")), None)
         if not isinstance(key, str):
             raise ValueError("u03_java_receipt_capture_invalid")
+        if key not in database_by_key:
+            database_by_key[key] = read_business_rows(owner_id, key, readbacks[key][1]["id"])
+        database = database_by_key[key]
+        validate_business_rows(database, owner_sha, hashlib.sha256(key.encode()).hexdigest(), readbacks[key][1]["id"])
         successful = post.get("http_status") == 200
         readback_status, readback_vo = readbacks[key] if successful else (None, None)
         request_projection = _payload_projection(payload)
@@ -399,7 +405,7 @@ def _write_java_receipts(
             "owner_sha256": owner_sha, **request_projection,
         })
         raw = {
-            "schema": "ulticode-u03-java-receipt-v1", "scenario": scenario,
+            "schema": "ulticode-u03-java-receipt-v2", "scenario": scenario,
             "candidate_head": head, "u02_gate_sha256": gate_sha,
             "operation": "save_learning_plan", "request_id": post["request_id"],
             "thread_id": thread_id, "run_id": run_id, "owner_sha256": owner_sha,
@@ -416,7 +422,8 @@ def _write_java_receipts(
             "readback_status": readback_status, "readback_vo": readback_projection,
             "readback_vo_sha256": _projection_sha256(readback_projection) if readback_projection else None,
             "readback_payload_sha256": readback_fingerprints.get(key) if successful else None,
-            "business_rows": 1, "java_post_count": index + 1,
+            "business_rows": database["row_count"], "database_readback": database,
+            "java_post_count": index + 1,
         }
         target = evidence_dir / f"{scenario}.receipt-{index + 1}.json"
         digest = _private_no_clobber(target, raw)
@@ -924,7 +931,8 @@ async def _save_crash_scenario(
     return ({
         "fault_point": point, "child_exit": child_exit, "restart_by_key_status": by_key_status,
         "recovered_status": recovered_data.get("status"), "foreign_read_status": foreign_status,
-        "owner_read_status": recovered.status_code, "business_rows": int(bool(receipt)),
+        "owner_read_status": recovered.status_code,
+        "business_rows": receipt_doc["business_rows"] if receipt else None,
         "java_post_count": java_post_count,
         "java_commit_observed": bool(drop_response and java_post_count == 1),
         "response_lost": bool(drop_response and java_post_count == 1),
@@ -1362,6 +1370,7 @@ async def _java_idempotency_matrix(
         reads = {same_key: (200, readback), concurrent_key: (200, concurrent_readback),
                  mismatch_key: (200, mismatch_readback)}
         raw_refs = {}
+        business_counts = {}
         projections = []
         for name, key in keys.items():
             count = 2
@@ -1376,6 +1385,7 @@ async def _java_idempotency_matrix(
             )
             for ref in raw_refs[name]:
                 raw_receipt, _ = _read_json(evidence_dir.parent / ref["path"])
+                business_counts[name] = raw_receipt["business_rows"]
                 if raw_receipt["http_status"] == 200:
                     projections.append({
                         "scenario": name, "planId": raw_receipt["response_vo"]["id"],
@@ -1424,7 +1434,7 @@ async def _java_idempotency_matrix(
                     }.items())
                     for row in (first, second, readback)
                 ),
-                "business_rows": 1, "planId": readback.get("id"),
+                "business_rows": business_counts["java_same_key_same_payload"], "planId": readback.get("id"),
                 "businessKeySha256": hashlib.sha256(same_key.encode()).hexdigest(),
                 "receiptSha256": raw_refs["java_same_key_same_payload"][0]["sha256"],
                 "ownerSha256": owner_sha,
@@ -1433,14 +1443,15 @@ async def _java_idempotency_matrix(
                 **no_ids, "requests": len(raw_refs["java_concurrent_same_key"]),
                 "successes": sum(row.get("id") == concurrent[0].get("id") for row in concurrent),
                 "distinct_plan_ids": len({row.get("id") for row in concurrent}),
-                "business_rows": 1, "planId": concurrent_readback.get("id"),
+                "business_rows": business_counts["java_concurrent_same_key"], "planId": concurrent_readback.get("id"),
                 "businessKeySha256": hashlib.sha256(concurrent_key.encode()).hexdigest(),
                 "receiptSha256": raw_refs["java_concurrent_same_key"][0]["sha256"],
                 "ownerSha256": owner_sha,
             },
             "java_same_key_payload_mismatch": {
                 **no_ids, "first_status": 200, "first_code": 0, "changed_status": mismatch_status,
-                "changed_code": mismatch_code, "business_rows": 1, "planId": original.get("id"),
+                "changed_code": mismatch_code,
+                "business_rows": business_counts["java_same_key_payload_mismatch"], "planId": original.get("id"),
                 "businessKeySha256": hashlib.sha256(mismatch_key.encode()).hexdigest(),
                 "receiptSha256": raw_refs["java_same_key_payload_mismatch"][0]["sha256"],
                 "ownerSha256": owner_sha,

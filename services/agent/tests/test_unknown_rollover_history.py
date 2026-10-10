@@ -108,7 +108,25 @@ def test_v6_retains_all_failed_attempts_under_owner_cumulative_ceiling():
     assert retained + policy["limit_micro_usd"] == 7_898_400 < history["cumulative_limit_micro_usd"]
 
 
-@pytest.mark.parametrize("policy_id", ["acceptance-revalidation-v4", "acceptance-revalidation-v5", "acceptance-revalidation-v6"])
+def test_v7_retains_sealed_v6_and_complete_reviewed_acceptance_package():
+    policy = policy_for("acceptance-revalidation-v7")
+    history = policy["history"]
+    previous = REVALIDATION_V6_POLICY["history"]
+    assert history["attempts"] == previous["attempts"] + 105 == 523
+    assert history["known_actual_micro_usd"] == previous["known_actual_micro_usd"] + 28_533 == 138_808
+    assert history["known_committed_micro_usd"] == previous["known_committed_micro_usd"] + 928_800 == 4_368_914
+    assert history["unknown_attempts"] == previous["unknown_attempts"] == 2
+    assert history["unknown_encumbrance_micro_usd"] == previous["unknown_encumbrance_micro_usd"] == 1_572_864
+    assert policy["lanes"] == REVALIDATION_V6_POLICY["lanes"]
+    assert policy["attempts"] == 241
+    assert history["attempts"] + policy["attempts"] == history["cumulative_attempt_limit"] == 764
+    assert history["cumulative_limit_micro_usd"] == 100_000_000
+    assert policy["limit_micro_usd"] == 2_885_422
+    retained = history["known_committed_micro_usd"] + history["unknown_encumbrance_micro_usd"]
+    assert retained + policy["limit_micro_usd"] == 8_827_200 < history["cumulative_limit_micro_usd"]
+
+
+@pytest.mark.parametrize("policy_id", ["acceptance-revalidation-v4", "acceptance-revalidation-v5", "acceptance-revalidation-v6", "acceptance-revalidation-v7"])
 @pytest.mark.parametrize("mutation", [None, "fingerprint", "active", "unsettled", "unknown", "commit", "receipts"])
 def test_binding_rejects_changed_or_unsealed_history(monkeypatch, tmp_path, mutation, policy_id):
     from types import SimpleNamespace

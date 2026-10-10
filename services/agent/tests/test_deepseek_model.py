@@ -160,6 +160,7 @@ def test_modes_keep_untrusted_evidence_rule(tool_specs: dict[str, str]) -> None:
         assert "refuse unauthorized parts" in seen_system
         assert "execute independent authorized" in seen_system
         assert "current server session" in seen_system
+        assert "do not ask for confirmation again" in seen_system
         assert "ask for the submission ID before calling tools" in seen_system
         assert "never substitute listing recent submissions for clarification" in seen_system
 

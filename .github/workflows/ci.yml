@@ -66,12 +66,18 @@ jobs:
               - '.github/workflows/_backend.yml'
               - '.github/services-matrix.json'
             console:
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
               - 'apps/console/**'
               - 'packages/**'
               - 'shared/**'
               - '.github/workflows/ci.yml'
               - '.github/workflows/_frontend.yml'
             management:
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
               - 'apps/management/**'
               - 'packages/**'
               - 'shared/**'
@@ -87,6 +93,9 @@ jobs:
               - '.github/workflows/ci.yml'
               - '.github/workflows/_contract.yml'
             docker:
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
               - 'services/**'
               - 'apps/console/Dockerfile'
               - 'apps/management/Dockerfile'

@@ -1,0 +1,19 @@
+services/agent/tests/test_unknown_rollover_history.py
+  s_d7d89ac5ed97cf::t_348fbc6c3ebd17 129-146,160-161,169,171,174,188-189
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9b42ba4ad618a3d48a217718ad0dafbf031cb131",
+  "prompts": {},
+  "sessions": {
+    "s_d7d89ac5ed97cf": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12170-8d3d-7ec1-a9e0-ff3da265f589",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

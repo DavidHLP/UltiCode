@@ -1,0 +1,33 @@
+services/agent/e2e_u03_workflow.py
+  s_d7d89ac5ed97cf::t_2bd1a2546c8ce8 363,390-391,393-394,431,804-808,897,1338-1345,1347,1358,1367,1408
+services/agent/tests/test_delivery_drivers.py
+  s_d7d89ac5ed97cf::t_2bd1a2546c8ce8 37-39,1205
+  s_d7d89ac5ed97cf::t_786c6a4fb0ea5f 482-483,531-535,544-554
+services/agent/tests/test_delivery_gates.py
+  s_d7d89ac5ed97cf::t_6f4ff3afd431ed 799-800,806-808
+  s_d7d89ac5ed97cf::t_2bd1a2546c8ce8 675-681
+docs/DEVELOPMENT.md
+  s_d7d89ac5ed97cf::t_f21d26c34b300d 396-399
+services/agent/src/u03_database_readback.py
+  s_d7d89ac5ed97cf::t_2bd1a2546c8ce8 53-54,65-69
+services/agent/src/agent_service/gate.py
+  s_d7d89ac5ed97cf::t_2bd1a2546c8ce8 1803,1805,1922-1925
+services/agent/data/repository_corpus_manifest.json
+  s_d7d89ac5ed97cf::t_786c6a4fb0ea5f 32-33
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "230f7863c7c8da322da75de6e258cffc23195053",
+  "prompts": {},
+  "sessions": {
+    "s_d7d89ac5ed97cf": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12170-8d3d-7ec1-a9e0-ff3da265f589",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

@@ -137,7 +137,13 @@ where each case has two logical passes and up to three billed attempts per pass.
 session even when a later answer or judge pass aborts, with unknown token totals labelled `unknown`.
 
 The runner treats the generated answer as one untrusted JSON string value and tells the judge to
-ignore directives inside it (a prompt boundary, not proof of injection immunity), reserves the
+ignore directives inside it (a prompt boundary, not proof of injection immunity). The judge uses
+the selected citation list and fragments to assess support; inline IDs and verbatim quotes are not
+required, but selecting citations alone does not establish support. It classifies actual answer
+behavior rather than copying the expected label, and treats an appropriate refusal, evidence
+limitation, or clarification as a completed response when it addresses the question. Synthetic
+fragments do not substantiate claims about real submissions. These prompt rules do not guarantee
+model consistency or replace the recorded verdict and acceptance gate. The runner reserves the
 verdict and metadata-sidecar destinations in a consistent lock order before the first billed call
 and never overwrites an existing artifact, snapshots
 the corpus and case file once before the calls so the artifact identifies the material actually

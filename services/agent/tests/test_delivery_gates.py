@@ -104,6 +104,25 @@ def test_gate_issuer_rejects_unbound_or_unvalidated_payload():
         validate_u02_gate_payload({}, expected_head="a" * 40, expected_base="b" * 40)
 
 
+@pytest.mark.parametrize("raw", [b"\nEvidence\ntext\n", b"\r\nEvidence\r\ntext\r\n", b"Evidence\ntext"])
+def test_boundary_content_digest_matches_loaded_text(tmp_path, raw):
+    from agent_service.gate import _corpus_content_digest
+    from corpus_manifest import content_digest
+
+    path = tmp_path / "corpus.md"
+    path.write_bytes(raw)
+    assert _corpus_content_digest(tmp_path, path.name) == content_digest("Evidence\ntext")
+    path.write_text("Different evidence\ntext\n", encoding="utf-8")
+    assert _corpus_content_digest(tmp_path, path.name) != content_digest("Evidence\ntext")
+
+
+def test_boundary_content_digest_preserves_source_path_guard(tmp_path):
+    from agent_service.gate import _corpus_content_digest
+
+    with pytest.raises(GateError):
+        _corpus_content_digest(tmp_path, "../outside.md")
+
+
 def test_budget_gate_pins_original_period_and_rejects_unknown_identity():
     period = {
         "identity": {

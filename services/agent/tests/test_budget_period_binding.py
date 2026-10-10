@@ -635,6 +635,47 @@ def fresh_bound(slot, monkeypatch):
     return identity, budget, sources
 
 
+def test_sealed_history_view_is_read_only_without_recursive_history_checks(slot, monkeypatch):
+    identity, budget, _ = fresh_bound(slot, monkeypatch)
+    budget.halt()
+    expected = budget.snapshot()
+    history = json.loads((budget.path.parent / "binding.json").read_text())["retained_history"]
+    import revalidation_history
+    def reject_reentry(*args, **kwargs):
+        raise period.PeriodError("history already verified by the enclosing traversal")
+    monkeypatch.setattr(revalidation_history, "validate_history", reject_reentry)
+    view = ModelBudget._sealed_history_view(identity, history)
+    assert view.snapshot() == expected
+    view.verify_guard_history([])
+    with pytest.raises(sqlite3.OperationalError, match="readonly"):
+        with view._accounting() as (db, _):
+            db.execute("UPDATE budget SET attempts=1")
+    for operation in (view.activate, view.halt):
+        with pytest.raises(period.PeriodError):
+            operation()
+    with pytest.raises((BudgetLimitExceeded, sqlite3.OperationalError)):
+        view.reserve(1, 2000, purpose="prior_source")
+    with pytest.raises(period.PeriodError, match="already verified"):
+        ModelBudget.bound(identity)
+    assert budget.path.is_file()
+
+
+@pytest.mark.parametrize("fault", ["active", "sql_gate", "halted", "history"])
+def test_sealed_history_view_rejects_unsealed_or_different_binding(slot, monkeypatch, fault):
+    identity, budget, _ = fresh_bound(slot, monkeypatch)
+    history = json.loads((budget.path.parent / "binding.json").read_text())["retained_history"]
+    if fault != "active":
+        budget.halt()
+    if fault in {"sql_gate", "halted"}:
+        with sqlite3.connect(budget.path) as db:
+            db.execute("UPDATE binding SET gate='active'" if fault == "sql_gate"
+                       else "UPDATE budget SET halted=0")
+    if fault == "history":
+        history["baseline"]["unknown_attempts"] = 0
+    with pytest.raises(period.PeriodError):
+        ModelBudget._sealed_history_view(identity, history)
+
+
 def test_fresh_budget_preserves_history_and_lane_ceiling(slot, monkeypatch):
     identity, budget, sources = fresh_bound(slot, monkeypatch)
     snapshot = budget.snapshot()

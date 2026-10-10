@@ -67,7 +67,7 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<mybatis-plus.version>3.5.17</mybatis-plus.version>
 		<jjwt.version>0.13.0</jjwt.version>
-		<redisson.version>4.7.0</redisson.version>
+		<redisson.version>4.8.0</redisson.version>
 		<springdoc.version>2.9.1</springdoc.version>
 		<dubbo.version>3.3.6</dubbo.version>
 		<hutool.version>5.8.47</hutool.version>
@@ -76,7 +76,7 @@
 		<!-- OkHttp 5 ships an empty jar to Maven consumers; see the okhttp
 		     entry in dependencyManagement. -->
 		<okhttp.version>4.12.0</okhttp.version>
-		<japicmp.version>0.26.2</japicmp.version>
+		<japicmp.version>0.26.3</japicmp.version>
 		<coverage.bundle.minimum>0.50</coverage.bundle.minimum>
 		<!-- Submission has an explicit owner-specific floor because its current
 		     source-inclusive baseline is lower than the shared service floor. -->

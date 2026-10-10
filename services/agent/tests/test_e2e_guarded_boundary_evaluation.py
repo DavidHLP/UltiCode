@@ -81,7 +81,7 @@ def test_complete_runner_shared_guard_and_unknown_usage_stop(tmp_path, monkeypat
         assert requests.count("dav58_loop") == 9
         assert requests.count("dav58_judge") == 2  # citation + paid negative probe
         assert journal["settled_peak_micro_usd"] == 594
-        assert saved["budget"]["committed_micro_usd"] == 105600
+        assert saved["budget"]["committed_micro_usd"] == (52800 if fresh else 105600)
     else:
         assert journal["halted"] is True
         assert journal["pending_micro_usd"] == 786432
@@ -97,7 +97,7 @@ def test_complete_runner_shared_guard_and_unknown_usage_stop(tmp_path, monkeypat
         resumed = json.loads(entry.journal_path(identity).read_text())
         assert resumed["receipts"][:len(prior_receipts)] == prior_receipts
         assert resumed["settled_peak_micro_usd"] == 1188
-        assert budget.snapshot()["committed_micro_usd"] == 211200
+        assert budget.snapshot()["committed_micro_usd"] == (105600 if fresh else 211200)
     else:
         prior_requests = list(requests)
         prior_artifact = artifact.read_bytes()

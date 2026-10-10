@@ -195,3 +195,20 @@ def test_period_receipts_never_confirm_unknown_or_pending_usage(actual, unknown,
     )
     assert receipts[0]["settled"] is accepted
     assert receipts[0]["usage_known"] is (actual is not None)
+
+
+@pytest.mark.parametrize("probe", [False, True])
+def test_judge_publication_binds_serialized_period_receipt(tmp_path, probe):
+    meter = {"attempt_id": "judge-attempt", "actual_micro_usd": 10}
+    published_meter = {**meter, "usage_known": True, "settled": True}
+    raw = {"attempt_id": meter["attempt_id"], "metering_receipt_index": 0,
+           "metering_receipt_sha256": e2e_boundary_evaluation._digest_json(meter)}
+    item = {"_judge_receipt_raw" if probe else "_raw_receipt": raw}
+    e2e_boundary_evaluation._publish_judge_evidence(
+        [] if probe else [{"citation_judgements": [item]}], [item] if probe else [],
+        tmp_path / "result.json", {}, 1, [{"attempt_id": "loop-attempt"}, published_meter],
+    )
+    ref = item["judge_receipt" if probe else "receipt"]
+    saved = json.loads((tmp_path / ref["path"]).read_text())
+    assert saved["metering_receipt_index"] == 1
+    assert saved["metering_receipt_sha256"] == e2e_boundary_evaluation._digest_json(published_meter)

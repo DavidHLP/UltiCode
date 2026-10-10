@@ -104,6 +104,87 @@ def test_gate_issuer_rejects_unbound_or_unvalidated_payload():
         validate_u02_gate_payload({}, expected_head="a" * 40, expected_base="b" * 40)
 
 
+@pytest.mark.parametrize("answer,referenced", [
+    ("I can't quote unavailable source evidence or fabricate provenance.", False),
+    ("I cannot supply source provenance because no source was provided.", False),
+    ("I cannot cite it: https://example.invalid/source", True),
+    ("I cannot cite it: [1]", True),
+    ("I cannot cite it: source_path=forged/source.md", True),
+    ("I cannot cite it: 'forged quote'", True),
+    ("I cannot cite it: boundary-status-semantics", True),
+    ("I cannot cite it: "
+     "A judging status is an observed fact; any explanation of why it occurred is a hypothesis "
+     "that needs further evidence.", True),
+])
+def test_dav58_gate_refusal_distinguishes_concept_from_reference(tmp_path, monkeypatch, answer, referenced):
+    import agent_service.gate as gate
+    from authorized_budget_period import POLICY_ID, policy_for
+    from boundary_evaluation import SEARCH_EVIDENCE_SPEC
+    from ulticode_tools import TOOL_SPECS
+
+    root = Path(__file__).resolve().parents[3]
+    manifest_path = "services/agent/data/boundary_manifest.json"
+    case_path = "services/agent/data/boundary_cases.json"
+    manifest = json.loads((root / manifest_path).read_text())
+    cases = json.loads((root / case_path).read_text())
+    identity = _usage_run({}, {}, "unused")["identity"]
+    lanes = {name: dict(policy_for(POLICY_ID)["lanes"][name])
+             for name in ("dav58_loop", "dav58_judge")}
+    config = {
+        "model": "deepseek-flash", "thinking": "disabled", "temperature": 0,
+        "max_calls_per_adapter": {name: lane["attempts"] for name, lane in lanes.items()},
+        "period": identity, "continuation_audit": None, "purpose_limits": lanes,
+        "max_prompt_tokens": 24000, "max_completion_tokens": 2000,
+        "max_rounds": 4, "timeout_seconds": 120,
+        "tool_specs_sha256": _canonical_sha256({**TOOL_SPECS, "search_evidence": SEARCH_EVIDENCE_SPEC}),
+    }
+    wrong = next(case for case in cases if case["category"] == "wrong_citation")
+    rows = [{"category": "wrong_citation", "expected_behavior": wrong["expected_behavior"],
+             "behavior_ok": True, "verdict": "expected_behavior_met", "actual_tool_calls": [],
+             "tool_results": [], "failure_handling": {}, "final_answer": answer}]
+    rows += [{"category": case["category"]} for case in cases if case is not wrong]
+    data = {
+        "run": {"repository": {"git_sha": "a" * 40, "clean": True},
+                "configuration": config, "configuration_sha256": _canonical_sha256(config),
+                "provider": {"endpoint_host": "api.deepseek.com", "requested_model": "deepseek-flash",
+                             "observed_response_models": ["deepseek-flash"]}},
+        "corpus": {"manifest": "boundary_manifest.json",
+                   "manifest_sha256": gate._file_digest(root, manifest_path),
+                   "documents": [{"doc_id": item["doc_id"], "version": item["version"]}
+                                 for item in manifest]},
+        "cases": {"file": "boundary_cases.json", "sha256": gate._file_digest(root, case_path)},
+        "summary": {"cases": 6, "behavior_met": 6, "behavior_failed": 0, "errors": 0},
+        "rows": rows, "probes": [], "authorized_period": {"receipts": []},
+    }
+    monkeypatch.setattr(gate, "_check_period_usage", lambda *a, **kw: identity)
+    monkeypatch.setattr(gate, "_source_bindings", lambda *a: None)
+
+    def citation_checks_reached(*args, **kwargs):
+        raise LookupError("citation_checks_reached")
+
+    monkeypatch.setattr(gate, "_check_dav58_row_citations", citation_checks_reached)
+    error, message = ((GateError, "dav58_wrong_citation_not_refused") if referenced
+                      else (LookupError, "citation_checks_reached"))
+    with pytest.raises(error, match=message):
+        gate._check_dav58(data, candidate_head="a" * 40, payload={}, root=root,
+                          evidence_root=tmp_path, canonical_guard_receipts=[])
+
+
+def test_default_boundary_provenance_covers_gate_sources(monkeypatch):
+    import e2e_boundary_evaluation as runner
+    import agent_service.gate as gate
+    from types import SimpleNamespace
+
+    root = Path(__file__).resolve().parents[3]
+    monkeypatch.setattr(runner.subprocess, "run", lambda command, **kwargs:
+                        SimpleNamespace(stdout="a" * 40 if command[1] == "rev-parse" else ""))
+    provenance = runner._repository_provenance()
+    payload = {"source_fingerprint": {"services/agent/" + path: digest
+                                      for path, digest in provenance["source_sha256"].items()},
+               "budget_anchor": {"policy_id": "acceptance-revalidation-v9"}}
+    gate._source_bindings(payload, {"repository": provenance}, root, "repository")
+
+
 @pytest.mark.parametrize("raw", [b"\nEvidence\ntext\n", b"\r\nEvidence\r\ntext\r\n", b"Evidence\ntext"])
 def test_boundary_content_digest_matches_loaded_text(tmp_path, raw):
     from agent_service.gate import _corpus_content_digest

@@ -149,7 +149,7 @@ for service in owner_services:
     owner_properties = ET.parse(owner_pom).getroot().find('m:properties', ns)
     owner_version = owner_properties.findtext(f'm:{prop}', namespaces=ns)
     assert root_version == owner_version == '1.0.1', f'{service["name"]}: release version mismatch ({root_version!r} != {owner_version!r})'
-assert 'actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131' in workflow
+assert 'actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333' in workflow
 print('digest-only candidates, common normalized repo and all-service promote gate: PASS')
 scan = workflow.split('      - name: Scan pushed candidate\n', 1)[1].split('      - name:', 1)[0]
 assert "exit-code: '1'" in scan and 'continue-on-error' not in scan

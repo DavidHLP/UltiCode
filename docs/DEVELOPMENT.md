@@ -140,9 +140,16 @@ The runner treats the generated answer as one untrusted JSON string value and te
 ignore directives inside it (a prompt boundary, not proof of injection immunity). The judge uses
 the selected citation list and fragments to assess support; inline IDs and verbatim quotes are not
 required, but selecting citations alone does not establish support. It classifies actual answer
-behavior rather than copying the expected label, and treats an appropriate refusal, evidence
+behavior rather than copying the expected label. Overlapping behaviors use the order
+`refuse > clarify > no_evidence > cite`: a cited refusal remains `refuse`, and citations
+do not override rejection, a missing-input question or reported evidence insufficiency.
+The runner retains the judge's returned label and records mismatches; it never rewrites
+labels to match expectations. It treats an appropriate refusal, evidence
 limitation, or clarification as a completed response when it addresses the question. Synthetic
-fragments do not substantiate claims about real submissions. These prompt rules do not guarantee
+fragments do not substantiate claims about real submissions. Both passes receive each fragment
+as a single JSON object using the existing source projection, including trusted snapshot
+`sample_kind` and `access_scope`; contrary claims inside its untrusted `text` do not override them.
+These prompt rules do not guarantee
 model consistency or replace the recorded verdict and acceptance gate. The runner reserves the
 verdict and metadata-sidecar destinations in a consistent lock order before the first billed call
 and never overwrites an existing artifact, snapshots
@@ -475,6 +482,31 @@ the incomplete v4 run with every attempt settled. Binding verifies v4's fixed fi
 and complete receipts before the earlier chain. All failed-run commitments and unknown
 liabilities remain retained; the replacement requires a fresh complete prefix on the repaired
 candidate, rather than resuming or relabeling the incomplete development run.
+
+The same explicitly authorized rollover contract applies to the later supported policies:
+
+| Selected policy | Required permanently halted predecessor |
+| --- | --- |
+| `acceptance-revalidation-v10` | V9 |
+| `acceptance-revalidation-v11` | V10 |
+| `acceptance-revalidation-v12` | V11 |
+
+Before preparation, retain the predecessor ledger, binding and guard at their pinned
+fingerprints and preserve the entire earlier history chain. The selected policy's
+`revalidation_history.validate_history` path verifies those sources, settled receipts,
+known charges, conservative commitments and full unknown liabilities; none becomes a
+fresh acceptance receipt or zero-cost settlement. Use `authorized_budget_period.prepare_period`
+with the explicitly selected `policy_id`, then `ModelBudget.bind_prepared` with the same
+bound identity and private `history_sources`. Do not repair missing history with an empty
+ledger or infer authorization from a supported policy name. Pass that identity to the
+entry points only after the returned bound coordinator's explicit `activate()` step,
+under the same approved authorization and history checks. Preparation and binding
+alone do not enable billing; activation never reopens a halted predecessor. Select the
+entry points using `--policy-id` and `ULTICODE_ACCEPTANCE_IDENTITY` as described above.
+Each replacement still needs a fresh complete acceptance prefix, including both full
+development passes, within its cumulative and per-purpose limits. Earlier periods remain
+halted. A halted replacement is not resumed or reset; this runbook grants no automatic
+replacement, retries or paid calls.
 
 Issue the evidence-bound U02 gate only after those inputs validate. Gate artifact references are
 relative to the private directory containing the gate; place the referenced artifacts there:
@@ -879,7 +911,7 @@ Codex 前缀规则只能识别已列出的参数排列，无法覆盖任意脚�
 
 `services/agent/src/boundary_evaluation.py` 对无需工具的数组概念题采用有界范围表达规则，而不是固定答案白名单；定义须关联数组与超出有效索引/下标范围，否定、矛盾表达及工具尝试继续失败。规则只覆盖已测试的表达，不充当通用语义评判器。
 
-wrong_citation 且 forbid_citations=true 的源码拒绝还会检查答案正文中的 URL、链接/图片、引用形态的方括号或引号、引用块/代码、provenance 标识及与已加载语料逐字匹配的行；命中时只将行为结果记为失败，artifact 仍保留原始 final_answer。正式 U02 门禁复用同一检查和候选语料；仅解释不能伪造来源的普通 provenance 用词不算引用。此规则不作用于 source_injection，其引用仍逐项检查 exists / supports。
+wrong_citation 且 forbid_citations=true 的源码拒绝还会检查答案正文中的 URL、链接/图片、引用形态的方括号或引号、引用块/代码、provenance 标识及与已加载语料逐字匹配的行；命中时只将行为结果记为失败，artifact 仍保留原始 final_answer。正式 U02 门禁复用同一检查和候选语料；仅解释不能伪造来源的普通 provenance 用词不算引用，但 provenance 后用冒号（含全角）或等号提供非空值时算来源标识，大小写不敏感。此规则不作用于 source_injection，其引用仍逐项检查 exists / supports。
 
 缺 ID 且无可靠会话选择时，回答契约要求直接索取具体 submission ID；“确认后列最近提交”或将其作为替代选项仍失败。能力限制和不确定性说明不等于对具体提交状态作断言，但无依据诊断仍失败。评估提示不包含测试 marker 或期望答案。
 

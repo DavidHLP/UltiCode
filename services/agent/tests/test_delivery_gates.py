@@ -17,8 +17,54 @@ assert _SPEC and _SPEC.loader
 u03 = importlib.util.module_from_spec(_SPEC)
 _SPEC.loader.exec_module(u03)
 
-@pytest.mark.parametrize("status,code", [(502, 50000), (200, 40900)])
-def test_cancel_fence_preserves_safe_failed_read_diagnostics(status, code):
+def test_cancel_fence_retries_transient_state_read_failure():
+    import asyncio
+    import httpx
+
+    async def scenario():
+        thread_id, run_id = str(uuid.uuid4()), str(uuid.uuid4())
+        draft = {"draftVersion": 3, "title": "Existing draft", "content": "Keep this draft."}
+        analysis_started = asyncio.Event()
+        cancel_requested = asyncio.Event()
+        state_reads = 0
+
+        def success(data):
+            return httpx.Response(200, json={"code": 0, "message": "success", "data": data,
+                                             "traceId": "private-trace"})
+
+        async def respond(request):
+            nonlocal state_reads
+            if request.method == "POST" and request.url.path == "/agent/threads":
+                return success({"threadId": thread_id, "draft": draft})
+            if request.method == "POST" and request.url.path.endswith("/analyze"):
+                analysis_started.set()
+                await cancel_requested.wait()
+                return success({"status": "cancelled", "runId": run_id})
+            if request.method == "POST" and request.url.path.endswith("/cancel"):
+                cancel_requested.set()
+                return success({"status": "cancelled", "runId": run_id})
+            if request.method == "GET":
+                await analysis_started.wait()
+                state_reads += 1
+                if state_reads == 1:
+                    return httpx.Response(502, json={"code": 50000, "message": "private-message",
+                                                     "data": {"reason": "private-reason"},
+                                                     "traceId": "private-trace"})
+                status = "analyzing" if state_reads == 2 else "cancelled"
+                return success({"status": status, "runId": run_id, "draft": draft})
+            raise AssertionError("unexpected_request")
+
+        async with httpx.AsyncClient(transport=httpx.MockTransport(respond),
+                                    base_url="http://localhost") as session:
+            result = await u03._cancel_old_run_fence(session, str(uuid.uuid4()))
+        assert result["cancel_committed_before_late_result"] is True
+        assert result["old_result_applied"] is False
+        assert state_reads == 3
+
+    asyncio.run(scenario())
+
+
+def test_cancel_fence_fails_closed_on_nontransient_state_read_failure():
     import asyncio
     import httpx
 
@@ -28,15 +74,15 @@ def test_cancel_fence_preserves_safe_failed_read_diagnostics(status, code):
                 data = {"threadId": str(uuid.uuid4()), "draft": {}}
                 return httpx.Response(200, json={"code": 0, "message": "success", "data": data,
                                               "traceId": "private-trace"})
-            return httpx.Response(status, json={"code": code, "message": "private-message",
-                                               "data": {"reason": "private-reason"},
-                                               "traceId": "private-trace"})
+            return httpx.Response(200, json={"code": 40900, "message": "private-message",
+                                             "data": {"reason": "private-reason"},
+                                             "traceId": "private-trace"})
 
         async with httpx.AsyncClient(transport=httpx.MockTransport(respond),
                                     base_url="http://localhost") as session:
             with pytest.raises(ValueError) as failure:
                 await u03._cancel_old_run_fence(session, str(uuid.uuid4()))
-        assert str(failure.value) == f"cancel_fence_state_unavailable:http={status}:code={code}"
+        assert str(failure.value) == "cancel_fence_state_unavailable:http=200:code=40900"
 
     asyncio.run(scenario())
 

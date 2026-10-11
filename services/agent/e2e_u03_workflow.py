@@ -1264,13 +1264,20 @@ async def _cancel_old_run_fence(
     before = initial["draft"]
     analysis_task = asyncio.create_task(session.post(f"/agent/threads/{thread_id}/analyze", json={}))
     analysis_run_id = None
-    deadline = asyncio.get_running_loop().time() + 10
+    deadline = asyncio.get_running_loop().time() + 30
+    last_state_error = None
     while asyncio.get_running_loop().time() < deadline:
         current_response = await session.get(f"/agent/threads/{thread_id}")
         current_code, current = _envelope(current_response)
         if current_response.status_code != 200 or current_code != 0:
+            error = f"cancel_fence_state_unavailable:http={current_response.status_code}:code={current_code}"
+            if 500 <= current_response.status_code < 600 and current_code == 50000 and not analysis_task.done():
+                last_state_error = error
+                await asyncio.sleep(0.25)
+                continue
             analysis_task.cancel()
-            raise ValueError(f"cancel_fence_state_unavailable:http={current_response.status_code}:code={current_code}")
+            raise ValueError(error)
+        last_state_error = None
         if current.get("status") == "analyzing":
             analysis_run_id = current.get("runId")
             if not analysis_run_id:
@@ -1283,6 +1290,8 @@ async def _cancel_old_run_fence(
         await asyncio.sleep(0.05)
     else:
         analysis_task.cancel()
+        if last_state_error is not None:
+            raise ValueError(last_state_error)
         raise TimeoutError("cancel_fence_analyzing_state_timeout")
     cancel_response = await session.post(f"/agent/threads/{thread_id}/cancel", json={})
     cancel_code, canceled = _envelope(cancel_response)

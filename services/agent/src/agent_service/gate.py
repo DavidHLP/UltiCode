@@ -990,6 +990,8 @@ def _check_dav58_raw_judge(
         "messages": [{"role": "system", "content": system}, {"role": "user", "content": user_prompt}],
         "temperature": 0, "max_tokens": 2000, "thinking": {"type": "disabled"},
     }
+    if isinstance(request_body, dict) and "response_format" in request_body:
+        expected_body["response_format"] = {"type": "json_object"}
     body_sha = hashlib.sha256(json.dumps(
         expected_body, ensure_ascii=False, separators=(",", ":"), allow_nan=False,
     ).encode()).hexdigest()

@@ -410,7 +410,9 @@ requires zero rows; this checks database configuration and access before writing
 binds that zero-row observation to the final one-row readback in the same database/container.
 The pre-HTTP crash scenario instead requires zero rows both before the fault and after recovery.
 Credentials travel through `MYSQL_PWD`, never
-command arguments or evidence. Java receipt schema v2 includes the redacted database readback;
+command arguments or evidence. The MySQL account must permit the reader's TCP loopback connection
+(`127.0.0.1`) inside the container; an account restricted to `@localhost` may be rejected. Java
+receipt schema v2 includes the redacted database readback;
 missing counts, multiple rows, or a plan mismatch reject acceptance. HTTP by-key readback and
 the unique-key migration alone are not substitutes for this observation. This test-only reader
 does not add database access to the Agent service or execute any database mutation.

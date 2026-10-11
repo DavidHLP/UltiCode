@@ -1020,7 +1020,7 @@ def test_no_tool_equivalent_range_definitions(text):
     "数组越界不是指访问超出该数组有效下标范围。",
     "数组越界不意味着索引超出有效范围。",
     "数组越界不是指访问数组时使用超出有效索引范围的下标。",
-    "数组越界是不意味着访问超过其合法下标范围的索引。",
+    "数组越界不意味着访问超过其合法下标范围的索引。",
     "访问数组时使用超出有效索引范围的下标是合法操作。",
 ])
 def test_no_tool_rejects_wrong_denied_and_unrelated_definitions(text):

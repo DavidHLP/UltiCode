@@ -1001,6 +1001,8 @@ def test_case_records_provider_response_identity_unknown_when_absent() -> None:
     "数组越界指下标不在数组的有效范围内。",
     "Array out of bounds means an index outside the array's valid range.",
     "数组越界指访问超出数组长度的索引。",
+    "数组越界是访问数组时使用超出有效索引范围的下标。",
+    "数组越界指访问超过其合法下标范围的索引。",
 ])
 def test_no_tool_equivalent_range_definitions(text):
     script = _all_met_script()
@@ -1017,6 +1019,9 @@ def test_no_tool_equivalent_range_definitions(text):
     "数组是一种结构。索引超出有效范围。",
     "数组越界不是指访问超出该数组有效下标范围。",
     "数组越界不意味着索引超出有效范围。",
+    "数组越界不是指访问数组时使用超出有效索引范围的下标。",
+    "数组越界是不意味着访问超过其合法下标范围的索引。",
+    "访问数组时使用超出有效索引范围的下标是合法操作。",
 ])
 def test_no_tool_rejects_wrong_denied_and_unrelated_definitions(text):
     script = _all_met_script()

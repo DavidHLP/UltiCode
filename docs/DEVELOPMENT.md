@@ -493,6 +493,7 @@ The same explicitly authorized rollover contract applies to the later supported 
 | `acceptance-revalidation-v11` | V10 |
 | `acceptance-revalidation-v12` | V11 |
 | `acceptance-revalidation-v13` | V12, including its retained unknown request |
+| `acceptance-revalidation-v14` | Settled V13 on the integrated U03 candidate |
 
 Before preparation, retain the predecessor ledger, binding and guard at their pinned
 fingerprints and preserve the entire earlier history chain. The selected policy's
@@ -518,6 +519,12 @@ liabilities, never new acceptance receipts or verified provider charges.
 V12 remains permanently halted; V13 starts
 its complete fresh prefix on the newly bound candidate. Unknown settlement needs
 verifiable provider usage and must not be inferred from a balance change.
+
+V14 continues only within the owner's cumulative USD200 authorization. Its sealed
+V13 predecessor must have no unsettled or newly unknown requests; all known costs,
+commitments and inherited unknown liabilities remain cumulative. Failed protocol
+evidence stays in the predecessor, while the integrated candidate receives a fresh
+complete acceptance prefix without changing the existing purpose or token limits.
 
 Issue the evidence-bound U02 gate only after those inputs validate. Gate artifact references are
 relative to the private directory containing the gate; place the referenced artifacts there:

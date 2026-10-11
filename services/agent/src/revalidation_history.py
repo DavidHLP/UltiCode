@@ -41,16 +41,23 @@ UNKNOWN_ROLLOVER_SHA256 = {
 }
 
 
-def _validate_unknown_rollover_history(sources):
-    from authorized_budget_period import PeriodError, PeriodIdentity, REVALIDATION_V3_HISTORY, _parent, _file
+def _validate_unknown_rollover_history(sources, *, predecessor="v2"):
+    from authorized_budget_period import PeriodError, PeriodIdentity, REVALIDATION_V3_HISTORY, REVALIDATION_V13_HISTORY, _parent, _file
     from model_budget import ModelBudget, authorization_slot
     from dav58_live_guard import IncrementalGuard
 
-    previous = _validate_rollover_history(sources)
-    expected = PeriodIdentity(**UNKNOWN_ROLLOVER_IDENTITY)
+    if predecessor == "v12":
+        previous = _validate_rollover_history(sources, settled_policy="v11")
+        identity, fingerprints, baseline = V12_ROLLOVER_IDENTITY, V12_ROLLOVER_SHA256, REVALIDATION_V13_HISTORY
+    elif predecessor == "v2":
+        previous = _validate_rollover_history(sources)
+        identity, fingerprints, baseline = UNKNOWN_ROLLOVER_IDENTITY, UNKNOWN_ROLLOVER_SHA256, REVALIDATION_V3_HISTORY
+    else:
+        raise PeriodError("unsupported unknown rollover predecessor")
+    expected = PeriodIdentity(**identity)
     accounting = authorization_slot(expected) / "accounting"
     hashes, files = {}, {}
-    for name, digest in UNKNOWN_ROLLOVER_SHA256.items():
+    for name, digest in fingerprints.items():
         path = accounting / name
         with _parent(path) as directory:
             fd = _file(directory, path.name, os.O_RDONLY)
@@ -68,7 +75,7 @@ def _validate_unknown_rollover_history(sources):
     budget = ModelBudget._sealed_history_view(expected, previous)
     snapshot = budget.snapshot()
     guard = json.loads(files[f"dav58-increment-{expected.identity}.json"])
-    _check_unknown_rollover(snapshot, guard)
+    _check_unknown_rollover(snapshot, guard, predecessor=predecessor)
     # Validate only the settled historical prefix; this view never authorizes resume.
     known = {**guard, "halted": False, "pending_micro_usd": 0, "receipts": guard["receipts"][:-1]}
     try:
@@ -87,25 +94,36 @@ def _validate_unknown_rollover_history(sources):
     if rows != [(last["attempt_id"], last["lane"], None, 0, 1, last["request_sha256"])]:
         raise PeriodError("retained unknown request binding differs")
     return {"sources": sources, "sha256": {**previous["sha256"], **hashes},
-            "baseline": dict(REVALIDATION_V3_HISTORY), "acceptance_evidence": False,
+            "baseline": dict(baseline), "acceptance_evidence": False,
             "unknown_released": False}
 
 
-def _check_unknown_rollover(snapshot, guard):
+def _check_unknown_rollover(snapshot, guard, *, predecessor="v2"):
     from authorized_budget_period import PeriodError
 
+    if predecessor == "v12":
+        attempts, actual, committed = 5, 697, 48_000
+        attempt_id = "d7026201-c803-4d20-8296-5632575bd0f9"
+        request_sha256 = "97915b2819a4cfa4aba4c4b979a7514dc49e93412ba3efc49e87473b722dc0ac"
+    elif predecessor == "v2":
+        attempts, actual, committed = 25, 5928, 240_000
+        attempt_id = "630b0d60-4270-47ab-b42c-4e407df78a6a"
+        request_sha256 = "26a76e0d7c1289b4a3b8c17a18aae3ca8f2015ec857c213782372ab8cf426dec"
+    else:
+        raise PeriodError("unsupported unknown rollover predecessor")
+
     if (snapshot["state"] != "halted" or snapshot["sql_gate"] != "halted"
-            or snapshot["halted"] != 1 or snapshot["attempts"] != 25
-            or snapshot["actual_micro_usd"] != 5928 or snapshot["committed_micro_usd"] != 240_000
+            or snapshot["halted"] != 1 or snapshot["attempts"] != attempts
+            or snapshot["actual_micro_usd"] != actual or snapshot["committed_micro_usd"] != committed
             or snapshot["unknown_usage_attempts"] != 1 or snapshot["unsettled_attempts"] != 0
             or guard.get("halted") is not True or guard.get("pending_micro_usd") != 786_432
-            or not isinstance(guard.get("receipts"), list) or len(guard["receipts"]) != 25):
+            or not isinstance(guard.get("receipts"), list) or len(guard["receipts"]) != attempts):
         raise PeriodError("previous unknown liability must remain sealed")
     last = guard["receipts"][-1]
     if (last.get("status") != "unknown_or_unsafe" or last.get("reason") != "network_or_read_failure"
-            or last.get("attempt_id") != "630b0d60-4270-47ab-b42c-4e407df78a6a"
+            or last.get("attempt_id") != attempt_id
             or last.get("lane") != "prior_development" or last.get("reserved_micro_usd") != 786_432
-            or last.get("request_sha256") != "26a76e0d7c1289b4a3b8c17a18aae3ca8f2015ec857c213782372ab8cf426dec"):
+            or last.get("request_sha256") != request_sha256):
         raise PeriodError("retained unknown identity differs")
 
 
@@ -225,6 +243,19 @@ V11_ROLLOVER_SHA256 = {
 }
 
 
+V12_ROLLOVER_IDENTITY = {
+    "period_id": "revalidation-v12-20261010",
+    "identity": "0e14f56bfed6461b9e9555584da59c62",
+    "config_sha256": "3687c43437f1e55f91b9db5b68d2ad299c10f2dee421224991841ff22ad3b317",
+    "policy_id": "acceptance-revalidation-v12",
+}
+V12_ROLLOVER_SHA256 = {
+    "budget.sqlite3": "ab39e29fc9827b505699079aed830ca79a22149ac7613d1c0b33998b3bd13664",
+    "binding.json": "17d1aacf803182ed6924bda9a76d374ded3b3056f2e3b43315edf69608654876",
+    "dav58-increment-0e14f56bfed6461b9e9555584da59c62.json": "5eb9edc046b185cb03dc29193a2e2ec3bc7a834be9737046b4a78dd690a077ef",
+}
+
+
 def _validate_rollover_history(sources, *, settled_policy="v1"):
     from authorized_budget_period import PeriodError, PeriodIdentity, REVALIDATION_V2_HISTORY, REVALIDATION_V4_HISTORY, REVALIDATION_V5_HISTORY, REVALIDATION_V6_HISTORY, REVALIDATION_V7_HISTORY, REVALIDATION_V8_HISTORY, REVALIDATION_V9_HISTORY, REVALIDATION_V10_HISTORY, REVALIDATION_V11_HISTORY, REVALIDATION_V12_HISTORY, _parent, _file
     from model_budget import ModelBudget, authorization_slot
@@ -309,9 +340,12 @@ def _validate_rollover_history(sources, *, settled_policy="v1"):
 
 
 def validate_history(sources, *, policy_id="acceptance-revalidation-v1"):
+    from authorized_budget_period import REVALIDATION_V13_POLICY_ID
     from authorized_budget_period import PeriodError, REVALIDATION_HISTORY, _parent, _file
     from authorized_budget_period import REVALIDATION_POLICY_ID, REVALIDATION_V2_POLICY_ID, REVALIDATION_V3_POLICY_ID, REVALIDATION_V4_POLICY_ID, REVALIDATION_V5_POLICY_ID, REVALIDATION_V6_POLICY_ID, REVALIDATION_V7_POLICY_ID, REVALIDATION_V8_POLICY_ID, REVALIDATION_V9_POLICY_ID, REVALIDATION_V10_POLICY_ID, REVALIDATION_V11_POLICY_ID, REVALIDATION_V12_POLICY_ID
 
+    if policy_id == REVALIDATION_V13_POLICY_ID:
+        return _validate_unknown_rollover_history(sources, predecessor="v12")
     if policy_id == REVALIDATION_V2_POLICY_ID:
         return _validate_rollover_history(sources)
     if policy_id == REVALIDATION_V3_POLICY_ID:

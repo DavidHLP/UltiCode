@@ -476,6 +476,7 @@ The same explicitly authorized rollover contract applies to the later supported 
 | `acceptance-revalidation-v10` | V9 |
 | `acceptance-revalidation-v11` | V10 |
 | `acceptance-revalidation-v12` | V11 |
+| `acceptance-revalidation-v13` | V12, including its retained unknown request |
 
 Before preparation, retain the predecessor ledger, binding and guard at their pinned
 fingerprints and preserve the entire earlier history chain. The selected policy's
@@ -493,6 +494,14 @@ Each replacement still needs a fresh complete acceptance prefix, including both 
 development passes, within its cumulative and per-purpose limits. Earlier periods remain
 halted. A halted replacement is not resumed or reset; this runbook grants no automatic
 replacement, retries or paid calls.
+
+V13 requires explicit owner authorization to continue DeepSeek under the cumulative
+USD200 ceiling. Its sealed V12 history retains every earlier attempt, known charge,
+conservative commitment and all three unknown liabilities. These are cumulative
+liabilities, never new acceptance receipts or verified provider charges.
+V12 remains permanently halted; V13 starts
+its complete fresh prefix on the newly bound candidate. Unknown settlement needs
+verifiable provider usage and must not be inferred from a balance change.
 
 Issue the evidence-bound U02 gate only after those inputs validate. Gate artifact references are
 relative to the private directory containing the gate; place the referenced artifacts there:

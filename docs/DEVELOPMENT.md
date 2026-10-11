@@ -1047,6 +1047,10 @@ explicit confirmation; TTY interaction and human participation are not prerequis
 `--interactive-confirm` is optional. Autonomous runs retain the same authenticated
 owner, draftVersion, paramsDigest, confirmationId, expiry, Java save/readback and
 restart/recovery checks; this does not auto-confirm ordinary end-user workflows.
+Editing a confirmed draft invalidates its confirmation ID. Saving with that ID
+returns HTTP 409 (`confirmation_mismatch`, code 40900), including after further
+edits; an unconfirmed request with an unrelated ID returns HTTP 400. The internal
+invalidation marker is persisted but excluded from public confirmation metadata.
 Artifacts identify `confirmation_actor=autonomous` and keep `human_demo_completed`
 false. `workflow_demo_completed` requires a non-synthetic completed service flow;
 mocked tests remain synthetic and cannot satisfy formal acceptance. Legacy field

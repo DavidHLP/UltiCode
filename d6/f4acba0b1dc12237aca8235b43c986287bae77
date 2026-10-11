@@ -1,0 +1,27 @@
+services/app/app-web/pom.xml
+  s_7fda136455a0e8::t_1bfd2829921940 94,233,247
+services/core/pom.xml
+  s_7fda136455a0e8::t_d7a94137c4c0e7 122,134
+services/platform/web-security/pom.xml
+  s_7fda136455a0e8::t_89e1ff9bd173d7 116
+services/pom.xml
+  s_7fda136455a0e8::t_da3ade977a9019 70,79
+services/search/pom.xml
+  s_7fda136455a0e8::t_e1bfe6a6a4be02 97
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d6f4acba0b1dc12237aca8235b43c986287bae77",
+  "prompts": {},
+  "sessions": {
+    "s_7fda136455a0e8": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a128b6-4eb1-74f3-9f24-ff2c5aaca720",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

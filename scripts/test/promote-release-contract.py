@@ -43,7 +43,7 @@ def seed(base):
         (folder / f"{name}.spdx.json").write_text(json.dumps(spdx))
         (folder / f"{name}.provenance.json").write_text(json.dumps(provenance))
         (folder / f"{name}.trivy.json").write_text(json.dumps(trivy))
-        (folder / f"{name}.version").write_text("1.0.1\n" if service.get("maven_version_property") else "\n")
+        (folder / f"{name}.version").write_text("1.0.2\n" if service.get("maven_version_property") else "\n")
         (folder / f"{name}.source-commit").write_text(SHA + "\n")
     return root
 
@@ -163,7 +163,7 @@ def main():
             image = f"{PREFIX}/{service_name}"
             existing_tags[f"{image}:sha-{SHA[:7]}"] = DIGEST
             if service.get("maven_version_property"):
-                existing_tags[f"{image}:v1.0.1"] = DIGEST
+                existing_tags[f"{image}:v1.0.2"] = DIGEST
         state.write_text(json.dumps(existing_tags)); log.write_text("")
         key = f"{PREFIX}/{MATRIX[0]['name']}:sha-{SHA[:7]}"
         result = call(root, bindir, state, log, "--execute", **GITHUB_WRITER, BAD_FINAL_READBACK=key)

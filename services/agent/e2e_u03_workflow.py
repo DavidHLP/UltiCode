@@ -1270,7 +1270,7 @@ async def _cancel_old_run_fence(
         current_code, current = _envelope(current_response)
         if current_response.status_code != 200 or current_code != 0:
             analysis_task.cancel()
-            raise ValueError("cancel_fence_state_unavailable")
+            raise ValueError(f"cancel_fence_state_unavailable:http={current_response.status_code}:code={current_code}")
         if current.get("status") == "analyzing":
             analysis_run_id = current.get("runId")
             if not analysis_run_id:

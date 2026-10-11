@@ -93,6 +93,16 @@ for service in services:
         raise SystemExit(f"{path}: sampling default must be between 0 and 1")
     if "Authorization: ${MANAGEMENT_OTLP_AUTHORIZATION:}" not in text:
         raise SystemExit(f"{path}: OTLP authorization header mapping is missing")
+    if service in ("notification", "search", "judge"):
+        metrics = re.search(
+            r"^  otlp:\n    metrics:\n      export:\n"
+            r"        enabled: \$\{MANAGEMENT_OTLP_METRICS_ENABLED:false\}\n"
+            r"        url: \$\{MANAGEMENT_OTLP_METRICS_ENDPOINT:http://localhost:4318/v1/metrics\}\n"
+            r"        step: \$\{MANAGEMENT_OTLP_METRICS_STEP:30s\}$",
+            text, re.MULTILINE,
+        )
+        if metrics is None:
+            raise SystemExit(f"{path}: OTLP metrics must retain management.otlp.metrics.export bindings")
 PY
 printf 'owner OTLP sampling and authorization bindings: PASS\n'
 contains .github/services-matrix.json '"artifact": "backend-search-exec.jar"'

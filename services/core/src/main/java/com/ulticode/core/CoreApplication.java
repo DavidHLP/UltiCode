@@ -9,10 +9,10 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.SpringBootConfiguration;
-import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
-import org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration;
-import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
-import org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration;
+import org.springframework.boot.data.redis.autoconfigure.DataRedisAutoConfiguration;
+import org.springframework.boot.data.redis.autoconfigure.DataRedisRepositoriesAutoConfiguration;
+import org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration;
+import org.springframework.boot.jdbc.autoconfigure.DataSourceTransactionManagerAutoConfiguration;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootConfiguration
@@ -21,8 +21,8 @@ import org.springframework.scheduling.annotation.EnableScheduling;
         exclude = {
                 DataSourceAutoConfiguration.class,
                 DataSourceTransactionManagerAutoConfiguration.class,
-                RedisAutoConfiguration.class,
-                RedisRepositoriesAutoConfiguration.class,
+                DataRedisAutoConfiguration.class,
+                DataRedisRepositoriesAutoConfiguration.class,
                 MybatisPlusAutoConfiguration.class,
                 RedissonAutoConfigurationV2.class,
                 RedissonAutoConfigurationV4.class

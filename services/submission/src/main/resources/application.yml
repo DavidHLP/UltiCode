@@ -3,6 +3,9 @@ server:
   shutdown: graceful
 
 spring:
+  http:
+    converters:
+      preferred-json-mapper: jackson2
   application:
     name: backend-submission
   lifecycle:
@@ -75,12 +78,14 @@ management:
   tracing:
     sampling:
       probability: ${MANAGEMENT_TRACING_SAMPLING_PROBABILITY:1.0}
-  otlp:
+  opentelemetry:
     tracing:
-      endpoint: ${MANAGEMENT_OTLP_TRACING_ENDPOINT:http://localhost:4318/v1/traces}
-      headers:
-        Authorization: ${MANAGEMENT_OTLP_AUTHORIZATION:}
-      timeout: 5s
+      export:
+        otlp:
+          endpoint: ${MANAGEMENT_OTLP_TRACING_ENDPOINT:http://localhost:4318/v1/traces}
+          headers:
+            Authorization: ${MANAGEMENT_OTLP_AUTHORIZATION:}
+          timeout: 5s
     metrics:
       export:
         enabled: ${MANAGEMENT_OTLP_METRICS_ENABLED:false}

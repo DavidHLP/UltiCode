@@ -12,8 +12,9 @@ public class OtlpSecurityAutoConfiguration {
 
     @Bean
     OtlpEndpointSecurityPolicy otlpEndpointSecurityPolicy(Environment environment) {
-        String endpoint = environment.getProperty("management.otlp.tracing.endpoint");
-        String authorization = environment.getProperty("management.otlp.tracing.headers.Authorization");
+        String endpoint = environment.getProperty("management.opentelemetry.tracing.export.otlp.endpoint");
+        String authorization = environment.getProperty(
+                "management.opentelemetry.tracing.export.otlp.headers.Authorization");
         return OtlpEndpointSecurityPolicy.validate(endpoint, authorization);
     }
 
@@ -25,17 +26,17 @@ public class OtlpSecurityAutoConfiguration {
             }
             if (endpoint == null || endpoint.isBlank()) {
                 throw new IllegalStateException(
-                        "management.otlp.tracing.endpoint is required when authorization is configured");
+                        "management.opentelemetry.tracing.export.otlp.endpoint is required when authorization is configured");
             }
             try {
                 URI uri = URI.create(endpoint.trim());
                 if (!"https".equalsIgnoreCase(uri.getScheme())) {
                     throw new IllegalStateException(
-                            "management.otlp.tracing.endpoint must use https when authorization is configured");
+                            "management.opentelemetry.tracing.export.otlp.endpoint must use https when authorization is configured");
                 }
             } catch (IllegalArgumentException exception) {
                 throw new IllegalStateException(
-                        "management.otlp.tracing.endpoint is not a valid URI", exception);
+                        "management.opentelemetry.tracing.export.otlp.endpoint is not a valid URI", exception);
             }
             return new OtlpEndpointSecurityPolicy();
         }

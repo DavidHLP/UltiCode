@@ -70,6 +70,12 @@
             <groupId>com.ulticode</groupId>
             <artifactId>backend-search</artifactId>
             <version>${service.version.search}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-grpc-server</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>
@@ -113,7 +119,7 @@
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
-            <version>13.8.1</version>
+            <version>13.9.0</version>
             <scope>test</scope>
             <exclusions>
                 <exclusion>
@@ -125,7 +131,7 @@
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-mysql</artifactId>
-            <version>13.8.1</version>
+            <version>13.9.0</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

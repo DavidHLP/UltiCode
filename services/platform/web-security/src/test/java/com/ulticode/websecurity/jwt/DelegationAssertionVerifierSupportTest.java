@@ -11,7 +11,6 @@ import java.security.KeyPairGenerator;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
-import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -19,7 +18,7 @@ import org.junit.jupiter.api.Test;
 class DelegationAssertionVerifierSupportTest {
 
     private static final String KEY_ID = "admin-delegation-v1";
-    private static final Instant NOW = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+    private static final Instant NOW = Instant.parse("2020-01-01T00:00:00Z");
 
     @Test
     void validatesRs256HeaderAndBoundClaims() throws Exception {
@@ -36,6 +35,18 @@ class DelegationAssertionVerifierSupportTest {
 
         assertThat(claims.getSubject()).isEqualTo("admin-1");
         assertThat(claims.getId()).isNotBlank();
+    }
+
+    @Test
+    void rejectsExpiredAssertionUsingSuppliedClock() throws Exception {
+        KeyPair keyPair = rsaKeyPair();
+        String assertion = assertion(keyPair, KEY_ID, NOW.plusSeconds(30), NOW);
+
+        assertThatThrownBy(() -> DelegationAssertionVerifierSupport.verify(
+                assertion, keyPair.getPublic(), KEY_ID,
+                DelegationAssertionContract.ISSUER, "backend-app",
+                Clock.fixed(NOW.plusSeconds(31), ZoneOffset.UTC)))
+                .isInstanceOf(io.jsonwebtoken.ExpiredJwtException.class);
     }
 
     @Test

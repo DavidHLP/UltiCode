@@ -32,8 +32,8 @@
   "dependencies": {
     "clsx": "^2.1.1",
     "tailwind-merge": "^3.7.0",
-    "@lucide/vue": "1.50.0",
-    "@tabler/icons-vue": "^3.46.0"
+    "@lucide/vue": "1.52.0",
+    "@tabler/icons-vue": "^3.49.0"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.9",

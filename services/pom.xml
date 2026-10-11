@@ -52,13 +52,13 @@
 		<!-- Per-service release versions: bump individually to release one owner
 		     service (its image tag) independently of the shared platform modules.
 		     Consumed by docker-publish.yml to add a v<version> GHCR tag. -->
-		<service.version.auth>1.0.1</service.version.auth>
-		<service.version.admin>1.0.1</service.version.admin>
-		<service.version.app>1.0.1</service.version.app>
-		<service.version.submission>1.0.1</service.version.submission>
-		<service.version.search>1.0.1</service.version.search>
-		<service.version.notification>1.0.1</service.version.notification>
-		<service.version.judge>1.0.1</service.version.judge>
+		<service.version.auth>1.0.2</service.version.auth>
+		<service.version.admin>1.0.2</service.version.admin>
+		<service.version.app>1.0.2</service.version.app>
+		<service.version.submission>1.0.2</service.version.submission>
+		<service.version.search>1.0.2</service.version.search>
+		<service.version.notification>1.0.2</service.version.notification>
+		<service.version.judge>1.0.2</service.version.judge>
 		<java.version>17</java.version>
 		<!-- Security fixes newer than the Spring Boot dependency BOM. -->
 		<jackson-2-bom.version>2.21.7</jackson-2-bom.version>
@@ -67,7 +67,7 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<mybatis-plus.version>3.5.17</mybatis-plus.version>
 		<jjwt.version>0.13.0</jjwt.version>
-		<redisson.version>4.7.0</redisson.version>
+		<redisson.version>4.8.0</redisson.version>
 		<springdoc.version>3.1.1</springdoc.version>
 		<dubbo.version>3.3.6</dubbo.version>
 		<hutool.version>5.8.47</hutool.version>
@@ -76,7 +76,7 @@
 		<!-- OkHttp 5 ships an empty jar to Maven consumers; see the okhttp
 		     entry in dependencyManagement. -->
 		<okhttp.version>4.12.0</okhttp.version>
-		<japicmp.version>0.26.2</japicmp.version>
+		<japicmp.version>0.26.3</japicmp.version>
 		<coverage.bundle.minimum>0.50</coverage.bundle.minimum>
 		<!-- Submission has an explicit owner-specific floor because its current
 		     source-inclusive baseline is lower than the shared service floor. -->

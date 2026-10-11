@@ -40,7 +40,7 @@ def test_complete_runner_shared_guard_and_unknown_usage_stop(tmp_path, monkeypat
     monkeypatch.setenv("DEEPSEEK_API_KEY", "dummy-mock-token")
     artifact = tmp_path / "result.json"
     monkeypatch.setattr(entry.runner, "_artifact_path", lambda: artifact)
-    monkeypatch.setattr(entry.runner, "_repository_provenance", lambda: {"git_sha": "a" * 40, "clean": True, "source_sha256": {"src/boundary_evaluation.py": "b" * 64}})
+    monkeypatch.setattr(entry.runner, "_repository_provenance", lambda *a: {"git_sha": "a" * 40, "clean": True, "source_sha256": {"src/boundary_evaluation.py": "b" * 64}})
     script, positions, requests = _all_met_script(), {}, []
     def transport(guard, lane):
         def handler(request):
@@ -122,7 +122,7 @@ def test_prepared_period_constructs_no_guard(tmp_path, monkeypatch):
     accounting.ModelBudget.bind_prepared(identity)
     monkeypatch.setenv("DEEPSEEK_MODEL", "deepseek-flash")
     monkeypatch.setenv("DEEPSEEK_API_KEY", "dummy-mock-token")
-    monkeypatch.setattr(entry.runner, "_repository_provenance", lambda: {"source_sha256": {}})
+    monkeypatch.setattr(entry.runner, "_repository_provenance", lambda *a: {"source_sha256": {}})
     with pytest.raises(accounting.BudgetLimitExceeded): asyncio.run(entry.run(identity))
     assert not entry.journal_path(identity).exists()
 
@@ -136,7 +136,7 @@ def test_invalid_configuration_does_not_claim_journal(tmp_path, monkeypatch, mod
     identity = period.prepare_period(slot / "period", "offline", accounting.authorized_period_config_sha256()).identity
     budget = accounting.ModelBudget.bind_prepared(identity)
     budget.activate()
-    monkeypatch.setattr(entry.runner, "_repository_provenance", lambda: {"source_sha256": {}})
+    monkeypatch.setattr(entry.runner, "_repository_provenance", lambda *a: {"source_sha256": {}})
     if model is None: monkeypatch.delenv("DEEPSEEK_MODEL", raising=False)
     else: monkeypatch.setenv("DEEPSEEK_MODEL", model)
     monkeypatch.setenv("DEEPSEEK_API_KEY", key)
@@ -195,7 +195,7 @@ def test_audited_continuation_runs_once_preserves_baseline(tmp_path, monkeypatch
             return response(content)
         return GuardedTransport(guard, lane, httpx.MockTransport(handler))
     monkeypatch.setattr(entry, "GuardedTransport", transport)
-    monkeypatch.setattr(entry.runner, "_repository_provenance", lambda: {"git_sha": "a" * 40, "source_sha256": {"src/boundary_evaluation.py": "b" * 64}, "clean": True})
+    monkeypatch.setattr(entry.runner, "_repository_provenance", lambda *a: {"git_sha": "a" * 40, "source_sha256": {"src/boundary_evaluation.py": "b" * 64}, "clean": True})
     monkeypatch.setattr(entry.runner, "_artifact_path", lambda: tmp_path / "result.json")
     sha = hashlib.sha256(entry.journal_path(identity).read_bytes()).hexdigest()
     assert asyncio.run(entry.run(identity, resume_sha256=sha)) == 0

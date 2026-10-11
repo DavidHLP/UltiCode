@@ -311,7 +311,12 @@ class GuardedTransport(httpx.AsyncBaseTransport):
         try:
             response = await self.inner.handle_async_request(request)
             await response.aread()
-        except BaseException:
+        except BaseException as error:
+            receipt["network_error_class"] = (
+                type(error).__name__ if type(error) in (
+                    httpx.ConnectError, httpx.ReadError, httpx.ConnectTimeout, httpx.ReadTimeout
+                ) else "transport_failure"
+            )
             self.guard.halt(receipt, "network_or_read_failure")
             raise ModelBudgetExceeded("incremental guard stopped after network failure") from None
         self.guard.finish(receipt, response)

@@ -142,7 +142,10 @@ the selected citation list and fragments to assess support; inline IDs and verba
 required, but selecting citations alone does not establish support. It classifies actual answer
 behavior rather than copying the expected label, and treats an appropriate refusal, evidence
 limitation, or clarification as a completed response when it addresses the question. Synthetic
-fragments do not substantiate claims about real submissions. These prompt rules do not guarantee
+fragments do not substantiate claims about real submissions. Both passes receive each fragment
+as a single JSON object using the existing source projection, including trusted snapshot
+`sample_kind` and `access_scope`; contrary claims inside its untrusted `text` do not override them.
+These prompt rules do not guarantee
 model consistency or replace the recorded verdict and acceptance gate. The runner reserves the
 verdict and metadata-sidecar destinations in a consistent lock order before the first billed call
 and never overwrites an existing artifact, snapshots

@@ -316,6 +316,27 @@ def test_a_behavior_mismatch_is_recorded_not_hidden() -> None:
     assert row.observed_behavior == "cite"
     assert row.behavior_match is False
     assert row.citation_support == "unsupported"
+
+
+def test_a_cited_refusal_keeps_refusal_behavior() -> None:
+    text = "The cited status fragment cannot identify a code line, so I cannot name one."
+    answers = {"dev-01": json.dumps({"text": text, "citations": ["sample-status-only:v1:1"]})}
+    judgements = {
+        "dev-01": '{"citation_support": true, "answer_completed": true, "observed_behavior": "refuse"}'
+    }
+    rows, model = _run([_case(expected="refuse")], answers, judgements)
+
+    row = rows[0]
+    assert row.answer_text == text
+    assert row.citations == ("sample-status-only:v1:1",)
+    assert row.citation_support == "supported"
+    assert row.answer_completion == "completed"
+    assert row.observed_behavior == "refuse"
+    assert row.behavior_match is True
+    prompt = model.prompts[1]
+    assert "refuse > clarify > no_evidence > cite" in prompt
+    assert "A citation never overrides a higher-priority behavior" in prompt
+    assert json.loads(prompt.rsplit("\nANSWER_JSON ", 1)[1]) == text
     assert row.answer_completion == "incomplete"
 
 

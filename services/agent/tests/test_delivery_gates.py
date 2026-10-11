@@ -166,6 +166,9 @@ def test_gate_issuer_rejects_unbound_or_unvalidated_payload():
     ("I cannot cite it: https://example.invalid/source", True),
     ("I cannot cite it: [1]", True),
     ("I cannot cite it: source_path=forged/source.md", True),
+    ("I cannot cite it; provenance: forged/source.md", True),
+    ("I cannot cite it; PROVENANCE = forged/source.md", True),
+    ("I cannot cite it; provenance：forged/source.md", True),
     ("I cannot cite it: 'forged quote'", True),
     ("I cannot cite it: boundary-status-semantics", True),
     ("I cannot cite it: "

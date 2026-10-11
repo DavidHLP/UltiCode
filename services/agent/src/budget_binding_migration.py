@@ -460,7 +460,7 @@ _MAX_LEDGER_TEXT = 64
 _GUARD_STATE_KEYS = ("config_sha256", "continuation_run", "halted", "limit_micro_usd",
                      "pending_micro_usd", "period_identity", "policy", "receipts",
                      "settled_peak_micro_usd")
-_GUARD_RECEIPT_KEYS = ("completion_token_cap", "completion_tokens", "finished_at_utc", "lane",
+_GUARD_RECEIPT_KEYS = ("completion_token_cap", "completion_tokens", "finished_at_utc", "lane", "network_error_class",
                        "peak_micro_usd", "prompt_token_cap", "prompt_tokens", "reason",
                        "request_bytes", "request_model", "request_sha256", "reserved_micro_usd",
                        "response_model", "started_at_utc", "status", "total_tokens")
@@ -625,6 +625,11 @@ def validate_recovery_sources(sources, guard, unknown_match):
         if (not isinstance(receipt, dict) or not set(receipt) <= set(_GUARD_RECEIPT_KEYS)
                 or not isinstance(receipt.get("lane"), str)
                 or not 1 <= len(receipt["lane"]) <= _MAX_LANE_TEXT
+                or ("network_error_class" in receipt and (
+                    type(receipt["network_error_class"]) is not str
+                    or receipt["network_error_class"] not in (
+                        "ConnectError", "ReadError", "ConnectTimeout", "ReadTimeout", "transport_failure"
+                    )))
                 or (peak_micro_usd is not None and not _bounded_count(peak_micro_usd))
                 or any(not _bounded_scalar(value) for value in receipt.values())):
             raise ValueError("guard receipt declares missing or unbounded fields")

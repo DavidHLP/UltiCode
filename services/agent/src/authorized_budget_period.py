@@ -66,7 +66,13 @@ REVALIDATION_V3_POLICY_ID = "acceptance-revalidation-v3"
 REVALIDATION_V4_POLICY_ID = "acceptance-revalidation-v4"
 REVALIDATION_V5_POLICY_ID = "acceptance-revalidation-v5"
 REVALIDATION_V6_POLICY_ID = "acceptance-revalidation-v6"
-REVALIDATION_POLICY_IDS = frozenset({REVALIDATION_POLICY_ID, REVALIDATION_V2_POLICY_ID, REVALIDATION_V3_POLICY_ID, REVALIDATION_V4_POLICY_ID, REVALIDATION_V5_POLICY_ID, REVALIDATION_V6_POLICY_ID})
+REVALIDATION_V7_POLICY_ID = "acceptance-revalidation-v7"
+REVALIDATION_V8_POLICY_ID = "acceptance-revalidation-v8"
+REVALIDATION_V9_POLICY_ID = "acceptance-revalidation-v9"
+REVALIDATION_V10_POLICY_ID = "acceptance-revalidation-v10"
+REVALIDATION_V11_POLICY_ID = "acceptance-revalidation-v11"
+REVALIDATION_V12_POLICY_ID = "acceptance-revalidation-v12"
+REVALIDATION_POLICY_IDS = frozenset({REVALIDATION_POLICY_ID, REVALIDATION_V2_POLICY_ID, REVALIDATION_V3_POLICY_ID, REVALIDATION_V4_POLICY_ID, REVALIDATION_V5_POLICY_ID, REVALIDATION_V6_POLICY_ID, REVALIDATION_V7_POLICY_ID, REVALIDATION_V8_POLICY_ID, REVALIDATION_V9_POLICY_ID, REVALIDATION_V10_POLICY_ID, REVALIDATION_V11_POLICY_ID, REVALIDATION_V12_POLICY_ID})
 REVALIDATION_V2_HISTORY = MappingProxyType({
     "attempts": 164, "known_actual_micro_usd": 42_307,
     "known_committed_micro_usd": 1_138_514,
@@ -136,6 +142,66 @@ REVALIDATION_V6_POLICY = MappingProxyType({
     **REVALIDATION_V5_POLICY, "history": REVALIDATION_V6_HISTORY,
 })
 
+REVALIDATION_V7_HISTORY = MappingProxyType({
+    "attempts": 523, "known_actual_micro_usd": 138_808,
+    "known_committed_micro_usd": 4_368_914,
+    "unknown_attempts": 2, "unknown_encumbrance_micro_usd": 1_572_864,
+    "cumulative_attempt_limit": 764, "cumulative_limit_micro_usd": 100_000_000,
+})
+REVALIDATION_V7_POLICY = MappingProxyType({
+    **REVALIDATION_V6_POLICY, "history": REVALIDATION_V7_HISTORY,
+})
+
+REVALIDATION_V8_HISTORY = MappingProxyType({
+    "attempts": 627, "known_actual_micro_usd": 167_047,
+    "known_committed_micro_usd": 5_296_514,
+    "unknown_attempts": 2, "unknown_encumbrance_micro_usd": 1_572_864,
+    "cumulative_attempt_limit": 868, "cumulative_limit_micro_usd": 200_000_000,
+})
+REVALIDATION_V8_POLICY = MappingProxyType({
+    **REVALIDATION_V7_POLICY, "history": REVALIDATION_V8_HISTORY,
+})
+
+REVALIDATION_V9_HISTORY = MappingProxyType({
+    "attempts": 711, "known_actual_micro_usd": 188_686,
+    "known_committed_micro_usd": 6_102_914,
+    "unknown_attempts": 2, "unknown_encumbrance_micro_usd": 1_572_864,
+    "cumulative_attempt_limit": 952, "cumulative_limit_micro_usd": 200_000_000,
+})
+REVALIDATION_V9_POLICY = MappingProxyType({
+    **REVALIDATION_V8_POLICY, "history": REVALIDATION_V9_HISTORY,
+})
+
+REVALIDATION_V10_HISTORY = MappingProxyType({
+    "attempts": 815, "known_actual_micro_usd": 216_940,
+    "known_committed_micro_usd": 7_030_514,
+    "unknown_attempts": 2, "unknown_encumbrance_micro_usd": 1_572_864,
+    "cumulative_attempt_limit": 1056, "cumulative_limit_micro_usd": 200_000_000,
+})
+REVALIDATION_V10_POLICY = MappingProxyType({
+    **REVALIDATION_V9_POLICY, "history": REVALIDATION_V10_HISTORY,
+})
+
+REVALIDATION_V11_HISTORY = MappingProxyType({
+    "attempts": 899, "known_actual_micro_usd": 238_504,
+    "known_committed_micro_usd": 7_836_914,
+    "unknown_attempts": 2, "unknown_encumbrance_micro_usd": 1_572_864,
+    "cumulative_attempt_limit": 1140, "cumulative_limit_micro_usd": 200_000_000,
+})
+REVALIDATION_V11_POLICY = MappingProxyType({
+    **REVALIDATION_V10_POLICY, "history": REVALIDATION_V11_HISTORY,
+})
+
+REVALIDATION_V12_HISTORY = MappingProxyType({
+    "attempts": 983, "known_actual_micro_usd": 262_218,
+    "known_committed_micro_usd": 8_643_314,
+    "unknown_attempts": 2, "unknown_encumbrance_micro_usd": 1_572_864,
+    "cumulative_attempt_limit": 1224, "cumulative_limit_micro_usd": 200_000_000,
+})
+REVALIDATION_V12_POLICY = MappingProxyType({
+    **REVALIDATION_V11_POLICY, "history": REVALIDATION_V12_HISTORY,
+})
+
 
 def policy_for(policy_id: str):
     if policy_id == POLICY_ID:
@@ -152,6 +218,18 @@ def policy_for(policy_id: str):
         return REVALIDATION_V5_POLICY
     if policy_id == REVALIDATION_V6_POLICY_ID:
         return REVALIDATION_V6_POLICY
+    if policy_id == REVALIDATION_V7_POLICY_ID:
+        return REVALIDATION_V7_POLICY
+    if policy_id == REVALIDATION_V8_POLICY_ID:
+        return REVALIDATION_V8_POLICY
+    if policy_id == REVALIDATION_V9_POLICY_ID:
+        return REVALIDATION_V9_POLICY
+    if policy_id == REVALIDATION_V10_POLICY_ID:
+        return REVALIDATION_V10_POLICY
+    if policy_id == REVALIDATION_V11_POLICY_ID:
+        return REVALIDATION_V11_POLICY
+    if policy_id == REVALIDATION_V12_POLICY_ID:
+        return REVALIDATION_V12_POLICY
     raise PeriodError("unsupported policy")
 
 

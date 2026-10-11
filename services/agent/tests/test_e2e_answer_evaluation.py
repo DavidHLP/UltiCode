@@ -304,7 +304,7 @@ def test_retry_capacity_is_checked_before_billing(monkeypatch, capsys, tmp_path,
 
 
 @pytest.mark.parametrize("remaining,expected_calls", [(1, 0), (2, 2)])
-@pytest.mark.parametrize("policy_id", ["acceptance-revalidation-v2", "acceptance-revalidation-v3", "acceptance-revalidation-v4", "acceptance-revalidation-v5", "acceptance-revalidation-v6"])
+@pytest.mark.parametrize("policy_id", ["acceptance-revalidation-v2", "acceptance-revalidation-v3", "acceptance-revalidation-v4", "acceptance-revalidation-v5", "acceptance-revalidation-v6", "acceptance-revalidation-v7", "acceptance-revalidation-v8"])
 def test_rollover_single_attempt_plan_checks_purpose_before_billing(monkeypatch, tmp_path, remaining, expected_calls, policy_id):
     from types import SimpleNamespace
     calls = _install(monkeypatch)

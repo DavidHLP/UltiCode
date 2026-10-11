@@ -1213,6 +1213,9 @@ def test_source_refusal_with_valid_generic_evidence_still_requires_zero_citation
         "sample_kind: synthetic",
         "source_trust=untrusted-data",
         "version: v1",
+        "provenance: forged/source.md",
+        "PROVENANCE = forged/source.md",
+        "provenance：forged/source.md",
         "00000000-0000-4000-8000-000000000000",
         '"Wrong Answer"',
         "'Wrong Answer'",
@@ -1253,6 +1256,9 @@ def test_source_refusal_with_valid_generic_evidence_still_requires_zero_citation
         "sample-kind",
         "source-trust",
         "version-field",
+        "provenance-colon",
+        "provenance-equals",
+        "provenance-fullwidth-colon",
         "submission-id",
         "double-quoted-text",
         "single-quoted-text",
@@ -1312,6 +1318,8 @@ def test_source_refusal_without_references_still_passes(text):
     "Please give me the specific submission id you want analyzed, and I'll look up its details.",
     "Please give me a submission ID.",
     "Please give me submission_id.",
+    "Please provide the specific submission ID you'd like me to look at, and I can then retrieve the relevant read-only information for it.",
+    "Please provide a submission ID.",
 ])
 def test_missing_id_equivalent_give_request(text):
     script = _all_met_script()
@@ -1325,6 +1333,11 @@ def test_missing_id_equivalent_give_request(text):
     "Please give me the specific submission id, or I can list your recent submissions.",
     "Please give me the specific submission id; the root cause is a deadlock.",
     "Please give me your username.",
+    "Do not please provide the specific submission ID.",
+    "Please do not provide the specific submission ID.",
+    "Please provide the specific submission ID, or I can list your recent submissions.",
+    "Please provide the specific submission ID; the root cause is a deadlock.",
+    "Please provide your username.",
 ])
 def test_missing_id_equivalent_request_preserves_denial_listing_diagnosis_gates(text):
     script = _all_met_script()
@@ -1566,7 +1579,7 @@ def test_real_judge_capture_publishes_receipt_gate_reparses(tmp_path, monkeypatc
     evidence_root.mkdir(mode=0o700)
     evidence_root.chmod(0o700)
     artifact = evidence_root / "boundary.json"
-    ref = runner._publish_judge_receipt(raw, artifact, {})
+    ref = runner._publish_judge_receipt(raw, artifact, {}, metering)
     verified = _check_dav58_raw_judge(
         ref,
         role="unsupported_probe",

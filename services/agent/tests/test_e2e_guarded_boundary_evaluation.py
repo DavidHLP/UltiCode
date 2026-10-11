@@ -17,12 +17,22 @@ import e2e_guarded_boundary_evaluation as entry
 
 
 @pytest.mark.parametrize("failure_lane", [None, "dav58_loop", "dav58_judge"])
-def test_complete_runner_shared_guard_and_unknown_usage_stop(tmp_path, monkeypatch, failure_lane):
+@pytest.mark.parametrize("policy_id", [period.POLICY_ID, period.REVALIDATION_V8_POLICY_ID])
+def test_complete_runner_shared_guard_and_unknown_usage_stop(tmp_path, monkeypatch, failure_lane, policy_id):
+    fresh = policy_id != period.POLICY_ID
     slot = tmp_path / "slot"
     slot.mkdir()
     monkeypatch.setattr(accounting, "_authorization_slot", lambda: slot)
     monkeypatch.setattr(entry, "_authorization_slot", lambda: slot)
-    identity = period.prepare_period(slot / "period", "offline", accounting.authorized_period_config_sha256()).identity
+    root = slot.parent / policy_id if fresh else slot
+    if fresh:
+        root.mkdir(mode=0o700)
+        import revalidation_history
+        monkeypatch.setattr(revalidation_history, "validate_history", lambda sources, **kwargs: {
+            "sources": sources, "baseline": dict(period.policy_for(policy_id)["history"]),
+            "sha256": {}, "acceptance_evidence": False, "unknown_released": False,
+        })
+    identity = period.prepare_period(root / "period", "offline", accounting.authorized_period_config_sha256(policy_id), policy_id=policy_id).identity
     budget = accounting.ModelBudget.bind_prepared(identity)
     budget.activate()  # ONLY this temporary test period
     monkeypatch.setenv("ULTICODE_BOUNDARY_EVAL", "1")
@@ -30,7 +40,7 @@ def test_complete_runner_shared_guard_and_unknown_usage_stop(tmp_path, monkeypat
     monkeypatch.setenv("DEEPSEEK_API_KEY", "dummy-mock-token")
     artifact = tmp_path / "result.json"
     monkeypatch.setattr(entry.runner, "_artifact_path", lambda: artifact)
-    monkeypatch.setattr(entry.runner, "_repository_provenance", lambda: {"git_sha": "a" * 40, "clean": True, "source_sha256": {"src/boundary_evaluation.py": "b" * 64}})
+    monkeypatch.setattr(entry.runner, "_repository_provenance", lambda *a: {"git_sha": "a" * 40, "clean": True, "source_sha256": {"src/boundary_evaluation.py": "b" * 64}})
     script, positions, requests = _all_met_script(), {}, []
     def transport(guard, lane):
         def handler(request):
@@ -52,11 +62,16 @@ def test_complete_runner_shared_guard_and_unknown_usage_stop(tmp_path, monkeypat
                 "choices": [{"finish_reason": "stop", "message": {"content": content}}]})
         return GuardedTransport(guard, lane, httpx.MockTransport(handler))
     monkeypatch.setattr(entry, "GuardedTransport", transport)
+    original_transport = entry.runner.acceptance_transport
     assert asyncio.run(entry.run(identity)) == int(failure_lane is not None)
+    assert entry.runner.acceptance_transport is original_transport
     saved = json.loads(artifact.read_text())
     journal = json.loads(entry.journal_path(identity).read_text())
     assert saved["run"]["repository"]["execution_entry"] == "e2e_guarded_boundary_evaluation.py"
-    assert set(saved["run"]["repository"]["source_sha256"]) == {"src/boundary_evaluation.py", "e2e_guarded_boundary_evaluation.py", "src/dav58_live_guard.py"}
+    expected_sources = {"src/boundary_evaluation.py", "e2e_guarded_boundary_evaluation.py", "src/dav58_live_guard.py"}
+    if fresh:
+        expected_sources.add("src/revalidation_history.py")
+    assert set(saved["run"]["repository"]["source_sha256"]) == expected_sources
     assert journal["period_identity"] == identity.identity
     assert len(journal["receipts"]) == len(requests)
     assert "dummy-mock-token" not in artifact.read_text() + entry.journal_path(identity).read_text()
@@ -66,7 +81,7 @@ def test_complete_runner_shared_guard_and_unknown_usage_stop(tmp_path, monkeypat
         assert requests.count("dav58_loop") == 9
         assert requests.count("dav58_judge") == 2  # citation + paid negative probe
         assert journal["settled_peak_micro_usd"] == 594
-        assert saved["budget"]["committed_micro_usd"] == 105600
+        assert saved["budget"]["committed_micro_usd"] == (52800 if fresh else 105600)
     else:
         assert journal["halted"] is True
         assert journal["pending_micro_usd"] == 786432
@@ -82,7 +97,7 @@ def test_complete_runner_shared_guard_and_unknown_usage_stop(tmp_path, monkeypat
         resumed = json.loads(entry.journal_path(identity).read_text())
         assert resumed["receipts"][:len(prior_receipts)] == prior_receipts
         assert resumed["settled_peak_micro_usd"] == 1188
-        assert budget.snapshot()["committed_micro_usd"] == 211200
+        assert budget.snapshot()["committed_micro_usd"] == (105600 if fresh else 211200)
     else:
         prior_requests = list(requests)
         prior_artifact = artifact.read_bytes()
@@ -107,7 +122,7 @@ def test_prepared_period_constructs_no_guard(tmp_path, monkeypatch):
     accounting.ModelBudget.bind_prepared(identity)
     monkeypatch.setenv("DEEPSEEK_MODEL", "deepseek-flash")
     monkeypatch.setenv("DEEPSEEK_API_KEY", "dummy-mock-token")
-    monkeypatch.setattr(entry.runner, "_repository_provenance", lambda: {"source_sha256": {}})
+    monkeypatch.setattr(entry.runner, "_repository_provenance", lambda *a: {"source_sha256": {}})
     with pytest.raises(accounting.BudgetLimitExceeded): asyncio.run(entry.run(identity))
     assert not entry.journal_path(identity).exists()
 
@@ -121,7 +136,7 @@ def test_invalid_configuration_does_not_claim_journal(tmp_path, monkeypatch, mod
     identity = period.prepare_period(slot / "period", "offline", accounting.authorized_period_config_sha256()).identity
     budget = accounting.ModelBudget.bind_prepared(identity)
     budget.activate()
-    monkeypatch.setattr(entry.runner, "_repository_provenance", lambda: {"source_sha256": {}})
+    monkeypatch.setattr(entry.runner, "_repository_provenance", lambda *a: {"source_sha256": {}})
     if model is None: monkeypatch.delenv("DEEPSEEK_MODEL", raising=False)
     else: monkeypatch.setenv("DEEPSEEK_MODEL", model)
     monkeypatch.setenv("DEEPSEEK_API_KEY", key)
@@ -180,7 +195,7 @@ def test_audited_continuation_runs_once_preserves_baseline(tmp_path, monkeypatch
             return response(content)
         return GuardedTransport(guard, lane, httpx.MockTransport(handler))
     monkeypatch.setattr(entry, "GuardedTransport", transport)
-    monkeypatch.setattr(entry.runner, "_repository_provenance", lambda: {"git_sha": "a" * 40, "source_sha256": {"src/boundary_evaluation.py": "b" * 64}, "clean": True})
+    monkeypatch.setattr(entry.runner, "_repository_provenance", lambda *a: {"git_sha": "a" * 40, "source_sha256": {"src/boundary_evaluation.py": "b" * 64}, "clean": True})
     monkeypatch.setattr(entry.runner, "_artifact_path", lambda: tmp_path / "result.json")
     sha = hashlib.sha256(entry.journal_path(identity).read_bytes()).hexdigest()
     assert asyncio.run(entry.run(identity, resume_sha256=sha)) == 0

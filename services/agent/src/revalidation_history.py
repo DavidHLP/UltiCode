@@ -148,12 +148,113 @@ V5_ROLLOVER_SHA256 = {
 }
 
 
+V6_ROLLOVER_IDENTITY = {
+    "period_id": "revalidation-v6-20261009",
+    "identity": "6e18a8ccca1541a6953b849f4200fd86",
+    "config_sha256": "35175b6be002b4f14695f0ed13ee2f49e6a2a357d18a8106c34ca387cb5bd506",
+    "policy_id": "acceptance-revalidation-v6",
+}
+V6_ROLLOVER_SHA256 = {
+    "budget.sqlite3": "d9938bcc8ae6410189e5a953a25ec21f6f6209682f073a91118a0ed9fa6edf9d",
+    "binding.json": "4ac0023aab255fd28c2afe976bee8374c9d4ea5843b8a588835350ffd02d2fe9",
+    "dav58-increment-6e18a8ccca1541a6953b849f4200fd86.json": "1d0e0b885e73ace9fa74d423fcf8d5e4ea090baa5e196debce2802e2648ec5e9",
+}
+
+
+V7_ROLLOVER_IDENTITY = {
+    "period_id": "revalidation-v7-20261010",
+    "identity": "d21bc773c8be489db18ff72b6317c585",
+    "config_sha256": "369fb14974e076a7c17c542975838d7c7b941d72f76eac0d04095b888462f112",
+    "policy_id": "acceptance-revalidation-v7",
+}
+V7_ROLLOVER_SHA256 = {
+    "budget.sqlite3": "f945fc22e12d6113e019e28f253c08025690eeca29a220a52658c9a839723fef",
+    "binding.json": "9a7472fe0aa4297fd8c6db1bf214b650628f9defa1cbe1f0c116d6362a5d4d91",
+    "dav58-increment-d21bc773c8be489db18ff72b6317c585.json": "8137fdb754e0533a544dd3710feef80913555836daea9280f5db082284f79dd9",
+}
+
+
+V8_ROLLOVER_IDENTITY = {
+    "period_id": "revalidation-v8-20261010",
+    "identity": "abb4a42176ef47669a2493af6a2dbed7",
+    "config_sha256": "ad36248efd831181b386e2b56551949dcdbb3f4d27ef5e0a825bb5c584f37891",
+    "policy_id": "acceptance-revalidation-v8",
+}
+V8_ROLLOVER_SHA256 = {
+    "budget.sqlite3": "1129d6fa663aba2ce2ac4b6ee685f7b12741f639ab20aee5502cbd7dce6655dd",
+    "binding.json": "cdf22ddab8b13f3ed770909c43c20b91abf7511acc2563d56efb257a7a926757",
+    "dav58-increment-abb4a42176ef47669a2493af6a2dbed7.json": "58bccc30be02a12f0b9b15a49008bbf8b82a07ee937b983836b36a75707d35ec",
+}
+
+
+V9_ROLLOVER_IDENTITY = {
+    "period_id": "revalidation-v9-20261010",
+    "identity": "333898e81adc447d8e7af12f350bcec6",
+    "config_sha256": "e494f4251d30598572b6b89dc94b8cdadcba5aacafc558708a8d4895dcf334d6",
+    "policy_id": "acceptance-revalidation-v9",
+}
+V9_ROLLOVER_SHA256 = {
+    "budget.sqlite3": "ae9ff697c221cd94e1096a89d9a7080077c659da03b146070cd8de385d5a225e",
+    "binding.json": "d30da007393529abd669982107d17f30328f89ac900127e9cb1e39373b0cc80e",
+    "dav58-increment-333898e81adc447d8e7af12f350bcec6.json": "4b97d2af7634951168a286b2296f1d69b8f63ec232c999b33079e4ee6f1c9d62",
+}
+
+V10_ROLLOVER_IDENTITY = {
+    "period_id": "revalidation-v10-20261010",
+    "identity": "f4799317c80647e5be4d37143740e389",
+    "config_sha256": "1c9a233c70850a86babf86f953c5b587146e733a1cd5228b353d6b0c0f631b36",
+    "policy_id": "acceptance-revalidation-v10",
+}
+V10_ROLLOVER_SHA256 = {
+    "budget.sqlite3": "c2742697033e30f53012c8f65e68fdf06e943558ae76235fdbe77d432516cacc",
+    "binding.json": "7aa4b2ba0d605cfbe991a854044b80ba2bbc2a2935a68674e6e91acdfb7744f4",
+    "dav58-increment-f4799317c80647e5be4d37143740e389.json": "68a925430ff5b39eeb8fdd86cab32b69055fae6fc44f2bad149ddebacd840519",
+}
+
+
+V11_ROLLOVER_IDENTITY = {
+    "period_id": "revalidation-v11-20261010",
+    "identity": "e5576fcd3b0f41e7b1c1d34edbed64a3",
+    "config_sha256": "aeeed8202af5af2e51907f977bacba911db88ca82aa42792749e77cc4df670cd",
+    "policy_id": "acceptance-revalidation-v11",
+}
+V11_ROLLOVER_SHA256 = {
+    "budget.sqlite3": "22aadce7b541408493d1b2246d113a297708c563d57dabfb54d84f8174ee2974",
+    "binding.json": "c1f9e8492304061e4a3d0d0d57c5fb28381d2bcab1f98ef40fa12e16af3812f9",
+    "dav58-increment-e5576fcd3b0f41e7b1c1d34edbed64a3.json": "667657f6924e766db9f9d294a6a7d6908c5ba6046e980bcd29d0df3250ad537b",
+}
+
+
 def _validate_rollover_history(sources, *, settled_policy="v1"):
-    from authorized_budget_period import PeriodError, PeriodIdentity, REVALIDATION_V2_HISTORY, REVALIDATION_V4_HISTORY, REVALIDATION_V5_HISTORY, REVALIDATION_V6_HISTORY, _parent, _file
+    from authorized_budget_period import PeriodError, PeriodIdentity, REVALIDATION_V2_HISTORY, REVALIDATION_V4_HISTORY, REVALIDATION_V5_HISTORY, REVALIDATION_V6_HISTORY, REVALIDATION_V7_HISTORY, REVALIDATION_V8_HISTORY, REVALIDATION_V9_HISTORY, REVALIDATION_V10_HISTORY, REVALIDATION_V11_HISTORY, REVALIDATION_V12_HISTORY, _parent, _file
     from model_budget import ModelBudget, authorization_slot
     from dav58_live_guard import IncrementalGuard
 
-    if settled_policy == "v5":
+    if settled_policy == "v11":
+        original = _validate_rollover_history(sources, settled_policy="v10")
+        identity, fingerprints = V11_ROLLOVER_IDENTITY, V11_ROLLOVER_SHA256
+        totals, history = (84, 23_714, 806_400), REVALIDATION_V12_HISTORY
+    elif settled_policy == "v10":
+        original = _validate_rollover_history(sources, settled_policy="v9")
+        identity, fingerprints = V10_ROLLOVER_IDENTITY, V10_ROLLOVER_SHA256
+        totals, history = (84, 21_564, 806_400), REVALIDATION_V11_HISTORY
+    elif settled_policy == "v9":
+        original = _validate_rollover_history(sources, settled_policy="v8")
+        identity, fingerprints = V9_ROLLOVER_IDENTITY, V9_ROLLOVER_SHA256
+        totals, history = (104, 28_254, 927_600), REVALIDATION_V10_HISTORY
+    elif settled_policy == "v8":
+        original = _validate_rollover_history(sources, settled_policy="v7")
+        identity, fingerprints = V8_ROLLOVER_IDENTITY, V8_ROLLOVER_SHA256
+        totals, history = (84, 21_639, 806_400), REVALIDATION_V9_HISTORY
+    elif settled_policy == "v7":
+        original = _validate_rollover_history(sources, settled_policy="v6")
+        identity, fingerprints = V7_ROLLOVER_IDENTITY, V7_ROLLOVER_SHA256
+        totals, history = (104, 28_239, 927_600), REVALIDATION_V8_HISTORY
+    elif settled_policy == "v6":
+        original = _validate_rollover_history(sources, settled_policy="v5")
+        identity, fingerprints = V6_ROLLOVER_IDENTITY, V6_ROLLOVER_SHA256
+        totals, history = (105, 28_533, 928_800), REVALIDATION_V7_HISTORY
+    elif settled_policy == "v5":
         original = _validate_rollover_history(sources, settled_policy="v4")
         identity, fingerprints = V5_ROLLOVER_IDENTITY, V5_ROLLOVER_SHA256
         totals, history = (79, 20_433, 758_400), REVALIDATION_V6_HISTORY
@@ -209,7 +310,7 @@ def _validate_rollover_history(sources, *, settled_policy="v1"):
 
 def validate_history(sources, *, policy_id="acceptance-revalidation-v1"):
     from authorized_budget_period import PeriodError, REVALIDATION_HISTORY, _parent, _file
-    from authorized_budget_period import REVALIDATION_POLICY_ID, REVALIDATION_V2_POLICY_ID, REVALIDATION_V3_POLICY_ID, REVALIDATION_V4_POLICY_ID, REVALIDATION_V5_POLICY_ID, REVALIDATION_V6_POLICY_ID
+    from authorized_budget_period import REVALIDATION_POLICY_ID, REVALIDATION_V2_POLICY_ID, REVALIDATION_V3_POLICY_ID, REVALIDATION_V4_POLICY_ID, REVALIDATION_V5_POLICY_ID, REVALIDATION_V6_POLICY_ID, REVALIDATION_V7_POLICY_ID, REVALIDATION_V8_POLICY_ID, REVALIDATION_V9_POLICY_ID, REVALIDATION_V10_POLICY_ID, REVALIDATION_V11_POLICY_ID, REVALIDATION_V12_POLICY_ID
 
     if policy_id == REVALIDATION_V2_POLICY_ID:
         return _validate_rollover_history(sources)
@@ -221,6 +322,18 @@ def validate_history(sources, *, policy_id="acceptance-revalidation-v1"):
         return _validate_rollover_history(sources, settled_policy="v4")
     if policy_id == REVALIDATION_V6_POLICY_ID:
         return _validate_rollover_history(sources, settled_policy="v5")
+    if policy_id == REVALIDATION_V7_POLICY_ID:
+        return _validate_rollover_history(sources, settled_policy="v6")
+    if policy_id == REVALIDATION_V8_POLICY_ID:
+        return _validate_rollover_history(sources, settled_policy="v7")
+    if policy_id == REVALIDATION_V9_POLICY_ID:
+        return _validate_rollover_history(sources, settled_policy="v8")
+    if policy_id == REVALIDATION_V10_POLICY_ID:
+        return _validate_rollover_history(sources, settled_policy="v9")
+    if policy_id == REVALIDATION_V11_POLICY_ID:
+        return _validate_rollover_history(sources, settled_policy="v10")
+    if policy_id == REVALIDATION_V12_POLICY_ID:
+        return _validate_rollover_history(sources, settled_policy="v11")
     if policy_id != REVALIDATION_POLICY_ID:
         raise PeriodError("unsupported retained history policy")
 

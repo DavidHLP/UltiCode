@@ -160,6 +160,12 @@ def test_modes_keep_untrusted_evidence_rule(tool_specs: dict[str, str]) -> None:
         assert "refuse unauthorized parts" in seen_system
         assert "execute independent authorized" in seen_system
         assert "current server session" in seen_system
+        assert "do not ask for confirmation again" in seen_system
+        assert "ask for the submission ID before calling submission-selection tools" in seen_system
+        assert "execute independent authorized read-only tools first" in seen_system
+        assert "then ask for the missing submission ID in the final answer" in seen_system
+        assert "ask for the submission ID before calling tools" not in seen_system
+        assert "never substitute listing recent submissions for clarification" in seen_system
 
 
 def test_model_label_cannot_forge_an_evidence_line() -> None:

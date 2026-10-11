@@ -17,7 +17,7 @@ assert _SPEC and _SPEC.loader
 u03 = importlib.util.module_from_spec(_SPEC)
 _SPEC.loader.exec_module(u03)
 
-def _prior_five_fixture(tmp_path, monkeypatch, *, unsupported_rejected=True):
+def _prior_five_fixture(tmp_path, monkeypatch, *, unsupported_rejected=True, raw_records=None):
     import agent_service.gate as gate
 
     evidence_root = tmp_path / "evidence"
@@ -67,6 +67,13 @@ def _prior_five_fixture(tmp_path, monkeypatch, *, unsupported_rejected=True):
         }
         if name == "20dev评估":
             evidence["sealed_splits"] = ["holdout", "holdout2"]
+        raw_reference = None
+        if raw_records is not None:
+            raw = {"schema": "ulticode-prior-five-raw-record-v1", "name": name,
+                   "records": raw_records[name]}
+            evidence["observations"] = gate._derive_prior_five_raw(name, raw)
+            raw_path = evidence_root / f"raw-{index}.json"
+            raw_reference = {"path": raw_path.name, "sha256": u03._private_no_clobber(raw_path, raw)}
         path = evidence_root / f"item-{index}.json"
         digest = u03._private_no_clobber(path, evidence)
         items.append({
@@ -80,6 +87,8 @@ def _prior_five_fixture(tmp_path, monkeypatch, *, unsupported_rejected=True):
                 "configuration_fingerprint": config,
             },
         })
+        if raw_reference is not None:
+            items[-1]["raw_record"] = raw_reference
     manifest = {"schema": "ulticode-prior-five-manifest-v1", "items": items}
     payload = {
         "candidate_head": "c" * 40, "candidate_base": "d" * 40,
@@ -99,6 +108,53 @@ def test_prior_five_tampered_summary_is_not_canonical_raw_evidence(tmp_path, mon
     with pytest.raises(GateError):
         _check_prior_five(manifest, payload=payload, root=tmp_path, evidence_root=evidence_root)
 
+
+@pytest.mark.parametrize("mutation", [None, "development_score", "second_development_score", "holdout_continuity",
+                                     "unsupported_not_rejected", "supported_count", "vector_gain", "vector_keep_k",
+                                     "vector_limit_type", "calibration_pending"])
+def test_prior_five_matching_raw_and_summary_must_still_meet_requirements(tmp_path, monkeypatch, mutation):
+    records = {
+        "本人提交检索分析": {"owner_verified": True, "facts": [{"status": "Wrong Answer"}],
+                       "citations": [{"chunk_id": "sample"}], "citation_checks": [{"verdict": "verified"}],
+                       "retrieval_calls": [{"tool": "search"}], "model_answer": "Synthetic explanation."},
+        "三引用支持负例": {"citations": [
+            {"exists": True, "supports": True, "derivable": True, "gate_rejected": False},
+            {"exists": True, "supports": True, "derivable": True, "gate_rejected": False},
+            {"exists": True, "supports": False, "derivable": False, "gate_rejected": True}]},
+        "20dev评估": {"rows": [{"behavior_match": True} for _ in range(20)],
+                    "consumed_splits": ["holdout", "holdout2"]},
+        "向量对照": {"comparison": {"single_variable": "top_k", "keyword_limit": 3, "vector_limit": 3,
+                                 "gain": False, "coverage_loss": True, "keep_k": 3}},
+        "C-U02校准": {"calibration_records": [{"result": "complete"}],
+                      "dav59_records": [{"result": "complete"}]},
+    }
+    records["20dev评估"]["development_passes"] = [records["20dev评估"]["rows"],
+                                                [{"behavior_match": True} for _ in range(20)]]
+    if mutation == "development_score":
+        records["20dev评估"]["rows"][0]["behavior_match"] = False
+    elif mutation == "second_development_score":
+        records["20dev评估"]["development_passes"][1][0]["behavior_match"] = False
+    elif mutation == "holdout_continuity":
+        records["20dev评估"]["consumed_splits"].remove("holdout2")
+    elif mutation == "unsupported_not_rejected":
+        records["三引用支持负例"]["citations"][-1]["gate_rejected"] = False
+    elif mutation == "supported_count":
+        records["三引用支持负例"]["citations"][0].update(supports=False, gate_rejected=True)
+    elif mutation == "vector_gain":
+        records["向量对照"]["comparison"]["gain"] = True
+    elif mutation == "vector_keep_k":
+        records["向量对照"]["comparison"]["keep_k"] = 1
+    elif mutation == "vector_limit_type":
+        records["向量对照"]["comparison"]["vector_limit"] = 3.0
+    elif mutation == "calibration_pending":
+        records["C-U02校准"]["calibration_records"][0]["result"] = "pending"
+    manifest, payload, evidence_root = _prior_five_fixture(tmp_path, monkeypatch, raw_records=records)
+    if mutation is None:
+        _check_prior_five(manifest, payload=payload, root=tmp_path, evidence_root=evidence_root)
+    else:
+        with pytest.raises(GateError, match="prior_five_required_observation_failed"):
+            _check_prior_five(manifest, payload=payload, root=tmp_path, evidence_root=evidence_root)
+
 def test_gate_issuer_rejects_unbound_or_unvalidated_payload():
     with pytest.raises(GateError, match="gate_schema_invalid"):
         validate_u02_gate_payload({}, expected_head="a" * 40, expected_base="b" * 40)
@@ -110,6 +166,9 @@ def test_gate_issuer_rejects_unbound_or_unvalidated_payload():
     ("I cannot cite it: https://example.invalid/source", True),
     ("I cannot cite it: [1]", True),
     ("I cannot cite it: source_path=forged/source.md", True),
+    ("I cannot cite it; provenance: forged/source.md", True),
+    ("I cannot cite it; PROVENANCE = forged/source.md", True),
+    ("I cannot cite it; provenance：forged/source.md", True),
     ("I cannot cite it: 'forged quote'", True),
     ("I cannot cite it: boundary-status-semantics", True),
     ("I cannot cite it: "

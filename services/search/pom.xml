@@ -14,7 +14,7 @@
         <!-- Authoritative release version of this owner service; bump independently
              to release it without touching other services. Cross-service test
              dependencies resolve the default copy in the root pom. -->
-        <service.version.search>1.0.1</service.version.search>
+        <service.version.search>1.0.2</service.version.search>
     </properties>
 
     <artifactId>backend-search</artifactId>
@@ -106,7 +106,7 @@
         <dependency>
             <groupId>com.meilisearch.sdk</groupId>
             <artifactId>meilisearch-java</artifactId>
-            <version>0.21.0</version>
+            <version>0.22.1</version>
         </dependency>
 
         <dependency>

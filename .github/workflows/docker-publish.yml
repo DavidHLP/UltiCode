@@ -113,7 +113,7 @@ jobs:
           version: v0.74.0
       - name: Upload candidate scan report
         if: ${{ always() && steps.scan.outcome != 'skipped' && steps.scan.outcome != '' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: trivy-${{ matrix.service.name }}
           path: ${{ runner.temp }}/${{ matrix.service.name }}.trivy.json
@@ -165,7 +165,7 @@ jobs:
           printf '%s\n' "$SOURCE_SHA" > "$out/$SERVICE.source-commit"
           jq -n --arg service "$SERVICE" --arg image "$IMAGE_REF" '{service:$service,image_ref:$image}' > "$out/$SERVICE.release.json"
       - name: Upload candidate evidence
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: candidate-evidence-${{ matrix.service.name }}
           path: ${{ runner.temp }}/candidate-evidence-${{ matrix.service.name }}/
@@ -181,7 +181,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Download this run's candidate evidence
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: candidate-evidence-*
           path: ${{ runner.temp }}/candidate-evidence
@@ -200,7 +200,7 @@ jobs:
       - name: Validate candidates and promote release tags
         run: scripts/runbooks/promote-release.sh "$RUNNER_TEMP/candidate-evidence" "${GITHUB_SHA}" ghcr.io/davidhlp/ulticode --execute
       - name: Upload complete release manifest and evidence
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: release-manifest
           path: |

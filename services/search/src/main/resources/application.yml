@@ -85,6 +85,7 @@ management:
           headers:
             Authorization: ${MANAGEMENT_OTLP_AUTHORIZATION:}
           timeout: 5s
+  otlp:
     metrics:
       export:
         enabled: ${MANAGEMENT_OTLP_METRICS_ENABLED:false}

@@ -49,10 +49,8 @@ import static org.mockito.Mockito.*;
 import com.ulticode.common.auth.CurrentUserProvider;
 
 /**
- * Write-side unit tests for {@link ContestServiceImpl}. The read-cluster cases
- * (findUpcoming / findRunning / getContestProblemSubmissions) moved to
- * {@link com.ulticode.modules.contest.projection.DefaultContestProjectionTest}
- * when the read paths were lifted into {@link ContestProjection}. What remains
+ * Write-side unit tests for {@link ContestServiceImpl}. Read paths belong to
+ * {@link ContestProjection}. What remains
  * here is the contest state machine: createContest field/slug/end-time
  * computation (its return value is shaped by a mocked projection.toVO echo) and
  * the submitContestProblem guard matrix.

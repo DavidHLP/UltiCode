@@ -3979,6 +3979,25 @@ def _known_answer(text="synthetic answer"):
     return (json.dumps({"answer": text}), True)
 
 
+@pytest.mark.parametrize("content,detail", [
+    ("private-response-canary", "model decision was not valid JSON"),
+    (json.dumps({"answer": "private-response-canary", "extra": True}),
+     "model decision schema was malformed"),
+])
+def test_real_probe_retains_safe_protocol_failure_detail(monkeypatch, tmp_path, content, detail):
+    (verdict, evidence), budget, requests = _run_real_bound_probe(
+        monkeypatch, tmp_path, [(content, True)],
+    )
+    first = evidence["scenarios"][0]
+    assert first["interrupted"] == "ModelProtocolError"
+    assert first["protocol_error"].startswith(detail)
+    assert "private-response-canary" not in json.dumps(evidence)
+    assert verdict == "incomplete" and first["ok"] is False
+    assert len(requests) == 1 and evidence["model_calls"] == 1
+    assert [row["interrupted"] for row in evidence["scenarios"]][1:] == ["not_run", "not_run"]
+    assert budget.snapshot()["unknown_usage_attempts"] == 0
+
+
 def test_real_probe_unknown_toolcall_stops_round_and_remaining_legs(monkeypatch, tmp_path):
     (verdict, evidence), budget, requests = _run_real_bound_probe(
         monkeypatch,

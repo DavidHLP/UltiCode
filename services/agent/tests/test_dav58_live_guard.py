@@ -86,6 +86,49 @@ def test_full_provider_envelope_avoids_framing_estimate(tmp_path):
     assert json.loads(guard.path.read_text()) == guard.state
 
 
+def test_seal_preserves_settled_receipts_and_blocks_new_requests(tmp_path):
+    guard = IncrementalGuard(tmp_path / "increment.json")
+    guard.state["receipts"].append({"status": "settled", "attempt_id": "retained"})
+    guard._save()
+    try:
+        guard.seal()
+        saved = json.loads(guard.path.read_text())
+        assert saved["halted"] is True
+        assert saved["pending_micro_usd"] == 0
+        assert saved["receipts"] == [{"status": "settled", "attempt_id": "retained"}]
+        with pytest.raises(ModelBudgetExceeded, match="stopped"):
+            guard.begin(httpx.Request("POST", "https://example.invalid"), "dav58_loop")
+    finally:
+        guard.close()
+
+
+@pytest.mark.parametrize("pending,status", [(ENVELOPE_MICRO_USD, "pending"), (0, "unknown_or_unsafe")])
+def test_seal_refuses_unsettled_or_unknown_receipts_without_writing(tmp_path, pending, status):
+    guard = IncrementalGuard(tmp_path / "increment.json")
+    guard.state["pending_micro_usd"] = pending
+    guard.state["receipts"].append({"status": status})
+    guard._save()
+    before = guard.path.read_bytes()
+    try:
+        with pytest.raises(ModelBudgetExceeded, match="unsettled"):
+            guard.seal()
+        assert guard.path.read_bytes() == before
+        assert guard.state["halted"] is False
+    finally:
+        guard.close()
+
+
+def test_seal_reports_persistence_failure_and_keeps_in_memory_latch(tmp_path, monkeypatch):
+    guard = IncrementalGuard(tmp_path / "increment.json")
+    monkeypatch.setattr(guard, "_save", lambda: (_ for _ in ()).throw(OSError("private path")))
+    try:
+        with pytest.raises(ModelBudgetExceeded, match="could not persist seal"):
+            guard.seal()
+        assert guard.state["halted"] is True
+    finally:
+        guard.close()
+
+
 @pytest.mark.parametrize("usage", [None, {}, {"prompt_tokens": 1, "completion_tokens": 2},
     {"prompt_tokens": True, "completion_tokens": 2, "total_tokens": 3},
     {"prompt_tokens": 1, "completion_tokens": 2, "total_tokens": 4},

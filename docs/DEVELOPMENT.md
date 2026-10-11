@@ -97,6 +97,7 @@ SQLite 事务提交，转换及 settle 保持独占锁；HALT 前已提交的 re
 settle，未知 usage 仍计入完整预留，超界 usage 同事务记录并关闭 SQL gate。
 失败后只读取原身份、原文件与原账本核对两种状态；只允许对同一 activate/halt 显式重试，
 完整记录先确认持久化再推进待完成转换，缺失或撕裂记录拒绝，不自动准备、重置或换路径。
+有意结束一个周期时，先确认没有 pending 或未知回执，再调用增量 guard 的 `seal()` 保留已结算回执并永久禁止新请求，随后调用绑定账本的 `halt()`；两份状态均确认持久化后才可准备显式授权的后继周期。
 绑定账本 API 有独立 SQL gate 与计数；全局快照标志仍为
 `runtime_accounting_connected=False`、`spend_limit_enforced=False`，因为这不是所有入口的
 全局切换；除下述 DAV-58 显式绑定路径外，其他入口仍沿用旧工厂。SQLite 使用 `synchronous=FULL`

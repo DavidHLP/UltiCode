@@ -246,6 +246,18 @@ class IncrementalGuard:
             except OSError:
                 pass  # in-memory latch stays closed; durable pending record already exists
 
+    def seal(self):
+        with self.lock:
+            if (self.state["pending_micro_usd"] != 0
+                    or any(not isinstance(receipt, dict) or receipt.get("status") != "settled"
+                           for receipt in self.state["receipts"])):
+                raise ModelBudgetExceeded("incremental guard has unsettled requests")
+            self.state["halted"] = True
+            try:
+                self._save()
+            except OSError:
+                raise ModelBudgetExceeded("incremental guard could not persist seal") from None
+
     def finish(self, receipt, response):
         try:
             if response.status_code != 200:

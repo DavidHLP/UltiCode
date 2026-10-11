@@ -1,4 +1,7 @@
 spring:
+  http:
+    converters:
+      preferred-json-mapper: jackson2
   application:
     name: ${CORE_APPLICATION_NAME:ulticode-core}
   main:

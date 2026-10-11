@@ -24,14 +24,16 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 /**
  * Maps backend-app Problem failures to the shared HTTP result envelope.
  *
- * <p>The advice is bounded to the Problem controller package so it cannot
- * alter error handling for unrelated app families.
+ * <p>The advice is bounded to the Problem, Submission-controller and
+ * Learning-plan controller packages so it cannot alter error handling for
+ * unrelated app families.
  */
 @Slf4j
 @Order(Ordered.HIGHEST_PRECEDENCE)
 @RestControllerAdvice(basePackages = {
         "com.ulticode.modules.problem",
-        "com.ulticode.modules.submission.controller"
+        "com.ulticode.modules.submission.controller",
+        "com.ulticode.modules.learningplan.controller"
 })
 public class ProblemWebExceptionHandler {
 

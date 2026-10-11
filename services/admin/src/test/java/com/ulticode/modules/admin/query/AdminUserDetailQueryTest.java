@@ -78,6 +78,28 @@ class AdminUserDetailQueryTest {
     }
 
     @Test
+    void missingOptionalProvidersPreserveSpringWiringAndUnavailableSections() {
+        when(userEnricher.findAccountAuthoritatively("user-123")).thenReturn(account());
+        when(userEnricher.findProfileWithStatus("user-123"))
+                .thenReturn(new AdminUserEnricher.ProfileDetail(null, DegradationStatus.UNAVAILABLE));
+        try (var context = new org.springframework.context.annotation.AnnotationConfigApplicationContext()) {
+            context.registerBean(AdminUserEnricher.class, () -> userEnricher);
+            context.registerBean(Clock.class, Clock::systemUTC);
+            context.registerBean("adminUserDetailQueryExecutor", CancellableQueryExecutor.class,
+                    () -> queryExecutor);
+            context.registerBean(AdminQueryDeadline.class, AdminQueryDeadline::system);
+            context.register(DefaultAdminUserDetailQuery.class);
+            context.refresh();
+
+            var result = context.getBean(DefaultAdminUserDetailQuery.class).loadUserDetail("user-123");
+            assertThat(result.user().getId()).isEqualTo("user-123");
+            assertThat(result.profile().status()).isEqualTo(AdminUserDetailResult.Availability.UNAVAILABLE);
+            assertThat(result.stats().status()).isEqualTo(AdminUserDetailResult.Availability.UNAVAILABLE);
+            assertPermissionUnavailable(result);
+        }
+    }
+
+    @Test
     @DisplayName("runs one Auth round and four optional reads in one bounded second round")
     void completeDetailUsesSingleSubmissionSnapshot() {
         stubHealthyDetail();

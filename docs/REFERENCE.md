@@ -10,10 +10,119 @@
 | --- | --- | --- |
 | Auth | `http://localhost:9101` / `/auth/**` | `backend-auth` |
 | Admin | `http://localhost:9102` / `/admin/**`、`/moderation/**` | `backend-admin` |
-| App | `http://localhost:9103` / `/users`、`/problems`、`/contests`、`/solutions`、`/forum`、`/search`、`/ws/**` | `backend-app` |
+| App | `http://localhost:9103` / `/users`、`/problems`、`/contests`、`/solutions`、`/forum`、`/learning-plans/**`、`/search`、`/ws/**` | `backend-app` |
 | Notification | `http://localhost:9105` / `/notifications/**` | `backend-notification` |
 | Submission | internal `9106` / Dubbo `20886` | `backend-submission` |
 | Judge | internal Dubbo `20884` | `backend-judge` |
+
+`POST /learning-plans` 为当前已认证、有效且未封禁的用户保存已确认的学习计划。请求必须携带规范 UUID 格式的 `Idempotency-Key`，且来源提交必须属于当前用户。相同 key 和请求内容重试时返回原记录；同一 key 携带不同内容时返回 HTTP 409（业务码 `40900`）。`GET /learning-plans/{id}` 和 `GET /learning-plans/by-key/{key}` 仅返回当前用户拥有的记录。
+
+### Agent workflow API
+
+The opt-in Python Agent service is separate from Java `/learning-plans`: it owns local workflow
+drafts, while App Java owns confirmed LearningPlan records. Factory: `agent_service.app.create_app(...)`.
+Thread IDs are server-generated. Every operation checks the authenticated owner; a body field
+cannot select a user, model, graph node, or checkpoint.
+
+| Operation | Request body | Purpose |
+| --- | --- | --- |
+| `POST /agent/threads` | `{"sourceSubmissionId": "...", "question": "..."}` | Verify caller-owned source, create thread and offline draft |
+| `GET /agent/threads/{thread_id}` | — | Read caller's canonical workflow and draft |
+| `GET /agent/threads/{thread_id}/events?after=N` | — | Read bounded event page; does not resume workflow |
+| `POST /agent/threads/{thread_id}/analyze` | `{}` | Explicit analysis request through the shared graph; requires injected offline model factory or live model authorization |
+| `PUT /agent/threads/{thread_id}/draft` | `{"draftVersion": N, "title": "...", "content": "..."}` | Compare version, update draft, invalidate confirmation |
+| `POST /agent/threads/{thread_id}/confirm` | `{"draftVersion": N, "paramsDigest": "...", "confirm": true}` | Persist expiring confirmation for exact owner/version/payload; no Java write |
+| `POST /agent/threads/{thread_id}/save` | `{"confirmationId": "..."}` | Explicitly dispatch the confirmed payload to Java |
+| `POST /agent/threads/{thread_id}/recover` | `{"retry": false}` or `{"retry": true}` | Reconcile by original Java idempotency key; retry only when explicitly requested and all guards pass |
+| `POST /agent/threads/{thread_id}/cancel` | `{}` | Fence later work; cannot roll back a dispatched Java write |
+
+Workflow states include `draft`, `analyzing`, `awaiting_confirmation`, `confirmed`, `saving`,
+`saved`, `unknown`, `failed`, and `cancelled`. Agent SQLite is canonical for drafts, workflow state,
+and events; LangGraph checkpoints are resumable control state only. `saved` requires an accepted
+Java record response. A timeout, lost response, or uncertain process restart remains `unknown`;
+reconcile by the same idempotency key before any retry. A by-key lookup is treated as not found only
+for HTTP 404 with business code `40400`; transport/server errors remain unresolved. Retry is never
+automatic: `retry:true` is an explicit action and still requires an eligible unexpired confirmation,
+matching payload, no cancellation, and the exact not-found result. Never mint a replacement key.
+
+GET thread responses expose `threadId`, `runId`, `status`, `sourceSubmissionId`, `question`, a
+versioned `draft` (`title`, `content`, `facts`, `hypotheses`, `citations`, `citationChecks`,
+`sampleScope`), `paramsDigest`, `analysis`, a redacted `confirmation` summary, and `receipt`
+(`planId`, `cancelRequested`, `failureReason`). They do not expose owner IDs or the business key.
+Draft facts are derived from the validated metadata projection; source code and test data are not
+included. `sampleScope` marks the checked-in synthetic corpus. Initial offline-draft citations only
+establish source traceability; model-answer citations, when present, are added only after same-run
+retrieval, document-integrity, support, and derivability checks.
+The Agent keeps the business idempotency key private. Its recovery action uses that original key
+for owner-scoped by-key reconciliation; a user-facing saved-record readback uses
+`GET /learning-plans/{planId}` with the returned `planId`.
+Use the GET `paramsDigest` and current `draftVersion` in the confirmation request. The returned
+confirmation summary contains its id, action, bound version/digest, and expiry; it never contains
+the idempotency key.
+Events return `{events, next}` with a bounded page. New events persist the authoritative
+run identifier in `detail.runId` in the same transaction as their state transition;
+older events without it retain their original payload and must not be assigned the current run.
+`GET /agent/threads/{thread_id}/events/stream?after=...` authenticates the owner and
+returns SSE for the run current at subscription time. `workflow` events retain their
+durable sequence and include tool start/completion metadata without arguments or results.
+Model start/completion events associate a server-generated call ID and node with the run;
+completion records elapsed milliseconds, a bounded provider model label, budget attempt ID
+when available, and nonnegative token counts. Missing usage is `null` with `usageStatus=unavailable`,
+never inferred as zero. Errors use fixed reasons, without prompts, answers, credentials or
+provider error bodies. The observer delegates to the existing authorized model and budget.
+`text` contains only validated, persisted answer text; `terminal` reports canonical status,
+failure reason and cancellation intent. SSE IDs bind run, sequence and event kind for replay
+deduplication. Run replacement or the 30-second subscription limit emits `stream_closed`;
+this is a transport outcome, not business completion. Disconnect ends the subscription,
+while explicit cancellation uses the existing cancel endpoint and does not undo Java writes.
+`after` must be between 0 and
+`2^63 - 1`. Invalid or foreign submission sources return `404 source_not_owned`
+during creation and analysis. Authorization failures during Java save leave the outcome
+`unknown` and permit explicit recovery after session and ownership checks; payload and
+idempotency rejections remain terminal. Learning-plan routes are also registered in the
+opt-in Core App context.
+
+Agent responses use `{code,message,data,traceId}` with a server-generated `traceId`; the envelope
+is validated by a strict Pydantic response schema before serialization, including JSON-only data
+and rejection of non-finite numbers. Upstream response bodies are not exposed. Request bodies require `application/json`, are strict and bounded
+to 128 KiB, use canonical UUIDs and exact integer versions, reject extra/duplicate JSON keys and
+non-finite numbers, and enforce question length 2–200 plus Java-compatible nonblank title/content
+limits of 200/16,000 Unicode code points. Event reads are bounded and read-only.
+
+#### Identity, CSRF, and gate
+
+`/auth/me` is the sole principal source; accept only nonempty `data.user.id` with `is_active=true`
+and `is_banned=false`. Each request gets an isolated client with access cookie held only in memory.
+Reads require one access cookie. Malformed access/CSRF cookie values return 401/403 before
+client construction. Unsafe calls require exactly one access cookie, one CSRF cookie,
+and a constant-time match with `X-CSRF-Token`; ambiguous duplicate Cookie/header input fails before
+upstream HTTP. If an unsafe request includes `Origin`, it must match the configured trusted origin.
+Request bodies reject identity fields. The service does not refresh sessions, set login cookies, or
+configure cross-origin access.
+
+The evidence-bound `ulticode-u02-gate-v1` loader checks candidate head/base and referenced DAV-58,
+DAV-53, budget-audit, and prior-five evidence against their SHA-256 digests. Confirm, save, and
+recovery routes are registered only when that gate validates. Live model requests additionally
+require the expected budget period, shared budget guard, and policy-authorized purpose:
+`u03_analysis` for the analysis model and `u03_citation_judge` for citation judgments. The
+authorized model and guarded transport use the existing period/lane limits; missing or invalid
+authorization fails closed with `503 model_budget_blocked` before a provider request. This is not
+evidence that a real acceptance run has passed.
+
+The workflow runs analysis through the shared checkpointed action graph and read-only model/tool
+kernel. Answer text must pass bounded source-fact, negation-aware boundary, source-reference, and
+tool-trace checks; those safeguards do not guarantee perfect semantic correctness. Nonempty
+citations must exactly match evidence retrieved during that run, pass document-integrity checks,
+then receive positive support and derivability judgments. A citation that was not retrieved in-run,
+fails integrity/judging, or has unknown judge usage rejects analysis. Empty citations are allowed
+only when the answer itself satisfies the boundary checks. Offline scripted-model/MockTransport
+tests are not live acceptance evidence.
+
+Without a valid U02 gate, confirm/save/recover routes are not mounted; requests to those paths use
+the normal not-found response envelope. A valid gate alone does not authorize model calls.
+
+For the opt-in U02/U03/U04 candidate-freeze, gate, and acceptance-bundle commands, see the
+[immutable acceptance workflow](DEVELOPMENT.md#u02-u03-u04-immutable-acceptance-chain).
 
 浏览器通常通过前端 Nginx/gateway 访问 `/api`；不要把内部 Dubbo、数据库、Redis、Nacos 或 worker 端口发布到公网。
 

@@ -104,6 +104,11 @@ provision_service_sql() {
   local metadata_write_resource="${NACOS_RESOURCE_NAMESPACE}:mapping:config/${metadata_prefix}*"
   local metadata_empty_read_resource=":mapping:config/*"
   local metadata_empty_write_resource=":mapping:config/${metadata_prefix}*"
+  # Dubbo metadata dataIds are interface:version:serviceGroup:side:application.
+  # Keep DEFAULT_GROUP writes confined to this workload's app and known sides;
+  # config_default_resource remains read-only for ordinary application config.
+  local metadata_provider_config_write_resource="${NACOS_RESOURCE_NAMESPACE}:DEFAULT_GROUP:config/*:*:*:provider:backend-${prefix,,}"
+  local metadata_consumer_config_write_resource="${NACOS_RESOURCE_NAMESPACE}:DEFAULT_GROUP:config/*:*:*:consumer:backend-${prefix,,}"
   local config_default_resource="${NACOS_RESOURCE_NAMESPACE}:DEFAULT_GROUP:config/*"
   local config_dubbo_resource="${NACOS_RESOURCE_NAMESPACE}:dubbo:config/*"
   local config_application_resource="${NACOS_RESOURCE_NAMESPACE}:backend-${prefix,,}:config/*"
@@ -125,6 +130,8 @@ DELETE FROM permissions WHERE role = '$role';
 INSERT INTO permissions (role, resource, action) VALUES
   ('$role', '$config_test_resource', 'r'),
   ('$role', '$config_default_resource', 'r'),
+  ('$role', '$metadata_provider_config_write_resource', 'w'),
+  ('$role', '$metadata_consumer_config_write_resource', 'w'),
   ('$role', '$config_dubbo_resource', 'r'),
   ('$role', '$config_application_resource', 'r'),
   ('$role', '$config_migration_resource', 'r'),

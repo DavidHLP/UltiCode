@@ -27,6 +27,11 @@
 			<groupId>com.ulticode</groupId>
 			<artifactId>backend-moderation-domain</artifactId>
 		</dependency>
+		<!-- U03: App-private learning plan write domain. -->
+		<dependency>
+			<groupId>com.ulticode</groupId>
+			<artifactId>backend-learning-plan-domain</artifactId>
+		</dependency>
 		<!-- P1-INFRA-002: dependency-free shared atoms. -->
 		<dependency>
 			<groupId>com.ulticode</groupId>
@@ -101,7 +106,7 @@
 		<!-- Spring Boot Starters -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-web</artifactId>
+			<artifactId>spring-boot-starter-webmvc</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -114,7 +119,7 @@
 		<!-- P7-RELOCATE-SOLUTION-001: AOP for @CheckBan ban enforcement aspect -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-aop</artifactId>
+			<artifactId>spring-boot-starter-aspectj</artifactId>
 		</dependency>
 		<!-- P7-RELOCATE-I18N-001: validation for i18n DTOs (@NotBlank, @Valid) -->
 		<dependency>
@@ -128,7 +133,7 @@
 		</dependency>
 		<dependency>
 			<groupId>com.baomidou</groupId>
-			<artifactId>mybatis-plus-spring-boot3-starter</artifactId>
+			<artifactId>mybatis-plus-spring-boot4-starter</artifactId>
 			<version>${mybatis-plus.version}</version>
 		</dependency>
 		<dependency>
@@ -202,12 +207,12 @@
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-test</artifactId>
+			<artifactId>spring-boot-starter-test-classic</artifactId>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
-			<groupId>org.springframework.security</groupId>
-			<artifactId>spring-security-test</artifactId>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-security-test</artifactId>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
@@ -255,6 +260,16 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-websocket</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-resttestclient</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-restclient</artifactId>
+			<scope>test</scope>
 		</dependency>
 	</dependencies>
 

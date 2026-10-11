@@ -72,7 +72,7 @@ def _run_model(monkeypatch, capsys, model: FakeModel) -> tuple[int, str]:
     monkeypatch.setenv("ULTICODE_E2E_USERNAME", "tester")
     monkeypatch.setenv("ULTICODE_E2E_PASSWORD", "pw")
     monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
-    monkeypatch.setenv("DEEPSEEK_MODEL", "test-model")
+    monkeypatch.setenv("DEEPSEEK_MODEL", "deepseek-flash")
     monkeypatch.setattr(module, "UlticodeClient", lambda *args, **kwargs: FakeClient())
     monkeypatch.setattr(module, "DeepseekModel", lambda *args, **kwargs: model)
     return_code = asyncio.run(module.main())
@@ -86,7 +86,7 @@ def test_real_model_smoke_sends_answer_contract_and_withholds_answer(monkeypatch
     assert return_code == 0
     # The billed model has to be attributable from the evidence alone.
     assert (
-        "E2E SOURCED MODEL PASS | model=test-model | corpus=agent-authored-synthetic "
+        "E2E SOURCED MODEL PASS | model=deepseek-flash | corpus=agent-authored-synthetic "
         "| input=validated-user-projection | answer=withheld"
     ) in output
     assert "fact and hypothesis separated" not in output
@@ -97,6 +97,26 @@ def test_real_model_smoke_sends_answer_contract_and_withholds_answer(monkeypatch
     assert "Wrong Answer" in prompt
     assert "source_code" not in prompt
     assert "userId" not in prompt
+
+
+def test_private_source_record_captures_real_result_and_refuses_clobber(monkeypatch, capsys, tmp_path):
+    monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path / "state"))
+    path = tmp_path / "evidence" / "source.json"
+    monkeypatch.setenv("ULTICODE_SOURCE_ANALYSIS_ARTIFACT", str(path))
+    model = FakeModel()
+    model.metering = [{"attempt_id": "synthetic-offline-attempt"}]
+    model._transport = SimpleNamespace(exchanges=[])
+    code, output = _run_model(monkeypatch, capsys, model)
+    assert code == 0
+    raw = json.loads(path.read_bytes())
+    assert raw["attempt_ids"] == ["synthetic-offline-attempt"]
+    assert raw["records"]["owner_verified"] is True
+    assert raw["records"]["model_answer"] not in output
+    assert path.stat().st_mode & 0o777 == 0o600
+    saved = path.read_bytes()
+    with pytest.raises(RuntimeError):
+        _run_model(monkeypatch, capsys, FakeModel())
+    assert path.read_bytes() == saved
 
 
 def test_real_model_smoke_rejects_unstructured_answer(monkeypatch, capsys) -> None:
@@ -194,7 +214,7 @@ def test_real_model_smoke_rejects_tool_call_even_with_text(monkeypatch, capsys) 
 def test_model_smoke_fails_closed_without_a_key(monkeypatch, capsys) -> None:
     smoke = module
     monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
-    monkeypatch.setenv("DEEPSEEK_MODEL", "test-model")
+    monkeypatch.setenv("DEEPSEEK_MODEL", "deepseek-flash")
 
     assert asyncio.run(smoke.main()) == 1
     assert "reason=missing_api_key" in capsys.readouterr().out
@@ -233,7 +253,7 @@ def test_model_smoke_passes_a_one_call_output_cap_by_default(monkeypatch) -> Non
     ):
         monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("DEEPSEEK_API_KEY", "placeholder-not-a-real-key")
-    monkeypatch.setenv("DEEPSEEK_MODEL", "test-model")
+    monkeypatch.setenv("DEEPSEEK_MODEL", "deepseek-flash")
     monkeypatch.setattr(smoke, "DeepseekModel", _CapturingModel)
 
     class _Client:
@@ -278,7 +298,7 @@ def test_model_smoke_passes_a_one_call_output_cap_by_default(monkeypatch) -> Non
     assert captured["max_tokens"] == 2000
     assert captured["max_prompt_tokens"] == 24000
     # A billed run names its model; there is no inherited default to assert.
-    assert captured["model"] == "test-model"
+    assert captured["model"] == "deepseek-flash"
     assert captured["decide_calls"] == 1
 
 
@@ -301,7 +321,7 @@ def test_usage_is_reported_even_when_decide_raises(monkeypatch, capsys) -> None:
     """
     smoke = module
     monkeypatch.setenv("DEEPSEEK_API_KEY", "placeholder-not-a-real-key")
-    monkeypatch.setenv("DEEPSEEK_MODEL", "test-model")
+    monkeypatch.setenv("DEEPSEEK_MODEL", "deepseek-flash")
     monkeypatch.setenv("ULTICODE_E2E_USERNAME", "tester")
     monkeypatch.setenv("ULTICODE_E2E_PASSWORD", "pw")
 
@@ -362,7 +382,7 @@ def test_usage_is_reported_even_when_decide_raises(monkeypatch, capsys) -> None:
 def test_unreported_usage_is_printed_as_unknown_not_zero(monkeypatch, capsys) -> None:
     smoke = module
     monkeypatch.setenv("DEEPSEEK_API_KEY", "placeholder-not-a-real-key")
-    monkeypatch.setenv("DEEPSEEK_MODEL", "test-model")
+    monkeypatch.setenv("DEEPSEEK_MODEL", "deepseek-flash")
     monkeypatch.setenv("ULTICODE_E2E_USERNAME", "tester")
     monkeypatch.setenv("ULTICODE_E2E_PASSWORD", "pw")
 

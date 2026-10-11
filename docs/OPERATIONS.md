@@ -14,6 +14,8 @@
 
 `docker/docker-compose.yml` 是基础配置；`docker/docker-compose.dev.yml` 只在 loopback 暴露开发端口；`docker/docker-compose.prod.yml` 不发布 MySQL、Redis、Nacos 或 backend 端口，前端仅作 HTTPS edge。不要直接用 PM2/Maven 启动 owner runtime，以免绕过 manifest、migration、readiness 和 rollback gate。
 
+Nacos 的 512 MB 堆显式使用 128 MB 年轻代，避免镜像默认的 `JVM_XMN=512m` 占满堆空间；调整堆上限时应同时检查年轻代和容器内存限额。
+
 ### 生产发布前
 
 Docker Verify builds each service locally (`load: true`, no push) and runs pinned Trivy v0.74.0 against that local image. Docker Publish pushes digest-only candidates: it does not assign normal `sha-*` or `v*` release tags while individual service gates are running.
@@ -27,6 +29,8 @@ After validating the manifest locally, provide its nine lines to the manual `cd-
 Trivy JSON reports are uploaded per candidate even when scanning fails; a failed or skipped scan cannot produce candidate evidence or reach promotion. For vulnerability triage, inspect affected package, installed version, and fixed version.
 
 Runtime images retain pinned base-image digests and apply `apk upgrade --no-cache` for Alpine security updates. Both Verify and Publish bypass cache only for the final `runtime` (backend) or `production` (frontend) stage, so cached upgrade layers cannot retain newly vulnerable packages; builder caches remain enabled. Backend dependencies use Spring Boot's BOM with narrowly scoped security overrides; verify final dependency resolution and image scan results before release.
+
+Backend services retain Java 17 and use the Spring Boot 4 BOM for Spring Framework 7 and Tomcat 11. Existing JSON wire and persisted payload contracts remain on the documented `spring-boot-jackson2` compatibility module, selected by `spring.http.converters.preferred-json-mapper=jackson2`; Jackson 2 security overrides use `jackson-2-bom.version`, not the Jackson 3 BOM property. Do not mix Spring Framework 7 into a Boot 3 parent or retain a Tomcat 10 override under Boot 4. Dependency upgrades must pass owner-context, serialization, security and RPC checks as well as all nine image scans; reverting code must not rewrite application data or applied migrations.
 
 `host-deploy` 在任何 migration、Redis ACL materialization、Judge sandbox provisioning 或 Compose mutation 前检查：
 
@@ -321,6 +325,8 @@ backup、restore-drill、prune 使用同一 fenced database lease（`admin:owner
 ### 观测面
 
 可选的 `docker/docker-compose.observability.yml` 提供 loopback-only、digest-pinned 的 OpenTelemetry Collector、Prometheus、Alertmanager、Grafana、Tempo 和 Loki。HTTP Owner 暴露 metrics；无 HTTP 的 Judge/Search worker 通过 Micrometer OTLP 输出。日志携带 trace/span 关联，Grafana 可从 Loki 跳转 Tempo。
+
+Boot 4 tracing binds OTLP export settings under `management.opentelemetry.tracing.export.otlp`; the existing `MANAGEMENT_OTLP_TRACING_ENDPOINT` and `MANAGEMENT_OTLP_AUTHORIZATION` environment inputs remain unchanged. The shared observability module enables the tracing integration and validates the effective endpoint/header pair before export: a configured authorization header requires HTTPS. OTLP metrics configuration and the opt-in Collector overlays remain separate from tracing.
 
 生产 telemetry receiver、存储、保留周期、通知 webhook、阈值调优和真实流量 SLO 由外部运维平台负责；仓库 overlay 默认不启动，也不公开 management endpoint 或 secret。
 

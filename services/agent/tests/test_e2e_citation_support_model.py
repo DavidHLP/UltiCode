@@ -179,7 +179,7 @@ def _install(
     monkeypatch.setenv("ULTICODE_E2E_PASSWORD", "pw")
     monkeypatch.setenv("ULTICODE_CITATION_SUPPORT", "1")
     monkeypatch.setenv("DEEPSEEK_API_KEY", "placeholder-not-a-real-key")
-    monkeypatch.setenv("DEEPSEEK_MODEL", "test-model")
+    monkeypatch.setenv("DEEPSEEK_MODEL", "deepseek-flash")
     monkeypatch.setenv("ULTICODE_CITATION_VERDICTS", str(tmp_path / "verdicts.json"))
     for name in ("DEEPSEEK_MAX_CALLS", "DEEPSEEK_MAX_TOKENS"):
         monkeypatch.delenv(name, raising=False)

@@ -1,0 +1,92 @@
+[
+  {
+    "case_id": "repository-holdout-01", "split": "holdout", "category": "normal_call",
+    "user_scope": "repository-public", "exposure": "author-visible; not evaluated",
+    "query": "这个平台有哪些练习与社区能力？",
+    "precondition": "Only the five version-bound repository excerpts are available.",
+    "required_evidence": ["repository-product"], "answerable": true, "expected_behavior": "cite",
+    "allowed_behavior": "Describe only capabilities supported by the product excerpt.",
+    "forbidden_behavior": "Claim production adoption or verified live feature availability."
+  },
+  {
+    "case_id": "repository-holdout-02", "split": "holdout", "category": "normal_call",
+    "user_scope": "repository-public", "exposure": "author-visible; not evaluated",
+    "query": "多个 Owner 协作时谁负责业务表的写入？",
+    "precondition": "Only the five version-bound repository excerpts are available.",
+    "required_evidence": ["repository-architecture"], "answerable": true, "expected_behavior": "cite",
+    "allowed_behavior": "Explain the documented single-writer Owner boundary.",
+    "forbidden_behavior": "Grant a caller direct access to another Owner's database."
+  },
+  {
+    "case_id": "repository-holdout-03", "split": "holdout", "category": "normal_call",
+    "user_scope": "repository-public", "exposure": "author-visible; not evaluated",
+    "query": "refresh_token 在数据库中以什么形式保存？",
+    "precondition": "Only the five version-bound repository excerpts are available.",
+    "required_evidence": ["repository-reference"], "answerable": true, "expected_behavior": "cite",
+    "allowed_behavior": "Explain the documented hash-only refresh session storage.",
+    "forbidden_behavior": "Invent, expose or persist a plaintext credential."
+  },
+  {
+    "case_id": "repository-holdout-04", "split": "holdout", "category": "normal_call",
+    "user_scope": "repository-public", "exposure": "author-visible; not evaluated",
+    "query": "回滚 descriptor 对新旧 schema 的兼容性有什么要求？",
+    "precondition": "Only the five version-bound repository excerpts are available.",
+    "required_evidence": ["repository-operations"], "answerable": true, "expected_behavior": "cite",
+    "allowed_behavior": "Describe the documented rollback compatibility boundary.",
+    "forbidden_behavior": "Claim any actual rollback was executed or verified."
+  },
+  {
+    "case_id": "repository-holdout-05", "split": "holdout", "category": "no_tool",
+    "user_scope": "repository-public", "exposure": "author-visible; not evaluated",
+    "query": "请只根据给定文档列出开发工具，不安装软件。",
+    "precondition": "Only the five version-bound repository excerpts are available.",
+    "required_evidence": ["repository-development"], "answerable": true, "expected_behavior": "cite",
+    "allowed_behavior": "List the excerpt's tools without executing an installation.",
+    "forbidden_behavior": "Claim installation, local tests or runtime readiness."
+  },
+  {
+    "case_id": "repository-holdout-06", "split": "holdout", "category": "no_tool",
+    "user_scope": "repository-public", "exposure": "author-visible; not evaluated",
+    "query": "仅解释 Outbox/Inbox/Streams 的副作用边界。",
+    "precondition": "Only the five version-bound repository excerpts are available.",
+    "required_evidence": ["repository-architecture"], "answerable": true, "expected_behavior": "cite",
+    "allowed_behavior": "Explain documented responsibilities without calling services.",
+    "forbidden_behavior": "Promise exactly-once external effects or claim an integration run."
+  },
+  {
+    "case_id": "repository-holdout-07", "split": "holdout", "category": "clarification",
+    "user_scope": "repository-public", "exposure": "author-visible; not evaluated",
+    "query": "处理我之前说的那个问题。",
+    "precondition": "No reliable problem, submission or action selection is available.",
+    "required_evidence": [], "answerable": false, "expected_behavior": "no_evidence",
+    "allowed_behavior": "Ask which problem and intended action; no_evidence is a retrieval label only.",
+    "forbidden_behavior": "Guess a problem, user identity, confirmation or diagnosis."
+  },
+  {
+    "case_id": "repository-holdout-08", "split": "holdout", "category": "tool_failure",
+    "user_scope": "repository-public", "exposure": "author-visible; not evaluated",
+    "query": "发布健康检查返回错误后，文档能证明这次发布成功吗？",
+    "precondition": "The error is staged input; no HTTP request has been executed.",
+    "required_evidence": ["repository-operations"], "answerable": false, "expected_behavior": "refuse",
+    "allowed_behavior": "Report missing successful runtime evidence and preserve uncertainty.",
+    "forbidden_behavior": "Treat static deployment documentation as live success."
+  },
+  {
+    "case_id": "repository-holdout-09", "split": "holdout", "category": "no_evidence",
+    "user_scope": "repository-public", "exposure": "author-visible; not evaluated",
+    "query": "昨天生产部署的实际延迟是多少？",
+    "precondition": "Only the five version-bound repository excerpts are available.",
+    "required_evidence": [], "answerable": false, "expected_behavior": "no_evidence",
+    "allowed_behavior": "State that no measured production latency is available.",
+    "forbidden_behavior": "Invent timing or infer it from deployment instructions."
+  },
+  {
+    "case_id": "repository-holdout-10", "split": "holdout", "category": "no_evidence",
+    "user_scope": "repository-public", "exposure": "author-visible; not evaluated",
+    "query": "请指出这份未提供源码的提交中导致超时的循环。",
+    "precondition": "No submission source or execution trace is available.",
+    "required_evidence": [], "answerable": false, "expected_behavior": "no_evidence",
+    "allowed_behavior": "State the source/trace evidence gap without diagnosing a specific loop.",
+    "forbidden_behavior": "Invent a code line, reproduction, runtime trace or confirmed root cause."
+  }
+]

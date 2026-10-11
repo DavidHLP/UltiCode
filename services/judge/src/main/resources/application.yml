@@ -13,12 +13,13 @@ spring:
     web-application-type: none
   autoconfigure:
     exclude:
-      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration
       - org.mybatis.spring.boot.autoconfigure.MybatisAutoConfiguration
       - com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration
-      - org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration
-      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
-      - org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
+      - org.springframework.boot.flyway.autoconfigure.FlywayAutoConfiguration
+      - org.springframework.boot.hibernate.autoconfigure.HibernateJpaAutoConfiguration
+      - org.springframework.boot.security.autoconfigure.SecurityAutoConfiguration
+      - org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration
   data:
     redis:
       url: ${JUDGE_REDIS_URL:redis://${REDIS_USERNAME:}:${REDIS_PASSWORD:}@${REDIS_HOST:localhost}:${REDIS_PORT:26379}/${REDIS_DB:0}}
@@ -99,12 +100,14 @@ management:
   tracing:
     sampling:
       probability: ${MANAGEMENT_TRACING_SAMPLING_PROBABILITY:1.0}
-  otlp:
+  opentelemetry:
     tracing:
-      endpoint: ${MANAGEMENT_OTLP_TRACING_ENDPOINT:http://localhost:4318/v1/traces}
-      headers:
-        Authorization: ${MANAGEMENT_OTLP_AUTHORIZATION:}
-      timeout: 5s
+      export:
+        otlp:
+          endpoint: ${MANAGEMENT_OTLP_TRACING_ENDPOINT:http://localhost:4318/v1/traces}
+          headers:
+            Authorization: ${MANAGEMENT_OTLP_AUTHORIZATION:}
+          timeout: 5s
     metrics:
       export:
         enabled: ${MANAGEMENT_OTLP_METRICS_ENABLED:false}

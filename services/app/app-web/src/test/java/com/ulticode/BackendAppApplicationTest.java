@@ -22,8 +22,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureTestRestTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.boot.resttestclient.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.ApplicationContext;
 import org.springframework.http.HttpStatus;
@@ -33,6 +34,7 @@ import org.springframework.test.context.ActiveProfiles;
 /**
  * P1-INFRA-005: verify the app service shell boots and exposes health.
  */
+@AutoConfigureTestRestTemplate
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
 class BackendAppApplicationTest {
@@ -318,6 +320,9 @@ class BackendAppApplicationTest {
 
     // Pre-existing shell-test wiring gap (P7-INFRA-MODERATION-BRIDGE-001): ModerationServiceImpl needs this port
     @MockitoBean private com.ulticode.modules.moderation.port.ContentModerationPort contentModerationPort;
+
+    // U03: App-private learning plan mapper (scan is excluded under the test profile)
+    @MockitoBean private com.ulticode.modules.learningplan.mapper.LearningPlanMapper learningPlanMapper;
 
 
     @Test

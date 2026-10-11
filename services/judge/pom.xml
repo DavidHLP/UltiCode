@@ -52,7 +52,17 @@
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter</artifactId>
+            <artifactId>spring-boot-starter-classic</artifactId>
+            <exclusions>
+                <!-- Same Boot 4.1.1 classic aggregate defect as backend-search:
+                     spring-boot-grpc-server ships without spring-grpc-core, and its
+                     registered GrpcDisableCsrfHttpConfigurer fails every HttpSecurity
+                     build. This worker exposes no HTTP or gRPC surface. -->
+                <exclusion>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-grpc-server</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -111,7 +121,7 @@
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
+            <artifactId>spring-boot-starter-test-classic</artifactId>
             <scope>test</scope>
         </dependency>
 

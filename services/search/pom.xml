@@ -47,7 +47,19 @@
              (judge worker precedent: web-application-type=none). -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter</artifactId>
+            <artifactId>spring-boot-starter-classic</artifactId>
+            <exclusions>
+                <!-- Boot 4.1.1's classic autoconfigure aggregate pulls
+                     spring-boot-grpc-server with its transitive dependencies
+                     wildcard-excluded, so spring-grpc-core is absent. Its
+                     spring.factories still registers GrpcDisableCsrfHttpConfigurer,
+                     which throws NoClassDefFoundError on every HttpSecurity build.
+                     This worker has no HTTP or gRPC surface. -->
+                <exclusion>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-grpc-server</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -79,7 +91,11 @@
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-json</artifactId>
+            <artifactId>spring-boot-starter-jackson</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-jackson2</artifactId>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.datatype</groupId>
@@ -95,7 +111,7 @@
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
+            <artifactId>spring-boot-starter-test-classic</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>

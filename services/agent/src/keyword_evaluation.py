@@ -28,7 +28,7 @@ CONFIRMATION_CASES_PATH = Path(__file__).resolve().parents[1] / "data" / "holdou
 EXPECTED_BEHAVIORS = frozenset({"cite", "no_evidence", "refuse"})
 #: "holdout" was already observed during an exploratory run, so it is kept
 #: for continuity; "holdout2" is the never-seen confirmation set.
-SPLITS = ("development", "holdout", "holdout2")
+SPLITS = ("development", "holdout", "holdout2", "holdout3")
 #: Answer-level dimensions this deterministic slice cannot decide.
 DEFERRED = "deferred"
 
@@ -204,12 +204,13 @@ def retrieval_outcome(required: set[str], actual: set[str]) -> str:
 
 
 def evaluate_case_records(
-    cases: tuple[KeywordCase, ...], *, limit: int
+    cases: tuple[KeywordCase, ...], *, limit: int,
+    documents: tuple[SourceDocument, ...] | None = None,
 ) -> tuple[CaseRecord, ...]:
     records: list[CaseRecord] = []
     for case in cases:
         started = time.perf_counter()
-        hits = keyword_search(case.query, limit=limit)
+        hits = keyword_search(case.query, limit=limit, documents=documents)
         # Microseconds: the sample corpus answers in well under a millisecond, so
         # integer milliseconds truncated the whole latency dimension to zero.
         elapsed_us = int((time.perf_counter() - started) * 1_000_000)

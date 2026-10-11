@@ -52,6 +52,7 @@ from e2e_citation_support_model import (
     _path_label as _artifact_label,
 )
 from keyword_evaluation import load_cases
+from model_budget import authorized_model, acceptance_transport
 
 OPT_IN = "ULTICODE_ANSWER_EVAL"
 DEFAULT_MAX_CALLS = 64
@@ -168,20 +169,24 @@ async def main() -> int:
 
     # Configured ceiling, not the row count: the adapter owns the guard, and a
     # budget below the plan would bill a partial run before refusing the rest.
+    try:
+        model_name, model_budget = authorized_model()
+    except ValueError:
+        print("FAIL reason=model_configuration_invalid")
+        return 1
+    from authorized_budget_period import REVALIDATION_POLICY_ID, REVALIDATION_POLICY_IDS
+    identity = getattr(model_budget, "_identity", None)
+    attempts_per_pass = 1 if identity is not None and identity.policy_id in REVALIDATION_POLICY_IDS - {REVALIDATION_POLICY_ID} else ATTEMPTS_PER_PASS
+    required_calls = len(cases) * 2 * attempts_per_pass
     max_calls = _int("DEEPSEEK_MAX_CALLS", DEFAULT_MAX_CALLS)
-    if max_calls < len(cases) * CALLS_PER_CASE:
+    if max_calls < required_calls:
         print(
             f"FAIL reason=call_budget_below_plan cases={len(cases)} "
-            f"required={len(cases) * CALLS_PER_CASE} max_calls={max_calls}"
+            f"required={required_calls} max_calls={max_calls}"
         )
         return 1
-
-    model_name = os.environ.get("DEEPSEEK_MODEL", "").strip()
-    if not model_name:
-        print("FAIL reason=deepseek_model_required")
-        return 1
-    if not os.environ.get("DEEPSEEK_API_KEY", "").strip():
-        print("FAIL reason=deepseek_api_key_required")
+    if identity is not None and model_budget.remaining_purpose_attempts("prior_development") < required_calls:
+        print("FAIL reason=purpose_budget_below_plan")
         return 1
 
     artifact = _artifact_path()
@@ -202,19 +207,32 @@ async def main() -> int:
                 tool_specs={},
                 model=model_name,
                 max_calls=max_calls,
-                # 40 sequential billed calls over a reasoning model: the adapter's 30s
-                # default is per request, and one stall aborts the whole batch.
                 timeout=_float("DEEPSEEK_TIMEOUT", 120.0),
                 max_tokens=_int("DEEPSEEK_MAX_TOKENS", 4000),
                 max_prompt_tokens=_int("DEEPSEEK_MAX_PROMPT_TOKENS", 24000),
+                budget=model_budget,
+                budget_purpose="prior_development" if getattr(model_budget, "_identity", None) is not None else "ordinary",
+                transport=acceptance_transport(model_budget, "prior_development"),
+                thinking_type="disabled",
             ) as model:
                 try:
                     preflight_answer_case_prompts(
                         cases, model=model, documents=documents
                     )
                     rows = await evaluate_answer_cases(
-                        cases, model=model, documents=documents, attempts=ATTEMPTS_PER_PASS
+                        cases, model=model, documents=documents, attempts=attempts_per_pass
                     )
+                except BaseException as error:
+                    if identity is not None:
+                        _publish(artifact, json.dumps({
+                            "scope": "development_only", "status": "INCOMPLETE",
+                            "error_class": type(error).__name__,
+                            "corpus": _corpus_identity(manifest_sha256, documents),
+                            "cases": _cases_identity(case_sha256),
+                            "attempt_ids": [entry["attempt_id"] for entry in model.metering],
+                            "provider_exchanges": model._transport.exchanges,
+                        }, ensure_ascii=True, indent=2) + "\n")
+                    raise
                 finally:
                     # Every sent request remains billed even if a later pass aborts.
                     totals = [e.get("total_tokens") for e in model.usage if isinstance(e, dict)]
@@ -267,6 +285,9 @@ async def main() -> int:
                         "cases": _cases_identity(case_sha256),
                         "summary": summary,
                         "rows": [row.__dict__ for row in rows],
+                        **({"attempt_ids": [entry["attempt_id"] for entry in model.metering],
+                            "provider_exchanges": model._transport.exchanges}
+                           if getattr(model_budget, "_identity", None) is not None else {}),
                     },
                     # Provider output may contain lone surrogates; ASCII escaping keeps
                     # the artifact UTF-8 writable and preserves strings on JSON read-back.

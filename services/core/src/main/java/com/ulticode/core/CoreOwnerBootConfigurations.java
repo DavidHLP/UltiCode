@@ -74,6 +74,7 @@ final class CoreOwnerBootConfigurations {
             "com.ulticode.modules.event.replay",
             "com.ulticode.modules.follow",
             "com.ulticode.modules.forum",
+            "com.ulticode.modules.learningplan",
             "com.ulticode.modules.moderation",
             "com.ulticode.modules.notification.event",
             "com.ulticode.modules.notification.intent",
@@ -157,8 +158,8 @@ final class CoreOwnerBootConfigurations {
     @EnableAutoConfiguration(
             excludeName = "org.mybatis.spring.boot.autoconfigure.MybatisAutoConfiguration",
             exclude = {
-                    org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration.class,
-                    org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration.class,
+                    org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration.class,
+                    org.springframework.boot.jdbc.autoconfigure.DataSourceTransactionManagerAutoConfiguration.class,
                     com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration.class
             })
     @ComponentScan({"com.ulticode.search", "com.ulticode.common"})

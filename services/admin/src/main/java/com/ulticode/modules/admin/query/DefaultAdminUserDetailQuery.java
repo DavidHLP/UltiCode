@@ -23,6 +23,7 @@ import com.ulticode.submission.api.dto.SubmissionUserDetailStatsSnapshotDTO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 
 import java.time.Clock;
@@ -89,9 +90,9 @@ public class DefaultAdminUserDetailQuery implements AdminUserDetailQuery {
     @Autowired
     public DefaultAdminUserDetailQuery(
             AdminUserEnricher userEnricher,
-            AdminSubmissionUserDetailStatsReadPort submissionStatsReadPort,
-            SolutionReadPort solutionReadPort,
-            AuthorizationSnapshotService authorizationSnapshotService,
+            @Nullable AdminSubmissionUserDetailStatsReadPort submissionStatsReadPort,
+            @Nullable SolutionReadPort solutionReadPort,
+            @Nullable AuthorizationSnapshotService authorizationSnapshotService,
             Clock clock,
             @Qualifier("adminUserDetailQueryExecutor") CancellableQueryExecutor queryExecutor,
             AdminQueryDeadline queryDeadline) {

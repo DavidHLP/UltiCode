@@ -15,6 +15,7 @@ final class CoreOwnerBootProperties {
     List<String> forModule(CoreModuleDefinition module) {
         String prefix = module.environmentPrefix();
         boolean admin = "admin".equals(module.name());
+        boolean auth = "auth".equals(module.name());
         boolean search = "search".equals(module.name());
         String storageAccessKey = admin
                 ? requiredProperty("RUSTFS_ADMIN_ACCESS_KEY")
@@ -99,6 +100,27 @@ final class CoreOwnerBootProperties {
                 "dubbo.protocol.port=-1",
                 "dubbo.application.register-mode=none"
         ));
+        if (auth || admin) {
+            properties.addAll(List.of(
+                    "spring.profiles.active=" + String.join(",", environment.getActiveProfiles()),
+                    "jwt.resource-server.enabled=" + admin,
+                    "jwt.secret=" + property("JWT_SECRET", property("jwt.secret", "")),
+                    "jwt.issuer=" + property("JWT_ISSUER", "ulticode-auth"),
+                    "jwt.audience=" + property("JWT_AUDIENCE", "ulticode-api"),
+                    "jwt.expected-issuer=" + property("JWT_EXPECTED_ISSUER", "ulticode-auth"),
+                    "jwt.expected-audience=" + property("JWT_EXPECTED_AUDIENCE", "ulticode-api"),
+                    "jwt.allowed-algorithms=" + property("JWT_ALLOWED_ALGORITHMS", "HS256,RS256"),
+                    "jwt.rsa.enabled=" + property("JWT_RSA_ENABLED", "false"),
+                    "jwt.rsa.private-key=" + (auth ? property("JWT_RSA_PRIVATE_KEY", "") : ""),
+                    "jwt.rsa.previous-private-key="
+                            + (auth ? property("JWT_RSA_PREVIOUS_PRIVATE_KEY", "") : ""),
+                    "jwt.jwks-uri=" + property("JWT_JWKS_URI", "http://127.0.0.1:"
+                            + property("local.server.port", property("server.port", "9108")) + "/auth/jwks"),
+                    "jwt.jwks-json=" + property("JWT_JWKS_JSON", ""),
+                    "jwt.cookie.access-token.secure=" + property("JWT_COOKIE_SECURE", "true"),
+                    "jwt.cookie.refresh-token.secure=" + property("JWT_COOKIE_SECURE", "true")
+            ));
+        }
         String autoConfigurationExcludes = property("spring.autoconfigure.exclude", "");
         if (!autoConfigurationExcludes.isBlank()) {
             properties.add("spring.autoconfigure.exclude=" + autoConfigurationExcludes);

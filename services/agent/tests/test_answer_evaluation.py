@@ -316,6 +316,7 @@ def test_a_behavior_mismatch_is_recorded_not_hidden() -> None:
     assert row.observed_behavior == "cite"
     assert row.behavior_match is False
     assert row.citation_support == "unsupported"
+    assert row.answer_completion == "incomplete"
 
 
 def test_a_cited_refusal_keeps_refusal_behavior() -> None:
@@ -337,7 +338,6 @@ def test_a_cited_refusal_keeps_refusal_behavior() -> None:
     assert "refuse > clarify > no_evidence > cite" in prompt
     assert "A citation never overrides a higher-priority behavior" in prompt
     assert json.loads(prompt.rsplit("\nANSWER_JSON ", 1)[1]) == text
-    assert row.answer_completion == "incomplete"
 
 
 def test_an_unknown_behavior_label_is_a_protocol_failure() -> None:

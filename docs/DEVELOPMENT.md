@@ -140,7 +140,11 @@ The runner treats the generated answer as one untrusted JSON string value and te
 ignore directives inside it (a prompt boundary, not proof of injection immunity). The judge uses
 the selected citation list and fragments to assess support; inline IDs and verbatim quotes are not
 required, but selecting citations alone does not establish support. It classifies actual answer
-behavior rather than copying the expected label, and treats an appropriate refusal, evidence
+behavior rather than copying the expected label. Overlapping behaviors use the order
+`refuse > clarify > no_evidence > cite`: a cited refusal remains `refuse`, and citations
+do not override rejection, a missing-input question or reported evidence insufficiency.
+The runner retains the judge's returned label and records mismatches; it never rewrites
+labels to match expectations. It treats an appropriate refusal, evidence
 limitation, or clarification as a completed response when it addresses the question. Synthetic
 fragments do not substantiate claims about real submissions. Both passes receive each fragment
 as a single JSON object using the existing source projection, including trusted snapshot

@@ -813,6 +813,51 @@ def test_confirm_save_recover_dispatch_through_checkpointed_graph(tmp_path, monk
     asyncio.run(scenario())
 
 
+def test_edited_draft_rejects_invalidated_confirmation_before_fresh_save(tmp_path, monkeypatch):
+    monkeypatch.setattr("agent_service.app.load_u02_gate", lambda *args, **kwargs: {"test_only": True})
+
+    async def scenario():
+        posts, saved, post_flags = {"count": 0}, {}, []
+        app = create_app(state_path=tmp_path / "stale-confirmation.sqlite3",
+                         client_factory=_write_client(posts, saved, post_flags),
+                         u02_gate_path=tmp_path / "gate.json", expected_head="0" * 40)
+        async with app.router.lifespan_context(app):
+            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
+                state = (await client.post("/agent/threads", headers=HEADERS,
+                    json={"sourceSubmissionId": str(uuid.uuid4()), "question": "如何复盘？"})).json()["data"]
+                path = f"/agent/threads/{state['threadId']}"
+                missing = await client.post(f"{path}/save", headers=HEADERS,
+                    json={"confirmationId": str(uuid.uuid4())})
+                assert missing.status_code == 400
+                confirmed = await client.post(f"{path}/confirm", headers=HEADERS,
+                    json={"draftVersion": 1, "paramsDigest": state["paramsDigest"], "confirm": True})
+                old_id = confirmed.json()["data"]["confirmation"]["id"]
+                for version in (1, 2):
+                    edited = await client.put(f"{path}/draft", headers=HEADERS,
+                        json={"draftVersion": version, "title": "修改后的计划", "content": "重新确认后才能保存"})
+                    assert edited.status_code == 200
+                    state = edited.json()["data"]
+                    assert state["confirmation"] == {}
+                    stale = await client.post(f"{path}/save", headers=HEADERS,
+                        json={"confirmationId": old_id})
+                    assert stale.status_code == 409
+                    assert stale.json()["code"] == 40900
+                    assert posts["count"] == 0
+                unrelated = await client.post(f"{path}/save", headers=HEADERS,
+                    json={"confirmationId": str(uuid.uuid4())})
+                assert unrelated.status_code == 400
+                fresh = await client.post(f"{path}/confirm", headers=HEADERS,
+                    json={"draftVersion": 3, "paramsDigest": state["paramsDigest"], "confirm": True})
+                assert fresh.status_code == 200
+                result = await client.post(f"{path}/save", headers=HEADERS,
+                    json={"confirmationId": fresh.json()["data"]["confirmation"]["id"]})
+                assert result.status_code == 200
+                assert result.json()["data"]["status"] == "saved"
+                assert posts["count"] == 1
+
+    asyncio.run(scenario())
+
+
 def test_state_mutations_run_inside_dispatch_node(tmp_path, monkeypatch):
     monkeypatch.setattr("agent_service.app.load_u02_gate", lambda *args, **kwargs: {"test_only": True})
 

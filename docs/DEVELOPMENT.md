@@ -499,6 +499,9 @@ fresh acceptance receipt or zero-cost settlement. Use `authorized_budget_period.
 with the explicitly selected `policy_id`, then `ModelBudget.bind_prepared` with the same
 bound identity and private `history_sources`. Do not repair missing history with an empty
 ledger or infer authorization from a supported policy name. Pass that identity to the
+entry points only after the returned bound coordinator's explicit `activate()` step,
+under the same approved authorization and history checks. Preparation and binding
+alone do not enable billing; activation never reopens a halted predecessor. Select the
 entry points using `--policy-id` and `ULTICODE_ACCEPTANCE_IDENTITY` as described above.
 Each replacement still needs a fresh complete acceptance prefix, including both full
 development passes, within its cumulative and per-purpose limits. Earlier periods remain

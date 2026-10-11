@@ -19,7 +19,7 @@ def journal_path(identity):
 
 async def run(expected, *, resume_sha256=None):
     # Read-only provenance/budget gates precede the one-shot journal claim.
-    provenance = runner._repository_provenance()
+    provenance = runner._repository_provenance(expected.policy_id)
     _, budget = authorized_model(expected)
     snapshot = budget.snapshot()
     if snapshot["state"] != "active" or snapshot["sql_gate"] != "active" or snapshot["halted"]:
@@ -62,7 +62,7 @@ async def run(expected, *, resume_sha256=None):
             (agent_root / "src/revalidation_history.py").read_bytes()).hexdigest()
 
     def guarded_model(*args, **kwargs):
-        if "transport" in kwargs:
+        if kwargs.pop("transport", None) is not None:
             raise ValueError("production guarded entry accepts no transport override")
         lane = kwargs.get("budget_purpose")
         if lane not in {"dav58_loop", "dav58_judge"}:
@@ -70,12 +70,16 @@ async def run(expected, *, resume_sha256=None):
         return DeepseekModel(*args, transport=GuardedTransport(guard, lane), **kwargs)
 
     original_model, original_provenance = runner.DeepseekModel, runner._repository_provenance
+    original_transport = runner.acceptance_transport
     runner.DeepseekModel = guarded_model
-    runner._repository_provenance = lambda: provenance
+    # This entry already owns the guard and supplies both model transports.
+    runner.acceptance_transport = lambda budget, purpose: None
+    runner._repository_provenance = lambda policy_id=runner.POLICY_ID: provenance
     try:
         return await runner.main(expected)
     finally:
         runner.DeepseekModel, runner._repository_provenance = original_model, original_provenance
+        runner.acceptance_transport = original_transport
         guard.close()
 
 

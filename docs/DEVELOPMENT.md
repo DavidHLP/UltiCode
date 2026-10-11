@@ -483,6 +483,28 @@ and complete receipts before the earlier chain. All failed-run commitments and u
 liabilities remain retained; the replacement requires a fresh complete prefix on the repaired
 candidate, rather than resuming or relabeling the incomplete development run.
 
+The same explicitly authorized rollover contract applies to the later supported policies:
+
+| Selected policy | Required permanently halted predecessor |
+| --- | --- |
+| `acceptance-revalidation-v10` | V9 |
+| `acceptance-revalidation-v11` | V10 |
+| `acceptance-revalidation-v12` | V11 |
+
+Before preparation, retain the predecessor ledger, binding and guard at their pinned
+fingerprints and preserve the entire earlier history chain. The selected policy's
+`revalidation_history.validate_history` path verifies those sources, settled receipts,
+known charges, conservative commitments and full unknown liabilities; none becomes a
+fresh acceptance receipt or zero-cost settlement. Use `authorized_budget_period.prepare_period`
+with the explicitly selected `policy_id`, then `ModelBudget.bind_prepared` with the same
+bound identity and private `history_sources`. Do not repair missing history with an empty
+ledger or infer authorization from a supported policy name. Pass that identity to the
+entry points using `--policy-id` and `ULTICODE_ACCEPTANCE_IDENTITY` as described above.
+Each replacement still needs a fresh complete acceptance prefix, including both full
+development passes, within its cumulative and per-purpose limits. Earlier periods remain
+halted. A halted replacement is not resumed or reset; this runbook grants no automatic
+replacement, retries or paid calls.
+
 Issue the evidence-bound U02 gate only after those inputs validate. Gate artifact references are
 relative to the private directory containing the gate; place the referenced artifacts there:
 

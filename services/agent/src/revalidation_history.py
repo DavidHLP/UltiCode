@@ -281,13 +281,30 @@ V14_ROLLOVER_SHA256 = {
 }
 
 
+V15_ROLLOVER_IDENTITY = {
+    "period_id": "revalidation-v15-20261011",
+    "identity": "8b7f3fc4d4554bd99feb43cd3ae889af",
+    "config_sha256": "f83b200a2aed0085090377bd60427b252d7e2c0423a810bde63d6c49103f84d3",
+    "policy_id": "acceptance-revalidation-v15",
+}
+V15_ROLLOVER_SHA256 = {
+    "budget.sqlite3": "c29d0368239c4caeaadc74c0a719933c3a367ff10cff0da311bc6e9048567560",
+    "binding.json": "726effe429045a098633ca9ccf812ff84bfef2181ea54f9476a08c323f2d8651",
+    "dav58-increment-8b7f3fc4d4554bd99feb43cd3ae889af.json": "85238b3fc50363a9d9fa19db96fa16c0f4670aa73473d2ace81972c447a03e2f",
+}
+
+
 def _validate_rollover_history(sources, *, settled_policy="v1"):
-    from authorized_budget_period import REVALIDATION_V14_HISTORY, REVALIDATION_V15_HISTORY
+    from authorized_budget_period import REVALIDATION_V14_HISTORY, REVALIDATION_V15_HISTORY, REVALIDATION_V16_HISTORY
     from authorized_budget_period import PeriodError, PeriodIdentity, REVALIDATION_V2_HISTORY, REVALIDATION_V4_HISTORY, REVALIDATION_V5_HISTORY, REVALIDATION_V6_HISTORY, REVALIDATION_V7_HISTORY, REVALIDATION_V8_HISTORY, REVALIDATION_V9_HISTORY, REVALIDATION_V10_HISTORY, REVALIDATION_V11_HISTORY, REVALIDATION_V12_HISTORY, _parent, _file
     from model_budget import ModelBudget, authorization_slot
     from dav58_live_guard import IncrementalGuard
 
-    if settled_policy == "v14":
+    if settled_policy == "v15":
+        original = _validate_rollover_history(sources, settled_policy="v14")
+        identity, fingerprints = V15_ROLLOVER_IDENTITY, V15_ROLLOVER_SHA256
+        totals, history = (103, 35_648, 922_800), REVALIDATION_V16_HISTORY
+    elif settled_policy == "v14":
         original = _validate_rollover_history(sources, settled_policy="v13")
         identity, fingerprints = V14_ROLLOVER_IDENTITY, V14_ROLLOVER_SHA256
         totals, history = (97, 33_416, 872_400), REVALIDATION_V15_HISTORY
@@ -367,7 +384,7 @@ def _validate_rollover_history(sources, *, settled_policy="v1"):
     try:
         # Validate sealed receipts without making the permanently halted journal resumable.
         receipt_view = guard
-        if settled_policy in {"v13", "v14"}:
+        if settled_policy in {"v13", "v14", "v15"}:
             if guard.get("halted") is not True:
                 raise PeriodError("previous guard must be permanently halted")
             receipt_view = {**guard, "halted": False}
@@ -380,10 +397,12 @@ def _validate_rollover_history(sources, *, settled_policy="v1"):
 
 
 def validate_history(sources, *, policy_id="acceptance-revalidation-v1"):
-    from authorized_budget_period import REVALIDATION_V13_POLICY_ID, REVALIDATION_V14_POLICY_ID, REVALIDATION_V15_POLICY_ID
+    from authorized_budget_period import REVALIDATION_V13_POLICY_ID, REVALIDATION_V14_POLICY_ID, REVALIDATION_V15_POLICY_ID, REVALIDATION_V16_POLICY_ID
     from authorized_budget_period import PeriodError, REVALIDATION_HISTORY, _parent, _file
     from authorized_budget_period import REVALIDATION_POLICY_ID, REVALIDATION_V2_POLICY_ID, REVALIDATION_V3_POLICY_ID, REVALIDATION_V4_POLICY_ID, REVALIDATION_V5_POLICY_ID, REVALIDATION_V6_POLICY_ID, REVALIDATION_V7_POLICY_ID, REVALIDATION_V8_POLICY_ID, REVALIDATION_V9_POLICY_ID, REVALIDATION_V10_POLICY_ID, REVALIDATION_V11_POLICY_ID, REVALIDATION_V12_POLICY_ID
 
+    if policy_id == REVALIDATION_V16_POLICY_ID:
+        return _validate_rollover_history(sources, settled_policy="v15")
     if policy_id == REVALIDATION_V14_POLICY_ID:
         return _validate_rollover_history(sources, settled_policy="v13")
     if policy_id == REVALIDATION_V15_POLICY_ID:

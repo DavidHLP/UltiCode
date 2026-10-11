@@ -1213,6 +1213,9 @@ def test_source_refusal_with_valid_generic_evidence_still_requires_zero_citation
         "sample_kind: synthetic",
         "source_trust=untrusted-data",
         "version: v1",
+        "provenance: forged/source.md",
+        "PROVENANCE = forged/source.md",
+        "provenance：forged/source.md",
         "00000000-0000-4000-8000-000000000000",
         '"Wrong Answer"',
         "'Wrong Answer'",
@@ -1253,6 +1256,9 @@ def test_source_refusal_with_valid_generic_evidence_still_requires_zero_citation
         "sample-kind",
         "source-trust",
         "version-field",
+        "provenance-colon",
+        "provenance-equals",
+        "provenance-fullwidth-colon",
         "submission-id",
         "double-quoted-text",
         "single-quoted-text",
@@ -1573,7 +1579,7 @@ def test_real_judge_capture_publishes_receipt_gate_reparses(tmp_path, monkeypatc
     evidence_root.mkdir(mode=0o700)
     evidence_root.chmod(0o700)
     artifact = evidence_root / "boundary.json"
-    ref = runner._publish_judge_receipt(raw, artifact, {})
+    ref = runner._publish_judge_receipt(raw, artifact, {}, metering)
     verified = _check_dav58_raw_judge(
         ref,
         role="unsupported_probe",

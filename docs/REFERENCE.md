@@ -39,8 +39,10 @@ cannot select a user, model, graph node, or checkpoint.
 Workflow states include `draft`, `analyzing`, `awaiting_confirmation`, `confirmed`, `saving`,
 `saved`, `unknown`, `failed`, and `cancelled`. Agent SQLite is canonical for drafts, workflow state,
 and events; LangGraph checkpoints are resumable control state only. `saved` requires an accepted
-Java record response. A timeout, lost response, or uncertain process restart remains `unknown`;
-reconcile by the same idempotency key before any retry. A by-key lookup is treated as not found only
+Java record response. A timeout, lost response, or uncertain process restart remains `unknown`.
+recovering an interrupted `saving` state with no Java record and `retry: false` persists `unknown`
+without issuing another write. A later explicit retry retains the original business key and guards.
+Reconcile by the same idempotency key before any retry. A by-key lookup is treated as not found only
 for HTTP 404 with business code `40400`; transport/server errors remain unresolved. Retry is never
 automatic: `retry:true` is an explicit action and still requires an eligible unexpired confirmation,
 matching payload, no cancellation, and the exact not-found result. Never mint a replacement key.

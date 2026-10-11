@@ -12,7 +12,6 @@ import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.time.Clock;
 import java.time.Instant;
-import java.time.ZoneOffset;
 import java.util.Base64;
 import java.util.Date;
 import java.util.UUID;
@@ -24,7 +23,7 @@ class InternalDelegationAssertionVerifierTest {
     private static final String KEY_ID = "admin-delegation-v1";
     private static final String ACTOR_ID = "admin-1";
     private static final String AUDIENCE = "backend-submission";
-    private static final Instant NOW = Instant.now();
+    private Instant now;
 
     private KeyPair keyPair;
     private InternalDelegationAssertionVerifier verifier;
@@ -32,13 +31,15 @@ class InternalDelegationAssertionVerifierTest {
     @BeforeEach
     void setUp() throws Exception {
         keyPair = rsaKeyPair();
+        Clock clock = Clock.systemUTC();
+        now = clock.instant();
         verifier = new InternalDelegationAssertionVerifier(
                 encode(keyPair.getPublic()),
                 KEY_ID,
                 DelegationAssertionContract.ISSUER,
                 AUDIENCE,
                 (audience, jti, ttl) -> true,
-                Clock.systemUTC());
+                clock);
     }
 
     @AfterEach
@@ -49,32 +50,32 @@ class InternalDelegationAssertionVerifierTest {
 
     @Test
     void acceptsFreshAssertionBoundToAdminActorAndOwnerAudience() {
-        putAssertion(ACTOR_ID, NOW.plusSeconds(20), AUDIENCE, false);
+        putAssertion(ACTOR_ID, now.plusSeconds(20), AUDIENCE, false);
 
         assertThat(verifier.isTrusted(actor("ADMIN", ACTOR_ID))).isTrue();
     }
 
     @Test
     void rejectsWrongAudienceExpiredBootstrapAndNonAdminAssertions() {
-        putAssertion(ACTOR_ID, NOW.plusSeconds(20), "backend-app", false);
+        putAssertion(ACTOR_ID, now.plusSeconds(20), "backend-app", false);
         assertThat(verifier.isTrusted(actor("ADMIN", ACTOR_ID))).isFalse();
 
-        putAssertion(ACTOR_ID, NOW.minusSeconds(1), AUDIENCE, false);
+        putAssertion(ACTOR_ID, now.minusSeconds(1), AUDIENCE, false);
         assertThat(verifier.isTrusted(actor("ADMIN", ACTOR_ID))).isFalse();
 
-        putAssertion(ACTOR_ID, NOW.plusSeconds(20), AUDIENCE, true);
+        putAssertion(ACTOR_ID, now.plusSeconds(20), AUDIENCE, true);
         assertThat(verifier.isTrusted(actor("ADMIN", ACTOR_ID))).isFalse();
 
-        putAssertion(ACTOR_ID, NOW.plusSeconds(20), AUDIENCE, false);
+        putAssertion(ACTOR_ID, now.plusSeconds(20), AUDIENCE, false);
         assertThat(verifier.isTrusted(actor("USER", ACTOR_ID))).isFalse();
     }
 
     @Test
     void rejectsLongLivedAndNonSelfDelegation() {
-        putAssertion(ACTOR_ID, NOW.plusSeconds(120), AUDIENCE, false);
+        putAssertion(ACTOR_ID, now.plusSeconds(120), AUDIENCE, false);
         assertThat(verifier.isTrusted(actor("ADMIN", ACTOR_ID))).isFalse();
 
-        putAssertion(ACTOR_ID, NOW.plusSeconds(20), AUDIENCE, false);
+        putAssertion(ACTOR_ID, now.plusSeconds(20), AUDIENCE, false);
         assertThat(verifier.isTrusted(
                 new ActorDelegation("ADMIN", ACTOR_ID, "different-delegator", "test"))).isFalse();
     }
@@ -92,7 +93,7 @@ class InternalDelegationAssertionVerifierTest {
                 .claim(DelegationAssertionContract.ACTOR_TYPE_CLAIM, "ADMIN")
                 .issuer(DelegationAssertionContract.ISSUER)
                 .audience().add(audience).and()
-                .issuedAt(Date.from(NOW))
+                .issuedAt(Date.from(now))
                 .expiration(Date.from(expiresAt));
         if (bootstrap) {
             builder.claim(DelegationAssertionContract.BOOTSTRAP_CLAIM, true);

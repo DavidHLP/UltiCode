@@ -257,7 +257,7 @@ class CoreEnabledOwnerJourneyIT {
                 .withProperty("spring.main.lazy-initialization", "true")
                 .withProperty("ulticode.app.inbox.enabled", "false")
                 .withProperty("spring.autoconfigure.exclude",
-                        "org.springframework.boot.actuate.autoconfigure.metrics.SystemMetricsAutoConfiguration");
+                        "org.springframework.boot.micrometer.metrics.autoconfigure.system.SystemMetricsAutoConfiguration");
         ownerContexts = new CoreOwnerContextManager(new CoreModuleRegistry(), environment, true, 60_000L);
         ownerContexts.startOwnerModules();
         awaitOwnerStartup();

@@ -24,9 +24,10 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 @SpringBootTest(properties = "spring.autoconfigure.exclude="
-        + "org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration,"
-        + "org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration,"
-        + "org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration,"
+        + "org.springframework.boot.flyway.autoconfigure.FlywayAutoConfiguration,"
+        + "org.springframework.boot.hibernate.autoconfigure.HibernateJpaAutoConfiguration,"
+        + "org.springframework.boot.security.autoconfigure.SecurityAutoConfiguration,"
+        + "org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration,"
         + "org.apache.dubbo.spring.boot.autoconfigure.DubboAutoConfiguration,"
         + "com.alibaba.cloud.dubbo.bootstrap.DubboBootstrapAutoConfiguration")
 @Testcontainers

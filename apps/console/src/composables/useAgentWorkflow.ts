@@ -234,7 +234,7 @@ export function useAgentWorkflow() {
   }
 
   async function confirmDraft() {
-    if (!thread.value) return;
+    if (!thread.value || busy.value) return;
     const token = runGeneration;
     const current = thread.value;
     busy.value = true;
@@ -243,7 +243,10 @@ export function useAgentWorkflow() {
       const value = await agentApi.confirm(current.threadId, current.draft, current.paramsDigest);
       if (isCurrent(token, current.threadId)) applyThread(value);
     } catch {
-      if (token === runGeneration) error.value = "requestFailed";
+      if (token === runGeneration) {
+        error.value = "requestFailed";
+        await refresh(current.threadId, token);
+      }
     } finally {
       if (token === runGeneration) busy.value = false;
     }
@@ -251,7 +254,7 @@ export function useAgentWorkflow() {
 
   async function save() {
     const confirmationId = thread.value?.confirmation?.id;
-    if (!thread.value || !confirmationId) return;
+    if (!thread.value || !confirmationId || busy.value) return;
     const token = runGeneration;
     const current = thread.value;
     busy.value = true;
@@ -283,7 +286,10 @@ export function useAgentWorkflow() {
       const value = await agentApi.recover(current.threadId);
       if (isCurrent(token, current.threadId)) applyThread(value);
     } catch {
-      if (token === runGeneration) error.value = "requestFailed";
+      if (token === runGeneration) {
+        error.value = "requestFailed";
+        await refresh(current.threadId, token);
+      }
     } finally {
       if (token === runGeneration) busy.value = false;
     }
@@ -299,7 +305,10 @@ export function useAgentWorkflow() {
       const value = await agentApi.cancel(current.threadId);
       if (isCurrent(token, current.threadId)) applyThread(value, true);
     } catch {
-      if (token === runGeneration) error.value = "requestFailed";
+      if (token === runGeneration) {
+        error.value = "requestFailed";
+        await refresh(current.threadId, token);
+      }
     } finally {
       if (token === runGeneration) canceling.value = false;
     }

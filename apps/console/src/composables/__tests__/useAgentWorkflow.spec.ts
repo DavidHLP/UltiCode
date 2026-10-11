@@ -20,6 +20,7 @@ vi.mock("@/api/agent", () => ({
 class FakeEventSource {
   static instances: FakeEventSource[] = [];
   private listeners = new Map<string, (event: MessageEvent<string>) => void>();
+  onerror: ((event: Event) => unknown) | null = null;
   closed = false;
 
   constructor(public url: string) {
@@ -36,6 +37,10 @@ class FakeEventSource {
 
   emit(type: string, payload: Record<string, unknown>) {
     this.listeners.get(type)?.(new MessageEvent(type, { data: JSON.stringify(payload) }));
+  }
+
+  fail() {
+    this.onerror?.(new Event("error"));
   }
 }
 
@@ -115,6 +120,114 @@ describe("useAgentWorkflow run isolation", () => {
     scope.stop();
   });
 
+  it("submits only one confirmation and keeps confirmation separate from saving", async () => {
+    const awaiting = thread("thread-a", "run-a", "awaiting_confirmation");
+    const confirmed = {
+      ...awaiting,
+      status: "confirmed" as const,
+      confirmation: { id: "confirmation-1" },
+    };
+    let resolveConfirm!: (value: AgentThread) => void;
+    const confirmRequest = new Promise<AgentThread>((resolve) => {
+      resolveConfirm = resolve;
+    });
+    vi.mocked(agentApi.getThread).mockResolvedValue(awaiting);
+    vi.mocked(agentApi.confirm).mockReturnValue(confirmRequest);
+
+    const scope = effectScope();
+    const workflow = scope.run(() => useAgentWorkflow())!;
+    await workflow.loadThread(awaiting.threadId);
+
+    const firstConfirm = workflow.confirmDraft();
+    const duplicateConfirm = workflow.confirmDraft();
+    expect(agentApi.confirm).toHaveBeenCalledTimes(1);
+    expect(workflow.busy.value).toBe(true);
+
+    resolveConfirm(confirmed);
+    await Promise.all([firstConfirm, duplicateConfirm]);
+    expect(workflow.thread.value?.status).toBe("confirmed");
+    expect(agentApi.save).not.toHaveBeenCalled();
+    scope.stop();
+  });
+
+  it("shows the canonical confirmation after a lost response and never saves automatically", async () => {
+    const awaiting = thread("thread-a", "run-a", "awaiting_confirmation");
+    const confirmed = {
+      ...awaiting,
+      status: "confirmed" as const,
+      confirmation: { id: "confirmation-1" },
+    };
+    vi.mocked(agentApi.getThread).mockResolvedValueOnce(awaiting).mockResolvedValueOnce(confirmed);
+    vi.mocked(agentApi.confirm).mockRejectedValue(new Error("response lost"));
+
+    const scope = effectScope();
+    const workflow = scope.run(() => useAgentWorkflow())!;
+    await workflow.loadThread(awaiting.threadId);
+    await workflow.confirmDraft();
+
+    expect(workflow.error.value).toBe("requestFailed");
+    expect(workflow.thread.value?.status).toBe("confirmed");
+    expect(agentApi.save).not.toHaveBeenCalled();
+    scope.stop();
+  });
+
+  it("shows the canonical cancellation after a lost response", async () => {
+    vi.stubGlobal("EventSource", FakeEventSource);
+    const analyzing = thread("thread-a", "run-a", "analyzing");
+    const cancelled = thread("thread-a", "run-a", "cancelled");
+    vi.mocked(agentApi.getThread).mockResolvedValueOnce(analyzing).mockResolvedValueOnce(cancelled);
+    vi.mocked(agentApi.cancel).mockRejectedValue(new Error("response lost"));
+
+    const scope = effectScope();
+    const workflow = scope.run(() => useAgentWorkflow())!;
+    await workflow.loadThread(analyzing.threadId);
+    await workflow.cancel();
+
+    expect(workflow.error.value).toBe("requestFailed");
+    expect(workflow.thread.value?.status).toBe("cancelled");
+    expect(FakeEventSource.instances[0].closed).toBe(true);
+    scope.stop();
+  });
+
+  it.each([
+    { reason: "disconnect", expectedError: "streamFailed" },
+    { reason: "stream_timeout", expectedError: "streamTimedOut" },
+  ])("shows the stream $reason and restores canonical status", async ({ reason, expectedError }) => {
+    vi.stubGlobal("EventSource", FakeEventSource);
+    const analyzing = thread("thread-a", "run-a", "analyzing");
+    const failed = thread("thread-a", "run-a", "failed");
+    vi.mocked(agentApi.getThread).mockResolvedValueOnce(analyzing).mockResolvedValueOnce(failed);
+
+    const scope = effectScope();
+    const workflow = scope.run(() => useAgentWorkflow())!;
+    await workflow.loadThread(analyzing.threadId);
+    const stream = FakeEventSource.instances[0];
+    if (reason === "disconnect") stream.fail();
+    else stream.emit("stream_closed", { runId: analyzing.runId, reason });
+
+    await vi.waitFor(() => {
+      expect(workflow.error.value).toBe(expectedError);
+      expect(workflow.thread.value?.status).toBe("failed");
+    });
+    expect(stream.closed).toBe(true);
+    scope.stop();
+  });
+
+  it.each(["saved", "failed", "cancelled"] as const)(
+    "restores the canonical %s status when a thread is reopened",
+    async (status) => {
+      const canonical = thread("thread-a", "run-a", status);
+      vi.mocked(agentApi.getThread).mockResolvedValue(canonical);
+      const scope = effectScope();
+      const workflow = scope.run(() => useAgentWorkflow())!;
+
+      await workflow.loadThread(canonical.threadId);
+
+      expect(workflow.thread.value?.status).toBe(status);
+      scope.stop();
+    },
+  );
+
   it("shows saving state and refuses cancellation while a save is in flight", async () => {
     const confirmed = {
       ...thread("thread-a", "run-a", "confirmed"),
@@ -134,6 +247,8 @@ describe("useAgentWorkflow run isolation", () => {
 
     const pendingSave = workflow.save();
     expect(workflow.saving.value).toBe(true);
+    await workflow.save();
+    expect(agentApi.save).toHaveBeenCalledTimes(1);
     await workflow.cancel();
     expect(agentApi.cancel).not.toHaveBeenCalled();
     expect(await workflow.loadThread("thread-b")).toBeNull();

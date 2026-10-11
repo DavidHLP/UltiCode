@@ -584,6 +584,7 @@ def _request_body(
     body: dict[str, object] = {
         "model": getattr(model, "_model", None),
         "messages": api_messages(messages),
+        "response_format": {"type": "json_object"},
         "temperature": 0,
         "max_tokens": getattr(model, "_max_tokens", None),
     }

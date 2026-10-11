@@ -1233,6 +1233,14 @@ def _check_prior_five(
         observations = _derive_prior_five_raw(name, raw)
         if evidence.get("observations") != observations:
             raise GateError("prior_five_raw_record_mismatch")
+        for key, required in required_observations[name].items():
+            observed = observations.get(key)
+            if required == "positive":
+                meets_requirement = type(observed) is int and observed > 0
+            else:
+                meets_requirement = type(observed) is type(required) and observed == required
+            if not meets_requirement:
+                raise GateError("prior_five_required_observation_failed")
         if name == "20dev评估" and evidence.get("sealed_splits") != ["holdout", "holdout2"]:
             raise GateError("prior_five_holdout_continuity_missing")
 
@@ -1273,7 +1281,12 @@ def _derive_prior_five_raw(name: str, raw: dict[str, object]) -> dict[str, objec
         rows, consumed = records.get("rows"), records.get("consumed_splits")
         if not isinstance(rows, list) or len(rows) != 20 or not isinstance(consumed, list):
             raise GateError("prior_five_raw_development_record_invalid")
-        matched = sum(isinstance(row, dict) and row.get("behavior_match") is True for row in rows)
+        passes = records.get("development_passes", [rows])
+        if (not isinstance(passes, list) or not passes or passes[0] != rows
+                or any(not isinstance(pass_rows, list) or len(pass_rows) != 20 for pass_rows in passes)):
+            raise GateError("prior_five_raw_development_record_invalid")
+        matched = min(sum(isinstance(row, dict) and row.get("behavior_match") is True for row in pass_rows)
+                      for pass_rows in passes)
         return {"development_total": len(rows), "behavior_match": matched,
                 "holdout_consumed": "holdout" in consumed, "holdout2_consumed": "holdout2" in consumed}
     if name == "向量对照":

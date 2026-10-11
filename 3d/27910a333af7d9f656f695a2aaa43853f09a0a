@@ -1,0 +1,19 @@
+scripts/test/supply-chain-contract.sh
+  s_7fda136455a0e8::t_d796e9d3718904 152
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3d27910a333af7d9f656f695a2aaa43853f09a0a",
+  "prompts": {},
+  "sessions": {
+    "s_7fda136455a0e8": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a128b6-4eb1-74f3-9f24-ff2c5aaca720",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

@@ -956,6 +956,9 @@ This mode is recovery preparation, not formal model/Java acceptance.
 For offline preparation, `validate_recovery_sources` checks bounded source
 snapshots against an explicit attempt-to-request-body-hash crosswalk; SQL attempt
 IDs do not supply that crosswalk. Missing original mappings must not be synthesized.
+Optional guard receipt `network_error_class` accepts only `ConnectError`, `ReadError`,
+`ConnectTimeout`, `ReadTimeout` or `transport_failure`; legacy receipts may omit it.
+Other values and unknown fields are rejected; this diagnostic never settles unknown usage.
 `compile_recovery_plan` derives conditional costs from explicit approval, pricing
 and lane caps using `A + U + R - cmin + E` for a single in-flight request. Its result
 has `paid_authorized=False` and `runtime_applied=False`: caller-declared caps are

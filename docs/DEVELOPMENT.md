@@ -67,6 +67,17 @@ uv sync --locked
 uv run pytest -q
 ```
 
+Console 的 `/personal/agent` 是同一工作流的可选单页演示，沿用登录会话和 Agent API；本地 Vite 开发代理将 `/api/agent` 转发到 `http://127.0.0.1:8000`。Agent 服务不会由默认开发模式启动，因此该页面需要单独运行 Agent，并配置 `ULTICODE_APP_BASE`、`ULTICODE_AUTH_BASE` 和与浏览器地址完全一致的 `ULTICODE_AGENT_ORIGIN`（例如 Console 以 `http://localhost:9002` 打开时，origin 也设为该值）；提交线程可通过 URL 中的 `threadId` 恢复。
+
+从 `services/agent/` 启动本地 HTTP 服务：
+
+```bash
+ULTICODE_APP_BASE=http://127.0.0.1:9103 \
+ULTICODE_AUTH_BASE=http://127.0.0.1:9101 \
+ULTICODE_AGENT_ORIGIN=http://localhost:9002 \
+uv run uvicorn --factory agent_service.app:create_app --app-dir src --host 127.0.0.1 --port 8000
+```
+
 真实 UltiCode HTTP / 模型 e2e 均为显式 opt-in。`e2e_sourced_analysis.py` uses agent-authored synthetic Markdown—not submissions, DTOs, or licensed user material—and validates a read-only submission projection without a real model. U03 workflow model analysis additionally requires a valid U02 gate and active budget authorization; other evaluation scripts follow their own gates. Supply credentials through a secure environment/secret store, never command text or logs. Runner contracts live in source and Linear; keep per-run results out of core docs.
 
 只读工具模型遇到混合请求时拒绝越权部分，继续执行独立且已授权的部分；用户已明确要求的合法只读操作应直接调用工具，不再次征求确认或只提出执行建议。提交分析缺少明确 ID 或可靠会话选择时，不调用提交选择工具或用最近提交列表代替澄清；混合请求先执行独立授权的只读查询，再在最终答案中询问缺失的提交 ID。工具仍绑定当前服务端会话，不能因请求要求切换身份。隔离验收同时要求没有泄露和本人数据的正向工具对照，不能以整段拒绝冒充完整通过。

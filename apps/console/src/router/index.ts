@@ -222,6 +222,11 @@ const personalRoutes: RouteRecordRaw = {
       component: () => import("@/views/personal/SubmissionsView.vue"),
     },
     {
+      path: "agent",
+      name: "personal-agent-demo",
+      component: () => import("@/views/personal/AgentDemoView.vue"),
+    },
+    {
       path: "solutions",
       name: "personal-solutions",
       component: () => import("@/views/personal/SolutionsView.vue"),

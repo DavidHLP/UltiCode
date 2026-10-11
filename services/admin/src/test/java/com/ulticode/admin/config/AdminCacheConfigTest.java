@@ -35,7 +35,7 @@ class AdminCacheConfigTest {
         when(connectionFactory.getConnection()).thenReturn(connection);
         when(connection.keyCommands()).thenReturn(keyCommands);
         AtomicReference<ScanOptions> scan = new AtomicReference<>();
-        when(connection.scan(any(ScanOptions.class))).thenAnswer(call -> {
+        when(keyCommands.scan(any(ScanOptions.class))).thenAnswer(call -> {
             scan.set(call.getArgument(0));
             throw new IllegalStateException("scan reached");
         });

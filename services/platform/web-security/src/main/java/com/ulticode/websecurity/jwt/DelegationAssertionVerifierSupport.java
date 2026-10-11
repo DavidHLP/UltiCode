@@ -41,6 +41,7 @@ public final class DelegationAssertionVerifierSupport {
         }
 
         Jws<Claims> signed = Jwts.parser()
+                .clock(() -> Date.from(clock.instant()))
                 .verifyWith(publicKey)
                 .requireIssuer(expectedIssuer)
                 .requireAudience(expectedAudience)

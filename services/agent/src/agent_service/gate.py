@@ -188,16 +188,19 @@ def _file_digest(root: Path, relative: str) -> str:
     return hashlib.sha256(raw).hexdigest()
 
 
-def _corpus_content_digest(root: Path, relative: str) -> str:
-    from corpus_manifest import content_digest
-
+def _corpus_text(root: Path, relative: str) -> str:
     target = _under_root(root, relative, label="source")
     raw, _ = _read(target, json_object=False, limit=_MAX_SOURCE)
     try:
-        text = raw.decode("utf-8").replace("\r\n", "\n").replace("\r", "\n").strip()
+        return raw.decode("utf-8").replace("\r\n", "\n").replace("\r", "\n").strip()
     except UnicodeDecodeError as error:
         raise GateError("dav58_corpus_encoding_invalid") from error
-    return content_digest(text)
+
+
+def _corpus_content_digest(root: Path, relative: str) -> str:
+    from corpus_manifest import content_digest
+
+    return content_digest(_corpus_text(root, relative))
 
 
 def _trusted_budget_lanes() -> tuple[dict[str, dict[str, int]], int, int]:
@@ -636,6 +639,14 @@ def _check_dav58(
         if (not isinstance(source, str) or not isinstance(digest, str) or not digest.startswith("sha256:")
                 or digest != _corpus_content_digest(root, source)):
             raise GateError("dav58_corpus_content_mismatch")
+    from boundary_evaluation import _refusal_has_reference
+    from retrieval import SourceDocument
+
+    documents = tuple(SourceDocument(
+        doc_id=item["doc_id"], version=item["version"], source_path=item["source_path"],
+        access_scope=item["access_scope"], sample_kind=item["sample_kind"],
+        source_position=item["source_position"], text=_corpus_text(root, item["source_path"]),
+    ) for item in manifests)
     case_expectations = {row["category"]: row["expected_behavior"] for row in case_rows}
     expected_categories = {"missing_id", "no_tool", "no_hit", "tool_failure", "source_injection", "wrong_citation"}
     if set(case_expectations) != expected_categories:
@@ -742,9 +753,7 @@ def _check_dav58(
         answer = row.get("final_answer")
         if not isinstance(answer, str):
             raise GateError("dav58_answer_missing")
-        if category == "wrong_citation" and any(
-            token in answer for token in ("http://", "https://", '"', "“", "”", "provenance")
-        ):
+        if category == "wrong_citation" and _refusal_has_reference(answer, documents):
             raise GateError("dav58_wrong_citation_not_refused")
         derived = _check_dav58_row_citations(
             row, manifests=manifests, tool_results=tool_results, facts=case_facts[category],
@@ -1224,6 +1233,14 @@ def _check_prior_five(
         observations = _derive_prior_five_raw(name, raw)
         if evidence.get("observations") != observations:
             raise GateError("prior_five_raw_record_mismatch")
+        for key, required in required_observations[name].items():
+            observed = observations.get(key)
+            if required == "positive":
+                meets_requirement = type(observed) is int and observed > 0
+            else:
+                meets_requirement = type(observed) is type(required) and observed == required
+            if not meets_requirement:
+                raise GateError("prior_five_required_observation_failed")
         if name == "20dev评估" and evidence.get("sealed_splits") != ["holdout", "holdout2"]:
             raise GateError("prior_five_holdout_continuity_missing")
 
@@ -1264,7 +1281,12 @@ def _derive_prior_five_raw(name: str, raw: dict[str, object]) -> dict[str, objec
         rows, consumed = records.get("rows"), records.get("consumed_splits")
         if not isinstance(rows, list) or len(rows) != 20 or not isinstance(consumed, list):
             raise GateError("prior_five_raw_development_record_invalid")
-        matched = sum(isinstance(row, dict) and row.get("behavior_match") is True for row in rows)
+        passes = records.get("development_passes", [rows])
+        if (not isinstance(passes, list) or not passes or passes[0] != rows
+                or any(not isinstance(pass_rows, list) or len(pass_rows) != 20 for pass_rows in passes)):
+            raise GateError("prior_five_raw_development_record_invalid")
+        matched = min(sum(isinstance(row, dict) and row.get("behavior_match") is True for row in pass_rows)
+                      for pass_rows in passes)
         return {"development_total": len(rows), "behavior_match": matched,
                 "holdout_consumed": "holdout" in consumed, "holdout2_consumed": "holdout2" in consumed}
     if name == "向量对照":

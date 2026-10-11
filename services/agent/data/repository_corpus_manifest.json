@@ -29,8 +29,8 @@
   },
   {
     "doc_id": "repository-development",
-    "version": "sha256-a002a6c700a96325b91fc501a26bf0d0e6f0d74b9fc356fca3fbedda6f8d5c4b",
-    "chunk_id": "repository-development:sha256-a002a6c700a96325b91fc501a26bf0d0e6f0d74b9fc356fca3fbedda6f8d5c4b:1",
+    "version": "sha256-5a15c9247d2287fdb05475fe9a167d1c2b8788b60201001b24f1fea77ebce4ab",
+    "chunk_id": "repository-development:sha256-5a15c9247d2287fdb05475fe9a167d1c2b8788b60201001b24f1fea77ebce4ab:1",
     "source_path": "docs/DEVELOPMENT.md",
     "access_scope": "repository-public",
     "sample_kind": "real",

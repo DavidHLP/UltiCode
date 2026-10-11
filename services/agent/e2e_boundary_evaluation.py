@@ -53,7 +53,8 @@ from boundary_evaluation import (
 )
 from corpus_manifest import parse_manifest_text
 from deepseek_model import DeepseekModel, ModelBudgetExceeded, ModelProtocolError, model_label
-from model_budget import BudgetLimitExceeded, authorized_model
+from model_budget import BudgetLimitExceeded, authorized_model, acceptance_transport
+from dav58_live_guard import GuardedTransport
 from authorized_budget_period import POLICY, POLICY_ID, PeriodIdentity, policy_for
 from e2e_citation_support_model import (
     _assert_artifact_directory,
@@ -89,7 +90,7 @@ def _artifact_path() -> Path:
     return state_home / "ulticode" / f"boundary-eval-{secrets.token_hex(4)}.json"
 
 
-def _repository_provenance() -> dict[str, object]:
+def _repository_provenance(policy_id: str = POLICY_ID) -> dict[str, object]:
     agent_root = Path(__file__).resolve().parent
     repo_root = agent_root.parents[1]
     try:
@@ -114,6 +115,7 @@ def _repository_provenance() -> dict[str, object]:
 
     source_files = (
         "e2e_boundary_evaluation.py",
+        "e2e_guarded_boundary_evaluation.py",
         "src/agent_loop.py",
         "src/boundary_evaluation.py",
         "src/citation_integrity.py",
@@ -124,7 +126,10 @@ def _repository_provenance() -> dict[str, object]:
         "src/authorized_budget_period.py",
         "src/retrieval.py",
         "src/ulticode_tools.py",
+        "src/dav58_live_guard.py",
     )
+    if policy_id != POLICY_ID:
+        source_files += ("src/revalidation_history.py",)
     try:
         source_hashes = {
             relative: hashlib.sha256((agent_root / relative).read_bytes()).hexdigest()
@@ -284,7 +289,7 @@ async def main(expected: PeriodIdentity | None = None) -> int:
     }
 
     try:
-        repository = _repository_provenance()
+        repository = _repository_provenance(expected.policy_id)
     except BoundaryEvaluationError as error:
         print(f"FAIL reason=checkout_provenance detail={type(error).__name__}")
         return 1
@@ -297,8 +302,13 @@ async def main(expected: PeriodIdentity | None = None) -> int:
         print(f"FAIL reason=boundary_artifact_unusable detail={error}")
         return 1
 
+    loop_transport = None
     try:
         try:
+            loop_transport = acceptance_transport(budget, "dav58_loop")
+            if loop_transport is not None:
+                # The runner owns the shared guard until both adapters finish.
+                loop_transport.owns_guard = False
             # The data plane is guaranteed synthetic: an in-memory client backs the
             # read-only tools so no real stack credential or user data can be sent
             # to the model or persisted to the artifact.
@@ -313,6 +323,7 @@ async def main(expected: PeriodIdentity | None = None) -> int:
                 max_prompt_tokens=max_prompt_tokens,
                 budget=budget,
                 budget_purpose="dav58_loop",
+                transport=loop_transport,
                 thinking_type="disabled",
             ) as model:
                 # The judging pass runs on a tool-less adapter: an independent
@@ -327,6 +338,7 @@ async def main(expected: PeriodIdentity | None = None) -> int:
                     max_prompt_tokens=max_prompt_tokens,
                     budget=budget,
                     budget_purpose="dav58_judge",
+                    transport=GuardedTransport(loop_transport.guard, "dav58_judge") if loop_transport is not None else None,
                     thinking_type="disabled",
                 ) as judge:
                     prompt_schema = {
@@ -571,7 +583,11 @@ async def main(expected: PeriodIdentity | None = None) -> int:
         )
         return 0
     finally:
-        _release_unfinished_claim(lock)
+        try:
+            if loop_transport is not None:
+                loop_transport.guard.close()
+        finally:
+            _release_unfinished_claim(lock)
 
 
 def _parse_identity(argv: list[str]) -> PeriodIdentity:

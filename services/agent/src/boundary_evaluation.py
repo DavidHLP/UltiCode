@@ -880,6 +880,7 @@ def _refusal_has_reference(
         r"(?i)(?<![a-z0-9_])"
         r"(?:chunk_id|doc_id|source_path|source_position|access_scope|"
         r"sample_kind|source_trust|version)\s*[:=]",
+        r"(?i)(?<![a-z0-9_])provenance\s*[:=：]\s*\S",
     )
     quoted_text_pattern = (
         r"""(?:"[^"]+"|(?<![A-Za-z0-9_])'[^']+'(?![A-Za-z0-9_])|"""

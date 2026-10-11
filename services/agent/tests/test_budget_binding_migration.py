@@ -463,6 +463,33 @@ def test_recovery_source_snapshot_preserves_exact_47_rows_and_unknown_guard_prov
         evidence.source_provenance_by_ledger[ids[0]]["recorded_ledger"][0] = 59
 
 
+@pytest.mark.parametrize("diagnostic", [
+    "ConnectError", "ReadError", "ConnectTimeout", "ReadTimeout", "transport_failure",
+])
+def test_recovery_source_accepts_safe_network_diagnostic_without_releasing_unknown(diagnostic):
+    sources, guard, unknown_match = _synthetic_recovery_inputs()
+    guard["state"]["receipts"][-1]["network_error_class"] = diagnostic
+    guard["source_sha256"] = _recovery_digest(guard["state"])
+
+    evidence = migration.validate_recovery_sources(sources, guard, unknown_match)
+
+    assert evidence.unknown_attempts == 1
+    assert evidence.pending_micro_usd == 786432
+    assert evidence.guard_source_sha256 == guard["source_sha256"]
+
+
+@pytest.mark.parametrize("diagnostic", [
+    "", "RuntimeError", "ReadError: secret", None, True, 1, [], {},
+])
+def test_recovery_source_rejects_invalid_network_diagnostic(diagnostic):
+    sources, guard, unknown_match = _synthetic_recovery_inputs()
+    guard["state"]["receipts"][-1]["network_error_class"] = diagnostic
+    guard["source_sha256"] = _recovery_digest(guard["state"])
+
+    with pytest.raises(ValueError, match="guard receipt"):
+        migration.validate_recovery_sources(sources, guard, unknown_match)
+
+
 def test_recovery_source_evidence_holds_no_mutable_alias_of_its_inputs():
     ids = ("a" * 32, "b" * 32)
     sources, guard, unknown_match = _synthetic_recovery_inputs()

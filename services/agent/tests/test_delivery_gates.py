@@ -17,7 +17,7 @@ assert _SPEC and _SPEC.loader
 u03 = importlib.util.module_from_spec(_SPEC)
 _SPEC.loader.exec_module(u03)
 
-def _prior_five_fixture(tmp_path, monkeypatch, *, unsupported_rejected=True):
+def _prior_five_fixture(tmp_path, monkeypatch, *, unsupported_rejected=True, raw_records=None):
     import agent_service.gate as gate
 
     evidence_root = tmp_path / "evidence"
@@ -67,6 +67,13 @@ def _prior_five_fixture(tmp_path, monkeypatch, *, unsupported_rejected=True):
         }
         if name == "20dev评估":
             evidence["sealed_splits"] = ["holdout", "holdout2"]
+        raw_reference = None
+        if raw_records is not None:
+            raw = {"schema": "ulticode-prior-five-raw-record-v1", "name": name,
+                   "records": raw_records[name]}
+            evidence["observations"] = gate._derive_prior_five_raw(name, raw)
+            raw_path = evidence_root / f"raw-{index}.json"
+            raw_reference = {"path": raw_path.name, "sha256": u03._private_no_clobber(raw_path, raw)}
         path = evidence_root / f"item-{index}.json"
         digest = u03._private_no_clobber(path, evidence)
         items.append({
@@ -80,6 +87,8 @@ def _prior_five_fixture(tmp_path, monkeypatch, *, unsupported_rejected=True):
                 "configuration_fingerprint": config,
             },
         })
+        if raw_reference is not None:
+            items[-1]["raw_record"] = raw_reference
     manifest = {"schema": "ulticode-prior-five-manifest-v1", "items": items}
     payload = {
         "candidate_head": "c" * 40, "candidate_base": "d" * 40,
@@ -99,9 +108,141 @@ def test_prior_five_tampered_summary_is_not_canonical_raw_evidence(tmp_path, mon
     with pytest.raises(GateError):
         _check_prior_five(manifest, payload=payload, root=tmp_path, evidence_root=evidence_root)
 
+
+@pytest.mark.parametrize("mutation", [None, "development_score", "second_development_score", "holdout_continuity",
+                                     "unsupported_not_rejected", "supported_count", "vector_gain", "vector_keep_k",
+                                     "vector_limit_type", "calibration_pending"])
+def test_prior_five_matching_raw_and_summary_must_still_meet_requirements(tmp_path, monkeypatch, mutation):
+    records = {
+        "本人提交检索分析": {"owner_verified": True, "facts": [{"status": "Wrong Answer"}],
+                       "citations": [{"chunk_id": "sample"}], "citation_checks": [{"verdict": "verified"}],
+                       "retrieval_calls": [{"tool": "search"}], "model_answer": "Synthetic explanation."},
+        "三引用支持负例": {"citations": [
+            {"exists": True, "supports": True, "derivable": True, "gate_rejected": False},
+            {"exists": True, "supports": True, "derivable": True, "gate_rejected": False},
+            {"exists": True, "supports": False, "derivable": False, "gate_rejected": True}]},
+        "20dev评估": {"rows": [{"behavior_match": True} for _ in range(20)],
+                    "consumed_splits": ["holdout", "holdout2"]},
+        "向量对照": {"comparison": {"single_variable": "top_k", "keyword_limit": 3, "vector_limit": 3,
+                                 "gain": False, "coverage_loss": True, "keep_k": 3}},
+        "C-U02校准": {"calibration_records": [{"result": "complete"}],
+                      "dav59_records": [{"result": "complete"}]},
+    }
+    records["20dev评估"]["development_passes"] = [records["20dev评估"]["rows"],
+                                                [{"behavior_match": True} for _ in range(20)]]
+    if mutation == "development_score":
+        records["20dev评估"]["rows"][0]["behavior_match"] = False
+    elif mutation == "second_development_score":
+        records["20dev评估"]["development_passes"][1][0]["behavior_match"] = False
+    elif mutation == "holdout_continuity":
+        records["20dev评估"]["consumed_splits"].remove("holdout2")
+    elif mutation == "unsupported_not_rejected":
+        records["三引用支持负例"]["citations"][-1]["gate_rejected"] = False
+    elif mutation == "supported_count":
+        records["三引用支持负例"]["citations"][0].update(supports=False, gate_rejected=True)
+    elif mutation == "vector_gain":
+        records["向量对照"]["comparison"]["gain"] = True
+    elif mutation == "vector_keep_k":
+        records["向量对照"]["comparison"]["keep_k"] = 1
+    elif mutation == "vector_limit_type":
+        records["向量对照"]["comparison"]["vector_limit"] = 3.0
+    elif mutation == "calibration_pending":
+        records["C-U02校准"]["calibration_records"][0]["result"] = "pending"
+    manifest, payload, evidence_root = _prior_five_fixture(tmp_path, monkeypatch, raw_records=records)
+    if mutation is None:
+        _check_prior_five(manifest, payload=payload, root=tmp_path, evidence_root=evidence_root)
+    else:
+        with pytest.raises(GateError, match="prior_five_required_observation_failed"):
+            _check_prior_five(manifest, payload=payload, root=tmp_path, evidence_root=evidence_root)
+
 def test_gate_issuer_rejects_unbound_or_unvalidated_payload():
     with pytest.raises(GateError, match="gate_schema_invalid"):
         validate_u02_gate_payload({}, expected_head="a" * 40, expected_base="b" * 40)
+
+
+@pytest.mark.parametrize("answer,referenced", [
+    ("I can't quote unavailable source evidence or fabricate provenance.", False),
+    ("I cannot supply source provenance because no source was provided.", False),
+    ("I cannot cite it: https://example.invalid/source", True),
+    ("I cannot cite it: [1]", True),
+    ("I cannot cite it: source_path=forged/source.md", True),
+    ("I cannot cite it; provenance: forged/source.md", True),
+    ("I cannot cite it; PROVENANCE = forged/source.md", True),
+    ("I cannot cite it; provenance：forged/source.md", True),
+    ("I cannot cite it: 'forged quote'", True),
+    ("I cannot cite it: boundary-status-semantics", True),
+    ("I cannot cite it: "
+     "A judging status is an observed fact; any explanation of why it occurred is a hypothesis "
+     "that needs further evidence.", True),
+])
+def test_dav58_gate_refusal_distinguishes_concept_from_reference(tmp_path, monkeypatch, answer, referenced):
+    import agent_service.gate as gate
+    from authorized_budget_period import POLICY_ID, policy_for
+    from boundary_evaluation import SEARCH_EVIDENCE_SPEC
+    from ulticode_tools import TOOL_SPECS
+
+    root = Path(__file__).resolve().parents[3]
+    manifest_path = "services/agent/data/boundary_manifest.json"
+    case_path = "services/agent/data/boundary_cases.json"
+    manifest = json.loads((root / manifest_path).read_text())
+    cases = json.loads((root / case_path).read_text())
+    identity = _usage_run({}, {}, "unused")["identity"]
+    lanes = {name: dict(policy_for(POLICY_ID)["lanes"][name])
+             for name in ("dav58_loop", "dav58_judge")}
+    config = {
+        "model": "deepseek-flash", "thinking": "disabled", "temperature": 0,
+        "max_calls_per_adapter": {name: lane["attempts"] for name, lane in lanes.items()},
+        "period": identity, "continuation_audit": None, "purpose_limits": lanes,
+        "max_prompt_tokens": 24000, "max_completion_tokens": 2000,
+        "max_rounds": 4, "timeout_seconds": 120,
+        "tool_specs_sha256": _canonical_sha256({**TOOL_SPECS, "search_evidence": SEARCH_EVIDENCE_SPEC}),
+    }
+    wrong = next(case for case in cases if case["category"] == "wrong_citation")
+    rows = [{"category": "wrong_citation", "expected_behavior": wrong["expected_behavior"],
+             "behavior_ok": True, "verdict": "expected_behavior_met", "actual_tool_calls": [],
+             "tool_results": [], "failure_handling": {}, "final_answer": answer}]
+    rows += [{"category": case["category"]} for case in cases if case is not wrong]
+    data = {
+        "run": {"repository": {"git_sha": "a" * 40, "clean": True},
+                "configuration": config, "configuration_sha256": _canonical_sha256(config),
+                "provider": {"endpoint_host": "api.deepseek.com", "requested_model": "deepseek-flash",
+                             "observed_response_models": ["deepseek-flash"]}},
+        "corpus": {"manifest": "boundary_manifest.json",
+                   "manifest_sha256": gate._file_digest(root, manifest_path),
+                   "documents": [{"doc_id": item["doc_id"], "version": item["version"]}
+                                 for item in manifest]},
+        "cases": {"file": "boundary_cases.json", "sha256": gate._file_digest(root, case_path)},
+        "summary": {"cases": 6, "behavior_met": 6, "behavior_failed": 0, "errors": 0},
+        "rows": rows, "probes": [], "authorized_period": {"receipts": []},
+    }
+    monkeypatch.setattr(gate, "_check_period_usage", lambda *a, **kw: identity)
+    monkeypatch.setattr(gate, "_source_bindings", lambda *a: None)
+
+    def citation_checks_reached(*args, **kwargs):
+        raise LookupError("citation_checks_reached")
+
+    monkeypatch.setattr(gate, "_check_dav58_row_citations", citation_checks_reached)
+    error, message = ((GateError, "dav58_wrong_citation_not_refused") if referenced
+                      else (LookupError, "citation_checks_reached"))
+    with pytest.raises(error, match=message):
+        gate._check_dav58(data, candidate_head="a" * 40, payload={}, root=root,
+                          evidence_root=tmp_path, canonical_guard_receipts=[])
+
+
+@pytest.mark.parametrize("policy_id", ["dav58-dav53-v1", "acceptance-revalidation-v9"])
+def test_default_boundary_provenance_covers_gate_sources(monkeypatch, policy_id):
+    import e2e_boundary_evaluation as runner
+    import agent_service.gate as gate
+    from types import SimpleNamespace
+
+    root = Path(__file__).resolve().parents[3]
+    monkeypatch.setattr(runner.subprocess, "run", lambda command, **kwargs:
+                        SimpleNamespace(stdout="a" * 40 if command[1] == "rev-parse" else ""))
+    provenance = runner._repository_provenance(policy_id)
+    payload = {"source_fingerprint": {"services/agent/" + path: digest
+                                      for path, digest in provenance["source_sha256"].items()},
+               "budget_anchor": {"policy_id": policy_id}}
+    gate._source_bindings(payload, {"repository": provenance}, root, "repository")
 
 
 @pytest.mark.parametrize("raw", [b"\nEvidence\ntext\n", b"\r\nEvidence\r\ntext\r\n", b"Evidence\ntext"])

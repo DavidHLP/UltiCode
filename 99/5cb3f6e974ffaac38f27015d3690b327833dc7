@@ -1,0 +1,23 @@
+docs/DEVELOPMENT.md
+  s_7fda136455a0e8::t_269d332763d0b1 145-148
+services/agent/data/repository_corpus_manifest.json
+  s_7fda136455a0e8::t_9bba5af3beef03 32-33
+services/agent/src/answer_evaluation.py
+  s_7fda136455a0e8::t_269d332763d0b1 212,215-217
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "995cb3f6e974ffaac38f27015d3690b327833dc7",
+  "prompts": {},
+  "sessions": {
+    "s_7fda136455a0e8": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a128b6-4eb1-74f3-9f24-ff2c5aaca720",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

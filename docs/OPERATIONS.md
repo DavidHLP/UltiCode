@@ -326,7 +326,7 @@ backup、restore-drill、prune 使用同一 fenced database lease（`admin:owner
 
 可选的 `docker/docker-compose.observability.yml` 提供 loopback-only、digest-pinned 的 OpenTelemetry Collector、Prometheus、Alertmanager、Grafana、Tempo 和 Loki。HTTP Owner 暴露 metrics；无 HTTP 的 Judge/Search worker 通过 Micrometer OTLP 输出。日志携带 trace/span 关联，Grafana 可从 Loki 跳转 Tempo。
 
-Boot 4 tracing binds OTLP export settings under `management.opentelemetry.tracing.export.otlp`; the existing `MANAGEMENT_OTLP_TRACING_ENDPOINT` and `MANAGEMENT_OTLP_AUTHORIZATION` environment inputs remain unchanged. The shared observability module enables the tracing integration and validates the effective endpoint/header pair before export: a configured authorization header requires HTTPS. OTLP metrics configuration and the opt-in Collector overlays remain separate from tracing.
+Boot 4 tracing binds OTLP export settings under `management.opentelemetry.tracing.export.otlp`; the existing `MANAGEMENT_OTLP_TRACING_ENDPOINT` and `MANAGEMENT_OTLP_AUTHORIZATION` environment inputs remain unchanged. The shared observability module enables the tracing integration and validates the effective endpoint/header pair before export: a configured authorization header requires HTTPS. Every service, including Core, binds OTLP metrics under `management.otlp.metrics.export` and defaults `MANAGEMENT_OTLP_METRICS_ENABLED` to false, preserving the opt-in Collector overlay. App and Core also select Jackson 2 independently for WebSocket messaging with `spring.websocket.messaging.preferred-json-mapper=jackson2`, keeping local and Redis-broadcast JSON contracts aligned.
 
 生产 telemetry receiver、存储、保留周期、通知 webhook、阈值调优和真实流量 SLO 由外部运维平台负责；仓库 overlay 默认不启动，也不公开 management endpoint 或 secret。
 

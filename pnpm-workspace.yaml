@@ -23,12 +23,10 @@ overrides:
   linkify-it: ^6.0.0
   nanoid: ^3.3.18
   postcss: ^8.5.18
-  # katex 0.18.11 is deprecated by upstream as an accidental publish with
-  # breaking changes. The importers' `^0.18.9` range admits it, so a lockfile
-  # regeneration (not just an edit) would ship it. Pinned to the release the
-  # mainline lockfile already verified; 0.19.0 is a breaking upgrade and
-  # belongs in its own change with its rendering behaviour verified.
-  katex: 0.18.9
+  # GHSA-68fv-2mgg-jv7q: indexed source-map offsets can block the event loop.
+  source-map-js: 1.2.2
+  # Keep both applications and the Markdown plugin on the same renderer.
+  katex: 0.19.0
 ignoredBuiltDependencies:
   - esbuild
   - maplibre-gl

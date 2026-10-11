@@ -69,7 +69,7 @@ contains services/admin/src/main/resources/application.yml 'MANAGEMENT_OTLP_AUTH
 for pom in \
   services/auth/pom.xml services/admin/pom.xml services/app/app-web/pom.xml \
   services/submission/pom.xml services/notification/pom.xml \
-  services/search/pom.xml services/judge/pom.xml; do
+  services/search/pom.xml services/judge/pom.xml services/core/pom.xml; do
   contains "$pom" '<artifactId>backend-observability</artifactId>'
 done
 
@@ -93,18 +93,28 @@ for service in services:
         raise SystemExit(f"{path}: sampling default must be between 0 and 1")
     if "Authorization: ${MANAGEMENT_OTLP_AUTHORIZATION:}" not in text:
         raise SystemExit(f"{path}: OTLP authorization header mapping is missing")
-    if service in ("notification", "search", "judge"):
-        metrics = re.search(
-            r"^  otlp:\n    metrics:\n      export:\n"
-            r"        enabled: \$\{MANAGEMENT_OTLP_METRICS_ENABLED:false\}\n"
-            r"        url: \$\{MANAGEMENT_OTLP_METRICS_ENDPOINT:http://localhost:4318/v1/metrics\}\n"
-            r"        step: \$\{MANAGEMENT_OTLP_METRICS_STEP:30s\}$",
-            text, re.MULTILINE,
-        )
-        if metrics is None:
-            raise SystemExit(f"{path}: OTLP metrics must retain management.otlp.metrics.export bindings")
+for service in (*services, "core"):
+    path = root / "services" / service / "src/main/resources/application.yml"
+    text = path.read_text(encoding="utf-8")
+    metrics = re.search(
+        r"^  otlp:\n    metrics:\n      export:\n"
+        r"        enabled: \$\{MANAGEMENT_OTLP_METRICS_ENABLED:false\}\n"
+        r"        url: \$\{MANAGEMENT_OTLP_METRICS_ENDPOINT:http://localhost:4318/v1/metrics\}\n"
+        r"        step: \$\{MANAGEMENT_OTLP_METRICS_STEP:30s\}$",
+        text, re.MULTILINE,
+    )
+    if metrics is None:
+        raise SystemExit(f"{path}: OTLP metrics must retain management.otlp.metrics.export bindings")
+for service in ("app/app-web", "core"):
+    path = root / "services" / service / "src/main/resources/application.yml"
+    text = path.read_text(encoding="utf-8")
+    if not re.search(
+        r"^  websocket:\n    messaging:\n      preferred-json-mapper: jackson2$",
+        text, re.MULTILINE,
+    ):
+        raise SystemExit(f"{path}: WebSocket messaging must preserve Jackson 2 wire compatibility")
 PY
-printf 'owner OTLP sampling and authorization bindings: PASS\n'
+printf 'owner OTLP sampling, authorization, opt-in metrics and WebSocket mapper bindings: PASS\n'
 contains .github/services-matrix.json '"artifact": "backend-search-exec.jar"'
 contains scripts/runbooks/observability-release-annotation.sh '/api/annotations'
 contains scripts/runbooks/observability-release-annotation.sh 'image-reference-policy.sh'

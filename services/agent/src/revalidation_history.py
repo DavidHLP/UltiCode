@@ -349,7 +349,13 @@ def _validate_rollover_history(sources, *, settled_policy="v1"):
             or snapshot["unknown_usage_attempts"] or snapshot["unsettled_attempts"]):
         raise PeriodError("previous period must be sealed with all liabilities retained")
     try:
-        IncrementalGuard._validate_resume(guard, expected.identity, expected.config_sha256, budget.policy, budget)
+        # Validate sealed receipts without making the permanently halted journal resumable.
+        receipt_view = guard
+        if settled_policy == "v13":
+            if guard.get("halted") is not True:
+                raise PeriodError("previous guard must be permanently halted")
+            receipt_view = {**guard, "halted": False}
+        IncrementalGuard._validate_resume(receipt_view, expected.identity, expected.config_sha256, budget.policy, budget)
     except ValueError as error:
         raise PeriodError("sealed rollover receipts invalid") from error
     return {"sources": sources, "sha256": {**original["sha256"], **hashes},

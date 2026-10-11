@@ -637,6 +637,8 @@ pnpm --dir packages/auth-core test:coverage
 dependabot-core 当作 support file 丢弃，PR 只改 manifest，必然过不了 CI 的五处
 `pnpm install --frozen-lockfile`，update job 还会按成员 manifest 报 `misconfigured_tooling`。
 这个根 block 同时覆盖 `packages/*` 与根 manifest。
+根 `package.json`、`pnpm-lock.yaml` 或 `pnpm-workspace.yaml` 变化会触发 Console、Management
+以及 Docker CI 门禁，覆盖共享依赖更新及其镜像安装验证。
 
 ### Optional external Adapters
 

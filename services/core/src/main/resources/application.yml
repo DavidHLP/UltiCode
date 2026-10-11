@@ -2,12 +2,23 @@ spring:
   http:
     converters:
       preferred-json-mapper: jackson2
+  websocket:
+    messaging:
+      preferred-json-mapper: jackson2
   application:
     name: ${CORE_APPLICATION_NAME:ulticode-core}
   main:
     banner-mode: off
   lifecycle:
     timeout-per-shutdown-phase: ${CORE_SHUTDOWN_TIMEOUT:60s}
+
+management:
+  otlp:
+    metrics:
+      export:
+        enabled: ${MANAGEMENT_OTLP_METRICS_ENABLED:false}
+        url: ${MANAGEMENT_OTLP_METRICS_ENDPOINT:http://localhost:4318/v1/metrics}
+        step: ${MANAGEMENT_OTLP_METRICS_STEP:30s}
 
 dubbo:
   enabled: false

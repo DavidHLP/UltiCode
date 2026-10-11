@@ -26,16 +26,13 @@ import static org.assertj.core.api.Assertions.assertThat;
  *
  * <p>Authoritative source: {@code docker/sandbox/harness/contract/CONTRACT.md}.
  * The schemas and golden files live next to that spec; they are also
- * mirrored into {@code src/test/resources/contract/} so the JVM test lane
- * can read them off the classpath without needing the harness source tree.
+ * copied into the test classpath by Maven from that canonical directory.
  *
  * <p>Scope (additive — no runtime change):
  * <ol>
  *   <li>Decoding: a real-shaped envelope (golden) decodes via
- *       {@link CodeExecutionHelperImpl#parseDEnvelope} into the expected
- *       per-case {@link RunResultDTO.RunCaseResult} values.</li>
- *   <li>Encoding: {@link CodeExecutionHelperImpl#buildDBatchInputsJson}
- *       and {@link CodeExecutionHelperImpl#buildDInputsJson} emit JSON
+ *       {@code DFormEnvelopeCodec} into the expected per-case response values.</li>
+ *   <li>Encoding: the codec's batch and single-case methods emit JSON
  *       that contains every field the input schema requires.</li>
  *   <li>Vocabulary: every {@code status} value in the contract is
  *       decodable by {@link SubmissionStatusCodec#fromWire(String)}.</li>
@@ -45,7 +42,6 @@ import static org.assertj.core.api.Assertions.assertThat;
  * judge path. It runs in the regular unit-test lane.
  */
 @DisplayName("D-form envelope contract parity (backend ↔ harness)")
-@org.junit.jupiter.api.Disabled("Test fixtures not relocated; re-enable after resource migration")
 class DFormEnvelopeContractTest {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -238,7 +234,7 @@ class DFormEnvelopeContractTest {
     }
 
     /**
-     * Synthesise a {@link RunSubmissionDTO.RunTestCase} list shaped after
+     * Synthesise a {@link JudgeRunRequest.TestCase} list shaped after
      * the golden input.json. Uses {@code UuidGenerator.newId() == "test-uuid"}
      * via the test-only generator wired into {@code helper}.
      */

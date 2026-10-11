@@ -81,6 +81,21 @@
     </dependencies>
 
     <build>
+        <testResources>
+            <testResource>
+                <directory>src/test/resources</directory>
+            </testResource>
+            <testResource>
+                <directory>${project.basedir}/../../docker/sandbox/harness/contract</directory>
+                <targetPath>contract</targetPath>
+                <includes>
+                    <include>input.schema.json</include>
+                    <include>envelope.schema.json</include>
+                    <include>golden/input.json</include>
+                    <include>golden/envelope.json</include>
+                </includes>
+            </testResource>
+        </testResources>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

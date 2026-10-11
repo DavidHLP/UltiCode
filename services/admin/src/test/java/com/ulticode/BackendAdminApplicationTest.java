@@ -7,7 +7,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureTestRestTemplate;
+import org.springframework.boot.resttestclient.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,17 +21,19 @@ import org.springframework.http.ResponseEntity;
  * infrastructure that is not available in a plain unit test.</p>
  */
 @Disabled("Requires Redis/MySQL infrastructure — convert to Testcontainers IT (P7-RELOCATE-ADMIN-001)")
+@AutoConfigureTestRestTemplate
 @SpringBootTest(
         classes = BackendAdminApplication.class,
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = {
                 "spring.main.allow-bean-definition-overriding=true",
                 "spring.autoconfigure.exclude="
-                        + "org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration,"
-                        + "org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration,"
-                        + "org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration,"
+                        + "org.springframework.boot.flyway.autoconfigure.FlywayAutoConfiguration,"
+                        + "org.springframework.boot.hibernate.autoconfigure.HibernateJpaAutoConfiguration,"
+                        + "org.springframework.boot.data.redis.autoconfigure.DataRedisAutoConfiguration,"
                         + "org.redisson.spring.starter.RedissonAutoConfigurationV2,"
-                        + "org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration,"
+                        + "org.springframework.boot.security.autoconfigure.SecurityAutoConfiguration,"
+                        + "org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration,"
                         + "org.apache.dubbo.spring.boot.autoconfigure.DubboAutoConfiguration,"
                         + "com.alibaba.cloud.dubbo.bootstrap.DubboBootstrapAutoConfiguration",
                 "spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver",

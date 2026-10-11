@@ -55,7 +55,7 @@
 		<!-- Spring Boot Starters -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-web</artifactId>
+			<artifactId>spring-boot-starter-webmvc</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -81,7 +81,7 @@
 		<!-- P2-AUTH-001: persistence + distributed locks/cache for auth service. -->
 		<dependency>
 			<groupId>com.baomidou</groupId>
-			<artifactId>mybatis-plus-spring-boot3-starter</artifactId>
+			<artifactId>mybatis-plus-spring-boot4-starter</artifactId>
 			<version>${mybatis-plus.version}</version>
 		</dependency>
 		<dependency>
@@ -165,7 +165,22 @@
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-test</artifactId>
+			<artifactId>spring-boot-starter-test-classic</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-security-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-resttestclient</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-restclient</artifactId>
 			<scope>test</scope>
 		</dependency>
 		<!-- P7-AUTH-IDEMPOTENCY-SCHEMA-001: MySQL Testcontainers for real Flyway DDL verification -->

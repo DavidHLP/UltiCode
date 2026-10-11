@@ -1,0 +1,21 @@
+pnpm-workspace.yaml
+  s_7fda136455a0e8::t_48216a6a3cdb39 26-27
+pnpm-lock.yaml
+  s_7fda136455a0e8::t_8ea772d98f6649 17,4928-4929,6693,7145,7830,7838,7860,7872,8349,9562,9877,10206
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0667e5c68e9881d504673947c556669597be9608",
+  "prompts": {},
+  "sessions": {
+    "s_7fda136455a0e8": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a128b6-4eb1-74f3-9f24-ff2c5aaca720",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

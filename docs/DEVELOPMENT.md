@@ -318,6 +318,16 @@ rejects the analysis. Empty-citation answers are allowed only when they pass the
 boundary checks (source facts, tool trace, and unsupported source/reference claims); these checks
 are not a guarantee of perfect semantic verification. Offline scripted results are not real-model
 acceptance evidence.
+
+The optional MCP bridge keeps this same read-only boundary. `ULTICODE_AGENT_MCP_TOOLS=1` makes
+analysis discover the single `get_my_submissions` tool through a request-scoped in-process MCP
+Client before the model loop; the model's call and the revalidated result still pass through the
+existing graph. The standalone local stdio server is `services/agent/src/agent_mcp_server.py` and
+uses the existing authenticated Java API client. Direct tools remain the default. MCP adds
+standardized discovery and a separately launchable endpoint, but it does not add business access
+or change Java authorization. See the [Agent guide](../services/agent/README.md#optional-mcp-read-only-bridge)
+for environment and command details.
+
 Thread status and drafts are canonical in the Agent's private SQLite store; LangGraph checkpoints
 only resume control flow. The default store is
 `~/.local/state/ulticode/u03-workflow/state.sqlite3` (private directory/database); workflow rows,

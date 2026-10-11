@@ -412,6 +412,10 @@ def create_app(
     expected_period: object | None = None, budget_guard: object | None = None,
     model_purpose: str | None = None,
 ) -> FastAPI:
+    mcp_tools_setting = os.environ.get("ULTICODE_AGENT_MCP_TOOLS", "0")
+    if mcp_tools_setting not in {"0", "1"}:
+        raise ValueError("ULTICODE_AGENT_MCP_TOOLS must be 0 or 1")
+    mcp_tools_enabled = mcp_tools_setting == "1"
     if candidate_root is not None:
         candidate_root = require_execution_candidate(candidate_root)
     workflow_store = store or WorkflowStore.open(state_path)
@@ -745,6 +749,8 @@ def create_app(
                     kind="analysis_started")
                 model = judge_model = None
                 model_entered = judge_entered = False
+                mcp_session = None
+                mcp_entered = False
                 retrieved: list[dict[str, object]] = []
                 documents = ()
                 search_results: list[dict[str, object]] = []
@@ -795,6 +801,13 @@ def create_app(
                                     raise
 
                             tools["search_evidence"] = recorded_search
+                        if mcp_tools_enabled and "get_my_submissions" in tools:
+                            from agent_mcp_client import MCPSubmissionSession
+
+                            tools = dict(tools)
+                            mcp_session = MCPSubmissionSession(client)
+                            tools.update(await mcp_session.__aenter__())
+                            mcp_entered = True
                         def record_event(kind, detail):
                             try:
                                 workflow_store.transition(thread_id, owner, expected_run=run_id,
@@ -889,6 +902,8 @@ def create_app(
                             "failure_reason": "analysis_failed"}, kind="analysis_failed")
                     raise AgentError(502, "upstream_unavailable", 50000) from None
                 finally:
+                    if mcp_entered:
+                        await mcp_session.__aexit__(None, None, None)
                     if judge_entered and judge_model is not model:
                         await judge_model.__aexit__(None, None, None)
                     if model_entered:

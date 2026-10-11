@@ -165,7 +165,7 @@ python3 "$ROOT_DIR/scripts/test/promote-release-contract.py"
 contains .github/workflows/_docker.yml 'load: true'
 contains .github/workflows/_docker.yml 'TRIVY_IMAGE_SRC: docker'
 contains .github/workflows/_docker.yml 'name: trivy-verify-${{ matrix.service.name }}'
-contains services/pom.xml '<jackson-bom.version>2.21.7</jackson-bom.version>'
+contains services/pom.xml '<jackson-2-bom.version>2.21.7</jackson-2-bom.version>'
 
 contains .github/workflows/docker-publish.yml 'sbom: true'
 for entry in '_docker.yml:verify' 'docker-publish.yml:publish'; do

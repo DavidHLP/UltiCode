@@ -2,7 +2,7 @@ package com.ulticode.app.config;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
-import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
+import org.springframework.boot.data.redis.autoconfigure.DataRedisAutoConfiguration;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 
@@ -12,7 +12,7 @@ class AppRedisRoleConfigTest {
 
     private final ApplicationContextRunner runner = new ApplicationContextRunner()
             .withConfiguration(AutoConfigurations.of(
-                    RedisAutoConfiguration.class,
+                    DataRedisAutoConfiguration.class,
                     AppRedisRoleConfig.class));
 
     @Test

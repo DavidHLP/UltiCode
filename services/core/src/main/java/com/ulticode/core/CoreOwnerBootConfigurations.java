@@ -157,8 +157,8 @@ final class CoreOwnerBootConfigurations {
     @EnableAutoConfiguration(
             excludeName = "org.mybatis.spring.boot.autoconfigure.MybatisAutoConfiguration",
             exclude = {
-                    org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration.class,
-                    org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration.class,
+                    org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration.class,
+                    org.springframework.boot.jdbc.autoconfigure.DataSourceTransactionManagerAutoConfiguration.class,
                     com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration.class
             })
     @ComponentScan({"com.ulticode.search", "com.ulticode.common"})

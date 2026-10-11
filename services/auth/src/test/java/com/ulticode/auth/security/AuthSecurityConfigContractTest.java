@@ -3,7 +3,7 @@ package com.ulticode.auth.security;
 import com.ulticode.auth.security.jwt.AuthAccessTokenVerifier;
 import com.ulticode.auth.security.jwt.AuthJwtFilterConfiguration;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.web.bind.annotation.GetMapping;

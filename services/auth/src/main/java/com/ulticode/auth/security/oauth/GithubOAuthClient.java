@@ -37,7 +37,7 @@ public class GithubOAuthClient implements OAuthClient {
     @Override
     public String buildAuthorizationUrl(String state, String redirectUri) {
         OAuthProperties.OAuthProvider config = oauthProperties.getGithub();
-        return UriComponentsBuilder.fromHttpUrl(config.getAuthorizeUrl())
+        return OAuthAuthorizationUrl.fromTrustedHttpUrl(config.getAuthorizeUrl())
                 .queryParam("client_id", config.getClientId())
                 .queryParam("redirect_uri", redirectUri)
                 .queryParam("scope", config.getScopes())

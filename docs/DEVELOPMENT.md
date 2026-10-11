@@ -497,6 +497,7 @@ The same explicitly authorized rollover contract applies to the later supported 
 | `acceptance-revalidation-v13` | V12, including its retained unknown request |
 | `acceptance-revalidation-v14` | Settled V13 on the integrated U03 candidate |
 | `acceptance-revalidation-v15` | Settled V14, including its invalid-JSON failure |
+| `acceptance-revalidation-v16` | Settled V15, including the stale-confirmation U03 failure |
 
 Before preparation, retain the predecessor ledger, binding and guard at their pinned
 fingerprints and preserve the entire earlier history chain. The selected policy's
@@ -534,6 +535,12 @@ candidate under the same cumulative USD200 authorization. Keep the invalid-JSON
 failure and all known costs in V14; do not resume it or reinterpret it as passing
 acceptance. The earlier three unknown liabilities and every purpose/token cap remain
 unchanged. A new complete prefix must establish acceptance for the changed adapter.
+
+V16 retains the permanently halted V15 ledger, binding and guard for confirmation
+invalidation revalidation. Keep the original incomplete U03 result and its settled
+costs; the earlier U02 gate remains evidence for its original candidate only. The
+same cumulative USD200 ceiling, three unknown liabilities and purpose/token caps
+apply. Fresh acceptance must bind the changed service rather than relabel old proof.
 
 Issue the evidence-bound U02 gate only after those inputs validate. Gate artifact references are
 relative to the private directory containing the gate; place the referenced artifacts there:

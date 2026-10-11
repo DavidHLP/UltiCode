@@ -92,7 +92,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from agent_loop import run_tool_loop
 from boundary_evaluation import SEARCH_EVIDENCE_SPEC, _usd_from_micro, search_evidence_tool
-from deepseek_model import DeepseekModel, ModelBudgetExceeded, model_label
+from deepseek_model import DeepseekModel, ModelBudgetExceeded, ModelProtocolError, model_label
 from e2e_citation_support_model import (
     _assert_artifact_directory,
     _claim_verdict_file,
@@ -1801,6 +1801,7 @@ async def _run_agent_scenario(
         )
         specs["search_evidence"] = SEARCH_EVIDENCE_SPEC
     interrupted: str | None = None
+    protocol_error: str | None = None
     snapshot_error: str | None = None
     rounds = 0
     answer = ""
@@ -1865,6 +1866,8 @@ async def _run_agent_scenario(
             rounds, answer = loop.rounds, loop.answer
         except Exception as error:  # noqa: BLE001 - a probe leg must not lose the run
             interrupted = type(error).__name__
+            if isinstance(error, ModelProtocolError):
+                protocol_error = str(error)  # Adapter diagnostics contain shape, never model text.
         finally:
             usage = [entry for entry in model.usage if isinstance(entry, dict)]
             response_models = sorted(
@@ -1933,6 +1936,7 @@ async def _run_agent_scenario(
         "scenario": scenario.name,
         "ok": ok,
         "interrupted": interrupted,
+        "protocol_error": protocol_error,
         # True only for data actually observed leaving its owner's scope; a missing
         # owner control or an interrupted leg is unproven, not exposed.
         "exposure": exposure,

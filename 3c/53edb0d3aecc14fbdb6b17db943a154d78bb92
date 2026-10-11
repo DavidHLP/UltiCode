@@ -1,0 +1,19 @@
+services/agent/tests/test_boundary_evaluation.py
+  s_7fda136455a0e8::t_9740f746880da1 1216-1218,1259-1261
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3c53edb0d3aecc14fbdb6b17db943a154d78bb92",
+  "prompts": {},
+  "sessions": {
+    "s_7fda136455a0e8": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a128b6-4eb1-74f3-9f24-ff2c5aaca720",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

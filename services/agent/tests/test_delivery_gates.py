@@ -17,6 +17,29 @@ assert _SPEC and _SPEC.loader
 u03 = importlib.util.module_from_spec(_SPEC)
 _SPEC.loader.exec_module(u03)
 
+@pytest.mark.parametrize("status,code", [(502, 50000), (200, 40900)])
+def test_cancel_fence_preserves_safe_failed_read_diagnostics(status, code):
+    import asyncio
+    import httpx
+
+    async def scenario():
+        async def respond(request):
+            if request.method == "POST":
+                data = {"threadId": str(uuid.uuid4()), "draft": {}}
+                return httpx.Response(200, json={"code": 0, "message": "success", "data": data,
+                                              "traceId": "private-trace"})
+            return httpx.Response(status, json={"code": code, "message": "private-message",
+                                               "data": {"reason": "private-reason"},
+                                               "traceId": "private-trace"})
+
+        async with httpx.AsyncClient(transport=httpx.MockTransport(respond),
+                                    base_url="http://localhost") as session:
+            with pytest.raises(ValueError) as failure:
+                await u03._cancel_old_run_fence(session, str(uuid.uuid4()))
+        assert str(failure.value) == f"cancel_fence_state_unavailable:http={status}:code={code}"
+
+    asyncio.run(scenario())
+
 def _prior_five_fixture(tmp_path, monkeypatch, *, unsupported_rejected=True, raw_records=None):
     import agent_service.gate as gate
 

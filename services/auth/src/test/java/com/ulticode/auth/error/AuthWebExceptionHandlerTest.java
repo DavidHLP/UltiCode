@@ -67,7 +67,7 @@ class AuthWebExceptionHandlerTest {
         ResponseEntity<Result<Void>> response = handler.handleBusinessException(exception);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS);
-        assertThat(response.getHeaders()).doesNotContainKey(HttpHeaders.RETRY_AFTER);
+        assertThat(response.getHeaders().containsHeader(HttpHeaders.RETRY_AFTER)).isFalse();
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().getCode()).isEqualTo(42900);
     }
@@ -83,7 +83,7 @@ class AuthWebExceptionHandlerTest {
         ResponseEntity<Result<Void>> response = handler.handleAuthBusinessException(exception);
 
         assertThat(response.getStatusCode()).isEqualTo(status);
-        assertThat(response.getHeaders()).doesNotContainKey(HttpHeaders.RETRY_AFTER);
+        assertThat(response.getHeaders().containsHeader(HttpHeaders.RETRY_AFTER)).isFalse();
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().getCode()).isEqualTo(errorCode.code());
         assertThat(response.getBody().getMessage()).isEqualTo(errorCode.message());

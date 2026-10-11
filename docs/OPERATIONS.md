@@ -28,6 +28,8 @@ Trivy JSON reports are uploaded per candidate even when scanning fails; a failed
 
 Runtime images retain pinned base-image digests and apply `apk upgrade --no-cache` for Alpine security updates. Both Verify and Publish bypass cache only for the final `runtime` (backend) or `production` (frontend) stage, so cached upgrade layers cannot retain newly vulnerable packages; builder caches remain enabled. Backend dependencies use Spring Boot's BOM with narrowly scoped security overrides; verify final dependency resolution and image scan results before release.
 
+Backend services retain Java 17 and use the Spring Boot 4 BOM for Spring Framework 7 and Tomcat 11. Existing JSON wire and persisted payload contracts remain on the documented `spring-boot-jackson2` compatibility module, selected by `spring.http.converters.preferred-json-mapper=jackson2`; Jackson 2 security overrides use `jackson-2-bom.version`, not the Jackson 3 BOM property. Do not mix Spring Framework 7 into a Boot 3 parent or retain a Tomcat 10 override under Boot 4. Dependency upgrades must pass owner-context, serialization, security and RPC checks as well as all nine image scans; reverting code must not rewrite application data or applied migrations.
+
 `host-deploy` 在任何 migration、Redis ACL materialization、Judge sandbox provisioning 或 Compose mutation 前检查：
 
 - approved source commit；
@@ -321,6 +323,8 @@ backup、restore-drill、prune 使用同一 fenced database lease（`admin:owner
 ### 观测面
 
 可选的 `docker/docker-compose.observability.yml` 提供 loopback-only、digest-pinned 的 OpenTelemetry Collector、Prometheus、Alertmanager、Grafana、Tempo 和 Loki。HTTP Owner 暴露 metrics；无 HTTP 的 Judge/Search worker 通过 Micrometer OTLP 输出。日志携带 trace/span 关联，Grafana 可从 Loki 跳转 Tempo。
+
+Boot 4 tracing binds OTLP export settings under `management.opentelemetry.tracing.export.otlp`; the existing `MANAGEMENT_OTLP_TRACING_ENDPOINT` and `MANAGEMENT_OTLP_AUTHORIZATION` environment inputs remain unchanged. The shared observability module enables the tracing integration and validates the effective endpoint/header pair before export: a configured authorization header requires HTTPS. OTLP metrics configuration and the opt-in Collector overlays remain separate from tracing.
 
 生产 telemetry receiver、存储、保留周期、通知 webhook、阈值调优和真实流量 SLO 由外部运维平台负责；仓库 overlay 默认不启动，也不公开 management endpoint 或 secret。
 

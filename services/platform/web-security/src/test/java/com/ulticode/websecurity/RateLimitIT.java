@@ -16,9 +16,9 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
-import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
-import org.springframework.boot.autoconfigure.web.servlet.WebMvcAutoConfiguration;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.data.redis.autoconfigure.DataRedisAutoConfiguration;
+import org.springframework.boot.webmvc.autoconfigure.WebMvcAutoConfiguration;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -55,7 +55,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * retry seconds, and Retry-After header.
  */
 @SpringBootTest(classes = RateLimitIT.TestConfig.class)
-@ImportAutoConfiguration({RedisAutoConfiguration.class, WebMvcAutoConfiguration.class,
+@ImportAutoConfiguration({DataRedisAutoConfiguration.class, WebMvcAutoConfiguration.class,
         WebSecurityAutoConfiguration.class})
 @AutoConfigureMockMvc(addFilters = false)
 @Testcontainers

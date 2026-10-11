@@ -19,7 +19,7 @@ def journal_path(identity):
 
 async def run(expected, *, resume_sha256=None):
     # Read-only provenance/budget gates precede the one-shot journal claim.
-    provenance = runner._repository_provenance()
+    provenance = runner._repository_provenance(expected.policy_id)
     _, budget = authorized_model(expected)
     snapshot = budget.snapshot()
     if snapshot["state"] != "active" or snapshot["sql_gate"] != "active" or snapshot["halted"]:
@@ -74,7 +74,7 @@ async def run(expected, *, resume_sha256=None):
     runner.DeepseekModel = guarded_model
     # This entry already owns the guard and supplies both model transports.
     runner.acceptance_transport = lambda budget, purpose: None
-    runner._repository_provenance = lambda: provenance
+    runner._repository_provenance = lambda policy_id=runner.POLICY_ID: provenance
     try:
         return await runner.main(expected)
     finally:

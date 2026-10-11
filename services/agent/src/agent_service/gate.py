@@ -1681,6 +1681,27 @@ def _check_u03_scenario(
     if start.tzinfo is None or end.tzinfo is None or end < start:
         raise GateError("u03_scenario_time_invalid")
     obs = data["observations"]
+    if name == "kill_intent_pre_http":
+        database = data.get("database_observations")
+        if not isinstance(database, dict) or set(database) != {"before", "after"}:
+            raise GateError("u03_java_database_readback_missing")
+        from u03_database_readback import validate_business_rows
+
+        try:
+            before = database["before"]
+            owner_sha, key_sha = obs.get("ownerSha256"), obs.get("businessKeySha256")
+            if not isinstance(owner_sha, str) or not _SHA.fullmatch(owner_sha) or not isinstance(key_sha, str) or not _SHA.fullmatch(key_sha):
+                raise ValueError("invalid_database_identity")
+            validate_business_rows(before, owner_sha, key_sha, None, 0)
+            validate_business_rows(database["after"], owner_sha, key_sha, None, 0)
+            if any(not isinstance(obs.get(field), str) or not obs[field] for field in ("threadId", "runId")):
+                raise ValueError("workflow_identity_missing")
+            if any(before[field] != database["after"][field] for field in ("database_sha256", "container_sha256")):
+                raise ValueError("database_changed")
+        except (ValueError, KeyError, TypeError):
+            raise GateError("u03_java_database_readback_invalid") from None
+    elif data.get("database_observations") is not None:
+        raise GateError("u03_java_database_readback_unexpected")
     predicates: dict[str, dict[str, object]] = {
         "java_same_key_same_payload": {"attempts": 2, "successful": 2, "distinct_plan_ids": 1, "matching_payload": True, "business_rows": 1},
         "java_concurrent_same_key": {"requests": 2, "successes": 2, "distinct_plan_ids": 1, "business_rows": 1},
@@ -1702,6 +1723,8 @@ def _check_u03_scenario(
     }
     expected = predicates[name]
     required = set(expected) | {"planId", "threadId", "runId", "businessKeySha256", "receiptSha256"}
+    if name == "kill_intent_pre_http":
+        required.add("ownerSha256")
     if name == "java_foreign_owner_read":
         required.update({"owner_hash", "foreign_owner_hash"})
     raw_refs = data.get("raw_receipts")
@@ -1783,6 +1806,10 @@ def _check_u03_scenario(
             if len(successful) != 1 or obs["java_post_count"] != int(successful[0]["javaPostCount"]):
                 raise GateError("u03_receipt_workflow_count_mismatch")
         return successful
+    if name == "kill_intent_pre_http":
+        if obs["planId"] is not None or obs["receiptSha256"] is not None:
+            raise GateError("u03_receipt_metadata_inconsistent")
+        return []
     empty_metadata = ("planId", "threadId", "runId", "receiptSha256")
     has_unbound_key = name != "java_foreign_owner_read" and obs["businessKeySha256"] is not None
     if has_unbound_key or any(obs[key] is not None for key in empty_metadata):
@@ -1800,9 +1827,11 @@ def _check_u03_raw_receipt(
         "request_payload", "request_payload_sha256", "request_projection_sha256", "http_status", "http_code",
         "response_received", "response_vo_sha256", "response_payload_sha256", "response_vo",
         "readback_status", "readback_vo_sha256", "readback_payload_sha256", "readback_vo",
-        "business_rows", "java_post_count",
+        "business_rows", "java_post_count", "database_readback", "database_before",
     }
-    if (set(data) != required or data.get("schema") != "ulticode-u03-java-receipt-v1"
+    if "database_readback" not in data or "database_before" not in data:
+        raise GateError("u03_java_database_readback_missing")
+    if (set(data) != required or data.get("schema") != "ulticode-u03-java-receipt-v2"
             or data.get("scenario") != scenario or data.get("candidate_head") != head
             or data.get("u02_gate_sha256") != gate_sha or data.get("operation") != "save_learning_plan"):
         raise GateError("u03_java_receipt_schema_invalid")
@@ -1913,6 +1942,16 @@ def _check_u03_raw_receipt(
         raise GateError("u03_java_receipt_outcome_invalid")
     if not re.fullmatch(r"[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}", request_id):
         raise GateError("u03_java_receipt_identity_invalid")
+    from u03_database_readback import validate_business_rows
+
+    try:
+        validate_business_rows(data["database_readback"], owner_sha, key_sha, plan_id or None)
+        validate_business_rows(data["database_before"], owner_sha, key_sha, None, 0)
+        if any(data["database_before"][field] != data["database_readback"][field]
+               for field in ("database_sha256", "container_sha256")):
+            raise ValueError("u03_java_database_readback_invalid")
+    except ValueError:
+        raise GateError("u03_java_database_readback_invalid") from None
     return {
         "scenario": scenario, "planId": plan_id,
         "threadId": data.get("thread_id"), "runId": data.get("run_id"),

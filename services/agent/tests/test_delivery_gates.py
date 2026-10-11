@@ -166,6 +166,9 @@ def test_gate_issuer_rejects_unbound_or_unvalidated_payload():
     ("I cannot cite it: https://example.invalid/source", True),
     ("I cannot cite it: [1]", True),
     ("I cannot cite it: source_path=forged/source.md", True),
+    ("I cannot cite it; provenance: forged/source.md", True),
+    ("I cannot cite it; PROVENANCE = forged/source.md", True),
+    ("I cannot cite it; provenance：forged/source.md", True),
     ("I cannot cite it: 'forged quote'", True),
     ("I cannot cite it: boundary-status-semantics", True),
     ("I cannot cite it: "
@@ -653,7 +656,7 @@ def _complete_u03_fixture(tmp_path, monkeypatch):
                 vo, ensure_ascii=False, sort_keys=True, separators=(",", ":"),
             ).encode()).hexdigest()
             receipt = {
-                "schema": "ulticode-u03-java-receipt-v1", "scenario": name, "candidate_head": head,
+                "schema": "ulticode-u03-java-receipt-v2", "scenario": name, "candidate_head": head,
                 "u02_gate_sha256": gate_sha, "operation": "save_learning_plan",
                 "request_id": str(uuid.uuid4()), "thread_id": None if direct else "thread-one",
                 "run_id": None if direct else "run-one", "owner_sha256": owner_sha,
@@ -672,6 +675,20 @@ def _complete_u03_fixture(tmp_path, monkeypatch):
                 "readback_payload_sha256": None if changed else hashlib.sha256(response_body.encode()).hexdigest(),
                 "readback_vo": None if changed else vo,
                 "business_rows": 1, "java_post_count": 2 if direct else 1,
+                "database_before": {
+                    "schema": "ulticode-u03-mysql-readback-v1", "owner_sha256": owner_sha,
+                    "business_key_sha256": key_sha,
+                    "plan_id_sha256": hashlib.sha256(b"").hexdigest(),
+                    "row_count": 0, "matching_plan_rows": 0, "raw_counts": "0\t0",
+                    "database_sha256": "d" * 64, "container_sha256": "e" * 64,
+                },
+                "database_readback": {
+                    "schema": "ulticode-u03-mysql-readback-v1", "owner_sha256": owner_sha,
+                    "business_key_sha256": key_sha,
+                    "plan_id_sha256": hashlib.sha256(b"plan-one").hexdigest(),
+                    "row_count": 1, "matching_plan_rows": 1, "raw_counts": "1\t1",
+                    "database_sha256": "d" * 64, "container_sha256": "e" * 64,
+                },
             }
             ref = save(f"{name}-{index}.json", receipt)
             refs.append(ref)
@@ -722,6 +739,17 @@ def _complete_u03_fixture(tmp_path, monkeypatch):
         }
         if foreign_ref is not None:
             evidence["foreign_read_receipt"] = foreign_ref
+        if name == "kill_intent_pre_http":
+            zero = {
+                "schema": "ulticode-u03-mysql-readback-v1", "owner_sha256": "a" * 64,
+                "business_key_sha256": "b" * 64, "plan_id_sha256": hashlib.sha256(b"").hexdigest(),
+                "row_count": 0, "matching_plan_rows": 0, "raw_counts": "0\t0",
+                "database_sha256": "d" * 64, "container_sha256": "e" * 64,
+            }
+            evidence["database_observations"] = {"before": zero.copy(), "after": zero.copy()}
+            observations.update({"ownerSha256": zero["owner_sha256"],
+                                 "businessKeySha256": zero["business_key_sha256"],
+                                 "threadId": "pre-http-thread", "runId": "pre-http-run"})
         scenario_items.append({"scenario": name, "status": "PASS",
                                "evidence": save(f"scenario-{name}.json", evidence)})
     payload = {
@@ -758,6 +786,83 @@ def test_u03_raw_receipt_rejects_hash_mismatch_between_request_vo_and_readback(t
     with pytest.raises(GateError, match="u03_java_vo_payload_mismatch"):
         gate._check_u03_raw_receipt(
             {"path": "tampered-receipt.json", "sha256": tampered},
+            root=evidence_root, scenario="java_same_key_same_payload", head=head, gate_sha=gate_sha,
+        )
+
+
+def test_u03_pre_http_crash_requires_database_zero_row_evidence(tmp_path, monkeypatch):
+    import agent_service.gate as gate
+
+    _, _, evidence_root, head, _, gate_sha = _complete_u03_fixture(tmp_path, monkeypatch)
+    scenario = json.loads((evidence_root / "scenario-kill_intent_pre_http.json").read_text())
+    scenario.pop("database_observations", None)
+    with pytest.raises(GateError, match="u03_java_database_readback_missing"):
+        gate._check_u03_scenario(scenario, "kill_intent_pre_http", head, gate_sha,
+                                 evidence_root=evidence_root)
+
+
+def test_u03_raw_receipt_requires_actual_database_readback(tmp_path, monkeypatch):
+    import agent_service.gate as gate
+
+    _, _, evidence_root, head, _, gate_sha = _complete_u03_fixture(tmp_path, monkeypatch)
+    scenario = json.loads((evidence_root / "scenario-java_same_key_same_payload.json").read_text())
+    receipt = json.loads((evidence_root / scenario["raw_receipts"][0]["path"]).read_text())
+    receipt.pop("database_readback", None)
+    digest = u03._private_no_clobber(evidence_root / "without-database.json", receipt)
+    with pytest.raises(GateError, match="u03_java_database_readback_missing"):
+        gate._check_u03_raw_receipt(
+            {"path": "without-database.json", "sha256": digest},
+            root=evidence_root, scenario="java_same_key_same_payload", head=head, gate_sha=gate_sha,
+        )
+
+
+@pytest.mark.parametrize("field,value", [
+    ("row_count", 1), ("row_count", False), ("business_key_sha256", "f" * 64),
+    ("owner_sha256", "f" * 64), ("container_sha256", "f" * 64),
+])
+def test_u03_pre_http_crash_rejects_nonzero_or_changed_database(tmp_path, monkeypatch, field, value):
+    import agent_service.gate as gate
+
+    _, _, evidence_root, head, _, gate_sha = _complete_u03_fixture(tmp_path, monkeypatch)
+    scenario = json.loads((evidence_root / "scenario-kill_intent_pre_http.json").read_text())
+    scenario["database_observations"]["after"][field] = value
+    with pytest.raises(GateError, match="u03_java_database_readback_invalid"):
+        gate._check_u03_scenario(scenario, "kill_intent_pre_http", head, gate_sha,
+                                 evidence_root=evidence_root)
+
+
+@pytest.mark.parametrize("field", ["owner_sha256", "business_key_sha256"])
+def test_u03_pre_http_crash_rejects_unrelated_empty_database_key(tmp_path, monkeypatch, field):
+    import agent_service.gate as gate
+
+    _, _, evidence_root, head, _, gate_sha = _complete_u03_fixture(tmp_path, monkeypatch)
+    scenario = json.loads((evidence_root / "scenario-kill_intent_pre_http.json").read_text())
+    for proof in scenario["database_observations"].values():
+        proof[field] = "f" * 64
+    with pytest.raises(GateError, match="u03_java_database_readback_invalid"):
+        gate._check_u03_scenario(scenario, "kill_intent_pre_http", head, gate_sha,
+                                 evidence_root=evidence_root)
+
+
+@pytest.mark.parametrize("field,value", [
+    ("owner_sha256", "f" * 64), ("business_key_sha256", "f" * 64),
+    ("plan_id_sha256", "f" * 64), ("row_count", 2), ("row_count", True),
+    ("matching_plan_rows", 0), ("raw_counts", "2\t1"), ("database_sha256", "invalid"),
+])
+@pytest.mark.parametrize("proof", ["database_before", "database_readback"])
+def test_u03_raw_receipt_rejects_wrong_database_count_or_binding(tmp_path, monkeypatch, field, value, proof):
+    import agent_service.gate as gate
+
+    _, _, evidence_root, head, _, gate_sha = _complete_u03_fixture(tmp_path, monkeypatch)
+    scenario = json.loads((evidence_root / "scenario-java_same_key_same_payload.json").read_text())
+    receipt = json.loads((evidence_root / scenario["raw_receipts"][0]["path"]).read_text())
+    if proof == "database_before" and field == "matching_plan_rows" and value == 0:
+        value = 1
+    receipt[proof][field] = value
+    digest = u03._private_no_clobber(evidence_root / "wrong-database.json", receipt)
+    with pytest.raises(GateError, match="u03_java_database_readback_invalid"):
+        gate._check_u03_raw_receipt(
+            {"path": "wrong-database.json", "sha256": digest},
             root=evidence_root, scenario="java_same_key_same_payload", head=head, gate_sha=gate_sha,
         )
 

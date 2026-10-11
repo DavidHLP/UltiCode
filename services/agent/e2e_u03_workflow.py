@@ -31,6 +31,7 @@ from agent_service.gate import (
 )
 from authorized_budget_period import POLICY
 from ulticode_client import UlticodeClient, UlticodeServiceError
+from u03_database_readback import read_business_rows, validate_business_rows
 
 _ACTIVE_AGENT_PROCESSES = set()
 
@@ -161,6 +162,7 @@ def _scenario_evidence(
     observations: dict[str, object], *, started_at: str, completed_at: str,
     evidence_dir: Path, exit_code: int = 0, raw_receipts: list[dict[str, str]] | None = None,
     foreign_read_receipt: dict[str, str] | None = None,
+    database_observations: dict[str, dict] | None = None,
 ) -> dict[str, str]:
     """Publish one private immutable observation, separate from the checkout."""
     if scenario not in _U03_SCENARIOS:
@@ -183,6 +185,8 @@ def _scenario_evidence(
         evidence["raw_receipts"] = raw_receipts
     if foreign_read_receipt:
         evidence["foreign_read_receipt"] = foreign_read_receipt
+    if database_observations is not None:
+        evidence["database_observations"] = database_observations
     digest = _private_no_clobber(target, evidence)
     return {"path": target.relative_to(run_dir.parent).as_posix(), "sha256": digest}
 
@@ -359,9 +363,11 @@ def _write_java_receipts(
     thread_id: str | None, run_id: str | None, head: str, gate_sha: str,
     evidence_dir: Path, readbacks: dict[str, tuple[int, dict[str, object]]],
     principal_evidence: dict[str, object], readback_fingerprints: dict[str, str],
+    database_before: dict[str, dict],
     response_received: bool = True,
 ) -> list[dict[str, str]]:
     refs = []
+    database_by_key = {}
     owner_sha = hashlib.sha256(owner_id.encode()).hexdigest()
     principal = {
         "user_id_sha256": owner_sha, "response_status": principal_evidence.get("response_status"),
@@ -381,6 +387,14 @@ def _write_java_receipts(
                         if hashlib.sha256(value.encode()).hexdigest() == post.get("business_key_sha256")), None)
         if not isinstance(key, str):
             raise ValueError("u03_java_receipt_capture_invalid")
+        if key not in database_by_key:
+            database_by_key[key] = read_business_rows(owner_id, key, readbacks[key][1]["id"])
+        database = database_by_key[key]
+        before = database_before[key]
+        validate_business_rows(before, owner_sha, hashlib.sha256(key.encode()).hexdigest(), None, 0)
+        validate_business_rows(database, owner_sha, hashlib.sha256(key.encode()).hexdigest(), readbacks[key][1]["id"])
+        if any(before[field] != database[field] for field in ("database_sha256", "container_sha256")):
+            raise ValueError("u03_java_database_readback_invalid")
         successful = post.get("http_status") == 200
         readback_status, readback_vo = readbacks[key] if successful else (None, None)
         request_projection = _payload_projection(payload)
@@ -399,7 +413,7 @@ def _write_java_receipts(
             "owner_sha256": owner_sha, **request_projection,
         })
         raw = {
-            "schema": "ulticode-u03-java-receipt-v1", "scenario": scenario,
+            "schema": "ulticode-u03-java-receipt-v2", "scenario": scenario,
             "candidate_head": head, "u02_gate_sha256": gate_sha,
             "operation": "save_learning_plan", "request_id": post["request_id"],
             "thread_id": thread_id, "run_id": run_id, "owner_sha256": owner_sha,
@@ -416,7 +430,9 @@ def _write_java_receipts(
             "readback_status": readback_status, "readback_vo": readback_projection,
             "readback_vo_sha256": _projection_sha256(readback_projection) if readback_projection else None,
             "readback_payload_sha256": readback_fingerprints.get(key) if successful else None,
-            "business_rows": 1, "java_post_count": index + 1,
+            "business_rows": database["row_count"], "database_readback": database,
+            "database_before": before,
+            "java_post_count": index + 1,
         }
         target = evidence_dir / f"{scenario}.receipt-{index + 1}.json"
         digest = _private_no_clobber(target, raw)
@@ -788,6 +804,11 @@ async def _save_crash_scenario(
     key = str(pre["businessKey"])
     key_sha = hashlib.sha256(key.encode()).hexdigest()
 
+    async with UlticodeClient.for_session(app_base, auth_base, access_token=access, csrf_token=csrf) as java_client:
+        before_owner = await java_client.principal()
+    before = read_business_rows(before_owner, key, None)
+    validate_business_rows(before, hashlib.sha256(before_owner.encode()).hexdigest(), key_sha, None, 0)
+
     agent_base = _agent_base()
     child = await _start_agent(
         state_path=state_path, gate_path=gate_path, head=head, expected_base=expected_base,
@@ -876,6 +897,7 @@ async def _save_crash_scenario(
             evidence_dir=evidence_dir, readbacks={key: (200, vo)},
             principal_evidence=owner_capture.principal_evidence,
             readback_fingerprints=owner_capture.readback_fingerprints,
+            database_before={key: before},
             response_received=not drop_response,
         )
         receipt = {"scenario": scenario, "planId": plan_id, "threadId": thread["thread_id"],
@@ -895,6 +917,11 @@ async def _save_crash_scenario(
             else:
                 _stop_agent(restarted)
                 raise ValueError("u03_intent_pre_http_found_business_write")
+        after = read_business_rows(before_owner, key, None)
+        validate_business_rows(after, before["owner_sha256"], key_sha, None, 0)
+        if any(before[field] != after[field] for field in ("database_sha256", "container_sha256")):
+            _stop_agent(restarted)
+            raise ValueError("u03_java_database_readback_invalid")
     marker = None
     if marker_path.exists():
         marker, _ = _read_json(marker_path)
@@ -924,7 +951,8 @@ async def _save_crash_scenario(
     return ({
         "fault_point": point, "child_exit": child_exit, "restart_by_key_status": by_key_status,
         "recovered_status": recovered_data.get("status"), "foreign_read_status": foreign_status,
-        "owner_read_status": recovered.status_code, "business_rows": int(bool(receipt)),
+        "owner_read_status": recovered.status_code,
+        "business_rows": receipt_doc["business_rows"] if receipt else None,
         "java_post_count": java_post_count,
         "java_commit_observed": bool(drop_response and java_post_count == 1),
         "response_lost": bool(drop_response and java_post_count == 1),
@@ -932,8 +960,9 @@ async def _save_crash_scenario(
         "restart_pid_changed": child_pid != restart_pid,
         "sqlite_quick_check": post_state["sqliteQuickCheck"],
         "planId": (receipt or {}).get("planId"), "threadId": thread["thread_id"],
-        "runId": thread["run_id"], "businessKeySha256": key_sha, "ownerSha256": owner_sha,
+        "runId": thread["run_id"], "businessKeySha256": key_sha, "ownerSha256": owner_sha or before["owner_sha256"],
         "receiptSha256": (receipt or {}).get("receiptSha256"),
+        "database_observations": {"before": before, "after": after} if not receipt else None,
     }, receipt)
 
 async def _expired_confirmation_guard(
@@ -1315,7 +1344,16 @@ async def _java_idempotency_matrix(
             return await client.save_learning_plan(**data, idempotency_key=key)
 
         keys: dict[str, str] = {}
+        database_before = {}
+
+        def require_empty(key: str):
+            before = read_business_rows(owner_id, key, None)
+            validate_business_rows(before, hashlib.sha256(owner_id.encode()).hexdigest(),
+                                   hashlib.sha256(key.encode()).hexdigest(), None, 0)
+            database_before[key] = before
+
         same_key = keys["java_same_key_same_payload"] = str(uuid.uuid4())
+        require_empty(same_key)
         first, second = await save(owner, same_key, payload), await save(owner, same_key, payload)
         readback = await owner.get_learning_plan_by_key(same_key)
         if (first.get("id") != second.get("id") or readback.get("id") != first.get("id")
@@ -1326,6 +1364,7 @@ async def _java_idempotency_matrix(
             raise ValueError("u03_java_idempotent_readback_mismatch")
 
         concurrent_key = keys["java_concurrent_same_key"] = str(uuid.uuid4())
+        require_empty(concurrent_key)
         concurrent = await asyncio.gather(save(owner, concurrent_key, payload),
                                           save(owner, concurrent_key, payload))
         concurrent_readback = await owner.get_learning_plan_by_key(concurrent_key)
@@ -1334,6 +1373,7 @@ async def _java_idempotency_matrix(
             raise ValueError("u03_java_concurrent_idempotency_mismatch")
 
         mismatch_key = keys["java_same_key_payload_mismatch"] = str(uuid.uuid4())
+        require_empty(mismatch_key)
         original = await save(owner, mismatch_key, payload)
         changed = {**payload, "content": payload["content"] + " altered"}
         mismatch_status, mismatch_code = 0, 0
@@ -1362,6 +1402,7 @@ async def _java_idempotency_matrix(
         reads = {same_key: (200, readback), concurrent_key: (200, concurrent_readback),
                  mismatch_key: (200, mismatch_readback)}
         raw_refs = {}
+        business_counts = {}
         projections = []
         for name, key in keys.items():
             count = 2
@@ -1373,9 +1414,11 @@ async def _java_idempotency_matrix(
                 thread_id=None, run_id=None, head=head, gate_sha=gate_sha,
                 evidence_dir=evidence_dir, readbacks=reads, principal_evidence=principal_evidence,
                 readback_fingerprints=capture.readback_fingerprints,
+                database_before=database_before,
             )
             for ref in raw_refs[name]:
                 raw_receipt, _ = _read_json(evidence_dir.parent / ref["path"])
+                business_counts[name] = raw_receipt["business_rows"]
                 if raw_receipt["http_status"] == 200:
                     projections.append({
                         "scenario": name, "planId": raw_receipt["response_vo"]["id"],
@@ -1424,7 +1467,7 @@ async def _java_idempotency_matrix(
                     }.items())
                     for row in (first, second, readback)
                 ),
-                "business_rows": 1, "planId": readback.get("id"),
+                "business_rows": business_counts["java_same_key_same_payload"], "planId": readback.get("id"),
                 "businessKeySha256": hashlib.sha256(same_key.encode()).hexdigest(),
                 "receiptSha256": raw_refs["java_same_key_same_payload"][0]["sha256"],
                 "ownerSha256": owner_sha,
@@ -1433,14 +1476,15 @@ async def _java_idempotency_matrix(
                 **no_ids, "requests": len(raw_refs["java_concurrent_same_key"]),
                 "successes": sum(row.get("id") == concurrent[0].get("id") for row in concurrent),
                 "distinct_plan_ids": len({row.get("id") for row in concurrent}),
-                "business_rows": 1, "planId": concurrent_readback.get("id"),
+                "business_rows": business_counts["java_concurrent_same_key"], "planId": concurrent_readback.get("id"),
                 "businessKeySha256": hashlib.sha256(concurrent_key.encode()).hexdigest(),
                 "receiptSha256": raw_refs["java_concurrent_same_key"][0]["sha256"],
                 "ownerSha256": owner_sha,
             },
             "java_same_key_payload_mismatch": {
                 **no_ids, "first_status": 200, "first_code": 0, "changed_status": mismatch_status,
-                "changed_code": mismatch_code, "business_rows": 1, "planId": original.get("id"),
+                "changed_code": mismatch_code,
+                "business_rows": business_counts["java_same_key_payload_mismatch"], "planId": original.get("id"),
                 "businessKeySha256": hashlib.sha256(mismatch_key.encode()).hexdigest(),
                 "receiptSha256": raw_refs["java_same_key_payload_mismatch"][0]["sha256"],
                 "ownerSha256": owner_sha,
@@ -1704,6 +1748,9 @@ async def _run_u03(args: argparse.Namespace) -> tuple[dict, int]:
             if receipt:
                 common["ownerSha256"] = observation["ownerSha256"]
             if scenario == "kill_intent_pre_http":
+                common.update({key: observation[key] for key in (
+                    "threadId", "runId", "businessKeySha256", "ownerSha256",
+                )})
                 observations = {**common, "fault_point": point, "child_exit": observation["child_exit"],
                                 "java_post_count": observation["java_post_count"],
                                 "restart_by_key_status": observation["restart_by_key_status"],
@@ -1732,6 +1779,7 @@ async def _run_u03(args: argparse.Namespace) -> tuple[dict, int]:
                 root, scenario, expected_head, gate_sha, observations, started_at=start,
                 completed_at=datetime.now(timezone.utc).isoformat(), evidence_dir=evidence_dir,
                 raw_receipts=raw_refs or None,
+                database_observations=observation["database_observations"] if scenario == "kill_intent_pre_http" else None,
             )
             _record_validated_scenario(
                 scenarios, ref, scenario=scenario, evidence_root=evidence_root,

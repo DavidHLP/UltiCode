@@ -1,0 +1,26 @@
+services/agent/src/revalidation_history.py
+  s_7fda136455a0e8::t_0a812a51141bb1 271-282,285,290-294,370,383,389-390
+docs/DEVELOPMENT.md
+  s_7fda136455a0e8::t_36535a563b3144 72-73,499,532-536
+  s_7fda136455a0e8::t_6c2dcf2dea1f17 537
+services/agent/data/repository_corpus_manifest.json
+  s_7fda136455a0e8::t_d45349120e0dd9 32-33
+services/agent/src/authorized_budget_period.py
+  s_7fda136455a0e8::t_0a812a51141bb1 77,231-241,274-275
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ef174f8fbcef675ea2fcc11f50a29c442cf03919",
+  "prompts": {},
+  "sessions": {
+    "s_7fda136455a0e8": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a128b6-4eb1-74f3-9f24-ff2c5aaca720",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

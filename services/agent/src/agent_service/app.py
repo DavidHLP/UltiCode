@@ -1114,6 +1114,12 @@ def create_app(
                                 changes={"failure_reason": "readback_unavailable"}, kind="readback_unavailable")
                             return completed(latest)
                         if body["retry"] is not True:
+                            if row["status"] == "saving":
+                                latest = workflow_store.transition(thread_id, owner, expected_run=run_id,
+                                    expected_version=version, statuses={"saving"},
+                                    changes={"status": "unknown", "failure_reason": "save_result_unknown"},
+                                    kind="save_unknown")
+                                return completed(latest)
                             return completed(row)
                         if row["retry_blocked"]:
                             raise AgentError(409, "idempotency_payload_mismatch", 40900)

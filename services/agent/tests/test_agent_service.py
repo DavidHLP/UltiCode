@@ -906,6 +906,47 @@ def test_state_mutations_run_inside_dispatch_node(tmp_path, monkeypatch):
     asyncio.run(scenario())
 
 
+def test_restart_before_java_dispatch_recovers_unknown_without_reposting(tmp_path, monkeypatch):
+    monkeypatch.setattr("agent_service.app.load_u02_gate", lambda *args, **kwargs: {"test_only": True})
+
+    async def scenario():
+        posts, saved, post_flags = {"count": 0}, {}, []
+        state_path = tmp_path / "intent-restart.sqlite3"
+
+        def build():
+            return create_app(state_path=state_path, client_factory=_write_client(posts, saved, post_flags),
+                              u02_gate_path=tmp_path / "gate.json", expected_head="0" * 40)
+
+        app = build()
+        async with app.router.lifespan_context(app):
+            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
+                created = (await client.post("/agent/threads", headers=HEADERS,
+                    json={"sourceSubmissionId": str(uuid.uuid4()), "question": "如何复盘？"})).json()["data"]
+                confirmed = (await client.post(f"/agent/threads/{created['threadId']}/confirm", headers=HEADERS,
+                    json={"draftVersion": 1, "paramsDigest": created["paramsDigest"], "confirm": True})).json()["data"]
+                app.state.store.transition(created["threadId"], "owner-1", expected_run=created["runId"],
+                    expected_version=1, statuses={"confirmed"},
+                    changes={"status": "saving", "save_attempted": 1}, kind="save_intent")
+
+        restarted = build()
+        async with restarted.router.lifespan_context(restarted):
+            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=restarted), base_url="http://test") as client:
+                path = f"/agent/threads/{created['threadId']}"
+                for _ in range(2):
+                    response = await client.post(f"{path}/recover", headers=HEADERS, json={"retry": False})
+                    assert response.status_code == 200
+                    assert response.json()["data"]["status"] == "unknown"
+                    assert posts["count"] == 0
+                current = restarted.state.store.get(created["threadId"], "owner-1")
+                assert current["save_attempted"] == 1
+                assert current["confirmation"]["id"] == confirmed["confirmation"]["id"]
+                response = await client.post(f"{path}/recover", headers=HEADERS, json={"retry": True})
+                assert response.json()["data"]["status"] == "saved"
+                assert posts["count"] == 1
+
+    asyncio.run(scenario())
+
+
 def test_every_action_leaves_graph_at_await_action_and_restart_replays_nothing(tmp_path, monkeypatch):
     monkeypatch.setattr("agent_service.app.load_u02_gate", lambda *args, **kwargs: {"test_only": True})
 

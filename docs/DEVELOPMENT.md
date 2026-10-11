@@ -256,6 +256,8 @@ uv run python e2e_account_isolation.py \
 loop/judge 一样计入同一个 USD 1 周期，不新增周期、不追加第二条账本。任一未知用量或被
 拒绝的预留会立即中断当前腿并跳过其余腿（记为 `not_run`），不自动重试；artifact 保留
 每条腿的绑定身份、purpose、前后账本快照、逐调用 receipt 与真实 answer/tool trace。
+模型协议错误另保留 `protocol_error` 形状诊断（固定错误标签、内容长度与结束原因），
+不保存模型原文；该字段不改变 `INCOMPLETE` 判定、费用记录或剩余攻击腿的跳过行为。
 
 `services/agent/src/ulticode_client.py` provides the Java LearningPlan HTTP wire contract
 (`save_learning_plan`, `get_learning_plan`, `get_learning_plan_by_key`) and a session-bound

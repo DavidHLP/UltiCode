@@ -502,6 +502,7 @@ The same explicitly authorized rollover contract applies to the later supported 
 | `acceptance-revalidation-v17` | Settled V16, including the cancellation-state U03 failure |
 | `acceptance-revalidation-v18` | Settled V17, including the equivalent-array-definition boundary failure |
 | `acceptance-revalidation-v19` | Settled V18, including the pre-dispatch save-intent recovery failure |
+| `acceptance-revalidation-v20` | Settled V19, including the incomplete U03 state-read failure |
 
 Before preparation, retain the predecessor ledger, binding and guard at their pinned
 fingerprints and preserve the entire earlier history chain. The selected policy's
@@ -563,6 +564,14 @@ restart recovery. Preserve the original incomplete U03 result and its settled co
 the earlier U02 gate remains evidence for its original candidate only. The same
 cumulative USD200 ceiling, three unknown liabilities and purpose/token caps apply.
 Establish fresh acceptance for the changed candidate.
+
+V20 retains the permanently halted V19 ledger, binding and guard after U03 ended
+`INCOMPLETE` on a state read with HTTP 502 / Result code 50000. The bounded retry
+change does not establish the cause of that response or pass the acceptance gate.
+Preserve all 104 settled V19 attempts and their $0.035851 known actual / $0.932400
+conservative commitment, along with the three historical unknown liabilities. The
+cumulative USD200 ceiling and all purpose/token limits remain unchanged; establish a
+fresh complete acceptance prefix on the changed candidate.
 
 Issue the evidence-bound U02 gate only after those inputs validate. Gate artifact references are
 relative to the private directory containing the gate; place the referenced artifacts there:

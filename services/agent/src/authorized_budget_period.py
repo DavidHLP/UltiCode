@@ -287,6 +287,18 @@ REVALIDATION_V19_POLICY = MappingProxyType({
 })
 REVALIDATION_POLICY_IDS = REVALIDATION_POLICY_IDS | {REVALIDATION_V19_POLICY_ID}
 
+REVALIDATION_V20_POLICY_ID = "acceptance-revalidation-v20"
+REVALIDATION_V20_HISTORY = MappingProxyType({
+    "attempts": 1694, "known_actual_micro_usd": 507_262,
+    "known_committed_micro_usd": 15_024_914,
+    "unknown_attempts": 3, "unknown_encumbrance_micro_usd": 2_359_296,
+    "cumulative_attempt_limit": 1935, "cumulative_limit_micro_usd": 200_000_000,
+})
+REVALIDATION_V20_POLICY = MappingProxyType({
+    **REVALIDATION_V19_POLICY, "history": REVALIDATION_V20_HISTORY,
+})
+REVALIDATION_POLICY_IDS = REVALIDATION_POLICY_IDS | {REVALIDATION_V20_POLICY_ID}
+
 
 def policy_for(policy_id: str):
     if policy_id == POLICY_ID:
@@ -329,6 +341,8 @@ def policy_for(policy_id: str):
         return REVALIDATION_V18_POLICY
     if policy_id == REVALIDATION_V19_POLICY_ID:
         return REVALIDATION_V19_POLICY
+    if policy_id == REVALIDATION_V20_POLICY_ID:
+        return REVALIDATION_V20_POLICY
     raise PeriodError("unsupported policy")
 
 

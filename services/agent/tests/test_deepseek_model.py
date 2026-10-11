@@ -1,10 +1,30 @@
 import asyncio
+import json
 
 import deepseek_model
 import httpx
 import pytest
 
 from deepseek_model import DeepseekModel, ModelProtocolError, _parse_decision
+
+
+@pytest.mark.parametrize("tools,content", [
+    ({}, '{"answer":"ok"}'),
+    ({"get_problem": "args"}, '{"tool":"get_problem","args":{}}'),
+])
+def test_decision_requests_provider_json_output(tools, content):
+    async def handler(request):
+        payload = json.loads(request.content)
+        assert payload["response_format"] == {"type": "json_object"}
+        assert "json" in payload["messages"][0]["content"].lower()
+        return httpx.Response(200, json={"choices": [{"message": {"content": content}}]})
+
+    async def scenario():
+        async with DeepseekModel("test-key", tool_specs=tools,
+                                 transport=httpx.MockTransport(handler)) as model:
+            await model.decide([{"role": "user", "content": "question"}])
+
+    asyncio.run(scenario())
 
 
 @pytest.mark.parametrize(

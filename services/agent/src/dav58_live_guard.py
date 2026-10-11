@@ -204,7 +204,8 @@ class IncrementalGuard:
                     raise ModelBudgetExceeded("guard and budget history disagree")
             body = json.loads(request.content)
             if (not isinstance(body, dict)
-                    or set(body) != {"model", "messages", "temperature", "max_tokens", "thinking"}
+                    or set(body) - {"response_format"} != {"model", "messages", "temperature", "max_tokens", "thinking"}
+                    or ("response_format" in body and body["response_format"] != {"type": "json_object"})
                     or body["model"] != "deepseek-flash"
                     or body["thinking"] != {"type": "disabled"}
                     or type(body["max_tokens"]) is not int

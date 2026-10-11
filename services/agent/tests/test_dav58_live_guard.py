@@ -171,7 +171,9 @@ def test_total_increment_ceiling_checks_before_transport(tmp_path):
 
 
 @pytest.mark.parametrize("changes", [{"model": "deepseek-v4-pro"}, {"thinking": {"type": "enabled"}},
-    {"max_tokens": 2001}, {"stream": True}, {"tools": []}])
+    {"max_tokens": 2001}, {"stream": True}, {"tools": []},
+    {"response_format": {"type": "text"}}, {"response_format": None},
+    {"response_format": {"type": "json_object", "extra": True}}])
 def test_unexpected_paid_payload_rejected_before_send(tmp_path, changes):
     guard = IncrementalGuard(tmp_path / "increment.json")
     body = {"model": "deepseek-flash", "messages": [{"role": "user", "content": "x"}], "max_tokens": 2000,
@@ -180,6 +182,19 @@ def test_unexpected_paid_payload_rejected_before_send(tmp_path, changes):
     with pytest.raises(ModelBudgetExceeded):
         guard.begin(httpx.Request("POST", "https://api.deepseek.com/chat/completions", json=body), "dav58_loop")
     assert guard.state["receipts"] == []
+
+
+def test_guard_accepts_provider_json_output(tmp_path):
+    guard = IncrementalGuard(tmp_path / "increment.json")
+    body = {"model": "deepseek-flash", "messages": [{"role": "system", "content": "Reply in JSON."}],
+            "max_tokens": 2000, "temperature": 0, "thinking": {"type": "disabled"},
+            "response_format": {"type": "json_object"}}
+    try:
+        entry = guard.begin(httpx.Request("POST", "https://api.deepseek.com/chat/completions", json=body),
+                            "dav58_loop")
+        assert entry["lane"] == "dav58_loop"
+    finally:
+        guard.close()
 
 
 def test_existing_journal_cannot_reset(tmp_path):

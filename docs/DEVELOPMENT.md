@@ -69,6 +69,8 @@ uv run pytest -q
 
 真实 UltiCode HTTP / 模型 e2e 均为显式 opt-in。`e2e_sourced_analysis.py` uses agent-authored synthetic Markdown—not submissions, DTOs, or licensed user material—and validates a read-only submission projection without a real model. U03 workflow model analysis additionally requires a valid U02 gate and active budget authorization; other evaluation scripts follow their own gates. Supply credentials through a secure environment/secret store, never command text or logs. Runner contracts live in source and Linear; keep per-run results out of core docs.
 
+`DeepseekModel` requests provider JSON Output with `response_format={"type":"json_object"}` and an explicit JSON prompt. The guard accepts only that exact format when supplied; legacy requests may omit the field. Empty, truncated, malformed or schema-invalid decisions still fail strict validation after known usage is settled. JSON Output does not replace authorization, tool argument validation or citation verification. See [DeepSeek JSON Output](https://api-docs.deepseek.com/guides/json_mode/).
+
 只读工具模型遇到混合请求时拒绝越权部分，继续执行独立且已授权的部分；用户已明确要求的合法只读操作应直接调用工具，不再次征求确认或只提出执行建议。提交分析缺少明确 ID 或可靠会话选择时，不调用提交选择工具或用最近提交列表代替澄清；混合请求先执行独立授权的只读查询，再在最终答案中询问缺失的提交 ID。工具仍绑定当前服务端会话，不能因请求要求切换身份。隔离验收同时要求没有泄露和本人数据的正向工具对照，不能以整段拒绝冒充完整通过。
 
 授权周期的 `authorized_budget_period` 仍只保存生命周期元数据；其快照始终明确
@@ -494,6 +496,7 @@ The same explicitly authorized rollover contract applies to the later supported 
 | `acceptance-revalidation-v12` | V11 |
 | `acceptance-revalidation-v13` | V12, including its retained unknown request |
 | `acceptance-revalidation-v14` | Settled V13 on the integrated U03 candidate |
+| `acceptance-revalidation-v15` | Settled V14, including its invalid-JSON failure |
 
 Before preparation, retain the predecessor ledger, binding and guard at their pinned
 fingerprints and preserve the entire earlier history chain. The selected policy's
@@ -525,6 +528,12 @@ V13 predecessor must have no unsettled or newly unknown requests; all known cost
 commitments and inherited unknown liabilities remain cumulative. Failed protocol
 evidence stays in the predecessor, while the integrated candidate receives a fresh
 complete acceptance prefix without changing the existing purpose or token limits.
+
+V15 carries the permanently halted V14 ledger, binding and guard into the JSON-output
+candidate under the same cumulative USD200 authorization. Keep the invalid-JSON
+failure and all known costs in V14; do not resume it or reinterpret it as passing
+acceptance. The earlier three unknown liabilities and every purpose/token cap remain
+unchanged. A new complete prefix must establish acceptance for the changed adapter.
 
 Issue the evidence-bound U02 gate only after those inputs validate. Gate artifact references are
 relative to the private directory containing the gate; place the referenced artifacts there:

@@ -260,6 +260,7 @@ class DeepseekModel:
         body: dict[str, object] = {
             "model": self._model,
             "messages": api_messages,
+            "response_format": {"type": "json_object"},
             "temperature": 0,
             "max_tokens": self._max_tokens,
         }

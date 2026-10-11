@@ -988,6 +988,8 @@ def _check_dav58_raw_judge(
     expected_body = {
         "model": "deepseek-flash",
         "messages": [{"role": "system", "content": system}, {"role": "user", "content": user_prompt}],
+        **({"response_format": {"type": "json_object"}}
+           if isinstance(request_body, dict) and "response_format" in request_body else {}),
         "temperature": 0, "max_tokens": 2000, "thinking": {"type": "disabled"},
     }
     body_sha = hashlib.sha256(json.dumps(

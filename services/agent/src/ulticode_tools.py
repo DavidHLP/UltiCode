@@ -144,6 +144,47 @@ def _exact_keys(arguments: dict[str, object], allowed: set[str], *, required: se
         raise ValueError("invalid tool arguments")
 
 
+def parse_my_submissions_arguments(arguments: object) -> tuple[int, int]:
+    if not isinstance(arguments, dict):
+        raise ValueError("invalid tool arguments")
+    _exact_keys(arguments, {"page", "pageSize"}, required=set())
+    page = _page_int(arguments.get("page", 1))
+    page_size = _positive_int(arguments.get("pageSize", 5), maximum=100)
+    return page, page_size
+
+
+def project_my_submissions_listing(
+    listing: object, *, page: int, page_size: int
+) -> dict[str, object]:
+    if not isinstance(listing, dict) or not isinstance(listing.get("items"), list):
+        raise ValueError("invalid tool response")
+    if len(listing["items"]) > page_size:
+        raise ValueError("invalid tool response")
+    items = [_project(item, SUBMISSION_FIELDS) for item in listing["items"]]
+    total = _bounded_int(listing.get("total"))
+    response_page = _bounded_int(listing.get("page"), minimum=1, maximum=MAX_INT)
+    response_page_size = _bounded_int(
+        listing.get("pageSize"), minimum=1, maximum=MAX_INT
+    )
+    offset_total = (page - 1) * page_size
+    if (not items and total > offset_total) or (
+        items and total < offset_total + len(items)
+    ):
+        raise ValueError("invalid tool response")
+    if len(items) != min(page_size, max(total - offset_total, 0)):
+        raise ValueError("invalid tool response")
+    if len({item["id"] for item in items}) != len(items):
+        raise ValueError("invalid tool response")
+    if response_page != page or response_page_size != page_size:
+        raise ValueError("invalid tool response")
+    return {
+        "items": items,
+        "total": total,
+        "page": response_page,
+        "pageSize": response_page_size,
+    }
+
+
 def build_tools(client: UlticodeClient) -> dict[str, object]:
     async def get_problem(arguments: dict[str, object]) -> object:
         _exact_keys(arguments, {"id"}, required={"id"})
@@ -154,36 +195,6 @@ def build_tools(client: UlticodeClient) -> dict[str, object]:
             raise ValueError("invalid tool response")
         return projected
 
-    def project_submission_listing(
-        listing: object, *, page: int, page_size: int
-    ) -> dict[str, object]:
-        if not isinstance(listing, dict) or not isinstance(listing.get("items"), list):
-            raise ValueError("invalid tool response")
-        if len(listing["items"]) > page_size:
-            raise ValueError("invalid tool response")
-        items = [_project(item, SUBMISSION_FIELDS) for item in listing["items"]]
-        total = _bounded_int(listing.get("total"))
-        response_page = _bounded_int(listing.get("page"), minimum=1, maximum=MAX_INT)
-        response_page_size = _bounded_int(
-            listing.get("pageSize"), minimum=1, maximum=MAX_INT
-        )
-        offset_total = (page - 1) * page_size
-        if (not items and total > offset_total) or (
-            items and total < offset_total + len(items)
-        ):
-            raise ValueError("invalid tool response")
-        if len(items) != min(page_size, max(total - offset_total, 0)):
-            raise ValueError("invalid tool response")
-        if len({item["id"] for item in items}) != len(items):
-            raise ValueError("invalid tool response")
-        if response_page != page or response_page_size != page_size:
-            raise ValueError("invalid tool response")
-        return {
-            "items": items,
-            "total": total,
-            "page": response_page,
-            "pageSize": response_page_size,
-        }
     def project_problem_submission_listing(
         listing: object, *, page: int, page_size: int, problem_id: int
     ) -> dict[str, object]:
@@ -233,11 +244,9 @@ def build_tools(client: UlticodeClient) -> dict[str, object]:
             "pageSize": response_page_size,
         }
     async def get_my_submissions(arguments: dict[str, object]) -> object:
-        _exact_keys(arguments, {"page", "pageSize"}, required=set())
-        page = _page_int(arguments.get("page", 1))
-        page_size = _positive_int(arguments.get("pageSize", 5), maximum=100)
+        page, page_size = parse_my_submissions_arguments(arguments)
         listing = await client.list_my_submissions(page=page, page_size=page_size)
-        return project_submission_listing(listing, page=page, page_size=page_size)
+        return project_my_submissions_listing(listing, page=page, page_size=page_size)
 
     async def get_problem_submissions(arguments: dict[str, object]) -> object:
         _exact_keys(arguments, {"problemId", "page", "pageSize"}, required={"problemId"})

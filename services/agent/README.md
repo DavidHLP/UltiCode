@@ -18,6 +18,40 @@ only local draft/workflow state and events.
 - A Java LearningPlan is persisted only after a separate explicit confirmation and save. Unknown
   write outcomes remain unresolved until same-key Java readback; no automatic retry or new key.
 
+### Optional MCP read-only bridge
+
+The local stdio server in `src/agent_mcp_server.py` exposes only `get_my_submissions`, reusing the
+same authenticated Java client and strict field projection as the direct Agent tool. It has no
+Shell, SQL, file, or write tools. For standalone stdio use, configure `ULTICODE_APP_BASE`,
+`ULTICODE_AUTH_BASE`, and `ULTICODE_AGENT_ACCESS_TOKEN` in the MCP host's secure environment;
+`ULTICODE_AGENT_CSRF_TOKEN` is optional for this read-only GET. Start it from this directory with:
+
+```bash
+uv run python src/agent_mcp_server.py
+```
+
+The Agent's in-process MCP Client path is opt-in through `ULTICODE_AGENT_MCP_TOOLS=1`; unset or
+`0` keeps the direct tool path. Before the model loop, each request discovers the single expected
+tool and verifies its argument schema. The model's existing `get_my_submissions` call then goes
+through MCP and the response is projected and validated again before it returns to the same graph.
+The tool accepts only optional `page` (default `1`, range `1..2147483647`) and `pageSize` (default
+`5`, range `1..100`) integer arguments. It returns only `id`, `problemId`, `language`, `status`,
+`createdAt`, and paging totals; source code and user identity are excluded. Safe error labels are
+`invalid_arguments`, `business_error`, `tool_error`, `protocol_error`, and `timeout`; raw transport
+and server error text is discarded.
+The session uses the authenticated request client directly, so cookies are not copied to a child
+process. Protocol errors, business errors, invalid arguments, timeouts, and cancellation are
+handled separately; cancellation closes the request-scoped MCP session. Authorization still comes
+from the Java API and program code, not MCP.
+
+The direct path remains the default because it has less protocol setup for one in-process tool.
+MCP is useful when standardized discovery and an independently launchable local server are needed;
+it adds no business capability or authorization guarantee by itself. This integration resolves to
+the official Python SDK `mcp==2.3.0` and negotiates protocol version `2026-07-28`; `uv.lock` pins the
+complete dependency graph. The focused `tests/test_ulticode_tools.py` suite includes a real stdio subprocess
+against a local HTTP stub and an in-process Agent model/tool round trip; it does not call a live
+UltiCode stack or model provider.
+
 Workflow route and field contracts, U02 evidence gate, and budget behavior are in the canonical
 [API reference](../../docs/REFERENCE.md#agent-workflow-api) and
 [Development guide](../../docs/DEVELOPMENT.md#u03-agent-workflow).

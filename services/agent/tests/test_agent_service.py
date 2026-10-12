@@ -170,6 +170,91 @@ class SessionClient:
         return {"id": submission_id, "status": "Accepted"}
 
 
+def test_opt_in_agent_mcp_tool_uses_same_graph_and_event_record(tmp_path, monkeypatch):
+    monkeypatch.setenv("ULTICODE_AGENT_MCP_TOOLS", "1")
+
+    class MCPAppClient(SessionClient):
+        async def list_my_submissions(self, *, page, page_size):
+            return {
+                "items": [{
+                    "id": "11111111-1111-4111-8111-111111111111",
+                    "problemId": 7,
+                    "language": "python",
+                    "status": "Accepted",
+                    "createdAt": "2026-09-24T00:00:00",
+                    "code": "PRIVATE SOURCE",
+                    "user": {"id": "foreign-user"},
+                }],
+                "total": 1,
+                "page": page,
+                "pageSize": page_size,
+            }
+
+    class MCPModel:
+        def __init__(self):
+            self.seen = []
+
+        async def decide(self, messages):
+            self.seen.append(list(messages))
+            if len(self.seen) == 1:
+                return ModelDecision(tool_call=ToolCall("get_my_submissions", {}))
+            tool_result = next(message["content"] for message in messages if message["role"] == "tool")
+            assert "Accepted" in tool_result
+            assert "PRIVATE SOURCE" not in tool_result
+            assert "foreign-user" not in tool_result
+            return ModelDecision(text=json.dumps({"text": "建议核对状态", "citations": []}))
+
+    async def unused_direct_tool(_):
+        raise AssertionError("the opt-in MCP tool must replace the direct handler")
+
+    async def scenario():
+        model = MCPModel()
+        shared_tools = {"get_my_submissions": unused_direct_tool}
+        app = create_app(
+            state_path=tmp_path / "mcp-workflow.sqlite3",
+            client_factory=MCPAppClient,
+            offline_model_factory=lambda: (model, shared_tools),
+        )
+        async with app.router.lifespan_context(app):
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=app), base_url="http://test"
+            ) as client:
+                created = await client.post(
+                    "/agent/threads",
+                    headers=HEADERS,
+                    json={"sourceSubmissionId": str(uuid.uuid4()), "question": "如何复盘？"},
+                )
+                thread_id = created.json()["data"]["threadId"]
+                analyzed = await client.post(
+                    f"/agent/threads/{thread_id}/analyze", headers=HEADERS, json={}
+                )
+                assert analyzed.status_code == 200
+                assert analyzed.json()["data"]["status"] == "awaiting_confirmation"
+                assert shared_tools["get_my_submissions"] is unused_direct_tool
+                stream = await client.get(
+                    f"/agent/threads/{thread_id}/events/stream", headers=HEADERS
+                )
+                frames = [
+                    json.loads(line[6:])
+                    for line in stream.text.splitlines()
+                    if line.startswith("data: ")
+                ]
+                tool_events = [
+                    frame for frame in frames
+                    if frame.get("kind") in {"tool_started", "tool_completed"}
+                ]
+                assert [frame["kind"] for frame in tool_events] == [
+                    "tool_started", "tool_completed"
+                ]
+                assert all(frame["detail"] == {
+                    "toolName": "get_my_submissions", "failed": False,
+                    "runId": analyzed.json()["data"]["runId"],
+                } for frame in tool_events)
+                assert "PRIVATE SOURCE" not in stream.text
+
+    asyncio.run(scenario())
+
+
 @pytest.mark.parametrize("failed", [False, True])
 def test_stream_exposes_tool_metadata_without_private_payload(tmp_path, failed):
     class ToolModel(ScriptedModel):

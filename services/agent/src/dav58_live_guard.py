@@ -42,10 +42,13 @@ class IncrementalGuard:
         self.budget = budget
         self.policy = budget.policy if budget is not None else authorized_budget_period.POLICY
         self.fresh = "history" in self.policy
-        if self.fresh and (budget._identity.identity, budget._identity.config_sha256) != (period_identity, config_sha256):
+        self.manual_test = (budget is not None
+                            and budget._identity.policy_id == authorized_budget_period.MANUAL_LIVE_TEST_POLICY_ID)
+        self.bound = self.fresh or self.manual_test
+        if self.bound and (budget._identity.identity, budget._identity.config_sha256) != (period_identity, config_sha256):
             raise ValueError("guard must match its bound budget")
-        if self.fresh and path != budget.path.parent / f"dav58-increment-{period_identity}.json":
-            raise ValueError("fresh guard must use the bound accounting directory")
+        if self.bound and path != budget.path.parent / f"dav58-increment-{period_identity}.json":
+            raise ValueError("bound guard must use the bound accounting directory")
         self.lock = threading.Lock()
         self.state = {"limit_micro_usd": self.policy["limit_micro_usd"], "settled_peak_micro_usd": 0,
                       "pending_micro_usd": 0, "halted": False, "receipts": []}
@@ -56,7 +59,7 @@ class IncrementalGuard:
                 raise ValueError("guard requires both period identity and config")
             self.state.update(period_identity=period_identity, config_sha256=config_sha256)
         lock_path = path.with_suffix(path.suffix + ".lock")
-        if self.fresh:
+        if self.bound:
             with authorized_budget_period._parent(lock_path) as parent:
                 fd = authorized_budget_period._file(parent, lock_path.name, os.O_RDWR | os.O_CREAT)
             info = os.fstat(fd)
@@ -82,14 +85,17 @@ class IncrementalGuard:
                 if hashlib.sha256(raw).hexdigest() != resume_sha256:
                     raise ValueError("resume journal fingerprint mismatch")
                 saved = json.loads(raw, object_pairs_hook=_reject_duplicate_keys, parse_constant=_reject_json_constant)
-                self._validate_resume(saved, period_identity, config_sha256, self.policy, self.budget)
+                self._validate_resume(
+                    saved, period_identity, config_sha256, self.policy, self.budget,
+                    allow_empty=self.manual_test,
+                )
                 self.state = saved
         except BaseException:
             self.close()
             raise
 
     @staticmethod
-    def _validate_resume(saved, identity, config, trusted_policy=None, budget=None):
+    def _validate_resume(saved, identity, config, trusted_policy=None, budget=None, *, allow_empty=False):
         trusted_policy = authorized_budget_period.POLICY if trusted_policy is None else trusted_policy
         fresh = "history" in trusted_policy
         if (not identity or not config or saved.get("period_identity") != identity
@@ -104,7 +110,7 @@ class IncrementalGuard:
         if "policy" in saved and saved["policy"] != policy:
             raise ValueError("resume model or pricing mismatch")
         receipts = saved.get("receipts")
-        if not isinstance(receipts, list) or (not receipts and not fresh):
+        if not isinstance(receipts, list) or (not receipts and not (fresh or allow_empty)):
             raise ValueError("resume requires prior receipts")
         total = 0
         continuation = saved.get("continuation_run")
@@ -137,8 +143,8 @@ class IncrementalGuard:
                     or r.get("reserved_micro_usd") != ENVELOPE_MICRO_USD
                     or not isinstance(r.get("request_sha256"), str) or len(r["request_sha256"]) != 64):
                 raise ValueError("unsafe prior receipt")
-            if fresh and (not isinstance(r.get("response_sha256"), str)
-                          or not re.fullmatch(r"[0-9a-f]{64}", r["response_sha256"])):
+            if (fresh or allow_empty) and (not isinstance(r.get("response_sha256"), str)
+                                           or not re.fullmatch(r"[0-9a-f]{64}", r["response_sha256"])):
                 raise ValueError("unbound prior provider response")
             prompt, completion, tokens = (r.get(k) for k in ("prompt_tokens", "completion_tokens", "total_tokens"))
             if (any(type(v) is not int or v < 0 for v in (prompt, completion, tokens))
@@ -191,7 +197,7 @@ class IncrementalGuard:
                 prompt_cap, completion_cap = 8000, 2000
             else:
                 prompt_cap, completion_cap = _lane_caps(lane, self.policy)
-            if self.fresh:
+            if self.bound:
                 if reservation is None or reservation.purpose != lane:
                     raise ModelBudgetExceeded("explicit request/attempt binding required")
                 snapshot = self.budget.verify_pending(reservation)
@@ -224,9 +230,10 @@ class IncrementalGuard:
                        "prompt_token_cap": prompt_cap, "completion_token_cap": completion_cap,
                        "reserved_micro_usd": ENVELOPE_MICRO_USD,
                        "started_at_utc": datetime.now(timezone.utc).isoformat(), "status": "pending"}
-            if self.fresh:
+            if self.bound:
                 receipt["attempt_id"] = reservation.attempt_id
-                self.budget.claim_dispatch(reservation, receipt["request_sha256"])
+                if self.fresh:
+                    self.budget.claim_dispatch(reservation, receipt["request_sha256"])
             self.state["receipts"].append(receipt)
             self.state["pending_micro_usd"] = ENVELOPE_MICRO_USD
             try:
@@ -294,7 +301,7 @@ class IncrementalGuard:
                            total_tokens=total, peak_micro_usd=actual,
                            response_model=response_model,
                            finished_at_utc=datetime.now(timezone.utc).isoformat())
-            if self.fresh:
+            if self.bound:
                 receipt["response_sha256"] = hashlib.sha256(response.content).hexdigest()
             self.state["settled_peak_micro_usd"] += actual
             self.state["pending_micro_usd"] = 0

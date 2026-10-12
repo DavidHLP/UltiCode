@@ -75,10 +75,16 @@ Console 的 `/personal/agent` 是同一工作流的可选单页演示，沿用�
 ULTICODE_APP_BASE=http://127.0.0.1:9103 \
 ULTICODE_AUTH_BASE=http://127.0.0.1:9101 \
 ULTICODE_AGENT_ORIGIN=http://localhost:9002 \
-uv run uvicorn --factory agent_service.app:create_app --app-dir src --host 127.0.0.1 --port 8000
+uv run uvicorn --factory agent_service.runtime:create_app --app-dir src --host 127.0.0.1 --port 8000
 ```
 
-真实 UltiCode HTTP / 模型 e2e 均为显式 opt-in。`e2e_sourced_analysis.py` uses agent-authored synthetic Markdown—not submissions, DTOs, or licensed user material—and validates a read-only submission projection without a real model. U03 workflow model analysis additionally requires a valid U02 gate and active budget authorization; other evaluation scripts follow their own gates. Supply credentials through a secure environment/secret store, never command text or logs. Runner contracts live in source and Linear; keep per-run results out of core docs.
+默认启动只提供线程与会话 API，实时分析保持关闭。正式验收实时分析仍须设置 `ULTICODE_AGENT_LIVE_ANALYSIS=1`、`ULTICODE_AGENT_U02_GATE_PATH`、`ULTICODE_AGENT_EXPECTED_HEAD` 和 `ULTICODE_AGENT_EXPECTED_BASE`；gate 必须绑定当前候选。Agent 从已验证 gate 的预算锚点读取周期身份，核对现有活动账本及共享 guard，并使用授权的 `u03_analysis` / `u03_citation_judge` lanes。
+
+本地手动真实模型冒烟测试不再等待 U02 验收 gate，但只能使用专用、一次性、封顶的分析预算。首次在 `services/agent/` 执行 `uv run python prepare_manual_live_test_budget.py`，它会创建并激活固定 `$182.00` 的账本以及空的私有共享 guard；该金额是 `$200` 累计授权扣除既有 `$15.024914` committed 与 `$2.359296` unresolved exposure 后的保守新额度，未知费用不会释放。若准备过程曾在账本激活后中断，脚本只会复用身份匹配、仍活动且调用/预留/实际费用/未知用量全为零的周期来补建缺失 guard；已有 guard 不会被覆盖，其他已有槽位也不会重建。随后仅在安全环境显式设置 `ULTICODE_AGENT_LIVE_ANALYSIS=1` 和 `ULTICODE_AGENT_MANUAL_ANALYSIS_ONLY=1`，并提供 `DEEPSEEK_MODEL=deepseek-flash` 与 `DEEPSEEK_API_KEY`。运行时只读取并锁定既有活动账本/guard，不创建或重置它们，也不在启动时调用模型；共享 guard 同时只允许一个 Agent 进程持有。
+
+手动模式只开放 `analyze`：当前登录会话、线程 owner 和本人提交归属检查保持启用。它只读取当前线程绑定的本人源码，通过无参数、请求期工具交给模型，并将源码视为不可信数据；源码上限为 12,000 字符，超限时在模型调用前失败。该模式不启用提交列表源码投影，也不改变正式 U02 的合成语料和 gate。引用在内存中核验，存储时仅保留声明、行范围和核验占位说明，不保留源码引用原文；源码正文不会进入工作流状态、事件或 checkpoint。没有有效 U02 gate 时，confirm/save/recovery 路由不会挂载。该模式证明一次本地真实模型交互，不构成 DAV-58、U02、DAV-46/U03 或 U04 正式验收。正式验收及其他 evaluation runner 继续使用各自的候选绑定 gate。`e2e_sourced_analysis.py` 使用 Agent 编写的合成 Markdown，不会调用真实模型。Runner 合约留在源码与 Linear，每次运行结果不写入核心文档。
+
+对已有线程重试时，成功分析会清空 `receipt.failureReason`；之前失败的事件仍保留在该线程的事件历史中。
 
 `DeepseekModel` requests provider JSON Output with `response_format={"type":"json_object"}` and an explicit JSON prompt. The guard accepts only that exact format when supplied; legacy requests may omit the field. Empty, truncated, malformed or schema-invalid decisions still fail strict validation after known usage is settled. JSON Output does not replace authorization, tool argument validation or citation verification. See [DeepSeek JSON Output](https://api-docs.deepseek.com/guides/json_mode/).
 
@@ -318,11 +324,13 @@ its existing signature and delegates to that graph, preserving four-round and 30
 trace results, bounded tool errors, and cancellation propagation. The checkpointed workflow graph
 dispatches only server-validated actions and uses the same read-only LangGraph kernel for analysis.
 An injected `offline_model_factory` can run a scripted model through that workflow for offline
-verification. Live analysis uses the same kernel only when a current evidence-bound U02 gate is
-valid and the request is configured with the expected budget period, shared guard, and legal
-`u03_analysis` purpose. `authorized_model(...)` and the guarded transport enforce the existing
-budget policy; citation judging requires the separate `u03_citation_judge` purpose. Missing or
-invalid gate/budget authorization fails closed with `503 model_budget_blocked` before model calls.
+verification. Formal live analysis uses the same kernel only when a current evidence-bound U02 gate
+is valid and the request is configured with the expected budget period, shared guard, and legal
+`u03_analysis` purpose. A separately opted-in local manual mode can run read-only analysis with its
+fixed one-shot budget and shared guard; it does not mount confirm/save/recovery routes or count as
+formal acceptance. `authorized_model(...)` and the guarded transport enforce the bound budget;
+citation judging requires the separate `u03_citation_judge` purpose. Missing or invalid mode/budget
+authorization fails closed with `503 model_budget_blocked` before model calls.
 The provider adapter unwraps the provider response envelope; the workflow parser accepts only the
 strict inner `{"text": "...", "citations": [...]}` JSON object, not a second provider envelope.
 This preserves the existing model/client contract and rejects extra or malformed inner fields.
@@ -358,10 +366,12 @@ keys, non-finite numbers, extra fields, and oversized bodies are rejected before
 The Agent does not issue or refresh login cookies, accept caller-supplied identity, expose CORS,
 or persist credentials.
 
-The workflow factory loads an evidence-bound U02 gate against the expected candidate head/base.
-Confirm, save, and recovery routes are registered only when that gate validates. Live model calls
-also require the expected budget period, shared guard, and policy-authorized analysis/judge
-purposes; missing authorization fails closed rather than making a provider request. The workflow
+The formal acceptance workflow loads an evidence-bound U02 gate against the expected candidate
+head/base. Confirm, save, and recovery routes are registered only when that gate validates. Live
+model calls also require the expected budget period, shared guard, and policy-authorized
+analysis/judge purposes; missing authorization fails closed rather than making a provider request.
+The separate local manual smoke mode bypasses only this acceptance gate for read-only analysis and
+never creates an acceptance artifact. The workflow
 validates answer text against existing bounded source-fact, negation-aware boundary, source-reference,
 and tool-trace checks; these guards are not a claim of perfect semantic verification. Nonempty
 citations must match same-run retrieved evidence, pass document integrity, and receive judge support

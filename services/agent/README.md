@@ -57,15 +57,46 @@ Workflow route and field contracts, U02 evidence gate, and budget behavior are i
 [Development guide](../../docs/DEVELOPMENT.md#u03-agent-workflow).
 
 Offline scripted-model analysis can be injected into the checkpointed workflow and uses the same
-bounded read-only LangGraph kernel. Live analysis is fail-closed unless the evidence-bound U02 gate,
-expected budget period, shared budget guard, and authorized `u03_analysis` purpose are valid;
-citation judging uses the separate `u03_citation_judge` purpose. Missing authorization returns
+bounded read-only LangGraph kernel. Formal live analysis is fail-closed unless the evidence-bound
+U02 gate, expected budget period, shared budget guard, and authorized `u03_analysis` purpose are
+valid; citation judging uses the separate `u03_citation_judge` purpose. A local manual smoke mode
+can bypass only the formal acceptance gate for read-only analysis using its fixed one-shot budget;
+it does not mount confirmation, save, or recovery routes. Missing authorization returns
 `503 model_budget_blocked` before provider calls. Nonempty citations must match same-run retrieved
 evidence, pass integrity checks, and be judged as supporting and derivable; unknown judge usage
 rejects analysis. Empty citations are accepted only after the bounded source-fact/tool-trace/source-
 reference answer checks. These are fail-closed safeguards, not perfect semantic verification.
 Offline scripted models and `httpx.MockTransport` do not establish real-model acceptance, live Java
 persistence, or complete U03 acceptance.
+
+In this manual mode only, analysis reads the exact submission already bound to the owner-verified
+thread through a no-argument, request-scoped tool. Source is treated as untrusted input and capped at
+12,000 characters; missing or oversized source stops before a provider call. The generic submission
+listing tools remain metadata-only. Full source and citation excerpts are not written to the Agent
+store, events, or checkpoints; citation excerpts are integrity-checked in memory and replaced with a
+redaction note before storage. This local smoke path is not a substitute for formal U02/U03/U04
+acceptance. Analysis errors keep the generic `upstream_unavailable` response. Service logs record
+only the failure stage and a safe reason code; prompts, submission source, and model answers are
+never logged. Manual sourced answers may format complexity notation inline, while uncited exact
+source lines and source identifiers remain rejected. A successful retry clears the prior
+`receipt.failureReason`; the earlier failure remains in the thread's event history.
+
+For the local HTTP demo, start Uvicorn with `agent_service.runtime:create_app`. Live analysis is
+off by default. Formal acceptance mode requires `ULTICODE_AGENT_LIVE_ANALYSIS=1`, a current private
+U02 gate, and its exact `ULTICODE_AGENT_EXPECTED_HEAD` and `ULTICODE_AGENT_EXPECTED_BASE` bindings.
+For a local real-model smoke test, run `uv run python prepare_manual_live_test_budget.py` from
+this directory, then set `ULTICODE_AGENT_LIVE_ANALYSIS=1` and
+`ULTICODE_AGENT_MANUAL_ANALYSIS_ONLY=1`. This creates the fixed `$182.00` budget and its empty,
+private shared guard to keep the existing `$15.024914` committed plus `$2.359296` unresolved
+exposure under the approved `$200` cumulative ceiling; unknown usage remains reserved. If setup
+stopped after activating an unused budget, the script may finish only that exact active period
+when its attempts, reservations, actual usage, and unknown usage are all zero. It never replaces an
+existing guard or resets a period. The mode preserves session, owner, and source-ownership checks
+but mounts only analysis. It is not formal U02/U03 acceptance. Both modes derive the period from
+existing bound state and lock its shared guard; runtime startup does not create/reset accounting or
+call the provider. Set `DEEPSEEK_MODEL=deepseek-flash` and keep the API key in a secure environment.
+Keep one Agent server process per shared guard. Without a valid mode and budget, ordinary thread
+operations remain available and analysis returns `503 model_budget_blocked`.
 
 Runtime notes:
 - `src/deepseek_model.py` is an external model adapter. Its API key is read from the environment and

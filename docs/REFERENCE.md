@@ -26,7 +26,7 @@ cannot select a user, model, graph node, or checkpoint.
 
 | Operation | Request body | Purpose |
 | --- | --- | --- |
-| `POST /agent/threads` | `{"sourceSubmissionId": "...", "question": "..."}` | Verify caller-owned source, create thread and offline draft |
+| `POST /agent/threads` | `{"sourceSubmissionId": "<canonical UUID>", "question": "..."}` | Verify caller-owned source, create thread and offline draft |
 | `GET /agent/threads/{thread_id}` | — | Read caller's canonical workflow and draft |
 | `GET /agent/threads/{thread_id}/events?after=N` | — | Read bounded event page; does not resume workflow |
 | `POST /agent/threads/{thread_id}/analyze` | `{}` | Explicit analysis request through the shared graph; requires injected offline model factory or live model authorization |
@@ -103,13 +103,15 @@ Request bodies reject identity fields. The service does not refresh sessions, se
 configure cross-origin access.
 
 The evidence-bound `ulticode-u02-gate-v1` loader checks candidate head/base and referenced DAV-58,
-DAV-53, budget-audit, and prior-five evidence against their SHA-256 digests. Confirm, save, and
-recovery routes are registered only when that gate validates. Live model requests additionally
-require the expected budget period, shared budget guard, and policy-authorized purpose:
+DAV-53, budget-audit, and prior-five evidence against their SHA-256 digests. Formal confirm, save,
+and recovery routes are registered only when that gate validates. Formal live model requests
+additionally require the expected budget period, shared budget guard, and policy-authorized purpose:
 `u03_analysis` for the analysis model and `u03_citation_judge` for citation judgments. The
 authorized model and guarded transport use the existing period/lane limits; missing or invalid
-authorization fails closed with `503 model_budget_blocked` before a provider request. This is not
-evidence that a real acceptance run has passed.
+authorization fails closed with `503 model_budget_blocked` before a provider request. An explicit
+local manual smoke mode permits only read-only analysis under its fixed one-shot budget and shared
+guard; it mounts no confirm/save/recovery routes and is not evidence that U02/U03/U04 acceptance
+has passed.
 
 The workflow runs analysis through the shared checkpointed action graph and read-only model/tool
 kernel. Answer text must pass bounded source-fact, negation-aware boundary, source-reference, and
@@ -121,7 +123,8 @@ only when the answer itself satisfies the boundary checks. Offline scripted-mode
 tests are not live acceptance evidence.
 
 Without a valid U02 gate, confirm/save/recover routes are not mounted; requests to those paths use
-the normal not-found response envelope. A valid gate alone does not authorize model calls.
+the normal not-found response envelope, including in local manual smoke mode. A valid gate alone
+does not authorize model calls.
 
 For the opt-in U02/U03/U04 candidate-freeze, gate, and acceptance-bundle commands, see the
 [immutable acceptance workflow](DEVELOPMENT.md#u02-u03-u04-immutable-acceptance-chain).

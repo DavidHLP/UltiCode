@@ -29,6 +29,29 @@ POLICY = MappingProxyType({
     }),
 })
 
+# A one-shot, analysis-only local smoke allowance. The existing V20 history has
+# $15.024914 committed and $2.359296 in unresolved exposure; $182 leaves room
+# under the user's $200 cumulative ceiling without releasing either liability.
+MANUAL_LIVE_TEST_POLICY_ID = "manual-agent-live-test-v1"
+MANUAL_LIVE_TEST_PERIOD_ID = "manual-agent-live-test-v1"
+MANUAL_LIVE_TEST_POLICY = MappingProxyType({
+    "limit_micro_usd": 182_000_000,
+    "attempts": 18_000,
+    "prompt_token_cap": 24_000,
+    "runtime_accounting_connected": True,
+    "spend_limit_enforced": True,
+    "lanes": MappingProxyType({
+        "u03_analysis": MappingProxyType({
+            "attempts": 9_000, "completion_token_cap": 2_000,
+            "prompt_token_cap": 24_000, "rounds": 4,
+        }),
+        "u03_citation_judge": MappingProxyType({
+            "attempts": 9_000, "completion_token_cap": 2_000,
+            "prompt_token_cap": 24_000, "rounds": 1,
+        }),
+    }),
+})
+
 # A fresh acceptance cycle retains the old liability outside its own receipts.
 # The original policy and its device-bound ledger remain unchanged.
 REVALIDATION_POLICY_ID = "acceptance-revalidation-v1"
@@ -303,6 +326,8 @@ REVALIDATION_POLICY_IDS = REVALIDATION_POLICY_IDS | {REVALIDATION_V20_POLICY_ID}
 def policy_for(policy_id: str):
     if policy_id == POLICY_ID:
         return POLICY
+    if policy_id == MANUAL_LIVE_TEST_POLICY_ID:
+        return MANUAL_LIVE_TEST_POLICY
     if policy_id == REVALIDATION_POLICY_ID:
         return REVALIDATION_POLICY
     if policy_id == REVALIDATION_V2_POLICY_ID:
@@ -543,6 +568,44 @@ def _access(path: Path, expected: PeriodIdentity, target: str | None) -> PeriodS
 def read_period(path: Path, expected: PeriodIdentity) -> PeriodSnapshot:
     """Read only; runtime_accounting_connected=False, spend_limit_enforced=False."""
     return _access(path, expected, None)
+
+
+def read_period_identity(
+    path: Path, *, period_id: str, config_sha256: str, policy_id: str,
+) -> PeriodIdentity:
+    """Load the identity of one existing period and then validate its full record."""
+    _validate(period_id, config_sha256, policy_id)
+    path = Path(path)
+    try:
+        with _parent(path) as parent:
+            directory = os.open(path.name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=parent)
+            try:
+                fd = _file(directory, "identity.json", os.O_RDONLY)
+                try:
+                    info = os.fstat(fd)
+                    if info.st_uid != os.getuid() or stat.S_IMODE(info.st_mode) != 0o600:
+                        raise PeriodError("private period identity required")
+                    records = _read(fd)
+                finally:
+                    os.close(fd)
+                if len(records) != 1:
+                    raise PeriodError("invalid period identity")
+                record = records[0]
+                identity = record.get("identity")
+                if (record.get("period_id") != period_id
+                        or record.get("config_sha256") != config_sha256
+                        or record.get("policy_id") != policy_id
+                        or record.get("path") != str(path)
+                        or not isinstance(identity, str)
+                        or not re.fullmatch(r"[0-9a-f]{32}", identity)):
+                    raise PeriodError("period identity does not match the requested policy")
+                expected = PeriodIdentity(period_id, config_sha256, identity, policy_id)
+                read_period(path, expected)
+                return expected
+            finally:
+                os.close(directory)
+    except (OSError, ValueError, TypeError, RecursionError, UnicodeError):
+        raise PeriodError("period identity unavailable or invalid") from None
 
 
 def activate_period(path: Path, expected: PeriodIdentity) -> PeriodSnapshot:

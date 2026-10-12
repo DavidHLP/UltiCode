@@ -410,7 +410,8 @@ def create_app(
     fault_hook: Callable[[str, dict[str, object]], None] | None = None,
     fault_thread_ids: frozenset[str] = frozenset(),
     expected_period: object | None = None, budget_guard: object | None = None,
-    model_purpose: str | None = None,
+    model_purpose: str | None = None, own_budget_guard: bool = False,
+    analysis_only_test_mode: bool = False,
 ) -> FastAPI:
     mcp_tools_setting = os.environ.get("ULTICODE_AGENT_MCP_TOOLS", "0")
     if mcp_tools_setting not in {"0", "1"}:
@@ -429,6 +430,13 @@ def create_app(
             )
         except (GateError, OSError, ValueError):
             gate = None
+    if analysis_only_test_mode and (
+        gate is not None or u02_gate_path is not None or offline_model_factory is not None
+        or expected_period is None or budget_guard is None or not own_budget_guard
+        or model_purpose != "u03_analysis"
+        or getattr(expected_period, "policy_id", None) != "manual-agent-live-test-v1"
+    ):
+        raise ValueError("invalid analysis-only manual test authorization")
     app_url = app_base_url or os.environ.get("ULTICODE_APP_BASE", "")
     auth_url = auth_base_url or os.environ.get("ULTICODE_AUTH_BASE", "")
     allowed_origin = trusted_origin or os.environ.get("ULTICODE_AGENT_ORIGIN")
@@ -445,6 +453,15 @@ def create_app(
         except (GateError, OSError, ValueError):
             raise AgentError(503, "model_budget_blocked", 50000) from None
 
+    def _require_analysis_authorization() -> dict[str, object]:
+        if analysis_only_test_mode:
+            if (expected_period is None or budget_guard is None
+                    or model_purpose != "u03_analysis"
+                    or getattr(expected_period, "policy_id", None) != "manual-agent-live-test-v1"):
+                raise AgentError(503, "model_budget_blocked", 50000)
+            return {}
+        return _require_current_gate()
+
     @asynccontextmanager
     async def lifespan(_: FastAPI):
         try:
@@ -456,7 +473,11 @@ def create_app(
                 app.state.store = workflow_store
                 yield
         finally:
-            workflow_store.close()
+            try:
+                workflow_store.close()
+            finally:
+                if own_budget_guard and budget_guard is not None:
+                    budget_guard.close()
 
     app = FastAPI(lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
     app.state.store = workflow_store
@@ -738,7 +759,7 @@ def create_app(
             with workflow_store.thread_lock(thread_id):
                 row = _reconcile(_owned(thread_id, owner), owner)
                 if offline_model_factory is None:
-                    _require_current_gate()
+                    _require_analysis_authorization()
                 if row["status"] not in {"awaiting_confirmation", "confirmed"} or row["save_attempted"] or row["cancel_requested"]:
                     raise AgentError(409, "confirmation_mismatch", 40900)
                 source, status = await _verify_source(client, row)
@@ -772,7 +793,7 @@ def create_app(
                                     raise ValueError("invalid offline evidence recorder")
                             judge_model = model
                         else:
-                            _require_current_gate()
+                            _require_analysis_authorization()
                             if expected_period is None or budget_guard is None or model_purpose != "u03_analysis":
                                 raise AgentError(503, "model_budget_blocked", 50000)
                             from boundary_evaluation import SEARCH_EVIDENCE_SPEC, search_evidence_tool

@@ -453,7 +453,7 @@ class ModelBudget:
     def _connect(self) -> Iterator[sqlite3.Connection]:
         canonical = _authorization_slot() / "accounting/budget.sqlite3"
         fresh = {_authorization_slot().parent / policy / "accounting/budget.sqlite3"
-                 for policy in period.REVALIDATION_POLICY_IDS}
+                 for policy in (period.REVALIDATION_POLICY_IDS | {period.MANUAL_LIVE_TEST_POLICY_ID})}
         if self._identity is not None or self.path.resolve() in {canonical.resolve(), *(p.resolve() for p in fresh)}:
             raise period.PeriodError("canonical period ledger requires bound accounting")
         directory = self.path.parent

@@ -14,6 +14,7 @@ import solution from "./solution";
 import shortcuts from "./shortcuts";
 import achievement from "./achievement";
 import landing from "./landing";
+import agent from "./agent";
 export default {
   common,
   auth,
@@ -31,4 +32,5 @@ export default {
   shortcuts,
   achievement,
   landing,
+  agent,
 } as const;

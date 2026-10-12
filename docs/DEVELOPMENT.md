@@ -67,6 +67,17 @@ uv sync --locked
 uv run pytest -q
 ```
 
+Console 的 `/personal/agent` 是同一工作流的可选单页演示，沿用登录会话和 Agent API；本地 Vite 开发代理将 `/api/agent` 转发到 `http://127.0.0.1:8000`。Agent 服务不会由默认开发模式启动，因此该页面需要单独运行 Agent，并配置 `ULTICODE_APP_BASE`、`ULTICODE_AUTH_BASE` 和与浏览器地址完全一致的 `ULTICODE_AGENT_ORIGIN`（例如 Console 以 `http://localhost:9002` 打开时，origin 也设为该值）；提交线程可通过 URL 中的 `threadId` 恢复。
+
+从 `services/agent/` 启动本地 HTTP 服务：
+
+```bash
+ULTICODE_APP_BASE=http://127.0.0.1:9103 \
+ULTICODE_AUTH_BASE=http://127.0.0.1:9101 \
+ULTICODE_AGENT_ORIGIN=http://localhost:9002 \
+uv run uvicorn --factory agent_service.app:create_app --app-dir src --host 127.0.0.1 --port 8000
+```
+
 真实 UltiCode HTTP / 模型 e2e 均为显式 opt-in。`e2e_sourced_analysis.py` uses agent-authored synthetic Markdown—not submissions, DTOs, or licensed user material—and validates a read-only submission projection without a real model. U03 workflow model analysis additionally requires a valid U02 gate and active budget authorization; other evaluation scripts follow their own gates. Supply credentials through a secure environment/secret store, never command text or logs. Runner contracts live in source and Linear; keep per-run results out of core docs.
 
 `DeepseekModel` requests provider JSON Output with `response_format={"type":"json_object"}` and an explicit JSON prompt. The guard accepts only that exact format when supplied; legacy requests may omit the field. Empty, truncated, malformed or schema-invalid decisions still fail strict validation after known usage is settled. JSON Output does not replace authorization, tool argument validation or citation verification. See [DeepSeek JSON Output](https://api-docs.deepseek.com/guides/json_mode/).

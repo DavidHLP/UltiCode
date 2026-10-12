@@ -711,9 +711,11 @@ def create_app(
                         raise AgentError(400, "validation_error")
                     draft = dict(row["draft"])
                     draft.update({"title": title, "content": content})
+                    invalidated_id = row["confirmation"].get("id") or row["confirmation"].get("invalidatedId")
                     changed = workflow_store.transition(thread_id, owner, expected_run=str(row["run_id"]), expected_version=version,
                         statuses={"awaiting_confirmation", "confirmed"}, changes={"status": "awaiting_confirmation", "draft": draft,
-                        "draft_version": version + 1, "confirmation": {}}, kind="draft_edited")
+                        "draft_version": version + 1,
+                        "confirmation": {"invalidatedId": invalidated_id} if invalidated_id else {}}, kind="draft_edited")
                     return {"status": changed["status"], "run_id": changed["run_id"],
                             "draft_version": changed["draft_version"],
                             "action_result": {"response": _thread_response(changed, owner)}}
@@ -953,6 +955,8 @@ def create_app(
                                     "draft_version": version, "action_result": {"response": response}}
                         digest = params_digest(owner, str(row["source_submission_id"]), version,
                                                str(row["draft"]["title"]), str(row["draft"]["content"]))
+                        if confirmation.get("invalidatedId") == body["confirmationId"]:
+                            raise AgentError(409, "confirmation_mismatch", 40900)
                         if row["status"] != "confirmed" or confirmation.get("id") != body["confirmationId"]:
                             raise AgentError(400, "confirmation_required")
                         if row["cancel_requested"] or row["save_attempted"]:
@@ -1110,6 +1114,12 @@ def create_app(
                                 changes={"failure_reason": "readback_unavailable"}, kind="readback_unavailable")
                             return completed(latest)
                         if body["retry"] is not True:
+                            if row["status"] == "saving":
+                                latest = workflow_store.transition(thread_id, owner, expected_run=run_id,
+                                    expected_version=version, statuses={"saving"},
+                                    changes={"status": "unknown", "failure_reason": "save_result_unknown"},
+                                    kind="save_unknown")
+                                return completed(latest)
                             return completed(row)
                         if row["retry_blocked"]:
                             raise AgentError(409, "idempotency_payload_mismatch", 40900)

@@ -52,9 +52,9 @@
 		<!-- Per-service release versions: bump individually to release one owner
 		     service (its image tag) independently of the shared platform modules.
 		     Consumed by docker-publish.yml to add a v<version> GHCR tag. -->
-		<service.version.auth>1.0.2</service.version.auth>
+		<service.version.auth>1.0.3</service.version.auth>
 		<service.version.admin>1.0.2</service.version.admin>
-		<service.version.app>1.0.2</service.version.app>
+		<service.version.app>1.0.3</service.version.app>
 		<service.version.submission>1.0.2</service.version.submission>
 		<service.version.search>1.0.2</service.version.search>
 		<service.version.notification>1.0.2</service.version.notification>

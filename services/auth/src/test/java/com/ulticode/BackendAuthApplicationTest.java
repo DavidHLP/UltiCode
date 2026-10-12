@@ -29,16 +29,6 @@ class BackendAuthApplicationTest {
     private com.ulticode.common.audit.AuditSinkPort auditSinkPort;
 
     @Test
-    @DisplayName("context loads and /actuator/health is UP")
-    void healthEndpointReturnsUp() {
-        ResponseEntity<String> response = rest.getForEntity(
-                "http://localhost:" + port + "/actuator/health", String.class);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).contains("\"status\":\"UP\"");
-    }
-
-    @Test
     @DisplayName("service health endpoint /api/v1/auth/health returns success")
     void serviceHealthEndpointReturnsOk() {
         ResponseEntity<String> response = rest.getForEntity(

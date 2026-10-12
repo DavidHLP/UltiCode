@@ -204,7 +204,8 @@ class IncrementalGuard:
                     raise ModelBudgetExceeded("guard and budget history disagree")
             body = json.loads(request.content)
             if (not isinstance(body, dict)
-                    or set(body) != {"model", "messages", "temperature", "max_tokens", "thinking"}
+                    or set(body) - {"response_format"} != {"model", "messages", "temperature", "max_tokens", "thinking"}
+                    or ("response_format" in body and body["response_format"] != {"type": "json_object"})
                     or body["model"] != "deepseek-flash"
                     or body["thinking"] != {"type": "disabled"}
                     or type(body["max_tokens"]) is not int
@@ -244,6 +245,18 @@ class IncrementalGuard:
                 self._save()  # retain full envelope; no retry or later lane may send
             except OSError:
                 pass  # in-memory latch stays closed; durable pending record already exists
+
+    def seal(self):
+        with self.lock:
+            if (self.state["pending_micro_usd"] != 0
+                    or any(not isinstance(receipt, dict) or receipt.get("status") != "settled"
+                           for receipt in self.state["receipts"])):
+                raise ModelBudgetExceeded("incremental guard has unsettled requests")
+            self.state["halted"] = True
+            try:
+                self._save()
+            except OSError:
+                raise ModelBudgetExceeded("incremental guard could not persist seal") from None
 
     def finish(self, receipt, response):
         try:

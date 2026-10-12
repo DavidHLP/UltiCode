@@ -1,0 +1,37 @@
+services/agent/src/agent_service/app.py
+  s_ad8ce62d10ac30::t_b9a61d5b7e3c51 38-49,234,236,238,253-256,290-296,298,568-570,583-586,589-631,846-855,891-898,905-928,982-986,996-1005,1007
+  s_ad8ce62d10ac30::t_496e662be6266a 1019-1039
+  s_ad8ce62d10ac30::t_13aeac24ece7e9 216-226
+  s_ad8ce62d10ac30::t_e90746202f0e59 208-210,235,990
+services/agent/tests/test_agent_service.py
+  s_ad8ce62d10ac30::t_496e662be6266a 185
+  s_ad8ce62d10ac30::t_ecbaa4aa0a164f 83-103,106,108-112,114-117,119-147,149-184,186-188,190-193,207-215,217-218
+  s_ad8ce62d10ac30::t_eebc1a09aa4d5e 148
+  s_ad8ce62d10ac30::t_f6699ad1c0a135 104-105,107,194-206
+  s_ad8ce62d10ac30::t_a7d1b89112145b 113,118,216
+  s_ad8ce62d10ac30::t_a07ee1a0ae8727 189
+docs/DEVELOPMENT.md
+  s_ad8ce62d10ac30::t_c52e520fd8833d 85
+docs/REFERENCE.md
+  s_ad8ce62d10ac30::t_d262b84441e61d 54-62,118-121
+services/agent/README.md
+  s_ad8ce62d10ac30::t_e8e1acac769809 72-79
+services/agent/src/ulticode_tools.py
+  s_ad8ce62d10ac30::t_ea977387ebfa49 8-11
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3763fba83dc20bfb13b8eaa2525bb5a2fffb2851",
+  "prompts": {},
+  "sessions": {
+    "s_ad8ce62d10ac30": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12e26-00f3-7532-8b1b-74164dc72861",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

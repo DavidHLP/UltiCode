@@ -1,0 +1,37 @@
+services/agent/data/repository_corpus_manifest.json
+  s_ad8ce62d10ac30::t_b9b9681b4f0232 32-33
+services/agent/README.md
+  s_ad8ce62d10ac30::t_e1ce53c822fa9e 78-80
+  s_ad8ce62d10ac30::t_23fcf0841c2d9b 81-82
+services/agent/src/agent_service/app.py
+  s_ad8ce62d10ac30::t_9453cdf8499957 9,40-51,166-171,916,1017,1033,1039,1048,1064,1085,1107,1112-1115
+  s_ad8ce62d10ac30::t_5baa4487c2b83e 727-729,741
+  s_ad8ce62d10ac30::t_4c0927bf36e0cd 1068-1069
+  s_ad8ce62d10ac30::t_62d64ebf17aa7d 173-186,188-194
+  s_ad8ce62d10ac30::t_526620e7cb6ea2 389-393
+  s_ad8ce62d10ac30::t_278e67709ea586 187
+  s_ad8ce62d10ac30::t_51e67f488d519a 172
+services/agent/tests/test_agent_service.py
+  s_ad8ce62d10ac30::t_712f36d87e5917 41-90
+  s_ad8ce62d10ac30::t_4c0927bf36e0cd 925-932,938
+  s_ad8ce62d10ac30::t_5baa4487c2b83e 942-946
+  s_ad8ce62d10ac30::t_1f9fb2dd2c1cc6 268-318
+docs/DEVELOPMENT.md
+  s_ad8ce62d10ac30::t_23fcf0841c2d9b 87-88
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0e4aab1053aa0437ff779c629f58775e02d796eb",
+  "prompts": {},
+  "sessions": {
+    "s_ad8ce62d10ac30": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12e26-00f3-7532-8b1b-74164dc72861",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

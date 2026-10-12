@@ -23,6 +23,7 @@ from agent_loop import run_tool_loop
 from deepseek_model import DeepseekModel, model_label
 from ulticode_client import UlticodeClient
 from ulticode_tools import TOOL_SPECS, build_tools
+from model_budget import authorized_model
 
 APP_BASE = os.environ.get("ULTICODE_APP_BASE", "http://localhost:9103")
 AUTH_BASE = os.environ.get("ULTICODE_AUTH_BASE", "http://localhost:9101")
@@ -93,6 +94,11 @@ async def main() -> int:
         # identifiers have both changed, so assume nothing on a billed run.
         print("E2E MODEL QA FAIL | reason=deepseek_model_required")
         return 1
+    try:
+        model_name, model_budget = authorized_model()
+    except ValueError:
+        print("E2E MODEL QA FAIL | reason=model_configuration_invalid")
+        return 1
     async with UlticodeClient(APP_BASE, AUTH_BASE) as client:
         await client.login(
             os.environ["ULTICODE_E2E_USERNAME"], os.environ["ULTICODE_E2E_PASSWORD"]
@@ -120,20 +126,14 @@ async def main() -> int:
             return tracked
 
         tools = {name: track(name, handler) for name, handler in raw_tools.items()}
-        # Bound once so the evidence names the model that was billed.
-        model_name = _priced_model()
         async with DeepseekModel(
             os.environ["DEEPSEEK_API_KEY"],
             tool_specs=TOOL_SPECS,
-            # Named explicitly: the adapter default and the provider's current
-            # identifiers have both changed, so a costed run must not assume one.
             model=model_name,
-            # Cost guard rails: bounded output and a bounded number of calls.
             max_calls=int(os.environ.get("DEEPSEEK_MAX_CALLS", "8")),
-            # Left at 300 deliberately: this loop may make up to 8 calls, and the
-            # real-model run passes at 300. Only the single-call sourced-analysis
-            # smoke needed a larger cap (see its `finish_reason=length` note).
             max_tokens=int(os.environ.get("DEEPSEEK_MAX_TOKENS", "300")),
+            budget=model_budget,
+            thinking_type="disabled",
         ) as model:
             try:
                 result = await run_tool_loop(

@@ -19,6 +19,7 @@ from deepseek_model import DeepseekModel, model_label
 from sourced_analysis import analyze_submission, first_wrong_answer_submission
 from ulticode_client import UlticodeClient
 from ulticode_tools import build_tools
+from model_budget import authorized_model, acceptance_transport
 
 APP_BASE = os.environ.get("ULTICODE_APP_BASE", "http://localhost:9103")
 AUTH_BASE = os.environ.get("ULTICODE_AUTH_BASE", "http://localhost:9101")
@@ -127,7 +128,7 @@ def _report_usage(model: object) -> None:
     print(f"E2E SOURCED MODEL USAGE | calls={len(usage)} total_tokens={sum(totals)}")
 
 
-async def main() -> int:
+async def _main(artifact: Path | None = None) -> int:
     if not os.environ.get("DEEPSEEK_MODEL", "").strip():
         # Fail closed: the adapter default and the provider's current model
         # identifiers have both changed, so assume nothing on a billed run.
@@ -136,6 +137,11 @@ async def main() -> int:
     if not os.environ.get("DEEPSEEK_API_KEY"):
         # Fail closed: without a key the run must not touch the model at all.
         print("E2E SOURCED MODEL FAIL | reason=missing_api_key")
+        return 1
+    try:
+        model_name, model_budget = authorized_model()
+    except ValueError:
+        print("E2E SOURCED MODEL FAIL | reason=model_configuration_invalid")
         return 1
     async with UlticodeClient(APP_BASE, AUTH_BASE) as client:
         await client.login(
@@ -171,21 +177,17 @@ async def main() -> int:
             "citations": result["citations"],
         }
         evidence = json.dumps(evidence_payload, ensure_ascii=False)
-        # Bound once so the evidence names the model that was billed.
-        model_name = _priced_model()
         async with DeepseekModel(
             os.environ["DEEPSEEK_API_KEY"],
             tool_specs={},
             model=model_name,
-            # One decision per run with a bounded output: the worst case is a
-            # single capped call, never an open-ended loop.
             max_calls=int(os.environ.get("DEEPSEEK_MAX_CALLS", "1")),
-            # Measured on the real model: at 300 the single decision came back
-            # truncated (`finish_reason=length`, content_len=150) and the run failed
-            # with `ModelProtocolError`; at 2000 the same prompt passed. One call per
-            # run, so the larger default is bounded.
             max_tokens=int(os.environ.get("DEEPSEEK_MAX_TOKENS", "2000")),
             max_prompt_tokens=int(os.environ.get("DEEPSEEK_MAX_PROMPT_TOKENS", "24000")),
+            budget=model_budget,
+            budget_purpose="prior_source" if getattr(model_budget, "_identity", None) is not None else "ordinary",
+            transport=acceptance_transport(model_budget, "prior_source"),
+            thinking_type="disabled",
         ) as model:
             try:
                 decision = await model.decide(
@@ -215,6 +217,19 @@ async def main() -> int:
         except ValueError:
             print("E2E SOURCED MODEL FAIL | reason=invalid_answer")
             return 1
+        if artifact is not None:
+            from e2e_citation_support_model import _publish, _read_published_artifact
+            raw = json.dumps({
+                "schema": "ulticode-prior-five-raw-record-v1", "name": "本人提交检索分析",
+                "attempt_ids": [entry["attempt_id"] for entry in model.metering],
+                "provider_exchanges": getattr(model._transport, "exchanges", []),
+                "records": {"owner_verified": True, "facts": result["facts"],
+                            "citations": result["citations"], "citation_checks": checks,
+                            "retrieval_calls": [{"query": QUESTION, "results": result["citations"]}],
+                            "model_answer": decision.text},
+            }, ensure_ascii=True)
+            _publish(artifact, raw)
+            _read_published_artifact(artifact, raw)
 
     print(
         f"E2E SOURCED MODEL PASS | model={model_label(model_name)} "
@@ -222,6 +237,19 @@ async def main() -> int:
         "| input=validated-user-projection | answer=withheld"
     )
     return 0
+
+
+async def main() -> int:
+    target = os.environ.get("ULTICODE_SOURCE_ANALYSIS_ARTIFACT")
+    if not target:
+        return await _main()
+    from e2e_citation_support_model import _claim_verdict_file, _release_unfinished_claim
+    path = Path(target)
+    lock = _claim_verdict_file(path)
+    try:
+        return await _main(path)
+    finally:
+        _release_unfinished_claim(lock)
 
 
 if __name__ == "__main__":

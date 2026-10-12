@@ -128,6 +128,7 @@ while [[ $# -gt 0 ]]; do
     --observability)  OBSERVABILITY=true; shift ;;
     --quiet|-q)       QUIET=true; shift ;;
     --json)           JSON_ONLY=true; shift ;;
+    --skip-install)   SKIP_INSTALL=true; shift ;;
     --skip-infra)     SKIP_INFRA=true; shift ;;
     --skip-migrate)   SKIP_MIGRATE=true; shift ;;
     --skip-bootstrap) SKIP_BOOTSTRAP=true; shift ;;

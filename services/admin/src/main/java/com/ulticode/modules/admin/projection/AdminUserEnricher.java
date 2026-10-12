@@ -20,6 +20,7 @@ import com.ulticode.modules.admin.port.adapter.CancellableQueryExecutor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 
 import java.util.Collections;
@@ -79,7 +80,7 @@ public class AdminUserEnricher {
     @Autowired
     public AdminUserEnricher(
             IdentityQueryService identityQueryService,
-            UserProfileQueryService userProfileQueryService,
+            @Nullable UserProfileQueryService userProfileQueryService,
             AccountQueryService accountQueryService,
             @Qualifier("adminUserEnrichmentQueryExecutor") CancellableQueryExecutor queryExecutor,
             AdminQueryDeadline queryDeadline) {

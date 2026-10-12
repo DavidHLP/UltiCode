@@ -229,6 +229,8 @@ EOF
 cat >"$FAKE_BIN/docker" <<EOF
 #!/usr/bin/env bash
 set -euo pipefail
+# This executable is the complete Docker boundary for this fixture: it never
+# delegates to a host Docker CLI and rejects unexpected Docker subcommands.
 if [[ "\${1:-}" == "inspect" ]]; then
   printf 'true\n'
   exit 0
@@ -239,13 +241,21 @@ if [[ "\${1:-}" == "port" ]]; then
   exit 0
 fi
 [[ "\${1:-}" == "exec" ]] || exit 2
-shift
-while [[ "\${1:-}" == "-e" ]]; do
-  export "\${2:?missing docker exec environment assignment}"
-  shift 2
+for argument in "\$@"; do
+  [[ "\$argument" != *"secret"* && "\$argument" != *"runtime-password"* ]] || exit 9
 done
+shift
+[[ "\${1:-}" == "-i" ]] || exit 6
+shift
 [[ "\${1:-}" == "ulticode-mysql" ]] || exit 3
 shift
+[[ "\${1:-}" == "sh" && "\${2:-}" == "-c" ]] || exit 4
+[[ "\${3:-}" == 'IFS= read -r MYSQL_PWD || exit 125; export MYSQL_PWD; exec "\$@"' ]] || exit 7
+shift 3
+[[ "\${1:-}" == "sql-adapter" || "\${1:-}" == "mysql-password-stdin" ]] || exit 8
+shift
+IFS= read -r MYSQL_PWD || exit 125
+export MYSQL_PWD
 [[ "\${1:-}" == "mysql" ]] || exit 4
 shift
 FAKE_MYSQL_CONTAINER_MODE=true "$FAKE_BIN/mysql" "\$@"
@@ -275,6 +285,12 @@ chmod +x "$FAKE_BIN/mysql" "$FAKE_BIN/mvn"
 assert_contains() {
   local haystack="$1"
   local needle="$2"
+  for synthetic_password in secret runtime-password stale-secret; do
+    [[ "$haystack" != *"$synthetic_password"* ]] || {
+      echo 'Synthetic fixture password appeared in captured output.' >&2
+      exit 1
+    }
+  done
   [[ "$haystack" == *"$needle"* ]] || {
     printf 'Expected output to contain: %s\nActual output:\n%s\n' "$needle" "$haystack" >&2
     exit 1

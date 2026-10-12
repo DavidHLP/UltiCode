@@ -10,9 +10,9 @@ model cannot change ``user_id`` or any approval state.
 from __future__ import annotations
 
 import asyncio
-import json
 from dataclasses import dataclass, field
 from typing import Awaitable, Callable, Protocol
+
 
 
 class ModelLoopExceeded(RuntimeError):
@@ -72,56 +72,12 @@ async def run_tool_loop(
     if total_timeout <= 0:
         raise ValueError("total_timeout must be positive")
 
-    messages: list[dict[str, object]] = [{"role": "user", "content": user_input}]
-    trace: list[dict[str, object]] = []
+    from agent_service.graph import run_readonly_graph
 
     try:
         async with asyncio.timeout(total_timeout):
-            for round_no in range(1, max_rounds + 1):
-                decision = await model.decide(messages)
-                if decision.tool_call is None:
-                    messages.append({"role": "assistant", "content": decision.text})
-                    return LoopResult(
-                        answer=decision.text,
-                        rounds=round_no,
-                        trace=tuple(trace),
-                    )
-
-                call = decision.tool_call
-                handler = tools.get(call.name)
-                serialized_call = (
-                    {"tool": call.name, "args": call.arguments}
-                    if handler is not None
-                    else {"tool": "unknown_tool", "args": {}}
-                )
-                messages.append(
-                    {
-                        "role": "assistant",
-                        "content": json.dumps(serialized_call, ensure_ascii=False, default=str),
-                    }
-                )
-                if handler is None:
-                    result: object = {"error": "unknown_tool"}
-                else:
-                    try:
-                        result = await handler(call.arguments)
-                    except Exception:
-                        result = {"error": "tool_failed"}
-                failed = isinstance(result, dict) and "error" in result
-                trace.append(
-                    {
-                        "round": round_no,
-                        "tool": "allowlisted",
-                        "tool_name": call.name if handler is not None else "unknown_tool",
-                        "failed": failed,
-                    }
-                )
-                messages.append(
-                    {
-                        "role": "tool",
-                        "content": json.dumps(result, ensure_ascii=False, default=str),
-                    }
-                )
-            raise ModelLoopExceeded(f"exceeded max_rounds={max_rounds}")
+            return await run_readonly_graph(
+                model, tools, user_input, max_rounds=max_rounds, total_timeout=total_timeout
+            )
     except TimeoutError as exc:
         raise ModelLoopTimeout(f"exceeded total_timeout={total_timeout}s") from exc

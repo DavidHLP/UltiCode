@@ -93,6 +93,25 @@ class AdminUserEnricherTest {
         queryExecutor.close();
     }
 
+    @Test
+    void missingAppProviderPreservesSpringWiringAndExplicitDegradation() {
+        when(identityQueryService.batchGetIdentity(any())).thenReturn(
+                RpcResult.success(List.of(identity("u1")), "t"));
+        try (var context = new org.springframework.context.annotation.AnnotationConfigApplicationContext()) {
+            context.registerBean(IdentityQueryService.class, () -> identityQueryService);
+            context.registerBean(AccountQueryService.class, () -> accountQueryService);
+            context.registerBean("adminUserEnrichmentQueryExecutor", CancellableQueryExecutor.class,
+                    () -> queryExecutor);
+            context.registerBean(AdminQueryDeadline.class, AdminQueryDeadline::system);
+            context.register(AdminUserEnricher.class);
+            context.refresh();
+
+            var result = context.getBean(AdminUserEnricher.class).enrichWithStatus(Set.of("u1"));
+            assertThat(result.status()).isEqualTo(DegradationStatus.PARTIAL);
+            assertThat(result.users().get("u1").username()).isEqualTo("user-u1");
+        }
+    }
+
     @Nested
     @DisplayName("owner account aggregation")
     class OwnerAccountAggregation {

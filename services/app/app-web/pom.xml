@@ -27,6 +27,11 @@
 			<groupId>com.ulticode</groupId>
 			<artifactId>backend-moderation-domain</artifactId>
 		</dependency>
+		<!-- U03: App-private learning plan write domain. -->
+		<dependency>
+			<groupId>com.ulticode</groupId>
+			<artifactId>backend-learning-plan-domain</artifactId>
+		</dependency>
 		<!-- P1-INFRA-002: dependency-free shared atoms. -->
 		<dependency>
 			<groupId>com.ulticode</groupId>

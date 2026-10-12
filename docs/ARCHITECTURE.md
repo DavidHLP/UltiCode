@@ -17,9 +17,9 @@ UltiCode 已形成五个 Data Owner 与两个不持有业务表的 Worker：
 | Worker | `backend-judge` | 消费 Judge Streams，执行沙箱，回写 Submission verdict |
 | Worker | `backend-search` | 消费 `SearchDocumentChanged`，维护 MeiliSearch 派生索引 |
 | Profile | `backend-core` | opt-in parent process; assembles Owner child contexts and does not own business tables |
-| Standalone | `services/agent` | opt-in Python Agent runtime; U01 read-only loop plus bounded synthetic retrieval/sourced analysis, executable keyword-evaluation tooling, and an evaluation-only vector comparison (one embedding model + single-node Qdrant, `e2e_vector_comparison.py`) that never replaces the keyword main path; licensed-corpus, real-model evaluation, and isolation evidence are tracked in the U02 Linear tasks |
+| Standalone | `services/agent` | opt-in Python Agent service; one LangGraph read-only model/tool kernel, U03 workflow orchestration and private workflow state; no UltiCode business-table ownership |
 
-`services/agent` is an independent Python service module, not a Maven reactor module or an Owner/Worker. It calls existing Auth/App HTTP contracts, keeps identity server-side, and must project tool results before they reach a model. Its current retrieval slice is limited to checked-in agent-authored synthetic Markdown; it does not ingest public user solutions. It is not started by the default `dev-lite`/`dev-full` scopes until its runtime, readiness, and secret wiring are explicitly added.
+`services/agent` is independent of Maven and the Owner/Worker topology. It calls existing Auth/App and LearningPlan HTTP contracts; it never connects to business databases or reads Owner Entities/Mappers. The checked-in retrieval corpus is agent-authored synthetic material, not user source or licensed corpus. The Agent is not started by default `dev-lite`/`dev-full` scopes.
 
 `judge-runtime` 是共享执行依赖，不是进程。Contract modules 在 `services/api/`；共享平台能力在 `services/platform/`。跨 Owner 通过 provider-owned contract 或 consumer-owned port 协作，不共享 Entity、Mapper 或业务 Service。
 `services/agent` 的依赖规则是 `Agent -> existing Auth/App HTTP contracts`；它不得连接业务数据库、读取 Owner Entity/Mapper、共享 Java 业务实现或绕过服务端身份/授权。当前仓库只包含 agent-authored synthetic fixtures；未来真实 corpus 必须来自自有或明确授权资料，公开题解不自动获得 corpus/模型外发许可。
@@ -42,10 +42,13 @@ Judge0 默认关闭且没有外部实例验证；async receipt 当前仅进程�
 默认七进程 topology 仍保持为 distributed profile 与回滚路径；另有 opt-in
 `core` profile（Core 9108 + 独立 Judge）用于同进程 owner assembly 验证。
 Core 已通过显式扫描、多数据源/事务、readiness 和 judge-runtime classpath
-静态段测试；但 enabled Owner child assembly 的 exec-jar smoke 当前因同一
-classpath 的跨 Owner package leakage 在 bean wiring 阶段失败。完整 local
-Adapter parity、同进程业务路由、远端 Judge TLS 和生产性能/HA 仍未证明，
-不得切换默认或推断生产可用性。
+静态段测试。显式 opt-in 的 disposable Auth/Admin 门禁已验证真实 child
+装配、本地 identity/account 只读委派与合法 permission grant；历史 exec-jar
+装配失败保留为风险记录，不能代替当前门禁结果。真实 HTTP 登录、授权持久化
+和重新登录权限读取已通过；测试使用 HS256，不证明 RSA/JWKS、App 四步
+journey、全量 Admin bean graph 或 distributed RPC transport/filter parity。
+远端 Judge TLS 和生产性能/HA 仍未证明，不得切换默认。具体证据边界见
+[`SERVICES_ISSUES.md` 的 SVC-025](../services/docs/SERVICES_ISSUES.md)。
 
 Core 的 enabled Owner child 启动使用单一尝试协议：每个模块的内部对象
 `CoreOwnerContextManager.OwnerStartup` 从线程提交前就注册并持有资源身份，
@@ -145,6 +148,11 @@ Notification 是 notifications、preferences、delivery ledger 和 email 的唯�
 #### Judge / Search
 
 Judge 通过 Redis Streams 异步接收 Submission outbox，使用 Problem facts 和沙箱控制执行，失败留在 PEL 或进入 DLQ。Search 只消费 allowlisted、版本化事件并更新 MeiliSearch；删除是 tombstone，业务写路径不得直写索引。
+#### Agent
+
+The Agent is a standalone consumer of existing Auth/App/LearningPlan HTTP contracts; it never connects to business databases or adds model-controlled write tools. The only bounded model/tool loop is `agent_service.graph`; `agent_loop.run_tool_loop` delegates to it. The checkpointed workflow graph dispatches server-validated actions and reuses that read-only loop for analysis. Offline scripted-model injection and guarded live-provider analysis use the same workflow and kernel. Live analysis is fail-closed unless the evidence-bound U02 gate, expected budget period, shared guard, and authorized `u03_analysis` purpose are valid; its citation judge uses the separate `u03_citation_judge` purpose.
+
+Drafts and events live in canonical private Agent SQLite state; LangGraph checkpoints are resumable control state. Confirming a draft is not a Java write; only explicit save can persist a LearningPlan through Java. Uncertain writes remain `unknown` and reconcile through the original idempotency key. `/auth/me` is the identity source; unsafe Agent requests require the access/CSRF pair and matching header. Confirm/save/recover routes are registered only with valid evidence-bound U02 gate material; model calls additionally require the current gate and budget authorization. Nonempty citations are checked against same-run retrieval, document integrity, and support/derivability; answer text also passes bounded source-fact and tool-trace checks. These are fail-closed safeguards, not a claim of perfect semantic verification. The candidate and evidence-bound U02/U03/U04 release sequence is documented in [Development and testing](DEVELOPMENT.md#u02-u03-u04-immutable-acceptance-chain); it does not itself authorize production deployment.
 
 ### 依赖规则
 

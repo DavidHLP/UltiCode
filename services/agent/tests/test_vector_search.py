@@ -79,12 +79,19 @@ class _FakeClient:
         self.indexed_field = "doc_id"
 
     def query_points(
-        self, *, collection_name: str, query: list[float], limit: int, **_: object
+        self, *, collection_name: str, query: list[float], limit: int,
+        query_filter: dict[str, object], **_: object
     ) -> object:
         self.queries.append((collection_name, limit))
+        self.query_filter = query_filter
+        scope = query_filter["must"][0]["match"]["value"]
+        candidates = [index for index, point in enumerate(self.points)
+                      if point["payload"]["access_scope"] == scope]
+        if not candidates:
+            return type("Result", (), {"points": []})()
         # Every point scores above the relevance floor unless a test says otherwise.
         best = min(
-            range(len(self.points)),
+            candidates,
             key=lambda index: sum(
                 a * b for a, b in zip(query, self.points[index]["vector"])
             ),
@@ -155,6 +162,98 @@ def test_search_returns_payload_doc_ids_and_passes_the_limit() -> None:
 
     assert found[0] in {document.doc_id for document in load_sample_corpus()}
     assert client.queries == [(vector_search.COLLECTION, 2)]
+    assert client.query_filter == {"must": [{
+        "key": "access_scope", "match": {"value": "agent-authored-synthetic"},
+    }]}
+
+
+def test_foreign_scope_is_filtered_before_the_result_limit() -> None:
+    client = _FakeClient()
+    documents = load_sample_corpus()
+    scoped = (
+        dataclasses.replace(documents[0], doc_id="foreign", access_scope="owner:B"),
+        dataclasses.replace(documents[1], doc_id="own", access_scope="owner:A"),
+    )
+    vector_search.build_index(client, scoped, embedder=_FakeEmbedder(), config_factory=_stub_config)
+    client.points[0]["vector"] = [0.0] * vector_search.VECTOR_SIZE
+    client.points[1]["vector"] = [1.0] * vector_search.VECTOR_SIZE
+    assert vector_search.search(client, "status", limit=1, embedder=_FakeEmbedder(),
+                                access_scope="owner:A") == ["own"]
+    assert vector_search.search(client, "status", limit=1, embedder=_FakeEmbedder(),
+                                access_scope="owner:C") == []
+
+
+def test_unexpected_foreign_payload_is_not_returned() -> None:
+    class UnfilteredClient:
+        def query_points(self, **kwargs):
+            point = type("Point", (), {"payload": {
+                "doc_id": "foreign", "access_scope": "owner:B"}, "score": 1.0})()
+            return type("Result", (), {"points": [point]})()
+
+    assert vector_search.search(UnfilteredClient(), "status", limit=1,
+                                embedder=_FakeEmbedder(), access_scope="owner:A") == []
+
+
+def test_owned_search_refreshes_principal_and_rejects_scope_override() -> None:
+    class Session:
+        owner = "A"
+        reads = 0
+
+        async def principal(self):
+            self.reads += 1
+            return self.owner
+
+    client = _FakeClient()
+    session = Session()
+    source = load_sample_corpus()[0]
+    documents = tuple(dataclasses.replace(source, doc_id=owner, access_scope=f"owner:{owner}")
+                      for owner in ("A", "B"))
+    vector_search.build_index(client, documents, embedder=_FakeEmbedder(), config_factory=_stub_config)
+    assert asyncio.run(vector_search.search_owned(client, "status", session_client=session,
+                                                 limit=1, embedder=_FakeEmbedder())) == ["A"]
+    session.owner = "B"
+    assert asyncio.run(vector_search.search_owned(client, "status", session_client=session,
+                                                 limit=1, embedder=_FakeEmbedder())) == ["B"]
+    assert session.reads == 2
+    with pytest.raises(TypeError):
+        asyncio.run(vector_search.search_owned(client, "status", session_client=session,
+                                               limit=1, access_scope="owner:A"))
+    assert session.reads == 2
+
+
+def test_owned_search_denied_identity_never_queries_vectors() -> None:
+    from ulticode_client import UlticodeError
+
+    class DeniedSession:
+        async def principal(self):
+            raise UlticodeError("identity_unreadable")
+
+    client = _FakeClient()
+    with pytest.raises(UlticodeError):
+        asyncio.run(vector_search.search_owned(client, "status", session_client=DeniedSession(),
+                                               limit=1, embedder=_FakeEmbedder()))
+    assert not client.queries
+
+
+@pytest.mark.parametrize("value", [None, "", " "])
+def test_invalid_scope_is_rejected_before_query(value) -> None:
+    client = _FakeClient()
+    with pytest.raises(ValueError):
+        vector_search.search(client, "status", limit=1, embedder=_FakeEmbedder(), access_scope=value)
+    assert not client.queries
+
+
+@pytest.mark.parametrize("vector", [[1.0], [float("nan")] * 384, [True] * 384])
+def test_invalid_vectors_are_rejected_before_index_creation(vector) -> None:
+    class InvalidEmbedder:
+        def embed(self, texts):
+            return [vector for _ in texts]
+
+    client = _FakeClient()
+    with pytest.raises(ValueError):
+        vector_search.build_index(client, load_sample_corpus(),
+                                  embedder=InvalidEmbedder(), config_factory=_stub_config)
+    assert not client.collection and not client.points
 
 
 def test_embedding_count_mismatch_is_rejected() -> None:

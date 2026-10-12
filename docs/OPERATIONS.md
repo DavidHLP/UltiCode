@@ -14,6 +14,8 @@
 
 `docker/docker-compose.yml` 是基础配置；`docker/docker-compose.dev.yml` 只在 loopback 暴露开发端口；`docker/docker-compose.prod.yml` 不发布 MySQL、Redis、Nacos 或 backend 端口，前端仅作 HTTPS edge。不要直接用 PM2/Maven 启动 owner runtime，以免绕过 manifest、migration、readiness 和 rollback gate。
 
+Nacos 的 512 MB 堆显式使用 128 MB 年轻代，避免镜像默认的 `JVM_XMN=512m` 占满堆空间；调整堆上限时应同时检查年轻代和容器内存限额。
+
 ### 生产发布前
 
 Docker Verify builds each service locally (`load: true`, no push) and runs pinned Trivy v0.74.0 against that local image. Docker Publish pushes digest-only candidates: it does not assign normal `sha-*` or `v*` release tags while individual service gates are running.

@@ -59,6 +59,7 @@ class CoreApplicationSmokeTest {
         assertThat(componentScan(CoreOwnerBootConfigurations.App.class))
                 .contains(
                         "com.ulticode.modules.contest",
+                        "com.ulticode.modules.learningplan",
                         "com.ulticode.modules.event.inbox",
                         "com.ulticode.modules.reconciliation.port",
                         "com.ulticode.modules.submission.port");

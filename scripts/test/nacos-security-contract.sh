@@ -50,9 +50,14 @@ done
 grep -Fq 'NACOS_RESOURCE_NAMESPACE=' "$ROOT_DIR/scripts/security/bootstrap-nacos-user.sh"
 grep -Fq "NACOS_LONGEST_RESOURCE_SUFFIX=':DUBBO_SERVICEDISCOVERY_MIGRATION:config/backend-notification.migration'" \
   "$ROOT_DIR/scripts/security/bootstrap-nacos-user.sh"
-for resource in ':Dubbo-Nacos-Test:config/*' ':DEFAULT_GROUP:config/*' ':dubbo:config/*' ':backend-${prefix,,}:config/*' ':DUBBO_SERVICEDISCOVERY_MIGRATION:config/backend-${prefix,,}.migration' \
+for resource in ':Dubbo-Nacos-Test:config/*' ':DEFAULT_GROUP:config/*' \
+  ':DEFAULT_GROUP:config/*:*:*:provider:backend-${prefix,,}' \
+  ':DEFAULT_GROUP:config/*:*:*:consumer:backend-${prefix,,}' \
+  ':dubbo:config/*' ':backend-${prefix,,}:config/*' \
+  ':DUBBO_SERVICEDISCOVERY_MIGRATION:config/backend-${prefix,,}.migration' \
   ':mapping:config/*' ':mapping:config/' \
-  ':DEFAULT_GROUP:naming/*' ':DEFAULT_GROUP:naming/backend-' ':DEFAULT_GROUP:naming/providers:'; do
+  ':DEFAULT_GROUP:naming/*' ':DEFAULT_GROUP:naming/backend-' \
+  ':DEFAULT_GROUP:naming/providers:'; do
   grep -Fq -- "$resource" "$ROOT_DIR/scripts/security/bootstrap-nacos-user.sh" \
     || { echo "Nacos service resource scope is missing: $resource" >&2; exit 1; }
 done
@@ -64,6 +69,8 @@ fi
 for permission in \
   "\$config_test_resource', 'r'" \
   "\$config_default_resource', 'r'" \
+  "\$metadata_provider_config_write_resource', 'w'" \
+  "\$metadata_consumer_config_write_resource', 'w'" \
   "\$config_dubbo_resource', 'r'" \
   "\$config_application_resource', 'r'" \
   "\$config_migration_resource', 'r'" \
@@ -78,6 +85,23 @@ for permission in \
   grep -Fq -- "$permission" "$ROOT_DIR/scripts/security/bootstrap-nacos-user.sh" \
     || { echo "Nacos service permission is missing: $permission" >&2; exit 1; }
 done
+for owner in auth admin app submission notification judge; do
+  for side in provider consumer; do
+    resource_pattern="dev:DEFAULT_GROUP:config/*:*:*:$side:backend-$owner"
+    own_resource="dev:DEFAULT_GROUP:config/com.ulticode.$owner.api.PermissionProbe:1.0:backend-$owner:$side:backend-$owner"
+    foreign_resource="dev:DEFAULT_GROUP:config/com.ulticode.$owner.api.PermissionProbe:1.0:backend-$owner:$side:backend-unowned"
+    ordinary_resource='dev:DEFAULT_GROUP:config/application.yml'
+    [[ "$own_resource" == $resource_pattern ]] \
+      || { echo "Own $side metadata key does not match scoped grant for $owner" >&2; exit 1; }
+    [[ "$foreign_resource" != $resource_pattern && "$ordinary_resource" != $resource_pattern ]] \
+      || { echo "Metadata grant is broader than own-app metadata for $owner" >&2; exit 1; }
+  done
+done
+if grep -Fq "('\$role', '\$config_default_resource', 'w')" "$ROOT_DIR/scripts/security/bootstrap-nacos-user.sh" || \
+   grep -Fq "('\$role', '\$config_default_resource', 'rw')" "$ROOT_DIR/scripts/security/bootstrap-nacos-user.sh"; then
+  echo "Ordinary DEFAULT_GROUP application config must remain read-only" >&2
+  exit 1
+fi
 for permission in \
   "\$config_test_resource', 'w'" \
   "\$config_test_default_resource', 'w'" \

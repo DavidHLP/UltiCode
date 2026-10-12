@@ -25,6 +25,7 @@
 		<module>modules/problem</module>
 		<module>modules/contest</module>
 		<module>modules/moderation</module>
+		<module>modules/learningplan</module>
 		<module>app-web</module>
 	</modules>
 </project>

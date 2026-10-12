@@ -2143,7 +2143,7 @@ CREATE TABLE `virtual_contest_sessions` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-09-20 23:03:05
+-- Dump completed on 2026-10-01 17:49:57
 --
 -- Dumping schema: auth
 --
@@ -2401,7 +2401,7 @@ CREATE TABLE `users` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-09-20 23:03:05
+-- Dump completed on 2026-10-01 17:49:57
 --
 -- Dumping schema: admin
 --
@@ -2716,7 +2716,7 @@ CREATE TABLE `user_warnings` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-09-20 23:03:06
+-- Dump completed on 2026-10-01 17:49:58
 --
 -- Dumping schema: app
 --
@@ -3547,6 +3547,27 @@ CREATE TABLE `judge_outbox` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `learning_plans`
+--
+
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `learning_plans` (
+  `id` varchar(40) NOT NULL COMMENT 'Learning plan row ID (canonical UUID)',
+  `user_id` varchar(40) NOT NULL COMMENT 'Owner account id (Auth contract reference)',
+  `idempotency_key` char(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT 'Canonical lowercase UUID from the Idempotency-Key header',
+  `request_fingerprint` char(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT 'SHA-256 of the canonical payload JSON array',
+  `source_submission_id` varchar(40) NOT NULL COMMENT 'Submission contract reference, ownership verified before write',
+  `draft_version` int NOT NULL COMMENT 'Caller-confirmed positive draft version',
+  `title` varchar(200) NOT NULL,
+  `content` text NOT NULL,
+  `created_at` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_learning_plans_user_key` (`user_id`,`idempotency_key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `moderation_actions`
 --
 
@@ -4346,7 +4367,7 @@ CREATE TABLE `virtual_contest_sessions` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-09-20 23:03:06
+-- Dump completed on 2026-10-01 17:49:59
 --
 -- Dumping schema: notification
 --
@@ -4563,7 +4584,7 @@ CREATE TABLE `notifications` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-09-20 23:03:06
+-- Dump completed on 2026-10-01 17:49:59
 --
 -- Dumping schema: submission
 --
@@ -4757,4 +4778,4 @@ CREATE TABLE `submissions` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-09-20 23:03:06
+-- Dump completed on 2026-10-01 17:49:59

@@ -41,6 +41,7 @@ import org.springframework.context.annotation.Profile;
         "com.ulticode.modules.reconciliation.port",
         "com.ulticode.modules.dashboard.mapper",
         "com.ulticode.modules.subscription.mapper",
+        "com.ulticode.modules.learningplan.mapper",
 }, annotationClass = Mapper.class)
 public class MapperScanConfig {
 }

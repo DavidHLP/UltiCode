@@ -34,6 +34,22 @@ from retrieval import SourceDocument
 VERDICT_KEYS = ("exists", "supports", "derivable")
 
 
+def revalidation_citation_cases(facts):
+    """Three fixed synthetic citation probes; submission facts stay read-only."""
+    from corpus_manifest import load_manifest
+    from retrieval import load_sample_corpus, keyword_search
+    documents, manifest = load_sample_corpus(), load_manifest()
+    by_doc = {document.doc_id: document for document in documents}
+    cases = []
+    for doc_id in ("sample-accepted-review", "sample-status-only", "sample-citation-record"):
+        document = by_doc[doc_id]
+        citation = keyword_search("synthetic", limit=1, documents=(document,))[0].as_model_dict()
+        claim = document.text if len(cases) < 2 else "This submission definitely fails because of a null pointer bug."
+        row = build_worksheet(claim=claim, citations=[citation], documents=documents, manifest=manifest)[0]
+        cases.append({"row": row, "facts": facts})
+    return cases
+
+
 def review_row_id(chunk_id: str, claim: str, quote: str) -> str:
     """Identify one worksheet row by what it actually asks the reviewer.
 

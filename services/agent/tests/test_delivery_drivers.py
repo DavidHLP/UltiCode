@@ -27,6 +27,56 @@ u03 = _load("e2e_u03_workflow_delivery_test", _AGENT / "e2e_u03_workflow.py")
 u04 = _load("e2e_u04_demo_delivery_test", _AGENT / "e2e_u04_demo.py")
 
 
+def _synthetic_database_readback(owner_id, key, plan_id):
+    import hashlib
+
+    return {
+        "schema": "ulticode-u03-mysql-readback-v1",
+        "owner_sha256": hashlib.sha256(owner_id.encode()).hexdigest(),
+        "business_key_sha256": hashlib.sha256(key.encode()).hexdigest(),
+        "plan_id_sha256": hashlib.sha256((plan_id or "").encode()).hexdigest(),
+        "row_count": int(plan_id is not None), "matching_plan_rows": int(plan_id is not None),
+        "raw_counts": "1\t1" if plan_id is not None else "0\t0",
+        "database_sha256": "d" * 64, "container_sha256": "e" * 64,
+    }
+
+
+@pytest.mark.parametrize("output", ["1\t1\n", "0\t0\n"])
+def test_u03_database_readback_uses_read_only_mysql_and_private_environment(monkeypatch, output):
+    import hashlib
+    import subprocess
+    from u03_database_readback import read_business_rows
+
+    for name, value in {
+        "ULTICODE_U03_MYSQL_CONTAINER": "isolated-test-mysql",
+        "ULTICODE_U03_MYSQL_USER": "test_reader",
+        "ULTICODE_U03_MYSQL_PASSWORD": "private-test-password",
+        "APP_DB_NAME": "app",
+    }.items():
+        monkeypatch.setenv(name, value)
+    seen = []
+
+    def run(command, **kwargs):
+        seen.append((command, kwargs))
+        assert "private-test-password" not in " ".join(command)
+        assert kwargs["env"]["MYSQL_PWD"] == "private-test-password"
+        assert command[:3] == ["docker", "exec", "-i"]
+        assert "shell" not in kwargs
+        assert kwargs["input"].startswith("START TRANSACTION READ ONLY;\nSELECT COUNT(*)")
+        assert kwargs["input"].endswith("\nROLLBACK;\n")
+        assert "owner-private" not in kwargs["input"]
+        return subprocess.CompletedProcess(command, 0, stdout=output, stderr="")
+
+    monkeypatch.setattr(subprocess, "run", run)
+    proof = read_business_rows("owner-private", "key-private", "plan-private")
+    assert len(seen) == 1
+    assert proof["owner_sha256"] == hashlib.sha256(b"owner-private").hexdigest()
+    assert proof["business_key_sha256"] == hashlib.sha256(b"key-private").hexdigest()
+    assert proof["plan_id_sha256"] == hashlib.sha256(b"plan-private").hexdigest()
+    assert proof["raw_counts"] == output.strip()
+    assert proof["row_count"] == proof["matching_plan_rows"] == int(output[0])
+
+
 def test_execution_candidate_accepts_same_checkout_and_resolved_alias(tmp_path):
     from agent_service.gate import require_execution_candidate
 
@@ -429,7 +479,8 @@ def test_u03_scenario_evidence_is_private_and_hash_bound(tmp_path):
     assert hashlib.sha256(path.read_bytes()).hexdigest() == reference["sha256"]
 
 
-def test_u03_java_idempotency_matrix_uses_mock_java_wire_contract(monkeypatch, tmp_path):
+@pytest.mark.parametrize("database_available", [True, False])
+def test_u03_java_idempotency_matrix_uses_mock_java_wire_contract(monkeypatch, tmp_path, database_available):
     from urllib.parse import unquote
 
     owner_id = "33333333-3333-4333-8333-333333333333"
@@ -476,6 +527,12 @@ def test_u03_java_idempotency_matrix_uses_mock_java_wire_contract(monkeypatch, t
         return envelope(None, status=404, code=40400)
 
     monkeypatch.setattr(u03.httpx, "AsyncHTTPTransport", lambda **_kwargs: httpx.MockTransport(handler))
+    monkeypatch.setattr(u03, "read_business_rows", _synthetic_database_readback)
+    if not database_available:
+        def unavailable(*_args):
+            assert not backend
+            raise ValueError("u03_database_readback_configuration_missing")
+        monkeypatch.setattr(u03, "read_business_rows", unavailable)
     candidate_root = tmp_path / "candidate"
     candidate_root.mkdir()
     evidence_root = tmp_path / "evidence"
@@ -484,6 +541,17 @@ def test_u03_java_idempotency_matrix_uses_mock_java_wire_contract(monkeypatch, t
     evidence_dir.mkdir(mode=0o700)
 
     async def scenario():
+        if not database_available:
+            with pytest.raises(ValueError, match="u03_database_readback_configuration_missing"):
+                await u03._java_idempotency_matrix(
+                    app_base="http://127.0.0.1:8000", auth_base="http://127.0.0.1:8001",
+                    owner_access="owner-token", owner_csrf="owner-csrf",
+                    foreign_access="foreign-token", foreign_csrf="foreign-csrf",
+                    source_id=source_id, foreign_source_id=foreign_source_id,
+                    head="a" * 40, gate_sha="b" * 64, evidence_dir=evidence_dir,
+                )
+            assert not backend
+            return
         observations, raw_refs, _projections, foreign_ref = await u03._java_idempotency_matrix(
             app_base="http://127.0.0.1:8000", auth_base="http://127.0.0.1:8001",
             owner_access="owner-token", owner_csrf="owner-csrf",
@@ -1098,9 +1166,10 @@ def test_u04_preflight_ignores_u03_human_demo_flags(monkeypatch, tmp_path):
     assert preflight["candidate"]["candidate_head"] == head
 
 
-def test_u03_private_receipt_producer_matches_frozen_gate_projection(tmp_path):
+def test_u03_private_receipt_producer_matches_frozen_gate_projection(tmp_path, monkeypatch):
     import hashlib
     from agent_service.gate import _check_u03_raw_receipt
+    monkeypatch.setattr(u03, "read_business_rows", _synthetic_database_readback)
 
     evidence_root = tmp_path / "private"
     evidence_root.mkdir(mode=0o700)
@@ -1133,6 +1202,7 @@ def test_u03_private_receipt_producer_matches_frozen_gate_projection(tmp_path):
         source_id=source_id, thread_id=None, run_id=None, head="a" * 40,
         gate_sha="b" * 64, evidence_dir=run, readbacks={key: (200, vo)},
         principal_evidence=principal,
+        database_before={key: _synthetic_database_readback(owner_id, key, None)},
         readback_fingerprints={key: hashlib.sha256(b"synthetic readback").hexdigest()},
     )
     projection = _check_u03_raw_receipt(

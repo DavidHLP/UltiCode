@@ -584,6 +584,7 @@ def _request_body(
     body: dict[str, object] = {
         "model": getattr(model, "_model", None),
         "messages": api_messages(messages),
+        "response_format": {"type": "json_object"},
         "temperature": 0,
         "max_tokens": getattr(model, "_max_tokens", None),
     }
@@ -1004,6 +1005,7 @@ def _array_range_definition(text: str) -> bool:
     """
     lowered = text.casefold()
     patterns = (
+        r"(?:访问数组时(?:使用)?|访问)?(?:超出|超过)(?:了)?(?:数组(?:的)?|其)?(?:有效|合法)(?:索引|下标)?范围的(?:索引|下标)",
         r"(?:索引|下标)(?:落在)?(?:超出|超过|不在)[^。；;!?？]{0,16}(?:有效|合法)[^。；;!?？]{0,8}范围(?:内)?",
         r"(?:索引|下标)落在(?:有效|合法)范围(?:之外|以外)",
         r"(?:访问)?(?:超出|超过)[^。；;!?？]{0,12}数组(?:的)?(?:有效|合法)?(?:索引|下标)?(?:范围|边界|长度)",

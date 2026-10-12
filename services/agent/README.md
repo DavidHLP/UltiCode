@@ -69,6 +69,14 @@ reference answer checks. These are fail-closed safeguards, not perfect semantic 
 Offline scripted models and `httpx.MockTransport` do not establish real-model acceptance, live Java
 persistence, or complete U03 acceptance.
 
+In this manual mode only, analysis reads the exact submission already bound to the owner-verified
+thread through a no-argument, request-scoped tool. Source is treated as untrusted input and capped at
+12,000 characters; missing or oversized source stops before a provider call. The generic submission
+listing tools remain metadata-only. Full source and citation excerpts are not written to the Agent
+store, events, or checkpoints; citation excerpts are integrity-checked in memory and replaced with a
+redaction note before storage. This local smoke path is not a substitute for formal U02/U03/U04
+acceptance.
+
 For the local HTTP demo, start Uvicorn with `agent_service.runtime:create_app`. Live analysis is
 off by default. Formal acceptance mode requires `ULTICODE_AGENT_LIVE_ANALYSIS=1`, a current private
 U02 gate, and its exact `ULTICODE_AGENT_EXPECTED_HEAD` and `ULTICODE_AGENT_EXPECTED_BASE` bindings.

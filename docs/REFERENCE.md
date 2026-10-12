@@ -51,10 +51,15 @@ GET thread responses expose `threadId`, `runId`, `status`, `sourceSubmissionId`,
 versioned `draft` (`title`, `content`, `facts`, `hypotheses`, `citations`, `citationChecks`,
 `sampleScope`), `paramsDigest`, `analysis`, a redacted `confirmation` summary, and `receipt`
 (`planId`, `cancelRequested`, `failureReason`). They do not expose owner IDs or the business key.
-Draft facts are derived from the validated metadata projection; source code and test data are not
-included. `sampleScope` marks the checked-in synthetic corpus. Initial offline-draft citations only
-establish source traceability; model-answer citations, when present, are added only after same-run
-retrieval, document-integrity, support, and derivability checks.
+Draft facts are derived from the validated metadata projection; the general submission-list tools
+never expose source code or test data. In explicit local manual smoke mode only, analysis may read
+the exact owner-verified submission already bound to the thread through a no-argument,
+request-scoped tool. Source is untrusted input and capped at 12,000 characters; missing or oversized
+source fails before provider dispatch. The source body is not stored in workflow rows, events, or
+checkpoints. Source citations are checked in memory and persisted without their quoted source text.
+`sampleScope` identifies whether an analysis used the checked-in synthetic corpus or the
+owner-authorized thread source. Model-answer citations are added only after same-run retrieval,
+document-integrity, support, and derivability checks.
 The Agent keeps the business idempotency key private. Its recovery action uses that original key
 for owner-scoped by-key reconciliation; a user-facing saved-record readback uses
 `GET /learning-plans/{planId}` with the returned `planId`.
@@ -110,8 +115,10 @@ additionally require the expected budget period, shared budget guard, and policy
 authorized model and guarded transport use the existing period/lane limits; missing or invalid
 authorization fails closed with `503 model_budget_blocked` before a provider request. An explicit
 local manual smoke mode permits only read-only analysis under its fixed one-shot budget and shared
-guard; it mounts no confirm/save/recovery routes and is not evidence that U02/U03/U04 acceptance
-has passed.
+guard; it may read only the owner-verified source already bound to the thread, using a no-argument
+request-scoped tool. The source is capped at 12,000 characters, treated as untrusted input, and not
+stored; citation excerpts are redacted after in-memory verification. It mounts no confirm/save/recovery
+routes and is not evidence that U02/U03/U04 acceptance has passed.
 
 The workflow runs analysis through the shared checkpointed action graph and read-only model/tool
 kernel. Answer text must pass bounded source-fact, negation-aware boundary, source-reference, and

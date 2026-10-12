@@ -80,6 +80,142 @@ def test_source_errors_during_create_and_analyze(tmp_path, status, code, expecte
     asyncio.run(scenario())
 
 
+def test_manual_analysis_uses_owner_thread_source_without_persisting_source_text(tmp_path, monkeypatch):
+    source_id = str(uuid.uuid4())
+    marker = "PRIVATE_SOURCE_MARKER_MUST_NOT_PERSIST"
+    source = (
+        "def merge_k_lists(lists):\n"
+        f"    # {marker}\n"
+        "    heap = []\n"
+        "    for i, node in enumerate(lists):\n"
+        "        if node:\n"
+        "            heapq.heappush(heap, (node.val, i, node))\n"
+        "    dummy = tail = ListNode(0)\n"
+        "    while heap:\n"
+        "        _, i, node = heapq.heappop(heap)\n"
+        "        tail.next = node\n"
+        "        tail = node\n"
+        "        if node.next:\n"
+        "            heapq.heappush(heap, (node.next.val, i, node.next))\n"
+        "    return dummy.next\n"
+    )
+
+    class SourceClient(SessionClient):
+        code = source
+
+        async def get_my_submission(self, submission_id):
+            return {"id": submission_id, "status": "Accepted", "code": self.code}
+
+    class SourceModel:
+        def __init__(self):
+            self.calls = 0
+            self.saw_source = False
+            self.prompt = ""
+
+        async def decide(self, messages):
+            self.calls += 1
+            if self.calls == 1:
+                self.prompt = str(messages[0]["content"])
+                return ModelDecision(tool_call=ToolCall("get_submission_source", {}))
+            tool_result = json.loads(next(message["content"] for message in messages if message["role"] == "tool"))
+            hit = tool_result["hits"][0]
+            assert marker in hit["text"]
+            assert hit["access_scope"] == "owner-authorized-current-thread"
+            self.saw_source = True
+            citation = {
+                "claim": "每条非空链表的当前头节点会加入最小堆。",
+                **{key: hit[key] for key in (
+                    "chunk_id", "doc_id", "version", "source_path", "source_position",
+                    "access_scope", "sample_kind", "source_trust",
+                )},
+                "text": "    for i, node in enumerate(lists):",
+            }
+            return ModelDecision(text=json.dumps({
+                "text": (
+                    "算法用最小堆维护各链表的当前节点，每次取最小节点并补入其后继。"
+                    "若共有 N 个节点、K 条链表，时间复杂度为 O(N log K)，额外空间为 O(K)。"
+                    "需检查空输入、空链表和相同节点值。"
+                ),
+                "citations": [citation],
+            }, ensure_ascii=False))
+
+    class CitationJudge:
+        def __init__(self):
+            self.usage = []
+
+        async def decide(self, _messages):
+            self.usage.append({"prompt_tokens": 1, "completion_tokens": 1})
+            return ModelDecision(text=json.dumps({"supports": True, "derivable": True}))
+
+    class Guard:
+        def close(self):
+            pass
+
+    analysis_model, citation_judge = SourceModel(), CitationJudge()
+    monkeypatch.setattr(
+        "agent_service.app._authorized_model_for_purpose",
+        lambda _period, purpose, _guard, _specs: (
+            analysis_model if purpose == "u03_analysis" else citation_judge
+        ),
+    )
+
+    async def scenario():
+        app = create_app(
+            state_path=tmp_path / "manual-source.sqlite3",
+            client_factory=SourceClient,
+            expected_period=SimpleNamespace(policy_id="manual-agent-live-test-v1"),
+            budget_guard=Guard(),
+            model_purpose="u03_analysis",
+            own_budget_guard=True,
+            analysis_only_test_mode=True,
+        )
+        async with app.router.lifespan_context(app):
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=app), base_url="http://test"
+            ) as client:
+                created = await client.post("/agent/threads", headers=HEADERS, json={
+                    "sourceSubmissionId": source_id,
+                    "question": "请结合我的提交解释核心算法、复杂度和边界用例。",
+                })
+                assert created.status_code == 200
+                thread_id = created.json()["data"]["threadId"]
+                analyzed = await client.post(
+                    f"/agent/threads/{thread_id}/analyze", headers=HEADERS, json={}
+                )
+                assert analyzed.status_code == 200, analyzed.text
+                draft = analyzed.json()["data"]["draft"]
+                assert "O(N log K)" in draft["content"]
+                assert draft["sampleScope"].startswith("owner-authorized submission source")
+                assert draft["citations"][0]["source_position"] == "lines 1-14"
+                assert draft["citations"][0]["text"] == "源码片段已核验，仅用于本次分析"
+                events = await client.get(f"/agent/threads/{thread_id}/events", headers=HEADERS)
+                assert marker not in json.dumps(events.json(), ensure_ascii=False)
+                assert marker not in json.dumps(analyzed.json(), ensure_ascii=False)
+
+                SourceClient.code = "x" * 12_001
+                oversized_thread = await client.post("/agent/threads", headers=HEADERS, json={
+                    "sourceSubmissionId": source_id,
+                    "question": "请分析算法。",
+                })
+                oversized_id = oversized_thread.json()["data"]["threadId"]
+                oversized = await client.post(
+                    f"/agent/threads/{oversized_id}/analyze", headers=HEADERS, json={}
+                )
+                assert oversized.status_code == 413
+                assert oversized.json()["data"]["reason"] == "source_too_large"
+                assert analysis_model.calls == 2
+
+        persisted = b"".join(
+            path.read_bytes() for path in tmp_path.iterdir() if path.is_file()
+        )
+        assert marker.encode() not in persisted
+
+    asyncio.run(scenario())
+    assert analysis_model.saw_source
+    assert analysis_model.calls == 2
+    assert "get_submission_source" in analysis_model.prompt
+
+
 def test_event_cursor_bounds_and_malformed_session_cookies(tmp_path):
     async def scenario():
         app = create_app(state_path=tmp_path / "boundary.sqlite3", client_factory=SessionClient)

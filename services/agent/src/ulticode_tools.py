@@ -5,9 +5,10 @@ Two deliberate boundaries:
 - Identity stays server-side: handlers call the authenticated client and
   accept no user id argument, so model output cannot redirect a query to
   another account.
-- Field projection: submission source code, test payloads, error details and
-  nested user/problem objects never enter the model's context — only the
-  whitelisted fields below are returned.
+- These generic listing/detail tools do not expose submission source code,
+  test payloads, error details or nested user/problem objects — only the
+  whitelisted fields below are returned. The explicit manual analysis path is
+  separate and is bound to one owner-verified thread source.
 """
 
 from __future__ import annotations

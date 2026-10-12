@@ -80,6 +80,8 @@ uv run uvicorn --factory agent_service.app:create_app --app-dir src --host 127.0
 
 真实 UltiCode HTTP / 模型 e2e 均为显式 opt-in。`e2e_sourced_analysis.py` uses agent-authored synthetic Markdown—not submissions, DTOs, or licensed user material—and validates a read-only submission projection without a real model. U03 workflow model analysis additionally requires a valid U02 gate and active budget authorization; other evaluation scripts follow their own gates. Supply credentials through a secure environment/secret store, never command text or logs. Runner contracts live in source and Linear; keep per-run results out of core docs.
 
+`DeepseekModel` requests provider JSON Output with `response_format={"type":"json_object"}` and an explicit JSON prompt. The guard accepts only that exact format when supplied; legacy requests may omit the field. Empty, truncated, malformed or schema-invalid decisions still fail strict validation after known usage is settled. JSON Output does not replace authorization, tool argument validation or citation verification. See [DeepSeek JSON Output](https://api-docs.deepseek.com/guides/json_mode/).
+
 只读工具模型遇到混合请求时拒绝越权部分，继续执行独立且已授权的部分；用户已明确要求的合法只读操作应直接调用工具，不再次征求确认或只提出执行建议。提交分析缺少明确 ID 或可靠会话选择时，不调用提交选择工具或用最近提交列表代替澄清；混合请求先执行独立授权的只读查询，再在最终答案中询问缺失的提交 ID。工具仍绑定当前服务端会话，不能因请求要求切换身份。隔离验收同时要求没有泄露和本人数据的正向工具对照，不能以整段拒绝冒充完整通过。
 
 授权周期的 `authorized_budget_period` 仍只保存生命周期元数据；其快照始终明确
@@ -106,6 +108,7 @@ SQLite 事务提交，转换及 settle 保持独占锁；HALT 前已提交的 re
 settle，未知 usage 仍计入完整预留，超界 usage 同事务记录并关闭 SQL gate。
 失败后只读取原身份、原文件与原账本核对两种状态；只允许对同一 activate/halt 显式重试，
 完整记录先确认持久化再推进待完成转换，缺失或撕裂记录拒绝，不自动准备、重置或换路径。
+有意结束一个周期时，先确认没有 pending 或未知回执，再调用增量 guard 的 `seal()` 保留已结算回执并永久禁止新请求，随后调用绑定账本的 `halt()`；两份状态均确认持久化后才可准备显式授权的后继周期。
 绑定账本 API 有独立 SQL gate 与计数；全局快照标志仍为
 `runtime_accounting_connected=False`、`spend_limit_enforced=False`，因为这不是所有入口的
 全局切换；除下述 DAV-58 显式绑定路径外，其他入口仍沿用旧工厂。SQLite 使用 `synchronous=FULL`
@@ -419,6 +422,22 @@ Run U03/U04 acceptance commands from the candidate checkout itself. The runtime 
 acceptance; fingerprinting a different revision cannot attest the code loaded by this process.
 Offline candidate/bundle fingerprinting remains separate from execution.
 
+U03's runner also requires `ULTICODE_U03_MYSQL_CONTAINER`, `ULTICODE_U03_MYSQL_USER`,
+`ULTICODE_U03_MYSQL_PASSWORD`, and `APP_DB_NAME` from the verified isolated App stack's private
+environment. The selected container/database must be the one used by that App service. The
+runner executes only a read-only MySQL transaction through `docker exec` and verifies both the
+owner/key row count and the returned plan ID. Before each key's first business write, the runner
+requires zero rows; this checks database configuration and access before writing. The receipt
+binds that zero-row observation to the final one-row readback in the same database/container.
+The pre-HTTP crash scenario instead requires zero rows both before the fault and after recovery.
+Credentials travel through `MYSQL_PWD`, never
+command arguments or evidence. The MySQL account must permit the reader's TCP loopback connection
+(`127.0.0.1`) inside the container; an account restricted to `@localhost` may be rejected. Java
+receipt schema v2 includes the redacted database readback;
+missing counts, multiple rows, or a plan mismatch reject acceptance. HTTP by-key readback and
+the unique-key migration alone are not substitutes for this observation. This test-only reader
+does not add database access to the Agent service or execute any database mutation.
+
 First freeze the immutable candidate inputs. This binds source/configuration fingerprints, the
 development case corpus, policy, head/base, and holdout commitment before acceptance results exist:
 
@@ -500,6 +519,13 @@ The same explicitly authorized rollover contract applies to the later supported 
 | `acceptance-revalidation-v11` | V10 |
 | `acceptance-revalidation-v12` | V11 |
 | `acceptance-revalidation-v13` | V12, including its retained unknown request |
+| `acceptance-revalidation-v14` | Settled V13 on the integrated U03 candidate |
+| `acceptance-revalidation-v15` | Settled V14, including its invalid-JSON failure |
+| `acceptance-revalidation-v16` | Settled V15, including the stale-confirmation U03 failure |
+| `acceptance-revalidation-v17` | Settled V16, including the cancellation-state U03 failure |
+| `acceptance-revalidation-v18` | Settled V17, including the equivalent-array-definition boundary failure |
+| `acceptance-revalidation-v19` | Settled V18, including the pre-dispatch save-intent recovery failure |
+| `acceptance-revalidation-v20` | Settled V19, including the incomplete U03 state-read failure |
 
 Before preparation, retain the predecessor ledger, binding and guard at their pinned
 fingerprints and preserve the entire earlier history chain. The selected policy's
@@ -525,6 +551,50 @@ liabilities, never new acceptance receipts or verified provider charges.
 V12 remains permanently halted; V13 starts
 its complete fresh prefix on the newly bound candidate. Unknown settlement needs
 verifiable provider usage and must not be inferred from a balance change.
+
+V14 continues only within the owner's cumulative USD200 authorization. Its sealed
+V13 predecessor must have no unsettled or newly unknown requests; all known costs,
+commitments and inherited unknown liabilities remain cumulative. Failed protocol
+evidence stays in the predecessor, while the integrated candidate receives a fresh
+complete acceptance prefix without changing the existing purpose or token limits.
+
+V15 carries the permanently halted V14 ledger, binding and guard into the JSON-output
+candidate under the same cumulative USD200 authorization. Keep the invalid-JSON
+failure and all known costs in V14; do not resume it or reinterpret it as passing
+acceptance. The earlier three unknown liabilities and every purpose/token cap remain
+unchanged. A new complete prefix must establish acceptance for the changed adapter.
+
+V16 retains the permanently halted V15 ledger, binding and guard for confirmation
+invalidation revalidation. Keep the original incomplete U03 result and its settled
+costs; the earlier U02 gate remains evidence for its original candidate only. The
+same cumulative USD200 ceiling, three unknown liabilities and purpose/token caps
+apply. Fresh acceptance must bind the changed service rather than relabel old proof.
+
+V17 retains the permanently halted V16 ledger, binding and guard for cancellation
+diagnostic revalidation. Preserve the original U02 gate and incomplete U03 result;
+numeric HTTP/Result failure diagnostics do not establish a root cause or a pass.
+The same cumulative USD200 ceiling, three unknown liabilities and purpose/token
+caps apply. Establish fresh acceptance for the changed candidate.
+
+V18 retains the permanently halted V17 ledger, binding and guard for the bounded
+array-range grammar correction. Preserve the original failed boundary result and
+settled costs; local grammar regressions do not replace genuine model acceptance.
+The same cumulative USD200 ceiling, three unknown liabilities and purpose/token
+caps apply. Establish fresh acceptance for the changed candidate.
+
+V19 retains the permanently halted V18 ledger, binding and guard for save-intent
+restart recovery. Preserve the original incomplete U03 result and its settled costs;
+the earlier U02 gate remains evidence for its original candidate only. The same
+cumulative USD200 ceiling, three unknown liabilities and purpose/token caps apply.
+Establish fresh acceptance for the changed candidate.
+
+V20 retains the permanently halted V19 ledger, binding and guard after U03 ended
+`INCOMPLETE` on a state read with HTTP 502 / Result code 50000. The bounded retry
+change does not establish the cause of that response or pass the acceptance gate.
+Preserve all 104 settled V19 attempts and their $0.035851 known actual / $0.932400
+conservative commitment, along with the three historical unknown liabilities. The
+cumulative USD200 ceiling and all purpose/token limits remain unchanged; establish a
+fresh complete acceptance prefix on the changed candidate.
 
 Issue the evidence-bound U02 gate only after those inputs validate. Gate artifact references are
 relative to the private directory containing the gate; place the referenced artifacts there:
@@ -1038,6 +1108,10 @@ explicit confirmation; TTY interaction and human participation are not prerequis
 `--interactive-confirm` is optional. Autonomous runs retain the same authenticated
 owner, draftVersion, paramsDigest, confirmationId, expiry, Java save/readback and
 restart/recovery checks; this does not auto-confirm ordinary end-user workflows.
+Editing a confirmed draft invalidates its confirmation ID. Saving with that ID
+returns HTTP 409 (`confirmation_mismatch`, code 40900), including after further
+edits; an unconfirmed request with an unrelated ID returns HTTP 400. The internal
+invalidation marker is persisted but excluded from public confirmation metadata.
 Artifacts identify `confirmation_actor=autonomous` and keep `human_demo_completed`
 false. `workflow_demo_completed` requires a non-synthetic completed service flow;
 mocked tests remain synthetic and cannot satisfy formal acceptance. Legacy field

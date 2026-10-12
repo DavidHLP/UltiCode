@@ -237,7 +237,8 @@ def test_edit_invalidates_confirmation_and_ttl_boundary_never_posts(tmp_path, mo
             assert edited.status_code == 200
         response = await client.post(f"/agent/threads/{thread_id}/save", headers=HEADERS,
                                      json={"confirmationId": confirmation_id})
-        assert response.status_code == 409 if expiry else response.status_code == 400
+        assert response.status_code == 409
+        assert response.json()["code"] == 40900
         assert posts["count"] == 0
 
     asyncio.run(with_client(app, scenario))

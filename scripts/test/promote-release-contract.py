@@ -22,6 +22,13 @@ def canonical(path):
     return json.loads(path.read_text())
 
 
+def maven_version(service):
+    prop = service.get("maven_version_property")
+    if not prop:
+        return None
+    return "1.0.3" if prop in {"service.version.auth", "service.version.app"} else "1.0.2"
+
+
 def seed(base):
     root = base / "evidence"
     root.mkdir()
@@ -43,7 +50,8 @@ def seed(base):
         (folder / f"{name}.spdx.json").write_text(json.dumps(spdx))
         (folder / f"{name}.provenance.json").write_text(json.dumps(provenance))
         (folder / f"{name}.trivy.json").write_text(json.dumps(trivy))
-        (folder / f"{name}.version").write_text("1.0.2\n" if service.get("maven_version_property") else "\n")
+        version = maven_version(service)
+        (folder / f"{name}.version").write_text(f"{version}\n" if version else "\n")
         (folder / f"{name}.source-commit").write_text(SHA + "\n")
     return root
 
@@ -162,8 +170,9 @@ def main():
             service_name = service["name"]
             image = f"{PREFIX}/{service_name}"
             existing_tags[f"{image}:sha-{SHA[:7]}"] = DIGEST
-            if service.get("maven_version_property"):
-                existing_tags[f"{image}:v1.0.2"] = DIGEST
+            version = maven_version(service)
+            if version:
+                existing_tags[f"{image}:v{version}"] = DIGEST
         state.write_text(json.dumps(existing_tags)); log.write_text("")
         key = f"{PREFIX}/{MATRIX[0]['name']}:sha-{SHA[:7]}"
         result = call(root, bindir, state, log, "--execute", **GITHUB_WRITER, BAD_FINAL_READBACK=key)

@@ -84,6 +84,8 @@ uv run uvicorn --factory agent_service.runtime:create_app --app-dir src --host 1
 
 手动模式只开放 `analyze`：当前登录会话、线程 owner 和本人提交归属检查保持启用。它只读取当前线程绑定的本人源码，通过无参数、请求期工具交给模型，并将源码视为不可信数据；源码上限为 12,000 字符，超限时在模型调用前失败。该模式不启用提交列表源码投影，也不改变正式 U02 的合成语料和 gate。引用在内存中核验，存储时仅保留声明、行范围和核验占位说明，不保留源码引用原文；源码正文不会进入工作流状态、事件或 checkpoint。没有有效 U02 gate 时，confirm/save/recovery 路由不会挂载。该模式证明一次本地真实模型交互，不构成 DAV-58、U02、DAV-46/U03 或 U04 正式验收。正式验收及其他 evaluation runner 继续使用各自的候选绑定 gate。`e2e_sourced_analysis.py` 使用 Agent 编写的合成 Markdown，不会调用真实模型。Runner 合约留在源码与 Linear，每次运行结果不写入核心文档。
 
+对已有线程重试时，成功分析会清空 `receipt.failureReason`；之前失败的事件仍保留在该线程的事件历史中。
+
 `DeepseekModel` requests provider JSON Output with `response_format={"type":"json_object"}` and an explicit JSON prompt. The guard accepts only that exact format when supplied; legacy requests may omit the field. Empty, truncated, malformed or schema-invalid decisions still fail strict validation after known usage is settled. JSON Output does not replace authorization, tool argument validation or citation verification. See [DeepSeek JSON Output](https://api-docs.deepseek.com/guides/json_mode/).
 
 只读工具模型遇到混合请求时拒绝越权部分，继续执行独立且已授权的部分；用户已明确要求的合法只读操作应直接调用工具，不再次征求确认或只提出执行建议。提交分析缺少明确 ID 或可靠会话选择时，不调用提交选择工具或用最近提交列表代替澄清；混合请求先执行独立授权的只读查询，再在最终答案中询问缺失的提交 ID。工具仍绑定当前服务端会话，不能因请求要求切换身份。隔离验收同时要求没有泄露和本人数据的正向工具对照，不能以整段拒绝冒充完整通过。

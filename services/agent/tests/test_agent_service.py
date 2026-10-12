@@ -38,6 +38,56 @@ def test_complete_submission_status_claim(status):
             _verify_answer_boundary({"text": text + " 根因是数组越界。", "citations": []},
                                     [{"status": status}], (), (), (), question="如何复盘？")
 
+def test_manual_source_answer_allows_inline_complexity_formatting():
+    from agent_service.app import _verify_answer_boundary
+
+    document = SourceDocument(
+        doc_id="thread-submission", version="current", source_path="owner-submission",
+        access_scope="owner-authorized-current-thread", sample_kind="owner-submission",
+        text="def merge_k_lists(lists):\n    heapq.heappush(heap, (node.val, i, node))\n    return dummy.next",
+        source_position="lines 1-3",
+    )
+    citation = {
+        "claim": "当前节点会进入最小堆。", "chunk_id": document.chunk_id,
+        "doc_id": document.doc_id, "version": document.version,
+        "source_path": document.source_path, "source_position": document.source_position,
+        "access_scope": document.access_scope, "sample_kind": document.sample_kind,
+        "source_trust": "untrusted-data", "text": "    heapq.heappush(heap, (node.val, i, node))",
+    }
+    answer = "每次取出堆中最小节点并加入其后继，时间复杂度为 `O(N log K)`，额外空间为 `O(K)`。"
+
+    _verify_answer_boundary(
+        {"text": answer, "citations": [citation]}, [{"status": "Accepted"}], (document,),
+        [{"tool_name": "get_submission_source", "failed": False}], (),
+        question="请解释算法的复杂度。", source_required=True,
+    )
+
+def test_manual_source_answer_rejects_uncited_source_line():
+    from agent_service.app import _verify_answer_boundary
+
+    document = SourceDocument(
+        doc_id="thread-submission", version="current", source_path="owner-submission",
+        access_scope="owner-authorized-current-thread", sample_kind="owner-submission",
+        text="def merge_k_lists(lists):\n    heapq.heappush(heap, (node.val, i, node))\n    return dummy.next",
+        source_position="lines 1-3",
+    )
+    citation = {
+        "claim": "函数返回合并后的链表。", "chunk_id": document.chunk_id,
+        "doc_id": document.doc_id, "version": document.version,
+        "source_path": document.source_path, "source_position": document.source_position,
+        "access_scope": document.access_scope, "sample_kind": document.sample_kind,
+        "source_trust": "untrusted-data", "text": "    return dummy.next",
+    }
+
+    with pytest.raises(ValueError, match="answer_source_reference_unverified"):
+        _verify_answer_boundary(
+            {"text": "调用 `heapq.heappush(heap, (node.val, i, node))` 维护候选节点。",
+             "citations": [citation]},
+            [{"status": "Accepted"}], (document,),
+            [{"tool_name": "get_submission_source", "failed": False}], (),
+            question="请解释算法。", source_required=True,
+        )
+
 
 @pytest.mark.parametrize("status,code,terminal", [
     (401, 40100, False), (403, 40300, False), (200, 40100, False),
@@ -214,6 +264,57 @@ def test_manual_analysis_uses_owner_thread_source_without_persisting_source_text
     assert analysis_model.saw_source
     assert analysis_model.calls == 2
     assert "get_submission_source" in analysis_model.prompt
+
+def test_analysis_failure_logs_safe_stage_without_model_content(tmp_path, monkeypatch, caplog):
+    secret_answer = "NEVER_LOG_PRIVATE_MODEL_ANSWER"
+
+    class SourceClient(SessionClient):
+        async def get_my_submission(self, submission_id):
+            return {"id": submission_id, "status": "Accepted", "code": "def solve(): pass"}
+
+    class InvalidModel:
+        async def decide(self, _messages):
+            return ModelDecision(text=secret_answer)
+
+    class Guard:
+        def close(self):
+            pass
+
+    model = InvalidModel()
+    monkeypatch.setattr(
+        "agent_service.app._authorized_model_for_purpose",
+        lambda *_args, **_kwargs: model,
+    )
+
+    async def scenario():
+        app = create_app(
+            state_path=tmp_path / "analysis-failure.sqlite3",
+            client_factory=SourceClient,
+            expected_period=SimpleNamespace(policy_id="manual-agent-live-test-v1"),
+            budget_guard=Guard(),
+            model_purpose="u03_analysis",
+            own_budget_guard=True,
+            analysis_only_test_mode=True,
+        )
+        async with app.router.lifespan_context(app):
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=app), base_url="http://test"
+            ) as client:
+                created = await client.post("/agent/threads", headers=HEADERS, json={
+                    "sourceSubmissionId": str(uuid.uuid4()), "question": "请分析提交。",
+                })
+                thread_id = created.json()["data"]["threadId"]
+                analyzed = await client.post(
+                    f"/agent/threads/{thread_id}/analyze", headers=HEADERS, json={}
+                )
+                assert analyzed.status_code == 502
+                assert analyzed.json()["data"]["reason"] == "upstream_unavailable"
+
+    with caplog.at_level("WARNING", logger="agent_service.app"):
+        asyncio.run(scenario())
+
+    assert "stage=answer_parsing code=model_answer_json_invalid" in caplog.text
+    assert secret_answer not in caplog.text
 
 
 def test_event_cursor_bounds_and_malformed_session_cookies(tmp_path):
@@ -821,14 +922,28 @@ def test_offline_analyze_resumes_same_graph_and_cas_persists_answer(tmp_path):
                 assert created.status_code == 200
                 before = created.json()["data"]
                 thread_id = before["threadId"]
+                app.state.store.transition(thread_id, "owner-1", expected_run=before["runId"],
+                    expected_version=before["draft"]["draftVersion"],
+                    statuses={"awaiting_confirmation"}, changes={"status": "analyzing"},
+                    kind="analysis_started")
+                app.state.store.transition(thread_id, "owner-1", expected_run=before["runId"],
+                    expected_version=before["draft"]["draftVersion"], statuses={"analyzing"},
+                    changes={"status": "awaiting_confirmation", "failure_reason": "analysis_failed"},
+                    kind="analysis_failed")
                 analyzed = await client.post(f"/agent/threads/{thread_id}/analyze", headers=headers, json={})
                 assert analyzed.status_code == 200
                 result = analyzed.json()["data"]
                 assert result["status"] == "awaiting_confirmation"
                 assert result["draft"]["draftVersion"] == 2
+                assert result["receipt"]["failureReason"] is None
                 assert "模型建议（待验证）：建议核对状态" in result["draft"]["content"]
                 assert result["analysis"]["answer"] == "建议核对状态"
                 assert model.calls == 1
+                app.state.store.transition(thread_id, "owner-1", expected_run=result["runId"],
+                    expected_version=result["draft"]["draftVersion"], statuses={"awaiting_confirmation"},
+                    changes={"failure_reason": "analysis_failed"}, kind="legacy_analysis_failed")
+                restored = await client.get(f"/agent/threads/{thread_id}", headers=headers)
+                assert restored.json()["data"]["receipt"]["failureReason"] is None
                 events = (await client.get(f"/agent/threads/{thread_id}/events", headers=headers)).json()["data"]["events"]
                 calls = [event for event in events if event["kind"].startswith("model_")]
                 assert [event["kind"] for event in calls] == ["model_started", "model_completed"]

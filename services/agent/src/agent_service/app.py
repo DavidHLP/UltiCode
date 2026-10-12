@@ -6,6 +6,7 @@ import asyncio
 import hmac
 import httpx
 import json
+import logging
 import os
 import re
 import time
@@ -36,6 +37,18 @@ MAX_BODY = 128 * 1024
 MAX_TITLE = 200
 MAX_CONTENT = 16_000
 MAX_MANUAL_SOURCE_CHARS = 12_000
+_LOGGER = logging.getLogger(__name__)
+_SAFE_ANALYSIS_FAILURE_CODES = frozenset({
+    "model_answer_bounds_invalid", "model_answer_json_invalid", "model_answer_schema_invalid",
+    "model_answer_too_large", "model_answer_type_invalid", "model_answer_unicode_invalid",
+    "model_citation_invalid", "citation_claim_unverified", "citation_integrity_failed",
+    "citation_judge_usage_unknown", "citation_not_retrieved_in_run",
+    "answer_claims_unauthorized_action", "answer_source_diagnosis_unverified",
+    "answer_source_evidence_missing", "answer_source_reference_unverified",
+    "answer_source_refusal_has_reference", "answer_source_request_not_refused",
+    "answer_submission_fact_mismatch", "answer_tool_success_unobserved",
+    "answer_tool_trace_inconsistent",
+})
 MANUAL_SOURCE_TOOL_SPEC = (
     'args: {}; returns the source linked to this owner-verified thread for this analysis only'
 )
@@ -149,6 +162,35 @@ def parse_model_answer(raw: str) -> dict[str, object]:
     except UnicodeEncodeError:
         raise ValueError("model_citation_invalid") from None
     return {"text": text, "citations": citations}
+
+def _safe_analysis_failure_code(error: Exception) -> str:
+    if type(error) is ValueError and len(error.args) == 1:
+        code = error.args[0]
+        if isinstance(code, str) and code in _SAFE_ANALYSIS_FAILURE_CODES:
+            return code
+    return type(error).__name__
+
+def _answer_has_uncited_source_reference(text: str, documents) -> bool:
+    from boundary_evaluation import SUBMISSION_ID_PATTERN
+
+    if SUBMISSION_ID_PATTERN.search(text):
+        return True
+
+    def normalize(value: str) -> str:
+        return " ".join(value.replace("`", "").split()).casefold()
+
+    normalized_text = normalize(text)
+    for document in documents:
+        identifiers = (document.chunk_id, document.doc_id, document.source_path, Path(document.source_path).name)
+        if any(normalize(identifier) in normalized_text for identifier in identifiers if identifier):
+            return True
+        # shortcut: ignore source lines shorter than 8 characters; lower this only if short excerpts leak.
+        if any(
+            len(normalized_line := normalize(line)) >= 8 and normalized_line in normalized_text
+            for line in document.text.splitlines()
+        ):
+            return True
+    return False
 
 
 
@@ -344,7 +386,11 @@ def _verify_answer_boundary(
             r'["“‘「『](?:submission\s+id|submission_id|提交\s*id|提交(?:编号|标识|ID))["”’」』]',
             "", reference_text, flags=re.IGNORECASE,
         )
-    if _refusal_has_reference(reference_text, documents):
+    contains_uncited_reference = (
+        _answer_has_uncited_source_reference(reference_text, documents)
+        if source_required else _refusal_has_reference(reference_text, documents)
+    )
+    if contains_uncited_reference:
         raise ValueError("answer_source_reference_unverified")
 
 
@@ -678,6 +724,9 @@ def create_app(
         draft = row["draft"]
         confirmation = row["confirmation"]
         source = row["source_submission_id"]
+        failure_reason = row["failure_reason"]
+        if row["status"] == "awaiting_confirmation" and row["analysis"].get("answer"):
+            failure_reason = None
         return {
             "threadId": row["thread_id"], "runId": row["run_id"], "status": row["status"],
             "sourceSubmissionId": source, "question": row["question"],
@@ -689,7 +738,7 @@ def create_app(
             "analysis": row["analysis"],
             "confirmation": {key: confirmation[key] for key in ("id", "action", "draftVersion", "paramsDigest", "expiresAt") if key in confirmation},
             "receipt": {"planId": row["plan_id"], "cancelRequested": bool(row["cancel_requested"]),
-                        "failureReason": row["failure_reason"]},
+                        "failureReason": failure_reason},
         }
 
     async def _checkpoint_init(row: dict[str, object]) -> None:
@@ -864,6 +913,7 @@ def create_app(
                 model_entered = judge_entered = False
                 mcp_session = None
                 mcp_entered = False
+                failure_context = {"stage": "analysis_setup"}
                 retrieved: list[dict[str, object]] = []
                 documents = ()
                 search_results: list[dict[str, object]] = []
@@ -964,6 +1014,7 @@ def create_app(
                                 if resource is judge_model:
                                     judge_entered = True
                         async def execute_action(_, analysis_result):
+                            failure_context["stage"] = "answer_parsing"
                             parsed = parse_model_answer(analysis_result["answer"])
                             trace = analysis_result["trace"]
                             trace_results = []
@@ -979,11 +1030,13 @@ def create_app(
                                         "result": observed,
                                     })
                                     search_index += 1
+                            failure_context["stage"] = "answer_boundary"
                             _verify_answer_boundary(
                                 parsed, (facts,), documents, trace, trace_results,
                                 question=str(row["question"]),
                                 source_required=analysis_only_test_mode,
                             )
+                            failure_context["stage"] = "citation_verification"
                             citation_checks = await _verify_citations(
                                 parsed, retrieved, documents, (facts,),
                                 ObservedModel(judge_model, record_event, node="citation_judge"),
@@ -992,6 +1045,7 @@ def create_app(
                             draft = dict(row["draft"])
                             answer = parsed["text"]
                             content = str(draft["content"]) + "\n\n模型建议（待验证）：" + answer
+                            failure_context["stage"] = "draft_validation"
                             _validate_draft(draft["title"], content)
                             citations = parsed["citations"]
                             if analysis_only_test_mode:
@@ -1007,10 +1061,12 @@ def create_app(
                                           "citations": citations, "citation_checks": citation_checks})
                             analysis = {"answer": answer, "trace": analysis_result["trace"],
                                         "citation_checks": citation_checks}
+                            failure_context["stage"] = "workflow_persist"
                             changed = workflow_store.transition(thread_id, owner, expected_run=run_id,
                                 expected_version=version, statuses={"analyzing"},
                                 changes={"status": "awaiting_confirmation", "draft": draft,
-                                         "draft_version": version + 1, "analysis": analysis},
+                                         "draft_version": version + 1, "analysis": analysis,
+                                         "failure_reason": None},
                                 kind="analysis_completed")
                             return {"status": changed["status"], "run_id": changed["run_id"],
                                     "draft_version": changed["draft_version"],
@@ -1026,6 +1082,7 @@ def create_app(
                                 {"question": row["question"], "facts": facts},
                                 ensure_ascii=False, separators=(",", ":"),
                             )
+                            failure_context["stage"] = "analysis_model"
                             loop = await run_readonly_graph(
                                 observed_model, tools, prompt, max_rounds=4, total_timeout=30.0,
                             )
@@ -1047,11 +1104,15 @@ def create_app(
                             statuses={"analyzing"}, changes={"status": "awaiting_confirmation",
                             "failure_reason": "analysis_failed"}, kind="analysis_failed")
                     raise
-                except Exception:
+                except Exception as exc:
                     current = _owned(thread_id, owner)
                     # A fenced graph can finish without an answer; report canonical state.
                     if current["run_id"] != run_id or current["cancel_requested"]:
                         return _thread_response(current, owner)
+                    _LOGGER.warning(
+                        "Agent analysis failed stage=%s code=%s",
+                        failure_context["stage"], _safe_analysis_failure_code(exc),
+                    )
                     if current["status"] == "analyzing" and current["run_id"] == run_id:
                         workflow_store.transition(thread_id, owner, expected_run=run_id, expected_version=version,
                             statuses={"analyzing"}, changes={"status": "awaiting_confirmation",

@@ -75,7 +75,11 @@ thread through a no-argument, request-scoped tool. Source is treated as untruste
 listing tools remain metadata-only. Full source and citation excerpts are not written to the Agent
 store, events, or checkpoints; citation excerpts are integrity-checked in memory and replaced with a
 redaction note before storage. This local smoke path is not a substitute for formal U02/U03/U04
-acceptance.
+acceptance. Analysis errors keep the generic `upstream_unavailable` response. Service logs record
+only the failure stage and a safe reason code; prompts, submission source, and model answers are
+never logged. Manual sourced answers may format complexity notation inline, while uncited exact
+source lines and source identifiers remain rejected. A successful retry clears the prior
+`receipt.failureReason`; the earlier failure remains in the thread's event history.
 
 For the local HTTP demo, start Uvicorn with `agent_service.runtime:create_app`. Live analysis is
 off by default. Formal acceptance mode requires `ULTICODE_AGENT_LIVE_ANALYSIS=1`, a current private

@@ -1079,8 +1079,8 @@ def test_case_response_identity_separates_loop_and_judge_with_shared_adapter():
 
 
 def test_missing_id_contract_requires_direct_selection_not_listing():
-    assert "directly ask" in be.BOUNDARY_ANSWER_CONTRACT
-    assert "Do not offer to list recent submissions" in be.BOUNDARY_ANSWER_CONTRACT
+    assert "ask for the specific id" in be.BOUNDARY_ANSWER_CONTRACT
+    assert "do not guess or diagnose" in be.BOUNDARY_ANSWER_CONTRACT
 
 
 @pytest.mark.parametrize("separate_judge", [False, True])
@@ -1159,10 +1159,10 @@ def test_generation_receives_only_actual_server_trace():
 
 def test_source_refusal_contract_requires_zero_references_preserves_summaries():
     contract = be.BOUNDARY_ANSWER_CONTRACT
-    assert "return citations: []" in contract
-    assert "include no references, links, source identifiers, quotes, or provenance" in contract
-    assert "even if retrieved generic fragments are valid" in contract
-    assert "continue citing retrieved fragments that support the claims" in contract
+    assert "no citations, links, source identifiers, quotes, or provenance" in contract
+    assert "Keep citing retrieved fragments when the answer does rest on them" in contract
+    assert "never invent a citation" in contract
+    assert "Use an empty citations array" in contract
 
 
 @pytest.mark.parametrize("emit_citation", [False, True])
@@ -1408,7 +1408,7 @@ def test_evidence_clause_does_not_excuse_a_separate_tool_failure_claim():
 
 
 def test_source_refusal_contract_forbids_echoing_supplied_submission_id():
-    assert "do not repeat a supplied submission id" in be.BOUNDARY_ANSWER_CONTRACT
+    assert "Do not repeat the supplied submission id" in be.BOUNDARY_ANSWER_CONTRACT
     script = _all_met_script()
     script["证明结论"] = [_answer(
         "I cannot read submission source code for 00000000-0000-4000-8000-000000000000."
@@ -1440,8 +1440,8 @@ def test_source_injection_equivalent_marker_keeps_negation_and_identity_gates(te
 
 
 def test_source_refusal_contract_excludes_generic_judging_appendix():
-    assert "answer only with the source-access limitation" in be.BOUNDARY_ANSWER_CONTRACT
-    assert "summarize generic judging semantics or diagnose the submission" in be.BOUNDARY_ANSWER_CONTRACT
+    assert "is the limitation alone" in be.BOUNDARY_ANSWER_CONTRACT
+    assert "no unrelated judging explanation" in be.BOUNDARY_ANSWER_CONTRACT
     script = _all_met_script()
     script["证明结论"] = [_answer(
         "I cannot quote unavailable source code. Runtime Error is a classifier outcome."

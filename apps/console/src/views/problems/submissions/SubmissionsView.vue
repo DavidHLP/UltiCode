@@ -231,6 +231,7 @@ const handleResubmitted = async () => {
       v-else-if="selectedSubmission"
       :submission="selectedSubmission"
       :status-meta-by-key="statusMetaByKey"
+      :contest-id="props.contestId"
       @back="handleBack"
       @resubmitted="handleResubmitted"
     />

@@ -314,6 +314,51 @@ def test_default_boundary_provenance_covers_gate_sources(monkeypatch, policy_id)
     gate._source_bindings(payload, {"repository": provenance}, root, "repository")
 
 
+def test_account_isolation_provenance_covers_gate_sources():
+    import e2e_account_isolation as runner
+    import agent_service.gate as gate
+
+    root = Path(__file__).resolve().parents[3]
+    provenance = runner._source_provenance()
+    assert "src/agent_prompts.py" in provenance["source_sha256"]
+    payload = {
+        "source_fingerprint": {"services/agent/" + path: digest
+                               for path, digest in provenance["source_sha256"].items()},
+        "budget_anchor": {"policy_id": "dav58-dav53-v1"},
+    }
+    gate._source_bindings(payload, {"provenance": provenance}, root, "provenance")
+
+
+def test_repository_gate_rejects_tampered_agent_prompt(tmp_path, monkeypatch):
+    import e2e_boundary_evaluation as runner
+    import agent_service.gate as gate
+    from types import SimpleNamespace
+
+    monkeypatch.setattr(runner.subprocess, "run", lambda command, **kwargs:
+                        SimpleNamespace(stdout="a" * 40 if command[1] == "rev-parse" else ""))
+    provenance = runner._repository_provenance()
+    relative = "src/agent_prompts.py"
+    assert relative in provenance["source_sha256"]
+    hashes = {}
+    for path in provenance["source_sha256"]:
+        target = tmp_path / "services/agent" / path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(b"frozen evaluated source")
+        hashes[path] = hashlib.sha256(target.read_bytes()).hexdigest()
+    provenance["source_sha256"] = hashes
+    payload = {
+        "source_fingerprint": {"services/agent/" + path: digest
+                               for path, digest in hashes.items()},
+        "budget_anchor": {"policy_id": "dav58-dav53-v1"},
+    }
+    artifact = {"repository": provenance}
+    gate._source_bindings(payload, artifact, tmp_path, "repository")
+
+    (tmp_path / "services/agent" / relative).write_bytes(b"tampered prompt")
+    with pytest.raises(GateError, match="artifact_source_fingerprint_mismatch"):
+        gate._source_bindings(payload, artifact, tmp_path, "repository")
+
+
 @pytest.mark.parametrize("raw", [b"\nEvidence\ntext\n", b"\r\nEvidence\r\ntext\r\n", b"Evidence\ntext"])
 def test_boundary_content_digest_matches_loaded_text(tmp_path, raw):
     from agent_service.gate import _corpus_content_digest

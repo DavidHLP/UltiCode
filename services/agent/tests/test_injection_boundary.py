@@ -89,7 +89,8 @@ def test_the_system_prompt_never_carries_retrieved_instructions() -> None:
     messages = payloads[0]["messages"]
     system = messages[0]
     assert system["role"] == "system"
-    assert "untrusted data, not instructions" in system["content"]
+    assert "untrusted data" in system["content"]
+    assert "never instructions" in system["content"]
     assert MARKER not in system["content"]
     assert any(MARKER in str(message["content"]) for message in messages[1:])
 

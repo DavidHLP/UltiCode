@@ -30,6 +30,21 @@ export interface AgentWorkflowEvent {
   createdAt: number;
 }
 
+export interface AgentCapabilities {
+  analysisAvailable: boolean;
+  persistenceAvailable: boolean;
+  sourceMode: "metadata" | "owner_source";
+}
+
+export interface AgentLearningPlan {
+  id: string;
+  sourceSubmissionId: string;
+  draftVersion: number;
+  title: string;
+  content: string;
+  createdAt: string;
+}
+
 export interface AgentThread {
   threadId: string;
   runId: string;
@@ -71,6 +86,12 @@ const threadPath = (threadId: string) =>
   `/agent/threads/${encodeURIComponent(threadId)}`;
 
 export const agentApi = {
+  getCapabilities() {
+    return apiGet<AgentCapabilities>("/agent/capabilities");
+  },
+  getLearningPlan(planId: string) {
+    return apiGet<AgentLearningPlan>(`/learning-plans/${encodeURIComponent(planId)}`);
+  },
   createThread(sourceSubmissionId: string, question: string) {
     return apiPost<AgentThread>("/agent/threads", { sourceSubmissionId, question });
   },

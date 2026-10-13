@@ -73,6 +73,8 @@ export interface SubmissionRecord {
     slug: string;
   };
   contest_info?: ContestSubmissionInfo;
+  /** False only when the owner API explicitly identifies a practice submission. */
+  contestSubmission?: boolean;
 }
 
 export type DistributionBin =

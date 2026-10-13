@@ -473,15 +473,17 @@ def _source_bindings(payload: dict[str, object], artifact: dict[str, object], ro
     if provenance_key == "repository":
         expected = {
             "e2e_boundary_evaluation.py", "e2e_guarded_boundary_evaluation.py",
-            "src/agent_loop.py", "src/boundary_evaluation.py", "src/citation_integrity.py",
+            "src/agent_loop.py", "src/agent_prompts.py", "src/boundary_evaluation.py",
+            "src/citation_integrity.py",
             "src/citation_review.py", "src/corpus_manifest.py", "src/deepseek_model.py",
             "src/model_budget.py", "src/authorized_budget_period.py", "src/retrieval.py",
             "src/ulticode_tools.py", "src/dav58_live_guard.py",
         }
     else:
         expected = {
-            "e2e_account_isolation.py", "src/agent_loop.py", "src/boundary_evaluation.py",
-            "src/retrieval.py", "src/ulticode_client.py", "src/ulticode_tools.py",
+            "e2e_account_isolation.py", "src/agent_loop.py", "src/agent_prompts.py",
+            "src/boundary_evaluation.py", "src/retrieval.py", "src/ulticode_client.py",
+            "src/ulticode_tools.py",
             "src/dav58_live_guard.py", "src/model_budget.py", "src/authorized_budget_period.py",
         }
     from authorized_budget_period import REVALIDATION_POLICY_IDS

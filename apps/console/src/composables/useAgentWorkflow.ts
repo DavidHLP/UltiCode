@@ -137,7 +137,7 @@ export function useAgentWorkflow() {
     }
   }
 
-  async function loadThread(threadId: string) {
+  async function loadThread(threadId: string, expectedSourceSubmissionId?: string) {
     if (saving.value) return null;
     const token = invalidateRun();
     reset();
@@ -145,6 +145,10 @@ export function useAgentWorkflow() {
     try {
       const value = await agentApi.getThread(threadId);
       if (token !== runGeneration) return null;
+      if (expectedSourceSubmissionId && value.sourceSubmissionId !== expectedSourceSubmissionId) {
+        error.value = "sourceMismatch";
+        return null;
+      }
       applyThread(value);
       if (value.status === "analyzing" || value.status === "saving") connectStream(value, token);
       return value;

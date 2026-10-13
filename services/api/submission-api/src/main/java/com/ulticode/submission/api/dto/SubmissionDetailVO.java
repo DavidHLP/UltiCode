@@ -22,6 +22,7 @@ public class SubmissionDetailVO implements Serializable {
     private String userId;
     private String language;
     private String status;
+    private Boolean contestSubmission;
     private Integer runtime;
     private Double memory;
     private String notes;

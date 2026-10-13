@@ -11,6 +11,14 @@ vi.mock("@/utils/request", () => ({
 describe("agentApi", () => {
   beforeEach(() => vi.clearAllMocks());
 
+  it("reads capabilities and an owned saved learning plan through the request helper", async () => {
+    vi.mocked(apiGet).mockResolvedValue({ analysisAvailable: true, persistenceAvailable: false, sourceMode: "metadata" });
+    await agentApi.getCapabilities();
+    expect(apiGet).toHaveBeenCalledWith("/agent/capabilities");
+    await agentApi.getLearningPlan("plan/one");
+    expect(apiGet).toHaveBeenLastCalledWith("/learning-plans/plan%2Fone");
+  });
+
   it("uses the authenticated Agent workflow endpoints and explicit confirmation payload", async () => {
     const thread = { threadId: "thread-1" };
     vi.mocked(apiPost).mockResolvedValue(thread);

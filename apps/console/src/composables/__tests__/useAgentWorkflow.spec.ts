@@ -75,6 +75,19 @@ describe("useAgentWorkflow run isolation", () => {
     FakeEventSource.instances = [];
   });
 
+  it("rejects an existing thread when its source submission differs from the page", async () => {
+    const unrelated = thread("thread-a", "run-a", "saved");
+    unrelated.sourceSubmissionId = "another-submission";
+    vi.mocked(agentApi.getThread).mockResolvedValueOnce(unrelated);
+    const scope = effectScope();
+    const workflow = scope.run(() => useAgentWorkflow())!;
+
+    await expect(workflow.loadThread("thread-a", "submission-1")).resolves.toBeNull();
+    expect(workflow.thread.value).toBeNull();
+    expect(workflow.error.value).toBe("sourceMismatch");
+    scope.stop();
+  });
+
   it("ignores late events from a cancelled thread after a new thread starts", async () => {
     vi.stubGlobal("EventSource", FakeEventSource);
     const first = thread("thread-a", "run-a", "analyzing");
@@ -227,6 +240,26 @@ describe("useAgentWorkflow run isolation", () => {
       scope.stop();
     },
   );
+
+  it("ignores a save receipt that resolves after its submission panel is disposed", async () => {
+    const confirmed = { ...thread("thread-a", "run-a", "confirmed"), confirmation: { id: "confirmation-1" } };
+    const saved = { ...confirmed, status: "saved" as const, receipt: { planId: "plan-old", cancelRequested: false, failureReason: null } };
+    let resolveSave!: (value: AgentThread) => void;
+    vi.mocked(agentApi.getThread).mockResolvedValue(confirmed);
+    vi.mocked(agentApi.save).mockReturnValue(new Promise<AgentThread>((resolve) => { resolveSave = resolve; }));
+    const scope = effectScope();
+    const workflow = scope.run(() => useAgentWorkflow())!;
+    await workflow.loadThread(confirmed.threadId);
+    const pendingSave = workflow.save();
+    expect(workflow.saving.value).toBe(true);
+
+    scope.stop();
+    resolveSave(saved);
+    await pendingSave;
+
+    expect(workflow.thread.value?.status).toBe("confirmed");
+    expect(workflow.thread.value?.receipt.planId).toBeNull();
+  });
 
   it("shows saving state and refuses cancellation while a save is in flight", async () => {
     const confirmed = {

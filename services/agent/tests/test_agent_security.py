@@ -48,7 +48,7 @@ class Session:
         return self.owner
 
     async def get_my_submission(self, submission_id):
-        return {"id": submission_id, "status": "Accepted"}
+        return {"id": submission_id, "status": "Accepted", "contestSubmission": False}
 
 
 def gated(monkeypatch):
@@ -135,7 +135,7 @@ def test_extra_identity_field_rejected(tmp_path):
 
 
 @pytest.mark.parametrize("headers", [{}, {"authorization": "Bearer forged"}])
-@pytest.mark.parametrize("operation", ["create", "get", "analyze"])
+@pytest.mark.parametrize("operation", ["create", "get", "analyze", "capabilities"])
 def test_missing_session_rejected_before_client_creation(tmp_path, headers, operation):
     def forbidden_client(**_):
         pytest.fail("A missing cookie identity must not construct an upstream client")
@@ -148,6 +148,8 @@ def test_missing_session_rejected_before_client_creation(tmp_path, headers, oper
             })
         elif operation == "get":
             response = await client.get(thread_path, headers=headers)
+        elif operation == "capabilities":
+            response = await client.get("/agent/capabilities", headers=headers)
         else:
             response = await client.post(thread_path + "/analyze", headers=headers, json={})
         assert response.status_code == 401
@@ -287,6 +289,65 @@ def test_unknown_readback_requires_explicit_same_key_retry(tmp_path, monkeypatch
         else:
             assert posts["count"] == 1
     asyncio.run(with_client(app, scenario))
+
+def test_save_rejects_ineligible_source_before_java_post(tmp_path, monkeypatch):
+    gated(monkeypatch)
+    posts = {"count": 0}
+    source = {"contestSubmission": False}
+
+    class Client(write_client(posts)):
+        async def get_my_submission(self, submission_id):
+            return {"id": submission_id, "status": "Accepted", **source}
+
+    app = create_app(state_path=tmp_path / "ineligible-save.sqlite3", client_factory=Client,
+                     u02_gate_path=tmp_path / "gate.json", expected_head="0" * 40)
+
+    async def scenario(client):
+        state = await create_thread(client)
+        thread_id = state["threadId"]
+        confirmed = await client.post(f"/agent/threads/{thread_id}/confirm", headers=HEADERS, json={
+            "draftVersion": 1, "paramsDigest": state["paramsDigest"], "confirm": True,
+        })
+        assert confirmed.status_code == 200
+        source["contestSubmission"] = True
+        response = await client.post(f"/agent/threads/{thread_id}/save", headers=HEADERS,
+                                     json={"confirmationId": confirmed.json()["data"]["confirmation"]["id"]})
+        assert response.status_code == 409
+        assert response.json()["data"]["reason"] == "source_not_eligible"
+        assert posts["count"] == 0
+
+    asyncio.run(with_client(app, scenario))
+
+
+def test_recovery_retry_rejects_ineligible_source_without_reposting(tmp_path, monkeypatch):
+    gated(monkeypatch)
+    posts = {"count": 0}
+    source = {"contestSubmission": False}
+
+    class Client(write_client(posts)):
+        async def get_my_submission(self, submission_id):
+            return {"id": submission_id, "status": "Accepted", **source}
+
+    app = create_app(state_path=tmp_path / "ineligible-retry.sqlite3", client_factory=Client,
+                     u02_gate_path=tmp_path / "gate.json", expected_head="0" * 40)
+
+    async def scenario(client):
+        state = await create_thread(client)
+        thread_id = state["threadId"]
+        confirmed = await client.post(f"/agent/threads/{thread_id}/confirm", headers=HEADERS, json={
+            "draftVersion": 1, "paramsDigest": state["paramsDigest"], "confirm": True,
+        })
+        first = await client.post(f"/agent/threads/{thread_id}/save", headers=HEADERS,
+                                  json={"confirmationId": confirmed.json()["data"]["confirmation"]["id"]})
+        assert first.status_code == 200 and first.json()["data"]["status"] == "unknown"
+        source["contestSubmission"] = True
+        retry = await client.post(f"/agent/threads/{thread_id}/recover", headers=HEADERS, json={"retry": True})
+        assert retry.status_code == 409
+        assert retry.json()["data"]["reason"] == "source_not_eligible"
+        assert posts["count"] == 1
+
+    asyncio.run(with_client(app, scenario))
+
 
 @pytest.mark.parametrize("status", [500, 503])
 def test_http_error_result_code_does_not_override_http_status(status):

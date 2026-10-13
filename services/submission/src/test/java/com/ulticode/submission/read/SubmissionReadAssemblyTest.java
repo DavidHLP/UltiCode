@@ -2,6 +2,7 @@ package com.ulticode.submission.read;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.ulticode.app.api.service.ContestSubmissionPort;
 import com.ulticode.app.api.service.ProblemFactsPort;
 import com.ulticode.app.api.service.SubmissionUserReadPort;
 import com.ulticode.modules.submission.entity.Submission;
@@ -30,6 +31,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
@@ -81,6 +83,7 @@ class SubmissionReadAssemblyTest {
         SubmissionProjection projection = mock(SubmissionProjection.class);
         SubmissionPerformanceStats performanceStats = mock(SubmissionPerformanceStats.class);
         ProblemFactsPort problemFactsPort = mock(ProblemFactsPort.class);
+        ContestSubmissionPort contestSubmissionPort = mock(ContestSubmissionPort.class);
         Submission submission = submission("sub-1", 101L);
         SubmissionDetailVO detail = new SubmissionDetailVO();
 
@@ -91,13 +94,38 @@ class SubmissionReadAssemblyTest {
         when(projection.toDetailVO(any(Submission.class), any(PerformanceStats.class), anyMap()))
                 .thenReturn(detail);
 
-        SubmissionReadAssembly assembly = newAssembly(
-                submissionMapper, projection, performanceStats, problemFactsPort);
+        SubmissionReadAssembly assembly = new SubmissionReadAssembly(
+                submissionMapper, projection, performanceStats, problemFactsPort, contestSubmissionPort);
 
         assertThat(assembly.findById("sub-1", "user-1")).isSameAs(detail);
+        assertThat(detail.getContestSubmission()).isFalse();
+        assertThat(new ObjectMapper().valueToTree(detail).path("contestSubmission").asBoolean()).isFalse();
         assertThat(assembly.findById("sub-1", "other-user")).isNull();
         assertThat(assembly.findById(null, "user-1")).isNull();
+        verify(contestSubmissionPort).isContestSubmission("sub-1");
         verify(projection).toDetailVO(same(submission), same(PerformanceStats.EMPTY), anyMap());
+    }
+
+    @Test
+    void findByIdPropagatesContestSubmissionAndFailsClosedOnLookupError() {
+        SubmissionMapper mapper = mock(SubmissionMapper.class);
+        SubmissionProjection projection = mock(SubmissionProjection.class);
+        SubmissionPerformanceStats stats = mock(SubmissionPerformanceStats.class);
+        ProblemFactsPort facts = mock(ProblemFactsPort.class);
+        ContestSubmissionPort contest = mock(ContestSubmissionPort.class);
+        Submission row = submission("sub-1", 101L);
+        SubmissionDetailVO detail = new SubmissionDetailVO();
+        when(mapper.selectById("sub-1")).thenReturn(row);
+        when(facts.findDisplayFactsBatch(anyCollection())).thenReturn(Map.of());
+        when(stats.compute(any(Submission.class), anyInt(), any())).thenReturn(PerformanceStats.EMPTY);
+        when(projection.toDetailVO(any(Submission.class), any(PerformanceStats.class), anyMap())).thenReturn(detail);
+        when(contest.isContestSubmission("sub-1")).thenReturn(true);
+        SubmissionReadAssembly assembly = new SubmissionReadAssembly(mapper, projection, stats, facts, contest);
+
+        assertThat(assembly.findById("sub-1", "user-1").getContestSubmission()).isTrue();
+        when(contest.isContestSubmission("sub-1")).thenThrow(new IllegalStateException("lookup unavailable"));
+        assertThatThrownBy(() -> assembly.findById("sub-1", "user-1"))
+                .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
@@ -201,7 +229,8 @@ class SubmissionReadAssemblyTest {
         SubmissionProjection projection = new DefaultSubmissionProjection(
                 submissionMapper, userReadPort, problemFactsPort, new ObjectMapper());
         SubmissionReadAssembly assembly = new SubmissionReadAssembly(
-                submissionMapper, projection, mock(SubmissionPerformanceStats.class), problemFactsPort);
+                submissionMapper, projection, mock(SubmissionPerformanceStats.class), problemFactsPort,
+                mock(ContestSubmissionPort.class));
 
         List<String> requested = IntStream.range(0, 101)
                 .mapToObj(i -> "sub-" + i)
@@ -229,7 +258,8 @@ class SubmissionReadAssemblyTest {
             SubmissionPerformanceStats performanceStats,
             ProblemFactsPort problemFactsPort) {
         return new SubmissionReadAssembly(
-                submissionMapper, projection, performanceStats, problemFactsPort);
+                submissionMapper, projection, performanceStats, problemFactsPort,
+                mock(ContestSubmissionPort.class));
     }
 
     private static Submission submission(String id, Long problemId) {

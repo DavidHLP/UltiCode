@@ -21,6 +21,7 @@ const statusMeta = ref<SubmissionStatusMeta[]>([]);
 const isLoading = ref(true);
 const notFound = ref(false);
 const forbidden = ref(false);
+let loadGeneration = 0;
 
 const statusMetaByKey = computed<Record<string, SubmissionStatusMeta>>(() =>
   statusMeta.value.reduce(
@@ -38,6 +39,7 @@ const submissionId = computed(() => {
 });
 
 const loadData = async (id: string) => {
+  const generation = ++loadGeneration;
   isLoading.value = true;
   notFound.value = false;
   forbidden.value = false;
@@ -49,11 +51,13 @@ const loadData = async (id: string) => {
         ? Promise.resolve(statusMeta.value)
         : fetchSubmissionStatuses(),
     ]);
+    if (generation !== loadGeneration) return;
     submission.value = submissionResult;
     if (!statusMeta.value.length) {
       statusMeta.value = statusesResult;
     }
   } catch (error) {
+    if (generation !== loadGeneration) return;
     // Extract HTTP status from axios-shaped error or other shapes.
     const status =
       (error as { response?: { status?: number } } | null)?.response?.status ??
@@ -73,7 +77,7 @@ const loadData = async (id: string) => {
       });
     }
   } finally {
-    isLoading.value = false;
+    if (generation === loadGeneration) isLoading.value = false;
   }
 };
 

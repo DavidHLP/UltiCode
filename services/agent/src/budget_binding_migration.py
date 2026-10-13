@@ -150,6 +150,13 @@ def resolve_pair(slot, identity, kind, recorded, observed):
     """Authorize only the exact audited object; no generic device exception."""
     if recorded == observed:
         return observed
+    if identity.get("policy_id") == "manual-agent-live-test-v1":
+        from manual_budget_rebinding import resolve_manual_pair
+        try:
+            return resolve_manual_pair(slot, identity, kind, recorded, observed)
+        except (ValueError, OSError, KeyError, TypeError) as error:
+            from authorized_budget_period import PeriodError
+            raise PeriodError("manual budget device recovery unavailable or invalid") from error
     try:
         event, _ = _read_event(Path(slot) / EVENT)
         _validate(event, Path(slot), identity)

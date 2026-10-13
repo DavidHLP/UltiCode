@@ -138,7 +138,8 @@ class SubmissionUserQueryProviderIT {
                 submissionMapper, userReadPort, problemFacts, new ObjectMapper());
         SubmissionPerformanceStats performanceStats = mock(SubmissionPerformanceStats.class);
         provider = new SubmissionUserQueryProvider(
-                new SubmissionReadAssembly(submissionMapper, projection, performanceStats, problemFacts));
+                new SubmissionReadAssembly(submissionMapper, projection, performanceStats, problemFacts,
+                        mock(com.ulticode.app.api.service.ContestSubmissionPort.class)));
     }
 
     @AfterEach
@@ -294,7 +295,8 @@ class SubmissionUserQueryProviderIT {
         SubmissionProjection enrichedProjection = new DefaultSubmissionProjection(
                 submissionMapper, userReadPort, problemFacts, new ObjectMapper());
         SubmissionReadAssembly enrichedAssembly = new SubmissionReadAssembly(
-                submissionMapper, enrichedProjection, mock(SubmissionPerformanceStats.class), problemFacts);
+                submissionMapper, enrichedProjection, mock(SubmissionPerformanceStats.class), problemFacts,
+                mock(com.ulticode.app.api.service.ContestSubmissionPort.class));
         SubmissionUserQueryProvider enrichedProvider =
                 new SubmissionUserQueryProvider(enrichedAssembly);
 

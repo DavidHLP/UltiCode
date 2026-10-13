@@ -25,6 +25,12 @@ from ulticode_client import UlticodeServiceError
 HEADERS = {"cookie": "access_token=access; csrf_token=csrf", "x-csrf-token": "csrf"}
 
 
+async def with_client(app, callback):
+    async with app.router.lifespan_context(app):
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
+            await callback(client)
+
+
 @pytest.mark.parametrize("status", ["Wrong Answer", "Time Limit Exceeded", "Runtime Error"])
 def test_complete_submission_status_claim(status):
     from agent_service.app import _verify_answer_boundary
@@ -100,6 +106,128 @@ def test_only_payload_and_idempotency_errors_block_retry(status, code, terminal)
     assert _deterministic_business_error(UlticodeServiceError(code, status)) is terminal
 
 
+@pytest.mark.parametrize("status,contest,present", [
+    ("Pending", False, True), ("Judging", False, True), ("Future Status", False, True),
+    ("Accepted", True, True), ("Accepted", None, False), ("Accepted", 0, True),
+])
+def test_create_rejects_ineligible_source_metadata(tmp_path, status, contest, present):
+    class Client(SessionClient):
+        async def get_my_submission(self, submission_id):
+            result = {"id": submission_id, "status": status}
+            if present:
+                result["contestSubmission"] = contest
+            return result
+
+    app = create_app(state_path=tmp_path / "ineligible.sqlite3", client_factory=Client)
+
+    async def scenario(client):
+        response = await client.post("/agent/threads", headers=HEADERS, json={
+            "sourceSubmissionId": str(uuid.uuid4()), "question": "如何复盘？",
+        })
+        assert response.status_code == 409
+        assert response.json()["data"]["reason"] == "source_not_eligible"
+
+    asyncio.run(with_client(app, scenario))
+
+
+def test_analyze_and_confirm_reject_source_that_becomes_ineligible(tmp_path, monkeypatch):
+    source = {"contestSubmission": False}
+    model_calls = {"count": 0}
+
+    class Client(SessionClient):
+        async def get_my_submission(self, submission_id):
+            return {"id": submission_id, "status": "Accepted", **source}
+
+    monkeypatch.setattr("agent_service.app.load_u02_gate", lambda *_args, **_kwargs: {"test_only": True})
+    app = create_app(
+        state_path=tmp_path / "ineligible-actions.sqlite3", client_factory=Client,
+        u02_gate_path=tmp_path / "gate.json", expected_head="0" * 40,
+        offline_model_factory=lambda: (model_calls.update(count=model_calls["count"] + 1), {})
+    )
+
+    async def scenario(client):
+        created = await client.post("/agent/threads", headers=HEADERS, json={
+            "sourceSubmissionId": str(uuid.uuid4()), "question": "如何复盘？",
+        })
+        state = created.json()["data"]
+        source["contestSubmission"] = True
+        for path, body in ((f"/agent/threads/{state['threadId']}/analyze", {}),
+                           (f"/agent/threads/{state['threadId']}/confirm", {
+                               "draftVersion": 1, "paramsDigest": state["paramsDigest"], "confirm": True,
+                           })):
+            response = await client.post(path, headers=HEADERS, json=body)
+            assert response.status_code == 409
+            assert response.json()["data"]["reason"] == "source_not_eligible"
+        assert model_calls["count"] == 0
+
+    asyncio.run(with_client(app, scenario))
+
+
+def test_capabilities_report_available_modes_and_recheck_expired_gate(tmp_path, monkeypatch):
+    gate_valid = {"value": True}
+
+    def load_gate(*_args, **_kwargs):
+        if not gate_valid["value"]:
+            from agent_service.gate import GateError
+            raise GateError("expired")
+        return {"test_only": True}
+
+    monkeypatch.setattr("agent_service.app.load_u02_gate", load_gate)
+
+    class Guard:
+        def close(self):
+            pass
+
+    async def get_capabilities(app):
+        async with app.router.lifespan_context(app):
+            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
+                response = await client.get("/agent/capabilities", headers=HEADERS)
+                assert response.status_code == 200
+                return response.json()["data"]
+
+    default = create_app(state_path=tmp_path / "default.sqlite3", client_factory=SessionClient)
+    assert asyncio.run(get_capabilities(default)) == {
+        "analysisAvailable": False, "persistenceAvailable": False, "sourceMode": "metadata",
+    }
+
+    offline = create_app(state_path=tmp_path / "offline.sqlite3", client_factory=SessionClient,
+                         offline_model_factory=lambda: (object(), {}))
+    assert asyncio.run(get_capabilities(offline)) == {
+        "analysisAvailable": True, "persistenceAvailable": False, "sourceMode": "metadata",
+    }
+
+    manual = create_app(
+        state_path=tmp_path / "manual.sqlite3", client_factory=SessionClient,
+        expected_period=SimpleNamespace(policy_id="manual-agent-live-test-v1"),
+        budget_guard=Guard(), model_purpose="u03_analysis", own_budget_guard=True,
+        analysis_only_test_mode=True,
+    )
+    assert asyncio.run(get_capabilities(manual)) == {
+        "analysisAvailable": True, "persistenceAvailable": False, "sourceMode": "owner_source",
+    }
+
+    live = create_app(
+        state_path=tmp_path / "live.sqlite3", client_factory=SessionClient,
+        u02_gate_path=tmp_path / "gate.json", expected_head="0" * 40,
+        expected_period=SimpleNamespace(policy_id="test"), budget_guard=Guard(),
+        model_purpose="u03_analysis",
+    )
+    async def check_gate_capabilities():
+        async with live.router.lifespan_context(live):
+            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=live), base_url="http://test") as client:
+                active = await client.get("/agent/capabilities", headers=HEADERS)
+                assert active.json()["data"] == {
+                    "analysisAvailable": True, "persistenceAvailable": True, "sourceMode": "metadata",
+                }
+                gate_valid["value"] = False
+                expired = await client.get("/agent/capabilities", headers=HEADERS)
+                assert expired.json()["data"] == {
+                    "analysisAvailable": False, "persistenceAvailable": False, "sourceMode": "metadata",
+                }
+
+    asyncio.run(check_gate_capabilities())
+
+
 @pytest.mark.parametrize("status,code,expected", [
     (404, 40400, 404), (503, 40400, 502), (401, 40100, 401), (403, 40300, 401),
 ])
@@ -154,7 +282,7 @@ def test_manual_analysis_uses_owner_thread_source_without_persisting_source_text
         code = source
 
         async def get_my_submission(self, submission_id):
-            return {"id": submission_id, "status": "Accepted", "code": self.code}
+            return {"id": submission_id, "status": "Accepted", "contestSubmission": False, "code": self.code}
 
     class SourceModel:
         def __init__(self):
@@ -270,7 +398,7 @@ def test_analysis_failure_logs_safe_stage_without_model_content(tmp_path, monkey
 
     class SourceClient(SessionClient):
         async def get_my_submission(self, submission_id):
-            return {"id": submission_id, "status": "Accepted", "code": "def solve(): pass"}
+            return {"id": submission_id, "status": "Accepted", "contestSubmission": False, "code": "def solve(): pass"}
 
     class InvalidModel:
         async def decide(self, _messages):
@@ -374,7 +502,7 @@ class ScriptedModel:
 
     async def decide(self, messages):
         self.calls += 1
-        assert "You are a read-only learning assistant" in messages[0]["content"]
+        assert "Match the answer to the situation" in messages[0]["content"]
         return ModelDecision(text=json.dumps({"text": "建议核对状态", "citations": []}, ensure_ascii=False))
 
 
@@ -404,7 +532,7 @@ class SessionClient:
         return "owner-1"
 
     async def get_my_submission(self, submission_id):
-        return {"id": submission_id, "status": "Accepted"}
+        return {"id": submission_id, "status": "Accepted", "contestSubmission": False}
 
 
 def test_opt_in_agent_mcp_tool_uses_same_graph_and_event_record(tmp_path, monkeypatch):

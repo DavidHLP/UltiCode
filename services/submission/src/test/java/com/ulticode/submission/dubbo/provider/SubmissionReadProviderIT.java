@@ -141,7 +141,8 @@ class SubmissionReadProviderIT {
         SubmissionProjection projection = new DefaultSubmissionProjection(
                 submissionMapper, userRead, problemFacts, new com.fasterxml.jackson.databind.ObjectMapper());
         SubmissionReadAssembly readAssembly = new SubmissionReadAssembly(
-                submissionMapper, projection, mock(SubmissionPerformanceStats.class), problemFacts);
+                submissionMapper, projection, mock(SubmissionPerformanceStats.class), problemFacts,
+                mock(com.ulticode.app.api.service.ContestSubmissionPort.class));
         return new SubmissionReadProvider(readAssembly);
     }
 

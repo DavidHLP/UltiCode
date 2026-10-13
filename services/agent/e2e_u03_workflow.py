@@ -29,6 +29,9 @@ from agent_service.gate import (
     GateError, current_budget_anchor, load_u02_gate, require_execution_candidate,
     validate_u02_gate_payload, validate_u03_result,
 )
+from agent_service.runtime_authorization import (
+    open_u03_runtime_guard, resolve_u03_runtime_binding,
+)
 from authorized_budget_period import POLICY
 from ulticode_client import UlticodeClient, UlticodeServiceError
 from u03_database_readback import read_business_rows, validate_business_rows
@@ -503,41 +506,15 @@ def _agent_child(
     expected_period = None
     if period_values is not None:
         from authorized_budget_period import POLICY_ID, PeriodIdentity
-        from dav58_live_guard import IncrementalGuard
-        from model_budget import authorized_model
-        from agent_service.gate import current_budget_anchor
-
         expected_period = PeriodIdentity(
             period_id=period_values[0], identity=period_values[1], config_sha256=period_values[2],
             policy_id=period_values[3] if len(period_values) == 4 else POLICY_ID,
         )
-        _, budget = authorized_model(expected_period)
-        snapshot = budget.snapshot()
-        anchor = current_budget_anchor(expected_period) if expected_period.policy_id != POLICY_ID else current_budget_anchor()
+        binding = resolve_u03_runtime_binding(expected_period)
         if (guard_path is None or guard_sha256 is None or model_purpose != "u03_analysis"
-                or anchor.get("identity") != expected_period.identity
-                or anchor.get("config_sha256") != expected_period.config_sha256
-                or snapshot.get("period_identity") != expected_period.identity
-                or snapshot.get("config_sha256") != expected_period.config_sha256
-                or snapshot.get("attempts") != anchor.get("attempts")
-                or snapshot.get("actual_micro_usd") != anchor.get("actual_micro_usd")):
+                or Path(guard_path) != binding.guard_path or guard_sha256 != binding.guard_sha256):
             raise ValueError("u03_runtime_budget_binding_changed")
-        private_guard_path = Path(guard_path)
-        info = private_guard_path.lstat()
-        raw = private_guard_path.read_bytes()
-        if (not stat.S_ISREG(info.st_mode) or info.st_nlink != 1 or stat.S_IMODE(info.st_mode) != 0o600
-                or hashlib.sha256(raw).hexdigest() != guard_sha256):
-            raise ValueError("u03_shared_guard_changed")
-        guard = IncrementalGuard(
-            private_guard_path, resume_sha256=guard_sha256,
-            period_identity=expected_period.identity, config_sha256=expected_period.config_sha256,
-            budget=budget if expected_period.policy_id != POLICY_ID else None,
-        )
-        if (len(guard.state["receipts"]) != snapshot["attempts"]
-                or guard.state["settled_peak_micro_usd"] != snapshot["actual_micro_usd"]
-                or guard.state["pending_micro_usd"] or guard.state["halted"]):
-            guard.close()
-            raise ValueError("u03_shared_guard_budget_mismatch")
+        guard = open_u03_runtime_guard(binding)
 
     def client_factory(*, access_token: str, csrf_token: str | None):
         base_marker = Path(marker_path)
@@ -629,33 +606,8 @@ async def _start_agent(
     raise TimeoutError("u03_agent_ready_timeout")
 
 
-def _shared_guard_path(identity) -> Path:
-    from model_budget import authorization_slot
-
-    return authorization_slot(identity) / "accounting" / f"dav58-increment-{identity.identity}.json"
-
-
-def _read_existing_guard(path: Path) -> tuple[dict, str]:
-    if not path.is_absolute():
-        raise ValueError("u03_guard_path_must_be_absolute")
-    info = path.lstat()
-    if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1 or stat.S_IMODE(info.st_mode) != 0o600:
-        raise ValueError("u03_shared_guard_not_private")
-    value, raw = _read_json(path)
-    if (value.get("halted") is not False or value.get("pending_micro_usd") != 0
-            or not isinstance(value.get("receipts"), list)):
-        raise ValueError("u03_shared_guard_unresolved")
-    return value, hashlib.sha256(raw).hexdigest()
-
-
 def _u03_runtime_binding(args: argparse.Namespace):
-    from authorized_budget_period import POLICY_ID, policy_for, PeriodIdentity
-    PERIOD_POLICY = policy_for(getattr(args, "policy_id", POLICY_ID))
-    purposes = {"u03_analysis", "u03_citation_judge"}
-    if not purposes <= set(PERIOD_POLICY["lanes"]):
-        raise ValueError("model_budget_purpose_blocked")
-    from model_budget import authorized_model
-    from agent_service.gate import current_budget_anchor
+    from authorized_budget_period import POLICY_ID, PeriodIdentity
 
     values = (args.period_id, args.period_identity, args.config_sha256)
     if any(not isinstance(value, str) or not value.strip() for value in values):
@@ -664,30 +616,11 @@ def _u03_runtime_binding(args: argparse.Namespace):
         period_id=args.period_id, identity=args.period_identity, config_sha256=args.config_sha256,
         policy_id=getattr(args, "policy_id", POLICY_ID),
     )
-    _, budget = authorized_model(expected)
-    snapshot = budget.snapshot()
-    anchor = current_budget_anchor(expected) if expected.policy_id != POLICY_ID else current_budget_anchor()
-    if (anchor.get("identity") != expected.identity or anchor.get("period_id") != expected.period_id
-            or anchor.get("config_sha256") != expected.config_sha256 or anchor.get("policy_id") != expected.policy_id
-            or snapshot.get("period_identity") != expected.identity
-            or snapshot.get("config_sha256") != expected.config_sha256
-            or snapshot.get("attempts") != anchor.get("attempts")
-            or snapshot.get("actual_micro_usd") != anchor.get("actual_micro_usd")
-            or snapshot.get("state") != "active" or snapshot.get("sql_gate") != "active"
-            or snapshot.get("halted") or snapshot.get("unknown_usage_attempts")
-            or snapshot.get("unsettled_attempts")):
-        raise ValueError("u03_budget_anchor_mismatch")
-    guard_path = _shared_guard_path(expected)
-    guard_data, guard_sha = _read_existing_guard(guard_path)
-    if (guard_data.get("period_identity") != expected.identity
-            or guard_data.get("config_sha256") != expected.config_sha256
-            or len(guard_data["receipts"]) != anchor.get("attempts")
-            or guard_data.get("settled_peak_micro_usd") != anchor.get("actual_micro_usd")):
-        raise ValueError("u03_guard_prefix_mismatch")
+    binding = resolve_u03_runtime_binding(expected)
     values = (expected.period_id, expected.identity, expected.config_sha256)
     if expected.policy_id != POLICY_ID:
         values += (expected.policy_id,)
-    return values, guard_path, guard_sha
+    return values, binding.guard_path, binding.guard_sha256
 
 
 async def start_u03_agent(

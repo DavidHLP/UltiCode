@@ -117,6 +117,7 @@ def _repository_provenance(policy_id: str = POLICY_ID) -> dict[str, object]:
         "e2e_boundary_evaluation.py",
         "e2e_guarded_boundary_evaluation.py",
         "src/agent_loop.py",
+        "src/agent_prompts.py",
         "src/boundary_evaluation.py",
         "src/citation_integrity.py",
         "src/citation_review.py",

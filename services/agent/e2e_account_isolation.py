@@ -2298,6 +2298,7 @@ async def _agent_isolation_probe(
 SOURCE_FILES = (
     "e2e_account_isolation.py",
     "src/agent_loop.py",
+    "src/agent_prompts.py",
     "src/boundary_evaluation.py",
     "src/retrieval.py",
     "src/ulticode_client.py",

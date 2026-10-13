@@ -247,7 +247,7 @@ def test_workflow_restart_owner_isolation_and_unconfirmed_save_fail_closed(monke
             return self.owner
 
         async def get_my_submission(self, source_id):
-            return {"id": source_id, "status": "Accepted"}
+            return {"id": source_id, "status": "Accepted", "contestSubmission": False}
 
     monkeypatch.setattr(agent_app, "load_u02_gate", lambda *args, **kwargs: {"synthetic_test_gate": True})
     state_path = tmp_path / "workflow.sqlite3"
@@ -306,7 +306,7 @@ def test_ambiguous_save_recovers_same_key_without_automatic_retry(monkeypatch, t
             return "owner-a"
 
         async def get_my_submission(self, source_id):
-            return {"id": source_id, "status": "Accepted"}
+            return {"id": source_id, "status": "Accepted", "contestSubmission": False}
 
         async def save_learning_plan(self, **payload):
             shared["posts"] += 1

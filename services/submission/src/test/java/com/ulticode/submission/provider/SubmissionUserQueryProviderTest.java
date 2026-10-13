@@ -48,7 +48,8 @@ class SubmissionUserQueryProviderTest {
                 submissionMapper,
                 projection,
                 mock(SubmissionPerformanceStats.class),
-                problemFactsPort);
+                problemFactsPort,
+                mock(com.ulticode.app.api.service.ContestSubmissionPort.class));
         provider = new SubmissionUserQueryProvider(readAssembly);
     }
 

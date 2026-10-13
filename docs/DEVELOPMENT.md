@@ -80,6 +80,8 @@ uv run uvicorn --factory agent_service.runtime:create_app --app-dir src --host 1
 
 默认启动只提供线程与会话 API，实时分析保持关闭。正式验收实时分析仍须设置 `ULTICODE_AGENT_LIVE_ANALYSIS=1`、`ULTICODE_AGENT_U02_GATE_PATH`、`ULTICODE_AGENT_EXPECTED_HEAD` 和 `ULTICODE_AGENT_EXPECTED_BASE`；gate 必须绑定当前候选。Agent 从已验证 gate 的预算锚点读取周期身份，核对现有活动账本及共享 guard，并使用授权的 `u03_analysis` / `u03_citation_judge` lanes。
 
+手动预算因重启后的文件系统设备编号变化而无法读取时，可在 `services/agent/` 执行 `DEEPSEEK_MODEL=deepseek-flash uv run python prepare_manual_live_test_budget.py --rebind-device`。此恢复仅适用于既有手动测试周期：校验原始绑定、文件 inode、文件系统 UUID 与子卷、账本完整性和已结算用量，并发布私有恢复记录；不修改原账本、释放历史预留或增加额度。文件被替换、用量未结算、文件系统身份变化时仍拒绝恢复。随后按下文显式启用手动真实分析；恢复本身不调用模型。
+
 本地手动真实模型冒烟测试不再等待 U02 验收 gate，但只能使用专用、一次性、封顶的分析预算。首次在 `services/agent/` 执行 `uv run python prepare_manual_live_test_budget.py`，它会创建并激活固定 `$182.00` 的账本以及空的私有共享 guard；该金额是 `$200` 累计授权扣除既有 `$15.024914` committed 与 `$2.359296` unresolved exposure 后的保守新额度，未知费用不会释放。若准备过程曾在账本激活后中断，脚本只会复用身份匹配、仍活动且调用/预留/实际费用/未知用量全为零的周期来补建缺失 guard；已有 guard 不会被覆盖，其他已有槽位也不会重建。随后仅在安全环境显式设置 `ULTICODE_AGENT_LIVE_ANALYSIS=1` 和 `ULTICODE_AGENT_MANUAL_ANALYSIS_ONLY=1`，并提供 `DEEPSEEK_MODEL=deepseek-flash` 与 `DEEPSEEK_API_KEY`。运行时只读取并锁定既有活动账本/guard，不创建或重置它们，也不在启动时调用模型；共享 guard 同时只允许一个 Agent 进程持有。
 
 手动模式只开放 `analyze`：当前登录会话、线程 owner 和本人提交归属检查保持启用。它只读取当前线程绑定的本人源码，通过无参数、请求期工具交给模型，并将源码视为不可信数据；源码上限为 12,000 字符，超限时在模型调用前失败。该模式不启用提交列表源码投影，也不改变正式 U02 的合成语料和 gate。引用在内存中核验，存储时仅保留声明、行范围和核验占位说明，不保留源码引用原文；源码正文不会进入工作流状态、事件或 checkpoint。没有有效 U02 gate 时，confirm/save/recovery 路由不会挂载。该模式证明一次本地真实模型交互，不构成 DAV-58、U02、DAV-46/U03 或 U04 正式验收。正式验收及其他 evaluation runner 继续使用各自的候选绑定 gate。`e2e_sourced_analysis.py` 使用 Agent 编写的合成 Markdown，不会调用真实模型。Runner 合约留在源码与 Linear，每次运行结果不写入核心文档。
@@ -384,6 +386,42 @@ A confirmation alone is not a successful Java write. `LearningPlanService` logs 
 uncertain write with Java's owner-scoped by-key lookup and the original idempotency key; it never
 exposes that key. For the U04 saved-record readback, use the returned `planId` with
 `GET /learning-plans/{planId}` rather than exposing or using the private idempotency key.
+
+### Console submission review
+
+The product entry is a collapsible review panel in the shared submission detail, used by both
+`/submissions/:id` and the problem page's selected submission. The personal submission list links
+to that specific result. `/personal/agent?threadId=...` is a compatibility entry that reads the
+owned thread before routing to its source detail; without a thread it leads to personal submissions.
+It is not a standalone chat page or a manual submission-ID form.
+
+`VITE_AGENT_REVIEW_ENABLED=true` explicitly enables the Console entry at build/dev-server startup.
+Unset or any other value keeps it off without Agent requests. This flag does not start the Python
+service, grant model spending, expose backend ports, or enable Java persistence. Continue using
+the existing same-origin `/api` proxy, HttpOnly session cookies and CSRF handling. The authenticated
+`GET /agent/capabilities` describes analysis/persistence availability and source mode; a failed
+capability read must not prevent ordinary submission viewing. Updated Java detail providers must
+return explicit `contestSubmission: false` for eligible practice submissions before rollout.
+
+The entry is limited to the signed-in owner's known terminal ordinary-practice submission. Known
+contest context, a missing/invalid contest marker, nonterminal or unknown status does not qualify.
+Python repeats source eligibility checks before workflow actions. Manual `owner_source` mode
+requires a visible source-sharing acknowledgement before analysis and never enables persistence;
+normal `metadata` mode does not send browser source code or hidden test cases. Neither opening a
+panel nor restoring a thread automatically starts a new model call.
+
+Reuse `useAgentWorkflow` for version/digest confirmation, separate save, SSE, cancellation and
+original-key recovery. Keep `threadId` in the route for reload, check the thread's source against
+the current submission, and fence responses after identity/submission/run changes. Closing a panel
+only hides it; explicitly cancel to request cancellation. Read a saved record from Java using
+`receipt.planId`; a failed readback is not proof that a write failed. Unknown outcomes use the
+existing recovery action, never a fresh key or an automatic save retry.
+
+For UI validation, run Console API/composable/component tests, type-check and build. Use a local
+browser with explicitly synthetic Auth/App/Agent responses to exercise desktop/narrow layouts,
+focus, navigation, source-sharing consent, confirmation/save separation and recovery without
+provider calls. Report that proof separately from real Auth/Java/model integration and formal
+U02/U03/U04 acceptance. Do not consume sealed holdouts for frontend regression work.
 
 ### U02 U03 U04 immutable acceptance chain
 

@@ -1,6 +1,7 @@
 """Create and activate the fixed one-shot local Agent smoke budget."""
 
 import os
+import argparse
 import sys
 from pathlib import Path
 
@@ -16,11 +17,18 @@ from model_budget import ModelBudget, authorization_slot, authorized_period_conf
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--rebind-device", action="store_true")
+    args = parser.parse_args()
     config_sha256 = authorized_period_config_sha256(MANUAL_LIVE_TEST_POLICY_ID)
     expected = PeriodIdentity(
         MANUAL_LIVE_TEST_PERIOD_ID, config_sha256, "0" * 32, MANUAL_LIVE_TEST_POLICY_ID,
     )
     slot = authorization_slot(expected)
+    if args.rebind_device:
+        from manual_budget_rebinding import rebind_manual_budget
+        print(rebind_manual_budget(slot))
+        return
     period_path = slot / "period"
     if period_path.exists():
         identity = read_period_identity(

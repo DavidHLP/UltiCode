@@ -2,6 +2,7 @@ package com.ulticode.modules.submission.read;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.ulticode.app.api.service.ContestSubmissionPort;
 import com.ulticode.app.api.service.ProblemFactsPort;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.PaginationRequest;
@@ -48,6 +49,7 @@ public class SubmissionReadAssembly {
     private final SubmissionProjection submissionProjection;
     private final SubmissionPerformanceStats performanceStats;
     private final ProblemFactsPort problemFactsPort;
+    private final ContestSubmissionPort contestSubmissionPort;
 
     /**
      * Read submissions by id in bounded chunks while preserving the caller's
@@ -112,7 +114,10 @@ public class SubmissionReadAssembly {
                     submission.getRuntime() != null ? submission.getRuntime() : 0,
                     submission.getMemory());
         }
-        return submissionProjection.toDetailVO(submission, stats, factsFor(List.of(submission)));
+        SubmissionDetailVO detail = submissionProjection.toDetailVO(
+                submission, stats, factsFor(List.of(submission)));
+        detail.setContestSubmission(contestSubmissionPort.isContestSubmission(id));
+        return detail;
     }
 
     /** Return a non-null page; no matching submissions produce an empty item list. */

@@ -26,7 +26,8 @@ cannot select a user, model, graph node, or checkpoint.
 
 | Operation | Request body | Purpose |
 | --- | --- | --- |
-| `POST /agent/threads` | `{"sourceSubmissionId": "<canonical UUID>", "question": "..."}` | Verify caller-owned source, create thread and offline draft |
+| `GET /agent/capabilities` | — | Read authenticated analysis/persistence availability and source mode; no model call |
+| `POST /agent/threads` | `{"sourceSubmissionId": "<canonical UUID>", "question": "..."}` | Verify caller-owned eligible practice source, create thread and offline draft |
 | `GET /agent/threads/{thread_id}` | — | Read caller's canonical workflow and draft |
 | `GET /agent/threads/{thread_id}/events?after=N` | — | Read bounded event page; does not resume workflow |
 | `POST /agent/threads/{thread_id}/analyze` | `{}` | Explicit analysis request through the shared graph; requires injected offline model factory or live model authorization |
@@ -35,6 +36,24 @@ cannot select a user, model, graph node, or checkpoint.
 | `POST /agent/threads/{thread_id}/save` | `{"confirmationId": "..."}` | Explicitly dispatch the confirmed payload to Java |
 | `POST /agent/threads/{thread_id}/recover` | `{"retry": false}` or `{"retry": true}` | Reconcile by original Java idempotency key; retry only when explicitly requested and all guards pass |
 | `POST /agent/threads/{thread_id}/cancel` | `{}` | Fence later work; cannot roll back a dispatched Java write |
+
+`GET /agent/capabilities` returns `{analysisAvailable, persistenceAvailable, sourceMode}`.
+Both availability fields are booleans; `sourceMode` is `metadata` or `owner_source` (the existing
+manual analysis-only mode). It checks the authenticated principal and current runtime configuration;
+it neither dispatches a model nor creates a thread. Persistence additionally requires mounted write
+routes and a still-valid U02 gate. This is a UI availability hint, not authorization or a reservation
+of model quota: each operation retains its own runtime, budget and ownership checks.
+
+The owner-scoped Java submission detail includes `contestSubmission`, calculated by the existing
+contest-association port, not inferred from browser routing. Agent source preflight requires that
+field to be exactly `false` and status to be a known terminal verdict. Missing/null/non-boolean
+context, contest or virtual-contest submissions, Pending, Judging, and unknown statuses fail closed.
+Ineligible sources return HTTP `409 source_not_eligible` at creation, analysis, confirmation,
+save, and explicit write retry; hiding a frontend button is not the enforcement boundary.
+Read-only recovery can still reconcile an already dispatched write by its original key when source
+eligibility changes, but cannot retry that write. Deploy the updated Java detail provider before enabling the new
+Console entry; old providers that omit the field cannot establish eligibility. General metadata
+listing tools retain their existing projection and do not gain source code, tests, or owner fields.
 
 Workflow states include `draft`, `analyzing`, `awaiting_confirmation`, `confirmed`, `saving`,
 `saved`, `unknown`, `failed`, and `cancelled`. Agent SQLite is canonical for drafts, workflow state,

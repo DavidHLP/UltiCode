@@ -133,9 +133,7 @@ const getSubmissionLabel = (status: string): string => {
 };
 
 const handleRowClick = (submission: SubmissionRecord) => {
-  if (submission.problem?.slug) {
-    router.push(`/problems/${submission.problem.slug}`);
-  }
+  router.push({ name: "submission-detail", params: { id: submission.id } });
 };
 
 onMounted(async () => {

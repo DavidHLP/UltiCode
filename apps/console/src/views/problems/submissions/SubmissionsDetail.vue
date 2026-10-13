@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, computed } from "vue";
 import { useRouter } from "vue-router";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -12,9 +12,11 @@ import { useI18n } from "vue-i18n";
 import SubmissionTestResults from "./components/SubmissionTestResults.vue";
 import SubmissionCodeBlock from "./components/SubmissionCodeBlock.vue";
 import SubmissionPerformancePanel from "./components/SubmissionPerformancePanel.vue";
+import AgentReviewPanel from "./components/AgentReviewPanel.vue";
 import { useSubmissionDetail } from "./composables/useSubmissionDetail";
 import { createSubmission, resolveSubmissionProblemId } from "@/api/submission";
 import { toast } from "vue-sonner";
+import { useAuthStore } from "@/stores/auth";
 const props = defineProps({
   submission: {
     type: Object as () => SubmissionRecord,
@@ -22,6 +24,10 @@ const props = defineProps({
   statusMetaByKey: {
     type: Object as () => Record<string, SubmissionStatusMeta>,
     default: () => ({}),
+  },
+  contestId: {
+    type: String,
+    default: undefined,
   },
 });
 
@@ -32,6 +38,8 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 const router = useRouter();
+const authStore = useAuthStore();
+const currentUserId = computed(() => authStore.fetchCurrentUserId() ?? "anonymous");
 
 const {
   statusLabel,
@@ -283,5 +291,6 @@ const handleWriteSolution = () => {
 
     <!-- Code Section -->
     <SubmissionCodeBlock :code-markdown="codeMarkdown" />
+    <AgentReviewPanel :key="`${currentUserId}:${props.submission.id}`" :submission="props.submission" :contest-id="props.contestId" />
   </div>
 </template>

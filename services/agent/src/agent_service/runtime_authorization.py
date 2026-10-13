@@ -14,7 +14,7 @@ from authorized_budget_period import (
 )
 from dav58_live_guard import IncrementalGuard
 from model_budget import ModelBudget, authorization_slot, authorized_model
-from agent_service.gate import current_budget_anchor
+from agent_service.runtime_accounting import current_budget_anchor
 
 
 def _reject_duplicate_keys(pairs):
@@ -73,6 +73,12 @@ def resolve_u03_runtime_binding(expected: PeriodIdentity) -> U03RuntimeBinding:
 
     _, budget = authorized_model(expected)
     snapshot = budget.snapshot()
+    if (snapshot.get("state") != "active" or snapshot.get("sql_gate") != "active"
+            or snapshot.get("halted") or snapshot.get("unknown_usage_attempts")
+            or snapshot.get("unsettled_attempts")):
+        raise ValueError("u03_budget_anchor_mismatch")
+    guard_path = shared_guard_path(expected)
+    guard_data, guard_sha = read_existing_guard(guard_path)
     if expected.policy_id == MANUAL_LIVE_TEST_POLICY_ID:
         anchor = {
             "identity": expected.identity,
@@ -83,7 +89,7 @@ def resolve_u03_runtime_binding(expected: PeriodIdentity) -> U03RuntimeBinding:
             "actual_micro_usd": snapshot.get("actual_micro_usd"),
         }
     else:
-        anchor = current_budget_anchor(expected) if expected.policy_id != POLICY_ID else current_budget_anchor()
+        anchor = current_budget_anchor(expected, budget, snapshot, guard_data)
     if (anchor.get("identity") != expected.identity or anchor.get("period_id") != expected.period_id
             or anchor.get("config_sha256") != expected.config_sha256 or anchor.get("policy_id") != expected.policy_id
             or snapshot.get("period_identity") != expected.identity
@@ -95,8 +101,6 @@ def resolve_u03_runtime_binding(expected: PeriodIdentity) -> U03RuntimeBinding:
             or snapshot.get("unsettled_attempts")):
         raise ValueError("u03_budget_anchor_mismatch")
 
-    guard_path = shared_guard_path(expected)
-    guard_data, guard_sha = read_existing_guard(guard_path)
     if (guard_data.get("period_identity") != expected.identity
             or guard_data.get("config_sha256") != expected.config_sha256
             or len(guard_data["receipts"]) != anchor.get("attempts")

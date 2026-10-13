@@ -14,14 +14,8 @@ rule list leaves the model without the domain it is reasoning about: UltiCode is
 judge, the user is learning from their own submissions, and the agent explains rather than
 acts.
 
-``SCENARIO_OUTCOMES`` is keyed by the same six category names the boundary harness scores
-(``boundary_evaluation.BOUNDARY_CATEGORIES``). ``tests/test_agent_prompts.py`` asserts the
-two key sets stay equal, so a new machine-checked scenario cannot appear without the prompt
-telling the model about it.
-
-Measured evaluation instruments keep their own frozen contracts — ``answer_evaluation`` and
-the ``e2e_*_model`` scripts — so recorded baselines stay comparable. They measure the agent;
-they are not the agent's prompt.
+``SCENARIO_OUTCOMES`` gives the read-only answer contract one expected outcome for each
+supported situation. :func:`readonly_answer_contract` places those outcomes in the prompt.
 """
 
 from __future__ import annotations

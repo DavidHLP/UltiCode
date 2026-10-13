@@ -1,15 +1,16 @@
 import asyncio
 import os
+from contextlib import nullcontext
 from types import SimpleNamespace
 
 import pytest
 
-from agent_service import runtime, runtime_authorization
+from agent_service import runtime, runtime_authorization, runtime_accounting
 from agent_service.store import WorkflowStore
 from authorized_budget_period import (
     MANUAL_LIVE_TEST_PERIOD_ID, MANUAL_LIVE_TEST_POLICY_ID,
-    REVALIDATION_POLICY_ID, PeriodIdentity, prepare_period, read_period_identity,
-    policy_for,
+    REVALIDATION_POLICY_ID, PeriodIdentity, activate_period, prepare_period,
+    read_period_identity, policy_for,
 )
 from model_budget import authorized_period_config_sha256, worst_case_micro_usd
 from dav58_live_guard import IncrementalGuard
@@ -65,68 +66,77 @@ def _stub_binding(monkeypatch, identity, *, snapshot_updates=None):
 
 
 def test_runtime_factory_without_opt_in_keeps_live_analysis_disabled(monkeypatch, tmp_path):
-    monkeypatch.delenv("ULTICODE_AGENT_LIVE_ANALYSIS", raising=False)
-    monkeypatch.delenv("ULTICODE_AGENT_U02_GATE_PATH", raising=False)
-    monkeypatch.delenv("ULTICODE_AGENT_EXPECTED_HEAD", raising=False)
-    monkeypatch.delenv("ULTICODE_AGENT_EXPECTED_BASE", raising=False)
+    for name in (
+        "ULTICODE_AGENT_LIVE_ANALYSIS", "ULTICODE_AGENT_U02_GATE_PATH",
+        "ULTICODE_AGENT_EXPECTED_HEAD", "ULTICODE_AGENT_EXPECTED_BASE",
+        "ULTICODE_AGENT_BUDGET_POLICY", "ULTICODE_AGENT_PERSISTENCE_ENABLED",
+    ):
+        monkeypatch.delenv(name, raising=False)
     captured = {}
     monkeypatch.setattr(runtime, "_create_app", lambda **kwargs: captured.update(kwargs) or "app")
 
     assert runtime.create_app(state_path=tmp_path / "workflow.sqlite3") == "app"
-    assert captured == {"state_path": tmp_path / "workflow.sqlite3"}
+    assert captured == {
+        "state_path": tmp_path / "workflow.sqlite3", "persistence_enabled": False,
+    }
 
 
-def test_runtime_factory_rejects_partial_live_authorization_at_startup(monkeypatch):
+def test_runtime_factory_requires_named_budget_policy_for_live_analysis(monkeypatch):
     monkeypatch.setenv("ULTICODE_AGENT_LIVE_ANALYSIS", "1")
-    monkeypatch.setenv("ULTICODE_AGENT_U02_GATE_PATH", "/private/u02-gate.json")
-    monkeypatch.delenv("ULTICODE_AGENT_EXPECTED_HEAD", raising=False)
-    monkeypatch.delenv("ULTICODE_AGENT_EXPECTED_BASE", raising=False)
+    monkeypatch.delenv("ULTICODE_AGENT_BUDGET_POLICY", raising=False)
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
 
-    with pytest.raises(runtime.RuntimeAuthorizationError, match="agent_live_authorization_incomplete"):
+    with pytest.raises(runtime.RuntimeAuthorizationError, match="agent_live_budget_policy_missing"):
         runtime.create_app()
 
 
-def test_runtime_factory_derives_period_from_gate_and_passes_shared_guard(monkeypatch, tmp_path):
+@pytest.mark.parametrize("name", [
+    "ULTICODE_AGENT_U02_GATE_PATH",
+    "ULTICODE_AGENT_EXPECTED_HEAD",
+    "ULTICODE_AGENT_EXPECTED_BASE",
+])
+def test_runtime_factory_rejects_retired_gate_environment(monkeypatch, name):
+    monkeypatch.delenv("ULTICODE_AGENT_LIVE_ANALYSIS", raising=False)
+    monkeypatch.delenv("ULTICODE_AGENT_PERSISTENCE_ENABLED", raising=False)
+    monkeypatch.setenv(name, "")
+
+    with pytest.raises(runtime.RuntimeAuthorizationError, match="agent_retired_gate_configuration"):
+        runtime.create_app()
+
+
+def test_runtime_factory_uses_named_active_period_and_shared_guard(monkeypatch, tmp_path):
     identity = _identity()
-    gate = {
-        "budget_anchor": {
-            "period_id": identity.period_id,
-            "identity": identity.identity,
-            "config_sha256": identity.config_sha256,
-            "policy_id": identity.policy_id,
-        }
-    }
     guard = SimpleNamespace(close=lambda: None)
     binding = SimpleNamespace(expected_period=identity, guard=guard)
-    gate_path = tmp_path / "u02-gate.json"
     monkeypatch.setenv("ULTICODE_AGENT_LIVE_ANALYSIS", "1")
-    monkeypatch.setenv("ULTICODE_AGENT_U02_GATE_PATH", str(gate_path))
-    monkeypatch.setenv("ULTICODE_AGENT_EXPECTED_HEAD", "1" * 40)
-    monkeypatch.setenv("ULTICODE_AGENT_EXPECTED_BASE", "2" * 40)
+    monkeypatch.setenv("ULTICODE_AGENT_BUDGET_POLICY", REVALIDATION_POLICY_ID)
+    monkeypatch.setenv("ULTICODE_AGENT_PERSISTENCE_ENABLED", "1")
     monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
     monkeypatch.setenv("DEEPSEEK_MODEL", "deepseek-flash")
-    gate_calls = []
+    identity_calls = []
     binding_calls = []
     captured = {}
-    monkeypatch.setattr(runtime, "load_u02_gate", lambda *args, **kwargs: gate_calls.append((args, kwargs)) or gate)
+    monkeypatch.setattr(
+        runtime, "read_active_period_identity",
+        lambda policy: identity_calls.append(policy) or identity,
+    )
     monkeypatch.setattr(runtime, "resolve_u03_runtime_binding", lambda expected: binding_calls.append(expected) or binding)
     monkeypatch.setattr(runtime, "open_u03_runtime_guard", lambda current: current.guard)
     monkeypatch.setattr(runtime, "_create_app", lambda **kwargs: captured.update(kwargs) or "app")
 
     assert runtime.create_app(state_path=tmp_path / "workflow.sqlite3") == "app"
-    assert gate_calls[0][0][0] == gate_path
-    assert gate_calls[0][0][1] == "1" * 40
-    assert gate_calls[0][1]["expected_base"] == "2" * 40
-    assert gate_calls[0][1]["runtime"] is True
+    assert identity_calls == [REVALIDATION_POLICY_ID]
     assert binding_calls == [identity]
-    assert captured["u02_gate_path"] == gate_path
     assert captured["expected_period"] == identity
     assert captured["budget_guard"] is guard
     assert captured["model_purpose"] == "u03_analysis"
     assert captured["own_budget_guard"] is True
+    assert captured["analysis_only_test_mode"] is False
+    assert captured["persistence_enabled"] is True
+    assert not {"u02_gate_path", "expected_head", "expected_base", "candidate_root"} & set(captured)
 
 
-def test_manual_runtime_uses_only_the_fixed_budget_and_skips_u02_gate(monkeypatch, tmp_path):
+def test_manual_runtime_uses_fixed_budget_without_persistence(monkeypatch, tmp_path):
     identity = PeriodIdentity(
         MANUAL_LIVE_TEST_PERIOD_ID, "c" * 64, "b" * 32, MANUAL_LIVE_TEST_POLICY_ID,
     )
@@ -137,6 +147,8 @@ def test_manual_runtime_uses_only_the_fixed_budget_and_skips_u02_gate(monkeypatc
     monkeypatch.delenv("ULTICODE_AGENT_U02_GATE_PATH", raising=False)
     monkeypatch.delenv("ULTICODE_AGENT_EXPECTED_HEAD", raising=False)
     monkeypatch.delenv("ULTICODE_AGENT_EXPECTED_BASE", raising=False)
+    monkeypatch.delenv("ULTICODE_AGENT_BUDGET_POLICY", raising=False)
+    monkeypatch.delenv("ULTICODE_AGENT_PERSISTENCE_ENABLED", raising=False)
     monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
     monkeypatch.setenv("DEEPSEEK_MODEL", "deepseek-flash")
     monkeypatch.setattr(runtime, "_manual_test_period_identity", lambda: identity)
@@ -149,14 +161,60 @@ def test_manual_runtime_uses_only_the_fixed_budget_and_skips_u02_gate(monkeypatc
     assert captured["expected_period"] == identity
     assert captured["budget_guard"] is guard
     assert captured["analysis_only_test_mode"] is True
-    assert captured["u02_gate_path"] is None
+    assert captured["persistence_enabled"] is False
     assert captured["model_purpose"] == "u03_analysis"
 
 
-def test_manual_analysis_mode_cannot_enable_without_live_opt_in(monkeypatch):
+def test_runtime_factory_rejects_invalid_persistence_flag(monkeypatch):
+    monkeypatch.setenv("ULTICODE_AGENT_PERSISTENCE_ENABLED", "yes")
+
+    with pytest.raises(runtime.RuntimeAuthorizationError, match="agent_persistence_flag_invalid"):
+        runtime.create_app()
+
+
+def test_manual_runtime_rejects_persistence_and_closes_budget_guard(monkeypatch):
+    identity = PeriodIdentity(
+        MANUAL_LIVE_TEST_PERIOD_ID, "c" * 64, "b" * 32, MANUAL_LIVE_TEST_POLICY_ID,
+    )
+    closed = []
+    guard = SimpleNamespace(close=lambda: closed.append(True))
+    binding = SimpleNamespace(expected_period=identity, guard=guard)
+    monkeypatch.setenv("ULTICODE_AGENT_LIVE_ANALYSIS", "1")
+    monkeypatch.setenv("ULTICODE_AGENT_MANUAL_ANALYSIS_ONLY", "1")
+    monkeypatch.setenv("ULTICODE_AGENT_PERSISTENCE_ENABLED", "1")
+    monkeypatch.delenv("ULTICODE_AGENT_BUDGET_POLICY", raising=False)
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
+    monkeypatch.setenv("DEEPSEEK_MODEL", "deepseek-flash")
+    monkeypatch.setattr(runtime, "_manual_test_period_identity", lambda: identity)
+    monkeypatch.setattr(runtime, "resolve_u03_runtime_binding", lambda _expected: binding)
+    monkeypatch.setattr(runtime, "open_u03_runtime_guard", lambda current: current.guard)
+
+    with pytest.raises(runtime.RuntimeAuthorizationError, match="agent_manual_persistence_forbidden"):
+        runtime.create_app()
+    assert closed == [True]
+
+
     monkeypatch.delenv("ULTICODE_AGENT_LIVE_ANALYSIS", raising=False)
     monkeypatch.setenv("ULTICODE_AGENT_MANUAL_ANALYSIS_ONLY", "1")
     with pytest.raises(runtime.RuntimeAuthorizationError, match="agent_live_authorization_disabled"):
+        runtime.create_app()
+
+
+@pytest.mark.parametrize("persistence", ["0", "1"])
+def test_manual_policy_cannot_be_selected_as_normal_live_budget(monkeypatch, persistence):
+    for name in runtime._RETIRED_ENV:
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("ULTICODE_AGENT_LIVE_ANALYSIS", "1")
+    monkeypatch.setenv("ULTICODE_AGENT_MANUAL_ANALYSIS_ONLY", "0")
+    monkeypatch.setenv("ULTICODE_AGENT_BUDGET_POLICY", MANUAL_LIVE_TEST_POLICY_ID)
+    monkeypatch.setenv("ULTICODE_AGENT_PERSISTENCE_ENABLED", persistence)
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
+    monkeypatch.setattr(
+        runtime, "read_active_period_identity",
+        lambda _policy: pytest.fail("manual policy must be rejected before reading its budget"),
+    )
+
+    with pytest.raises(runtime.RuntimeAuthorizationError, match="agent_manual_budget_requires_analysis_only"):
         runtime.create_app()
 
 
@@ -188,6 +246,89 @@ def test_manual_period_identity_reads_only_matching_private_period(tmp_path):
             period_path, period_id="other", config_sha256=config_sha256,
             policy_id=MANUAL_LIVE_TEST_POLICY_ID,
         )
+
+
+def test_runtime_accounting_reads_only_an_existing_active_policy_period(monkeypatch, tmp_path):
+    policy_id = REVALIDATION_POLICY_ID
+    config_sha256 = authorized_period_config_sha256(policy_id)
+    slot = tmp_path / "authorized-slot"
+    slot.mkdir()
+    period_path = slot / "period"
+    expected = prepare_period(
+        period_path, "selected-runtime-period", config_sha256, policy_id=policy_id,
+    ).identity
+    activate_period(period_path, expected)
+    monkeypatch.setattr(runtime_accounting, "authorization_slot", lambda _expected: slot)
+
+    assert runtime_accounting.read_active_period_identity(policy_id) == expected
+
+
+def test_runtime_accounting_does_not_create_or_accept_unprepared_period(monkeypatch, tmp_path):
+    missing_slot = tmp_path / "missing-slot"
+    monkeypatch.setattr(runtime_accounting, "authorization_slot", lambda _expected: missing_slot)
+    with pytest.raises(ValueError, match="active authorized budget period unavailable"):
+        runtime_accounting.read_active_period_identity(REVALIDATION_POLICY_ID)
+    assert not missing_slot.exists()
+
+    slot = tmp_path / "prepared-slot"
+    slot.mkdir()
+    path = slot / "period"
+    identity = prepare_period(
+        path, "prepared-only", authorized_period_config_sha256(REVALIDATION_POLICY_ID),
+        policy_id=REVALIDATION_POLICY_ID,
+    ).identity
+    monkeypatch.setattr(runtime_accounting, "authorization_slot", lambda _expected: slot)
+    with pytest.raises(ValueError, match="active authorized budget period unavailable"):
+        runtime_accounting.read_active_period_identity(REVALIDATION_POLICY_ID)
+    assert read_period_identity(
+        path, period_id=identity.period_id, config_sha256=identity.config_sha256,
+        policy_id=identity.policy_id,
+    ) == identity
+
+
+def test_runtime_budget_anchor_reconciles_ledger_and_retains_unknown_history(monkeypatch):
+    identity = _identity()
+    rows = [
+        (1, "a", "u03_analysis", 4, 1, 1),
+        (2, "b", "u03_analysis", 6, 1, 1),
+        (3, "c", "u03_citation_judge", 0, 1, 1),
+    ]
+
+    class Database:
+        def execute(self, _query):
+            return self
+
+        def fetchall(self):
+            return rows
+
+    history = {"legacy_unknown_encumbrance_micro_usd": 123}
+    snapshot = {
+        "attempts": 3, "actual_micro_usd": 10, "state": "active", "sql_gate": "active",
+        "halted": False, "unknown_usage_attempts": 0, "unsettled_attempts": 0,
+        "retained_history": history,
+    }
+    guard_data = {"receipts": [{}, {}, {}], "settled_peak_micro_usd": 10}
+    budget = SimpleNamespace(
+        _identity=identity, policy=policy_for(REVALIDATION_POLICY_ID),
+        _accounting=lambda: nullcontext((Database(), None)),
+    )
+    validations = []
+    monkeypatch.setattr(
+        runtime_accounting.IncrementalGuard, "_validate_resume",
+        lambda *_args: validations.append(True),
+    )
+
+    anchor = runtime_accounting.current_budget_anchor(identity, budget, snapshot, guard_data)
+
+    assert anchor == {
+        **identity.__dict__, "attempts": 3, "actual_micro_usd": 10,
+    }
+    assert validations == [True]
+    assert snapshot["retained_history"] is history
+
+    rows[0] = (1, "a", "u03_analysis", 5, 1, 1)
+    with pytest.raises(ValueError, match="fresh budget counters disagree"):
+        runtime_accounting.current_budget_anchor(identity, budget, snapshot, guard_data)
 
 
 def test_manual_bound_guard_initializes_and_resumes_empty_journal(tmp_path):
@@ -229,6 +370,13 @@ def test_manual_analysis_mode_keeps_confirmation_and_save_routes_unmounted(tmp_p
     )
     store = WorkflowStore.open(tmp_path / "workflow.sqlite3")
     try:
+        with pytest.raises(ValueError, match="analysis-only mode cannot enable persistence routes"):
+            runtime._create_app(
+                store=store, expected_period=identity,
+                budget_guard=SimpleNamespace(close=lambda: None),
+                model_purpose="u03_analysis", own_budget_guard=True,
+                analysis_only_test_mode=True, persistence_enabled=True,
+            )
         app = runtime._create_app(
             store=store, expected_period=identity,
             budget_guard=SimpleNamespace(close=lambda: None),

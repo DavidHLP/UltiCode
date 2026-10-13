@@ -23,7 +23,6 @@ from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from langgraph.types import Command
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from agent_service.gate import GateError, load_u02_gate, require_execution_candidate
 from agent_service.graph import ainvoke_untraced, build_workflow_graph
 from agent_service.state import WorkflowAction, make_draft, params_digest
 from agent_service.store import Conflict, NotFound, WorkflowStore
@@ -475,8 +474,7 @@ def create_app(
     client_factory: Callable[..., UlticodeClient] | None = None,
     model_factory: Callable[..., object] | None = None,
     offline_model_factory: Callable[..., object] | None = None,
-    u02_gate_path: Path | str | None = None, expected_head: str | None = None,
-    expected_base: str | None = None, candidate_root: Path | str | None = None,
+    persistence_enabled: bool = False,
     trusted_origin: str | None = None, clock: Callable[[], float] = time.time,
     fault_hook: Callable[[str, dict[str, object]], None] | None = None,
     fault_thread_ids: frozenset[str] = frozenset(),
@@ -488,50 +486,26 @@ def create_app(
     if mcp_tools_setting not in {"0", "1"}:
         raise ValueError("ULTICODE_AGENT_MCP_TOOLS must be 0 or 1")
     mcp_tools_enabled = mcp_tools_setting == "1"
-    if candidate_root is not None:
-        candidate_root = require_execution_candidate(candidate_root)
-    workflow_store = store or WorkflowStore.open(state_path)
-    gate: dict[str, object] | None = None
-    if u02_gate_path is not None and expected_head:
-        try:
-            gate = load_u02_gate(
-                u02_gate_path, expected_head, expected_base=expected_base,
-                candidate_root=candidate_root or Path(__file__).resolve().parents[4],
-                runtime=True,
-            )
-        except (GateError, OSError, ValueError):
-            gate = None
+    if type(persistence_enabled) is not bool:
+        raise ValueError("persistence_enabled must be a boolean")
+    if analysis_only_test_mode and persistence_enabled:
+        raise ValueError("analysis-only mode cannot enable persistence routes")
     if analysis_only_test_mode and (
-        gate is not None or u02_gate_path is not None or offline_model_factory is not None
-        or expected_period is None or budget_guard is None or not own_budget_guard
-        or model_purpose != "u03_analysis"
+        offline_model_factory is not None or expected_period is None or budget_guard is None
+        or not own_budget_guard or model_purpose != "u03_analysis"
         or getattr(expected_period, "policy_id", None) != "manual-agent-live-test-v1"
     ):
         raise ValueError("invalid analysis-only manual test authorization")
+    workflow_store = store or WorkflowStore.open(state_path)
     app_url = app_base_url or os.environ.get("ULTICODE_APP_BASE", "")
     auth_url = auth_base_url or os.environ.get("ULTICODE_AUTH_BASE", "")
     allowed_origin = trusted_origin or os.environ.get("ULTICODE_AGENT_ORIGIN")
 
-    def _require_current_gate() -> dict[str, object]:
-        if u02_gate_path is None or not expected_head:
+    def _require_analysis_authorization() -> None:
+        if (expected_period is None or budget_guard is None or model_purpose != "u03_analysis"
+                or (analysis_only_test_mode
+                    and getattr(expected_period, "policy_id", None) != "manual-agent-live-test-v1")):
             raise AgentError(503, "model_budget_blocked", 50000)
-        try:
-            return load_u02_gate(
-                u02_gate_path, expected_head, expected_base=expected_base,
-                candidate_root=candidate_root or Path(__file__).resolve().parents[4],
-                runtime=True,
-            )
-        except (GateError, OSError, ValueError):
-            raise AgentError(503, "model_budget_blocked", 50000) from None
-
-    def _require_analysis_authorization() -> dict[str, object]:
-        if analysis_only_test_mode:
-            if (expected_period is None or budget_guard is None
-                    or model_purpose != "u03_analysis"
-                    or getattr(expected_period, "policy_id", None) != "manual-agent-live-test-v1"):
-                raise AgentError(503, "model_budget_blocked", 50000)
-            return {}
-        return _require_current_gate()
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):
@@ -552,7 +526,7 @@ def create_app(
 
     app = FastAPI(lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
     app.state.store = workflow_store
-    app.state.gate = gate
+    app.state.persistence_enabled = persistence_enabled
 
     @app.exception_handler(AgentError)
     async def agent_error_handler(_: Request, exc: AgentError):
@@ -768,16 +742,9 @@ def create_app(
                     analysis_available = True
                 except AgentError:
                     pass
-            persistence_available = False
-            if gate is not None:
-                try:
-                    _require_current_gate()
-                    persistence_available = True
-                except AgentError:
-                    pass
             return {
                 "analysisAvailable": analysis_available,
-                "persistenceAvailable": persistence_available,
+                "persistenceAvailable": persistence_enabled,
                 "sourceMode": "owner_source" if analysis_only_test_mode else "metadata",
             }
         return _response(await with_session(request, unsafe=False, operation=operation))
@@ -1163,7 +1130,7 @@ def create_app(
                         await model.__aexit__(None, None, None)
         return _response(await with_session(request, unsafe=True, operation=operation))
 
-    if gate is not None:
+    if persistence_enabled:
         @app.post("/agent/threads/{thread_id}/confirm")
         async def confirm(thread_id: str, request: Request):
             _uuid(thread_id)
@@ -1171,7 +1138,6 @@ def create_app(
             async def operation(client: UlticodeClient, owner: str):
                 _owned(thread_id, owner)
                 with workflow_store.thread_lock(thread_id):
-                    _require_current_gate()
                     row = _reconcile(_owned(thread_id, owner), owner)
 
                     async def execute_action(_, analysis_result):
@@ -1210,7 +1176,6 @@ def create_app(
             async def operation(client: UlticodeClient, owner: str):
                 _owned(thread_id, owner)
                 with workflow_store.thread_lock(thread_id):
-                    _require_current_gate()
                     row = _reconcile(_owned(thread_id, owner), owner)
                     async def execute_action(_, analysis_result):
                         version = int(row["draft_version"])
@@ -1238,7 +1203,6 @@ def create_app(
                             expected_version=version, statuses={"confirmed"},
                             changes={"status": "saving", "save_attempted": 1}, kind="save_intent")
                         try:
-                            _require_current_gate()
                             await _verify_source(client, saving)
                         except Exception:
                             latest = _owned(thread_id, owner)
@@ -1325,7 +1289,6 @@ def create_app(
             async def operation(client: UlticodeClient, owner: str):
                 _owned(thread_id, owner)
                 with workflow_store.thread_lock(thread_id):
-                    _require_current_gate()
                     row = _reconcile(_owned(thread_id, owner), owner)
                     async def execute_action(_, analysis_result):
                         version, run_id = int(row["draft_version"]), str(row["run_id"])
@@ -1404,7 +1367,6 @@ def create_app(
                             changes={"status": "saving", "save_retry_count": row["save_retry_count"] + 1},
                             kind="explicit_retry_intent")
                         try:
-                            _require_current_gate()
                             await _verify_source(client, saving)
                         except Exception:
                             latest = _owned(thread_id, owner)

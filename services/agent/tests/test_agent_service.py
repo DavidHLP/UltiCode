@@ -17,7 +17,6 @@ import uvicorn
 from deepseek_model import DeepseekModel
 from agent_loop import ModelDecision, ToolCall
 from agent_service.app import create_app, parse_model_answer
-from agent_service.gate import GateError
 from retrieval import SourceDocument
 from citation_integrity import check_citations
 from ulticode_client import UlticodeServiceError
@@ -130,7 +129,7 @@ def test_create_rejects_ineligible_source_metadata(tmp_path, status, contest, pr
     asyncio.run(with_client(app, scenario))
 
 
-def test_analyze_and_confirm_reject_source_that_becomes_ineligible(tmp_path, monkeypatch):
+def test_analyze_and_confirm_reject_source_that_becomes_ineligible(tmp_path):
     source = {"contestSubmission": False}
     model_calls = {"count": 0}
 
@@ -138,10 +137,9 @@ def test_analyze_and_confirm_reject_source_that_becomes_ineligible(tmp_path, mon
         async def get_my_submission(self, submission_id):
             return {"id": submission_id, "status": "Accepted", **source}
 
-    monkeypatch.setattr("agent_service.app.load_u02_gate", lambda *_args, **_kwargs: {"test_only": True})
     app = create_app(
         state_path=tmp_path / "ineligible-actions.sqlite3", client_factory=Client,
-        u02_gate_path=tmp_path / "gate.json", expected_head="0" * 40,
+        persistence_enabled=True,
         offline_model_factory=lambda: (model_calls.update(count=model_calls["count"] + 1), {})
     )
 
@@ -163,17 +161,7 @@ def test_analyze_and_confirm_reject_source_that_becomes_ineligible(tmp_path, mon
     asyncio.run(with_client(app, scenario))
 
 
-def test_capabilities_report_available_modes_and_recheck_expired_gate(tmp_path, monkeypatch):
-    gate_valid = {"value": True}
-
-    def load_gate(*_args, **_kwargs):
-        if not gate_valid["value"]:
-            from agent_service.gate import GateError
-            raise GateError("expired")
-        return {"test_only": True}
-
-    monkeypatch.setattr("agent_service.app.load_u02_gate", load_gate)
-
+def test_capabilities_report_explicit_analysis_and_persistence_modes(tmp_path):
     class Guard:
         def close(self):
             pass
@@ -208,24 +196,13 @@ def test_capabilities_report_available_modes_and_recheck_expired_gate(tmp_path, 
 
     live = create_app(
         state_path=tmp_path / "live.sqlite3", client_factory=SessionClient,
-        u02_gate_path=tmp_path / "gate.json", expected_head="0" * 40,
+        persistence_enabled=True,
         expected_period=SimpleNamespace(policy_id="test"), budget_guard=Guard(),
         model_purpose="u03_analysis",
     )
-    async def check_gate_capabilities():
-        async with live.router.lifespan_context(live):
-            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=live), base_url="http://test") as client:
-                active = await client.get("/agent/capabilities", headers=HEADERS)
-                assert active.json()["data"] == {
-                    "analysisAvailable": True, "persistenceAvailable": True, "sourceMode": "metadata",
-                }
-                gate_valid["value"] = False
-                expired = await client.get("/agent/capabilities", headers=HEADERS)
-                assert expired.json()["data"] == {
-                    "analysisAvailable": False, "persistenceAvailable": False, "sourceMode": "metadata",
-                }
-
-    asyncio.run(check_gate_capabilities())
+    assert asyncio.run(get_capabilities(live)) == {
+        "analysisAvailable": True, "persistenceAvailable": True, "sourceMode": "metadata",
+    }
 
 
 @pytest.mark.parametrize("status,code,expected", [
@@ -864,16 +841,6 @@ class MissingBudgetClient(SessionClient):
         raise UlticodeServiceError(40400, 503)
 
 
-def test_create_app_rejects_another_execution_candidate_before_state_creation(tmp_path):
-    model_calls = []
-    state_path = tmp_path / "private-state" / "state.sqlite3"
-    with pytest.raises(GateError, match="execution_candidate_mismatch"):
-        create_app(state_path=state_path, candidate_root=tmp_path,
-                   offline_model_factory=lambda: model_calls.append("called"))
-    assert not state_path.parent.exists()
-    assert model_calls == []
-
-
 def test_analyze_rejects_unverified_empty_citation_claims_without_mutating_draft(tmp_path):
     async def scenario():
         answers = (
@@ -1245,13 +1212,12 @@ def test_missing_budget_blocks_analysis_before_model_invocation(tmp_path):
 
 
 def test_confirm_save_recover_dispatch_through_checkpointed_graph(tmp_path, monkeypatch):
-    monkeypatch.setattr("agent_service.app.load_u02_gate", lambda *args, **kwargs: {"test_only": True})
 
     async def scenario():
         posts, saved, post_flags = {"count": 0}, {}, []
         app = create_app(state_path=tmp_path / "write.sqlite3",
                          client_factory=_write_client(posts, saved, post_flags),
-                         u02_gate_path=tmp_path / "synthetic-test-only-gate.json", expected_head="0" * 40)
+                         persistence_enabled=True)
         async with app.router.lifespan_context(app):
             async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
                 created = await client.post("/agent/threads", headers=HEADERS,
@@ -1278,13 +1244,12 @@ def test_confirm_save_recover_dispatch_through_checkpointed_graph(tmp_path, monk
 
 
 def test_edited_draft_rejects_invalidated_confirmation_before_fresh_save(tmp_path, monkeypatch):
-    monkeypatch.setattr("agent_service.app.load_u02_gate", lambda *args, **kwargs: {"test_only": True})
 
     async def scenario():
         posts, saved, post_flags = {"count": 0}, {}, []
         app = create_app(state_path=tmp_path / "stale-confirmation.sqlite3",
                          client_factory=_write_client(posts, saved, post_flags),
-                         u02_gate_path=tmp_path / "gate.json", expected_head="0" * 40)
+                         persistence_enabled=True)
         async with app.router.lifespan_context(app):
             async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
                 state = (await client.post("/agent/threads", headers=HEADERS,
@@ -1323,7 +1288,6 @@ def test_edited_draft_rejects_invalidated_confirmation_before_fresh_save(tmp_pat
 
 
 def test_state_mutations_run_inside_dispatch_node(tmp_path, monkeypatch):
-    monkeypatch.setattr("agent_service.app.load_u02_gate", lambda *args, **kwargs: {"test_only": True})
 
     async def scenario():
         posts, saved, post_flags = {"count": 0}, {}, []
@@ -1331,7 +1295,7 @@ def test_state_mutations_run_inside_dispatch_node(tmp_path, monkeypatch):
         app = create_app(state_path=tmp_path / "dispatch.sqlite3",
                          client_factory=_write_client(posts, saved, post_flags),
                          offline_model_factory=lambda: (model, {}),
-                         u02_gate_path=tmp_path / "gate.json", expected_head="0" * 40)
+                         persistence_enabled=True)
         store = app.state.store
         original_transition = store.transition
         seen = []
@@ -1371,7 +1335,6 @@ def test_state_mutations_run_inside_dispatch_node(tmp_path, monkeypatch):
 
 
 def test_restart_before_java_dispatch_recovers_unknown_without_reposting(tmp_path, monkeypatch):
-    monkeypatch.setattr("agent_service.app.load_u02_gate", lambda *args, **kwargs: {"test_only": True})
 
     async def scenario():
         posts, saved, post_flags = {"count": 0}, {}, []
@@ -1379,7 +1342,7 @@ def test_restart_before_java_dispatch_recovers_unknown_without_reposting(tmp_pat
 
         def build():
             return create_app(state_path=state_path, client_factory=_write_client(posts, saved, post_flags),
-                              u02_gate_path=tmp_path / "gate.json", expected_head="0" * 40)
+                              persistence_enabled=True)
 
         app = build()
         async with app.router.lifespan_context(app):
@@ -1412,7 +1375,6 @@ def test_restart_before_java_dispatch_recovers_unknown_without_reposting(tmp_pat
 
 
 def test_every_action_leaves_graph_at_await_action_and_restart_replays_nothing(tmp_path, monkeypatch):
-    monkeypatch.setattr("agent_service.app.load_u02_gate", lambda *args, **kwargs: {"test_only": True})
 
     async def paused(app, thread_id):
         snapshot = await app.state.workflow.aget_state({"configurable": {"thread_id": thread_id}})
@@ -1426,7 +1388,7 @@ def test_every_action_leaves_graph_at_await_action_and_restart_replays_nothing(t
         def build():
             return create_app(state_path=state_path, client_factory=_write_client(posts, saved, post_flags),
                               offline_model_factory=lambda: (model, {}),
-                              u02_gate_path=tmp_path / "gate.json", expected_head="0" * 40)
+                              persistence_enabled=True)
 
         app = build()
         async with app.router.lifespan_context(app):
@@ -1559,7 +1521,6 @@ asyncio.run(main())
 
 
 def test_cancel_is_a_short_store_fence_that_never_dispatches(tmp_path, monkeypatch):
-    monkeypatch.setattr("agent_service.app.load_u02_gate", lambda *args, **kwargs: {"test_only": True})
 
     async def scenario():
         posts, saved, post_flags = {"count": 0}, {}, []
@@ -1567,7 +1528,7 @@ def test_cancel_is_a_short_store_fence_that_never_dispatches(tmp_path, monkeypat
         app = create_app(state_path=tmp_path / "cancel.sqlite3",
                          client_factory=_write_client(posts, saved, post_flags),
                          offline_model_factory=lambda: (model, {}),
-                         u02_gate_path=tmp_path / "gate.json", expected_head="0" * 40)
+                         persistence_enabled=True)
         async with app.router.lifespan_context(app):
             async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
                 created = (await client.post("/agent/threads", headers=HEADERS,
@@ -1588,15 +1549,13 @@ def test_cancel_is_a_short_store_fence_that_never_dispatches(tmp_path, monkeypat
 
     asyncio.run(scenario())
 def test_recover_503_with_business_40400_stays_unknown_and_never_reposts(tmp_path, monkeypatch):
-    monkeypatch.setattr("agent_service.app.load_u02_gate", lambda *args, **kwargs: {"test_only": True})
 
     async def scenario():
         posts = {"count": 0}
         app = create_app(
             state_path=tmp_path / "ambiguous-by-key.sqlite3",
             client_factory=lambda **_: MissingBudgetClient(posts),
-            u02_gate_path=tmp_path / "synthetic-test-only-gate.json",
-            expected_head="0" * 40,
+            persistence_enabled=True,
         )
         async with app.router.lifespan_context(app):
             async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
@@ -1623,7 +1582,6 @@ def test_recover_503_with_business_40400_stays_unknown_and_never_reposts(tmp_pat
 
 @pytest.mark.parametrize("status,code", [(401, 40100), (403, 40300)])
 def test_authorization_outage_allows_explicit_save_recovery(tmp_path, monkeypatch, status, code):
-    monkeypatch.setattr("agent_service.app.load_u02_gate", lambda *args, **kwargs: {"test_only": True})
     posts, saved, flags = {"count": 0}, {}, []
     base = _write_client(posts, saved, flags)
 
@@ -1636,7 +1594,7 @@ def test_authorization_outage_allows_explicit_save_recovery(tmp_path, monkeypatc
 
     async def scenario():
         app = create_app(state_path=tmp_path / "retry.sqlite3", client_factory=RetryClient,
-                         u02_gate_path=tmp_path / "test-gate.json", expected_head="0" * 40)
+                         persistence_enabled=True)
         async with app.router.lifespan_context(app):
             async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
                 created = await client.post("/agent/threads", headers=HEADERS,

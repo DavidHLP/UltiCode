@@ -744,84 +744,17 @@ def test_fresh_guard_records_real_request_bindings_and_resumes(slot, monkeypatch
             return transport.exchanges
 
     try:
-        exchanges = asyncio.run(call("prior_source"))
+        asyncio.run(call("prior_source"))
         asyncio.run(call("prior_citation_judge"))
         first, second = guard.state["receipts"]
         assert first["request_sha256"] == second["request_sha256"]
         assert first["attempt_id"] != second["attempt_id"]
         assert budget.snapshot()["cumulative_attempts"] == 49
-        from agent_service.gate import _check_fresh_snapshot, _verified_prior_exchanges, GateError
         snapshot = budget.snapshot()
         assert snapshot["actual_micro_usd"] < snapshot["committed_micro_usd"]
-        _check_fresh_snapshot(snapshot, vars(identity))
-        _verified_prior_exchanges({"provider_exchanges": exchanges}, [first])
-        exchanges[0]["response_hex"] = bytes.fromhex(exchanges[0]["response_hex"]).replace(b"ok", b"forged").hex()
-        with pytest.raises(GateError, match="prior_five_provider_exchange_mismatch"):
-            _verified_prior_exchanges({"provider_exchanges": exchanges}, [first])
     finally:
         guard.close()
     resumed = IncrementalGuard(path, budget=budget, period_identity=identity.identity,
                                config_sha256=identity.config_sha256,
                                resume_sha256=hashlib.sha256(path.read_bytes()).hexdigest())
     resumed.close()
-
-
-def test_fresh_three_citations_replay_verified_source_and_capture_raw(slot, monkeypatch):
-    import asyncio
-    import hashlib
-    import httpx
-    import e2e_citation_support_model as citation
-    from e2e_sourced_analysis_model import ANSWER_CONTRACT, QUESTION
-    from sourced_analysis import analyze_submission
-    from dav58_live_guard import GuardedTransport, IncrementalGuard
-    from deepseek_model import DeepseekModel
-    from agent_service.gate import _fresh_live_budget, _verified_prior_exchanges, _check_prior_model_records
-
-    identity, budget, _ = fresh_bound(slot, monkeypatch)
-    analysis = analyze_submission({"id": "22222222-2222-4222-8222-222222222222", "status": "Wrong Answer"}, QUESTION)
-    evidence = {"facts": analysis["facts"], "allowed_hypotheses": analysis["hypotheses"], "citations": analysis["citations"]}
-    answer = json.dumps({"facts": evidence["facts"], "hypotheses": evidence["allowed_hypotheses"],
-                         "citations": [row["doc_id"] for row in evidence["citations"]]})
-    journal = budget.path.parent / f"dav58-increment-{identity.identity}.json"
-    guard = IncrementalGuard(journal, budget=budget, period_identity=identity.identity, config_sha256=identity.config_sha256)
-    def response(text):
-        return httpx.Response(200, json={"model": "deepseek-v4.1-flash",
-            "usage": {"prompt_tokens": 100, "completion_tokens": 20, "total_tokens": 120},
-            "choices": [{"finish_reason": "stop", "message": {"content": json.dumps({"answer": text})}}]})
-    transport = GuardedTransport(guard, "prior_source", httpx.MockTransport(lambda _request: response(answer)))
-    async def source_call():
-        async with DeepseekModel("dummy", model="deepseek-flash", tool_specs={}, budget=budget,
-                                 budget_purpose="prior_source", max_tokens=2000, thinking_type="disabled",
-                                 transport=transport) as model:
-            await model.decide([{"role": "user", "content": "Analyze the submission using only the supplied evidence. "
-                                f"{ANSWER_CONTRACT} EVIDENCE_JSON={json.dumps(evidence, ensure_ascii=False)}"}])
-    try:
-        asyncio.run(source_call())
-    finally:
-        guard.close()
-    source_path, output = slot / "source.json", slot / "citation.json"
-    source_path.write_text(json.dumps({"schema": "ulticode-prior-five-raw-record-v1", "name": "本人提交检索分析",
-        "attempt_ids": [transport.exchanges[0]["attempt_id"]], "provider_exchanges": transport.exchanges,
-        "records": {"owner_verified": True, "facts": analysis["facts"], "citations": analysis["citations"],
-                    "citation_checks": analysis["citation_checks"], "model_answer": answer,
-                    "retrieval_calls": [{"query": QUESTION, "results": analysis["citations"]}]}}))
-    source_path.chmod(0o600)
-    monkeypatch.setenv("DEEPSEEK_API_KEY", "dummy")
-    monkeypatch.setenv("XDG_STATE_HOME", str(slot / "state"))
-    monkeypatch.setenv("ULTICODE_SOURCE_ANALYSIS_ARTIFACT", str(source_path))
-    monkeypatch.setenv("ULTICODE_CITATION_VERDICTS", str(output))
-    monkeypatch.setattr(citation, "authorized_model", lambda expected: ("deepseek-flash", budget))
-    replies = iter((True, True, False))
-    def fresh_transport(bound, purpose):
-        resumed = IncrementalGuard(journal, budget=bound, period_identity=identity.identity,
-            config_sha256=identity.config_sha256, resume_sha256=hashlib.sha256(journal.read_bytes()).hexdigest())
-        return GuardedTransport(resumed, purpose, httpx.MockTransport(lambda _request: response(
-            json.dumps({"supports": next(replies), "derivable": False}))), owns_guard=True)
-    monkeypatch.setattr(citation, "acceptance_transport", fresh_transport)
-    assert asyncio.run(citation._fresh_main(identity)) == 0
-    raw = json.loads(output.read_bytes())
-    assert len(raw["provider_exchanges"]) == 3
-    canonical = _fresh_live_budget(identity)["receipts"]
-    exchanges = _verified_prior_exchanges(raw, canonical[1:])
-    _check_prior_model_records("三引用支持负例", raw, exchanges, analysis["facts"])
-    assert budget.remaining_purpose_attempts("prior_citation_judge") == 0

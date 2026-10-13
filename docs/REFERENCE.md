@@ -40,9 +40,10 @@ cannot select a user, model, graph node, or checkpoint.
 `GET /agent/capabilities` returns `{analysisAvailable, persistenceAvailable, sourceMode}`.
 Both availability fields are booleans; `sourceMode` is `metadata` or `owner_source` (the existing
 manual analysis-only mode). It checks the authenticated principal and current runtime configuration;
-it neither dispatches a model nor creates a thread. Persistence additionally requires mounted write
-routes and a still-valid U02 gate. This is a UI availability hint, not authorization or a reservation
-of model quota: each operation retains its own runtime, budget and ownership checks.
+it neither dispatches a model nor creates a thread. Persistence requires the explicit deployment
+opt-in and mounted write routes; manual analysis-only mode never enables it. This is a UI availability
+hint, not authorization or a reservation of model quota: each operation retains its own runtime,
+budget and ownership checks.
 
 The owner-scoped Java submission detail includes `contestSubmission`, calculated by the existing
 contest-association port, not inferred from browser routing. Agent source preflight requires that
@@ -71,7 +72,7 @@ versioned `draft` (`title`, `content`, `facts`, `hypotheses`, `citations`, `cita
 `sampleScope`), `paramsDigest`, `analysis`, a redacted `confirmation` summary, and `receipt`
 (`planId`, `cancelRequested`, `failureReason`). They do not expose owner IDs or the business key.
 Draft facts are derived from the validated metadata projection; the general submission-list tools
-never expose source code or test data. In explicit local manual smoke mode only, analysis may read
+never expose source code or test data. In explicit local manual analysis-only mode only, analysis may read
 the exact owner-verified submission already bound to the thread through a no-argument,
 request-scoped tool. Source is untrusted input and capped at 12,000 characters; missing or oversized
 source fails before provider dispatch. The source body is not stored in workflow rows, events, or
@@ -115,7 +116,7 @@ to 128 KiB, use canonical UUIDs and exact integer versions, reject extra/duplica
 non-finite numbers, and enforce question length 2–200 plus Java-compatible nonblank title/content
 limits of 200/16,000 Unicode code points. Event reads are bounded and read-only.
 
-#### Identity, CSRF, and gate
+#### Identity, CSRF, and runtime authorization
 
 `/auth/me` is the sole principal source; accept only nonempty `data.user.id` with `is_active=true`
 and `is_banned=false`. Each request gets an isolated client with access cookie held only in memory.
@@ -126,18 +127,18 @@ upstream HTTP. If an unsafe request includes `Origin`, it must match the configu
 Request bodies reject identity fields. The service does not refresh sessions, set login cookies, or
 configure cross-origin access.
 
-The evidence-bound `ulticode-u02-gate-v1` loader checks candidate head/base and referenced DAV-58,
-DAV-53, budget-audit, and prior-five evidence against their SHA-256 digests. Formal confirm, save,
-and recovery routes are registered only when that gate validates. Formal live model requests
-additionally require the expected budget period, shared budget guard, and policy-authorized purpose:
-`u03_analysis` for the analysis model and `u03_citation_judge` for citation judgments. The
-authorized model and guarded transport use the existing period/lane limits; missing or invalid
-authorization fails closed with `503 model_budget_blocked` before a provider request. An explicit
-local manual smoke mode permits only read-only analysis under its fixed one-shot budget and shared
-guard; it may read only the owner-verified source already bound to the thread, using a no-argument
-request-scoped tool. The source is capped at 12,000 characters, treated as untrusted input, and not
-stored; citation excerpts are redacted after in-memory verification. It mounts no confirm/save/recovery
-routes and is not evidence that U02/U03/U04 acceptance has passed.
+Historical acceptance artifacts, candidate commits and source fingerprints are not runtime
+authorization inputs. `ULTICODE_AGENT_PERSISTENCE_ENABLED=1` explicitly mounts confirm/save/recover;
+it does not authorize model calls. Live analysis requires `ULTICODE_AGENT_LIVE_ANALYSIS=1`, an
+existing active budget period, its shared guard, and policy-authorized `u03_analysis` and
+`u03_citation_judge` purposes. Normal live mode selects its prepared policy through
+`ULTICODE_AGENT_BUDGET_POLICY`; runtime reads existing accounting and never creates or resets it.
+Missing or invalid authorization fails closed before a provider request.
+
+The existing manual analysis-only mode remains limited to read-only analysis under its fixed
+budget. It may read only the owner-verified thread source through a no-argument request-scoped
+tool. The source is capped at 12,000 characters and not stored; citation excerpts are redacted
+after in-memory verification. This mode cannot enable confirm/save/recover.
 
 The workflow runs analysis through the shared checkpointed action graph and read-only model/tool
 kernel. Answer text must pass bounded source-fact, negation-aware boundary, source-reference, and
@@ -148,12 +149,12 @@ fails integrity/judging, or has unknown judge usage rejects analysis. Empty cita
 only when the answer itself satisfies the boundary checks. Offline scripted-model/MockTransport
 tests are not live acceptance evidence.
 
-Without a valid U02 gate, confirm/save/recover routes are not mounted; requests to those paths use
-the normal not-found response envelope, including in local manual smoke mode. A valid gate alone
-does not authorize model calls.
+With persistence disabled, confirm/save/recover use the normal not-found response envelope.
+Authenticated reads remain available independently of model and persistence switches. Payload
+confirmation digests, citation integrity and budget/accounting checks remain in place; they are
+not the removed source or acceptance SHA gates.
 
-For the opt-in U02/U03/U04 candidate-freeze, gate, and acceptance-bundle commands, see the
-[immutable acceptance workflow](DEVELOPMENT.md#u02-u03-u04-immutable-acceptance-chain).
+For startup and retained checks, see [Agent local runtime](DEVELOPMENT.md#agent-本地运行).
 
 浏览器通常通过前端 Nginx/gateway 访问 `/api`；不要把内部 Dubbo、数据库、Redis、Nacos 或 worker 端口发布到公网。
 

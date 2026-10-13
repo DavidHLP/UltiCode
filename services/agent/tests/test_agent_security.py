@@ -51,10 +51,6 @@ class Session:
         return {"id": submission_id, "status": "Accepted", "contestSubmission": False}
 
 
-def gated(monkeypatch):
-    monkeypatch.setattr("agent_service.app.load_u02_gate", lambda *args, **kwargs: {"test_only": True})
-
-
 def write_client(posts, *, save=None, by_key=None):
     async def unavailable(**_):
         posts["count"] += 1
@@ -162,13 +158,12 @@ def test_missing_session_rejected_before_client_creation(tmp_path, headers, oper
 
 @pytest.mark.parametrize("operation", ["get", "events", "edit", "analyze", "confirm", "save", "recover", "cancel"])
 def test_foreign_owner_is_uniform_404_without_lock_file(tmp_path, monkeypatch, operation):
-    gated(monkeypatch)
     def factory(**kwargs):
         token = kwargs.get("access_token")
         return Session(owner="owner" if token == "access" else "other")
 
     app = create_app(state_path=tmp_path / "foreign.sqlite3", client_factory=factory,
-                     u02_gate_path=tmp_path / "synthetic-test-only-gate.json", expected_head="0" * 40)
+                     persistence_enabled=True)
 
     async def scenario(client):
         state = await create_thread(client)
@@ -198,7 +193,7 @@ def test_foreign_owner_is_uniform_404_without_lock_file(tmp_path, monkeypatch, o
     asyncio.run(with_client(app, scenario))
 
 
-def test_write_routes_absent_without_gate_and_never_post(tmp_path):
+def test_write_routes_absent_without_persistence_opt_in(tmp_path):
     posts = {"count": 0}
     app = create_app(state_path=tmp_path / "nogate.sqlite3", client_factory=write_client(posts))
 
@@ -216,11 +211,10 @@ def test_write_routes_absent_without_gate_and_never_post(tmp_path):
 
 @pytest.mark.parametrize("expiry", [False, True])
 def test_edit_invalidates_confirmation_and_ttl_boundary_never_posts(tmp_path, monkeypatch, expiry):
-    gated(monkeypatch)
     posts = {"count": 0}
     now = {"value": 1000.0}
     app = create_app(state_path=tmp_path / f"confirm-{expiry}.sqlite3", client_factory=write_client(posts),
-                     u02_gate_path=tmp_path / "synthetic-test-only-gate.json", expected_head="0" * 40,
+                     persistence_enabled=True,
                      clock=lambda: now["value"])
 
     async def scenario(client):
@@ -248,7 +242,6 @@ def test_edit_invalidates_confirmation_and_ttl_boundary_never_posts(tmp_path, mo
 
 @pytest.mark.parametrize("readback_error", [(40400, 404), (40400, 500), (50000, 503)])
 def test_unknown_readback_requires_explicit_same_key_retry(tmp_path, monkeypatch, readback_error):
-    gated(monkeypatch)
     posts, keys = {"count": 0}, []
 
     async def save(payload):
@@ -264,7 +257,7 @@ def test_unknown_readback_requires_explicit_same_key_retry(tmp_path, monkeypatch
         raise UlticodeServiceError(*readback_error)
 
     app = create_app(state_path=tmp_path / "retry.sqlite3", client_factory=write_client(posts, save=save, by_key=by_key),
-                     u02_gate_path=tmp_path / "synthetic-test-only-gate.json", expected_head="0" * 40)
+                     persistence_enabled=True)
 
     async def scenario(client):
         state = await create_thread(client)
@@ -291,7 +284,6 @@ def test_unknown_readback_requires_explicit_same_key_retry(tmp_path, monkeypatch
     asyncio.run(with_client(app, scenario))
 
 def test_save_rejects_ineligible_source_before_java_post(tmp_path, monkeypatch):
-    gated(monkeypatch)
     posts = {"count": 0}
     source = {"contestSubmission": False}
 
@@ -300,7 +292,7 @@ def test_save_rejects_ineligible_source_before_java_post(tmp_path, monkeypatch):
             return {"id": submission_id, "status": "Accepted", **source}
 
     app = create_app(state_path=tmp_path / "ineligible-save.sqlite3", client_factory=Client,
-                     u02_gate_path=tmp_path / "gate.json", expected_head="0" * 40)
+                     persistence_enabled=True)
 
     async def scenario(client):
         state = await create_thread(client)
@@ -320,7 +312,6 @@ def test_save_rejects_ineligible_source_before_java_post(tmp_path, monkeypatch):
 
 
 def test_recovery_retry_rejects_ineligible_source_without_reposting(tmp_path, monkeypatch):
-    gated(monkeypatch)
     posts = {"count": 0}
     source = {"contestSubmission": False}
 
@@ -329,7 +320,7 @@ def test_recovery_retry_rejects_ineligible_source_without_reposting(tmp_path, mo
             return {"id": submission_id, "status": "Accepted", **source}
 
     app = create_app(state_path=tmp_path / "ineligible-retry.sqlite3", client_factory=Client,
-                     u02_gate_path=tmp_path / "gate.json", expected_head="0" * 40)
+                     persistence_enabled=True)
 
     async def scenario(client):
         state = await create_thread(client)
@@ -364,7 +355,6 @@ def test_http_error_result_code_does_not_override_http_status(status):
 
 @pytest.mark.parametrize("readback", ["bad_vo", "not_found"])
 def test_saved_status_survives_bad_or_missing_readback(tmp_path, monkeypatch, readback):
-    gated(monkeypatch)
     posts = {"count": 0}
 
     async def save(payload):
@@ -380,7 +370,7 @@ def test_saved_status_survives_bad_or_missing_readback(tmp_path, monkeypatch, re
 
     app = create_app(state_path=tmp_path / f"saved-{readback}.sqlite3",
                      client_factory=write_client(posts, save=save, by_key=by_key),
-                     u02_gate_path=tmp_path / "synthetic-test-only-gate.json", expected_head="0" * 40)
+                     persistence_enabled=True)
 
     async def scenario(client):
         state = await create_thread(client)

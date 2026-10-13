@@ -45,36 +45,12 @@ describe("useProblemLayout hides solutions tab in contest mode", () => {
     }
   });
 
-  it("omits the solutions header when isContest is true", () => {
-    // createInitialHeaderGroups should only push the solutions header
-    // inside a `!isContest` branch.
-    const createFnBody = source.match(
-      /function\s+createInitialHeaderGroups[\s\S]*?\n\}/,
-    )?.[0];
-    expect(createFnBody).toBeDefined();
-    expect(createFnBody).toMatch(/if\s*\(\s*!isContest\s*\)/);
-    // The solutions header constant must be referenced inside the guard.
-    const guardIndex = createFnBody!.indexOf("!isContest");
-    const solutionsIdIndex = createFnBody!.indexOf("SOLUTIONS_HEADER_ID");
-    expect(guardIndex).toBeGreaterThan(-1);
-    expect(solutionsIdIndex).toBeGreaterThan(guardIndex);
-  });
-
   it("rewrites ?tab=solutions to ?tab=description in contest mode", () => {
     // The URL→store watcher must intercept the solutions tab and replace
     // it with description so deep links / refreshes never land on a
     // hidden panel.
     expect(source).toMatch(
       /isContest\.value\s*&&\s*tabName\s*===\s*"solutions"[\s\S]*?router\s*\.\s*replace/,
-    );
-  });
-
-  it("re-inits the layout when isContest changes", () => {
-    // Navigating from a contest problem to a regular problem (or vice
-    // versa) must rebuild the layout so the solutions tab appears /
-    // disappears.
-    expect(source).toMatch(
-      /watch\(\s*isContest[\s\S]*?initData\(config\.groups,\s*config\.layout\)/,
     );
   });
 

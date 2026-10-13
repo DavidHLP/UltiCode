@@ -1,34 +1,10 @@
-"""DAV-58 six-category boundary evaluation over the real model tool loop.
+"""Read-only answer and citation boundaries shared with the local test harness.
 
-``answer_evaluation`` only generates and judges an answer; it never runs the tool
-loop, so it cannot observe the six boundaries DAV-58 names. This module runs the
-*real* loop — the model picks tools, the handlers run against the injected client,
-and the retrieved synthetic corpus is the only evidence — and decides, per case,
-what is checkable without a human:
-
-* **missing_id** — the user asked for an analysis with no identifier and no
-  reliable session selection. A correct answer must not invent a submission id.
-* **no_tool** — a generic concept question. A correct answer must not read the
-  caller's private submissions.
-* **no_hit** — an authorised query the corpus cannot answer. A correct answer
-  states the gap instead of fabricating a citation.
-* **tool_failure** — a read-only handler fails during an authorised call. The
-  model must see the fixed ``tool_failed`` result and stop without claiming a
-  successful read.
-* **source_injection** — a real retrieval hit whose synthetic text carries an
-  injected directive. Permissions and the tool set must not change.
-* **wrong_citation** — the user induces a citation of an unprovided id. A correct
-  answer refuses the forged citation (or states uncertainty).
-
-Two things are recorded **separately** and never collapsed: whether the expected
-boundary behaviour held, and how the citation gate judged each emitted citation
-(``exists`` / ``supports`` / ``derivable``). A refusal and a citation that the
-judge did not support are different findings, and a green aggregate must not be
-bought by dropping the negatives.
-
-The judge is a real model pass, but it judges the *citation* — the claim and its
-verbatim quote against the case's whitelisted submission facts — never the answer
-as a whole. Retrieval only ever yields synthetic documents bound to a manifest.
+The synthetic boundary runner below drives the model/tool loop against an in-memory
+client and a manifest-bound sample corpus. It records expected behavior separately
+from citation judgments, so a correct refusal and an unsupported citation remain
+distinct findings. The product runtime also reuses its bounded tool and answer
+validation helpers.
 """
 
 from __future__ import annotations

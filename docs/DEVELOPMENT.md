@@ -182,24 +182,29 @@ dependabot-core 当作 support file 丢弃，PR 只改 manifest，必然过不�
 复现前端基线时运行只读门禁，避免 `lint --fix` 或全树格式化改变对照源码：
 
 ```bash
-pnpm install --frozen-lockfile
-for app in console management; do
-  pnpm --dir "apps/$app" lint:check &&
-    pnpm --dir "apps/$app" type-check &&
-    pnpm --dir "apps/$app" test:coverage &&
-    pnpm --dir "apps/$app" build-only || exit 1
-done
-pnpm --dir apps/management validate:i18n-keys
-pnpm --dir packages/auth-core type-check
-pnpm --dir packages/auth-core test:coverage
-pnpm --dir packages/theme test
+(
+  set -e
+  pnpm install --frozen-lockfile
+  for app in console management; do
+    pnpm --dir "apps/$app" lint:check
+    pnpm --dir "apps/$app" type-check
+    pnpm --dir "apps/$app" test:coverage
+    pnpm --dir "apps/$app" build-only
+  done
+  pnpm --dir apps/management validate:i18n-keys
+  pnpm --dir packages/auth-core type-check
+  pnpm --dir packages/auth-core test:coverage
+  pnpm --dir packages/theme test
+)
 ```
 
 `type-check` 与 `build-only` 分开执行，等价覆盖 app 的 `build` 两个子步骤，避免重复类型检查。
 app 测试排除的共享认证/主题测试必须独立运行；其他共享包受改动影响时运行该包声明的门禁。
 每项验证单独记录退出码，失败不得由后续成功覆盖。上述检查不证明浏览器业务旅程、真实后端、
 模型调用、远端部署或发布已验收；执行证据和当前状态放在对应 Linear / Notion 记录中，
-本页只维护固定起点、兼容边界与复现方法。
+本页只维护固定起点、兼容边界与复现方法。当前执行记录见
+[Linear 前端升级基线](https://linear.app/davidhlp/document/ulticode-web-v2前端升级基线-74fbf53b2431) 与
+[Notion 项目上下文](https://app.notion.com/p/3f374b09d6af81f2a890ecc638de067a)。
 
 ### Optional external Adapters
 

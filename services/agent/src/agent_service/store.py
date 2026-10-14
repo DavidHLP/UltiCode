@@ -211,6 +211,28 @@ class WorkflowStore:
             )""")
 
             db.execute("CREATE INDEX IF NOT EXISTS events_by_thread ON events(thread_id,seq)")
+            db.execute("""CREATE TABLE IF NOT EXISTS conversations (
+                conversation_id TEXT PRIMARY KEY, owner_id TEXT NOT NULL,
+                source_submission_id TEXT NOT NULL, title TEXT NOT NULL,
+                created_at REAL NOT NULL, updated_at REAL NOT NULL
+            )""")
+            db.execute("""CREATE TABLE IF NOT EXISTS conversation_turns (
+                turn_id TEXT PRIMARY KEY, conversation_id TEXT NOT NULL, owner_id TEXT NOT NULL,
+                turn_index INTEGER NOT NULL, client_turn_id TEXT NOT NULL,
+                run_id TEXT NOT NULL, status TEXT NOT NULL, question TEXT NOT NULL,
+                answer TEXT, citations_json TEXT NOT NULL DEFAULT '[]', trace_json TEXT NOT NULL DEFAULT '[]',
+                failure_reason TEXT, cancel_requested INTEGER NOT NULL DEFAULT 0,
+                event_seq INTEGER NOT NULL DEFAULT 0, created_at REAL NOT NULL, updated_at REAL NOT NULL,
+                UNIQUE(conversation_id,turn_index), UNIQUE(conversation_id,client_turn_id)
+            )""")
+            db.execute("""CREATE TABLE IF NOT EXISTS conversation_events (
+                turn_id TEXT NOT NULL, seq INTEGER NOT NULL, run_id TEXT NOT NULL,
+                kind TEXT NOT NULL, detail_json TEXT NOT NULL, created_at REAL NOT NULL,
+                PRIMARY KEY(turn_id,seq)
+            )""")
+            db.execute("CREATE INDEX IF NOT EXISTS conversations_by_owner_updated ON conversations(owner_id,updated_at DESC)")
+            db.execute("CREATE INDEX IF NOT EXISTS turns_by_conversation_index ON conversation_turns(conversation_id,turn_index)")
+            db.execute("CREATE INDEX IF NOT EXISTS conversation_events_by_turn ON conversation_events(turn_id,seq)")
             columns = {row["name"] for row in db.execute("PRAGMA table_info(threads)")}
             if "save_retry_count" not in columns:
                 db.execute("ALTER TABLE threads ADD COLUMN save_retry_count INTEGER NOT NULL DEFAULT 0")
@@ -364,6 +386,404 @@ class WorkflowStore:
                               (thread_id, after, limit)).fetchall()
         result = [{"seq": row["seq"], "kind": row["kind"], "detail": json.loads(row["detail_json"]), "createdAt": row["created_at"]} for row in rows]
         return result, (int(rows[-1]["seq"]) if rows else after)
+
+    @staticmethod
+    def _conversation_event(
+        db: sqlite3.Connection, turn_id: str, seq: int, run_id: str,
+        kind: str, detail: dict[str, object], now: float,
+    ) -> None:
+        db.execute("INSERT INTO conversation_events VALUES (?,?,?,?,?,?)", (
+            turn_id, seq, run_id, kind,
+            json.dumps(detail, ensure_ascii=False, separators=(",", ":")), now,
+        ))
+
+    @staticmethod
+    def _conversation_turn_decode(row: sqlite3.Row) -> dict[str, object]:
+        result = dict(row)
+        result["citations"] = json.loads(result.pop("citations_json"))
+        result["trace"] = json.loads(result.pop("trace_json"))
+        result["cancel_requested"] = bool(result["cancel_requested"])
+        return result
+
+    @staticmethod
+    def _conversation_summary(db: sqlite3.Connection, conversation_id: str, owner_id: str):
+        return db.execute(
+            """SELECT c.*, COUNT(t.turn_id) AS turn_count,
+                      (SELECT question FROM conversation_turns
+                       WHERE conversation_id=c.conversation_id ORDER BY turn_index DESC LIMIT 1) AS last_question
+               FROM conversations c LEFT JOIN conversation_turns t
+                 ON t.conversation_id=c.conversation_id
+               WHERE c.conversation_id=? AND c.owner_id=? GROUP BY c.conversation_id""",
+            (conversation_id, owner_id),
+        ).fetchone()
+
+    def create_conversation(
+        self, conversation_id: str, owner_id: str, source_submission_id: str,
+        title: str, *, now: float,
+    ) -> dict[str, object]:
+        with self._connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            try:
+                existing = db.execute(
+                    "SELECT owner_id,source_submission_id,title FROM conversations WHERE conversation_id=?",
+                    (conversation_id,),
+                ).fetchone()
+                if existing is not None:
+                    if (existing["owner_id"] != owner_id
+                            or existing["source_submission_id"] != source_submission_id
+                            or existing["title"] != title):
+                        raise Conflict("idempotency_conflict")
+                else:
+                    db.execute("INSERT INTO conversations VALUES (?,?,?,?,?,?)", (
+                        conversation_id, owner_id, source_submission_id, title, now, now,
+                    ))
+                row = self._conversation_summary(db, conversation_id, owner_id)
+                db.commit()
+            except Exception:
+                db.rollback()
+                raise
+        return dict(row)
+
+    def get_conversation(self, conversation_id: str, owner_id: str) -> dict[str, object] | None:
+        with self._connect() as db:
+            row = self._conversation_summary(db, conversation_id, owner_id)
+        return dict(row) if row else None
+
+    def list_conversations(self, owner_id: str, *, offset: int, limit: int) -> list[dict[str, object]]:
+        with self._connect() as db:
+            rows = db.execute(
+                """SELECT c.*, COUNT(t.turn_id) AS turn_count,
+                          (SELECT question FROM conversation_turns
+                           WHERE conversation_id=c.conversation_id ORDER BY turn_index DESC LIMIT 1) AS last_question
+                   FROM conversations c LEFT JOIN conversation_turns t
+                     ON t.conversation_id=c.conversation_id
+                   WHERE c.owner_id=? GROUP BY c.conversation_id
+                   ORDER BY c.updated_at DESC,c.conversation_id DESC LIMIT ? OFFSET ?""",
+                (owner_id, limit, offset),
+            ).fetchall()
+        return [dict(row) for row in rows]
+
+    def create_conversation_turn(
+        self, conversation_id: str, owner_id: str, turn_id: str,
+        client_turn_id: str, question: str, *, now: float,
+    ) -> dict[str, object]:
+        with self._connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            try:
+                if db.execute(
+                    "SELECT 1 FROM conversations WHERE conversation_id=? AND owner_id=?",
+                    (conversation_id, owner_id),
+                ).fetchone() is None:
+                    raise NotFound("conversation_not_found")
+                existing = db.execute(
+                    "SELECT * FROM conversation_turns WHERE conversation_id=? AND client_turn_id=?",
+                    (conversation_id, client_turn_id),
+                ).fetchone()
+                if existing is not None:
+                    if existing["question"] != question:
+                        raise Conflict("idempotency_conflict")
+                    db.commit()
+                    return self._conversation_turn_decode(existing)
+                active = db.execute(
+                    "SELECT 1 FROM conversation_turns WHERE conversation_id=? AND status IN ('queued','running') LIMIT 1",
+                    (conversation_id,),
+                ).fetchone()
+                if active:
+                    raise Conflict("conversation_turn_active")
+                turn_index = int(db.execute(
+                    "SELECT COALESCE(MAX(turn_index),0)+1 FROM conversation_turns WHERE conversation_id=?",
+                    (conversation_id,),
+                ).fetchone()[0])
+                run_id = str(uuid.uuid4())
+                db.execute(
+                    """INSERT INTO conversation_turns (
+                           turn_id,conversation_id,owner_id,turn_index,client_turn_id,run_id,status,
+                           question,created_at,updated_at,event_seq
+                       ) VALUES (?,?,?,?,?,?, 'queued',?,?,?,1)""",
+                    (turn_id, conversation_id, owner_id, turn_index, client_turn_id, run_id,
+                     question, now, now),
+                )
+                self._conversation_event(db, turn_id, 1, run_id, "turn_created", {"turnIndex": turn_index}, now)
+                db.execute(
+                    "UPDATE conversations SET updated_at=? WHERE conversation_id=? AND owner_id=?",
+                    (now, conversation_id, owner_id),
+                )
+                row = db.execute("SELECT * FROM conversation_turns WHERE turn_id=?", (turn_id,)).fetchone()
+                db.commit()
+            except Exception:
+                db.rollback()
+                raise
+        return self._conversation_turn_decode(row)
+
+    def get_conversation_turn(
+        self, conversation_id: str, turn_id: str, owner_id: str,
+    ) -> dict[str, object] | None:
+        with self._connect() as db:
+            row = db.execute(
+                "SELECT * FROM conversation_turns WHERE conversation_id=? AND turn_id=? AND owner_id=?",
+                (conversation_id, turn_id, owner_id),
+            ).fetchone()
+        return self._conversation_turn_decode(row) if row else None
+
+    def list_conversation_turns(
+        self, conversation_id: str, owner_id: str, *, before: int | None, limit: int,
+    ) -> list[dict[str, object]]:
+        with self._connect() as db:
+            if before is None:
+                rows = db.execute(
+                    """SELECT * FROM conversation_turns WHERE conversation_id=? AND owner_id=?
+                       ORDER BY turn_index DESC LIMIT ?""",
+                    (conversation_id, owner_id, limit),
+                ).fetchall()
+            else:
+                rows = db.execute(
+                    """SELECT * FROM conversation_turns WHERE conversation_id=? AND owner_id=? AND turn_index<?
+                       ORDER BY turn_index DESC LIMIT ?""",
+                    (conversation_id, owner_id, before, limit),
+                ).fetchall()
+        return [self._conversation_turn_decode(row) for row in reversed(rows)]
+
+    def start_conversation_turn(
+        self, conversation_id: str, turn_id: str, owner_id: str,
+        expected_run: str, *, now: float,
+    ) -> dict[str, object]:
+        with self._connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            try:
+                row = db.execute(
+                    "SELECT * FROM conversation_turns WHERE conversation_id=? AND turn_id=? AND owner_id=?",
+                    (conversation_id, turn_id, owner_id),
+                ).fetchone()
+                if row is None:
+                    raise NotFound("conversation_turn_not_found")
+                if row["status"] != "queued" or row["run_id"] != expected_run or row["cancel_requested"]:
+                    raise Conflict("conversation_turn_state_changed")
+                seq = int(row["event_seq"]) + 1
+                db.execute(
+                    "UPDATE conversation_turns SET status='running',event_seq=?,updated_at=? WHERE turn_id=?",
+                    (seq, now, turn_id),
+                )
+                self._conversation_event(db, turn_id, seq, expected_run, "turn_started", {}, now)
+                updated = db.execute("SELECT * FROM conversation_turns WHERE turn_id=?", (turn_id,)).fetchone()
+                db.commit()
+            except Exception:
+                db.rollback()
+                raise
+        return self._conversation_turn_decode(updated)
+
+    def append_conversation_event(
+        self, conversation_id: str, turn_id: str, owner_id: str, run_id: str,
+        kind: str, detail: dict[str, object], *, now: float,
+    ) -> dict[str, object]:
+        with self._connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            try:
+                row = db.execute(
+                    "SELECT * FROM conversation_turns WHERE conversation_id=? AND turn_id=? AND owner_id=?",
+                    (conversation_id, turn_id, owner_id),
+                ).fetchone()
+                if row is None:
+                    raise NotFound("conversation_turn_not_found")
+                if row["status"] != "running" or row["run_id"] != run_id or row["cancel_requested"]:
+                    raise Conflict("conversation_turn_state_changed")
+                seq = int(row["event_seq"]) + 1
+                db.execute(
+                    "UPDATE conversation_turns SET event_seq=?,updated_at=? WHERE turn_id=?",
+                    (seq, now, turn_id),
+                )
+                self._conversation_event(db, turn_id, seq, run_id, kind, detail, now)
+                updated = db.execute("SELECT * FROM conversation_turns WHERE turn_id=?", (turn_id,)).fetchone()
+                db.commit()
+            except Exception:
+                db.rollback()
+                raise
+        return self._conversation_turn_decode(updated)
+
+    def complete_conversation_turn(
+        self, conversation_id: str, turn_id: str, owner_id: str, run_id: str,
+        *, answer: str, citations: list[dict[str, object]], trace: list[dict[str, object]], now: float,
+    ) -> dict[str, object]:
+        with self._connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            try:
+                row = db.execute(
+                    "SELECT * FROM conversation_turns WHERE conversation_id=? AND turn_id=? AND owner_id=?",
+                    (conversation_id, turn_id, owner_id),
+                ).fetchone()
+                if row is None:
+                    raise NotFound("conversation_turn_not_found")
+                if row["status"] != "running" or row["run_id"] != run_id or row["cancel_requested"]:
+                    raise Conflict("conversation_turn_state_changed")
+                seq = int(row["event_seq"]) + 1
+                db.execute(
+                    """UPDATE conversation_turns SET status='completed',answer=?,citations_json=?,trace_json=?,
+                       failure_reason=NULL,event_seq=?,updated_at=? WHERE turn_id=?""",
+                    (answer, json.dumps(citations, ensure_ascii=False, separators=(",", ":")),
+                     json.dumps(trace, ensure_ascii=False, separators=(",", ":")), seq, now, turn_id),
+                )
+                self._conversation_event(db, turn_id, seq, run_id, "turn_completed", {}, now)
+                db.execute(
+                    "UPDATE conversations SET updated_at=? WHERE conversation_id=? AND owner_id=?",
+                    (now, conversation_id, owner_id),
+                )
+                updated = db.execute("SELECT * FROM conversation_turns WHERE turn_id=?", (turn_id,)).fetchone()
+                db.commit()
+            except Exception:
+                db.rollback()
+                raise
+        return self._conversation_turn_decode(updated)
+
+    def fail_conversation_turn(
+        self, conversation_id: str, turn_id: str, owner_id: str, run_id: str,
+        reason: str, *, now: float,
+    ) -> dict[str, object]:
+        with self._connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            try:
+                row = db.execute(
+                    "SELECT * FROM conversation_turns WHERE conversation_id=? AND turn_id=? AND owner_id=?",
+                    (conversation_id, turn_id, owner_id),
+                ).fetchone()
+                if row is None:
+                    raise NotFound("conversation_turn_not_found")
+                if row["status"] != "running" or row["run_id"] != run_id or row["cancel_requested"]:
+                    raise Conflict("conversation_turn_state_changed")
+                seq = int(row["event_seq"]) + 1
+                db.execute(
+                    "UPDATE conversation_turns SET status='failed',failure_reason=?,event_seq=?,updated_at=? WHERE turn_id=?",
+                    (reason, seq, now, turn_id),
+                )
+                self._conversation_event(db, turn_id, seq, run_id, "turn_failed", {"reason": reason}, now)
+                updated = db.execute("SELECT * FROM conversation_turns WHERE turn_id=?", (turn_id,)).fetchone()
+                db.commit()
+            except Exception:
+                db.rollback()
+                raise
+        return self._conversation_turn_decode(updated)
+
+    def cancel_conversation_turn(
+        self, conversation_id: str, turn_id: str, owner_id: str, *, now: float,
+    ) -> dict[str, object]:
+        with self._connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            try:
+                row = db.execute(
+                    "SELECT * FROM conversation_turns WHERE conversation_id=? AND turn_id=? AND owner_id=?",
+                    (conversation_id, turn_id, owner_id),
+                ).fetchone()
+                if row is None:
+                    raise NotFound("conversation_turn_not_found")
+                if row["status"] in {"queued", "running"}:
+                    seq = int(row["event_seq"]) + 1
+                    db.execute(
+                        "UPDATE conversation_turns SET status='cancelled',cancel_requested=1,event_seq=?,updated_at=? WHERE turn_id=?",
+                        (seq, now, turn_id),
+                    )
+                    self._conversation_event(db, turn_id, seq, row["run_id"], "turn_cancelled", {}, now)
+                updated = db.execute("SELECT * FROM conversation_turns WHERE turn_id=?", (turn_id,)).fetchone()
+                db.commit()
+            except Exception:
+                db.rollback()
+                raise
+        return self._conversation_turn_decode(updated)
+
+    def recover_conversation_turn(
+        self, conversation_id: str, turn_id: str, owner_id: str, *, now: float,
+    ) -> dict[str, object]:
+        with self._connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            try:
+                row = db.execute(
+                    "SELECT * FROM conversation_turns WHERE conversation_id=? AND turn_id=? AND owner_id=?",
+                    (conversation_id, turn_id, owner_id),
+                ).fetchone()
+                if row is None:
+                    raise NotFound("conversation_turn_not_found")
+                if row["status"] == "running":
+                    seq = int(row["event_seq"]) + 1
+                    db.execute(
+                        "UPDATE conversation_turns SET status='failed',failure_reason='turn_interrupted',event_seq=?,updated_at=? WHERE turn_id=?",
+                        (seq, now, turn_id),
+                    )
+                    self._conversation_event(
+                        db, turn_id, seq, row["run_id"], "turn_interrupted", {}, now,
+                    )
+                updated = db.execute("SELECT * FROM conversation_turns WHERE turn_id=?", (turn_id,)).fetchone()
+                db.commit()
+            except Exception:
+                db.rollback()
+                raise
+        return self._conversation_turn_decode(updated)
+
+    def retry_conversation_turn(
+        self, conversation_id: str, turn_id: str, owner_id: str, *, now: float,
+    ) -> dict[str, object]:
+        with self._connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            try:
+                row = db.execute(
+                    "SELECT * FROM conversation_turns WHERE conversation_id=? AND turn_id=? AND owner_id=?",
+                    (conversation_id, turn_id, owner_id),
+                ).fetchone()
+                if row is None:
+                    raise NotFound("conversation_turn_not_found")
+                if row["status"] != "failed":
+                    raise Conflict("conversation_turn_state_changed")
+                run_id = str(uuid.uuid4())
+                seq = int(row["event_seq"]) + 1
+                db.execute(
+                    "UPDATE conversation_turns SET status='queued',run_id=?,failure_reason=NULL,event_seq=?,updated_at=? WHERE turn_id=?",
+                    (run_id, seq, now, turn_id),
+                )
+                self._conversation_event(db, turn_id, seq, run_id, "turn_retry_queued", {}, now)
+                updated = db.execute("SELECT * FROM conversation_turns WHERE turn_id=?", (turn_id,)).fetchone()
+                db.commit()
+            except Exception:
+                db.rollback()
+                raise
+        return self._conversation_turn_decode(updated)
+
+    def conversation_events(
+        self, conversation_id: str, turn_id: str, owner_id: str, *, after: int, limit: int = 100,
+    ) -> tuple[list[dict[str, object]], int]:
+        with self._connect() as db:
+            rows = db.execute(
+                """SELECT e.seq,e.run_id,e.kind,e.detail_json,e.created_at
+                   FROM conversation_events e JOIN conversation_turns t ON t.turn_id=e.turn_id
+                   WHERE t.conversation_id=? AND t.turn_id=? AND t.owner_id=? AND e.seq>?
+                   ORDER BY e.seq LIMIT ?""",
+                (conversation_id, turn_id, owner_id, after, limit),
+            ).fetchall()
+        events = [{"seq": row["seq"], "runId": row["run_id"], "kind": row["kind"],
+                   "detail": json.loads(row["detail_json"]), "createdAt": row["created_at"]} for row in rows]
+        return events, (int(rows[-1]["seq"]) if rows else after)
+
+    def delete_conversation(self, conversation_id: str, owner_id: str) -> None:
+        with self._connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            try:
+                row = db.execute(
+                    "SELECT 1 FROM conversations WHERE conversation_id=? AND owner_id=?",
+                    (conversation_id, owner_id),
+                ).fetchone()
+                if row is None:
+                    raise NotFound("conversation_not_found")
+                active = db.execute(
+                    "SELECT 1 FROM conversation_turns WHERE conversation_id=? AND status='running' LIMIT 1",
+                    (conversation_id,),
+                ).fetchone()
+                if active:
+                    raise Conflict("conversation_turn_active")
+                db.execute(
+                    "DELETE FROM conversation_events WHERE turn_id IN (SELECT turn_id FROM conversation_turns WHERE conversation_id=?)",
+                    (conversation_id,),
+                )
+                db.execute("DELETE FROM conversation_turns WHERE conversation_id=?", (conversation_id,))
+                db.execute("DELETE FROM conversations WHERE conversation_id=? AND owner_id=?", (conversation_id, owner_id))
+                db.commit()
+            except Exception:
+                db.rollback()
+                raise
 
     def dispatch_allowed(
         self, thread_id: str, owner_id: str, run_id: str, version: int, *,

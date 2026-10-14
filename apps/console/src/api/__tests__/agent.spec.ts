@@ -1,11 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { apiGet, apiPost, apiPut } from "@/utils/request";
+import { apiDelete, apiGet, apiPost, apiPut } from "@/utils/request";
 import { agentApi } from "@/api/agent";
 
 vi.mock("@/utils/request", () => ({
   apiGet: vi.fn(),
   apiPost: vi.fn(),
   apiPut: vi.fn(),
+  apiDelete: vi.fn(),
 }));
 
 describe("agentApi", () => {
@@ -61,12 +62,42 @@ describe("agentApi", () => {
     });
   });
 
-  it("encodes thread IDs for reads and event streams", async () => {
+  it("uses conversation endpoints for create, history, turn lifecycle, and deletion", async () => {
     vi.mocked(apiGet).mockResolvedValue({});
-    await agentApi.getThread("thread/with space");
-    expect(apiGet).toHaveBeenCalledWith("/agent/threads/thread%2Fwith%20space");
-    expect(agentApi.eventStreamUrl("thread/with space")).toBe(
-      "/api/agent/threads/thread%2Fwith%20space/events/stream?after=0",
+    vi.mocked(apiPost).mockResolvedValue({});
+    vi.mocked(apiDelete).mockResolvedValue({});
+
+    await agentApi.createConversation({
+      conversationId: "conversation-1",
+      sourceSubmissionId: "submission-1",
+      clientTurnId: "turn-client-1",
+      question: "Why did this fail?",
+    });
+    expect(apiPost).toHaveBeenCalledWith("/agent/conversations", {
+      conversationId: "conversation-1",
+      sourceSubmissionId: "submission-1",
+      clientTurnId: "turn-client-1",
+      question: "Why did this fail?",
+    });
+    await agentApi.listConversations(10, 20);
+    expect(apiGet).toHaveBeenCalledWith("/agent/conversations?limit=10&offset=20");
+    await agentApi.getConversation("conversation/one", 20, 4);
+    expect(apiGet).toHaveBeenLastCalledWith("/agent/conversations/conversation%2Fone?limit=20&before=4");
+    await agentApi.createConversationTurn("conversation/one", "client-turn-2", "Follow up");
+    expect(apiPost).toHaveBeenLastCalledWith("/agent/conversations/conversation%2Fone/turns", {
+      clientTurnId: "client-turn-2",
+      question: "Follow up",
+    });
+    await agentApi.runConversationTurn("conversation/one", "turn/2", true);
+    expect(apiPost).toHaveBeenLastCalledWith("/agent/conversations/conversation%2Fone/turns/turn%2F2/run", { sourceConsent: true });
+    await agentApi.cancelConversationTurn("conversation-1", "turn-1");
+    expect(apiPost).toHaveBeenLastCalledWith("/agent/conversations/conversation-1/turns/turn-1/cancel", {});
+    await agentApi.recoverConversationTurn("conversation-1", "turn-1");
+    expect(apiPost).toHaveBeenLastCalledWith("/agent/conversations/conversation-1/turns/turn-1/recover", {});
+    await agentApi.deleteConversation("conversation-1");
+    expect(apiDelete).toHaveBeenCalledWith("/agent/conversations/conversation-1");
+    expect(agentApi.conversationEventStreamUrl("conversation/one", "turn/2", 7)).toBe(
+      "/api/agent/conversations/conversation%2Fone/turns/turn%2F2/events/stream?after=7",
     );
   });
 });

@@ -161,6 +161,13 @@ const solutionEditRoute: RouteRecordRaw = {
     import("@/views/post-editor/solutions/SolutionsEditView.vue"),
 };
 
+const agentWorkspaceRoute: RouteRecordRaw = {
+  path: "/agent",
+  name: "agent-workspace",
+  component: () => import("@/views/personal/AgentConversationWorkspace.vue"),
+  meta: { requiresAuth: true },
+};
+
 const submissionDetailRoute: RouteRecordRaw = {
   path: "/submissions/:id",
   name: "submission-detail",
@@ -297,6 +304,7 @@ const router = createRouter({
     forumCreateRoute,
     forumEditRoute,
     submissionDetailRoute,
+    agentWorkspaceRoute,
     forumRoutes,
     contestRoutes,
     problemSetRoute,

@@ -218,6 +218,19 @@ def test_a_non_json_decision_reports_its_shape_not_its_text() -> None:
     assert prose not in str(answered.value)
 
 
+def test_invalid_decision_schema_reports_only_a_known_shape():
+    from deepseek_model import ModelProtocolError, _parse_decision
+
+    with pytest.raises(ModelProtocolError) as error:
+        _parse_decision(
+            '{"tool":"untrusted-value","arguments":{"query":"untrusted-value"}}',
+            finish_reason="stop",
+        )
+
+    assert "shape=tool_arguments_alias" in str(error.value)
+    assert "untrusted-value" not in str(error.value)
+
+
 def test_a_length_terminated_decision_is_rejected() -> None:
     """A closing brace just before the cap does not make the answer complete."""
     seen: dict[str, object] = {}

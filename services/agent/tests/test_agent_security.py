@@ -425,3 +425,61 @@ def test_cancel_during_analysis_discards_late_answer_without_sleep(tmp_path):
         assert kinds == ["thread_created", "analysis_started", "model_started", "cancel_requested"]
 
     asyncio.run(with_client(app, scenario))
+
+
+def test_conversation_writes_require_csrf_before_creating_state(tmp_path):
+    app = create_app(state_path=tmp_path / "conversation-csrf.sqlite3", client_factory=Session)
+
+    async def scenario(client):
+        response = await client.post("/agent/conversations", headers={
+            "cookie": "access_token=access; csrf_token=csrf",
+        }, json={
+            "conversationId": str(uuid.uuid4()),
+            "sourceSubmissionId": str(uuid.uuid4()),
+            "clientTurnId": str(uuid.uuid4()),
+            "question": "Explain this result",
+        })
+        assert response.status_code == 403
+        assert response.json()["data"]["reason"] == "csrf_mismatch"
+        with app.state.store._connect() as db:
+            assert db.execute("SELECT COUNT(*) FROM conversations").fetchone()[0] == 0
+
+    asyncio.run(with_client(app, scenario))
+
+
+def test_foreign_conversation_access_is_uniform_404_without_run_lock(tmp_path):
+    def factory(**kwargs):
+        return Session(owner="owner" if kwargs.get("access_token") == "access" else "other")
+
+    app = create_app(state_path=tmp_path / "conversation-owner.sqlite3", client_factory=factory)
+    conversation_id = str(uuid.uuid4())
+
+    async def scenario(client):
+        created = await client.post("/agent/conversations", headers=HEADERS, json={
+            "conversationId": conversation_id,
+            "sourceSubmissionId": str(uuid.uuid4()),
+            "clientTurnId": str(uuid.uuid4()),
+            "question": "Explain this result",
+        })
+        turn_id = created.json()["data"]["turn"]["turnId"]
+        before = list(tmp_path.glob("*.lock"))
+        foreign = {"cookie": "access_token=foreign; csrf_token=csrf", "x-csrf-token": "csrf"}
+        responses = [
+            await client.get(f"/agent/conversations/{conversation_id}", headers=foreign),
+            await client.post(f"/agent/conversations/{conversation_id}/turns", headers=foreign, json={
+                "clientTurnId": str(uuid.uuid4()), "question": "A different question",
+            }),
+            await client.post(
+                f"/agent/conversations/{conversation_id}/turns/{turn_id}/run", headers=foreign,
+                json={"sourceConsent": False},
+            ),
+            await client.post(
+                f"/agent/conversations/{conversation_id}/turns/{turn_id}/cancel", headers=foreign, json={},
+            ),
+            await client.delete(f"/agent/conversations/{conversation_id}", headers=foreign),
+        ]
+        assert all(response.status_code == 404 for response in responses)
+        assert all(response.json()["data"]["reason"] == "conversation_not_found" for response in responses)
+        assert list(tmp_path.glob("*.lock")) == before
+
+    asyncio.run(with_client(app, scenario))

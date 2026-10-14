@@ -21,6 +21,7 @@ const router = useRouter();
 const workflow = useAgentWorkflow();
 const expanded = ref(Boolean(route.query.threadId));
 const capability = ref<{ analysisAvailable: boolean; persistenceAvailable: boolean; sourceMode: "metadata" | "owner_source" } | null>(null);
+const capabilityLoading = ref(false);
 const capabilityError = ref(false);
 const allowSource = ref(false);
 const question = ref("");
@@ -34,10 +35,26 @@ const authStore = useAuthStore();
 const enabled = import.meta.env.VITE_AGENT_REVIEW_ENABLED === "true";
 const userId = computed(() => authStore.fetchCurrentUserId());
 const eligible = computed(() => isAgentReviewEligible(props.submission, userId.value, enabled, props.contestId));
+const isAccepted = computed(() => props.submission.status === "Accepted");
+const suggestedQuestion = computed(() => t(isAccepted.value ? "agent.promptComplexity" : "agent.promptMistakes"));
+const entryLabel = computed(() => t(isAccepted.value ? "agent.reviewComplexity" : "agent.reviewError"));
 const draftDirty = computed(() => Boolean(workflow.thread.value)
   && (workflow.draftTitle.value !== workflow.thread.value?.draft.title
     || workflow.draftContent.value !== workflow.thread.value?.draft.content));
 const threadMatchesSubmission = computed(() => workflow.thread.value?.sourceSubmissionId === props.submission.id);
+const toolEvents = computed(() => workflow.events.value.filter((event) => event.kind === "tool_started" || event.kind === "tool_completed"));
+const hasUnsavedReview = computed(() => {
+  const current = workflow.thread.value;
+  return Boolean(current && threadMatchesSubmission.value && current.status !== "saved" && current.status !== "cancelled"
+    && (draftDirty.value || workflow.generatedText.value || current.draft.content));
+});
+const newThreadBlocked = computed(() => workflow.busy.value || workflow.loading.value || workflow.canceling.value
+  || workflow.thread.value?.status === "analyzing" || workflow.thread.value?.status === "saving");
+const hasEvidence = computed(() => {
+  const draft = workflow.thread.value?.draft;
+  return Boolean(toolEvents.value.length || draft?.facts.length || draft?.hypotheses.length
+    || draft?.citations.length || draft?.citationChecks.length);
+});
 const threadQuery = computed(() => {
   const value = route.query.threadId;
   return Array.isArray(value) ? value[0] : value;
@@ -53,10 +70,19 @@ const statusText = computed(() => {
   const status: AgentThreadStatus | "idle" = workflow.thread.value?.status ?? "idle";
   return t(`agent.statuses.${status}`);
 });
-const toolEvents = computed(() => workflow.events.value.filter((event) => event.kind === "tool_started" || event.kind === "tool_completed"));
+const receiptFailure = computed(() => workflow.thread.value?.receipt.failureReason ?? null);
+const analysisFailed = computed(() => ["analysis_failed", "analysis_interrupted"].includes(receiptFailure.value ?? ""));
 const canCancel = computed(() => !workflow.saving.value && ["analyzing", "awaiting_confirmation", "confirmed"].includes(workflow.thread.value?.status ?? ""));
+watch(suggestedQuestion, (value) => {
+  if (!question.value.trim()) question.value = value;
+}, { immediate: true });
+
+function openWorkspace() {
+  void router.push({ name: "agent-workspace", query: { submissionId: props.submission.id } });
+}
 
 async function setExpanded(value: boolean) {
+  if (value && !threadMatchesSubmission.value && !question.value.trim()) question.value = suggestedQuestion.value;
   expanded.value = value;
   if (value) {
     await nextTick();
@@ -70,6 +96,7 @@ async function setExpanded(value: boolean) {
 async function syncCapabilities() {
   const generation = ++requestGeneration.value;
   capability.value = null;
+  capabilityLoading.value = eligible.value;
   capabilityError.value = false;
   allowSource.value = false;
   persistedPlan.value = null;
@@ -87,6 +114,8 @@ async function syncCapabilities() {
     }
   } catch {
     if (generation === requestGeneration.value) capabilityError.value = true;
+  } finally {
+    if (generation === requestGeneration.value) capabilityLoading.value = false;
   }
 }
 
@@ -147,14 +176,17 @@ async function startReview() {
 }
 async function recoverFromUrl() {
   if (!threadQuery.value || !capability.value) return;
+  if (hasUnsavedReview.value && !window.confirm(t("agent.reloadConfirm"))) return;
   loadedThreadId.value = threadQuery.value;
   await workflow.loadThread(threadQuery.value, props.submission.id);
 }
 async function startFreshReview() {
+  if (newThreadBlocked.value) return;
+  if (hasUnsavedReview.value && !window.confirm(t("agent.newThreadConfirm"))) return;
   if (!workflow.clear()) return;
   loadedThreadId.value = null;
   persistedPlan.value = null;
-  question.value = "";
+  question.value = suggestedQuestion.value;
   await updateThreadQuery(null);
 }
 watch(threadQuery, (id) => {
@@ -191,13 +223,23 @@ onBeforeUnmount(() => {
         <h2 class="font-medium">{{ t("agent.reviewTitle") }}</h2>
         <p class="text-sm text-muted-foreground">{{ t("agent.reviewDescription") }}</p>
       </div>
-      <Button data-agent-panel-toggle type="button" variant="outline" size="sm" :aria-expanded="expanded" @click="setExpanded(!expanded)">
-        {{ expanded ? t("agent.closePanel") : t("agent.openPanel") }}
-      </Button>
+      <div class="flex items-center gap-2">
+        <Button data-agent-panel-toggle type="button" variant="outline" size="sm" :aria-expanded="expanded" @click="setExpanded(!expanded)">
+          {{ expanded ? t("agent.closePanel") : entryLabel }}
+        </Button>
+        <Button data-agent-workspace-entry type="button" variant="outline" size="sm" @click="openWorkspace">
+          {{ t("agent.openWorkspace") }}
+        </Button>
+      </div>
     </div>
     <div v-if="expanded" class="space-y-5 border-t border-border p-3 sm:p-5" @keydown="closeOnEscape">
       <h3 ref="panelTitle" tabindex="-1" class="text-lg font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ring">{{ t("agent.reviewTitle") }}</h3>
-      <p v-if="capabilityError || (workflow.error.value && (!workflow.thread.value || threadMatchesSubmission))" role="alert" class="text-sm text-destructive">{{ errorText }}</p>
+      <p v-if="workflow.error.value && (!workflow.thread.value || threadMatchesSubmission)" role="alert" class="text-sm text-destructive">{{ errorText }}</p>
+      <div v-if="capabilityError" class="flex flex-wrap items-center gap-2" role="alert">
+        <p class="text-sm text-destructive">{{ errorText }}</p>
+        <Button type="button" size="sm" variant="outline" :disabled="capabilityLoading" @click="syncCapabilities">{{ t("agent.retry") }}</Button>
+      </div>
+      <p v-if="capabilityLoading" role="status" aria-live="polite" class="text-sm text-muted-foreground">{{ t("agent.capabilityLoading") }}</p>
       <template v-if="capability">
         <p class="text-sm text-muted-foreground">{{ t(`agent.sourceModes.${capability.sourceMode}`) }}</p>
         <p v-if="!capability.analysisAvailable" class="rounded border p-3 text-sm">{{ t("agent.analysisUnavailable") }}</p>
@@ -217,36 +259,91 @@ onBeforeUnmount(() => {
             <Button type="button" :disabled="workflow.busy.value || (capability.sourceMode === 'owner_source' && !allowSource)" @click="startReview">{{ t("agent.start") }}</Button>
           </div>
         </template>
-        <template v-if="workflow.thread.value && workflow.thread.value.sourceSubmissionId === props.submission.id">
-            <div class="flex flex-wrap items-center gap-2"><Badge variant="secondary" role="status">{{ statusText }}</Badge><Button type="button" size="sm" variant="outline" :disabled="workflow.loading.value" @click="recoverFromUrl">{{ t("agent.refresh") }}</Button><Button type="button" size="sm" variant="outline" :disabled="workflow.saving.value" @click="startFreshReview">{{ t("agent.newThread") }}</Button></div>
-            <p v-if="workflow.error.value" role="alert" class="text-sm text-destructive">{{ errorText }}</p>
-            <p v-if="workflow.thread.value.status === 'saving' || workflow.saving.value" class="rounded border p-3 text-sm">{{ t("agent.savingWarning") }}</p>
-            <p v-if="workflow.thread.value.receipt.failureReason" class="text-sm text-destructive">{{ workflow.thread.value.receipt.failureReason }}</p>
-            <p v-if="workflow.thread.value.status === 'confirmed'" class="text-sm text-muted-foreground">{{ t("agent.waitingConfirmation") }}</p>
-            <p v-if="workflow.thread.value.status === 'saved'" class="rounded border p-3 text-sm">{{ t("agent.savedPlan", { id: workflow.thread.value.receipt.planId }) }}</p>
-            <div v-if="persistedPlan" class="min-w-0 break-words rounded border p-3 text-sm"><h4 class="mb-2 font-medium">{{ t("agent.savedPlanReadback") }}</h4><h5 class="font-medium">{{ persistedPlan.title }}</h5><div class="prose prose-sm mt-2 max-w-none break-words" v-html="renderMarkdown(persistedPlan.content)" /></div>
-            <p v-if="planReadbackError" role="status" class="text-sm text-muted-foreground">{{ t("agent.planReadbackUnavailable") }}</p>
-            <div v-if="workflow.thread.value.status === 'awaiting_confirmation'" class="space-y-3">
-              <Label for="agent-draft-title">{{ t("agent.draftTitle") }}</Label><Input id="agent-draft-title" v-model="workflow.draftTitle.value" :disabled="workflow.busy.value" />
-              <Label for="agent-draft-content">{{ t("agent.draftContent") }}</Label><Textarea id="agent-draft-content" v-model="workflow.draftContent.value" rows="7" :disabled="workflow.busy.value" />
-              <Button v-if="draftDirty" type="button" variant="outline" :disabled="workflow.busy.value" @click="workflow.updateDraft">{{ t("agent.updateDraft") }}</Button>
-              <Button v-if="capability.persistenceAvailable && workflow.generatedText.value" type="button" variant="outline" :disabled="workflow.busy.value || draftDirty" @click="workflow.confirmDraft">{{ t("agent.confirm") }}</Button>
-              <div v-if="workflow.draftContent.value" class="text-sm"><span class="font-medium">{{ t("agent.preview") }}</span><div class="prose prose-sm mt-2 max-w-none break-words" v-html="renderMarkdown(workflow.draftContent.value)" /></div>
+        <template v-if="workflow.thread.value && threadMatchesSubmission">
+          <div class="flex flex-wrap items-center gap-2">
+            <Badge variant="secondary" role="status">{{ statusText }}</Badge>
+            <Button type="button" size="sm" variant="outline" :disabled="newThreadBlocked" @click="recoverFromUrl">{{ t("agent.refresh") }}</Button>
+            <Button type="button" size="sm" variant="outline" :disabled="newThreadBlocked" @click="startFreshReview">{{ t("agent.newThread") }}</Button>
+          </div>
+          <p v-if="workflow.thread.value.status === 'saving' || workflow.saving.value" class="rounded border p-3 text-sm">{{ t("agent.savingWarning") }}</p>
+          <p v-if="analysisFailed" role="alert" class="text-sm text-destructive">{{ t("agent.analysisFailed") }}</p>
+          <p v-if="workflow.analyzing.value && !workflow.generatedText.value" role="status" aria-live="polite" class="text-sm text-muted-foreground">{{ t("agent.analysisWaiting") }}</p>
+          <section v-if="workflow.generatedText.value" class="space-y-2 rounded border border-primary/40 bg-muted/30 p-3">
+            <h4 class="font-medium">{{ t("agent.generated") }}</h4>
+            <p class="whitespace-pre-wrap break-words text-sm">{{ workflow.generatedText.value }}</p>
+          </section>
+          <details v-if="hasEvidence" class="rounded border p-3">
+            <summary class="cursor-pointer text-sm font-medium">{{ t("agent.evidence") }}</summary>
+            <div class="mt-3 space-y-4">
+              <ul v-if="toolEvents.length" class="space-y-2 text-sm">
+                <li v-for="event in toolEvents" :key="event.seq" class="break-words rounded border p-2">
+                  <span>{{ event.detail.toolName ?? event.kind }}</span>
+                  <span class="ml-2 text-muted-foreground">{{ event.kind === "tool_started" ? t("agent.toolStarted") : t("agent.toolCompleted") }}</span>
+                  <Badge v-if="event.detail.failed === true" variant="destructive" class="ml-2">{{ t("agent.statuses.failed") }}</Badge>
+                </li>
+              </ul>
+              <div class="grid min-w-0 gap-3 sm:grid-cols-2">
+                <section class="min-w-0 rounded border p-3">
+                  <h4 class="mb-2 font-medium">{{ t("agent.facts") }}</h4>
+                  <ul class="space-y-1 text-sm">
+                    <li v-for="(fact, index) in workflow.thread.value.draft.facts" :key="index" class="break-words">{{ typeof fact === "string" ? fact : JSON.stringify(fact) }}</li>
+                    <li v-if="!workflow.thread.value.draft.facts.length" class="text-muted-foreground">{{ t("agent.noFacts") }}</li>
+                  </ul>
+                </section>
+                <section class="min-w-0 rounded border p-3">
+                  <h4 class="mb-2 font-medium">{{ t("agent.hypotheses") }}</h4>
+                  <ul class="space-y-1 text-sm">
+                    <li v-for="(item, index) in workflow.thread.value.draft.hypotheses" :key="index" class="break-words">{{ typeof item === "string" ? item : JSON.stringify(item) }}</li>
+                    <li v-if="!workflow.thread.value.draft.hypotheses.length" class="text-muted-foreground">{{ t("agent.noHypotheses") }}</li>
+                  </ul>
+                </section>
+              </div>
+              <section v-if="workflow.thread.value.draft.citations.length" class="space-y-2">
+                <h4 class="font-medium">{{ t("agent.citations") }}</h4>
+                <ol class="space-y-2">
+                  <li v-for="citation in workflow.thread.value.draft.citations" :key="citation.chunk_id" class="break-words rounded border p-3 text-sm">
+                    <strong>{{ citation.claim }}</strong>
+                    <p class="text-xs text-muted-foreground">{{ citation.source_path }} · {{ citation.source_position }}</p>
+                    <blockquote class="mt-2 border-l-2 pl-3">{{ citation.text }}</blockquote>
+                  </li>
+                </ol>
+              </section>
+              <details v-if="workflow.thread.value.draft.citationChecks.length">
+                <summary class="cursor-pointer text-sm">{{ t("agent.citationChecks") }}</summary>
+                <pre class="mt-2 max-w-full overflow-auto rounded border p-3 text-xs">{{ JSON.stringify(workflow.thread.value.draft.citationChecks, null, 2) }}</pre>
+              </details>
             </div>
-            <p v-if="workflow.generatedText.value" class="whitespace-pre-wrap break-words rounded border p-3 text-sm">{{ workflow.generatedText.value }}</p>
-            <ul v-if="toolEvents.length" class="space-y-2 text-sm"><li v-for="event in toolEvents" :key="event.seq" class="break-words rounded border p-2"><span>{{ event.detail.toolName ?? event.kind }}</span><span class="ml-2 text-muted-foreground">{{ event.kind === "tool_started" ? t("agent.toolStarted") : t("agent.toolCompleted") }}</span><Badge v-if="event.detail.failed === true" variant="destructive" class="ml-2">{{ t("agent.statuses.failed") }}</Badge></li></ul>
-            <div class="grid min-w-0 gap-3 sm:grid-cols-2">
-              <section class="min-w-0 rounded border p-3"><h4 class="mb-2 font-medium">{{ t("agent.facts") }}</h4><ul class="space-y-1 text-sm"><li v-for="(fact, index) in workflow.thread.value.draft.facts" :key="index" class="break-words">{{ typeof fact === "string" ? fact : JSON.stringify(fact) }}</li><li v-if="!workflow.thread.value.draft.facts.length" class="text-muted-foreground">{{ t("agent.noFacts") }}</li></ul></section>
-              <section class="min-w-0 rounded border p-3"><h4 class="mb-2 font-medium">{{ t("agent.hypotheses") }}</h4><ul class="space-y-1 text-sm"><li v-for="(item, index) in workflow.thread.value.draft.hypotheses" :key="index" class="break-words">{{ typeof item === "string" ? item : JSON.stringify(item) }}</li><li v-if="!workflow.thread.value.draft.hypotheses.length" class="text-muted-foreground">{{ t("agent.noHypotheses") }}</li></ul></section>
-            </div>
-            <section v-if="workflow.thread.value.draft.citations.length" class="space-y-2"><h4 class="font-medium">{{ t("agent.citations") }}</h4><ol class="space-y-2"><li v-for="citation in workflow.thread.value.draft.citations" :key="citation.chunk_id" class="break-words rounded border p-3 text-sm"><strong>{{ citation.claim }}</strong><p class="text-xs text-muted-foreground">{{ citation.source_path }} · {{ citation.source_position }}</p><blockquote class="mt-2 border-l-2 pl-3">{{ citation.text }}</blockquote></li></ol></section>
-            <div class="flex flex-wrap gap-2">
+          </details>
+          <details v-if="workflow.thread.value.status === 'awaiting_confirmation' || workflow.thread.value.status === 'confirmed' || workflow.thread.value.status === 'saving' || workflow.thread.value.status === 'saved' || workflow.thread.value.status === 'unknown' || (workflow.thread.value.status === 'failed' && receiptFailure && !analysisFailed) || persistedPlan" class="rounded border p-3">
+            <summary class="cursor-pointer text-sm font-medium">{{ t("agent.optionalPlan") }}</summary>
+            <div class="mt-3 space-y-3">
+              <p v-if="receiptFailure && !analysisFailed && !planReadbackError" role="status" class="text-sm text-muted-foreground">{{ t("agent.planFailure") }}</p>
+              <p v-if="workflow.thread.value.status === 'confirmed'" class="text-sm text-muted-foreground">{{ t("agent.waitingConfirmation") }}</p>
+              <p v-if="workflow.thread.value.status === 'saved'" class="rounded border p-3 text-sm">{{ t("agent.savedPlan", { id: workflow.thread.value.receipt.planId }) }}</p>
+              <div v-if="persistedPlan" class="min-w-0 break-words rounded border p-3 text-sm">
+                <h4 class="mb-2 font-medium">{{ t("agent.savedPlanReadback") }}</h4>
+                <h5 class="font-medium">{{ persistedPlan.title }}</h5>
+                <div class="prose prose-sm mt-2 max-w-none break-words" v-html="renderMarkdown(persistedPlan.content)" />
+              </div>
+              <p v-if="planReadbackError" role="status" class="text-sm text-muted-foreground">{{ t("agent.planReadbackUnavailable") }}</p>
+              <template v-if="workflow.thread.value.status === 'awaiting_confirmation'">
+                <Label for="agent-draft-title">{{ t("agent.draftTitle") }}</Label>
+                <Input id="agent-draft-title" v-model="workflow.draftTitle.value" :disabled="workflow.busy.value" />
+                <Label for="agent-draft-content">{{ t("agent.draftContent") }}</Label>
+                <Textarea id="agent-draft-content" v-model="workflow.draftContent.value" rows="7" :disabled="workflow.busy.value" />
+                <Button v-if="draftDirty" type="button" variant="outline" :disabled="workflow.busy.value" @click="workflow.updateDraft">{{ t("agent.updateDraft") }}</Button>
+                <Button v-if="capability.persistenceAvailable && workflow.generatedText.value" type="button" variant="outline" :disabled="workflow.busy.value || draftDirty" @click="workflow.confirmDraft">{{ t("agent.confirm") }}</Button>
+                <div v-if="workflow.draftContent.value" class="text-sm">
+                  <span class="font-medium">{{ t("agent.preview") }}</span>
+                  <div class="prose prose-sm mt-2 max-w-none break-words" v-html="renderMarkdown(workflow.draftContent.value)" />
+                </div>
+              </template>
               <Button v-if="workflow.thread.value.status === 'confirmed' && capability.persistenceAvailable" type="button" :disabled="workflow.busy.value" @click="workflow.save">{{ t("agent.save") }}</Button>
               <Button v-if="workflow.thread.value.status === 'unknown' && capability.persistenceAvailable" type="button" variant="outline" :disabled="workflow.busy.value" @click="workflow.recover">{{ t("agent.recover") }}</Button>
-              <Button v-if="canCancel" type="button" variant="destructive" :disabled="workflow.canceling.value" @click="workflow.cancel">{{ t("agent.cancel") }}</Button>
             </div>
-            <details v-if="workflow.thread.value.draft.citationChecks.length"><summary class="cursor-pointer text-sm">{{ t("agent.citationChecks") }}</summary><pre class="max-w-full overflow-auto rounded border p-3 text-xs">{{ JSON.stringify(workflow.thread.value.draft.citationChecks, null, 2) }}</pre></details>
-          </template>
+          </details>
+          <Button v-if="canCancel" type="button" variant="destructive" :disabled="workflow.canceling.value" @click="workflow.cancel">{{ t("agent.cancel") }}</Button>
+        </template>
       </template>
     </div>
   </section>

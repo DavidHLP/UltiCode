@@ -144,19 +144,39 @@ afterEach(() => {
 });
 
 describe("SubmissionPerformancePanel — chart lifecycle", () => {
-  it("initializes both runtime and memory ECharts after mount", async () => {
-    mountPanel();
+  it("initializes only the visible chart", async () => {
+    const wrapper = mountPanel();
 
     await nextTick();
     await flushPromises();
 
+    expect(initMock).toHaveBeenCalledTimes(1);
+    expect(charts).toHaveLength(1);
+    expect(
+      (wrapper.find('[data-testid="memory-chart"]').element as HTMLElement & {
+        __chart?: ChartHandle;
+      }).__chart,
+    ).toBeUndefined();
+
+    const memoryTab = wrapper.findAll('[role="button"]')[1];
+    await memoryTab.trigger("click");
+    await nextTick();
+    await flushPromises();
+
     expect(initMock).toHaveBeenCalledTimes(2);
-    expect(charts).toHaveLength(2);
+    expect(
+      (wrapper.find('[data-testid="memory-chart"]').element as HTMLElement & {
+        __chart?: ChartHandle;
+      }).__chart,
+    ).toBeDefined();
   });
 
   it("disposes every ECharts instance and observer when unmounted", async () => {
     const wrapper = mountPanel();
 
+    await nextTick();
+    await flushPromises();
+    await wrapper.findAll('[role="button"]')[1].trigger("click");
     await nextTick();
     await flushPromises();
 
@@ -183,7 +203,7 @@ describe("SubmissionPerformancePanel — chart lifecycle", () => {
     expect(observerInstances[1].disconnected).toBe(true);
   });
 
-  it("clears ECharts instances before reinitializing on runtime toggle", async () => {
+  it("initializes each chart only after it becomes visible", async () => {
     const wrapper = mountPanel();
 
     await nextTick();
@@ -192,24 +212,27 @@ describe("SubmissionPerformancePanel — chart lifecycle", () => {
     const runtimeDiv = wrapper.find('[data-testid="runtime-chart"]').element as HTMLElement & {
       __chart?: ChartHandle;
     };
-
-    const initialChart = runtimeDiv.__chart;
-    expect(initialChart).toBeDefined();
+    const runtimeChart = runtimeDiv.__chart;
+    expect(runtimeChart).toBeDefined();
+    expect(initMock).toHaveBeenCalledTimes(1);
 
     const tabs = wrapper.findAll('[role="button"]');
-    const memoryTab = tabs.find((tab) =>
-      tab.text().toLowerCase().includes("memory"),
-    );
-    expect(memoryTab).toBeDefined();
-    await memoryTab!.trigger("click");
-
+    await tabs[1].trigger("click");
     await nextTick();
     await flushPromises();
 
-    expect(initialChart!.dispose).toHaveBeenCalled();
+    expect(initMock).toHaveBeenCalledTimes(2);
+    expect(runtimeChart!.dispose).not.toHaveBeenCalled();
+
+    await tabs[0].trigger("click");
+    await nextTick();
+    await flushPromises();
+
+    expect(runtimeChart!.dispose).toHaveBeenCalledOnce();
+    expect(initMock).toHaveBeenCalledTimes(3);
   });
 
-  it("forwards ResizeObserver events to the active chart's resize()", async () => {
+  it("attaches resize observers as charts become visible", async () => {
     const wrapper = mountPanel();
     await nextTick();
     await flushPromises();
@@ -219,19 +242,26 @@ describe("SubmissionPerformancePanel — chart lifecycle", () => {
         __chart?: ChartHandle;
       }
     ).__chart!;
+    expect(observerInstances).toHaveLength(1);
+    observerInstances[0].trigger({
+      target: wrapper.find('[data-testid="runtime-chart"]').element,
+    });
+    expect(runtimeChart.resize).toHaveBeenCalled();
+
+    await wrapper.findAll('[role="button"]')[1].trigger("click");
+    await nextTick();
+    await flushPromises();
+
     const memoryChart = (
       wrapper.find('[data-testid="memory-chart"]').element as HTMLElement & {
         __chart?: ChartHandle;
       }
     ).__chart!;
-
-    const runtimeObserver = observerInstances[0];
-    runtimeObserver.trigger({
-      target: wrapper.find('[data-testid="runtime-chart"]').element,
+    expect(observerInstances).toHaveLength(2);
+    observerInstances[1].trigger({
+      target: wrapper.find('[data-testid="memory-chart"]').element,
     });
-
-    expect(runtimeChart.resize).toHaveBeenCalled();
-    expect(memoryChart.resize).not.toHaveBeenCalled();
+    expect(memoryChart.resize).toHaveBeenCalled();
   });
 
   it("stale avatar callbacks cannot mutate disposed charts after unmount", async () => {

@@ -414,6 +414,7 @@ export default {
     stuckWarning: "提交已超过 2 分钟仍未出结果，可能正在排队，请稍候。",
     error: {
       loadFailed: "加载提交失败",
+      statusLoadFailed: "加载提交状态失败",
       notFound: "未找到该提交",
       forbidden: "你没有权限查看此提交",
     },

@@ -43,6 +43,28 @@ def test_complete_submission_status_claim(status):
             _verify_answer_boundary({"text": text + " 根因是数组越界。", "citations": []},
                                     [{"status": status}], (), (), (), question="如何复盘？")
 
+
+def test_metadata_answer_allows_inline_code_but_rejects_uncited_retrieved_text():
+    from agent_service.app import _verify_answer_boundary
+
+    facts = [{"id": "submission-1", "status": "Accepted"}]
+    _verify_answer_boundary(
+        {"text": "提交状态为 Accepted。请用边界样例核验 `O(n)` 与“边界假设”的关系。", "citations": []},
+        facts, (), (), (), question="如何复盘？",
+    )
+
+    document = SourceDocument(
+        doc_id="authorized-note", version="v1", source_path="authorized-note.md",
+        access_scope="authorized-reference", sample_kind="repository-doc",
+        text="This exact authorized note was retrieved.", source_position="lines 1-1",
+    )
+    with pytest.raises(ValueError, match="answer_source_reference_unverified"):
+        _verify_answer_boundary(
+            {"text": "This exact authorized note was retrieved.", "citations": []},
+            facts, (document,), (), (), question="如何复盘？",
+        )
+
+
 def test_manual_source_answer_allows_inline_complexity_formatting():
     from agent_service.app import _verify_answer_boundary
 
@@ -175,13 +197,13 @@ def test_capabilities_report_explicit_analysis_and_persistence_modes(tmp_path):
 
     default = create_app(state_path=tmp_path / "default.sqlite3", client_factory=SessionClient)
     assert asyncio.run(get_capabilities(default)) == {
-        "analysisAvailable": False, "persistenceAvailable": False, "sourceMode": "metadata",
+        "analysisAvailable": False, "persistenceAvailable": False, "conversationHistoryAvailable": True, "sourceMode": "metadata",
     }
 
     offline = create_app(state_path=tmp_path / "offline.sqlite3", client_factory=SessionClient,
                          offline_model_factory=lambda: (object(), {}))
     assert asyncio.run(get_capabilities(offline)) == {
-        "analysisAvailable": True, "persistenceAvailable": False, "sourceMode": "metadata",
+        "analysisAvailable": True, "persistenceAvailable": False, "conversationHistoryAvailable": True, "sourceMode": "metadata",
     }
 
     manual = create_app(
@@ -191,7 +213,7 @@ def test_capabilities_report_explicit_analysis_and_persistence_modes(tmp_path):
         analysis_only_test_mode=True,
     )
     assert asyncio.run(get_capabilities(manual)) == {
-        "analysisAvailable": True, "persistenceAvailable": False, "sourceMode": "owner_source",
+        "analysisAvailable": True, "persistenceAvailable": False, "conversationHistoryAvailable": True, "sourceMode": "owner_source",
     }
 
     live = create_app(
@@ -201,7 +223,15 @@ def test_capabilities_report_explicit_analysis_and_persistence_modes(tmp_path):
         model_purpose="u03_analysis",
     )
     assert asyncio.run(get_capabilities(live)) == {
-        "analysisAvailable": True, "persistenceAvailable": True, "sourceMode": "metadata",
+        "analysisAvailable": True, "persistenceAvailable": True, "conversationHistoryAvailable": True, "sourceMode": "metadata",
+    }
+
+    development = create_app(
+        state_path=tmp_path / "development.sqlite3", client_factory=SessionClient,
+        persistence_enabled=True, unbudgeted_development_mode=True,
+    )
+    assert asyncio.run(get_capabilities(development)) == {
+        "analysisAvailable": True, "persistenceAvailable": True, "conversationHistoryAvailable": True, "sourceMode": "metadata",
     }
 
 
@@ -309,7 +339,7 @@ def test_manual_analysis_uses_owner_thread_source_without_persisting_source_text
     analysis_model, citation_judge = SourceModel(), CitationJudge()
     monkeypatch.setattr(
         "agent_service.app._authorized_model_for_purpose",
-        lambda _period, purpose, _guard, _specs: (
+        lambda _period, purpose, _guard, _specs, **_kwargs: (
             analysis_model if purpose == "u03_analysis" else citation_judge
         ),
     )
@@ -510,6 +540,55 @@ class SessionClient:
 
     async def get_my_submission(self, submission_id):
         return {"id": submission_id, "status": "Accepted", "contestSubmission": False}
+
+
+def test_metadata_analysis_prompt_uses_server_selection_without_submission_id(tmp_path):
+    source_id = "11111111-1111-4111-8111-111111111111"
+
+    class PromptModel:
+        def __init__(self):
+            self.seen = []
+
+        async def decide(self, messages):
+            self.seen.append(list(messages))
+            return ModelDecision(text=json.dumps({
+                "text": "当前提交状态为 Accepted。", "citations": [],
+            }, ensure_ascii=False))
+
+    model = PromptModel()
+
+    class Client(SessionClient):
+        async def get_my_submission(self, submission_id):
+            return {"id": submission_id, "status": "Accepted", "contestSubmission": False}
+
+    app = create_app(
+        state_path=tmp_path / "metadata-prompt.sqlite3", client_factory=Client,
+        offline_model_factory=lambda: (model, {}),
+    )
+
+    async def scenario():
+        async with app.router.lifespan_context(app):
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=app), base_url="http://test",
+            ) as client:
+                created = await client.post("/agent/threads", headers=HEADERS, json={
+                    "sourceSubmissionId": source_id, "question": "如何复盘？",
+                })
+                thread_id = created.json()["data"]["threadId"]
+                analyzed = await client.post(
+                    f"/agent/threads/{thread_id}/analyze", headers=HEADERS, json={},
+                )
+                assert analyzed.status_code == 200
+
+        prompt = model.seen[0][0]["content"]
+        assert "already selected and verified" in prompt
+        assert "Do not ask for an ID or numeric ID" in prompt
+        assert source_id not in prompt
+        assert json.loads(prompt.rsplit("INPUT_JSON ", 1)[1]) == {
+            "question": "如何复盘？", "facts": {"status": "Accepted"},
+        }
+
+    asyncio.run(scenario())
 
 
 def test_opt_in_agent_mcp_tool_uses_same_graph_and_event_record(tmp_path, monkeypatch):
@@ -1613,3 +1692,287 @@ def test_authorization_outage_allows_explicit_save_recovery(tmp_path, monkeypatc
                 assert posts["count"] == 2
 
     asyncio.run(scenario())
+
+
+def test_conversation_history_supports_multiple_turns_streaming_and_delete(tmp_path):
+    class ContextModel:
+        def __init__(self):
+            self.prompts = []
+
+        async def decide(self, messages):
+            self.prompts.append(messages[0]["content"])
+            return ModelDecision(text=json.dumps({"text": "建议核对边界状态", "citations": []}, ensure_ascii=False))
+
+    model = ContextModel()
+    app = create_app(
+        state_path=tmp_path / "conversation.sqlite3", client_factory=SessionClient,
+        offline_model_factory=lambda: (model, {}),
+    )
+    conversation_id = str(uuid.uuid4())
+    first_client_turn_id = str(uuid.uuid4())
+    second_client_turn_id = str(uuid.uuid4())
+
+    async def scenario(client):
+        created = await client.post("/agent/conversations", headers=HEADERS, json={
+            "conversationId": conversation_id,
+            "sourceSubmissionId": str(uuid.uuid4()),
+            "clientTurnId": first_client_turn_id,
+            "question": "Explain the accepted status",
+        })
+        assert created.status_code == 200
+        conversation = created.json()["data"]["conversation"]
+        first = created.json()["data"]["turn"]
+        first_run = await client.post(
+            f"/agent/conversations/{conversation_id}/turns/{first['turnId']}/run",
+            headers=HEADERS, json={"sourceConsent": False},
+        )
+        assert first_run.status_code == 200
+        assert first_run.json()["data"]["status"] == "completed"
+
+        second_created = await client.post(
+            f"/agent/conversations/{conversation_id}/turns", headers=HEADERS,
+            json={"clientTurnId": second_client_turn_id, "question": "Why does the boundary matter?"},
+        )
+        assert second_created.status_code == 200
+        second = second_created.json()["data"]
+        second_run = await client.post(
+            f"/agent/conversations/{conversation_id}/turns/{second['turnId']}/run",
+            headers=HEADERS, json={"sourceConsent": False},
+        )
+        assert second_run.status_code == 200
+        assert second_run.json()["data"]["answer"] == "建议核对边界状态"
+        assert "Explain the accepted status" in model.prompts[1]
+        assert "建议核对边界状态" in model.prompts[1]
+
+        history = await client.get(f"/agent/conversations/{conversation_id}", headers=HEADERS)
+        assert history.status_code == 200
+        assert history.json()["data"]["conversation"]["conversationId"] == conversation["conversationId"]
+        assert [turn["turnIndex"] for turn in history.json()["data"]["turns"]] == [1, 2]
+        listing = await client.get("/agent/conversations", headers=HEADERS)
+        assert listing.json()["data"]["conversations"][0]["turnCount"] == 2
+
+        stream = await client.get(
+            f"/agent/conversations/{conversation_id}/turns/{second['turnId']}/events/stream",
+            headers=HEADERS,
+        )
+        assert stream.status_code == 200
+        assert "event: terminal" in stream.text
+        terminal = next(
+            frame for frame in stream.text.split("\n\n") if "\nevent: terminal\n" in frame
+        )
+        terminal_payload = json.loads(terminal.split("\ndata: ", 1)[1])
+        assert terminal_payload["status"] == "completed"
+        assert "建议核对边界状态" in stream.text
+
+        deleted = await client.delete(f"/agent/conversations/{conversation_id}", headers=HEADERS)
+        assert deleted.status_code == 200
+        missing = await client.get(f"/agent/conversations/{conversation_id}", headers=HEADERS)
+        assert missing.status_code == 404
+
+    asyncio.run(with_client(app, scenario))
+
+
+def test_conversation_revalidates_eligibility_and_requires_source_consent_per_run(tmp_path):
+    source = {"contestSubmission": False}
+    model = ScriptedModel()
+
+    class Client(SessionClient):
+        async def get_my_submission(self, submission_id):
+            return {"id": submission_id, "status": "Accepted", **source}
+
+    app = create_app(
+        state_path=tmp_path / "conversation-eligibility.sqlite3", client_factory=Client,
+        offline_model_factory=lambda: (model, {}),
+    )
+    conversation_id = str(uuid.uuid4())
+
+    async def scenario(client):
+        created = await client.post("/agent/conversations", headers=HEADERS, json={
+            "conversationId": conversation_id,
+            "sourceSubmissionId": str(uuid.uuid4()),
+            "clientTurnId": str(uuid.uuid4()),
+            "question": "Explain this accepted submission",
+        })
+        turn_id = created.json()["data"]["turn"]["turnId"]
+        consented = await client.post(
+            f"/agent/conversations/{conversation_id}/turns/{turn_id}/run",
+            headers=HEADERS, json={"sourceConsent": True},
+        )
+        assert consented.status_code == 400
+        assert model.calls == 0
+        source["contestSubmission"] = True
+        ineligible = await client.post(
+            f"/agent/conversations/{conversation_id}/turns/{turn_id}/run",
+            headers=HEADERS, json={"sourceConsent": False},
+        )
+        assert ineligible.status_code == 409
+        assert ineligible.json()["data"]["reason"] == "source_not_eligible"
+        assert model.calls == 0
+
+    asyncio.run(with_client(app, scenario))
+
+
+def test_cancelling_conversation_turn_preserves_previous_turn(tmp_path):
+    entered = asyncio.Event()
+
+    class WaitingModel:
+        def __init__(self):
+            self.calls = 0
+
+        async def decide(self, _messages):
+            self.calls += 1
+            if self.calls == 2:
+                entered.set()
+                await asyncio.Event().wait()
+            return ModelDecision(text=json.dumps({"text": "建议核对状态", "citations": []}, ensure_ascii=False))
+
+    model = WaitingModel()
+    app = create_app(
+        state_path=tmp_path / "conversation-cancel.sqlite3", client_factory=SessionClient,
+        offline_model_factory=lambda: (model, {}),
+    )
+    conversation_id = str(uuid.uuid4())
+
+    async def scenario(client):
+        created = await client.post("/agent/conversations", headers=HEADERS, json={
+            "conversationId": conversation_id,
+            "sourceSubmissionId": str(uuid.uuid4()),
+            "clientTurnId": str(uuid.uuid4()),
+            "question": "Explain the result",
+        })
+        first = created.json()["data"]["turn"]
+        first_run = await client.post(
+            f"/agent/conversations/{conversation_id}/turns/{first['turnId']}/run",
+            headers=HEADERS, json={"sourceConsent": False},
+        )
+        assert first_run.status_code == 200
+
+        second = await client.post(
+            f"/agent/conversations/{conversation_id}/turns", headers=HEADERS,
+            json={"clientTurnId": str(uuid.uuid4()), "question": "Explain that boundary"},
+        )
+        second_turn = second.json()["data"]
+        run_task = asyncio.create_task(client.post(
+            f"/agent/conversations/{conversation_id}/turns/{second_turn['turnId']}/run",
+            headers=HEADERS, json={"sourceConsent": False},
+        ))
+        await asyncio.wait_for(entered.wait(), timeout=2)
+        blocked_delete = await client.delete(
+            f"/agent/conversations/{conversation_id}", headers=HEADERS,
+        )
+        assert blocked_delete.status_code == 409
+        cancelled = await client.post(
+            f"/agent/conversations/{conversation_id}/turns/{second_turn['turnId']}/cancel",
+            headers=HEADERS, json={},
+        )
+        assert cancelled.status_code == 200
+        assert cancelled.json()["data"]["status"] == "cancelled"
+        run_response = await asyncio.wait_for(run_task, timeout=2)
+        assert run_response.status_code == 200
+
+        history = await client.get(f"/agent/conversations/{conversation_id}", headers=HEADERS)
+        turns = history.json()["data"]["turns"]
+        assert [turn["status"] for turn in turns] == ["completed", "cancelled"]
+        deleted = await client.delete(f"/agent/conversations/{conversation_id}", headers=HEADERS)
+        assert deleted.status_code == 200
+
+    asyncio.run(with_client(app, scenario))
+
+
+def test_owner_source_is_consent_scoped_and_never_persisted(tmp_path, monkeypatch):
+    import agent_service.app as app_module
+    from boundary_evaluation import CITATION_FIELDS
+
+    marker = "PRIVATE_SOURCE_MARKER_MUST_NOT_PERSIST"
+    source_text = f"def solve():\\n    return 1\\n# {marker}"
+    model = None
+
+    class Guard:
+        def close(self):
+            pass
+
+    class SourceModel:
+        async def decide(self, messages):
+            prompt = messages[0]["content"]
+            if "No submitted source was provided for this turn" in prompt:
+                return ModelDecision(text=json.dumps({
+                    "text": "I cannot access submitted source code without authorization.",
+                    "citations": [],
+                }))
+            if messages[-1]["role"] != "tool":
+                return ModelDecision(tool_call=ToolCall("get_submission_source", {}))
+            hit = json.loads(messages[-1]["content"])["hits"][0]
+            citation = {field: hit[field] for field in CITATION_FIELDS if field != "claim"}
+            citation["claim"] = "The implementation returns a result."
+            return ModelDecision(text=json.dumps({
+                "text": "The implementation returns a result; inspect the authorized source path and line range.",
+                "citations": [citation],
+            }))
+
+    model = SourceModel()
+    monkeypatch.setattr(
+        app_module, "_authorized_model_for_purpose",
+        lambda *_args, **_kwargs: model,
+    )
+
+    async def check_citations(parsed, retrieved, documents, facts, judge_model, **kwargs):
+        if not retrieved:
+            return []
+        assert marker in retrieved[0]["text"]
+        return [{"exists": True, "supports": True, "derivable": True}]
+
+    monkeypatch.setattr(app_module, "_verify_citations", check_citations)
+
+    class SourceClient(SessionClient):
+        async def get_my_submission(self, submission_id):
+            return {
+                "id": submission_id, "status": "Accepted", "contestSubmission": False,
+                "code": source_text,
+            }
+
+    app = create_app(
+        state_path=tmp_path / "source-conversation.sqlite3", client_factory=SourceClient,
+        expected_period=SimpleNamespace(policy_id="manual-agent-live-test-v1"),
+        budget_guard=Guard(), model_purpose="u03_analysis", own_budget_guard=True,
+        analysis_only_test_mode=True,
+    )
+    conversation_id = str(uuid.uuid4())
+
+    async def scenario(client):
+        created = await client.post("/agent/conversations", headers=HEADERS, json={
+            "conversationId": conversation_id,
+            "sourceSubmissionId": str(uuid.uuid4()),
+            "clientTurnId": str(uuid.uuid4()),
+            "question": "Can you explain my code?",
+        })
+        first = created.json()["data"]["turn"]
+        no_consent = await client.post(
+            f"/agent/conversations/{conversation_id}/turns/{first['turnId']}/run",
+            headers=HEADERS, json={"sourceConsent": False},
+        )
+        assert no_consent.status_code == 200
+        assert marker not in json.dumps(no_consent.json()["data"], ensure_ascii=False)
+
+        next_turn = await client.post(
+            f"/agent/conversations/{conversation_id}/turns", headers=HEADERS,
+            json={"clientTurnId": str(uuid.uuid4()), "question": "Now analyze the implementation."},
+        )
+        turn = next_turn.json()["data"]
+        with_source = await client.post(
+            f"/agent/conversations/{conversation_id}/turns/{turn['turnId']}/run",
+            headers=HEADERS, json={"sourceConsent": True},
+        )
+        assert with_source.status_code == 200
+        result = with_source.json()["data"]
+        assert result["status"] == "completed"
+        assert marker not in json.dumps(result, ensure_ascii=False)
+
+        with app.state.store._connect() as db:
+            for table in ("conversation_turns", "conversation_events", "checkpoints", "checkpoint_blobs", "checkpoint_writes"):
+                names = {row["name"] for row in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+                if table not in names:
+                    continue
+                for row in db.execute(f"SELECT * FROM {table}"):
+                    assert marker not in repr(tuple(row))
+
+    asyncio.run(with_client(app, scenario))

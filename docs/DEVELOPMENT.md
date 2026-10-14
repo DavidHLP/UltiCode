@@ -77,13 +77,13 @@ Origin 必须与浏览器地址完全一致。默认不调用外部模型，不�
 产品运行时不再读取历史 U02/U03/U04 验收产物、候选 commit 或源码 SHA。旧的 gate/head/base 环境配置应移除；不能把历史验收文件当作运行授权。以下开关分别控制产品能力：
 
 - `ULTICODE_AGENT_LIVE_ANALYSIS=1`：显式启用真实模型调用；模型凭据必须通过安全环境或 secret store 提供。
-- `ULTICODE_AGENT_BUDGET_POLICY`：非手动 live 模式使用的既有授权预算策略。运行时读取其已准备、已激活的真实周期和共享 guard，不创建或重置账本，不增加额度。
+- `ULTICODE_AGENT_BUDGET_POLICY`：可选的既有授权预算策略。配置后，运行时读取其已准备、已激活的真实周期和共享 guard，不创建或重置账本，不增加额度。未配置时，仅当 `ULTICODE_AGENT_ORIGIN` 是 loopback 地址，live 模式才使用无共享预算账本的本地开发调用；这类调用仍受单次分析的模型 token 与调用次数上限约束，没有累计费用上限。
 - `ULTICODE_AGENT_PERSISTENCE_ENABLED=1`：显式开放确认、保存和恢复。它不授权模型调用，也不绕过 owner、CSRF、确认、版本和幂等检查。
-- `ULTICODE_AGENT_MANUAL_ANALYSIS_ONLY=1`：保留本地只读源码分析模式，须与 live 开关一起使用；该模式不开放持久化。
+- `ULTICODE_AGENT_MANUAL_ANALYSIS_ONLY=1`：保留本地只读源码分析模式，须与 live 开关一起使用；该模式使用固定预算且不开放持久化。
 
 关闭 live 时也应移除预算策略选择并关闭 manual 标志；手动模式不能与持久化开关同时启用。旧 `ULTICODE_AGENT_U02_GATE_PATH`、`ULTICODE_AGENT_EXPECTED_HEAD`、`ULTICODE_AGENT_EXPECTED_BASE` 不再受支持，配置残留会明确报错。
 
-没有已授权且可用的预算时，保持 live 关闭。预算配置摘要、原账本身份、已结算回执、未知用量预留及费用上限仍参与运行时校验；删除验收 SHA 不代表可以重新创建账本或释放未知费用。共享 guard 同时只允许一个 Agent 进程持有。启动不调用模型；只有用户明确请求分析才可能产生费用。
+常规本地开发可不设置预算策略 ID，以 loopback `ULTICODE_AGENT_ORIGIN`、`ULTICODE_AGENT_LIVE_ANALYSIS=1`、`DEEPSEEK_API_KEY` 和 `ULTICODE_AGENT_PERSISTENCE_ENABLED=1` 开放分析及保存。该模式会产生未经过共享账本累计的真实模型费用；确认与保存仍由用户显式操作。非 loopback 部署继续要求已有的有效预算策略。启动不调用模型；只有用户明确请求分析才会调用外部模型。
 
 手动源码模式继续使用现有固定预算和 `DEEPSEEK_MODEL=deepseek-flash`。首次准备入口是 `uv run python prepare_manual_live_test_budget.py`；已有账本不应删除或重建。文件系统设备编号变化时，已有 `--rebind-device` 恢复路径校验原始绑定、inode、文件系统身份、账本与已结算用量，不增额、不修改原账本。缺失、替换或未结算状态仍拒绝恢复。
 

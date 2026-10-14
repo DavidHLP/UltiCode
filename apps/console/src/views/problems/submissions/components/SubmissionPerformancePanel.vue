@@ -102,7 +102,7 @@ async function applyAvatarMarkPoint(
 }
 
 function initRuntimeChart() {
-  if (!runtimeChartRef.value) return;
+  if (activeChart.value !== "runtime" || !runtimeChartRef.value) return;
   disposeChart(runtimeChart);
   if (runtimeResizeObserver) {
     runtimeResizeObserver.disconnect();
@@ -138,7 +138,7 @@ function initRuntimeChart() {
 }
 
 function initMemoryChart() {
-  if (!memoryChartRef.value) return;
+  if (activeChart.value !== "memory" || !memoryChartRef.value) return;
   disposeChart(memoryChart);
   if (memoryResizeObserver) {
     memoryResizeObserver.disconnect();
@@ -176,10 +176,6 @@ function initMemoryChart() {
 function selectChart(next: ActiveChart) {
   if (activeChart.value === next) return;
   activeChart.value = next;
-  void nextTick(() => {
-    if (next === "runtime") initRuntimeChart();
-    else initMemoryChart();
-  });
 }
 
 onMounted(() => {

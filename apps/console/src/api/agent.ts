@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiPut } from "@/utils/request";
+import { apiDelete, apiGet, apiPost, apiPut } from "@/utils/request";
 
 export type AgentThreadStatus =
   | "awaiting_confirmation"
@@ -33,7 +33,60 @@ export interface AgentWorkflowEvent {
 export interface AgentCapabilities {
   analysisAvailable: boolean;
   persistenceAvailable: boolean;
+  conversationHistoryAvailable: boolean;
   sourceMode: "metadata" | "owner_source";
+}
+
+export interface AgentConversation {
+  conversationId: string;
+  sourceSubmissionId: string;
+  title: string;
+  turnCount: number;
+  lastQuestion: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type AgentConversationTurnStatus = "queued" | "running" | "completed" | "failed" | "cancelled";
+
+export interface AgentConversationCitation {
+  claim: string;
+  chunk_id: string;
+  doc_id: string;
+  version: string;
+  source_path: string;
+  source_position: string;
+  access_scope: string;
+  sample_kind: string;
+  source_trust: string;
+}
+
+export interface AgentConversationTurn {
+  turnId: string;
+  conversationId: string;
+  turnIndex: number;
+  runId: string;
+  status: AgentConversationTurnStatus;
+  question: string;
+  answer: string | null;
+  citations: AgentConversationCitation[];
+  trace: Array<{ tool_name?: string; failed?: boolean }>;
+  failureReason: string | null;
+  cancelRequested: boolean;
+  eventSeq: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AgentConversationPage {
+  conversation: AgentConversation;
+  turns: AgentConversationTurn[];
+  hasMore: boolean;
+}
+
+export interface AgentConversationList {
+  conversations: AgentConversation[];
+  nextOffset: number | null;
 }
 
 export interface AgentLearningPlan {
@@ -84,10 +137,57 @@ export interface AgentThread {
 
 const threadPath = (threadId: string) =>
   `/agent/threads/${encodeURIComponent(threadId)}`;
+const conversationPath = (conversationId: string) =>
+  `/agent/conversations/${encodeURIComponent(conversationId)}`;
+const conversationTurnPath = (conversationId: string, turnId: string) =>
+  `${conversationPath(conversationId)}/turns/${encodeURIComponent(turnId)}`;
 
 export const agentApi = {
   getCapabilities() {
     return apiGet<AgentCapabilities>("/agent/capabilities");
+  },
+  createConversation(input: {
+    conversationId: string;
+    sourceSubmissionId: string;
+    clientTurnId: string;
+    question: string;
+  }) {
+    return apiPost<{ conversation: AgentConversation; turn: AgentConversationTurn }>(
+      "/agent/conversations",
+      input,
+    );
+  },
+  listConversations(limit = 20, offset = 0) {
+    return apiGet<AgentConversationList>(`/agent/conversations?limit=${limit}&offset=${offset}`);
+  },
+  getConversation(conversationId: string, limit = 30, before?: number) {
+    const query = new URLSearchParams({ limit: String(limit) });
+    if (before !== undefined) query.set("before", String(before));
+    return apiGet<AgentConversationPage>(`${conversationPath(conversationId)}?${query}`);
+  },
+  createConversationTurn(conversationId: string, clientTurnId: string, question: string) {
+    return apiPost<AgentConversationTurn>(`${conversationPath(conversationId)}/turns`, {
+      clientTurnId,
+      question,
+    });
+  },
+  runConversationTurn(conversationId: string, turnId: string, sourceConsent: boolean) {
+    return apiPost<AgentConversationTurn>(`${conversationTurnPath(conversationId, turnId)}/run`, {
+      sourceConsent,
+    });
+  },
+  cancelConversationTurn(conversationId: string, turnId: string) {
+    return apiPost<AgentConversationTurn>(`${conversationTurnPath(conversationId, turnId)}/cancel`, {});
+  },
+  recoverConversationTurn(conversationId: string, turnId: string) {
+    return apiPost<AgentConversationTurn>(`${conversationTurnPath(conversationId, turnId)}/recover`, {});
+  },
+  deleteConversation(conversationId: string) {
+    return apiDelete<{ conversationId: string; deleted: boolean }>(conversationPath(conversationId));
+  },
+  conversationEventStreamUrl(conversationId: string, turnId: string, after = 0) {
+    const base = (import.meta.env.VITE_API_BASE_URL || "/api").replace(/\/$/, "");
+    return `${base}${conversationTurnPath(conversationId, turnId)}/events/stream?after=${after}`;
   },
   getLearningPlan(planId: string) {
     return apiGet<AgentLearningPlan>(`/learning-plans/${encodeURIComponent(planId)}`);

@@ -210,6 +210,8 @@ const handleWriteSolution = () => {
       </div>
     </div>
 
+    <AgentReviewPanel :key="`${currentUserId}:${props.submission.id}`" :submission="props.submission" :contest-id="props.contestId" />
+
     <!-- Stuck pending warning -->
     <div
       v-if="isPending && pendingSeconds > 120"
@@ -291,6 +293,5 @@ const handleWriteSolution = () => {
 
     <!-- Code Section -->
     <SubmissionCodeBlock :code-markdown="codeMarkdown" />
-    <AgentReviewPanel :key="`${currentUserId}:${props.submission.id}`" :submission="props.submission" :contest-id="props.contestId" />
   </div>
 </template>

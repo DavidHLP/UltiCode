@@ -19,10 +19,7 @@
 
 ### Agent workflow API
 
-The opt-in Python Agent service is separate from Java `/learning-plans`: it owns local workflow
-drafts, while App Java owns confirmed LearningPlan records. Factory: `agent_service.app.create_app(...)`.
-Thread IDs are server-generated. Every operation checks the authenticated owner; a body field
-cannot select a user, model, graph node, or checkpoint.
+The opt-in Python Agent service is separate from Java `/learning-plans`: it owns private multi-turn conversation history and local LearningPlan workflow drafts, while App Java owns confirmed LearningPlan records. Factory: `agent_service.app.create_app(...)`. Conversation IDs and client turn IDs are UUIDs supplied by the client; server validation binds each conversation to the authenticated owner and one eligible submission. Existing LearningPlan thread IDs remain server-generated. Every operation checks the authenticated owner; a body field cannot select a user, model, graph node, or checkpoint.
 
 | Operation | Request body | Purpose |
 | --- | --- | --- |
@@ -36,14 +33,17 @@ cannot select a user, model, graph node, or checkpoint.
 | `POST /agent/threads/{thread_id}/save` | `{"confirmationId": "..."}` | Explicitly dispatch the confirmed payload to Java |
 | `POST /agent/threads/{thread_id}/recover` | `{"retry": false}` or `{"retry": true}` | Reconcile by original Java idempotency key; retry only when explicitly requested and all guards pass |
 | `POST /agent/threads/{thread_id}/cancel` | `{}` | Fence later work; cannot roll back a dispatched Java write |
+| `POST /agent/conversations` | `{"conversationId":"<UUID>","sourceSubmissionId":"<UUID>","clientTurnId":"<UUID>","question":"..."}` | Verify owner and eligibility, then create a conversation and its first queued turn |
+| `GET /agent/conversations?limit=N&offset=N` | — | Read the caller's paged conversation history; returns `conversations` and nullable `nextOffset` |
+| `GET /agent/conversations/{conversation_id}?limit=N&before=N` | — | Read conversation metadata and a bounded ordered turn page; `before` is optional |
+| `POST /agent/conversations/{conversation_id}/turns` | `{"clientTurnId":"<UUID>","question":"..."}` | Add an idempotent queued turn after revalidating the bound submission |
+| `POST /agent/conversations/{conversation_id}/turns/{turn_id}/run` | `{"sourceConsent":false}` | Explicitly run one turn; `sourceConsent` is required on every run |
+| `POST /agent/conversations/{conversation_id}/turns/{turn_id}/cancel` | `{}` | Cancel only this turn and fence its later writes |
+| `POST /agent/conversations/{conversation_id}/turns/{turn_id}/recover` | `{}` | Reconcile this turn's interrupted run state |
+| `DELETE /agent/conversations/{conversation_id}` | — | Delete only this user's conversation and turns; active turns return HTTP 409 |
+| `GET /agent/conversations/{conversation_id}/turns/{turn_id}/events/stream?after=N` | — | Subscribe to bounded SSE for this turn's run |
 
-`GET /agent/capabilities` returns `{analysisAvailable, persistenceAvailable, sourceMode}`.
-Both availability fields are booleans; `sourceMode` is `metadata` or `owner_source` (the existing
-manual analysis-only mode). It checks the authenticated principal and current runtime configuration;
-it neither dispatches a model nor creates a thread. Persistence requires the explicit deployment
-opt-in and mounted write routes; manual analysis-only mode never enables it. This is a UI availability
-hint, not authorization or a reservation of model quota: each operation retains its own runtime,
-budget and ownership checks.
+`GET /agent/capabilities` returns `{analysisAvailable, persistenceAvailable, conversationHistoryAvailable, sourceMode}`. Availability fields are booleans; `sourceMode` is `metadata` or `owner_source` (the existing manual analysis-only mode). `conversationHistoryAvailable` is currently true and independent of LearningPlan persistence. The endpoint checks the authenticated principal and current runtime configuration; it neither dispatches a model nor creates a thread. Persistence requires the explicit deployment opt-in and mounted LearningPlan write routes; manual analysis-only mode never enables it. This is a UI availability hint, not authorization or a reservation of model quota: each operation retains its own runtime, budget and ownership checks.
 
 The owner-scoped Java submission detail includes `contestSubmission`, calculated by the existing
 contest-association port, not inferred from browser routing. Agent source preflight requires that
@@ -56,9 +56,7 @@ eligibility changes, but cannot retry that write. Deploy the updated Java detail
 Console entry; old providers that omit the field cannot establish eligibility. General metadata
 listing tools retain their existing projection and do not gain source code, tests, or owner fields.
 
-Workflow states include `draft`, `analyzing`, `awaiting_confirmation`, `confirmed`, `saving`,
-`saved`, `unknown`, `failed`, and `cancelled`. Agent SQLite is canonical for drafts, workflow state,
-and events; LangGraph checkpoints are resumable control state only. `saved` requires an accepted
+LearningPlan thread states include `draft`, `analyzing`, `awaiting_confirmation`, `confirmed`, `saving`, `saved`, `unknown`, `failed`, and `cancelled`. Agent SQLite is canonical for those drafts, thread state, and events; LangGraph checkpoints are resumable workflow control state only. Multi-turn conversation turns use separate SQLite rows and statuses `queued`, `running`, `completed`, `failed`, and `cancelled`; each turn has its own run ID, event sequence, and cancellation fence, and chat analysis does not write a LangGraph checkpoint. `saved` requires an accepted
 Java record response. A timeout, lost response, or uncertain process restart remains `unknown`.
 recovering an interrupted `saving` state with no Java record and `retry: false` persists `unknown`
 without issuing another write. A later explicit retry retains the original business key and guards.
@@ -77,9 +75,14 @@ the exact owner-verified submission already bound to the thread through a no-arg
 request-scoped tool. Source is untrusted input and capped at 12,000 characters; missing or oversized
 source fails before provider dispatch. The source body is not stored in workflow rows, events, or
 checkpoints. Source citations are checked in memory and persisted without their quoted source text.
+In metadata mode, the initial model prompt includes the server-verified status and user question, but
+omits the bound submission ID and source code; it identifies the submission as already selected so
+the model does not ask the user for another ID or infer a code-level diagnosis.
 `sampleScope` identifies whether an analysis used the checked-in synthetic corpus or the
 owner-authorized thread source. Model-answer citations are added only after same-run retrieval,
 document-integrity, support, and derivability checks.
+
+Conversation requests use independent conversation/turn storage and do not enter the LearningPlan thread state machine. Each run requires a strict `sourceConsent` boolean; in `owner_source` mode, consent applies to that run only, and the exact bound submission is re-fetched for the request. Fetched source and citation excerpts are not persisted in conversation rows, turns, events, or checkpoints; citation responses keep safe reference fields without excerpt text. Prior context is limited to recent completed turns and a 16,000-character cap. Conversation history remains until the owner deletes it; deletion is rejected while a turn runs and does not cascade into separately saved LearningPlans.
 The Agent keeps the business idempotency key private. Its recovery action uses that original key
 for owner-scoped by-key reconciliation; a user-facing saved-record readback uses
 `GET /learning-plans/{planId}` with the returned `planId`.
@@ -101,7 +104,7 @@ provider error bodies. The observer delegates to the existing authorized model a
 failure reason and cancellation intent. SSE IDs bind run, sequence and event kind for replay
 deduplication. Run replacement or the 30-second subscription limit emits `stream_closed`;
 this is a transport outcome, not business completion. Disconnect ends the subscription,
-while explicit cancellation uses the existing cancel endpoint and does not undo Java writes.
+while explicit cancellation uses the existing cancel endpoint and does not undo Java writes. Conversation SSE binds to the run current at subscription, replays bounded `workflow` events after `after`, and emits validated persisted answer text plus a terminal status. A replaced run or subscription timeout closes the stream; reload the canonical turn before retrying.
 `after` must be between 0 and
 `2^63 - 1`. Invalid or foreign submission sources return `404 source_not_owned`
 during creation and analysis. Authorization failures during Java save leave the outcome
@@ -129,11 +132,14 @@ configure cross-origin access.
 
 Historical acceptance artifacts, candidate commits and source fingerprints are not runtime
 authorization inputs. `ULTICODE_AGENT_PERSISTENCE_ENABLED=1` explicitly mounts confirm/save/recover;
-it does not authorize model calls. Live analysis requires `ULTICODE_AGENT_LIVE_ANALYSIS=1`, an
-existing active budget period, its shared guard, and policy-authorized `u03_analysis` and
-`u03_citation_judge` purposes. Normal live mode selects its prepared policy through
-`ULTICODE_AGENT_BUDGET_POLICY`; runtime reads existing accounting and never creates or resets it.
-Missing or invalid authorization fails closed before a provider request.
+it does not authorize model calls. Live analysis requires `ULTICODE_AGENT_LIVE_ANALYSIS=1` and
+provider credentials. With a loopback `ULTICODE_AGENT_ORIGIN` and no
+`ULTICODE_AGENT_BUDGET_POLICY`, local development uses the model without the shared cumulative
+budget ledger; per-request token and attempt limits remain, but there is no cumulative cost ceiling.
+Non-loopback live mode requires an existing active budget period, its shared guard, and
+policy-authorized `u03_analysis` and `u03_citation_judge` purposes. Runtime reads existing
+accounting and never creates or resets it; missing or invalid authorization fails closed before a
+provider request.
 
 The existing manual analysis-only mode remains limited to read-only analysis under its fixed
 budget. It may read only the owner-verified thread source through a no-argument request-scoped

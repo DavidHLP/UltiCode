@@ -471,3 +471,81 @@ time.sleep(30)
     assert current["event_seq"] == cursor == 2
     assert [event["kind"] for event in events] == ["thread_created", "committed"]
     store.close()
+
+
+def test_conversation_turns_are_owner_scoped_ordered_and_deleted_without_touching_plan_threads(tmp_path):
+    store = WorkflowStore(tmp_path / "state.sqlite3")
+    plan_thread = store.create(_row())
+    conversation_id = str(uuid.uuid4())
+    source_id = str(uuid.uuid4())
+    conversation = store.create_conversation(
+        conversation_id, "owner", source_id, "Explain this result", now=1.0,
+    )
+    first = store.create_conversation_turn(
+        conversation_id, "owner", str(uuid.uuid4()), "client-turn-1", "Explain result", now=2.0,
+    )
+    started = store.start_conversation_turn(
+        conversation_id, first["turn_id"], "owner", first["run_id"], now=3.0,
+    )
+    store.append_conversation_event(
+        conversation_id, first["turn_id"], "owner", started["run_id"],
+        "tool_started", {"toolName": "search_evidence"}, now=4.0,
+    )
+    completed = store.complete_conversation_turn(
+        conversation_id, first["turn_id"], "owner", started["run_id"],
+        answer="Use a boundary case.", citations=[], trace=[], now=5.0,
+    )
+    second = store.create_conversation_turn(
+        conversation_id, "owner", str(uuid.uuid4()), "client-turn-2", "Why this complexity?", now=6.0,
+    )
+
+    assert conversation["turn_count"] == 0
+    assert completed["status"] == "completed"
+    assert [turn["turn_index"] for turn in store.list_conversation_turns(
+        conversation_id, "owner", before=None, limit=10,
+    )] == [1, 2]
+    assert store.get_conversation(conversation_id, "other-owner") is None
+    assert store.list_conversations("other-owner", offset=0, limit=10) == []
+    assert store.get_conversation_turn(conversation_id, second["turn_id"], "other-owner") is None
+
+    store.delete_conversation(conversation_id, "owner")
+    assert store.get_conversation(conversation_id, "owner") is None
+    assert store.get_conversation_turn(conversation_id, first["turn_id"], "owner") is None
+    assert store.get(plan_thread["thread_id"], plan_thread["owner_id"]) is not None
+    store.close()
+
+
+def test_conversation_turn_idempotency_and_cancel_fence(tmp_path):
+    store = WorkflowStore(tmp_path / "state.sqlite3")
+    conversation_id = str(uuid.uuid4())
+    store.create_conversation(conversation_id, "owner", str(uuid.uuid4()), "Review", now=1.0)
+    turn_id = str(uuid.uuid4())
+    turn = store.create_conversation_turn(
+        conversation_id, "owner", turn_id, "client-turn", "Review the boundary case", now=2.0,
+    )
+    duplicate = store.create_conversation_turn(
+        conversation_id, "owner", str(uuid.uuid4()), "client-turn", "Review the boundary case", now=3.0,
+    )
+    assert duplicate["turn_id"] == turn["turn_id"]
+    with pytest.raises(Conflict):
+        store.create_conversation_turn(
+            conversation_id, "owner", str(uuid.uuid4()), "client-turn", "Different prompt", now=3.0,
+        )
+
+    started = store.start_conversation_turn(
+        conversation_id, turn["turn_id"], "owner", turn["run_id"], now=4.0,
+    )
+    with pytest.raises(Conflict, match="conversation_turn_active"):
+        store.delete_conversation(conversation_id, "owner")
+    cancelled = store.cancel_conversation_turn(
+        conversation_id, turn["turn_id"], "owner", now=5.0,
+    )
+    assert cancelled["status"] == "cancelled"
+    assert cancelled["cancel_requested"] is True
+    with pytest.raises(Conflict):
+        store.complete_conversation_turn(
+            conversation_id, turn["turn_id"], "owner", started["run_id"],
+            answer="Late response", citations=[], trace=[], now=6.0,
+        )
+    store.delete_conversation(conversation_id, "owner")
+    store.close()

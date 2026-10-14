@@ -17,6 +17,12 @@ describe("Router Landing and Root Redirect", () => {
     expect(landingRoute?.name).toBe("landing");
   });
 
+  it("protects the Agent conversation workspace", () => {
+    const workspaceRoute = router.getRoutes().find((route) => route.name === "agent-workspace");
+    expect(workspaceRoute?.path).toBe("/agent");
+    expect(workspaceRoute?.meta.requiresAuth).toBe(true);
+  });
+
   it("redirects / to /landing when unauthenticated", () => {
     vi.mocked(useAuthStore).mockReturnValue({
       isAuthenticated: false,

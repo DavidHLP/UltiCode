@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   createThread: vi.fn(),
   analyze: vi.fn(),
   replace: vi.fn(),
+  push: vi.fn(),
   workflow: null as object | null,
   route: { query: {} as Record<string, string> },
 }));
@@ -29,7 +30,7 @@ vi.mock("@/composables/useAgentWorkflow", async () => {
 vi.mock("@/stores/auth", () => ({ useAuthStore: () => ({ fetchCurrentUserId: () => "user-1" }) }));
 vi.mock("vue-router", () => ({
   useRoute: () => mocks.route,
-  useRouter: () => ({ replace: mocks.replace }),
+  useRouter: () => ({ replace: mocks.replace, push: mocks.push }),
 }));
 vi.mock("vue-i18n", () => ({ useI18n: () => ({ t: (key: string) => key }) }));
 vi.mock("@/components/ui/button", () => ({
@@ -60,6 +61,18 @@ describe("AgentReviewPanel", () => {
     const wrapper = mount(Panel, { props: { submission: row } });
     await flushPromises();
     expect(wrapper.find("section").exists()).toBe(false);
+    expect(mocks.getCapabilities).not.toHaveBeenCalled();
+  });
+
+  it("opens the persistent workspace for the eligible submission", async () => {
+    vi.stubEnv("VITE_AGENT_REVIEW_ENABLED", "true");
+    const Panel = await loadPanel();
+    const wrapper = mount(Panel, { props: { submission: row } });
+    await wrapper.find("[data-agent-workspace-entry]").trigger("click");
+    expect(mocks.push).toHaveBeenCalledWith({
+      name: "agent-workspace",
+      query: { submissionId: row.id },
+    });
     expect(mocks.getCapabilities).not.toHaveBeenCalled();
   });
 
@@ -174,7 +187,98 @@ describe("AgentReviewPanel", () => {
     expect(enabledStart?.attributes("disabled")).toBeUndefined();
     await enabledStart?.trigger("click");
     await flushPromises();
-    expect(workflow.createThread).toHaveBeenCalledWith(row.id, "agent.defaultQuestion");
+    expect(workflow.createThread).toHaveBeenCalledWith(row.id, "agent.promptComplexity");
     expect(workflow.analyze).toHaveBeenCalledOnce();
+  });
+
+  it("blocks starting a new thread while analysis is active", async () => {
+    vi.stubEnv("VITE_AGENT_REVIEW_ENABLED", "true");
+    mocks.route.query = { threadId: "12345678-1234-1234-1234-123456789abc" };
+    mocks.getCapabilities.mockResolvedValue({ analysisAvailable: true, persistenceAvailable: true, sourceMode: "metadata" });
+    const workflow = {
+      thread: ref({
+        threadId: "thread-1", sourceSubmissionId: row.id, status: "analyzing",
+        draft: { title: "Plan", content: "body", facts: [], hypotheses: [], citations: [], citationChecks: [] },
+        receipt: { planId: null, cancelRequested: false, failureReason: null },
+      }),
+      events: ref([]), generatedText: ref(""), draftTitle: ref("Plan"), draftContent: ref("body"), error: ref(""),
+      busy: ref(true), loading: ref(false), analyzing: ref(true), canceling: ref(false), saving: ref(false),
+      createThread: vi.fn(), analyze: vi.fn(), loadThread: vi.fn(), clear: vi.fn(() => true),
+    };
+    mocks.workflow = workflow;
+    const Panel = await loadPanel();
+    const wrapper = mount(Panel, { props: { submission: row } });
+    await flushPromises();
+    const initialClearCount = workflow.clear.mock.calls.length;
+
+    const newThread = wrapper.findAll("button").find((button) => button.text() === "agent.newThread");
+    expect(newThread?.attributes("disabled")).toBeDefined();
+    await newThread?.trigger("click");
+    expect(workflow.clear).toHaveBeenCalledTimes(initialClearCount);
+  });
+
+  it("confirms before discarding an unsaved review when starting a new thread", async () => {
+    vi.stubEnv("VITE_AGENT_REVIEW_ENABLED", "true");
+    mocks.route.query = { threadId: "12345678-1234-1234-1234-123456789abc" };
+    mocks.getCapabilities.mockResolvedValue({ analysisAvailable: true, persistenceAvailable: true, sourceMode: "metadata" });
+    const workflow = {
+      thread: ref({
+        threadId: "thread-1", sourceSubmissionId: row.id, status: "awaiting_confirmation",
+        draft: { title: "Plan", content: "body", facts: [], hypotheses: [], citations: [], citationChecks: [] },
+        receipt: { planId: null, cancelRequested: false, failureReason: null },
+      }),
+      events: ref([]), generatedText: ref("Review answer"), draftTitle: ref("Plan"), draftContent: ref("body"), error: ref(""),
+      busy: ref(false), loading: ref(false), analyzing: ref(false), canceling: ref(false), saving: ref(false),
+      createThread: vi.fn(), analyze: vi.fn(), loadThread: vi.fn(), clear: vi.fn(() => true),
+    };
+    mocks.workflow = workflow;
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    const Panel = await loadPanel();
+    const wrapper = mount(Panel, { props: { submission: row } });
+    await flushPromises();
+    const initialClearCount = workflow.clear.mock.calls.length;
+
+    const newThread = wrapper.findAll("button").find((button) => button.text() === "agent.newThread");
+    await newThread?.trigger("click");
+    expect(confirm).toHaveBeenCalledOnce();
+    expect(confirm).toHaveBeenCalledWith("agent.newThreadConfirm");
+    expect(workflow.clear).toHaveBeenCalledTimes(initialClearCount);
+
+    confirm.mockReturnValue(true);
+    await newThread?.trigger("click");
+    expect(workflow.clear).toHaveBeenCalledTimes(initialClearCount + 1);
+  });
+
+  it("confirms before replacing an unsaved review when reloading its thread", async () => {
+    vi.stubEnv("VITE_AGENT_REVIEW_ENABLED", "true");
+    const threadId = "12345678-1234-1234-1234-123456789abc";
+    mocks.route.query = { threadId };
+    mocks.getCapabilities.mockResolvedValue({ analysisAvailable: true, persistenceAvailable: true, sourceMode: "metadata" });
+    const workflow = {
+      thread: ref({
+        threadId, sourceSubmissionId: row.id, status: "awaiting_confirmation",
+        draft: { title: "Plan", content: "body", facts: [], hypotheses: [], citations: [], citationChecks: [] },
+        receipt: { planId: null, cancelRequested: false, failureReason: null },
+      }),
+      events: ref([]), generatedText: ref("Review answer"), draftTitle: ref("Plan"), draftContent: ref("body"), error: ref(""),
+      busy: ref(false), loading: ref(false), analyzing: ref(false), canceling: ref(false), saving: ref(false),
+      createThread: vi.fn(), analyze: vi.fn(), loadThread: vi.fn(), clear: vi.fn(() => true),
+    };
+    mocks.workflow = workflow;
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    const Panel = await loadPanel();
+    const wrapper = mount(Panel, { props: { submission: row } });
+    await flushPromises();
+    const initialLoadCount = workflow.loadThread.mock.calls.length;
+
+    const refresh = wrapper.findAll("button").find((button) => button.text() === "agent.refresh");
+    await refresh?.trigger("click");
+    expect(confirm).toHaveBeenCalledOnce();
+    expect(confirm).toHaveBeenCalledWith("agent.reloadConfirm");
+    expect(workflow.loadThread).toHaveBeenCalledTimes(initialLoadCount);
+
+    confirm.mockReturnValue(true);
+    await refresh?.trigger("click");
+    expect(workflow.loadThread).toHaveBeenCalledTimes(initialLoadCount + 1);
   });
 });

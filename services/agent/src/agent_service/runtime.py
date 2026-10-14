@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import os
+from ipaddress import ip_address
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 from authorized_budget_period import (
     MANUAL_LIVE_TEST_PERIOD_ID, MANUAL_LIVE_TEST_POLICY_ID, PeriodIdentity,
@@ -33,7 +35,20 @@ _RETIRED_KWARGS = {"u02_gate_path", "expected_head", "expected_base", "candidate
 _AUTH_KWARGS = {
     *_RETIRED_KWARGS, "expected_period", "budget_guard", "model_purpose",
     "own_budget_guard", "analysis_only_test_mode", "persistence_enabled",
+    "unbudgeted_development_mode",
 }
+
+
+def _is_loopback_origin(value: str) -> bool:
+    try:
+        parsed = urlsplit(value)
+        host = parsed.hostname
+        return bool(
+            host and parsed.scheme in {"http", "https"}
+            and (host.lower() == "localhost" or ip_address(host).is_loopback)
+        )
+    except ValueError:
+        return False
 
 
 def _manual_test_period_identity() -> PeriodIdentity:
@@ -87,7 +102,16 @@ def _live_authorization_kwargs(environ: dict[str, str]) -> dict[str, Any] | None
         raise RuntimeAuthorizationError("agent_live_provider_credentials_missing")
     policy_id = environ.get(_BUDGET_POLICY)
     if not policy_id:
-        raise RuntimeAuthorizationError("agent_live_budget_policy_missing")
+        if not _is_loopback_origin(environ.get("ULTICODE_AGENT_ORIGIN", "")):
+            raise RuntimeAuthorizationError("agent_live_budget_policy_missing")
+        return {
+            "expected_period": None,
+            "budget_guard": None,
+            "model_purpose": "u03_analysis",
+            "own_budget_guard": False,
+            "analysis_only_test_mode": False,
+            "unbudgeted_development_mode": True,
+        }
     if policy_id == MANUAL_LIVE_TEST_POLICY_ID:
         raise RuntimeAuthorizationError("agent_manual_budget_requires_analysis_only")
     try:
@@ -107,6 +131,7 @@ def _live_authorization_kwargs(environ: dict[str, str]) -> dict[str, Any] | None
         "model_purpose": "u03_analysis",
         "own_budget_guard": True,
         "analysis_only_test_mode": False,
+        "unbudgeted_development_mode": False,
     }
 
 
@@ -127,11 +152,11 @@ def create_app(**kwargs):
 
     retired = _RETIRED_KWARGS.intersection(kwargs)
     if retired:
-        if authorization is not None:
+        if authorization is not None and authorization["budget_guard"] is not None:
             authorization["budget_guard"].close()
         raise RuntimeAuthorizationError("agent_retired_gate_configuration")
     if _AUTH_KWARGS.intersection(kwargs):
-        if authorization is not None:
+        if authorization is not None and authorization["budget_guard"] is not None:
             authorization["budget_guard"].close()
         raise RuntimeAuthorizationError("agent_live_authorization_override_forbidden")
     if authorization is None:
@@ -140,5 +165,6 @@ def create_app(**kwargs):
     try:
         return _create_app(**kwargs, persistence_enabled=persistence_enabled, **authorization)
     except Exception:
-        authorization["budget_guard"].close()
+        if authorization["budget_guard"] is not None:
+            authorization["budget_guard"].close()
         raise

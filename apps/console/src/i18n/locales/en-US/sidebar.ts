@@ -51,6 +51,7 @@ export default {
     accountSettingsNotifications: "Notification Preferences",
     activity: "Activity",
     submissions: "Submissions",
+    agent: "Agent workspace",
     solutions: "Solutions",
     problemLists: "Problem Lists",
     forumPosts: "Forum Posts",

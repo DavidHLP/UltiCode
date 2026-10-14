@@ -352,7 +352,15 @@ def _parse_decision(content: str, *, finish_reason: object = None) -> ModelDecis
             text="",
             tool_call=ToolCall(name=tool, arguments=dict(arguments)),
         )
-    raise ModelProtocolError("model decision schema was malformed")
+    shape = (
+        "tool_arguments_alias" if keys == {"tool", "arguments"} else
+        "answer_with_citations" if keys == {"answer", "citations"} else
+        "inner_answer" if keys == {"text", "citations"} else
+        "tool_with_other_fields" if "tool" in keys else
+        "answer_with_other_fields" if "answer" in keys else
+        "unrecognized_fields"
+    )
+    raise ModelProtocolError(f"model decision schema was malformed (shape={shape})")
 
 
 def _usage_of(payload: dict[str, object]) -> dict[str, int | None]:

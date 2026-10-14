@@ -336,6 +336,15 @@ class BackendAppApplicationTest {
     }
 
     @Test
+    @DisplayName("anonymous submission reads return 401 so the Console can refresh the session")
+    void anonymousSubmissionReadReturnsUnauthorized() {
+        ResponseEntity<String> response = rest.getForEntity(
+                "http://localhost:" + port + "/submissions/statuses", String.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
+    @Test
     @DisplayName("App context does not auto-register Judge-only scheduled wiring")
     void judgeOnlyWiringStaysOutOfAppContext() {
         assertThat(applicationContext.getBeansOfType(JudgeWorkerProcessor.class)).isEmpty();

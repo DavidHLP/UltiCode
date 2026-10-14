@@ -179,8 +179,15 @@ def build_workflow_graph(*, checkpointer, total_timeout: float = 30.0):
                 raise RuntimeError("model_budget_blocked")
             model, tools = analysis_runtime
             from boundary_evaluation import BOUNDARY_ANSWER_CONTRACT
-            prompt = f"{BOUNDARY_ANSWER_CONTRACT}\nINPUT_JSON " + json.dumps(
-                {"question": state.get("question", ""), "facts": state.get("source_facts", {})},
+            facts = state.get("source_facts", {})
+            prompt = (
+                f"{BOUNDARY_ANSWER_CONTRACT}\n"
+                "SERVER_CONTEXT: The server has already selected and verified the current submission "
+                "for this thread. Do not ask for an ID or numeric ID. The source mode is metadata-only; "
+                "no source code was supplied. Use the supplied status as verified metadata, but do not "
+                "infer a code-level diagnosis.\nINPUT_JSON "
+            ) + json.dumps(
+                {"question": state.get("question", ""), "facts": {"status": facts.get("status")}},
                 ensure_ascii=False, separators=(",", ":"),
             )
             loop = await run_readonly_graph(model, tools, prompt, max_rounds=4, total_timeout=total_timeout)

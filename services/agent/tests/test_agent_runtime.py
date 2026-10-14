@@ -81,9 +81,26 @@ def test_runtime_factory_without_opt_in_keeps_live_analysis_disabled(monkeypatch
     }
 
 
-def test_runtime_factory_requires_named_budget_policy_for_live_analysis(monkeypatch):
+def test_runtime_factory_enables_unbudgeted_live_analysis_for_loopback_development(monkeypatch, tmp_path):
     monkeypatch.setenv("ULTICODE_AGENT_LIVE_ANALYSIS", "1")
     monkeypatch.delenv("ULTICODE_AGENT_BUDGET_POLICY", raising=False)
+    monkeypatch.setenv("ULTICODE_AGENT_ORIGIN", "http://localhost:9002")
+    monkeypatch.setenv("ULTICODE_AGENT_PERSISTENCE_ENABLED", "1")
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
+    captured = {}
+    monkeypatch.setattr(runtime, "_create_app", lambda **kwargs: captured.update(kwargs) or "app")
+
+    assert runtime.create_app(state_path=tmp_path / "workflow.sqlite3") == "app"
+    assert captured["unbudgeted_development_mode"] is True
+    assert captured["expected_period"] is None
+    assert captured["budget_guard"] is None
+    assert captured["persistence_enabled"] is True
+
+
+def test_runtime_factory_still_requires_budget_for_non_loopback_live_analysis(monkeypatch):
+    monkeypatch.setenv("ULTICODE_AGENT_LIVE_ANALYSIS", "1")
+    monkeypatch.delenv("ULTICODE_AGENT_BUDGET_POLICY", raising=False)
+    monkeypatch.setenv("ULTICODE_AGENT_ORIGIN", "https://agent.example.com")
     monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
 
     with pytest.raises(runtime.RuntimeAuthorizationError, match="agent_live_budget_policy_missing"):

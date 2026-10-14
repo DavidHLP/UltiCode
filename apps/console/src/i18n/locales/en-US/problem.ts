@@ -425,6 +425,7 @@ export default {
       "This submission has been pending for over 2 minutes and may still be queued. Please wait.",
     error: {
       loadFailed: "Failed to load submission",
+      statusLoadFailed: "Failed to load submission statuses",
       notFound: "Submission not found",
       forbidden: "You don't have permission to view this submission",
     },

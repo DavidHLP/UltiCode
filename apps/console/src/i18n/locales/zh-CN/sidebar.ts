@@ -51,6 +51,7 @@ export default {
     accountSettingsNotifications: "通知偏好",
     activity: "活动",
     submissions: "提交记录",
+    agent: "Agent 工作区",
     solutions: "题解",
     problemLists: "题单",
     forumPosts: "论坛帖子",

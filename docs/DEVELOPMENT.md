@@ -151,6 +151,56 @@ dependabot-core 当作 support file 丢弃，PR 只改 manifest，必然过不�
 根 `package.json`、`pnpm-lock.yaml` 或 `pnpm-workspace.yaml` 变化会触发 Console、Management
 以及 Docker CI 门禁，覆盖共享依赖更新及其镜像安装验证。
 
+### Web v2 前端升级基线
+
+`web-v2-upgrade` 是 Web v2 的升级分支，起点固定为
+`638483a96a0b1dbc102aba14065d98bcea76b2cd`（`feat: add persistent Agent conversation workspace`）。
+该提交是改动前的对照与回退来源，不随分支后续推进改变；基线定义不表示 Web v2 已发布，
+也不将前端 package version 改为 `2.0.0`。
+
+升级范围是 `apps/console/`、`apps/management/` 及其消费的 `packages/`。
+沿用 Vue 3、TypeScript、Vite、Pinia、Vue Router、Tailwind CSS 和现有组件体系；
+依赖的精确版本由根 `pnpm-lock.yaml` 固定，不另建 v2 应用、第二份 lock 或平行共享层。
+安装使用根目录 `pnpm install --frozen-lockfile`，Node.js 满足 `>=22.12.0`；
+与当前前端 CI 对齐的环境为 Node 22.x、pnpm 11。
+
+后续变更必须保留以下基线契约：
+
+- Console 与 Management 保持各自路由、布局和权限边界，跨端行为归属现有 focused package；
+  不把管理员专用 UI、隐藏用例或特权数据暴露到 Console。
+- 保留现有 `Result` envelope、字段映射及请求/响应类型；不以 UI 升级隐式改变后端 API、
+  Owner 边界、数据库或部署拓扑。确需契约变更时另行明确范围并同步双方消费者。
+- 身份初始化先于路由安装，access/refresh token 仍使用 HttpOnly Cookie，权限仍由服务端校验；
+  不新增 query/STOMP token 或浏览器明文凭据存储。
+- 主题状态与 `data-theme` 写入归属 `packages/theme`；Markdown/KaTeX 渲染继续经过
+  `packages/markdown-utils` 的消毒链路，不绕过既有安全边界。
+- 中文/英文文案同步，保留键盘操作、焦点管理和窄屏可用性。UI 行为变化需要对应回归测试，
+  关键用户旅程需要单独的浏览器验证，不能用构建成功代替。
+- 保留 Agent 工作区、提交复盘与学习计划的既有资格、授权及降级行为；
+  `VITE_AGENT_REVIEW_ENABLED` 默认关闭，前端开关不代表分析或保存授权。
+
+复现前端基线时运行只读门禁，避免 `lint --fix` 或全树格式化改变对照源码：
+
+```bash
+pnpm install --frozen-lockfile
+for app in console management; do
+  pnpm --dir "apps/$app" lint:check &&
+    pnpm --dir "apps/$app" type-check &&
+    pnpm --dir "apps/$app" test:coverage &&
+    pnpm --dir "apps/$app" build-only || exit 1
+done
+pnpm --dir apps/management validate:i18n-keys
+pnpm --dir packages/auth-core type-check
+pnpm --dir packages/auth-core test:coverage
+pnpm --dir packages/theme test
+```
+
+`type-check` 与 `build-only` 分开执行，等价覆盖 app 的 `build` 两个子步骤，避免重复类型检查。
+app 测试排除的共享认证/主题测试必须独立运行；其他共享包受改动影响时运行该包声明的门禁。
+每项验证单独记录退出码，失败不得由后续成功覆盖。上述检查不证明浏览器业务旅程、真实后端、
+模型调用、远端部署或发布已验收；执行证据和当前状态放在对应 Linear / Notion 记录中，
+本页只维护固定起点、兼容边界与复现方法。
+
 ### Optional external Adapters
 
 - 对象存储是所有环境的必需依赖：`FileStoragePort` 只有 S3/RustFS 实现，

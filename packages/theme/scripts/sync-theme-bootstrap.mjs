@@ -21,6 +21,7 @@ const SOURCE = join(ROOT, 'packages/theme/bootstrap.js')
 const TARGETS = [
   join(ROOT, 'apps/console/public/theme-bootstrap.js'),
   join(ROOT, 'apps/management/public/theme-bootstrap.js'),
+  join(ROOT, 'apps/landing/public/theme-bootstrap.js'),
 ]
 
 let src
@@ -42,4 +43,4 @@ for (const target of TARGETS) {
     process.exit(1)
   }
 }
-console.log('Theme bootstrap sync complete (2 copies regenerated from source).')
+console.log('Theme bootstrap sync complete (3 copies regenerated from source).')

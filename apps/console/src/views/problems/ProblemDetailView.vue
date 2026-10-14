@@ -50,10 +50,10 @@ installProviders(provide);
 </script>
 
 <template>
-  <div class="h-screen flex flex-col bg-[var(--background)] antialiased">
+  <div class="h-screen flex flex-col bg-background antialiased">
     <a
       href="#main-content"
-      class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-none"
+      class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-lg"
     >
       {{ $t("common.skipToContent") }}
     </a>
@@ -89,22 +89,22 @@ installProviders(provide);
     </Sheet>
 
     <header
-      class="relative flex h-12 w-full min-w-[100px] shrink-0 items-center justify-between gap-2 bg-[var(--background)] px-2.5"
+      class="relative flex w-full shrink-0 flex-wrap items-center justify-between gap-2 bg-background px-2.5 py-2 md:h-12 md:flex-nowrap md:py-0"
     >
       <div
-        class="relative z-10 flex h-full min-w-[240px] flex-1 items-center overflow-hidden"
+        class="relative z-10 flex min-w-0 w-full items-center md:h-full md:flex-1"
       >
         <LayoutHeaderLeft />
       </div>
       <div
-        class="pointer-events-none absolute inset-0 flex items-center justify-center"
+        class="pointer-events-none flex w-full items-center justify-center md:absolute md:inset-0 md:w-auto"
       >
         <div class="pointer-events-auto">
           <LayoutHeaderCenter />
         </div>
       </div>
       <div
-        class="relative z-10 ml-auto flex h-full flex-1 items-center justify-end gap-2"
+        class="relative z-10 flex min-w-0 w-full items-center justify-center gap-2 md:ml-auto md:h-full md:flex-1 md:justify-end"
       >
         <LayoutHeaderControls
           :current-layout="currentLayout"

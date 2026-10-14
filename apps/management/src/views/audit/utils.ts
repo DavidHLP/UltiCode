@@ -1,20 +1,21 @@
 import type { VNode } from 'vue'
 import {
-  IconCircleCheckFilled,
-  IconDatabase,
-  IconFileText,
-  IconFlag,
-  IconInfoCircle,
-  IconLock,
-  IconMessage,
-  IconPin,
-  IconRefresh,
-  IconShield,
-  IconTrash,
-  IconUser,
-  IconX,
-} from '@tabler/icons-vue'
-import { badge, getAuditActionColor, type SemanticColor } from '@/components/ui/terminal'
+  CircleCheck as IconCircleCheckFilled,
+  Database as IconDatabase,
+  FileText as IconFileText,
+  Flag as IconFlag,
+  Info as IconInfoCircle,
+  Lock as IconLock,
+  MessageSquare as IconMessage,
+  Pin as IconPin,
+  RefreshCw as IconRefresh,
+  Shield as IconShield,
+  Trash as IconTrash,
+  User as IconUser,
+  X as IconX,
+} from '@lucide/vue'
+
+import { badge, getAuditActionColor, type SemanticColor } from '@ulticode/badge-config'
 
 // --- Audit action/entityType constants (mirrors AuditActionUtil.java) ---
 
@@ -152,13 +153,13 @@ export function getActionIcon(action: string) {
 }
 
 const COLOR_TO_TEXT_CLASS: Record<SemanticColor, string> = {
-  success: 'text-foreground-strong',
-  warning: 'text-foreground-strong',
-  error: 'text-foreground-strong',
-  info: 'text-foreground-strong',
-  purple: 'text-foreground-strong',
-  electric: 'text-[var(--accent-primary)]',
-  neutral: 'text-[var(--foreground-muted)]',
+  success: 'text-foreground',
+  warning: 'text-foreground',
+  error: 'text-foreground',
+  info: 'text-foreground',
+  purple: 'text-foreground',
+  electric: 'text-[var(--primary)]',
+  neutral: 'text-[var(--muted-foreground)]',
 }
 
 /**

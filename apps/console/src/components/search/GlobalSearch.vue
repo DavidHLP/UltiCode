@@ -2,9 +2,9 @@
 import { ref, watch, onMounted, onUnmounted, computed } from "vue";
 import { useI18n } from "vue-i18n";
 import { useSearch } from "@/composables/useSearch";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent } from "@ulticode/design-system/ui/dialog";
+import { Input } from "@ulticode/design-system/ui/input";
+import { Skeleton } from "@ulticode/design-system/ui/skeleton";
 import { Search, Code, User, MessageSquare, FileText } from "@lucide/vue";
 import { cn } from "@/lib/utils";
 
@@ -122,20 +122,17 @@ onUnmounted(() => {
   <Dialog v-model:open="isOpen">
     <DialogContent class="max-w-2xl overflow-hidden p-0" hide-close>
       <!-- Search Input -->
-      <div
-        class="flex items-center border-b border-border-subtle bg-surface-elevated px-4"
-      >
+      <div class="flex items-center border-b border-border bg-card px-4">
         <Search class="h-5 w-5 shrink-0 text-muted-foreground" />
         <Input
           ref="inputRef"
           :model-value="query"
           type="text"
           :placeholder="t('common.search.placeholder')"
-          class="border-0 focus-visible:ring-0"
           @input="handleInputChange"
         />
         <kbd
-          class="hidden rounded-sm border border-border-control bg-surface-sunken px-2 py-0.5 font-data text-xs text-muted-foreground sm:inline-block"
+          class="hidden rounded-sm border border-input bg-muted px-2 py-0.5 font-mono text-xs text-muted-foreground sm:inline-block"
         >
           ESC
         </kbd>
@@ -145,11 +142,7 @@ onUnmounted(() => {
       <div class="max-h-96 overflow-y-auto">
         <!-- Loading state -->
         <div v-if="loading" class="p-4">
-          <Skeleton
-            v-for="i in 3"
-            :key="i"
-            class="mb-2 h-14 rounded-md bg-surface-highlight"
-          />
+          <Skeleton v-for="i in 3" :key="i" class="mb-2 h-14" />
         </div>
 
         <!-- Results list -->
@@ -162,8 +155,8 @@ onUnmounted(() => {
               cn(
                 'flex items-center gap-3 rounded-md px-4 py-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                 selectedIndex === index
-                  ? 'bg-surface-highlight font-bold text-foreground-strong'
-                  : 'hover:bg-surface-highlight',
+                  ? 'bg-accent font-bold text-foreground'
+                  : 'hover:bg-accent',
               )
             "
             @click="searchHook.close()"
@@ -207,12 +200,12 @@ onUnmounted(() => {
           </p>
           <p class="mt-1 text-xs text-muted-foreground">
             <kbd
-              class="rounded-sm border border-border-control bg-surface-sunken px-1.5 py-0.5 font-data"
+              class="rounded-sm border border-input bg-muted px-1.5 py-0.5 font-mono"
               >Cmd</kbd
             >
             +
             <kbd
-              class="rounded-sm border border-border-control bg-surface-sunken px-1.5 py-0.5 font-data"
+              class="rounded-sm border border-input bg-muted px-1.5 py-0.5 font-mono"
               >K</kbd
             >
             {{ t("common.search.openSearchTip") }}
@@ -223,24 +216,24 @@ onUnmounted(() => {
       <!-- Footer -->
       <div
         v-if="results?.length > 0"
-        class="flex items-center justify-between border-t border-border-subtle px-4 py-2 text-xs text-muted-foreground"
+        class="flex items-center justify-between border-t border-border px-4 py-2 text-xs text-muted-foreground"
       >
         <span>{{ t("common.search.resultsCount", { total }) }}</span>
         <div class="flex items-center gap-4">
           <span class="flex items-center gap-1">
             <kbd
-              class="rounded-sm border border-border-control bg-surface-sunken px-1.5 py-0.5 font-data"
+              class="rounded-sm border border-input bg-muted px-1.5 py-0.5 font-mono"
               >↑</kbd
             >
             <kbd
-              class="rounded-sm border border-border-control bg-surface-sunken px-1.5 py-0.5 font-data"
+              class="rounded-sm border border-input bg-muted px-1.5 py-0.5 font-mono"
               >↓</kbd
             >
             {{ t("common.search.navigateTip") }}
           </span>
           <span class="flex items-center gap-1">
             <kbd
-              class="rounded-sm border border-border-control bg-surface-sunken px-1.5 py-0.5 font-data"
+              class="rounded-sm border border-input bg-muted px-1.5 py-0.5 font-mono"
               >Enter</kbd
             >
             {{ t("common.search.selectTip") }}

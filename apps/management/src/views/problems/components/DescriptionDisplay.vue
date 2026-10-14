@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Badge } from '@/components/ui/badge'
-import { IconBulb, IconCalendar, IconHash } from '@tabler/icons-vue'
+import { Badge } from '@ulticode/design-system/ui/badge'
+import { Lightbulb as IconBulb, Calendar as IconCalendar, Hash as IconHash } from '@lucide/vue'
+
 import DescriptionMarkdown, {
   type ProblemDescription,
 } from '@/components/problems/DescriptionMarkdown.vue'
-import { Separator } from '@/components/ui/separator'
+import { Separator } from '@ulticode/design-system/ui/separator'
 import { formatDate } from '@/lib/format/date'
 import ContentWithSidebarLayout from '@/components/shared/ContentWithSidebarLayout.vue'
 import MetadataCard, { type MetadataItem } from '@/components/shared/MetadataCard.vue'
@@ -48,9 +49,12 @@ const { t } = useI18n()
 
 const difficultyClass = computed(() => {
   const difficulty = props.problem.difficulty?.toLowerCase() || ''
-  if (difficulty === 'easy') return 'text-foreground-strong bg-status-success-surface border-status-success-mark'
-  if (difficulty === 'medium') return 'text-foreground-strong bg-status-warning-surface border-status-warning-mark'
-  if (difficulty === 'hard') return 'text-foreground-strong bg-status-error-surface border-status-error-mark'
+  if (difficulty === 'easy')
+    return 'text-foreground bg-status-success-surface border-status-success-mark'
+  if (difficulty === 'medium')
+    return 'text-foreground bg-status-warning-surface border-status-warning-mark'
+  if (difficulty === 'hard')
+    return 'text-foreground bg-status-error-surface border-status-error-mark'
   return 'text-foreground bg-muted'
 })
 
@@ -106,7 +110,7 @@ const problemDescription = computed<ProblemDescription>(() => ({
 <template>
   <ContentWithSidebarLayout>
     <template #main-content>
-      <div class="rounded-none border bg-card p-6 shadow-sm">
+      <div class="rounded-lg border bg-card p-6 shadow-sm">
         <div class="flex flex-col gap-4 mb-6">
           <div class="space-y-1">
             <h1 class="text-2xl font-bold tracking-tight">
@@ -126,14 +130,10 @@ const problemDescription = computed<ProblemDescription>(() => ({
                 )
               }}
             </Badge>
-            <Badge
-              v-if="problem.isPremium"
-              variant="secondary"
-              class="bg-status-warning-surface text-foreground-strong hover:bg-status-warning-surface border-status-warning-mark border"
-            >
+            <Badge v-if="problem.isPremium" variant="secondary">
               {{ t('problems.badges.premium') }}
             </Badge>
-            <Badge :variant="problem.isPublished ? 'default' : 'outline'" class="capitalize">
+            <Badge :variant="problem.isPublished ? 'default' : 'outline'">
               {{
                 problem.isPublished
                   ? t('problems.published.published')
@@ -145,7 +145,7 @@ const problemDescription = computed<ProblemDescription>(() => ({
 
         <Separator class="mb-6" />
 
-        <div class="prose prose-sm dark:prose-invert max-w-none">
+        <div class="typeset typeset-docs max-w-none">
           <DescriptionMarkdown :description="problemDescription" />
         </div>
       </div>
@@ -160,21 +160,21 @@ const problemDescription = computed<ProblemDescription>(() => ({
         :tags="problem.tags"
       />
 
-      <div v-if="hasHints" class="rounded-none border bg-card overflow-hidden shadow-sm">
+      <div v-if="hasHints" class="rounded-lg border bg-card overflow-hidden shadow-sm">
         <div class="flex items-center gap-2 p-4 border-b bg-muted/20">
           <IconBulb class="h-4 w-4 text-muted-foreground" />
           <h3 class="font-semibold text-sm">{{ t('problems.display.hints') }}</h3>
-          <Badge variant="secondary" class="ml-auto text-xs">{{ hintsList.length }}</Badge>
+          <Badge variant="secondary" class="ml-auto">{{ hintsList.length }}</Badge>
         </div>
         <div class="p-4">
           <ul class="space-y-2">
             <li
               v-for="(hint, index) in hintsList"
               :key="index"
-              class="text-sm text-muted-foreground p-3 rounded-none bg-muted/30 flex items-start gap-2.5"
+              class="text-sm text-muted-foreground p-3 rounded-lg bg-muted/30 flex items-start gap-2.5"
             >
               <span
-                class="font-mono text-xs font-medium text-foreground/70 bg-background border px-1.5 rounded-none shrink-0 h-5 flex items-center justify-center"
+                class="font-mono text-xs font-medium text-foreground/70 bg-background border px-1.5 rounded-lg shrink-0 h-5 flex items-center justify-center"
               >
                 {{ index + 1 }}
               </span>

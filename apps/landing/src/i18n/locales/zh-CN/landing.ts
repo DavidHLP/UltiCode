@@ -1,4 +1,9 @@
 export default {
+  appearance: "外观设置",
+  navigation: "主导航",
+  openMenu: "打开菜单",
+  skipContent: "跳至主要内容",
+
   seoTitle: "UltiCode - 温暖、确定、机构级的算法工程评测基座",
   seoDescription:
     "UltiCode 是面向算法工程师与技术组织的现代算法工程评测基座，提供物理容器隔离、严格系统调用过滤与确定性评测复现。",

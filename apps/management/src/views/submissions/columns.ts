@@ -1,10 +1,11 @@
 import type { ColumnDef } from '@tanstack/vue-table'
 import type { SubmissionListItem } from '@/api/admin/submissions'
 import { createSelectionColumn } from '@/components/table/selectionColumn'
-import { badge } from '@/components/ui/terminal'
+import { badge } from '@ulticode/badge-config'
 import { getStatusColor, normalizeStatusKey } from '@ulticode/submission-status'
-import { Button } from '@/components/ui/button'
-import { IconEye, IconRefresh } from '@tabler/icons-vue'
+import { Button } from '@ulticode/design-system/ui/button'
+import { Eye as IconEye, RefreshCw as IconRefresh } from '@lucide/vue'
+
 import { h } from 'vue'
 import { formatDistanceToNow } from 'date-fns'
 
@@ -60,11 +61,7 @@ export function createColumns(
       accessorKey: 'id',
       header: () => t('submissions.id'),
       cell: ({ row }) =>
-        h(
-          'span',
-          { class: 'font-data text-xs text-foreground-strong' },
-          row.original.id.slice(0, 8),
-        ),
+        h('span', { class: 'font-mono text-xs text-foreground' }, row.original.id.slice(0, 8)),
       enableHiding: false,
     },
     {
@@ -75,7 +72,7 @@ export function createColumns(
           h('div', { class: 'font-medium text-sm' }, row.original.problemTitle),
           h(
             'div',
-            { class: 'text-xs text-[var(--foreground-muted)] font-data' },
+            { class: 'text-xs text-[var(--muted-foreground)] font-mono' },
             row.original.problemSlug,
           ),
         ]),
@@ -93,7 +90,7 @@ export function createColumns(
           'span',
           {
             class:
-              'font-data text-xs text-[var(--foreground-muted)] border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] px-2 py-0.5 rounded-none',
+              'font-mono text-xs text-[var(--muted-foreground)] border border-[var(--border)] dark:border-[var(--border)] px-2 py-0.5 rounded-lg',
           },
           row.original.language,
         ),
@@ -114,19 +111,19 @@ export function createColumns(
       accessorKey: 'runtime',
       header: () => t('submissions.runtime'),
       cell: ({ row }) =>
-        h('span', { class: 'font-data text-sm tabular-nums' }, formatRuntime(row.original.runtime)),
+        h('span', { class: 'font-mono text-sm tabular-nums' }, formatRuntime(row.original.runtime)),
     },
     {
       accessorKey: 'memory',
       header: () => t('submissions.memory'),
       cell: ({ row }) =>
-        h('span', { class: 'font-data text-sm tabular-nums' }, formatMemory(row.original.memory)),
+        h('span', { class: 'font-mono text-sm tabular-nums' }, formatMemory(row.original.memory)),
     },
     {
       accessorKey: 'codeLength',
       header: () => t('submissions.codeLength'),
       cell: ({ row }) =>
-        h('span', { class: 'font-data text-sm tabular-nums' }, row.original.codeLength ?? '-'),
+        h('span', { class: 'font-mono text-sm tabular-nums' }, row.original.codeLength ?? '-'),
     },
     {
       accessorKey: 'createdAt',
@@ -134,7 +131,7 @@ export function createColumns(
       cell: ({ row }) =>
         h(
           'span',
-          { class: 'text-sm text-[var(--foreground-muted)]' },
+          { class: 'text-sm text-[var(--muted-foreground)]' },
           formatDistanceToNow(new Date(row.original.createdAt), { addSuffix: true }),
         ),
     },
@@ -146,10 +143,10 @@ export function createColumns(
           h(
             Button,
             {
-              variant: 'terminal',
+              variant: 'outline',
               size: 'sm',
               class:
-                'h-8 w-8 p-0 border-[var(--border-subtle)] hover:border-[var(--status-info-mark)] hover:text-[var(--status-info-mark)]',
+                'h-8 w-8 p-0 border-[var(--border)] hover:border-[var(--status-info-mark)] hover:text-[var(--status-info-mark)]',
               onClick: () => actions.viewSubmission(row.original.id),
             },
             () => h(IconEye, { class: 'h-3.5 w-3.5' }),
@@ -157,10 +154,10 @@ export function createColumns(
           h(
             Button,
             {
-              variant: 'terminal',
+              variant: 'outline',
               size: 'sm',
               class:
-                'h-8 w-8 p-0 border-[var(--border-subtle)] hover:border-[var(--status-warning-mark)] hover:text-[var(--status-warning-mark)]',
+                'h-8 w-8 p-0 border-[var(--border)] hover:border-[var(--status-warning-mark)] hover:text-[var(--status-warning-mark)]',
               onClick: () => actions.openRejudgeDialog(row.original.id),
             },
             () => h(IconRefresh, { class: 'h-3.5 w-3.5' }),

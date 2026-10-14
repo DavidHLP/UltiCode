@@ -1,4 +1,9 @@
 export default {
+  appearance: "Appearance",
+  navigation: "Main navigation",
+  openMenu: "Open menu",
+  skipContent: "Skip to main content",
+
   seoTitle:
     "UltiCode - Warm, Deterministic, Institutional Algorithm Engineering",
   seoDescription:

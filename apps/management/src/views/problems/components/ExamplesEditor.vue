@@ -1,11 +1,17 @@
 <script setup lang="ts">
+import { FieldLabel } from '@ulticode/design-system/ui/field'
+
 import { computed } from 'vue'
 import { useFieldArray } from 'vee-validate'
 import { useI18n } from 'vue-i18n'
-import { Card, CardContent, CardHeader } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/textarea'
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { Card, CardContent, CardHeader } from '@ulticode/design-system/ui/card'
+import { Button } from '@ulticode/design-system/ui/button'
+import { Textarea } from '@ulticode/design-system/ui/textarea'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@ulticode/design-system/ui/collapsible'
 import { ChevronDown, Plus, Trash2, ArrowUp, ArrowDown } from '@lucide/vue'
 import type { Example } from '@/lib/schemas/problemDescription'
 
@@ -58,12 +64,12 @@ function updateField(index: number, field: { value: Example }, key: keyof Exampl
     <!-- Empty state -->
     <div
       v-if="fields.length === 0"
-      class="flex flex-col items-center justify-center py-8 px-4 border border-dashed border-[var(--border)] bg-muted/5 gap-3 rounded-none"
+      class="flex flex-col items-center justify-center py-8 px-4 border border-dashed border-border bg-muted/5 gap-3 rounded-lg"
     >
-      <p class="text-xs text-[var(--foreground-muted)] text-muted-foreground font-mono">
+      <p class="text-xs text-muted-foreground text-muted-foreground font-mono">
         {{ t('problems.casesDisplay.noCasesDescription') }}
       </p>
-      <Button variant="terminal" size="terminal" @click="addExample">
+      <Button variant="outline" size="default" @click="addExample">
         <Plus class="size-3.5 mr-1.5" />
         {{ t('problems.form.examples') }}
       </Button>
@@ -74,12 +80,10 @@ function updateField(index: number, field: { value: Example }, key: keyof Exampl
       v-for="(field, index) in fields"
       :key="field.key"
       :default-open="true"
-      class="border border-[var(--border)] rounded-none overflow-hidden"
+      class="overflow-hidden"
     >
-      <Card class="border-0 shadow-none gap-0 py-0 rounded-none bg-card">
-        <CardHeader
-          class="flex flex-row items-center justify-between py-2 px-4 bg-muted/15 border-b border-[var(--border)] rounded-none"
-        >
+      <Card class="gap-0 py-0">
+        <CardHeader class="flex flex-row items-center justify-between py-2 px-4">
           <CollapsibleTrigger>
             <div class="flex items-center gap-2 cursor-pointer">
               <ChevronDown class="h-4 w-4 shrink-0 transition-transform duration-200" />
@@ -91,27 +95,27 @@ function updateField(index: number, field: { value: Example }, key: keyof Exampl
 
           <div class="flex items-center gap-1">
             <Button
-              variant="terminal_ghost"
+              variant="ghost"
               size="icon-sm"
-              class="h-7 w-7"
+              class="w-7"
               :disabled="index === 0"
               @click="moveUp(index)"
             >
               <ArrowUp class="h-3.5 w-3.5" />
             </Button>
             <Button
-              variant="terminal_ghost"
+              variant="ghost"
               size="icon-sm"
-              class="h-7 w-7"
+              class="w-7"
               :disabled="index === fields.length - 1"
               @click="moveDown(index)"
             >
               <ArrowDown class="h-3.5 w-3.5" />
             </Button>
             <Button
-              variant="terminal_danger"
+              variant="destructive"
               size="icon-sm"
-              class="h-7 w-7 text-destructive"
+              class="w-7"
               :disabled="!canRemove"
               @click="removeExample(index)"
             >
@@ -121,47 +125,41 @@ function updateField(index: number, field: { value: Example }, key: keyof Exampl
         </CardHeader>
 
         <CollapsibleContent>
-          <CardContent class="space-y-4 pt-4 px-4 pb-4 bg-card rounded-none">
+          <CardContent class="space-y-4 pt-4 px-4 pb-4">
             <div class="space-y-1">
-              <label
-                class="text-xxs font-mono font-bold uppercase tracking-wider text-[var(--foreground-strong)] mb-1 block"
-              >
+              <FieldLabel class="mb-1 block">
                 {{ t('problems.casesDisplay.input') }}
-              </label>
+              </FieldLabel>
               <Textarea
                 :model-value="field.value.input"
                 rows="3"
-                class="font-mono text-sm bg-[var(--surface-sunken)]/25 border border-[var(--border)] focus-visible:ring-1 focus-visible:ring-ring focus-visible:border-ring focus-visible:ring-offset-0 min-h-[60px] resize-y rounded-none shadow-none"
+                class="min-h-[60px] resize-y"
                 :placeholder="t('problems.form.validation.inputRequired')"
                 @update:model-value="(v) => updateField(index, field, 'input', v as string)"
               />
             </div>
 
             <div class="space-y-1">
-              <label
-                class="text-xxs font-mono font-bold uppercase tracking-wider text-[var(--foreground-strong)] mb-1 block"
-              >
+              <FieldLabel class="mb-1 block">
                 {{ t('problems.casesDisplay.output') }}
-              </label>
+              </FieldLabel>
               <Textarea
                 :model-value="field.value.output"
                 rows="3"
-                class="font-mono text-sm bg-[var(--surface-sunken)]/25 border border-[var(--border)] focus-visible:ring-1 focus-visible:ring-ring focus-visible:border-ring focus-visible:ring-offset-0 min-h-[60px] resize-y rounded-none shadow-none"
+                class="min-h-[60px] resize-y"
                 :placeholder="t('problems.form.validation.outputRequired')"
                 @update:model-value="(v) => updateField(index, field, 'output', v as string)"
               />
             </div>
 
             <div class="space-y-1">
-              <label
-                class="text-xxs font-mono font-bold uppercase tracking-wider text-[var(--foreground-strong)] mb-1 block"
-              >
+              <FieldLabel class="mb-1 block">
                 {{ t('problems.descriptionDisplay.explanation') }}
-              </label>
+              </FieldLabel>
               <Textarea
                 :model-value="field.value.explanation || ''"
                 rows="2"
-                class="text-sm bg-[var(--surface-sunken)]/25 border border-[var(--border)] focus-visible:ring-1 focus-visible:ring-ring focus-visible:border-ring focus-visible:ring-offset-0 min-h-[50px] resize-y rounded-none shadow-none"
+                class="min-h-[50px] resize-y"
                 :placeholder="t('problems.descriptionDisplay.explanation')"
                 @update:model-value="(v) => updateField(index, field, 'explanation', v as string)"
               />
@@ -174,8 +172,8 @@ function updateField(index: number, field: { value: Example }, key: keyof Exampl
     <!-- Add button -->
     <Button
       v-if="fields.length > 0"
-      variant="terminal"
-      size="terminal"
+      variant="outline"
+      size="default"
       class="w-full"
       @click="addExample"
     >

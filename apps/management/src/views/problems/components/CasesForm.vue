@@ -1,21 +1,22 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { Button } from '@ulticode/design-system/ui/button'
+import { Badge } from '@ulticode/design-system/ui/badge'
+import { Input } from '@ulticode/design-system/ui/input'
+import { Label } from '@ulticode/design-system/ui/label'
 import {
-  IconFlask,
-  IconBrackets,
-  IconBulb,
-  IconTag,
-  IconPlus,
-  IconX,
-  IconCheck,
-  IconTrash,
-} from '@tabler/icons-vue'
-import { Separator } from '@/components/ui/separator'
+  FlaskConical as IconFlask,
+  Brackets as IconBrackets,
+  Lightbulb as IconBulb,
+  Tag as IconTag,
+  Plus as IconPlus,
+  X as IconX,
+  Check as IconCheck,
+  Trash as IconTrash,
+} from '@lucide/vue'
+
+import { Separator } from '@ulticode/design-system/ui/separator'
 import TestCasesEditor from '@/components/problem/TestCasesEditor.vue'
 import type { TestCaseExample } from '@/components/problem/TestCasesEditor.vue'
 
@@ -162,7 +163,7 @@ defineExpose({
     <!-- Main Content -->
     <div class="lg:col-span-8 space-y-5">
       <!-- Test Cases Section -->
-      <section class="p-5 rounded-none border bg-card">
+      <section class="p-5 rounded-lg border bg-card">
         <div class="flex items-center gap-2 mb-4">
           <IconFlask class="h-5 w-5 text-muted-foreground" />
           <h2 class="font-semibold">{{ t('problems.casesForm.testCasesSection') }}</h2>
@@ -172,7 +173,7 @@ defineExpose({
       </section>
 
       <!-- Constraints & Hints Section -->
-      <section class="p-5 rounded-none border bg-card">
+      <section class="p-5 rounded-lg border bg-card">
         <div class="flex items-center gap-2 mb-4">
           <IconBrackets class="h-5 w-5 text-muted-foreground" />
           <h2 class="font-semibold">{{ t('problems.casesForm.constraintsAndHints') }}</h2>
@@ -181,10 +182,10 @@ defineExpose({
         <div class="space-y-6">
           <!-- Constraints -->
           <div class="space-y-3">
-            <Label class="text-sm text-muted-foreground flex items-center gap-2">
+            <Label class="flex items-center gap-2">
               <IconBrackets class="h-4 w-4" />
               {{ t('problems.casesForm.constraints') }}
-              <Badge v-if="formData.constraints.length > 0" variant="secondary" class="text-xs">
+              <Badge v-if="formData.constraints.length > 0" variant="secondary">
                 {{ formData.constraints.length }}
               </Badge>
             </Label>
@@ -194,7 +195,6 @@ defineExpose({
                 v-model="newConstraint"
                 :placeholder="t('problems.casesForm.constraintPlaceholder')"
                 @keyup.enter="addConstraint"
-                class="font-mono text-sm"
               />
               <Button size="sm" variant="secondary" @click="addConstraint">
                 <IconPlus class="h-4 w-4 mr-1" />
@@ -207,15 +207,12 @@ defineExpose({
                 v-for="(constraint, idx) in formData.constraints"
                 :key="idx"
                 variant="outline"
-                class="font-mono text-xs px-2.5 py-1 gap-1 pr-1.5 group"
+                class="px-2.5 py-1 gap-1 pr-1.5 group"
               >
                 {{ constraint }}
-                <button
-                  class="hover:text-destructive text-muted-foreground rounded-none p-0.5 transition-colors"
-                  @click="removeConstraint(idx)"
-                >
+                <Button variant="ghost" class="p-0.5" @click="removeConstraint(idx)">
                   <IconX class="h-3 w-3" />
-                </button>
+                </Button>
               </Badge>
             </div>
             <p v-else class="text-sm text-muted-foreground italic">
@@ -227,10 +224,10 @@ defineExpose({
 
           <!-- Hints -->
           <div class="space-y-3">
-            <Label class="text-sm text-muted-foreground flex items-center gap-2">
+            <Label class="flex items-center gap-2">
               <IconBulb class="h-4 w-4" />
               {{ t('problems.casesForm.hints') }}
-              <Badge v-if="formData.hints.length > 0" variant="secondary" class="text-xs">
+              <Badge v-if="formData.hints.length > 0" variant="secondary">
                 {{ formData.hints.length }}
               </Badge>
             </Label>
@@ -251,7 +248,7 @@ defineExpose({
               <div
                 v-for="(hint, idx) in formData.hints"
                 :key="idx"
-                class="flex items-start justify-between p-3 rounded-none bg-muted/20 border group"
+                class="flex items-start justify-between p-3 rounded-lg bg-muted/20 border group"
               >
                 <div class="flex gap-2 text-sm">
                   <span class="font-mono text-xs text-muted-foreground mt-0.5">{{ idx + 1 }}.</span>
@@ -260,7 +257,7 @@ defineExpose({
                 <Button
                   variant="ghost"
                   size="icon"
-                  class="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                  class="w-7 group-hover:opacity-100 shrink-0"
                   @click="removeHint(idx)"
                 >
                   <IconTrash class="h-4 w-4" />
@@ -278,7 +275,7 @@ defineExpose({
     <!-- Sidebar -->
     <aside class="lg:col-span-4 space-y-4 lg:sticky lg:top-6 h-fit self-start">
       <!-- Tags Card -->
-      <div class="p-4 rounded-none border bg-card">
+      <div class="p-4 rounded-lg border bg-card">
         <div class="flex items-center gap-2 mb-3">
           <IconTag class="h-4 w-4 text-muted-foreground" />
           <h3 class="text-sm font-medium">{{ t('problems.casesForm.tags') }}</h3>
@@ -290,15 +287,16 @@ defineExpose({
               v-model="newTag"
               :placeholder="t('problems.casesForm.addTag')"
               @keyup.enter="addTag"
-              class="pr-9 text-sm"
+              class="pr-9"
             />
-            <button
+            <Button
+              variant="ghost"
               v-if="newTag"
-              class="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary"
+              class="absolute right-2 top-1/2 -translate-y-1/2"
               @click="addTag"
             >
               <IconPlus class="h-4 w-4" />
-            </button>
+            </Button>
           </div>
 
           <div v-if="formData.tags.length > 0" class="flex flex-wrap gap-1.5">
@@ -306,15 +304,12 @@ defineExpose({
               v-for="(tag, idx) in formData.tags"
               :key="idx"
               variant="secondary"
-              class="gap-1 pr-1.5 text-sm"
+              class="gap-1 pr-1.5"
             >
               {{ tag }}
-              <button
-                class="hover:text-destructive text-muted-foreground hover:bg-destructive/10 rounded-full p-0.5 transition-colors"
-                @click="removeTag(idx)"
-              >
+              <Button variant="default" class="p-0.5" @click="removeTag(idx)">
                 <IconX class="h-3 w-3" />
-              </button>
+              </Button>
             </Badge>
           </div>
           <p v-else class="text-xs text-muted-foreground italic">
@@ -324,7 +319,7 @@ defineExpose({
       </div>
 
       <!-- Summary Card -->
-      <div class="p-4 rounded-none border bg-card">
+      <div class="p-4 rounded-lg border bg-card">
         <h3 class="text-sm font-medium mb-3">{{ t('problems.casesForm.configurationSummary') }}</h3>
         <div class="space-y-2 text-sm">
           <div class="flex items-center justify-between">
@@ -351,7 +346,7 @@ defineExpose({
       </div>
 
       <!-- Actions -->
-      <div class="p-4 rounded-none border border-primary/20 bg-primary/5">
+      <div class="p-4 rounded-lg border border-primary/20 bg-primary/5">
         <div class="flex flex-col gap-2">
           <Button class="w-full" :disabled="loading" @click="submit">
             <IconCheck v-if="!loading" class="h-4 w-4 mr-1" />

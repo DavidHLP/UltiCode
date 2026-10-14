@@ -19,8 +19,8 @@ import {
   fetchForumPosts,
   fetchForumQuickFilters,
 } from "@/api/forum";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { Input } from "@ulticode/design-system/ui/input";
+import { Button } from "@ulticode/design-system/ui/button";
 import { Search, Plus } from "@lucide/vue";
 import {
   Select,
@@ -28,7 +28,8 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+  SelectGroup,
+} from "@ulticode/design-system/ui/select";
 import { toast } from "vue-sonner";
 import { vote, VoteTargetType } from "@/api/vote";
 import { useI18n } from "vue-i18n";
@@ -227,7 +228,7 @@ function handlePostSave(postId: string, isSaved: boolean) {
     <!-- Main Feed -->
     <main class="w-full min-w-0 flex-1 space-y-6">
       <div
-        class="flex flex-col gap-3 terminal-card bg-card p-4 sm:flex-row sm:items-center sm:justify-between shadow-sm"
+        class="flex flex-col gap-3 rounded-xl border bg-card text-card-foreground bg-card p-4 sm:flex-row sm:items-center sm:justify-between shadow-sm"
       >
         <div class="flex flex-1 items-center gap-3">
           <div class="relative flex-1 max-w-md">
@@ -237,30 +238,27 @@ function handlePostSave(postId: string, isSaved: boolean) {
             <Input
               v-model="searchQuery"
               :placeholder="t('forum.list.searchPlaceholder')"
-              class="h-10 pl-10 rounded-none bg-[var(--surface-sunken)]/50 font-data border-border-control focus-visible:border-[var(--primary)] focus-visible:ring-[var(--accent-glow)]"
+              class="pl-10"
             />
           </div>
           <Select v-model="quickFilter">
-            <SelectTrigger
-              class="h-10 w-40 rounded-none bg-[var(--surface-sunken)]/50 font-data border-border-control focus-visible:border-[var(--primary)] focus-visible:ring-[var(--accent-glow)]"
-            >
+            <SelectTrigger class="w-40">
               <SelectValue :placeholder="t('forum.list.sort')" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem
-                v-for="filter in quickFilters"
-                :key="filter.value"
-                :value="filter.value"
+              <SelectGroup
+                ><SelectItem
+                  v-for="filter in quickFilters"
+                  :key="filter.value"
+                  :value="filter.value"
+                >
+                  {{ filter.label }}
+                </SelectItem></SelectGroup
               >
-                {{ filter.label }}
-              </SelectItem>
             </SelectContent>
           </Select>
         </div>
-        <Button
-          class="h-10 rounded-none px-6 gap-2 font-data font-bold uppercase tracking-wide border border-[var(--primary)] bg-[var(--primary)]/10 text-[var(--primary)] hover:bg-[var(--primary)]/20 shadow-none transition-colors duration-200"
-          @click="handleCreatePost"
-        >
+        <Button class="px-6 gap-2" @click="handleCreatePost">
           <Plus class="h-4 w-4" />
           {{ t("forum.list.newPost") }}
         </Button>

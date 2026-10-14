@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { SidebarProps } from "@/components/ui/sidebar";
+import type { SidebarProps } from "@ulticode/design-system/ui/sidebar";
 import Calendars from "@/features/sider/Calendars.vue";
 import NavUser from "@/features/sider/NavUser.vue";
 import SidebarNav from "@/features/sider/SidebarNav.vue";
@@ -19,7 +19,7 @@ import {
   SidebarHeader,
   SidebarRail,
   SidebarSeparator,
-} from "@/components/ui/sidebar";
+} from "@ulticode/design-system/ui/sidebar";
 
 const props = withDefaults(defineProps<SidebarProps>(), {
   collapsible: "icon",

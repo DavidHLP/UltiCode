@@ -74,7 +74,7 @@ export default defineConfig({
         ),
       },
     ],
-    dedupe: ['vue'],
+    dedupe: ['vue', "reka-ui", "vee-validate"],
   },
   server: {
     // 监听所有接口 (0.0.0.0 + IPv6), 使 localhost 与 127.0.0.1 均可访问

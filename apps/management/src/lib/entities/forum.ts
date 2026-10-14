@@ -1,6 +1,12 @@
 import type { VNode } from 'vue'
-import { badge } from '@/components/ui/terminal'
-import { IconFlag, IconTrash, IconPinFilled, IconLock, IconMessage } from '@tabler/icons-vue'
+import { badge } from '@ulticode/badge-config'
+import {
+  Flag as IconFlag,
+  Trash as IconTrash,
+  Pin as IconPinFilled,
+  Lock as IconLock,
+  MessageSquare as IconMessage,
+} from '@lucide/vue'
 
 /**
  * Forum post status

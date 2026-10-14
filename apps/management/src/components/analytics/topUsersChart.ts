@@ -6,6 +6,7 @@ export interface TopUserChartDatum {
 }
 
 export interface TopUserChartColors {
+  fontFamily?: string
   accent: string
   accentMuted: string
   axis: string
@@ -43,8 +44,8 @@ export function createTopUsersChartOption(
       padding: [8, 10],
       textStyle: {
         color: colors.foreground,
-        fontFamily: '"JetBrains Mono", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", monospace',
-        fontSize: 11,
+        fontFamily: colors.fontFamily ?? 'system-ui, sans-serif',
+        fontSize: 12,
       },
       formatter: (params) => {
         const item = Array.isArray(params) ? params[0] : params
@@ -61,8 +62,8 @@ export function createTopUsersChartOption(
       axisTick: { show: false },
       axisLabel: {
         color: colors.axis,
-        fontFamily: '"JetBrains Mono", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", monospace',
-        fontSize: 9,
+        fontFamily: colors.fontFamily ?? 'system-ui, sans-serif',
+        fontSize: 12,
       },
       splitLine: {
         lineStyle: {
@@ -80,8 +81,8 @@ export function createTopUsersChartOption(
       axisTick: { show: false },
       axisLabel: {
         color: colors.axis,
-        fontFamily: '"JetBrains Mono", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", monospace',
-        fontSize: 9,
+        fontFamily: colors.fontFamily ?? 'system-ui, sans-serif',
+        fontSize: 12,
         overflow: 'truncate',
         width: 78,
       },
@@ -107,8 +108,8 @@ export function createTopUsersChartOption(
           show: true,
           position: 'right',
           color: colors.foreground,
-          fontFamily: '"JetBrains Mono", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", monospace',
-          fontSize: 9,
+          fontFamily: colors.fontFamily ?? 'system-ui, sans-serif',
+          fontSize: 12,
         },
       },
     ],

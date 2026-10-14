@@ -7,10 +7,16 @@ import { toTypedSchema } from '@vee-validate/zod'
 import { useForm } from 'vee-validate'
 import { watchDebounced } from '@vueuse/core'
 import { toast } from 'vue-sonner'
-import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Button } from '@/components/ui/button'
+import {
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@ulticode/design-system/ui/form'
+import { Input } from '@ulticode/design-system/ui/input'
+import { Textarea } from '@ulticode/design-system/ui/textarea'
+import { Button } from '@ulticode/design-system/ui/button'
 import {
   adminProblemListsApi,
   type ProblemListDetail,
@@ -176,35 +182,28 @@ defineExpose({ saveStatus, form, saveChanges })
 </script>
 
 <template>
-  <div class="border border-[var(--editor-panel-border)] bg-[var(--editor-panel-bg)] rounded-none">
+  <div class="border border-border bg-card rounded-lg">
     <!-- Card Header -->
-    <div
-      class="flex items-center justify-between px-4 py-3 border-b border-[var(--editor-border-weak)] select-none"
-    >
+    <div class="flex items-center justify-between px-4 py-3 border-b border-border select-none">
       <div class="flex items-center gap-1.5">
-        <span
-          class="text-xs font-mono font-bold text-[var(--editor-text-primary)] uppercase tracking-wider"
-        >
+        <span class="text-xs font-mono font-bold text-foreground uppercase tracking-wider">
           01 // {{ t('problemLists.sections.basicInfo') }}
         </span>
       </div>
 
       <!-- Auto-save Status Indicator in Header -->
-      <div
-        v-if="!isCreate"
-        class="flex items-center gap-1.5 font-mono text-2xs uppercase font-bold"
-      >
+      <div v-if="!isCreate" class="flex items-center gap-1.5 font-mono text-xs uppercase font-bold">
         <template v-if="saveStatus === 'saving'">
-          <span class="h-1.5 w-1.5 bg-[var(--editor-yellow)] shrink-0 animate-ping"></span>
-          <span class="text-[var(--editor-yellow)] animate-pulse">{{
+          <span class="h-1.5 w-1.5 bg-status-warning-mark shrink-0 animate-ping"></span>
+          <span class="text-status-warning-mark animate-pulse">{{
             t('problemLists.form.saving')
           }}</span>
         </template>
         <template v-else-if="saveStatus === 'saved'">
-          <span class="text-[var(--editor-green)]">// SAVED</span>
+          <span class="text-status-success-mark">{{ t('problemLists.form.saved') }}</span>
         </template>
         <template v-else-if="saveStatus === 'error'">
-          <span class="text-[var(--editor-red)]">// ERROR</span>
+          <span class="text-status-error-mark">{{ t('problemLists.form.saveError') }}</span>
         </template>
       </div>
     </div>
@@ -214,9 +213,7 @@ defineExpose({ saveStatus, form, saveChanges })
       <form class="space-y-4.5" @submit.prevent>
         <FormField v-slot="{ componentField }" name="name">
           <FormItem class="space-y-1.5">
-            <FormLabel
-              class="text-xs font-mono font-bold text-[var(--editor-text-primary)] uppercase tracking-wider"
-            >
+            <FormLabel>
               {{ t('problemLists.form.name') }}
             </FormLabel>
             <FormControl>
@@ -224,23 +221,20 @@ defineExpose({ saveStatus, form, saveChanges })
                 v-bind="componentField"
                 :disabled="disabled || saveStatus === 'saving'"
                 :placeholder="t('problemLists.form.namePlaceholder')"
-                class="custom-terminal-input h-9"
+                class=""
                 :class="{
-                  'border-[var(--editor-red)] focus:ring-[var(--editor-red)]':
-                    form.errors.value?.name,
+                  'border-status-error-mark focus:ring-status-error-mark': form.errors.value?.name,
                 }"
                 @blur="handleBlur"
               />
             </FormControl>
-            <FormMessage class="font-mono text-xs text-[var(--editor-red)]" />
+            <FormMessage />
           </FormItem>
         </FormField>
 
         <FormField v-slot="{ componentField }" name="description">
           <FormItem class="space-y-1.5">
-            <FormLabel
-              class="text-xs font-mono font-bold text-[var(--editor-text-primary)] uppercase tracking-wider"
-            >
+            <FormLabel>
               {{ t('problemLists.form.description') }}
             </FormLabel>
             <FormControl>
@@ -248,25 +242,20 @@ defineExpose({ saveStatus, form, saveChanges })
                 v-bind="componentField"
                 :disabled="disabled || saveStatus === 'saving'"
                 :placeholder="t('problemLists.form.descriptionPlaceholder')"
-                class="custom-terminal-input min-h-[120px] py-2 px-3 resize-y"
+                class="min-h-[120px] py-2 px-3 resize-y"
                 :class="{
-                  'border-[var(--editor-red)] focus:ring-[var(--editor-red)]':
+                  'border-status-error-mark focus:ring-status-error-mark':
                     form.errors.value?.description,
                 }"
                 @blur="handleBlur"
               />
             </FormControl>
-            <FormMessage class="font-mono text-xs text-[var(--editor-red)]" />
+            <FormMessage />
           </FormItem>
         </FormField>
 
         <div v-if="isCreate" class="pt-2">
-          <Button
-            type="button"
-            class="custom-terminal-button custom-terminal-button-primary"
-            :disabled="saveStatus === 'saving'"
-            @click="handleCreate"
-          >
+          <Button type="button" class=" " :disabled="saveStatus === 'saving'" @click="handleCreate">
             <span v-if="saveStatus === 'saving'" class="animate-pulse">{{
               t('problemLists.form.creating')
             }}</span>
@@ -277,69 +266,3 @@ defineExpose({ saveStatus, form, saveChanges })
     </div>
   </div>
 </template>
-
-<style scoped>
-.custom-terminal-input {
-  font-family: var(--uc-font-code);
-  font-size: var(--uc-text-sm);
-  border-radius: var(--radius-md) !important;
-  border: 1px solid var(--editor-control-border);
-  background: var(--editor-control-bg);
-  color: var(--editor-text-primary);
-  transition:
-    border-color 0.15s ease-in-out,
-    box-shadow 0.15s ease-in-out;
-}
-
-:deep(.custom-terminal-input) {
-  border-radius: var(--radius-md) !important;
-  font-family: var(--uc-font-code);
-}
-
-.custom-terminal-input:hover:not(:disabled) {
-  border-color: var(--editor-panel-border);
-}
-
-.custom-terminal-input:focus {
-  outline: none;
-  border-color: var(--editor-cyan) !important;
-  box-shadow: 0 0 0 1px var(--editor-cyan) !important;
-}
-
-.custom-terminal-input:disabled {
-  opacity: 0.55;
-  background-color: color-mix(in srgb, var(--editor-control-bg) 60%, transparent);
-  border-color: color-mix(in srgb, var(--editor-control-border) 40%, transparent);
-  cursor: not-allowed;
-}
-
-.custom-terminal-button {
-  font-family: var(--uc-font-code);
-  font-size: var(--uc-text-xxs);
-  font-weight: var(--uc-font-weight-bold);
-  text-transform: uppercase;
-  border-radius: var(--radius-md) !important;
-  padding: 8px 16px;
-  height: auto;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.15s ease-in-out;
-  cursor: pointer;
-}
-
-.custom-terminal-button-primary {
-  background-color: var(--primary);
-  color: var(--primary-foreground);
-  border: 1px solid transparent;
-}
-
-.custom-terminal-button-primary:hover:not(:disabled) {
-  background-color: color-mix(in srgb, var(--primary) 85%, transparent);
-}
-
-.custom-terminal-button-primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-</style>

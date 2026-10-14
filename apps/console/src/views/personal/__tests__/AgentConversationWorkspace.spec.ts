@@ -9,7 +9,9 @@ const mocks = vi.hoisted(() => ({
   workspace: null as object | null,
 }));
 
-vi.mock("@/api/agent", () => ({ agentApi: { getCapabilities: mocks.getCapabilities } }));
+vi.mock("@/api/agent", () => ({
+  agentApi: { getCapabilities: mocks.getCapabilities },
+}));
 vi.mock("@/composables/useAgentConversations", () => ({
   useAgentConversations: () => mocks.workspace,
 }));
@@ -83,14 +85,18 @@ describe("AgentConversationWorkspace", () => {
 
     const send = wrapper.find('button[type="submit"]');
     expect(send.attributes("disabled")).toBeDefined();
-    await wrapper.find('input[type="checkbox"]').setValue(true);
+    await wrapper.get('[role="checkbox"]').trigger("click");
     await wrapper.find("textarea").setValue("Explain this result");
     expect(send.attributes("disabled")).toBeUndefined();
     await wrapper.find("form").trigger("submit");
     await flushPromises();
     expect(state.sendTurn).toHaveBeenCalledWith("Explain this result", true);
-    expect((wrapper.find("textarea").element as HTMLTextAreaElement).value).toBe("Explain this result");
-    expect((wrapper.find('input[type="checkbox"]').element as HTMLInputElement).checked).toBe(false);
+    expect(
+      (wrapper.find("textarea").element as HTMLTextAreaElement).value,
+    ).toBe("Explain this result");
+    expect(wrapper.get('[role="checkbox"]').attributes("aria-checked")).toBe(
+      "false",
+    );
     expect(send.attributes("disabled")).toBeDefined();
 
     wrapper.unmount();
@@ -109,22 +115,24 @@ describe("AgentConversationWorkspace", () => {
         updatedAt: "2026-01-01T00:00:00Z",
       };
       state.sourceSubmissionId.value = submissionId;
-      state.turns.value = [{
-        turnId: "turn-1",
-        conversationId,
-        turnIndex: 1,
-        runId: "run-1",
-        status: "completed",
-        question: "Explain the result",
-        answer: "<script>alert(1)</script>\n\n**Safe conclusion**",
-        citations: [],
-        trace: [],
-        failureReason: null,
-        cancelRequested: false,
-        eventSeq: 0,
-        createdAt: "2026-01-01T00:00:00Z",
-        updatedAt: "2026-01-01T00:00:00Z",
-      }];
+      state.turns.value = [
+        {
+          turnId: "turn-1",
+          conversationId,
+          turnIndex: 1,
+          runId: "run-1",
+          status: "completed",
+          question: "Explain the result",
+          answer: "<script>alert(1)</script>\n\n**Safe conclusion**",
+          citations: [],
+          trace: [],
+          failureReason: null,
+          cancelRequested: false,
+          eventSeq: 0,
+          createdAt: "2026-01-01T00:00:00Z",
+          updatedAt: "2026-01-01T00:00:00Z",
+        },
+      ];
     });
     mocks.route.query = { conversationId };
     const wrapper = mount(AgentConversationWorkspace, {
@@ -132,8 +140,12 @@ describe("AgentConversationWorkspace", () => {
     });
     await flushPromises();
 
-    expect(wrapper.find(".prose").text()).toContain("Safe conclusion");
-    expect(wrapper.find(".prose").html()).not.toContain("<script");
+    expect(wrapper.find(".typeset.typeset-docs").text()).toContain(
+      "Safe conclusion",
+    );
+    expect(wrapper.find(".typeset.typeset-docs").html()).not.toContain(
+      "<script",
+    );
     expect(state.openConversation).toHaveBeenCalledWith(conversationId);
     wrapper.unmount();
   });

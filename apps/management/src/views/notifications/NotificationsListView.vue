@@ -2,17 +2,24 @@
 import { ref, computed, onMounted, h } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { ColumnDef } from '@tanstack/vue-table'
-import { IconPlus, IconTrash, IconDotsVertical, IconBell, IconPencil } from '@tabler/icons-vue'
+import {
+  Plus as IconPlus,
+  Trash as IconTrash,
+  EllipsisVertical as IconDotsVertical,
+  Bell as IconBell,
+  Pencil as IconPencil,
+} from '@lucide/vue'
+
 import { format } from 'date-fns'
 
-import { Button } from '@/components/ui/button'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Button } from '@ulticode/design-system/ui/button'
+import { Avatar, AvatarFallback, AvatarImage } from '@ulticode/design-system/ui/avatar'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+} from '@ulticode/design-system/ui/dropdown-menu'
 import { useNotificationsStore } from '@/stores/admin/notifications'
 import {
   NOTIFICATION_TYPES,
@@ -25,7 +32,7 @@ import {
 import NotificationCreateDialog from './NotificationCreateDialog.vue'
 import { getNotificationCategoryLabel, getNotificationTypeLabel } from './notificationLabels'
 
-import { badge, NOTIFICATION_TYPE_COLOR_MAP } from '@/components/ui/terminal'
+import { badge, NOTIFICATION_TYPE_COLOR_MAP } from '@ulticode/badge-config'
 
 import DataTable from '@/components/table/DataTable.vue'
 import DataTableToolbar, { type Filter } from '@/components/table/DataTableToolbar.vue'
@@ -83,7 +90,6 @@ const categoryFilter = computed({
   get: () => query.value.filters.category,
   set: (category: string) => setFilters({ ...query.value.filters, category }),
 })
-
 
 const stats = computed(() => {
   const announcements = data.value
@@ -163,7 +169,7 @@ const columns: ColumnDef<SystemAnnouncement>[] = [
     cell: ({ row }) =>
       h(
         'span',
-        { class: 'font-data text-xs uppercase tracking-wider text-[var(--foreground-muted)]' },
+        { class: 'font-mono text-xs uppercase tracking-wider text-muted-foreground' },
         row.original.category
           ? getNotificationCategoryLabel(row.original.category as NotificationCategory, t)
           : '—',
@@ -175,7 +181,7 @@ const columns: ColumnDef<SystemAnnouncement>[] = [
     cell: ({ row }) =>
       h(
         'span',
-        { class: 'font-data text-sm text-[var(--foreground-muted)] tabular-nums' },
+        { class: 'font-mono text-sm text-muted-foreground tabular-nums' },
         format(new Date(row.original.createdAt), 'MMM d, yyyy HH:mm'),
       ),
   },
@@ -184,20 +190,16 @@ const columns: ColumnDef<SystemAnnouncement>[] = [
     header: () => t('notifications.sentBy'),
     cell: ({ row }) => {
       const creator = row.original.creator
-      if (!creator) return h('span', { class: 'text-sm text-[var(--foreground-muted)]' }, '—')
+      if (!creator) return h('span', { class: 'text-sm text-muted-foreground' }, '—')
       const initials = creator.username.slice(0, 2).toUpperCase()
       return h('div', { class: 'flex items-center gap-2' }, [
         h(
           Avatar,
-          { class: 'h-7 w-7 ring-1 ring-[var(--border-subtle)] dark:ring-[var(--border-subtle)]' },
+          { class: 'h-7 w-7 ring-1 ring-border dark:ring-border' },
           {
             default: () => [
               h(AvatarImage, { src: creator.avatar ?? '' }),
-              h(
-                AvatarFallback,
-                { class: 'text-xs font-data bg-[var(--surface-sunken)]' },
-                () => initials,
-              ),
+              h(AvatarFallback, { class: 'text-xs font-mono bg-muted' }, () => initials),
             ],
           },
         ),
@@ -233,15 +235,14 @@ const columns: ColumnDef<SystemAnnouncement>[] = [
             ),
             h(
               DropdownMenuContent,
-              { align: 'end', variant: 'terminal' },
+              { align: 'end' },
               {
                 default: () => [
                   h(
                     DropdownMenuItem,
                     {
-                      variant: 'terminal',
                       class:
-                        'text-[var(--primary)] hover:bg-[color-mix(in_oklch,_var(--primary)_10%,_var(--card))] focus:bg-[color-mix(in_oklch,_var(--primary)_10%,_var(--card))] data-[highlighted]:bg-[color-mix(in_oklch,_var(--primary)_10%,_var(--card))] dark:hover:bg-[color-mix(in_oklch,_var(--primary)_14%,_var(--card))] dark:focus:bg-[color-mix(in_oklch,_var(--primary)_14%,_var(--card))] dark:data-[highlighted]:bg-[color-mix(in_oklch,_var(--primary)_14%,_var(--card))] focus:text-[var(--primary)] data-[highlighted]:text-[var(--primary)] [&_svg]:!text-[var(--primary)]',
+                        'text-primary hover:bg-[color-mix(in_oklch,_var(--primary)_10%,_var(--card))] focus:bg-[color-mix(in_oklch,_var(--primary)_10%,_var(--card))] data-[highlighted]:bg-[color-mix(in_oklch,_var(--primary)_10%,_var(--card))] dark:hover:bg-[color-mix(in_oklch,_var(--primary)_14%,_var(--card))] dark:focus:bg-[color-mix(in_oklch,_var(--primary)_14%,_var(--card))] dark:data-[highlighted]:bg-[color-mix(in_oklch,_var(--primary)_14%,_var(--card))] focus:text-primary data-[highlighted]:text-primary [&_svg]:!text-primary',
                       onClick: () => startEdit(row.original),
                     },
                     {
@@ -255,7 +256,7 @@ const columns: ColumnDef<SystemAnnouncement>[] = [
                   h(
                     DropdownMenuItem,
                     {
-                      variant: 'terminal_destructive',
+                      variant: 'destructive',
                       onClick: () => startDelete(row.original),
                     },
                     {
@@ -279,25 +280,20 @@ const columns: ColumnDef<SystemAnnouncement>[] = [
 
 <template>
   <div class="relative flex flex-col gap-4 w-full min-w-0">
-    <!-- Terminal Header -->
+    <!-- Page header -->
     <div
       :class="[
-        'border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--card)]',
+        'border border-border dark:border-border bg-card',
         'transition-all duration-500',
         isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
       ]"
     >
       <!-- Title Row -->
       <div class="px-4 lg:px-6 py-4 flex items-center justify-between">
-        <h1 class="text-xl font-medium tracking-tight text-[var(--foreground)]">
+        <h1 class="text-xl font-medium tracking-tight text-foreground">
           {{ t('notifications.title') }}
         </h1>
-        <Button
-          variant="terminal"
-          size="sm"
-          class="font-data text-xs border-[var(--border-subtle)] hover:border-[var(--primary)] hover:text-[var(--primary)] transition-colors"
-          @click="createDialogOpen = true"
-        >
+        <Button variant="outline" size="sm" @click="createDialogOpen = true">
           <IconPlus class="h-4 w-4 mr-1.5" />
           <span class="uppercase tracking-wider">{{ t('notifications.newNotification') }}</span>
         </Button>
@@ -305,43 +301,35 @@ const columns: ColumnDef<SystemAnnouncement>[] = [
 
       <!-- Stats Ticker -->
       <div
-        class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--surface-sunken)]"
+        class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-border dark:border-border bg-muted"
       >
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--foreground-muted)]"
+          <span class="text-sm font-medium text-muted-foreground"
             >{{ t('notifications.stats.total') }}:</span
           >
-          <span class="font-data text-sm text-[var(--foreground-strong)] tabular-nums">{{
-            stats.total
-          }}</span>
+          <span class="font-mono text-sm text-foreground tabular-nums">{{ stats.total }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--foreground-muted)]"
+          <span class="text-sm font-medium text-muted-foreground"
             >{{ t('notifications.stats.system') }}:</span
           >
-          <span class="font-data text-sm text-[var(--foreground-strong)] tabular-nums">{{
-            stats.system
-          }}</span>
+          <span class="font-mono text-sm text-foreground tabular-nums">{{ stats.system }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--foreground-muted)]"
+          <span class="text-sm font-medium text-muted-foreground"
             >{{ t('notifications.stats.contest') }}:</span
           >
-          <span class="font-data text-sm text-[var(--foreground-strong)] tabular-nums">{{
-            stats.contest
-          }}</span>
+          <span class="font-mono text-sm text-foreground tabular-nums">{{ stats.contest }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--foreground-muted)]"
+          <span class="text-sm font-medium text-muted-foreground"
             >{{ t('notifications.stats.submission') }}:</span
           >
-          <span class="font-data text-sm text-[var(--foreground-strong)] tabular-nums">{{
-            stats.submission
-          }}</span>
+          <span class="font-mono text-sm text-foreground tabular-nums">{{ stats.submission }}</span>
         </div>
-        <div class="ml-auto flex items-center gap-2 text-[var(--foreground-muted)]">
+        <div class="ml-auto flex items-center gap-2 text-muted-foreground">
           <IconBell class="h-4 w-4" />
-          <span class="text-xs font-data uppercase tracking-wider">{{
+          <span class="text-xs font-mono uppercase tracking-wider">{{
             t('notifications.stats.badge')
           }}</span>
         </div>
@@ -357,7 +345,7 @@ const columns: ColumnDef<SystemAnnouncement>[] = [
         :row-count="total"
         :loading="loading"
         @update:pagination="tablePagination = $event"
-        class="terminal-table"
+        class="w-full text-sm"
       >
         <template #toolbar-left>
           <DataTableToolbar
@@ -380,18 +368,13 @@ const columns: ColumnDef<SystemAnnouncement>[] = [
       <!-- Error state -->
       <div
         v-if="error"
-        class="mt-4 flex items-center justify-between border border-[var(--status-error-mark)] bg-[color-mix(in_oklch,_var(--status-error-mark)_8%,_transparent)] p-4"
+        class="mt-4 flex items-center justify-between border border-status-error-mark bg-[color-mix(in_oklch,_var(--status-error-mark)_8%,_transparent)] p-4"
       >
         <div class="flex items-center gap-3">
-          <span class="font-data text-sm text-[var(--foreground-strong)]">&gt; ERROR:</span>
-          <span class="text-sm text-[var(--foreground)]">{{ error }}</span>
+          <span class="font-mono text-sm text-foreground">&gt; ERROR:</span>
+          <span class="text-sm text-foreground">{{ error }}</span>
         </div>
-        <Button
-          variant="terminal"
-          size="sm"
-          class="font-data text-xs border-[var(--status-error-mark)] text-foreground-strong hover:bg-[color-mix(in_oklch,_var(--status-error-mark)_10%,_transparent)]"
-          @click="loadNotifications()"
-        >
+        <Button variant="outline" size="sm" @click="loadNotifications()">
           {{ t('common.retry') }}
         </Button>
       </div>

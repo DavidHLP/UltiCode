@@ -4,7 +4,7 @@ import { Trophy } from "@lucide/vue";
 import { useContestBrowseStore } from "@/stores/contestBrowse";
 import { useContestRankingStore } from "@/stores/contestRanking";
 import { storeToRefs } from "pinia";
-import { Separator } from "@/components/ui/separator";
+import { Separator } from "@ulticode/design-system/ui/separator";
 import UpcomingContests from "./components/UpcomingContests.vue";
 import RunningContests from "./components/RunningContests.vue";
 import GlobalRanking from "./components/GlobalRanking.vue";
@@ -63,10 +63,8 @@ onMounted(async () => {
     >
       <div class="space-y-1">
         <div class="flex items-center gap-3">
-          <Trophy class="h-8 w-8 text-[var(--status-warning-mark)]" />
-          <h1
-            class="text-3xl font-bold tracking-tight text-foreground-strong"
-          >
+          <Trophy class="h-8 w-8 text-status-warning-mark" />
+          <h1 class="text-3xl font-bold tracking-tight text-foreground">
             {{ t("contest.list.mainTitle") }}
           </h1>
         </div>

@@ -1,6 +1,6 @@
 <template>
   <div
-    class="flex flex-col rounded-none border bg-card overflow-hidden h-full w-full"
+    class="flex flex-col rounded-lg border bg-card overflow-hidden h-full w-full"
   >
     <div
       v-if="!hideHeader"
@@ -20,9 +20,12 @@
 import { ref, onMounted, onBeforeUnmount, watch } from "vue";
 import * as monaco from "monaco-editor";
 import loader from "@monaco-editor/loader";
-import { usePreferredDark } from "@vueuse/core";
+
 import { configureMonacoWorkers } from "@/utils/monaco-workers";
-import { registerSolarizedThemes } from "@/utils/monaco-solarized-theme";
+import {
+  registerAppThemes,
+  observeAppEditorAppearance,
+} from "@/utils/monaco-theme";
 import { useI18n } from "vue-i18n";
 
 // 确保 Worker 配置生效
@@ -49,7 +52,8 @@ const emit = defineEmits<{
 
 const editorRef = ref<HTMLElement | null>(null);
 let editorInstance: monaco.editor.IStandaloneCodeEditor | null = null;
-const isDark = usePreferredDark();
+let stopAppearanceObserver: (() => void) | null = null;
+const isDark = () => document.documentElement.classList.contains("dark");
 
 // 初始化编辑器
 const initEditor = async () => {
@@ -57,25 +61,31 @@ const initEditor = async () => {
 
   loader.config({ monaco });
   const monacoInstance = await loader.init();
+  if (!editorRef.value) return;
 
-  registerSolarizedThemes(monacoInstance);
+  registerAppThemes(monacoInstance);
 
   const initialValue = props.modelValue || props.defaultValue || "";
 
   const createdEditor = monacoInstance.editor.create(editorRef.value, {
     value: initialValue,
     language: "markdown",
-    theme: isDark.value ? "vs-dark" : "vs",
+    theme: isDark() ? "vs-dark" : "vs-light",
     automaticLayout: true,
     minimap: { enabled: false },
     scrollBeyondLastLine: false,
     fontSize: 14,
-    fontFamily: "Menlo, Monaco, 'Courier New', monospace",
+    fontFamily: getComputedStyle(document.documentElement).getPropertyValue(
+      "--uc-font-code",
+    ),
     readOnly: props.readOnly,
     padding: { top: 16, bottom: 16 },
     wordWrap: "on",
   });
   editorInstance = createdEditor;
+  stopAppearanceObserver = observeAppEditorAppearance(monacoInstance, () => {
+    monacoInstance.editor.setTheme(isDark() ? "vs-dark" : "vs-light");
+  });
 
   // 监听内容变化
   createdEditor.onDidChangeModelContent(() => {
@@ -113,18 +123,12 @@ watch(
   },
 );
 
-// 监听主题变化
-watch(isDark, (newVal) => {
-  if (editorInstance) {
-    monaco.editor.setTheme(newVal ? "vs-dark" : "vs");
-  }
-});
-
 onMounted(() => {
   initEditor();
 });
 
 onBeforeUnmount(() => {
+  stopAppearanceObserver?.();
   if (editorInstance) {
     editorInstance.dispose();
   }

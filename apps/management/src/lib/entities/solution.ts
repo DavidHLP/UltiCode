@@ -1,6 +1,10 @@
 import { h, type VNode } from 'vue'
-import { badge, type SemanticColor } from '@/components/ui/terminal'
-import { IconCircleCheckFilled, IconEye, IconEyeOff } from '@tabler/icons-vue'
+import { badge, type SemanticColor } from '@ulticode/badge-config'
+import {
+  CircleCheck as IconCircleCheckFilled,
+  Eye as IconEye,
+  EyeOff as IconEyeOff,
+} from '@lucide/vue'
 
 /**
  * Solution visibility status
@@ -19,9 +23,9 @@ const VISIBILITY_COLOR_MAP: Record<string, SemanticColor> = {
 export function getSolutionVisibilityIcon(visibility: SolutionVisibility): VNode {
   switch (visibility) {
     case 'PUBLIC':
-      return h(IconEye, { class: 'h-4 w-4 text-foreground-strong' })
+      return h(IconEye, { class: 'h-4 w-4 text-foreground' })
     case 'PRIVATE':
-      return h(IconEyeOff, { class: 'h-4 w-4 text-foreground-strong' })
+      return h(IconEyeOff, { class: 'h-4 w-4 text-foreground' })
     case 'HIDDEN':
       return h(IconEyeOff, { class: 'h-4 w-4 text-muted-foreground' })
     default:

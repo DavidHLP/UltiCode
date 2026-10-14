@@ -44,26 +44,27 @@
       <div v-else class="flex w-full flex-col overflow-hidden">
         <!-- 标题和话题区域 -->
         <div class="flex flex-shrink-0 flex-col gap-3 px-4 py-3">
-          <div class="rounded-none border bg-card p-3">
+          <div class="rounded-lg border bg-card p-3">
             <Input
               v-model="title"
               :placeholder="t('solution.editor.enterTitle')"
-              class="rounded-none border-0 border-b bg-transparent px-0 text-base font-medium shadow-none focus-visible:ring-0"
+              class="px-0"
             />
 
             <div class="mt-3 flex flex-wrap items-center gap-2">
               <div class="relative">
-                <button
+                <Button
+                  variant="outline"
                   type="button"
-                  class="flex h-8 items-center gap-2 rounded-none border border-border bg-background px-3 text-sm hover:bg-muted"
+                  class="flex items-center gap-2 px-3"
                   @click="showTopicPicker = !showTopicPicker"
                 >
                   <Tag class="h-4 w-4" />
                   {{ t("solution.editor.topics") }}
-                </button>
+                </Button>
                 <div
                   v-if="showTopicPicker"
-                  class="absolute left-0 top-10 z-50 w-80 rounded-none border border-border bg-card shadow-lg"
+                  class="absolute left-0 top-10 z-50 w-80 rounded-lg border border-border bg-card shadow-lg"
                 >
                   <div class="border-b border-border px-4 py-3">
                     <h4 class="text-sm font-medium">
@@ -92,11 +93,12 @@
                   </div>
                   <div v-else class="max-h-64 overflow-y-auto">
                     <div class="p-2">
-                      <button
+                      <Button
+                        variant="outline"
                         v-for="topic in topicOptions"
                         :key="topic.id"
                         type="button"
-                        class="flex w-full items-center justify-between rounded px-2 py-1.5 text-sm hover:bg-muted"
+                        class="flex w-full items-center justify-between px-2 py-1.5"
                         @click="toggleTopic(topic.id)"
                       >
                         <span>{{ topic.name }}</span>
@@ -104,7 +106,7 @@
                           v-if="selectedTopicIds.includes(topic.id)"
                           class="h-4 w-4"
                         />
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -113,16 +115,17 @@
               <span
                 v-for="topic in selectedTopics"
                 :key="topic.id"
-                class="inline-flex items-center gap-1.5 rounded-none bg-secondary px-2 py-1 text-sm"
+                class="inline-flex items-center gap-1.5 rounded-lg bg-secondary px-2 py-1 text-sm"
               >
                 {{ topic.name }}
-                <button
+                <Button
+                  variant="outline"
                   type="button"
-                  class="inline-flex h-4 w-4 items-center justify-center hover:opacity-70"
+                  class="inline-flex w-4 items-center justify-center"
                   @click="removeTopic(topic.id)"
                 >
                   <X class="h-3 w-3" />
-                </button>
+                </Button>
               </span>
             </div>
           </div>
@@ -138,7 +141,7 @@
 
             <!-- Markdown Preview -->
             <div
-              class="flex flex-col rounded-none border bg-card overflow-hidden"
+              class="flex flex-col rounded-lg border bg-card overflow-hidden"
             >
               <div
                 class="flex items-center border-b bg-muted/30 px-3 py-2 text-xs font-medium text-muted-foreground"
@@ -160,8 +163,8 @@
 import { onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { SendHorizonal, Tag, X, ArrowLeft, Check } from "@lucide/vue";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { Input } from "@ulticode/design-system/ui/input";
+import { Button } from "@ulticode/design-system/ui/button";
 import { useI18n } from "vue-i18n";
 
 import { MarkdownEdit, MarkdownView } from "@/components/markdown";

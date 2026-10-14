@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { Button } from "@ulticode/design-system/ui/button";
+
 import { computed, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
@@ -115,13 +117,14 @@ function handleBack() {
       <p class="text-lg font-medium">
         {{ t("personal.submissions.notFound") }}
       </p>
-      <button
+      <Button
+        variant="ghost"
         type="button"
-        class="text-sm text-primary underline-offset-4 hover:underline"
+        class="underline-offset-4 hover:underline"
         @click="handleBack"
       >
         {{ t("personal.submissions.goBack") }}
-      </button>
+      </Button>
     </div>
     <div
       v-else-if="forbidden"
@@ -130,13 +133,14 @@ function handleBack() {
       <p class="text-lg font-medium">
         {{ t("problem.submissions.error.forbidden") }}
       </p>
-      <button
+      <Button
+        variant="ghost"
         type="button"
-        class="text-sm text-primary underline-offset-4 hover:underline"
+        class="underline-offset-4 hover:underline"
         @click="handleBack"
       >
         {{ t("personal.submissions.goBack") }}
-      </button>
+      </Button>
     </div>
     <SubmissionsDetail
       v-else-if="submission"

@@ -1,25 +1,25 @@
 import { h } from 'vue'
 import type { ColumnDef } from '@tanstack/vue-table'
 import {
-  IconCheck,
-  IconX,
-  IconClock,
-  IconDotsVertical,
-  IconEye,
-  IconScale,
-  IconUser,
-} from '@tabler/icons-vue'
+  Check as IconCheck,
+  X as IconX,
+  Clock as IconClock,
+  EllipsisVertical as IconDotsVertical,
+  Eye as IconEye,
+  Scale as IconScale,
+  User as IconUser,
+} from '@lucide/vue'
 
 import { createSelectionColumn } from '@/components/table/selectionColumn'
-import { Button } from '@/components/ui/button'
+import { Button } from '@ulticode/design-system/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { badge } from '@/components/ui/terminal'
-import type { SemanticColor } from '@/components/ui/terminal'
+} from '@ulticode/design-system/ui/dropdown-menu'
+import { badge } from '@ulticode/badge-config'
+import type { SemanticColor } from '@ulticode/badge-config'
 import { type Appeal, AppealStatus } from '@/api/admin/moderation'
 import { formatDate } from '@/lib/format/date'
 
@@ -68,7 +68,7 @@ export function createAppealsColumns(
     // Selection column
     ...createSelectionColumn<Appeal>(t, {
       checkboxClass:
-        'border-[var(--border-subtle)] data-[state=checked]:bg-[var(--primary)] data-[state=checked]:border-[var(--primary)]',
+        'border-[var(--border)] data-[state=checked]:bg-[var(--primary)] data-[state=checked]:border-[var(--primary)]',
     }),
     // Row number
     {
@@ -78,7 +78,11 @@ export function createAppealsColumns(
         const pageIndex = table.getState().pagination.pageIndex
         const pageSize = table.getState().pagination.pageSize
         const rowNum = pageIndex * pageSize + row.index + 1
-        return h('span', { class: 'terminal-row-num' }, String(rowNum).padStart(2, '0'))
+        return h(
+          'span',
+          { class: 'text-xs tabular-nums text-muted-foreground' },
+          String(rowNum).padStart(2, '0'),
+        )
       },
       enableSorting: false,
       enableHiding: false,
@@ -91,14 +95,14 @@ export function createAppealsColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
+          { class: 'font-mono text-xs uppercase tracking-widest text-[var(--muted-foreground)]' },
           t('moderation.appeals.appellant'),
         ),
       cell: ({ row }) => {
         const appellantName = row.original.appellantName
         const appellantUsername = row.original.appellantUsername
         return h('div', { class: 'flex items-center gap-2' }, [
-          h(IconUser, { class: 'h-3.5 w-3.5 text-[var(--foreground-muted)]' }),
+          h(IconUser, { class: 'h-3.5 w-3.5 text-[var(--muted-foreground)]' }),
           h(
             'span',
             { class: 'text-sm truncate' },
@@ -114,7 +118,7 @@ export function createAppealsColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
+          { class: 'font-mono text-xs uppercase tracking-widest text-[var(--muted-foreground)]' },
           'Queue ID',
         ),
       cell: ({ row }) => {
@@ -122,7 +126,7 @@ export function createAppealsColumns(
         return h(
           'span',
           {
-            class: 'font-data text-xs text-muted-foreground block truncate',
+            class: 'font-mono text-xs text-muted-foreground block truncate',
             title: queueId,
           },
           truncateText(queueId, 24),
@@ -136,7 +140,7 @@ export function createAppealsColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
+          { class: 'font-mono text-xs uppercase tracking-widest text-[var(--muted-foreground)]' },
           t('moderation.appeals.reason'),
         ),
       cell: ({ row }) => {
@@ -155,7 +159,7 @@ export function createAppealsColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
+          { class: 'font-mono text-xs uppercase tracking-widest text-[var(--muted-foreground)]' },
           t('moderation.columns.status'),
         ),
       cell: ({ row }) => {
@@ -170,13 +174,17 @@ export function createAppealsColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
+          { class: 'font-mono text-xs uppercase tracking-widest text-[var(--muted-foreground)]' },
           t('moderation.appeals.reviewedBy'),
         ),
       cell: ({ row }) => {
         const reviewerName = row.original.reviewedByName
         if (!reviewerName) {
-          return h('span', { class: 'font-data text-xs text-[var(--foreground-muted)] italic' }, '-')
+          return h(
+            'span',
+            { class: 'font-mono text-xs text-[var(--muted-foreground)] italic' },
+            '-',
+          )
         }
         return h('span', { class: 'text-sm truncate block' }, reviewerName)
       },
@@ -188,14 +196,14 @@ export function createAppealsColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
+          { class: 'font-mono text-xs uppercase tracking-widest text-[var(--muted-foreground)]' },
           t('moderation.columns.createdAt'),
         ),
       cell: ({ row }) => {
         const date = row.original.createdAt
         return h(
           'span',
-          { class: 'font-data text-xs text-[var(--foreground-muted)] tabular-nums' },
+          { class: 'font-mono text-xs text-[var(--muted-foreground)] tabular-nums' },
           date ? formatDate(date) : '—',
         )
       },
@@ -206,7 +214,7 @@ export function createAppealsColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
+          { class: 'font-mono text-xs uppercase tracking-widest text-[var(--muted-foreground)]' },
           t('moderation.columns.actions'),
         ),
       cell: ({ row }) => {
@@ -229,7 +237,7 @@ export function createAppealsColumns(
                       { variant: 'ghost', size: 'icon', class: 'h-8 w-8 p-0' },
                       {
                         default: () => [
-                          h(IconDotsVertical, { class: 'h-4 w-4 text-[var(--foreground-muted)]' }),
+                          h(IconDotsVertical, { class: 'h-4 w-4 text-[var(--muted-foreground)]' }),
                         ],
                       },
                     ),
@@ -237,7 +245,7 @@ export function createAppealsColumns(
               ),
               h(
                 DropdownMenuContent,
-                { align: 'end', class: 'border-[var(--border-subtle)]' },
+                { align: 'end', class: 'border-[var(--border)]' },
                 {
                   default: () =>
                     [
@@ -245,12 +253,12 @@ export function createAppealsColumns(
                         DropdownMenuItem,
                         {
                           onClick: () => actions.viewAppeal(appeal),
-                          class: 'font-data text-xs cursor-pointer',
+                          class: 'font-mono text-xs cursor-pointer',
                         },
                         {
                           default: () =>
                             h('div', { class: 'flex items-center gap-2' }, [
-                              h(IconEye, { class: 'h-4 w-4 text-foreground-strong' }),
+                              h(IconEye, { class: 'h-4 w-4 text-foreground' }),
                               h('span', t('moderation.appeals.reviewAppeal')),
                             ]),
                         },
@@ -260,15 +268,15 @@ export function createAppealsColumns(
                             DropdownMenuItem,
                             {
                               onClick: () => actions.approveAppeal(appeal),
-                              class: 'font-data text-xs cursor-pointer',
+                              class: 'font-mono text-xs cursor-pointer',
                             },
                             {
                               default: () =>
                                 h('div', { class: 'flex items-center gap-2' }, [
-                                  h(IconCheck, { class: 'h-4 w-4 text-foreground-strong' }),
+                                  h(IconCheck, { class: 'h-4 w-4 text-foreground' }),
                                   h(
                                     'span',
-                                    { class: 'text-foreground-strong' },
+                                    { class: 'text-foreground' },
                                     t('moderation.appeals.approveAppeal'),
                                   ),
                                 ]),
@@ -280,15 +288,15 @@ export function createAppealsColumns(
                             DropdownMenuItem,
                             {
                               onClick: () => actions.rejectAppeal(appeal),
-                              class: 'font-data text-xs cursor-pointer',
+                              class: 'font-mono text-xs cursor-pointer',
                             },
                             {
                               default: () =>
                                 h('div', { class: 'flex items-center gap-2' }, [
-                                  h(IconX, { class: 'h-4 w-4 text-foreground-strong' }),
+                                  h(IconX, { class: 'h-4 w-4 text-foreground' }),
                                   h(
                                     'span',
-                                    { class: 'text-foreground-strong' },
+                                    { class: 'text-foreground' },
                                     t('moderation.appeals.rejectAppeal'),
                                   ),
                                 ]),

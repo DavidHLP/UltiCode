@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { useI18n } from "vue-i18n";
 import { useEditorSettingsStore } from "@/stores/editorSettings";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
+import { Switch } from "@ulticode/design-system/ui/switch";
+import { Label } from "@ulticode/design-system/ui/label";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover";
-import { Button } from "@/components/ui/button";
+} from "@ulticode/design-system/ui/popover";
+import { Button } from "@ulticode/design-system/ui/button";
 import { Accessibility, Minus, Contrast } from "@lucide/vue";
 
 const { t } = useI18n();
@@ -21,7 +21,7 @@ const editorSettings = useEditorSettingsStore();
       <Button
         variant="ghost"
         size="icon"
-        class="h-6 w-6 rounded-none text-foreground hover:bg-accent hover:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground"
+        class="w-6"
         :aria-label="t('problem.accessibility.title')"
         :title="t('problem.accessibility.title')"
       >
@@ -39,7 +39,7 @@ const editorSettings = useEditorSettingsStore();
           <div class="flex-1">
             <Label
               for="reduce-motion"
-              class="flex items-center gap-2 text-sm font-normal cursor-pointer"
+              class="flex items-center gap-2 cursor-pointer"
             >
               <Minus class="h-4 w-4 text-muted-foreground" aria-hidden="true" />
               {{ t("problem.accessibility.reduceMotion") }}
@@ -60,7 +60,7 @@ const editorSettings = useEditorSettingsStore();
           <div class="flex-1">
             <Label
               for="high-contrast"
-              class="flex items-center gap-2 text-sm font-normal cursor-pointer"
+              class="flex items-center gap-2 cursor-pointer"
             >
               <Contrast
                 class="h-4 w-4 text-muted-foreground"

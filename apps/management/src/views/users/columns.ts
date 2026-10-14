@@ -1,17 +1,17 @@
 import { h } from 'vue'
 import type { ColumnDef } from '@tanstack/vue-table'
 import {
-  IconBan,
-  IconCheck,
-  IconLock,
-  IconShield,
-  IconUser,
-} from '@tabler/icons-vue'
+  Ban as IconBan,
+  Check as IconCheck,
+  Lock as IconLock,
+  Shield as IconShield,
+  User as IconUser,
+} from '@lucide/vue'
 
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '@ulticode/design-system/ui/avatar'
 import { createSelectionColumn } from '@/components/table/selectionColumn'
 import { createEntityActionsMenu } from '@/components/table/entityActions'
-import { badge, USER_ROLE_COLOR_MAP } from '@/components/ui/terminal'
+import { badge, USER_ROLE_COLOR_MAP } from '@ulticode/badge-config'
 import type { User } from '@/api/admin/users'
 import { formatDate } from '@/lib/format/date'
 import type { UserPermissionMap } from '@/composables/domainPermissionMaps'
@@ -24,7 +24,7 @@ export interface UserActions {
   unbanUser: (id: string) => void
 }
 
-// Terminal-style role badge renderer
+// Semantic role badge renderer
 function renderRoleBadge(role: string, t: (key: string) => string) {
   // Try i18n translation first (e.g., 'users.filters.role.SUPER_ADMIN')
   const i18nKey = `users.filters.role.${role}` as const
@@ -32,7 +32,7 @@ function renderRoleBadge(role: string, t: (key: string) => string) {
   return badge({ color: USER_ROLE_COLOR_MAP[role] ?? 'neutral', label: displayRole })
 }
 
-// Terminal-style status badge renderer
+// Semantic status badge renderer
 function renderStatusBadge(isBanned: boolean, isActive: boolean, t: (key: string) => string) {
   if (isBanned) return badge({ color: 'error', label: t('users.status.banned'), pulse: true })
   if (!isActive) return badge({ color: 'neutral', label: t('users.status.inactive') })
@@ -47,7 +47,7 @@ export function createColumns(
   return [
     ...createSelectionColumn<User>(t, {
       checkboxClass:
-        'border-[var(--border-subtle)] data-[state=checked]:bg-[var(--primary)] data-[state=checked]:border-[var(--primary)]',
+        'border-[var(--border)] data-[state=checked]:bg-[var(--primary)] data-[state=checked]:border-[var(--primary)]',
     }),
     {
       id: 'row_num',
@@ -56,7 +56,11 @@ export function createColumns(
         const pageIndex = table.getState().pagination.pageIndex
         const pageSize = table.getState().pagination.pageSize
         const rowNum = pageIndex * pageSize + row.index + 1
-        return h('span', { class: 'terminal-row-num' }, String(rowNum).padStart(2, '0'))
+        return h(
+          'span',
+          { class: 'text-xs tabular-nums text-muted-foreground' },
+          String(rowNum).padStart(2, '0'),
+        )
       },
       enableSorting: false,
       enableHiding: false,
@@ -66,7 +70,7 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
+          { class: 'font-mono text-xs uppercase tracking-widest text-[var(--muted-foreground)]' },
           t('users.columns.user'),
         ),
       cell: ({ row }) => {
@@ -106,8 +110,7 @@ export function createColumns(
                     h(
                       AvatarFallback,
                       {
-                        class:
-                          'font-data text-xs bg-[var(--surface-highlight)] dark:bg-[var(--foreground-strong)]',
+                        class: 'font-mono text-xs bg-[var(--accent)] dark:bg-[var(--foreground)]',
                       },
                       () => initials,
                     ),
@@ -119,7 +122,7 @@ export function createColumns(
           // Two-line display
           h('div', { class: 'flex flex-col gap-0.5' }, [
             h('span', { class: 'font-medium text-sm text-[var(--foreground)]' }, displayName),
-            h('span', { class: 'font-data text-xs text-[var(--foreground-muted)]' }, displayEmail),
+            h('span', { class: 'font-mono text-xs text-[var(--muted-foreground)]' }, displayEmail),
           ]),
         ])
       },
@@ -129,7 +132,7 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
+          { class: 'font-mono text-xs uppercase tracking-widest text-[var(--muted-foreground)]' },
           t('users.columns.role'),
         ),
       cell: ({ row }) => {
@@ -142,7 +145,7 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
+          { class: 'font-mono text-xs uppercase tracking-widest text-[var(--muted-foreground)]' },
           t('common.status'),
         ),
       cell: ({ row }) => {
@@ -155,14 +158,14 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
+          { class: 'font-mono text-xs uppercase tracking-widest text-[var(--muted-foreground)]' },
           t('users.columns.joined'),
         ),
       cell: ({ row }) => {
         const date = row.getValue('joinedAt') as string
         return h(
           'span',
-          { class: 'font-data text-xs text-[var(--foreground-muted)] tabular-nums' },
+          { class: 'font-mono text-xs text-[var(--muted-foreground)] tabular-nums' },
           formatDate(date),
         )
       },
@@ -172,17 +175,21 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
+          { class: 'font-mono text-xs uppercase tracking-widest text-[var(--muted-foreground)]' },
           t('users.columns.lastLogin'),
         ),
       cell: ({ row }) => {
         const lastLogin = row.getValue('lastLoginAt') as string | undefined
         if (!lastLogin) {
-          return h('span', { class: 'font-data text-xs text-[var(--foreground-muted)] italic' }, '—')
+          return h(
+            'span',
+            { class: 'font-mono text-xs text-[var(--muted-foreground)] italic' },
+            '—',
+          )
         }
         return h(
           'span',
-          { class: 'font-data text-xs text-[var(--foreground-muted)] tabular-nums' },
+          { class: 'font-mono text-xs text-[var(--muted-foreground)] tabular-nums' },
           formatDate(lastLogin),
         )
       },
@@ -192,7 +199,7 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
+          { class: 'font-mono text-xs uppercase tracking-widest text-[var(--muted-foreground)]' },
           t('common.actions.label'),
         ),
       cell: ({ row }) => {
@@ -204,7 +211,7 @@ export function createColumns(
               label: t('users.actions.viewDetails'),
               onSelect: () => actions.viewUser(user),
               icon: IconUser,
-              iconClass: 'h-4 w-4 text-foreground-strong',
+              iconClass: 'h-4 w-4 text-foreground',
             },
             {
               label: t('users.actions.editProfile'),
@@ -216,7 +223,7 @@ export function createColumns(
               label: t('users.actions.resetPassword'),
               onSelect: () => actions.resetPassword(user),
               icon: IconLock,
-              iconClass: 'h-4 w-4 text-foreground-strong',
+              iconClass: 'h-4 w-4 text-foreground',
             },
             { kind: 'separator' },
             user.isBanned
@@ -224,26 +231,25 @@ export function createColumns(
                   label: t('users.actions.unbanUser'),
                   onSelect: () => actions.unbanUser(user.id),
                   icon: IconCheck,
-                  iconClass: 'h-4 w-4 text-foreground-strong',
-                  labelClass: 'text-[var(--foreground-strong)]',
+                  iconClass: 'h-4 w-4 text-foreground',
+                  labelClass: 'text-[var(--foreground)]',
                   hidden: !canModerateRow,
                 }
               : {
                   label: t('users.actions.banUser'),
                   onSelect: () => actions.startBanUser(user),
                   icon: IconBan,
-                  iconClass: 'h-4 w-4 text-foreground-strong',
-                  labelClass: 'text-[var(--foreground-strong)]',
+                  iconClass: 'h-4 w-4 text-foreground',
+                  labelClass: 'text-[var(--foreground)]',
                   hidden: !canModerateRow,
                 },
           ],
           {
-            triggerClass:
-              'h-8 w-8 p-0 hover:bg-[var(--surface-highlight)] dark:hover:bg-[var(--foreground-strong)]',
-            triggerIconClass: 'h-4 w-4 text-[var(--foreground-muted)]',
-            contentClass: 'border-[var(--border-subtle)] dark:border-[var(--foreground-strong)]',
-            itemClass: 'font-data text-xs cursor-pointer',
-            separatorClass: 'bg-[var(--border-subtle)] dark:bg-[var(--foreground-strong)]',
+            triggerClass: 'h-8 w-8 p-0 hover:bg-[var(--accent)] dark:hover:bg-[var(--foreground)]',
+            triggerIconClass: 'h-4 w-4 text-[var(--muted-foreground)]',
+            contentClass: 'border-[var(--border)] dark:border-[var(--foreground)]',
+            itemClass: 'font-mono text-xs cursor-pointer',
+            separatorClass: 'bg-[var(--border)] dark:bg-[var(--foreground)]',
           },
         )
       },

@@ -3,7 +3,11 @@
     "target": "ES2022",
     "useDefineForClassFields": true,
     "module": "ESNext",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
     "skipLibCheck": true,
     "moduleResolution": "Bundler",
     "allowImportingTsExtensions": true,
@@ -16,13 +20,29 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    "types": ["vite/client", "node"],
-    "paths": { "@/*": ["./src/*"] }
+    "types": [
+      "vite/client",
+      "node"
+    ],
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ],
+      "vue": [
+        "./node_modules/vue"
+      ],
+      "reka-ui": [
+        "./node_modules/reka-ui"
+      ]
+    }
   },
   "include": [
     "src/**/*.ts",
     "src/**/*.vue",
     "vite.config.ts",
-    "vitest.config.ts"
+    "vitest.config.ts",
+    "../../packages/design-system/src/**/*.ts",
+    "../../packages/design-system/src/**/*.vue",
+    "../../packages/theme/src/**/*.ts"
   ]
 }

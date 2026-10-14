@@ -32,7 +32,7 @@ vi.mock('@/stores/admin/problems', () => ({
   }),
 }))
 
-vi.mock('@/components/ui/form', async () => {
+vi.mock('@ulticode/design-system/ui/form', async () => {
   const { h, inject, provide } = await import('vue')
   const { FormContextKey } = await import('vee-validate')
 
@@ -419,6 +419,7 @@ function mountDescriptionForm(props = {}) {
         SelectTrigger: SelectTriggerStub,
         SelectValue: SelectValueStub,
         SelectContent: SelectContentStub,
+        SelectGroup: SelectContentStub,
         SelectItem: SelectItemStub,
         Checkbox: CheckboxStub,
         Accordion: AccordionStub,

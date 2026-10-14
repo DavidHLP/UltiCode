@@ -56,6 +56,7 @@ export default defineConfig({
     },
   },
   resolve: {
+    dedupe: ["vue", "@vue/runtime-core", "reka-ui"],
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
       // Files inside packages/ (axiosCsrfInterceptor.ts, utils.ts, etc.)

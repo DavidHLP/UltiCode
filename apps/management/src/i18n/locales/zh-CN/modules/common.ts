@@ -1,4 +1,13 @@
 export default {
+  dataTable: '数据表',
+  date: '日期',
+  count: '次数',
+
+  system: '系统',
+  navigation: '导航',
+  noResults: '没有匹配结果。',
+  searchDescription: '搜索页面与操作。',
+  toggleSidebar: '切换侧栏',
   // 操作
   save: '保存',
   cancel: '取消',

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
+import { Button } from "@ulticode/design-system/ui/button";
+import { Separator } from "@ulticode/design-system/ui/separator";
 import {
   Layout,
   User,
@@ -11,8 +11,13 @@ import {
   Settings,
   LogOut,
   LogIn,
+  Paintbrush,
 } from "@lucide/vue";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@ulticode/design-system/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,9 +28,10 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
+} from "@ulticode/design-system/ui/dropdown-menu";
 import type { ProblemDetail } from "@/types/problem-detail";
 import { RouterLink } from "vue-router";
+import { openAppearanceSettings } from "@ulticode/theme";
 import { ProblemEdgeOperations } from "@/components/edge-operations";
 import { useI18n } from "vue-i18n";
 import { useAuthStore } from "@/stores/auth";
@@ -42,7 +48,7 @@ const emit = defineEmits<{
   "layout-change": [layout: "leet" | "classic" | "compact" | "wide"];
 }>();
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const authStore = useAuthStore();
 const isAuthenticated = computed(() => authStore.isAuthenticated);
 
@@ -93,30 +99,13 @@ const currentUserInitial = computed(() =>
 // identity chip rather than a generic person icon. Idle / hover / open /
 // focused states each have a distinct visual treatment so the affordance
 // is always legible against the dark header background.
-const userEntryTriggerClass = [
-  "relative h-10 w-10 p-0 rounded-full overflow-hidden",
-  "border border-border/40 bg-transparent shadow-sm",
-  "ring-0 ring-[var(--primary)]/0",
-  "hover:border-[var(--primary)]/60 hover:shadow-md hover:ring-2 hover:ring-[var(--primary)]/30",
-  "data-[state=open]:border-[var(--primary)] data-[state=open]:ring-2 data-[state=open]:ring-[var(--primary)]/40",
-  "focus-visible:ring-2 focus-visible:ring-[var(--primary)]/50",
-  "transition-all duration-200",
-  "flex items-center justify-center cursor-pointer select-none",
-].join(" ");
-
-const userEntryFallbackClass = [
-  "rounded-full",
-  "bg-[var(--primary)] text-primary-foreground",
-  "text-sm font-semibold tracking-wide",
-  // Subtle inner shadow gives the solid-color fallback a touch of depth
-  // when the user has no avatar URL.
-  "shadow-[inset_0_-1px_0_color-mix(in_srgb,var(--shadow-color)_8%,transparent)]",
-].join(" ");
+const userEntryTriggerClass = "h-10 w-10 rounded-full p-0";
+const userEntryFallbackClass = "bg-primary text-primary-foreground";
 </script>
 
 <template>
-  <div class="flex flex-1 items-center justify-end overflow-hidden">
-    <div class="flex items-center gap-3 focus:outline-none">
+  <div class="flex min-w-0 items-center justify-end">
+    <div class="flex min-w-0 flex-wrap items-center justify-center gap-2">
       <!-- Group 0: Contest context dock (renders only for ?contestId=...) -->
       <ContestProblemDock />
 
@@ -127,7 +116,7 @@ const userEntryFallbackClass = [
       <Separator
         v-if="problem"
         orientation="vertical"
-        class="h-5 w-px bg-[var(--border-subtle)] dark:bg-[var(--border-subtle)] flex-none"
+        class="h-5 w-px flex-none"
       />
 
       <!-- Group 2: View Settings (Layout Switching) -->
@@ -136,12 +125,13 @@ const userEntryFallbackClass = [
           <DropdownMenuTrigger as-child>
             <Button
               :aria-label="t('problem.explorer.filters')"
-              class="h-8 w-8 p-0 rounded-none border border-transparent bg-transparent hover:bg-[var(--surface-highlight)] dark:hover:bg-[var(--border-subtle)] text-foreground dark:text-foreground-muted hover:text-foreground-strong dark:hover:text-foreground data-[state=open]:bg-[var(--surface-highlight)] dark:data-[state=open]:bg-[var(--border-subtle)] data-[state=open]:text-foreground-strong dark:data-[state=open]:text-foreground transition-all duration-200 flex items-center justify-center cursor-pointer select-none shadow-none"
+              variant="outline"
+              size="icon"
             >
               <Layout class="h-4 w-4" aria-hidden="true" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent class="w-96 p-4">
+          <DropdownMenuContent class="w-96 max-w-[calc(100vw-2rem)] p-4">
             <div class="space-y-3">
               <div class="text-sm font-semibold text-foreground">
                 {{ t("problem.explorer.filters") }}
@@ -162,16 +152,16 @@ const userEntryFallbackClass = [
                     v-for="option in layoutOptions"
                     :key="option.id"
                     :value="option.value"
-                    class="relative flex flex-col items-center gap-2 p-2 rounded-none border-2 transition-all duration-200 cursor-pointer data-[state=checked]:border-[var(--primary)] data-[state=unchecked]:border-border hover:border-muted-foreground hover:bg-muted"
+                    class="relative flex flex-col items-center gap-2 p-2 cursor-pointer"
                   >
                     <!-- Layout preview container -->
                     <div
-                      class="w-full aspect-[4/3] bg-muted rounded-none flex items-center justify-center relative overflow-hidden border border-border"
+                      class="w-full aspect-[4/3] bg-muted rounded-lg flex items-center justify-center relative overflow-hidden border border-border"
                     >
                       <!-- Selected indicator -->
                       <div
                         v-if="option.value === selectedLayout"
-                        class="absolute inset-0 border-2 border-[var(--primary)] rounded-none"
+                        class="absolute inset-0 border-2 border-primary rounded-lg"
                       />
 
                       <!-- Layout preview visualization -->
@@ -180,14 +170,14 @@ const userEntryFallbackClass = [
                         class="w-full h-full p-2 flex flex-row gap-1.5"
                       >
                         <div
-                          class="flex-1 bg-[var(--background)] rounded-none border border-border"
+                          class="flex-1 bg-background rounded-lg border border-border"
                         ></div>
                         <div class="flex flex-col gap-1.5 flex-1">
                           <div
-                            class="flex-1 bg-[var(--background)] rounded-none border border-border"
+                            class="flex-1 bg-background rounded-lg border border-border"
                           ></div>
                           <div
-                            class="flex-1 bg-[var(--background)] rounded-none border border-border"
+                            class="flex-1 bg-background rounded-lg border border-border"
                           ></div>
                         </div>
                       </div>
@@ -196,14 +186,14 @@ const userEntryFallbackClass = [
                         class="w-full h-full p-2 flex flex-col gap-1.5"
                       >
                         <div
-                          class="flex-1 bg-[var(--background)] rounded-none border border-border"
+                          class="flex-1 bg-background rounded-lg border border-border"
                         ></div>
                         <div class="flex gap-1.5 flex-1">
                           <div
-                            class="flex-1 bg-[var(--background)] rounded-none border border-border"
+                            class="flex-1 bg-background rounded-lg border border-border"
                           ></div>
                           <div
-                            class="flex-1 bg-[var(--background)] rounded-none border border-border"
+                            class="flex-1 bg-background rounded-lg border border-border"
                           ></div>
                         </div>
                       </div>
@@ -213,14 +203,14 @@ const userEntryFallbackClass = [
                       >
                         <div class="flex flex-col gap-1.5 w-1/3">
                           <div
-                            class="flex-1 bg-[var(--background)] rounded-none border border-border"
+                            class="flex-1 bg-background rounded-lg border border-border"
                           ></div>
                           <div
-                            class="flex-1 bg-[var(--background)] rounded-none border border-border"
+                            class="flex-1 bg-background rounded-lg border border-border"
                           ></div>
                         </div>
                         <div
-                          class="flex-1 bg-[var(--background)] rounded-none border border-border"
+                          class="flex-1 bg-background rounded-lg border border-border"
                         ></div>
                       </div>
                       <div
@@ -228,20 +218,20 @@ const userEntryFallbackClass = [
                         class="w-full h-full p-2 flex flex-row gap-1.5"
                       >
                         <div
-                          class="w-1/4 bg-[var(--background)] rounded-none border border-border"
+                          class="w-1/4 bg-background rounded-lg border border-border"
                         ></div>
                         <div
-                          class="flex-1 bg-[var(--background)] rounded-none border border-border"
+                          class="flex-1 bg-background rounded-lg border border-border"
                         ></div>
                         <div
-                          class="w-1/4 bg-[var(--background)] rounded-none border border-border"
+                          class="w-1/4 bg-background rounded-lg border border-border"
                         ></div>
                       </div>
 
                       <!-- Check mark indicator -->
                       <div
                         v-if="option.value === selectedLayout"
-                        class="absolute top-1.5 right-1.5 w-5 h-5 bg-primary rounded-none flex items-center justify-center shadow-[var(--shadow-float)]"
+                        class="absolute top-1.5 right-1.5 w-5 h-5 bg-primary rounded-lg flex items-center justify-center shadow-sm"
                       >
                         <Check class="w-3 h-3 text-primary-foreground" />
                       </div>
@@ -260,10 +250,15 @@ const userEntryFallbackClass = [
       </div>
 
       <!-- Divider -->
-      <Separator
-        orientation="vertical"
-        class="h-5 w-px bg-[var(--border-subtle)] dark:bg-[var(--border-subtle)] flex-none"
-      />
+      <Separator orientation="vertical" class="h-5 w-px flex-none" />
+
+      <Button
+        variant="ghost"
+        size="icon"
+        :aria-label="locale === 'zh-CN' ? '外观设置' : 'Appearance'"
+        @click="openAppearanceSettings"
+        ><Paintbrush aria-hidden="true"
+      /></Button>
 
       <!-- Group 3: User Entry -->
       <div class="flex items-center">
@@ -271,7 +266,7 @@ const userEntryFallbackClass = [
         <RouterLink v-if="!isAuthenticated" to="/login" class="flex-none">
           <Button
             :aria-label="t('auth.login.submit')"
-            class="h-8 w-8 p-0 rounded-none border border-transparent bg-transparent hover:bg-[var(--surface-highlight)] dark:hover:bg-[var(--border-subtle)] text-foreground dark:text-foreground-muted hover:text-foreground-strong dark:hover:text-foreground transition-all duration-200 flex items-center justify-center cursor-pointer select-none shadow-none"
+            class="w-8 p-0 dark:hover:bg-border dark:hover:text-foreground flex items-center justify-center cursor-pointer select-none"
           >
             <LogIn class="h-4 w-4" aria-hidden="true" />
           </Button>
@@ -284,11 +279,11 @@ const userEntryFallbackClass = [
               :aria-label="t('personal.profile.title')"
               :class="userEntryTriggerClass"
             >
-              <Avatar class="h-10 w-10 rounded-full">
+              <Avatar class="h-10 w-10">
                 <AvatarImage
                   :src="currentUserAvatarUrl"
                   :alt="authStore.userName"
-                  class="aspect-square size-full rounded-full object-cover"
+                  class="aspect-square size-full object-cover"
                 />
                 <AvatarFallback :class="userEntryFallbackClass">
                   {{ currentUserInitial }}
@@ -296,38 +291,26 @@ const userEntryFallbackClass = [
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent
-            class="w-60 p-1.5 rounded-none border border-border/60 bg-popover text-popover-foreground shadow-md"
-            align="end"
-            :side-offset="8"
-          >
-            <DropdownMenuLabel
-              class="px-2 py-1.5 text-xs font-semibold tracking-wide text-muted-foreground"
-            >
+          <DropdownMenuContent class="w-60 p-1.5" align="end" :side-offset="8">
+            <DropdownMenuLabel class="px-2 py-1.5">
               {{ t("problem.layout.userAccount") }}
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <RouterLink to="/personal">
-                <DropdownMenuItem
-                  class="cursor-pointer rounded-none focus:bg-[var(--primary)]/10 focus:text-foreground"
-                >
+                <DropdownMenuItem class="cursor-pointer">
                   <User class="mr-2 h-4 w-4" aria-hidden="true" />
                   <span>{{ t("personal.profile.title") }}</span>
                 </DropdownMenuItem>
               </RouterLink>
               <RouterLink to="/personal/solutions">
-                <DropdownMenuItem
-                  class="cursor-pointer rounded-none focus:bg-[var(--primary)]/10 focus:text-foreground"
-                >
+                <DropdownMenuItem class="cursor-pointer">
                   <FileCode class="mr-2 h-4 w-4" aria-hidden="true" />
                   <span>{{ t("personal.solutions.title") }}</span>
                 </DropdownMenuItem>
               </RouterLink>
               <RouterLink to="/personal/submissions">
-                <DropdownMenuItem
-                  class="cursor-pointer rounded-none focus:bg-[var(--primary)]/10 focus:text-foreground"
-                >
+                <DropdownMenuItem class="cursor-pointer">
                   <History class="mr-2 h-4 w-4" aria-hidden="true" />
                   <span>{{ t("personal.submissions.title") }}</span>
                 </DropdownMenuItem>
@@ -335,16 +318,15 @@ const userEntryFallbackClass = [
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <RouterLink to="/personal/account">
-              <DropdownMenuItem
-                class="cursor-pointer rounded-none focus:bg-[var(--primary)]/10 focus:text-foreground"
-              >
+              <DropdownMenuItem class="cursor-pointer">
                 <Settings class="mr-2 h-4 w-4" aria-hidden="true" />
                 <span>{{ t("personal.account.title") }}</span>
               </DropdownMenuItem>
             </RouterLink>
             <DropdownMenuSeparator />
             <DropdownMenuItem
-              class="text-foreground-strong cursor-pointer rounded-none focus:bg-[var(--status-error-mark)]/10 focus:text-foreground-strong"
+              class="cursor-pointer"
+              @select="authStore.logout()"
             >
               <LogOut class="mr-2 h-4 w-4" aria-hidden="true" />
               <span>{{ t("problem.layout.logout") }}</span>

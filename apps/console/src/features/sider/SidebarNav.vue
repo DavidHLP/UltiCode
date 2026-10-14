@@ -6,13 +6,13 @@ import {
   SidebarMenuItem,
   SidebarMenuSub,
   useSidebar,
-} from "@/components/ui/sidebar";
+} from "@ulticode/design-system/ui/sidebar";
 import {
   CollapsibleTrigger,
   CollapsibleContent,
-} from "@/components/ui/collapsible";
+} from "@ulticode/design-system/ui/collapsible";
 import { ChevronRight } from "@lucide/vue";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@ulticode/design-system/ui/badge";
 import { useI18n } from "vue-i18n";
 import { computed } from "vue";
 import { useAuthStore } from "@/stores/auth";
@@ -68,8 +68,8 @@ const isItemActive = (item: SidebarItem): boolean => {
 const getItemIconColorClass = (item: SidebarItem) => {
   if (!item.url && !item.children) return "";
   return isItemActive(item)
-    ? "text-[var(--primary)]"
-    : "text-[var(--foreground-muted)] group-hover:text-[var(--foreground)]";
+    ? "text-primary"
+    : "text-muted-foreground group-hover:text-foreground";
 };
 </script>
 

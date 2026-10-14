@@ -13,16 +13,9 @@ import type { UserStats, UserSkills } from "@/types/userStats";
 import StatsCard from "@/components/dashboard/StatsCard.vue";
 import ActivityHeatmap from "@/components/dashboard/ActivityHeatmap.vue";
 import SkillRadarChart from "@/components/dashboard/SkillRadarChart.vue";
-import {
-  Trophy,
-  Flame,
-  Target,
-  BarChart3,
-  Calendar,
-  Globe,
-} from "@lucide/vue";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Progress } from "@/components/ui/progress";
+import { Trophy, Flame, Target, BarChart3, Calendar, Globe } from "@lucide/vue";
+import { Skeleton } from "@ulticode/design-system/ui/skeleton";
+import { Progress } from "@ulticode/design-system/ui/progress";
 
 const { t } = useI18n();
 const route = useRoute();
@@ -79,7 +72,7 @@ onMounted(async () => {
 <template>
   <div class="container mx-auto max-w-6xl space-y-6 py-6">
     <!-- Error State -->
-    <div v-if="error" class="rounded-none border bg-card p-6 text-center">
+    <div v-if="error" class="rounded-lg border bg-card p-6 text-center">
       <p class="text-muted-foreground">{{ error }}</p>
     </div>
 
@@ -90,7 +83,7 @@ onMounted(async () => {
           <Skeleton class="h-8 w-48" />
           <Skeleton class="h-4 w-32" />
         </div>
-        <Skeleton class="h-24 w-24 rounded-full" />
+        <Skeleton class="h-24 w-24" />
       </div>
       <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Skeleton v-for="i in 4" :key="i" class="h-24" />
@@ -115,14 +108,14 @@ onMounted(async () => {
         />
         <div
           v-else
-          class="flex h-24 w-24 items-center justify-center rounded-full bg-[var(--status-success-mark)] text-2xl font-bold text-[var(--color-background)]"
+          class="flex h-24 w-24 items-center justify-center rounded-full bg-status-success-mark text-2xl font-bold text-[var(--color-background)]"
         >
           {{ (profile.name || profile.username).charAt(0).toUpperCase() }}
         </div>
       </div>
 
       <!-- Bio and Meta -->
-      <div class="rounded-none border bg-card p-6 space-y-4">
+      <div class="rounded-lg border bg-card p-6 space-y-4">
         <p v-if="profile.bio" class="text-sm">{{ profile.bio }}</p>
         <div class="flex flex-wrap gap-4 text-sm text-muted-foreground">
           <div v-if="profile.joinedAt" class="flex items-center gap-1">
@@ -142,7 +135,7 @@ onMounted(async () => {
               :href="profile.website"
               target="_blank"
               rel="noopener"
-              class="hover:text-[var(--primary)]"
+              class="hover:text-primary"
             >
               {{ profile.website }}
             </a>
@@ -161,7 +154,7 @@ onMounted(async () => {
           color="green"
         >
           <template #icon>
-            <Trophy class="h-5 w-5 text-[var(--status-success-mark)]" />
+            <Trophy class="h-5 w-5 text-status-success-mark" />
           </template>
         </StatsCard>
 
@@ -172,7 +165,7 @@ onMounted(async () => {
           color="blue"
         >
           <template #icon>
-            <Target class="h-5 w-5 text-[var(--primary)]" />
+            <Target class="h-5 w-5 text-primary" />
           </template>
         </StatsCard>
 
@@ -187,7 +180,7 @@ onMounted(async () => {
           color="purple"
         >
           <template #icon>
-            <BarChart3 class="h-5 w-5 text-[var(--status-special-mark)]" />
+            <BarChart3 class="h-5 w-5 text-status-special-mark" />
           </template>
         </StatsCard>
 
@@ -198,13 +191,13 @@ onMounted(async () => {
           color="orange"
         >
           <template #icon>
-            <Flame class="h-5 w-5 text-[var(--status-warning-mark)]" />
+            <Flame class="h-5 w-5 text-status-warning-mark" />
           </template>
         </StatsCard>
       </div>
 
       <!-- Difficulty Progress -->
-      <div v-if="stats" class="rounded-none border bg-card p-6">
+      <div v-if="stats" class="rounded-lg border bg-card p-6">
         <h2 class="mb-4 text-lg font-semibold">
           {{ t("profile.progress.title") }}
         </h2>
@@ -212,7 +205,7 @@ onMounted(async () => {
           <!-- Easy -->
           <div class="space-y-2">
             <div class="flex items-center justify-between text-sm">
-              <span class="font-medium text-[var(--foreground-strong)]">{{
+              <span class="font-medium text-foreground">{{
                 t("personal.stats.easy")
               }}</span>
               <span class="text-muted-foreground">
@@ -225,14 +218,14 @@ onMounted(async () => {
                   ? (stats.stats.Easy.count / stats.stats.Easy.total) * 100
                   : 0
               "
-              class="h-2 [&>div]:bg-[var(--status-success-mark)]"
+              class="h-2 [&>div]:bg-status-success-mark"
             />
           </div>
 
           <!-- Medium -->
           <div class="space-y-2">
             <div class="flex items-center justify-between text-sm">
-              <span class="font-medium text-[var(--foreground-strong)]">{{
+              <span class="font-medium text-foreground">{{
                 t("personal.stats.medium")
               }}</span>
               <span class="text-muted-foreground">
@@ -245,14 +238,14 @@ onMounted(async () => {
                   ? (stats.stats.Medium.count / stats.stats.Medium.total) * 100
                   : 0
               "
-              class="h-2 [&>div]:bg-[var(--status-warning-mark)]"
+              class="h-2 [&>div]:bg-status-warning-mark"
             />
           </div>
 
           <!-- Hard -->
           <div class="space-y-2">
             <div class="flex items-center justify-between text-sm">
-              <span class="font-medium text-[var(--foreground-strong)]">{{
+              <span class="font-medium text-foreground">{{
                 t("personal.stats.hard")
               }}</span>
               <span class="text-muted-foreground">
@@ -265,7 +258,7 @@ onMounted(async () => {
                   ? (stats.stats.Hard.count / stats.stats.Hard.total) * 100
                   : 0
               "
-              class="h-2 [&>div]:bg-[var(--status-error-mark)]"
+              class="h-2 [&>div]:bg-status-error-mark"
             />
           </div>
         </div>
@@ -274,7 +267,7 @@ onMounted(async () => {
       <!-- Activity Heatmap & Skills -->
       <div v-if="stats || skills" class="grid gap-6 lg:grid-cols-2">
         <!-- Heatmap -->
-        <div v-if="stats" class="rounded-none border bg-card p-6">
+        <div v-if="stats" class="rounded-lg border bg-card p-6">
           <h2 class="mb-4 text-lg font-semibold">
             {{ t("personal.dashboard.heatmap.title") }}
           </h2>
@@ -282,7 +275,7 @@ onMounted(async () => {
         </div>
 
         <!-- Skills Radar -->
-        <div v-if="skills" class="rounded-none border bg-card p-6">
+        <div v-if="skills" class="rounded-lg border bg-card p-6">
           <h2 class="mb-4 text-lg font-semibold">
             {{ t("personal.dashboard.skills.title") }}
           </h2>

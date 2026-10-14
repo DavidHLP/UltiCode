@@ -21,18 +21,18 @@ vi.mock("vue-i18n", async (importOriginal) => ({
   }),
 }));
 
-vi.mock("@/components/ui/calendar", () => ({
-  Calendar: { template: "<div class=\"calendar-stub\" />" },
+vi.mock("@ulticode/design-system/ui/calendar", () => ({
+  Calendar: { template: '<div class="calendar-stub" />' },
 }));
 
-vi.mock("@/components/ui/card", () => ({
+vi.mock("@ulticode/design-system/ui/card", () => ({
   Card: { template: "<div><slot /></div>" },
   CardContent: { template: "<div><slot /></div>" },
   CardHeader: { template: "<div><slot /></div>" },
   CardTitle: { template: "<div><slot /></div>" },
 }));
 
-vi.mock("@/components/ui/badge", () => ({
+vi.mock("@ulticode/design-system/ui/badge", () => ({
   Badge: { template: "<span><slot /></span>" },
 }));
 
@@ -77,7 +77,9 @@ describe("ProblemSetSidebar", () => {
   });
 
   it("handles empty database or fetch error gracefully without failing", async () => {
-    vi.mocked(fetchRandomProblem).mockRejectedValueOnce(new Error("No published problems available"));
+    vi.mocked(fetchRandomProblem).mockRejectedValueOnce(
+      new Error("No published problems available"),
+    );
 
     const wrapper = mount(ProblemSetSidebar, {
       global: {

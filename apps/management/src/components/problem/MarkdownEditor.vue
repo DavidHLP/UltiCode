@@ -2,8 +2,8 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { renderMarkdown } from '@ulticode/markdown-utils'
-import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/textarea'
+import { Button } from '@ulticode/design-system/ui/button'
+import { Textarea } from '@ulticode/design-system/ui/textarea'
 import { Bold, Italic, Code, Link, Image, Maximize2, Minimize2 } from '@lucide/vue'
 
 const props = defineProps<{
@@ -114,7 +114,7 @@ onUnmounted(() => {
           type="button"
           variant="ghost"
           size="sm"
-          class="rounded-none h-7 w-7 p-0"
+          class="w-7 p-0"
           @click="insertBold"
           :disabled="readonly"
           :title="t('problems.markdownEditor.bold')"
@@ -125,7 +125,7 @@ onUnmounted(() => {
           type="button"
           variant="ghost"
           size="sm"
-          class="rounded-none h-7 w-7 p-0"
+          class="w-7 p-0"
           @click="insertItalic"
           :disabled="readonly"
           :title="t('problems.markdownEditor.italic')"
@@ -136,7 +136,7 @@ onUnmounted(() => {
           type="button"
           variant="ghost"
           size="sm"
-          class="rounded-none h-7 w-7 p-0"
+          class="w-7 p-0"
           @click="insertCode"
           :disabled="readonly"
           :title="t('problems.markdownEditor.inlineCode')"
@@ -147,7 +147,7 @@ onUnmounted(() => {
           type="button"
           variant="ghost"
           size="sm"
-          class="rounded-none h-8 px-2"
+          class="px-2"
           @click="insertCodeBlock"
           :disabled="readonly"
           :title="t('problems.markdownEditor.codeBlock')"
@@ -159,7 +159,7 @@ onUnmounted(() => {
           type="button"
           variant="ghost"
           size="sm"
-          class="rounded-none h-7 w-7 p-0"
+          class="w-7 p-0"
           @click="insertLink"
           :disabled="readonly"
           :title="t('problems.markdownEditor.insertLink')"
@@ -170,7 +170,7 @@ onUnmounted(() => {
           type="button"
           variant="ghost"
           size="sm"
-          class="rounded-none h-7 w-7 p-0"
+          class="w-7 p-0"
           @click="insertImage"
           :disabled="readonly"
           :title="t('problems.markdownEditor.insertImage')"
@@ -183,7 +183,7 @@ onUnmounted(() => {
           type="button"
           variant="ghost"
           size="sm"
-          class="rounded-none h-7 w-7 p-0"
+          class="w-7 p-0"
           @click="toggleFullscreen"
           :title="t('problems.markdownEditor.toggleFullscreen')"
         >
@@ -196,7 +196,7 @@ onUnmounted(() => {
     <!-- Editor and Preview -->
     <div class="editor-container">
       <!-- Editor -->
-      <div class="editor-pane bg-card border-r border-[var(--border)]">
+      <div class="editor-pane bg-card border-r border-border">
         <Textarea
           ref="editorRef"
           v-model="editorContent"
@@ -221,7 +221,7 @@ onUnmounted(() => {
       </div>
 
       <!-- Preview -->
-      <div class="preview-pane bg-[var(--background)]">
+      <div class="preview-pane bg-background">
         <div
           ref="previewRef"
           class="preview-content"

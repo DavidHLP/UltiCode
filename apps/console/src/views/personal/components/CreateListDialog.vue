@@ -8,12 +8,12 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
+} from "@ulticode/design-system/ui/dialog";
+import { Button } from "@ulticode/design-system/ui/button";
+import { Input } from "@ulticode/design-system/ui/input";
+import { Label } from "@ulticode/design-system/ui/label";
+import { Textarea } from "@ulticode/design-system/ui/textarea";
+import { Switch } from "@ulticode/design-system/ui/switch";
 
 defineProps<{
   open: boolean;
@@ -50,9 +50,9 @@ function handleOpenChange(value: boolean) {
 
 <template>
   <Dialog :open="open" @update:open="handleOpenChange">
-    <DialogContent class="sm:max-w-[425px] rounded-none">
+    <DialogContent class="sm:max-w-[425px]">
       <DialogHeader>
-        <DialogTitle class="text-2xl font-black tracking-tight">{{
+        <DialogTitle>{{
           t("personal.problemLists.dialogs.createList")
         }}</DialogTitle>
         <DialogDescription>
@@ -61,40 +61,35 @@ function handleOpenChange(value: boolean) {
       </DialogHeader>
       <div class="space-y-6 py-4">
         <div class="space-y-2">
-          <Label
-            for="create-name"
-            class="text-xs font-bold uppercase tracking-widest text-muted-foreground"
-            >{{ t("personal.problemLists.dialogs.listName") }}</Label
-          >
+          <Label for="create-name">{{
+            t("personal.problemLists.dialogs.listName")
+          }}</Label>
           <Input
             id="create-name"
             v-model="form.name"
             :placeholder="
               t('personal.problemLists.dialogs.listNamePlaceholder')
             "
-            class="h-11 rounded-none"
           />
         </div>
         <div class="space-y-2">
-          <Label
-            for="create-description"
-            class="text-xs font-bold uppercase tracking-widest text-muted-foreground"
-            >{{ t("personal.problemLists.dialogs.description") }}</Label
-          >
+          <Label for="create-description">{{
+            t("personal.problemLists.dialogs.description")
+          }}</Label>
           <Textarea
             id="create-description"
             v-model="form.description"
             :placeholder="
               t('personal.problemLists.dialogs.descriptionPlaceholder')
             "
-            class="min-h-[100px] resize-none rounded-none"
+            class="min-h-[100px] resize-none"
           />
         </div>
         <div
-          class="flex items-center justify-between p-4 rounded-none bg-muted/30 border"
+          class="flex items-center justify-between p-4 rounded-lg bg-muted/30 border"
         >
           <div class="space-y-0.5">
-            <Label for="create-public" class="text-sm font-bold">{{
+            <Label for="create-public">{{
               t("personal.problemLists.dialogs.publicList")
             }}</Label>
             <p class="text-xs text-muted-foreground">
@@ -105,16 +100,13 @@ function handleOpenChange(value: boolean) {
         </div>
       </div>
       <DialogFooter>
-        <Button
-          variant="outline"
-          @click="handleOpenChange(false)"
-          class="rounded-full"
-          >{{ t("common.actions.cancel") }}</Button
-        >
+        <Button variant="outline" @click="handleOpenChange(false)">{{
+          t("common.actions.cancel")
+        }}</Button>
         <Button
           @click="handleSubmit"
           :disabled="loading || !form.name.trim()"
-          class="rounded-full px-8"
+          class="px-8"
         >
           {{
             loading

@@ -8,10 +8,10 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+} from "@ulticode/design-system/ui/dialog";
+import { Button } from "@ulticode/design-system/ui/button";
+import { Input } from "@ulticode/design-system/ui/input";
+import { Label } from "@ulticode/design-system/ui/label";
 
 defineProps<{
   open: boolean;
@@ -41,9 +41,9 @@ function handleOpenChange(value: boolean) {
 
 <template>
   <Dialog :open="open" @update:open="handleOpenChange">
-    <DialogContent class="sm:max-w-md rounded-none">
+    <DialogContent class="sm:max-w-md">
       <DialogHeader>
-        <DialogTitle class="text-2xl font-black tracking-tight">{{
+        <DialogTitle>{{
           t("personal.problemLists.dialogs.newCategory")
         }}</DialogTitle>
         <DialogDescription>
@@ -52,18 +52,15 @@ function handleOpenChange(value: boolean) {
       </DialogHeader>
       <div class="space-y-4 py-4">
         <div class="space-y-2">
-          <Label
-            for="category-name"
-            class="text-xs font-bold uppercase tracking-widest text-muted-foreground"
-            >{{ t("personal.problemLists.dialogs.categoryName") }}</Label
-          >
+          <Label for="category-name">{{
+            t("personal.problemLists.dialogs.categoryName")
+          }}</Label>
           <Input
             id="category-name"
             v-model="form.name"
             :placeholder="
               t('personal.problemLists.dialogs.categoryNamePlaceholder')
             "
-            class="h-11 rounded-none"
             @keydown.enter="handleSubmit"
           />
         </div>
@@ -73,14 +70,13 @@ function handleOpenChange(value: boolean) {
           variant="outline"
           @click="handleOpenChange(false)"
           :disabled="loading"
-          class="rounded-full"
         >
           {{ t("common.actions.cancel") }}
         </Button>
         <Button
           @click="handleSubmit"
           :disabled="loading || !form.name.trim()"
-          class="rounded-full px-8"
+          class="px-8"
         >
           {{
             loading

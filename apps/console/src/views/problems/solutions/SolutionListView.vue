@@ -7,31 +7,26 @@ import type { SubmissionRecord } from "@/types/submission";
 import { fetchBestSubmission } from "@/api/submission";
 import { fetchUserSolutions } from "@/api/solution";
 import { toast } from "vue-sonner";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { Input } from "@ulticode/design-system/ui/input";
+import { Button } from "@ulticode/design-system/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  DropdownMenuGroup,
+} from "@ulticode/design-system/ui/dropdown-menu";
 import SolutionCard from "./components/SolutionCard.vue";
-import Separator from "@/components/ui/separator";
-import Badge from "@/components/ui/badge/Badge.vue";
-import {
-  Search,
-  PenLine,
-  ArrowDownAZ,
-  Check,
-  Lightbulb,
-} from "@lucide/vue";
+import { Separator } from "@ulticode/design-system/ui/separator";
+import Badge from "@ulticode/design-system/ui-files/badge/Badge.vue";
+import { Search, PenLine, ArrowDownAZ, Check, Lightbulb } from "@lucide/vue";
 import {
   Empty,
   EmptyContent,
   EmptyDescription,
   EmptyHeader,
   EmptyMedia,
-} from "@/components/ui/empty";
+} from "@ulticode/design-system/ui/empty";
 import { useI18n } from "vue-i18n";
 import { useErrorHandler } from "@/composables/useErrorHandler";
 
@@ -183,11 +178,11 @@ onMounted(async () => {
 
 <template>
   <section
-    class="terminal-card relative flex h-full w-full flex-col overflow-hidden shadow-sm"
+    class="rounded-xl border bg-card text-card-foreground relative flex h-full w-full flex-col overflow-hidden shadow-sm"
   >
     <!-- Header 区域 -->
     <header
-      class="terminal-card-header flex flex-col gap-0 px-3 pb-2 pt-2 font-data"
+      class="flex items-center gap-2 px-4 py-3 font-semibold flex flex-col gap-0 px-3 pb-2 pt-2 font-mono"
     >
       <!-- 顶部搜索和排序栏 -->
       <div class="flex items-center gap-2">
@@ -199,40 +194,34 @@ onMounted(async () => {
           <Input
             v-model="search"
             :placeholder="t('problem.solutions.searchPlaceholder')"
-            class="h-8 pl-8.5 text-xs rounded-none bg-card border-border text-foreground placeholder:text-muted-foreground focus-visible:border-[var(--primary)] focus-visible:ring-1 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-0 focus-visible:ring-offset-transparent shadow-none"
+            class="pl-8.5 placeholder:text-muted-foreground"
           />
         </div>
 
         <!-- 排序按钮 -->
         <DropdownMenu>
           <DropdownMenuTrigger as-child>
-            <Button
-              variant="outline"
-              size="sm"
-              class="gap-1.5 text-xs rounded-none bg-card border-border text-foreground hover:bg-muted font-bold cursor-pointer h-8"
-            >
+            <Button variant="outline" size="sm" class="gap-1.5 cursor-pointer">
               <ArrowDownAZ class="h-3.5 w-3.5" />
-              <span class="text-xxs uppercase tracking-wider">{{
+              <span class="text-xs uppercase tracking-wider">{{
                 t("common.actions.sort")
               }}</span>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent
-            align="end"
-            class="rounded-none bg-popover text-popover-foreground border-border"
-          >
-            <DropdownMenuItem
-              v-for="option in sortOptions"
-              :key="option.value"
-              @click="sortBy = option.value"
-              class="text-xs cursor-pointer rounded-none focus:bg-muted"
-            >
-              {{ option.label }}
-              <Check
-                v-if="sortBy === option.value"
-                class="ml-auto h-3.5 w-3.5 text-[var(--primary)]"
-              />
-            </DropdownMenuItem>
+          <DropdownMenuContent align="end">
+            <DropdownMenuGroup
+              ><DropdownMenuItem
+                v-for="option in sortOptions"
+                :key="option.value"
+                @click="sortBy = option.value"
+                class="cursor-pointer"
+              >
+                {{ option.label }}
+                <Check
+                  v-if="sortBy === option.value"
+                  class="ml-auto h-3.5 w-3.5 text-primary"
+                /> </DropdownMenuItem
+            ></DropdownMenuGroup>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
@@ -246,7 +235,7 @@ onMounted(async () => {
         >
           <Badge
             variant="secondary"
-            class="lc-md:px-2 inline-flex cursor-pointer items-center flex-shrink-0 gap-1 whitespace-nowrap rounded-none border border-transparent px-2.5 py-0.5 text-2xs font-bold uppercase tracking-wider transition-colors"
+            class="lc-md:px-2 inline-flex cursor-pointer items-center flex-shrink-0 gap-1 whitespace-nowrap rounded-lg border border-transparent px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider transition-colors"
             :class="
               languageFilter === 'all'
                 ? 'bg-primary text-primary-foreground border-primary'
@@ -263,7 +252,7 @@ onMounted(async () => {
             :key="option.value"
             translate="no"
             variant="secondary"
-            class="lc-md:px-2 inline-flex cursor-pointer items-center flex-shrink-0 gap-1 whitespace-nowrap rounded-none border border-transparent px-2.5 py-0.5 text-2xs font-bold uppercase tracking-wider transition-colors"
+            class="lc-md:px-2 inline-flex cursor-pointer items-center flex-shrink-0 gap-1 whitespace-nowrap rounded-lg border border-transparent px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider transition-colors"
             :class="
               languageFilter === option.value
                 ? 'bg-primary text-primary-foreground border-primary'
@@ -279,29 +268,29 @@ onMounted(async () => {
       <!-- 提交统计和操作栏 -->
       <div class="mt-1.5 lc-md:mt-1.5">
         <div
-          class="bg-muted border border-border/40 flex items-center justify-between gap-3 rounded-none p-2 lc-md:p-1.5"
+          class="bg-muted border border-border/40 flex items-center justify-between gap-3 rounded-lg p-2 lc-md:p-1.5"
         >
           <div class="flex items-center gap-2 flex-1 min-w-0 pl-1">
             <template v-if="userSolution">
               <div
-                class="rounded-none p-0.5 bg-status-success-mark flex-shrink-0 flex items-center justify-center h-4 w-4"
+                class="rounded-lg p-0.5 bg-status-success-mark flex-shrink-0 flex items-center justify-center h-4 w-4"
               >
-                <Check class="h-3 w-3 text-primary-control-foreground" />
+                <Check class="h-3 w-3 text-primary-foreground" />
               </div>
               <span
-                class="text-xxs font-bold uppercase tracking-wider text-foreground-strong leading-tight truncate"
+                class="text-xs font-bold uppercase tracking-wider text-foreground leading-tight truncate"
               >
                 {{ t("problem.solutions.alreadyShared") }}
               </span>
             </template>
             <template v-else-if="bestSubmission">
               <div
-                class="rounded-none p-0.5 bg-primary flex-shrink-0 flex items-center justify-center h-4 w-4"
+                class="rounded-lg p-0.5 bg-primary flex-shrink-0 flex items-center justify-center h-4 w-4"
               >
                 <Check class="h-3 w-3 text-primary-foreground" />
               </div>
               <span
-                class="text-xxs font-semibold text-foreground leading-tight truncate"
+                class="text-xs font-semibold text-foreground leading-tight truncate"
               >
                 {{
                   t("problem.solutions.runtimeBeats", {
@@ -312,20 +301,19 @@ onMounted(async () => {
             </template>
             <template v-else>
               <span
-                class="text-xxs font-semibold text-muted-foreground leading-tight truncate"
+                class="text-xs font-semibold text-muted-foreground leading-tight truncate"
               >
                 {{ t("problem.solutions.solveToWrite") }}
               </span>
             </template>
           </div>
 
-          <button
-            class="flex h-7.5 flex-shrink-0 items-center gap-1 rounded-none bg-primary px-3 py-1 text-xxs font-bold uppercase tracking-wider text-primary-foreground shadow-xs transition-all hover:bg-primary/90 active:bg-primary cursor-pointer focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
+          <Button
+            variant="default"
+            class="flex flex-shrink-0 items-center gap-1 px-3 py-1 active:bg-primary cursor-pointer focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
             @click="handleCreateSolution"
           >
-            <PenLine
-              class="h-3.5 w-3.5 text-primary-foreground"
-            />
+            <PenLine class="h-3.5 w-3.5 text-primary-foreground" />
             <span>
               {{
                 userSolution
@@ -333,7 +321,7 @@ onMounted(async () => {
                   : t("problem.solutions.writeSolution")
               }}
             </span>
-          </button>
+          </Button>
         </div>
       </div>
     </header>
@@ -353,7 +341,7 @@ onMounted(async () => {
             <Separator v-if="index < sortedItems.length - 1" class="my-2" />
           </div>
         </div>
-        <Empty v-else class="mx-3 bg-muted/30 px-6 py-8">
+        <Empty v-else class="mx-3 px-6 py-8">
           <EmptyContent>
             <EmptyMedia variant="icon">
               <Lightbulb class="h-6 w-6 text-muted-foreground" />

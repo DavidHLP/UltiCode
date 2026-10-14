@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton } from "@ulticode/design-system/ui/skeleton";
 import ForumPostSkeleton from "@/views/forum/components/ForumPostSkeleton.vue";
 import ThreadContent from "@/views/forum/components/ThreadContent.vue";
 import { CommentThread } from "@/components/comments";
 import { ref, computed } from "vue";
 import { RouterLink } from "vue-router";
 import { ArrowLeft, MessageSquare, Flag, List } from "@lucide/vue";
-import { Button } from "@/components/ui/button";
+import { Button } from "@ulticode/design-system/ui/button";
 import { useI18n } from "vue-i18n";
 import {
   AlertDialog,
@@ -18,9 +18,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+} from "@ulticode/design-system/ui/alert-dialog";
 import ReportDialog from "@/components/ReportDialog.vue";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@ulticode/design-system/ui/avatar";
 import { useForumThread } from "@/composables/useForumThread";
 import { useContentNavigation } from "@/composables/useContentNavigation";
 import { extractHeadings, slugifyHeading } from "@ulticode/markdown-utils";
@@ -128,12 +132,16 @@ const headings = computed<ForumHeading[]>(() => {
   // lead-ins / standalone bold lines so short posts still get a usable TOC.
   const fallback = real.length < 2 ? collectBoldFallbacks(content) : [];
 
-  return [...real, ...fallback, {
-    id: "comments-section",
-    text: t("forum.comments.title"),
-    level: 2,
-    exists: true,
-  }];
+  return [
+    ...real,
+    ...fallback,
+    {
+      id: "comments-section",
+      text: t("forum.comments.title"),
+      level: 2,
+      exists: true,
+    },
+  ];
 });
 
 const {
@@ -158,14 +166,15 @@ const {
     return null;
   },
   onAfterScroll: (el, heading) => {
-    if (heading && heading.exists === false && el.tagName !== "H2" && el.tagName !== "H3") {
+    if (
+      heading &&
+      heading.exists === false &&
+      el.tagName !== "H2" &&
+      el.tagName !== "H3"
+    ) {
       el.classList.add("ring-2", "ring-ring", "rounded-sm");
       window.setTimeout(() => {
-        el.classList.remove(
-          "ring-2",
-          "ring-ring",
-          "rounded-sm",
-        );
+        el.classList.remove("ring-2", "ring-ring", "rounded-sm");
       }, 1500);
     }
   },
@@ -190,7 +199,7 @@ const handleMobileTOCClick = (id: string) => {
         <ForumPostSkeleton />
         <div class="space-y-4 pl-4 border-l border-border/40">
           <div class="flex gap-3" v-for="i in 3" :key="i">
-            <Skeleton class="h-8 w-8 rounded-none" />
+            <Skeleton class="h-8 w-8" />
             <div class="space-y-2 flex-1">
               <Skeleton class="h-4 w-32" />
               <Skeleton class="h-4 w-full" />
@@ -201,15 +210,15 @@ const handleMobileTOCClick = (id: string) => {
 
       <template v-else-if="thread">
         <div class="space-y-4">
-          <div class="terminal-card overflow-hidden w-full">
-            <div
-              class="flex flex-wrap items-center gap-2 px-4 sm:px-6 pt-4"
-            >
+          <div
+            class="rounded-xl border bg-card text-card-foreground overflow-hidden w-full"
+          >
+            <div class="flex flex-wrap items-center gap-2 px-4 sm:px-6 pt-4">
               <!-- Back Link: placed in the toolbar so the right sidebar's
                    Author Profile card shares the thread card's top edge -->
               <RouterLink
                 to="/forum"
-                class="inline-flex h-8 px-3 items-center justify-center rounded-none border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--card)] text-foreground dark:text-foreground-muted hover:bg-[var(--surface-highlight)] dark:hover:bg-[var(--border-subtle)] hover:text-foreground-strong dark:hover:text-foreground hover:border-[var(--border-subtle)] active:bg-[var(--border-subtle)] dark:active:bg-[var(--border-subtle)] active:scale-[0.98] transition-all font-bold text-xs shadow-sm"
+                class="inline-flex h-8 px-3 items-center justify-center rounded-lg border border-border dark:border-border bg-card text-foreground dark:text-muted-foreground hover:bg-accent dark:hover:bg-border hover:text-foreground dark:hover:text-foreground hover:border-border active:bg-border dark:active:bg-border active:scale-[0.98] transition-all font-bold text-xs shadow-sm"
               >
                 <ArrowLeft class="h-3.5 w-3.5 mr-1.5" />
                 <span>{{ t("forum.feedback.backToDiscussions") }}</span>
@@ -220,7 +229,7 @@ const handleMobileTOCClick = (id: string) => {
                   type="button"
                   variant="ghost"
                   size="sm"
-                  class="h-8 px-2 text-xs font-semibold hover:bg-[var(--surface-sunken)] rounded-none"
+                  class="px-2"
                   @click="showMobileTOC = !showMobileTOC"
                 >
                   <List class="mr-1 h-3.5 w-3.5" />
@@ -230,22 +239,23 @@ const handleMobileTOCClick = (id: string) => {
                 <!-- Floating TOC Dropdown Popup -->
                 <div
                   v-if="showMobileTOC"
-                  class="absolute right-0 top-9 z-50 w-48 bg-[var(--card)] border border-border p-3 shadow-lg flex flex-col gap-2 rounded-none select-none font-mono"
+                  class="absolute right-0 top-9 z-50 w-48 bg-card border border-border p-3 shadow-lg flex flex-col gap-2 rounded-lg select-none font-mono"
                 >
                   <div
-                    class="text-2xs font-bold uppercase tracking-wider text-muted-foreground/85 border-b border-border/50 pb-1"
+                    class="text-xs font-bold uppercase tracking-wider text-muted-foreground/85 border-b border-border/50 pb-1"
                   >
                     {{ t("forum.sidebar.toc") }}
                   </div>
                   <nav class="flex flex-col gap-1 max-h-60 overflow-y-auto">
-                    <button
+                    <Button
+                      variant="outline"
                       v-for="h in headings"
                       :key="h.id"
                       type="button"
-                      class="text-left text-xs py-1 px-1.5 transition-all duration-150 border-l-2 hover:bg-[var(--surface-sunken)] hover:text-foreground cursor-pointer select-none"
+                      class="text-left py-1 px-1.5 cursor-pointer select-none"
                       :class="[
                         activeHeadingId === h.id
-                          ? 'border-primary text-[var(--primary)] font-bold bg-[var(--primary)]/5'
+                          ? 'border-primary text-primary font-bold bg-primary/5'
                           : 'border-transparent text-muted-foreground font-medium',
                       ]"
                       :style="{
@@ -254,7 +264,7 @@ const handleMobileTOCClick = (id: string) => {
                       @click="handleMobileTOCClick(h.id)"
                     >
                       {{ h.text }}
-                    </button>
+                    </Button>
                   </nav>
                 </div>
               </div>
@@ -293,7 +303,7 @@ const handleMobileTOCClick = (id: string) => {
                 v-else
                 variant="ghost"
                 size="sm"
-                class="h-8 px-2 text-xs text-muted-foreground hover:text-destructive"
+                class="px-2"
                 @click="handleReport"
               >
                 <Flag class="mr-1 h-3.5 w-3.5" />
@@ -333,7 +343,7 @@ const handleMobileTOCClick = (id: string) => {
 
       <div
         v-else
-        class="rounded-none border border-dashed border-destructive/40 bg-destructive/5 p-6 text-sm text-destructive"
+        class="rounded-lg border border-dashed border-destructive/40 bg-destructive/5 p-6 text-sm text-destructive"
       >
         {{ t("forum.comments.failedToLoad") }}
       </div>
@@ -346,28 +356,26 @@ const handleMobileTOCClick = (id: string) => {
     >
       <!-- Author Profile Card -->
       <div
-        class="terminal-card overflow-hidden bg-[var(--card)] border border-border p-4 flex flex-col gap-3 w-full max-w-[16rem]"
+        class="rounded-xl border bg-card text-card-foreground overflow-hidden bg-card border border-border p-4 flex flex-col gap-3 w-full max-w-[16rem]"
       >
         <div class="flex items-center gap-2">
-          <Avatar class="h-9 w-9 border border-border/40 shrink-0">
+          <Avatar class="h-9 w-9 shrink-0">
             <AvatarImage
               :src="authorAvatarUrl"
               :alt="thread.author?.username"
             />
-            <AvatarFallback
-              class="text-xs font-semibold bg-primary/10 text-primary"
-            >
+            <AvatarFallback>
               {{ authorInitial }}
             </AvatarFallback>
           </Avatar>
           <div class="flex flex-col min-w-0">
             <span
-              class="font-bold text-xs text-foreground-strong dark:text-foreground truncate leading-tight"
+              class="font-bold text-xs text-foreground dark:text-foreground truncate leading-tight"
             >
               u/{{ thread.author?.username || "unknown" }}
             </span>
             <span
-              class="text-2xs text-muted-foreground truncate leading-none mt-0.5"
+              class="text-xs text-muted-foreground truncate leading-none mt-0.5"
               v-if="thread.author?.karma !== undefined"
             >
               Reputation: {{ thread.author.karma }}
@@ -376,7 +384,7 @@ const handleMobileTOCClick = (id: string) => {
         </div>
 
         <div
-          class="text-2xs text-muted-foreground/80 flex flex-col gap-1 border-t border-border/50 pt-2 font-mono"
+          class="text-xs text-muted-foreground/80 flex flex-col gap-1 border-t border-border/50 pt-2 font-mono"
         >
           <div>发布于：{{ createdAgo }}</div>
           <div v-if="thread.community" class="truncate">
@@ -387,7 +395,7 @@ const handleMobileTOCClick = (id: string) => {
             class="flex items-center gap-1.5 flex-wrap mt-1"
           >
             <span
-              class="inline-block px-1.5 py-0.5 bg-[var(--surface-sunken)] border border-border text-2xs text-foreground"
+              class="inline-block px-1.5 py-0.5 bg-muted border border-border text-xs text-foreground"
             >
               {{ thread.flair.text }}
             </span>
@@ -398,29 +406,30 @@ const handleMobileTOCClick = (id: string) => {
       <!-- Table of Contents Widget -->
       <div
         v-if="headings.length > 1"
-        class="terminal-card overflow-hidden bg-[var(--card)] border border-border p-4 self-stretch w-full max-w-[16rem]"
+        class="rounded-xl border bg-card text-card-foreground overflow-hidden bg-card border border-border p-4 self-stretch w-full max-w-[16rem]"
       >
         <div
-          class="text-2xs font-bold uppercase tracking-wider text-muted-foreground/80 mb-2.5 border-b border-border/50 pb-1.5 select-none font-mono"
+          class="text-xs font-bold uppercase tracking-wider text-muted-foreground/80 mb-2.5 border-b border-border/50 pb-1.5 select-none font-mono"
         >
           {{ t("forum.sidebar.toc") }}
         </div>
         <nav class="flex flex-col gap-1">
-          <button
+          <Button
+            variant="outline"
             v-for="h in headings"
             :key="h.id"
             type="button"
-            class="text-left text-xs font-mono py-1 px-2 transition-all duration-150 border-l-2 select-none hover:bg-[var(--surface-sunken)] hover:text-foreground cursor-pointer"
+            class="text-left py-1 px-2 select-none cursor-pointer"
             :class="[
               activeHeadingId === h.id
-                ? 'border-primary text-[var(--primary)] font-bold bg-[var(--primary)]/5'
+                ? 'border-primary text-primary font-bold bg-primary/5'
                 : 'border-transparent text-muted-foreground font-medium',
             ]"
             :style="{ paddingLeft: h.level === 3 ? '1.25rem' : '0.5rem' }"
             @click="scrollToHeading(h.id)"
           >
             {{ h.text }}
-          </button>
+          </Button>
         </nav>
       </div>
     </aside>

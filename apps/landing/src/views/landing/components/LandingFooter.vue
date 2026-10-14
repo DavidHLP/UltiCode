@@ -1,202 +1,54 @@
 <script setup lang="ts">
 import { useI18n } from "vue-i18n";
 import { platformUrl } from "@/utils/platformUrl";
-
+import { Separator } from "@ulticode/design-system/ui/separator";
 const { t } = useI18n();
+const columns = [
+  { name: "platform", links: ["/problemset", "/contest", "/forum", "/login"] },
+  { name: "spec", links: ["#proof", "#workflow", "#use-cases", "#governance"] },
+  {
+    name: "inst",
+    links: ["#governance", "#governance", "#proof", "#main-content"],
+  },
+];
 </script>
-
 <template>
-  <footer class="editorial-footer">
-    <div class="footer-main-grid">
-      <div class="footer-brand-col">
-        <div class="brand-logotype">
-          <span class="brand-emblem">⌘</span>
-          <span class="brand-name">UltiCode</span>
+  <footer class="border-t px-4 py-10 sm:px-6">
+    <div class="mx-auto flex max-w-7xl flex-col gap-8">
+      <div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="flex flex-col gap-3">
+          <span class="font-semibold">UltiCode</span>
+          <p class="text-sm text-muted-foreground">
+            {{ t("landing.footer.manifesto") }}
+          </p>
         </div>
-        <p class="brand-manifesto">
-          {{ t("landing.footer.manifesto") }}
-        </p>
+        <nav
+          v-for="column in columns"
+          :key="column.name"
+          class="flex flex-col gap-3"
+          :aria-label="t(`landing.footer.${column.name}ColTitle`)"
+        >
+          <h3 class="text-sm font-semibold">
+            {{ t(`landing.footer.${column.name}ColTitle`) }}
+          </h3>
+          <ul class="flex flex-col gap-2 text-sm text-muted-foreground">
+            <li v-for="(link, index) in column.links" :key="link + index">
+              <a
+                :href="link.startsWith('#') ? link : platformUrl(link)"
+                class="hover:text-foreground hover:underline"
+                >{{ t(`landing.footer.${column.name}Link${index + 1}`) }}</a
+              >
+            </li>
+          </ul>
+        </nav>
       </div>
-
-      <div class="footer-links-col">
-        <h4 class="col-title">{{ t("landing.footer.platformColTitle") }}</h4>
-        <ul class="col-list">
-          <li>
-            <a :href="platformUrl('/problemset')">{{
-              t("landing.footer.platformLink1")
-            }}</a>
-          </li>
-          <li>
-            <a :href="platformUrl('/contest')">{{
-              t("landing.footer.platformLink2")
-            }}</a>
-          </li>
-          <li>
-            <a :href="platformUrl('/forum')">{{
-              t("landing.footer.platformLink3")
-            }}</a>
-          </li>
-          <li>
-            <a :href="platformUrl('/login')">{{
-              t("landing.footer.platformLink4")
-            }}</a>
-          </li>
-        </ul>
-      </div>
-
-      <div class="footer-links-col">
-        <h4 class="col-title">{{ t("landing.footer.specColTitle") }}</h4>
-        <ul class="col-list">
-          <li>
-            <a href="#proof">{{ t("landing.footer.specLink1") }}</a>
-          </li>
-          <li>
-            <a href="#workflow">{{ t("landing.footer.specLink2") }}</a>
-          </li>
-          <li>
-            <a href="#use-cases">{{ t("landing.footer.specLink3") }}</a>
-          </li>
-          <li>
-            <a href="#governance">{{ t("landing.footer.specLink4") }}</a>
-          </li>
-        </ul>
-      </div>
-
-      <div class="footer-links-col">
-        <h4 class="col-title">{{ t("landing.footer.instColTitle") }}</h4>
-        <ul class="col-list">
-          <li>
-            <a href="#governance">{{ t("landing.footer.instLink1") }}</a>
-          </li>
-          <li>
-            <a href="#governance">{{ t("landing.footer.instLink2") }}</a>
-          </li>
-          <li>
-            <a href="#proof">{{ t("landing.footer.instLink3") }}</a>
-          </li>
-          <li>
-            <a href="#main-content">{{ t("landing.footer.instLink4") }}</a>
-          </li>
-        </ul>
-      </div>
-    </div>
-
-    <div class="footer-bottom-bar">
-      <div class="copyright">
-        {{ t("landing.footer.copyright") }}
-      </div>
-      <div class="system-nominal">
-        <span class="nominal-dot" aria-hidden="true" />
-        {{ t("landing.footer.systemNominal") }}
+      <Separator />
+      <div
+        class="flex flex-wrap justify-between gap-3 text-sm text-muted-foreground"
+      >
+        <span>{{ t("landing.footer.copyright") }}</span
+        ><span>{{ t("landing.footer.systemNominal") }}</span>
       </div>
     </div>
   </footer>
 </template>
-
-<style scoped>
-.editorial-footer {
-  background:
-    linear-gradient(rgba(32, 51, 37, 0.9), rgba(32, 51, 37, 0.98)),
-    url("../../../assets/landing/algorithmic-horizon.webp") center bottom /
-      cover;
-  color: #8c9985;
-  padding: 4.5rem 1.5rem 3rem;
-  border-top: 1px solid rgba(227, 225, 209, 0.1);
-  font-size: 0.85rem;
-}
-
-.footer-main-grid {
-  max-width: 1080px;
-  margin: 0 auto 4rem;
-  display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr;
-  gap: 3rem;
-}
-
-.brand-logotype {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: #e3e1d1;
-  margin-bottom: 1rem;
-}
-
-.brand-name {
-  font-family: var(--font-serif);
-  font-size: 1.35rem;
-  font-weight: 700;
-}
-
-.brand-manifesto {
-  line-height: 1.6;
-  max-width: 320px;
-  color: #e3e1d1;
-  opacity: 0.7;
-}
-
-.col-title {
-  font-family: var(--font-serif);
-  font-size: 1rem;
-  color: #e3e1d1;
-  margin-bottom: 1rem;
-}
-
-.col-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-}
-
-.col-list a {
-  color: #8c9985;
-  text-decoration: none;
-  transition: color 0.2s;
-}
-
-.col-list a:hover {
-  color: #e3e1d1;
-}
-
-.footer-bottom-bar {
-  max-width: 1080px;
-  margin: 0 auto;
-  display: flex;
-  justify-content: space-between;
-  padding-top: 2rem;
-  border-top: 1px solid rgba(227, 225, 209, 0.08);
-  font-size: 0.75rem;
-  font-family: var(--font-mono);
-}
-
-.system-nominal {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-.nominal-dot {
-  width: 6px;
-  height: 6px;
-  background-color: #588e67;
-  border-radius: 50%;
-}
-
-@media (max-width: 768px) {
-  .editorial-footer {
-    padding: 2.5rem 1rem 2rem;
-  }
-  .footer-main-grid {
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
-    margin-bottom: 2rem;
-  }
-  .footer-bottom-bar {
-    flex-direction: column;
-    gap: 0.75rem;
-    padding-top: 1.25rem;
-  }
-}
-</style>

@@ -1,12 +1,18 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { IconPlus, IconTrash, IconBrackets, IconCheck } from '@tabler/icons-vue'
-import { Badge } from '@/components/ui/badge'
-import { Textarea } from '@/components/ui/textarea'
+import { Button } from '@ulticode/design-system/ui/button'
+import { Input } from '@ulticode/design-system/ui/input'
+import { Label } from '@ulticode/design-system/ui/label'
+import {
+  Plus as IconPlus,
+  Trash as IconTrash,
+  Brackets as IconBrackets,
+  Check as IconCheck,
+} from '@lucide/vue'
+
+import { Badge } from '@ulticode/design-system/ui/badge'
+import { Textarea } from '@ulticode/design-system/ui/textarea'
 import { sanitizeTextInput } from '@/utils/sanitize-input'
 import { getLanguageColor } from '@/lib/entities/language'
 
@@ -154,7 +160,7 @@ defineExpose({
     <!-- Main Content -->
     <div class="lg:col-span-8 space-y-5">
       <!-- Add Languages Section -->
-      <section class="p-5 rounded-none border bg-card">
+      <section class="p-5 rounded-lg border bg-card">
         <div class="flex items-center gap-2 mb-4">
           <IconBrackets class="h-5 w-5 text-muted-foreground" />
           <h2 class="font-semibold">{{ t('problems.codeForm.addLanguages') }}</h2>
@@ -162,13 +168,14 @@ defineExpose({
 
         <!-- Quick Add -->
         <div class="space-y-3">
-          <Label class="text-sm text-muted-foreground">{{ t('problems.codeForm.quickAdd') }}</Label>
+          <Label>{{ t('problems.codeForm.quickAdd') }}</Label>
           <div class="flex flex-wrap gap-2">
-            <button
+            <Button
+              variant="outline"
               v-for="lang in commonLanguages"
               :key="lang"
               :class="[
-                'px-2.5 py-1.5 rounded-none text-xs font-mono font-medium transition-all border shrink-0',
+                'px-2.5 py-1.5 rounded-lg text-xs font-mono font-medium transition-all border shrink-0',
                 isLanguageAdded(lang)
                   ? 'bg-muted/50 text-muted-foreground border-transparent opacity-60 cursor-not-allowed'
                   : getLanguageColor(lang) + ' hover:shadow-sm',
@@ -179,7 +186,7 @@ defineExpose({
               <IconPlus v-if="!isLanguageAdded(lang)" class="h-3 w-3 mr-1 inline-block" />
               <IconCheck v-else class="h-3 w-3 mr-1 inline-block" />
               {{ lang }}
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -188,7 +195,7 @@ defineExpose({
           <Input
             v-model="customLanguage"
             :placeholder="t('problems.codeForm.customLanguagePlaceholder')"
-            class="font-mono text-sm flex-1 max-w-xs"
+            class="flex-1 max-w-xs"
             @keyup.enter="handleAddLanguage"
           />
           <Button size="sm" :disabled="!customLanguage.trim()" @click="handleAddLanguage">
@@ -204,59 +211,55 @@ defineExpose({
         <div
           v-for="(lang, index) in formData.languages"
           :key="index"
-          class="rounded-none border bg-card overflow-hidden"
+          class="rounded-lg border bg-card overflow-hidden"
         >
           <!-- Language Header -->
-          <button
-            :class="[
-              'w-full flex items-center justify-between p-4 transition-colors hover:bg-muted/30',
-              expandedLang === lang.language ? 'bg-muted/20' : '',
-            ]"
-            @click="expandedLang = expandedLang === lang.language ? null : lang.language"
-          >
-            <div class="flex items-center gap-3">
-              <Badge
-                variant="outline"
-                class="font-mono text-sm"
-                :class="getLanguageColor(lang.language)"
-              >
-                <IconBrackets class="h-3.5 w-3.5 mr-1.5" />
-                {{ lang.language }}
-              </Badge>
-              <span class="text-xs text-muted-foreground">
-                {{ lang.starterCode.split('\n').filter(Boolean).length || 0 }}
-                {{ t('problems.codeForm.lines') }}
-              </span>
-            </div>
-            <div class="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                class="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                @click.stop="removeLanguage(index)"
-              >
-                <IconTrash class="h-4 w-4" />
-              </Button>
-              <IconPlus
-                :class="[
-                  'h-4 w-4 transition-transform text-muted-foreground',
-                  expandedLang === lang.language ? 'rotate-45' : '',
-                ]"
-              />
-            </div>
-          </button>
+          <div class="flex items-center gap-2">
+            <Button
+              variant="outline"
+              :class="[
+                'w-full flex items-center justify-between p-4 transition-colors hover:bg-muted/30',
+                expandedLang === lang.language ? 'bg-muted/20' : '',
+              ]"
+              @click="expandedLang = expandedLang === lang.language ? null : lang.language"
+            >
+              <div class="flex items-center gap-3">
+                <Badge variant="outline" :class="getLanguageColor(lang.language)">
+                  <IconBrackets class="h-3.5 w-3.5 mr-1.5" />
+                  {{ lang.language }}
+                </Badge>
+                <span class="text-xs text-muted-foreground">
+                  {{ lang.starterCode.split('\n').filter(Boolean).length || 0 }}
+                  {{ t('problems.codeForm.lines') }}
+                </span>
+              </div>
+              <div class="flex items-center gap-2">
+                <IconPlus
+                  :class="[
+                    'h-4 w-4 transition-transform text-muted-foreground',
+                    expandedLang === lang.language ? 'rotate-45' : '',
+                  ]"
+                />
+              </div>
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              :aria-label="t('common.remove')"
+              @click="removeLanguage(index)"
+            >
+              <IconTrash class="h-4 w-4" />
+            </Button>
+          </div>
 
           <!-- Starter Code Editor -->
           <div v-if="expandedLang === lang.language" class="p-4 border-t bg-muted/10">
-            <Label class="text-xs text-muted-foreground mb-2 block">{{
-              t('problems.codeForm.starterCodeTemplate')
-            }}</Label>
+            <Label class="mb-2 block">{{ t('problems.codeForm.starterCodeTemplate') }}</Label>
             <Textarea
               :model-value="lang.starterCode"
               @update:model-value="updateStarterCode(index, String($event))"
               rows="12"
               :placeholder="`// Starter code for ${lang.language}...`"
-              class="font-mono text-sm bg-background"
             />
           </div>
         </div>
@@ -265,9 +268,9 @@ defineExpose({
       <!-- Empty State -->
       <div
         v-else
-        class="flex flex-col items-center justify-center py-12 px-4 text-center rounded-none border border-dashed bg-muted/20"
+        class="flex flex-col items-center justify-center py-12 px-4 text-center rounded-lg border border-dashed bg-muted/20"
       >
-        <div class="w-12 h-12 rounded-none bg-muted flex items-center justify-center mb-3">
+        <div class="w-12 h-12 rounded-lg bg-muted flex items-center justify-center mb-3">
           <IconBrackets class="h-6 w-6 text-muted-foreground" />
         </div>
         <h3 class="text-sm font-medium mb-1">{{ t('problems.codeForm.noLanguages') }}</h3>
@@ -280,7 +283,7 @@ defineExpose({
     <!-- Sidebar -->
     <aside class="lg:col-span-4 space-y-4 lg:sticky lg:top-6 h-fit self-start">
       <!-- Status Card -->
-      <div class="p-4 rounded-none border bg-card">
+      <div class="p-4 rounded-lg border bg-card">
         <h3 class="text-sm font-medium mb-3">{{ t('problems.codeForm.configuration') }}</h3>
         <div class="space-y-2 text-sm">
           <div class="flex items-center justify-between">
@@ -298,7 +301,7 @@ defineExpose({
       </div>
 
       <!-- Actions -->
-      <div class="p-4 rounded-none border border-primary/20 bg-primary/5">
+      <div class="p-4 rounded-lg border border-primary/20 bg-primary/5">
         <div class="flex flex-col gap-2">
           <Button
             class="w-full"

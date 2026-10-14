@@ -2,7 +2,7 @@
 import { onMounted } from "vue";
 import { Trophy } from "@lucide/vue";
 import { useContestRankingStore } from "@/stores/contestRanking";
-import { Separator } from "@/components/ui/separator";
+import { Separator } from "@ulticode/design-system/ui/separator";
 import MyContests from "./components/MyContests.vue";
 import { useI18n } from "vue-i18n";
 
@@ -27,10 +27,8 @@ onMounted(async () => {
     >
       <div class="space-y-1">
         <div class="flex items-center gap-3">
-          <Trophy class="h-8 w-8 text-[var(--status-warning-mark)]" />
-          <h1
-            class="text-3xl font-bold tracking-tight text-foreground-strong"
-          >
+          <Trophy class="h-8 w-8 text-status-warning-mark" />
+          <h1 class="text-3xl font-bold tracking-tight text-foreground">
             {{ t("contest.my.title") }}
           </h1>
         </div>

@@ -26,6 +26,7 @@ const SOURCE = join(ROOT, 'packages/theme/bootstrap.js')
 const COPIES = [
   join(ROOT, 'apps/console/public/theme-bootstrap.js'),
   join(ROOT, 'apps/management/public/theme-bootstrap.js'),
+  join(ROOT, 'apps/landing/public/theme-bootstrap.js'),
 ]
 
 // Behavior markers that MUST appear in the bootstrap. If the TS source

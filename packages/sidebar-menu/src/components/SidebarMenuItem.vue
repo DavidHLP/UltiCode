@@ -1,104 +1,65 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { cn } from '../utils'
-
-// Root binds $attrs explicitly (v-bind="$attrs"); disable automatic fallthrough
-// so attrs (to, events, ...) are not applied twice.
-defineOptions({ inheritAttrs: false })
-
+import { computed } from "vue";
+import { Button } from "@ulticode/design-system/ui/button";
+import { Badge } from "@ulticode/design-system/ui/badge";
+import { ChevronRight } from "@lucide/vue";
+defineOptions({ inheritAttrs: false });
 const props = withDefaults(
   defineProps<{
-    isActive?: boolean
-    as?: 'link' | 'button' | 'a'
-    class?: string
-    /** Optional badge (count/label) pinned to the row end. */
-    badge?: string | number
-    /** Badge tone. */
-    badgeVariant?: 'default' | 'accent' | 'muted'
-    /** Extra class applied to the leading `#icon` slot wrapper. */
-    iconClass?: string
-    /** When true, render a trailing chevron toggle that emits `toggle`. */
-    showChevron?: boolean
+    isActive?: boolean;
+    as?: "link" | "button" | "a";
+    class?: string;
+    badge?: string | number;
+    badgeVariant?: "default" | "accent" | "muted";
+    iconClass?: string;
+    showChevron?: boolean;
   }>(),
-  { as: 'link', badgeVariant: 'default', showChevron: false },
-)
-
-const emit = defineEmits<{
-  toggle: []
-}>()
-
-const tag = computed(() => {
-  if (props.as === 'link') return 'router-link'
-  if (props.as === 'a') return 'a'
-  return 'button'
-})
-
-const badgeClass = computed(() => {
-  switch (props.badgeVariant) {
-    case 'accent':
-      return 'bg-[var(--primary)]/15 text-[var(--primary)]'
-    case 'muted':
-      return 'bg-[var(--border-subtle)]/50 text-[var(--foreground-strong)] dark:text-[var(--foreground-muted)]'
-    default:
-      return 'bg-[var(--border-subtle)]/60 text-foreground dark:text-[var(--foreground-muted)]'
-  }
-})
-
-// Activation visuals are driven by [data-active] + the .uc-sidebar-item CSS
-// contract (single source of truth); this component no longer hand-writes
-// `border-l-4 border-[--primary]`.
-const mergedClass = computed(() =>
-  cn(
-    'uc-sidebar-item group flex items-center gap-2.5 pl-2.5 pr-3 py-1.5 transition-all duration-200 select-none text-sm font-medium h-9 mx-1 rounded-md',
-    props.class,
-  ),
-)
-
-function onChevronClick(e: MouseEvent) {
-  e.preventDefault()
-  e.stopPropagation()
-  emit('toggle')
+  { as: "link", badgeVariant: "default", showChevron: false },
+);
+const emit = defineEmits<{ toggle: [] }>();
+const tag = computed(() =>
+  props.as === "link" ? "router-link" : props.as === "a" ? "a" : "button",
+);
+function onChevronClick(event: MouseEvent) {
+  event.preventDefault();
+  event.stopPropagation();
+  emit("toggle");
 }
 </script>
-
 <template>
-  <component
-    :is="tag"
-    :class="mergedClass"
-    :data-active="isActive ? 'true' : 'false'"
-    v-bind="$attrs"
-  >
-    <span v-if="$slots.icon" :class="cn('flex shrink-0 items-center', iconClass)">
-      <slot name="icon" />
-    </span>
-    <slot />
-    <span
-      v-if="badge !== undefined && badge !== null"
-      :class="cn('ml-auto inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium tabular-nums', badgeClass)"
+  <div class="flex min-w-0 items-center gap-1" data-slot="sidebar-menu-item">
+    <Button
+      variant="ghost"
+      as-child
+      class="flex-1 justify-start"
+      :class="props.class"
+      data-sidebar="menu-button"
+      :data-active="isActive || undefined"
     >
-      {{ badge }}
-    </span>
-    <button
+      <component :is="tag" v-bind="$attrs">
+        <span
+          v-if="$slots.icon"
+          class="flex shrink-0 items-center"
+          :class="iconClass"
+          ><slot name="icon"
+        /></span>
+        <slot />
+        <Badge
+          v-if="badge !== undefined && badge !== null"
+          class="ms-auto tabular-nums"
+          :variant="badgeVariant === 'accent' ? 'default' : 'secondary'"
+          >{{ badge }}</Badge
+        >
+      </component>
+    </Button>
+    <Button
       v-if="showChevron"
       type="button"
-      class="ml-auto flex size-4 shrink-0 items-center text-[var(--foreground-muted)] hover:text-[var(--foreground)]"
+      variant="ghost"
+      size="icon-sm"
       aria-label="toggle section"
       @click="onChevronClick"
-    >
-      <slot name="chevron">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          class="size-4 transition-transform duration-200"
-        >
-          <path d="m9 18 6-6-6-6" />
-        </svg>
-      </slot>
-    </button>
-  </component>
+      ><slot name="chevron"><ChevronRight /></slot
+    ></Button>
+  </div>
 </template>

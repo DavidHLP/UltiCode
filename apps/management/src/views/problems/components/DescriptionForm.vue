@@ -3,27 +3,35 @@ import { watch, ref } from 'vue'
 import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
 import { useI18n } from 'vue-i18n'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Label } from '@/components/ui/label'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Card, CardContent } from '@/components/ui/card'
+import { Button } from '@ulticode/design-system/ui/button'
+import { Input } from '@ulticode/design-system/ui/input'
+import { Textarea } from '@ulticode/design-system/ui/textarea'
+import { Label } from '@ulticode/design-system/ui/label'
+import { Checkbox } from '@ulticode/design-system/ui/checkbox'
+import { Card, CardContent } from '@ulticode/design-system/ui/card'
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from '@/components/ui/accordion'
+} from '@ulticode/design-system/ui/accordion'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
-import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
-import { IconFileDescription, IconCheck } from '@tabler/icons-vue'
+  SelectGroup,
+} from '@ulticode/design-system/ui/select'
+import {
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@ulticode/design-system/ui/form'
+import { FileText as IconFileDescription, Check as IconCheck } from '@lucide/vue'
+
 import MarkdownEditor from '@/components/problem/MarkdownEditor.vue'
 import ExamplesEditor from './ExamplesEditor.vue'
 import ConstraintsEditor from './ConstraintsEditor.vue'
@@ -189,13 +197,11 @@ function isLanguageSelected(lang: string): boolean {
       <form @submit="onSubmit" class="space-y-5">
         <Accordion type="multiple" :default-value="defaultOpenSections" class="space-y-4">
           <!-- Basic Info -->
-          <AccordionItem value="basic" class="border-0">
-            <Card class="rounded-none border-[var(--border)] shadow-none bg-card overflow-hidden">
-              <AccordionTrigger
-                class="px-5 py-3.5 hover:no-underline border-b border-[var(--border)] data-[state=closed]:border-b-0 bg-muted/15 transition-colors"
-              >
+          <AccordionItem value="basic">
+            <Card class="overflow-hidden">
+              <AccordionTrigger class="px-5 py-3.5 hover:no-underline">
                 <div class="flex items-center gap-2.5">
-                  <IconFileDescription class="size-4 text-[var(--foreground-muted)] shrink-0" />
+                  <IconFileDescription class="size-4 text-muted-foreground shrink-0" />
                   <span
                     class="text-xs font-mono font-bold uppercase tracking-wider text-foreground"
                   >
@@ -208,15 +214,12 @@ function isLanguageSelected(lang: string): boolean {
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <FormField v-slot="{ componentField }" name="title">
                       <FormItem class="space-y-0.5">
-                        <FormLabel
-                          class="text-xxs font-mono font-bold uppercase tracking-wider text-[var(--foreground-strong)] mb-1 block"
-                        >
+                        <FormLabel class="mb-1 block">
                           {{ t('problems.form.title') }}
                         </FormLabel>
                         <FormControl>
                           <Input
                             v-bind="componentField"
-                            variant="terminal"
                             :placeholder="t('problems.descriptionForm.titlePlaceholder')"
                           />
                         </FormControl>
@@ -226,17 +229,13 @@ function isLanguageSelected(lang: string): boolean {
 
                     <FormField v-slot="{ componentField }" name="slug">
                       <FormItem class="space-y-0.5">
-                        <FormLabel
-                          class="text-xxs font-mono font-bold uppercase tracking-wider text-[var(--foreground-strong)] mb-1 block"
-                        >
+                        <FormLabel class="mb-1 block">
                           {{ t('problems.form.slug') }}
                         </FormLabel>
                         <FormControl>
                           <Input
                             v-bind="componentField"
-                            variant="terminal"
                             :placeholder="t('problems.descriptionForm.slugPlaceholder')"
-                            class="font-mono"
                           />
                         </FormControl>
                         <FormMessage />
@@ -247,27 +246,27 @@ function isLanguageSelected(lang: string): boolean {
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <FormField v-slot="{ componentField }" name="difficulty">
                       <FormItem class="space-y-0.5">
-                        <FormLabel
-                          class="text-xxs font-mono font-bold uppercase tracking-wider text-[var(--foreground-strong)] mb-1 block"
-                        >
+                        <FormLabel class="mb-1 block">
                           {{ t('problems.form.difficulty') }}
                         </FormLabel>
                         <Select v-bind="componentField">
                           <FormControl>
-                            <SelectTrigger variant="terminal" class="w-full">
+                            <SelectTrigger class="w-full">
                               <SelectValue />
                             </SelectTrigger>
                           </FormControl>
-                          <SelectContent class="rounded-none border-[var(--border)] shadow-none">
-                            <SelectItem :value="Difficulty.EASY">{{
-                              t('problems.difficulty.EASY')
-                            }}</SelectItem>
-                            <SelectItem :value="Difficulty.MEDIUM">{{
-                              t('problems.difficulty.MEDIUM')
-                            }}</SelectItem>
-                            <SelectItem :value="Difficulty.HARD">{{
-                              t('problems.difficulty.HARD')
-                            }}</SelectItem>
+                          <SelectContent>
+                            <SelectGroup
+                              ><SelectItem :value="Difficulty.EASY">{{
+                                t('problems.difficulty.EASY')
+                              }}</SelectItem>
+                              <SelectItem :value="Difficulty.MEDIUM">{{
+                                t('problems.difficulty.MEDIUM')
+                              }}</SelectItem>
+                              <SelectItem :value="Difficulty.HARD">{{
+                                t('problems.difficulty.HARD')
+                              }}</SelectItem></SelectGroup
+                            >
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -276,27 +275,27 @@ function isLanguageSelected(lang: string): boolean {
 
                     <FormField v-slot="{ componentField }" name="status">
                       <FormItem class="space-y-0.5">
-                        <FormLabel
-                          class="text-xxs font-mono font-bold uppercase tracking-wider text-[var(--foreground-strong)] mb-1 block"
-                        >
+                        <FormLabel class="mb-1 block">
                           {{ t('problems.form.status') }}
                         </FormLabel>
                         <Select v-bind="componentField">
                           <FormControl>
-                            <SelectTrigger variant="terminal" class="w-full">
+                            <SelectTrigger class="w-full">
                               <SelectValue />
                             </SelectTrigger>
                           </FormControl>
-                          <SelectContent class="rounded-none border-[var(--border)] shadow-none">
-                            <SelectItem :value="ProblemStatus.TODO">{{
-                              t('problems.status.todo')
-                            }}</SelectItem>
-                            <SelectItem :value="ProblemStatus.ATTEMPTED">{{
-                              t('problems.status.attempted')
-                            }}</SelectItem>
-                            <SelectItem :value="ProblemStatus.SOLVED">{{
-                              t('problems.status.solved')
-                            }}</SelectItem>
+                          <SelectContent>
+                            <SelectGroup
+                              ><SelectItem :value="ProblemStatus.TODO">{{
+                                t('problems.status.todo')
+                              }}</SelectItem>
+                              <SelectItem :value="ProblemStatus.ATTEMPTED">{{
+                                t('problems.status.attempted')
+                              }}</SelectItem>
+                              <SelectItem :value="ProblemStatus.SOLVED">{{
+                                t('problems.status.solved')
+                              }}</SelectItem></SelectGroup
+                            >
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -308,24 +307,18 @@ function isLanguageSelected(lang: string): boolean {
                     <FormField v-slot="{ value, handleChange }" name="isPremium">
                       <FormItem>
                         <div
-                          class="flex items-center justify-between p-3.5 border border-[var(--border)] bg-card hover:bg-muted/15 transition-colors cursor-pointer rounded-none"
+                          class="flex items-center justify-between p-3.5 border border-border bg-card hover:bg-muted/15 transition-colors cursor-pointer rounded-lg"
                           @click="handleChange(!value)"
                         >
                           <div class="space-y-1">
-                            <Label
-                              class="text-xs font-mono font-bold uppercase tracking-wider text-foreground cursor-pointer"
-                            >
+                            <Label class="cursor-pointer">
                               {{ t('problems.descriptionForm.premium') }}
                             </Label>
-                            <p class="text-xxs text-[var(--foreground-muted)] leading-normal">
+                            <p class="text-xs text-muted-foreground leading-normal">
                               {{ t('problems.descriptionForm.premiumDescription') }}
                             </p>
                           </div>
-                          <Checkbox
-                            :checked="value"
-                            variant="terminal"
-                            @update:checked="handleChange"
-                          />
+                          <Checkbox :checked="value" @update:checked="handleChange" />
                         </div>
                         <FormMessage />
                       </FormItem>
@@ -334,24 +327,18 @@ function isLanguageSelected(lang: string): boolean {
                     <FormField v-slot="{ value, handleChange }" name="isPublished">
                       <FormItem>
                         <div
-                          class="flex items-center justify-between p-3.5 border border-[var(--border)] bg-card hover:bg-muted/15 transition-colors cursor-pointer rounded-none"
+                          class="flex items-center justify-between p-3.5 border border-border bg-card hover:bg-muted/15 transition-colors cursor-pointer rounded-lg"
                           @click="handleChange(!value)"
                         >
                           <div class="space-y-1">
-                            <Label
-                              class="text-xs font-mono font-bold uppercase tracking-wider text-foreground cursor-pointer"
-                            >
+                            <Label class="cursor-pointer">
                               {{ t('problems.descriptionForm.published') }}
                             </Label>
-                            <p class="text-xxs text-[var(--foreground-muted)] leading-normal">
+                            <p class="text-xs text-muted-foreground leading-normal">
                               {{ t('problems.descriptionForm.publishedDescription') }}
                             </p>
                           </div>
-                          <Checkbox
-                            :checked="value"
-                            variant="terminal"
-                            @update:checked="handleChange"
-                          />
+                          <Checkbox :checked="value" @update:checked="handleChange" />
                         </div>
                         <FormMessage />
                       </FormItem>
@@ -363,13 +350,11 @@ function isLanguageSelected(lang: string): boolean {
           </AccordionItem>
 
           <!-- Description -->
-          <AccordionItem value="description" class="border-0">
-            <Card class="rounded-none border-[var(--border)] shadow-none bg-card overflow-hidden">
-              <AccordionTrigger
-                class="px-5 py-3.5 hover:no-underline border-b border-[var(--border)] data-[state=closed]:border-b-0 bg-muted/15 transition-colors"
-              >
+          <AccordionItem value="description">
+            <Card class="overflow-hidden">
+              <AccordionTrigger class="px-5 py-3.5 hover:no-underline">
                 <div class="flex items-center gap-2.5">
-                  <IconFileDescription class="size-4 text-[var(--foreground-muted)] shrink-0" />
+                  <IconFileDescription class="size-4 text-muted-foreground shrink-0" />
                   <span
                     class="text-xs font-mono font-bold uppercase tracking-wider text-foreground"
                   >
@@ -381,9 +366,7 @@ function isLanguageSelected(lang: string): boolean {
                 <CardContent class="p-0 space-y-5">
                   <FormField v-slot="{ componentField }" name="summary">
                     <FormItem class="space-y-0.5">
-                      <FormLabel
-                        class="text-xxs font-mono font-bold uppercase tracking-wider text-[var(--foreground-strong)] mb-1 block"
-                      >
+                      <FormLabel class="mb-1 block">
                         {{ t('problems.form.summary') }}
                       </FormLabel>
                       <FormControl>
@@ -391,7 +374,7 @@ function isLanguageSelected(lang: string): boolean {
                           v-bind="componentField"
                           rows="2"
                           :placeholder="t('problems.descriptionForm.summaryPlaceholder')"
-                          class="font-sans text-sm border-[var(--border-subtle)] dark:border-[var(--border-subtle)] rounded-none shadow-none bg-[var(--surface-sunken)]/20 focus-visible:border-[var(--primary)] focus-visible:ring-[var(--accent-glow)] focus-visible:ring-[2px] resize-none min-h-[60px]"
+                          class="resize-none min-h-[60px]"
                         />
                       </FormControl>
                       <FormMessage />
@@ -400,9 +383,7 @@ function isLanguageSelected(lang: string): boolean {
 
                   <FormField v-slot="{ componentField }" name="content">
                     <FormItem class="space-y-0.5">
-                      <FormLabel
-                        class="text-xxs font-mono font-bold uppercase tracking-wider text-[var(--foreground-strong)] mb-1 block"
-                      >
+                      <FormLabel class="mb-1 block">
                         {{ t('problems.form.fullContent') }}
                       </FormLabel>
                       <FormControl>
@@ -421,13 +402,11 @@ function isLanguageSelected(lang: string): boolean {
           </AccordionItem>
 
           <!-- Examples -->
-          <AccordionItem value="examples" class="border-0">
-            <Card class="rounded-none border-[var(--border)] shadow-none bg-card overflow-hidden">
-              <AccordionTrigger
-                class="px-5 py-3.5 hover:no-underline border-b border-[var(--border)] data-[state=closed]:border-b-0 bg-muted/15 transition-colors"
-              >
+          <AccordionItem value="examples">
+            <Card class="overflow-hidden">
+              <AccordionTrigger class="px-5 py-3.5 hover:no-underline">
                 <div class="flex items-center gap-2.5">
-                  <IconFileDescription class="size-4 text-[var(--foreground-muted)] shrink-0" />
+                  <IconFileDescription class="size-4 text-muted-foreground shrink-0" />
                   <span
                     class="text-xs font-mono font-bold uppercase tracking-wider text-foreground"
                   >
@@ -451,13 +430,11 @@ function isLanguageSelected(lang: string): boolean {
           </AccordionItem>
 
           <!-- Constraints -->
-          <AccordionItem value="constraints" class="border-0">
-            <Card class="rounded-none border-[var(--border)] shadow-none bg-card overflow-hidden">
-              <AccordionTrigger
-                class="px-5 py-3.5 hover:no-underline border-b border-[var(--border)] data-[state=closed]:border-b-0 bg-muted/15 transition-colors"
-              >
+          <AccordionItem value="constraints">
+            <Card class="overflow-hidden">
+              <AccordionTrigger class="px-5 py-3.5 hover:no-underline">
                 <div class="flex items-center gap-2.5">
-                  <IconFileDescription class="size-4 text-[var(--foreground-muted)] shrink-0" />
+                  <IconFileDescription class="size-4 text-muted-foreground shrink-0" />
                   <span
                     class="text-xs font-mono font-bold uppercase tracking-wider text-foreground"
                   >
@@ -481,13 +458,11 @@ function isLanguageSelected(lang: string): boolean {
           </AccordionItem>
 
           <!-- Hints -->
-          <AccordionItem value="hints" class="border-0">
-            <Card class="rounded-none border-[var(--border)] shadow-none bg-card overflow-hidden">
-              <AccordionTrigger
-                class="px-5 py-3.5 hover:no-underline border-b border-[var(--border)] data-[state=closed]:border-b-0 bg-muted/15 transition-colors"
-              >
+          <AccordionItem value="hints">
+            <Card class="overflow-hidden">
+              <AccordionTrigger class="px-5 py-3.5 hover:no-underline">
                 <div class="flex items-center gap-2.5">
-                  <IconFileDescription class="size-4 text-[var(--foreground-muted)] shrink-0" />
+                  <IconFileDescription class="size-4 text-muted-foreground shrink-0" />
                   <span
                     class="text-xs font-mono font-bold uppercase tracking-wider text-foreground"
                   >
@@ -511,13 +486,11 @@ function isLanguageSelected(lang: string): boolean {
           </AccordionItem>
 
           <!-- Tags -->
-          <AccordionItem value="tags" class="border-0">
-            <Card class="rounded-none border-[var(--border)] shadow-none bg-card overflow-hidden">
-              <AccordionTrigger
-                class="px-5 py-3.5 hover:no-underline border-b border-[var(--border)] data-[state=closed]:border-b-0 bg-muted/15 transition-colors"
-              >
+          <AccordionItem value="tags">
+            <Card class="overflow-hidden">
+              <AccordionTrigger class="px-5 py-3.5 hover:no-underline">
                 <div class="flex items-center gap-2.5">
-                  <IconFileDescription class="size-4 text-[var(--foreground-muted)] shrink-0" />
+                  <IconFileDescription class="size-4 text-muted-foreground shrink-0" />
                   <span
                     class="text-xs font-mono font-bold uppercase tracking-wider text-foreground"
                   >
@@ -544,13 +517,11 @@ function isLanguageSelected(lang: string): boolean {
           </AccordionItem>
 
           <!-- Languages -->
-          <AccordionItem value="languages" class="border-0">
-            <Card class="rounded-none border-[var(--border)] shadow-none bg-card overflow-hidden">
-              <AccordionTrigger
-                class="px-5 py-3.5 hover:no-underline border-b border-[var(--border)] data-[state=closed]:border-b-0 bg-muted/15 transition-colors"
-              >
+          <AccordionItem value="languages">
+            <Card class="overflow-hidden">
+              <AccordionTrigger class="px-5 py-3.5 hover:no-underline">
                 <div class="flex items-center gap-2.5">
-                  <IconFileDescription class="size-4 text-[var(--foreground-muted)] shrink-0" />
+                  <IconFileDescription class="size-4 text-muted-foreground shrink-0" />
                   <span
                     class="text-xs font-mono font-bold uppercase tracking-wider text-foreground"
                   >
@@ -560,28 +531,29 @@ function isLanguageSelected(lang: string): boolean {
               </AccordionTrigger>
               <AccordionContent class="pt-4 pb-5 px-5">
                 <CardContent class="p-0 space-y-4">
-                  <p class="text-xs text-[var(--foreground-muted)] leading-normal">
+                  <p class="text-xs text-muted-foreground leading-normal">
                     {{ t('problems.descriptionForm.languagesDescription') }}
                   </p>
                   <div class="flex flex-wrap gap-1.5">
-                    <button
+                    <Button
+                      variant="outline"
                       v-for="lang in availableLanguages"
                       :key="lang"
                       type="button"
-                      class="cursor-pointer font-mono text-xs px-2.5 py-1 select-none border transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring rounded-none h-7 flex items-center justify-center"
+                      class="cursor-pointer px-2.5 py-1 select-none focus-visible:outline-none flex items-center justify-center"
                       :class="[
                         isLanguageSelected(lang)
-                          ? 'bg-[var(--accent-primary)] text-primary-foreground border-transparent font-semibold'
-                          : 'bg-transparent text-muted-foreground border-[var(--border)] hover:bg-muted/30 hover:text-foreground',
+                          ? 'bg-primary text-primary-foreground border-transparent font-semibold'
+                          : 'bg-transparent text-muted-foreground border-border hover:bg-muted/30 hover:text-foreground',
                       ]"
                       @click="toggleLanguage(lang)"
                     >
                       {{ lang }}
-                    </button>
+                    </Button>
                   </div>
                   <p
                     v-if="(formValues.languages || []).length === 0"
-                    class="text-xs text-foreground-strong italic font-mono"
+                    class="text-xs text-foreground italic font-mono"
                   >
                     {{ t('problems.descriptionForm.noLanguagesSelected') }}
                   </p>
@@ -592,11 +564,11 @@ function isLanguageSelected(lang: string): boolean {
         </Accordion>
 
         <!-- Action buttons -->
-        <div class="flex flex-col sm:flex-row gap-3 pt-3 border-t border-[var(--border)]">
+        <div class="flex flex-col sm:flex-row gap-3 pt-3 border-t border-border">
           <Button
             type="submit"
-            variant="terminal_primary"
-            size="terminal_lg"
+            variant="default"
+            size="lg"
             class="w-full sm:w-auto"
             :disabled="loading"
           >
@@ -611,9 +583,9 @@ function isLanguageSelected(lang: string): boolean {
           </Button>
           <Button
             type="button"
-            variant="terminal"
-            size="terminal_lg"
-            class="w-full sm:w-auto text-[var(--foreground-strong)] hover:text-foreground border-[var(--border-subtle)]"
+            variant="outline"
+            size="lg"
+            class="w-full sm:w-auto"
             @click="cancel"
           >
             {{ t('common.cancel') }}
@@ -624,9 +596,7 @@ function isLanguageSelected(lang: string): boolean {
 
     <!-- Right: Live Preview -->
     <div class="lg:col-span-4 lg:sticky lg:top-5 h-fit">
-      <Card
-        class="h-[calc(100vh-6rem)] rounded-none border-[var(--border)] shadow-none bg-card overflow-hidden flex flex-col"
-      >
+      <Card class="h-[calc(100vh-6rem)] overflow-hidden flex flex-col">
         <LivePreviewPanel :data="formValues as ProblemDescriptionFormData" />
       </Card>
     </div>

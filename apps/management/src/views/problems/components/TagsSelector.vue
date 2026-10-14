@@ -1,9 +1,12 @@
 <script setup lang="ts">
+import { Button } from '@ulticode/design-system/ui/button'
+
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
-import { IconX, IconLoader2 } from '@tabler/icons-vue'
+import { Badge } from '@ulticode/design-system/ui/badge'
+import { Input } from '@ulticode/design-system/ui/input'
+import { X as IconX, Loader2 as IconLoader2 } from '@lucide/vue'
+
 import { useProblemsStore } from '@/stores/admin/problems'
 
 const props = defineProps<{
@@ -73,10 +76,10 @@ onMounted(() => {
     <!-- Selected Tags -->
     <div class="space-y-2">
       <div class="flex items-center justify-between">
-        <span class="text-xs font-mono font-bold uppercase tracking-wider text-[var(--foreground-strong)]">
+        <span class="text-xs font-mono font-bold uppercase tracking-wider text-foreground">
           {{ t('problems.tagsSelector.selected') }}
         </span>
-        <span v-if="selectedTags.length" class="text-2xs font-mono text-[var(--foreground-muted)]">
+        <span v-if="selectedTags.length" class="text-xs font-mono text-muted-foreground">
           {{ selectedTags.length }} {{ t('problems.tagsSelector.selectedCount') }}
         </span>
       </div>
@@ -90,21 +93,22 @@ onMounted(() => {
           v-for="tag in selectedTags"
           :key="tag.id"
           variant="secondary"
-          class="gap-1 pr-1 px-2.5 py-0.5 rounded-none shadow-none font-mono text-xs border border-[var(--border)] bg-muted/20 text-foreground h-7"
+          class="gap-1 pr-1 px-2.5 py-0.5 h-7"
         >
           {{ tag.label }}
-          <button
+          <Button
+            variant="ghost"
             type="button"
-            class="cursor-pointer rounded-none p-0.5 text-foreground-muted transition-colors hover:bg-status-error-surface hover:text-foreground-strong [&_svg]:text-destructive"
+            class="cursor-pointer p-0.5 [&_svg]:text-destructive"
             :aria-label="t('problems.tagsSelector.removeTag', { tag: tag.label })"
             @click="removeTag(tag.id)"
           >
             <IconX class="h-3 w-3" />
-          </button>
+          </Button>
         </Badge>
       </div>
 
-      <p v-else class="text-xs text-[var(--foreground-muted)] font-mono italic">
+      <p v-else class="text-xs text-muted-foreground font-mono italic">
         {{ t('problems.tagsSelector.noTagsSelected') }}
       </p>
     </div>
@@ -114,9 +118,7 @@ onMounted(() => {
       <Input
         v-model="searchQuery"
         type="text"
-        variant="terminal"
         :placeholder="t('problems.tagsSelector.searchPlaceholder')"
-        class="text-sm font-mono rounded-none shadow-none"
         data-testid="tag-search-input"
       />
     </div>
@@ -124,7 +126,7 @@ onMounted(() => {
     <!-- Loading State -->
     <div
       v-if="store.tagsLoading"
-      class="flex items-center gap-2 text-xs font-mono text-[var(--foreground-muted)]"
+      class="flex items-center gap-2 text-xs font-mono text-muted-foreground"
     >
       <IconLoader2 class="h-3.5 w-3.5 animate-spin" />
       {{ t('problems.tagsSelector.loading') }}
@@ -133,10 +135,10 @@ onMounted(() => {
     <!-- Available Tags -->
     <div v-else class="space-y-2">
       <div class="flex items-center justify-between">
-        <span class="text-xs font-mono font-bold uppercase tracking-wider text-[var(--foreground-strong)]">
+        <span class="text-xs font-mono font-bold uppercase tracking-wider text-foreground">
           {{ t('problems.tagsSelector.available') }}
         </span>
-        <span class="text-2xs font-mono text-[var(--foreground-muted)]">
+        <span class="text-xs font-mono text-muted-foreground">
           {{ filteredTags.length }} {{ t('problems.tagsSelector.totalCount') }}
         </span>
       </div>
@@ -146,33 +148,34 @@ onMounted(() => {
         class="flex flex-wrap gap-1.5"
         data-testid="available-tags"
       >
-        <button
+        <Button
+          variant="outline"
           v-for="tag in filteredTags"
           :key="tag.id"
           type="button"
-          class="cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring rounded-none h-7 flex items-center justify-center"
+          class="cursor-pointer focus-visible:outline-none flex items-center justify-center"
           :aria-pressed="isSelected(tag.id)"
           @click="toggleTag(tag.id)"
         >
           <Badge
             :variant="isSelected(tag.id) ? 'default' : 'outline'"
-            class="select-none rounded-none shadow-none font-mono text-xs px-2.5 py-1 h-7 border"
+            class="select-none px-2.5 py-1 h-7"
             :class="[
               isSelected(tag.id)
                 ? 'border-transparent font-semibold'
-                : 'bg-transparent text-muted-foreground border-[var(--border)] hover:bg-muted/30 hover:text-foreground',
+                : 'bg-transparent text-muted-foreground border-border hover:bg-muted/30 hover:text-foreground',
             ]"
           >
             {{ tag.label }}
           </Badge>
-        </button>
+        </Button>
       </div>
 
-      <p v-else-if="searchQuery" class="text-xs text-[var(--foreground-muted)] font-mono italic">
+      <p v-else-if="searchQuery" class="text-xs text-muted-foreground font-mono italic">
         {{ t('problems.tagsSelector.noResults') }}
       </p>
 
-      <p v-else class="text-xs text-[var(--foreground-muted)] font-mono italic">
+      <p v-else class="text-xs text-muted-foreground font-mono italic">
         {{ t('problems.tagsSelector.noTagsAvailable') }}
       </p>
     </div>

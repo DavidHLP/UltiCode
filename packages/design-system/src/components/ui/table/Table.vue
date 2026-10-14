@@ -1,0 +1,19 @@
+<script setup lang="ts">
+import type { HTMLAttributes } from "vue";
+import { cn } from "@ulticode/design-system/utils/cn";
+
+const props = defineProps<{
+  class?: HTMLAttributes["class"];
+}>();
+</script>
+
+<template>
+  <div data-slot="table-container" class="relative w-full overflow-x-auto">
+    <table
+      data-slot="table"
+      :class="cn('w-full caption-bottom text-sm', props.class)"
+    >
+      <slot />
+    </table>
+  </div>
+</template>

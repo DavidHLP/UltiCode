@@ -1,24 +1,24 @@
 import { h } from 'vue'
 import type { ColumnDef } from '@tanstack/vue-table'
 import {
-  IconAlertTriangle,
-  IconAlertCircle,
-  IconDotsVertical,
-  IconEye,
-  IconLink,
-  IconClock,
-} from '@tabler/icons-vue'
+  AlertTriangle as IconAlertTriangle,
+  AlertCircle as IconAlertCircle,
+  EllipsisVertical as IconDotsVertical,
+  Eye as IconEye,
+  Link as IconLink,
+  Clock as IconClock,
+} from '@lucide/vue'
 
 import { createSelectionColumn } from '@/components/table/selectionColumn'
-import { Button } from '@/components/ui/button'
+import { Button } from '@ulticode/design-system/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { badge } from '@/components/ui/terminal'
-import type { SemanticColor } from '@/components/ui/terminal'
+} from '@ulticode/design-system/ui/dropdown-menu'
+import { badge } from '@ulticode/badge-config'
+import type { SemanticColor } from '@ulticode/badge-config'
 import {
   type Report,
   ReportStatus,
@@ -74,11 +74,11 @@ const CATEGORY_ICON_MAP: Record<ReportCategory, typeof IconAlertTriangle> = {
 
 // ========== Entity Type Styles ==========
 const entityTypeColors: Record<ModeratableEntityType, string> = {
-  forum_post: 'text-foreground-strong',
-  forum_comment: 'text-foreground-strong',
-  solution: 'text-foreground-strong',
-  solution_comment: 'text-foreground-strong',
-  problem: 'text-foreground-strong',
+  forum_post: 'text-foreground',
+  forum_comment: 'text-foreground',
+  solution: 'text-foreground',
+  solution_comment: 'text-foreground',
+  problem: 'text-foreground',
 }
 
 // ========== Renderers ==========
@@ -119,7 +119,7 @@ export function createReportsColumns(
     // Selection column
     ...createSelectionColumn<Report>(t, {
       checkboxClass:
-        'border-[var(--border-subtle)] data-[state=checked]:bg-[var(--primary)] data-[state=checked]:border-[var(--primary)]',
+        'border-[var(--border)] data-[state=checked]:bg-[var(--primary)] data-[state=checked]:border-[var(--primary)]',
     }),
     // Row number
     {
@@ -129,7 +129,11 @@ export function createReportsColumns(
         const pageIndex = table.getState().pagination.pageIndex
         const pageSize = table.getState().pagination.pageSize
         const rowNum = pageIndex * pageSize + row.index + 1
-        return h('span', { class: 'terminal-row-num' }, String(rowNum).padStart(2, '0'))
+        return h(
+          'span',
+          { class: 'text-xs tabular-nums text-muted-foreground' },
+          String(rowNum).padStart(2, '0'),
+        )
       },
       enableSorting: false,
       enableHiding: false,
@@ -142,7 +146,7 @@ export function createReportsColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
+          { class: 'font-mono text-xs uppercase tracking-widest text-[var(--muted-foreground)]' },
           t('moderation.columns.reporter'),
         ),
       cell: ({ row }) => {
@@ -162,14 +166,14 @@ export function createReportsColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
+          { class: 'font-mono text-xs uppercase tracking-widest text-[var(--muted-foreground)]' },
           t('moderation.columns.entityType'),
         ),
       cell: ({ row }) => {
         const entityType = row.original.entityType as ModeratableEntityType
         return h(
           'span',
-          { class: ['font-data text-xs', entityTypeColors[entityType]] },
+          { class: ['font-mono text-xs', entityTypeColors[entityType]] },
           t(`moderation.entityTypes.${entityType}`),
         )
       },
@@ -181,7 +185,7 @@ export function createReportsColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
+          { class: 'font-mono text-xs uppercase tracking-widest text-[var(--muted-foreground)]' },
           t('moderation.columns.entity'),
         ),
       cell: ({ row }) => {
@@ -203,7 +207,7 @@ export function createReportsColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
+          { class: 'font-mono text-xs uppercase tracking-widest text-[var(--muted-foreground)]' },
           t('moderation.columns.category'),
         ),
       cell: ({ row }) => {
@@ -218,13 +222,17 @@ export function createReportsColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
+          { class: 'font-mono text-xs uppercase tracking-widest text-[var(--muted-foreground)]' },
           t('moderation.columns.reason'),
         ),
       cell: ({ row }) => {
         const reason = row.original.reason
         if (!reason) {
-          return h('span', { class: 'font-data text-xs text-[var(--foreground-muted)] italic' }, '-')
+          return h(
+            'span',
+            { class: 'font-mono text-xs text-[var(--muted-foreground)] italic' },
+            '-',
+          )
         }
         return h(
           'span',
@@ -240,7 +248,7 @@ export function createReportsColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
+          { class: 'font-mono text-xs uppercase tracking-widest text-[var(--muted-foreground)]' },
           t('moderation.columns.status'),
         ),
       cell: ({ row }) => {
@@ -255,14 +263,14 @@ export function createReportsColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
+          { class: 'font-mono text-xs uppercase tracking-widest text-[var(--muted-foreground)]' },
           t('moderation.columns.createdAt'),
         ),
       cell: ({ row }) => {
         const date = row.original.createdAt
         return h(
           'span',
-          { class: 'font-data text-xs text-[var(--foreground-muted)] tabular-nums' },
+          { class: 'font-mono text-xs text-[var(--muted-foreground)] tabular-nums' },
           date ? formatDate(date) : '—',
         )
       },
@@ -273,7 +281,7 @@ export function createReportsColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
+          { class: 'font-mono text-xs uppercase tracking-widest text-[var(--muted-foreground)]' },
           t('moderation.columns.actions'),
         ),
       cell: ({ row }) => {
@@ -293,7 +301,7 @@ export function createReportsColumns(
                       { variant: 'ghost', size: 'icon', class: 'h-8 w-8 p-0' },
                       {
                         default: () => [
-                          h(IconDotsVertical, { class: 'h-4 w-4 text-[var(--foreground-muted)]' }),
+                          h(IconDotsVertical, { class: 'h-4 w-4 text-[var(--muted-foreground)]' }),
                         ],
                       },
                     ),
@@ -301,19 +309,19 @@ export function createReportsColumns(
               ),
               h(
                 DropdownMenuContent,
-                { align: 'end', class: 'border-[var(--border-subtle)]' },
+                { align: 'end', class: 'border-[var(--border)]' },
                 {
                   default: () => [
                     h(
                       DropdownMenuItem,
                       {
                         onClick: () => actions.viewEntity(report),
-                        class: 'font-data text-xs cursor-pointer',
+                        class: 'font-mono text-xs cursor-pointer',
                       },
                       {
                         default: () =>
                           h('div', { class: 'flex items-center gap-2' }, [
-                            h(IconEye, { class: 'h-4 w-4 text-foreground-strong' }),
+                            h(IconEye, { class: 'h-4 w-4 text-foreground' }),
                             h('span', t('moderation.reports.viewEntity')),
                           ]),
                       },
@@ -322,12 +330,12 @@ export function createReportsColumns(
                       DropdownMenuItem,
                       {
                         onClick: () => actions.viewInQueue(report),
-                        class: 'font-data text-xs cursor-pointer',
+                        class: 'font-mono text-xs cursor-pointer',
                       },
                       {
                         default: () =>
                           h('div', { class: 'flex items-center gap-2' }, [
-                            h(IconLink, { class: 'h-4 w-4 text-foreground-strong' }),
+                            h(IconLink, { class: 'h-4 w-4 text-foreground' }),
                             h('span', t('moderation.reports.viewQueue')),
                           ]),
                       },

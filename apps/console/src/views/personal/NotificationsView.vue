@@ -5,8 +5,8 @@ import { RouterLink } from "vue-router";
 import { useI18n } from "vue-i18n";
 import PersonalPageHeader from "./components/PersonalPageHeader.vue";
 import PersonalPageShell from "./components/PersonalPageShell.vue";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
+import { Button } from "@ulticode/design-system/ui/button";
+import { Separator } from "@ulticode/design-system/ui/separator";
 import { toast } from "vue-sonner";
 import {
   Bell,
@@ -31,7 +31,8 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  DropdownMenuGroup,
+} from "@ulticode/design-system/ui/dropdown-menu";
 import { useNotificationStore } from "@/stores/notification";
 import type { NotificationItem, NotificationType } from "@/types/notification";
 import { useNotificationI18n } from "@/composables/useNotificationI18n";
@@ -42,7 +43,7 @@ import {
   SheetHeader,
   SheetTitle,
   SheetDescription,
-} from "@/components/ui/sheet";
+} from "@ulticode/design-system/ui/sheet";
 import NotificationPreferencesPanel from "@/components/notification/NotificationPreferencesPanel.vue";
 
 const { t, locale } = useI18n();
@@ -200,12 +201,7 @@ watch(currentPage, () => {
     >
       <template #actions>
         <div class="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            class="text-muted-foreground hover:text-foreground"
-            @click="prefSheetOpen = true"
-          >
+          <Button variant="ghost" size="sm" @click="prefSheetOpen = true">
             <Settings class="mr-2 h-4 w-4" />
             {{ t("personal.notifications.preferences") }}
           </Button>
@@ -213,7 +209,6 @@ watch(currentPage, () => {
           <Button
             variant="ghost"
             size="sm"
-            class="text-muted-foreground hover:text-foreground"
             :disabled="loading || notifications.length === 0"
             @click="handleMarkAllRead"
           >
@@ -224,7 +219,6 @@ watch(currentPage, () => {
           <Button
             variant="ghost"
             size="sm"
-            class="text-muted-foreground hover:text-destructive"
             :disabled="loading || notifications.length === 0"
             @click="handleClearAll"
           >
@@ -247,7 +241,7 @@ watch(currentPage, () => {
 
     <div
       v-else-if="!hasUser"
-      class="flex flex-col items-center justify-center py-24 border border-dashed rounded-none bg-muted/5"
+      class="flex flex-col items-center justify-center py-24 border border-dashed rounded-lg bg-muted/5"
     >
       <p class="text-muted-foreground mb-4">
         {{ t("personal.account.loginToManage") }}
@@ -275,10 +269,11 @@ watch(currentPage, () => {
           <div
             v-for="notification in group.items"
             :key="notification.id"
-            class="group relative flex items-start gap-4 p-4 rounded-none border bg-card transition-all hover:shadow-[var(--shadow-float)] hover:border-primary/20"
+            class="group relative flex items-start gap-4 p-4 rounded-lg border bg-card transition-all hover:shadow-[var(--shadow-float)] hover:border-primary/20"
             :class="{
               'bg-muted/30 border-transparent': notification.isRead,
-              'border-status-warning-mark/30 bg-status-warning-surface': !notification.isRead,
+              'border-status-warning-mark/30 bg-status-warning-surface':
+                !notification.isRead,
             }"
           >
             <!-- Unread Indicator Dot -->
@@ -334,30 +329,25 @@ watch(currentPage, () => {
             >
               <DropdownMenu>
                 <DropdownMenuTrigger as-child>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    class="h-8 w-8 rounded-full"
-                  >
+                  <Button variant="ghost" size="icon" class="w-8">
                     <MoreHorizontal class="h-4 w-4 text-muted-foreground" />
                     <span class="sr-only">Actions</span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem
-                    @click="handleMarkAsRead(notification)"
-                    :disabled="notification.isRead"
+                  <DropdownMenuGroup
+                    ><DropdownMenuItem
+                      @click="handleMarkAsRead(notification)"
+                      :disabled="notification.isRead"
+                    >
+                      <Check class="mr-2 h-4 w-4" />
+                      <span>{{ t("personal.notifications.markAsRead") }}</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem @click="handleDelete(notification.id)">
+                      <Trash2 class="mr-2 h-4 w-4" />
+                      <span>{{ t("common.actions.delete") }}</span>
+                    </DropdownMenuItem></DropdownMenuGroup
                   >
-                    <Check class="mr-2 h-4 w-4" />
-                    <span>{{ t("personal.notifications.markAsRead") }}</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    @click="handleDelete(notification.id)"
-                    class="text-destructive focus:text-destructive"
-                  >
-                    <Trash2 class="mr-2 h-4 w-4" />
-                    <span>{{ t("common.actions.delete") }}</span>
-                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -373,7 +363,7 @@ watch(currentPage, () => {
           <Button
             variant="ghost"
             size="icon"
-            class="h-8 w-8 rounded-full"
+            class="w-8"
             :disabled="currentPage === 1 || loading"
             @click="currentPage = Math.max(1, currentPage - 1)"
           >
@@ -385,7 +375,7 @@ watch(currentPage, () => {
           <Button
             variant="ghost"
             size="icon"
-            class="h-8 w-8 rounded-full"
+            class="w-8"
             :disabled="currentPage === totalPages || loading"
             @click="currentPage = Math.min(totalPages, currentPage + 1)"
           >
@@ -397,7 +387,7 @@ watch(currentPage, () => {
 
     <div
       v-else
-      class="flex flex-col items-center justify-center py-32 border border-dashed rounded-none bg-muted/5 text-center"
+      class="flex flex-col items-center justify-center py-32 border border-dashed rounded-lg bg-muted/5 text-center"
     >
       <div class="bg-muted/30 p-4 rounded-full mb-4">
         <Bell class="h-8 w-8 text-muted-foreground/40" />

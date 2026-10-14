@@ -1,7 +1,7 @@
 import { color as echartsColor, type EChartsOption } from "echarts";
 import {
   resolveChartPalette,
-  SOLARIZED_PALETTE,
+  UI_PALETTE,
   type ChartPalette,
 } from "@ulticode/design-system";
 export type DistributionChartUnit = "ms" | "MB";
@@ -13,6 +13,7 @@ export interface DistributionChartPoint {
 }
 
 export interface ChartCssColors {
+  fontFamily: string;
   foreground: string;
   border: string;
   accent: string;
@@ -32,8 +33,10 @@ interface Translator {
 }
 
 function chartColorsFromPalette(palette: ChartPalette): ChartCssColors {
-  const mutedBar = echartsColor.modifyAlpha(palette.muted, 0.32) || palette.muted;
+  const mutedBar =
+    echartsColor.modifyAlpha(palette.muted, 0.32) || palette.muted;
   return {
+    fontFamily: palette.fontFamily,
     foreground: palette.muted,
     border: palette.border,
     accent: palette.series1,
@@ -59,7 +62,11 @@ export function buildDistributionChartOption(
       trigger: "axis",
       backgroundColor: colors.tooltipBackground,
       borderColor: colors.tooltipBorder,
-      textStyle: { color: colors.foreground },
+      textStyle: {
+        color: colors.foreground,
+        fontFamily: colors.fontFamily,
+        fontSize: 12,
+      },
       axisPointer: { type: "shadow" },
       formatter: (params: unknown) => {
         if (!Array.isArray(params) || params.length === 0) return "";
@@ -88,10 +95,9 @@ export function buildDistributionChartOption(
       axisLabel: {
         interval: paired.length <= 8 ? 0 : Math.ceil(paired.length / 8),
         rotate: 0,
-        fontSize: 10,
+        fontSize: 12,
         color: colors.foreground,
-        fontFamily:
-          '"JetBrains Mono", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", monospace',
+        fontFamily: colors.fontFamily,
       },
       axisLine: { lineStyle: { color: colors.border } },
     },
@@ -102,10 +108,9 @@ export function buildDistributionChartOption(
       axisTick: { show: false },
       splitLine: { lineStyle: { color: colors.border } },
       axisLabel: {
-        fontSize: 10,
+        fontSize: 12,
         color: colors.foreground,
-        fontFamily:
-          '"JetBrains Mono", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", monospace',
+        fontFamily: colors.fontFamily,
       },
     },
     series: [
@@ -128,7 +133,7 @@ export function buildDistributionChartOption(
                   formatter: t("problem.layout.userPosition"),
                   color: colors.foreground,
                   fontWeight: "bold",
-                  fontSize: 10,
+                  fontSize: 12,
                 }
               : undefined,
         })),
@@ -179,7 +184,7 @@ export async function renderAvatarMarkPointDataUrl(
   ctx.restore();
   ctx.beginPath();
   ctx.arc(size / 2, size / 2, size / 2 - 1, 0, Math.PI * 2);
-  ctx.strokeStyle = accentColor || SOLARIZED_PALETTE.blue;
+  ctx.strokeStyle = accentColor || UI_PALETTE.blue;
   ctx.lineWidth = 2;
   ctx.stroke();
   return canvas.toDataURL();

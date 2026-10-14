@@ -20,7 +20,7 @@ vi.mock('vue-sonner', () => ({
   toast: { success: vi.fn(), warning: vi.fn() },
 }))
 
-vi.mock('@/components/ui/separator', () => ({
+vi.mock('@ulticode/design-system/ui/separator', () => ({
   Separator: {
     setup(_props: unknown, { slots }: { slots: Record<string, () => unknown> }) {
       return () =>
@@ -29,7 +29,7 @@ vi.mock('@/components/ui/separator', () => ({
   },
 }))
 
-vi.mock('@/components/ui/collapsible', () => ({
+vi.mock('@ulticode/design-system/ui/collapsible', () => ({
   Collapsible: {
     props: ['defaultOpen'],
     setup(_props: unknown, { slots }: { slots: Record<string, () => unknown> }) {
@@ -128,7 +128,7 @@ describe('LivePreviewPanel', () => {
   it('renders difficulty badge', async () => {
     const { container } = await mountComponent(createMockData({ difficulty: Difficulty.HARD }))
 
-    const badge = container.querySelector('.terminal-badge')
+    const badge = container.querySelector('[data-slot="badge"]')
     expect(badge).toBeTruthy()
     expect(badge!.textContent).toContain('problems.difficulty.HARD')
   })
@@ -278,7 +278,7 @@ describe('LivePreviewPanel', () => {
   it('renders with medium difficulty badge', async () => {
     const { container } = await mountComponent(createMockData({ difficulty: Difficulty.MEDIUM }))
 
-    const badge = container.querySelector('.terminal-badge')
+    const badge = container.querySelector('[data-slot="badge"]')
     expect(badge!.textContent).toContain('problems.difficulty.MEDIUM')
   })
 

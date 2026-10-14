@@ -7,8 +7,8 @@ import StatsCard from "@/components/dashboard/StatsCard.vue";
 import ActivityHeatmap from "@/components/dashboard/ActivityHeatmap.vue";
 import SkillRadarChart from "@/components/dashboard/SkillRadarChart.vue";
 import RecentActivity from "@/components/dashboard/RecentActivity.vue";
-import { Progress } from "@/components/ui/progress";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Progress } from "@ulticode/design-system/ui/progress";
+import { Skeleton } from "@ulticode/design-system/ui/skeleton";
 import { Trophy, Flame, Target, BarChart3 } from "@lucide/vue";
 import type { RecentActivity as RecentActivityType } from "@/types/userStats";
 
@@ -45,7 +45,7 @@ onMounted(async () => {
     <!-- Stats Grid -->
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       <template v-if="loading">
-        <Skeleton v-for="i in 4" :key="i" class="h-24 rounded-none" />
+        <Skeleton v-for="i in 4" :key="i" class="h-24" />
       </template>
       <template v-else>
         <StatsCard
@@ -59,7 +59,7 @@ onMounted(async () => {
           color="green"
         >
           <template #icon>
-            <Trophy class="h-5 w-5 text-[var(--status-success-mark)]" />
+            <Trophy class="h-5 w-5 text-status-success-mark" />
           </template>
         </StatsCard>
 
@@ -70,7 +70,7 @@ onMounted(async () => {
           color="orange"
         >
           <template #icon>
-            <Flame class="h-5 w-5 text-[var(--status-warning-mark)]" />
+            <Flame class="h-5 w-5 text-status-warning-mark" />
           </template>
         </StatsCard>
 
@@ -81,7 +81,7 @@ onMounted(async () => {
           color="blue"
         >
           <template #icon>
-            <Target class="h-5 w-5 text-[var(--primary)]" />
+            <Target class="h-5 w-5 text-primary" />
           </template>
         </StatsCard>
 
@@ -92,27 +92,27 @@ onMounted(async () => {
           color="purple"
         >
           <template #icon>
-            <BarChart3 class="h-5 w-5 text-[var(--status-special-mark)]" />
+            <BarChart3 class="h-5 w-5 text-status-special-mark" />
           </template>
         </StatsCard>
       </template>
     </div>
 
     <!-- Difficulty Progress -->
-    <div class="rounded-none border bg-card p-6">
+    <div class="rounded-lg border bg-card p-6">
       <h2 class="mb-4 text-lg font-semibold">
         {{ t("personal.dashboard.progress.title") }}
       </h2>
 
       <div v-if="loading" class="space-y-4">
-        <Skeleton v-for="i in 3" :key="i" class="h-12 rounded-none" />
+        <Skeleton v-for="i in 3" :key="i" class="h-12" />
       </div>
 
       <div v-else class="space-y-4">
         <!-- Easy -->
         <div class="space-y-2">
           <div class="flex items-center justify-between text-sm">
-            <span class="font-medium text-[var(--foreground-strong)]">{{
+            <span class="font-medium text-foreground">{{
               t("personal.stats.easy")
             }}</span>
             <span class="text-muted-foreground">
@@ -122,14 +122,14 @@ onMounted(async () => {
           </div>
           <Progress
             :model-value="userStatsStore.easyProgress.percentage"
-            class="h-2 [&>div]:bg-[var(--status-success-mark)]"
+            class="h-2 [&>div]:bg-status-success-mark"
           />
         </div>
 
         <!-- Medium -->
         <div class="space-y-2">
           <div class="flex items-center justify-between text-sm">
-            <span class="font-medium text-[var(--foreground-strong)]">{{
+            <span class="font-medium text-foreground">{{
               t("personal.stats.medium")
             }}</span>
             <span class="text-muted-foreground">
@@ -139,14 +139,14 @@ onMounted(async () => {
           </div>
           <Progress
             :model-value="userStatsStore.mediumProgress.percentage"
-            class="h-2 [&>div]:bg-[var(--status-warning-mark)]"
+            class="h-2 [&>div]:bg-status-warning-mark"
           />
         </div>
 
         <!-- Hard -->
         <div class="space-y-2">
           <div class="flex items-center justify-between text-sm">
-            <span class="font-medium text-[var(--foreground-strong)]">{{
+            <span class="font-medium text-foreground">{{
               t("personal.stats.hard")
             }}</span>
             <span class="text-muted-foreground">
@@ -156,7 +156,7 @@ onMounted(async () => {
           </div>
           <Progress
             :model-value="userStatsStore.hardProgress.percentage"
-            class="h-2 [&>div]:bg-[var(--status-error-mark)]"
+            class="h-2 [&>div]:bg-status-error-mark"
           />
         </div>
       </div>
@@ -165,7 +165,7 @@ onMounted(async () => {
     <!-- Activity Heatmap & Skills Grid -->
     <div class="grid gap-6 lg:grid-cols-2">
       <!-- Heatmap -->
-      <div class="rounded-none border bg-card p-6">
+      <div class="rounded-lg border bg-card p-6">
         <h2 class="mb-4 text-lg font-semibold">
           {{ t("personal.dashboard.heatmap.title") }}
         </h2>
@@ -173,11 +173,11 @@ onMounted(async () => {
           v-if="userStatsStore.stats"
           :data="userStatsStore.stats.heatmap"
         />
-        <Skeleton v-else class="h-32 rounded-none" />
+        <Skeleton v-else class="h-32" />
       </div>
 
       <!-- Skills Radar -->
-      <div class="rounded-none border bg-card p-6">
+      <div class="rounded-lg border bg-card p-6">
         <h2 class="mb-4 text-lg font-semibold">
           {{ t("personal.dashboard.skills.title") }}
         </h2>
@@ -186,12 +186,12 @@ onMounted(async () => {
           :skills="userStatsStore.skills.skills"
           :max-display="8"
         />
-        <Skeleton v-else class="h-64 rounded-none" />
+        <Skeleton v-else class="h-64" />
       </div>
     </div>
 
     <!-- Recent Activity -->
-    <div class="rounded-none border bg-card p-6">
+    <div class="rounded-lg border bg-card p-6">
       <h2 class="mb-4 text-lg font-semibold">
         {{ t("personal.dashboard.activity.title") }}
       </h2>

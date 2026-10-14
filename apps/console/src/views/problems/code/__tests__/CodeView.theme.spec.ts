@@ -21,9 +21,9 @@ describe("problem code editor toolbar theme styles", () => {
   });
 
   it("keeps editor settings buttons aligned with the command bar states", () => {
-    expect(editorToolbarSource).toContain("rounded-none");
-    expect(editorToolbarSource).toContain("data-[state=open]:bg-accent");
-    expect(editorToolbarSource).toContain("hover:bg-accent");
+    expect(editorToolbarSource).toContain("@ulticode/design-system/ui/button");
+    expect(editorToolbarSource).toContain('variant="ghost"');
+    expect(editorToolbarSource).not.toContain("terminal-button");
   });
 
   it("uses the problem language label instead of mapping every style to JavaScript", () => {

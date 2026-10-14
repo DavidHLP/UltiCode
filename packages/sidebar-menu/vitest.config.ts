@@ -17,6 +17,7 @@ export default defineConfig({
     setupFiles: [fileURLToPath(new URL('./src/__tests__/setup.ts', import.meta.url))],
   },
   resolve: {
+    dedupe: ['vue', 'reka-ui'],
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
       // reka-ui is a peerDependency; resolve it from the console workspace

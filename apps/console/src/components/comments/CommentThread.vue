@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { Button } from "@ulticode/design-system/ui/button";
+
 import { useAuthStore } from "@/stores/auth";
 import type { ForumComment, SolutionComment } from "@/types/comment";
 import { Lock, MessageSquare } from "@lucide/vue";
@@ -51,22 +53,23 @@ const commentTree = computed(() => {
 <template>
   <div class="space-y-6 px-4 sm:px-6 pb-8">
     <div v-if="!isCommenting && !props.isLocked" class="mb-8">
-      <button
+      <Button
+        variant="outline"
         type="button"
         :aria-label="t('forum.comments.joinConversation')"
-        class="group flex w-full cursor-text items-center gap-3 rounded-md border border-border-control bg-surface-sunken px-4 py-3 text-left shadow-xs transition-colors duration-200 hover:border-primary hover:bg-surface-highlight focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        class="group flex w-full cursor-text items-center gap-3 px-4 py-3 text-left focus-visible:outline-none"
         @click="isCommenting = true"
       >
         <span
-          class="flex size-8 shrink-0 items-center justify-center rounded-sm border border-border-control bg-surface-elevated text-foreground-muted transition-colors duration-200 group-hover:border-primary group-hover:text-primary"
+          class="flex size-8 shrink-0 items-center justify-center rounded-sm border border-input bg-card text-muted-foreground transition-colors duration-200 group-hover:border-primary group-hover:text-primary"
         >
           <MessageSquare class="size-4" aria-hidden="true" />
         </span>
         <span
-          class="font-data text-sm text-foreground-muted transition-colors duration-200 group-hover:text-foreground-strong"
+          class="font-mono text-sm text-muted-foreground transition-colors duration-200 group-hover:text-foreground"
           >{{ t("forum.comments.joinConversation") }}</span
         >
-      </button>
+      </Button>
     </div>
 
     <div v-if="isCommenting" class="space-y-3 mb-8">
@@ -82,7 +85,7 @@ const commentTree = computed(() => {
 
       <div
         v-if="isLocked"
-        class="flex items-center gap-2 text-2xs font-black uppercase tracking-widest text-foreground-strong bg-[var(--status-warning-mark)]/10 px-3 py-1.5 rounded-none border border-[var(--status-warning-mark)]/30"
+        class="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-foreground bg-status-warning-mark/10 px-3 py-1.5 rounded-lg border border-status-warning-mark/30"
       >
         <Lock class="h-3 w-3" /> {{ t("forum.comments.threadLocked") }}
       </div>
@@ -93,7 +96,7 @@ const commentTree = computed(() => {
         v-if="commentTree.length === 0"
         class="flex flex-col items-center justify-center py-16 text-center"
       >
-        <div class="p-5 rounded-none bg-muted/30 mb-4">
+        <div class="p-5 rounded-lg bg-muted/30 mb-4">
           <MessageSquare class="h-10 w-10 text-muted-foreground/30" />
         </div>
         <h4 class="text-lg font-black tracking-tight">

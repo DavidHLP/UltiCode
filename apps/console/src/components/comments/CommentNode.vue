@@ -57,11 +57,7 @@
         >
           {{ comment.author }}
         </span>
-        <Badge
-          v-if="comment.isOp"
-          variant="secondary"
-          class="text-2xs font-black px-1 h-3.5 rounded-sm bg-primary/10 text-primary border-none uppercase"
-        >
+        <Badge v-if="comment.isOp" variant="secondary" class="px-1 h-3.5">
           {{ t("forum.author.op") }}
         </Badge>
         <span class="text-muted-foreground">•</span>
@@ -71,9 +67,7 @@
         >
           {{ comment.time }}
         </span>
-        <span
-          v-if="comment.editedAt"
-          class="text-muted-foreground/60 text-2xs"
+        <span v-if="comment.editedAt" class="text-muted-foreground/60 text-xs"
           >({{ t("forum.comments.edited") }})</span
         >
         <span
@@ -85,7 +79,7 @@
         </span>
         <span
           v-if="comment.replyCount && comment.replyCount > 0"
-          class="text-muted-foreground/60 text-2xs ml-auto"
+          class="text-muted-foreground/60 text-xs ml-auto"
         >
           {{ comment.replyCount }} {{ t("forum.comments.replies") }}
         </span>
@@ -125,35 +119,34 @@
 
             <DropdownMenu v-if="comment.isOwn">
               <DropdownMenuTrigger as-child>
-                <button
-                  class="flex items-center gap-2 px-2 py-1 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors text-xs font-bold"
+                <Button
+                  variant="ghost"
+                  class="flex items-center gap-2 px-2 py-1"
                 >
                   <MoreHorizontal class="h-4.5 w-4.5" />
-                </button>
+                </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" class="rounded-none">
-                <DropdownMenuItem
-                  @click="toggleEdit"
-                  class="gap-2 font-bold text-xs"
+              <DropdownMenuContent align="start">
+                <DropdownMenuGroup
+                  ><DropdownMenuItem @click="toggleEdit" class="gap-2">
+                    <Pencil class="h-3.5 w-3.5" />
+                    {{ t("common.actions.edit") }}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem class="gap-2" @click="handleDeleteClick">
+                    <Trash2 class="h-3.5 w-3.5" />
+                    {{ t("common.actions.delete") }}
+                  </DropdownMenuItem></DropdownMenuGroup
                 >
-                  <Pencil class="h-3.5 w-3.5" /> {{ t("common.actions.edit") }}
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  class="text-destructive focus:text-destructive gap-2 font-bold text-xs"
-                  @click="handleDeleteClick"
-                >
-                  <Trash2 class="h-3.5 w-3.5" />
-                  {{ t("common.actions.delete") }}
-                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            <button
+            <Button
+              variant="ghost"
               v-else
-              class="flex items-center gap-2 px-2 py-1 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors text-xs font-bold"
+              class="flex items-center gap-2 px-2 py-1"
               @click="handleReport"
             >
               <Flag class="h-4.5 w-4.5" />
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -201,9 +194,9 @@
       :open="showDeleteDialog"
       @update:open="showDeleteDialog = $event"
     >
-      <AlertDialogContent class="rounded-none">
+      <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle class="text-xl font-black tracking-tight">{{
+          <AlertDialogTitle>{{
             t("forum.comments.deleteDialog.title")
           }}</AlertDialogTitle>
           <AlertDialogDescription>
@@ -211,13 +204,10 @@
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter class="gap-2 sm:gap-0">
-          <AlertDialogCancel class="rounded-none font-bold">{{
+          <AlertDialogCancel>{{
             t("forum.comments.deleteDialog.cancel")
           }}</AlertDialogCancel>
-          <AlertDialogAction
-            @click="confirmDelete"
-            class="bg-status-error-surface text-foreground-strong border border-destructive hover:bg-status-error-surface/80 rounded-none font-black"
-          >
+          <AlertDialogAction @click="confirmDelete">
             {{ t("forum.comments.deleteDialog.confirm") }}
           </AlertDialogAction>
         </AlertDialogFooter>
@@ -233,6 +223,8 @@
 </template>
 
 <script setup lang="ts">
+import { Button } from "@ulticode/design-system/ui/button";
+
 import {
   ref,
   computed,
@@ -248,14 +240,15 @@ import CommentRail from "./CommentRail.vue";
 import CommentForm from "./CommentForm.vue";
 import MarkdownView from "@/components/markdown/MarkdownView.vue";
 import { ActionItem, VoteControl } from "@/components/edge-operations";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@ulticode/design-system/ui/badge";
 import ReportDialog from "@/components/ReportDialog.vue";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  DropdownMenuGroup,
+} from "@ulticode/design-system/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -265,7 +258,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+} from "@ulticode/design-system/ui/alert-dialog";
 import {
   MessageSquare,
   Share2,

@@ -131,7 +131,7 @@ const handleSaveChange = () => {
 <template>
   <div
     v-if="problem"
-    class="flex items-center border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--card)] p-0 rounded-none overflow-hidden select-none shadow-sm"
+    class="flex items-center border border-border dark:border-border bg-card p-0 rounded-lg overflow-hidden select-none shadow-sm"
   >
     <VoteControl
       :likes="reactionCounts.likes"
@@ -149,9 +149,7 @@ const handleSaveChange = () => {
     />
 
     <!-- Separator between VoteControl and Save Button -->
-    <div
-      class="h-4 w-px bg-[var(--border-subtle)] dark:bg-[var(--border-subtle)] flex-none"
-    ></div>
+    <div class="h-4 w-px bg-border dark:bg-border flex-none"></div>
 
     <ProblemSaveButton
       :problem-id="problem.id"

@@ -1,21 +1,21 @@
 import { h } from 'vue'
 import type { ColumnDef } from '@tanstack/vue-table'
 import {
-  IconAlertTriangle,
-  IconAlertCircle,
-  IconCheck,
-  IconClock,
-  IconCode,
-  IconEye,
-  IconFileText,
-  IconMessage,
-  IconMessages,
-  IconScale,
-  IconX,
-  IconTournament,
-  IconFlag,
-  IconUser,
-} from '@tabler/icons-vue'
+  AlertTriangle as IconAlertTriangle,
+  AlertCircle as IconAlertCircle,
+  Check as IconCheck,
+  Clock as IconClock,
+  Code as IconCode,
+  Eye as IconEye,
+  FileText as IconFileText,
+  MessageSquare as IconMessage,
+  MessagesSquare as IconMessages,
+  Scale as IconScale,
+  X as IconX,
+  GitFork as IconTournament,
+  Flag as IconFlag,
+  User as IconUser,
+} from '@lucide/vue'
 
 import { createSelectionColumn } from '@/components/table/selectionColumn'
 import { createEntityActionsMenu } from '@/components/table/entityActions'
@@ -27,8 +27,8 @@ import {
   ModerationActionType,
 } from '@/api/admin/moderation'
 import { formatDate } from '@/lib/format/date'
-import { badge, MODERATION_STATUS_COLOR_MAP } from '@/components/ui/terminal'
-import type { SemanticColor } from '@/components/ui/terminal'
+import { badge, MODERATION_STATUS_COLOR_MAP } from '@ulticode/badge-config'
+import type { SemanticColor } from '@ulticode/badge-config'
 
 export interface ModerationActions {
   viewEntity: (item: ModerationQueueItem) => void
@@ -139,12 +139,12 @@ function renderAssignedUser(
   if (!displayName) {
     return h(
       'span',
-      { class: 'font-data text-xs text-[var(--foreground-muted)] italic' },
+      { class: 'font-mono text-xs text-[var(--muted-foreground)] italic' },
       t('moderation.queue.unassigned'),
     )
   }
   return h('div', { class: 'flex items-center gap-2' }, [
-    h(IconUser, { class: 'h-3.5 w-3.5 text-[var(--foreground-muted)]' }),
+    h(IconUser, { class: 'h-3.5 w-3.5 text-[var(--muted-foreground)]' }),
     h('span', { class: 'text-sm text-[var(--foreground)] truncate' }, displayName),
   ])
 }
@@ -170,7 +170,7 @@ export function createColumns(
     // Selection column
     ...createSelectionColumn<ModerationQueueItem>(t, {
       checkboxClass:
-        'border-[var(--border-subtle)] data-[state=checked]:bg-[var(--primary)] data-[state=checked]:border-[var(--primary)]',
+        'border-[var(--border)] data-[state=checked]:bg-[var(--primary)] data-[state=checked]:border-[var(--primary)]',
     }),
     // Row number column
     {
@@ -180,7 +180,11 @@ export function createColumns(
         const pageIndex = table.getState().pagination.pageIndex
         const pageSize = table.getState().pagination.pageSize
         const rowNum = pageIndex * pageSize + row.index + 1
-        return h('span', { class: 'terminal-row-num' }, String(rowNum).padStart(2, '0'))
+        return h(
+          'span',
+          { class: 'text-xs tabular-nums text-muted-foreground' },
+          String(rowNum).padStart(2, '0'),
+        )
       },
       enableSorting: false,
       enableHiding: false,
@@ -195,7 +199,7 @@ export function createColumns(
         h(
           'span',
           {
-            class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]',
+            class: 'font-mono text-xs uppercase tracking-widest text-[var(--muted-foreground)]',
           },
           t('moderation.columns.entityType'),
         ),
@@ -212,7 +216,7 @@ export function createColumns(
         h(
           'span',
           {
-            class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]',
+            class: 'font-mono text-xs uppercase tracking-widest text-[var(--muted-foreground)]',
           },
           t('moderation.columns.entity'),
         ),
@@ -245,7 +249,7 @@ export function createColumns(
         h(
           'span',
           {
-            class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]',
+            class: 'font-mono text-xs uppercase tracking-widest text-[var(--muted-foreground)]',
           },
           t('moderation.columns.category'),
         ),
@@ -264,7 +268,7 @@ export function createColumns(
         h(
           'span',
           {
-            class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]',
+            class: 'font-mono text-xs uppercase tracking-widest text-[var(--muted-foreground)]',
           },
           t('moderation.columns.status'),
         ),
@@ -283,33 +287,33 @@ export function createColumns(
         h(
           'span',
           {
-            class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]',
+            class: 'font-mono text-xs uppercase tracking-widest text-[var(--muted-foreground)]',
           },
           t('moderation.columns.resolution'),
         ),
       cell: ({ row }) => {
         const resolution = row.original.resolution
         if (!resolution) {
-          return h('span', { class: 'text-[var(--foreground-muted)]' }, '—')
+          return h('span', { class: 'text-[var(--muted-foreground)]' }, '—')
         }
         // Map action to color
         const colorMap: Record<string, string> = {
-          DELETED: 'text-foreground-strong',
-          HIDDEN: 'text-foreground-strong',
-          RESTORED: 'text-foreground-strong',
-          WARNED: 'text-foreground-strong',
-          TEMP_BANNED: 'text-foreground-strong',
-          PERM_BANNED: 'text-foreground-strong',
-          DISMISSED: 'text-[var(--foreground-muted)]',
-          RESOLVED: 'text-foreground-strong',
-          APPEAL_PENDING: 'text-foreground-strong',
-          APPEAL_APPROVED: 'text-foreground-strong',
-          APPEAL_REJECTED: 'text-foreground-strong',
+          DELETED: 'text-foreground',
+          HIDDEN: 'text-foreground',
+          RESTORED: 'text-foreground',
+          WARNED: 'text-foreground',
+          TEMP_BANNED: 'text-foreground',
+          PERM_BANNED: 'text-foreground',
+          DISMISSED: 'text-[var(--muted-foreground)]',
+          RESOLVED: 'text-foreground',
+          APPEAL_PENDING: 'text-foreground',
+          APPEAL_APPROVED: 'text-foreground',
+          APPEAL_REJECTED: 'text-foreground',
         }
-        const colorClass = colorMap[resolution] || 'text-[var(--foreground-muted)]'
+        const colorClass = colorMap[resolution] || 'text-[var(--muted-foreground)]'
         return h(
           'span',
-          { class: `font-data text-xs ${colorClass}` },
+          { class: `font-mono text-xs ${colorClass}` },
           t(`moderation.actions.${resolution}`),
         )
       },
@@ -324,7 +328,7 @@ export function createColumns(
         h(
           'span',
           {
-            class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]',
+            class: 'font-mono text-xs uppercase tracking-widest text-[var(--muted-foreground)]',
           },
           t('moderation.columns.priority'),
         ),
@@ -343,7 +347,7 @@ export function createColumns(
         h(
           'span',
           {
-            class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]',
+            class: 'font-mono text-xs uppercase tracking-widest text-[var(--muted-foreground)]',
           },
           t('moderation.columns.reports'),
         ),
@@ -353,8 +357,8 @@ export function createColumns(
           'span',
           {
             class: [
-              'font-data text-xs tabular-nums',
-              count >= 3 ? 'text-foreground-strong' : 'text-[var(--foreground-muted)]',
+              'font-mono text-xs tabular-nums',
+              count >= 3 ? 'text-foreground' : 'text-[var(--muted-foreground)]',
             ].join(' '),
           },
           count,
@@ -371,7 +375,7 @@ export function createColumns(
         h(
           'span',
           {
-            class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]',
+            class: 'font-mono text-xs uppercase tracking-widest text-[var(--muted-foreground)]',
           },
           t('moderation.columns.assignedTo'),
         ),
@@ -389,7 +393,7 @@ export function createColumns(
         h(
           'span',
           {
-            class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]',
+            class: 'font-mono text-xs uppercase tracking-widest text-[var(--muted-foreground)]',
           },
           t('moderation.columns.createdAt'),
         ),
@@ -397,7 +401,7 @@ export function createColumns(
         const date = row.original.createdAt
         return h(
           'span',
-          { class: 'font-data text-xs text-[var(--foreground-muted)] tabular-nums' },
+          { class: 'font-mono text-xs text-[var(--muted-foreground)] tabular-nums' },
           date ? formatDate(date) : '—',
         )
       },
@@ -409,7 +413,7 @@ export function createColumns(
         h(
           'span',
           {
-            class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]',
+            class: 'font-mono text-xs uppercase tracking-widest text-[var(--muted-foreground)]',
           },
           t('moderation.columns.actions'),
         ),
@@ -423,19 +427,19 @@ export function createColumns(
               label: t('moderation.queue.viewDetails'),
               onSelect: () => actions.openDrawer(item),
               icon: IconEye,
-              iconClass: 'h-4 w-4 text-foreground-strong',
+              iconClass: 'h-4 w-4 text-foreground',
             },
             {
               label: t('moderation.queue.viewEntity'),
               onSelect: () => actions.viewEntity(item),
               icon: IconTournament,
-              iconClass: 'h-4 w-4 text-foreground-strong',
+              iconClass: 'h-4 w-4 text-foreground',
             },
             {
               label: t('moderation.queue.claimItem'),
               onSelect: () => actions.claimItem(item.id),
               icon: IconUser,
-              iconClass: 'h-4 w-4 text-foreground-strong',
+              iconClass: 'h-4 w-4 text-foreground',
               hidden: !canClaim,
             },
             { kind: 'separator', hidden: !canAction },
@@ -443,26 +447,25 @@ export function createColumns(
               label: t('moderation.quickResolve'),
               onSelect: () => actions.quickAction(item.id, ModerationActionType.RESOLVED),
               icon: IconCheck,
-              iconClass: 'h-4 w-4 text-foreground-strong',
-              labelClass: 'text-[var(--foreground-strong)]',
+              iconClass: 'h-4 w-4 text-foreground',
+              labelClass: 'text-[var(--foreground)]',
               hidden: !canAction,
             },
             {
               label: t('moderation.quickDismiss'),
               onSelect: () => actions.quickAction(item.id, ModerationActionType.DISMISSED),
               icon: IconX,
-              iconClass: 'h-4 w-4 text-foreground-strong',
-              labelClass: 'text-[var(--foreground-strong)]',
+              iconClass: 'h-4 w-4 text-foreground',
+              labelClass: 'text-[var(--foreground)]',
               hidden: !canAction,
             },
           ],
           {
-            triggerClass:
-              'h-8 w-8 p-0 hover:bg-[var(--surface-highlight)] dark:hover:bg-[var(--foreground-strong)]',
-            triggerIconClass: 'h-4 w-4 text-[var(--foreground-muted)]',
-            contentClass: 'border-[var(--border-subtle)] dark:border-[var(--foreground-strong)]',
-            itemClass: 'font-data text-xs cursor-pointer',
-            separatorClass: 'bg-[var(--border-subtle)] dark:bg-[var(--foreground-strong)]',
+            triggerClass: 'h-8 w-8 p-0 hover:bg-[var(--accent)] dark:hover:bg-[var(--foreground)]',
+            triggerIconClass: 'h-4 w-4 text-[var(--muted-foreground)]',
+            contentClass: 'border-[var(--border)] dark:border-[var(--foreground)]',
+            itemClass: 'font-mono text-xs cursor-pointer',
+            separatorClass: 'bg-[var(--border)] dark:bg-[var(--foreground)]',
           },
         )
       },

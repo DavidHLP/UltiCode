@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { SOLARIZED_PALETTE } from '@ulticode/design-system'
+import { UI_PALETTE } from '@ulticode/design-system'
 import { createTopUsersChartOption, type TopUserChartColors } from './topUsersChart'
 
 const colors: TopUserChartColors = {
-  accent: SOLARIZED_PALETTE.blue,
-  accentMuted: SOLARIZED_PALETTE.cyan,
-  axis: SOLARIZED_PALETTE.base0,
-  border: SOLARIZED_PALETTE.base01,
-  card: SOLARIZED_PALETTE.base02,
-  foreground: SOLARIZED_PALETTE.base1,
+  accent: UI_PALETTE.blue,
+  accentMuted: UI_PALETTE.cyan,
+  axis: UI_PALETTE.muted,
+  border: UI_PALETTE.muted,
+  card: UI_PALETTE.darkCard,
+  foreground: UI_PALETTE.border,
 }
 
 describe('createTopUsersChartOption', () => {

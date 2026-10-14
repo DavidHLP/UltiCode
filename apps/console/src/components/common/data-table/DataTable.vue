@@ -7,7 +7,7 @@ import {
   TableCell,
   TableRow,
   TableHead,
-} from "@/components/ui/table";
+} from "@ulticode/design-system/ui/table";
 import { SearchX } from "@lucide/vue";
 import { useVirtualizer } from "@tanstack/vue-virtual";
 import { cn } from "@/lib/utils";
@@ -136,19 +136,13 @@ const getItemAtIndex = (index: number): T => {
       }"
     >
       <Table>
-        <TableHeader class="sticky top-0 bg-background z-10">
+        <TableHeader class="sticky top-0 z-10">
           <slot name="header">
-            <TableRow
-              v-if="hasColumnDefinitions"
-              class="border-b border-border"
-            >
+            <TableRow v-if="hasColumnDefinitions">
               <TableHead
                 v-for="col in columns"
                 :key="col.key"
-                :class="[
-                  'font-extrabold text-[var(--primary)] text-xxs uppercase tracking-widest py-4 px-4 bg-[var(--surface-sunken)]/60',
-                  col.headerClass,
-                ]"
+                :class="['px-4', col.headerClass]"
               >
                 {{ col.header }}
               </TableHead>
@@ -164,7 +158,11 @@ const getItemAtIndex = (index: number): T => {
                   (getItemAtIndex(virtualRow.index) as Identifiable).id ||
                   virtualRow.index
                 "
-                class="odd:bg-[var(--surface-sunken)] even:bg-card hover:bg-[var(--primary)]/5 border-b border-border cursor-pointer transition-colors"
+                class="cursor-pointer"
+                tabindex="0"
+                @keydown.enter.self="
+                  emit('row-click', getItemAtIndex(virtualRow.index))
+                "
                 :style="{
                   position: 'absolute',
                   top: 0,
@@ -204,10 +202,10 @@ const getItemAtIndex = (index: number): T => {
             <TableCell colspan="100%" class="p-0">
               <slot name="empty">
                 <div
-                  class="flex flex-col items-center justify-center py-24 border-2 border-dashed border-muted/50 rounded-none bg-muted/5 text-center px-6 m-4"
+                  class="flex flex-col items-center justify-center py-24 border-2 border-dashed border-muted/50 rounded-lg bg-muted/5 text-center px-6 m-4"
                 >
                   <div
-                    class="flex h-16 w-16 items-center justify-center rounded-none bg-muted/50 mb-4"
+                    class="flex h-16 w-16 items-center justify-center rounded-lg bg-muted/50 mb-4"
                   >
                     <SearchX class="h-8 w-8 text-muted-foreground/50" />
                   </div>
@@ -237,14 +235,11 @@ const getItemAtIndex = (index: number): T => {
     <Table>
       <TableHeader>
         <slot name="header">
-          <TableRow v-if="hasColumnDefinitions" class="border-b border-border">
+          <TableRow v-if="hasColumnDefinitions">
             <TableHead
               v-for="col in columns"
               :key="col.key"
-              :class="[
-                'font-extrabold text-[var(--primary)] text-xxs uppercase tracking-widest py-4 px-4 bg-[var(--surface-sunken)]/60',
-                col.headerClass,
-              ]"
+              :class="['px-4', col.headerClass]"
             >
               {{ col.header }}
             </TableHead>
@@ -258,18 +253,15 @@ const getItemAtIndex = (index: number): T => {
             <TableRow
               v-for="(item, index) in data"
               :key="(item as Identifiable).id || index"
-              class="odd:bg-[var(--surface-sunken)] even:bg-card hover:bg-[var(--primary)]/5 border-b border-border cursor-pointer transition-colors"
+              class="cursor-pointer"
+              tabindex="0"
+              @keydown.enter.self="emit('row-click', item)"
               @click="emit('row-click', item)"
             >
               <TableCell
                 v-for="col in columns"
                 :key="col.key"
-                :class="
-                  cn(
-                    'py-3.5 px-4 text-xs text-foreground-muted dark:text-[var(--foreground-muted)] font-medium align-middle',
-                    col.class,
-                  )
-                "
+                :class="cn('px-4', col.class)"
               >
                 <template v-if="$slots[`cell-${col.key}`]">
                   <slot :name="`cell-${col.key}`" :item="item" />
@@ -294,10 +286,10 @@ const getItemAtIndex = (index: number): T => {
           <TableCell colspan="100%" class="p-0">
             <slot name="empty">
               <div
-                class="flex flex-col items-center justify-center py-24 border-2 border-dashed border-muted/50 rounded-none bg-muted/5 text-center px-6 m-4"
+                class="flex flex-col items-center justify-center py-24 border-2 border-dashed border-muted/50 rounded-lg bg-muted/5 text-center px-6 m-4"
               >
                 <div
-                  class="flex h-16 w-16 items-center justify-center rounded-none bg-muted/50 mb-4"
+                  class="flex h-16 w-16 items-center justify-center rounded-lg bg-muted/50 mb-4"
                 >
                   <SearchX class="h-8 w-8 text-muted-foreground/50" />
                 </div>

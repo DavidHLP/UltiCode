@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import { Button } from "@/components/ui/button";
+import { Button } from "@ulticode/design-system/ui/button";
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { Play, CloudUpload } from "@lucide/vue";
 import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from "@/components/ui/hover-card";
-import { Kbd, KbdGroup } from "@/components/ui/kbd";
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@ulticode/design-system/ui/tooltip";
+import { Kbd, KbdGroup } from "@ulticode/design-system/ui/kbd";
 import { useBottomPanelStore } from "../test/test";
 import { useHeaderStore } from "@/stores/headerStore";
 import { storeToRefs } from "pinia";
@@ -36,6 +36,7 @@ const runPulseKey = ref(0);
 const showShortcutsModal = ref(false);
 
 const handleRun = () => {
+  if (bottomPanelStore.isRunning) return;
   requestRun();
   headerStore.setActiveGroup("test-info");
   headerStore.setActiveHeader("test-info", 6);
@@ -43,6 +44,7 @@ const handleRun = () => {
 };
 
 async function handleSubmit() {
+  if (isSubmitting.value) return;
   const prob = problemContext.problem.value;
   if (!prob) return;
 
@@ -132,52 +134,51 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div
-    class="relative z-20 flex min-w-60 flex-1 items-center overflow-hidden pointer-events-auto"
-  >
+  <div class="relative z-20 flex min-w-0 items-center pointer-events-auto">
     <div
-      class="flex items-center overflow-hidden rounded-none focus:outline-none"
+      class="flex items-center overflow-hidden rounded-lg focus:outline-none"
     >
       <div class="relative group/nav-back flex items-center gap-2">
-        <!-- Run button with HoverCard -->
-        <HoverCard :open-delay="200">
-          <HoverCardTrigger as-child>
+        <!-- Run button with Tooltip -->
+        <Tooltip :delay-duration="200">
+          <TooltipTrigger as-child>
             <Button
               :aria-label="t('problem.layout.runCode')"
               :aria-busy="bottomPanelStore.isRunning"
-              class="group flex cursor-pointer gap-1.5 items-center h-8 transition-all duration-200 text-foreground-strong px-3 bg-surface dark:bg-surface-highlight border border-status-success-mark/40 hover:bg-status-success-surface hover:text-foreground-strong hover:border-status-success-mark disabled:opacity-50 rounded-none focus:outline-none focus:ring-0 focus:ring-offset-0 font-bold uppercase tracking-wider text-xxs"
+              :disabled="bottomPanelStore.isRunning"
+              class="group flex cursor-pointer gap-1.5 items-center px-3 disabled:opacity-50 focus:outline-none"
               @click="handleRun"
             >
               <Play
                 class="h-3.5 w-3.5 text-status-success-mark transition-transform duration-200"
-                :class="bottomPanelStore.isRunning ? 'animate-[spin_0.9s_linear]' : ''"
+                :class="
+                  bottomPanelStore.isRunning ? 'animate-[spin_0.9s_linear]' : ''
+                "
               />
               <span class="truncate">{{ t("problem.layout.runCode") }}</span>
             </Button>
-          </HoverCardTrigger>
-          <HoverCardContent class="h-auto w-auto p-2 rounded-none">
+          </TooltipTrigger>
+          <TooltipContent class="h-auto w-auto p-2">
             <div class="flex items-center gap-1">
               <p class="text-xs leading-none">
                 {{ t("problem.layout.runCode") }}
               </p>
-              <KbdGroup class="text-xs">
-                <Kbd class="px-0.5 py-0 min-w-0 h-auto text-xs rounded-none"
-                  >F5</Kbd
-                >
+              <KbdGroup>
+                <Kbd class="px-0.5 py-0 min-w-0 h-auto">F5</Kbd>
               </KbdGroup>
             </div>
-          </HoverCardContent>
-        </HoverCard>
+          </TooltipContent>
+        </Tooltip>
 
         <div class="h-6 w-px bg-border/40" />
 
         <!-- Submit button -->
-        <HoverCard :open-delay="200">
-          <HoverCardTrigger as-child>
+        <Tooltip :delay-duration="200">
+          <TooltipTrigger as-child>
             <Button
               :aria-label="t('problem.layout.submitSolution')"
               :disabled="isSubmitting"
-              class="group cursor-pointer gap-1.5 items-center h-8 transition-all duration-200 text-primary-foreground px-3 bg-primary border border-primary hover:bg-primary/90 hover:border-primary/90 disabled:opacity-50 rounded-none focus:outline-none focus:ring-0 focus:ring-offset-0 font-bold uppercase tracking-wider text-xxs shadow-sm"
+              class="group cursor-pointer gap-1.5 items-center px-3 disabled:opacity-50 focus:outline-none"
               @click="handleSubmit"
             >
               <CloudUpload
@@ -192,24 +193,20 @@ onBeforeUnmount(() => {
                 }}
               </span>
             </Button>
-          </HoverCardTrigger>
-          <HoverCardContent class="h-auto w-auto p-2 rounded-none">
+          </TooltipTrigger>
+          <TooltipContent class="h-auto w-auto p-2">
             <div class="flex items-center gap-1">
               <p class="text-xs leading-none">
                 {{ t("problem.layout.submitSolution") }}
               </p>
-              <KbdGroup class="text-xs">
-                <Kbd class="px-0.5 py-0 min-w-0 h-auto text-xs rounded-none"
-                  >Ctrl</Kbd
-                >
+              <KbdGroup>
+                <Kbd class="px-0.5 py-0 min-w-0 h-auto">Ctrl</Kbd>
                 <span class="text-xs">+</span>
-                <Kbd class="px-0.5 py-0 min-w-0 h-auto text-xs rounded-none"
-                  >Enter</Kbd
-                >
+                <Kbd class="px-0.5 py-0 min-w-0 h-auto">Enter</Kbd>
               </KbdGroup>
             </div>
-          </HoverCardContent>
-        </HoverCard>
+          </TooltipContent>
+        </Tooltip>
       </div>
     </div>
 

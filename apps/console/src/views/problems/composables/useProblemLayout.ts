@@ -33,7 +33,7 @@ function createInitialHeaderGroups(
       index: 0,
       title: t("problem.layout.problemDescription"),
       icon: "FileText",
-      iconColor: "var(--accent-primary)",
+      iconColor: "var(--primary)",
     },
   ];
   if (!isContest) {
@@ -42,7 +42,7 @@ function createInitialHeaderGroups(
       index: problemInfoHeaders.length,
       title: t("problem.layout.solution"),
       icon: "FlaskConical",
-      iconColor: "var(--accent-primary)",
+      iconColor: "var(--primary)",
     });
   }
   problemInfoHeaders.push({
@@ -50,7 +50,7 @@ function createInitialHeaderGroups(
     index: problemInfoHeaders.length,
     title: t("problem.layout.submissions"),
     icon: "History",
-    iconColor: "var(--accent-primary)",
+    iconColor: "var(--primary)",
   });
 
   return [
@@ -109,10 +109,7 @@ function buildLayoutConfig(
   });
 }
 
-function getLeetLayoutConfig(
-  t: (key: string) => string,
-  isContest: boolean,
-) {
+function getLeetLayoutConfig(t: (key: string) => string, isContest: boolean) {
   const groups = createInitialHeaderGroups(t, isContest);
   const children: LayoutNodeType[] = [
     {
@@ -256,10 +253,7 @@ function getCompactLayoutConfig(
   return { groups, layout };
 }
 
-function getWideLayoutConfig(
-  t: (key: string) => string,
-  isContest: boolean,
-) {
+function getWideLayoutConfig(t: (key: string) => string, isContest: boolean) {
   const groups = createInitialHeaderGroups(t, isContest);
   const children: LayoutNodeType[] = [
     {
@@ -394,9 +388,7 @@ export function useProblemLayout(contestId: Ref<string | null>) {
     const config = getLayoutConfig(currentLayout.value);
     headerStore.initData(config.groups, config.layout);
     if (previousActive === null || previousActive === undefined) return;
-    const problemInfoGroup = config.groups.find(
-      (g) => g.id === "problem-info",
-    );
+    const problemInfoGroup = config.groups.find((g) => g.id === "problem-info");
     const stillExists = problemInfoGroup?.headers.some(
       (h) => h.id === previousActive,
     );

@@ -78,7 +78,11 @@ describe('createSelectionColumn', () => {
     })
 
     it('aria-label defaults to t("table.selectAll")', () => {
-      const table = { getIsAllPageRowsSelected: () => true, getIsSomePageRowsSelected: () => true, toggleAllPageRowsSelected: vi.fn() }
+      const table = {
+        getIsAllPageRowsSelected: () => true,
+        getIsSomePageRowsSelected: () => true,
+        toggleAllPageRowsSelected: vi.fn(),
+      }
       const cols = createSelectionColumn(mockT)
       const vnode = (cols[0].header as ColumnDef<unknown>['header'])(makeHeaderCtx(table))
       expect(vnode.props).toMatchObject({ 'aria-label': 'table.selectAll' })
@@ -86,7 +90,11 @@ describe('createSelectionColumn', () => {
 
     it('onUpdate:modelValue(true) calls toggleAllPageRowsSelected(true)', () => {
       const toggleAll = vi.fn()
-      const table = { getIsAllPageRowsSelected: () => false, getIsSomePageRowsSelected: () => false, toggleAllPageRowsSelected: toggleAll }
+      const table = {
+        getIsAllPageRowsSelected: () => false,
+        getIsSomePageRowsSelected: () => false,
+        toggleAllPageRowsSelected: toggleAll,
+      }
       const cols = createSelectionColumn(mockT)
       const vnode = (cols[0].header as ColumnDef<unknown>['header'])(makeHeaderCtx(table))
       const onUpdate = vnode.props!['onUpdate:modelValue'] as (v: boolean | 'indeterminate') => void
@@ -96,7 +104,11 @@ describe('createSelectionColumn', () => {
 
     it('onUpdate:modelValue(false) calls toggleAllPageRowsSelected(false)', () => {
       const toggleAll = vi.fn()
-      const table = { getIsAllPageRowsSelected: () => true, getIsSomePageRowsSelected: () => true, toggleAllPageRowsSelected: toggleAll }
+      const table = {
+        getIsAllPageRowsSelected: () => true,
+        getIsSomePageRowsSelected: () => true,
+        toggleAllPageRowsSelected: toggleAll,
+      }
       const cols = createSelectionColumn(mockT)
       const vnode = (cols[0].header as ColumnDef<unknown>['header'])(makeHeaderCtx(table))
       const onUpdate = vnode.props!['onUpdate:modelValue'] as (v: boolean | 'indeterminate') => void
@@ -140,7 +152,11 @@ describe('createSelectionColumn', () => {
 
   describe('custom options', () => {
     it('selectAllAriaLabel overrides the header aria-label', () => {
-      const table = { getIsAllPageRowsSelected: () => true, getIsSomePageRowsSelected: () => true, toggleAllPageRowsSelected: vi.fn() }
+      const table = {
+        getIsAllPageRowsSelected: () => true,
+        getIsSomePageRowsSelected: () => true,
+        toggleAllPageRowsSelected: vi.fn(),
+      }
       const cols = createSelectionColumn(mockT, { selectAllAriaLabel: '全选' })
       const vnode = (cols[0].header as ColumnDef<unknown>['header'])(makeHeaderCtx(table))
       expect(vnode.props).toMatchObject({ 'aria-label': '全选' })
@@ -154,9 +170,13 @@ describe('createSelectionColumn', () => {
     })
 
     it('checkboxClass is passed to header and cell', () => {
-      const table = { getIsAllPageRowsSelected: () => false, getIsSomePageRowsSelected: () => false, toggleAllPageRowsSelected: vi.fn() }
+      const table = {
+        getIsAllPageRowsSelected: () => false,
+        getIsSomePageRowsSelected: () => false,
+        toggleAllPageRowsSelected: vi.fn(),
+      }
       const row = { getIsSelected: () => false, toggleSelected: vi.fn() }
-      const cls = 'border-[var(--border-subtle)]'
+      const cls = 'border-[var(--border)]'
       const cols = createSelectionColumn(mockT, { checkboxClass: cls })
       const headerVnode = (cols[0].header as ColumnDef<unknown>['header'])(makeHeaderCtx(table))
       const cellVnode = (cols[0].cell as ColumnDef<unknown>['cell'])(makeCellCtx(row))

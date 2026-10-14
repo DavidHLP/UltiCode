@@ -1,18 +1,18 @@
 import { h } from 'vue'
 import type { ColumnDef } from '@tanstack/vue-table'
 import {
-  IconCheck,
-  IconEye,
-  IconFlag,
-  IconMessage,
-  IconFileText,
-  IconTrash,
-  IconUser,
-} from '@tabler/icons-vue'
+  Check as IconCheck,
+  Eye as IconEye,
+  Flag as IconFlag,
+  MessageSquare as IconMessage,
+  FileText as IconFileText,
+  Trash as IconTrash,
+  User as IconUser,
+} from '@lucide/vue'
 
 import { createSelectionColumn } from '@/components/table/selectionColumn'
 import { createEntityActionsMenu } from '@/components/table/entityActions'
-import { badge, type SemanticColor } from '@/components/ui/terminal'
+import { badge, type SemanticColor } from '@ulticode/badge-config'
 import type { Comment, CommentType } from '@/api/admin/comments'
 import { formatDate } from '@/lib/format/date'
 
@@ -47,7 +47,7 @@ export function createColumns(
   return [
     ...createSelectionColumn<Comment>(t, {
       checkboxClass:
-        'border-[var(--border-subtle)] data-[state=checked]:bg-[var(--primary)] data-[state=checked]:border-[var(--primary)]',
+        'border-[var(--border)] data-[state=checked]:bg-[var(--primary)] data-[state=checked]:border-[var(--primary)]',
     }),
     {
       id: 'row_num',
@@ -56,7 +56,11 @@ export function createColumns(
         const pageIndex = table.getState().pagination.pageIndex
         const pageSize = table.getState().pagination.pageSize
         const rowNum = pageIndex * pageSize + row.index + 1
-        return h('span', { class: 'terminal-row-num' }, String(rowNum).padStart(2, '0'))
+        return h(
+          'span',
+          { class: 'text-xs tabular-nums text-muted-foreground' },
+          String(rowNum).padStart(2, '0'),
+        )
       },
       enableSorting: false,
       enableHiding: false,
@@ -66,7 +70,7 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
+          { class: 'font-mono text-xs uppercase tracking-widest text-[var(--muted-foreground)]' },
           t('comments.columns.comment'),
         ),
       cell: ({ row }) => {
@@ -83,10 +87,10 @@ export function createColumns(
             },
             renderInlineContent(truncated),
           ),
-          h('div', { class: 'flex items-center gap-1.5 text-xs text-[var(--foreground-muted)]' }, [
+          h('div', { class: 'flex items-center gap-1.5 text-xs text-[var(--muted-foreground)]' }, [
             comment.type === 'forum'
-              ? h(IconMessage, { class: 'h-3 w-3 text-foreground-strong' })
-              : h(IconFileText, { class: 'h-3 w-3 text-foreground-strong' }),
+              ? h(IconMessage, { class: 'h-3 w-3 text-foreground' })
+              : h(IconFileText, { class: 'h-3 w-3 text-foreground' }),
             h(
               'span',
               { class: 'hover:text-[var(--foreground)] transition-colors' },
@@ -101,13 +105,13 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
+          { class: 'font-mono text-xs uppercase tracking-widest text-[var(--muted-foreground)]' },
           t('comments.columns.author'),
         ),
       cell: ({ row }) => {
         const author = row.original.author
         return h('div', { class: 'flex items-center gap-2 py-1' }, [
-          h(IconUser, { class: 'h-3.5 w-3.5 text-[var(--foreground-muted)]' }),
+          h(IconUser, { class: 'h-3.5 w-3.5 text-[var(--muted-foreground)]' }),
           h(
             'span',
             { class: 'text-sm text-[var(--foreground)]' },
@@ -121,7 +125,7 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
+          { class: 'font-mono text-xs uppercase tracking-widest text-[var(--muted-foreground)]' },
           t('comments.columns.type'),
         ),
       cell: ({ row }) => {
@@ -134,7 +138,7 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
+          { class: 'font-mono text-xs uppercase tracking-widest text-[var(--muted-foreground)]' },
           t('comments.columns.status'),
         ),
       cell: ({ row }) => {
@@ -147,14 +151,14 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
+          { class: 'font-mono text-xs uppercase tracking-widest text-[var(--muted-foreground)]' },
           t('comments.columns.created'),
         ),
       cell: ({ row }) => {
         const date = row.getValue('createdAt') as string
         return h(
           'span',
-          { class: 'font-data text-xs text-[var(--foreground-muted)] tabular-nums' },
+          { class: 'font-mono text-xs text-[var(--muted-foreground)] tabular-nums' },
           formatDate(date),
         )
       },
@@ -164,7 +168,7 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
+          { class: 'font-mono text-xs uppercase tracking-widest text-[var(--muted-foreground)]' },
           t('common.actions.label'),
         ),
       cell: ({ row }) => {
@@ -176,7 +180,7 @@ export function createColumns(
               label: t('comments.actions.viewDetails'),
               onSelect: () => actions.viewCommentDetails(comment),
               icon: IconEye,
-              iconClass: 'h-4 w-4 text-foreground-strong',
+              iconClass: 'h-4 w-4 text-foreground',
             },
             { kind: 'separator' },
             comment.isFlagged
@@ -184,16 +188,16 @@ export function createColumns(
                   label: t('comments.actions.unflag'),
                   onSelect: () => actions.unflagComment(comment),
                   icon: IconCheck,
-                  iconClass: 'h-4 w-4 text-foreground-strong',
-                  labelClass: 'text-[var(--foreground-strong)]',
+                  iconClass: 'h-4 w-4 text-foreground',
+                  labelClass: 'text-[var(--foreground)]',
                   hidden: !canModerateRow,
                 }
               : {
                   label: t('comments.actions.flag'),
                   onSelect: () => actions.openFlagDialog(comment),
                   icon: IconFlag,
-                  iconClass: 'h-4 w-4 text-foreground-strong',
-                  labelClass: 'text-[var(--foreground-strong)]',
+                  iconClass: 'h-4 w-4 text-foreground',
+                  labelClass: 'text-[var(--foreground)]',
                   hidden: !canModerateRow,
                 },
             { kind: 'separator', hidden: !canModerateRow },
@@ -201,25 +205,24 @@ export function createColumns(
               label: t('comments.actions.delete'),
               onSelect: () => actions.confirmDelete(comment),
               icon: IconTrash,
-              iconClass: 'h-4 w-4 text-foreground-strong',
-              labelClass: 'text-[var(--foreground-strong)]',
+              iconClass: 'h-4 w-4 text-foreground',
+              labelClass: 'text-[var(--foreground)]',
               hidden: !canModerateRow,
             },
             {
               label: t('comments.actions.noPermission'),
               onSelect: () => {},
               disabled: true,
-              itemClass: 'font-data text-xs text-[var(--foreground-muted)]',
+              itemClass: 'font-mono text-xs text-[var(--muted-foreground)]',
               hidden: canModerateRow,
             },
           ],
           {
-            triggerClass:
-              'h-8 w-8 p-0 hover:bg-[var(--surface-highlight)] dark:hover:bg-[var(--foreground-strong)]',
-            triggerIconClass: 'h-4 w-4 text-[var(--foreground-muted)]',
-            contentClass: 'border-[var(--border-subtle)] dark:border-[var(--foreground-strong)]',
-            itemClass: 'font-data text-xs cursor-pointer',
-            separatorClass: 'bg-[var(--border-subtle)] dark:bg-[var(--foreground-strong)]',
+            triggerClass: 'h-8 w-8 p-0 hover:bg-[var(--accent)] dark:hover:bg-[var(--foreground)]',
+            triggerIconClass: 'h-4 w-4 text-[var(--muted-foreground)]',
+            contentClass: 'border-[var(--border)] dark:border-[var(--foreground)]',
+            itemClass: 'font-mono text-xs cursor-pointer',
+            separatorClass: 'bg-[var(--border)] dark:bg-[var(--foreground)]',
           },
         )
       },

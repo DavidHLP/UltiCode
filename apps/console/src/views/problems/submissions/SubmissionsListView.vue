@@ -15,7 +15,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from "@ulticode/design-system/ui/table";
 
 import {
   Empty,
@@ -23,8 +23,8 @@ import {
   EmptyDescription,
   EmptyHeader,
   EmptyMedia,
-} from "@/components/ui/empty";
-import { SemanticBadge } from "@/components/ui/terminal";
+} from "@ulticode/design-system/ui/empty";
+import SemanticBadge from "@ulticode/badge-config/SemanticBadge.vue";
 import {
   getStatusColor,
   getStatusLabelI18nKey,
@@ -66,9 +66,7 @@ const showLoginPrompt = computed(
       <Loader2 class="h-8 w-8 animate-spin text-muted-foreground" />
     </div>
     <template v-else-if="showLoginPrompt">
-      <Empty
-        class="flex h-full items-center justify-center border-none bg-transparent px-6 py-8"
-      >
+      <Empty class="flex h-full items-center justify-center px-6 py-8">
         <EmptyContent>
           <EmptyMedia variant="icon">
             <Inbox class="h-10 w-10 text-muted-foreground" />
@@ -114,10 +112,10 @@ const showLoginPrompt = computed(
             <TableRow
               v-for="submission in props.submissions"
               :key="submission.id"
-              class="cursor-pointer transition-colors hover:bg-muted/50"
+              class="cursor-pointer"
               @click="handleSelect(submission)"
             >
-              <TableCell class="font-medium">
+              <TableCell>
                 <SemanticBadge
                   :color="getStatusColor(submission.status)"
                   :label="getSubmissionLabel(submission.status)"
@@ -131,7 +129,7 @@ const showLoginPrompt = computed(
               <TableCell class="text-center">
                 {{ submission.memory }}
               </TableCell>
-              <TableCell class="text-sm text-muted-foreground">
+              <TableCell>
                 {{ submission.notes || "—" }}
               </TableCell>
             </TableRow>
@@ -139,7 +137,7 @@ const showLoginPrompt = computed(
 
           <TableRow v-else>
             <TableCell colspan="5" class="p-0">
-              <Empty class="border-none bg-transparent px-6 py-8">
+              <Empty class="px-6 py-8">
                 <EmptyContent>
                   <EmptyMedia variant="icon">
                     <Inbox class="h-6 w-6 text-muted-foreground" />
@@ -159,10 +157,10 @@ const showLoginPrompt = computed(
         </TableBody>
         <TableFooter v-if="props.submissions.length">
           <TableRow>
-            <TableCell colspan="4" class="text-sm font-medium">
+            <TableCell colspan="4">
               {{ t("personal.profile.totalProblems") }}
             </TableCell>
-            <TableCell class="text-center font-bold">
+            <TableCell class="text-center">
               {{ props.submissions.length }}
             </TableCell>
           </TableRow>

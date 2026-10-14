@@ -1,11 +1,19 @@
 <script setup lang="ts">
+import { FieldLabel } from '@ulticode/design-system/ui/field'
+
 import { ref, watch } from 'vue'
 import { useUsersStore } from '@/stores/admin/users'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
-import { IconArrowRight, IconLoader2, IconLock, IconShieldCheck } from '@tabler/icons-vue'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import {
+  ArrowRight as IconArrowRight,
+  Loader2 as IconLoader2,
+  Lock as IconLock,
+  ShieldCheck as IconShieldCheck,
+} from '@lucide/vue'
+
+import { Button } from '@ulticode/design-system/ui/button'
+import { Input } from '@ulticode/design-system/ui/input'
 import {
   Dialog,
   DialogContent,
@@ -13,7 +21,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog'
+} from '@ulticode/design-system/ui/dialog'
 
 const { t } = useI18n()
 
@@ -66,17 +74,15 @@ async function handleReset() {
 
 <template>
   <Dialog :open="open" @update:open="emit('update:open', $event)">
-    <DialogContent
-      class="sm:max-w-[420px] border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] rounded-none p-0 gap-0"
-    >
-      <!-- Terminal Header -->
-      <DialogHeader class="border-b border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] p-4">
+    <DialogContent class="sm:max-w-[420px] p-0 gap-0">
+      <!-- Page header -->
+      <DialogHeader class="p-4">
         <div class="flex items-center gap-3">
-          <DialogTitle class="text-lg font-medium tracking-tight">
+          <DialogTitle>
             {{ t('users.actions.resetPassword') }}
           </DialogTitle>
         </div>
-        <DialogDescription class="terminal-comment mt-1">
+        <DialogDescription class="mt-1">
           {{
             t('users.actions.resetPasswordDescription', {
               username: username || t('users.actions.thisUser'),
@@ -90,14 +96,14 @@ async function handleReset() {
         <div class="p-4 space-y-4">
           <!-- Security Warning -->
           <div
-            class="flex items-start gap-3 p-3 border border-[var(--status-warning-mark)] bg-[color-mix(in_oklch,_var(--status-warning-mark)_8%,_transparent)]"
+            class="flex items-start gap-3 p-3 border border-status-warning-mark bg-[color-mix(in_oklch,_var(--status-warning-mark)_8%,_transparent)]"
           >
-            <IconShieldCheck class="h-4 w-4 text-[var(--status-warning-mark)] shrink-0 mt-0.5" />
+            <IconShieldCheck class="h-4 w-4 text-status-warning-mark shrink-0 mt-0.5" />
             <div class="space-y-1">
-              <p class="font-data text-xs text-[var(--foreground-strong)] uppercase tracking-wider">
+              <p class="font-mono text-xs text-foreground uppercase tracking-wider">
                 Security Notice
               </p>
-              <p class="text-xs text-[var(--foreground-muted)]">
+              <p class="text-xs text-muted-foreground">
                 {{ t('users.actions.resetPasswordWarning') }}
               </p>
             </div>
@@ -105,49 +111,41 @@ async function handleReset() {
 
           <!-- Password Field -->
           <div class="space-y-1.5">
-            <label class="terminal-label block">{{ t('users.form.newPassword') }}</label>
+            <FieldLabel class="block">{{ t('users.form.newPassword') }}</FieldLabel>
             <div class="relative">
               <IconLock
-                class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--foreground-muted)]"
+                class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"
               />
               <Input
                 v-model="newPassword"
                 type="password"
                 :placeholder="t('users.form.newPasswordPlaceholder')"
                 :disabled="loading"
-                class="terminal-input h-9 pl-9 font-data"
+                class="pl-9"
               />
             </div>
           </div>
 
           <!-- User Info -->
           <div
-            class="flex items-center gap-2 p-2 border border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] bg-[var(--surface-sunken)]"
+            class="flex items-center gap-2 p-2 border border-border dark:border-foreground bg-muted"
           >
-            <span class="terminal-label">{{ t('users.form.targetUser') }}:</span>
-            <span class="font-data text-xs text-[var(--foreground-strong)]">{{ username }}</span>
+            <span class="text-sm font-medium">{{ t('users.form.targetUser') }}:</span>
+            <span class="font-mono text-xs text-foreground">{{ username }}</span>
           </div>
         </div>
 
         <!-- Footer -->
-        <DialogFooter
-          class="border-t border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] p-4 gap-3"
-        >
+        <DialogFooter class="p-4 gap-3">
           <Button
             type="button"
-            variant="terminal"
-            class="font-data text-xs border-[var(--border-subtle)] hover:border-[var(--foreground-muted)]"
+            variant="outline"
             :disabled="loading"
             @click="emit('update:open', false)"
           >
             {{ t('users.actions.cancel') }}
           </Button>
-          <Button
-            type="submit"
-            variant="terminal"
-            :disabled="!newPassword || loading"
-            class="font-data text-xs bg-status-warning-surface border border-[var(--status-warning-mark)] hover:bg-status-warning-surface text-foreground-strong"
-          >
+          <Button type="submit" variant="outline" :disabled="!newPassword || loading">
             <IconLoader2 v-if="loading" class="h-3.5 w-3.5 mr-1.5 animate-spin" />
             <IconArrowRight v-else class="h-3.5 w-3.5 mr-1.5" />
             {{ loading ? t('users.actions.resetting') : t('users.actions.resetPasswordAction') }}

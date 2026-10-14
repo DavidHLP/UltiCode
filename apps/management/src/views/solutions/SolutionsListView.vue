@@ -5,9 +5,9 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
-import { IconFileText } from '@tabler/icons-vue'
+import { FileText as IconFileText } from '@lucide/vue'
 
-import { Button } from '@/components/ui/button'
+import { Button } from '@ulticode/design-system/ui/button'
 
 import { useSolutionsStore } from '@/stores/admin/solutions'
 import type { SolutionListItem } from '@/api/admin/solutions'
@@ -22,7 +22,6 @@ const router = useRouter()
 const solutionsStore = useSolutionsStore()
 const can = { solution: usePermissionMap(solutionPermissionRules) }
 const { t } = useI18n()
-
 
 const selectedSolutionId = ref<string | null>(null)
 const selectedSolutionTitle = ref<string | null>(null)
@@ -58,9 +57,7 @@ const {
     search,
     isFlagged: filters.flaggedFilter === 'all' ? undefined : filters.flaggedFilter === 'flagged',
     isPublished:
-      filters.publishedFilter === 'all'
-        ? undefined
-        : filters.publishedFilter === 'published',
+      filters.publishedFilter === 'all' ? undefined : filters.publishedFilter === 'published',
     page,
     limit,
   }),
@@ -106,7 +103,6 @@ const toolbarFilters = computed<Filter[]>(() => [
   },
 ])
 
-
 const columns = createColumns(
   t,
   {
@@ -146,52 +142,46 @@ async function handleFlagSolution(id: string | number, reason?: string) {
 
 <template>
   <div class="relative flex flex-col gap-4 w-full min-w-0">
-    <!-- Terminal Header -->
+    <!-- Page header -->
     <div
       :class="[
-        'border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--card)]',
+        'border border-border dark:border-border bg-card',
         'transition-all duration-500',
         isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
       ]"
     >
       <!-- Title Row -->
       <div class="px-4 lg:px-6 py-4 flex items-center justify-between">
-        <h1 class="text-xl font-medium tracking-tight text-[var(--foreground)]">
+        <h1 class="text-xl font-medium tracking-tight text-foreground">
           {{ t('solutions.title') }}
         </h1>
       </div>
 
       <!-- Stats Ticker -->
       <div
-        class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--surface-sunken)]"
+        class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-border dark:border-border bg-muted"
       >
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--foreground-muted)]"
+          <span class="text-sm font-medium text-muted-foreground"
             >{{ t('solutions.terminal.total') }}:</span
           >
-          <span class="font-data text-sm text-[var(--foreground-strong)] tabular-nums">{{
-            stats.total
-          }}</span>
+          <span class="font-mono text-sm text-foreground tabular-nums">{{ stats.total }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--foreground-muted)]"
+          <span class="text-sm font-medium text-muted-foreground"
             >{{ t('solutions.terminal.flagged') }}:</span
           >
-          <span class="font-data text-sm text-[var(--foreground-strong)] tabular-nums">{{
-            stats.flagged
-          }}</span>
+          <span class="font-mono text-sm text-foreground tabular-nums">{{ stats.flagged }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--foreground-muted)]"
+          <span class="text-sm font-medium text-muted-foreground"
             >{{ t('solutions.terminal.published') }}:</span
           >
-          <span class="font-data text-sm text-[var(--foreground-strong)] tabular-nums">{{
-            stats.published
-          }}</span>
+          <span class="font-mono text-sm text-foreground tabular-nums">{{ stats.published }}</span>
         </div>
-        <div class="ml-auto flex items-center gap-2 text-[var(--foreground-muted)]">
+        <div class="ml-auto flex items-center gap-2 text-muted-foreground">
           <IconFileText class="h-4 w-4" />
-          <span class="text-xs font-data uppercase tracking-wider">{{
+          <span class="text-xs font-mono uppercase tracking-wider">{{
             t('solutions.terminal.solutionManagement')
           }}</span>
         </div>
@@ -207,7 +197,7 @@ async function handleFlagSolution(id: string | number, reason?: string) {
         :row-count="total"
         :loading="loading"
         @update:pagination="tablePagination = $event"
-        class="terminal-table"
+        class="w-full text-sm"
       >
         <template #toolbar-left>
           <DataTableToolbar
@@ -229,18 +219,13 @@ async function handleFlagSolution(id: string | number, reason?: string) {
       <!-- Error state - Terminal Style -->
       <div
         v-if="error"
-        class="mt-4 flex items-center justify-between border border-[var(--status-error-mark)] bg-[color-mix(in_oklch,_var(--status-error-mark)_8%,_transparent)] p-4"
+        class="mt-4 flex items-center justify-between border border-status-error-mark bg-[color-mix(in_oklch,_var(--status-error-mark)_8%,_transparent)] p-4"
       >
         <div class="flex items-center gap-3">
-          <span class="font-data text-sm text-[var(--foreground-strong)]">&gt; ERROR:</span>
-          <span class="text-sm text-[var(--foreground)]">{{ error }}</span>
+          <span class="font-mono text-sm text-foreground">&gt; ERROR:</span>
+          <span class="text-sm text-foreground">{{ error }}</span>
         </div>
-        <Button
-          variant="terminal"
-          size="sm"
-          class="font-data text-xs border-[var(--status-error-mark)] text-foreground-strong hover:bg-[color-mix(in_oklch,_var(--status-error-mark)_10%,_transparent)]"
-          @click="loadSolutions()"
-        >
+        <Button variant="outline" size="sm" @click="loadSolutions()">
           {{ t('common.retry') }}
         </Button>
       </div>

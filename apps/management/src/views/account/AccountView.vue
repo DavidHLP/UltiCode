@@ -1,26 +1,26 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Separator } from '@/components/ui/separator'
-import { SemanticBadge, USER_ROLE_COLOR_MAP } from '@/components/ui/terminal'
+import { Button } from '@ulticode/design-system/ui/button'
+import { Input } from '@ulticode/design-system/ui/input'
+import { Textarea } from '@ulticode/design-system/ui/textarea'
+import { Label } from '@ulticode/design-system/ui/label'
+import { Card, CardContent, CardHeader, CardTitle } from '@ulticode/design-system/ui/card'
+import { Separator } from '@ulticode/design-system/ui/separator'
+import SemanticBadge from '@ulticode/badge-config/SemanticBadge.vue'
+import { USER_ROLE_COLOR_MAP } from '@ulticode/badge-config'
 import { formatDateByLocale, formatDateTimeByLocale } from '@/i18n/utils'
 import { accountApi, type AccountProfile, type UpdateProfileDto } from '@/api/admin/account'
 import { toast } from 'vue-sonner'
 import {
-  IconUser,
-  IconBrandGithub,
-  IconBrandTwitter,
-  IconWorld,
-  IconLanguage,
-  IconDeviceFloppy,
-  IconShield,
-  IconKey,
-} from '@tabler/icons-vue'
+  User as IconUser,
+  Globe as IconWorld,
+  Languages as IconLanguage,
+  Save as IconDeviceFloppy,
+  Shield as IconShield,
+  Key as IconKey,
+} from '@lucide/vue'
+import { IconBrandGithub, IconBrandTwitter } from '@tabler/icons-vue'
 
 const { t } = useI18n()
 
@@ -121,10 +121,10 @@ onMounted(async () => {
 
 <template>
   <div class="relative flex flex-col gap-4 w-full min-w-0">
-    <!-- Terminal Header -->
+    <!-- Page header -->
     <div
       :class="[
-        'border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--card)]',
+        'border border-border dark:border-border bg-card',
         'transition-all duration-500',
         isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
       ]"
@@ -132,10 +132,10 @@ onMounted(async () => {
       <!-- Title Row -->
       <div class="px-4 lg:px-6 py-4 flex items-center justify-between">
         <div class="space-y-1">
-          <h1 class="text-xl font-medium tracking-tight text-[var(--foreground)]">
+          <h1 class="text-xl font-medium tracking-tight text-foreground">
             {{ t('account.title') }}
           </h1>
-          <p class="text-xs text-[var(--foreground-muted)]">{{ t('account.subtitle') }}</p>
+          <p class="text-xs text-muted-foreground">{{ t('account.subtitle') }}</p>
         </div>
       </div>
     </div>
@@ -364,7 +364,7 @@ onMounted(async () => {
           <CardContent class="space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div class="space-y-1">
-                <Label class="text-muted-foreground">{{ t('account.fields.role') }}</Label>
+                <Label>{{ t('account.fields.role') }}</Label>
                 <div>
                   <SemanticBadge
                     :color="USER_ROLE_COLOR_MAP[profile.role] || 'neutral'"
@@ -378,7 +378,7 @@ onMounted(async () => {
                 </div>
               </div>
               <div class="space-y-1">
-                <Label class="text-muted-foreground">{{ t('account.fields.joinedAt') }}</Label>
+                <Label>{{ t('account.fields.joinedAt') }}</Label>
                 <div class="text-sm">
                   {{ formatDateByLocale(profile.joined_at) }}
                 </div>
@@ -386,11 +386,11 @@ onMounted(async () => {
             </div>
             <Separator />
             <div class="space-y-1">
-              <Label class="text-muted-foreground">{{ t('account.fields.username') }}</Label>
+              <Label>{{ t('account.fields.username') }}</Label>
               <div class="text-sm">@{{ profile.username }}</div>
             </div>
             <div v-if="profile.last_login_at" class="space-y-1">
-              <Label class="text-muted-foreground">{{ t('account.fields.lastLogin') }}</Label>
+              <Label>{{ t('account.fields.lastLogin') }}</Label>
               <div class="text-sm">
                 {{ formatDateTimeByLocale(profile.last_login_at) }}
               </div>

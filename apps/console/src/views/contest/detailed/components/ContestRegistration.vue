@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@ulticode/design-system/ui/card";
+import { Button } from "@ulticode/design-system/ui/button";
 import { Calendar, Clock, Users, Trophy, PlayCircle } from "@lucide/vue";
 import { useI18n } from "vue-i18n";
 import type { ContestDetail } from "@/types/contest";
@@ -39,10 +39,7 @@ const statusColor = computed(() => {
 </script>
 
 <template>
-  <Card
-    class="border border-border bg-surface dark:bg-surface-highlight shadow-[var(--shadow-float)] text-foreground overflow-hidden rounded-none relative transition-all duration-300"
-    :class="statusCardClass"
-  >
+  <Card class="overflow-hidden relative" :class="statusCardClass">
     <CardContent class="p-6 md:p-8 relative z-10">
       <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
         <!-- Left Column: Status, Countdown & Progress -->
@@ -51,13 +48,13 @@ const statusColor = computed(() => {
         >
           <div class="space-y-3">
             <p
-              class="text-2xs font-bold font-mono uppercase tracking-widest text-muted-foreground"
+              class="text-xs font-bold font-mono uppercase tracking-widest text-muted-foreground"
             >
               {{ t("contest.detail.contestStatus") }}
             </p>
             <div class="flex items-center gap-3">
               <span
-                class="inline-flex items-center gap-1.5 rounded-none px-2.5 py-0.5 text-2xs font-bold font-mono uppercase tracking-widest border transition-all duration-300"
+                class="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-0.5 text-xs font-bold font-mono uppercase tracking-widest border transition-all duration-300"
                 :style="{
                   color: statusColor,
                   backgroundColor: `color-mix(in oklch, ${statusColor} 10%, transparent)`,
@@ -66,11 +63,11 @@ const statusColor = computed(() => {
               >
                 <span
                   v-if="contest.status === 'RUNNING'"
-                  class="h-1.5 w-1.5 rounded-full bg-[var(--status-error-mark)] animate-pulse shadow-[0_0_8px_2px_var(--status-error-mark)]"
+                  class="h-1.5 w-1.5 rounded-full bg-status-error-mark animate-pulse shadow-[0_0_8px_2px_var(--status-error-mark)]"
                 ></span>
                 <span
                   v-else-if="contest.status === 'UPCOMING'"
-                  class="h-1.5 w-1.5 rounded-full bg-[var(--status-success-mark)] animate-pulse"
+                  class="h-1.5 w-1.5 rounded-full bg-status-success-mark animate-pulse"
                 ></span>
                 {{
                   contest.status === "RUNNING"
@@ -90,14 +87,14 @@ const statusColor = computed(() => {
 
             <div class="space-y-1 pt-1.5">
               <h2
-                class="text-xl font-black text-foreground-strong dark:text-foreground-strong tracking-tight"
+                class="text-xl font-black text-foreground dark:text-foreground tracking-tight"
               >
                 {{ statusLabel }}
               </h2>
               <!-- Monospace Timer Block -->
               <p
                 v-if="contest.status !== 'FINISHED'"
-                class="font-mono text-3xl font-black tracking-tight md:text-5xl text-[var(--primary)] select-all tabular-nums"
+                class="font-mono text-3xl font-black tracking-tight md:text-5xl text-primary select-all tabular-nums"
               >
                 {{ statusCountdown }}
               </p>
@@ -113,13 +110,13 @@ const statusColor = computed(() => {
           <!-- Progress Bar -->
           <div class="space-y-1.5 pt-2">
             <div
-              class="h-2 rounded-none bg-[var(--surface-sunken)] overflow-hidden border border-border/40"
+              class="h-2 rounded-lg bg-muted overflow-hidden border border-border/40"
             >
               <div
                 class="h-full transition-all duration-1000 ease-out"
                 :class="{
-                  'bg-[var(--status-success-mark)]': contest.status === 'UPCOMING',
-                  'bg-[var(--status-error-mark)] shadow-[0_0_8px_var(--status-error-mark)]':
+                  'bg-status-success-mark': contest.status === 'UPCOMING',
+                  'bg-status-error-mark shadow-[0_0_8px_var(--status-error-mark)]':
                     contest.status === 'RUNNING',
                   'bg-muted-foreground/40': contest.status === 'FINISHED',
                 }"
@@ -134,7 +131,7 @@ const statusColor = computed(() => {
           <!-- Structured Details Table -->
           <div class="space-y-3.5">
             <p
-              class="text-2xs font-bold font-mono uppercase tracking-widest text-muted-foreground border-b border-border/30 pb-1"
+              class="text-xs font-bold font-mono uppercase tracking-widest text-muted-foreground border-b border-border/30 pb-1"
             >
               {{ t("contest.detail.details") || "CONTEST DETAILS" }}
             </p>
@@ -188,7 +185,7 @@ const statusColor = computed(() => {
               <Button
                 v-if="!isRegistered"
                 size="lg"
-                class="w-full gap-2 rounded-none h-11 font-bold bg-primary hover:bg-primary/90 text-primary-foreground cursor-pointer uppercase tracking-wider text-xxs shadow-sm"
+                class="w-full gap-2 cursor-pointer"
                 :disabled="registering"
                 @click="emit('register')"
               >
@@ -203,7 +200,7 @@ const statusColor = computed(() => {
                 v-else
                 size="lg"
                 variant="outline"
-                class="w-full gap-2 rounded-none h-11 font-bold border border-destructive bg-status-error-surface hover:bg-status-error-surface/80 text-foreground-strong transition-colors cursor-pointer uppercase tracking-wider text-xxs"
+                class="w-full gap-2 cursor-pointer"
                 :disabled="registering"
                 @click="emit('unregister')"
               >
@@ -221,7 +218,7 @@ const statusColor = computed(() => {
               <div class="flex flex-col gap-2">
                 <Button
                   size="lg"
-                  class="w-full gap-2 rounded-none h-11 font-bold border border-status-error-mark bg-status-error-surface hover:bg-status-error-surface text-foreground-strong cursor-pointer uppercase tracking-wider text-xxs shadow-sm animate-pulse"
+                  class="w-full gap-2 cursor-pointer animate-pulse"
                   @click="emit('scrollToProblems')"
                 >
                   <PlayCircle class="h-4 w-4" />
@@ -230,7 +227,7 @@ const statusColor = computed(() => {
                 <Button
                   size="lg"
                   variant="outline"
-                  class="w-full gap-2 rounded-none h-11 font-bold border border-border hover:bg-surface-highlight dark:hover:bg-surface cursor-pointer uppercase tracking-wider text-xxs"
+                  class="w-full gap-2 dark:hover:bg-background cursor-pointer"
                   @click="emit('scrollToRanking')"
                 >
                   <Trophy class="h-4 w-4" />
@@ -244,7 +241,7 @@ const statusColor = computed(() => {
               <Button
                 v-if="!virtualSessionActive"
                 size="lg"
-                class="w-full gap-2 rounded-none h-11 font-bold bg-primary hover:bg-primary/90 text-primary-foreground cursor-pointer uppercase tracking-wider text-xxs shadow-sm"
+                class="w-full gap-2 cursor-pointer"
                 :disabled="startingVirtual"
                 @click="emit('startVirtual')"
               >
@@ -259,7 +256,7 @@ const statusColor = computed(() => {
                 v-else
                 size="lg"
                 variant="outline"
-                class="w-full gap-2 rounded-none h-11 font-bold text-foreground-strong border border-status-success-mark/40 bg-status-success-surface uppercase tracking-wider text-xxs"
+                class="w-full gap-2"
                 disabled
               >
                 <PlayCircle class="h-4 w-4" />

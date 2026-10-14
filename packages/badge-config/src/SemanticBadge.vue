@@ -1,77 +1,42 @@
 <script setup lang="ts">
-/**
- * SemanticBadge — Unified status/type badge with Solarized terminal colors.
- *
- * Shared between console and management frontends.
- * Uses `.terminal-badge-{color}` CSS classes for consistent styling.
- */
-import type { SemanticColor } from './semantic-colors'
-import { joinClasses } from './utils/cn'
-
+import { Badge } from "@ulticode/design-system/ui/badge";
+import { CircleCheck, CircleAlert, CircleX, Info } from "@lucide/vue";
+import type { SemanticColor } from "./semantic-colors";
 withDefaults(
   defineProps<{
-    color: SemanticColor
-    label?: string
-    dot?: boolean
-    pulse?: boolean
-    size?: 'xs' | 'sm' | 'md'
+    color: SemanticColor;
+    label?: string;
+    dot?: boolean;
+    pulse?: boolean;
+    size?: "xs" | "sm" | "md";
   }>(),
-  {
-    label: '',
-    dot: false,
-    pulse: false,
-    size: 'md',
-  },
-)
-
-const COLOR_CLASS_MAP: Record<SemanticColor, string> = {
-  success: 'terminal-badge-success',
-  warning: 'terminal-badge-warning',
-  error: 'terminal-badge-error',
-  info: 'terminal-badge-info',
-  purple: 'terminal-badge-purple',
-  electric: 'terminal-badge-electric',
-  neutral: 'terminal-badge-neutral',
-}
-
-const DOT_COLOR_MAP: Record<SemanticColor, string> = {
-  success: 'bg-[var(--status-success-mark)]',
-  warning: 'bg-[var(--status-warning-mark)]',
-  error: 'bg-[var(--status-error-mark)]',
-  info: 'bg-[var(--status-info-mark)]',
-  purple: 'bg-[var(--status-special-mark)]',
-  electric: 'bg-[var(--accent-primary)]',
-  neutral: 'bg-[var(--foreground-muted)]',
-}
-
-const SIZE_CLASSES = {
-  xs: 'text-[10px] px-1.5 py-0.5',
-  sm: 'text-[10px] px-2 py-0.5',
-  md: 'text-[11px] px-2 py-0.5',
-} as const
+  { label: "", dot: false, pulse: false, size: "md" },
+);
+const colors: Record<SemanticColor, string> = {
+  success: "bg-status-success-surface text-status-success-mark",
+  warning: "bg-status-warning-surface text-status-warning-mark",
+  error: "bg-status-error-surface text-status-error-mark",
+  info: "bg-status-info-surface text-status-info-mark",
+  purple: "bg-status-special-surface text-status-special-mark",
+  electric: "bg-status-info-surface text-status-info-mark",
+  neutral: "",
+};
+const icons = {
+  success: CircleCheck,
+  warning: CircleAlert,
+  error: CircleX,
+  info: Info,
+  purple: Info,
+  electric: Info,
+  neutral: undefined,
+};
 </script>
-
 <template>
-  <span
-    :class="
-      joinClasses(
-        'terminal-badge inline-flex items-center gap-1.5',
-        COLOR_CLASS_MAP[color],
-        SIZE_CLASSES[size],
-        pulse && !dot && 'animate-pulse-subtle',
-      )
-    "
+  <Badge variant="secondary" :class="colors[color]"
+    ><component
+      :is="icons[color]"
+      v-if="icons[color]"
+      aria-hidden="true"
+    /><slot>{{ label }}</slot></Badge
   >
-    <span
-      v-if="dot"
-      :class="
-        joinClasses(
-          'w-1.5 h-1.5 rounded-full shrink-0',
-          DOT_COLOR_MAP[color],
-          pulse && 'animate-pulse-subtle',
-        )
-      "
-    />
-    <slot>{{ label }}</slot>
-  </span>
 </template>

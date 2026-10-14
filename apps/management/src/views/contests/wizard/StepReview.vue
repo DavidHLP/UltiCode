@@ -2,8 +2,9 @@
 import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { formatDateTimeByLocale } from '@/i18n/utils'
-import { IconCalculator } from '@tabler/icons-vue'
-import { badge, DIFFICULTY_COLOR_MAP, CONTEST_TYPE_COLOR_MAP } from '@/components/ui/terminal'
+import { Calculator as IconCalculator } from '@lucide/vue'
+
+import { badge, DIFFICULTY_COLOR_MAP, CONTEST_TYPE_COLOR_MAP } from '@ulticode/badge-config'
 import { scoringRulesApi, type ScoringRule } from '@/api/admin/scoring-rules'
 import type { ReviewSlice } from './useContestAuthoring'
 
@@ -54,30 +55,28 @@ function renderTypeBadge(type: string) {
   <div class="space-y-6">
     <!-- Section Header -->
     <div class="flex items-center gap-2 mb-4">
-      <span class="terminal-cursor" />
+      <span class="hidden" />
     </div>
 
     <div class="grid gap-4 md:grid-cols-3">
       <!-- Basic Info Card - Terminal Style -->
-      <div
-        class="border border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] bg-[var(--card)]"
-      >
-        <div
-          class="border-b border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] px-4 py-2 bg-[var(--surface-sunken)]"
-        >
-          <span class="terminal-comment">{{ t('contests.reviewStep.basicInfo') }}</span>
+      <div class="border border-border dark:border-foreground bg-card">
+        <div class="border-b border-border dark:border-foreground px-4 py-2 bg-muted">
+          <span class="text-sm text-muted-foreground">{{
+            t('contests.reviewStep.basicInfo')
+          }}</span>
         </div>
         <div class="p-4 space-y-3">
-          <div class="border-b border-[var(--surface-highlight)] dark:border-[var(--foreground-strong)] pb-2">
-            <span class="terminal-label">{{ t('contests.basics.title') }}</span>
-            <p class="font-medium text-sm text-[var(--foreground)]">{{ slice.title }}</p>
+          <div class="border-b border-accent dark:border-foreground pb-2">
+            <span class="text-sm font-medium">{{ t('contests.basics.title') }}</span>
+            <p class="font-medium text-sm text-foreground">{{ slice.title }}</p>
           </div>
-          <div class="border-b border-[var(--surface-highlight)] dark:border-[var(--foreground-strong)] pb-2">
-            <span class="terminal-label">{{ t('contests.basics.slug') }}</span>
-            <p class="font-data text-sm text-[var(--foreground-strong)]">{{ slice.slug }}</p>
+          <div class="border-b border-accent dark:border-foreground pb-2">
+            <span class="text-sm font-medium">{{ t('contests.basics.slug') }}</span>
+            <p class="font-mono text-sm text-foreground">{{ slice.slug }}</p>
           </div>
           <div>
-            <span class="terminal-label">{{ t('contests.basics.type') }}</span>
+            <span class="text-sm font-medium">{{ t('contests.basics.type') }}</span>
             <p>
               <component :is="renderTypeBadge(slice.contestType)" />
             </p>
@@ -86,29 +85,25 @@ function renderTypeBadge(type: string) {
       </div>
 
       <!-- Schedule Card - Terminal Style -->
-      <div
-        class="border border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] bg-[var(--card)]"
-      >
-        <div
-          class="border-b border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] px-4 py-2 bg-[var(--surface-sunken)]"
-        >
-          <span class="terminal-comment">{{ t('contests.reviewStep.schedule') }}</span>
+      <div class="border border-border dark:border-foreground bg-card">
+        <div class="border-b border-border dark:border-foreground px-4 py-2 bg-muted">
+          <span class="text-sm text-muted-foreground">{{ t('contests.reviewStep.schedule') }}</span>
         </div>
         <div class="p-4 space-y-3">
-          <div class="border-b border-[var(--surface-highlight)] dark:border-[var(--foreground-strong)] pb-2">
-            <span class="terminal-label">{{ t('contests.reviewStep.startTime') }}</span>
-            <p class="font-data text-sm tabular-nums text-[var(--foreground)]">
+          <div class="border-b border-accent dark:border-foreground pb-2">
+            <span class="text-sm font-medium">{{ t('contests.reviewStep.startTime') }}</span>
+            <p class="font-mono text-sm tabular-nums text-foreground">
               {{ formattedDate }}
             </p>
           </div>
-          <div class="border-b border-[var(--surface-highlight)] dark:border-[var(--foreground-strong)] pb-2">
-            <span class="terminal-label">{{ t('contests.reviewStep.duration') }}</span>
-            <p class="font-data text-sm tabular-nums text-[var(--foreground)]">
+          <div class="border-b border-accent dark:border-foreground pb-2">
+            <span class="text-sm font-medium">{{ t('contests.reviewStep.duration') }}</span>
+            <p class="font-mono text-sm tabular-nums text-foreground">
               {{ slice.duration }} {{ t('common.minutes') }}
             </p>
           </div>
           <div>
-            <span class="terminal-label">{{ t('contests.reviewStep.visibility') }}</span>
+            <span class="text-sm font-medium">{{ t('contests.reviewStep.visibility') }}</span>
             <p>
               <component
                 :is="
@@ -123,24 +118,20 @@ function renderTypeBadge(type: string) {
       </div>
 
       <!-- Scoring Rule Card - Terminal Style -->
-      <div
-        class="border border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] bg-[var(--card)]"
-      >
-        <div
-          class="border-b border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] px-4 py-2 bg-[var(--surface-sunken)]"
-        >
-          <span class="terminal-comment">{{ t('contests.scoringRule.selectRule') }}</span>
+      <div class="border border-border dark:border-foreground bg-card">
+        <div class="border-b border-border dark:border-foreground px-4 py-2 bg-muted">
+          <span class="text-sm text-muted-foreground">{{
+            t('contests.scoringRule.selectRule')
+          }}</span>
         </div>
         <div class="p-4 space-y-3">
           <div v-if="loadingRule" class="py-2">
-            <span class="terminal-comment text-xs">{{ t('common.loading') }}</span>
+            <span class="text-sm text-muted-foreground text-xs">{{ t('common.loading') }}</span>
           </div>
           <div v-else-if="scoringRule" class="space-y-3">
             <div class="flex items-center gap-2">
-              <IconCalculator class="h-4 w-4 text-[var(--primary)]" />
-              <span class="font-medium text-sm text-[var(--foreground)]">{{
-                scoringRule.name
-              }}</span>
+              <IconCalculator class="h-4 w-4 text-primary" />
+              <span class="font-medium text-sm text-foreground">{{ scoringRule.name }}</span>
               <span v-if="scoringRule.isDefault">
                 <component
                   :is="
@@ -151,25 +142,25 @@ function renderTypeBadge(type: string) {
             </div>
             <div class="grid grid-cols-2 gap-2 text-xs">
               <div>
-                <span class="terminal-label text-2xs">{{
+                <span class="text-sm font-medium text-xs">{{
                   t('scoringRules.form.baseScorePerProblem')
                 }}</span>
-                <p class="font-data text-[var(--foreground-strong)] tabular-nums">
+                <p class="font-mono text-foreground tabular-nums">
                   {{ scoringRule.baseScorePerProblem }}
                 </p>
               </div>
               <div>
-                <span class="terminal-label text-2xs">{{
+                <span class="text-sm font-medium text-xs">{{
                   t('scoringRules.form.wrongAnswerPenalty')
                 }}</span>
-                <p class="font-data text-[var(--foreground-strong)] tabular-nums">
+                <p class="font-mono text-foreground tabular-nums">
                   -{{ scoringRule.wrongAnswerPenalty }}
                 </p>
               </div>
             </div>
           </div>
           <div v-else class="py-2">
-            <span class="terminal-comment text-xs">{{
+            <span class="text-sm text-muted-foreground text-xs">{{
               t('contests.reviewStep.defaultScoringRule')
             }}</span>
           </div>
@@ -178,11 +169,9 @@ function renderTypeBadge(type: string) {
     </div>
 
     <!-- Problems Card - Terminal Style -->
-    <div class="border border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] bg-[var(--card)]">
-      <div
-        class="border-b border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] px-4 py-2 bg-[var(--surface-sunken)]"
-      >
-        <span class="terminal-comment">
+    <div class="border border-border dark:border-foreground bg-card">
+      <div class="border-b border-border dark:border-foreground px-4 py-2 bg-muted">
+        <span class="text-sm text-muted-foreground">
           {{
             t('contests.reviewStep.problemsCount', {
               count: slice.problems.length,
@@ -195,23 +184,23 @@ function renderTypeBadge(type: string) {
           <div
             v-for="(problem, index) in slice.problems"
             :key="problem.id"
-            class="flex items-center justify-between border-b border-[var(--surface-highlight)] dark:border-[var(--foreground-strong)] py-2 last:border-0"
+            class="flex items-center justify-between border-b border-accent dark:border-foreground py-2 last:border-0"
           >
             <div class="flex items-center gap-3">
-              <span class="font-data text-xs text-[var(--primary)] w-6">
+              <span class="font-mono text-xs text-primary w-6">
                 {{ String.fromCharCode(65 + index) }}
               </span>
-              <span class="font-medium text-sm text-[var(--foreground)]">{{ problem.title }}</span>
+              <span class="font-medium text-sm text-foreground">{{ problem.title }}</span>
               <component :is="renderDifficultyBadge(problem.difficulty)" />
             </div>
-            <span
-              class="font-data text-xs text-foreground-strong tabular-nums w-16 text-right"
-            >
+            <span class="font-mono text-xs text-foreground tabular-nums w-16 text-right">
               {{ problem.score }} {{ t('contests.drawer.pts') }}
             </span>
           </div>
           <div v-if="slice.problems.length === 0" class="py-4 text-center">
-            <span class="terminal-comment">{{ t('contests.reviewStep.noProblemsSelected') }}</span>
+            <span class="text-sm text-muted-foreground">{{
+              t('contests.reviewStep.noProblemsSelected')
+            }}</span>
           </div>
         </div>
       </div>

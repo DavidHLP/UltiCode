@@ -5,8 +5,8 @@ import { Trophy, Globe, MapPin } from "@lucide/vue";
 import { useContestRankingStore } from "@/stores/contestRanking";
 import { useAuthStore } from "@/stores/auth";
 import { storeToRefs } from "pinia";
-import { Separator } from "@/components/ui/separator";
-import { Button } from "@/components/ui/button";
+import { Separator } from "@ulticode/design-system/ui/separator";
+import { Button } from "@ulticode/design-system/ui/button";
 import GlobalRanking from "./components/GlobalRanking.vue";
 import { useI18n } from "vue-i18n";
 import { useContestSocket } from "@/composables/contest/useContestSocket";
@@ -32,7 +32,11 @@ watch(isConnected, (connected) => {
 const liveRankings = ref<unknown[] | null>(null);
 const unsubscribeRanking = onRankingUpdate((data) => {
   if (Array.isArray(data)) liveRankings.value = data;
-  else if (data && typeof data === "object" && Array.isArray((data as { items?: unknown[] }).items)) {
+  else if (
+    data &&
+    typeof data === "object" &&
+    Array.isArray((data as { items?: unknown[] }).items)
+  ) {
     liveRankings.value = (data as { items?: unknown[] }).items ?? null;
   }
 });
@@ -129,10 +133,8 @@ onUnmounted(() => {
     >
       <div class="space-y-1">
         <div class="flex items-center gap-3">
-          <Trophy class="h-8 w-8 text-[var(--status-warning-mark)]" />
-          <h1
-            class="text-3xl font-bold tracking-tight text-foreground-strong"
-          >
+          <Trophy class="h-8 w-8 text-status-warning-mark" />
+          <h1 class="text-3xl font-bold tracking-tight text-foreground">
             {{ t("contest.rankings.title") }}
           </h1>
         </div>
@@ -146,12 +148,10 @@ onUnmounted(() => {
 
     <div class="space-y-6">
       <!-- Scope Toggle -->
-      <div
-        class="inline-flex bg-muted/50 p-1 h-12 rounded-none w-full sm:w-auto"
-      >
+      <div class="inline-flex bg-muted/50 p-1 h-12 rounded-lg w-full sm:w-auto">
         <Button
           variant="ghost"
-          class="rounded-none px-6 font-bold gap-2"
+          class="px-6 gap-2"
           :class="{
             'bg-background shadow-[var(--shadow-float)]': scope === 'global',
           }"
@@ -165,7 +165,7 @@ onUnmounted(() => {
         </Button>
         <Button
           variant="ghost"
-          class="rounded-none px-6 font-bold gap-2"
+          class="px-6 gap-2"
           :class="{
             'bg-background shadow-[var(--shadow-float)]': scope === 'local',
           }"

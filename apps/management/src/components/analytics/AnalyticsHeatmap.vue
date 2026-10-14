@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@ulticode/design-system/ui/card'
 
 export interface HeatmapCell {
   x: number
@@ -68,13 +74,13 @@ const gridData = computed(() => {
 
 function getCellColor(value: number): string {
   const intensity = value / maxVal.value
-  // Solarized: interpolate from the highlighted surface to the blue accent
+  // Magnitude interpolates from the highlighted surface to the current accent.
   if (intensity === 0) {
-    return 'var(--surface-highlight)'
+    return 'var(--accent)'
   }
   // Use color-mix to blend from the highlighted surface to the blue accent
   const pct = Math.round(intensity * 70 + 10)
-  return `color-mix(in oklch, var(--primary) ${pct}%, var(--surface-highlight))`
+  return `color-mix(in oklch, var(--primary) ${pct}%, var(--accent))`
 }
 
 function getCellOpacity(value: number): number {
@@ -123,26 +129,23 @@ function handleMouseLeave() {
 </script>
 
 <template>
-  <Card
-    class="border border-[var(--border-subtle)] dark:border-[var(--border-subtle)]/60 bg-card shadow-float h-full gap-0 py-0 overflow-hidden rounded-none"
-  >
-    <CardHeader
-      v-if="title"
-      class="px-4 py-4 bg-[var(--surface)] dark:bg-[var(--surface-highlight)]/10 border-b border-[var(--border-subtle)] dark:border-[var(--border-subtle)]/50"
-    >
-      <CardTitle class="text-sm font-bold font-mono uppercase tracking-wide text-foreground">{{
-        title
-      }}</CardTitle>
-      <CardDescription v-if="description" class="text-xs text-[var(--foreground-muted)] mt-1">
+  <Card class="h-full gap-0 py-0 overflow-hidden">
+    <CardHeader v-if="title" class="px-4 py-4">
+      <CardTitle>{{ title }}</CardTitle>
+      <CardDescription v-if="description" class="mt-1">
         {{ description }}
       </CardDescription>
     </CardHeader>
     <CardContent class="p-4">
-      <div v-if="data.length === 0" class="text-center py-8 text-[var(--foreground-muted)] text-sm">
+      <div v-if="data.length === 0" class="text-center py-8 text-muted-foreground text-sm">
         {{ $t('common.noData') }}
       </div>
       <div v-else class="w-full flex justify-center overflow-x-auto">
-        <div class="inline-flex flex-col" role="grid" :aria-label="title || description || 'Analytics heatmap'">
+        <div
+          class="inline-flex flex-col"
+          role="grid"
+          :aria-label="title || description || 'Analytics heatmap'"
+        >
           <!-- Column labels -->
           <div v-if="showLabels && columns" class="flex mb-1">
             <div class="w-12 shrink-0" />
@@ -150,7 +153,7 @@ function handleMouseLeave() {
             <div
               v-for="(col, index) in columns"
               :key="index"
-              class="flex items-center justify-center text-2xs text-[var(--foreground-muted)] font-data tabular-nums"
+              class="flex items-center justify-center text-xs text-muted-foreground font-mono tabular-nums"
               :style="{
                 width: cellSize + 'px',
                 marginRight: (index < columns.length - 1 ? cellGap : 0) + 'px',
@@ -172,7 +175,7 @@ function handleMouseLeave() {
               <!-- Row label -->
               <div
                 v-if="showLabels && rows"
-                class="shrink-0 w-12 text-right pr-2 text-2xs text-[var(--foreground-muted)] font-data tabular-nums"
+                class="shrink-0 w-12 text-right pr-2 text-xs text-muted-foreground font-mono tabular-nums"
               >
                 {{ rows[rowIndex]?.label || '' }}
               </div>
@@ -186,14 +189,14 @@ function handleMouseLeave() {
                   :tabindex="cell ? 0 : -1"
                   :aria-label="cell ? getCellAriaLabel(cell) : undefined"
                   :aria-hidden="cell ? undefined : 'true'"
-                  class="rounded-none transition-all duration-150 cursor-default hover:ring-1 hover:ring-[var(--accent-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  class="rounded-lg transition-all duration-150 cursor-default hover:ring-1 hover:ring-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   :style="{
                     width: cellSize + 'px',
                     height: cellSize + 'px',
                     marginRight: colIndex < row.length - 1 ? cellGap + 'px' : 0,
-                    backgroundColor: cell ? getCellColor(cell.value) : 'var(--surface-highlight)',
+                    backgroundColor: cell ? getCellColor(cell.value) : 'var(--accent)',
                     opacity: cell ? getCellOpacity(cell.value) : 0.3,
-                    border: cell ? '1px solid var(--border-control)' : '1px solid transparent',
+                    border: cell ? '1px solid var(--input)' : '1px solid transparent',
                     borderStyle: cell ? getCellBorderStyle(cell.value) : 'solid',
                   }"
                   @mouseenter="cell && handleMouseEnter(cell, $event)"
@@ -207,30 +210,26 @@ function handleMouseLeave() {
 
           <!-- Legend -->
           <div
-            class="flex items-center justify-end gap-2 mt-3 pt-3 border-t border-[var(--border-subtle)] dark:border-[var(--border-subtle)]"
+            class="flex items-center justify-end gap-2 mt-3 pt-3 border-t border-border dark:border-border"
           >
-            <span class="text-2xs text-[var(--foreground-muted)]">{{
-              $t('analytics.heatmap.less')
-            }}</span>
+            <span class="text-xs text-muted-foreground">{{ $t('analytics.heatmap.less') }}</span>
             <div class="flex gap-0.5">
               <div
                 v-for="i in 5"
                 :key="i"
-                class="rounded-none"
+                class="rounded-lg"
                 :style="{
                   width: '12px',
                   height: '12px',
                   backgroundColor: getCellColor((i / 5) * maxVal),
                   opacity: getCellOpacity((i / 5) * maxVal),
-                  border: '1px solid var(--border-control)',
+                  border: '1px solid var(--input)',
                   borderStyle: getCellBorderStyle((i / 5) * maxVal),
                 }"
                 aria-hidden="true"
               />
             </div>
-            <span class="text-2xs text-[var(--foreground-muted)]">{{
-              $t('analytics.heatmap.more')
-            }}</span>
+            <span class="text-xs text-muted-foreground">{{ $t('analytics.heatmap.more') }}</span>
           </div>
         </div>
       </div>
@@ -247,15 +246,15 @@ function handleMouseLeave() {
         >
           <div
             v-if="hoveredCell && showTooltip"
-            class="fixed z-50 px-2 py-1 text-xs rounded-none border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-card shadow-lg pointer-events-none"
+            class="fixed z-50 px-2 py-1 text-xs rounded-lg border border-border dark:border-border bg-card shadow-lg pointer-events-none"
             :style="{
               left: tooltipPosition.x + 'px',
               top: tooltipPosition.y - 8 + 'px',
               transform: 'translate(-50%, -100%)',
             }"
           >
-            <span class="font-data tabular-nums text-foreground">{{ hoveredCell.value }}</span>
-            <span v-if="hoveredCell.label" class="text-[var(--foreground-muted)] ml-1">
+            <span class="font-mono tabular-nums text-foreground">{{ hoveredCell.value }}</span>
+            <span v-if="hoveredCell.label" class="text-muted-foreground ml-1">
               {{ hoveredCell.label }}
             </span>
           </div>

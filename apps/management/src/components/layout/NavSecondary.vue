@@ -8,7 +8,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from '@/components/ui/sidebar'
+} from '@ulticode/design-system/ui/sidebar'
 
 interface NavItem {
   title: string
@@ -45,7 +45,7 @@ function isActive(url: string): boolean {
             as-child
             :class="[
               isActive(item.url)
-                ? 'border-l-4 border-[var(--primary)] bg-[var(--primary)]/8 text-[var(--foreground)] font-bold pl-2'
+                ? 'border-l-4 border-primary bg-primary/8 text-foreground font-bold pl-2'
                 : 'border-l-4 border-transparent',
             ]"
           >

@@ -73,11 +73,17 @@ describe('useProblemColumns published status', () => {
     const wrapper = mountPublishedCell(true)
 
     expect(wrapper.text()).toContain('已发布')
-    expect(wrapper.get('.terminal-badge-success').text()).toContain('已发布')
+    expect(wrapper.get('.text-status-success-mark.bg-status-success-surface').text()).toContain(
+      '已发布',
+    )
   })
 
   it('uses semantic neutral and error badges for draft and deleted problems', () => {
-    expect(mountPublishedCell(false).get('.terminal-badge-neutral').text()).toContain('草稿')
-    expect(mountPublishedCell(false, true).get('.terminal-badge-error').text()).toContain('已删除')
+    expect(
+      mountPublishedCell(false).get('.bg-secondary.text-secondary-foreground').text(),
+    ).toContain('草稿')
+    expect(
+      mountPublishedCell(false, true).get('.text-status-error-mark.bg-status-error-surface').text(),
+    ).toContain('已删除')
   })
 })

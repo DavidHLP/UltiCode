@@ -87,6 +87,7 @@ describe("SolutionDetail", () => {
   it("opens the author's public profile from the header avatar", async () => {
     const wrapper = shallowMount(SolutionDetail, {
       props: { item },
+      global: { stubs: { Button: false, Primitive: false } },
     });
 
     await wrapper.get("article > header > button").trigger("click");
@@ -99,6 +100,7 @@ describe("SolutionDetail", () => {
 
   it("does not navigate the editorial fallback avatar", async () => {
     const wrapper = shallowMount(SolutionDetail, {
+      global: { stubs: { Button: false, Primitive: false } },
       props: {
         item: {
           ...item,

@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { useI18n } from "vue-i18n";
-import { Button } from "@/components/ui/button";
-import { Kbd } from "@/components/ui/kbd";
+import { Button } from "@ulticode/design-system/ui/button";
+import { Kbd } from "@ulticode/design-system/ui/kbd";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@/components/ui/tooltip";
+} from "@ulticode/design-system/ui/tooltip";
 import { Search } from "@lucide/vue";
 import GlobalSearch from "./GlobalSearch.vue";
 
@@ -29,7 +29,7 @@ function openSearch() {
         <Button
           variant="outline"
           size="sm"
-          class="size-9 p-0 sm:h-[var(--uc-layout-control-height)] sm:w-44 sm:justify-start sm:gap-[var(--uc-layout-control-gap)] sm:px-[var(--uc-layout-control-padding-inline)]"
+          class="p-0 sm:h-[var(--uc-layout-control-height)] sm:w-44 sm:justify-start sm:gap-[var(--uc-layout-control-gap)] sm:px-[var(--uc-layout-control-padding-inline)]"
           :aria-label="t('common.actions.search')"
           @click="openSearch"
         >

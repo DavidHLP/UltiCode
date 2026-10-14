@@ -80,6 +80,7 @@ flowchart LR
 ```
 
 - Landing 由独立前端应用拥有页面、样式、文案和素材；生产产物挂载到 Console Nginx 的 `/landing/`，本地开发端口为 9004。Console 与 Management 继续分别运行于 9002/9003。外部 HTTP/WS 入口由前端 Nginx/Compose gateway 处理；内部 Dubbo 端口不对公网发布。
+- 三端通用 UI 由 `packages/design-system` 的官方 shadcn-vue 组件持有；外观白名单、事务、用户分区与 bootstrap 由 `packages/theme` 持有。业务页面与权限仍由各应用拥有，专业编辑器和图表只消费共享 token。外观持久化当前是浏览器同源存储，不新增服务端用户偏好 Owner 或跨设备同步。
 - `scripts/dev/up.sh --mode dev-lite` 是默认开发入口；`dev-full` 显式启动 Search。当前 binary/DevStack 拒绝已退役的 local compatibility mode；生产回滚只能使用部署方保留的上一份完整 release descriptor。
 - **Admin 查询已收敛为粗粒度 query slices**，不再以拆分更多进程为理由；用户趋势使用一次 bounded Auth aggregate，Enricher 使用 bounded parallel owner reads。
 - **Judge normal dev-lite/dev-full 使用 provider-owned JudgeQueue Streams**；App 不再扫描 Judge runtime 或运行旧 RQueue poller。

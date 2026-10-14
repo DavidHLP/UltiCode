@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useAuthStore } from "@/stores/auth";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@ulticode/design-system/ui/badge";
 import { onMounted, ref, computed } from "vue";
 import { fetchUserSubmissions } from "@/api/submission";
 import type { SubmissionRecord } from "@/types/submission";
@@ -17,7 +17,7 @@ import {
   ListX,
 } from "@lucide/vue";
 import { RouterLink, useRouter } from "vue-router";
-import { Button } from "@/components/ui/button";
+import { Button } from "@ulticode/design-system/ui/button";
 import { useI18n } from "vue-i18n";
 import PersonalPageHeader from "./components/PersonalPageHeader.vue";
 import PersonalPageShell from "./components/PersonalPageShell.vue";
@@ -111,16 +111,14 @@ const columns = computed<ColumnDef[]>(() => [
 // Error (neutral); unknown statuses fall back to neutral.
 const SEMANTIC_COLOR_CLASS: Record<SemanticColor, string> = {
   success:
-    "text-foreground-strong bg-[var(--status-success-mark)]/10 border-[var(--status-success-mark)]/20",
+    "text-foreground bg-status-success-mark/10 border-status-success-mark/20",
   warning:
-    "text-foreground-strong bg-[var(--status-warning-mark)]/10 border-[var(--status-warning-mark)]/20",
-  error:
-    "text-foreground-strong bg-[var(--status-error-mark)]/10 border-[var(--status-error-mark)]/20",
-  info: "text-foreground-strong bg-[var(--status-info-mark)]/10 border-[var(--status-info-mark)]/20",
+    "text-foreground bg-status-warning-mark/10 border-status-warning-mark/20",
+  error: "text-foreground bg-status-error-mark/10 border-status-error-mark/20",
+  info: "text-foreground bg-status-info-mark/10 border-status-info-mark/20",
   purple:
-    "text-foreground-strong bg-[var(--status-special-mark)]/10 border-[var(--status-special-mark)]/20",
-  electric:
-    "text-[var(--accent-primary)] bg-[var(--accent-primary)]/10 border-[var(--accent-primary)]/20",
+    "text-foreground bg-status-special-mark/10 border-status-special-mark/20",
+  electric: "text-primary bg-primary/10 border-primary/20",
   neutral: "text-muted-foreground bg-muted border-muted-foreground/20",
 };
 
@@ -178,12 +176,12 @@ onMounted(async () => {
 
     <div
       v-else-if="!hasUser"
-      class="flex flex-col items-center justify-center py-24 border-2 border-dashed border-muted/50 bg-muted/5 rounded-none"
+      class="flex flex-col items-center justify-center py-24 border-2 border-dashed border-muted/50 bg-muted/5 rounded-lg"
     >
       <p class="text-muted-foreground mb-4">
         {{ t("personal.submissions.loginToView") }}
       </p>
-      <Button as-child class="px-6 h-10 font-bold">
+      <Button as-child class="px-6">
         <RouterLink to="/login">{{ t("personal.profile.signIn") }}</RouterLink>
       </Button>
     </div>
@@ -214,7 +212,7 @@ onMounted(async () => {
               }}
             </span>
             <span
-              class="text-2xs text-muted-foreground uppercase tracking-wider font-medium"
+              class="text-xs text-muted-foreground uppercase tracking-wider font-medium"
             >
               ID: {{ (item as SubmissionRecord).id.substring(0, 8) }}
             </span>
@@ -224,7 +222,7 @@ onMounted(async () => {
         <template #cell-status="{ item }">
           <Badge
             variant="outline"
-            class="gap-1.5 py-1 px-2 font-medium rounded-none border"
+            class="gap-1.5 py-1 px-2"
             :class="getStatusColorClass((item as SubmissionRecord).status)"
           >
             <component
@@ -242,32 +240,26 @@ onMounted(async () => {
         <template #cell-runtime="{ item }">
           <div class="flex items-center gap-1.5 font-medium">
             {{ (item as SubmissionRecord).runtime
-            }}<span class="text-2xs text-muted-foreground uppercase"
-              >ms</span
-            >
+            }}<span class="text-xs text-muted-foreground uppercase">ms</span>
           </div>
         </template>
 
         <template #cell-memory="{ item }">
           <div class="flex items-center gap-1.5 font-medium">
             {{ (item as SubmissionRecord).memory
-            }}<span class="text-2xs text-muted-foreground uppercase"
-              >mb</span
-            >
+            }}<span class="text-xs text-muted-foreground uppercase">mb</span>
           </div>
         </template>
 
         <template #cell-created_at="{ item }">
-          {{
-            formatDate((item as SubmissionRecord).created_at, locale)
-          }}
+          {{ formatDate((item as SubmissionRecord).created_at, locale) }}
         </template>
 
         <template #cell-actions>
           <Button
             variant="ghost"
             size="icon"
-            class="h-8 w-8 text-muted-foreground hover:text-primary rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+            class="w-8 group-hover:opacity-100"
           >
             <ChevronRight class="h-4 w-4" />
           </Button>
@@ -275,10 +267,10 @@ onMounted(async () => {
 
         <template #empty>
           <div
-            class="flex flex-col items-center justify-center py-24 rounded-none border-2 border-dashed border-muted/50 bg-muted/5 text-center px-6"
+            class="flex flex-col items-center justify-center py-24 rounded-lg border-2 border-dashed border-muted/50 bg-muted/5 text-center px-6"
           >
             <div
-              class="flex h-16 w-16 items-center justify-center rounded-none bg-muted/50 mb-4"
+              class="flex h-16 w-16 items-center justify-center rounded-lg bg-muted/50 mb-4"
             >
               <ListX class="h-8 w-8 text-muted-foreground/50" />
             </div>
@@ -288,7 +280,7 @@ onMounted(async () => {
             <p class="mb-8 mt-2 max-w-[300px] text-sm text-muted-foreground">
               {{ t("personal.submissions.noSubmissionsDesc") }}
             </p>
-            <Button class="px-8 h-10 font-bold" as-child>
+            <Button class="px-8" as-child>
               <RouterLink to="/problemset">{{
                 t("personal.submissions.startSolving")
               }}</RouterLink>

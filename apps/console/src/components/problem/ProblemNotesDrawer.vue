@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@ulticode/design-system/ui/button";
+import { Textarea } from "@ulticode/design-system/ui/textarea";
 import { Save, Loader2 } from "@lucide/vue";
 import { fetchProblemNote, saveProblemNote } from "@/api/interaction";
 import { toast } from "vue-sonner";
@@ -78,19 +78,19 @@ async function handleSave() {
         <Textarea
           v-model="content"
           :placeholder="t('problem.notes.startWriting')"
-          class="min-h-[400px] resize-none focus-visible:ring-1 rounded-none"
+          class="min-h-[400px] resize-none"
         />
       </div>
     </div>
 
     <div class="p-4 border-t flex justify-end gap-2">
-      <Button variant="outline" @click="emit('close')" class="rounded-full">{{
+      <Button variant="outline" @click="emit('close')">{{
         t("common.actions.cancel")
       }}</Button>
       <Button
         :disabled="isSaving || isLoading"
         @click="handleSave"
-        class="gap-2 rounded-full"
+        class="gap-2"
       >
         <Save v-if="!isSaving" class="h-4 w-4" />
         <Loader2 v-else class="h-4 w-4 animate-spin" />

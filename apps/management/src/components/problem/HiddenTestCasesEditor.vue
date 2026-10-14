@@ -1,18 +1,25 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
+import { Badge } from '@ulticode/design-system/ui/badge'
+import { Button } from '@ulticode/design-system/ui/button'
+import { Checkbox } from '@ulticode/design-system/ui/checkbox'
+import { Label } from '@ulticode/design-system/ui/label'
+import { Textarea } from '@ulticode/design-system/ui/textarea'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from '@/components/ui/dialog'
-import { IconFlask, IconPlus, IconUpload, IconDownload, IconLoader2 } from '@tabler/icons-vue'
+} from '@ulticode/design-system/ui/dialog'
+import {
+  FlaskConical as IconFlask,
+  Plus as IconPlus,
+  Upload as IconUpload,
+  Download as IconDownload,
+  Loader2 as IconLoader2,
+} from '@lucide/vue'
+
 import { useTestCases } from './composables/useTestCases'
 import TestCaseList from './components/TestCaseList.vue'
 import TestCaseDetail from './components/TestCaseDetail.vue'
@@ -64,10 +71,10 @@ onMounted(() => {
         <IconFlask class="h-5 w-5 text-muted-foreground" />
         <h3 class="font-semibold">{{ $t('testCases.title') }}</h3>
         <div class="flex gap-2 ml-2">
-          <Badge v-if="sampleCount > 0" variant="secondary" class="text-xs">
+          <Badge v-if="sampleCount > 0" variant="secondary">
             {{ sampleCount }} {{ $t('testCases.sample') }}
           </Badge>
-          <Badge v-if="hiddenCount > 0" variant="outline" class="text-xs">
+          <Badge v-if="hiddenCount > 0" variant="outline">
             {{ hiddenCount }} {{ $t('testCases.hidden') }}
           </Badge>
         </div>
@@ -150,22 +157,18 @@ onMounted(() => {
 
         <div class="space-y-4 py-4">
           <div>
-            <Label class="text-sm text-muted-foreground mb-1 block">{{
-              $t('testCases.importData')
-            }}</Label>
+            <Label class="mb-1 block">{{ $t('testCases.importData') }}</Label>
             <Textarea
               v-model="importText"
               :placeholder="$t('testCases.importPlaceholder')"
-              class="font-mono text-sm min-h-[200px]"
+              class="min-h-[200px]"
             />
             <p class="text-xs text-muted-foreground mt-1">{{ $t('testCases.importHelp') }}</p>
           </div>
 
           <div class="flex items-center gap-2">
             <Checkbox v-model="replaceExisting" id="replace_existing" />
-            <Label for="replace_existing" class="text-sm">{{
-              $t('testCases.replaceExisting')
-            }}</Label>
+            <Label for="replace_existing">{{ $t('testCases.replaceExisting') }}</Label>
           </div>
         </div>
 

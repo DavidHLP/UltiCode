@@ -12,6 +12,7 @@ export default defineConfig({
     coverage: { provider: "v8", reportsDirectory: "../coverage" },
   },
   resolve: {
+    dedupe: ["vue", "@vue/runtime-core", "reka-ui"],
     alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
   },
 });

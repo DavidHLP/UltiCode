@@ -14,11 +14,16 @@ import {
   ExternalLink,
   Search,
 } from "@lucide/vue";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
+import { Button } from "@ulticode/design-system/ui/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@ulticode/design-system/ui/card";
+import { Badge } from "@ulticode/design-system/ui/badge";
+import { Input } from "@ulticode/design-system/ui/input";
+import { Separator } from "@ulticode/design-system/ui/separator";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,13 +33,14 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+} from "@ulticode/design-system/ui/alert-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  DropdownMenuGroup,
+} from "@ulticode/design-system/ui/dropdown-menu";
 import BookmarkFolderList from "@/components/bookmark/BookmarkFolderList.vue";
 import CreateFolderDialog from "@/components/bookmark/CreateFolderDialog.vue";
 import { useBookmarkStore } from "@/stores/bookmark";
@@ -253,10 +259,7 @@ onMounted(() => {
       :description="t('personal.bookmarks.subtitle')"
     >
       <template #actions>
-        <Button
-          @click="showCreateDialog = true"
-          class="gap-2 shadow-[var(--shadow-float)]"
-        >
+        <Button @click="showCreateDialog = true" class="gap-2">
           <Plus class="h-4 w-4" />
           {{ t("personal.bookmarks.newCollection") }}
         </Button>
@@ -265,14 +268,9 @@ onMounted(() => {
 
     <div class="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
       <!-- Sidebar (Folders) -->
-      <Card
-        class="lg:col-span-1 border-none shadow-none bg-muted/20 sticky top-24 rounded-none"
-      >
+      <Card class="lg:col-span-1 sticky top-24">
         <CardHeader class="pb-3 px-4">
-          <CardTitle
-            class="text-sm font-semibold uppercase tracking-widest text-muted-foreground/70"
-            >{{ t("personal.bookmarks.folders") }}</CardTitle
-          >
+          <CardTitle>{{ t("personal.bookmarks.folders") }}</CardTitle>
         </CardHeader>
         <CardContent class="px-2 pb-4">
           <div v-if="store.isLoading" class="flex justify-center py-8">
@@ -313,14 +311,12 @@ onMounted(() => {
               <Input
                 v-model="searchQuery"
                 :placeholder="t('personal.bookmarks.searchPlaceholder')"
-                class="pl-10 rounded-full h-10 border-muted-foreground/20 focus:ring-primary/20"
+                class="pl-10"
               />
             </div>
           </div>
 
-          <Card
-            class="border-none shadow-[var(--shadow-float)] overflow-hidden rounded-none"
-          >
+          <Card class="overflow-hidden">
             <CardContent class="p-0">
               <div
                 v-if="store.isLoadingDetails"
@@ -337,7 +333,7 @@ onMounted(() => {
                 class="py-24 text-center"
               >
                 <div
-                  class="bg-muted/50 w-16 h-16 rounded-none flex items-center justify-center mx-auto mb-4"
+                  class="bg-muted/50 w-16 h-16 rounded-lg flex items-center justify-center mx-auto mb-4"
                 >
                   <FolderOpen class="h-8 w-8 text-muted-foreground/50" />
                 </div>
@@ -348,10 +344,10 @@ onMounted(() => {
 
               <div
                 v-else-if="store.selectedFolderDetails.items.length === 0"
-                class="flex flex-col items-center justify-center py-24 text-center px-6 border-2 border-dashed border-muted/50 rounded-none bg-muted/5 m-4"
+                class="flex flex-col items-center justify-center py-24 text-center px-6 border-2 border-dashed border-muted/50 rounded-lg bg-muted/5 m-4"
               >
                 <div
-                  class="p-0 flex items-center justify-center w-16 h-16 rounded-none bg-muted/50 mb-4"
+                  class="p-0 flex items-center justify-center w-16 h-16 rounded-lg bg-muted/50 mb-4"
                 >
                   <FileText class="h-8 w-8 text-muted-foreground/50" />
                 </div>
@@ -371,7 +367,7 @@ onMounted(() => {
                 >
                   <!-- Icon -->
                   <div
-                    class="flex h-12 w-12 shrink-0 items-center justify-center rounded-none border bg-background group-hover:border-primary/50 group-hover:bg-primary/5 transition-all shadow-[var(--shadow-float)]"
+                    class="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border bg-background group-hover:border-primary/50 group-hover:bg-primary/5 transition-all shadow-[var(--shadow-float)]"
                   >
                     <component
                       :is="getItemIcon(item.targetType)"
@@ -399,18 +395,12 @@ onMounted(() => {
                         <div
                           class="flex flex-wrap items-center gap-x-3 gap-y-1"
                         >
-                          <Badge
-                            variant="secondary"
-                            class="text-2xs font-semibold uppercase tracking-widest px-1.5 h-4 rounded-none"
-                          >
+                          <Badge variant="secondary" class="px-1.5 h-4">
                             {{ t(`bookmark.itemTypes.${item.targetType}`) }}
                           </Badge>
 
                           <template v-if="item.metadata">
-                            <Separator
-                              orientation="vertical"
-                              class="h-3 bg-muted-foreground/30"
-                            />
+                            <Separator orientation="vertical" class="h-3" />
                             <div
                               v-if="getForumMetadata(item)?.communityName"
                               class="text-xs font-medium text-muted-foreground"
@@ -443,30 +433,32 @@ onMounted(() => {
                           <Button
                             variant="ghost"
                             size="icon"
-                            class="h-8 w-8 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                            class="w-8 group-hover:opacity-100"
                           >
                             <MoreVertical class="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" class="w-48">
-                          <DropdownMenuItem as-child class="gap-2">
-                            <RouterLink :to="getItemUrl(item)">
-                              <ExternalLink class="h-4 w-4" />
-                              {{ t("personal.bookmarks.actions.openItem") }}
-                            </RouterLink>
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            class="text-destructive focus:text-destructive gap-2"
-                            @click="handleRemoveItem(item.id)"
+                          <DropdownMenuGroup
+                            ><DropdownMenuItem as-child class="gap-2">
+                              <RouterLink :to="getItemUrl(item)">
+                                <ExternalLink class="h-4 w-4" />
+                                {{ t("personal.bookmarks.actions.openItem") }}
+                              </RouterLink>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              class="gap-2"
+                              @click="handleRemoveItem(item.id)"
+                            >
+                              <Trash2 class="h-4 w-4" />
+                              {{
+                                t(
+                                  "personal.bookmarks.actions.removeFromCollection",
+                                )
+                              }}
+                            </DropdownMenuItem></DropdownMenuGroup
                           >
-                            <Trash2 class="h-4 w-4" />
-                            {{
-                              t(
-                                "personal.bookmarks.actions.removeFromCollection",
-                              )
-                            }}
-                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
@@ -497,7 +489,7 @@ onMounted(() => {
 
         <div
           v-else
-          class="flex flex-col items-center justify-center py-24 border-2 border-dashed border-muted/50 rounded-none bg-muted/5 text-center px-6"
+          class="flex flex-col items-center justify-center py-24 border-2 border-dashed border-muted/50 rounded-lg bg-muted/5 text-center px-6"
         >
           <FolderOpen class="h-12 w-12 text-muted-foreground/30 mb-4" />
           <h3 class="text-xl font-bold">
@@ -524,7 +516,7 @@ onMounted(() => {
       :open="showDeleteDialog"
       @update:open="showDeleteDialog = $event"
     >
-      <AlertDialogContent class="rounded-none">
+      <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>{{
             t("personal.bookmarks.dialogs.deleteTitle")
@@ -538,16 +530,10 @@ onMounted(() => {
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel
-            @click="showDeleteDialog = false"
-            class="rounded-full"
-          >
+          <AlertDialogCancel @click="showDeleteDialog = false">
             {{ t("common.actions.cancel") }}
           </AlertDialogCancel>
-          <AlertDialogAction
-            class="bg-status-error-surface text-foreground-strong border border-destructive hover:bg-status-error-surface/80 rounded-full"
-            @click="confirmDelete"
-          >
+          <AlertDialogAction @click="confirmDelete">
             {{ t("common.actions.delete") }}
           </AlertDialogAction>
         </AlertDialogFooter>

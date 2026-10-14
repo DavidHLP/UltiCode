@@ -7,15 +7,25 @@ import { useVirtualContestStore } from "@/stores/virtualContest";
 import { fetchContestProblemSubmissions } from "@/api/contest";
 import { useAuthStore } from "@/stores/auth";
 import type { ContestProblemSummary } from "@/types/contest";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@ulticode/design-system/ui/card";
+import { Button } from "@ulticode/design-system/ui/button";
+import { Separator } from "@ulticode/design-system/ui/separator";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@ulticode/design-system/ui/tabs";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+} from "@ulticode/design-system/ui/collapsible";
 import { toast } from "vue-sonner";
 import { Trophy, Calendar, Clock, Users, ChevronDown } from "@lucide/vue";
 import { useI18n } from "vue-i18n";
@@ -248,18 +258,16 @@ function getErrorMessage(error: unknown, fallback: string) {
 
       <!-- Contest Info Cards -->
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card
-          class="border border-border border-t-2 border-t-[var(--primary)] bg-surface dark:bg-surface-highlight shadow-sm transition-all duration-300 hover:border-muted-foreground/40 hover:-translate-y-0.5 rounded-none"
-        >
+        <Card class="hover:-translate-y-0.5">
           <CardContent class="p-6 flex flex-col gap-4">
             <div class="flex items-center gap-3">
               <div
-                class="flex h-10 w-10 shrink-0 items-center justify-center rounded-none bg-primary/10 text-primary shadow-sm"
+                class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary shadow-sm"
               >
                 <Calendar class="h-5 w-5" />
               </div>
               <p
-                class="text-2xs font-bold font-mono uppercase tracking-widest text-muted-foreground"
+                class="text-xs font-bold font-mono uppercase tracking-widest text-muted-foreground"
               >
                 {{ t("contest.detail.startTime") }}
               </p>
@@ -270,18 +278,16 @@ function getErrorMessage(error: unknown, fallback: string) {
           </CardContent>
         </Card>
 
-        <Card
-          class="border border-border border-t-2 border-t-[var(--status-warning-mark)] bg-surface dark:bg-surface-highlight shadow-sm transition-all duration-300 hover:border-muted-foreground/40 hover:-translate-y-0.5 rounded-none"
-        >
+        <Card class="hover:-translate-y-0.5">
           <CardContent class="p-6 flex flex-col gap-4">
             <div class="flex items-center gap-3">
               <div
-                class="flex h-10 w-10 shrink-0 items-center justify-center rounded-none bg-[var(--status-warning-mark)]/10 text-foreground-strong shadow-sm"
+                class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-status-warning-mark/10 text-foreground shadow-sm"
               >
                 <Clock class="h-5 w-5" />
               </div>
               <p
-                class="text-2xs font-bold font-mono uppercase tracking-widest text-muted-foreground"
+                class="text-xs font-bold font-mono uppercase tracking-widest text-muted-foreground"
               >
                 {{ t("contest.detail.duration") }}
               </p>
@@ -293,18 +299,16 @@ function getErrorMessage(error: unknown, fallback: string) {
           </CardContent>
         </Card>
 
-        <Card
-          class="border border-border border-t-2 border-t-[var(--status-success-mark)] bg-surface dark:bg-surface-highlight shadow-sm transition-all duration-300 hover:border-muted-foreground/40 hover:-translate-y-0.5 rounded-none"
-        >
+        <Card class="hover:-translate-y-0.5">
           <CardContent class="p-6 flex flex-col gap-4">
             <div class="flex items-center gap-3">
               <div
-                class="flex h-10 w-10 shrink-0 items-center justify-center rounded-none bg-[var(--status-success-mark)]/10 text-foreground-strong shadow-sm"
+                class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-status-success-mark/10 text-foreground shadow-sm"
               >
                 <Users class="h-5 w-5" />
               </div>
               <p
-                class="text-2xs font-bold font-mono uppercase tracking-widest text-muted-foreground"
+                class="text-xs font-bold font-mono uppercase tracking-widest text-muted-foreground"
               >
                 {{ t("contest.detail.participants") }}
               </p>
@@ -315,18 +319,16 @@ function getErrorMessage(error: unknown, fallback: string) {
           </CardContent>
         </Card>
 
-        <Card
-          class="border border-border border-t-2 border-t-[var(--primary)] bg-surface dark:bg-surface-highlight shadow-sm transition-all duration-300 hover:border-muted-foreground/40 hover:-translate-y-0.5 rounded-none"
-        >
+        <Card class="hover:-translate-y-0.5">
           <CardContent class="p-6 flex flex-col gap-4">
             <div class="flex items-center gap-3">
               <div
-                class="flex h-10 w-10 shrink-0 items-center justify-center rounded-none bg-[var(--primary)]/10 text-[var(--primary)] shadow-sm"
+                class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary shadow-sm"
               >
                 <Trophy class="h-5 w-5" />
               </div>
               <p
-                class="text-2xs font-bold font-mono uppercase tracking-widest text-muted-foreground"
+                class="text-xs font-bold font-mono uppercase tracking-widest text-muted-foreground"
               >
                 {{ t("contest.types.title") }}
               </p>
@@ -351,18 +353,12 @@ function getErrorMessage(error: unknown, fallback: string) {
       -->
       <Collapsible
         v-if="contest.rules"
-        :default-open="
-          contest.status !== 'RUNNING' && !virtualSessionActive
-        "
-        class="border border-border bg-surface dark:bg-surface-highlight shadow-sm overflow-hidden rounded-none"
+        :default-open="contest.status !== 'RUNNING' && !virtualSessionActive"
+        class="overflow-hidden"
       >
         <CollapsibleTrigger as-child>
-          <CardHeader
-            class="cursor-pointer pb-3 border-b border-border bg-[var(--surface-highlight)]/50 dark:bg-background/50"
-          >
-            <CardTitle
-              class="text-xs font-bold font-mono uppercase tracking-widest text-foreground dark:text-foreground-strong flex items-center justify-between gap-2"
-            >
+          <CardHeader class="cursor-pointer pb-3">
+            <CardTitle class="flex items-center justify-between gap-2">
               <span>{{ t("contest.detail.rules") }}</span>
               <ChevronDown class="h-4 w-4 transition-transform" />
             </CardTitle>
@@ -371,7 +367,7 @@ function getErrorMessage(error: unknown, fallback: string) {
         <CollapsibleContent>
           <CardContent class="p-6">
             <p
-              class="text-sm text-foreground-muted dark:text-foreground-muted whitespace-pre-line leading-relaxed"
+              class="text-sm text-muted-foreground dark:text-muted-foreground whitespace-pre-line leading-relaxed"
             >
               {{ contest.rules }}
             </p>
@@ -382,19 +378,11 @@ function getErrorMessage(error: unknown, fallback: string) {
       <!-- Main Content Area -->
       <Tabs default-value="problems" class="w-full">
         <div class="flex items-center justify-between mb-6">
-          <TabsList
-            class="bg-transparent border-b border-border/60 w-full justify-start p-0 h-10 gap-2 rounded-none"
-          >
-            <TabsTrigger
-              value="problems"
-              class="rounded-none px-6 h-full font-bold bg-transparent text-muted-foreground border-b-2 border-b-transparent data-[state=active]:border-b-[var(--primary)] data-[state=active]:text-foreground data-[state=active]:bg-transparent transition-all shadow-none hover:text-foreground cursor-pointer"
-            >
+          <TabsList class="w-full justify-start p-0 h-10 gap-2">
+            <TabsTrigger value="problems" class="px-6 h-full cursor-pointer">
               {{ t("contest.detail.problems") }}
             </TabsTrigger>
-            <TabsTrigger
-              value="ranking"
-              class="rounded-none px-6 h-full font-bold bg-transparent text-muted-foreground border-b-2 border-b-transparent data-[state=active]:border-b-[var(--primary)] data-[state=active]:text-foreground data-[state=active]:bg-transparent transition-all shadow-none hover:text-foreground cursor-pointer"
-            >
+            <TabsTrigger value="ranking" class="px-6 h-full cursor-pointer">
               {{ t("contest.detail.ranking") }}
             </TabsTrigger>
           </TabsList>
@@ -425,7 +413,7 @@ function getErrorMessage(error: unknown, fallback: string) {
 
     <div
       v-else-if="!loading"
-      class="flex flex-col items-center justify-center py-32 border-2 border-dashed rounded-none bg-muted/5 text-center px-6"
+      class="flex flex-col items-center justify-center py-32 border-2 border-dashed rounded-lg bg-muted/5 text-center px-6"
     >
       <Trophy class="h-16 w-16 text-muted-foreground/20 mb-4" />
       <h3 class="text-2xl font-black tracking-tight">
@@ -436,7 +424,7 @@ function getErrorMessage(error: unknown, fallback: string) {
       </p>
       <Button
         variant="outline"
-        class="mt-8 px-8 h-11 font-bold"
+        class="mt-8 px-8"
         @click="$router.push({ name: 'contest-list' })"
       >
         {{ t("contest.detail.notFound.return") }}

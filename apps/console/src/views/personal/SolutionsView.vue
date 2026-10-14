@@ -6,9 +6,9 @@ import {
   CardHeader,
   CardTitle,
   CardFooter,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+} from "@ulticode/design-system/ui/card";
+import { Badge } from "@ulticode/design-system/ui/badge";
+import { Button } from "@ulticode/design-system/ui/button";
 import {
   ThumbsUp,
   MessageSquare,
@@ -34,7 +34,8 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  DropdownMenuGroup,
+} from "@ulticode/design-system/ui/dropdown-menu";
 import { toast } from "vue-sonner";
 import { RouterLink, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
@@ -117,7 +118,7 @@ onMounted(async () => {
 
     <div
       v-else-if="!hasUser"
-      class="text-center py-20 border-2 border-dashed rounded-none"
+      class="text-center py-20 border-2 border-dashed rounded-lg"
     >
       <p class="text-muted-foreground mb-4">
         {{ t("personal.solutions.loginToView") }}
@@ -131,21 +132,14 @@ onMounted(async () => {
       v-else-if="solutions.length > 0"
       class="grid gap-6 md:grid-cols-2 xl:grid-cols-3"
     >
-      <Card
-        v-for="sol in solutions"
-        :key="sol.id"
-        class="flex flex-col group hover:shadow-[var(--shadow-float)] transition-all duration-300 border-muted/60 rounded-none"
-      >
+      <Card v-for="sol in solutions" :key="sol.id" class="flex flex-col group">
         <CardHeader class="pb-3">
           <div class="flex items-center justify-between mb-3">
-            <Badge
-              variant="outline"
-              class="font-mono text-2xs bg-primary/5 text-primary border-primary/20 rounded-none"
-            >
+            <Badge variant="outline">
               {{ sol.language }}
             </Badge>
             <div
-              class="flex items-center gap-1.5 text-2xs font-bold text-muted-foreground uppercase tracking-wider"
+              class="flex items-center gap-1.5 text-xs font-bold text-muted-foreground uppercase tracking-wider"
             >
               <Calendar class="h-3 w-3" />
               {{
@@ -161,7 +155,7 @@ onMounted(async () => {
           <div class="flex items-start justify-between gap-2">
             <div class="space-y-1 flex-1 min-w-0">
               <CardTitle
-                class="line-clamp-2 text-lg font-semibold group-hover:text-primary transition-colors cursor-pointer"
+                class="line-clamp-2 group-hover:text-primary cursor-pointer"
                 @click="handleView(sol)"
               >
                 {{ sol.title }}
@@ -179,28 +173,24 @@ onMounted(async () => {
 
             <DropdownMenu>
               <DropdownMenuTrigger as-child>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  class="h-8 w-8 rounded-full"
-                >
+                <Button variant="ghost" size="icon" class="w-8">
                   <MoreVertical class="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" class="w-40">
-                <DropdownMenuItem @click="handleView(sol)" class="gap-2">
-                  <Eye class="h-4 w-4" /> {{ t("personal.solutions.view") }}
-                </DropdownMenuItem>
-                <DropdownMenuItem @click="handleEdit(sol.id)" class="gap-2">
-                  <Pencil class="h-4 w-4" /> {{ t("personal.solutions.edit") }}
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  @click="handleDelete(sol.id)"
-                  class="text-destructive focus:text-destructive gap-2"
+                <DropdownMenuGroup
+                  ><DropdownMenuItem @click="handleView(sol)" class="gap-2">
+                    <Eye class="h-4 w-4" /> {{ t("personal.solutions.view") }}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem @click="handleEdit(sol.id)" class="gap-2">
+                    <Pencil class="h-4 w-4" />
+                    {{ t("personal.solutions.edit") }}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem @click="handleDelete(sol.id)" class="gap-2">
+                    <Trash2 class="h-4 w-4" />
+                    {{ t("personal.solutions.delete") }}
+                  </DropdownMenuItem></DropdownMenuGroup
                 >
-                  <Trash2 class="h-4 w-4" />
-                  {{ t("personal.solutions.delete") }}
-                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -212,7 +202,7 @@ onMounted(async () => {
               v-for="tag in sol.tags"
               :key="tag"
               variant="secondary"
-              class="text-2xs font-medium py-0 h-5 rounded-none"
+              class="py-0 h-5"
             >
               {{ tag }}
             </Badge>
@@ -224,7 +214,7 @@ onMounted(async () => {
           </div>
         </CardContent>
 
-        <CardFooter class="border-t bg-muted/10 px-4 py-3">
+        <CardFooter class="px-4 py-3">
           <div class="flex w-full items-center justify-between">
             <div class="flex items-center gap-4">
               <div
@@ -257,7 +247,7 @@ onMounted(async () => {
             <Button
               variant="ghost"
               size="sm"
-              class="h-8 text-xs font-bold gap-1 rounded-full hover:bg-primary hover:text-primary-foreground transition-all"
+              class="gap-1"
               @click="handleView(sol)"
             >
               {{ t("personal.solutions.details") }}
@@ -270,10 +260,10 @@ onMounted(async () => {
 
     <div
       v-else
-      class="flex flex-col items-center justify-center py-24 rounded-none border-2 border-dashed border-muted/50 bg-muted/5 text-center px-6"
+      class="flex flex-col items-center justify-center py-24 rounded-lg border-2 border-dashed border-muted/50 bg-muted/5 text-center px-6"
     >
       <div
-        class="flex h-16 w-16 items-center justify-center rounded-none bg-muted/50 mb-4"
+        class="flex h-16 w-16 items-center justify-center rounded-lg bg-muted/50 mb-4"
       >
         <FileCode2 class="h-8 w-8 text-muted-foreground/50" />
       </div>
@@ -283,7 +273,7 @@ onMounted(async () => {
       <p class="mb-8 mt-2 max-w-[300px] text-sm text-muted-foreground">
         {{ t("personal.solutions.noSolutionsDesc") }}
       </p>
-      <Button as-child class="px-8 h-10 font-bold">
+      <Button as-child class="px-8">
         <RouterLink to="/problemset">{{
           t("personal.solutions.startCoding")
         }}</RouterLink>

@@ -1,10 +1,19 @@
 <script setup lang="ts">
 import { onMounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
-import { IconChevronDown, IconLock, IconLoader2 } from '@tabler/icons-vue'
+import { Card, CardContent, CardHeader, CardTitle } from '@ulticode/design-system/ui/card'
+import { Badge } from '@ulticode/design-system/ui/badge'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@ulticode/design-system/ui/collapsible'
+import {
+  ChevronDown as IconChevronDown,
+  Lock as IconLock,
+  Loader2 as IconLoader2,
+} from '@lucide/vue'
+
 import { ref } from 'vue'
 import { testCasesApi, type TestCase } from '@/api/admin/test-cases'
 
@@ -65,12 +74,12 @@ onMounted(() => {
         >
           <div class="flex items-center gap-2">
             <IconLock class="h-4 w-4 text-muted-foreground" />
-            <CardTitle class="text-base font-medium">
+            <CardTitle>
               {{ t('testCases.view.hiddenSectionTitle', { count: hiddenCases.length }) }}
             </CardTitle>
           </div>
           <div class="flex items-center gap-2">
-            <Badge variant="outline" class="text-xs">
+            <Badge variant="outline">
               {{ t('testCases.count.hidden') }}
             </Badge>
             <IconChevronDown
@@ -102,7 +111,7 @@ onMounted(() => {
             <li
               v-for="(tc, idx) in hiddenCases"
               :key="tc.id"
-              class="border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] rounded-md p-3 space-y-2"
+              class="border border-border dark:border-border rounded-md p-3 space-y-2"
             >
               <div class="flex items-center justify-between text-xs text-muted-foreground">
                 <span class="font-mono">#{{ idx + 1 }}</span>

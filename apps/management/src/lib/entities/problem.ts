@@ -1,7 +1,11 @@
 import { h, type VNode, type Component } from 'vue'
-import { badge, DIFFICULTY_COLOR_MAP } from '@/components/ui/terminal'
+import { badge, DIFFICULTY_COLOR_MAP } from '@ulticode/badge-config'
 import type { Difficulty } from '@/api/admin/problems'
-import { IconFlask, IconBrackets, IconSparkles } from '@tabler/icons-vue'
+import {
+  FlaskConical as IconFlask,
+  Brackets as IconBrackets,
+  Sparkles as IconSparkles,
+} from '@lucide/vue'
 
 /**
  * Returns the color class for a problem difficulty
@@ -9,11 +13,11 @@ import { IconFlask, IconBrackets, IconSparkles } from '@tabler/icons-vue'
 export function getDifficultyColor(difficulty: Difficulty): string {
   switch (difficulty) {
     case 'EASY':
-      return 'text-foreground-strong'
+      return 'text-foreground'
     case 'MEDIUM':
-      return 'text-foreground-strong'
+      return 'text-foreground'
     case 'HARD':
-      return 'text-foreground-strong'
+      return 'text-foreground'
     default:
       return 'text-muted-foreground'
   }
@@ -25,11 +29,11 @@ export function getDifficultyColor(difficulty: Difficulty): string {
 export function getDifficultyBgColor(difficulty: Difficulty): string {
   switch (difficulty) {
     case 'EASY':
-      return 'bg-surface-highlight text-foreground-strong border border-control'
+      return 'bg-accent text-foreground border border-input'
     case 'MEDIUM':
-      return 'bg-surface-highlight text-foreground-strong border border-control'
+      return 'bg-accent text-foreground border border-input'
     case 'HARD':
-      return 'bg-surface-highlight text-foreground-strong border border-control'
+      return 'bg-accent text-foreground border border-input'
     default:
       return 'bg-muted text-muted-foreground'
   }

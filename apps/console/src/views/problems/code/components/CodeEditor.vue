@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref, watch } from "vue";
 import loader from "@monaco-editor/loader";
-import { registerSolarizedThemes } from "@/utils/monaco-solarized-theme";
+import { configureMonacoWorkers } from "@/utils/monaco-workers";
+import {
+  registerAppThemes,
+  observeAppEditorAppearance,
+} from "@/utils/monaco-theme";
 
 const props = defineProps<{
   modelValue: string;
@@ -20,6 +24,7 @@ const emit = defineEmits<{
 }>();
 
 const container = ref<HTMLDivElement | null>(null);
+let stopAppearanceObserver: (() => void) | null = null;
 let editor: import("monaco-editor").editor.IStandaloneCodeEditor | null = null;
 let monacoInstance: typeof import("monaco-editor") | null = null;
 let monacoPromise: Promise<typeof import("monaco-editor")> | null = null;
@@ -39,25 +44,13 @@ interface RequireFunction {
   defined?: (module: string) => boolean;
 }
 
-interface MonacoTypeScriptApi {
-  typescriptDefaults: {
-    setCompilerOptions(options: Record<string, unknown>): void;
-    setDiagnosticsOptions(options: Record<string, unknown>): void;
-  };
-  javascriptDefaults: MonacoTypeScriptApi["typescriptDefaults"];
-  ScriptTarget: { ESNext: number };
-  ModuleResolutionKind: { NodeJs: number };
-  ModuleKind: { CommonJS: number };
-}
-
 const getMonaco = async () => {
   const globalScope =
     typeof window !== "undefined" ? (window as unknown as GlobalScope) : null;
   if (monacoInstance) return monacoInstance;
   const cached =
     (globalScope?.[globalMonacoKey] as
-      | typeof import("monaco-editor")
-      | undefined) ??
+      typeof import("monaco-editor") | undefined) ??
     (globalScope?.monaco && globalScope.monaco.editor
       ? globalScope.monaco
       : null);
@@ -82,14 +75,20 @@ const getMonaco = async () => {
     });
   }
   if (!monacoPromise) {
-    monacoPromise = loader.init().then((instance) => {
-      monacoInstance = instance;
-      if (globalScope) {
-        globalScope[globalMonacoKey] = instance;
-        globalScope.monaco = instance;
-      }
-      return instance;
-    });
+    configureMonacoWorkers();
+    monacoPromise = import("monaco-editor")
+      .then((monaco) => {
+        loader.config({ monaco });
+        return loader.init();
+      })
+      .then((instance) => {
+        monacoInstance = instance;
+        if (globalScope) {
+          globalScope[globalMonacoKey] = instance;
+          globalScope.monaco = instance;
+        }
+        return instance;
+      });
   }
   return monacoPromise;
 };
@@ -110,8 +109,7 @@ const formatDocument = async () => {
 };
 
 const configureLanguageFeatures = (monaco: typeof import("monaco-editor")) => {
-  const typescript = monaco.languages
-    .typescript as unknown as MonacoTypeScriptApi;
+  const typescript = monaco.typescript;
   // TypeScript Configuration
   // Intention Actions (Code Actions) & Inspections (Diagnostics)
   const tsDefaults = typescript.typescriptDefaults;
@@ -158,10 +156,10 @@ onMounted(async () => {
   if (typeof window === "undefined" || !container.value) return;
 
   const monaco = await getMonaco();
-  if (!monaco) return;
+  if (!monaco || !container.value) return;
 
-  // Register Solarized themes to match project design system
-  registerSolarizedThemes(monaco);
+  // Resolve colors from the shared application tokens.
+  registerAppThemes(monaco);
 
   // Configure Language Features (Inspections & Intentions)
   configureLanguageFeatures(monaco);
@@ -175,10 +173,16 @@ onMounted(async () => {
     tabSize: props.tabSize ?? 2,
     lineNumbers: props.lineNumbers ?? "on",
     wordWrap: props.wordWrap ? "on" : "off",
-    theme: props.theme ?? "vs-dark",
+    theme:
+      props.theme ??
+      (document.documentElement.classList.contains("dark")
+        ? "vs-dark"
+        : "vs-light"),
     fontFamily:
       props.fontFamily ??
-      '"JetBrains Mono", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", monospace',
+      getComputedStyle(document.documentElement).getPropertyValue(
+        "--uc-font-code",
+      ),
     fontLigatures: true,
     // IntelliSense and Suggestion Options
     quickSuggestions: {
@@ -200,6 +204,15 @@ onMounted(async () => {
     lightbulb: {
       enabled: monaco.editor.ShowLightbulbIconMode.On,
     },
+  });
+
+  stopAppearanceObserver = observeAppEditorAppearance(monaco, () => {
+    monaco.editor.setTheme(
+      props.theme ??
+        (document.documentElement.classList.contains("dark")
+          ? "vs-dark"
+          : "vs-light"),
+    );
   });
 
   editor.onDidChangeModelContent(() => {
@@ -225,7 +238,7 @@ watch(
   async (language) => {
     if (!editor) return;
     const monaco = await getMonaco();
-    if (!monaco) return;
+    if (!monaco || !editor) return;
     const model = editor.getModel();
     if (model) {
       monaco.editor.setModelLanguage(model, language);
@@ -238,7 +251,7 @@ watch(
   async (theme) => {
     if (!editor || !theme) return;
     const monaco = await getMonaco();
-    if (!monaco) return;
+    if (!monaco || !editor) return;
     monaco.editor.setTheme(theme);
   },
 );
@@ -292,6 +305,7 @@ watch(
 );
 
 onBeforeUnmount(() => {
+  stopAppearanceObserver?.();
   disposeEditor();
 });
 </script>

@@ -2,8 +2,8 @@
 import { computed, ref, watch } from "vue";
 import { useDebounceFn } from "@vueuse/core";
 import { X } from "@lucide/vue";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Button } from "@ulticode/design-system/ui/button";
+import { Input } from "@ulticode/design-system/ui/input";
 import { useBottomPanelStore } from "./test";
 import { useI18n } from "vue-i18n";
 import type {
@@ -187,41 +187,42 @@ const handleAddKeydown = (event: KeyboardEvent) => {
   <div class="flex h-full flex-col gap-4">
     <!-- Test Case Tabs -->
     <div class="flex flex-wrap items-center gap-1.5" role="tablist">
-      <Button
+      <div
         v-for="testCase in caseTabs"
         :key="testCase.id"
-        size="sm"
-        class="h-7 rounded-none px-3 text-xs font-semibold cursor-pointer transition-all"
-        :class="[
-          testCase.id === activeId
-            ? 'bg-surface dark:bg-surface-highlight border border-border text-[var(--primary)] shadow-none font-bold'
-            : 'bg-transparent border border-transparent text-muted-foreground hover:text-foreground hover:bg-[var(--surface-highlight)]/30',
-        ]"
-        role="tab"
-        :aria-selected="testCase.id === activeId"
-        :aria-label="testCase.displayLabel"
-        tabindex="0"
-        @click="selectCase(testCase.id)"
-        @keydown="(e: KeyboardEvent) => handleTabKeydown(e, testCase.id)"
+        class="flex items-center gap-1"
       >
-        <span>{{ testCase.displayLabel }}</span>
-        <button
+        <Button
+          :variant="testCase.id === activeId ? 'secondary' : 'ghost'"
+          size="sm"
+          class="px-3 cursor-pointer"
+          role="tab"
+          :aria-selected="testCase.id === activeId"
+          :aria-label="testCase.displayLabel"
+          tabindex="0"
+          @click="selectCase(testCase.id)"
+          @keydown="(e: KeyboardEvent) => handleTabKeydown(e, testCase.id)"
+        >
+          <span>{{ testCase.displayLabel }}</span>
+        </Button>
+        <Button
+          variant="ghost"
           v-if="testCase.id === activeId && canRemoveCases"
           type="button"
-          class="ml-1.5 inline-flex h-4 w-4 items-center justify-center rounded-none text-2xs text-muted-foreground hover:text-foreground"
+          size="icon-sm"
           :aria-label="t('problem.layout.removeTestCase') || 'Remove test case'"
           tabindex="0"
           @click.stop="removeCase(testCase.id)"
           @keydown="(e: KeyboardEvent) => handleRemoveKeydown(e, testCase.id)"
         >
           <X class="h-3 w-3" />
-        </button>
-      </Button>
+        </Button>
+      </div>
 
       <Button
         variant="ghost"
         size="icon"
-        class="h-7 w-7 border border-dashed border-border rounded-none text-xs text-muted-foreground hover:text-foreground hover:border-muted-foreground transition-all cursor-pointer bg-transparent"
+        class="w-7 cursor-pointer"
         :aria-label="t('problem.layout.addTestCase') || 'Add test case'"
         tabindex="0"
         @click="addCase"
@@ -240,14 +241,11 @@ const handleAddKeydown = (event: KeyboardEvent) => {
         <template v-if="inputFields.length">
           <div v-for="field in inputFields" :key="field.id" class="space-y-1.5">
             <div
-              class="font-data text-xxs font-bold uppercase tracking-wider text-foreground dark:text-foreground-strong"
+              class="font-mono text-xs font-bold uppercase tracking-wider text-foreground dark:text-foreground"
             >
               {{ field.label }} =
             </div>
-            <Input
-              v-model="field.value"
-              class="font-mono text-xs bg-surface dark:bg-background border border-border focus-visible:border-[var(--primary)] focus-visible:ring-1 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-0 focus-visible:ring-offset-transparent shadow-none rounded-none text-foreground font-bold p-2.5 h-8.5 transition-all"
-            />
+            <Input v-model="field.value" class="p-2.5" />
           </div>
         </template>
         <p v-else class="text-muted-foreground">

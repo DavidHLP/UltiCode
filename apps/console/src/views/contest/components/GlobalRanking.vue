@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Card } from "@ulticode/design-system/ui/card";
+import { Button } from "@ulticode/design-system/ui/button";
 import type { GlobalRankingEntry } from "@/types/contest";
 import RatingBadge from "./RatingBadge.vue";
 import { useI18n } from "vue-i18n";
@@ -28,9 +28,7 @@ const rankingInitials = (ranking: GlobalRankingEntry): string => {
 <template>
   <div class="space-y-6">
     <!-- Podium Section -->
-    <Card
-      class="rounded-none border border-border shadow-[3px_3px_0px_0px_var(--border)] bg-card text-foreground"
-    >
+    <Card>
       <div class="p-6 text-center space-y-6">
         <div
           class="flex items-center justify-between mb-4 border-b border-dashed pb-3"
@@ -38,11 +36,11 @@ const rankingInitials = (ranking: GlobalRankingEntry): string => {
           <h2
             class="text-lg font-bold text-foreground font-mono tracking-tight flex items-center gap-2"
           >
-            <span class="h-2.5 w-2.5 bg-[var(--status-warning-mark)]"></span>
+            <span class="h-2.5 w-2.5 bg-status-warning-mark"></span>
             {{ t("contest.ranking.national") }}
           </h2>
           <span
-            class="text-xs font-mono text-muted-foreground border border-border bg-muted/50 px-2 py-0.5 rounded-none cursor-pointer hover:bg-muted transition-colors"
+            class="text-xs font-mono text-muted-foreground border border-border bg-muted/50 px-2 py-0.5 rounded-lg cursor-pointer hover:bg-muted transition-colors"
             >{{ t("contest.ranking.globalRanking") }}</span
           >
         </div>
@@ -61,17 +59,17 @@ const rankingInitials = (ranking: GlobalRankingEntry): string => {
                 v-if="rankings[1].avatar"
                 :src="rankings[1].avatar"
                 :alt="rankings[1].username"
-                class="w-14 h-14 rounded-none border-2 border-[var(--border)] shadow-[2px_2px_0px_0px_var(--border)]"
+                class="w-14 h-14 rounded-lg border-2 border-border shadow-[2px_2px_0px_0px_var(--border)]"
               />
               <div
                 v-else
-                class="flex w-14 h-14 items-center justify-center rounded-none border-2 border-[var(--border)] bg-muted text-sm font-black text-foreground shadow-[2px_2px_0px_0px_var(--border)]"
+                class="flex w-14 h-14 items-center justify-center rounded-lg border-2 border-border bg-muted text-sm font-black text-foreground shadow-[2px_2px_0px_0px_var(--border)]"
               >
                 {{ rankingInitials(rankings[1]) }}
               </div>
               <div class="absolute -bottom-2 w-full text-center">
                 <span
-                  class="bg-muted text-foreground border border-border text-2xs px-1.5 py-0.5 rounded-none font-bold shadow-[1px_1px_0px_0px_var(--border)] font-mono"
+                  class="bg-muted text-foreground border border-border text-xs px-1.5 py-0.5 rounded-lg font-bold shadow-[1px_1px_0px_0px_var(--border)] font-mono"
                   >2ND</span
                 >
               </div>
@@ -83,19 +81,19 @@ const rankingInitials = (ranking: GlobalRankingEntry): string => {
             </p>
             <div class="flex flex-col items-center leading-tight">
               <RatingBadge :rating="rankings[1].rating" size="sm" />
-              <span class="text-2xs font-mono text-muted-foreground"
+              <span class="text-xs font-mono text-muted-foreground"
                 >{{ rankings[1].contestsAttended || 0 }}
                 {{ t("contest.ranking.title", "Contests") }}</span
               >
             </div>
             <div
-              class="h-20 w-full bg-muted/60 rounded-none shadow-[2px_2px_0px_0px_var(--border)] border border-border border-b-0 relative overflow-hidden mt-1"
+              class="h-20 w-full bg-muted/60 rounded-lg shadow-[2px_2px_0px_0px_var(--border)] border border-border border-b-0 relative overflow-hidden mt-1"
             >
               <div
-                class="absolute inset-0 bg-surface/5 skew-y-12 opacity-50"
+                class="absolute inset-0 bg-background/5 skew-y-12 opacity-50"
               ></div>
               <div
-                class="absolute bottom-0 w-full text-center pb-2 opacity-20 font-black text-4xl text-foreground-strong font-mono"
+                class="absolute bottom-0 w-full text-center pb-2 opacity-20 font-black text-4xl text-foreground font-mono"
                 data-testid="podium-rank-number"
               >
                 2
@@ -120,41 +118,41 @@ const rankingInitials = (ranking: GlobalRankingEntry): string => {
                 v-if="rankings[0].avatar"
                 :src="rankings[0].avatar"
                 :alt="rankings[0].username"
-                class="w-16 h-16 rounded-none border-2 border-[var(--status-warning-mark)] shadow-[2px_2px_0px_0px_var(--status-warning-mark)]"
+                class="w-16 h-16 rounded-lg border-2 border-status-warning-mark shadow-[2px_2px_0px_0px_var(--status-warning-mark)]"
               />
               <div
                 v-else
-                class="flex w-16 h-16 items-center justify-center rounded-none border-2 border-[var(--status-warning-mark)] bg-muted text-base font-black text-foreground shadow-[2px_2px_0px_0px_var(--status-warning-mark)]"
+                class="flex w-16 h-16 items-center justify-center rounded-lg border-2 border-status-warning-mark bg-muted text-base font-black text-foreground shadow-[2px_2px_0px_0px_var(--status-warning-mark)]"
               >
                 {{ rankingInitials(rankings[0]) }}
               </div>
               <div class="absolute -bottom-2.5 w-full text-center">
                 <span
-                  class="bg-surface-highlight text-foreground-strong border border-[var(--rank-first)] text-xxs px-2 py-0.5 rounded-none font-black shadow-[1px_1px_0px_0px_var(--border)] font-mono"
+                  class="bg-accent text-foreground border border-[var(--rank-first)] text-xs px-2 py-0.5 rounded-lg font-black shadow-[1px_1px_0px_0px_var(--border)] font-mono"
                   >1ST</span
                 >
               </div>
             </div>
             <p
-              class="text-sm font-black truncate w-full text-foreground-strong mt-3 text-center"
+              class="text-sm font-black truncate w-full text-foreground mt-3 text-center"
             >
               {{ rankings[0].name || rankings[0].username }}
             </p>
             <div class="flex flex-col items-center leading-tight">
               <RatingBadge :rating="rankings[0].rating" size="sm" />
-              <span class="text-2xs font-mono text-muted-foreground"
+              <span class="text-xs font-mono text-muted-foreground"
                 >{{ rankings[0].contestsAttended || 0 }}
                 {{ t("contest.ranking.title", "Contests") }}</span
               >
             </div>
             <div
-              class="h-28 w-full bg-[var(--status-warning-mark)]/5 rounded-none shadow-[2px_2px_0px_0px_var(--border)] border border-[var(--status-warning-mark)]/30 border-b-0 relative overflow-hidden mt-1"
+              class="h-28 w-full bg-status-warning-mark/5 rounded-lg shadow-[2px_2px_0px_0px_var(--border)] border border-status-warning-mark/30 border-b-0 relative overflow-hidden mt-1"
             >
               <div
-                class="absolute inset-0 bg-surface/10 skew-y-12 opacity-50"
+                class="absolute inset-0 bg-background/10 skew-y-12 opacity-50"
               ></div>
               <div
-                class="absolute bottom-0 w-full text-center pb-2 opacity-20 font-black text-4xl text-foreground-strong font-mono"
+                class="absolute bottom-0 w-full text-center pb-2 opacity-20 font-black text-4xl text-foreground font-mono"
                 data-testid="podium-rank-number"
               >
                 1
@@ -174,17 +172,17 @@ const rankingInitials = (ranking: GlobalRankingEntry): string => {
                 v-if="rankings[2].avatar"
                 :src="rankings[2].avatar"
                 :alt="rankings[2].username"
-                class="w-14 h-14 rounded-none border-2 border-[var(--rank-third)] shadow-[2px_2px_0px_0px_var(--rank-third)]"
+                class="w-14 h-14 rounded-lg border-2 border-[var(--rank-third)] shadow-[2px_2px_0px_0px_var(--rank-third)]"
               />
               <div
                 v-else
-                class="flex w-14 h-14 items-center justify-center rounded-none border-2 border-[var(--rank-third)] bg-muted text-sm font-black text-foreground shadow-[2px_2px_0px_0px_var(--rank-third)]"
+                class="flex w-14 h-14 items-center justify-center rounded-lg border-2 border-[var(--rank-third)] bg-muted text-sm font-black text-foreground shadow-[2px_2px_0px_0px_var(--rank-third)]"
               >
                 {{ rankingInitials(rankings[2]) }}
               </div>
               <div class="absolute -bottom-2 w-full text-center">
                 <span
-                  class="bg-muted text-[var(--rank-third)] border border-[var(--rank-third)] text-2xs px-1.5 py-0.5 rounded-none font-bold shadow-[1px_1px_0px_0px_var(--border)] font-mono"
+                  class="bg-muted text-[var(--rank-third)] border border-[var(--rank-third)] text-xs px-1.5 py-0.5 rounded-lg font-bold shadow-[1px_1px_0px_0px_var(--border)] font-mono"
                   >3RD</span
                 >
               </div>
@@ -196,19 +194,19 @@ const rankingInitials = (ranking: GlobalRankingEntry): string => {
             </p>
             <div class="flex flex-col items-center leading-tight">
               <RatingBadge :rating="rankings[2].rating" size="sm" />
-              <span class="text-2xs font-mono text-muted-foreground"
+              <span class="text-xs font-mono text-muted-foreground"
                 >{{ rankings[2].contestsAttended || 0 }}
                 {{ t("contest.ranking.title", "Contests") }}</span
               >
             </div>
             <div
-              class="h-12 w-full bg-[var(--rank-third)]/5 rounded-none shadow-[2px_2px_0px_0px_var(--border)] border border-[var(--rank-third)]/30 border-b-0 relative overflow-hidden mt-1"
+              class="h-12 w-full bg-[var(--rank-third)]/5 rounded-lg shadow-[2px_2px_0px_0px_var(--border)] border border-[var(--rank-third)]/30 border-b-0 relative overflow-hidden mt-1"
             >
               <div
-                class="absolute inset-0 bg-surface/5 skew-y-12 opacity-50"
+                class="absolute inset-0 bg-background/5 skew-y-12 opacity-50"
               ></div>
               <div
-                class="absolute bottom-0 w-full text-center pb-2 opacity-20 font-black text-4xl text-foreground-strong font-mono"
+                class="absolute bottom-0 w-full text-center pb-2 opacity-20 font-black text-4xl text-foreground font-mono"
                 data-testid="podium-rank-number"
               >
                 3
@@ -219,7 +217,7 @@ const rankingInitials = (ranking: GlobalRankingEntry): string => {
 
         <!-- Table Column Headers -->
         <div
-          class="flex items-center gap-3 px-2 py-2 text-xs font-mono font-bold uppercase tracking-wider border-b border-border bg-muted/30 text-muted-foreground/80 rounded-none mt-4"
+          class="flex items-center gap-3 px-2 py-2 text-xs font-mono font-bold uppercase tracking-wider border-b border-border bg-muted/30 text-muted-foreground/80 rounded-lg mt-4"
         >
           <span class="w-6 text-center">#</span>
           <span class="flex-1 text-left">{{ t("contest.ranking.user") }}</span>
@@ -236,7 +234,7 @@ const rankingInitials = (ranking: GlobalRankingEntry): string => {
           <div
             v-for="(user, index) in rankings.slice(3, 10)"
             :key="user.username"
-            class="flex items-center gap-3 p-2 rounded-none hover:bg-muted/40 transition-colors cursor-pointer group"
+            class="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/40 transition-colors cursor-pointer group"
           >
             <span
               class="text-xs font-bold font-mono w-6 text-center text-muted-foreground group-hover:text-foreground transition-colors"
@@ -244,13 +242,13 @@ const rankingInitials = (ranking: GlobalRankingEntry): string => {
             >
             <div class="flex-1 flex items-center gap-2 min-w-0 text-left">
               <div
-                class="h-7 w-7 rounded-none bg-muted border border-border shrink-0 flex items-center justify-center text-2xs font-black text-foreground"
+                class="h-7 w-7 rounded-lg bg-muted border border-border shrink-0 flex items-center justify-center text-xs font-black text-foreground"
               >
                 <img
                   v-if="user.avatar"
                   :src="user.avatar"
                   :alt="user.username"
-                  class="h-full w-full rounded-none object-cover"
+                  class="h-full w-full rounded-lg object-cover"
                 />
                 <span v-else>{{ rankingInitials(user) }}</span>
               </div>
@@ -273,7 +271,7 @@ const rankingInitials = (ranking: GlobalRankingEntry): string => {
 
         <Button
           variant="outline"
-          class="w-full text-xs font-bold font-mono rounded-none border border-border bg-transparent shadow-[2px_2px_0px_0px_var(--border)] active:translate-x-0.5 active:translate-y-0.5 hover:-translate-x-0.5 hover:-translate-y-0.5 mt-4"
+          class="w-full active:translate-x-0.5 active:translate-y-0.5 hover:-translate-x-0.5 hover:-translate-y-0.5 mt-4"
           >{{ t("common.actions.loadMore") }}</Button
         >
       </div>

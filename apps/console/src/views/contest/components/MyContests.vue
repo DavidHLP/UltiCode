@@ -3,10 +3,20 @@ import { ref, onMounted, watch } from "vue";
 import { createValueRequest } from "@ulticode/request-state";
 import { useContestRankingStore } from "@/stores/contestRanking";
 import { useRouter } from "vue-router";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@ulticode/design-system/ui/card";
+import { Badge } from "@ulticode/design-system/ui/badge";
 import ContestStatusBadge from "./ContestStatusBadge.vue";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@ulticode/design-system/ui/tabs";
 import { Calendar, Trophy } from "@lucide/vue";
 import { useI18n } from "vue-i18n";
 
@@ -122,7 +132,7 @@ function navigateToContest(slug: string) {
               <div
                 v-for="contest in contestStore.registeredContests"
                 :key="contest.id"
-                class="flex items-center justify-between rounded-none border p-4 hover:bg-muted/50 cursor-pointer"
+                class="flex items-center justify-between rounded-lg border p-4 hover:bg-muted/50 cursor-pointer"
                 @click="navigateToContest(contest.id)"
               >
                 <div class="space-y-1">
@@ -164,7 +174,7 @@ function navigateToContest(slug: string) {
               <div
                 v-for="history in contestStore.contestHistory"
                 :key="history.contestId"
-                class="flex items-center justify-between rounded-none border p-4 hover:bg-muted/50"
+                class="flex items-center justify-between rounded-lg border p-4 hover:bg-muted/50"
               >
                 <div class="flex-1 space-y-1">
                   <h3 class="font-semibold">{{ history.title }}</h3>
@@ -190,11 +200,7 @@ function navigateToContest(slug: string) {
                   </div>
                 </div>
                 <div class="flex items-center gap-2">
-                  <Badge
-                    v-if="history.isRated"
-                    variant="outline"
-                    class="font-data text-2xs"
-                  >
+                  <Badge v-if="history.isRated" variant="outline">
                     {{ t("contest.list.rated") }}
                   </Badge>
                 </div>
@@ -221,7 +227,7 @@ function navigateToContest(slug: string) {
               <div
                 v-for="contest in contestStore.virtualContests"
                 :key="contest.id"
-                class="flex items-center justify-between rounded-none border p-4 hover:bg-muted/50 cursor-pointer"
+                class="flex items-center justify-between rounded-lg border p-4 hover:bg-muted/50 cursor-pointer"
                 @click="navigateToContest(contest.id)"
               >
                 <div class="space-y-1">

@@ -5,7 +5,8 @@ import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
 import * as z from 'zod'
 import { toast } from 'vue-sonner'
-import { IconLoader, IconTag } from '@tabler/icons-vue'
+import { Loader as IconLoader, Tag as IconTag } from '@lucide/vue'
+
 import {
   Dialog,
   DialogContent,
@@ -13,11 +14,17 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog'
-import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Button } from '@/components/ui/button'
+} from '@ulticode/design-system/ui/dialog'
+import {
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@ulticode/design-system/ui/form'
+import { Input } from '@ulticode/design-system/ui/input'
+import { Textarea } from '@ulticode/design-system/ui/textarea'
+import { Button } from '@ulticode/design-system/ui/button'
 import { useTagsStore } from '@/stores/admin/tags'
 import { TagType, type Tag } from '@/api/admin/tags'
 
@@ -127,7 +134,7 @@ const onSubmit = form.handleSubmit(async (values) => {
             <FormLabel>{{ t('tags.form.colorHex') }}</FormLabel>
             <FormControl>
               <div class="flex gap-2">
-                <Input type="color" v-bind="componentField" class="w-12 p-1 h-10" />
+                <Input type="color" v-bind="componentField" class="w-12 p-1" />
                 <Input v-bind="componentField" :placeholder="t('tags.form.colorPlaceholder')" />
               </div>
             </FormControl>

@@ -3,9 +3,9 @@ import { ref, onMounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 
-import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
+import { Button } from '@ulticode/design-system/ui/button'
+import { Label } from '@ulticode/design-system/ui/label'
+import { Textarea } from '@ulticode/design-system/ui/textarea'
 import {
   Dialog,
   DialogContent,
@@ -13,8 +13,14 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog'
-import { IconRefresh, IconScale, IconLoader2, IconCheck, IconX } from '@tabler/icons-vue'
+} from '@ulticode/design-system/ui/dialog'
+import {
+  RefreshCw as IconRefresh,
+  Scale as IconScale,
+  Loader2 as IconLoader2,
+  Check as IconCheck,
+  X as IconX,
+} from '@lucide/vue'
 
 import DataTable from '@/components/table/DataTable.vue'
 import DataTableToolbar from '@/components/table/DataTableToolbar.vue'
@@ -110,8 +116,6 @@ const columns = computed(() => {
   return createAppealsColumns(t, actions)
 })
 
-
-
 async function handleReviewSubmit() {
   if (!selectedAppeal.value) return
 
@@ -142,25 +146,19 @@ async function handleReviewSubmit() {
 
 <template>
   <div class="relative flex flex-col gap-4 w-full min-w-0">
-    <!-- Terminal Header -->
+    <!-- Page header -->
     <div
       :class="[
-        'border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--card)]',
+        'border border-border dark:border-border bg-card',
         'transition-all duration-500',
         isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
       ]"
     >
       <div class="px-4 lg:px-6 py-4 flex items-center justify-between">
-        <h1 class="text-xl font-medium tracking-tight text-[var(--foreground)]">
+        <h1 class="text-xl font-medium tracking-tight text-foreground">
           {{ t('moderation.appeals.title') }}
         </h1>
-        <Button
-          variant="terminal"
-          size="sm"
-          class="font-data text-xs border-[var(--border-subtle)] hover:border-[var(--primary)] hover:text-[var(--primary)] transition-colors"
-          @click="loadAppeals"
-          :disabled="loading"
-        >
+        <Button variant="outline" size="sm" @click="loadAppeals" :disabled="loading">
           <IconRefresh :class="['h-3.5 w-3.5', { 'animate-spin': loading }]" />
           <span class="uppercase tracking-wider hidden sm:inline">{{ t('common.refresh') }}</span>
         </Button>
@@ -168,27 +166,23 @@ async function handleReviewSubmit() {
 
       <!-- Stats Ticker -->
       <div
-        class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--surface-sunken)]"
+        class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-border dark:border-border bg-muted"
       >
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--foreground-muted)]"
+          <span class="text-sm font-medium text-muted-foreground"
             >{{ t('moderation.terminal.total') }}:</span
           >
-          <span class="font-data text-sm text-[var(--foreground-strong)] tabular-nums">{{
-            stats.total
-          }}</span>
+          <span class="font-mono text-sm text-foreground tabular-nums">{{ stats.total }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--foreground-muted)]"
+          <span class="text-sm font-medium text-muted-foreground"
             >{{ t('moderation.terminal.pending') }}:</span
           >
-          <span class="font-data text-sm text-[var(--foreground-strong)] tabular-nums">{{
-            stats.pending
-          }}</span>
+          <span class="font-mono text-sm text-foreground tabular-nums">{{ stats.pending }}</span>
         </div>
-        <div class="ml-auto flex items-center gap-2 text-[var(--foreground-muted)]">
+        <div class="ml-auto flex items-center gap-2 text-muted-foreground">
           <IconScale class="h-4 w-4" />
-          <span class="text-xs font-data uppercase tracking-wider">{{
+          <span class="text-xs font-mono uppercase tracking-wider">{{
             t('moderation.appeals.pageTitle')
           }}</span>
         </div>
@@ -213,7 +207,7 @@ async function handleReviewSubmit() {
         @update:pagination="tablePagination = $event"
         :empty-title="t('moderation.appeals.emptyTitle')"
         :empty-description="t('moderation.appeals.emptyDescription')"
-        class="terminal-table"
+        class="w-full text-sm"
       >
         <template #toolbar-left>
           <DataTableToolbar
@@ -230,48 +224,38 @@ async function handleReviewSubmit() {
 
     <!-- Review Dialog -->
     <Dialog v-model:open="reviewDialogOpen">
-      <DialogContent class="terminal-card border-[var(--border-subtle)]">
-        <DialogHeader
-          class="terminal-card-header border-b border-[var(--border-subtle)] bg-[var(--surface-sunken)] px-4 py-3 -mx-6 -mt-6"
-        >
-          <DialogTitle
-            class="flex items-center gap-2 font-data text-sm uppercase tracking-wider text-foreground-strong"
-          >
+      <DialogContent>
+        <DialogHeader class="flex items-center gap-2 px-4 py-3 px-4 py-3 -mx-6 -mt-6">
+          <DialogTitle class="flex items-center gap-2">
             <IconScale class="h-4 w-4" />
             &gt; {{ t('moderation.appeals.reviewAppeal') }}
           </DialogTitle>
-          <DialogDescription class="font-data text-xs text-[var(--foreground-muted)]">
-            Review the appeal and provide your decision.
-          </DialogDescription>
+          <DialogDescription> Review the appeal and provide your decision. </DialogDescription>
         </DialogHeader>
 
         <div v-if="selectedAppeal" class="space-y-4 pt-4">
           <!-- Appeal Info -->
-          <div
-            class="border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] p-4 bg-[var(--surface-sunken)]"
-          >
-            <p class="text-xs font-data uppercase tracking-wider text-[var(--foreground-muted)] mb-2">
+          <div class="border border-border dark:border-border p-4 bg-muted">
+            <p class="text-xs font-mono uppercase tracking-wider text-muted-foreground mb-2">
               {{ t('moderation.appeals.reason') }}
             </p>
             <p class="text-sm">{{ selectedAppeal.reason }}</p>
-            <p v-if="selectedAppeal.evidence" class="text-xs text-[var(--foreground-muted)] mt-2">
+            <p v-if="selectedAppeal.evidence" class="text-xs text-muted-foreground mt-2">
               {{ t('moderation.detail.evidence') }}: {{ selectedAppeal.evidence }}
             </p>
           </div>
 
           <!-- Decision -->
           <div>
-            <Label class="text-xs font-data uppercase tracking-wider text-[var(--foreground-muted)]">
-              Decision
-            </Label>
+            <Label> Decision </Label>
             <div class="mt-2 flex gap-2">
               <Button
-                :variant="reviewDecision === 'APPROVED' ? 'default' : 'terminal'"
+                :variant="reviewDecision === 'APPROVED' ? 'default' : 'outline'"
                 :class="[
-                  'h-9 font-data text-xs',
+                  'h-9 font-mono text-xs',
                   reviewDecision === 'APPROVED'
-                    ? 'border-[var(--status-success-mark)] text-foreground-strong bg-[color-mix(in_oklch,_var(--status-success-mark)_10%,_transparent)]'
-                    : 'border-[var(--border-subtle)] hover:border-[var(--status-success-mark)] hover:text-foreground-strong',
+                    ? 'border-status-success-mark text-foreground bg-[color-mix(in_oklch,_var(--status-success-mark)_10%,_transparent)]'
+                    : 'border-border hover:border-status-success-mark hover:text-foreground',
                 ]"
                 size="sm"
                 @click="reviewDecision = 'APPROVED'"
@@ -280,12 +264,12 @@ async function handleReviewSubmit() {
                 {{ t('moderation.appeals.approveAppeal') }}
               </Button>
               <Button
-                :variant="reviewDecision === 'REJECTED' ? 'default' : 'terminal'"
+                :variant="reviewDecision === 'REJECTED' ? 'default' : 'outline'"
                 :class="[
-                  'h-9 font-data text-xs',
+                  'h-9 font-mono text-xs',
                   reviewDecision === 'REJECTED'
-                    ? 'border-[var(--status-error-mark)] text-foreground-strong bg-[color-mix(in_oklch,_var(--status-error-mark)_10%,_transparent)]'
-                    : 'border-[var(--border-subtle)] hover:border-[var(--status-error-mark)] hover:text-foreground-strong',
+                    ? 'border-status-error-mark text-foreground bg-[color-mix(in_oklch,_var(--status-error-mark)_10%,_transparent)]'
+                    : 'border-border hover:border-status-error-mark hover:text-foreground',
                 ]"
                 size="sm"
                 @click="reviewDecision = 'REJECTED'"
@@ -298,10 +282,7 @@ async function handleReviewSubmit() {
 
           <!-- Response -->
           <div>
-            <Label
-              for="review-response"
-              class="text-xs font-data uppercase tracking-wider text-[var(--foreground-muted)]"
-            >
+            <Label for="review-response">
               {{ t('moderation.appeals.response') }}
             </Label>
             <Textarea
@@ -309,28 +290,23 @@ async function handleReviewSubmit() {
               v-model="reviewResponse"
               :placeholder="t('moderation.appeals.responsePlaceholder')"
               rows="3"
-              class="mt-2 font-data text-sm border-[var(--border-subtle)] hover:border-[var(--primary)] bg-transparent placeholder:text-[var(--foreground-muted)]"
+              class="mt-2 placeholder:text-muted-foreground"
             />
           </div>
         </div>
 
         <DialogFooter class="gap-2">
-          <Button
-            variant="terminal"
-            size="sm"
-            class="font-data text-xs border-[var(--border-subtle)] hover:border-[var(--foreground-muted)]"
-            @click="reviewDialogOpen = false"
-          >
+          <Button variant="outline" size="sm" @click="reviewDialogOpen = false">
             {{ t('moderation.dialogs.cancel') }}
           </Button>
           <Button
-            variant="terminal"
+            variant="outline"
             size="sm"
             :class="[
-              'font-data text-xs',
+              'font-mono text-xs',
               reviewDecision === 'APPROVED'
-                ? 'border-[var(--status-success-mark)] text-foreground-strong hover:bg-[color-mix(in_oklch,_var(--status-success-mark)_10%,_transparent)]'
-                : 'border-[var(--status-error-mark)] text-foreground-strong hover:bg-[color-mix(in_oklch,_var(--status-error-mark)_10%,_transparent)]',
+                ? 'border-status-success-mark text-foreground hover:bg-[color-mix(in_oklch,_var(--status-success-mark)_10%,_transparent)]'
+                : 'border-status-error-mark text-foreground hover:bg-[color-mix(in_oklch,_var(--status-error-mark)_10%,_transparent)]',
             ]"
             :disabled="reviewLoading"
             @click="handleReviewSubmit"

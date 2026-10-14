@@ -3,12 +3,17 @@ import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
-import { IconArrowLeft, IconFlask, IconDatabase } from '@tabler/icons-vue'
+import {
+  ArrowLeft as IconArrowLeft,
+  FlaskConical as IconFlask,
+  Database as IconDatabase,
+} from '@lucide/vue'
+
 import { useProblemsStore } from '@/stores/admin/problems'
 import { useProblemTab } from '../composables/useProblemTab'
-import { Button } from '@/components/ui/button'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { Button } from '@ulticode/design-system/ui/button'
+import { Skeleton } from '@ulticode/design-system/ui/skeleton'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@ulticode/design-system/ui/tabs'
 import CasesForm from '../components/CasesForm.vue'
 import type { CasesFormData } from '../components/CasesForm.vue'
 import type { ProblemExample } from '@/api/admin/problems'
@@ -83,7 +88,7 @@ function handleCancel() {
   <div class="relative flex flex-col gap-4 w-full min-w-0">
     <div
       :class="[
-        'border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--card)]',
+        'border border-border dark:border-border bg-card',
         'transition-all duration-500',
         isReady ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
       ]"
@@ -91,9 +96,9 @@ function handleCancel() {
       <div class="px-4 lg:px-6 py-4 flex items-center justify-between">
         <div class="flex items-center gap-4 min-w-0">
           <Button
-            variant="terminal"
+            variant="outline"
             size="icon"
-            class="h-8 w-8 border-[var(--border-subtle)]"
+            class="w-8"
             @click="router.push({ name: 'problem-detail', params: { id: problemId } })"
           >
             <IconArrowLeft class="h-4 w-4" />
@@ -101,9 +106,9 @@ function handleCancel() {
 
           <div class="flex items-center gap-3 min-w-0">
             <div class="flex items-center gap-2">
-              <span class="terminal-cursor" />
+              <span class="hidden" />
             </div>
-            <h1 v-if="title" class="text-sm font-medium text-[var(--foreground)] truncate">
+            <h1 v-if="title" class="text-sm font-medium text-foreground truncate">
               {{ title }}
             </h1>
             <Skeleton v-else class="h-5 w-32" />
@@ -112,33 +117,29 @@ function handleCancel() {
       </div>
 
       <div
-        class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--surface-sunken)]"
+        class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-border dark:border-border bg-muted"
       >
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--foreground-muted)]"
+          <span class="text-sm font-medium text-muted-foreground"
             >{{ t('problems.edit.action') }}:</span
           >
-          <span class="font-data text-sm text-[var(--primary)]">{{
-            t('common.edit').toUpperCase()
-          }}</span>
+          <span class="font-mono text-sm text-primary">{{ t('common.edit').toUpperCase() }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--foreground-muted)]"
+          <span class="text-sm font-medium text-muted-foreground"
             >{{ t('problems.edit.section') }}:</span
           >
-          <span class="font-data text-sm text-[var(--foreground-strong)]">{{
-            t('problems.edit.testCases')
-          }}</span>
+          <span class="font-mono text-sm text-foreground">{{ t('problems.edit.testCases') }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <IconFlask class="h-4 w-4 text-[var(--foreground-muted)]" />
-          <span class="text-xs text-[var(--foreground-muted)]">{{
+          <IconFlask class="h-4 w-4 text-muted-foreground" />
+          <span class="text-xs text-muted-foreground">{{
             t('problems.edit.testCasesSubtitle')
           }}</span>
         </div>
-        <div class="ml-auto hidden sm:flex items-center gap-2 text-[var(--foreground-muted)]">
+        <div class="ml-auto hidden sm:flex items-center gap-2 text-muted-foreground">
           <IconDatabase class="h-4 w-4" />
-          <span class="text-xs font-data uppercase tracking-wider">{{
+          <span class="text-xs font-mono uppercase tracking-wider">{{
             t('problems.edit.testCaseEditor')
           }}</span>
         </div>
@@ -148,14 +149,14 @@ function handleCancel() {
     <div class="flex-1">
       <div v-if="loading" class="flex flex-col items-center justify-center py-24 text-center">
         <div
-          class="w-12 h-12 rounded-full bg-[var(--surface-sunken)] border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] flex items-center justify-center mb-3"
+          class="w-12 h-12 rounded-full bg-muted border border-border dark:border-border flex items-center justify-center mb-3"
         >
           <div
-            class="h-6 w-6 animate-spin rounded-full border-2 border-[var(--primary)] border-t-transparent"
+            class="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent"
           ></div>
         </div>
-        <h2 class="text-sm font-medium mb-1 font-data">{{ t('problems.edit.loading') }}</h2>
-        <p class="text-xs text-[var(--foreground-muted)] font-data">// fetching problem data...</p>
+        <h2 class="text-sm font-medium mb-1 font-mono">{{ t('problems.edit.loading') }}</h2>
+        <p class="text-xs text-muted-foreground font-mono">// fetching problem data...</p>
       </div>
 
       <Tabs v-else-if="formattedProblem" v-model="activeTab" default-value="samples" class="w-full">

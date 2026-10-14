@@ -115,7 +115,7 @@ function mountDrawer(userId = 'user-a') {
         AvatarFallback: passthroughStub,
         AvatarImage: passthroughStub,
         Button: buttonStub,
-        DataBlock: passthroughStub,
+        DetailField: passthroughStub,
         SemanticBadge: passthroughStub,
         IconMail: true,
         IconTrophy: true,
@@ -165,15 +165,13 @@ describe('UserDetailDrawer avatar upload', () => {
   it('does not commit a stale refresh after the drawer switches users', async () => {
     const pending = deferred<DrawerTestUser>()
     mocks.uploadAvatar.mockResolvedValue('/api/users/avatars/user-a/new.png')
-    mocks.store.fetchUser.mockImplementation(
-      async (id: string, commitCurrent = true) => {
-        const user = id === 'user-a' ? await pending.promise : makeUser(id)
-        if (commitCurrent) {
-          mocks.store.currentUser = user
-        }
-        return user
-      },
-    )
+    mocks.store.fetchUser.mockImplementation(async (id: string, commitCurrent = true) => {
+      const user = id === 'user-a' ? await pending.promise : makeUser(id)
+      if (commitCurrent) {
+        mocks.store.currentUser = user
+      }
+      return user
+    })
     const wrapper = mountDrawer()
     const input = wrapper.find('input[type="file"]')
     const file = new File(['avatar'], 'avatar.png', { type: 'image/png' })

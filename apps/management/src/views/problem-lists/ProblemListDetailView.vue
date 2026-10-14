@@ -3,8 +3,8 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAdminProblemListsStore } from '@/stores/admin/problem-lists'
-import { Button } from '@/components/ui/button'
-import { Skeleton } from '@/components/ui/skeleton'
+import { Button } from '@ulticode/design-system/ui/button'
+import { Skeleton } from '@ulticode/design-system/ui/skeleton'
 import { ArrowLeft, FileText } from '@lucide/vue'
 import BasicInfoSection from './components/BasicInfoSection.vue'
 import VisibilitySection from './components/VisibilitySection.vue'
@@ -59,24 +59,22 @@ function handleListUpdate(updatedList: ProblemListDetail | null) {
 <template>
   <div class="editor-container w-full flex flex-col gap-5 lg:gap-6">
     <!-- Refined Header Section -->
-    <div class="flex flex-col gap-2.5 pb-2 border-b border-[var(--editor-border-weak)] select-none">
+    <div class="flex flex-col gap-2.5 pb-2 border-b border-border select-none">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-3">
           <!-- Back button using correct translations -->
           <Button
             variant="outline"
             size="sm"
-            class="custom-back-btn h-7 px-2.5 font-mono text-xs text-[var(--editor-text-muted)] border-[var(--editor-control-border)] bg-[var(--editor-control-bg)] hover:bg-[var(--editor-panel-bg)] hover:text-[var(--editor-text-primary)] rounded-none cursor-pointer flex items-center gap-1.5 transition-all"
+            class="px-2.5 cursor-pointer flex items-center gap-1.5"
             @click="back"
           >
             <ArrowLeft :size="12" />
             <span>{{ t('common.back') }}</span>
           </Button>
-          <span class="text-[var(--editor-text-muted)] font-mono opacity-50">/</span>
+          <span class="text-muted-foreground font-mono opacity-50">/</span>
           <!-- Prominent Title -->
-          <h1
-            class="text-base lg:text-lg font-bold font-sans text-[var(--editor-text-primary)] tracking-tight"
-          >
+          <h1 class="text-base lg:text-lg font-bold font-sans text-foreground tracking-tight">
             {{ isCreate ? t('problemLists.createList') : list?.name || t('problemLists.editList') }}
           </h1>
         </div>
@@ -85,11 +83,11 @@ function handleListUpdate(updatedList: ProblemListDetail | null) {
       <!-- Muted Status Ticker Metadata Line -->
       <div
         v-if="list && !isCreate"
-        class="flex flex-wrap items-center gap-2 font-mono text-xxs text-[var(--editor-text-muted)]"
+        class="flex flex-wrap items-center gap-2 font-mono text-xs text-muted-foreground"
       >
         <span
           class="font-bold uppercase tracking-wider"
-          :class="list.isPublic ? 'text-[var(--editor-green)]' : 'text-[var(--editor-yellow)]'"
+          :class="list.isPublic ? 'text-status-success-mark' : 'text-status-warning-mark'"
         >
           {{ list.isPublic ? t('problemLists.status.public') : t('problemLists.status.private') }}
         </span>
@@ -104,7 +102,7 @@ function handleListUpdate(updatedList: ProblemListDetail | null) {
         </span>
         <template v-if="list.isFeatured">
           <span class="opacity-40">•</span>
-          <span class="text-[var(--editor-yellow)] font-bold uppercase tracking-wider">
+          <span class="text-status-warning-mark font-bold uppercase tracking-wider">
             {{ t('problemLists.status.featured') }}
           </span>
         </template>
@@ -116,33 +114,28 @@ function handleListUpdate(updatedList: ProblemListDetail | null) {
       <!-- Loading State -->
       <div v-if="isInitialLoad || (store.operationLoading && !list && !isCreate)" class="space-y-6">
         <div class="space-y-4">
-          <Skeleton class="h-10 w-1/3 rounded-none" />
-          <Skeleton class="h-48 w-full rounded-none" />
+          <Skeleton class="h-10 w-1/3" />
+          <Skeleton class="h-48 w-full" />
         </div>
       </div>
 
       <!-- Error State -->
       <div
         v-else-if="store.operationError && !isCreate"
-        class="flex flex-col items-center justify-center py-20 text-center border border-[var(--editor-panel-border)] bg-[var(--editor-panel-bg)]"
+        class="flex flex-col items-center justify-center py-20 text-center border border-border bg-card"
       >
         <div
-          class="w-10 h-10 border border-[var(--editor-red)] flex items-center justify-center mb-3 text-[var(--editor-red)]"
+          class="w-10 h-10 border border-status-error-mark flex items-center justify-center mb-3 text-status-error-mark"
         >
           <FileText :size="20" />
         </div>
-        <h2
-          class="text-xs font-bold mb-1 text-[var(--editor-text-primary)] font-mono uppercase tracking-wider"
-        >
+        <h2 class="text-xs font-bold mb-1 text-foreground font-mono uppercase tracking-wider">
           {{ t('problemLists.errorLoading') }}
         </h2>
-        <p class="text-xs font-mono text-[var(--editor-text-muted)] mb-4">{{ store.operationError }}</p>
-        <Button
-          variant="outline"
-          size="sm"
-          class="font-mono text-xs border-[var(--editor-control-border)] rounded-none"
-          @click="back"
-        >
+        <p class="text-xs font-mono text-muted-foreground mb-4">
+          {{ store.operationError }}
+        </p>
+        <Button variant="outline" size="sm" @click="back">
           {{ t('problemLists.backToLists') }}
         </Button>
       </div>
@@ -198,35 +191,6 @@ function handleListUpdate(updatedList: ProblemListDetail | null) {
 </template>
 
 <style>
-/* CSS Variable Hierarchy for Problem List Editor */
-.editor-container {
-  /* Public semantic tokens; values flip automatically with the `.dark` class. */
-  --editor-panel-bg: var(--surface-elevated);
-  --editor-panel-border: var(--border);
-  --editor-border-weak: var(--border-subtle);
-  --editor-control-bg: var(--surface-sunken);
-  --editor-control-border: var(--border-control);
-  --editor-text-primary: var(--foreground-strong);
-  --editor-text-muted: var(--foreground-muted);
-
-  /* Semantic Accent Colors (theme-invariant status + brand tokens) */
-  --editor-cyan: var(--status-info-mark);
-  --editor-blue: var(--accent-primary);
-  --editor-green: var(--status-success-mark);
-  --editor-yellow: var(--status-warning-mark);
-  --editor-red: var(--status-error-mark);
-}
-
-.dark .editor-container {
-  /* Weak dividers stay translucent in dark mode (was rgba(88, 110, 117, …)) */
-  --editor-border-weak: color-mix(in srgb, var(--border) 22%, transparent);
-  --editor-control-border: var(--border-control);
-}
-
-.custom-back-btn {
-  border-radius: var(--radius-md) !important;
-}
-
 .problem-list-editor-grid {
   display: grid;
   grid-template-areas:

@@ -14,9 +14,9 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
+} from "@ulticode/design-system/ui/card";
+import { Label } from "@ulticode/design-system/ui/label";
+import { Switch } from "@ulticode/design-system/ui/switch";
 
 const { t } = useI18n();
 const loading = ref(true);
@@ -66,12 +66,9 @@ onMounted(async () => {
       </p>
     </div>
 
-    <Card
-      v-else
-      class="border shadow-[var(--shadow-float)] bg-card rounded-none"
-    >
+    <Card v-else>
       <CardHeader>
-        <CardTitle class="text-lg">
+        <CardTitle>
           {{ t("personal.account.sections.notifications") }}
         </CardTitle>
         <CardDescription>
@@ -81,7 +78,7 @@ onMounted(async () => {
       <CardContent class="space-y-4">
         <div class="space-y-4">
           <div
-            class="flex items-center justify-between space-x-4 rounded-none border bg-background p-4 transition-all"
+            class="flex items-center justify-between space-x-4 rounded-lg border bg-background p-4 transition-all"
           >
             <div class="flex gap-4 items-center">
               <div
@@ -90,11 +87,13 @@ onMounted(async () => {
                 <Mail class="h-5 w-5 text-primary" />
               </div>
               <div class="space-y-0.5">
-                <Label class="text-base font-bold">
+                <Label>
                   {{ t("personal.account.notificationTypes.communication") }}
                 </Label>
                 <p class="text-sm text-muted-foreground">
-                  {{ t("personal.account.notificationTypes.communicationDesc") }}
+                  {{
+                    t("personal.account.notificationTypes.communicationDesc")
+                  }}
                 </p>
               </div>
             </div>
@@ -109,16 +108,16 @@ onMounted(async () => {
           </div>
 
           <div
-            class="flex items-center justify-between space-x-4 rounded-none border bg-background p-4 transition-all"
+            class="flex items-center justify-between space-x-4 rounded-lg border bg-background p-4 transition-all"
           >
             <div class="flex gap-4 items-center">
               <div
-                class="h-10 w-10 rounded-full bg-[var(--status-warning-mark)]/10 flex items-center justify-center"
+                class="h-10 w-10 rounded-full bg-status-warning-mark/10 flex items-center justify-center"
               >
-                <Bell class="h-5 w-5 text-[var(--status-warning-mark)]" />
+                <Bell class="h-5 w-5 text-status-warning-mark" />
               </div>
               <div class="space-y-0.5">
-                <Label class="text-base font-bold">
+                <Label>
                   {{ t("personal.account.notificationTypes.marketing") }}
                 </Label>
                 <p class="text-sm text-muted-foreground">
@@ -136,16 +135,16 @@ onMounted(async () => {
           </div>
 
           <div
-            class="flex items-center justify-between space-x-4 rounded-none border bg-background p-4 opacity-70"
+            class="flex items-center justify-between space-x-4 rounded-lg border bg-background p-4 opacity-70"
           >
             <div class="flex gap-4 items-center">
               <div
-                class="h-10 w-10 rounded-full bg-[var(--status-success-mark)]/10 flex items-center justify-center"
+                class="h-10 w-10 rounded-full bg-status-success-mark/10 flex items-center justify-center"
               >
-                <ShieldCheck class="h-5 w-5 text-[var(--status-success-mark)]" />
+                <ShieldCheck class="h-5 w-5 text-status-success-mark" />
               </div>
               <div class="space-y-0.5">
-                <Label class="text-base font-bold">
+                <Label>
                   {{ t("personal.account.notificationTypes.security") }}
                 </Label>
                 <p class="text-sm text-muted-foreground">
@@ -153,10 +152,7 @@ onMounted(async () => {
                 </p>
               </div>
             </div>
-            <Switch
-              :model-value="preferences?.security ?? true"
-              disabled
-            />
+            <Switch :model-value="preferences?.security ?? true" disabled />
           </div>
         </div>
       </CardContent>

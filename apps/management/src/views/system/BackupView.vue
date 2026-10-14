@@ -5,30 +5,31 @@ import { formatDateTimeByLocale } from '@/i18n/utils'
 import { toast } from 'vue-sonner'
 import { backupApi } from '@/api/admin/backup'
 import type { Backup, BackupStatus } from '@/api/admin/backup'
-import { Button } from '@/components/ui/button'
-import { SemanticBadge, type SemanticColor } from '@/components/ui/terminal'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@ulticode/design-system/ui/button'
+import SemanticBadge from '@ulticode/badge-config/SemanticBadge.vue'
+import { type SemanticColor } from '@ulticode/badge-config'
+import { Card, CardContent, CardHeader, CardTitle } from '@ulticode/design-system/ui/card'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+} from '@ulticode/design-system/ui/dialog'
+import { Input } from '@ulticode/design-system/ui/input'
+import { Label } from '@ulticode/design-system/ui/label'
 import {
-  IconDatabase,
-  IconDownload,
-  IconTrash,
-  IconRefresh,
-  IconPlus,
-  IconLoader2,
-  IconAlertTriangle,
-  IconCheck,
-  IconClock,
-  IconX,
-} from '@tabler/icons-vue'
+  Database as IconDatabase,
+  Download as IconDownload,
+  Trash as IconTrash,
+  RefreshCw as IconRefresh,
+  Plus as IconPlus,
+  Loader2 as IconLoader2,
+  AlertTriangle as IconAlertTriangle,
+  Check as IconCheck,
+  Clock as IconClock,
+  X as IconX,
+} from '@lucide/vue'
 
 const { t } = useI18n()
 
@@ -164,14 +165,14 @@ function getStatusIcon(status: BackupStatus) {
 function getStatusColor(status: BackupStatus): string {
   switch (status) {
     case 'COMPLETED':
-      return 'text-foreground-strong'
+      return 'text-foreground'
     case 'PENDING':
     case 'IN_PROGRESS':
-      return 'text-foreground-strong'
+      return 'text-foreground'
     case 'FAILED':
-      return 'text-foreground-strong'
+      return 'text-foreground'
     default:
-      return 'text-foreground-muted'
+      return 'text-muted-foreground'
   }
 }
 
@@ -195,10 +196,10 @@ onMounted(async () => {
 
 <template>
   <div class="relative flex flex-col gap-4 w-full min-w-0">
-    <!-- Terminal Header -->
+    <!-- Page header -->
     <div
       :class="[
-        'border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--card)]',
+        'border border-border dark:border-border bg-card',
         'transition-all duration-500',
         isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
       ]"
@@ -206,30 +207,18 @@ onMounted(async () => {
       <!-- Title Row -->
       <div class="px-4 lg:px-6 py-4 flex items-center justify-between">
         <div class="space-y-1">
-          <h1 class="text-xl font-medium tracking-tight text-[var(--foreground)]">
+          <h1 class="text-xl font-medium tracking-tight text-foreground">
             {{ t('system.backup.title') }}
           </h1>
-          <p class="text-xs text-[var(--foreground-muted)]">{{ t('system.backup.description') }}</p>
+          <p class="text-xs text-muted-foreground">{{ t('system.backup.description') }}</p>
         </div>
         <div class="flex items-center gap-2">
-          <Button
-            variant="terminal"
-            size="sm"
-            class="font-data text-xs border-[var(--border-subtle)] hover:border-[var(--primary)] hover:text-[var(--primary)] transition-colors"
-            :disabled="loading"
-            @click="loadBackups"
-          >
+          <Button variant="outline" size="sm" :disabled="loading" @click="loadBackups">
             <IconLoader2 v-if="loading" class="h-3.5 w-3.5 mr-1.5 animate-spin" />
             <IconRefresh v-else class="h-3.5 w-3.5 mr-1.5" />
             <span class="uppercase tracking-wider">{{ t('common.refresh') }}</span>
           </Button>
-          <Button
-            variant="terminal"
-            size="sm"
-            class="font-data text-xs border-[var(--border-subtle)] hover:border-[var(--primary)] hover:text-[var(--primary)] transition-colors"
-            :disabled="creating"
-            @click="createBackup"
-          >
+          <Button variant="outline" size="sm" :disabled="creating" @click="createBackup">
             <IconLoader2 v-if="creating" class="h-3.5 w-3.5 mr-1.5 animate-spin" />
             <IconPlus v-else class="h-3.5 w-3.5 mr-1.5" />
             <span class="uppercase tracking-wider">{{ t('system.backup.createBackup') }}</span>
@@ -249,7 +238,7 @@ onMounted(async () => {
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardHeader class="pb-2">
-            <CardTitle class="text-sm font-medium text-muted-foreground">
+            <CardTitle>
               {{ t('system.backup.totalBackups') }}
             </CardTitle>
           </CardHeader>
@@ -259,22 +248,22 @@ onMounted(async () => {
         </Card>
         <Card>
           <CardHeader class="pb-2">
-            <CardTitle class="text-sm font-medium text-muted-foreground">
+            <CardTitle>
               {{ t('system.backup.completedBackups') }}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div class="text-2xl font-bold text-foreground-strong">{{ completedBackups.length }}</div>
+            <div class="text-2xl font-bold text-foreground">{{ completedBackups.length }}</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader class="pb-2">
-            <CardTitle class="text-sm font-medium text-muted-foreground">
+            <CardTitle>
               {{ t('system.backup.pendingBackups') }}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div class="text-2xl font-bold text-foreground-strong">{{ pendingBackups.length }}</div>
+            <div class="text-2xl font-bold text-foreground">{{ pendingBackups.length }}</div>
           </CardContent>
         </Card>
       </div>
@@ -300,7 +289,7 @@ onMounted(async () => {
             <div
               v-for="backup in backups"
               :key="backup.id"
-              class="flex items-center justify-between p-4 rounded-none border bg-card hover:bg-muted/50 transition-colors"
+              class="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
             >
               <div class="flex items-center gap-4">
                 <component
@@ -341,12 +330,7 @@ onMounted(async () => {
                   <IconRefresh class="h-4 w-4" />
                 </Button>
 
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  class="text-destructive hover:text-destructive"
-                  @click="openDeleteDialog(backup)"
-                >
+                <Button variant="ghost" size="sm" @click="openDeleteDialog(backup)">
                   <IconTrash class="h-4 w-4" />
                 </Button>
               </div>
@@ -370,7 +354,9 @@ onMounted(async () => {
             <DialogTitle>{{ t('system.backup.restoreBackup') }}</DialogTitle>
           </DialogHeader>
           <div class="py-4">
-            <div class="flex items-center gap-2 p-4 bg-status-warning-surface rounded-none text-foreground-strong border border-status-warning-mark">
+            <div
+              class="flex items-center gap-2 p-4 bg-status-warning-surface rounded-lg text-foreground border border-status-warning-mark"
+            >
               <IconAlertTriangle class="h-5 w-5" />
               <p class="text-sm">{{ t('system.backup.restoreWarning') }}</p>
             </div>
@@ -378,15 +364,10 @@ onMounted(async () => {
               {{ t('system.backup.restoreConfirm', { filename: selectedBackup?.filename }) }}
             </p>
             <div class="mt-4 space-y-2">
-              <Label for="restore-confirm" class="text-sm text-destructive">
+              <Label for="restore-confirm">
                 Type <span class="font-mono font-bold">RESTORE</span> to confirm
               </Label>
-              <Input
-                id="restore-confirm"
-                v-model="restoreConfirmText"
-                placeholder="RESTORE"
-                class="font-mono"
-              />
+              <Input id="restore-confirm" v-model="restoreConfirmText" placeholder="RESTORE" />
             </div>
           </div>
           <DialogFooter>

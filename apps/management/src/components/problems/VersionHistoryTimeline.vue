@@ -2,15 +2,15 @@
 import { ref, watch, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
+import { Button } from '@ulticode/design-system/ui/button'
+import { Badge } from '@ulticode/design-system/ui/badge'
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog'
+} from '@ulticode/design-system/ui/dialog'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,10 +20,17 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
-import { Textarea } from '@/components/ui/textarea'
-import { Skeleton } from '@/components/ui/skeleton'
-import { IconHistory, IconEye, IconRotateClockwise, IconGitCompare, IconX } from '@tabler/icons-vue'
+} from '@ulticode/design-system/ui/alert-dialog'
+import { Textarea } from '@ulticode/design-system/ui/textarea'
+import { Skeleton } from '@ulticode/design-system/ui/skeleton'
+import {
+  History as IconHistory,
+  Eye as IconEye,
+  RotateCw as IconRotateClockwise,
+  GitCompare as IconGitCompare,
+  X as IconX,
+} from '@lucide/vue'
+
 import {
   problemsApi,
   type ProblemVersion,
@@ -194,19 +201,19 @@ function getChangeTypeStyle(type: string): { bg: string; border: string; text: s
   const defaultStyle = {
     bg: 'bg-[color-mix(in_oklch,_var(--status-warning-mark)_15%,_transparent)]',
     border: 'border-[color-mix(in_oklch,_var(--status-warning-mark)_40%,_transparent)]',
-    text: 'text-foreground-strong',
+    text: 'text-foreground',
   }
   const styles: Record<string, { bg: string; border: string; text: string }> = {
     create: {
       bg: 'bg-[color-mix(in_oklch,_var(--status-success-mark)_15%,_transparent)]',
       border: 'border-[color-mix(in_oklch,_var(--status-success-mark)_40%,_transparent)]',
-      text: 'text-foreground-strong',
+      text: 'text-foreground',
     },
     update: defaultStyle,
     rollback: {
       bg: 'bg-[color-mix(in_oklch,_var(--primary)_15%,_transparent)]',
       border: 'border-[color-mix(in_oklch,_var(--primary)_40%,_transparent)]',
-      text: 'text-[var(--primary)]',
+      text: 'text-primary',
     },
   }
   return styles[type] ?? defaultStyle
@@ -248,10 +255,10 @@ watch(
         <!-- Compare Mode Banner -->
         <div
           v-if="compareMode"
-          class="mb-4 p-3 rounded-none border border-[var(--primary)] bg-[color-mix(in_oklch,_var(--primary)_10%,_transparent)]"
+          class="mb-4 p-3 rounded-lg border border-primary bg-[color-mix(in_oklch,_var(--primary)_10%,_transparent)]"
         >
           <div class="flex items-center justify-between">
-            <span class="text-sm text-[var(--primary)]">
+            <span class="text-sm text-primary">
               {{ t('problems.versionHistory.compareWith') }}: Version {{ compareFrom }}
             </span>
             <Button variant="ghost" size="sm" @click="cancelCompare">
@@ -262,7 +269,7 @@ watch(
 
         <!-- Loading State -->
         <div v-if="loading" class="space-y-3">
-          <Skeleton v-for="i in 5" :key="i" class="h-16 w-full rounded-none" />
+          <Skeleton v-for="i in 5" :key="i" class="h-16 w-full" />
         </div>
 
         <!-- Empty State -->
@@ -296,22 +303,20 @@ watch(
           <div
             v-for="version in versions"
             :key="version.id"
-            class="group p-4 rounded-none border bg-card hover:bg-muted/50 transition-colors"
+            class="group p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
             :class="{
-              'border-[var(--primary)]': compareFrom === version.id,
+              'border-primary': compareFrom === version.id,
             }"
           >
             <div class="flex items-start justify-between gap-4">
               <div class="flex items-start gap-3">
                 <!-- Version Number -->
                 <div class="flex items-center gap-2">
-                  <Badge variant="outline" class="font-mono text-xs">
-                    v{{ version.versionNumber }}
-                  </Badge>
+                  <Badge variant="outline"> v{{ version.versionNumber }} </Badge>
                   <Badge
                     variant="outline"
                     :class="[
-                      'font-data text-2xs uppercase',
+                      'font-mono text-xs uppercase',
                       getChangeTypeStyle(version.changeType).bg,
                       getChangeTypeStyle(version.changeType).border,
                       getChangeTypeStyle(version.changeType).text,
@@ -344,29 +349,19 @@ watch(
               <div
                 class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
               >
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  class="h-8 w-8"
-                  @click="viewVersionDetail(version)"
-                >
+                <Button variant="ghost" size="icon" class="w-8" @click="viewVersionDetail(version)">
                   <IconEye class="h-4 w-4" />
                 </Button>
                 <Button
                   variant="ghost"
                   size="icon"
-                  class="h-8 w-8"
-                  :class="{ 'text-[var(--primary)]': compareFrom === version.id }"
+                  class="w-8"
+                  :class="{ 'text-primary': compareFrom === version.id }"
                   @click="startCompare(version.id)"
                 >
                   <IconGitCompare class="h-4 w-4" />
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  class="h-8 w-8 text-foreground-strong"
-                  @click="confirmRollback(version)"
-                >
+                <Button variant="ghost" size="icon" class="w-8" @click="confirmRollback(version)">
                   <IconRotateClockwise class="h-4 w-4" />
                 </Button>
               </div>
@@ -375,7 +370,7 @@ watch(
         </div>
 
         <!-- Version Detail Panel -->
-        <div v-if="selectedVersion" class="mt-4 p-4 rounded-none border bg-muted/30">
+        <div v-if="selectedVersion" class="mt-4 p-4 rounded-lg border bg-muted/30">
           <div class="flex items-center justify-between mb-3">
             <h4 class="font-medium text-sm">
               {{ t('problems.versionHistory.versionDetails') }} - v{{
@@ -407,7 +402,7 @@ watch(
         </div>
 
         <!-- Diff Result Panel -->
-        <div v-if="diffResult" class="mt-4 p-4 rounded-none border bg-muted/30">
+        <div v-if="diffResult" class="mt-4 p-4 rounded-lg border bg-muted/30">
           <div class="flex items-center justify-between mb-3">
             <h4 class="font-medium text-sm">
               {{ t('problems.versionHistory.compareVersions') }}
@@ -425,7 +420,7 @@ watch(
             <div
               v-for="(diff, index) in diffResult.diffs"
               :key="index"
-              class="p-3 rounded-none border bg-card"
+              class="p-3 rounded-lg border bg-card"
             >
               <p class="font-medium text-sm mb-2">{{ formatFieldName(diff.field) }}</p>
               <div class="grid grid-cols-2 gap-4 text-xs">
@@ -434,18 +429,16 @@ watch(
                     {{ t('problems.versionHistory.oldValue') }}:
                   </p>
                   <pre
-                    class="p-2 rounded-none bg-status-error-surface text-foreground-strong border border-status-error-mark overflow-x-auto"
-                    >{{ JSON.stringify(diff.oldValue, null, 2) }}</pre
-                  >
+                    class="p-2 rounded-lg bg-status-error-surface text-foreground border border-status-error-mark overflow-x-auto"
+                    >{{ JSON.stringify(diff.oldValue, null, 2) }}</pre>
                 </div>
                 <div>
                   <p class="text-muted-foreground mb-1">
                     {{ t('problems.versionHistory.newValue') }}:
                   </p>
                   <pre
-                    class="p-2 rounded-none bg-status-success-surface text-foreground-strong border border-status-success-mark overflow-x-auto"
-                    >{{ JSON.stringify(diff.newValue, null, 2) }}</pre
-                  >
+                    class="p-2 rounded-lg bg-status-success-surface text-foreground border border-status-success-mark overflow-x-auto"
+                    >{{ JSON.stringify(diff.newValue, null, 2) }}</pre>
                 </div>
               </div>
             </div>

@@ -16,18 +16,24 @@ import { usePermissionMap } from '@/composables/usePermissionMap'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@ulticode/design-system/ui/card'
+import { Button } from '@ulticode/design-system/ui/button'
 import { useAuthStore } from '@/stores/auth'
 import {
-  IconKeyboard,
-  IconBolt,
-  IconChartBar,
-  IconUsers,
-  IconFlag,
-  IconBook,
-  IconExternalLink,
-} from '@tabler/icons-vue'
+  Keyboard as IconKeyboard,
+  Bolt as IconBolt,
+  ChartBar as IconChartBar,
+  Users as IconUsers,
+  Flag as IconFlag,
+  Book as IconBook,
+  ExternalLink as IconExternalLink,
+} from '@lucide/vue'
 
 defineOptions({ name: 'HelpView' })
 
@@ -80,33 +86,27 @@ function go(to: string) {
 <template>
   <div class="flex flex-col gap-6 py-6 px-4 lg:px-8 bg-background">
     <!-- Header -->
-    <header
-      class="flex flex-col gap-2 pb-4 border-b border-[var(--border-subtle)] dark:border-[var(--border-subtle)]"
-    >
+    <header class="flex flex-col gap-2 pb-4 border-b border-border dark:border-border">
       <div class="flex items-center gap-3">
-        <IconBook class="size-6 text-[var(--accent-primary)]" />
+        <IconBook class="size-6 text-primary" />
         <h1 class="text-2xl font-medium tracking-tight text-foreground">
           {{ t('help.title') }}
         </h1>
       </div>
-      <p class="text-sm text-[var(--foreground-muted)]">{{ t('help.description') }}</p>
+      <p class="text-sm text-muted-foreground">{{ t('help.description') }}</p>
     </header>
 
     <div class="grid grid-cols-1 gap-5 lg:grid-cols-3">
       <!-- Keyboard shortcuts -->
-      <Card
-        class="border border-[var(--border-subtle)] dark:border-[var(--border-subtle)]/60 bg-card rounded-none gap-0 py-0 lg:col-span-2"
-      >
-        <CardHeader
-          class="flex flex-row items-center gap-2 px-5 py-4 bg-[var(--surface)] dark:bg-[var(--surface-highlight)]/10 border-b border-[var(--border-subtle)] dark:border-[var(--border-subtle)]/50"
-        >
-          <IconKeyboard class="size-4 text-[var(--accent-primary)]" />
-          <CardTitle class="text-sm font-bold font-mono uppercase tracking-wide text-foreground">
+      <Card class="gap-0 py-0 lg:col-span-2">
+        <CardHeader class="flex flex-row items-center gap-2 px-5 py-4">
+          <IconKeyboard class="size-4 text-primary" />
+          <CardTitle>
             {{ t('help.shortcuts.title') }}
           </CardTitle>
         </CardHeader>
         <CardContent class="px-5 py-4">
-          <ul class="divide-y divide-[var(--border-subtle)] dark:divide-[var(--border-subtle)]/40">
+          <ul class="divide-y divide-[var(--border)] dark:divide-[var(--border)]/40">
             <li
               v-for="sc in shortcuts"
               :key="sc.descriptionKey"
@@ -117,7 +117,7 @@ function go(to: string) {
                 <kbd
                   v-for="key in sc.keys"
                   :key="key"
-                  class="inline-flex h-6 min-w-[1.75rem] items-center justify-center px-1.5 font-mono text-xs font-medium text-foreground bg-[var(--surface-sunken)] border border-[var(--border)] rounded-none"
+                  class="inline-flex h-6 min-w-[1.75rem] items-center justify-center px-1.5 font-mono text-xs font-medium text-foreground bg-muted border border-border rounded-lg"
                 >
                   {{ key }}
                 </kbd>
@@ -129,45 +129,37 @@ function go(to: string) {
 
       <!-- System info + quick links -->
       <div class="flex flex-col gap-5">
-        <Card
-          class="border border-[var(--border-subtle)] dark:border-[var(--border-subtle)]/60 bg-card rounded-none gap-0 py-0"
-        >
-          <CardHeader
-            class="flex flex-row items-center gap-2 px-5 py-4 bg-[var(--surface)] dark:bg-[var(--surface-highlight)]/10 border-b border-[var(--border-subtle)] dark:border-[var(--border-subtle)]/50"
-          >
-            <IconBolt class="size-4 text-[var(--accent-primary)]" />
-            <CardTitle class="text-sm font-bold font-mono uppercase tracking-wide text-foreground">
+        <Card class="gap-0 py-0">
+          <CardHeader class="flex flex-row items-center gap-2 px-5 py-4">
+            <IconBolt class="size-4 text-primary" />
+            <CardTitle>
               {{ t('help.system.title') }}
             </CardTitle>
           </CardHeader>
-          <CardContent class="px-5 py-4 space-y-2 font-mono text-xs">
+          <CardContent class="px-5 py-4 space-y-2">
             <div class="flex items-center justify-between">
-              <span class="text-[var(--foreground-muted)]">{{ t('help.system.version') }}</span>
+              <span class="text-muted-foreground">{{ t('help.system.version') }}</span>
               <span class="text-foreground tabular-nums">{{ appVersion }}</span>
             </div>
             <div class="flex items-center justify-between">
-              <span class="text-[var(--foreground-muted)]">{{ t('help.system.builtAt') }}</span>
+              <span class="text-muted-foreground">{{ t('help.system.builtAt') }}</span>
               <span class="text-foreground tabular-nums">{{ buildTime }}</span>
             </div>
             <div class="flex items-center justify-between">
-              <span class="text-[var(--foreground-muted)]">{{ t('help.system.user') }}</span>
+              <span class="text-muted-foreground">{{ t('help.system.user') }}</span>
               <span class="text-foreground">{{ authStore.userName }}</span>
             </div>
             <div class="flex items-center justify-between">
-              <span class="text-[var(--foreground-muted)]">{{ t('help.system.role') }}</span>
+              <span class="text-muted-foreground">{{ t('help.system.role') }}</span>
               <span class="text-foreground uppercase">{{ authStore.userRole || '—' }}</span>
             </div>
           </CardContent>
         </Card>
 
-        <Card
-          class="border border-[var(--border-subtle)] dark:border-[var(--border-subtle)]/60 bg-card rounded-none gap-0 py-0"
-        >
-          <CardHeader
-            class="flex flex-row items-center gap-2 px-5 py-4 bg-[var(--surface)] dark:bg-[var(--surface-highlight)]/10 border-b border-[var(--border-subtle)] dark:border-[var(--border-subtle)]/50"
-          >
-            <IconBolt class="size-4 text-[var(--accent-primary)]" />
-            <CardTitle class="text-sm font-bold font-mono uppercase tracking-wide text-foreground">
+        <Card class="gap-0 py-0">
+          <CardHeader class="flex flex-row items-center gap-2 px-5 py-4">
+            <IconBolt class="size-4 text-primary" />
+            <CardTitle>
               {{ t('help.quickLinks.title') }}
             </CardTitle>
           </CardHeader>
@@ -176,10 +168,10 @@ function go(to: string) {
               v-for="link in quickLinks"
               :key="link.to"
               variant="ghost"
-              class="h-8 justify-start gap-2 px-2 rounded-none text-foreground hover:bg-[var(--surface-sunken)]"
+              class="justify-start gap-2 px-2"
               @click="go(link.to)"
             >
-              <component :is="link.icon" class="size-4 text-[var(--foreground-muted)]" />
+              <component :is="link.icon" class="size-4 text-muted-foreground" />
               <span class="text-sm">{{ t(link.labelKey) }}</span>
             </Button>
           </CardContent>
@@ -188,19 +180,17 @@ function go(to: string) {
     </div>
 
     <!-- Docs link -->
-    <Card
-      class="border border-[var(--border-subtle)] dark:border-[var(--border-subtle)]/60 bg-card rounded-none gap-0 py-0"
-    >
+    <Card class="gap-0 py-0">
       <CardContent
         class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-5 py-4"
       >
         <div class="flex items-start gap-3">
-          <IconBook class="size-5 mt-0.5 text-[var(--accent-primary)] shrink-0" />
+          <IconBook class="size-5 mt-0.5 text-primary shrink-0" />
           <div>
-            <CardTitle class="text-sm font-semibold text-foreground">
+            <CardTitle>
               {{ t('help.docs.title') }}
             </CardTitle>
-            <CardDescription class="text-xs text-[var(--foreground-muted)] mt-1">
+            <CardDescription class="mt-1">
               {{ t('help.docs.description') }}
             </CardDescription>
           </div>
@@ -209,7 +199,7 @@ function go(to: string) {
           href="/docs/"
           target="_blank"
           rel="noopener"
-          class="inline-flex items-center gap-1.5 px-3 h-8 text-xs font-mono font-bold uppercase tracking-wide border border-[var(--border-subtle)] text-foreground bg-transparent hover:border-[var(--primary)] hover:text-[var(--primary)] transition-colors duration-200 rounded-none"
+          class="inline-flex items-center gap-1.5 px-3 h-8 text-xs font-mono font-bold uppercase tracking-wide border border-border text-foreground bg-transparent hover:border-primary hover:text-primary transition-colors duration-200 rounded-lg"
         >
           <span>{{ t('help.docs.openFolder') }}</span>
           <IconExternalLink class="size-3.5" />

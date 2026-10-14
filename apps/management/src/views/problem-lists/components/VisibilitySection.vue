@@ -1,8 +1,15 @@
 <script setup lang="ts">
+import { FieldLabel } from '@ulticode/design-system/ui/field'
+
 import { ref, watch, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Switch } from '@/components/ui/switch'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { Switch } from '@ulticode/design-system/ui/switch'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@ulticode/design-system/ui/tooltip'
 import { useAutoSave } from '@/composables/useAutoSave'
 import { adminProblemListsApi } from '@/api/admin/problem-lists'
 import type { ProblemListDetail, UpdateVisibilityDto } from '@/api/admin/problem-lists'
@@ -74,51 +81,45 @@ const saveStatusText = {
 </script>
 
 <template>
-  <div class="border border-[var(--editor-panel-border)] bg-[var(--editor-panel-bg)] rounded-none">
+  <div class="border border-border bg-card rounded-lg">
     <!-- Card Header -->
-    <div
-      class="flex items-center justify-between px-4 py-3 border-b border-[var(--editor-border-weak)] select-none"
-    >
+    <div class="flex items-center justify-between px-4 py-3 border-b border-border select-none">
       <div class="flex items-center gap-1.5">
-        <span
-          class="text-xs font-mono font-bold text-[var(--editor-text-primary)] uppercase tracking-wider"
-        >
+        <span class="text-xs font-mono font-bold text-foreground uppercase tracking-wider">
           02 // {{ t('problemLists.sections.visibilityFeatured') }}
         </span>
       </div>
       <!-- Auto-save Status Indicator in Header -->
       <div
         v-if="saveStatusText[saveStatus]"
-        class="flex items-center gap-1.5 font-mono text-2xs uppercase font-bold"
+        class="flex items-center gap-1.5 font-mono text-xs uppercase font-bold"
       >
         <template v-if="saveStatus === 'saving'">
-          <span class="h-1.5 w-1.5 bg-[var(--editor-yellow)] shrink-0 animate-ping"></span>
-          <span class="text-[var(--editor-yellow)] animate-pulse">{{
+          <span class="h-1.5 w-1.5 bg-status-warning-mark shrink-0 animate-ping"></span>
+          <span class="text-status-warning-mark animate-pulse">{{
             t('problemLists.form.saving')
           }}</span>
         </template>
         <template v-else-if="saveStatus === 'saved'">
-          <span class="text-[var(--editor-green)]">// SAVED</span>
+          <span class="text-status-success-mark">{{ t('problemLists.form.saved') }}</span>
         </template>
         <template v-else-if="saveStatus === 'error'">
-          <span class="text-[var(--editor-red)]">// ERROR</span>
+          <span class="text-status-error-mark">{{ t('problemLists.form.saveError') }}</span>
         </template>
       </div>
     </div>
 
     <!-- Card Content -->
-    <div class="divide-y divide-[var(--editor-border-weak)]">
+    <div class="divide-y divide-[var(--border)]">
       <!-- isPublic Switch Row -->
       <div
-        class="flex items-center justify-between px-4 py-3.5 gap-4 hover:bg-[var(--editor-control-bg)]/20 transition-colors duration-150"
+        class="flex items-center justify-between px-4 py-3.5 gap-4 hover:bg-muted/20 transition-colors duration-150"
       >
         <div class="flex flex-col gap-0.5 max-w-[80%]">
-          <label
-            class="text-xs font-mono font-bold text-[var(--editor-text-primary)] uppercase tracking-wider select-none cursor-pointer"
-          >
+          <FieldLabel class="select-none cursor-pointer">
             {{ t('problemLists.form.isPublic') }}
-          </label>
-          <span class="text-xxs text-[var(--editor-text-muted)] leading-normal font-mono">
+          </FieldLabel>
+          <span class="text-xs text-muted-foreground leading-normal font-mono">
             {{ t('problemLists.form.isPublicDescription') }}
           </span>
         </div>
@@ -127,41 +128,35 @@ const saveStatusText = {
           :disabled="disabled"
           @update:checked="handleIsPublicChange"
           @blur="handleBlur"
-          class="custom-switch data-[state=checked]:bg-[var(--editor-green)]"
+          class=""
         />
       </div>
 
       <!-- isFeatured Switch Row -->
       <div
-        class="flex items-center justify-between px-4 py-3.5 gap-4 hover:bg-[var(--editor-control-bg)]/20 transition-colors duration-150"
+        class="flex items-center justify-between px-4 py-3.5 gap-4 hover:bg-muted/20 transition-colors duration-150"
       >
         <div class="flex flex-col gap-0.5 max-w-[80%]">
           <div class="flex items-center gap-1.5">
-            <label
-              class="text-xs font-mono font-bold text-[var(--editor-text-primary)] uppercase tracking-wider select-none cursor-pointer"
-            >
+            <FieldLabel class="select-none cursor-pointer">
               {{ t('problemLists.form.isFeatured') }}
-            </label>
+            </FieldLabel>
             <TooltipProvider v-if="isFeatured">
               <Tooltip>
                 <TooltipTrigger as-child>
-                  <span
-                    class="text-[var(--editor-text-muted)] cursor-help font-mono text-xxs font-bold"
-                  >
+                  <span class="text-muted-foreground cursor-help font-mono text-xs font-bold">
                     [?]
                   </span>
                 </TooltipTrigger>
-                <TooltipContent
-                  class="max-w-xs bg-[var(--surface-elevated)] border-[var(--editor-panel-border)] rounded-none"
-                >
-                  <p class="text-xxs text-[var(--editor-text-primary)] font-mono">
+                <TooltipContent class="max-w-xs">
+                  <p class="text-xs text-foreground font-mono">
                     {{ t('problemLists.form.isFeaturedTooltip') }}
                   </p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
           </div>
-          <span class="text-xxs text-[var(--editor-text-muted)] leading-normal font-mono">
+          <span class="text-xs text-muted-foreground leading-normal font-mono">
             {{ t('problemLists.form.isFeaturedDescription') }}
           </span>
         </div>
@@ -170,45 +165,9 @@ const saveStatusText = {
           :disabled="disabled"
           @update:checked="handleIsFeaturedChange"
           @blur="handleBlur"
-          class="custom-switch data-[state=checked]:bg-[var(--editor-yellow)]"
+          class=""
         />
       </div>
     </div>
   </div>
 </template>
-
-<style scoped>
-/* Keep switch geometry aligned with the public rounded contract. */
-:deep(.custom-switch) {
-  border-radius: var(--radius-md) !important;
-  width: 38px !important;
-  height: 20px !important;
-  border: 1px solid var(--editor-control-border);
-  background-color: var(--editor-control-bg);
-  padding: 1px !important;
-  cursor: pointer;
-  transition: all 0.15s ease-in-out;
-}
-
-:deep(.custom-switch [data-state]) {
-  border-radius: var(--radius-md) !important;
-}
-
-:deep(.custom-switch span) {
-  border-radius: var(--radius-md) !important;
-  width: 16px !important;
-  height: 16px !important;
-  background-color: var(--editor-text-muted) !important;
-  transition: transform 0.15s ease-in-out;
-}
-
-:deep(.custom-switch[data-state='checked'] span) {
-  transform: translateX(18px) !important;
-  background-color: var(--background) !important;
-}
-
-:deep(.custom-switch:disabled) {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-</style>

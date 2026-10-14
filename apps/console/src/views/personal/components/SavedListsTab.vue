@@ -6,15 +6,15 @@ import {
   CardHeader,
   CardTitle,
   CardFooter,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
+} from "@ulticode/design-system/ui/card";
+import { Button } from "@ulticode/design-system/ui/button";
+import { Badge } from "@ulticode/design-system/ui/badge";
+import { Separator } from "@ulticode/design-system/ui/separator";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+} from "@ulticode/design-system/ui/collapsible";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,7 +24,8 @@ import {
   DropdownMenuSub,
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
-} from "@/components/ui/dropdown-menu";
+  DropdownMenuGroup,
+} from "@ulticode/design-system/ui/dropdown-menu";
 import {
   MoreHorizontal,
   Bookmark,
@@ -70,20 +71,15 @@ const { t } = useI18n();
       <Card
         v-for="list in savedLists"
         :key="list.id"
-        class="group hover:shadow-[var(--shadow-float)] transition-all duration-300 border-muted/60 flex flex-col overflow-hidden rounded-none"
+        class="group flex flex-col overflow-hidden"
       >
         <CardHeader class="pb-3">
           <div class="flex items-start justify-between">
             <div class="space-y-1.5 flex-1 min-w-0">
-              <Badge
-                variant="secondary"
-                class="h-5 px-1.5 text-2xs font-bold uppercase tracking-widest bg-[var(--primary)]/10 text-[var(--primary)] border-[var(--primary)]/20 rounded-none"
-              >
+              <Badge variant="secondary" class="h-5 px-1.5">
                 {{ t("personal.problemLists.listCard.saved") }}
               </Badge>
-              <CardTitle
-                class="text-lg font-bold group-hover:text-primary transition-colors truncate"
-              >
+              <CardTitle class="group-hover:text-primary truncate">
                 <RouterLink :to="`/problemset/list/${list.id}`">{{
                   list.name
                 }}</RouterLink>
@@ -92,37 +88,35 @@ const { t } = useI18n();
 
             <DropdownMenu>
               <DropdownMenuTrigger as-child>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  class="h-8 w-8 rounded-full"
-                >
+                <Button variant="ghost" size="icon" class="w-8">
                   <MoreHorizontal class="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" class="w-56">
-                <DropdownMenuSub v-if="categories.length > 0">
-                  <DropdownMenuSubTrigger class="gap-2">
-                    <FolderInput class="h-4 w-4" />
-                    {{ t("personal.problemLists.actions.moveToCategory") }}
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuSubContent>
-                    <DropdownMenuItem
-                      v-for="cat in categories"
-                      :key="cat.id"
-                      @click.prevent="emit('moveToCategory', list, cat.id)"
-                    >
-                      {{ cat.name }}
-                    </DropdownMenuItem>
-                  </DropdownMenuSubContent>
-                </DropdownMenuSub>
-                <DropdownMenuItem
-                  @click.prevent="emit('unsave', list)"
-                  class="text-muted-foreground gap-2"
+                <DropdownMenuGroup
+                  ><DropdownMenuSub v-if="categories.length > 0">
+                    <DropdownMenuSubTrigger class="gap-2">
+                      <FolderInput class="h-4 w-4" />
+                      {{ t("personal.problemLists.actions.moveToCategory") }}
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuSubContent>
+                      <DropdownMenuItem
+                        v-for="cat in categories"
+                        :key="cat.id"
+                        @click.prevent="emit('moveToCategory', list, cat.id)"
+                      >
+                        {{ cat.name }}
+                      </DropdownMenuItem>
+                    </DropdownMenuSubContent>
+                  </DropdownMenuSub>
+                  <DropdownMenuItem
+                    @click.prevent="emit('unsave', list)"
+                    class="gap-2"
+                  >
+                    <BookmarkMinus class="h-4 w-4" />
+                    {{ t("personal.problemLists.actions.unsaveList") }}
+                  </DropdownMenuItem></DropdownMenuGroup
                 >
-                  <BookmarkMinus class="h-4 w-4" />
-                  {{ t("personal.problemLists.actions.unsaveList") }}
-                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -135,7 +129,7 @@ const { t } = useI18n();
             {{ list.description }}
           </p>
         </CardContent>
-        <CardFooter class="bg-muted/20 border-t py-3 px-6">
+        <CardFooter class="py-3 px-6">
           <div
             class="flex items-center gap-2 text-xs font-bold text-muted-foreground"
           >
@@ -155,48 +149,46 @@ const { t } = useI18n();
   <div v-for="category in categories" :key="category.id" class="space-y-4">
     <Collapsible :default-open="true">
       <div class="flex items-center gap-3 mb-2 group/cat">
-        <CollapsibleTrigger
-          class="flex items-center gap-3 hover:text-primary transition-colors"
-        >
+        <CollapsibleTrigger class="flex items-center gap-3">
           <ChevronRight
             class="h-5 w-5 transition-transform duration-300 ui-open:rotate-90 text-muted-foreground"
           />
           <h3 class="text-lg font-black uppercase tracking-widest">
             {{ category.name }}
           </h3>
-          <Badge
-            variant="secondary"
-            class="h-5 px-1.5 rounded-full text-2xs"
-            >{{ category.lists.length }}</Badge
-          >
+          <Badge variant="secondary" class="h-5 px-1.5">{{
+            category.lists.length
+          }}</Badge>
         </CollapsibleTrigger>
-        <Separator class="flex-1 opacity-50" />
+        <Separator class="flex-1" />
         <DropdownMenu>
           <DropdownMenuTrigger as-child>
             <Button
               variant="ghost"
               size="icon"
-              class="h-8 w-8 rounded-full opacity-0 group-hover/cat:opacity-100 transition-opacity"
+              class="w-8 group-hover/cat:opacity-100"
             >
               <MoreVertical class="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem
-              @click="emit('editCategory', category)"
-              class="gap-2"
+            <DropdownMenuGroup
+              ><DropdownMenuItem
+                @click="emit('editCategory', category)"
+                class="gap-2"
+              >
+                <Pencil class="h-4 w-4" />
+                {{ t("personal.problemLists.actions.renameCategory") }}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                class="gap-2"
+                @click="emit('deleteCategory', category)"
+              >
+                <Trash2 class="h-4 w-4" />
+                {{ t("personal.problemLists.actions.deleteCategory") }}
+              </DropdownMenuItem></DropdownMenuGroup
             >
-              <Pencil class="h-4 w-4" />
-              {{ t("personal.problemLists.actions.renameCategory") }}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              class="text-destructive focus:text-destructive gap-2"
-              @click="emit('deleteCategory', category)"
-            >
-              <Trash2 class="h-4 w-4" />
-              {{ t("personal.problemLists.actions.deleteCategory") }}
-            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
@@ -204,7 +196,7 @@ const { t } = useI18n();
       <CollapsibleContent class="pt-4 pb-8">
         <div
           v-if="category.lists.length === 0"
-          class="flex flex-col items-center justify-center py-12 border-2 border-dashed border-muted/50 rounded-none bg-muted/5 text-muted-foreground"
+          class="flex flex-col items-center justify-center py-12 border-2 border-dashed border-muted/50 rounded-lg bg-muted/5 text-muted-foreground"
         >
           <FolderInput class="h-10 w-10 opacity-20 mb-3" />
           <p class="text-sm font-medium">
@@ -215,13 +207,11 @@ const { t } = useI18n();
           <Card
             v-for="list in category.lists"
             :key="list.id"
-            class="group hover:shadow-[var(--shadow-float)] transition-all duration-300 border-muted/60 flex flex-col overflow-hidden rounded-none"
+            class="group flex flex-col overflow-hidden"
           >
             <CardHeader class="pb-3">
               <div class="flex items-start justify-between">
-                <CardTitle
-                  class="text-lg font-bold group-hover:text-primary transition-colors truncate"
-                >
+                <CardTitle class="group-hover:text-primary truncate">
                   <RouterLink :to="`/problemset/list/${list.id}`">{{
                     list.name
                   }}</RouterLink>
@@ -229,37 +219,35 @@ const { t } = useI18n();
 
                 <DropdownMenu>
                   <DropdownMenuTrigger as-child>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      class="h-8 w-8 rounded-full"
-                    >
+                    <Button variant="ghost" size="icon" class="w-8">
                       <MoreHorizontal class="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" class="w-56">
-                    <DropdownMenuItem
-                      @click.prevent="emit('moveToCategory', list, null)"
-                      class="gap-2"
+                    <DropdownMenuGroup
+                      ><DropdownMenuItem
+                        @click.prevent="emit('moveToCategory', list, null)"
+                        class="gap-2"
+                      >
+                        <FolderInput class="h-4 w-4" />
+                        {{
+                          t("personal.problemLists.actions.removeFromCategory")
+                        }}
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        @click.prevent="emit('unsave', list)"
+                        class="gap-2"
+                      >
+                        <BookmarkMinus class="h-4 w-4" />
+                        {{ t("personal.problemLists.actions.unsaveList") }}
+                      </DropdownMenuItem></DropdownMenuGroup
                     >
-                      <FolderInput class="h-4 w-4" />
-                      {{
-                        t("personal.problemLists.actions.removeFromCategory")
-                      }}
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      @click.prevent="emit('unsave', list)"
-                      class="text-muted-foreground gap-2"
-                    >
-                      <BookmarkMinus class="h-4 w-4" />
-                      {{ t("personal.problemLists.actions.unsaveList") }}
-                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
             </CardHeader>
-            <CardFooter class="bg-muted/20 border-t py-3 px-6 mt-auto">
+            <CardFooter class="py-3 px-6 mt-auto">
               <div
                 class="flex items-center gap-2 text-xs font-bold text-muted-foreground"
               >
@@ -280,10 +268,10 @@ const { t } = useI18n();
   <!-- Empty State for Saved -->
   <div
     v-if="allSavedCount === 0 && categories.length === 0"
-    class="flex flex-col items-center justify-center py-24 border-2 border-dashed border-muted/50 rounded-none bg-muted/5 text-center px-6"
+    class="flex flex-col items-center justify-center py-24 border-2 border-dashed border-muted/50 rounded-lg bg-muted/5 text-center px-6"
   >
     <div
-      class="p-0 flex items-center justify-center w-16 h-16 rounded-none bg-muted/50 mb-4 text-muted-foreground/40"
+      class="p-0 flex items-center justify-center w-16 h-16 rounded-lg bg-muted/50 mb-4 text-muted-foreground/40"
     >
       <Bookmark class="h-8 w-8" />
     </div>

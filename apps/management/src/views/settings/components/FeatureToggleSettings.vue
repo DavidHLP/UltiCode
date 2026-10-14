@@ -1,9 +1,16 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import { Label } from '@/components/ui/label'
-import { Switch } from '@/components/ui/switch'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { IconToggleLeft } from '@tabler/icons-vue'
+import { Label } from '@ulticode/design-system/ui/label'
+import { Switch } from '@ulticode/design-system/ui/switch'
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@ulticode/design-system/ui/card'
+import { ToggleLeft as IconToggleLeft } from '@lucide/vue'
+
 import type { FeatureToggles } from '@/api/admin/settings'
 
 const { t } = useI18n()

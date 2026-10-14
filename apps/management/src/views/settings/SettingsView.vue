@@ -3,9 +3,9 @@ import { onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import { storeToRefs } from 'pinia'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Button } from '@ulticode/design-system/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@ulticode/design-system/ui/card'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@ulticode/design-system/ui/tabs'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,17 +16,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from '@/components/ui/alert-dialog'
+} from '@ulticode/design-system/ui/alert-dialog'
 import {
-  IconSettings,
-  IconMail,
-  IconClock,
-  IconUpload,
-  IconToggleLeft,
-  IconDeviceFloppy,
-  IconRefresh,
-  IconReload,
-} from '@tabler/icons-vue'
+  Settings as IconSettings,
+  Mail as IconMail,
+  Clock as IconClock,
+  Upload as IconUpload,
+  ToggleLeft as IconToggleLeft,
+  Save as IconDeviceFloppy,
+  RefreshCw as IconRefresh,
+  RotateCw as IconReload,
+} from '@lucide/vue'
 
 import GeneralSettings from './components/GeneralSettings.vue'
 import EmailSettings from './components/EmailSettings.vue'
@@ -38,17 +38,8 @@ import { useSystemSettingsStore } from '@/stores/admin/system-settings'
 const { t } = useI18n()
 
 const store = useSystemSettingsStore()
-const {
-  general,
-  email,
-  rateLimits,
-  uploads,
-  features,
-  loading,
-  saving,
-  clearingCache,
-  isDirty,
-} = storeToRefs(store)
+const { general, email, rateLimits, uploads, features, loading, saving, clearingCache, isDirty } =
+  storeToRefs(store)
 
 const activeTab = ref('general')
 const isLoaded = ref(false)
@@ -97,10 +88,10 @@ onMounted(async () => {
 
 <template>
   <div class="relative flex flex-col gap-4 w-full min-w-0">
-    <!-- Terminal Header -->
+    <!-- Page header -->
     <div
       :class="[
-        'border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--card)]',
+        'border border-border dark:border-border bg-card',
         'transition-all duration-500',
         isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
       ]"
@@ -108,10 +99,10 @@ onMounted(async () => {
       <!-- Title Row -->
       <div class="px-4 lg:px-6 py-4 flex items-center justify-between">
         <div class="space-y-1">
-          <h1 class="text-xl font-medium tracking-tight text-[var(--foreground)]">
+          <h1 class="text-xl font-medium tracking-tight text-foreground">
             {{ t('settings.title') }}
           </h1>
-          <p class="text-xs text-[var(--foreground-muted)]">{{ t('settings.description') }}</p>
+          <p class="text-xs text-muted-foreground">{{ t('settings.description') }}</p>
         </div>
       </div>
     </div>

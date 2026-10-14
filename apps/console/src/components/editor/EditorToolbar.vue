@@ -1,7 +1,9 @@
 <script setup lang="ts">
+import { FieldLabel } from "@ulticode/design-system/ui/field";
+
 import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
-import { Button } from "@/components/ui/button";
+import { Button } from "@ulticode/design-system/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,13 +12,13 @@ import {
   DropdownMenuTrigger,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
-} from "@/components/ui/dropdown-menu";
+} from "@ulticode/design-system/ui/dropdown-menu";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover";
-import { Slider } from "@/components/ui/slider";
+} from "@ulticode/design-system/ui/popover";
+import { Slider } from "@ulticode/design-system/ui/slider";
 import { useEditorSettingsStore } from "@/stores/editorSettings";
 import { useEditorThemes } from "@/composables/useEditorThemes";
 import {
@@ -103,7 +105,7 @@ const handleResetSettings = () => {
         <Button
           variant="ghost"
           size="icon"
-          class="h-6 w-6 rounded-none text-foreground hover:bg-accent hover:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground"
+          class="w-6"
           :aria-label="$t('problem.editor.theme')"
           :title="t('problem.editor.changeTheme')"
         >
@@ -152,7 +154,7 @@ const handleResetSettings = () => {
         <Button
           variant="ghost"
           size="icon"
-          class="h-6 w-6 rounded-none text-foreground hover:bg-accent hover:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground"
+          class="w-6"
           :aria-label="$t('problem.editor.fontSize')"
           :title="t('problem.editor.fontSettings')"
         >
@@ -163,9 +165,7 @@ const handleResetSettings = () => {
         <div class="space-y-4">
           <div class="space-y-2">
             <div class="flex items-center justify-between">
-              <label class="text-sm font-medium">{{
-                t("problem.editor.fontSize")
-              }}</label>
+              <FieldLabel>{{ t("problem.editor.fontSize") }}</FieldLabel>
               <span class="text-sm text-muted-foreground">
                 {{ fontSize[0] }}px
               </span>
@@ -180,16 +180,14 @@ const handleResetSettings = () => {
           </div>
 
           <div class="space-y-2">
-            <label class="text-sm font-medium">{{
-              t("problem.editor.tabSize")
-            }}</label>
+            <FieldLabel>{{ t("problem.editor.tabSize") }}</FieldLabel>
             <div class="flex gap-1">
               <Button
                 v-for="size in [2, 4, 8]"
                 :key="size"
                 :variant="tabSize === size ? 'default' : 'outline'"
                 size="sm"
-                class="flex-1 h-7"
+                class="flex-1"
                 @click="tabSize = size"
               >
                 {{ size }}
@@ -215,7 +213,7 @@ const handleResetSettings = () => {
     <Button
       variant="ghost"
       size="icon"
-      class="h-6 w-6 rounded-none text-foreground hover:bg-accent hover:text-accent-foreground"
+      class="w-6"
       :aria-label="$t('problem.editor.codeTemplates')"
       :title="t('problem.editor.codeTemplates')"
       @click="showTemplates = true"
@@ -227,7 +225,7 @@ const handleResetSettings = () => {
     <Button
       variant="ghost"
       size="icon"
-      class="h-6 w-6 rounded-none text-foreground hover:bg-accent hover:text-accent-foreground"
+      class="w-6"
       :aria-label="$t('problem.shortcuts.title')"
       :title="t('problem.editor.keyboardShortcuts')"
       @click="showShortcuts = true"

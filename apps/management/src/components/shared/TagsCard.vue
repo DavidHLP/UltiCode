@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { IconTag } from '@tabler/icons-vue'
-import { Badge } from '@/components/ui/badge'
+import { Tag as IconTag } from '@lucide/vue'
+
+import { Badge } from '@ulticode/design-system/ui/badge'
 import { computed } from 'vue'
 
 interface Props {
@@ -21,11 +22,11 @@ const hasCount = computed(() => props.count !== undefined)
 </script>
 
 <template>
-  <div class="rounded-none border bg-card overflow-hidden shadow-sm">
+  <div class="rounded-lg border bg-card overflow-hidden shadow-sm">
     <div class="flex items-center gap-2 p-4 border-b bg-muted/20">
       <IconTag class="h-4 w-4 text-muted-foreground" />
       <h3 class="font-semibold text-sm">{{ title }}</h3>
-      <Badge v-if="hasCount" variant="secondary" class="ml-auto text-xs">{{ count }}</Badge>
+      <Badge v-if="hasCount" variant="secondary" class="ml-auto">{{ count }}</Badge>
     </div>
     <div class="p-4">
       <div class="flex flex-wrap gap-1.5">
@@ -37,7 +38,7 @@ const hasCount = computed(() => props.count !== undefined)
               : index
           "
           variant="secondary"
-          class="px-2.5 py-0.5 text-xs font-normal"
+          class="px-2.5 py-0.5"
         >
           {{ tag }}
         </Badge>

@@ -6,8 +6,8 @@ import {
   DrawerDescription,
   DrawerHeader,
   DrawerTitle,
-} from '@/components/ui/drawer'
-import { ScrollArea } from '@/components/ui/scroll-area'
+} from '@ulticode/design-system/ui/drawer'
+import { ScrollArea } from '@ulticode/design-system/ui/scroll-area'
 
 withDefaults(
   defineProps<{
@@ -44,7 +44,7 @@ defineSlots<{
 <template>
   <Drawer :open="open" @update:open="emit('update:open', $event)" direction="right">
     <DrawerContent class="h-full" :class="width">
-      <DrawerHeader class="border-b px-6 py-4">
+      <DrawerHeader class="px-6 py-4">
         <div class="flex items-center justify-between">
           <div>
             <DrawerTitle>{{ title }}</DrawerTitle>

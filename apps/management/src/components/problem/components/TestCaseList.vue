@@ -1,13 +1,15 @@
 <script setup lang="ts">
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+import { Badge } from '@ulticode/design-system/ui/badge'
+import { Button } from '@ulticode/design-system/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { IconGripVertical, IconDotsVertical } from '@tabler/icons-vue'
+  DropdownMenuGroup,
+} from '@ulticode/design-system/ui/dropdown-menu'
+import { GripVertical as IconGripVertical, EllipsisVertical as IconDotsVertical } from '@lucide/vue'
+
 import type { TestCase } from '@/api/admin/test-cases'
 
 defineProps<{
@@ -28,7 +30,7 @@ const emit = defineEmits<{
     <div
       v-for="(testCase, index) in testCases"
       :key="testCase.id"
-      class="flex items-center gap-2 p-2 rounded-none cursor-pointer transition-colors"
+      class="flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-colors"
       :class="
         activeId === testCase.id ? 'bg-primary/10 border border-primary/20' : 'hover:bg-muted/50'
       "
@@ -37,35 +39,40 @@ const emit = defineEmits<{
       <IconGripVertical class="h-4 w-4 text-muted-foreground cursor-grab" />
       <span class="text-sm font-medium flex-1">
         #{{ index + 1 }}
-        <Badge v-if="testCase.isSample" variant="secondary" class="ml-1 text-2xs">{{ $t('testCases.sample') }}</Badge>
-        <Badge v-if="testCase.isHidden" variant="outline" class="ml-1 text-2xs">{{ $t('testCases.hidden') }}</Badge>
+        <Badge v-if="testCase.isSample" variant="secondary" class="ml-1">{{
+          $t('testCases.sample')
+        }}</Badge>
+        <Badge v-if="testCase.isHidden" variant="outline" class="ml-1">{{
+          $t('testCases.hidden')
+        }}</Badge>
       </span>
       <DropdownMenu>
         <DropdownMenuTrigger as-child>
-          <Button variant="ghost" size="icon" class="h-6 w-6">
+          <Button variant="ghost" size="icon" class="w-6">
             <IconDotsVertical class="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem @click.stop="emit('edit', testCase)">{{ $t('common.edit') }}</DropdownMenuItem>
-          <DropdownMenuItem
-            v-if="!testCase.isSample"
-            @click.stop="emit('set-scope', testCase, 'SAMPLE')"
+          <DropdownMenuGroup
+            ><DropdownMenuItem @click.stop="emit('edit', testCase)">{{
+              $t('common.edit')
+            }}</DropdownMenuItem>
+            <DropdownMenuItem
+              v-if="!testCase.isSample"
+              @click.stop="emit('set-scope', testCase, 'SAMPLE')"
+            >
+              {{ $t('testCases.markAsSample') }}
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              v-if="!testCase.isHidden"
+              @click.stop="emit('set-scope', testCase, 'HIDDEN')"
+            >
+              {{ $t('testCases.markAsHidden') }}
+            </DropdownMenuItem>
+            <DropdownMenuItem @click.stop="emit('delete', testCase)">
+              {{ $t('common.delete') }}
+            </DropdownMenuItem></DropdownMenuGroup
           >
-            {{ $t('testCases.markAsSample') }}
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            v-if="!testCase.isHidden"
-            @click.stop="emit('set-scope', testCase, 'HIDDEN')"
-          >
-            {{ $t('testCases.markAsHidden') }}
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            class="text-destructive focus:text-destructive"
-            @click.stop="emit('delete', testCase)"
-          >
-            {{ $t('common.delete') }}
-          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     </div>

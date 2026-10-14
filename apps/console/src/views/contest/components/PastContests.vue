@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { Button } from "@/components/ui/button";
+import { Button } from "@ulticode/design-system/ui/button";
 import {
   ChevronLeft,
   ChevronRight,
@@ -71,16 +71,16 @@ const visiblePages = computed(() => {
       <Button
         variant="outline"
         size="sm"
-        class="h-8 rounded-none border border-border bg-transparent shadow-[2px_2px_0px_0px_var(--border)] active:translate-x-0.5 active:translate-y-0.5 hover:-translate-x-0.5 hover:-translate-y-0.5 text-xs text-muted-foreground flex items-center gap-1.5 cursor-pointer font-mono"
+        class="active:translate-x-0.5 active:translate-y-0.5 hover:-translate-x-0.5 hover:-translate-y-0.5 flex items-center gap-1.5 cursor-pointer"
       >
-        <Trophy class="h-3.5 w-3.5 text-[var(--status-warning-mark)]" />
+        <Trophy class="h-3.5 w-3.5 text-status-warning-mark" />
         {{ t("contest.list.partner") }}
       </Button>
     </div>
     <div
       v-if="error"
       role="alert"
-      class="flex items-center justify-between gap-4 border border-status-error-mark bg-status-error-surface px-4 py-3 text-sm text-foreground-strong"
+      class="flex items-center justify-between gap-4 border border-status-error-mark bg-status-error-surface px-4 py-3 text-sm text-foreground"
     >
       <p>{{ error }}</p>
       <Button type="button" variant="outline" size="sm" @click="emit('retry')">
@@ -90,11 +90,11 @@ const visiblePages = computed(() => {
 
     <!-- Contest List -->
     <div
-      class="flex flex-col rounded-none border border-border bg-card text-card-foreground shadow-[3px_3px_0px_0px_var(--border)] overflow-hidden"
+      class="flex flex-col rounded-lg border border-border bg-card text-card-foreground shadow-[3px_3px_0px_0px_var(--border)] overflow-hidden"
     >
       <!-- Table Column Headers (Hidden on Mobile) -->
       <div
-        class="hidden sm:flex items-center gap-4 px-4 py-2.5 text-xs font-mono font-bold uppercase tracking-wider border-b border-border bg-muted/30 text-muted-foreground/80 rounded-none"
+        class="hidden sm:flex items-center gap-4 px-4 py-2.5 text-xs font-mono font-bold uppercase tracking-wider border-b border-border bg-muted/30 text-muted-foreground/80 rounded-lg"
       >
         <div class="flex-1 text-left">Contest</div>
         <div class="w-32 text-center">Date</div>
@@ -117,7 +117,7 @@ const visiblePages = computed(() => {
         <div class="flex items-center gap-4 min-w-0 sm:flex-1">
           <!-- Icon Box -->
           <div
-            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-none border border-border bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-all duration-300"
+            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-all duration-300"
           >
             <Trophy class="h-5 w-5" />
           </div>
@@ -158,7 +158,7 @@ const visiblePages = computed(() => {
           <!-- Status -->
           <div class="w-auto sm:w-24 flex justify-start sm:justify-center">
             <span
-              class="inline-flex items-center border border-border bg-muted/65 text-muted-foreground px-2 py-0.5 text-2xs font-bold uppercase tracking-wide rounded-none"
+              class="inline-flex items-center border border-border bg-muted/65 text-muted-foreground px-2 py-0.5 text-xs font-bold uppercase tracking-wide rounded-lg"
             >
               {{ t("contest.list.finished") }}
             </span>
@@ -169,7 +169,7 @@ const visiblePages = computed(() => {
             <Button
               variant="outline"
               size="sm"
-              class="rounded-none border-border shadow-[2px_2px_0px_0px_var(--border)] active:translate-x-0.5 active:translate-y-0.5 hover:-translate-x-0.5 hover:-translate-y-0.5 text-xs h-8 px-3"
+              class="active:translate-x-0.5 active:translate-y-0.5 hover:-translate-x-0.5 hover:-translate-y-0.5 px-3"
               @click.stop="
                 router.push({
                   name: 'contest-detail',
@@ -197,7 +197,7 @@ const visiblePages = computed(() => {
       <Button
         variant="outline"
         size="icon"
-        class="h-9 w-9"
+        class="w-9"
         :disabled="currentPage === 1 || loading"
         @click="emit('update:currentPage', currentPage - 1)"
       >
@@ -215,10 +215,10 @@ const visiblePages = computed(() => {
           :data-testid="
             page === currentPage ? 'past-contests-current-page' : undefined
           "
-          class="h-9 w-9 rounded-none text-xs"
+          class="w-9"
           :class="{
             'pointer-events-none': page === '...',
-            'border-[var(--status-warning-mark)] bg-status-warning-surface text-foreground-strong shadow-[2px_2px_0px_0px_var(--status-warning-mark)] hover:bg-status-warning-surface/80':
+            'border-status-warning-mark bg-status-warning-surface text-foreground shadow-[2px_2px_0px_0px_var(--status-warning-mark)] hover:bg-status-warning-surface/80':
               page === currentPage,
           }"
           @click="typeof page === 'number' && emit('update:currentPage', page)"
@@ -230,7 +230,7 @@ const visiblePages = computed(() => {
       <Button
         variant="outline"
         size="icon"
-        class="h-9 w-9"
+        class="w-9"
         :disabled="currentPage === totalPages || loading"
         @click="emit('update:currentPage', currentPage + 1)"
       >

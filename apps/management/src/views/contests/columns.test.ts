@@ -21,16 +21,12 @@ function mountContestTitleCell() {
 
   const Harness = defineComponent({
     setup() {
-      const columns = createColumns(
-        (key) => key,
-        actions,
-        {
-          read: computed(() => true),
-          create: computed(() => true),
-          update: computed(() => true),
-          delete: computed(() => true),
-        } satisfies ContestPermissionMap,
-      )
+      const columns = createColumns((key) => key, actions, {
+        read: computed(() => true),
+        create: computed(() => true),
+        update: computed(() => true),
+        delete: computed(() => true),
+      } satisfies ContestPermissionMap)
       const titleColumn = columns.find(
         (column) => 'accessorKey' in column && column.accessorKey === 'title',
       )
@@ -49,8 +45,8 @@ describe('contest title column', () => {
     const wrapper = mountContestTitleCell()
     const icon = wrapper.get('[data-testid="contest-title-icon"]')
 
-    expect(icon.classes()).toContain('bg-[var(--surface-sunken)]')
-    expect(icon.classes()).not.toContain('dark:bg-[var(--foreground-strong)]')
+    expect(icon.classes()).toContain('bg-[var(--muted)]')
+    expect(icon.classes()).not.toContain('dark:bg-[var(--foreground)]')
     expect(wrapper.get('[data-testid="contest-title"]').classes()).toContain(
       'text-[var(--foreground)]',
     )

@@ -1,18 +1,19 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@ulticode/design-system/ui/card'
+import { Input } from '@ulticode/design-system/ui/input'
+import { Label } from '@ulticode/design-system/ui/label'
+import { Badge } from '@ulticode/design-system/ui/badge'
+import { Button } from '@ulticode/design-system/ui/button'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
+  SelectGroup,
+} from '@ulticode/design-system/ui/select'
 import { CalendarIcon, RotateCcw } from '@lucide/vue'
 import { useAuditStore } from '@/stores/admin/audit'
 import { toAuditStatsQueryParams } from './useAuditReadWorkspace'
@@ -97,17 +98,17 @@ onMounted(async () => {
 
 <template>
   <div class="relative flex flex-col gap-4 w-full min-w-0">
-    <!-- Terminal Header -->
+    <!-- Page header -->
     <div
       :class="[
-        'border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--card)]',
+        'border border-border dark:border-border bg-card',
         'transition-all duration-500',
         isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
       ]"
     >
       <!-- Title Row -->
       <div class="px-4 lg:px-6 py-4 flex items-center justify-between">
-        <h1 class="text-xl font-medium tracking-tight text-[var(--foreground)]">
+        <h1 class="text-xl font-medium tracking-tight text-foreground">
           {{ t('auditReport.title') }}
         </h1>
       </div>
@@ -153,10 +154,16 @@ onMounted(async () => {
                   <SelectValue :placeholder="t('audit.filters.allEntityTypes')" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">{{ t('audit.filters.allEntityTypes') }}</SelectItem>
-                  <SelectItem v-for="opt in entityTypeOptions" :key="opt.value" :value="opt.value">
-                    {{ opt.label }}
-                  </SelectItem>
+                  <SelectGroup
+                    ><SelectItem value="all">{{ t('audit.filters.allEntityTypes') }}</SelectItem>
+                    <SelectItem
+                      v-for="opt in entityTypeOptions"
+                      :key="opt.value"
+                      :value="opt.value"
+                    >
+                      {{ opt.label }}
+                    </SelectItem></SelectGroup
+                  >
                 </SelectContent>
               </Select>
             </div>
@@ -173,10 +180,12 @@ onMounted(async () => {
                   />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">{{ t('audit.filters.allActions') }}</SelectItem>
-                  <SelectItem v-for="opt in actionOptions" :key="opt.value" :value="opt.value">
-                    {{ opt.label }}
-                  </SelectItem>
+                  <SelectGroup
+                    ><SelectItem value="all">{{ t('audit.filters.allActions') }}</SelectItem>
+                    <SelectItem v-for="opt in actionOptions" :key="opt.value" :value="opt.value">
+                      {{ opt.label }}
+                    </SelectItem></SelectGroup
+                  >
                 </SelectContent>
               </Select>
             </div>
@@ -202,10 +211,10 @@ onMounted(async () => {
       <div
         v-if="statsError"
         role="alert"
-        class="flex items-center gap-3 border border-[var(--status-error-mark)] bg-[color-mix(in_oklch,_var(--status-error-mark)_8%,_transparent)] p-4"
+        class="flex items-center gap-3 border border-status-error-mark bg-[color-mix(in_oklch,_var(--status-error-mark)_8%,_transparent)] p-4"
       >
-        <span class="font-data text-sm text-[var(--foreground-strong)]">&gt; ERROR:</span>
-        <span class="text-sm text-[var(--foreground)]">{{ statsError }}</span>
+        <span class="font-mono text-sm text-foreground">&gt; ERROR:</span>
+        <span class="text-sm text-foreground">{{ statsError }}</span>
       </div>
 
       <!-- Total Actions -->

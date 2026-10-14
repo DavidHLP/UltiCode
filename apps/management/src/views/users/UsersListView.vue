@@ -4,9 +4,15 @@ import { usePermissionMap } from '@/composables/usePermissionMap'
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
-import { IconBan, IconCircleXFilled, IconPlus, IconUsers, IconTrash } from '@tabler/icons-vue'
+import {
+  Ban as IconBan,
+  CircleX as IconCircleXFilled,
+  Plus as IconPlus,
+  Users as IconUsers,
+  Trash as IconTrash,
+} from '@lucide/vue'
 
-import { Button } from '@/components/ui/button'
+import { Button } from '@ulticode/design-system/ui/button'
 import {
   AlertDialog,
   AlertDialogContent,
@@ -14,10 +20,10 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { IconAlertTriangle, IconLoader } from '@tabler/icons-vue'
+} from '@ulticode/design-system/ui/alert-dialog'
+import { Input } from '@ulticode/design-system/ui/input'
+import { Label } from '@ulticode/design-system/ui/label'
+import { AlertTriangle as IconAlertTriangle, Loader as IconLoader } from '@lucide/vue'
 
 import { useUsersStore } from '@/stores/admin/users'
 import type { User } from '@/api/admin/users'
@@ -29,8 +35,6 @@ import UserEditDialog from './UserEditDialog.vue'
 import UserCreateDialog from './UserCreateDialog.vue'
 import UserDetailDrawer from './UserDetailDrawer.vue'
 import UserResetPasswordDialog from './UserResetPasswordDialog.vue'
-// Terminal UI components available for future use
-// import { TerminalBadge, DataBlock } from '@/components/ui/terminal'
 import { useRemoteTable } from '@/composables/useRemoteTable'
 import { createColumns } from './columns'
 
@@ -136,7 +140,6 @@ const toolbarFilters = computed<Filter[]>(() => [
   },
 ])
 
-
 const columns = createColumns(
   t,
   {
@@ -238,26 +241,20 @@ async function confirmBulkDelete() {
 
 <template>
   <div class="relative flex flex-col gap-4 w-full min-w-0">
-    <!-- Terminal Header -->
+    <!-- Page header -->
     <div
       :class="[
-        'border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--card)]',
+        'border border-border dark:border-border bg-card',
         'transition-all duration-500',
         isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
       ]"
     >
       <!-- Title Row -->
       <div class="px-4 lg:px-6 py-4 flex items-center justify-between">
-        <h1 class="text-xl font-medium tracking-tight text-[var(--foreground)]">
+        <h1 class="text-xl font-medium tracking-tight text-foreground">
           {{ t('nav.users') }}
         </h1>
-        <Button
-          v-if="canCreateUser"
-          variant="terminal"
-          size="sm"
-          class="font-data text-xs border-[var(--border-subtle)] hover:border-[var(--primary)] hover:text-[var(--primary)] transition-colors"
-          @click="createDialogOpen = true"
-        >
+        <Button v-if="canCreateUser" variant="outline" size="sm" @click="createDialogOpen = true">
           <IconPlus class="h-4 w-4 mr-1.5" />
           <span class="uppercase tracking-wider">{{ t('users.addUser') }}</span>
         </Button>
@@ -265,33 +262,29 @@ async function confirmBulkDelete() {
 
       <!-- Stats Ticker -->
       <div
-        class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--surface-sunken)]"
+        class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-border dark:border-border bg-muted"
       >
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--foreground-muted)]">{{ t('users.stats.total') }}:</span>
-          <span class="font-data text-sm text-[var(--foreground-strong)] tabular-nums">{{
-            stats.total
-          }}</span>
+          <span class="text-sm font-medium text-muted-foreground"
+            >{{ t('users.stats.total') }}:</span
+          >
+          <span class="font-mono text-sm text-foreground tabular-nums">{{ stats.total }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--foreground-muted)]"
+          <span class="text-sm font-medium text-muted-foreground"
             >{{ t('users.stats.active') }}:</span
           >
-          <span class="font-data text-sm text-[var(--foreground-strong)] tabular-nums">{{
-            stats.active
-          }}</span>
+          <span class="font-mono text-sm text-foreground tabular-nums">{{ stats.active }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--foreground-muted)]"
+          <span class="text-sm font-medium text-muted-foreground"
             >{{ t('users.stats.banned') }}:</span
           >
-          <span class="font-data text-sm text-[var(--foreground-strong)] tabular-nums">{{
-            stats.banned
-          }}</span>
+          <span class="font-mono text-sm text-foreground tabular-nums">{{ stats.banned }}</span>
         </div>
-        <div class="ml-auto flex items-center gap-2 text-[var(--foreground-muted)]">
+        <div class="ml-auto flex items-center gap-2 text-muted-foreground">
           <IconUsers class="h-4 w-4" />
-          <span class="text-xs font-data uppercase tracking-wider">{{
+          <span class="text-xs font-mono uppercase tracking-wider">{{
             t('users.stats.userManagement')
           }}</span>
         </div>
@@ -302,32 +295,25 @@ async function confirmBulkDelete() {
     <div
       v-if="selectedRows.length > 0"
       :class="[
-        'mt-0 flex items-center justify-between border border-[var(--status-warning-mark)] bg-[color-mix(in_oklch,_var(--status-warning-mark)_8%,_transparent)] dark:bg-[color-mix(in_oklch,_var(--status-warning-mark)_15%,_transparent)] p-3',
+        'mt-0 flex items-center justify-between border border-status-warning-mark bg-[color-mix(in_oklch,_var(--status-warning-mark)_8%,_transparent)] dark:bg-[color-mix(in_oklch,_var(--status-warning-mark)_15%,_transparent)] p-3',
         'animate-in fade-in slide-in-from-top-2 duration-200',
       ]"
     >
       <div class="flex items-center gap-4">
         <div class="flex items-center gap-2">
-          <span class="font-data text-sm text-[var(--foreground-strong)]">
+          <span class="font-mono text-sm text-foreground">
             &gt; SELECTED:{{ selectedRows.length }}
           </span>
         </div>
-        <div class="h-4 w-px bg-[var(--border-subtle)]" />
+        <div class="h-4 w-px bg-border" />
         <div class="flex items-center gap-2">
-          <Button
-            variant="terminal"
-            size="sm"
-            class="h-8 font-data text-xs border-[var(--border-subtle)] hover:border-[var(--status-warning-mark)] hover:text-foreground-strong"
-            @click="handleBulkBan"
-            :disabled="bulkActionLoading"
-          >
+          <Button variant="outline" size="sm" @click="handleBulkBan" :disabled="bulkActionLoading">
             <IconBan class="h-3.5 w-3.5 mr-1.5" />
             <span class="uppercase tracking-wider">{{ t('users.bulkActions.bulkBan') }}</span>
           </Button>
           <Button
-            variant="terminal"
+            variant="outline"
             size="sm"
-            class="h-8 font-data text-xs border-[var(--border-subtle)] hover:border-[var(--status-success-mark)] hover:text-foreground-strong"
             @click="handleBulkUnban"
             :disabled="bulkActionLoading"
           >
@@ -336,9 +322,8 @@ async function confirmBulkDelete() {
           </Button>
           <Button
             v-if="canDeleteUser"
-            variant="terminal"
+            variant="outline"
             size="sm"
-            class="h-8 font-data text-xs border-[var(--status-error-mark)] text-foreground-strong hover:bg-[color-mix(in_oklch,_var(--status-error-mark)_10%,_transparent)]"
             @click="handleBulkDelete"
             :disabled="bulkActionLoading"
           >
@@ -347,12 +332,7 @@ async function confirmBulkDelete() {
           </Button>
         </div>
       </div>
-      <Button
-        variant="terminal"
-        size="sm"
-        class="h-8 font-data text-xs text-[var(--foreground-muted)] hover:text-[var(--foreground)]"
-        @click="selectedRows = []"
-      >
+      <Button variant="outline" size="sm" @click="selectedRows = []">
         [ESC] {{ t('users.clearSelection') }}
       </Button>
     </div>
@@ -367,7 +347,7 @@ async function confirmBulkDelete() {
         :loading="loading"
         v-model:selected-rows="selectedRows"
         @update:pagination="tablePagination = $event"
-        class="terminal-table"
+        class="w-full text-sm"
       >
         <template #toolbar-left>
           <DataTableToolbar
@@ -388,18 +368,13 @@ async function confirmBulkDelete() {
       <!-- Error state - Terminal Style -->
       <div
         v-if="error"
-        class="mt-4 flex items-center justify-between border border-[var(--status-error-mark)] bg-[color-mix(in_oklch,_var(--status-error-mark)_8%,_transparent)] p-4"
+        class="mt-4 flex items-center justify-between border border-status-error-mark bg-[color-mix(in_oklch,_var(--status-error-mark)_8%,_transparent)] p-4"
       >
         <div class="flex items-center gap-3">
-          <span class="font-data text-sm text-[var(--foreground-strong)]">&gt; ERROR:</span>
-          <span class="text-sm text-[var(--foreground)]">{{ error }}</span>
+          <span class="font-mono text-sm text-foreground">&gt; ERROR:</span>
+          <span class="text-sm text-foreground">{{ error }}</span>
         </div>
-        <Button
-          variant="terminal"
-          size="sm"
-          class="font-data text-xs border-[var(--status-error-mark)] text-foreground-strong hover:bg-[color-mix(in_oklch,_var(--status-error-mark)_10%,_transparent)]"
-          @click="loadUsers()"
-        >
+        <Button variant="outline" size="sm" @click="loadUsers()">
           {{ t('common.retry') }}
         </Button>
       </div>
@@ -449,7 +424,7 @@ async function confirmBulkDelete() {
   <AlertDialog v-model:open="bulkDeleteDialogOpen">
     <AlertDialogContent>
       <AlertDialogHeader>
-        <AlertDialogTitle class="flex items-center gap-2 text-destructive">
+        <AlertDialogTitle class="flex items-center gap-2">
           <IconAlertTriangle class="h-5 w-5" />
           {{ t('users.actions.deleteUsers') }}
         </AlertDialogTitle>
@@ -466,7 +441,7 @@ async function confirmBulkDelete() {
           id="bulk-delete-confirm"
           v-model="bulkDeleteConfirmText"
           :placeholder="`DELETE ${selectedRows.length}`"
-          class="mt-1 font-mono"
+          class="mt-1"
         />
       </div>
       <AlertDialogFooter>

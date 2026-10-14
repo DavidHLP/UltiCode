@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@ulticode/design-system/ui/card";
+import { Button } from "@ulticode/design-system/ui/button";
 import { Activity } from "@lucide/vue";
 import { onMounted, ref, computed } from "vue";
 import { RouterLink } from "vue-router";
@@ -79,7 +79,7 @@ onMounted(async () => {
     </div>
   </div>
   <div v-else-if="!user" class="flex h-[60vh] items-center justify-center">
-    <Card class="w-full max-w-md border-dashed rounded-none">
+    <Card class="w-full max-w-md">
       <CardContent class="flex flex-col items-center py-10 text-center">
         <div class="mb-4 rounded-full bg-muted p-3 text-muted-foreground">
           <Activity class="h-10 w-10" />
@@ -90,7 +90,7 @@ onMounted(async () => {
         <p class="mb-6 mt-2 text-sm text-muted-foreground">
           {{ t("personal.profile.loginToView") }}
         </p>
-        <Button as-child class="px-6 font-bold">
+        <Button as-child class="px-6">
           <RouterLink to="/login">{{
             t("personal.profile.signIn")
           }}</RouterLink>

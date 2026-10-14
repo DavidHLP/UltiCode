@@ -31,7 +31,7 @@ describe("PastContests", () => {
 
     expect(currentPage.text()).toBe("1");
     expect(currentPage.attributes("aria-current")).toBe("page");
-    expect(currentPage.classes()).toContain("text-foreground-strong");
+    expect(currentPage.classes()).toContain("text-foreground");
     expect(currentPage.classes()).toContain("bg-status-warning-surface");
   });
 

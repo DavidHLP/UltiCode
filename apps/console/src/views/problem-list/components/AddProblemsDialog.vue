@@ -9,11 +9,11 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
+} from "@ulticode/design-system/ui/dialog";
+import { Button } from "@ulticode/design-system/ui/button";
+import { Input } from "@ulticode/design-system/ui/input";
+import { Badge } from "@ulticode/design-system/ui/badge";
+import { ScrollArea } from "@ulticode/design-system/ui/scroll-area";
 import { Search, Plus, Check } from "@lucide/vue";
 import { getDifficultyBadgeClass } from "@ulticode/design-system";
 import { searchProblems } from "@/api/problem";
@@ -109,7 +109,7 @@ watch(
         </div>
 
         <!-- Search Results -->
-        <div class="border rounded-none overflow-hidden">
+        <div class="border rounded-lg overflow-hidden">
           <div
             v-if="isSearching"
             class="flex items-center justify-center py-12"
@@ -152,7 +152,7 @@ watch(
                   </span>
                   <Badge
                     :class="getDifficultyBadgeClass(problem.difficulty)"
-                    class="text-xs shrink-0"
+                    class="shrink-0"
                   >
                     {{
                       t(
@@ -166,7 +166,7 @@ watch(
                     v-if="problemIdsInList.has(problem.id)"
                     variant="ghost"
                     size="sm"
-                    class="text-foreground-strong gap-1 pointer-events-none"
+                    class="gap-1 pointer-events-none"
                   >
                     <Check class="h-4 w-4" />
                     {{ t("problem.problemList.detail.added") }}

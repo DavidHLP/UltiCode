@@ -3,7 +3,7 @@ import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+} from "@ulticode/design-system/ui/collapsible";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,8 +13,9 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
+  DropdownMenuGroup,
+} from "@ulticode/design-system/ui/dropdown-menu";
+import { Button } from "@ulticode/design-system/ui/button";
 import {
   ChevronRight,
   MoreHorizontal,
@@ -75,17 +76,18 @@ const listSectionTriggerClass =
   >
     <AlertCircle class="h-3.5 w-3.5 mt-0.5 shrink-0" />
     <div class="flex-1 min-w-0">
-      <p class="text-xxs font-semibold leading-tight">
+      <p class="text-xs font-semibold leading-tight">
         {{ t("problem.banners.unableToLoad") }}
       </p>
-      <button
+      <Button
+        variant="outline"
         type="button"
-        class="mt-1 inline-flex items-center gap-1 text-xxs underline underline-offset-2 hover:text-destructive/80"
+        class="mt-1 inline-flex items-center gap-1 underline underline-offset-2"
         @click="emit('retryLoad')"
       >
         <RefreshCw class="h-3 w-3" />
         {{ t("common.actions.retry") }}
-      </button>
+      </Button>
     </div>
   </div>
 
@@ -114,7 +116,7 @@ const listSectionTriggerClass =
                 class="flex flex-1 items-center gap-2 truncate"
               >
                 <span class="flex-1 truncate">{{ item.name }}</span>
-                <span class="text-2xs text-muted-foreground font-data">{{
+                <span class="text-xs text-muted-foreground font-mono">{{
                   item.problemCount
                 }}</span>
               </RouterLink>
@@ -124,7 +126,7 @@ const listSectionTriggerClass =
                   <Button
                     variant="ghost"
                     size="icon"
-                    class="uc-sidebar-icon-button h-7 w-7 hover:text-[var(--primary)]"
+                    class="uc-sidebar-icon-button w-7"
                     @click.prevent.stop
                   >
                     <MoreHorizontal class="h-3 w-3" />
@@ -134,13 +136,12 @@ const listSectionTriggerClass =
                   align="end"
                   class="uc-sidebar-dropdown w-40"
                 >
-                  <DropdownMenuItem
-                    class="text-destructive focus:text-destructive"
-                    @click="emit('deleteList', item)"
+                  <DropdownMenuGroup
+                    ><DropdownMenuItem @click="emit('deleteList', item)">
+                      <Trash2 class="mr-2 h-4 w-4" />
+                      {{ t("common.actions.delete") }}
+                    </DropdownMenuItem></DropdownMenuGroup
                   >
-                    <Trash2 class="mr-2 h-4 w-4" />
-                    {{ t("common.actions.delete") }}
-                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -175,7 +176,7 @@ const listSectionTriggerClass =
                 class="flex flex-1 items-center gap-2 truncate"
               >
                 <span class="flex-1 truncate">{{ item.name }}</span>
-                <span class="text-2xs text-muted-foreground font-data">{{
+                <span class="text-xs text-muted-foreground font-mono">{{
                   item.problemCount
                 }}</span>
               </RouterLink>
@@ -185,7 +186,7 @@ const listSectionTriggerClass =
                   <Button
                     variant="ghost"
                     size="icon"
-                    class="uc-sidebar-icon-button h-7 w-7 hover:text-[var(--primary)]"
+                    class="uc-sidebar-icon-button w-7"
                     @click.prevent.stop
                   >
                     <MoreHorizontal class="h-3 w-3" />
@@ -195,26 +196,28 @@ const listSectionTriggerClass =
                   align="end"
                   class="uc-sidebar-dropdown w-48"
                 >
-                  <DropdownMenuSub v-if="allCategories.length > 0">
-                    <DropdownMenuSubTrigger>
-                      <FolderInput class="mr-2 h-4 w-4" />
-                      {{ t("problem.problemList.detail.moveToCategory") }}
-                    </DropdownMenuSubTrigger>
-                    <DropdownMenuSubContent class="w-40">
-                      <DropdownMenuItem
-                        v-for="cat in allCategories"
-                        :key="cat.id"
-                        @click="emit('moveListToCategory', item, cat.id)"
-                      >
-                        {{ cat.name }}
-                      </DropdownMenuItem>
-                    </DropdownMenuSubContent>
-                  </DropdownMenuSub>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem @click="emit('unsaveList', item)">
-                    <BookmarkMinus class="mr-2 h-4 w-4" />
-                    {{ t("problem.problemList.detail.unsave") }}
-                  </DropdownMenuItem>
+                  <DropdownMenuGroup
+                    ><DropdownMenuSub v-if="allCategories.length > 0">
+                      <DropdownMenuSubTrigger>
+                        <FolderInput class="mr-2 h-4 w-4" />
+                        {{ t("problem.problemList.detail.moveToCategory") }}
+                      </DropdownMenuSubTrigger>
+                      <DropdownMenuSubContent class="w-40">
+                        <DropdownMenuItem
+                          v-for="cat in allCategories"
+                          :key="cat.id"
+                          @click="emit('moveListToCategory', item, cat.id)"
+                        >
+                          {{ cat.name }}
+                        </DropdownMenuItem>
+                      </DropdownMenuSubContent>
+                    </DropdownMenuSub>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem @click="emit('unsaveList', item)">
+                      <BookmarkMinus class="mr-2 h-4 w-4" />
+                      {{ t("problem.problemList.detail.unsave") }}
+                    </DropdownMenuItem></DropdownMenuGroup
+                  >
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -253,7 +256,7 @@ const listSectionTriggerClass =
                 class="flex flex-1 items-center gap-2 truncate"
               >
                 <span class="flex-1 truncate">{{ item.name }}</span>
-                <span class="text-2xs text-muted-foreground font-data">{{
+                <span class="text-xs text-muted-foreground font-mono">{{
                   item.problemCount
                 }}</span>
               </RouterLink>
@@ -284,24 +287,23 @@ const listSectionTriggerClass =
             <Button
               variant="ghost"
               size="icon"
-              class="uc-sidebar-icon-button h-7 w-7"
+              class="uc-sidebar-icon-button w-7"
             >
               <MoreHorizontal class="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" class="uc-sidebar-dropdown w-40">
-            <DropdownMenuItem @click="emit('editCategory', category)">
-              <Pencil class="mr-2 h-4 w-4" />
-              {{ t("common.actions.edit") }}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              class="text-destructive focus:text-destructive"
-              @click="emit('deleteCategory', category)"
+            <DropdownMenuGroup
+              ><DropdownMenuItem @click="emit('editCategory', category)">
+                <Pencil class="mr-2 h-4 w-4" />
+                {{ t("common.actions.edit") }}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem @click="emit('deleteCategory', category)">
+                <Trash2 class="mr-2 h-4 w-4" />
+                {{ t("common.actions.delete") }}
+              </DropdownMenuItem></DropdownMenuGroup
             >
-              <Trash2 class="mr-2 h-4 w-4" />
-              {{ t("common.actions.delete") }}
-            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
@@ -318,7 +320,7 @@ const listSectionTriggerClass =
                 class="flex flex-1 items-center gap-2 truncate"
               >
                 <span class="flex-1 truncate">{{ item.name }}</span>
-                <span class="text-2xs text-muted-foreground font-data">{{
+                <span class="text-xs text-muted-foreground font-mono">{{
                   item.problemCount
                 }}</span>
               </RouterLink>
@@ -328,7 +330,7 @@ const listSectionTriggerClass =
                   <Button
                     variant="ghost"
                     size="icon"
-                    class="uc-sidebar-icon-button h-7 w-7 hover:text-[var(--primary)]"
+                    class="uc-sidebar-icon-button w-7"
                     @click.prevent.stop
                   >
                     <MoreHorizontal class="h-3 w-3" />
@@ -338,17 +340,19 @@ const listSectionTriggerClass =
                   align="end"
                   class="uc-sidebar-dropdown w-48"
                 >
-                  <DropdownMenuItem
-                    @click="emit('moveListToCategory', item, null)"
+                  <DropdownMenuGroup
+                    ><DropdownMenuItem
+                      @click="emit('moveListToCategory', item, null)"
+                    >
+                      <FolderInput class="mr-2 h-4 w-4" />
+                      {{ t("problem.problemList.detail.removeFromCategory") }}
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem @click="emit('unsaveList', item)">
+                      <BookmarkMinus class="mr-2 h-4 w-4" />
+                      {{ t("problem.problemList.detail.unsave") }}
+                    </DropdownMenuItem></DropdownMenuGroup
                   >
-                    <FolderInput class="mr-2 h-4 w-4" />
-                    {{ t("problem.problemList.detail.removeFromCategory") }}
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem @click="emit('unsaveList', item)">
-                    <BookmarkMinus class="mr-2 h-4 w-4" />
-                    {{ t("problem.problemList.detail.unsave") }}
-                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>

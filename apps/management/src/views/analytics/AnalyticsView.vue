@@ -1,15 +1,17 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Button } from '@/components/ui/button'
+import { Button } from '@ulticode/design-system/ui/button'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
-import { IconRefresh } from '@tabler/icons-vue'
+  SelectGroup,
+} from '@ulticode/design-system/ui/select'
+import { RefreshCw as IconRefresh } from '@lucide/vue'
+
 import { useAnalyticsReports } from './composables/useAnalyticsReports'
 import {
   AnalyticsHeatmap,
@@ -21,7 +23,12 @@ import {
 } from '@/components/analytics'
 import AreaChart from '@/components/dashboard/AreaChart.vue'
 import type { TimePeriod } from '@/components/dashboard/areaChartData'
-import { IconUsers, IconFileText, IconTrophy, IconServer } from '@tabler/icons-vue'
+import {
+  Users as IconUsers,
+  FileText as IconFileText,
+  Trophy as IconTrophy,
+  Server as IconServer,
+} from '@lucide/vue'
 
 const { t } = useI18n()
 
@@ -82,9 +89,9 @@ const metricGroups = computed(() => {
       }
     }
     return {
-      color: 'var(--foreground-muted)',
-      borderColor: 'color-mix(in srgb, var(--border-subtle) 25%, transparent)',
-      backgroundColor: 'color-mix(in srgb, var(--surface-highlight) 6%, transparent)',
+      color: 'var(--muted-foreground)',
+      borderColor: 'color-mix(in srgb, var(--border) 25%, transparent)',
+      backgroundColor: 'color-mix(in srgb, var(--accent) 6%, transparent)',
     }
   }
 
@@ -255,7 +262,7 @@ const difficultyBarItems = computed(() => {
     id: item.difficulty,
     label: item.difficulty,
     value: item.rate,
-    color: difficultyColors[item.difficulty] || 'var(--accent-primary)',
+    color: difficultyColors[item.difficulty] || 'var(--primary)',
     subtitle: `${item.completed}/${item.total} ${t('analytics.problemCompletion.completed')}`,
   }))
 })
@@ -316,42 +323,41 @@ const endpointBarItems = computed(() => {
   <div class="flex flex-col gap-5 px-4 py-5 lg:px-6 min-h-full bg-background">
     <!-- Precision Header -->
     <header
-      class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between pb-4 border-b border-[var(--border-subtle)] dark:border-[var(--border-subtle)]/60"
+      class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between pb-4 border-b border-border dark:border-border/60"
     >
       <div class="space-y-1">
         <h1 class="text-xl font-bold tracking-tight text-foreground font-mono uppercase">
           {{ t('analytics.title') }}
         </h1>
-        <p class="text-xs text-[var(--foreground-muted)]">
+        <p class="text-xs text-muted-foreground">
           {{ t('analytics.description') }}
         </p>
       </div>
 
       <!-- Header Control & Info Bar -->
       <div
-        class="grid w-full grid-cols-1 gap-2 bg-[var(--surface-sunken)] border border-[var(--border)] p-2 shadow-sm rounded-none sm:w-auto sm:grid-cols-3"
+        class="grid w-full grid-cols-1 gap-2 bg-muted border border-border p-2 shadow-sm rounded-lg sm:w-auto sm:grid-cols-3"
       >
         <!-- Monospace Status/Date Display -->
         <div
-          class="flex h-8 w-full items-center justify-center gap-1.5 whitespace-nowrap bg-card px-2 border border-[var(--border-subtle)] dark:border-[var(--border-subtle)]/50 text-xxs font-mono text-[var(--foreground-muted)] rounded-none sm:w-36"
+          class="flex h-8 w-full items-center justify-center gap-1.5 whitespace-nowrap bg-card px-2 border border-border dark:border-border/50 text-xs font-mono text-muted-foreground rounded-lg sm:w-36"
         >
-          <span class="w-1.5 h-1.5 rounded-full bg-[var(--status-success-mark)] animate-pulse"></span>
-          <span class="text-[var(--foreground-muted)] font-data">{{ formattedDate }}</span>
-          <span class="font-bold text-foreground font-data tabular-nums">{{ formattedTime }}</span>
+          <span class="w-1.5 h-1.5 rounded-full bg-status-success-mark animate-pulse"></span>
+          <span class="text-muted-foreground font-mono">{{ formattedDate }}</span>
+          <span class="font-bold text-foreground font-mono tabular-nums">{{ formattedTime }}</span>
         </div>
 
         <Select v-model="days">
-          <SelectTrigger
-            size="sm"
-            class="h-8 w-full text-xs rounded-none border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-card sm:w-36"
-          >
+          <SelectTrigger size="sm" class="w-full sm:w-36">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent class="rounded-none">
-            <SelectItem :value="7">{{ t('analytics.periods.7days') }}</SelectItem>
-            <SelectItem :value="30">{{ t('analytics.periods.30days') }}</SelectItem>
-            <SelectItem :value="90">{{ t('analytics.periods.90days') }}</SelectItem>
-            <SelectItem :value="365">{{ t('analytics.periods.1year') }}</SelectItem>
+          <SelectContent>
+            <SelectGroup
+              ><SelectItem :value="7">{{ t('analytics.periods.7days') }}</SelectItem>
+              <SelectItem :value="30">{{ t('analytics.periods.30days') }}</SelectItem>
+              <SelectItem :value="90">{{ t('analytics.periods.90days') }}</SelectItem>
+              <SelectItem :value="365">{{ t('analytics.periods.1year') }}</SelectItem></SelectGroup
+            >
           </SelectContent>
         </Select>
 
@@ -360,7 +366,7 @@ const endpointBarItems = computed(() => {
           size="sm"
           @click="loadReport"
           :disabled="loading"
-          class="h-8 w-full rounded-none border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-card sm:w-36"
+          class="w-full sm:w-36"
         >
           <IconRefresh class="h-3.5 w-3.5 mr-1" :class="{ 'animate-spin': loading }" />
           {{ t('common.refresh') }}
@@ -372,9 +378,9 @@ const endpointBarItems = computed(() => {
     <div class="min-w-0 flex-1">
       <!-- Loading State -->
       <div v-if="loading" class="flex items-center justify-center py-16">
-        <div class="flex items-center gap-3 text-[var(--foreground-muted)] font-mono">
+        <div class="flex items-center gap-3 text-muted-foreground font-mono">
           <div
-            class="h-4 w-4 border-2 border-[var(--border-subtle)] border-t-foreground rounded-full animate-spin"
+            class="h-4 w-4 border-2 border-border border-t-foreground rounded-full animate-spin"
           />
           <span>{{ t('common.loading') }}</span>
         </div>
@@ -383,14 +389,10 @@ const endpointBarItems = computed(() => {
       <!-- Permission Denied -->
       <div v-else-if="showRefreshSession" class="flex items-center justify-center py-16">
         <div class="text-center space-y-4">
-          <p class="text-[var(--foreground-muted)] font-mono">{{ t('analytics.permissionDenied') }}</p>
-          <Button
-            variant="outline"
-            size="sm"
-            @click="refreshSession"
-            :disabled="loading"
-            class="rounded-none"
-          >
+          <p class="text-muted-foreground font-mono">
+            {{ t('analytics.permissionDenied') }}
+          </p>
+          <Button variant="outline" size="sm" @click="refreshSession" :disabled="loading">
             <IconRefresh class="h-4 w-4 mr-2" :class="{ 'animate-spin': loading }" />
             {{ t('analytics.refreshSession') }}
           </Button>
@@ -423,7 +425,7 @@ const endpointBarItems = computed(() => {
               :config="{
                 users: {
                   label: t('analytics.userActivity.activeUsers'),
-                  color: 'var(--accent-primary)',
+                  color: 'var(--primary)',
                 },
               }"
             />
@@ -522,7 +524,7 @@ const endpointBarItems = computed(() => {
       <!-- No Data State -->
       <div v-else-if="!loading" class="flex items-center justify-center py-16">
         <div class="text-center">
-          <p class="text-[var(--foreground-muted)] font-mono">{{ t('analytics.noData') }}</p>
+          <p class="text-muted-foreground font-mono">{{ t('analytics.noData') }}</p>
         </div>
       </div>
     </div>

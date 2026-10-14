@@ -10,7 +10,7 @@ const emit = defineEmits<{ (e: 'select', value: string): void }>()
   <div class="space-y-6">
     <!-- Section Header -->
     <div class="flex items-center gap-2 mb-4">
-      <span class="terminal-comment">scoring_config</span>
+      <span class="text-sm text-muted-foreground">scoring_config</span>
     </div>
 
     <!--

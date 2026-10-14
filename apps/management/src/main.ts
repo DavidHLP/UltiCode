@@ -5,7 +5,7 @@ import './style.css'
 import App from './App.vue'
 import router from './router'
 import i18n, { setLocale, getActiveLocale } from './i18n'
-import { initTheme, applyTypographyDensity } from '@ulticode/theme'
+import { initTheme, applyTypographyDensity, useAppearance } from '@ulticode/theme'
 import { bootstrapApp } from '@ulticode/app-bootstrap'
 import { setOnAuthFailure } from '@ulticode/auth-core'
 
@@ -21,7 +21,7 @@ import { setOnAuthFailure } from '@ulticode/auth-core'
 bootstrapApp({
   density: 'compact',
   initTheme,
-  applyTypographyDensity,
+  applyTypographyDensity: () => applyTypographyDensity(useAppearance().settings.value.density),
   rootComponent: App,
   preAuthPlugins: [createPinia(), i18n],
   async preAuthInit() {

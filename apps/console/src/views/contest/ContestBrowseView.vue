@@ -16,11 +16,16 @@ import { storeToRefs } from "pinia";
 import { useI18n } from "vue-i18n";
 import { Trophy, Calendar, CheckCircle, PlayCircle } from "@lucide/vue";
 import { useContestBrowseStore } from "@/stores/contestBrowse";
-import { Card, CardContent } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
+import { Card, CardContent } from "@ulticode/design-system/ui/card";
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from "@ulticode/design-system/ui/tabs";
+import { Skeleton } from "@ulticode/design-system/ui/skeleton";
+import { Button } from "@ulticode/design-system/ui/button";
+import { Separator } from "@ulticode/design-system/ui/separator";
 import ContestCard from "./components/ContestCard.vue";
 import { usePastContestsPager } from "@/composables/contest/usePastContestsPager";
 import type { ContestListItem } from "@/types/contest";
@@ -117,10 +122,8 @@ onMounted(loadData);
     >
       <div class="space-y-1">
         <div class="flex items-center gap-3">
-          <Trophy class="h-8 w-8 text-[var(--status-warning-mark)]" />
-          <h1
-            class="text-3xl font-bold tracking-tight text-foreground-strong"
-          >
+          <Trophy class="h-8 w-8 text-status-warning-mark" />
+          <h1 class="text-3xl font-bold tracking-tight text-foreground">
             {{ t("contest.list.title") }}
           </h1>
         </div>
@@ -149,13 +152,8 @@ onMounted(loadData);
     <div v-else class="space-y-6">
       <!-- Tabbed Navigation -->
       <Tabs v-model="activeTab" class="w-full">
-        <TabsList
-          class="bg-muted/50 p-1 h-12 rounded-none w-full sm:w-auto grid grid-cols-3"
-        >
-          <TabsTrigger
-            value="ongoing"
-            class="rounded-none px-6 font-bold data-[state=active]:bg-background data-[state=active]:shadow-[var(--shadow-float)] gap-2"
-          >
+        <TabsList class="p-1 h-12 w-full sm:w-auto grid grid-cols-3">
+          <TabsTrigger value="ongoing" class="px-6 gap-2">
             <PlayCircle class="h-4 w-4" />
             <span class="hidden sm:inline">{{
               t("contest.list.running")
@@ -163,25 +161,19 @@ onMounted(loadData);
             <span class="sm:hidden">{{ t("contest.list.running") }}</span>
             <span
               v-if="runningContests.length > 0"
-              class="ml-1 flex h-5 w-5 items-center justify-center rounded-full border border-status-error-mark bg-status-error-surface text-2xs font-bold text-foreground-strong"
+              class="ml-1 flex h-5 w-5 items-center justify-center rounded-full border border-status-error-mark bg-status-error-surface text-xs font-bold text-foreground"
             >
               {{ runningContests.length }}
             </span>
           </TabsTrigger>
-          <TabsTrigger
-            value="upcoming"
-            class="rounded-none px-6 font-bold data-[state=active]:bg-background data-[state=active]:shadow-[var(--shadow-float)] gap-2"
-          >
+          <TabsTrigger value="upcoming" class="px-6 gap-2">
             <Calendar class="h-4 w-4" />
             <span class="hidden sm:inline">{{
               t("contest.list.upcoming")
             }}</span>
             <span class="sm:hidden">{{ t("contest.list.upcoming") }}</span>
           </TabsTrigger>
-          <TabsTrigger
-            value="finished"
-            class="rounded-none px-6 font-bold data-[state=active]:bg-background data-[state=active]:shadow-[var(--shadow-float)] gap-2"
-          >
+          <TabsTrigger value="finished" class="px-6 gap-2">
             <CheckCircle class="h-4 w-4" />
             <span class="hidden sm:inline">{{
               t("contest.list.finished")
@@ -226,7 +218,7 @@ onMounted(loadData);
           <!-- Empty State -->
           <div
             v-else
-            class="flex flex-col items-center justify-center py-16 border-2 border-dashed rounded-none bg-muted/5 text-center px-6"
+            class="flex flex-col items-center justify-center py-16 border-2 border-dashed rounded-lg bg-muted/5 text-center px-6"
           >
             <PlayCircle class="h-12 w-12 text-muted-foreground/30 mb-4" />
             <h3 class="text-lg font-bold">
@@ -274,7 +266,7 @@ onMounted(loadData);
           <!-- Empty State -->
           <div
             v-else
-            class="flex flex-col items-center justify-center py-16 border-2 border-dashed rounded-none bg-muted/5 text-center px-6"
+            class="flex flex-col items-center justify-center py-16 border-2 border-dashed rounded-lg bg-muted/5 text-center px-6"
           >
             <Calendar class="h-12 w-12 text-muted-foreground/30 mb-4" />
             <h3 class="text-lg font-bold">
@@ -291,7 +283,7 @@ onMounted(loadData);
           <div
             v-if="pastError"
             role="alert"
-            class="mb-6 flex items-center justify-between gap-4 border border-status-error-mark bg-status-error-surface px-4 py-3 text-sm text-foreground-strong"
+            class="mb-6 flex items-center justify-between gap-4 border border-status-error-mark bg-status-error-surface px-4 py-3 text-sm text-foreground"
           >
             <p>{{ pastError }}</p>
             <Button
@@ -337,7 +329,7 @@ onMounted(loadData);
           <!-- Empty State -->
           <div
             v-else
-            class="flex flex-col items-center justify-center py-16 border-2 border-dashed rounded-none bg-muted/5 text-center px-6"
+            class="flex flex-col items-center justify-center py-16 border-2 border-dashed rounded-lg bg-muted/5 text-center px-6"
           >
             <CheckCircle class="h-12 w-12 text-muted-foreground/30 mb-4" />
             <h3 class="text-lg font-bold">
@@ -356,7 +348,7 @@ onMounted(loadData);
             <Button
               variant="outline"
               size="icon"
-              class="h-9 w-9"
+              class="w-9"
               :disabled="currentPage === 1 || pastLoading"
               @click="currentPage--"
             >
@@ -381,7 +373,7 @@ onMounted(loadData);
             <Button
               variant="outline"
               size="icon"
-              class="h-9 w-9"
+              class="w-9"
               :disabled="currentPage === totalPages || pastLoading"
               @click="currentPage++"
             >

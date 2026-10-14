@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { RouterLink, useRouter } from "vue-router";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
+import { Button } from "@ulticode/design-system/ui/button";
+import { Separator } from "@ulticode/design-system/ui/separator";
 import {
+  Code2,
   Indent,
   ExternalLink,
   ChevronLeft,
@@ -10,13 +11,13 @@ import {
   Shuffle,
   ArrowLeft,
 } from "@lucide/vue";
-import logoIcon from "@/ico/favicon.ico";
+
 import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from "@/components/ui/hover-card";
-import { Kbd, KbdGroup } from "@/components/ui/kbd";
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@ulticode/design-system/ui/tooltip";
+import { Kbd, KbdGroup } from "@ulticode/design-system/ui/kbd";
 import { computed, inject, ref, watch } from "vue";
 import { fetchAdjacentProblems, fetchRandomProblem } from "@/api/problem";
 import {
@@ -59,7 +60,8 @@ const isContestMode = computed(() => contestCtx?.isInContest.value === true);
 // composable re-derives them whenever `problem.id` or the contest's
 // problem list changes.
 const contestAdj = computed(() => {
-  if (!contestCtx) return { prev: null as string | null, next: null as string | null };
+  if (!contestCtx)
+    return { prev: null as string | null, next: null as string | null };
   const { prev, next } = contestCtx.contestProblemNav.value;
   return {
     prev: prev?.slug ?? null,
@@ -120,14 +122,14 @@ async function handleRandom() {
 </script>
 
 <template>
-  <div class="flex min-w-60 flex-1 items-center overflow-hidden">
+  <div class="flex min-w-0 flex-1 items-center">
     <ul class="relative ml-2.5 mr-2 flex h-10 flex-none items-center">
-      <RouterLink to="/" class="mr-2 self-center">
+      <RouterLink to="/" class="mr-2 self-center" aria-label="UltiCode">
         <div class="mb-0.5 pl-1">
-          <img :src="logoIcon" alt="Ulticode" class="h-5 w-5" />
+          <Code2 class="size-5" aria-hidden="true" />
         </div>
       </RouterLink>
-      <li class="h-4 w-px bg-[var(--border)]"></li>
+      <li class="h-4 w-px bg-border"></li>
     </ul>
 
     <!--
@@ -141,7 +143,7 @@ async function handleRandom() {
     <template v-if="isContestMode && contestCtx?.contest.value">
       <RouterLink
         :to="`/contest/${contestCtx.contest.value.slug}`"
-        class="header-btn px-2.5 gap-1.5"
+        class="px-2.5 gap-1.5"
         :data-testid="'back-to-contest-header-link'"
       >
         <ArrowLeft class="h-4 w-4" />
@@ -150,45 +152,43 @@ async function handleRandom() {
     </template>
     <template v-else>
       <div
-        class="flex items-center overflow-hidden rounded-none focus:outline-none"
+        class="flex items-center overflow-hidden rounded-lg focus:outline-none"
       >
         <div class="relative group/nav-back flex items-center">
-          <!-- Main button HoverCard - Expand panel -->
-          <HoverCard :open-delay="200">
-            <HoverCardTrigger as-child>
+          <!-- Main button Tooltip - Expand panel -->
+          <Tooltip :delay-duration="200">
+            <TooltipTrigger as-child>
               <Button
-                class="header-btn px-2.5 gap-1.5"
+                class="px-2.5 gap-1.5"
                 role="button"
                 data-state="closed"
                 @click="toggleSidePanel"
               >
                 <Indent class="h-4 w-4" />
-                <span class="truncate">{{ t("problem.layout.problemSet") }}</span>
+                <span class="truncate">{{
+                  t("problem.layout.problemSet")
+                }}</span>
               </Button>
-            </HoverCardTrigger>
-            <HoverCardContent class="h-auto w-auto p-2 rounded-none">
+            </TooltipTrigger>
+            <TooltipContent class="h-auto w-auto p-2">
               <div class="flex items-center gap-1">
                 <p class="text-xs leading-none">
                   {{ t("problem.layout.expandPanel") }}
                 </p>
-                <KbdGroup class="text-xs">
-                  <Kbd class="px-0.5 py-0 min-w-0 h-auto text-xs rounded-none">
-                    Ctrl
-                  </Kbd>
+                <KbdGroup>
+                  <Kbd class="px-0.5 py-0 min-w-0 h-auto"> Ctrl </Kbd>
                   <span class="text-xs">+</span>
-                  <Kbd class="px-0.5 py-0 min-w-0 h-auto text-xs rounded-none"
-                    >]</Kbd
-                  >
+                  <Kbd class="px-0.5 py-0 min-w-0 h-auto">]</Kbd>
                 </KbdGroup>
               </div>
-            </HoverCardContent>
-          </HoverCard>
+            </TooltipContent>
+          </Tooltip>
 
-          <!-- External link button HoverCard - Open problem set in new tab -->
-          <HoverCard :open-delay="200">
-            <HoverCardTrigger as-child>
+          <!-- External link button Tooltip - Open problem set in new tab -->
+          <Tooltip :delay-duration="200">
+            <TooltipTrigger as-child>
               <!--
-                RouterLink must be the direct child of HoverCardTrigger so the
+                RouterLink must be the direct child of TooltipTrigger so the
                 hover trigger forwards its handlers to the underlying <a>
                 element. Previously a wrapper <div> sat between them, which
                 swallowed the click before it reached the link, so the
@@ -197,31 +197,28 @@ async function handleRandom() {
               <RouterLink
                 target="_blank"
                 rel="noopener noreferrer"
-                class="hidden group-hover/nav-back:flex -translate-x-3 h-6 w-6 flex-none cursor-pointer items-center justify-center rounded-none text-muted-foreground no-underline transition-colors duration-200 hover:bg-[var(--border-subtle)]/30 hover:text-foreground-strong focus:outline-none focus:ring-0 focus:ring-offset-0 dark:hover:text-primary-foreground"
+                class="hidden group-hover/nav-back:flex -translate-x-3 h-6 w-6 flex-none cursor-pointer items-center justify-center rounded-lg text-muted-foreground no-underline transition-colors duration-200 hover:bg-border/30 hover:text-foreground focus:outline-none focus:ring-0 focus:ring-offset-0 dark:hover:text-primary-foreground"
                 :to="{ name: 'problemset' }"
               >
                 <ExternalLink class="h-3 w-3 text-current" />
               </RouterLink>
-            </HoverCardTrigger>
-            <HoverCardContent class="h-auto w-auto p-2 rounded-none">
+            </TooltipTrigger>
+            <TooltipContent class="h-auto w-auto p-2">
               <p class="text-xs leading-none">
                 {{ t("problem.layout.openInNewTab") }}
               </p>
-            </HoverCardContent>
-          </HoverCard>
+            </TooltipContent>
+          </Tooltip>
         </div>
       </div>
     </template>
 
-    <Separator
-      orientation="vertical"
-      class="h-7 w-px flex-none bg-[var(--border)]"
-    />
+    <Separator orientation="vertical" class="h-7 w-px flex-none" />
 
-    <!-- Previous problem button with HoverCard -->
-    <HoverCard :open-delay="200">
-      <HoverCardTrigger as-child>
-        <Button class="header-btn w-8 p-0" :disabled="!prevSlug">
+    <!-- Previous problem button with Tooltip -->
+    <Tooltip :delay-duration="200">
+      <TooltipTrigger as-child>
+        <Button class="w-8 p-0" :disabled="!prevSlug">
           <RouterLink
             v-if="prevSlug"
             :to="{
@@ -242,32 +239,27 @@ async function handleRandom() {
           </RouterLink>
           <ChevronLeft v-else class="h-4 w-4" />
         </Button>
-      </HoverCardTrigger>
-      <HoverCardContent class="h-auto w-auto p-2 rounded-none">
+      </TooltipTrigger>
+      <TooltipContent class="h-auto w-auto p-2">
         <div class="flex items-center gap-1">
           <p class="text-xs leading-none">
             {{ t("problem.layout.previousProblem") }}
           </p>
-          <KbdGroup class="text-xs">
-            <Kbd class="px-0.5 py-0 min-w-0 h-auto text-xs rounded-none">
-              Ctrl
-            </Kbd>
+          <KbdGroup>
+            <Kbd class="px-0.5 py-0 min-w-0 h-auto"> Ctrl </Kbd>
             <span class="text-xs">+</span>
-            <Kbd class="px-0.5 py-0 min-w-0 h-auto text-xs rounded-none">←</Kbd>
+            <Kbd class="px-0.5 py-0 min-w-0 h-auto">←</Kbd>
           </KbdGroup>
         </div>
-      </HoverCardContent>
-    </HoverCard>
+      </TooltipContent>
+    </Tooltip>
 
-    <Separator
-      orientation="vertical"
-      class="h-7 w-px flex-none bg-[var(--border)]"
-    />
+    <Separator orientation="vertical" class="h-7 w-px flex-none" />
 
-    <!-- Next problem button with HoverCard -->
-    <HoverCard :open-delay="200">
-      <HoverCardTrigger as-child>
-        <Button class="header-btn w-8 p-0" :disabled="!nextSlug">
+    <!-- Next problem button with Tooltip -->
+    <Tooltip :delay-duration="200">
+      <TooltipTrigger as-child>
+        <Button class="w-8 p-0" :disabled="!nextSlug">
           <RouterLink
             v-if="nextSlug"
             :to="{
@@ -285,22 +277,20 @@ async function handleRandom() {
           </RouterLink>
           <ChevronRight v-else class="h-4 w-4" />
         </Button>
-      </HoverCardTrigger>
-      <HoverCardContent class="h-auto w-auto p-2 rounded-none">
+      </TooltipTrigger>
+      <TooltipContent class="h-auto w-auto p-2">
         <div class="flex items-center gap-1">
           <p class="text-xs leading-none">
             {{ t("problem.layout.nextProblem") }}
           </p>
-          <KbdGroup class="text-xs">
-            <Kbd class="px-0.5 py-0 min-w-0 h-auto text-xs rounded-none">
-              Ctrl
-            </Kbd>
+          <KbdGroup>
+            <Kbd class="px-0.5 py-0 min-w-0 h-auto"> Ctrl </Kbd>
             <span class="text-xs">+</span>
-            <Kbd class="px-0.5 py-0 min-w-0 h-auto text-xs rounded-none">→</Kbd>
+            <Kbd class="px-0.5 py-0 min-w-0 h-auto">→</Kbd>
           </KbdGroup>
         </div>
-      </HoverCardContent>
-    </HoverCard>
+      </TooltipContent>
+    </Tooltip>
 
     <!--
       Random problem button: only rendered outside contest mode.
@@ -313,29 +303,26 @@ async function handleRandom() {
       it) keeps the bar visually consistent.
     -->
     <template v-if="!isContestMode">
-      <Separator
-        orientation="vertical"
-        class="h-7 w-px flex-none bg-[var(--border)]"
-      />
-      <HoverCard :open-delay="200">
-        <HoverCardTrigger as-child>
-          <Button class="header-btn w-8 p-0" @click="handleRandom">
+      <Separator orientation="vertical" class="h-7 w-px flex-none" />
+      <Tooltip :delay-duration="200">
+        <TooltipTrigger as-child>
+          <Button class="w-8 p-0" @click="handleRandom">
             <Shuffle class="h-4 w-4" />
           </Button>
-        </HoverCardTrigger>
-        <HoverCardContent class="h-auto w-auto p-2">
+        </TooltipTrigger>
+        <TooltipContent class="h-auto w-auto p-2">
           <div class="flex items-center gap-1">
             <p class="text-xs leading-none">
               {{ t("problem.layout.randomProblem") }}
             </p>
-            <KbdGroup class="text-xs">
-              <Kbd class="px-0.5 py-0 min-w-0 h-auto text-xs"> Ctrl </Kbd>
+            <KbdGroup>
+              <Kbd class="px-0.5 py-0 min-w-0 h-auto"> Ctrl </Kbd>
               <span class="text-xs">+</span>
-              <Kbd class="px-0.5 py-0 min-w-0 h-auto text-xs">R</Kbd>
+              <Kbd class="px-0.5 py-0 min-w-0 h-auto">R</Kbd>
             </KbdGroup>
           </div>
-        </HoverCardContent>
-      </HoverCard>
+        </TooltipContent>
+      </Tooltip>
     </template>
 
     <!--
@@ -351,4 +338,3 @@ async function handleRandom() {
     />
   </div>
 </template>
-

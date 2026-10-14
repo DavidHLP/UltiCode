@@ -1,18 +1,21 @@
 <script setup lang="ts">
+import { Input } from '@ulticode/design-system/ui/input'
+
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import {
-  IconUpload,
-  IconFile,
-  IconX,
-  IconAlertTriangle,
-  IconLoader,
-  IconCheck,
-} from '@tabler/icons-vue'
-import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
-import { Progress } from '@/components/ui/progress'
+  Upload as IconUpload,
+  File as IconFile,
+  X as IconX,
+  AlertTriangle as IconAlertTriangle,
+  Loader as IconLoader,
+  Check as IconCheck,
+} from '@lucide/vue'
+
+import { Button } from '@ulticode/design-system/ui/button'
+import { Label } from '@ulticode/design-system/ui/label'
+import { Progress } from '@ulticode/design-system/ui/progress'
 import {
   Dialog,
   DialogContent,
@@ -20,14 +23,15 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog'
+} from '@ulticode/design-system/ui/dialog'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
+  SelectGroup,
+} from '@ulticode/design-system/ui/select'
 import {
   problemsApi,
   type ImportProblemsResponse,
@@ -319,12 +323,12 @@ function handleClose() {
         >
           <div
             :class="[
-              'border-2 border-dashed rounded-none p-8 text-center transition-colors',
+              'border-2 border-dashed rounded-lg p-8 text-center transition-colors',
               isDragging ? 'border-primary bg-primary/5' : 'border-muted-foreground/25',
               file ? 'bg-muted/50' : 'hover:border-primary/50 hover:bg-muted/30',
             ]"
           >
-            <input
+            <Input
               ref="fileInputRef"
               type="file"
               accept=".json,.csv"
@@ -391,15 +395,17 @@ function handleClose() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="skip">
-                {{ t('problems.import.strategies.skip') }}
-              </SelectItem>
-              <SelectItem value="update">
-                {{ t('problems.import.strategies.update') }}
-              </SelectItem>
-              <SelectItem value="create_new">
-                {{ t('problems.import.strategies.createNew') }}
-              </SelectItem>
+              <SelectGroup
+                ><SelectItem value="skip">
+                  {{ t('problems.import.strategies.skip') }}
+                </SelectItem>
+                <SelectItem value="update">
+                  {{ t('problems.import.strategies.update') }}
+                </SelectItem>
+                <SelectItem value="create_new">
+                  {{ t('problems.import.strategies.createNew') }}
+                </SelectItem></SelectGroup
+              >
             </SelectContent>
           </Select>
           <p class="text-xs text-muted-foreground">
@@ -420,9 +426,9 @@ function handleClose() {
         <div v-if="result" class="space-y-4">
           <!-- Summary -->
           <div class="grid grid-cols-4 gap-4">
-            <div class="rounded-none border bg-card p-4 text-center">
+            <div class="rounded-lg border bg-card p-4 text-center">
               <div
-                class="flex items-center justify-center gap-2 text-2xl font-bold text-foreground-strong"
+                class="flex items-center justify-center gap-2 text-2xl font-bold text-foreground"
               >
                 <IconCheck class="h-5 w-5 text-status-success-mark" />
                 {{ result.created }}
@@ -431,8 +437,10 @@ function handleClose() {
                 {{ t('problems.import.created') }}
               </p>
             </div>
-            <div class="rounded-none border bg-card p-4 text-center">
-              <div class="flex items-center justify-center gap-2 text-2xl font-bold text-foreground-strong">
+            <div class="rounded-lg border bg-card p-4 text-center">
+              <div
+                class="flex items-center justify-center gap-2 text-2xl font-bold text-foreground"
+              >
                 <IconFile class="h-5 w-5 text-status-info-mark" />
                 {{ result.updated }}
               </div>
@@ -440,7 +448,7 @@ function handleClose() {
                 {{ t('problems.import.updated') }}
               </p>
             </div>
-            <div class="rounded-none border bg-card p-4 text-center">
+            <div class="rounded-lg border bg-card p-4 text-center">
               <div
                 class="flex items-center justify-center gap-2 text-2xl font-bold text-muted-foreground"
               >
@@ -451,7 +459,7 @@ function handleClose() {
                 {{ t('problems.import.skipped') }}
               </p>
             </div>
-            <div class="rounded-none border bg-card p-4 text-center">
+            <div class="rounded-lg border bg-card p-4 text-center">
               <div
                 class="flex items-center justify-center gap-2 text-2xl font-bold text-destructive"
               >
@@ -474,7 +482,7 @@ function handleClose() {
               <div
                 v-for="(error, index) in result.results.filter((r) => !r.success)"
                 :key="index"
-                class="rounded-none bg-destructive/10 border border-destructive/20 p-3 text-sm"
+                class="rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-sm"
               >
                 <div class="flex items-start gap-2">
                   <IconX class="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
@@ -490,7 +498,7 @@ function handleClose() {
       </div>
 
       <!-- Footer -->
-      <DialogFooter class="border-t pt-4">
+      <DialogFooter class="pt-4">
         <Button variant="outline" @click="handleClose" :disabled="importing">
           {{ result ? t('common.close') : t('common.cancel') }}
         </Button>

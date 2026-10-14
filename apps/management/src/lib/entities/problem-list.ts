@@ -1,6 +1,11 @@
 import { h, type VNode } from 'vue'
-import { badge, PROBLEM_LIST_VISIBILITY_COLOR_MAP } from '@/components/ui/terminal'
-import { IconEye, IconEyeOff, IconLock, IconWorld } from '@tabler/icons-vue'
+import { badge, PROBLEM_LIST_VISIBILITY_COLOR_MAP } from '@ulticode/badge-config'
+import {
+  Eye as IconEye,
+  EyeOff as IconEyeOff,
+  Lock as IconLock,
+  Globe as IconWorld,
+} from '@lucide/vue'
 
 /**
  * Problem list visibility
@@ -13,9 +18,9 @@ export type ProblemListVisibility = 'PUBLIC' | 'PRIVATE' | 'UNLISTED'
 export function getProblemListVisibilityIcon(visibility: ProblemListVisibility): VNode {
   switch (visibility) {
     case 'PUBLIC':
-      return h(IconWorld, { class: 'h-4 w-4 text-foreground-strong' })
+      return h(IconWorld, { class: 'h-4 w-4 text-foreground' })
     case 'PRIVATE':
-      return h(IconLock, { class: 'h-4 w-4 text-foreground-strong' })
+      return h(IconLock, { class: 'h-4 w-4 text-foreground' })
     case 'UNLISTED':
       return h(IconEyeOff, { class: 'h-4 w-4 text-muted-foreground' })
     default:

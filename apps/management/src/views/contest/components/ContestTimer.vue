@@ -7,7 +7,8 @@
  * Emits: finished, started
  */
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
-import { IconClock, IconHourglass, IconCheck } from '@tabler/icons-vue'
+import { Clock as IconClock, Hourglass as IconHourglass, Check as IconCheck } from '@lucide/vue'
+
 import { cn } from '@/lib/utils'
 
 const props = withDefaults(
@@ -152,11 +153,7 @@ watch(isFinished, (finished, wasFinished) => {
       :class="
         cn(
           'h-4 w-4',
-          isFinished
-            ? 'text-[var(--foreground-muted)]'
-            : !isStarted
-              ? 'text-foreground-strong'
-              : 'text-foreground-strong',
+          isFinished ? 'text-muted-foreground' : !isStarted ? 'text-foreground' : 'text-foreground',
         )
       "
     />
@@ -165,20 +162,20 @@ watch(isFinished, (finished, wasFinished) => {
     <div class="flex flex-col gap-0.5">
       <span
         v-if="variant === 'default'"
-        class="font-data text-2xs uppercase tracking-wide text-[var(--foreground-muted)]"
+        class="font-mono text-xs uppercase tracking-wide text-muted-foreground"
       >
         {{ label }}
       </span>
       <span
         :class="
           cn(
-            'font-data tabular-nums font-medium',
+            'font-mono tabular-nums font-medium',
             variant === 'default' ? 'text-sm' : 'text-xs',
             isFinished
-              ? 'text-[var(--foreground-muted)]'
+              ? 'text-muted-foreground'
               : !isStarted
-                ? 'text-foreground-strong'
-                : 'text-foreground-strong',
+                ? 'text-foreground'
+                : 'text-foreground',
           )
         "
       >

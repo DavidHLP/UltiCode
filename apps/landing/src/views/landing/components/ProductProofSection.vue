@@ -104,7 +104,7 @@ const { t } = useI18n();
   font-size: clamp(3rem, 6vw, 5.2rem);
   font-weight: 400;
   line-height: 0.98;
-  letter-spacing: var(--uc-locale-display-tracking);
+  letter-spacing: var(--landing-display-tracking);
 }
 
 .section-title em {

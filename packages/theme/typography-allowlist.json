@@ -7,15 +7,6 @@
     "apps/management/src/style.css",
     "apps/console/src/assets/charts.css",
     "apps/console/src/assets/markdown.css",
-    "apps/console/src/views/problems/description/DescriptionMarkdown.vue",
-    "apps/console/src/views/landing/LandingView.vue",
-    "apps/console/src/views/landing/components/FinalStorySection.vue",
-    "apps/console/src/views/landing/components/HeroSection.vue",
-    "apps/console/src/views/landing/components/HumanControlSection.vue",
-    "apps/console/src/views/landing/components/LandingFooter.vue",
-    "apps/console/src/views/landing/components/LandingHeader.vue",
-    "apps/console/src/views/landing/components/ProductProofSection.vue",
-    "apps/console/src/views/landing/components/UseCasesSection.vue"
-  ],
-  "_comment_landing": "Landing view files are the origin of the Garden editorial typography (Instrument Serif / Inter / JetBrains Mono). Their scoped display styles are the canonical reference implementation; see packages/design-system/docs/GARDEN_DESIGN_SPEC.md."
+    "apps/console/src/views/problems/description/DescriptionMarkdown.vue"
+  ]
 }

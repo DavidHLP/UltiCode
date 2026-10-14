@@ -1,12 +1,5 @@
 <script setup lang="ts">
-import {
-  ref,
-  onMounted,
-  onUnmounted,
-  watch,
-  watchEffect,
-  nextTick,
-} from "vue";
+import { ref, onMounted, onUnmounted, watch, watchEffect, nextTick } from "vue";
 import { useI18n } from "vue-i18n";
 import LandingHeader from "./components/LandingHeader.vue";
 import HeroSection from "./components/HeroSection.vue";
@@ -179,14 +172,12 @@ watch(
 );
 
 onMounted(async () => {
-  document.documentElement.dataset.landingRoute = "";
   isLoaded.value = true;
   await nextTick();
   setupScrollAnimations();
 });
 
 onUnmounted(() => {
-  delete document.documentElement.dataset.landingRoute;
   if (scrollObserver) {
     scrollObserver.disconnect();
     scrollObserver = null;
@@ -382,25 +373,25 @@ onUnmounted(() => {
 
 <style scoped>
 .ulticode-landing-root {
-  --bg-parchment: #e3e1d1;
-  --bg-card: #f7f6f0;
-  --bg-sky: #92b3cf;
-  --text-primary: #19220e;
-  --text-muted: #545c45;
-  --text-dim: #838f81;
-  --brand-olive: #545c45;
-  --brand-olive-hover: #3e4433;
-  --brand-sage: #a2afa9;
-  --border-delicate: rgba(84, 92, 69, 0.18);
-  --font-serif: var(--uc-font-display);
-  --font-sans: var(--uc-font-ui);
-  --font-mono: var(--uc-font-code);
-  --shadow-subtle: 0 4px 20px -4px rgba(25, 34, 14, 0.06);
-  --shadow-elevated: 0 12px 36px -8px rgba(25, 34, 14, 0.12);
-  --radius-small: 4px;
-  --radius-control: 8px;
-  --radius-card: 20px;
-  --radius-panel: 20px;
+  --bg-parchment: var(--landing-bg-parchment);
+  --bg-card: var(--landing-bg-card);
+  --bg-sky: var(--landing-bg-sky);
+  --text-primary: var(--landing-text-primary);
+  --text-muted: var(--landing-text-muted);
+  --text-dim: var(--landing-text-dim);
+  --brand-olive: var(--landing-brand-olive);
+  --brand-olive-hover: var(--landing-brand-olive-hover);
+  --brand-sage: var(--landing-brand-sage);
+  --border-delicate: var(--landing-border-delicate);
+  --font-serif: var(--landing-font-serif);
+  --font-sans: var(--landing-font-sans);
+  --font-mono: var(--landing-font-mono);
+  --shadow-subtle: var(--landing-shadow-subtle);
+  --shadow-elevated: var(--landing-shadow-elevated);
+  --radius-small: var(--landing-radius-small);
+  --radius-control: var(--landing-radius-control);
+  --radius-card: var(--landing-radius-card);
+  --radius-panel: var(--landing-radius-panel);
 
   position: relative;
   background-color: var(--bg-parchment);
@@ -408,7 +399,7 @@ onUnmounted(() => {
   font-family: var(--font-sans);
   min-height: 100vh;
   overflow-x: clip;
-  line-height: var(--uc-leading-normal);
+  line-height: var(--landing-leading-normal);
 }
 
 .blueprint-frame {

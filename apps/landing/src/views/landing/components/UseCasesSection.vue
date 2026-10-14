@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useI18n } from "vue-i18n";
-import { RouterLink } from "vue-router";
+import { platformUrl } from "@/utils/platformUrl";
 
 const { t } = useI18n();
 </script>
@@ -50,9 +50,9 @@ const { t } = useI18n();
             {{ t("landing.useCases.case1Desc") }}
           </p>
           <div class="scenario-action-wrap">
-            <RouterLink to="/problemset" class="scenario-action-link">
+            <a :href="platformUrl('/problemset')" class="scenario-action-link">
               {{ t("landing.useCases.case1Action") }}
-            </RouterLink>
+            </a>
           </div>
         </article>
 
@@ -80,9 +80,9 @@ const { t } = useI18n();
             {{ t("landing.useCases.case2Desc") }}
           </p>
           <div class="scenario-action-wrap">
-            <RouterLink to="/contest" class="scenario-action-link">
+            <a :href="platformUrl('/contest')" class="scenario-action-link">
               {{ t("landing.useCases.case2Action") }}
-            </RouterLink>
+            </a>
           </div>
         </article>
 
@@ -110,9 +110,9 @@ const { t } = useI18n();
             {{ t("landing.useCases.case3Desc") }}
           </p>
           <div class="scenario-action-wrap">
-            <RouterLink to="/problemset" class="scenario-action-link">
+            <a :href="platformUrl('/problemset')" class="scenario-action-link">
               {{ t("landing.useCases.case3Action") }}
-            </RouterLink>
+            </a>
           </div>
         </article>
       </div>

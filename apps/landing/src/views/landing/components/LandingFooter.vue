@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useI18n } from "vue-i18n";
-import { RouterLink } from "vue-router";
+import { platformUrl } from "@/utils/platformUrl";
 
 const { t } = useI18n();
 </script>
@@ -22,24 +22,24 @@ const { t } = useI18n();
         <h4 class="col-title">{{ t("landing.footer.platformColTitle") }}</h4>
         <ul class="col-list">
           <li>
-            <RouterLink to="/problemset">{{
+            <a :href="platformUrl('/problemset')">{{
               t("landing.footer.platformLink1")
-            }}</RouterLink>
+            }}</a>
           </li>
           <li>
-            <RouterLink to="/contest">{{
+            <a :href="platformUrl('/contest')">{{
               t("landing.footer.platformLink2")
-            }}</RouterLink>
+            }}</a>
           </li>
           <li>
-            <RouterLink to="/forum">{{
+            <a :href="platformUrl('/forum')">{{
               t("landing.footer.platformLink3")
-            }}</RouterLink>
+            }}</a>
           </li>
           <li>
-            <RouterLink to="/login">{{
+            <a :href="platformUrl('/login')">{{
               t("landing.footer.platformLink4")
-            }}</RouterLink>
+            }}</a>
           </li>
         </ul>
       </div>

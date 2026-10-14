@@ -286,7 +286,7 @@ forumEditRoute.meta = { requiresAuth: true };
 const landingRoute: RouteRecordRaw = {
   path: "/landing",
   name: "landing",
-  component: () => import("@/views/landing/LandingView.vue"),
+  redirect: "/landing/",
 };
 
 const router = createRouter({
@@ -297,7 +297,7 @@ const router = createRouter({
       name: "root",
       redirect: () => {
         const authStore = useAuthStore();
-        return authStore.isAuthenticated ? "/problemset" : "/landing";
+        return authStore.isAuthenticated ? "/problemset" : "/landing/";
       },
     },
     landingRoute,

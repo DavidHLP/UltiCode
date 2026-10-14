@@ -9,17 +9,6 @@ import HumanControlSection from "../components/HumanControlSection.vue";
 import FinalStorySection from "../components/FinalStorySection.vue";
 import LandingFooter from "../components/LandingFooter.vue";
 
-vi.mock("vue-router", () => ({
-  RouterLink: {
-    name: "RouterLink",
-    props: ["to"],
-    template:
-      "<a :href=\"typeof to === 'string' ? to : to.path || ''\"><slot /></a>",
-  },
-  useRoute: () => ({ params: {}, query: {} }),
-  useRouter: () => ({ push: vi.fn() }),
-}));
-
 vi.mock("vue-i18n", () => ({
   useI18n: () => ({
     t: (key: string) => key,
@@ -58,7 +47,6 @@ describe("Landing Page Component Suite", () => {
 
     const wrapper = shallowMount(LandingView);
     expect(wrapper.find(".ulticode-landing-root").exists()).toBe(true);
-    expect(document.documentElement.dataset.landingRoute).toBe("");
     expect(document.title).toBe("landing.seoTitle");
 
     const metaDesc = document.querySelector('meta[name="description"]');
@@ -77,7 +65,6 @@ describe("Landing Page Component Suite", () => {
     expect(canonical).not.toBeNull();
 
     wrapper.unmount();
-    expect(document.documentElement.dataset.landingRoute).toBeUndefined();
     expect(document.title).toBe("Original App Title");
     expect(document.querySelector('meta[name="description"]')).toBeNull();
     expect(document.querySelector('meta[property="og:title"]')).toBeNull();

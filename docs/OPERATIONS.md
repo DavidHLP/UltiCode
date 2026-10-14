@@ -12,7 +12,7 @@
 
 开发启动命令与 mode 语义由[本地开发](DEVELOPMENT.md#本地开发)统一维护；正常 `dev-lite`/`dev-full` 都要求 `APP_SUBMISSION_ROUTING_MODE=remote` 和 `SUBMISSION_CUTOVER_COMPLETE=true`。
 
-`docker/docker-compose.yml` 是基础配置；`docker/docker-compose.dev.yml` 只在 loopback 暴露开发端口；`docker/docker-compose.prod.yml` 不发布 MySQL、Redis、Nacos 或 backend 端口，前端仅作 HTTPS edge。不要直接用 PM2/Maven 启动 owner runtime，以免绕过 manifest、migration、readiness 和 rollback gate。
+`docker/docker-compose.yml` 是基础配置；`docker/docker-compose.dev.yml` 只在 loopback 暴露开发端口；`docker/docker-compose.prod.yml` 不发布 MySQL、Redis、Nacos 或 backend 端口，前端仅作 HTTPS edge。Console 镜像同时打包独立 Landing 静态产物并由同一 Nginx 在 `/landing/` 提供，不增加服务或公网端口。不要直接用 PM2/Maven 启动 owner runtime，以免绕过 manifest、migration、readiness 和 rollback gate。
 
 Nacos 的 512 MB 堆显式使用 128 MB 年轻代，避免镜像默认的 `JVM_XMN=512m` 占满堆空间；调整堆上限时应同时检查年轻代和容器内存限额。
 

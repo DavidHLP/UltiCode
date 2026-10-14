@@ -41,6 +41,7 @@ jobs:
       backend: ${{ steps.filter.outputs.backend }}
       console: ${{ steps.filter.outputs.console }}
       management: ${{ steps.filter.outputs.management }}
+      landing: ${{ steps.filter.outputs.landing }}
       docker: ${{ steps.filter.outputs.docker }}
       contract: ${{ steps.filter.outputs.contract }}
     steps:
@@ -74,6 +75,13 @@ jobs:
               - 'shared/**'
               - '.github/workflows/ci.yml'
               - '.github/workflows/_frontend.yml'
+            landing:
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
+              - 'apps/landing/**'
+              - '.github/workflows/ci.yml'
+              - '.github/workflows/_frontend.yml'
             management:
               - 'package.json'
               - 'pnpm-lock.yaml'
@@ -98,6 +106,7 @@ jobs:
               - 'pnpm-workspace.yaml'
               - 'services/**'
               - 'apps/console/Dockerfile'
+              - 'apps/landing/**'
               - 'apps/management/Dockerfile'
               - 'docker/docker-compose*.yml'
               - 'infrastructure/observability/**'
@@ -139,11 +148,12 @@ jobs:
   frontend:
     name: Frontend
     needs: changes
-    if: ${{ !cancelled() && (needs.changes.outputs.console == 'true' || needs.changes.outputs.management == 'true') }}
+    if: ${{ !cancelled() && (needs.changes.outputs.console == 'true' || needs.changes.outputs.management == 'true' || needs.changes.outputs.landing == 'true') }}
     uses: ./.github/workflows/_frontend.yml
     with:
       console_changed: ${{ needs.changes.outputs.console == 'true' }}
       management_changed: ${{ needs.changes.outputs.management == 'true' }}
+      landing_changed: ${{ needs.changes.outputs.landing == 'true' }}
     secrets: inherit
 
   # --- Contract compatibility gate ---

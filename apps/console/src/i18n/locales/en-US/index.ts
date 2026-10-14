@@ -13,7 +13,6 @@ import markdown from "./markdown";
 import solution from "./solution";
 import shortcuts from "./shortcuts";
 import achievement from "./achievement";
-import landing from "./landing";
 import agent from "./agent";
 export default {
   common,
@@ -31,6 +30,5 @@ export default {
   solution,
   shortcuts,
   achievement,
-  landing,
   agent,
 } as const;

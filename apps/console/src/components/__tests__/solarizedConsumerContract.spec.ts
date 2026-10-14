@@ -41,7 +41,9 @@ describe("Solarized component consumers", () => {
   });
 
   it("uses the warning marker for unread notifications", () => {
-    const notificationView = source("../../views/personal/NotificationsView.vue");
+    const notificationView = source(
+      "../../views/personal/NotificationsView.vue",
+    );
     const navUser = source("../../features/sider/NavUser.vue");
 
     expect(notificationView).toContain(
@@ -81,7 +83,7 @@ describe("Solarized component consumers", () => {
     expect(appSidebar).toContain('class="uc-sidebar-shell"');
     expect(appSidebar).toContain('class="uc-sidebar-header"');
     expect(appSidebar).toContain('class="uc-sidebar-content"');
-    expect(appSidebar).toContain('group-data-[collapsible=icon]:hidden');
+    expect(appSidebar).toContain("group-data-[collapsible=icon]:hidden");
     expect(navUser).toContain("uc-sidebar-user-trigger");
     expect(navUser).toContain("uc-sidebar-dropdown");
     expect(lists).toContain("uc-sidebar-item");
@@ -95,7 +97,8 @@ describe("Solarized component consumers", () => {
       '.uc-sidebar-shell [data-sidebar="sidebar"]',
     );
     expect(sharedStyles).toContain(".uc-sidebar-user-trigger");
-    expect(sharedStyles).toContain(`[data-slot="sidebar"][data-collapsible="icon"]
+    expect(sharedStyles)
+      .toContain(`[data-slot="sidebar"][data-collapsible="icon"]
   [data-sidebar="sidebar"]
   .uc-sidebar-user-trigger,
 [data-slot="sidebar"][data-collapsible="icon"]
@@ -144,7 +147,9 @@ describe("Solarized component consumers", () => {
   it("uses neutral card text with semantic value and trend markers", () => {
     const stats = source("../../components/dashboard/StatsCard.vue");
 
-    expect(stats).toContain("text-foreground-strong decoration-status-success-mark");
+    expect(stats).toContain(
+      "text-foreground-strong decoration-status-success-mark",
+    );
     expect(stats).toContain(
       "text-foreground-strong decoration-link-decoration",
     );
@@ -231,9 +236,7 @@ describe("Solarized component consumers", () => {
     expect(input).toContain("rounded-md");
     expect(input).toContain("defineExpose({ focus:");
     expect(input).toContain("focus-visible:aria-invalid:ring-destructive");
-    expect(input).toContain(
-      "dark:focus-visible:aria-invalid:ring-destructive",
-    );
+    expect(input).toContain("dark:focus-visible:aria-invalid:ring-destructive");
     expect(textarea).toContain("bg-surface-sunken");
     expect(textarea).toContain("rounded-md");
     expect(textarea).toContain("focus-visible:aria-invalid:ring-destructive");
@@ -252,12 +255,12 @@ describe("Solarized component consumers", () => {
     const navigation = source(
       "../../components/ui/navigation-menu/NavigationMenuLink.vue",
     );
-    const popover = source(
-      "../../components/ui/popover/PopoverContent.vue",
-    );
+    const popover = source("../../components/ui/popover/PopoverContent.vue");
     const search = source("../../components/search/GlobalSearch.vue");
     const searchTrigger = source("../../components/search/SearchBar.vue");
-    const variants = source("../../../../../packages/design-system/src/variants.ts");
+    const variants = source(
+      "../../../../../packages/design-system/src/variants.ts",
+    );
 
     expect(layout).toContain("border-border-subtle");
     expect(layout).not.toContain("NotificationBadge");
@@ -266,18 +269,18 @@ describe("Solarized component consumers", () => {
     expect(layout).toContain("terminal-tab");
     expect(layout).toContain("h-[var(--uc-layout-control-height)]");
     expect(layout).toContain("flex-row items-center py-0");
-    expect(source("../../components/ui/navigation-menu/NavigationMenuLink.vue")).toContain(
-      "data-[active]:bg-surface-highlight",
-    );
-    expect(source("../../components/ui/navigation-menu/NavigationMenuLink.vue")).toContain(
-      "data-[active]:font-semibold",
-    );
+    expect(
+      source("../../components/ui/navigation-menu/NavigationMenuLink.vue"),
+    ).toContain("data-[active]:bg-surface-highlight");
+    expect(
+      source("../../components/ui/navigation-menu/NavigationMenuLink.vue"),
+    ).toContain("data-[active]:font-semibold");
     expect(layout).toContain("border-b-2 border-primary !font-semibold");
     expect(searchTrigger).toContain('variant="outline"');
     expect(searchTrigger).toContain("--uc-layout-control-padding-inline");
     expect(searchTrigger).toContain("<Kbd");
     expect(searchTrigger).toContain("<Tooltip");
-    expect(searchTrigger).toContain('/Mac|iPhone|iPad|iPod/');
+    expect(searchTrigger).toContain("/Mac|iPhone|iPad|iPod/");
     expect(searchTrigger).toContain("{{ shortcutLabel }}");
     expect(navigation).toContain("bg-surface-highlight");
     expect(navigation).toContain("focus-visible:ring-2");
@@ -291,9 +294,6 @@ describe("Solarized component consumers", () => {
 
   it("uses semantic locale markers instead of emoji flags", () => {
     const switcher = source("../../components/LanguageSwitcher.vue");
-    const landingHeader = source(
-      "../../views/landing/components/LandingHeader.vue",
-    );
     const i18n = source("../../i18n/index.ts");
     const localeTypes = source("../../i18n/types.ts");
 
@@ -303,8 +303,6 @@ describe("Solarized component consumers", () => {
     expect(switcher).toContain("shadow-float");
     expect(switcher).not.toContain("localeConfig.flag");
     expect(switcher).not.toContain("bg-accent");
-    expect(landingHeader).toContain("toggleLocale: toggleLocalePreference");
-    expect(landingHeader).not.toContain("locale.value =");
     expect(i18n).toContain('import "./utils/storage"');
     expect(localeTypes).not.toContain("flag:");
   });
@@ -372,8 +370,12 @@ describe("Solarized component consumers", () => {
     // Garden leaf green (the runtime palette bridge value for keywords).
     expect(lightRules.some((rule) => rule.foreground === "#588e67")).toBe(true);
     expect(darkRules.some((rule) => rule.foreground === "#588e67")).toBe(true);
-    expect(lightRules.some((rule) => rule.fontStyle?.includes("underline"))).toBe(true);
-    expect(darkRules.some((rule) => rule.fontStyle?.includes("underline"))).toBe(true);
+    expect(
+      lightRules.some((rule) => rule.fontStyle?.includes("underline")),
+    ).toBe(true);
+    expect(
+      darkRules.some((rule) => rule.fontStyle?.includes("underline")),
+    ).toBe(true);
     expect(monacoSource).toContain("focusBorder: SOLARIZED.base00");
     expect(monacoSource).toContain("focusBorder: SOLARIZED.base0");
   });

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, nextTick } from "vue";
-import { RouterLink } from "vue-router";
 import { useLocale } from "@/composables/useLocale";
+import { platformUrl } from "@/utils/platformUrl";
 
 const { t, locale, toggleLocale: toggleLocalePreference } = useLocale();
 const isScrolled = ref(false);
@@ -59,10 +59,14 @@ onUnmounted(() => {
     :class="{ 'is-elevated': isScrolled || isMobileMenuOpen }"
   >
     <div class="header-container">
-      <RouterLink to="/" class="brand-logotype" @click="closeMobileMenu">
+      <a
+        :href="platformUrl('/')"
+        class="brand-logotype"
+        @click="closeMobileMenu"
+      >
         <span class="brand-emblem">⌘</span>
         <span class="brand-name">UltiCode</span>
-      </RouterLink>
+      </a>
 
       <!-- 桌面端导航 -->
       <nav class="nav-links" aria-label="Main Navigation">
@@ -78,20 +82,20 @@ onUnmounted(() => {
         <button type="button" class="locale-toggle-btn" @click="toggleLocale">
           {{ locale === "zh-CN" ? "EN" : "中" }}
         </button>
-        <RouterLink to="/login" class="action-link">{{
+        <a :href="platformUrl('/login')" class="action-link">{{
           t("landing.nav.login")
-        }}</RouterLink>
-        <RouterLink to="/problemset" class="action-btn-primary">{{
+        }}</a>
+        <a :href="platformUrl('/problemset')" class="action-btn-primary">{{
           t("landing.nav.enter")
-        }}</RouterLink>
+        }}</a>
       </div>
 
       <!-- 移动端操作栏与汉堡按钮 -->
       <div class="mobile-actions">
-        <RouterLink
-          to="/problemset"
+        <a
+          :href="platformUrl('/problemset')"
           class="action-btn-primary action-btn-compact"
-          >{{ t("landing.nav.enter") }}</RouterLink
+          >{{ t("landing.nav.enter") }}</a
         >
         <button
           ref="menuBtnRef"
@@ -126,9 +130,9 @@ onUnmounted(() => {
         }}</a>
       </nav>
       <div class="mobile-drawer-footer">
-        <RouterLink to="/login" class="mobile-login-link">{{
+        <a :href="platformUrl('/login')" class="mobile-login-link">{{
           t("landing.nav.login")
-        }}</RouterLink>
+        }}</a>
         <button
           type="button"
           class="locale-toggle-btn mobile-locale-btn"

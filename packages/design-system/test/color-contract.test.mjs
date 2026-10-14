@@ -66,8 +66,14 @@ test("readCssColor resolves browser values and falls back without a DOM", async 
   const { readCssColor, SOLARIZED_PALETTE } = await import("../src/palette.ts");
 
   // No DOM: returns the canonical fallback untouched.
-  assert.equal(readCssColor("--background", SOLARIZED_PALETTE.base3), "#e3e1d1");
-  assert.equal(readCssColor("var(--background)", SOLARIZED_PALETTE.base03), "#1c2412");
+  assert.equal(
+    readCssColor("--background", SOLARIZED_PALETTE.base3),
+    "#e3e1d1",
+  );
+  assert.equal(
+    readCssColor("var(--background)", SOLARIZED_PALETTE.base03),
+    "#1c2412",
+  );
 
   // A non-canonical fallback is a programming error and is rejected.
   assert.throws(() => readCssColor("--background", "#ffffff"), TypeError);
@@ -82,8 +88,14 @@ test("readCssColor resolves browser values and falls back without a DOM", async 
     getPropertyValue: (name) => computed.get(name) ?? "",
   });
   try {
-    assert.equal(readCssColor("--background", SOLARIZED_PALETTE.base3), "#a2afa9");
-    assert.equal(readCssColor("var(--background)", SOLARIZED_PALETTE.base3), "#a2afa9");
+    assert.equal(
+      readCssColor("--background", SOLARIZED_PALETTE.base3),
+      "#a2afa9",
+    );
+    assert.equal(
+      readCssColor("var(--background)", SOLARIZED_PALETTE.base3),
+      "#a2afa9",
+    );
     assert.equal(readCssColor("--missing", SOLARIZED_PALETTE.base3), "#e3e1d1");
   } finally {
     delete globalThis.document;
@@ -92,8 +104,14 @@ test("readCssColor resolves browser values and falls back without a DOM", async 
 });
 
 test("re-exports the runtime palette bridge from the package entry", () => {
-  const indexSource = readFileSync(resolve(packageRoot, "src/index.ts"), "utf8");
-  assert.match(indexSource, /export \{ readCssColor, SOLARIZED_PALETTE \} from "\.\/palette";/);
+  const indexSource = readFileSync(
+    resolve(packageRoot, "src/index.ts"),
+    "utf8",
+  );
+  assert.match(
+    indexSource,
+    /export \{ readCssColor, SOLARIZED_PALETTE \} from "\.\/palette";/,
+  );
   assert.match(indexSource, /export type \{[\s\S]*SolarizedPaletteKey/);
 });
 
@@ -105,7 +123,13 @@ const SCAN_EXTENSIONS = /\.(ts|tsx|vue|js|mjs|jsx|glsl|css|svg)$/;
 const TEST_FILE = /\.(test|spec)\.[cm]?[jt]sx?$/;
 // Third-party bundles and generated output are out of contract scope
 // (coverage/lcov reports are tooling output, never first-party source).
-const EXCLUDED_SEGMENTS = ["node_modules", "dist", "coverage", "__tests__", "vendor"];
+const EXCLUDED_SEGMENTS = [
+  "node_modules",
+  "dist",
+  "coverage",
+  "__tests__",
+  "vendor",
+];
 
 const HEX_RE = /#[0-9a-fA-F]{3,4}\b|#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{8}\b/g;
 const NUM_HEX_RE = /\b0x[0-9a-fA-F]{6}\b/g;
@@ -132,11 +156,16 @@ function scanFirstPartySource() {
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
       if (entry.name.startsWith(".")) continue;
       const path = join(dir, entry.name);
-      if (EXCLUDED_SEGMENTS.some((segment) => path.split("/").includes(segment))) {
+      if (
+        EXCLUDED_SEGMENTS.some((segment) => path.split("/").includes(segment))
+      ) {
         continue;
       }
       if (entry.isDirectory()) walk(path);
-      else if (SCAN_EXTENSIONS.test(entry.name) && !TEST_FILE.test(entry.name)) {
+      else if (
+        SCAN_EXTENSIONS.test(entry.name) &&
+        !TEST_FILE.test(entry.name)
+      ) {
         files.push(path);
       }
     }
@@ -163,12 +192,16 @@ function scanFirstPartySource() {
       if (!allowed.has(literal)) flagged.add(literal);
     }
     for (const match of scanSource.matchAll(NUM_HEX_RE)) {
-      if (!allowed.has(match[0].toLowerCase())) flagged.add(match[0].toLowerCase());
+      if (!allowed.has(match[0].toLowerCase()))
+        flagged.add(match[0].toLowerCase());
     }
-    for (const match of scanSource.matchAll(DIRECT_COLOR_RE)) flagged.add(match[0].toLowerCase());
-    for (const match of scanSource.matchAll(TAILWIND_COLOR_RE)) flagged.add(match[0].toLowerCase());
+    for (const match of scanSource.matchAll(DIRECT_COLOR_RE))
+      flagged.add(match[0].toLowerCase());
+    for (const match of scanSource.matchAll(TAILWIND_COLOR_RE))
+      flagged.add(match[0].toLowerCase());
     if (relativePath !== "packages/design-system/style.css") {
-      for (const match of scanSource.matchAll(LEGACY_THEME_TOKEN_RE)) flagged.add(match[0].toLowerCase());
+      for (const match of scanSource.matchAll(LEGACY_THEME_TOKEN_RE))
+        flagged.add(match[0].toLowerCase());
     }
     if (flagged.size) findings[relativePath] = [...flagged].sort();
   }
@@ -244,45 +277,87 @@ const ALLOWED_FILES = {
   // definition. Sample-data strings ("#146", "#2904", "#704") are problem IDs
   // in copy, not colors. Do not add NEW files here — consume tokens instead.
   // ---------------------------------------------------------------------------
-  "apps/console/src/i18n/locales/en-US/landing.ts": {
+  "apps/landing/src/style.css": {
+    reason: "standalone Landing design tokens and document reset",
+    literals: [
+      "#19220e",
+      "#3e4433",
+      "#545c45",
+      "#838f81",
+      "#92b3cf",
+      "#a2afa9",
+      "#e3e1d1",
+      "#f7f6f0",
+      "bg-sky",
+      "rgba(",
+    ],
+  },
+  "apps/landing/src/i18n/locales/en-US/landing.ts": {
     reason: "landing sample-data strings (problem IDs), not colors",
     literals: ["#146", "#2904", "#704"],
   },
-  "apps/console/src/i18n/locales/zh-CN/landing.ts": {
+  "apps/landing/src/i18n/locales/zh-CN/landing.ts": {
     reason: "landing sample-data strings (problem IDs), not colors",
     literals: ["#146", "#2904", "#704"],
   },
-  "apps/console/src/views/landing/LandingView.vue": {
+  "apps/landing/src/views/landing/LandingView.vue": {
     reason: "landing design source; blueprint-frame decoration palette",
     literals: [
-      "#19220e", "#3e4433", "#545c45", "#838f81", "#92b3cf",
-      "#a2afa9", "#e3e1d1", "#f7f6f0", "bg-sky", "rgba(",
+      "#19220e",
+      "#3e4433",
+      "#545c45",
+      "#838f81",
+      "#92b3cf",
+      "#a2afa9",
+      "#e3e1d1",
+      "#f7f6f0",
+      "bg-sky",
+      "rgba(",
     ],
   },
-  "apps/console/src/views/landing/components/FinalStorySection.vue": {
+  "apps/landing/src/views/landing/components/FinalStorySection.vue": {
     reason: "landing design source; section decoration palette",
-    literals: ["#19220e", "#203325", "#38402f", "#59614c", "#e3e1d1", "#ffffff", "rgba("],
+    literals: [
+      "#19220e",
+      "#203325",
+      "#38402f",
+      "#59614c",
+      "#e3e1d1",
+      "#ffffff",
+      "rgba(",
+    ],
   },
-  "apps/console/src/views/landing/components/HeroSection.vue": {
+  "apps/landing/src/views/landing/components/HeroSection.vue": {
     reason: "landing design source; hero showcase + accent palette",
     literals: [
-      "#146", "#3f683b", "#588e67", "#6e5b28", "#8f4822", "#c0bcb0",
-      "#e2e8d0", "#f2efe7", "#f4f2ea", "#faf9f5", "#fff", "bg-sky", "rgba(",
+      "#146",
+      "#3f683b",
+      "#588e67",
+      "#6e5b28",
+      "#8f4822",
+      "#c0bcb0",
+      "#e2e8d0",
+      "#f2efe7",
+      "#f4f2ea",
+      "#faf9f5",
+      "#fff",
+      "bg-sky",
+      "rgba(",
     ],
   },
-  "apps/console/src/views/landing/components/LandingFooter.vue": {
+  "apps/landing/src/views/landing/components/LandingFooter.vue": {
     reason: "landing design source; footer decoration palette",
     literals: ["#588e67", "#8c9985", "#e3e1d1", "rgba("],
   },
-  "apps/console/src/views/landing/components/LandingHeader.vue": {
+  "apps/landing/src/views/landing/components/LandingHeader.vue": {
     reason: "landing design source; translucent header surfaces",
     literals: ["#ffffff", "rgba("],
   },
-  "apps/console/src/views/landing/components/ProductProofSection.vue": {
+  "apps/landing/src/views/landing/components/ProductProofSection.vue": {
     reason: "landing design source; translucent proof surfaces",
     literals: ["bg-sky", "rgba("],
   },
-  "apps/console/src/views/landing/components/UseCasesSection.vue": {
+  "apps/landing/src/views/landing/components/UseCasesSection.vue": {
     reason: "landing design source; use-case card decoration palette",
     literals: ["#2d3a24", "#8c6228", "#eeece1", "bg-sky", "rgba("],
   },
@@ -333,4 +408,3 @@ test("scanner contract rejects undeclared color literals in first-party source",
     );
   }
 });
-

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useI18n } from "vue-i18n";
-import { RouterLink } from "vue-router";
+import { platformUrl } from "@/utils/platformUrl";
 
 const { t } = useI18n();
 </script>
@@ -21,12 +21,12 @@ const { t } = useI18n();
       </p>
 
       <div class="final-cta-block">
-        <RouterLink to="/problemset" class="large-cta-btn">
+        <a :href="platformUrl('/problemset')" class="large-cta-btn">
           {{ t("landing.finalStory.ctaPrimary") }}
-        </RouterLink>
-        <RouterLink to="/login" class="sub-cta-link">
+        </a>
+        <a :href="platformUrl('/login')" class="sub-cta-link">
           {{ t("landing.finalStory.ctaSecondary") }}
-        </RouterLink>
+        </a>
       </div>
     </div>
   </section>

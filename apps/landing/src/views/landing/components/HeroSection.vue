@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from "vue";
+import { platformUrl } from "@/utils/platformUrl";
 import { useI18n } from "vue-i18n";
-import { RouterLink } from "vue-router";
 import foliageLeftUrl from "../../../assets/landing/foliage-left.png";
 import foliageRightUrl from "../../../assets/landing/foliage-right.png";
 
@@ -143,9 +143,9 @@ onUnmounted(() => {
 
       <p class="hero-description">{{ t("landing.hero.description") }}</p>
 
-      <RouterLink to="/problemset" class="primary-cta-btn">
+      <a :href="platformUrl('/problemset')" class="primary-cta-btn">
         {{ t("landing.hero.ctaPrimary") }}
-      </RouterLink>
+      </a>
     </div>
 
     <div class="hero-showcase">
@@ -228,12 +228,12 @@ onUnmounted(() => {
           <span>{{ t("landing.hero.sampleFootnote") }}</span>
         </p>
         <div>
-          <RouterLink to="/problemset" class="showcase-primary">
+          <a :href="platformUrl('/problemset')" class="showcase-primary">
             {{ t("landing.proof.workspaceCta") }}
-          </RouterLink>
-          <RouterLink to="/contest" class="showcase-secondary">
+          </a>
+          <a :href="platformUrl('/contest')" class="showcase-secondary">
             {{ t("landing.useCases.case2Action") }}
-          </RouterLink>
+          </a>
         </div>
       </div>
     </div>
@@ -246,7 +246,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 4.5rem;
-  padding: 0 var(--uc-layout-page-gutter) 5.5rem;
+  padding: 0 var(--landing-page-gutter) 5.5rem;
   overflow: clip;
 }
 
@@ -310,7 +310,7 @@ onUnmounted(() => {
   font-size: clamp(3.5rem, 6vw, 5rem);
   font-weight: 400;
   line-height: 1.1;
-  letter-spacing: var(--uc-locale-display-tracking);
+  letter-spacing: var(--landing-display-tracking);
   white-space: nowrap;
   color: var(--text-primary);
 }
@@ -341,7 +341,7 @@ onUnmounted(() => {
 :global(html[lang="zh-CN"] .hero-headline) {
   font-size: clamp(3.75rem, 5.2vw, 4.5rem);
   line-height: 1.18;
-  letter-spacing: var(--uc-locale-display-tracking);
+  letter-spacing: var(--landing-display-tracking);
 }
 
 :global(html[lang="en-US"] .headline-editorial-wrap) {
@@ -355,7 +355,7 @@ onUnmounted(() => {
 :global(html[lang="en-US"] .hero-headline) {
   font-size: clamp(4rem, 6.2vw, 5.25rem);
   line-height: 1.08;
-  letter-spacing: var(--uc-locale-display-tracking);
+  letter-spacing: var(--landing-display-tracking);
 }
 
 .hero-description {

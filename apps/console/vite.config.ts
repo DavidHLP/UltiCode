@@ -125,6 +125,12 @@ export default defineConfig({
     allowedHosts: ['.trycloudflare.com'],
     port: 9002,
     proxy: {
+      '/landing': {
+        target: 'http://127.0.0.1:9004',
+        changeOrigin: true,
+        rewrite: (requestPath) =>
+          requestPath === '/landing' ? '/landing/' : requestPath,
+      },
       '/api/agent': {
         target: 'http://127.0.0.1:8000',
         rewrite: (requestPath) => requestPath.replace(/^\/api/, ''),

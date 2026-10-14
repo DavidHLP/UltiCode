@@ -11,19 +11,23 @@ vi.mock("@ulticode/auth-core", () => ({
 }));
 
 describe("Router Landing and Root Redirect", () => {
-  it("defines the /landing route", () => {
+  it("redirects the legacy /landing route to the standalone app", () => {
     const landingRoute = router.getRoutes().find((r) => r.path === "/landing");
     expect(landingRoute).toBeDefined();
     expect(landingRoute?.name).toBe("landing");
+    expect(landingRoute?.redirect).toBe("/landing/");
+    expect(landingRoute?.component).toBeUndefined();
   });
 
   it("protects the Agent conversation workspace", () => {
-    const workspaceRoute = router.getRoutes().find((route) => route.name === "agent-workspace");
+    const workspaceRoute = router
+      .getRoutes()
+      .find((route) => route.name === "agent-workspace");
     expect(workspaceRoute?.path).toBe("/agent");
     expect(workspaceRoute?.meta.requiresAuth).toBe(true);
   });
 
-  it("redirects / to /landing when unauthenticated", () => {
+  it("redirects / to standalone Landing when unauthenticated", () => {
     vi.mocked(useAuthStore).mockReturnValue({
       isAuthenticated: false,
     } as never);
@@ -32,7 +36,7 @@ describe("Router Landing and Root Redirect", () => {
     expect(rootRoute).toBeDefined();
     if (typeof rootRoute?.redirect === "function") {
       const target = rootRoute.redirect({} as never);
-      expect(target).toBe("/landing");
+      expect(target).toBe("/landing/");
     } else {
       expect.fail("Root redirect is not a function");
     }

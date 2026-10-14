@@ -151,8 +151,7 @@ export default {
     instLink2: "代码无泄漏",
     instLink3: "物理沙盒",
     instLink4: "返回顶部",
-    copyright:
-      "© 2026 UltiCode Inc. 遵循严苛的确定性评测准则保留所有权利。",
+    copyright: "© 2026 UltiCode Inc. 遵循严苛的确定性评测准则保留所有权利。",
     systemNominal: "UTC+8 · SYSTEM NOMINAL",
   },
 } as const;

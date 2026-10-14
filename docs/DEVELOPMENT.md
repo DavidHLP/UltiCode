@@ -121,6 +121,7 @@ pnpm --dir apps/console type-check
 | 表面 | 地址/端口 |
 | --- | --- |
 | Core parent | `9108`，`/api/v1/core/health/ready`，不直接持有业务表 |
+| Landing | <http://localhost:9002/landing/>（独立 Vite：9004） |
 | Console | <http://localhost:9002> |
 | Management | <http://localhost:9003> |
 | Auth/Admin/App/Notification | `9101/9102/9103/9105` |
@@ -136,20 +137,24 @@ Base Compose 不发布基础设施或 backend 端口；开发覆盖层只绑定 
 ```bash
 pnpm --dir apps/console install
 pnpm --dir apps/management install
+pnpm --dir apps/landing install
 
 pnpm --dir apps/console dev
 pnpm --dir apps/management dev
+pnpm --dir apps/landing dev
 pnpm --dir packages/auth-core type-check
 pnpm --dir packages/auth-core test:coverage
 ```
+
+Landing 生产构建使用 `/landing/` 为基础路径，平台链接默认使用同源 Console。若 Landing 与 OJ 平台部署在不同主机，设置 `VITE_PLATFORM_URL` 为 HTTP(S) origin。
 
 前端只有一个根 `pnpm-lock.yaml`（成员 lock 已删除），所以 `.github/dependabot.yml` 的 npm 只有一个
 `directory: "/"` 的 block。pnpm workspace 只能从根更新：成员目录下 Dependabot 从父目录取回的根 lock 会被
 dependabot-core 当作 support file 丢弃，PR 只改 manifest，必然过不了 CI 的五处
 `pnpm install --frozen-lockfile`，update job 还会按成员 manifest 报 `misconfigured_tooling`。
 这个根 block 同时覆盖 `packages/*` 与根 manifest。
-根 `package.json`、`pnpm-lock.yaml` 或 `pnpm-workspace.yaml` 变化会触发 Console、Management
-以及 Docker CI 门禁，覆盖共享依赖更新及其镜像安装验证。
+根 `package.json`、`pnpm-lock.yaml` 或 `pnpm-workspace.yaml` 变化会触发 Console、Management、Landing
+以及 Docker CI 门禁，覆盖独立 Landing 与其镜像安装验证。
 
 ### Web v2 前端升级基线
 
@@ -158,7 +163,7 @@ dependabot-core 当作 support file 丢弃，PR 只改 manifest，必然过不�
 该提交是改动前的对照与回退来源，不随分支后续推进改变；基线定义不表示 Web v2 已发布，
 也不将前端 package version 改为 `2.0.0`。
 
-升级范围是 `apps/console/`、`apps/management/` 及其消费的 `packages/`。
+升级范围包括 `apps/console/`、`apps/management/`、独立 `apps/landing/` 及其消费的 `packages/`。Landing 页面、样式、双语文案与素材只由 Landing 应用持有；生产由现有 Console Nginx 在 `/landing/` 提供，不复用 Console bootstrap、主题或路由组件。
 沿用 Vue 3、TypeScript、Vite、Pinia、Vue Router、Tailwind CSS 和现有组件体系；
 依赖的精确版本由根 `pnpm-lock.yaml` 固定，不另建 v2 应用、第二份 lock 或平行共享层。
 安装使用根目录 `pnpm install --frozen-lockfile`，Node.js 满足 `>=22.12.0`；

@@ -1,4 +1,4 @@
-# Reusable: frontend gates — lint, type-check, tests for both apps,
+# Reusable: frontend gates — lint, type-check, tests for all three frontend apps,
 # shared auth-core package tests, and management i18n completeness.
 #
 # Path filtering happens in the caller (ci.yml); which app changed is passed
@@ -15,6 +15,10 @@ on:
         type: boolean
       management_changed:
         description: 'management app or shared packages changed'
+        required: true
+        type: boolean
+      landing_changed:
+        description: 'standalone Landing app changed'
         required: true
         type: boolean
 
@@ -51,11 +55,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        app: [console, management]
+        app: [console, management, landing]
     steps:
       - name: Check if app changed
         id: should-run
-        if: ${{ (matrix.app == 'console' && inputs.console_changed) || (matrix.app == 'management' && inputs.management_changed) }}
+        if: ${{ (matrix.app == 'console' && inputs.console_changed) || (matrix.app == 'management' && inputs.management_changed) || (matrix.app == 'landing' && inputs.landing_changed) }}
         run: echo "run=true" >> "$GITHUB_OUTPUT"
 
       - name: Checkout repository
@@ -95,11 +99,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        app: [console, management]
+        app: [console, management, landing]
     steps:
       - name: Check if app changed
         id: should-run
-        if: ${{ (matrix.app == 'console' && inputs.console_changed) || (matrix.app == 'management' && inputs.management_changed) }}
+        if: ${{ (matrix.app == 'console' && inputs.console_changed) || (matrix.app == 'management' && inputs.management_changed) || (matrix.app == 'landing' && inputs.landing_changed) }}
         run: echo "run=true" >> "$GITHUB_OUTPUT"
 
       - name: Checkout repository
@@ -139,11 +143,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        app: [console, management]
+        app: [console, management, landing]
     steps:
       - name: Check if app changed
         id: should-run
-        if: ${{ (matrix.app == 'console' && inputs.console_changed) || (matrix.app == 'management' && inputs.management_changed) }}
+        if: ${{ (matrix.app == 'console' && inputs.console_changed) || (matrix.app == 'management' && inputs.management_changed) || (matrix.app == 'landing' && inputs.landing_changed) }}
         run: echo "run=true" >> "$GITHUB_OUTPUT"
 
       - name: Checkout repository

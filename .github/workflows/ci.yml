@@ -1,19 +1,3 @@
-# CI orchestrator (structured like a pipeline graph, not a monolith):
-#
-#   changes ─┬─ security  (_security.yml)   always on
-#            ├─ backend   (_backend.yml)    gated by path filter
-#            ├─ frontend  (_frontend.yml)   gated by path filter
-#            ├─ contract  (_contract.yml)   gated by path filter
-#            └─ docker    (_docker.yml)     gated by path filter
-#                    └────── ci-ok ── single stable required context
-#
-# Extension rules:
-# - A new gate is a new `_name.yml` reusable workflow plus one calling job
-#   here and one entry in `ci-ok.needs`. Branch protection never changes:
-#   it only ever requires `ci-ok`.
-# - Path filters live only in this file; reusable workflows stay unconditioned.
-# - Skipped stages count as green in `ci-ok` (docs/CI-only PRs must not wedge
-#   merges), but the `changes` job itself must succeed outright.
 name: CI
 
 on:
@@ -21,121 +5,91 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  merge_group:
+    types: [checks_requested]
   workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
 
 permissions:
   contents: read
-  pull-requests: read
 
 jobs:
-  # --- Which areas changed? Each heavier gate keys off these outputs. ---
   changes:
     name: Detect Changes
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
-      backend: ${{ steps.filter.outputs.backend }}
-      console: ${{ steps.filter.outputs.console }}
-      management: ${{ steps.filter.outputs.management }}
-      docker: ${{ steps.filter.outputs.docker }}
-      contract: ${{ steps.filter.outputs.contract }}
+      backend: ${{ steps.select.outputs.backend }}
+      console: ${{ steps.select.outputs.console }}
+      management: ${{ steps.select.outputs.management }}
+      contract: ${{ steps.select.outputs.contract }}
+      docker: ${{ steps.select.outputs.docker }}
+      agent: ${{ steps.select.outputs.agent }}
+      release: ${{ steps.select.outputs.release }}
+      full: ${{ steps.select.outputs.full }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Detect changed paths
-        id: filter
-        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4
         with:
-          filters: |
-            backend:
-              - 'services/**'
-              - 'init-db/**'
-              - 'scripts/**'
-              - 'docker/redis/**'
-              # Docker topology and observability changes must also exercise
-              # the backend workflow's dynamic infrastructure contracts.
-              - 'docker/docker-compose*.yml'
-              - 'infrastructure/observability/**'
-              - 'infrastructure/nginx/**'
-              - '.github/workflows/ci.yml'
-              - '.github/workflows/_backend.yml'
-              - '.github/services-matrix.json'
-            console:
-              - 'package.json'
-              - 'pnpm-lock.yaml'
-              - 'pnpm-workspace.yaml'
-              - 'apps/console/**'
-              - 'packages/**'
-              - 'shared/**'
-              - '.github/workflows/ci.yml'
-              - '.github/workflows/_frontend.yml'
-            management:
-              - 'package.json'
-              - 'pnpm-lock.yaml'
-              - 'pnpm-workspace.yaml'
-              - 'apps/management/**'
-              - 'packages/**'
-              - 'shared/**'
-              - '.github/workflows/ci.yml'
-              - '.github/workflows/_frontend.yml'
-            contract:
-              - 'services/api/**'
-              - 'services/pom.xml'
-              - 'services/docs/CONTRACT_COMPAT_GATE.md'
-              - 'scripts/test/api-contract-boundary-contract.sh'
-              - 'scripts/test/dubbo-provider-reference-contract.sh'
-              - 'scripts/test/submission-compatibility-retirement-contract.sh'
-              - '.github/workflows/ci.yml'
-              - '.github/workflows/_contract.yml'
-            docker:
-              - 'package.json'
-              - 'pnpm-lock.yaml'
-              - 'pnpm-workspace.yaml'
-              - 'services/**'
-              - 'apps/console/Dockerfile'
-              - 'apps/management/Dockerfile'
-              - 'docker/docker-compose*.yml'
-              - 'infrastructure/observability/**'
-              - 'docker/prometheus/**'
-              - 'services/docs/OBSERVABILITY_RUNBOOK.md'
-              - '.github/actions/**'
-              - '.github/workflows/docker-publish.yml'
-              - '.github/workflows/cd-deploy.yml'
-              - '.github/workflows/cd-rollback.yml'
-              - 'scripts/runbooks/image-reference-policy.sh'
-              - 'scripts/test/supply-chain-contract.sh'
-              - 'scripts/runbooks/deployment-integrity.sh'
-              - 'scripts/test/deployment-integrity-contract.sh'
-              - '.dockerignore'
-              - 'apps/console/nginx.conf'
-              - 'apps/management/nginx.conf'
-              - 'infrastructure/nginx/**'
-              - '.github/workflows/ci.yml'
-              - '.github/workflows/_docker.yml'
-              - '.github/services-matrix.json'
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Select gates from event diff
+        id: select
+        run: python3 scripts/ci/select-checks.py
 
-  # --- Security: runs on every change set, independent of area gates. ---
+  governance:
+    name: CI Governance
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.11'
+      - name: Install pinned policy dependency
+        run: python -m pip install --disable-pip-version-check --requirement scripts/ci/requirements.txt
+      - name: Install actionlint
+        run: |
+          tool_dir=$(mktemp -d "$RUNNER_TEMP/actionlint.XXXXXX")
+          archive="$tool_dir/actionlint.tar.gz"
+          curl --fail --silent --show-error --location --retry 3 \
+            https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz \
+            --output "$archive"
+          printf '%s  %s\n' 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8 "$archive" | sha256sum --check
+          tar -xzf "$archive" -C "$tool_dir" actionlint
+          echo "$tool_dir" >> "$GITHUB_PATH"
+      - name: Validate Actions syntax and embedded shell
+        run: actionlint
+      - name: Validate CI policy
+        run: python3 scripts/ci/check-workflows.py --root .
+      - name: Test CI selection and gate aggregation
+        run: bash scripts/test/cicd-contract.sh
+      - name: Run zero-infrastructure validation contract
+        run: bash scripts/test/zero-infra-validation-contract.sh --static-only
+
   security:
     name: Security Gate
     needs: changes
     if: ${{ !cancelled() && needs.changes.result == 'success' }}
     uses: ./.github/workflows/_security.yml
-    secrets: inherit
 
-  # --- Backend gates ---
   backend:
     name: Backend
     needs: changes
     if: ${{ !cancelled() && needs.changes.outputs.backend == 'true' }}
     uses: ./.github/workflows/_backend.yml
-    secrets: inherit
 
-  # --- Frontend gates (either app or shared packages) ---
   frontend:
     name: Frontend
     needs: changes
@@ -144,40 +98,49 @@ jobs:
     with:
       console_changed: ${{ needs.changes.outputs.console == 'true' }}
       management_changed: ${{ needs.changes.outputs.management == 'true' }}
-    secrets: inherit
 
-  # --- Contract compatibility gate ---
   contract:
     name: Contract Compatibility
     needs: changes
     if: ${{ !cancelled() && needs.changes.outputs.contract == 'true' }}
     uses: ./.github/workflows/_contract.yml
-    secrets: inherit
 
-  # --- Docker build verification ---
   docker:
     name: Docker Verify
     needs: changes
     if: ${{ !cancelled() && needs.changes.outputs.docker == 'true' }}
     uses: ./.github/workflows/_docker.yml
-    secrets: inherit
 
-  # --- The one summary context for branch protection. Fails unless every
-  #     stage succeeded; `skipped` is fine because stages are path-gated. ---
+  agent:
+    name: Agent Tests
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.agent == 'true' }}
+    uses: ./.github/workflows/_agent.yml
+
   ci-ok:
     name: ci-ok
-    needs: [changes, security, backend, frontend, contract, docker]
+    needs: [changes, governance, security, backend, frontend, contract, docker, agent]
     if: ${{ always() }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      contents: read
     steps:
-      - name: All CI stages must have succeeded (or been skipped)
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Verify every selected gate succeeded
         env:
           RESULTS: ${{ toJSON(needs) }}
-        run: |
-          echo "$RESULTS" | jq .
-          jq -e '
-            .changes.result == "success"
-            and ([to_entries[] | select(.key != "changes") | .value.result]
-                 | all(. == "success" or . == "skipped"))
-          ' <<< "$RESULTS" > /dev/null
+          SELECTED: '{"backend":"${{ needs.changes.outputs.backend }}","console":"${{ needs.changes.outputs.console }}","management":"${{ needs.changes.outputs.management }}","contract":"${{ needs.changes.outputs.contract }}","docker":"${{ needs.changes.outputs.docker }}","agent":"${{ needs.changes.outputs.agent }}"}'
+        run: python3 scripts/ci/check-results.py
+
+  publish:
+    needs: [changes, ci-ok]
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.changes.outputs.release == 'true' && needs.ci-ok.result == 'success' }}
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    uses: ./.github/workflows/docker-publish.yml

@@ -13,9 +13,12 @@ MATRIX = json.loads((ROOT / ".github/services-matrix.json").read_text())
 SHA = "c" * 40
 PREFIX = "ghcr.io/davidhlp/ulticode"
 DIGEST = "sha256:" + "a" * 64
-GITHUB_WRITER = {"GITHUB_ACTIONS": "true", "GITHUB_REPOSITORY": "DavidHLP/UltiCode",
-                 "GITHUB_WORKFLOW_REF": "DavidHLP/UltiCode/.github/workflows/docker-publish.yml@refs/heads/main",
+IDENTITY = "https://github.com/DavidHLP/UltiCode/.github/workflows/docker-publish.yml@refs/heads/main"
+GITHUB_WRITER = {"GITHUB_ACTIONS": "true", "GITHUB_EVENT_NAME": "push", "GITHUB_REPOSITORY": "DavidHLP/UltiCode",
+                 "GITHUB_WORKFLOW_REF": "DavidHLP/UltiCode/.github/workflows/ci.yml@refs/heads/main",
                  "GITHUB_REF": "refs/heads/main"}
+assert IDENTITY.endswith("/.github/workflows/docker-publish.yml@refs/heads/main")
+assert GITHUB_WRITER["GITHUB_WORKFLOW_REF"].endswith("/.github/workflows/ci.yml@refs/heads/main")
 
 
 def canonical(path):
@@ -40,9 +43,16 @@ def seed(base):
         var = name.upper().replace("-", "_") + "_IMAGE_REF"
         (folder / f"{name}.image-ref").write_text(f"{var}={ref}\n")
         spdx = {"spdxVersion": "SPDX-2.3", "name": name}
-        provenance = {"buildType": "https://slsa.dev/provenance/v1",
-                      "builder": {"id": "DavidHLP/UltiCode/.github/workflows/docker-publish.yml@refs/heads/main"},
-                      "invocation": {"configSource": {"uri": f"https://github.com/DavidHLP/UltiCode@{SHA}"}}}
+        provenance = {"buildType": "https://mobyproject.org/buildkit@v1",
+                      "invocation": {"configSource": {"entryPoint": "Dockerfile"},
+                                     "parameters": {"root": {"configSource": {"path": "Dockerfile"},
+                                                              "request": {"args": {"vcs:source": "git@github.com:DavidHLP/UltiCode.git",
+                                                                                   "vcs:revision": SHA}}}}},
+                      "buildConfig": {"digestMapping": {"sha256:" + "1" * 64: "step0"},
+                                      "llbDefinition": [{"id": "step0"}]},
+                      "metadata": {"https://mobyproject.org/buildkit@v1#metadata": {
+                          "vcs": {"source": "git@github.com:DavidHLP/UltiCode.git", "revision": SHA},
+                          "source": {"infos": [{"filename": "Dockerfile", "language": "Dockerfile", "data": "Rk9P"}]}}}}
         trivy = {"SchemaVersion": 2, "ArtifactType": "container_image", "ArtifactName": ref,
                  "Metadata": {"ImageID": DIGEST},
                  "Results": [{"Target": "os", "Class": "os-pkgs", "Type": "alpine", "Vulnerabilities": []}]}
@@ -109,7 +119,7 @@ if args[0] == "verify-attestation":
     subject=ref.split("@",1)[0]
     if os.environ.get("COSIGN_FAIL") == "wrong-subject": subject=subject+"/other"
     if os.environ.get("COSIGN_FAIL") == "wrong-source" and kind == "slsaprovenance":
-        predicate["invocation"]["configSource"]["uri"]="https://github.com/DavidHLP/UltiCode@"+"d"*40
+        predicate["invocation"]["parameters"]["root"]["request"]["args"]["vcs:revision"]="d"*40
     if os.environ.get("COSIGN_FAIL") == "wrong-predicate" and kind == "spdxjson": predicate["name"]="not-candidate"
     predicate_type="https://spdx.dev/Document" if kind == "spdxjson" else "https://slsa.dev/provenance/v0.2"
     statement={"_type":"https://in-toto.io/Statement/v0.1","predicateType":predicate_type,
@@ -158,6 +168,8 @@ def main():
         assert "group: ulticode-release-tag-writer" in workflow and "cancel-in-progress: false" in workflow
         assert_reject_without_write(root, bindir, state, log, None, "--execute")
         assert not log.read_text(), "local --execute must stop before registry access"
+        result = call(root, bindir, state, log, "--execute", **{**GITHUB_WRITER, "GITHUB_EVENT_NAME": "workflow_dispatch"})
+        assert result.returncode != 0 and not log.read_text(), "non-push --execute must stop before registry access"
         for filename in ("release-manifest.txt", "release-set.json"):
             conflict_path = root / filename
             conflict_path.write_text("different content\n")
@@ -218,9 +230,14 @@ def main():
         valid_provenance = provenance_path.read_bytes()
         def wrong_provenance(r):
             proof = canonical(provenance_path)
-            proof["invocation"]["configSource"]["uri"] = "https://github.com/DavidHLP/UltiCode@" + "f" * 40
+            proof["invocation"]["parameters"]["root"]["request"]["args"]["vcs:source"] = "git@github.com:DavidHLP/UltiCode.git@" + "f" * 40
             provenance_path.write_text(json.dumps(proof))
         assert_reject_without_write(root, bindir, state, log, wrong_provenance)
+        def wrong_revision(r):
+            proof = canonical(provenance_path)
+            proof["invocation"]["parameters"]["root"]["request"]["args"]["vcs:revision"] = "e" * 40
+            provenance_path.write_text(json.dumps(proof))
+        assert_reject_without_write(root, bindir, state, log, wrong_revision)
         provenance_path.write_bytes(valid_provenance)
         def extra_provenance_subject(r):
             proof = canonical(provenance_path)

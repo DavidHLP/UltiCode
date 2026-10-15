@@ -90,6 +90,43 @@ def validate_trivy(report: object, ref: str) -> None:
         fail("Trivy report must contain at least one os-pkgs result")
 
 
+def validate_buildkit_predicate(predicate: object, source_sha: str) -> None:
+    expected_sources = {
+        "git@github.com:DavidHLP/UltiCode.git",
+        "https://github.com/DavidHLP/UltiCode",
+        "https://github.com/DavidHLP/UltiCode.git",
+    }
+    try:
+        invocation = predicate["invocation"]
+        parameters = invocation["parameters"]
+        root = parameters["root"]
+        args = root["request"]["args"]
+        vcs = predicate["metadata"]["https://mobyproject.org/buildkit@v1#metadata"]["vcs"]
+        build_config = predicate["buildConfig"]
+        source_infos = predicate["metadata"]["https://mobyproject.org/buildkit@v1#metadata"]["source"]["infos"]
+        valid = (
+            predicate.get("buildType") == "https://mobyproject.org/buildkit@v1"
+            and invocation.get("configSource", {}).get("entryPoint") == "Dockerfile"
+            and root["configSource"].get("path") == "Dockerfile"
+            and args.get("vcs:source") in expected_sources
+            and args.get("vcs:revision") == source_sha
+            and vcs.get("source") in expected_sources
+            and vcs.get("revision") == source_sha
+            and isinstance(build_config.get("digestMapping"), dict)
+            and bool(build_config["digestMapping"])
+            and isinstance(build_config.get("llbDefinition"), list)
+            and bool(build_config["llbDefinition"])
+            and isinstance(source_infos, list)
+            and any(isinstance(info, dict) and info.get("filename") == "Dockerfile"
+                    and info.get("language") == "Dockerfile" and isinstance(info.get("data"), str)
+                    and info["data"] for info in source_infos)
+        )
+    except (KeyError, AttributeError, TypeError):
+        valid = False
+    if not valid:
+        fail("BuildKit provenance source, revision, recipe, or build type mismatch")
+
+
 def verified_statement(output: str, kind: str, ref: str, source: str) -> object:
     try:
         envelopes = json.loads(output)
@@ -113,7 +150,10 @@ def verified_statement(output: str, kind: str, ref: str, source: str) -> object:
         if not isinstance(subjects, list) or len(subjects) != 1:
             continue
         subject = subjects[0]
-        if not isinstance(subject, dict) or subject.get("name") != ref.split("@", 1)[0]:
+        image_name = ref.split("@", 1)[0]
+        if not isinstance(subject, dict) or not isinstance(subject.get("name"), str):
+            continue
+        if subject["name"] != image_name and not subject["name"].startswith(f"pkg:docker/{image_name}@"):
             continue
         digest_map = subject.get("digest")
         if not isinstance(digest_map, dict) or digest_map.get("sha256") != ref.rsplit("sha256:", 1)[1]:
@@ -128,9 +168,8 @@ def verified_statement(output: str, kind: str, ref: str, source: str) -> object:
     if statement.get("predicateType") != expected_type:
         fail(f"verified {kind} predicate type mismatch")
     if kind == "slsaprovenance":
-        uri = statement.get("predicate", {}).get("invocation", {}).get("configSource", {}).get("uri") if isinstance(statement.get("predicate"), dict) else None
-        if uri != source:
-            fail("verified provenance source commit mismatch")
+        validate_buildkit_predicate(statement.get("predicate"), source.rsplit("@", 1)[1])
+
     return statement.get("predicate")
 
 def assert_outputs_unchanged(evidence: Path, outputs: dict[str, str]) -> None:
@@ -150,8 +189,9 @@ def write_outputs(evidence: Path, outputs: dict[str, str]) -> None:
                 stream.write(content)
 
 def require_serialized_github_writer() -> None:
-    expected_ref = "DavidHLP/UltiCode/.github/workflows/docker-publish.yml@refs/heads/main"
+    expected_ref = "DavidHLP/UltiCode/.github/workflows/ci.yml@refs/heads/main"
     if (os.environ.get("GITHUB_ACTIONS") != "true"
+            or os.environ.get("GITHUB_EVENT_NAME") != "push"
             or os.environ.get("GITHUB_REPOSITORY") != "DavidHLP/UltiCode"
             or os.environ.get("GITHUB_WORKFLOW_REF") != expected_ref
             or os.environ.get("GITHUB_REF") != "refs/heads/main"):
@@ -199,9 +239,8 @@ def read_candidate(directory: Path, service: dict[str, object], source_sha: str,
     sbom = load_json(expected_dir / f"{name}.spdx.json")
     provenance = load_json(expected_dir / f"{name}.provenance.json")
     validate_trivy(load_json(expected_dir / f"{name}.trivy.json"), ref)
-    source_uri = f"https://github.com/DavidHLP/UltiCode@{source_sha}"
-    if not isinstance(provenance, dict) or provenance.get("invocation", {}).get("configSource", {}).get("uri") != source_uri:
-        fail(f"{name} provenance source mismatch")
+    validate_buildkit_predicate(provenance, source_sha)
+
     return {"name": name, "ref": ref, "version": version, "sbom": sbom, "provenance": provenance,
             "dir": expected_dir, "repo": repo, "digest": digest}
 

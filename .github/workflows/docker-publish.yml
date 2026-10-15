@@ -3,19 +3,10 @@
 name: Docker Publish
 
 on:
-  push:
-    branches: [main]
-
-concurrency:
-  group: ulticode-release-tag-writer
-  cancel-in-progress: false
+  workflow_call: {}
 
 permissions:
   contents: read
-  packages: write
-  id-token: write
-  attestations: write
-
 
 env:
   REGISTRY: ghcr.io
@@ -25,11 +16,15 @@ jobs:
     name: Load Service Matrix
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      contents: read
     outputs:
       matrix: ${{ steps.m.outputs.matrix }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Read services matrix
         id: m
         run: |
@@ -42,6 +37,10 @@ jobs:
     needs: load-matrix
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
     strategy:
       fail-fast: false
       matrix:
@@ -49,6 +48,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
       - name: Resolve service release version
@@ -82,7 +83,6 @@ jobs:
         id: build
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:
-          context: .
           file: ${{ matrix.service.dockerfile }}
           no-cache-filters: ${{ matrix.service.module && 'runtime' || 'production' }}
           outputs: type=image,name=${{ env.REGISTRY }}/${{ steps.normalize.outputs.image_name }}/${{ matrix.service.name }},push-by-digest=true,name-canonical=true,push=true
@@ -96,9 +96,15 @@ jobs:
             SERVICE_HEALTHCHECK=${{ matrix.service.healthcheck || true }}
             SERVICE_VERSION=${{ steps.svcver.outputs.version }}
           sbom: true
-          provenance: mode=max
+          provenance: mode=max,version=v0.2
           cache-from: type=gha,scope=publish-${{ matrix.service.name }}
           cache-to: type=gha,mode=max,scope=publish-${{ matrix.service.name }},ignore-error=true
+      - name: Retrieve BuildKit provenance for pushed digest
+        env:
+          IMAGE_REF: ${{ env.REGISTRY }}/${{ steps.normalize.outputs.image_name }}/${{ matrix.service.name }}@${{ steps.build.outputs.digest }}
+          SOURCE_SHA: ${{ github.sha }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: python3 scripts/runbooks/fetch-buildkit-provenance.py "$IMAGE_REF" "$SOURCE_SHA" "$RUNNER_TEMP/${{ matrix.service.name }}.provenance.json"
       - name: Scan pushed candidate
         id: scan
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0 (Trivy v0.74.0)
@@ -138,8 +144,6 @@ jobs:
           [[ "$IMAGE_REF" =~ @sha256:[0-9a-f]{64}$ ]] || { echo "::error::Build did not emit immutable digest"; exit 1; }
           trivy image --format spdx-json --output "$SBOM_PATH" "$IMAGE_REF"
           jq -e . "$SBOM_PATH" >/dev/null
-          jq -n --arg source "https://github.com/${{ github.repository }}@${{ github.sha }}" --arg workflow "${{ github.workflow_ref }}" \
-            '{buildType:"https://slsa.dev/provenance/v1", builder:{id:$workflow}, invocation:{configSource:{uri:$source}}}' > "$PROVENANCE_PATH"
           cosign sign --yes "$IMAGE_REF"
           cosign attest --yes --type spdxjson --predicate "$SBOM_PATH" "$IMAGE_REF"
           cosign attest --yes --type slsaprovenance --predicate "$PROVENANCE_PATH" "$IMAGE_REF"
@@ -177,9 +181,17 @@ jobs:
     needs: [load-matrix, build-and-push]
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    concurrency:
+      group: ulticode-release-tag-writer
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Download this run's candidate evidence
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:

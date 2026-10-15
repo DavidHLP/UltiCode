@@ -29,8 +29,8 @@
   },
   {
     "doc_id": "repository-development",
-    "version": "sha256-34b699477b4f0d090f30d2c519e4335d91a9b729f459df1aa46e6aac6e3b92b3",
-    "chunk_id": "repository-development:sha256-34b699477b4f0d090f30d2c519e4335d91a9b729f459df1aa46e6aac6e3b92b3:1",
+    "version": "sha256-1378b640ea0e5031b1d77e691a8fb391f9df5ec5a28f320343d736c612bb6e9d",
+    "chunk_id": "repository-development:sha256-1378b640ea0e5031b1d77e691a8fb391f9df5ec5a28f320343d736c612bb6e9d:1",
     "source_path": "docs/DEVELOPMENT.md",
     "access_scope": "repository-public",
     "sample_kind": "real",
@@ -43,8 +43,8 @@
   },
   {
     "doc_id": "repository-operations",
-    "version": "sha256-458f69ad4b0126826b2131feec2b177f1b4067391707db08c64bfd72dea80dee",
-    "chunk_id": "repository-operations:sha256-458f69ad4b0126826b2131feec2b177f1b4067391707db08c64bfd72dea80dee:1",
+    "version": "sha256-7abeb85873cd613156862dacd007c362bb8ce6224f42cba8001397093fa56335",
+    "chunk_id": "repository-operations:sha256-7abeb85873cd613156862dacd007c362bb8ce6224f42cba8001397093fa56335:1",
     "source_path": "docs/OPERATIONS.md",
     "access_scope": "repository-public",
     "sample_kind": "real",
@@ -53,7 +53,7 @@
     "source_position": "lines 46-50",
     "model_input_projection": "SourceHit.as_model_dict()",
     "source_trust": "untrusted-data",
-    "content_digest": "sha256:8cdce9bf04fd009be5726563b6978c373ec9180b667128a2333b74744e30a4db"
+    "content_digest": "sha256:ac57d473f68c4eea7cb2ae2680082f985a5c4a1af573643e23fac02f815cd84f"
   },
   {
     "doc_id": "repository-reference",

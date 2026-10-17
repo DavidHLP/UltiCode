@@ -17,10 +17,12 @@ source "$ROOT_DIR/scripts/test/lib/contract-harness.sh"
 
 [[ -x "$WRAPPER" ]] || fail "scripts/dev/test.sh is not executable"
 
+grep -Fqx '        run: bash scripts/test/zero-infra-validation-contract.sh --static-only' \
+  "$ROOT_DIR/.github/workflows/ci.yml" \
+  || fail 'ci.yml must run the lightweight static contract in its governance gate'
 for workflow in _backend.yml _frontend.yml; do
-  grep -Fqx '        run: bash scripts/test/zero-infra-validation-contract.sh --static-only' \
-    "$ROOT_DIR/.github/workflows/$workflow" \
-    || fail "$workflow must select --static-only for its lightweight CI job"
+  ! grep -Fq 'zero-infra-validation-contract.sh' "$ROOT_DIR/.github/workflows/$workflow" \
+    || fail "$workflow must not duplicate the shared governance gate"
 done
 grep -Fq 'bash scripts/dev/architecture-contract-test.sh --list-qualified dynamic' \
   "$ROOT_DIR/.github/workflows/_backend.yml" \

@@ -151,7 +151,7 @@ verify() {
     "$cosign_bin" verify \
       --certificate-identity "$identity" \
       --certificate-oidc-issuer "$issuer" \
-      "$ref" >/dev/null
+      "$ref" >/dev/null || die "$name has no signature from the approved identity"
     "$cosign_bin" verify-attestation \
       --type spdxjson \
       --certificate-identity "$identity" \

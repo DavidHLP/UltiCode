@@ -41,25 +41,25 @@ grep -Fq 'CUTOVER_STATE_SEED_SQL' "$ROOT_DIR/init-db/scripts/baseline-adopt.sh"
 grep -Fq 'reconcile-legacy-backups.sh' \
   "$ROOT_DIR/scripts/runbooks/owner-migration-manifest.sh"
 grep -Fq 'assert-admin-backup-drained.sh' \
-  "$ROOT_DIR/.github/actions/host-deploy/action.yml"
+  "$ROOT_DIR/scripts/deploy/deploy.sh"
 grep -Fq 'Invalid deployable service' \
-  "$ROOT_DIR/.github/actions/host-deploy/action.yml"
+  "$ROOT_DIR/scripts/deploy/service-selection.sh"
 grep -Fq 'phase=migration-running' \
-  "$ROOT_DIR/.github/actions/host-deploy/action.yml"
+  "$ROOT_DIR/scripts/deploy/deploy.sh"
 grep -Fq 'docker start$START_ARGS' \
-  "$ROOT_DIR/.github/actions/host-deploy/action.yml"
+  "$ROOT_DIR/scripts/deploy/deploy.sh"
 grep -Fq 'backend-admin remains stopped' \
-  "$ROOT_DIR/.github/actions/host-deploy/action.yml"
+  "$ROOT_DIR/scripts/deploy/deploy.sh"
 grep -Fq "always() && inputs.rollback != 'true'" \
   "$ROOT_DIR/.github/actions/host-deploy/action.yml"
 grep -Fq 'phase=migration-complete' \
-  "$ROOT_DIR/.github/actions/host-deploy/action.yml"
+  "$ROOT_DIR/scripts/deploy/deploy.sh"
 grep -Fq 'docker inspect -f' \
-  "$ROOT_DIR/.github/actions/host-deploy/action.yml"
+  "$ROOT_DIR/scripts/deploy/deploy.sh"
 grep -Fq 'Verify Admin backup writer drained' \
   "$ROOT_DIR/.github/actions/host-deploy/action.yml"
-grep -Fq 'backend-auth|backend-admin|backend-app|backend-submission|backend-notification|backend-search|backend-judge|console|management' \
-  "$ROOT_DIR/.github/actions/host-deploy/action.yml"
+grep -Fq 'readonly services=(backend-auth backend-admin backend-app backend-submission backend-notification backend-search backend-judge console management)' \
+  "$ROOT_DIR/scripts/deploy/service-selection.sh"
 ! grep -Fq 'legacy_backups_copy_sql' \
   "$ROOT_DIR/init-db/migrations/admin/V20260920120000__Backup_Object_Storage.sql"
 grep -Fq 'flyway_post_owner_history' "$ROOT_DIR/init-db/scripts/generate-baseline.sh"
@@ -70,31 +70,31 @@ grep -Fq 'openssl enc -aes-256-cbc -salt -pbkdf2' \
   "$ROOT_DIR/scripts/runbooks/owner-backup-restore.sh"
 grep -Fq 'flock -n' "$ROOT_DIR/scripts/runbooks/owner-backup-restore.sh"
 grep -Fq 'rto_seconds' "$ROOT_DIR/scripts/runbooks/owner-backup-restore.sh"
-grep -Fq 'owner-migration-manifest.sh migrate' "$ROOT_DIR/.github/actions/host-deploy/action.yml"
+grep -Fq 'owner-migration-manifest.sh migrate' "$ROOT_DIR/scripts/deploy/deploy.sh"
 grep -Fq 'MIGRATION_DB_PASSWORD' "$ROOT_DIR/.github/actions/host-deploy/action.yml"
 grep -Fq "inputs.skip_migrations != 'true'" "$ROOT_DIR/.github/actions/host-deploy/action.yml"
 grep -Fq 'Quiesce legacy owner writers' "$ROOT_DIR/.github/actions/host-deploy/action.yml"
 grep -Fq 'compose_prefix="docker compose --project-directory . -f docker/docker-compose.yml -f docker/docker-compose.prod.yml"' \
-  "$ROOT_DIR/.github/actions/host-deploy/action.yml"
+  "$ROOT_DIR/scripts/deploy/deploy.sh"
 grep -Fq 'remote_command+=" $EXPORTS $compose_prefix stop $service"' \
-  "$ROOT_DIR/.github/actions/host-deploy/action.yml"
+  "$ROOT_DIR/scripts/deploy/deploy.sh"
 # Both owner writers stop before the cutover gate: the legacy App still writes
 # /uploads/avatars rows until the new image replaces it.
 grep -Fq 'quiesce_service backend-admin admin' \
-  "$ROOT_DIR/.github/actions/host-deploy/action.yml"
+  "$ROOT_DIR/scripts/deploy/deploy.sh"
 grep -Fq 'quiesce_service backend-app app' \
-  "$ROOT_DIR/.github/actions/host-deploy/action.yml"
+  "$ROOT_DIR/scripts/deploy/deploy.sh"
 grep -Fq 'remote_command+=" $REMOTE_ENV docker compose' \
-  "$ROOT_DIR/.github/actions/host-deploy/action.yml"
+  "$ROOT_DIR/scripts/deploy/deploy.sh"
 grep -Fq 'DEPLOY_SERVICES: ${{ inputs.services }}' \
   "$ROOT_DIR/.github/actions/host-deploy/action.yml"
-grep -Fq 'backend-admin must be included in services when migrations run' \
-  "$ROOT_DIR/.github/actions/host-deploy/action.yml"
-grep -Fq 'backend-app must be included in services when backend-admin is deployed' \
-  "$ROOT_DIR/.github/actions/host-deploy/action.yml"
-quiesce_line="$(grep -n 'Quiesce legacy owner writers' \
+grep -Fq 'backend-admin must be included when migrations run' \
+  "$ROOT_DIR/scripts/deploy/service-selection.sh"
+grep -Fq 'backend-app must be included when backend-admin is selected' \
+  "$ROOT_DIR/scripts/deploy/service-selection.sh"
+quiesce_line="$(grep -n 'quiesce-legacy-owner-writers' \
   "$ROOT_DIR/.github/actions/host-deploy/action.yml" | head -1 | cut -d: -f1)"
-migration_line="$(grep -n 'Run ordered owner database migrations' \
+migration_line="$(grep -n 'run-ordered-owner-database-migrations' \
   "$ROOT_DIR/.github/actions/host-deploy/action.yml" | head -1 | cut -d: -f1)"
 [[ "$quiesce_line" -lt "$migration_line" ]] \
   || { echo 'legacy backup writer is not quiesced before owner migrations' >&2; exit 1; }

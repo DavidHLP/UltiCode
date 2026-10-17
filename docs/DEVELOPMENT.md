@@ -114,7 +114,7 @@ pnpm --dir apps/console test
 pnpm --dir apps/console type-check
 ```
 
-离线 scripted-model/MockTransport 和合成浏览器响应只证明相应测试路径，不证明真实模型质量、真实 Java 持久化或远端部署。真实用户体验验证须单独明确目标环境、数据范围和模型费用授权，直接通过产品工作流完成，不因清理测试而自动授权。
+Agent 单元测试必须显式隔离模型凭据与传输，不依赖开发机的 `.env` 或真实 API key；缺失模型凭据时生产调用仍须 fail closed。离线 scripted-model/MockTransport 和合成浏览器响应只证明相应测试路径，不证明真实模型质量、真实 Java 持久化或远端部署。真实用户体验验证须单独明确目标环境、数据范围和模型费用授权，直接通过产品工作流完成，不因清理测试而自动授权。
 
 ### 访问入口
 
@@ -145,8 +145,8 @@ pnpm --dir packages/auth-core test:coverage
 
 前端只有一个根 `pnpm-lock.yaml`（成员 lock 已删除），所以 `.github/dependabot.yml` 的 npm 只有一个
 `directory: "/"` 的 block。pnpm workspace 只能从根更新：成员目录下 Dependabot 从父目录取回的根 lock 会被
-dependabot-core 当作 support file 丢弃，PR 只改 manifest，必然过不了 CI 的五处
-`pnpm install --frozen-lockfile`，update job 还会按成员 manifest 报 `misconfigured_tooling`。
+dependabot-core 当作 support file 丢弃，PR 只改 manifest，会被 CI 的
+`pnpm install --frozen-lockfile` 拒绝，update job 还会按成员 manifest 报 `misconfigured_tooling`。
 这个根 block 同时覆盖 `packages/*` 与根 manifest。
 根 `package.json`、`pnpm-lock.yaml` 或 `pnpm-workspace.yaml` 变化会触发 Console、Management
 以及 Docker CI 门禁，覆盖共享依赖更新及其镜像安装验证。
@@ -223,6 +223,27 @@ CI 的静态任务运行 `bash scripts/test/zero-infra-validation-contract.sh --
 Shell 工具的文件断言和基线编排可单独运行 `bash scripts/test/shell-tooling-contract.sh`，也包含在 `static` 中。该测试使用临时文件和 Docker 替身检查失败传播、清理及基线不变性，不连接 Docker daemon 或真实数据库；真实迁移效果仍由基线和集成门禁验证。
 
 owner/module 的 declarative source contract registry 由 scripts/test/owner-architecture-source-contract.rules 持有，并由 scripts/test/owner-architecture-source-contract.sh 执行；scripts/dev/architecture-contract-test.sh 仍是唯一架构门禁入口，parent 负责 static/full eligibility、执行顺序和结果汇总，并以 `--list-qualified static|dynamic` 提供逐行、无执行副作用的 CI 注册表视图。Backend CI 只消费 dynamic 视图，zero-infra 则从同一 static/dynamic 视图核对 static-only banner；child 脚本不在 workflow 中重复列出。
+
+### CI 编排与工作流治理
+
+`.github/workflows/ci.yml` 是 PR、`main` push、merge queue 和手动验证的统一入口。`scripts/ci/select-checks.py` 根据 Git 变更决定领域门禁；无法可靠取得变更范围时选择完整验证，不能把不确定性当成无需检查。共享依赖、流水线脚本、Docker sandbox 与 Python Agent 都有明确的验证归属。修改路径规则时同步更新选择器回归测试，不在多个 workflow 复制路径表。
+
+`ci-ok` 是稳定的 required check。`scripts/ci/check-results.py` 对照选择结果校验 job 状态：选中的门禁必须成功，失败、取消、缺失或意外跳过均不能放行；未选中的领域门禁才允许跳过。镜像发布是同一 CI DAG 中 `ci-ok` 的下游，仅对 `main` push 的发布相关变更执行，不以其他提交或其他运行的成功记录代替当前提交验证。
+
+前端门禁包含生产构建；Python Agent 使用自身 `uv.lock` 执行测试，不把独立 Python 服务并入 Maven reactor 或九服务生产发布矩阵。CI 与镜像构建都使用固定包管理器版本和 frozen lockfile。Dependabot 分别维护根 pnpm workspace、Maven、Agent 的 uv 依赖、CI Python 工具依赖、GitHub Actions 和应用镜像基底；依赖升级仍需走相同门禁，不自动合并。
+
+工作流治理与应用测试分离。`scripts/ci/check-workflows.py` 校验默认只读权限、明确的发布写权限、完整 Action SHA、checkout 凭据清理、有界超时及 shell 输入边界；`actionlint` 校验 Actions 语法与表达式。Composite action 同样纳入策略检查，不能成为绕过固定版本或凭据规则的入口。CI 必须安装 `scripts/ci/requirements.txt` 声明的解析器后执行策略检查；本地可在独立 Python 环境运行：
+
+```bash
+python3 -m pip install -r scripts/ci/requirements.txt
+python3 scripts/ci/check-workflows.py
+python3 scripts/test/workflow-policy-contract.py
+bash scripts/test/cicd-contract.sh
+```
+
+CI/CD 契约的 provenance 测试数据必须由测试在临时目录生成或随仓库版本控制，不能依赖被忽略的 `.local/` 归档。
+
+这些检查验证流水线实现与离线失败路径，不代表已运行远程 GitHub Actions、签名发布或真实环境部署。Environment 审批、分支保护和部署凭据的启用要求见 [`OPERATIONS.md`](OPERATIONS.md#cicd-入口)。
 
 ### Core 与 distributed 验证边界
 

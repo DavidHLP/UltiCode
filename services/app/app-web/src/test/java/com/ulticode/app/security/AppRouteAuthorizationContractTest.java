@@ -45,7 +45,7 @@ class AppRouteAuthorizationContractTest {
     @Test
     void anonymousCannotReachUnmatchedAppRoute() throws Exception {
         mockMvc.perform(get("/private-probe"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -57,7 +57,7 @@ class AppRouteAuthorizationContractTest {
     @Test
     void anonymousCannotReachCurrentUserRoute() throws Exception {
         mockMvc.perform(get("/submissions"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -82,7 +82,7 @@ class AppRouteAuthorizationContractTest {
     @Test
     void anonymousCannotCreateModerationReport() throws Exception {
         mockMvc.perform(post("/moderation/reports"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     @Test

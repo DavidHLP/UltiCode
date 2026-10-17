@@ -3,6 +3,17 @@
 .git/**
 .auto-flow
 .auto-flow/**
+.local/
+.agent/
+.agents/
+.claude/
+.codex/
+.omp/
+.mcp.json
+.reports/
+.worktrees/
+worktrees/
+graphify-out/
 
 # Never send credentials or secret material to Docker build stages/cache.
 **/.env

@@ -4,14 +4,13 @@ FROM node:22-alpine@sha256:c610fcdfb1d5b4740dd70c284ed3cb16bb857e0f7166196e36a55
 WORKDIR /app
 
 # Install pnpm
-RUN corepack enable && corepack prepare pnpm@9 --activate
+RUN corepack enable && corepack prepare pnpm@11.0.0 --activate
 
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 COPY apps/console/package.json ./apps/console/
 COPY packages ./packages
 
-RUN corepack enable && corepack prepare pnpm@9 --activate && \
-    pnpm install --no-frozen-lockfile
+RUN pnpm install --frozen-lockfile
 
 # Copy source code
 COPY apps/console ./apps/console

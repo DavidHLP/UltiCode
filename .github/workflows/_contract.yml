@@ -27,14 +27,17 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Determine baseline ref
         id: baseline
+        env:
+          BASELINE_REF: ${{ inputs.baseline_ref }}
         run: |
           set -euo pipefail
-          if [[ -n "${{ inputs.baseline_ref }}" ]]; then
-            echo "ref=${{ inputs.baseline_ref }}" >> "$GITHUB_OUTPUT"
-            echo "[contract] using explicit baseline_ref=${{ inputs.baseline_ref }}"
+          if [[ -n "$BASELINE_REF" ]]; then
+            echo "ref=$BASELINE_REF" >> "$GITHUB_OUTPUT"
+            echo "[contract] using explicit baseline_ref=$BASELINE_REF"
             exit 0
           fi
           if ref=$(git describe --tags --abbrev=0 2>/dev/null); then
@@ -67,9 +70,11 @@ jobs:
             echo "::error::Current contract revision is not a stable semantic version: $current_revision"
             exit 1
           fi
-          echo "revision=$current_revision" >> "$GITHUB_OUTPUT"
-          echo "major=${current_revision%%.*}" >> "$GITHUB_OUTPUT"
-          echo "ci_revision=${current_revision}-ci.${GITHUB_RUN_ID}" >> "$GITHUB_OUTPUT"
+          {
+            echo "revision=$current_revision"
+            echo "major=${current_revision%%.*}"
+            echo "ci_revision=${current_revision}-ci.${GITHUB_RUN_ID}"
+          } >> "$GITHUB_OUTPUT"
           echo "[contract] current API revision=$current_revision"
 
       - name: Create baseline worktree

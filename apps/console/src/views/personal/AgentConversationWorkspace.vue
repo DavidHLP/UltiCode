@@ -167,7 +167,7 @@ function formatDate(value: string) {
     <aside class="hidden w-72 shrink-0 flex-col border-r border-border bg-muted/30 lg:flex">
       <div class="flex items-center justify-between border-b border-border px-4 py-4">
         <div>
-          <p class="text-xs font-semibold uppercase tracking-[0.16em] text-primary">UltiCode</p>
+          <p class="text-xs font-semibold uppercase tracking-widest text-primary">UltiCode</p>
           <h1 class="mt-1 text-lg font-semibold">{{ t("agent.workspace.title") }}</h1>
         </div>
         <Button variant="outline" size="sm" :disabled="workspace.busy.value || submitting" @click="startNew">
@@ -188,7 +188,7 @@ function formatDate(value: string) {
           <span class="block min-w-0 text-left">
             <span class="block truncate text-sm font-medium">{{ item.title }}</span>
             <span class="mt-1 block truncate text-xs text-muted-foreground">{{ item.lastQuestion }}</span>
-            <span class="mt-2 block text-[11px] text-muted-foreground">{{ formatDate(item.updatedAt) }} · {{ item.turnCount }} {{ t("agent.workspace.turns") }}</span>
+            <span class="mt-2 block text-xxs text-muted-foreground">{{ formatDate(item.updatedAt) }} · {{ item.turnCount }} {{ t("agent.workspace.turns") }}</span>
           </span>
         </Button>
         <Button v-if="workspace.hasMoreConversations.value" type="button" variant="ghost" class="mt-2 w-full text-sm text-primary"
@@ -278,7 +278,7 @@ function formatDate(value: string) {
           {{ t("agent.workspace.loading") }}
         </div>
         <div v-else-if="!workspace.conversation.value" class="mx-auto flex h-full max-w-2xl flex-col items-center justify-center text-center">
-          <p class="text-xs font-semibold uppercase tracking-[0.16em] text-primary">{{ t("agent.workspace.eyebrow") }}</p>
+          <p class="text-xs font-semibold uppercase tracking-widest text-primary">{{ t("agent.workspace.eyebrow") }}</p>
           <h2 class="mt-3 text-2xl font-semibold tracking-tight">{{ emptyTitle }}</h2>
           <p class="mt-3 max-w-lg text-sm leading-relaxed text-muted-foreground">{{ emptyDescription }}</p>
           <Button v-if="!workspace.sourceSubmissionId.value" as-child class="mt-6">
@@ -362,7 +362,7 @@ function formatDate(value: string) {
             </div>
           </div>
         </div>
-        <p class="mx-auto mt-2 max-w-3xl text-center text-[11px] text-muted-foreground">{{ t("agent.workspace.disclaimer") }}</p>
+        <p class="mx-auto mt-2 max-w-3xl text-center text-xxs text-muted-foreground">{{ t("agent.workspace.disclaimer") }}</p>
       </form>
     </section>
   </main>

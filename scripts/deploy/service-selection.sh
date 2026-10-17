@@ -13,10 +13,15 @@ validate_selection() {
     echo "::error::migration requirement must be true or false" >&2
     return 2
   }
-  [[ -n "${raw//[[:space:],]/}" && "$raw" != *$'\n'* && "$raw" != *$'\r'* ]] || {
-    echo "::error::service selection must be a non-empty single line" >&2
+  [[ "$raw" != *$'\n'* && "$raw" != *$'\r'* ]] || {
+    echo "::error::service selection must be a single line" >&2
     return 1
   }
+  [[ -z "$raw" || -n "${raw//[[:space:],]/}" ]] || {
+    echo "::error::service selection must not contain only whitespace or separators" >&2
+    return 1
+  }
+  [[ -n "$raw" ]] || raw=all
   normalized="${raw//,/ }"
   read -r -a selected <<< "$normalized"
   [[ ${#selected[@]} -gt 0 ]] || return 0

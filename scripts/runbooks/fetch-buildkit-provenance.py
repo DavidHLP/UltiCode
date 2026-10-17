@@ -121,8 +121,16 @@ def main() -> int:
                 raise ValueError("BuildKit provenance blob size mismatch")
             statement = json.loads(blob)
             if (not isinstance(statement, dict) or statement.get("_type") != STATEMENT_TYPE
-                    or statement.get("predicateType") != PROVENANCE or statement.get("subject") != []):
+                    or statement.get("predicateType") != PROVENANCE):
                 continue
+            subjects = statement.get("subject")
+            if subjects != []:
+                if (not isinstance(subjects, list) or len(subjects) != 1
+                        or not isinstance(subjects[0], dict)
+                        or not isinstance(subjects[0].get("name"), str) or not subjects[0]["name"]
+                        or not isinstance(subjects[0].get("digest"), dict)
+                        or subjects[0]["digest"].get("sha256") != attached_subject["digest"].removeprefix("sha256:")):
+                    raise ValueError("BuildKit provenance subject does not match attached image manifest")
             found.append(validate_predicate(statement.get("predicate"), source_sha, os.environ["GITHUB_REPOSITORY"], dockerfile))
     if len(found) != 1:
         raise ValueError("expected exactly one BuildKit provenance statement for candidate digest")

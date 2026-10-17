@@ -43,8 +43,8 @@
   },
   {
     "doc_id": "repository-operations",
-    "version": "sha256-77cedcb60cbd8c9654dacb7dacd7d704a4b1c04dd38fd477c8673074464246f6",
-    "chunk_id": "repository-operations:sha256-77cedcb60cbd8c9654dacb7dacd7d704a4b1c04dd38fd477c8673074464246f6:1",
+    "version": "sha256-229d85690397d43cb1b189ca1ff0eef125b1d4a76e7331e1084f00d8f9b8e7f7",
+    "chunk_id": "repository-operations:sha256-229d85690397d43cb1b189ca1ff0eef125b1d4a76e7331e1084f00d8f9b8e7f7:1",
     "source_path": "docs/OPERATIONS.md",
     "access_scope": "repository-public",
     "sample_kind": "real",
@@ -53,7 +53,7 @@
     "source_position": "lines 46-50",
     "model_input_projection": "SourceHit.as_model_dict()",
     "source_trust": "untrusted-data",
-    "content_digest": "sha256:fc7bb6b95e21b5cfb7b8a2085fd79afebe603622e162bd0b975de432685a0bb0"
+    "content_digest": "sha256:e1ff3e78b8192a25aabf19db0fff20115b87b67b653240fbb31a0eba8a9b979e"
   },
   {
     "doc_id": "repository-reference",

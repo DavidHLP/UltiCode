@@ -18,10 +18,10 @@ IMAGE_DIGEST = "a" * 64
 REPOSITORY = "DavidHLP/UltiCode/console"
 
 
-def fixture():
+def fixture(subject=...):
     # Synthetic OCI index -> attestation manifest -> in-toto layer chain.
     statement = {"_type": MODULE.STATEMENT_TYPE, "predicateType": MODULE.PROVENANCE,
-                "subject": [], "predicate": {
+                "subject": [] if subject is ... else subject, "predicate": {
                     "buildType": "https://mobyproject.org/buildkit@v1",
                     "invocation": {"configSource": {"entryPoint": "Dockerfile"},
                                    "parameters": {"root": {
@@ -91,14 +91,25 @@ def run(source_sha, fixture):
 
 
 assert MODULE.PROVENANCE == "https://slsa.dev/provenance/v0.2"
-fixture = fixture()
-assert fixture[4]["_type"] == "https://in-toto.io/Statement/v1"
-assert fixture[4]["subject"] == []
-result = run(SOURCE_SHA, fixture)
-assert result == (True, fixture[4]["predicate"]), result
-assert run("e" * 40, fixture)[0] is False
+fixture_data = fixture()
+assert fixture_data[4]["_type"] == "https://in-toto.io/Statement/v1"
+assert fixture_data[4]["subject"] == []
+result = run(SOURCE_SHA, fixture_data)
+assert result == (True, fixture_data[4]["predicate"]), result
+named_subject = [{"name": "ghcr.io/DavidHLP/UltiCode/console", "digest": {"sha256": "c" * 64}}]
+named_fixture = fixture(subject=named_subject)
+assert run(SOURCE_SHA, named_fixture) == (True, named_fixture[4]["predicate"])
+for subject in ([{"name": "ghcr.io/DavidHLP/UltiCode/console", "digest": {"sha256": "e" * 64}}],
+                [{"name": "ghcr.io/DavidHLP/UltiCode/console", "digest": "c" * 64}],
+                [{"digest": {"sha256": "c" * 64}}], [{"name": "", "digest": {"sha256": "c" * 64}}],
+                [{"name": "image", "digest": {"sha256": "c" * 64}}, {"name": "other", "digest": {"sha256": "c" * 64}}],
+                None, "malformed"):
+
+    rejected = run(SOURCE_SHA, fixture(subject=subject))
+    assert rejected[0] is False and "subject does not match" in rejected[1], rejected
+assert run("e" * 40, fixture_data)[0] is False
 try:
-    MODULE.validate_predicate(fixture[4]["predicate"], SOURCE_SHA, "DavidHLP/UltiCode", "./apps/management/Dockerfile")
+    MODULE.validate_predicate(fixture_data[4]["predicate"], SOURCE_SHA, "DavidHLP/UltiCode", "./apps/management/Dockerfile")
     raise AssertionError("accepted mismatched Dockerfile path")
 except ValueError:
     pass

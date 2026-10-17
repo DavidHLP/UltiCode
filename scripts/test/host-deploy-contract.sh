@@ -7,14 +7,18 @@ ACTION="$ROOT_DIR/.github/actions/host-deploy/action.yml"
 ROLLBACK="$ROOT_DIR/.github/workflows/cd-rollback.yml"
 
 "$SELECTOR" validate all true false
+"$SELECTOR" validate "" true false
+GITHUB_WORKSPACE="$ROOT_DIR" DEPLOY_SERVICES='' SKIP_MIGRATIONS=false \
+  "$ROOT_DIR/scripts/deploy/deploy.sh" validate-deploy-service-compatibility
+"$SELECTOR" validate
 "$SELECTOR" validate 'backend-admin, backend-app' true false
 "$SELECTOR" validate backend-auth true false
 "$SELECTOR" validate backend-auth true false
 
 # shellcheck disable=SC2016
 for invalid in \
-  '' \
   ' , ' \
+  '   ' \
   $'backend-auth\ninvalid-service' \
   $'backend-auth\nbackend-auth' \
   'backend-admin' \

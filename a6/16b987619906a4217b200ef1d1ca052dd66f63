@@ -1,0 +1,35 @@
+docs/OPERATIONS.md
+  s_18f32a07e8cf3f::t_8f0a790abe33b9 23
+  s_18f32a07e8cf3f::t_4089b984877945 50
+scripts/test/fetch-buildkit-provenance-contract.py
+  s_18f32a07e8cf3f::t_8cad1c898b2ad8 21,24,94-98,105-107,110,112
+  s_18f32a07e8cf3f::t_b4fb091fb3a02c 99-100,102-104,108-109
+  s_18f32a07e8cf3f::t_1095eeb7a36499 101
+scripts/deploy/service-selection.sh
+  s_18f32a07e8cf3f::t_f1f0454367b443 16-17,21-24
+  s_18f32a07e8cf3f::t_8cad1c898b2ad8 20
+scripts/test/host-deploy-contract.sh
+  s_18f32a07e8cf3f::t_f1f0454367b443 10,13,21
+  s_18f32a07e8cf3f::t_d718ff06c6480c 11-12
+services/agent/data/repository_corpus_manifest.json
+  s_18f32a07e8cf3f::t_8f0a790abe33b9 46-47
+  s_18f32a07e8cf3f::t_06bd514e485983 56
+scripts/runbooks/fetch-buildkit-provenance.py
+  s_18f32a07e8cf3f::t_b4fb091fb3a02c 124,126-133
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a616b987619906a4217b200ef1d1ca052dd66f63",
+  "prompts": {},
+  "sessions": {
+    "s_18f32a07e8cf3f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a664e5cb-665b-4234-8d9d-35570252ee35",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

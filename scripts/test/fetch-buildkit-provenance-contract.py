@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Exercise the extractor with a self-contained BuildKit-shaped OCI fixture."""
 import base64
+import copy
 import importlib.util
 import json
 import os
@@ -24,17 +25,14 @@ def fixture(subject=...):
                 "subject": [] if subject is ... else subject, "predicate": {
                     "buildType": "https://mobyproject.org/buildkit@v1",
                     "invocation": {"configSource": {"entryPoint": "Dockerfile"},
-                                   "parameters": {"root": {
-                                       "configSource": {"path": "Dockerfile"},
-                                       "request": {"args": {
-                                           "vcs:source": "git@github.com:DavidHLP/UltiCode.git",
-                                           "vcs:revision": SOURCE_SHA,
-                                           "vcs:localdir:context": ".",
-                                           "vcs:localdir:dockerfile": "apps/console"}}}}},
+                                   "parameters": {"frontend": "dockerfile.v0",
+                                                 "args": {"SERVICE_MODULE": "console"},
+                                                 "locals": [{"name": "context"}]}},
                     "buildConfig": {"digestMapping": {"sha256:" + "b" * 64: "step0"},
                                     "llbDefinition": [{"id": "step0"}]},
                     "metadata": {"https://mobyproject.org/buildkit@v1#metadata": {
-                        "vcs": {"source": "git@github.com:DavidHLP/UltiCode.git", "revision": SOURCE_SHA},
+                        "vcs": {"source": "git@github.com:DavidHLP/UltiCode.git", "revision": SOURCE_SHA,
+                                "localdir:dockerfile": "apps/console"},
                         "source": {"infos": [{"filename": "Dockerfile", "language": "Dockerfile", "data": "Rk9P"}]}}}}}
     blob = json.dumps(statement).encode()
     layer_digest = "sha256:" + hashlib.sha256(blob).hexdigest()
@@ -111,6 +109,31 @@ assert run("e" * 40, fixture_data)[0] is False
 try:
     MODULE.validate_predicate(fixture_data[4]["predicate"], SOURCE_SHA, "DavidHLP/UltiCode", "./apps/management/Dockerfile")
     raise AssertionError("accepted mismatched Dockerfile path")
+except ValueError:
+    pass
+for mutate in (
+    lambda p: p["invocation"]["parameters"].pop("frontend"),
+    lambda p: p["invocation"]["parameters"].pop("args"),
+    lambda p: p["invocation"]["parameters"].pop("locals"),
+    lambda p: p["invocation"].pop("configSource"),
+    lambda p: p["metadata"]["https://mobyproject.org/buildkit@v1#metadata"]["vcs"].pop("revision"),
+    lambda p: p["metadata"]["https://mobyproject.org/buildkit@v1#metadata"]["vcs"].pop("localdir:dockerfile"),
+    lambda p: p["buildConfig"]["digestMapping"].clear(),
+    lambda p: p["buildConfig"]["digestMapping"].update({"bad-digest": "step0"}),
+    lambda p: p["invocation"]["parameters"].update(root={"request": {"args": {}}}),
+):
+    invalid = copy.deepcopy(fixture_data[4]["predicate"])
+    mutate(invalid)
+    try:
+        MODULE.validate_predicate(invalid, SOURCE_SHA, "DavidHLP/UltiCode", "./apps/console/Dockerfile")
+        raise AssertionError("accepted incomplete or malformed SLSA v0.2 provenance")
+    except ValueError:
+        pass
+legacy_shape = copy.deepcopy(fixture_data[4]["predicate"])
+legacy_shape["invocation"]["parameters"] = {"root": {"request": {"args": {}}}}
+try:
+    MODULE.validate_predicate(legacy_shape, SOURCE_SHA, "DavidHLP/UltiCode", "./apps/console/Dockerfile")
+    raise AssertionError("accepted non-v0.2 nested invocation parameters")
 except ValueError:
     pass
 print("BuildKit v0.2 OCI provenance extraction and source contract: PASS")

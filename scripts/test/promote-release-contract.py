@@ -45,13 +45,13 @@ def seed(base):
         spdx = {"spdxVersion": "SPDX-2.3", "name": name}
         provenance = {"buildType": "https://mobyproject.org/buildkit@v1",
                       "invocation": {"configSource": {"entryPoint": "Dockerfile"},
-                                     "parameters": {"root": {"configSource": {"path": "Dockerfile"},
-                                                              "request": {"args": {"vcs:source": "git@github.com:DavidHLP/UltiCode.git",
-                                                                                   "vcs:revision": SHA, "vcs:localdir:dockerfile": str(Path(service["dockerfile"].removeprefix("./")).parent)}}}}},
+                                     "parameters": {"frontend": "dockerfile.v0", "args": {"SERVICE_MODULE": name},
+                                                    "locals": [{"name": "context"}]}},
                       "buildConfig": {"digestMapping": {"sha256:" + "1" * 64: "step0"},
                                       "llbDefinition": [{"id": "step0"}]},
                       "metadata": {"https://mobyproject.org/buildkit@v1#metadata": {
-                          "vcs": {"source": "git@github.com:DavidHLP/UltiCode.git", "revision": SHA},
+                          "vcs": {"source": "git@github.com:DavidHLP/UltiCode.git", "revision": SHA,
+                                  "localdir:dockerfile": str(Path(service["dockerfile"].removeprefix("./")).parent)},
                           "source": {"infos": [{"filename": "Dockerfile", "language": "Dockerfile", "data": "Rk9P"}]}}}}
         trivy = {"SchemaVersion": 2, "ArtifactType": "container_image", "ArtifactName": ref,
                  "Metadata": {"ImageID": DIGEST},
@@ -119,7 +119,7 @@ if args[0] == "verify-attestation":
     subject=ref.split("@",1)[0]
     if os.environ.get("COSIGN_FAIL") == "wrong-subject": subject=subject+"/other"
     if os.environ.get("COSIGN_FAIL") == "wrong-source" and kind == "slsaprovenance":
-        predicate["invocation"]["parameters"]["root"]["request"]["args"]["vcs:revision"]="d"*40
+        predicate["metadata"]["https://mobyproject.org/buildkit@v1#metadata"]["vcs"]["revision"]="d"*40
     if os.environ.get("COSIGN_FAIL") == "wrong-predicate" and kind == "spdxjson": predicate["name"]="not-candidate"
     predicate_type="https://spdx.dev/Document" if kind == "spdxjson" else "https://slsa.dev/provenance/v0.2"
     statement={"_type":"https://in-toto.io/Statement/v0.1","predicateType":predicate_type,
@@ -230,20 +230,39 @@ def main():
         valid_provenance = provenance_path.read_bytes()
         def wrong_provenance(r):
             proof = canonical(provenance_path)
-            proof["invocation"]["parameters"]["root"]["request"]["args"]["vcs:source"] = "git@github.com:DavidHLP/UltiCode.git@" + "f" * 40
+            proof["metadata"]["https://mobyproject.org/buildkit@v1#metadata"]["vcs"]["source"] = "git@github.com:DavidHLP/UltiCode.git@" + "f" * 40
             provenance_path.write_text(json.dumps(proof))
         assert_reject_without_write(root, bindir, state, log, wrong_provenance)
         def wrong_dockerfile_path(r):
             proof = canonical(provenance_path)
-            proof["invocation"]["parameters"]["root"]["request"]["args"]["vcs:localdir:dockerfile"] = "elsewhere"
+            proof["metadata"]["https://mobyproject.org/buildkit@v1#metadata"]["vcs"]["localdir:dockerfile"] = "elsewhere"
             provenance_path.write_text(json.dumps(proof))
         assert_reject_without_write(root, bindir, state, log, wrong_dockerfile_path)
         def wrong_revision(r):
             proof = canonical(provenance_path)
-            proof["invocation"]["parameters"]["root"]["request"]["args"]["vcs:revision"] = "e" * 40
+            proof["metadata"]["https://mobyproject.org/buildkit@v1#metadata"]["vcs"]["revision"] = "e" * 40
             provenance_path.write_text(json.dumps(proof))
         assert_reject_without_write(root, bindir, state, log, wrong_revision)
         provenance_path.write_bytes(valid_provenance)
+        def mutate_provenance(r, mutation):
+            proof = canonical(provenance_path)
+            mutation(proof)
+            provenance_path.write_text(json.dumps(proof))
+        for mutation in (
+            lambda p: p["invocation"]["parameters"].pop("frontend"),
+            lambda p: p["invocation"]["parameters"].pop("args"),
+            lambda p: p["invocation"]["parameters"].pop("locals"),
+            lambda p: p["invocation"].pop("configSource"),
+            lambda p: p["metadata"]["https://mobyproject.org/buildkit@v1#metadata"]["vcs"].pop("revision"),
+            lambda p: p["metadata"]["https://mobyproject.org/buildkit@v1#metadata"]["vcs"].pop("localdir:dockerfile"),
+            lambda p: p["buildConfig"]["digestMapping"].clear(),
+            lambda p: p["buildConfig"]["digestMapping"].update({"bad-digest": "step0"}),
+            lambda p: p["invocation"].update(parameters={"root": {"request": {"args": {}}}}),
+            lambda p: p["invocation"]["parameters"].update(root={"request": {"args": {}}}),
+        ):
+            assert_reject_without_write(root, bindir, state, log,
+                                        lambda r, mutation=mutation: mutate_provenance(r, mutation))
+            provenance_path.write_bytes(valid_provenance)
         def extra_provenance_subject(r):
             proof = canonical(provenance_path)
             proof["subject"] = [{"name": f"{PREFIX}/{name}", "digest": {"sha256": DIGEST[7:]}}]

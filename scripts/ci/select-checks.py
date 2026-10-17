@@ -116,7 +116,7 @@ def select(paths: set[str] | None) -> dict[str, bool]:
                 "shared/**", "package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml",
                 ".dockerignore", "infrastructure/nginx/**", ".github/services-matrix.json",
                 ".github/workflows/docker-publish.yml", "scripts/ci/release-*", "scripts/ci/candidate-*",
-                "scripts/runbooks/promote-release.*")
+                "scripts/runbooks/promote-release.*", "scripts/runbooks/fetch-buildkit-provenance.py")
         for path in paths if not path.startswith("services/agent/")
     )
     selected = dict(backend=backend, console=console, management=management,

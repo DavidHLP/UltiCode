@@ -41,8 +41,8 @@ def validate_predicate(predicate: object, source_sha: str, repository: str, dock
             raise ValueError
         invocation = predicate["invocation"]
         parameters = invocation["parameters"]
-        root_args = parameters["root"]["request"]["args"]
-        config_source = parameters["root"]["configSource"]
+        args = parameters["args"]
+        locals_ = parameters["locals"]
         expected_dockerfile_dir = str(Path(dockerfile.removeprefix("./")).parent)
         metadata = predicate["metadata"]["https://mobyproject.org/buildkit@v1#metadata"]
         vcs = metadata["vcs"]
@@ -50,15 +50,21 @@ def validate_predicate(predicate: object, source_sha: str, repository: str, dock
         source_infos = metadata["source"]["infos"]
         llb = build_config["llbDefinition"]
         if (predicate.get("buildType") != "https://mobyproject.org/buildkit@v1"
-                or invocation.get("configSource", {}).get("entryPoint") != "Dockerfile"
-                or config_source.get("path") != "Dockerfile"
-                or root_args.get("vcs:localdir:dockerfile") != expected_dockerfile_dir
-                or root_args.get("vcs:source") not in expected_sources
-                or root_args.get("vcs:revision") != source_sha
+                or not isinstance(invocation.get("configSource"), dict)
+                or invocation["configSource"].get("entryPoint") != "Dockerfile"
+                or not isinstance(parameters.get("frontend"), str) or not parameters["frontend"]
+                or not isinstance(args, dict)
+                or "root" in parameters
+                or any(key.startswith("vcs:") for key in args)
+                or not isinstance(locals_, list) or not locals_
+                or not all(isinstance(local, dict) and isinstance(local.get("name"), str) and local["name"] for local in locals_)
+                or vcs.get("localdir:dockerfile") != expected_dockerfile_dir
                 or vcs.get("source") not in expected_sources
                 or vcs.get("revision") != source_sha
                 or not isinstance(build_config.get("digestMapping"), dict)
                 or not build_config["digestMapping"]
+                or not all(isinstance(digest, str) and re.fullmatch(r"sha256:[0-9a-f]{64}", digest)
+                           and isinstance(step, str) and step for digest, step in build_config["digestMapping"].items())
                 or not isinstance(llb, list) or not llb
                 or not isinstance(source_infos, list)
                 or not any(isinstance(info, dict) and info.get("filename") == "Dockerfile"

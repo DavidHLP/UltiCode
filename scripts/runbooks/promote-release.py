@@ -99,23 +99,30 @@ def validate_buildkit_predicate(predicate: object, source_sha: str, dockerfile: 
     try:
         invocation = predicate["invocation"]
         parameters = invocation["parameters"]
-        root = parameters["root"]
-        args = root["request"]["args"]
+        args = parameters["args"]
+        locals_ = parameters["locals"]
         expected_dockerfile_dir = str(Path(dockerfile.removeprefix("./").strip("/")).parent)
-        vcs = predicate["metadata"]["https://mobyproject.org/buildkit@v1#metadata"]["vcs"]
+        metadata = predicate["metadata"]["https://mobyproject.org/buildkit@v1#metadata"]
+        vcs = metadata["vcs"]
         build_config = predicate["buildConfig"]
-        source_infos = predicate["metadata"]["https://mobyproject.org/buildkit@v1#metadata"]["source"]["infos"]
+        source_infos = metadata["source"]["infos"]
         valid = (
             predicate.get("buildType") == "https://mobyproject.org/buildkit@v1"
-            and invocation.get("configSource", {}).get("entryPoint") == "Dockerfile"
-            and root["configSource"].get("path") == "Dockerfile"
-            and args.get("vcs:localdir:dockerfile") == expected_dockerfile_dir
-            and args.get("vcs:source") in expected_sources
-            and args.get("vcs:revision") == source_sha
+            and isinstance(invocation.get("configSource"), dict)
+            and invocation["configSource"].get("entryPoint") == "Dockerfile"
+            and isinstance(parameters.get("frontend"), str) and bool(parameters["frontend"])
+            and isinstance(args, dict)
+            and "root" not in parameters
+            and not any(key.startswith("vcs:") for key in args)
+            and isinstance(locals_, list) and bool(locals_)
+            and all(isinstance(local, dict) and isinstance(local.get("name"), str) and local["name"] for local in locals_)
+            and vcs.get("localdir:dockerfile") == expected_dockerfile_dir
             and vcs.get("source") in expected_sources
             and vcs.get("revision") == source_sha
             and isinstance(build_config.get("digestMapping"), dict)
             and bool(build_config["digestMapping"])
+            and all(isinstance(digest, str) and re.fullmatch(r"sha256:[0-9a-f]{64}", digest)
+                    and isinstance(step, str) and step for digest, step in build_config["digestMapping"].items())
             and isinstance(build_config.get("llbDefinition"), list)
             and bool(build_config["llbDefinition"])
             and isinstance(source_infos, list)

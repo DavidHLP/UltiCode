@@ -125,6 +125,11 @@ class SelectionTests(unittest.TestCase):
         self.assertTrue(selection.select({"future-service/build.toml"})["full"])
         self.assertTrue(selection.select({"docker/sandbox/harness/java/Main.java"})["backend"])
 
+    def test_buildkit_provenance_fetch_selects_release_and_docker_gates(self):
+        chosen = selection.select({"scripts/runbooks/fetch-buildkit-provenance.py"})
+        self.assertTrue(chosen["release"])
+        self.assertTrue(chosen["docker"])
+
     def test_agent_uses_dedicated_gate(self):
         chosen = selection.select({"services/agent/tests/test_api.py"})
         self.assertTrue(chosen["agent"])

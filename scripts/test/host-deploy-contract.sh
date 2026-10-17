@@ -13,12 +13,20 @@ ROLLBACK="$ROOT_DIR/.github/workflows/cd-rollback.yml"
 
 # shellcheck disable=SC2016
 for invalid in \
+  '' \
+  ' , ' \
+  $'backend-auth\ninvalid-service' \
+  $'backend-auth\nbackend-auth' \
   'backend-admin' \
   'backend-app' \
   'backend-admin backend-auth' \
   'backend-auth;touch /tmp/host-deploy-contract-pwned' \
   'backend-auth $(id)' \
-  'backend-auth backend-auth'; do
+  'backend-auth backend-auth' \
+  $'backend-auth\nbackend-app' \
+  $'backend-auth\rbackend-app' \
+  'backend-admin,backend-admin' \
+  'backend-admin backend-app backend-app'; do
   if "$SELECTOR" validate "$invalid" true false >/dev/null 2>&1; then
     printf 'host-deploy-contract: accepted invalid service selection: %s\n' "$invalid" >&2
     exit 1

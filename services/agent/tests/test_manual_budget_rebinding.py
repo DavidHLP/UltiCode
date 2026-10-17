@@ -13,6 +13,7 @@ from dav58_live_guard import IncrementalGuard
 @pytest.fixture
 def manual_budget(tmp_path, monkeypatch):
     monkeypatch.setenv("DEEPSEEK_MODEL", "deepseek-flash")
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
     slot = tmp_path / "manual"
     slot.mkdir(mode=0o700)
     monkeypatch.setattr(accounting, "authorization_slot", lambda _identity: slot)

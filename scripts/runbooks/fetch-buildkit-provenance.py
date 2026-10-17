@@ -30,7 +30,7 @@ def request(url: str, *, headers: dict[str, str] | None = None) -> bytes:
         raise ValueError(f"registry request failed: {url}: {exc}") from exc
 
 
-def validate_predicate(predicate: object, source_sha: str, repository: str) -> dict:
+def validate_predicate(predicate: object, source_sha: str, repository: str, dockerfile: str) -> dict:
     expected_sources = {
         f"git@github.com:{repository}.git",
         f"https://github.com/{repository}",
@@ -43,6 +43,7 @@ def validate_predicate(predicate: object, source_sha: str, repository: str) -> d
         parameters = invocation["parameters"]
         root_args = parameters["root"]["request"]["args"]
         config_source = parameters["root"]["configSource"]
+        expected_dockerfile_dir = str(Path(dockerfile.removeprefix("./")).parent)
         metadata = predicate["metadata"]["https://mobyproject.org/buildkit@v1#metadata"]
         vcs = metadata["vcs"]
         build_config = predicate["buildConfig"]
@@ -51,6 +52,7 @@ def validate_predicate(predicate: object, source_sha: str, repository: str) -> d
         if (predicate.get("buildType") != "https://mobyproject.org/buildkit@v1"
                 or invocation.get("configSource", {}).get("entryPoint") != "Dockerfile"
                 or config_source.get("path") != "Dockerfile"
+                or root_args.get("vcs:localdir:dockerfile") != expected_dockerfile_dir
                 or root_args.get("vcs:source") not in expected_sources
                 or root_args.get("vcs:revision") != source_sha
                 or vcs.get("source") not in expected_sources
@@ -71,11 +73,11 @@ def validate_predicate(predicate: object, source_sha: str, repository: str) -> d
 
 
 def main() -> int:
-    if len(sys.argv) != 4:
-        raise ValueError("usage: fetch-buildkit-provenance.py IMAGE@sha256:DIGEST SOURCE_SHA OUTPUT")
-    image_ref, source_sha, output = sys.argv[1:]
+    if len(sys.argv) != 5:
+        raise ValueError("usage: fetch-buildkit-provenance.py IMAGE@sha256:DIGEST SOURCE_SHA OUTPUT DOCKERFILE")
+    image_ref, source_sha, output, dockerfile = sys.argv[1:]
     match = re.fullmatch(r"ghcr\.io/([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*)@sha256:([0-9a-f]{64})", image_ref)
-    if not match or not re.fullmatch(r"[0-9a-f]{40}", source_sha):
+    if not match or not re.fullmatch(r"[0-9a-f]{40}", source_sha) or not dockerfile or dockerfile.startswith("/") or ".." in Path(dockerfile).parts:
         raise ValueError("image ref or source commit is invalid")
     repository, image_digest = match.groups()
     config = json.loads(Path(os.environ.get("DOCKER_CONFIG", str(Path.home() / ".docker")) + "/config.json").read_text())
@@ -121,7 +123,7 @@ def main() -> int:
             if (not isinstance(statement, dict) or statement.get("_type") != STATEMENT_TYPE
                     or statement.get("predicateType") != PROVENANCE or statement.get("subject") != []):
                 continue
-            found.append(validate_predicate(statement.get("predicate"), source_sha, os.environ["GITHUB_REPOSITORY"]))
+            found.append(validate_predicate(statement.get("predicate"), source_sha, os.environ["GITHUB_REPOSITORY"], dockerfile))
     if len(found) != 1:
         raise ValueError("expected exactly one BuildKit provenance statement for candidate digest")
     Path(output).write_text(json.dumps(found[0], sort_keys=True, indent=2) + "\n", encoding="utf-8")

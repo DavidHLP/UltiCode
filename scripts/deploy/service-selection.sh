@@ -4,7 +4,7 @@ set -euo pipefail
 readonly services=(backend-auth backend-admin backend-app backend-submission backend-notification backend-search backend-judge console management)
 
 validate_selection() {
-  local raw="${1:-all}" require_pair="${2:-false}" require_admin="${3:-false}" service normalized
+  local raw="${1-all}" require_pair="${2:-false}" require_admin="${3:-false}" service normalized
   [[ "$require_pair" == true || "$require_pair" == false ]] || {
     echo "::error::pair requirement must be true or false" >&2
     return 2
@@ -12,6 +12,10 @@ validate_selection() {
   [[ "$require_admin" == true || "$require_admin" == false ]] || {
     echo "::error::migration requirement must be true or false" >&2
     return 2
+  }
+  [[ -n "${raw//[[:space:],]/}" && "$raw" != *$'\n'* && "$raw" != *$'\r'* ]] || {
+    echo "::error::service selection must be a non-empty single line" >&2
+    return 1
   }
   normalized="${raw//,/ }"
   read -r -a selected <<< "$normalized"
@@ -53,7 +57,7 @@ validate_selection() {
 }
 
 case "${1:-}" in
-  validate) validate_selection "${2:-all}" "${3:-false}" "${4:-false}" ;;
+  validate) validate_selection "${2-all}" "${3:-false}" "${4:-false}" ;;
   list) printf '%s\n' "${services[@]}" ;;
   *) echo "usage: $0 {validate <selection> [require-admin-app-pair]|list}" >&2; exit 2 ;;
 esac

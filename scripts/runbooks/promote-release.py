@@ -90,7 +90,7 @@ def validate_trivy(report: object, ref: str) -> None:
         fail("Trivy report must contain at least one os-pkgs result")
 
 
-def validate_buildkit_predicate(predicate: object, source_sha: str) -> None:
+def validate_buildkit_predicate(predicate: object, source_sha: str, dockerfile: str) -> None:
     expected_sources = {
         "git@github.com:DavidHLP/UltiCode.git",
         "https://github.com/DavidHLP/UltiCode",
@@ -101,6 +101,7 @@ def validate_buildkit_predicate(predicate: object, source_sha: str) -> None:
         parameters = invocation["parameters"]
         root = parameters["root"]
         args = root["request"]["args"]
+        expected_dockerfile_dir = str(Path(dockerfile.removeprefix("./").strip("/")).parent)
         vcs = predicate["metadata"]["https://mobyproject.org/buildkit@v1#metadata"]["vcs"]
         build_config = predicate["buildConfig"]
         source_infos = predicate["metadata"]["https://mobyproject.org/buildkit@v1#metadata"]["source"]["infos"]
@@ -108,6 +109,7 @@ def validate_buildkit_predicate(predicate: object, source_sha: str) -> None:
             predicate.get("buildType") == "https://mobyproject.org/buildkit@v1"
             and invocation.get("configSource", {}).get("entryPoint") == "Dockerfile"
             and root["configSource"].get("path") == "Dockerfile"
+            and args.get("vcs:localdir:dockerfile") == expected_dockerfile_dir
             and args.get("vcs:source") in expected_sources
             and args.get("vcs:revision") == source_sha
             and vcs.get("source") in expected_sources
@@ -127,7 +129,7 @@ def validate_buildkit_predicate(predicate: object, source_sha: str) -> None:
         fail("BuildKit provenance source, revision, recipe, or build type mismatch")
 
 
-def verified_statement(output: str, kind: str, ref: str, source: str) -> object:
+def verified_statement(output: str, kind: str, ref: str, source: str, dockerfile: str) -> object:
     try:
         envelopes = json.loads(output)
     except json.JSONDecodeError as exc:
@@ -168,7 +170,7 @@ def verified_statement(output: str, kind: str, ref: str, source: str) -> object:
     if statement.get("predicateType") != expected_type:
         fail(f"verified {kind} predicate type mismatch")
     if kind == "slsaprovenance":
-        validate_buildkit_predicate(statement.get("predicate"), source.rsplit("@", 1)[1])
+        validate_buildkit_predicate(statement.get("predicate"), source.rsplit("@", 1)[1], dockerfile)
 
     return statement.get("predicate")
 
@@ -239,10 +241,10 @@ def read_candidate(directory: Path, service: dict[str, object], source_sha: str,
     sbom = load_json(expected_dir / f"{name}.spdx.json")
     provenance = load_json(expected_dir / f"{name}.provenance.json")
     validate_trivy(load_json(expected_dir / f"{name}.trivy.json"), ref)
-    validate_buildkit_predicate(provenance, source_sha)
+    validate_buildkit_predicate(provenance, source_sha, str(service["dockerfile"]))
 
     return {"name": name, "ref": ref, "version": version, "sbom": sbom, "provenance": provenance,
-            "dir": expected_dir, "repo": repo, "digest": digest}
+            "dir": expected_dir, "repo": repo, "digest": digest, "dockerfile": service["dockerfile"]}
 
 
 def verify_all(candidate: dict[str, object], source_sha: str) -> None:
@@ -256,7 +258,7 @@ def verify_all(candidate: dict[str, object], source_sha: str) -> None:
         result = run([cosign, "verify-attestation", "--output", "json", "--type", kind, *common, ref])
         if result.returncode:
             fail(f"cosign {kind} attestation verification failed for {candidate['name']}")
-        verified = verified_statement(result.stdout or "", kind, ref, f"https://github.com/DavidHLP/UltiCode@{source_sha}")
+        verified = verified_statement(result.stdout or "", kind, ref, f"https://github.com/DavidHLP/UltiCode@{source_sha}", str(candidate["dockerfile"]))
         ensure_predicate_equal(expected, verified, kind)
 
 

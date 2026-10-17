@@ -29,8 +29,8 @@
   },
   {
     "doc_id": "repository-development",
-    "version": "sha256-1378b640ea0e5031b1d77e691a8fb391f9df5ec5a28f320343d736c612bb6e9d",
-    "chunk_id": "repository-development:sha256-1378b640ea0e5031b1d77e691a8fb391f9df5ec5a28f320343d736c612bb6e9d:1",
+    "version": "sha256-1a804d6adf260ea544fc14c261c6c44e1fd2fc2c41b9ac8331107ebb68ab1f15",
+    "chunk_id": "repository-development:sha256-1a804d6adf260ea544fc14c261c6c44e1fd2fc2c41b9ac8331107ebb68ab1f15:1",
     "source_path": "docs/DEVELOPMENT.md",
     "access_scope": "repository-public",
     "sample_kind": "real",
@@ -43,8 +43,8 @@
   },
   {
     "doc_id": "repository-operations",
-    "version": "sha256-7abeb85873cd613156862dacd007c362bb8ce6224f42cba8001397093fa56335",
-    "chunk_id": "repository-operations:sha256-7abeb85873cd613156862dacd007c362bb8ce6224f42cba8001397093fa56335:1",
+    "version": "sha256-77cedcb60cbd8c9654dacb7dacd7d704a4b1c04dd38fd477c8673074464246f6",
+    "chunk_id": "repository-operations:sha256-77cedcb60cbd8c9654dacb7dacd7d704a4b1c04dd38fd477c8673074464246f6:1",
     "source_path": "docs/OPERATIONS.md",
     "access_scope": "repository-public",
     "sample_kind": "real",
@@ -53,18 +53,18 @@
     "source_position": "lines 46-50",
     "model_input_projection": "SourceHit.as_model_dict()",
     "source_trust": "untrusted-data",
-    "content_digest": "sha256:ac57d473f68c4eea7cb2ae2680082f985a5c4a1af573643e23fac02f815cd84f"
+    "content_digest": "sha256:fc7bb6b95e21b5cfb7b8a2085fd79afebe603622e162bd0b975de432685a0bb0"
   },
   {
     "doc_id": "repository-reference",
-    "version": "sha256-9d4cf14bcbe27603bb4ecf67cf5b8ecad18da49114cfce26b937806f03bafb82",
-    "chunk_id": "repository-reference:sha256-9d4cf14bcbe27603bb4ecf67cf5b8ecad18da49114cfce26b937806f03bafb82:1",
+    "version": "sha256-6cf3411c2ca32f7b414f9e531c16bf0e0c37c0db694f02ba7eda2c046367aff1",
+    "chunk_id": "repository-reference:sha256-6cf3411c2ca32f7b414f9e531c16bf0e0c37c0db694f02ba7eda2c046367aff1:1",
     "source_path": "docs/REFERENCE.md",
     "access_scope": "repository-public",
     "sample_kind": "real",
     "permission": "MIT:LICENSE:sha256:2be36e9d56578c1111740b6fe339ea3619cf1f2000af718f1a59e97d2e5d995c",
     "scope": "Repository documentation; local retrieval and evaluation under the included MIT license",
-    "source_position": "lines 202-206",
+    "source_position": "lines 204-208",
     "model_input_projection": "SourceHit.as_model_dict()",
     "source_trust": "untrusted-data",
     "content_digest": "sha256:f0ae7f89aad99d930358288641139c169614cb0fb92980fb542f8b59a7ae00c1"

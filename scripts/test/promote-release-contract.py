@@ -47,7 +47,7 @@ def seed(base):
                       "invocation": {"configSource": {"entryPoint": "Dockerfile"},
                                      "parameters": {"root": {"configSource": {"path": "Dockerfile"},
                                                               "request": {"args": {"vcs:source": "git@github.com:DavidHLP/UltiCode.git",
-                                                                                   "vcs:revision": SHA}}}}},
+                                                                                   "vcs:revision": SHA, "vcs:localdir:dockerfile": str(Path(service["dockerfile"].removeprefix("./")).parent)}}}}},
                       "buildConfig": {"digestMapping": {"sha256:" + "1" * 64: "step0"},
                                       "llbDefinition": [{"id": "step0"}]},
                       "metadata": {"https://mobyproject.org/buildkit@v1#metadata": {
@@ -233,6 +233,11 @@ def main():
             proof["invocation"]["parameters"]["root"]["request"]["args"]["vcs:source"] = "git@github.com:DavidHLP/UltiCode.git@" + "f" * 40
             provenance_path.write_text(json.dumps(proof))
         assert_reject_without_write(root, bindir, state, log, wrong_provenance)
+        def wrong_dockerfile_path(r):
+            proof = canonical(provenance_path)
+            proof["invocation"]["parameters"]["root"]["request"]["args"]["vcs:localdir:dockerfile"] = "elsewhere"
+            provenance_path.write_text(json.dumps(proof))
+        assert_reject_without_write(root, bindir, state, log, wrong_dockerfile_path)
         def wrong_revision(r):
             proof = canonical(provenance_path)
             proof["invocation"]["parameters"]["root"]["request"]["args"]["vcs:revision"] = "e" * 40

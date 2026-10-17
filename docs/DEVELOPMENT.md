@@ -114,7 +114,7 @@ pnpm --dir apps/console test
 pnpm --dir apps/console type-check
 ```
 
-离线 scripted-model/MockTransport 和合成浏览器响应只证明相应测试路径，不证明真实模型质量、真实 Java 持久化或远端部署。真实用户体验验证须单独明确目标环境、数据范围和模型费用授权，直接通过产品工作流完成，不因清理测试而自动授权。
+Agent 单元测试必须显式隔离模型凭据与传输，不依赖开发机的 `.env` 或真实 API key；缺失模型凭据时生产调用仍须 fail closed。离线 scripted-model/MockTransport 和合成浏览器响应只证明相应测试路径，不证明真实模型质量、真实 Java 持久化或远端部署。真实用户体验验证须单独明确目标环境、数据范围和模型费用授权，直接通过产品工作流完成，不因清理测试而自动授权。
 
 ### 访问入口
 
@@ -240,6 +240,8 @@ python3 scripts/ci/check-workflows.py
 python3 scripts/test/workflow-policy-contract.py
 bash scripts/test/cicd-contract.sh
 ```
+
+CI/CD 契约的 provenance 测试数据必须由测试在临时目录生成或随仓库版本控制，不能依赖被忽略的 `.local/` 归档。
 
 这些检查验证流水线实现与离线失败路径，不代表已运行远程 GitHub Actions、签名发布或真实环境部署。Environment 审批、分支保护和部署凭据的启用要求见 [`OPERATIONS.md`](OPERATIONS.md#cicd-入口)。
 

@@ -103,8 +103,9 @@ jobs:
         env:
           IMAGE_REF: ${{ env.REGISTRY }}/${{ steps.normalize.outputs.image_name }}/${{ matrix.service.name }}@${{ steps.build.outputs.digest }}
           SOURCE_SHA: ${{ github.sha }}
+          DOCKERFILE: ${{ matrix.service.dockerfile }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-        run: python3 scripts/runbooks/fetch-buildkit-provenance.py "$IMAGE_REF" "$SOURCE_SHA" "$RUNNER_TEMP/${{ matrix.service.name }}.provenance.json"
+        run: python3 scripts/runbooks/fetch-buildkit-provenance.py "$IMAGE_REF" "$SOURCE_SHA" "$RUNNER_TEMP/${{ matrix.service.name }}.provenance.json" "$DOCKERFILE"
       - name: Scan pushed candidate
         id: scan
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0 (Trivy v0.74.0)

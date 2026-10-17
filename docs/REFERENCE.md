@@ -17,6 +17,8 @@
 
 `POST /learning-plans` 为当前已认证、有效且未封禁的用户保存已确认的学习计划。请求必须携带规范 UUID 格式的 `Idempotency-Key`，且来源提交必须属于当前用户。相同 key 和请求内容重试时返回原记录；同一 key 携带不同内容时返回 HTTP 409（业务码 `40900`）。`GET /learning-plans/{id}` 和 `GET /learning-plans/by-key/{key}` 仅返回当前用户拥有的记录。
 
+App 受保护路由对未认证请求返回 HTTP 401；已认证但缺少所需角色时返回 HTTP 403。显式公开路由继续允许匿名访问。
+
 ### Agent workflow API
 
 The opt-in Python Agent service is separate from Java `/learning-plans`: it owns private multi-turn conversation history and local LearningPlan workflow drafts, while App Java owns confirmed LearningPlan records. Factory: `agent_service.app.create_app(...)`. Conversation IDs and client turn IDs are UUIDs supplied by the client; server validation binds each conversation to the authenticated owner and one eligible submission. Existing LearningPlan thread IDs remain server-generated. Every operation checks the authenticated owner; a body field cannot select a user, model, graph node, or checkpoint.

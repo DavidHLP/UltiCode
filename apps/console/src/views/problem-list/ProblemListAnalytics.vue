@@ -1,9 +1,14 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import type { Problem } from "@/types/problem";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { DonutChart } from "@/components/ui/chart-donut";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@ulticode/design-system/ui/card";
+import { Progress } from "@ulticode/design-system/ui/progress";
+import DonutChart from "@/components/charts/DonutChart.vue";
 import { useI18n } from "vue-i18n";
 
 interface Props {
@@ -15,9 +20,9 @@ const { t } = useI18n();
 
 const statusCategories = ["Solved", "Attempted", "Todo"] as const;
 const statusColorTokens = {
-  Solved: "--chart-status-solved",
-  Attempted: "--chart-status-attempted",
-  Todo: "--chart-status-todo",
+  Solved: "--status-success-mark",
+  Attempted: "--status-warning-mark",
+  Todo: "--muted-foreground",
 };
 
 const statusColorScale = computed(() =>
@@ -90,11 +95,9 @@ const donutValueFormatter = (tick: number | Date) =>
 <template>
   <div class="space-y-6">
     <!-- Progress Overview -->
-    <Card class="border-none shadow-md bg-card">
+    <Card>
       <CardHeader class="pb-2">
-        <CardTitle class="text-lg font-semibold tracking-tight">{{
-          t("problem.problemList.analytics.progress")
-        }}</CardTitle>
+        <CardTitle>{{ t("problem.problemList.analytics.progress") }}</CardTitle>
       </CardHeader>
       <CardContent>
         <div class="flex items-center justify-between mb-2">
@@ -105,24 +108,21 @@ const donutValueFormatter = (tick: number | Date) =>
         </div>
         <Progress :model-value="progressPercentage" class="h-2 mb-6" />
 
-        <div class="h-[200px] w-full flex items-center justify-center">
-          <DonutChart
-            class="h-full w-full"
-            index="name"
-            :category="'total'"
-            :data="donutData"
-            :value-formatter="donutValueFormatter"
-            :colors="statusColorScale"
-            :show-legend="true"
-          />
-        </div>
+        <DonutChart
+          index="name"
+          :category="'total'"
+          :data="donutData"
+          :value-formatter="donutValueFormatter"
+          :colors="statusColorScale"
+          :show-legend="true"
+        />
       </CardContent>
     </Card>
 
     <!-- Difficulty Breakdown -->
-    <Card class="border-none shadow-md">
+    <Card>
       <CardHeader class="pb-4">
-        <CardTitle class="text-lg font-semibold tracking-tight">{{
+        <CardTitle>{{
           t("problem.problemList.analytics.difficulty")
         }}</CardTitle>
       </CardHeader>
@@ -148,7 +148,7 @@ const donutValueFormatter = (tick: number | Date) =>
           </div>
           <Progress
             :model-value="stat.percentage"
-            class="h-1.5 bg-muted"
+            class="h-1.5"
             :indicator-class="stat.colorClass"
           />
         </div>

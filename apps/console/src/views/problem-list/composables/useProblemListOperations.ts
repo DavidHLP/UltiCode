@@ -77,8 +77,10 @@ export function useProblemListOperations(listId: Ref<string>) {
   const problemIdsInList = computed(() => {
     return new Set(problems.value.map((p) => p.id));
   });
+  const loadError = ref(false);
 
   async function loadProblemList(id?: string) {
+    loadError.value = false;
     if (!id) {
       currentList.value = null;
       problems.value = [];
@@ -102,6 +104,7 @@ export function useProblemListOperations(listId: Ref<string>) {
       }
     } catch (error) {
       console.error("Failed to load problem list overview", error);
+      loadError.value = true;
       problems.value = [];
       currentList.value = null;
       isSaved.value = false;
@@ -293,6 +296,8 @@ export function useProblemListOperations(listId: Ref<string>) {
   return {
     currentList,
     problems,
+    loadError,
+    loadProblemList,
     isSaved,
     isSaving,
     isForking,

@@ -1,19 +1,19 @@
 import { h } from 'vue'
 import type { ColumnDef } from '@tanstack/vue-table'
 import {
-  IconEye,
-  IconEyeOff,
-  IconPencil,
-  IconStar,
-  IconStarFilled,
-  IconTrash,
-} from '@tabler/icons-vue'
+  Eye as IconEye,
+  EyeOff as IconEyeOff,
+  Pencil as IconPencil,
+  Star as IconStar,
+  Star as IconStarFilled,
+  Trash as IconTrash,
+} from '@lucide/vue'
 
 import { createSelectionColumn } from '@/components/table/selectionColumn'
 import { createEntityActionsMenu } from '@/components/table/entityActions'
 import type { ProblemList } from '@/api/admin/problem-lists'
 import { formatDate } from '@/lib/format/date'
-import { badge } from '@/components/ui/terminal'
+import { badge } from '@ulticode/badge-config'
 import type { ProblemListPermissionMap } from '@/composables/domainPermissionMaps'
 
 export interface ProblemListActions {
@@ -28,21 +28,21 @@ function renderVisibilityBadge(isPublic: boolean, t: (key: string) => string) {
   return badge({ color: 'neutral', label: t('problemLists.visibility.private'), icon: IconEyeOff })
 }
 
-// Terminal-style featured badge renderer
+// Semantic featured badge renderer
 function renderFeaturedBadge(isFeatured: boolean) {
   if (isFeatured) {
     return h('div', { class: 'flex items-center gap-2' }, [
       h('span', {
-        class: 'w-1.5 h-1.5 rounded-full bg-[var(--status-warning-mark)] animate-pulse-subtle',
+        class: 'w-1.5 h-1.5 rounded-full bg-[var(--status-warning-mark)] ',
       }),
       h(IconStarFilled, {
-        class: 'h-4 w-4 text-foreground-strong',
+        class: 'h-4 w-4 text-foreground',
       }),
     ])
   }
 
   return h(IconStar, {
-    class: 'h-4 w-4 text-[var(--border-subtle)] dark:text-[var(--foreground-strong)]',
+    class: 'h-4 w-4 text-[var(--border)] dark:text-[var(--foreground)]',
   })
 }
 
@@ -54,7 +54,7 @@ export function createColumns(
   return [
     ...createSelectionColumn<ProblemList>(t, {
       checkboxClass:
-        'border-[var(--border-subtle)] data-[state=checked]:bg-[var(--primary)] data-[state=checked]:border-[var(--primary)]',
+        'border-[var(--border)] data-[state=checked]:bg-[var(--primary)] data-[state=checked]:border-[var(--primary)]',
     }),
     {
       id: 'row_num',
@@ -63,7 +63,11 @@ export function createColumns(
         const pageIndex = table.getState().pagination.pageIndex
         const pageSize = table.getState().pagination.pageSize
         const rowNum = pageIndex * pageSize + row.index + 1
-        return h('span', { class: 'terminal-row-num' }, String(rowNum).padStart(2, '0'))
+        return h(
+          'span',
+          { class: 'text-xs tabular-nums text-muted-foreground' },
+          String(rowNum).padStart(2, '0'),
+        )
       },
       enableSorting: false,
       enableHiding: false,
@@ -73,7 +77,7 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
+          { class: 'font-mono text-xs uppercase tracking-widest text-[var(--muted-foreground)]' },
           t('problemLists.columns.name'),
         ),
       cell: ({ row }) => {
@@ -82,7 +86,7 @@ export function createColumns(
           h('span', { class: 'font-medium text-sm text-[var(--foreground)]' }, list.name),
           h(
             'span',
-            { class: 'font-data text-xs text-[var(--foreground-muted)] line-clamp-1' },
+            { class: 'font-mono text-xs text-[var(--muted-foreground)] line-clamp-1' },
             list.description || t('common.noData'),
           ),
         ])
@@ -93,7 +97,7 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
+          { class: 'font-mono text-xs uppercase tracking-widest text-[var(--muted-foreground)]' },
           t('problemLists.columns.featured'),
         ),
       cell: ({ row }) => {
@@ -106,7 +110,7 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
+          { class: 'font-mono text-xs uppercase tracking-widest text-[var(--muted-foreground)]' },
           t('problemLists.columns.visibility'),
         ),
       cell: ({ row }) => {
@@ -119,14 +123,14 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
+          { class: 'font-mono text-xs uppercase tracking-widest text-[var(--muted-foreground)]' },
           t('problemLists.columns.problems'),
         ),
       cell: ({ row }) => {
         const count = row.original.problemCount || 0
         return h(
           'span',
-          { class: 'font-data text-xs text-foreground-strong tabular-nums' },
+          { class: 'font-mono text-xs text-foreground tabular-nums' },
           count.toLocaleString(),
         )
       },
@@ -136,12 +140,16 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
+          { class: 'font-mono text-xs uppercase tracking-widest text-[var(--muted-foreground)]' },
           t('table.columnNames.authorName'),
         ),
       cell: ({ row }) => {
         const authorName = row.original.authorName
-        return h('span', { class: 'font-data text-xs text-[var(--foreground-muted)]' }, authorName || '-')
+        return h(
+          'span',
+          { class: 'font-mono text-xs text-[var(--muted-foreground)]' },
+          authorName || '-',
+        )
       },
     },
     {
@@ -149,14 +157,14 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
+          { class: 'font-mono text-xs uppercase tracking-widest text-[var(--muted-foreground)]' },
           t('problemLists.columns.order'),
         ),
       cell: ({ row }) => {
         const order = row.original.bannerOrder
         return h(
           'span',
-          { class: 'font-data text-xs text-[var(--foreground-muted)] tabular-nums' },
+          { class: 'font-mono text-xs text-[var(--muted-foreground)] tabular-nums' },
           order,
         )
       },
@@ -166,14 +174,14 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
+          { class: 'font-mono text-xs uppercase tracking-widest text-[var(--muted-foreground)]' },
           t('common.updated'),
         ),
       cell: ({ row }) => {
         const date = row.getValue('updatedAt') as string
         return h(
           'span',
-          { class: 'font-data text-xs text-[var(--foreground-muted)] tabular-nums' },
+          { class: 'font-mono text-xs text-[var(--muted-foreground)] tabular-nums' },
           formatDate(date),
         )
       },
@@ -183,7 +191,7 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
+          { class: 'font-mono text-xs uppercase tracking-widest text-[var(--muted-foreground)]' },
           t('common.actions.label'),
         ),
       cell: ({ row }) => {
@@ -202,18 +210,17 @@ export function createColumns(
               label: t('common.delete'),
               onSelect: () => actions.deleteList(list),
               icon: IconTrash,
-              iconClass: 'h-4 w-4 text-foreground-strong',
-              labelClass: 'text-[var(--foreground-strong)]',
+              iconClass: 'h-4 w-4 text-foreground',
+              labelClass: 'text-[var(--foreground)]',
               hidden: !can.delete.value,
             },
           ],
           {
-            triggerClass:
-              'h-8 w-8 p-0 hover:bg-[var(--surface-highlight)] dark:hover:bg-[var(--foreground-strong)]',
-            triggerIconClass: 'h-4 w-4 text-[var(--foreground-muted)]',
-            contentClass: 'border-[var(--border-subtle)] dark:border-[var(--foreground-strong)]',
-            itemClass: 'font-data text-xs cursor-pointer',
-            separatorClass: 'bg-[var(--border-subtle)] dark:bg-[var(--foreground-strong)]',
+            triggerClass: 'h-8 w-8 p-0 hover:bg-[var(--accent)] dark:hover:bg-[var(--foreground)]',
+            triggerIconClass: 'h-4 w-4 text-[var(--muted-foreground)]',
+            contentClass: 'border-[var(--border)] dark:border-[var(--foreground)]',
+            itemClass: 'font-mono text-xs cursor-pointer',
+            separatorClass: 'bg-[var(--border)] dark:bg-[var(--foreground)]',
           },
         )
       },

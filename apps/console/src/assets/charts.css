@@ -2,77 +2,73 @@
 @layer utilities {
   /* Status Color Classes */
   .chart-solved {
-    color: var(--chart-status-solved);
+    color: var(--status-success-mark);
   }
 
   .chart-attempted {
-    color: var(--chart-status-attempted);
+    color: var(--status-warning-mark);
   }
 
   .chart-todo {
-    color: var(--chart-status-todo);
+    color: var(--muted-foreground);
   }
 
   .bg-chart-solved {
-    background-color: var(--chart-status-solved);
+    background-color: var(--status-success-mark);
   }
 
   .bg-chart-attempted {
-    background-color: var(--chart-status-attempted);
+    background-color: var(--status-warning-mark);
   }
 
   .bg-chart-todo {
-    background-color: var(--chart-status-todo);
+    background-color: var(--muted-foreground);
   }
 
   /* Difficulty Color Classes */
   .chart-easy {
-    color: var(--chart-difficulty-easy);
+    color: var(--status-success-mark);
   }
 
   .chart-medium {
-    color: var(--chart-difficulty-medium);
+    color: var(--status-warning-mark);
   }
 
   .chart-hard {
-    color: var(--chart-difficulty-hard);
+    color: var(--status-error-mark);
   }
 
   .bg-chart-easy {
-    background-color: var(--chart-difficulty-easy);
+    background-color: var(--status-success-mark);
   }
 
   .bg-chart-medium {
-    background-color: var(--chart-difficulty-medium);
+    background-color: var(--status-warning-mark);
   }
 
   .bg-chart-hard {
-    background-color: var(--chart-difficulty-hard);
+    background-color: var(--status-error-mark);
   }
 
   /* Series Color Classes */
   .chart-series-1 {
-    color: var(--chart-series-1);
+    color: var(--chart-1);
   }
 
   .chart-series-2 {
-    color: var(--chart-series-2);
+    color: var(--chart-2);
   }
 
   .chart-series-3 {
-    color: var(--chart-series-3);
+    color: var(--chart-3);
   }
 
   .chart-series-4 {
-    color: var(--chart-series-4);
+    color: var(--chart-4);
   }
 
   .chart-series-5 {
-    color: var(--chart-series-5);
-  }
-
-  .chart-series-6 {
-    color: var(--chart-series-6);
+    color: var(--chart-5);
   }
 }
 
@@ -80,65 +76,65 @@
 @layer components {
   /* Donut Chart Segments */
   [data-chart-segment="Solved"] {
-    fill: var(--chart-status-solved);
+    fill: var(--status-success-mark);
   }
 
   [data-chart-segment="Attempted"] {
-    fill: var(--chart-status-attempted);
+    fill: var(--status-warning-mark);
   }
 
   [data-chart-segment="Todo"] {
-    fill: var(--chart-status-todo);
+    fill: var(--muted-foreground);
   }
 
   /* Bar Chart Segments */
   [data-chart-bar="Solved"] {
-    fill: var(--chart-status-solved);
+    fill: var(--status-success-mark);
   }
 
   [data-chart-bar="Attempted"] {
-    fill: var(--chart-status-attempted);
+    fill: var(--status-warning-mark);
   }
 
   [data-chart-bar="Todo"] {
-    fill: var(--chart-status-todo);
+    fill: var(--muted-foreground);
   }
 
   /* Line Chart Series */
   [data-chart-line="Solved Share"] {
-    stroke: color-mix(in oklch, var(--chart-status-solved) 80%, transparent);
+    stroke: color-mix(in oklch, var(--status-success-mark) 80%, transparent);
   }
 
   [data-chart-line="Attempted Share"] {
-    stroke: color-mix(in oklch, var(--chart-status-attempted) 80%, transparent);
+    stroke: color-mix(in oklch, var(--status-warning-mark) 80%, transparent);
   }
 
   [data-chart-line="Todo Share"] {
-    stroke: color-mix(in oklch, var(--chart-status-todo) 80%, transparent);
+    stroke: color-mix(in oklch, var(--muted-foreground) 80%, transparent);
   }
 
   [data-chart-line="Acceptance Rate"] {
-    stroke: color-mix(in oklch, var(--chart-accent-info) 90%, transparent);
+    stroke: color-mix(in oklch, var(--status-info-mark) 90%, transparent);
   }
 
   /* Chart Container Styling */
   .chart-container {
-    background: var(--chart-background);
+    background: var(--card);
     border-radius: var(--radius);
     padding: 1rem;
   }
 
   /* Chart Grid Lines */
   .chart-grid-line {
-    stroke: var(--chart-grid-color);
+    stroke: var(--border);
     stroke-width: 1;
     stroke-dasharray: 4 4;
   }
 
   /* Chart Tooltip */
   .chart-tooltip {
-    background: var(--chart-tooltip-background);
-    border: 1px solid var(--chart-tooltip-border);
+    background: var(--popover);
+    border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 0.5rem 0.75rem;
     box-shadow: var(--shadow-float);
@@ -160,34 +156,38 @@
   }
 
   .chart-legend-marker-solved {
-    background-color: var(--chart-status-solved);
+    background-color: var(--status-success-mark);
   }
 
   .chart-legend-marker-attempted {
-    background-color: var(--chart-status-attempted);
+    background-color: var(--status-warning-mark);
   }
 
   .chart-legend-marker-todo {
-    background-color: var(--chart-status-todo);
+    background-color: var(--muted-foreground);
   }
 
   /* Premium & Solution Badges */
   .chart-badge-premium {
-    color: var(--chart-premium);
-    border-color: color-mix(in oklch, var(--chart-premium) 30%, transparent);
+    color: var(--status-special-mark);
+    border-color: color-mix(
+      in oklch,
+      var(--status-special-mark) 30%,
+      transparent
+    );
     background-color: color-mix(
       in oklch,
-      var(--chart-premium) 10%,
+      var(--status-special-mark) 10%,
       transparent
     );
   }
 
   .chart-badge-solution {
-    color: var(--chart-solution);
-    border-color: color-mix(in oklch, var(--chart-solution) 30%, transparent);
+    color: var(--status-info-mark);
+    border-color: color-mix(in oklch, var(--status-info-mark) 30%, transparent);
     background-color: color-mix(
       in oklch,
-      var(--chart-solution) 10%,
+      var(--status-info-mark) 10%,
       transparent
     );
   }

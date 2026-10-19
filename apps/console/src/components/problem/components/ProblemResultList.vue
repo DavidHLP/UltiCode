@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Button } from "@/components/ui/button";
+import { Button } from "@ulticode/design-system/ui/button";
 import { Video, Lock, Trash2 } from "@lucide/vue";
 import { DataTable, type ColumnDef } from "@/components/common/data-table";
 import { useI18n } from "vue-i18n";
@@ -35,7 +35,9 @@ const handleRemove = (e: Event, problem: EnrichedProblem) => {
 </script>
 
 <template>
-  <div class="terminal-card overflow-hidden bg-card">
+  <div
+    class="rounded-xl border bg-card text-card-foreground overflow-hidden bg-card"
+  >
     <DataTable
       :data="displayedProblems"
       :columns="columns"
@@ -53,7 +55,7 @@ const handleRemove = (e: Event, problem: EnrichedProblem) => {
             v-if="(problem as EnrichedProblem).statusIcon"
             class="h-5 w-5"
             :class="{
-              'text-foreground-strong':
+              'text-foreground':
                 (problem as EnrichedProblem).status === 'solved',
             }"
           />
@@ -63,7 +65,7 @@ const handleRemove = (e: Event, problem: EnrichedProblem) => {
       <template #cell-title="{ item: problem }">
         <div class="flex items-center gap-2">
           <span
-            class="truncate font-bold text-foreground-strong transition-colors duration-200 hover:underline hover:decoration-link-decoration"
+            class="truncate font-bold text-foreground transition-colors duration-200 hover:underline hover:decoration-primary"
             >{{ (problem as EnrichedProblem).id }}.
             {{ (problem as EnrichedProblem).title }}</span
           >
@@ -83,7 +85,7 @@ const handleRemove = (e: Event, problem: EnrichedProblem) => {
       </template>
 
       <template #cell-acceptance="{ item: problem }">
-        <span class="font-data tabular-nums text-foreground/80 font-medium">
+        <span class="font-mono tabular-nums text-foreground/80 font-medium">
           {{
             formatAcceptance(
               (problem as EnrichedProblem).acceptanceRate ??
@@ -113,7 +115,7 @@ const handleRemove = (e: Event, problem: EnrichedProblem) => {
         <Button
           variant="ghost"
           size="icon"
-          class="h-8 w-8 rounded-md border border-transparent text-muted-foreground hover:text-destructive hover:border-destructive/30"
+          class="w-8"
           @click="
             (e: MouseEvent) => handleRemove(e, problem as EnrichedProblem)
           "

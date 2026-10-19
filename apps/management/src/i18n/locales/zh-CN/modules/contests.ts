@@ -294,12 +294,15 @@ export default {
     difficulty: '难度',
     score: '分数',
     noProblemsAdded: '暂未添加题目',
+    problemDetailsUnavailable: '暂时无法获取题目明细，不代表比赛没有题目。',
     user: '用户',
     joinedAt: '加入时间',
     noParticipantsYet: '暂无参赛者',
     rank: '排名',
     penalty: '罚时',
     noRankingsYet: '暂无排名数据',
+    rankingsLoading: '正在加载排名...',
+    rankingsLoadFailed: '排名加载失败，请重试。',
     contestNotFound: '未找到比赛',
     backToList: '返回列表',
     hidden: '隐藏',
@@ -324,6 +327,7 @@ export default {
 
   // 题目选择器
   problemPicker: {
+    loadFailed: '题目加载失败，请重试。',
     title: '选择题目',
     description: '搜索并选择要添加到比赛的题目',
     searchPlaceholder: '搜索题目...',

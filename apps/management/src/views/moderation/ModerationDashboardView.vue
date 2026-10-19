@@ -1,31 +1,30 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
+import { RouterLink } from 'vue-router'
 import {
-  IconRefresh,
-  IconAlertTriangle,
-  IconClock,
-  IconCheck,
-  IconX,
-  IconScale,
-  IconChartBar,
-  IconFileText,
-  IconCode,
-  IconMessage,
-  IconMessages,
-  IconTrendingUp,
-} from '@tabler/icons-vue'
+  RefreshCw as IconRefresh,
+  AlertTriangle as IconAlertTriangle,
+  Clock as IconClock,
+  Check as IconCheck,
+  X as IconX,
+  Scale as IconScale,
+  ChartBar as IconChartBar,
+  FileText as IconFileText,
+  Code as IconCode,
+  MessageSquare as IconMessage,
+  MessagesSquare as IconMessages,
+  TrendingUp as IconTrendingUp,
+} from '@lucide/vue'
 
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Progress } from '@/components/ui/progress'
+import { Button } from '@ulticode/design-system/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@ulticode/design-system/ui/card'
+import { Progress } from '@ulticode/design-system/ui/progress'
 
 import { useModerationStore } from '@/stores/admin/moderation'
 import { ReportCategory } from '@/api/admin/moderation'
 
 const { t } = useI18n()
-const router = useRouter()
 const store = useModerationStore()
 
 const isLoaded = ref(false)
@@ -37,7 +36,7 @@ onMounted(async () => {
   await store.fetchStats(true)
 })
 
-const stats = computed(() => store.stats)
+const stats = computed(() => (store.statsLoading || store.statsError ? null : store.stats))
 
 // Status cards data
 const statusCards = computed(() => [
@@ -46,7 +45,7 @@ const statusCards = computed(() => [
     label: t('moderation.stats.totalPending'),
     value: stats.value?.pendingCount ?? 0,
     icon: IconAlertTriangle,
-    color: 'text-foreground-strong',
+    color: 'text-foreground',
     bgColor: 'bg-[color-mix(in_oklch,_var(--status-warning-mark)_15%,_transparent)]',
     borderColor: 'border-[color-mix(in_oklch,_var(--status-warning-mark)_40%,_transparent)]',
   },
@@ -55,7 +54,7 @@ const statusCards = computed(() => [
     label: t('moderation.stats.totalUnderReview'),
     value: stats.value?.underReviewCount ?? 0,
     icon: IconClock,
-    color: 'text-foreground-strong',
+    color: 'text-foreground',
     bgColor: 'bg-[color-mix(in_oklch,_var(--status-info-mark)_15%,_transparent)]',
     borderColor: 'border-[color-mix(in_oklch,_var(--status-info-mark)_40%,_transparent)]',
   },
@@ -64,7 +63,7 @@ const statusCards = computed(() => [
     label: t('moderation.stats.totalResolved'),
     value: stats.value?.resolvedCount ?? 0,
     icon: IconCheck,
-    color: 'text-foreground-strong',
+    color: 'text-foreground',
     bgColor: 'bg-[color-mix(in_oklch,_var(--status-success-mark)_15%,_transparent)]',
     borderColor: 'border-[color-mix(in_oklch,_var(--status-success-mark)_40%,_transparent)]',
   },
@@ -73,7 +72,7 @@ const statusCards = computed(() => [
     label: t('moderation.stats.totalDismissed'),
     value: stats.value?.dismissedCount ?? 0,
     icon: IconX,
-    color: 'text-foreground-strong',
+    color: 'text-foreground',
     bgColor: 'bg-[color-mix(in_oklch,_var(--status-error-mark)_15%,_transparent)]',
     borderColor: 'border-[color-mix(in_oklch,_var(--status-error-mark)_40%,_transparent)]',
   },
@@ -82,7 +81,7 @@ const statusCards = computed(() => [
     label: t('moderation.stats.totalAppealPending'),
     value: stats.value?.pendingAppealsCount ?? 0,
     icon: IconScale,
-    color: 'text-foreground-strong',
+    color: 'text-foreground',
     bgColor: 'bg-[color-mix(in_oklch,_var(--status-special-mark)_15%,_transparent)]',
     borderColor: 'border-[color-mix(in_oklch,_var(--status-special-mark)_40%,_transparent)]',
   },
@@ -120,23 +119,23 @@ const entityTypeIcons: Record<string, typeof IconFileText> = {
 }
 
 const entityTypeColors: Record<string, string> = {
-  forum_post: 'text-foreground-strong',
-  forum_comment: 'text-foreground-strong',
-  solution: 'text-foreground-strong',
-  solution_comment: 'text-foreground-strong',
-  problem: 'text-foreground-strong',
+  forum_post: 'text-foreground',
+  forum_comment: 'text-foreground',
+  solution: 'text-foreground',
+  solution_comment: 'text-foreground',
+  problem: 'text-foreground',
 }
 
 const categoryColors: Record<ReportCategory, string> = {
-  SPAM: 'bg-[var(--status-warning-mark)]',
-  HARASSMENT: 'bg-[var(--status-error-mark)]',
-  HATE_SPEECH: 'bg-[var(--status-error-mark)]',
-  VIOLENCE: 'bg-[var(--status-error-mark)]',
-  SEXUAL_CONTENT: 'bg-[var(--status-error-mark)]',
-  MISINFORMATION: 'bg-[var(--status-warning-mark)]',
-  WRONG_ANSWER: 'bg-[var(--status-warning-mark)]',
-  COPYRIGHT: 'bg-[var(--status-special-mark)]',
-  OTHER: 'bg-[var(--foreground-muted)]',
+  SPAM: 'bg-status-warning-mark',
+  HARASSMENT: 'bg-status-error-mark',
+  HATE_SPEECH: 'bg-status-error-mark',
+  VIOLENCE: 'bg-status-error-mark',
+  SEXUAL_CONTENT: 'bg-status-error-mark',
+  MISINFORMATION: 'bg-status-warning-mark',
+  WRONG_ANSWER: 'bg-status-warning-mark',
+  COPYRIGHT: 'bg-status-special-mark',
+  OTHER: 'bg-muted-foreground',
 }
 
 const totalItems = computed(() => {
@@ -145,14 +144,6 @@ const totalItems = computed(() => {
 
 function handleRefresh() {
   store.fetchStats(true)
-}
-
-function navigateToQueue() {
-  router.push('/moderation')
-}
-
-function navigateToAppeals() {
-  router.push('/moderation/appeals')
 }
 </script>
 
@@ -166,13 +157,13 @@ function navigateToAppeals() {
         isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
       ]"
     >
-      <h1 class="text-xl font-medium tracking-tight text-[var(--foreground)]">
+      <h1 class="text-xl font-medium tracking-tight text-foreground">
         {{ t('moderation.stats.title') }}
       </h1>
       <Button
-        variant="terminal"
+        variant="outline"
         size="sm"
-        class="h-8 font-data text-xs border-[var(--border-subtle)]"
+        :aria-label="t('common.refresh')"
         @click="handleRefresh"
         :disabled="store.statsLoading"
       >
@@ -181,43 +172,57 @@ function navigateToAppeals() {
       </Button>
     </div>
 
+    <p
+      v-if="store.statsError"
+      role="alert"
+      class="text-sm text-destructive [overflow-wrap:anywhere]"
+    >
+      {{ t('moderation.stats.loadError') }}
+    </p>
+
     <!-- Status Cards -->
     <div
       :class="[
-        'grid grid-cols-2 md:grid-cols-5 gap-4',
+        'grid grid-cols-[repeat(auto-fit,minmax(min(100%,10rem),1fr))] gap-4',
         'transition-all duration-500 delay-100',
         isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2',
       ]"
     >
-      <Card
+      <RouterLink
         v-for="card in statusCards"
         :key="card.key"
-        :class="[
-          'border cursor-pointer hover:shadow-md transition-shadow',
-          card.borderColor,
-          card.bgColor,
-        ]"
-        @click="navigateToQueue"
+        to="/moderation"
+        class="min-w-0 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
-        <CardHeader class="pb-2">
-          <CardTitle class="flex items-center gap-2 text-sm font-data">
-            <component :is="card.icon" :class="['h-4 w-4', card.color]" />
-            <span class="text-[var(--foreground-muted)] uppercase tracking-wider text-2xs">
-              {{ card.label }}
-            </span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div class="flex items-end justify-between">
-            <span :class="['text-3xl font-data tabular-nums', card.color]">
-              {{ card.value }}
-            </span>
-            <span v-if="totalItems > 0" class="text-xs text-[var(--foreground-muted)] font-data">
-              {{ Math.round((card.value / totalItems) * 100) }}%
-            </span>
-          </div>
-        </CardContent>
-      </Card>
+        <Card
+          :class="[
+            'h-full border hover:shadow-md transition-shadow',
+            card.borderColor,
+            card.bgColor,
+          ]"
+        >
+          <CardHeader class="pb-2">
+            <CardTitle class="flex items-center gap-2">
+              <component :is="card.icon" :class="['h-4 w-4 shrink-0', card.color]" />
+              <span
+                class="min-w-0 [overflow-wrap:anywhere] text-muted-foreground uppercase tracking-wider text-xs"
+              >
+                {{ card.label }}
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent class="mt-auto">
+            <div class="flex items-end justify-between">
+              <span :class="['text-3xl font-mono tabular-nums', card.color]">
+                {{ stats ? card.value : '—' }}
+              </span>
+              <span v-if="stats && totalItems > 0" class="text-xs text-muted-foreground font-mono">
+                {{ Math.round((card.value / totalItems) * 100) }}%
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+      </RouterLink>
     </div>
 
     <!-- Charts Row -->
@@ -229,32 +234,34 @@ function navigateToAppeals() {
       ]"
     >
       <!-- By Category -->
-      <Card class="border-[var(--border-subtle)] dark:border-[var(--border-subtle)]">
+      <Card>
         <CardHeader>
-          <CardTitle class="flex items-center gap-2 text-sm font-data">
-            <IconChartBar class="h-4 w-4 text-[var(--foreground-muted)]" />
-            <span class="text-[var(--foreground-muted)] uppercase tracking-wider text-2xs">
+          <CardTitle class="flex items-center gap-2">
+            <IconChartBar class="h-4 w-4 text-muted-foreground" />
+            <span class="text-muted-foreground uppercase tracking-wider text-xs">
               {{ t('moderation.stats.byCategory') }}
             </span>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div v-if="categoryData.length === 0" class="py-8 text-center">
-            <p class="text-xs font-data text-[var(--foreground-muted)]">
+          <div v-if="!stats" class="py-8 text-center text-muted-foreground">—</div>
+          <div v-else-if="categoryData.length === 0" class="py-8 text-center">
+            <p class="text-xs font-mono text-muted-foreground">
               {{ t('common.noDataAvailable') }}
             </p>
           </div>
           <div v-else class="space-y-3">
             <div v-for="item in categoryData" :key="item.category" class="space-y-1">
               <div class="flex items-center justify-between text-xs">
-                <span class="font-data">{{ t(`moderation.categories.${item.category}`) }}</span>
-                <span class="font-data tabular-nums text-[var(--foreground-muted)]">
+                <span class="font-mono">{{ t(`moderation.categories.${item.category}`) }}</span>
+                <span class="font-mono tabular-nums text-muted-foreground">
                   {{ item.count }} ({{ item.percentage }}%)
                 </span>
               </div>
               <Progress
                 :model-value="item.percentage"
-                :class="['h-2', categoryColors[item.category]]"
+                class="h-2"
+                :indicator-class="categoryColors[item.category]"
               />
             </div>
           </div>
@@ -262,18 +269,19 @@ function navigateToAppeals() {
       </Card>
 
       <!-- By Entity Type -->
-      <Card class="border-[var(--border-subtle)] dark:border-[var(--border-subtle)]">
+      <Card>
         <CardHeader>
-          <CardTitle class="flex items-center gap-2 text-sm font-data">
-            <IconTrendingUp class="h-4 w-4 text-[var(--foreground-muted)]" />
-            <span class="text-[var(--foreground-muted)] uppercase tracking-wider text-2xs">
+          <CardTitle class="flex items-center gap-2">
+            <IconTrendingUp class="h-4 w-4 text-muted-foreground" />
+            <span class="text-muted-foreground uppercase tracking-wider text-xs">
               {{ t('moderation.stats.byEntityType') }}
             </span>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div v-if="entityTypeData.length === 0" class="py-8 text-center">
-            <p class="text-xs font-data text-[var(--foreground-muted)]">
+          <div v-if="!stats" class="py-8 text-center text-muted-foreground">—</div>
+          <div v-else-if="entityTypeData.length === 0" class="py-8 text-center">
+            <p class="text-xs font-mono text-muted-foreground">
               {{ t('common.noDataAvailable') }}
             </p>
           </div>
@@ -281,16 +289,16 @@ function navigateToAppeals() {
             <div
               v-for="[entityType, count] in entityTypeData"
               :key="entityType"
-              class="flex items-center justify-between p-2 border border-[var(--border-subtle)] dark:border-[var(--border-subtle)]"
+              class="flex items-center justify-between p-2 border border-border dark:border-border"
             >
               <div class="flex items-center gap-2">
                 <component
                   :is="entityTypeIcons[entityType] || IconFileText"
-                  :class="['h-4 w-4', entityTypeColors[entityType] || 'text-[var(--foreground-muted)]']"
+                  :class="['h-4 w-4', entityTypeColors[entityType] || 'text-muted-foreground']"
                 />
                 <span class="text-sm">{{ t(`moderation.entityTypes.${entityType}`) }}</span>
               </div>
-              <span class="font-data text-sm tabular-nums">{{ count }}</span>
+              <span class="font-mono text-sm tabular-nums">{{ count }}</span>
             </div>
           </div>
         </CardContent>
@@ -305,58 +313,62 @@ function navigateToAppeals() {
         isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2',
       ]"
     >
-      <Card
-        class="border-[var(--status-warning-mark)] bg-[color-mix(in_oklch,_var(--status-warning-mark)_8%,_transparent)] cursor-pointer hover:shadow-md transition-shadow"
-        @click="navigateToQueue"
+      <RouterLink
+        to="/moderation"
+        class="min-w-0 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
-        <CardContent class="py-6">
-          <div class="flex items-center gap-4">
-            <div
-              class="p-3 rounded-full bg-[color-mix(in_oklch,_var(--status-warning-mark)_15%,_transparent)]"
-            >
-              <IconAlertTriangle class="h-6 w-6 text-[var(--status-warning-mark)]" />
+        <Card class="h-full">
+          <CardContent class="py-6">
+            <div class="flex items-center gap-4">
+              <div
+                class="p-3 rounded-full bg-[color-mix(in_oklch,_var(--status-warning-mark)_15%,_transparent)]"
+              >
+                <IconAlertTriangle class="h-6 w-6 text-status-warning-mark" />
+              </div>
+              <div>
+                <h3 class="font-mono text-sm uppercase tracking-wider text-foreground">
+                  {{ t('moderation.queue.title') }}
+                </h3>
+                <p class="text-xs text-muted-foreground mt-1">
+                  {{ t('moderation.queue.description') }}
+                </p>
+              </div>
             </div>
-            <div>
-              <h3 class="font-data text-sm uppercase tracking-wider text-[var(--foreground-strong)]">
-                {{ t('moderation.queue.title') }}
-              </h3>
-              <p class="text-xs text-[var(--foreground-muted)] mt-1">
-                {{ t('moderation.queue.description') }}
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </RouterLink>
 
-      <Card
-        class="border-[var(--status-special-mark)] bg-[color-mix(in_oklch,_var(--status-special-mark)_8%,_transparent)] cursor-pointer hover:shadow-md transition-shadow"
-        @click="navigateToAppeals"
+      <RouterLink
+        to="/moderation/appeals"
+        class="min-w-0 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
-        <CardContent class="py-6">
-          <div class="flex items-center gap-4">
-            <div
-              class="p-3 rounded-full bg-[color-mix(in_oklch,_var(--status-special-mark)_15%,_transparent)]"
-            >
-              <IconScale class="h-6 w-6 text-[var(--status-special-mark)]" />
+        <Card class="h-full">
+          <CardContent class="py-6">
+            <div class="flex items-center gap-4">
+              <div
+                class="p-3 rounded-full bg-[color-mix(in_oklch,_var(--status-special-mark)_15%,_transparent)]"
+              >
+                <IconScale class="h-6 w-6 text-status-special-mark" />
+              </div>
+              <div>
+                <h3 class="font-mono text-sm uppercase tracking-wider text-foreground">
+                  {{ t('moderation.appeals.title') }}
+                </h3>
+                <p class="text-xs text-muted-foreground mt-1">
+                  {{ t('moderation.appeals.description') }}
+                </p>
+              </div>
             </div>
-            <div>
-              <h3 class="font-data text-sm uppercase tracking-wider text-[var(--foreground-strong)]">
-                {{ t('moderation.appeals.title') }}
-              </h3>
-              <p class="text-xs text-[var(--foreground-muted)] mt-1">
-                {{ t('moderation.appeals.description') }}
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </RouterLink>
     </div>
 
     <!-- Average Resolution Time -->
     <Card
       v-if="stats?.avgResolutionTimeHours"
       :class="[
-        'border-[var(--border-subtle)] dark:border-[var(--border-subtle)]',
+        'border-border dark:border-border',
         'transition-all duration-500 delay-400',
         isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2',
       ]"
@@ -367,17 +379,15 @@ function navigateToAppeals() {
             <div
               class="p-3 rounded-full bg-[color-mix(in_oklch,_var(--status-success-mark)_15%,_transparent)]"
             >
-              <IconClock class="h-6 w-6 text-[var(--status-success-mark)]" />
+              <IconClock class="h-6 w-6 text-status-success-mark" />
             </div>
             <div>
-              <h3 class="font-data text-sm uppercase tracking-wider text-[var(--foreground-muted)]">
+              <h3 class="font-mono text-sm uppercase tracking-wider text-muted-foreground">
                 {{ t('moderation.stats.avgResolutionTime') }}
               </h3>
-              <p class="text-2xl font-data tabular-nums text-[var(--foreground-strong)] mt-1">
+              <p class="text-2xl font-mono tabular-nums text-foreground mt-1">
                 {{ Math.round(stats.avgResolutionTimeHours) }}
-                <span class="text-sm text-[var(--foreground-muted)]">{{
-                  t('moderation.stats.hours')
-                }}</span>
+                <span class="text-sm text-muted-foreground">{{ t('moderation.stats.hours') }}</span>
               </p>
             </div>
           </div>

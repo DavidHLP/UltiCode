@@ -3,18 +3,19 @@ import { ref, computed, onMounted, h } from 'vue'
 import { formatDateTimeByLocale } from '@/i18n/utils'
 import type { ColumnDef } from '@tanstack/vue-table'
 import {
-  IconInfoCircle,
-  IconRefresh,
-  IconX,
-  IconDatabase,
-  IconChevronDown,
-  IconChevronUp,
-  IconSearch,
-} from '@tabler/icons-vue'
+  Info as IconInfoCircle,
+  RefreshCw as IconRefresh,
+  X as IconX,
+  Database as IconDatabase,
+  ChevronDown as IconChevronDown,
+  ChevronUp as IconChevronUp,
+  Search as IconSearch,
+} from '@lucide/vue'
+
 import { useI18n } from 'vue-i18n'
 
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { Button } from '@ulticode/design-system/ui/button'
+import { Input } from '@ulticode/design-system/ui/input'
 import {
   Select,
   SelectContent,
@@ -23,7 +24,7 @@ import {
   SelectLabel,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
+} from '@ulticode/design-system/ui/select'
 import type { AuditLog } from '@/api/admin/audit'
 
 import DataTable from '@/components/table/DataTable.vue'
@@ -39,7 +40,7 @@ import {
   actionTypeGroupToI18nKey,
   entityTypeToI18nKey,
 } from './utils'
-import { badge, USER_ROLE_COLOR_MAP } from '@/components/ui/terminal'
+import { badge, USER_ROLE_COLOR_MAP } from '@ulticode/badge-config'
 
 const { t } = useI18n()
 const showAdvancedFilters = ref(false)
@@ -111,7 +112,7 @@ const columns: ColumnDef<AuditLog>[] = [
       const date = new Date(row.getValue('createdAt') as string)
       return h(
         'span',
-        { class: 'font-data text-sm text-[var(--foreground-muted)] tabular-nums' },
+        { class: 'font-mono text-sm text-muted-foreground tabular-nums' },
         formatDateTimeByLocale(date),
       )
     },
@@ -136,10 +137,10 @@ const columns: ColumnDef<AuditLog>[] = [
       const icon = getEntityTypeIcon(entityType)
       const notAvailable = t('audit.drawer.notAvailable')
       if (!entityType) {
-        return h('span', { class: 'text-[var(--foreground-muted)] text-sm' }, '—')
+        return h('span', { class: 'text-muted-foreground text-sm' }, '—')
       }
       return h('div', { class: 'flex items-center gap-2' }, [
-        h(icon, { class: 'h-4 w-4 text-[var(--foreground-muted)]' }),
+        h(icon, { class: 'h-4 w-4 text-muted-foreground' }),
         h('div', { class: 'flex flex-col' }, [
           h(
             'span',
@@ -148,7 +149,7 @@ const columns: ColumnDef<AuditLog>[] = [
           ),
           h(
             'span',
-            { class: 'text-[var(--foreground-muted)] text-xs font-data' },
+            { class: 'text-muted-foreground text-xs font-mono' },
             entityId?.slice(0, 8) || notAvailable,
           ),
         ]),
@@ -161,11 +162,7 @@ const columns: ColumnDef<AuditLog>[] = [
     cell: ({ row }) => {
       const performer = row.original.performer
       if (!performer) {
-        return h(
-          'span',
-          { class: 'text-[var(--foreground-muted)] text-sm' },
-          t('audit.systemAction'),
-        )
+        return h('span', { class: 'text-muted-foreground text-sm' }, t('audit.systemAction'))
       }
       return h('div', { class: 'flex flex-col' }, [
         h('span', { class: 'text-sm font-medium' }, performer.username),
@@ -183,7 +180,7 @@ const columns: ColumnDef<AuditLog>[] = [
     cell: ({ row }) => {
       const user = row.original.user
       if (!user) {
-        return h('span', { class: 'text-[var(--foreground-muted)] text-sm' }, '—')
+        return h('span', { class: 'text-muted-foreground text-sm' }, '—')
       }
       return h('div', { class: 'flex items-center gap-2' }, [
         h('span', { class: 'text-sm' }, user.username),
@@ -196,10 +193,10 @@ const columns: ColumnDef<AuditLog>[] = [
     cell: ({ row }) => {
       const ip = row.original.ipAddress
       if (!ip) {
-        return h('span', { class: 'text-[var(--foreground-muted)] text-sm' }, '—')
+        return h('span', { class: 'text-muted-foreground text-sm' }, '—')
       }
       return h('div', { class: 'flex flex-col max-w-[150px]' }, [
-        h('span', { class: 'text-sm font-data truncate' }, ip),
+        h('span', { class: 'text-sm font-mono truncate' }, ip),
       ])
     },
   },
@@ -231,44 +228,40 @@ const columns: ColumnDef<AuditLog>[] = [
 
 <template>
   <div class="relative flex flex-col gap-4 w-full min-w-0">
-    <!-- Terminal Header -->
+    <!-- Page header -->
     <div
       :class="[
-        'border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--card)]',
+        'border border-border dark:border-border bg-card',
         'transition-all duration-500',
         isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
       ]"
     >
       <!-- Title Row -->
       <div class="px-4 lg:px-6 py-4 flex items-center justify-between">
-        <h1 class="text-xl font-medium tracking-tight text-[var(--foreground)]">
+        <h1 class="text-xl font-medium tracking-tight text-foreground">
           {{ t('audit.title') }}
         </h1>
       </div>
 
       <!-- Stats Ticker -->
       <div
-        class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--surface-sunken)]"
+        class="px-4 lg:px-6 py-2.5 flex flex-wrap items-center gap-x-6 gap-y-2 whitespace-nowrap border-t border-border dark:border-border bg-muted"
       >
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--foreground-muted)]"
+          <span class="text-sm font-medium text-muted-foreground"
             >{{ t('audit.stats.total') }}:</span
           >
-          <span class="font-data text-sm text-[var(--foreground-strong)] tabular-nums">{{
-            statsTotal
-          }}</span>
+          <span class="font-mono text-sm text-foreground tabular-nums">{{ statsTotal }}</span>
         </div>
         <div v-for="item in actionTypeStats" :key="item.actionType" class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--foreground-muted)]"
+          <span class="text-sm font-medium text-muted-foreground"
             >{{ t(actionTypeGroupToI18nKey(item.actionType)) }}:</span
           >
-          <span class="font-data text-sm text-[var(--foreground-strong)] tabular-nums">{{
-            item.count
-          }}</span>
+          <span class="font-mono text-sm text-foreground tabular-nums">{{ item.count }}</span>
         </div>
-        <div class="ml-auto flex items-center gap-2 text-[var(--foreground-muted)]">
+        <div class="ml-auto flex items-center gap-2 text-muted-foreground">
           <IconDatabase class="h-4 w-4" />
-          <span class="text-xs font-data uppercase tracking-wider">{{
+          <span class="text-xs font-mono uppercase tracking-wider">{{
             t('audit.stats.systemAuditTrail')
           }}</span>
         </div>
@@ -284,35 +277,37 @@ const columns: ColumnDef<AuditLog>[] = [
         :row-count="total"
         :loading="loading"
         @update:pagination="tablePagination = $event"
-        class="terminal-table"
+        class="w-full text-sm"
       >
         <template #toolbar-left>
-          <div class="flex items-center gap-3 flex-wrap">
-            <div class="relative flex items-center min-w-[200px] w-[260px]">
+          <div class="flex min-w-0 max-w-full items-center gap-3 flex-wrap">
+            <div class="relative flex min-w-0 w-full max-w-[260px] items-center">
               <IconSearch
-                class="absolute left-2.5 h-3.5 w-3.5 text-[var(--foreground-muted)] pointer-events-none"
+                class="absolute left-2.5 h-3.5 w-3.5 text-muted-foreground pointer-events-none"
               />
               <Input
                 v-model="searchQuery"
-                variant="terminal"
                 :placeholder="t('audit.searchPlaceholder')"
-                class="h-8 pl-8 pr-8 !text-xs w-full bg-[var(--surface-sunken)] border-[var(--border-subtle)] dark:border-[var(--border-subtle)] focus:border-[var(--primary)]"
+                class="pl-8 pr-8 !text-xs w-full"
               />
-              <button
+              <Button
+                variant="outline"
                 v-if="searchQuery"
                 @click="searchQuery = ''"
-                class="absolute right-2.5 opacity-70 hover:opacity-100 text-[var(--foreground-muted)] focus:outline-none transition-opacity"
+                class="absolute right-2.5 focus:outline-none"
               >
                 <IconX class="h-3.5 w-3.5" />
-              </button>
+              </Button>
             </div>
             <Select v-model="actionFilter">
-              <SelectTrigger
-                variant="terminal"
-                size="sm"
-                class="h-8 w-[200px] bg-[var(--surface-sunken)] border-[var(--border-subtle)] dark:border-[var(--border-subtle)] focus:border-[var(--primary)] font-data text-xs uppercase tracking-wider"
-              >
-                <SelectValue :placeholder="t('audit.filters.allActions')" />
+              <SelectTrigger size="sm" class="w-[200px]" :aria-label="t('audit.filters.action')">
+                <SelectValue>
+                  {{
+                    actionFilter === 'all'
+                      ? t('audit.filters.allActions')
+                      : t(actionToI18nKey(actionFilter))
+                  }}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">{{ t('audit.filters.allActions') }}</SelectItem>
@@ -330,34 +325,37 @@ const columns: ColumnDef<AuditLog>[] = [
             </Select>
             <Select v-model="entityTypeFilter">
               <SelectTrigger
-                variant="terminal"
                 size="sm"
-                class="h-8 w-[180px] bg-[var(--surface-sunken)] border-[var(--border-subtle)] dark:border-[var(--border-subtle)] focus:border-[var(--primary)] font-data text-xs uppercase tracking-wider"
+                class="w-[180px]"
+                :aria-label="t('audit.filters.entityType')"
               >
-                <SelectValue :placeholder="t('audit.filters.allEntities')" />
+                <SelectValue>
+                  {{
+                    entityTypeFilter === 'all'
+                      ? t('audit.filters.allEntities')
+                      : t(entityTypeToI18nKey(entityTypeFilter))
+                  }}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">{{ t('audit.filters.allEntities') }}</SelectItem>
-                <SelectItem v-for="type in AUDIT_ENTITY_TYPES" :key="type" :value="type">
-                  {{ t(entityTypeToI18nKey(type)) }}
-                </SelectItem>
+                <SelectGroup
+                  ><SelectItem value="all">{{ t('audit.filters.allEntities') }}</SelectItem>
+                  <SelectItem v-for="type in AUDIT_ENTITY_TYPES" :key="type" :value="type">
+                    {{ t(entityTypeToI18nKey(type)) }}
+                  </SelectItem></SelectGroup
+                >
               </SelectContent>
             </Select>
             <Button
-              variant="terminal"
+              variant="outline"
               size="icon"
-              class="h-8 w-8 border-[var(--border-subtle)] hover:border-[var(--status-success-mark)] hover:text-foreground-strong"
+              class="w-8"
               @click="refreshAuditData"
               :title="t('common.refresh')"
             >
               <IconRefresh class="h-3.5 w-3.5" :class="{ 'animate-spin': loading }" />
             </Button>
-            <Button
-              variant="terminal"
-              size="sm"
-              class="font-data text-xs border-[var(--border-subtle)]"
-              @click="showAdvancedFilters = !showAdvancedFilters"
-            >
+            <Button variant="outline" size="sm" @click="showAdvancedFilters = !showAdvancedFilters">
               {{ t('audit.filters.advancedFilters') }}
               <IconChevronDown v-if="!showAdvancedFilters" class="h-3 w-3 ml-1" />
               <IconChevronUp v-else class="h-3 w-3 ml-1" />
@@ -365,29 +363,31 @@ const columns: ColumnDef<AuditLog>[] = [
           </div>
           <div
             v-if="showAdvancedFilters"
-            class="flex items-center gap-3 mt-2 pt-2 border-t border-[var(--border-subtle)] dark:border-[var(--border-subtle)]"
+            class="flex flex-wrap items-center gap-3 mt-2 pt-2 border-t border-border dark:border-border"
           >
             <Input
               v-model="startDateFilter"
               type="date"
+              :aria-label="t('audit.filters.startDate')"
               :placeholder="t('audit.filters.startDate')"
-              class="terminal-input w-[140px] font-data text-sm"
+              class="w-[140px]"
             />
             <Input
               v-model="endDateFilter"
               type="date"
+              :aria-label="t('audit.filters.endDate')"
               :placeholder="t('audit.filters.endDate')"
-              class="terminal-input w-[140px] font-data text-sm"
+              class="w-[140px]"
             />
             <Input
               v-model="performerIdFilter"
               :placeholder="t('audit.filters.performerId')"
-              class="terminal-input w-[140px] font-data text-sm"
+              class="w-[140px]"
             />
             <Input
               v-model="userIdFilter"
               :placeholder="t('audit.filters.userId')"
-              class="terminal-input w-[140px] font-data text-sm"
+              class="w-[140px]"
             />
           </div>
         </template>
@@ -397,18 +397,13 @@ const columns: ColumnDef<AuditLog>[] = [
       <div
         v-if="error"
         role="alert"
-        class="mt-4 flex items-center justify-between border border-[var(--status-error-mark)] bg-[color-mix(in_oklch,_var(--status-error-mark)_8%,_transparent)] p-4"
+        class="mt-4 flex items-center justify-between border border-status-error-mark bg-[color-mix(in_oklch,_var(--status-error-mark)_8%,_transparent)] p-4"
       >
         <div class="flex items-center gap-3">
-          <span class="font-data text-sm text-[var(--foreground-strong)]">&gt; ERROR:</span>
-          <span class="text-sm text-[var(--foreground)]">{{ error }}</span>
+          <span class="font-mono text-sm text-foreground">&gt; ERROR:</span>
+          <span class="text-sm text-foreground">{{ error }}</span>
         </div>
-        <Button
-          variant="terminal"
-          size="sm"
-          class="font-data text-xs border-[var(--status-error-mark)] text-foreground-strong hover:bg-[color-mix(in_oklch,_var(--status-error-mark)_10%,_transparent)]"
-          @click="refreshAuditData"
-        >
+        <Button variant="outline" size="sm" @click="refreshAuditData">
           {{ t('common.retry') }}
         </Button>
       </div>

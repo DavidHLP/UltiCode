@@ -12,11 +12,11 @@ const code = computed(() => props.solution.content || '')
 </script>
 
 <template>
-  <div class="border border-[var(--border-subtle)] bg-[var(--card)]">
-    <div class="border-b border-[var(--border-subtle)] px-4 py-2 bg-[var(--surface-sunken)]">
+  <div class="border border-border bg-card">
+    <div class="border-b border-border px-4 py-2 bg-muted">
       <div class="flex items-center gap-2">
-        <span class="terminal-comment">code</span>
-        <span class="font-data text-xs text-[var(--foreground-muted)]">// {{ language }}</span>
+        <span class="text-sm text-muted-foreground">{{ $t('solutions.tabs.code') }}</span>
+        <span class="font-mono text-xs text-muted-foreground">// {{ language }}</span>
       </div>
     </div>
     <div class="p-0">

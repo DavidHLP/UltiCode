@@ -2,8 +2,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createI18n } from 'vue-i18n'
 import HiddenTestCasesEditor from '../HiddenTestCasesEditor.vue'
+import TestCaseList from '../components/TestCaseList.vue'
 import { testCasesApi } from '@/api/admin/test-cases'
 import type { TestCase } from '@/api/admin/test-cases'
+import enTestCases from '@/i18n/locales/en-US/modules/testCases'
+import zhTestCases from '@/i18n/locales/zh-CN/modules/testCases'
 
 // Mock the API module to assert call shape end-to-end (no real network).
 vi.mock('@/api/admin/test-cases', async () => {
@@ -127,5 +130,37 @@ describe('HiddenTestCasesEditor — admin API contract (task #10 P0-1)', () => {
     const html = wrapper.html()
     expect(html).toContain('1') // sample count
     expect(html).toContain('2') // hidden count
+    const header = wrapper.get('.hidden-test-cases-editor > div')
+    expect(header.classes()).toContain('flex-wrap')
+    for (const group of header.findAll(':scope > div')) {
+      expect(group.classes()).toContain('flex-wrap')
+    }
+    const layout = wrapper.get('test-case-list-stub').element.parentElement!
+    expect(layout.classList.contains('flex-col')).toBe(true)
+    expect(layout.classList.contains('md:grid')).toBe(true)
+    wrapper.unmount()
   })
 })
+
+it('names each test case action menu with its visible index', () => {
+  const wrapper = mount(TestCaseList, {
+    props: { testCases: [fakeCase()], activeId: 'tc-1' },
+    global: { plugins: [i18n] },
+  })
+  expect(wrapper.get('button').attributes('aria-label')).toContain('#1')
+  wrapper.unmount()
+})
+
+it.each([
+  ['en-US', enTestCases],
+  ['zh-CN', zhTestCases],
+] as const)(
+  'renders literal import examples without breaking the %s dialog',
+  (locale, messages) => {
+    const translations = createI18n({ legacy: false, locale, messages: { [locale]: messages } })
+    expect(() => translations.global.t('importPlaceholder')).not.toThrow()
+    expect(translations.global.t('importPlaceholder')).toContain('{ "inputText":')
+    expect(() => translations.global.t('importHelp')).not.toThrow()
+    expect(translations.global.t('importHelp')).toContain('{input, output}')
+  },
+)

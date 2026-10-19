@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { useDraggable, useDroppable } from "@vue-dnd-kit/core";
-import { Button } from "@/components/ui/button";
+import { Button } from "@ulticode/design-system/ui/button";
 import type { HeaderModel } from "@/stores/headerStore";
 import * as LucideIcons from "@lucide/vue";
 
@@ -146,11 +146,11 @@ const setRef = (el: unknown) => {
     <Button
       variant="ghost"
       size="sm"
-      class="relative h-8 -mb-px rounded-none terminal-tab transition-all cursor-pointer"
+      class="relative -mb-px inline-flex items-center gap-2 px-3 py-2 cursor-pointer"
       :class="[
         isActive
           ? 'text-foreground hover:text-foreground hover:bg-background bg-background border-l border-r border-t-2 border-b-transparent border-border z-10'
-          : 'text-foreground-muted hover:bg-[var(--surface-highlight)]/40 hover:text-foreground-strong border border-transparent',
+          : 'text-muted-foreground hover:bg-accent/40 hover:text-foreground border border-transparent',
       ]"
       :style="activeTabStyle"
       @click="onHeaderClick"

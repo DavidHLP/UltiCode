@@ -5,10 +5,12 @@ import com.ulticode.app.error.ProblemListErrorCode;
 import com.ulticode.app.error.ProblemErrorCode;
 import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.modules.problemlist.dto.CategorySummaryVO;
+import com.ulticode.modules.problemlist.dto.ProblemListDetailVO;
 import com.ulticode.modules.problemlist.dto.ProblemListSummaryVO;
 import com.ulticode.modules.problemlist.dto.UserListsForProblemVO;
 import com.ulticode.modules.problemlist.entity.ProblemList;
 import com.ulticode.modules.problemlist.entity.ProblemListCategory;
+import com.ulticode.modules.problemlist.entity.ProblemListProblemRelation;
 import com.ulticode.modules.problemlist.dto.UserProblemListsVO;
 import com.ulticode.modules.problemlist.entity.ProblemListBookmark;
 import com.ulticode.modules.problemlist.mapper.ProblemListBookmarkMapper;
@@ -16,6 +18,7 @@ import com.ulticode.modules.problemlist.mapper.ProblemListCategoryMapper;
 import com.ulticode.modules.problemlist.mapper.ProblemListMapper;
 import com.ulticode.modules.problemlist.mapper.ProblemListProblemMapper;
 import com.ulticode.modules.problem.port.ProblemListReadPort;
+import com.ulticode.app.api.dto.ProblemListItemDTO;
 import com.ulticode.app.api.dto.NotificationUserInfo;
 import com.ulticode.modules.user.port.UserReadPort;
 import org.junit.jupiter.api.DisplayName;
@@ -292,6 +295,28 @@ class DefaultProblemListProjectionTest {
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
                             .isEqualTo(ProblemListErrorCode.PROBLEM_LIST_PRIVATE));
+        }
+
+        @Test
+        @DisplayName("projects category slugs from the problem read DTO")
+        void getListOverview_projectsCategorySlugs() {
+            ProblemList list = listEntity(LIST_ID, "List");
+            when(problemListMapper.findById(LIST_ID)).thenReturn(Optional.of(list));
+            ProblemListProblemRelation relation = new ProblemListProblemRelation();
+            relation.setProblemId(42L);
+            relation.setSortOrder(0);
+            when(problemListProblemMapper.findByListId(LIST_ID)).thenReturn(List.of(relation));
+            when(problemListReadPort.findByIds(any())).thenReturn(List.of(
+                    new ProblemListItemDTO(
+                            42L, "two-sum", "Two Sum", "EASY", "todo",
+                            null, false, false, List.of("algorithms"), List.of())
+            ));
+
+            ProblemListDetailVO result = projection.getListOverview(LIST_ID, null, "en");
+
+            assertThat(result.getProblems()).hasSize(1);
+            assertThat(result.getProblems().get(0).getCategorySlugs())
+                    .containsExactly("algorithms");
         }
     }
 

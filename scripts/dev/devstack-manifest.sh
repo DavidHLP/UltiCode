@@ -14,7 +14,7 @@ DEVSTACK_OWNER_APPS=(
 )
 DEVSTACK_WORKER_APPS=(ulticode-judge ulticode-search)
 DEVSTACK_CORE_APPS=(ulticode-core ulticode-judge)
-DEVSTACK_FRONTEND_APPS=(ulticode-9002 ulticode-9003)
+DEVSTACK_FRONTEND_APPS=(ulticode-9002 ulticode-9003 ulticode-9004)
 DEVSTACK_READINESS_APPS=(
   ulticode-auth
   ulticode-admin
@@ -26,6 +26,7 @@ DEVSTACK_READINESS_APPS=(
   ulticode-search
   ulticode-9002
   ulticode-9003
+  ulticode-9004
 )
 DEVSTACK_ALL_APPS=("${DEVSTACK_READINESS_APPS[@]}")
 
@@ -45,9 +46,9 @@ DEVSTACK_DEV_FULL_APPS=(
 #
 #   scope            PM2 apps                                  Compose infra
 #   dev-lite         six existing backend apps                  mysql redis nacos rustfs
-#   dev-full         nine existing apps                         mysql redis nacos rustfs meilisearch
+#   dev-full         ten existing apps                         mysql redis nacos rustfs meilisearch
 #   app-journey      auth app notification submission judge     mysql redis nacos rustfs
-#                    console
+#                    console + landing
 #   admin             auth admin app notification submission    mysql redis nacos rustfs
 #                    management
 #   submission-judge app submission judge                       mysql redis nacos rustfs
@@ -77,6 +78,7 @@ DEVSTACK_SCOPE_APP_JOURNEY_APPS=(
   ulticode-submission
   ulticode-judge
   ulticode-9002
+  ulticode-9004
 )
 DEVSTACK_SCOPE_ADMIN_APPS=(
   ulticode-auth
@@ -96,6 +98,7 @@ DEVSTACK_SCOPE_SEARCH_APPS=(
   ulticode-app
   ulticode-search
   ulticode-9002
+  ulticode-9004
 )
 DEVSTACK_OBSERVABILITY_INFRA=(
   otel-collector
@@ -215,7 +218,7 @@ devstack_backend_apps_for_mode() {
 
 devstack_is_frontend_app() {
   case "$1" in
-    ulticode-9002|ulticode-9003) return 0 ;;
+    ulticode-9002|ulticode-9003|ulticode-9004) return 0 ;;
     *) return 1 ;;
   esac
 }
@@ -240,6 +243,7 @@ devstack_app_port() {
     ulticode-core)         printf '9108' ;;
     ulticode-9002)         printf '9002' ;;
     ulticode-9003)         printf '9003' ;;
+    ulticode-9004)         printf '9004' ;;
     *)
       echo "Unknown DevStack app port: $1" >&2
       return 2
@@ -259,6 +263,7 @@ devstack_app_label() {
     ulticode-core)         printf 'Core Backend' ;;
     ulticode-9002)         printf 'Console Frontend (Vite)' ;;
     ulticode-9003)         printf 'Management Frontend (Vite)' ;;
+    ulticode-9004)         printf 'Landing Frontend (Vite)' ;;
     *)
       echo "Unknown DevStack app label: $1" >&2
       return 2
@@ -278,6 +283,7 @@ devstack_normalize_app() {
     core|backend-core|ulticode-core|9108) printf 'ulticode-core' ;;
     console|ulticode-9002|9002) printf 'ulticode-9002' ;;
     management|ulticode-9003|9003) printf 'ulticode-9003' ;;
+    landing|ulticode-9004|9004) printf 'ulticode-9004' ;;
     *)
       echo "Unknown PM2 app alias: $1" >&2
       return 2
@@ -341,13 +347,13 @@ devstack_scope_features() {
   devstack_validate_scope_name "$1" || return $?
   case "$1" in
     dev-lite)         printf 'search=off;meili=off;judge=on;notification=on;frontend=off;observability=off' ;;
-    dev-full)         printf 'search=on;meili=on;judge=on;notification=on;frontend=console,management;observability=off' ;;
-    app-journey)      printf 'search=off;meili=off;judge=on;notification=on;frontend=console;observability=off' ;;
+    dev-full)         printf 'search=on;meili=on;judge=on;notification=on;frontend=console,management,landing;observability=off' ;;
+    app-journey)      printf 'search=off;meili=off;judge=on;notification=on;frontend=console,landing;observability=off' ;;
     admin)            printf 'search=off;meili=off;judge=off;notification=on;frontend=management;observability=off' ;;
     submission-judge) printf 'search=off;meili=off;judge=on;notification=off;frontend=off;observability=off' ;;
     core)            printf 'search=on;meili=on;judge=on;notification=on;frontend=off;observability=off' ;;
-    search)           printf 'search=on;meili=on;judge=off;notification=off;frontend=console;observability=off' ;;
-    full-stack)       printf 'search=on;meili=on;judge=on;notification=on;frontend=console,management;observability=off' ;;
+    search)           printf 'search=on;meili=on;judge=off;notification=off;frontend=console,landing;observability=off' ;;
+    full-stack)       printf 'search=on;meili=on;judge=on;notification=on;frontend=console,management,landing;observability=off' ;;
   esac
 }
 
@@ -421,6 +427,7 @@ devstack_readiness() {
     ulticode-submission|ulticode-judge|ulticode-search) printf 'pm2' ;;
     ulticode-9002)         printf 'http|9002|/' ;;
     ulticode-9003)         printf 'http|9003|/' ;;
+    ulticode-9004)         printf 'http|9004|/landing/' ;;
     *)
       echo "Unknown DevStack readiness app: $1" >&2
       return 2

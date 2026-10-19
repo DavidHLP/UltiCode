@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@ulticode/design-system/ui/card'
 import { formatCompactNumber, formatNumberByLocale } from '@/i18n/utils'
 
 export interface TagItem {
@@ -60,27 +66,15 @@ function formatValue(value: number): string {
 </script>
 
 <template>
-  <Card
-    class="border border-[var(--border-subtle)] dark:border-[var(--border-subtle)]/60 bg-card shadow-float overflow-hidden rounded-none"
-    :class="compact ? 'self-start gap-0 py-0' : 'h-full gap-0 py-0'"
-  >
-    <CardHeader
-      v-if="title"
-      class="bg-[var(--surface)] dark:bg-[var(--surface-highlight)]/10 border-b border-[var(--border-subtle)] dark:border-[var(--border-subtle)]/50"
-      :class="compact ? 'px-4 py-3.5' : 'pb-4 pt-5 px-5'"
-    >
-      <CardTitle class="text-sm font-bold font-mono uppercase tracking-wide text-foreground">{{
-        title
-      }}</CardTitle>
-      <CardDescription v-if="description" class="text-xs text-[var(--foreground-muted)] mt-1">
+  <Card class="overflow-hidden" :class="compact ? 'self-start gap-0 py-0' : 'h-full gap-0 py-0'">
+    <CardHeader v-if="title" :class="compact ? 'px-4 py-3.5' : 'pb-4 pt-5 px-5'">
+      <CardTitle>{{ title }}</CardTitle>
+      <CardDescription v-if="description" class="mt-1">
         {{ description }}
       </CardDescription>
     </CardHeader>
     <CardContent :class="compact ? 'p-4' : 'px-5 pb-5 pt-5'">
-      <div
-        v-if="displayTags.length === 0"
-        class="text-center py-8 text-[var(--foreground-muted)] text-sm"
-      >
+      <div v-if="displayTags.length === 0" class="text-center py-8 text-muted-foreground text-sm">
         {{ $t('common.noData') }}
       </div>
       <div
@@ -93,7 +87,7 @@ function formatValue(value: number): string {
           v-for="tag in displayTags"
           :key="tag.id"
           data-testid="tag-item"
-          class="group inline-flex items-center rounded-none border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-card hover:border-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/5 transition-all duration-200 cursor-default"
+          class="group inline-flex items-center rounded-lg border border-border dark:border-border bg-card hover:border-primary hover:bg-primary/5 transition-all duration-200 cursor-default"
           :class="compact ? 'gap-1 px-2 py-0.5' : 'gap-1.5 px-2.5 py-1'"
           :style="{
             fontSize: (compact ? Math.min(tag.fontSize, 0.875) : tag.fontSize) + 'rem',
@@ -103,7 +97,7 @@ function formatValue(value: number): string {
           <span class="font-medium text-foreground">{{ tag.label }}</span>
           <span
             v-if="showValue"
-            class="font-data tabular-nums text-[var(--foreground-muted)] group-hover:text-[var(--accent-primary)] transition-colors"
+            class="font-mono tabular-nums text-muted-foreground group-hover:text-primary transition-colors"
           >
             ({{ formatValue(tag.value) }})
           </span>

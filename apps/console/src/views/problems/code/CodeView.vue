@@ -6,8 +6,9 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
+  DropdownMenuGroup,
+} from "@ulticode/design-system/ui/dropdown-menu";
+import { Button } from "@ulticode/design-system/ui/button";
 import CodeEditor from "./components/CodeEditor.vue";
 import EditorToolbar from "@/components/editor/EditorToolbar.vue";
 import type { ProblemLanguageOption } from "@/types/problem-detail";
@@ -180,41 +181,43 @@ watch(
     <main class="flex flex-col gap-1 p-1 flex-1 min-h-0">
       <div
         data-testid="editor-command-bar"
-        class="flex flex-wrap items-center justify-between gap-2 border border-border/60 bg-card/70 p-1"
+        class="editor-command-bar flex flex-wrap items-center justify-between gap-2 border border-border/60 bg-card/70 p-1"
       >
         <div class="flex items-center gap-1.5">
           <DropdownMenu>
             <DropdownMenuTrigger
-              class="flex h-7 cursor-pointer items-center gap-1.5 rounded-none border border-border bg-muted/60 px-3 py-1 text-xs font-semibold text-foreground outline-none transition-colors hover:bg-accent hover:text-accent-foreground data-[state=open]:border-ring/60 data-[state=open]:bg-accent data-[state=open]:text-accent-foreground"
+              class="flex h-7 cursor-pointer items-center gap-1.5 px-3 py-1 outline-none"
               :aria-label="t('problem.layout.selectLanguage')"
             >
-              <span class="text-xxs uppercase tracking-wider font-bold">{{
+              <span class="text-xs uppercase tracking-wider font-bold">{{
                 activeLanguageLabel
               }}</span>
               <ChevronDown class="h-3 w-3 opacity-60" />
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" class="w-[200px] rounded-none">
-              <DropdownMenuItem
-                v-for="language in props.languages"
-                :key="language.id"
-                @select="activeLanguageValue = language.value"
-                class="text-xs cursor-pointer rounded-none"
+            <DropdownMenuContent align="start" class="w-[200px]">
+              <DropdownMenuGroup
+                ><DropdownMenuItem
+                  v-for="language in props.languages"
+                  :key="language.id"
+                  @select="activeLanguageValue = language.value"
+                  class="cursor-pointer"
+                >
+                  <CheckIcon
+                    class="mr-2 h-3.5 w-3.5"
+                    :class="
+                      language.value === activeLanguageValue
+                        ? 'opacity-100'
+                        : 'opacity-0'
+                    "
+                  />
+                  {{ language.label }}
+                </DropdownMenuItem></DropdownMenuGroup
               >
-                <CheckIcon
-                  class="mr-2 h-3.5 w-3.5"
-                  :class="
-                    language.value === activeLanguageValue
-                      ? 'opacity-100'
-                      : 'opacity-0'
-                  "
-                />
-                {{ language.label }}
-              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
 
-        <div class="flex h-full items-center gap-1 text-muted-foreground">
+        <div class="editor-command-actions flex flex-wrap items-center gap-1 text-muted-foreground">
           <!-- Group 1: Code Actions -->
           <div
             class="flex items-center border border-border/60 bg-muted/60 p-0.5"
@@ -222,7 +225,7 @@ watch(
             <Button
               variant="ghost"
               size="icon"
-              class="h-6 w-6 rounded-none text-foreground hover:bg-accent hover:text-accent-foreground"
+              class="w-6"
               :aria-label="t('problem.layout.formatCode')"
               :title="t('problem.layout.formatCode')"
               @click="handleFormat"
@@ -232,7 +235,7 @@ watch(
             <Button
               variant="ghost"
               size="icon"
-              class="h-6 w-6 rounded-none text-foreground hover:bg-accent hover:text-accent-foreground disabled:opacity-30"
+              class="w-6 disabled:opacity-30"
               :disabled="!canReset"
               :aria-label="t('problem.layout.resetCode')"
               :title="t('problem.layout.resetCode')"
@@ -251,7 +254,7 @@ watch(
             <Button
               variant="ghost"
               size="icon"
-              class="h-6 w-6 rounded-none text-foreground hover:bg-accent hover:text-accent-foreground"
+              class="w-6"
               :class="{
                 'bg-accent text-accent-foreground': editorWordWrap,
               }"
@@ -265,7 +268,7 @@ watch(
             <Button
               variant="ghost"
               size="icon"
-              class="h-6 w-6 rounded-none text-foreground hover:bg-accent hover:text-accent-foreground"
+              class="w-6"
               :class="{
                 'bg-accent text-accent-foreground': editorMinimap,
               }"
@@ -295,7 +298,7 @@ watch(
             <Button
               variant="ghost"
               size="icon"
-              class="h-6 w-6 rounded-none text-foreground hover:bg-accent hover:text-accent-foreground"
+              class="w-6"
               :class="{
                 'bg-accent text-accent-foreground': isFullscreen,
               }"
@@ -326,3 +329,19 @@ watch(
     </main>
   </div>
 </template>
+
+<style scoped>
+@media (max-height: 400px) {
+  .editor-command-bar {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .editor-command-actions {
+    flex: none;
+    flex-wrap: nowrap;
+  }
+}
+</style>

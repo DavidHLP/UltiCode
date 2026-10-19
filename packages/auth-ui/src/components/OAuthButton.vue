@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { Button } from "@ulticode/design-system/ui/button";
+
 /**
  * OAuthButton - OAuth button supporting GitHub and Google
  *
@@ -16,6 +18,7 @@ import type { HTMLAttributes } from "vue";
 import { computed } from "vue";
 import { cn } from "./cn";
 import { IconBrandGithub } from "@tabler/icons-vue";
+
 import { useI18n } from "vue-i18n";
 
 const props = withDefaults(
@@ -65,17 +68,18 @@ function handleOAuth() {
 </script>
 
 <template>
-  <button
+  <Button
+    variant="outline"
     type="button"
     :class="cn('oauth-button', props.class)"
     @click="handleOAuth"
   >
-    <IconBrandGithub v-if="provider === 'github'" class="oauth-button__icon" />
+    <IconBrandGithub v-if="provider === 'github'" class="size-4" />
     <svg
       v-else-if="provider === 'google'"
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 24 24"
-      class="oauth-button__icon"
+      class="size-4"
       aria-hidden="true"
     >
       <path
@@ -95,57 +99,8 @@ function handleOAuth() {
         fill="#EA4335"
       />
     </svg>
-    <span class="oauth-button__text">
+    <span class="">
       <slot>{{ oauthLabel }}</slot>
     </span>
-  </button>
+  </Button>
 </template>
-
-<style scoped>
-.oauth-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 2.375rem;
-  gap: 0.75rem;
-  padding: 0 1rem;
-  font-family: var(--uc-font-code);
-  font-size: var(--uc-text-sm);
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--foreground);
-  background: var(--surface-elevated);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  box-shadow: none;
-  transition: all var(--transition-fast);
-}
-
-.oauth-button:hover {
-  background: var(--surface-sunken);
-  border-color: var(--border-control);
-  box-shadow: var(--shadow-float);
-}
-
-.oauth-button:focus-visible {
-  outline: 2px solid var(--ring);
-  outline-offset: 1px;
-}
-
-.oauth-button:active {
-  transform: translateY(0.5px);
-}
-
-.oauth-button__icon {
-  width: 1.125rem;
-  height: 1.125rem;
-  flex-shrink: 0;
-}
-
-.oauth-button__text {
-  display: flex;
-  align-items: center;
-}
-</style>

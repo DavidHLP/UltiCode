@@ -6,7 +6,7 @@ import {
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/ui/tooltip";
+} from "@ulticode/design-system/ui/tooltip";
 
 // Generate mock data for the last 365 days
 const props = defineProps<{
@@ -58,14 +58,7 @@ const activityData = computed(() => {
   return emptyData;
 });
 
-// Level → CSS background. Uses project design tokens (Solarized palette)
-// so the heatmap harmonizes with both light & dark themes. The active color
-// is `--status-success` (Solarized green, oklch 0.6444 0.1508 118.6),
-// mixed with `transparent` at increasing opacity per activity level.
-// The empty cell uses card/muted or card/foreground mix so it stays
-// distinguishable from the card background in both themes — in dark mode
-// `--card` and `--muted` resolve to the same Solarized base02, so
-// `bg-muted` alone would render as identical to the card.
+// Activity magnitude uses a single semantic ramp in both color modes.
 const getColorClass = (level: number) => {
   switch (level) {
     case 1:
@@ -77,7 +70,7 @@ const getColorClass = (level: number) => {
     case 4:
       return "bg-[color-mix(in_oklch,var(--status-success-mark)_80%,transparent)] dark:bg-[color-mix(in_oklch,var(--status-success-mark)_100%,transparent)]";
     default:
-      return "bg-[color-mix(in_oklch,var(--card)_60%,var(--muted))] dark:bg-[color-mix(in_oklch,var(--card)_40%,var(--foreground))]";
+      return "bg-[color-mix(in_oklch,var(--card)_85%,var(--foreground))] dark:bg-[color-mix(in_oklch,var(--card)_40%,var(--foreground))]";
   }
 };
 
@@ -118,7 +111,7 @@ const months = computed(() => [
             <Tooltip>
               <TooltipTrigger as-child>
                 <div
-                  class="h-3 w-3 rounded-none transition-colors hover:ring-2 hover:ring-ring hover:ring-offset-1"
+                  class="h-3 w-3 rounded-lg transition-colors hover:ring-2 hover:ring-ring hover:ring-offset-1"
                   :class="getColorClass(day.level)"
                 ></div>
               </TooltipTrigger>
@@ -137,18 +130,20 @@ const months = computed(() => [
       <div class="flex items-center gap-2 text-xs text-muted-foreground">
         <span>{{ t("common.labels.less") }}</span>
         <div class="flex gap-[2px]">
-          <div class="h-3 w-3 rounded-none bg-[color-mix(in_oklch,var(--card)_60%,var(--muted))] dark:bg-[color-mix(in_oklch,var(--card)_40%,var(--foreground))]"></div>
           <div
-            class="h-3 w-3 rounded-none bg-[color-mix(in_oklch,var(--status-success-mark)_20%,transparent)] dark:bg-[color-mix(in_oklch,var(--status-success-mark)_30%,transparent)]"
+            class="h-3 w-3 rounded-lg bg-[color-mix(in_oklch,var(--card)_85%,var(--foreground))] dark:bg-[color-mix(in_oklch,var(--card)_40%,var(--foreground))]"
           ></div>
           <div
-            class="h-3 w-3 rounded-none bg-[color-mix(in_oklch,var(--status-success-mark)_40%,transparent)] dark:bg-[color-mix(in_oklch,var(--status-success-mark)_50%,transparent)]"
+            class="h-3 w-3 rounded-lg bg-[color-mix(in_oklch,var(--status-success-mark)_20%,transparent)] dark:bg-[color-mix(in_oklch,var(--status-success-mark)_30%,transparent)]"
           ></div>
           <div
-            class="h-3 w-3 rounded-none bg-[color-mix(in_oklch,var(--status-success-mark)_60%,transparent)] dark:bg-[color-mix(in_oklch,var(--status-success-mark)_60%,transparent)]"
+            class="h-3 w-3 rounded-lg bg-[color-mix(in_oklch,var(--status-success-mark)_40%,transparent)] dark:bg-[color-mix(in_oklch,var(--status-success-mark)_50%,transparent)]"
           ></div>
           <div
-            class="h-3 w-3 rounded-none bg-[color-mix(in_oklch,var(--status-success-mark)_80%,transparent)] dark:bg-[color-mix(in_oklch,var(--status-success-mark)_100%,transparent)]"
+            class="h-3 w-3 rounded-lg bg-[color-mix(in_oklch,var(--status-success-mark)_60%,transparent)] dark:bg-[color-mix(in_oklch,var(--status-success-mark)_60%,transparent)]"
+          ></div>
+          <div
+            class="h-3 w-3 rounded-lg bg-[color-mix(in_oklch,var(--status-success-mark)_80%,transparent)] dark:bg-[color-mix(in_oklch,var(--status-success-mark)_100%,transparent)]"
           ></div>
         </div>
         <span>{{ t("common.labels.more") }}</span>

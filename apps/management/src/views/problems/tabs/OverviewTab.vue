@@ -1,16 +1,19 @@
 <script setup lang="ts">
+import { Button } from '@ulticode/design-system/ui/button'
+
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { formatDateByLocale } from '@/i18n/utils'
-import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
+import { Badge } from '@ulticode/design-system/ui/badge'
+import { Separator } from '@ulticode/design-system/ui/separator'
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from '@/components/ui/accordion'
-import { IconTag, IconCalendar, IconBulb } from '@tabler/icons-vue'
+} from '@ulticode/design-system/ui/accordion'
+import { Tag as IconTag, Calendar as IconCalendar, Lightbulb as IconBulb } from '@lucide/vue'
+
 import DescriptionMarkdown, {
   type ProblemDescription,
 } from '@/components/problems/DescriptionMarkdown.vue'
@@ -61,9 +64,12 @@ const props = defineProps<{
  */
 const difficultyClass = computed(() => {
   const difficulty = props.problem.difficulty.toLowerCase()
-  if (difficulty === 'easy') return 'text-foreground-strong bg-status-success-surface border border-status-success-mark'
-  if (difficulty === 'medium') return 'text-foreground-strong bg-status-warning-surface border border-status-warning-mark'
-  if (difficulty === 'hard') return 'text-foreground-strong bg-status-error-surface border border-status-error-mark'
+  if (difficulty === 'easy')
+    return 'text-foreground bg-status-success-surface border border-status-success-mark'
+  if (difficulty === 'medium')
+    return 'text-foreground bg-status-warning-surface border border-status-warning-mark'
+  if (difficulty === 'hard')
+    return 'text-foreground bg-status-error-surface border border-status-error-mark'
   return 'text-foreground'
 })
 
@@ -144,30 +150,32 @@ const hintsList = computed(() => {
         </div>
 
         <!-- Tags Button -->
-        <button
+        <Button
+          variant="ghost"
           v-if="hasTags"
-          class="relative inline-flex items-center justify-center px-1.5 py-0.5 gap-1 rounded-full bg-muted cursor-pointer transition-colors hover:bg-muted/80 hover:opacity-80 text-xs text-muted-foreground"
+          class="relative inline-flex items-center justify-center px-1.5 py-0.5 gap-1 cursor-pointer"
           @click="scrollToSection(tagsSection)"
         >
           <IconTag class="h-3.5 w-3.5" />
           <span>{{ t('problems.display.tags') }}</span>
-        </button>
+        </Button>
 
         <!-- Hints Button -->
-        <button
+        <Button
+          variant="ghost"
           v-if="hasHints"
-          class="relative inline-flex items-center justify-center px-1.5 py-0.5 gap-1 rounded-full bg-muted cursor-pointer transition-colors hover:bg-muted/80 hover:opacity-80 text-xs text-muted-foreground"
+          class="relative inline-flex items-center justify-center px-1.5 py-0.5 gap-1 cursor-pointer"
           @click="scrollToSection(hintsSection)"
         >
           <IconBulb class="h-3.5 w-3.5" />
           <span>{{ t('problems.display.hints') }}</span>
-        </button>
+        </Button>
       </div>
 
       <!-- Problem Description with Markdown Rendering -->
       <div
         v-if="problemDescription.content || problemDescription.examples?.length"
-        class="p-4 rounded-none border bg-muted/20"
+        class="p-4 rounded-lg border bg-muted/20"
       >
         <DescriptionMarkdown :description="problemDescription" />
       </div>
@@ -183,7 +191,7 @@ const hintsList = computed(() => {
             <Accordion type="multiple" class="w-full">
               <!-- Related Tags -->
               <AccordionItem v-if="hasTags" ref="tagsSection" value="tags">
-                <AccordionTrigger class="text-xs hover:no-underline py-3">
+                <AccordionTrigger class="hover:no-underline py-3">
                   <div class="flex items-center gap-2">
                     <IconTag class="h-4 w-4" />
                     <span>{{ t('problems.display.tags') }}</span>
@@ -195,7 +203,7 @@ const hintsList = computed(() => {
                       v-for="tag in problem.tags"
                       :key="tag.id"
                       variant="secondary"
-                      class="text-xs px-2 py-1"
+                      class="px-2 py-1"
                     >
                       {{ tag.label }}
                     </Badge>
@@ -205,7 +213,7 @@ const hintsList = computed(() => {
 
               <!-- Hints -->
               <AccordionItem v-if="hasHints" ref="hintsSection" value="hints">
-                <AccordionTrigger class="text-xs hover:no-underline py-3">
+                <AccordionTrigger class="hover:no-underline py-3">
                   <div class="flex items-center gap-2">
                     <IconBulb class="h-4 w-4" />
                     <span>{{ t('problems.display.hints') }}</span>
@@ -229,13 +237,13 @@ const hintsList = computed(() => {
           <!-- Right: Metadata -->
           <div class="space-y-4">
             <!-- Metadata Card -->
-            <div class="p-4 rounded-none border">
+            <div class="p-4 rounded-lg border">
               <h3 class="text-xs font-medium mb-3">{{ t('problems.display.metadata') }}</h3>
               <div class="space-y-2 text-xs">
                 <div class="grid grid-cols-2 gap-2">
                   <div>
                     <p class="text-muted-foreground mb-0.5">{{ t('problems.display.id') }}</p>
-                    <span class="font-mono bg-muted px-1.5 py-0.5 rounded-none text-xs">
+                    <span class="font-mono bg-muted px-1.5 py-0.5 rounded-lg text-xs">
                       {{ problem.id.slice(0, 8) }}
                     </span>
                   </div>
@@ -243,7 +251,7 @@ const hintsList = computed(() => {
                     <p class="text-muted-foreground mb-0.5">{{ t('common.status') }}</p>
                     <Badge
                       :variant="problem.isPublished ? 'default' : 'secondary'"
-                      class="text-2xs px-1.5 py-0"
+                      class="px-1.5 py-0"
                     >
                       {{
                         problem.isPublished
@@ -275,14 +283,14 @@ const hintsList = computed(() => {
             </div>
 
             <!-- Languages -->
-            <div v-if="problem.languages?.length" class="p-4 rounded-none border">
+            <div v-if="problem.languages?.length" class="p-4 rounded-lg border">
               <h3 class="text-xs font-medium mb-3">{{ t('problems.form.languages') }}</h3>
               <div class="flex flex-wrap gap-1.5">
                 <Badge
                   v-for="lang in problem.languages"
                   :key="lang.id"
                   variant="outline"
-                  class="text-xs px-2 py-0.5 font-mono"
+                  class="px-2 py-0.5"
                 >
                   {{ lang.language }}
                 </Badge>

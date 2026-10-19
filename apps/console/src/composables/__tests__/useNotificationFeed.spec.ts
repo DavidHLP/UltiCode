@@ -85,6 +85,21 @@ describe("useNotificationFeed", () => {
   });
 
   describe("loadNotifications", () => {
+    it.each([0, 3])("keeps at least one page when the server reports %i", async (pages) => {
+      vi.mocked(fetchNotifications).mockResolvedValue({
+        items: [],
+        total: 0,
+        page: 1,
+        limit: 20,
+        totalPages: pages,
+      });
+      const feed = useNotificationFeed();
+
+      await feed.loadNotifications({ page: 1, limit: 20 });
+
+      expect(feed.totalPages.value).toBe(Math.max(1, pages));
+    });
+
     it("uses 'Failed to load notifications' fallback and rethrows", async () => {
       vi.mocked(fetchNotifications).mockRejectedValue(
         new Error("net-down"),

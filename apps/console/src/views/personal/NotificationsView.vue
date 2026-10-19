@@ -5,8 +5,8 @@ import { RouterLink } from "vue-router";
 import { useI18n } from "vue-i18n";
 import PersonalPageHeader from "./components/PersonalPageHeader.vue";
 import PersonalPageShell from "./components/PersonalPageShell.vue";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
+import { Button } from "@ulticode/design-system/ui/button";
+import { Separator } from "@ulticode/design-system/ui/separator";
 import { toast } from "vue-sonner";
 import {
   Bell,
@@ -31,7 +31,8 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  DropdownMenuGroup,
+} from "@ulticode/design-system/ui/dropdown-menu";
 import { useNotificationStore } from "@/stores/notification";
 import type { NotificationItem, NotificationType } from "@/types/notification";
 import { useNotificationI18n } from "@/composables/useNotificationI18n";
@@ -42,7 +43,7 @@ import {
   SheetHeader,
   SheetTitle,
   SheetDescription,
-} from "@/components/ui/sheet";
+} from "@ulticode/design-system/ui/sheet";
 import NotificationPreferencesPanel from "@/components/notification/NotificationPreferencesPanel.vue";
 
 const { t, locale } = useI18n();
@@ -199,13 +200,8 @@ watch(currentPage, () => {
       :description="t('personal.account.sections.notificationsDesc')"
     >
       <template #actions>
-        <div class="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            class="text-muted-foreground hover:text-foreground"
-            @click="prefSheetOpen = true"
-          >
+        <div class="flex flex-wrap items-center gap-2">
+          <Button variant="ghost" size="sm" @click="prefSheetOpen = true">
             <Settings class="mr-2 h-4 w-4" />
             {{ t("personal.notifications.preferences") }}
           </Button>
@@ -213,7 +209,6 @@ watch(currentPage, () => {
           <Button
             variant="ghost"
             size="sm"
-            class="text-muted-foreground hover:text-foreground"
             :disabled="loading || notifications.length === 0"
             @click="handleMarkAllRead"
           >
@@ -224,7 +219,6 @@ watch(currentPage, () => {
           <Button
             variant="ghost"
             size="sm"
-            class="text-muted-foreground hover:text-destructive"
             :disabled="loading || notifications.length === 0"
             @click="handleClearAll"
           >
@@ -247,7 +241,7 @@ watch(currentPage, () => {
 
     <div
       v-else-if="!hasUser"
-      class="flex flex-col items-center justify-center py-24 border border-dashed rounded-none bg-muted/5"
+      class="flex flex-col items-center justify-center py-24 border border-dashed rounded-lg bg-muted/5"
     >
       <p class="text-muted-foreground mb-4">
         {{ t("personal.account.loginToManage") }}
@@ -275,10 +269,11 @@ watch(currentPage, () => {
           <div
             v-for="notification in group.items"
             :key="notification.id"
-            class="group relative flex items-start gap-4 p-4 rounded-none border bg-card transition-all hover:shadow-[var(--shadow-float)] hover:border-primary/20"
+            class="group relative flex items-start gap-4 p-4 rounded-lg border bg-card transition-all hover:shadow-[var(--shadow-float)] hover:border-primary/20"
             :class="{
               'bg-muted/30 border-transparent': notification.isRead,
-              'border-status-warning-mark/30 bg-status-warning-surface': !notification.isRead,
+              'border-status-warning-mark/30 bg-status-warning-surface':
+                !notification.isRead,
             }"
           >
             <!-- Unread Indicator Dot -->
@@ -308,9 +303,9 @@ watch(currentPage, () => {
               @click="handleNotificationClick(notification)"
             >
               <div class="flex flex-col gap-1">
-                <div class="flex items-center justify-between gap-2">
+                <div class="flex flex-wrap items-center justify-between gap-2">
                   <span
-                    class="text-sm font-semibold truncate pr-2 text-foreground/90"
+                    class="min-w-0 break-words text-sm font-semibold pr-2 text-foreground/90"
                   >
                     {{ localizedNotification(notification).title }}
                   </span>
@@ -330,34 +325,31 @@ watch(currentPage, () => {
 
             <!-- Actions -->
             <div
-              class="shrink-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity focus-within:opacity-100"
+              class="shrink-0 flex items-center gap-1 sm:opacity-0 group-hover:opacity-100 transition-opacity focus-within:opacity-100"
             >
               <DropdownMenu>
                 <DropdownMenuTrigger as-child>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    class="h-8 w-8 rounded-full"
-                  >
+                  <Button variant="ghost" size="icon" class="w-8">
                     <MoreHorizontal class="h-4 w-4 text-muted-foreground" />
-                    <span class="sr-only">Actions</span>
+                    <span class="sr-only">{{
+                      t("personal.notifications.actions")
+                    }}</span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem
-                    @click="handleMarkAsRead(notification)"
-                    :disabled="notification.isRead"
+                  <DropdownMenuGroup
+                    ><DropdownMenuItem
+                      @click="handleMarkAsRead(notification)"
+                      :disabled="notification.isRead"
+                    >
+                      <Check class="mr-2 h-4 w-4" />
+                      <span>{{ t("personal.notifications.markAsRead") }}</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem @click="handleDelete(notification.id)">
+                      <Trash2 class="mr-2 h-4 w-4" />
+                      <span>{{ t("common.actions.delete") }}</span>
+                    </DropdownMenuItem></DropdownMenuGroup
                   >
-                    <Check class="mr-2 h-4 w-4" />
-                    <span>{{ t("personal.notifications.markAsRead") }}</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    @click="handleDelete(notification.id)"
-                    class="text-destructive focus:text-destructive"
-                  >
-                    <Trash2 class="mr-2 h-4 w-4" />
-                    <span>{{ t("common.actions.delete") }}</span>
-                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -373,8 +365,9 @@ watch(currentPage, () => {
           <Button
             variant="ghost"
             size="icon"
-            class="h-8 w-8 rounded-full"
-            :disabled="currentPage === 1 || loading"
+            class="w-8"
+            :aria-label="t('common.pagination.previousPage')"
+            :disabled="currentPage <= 1 || loading"
             @click="currentPage = Math.max(1, currentPage - 1)"
           >
             <ChevronLeft class="h-4 w-4" />
@@ -385,8 +378,9 @@ watch(currentPage, () => {
           <Button
             variant="ghost"
             size="icon"
-            class="h-8 w-8 rounded-full"
-            :disabled="currentPage === totalPages || loading"
+            class="w-8"
+            :aria-label="t('common.pagination.nextPage')"
+            :disabled="currentPage >= totalPages || loading"
             @click="currentPage = Math.min(totalPages, currentPage + 1)"
           >
             <ChevronRight class="h-4 w-4" />
@@ -397,7 +391,7 @@ watch(currentPage, () => {
 
     <div
       v-else
-      class="flex flex-col items-center justify-center py-32 border border-dashed rounded-none bg-muted/5 text-center"
+      class="flex flex-col items-center justify-center py-32 border border-dashed rounded-lg bg-muted/5 text-center"
     >
       <div class="bg-muted/30 p-4 rounded-full mb-4">
         <Bell class="h-8 w-8 text-muted-foreground/40" />
@@ -413,13 +407,13 @@ watch(currentPage, () => {
 
   <Sheet v-model:open="prefSheetOpen">
     <SheetContent side="right">
-      <SheetHeader>
+      <SheetHeader class="shrink-0 pr-12">
         <SheetTitle>{{ t("personal.notifications.preferences") }}</SheetTitle>
         <SheetDescription>{{
           t("personal.notifications.preferencesDesc")
         }}</SheetDescription>
       </SheetHeader>
-      <div class="mt-6">
+      <div class="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
         <NotificationPreferencesPanel />
       </div>
     </SheetContent>

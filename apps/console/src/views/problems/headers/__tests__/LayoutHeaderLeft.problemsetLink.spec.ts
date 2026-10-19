@@ -10,27 +10,27 @@ function readSource() {
 }
 
 describe("LayoutHeaderLeft problemset external link", () => {
-  it("renders RouterLink as the direct child of HoverCardTrigger for the open-in-new-tab action", () => {
+  it("renders RouterLink as the direct child of TooltipTrigger for the open-in-new-tab action", () => {
     const source = readSource();
 
-    // Find the open-in-new-tab HoverCard block.
+    // Find the open-in-new-tab Tooltip block.
     const block = source.match(
-      /External link button HoverCard[\s\S]*?<\/HoverCard>/,
+      /External link button Tooltip[\s\S]*?<\/Tooltip>/,
     );
-    expect(block, "open-in-new-tab HoverCard block should exist").toBeTruthy();
+    expect(block, "open-in-new-tab Tooltip block should exist").toBeTruthy();
 
-    // The HoverCardTrigger must contain RouterLink directly. A wrapper
+    // The TooltipTrigger must contain RouterLink directly. A wrapper
     // <div> between them used to swallow clicks on the problemset link.
     // An explanatory HTML comment may sit between the opening tag and the
     // RouterLink, so we look for the first RouterLink/div element instead
     // of requiring it to be the very first node.
     const trigger = block![0].match(
-      /<HoverCardTrigger[^>]*>([\s\S]*?)<\/HoverCardTrigger>/,
+      /<TooltipTrigger[^>]*>([\s\S]*?)<\/TooltipTrigger>/,
     );
-    expect(trigger, "HoverCardTrigger should wrap RouterLink").toBeTruthy();
+    expect(trigger, "TooltipTrigger should wrap RouterLink").toBeTruthy();
     expect(trigger![1]).toMatch(/<RouterLink\b/);
     // Strip HTML comments before scanning for an actual <div> element so
-    // prose mentions of "<div>" inside explanatory comments do not trip
+    // typeset typeset-docs mentions of "<div>" inside explanatory comments do not trip
     // the assertion.
     const triggerWithoutComments = trigger![1].replace(/<!--[\s\S]*?-->/g, "");
     expect(triggerWithoutComments).not.toMatch(/<div[\s>]/);
@@ -45,12 +45,12 @@ describe("LayoutHeaderLeft problemset external link", () => {
     const source = readSource();
 
     const block = source.match(
-      /External link button HoverCard[\s\S]*?<\/HoverCard>/,
+      /External link button Tooltip[\s\S]*?<\/Tooltip>/,
     );
     expect(block).toBeTruthy();
 
     // The hidden/visible states must be on the link itself (or the
-    // immediate child of HoverCardTrigger) so they still work after
+    // immediate child of TooltipTrigger) so they still work after
     // removing the wrapper <div>.
     expect(block![0]).toMatch(/<RouterLink[^>]*\bhidden\b/);
     expect(block![0]).toContain("group-hover/nav-back:flex");

@@ -4,14 +4,13 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuCheckboxItem,
-} from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
+} from "@ulticode/design-system/ui/dropdown-menu";
+import { Button } from "@ulticode/design-system/ui/button";
 import {
   CategoryFilter,
   DataTableToolbar,
   TagFilter,
 } from "@/components/common/data-table";
-import CheckIcon from "~icons/radix-icons/check";
 import { Shuffle } from "@lucide/vue";
 import { useI18n } from "vue-i18n";
 
@@ -44,16 +43,18 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <div class="terminal-card animate-stagger problem-explorer-controls">
+  <div
+    class="rounded-xl border bg-card text-card-foreground flex flex-col gap-4 rounded-xl border bg-card p-4"
+  >
     <CategoryFilter
-      class="problem-category-filter"
+      class="flex flex-wrap gap-2"
       :categories="categoryOptions"
       :model-value="selectedCategory"
       @update:model-value="emit('update:selectedCategory', $event)"
     />
 
     <DataTableToolbar
-      class="problem-filter-toolbar"
+      class="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]"
       :model-value="searchQuery"
       :placeholder="t('problem.list.searchPlaceholder')"
       :filter-label="t('problem.explorer.filters')"
@@ -71,50 +72,28 @@ const emit = defineEmits<{
         }}</DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuCheckboxItem
-          :checked="selectedStatus.includes('solved')"
-          @click="
-            emit('toggleStatus', 'solved', !selectedStatus.includes('solved'))
-          "
+          :model-value="selectedStatus.includes('solved')"
+          @update:model-value="emit('toggleStatus', 'solved', $event)"
         >
-          <span class="flex items-center w-full">
-            {{ t("problem.status.solved") }}
-            <CheckIcon
-              v-if="selectedStatus.includes('solved')"
-              class="ml-auto h-4 w-4"
-            />
-          </span>
+          <span class="flex items-center w-full">{{
+            t("problem.status.solved")
+          }}</span>
         </DropdownMenuCheckboxItem>
         <DropdownMenuCheckboxItem
-          :checked="selectedStatus.includes('attempted')"
-          @click="
-            emit(
-              'toggleStatus',
-              'attempted',
-              !selectedStatus.includes('attempted'),
-            )
-          "
+          :model-value="selectedStatus.includes('attempted')"
+          @update:model-value="emit('toggleStatus', 'attempted', $event)"
         >
-          <span class="flex items-center w-full">
-            {{ t("problem.status.attempted") }}
-            <CheckIcon
-              v-if="selectedStatus.includes('attempted')"
-              class="ml-auto h-4 w-4"
-            />
-          </span>
+          <span class="flex items-center w-full">{{
+            t("problem.status.attempted")
+          }}</span>
         </DropdownMenuCheckboxItem>
         <DropdownMenuCheckboxItem
-          :checked="selectedStatus.includes('todo')"
-          @click="
-            emit('toggleStatus', 'todo', !selectedStatus.includes('todo'))
-          "
+          :model-value="selectedStatus.includes('todo')"
+          @update:model-value="emit('toggleStatus', 'todo', $event)"
         >
-          <span class="flex items-center w-full">
-            {{ t("problem.status.todo") }}
-            <CheckIcon
-              v-if="selectedStatus.includes('todo')"
-              class="ml-auto h-4 w-4"
-            />
-          </span>
+          <span class="flex items-center w-full">{{
+            t("problem.status.todo")
+          }}</span>
         </DropdownMenuCheckboxItem>
         <DropdownMenuSeparator />
         <DropdownMenuLabel>{{
@@ -122,58 +101,28 @@ const emit = defineEmits<{
         }}</DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuCheckboxItem
-          :checked="selectedDifficulty.includes('Easy')"
-          @click="
-            emit(
-              'toggleDifficulty',
-              'Easy',
-              !selectedDifficulty.includes('Easy'),
-            )
-          "
+          :model-value="selectedDifficulty.includes('Easy')"
+          @update:model-value="emit('toggleDifficulty', 'Easy', $event)"
         >
-          <span class="flex items-center w-full">
-            {{ t("problem.difficulty.easy") }}
-            <CheckIcon
-              v-if="selectedDifficulty.includes('Easy')"
-              class="ml-auto h-4 w-4"
-            />
-          </span>
+          <span class="flex items-center w-full">{{
+            t("problem.difficulty.easy")
+          }}</span>
         </DropdownMenuCheckboxItem>
         <DropdownMenuCheckboxItem
-          :checked="selectedDifficulty.includes('Medium')"
-          @click="
-            emit(
-              'toggleDifficulty',
-              'Medium',
-              !selectedDifficulty.includes('Medium'),
-            )
-          "
+          :model-value="selectedDifficulty.includes('Medium')"
+          @update:model-value="emit('toggleDifficulty', 'Medium', $event)"
         >
-          <span class="flex items-center w-full">
-            {{ t("problem.difficulty.medium") }}
-            <CheckIcon
-              v-if="selectedDifficulty.includes('Medium')"
-              class="ml-auto h-4 w-4"
-            />
-          </span>
+          <span class="flex items-center w-full">{{
+            t("problem.difficulty.medium")
+          }}</span>
         </DropdownMenuCheckboxItem>
         <DropdownMenuCheckboxItem
-          :checked="selectedDifficulty.includes('Hard')"
-          @click="
-            emit(
-              'toggleDifficulty',
-              'Hard',
-              !selectedDifficulty.includes('Hard'),
-            )
-          "
+          :model-value="selectedDifficulty.includes('Hard')"
+          @update:model-value="emit('toggleDifficulty', 'Hard', $event)"
         >
-          <span class="flex items-center w-full">
-            {{ t("problem.difficulty.hard") }}
-            <CheckIcon
-              v-if="selectedDifficulty.includes('Hard')"
-              class="ml-auto h-4 w-4"
-            />
-          </span>
+          <span class="flex items-center w-full">{{
+            t("problem.difficulty.hard")
+          }}</span>
         </DropdownMenuCheckboxItem>
         <DropdownMenuSeparator />
         <DropdownMenuLabel>{{
@@ -181,22 +130,20 @@ const emit = defineEmits<{
         }}</DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuCheckboxItem
-          :checked="showPremium === false"
-          @click="emit('togglePremium', false, !(showPremium === false))"
+          :model-value="showPremium === false"
+          @update:model-value="emit('togglePremium', false, $event)"
         >
-          <span class="flex items-center w-full">
-            {{ t("problem.explorer.free") }}
-            <CheckIcon v-if="showPremium === false" class="ml-auto h-4 w-4" />
-          </span>
+          <span class="flex items-center w-full">{{
+            t("problem.explorer.free")
+          }}</span>
         </DropdownMenuCheckboxItem>
         <DropdownMenuCheckboxItem
-          :checked="showPremium === true"
-          @click="emit('togglePremium', true, !(showPremium === true))"
+          :model-value="showPremium === true"
+          @update:model-value="emit('togglePremium', true, $event)"
         >
-          <span class="flex items-center w-full">
-            {{ t("problem.explorer.premium") }}
-            <CheckIcon v-if="showPremium === true" class="ml-auto h-4 w-4" />
-          </span>
+          <span class="flex items-center w-full">{{
+            t("problem.explorer.premium")
+          }}</span>
         </DropdownMenuCheckboxItem>
       </template>
       <template #actions>
@@ -205,7 +152,7 @@ const emit = defineEmits<{
           size="icon"
           :aria-label="t('problem.explorer.pickOne')"
           :title="t('problem.explorer.pickOne')"
-          class="h-9 rounded-md border-border-control bg-surface-highlight font-mono text-xs font-bold uppercase tracking-wider text-foreground-strong hover:bg-surface-highlight/80 transition-all cursor-pointer"
+          class="cursor-pointer"
           @click="emit('pickOne')"
         >
           <Shuffle class="h-4 w-4" aria-hidden="true" />
@@ -213,13 +160,13 @@ const emit = defineEmits<{
       </template>
     </DataTableToolbar>
 
-    <div class="problem-tag-shelf">
-      <div class="problem-tag-label">
-        <span class="problem-tag-mark" aria-hidden="true" />
+    <div class="grid gap-3 border-t pt-4 sm:grid-cols-[max-content_1fr]">
+      <div class="flex items-center gap-2 text-sm font-medium">
+        <span class="size-1.5 rounded-full bg-primary" aria-hidden="true" />
         <span>{{ t("problem.detail.tags") }}</span>
       </div>
       <TagFilter
-        class="problem-tag-filter"
+        class="min-w-0"
         :model-value="$props.selectedTags"
         @update:model-value="emit('update:selectedTags', $event)"
         :popular-tags="popularTags"
@@ -229,241 +176,3 @@ const emit = defineEmits<{
     </div>
   </div>
 </template>
-
-<style scoped>
-.problem-explorer-controls {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  padding: var(--uc-layout-panel-padding-block)
-    var(--uc-layout-panel-padding-inline);
-  border-color: var(--border-subtle);
-  background: var(--surface-elevated);
-  box-shadow: var(--shadow-float);
-}
-
-.problem-tag-mark {
-  display: inline-block;
-  width: 0.4rem;
-  height: 0.4rem;
-  flex: none;
-  border-radius: 50%;
-  background: var(--primary);
-}
-
-.problem-explorer-controls :deep(.problem-category-filter) {
-  display: flex;
-  align-items: stretch;
-  flex-wrap: nowrap;
-  gap: 0.25rem;
-  overflow-x: auto;
-  margin: 0 0 0.75rem;
-  padding: 0;
-  border: 0;
-  border-bottom: 1px solid var(--border-subtle);
-  border-radius: 0;
-  background: transparent;
-}
-
-.problem-explorer-controls :deep(.problem-category-filter .terminal-tab) {
-  flex: 0 0 auto;
-  min-width: max-content;
-  height: var(--uc-layout-control-height);
-  padding: 0.625rem var(--uc-layout-control-padding-inline);
-  border: 0;
-  border-bottom: 2px solid transparent;
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
-  color: var(--foreground-muted);
-  font-family: var(--uc-font-ui);
-  font-size: var(--uc-type-control-size);
-  font-weight: var(--uc-type-control-weight);
-  line-height: var(--uc-type-control-line-height);
-  letter-spacing: var(--uc-locale-control-tracking);
-}
-
-.problem-explorer-controls :deep(.problem-category-filter .terminal-tab:hover) {
-  border-bottom-color: var(--border-control);
-  background: transparent;
-  color: var(--foreground-strong);
-}
-
-.problem-explorer-controls
-  :deep(.problem-category-filter .terminal-tab.bg-surface-highlight) {
-  border-bottom-color: var(--primary);
-  background: transparent;
-  color: var(--foreground-strong);
-  font-weight: var(--uc-font-weight-semibold);
-}
-
-.problem-explorer-controls :deep(.problem-filter-toolbar) {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: var(--uc-layout-panel-padding-inline);
-  margin-bottom: 0.75rem;
-}
-
-.problem-explorer-controls :deep(.problem-filter-toolbar > div:first-child) {
-  max-width: none;
-}
-
-.problem-explorer-controls :deep(.problem-filter-toolbar > div:last-child) {
-  width: auto;
-  padding-bottom: 0;
-}
-
-.problem-explorer-controls :deep(input),
-.problem-explorer-controls :deep(button),
-.problem-explorer-controls :deep([role="button"]),
-.problem-explorer-controls :deep([data-slot="badge"]) {
-  font-family: var(--uc-font-ui);
-}
-
-.problem-explorer-controls :deep(.problem-filter-toolbar input) {
-  height: var(--uc-layout-control-height);
-  border-color: var(--border-control);
-  border-radius: var(--uc-component-control-radius);
-  background: transparent;
-  color: var(--foreground);
-  font-size: var(--uc-type-control-size);
-  line-height: var(--uc-type-control-line-height);
-}
-
-.problem-explorer-controls :deep(.problem-filter-toolbar button) {
-  height: var(--uc-layout-control-height);
-  min-width: var(--uc-layout-control-height);
-  border-color: var(--border-subtle);
-  border-radius: var(--uc-component-control-radius);
-  background: transparent;
-  box-shadow: none;
-  color: var(--foreground-muted);
-  font-size: var(--uc-type-control-size);
-  line-height: var(--uc-type-control-line-height);
-  letter-spacing: var(--uc-locale-control-tracking);
-  text-transform: none;
-}
-
-.problem-explorer-controls :deep(.problem-filter-toolbar button:hover) {
-  border-color: var(--border-control);
-  background: var(--surface-highlight);
-  color: var(--foreground-strong);
-}
-
-.problem-explorer-controls :deep(.problem-filter-toolbar [data-slot="badge"]) {
-  border-radius: var(--uc-component-control-radius);
-  background: var(--surface-highlight);
-  font-size: var(--uc-type-label-size);
-  line-height: var(--uc-type-label-line-height);
-}
-
-.problem-tag-shelf {
-  display: grid;
-  grid-template-columns: max-content minmax(0, 1fr);
-  align-items: start;
-  gap: var(--uc-layout-panel-padding-inline);
-  padding-top: 0.75rem;
-  border-top: 1px solid var(--border-subtle);
-}
-
-.problem-tag-label {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--uc-layout-control-gap);
-  min-height: 1.875rem;
-  color: var(--foreground-muted);
-  font-family: var(--uc-font-ui);
-  font-size: var(--uc-type-label-size);
-  font-weight: var(--uc-type-label-weight);
-  line-height: var(--uc-type-label-line-height);
-}
-
-.problem-explorer-controls :deep(.problem-tag-filter) {
-  width: 100%;
-}
-
-.problem-explorer-controls :deep(.problem-tag-filter [data-slot="badge"]) {
-  min-height: 1.875rem;
-  padding: 0.375rem 0.625rem;
-  border-color: var(--border-subtle);
-  border-radius: var(--uc-component-control-radius);
-  background: transparent;
-  color: var(--foreground-muted);
-  font-size: var(--uc-type-label-size);
-  font-weight: var(--uc-type-label-weight);
-  line-height: var(--uc-type-label-line-height);
-}
-
-.problem-explorer-controls
-  :deep(.problem-tag-filter [data-slot="badge"]:hover) {
-  border-color: var(--border-control);
-  background: var(--surface-highlight);
-  color: var(--foreground-strong);
-}
-
-.problem-explorer-controls
-  :deep(
-    .problem-tag-filter [data-slot="badge"][class~="bg-surface-highlight"]
-  ) {
-  border-color: var(--primary);
-  background: var(--surface-highlight);
-  color: var(--foreground-strong);
-}
-
-.problem-explorer-controls :deep(.problem-tag-filter > div:last-child) {
-  padding-top: 0.5rem;
-}
-
-.problem-explorer-controls :deep(.problem-tag-filter button) {
-  height: auto;
-  min-height: 1.875rem;
-  padding: 0.375rem 0.25rem;
-  border-radius: 0;
-  color: var(--foreground-muted);
-  font-size: var(--uc-type-label-size);
-  line-height: var(--uc-type-label-line-height);
-  letter-spacing: var(--uc-locale-control-tracking);
-}
-
-.problem-explorer-controls :deep(.problem-tag-filter button:hover) {
-  background: transparent;
-  color: var(--foreground-strong);
-}
-
-.problem-explorer-controls :deep(.border-dashed) {
-  border-style: solid;
-  border-color: var(--border);
-}
-
-.problem-explorer-controls :deep(input) {
-  border-color: var(--border-control);
-  background: var(--surface-sunken);
-}
-
-.problem-explorer-controls :deep(input:focus-visible) {
-  border-color: var(--ring);
-  box-shadow: 0 0 0 2px var(--accent-glow);
-}
-
-@media (max-width: 640px) {
-  .problem-explorer-controls {
-    padding: var(--uc-layout-panel-padding-block)
-      var(--uc-layout-panel-padding-inline);
-  }
-
-  .problem-explorer-controls :deep(.problem-filter-toolbar) {
-    grid-template-columns: 1fr;
-    gap: 0.75rem;
-  }
-
-  .problem-explorer-controls :deep(.problem-filter-toolbar > div:last-child) {
-    justify-content: flex-end;
-  }
-
-  .problem-tag-shelf {
-    grid-template-columns: 1fr;
-    gap: 0.5rem;
-  }
-}
-</style>

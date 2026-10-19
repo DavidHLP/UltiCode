@@ -1,12 +1,9 @@
 import { useI18n } from 'vue-i18n'
 import { SUPPORTED_LOCALES, LOCALE_CONFIGS, type SupportedLocale, type LocaleConfig } from '@/i18n'
 import { createUseLocale } from '@ulticode/locale-preference'
-import { apiPatch } from '@/utils/request'
 
 /**
- * Management locale composable — delegates to the shared locale-preference
- * module. Backend API sync is the one per-app variation, supplied as the
- * onLocaleChange adapter hook.
+ * UI locale is a browser preference; account preferred_language selects a programming language.
  */
 export function useLocale() {
   const { locale, t, te, tm, rt, n, d } = useI18n()
@@ -15,9 +12,6 @@ export function useLocale() {
     locale,
     supported: SUPPORTED_LOCALES,
     configs: LOCALE_CONFIGS as Record<SupportedLocale, LocaleConfig>,
-    onLocaleChange: (newLocale) => {
-      apiPatch('/users/me', { locale: newLocale }).catch(() => {})
-    },
   })
 
   return {

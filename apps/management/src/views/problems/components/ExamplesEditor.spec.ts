@@ -12,7 +12,7 @@ vi.mock('vue-i18n', () => ({
   }),
 }))
 
-vi.mock('@/components/ui/collapsible', () => ({
+vi.mock('@ulticode/design-system/ui/collapsible', () => ({
   Collapsible: {
     props: ['defaultOpen'],
     setup(_props: unknown, { slots }: { slots: Record<string, () => unknown> }) {

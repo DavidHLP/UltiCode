@@ -4,6 +4,8 @@ import { createI18n } from 'vue-i18n'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import AuditLogsView from './AuditLogsView.vue'
 import { auditApi, type AuditStats } from '@/api/admin/audit'
+import auditEn from '@/i18n/locales/en-US/modules/audit'
+import auditZh from '@/i18n/locales/zh-CN/modules/audit'
 type AuditApiModule = { auditApi: typeof auditApi }
 
 vi.mock('@/api/admin/audit', async () => {
@@ -65,7 +67,9 @@ const SelectStub = {
     >
       <option value="all">all</option>
       <option value="CREATE_USER">CREATE_USER</option>
+      <option value="PROBLEM">PROBLEM</option>
     </select>
+    <slot />
   `,
 }
 
@@ -74,16 +78,16 @@ const i18n = createI18n({
   locale: 'en-US',
   missingWarn: false,
   fallbackWarn: false,
-  messages: { 'en-US': {} },
+  messages: { 'en-US': {}, 'zh-CN': {} },
 })
 
-function mountAuditLogsView() {
+function mountAuditLogsView(useNativeInput = false) {
   return mount(AuditLogsView, {
     global: {
       plugins: [i18n],
       stubs: {
         Button: ButtonStub,
-        Input: InputStub,
+        Input: useNativeInput ? false : InputStub,
         DataTable: { template: '<div><slot name="toolbar-left" /></div>' },
         AuditLogDetailDrawer: SlotStub,
         Select: SelectStub,
@@ -92,7 +96,7 @@ function mountAuditLogsView() {
         SelectItem: SlotStub,
         SelectLabel: SlotStub,
         SelectTrigger: SlotStub,
-        SelectValue: SlotStub,
+        SelectValue: { template: '<span data-test="selected-filter-label"><slot /></span>' },
         IconChevronDown: true,
         IconChevronUp: true,
         IconDatabase: true,
@@ -116,6 +120,87 @@ describe('AuditLogsView refresh contract', () => {
 
   afterEach(() => {
     vi.useRealTimers()
+  })
+
+  it('bounds its custom search toolbar to the available card width', async () => {
+    const wrapper = mountAuditLogsView()
+    try {
+      await flushPromises()
+      const search = wrapper.find('input').element.parentElement!
+      expect(search.classList.contains('min-w-0')).toBe(true)
+      expect(search.classList.contains('max-w-[260px]')).toBe(true)
+      expect(search.parentElement!.classList.contains('max-w-full')).toBe(true)
+    } finally {
+      wrapper.unmount()
+    }
+  })
+
+  it('removes both date bounds from logs and statistics after native inputs are cleared', async () => {
+    vi.useFakeTimers()
+    const wrapper = mountAuditLogsView(true)
+    try {
+      await flushPromises()
+      await wrapper
+        .findAll('button')
+        .find((button) => button.text().includes('audit.filters.advancedFilters'))
+        ?.trigger('click')
+      const dates = wrapper.findAll('input[type="date"]')
+      expect(dates).toHaveLength(2)
+      await dates[0]?.setValue('2026-05-30')
+      await dates[1]?.setValue('2026-05-30')
+      await vi.advanceTimersByTimeAsync(500)
+      await flushPromises()
+      expect(vi.mocked(auditApi.getAuditLogs).mock.lastCall?.[0]).toMatchObject({
+        startDate: '2026-05-30T00:00:00',
+        endDate: '2026-05-31T00:00:00',
+      })
+
+      await dates[0]?.setValue('')
+      await dates[1]?.setValue('')
+      await vi.advanceTimersByTimeAsync(500)
+      await flushPromises()
+      expect(vi.mocked(auditApi.getAuditLogs).mock.lastCall?.[0]).toMatchObject({
+        startDate: undefined,
+        endDate: undefined,
+      })
+      expect(vi.mocked(auditApi.getAuditStats).mock.lastCall?.[0]).toMatchObject({
+        startDate: undefined,
+        endDate: undefined,
+      })
+    } finally {
+      wrapper.unmount()
+    }
+  })
+
+  it('updates selected filter labels and accessible names when the locale changes', async () => {
+    i18n.global.setLocaleMessage('en-US', { audit: auditEn })
+    i18n.global.setLocaleMessage('zh-CN', { audit: auditZh })
+    const wrapper = mountAuditLogsView()
+    try {
+      await flushPromises()
+      const labels = () =>
+        wrapper.findAll('[data-test="selected-filter-label"]').map((node) => node.text())
+      expect(labels()).toEqual(['All Actions', 'All Entities'])
+      await wrapper.findAll('select')[0]?.setValue('CREATE_USER')
+      await wrapper.findAll('select')[1]?.setValue('PROBLEM')
+      expect(labels()).toEqual([auditEn.actionTypes.CREATE_USER, auditEn.entityTypes.PROBLEM])
+
+      i18n.global.locale.value = 'zh-CN'
+      await flushPromises()
+      expect(labels()).toEqual([auditZh.actionTypes.CREATE_USER, auditZh.entityTypes.PROBLEM])
+      expect(wrapper.find('[aria-label="操作"]').exists()).toBe(true)
+      expect(wrapper.find('[aria-label="实体类型"]').exists()).toBe(true)
+      await wrapper
+        .findAll('button')
+        .find((button) => button.text().includes(auditZh.filters.advancedFilters))
+        ?.trigger('click')
+      expect(wrapper.find('input[aria-label="开始日期"]').exists()).toBe(true)
+      expect(wrapper.find('input[aria-label="结束日期"]').exists()).toBe(true)
+    } finally {
+      wrapper.unmount()
+      i18n.global.locale.value = 'en-US'
+      i18n.global.setLocaleMessage('en-US', {})
+    }
   })
 
   it('refreshes logs and statistics from the toolbar and retries both after stats fail', async () => {

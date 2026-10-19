@@ -1,16 +1,16 @@
 <script setup lang="ts">
 /**
- * ContestStatusBadge - Displays contest status with terminal-style colors
+ * ContestStatusBadge - Displays contest status with  colors
  *
- * Uses SemanticBadge for consistent terminal-badge styling.
+ * Uses SemanticBadge for consistent inline-flex items-center gap-1 rounded-lg border px-2 py-0.5 text-xs styling.
  */
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
+import SemanticBadge from "@ulticode/badge-config/SemanticBadge.vue";
 import {
-  SemanticBadge,
   CONTEST_STATUS_COLOR_MAP,
   type SemanticColor,
-} from "@/components/ui/terminal";
+} from "@ulticode/badge-config";
 
 const props = defineProps<{
   status: string;

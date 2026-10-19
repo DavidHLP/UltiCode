@@ -151,8 +151,8 @@ const htmlContent = computed(() => renderMarkdown(markdownContent.value))
 
 .description-markdown :deep(.markdown-content code) {
   font-family: var(--uc-font-code);
-  font-size: var(--uc-text-xl);
-  background-color: var(--surface-sunken);
+  font-size: var(--uc-text-sm);
+  background-color: var(--muted);
   color: var(--foreground);
   padding: 0.125rem 0.375rem;
   border-radius: var(--radius-md);
@@ -161,7 +161,7 @@ const htmlContent = computed(() => renderMarkdown(markdownContent.value))
 }
 
 .description-markdown :deep(.markdown-content pre) {
-  background-color: var(--surface-sunken);
+  background-color: var(--muted);
   border-radius: var(--radius-md);
   padding: 1rem;
   margin: 1rem 0;
@@ -175,6 +175,8 @@ const htmlContent = computed(() => renderMarkdown(markdownContent.value))
   border-radius: var(--radius-md);
   color: inherit;
   font-size: var(--uc-text-sm);
+  white-space: pre;
+  word-break: normal;
 }
 
 .description-markdown :deep(.markdown-content blockquote) {
@@ -207,7 +209,7 @@ const htmlContent = computed(() => renderMarkdown(markdownContent.value))
 
 .description-markdown :deep(.lc-tabs-header) {
   display: flex;
-  background: var(--surface-sunken);
+  background: var(--muted);
   border-bottom: 1px solid var(--border);
 }
 
@@ -260,7 +262,7 @@ const htmlContent = computed(() => renderMarkdown(markdownContent.value))
   align-items: center;
   justify-content: center;
   padding: 0.25rem;
-  background: var(--surface-sunken);
+  background: var(--muted);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   cursor: pointer;

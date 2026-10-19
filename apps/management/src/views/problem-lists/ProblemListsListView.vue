@@ -4,9 +4,9 @@ import { usePermissionMap } from '@/composables/usePermissionMap'
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { IconPlus, IconList } from '@tabler/icons-vue'
+import { Plus as IconPlus, List as IconList } from '@lucide/vue'
 
-import { Button } from '@/components/ui/button'
+import { Button } from '@ulticode/design-system/ui/button'
 import { useAdminProblemListsStore } from '@/stores/admin/problem-lists'
 import type { ProblemList } from '@/api/admin/problem-lists'
 
@@ -20,7 +20,6 @@ const router = useRouter()
 const { t } = useI18n()
 const store = useAdminProblemListsStore()
 const can = { problemList: usePermissionMap(problemListPermissionRules) }
-
 
 const selectedListId = ref<string | null>(null)
 const selectedListName = ref<string | null>(null)
@@ -75,7 +74,6 @@ const visibilityFilter = computed({
   set: (visibilityFilter: string) => setFilters({ ...query.value.filters, visibilityFilter }),
 })
 
-
 // Stats for terminal ticker
 const stats = computed(() => ({
   total: store.total,
@@ -121,33 +119,28 @@ async function handleDelete(id: string | number) {
   await store.deleteList(String(id))
 }
 
-const columns = createColumns(
-  t,
-  { editList, deleteList: confirmDelete },
-  can.problemList,
-)
+const columns = createColumns(t, { editList, deleteList: confirmDelete }, can.problemList)
 </script>
 
 <template>
   <div class="relative flex flex-col gap-4 w-full min-w-0">
-    <!-- Terminal Header -->
+    <!-- Page header -->
     <div
       :class="[
-        'border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--card)]',
+        'border border-border dark:border-border bg-card',
         'transition-all duration-500',
         isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
       ]"
     >
       <!-- Title Row -->
       <div class="px-4 lg:px-6 py-4 flex items-center justify-between">
-        <h1 class="text-xl font-medium tracking-tight text-[var(--foreground)]">
+        <h1 class="text-xl font-medium tracking-tight text-foreground">
           {{ t('problemLists.title') }}
         </h1>
         <Button
           v-if="canCreate"
-          variant="terminal"
+          variant="outline"
           size="sm"
-          class="font-data text-xs border-[var(--border-subtle)] hover:border-[var(--primary)] hover:text-[var(--primary)] transition-colors"
           @click="router.push({ name: 'problem-list-create' })"
         >
           <IconPlus class="h-4 w-4 mr-1.5" />
@@ -157,35 +150,29 @@ const columns = createColumns(
 
       <!-- Stats Ticker -->
       <div
-        class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--surface-sunken)]"
+        class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-border dark:border-border bg-muted"
       >
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--foreground-muted)]"
+          <span class="text-sm font-medium text-muted-foreground"
             >{{ t('problemLists.stats.total') }}:</span
           >
-          <span class="font-data text-sm text-[var(--foreground-strong)] tabular-nums">{{
-            stats.total
-          }}</span>
+          <span class="font-mono text-sm text-foreground tabular-nums">{{ stats.total }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--foreground-muted)]"
+          <span class="text-sm font-medium text-muted-foreground"
             >{{ t('problemLists.stats.featured') }}:</span
           >
-          <span class="font-data text-sm text-[var(--foreground-strong)] tabular-nums">{{
-            stats.featured
-          }}</span>
+          <span class="font-mono text-sm text-foreground tabular-nums">{{ stats.featured }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--foreground-muted)]"
+          <span class="text-sm font-medium text-muted-foreground"
             >{{ t('problemLists.stats.public') }}:</span
           >
-          <span class="font-data text-sm text-[var(--foreground-strong)] tabular-nums">{{
-            stats.public
-          }}</span>
+          <span class="font-mono text-sm text-foreground tabular-nums">{{ stats.public }}</span>
         </div>
-        <div class="ml-auto flex items-center gap-2 text-[var(--foreground-muted)]">
+        <div class="ml-auto flex items-center gap-2 text-muted-foreground">
           <IconList class="h-4 w-4" />
-          <span class="text-xs font-data uppercase tracking-wider">{{
+          <span class="text-xs font-mono uppercase tracking-wider">{{
             t('problemLists.stats.listManagement')
           }}</span>
         </div>
@@ -202,7 +189,7 @@ const columns = createColumns(
         :loading="loading"
         v-model:selected-rows="selectedRows"
         @update:pagination="tablePagination = $event"
-        class="terminal-table"
+        class="w-full text-sm"
       >
         <template #toolbar-left>
           <DataTableToolbar
@@ -223,18 +210,13 @@ const columns = createColumns(
       <!-- Error state - Terminal Style -->
       <div
         v-if="error"
-        class="mt-4 flex items-center justify-between border border-[var(--status-error-mark)] bg-[color-mix(in_oklch,_var(--status-error-mark)_8%,_transparent)] p-4"
+        class="mt-4 flex items-center justify-between border border-status-error-mark bg-[color-mix(in_oklch,_var(--status-error-mark)_8%,_transparent)] p-4"
       >
         <div class="flex items-center gap-3">
-          <span class="font-data text-sm text-[var(--foreground-strong)]">&gt; ERROR:</span>
-          <span class="text-sm text-[var(--foreground)]">{{ error }}</span>
+          <span class="font-mono text-sm text-foreground">&gt; ERROR:</span>
+          <span class="text-sm text-foreground">{{ error }}</span>
         </div>
-        <Button
-          variant="terminal"
-          size="sm"
-          class="font-data text-xs border-[var(--status-error-mark)] text-foreground-strong hover:bg-[color-mix(in_oklch,_var(--status-error-mark)_10%,_transparent)]"
-          @click="loadLists()"
-        >
+        <Button variant="outline" size="sm" @click="loadLists()">
           {{ t('common.retry') }}
         </Button>
       </div>

@@ -1,9 +1,16 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import { Label } from '@/components/ui/label'
-import { Switch } from '@/components/ui/switch'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { IconToggleLeft } from '@tabler/icons-vue'
+import { Label } from '@ulticode/design-system/ui/label'
+import { Switch } from '@ulticode/design-system/ui/switch'
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@ulticode/design-system/ui/card'
+import { ToggleLeft as IconToggleLeft } from '@lucide/vue'
+
 import type { FeatureToggles } from '@/api/admin/settings'
 
 const { t } = useI18n()
@@ -80,13 +87,14 @@ function updateField<K extends keyof FeatureToggles>(key: K, value: FeatureToggl
           :key="toggle.key"
           class="flex items-center justify-between space-x-2"
         >
-          <Label class="flex flex-col space-y-1">
+          <Label class="flex flex-col items-start space-y-1">
             <span>{{ t(toggle.labelKey) }}</span>
             <span class="font-normal text-xs text-muted-foreground">{{ t(toggle.descKey) }}</span>
           </Label>
           <Switch
-            :checked="Boolean(settings[toggle.key])"
-            @update:checked="updateField(toggle.key, $event)"
+            :model-value="Boolean(settings[toggle.key])"
+            :aria-label="t(toggle.labelKey)"
+            @update:model-value="updateField(toggle.key, $event)"
           />
         </div>
       </div>

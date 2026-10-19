@@ -33,7 +33,9 @@
     "clsx": "^2.1.1",
     "tailwind-merge": "^3.7.0",
     "@lucide/vue": "1.52.0",
-    "@tabler/icons-vue": "^3.49.0"
+    "@tabler/icons-vue": "^3.49.0",
+    "@ulticode/design-system": "workspace:*",
+    "@ulticode/theme": "workspace:*"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.9",

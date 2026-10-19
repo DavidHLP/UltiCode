@@ -132,6 +132,7 @@ export default {
     totalSubmissions: "总提交数",
     accepted: "已通过",
     languageDistribution: "编程语言",
+    loadError: "提交历史加载失败。",
     noHistory: "开始提交代码以查看您的进度图表！",
   },
 
@@ -142,6 +143,7 @@ export default {
     problemsSolved: "已解决问题",
     timeSpent: "投入时间",
     hours: "小时",
+    loadError: "学习进度加载失败。",
     noProgress: "开始解决问题以查看您的学习进度！",
   },
 
@@ -154,6 +156,7 @@ export default {
     startSolving: "开始做题",
     browseProblems: "浏览题库",
     loadingSubmissions: "正在检索提交历史...",
+    loadError: "提交记录加载失败。",
     loginToView: "请登录以查看您的提交记录。",
     recentAttempts: "最近尝试",
     attempted: "已尝试",
@@ -180,6 +183,7 @@ export default {
     newSolution: "新建题解",
     startCoding: "开始写代码",
     loadingSolutions: "正在加载题解...",
+    loadError: "题解加载失败。",
     loginToView: "请登录以查看您的题解。",
     views: "浏览",
     votes: "赞",
@@ -195,6 +199,7 @@ export default {
   // Problem lists
   problemLists: {
     title: "题单",
+    searchPlaceholder: "搜索题单...",
     subtitle: "整理、组织和跟踪您的练习题集。",
     loadingLists: "正在加载您的收藏...",
     loginToManage: "请登录以查看和管理您的自定义题单。",
@@ -228,6 +233,8 @@ export default {
       problemsCount: "{count} 道题目",
     },
     emptyStates: {
+      noCategories: "暂无分类",
+      noCategoriesDesc: "创建分类，整理您收藏的题单。",
       noLists: "暂无题单",
       noListsDesc: "创建您的第一个题单，以组织练习并跟踪进度。",
       createFirst: "创建第一个题单",
@@ -273,6 +280,7 @@ export default {
     title: "我的论坛帖子",
     subtitle: "查看并管理您在社区中发起的讨论。",
     loadingPosts: "正在加载您的帖子...",
+    loadError: "论坛帖子加载失败。",
     noPosts: "暂无帖子",
     noPostsDesc: "您还没有发起过任何讨论。分享您的知识或提出问题吧！",
     createFirst: "创建第一个帖子",
@@ -294,6 +302,7 @@ export default {
 
   // Bookmarks
   bookmarks: {
+    loadError: "收藏合集加载失败。",
     title: "收藏合集",
     subtitle: "组织您保存的题目、题解和论坛讨论。",
     folders: "我的文件夹",
@@ -319,6 +328,7 @@ export default {
   // Notifications
   notifications: {
     title: "通知",
+    actions: "通知操作",
     noNotifications: "暂无通知",
     markAllAsRead: "全部标为已读",
     markAsRead: "标为已读",
@@ -439,12 +449,18 @@ export default {
     },
     heatmap: {
       title: "活动热力图",
+      noActivity: "无活动",
+      levelOne: "1–2 次提交",
+      levelTwo: "3–5 次提交",
+      levelThree: "6–9 次提交",
+      levelFour: "10 次及以上提交",
     },
     skills: {
       title: "技能雷达",
     },
     activity: {
       title: "最近活动",
+      empty: "暂无最近活动",
     },
   },
 

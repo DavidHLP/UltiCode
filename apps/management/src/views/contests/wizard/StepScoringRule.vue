@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import ScoringRuleSelector from '../components/ScoringRuleSelector.vue'
 import type { ScoringRuleSlice } from './useContestAuthoring'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 defineProps<{ slice: ScoringRuleSlice }>()
 const emit = defineEmits<{ (e: 'select', value: string): void }>()
@@ -10,7 +13,7 @@ const emit = defineEmits<{ (e: 'select', value: string): void }>()
   <div class="space-y-6">
     <!-- Section Header -->
     <div class="flex items-center gap-2 mb-4">
-      <span class="terminal-comment">scoring_config</span>
+      <span class="text-sm text-muted-foreground">{{ t('contests.wizard.scoring') }}</span>
     </div>
 
     <!--

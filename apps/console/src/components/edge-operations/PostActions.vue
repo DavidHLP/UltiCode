@@ -64,7 +64,7 @@ const commentIcon = computed(() => {
 <template>
   <div
     :class="[
-      'inline-flex w-fit items-center gap-2 text-muted-foreground select-none flex-wrap font-data',
+      'inline-flex w-fit items-center gap-2 text-muted-foreground select-none flex-wrap font-mono',
       props.class,
     ]"
   >

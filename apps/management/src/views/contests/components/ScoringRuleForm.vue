@@ -4,7 +4,8 @@ import { useI18n } from 'vue-i18n'
 import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
 import * as z from 'zod'
-import { IconLoader, IconCalculator } from '@tabler/icons-vue'
+import { Loader as IconLoader, Calculator as IconCalculator } from '@lucide/vue'
+
 import {
   Dialog,
   DialogContent,
@@ -12,12 +13,18 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog'
-import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Switch } from '@/components/ui/switch'
-import { Button } from '@/components/ui/button'
+} from '@ulticode/design-system/ui/dialog'
+import {
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@ulticode/design-system/ui/form'
+import { Input } from '@ulticode/design-system/ui/input'
+import { Textarea } from '@ulticode/design-system/ui/textarea'
+import { Switch } from '@ulticode/design-system/ui/switch'
+import { Button } from '@ulticode/design-system/ui/button'
 import type {
   ScoringRule,
   CreateScoringRuleDto,
@@ -61,41 +68,45 @@ const form = useForm({
 })
 
 watch(
-  () => props.ruleToEdit,
-  (rule) => {
+  [() => props.open, () => props.ruleToEdit],
+  ([open, rule]) => {
+    if (!open) return
     if (rule) {
-      form.setValues({
-        name: rule.name,
-        description: rule.description || '',
-        baseScorePerProblem: rule.baseScorePerProblem,
-        timeBonusPerMinute: rule.timeBonusPerMinute,
-        wrongAnswerPenalty: rule.wrongAnswerPenalty,
-        timeLimitPenalty: rule.timeLimitPenalty,
-        firstSolveBonus: rule.firstSolveBonus,
-        fullScoreBonus: rule.fullScoreBonus,
-        isDefault: rule.isDefault,
+      form.resetForm({
+        values: {
+          name: rule.name,
+          description: rule.description || '',
+          baseScorePerProblem: rule.baseScorePerProblem,
+          timeBonusPerMinute: rule.timeBonusPerMinute,
+          wrongAnswerPenalty: rule.wrongAnswerPenalty,
+          timeLimitPenalty: rule.timeLimitPenalty,
+          firstSolveBonus: rule.firstSolveBonus,
+          fullScoreBonus: rule.fullScoreBonus,
+          isDefault: rule.isDefault,
+        },
       })
     } else {
-      form.resetForm()
-      form.setValues({
-        name: '',
-        description: '',
-        baseScorePerProblem: 100,
-        timeBonusPerMinute: 1,
-        wrongAnswerPenalty: 5,
-        timeLimitPenalty: 0,
-        firstSolveBonus: 10,
-        fullScoreBonus: 0,
-        isDefault: false,
+      form.resetForm({
+        values: {
+          name: '',
+          description: '',
+          baseScorePerProblem: 100,
+          timeBonusPerMinute: 1,
+          wrongAnswerPenalty: 5,
+          timeLimitPenalty: 0,
+          firstSolveBonus: 10,
+          fullScoreBonus: 0,
+          isDefault: false,
+        },
       })
     }
   },
   { immediate: true },
 )
 
-function handleSubmit(values: typeof form.values) {
+const onSubmit = form.handleSubmit((values) => {
   emit('save', values)
-}
+})
 
 function handleCancel() {
   emit('cancel')
@@ -105,7 +116,7 @@ function handleCancel() {
 
 <template>
   <Dialog :open="open" @update:open="$emit('update:open', $event)">
-    <DialogContent class="sm:max-w-[500px]">
+    <DialogContent class="sm:max-w-[500px] scroll-pt-8">
       <DialogHeader>
         <DialogTitle class="flex items-center gap-2">
           <IconCalculator class="h-5 w-5" />
@@ -120,7 +131,7 @@ function handleCancel() {
         </DialogDescription>
       </DialogHeader>
 
-      <form @submit="form.handleSubmit(handleSubmit)" class="grid gap-4 py-4">
+      <form @submit="onSubmit" class="grid gap-4 py-4">
         <FormField v-slot="{ componentField }" name="name">
           <FormItem>
             <FormLabel>{{ t('scoringRules.form.name') }}</FormLabel>
@@ -215,15 +226,15 @@ function handleCancel() {
         </div>
 
         <FormField v-slot="{ value, setValue }" name="isDefault">
-          <FormItem class="flex items-center justify-between rounded-none border p-3">
+          <FormItem class="flex items-center justify-between p-3">
             <div class="space-y-0.5">
-              <FormLabel class="text-base">{{ t('scoringRules.form.isDefault') }}</FormLabel>
+              <FormLabel>{{ t('scoringRules.form.isDefault') }}</FormLabel>
               <p class="text-xs text-muted-foreground">
                 {{ t('scoringRules.form.isDefaultDescription') }}
               </p>
             </div>
             <FormControl>
-              <Switch :checked="value" @update:checked="setValue" />
+              <Switch :model-value="value" @update:model-value="setValue" />
             </FormControl>
           </FormItem>
         </FormField>

@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Badge } from '@/components/ui/badge'
-import { IconFlask, IconCode } from '@tabler/icons-vue'
+import { Badge } from '@ulticode/design-system/ui/badge'
+import { FlaskConical as IconFlask, Code as IconCode } from '@lucide/vue'
 
 interface ProblemExample {
   id: string
@@ -63,7 +63,7 @@ const hasAnyContent = computed(
     v-if="!hasAnyContent"
     class="flex flex-col items-center justify-center py-16 px-4 text-center"
   >
-    <div class="w-16 h-16 rounded-none bg-muted flex items-center justify-center mb-4">
+    <div class="w-16 h-16 rounded-lg bg-muted flex items-center justify-center mb-4">
       <IconCode class="h-8 w-8 text-muted-foreground" />
     </div>
     <h3 class="text-base font-semibold mb-2">{{ t('problems.casesDisplay.noCases') }}</h3>
@@ -77,15 +77,15 @@ const hasAnyContent = computed(
     <!-- Test Cases -->
     <section
       v-if="hasExamples"
-      class="lg:col-span-7 rounded-none border border-border-control bg-card overflow-hidden"
+      class="lg:col-span-7 rounded-lg border border-input bg-card overflow-hidden"
     >
-      <div class="flex items-center gap-2 p-4 border-b border-border-control bg-muted/20">
+      <div class="flex items-center gap-2 p-4 border-b border-input bg-muted/20">
         <IconFlask class="h-4 w-4 text-muted-foreground" />
         <h3 class="font-semibold text-sm">{{ t('problems.casesDisplay.examples') }}</h3>
-        <Badge variant="secondary" class="ml-auto text-xs">{{ examples.length }}</Badge>
+        <Badge variant="secondary" class="ml-auto">{{ examples.length }}</Badge>
       </div>
 
-      <div class="divide-y divide-[var(--border-subtle)] dark:divide-[var(--border-subtle)]">
+      <div class="divide-y divide-[var(--border)] dark:divide-[var(--border)]">
         <div
           v-for="(example, index) in examples"
           :key="example.id"
@@ -93,7 +93,7 @@ const hasAnyContent = computed(
           :class="index > 0 ? 'bg-muted/10' : ''"
         >
           <div class="flex items-center gap-2 mb-3">
-            <Badge variant="outline" class="font-data text-xs">
+            <Badge variant="outline">
               {{ index + 1 }}
             </Badge>
           </div>
@@ -105,9 +105,8 @@ const hasAnyContent = computed(
                 {{ t('problems.casesDisplay.input') }}
               </p>
               <pre
-                class="text-sm font-data p-3 rounded-none bg-[var(--surface-sunken)] text-[var(--foreground)] overflow-x-auto border border-border-control"
-                >{{ example.input }}</pre
-              >
+                class="text-sm font-mono p-3 rounded-lg bg-muted text-foreground overflow-x-auto border border-input"
+                >{{ example.input }}</pre>
             </div>
 
             <!-- Output -->
@@ -116,9 +115,8 @@ const hasAnyContent = computed(
                 {{ t('problems.casesDisplay.output') }}
               </p>
               <pre
-                class="text-sm font-data p-3 rounded-none bg-[var(--surface-sunken)] text-[var(--foreground)] overflow-x-auto border border-border-control"
-                >{{ example.output }}</pre
-              >
+                class="text-sm font-mono p-3 rounded-lg bg-muted text-foreground overflow-x-auto border border-input"
+                >{{ example.output }}</pre>
             </div>
           </div>
 

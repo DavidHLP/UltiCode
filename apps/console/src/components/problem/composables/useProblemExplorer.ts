@@ -139,7 +139,29 @@ export function useProblemExplorer(props: ProblemExplorerProps) {
   const hasMore = computed(() => page.value < totalPages.value);
 
   const displayedProblems = computed<EnrichedProblem[]>(() => {
-    return enrichedProblems.value.map((p) => ({
+    const query = searchQuery.value.trim().toLocaleLowerCase();
+    const problems =
+      props.problems === undefined
+        ? enrichedProblems.value
+        : enrichedProblems.value.filter(
+            (p) =>
+              (!query ||
+                p.title.toLocaleLowerCase().includes(query) ||
+                String(p.id).includes(query)) &&
+              (!selectedCategory.value ||
+                selectedCategory.value === "all" ||
+                p.categorySlugs?.includes(selectedCategory.value)) &&
+              (!selectedDifficulty.value.length ||
+                selectedDifficulty.value.some(
+                  (value) => value.toUpperCase() === p.difficulty,
+                )) &&
+              (!selectedStatus.value.length ||
+                selectedStatus.value.includes(p.status ?? "todo")) &&
+              selectedTags.value.every((tag) => p.tags.includes(tag)) &&
+              (showPremium.value === null ||
+                Boolean(p.isPremium) === showPremium.value),
+          );
+    return problems.map((p) => ({
       ...p,
       statusIcon:
         p.status === "solved"
@@ -297,6 +319,11 @@ export function useProblemExplorer(props: ProblemExplorerProps) {
       if (problem && problem.slug) {
         await router.push(`/problems/${problem.slug}`);
       }
+      return;
+    }
+
+    if (props.problems !== undefined) {
+      toast.error(t("problem.explorer.noProblemsAvailable"));
       return;
     }
 

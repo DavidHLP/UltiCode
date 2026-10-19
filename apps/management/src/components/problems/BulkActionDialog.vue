@@ -2,14 +2,14 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
-  IconAlertTriangle,
-  IconCheck,
-  IconEye,
-  IconEyeOff,
-  IconRefresh,
-  IconTrash,
-  IconX,
-} from '@tabler/icons-vue'
+  AlertTriangle as IconAlertTriangle,
+  Check as IconCheck,
+  Eye as IconEye,
+  EyeOff as IconEyeOff,
+  RefreshCw as IconRefresh,
+  Trash as IconTrash,
+  X as IconX,
+} from '@lucide/vue'
 
 import {
   Dialog,
@@ -18,8 +18,8 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
+} from '@ulticode/design-system/ui/dialog'
+import { Button } from '@ulticode/design-system/ui/button'
 
 interface Props {
   open: boolean
@@ -42,7 +42,7 @@ const actionConfig = computed(() => {
         title: t('problems.bulk.publishTitle'),
         description: t('problems.bulk.publishDescription', { count: props.count }),
         icon: IconEye,
-        iconColor: 'text-foreground-strong',
+        iconColor: 'text-foreground',
         confirmText: t('problems.bulk.confirmPublish'),
         variant: 'default' as const,
       }
@@ -51,7 +51,7 @@ const actionConfig = computed(() => {
         title: t('problems.bulk.unpublishTitle'),
         description: t('problems.bulk.unpublishDescription', { count: props.count }),
         icon: IconEyeOff,
-        iconColor: 'text-foreground-strong',
+        iconColor: 'text-foreground',
         confirmText: t('problems.bulk.confirmUnpublish'),
         variant: 'default' as const,
       }
@@ -69,7 +69,7 @@ const actionConfig = computed(() => {
         title: t('problems.bulk.restoreTitle'),
         description: t('problems.bulk.restoreDescription', { count: props.count }),
         icon: IconRefresh,
-        iconColor: 'text-foreground-strong',
+        iconColor: 'text-foreground',
         confirmText: t('problems.bulk.confirmRestore'),
         variant: 'default' as const,
       }
@@ -78,7 +78,7 @@ const actionConfig = computed(() => {
         title: t('problems.bulk.publishTitle'),
         description: t('problems.bulk.publishDescription', { count: props.count }),
         icon: IconEye,
-        iconColor: 'text-foreground-strong',
+        iconColor: 'text-foreground',
         confirmText: t('problems.bulk.confirmPublish'),
         variant: 'default' as const,
       }
@@ -111,7 +111,7 @@ function handleCancel() {
         </div>
       </DialogHeader>
 
-      <div class="rounded-none bg-muted p-4">
+      <div class="rounded-lg bg-muted p-4">
         <div class="flex items-start gap-3">
           <IconAlertTriangle class="h-5 w-5 text-status-warning-mark shrink-0 mt-0.5" />
           <div class="flex-1">

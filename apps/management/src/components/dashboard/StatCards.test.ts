@@ -1,5 +1,6 @@
 import { mount } from '@vue/test-utils'
-import { IconUsers } from '@tabler/icons-vue'
+import { Users as IconUsers } from '@lucide/vue'
+
 import { describe, expect, it } from 'vitest'
 import StatCards, { type StatItem } from './StatCards.vue'
 
@@ -23,7 +24,7 @@ const stats: StatItem[] = [
 ]
 
 describe('StatCards', () => {
-  it('uses theme-aware card primitives with per-card accent colors', () => {
+  it('uses official cards while preserving values, icons and non-color trend labels', () => {
     const wrapper = mount(StatCards, {
       props: { stats },
     })
@@ -31,11 +32,12 @@ describe('StatCards', () => {
     const cards = wrapper.findAll('[data-testid="dashboard-stat-card"]')
 
     expect(cards).toHaveLength(2)
-    expect(cards[0].attributes('style')).toContain('--stat-accent: var(--primary)')
-    expect(cards[1].attributes('style')).toContain('--stat-accent: var(--status-info-mark)')
-    expect(cards[0].classes()).toContain('dashboard-stat-card')
-    expect(cards[0].find('.dashboard-stat-card__header').exists()).toBe(true)
-    expect(cards[0].find('.dashboard-stat-card__icon').exists()).toBe(true)
+    expect(cards[0].find('[data-slot="card"]').exists()).toBe(true)
+    expect(cards[0].find('[data-slot="card-title"]').text()).toBe('Users')
+    expect(cards[0].text()).toContain('18')
+    expect(cards[0].find('[data-slot="badge"]').text()).toBe('+6')
+    expect(cards[0].find('[data-slot="badge"] svg').classes()).toContain('text-status-success-mark')
+    expect(cards[0].text()).toContain('Active this week')
   })
 
   it('preserves link semantics for navigable stats', () => {

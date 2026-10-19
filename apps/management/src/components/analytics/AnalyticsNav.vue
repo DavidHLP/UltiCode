@@ -1,6 +1,13 @@
 <script setup lang="ts">
+import { Button } from '@ulticode/design-system/ui/button'
+
 import type { Component } from 'vue'
-import { IconUsers, IconFileText, IconTrophy, IconServer } from '@tabler/icons-vue'
+import {
+  Users as IconUsers,
+  FileText as IconFileText,
+  Trophy as IconTrophy,
+  Server as IconServer,
+} from '@lucide/vue'
 
 export interface NavItem {
   id: string
@@ -31,32 +38,33 @@ function selectItem(id: string) {
 
 <template>
   <nav
-    class="flex flex-col gap-1 border border-[var(--border-subtle)] dark:border-[var(--border-subtle)]/60 bg-card p-1 shadow-sm rounded-none"
+    class="flex flex-col gap-1 border border-border dark:border-border/60 bg-card p-1 shadow-sm rounded-lg"
   >
-    <button
+    <Button
+      variant="outline"
       v-for="item in items || defaultItems"
       :key="item.id"
       @click="selectItem(item.id)"
-      class="group relative flex items-center gap-3 px-3 py-2.5 rounded-none text-left transition-all duration-200"
+      class="group relative flex items-center gap-3 px-3 py-2.5 text-left"
       :class="
         activeItem === item.id
-          ? 'bg-[var(--surface-highlight)] dark:bg-[var(--foreground-strong)]/45 border border-[var(--accent-primary)]/40'
-          : 'border border-transparent hover:bg-[var(--surface-highlight)]/50 dark:hover:bg-[var(--foreground-strong)]/20 hover:border-[var(--border-subtle)] dark:hover:border-[var(--border-subtle)]/40'
+          ? 'bg-accent dark:bg-foreground/45 border border-primary/40'
+          : 'border border-transparent hover:bg-accent/50 dark:hover:bg-foreground/20 hover:border-border dark:hover:border-border/40'
       "
     >
       <!-- Active indicator -->
       <div
         v-if="activeItem === item.id"
-        class="absolute left-0 top-0 w-1 h-full rounded-none bg-[var(--accent-primary)]"
+        class="absolute left-0 top-0 w-1 h-full rounded-lg bg-primary"
       />
 
       <!-- Icon -->
       <div
-        class="flex h-8 w-8 shrink-0 items-center justify-center rounded-none border transition-colors duration-200"
+        class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border transition-colors duration-200"
         :class="
           activeItem === item.id
-            ? 'border-[var(--accent-primary)] bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]'
-            : 'border-[var(--border-subtle)] dark:border-[var(--border-subtle)] text-[var(--foreground-muted)] group-hover:border-[var(--border-subtle)] group-hover:text-foreground'
+            ? 'border-primary bg-primary/10 text-primary'
+            : 'border-border dark:border-border text-muted-foreground group-hover:border-border group-hover:text-foreground'
         "
       >
         <component :is="item.icon" class="h-4 w-4" stroke-width="1.5" />
@@ -67,12 +75,12 @@ function selectItem(id: string) {
         class="text-sm font-medium transition-colors duration-200"
         :class="
           activeItem === item.id
-            ? 'text-[var(--accent-primary)] font-semibold'
-            : 'text-[var(--foreground-muted)] group-hover:text-foreground'
+            ? 'text-primary font-semibold'
+            : 'text-muted-foreground group-hover:text-foreground'
         "
       >
         {{ $t(item.label) }}
       </span>
-    </button>
+    </Button>
   </nav>
 </template>

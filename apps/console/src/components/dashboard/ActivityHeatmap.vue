@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import { useI18n } from "vue-i18n";
 import type { HeatmapPoint } from "@/types/userStats";
 import { cn } from "@/lib/utils";
 import { formatDate } from "@/utils/datetime";
@@ -9,7 +10,16 @@ const props = defineProps<{
   title?: string;
 }>();
 
-const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const { t, locale } = useI18n();
+const days = computed(() => {
+  const formatter = new Intl.DateTimeFormat(locale.value, {
+    weekday: "short",
+    timeZone: "UTC",
+  });
+  return Array.from({ length: 7 }, (_, day) =>
+    formatter.format(new Date(Date.UTC(2024, 0, 7 + day))),
+  );
+});
 
 // Generate last 365 days of data
 const heatmapGrid = computed(() => {
@@ -48,31 +58,25 @@ const heatmapGrid = computed(() => {
   return grid;
 });
 
-// Level → CSS background. Uses project design tokens (Solarized palette)
-// so the heatmap harmonizes with both light & dark themes. The active color
-// is `--status-success` (Solarized green), mixed with `transparent` at
-// increasing opacity per activity level. The empty cell uses a token
-// derived from `--card` rather than `bg-muted`, because in dark mode
-// `--card` and `--muted` resolve to the same Solarized base02 — using
-// `bg-muted` directly would make empty cells invisible against the card.
+// Activity magnitude uses a single semantic ramp in both color modes.
 const levelColors = [
-  "bg-[color-mix(in_oklch,var(--card)_60%,var(--muted))] dark:bg-[color-mix(in_oklch,var(--card)_40%,var(--foreground))]",
+  "bg-[color-mix(in_oklch,var(--card)_85%,var(--foreground))] dark:bg-[color-mix(in_oklch,var(--card)_40%,var(--foreground))]",
   "bg-[color-mix(in_oklch,var(--status-success-mark)_20%,transparent)] dark:bg-[color-mix(in_oklch,var(--status-success-mark)_30%,transparent)]",
   "bg-[color-mix(in_oklch,var(--status-success-mark)_40%,transparent)] dark:bg-[color-mix(in_oklch,var(--status-success-mark)_50%,transparent)]",
   "bg-[color-mix(in_oklch,var(--status-success-mark)_60%,transparent)]",
   "bg-[color-mix(in_oklch,var(--status-success-mark)_80%,transparent)] dark:bg-[color-mix(in_oklch,var(--status-success-mark)_100%,transparent)]",
 ];
 
-const levelLabels = [
-  "No activity",
-  "1-2 submissions",
-  "3-5 submissions",
-  "6-9 submissions",
-  "10+ submissions",
-];
+const levelLabels = computed(() => [
+  t("personal.dashboard.heatmap.noActivity"),
+  t("personal.dashboard.heatmap.levelOne"),
+  t("personal.dashboard.heatmap.levelTwo"),
+  t("personal.dashboard.heatmap.levelThree"),
+  t("personal.dashboard.heatmap.levelFour"),
+]);
 
 function getActivityCount(level: number): string {
-  return levelLabels[level] || "No activity";
+  return levelLabels.value[level] || t("personal.dashboard.heatmap.noActivity");
 }
 </script>
 
@@ -81,13 +85,13 @@ function getActivityCount(level: number): string {
     <h3 v-if="title" class="text-sm font-medium">{{ title }}</h3>
 
     <div class="overflow-x-auto">
-      <div class="inline-flex gap-0.5">
+      <div class="flex w-max gap-0.5">
         <!-- Day labels -->
-        <div class="mr-1 flex flex-col gap-0.5">
+        <div class="mr-1 flex shrink-0 flex-col gap-0.5">
           <span
             v-for="(day, i) in days"
             :key="day"
-            class="flex h-3 items-center justify-end text-2xs text-muted-foreground"
+            class="flex h-3 items-center justify-end whitespace-nowrap text-xs leading-none text-muted-foreground"
             :class="{ invisible: i % 2 === 1 }"
           >
             {{ day }}
@@ -106,7 +110,7 @@ function getActivityCount(level: number): string {
               :key="`${weekIndex}-${dayIndex}`"
               :class="
                 cn(
-                  'h-3 w-3 rounded-none transition-colors',
+                  'h-3 w-3 rounded-lg transition-colors',
                   levelColors[cell.level],
                 )
               "
@@ -119,15 +123,15 @@ function getActivityCount(level: number): string {
 
     <!-- Legend -->
     <div
-      class="flex items-center justify-end gap-1 text-2xs text-muted-foreground"
+      class="flex items-center justify-end gap-1 text-xs text-muted-foreground"
     >
-      <span>Less</span>
+      <span>{{ t("common.labels.less") }}</span>
       <div
         v-for="(color, i) in levelColors"
         :key="i"
-        :class="cn('h-3 w-3 rounded-none', color)"
+        :class="cn('h-3 w-3 rounded-lg', color)"
       />
-      <span>More</span>
+      <span>{{ t("common.labels.more") }}</span>
     </div>
   </div>
 </template>

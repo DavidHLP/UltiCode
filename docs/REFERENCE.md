@@ -173,7 +173,7 @@ For startup and retained checks, see [Agent local runtime](DEVELOPMENT.md#agent-
 `services/api/` 的 provider-owned contract：
 
 - `auth-api`：Identity、Account administration、Authorization snapshot。
-- `app-api`：App-owned Problem/Contest/content、facts/recipient 例外。
+- `app-api`：App-owned Problem/Contest/content、facts/recipient 例外。`GET /problem-lists/{id}/overview` 的问题条目携带 `categorySlugs`（类别 slug 列表），供题单内类别筛选使用。
 - `judge-api`：Judge-owned execution contract；不包含 provider implementation 或 sandbox dependency。
 - `submission-api`：intake、verdict、fence、facts、rejudge administration 和 lifecycle events。
 - `notification-api`：notification administration、reconciliation、intent/delivery payload。

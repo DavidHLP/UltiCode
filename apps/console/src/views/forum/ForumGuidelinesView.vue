@@ -1,6 +1,11 @@
 <script setup lang="ts">
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@ulticode/design-system/ui/card";
+import { Separator } from "@ulticode/design-system/ui/separator";
 import { useI18n } from "vue-i18n";
 
 const { t } = useI18n();
@@ -23,91 +28,91 @@ const { t } = useI18n();
       <Separator />
 
       <div class="grid gap-6">
-        <Card class="border-none shadow-sm bg-muted/20">
+        <Card>
           <CardHeader>
             <CardTitle>{{ t("forum.guidelines.rules.r1.title") }}</CardTitle>
           </CardHeader>
-          <CardContent class="space-y-2 text-base">
+          <CardContent class="space-y-2">
             <p>{{ t("forum.guidelines.rules.r1.content") }}</p>
           </CardContent>
         </Card>
 
-        <Card class="border-none shadow-sm bg-muted/20">
+        <Card>
           <CardHeader>
             <CardTitle>{{ t("forum.guidelines.rules.r2.title") }}</CardTitle>
           </CardHeader>
-          <CardContent class="space-y-2 text-base">
+          <CardContent class="space-y-2">
             <p>{{ t("forum.guidelines.rules.r2.content") }}</p>
           </CardContent>
         </Card>
 
-        <Card class="border-none shadow-sm bg-muted/20">
+        <Card>
           <CardHeader>
             <CardTitle>{{ t("forum.guidelines.rules.r3.title") }}</CardTitle>
           </CardHeader>
-          <CardContent class="space-y-2 text-base">
+          <CardContent class="space-y-2">
             <p>{{ t("forum.guidelines.rules.r3.content") }}</p>
           </CardContent>
         </Card>
 
-        <Card class="border-none shadow-sm bg-muted/20">
+        <Card>
           <CardHeader>
             <CardTitle>{{ t("forum.guidelines.rules.r4.title") }}</CardTitle>
           </CardHeader>
-          <CardContent class="space-y-2 text-base">
+          <CardContent class="space-y-2">
             <p>{{ t("forum.guidelines.rules.r4.content") }}</p>
           </CardContent>
         </Card>
 
-        <Card class="border-none shadow-sm bg-muted/20">
+        <Card>
           <CardHeader>
             <CardTitle>{{ t("forum.guidelines.rules.r5.title") }}</CardTitle>
           </CardHeader>
-          <CardContent class="space-y-2 text-base">
+          <CardContent class="space-y-2">
             <p>{{ t("forum.guidelines.rules.r5.content") }}</p>
           </CardContent>
         </Card>
 
-        <Card class="border-none shadow-sm bg-muted/20">
+        <Card>
           <CardHeader>
             <CardTitle>{{ t("forum.guidelines.rules.r6.title") }}</CardTitle>
           </CardHeader>
-          <CardContent class="space-y-2 text-base">
+          <CardContent class="space-y-2">
             <p>{{ t("forum.guidelines.rules.r6.content") }}</p>
           </CardContent>
         </Card>
 
-        <Card class="border-none shadow-sm bg-muted/20">
+        <Card>
           <CardHeader>
             <CardTitle>{{ t("forum.guidelines.rules.r7.title") }}</CardTitle>
           </CardHeader>
-          <CardContent class="space-y-2 text-base">
+          <CardContent class="space-y-2">
             <p>{{ t("forum.guidelines.rules.r7.content") }}</p>
           </CardContent>
         </Card>
 
-        <Card class="border-none shadow-sm bg-muted/20">
+        <Card>
           <CardHeader>
             <CardTitle>{{ t("forum.guidelines.rules.r8.title") }}</CardTitle>
           </CardHeader>
-          <CardContent class="space-y-2 text-base">
+          <CardContent class="space-y-2">
             <p>{{ t("forum.guidelines.rules.r8.content") }}</p>
           </CardContent>
         </Card>
 
-        <Card class="border-none shadow-sm bg-muted/20">
+        <Card>
           <CardHeader>
             <CardTitle>{{
               t("forum.guidelines.rules.enforcement.title")
             }}</CardTitle>
           </CardHeader>
-          <CardContent class="space-y-2 text-base">
+          <CardContent class="space-y-2">
             <p>{{ t("forum.guidelines.rules.enforcement.content") }}</p>
           </CardContent>
         </Card>
 
         <div
-          class="rounded-none border border-primary/20 bg-primary/5 p-6 text-base"
+          class="rounded-lg border border-primary/20 bg-primary/5 p-6 text-base"
         >
           <p class="font-bold text-primary">
             {{ t("forum.guidelines.questionsTitle") }}
@@ -120,7 +125,6 @@ const { t } = useI18n();
             >
               {{ t("forum.feedback.title") }}
             </router-link>
-            ...
           </p>
         </div>
       </div>

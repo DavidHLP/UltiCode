@@ -59,6 +59,8 @@ export default {
     queryCount: 'Query Count',
     slowQueries: 'Slow Queries',
     queues: 'Queues',
+    unavailable:
+      'Some monitoring data is unavailable. Refresh to retry; missing values are not zero.',
     noQueues: 'No queues available',
     waiting: 'Waiting',
     active: 'Active',
@@ -117,7 +119,7 @@ export default {
       namePlaceholder: 'Welcome Email',
       variables: 'Variables',
       variablesPlaceholder: 'username, email, link',
-      variablesHelp: 'Comma-separated variable names, use {{variable}} in template',
+      variablesHelp: "Comma-separated variable names, use {'{{variable}}'} in template",
     },
     status: {
       SENT: 'Sent',

@@ -108,7 +108,9 @@ describe("VirtualContestTimer", () => {
     await flushPromises();
 
     expect(contestStoreMock.finishVirtualContest).toHaveBeenCalledTimes(1);
-    expect(contestStoreMock.finishVirtualContest).toHaveBeenCalledWith("contest-1");
+    expect(contestStoreMock.finishVirtualContest).toHaveBeenCalledWith(
+      "contest-1",
+    );
   });
 
   it("does not submit duplicate finish requests after the timer has expired", async () => {
@@ -141,14 +143,16 @@ describe("VirtualContestTimer", () => {
     await wrapper.get('button[aria-haspopup="dialog"]').trigger("click");
     await flushPromises();
 
-    const confirmButton = Array.from(document.body.querySelectorAll("button"))
-      .find((button) => button.textContent?.trim() === "common.actions.confirm");
+    const confirmButton = Array.from(
+      document.body.querySelectorAll("button"),
+    ).find((button) => button.textContent?.trim() === "common.actions.confirm");
     const dialogContent = document.body.querySelector(
       '[data-slot="alert-dialog-content"]',
     );
 
     expect(confirmButton).toBeDefined();
-    expect(dialogContent?.classList.contains("pointer-events-auto")).toBe(true);
+    expect(dialogContent?.getAttribute("role")).toBe("alertdialog");
+    expect(dialogContent?.getAttribute("aria-labelledby")).toBeTruthy();
     confirmButton!.click();
     await flushPromises();
 

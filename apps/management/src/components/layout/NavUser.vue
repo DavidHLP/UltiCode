@@ -1,10 +1,15 @@
 <script setup lang="ts">
-import { IconDotsVertical, IconLogout, IconNotification, IconUserCircle } from '@tabler/icons-vue'
+import {
+  EllipsisVertical as IconDotsVertical,
+  LogOut as IconLogout,
+  BellRing as IconNotification,
+  UserCircle as IconUserCircle,
+} from '@lucide/vue'
 
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '@ulticode/design-system/ui/avatar'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,13 +18,13 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+} from '@ulticode/design-system/ui/dropdown-menu'
 import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
-} from '@/components/ui/sidebar'
+} from '@ulticode/design-system/ui/sidebar'
 
 interface User {
   name: string
@@ -56,64 +61,53 @@ async function handleLogout() {
     <SidebarMenuItem>
       <DropdownMenu>
         <DropdownMenuTrigger as-child>
-          <SidebarMenuButton
-            size="lg"
-            tooltip="User Menu"
-            class="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground h-11"
-          >
-            <Avatar
-              class="h-8 w-8 rounded-none border border-[var(--border-subtle)] dark:border-[var(--border-subtle)]"
-              shape="square"
-            >
+          <SidebarMenuButton size="lg" tooltip="User Menu" class="h-11">
+            <Avatar class="h-8 w-8" shape="square">
               <AvatarImage v-if="user.avatar" :src="user.avatar" :alt="user.name" />
-              <AvatarFallback class="rounded-none"> CN </AvatarFallback>
+              <AvatarFallback> CN </AvatarFallback>
             </Avatar>
             <div class="grid flex-1 text-left text-xs leading-tight">
               <div class="flex items-center gap-1.5 min-w-0">
                 <span class="truncate font-bold text-sm text-foreground">{{ user.name }}</span>
                 <span
                   v-if="user.role"
-                  class="inline-flex items-center px-1.5 py-0.2 text-2xs font-mono font-bold uppercase border border-[var(--border-subtle)] bg-[var(--surface-highlight)] text-[var(--foreground-muted)] tracking-wide shrink-0"
+                  class="inline-flex items-center px-1.5 py-0.2 text-xs font-mono font-bold uppercase border border-border bg-accent text-muted-foreground tracking-wide shrink-0"
                 >
                   {{ user.role }}
                 </span>
               </div>
-              <span class="text-[var(--foreground-muted)] truncate mt-0.5 font-mono text-2xs">
+              <span class="text-muted-foreground truncate mt-0.5 font-mono text-xs">
                 {{ user.email }}
               </span>
             </div>
             <IconDotsVertical
-              class="ml-auto size-4 text-[var(--foreground-muted)] group-hover:text-foreground"
+              class="ml-auto size-4 text-muted-foreground group-hover:text-foreground"
             />
           </SidebarMenuButton>
         </DropdownMenuTrigger>
         <DropdownMenuContent
-          variant="terminal"
           class="w-(--reka-dropdown-menu-trigger-width) min-w-56"
           :side="isMobile ? 'bottom' : 'right'"
           :side-offset="4"
           align="end"
         >
-          <DropdownMenuLabel class="p-0 font-normal">
+          <DropdownMenuLabel class="p-0">
             <div class="flex items-center gap-2 px-1.5 py-1.5 text-left text-sm">
-              <Avatar
-                class="h-8 w-8 rounded-none border border-[var(--border-subtle)] dark:border-[var(--border-subtle)]"
-                shape="square"
-              >
+              <Avatar class="h-8 w-8" shape="square">
                 <AvatarImage v-if="user.avatar" :src="user.avatar" :alt="user.name" />
-                <AvatarFallback class="rounded-none"> CN </AvatarFallback>
+                <AvatarFallback> CN </AvatarFallback>
               </Avatar>
               <div class="grid flex-1 text-left text-xs leading-tight">
                 <div class="flex items-center gap-1.5">
                   <span class="truncate font-bold text-sm text-foreground">{{ user.name }}</span>
                   <span
                     v-if="user.role"
-                    class="inline-flex items-center px-1.5 py-0.2 text-2xs font-mono font-bold uppercase border border-[var(--border-subtle)] bg-[var(--surface-highlight)] text-[var(--foreground-muted)] tracking-wide shrink-0"
+                    class="inline-flex items-center px-1.5 py-0.2 text-xs font-mono font-bold uppercase border border-border bg-accent text-muted-foreground tracking-wide shrink-0"
                   >
                     {{ user.role }}
                   </span>
                 </div>
-                <span class="text-[var(--foreground-muted)] truncate mt-0.5 font-mono text-2xs">
+                <span class="text-muted-foreground truncate mt-0.5 font-mono text-xs">
                   {{ user.email }}
                 </span>
               </div>

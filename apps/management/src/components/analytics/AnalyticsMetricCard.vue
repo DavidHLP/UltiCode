@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import type { Component } from 'vue'
-import { IconTrendingDown, IconTrendingUp, IconMinus } from '@tabler/icons-vue'
+import {
+  TrendingDown as IconTrendingDown,
+  TrendingUp as IconTrendingUp,
+  Minus as IconMinus,
+} from '@lucide/vue'
 
 export interface MetricData {
   title: string
@@ -41,7 +45,7 @@ const getTrendColor = (trend: string) => {
     case 'down':
       return 'var(--status-error-mark)'
     default:
-      return 'var(--foreground-muted)'
+      return 'var(--muted-foreground)'
   }
 }
 
@@ -52,8 +56,8 @@ const sizeClasses = {
   sm: {
     card: 'p-3',
     value: 'text-xl',
-    title: 'text-2xs',
-    change: 'text-2xs',
+    title: 'text-xs',
+    change: 'text-xs',
   },
   md: {
     card: 'p-4',
@@ -72,7 +76,7 @@ const sizeClasses = {
 
 <template>
   <div
-    class="group relative overflow-hidden rounded-none border-t-2 border-x border-b border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-card shadow-float precision-card hover:border-r-[var(--border-subtle)] hover:border-l-[var(--border-subtle)] hover:border-b-[var(--border-subtle)] dark:hover:border-r-[var(--border-subtle)]/60 dark:hover:border-l-[var(--border-subtle)]/60 dark:hover:border-b-[var(--border-subtle)]/60 transition-all duration-200"
+    class="group relative overflow-hidden rounded-lg border-t-2 border-x border-b border-border dark:border-border bg-card shadow-md rounded-xl border bg-card hover:border-r-[var(--border)] hover:border-l-[var(--border)] hover:border-b-[var(--border)] dark:hover:border-r-[var(--border)]/60 dark:hover:border-l-[var(--border)]/60 dark:hover:border-b-[var(--border)]/60 transition-all duration-200"
     :class="sizeClasses[props.size].card"
     :style="{
       borderTopColor: getTrendColor(props.metric.trend || 'neutral'),
@@ -90,7 +94,7 @@ const sizeClasses = {
     <div class="relative z-10 space-y-2">
       <!-- Title -->
       <p
-        class="font-medium uppercase tracking-widest text-[var(--foreground-muted)] dark:text-[var(--foreground-muted)]"
+        class="font-medium uppercase tracking-widest text-muted-foreground dark:text-muted-foreground"
         :class="sizeClasses[props.size].title"
       >
         {{ props.metric.title }}
@@ -100,18 +104,18 @@ const sizeClasses = {
       <div class="flex items-baseline gap-1">
         <span
           v-if="props.metric.prefix"
-          class="font-medium text-[var(--foreground-muted)]"
+          class="font-medium text-muted-foreground"
           :class="sizeClasses[props.size].value"
         >
           {{ props.metric.prefix }}
         </span>
         <span
-          class="font-medium font-data tabular-nums tracking-tight text-foreground"
+          class="font-medium font-mono tabular-nums tracking-tight text-foreground"
           :class="sizeClasses[props.size].value"
         >
           {{ props.metric.value }}
         </span>
-        <span v-if="props.metric.suffix" class="font-normal text-[var(--foreground-muted)] text-sm">
+        <span v-if="props.metric.suffix" class="font-normal text-muted-foreground text-sm">
           {{ props.metric.suffix }}
         </span>
       </div>
@@ -119,7 +123,7 @@ const sizeClasses = {
       <!-- Trend badge -->
       <div v-if="props.metric.change" class="flex items-center gap-2">
         <span
-          class="inline-flex items-center gap-1 font-medium px-2 py-0.5 rounded-none border"
+          class="inline-flex items-center gap-1 font-medium px-2 py-0.5 rounded-lg border"
           :class="sizeClasses[props.size].change"
           :style="{
             color: getTrendColor(props.metric.trend || 'neutral'),
@@ -139,7 +143,7 @@ const sizeClasses = {
       <!-- Description -->
       <p
         v-if="props.metric.description"
-        class="text-[var(--foreground-muted)] dark:text-[var(--foreground-muted)]"
+        class="text-muted-foreground dark:text-muted-foreground"
         :class="sizeClasses[props.size].change"
       >
         {{ props.metric.description }}

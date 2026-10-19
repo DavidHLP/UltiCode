@@ -116,7 +116,6 @@
                     :variant="
                       invoice.status === 'paid' ? 'default' : 'secondary'
                     "
-                    class="text-xs"
                   >
                     {{ invoice.status }}
                   </Badge>
@@ -178,7 +177,7 @@
                   class="flex items-start gap-2"
                 >
                   <Check
-                    class="h-4 w-4 text-[var(--status-success-mark)] mt-0.5 flex-shrink-0"
+                    class="h-4 w-4 text-status-success-mark mt-0.5 flex-shrink-0"
                   />
                   <span class="text-sm">{{ feature }}</span>
                 </li>
@@ -209,9 +208,14 @@
 import { ref, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
 import { toast } from "vue-sonner";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Button } from "@ulticode/design-system/ui/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@ulticode/design-system/ui/card";
+import { Badge } from "@ulticode/design-system/ui/badge";
 import { Check, Download, Loader2, Settings } from "@lucide/vue";
 import { formatDate as sharedFormatDate } from "@/utils/datetime";
 import {

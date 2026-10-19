@@ -34,6 +34,6 @@ export default defineConfig({
       '@lucide/vue': fileURLToPath(new URL('./node_modules/@lucide/vue', import.meta.url)),
       '@tabler/icons-vue': fileURLToPath(new URL('./node_modules/@tabler/icons-vue', import.meta.url)),
     },
-    dedupe: ['axios', 'vue'],
+    dedupe: ['axios', 'vue', "reka-ui", "vee-validate"],
   },
 })

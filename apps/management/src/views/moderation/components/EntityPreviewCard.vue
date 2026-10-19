@@ -3,15 +3,15 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { formatDateTimeByLocale } from '@/i18n/utils'
 import {
-  IconCode,
-  IconFileText,
-  IconMessage,
-  IconMessages,
-  IconExternalLink,
-} from '@tabler/icons-vue'
+  Code as IconCode,
+  FileText as IconFileText,
+  MessageSquare as IconMessage,
+  MessagesSquare as IconMessages,
+  ExternalLink as IconExternalLink,
+} from '@lucide/vue'
 
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@ulticode/design-system/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@ulticode/design-system/ui/card'
 import type { ModeratableEntityType } from '@/api/admin/moderation'
 
 interface Props {
@@ -46,11 +46,11 @@ const entityIcon = computed(() => {
 
 const entityTypeColor = computed(() => {
   const colors: Record<ModeratableEntityType, string> = {
-    forum_post: 'text-foreground-strong',
-    forum_comment: 'text-foreground-strong',
-    solution: 'text-foreground-strong',
-    solution_comment: 'text-foreground-strong',
-    problem: 'text-foreground-strong',
+    forum_post: 'text-foreground',
+    forum_comment: 'text-foreground',
+    solution: 'text-foreground',
+    solution_comment: 'text-foreground',
+    problem: 'text-foreground',
   }
   return colors[props.entityType]
 })
@@ -63,21 +63,14 @@ const truncatedContent = computed(() => {
 </script>
 
 <template>
-  <Card
-    class="border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--surface-sunken)]"
-  >
+  <Card>
     <CardHeader class="pb-3">
       <div class="flex items-center justify-between">
-        <CardTitle class="flex items-center gap-2 text-sm font-data uppercase tracking-wider">
+        <CardTitle class="flex items-center gap-2">
           <component :is="entityIcon" :class="['h-4 w-4', entityTypeColor]" />
-          <span class="text-[var(--foreground-muted)]">{{ t('moderation.detail.entityPreview') }}</span>
+          <span class="text-muted-foreground">{{ t('moderation.detail.entityPreview') }}</span>
         </CardTitle>
-        <Button
-          variant="ghost"
-          size="sm"
-          class="h-7 font-data text-xs text-foreground-strong hover:text-foreground-strong hover:bg-[var(--status-info-mark)]/10"
-          @click="emit('viewEntity')"
-        >
+        <Button variant="ghost" size="sm" @click="emit('viewEntity')">
           <IconExternalLink class="h-3.5 w-3.5 mr-1" />
           {{ t('moderation.queue.viewEntity') }}
         </Button>
@@ -87,14 +80,14 @@ const truncatedContent = computed(() => {
       <!-- Entity Type & ID -->
       <div class="flex items-center gap-4 text-xs">
         <div class="flex items-center gap-2">
-          <span class="text-[var(--foreground-muted)]">{{ t('moderation.columns.entityType') }}:</span>
-          <span :class="['font-data', entityTypeColor]">
+          <span class="text-muted-foreground">{{ t('moderation.columns.entityType') }}:</span>
+          <span :class="['font-mono', entityTypeColor]">
             {{ t(`moderation.entityTypes.${entityType}`) }}
           </span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="text-[var(--foreground-muted)]">ID:</span>
-          <span class="font-data text-[var(--foreground)] truncate max-w-[150px]">
+          <span class="text-muted-foreground">ID:</span>
+          <span class="font-mono text-foreground truncate max-w-[150px]">
             {{ entityId }}
           </span>
         </div>
@@ -102,7 +95,7 @@ const truncatedContent = computed(() => {
 
       <!-- Title -->
       <div v-if="title" class="space-y-1">
-        <p class="text-xs font-data uppercase tracking-wider text-[var(--foreground-muted)]">
+        <p class="text-xs font-mono uppercase tracking-wider text-muted-foreground">
           {{ t('moderation.columns.title') }}
         </p>
         <p class="text-sm font-medium">{{ title }}</p>
@@ -110,25 +103,25 @@ const truncatedContent = computed(() => {
 
       <!-- Content Preview -->
       <div v-if="truncatedContent" class="space-y-1">
-        <p class="text-xs font-data uppercase tracking-wider text-[var(--foreground-muted)]">
+        <p class="text-xs font-mono uppercase tracking-wider text-muted-foreground">
           {{ t('moderation.detail.entityPreview') }}
         </p>
-        <p class="text-sm text-[var(--foreground)] whitespace-pre-wrap break-words">
+        <p class="text-sm text-foreground whitespace-pre-wrap break-words">
           {{ truncatedContent }}
         </p>
       </div>
 
       <!-- Author & Date -->
-      <div class="flex items-center gap-4 text-xs text-[var(--foreground-muted)]">
+      <div class="flex items-center gap-4 text-xs text-muted-foreground">
         <div v-if="author" class="flex items-center gap-1">
           <span>{{ t('moderation.reports.reporter') }}:</span>
-          <span class="text-[var(--foreground)]">
+          <span class="text-foreground">
             {{ author.display_name || author.username }}
           </span>
         </div>
         <div v-if="createdAt" class="flex items-center gap-1">
           <span>{{ t('moderation.columns.createdAt') }}:</span>
-          <span class="font-data tabular-nums">{{ formatDateTimeByLocale(createdAt) }}</span>
+          <span class="font-mono tabular-nums">{{ formatDateTimeByLocale(createdAt) }}</span>
         </div>
       </div>
     </CardContent>

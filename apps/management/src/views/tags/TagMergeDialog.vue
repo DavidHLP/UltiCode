@@ -2,7 +2,8 @@
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
-import { IconGitMerge, IconLoader } from '@tabler/icons-vue'
+import { GitMerge as IconGitMerge, Loader as IconLoader } from '@lucide/vue'
+
 import {
   Dialog,
   DialogContent,
@@ -10,16 +11,17 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog'
+} from '@ulticode/design-system/ui/dialog'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
-import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
+  SelectGroup,
+} from '@ulticode/design-system/ui/select'
+import { Button } from '@ulticode/design-system/ui/button'
+import { Label } from '@ulticode/design-system/ui/label'
 import { useTagsStore } from '@/stores/admin/tags'
 import { TagType } from '@/api/admin/tags'
 
@@ -94,9 +96,11 @@ async function handleMerge() {
               <SelectValue :placeholder="t('tags.merge.targetTagPlaceholder')" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem v-for="tag in availableTargets" :key="tag.id" :value="tag.id">
-                {{ tag.name }}
-              </SelectItem>
+              <SelectGroup
+                ><SelectItem v-for="tag in availableTargets" :key="tag.id" :value="tag.id">
+                  {{ tag.name }}
+                </SelectItem></SelectGroup
+              >
             </SelectContent>
           </Select>
         </div>

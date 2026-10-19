@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useVirtualContestStore } from "@/stores/virtualContest";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@ulticode/design-system/ui/card";
+import { Button } from "@ulticode/design-system/ui/button";
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -12,7 +12,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+} from "@ulticode/design-system/ui/alert-dialog";
 import { toast } from "vue-sonner";
 import { Clock, Trophy } from "@lucide/vue";
 import { useI18n } from "vue-i18n";
@@ -150,7 +150,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <Card v-if="isActive && session" class="border-primary/50 bg-primary/5">
+  <Card v-if="isActive && session">
     <CardContent class="p-4">
       <div class="space-y-3">
         <div class="flex items-center justify-between">
@@ -192,9 +192,8 @@ onUnmounted(() => {
                   :disabled="finishing"
                   :aria-busy="finishing"
                   @click="handleFinish"
-                >{{
-                  t("common.actions.confirm")
-                }}</Button>
+                  >{{ t("common.actions.confirm") }}</Button
+                >
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
@@ -232,8 +231,7 @@ onUnmounted(() => {
           class="flex items-center justify-between text-xs text-muted-foreground"
         >
           <span
-            >{{ t("contest.ranking.score") }}:
-            {{ session.score ?? 0 }}</span
+            >{{ t("contest.ranking.score") }}: {{ session.score ?? 0 }}</span
           >
           <span
             >{{ t("contest.ranking.penalty") }}:

@@ -2,7 +2,7 @@ export default {
   // Problem list
   list: {
     title: "Problems",
-    searchPlaceholder: "Search problems by title or ID...",
+    searchPlaceholder: "Search by title or ID...",
     filterByDifficulty: "Filter by difficulty",
     filterByStatus: "Filter by status",
     filterByTags: "Filter by tags",
@@ -180,6 +180,20 @@ export default {
       removeCategorySuccess: "Removed from category",
       moveFailed: "Failed to move list",
     },
+  },
+
+  tags: {
+    array: "Array",
+    hashTable: "Hash Table",
+    linkedList: "Linked List",
+    string: "String",
+    slidingWindow: "Sliding Window",
+    twoPointers: "Two Pointers",
+    binarySearch: "Binary Search",
+    divideAndConquer: "Divide and Conquer",
+    heap: "Heap",
+    math: "Math",
+    recursion: "Recursion",
   },
 
   // Categories
@@ -364,7 +378,7 @@ export default {
 
   // Solutions in Problem Detail
   solutions: {
-    searchPlaceholder: "Search solutions...",
+    searchPlaceholder: "Search...",
     mostLiked: "Most Liked",
     mostRecent: "Most Recent",
     oldest: "Oldest",
@@ -457,7 +471,9 @@ export default {
   sidebar: {
     dailyChallenge: "Daily Challenge",
     completed: "Completed",
-    daysUnit: "days",
+    daysUnit: "day | days",
+    todayProblem: "Today: {id}.",
+    toggleCalendar: "Toggle calendar",
     legendCompleted: "Completed",
     legendToday: "Today",
   },

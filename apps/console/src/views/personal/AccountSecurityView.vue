@@ -11,10 +11,10 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+} from "@ulticode/design-system/ui/card";
+import { Label } from "@ulticode/design-system/ui/label";
+import { Input } from "@ulticode/design-system/ui/input";
+import { Button } from "@ulticode/design-system/ui/button";
 
 const { t } = useI18n();
 
@@ -64,9 +64,9 @@ async function handleSubmit() {
 
 <template>
   <div class="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-    <Card class="border shadow-[var(--shadow-float)] bg-card rounded-none">
+    <Card>
       <CardHeader>
-        <CardTitle class="text-lg">
+        <CardTitle>
           {{ t("personal.account.changePassword") }}
         </CardTitle>
         <CardDescription>
@@ -76,7 +76,7 @@ async function handleSubmit() {
 
       <CardContent class="space-y-4">
         <div class="space-y-2">
-          <Label htmlFor="current" class="text-xs font-bold">
+          <Label htmlFor="current">
             {{ t("personal.account.currentPassword") }}
           </Label>
           <Input
@@ -88,7 +88,7 @@ async function handleSubmit() {
         </div>
 
         <div class="space-y-2">
-          <Label htmlFor="new" class="text-xs font-bold">
+          <Label htmlFor="new">
             {{ t("personal.account.newPassword") }}
           </Label>
           <Input
@@ -106,7 +106,7 @@ async function handleSubmit() {
         </div>
 
         <div class="space-y-2">
-          <Label htmlFor="confirm" class="text-xs font-bold">
+          <Label htmlFor="confirm">
             {{ t("personal.account.confirmNewPassword") }}
           </Label>
           <Input
@@ -115,33 +115,27 @@ async function handleSubmit() {
             type="password"
             autocomplete="new-password"
           />
-          <p
-            v-if="passwordsMismatch"
-            class="text-xs text-destructive"
-          >
+          <p v-if="passwordsMismatch" class="text-xs text-destructive">
             {{ t("personal.account.passwordMismatch") }}
           </p>
         </div>
       </CardContent>
 
-      <CardFooter class="bg-muted/5 border-t justify-end py-4">
+      <CardFooter class="justify-end py-4">
         <Button
-          class="rounded-none px-8"
+          class="px-8"
           :disabled="!canSubmit || loading"
           @click="handleSubmit"
         >
-          <Loader2
-            v-if="loading"
-            class="mr-2 h-4 w-4 animate-spin"
-          />
+          <Loader2 v-if="loading" class="mr-2 h-4 w-4 animate-spin" />
           {{ t("personal.account.updatePassword") }}
         </Button>
       </CardFooter>
     </Card>
 
-    <Card class="border-destructive/20 bg-destructive/5 rounded-none">
+    <Card>
       <CardHeader>
-        <CardTitle class="text-lg text-destructive">
+        <CardTitle>
           {{ t("personal.account.dangerZone") }}
         </CardTitle>
         <CardDescription>
@@ -153,7 +147,7 @@ async function handleSubmit() {
         <p class="text-sm text-muted-foreground mb-4">
           {{ t("personal.account.deleteWarning") }}
         </p>
-        <Button variant="destructive" class="rounded-none" disabled>
+        <Button variant="destructive" disabled>
           {{ t("personal.account.deleteAccount") }}
         </Button>
         <p class="text-xs text-muted-foreground mt-2">

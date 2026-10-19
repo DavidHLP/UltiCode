@@ -34,7 +34,9 @@ onMounted(() => {
   }
 });
 
-const passwordsMatch = computed(() => newPassword.value === confirmPassword.value);
+const passwordsMatch = computed(
+  () => newPassword.value === confirmPassword.value,
+);
 
 const isFormValid = computed(
   () =>
@@ -74,11 +76,15 @@ defineOptions({
 <template>
   <AuthLayout badge="CODE" version="v2.0.0">
     <template #form>
-      <AuthCard :title="t('auth.resetPassword.terminal')">
-        <form class="reset-form" @submit="handleReset">
-          <div class="reset-form__header">
-            <h1 class="reset-form__title">{{ t("auth.resetPassword.title") }}</h1>
-            <p class="reset-form__subtitle">{{ t("auth.resetPassword.subtitle") }}</p>
+      <AuthCard>
+        <form class="flex flex-col gap-4" @submit="handleReset">
+          <div class="flex flex-col gap-2">
+            <h1 class="text-2xl font-semibold">
+              {{ t("auth.resetPassword.title") }}
+            </h1>
+            <p class="text-sm text-muted-foreground">
+              {{ t("auth.resetPassword.subtitle") }}
+            </p>
           </div>
 
           <AuthInput
@@ -112,7 +118,7 @@ defineOptions({
             }}
           </AuthButton>
 
-          <div class="reset-form__back">
+          <div class="text-center text-sm text-muted-foreground">
             {{ t("auth.forgotPassword.rememberPassword") }}
             <a href="/login">{{ t("auth.register.login") }}</a>
           </div>
@@ -127,62 +133,3 @@ defineOptions({
     </template>
   </AuthLayout>
 </template>
-
-<style scoped>
-.reset-form {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.reset-form__header {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  margin-bottom: 0.25rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid var(--border);
-}
-
-.reset-form__title {
-  font-size: var(--uc-text-2xl);
-  font-weight: var(--uc-font-weight-bold);
-  letter-spacing: var(--uc-tracking-normal);
-  color: var(--foreground-strong);
-  line-height: 1.1;
-}
-
-.dark .reset-form__title {
-  color: var(--foreground-strong);
-}
-
-.reset-form__subtitle {
-  font-size: var(--uc-text-md);
-  color: var(--foreground);
-}
-
-.dark .reset-form__subtitle {
-  color: var(--foreground-muted);
-}
-
-.reset-form__back {
-  font-size: var(--uc-text-md);
-  color: var(--foreground);
-  text-align: center;
-  font-family: var(--uc-font-code);
-}
-
-.dark .reset-form__back {
-  color: var(--foreground-muted);
-}
-
-.reset-form__back a {
-  color: var(--primary);
-  text-decoration: none;
-  font-weight: var(--uc-font-weight-bold);
-}
-
-.reset-form__back a:hover {
-  text-decoration: underline;
-}
-</style>

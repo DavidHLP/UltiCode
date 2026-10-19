@@ -1,0 +1,10 @@
+@import "@ulticode/design-system/style.css";
+
+@layer base {
+  html {
+    scroll-padding-block-start: 5rem;
+  }
+  body {
+    margin: 0;
+  }
+}

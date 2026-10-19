@@ -27,6 +27,9 @@ export const useContestsStore = defineStore('adminContests', () => {
   const operationError = ref<string | null>(null)
   const currentContest = ref<Contest | null>(null)
   const currentRankings = ref<ContestRanking[]>([])
+  const rankingsLoading = ref(false)
+  const rankingsError = ref(false)
+  let rankingsRequestId = 0
 
   async function fetchContest(id: string): Promise<Contest | null> {
     operationLoading.value = true
@@ -177,17 +180,27 @@ export const useContestsStore = defineStore('adminContests', () => {
   }
 
   async function fetchRankings(id: string, page = 1, limit = 50) {
+    const requestId = ++rankingsRequestId
+    rankingsLoading.value = true
+    rankingsError.value = false
     operationLoading.value = true
     operationError.value = null
+    currentRankings.value = []
     try {
       const response = await contestsApi.getRankings(id, page, limit)
+      if (requestId !== rankingsRequestId) return
       currentRankings.value = response.items
       return response.items
     } catch (err: unknown) {
+      if (requestId !== rankingsRequestId) return
+      rankingsError.value = true
       operationError.value = extractApiErrorMessage(err, 'Failed to fetch contest rankings')
       console.error('Failed to fetch rankings', err)
     } finally {
-      operationLoading.value = false
+      if (requestId === rankingsRequestId) {
+        rankingsLoading.value = false
+        operationLoading.value = false
+      }
     }
   }
 
@@ -214,6 +227,8 @@ export const useContestsStore = defineStore('adminContests', () => {
     operationError,
     currentContest,
     currentRankings,
+    rankingsLoading,
+    rankingsError,
     fetchContests,
     fetchContest,
     createContest,

@@ -1,16 +1,15 @@
 <script setup lang="ts">
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { formatDate } from "@/utils/datetime";
 import {
-  MapPin,
-  Link as LinkIcon,
-  Calendar,
-  Zap,
-  Edit,
-} from "@lucide/vue";
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@ulticode/design-system/ui/avatar";
+import { Button } from "@ulticode/design-system/ui/button";
+import { Badge } from "@ulticode/design-system/ui/badge";
+import { formatDate } from "@/utils/datetime";
+import { MapPin, Link as LinkIcon, Calendar, Zap, Edit } from "@lucide/vue";
 import { IconBrandGithub, IconBrandTwitter } from "@tabler/icons-vue";
+
 import { RouterLink } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { computed } from "vue";
@@ -30,7 +29,7 @@ const { normalizedAvatar } = useAvatar(
 
 <template>
   <div
-    class="relative overflow-hidden rounded-none border bg-card p-4 md:p-6 shadow-[var(--shadow-float)]"
+    class="relative overflow-hidden rounded-lg border bg-card p-4 md:p-6 shadow-[var(--shadow-float)]"
   >
     <div
       class="absolute right-0 top-0 h-32 w-32 -translate-y-8 translate-x-8 rounded-full bg-primary/10 blur-3xl"
@@ -43,18 +42,16 @@ const { normalizedAvatar } = useAvatar(
       <div class="shrink-0 flex justify-center md:block">
         <div class="relative group">
           <div
-            class="absolute -inset-1 rounded-none bg-primary opacity-20 blur-sm group-hover:opacity-40 transition duration-500"
+            class="absolute -inset-1 rounded-lg bg-primary opacity-20 blur-sm group-hover:opacity-40 transition duration-500"
           ></div>
-          <Avatar
-            class="h-24 w-24 border-4 border-background shadow-[var(--shadow-float)] relative rounded-none"
-          >
+          <Avatar class="h-24 w-24 relative">
             <AvatarImage :src="normalizedAvatar" :alt="user.name" />
-            <AvatarFallback class="text-xl font-bold bg-muted rounded-none">{{
+            <AvatarFallback>{{
               user.username.substring(0, 2).toUpperCase()
             }}</AvatarFallback>
           </Avatar>
           <div
-            class="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-none bg-primary text-primary-foreground shadow-[var(--shadow-float)] border-4 border-background"
+            class="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-[var(--shadow-float)] border-4 border-background"
             :title="t('personal.profile.proMember')"
           >
             <Zap class="h-3.5 w-3.5 fill-current" />
@@ -78,10 +75,7 @@ const { normalizedAvatar } = useAvatar(
               <span class="text-base font-medium text-muted-foreground"
                 >@{{ user.username }}</span
               >
-              <Badge
-                variant="secondary"
-                class="rounded-none px-2 py-0 h-5 text-2xs font-semibold uppercase tracking-wider"
-              >
+              <Badge variant="secondary" class="px-2 py-0 h-5">
                 {{ t("personal.profile.proBadge") }}
               </Badge>
             </div>
@@ -89,7 +83,7 @@ const { normalizedAvatar } = useAvatar(
           <Button
             variant="outline"
             size="sm"
-            class="gap-1.5 self-center md:self-start rounded-none px-4 h-9 text-xs border-muted-foreground/20 hover:bg-muted"
+            class="gap-1.5 self-center md:self-start px-4"
             as-child
           >
             <RouterLink to="/personal/account">

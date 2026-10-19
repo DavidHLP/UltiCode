@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Button } from "@ulticode/design-system/ui/button";
+import { Badge } from "@ulticode/design-system/ui/badge";
 import { ArrowLeft } from "@lucide/vue";
 import { useI18n } from "vue-i18n";
 import type { ContestDetail } from "@/types/contest";
@@ -17,7 +17,7 @@ const { t } = useI18n();
     <Button
       variant="ghost"
       size="sm"
-      class="gap-2 cursor-pointer hover:bg-[var(--border-subtle)]/30 rounded-none border border-transparent hover:border-border transition-all h-8 px-3"
+      class="gap-2 cursor-pointer px-3"
       @click="$router.push({ name: 'contest-list' })"
     >
       <ArrowLeft class="h-4 w-4" />
@@ -27,7 +27,7 @@ const { t } = useI18n();
     <div class="space-y-2">
       <div class="flex items-center gap-3">
         <h1
-          class="text-3xl font-black tracking-tight text-foreground-strong dark:text-foreground-strong"
+          class="text-3xl font-black tracking-tight text-foreground dark:text-foreground"
         >
           {{ contest.title }}
         </h1>
@@ -39,12 +39,12 @@ const { t } = useI18n();
                 ? 'default'
                 : 'secondary'
           "
-          class="rounded-none px-3 h-5 font-bold uppercase text-2xs tracking-widest border border-current/25 bg-current/5"
+          class="px-3 h-5"
           :class="
             contest.status === 'RUNNING'
-              ? 'text-foreground-strong border-[var(--status-error-mark)]'
+              ? 'text-foreground border-status-error-mark'
               : contest.status === 'UPCOMING'
-                ? 'text-foreground-strong border-[var(--status-success-mark)]'
+                ? 'text-foreground border-status-success-mark'
                 : 'text-muted-foreground border-border'
           "
         >

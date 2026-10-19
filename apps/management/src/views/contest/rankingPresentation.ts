@@ -1,4 +1,4 @@
-import { IconMedal, IconTrophy } from '@tabler/icons-vue'
+import { Medal as IconMedal, Trophy as IconTrophy } from '@lucide/vue'
 
 export const RANK_TEXT_CLASS = 'text-foreground'
 

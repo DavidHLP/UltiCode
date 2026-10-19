@@ -47,6 +47,8 @@ export default {
   filters: {
     flagStatus: 'Flag Status',
     all: 'All',
+    allFlags: 'All flags',
+    allVisibility: 'All visibility',
     flagged: 'Flagged',
     clean: 'Clean',
     visibility: 'Visibility',
@@ -62,6 +64,9 @@ export default {
 
   // ========== Detail ==========
   detail: {
+    summary: 'Summary',
+    metadata: 'Details',
+    tags: 'Tags',
     noCodeContent: 'No code content',
     solutionFor: 'Solution for {problem}',
     noDescriptionContent: 'No description content',
@@ -131,8 +136,8 @@ export default {
   // ========== Terminal Stats ==========
   terminal: {
     total: 'Total',
-    flagged: 'Flagged',
-    published: 'Published',
+    flagged: 'Flagged on this page',
+    published: 'Published on this page',
     loading: 'Loading...',
     solutionManagement: 'Solution Management',
   },

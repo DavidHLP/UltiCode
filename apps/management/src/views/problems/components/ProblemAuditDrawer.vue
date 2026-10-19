@@ -3,17 +3,19 @@ import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { formatDateTimeByLocale } from '@/i18n/utils'
 import {
-  IconClock,
-  IconUser,
-  IconInfoCircle,
-  IconArrowRight,
-  IconChevronDown,
-  IconChevronRight,
-} from '@tabler/icons-vue'
-import { Button } from '@/components/ui/button'
+  Clock as IconClock,
+  User as IconUser,
+  Info as IconInfoCircle,
+  ArrowRight as IconArrowRight,
+  ChevronDown as IconChevronDown,
+  ChevronRight as IconChevronRight,
+} from '@lucide/vue'
+
+import { Button } from '@ulticode/design-system/ui/button'
 import { auditApi, type AuditLog } from '@/api/admin/audit'
 import { getActionIcon, getActionIconColor } from '@/views/audit/utils'
-import { SemanticBadge, getAuditActionColor, USER_ROLE_COLOR_MAP } from '@/components/ui/terminal'
+import SemanticBadge from '@ulticode/badge-config/SemanticBadge.vue'
+import { getAuditActionColor, USER_ROLE_COLOR_MAP } from '@ulticode/badge-config'
 import BaseDetailDrawer from '@/components/shared/BaseDetailDrawer.vue'
 
 const { t } = useI18n()
@@ -40,7 +42,7 @@ watch(
       error.value = null
       try {
         const result = await auditApi.getProblemAuditLogs(pId)
-        logs.value = result.items
+        logs.value = result
       } catch (e) {
         error.value = e instanceof Error ? e.message : 'Failed to load audit logs'
         logs.value = []
@@ -125,7 +127,7 @@ function formatJson(val: unknown): string {
     :open="open"
     @update:open="handleOpenChange"
     :loading="loading"
-    :entity="null"
+    :entity="logs"
     :title="t('audit.problemDrawer.title')"
     :description="t('audit.problemDrawer.problemId', { id: problemId })"
     :not-found-text="t('audit.problemDrawer.noLogs')"
@@ -134,15 +136,10 @@ function formatJson(val: unknown): string {
       <!-- Error state -->
       <div
         v-if="error"
-        class="flex items-center justify-between border border-[var(--status-error-mark)] bg-[color-mix(in_oklch,_var(--status-error-mark)_8%,_transparent)] p-4"
+        class="flex items-center justify-between border border-status-error-mark bg-[color-mix(in_oklch,_var(--status-error-mark)_8%,_transparent)] p-4"
       >
-        <span class="font-data text-sm text-[var(--foreground-strong)]">&gt; ERROR: {{ error }}</span>
-        <Button
-          variant="terminal"
-          size="sm"
-          class="font-data text-xs border-[var(--status-error-mark)] text-foreground-strong"
-          @click="handleOpenChange(false)"
-        >
+        <span class="font-mono text-sm text-foreground">&gt; ERROR: {{ error }}</span>
+        <Button variant="outline" size="sm" @click="handleOpenChange(false)">
           {{ t('common.close') }}
         </Button>
       </div>
@@ -150,10 +147,10 @@ function formatJson(val: unknown): string {
       <!-- Empty state -->
       <div
         v-else-if="!loading && logs.length === 0"
-        class="flex flex-col items-center justify-center py-12 text-[var(--foreground-muted)]"
+        class="flex flex-col items-center justify-center py-12 text-muted-foreground"
       >
         <IconInfoCircle class="h-12 w-12 mb-4 opacity-30" />
-        <p class="text-sm font-data">&gt; {{ t('audit.problemDrawer.noLogs') }}</p>
+        <p class="text-sm font-mono">&gt; {{ t('audit.problemDrawer.noLogs') }}</p>
       </div>
 
       <!-- Audit log list -->
@@ -161,14 +158,14 @@ function formatJson(val: unknown): string {
         <div
           v-for="(log, index) in logs"
           :key="log.id"
-          class="flex flex-col py-4 border-b border-[var(--border-subtle)] dark:border-[var(--border-subtle)] last:border-b-0"
+          class="flex flex-col py-4 border-b border-border dark:border-border last:border-b-0"
           :class="{ 'animate-pulse': loading && index === 0 }"
         >
           <!-- Header row -->
           <div class="flex items-start gap-3">
             <!-- Icon -->
             <div
-              class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--surface-sunken)]"
+              class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border dark:border-border bg-muted"
             >
               <component
                 :is="getActionIcon(log.action)"
@@ -190,13 +187,13 @@ function formatJson(val: unknown): string {
                   />
                   <span
                     v-if="log.oldValues || log.newValues"
-                    class="text-xs text-[var(--foreground-muted)] font-data"
+                    class="text-xs text-muted-foreground font-mono"
                   >
                     {{ getChanges(log.oldValues, log.newValues).length }} change(s)
                   </span>
                 </div>
                 <span
-                  class="font-data text-xs text-[var(--foreground-muted)] tabular-nums flex items-center gap-1 shrink-0"
+                  class="font-mono text-xs text-muted-foreground tabular-nums flex items-center gap-1 shrink-0"
                 >
                   <IconClock class="h-3 w-3" />
                   {{ formatDateTimeByLocale(log.createdAt) }}
@@ -204,8 +201,8 @@ function formatJson(val: unknown): string {
               </div>
 
               <div class="flex items-center gap-2 text-sm">
-                <IconUser class="h-3 w-3 text-[var(--foreground-muted)] shrink-0" />
-                <span class="text-[var(--foreground-muted)]">
+                <IconUser class="h-3 w-3 text-muted-foreground shrink-0" />
+                <span class="text-muted-foreground">
                   {{ log.performer?.username || 'System' }}
                 </span>
                 <SemanticBadge
@@ -217,7 +214,7 @@ function formatJson(val: unknown): string {
               </div>
 
               <!-- IP & UA small -->
-              <div class="flex items-center gap-4 mt-1 text-xs text-[var(--foreground-strong)] font-data">
+              <div class="flex items-center gap-4 mt-1 text-xs text-foreground font-mono">
                 <span v-if="log.ipAddress" class="truncate max-w-[120px]">{{ log.ipAddress }}</span>
                 <span v-if="log.userAgent" class="truncate max-w-[200px] hidden sm:inline">{{
                   log.userAgent.split(' ')[0]
@@ -226,16 +223,17 @@ function formatJson(val: unknown): string {
 
               <!-- Changes toggle -->
               <div v-if="log.oldValues || log.newValues" class="mt-2">
-                <button
+                <Button
+                  variant="outline"
                   @click="toggleExpanded(log.id)"
-                  class="flex items-center gap-1 text-xs font-data text-foreground-strong hover:text-foreground-strong/80 transition-colors"
+                  class="flex items-center gap-1"
                 >
                   <component
                     :is="isExpanded(log.id) ? IconChevronDown : IconChevronRight"
                     class="h-3 w-3"
                   />
                   {{ isExpanded(log.id) ? 'Hide' : 'Show' }} changes
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -246,36 +244,36 @@ function formatJson(val: unknown): string {
             class="mt-3 ml-0 lg:ml-12"
           >
             <div
-              class="border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] rounded-none overflow-hidden text-xs font-data"
+              class="border border-border dark:border-border rounded-lg overflow-hidden text-xs font-mono"
             >
               <!-- Change rows -->
               <template v-if="getChanges(log.oldValues, log.newValues).length > 0">
                 <div
                   v-for="change in getChanges(log.oldValues, log.newValues)"
                   :key="change.field"
-                  class="flex items-stretch border-b border-[var(--border-subtle)] dark:border-[var(--border-subtle)] last:border-b-0"
+                  class="flex items-stretch border-b border-border dark:border-border last:border-b-0"
                 >
                   <!-- Field name -->
                   <div
-                    class="w-32 shrink-0 bg-[var(--surface-raised)] px-3 py-2 text-[var(--foreground-muted)] font-medium border-r border-[var(--border-subtle)] dark:border-[var(--border-subtle)]"
+                    class="w-32 shrink-0 bg-[var(--surface-raised)] px-3 py-2 text-muted-foreground font-medium border-r border-border dark:border-border"
                   >
                     {{ change.field }}
                   </div>
                   <!-- Old value -->
                   <div class="flex-1 px-3 py-2 min-w-0">
-                    <div class="text-[var(--foreground-strong)] opacity-70">
-                      <span class="opacity-50 text-2xs mr-1">OLD</span>
+                    <div class="text-foreground opacity-70">
+                      <span class="opacity-50 text-xs mr-1">OLD</span>
                       <span class="truncate block">{{ change.oldVal }}</span>
                     </div>
                   </div>
                   <!-- Arrow -->
-                  <div class="flex items-center px-2 text-[var(--foreground-muted)] shrink-0">
+                  <div class="flex items-center px-2 text-muted-foreground shrink-0">
                     <IconArrowRight class="h-3 w-3" />
                   </div>
                   <!-- New value -->
                   <div class="flex-1 px-3 py-2 min-w-0">
-                    <div class="text-[var(--foreground-strong)]">
-                      <span class="opacity-50 text-2xs mr-1">NEW</span>
+                    <div class="text-foreground">
+                      <span class="opacity-50 text-xs mr-1">NEW</span>
                       <span class="truncate block">{{ change.newVal }}</span>
                     </div>
                   </div>
@@ -286,22 +284,20 @@ function formatJson(val: unknown): string {
               <template v-else>
                 <div class="p-3 space-y-3">
                   <div v-if="log.oldValues">
-                    <div class="text-[var(--foreground-muted)] mb-1 text-2xs uppercase tracking-wider">
+                    <div class="text-muted-foreground mb-1 text-xs uppercase tracking-wider">
                       Old Values
                     </div>
                     <pre
-                      class="text-foreground-strong opacity-80 whitespace-pre-wrap break-all bg-[var(--surface-sunken)] p-2 rounded-none border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] text-xxs"
-                      >{{ formatJson(log.oldValues) }}</pre
-                    >
+                      class="text-foreground opacity-80 whitespace-pre-wrap break-all bg-muted p-2 rounded-lg border border-border dark:border-border text-xs"
+                      >{{ formatJson(log.oldValues) }}</pre>
                   </div>
                   <div v-if="log.newValues">
-                    <div class="text-[var(--foreground-muted)] mb-1 text-2xs uppercase tracking-wider">
+                    <div class="text-muted-foreground mb-1 text-xs uppercase tracking-wider">
                       New Values
                     </div>
                     <pre
-                      class="text-foreground-strong whitespace-pre-wrap break-all bg-[var(--surface-sunken)] p-2 rounded-none border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] text-xxs"
-                      >{{ formatJson(log.newValues) }}</pre
-                    >
+                      class="text-foreground whitespace-pre-wrap break-all bg-muted p-2 rounded-lg border border-border dark:border-border text-xs"
+                      >{{ formatJson(log.newValues) }}</pre>
                   </div>
                 </div>
               </template>

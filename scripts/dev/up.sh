@@ -90,7 +90,7 @@ Options:
   --skip-seed-data     跳过 DEV-LOCAL App Owner 题目/题单/论坛/竞赛/题解种子数据
   --only <apps>        只起指定 PM2 app, 逗号分隔 (legacy subset adapter)
   --no-frontend        不起前端
-  --frontend-only      只起前端 (9002/9003), 并跳过后端栈步骤
+  --frontend-only      只起前端 (9002/9003/9004), 并跳过后端栈步骤
   --prepare-submission-owner 只启动基础设施、迁移并 provision/unlock owner，不启动 PM2
   --mode <dev-lite|dev-full>
   --quiet, -q          suppress recommendation for status/health actions
@@ -233,7 +233,7 @@ fi
 if [[ -n "$ONLY" ]]; then
   PM2_APPS="$(devstack_normalize_apps "$ONLY")"
 elif [[ "$FRONTEND_ONLY" == true ]]; then
-  PM2_APPS="ulticode-9002,ulticode-9003"
+  PM2_APPS="ulticode-9002,ulticode-9003,ulticode-9004"
 elif [[ "$NO_FRONTEND" == true ]]; then
   PM2_APPS="$(devstack_backend_apps_for_scope "$DEV_SCOPE")"
 else

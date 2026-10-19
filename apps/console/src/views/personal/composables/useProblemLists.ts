@@ -33,6 +33,7 @@ export function useProblemLists() {
   const { t } = useI18n();
   const { run } = useProblemListMutations();
   const loading = ref(true);
+  const loadError = ref(false);
   const currentUserId = useAuthStore().fetchCurrentUserId();
   const searchQuery = ref("");
 
@@ -85,11 +86,13 @@ export function useProblemLists() {
       loading.value = false;
       return;
     }
+    loading.value = true;
+    loadError.value = false;
     try {
       data.value = await fetchProblemListsOverview();
     } catch (e) {
+      loadError.value = true;
       console.error("Failed to load problem lists", e);
-      toast.error(t("personal.messages.loadFailed"));
     } finally {
       loading.value = false;
     }
@@ -218,6 +221,7 @@ export function useProblemLists() {
 
   return {
     loading,
+    loadError,
     currentUserId,
     searchQuery,
     data,

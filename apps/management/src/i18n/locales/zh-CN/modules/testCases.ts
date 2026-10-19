@@ -24,14 +24,13 @@ export default {
   import: '导入',
   export: '导出',
   importTestCases: '导入测试用例',
-  importData:
-    '粘贴 JSON 数组,或使用 Input:/Output:（或 </>）块并以 --- / === 分隔',
+  importData: '粘贴 JSON 数组,或使用 Input:/Output:（或 </>）块并以 --- / === 分隔',
   // 占位符与 focused import-normalization 模块支持的语法保持一致。
   // 每个块都会被规范化为 HIDDEN 案例。
   importPlaceholder:
-    '< {输入}\n> {输出}\n---\n< {输入 2}\n> {输出 2}\n\n或 JSON:\n[\n  { "inputText": "...", "outputText": "...", "isSample": true, "isHidden": false }\n]',
+    "< {'{'}输入{'}'}\n> {'{'}输出{'}'}\n---\n< {'{'}输入 2{'}'}\n> {'{'}输出 2{'}'}\n\n或 JSON:\n[\n  {'{'} \"inputText\": \"...\", \"outputText\": \"...\", \"isSample\": true, \"isHidden\": false {'}'}\n]",
   importHelp:
-    'JSON 支持 camelCase（inputText/outputText），以及旧版 snake_case 与宽松的 {input, output} 格式。行语法始终生成 HIDDEN 案例。',
+    "JSON 支持 camelCase（inputText/outputText），以及旧版 snake_case 与宽松的 {'{'}input, output{'}'} 格式。行语法始终生成 HIDDEN 案例。",
   replaceExisting: '替换已存在的测试用例',
   importing: '正在导入',
 

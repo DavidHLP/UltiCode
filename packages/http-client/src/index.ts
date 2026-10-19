@@ -431,7 +431,7 @@ export function createHttpClient(config: HttpClientConfig): HttpClient {
       }
       const strategy = config.onAuthFailure ?? { kind: 'silent' as const }
       if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-        if (strategy.kind === 'clear-and-run') {
+        if (strategy.kind === 'clear-and-run' && error.response.status === 401) {
           if (!isAuthErrorHandling) {
             isAuthErrorHandling = true
             try {

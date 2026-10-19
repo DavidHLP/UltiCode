@@ -101,7 +101,7 @@ function makeProblem(): ContestProblemSummary {
     difficulty: "Easy",
     solvedCount: 0,
     submissionCount: 0,
-    acceptanceRate: "0%",
+    acceptanceRate: 0,
   };
 }
 
@@ -111,6 +111,7 @@ function makeProblem(): ContestProblemSummary {
 // without dragging in their internal styling/runtime requirements.
 // ------------------------------------------------------------------
 const stubs = {
+  RouterLink: { template: "<a><slot /></a>" },
   Card: { template: "<div><slot /></div>" },
   CardHeader: { template: "<div><slot /></div>" },
   CardTitle: { template: "<div><slot /></div>" },
@@ -171,6 +172,17 @@ function mountList(
 // the problem list. We assert the router push payload directly.
 // ------------------------------------------------------------------
 describe("ContestProblemList", () => {
+  it("renders the problem API percentage without multiplying it", async () => {
+    const wrapper = mountList(makeContest());
+    await wrapper.setProps({
+      problems: [{ ...makeProblem(), acceptanceRate: 73.2 }],
+    });
+
+    expect(wrapper.get('[data-testid="acceptance-rate-1001"]').text()).toBe(
+      "73.2%",
+    );
+  });
+
   it("forwards ?contestId=... while the contest is RUNNING (anti-cheat active)", async () => {
     routerPushMock.mockClear();
     const wrapper = mountList(makeContest({ status: "RUNNING" }));
@@ -332,11 +344,12 @@ describe("getRowAction", () => {
 });
 
 describe("formatAcceptanceRate", () => {
-  it("renders a 0..1 fraction as a 1-decimal percent string", () => {
-    expect(formatAcceptanceRate(0.732)).toBe("73.2%");
-    expect(formatAcceptanceRate(1)).toBe("100.0%");
+  it("renders the 0..100 API percentage with one decimal", () => {
+    expect(formatAcceptanceRate(73.2)).toBe("73.2%");
+    expect(formatAcceptanceRate(100)).toBe("100.0%");
+    expect(formatAcceptanceRate(1)).toBe("1.0%");
     expect(formatAcceptanceRate(0)).toBe("0.0%");
-    expect(formatAcceptanceRate(0.05)).toBe("5.0%");
+    expect(formatAcceptanceRate(0.05)).toBe("0.1%");
   });
 
   it("falls back to 0.0% for nullish or non-finite inputs", () => {

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { Button } from "@ulticode/design-system/ui/button";
+
 /**
  * PWA Update Prompt Component
  *
@@ -18,7 +20,7 @@ const { t } = useI18n();
   <Transition name="slide-up">
     <div
       v-if="needRefresh"
-      class="fixed bottom-4 right-4 z-50 flex items-center gap-3 rounded-none border border-border bg-card p-4 shadow-[var(--shadow-float)]"
+      class="fixed bottom-4 right-4 z-50 flex items-center gap-3 rounded-lg border border-border bg-card p-4 shadow-[var(--shadow-float)]"
       role="alert"
     >
       <RefreshCw class="h-5 w-5 text-primary" />
@@ -31,19 +33,21 @@ const { t } = useI18n();
         </p>
       </div>
       <div class="flex gap-2">
-        <button
-          class="rounded-none bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+        <Button
+          variant="default"
+          class="px-3 py-1.5"
           @click="updateServiceWorker"
         >
           {{ t("common.pwa.update") }}
-        </button>
-        <button
-          class="rounded-none px-2 py-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        </Button>
+        <Button
+          variant="ghost"
+          class="px-2 py-1.5"
           :aria-label="t('common.dismiss')"
           @click="close"
         >
           <X class="h-4 w-4" />
-        </button>
+        </Button>
       </div>
     </div>
   </Transition>

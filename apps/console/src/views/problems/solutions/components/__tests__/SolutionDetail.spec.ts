@@ -1,10 +1,22 @@
-import { shallowMount } from "@vue/test-utils";
+import { flushPromises, mount, shallowMount } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { ref } from "vue";
 import SolutionDetail from "../SolutionDetail.vue";
 import type { SolutionFeedItem } from "@/types/solution";
 
-const { routerPush } = vi.hoisted(() => ({
+const { routerPush, scrollToHeading } = vi.hoisted(() => ({
   routerPush: vi.fn(),
+  scrollToHeading: vi.fn(),
+}));
+
+vi.mock("@/composables/useContentNavigation", () => ({
+  useContentNavigation: () => ({
+    wrapperRef: ref(null),
+    activeHeadingId: ref(""),
+    isWideLayout: ref(false),
+    showMobileTOC: ref(false),
+    scrollToHeading,
+  }),
 }));
 
 vi.mock("vue-router", () => ({
@@ -84,9 +96,76 @@ describe("SolutionDetail", () => {
     routerPush.mockClear();
   });
 
+  it("separates metadata and actions into grid rows without shrinking the avatar", () => {
+    const wrapper = shallowMount(SolutionDetail, { props: { item } });
+    expect(wrapper.get("article > header").classes()).toContain("grid");
+    expect(wrapper.get("article > header > .col-span-2").classes()).toContain(
+      "flex-wrap",
+    );
+    expect(wrapper.get("article").classes()).toContain("min-w-0");
+  });
+
+  it("portals the outline and restores focus without interrupting heading scroll", async () => {
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      },
+    );
+    const view = mount(SolutionDetail, {
+      attachTo: document.body,
+      props: { item: { ...item, content: "## First section\n\nBody" } },
+      global: {
+        stubs: {
+          MarkdownView: true,
+          CommentThread: true,
+          PostActions: true,
+          ReportDialog: true,
+        },
+      },
+    });
+    try {
+      const trigger = view
+        .findAll("button")
+        .find((b) => b.text() === "forum.sidebar.toc")!;
+      await trigger.trigger("click");
+      await flushPromises();
+      const outline = document.querySelector('[data-slot="popover-content"]');
+      expect(outline).not.toBeNull();
+      expect(view.element.contains(outline)).toBe(false);
+      const focus = vi.spyOn(trigger.element, "focus");
+      Array.from(outline!.querySelectorAll("button"))
+        .find((b) => b.textContent?.trim() === "First section")!
+        .click();
+      await flushPromises();
+      expect(scrollToHeading).toHaveBeenCalledWith("first-section");
+      expect(
+        document.querySelector('[data-slot="popover-content"]'),
+      ).toBeNull();
+      expect(focus).toHaveBeenCalledWith({ preventScroll: true });
+      await trigger.trigger("click");
+      await flushPromises();
+      const outside = view
+        .findAll("button")
+        .find((b) => b.text() === "forum.actions.report")!;
+      outside.element.focus();
+      await flushPromises();
+      expect(document.activeElement).toBe(outside.element);
+      expect(
+        document.querySelector('[data-slot="popover-content"]'),
+      ).toBeNull();
+    } finally {
+      view.unmount();
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("opens the author's public profile from the header avatar", async () => {
     const wrapper = shallowMount(SolutionDetail, {
       props: { item },
+      global: { stubs: { Button: false, Primitive: false } },
     });
 
     await wrapper.get("article > header > button").trigger("click");
@@ -99,6 +178,7 @@ describe("SolutionDetail", () => {
 
   it("does not navigate the editorial fallback avatar", async () => {
     const wrapper = shallowMount(SolutionDetail, {
+      global: { stubs: { Button: false, Primitive: false } },
       props: {
         item: {
           ...item,

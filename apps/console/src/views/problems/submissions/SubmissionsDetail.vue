@@ -1,8 +1,12 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { useRouter } from "vue-router";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@ulticode/design-system/ui/button";
+import {
+  Avatar,
+  AvatarImage,
+  AvatarFallback,
+} from "@ulticode/design-system/ui/avatar";
 import type {
   SubmissionRecord,
   SubmissionStatusMeta,
@@ -17,6 +21,7 @@ import { useSubmissionDetail } from "./composables/useSubmissionDetail";
 import { createSubmission, resolveSubmissionProblemId } from "@/api/submission";
 import { toast } from "vue-sonner";
 import { useAuthStore } from "@/stores/auth";
+import { formatDateTime } from "@/utils/datetime";
 const props = defineProps({
   submission: {
     type: Object as () => SubmissionRecord,
@@ -39,7 +44,9 @@ const emit = defineEmits<{
 const { t } = useI18n();
 const router = useRouter();
 const authStore = useAuthStore();
-const currentUserId = computed(() => authStore.fetchCurrentUserId() ?? "anonymous");
+const currentUserId = computed(
+  () => authStore.fetchCurrentUserId() ?? "anonymous",
+);
 
 const {
   statusLabel,
@@ -114,26 +121,27 @@ const handleWriteSolution = () => {
     class="mx-auto flex w-full max-w-[700px] flex-col gap-4 px-3 py-2"
   >
     <!-- Header -->
-    <div class="flex w-full items-center justify-between gap-3">
-      <div class="flex flex-1 flex-col items-start gap-0.5 overflow-hidden">
+    <div class="flex w-full flex-wrap items-center justify-between gap-3">
+      <div class="flex min-w-0 flex-1 basis-64 flex-col items-start gap-0.5">
         <div class="flex items-center gap-2 mb-1">
           <Button
             variant="ghost"
             size="icon"
-            class="h-8 w-8 rounded-none hover:bg-muted"
+            class="w-8"
+            :aria-label="t('common.actions.back')"
             @click="emit('back')"
           >
             <ArrowLeft class="h-4 w-4" />
           </Button>
           <div
-            class="flex flex-1 items-center gap-1.5 text-lg font-data font-semibold uppercase leading-tight tracking-wider"
+            class="flex flex-1 items-center gap-1.5 text-lg font-mono font-semibold uppercase leading-tight tracking-wider"
             :class="statusToneClass"
           >
             <Loader2 v-if="isPending" class="h-4 w-4 animate-spin" />
             <span data-e2e-locator="submission-result">{{ statusLabel }}</span>
             <span
               v-if="isPending && pendingSeconds > 30"
-              class="text-xs font-data text-muted-foreground tabular-nums"
+              class="text-xs font-mono text-muted-foreground tabular-nums"
             >
               ({{ pendingSeconds }}s)
             </span>
@@ -146,7 +154,7 @@ const handleWriteSolution = () => {
           <span v-if="isAccepted">{{
             t("problem.submissions.allTestsPassed")
           }}</span>
-          <span v-else class="font-data tabular-nums">
+          <span v-else class="font-mono tabular-nums">
             {{
               t("problem.submissions.testsPassed", {
                 count:
@@ -159,29 +167,31 @@ const handleWriteSolution = () => {
           </span>
         </div>
         <div class="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
-          <div class="flex items-center gap-1">
-            <Avatar class="h-4 w-4 rounded-none">
+          <div class="flex min-w-0 flex-wrap items-center gap-1">
+            <Avatar class="h-4 w-4 shrink-0">
               <AvatarImage
-                class="rounded-none"
                 :src="
                   props.submission.user?.avatar ||
                   'https://assets.leetcode.cn/aliyun-lc-upload/default_avatar.png'
                 "
               />
-              <AvatarFallback class="rounded-none">U</AvatarFallback>
+              <AvatarFallback>U</AvatarFallback>
             </Avatar>
-            <span class="font-data font-medium text-foreground">{{
-              props.submission.user?.name ||
-              props.submission.user?.username ||
-              "User"
-            }}</span>
-            <span class="text-muted-foreground/60">{{
+            <span
+              class="max-w-full break-all font-mono font-medium text-foreground"
+              >{{
+                props.submission.user?.name ||
+                props.submission.user?.username ||
+                "User"
+              }}</span
+            >
+            <span class="shrink-0 whitespace-nowrap text-muted-foreground/60">{{
               t("problem.submissions.submittedAt")
             }}</span>
-            <span class="font-data tabular-nums">{{
-              new Date(
+            <span class="font-mono tabular-nums">{{
+              formatDateTime(
                 props.submission.submittedAt ?? props.submission.created_at,
-              ).toLocaleString()
+              )
             }}</span>
           </div>
         </div>
@@ -191,7 +201,6 @@ const handleWriteSolution = () => {
           v-if="isAccepted"
           variant="default"
           size="sm"
-          class="h-7 text-xs rounded-none bg-[var(--status-success-mark)] hover:bg-[var(--status-success-mark)] text-[var(--background)]"
           @click="handleWriteSolution"
         >
           {{ t("problem.solutions.writeSolution") }}
@@ -200,7 +209,6 @@ const handleWriteSolution = () => {
           v-if="isStuck"
           variant="outline"
           size="sm"
-          class="h-7 text-xs rounded-none"
           :disabled="isResubmitting"
           @click="handleResubmit"
         >
@@ -210,12 +218,16 @@ const handleWriteSolution = () => {
       </div>
     </div>
 
-    <AgentReviewPanel :key="`${currentUserId}:${props.submission.id}`" :submission="props.submission" :contest-id="props.contestId" />
+    <AgentReviewPanel
+      :key="`${currentUserId}:${props.submission.id}`"
+      :submission="props.submission"
+      :contest-id="props.contestId"
+    />
 
     <!-- Stuck pending warning -->
     <div
       v-if="isPending && pendingSeconds > 120"
-      class="rounded-none border border-[var(--status-warning-mark)]/30 bg-[var(--status-warning-mark)]/5 px-4 py-3 text-xs text-foreground-strong"
+      class="rounded-lg border border-status-warning-mark/30 bg-status-warning-mark/5 px-4 py-3 text-xs text-foreground"
     >
       {{ t("problem.submissions.stuckWarning") }}
     </div>
@@ -223,7 +235,7 @@ const handleWriteSolution = () => {
     <!-- Verdict info -->
     <div
       v-if="showVerdictMeta"
-      class="rounded-none border border-border bg-muted/40 px-4 py-3 text-xs"
+      class="rounded-lg border border-border bg-muted/40 px-4 py-3 text-xs"
     >
       <div class="text-xs font-medium text-muted-foreground">
         {{ t("problem.submissions.verdictInfo") }}
@@ -233,7 +245,7 @@ const handleWriteSolution = () => {
       </div>
       <div
         v-if="verdictDetail"
-        class="mt-2 rounded-none bg-muted px-3 py-2 font-data text-xs text-foreground"
+        class="mt-2 rounded-lg bg-muted px-3 py-2 font-mono text-xs text-foreground"
       >
         {{ verdictDetail }}
       </div>
@@ -245,18 +257,17 @@ const handleWriteSolution = () => {
     <!-- Compile Error -->
     <div
       v-if="isCompileError"
-      class="rounded-none bg-[var(--status-error-mark)]/10 border border-[var(--status-error-mark)]/30 p-4"
+      class="rounded-lg bg-status-error-mark/10 border border-status-error-mark/30 p-4"
     >
-      <h3 class="font-medium text-[var(--foreground-strong)] text-sm mb-2">
+      <h3 class="font-medium text-foreground text-sm mb-2">
         {{ t("problem.submissions.compileError") }}
       </h3>
       <pre
-        class="whitespace-pre-wrap text-sm font-data text-foreground-strong bg-transparent p-0"
+        class="whitespace-pre-wrap text-sm font-mono text-foreground bg-transparent p-0"
         >{{
           props.submission.compiler_error ||
           t("problem.submissions.noErrorMessage")
-        }}</pre
-      >
+        }}</pre>
     </div>
 
     <!-- Failure details -->
@@ -286,7 +297,7 @@ const handleWriteSolution = () => {
 
     <div
       v-else-if="!showVerdictMeta"
-      class="rounded-none border border-dashed border-border bg-muted/30 px-4 py-3 text-xs text-muted-foreground"
+      class="rounded-lg border border-dashed border-border bg-muted/30 px-4 py-3 text-xs text-muted-foreground"
     >
       {{ t("problem.submissions.detailsNotAvailable") }}
     </div>

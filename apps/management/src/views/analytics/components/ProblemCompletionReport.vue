@@ -52,7 +52,7 @@ const difficultyBarItems = computed<BarListItem[]>(() => {
     id: item.difficulty,
     label: item.difficulty,
     value: item.rate,
-    color: difficultyColors[item.difficulty] || 'var(--accent-primary)',
+    color: difficultyColors[item.difficulty] || 'var(--primary)',
     subtitle: `${item.completed}/${item.total} ${t('analytics.problemCompletion.completed')}`,
   }))
 })

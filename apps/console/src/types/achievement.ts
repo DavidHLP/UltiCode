@@ -40,10 +40,7 @@ export interface AchievementQuery {
 }
 
 export type AchievementCategory =
-  | "problem_solving"
-  | "consistency"
-  | "contest"
-  | "community";
+  "problem_solving" | "consistency" | "contest" | "community";
 
 export const AchievementCategoryLabels: Record<AchievementCategory, string> = {
   problem_solving: "Problem Solving",
@@ -53,10 +50,10 @@ export const AchievementCategoryLabels: Record<AchievementCategory, string> = {
 };
 
 export const AchievementCategoryColors: Record<AchievementCategory, string> = {
-  problem_solving: "text-foreground-strong",
-  consistency: "text-foreground-strong",
-  contest: "text-foreground-strong",
-  community: "text-foreground-strong",
+  problem_solving: "text-foreground",
+  consistency: "text-foreground",
+  contest: "text-foreground",
+  community: "text-foreground",
 };
 
 export const TierLabels: Record<number, string> = {

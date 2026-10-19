@@ -9,11 +9,17 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { IconChecks, IconCheck, IconX, IconLoader2 } from '@tabler/icons-vue'
+} from '@ulticode/design-system/ui/dialog'
+import { Button } from '@ulticode/design-system/ui/button'
+import { Label } from '@ulticode/design-system/ui/label'
+import { Textarea } from '@ulticode/design-system/ui/textarea'
+import {
+  CheckCheck as IconChecks,
+  Check as IconCheck,
+  X as IconX,
+  Loader2 as IconLoader2,
+} from '@lucide/vue'
+
 import { ModerationActionType, type ModerationQueueItem } from '@/api/admin/moderation'
 import { useModerationStore } from '@/stores/admin/moderation'
 
@@ -67,17 +73,13 @@ async function handleBatchAction() {
 
 <template>
   <Dialog :open="open" @update:open="emit('update:open', $event)">
-    <DialogContent class="terminal-card border-[var(--border-subtle)]">
-      <DialogHeader
-        class="terminal-card-header border-b border-[var(--border-subtle)] bg-[var(--surface-sunken)] px-4 py-3 -mx-6 -mt-6"
-      >
-        <DialogTitle
-          class="flex items-center gap-2 font-data text-sm uppercase tracking-wider text-foreground-strong"
-        >
+    <DialogContent>
+      <DialogHeader class="flex items-center gap-2 px-4 py-3 px-4 py-3 -mx-6 -mt-6">
+        <DialogTitle class="flex items-center gap-2">
           <IconChecks class="h-4 w-4" />
           &gt; {{ t('moderation.dialogs.confirmBatchTitle') }}
         </DialogTitle>
-        <DialogDescription class="font-data text-xs text-[var(--foreground-muted)]">
+        <DialogDescription>
           {{
             t('moderation.dialogs.confirmBatchMessage', {
               count: selectedItems.length,
@@ -91,17 +93,17 @@ async function handleBatchAction() {
       </DialogHeader>
       <div class="space-y-4 pt-4">
         <div>
-          <Label class="text-xs font-data uppercase tracking-wider text-[var(--foreground-muted)]">
+          <Label>
             {{ t('moderation.actionPanel.selectAction') }}
           </Label>
           <div class="mt-2 flex gap-2">
             <Button
-              :variant="batchAction === ModerationActionType.RESOLVED ? 'default' : 'terminal'"
+              :variant="batchAction === ModerationActionType.RESOLVED ? 'default' : 'outline'"
               :class="[
-                'h-9 font-data text-xs',
+                'h-9 font-mono text-xs',
                 batchAction === ModerationActionType.RESOLVED
-                  ? 'border-[var(--status-success-mark)] text-foreground-strong bg-[color-mix(in_oklch,_var(--status-success-mark)_10%,_transparent)]'
-                  : 'border-[var(--border-subtle)] hover:border-[var(--status-success-mark)] hover:text-foreground-strong',
+                  ? 'border-status-success-mark text-foreground bg-[color-mix(in_oklch,_var(--status-success-mark)_10%,_transparent)]'
+                  : 'border-border hover:border-status-success-mark hover:text-foreground',
               ]"
               size="sm"
               @click="batchAction = ModerationActionType.RESOLVED"
@@ -110,12 +112,12 @@ async function handleBatchAction() {
               {{ t('moderation.actions.RESOLVED') }}
             </Button>
             <Button
-              :variant="batchAction === ModerationActionType.DISMISSED ? 'default' : 'terminal'"
+              :variant="batchAction === ModerationActionType.DISMISSED ? 'default' : 'outline'"
               :class="[
-                'h-9 font-data text-xs',
+                'h-9 font-mono text-xs',
                 batchAction === ModerationActionType.DISMISSED
-                  ? 'border-[var(--status-error-mark)] text-foreground-strong bg-[color-mix(in_oklch,_var(--status-error-mark)_10%,_transparent)]'
-                  : 'border-[var(--border-subtle)] hover:border-[var(--status-error-mark)] hover:text-foreground-strong',
+                  ? 'border-status-error-mark text-foreground bg-[color-mix(in_oklch,_var(--status-error-mark)_10%,_transparent)]'
+                  : 'border-border hover:border-status-error-mark hover:text-foreground',
               ]"
               size="sm"
               @click="batchAction = ModerationActionType.DISMISSED"
@@ -126,10 +128,7 @@ async function handleBatchAction() {
           </div>
         </div>
         <div>
-          <Label
-            for="batch-notes"
-            class="text-xs font-data uppercase tracking-wider text-[var(--foreground-muted)]"
-          >
+          <Label for="batch-notes">
             {{ t('moderation.actionPanel.addNote') }}
           </Label>
           <Textarea
@@ -137,26 +136,15 @@ async function handleBatchAction() {
             v-model="batchNote"
             :placeholder="t('moderation.actionPanel.notePlaceholder')"
             rows="3"
-            class="mt-2 font-data text-sm border-[var(--border-subtle)] hover:border-[var(--primary)] bg-transparent placeholder:text-[var(--foreground-muted)]"
+            class="mt-2 placeholder:text-muted-foreground"
           />
         </div>
       </div>
       <DialogFooter class="gap-2">
-        <Button
-          variant="terminal"
-          size="sm"
-          class="font-data text-xs border-[var(--border-subtle)] hover:border-[var(--foreground-muted)]"
-          @click="emit('update:open', false)"
-        >
+        <Button variant="outline" size="sm" @click="emit('update:open', false)">
           {{ t('moderation.dialogs.cancel') }}
         </Button>
-        <Button
-          variant="terminal"
-          size="sm"
-          class="font-data text-xs border-[var(--status-success-mark)] text-foreground-strong hover:bg-[color-mix(in_oklch,_var(--status-success-mark)_10%,_transparent)]"
-          :disabled="batchSaving"
-          @click="handleBatchAction"
-        >
+        <Button variant="outline" size="sm" :disabled="batchSaving" @click="handleBatchAction">
           <IconLoader2 v-if="batchSaving" class="h-3.5 w-3.5 mr-1.5 animate-spin" />
           <IconChecks v-else class="h-3.5 w-3.5 mr-1.5" />
           {{ batchSaving ? t('common.saving') : t('moderation.dialogs.confirm') }}

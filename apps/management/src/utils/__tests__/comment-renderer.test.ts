@@ -49,8 +49,8 @@ describe('comment-renderer', () => {
     expect(result[1].type).toBe('code')
     expect(result[1].children).toBe('map')
     expect(result[1].props.class).toContain('bg-[color-mix(in_oklch')
-    expect(result[1].props.class).toContain('dark:border-[var(--border-subtle)]')
-    expect(result[1].props.class).not.toContain('dark:border-[var(--foreground-strong)]')
+    expect(result[1].props.class).toContain('dark:border-[var(--border)]')
+    expect(result[1].props.class).not.toContain('dark:border-[var(--foreground)]')
     expect(result[2]).toBe(' here')
   })
 

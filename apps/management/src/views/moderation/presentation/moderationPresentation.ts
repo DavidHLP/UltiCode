@@ -1,15 +1,15 @@
 import { ModerationActionType, type ModeratableEntityType } from '@/api/admin/moderation'
 import {
-  IconCheck,
-  IconX,
-  IconTrash,
-  IconEyeOff,
-  IconRefresh,
-  IconAlertCircle,
-  IconClock,
-  IconBan,
-  IconScale,
-} from '@tabler/icons-vue'
+  Check as IconCheck,
+  X as IconX,
+  Trash as IconTrash,
+  EyeOff as IconEyeOff,
+  RefreshCw as IconRefresh,
+  AlertCircle as IconAlertCircle,
+  Clock as IconClock,
+  Ban as IconBan,
+  Scale as IconScale,
+} from '@lucide/vue'
 
 /**
  * Presentation catalog for moderation actions and entity routes.
@@ -142,8 +142,6 @@ export const ACTION_CATALOG: ReadonlyArray<ActionDescriptor> = [
   },
 ]
 
-
-
 /**
  * Resolves an entity (post / comment / solution / problem) to its
  * management view route. Both the queue and report views use this so
@@ -160,7 +158,6 @@ export const ENTITY_ROUTES: Readonly<Record<ModeratableEntityType, (id: string) 
 export const entityRoute = (entity: ModeratableEntityType, entityId: string): string =>
   ENTITY_ROUTES[entity](entityId)
 
-
 /**
  * Centralised CSS variable mapping for the moderation chrome.
  * The views (QueueView drawer, ActionPanel cards) consume these so
@@ -175,22 +172,22 @@ interface ActionStyle {
 
 const ACTION_STYLES: Readonly<Record<ActionColorKey, ActionStyle>> = {
   red: {
-    color: 'text-foreground-strong',
+    color: 'text-foreground',
     background: 'bg-[color-mix(in_oklch,_var(--status-error-mark)_15%,_transparent)]',
     border: 'border-[color-mix(in_oklch,_var(--status-error-mark)_40%,_transparent)]',
   },
   amber: {
-    color: 'text-foreground-strong',
+    color: 'text-foreground',
     background: 'bg-[color-mix(in_oklch,_var(--status-warning-mark)_15%,_transparent)]',
     border: 'border-[color-mix(in_oklch,_var(--status-warning-mark)_40%,_transparent)]',
   },
   green: {
-    color: 'text-foreground-strong',
+    color: 'text-foreground',
     background: 'bg-[color-mix(in_oklch,_var(--status-success-mark)_15%,_transparent)]',
     border: 'border-[color-mix(in_oklch,_var(--status-success-mark)_40%,_transparent)]',
   },
   purple: {
-    color: 'text-foreground-strong',
+    color: 'text-foreground',
     background: 'bg-[color-mix(in_oklch,_var(--status-special-mark)_15%,_transparent)]',
     border: 'border-[color-mix(in_oklch,_var(--status-special-mark)_40%,_transparent)]',
   },

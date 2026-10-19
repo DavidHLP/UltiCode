@@ -1,15 +1,19 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { IconUpload } from '@tabler/icons-vue'
-import type { UploadSettings } from '@/api/admin/settings'
+import { Input } from '@ulticode/design-system/ui/input'
+import { Label } from '@ulticode/design-system/ui/label'
 import {
-  formatBytes,
-  parseSizeToBytes,
-} from '@/stores/admin/system-settings'
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@ulticode/design-system/ui/card'
+import { Upload as IconUpload } from '@lucide/vue'
+
+import type { UploadSettings } from '@/api/admin/settings'
+import { formatBytes, parseSizeToBytes } from '@/stores/admin/system-settings'
 
 const { t } = useI18n()
 

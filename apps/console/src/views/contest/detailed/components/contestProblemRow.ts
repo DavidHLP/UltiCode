@@ -47,20 +47,10 @@ export function getRowAction(
 }
 
 /**
- * Render a 0..1 acceptance fraction as a 1-decimal percent string.
- *
- *   formatAcceptanceRate(0.732)  → "73.2%"
- *   formatAcceptanceRate(1)      → "100.0%"
- *   formatAcceptanceRate(null)   → "0.0%"    (defensive fallback)
- *
- * The backend returns a fraction per the ContestProblemSummary type
- * contract; we render with one decimal place so the table doesn't
- * flicker "73.2357%" with full precision. Non-finite or nullish
- * values fall back to 0% so the table never shows "NaN%".
+ * The problem API supplies a 0..100 percentage; keep its unit and
+ * render one decimal. Missing or non-finite values fall back to 0%.
  */
-export function formatAcceptanceRate(
-  rate: number | null | undefined,
-): string {
+export function formatAcceptanceRate(rate: number | null | undefined): string {
   const r = typeof rate === "number" && Number.isFinite(rate) ? rate : 0;
-  return `${(r * 100).toFixed(1)}%`;
+  return `${r.toFixed(1)}%`;
 }

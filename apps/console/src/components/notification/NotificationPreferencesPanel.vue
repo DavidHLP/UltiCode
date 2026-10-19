@@ -2,9 +2,9 @@
 import { onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { toast } from "vue-sonner";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
+import { Switch } from "@ulticode/design-system/ui/switch";
+import { Label } from "@ulticode/design-system/ui/label";
+import { Separator } from "@ulticode/design-system/ui/separator";
 import {
   fetchNotificationPreferences,
   updateNotificationPreferences,
@@ -69,7 +69,7 @@ async function togglePreference(
           >
             <component :is="item.icon" class="h-4 w-4 text-muted-foreground" />
           </div>
-          <Label :for="`pref-${item.key}`" class="cursor-pointer text-sm">
+          <Label :for="`pref-${item.key}`" class="cursor-pointer">
             {{ t(`personal.notifications.prefCategories.${item.key}`) }}
           </Label>
         </div>

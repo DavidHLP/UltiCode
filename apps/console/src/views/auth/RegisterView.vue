@@ -30,7 +30,7 @@ defineOptions({
 <template>
   <AuthLayout badge="CODE" version="v2.0.0">
     <template #form>
-      <AuthCard :title="t('auth.register.terminal')">
+      <AuthCard>
         <RegisterForm :on-submit="handleRegister" />
       </AuthCard>
     </template>
@@ -38,14 +38,6 @@ defineOptions({
       <AuthPatternBackground
         :title="t('auth.layout.codingConsole')"
         :subtitle="t('auth.layout.codingConsoleSubtitle')"
-        :spec="[
-          { prompt: 'systemctl status ulticode.service', output: { text: '● ulticode.service - UltiCode Platform', tone: 'success' } },
-          { output: { text: 'Active: active (running) since Jun 2026', tone: 'muted' } },
-          { output: { text: 'PID: 9002 (vite-console)', tone: 'muted' } },
-          { prompt: 'npx vitest run --coverage', output: { text: '✓ tests passed (100% coverage)', tone: 'success' } },
-          { prompt: 'check_db_connection', output: { text: 'Database: mysql@localhost (CONNECTED)', tone: 'success' } },
-          { output: { text: 'Server Port: 9002 (Vite Console)', tone: 'accent' } },
-        ]"
       />
     </template>
   </AuthLayout>

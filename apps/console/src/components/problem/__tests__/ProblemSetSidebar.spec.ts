@@ -18,21 +18,22 @@ vi.mock("vue-i18n", async (importOriginal) => ({
   ...(await importOriginal<typeof VueI18n>()),
   useI18n: () => ({
     t: (key: string) => key,
+    locale: { value: "en-US" },
   }),
 }));
 
-vi.mock("@/components/ui/calendar", () => ({
-  Calendar: { template: "<div class=\"calendar-stub\" />" },
+vi.mock("@ulticode/design-system/ui/calendar", () => ({
+  Calendar: { template: '<div class="calendar-stub" />' },
 }));
 
-vi.mock("@/components/ui/card", () => ({
+vi.mock("@ulticode/design-system/ui/card", () => ({
   Card: { template: "<div><slot /></div>" },
   CardContent: { template: "<div><slot /></div>" },
   CardHeader: { template: "<div><slot /></div>" },
   CardTitle: { template: "<div><slot /></div>" },
 }));
 
-vi.mock("@/components/ui/badge", () => ({
+vi.mock("@ulticode/design-system/ui/badge", () => ({
   Badge: { template: "<span><slot /></span>" },
 }));
 
@@ -46,6 +47,25 @@ describe("ProblemSetSidebar", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
     vi.clearAllMocks();
+  });
+
+  it("keeps the compact week view expandable when content space is narrow", async () => {
+    vi.mocked(fetchRandomProblem).mockRejectedValueOnce(
+      new Error("No problem"),
+    );
+    const wrapper = mount(ProblemSetSidebar);
+    await flushPromises();
+    const content = wrapper.find('[class*="max-h"]');
+    expect(content.classes()).toContain("max-h-0");
+    await wrapper
+      .find('[aria-label="problem.sidebar.toggleCalendar"]')
+      .trigger("click");
+    expect(content.classes()).toContain("max-h-[180px]");
+    await wrapper
+      .find('[aria-label="problem.sidebar.toggleCalendar"]')
+      .trigger("click");
+    expect(content.classes()).toContain("max-h-0");
+    wrapper.unmount();
   });
 
   it("fetches random problem dynamically on mount", async () => {
@@ -69,7 +89,7 @@ describe("ProblemSetSidebar", () => {
     await flushPromises();
 
     expect(fetchRandomProblem).toHaveBeenCalledTimes(1);
-    expect(wrapper.text()).toContain("今日：42.");
+    expect(wrapper.text()).toContain("problem.sidebar.todayProblem");
     expect(wrapper.text()).toContain("两数之和");
     const link = wrapper.findComponent(RouterLinkStub);
     expect(link.exists()).toBe(true);
@@ -77,7 +97,9 @@ describe("ProblemSetSidebar", () => {
   });
 
   it("handles empty database or fetch error gracefully without failing", async () => {
-    vi.mocked(fetchRandomProblem).mockRejectedValueOnce(new Error("No published problems available"));
+    vi.mocked(fetchRandomProblem).mockRejectedValueOnce(
+      new Error("No published problems available"),
+    );
 
     const wrapper = mount(ProblemSetSidebar, {
       global: {
@@ -89,6 +111,6 @@ describe("ProblemSetSidebar", () => {
     await flushPromises();
 
     expect(fetchRandomProblem).toHaveBeenCalledTimes(1);
-    expect(wrapper.text()).not.toContain("今日：");
+    expect(wrapper.text()).not.toContain("problem.sidebar.todayProblem");
   });
 });

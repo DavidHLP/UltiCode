@@ -2,7 +2,7 @@
 import { computed, ref, nextTick } from "vue";
 import { useRoute } from "vue-router";
 import ProblemExplorer from "@/components/problem/ProblemExplorer.vue";
-import { Button } from "@/components/ui/button";
+import { Button } from "@ulticode/design-system/ui/button";
 import {
   GitFork,
   MoreHorizontal,
@@ -28,17 +28,18 @@ import {
   DropdownMenuSub,
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
-} from "@/components/ui/dropdown-menu";
+  DropdownMenuGroup,
+} from "@ulticode/design-system/ui/dropdown-menu";
 import {
   Empty,
   EmptyContent,
   EmptyDescription,
   EmptyHeader,
   EmptyMedia,
-} from "@/components/ui/empty";
-import { Badge } from "@/components/ui/badge";
-import { SemanticBadge } from "@/components/ui/terminal";
-import { Separator } from "@/components/ui/separator";
+} from "@ulticode/design-system/ui/empty";
+import { Badge } from "@ulticode/design-system/ui/badge";
+import SemanticBadge from "@ulticode/badge-config/SemanticBadge.vue";
+import { Separator } from "@ulticode/design-system/ui/separator";
 import { useI18n } from "vue-i18n";
 import ProblemListAnalytics from "./ProblemListAnalytics.vue";
 import EditListDialog from "./components/EditListDialog.vue";
@@ -53,6 +54,8 @@ const listId = computed(() => route.params.id as string);
 const {
   currentList,
   problems,
+  loadError,
+  loadProblemList,
   isSaved,
   isSaving,
   isForking,
@@ -102,13 +105,11 @@ function openAddProblemsDialog() {
     class="container mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 max-w-[1400px]"
   >
     <!-- Header Section -->
-    <div
-      class="flex flex-col gap-6 md:flex-row md:items-start md:justify-between border-b pb-8"
-    >
-      <div class="space-y-4 max-w-3xl">
+    <div class="flex flex-wrap items-start justify-between gap-6 border-b pb-8">
+      <div class="min-w-[min(100%,24rem)] flex-1 space-y-4 max-w-3xl">
         <div class="space-y-2">
           <div class="flex items-center gap-3">
-            <Badge variant="outline" class="rounded-none px-2.5 py-0.5">{{
+            <Badge variant="outline" class="px-2.5 py-0.5">{{
               t("problem.problemList.detail.listBadge")
             }}</Badge>
             <SemanticBadge
@@ -166,12 +167,12 @@ function openAddProblemsDialog() {
         </div>
       </div>
 
-      <div class="flex items-center gap-2 shrink-0">
+      <div class="flex max-w-full flex-wrap items-center gap-2 shrink-0">
         <Button
           v-if="canSave"
           :variant="isSaved ? 'default' : 'outline'"
           size="sm"
-          class="h-9 gap-2"
+          class="gap-2"
           @click="handleToggleSave"
           :disabled="isSaving"
         >
@@ -185,14 +186,13 @@ function openAddProblemsDialog() {
                 : t("problem.problemList.detail.save")
           }}
         </Button>
-        <Button variant="secondary" size="sm" class="h-9" @click="handleShare">
+        <Button variant="secondary" size="sm" @click="handleShare">
           <Share2 class="mr-2 h-4 w-4" />
           {{ t("problem.problemList.detail.share") }}
         </Button>
         <Button
           variant="outline"
           size="sm"
-          class="h-9"
           @click="handleFork"
           :disabled="isForking"
         >
@@ -205,77 +205,83 @@ function openAddProblemsDialog() {
         </Button>
         <DropdownMenu v-model:open="dropdownOpen">
           <DropdownMenuTrigger as-child>
-            <Button variant="ghost" size="icon" class="h-9 w-9">
+            <Button
+              variant="ghost"
+              size="icon"
+              class="w-9"
+              :aria-label="t('problem.table.actions')"
+            >
               <MoreHorizontal class="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" class="w-56">
-            <template v-if="isOwner">
-              <DropdownMenuItem
-                @click="
-                  dropdownOpen = false;
-                  nextTick(() => (isEditOpen = true));
-                "
-              >
-                <Pencil class="mr-2 h-4 w-4" />
-                {{ t("problem.problemList.detail.editDetails") }}
+            <DropdownMenuGroup
+              ><template v-if="isOwner">
+                <DropdownMenuItem
+                  @click="
+                    dropdownOpen = false;
+                    nextTick(() => (isEditOpen = true));
+                  "
+                >
+                  <Pencil class="mr-2 h-4 w-4" />
+                  {{ t("problem.problemList.detail.editDetails") }}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  @click="
+                    dropdownOpen = false;
+                    nextTick(() => openAddProblemsDialog());
+                  "
+                >
+                  <Plus class="mr-2 h-4 w-4" />
+                  {{ t("problem.problemList.detail.addProblems") }}
+                </DropdownMenuItem>
+              </template>
+              <template v-if="canSave && isSaved">
+                <DropdownMenuSub v-if="userCategories.length > 0">
+                  <DropdownMenuSubTrigger>
+                    <FolderInput class="mr-2 h-4 w-4" />
+                    {{ t("problem.problemList.detail.moveToCategory") }}
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent>
+                    <DropdownMenuItem
+                      v-if="currentCategoryId"
+                      @click="handleMoveToCategory(null)"
+                    >
+                      {{ t("problem.problemList.detail.removeFromCategory") }}
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator v-if="currentCategoryId" />
+                    <DropdownMenuItem
+                      v-for="cat in userCategories"
+                      :key="cat.id"
+                      @click="handleMoveToCategory(cat.id)"
+                    >
+                      {{ cat.name }}
+                    </DropdownMenuItem>
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+                <DropdownMenuItem @click="handleToggleSave">
+                  <BookmarkMinus class="mr-2 h-4 w-4" />
+                  {{ t("problem.problemList.detail.unsave") }}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+              </template>
+              <DropdownMenuItem @click="handleFork" :disabled="isForking">
+                <Copy class="mr-2 h-4 w-4" />
+                {{ t("problem.problemList.detail.duplicate") }}
               </DropdownMenuItem>
-              <DropdownMenuItem
-                @click="
-                  dropdownOpen = false;
-                  nextTick(() => openAddProblemsDialog());
-                "
-              >
-                <Plus class="mr-2 h-4 w-4" />
-                {{ t("problem.problemList.detail.addProblems") }}
-              </DropdownMenuItem>
-            </template>
-            <template v-if="canSave && isSaved">
-              <DropdownMenuSub v-if="userCategories.length > 0">
-                <DropdownMenuSubTrigger>
-                  <FolderInput class="mr-2 h-4 w-4" />
-                  {{ t("problem.problemList.detail.moveToCategory") }}
-                </DropdownMenuSubTrigger>
-                <DropdownMenuSubContent>
-                  <DropdownMenuItem
-                    v-if="currentCategoryId"
-                    @click="handleMoveToCategory(null)"
-                  >
-                    {{ t("problem.problemList.detail.removeFromCategory") }}
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator v-if="currentCategoryId" />
-                  <DropdownMenuItem
-                    v-for="cat in userCategories"
-                    :key="cat.id"
-                    @click="handleMoveToCategory(cat.id)"
-                  >
-                    {{ cat.name }}
-                  </DropdownMenuItem>
-                </DropdownMenuSubContent>
-              </DropdownMenuSub>
-              <DropdownMenuItem @click="handleToggleSave">
-                <BookmarkMinus class="mr-2 h-4 w-4" />
-                {{ t("problem.problemList.detail.unsave") }}
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-            </template>
-            <DropdownMenuItem @click="handleFork" :disabled="isForking">
-              <Copy class="mr-2 h-4 w-4" />
-              {{ t("problem.problemList.detail.duplicate") }}
-            </DropdownMenuItem>
-            <template v-if="isOwner">
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                class="text-destructive focus:text-destructive"
-                @click="
-                  dropdownOpen = false;
-                  nextTick(() => (isDeleteOpen = true));
-                "
-              >
-                <Trash2 class="mr-2 h-4 w-4" />
-                {{ t("problem.problemList.actions.deleteList") }}
-              </DropdownMenuItem>
-            </template>
+              <template v-if="isOwner">
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  @click="
+                    dropdownOpen = false;
+                    nextTick(() => (isDeleteOpen = true));
+                  "
+                >
+                  <Trash2 class="mr-2 h-4 w-4" />
+                  {{ t("problem.problemList.actions.deleteList") }}
+                </DropdownMenuItem>
+              </template></DropdownMenuGroup
+            >
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
@@ -305,22 +311,28 @@ function openAddProblemsDialog() {
       @add="handleAddProblem"
     />
 
-    <div v-if="problems.length === 0" class="py-12">
-      <Empty
-        class="h-80 border border-dashed border-border/60 bg-muted/20 rounded-none"
-      >
+    <div
+      v-if="loadError"
+      role="alert"
+      class="flex flex-col items-center gap-4 py-12 text-center"
+    >
+      <p class="text-destructive">{{ t("problem.explorer.failedToLoad") }}</p>
+      <Button variant="outline" @click="loadProblemList(listId)">
+        {{ t("common.actions.retry") }}
+      </Button>
+    </div>
+
+    <div v-else-if="problems.length === 0" class="py-12">
+      <Empty class="h-80">
         <EmptyContent>
-          <EmptyMedia
-            variant="icon"
-            class="bg-background p-4 rounded-full shadow-sm mb-4"
-          >
+          <EmptyMedia variant="icon" class="p-4 mb-4">
             <ListX class="h-8 w-8 text-muted-foreground" />
           </EmptyMedia>
           <EmptyHeader>
             <h3 class="text-xl font-semibold text-foreground mb-1">
               {{ t("problem.problemList.detail.emptyTitle") }}
             </h3>
-            <EmptyDescription class="text-base">
+            <EmptyDescription>
               {{ t("problem.problemList.detail.emptyDesc") }}
             </EmptyDescription>
           </EmptyHeader>

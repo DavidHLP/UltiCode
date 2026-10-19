@@ -1,12 +1,42 @@
 <script setup lang="ts">
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@ulticode/design-system/ui/accordion'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@ulticode/design-system/ui/table'
+
 import { ref, computed, watch } from 'vue'
-import type { ChartConfig } from '@/components/ui/chart'
-import { VisAxis, VisLine, VisXYContainer, VisScatter, VisArea, VisCrosshair } from '@unovis/vue'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { ChartContainer } from '@/components/ui/chart'
-import { Button } from '@/components/ui/button'
+import type { ChartConfig } from '@ulticode/design-system/ui/chart'
+import {
+  VisAxis,
+  VisLine,
+  VisXYContainer,
+  VisScatter,
+  VisArea,
+  VisCrosshair,
+  VisTooltip,
+} from '@unovis/vue'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@ulticode/design-system/ui/card'
+import { ChartContainer } from '@ulticode/design-system/ui/chart'
+import { Button } from '@ulticode/design-system/ui/button'
 import { useI18n } from 'vue-i18n'
-import { IconChartBar } from '@tabler/icons-vue'
+import { ChartBar as IconChartBar } from '@lucide/vue'
+
 import { filterChartDataByPeriod, formatChartDateTick, type TimePeriod } from './areaChartData'
 import {
   Empty,
@@ -15,7 +45,7 @@ import {
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
-} from '@/components/ui/empty'
+} from '@ulticode/design-system/ui/empty'
 
 export interface ChartDataPoint {
   date: Date
@@ -146,11 +176,11 @@ const chartData = computed(() => props.data || defaultData)
 const defaultConfig: ChartConfig = {
   mobile: {
     label: 'Mobile',
-    color: 'var(--accent-primary)',
+    color: 'var(--chart-1)',
   },
   desktop: {
     label: 'Desktop',
-    color: 'var(--foreground-muted)',
+    color: 'var(--chart-2)',
   },
 }
 
@@ -183,15 +213,13 @@ const seriesKeys = computed(() => props.seriesKeys || ['mobile', 'desktop'])
 
 type Data = (typeof chartData.value)[number]
 
-const getYValues = (d: Data) => {
-  return seriesKeys.value.map((key) => (d[key] as number) || 0)
-}
+const yAccessors = computed(() =>
+  seriesKeys.value.map((key) => (d: Data) => (d[key] as number) || 0),
+)
 
-const getColors = () => {
-  return seriesKeys.value.map((key) => {
-    const config = chartConfig.value[key as keyof typeof chartConfig.value]
-    return config?.color || 'var(--accent-primary)'
-  })
+const getColor = (_: unknown, index: number) => {
+  const key = seriesKeys.value[index]
+  return key ? chartConfig.value[key]?.color || 'var(--chart-1)' : 'var(--chart-1)'
 }
 
 // Calculate dynamic yDomain to prevent line squishing
@@ -211,7 +239,7 @@ const yDomain = computed(() => {
 })
 
 /**
- * Crosshair tooltip template. Renders a compact, terminal-styled card
+ * Crosshair tooltip template. Renders a compact,  card
  * showing the hovered date and one row per series. Returning an empty
  * string hides the tooltip.
  */
@@ -227,7 +255,7 @@ function crosshairTemplate(d: Data) {
     .map((key) => {
       const cfg = chartConfig.value[key]
       const label = typeof cfg?.label === 'string' ? cfg.label : key
-      const color = cfg?.color || 'var(--accent-primary)'
+      const color = cfg?.color || 'var(--chart-1)'
       const value = Number(d[key]) || 0
       return (
         `<div class="uc-chart-tooltip__row">` +
@@ -259,36 +287,28 @@ function escapeHtml(s: string): string {
 </script>
 
 <template>
-  <Card
-    class="border border-[var(--border-subtle)] dark:border-[var(--border-subtle)]/60 bg-card overflow-hidden shadow-float gap-0 py-0 rounded-none h-full flex flex-col"
-  >
-    <CardHeader
-      class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-5 py-4 bg-[var(--surface)] dark:bg-[var(--surface-highlight)]/10 border-b border-[var(--border-subtle)] dark:border-[var(--border-subtle)]/50"
-    >
+  <Card class="overflow-hidden gap-0 py-0 h-full flex flex-col">
+    <CardHeader class="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
       <div class="space-y-1">
-        <CardTitle class="text-sm font-bold font-mono uppercase tracking-wide text-foreground">{{
-          props.title
-        }}</CardTitle>
-        <CardDescription class="text-xs text-[var(--foreground-muted)]">{{
-          props.description
-        }}</CardDescription>
+        <CardTitle>{{ props.title }}</CardTitle>
+        <CardDescription>{{ props.description }}</CardDescription>
       </div>
 
       <!-- Time period selector - Segmented Control style -->
       <div
         v-if="props.showPeriodSelector"
-        class="flex items-center gap-0.5 rounded-none border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--surface-highlight)] p-0.5"
+        class="flex flex-wrap items-center gap-0.5 rounded-lg border border-border dark:border-border bg-accent p-0.5"
       >
         <Button
           v-for="period in timePeriods"
           :key="period.value"
           variant="ghost"
           :size="'sm'"
-          class="h-6 px-3.5 text-xs rounded-none font-mono transition-all duration-200 cursor-pointer"
+          class="px-3.5 cursor-pointer"
           :class="
             timePeriod === period.value
-              ? 'bg-card text-[var(--accent-primary)] font-bold shadow-sm border border-[var(--border-subtle)] dark:border-[var(--border-subtle)]'
-              : 'text-[var(--foreground-muted)] hover:text-foreground hover:bg-[var(--border-subtle)]/50'
+              ? 'bg-card text-primary font-bold shadow-sm border border-border dark:border-border'
+              : 'text-muted-foreground hover:text-foreground hover:bg-border/50'
           "
           @click="selectTimePeriod(period.value)"
         >
@@ -301,23 +321,18 @@ function escapeHtml(s: string): string {
       <!-- Empty State -->
       <div
         v-if="filterRange.length === 0"
-        class="flex flex-col items-center justify-center h-[280px] w-full border border-dashed border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--surface)]/30 rounded-none"
+        class="flex flex-col items-center justify-center h-[280px] w-full border border-dashed border-border dark:border-border bg-background/30 rounded-lg"
       >
         <Empty>
           <EmptyContent>
-            <EmptyMedia
-              variant="icon"
-              class="border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-card text-[var(--foreground-muted)] rounded-none"
-            >
+            <EmptyMedia variant="icon">
               <IconChartBar class="size-6" />
             </EmptyMedia>
             <EmptyHeader class="text-center mt-2">
-              <EmptyTitle class="text-xs font-mono font-bold text-foreground">
+              <EmptyTitle>
                 {{ t('dashboard.chart.noDataTitle') }}
               </EmptyTitle>
-              <EmptyDescription
-                class="text-xxs font-mono text-[var(--foreground-muted)] mt-1 max-w-xs mx-auto"
-              >
+              <EmptyDescription class="mt-1 max-w-xs mx-auto">
                 {{ t('dashboard.chart.noDataDesc') }}
               </EmptyDescription>
             </EmptyHeader>
@@ -330,7 +345,7 @@ function escapeHtml(s: string): string {
         v-else
         :config="chartConfig"
         class="aspect-auto h-[260px] w-full"
-        :cursor="false"
+        :cursor="true"
       >
         <VisXYContainer
           :data="filterRange"
@@ -338,24 +353,38 @@ function escapeHtml(s: string): string {
           :y-domain="yDomain"
         >
           <!-- Semi-transparent area fill -->
-          <VisArea :x="(d: Data) => d.date" :y="getYValues" :color="getColors" :opacity="0.14" />
+          <VisArea
+            :x="(d: Data) => d.date.getTime()"
+            :y="yAccessors"
+            :color="getColor"
+            :opacity="0.14"
+          />
           <!-- Precision thin lines -->
-          <VisLine :x="(d: Data) => d.date" :y="getYValues" :color="getColors" :line-width="2" />
+          <VisLine
+            :x="(d: Data) => d.date.getTime()"
+            :y="yAccessors"
+            :color="getColor"
+            :line-width="2"
+          />
           <!-- Small data points -->
           <VisScatter
-            :x="(d: Data) => d.date"
-            :y="getYValues"
-            :color="getColors"
-            :radius="3"
-            :stroke-width="1.5"
+            v-for="(accessor, index) in yAccessors"
+            :key="seriesKeys[index]"
+            :x="(d: Data) => d.date.getTime()"
+            :y="accessor"
+            :color="getColor(undefined, index)"
+            :size="8"
+            stroke-color="var(--card)"
+            :stroke-width="2"
           />
           <VisAxis
             type="x"
-            :x="(d: Data) => d.date"
+            :x="(d: Data) => d.date.getTime()"
             :tick-line="false"
             :domain-line="false"
             :grid-line="false"
             :num-ticks="6"
+            :tick-text-adaptive-sets="true"
             :tick-format="(d: number, index: number) => formatChartDateTick(d, locale)"
           />
           <VisAxis
@@ -367,17 +396,57 @@ function escapeHtml(s: string): string {
             :grid-line-color="'color-mix(in oklch, var(--border) 45%, transparent)'"
             :tick-format="(d: number) => (Number.isInteger(d) ? d.toString() : d.toFixed(1))"
           />
+          <VisTooltip />
           <!-- Vertical crosshair + tooltip showing the hovered data point -->
           <VisCrosshair
-            :x="(d: Data) => d.date"
-            :y="getYValues"
-            :color="getColors"
+            :x="(d: Data) => d.date.getTime()"
+            :y="yAccessors"
+            :color="getColor"
             :template="crosshairTemplate"
             :hide-when-far-from-pointer="true"
             :hide-when-far-from-pointer-distance="80"
           />
         </VisXYContainer>
       </ChartContainer>
+      <ul
+        v-if="seriesKeys.length > 1"
+        class="mt-4 flex flex-wrap gap-4 text-sm"
+        :aria-label="props.title"
+      >
+        <li v-for="key in seriesKeys" :key="key" class="flex items-center gap-2">
+          <span
+            class="size-2 shrink-0 rounded-full"
+            :style="{ background: chartConfig[key]?.color }"
+            aria-hidden="true"
+          />
+          <span>{{ chartConfig[key]?.label ?? key }}: {{ filterRange.at(-1)?.[key] ?? 0 }}</span>
+        </li>
+      </ul>
+      <Accordion v-if="filterRange.length" type="single" collapsible class="mt-4">
+        <AccordionItem value="data">
+          <AccordionTrigger>{{ t('common.dataTable') }}</AccordionTrigger>
+          <AccordionContent>
+            <Table>
+              <TableHeader
+                ><TableRow
+                  ><TableHead>{{ t('common.date') }}</TableHead
+                  ><TableHead v-for="key in seriesKeys" :key="key">{{
+                    chartConfig[key]?.label ?? key
+                  }}</TableHead></TableRow
+                ></TableHeader
+              >
+              <TableBody
+                ><TableRow v-for="row in filterRange" :key="row.date.toISOString()"
+                  ><TableCell>{{ row.date.toLocaleDateString(locale) }}</TableCell
+                  ><TableCell v-for="key in seriesKeys" :key="key">{{
+                    row[key]
+                  }}</TableCell></TableRow
+                ></TableBody
+              >
+            </Table>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
     </CardContent>
   </Card>
 </template>
@@ -392,7 +461,7 @@ function escapeHtml(s: string): string {
   gap: 0.375rem;
   min-width: 12rem;
   padding: 0.5rem 0.625rem;
-  font-family: var(--uc-font-code);
+  font-family: var(--uc-font-ui);
   font-size: var(--uc-text-xs);
   color: var(--foreground);
   background: var(--card);
@@ -406,7 +475,7 @@ function escapeHtml(s: string): string {
   font-weight: var(--uc-font-weight-semibold);
   font-size: var(--uc-text-2xs);
   letter-spacing: 0.05em;
-  color: var(--foreground-muted);
+  color: var(--muted-foreground);
   text-transform: uppercase;
 }
 
@@ -432,7 +501,7 @@ function escapeHtml(s: string): string {
 
 :deep(.uc-chart-tooltip__label) {
   flex: 1;
-  color: var(--foreground-muted);
+  color: var(--muted-foreground);
   font-size: var(--uc-text-xs);
 }
 

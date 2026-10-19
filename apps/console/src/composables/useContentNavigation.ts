@@ -52,8 +52,7 @@ export interface UseContentNavigationReturn {
 }
 
 type HeadingsSource =
-  | ComputedRef<readonly ContentHeading[]>
-  | Ref<readonly ContentHeading[]>;
+  ComputedRef<readonly ContentHeading[]> | Ref<readonly ContentHeading[]>;
 
 function readHeadings(source: HeadingsSource): readonly ContentHeading[] {
   const value = source.value;
@@ -66,6 +65,7 @@ export function useContentNavigation(
 ): UseContentNavigationReturn {
   const wideThreshold = options.wideThreshold ?? 900;
   const observeDebounceMs = options.observeDebounceMs ?? 250;
+  const headingOffset = 80;
 
   const wrapperRef = ref<HTMLElement | null>(null);
   const activeHeadingId = ref<string>("");
@@ -92,21 +92,31 @@ export function useContentNavigation(
     }
   };
 
+  const updateActiveHeadingFromPosition = (): void => {
+    let nearestId = "";
+    for (const heading of readHeadings(headings)) {
+      const target =
+        document.getElementById(heading.id) ??
+        options.resolveFallbackElement?.(heading);
+      if (
+        target &&
+        (!nearestId || target.getBoundingClientRect().top <= headingOffset)
+      ) {
+        nearestId = heading.id;
+      }
+    }
+    activeHeadingId.value = nearestId;
+  };
+
   const setupIntersectionObserver = (): void => {
     teardownIntersectionObserver();
     if (!mounted || typeof IntersectionObserver === "undefined") return;
 
     intersectionObserver = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting && entry.target instanceof HTMLElement) {
-            activeHeadingId.value = entry.target.id;
-          }
-        }
-      },
+      updateActiveHeadingFromPosition,
       {
         root: null,
-        rootMargin: "-80px 0px -50% 0px",
+        rootMargin: `-${headingOffset}px 0px -50% 0px`,
         threshold: 0.1,
       },
     );
@@ -114,7 +124,7 @@ export function useContentNavigation(
     const list = readHeadings(headings);
     const ids = new Set(list.map((heading) => heading.id));
     if (activeHeadingId.value && !ids.has(activeHeadingId.value)) {
-      activeHeadingId.value = '';
+      activeHeadingId.value = "";
     }
     for (const heading of list) {
       if (!heading.id) continue;
@@ -134,26 +144,33 @@ export function useContentNavigation(
   };
 
   const setupResizeObserver = (): void => {
-    teardownResizeObserver()
-    if (!mounted || typeof ResizeObserver === "undefined" || !wrapperRef.value) return
+    teardownResizeObserver();
+    if (!mounted || typeof ResizeObserver === "undefined" || !wrapperRef.value)
+      return;
 
     resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
-        const width = entry.contentRect?.width ?? 0
-        containerWidth.value = width
+        const width = entry.contentRect?.width ?? 0;
+        containerWidth.value = width;
       }
-    })
-    resizeObserver.observe(wrapperRef.value)
-  }
+    });
+    resizeObserver.observe(wrapperRef.value);
+  };
 
   onMounted(() => {
-    mounted = true
-    scheduleObserve()
-    setupResizeObserver()
-  })
+    mounted = true;
+    // A first large scroll may never intersect a heading, including nested panes.
+    window.addEventListener("scroll", updateActiveHeadingFromPosition, {
+      capture: true,
+      passive: true,
+    });
+    scheduleObserve();
+    setupResizeObserver();
+  });
 
   onBeforeUnmount(() => {
     mounted = false;
+    window.removeEventListener("scroll", updateActiveHeadingFromPosition, true);
     if (pendingObserveHandle !== null) {
       clearTimeout(pendingObserveHandle);
       pendingObserveHandle = null;
@@ -162,16 +179,23 @@ export function useContentNavigation(
     teardownResizeObserver();
   });
 
-  watch(wrapperRef, () => {
-    if (mounted) setupResizeObserver()
-  }, { flush: 'post' })
+  watch(
+    wrapperRef,
+    () => {
+      if (mounted) setupResizeObserver();
+    },
+    { flush: "post" },
+  );
 
   watch(
-    () => readHeadings(headings).map((h) => `${h.id}:${h.text}:${h.level}`).join('|'),
+    () =>
+      readHeadings(headings)
+        .map((h) => `${h.id}:${h.text}:${h.level}`)
+        .join("|"),
     () => {
-      if (mounted) scheduleObserve()
+      if (mounted) scheduleObserve();
     },
-  )
+  );
 
   const defaultScrollIntoView = (el: HTMLElement): void => {
     el.scrollIntoView({ behavior: "smooth", block: "start" });

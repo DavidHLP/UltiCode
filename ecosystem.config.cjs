@@ -262,6 +262,23 @@ module.exports = {
       max_memory_restart: '512M',
     },
     {
+      name: 'ulticode-9004',
+      cwd: path.join(ROOT, 'apps', 'landing'),
+      script: 'pnpm',
+      args: 'dev',
+      interpreter: 'none',
+      env: {
+        NODE_ENV: 'development',
+        VITE_LANDING_BASE: '/landing/',
+      },
+      out_file: path.join(ROOT, 'logs', 'landing.out.log'),
+      error_file: path.join(ROOT, 'logs', 'landing.err.log'),
+      merge_logs: true,
+      time: true,
+      kill_timeout: 30000,
+      max_memory_restart: '512M',
+    },
+    {
       name: 'ulticode-9003',
       cwd: path.join(ROOT, 'apps', 'management'),
       script: 'pnpm',

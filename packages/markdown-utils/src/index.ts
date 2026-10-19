@@ -104,6 +104,7 @@ const PURIFY_CONFIG: DOMPurifyConfig = {
     'data-code',
     'data-index',
     'aria-label',
+    'tabindex',
     'viewBox',
     // KaTeX draws radicals, stretchy arrows, braces and wide hats as an SVG
     // whose 400000-unit-wide viewBox has to be sliced to a ~1em box:
@@ -508,6 +509,18 @@ md.renderer.rules.heading_open = (tokens, idx, options, env, self) => {
   }
   return defaultHeadingOpen(tokens, idx, options, env, self)
 }
+
+const defaultTableOpen =
+  md.renderer.rules.table_open ||
+  ((_tokens, _idx, _options, _env, self) => self.renderToken(_tokens, _idx, _options))
+const defaultTableClose =
+  md.renderer.rules.table_close ||
+  ((_tokens, _idx, _options, _env, self) => self.renderToken(_tokens, _idx, _options))
+
+md.renderer.rules.table_open = (tokens, idx, options, env, self) =>
+  `<div class="typeset-scroll" tabindex="0">\n${defaultTableOpen(tokens, idx, options, env, self)}`
+md.renderer.rules.table_close = (tokens, idx, options, env, self) =>
+  `${defaultTableClose(tokens, idx, options, env, self)}\n</div>`
 
 // ---------------------------------------------------------------------------
 // Standalone fence renderer — toolbar (lang label + copy button) for blocks

@@ -1,6 +1,6 @@
 import type { ColumnDef } from '@tanstack/vue-table'
 import { h } from 'vue'
-import { Checkbox } from '@/components/ui/checkbox'
+import { Checkbox } from '@ulticode/design-system/ui/checkbox'
 
 /**
  * Creates a TanStack Table selection column using a tri-state Checkbox.
@@ -33,9 +33,6 @@ export function createSelectionColumn<T>(
     checkboxClass?: string
   },
 ): ColumnDef<T>[] {
-  const selectAllLabel = opts?.selectAllAriaLabel ?? t('table.selectAll')
-  const selectRowLabel = opts?.selectRowAriaLabel ?? t('common.select')
-
   return [
     {
       id: 'select',
@@ -48,15 +45,14 @@ export function createSelectionColumn<T>(
             (table.getIsSomePageRowsSelected() ? 'indeterminate' : false),
           'onUpdate:modelValue': (value: boolean | 'indeterminate') =>
             table.toggleAllPageRowsSelected(!!value),
-          'aria-label': selectAllLabel,
+          'aria-label': opts?.selectAllAriaLabel ?? t('table.selectAll'),
           class: opts?.checkboxClass,
         }),
       cell: ({ row }) =>
         h(Checkbox, {
           modelValue: row.getIsSelected(),
-          'onUpdate:modelValue': (value: boolean | 'indeterminate') =>
-            row.toggleSelected(!!value),
-          'aria-label': selectRowLabel,
+          'onUpdate:modelValue': (value: boolean | 'indeterminate') => row.toggleSelected(!!value),
+          'aria-label': opts?.selectRowAriaLabel ?? t('common.select'),
           class: opts?.checkboxClass,
         }),
     },

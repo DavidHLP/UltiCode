@@ -1,7 +1,12 @@
 <script setup lang="ts">
 import type { Component } from 'vue'
 
-import { IconDots, IconFolder, IconShare3, IconTrash } from '@tabler/icons-vue'
+import {
+  Ellipsis as IconDots,
+  Folder as IconFolder,
+  Share2 as IconShare3,
+  Trash as IconTrash,
+} from '@lucide/vue'
 
 import {
   DropdownMenu,
@@ -9,7 +14,8 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+  DropdownMenuGroup,
+} from '@ulticode/design-system/ui/dropdown-menu'
 import {
   SidebarGroup,
   SidebarGroupLabel,
@@ -18,7 +24,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
-} from '@/components/ui/sidebar'
+} from '@ulticode/design-system/ui/sidebar'
 
 interface Document {
   name: string
@@ -47,7 +53,7 @@ const { isMobile } = useSidebar()
         </SidebarMenuButton>
         <DropdownMenu>
           <DropdownMenuTrigger as-child>
-            <SidebarMenuAction show-on-hover class="data-[state=open]:bg-accent">
+            <SidebarMenuAction show-on-hover>
               <IconDots />
               <span class="sr-only">More</span>
             </SidebarMenuAction>
@@ -57,24 +63,26 @@ const { isMobile } = useSidebar()
             :side="isMobile ? 'bottom' : 'right'"
             :align="isMobile ? 'end' : 'start'"
           >
-            <DropdownMenuItem>
-              <IconFolder />
-              <span>Open</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <IconShare3 />
-              <span>Share</span>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem variant="destructive">
-              <IconTrash />
-              <span>Delete</span>
-            </DropdownMenuItem>
+            <DropdownMenuGroup
+              ><DropdownMenuItem>
+                <IconFolder />
+                <span>Open</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                <IconShare3 />
+                <span>Share</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem variant="destructive">
+                <IconTrash />
+                <span>Delete</span>
+              </DropdownMenuItem></DropdownMenuGroup
+            >
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>
       <SidebarMenuItem>
-        <SidebarMenuButton class="text-sidebar-foreground/70">
+        <SidebarMenuButton>
           <IconDots class="text-sidebar-foreground/70" />
           <span>More</span>
         </SidebarMenuButton>

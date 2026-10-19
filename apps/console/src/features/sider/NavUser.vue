@@ -12,11 +12,16 @@ import {
   List,
   CheckCircle2,
 } from "@lucide/vue";
-import { IconDotsVertical } from "@tabler/icons-vue";
+import { EllipsisVertical as IconDotsVertical } from "@lucide/vue";
+
 import { onMounted, computed } from "vue";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@ulticode/design-system/ui/avatar";
+import { Badge } from "@ulticode/design-system/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,13 +30,13 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@ulticode/design-system/ui/dropdown-menu";
 import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
-} from "@/components/ui/sidebar";
+} from "@ulticode/design-system/ui/sidebar";
 import LanguageSwitcher from "@/components/LanguageSwitcher.vue";
 import ThemeSwitcher from "@/components/ThemeSwitcher.vue";
 import { useLocale } from "@/composables/useLocale";
@@ -102,12 +107,9 @@ async function handleLogout() {
       <template v-if="!isAuthenticated">
         <DropdownMenu>
           <DropdownMenuTrigger as-child>
-            <SidebarMenuButton
-              size="lg"
-              class="uc-sidebar-user-trigger data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-            >
-              <Avatar class="uc-sidebar-avatar h-8 w-8 rounded-md">
-                <AvatarFallback class="uc-sidebar-avatar-fallback rounded-md">
+            <SidebarMenuButton size="lg" class="uc-sidebar-user-trigger">
+              <Avatar class="uc-sidebar-avatar h-8 w-8">
+                <AvatarFallback class="uc-sidebar-avatar-fallback">
                   <User class="size-4" />
                 </AvatarFallback>
               </Avatar>
@@ -128,12 +130,12 @@ async function handleLogout() {
             align="end"
             :side-offset="4"
           >
-            <DropdownMenuLabel class="p-0 font-normal">
+            <DropdownMenuLabel class="p-0">
               <div
                 class="flex items-center gap-2 px-1 py-1.5 text-left text-sm"
               >
-                <Avatar class="uc-sidebar-avatar h-8 w-8 rounded-md">
-                  <AvatarFallback class="uc-sidebar-avatar-fallback rounded-md">
+                <Avatar class="uc-sidebar-avatar h-8 w-8">
+                  <AvatarFallback class="uc-sidebar-avatar-fallback">
                     <User class="size-4" />
                   </AvatarFallback>
                 </Avatar>
@@ -172,13 +174,10 @@ async function handleLogout() {
       <!-- Authenticated: show user dropdown menu -->
       <DropdownMenu v-else>
         <DropdownMenuTrigger as-child>
-          <SidebarMenuButton
-            size="lg"
-            class="uc-sidebar-user-trigger data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-          >
-            <Avatar class="uc-sidebar-avatar h-8 w-8 rounded-md">
+          <SidebarMenuButton size="lg" class="uc-sidebar-user-trigger">
+            <Avatar class="uc-sidebar-avatar h-8 w-8">
               <AvatarImage :src="normalizedAvatar" :alt="user.name" />
-              <AvatarFallback class="uc-sidebar-avatar-fallback rounded-md">
+              <AvatarFallback class="uc-sidebar-avatar-fallback">
                 {{ user.name.substring(0, 2).toUpperCase() }}
               </AvatarFallback>
             </Avatar>
@@ -195,11 +194,11 @@ async function handleLogout() {
           align="end"
           :side-offset="4"
         >
-          <DropdownMenuLabel class="p-0 font-normal">
+          <DropdownMenuLabel class="p-0">
             <div class="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-              <Avatar class="uc-sidebar-avatar h-8 w-8 rounded-md">
+              <Avatar class="uc-sidebar-avatar h-8 w-8">
                 <AvatarImage :src="normalizedAvatar" :alt="user.name" />
-                <AvatarFallback class="uc-sidebar-avatar-fallback rounded-md">
+                <AvatarFallback class="uc-sidebar-avatar-fallback">
                   {{ user.name.substring(0, 2).toUpperCase() }}
                 </AvatarFallback>
               </Avatar>
@@ -265,17 +264,14 @@ async function handleLogout() {
                   <Bell class="mr-2 h-4 w-4" />
                   {{ t("sidebar.personal.notifications") }}
                 </div>
-                <Badge
-                  v-if="unreadCount > 0"
-                  class="h-5 px-2 text-2xs font-bold bg-status-warning-surface text-foreground-strong border-status-warning-mark"
-                >
+                <Badge v-if="unreadCount > 0" class="h-5 px-2">
                   {{ unreadLabel }}
                 </Badge>
               </DropdownMenuItem>
             </RouterLink>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
-          <DropdownMenuItem @click="handleLogout" class="text-destructive">
+          <DropdownMenuItem @click="handleLogout">
             <LogOut class="mr-2 h-4 w-4" />
             {{ t("sidebar.personal.logout") }}
           </DropdownMenuItem>

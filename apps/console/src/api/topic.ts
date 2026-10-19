@@ -1,6 +1,6 @@
 import { apiGet } from "@/utils/request";
-import type { SolutionTopicsResponse } from "@/types/topic";
+import type { SolutionTopic, SolutionTopicsResponse } from "@/types/topic";
 
 export async function fetchSolutionTopics(): Promise<SolutionTopicsResponse> {
-  return apiGet<SolutionTopicsResponse>("/solution-topics");
+  return { topics: await apiGet<SolutionTopic[]>("/solution-topics") };
 }

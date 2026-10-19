@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
 import { nextTick } from "vue";
 import SubmissionPerformancePanel from "../SubmissionPerformancePanel.vue";
+import * as chartOptions from "../submissionChartOptions";
 
 vi.mock("vue-i18n", () => ({
   useI18n: () => ({
@@ -137,6 +138,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.restoreAllMocks();
   while (mountedWrappers.length) {
     const w = mountedWrappers.pop();
     w?.unmount();
@@ -144,6 +146,50 @@ afterEach(() => {
 });
 
 describe("SubmissionPerformancePanel — chart lifecycle", () => {
+  it("moves the position caption above the avatar without leaving a duplicate bar label", async () => {
+    vi.spyOn(chartOptions, "renderAvatarMarkPointDataUrl").mockResolvedValue(
+      "data:image/png;base64,avatar",
+    );
+    mountPanel({
+      runtimePoints: [{ i: 0, bin: 10, count: 1 }],
+      totalRuntimeCount: 1,
+      runtimeHighlightIndex: 0,
+    });
+    await nextTick();
+    await flushPromises();
+
+    const initial = charts[0].setOption.mock.calls[0][0];
+    expect(initial.series[0].label?.show).toBe(true);
+    expect(initial.series[0].data[0].label.show).toBeUndefined();
+    const avatar = charts[0].setOption.mock.calls.at(-1)![0];
+    expect(avatar.series[0].label.show).toBe(false);
+    expect(avatar.series[0].markPoint.label).toMatchObject({
+      show: true,
+      position: "top",
+      formatter: "problem.layout.userPosition",
+    });
+  });
+
+  it("keeps the bar caption if the avatar cannot load", async () => {
+    vi.spyOn(chartOptions, "renderAvatarMarkPointDataUrl").mockRejectedValue(
+      new Error("avatar unavailable"),
+    );
+    mountPanel({
+      runtimePoints: [{ i: 0, bin: 10, count: 1 }],
+      totalRuntimeCount: 1,
+      runtimeHighlightIndex: 0,
+    });
+    await nextTick();
+    await flushPromises();
+
+    expect(charts[0].setOption).toHaveBeenCalledTimes(1);
+    const option = charts[0].setOption.mock.calls[0][0];
+    expect(option.series[0].label.show).toBe(true);
+    expect(option.series[0].data[0].label.formatter).toBe(
+      "problem.layout.userPosition",
+    );
+  });
+
   it("initializes only the visible chart", async () => {
     const wrapper = mountPanel();
 

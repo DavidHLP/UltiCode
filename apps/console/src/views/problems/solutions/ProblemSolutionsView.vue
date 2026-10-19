@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { Button } from "@ulticode/design-system/ui/button";
+
 import { useAuthStore } from "@/stores/auth";
 import { computed, ref, watch } from "vue";
 import type { SolutionFeedItem } from "@/types/solution";
@@ -78,7 +80,7 @@ const fallbackSolution = computed<SolutionFeedItem>(() => ({
     name: t("personal.profile.displayName"),
     username: "editorial",
     role: "System Note",
-    avatarColor: "var(--foreground-muted)",
+    avatarColor: "var(--muted-foreground)",
   },
   tags: [],
   stats: {
@@ -139,14 +141,18 @@ const handleSolutionDeleted = (id: string) => {
 
 <template>
   <div v-if="feed?.items?.length" class="space-y-4">
-    <div v-if="selectedSolution || isLoadingDetail" class="space-y-4 px-5 py-4">
-      <button
+    <div
+      v-if="selectedSolution || isLoadingDetail"
+      class="min-w-0 space-y-4 px-3 sm:px-5 py-4"
+    >
+      <Button
+        variant="ghost"
         type="button"
-        class="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground transition hover:text-foreground"
+        class="inline-flex items-center gap-1 transition"
         @click="resetSelectedSolution"
       >
         &larr; {{ t("problem.solutions.returnToList") }}
-      </button>
+      </Button>
       <div v-if="isLoadingDetail" class="text-sm text-muted-foreground">
         {{ t("problem.solutions.loadingDetail") }}
       </div>

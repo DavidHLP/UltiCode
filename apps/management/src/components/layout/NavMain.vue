@@ -2,7 +2,7 @@
 import type { Component } from 'vue'
 import { ref, watchEffect } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
-import { IconChevronRight } from '@tabler/icons-vue'
+import { ChevronRight as IconChevronRight } from '@lucide/vue'
 
 import {
   SidebarGroup,
@@ -14,8 +14,12 @@ import {
   SidebarMenuSub,
   SidebarMenuSubItem,
   useSidebar,
-} from '@/components/ui/sidebar'
-import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible'
+} from '@ulticode/design-system/ui/sidebar'
+import {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent,
+} from '@ulticode/design-system/ui/collapsible'
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -23,7 +27,8 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-} from '@/components/ui/dropdown-menu'
+  DropdownMenuGroup,
+} from '@ulticode/design-system/ui/dropdown-menu'
 import { DropdownMenuArrow } from 'reka-ui'
 import { SidebarMenuSubItem as SharedSidebarMenuSubItem } from '@ulticode/sidebar-menu'
 
@@ -62,8 +67,8 @@ function isSubmenuActive(item: NavItem): boolean {
 // shadcn SidebarMenuButton here; only the duplicated class string is unified.
 function itemRowClass(active: boolean): string {
   return active
-    ? 'border-l-4 border-[var(--primary)] bg-[var(--primary)]/8 text-[var(--primary)] pl-2 font-semibold'
-    : 'border-l-4 border-transparent hover:bg-[var(--border-subtle)]/40 hover:text-foreground text-[var(--foreground-muted)] pl-2'
+    ? 'border-l-4 border-primary bg-primary/8 text-foreground pl-2 font-semibold'
+    : 'border-l-4 border-transparent hover:bg-border/40 hover:text-foreground text-muted-foreground pl-2'
 }
 
 watchEffect(() => {
@@ -77,10 +82,7 @@ watchEffect(() => {
 
 <template>
   <SidebarGroup class="py-1">
-    <SidebarGroupLabel
-      v-if="title && items.length > 0"
-      class="px-2 py-1 text-2xs font-mono font-bold uppercase tracking-wider text-[var(--foreground-muted)] dark:text-[var(--foreground-muted)] mt-2 mb-1"
-    >
+    <SidebarGroupLabel v-if="title && items.length > 0" class="px-2 py-1 mt-2 mb-1">
       {{ title }}
     </SidebarGroupLabel>
     <SidebarGroupContent class="flex flex-col gap-1">
@@ -92,7 +94,8 @@ watchEffect(() => {
               <SidebarMenuItem>
                 <SidebarMenuButton
                   :tooltip="String(item.title)"
-                  class="h-9 transition-all duration-200 w-full"
+                  :aria-label="item.title"
+                  class="h-9 w-full"
                   :class="itemRowClass(isSubmenuActive(item))"
                 >
                   <component
@@ -101,52 +104,47 @@ watchEffect(() => {
                     class="size-4 shrink-0 transition-colors"
                     :class="
                       isSubmenuActive(item)
-                        ? 'text-[var(--primary)] stroke-[2.5]'
-                        : 'text-[var(--foreground-muted)] stroke-[1.8]'
+                        ? 'text-inherit stroke-[2.5]'
+                        : 'text-muted-foreground stroke-[1.8]'
                     "
                   />
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </DropdownMenuTrigger>
             <DropdownMenuContent
-              variant="terminal"
               side="right"
               align="start"
               class="w-48 p-1.5 space-y-0.5 z-50 animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2"
             >
-              <DropdownMenuArrow
-                class="bg-[var(--card)] fill-[var(--card)] z-50 size-2.5 translate-y-[calc(-50%_-_2px)] rotate-45"
-              />
-              <DropdownMenuLabel
-                class="px-2.5 py-1.5 text-2xs font-mono font-bold uppercase tracking-wider text-muted-foreground"
-              >
-                {{ item.title }}
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator class="bg-border mx-1" />
-              <DropdownMenuItem
-                v-for="subItem in item.items"
-                :key="subItem.title"
-                as-child
-                class="p-0 rounded-none focus:bg-accent focus:text-accent-foreground"
-              >
-                <SharedSidebarMenuSubItem
-                  :is-active="isActive(subItem.url)"
-                  :to="subItem.url"
-                  class="flex items-center gap-2 px-2.5 py-2 w-full text-xs font-mono rounded-none border-l-4"
+              <DropdownMenuGroup
+                ><DropdownMenuArrow
+                  class="bg-card fill-card z-50 size-2.5 translate-y-[calc(-50%_-_2px)] rotate-45"
+                />
+                <DropdownMenuLabel class="px-2.5 py-1.5">
+                  {{ item.title }}
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator class="mx-1" />
+                <DropdownMenuItem
+                  v-for="subItem in item.items"
+                  :key="subItem.title"
+                  as-child
+                  class="p-0"
                 >
-                  <component
-                    :is="subItem.icon"
-                    v-if="subItem.icon"
-                    class="size-3.5 shrink-0"
-                    :class="
-                      isActive(subItem.url)
-                        ? 'text-[var(--primary)]'
-                        : 'text-muted-foreground'
-                    "
-                  />
-                  <span>{{ subItem.title }}</span>
-                </SharedSidebarMenuSubItem>
-              </DropdownMenuItem>
+                  <SharedSidebarMenuSubItem
+                    :is-active="isActive(subItem.url)"
+                    :to="subItem.url"
+                    class="flex items-center gap-2 px-2.5 py-2 w-full text-xs font-mono rounded-lg border-l-4"
+                  >
+                    <component
+                      :is="subItem.icon"
+                      v-if="subItem.icon"
+                      class="size-3.5 shrink-0"
+                      :class="isActive(subItem.url) ? 'text-inherit' : 'text-muted-foreground'"
+                    />
+                    <span>{{ subItem.title }}</span>
+                  </SharedSidebarMenuSubItem>
+                </DropdownMenuItem></DropdownMenuGroup
+              >
             </DropdownMenuContent>
           </DropdownMenu>
 
@@ -161,7 +159,8 @@ watchEffect(() => {
               <CollapsibleTrigger as-child>
                 <SidebarMenuButton
                   :tooltip="String(item.title)"
-                  class="h-9 transition-all duration-200 w-full"
+                  :aria-label="item.title"
+                  class="h-9 w-full"
                   :class="itemRowClass(isSubmenuActive(item))"
                 >
                   <component
@@ -170,34 +169,32 @@ watchEffect(() => {
                     class="size-4 shrink-0 transition-colors"
                     :class="
                       isSubmenuActive(item)
-                        ? 'text-[var(--primary)] stroke-[2.5]'
-                        : 'text-[var(--foreground-muted)] group-hover/collapsible:text-foreground stroke-[1.8]'
+                        ? 'text-inherit stroke-[2.5]'
+                        : 'text-muted-foreground group-hover/collapsible:text-foreground stroke-[1.8]'
                     "
                   />
                   <span
                     class="truncate text-xs font-medium group-data-[collapsible=icon]:hidden"
                     :class="
                       isSubmenuActive(item)
-                        ? 'text-[var(--primary)] font-semibold'
-                        : 'text-[var(--foreground-muted)] group-hover/collapsible:text-foreground'
+                        ? 'text-inherit font-semibold'
+                        : 'text-muted-foreground group-hover/collapsible:text-foreground'
                     "
                   >
                     {{ item.title }}
                   </span>
                   <IconChevronRight
-                    class="ml-auto size-3.5 shrink-0 transition-transform duration-200 text-[var(--foreground-muted)] group-hover/collapsible:text-foreground group-data-[collapsible=icon]:hidden"
+                    class="ml-auto size-3.5 shrink-0 transition-transform duration-200 text-muted-foreground group-hover/collapsible:text-foreground group-data-[collapsible=icon]:hidden"
                     :class="[
                       openMenus[item.title] ? 'rotate-90' : '',
-                      isSubmenuActive(item) ? 'text-[var(--primary)]' : '',
+                      isSubmenuActive(item) ? 'text-inherit' : '',
                     ]"
                   />
                 </SidebarMenuButton>
               </CollapsibleTrigger>
 
               <CollapsibleContent>
-                <SidebarMenuSub
-                  class="mt-0.5 border-[var(--border-subtle)] dark:border-[var(--border-subtle)]/50"
-                >
+                <SidebarMenuSub class="mt-0.5">
                   <SidebarMenuSubItem v-for="subItem in item.items" :key="subItem.title">
                     <SharedSidebarMenuSubItem
                       :is-active="isActive(subItem.url)"
@@ -210,8 +207,8 @@ watchEffect(() => {
                         class="size-3.5 shrink-0 transition-colors"
                         :class="
                           isActive(subItem.url)
-                            ? 'text-[var(--primary)] stroke-[2.5]'
-                            : 'text-[var(--foreground-muted)] stroke-[1.8]'
+                            ? 'text-inherit stroke-[2.5]'
+                            : 'text-muted-foreground stroke-[1.8]'
                         "
                       />
                       <span class="truncate text-xs">{{ subItem.title }}</span>
@@ -226,9 +223,10 @@ watchEffect(() => {
           <SidebarMenuItem v-else>
             <SidebarMenuButton
               :tooltip="String(item.title)"
+              :aria-label="item.title"
               :is-active="isActive(item.url)"
               as-child
-              class="h-9 transition-all duration-200"
+              class="h-9"
               :class="itemRowClass(isActive(item.url))"
             >
               <RouterLink :to="item.url" class="flex items-center gap-2.5 w-full">
@@ -238,16 +236,16 @@ watchEffect(() => {
                   class="size-4 shrink-0 transition-colors"
                   :class="
                     isActive(item.url)
-                      ? 'text-[var(--primary)] stroke-[2.5]'
-                      : 'text-[var(--foreground-muted)] group-hover:text-foreground stroke-[1.8]'
+                      ? 'text-inherit stroke-[2.5]'
+                      : 'text-muted-foreground group-hover:text-foreground stroke-[1.8]'
                   "
                 />
                 <span
                   class="truncate text-xs font-medium group-data-[collapsible=icon]:hidden"
                   :class="
                     isActive(item.url)
-                      ? 'text-[var(--primary)] font-semibold'
-                      : 'text-[var(--foreground-muted)] group-hover:text-foreground'
+                      ? 'text-inherit font-semibold'
+                      : 'text-muted-foreground group-hover:text-foreground'
                   "
                 >
                   {{ item.title }}

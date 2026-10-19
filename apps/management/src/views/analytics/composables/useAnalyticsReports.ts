@@ -20,6 +20,7 @@ export function useAnalyticsReports() {
   const loading = ref(false)
   const days = ref(30)
   const showRefreshSession = ref(false)
+  const loadError = ref(false)
 
   const userActivityReport = ref<UserActivityReport | null>(null)
   const problemCompletionReport = ref<ProblemCompletionReport | null>(null)
@@ -52,7 +53,8 @@ export function useAnalyticsReports() {
     return formatCompactNumber(num)
   }
 
-  function formatPercent(num: number): string {
+  function formatPercent(num: number | null | undefined): string {
+    if (typeof num !== 'number' || !Number.isFinite(num)) return '—'
     return formatNumberByLocale(num / 100, { style: 'percent', maximumFractionDigits: 1 })
   }
 
@@ -75,6 +77,7 @@ export function useAnalyticsReports() {
     }
 
     showRefreshSession.value = false
+    loadError.value = false
     loading.value = true
     try {
       const [userAct, probComp, contestPart, perf] = await Promise.all([
@@ -89,6 +92,7 @@ export function useAnalyticsReports() {
       performanceReport.value = perf
     } catch (error) {
       console.error('Failed to load report:', error)
+      loadError.value = true
       const apiError = error as ApiError
       if (apiError.code !== 401) {
         toast.error(t('analytics.loadError'))
@@ -125,6 +129,7 @@ export function useAnalyticsReports() {
     loading,
     days,
     showRefreshSession,
+    loadError,
     formattedTime,
     formattedDate,
     formatNumber,

@@ -1,6 +1,7 @@
 import { h, type Component } from 'vue'
-import { IconDotsVertical } from '@tabler/icons-vue'
-import { Button } from '@/components/ui/button'
+import { EllipsisVertical as IconDotsVertical } from '@lucide/vue'
+
+import { Button } from '@ulticode/design-system/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,7 +11,7 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+} from '@ulticode/design-system/ui/dropdown-menu'
 
 /**
  * Admin table row-action menu primitives.
@@ -53,7 +54,7 @@ export type EntityActionNode = EntityActionItem | EntityActionSubmenu | EntityAc
 
 /**
  * Menu-level styling overrides for tables that use a non-default theme variant
- * (e.g. the terminal-themed tables share hover, border, and font classes).
+ * (e.g. tables share semantic hover, border, and typography classes).
  * All fields are optional and fall back to the clean shadcn defaults.
  */
 export interface EntityActionsMenuOptions {

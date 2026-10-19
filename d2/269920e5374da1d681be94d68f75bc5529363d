@@ -1,0 +1,1536 @@
+apps/management/src/views/problems/edit/EditCasesView.vue
+  s_539f801b32c2f6::t_56dcf650b00788 120,122,128
+apps/console/src/views/contest/detailed/__tests__/ContestProblemList.spec.ts
+  s_539f801b32c2f6::t_48dadf84335aea 114
+  s_539f801b32c2f6::t_dbd0b76a4becf2 181-183
+  s_539f801b32c2f6::t_1802769159c38d 104,175-180,184-185,347-350,352,360
+apps/management/src/views/moderation/ModerationQueueView.vue
+  s_676f3960b3fd09::t_b500cfe2dc68f1 102,104-107,251-257,299-305
+  s_676f3960b3fd09::t_8ac7daa5ebd681 2,4,28,43,132-136,145-163
+  s_837bf0326bf1be::t_ff9c75f5f0471b 50
+  s_837bf0326bf1be::t_82e7c6ba0faa05 116
+  s_837bf0326bf1be::t_aef4d173ae4b21 123-131,137-144
+  s_539f801b32c2f6::t_cf84c768aff4a4 401-403
+  s_676f3960b3fd09::t_a53dca654c7ed8 268,274,280,288
+  s_837bf0326bf1be::t_0e0d17a425d120 374
+  s_539f801b32c2f6::t_7923871ccb9511 264
+  s_676f3960b3fd09::t_159f6529906297 164
+  s_676f3960b3fd09::t_d45f0e8d8eb77b 306
+apps/management/src/views/contests/components/ScoringRuleForm.vue
+  s_84abfc1e1f122f::t_b4fbee38fbf08e 119
+  s_676f3960b3fd09::t_cfe2f4c7cdbc87 71-73,75-86,89-100
+  s_539f801b32c2f6::t_bd06d9115accaf 107,109,134,237
+apps/management/src/views/contests/components/ScoringRuleForm.test.ts
+  s_539f801b32c2f6::t_8b34760566ef77 8-20,38-46,91-95
+  s_539f801b32c2f6::t_44b532641f9382 23,30,34-37
+  s_676f3960b3fd09::t_14393e9b6aab5a 25,31-33,59-62,65-73
+  s_539f801b32c2f6::t_18d37bdd818454 1-7,21-22,24,26-29,47-58,79-90,96-104
+  s_676f3960b3fd09::t_cfe2f4c7cdbc87 63-64
+  s_84abfc1e1f122f::t_19040d2271032f 74-78
+apps/management/src/views/contests/wizard/StepReview.vue
+  s_539f801b32c2f6::t_57bc2e9f3462af 59,65,69,83-84,88,94,116-117,167-168,182
+  s_539f801b32c2f6::t_9915cdda093e33 58,67,71
+apps/management/src/i18n/locales/en-US/modules/problems.ts
+  s_539f801b32c2f6::t_3c2095474029db 105-106
+apps/management/src/views/help/HelpView.spec.ts
+  s_539f801b32c2f6::t_6422293d4d9e0f 27-29
+  s_539f801b32c2f6::t_48e93b2a864a88 1-26,30-37
+apps/management/src/views/audit/AuditLogsView.test.ts
+  s_676f3960b3fd09::t_39cf49f56977a4 125-137
+  s_539f801b32c2f6::t_0ec18663d0d3a4 143-146,162-169
+  s_539f801b32c2f6::t_914c3a9ca2be6c 181-182,193-196
+  s_539f801b32c2f6::t_0391537f2c488e 84,90,138-142,147-161,170-172
+  s_539f801b32c2f6::t_57fd9ec6be106e 7-8,70,72,81,99,173-180,183-192,197-204
+  s_676f3960b3fd09::t_554ae480e6c001 205
+apps/management/src/views/settings/components/SettingsSwitches.test.ts
+  s_539f801b32c2f6::t_8841c32096e924 1-16,26-29,36,48-49,62-63,77-80,88,93,100
+  s_539f801b32c2f6::t_2fa0805258ebc0 30-35,96
+  s_539f801b32c2f6::t_648c3de0109c5e 17-25,37-47,50-61,64-76,81-87,89-92,94-95,97-99
+apps/console/src/views/contest/ContestBrowseView.vue
+  s_539f801b32c2f6::t_11fd97265b3a39 165-167
+  s_539f801b32c2f6::t_0e7d90628c9dfb 168-171,173,183-186,188,190-193,195
+  s_676f3960b3fd09::t_def4068f084638 16-17,59-66,108,145-146,160-164,199-211,213,261,313,315-316,318-320,324
+  s_676f3960b3fd09::t_2608d84e563688 175-177,369-374
+apps/management/src/views/contests/ContestDetailView.test.ts
+  s_676f3960b3fd09::t_4cd131fb2969e4 34-40
+  s_676f3960b3fd09::t_0ce6387c8ffe5d 10-13
+  s_676f3960b3fd09::t_700aaf8fd9e547 5-6
+  s_676f3960b3fd09::t_0e38fb5aa764ba 1-4,7-9,14-33,41-48
+apps/management/src/i18n/locales/en-US/modules/testCases.ts
+  s_676f3960b3fd09::t_ec5efa368c3cb5 27,32,34
+apps/management/src/views/contests/wizard/useContestAuthoring.test.ts
+  s_539f801b32c2f6::t_5021a6a00d34ba 237,277,329
+apps/management/src/components/problems/VersionHistoryTimeline.vue
+  s_84abfc1e1f122f::t_6b666dacec91f3 57
+  s_84abfc1e1f122f::t_a5c6cb5ab44a8a 86,96
+  s_84abfc1e1f122f::t_be72f368b0c831 278-291
+apps/management/src/stores/admin/contests.ts
+  s_837bf0326bf1be::t_05d913527d8903 183-185,188,191,195-196,200-203
+  s_837bf0326bf1be::t_94cf92c8615926 30-32
+  s_837bf0326bf1be::t_4ba3abedb5084b 230-231
+apps/management/src/views/system/MonitoringView.test.ts
+  s_676f3960b3fd09::t_993d42782d4e84 1-35
+  s_676f3960b3fd09::t_ec62e762e67a2d 36-60
+apps/management/src/views/contests/components/ContestProblemPicker.test.ts
+  s_676f3960b3fd09::t_9f45cae6c7e477 1,3,5-6,20-21,72-94
+  s_676f3960b3fd09::t_dad8f651e91de7 2,4,7-19,22-28,32-38,50-57,61-71
+  s_676f3960b3fd09::t_9798790a050a2b 29-31,39-49,58-60
+apps/management/src/views/problem-lists/components/VisibilitySection.vue
+  s_539f801b32c2f6::t_ea38d07461a9c0 127-128,130,164-165,167
+apps/management/src/views/contests/wizard/StepProblems.vue
+  s_539f801b32c2f6::t_57bc2e9f3462af 52,62
+apps/console/src/i18n/locales/en-US/contest.ts
+  s_539f801b32c2f6::t_3f4057db61b0ac 246
+  s_676f3960b3fd09::t_def4068f084638 4,49
+  s_539f801b32c2f6::t_f064b68b6b5294 16-22
+apps/console/src/views/problem-list/ProblemListView.vue
+  s_84abfc1e1f122f::t_ffad96205c8ada 57-58
+  s_539f801b32c2f6::t_081bf12f3484d0 108
+  s_539f801b32c2f6::t_b88dc3d37aac74 170,208-213
+  s_539f801b32c2f6::t_710d69e11aa68b 109
+  s_84abfc1e1f122f::t_1feffbe50201fe 314-325
+apps/management/src/views/moderation/columns.ts
+  s_539f801b32c2f6::t_7cfdd0d39a6fa0 464
+apps/management/src/views/users/UserDetailDrawer.vue
+  s_539f801b32c2f6::t_c6e62399113cbf 240
+  s_539f801b32c2f6::t_807c0cbfbcf61f 425-427
+apps/console/src/views/personal/components/__tests__/chartResize.spec.ts
+  s_676f3960b3fd09::t_ceee2955bc77bd 1-7,9-11,13-32,40-41
+  s_676f3960b3fd09::t_6eacbef1e4796d 33-39,42,45-63,75-88
+  s_676f3960b3fd09::t_2ec1fb35be9183 66
+  s_676f3960b3fd09::t_40c57be04c1acb 69-74
+  s_676f3960b3fd09::t_e72e893b23f1e1 8,12,43-44,64-65,67-68
+apps/console/src/components/common/data-table/DataTable.vue
+  s_539f801b32c2f6::t_97ae3e7fd0ccb7 145-148,150
+  s_676f3960b3fd09::t_44f16a2f09b794 126,128-139,141-144
+  s_676f3960b3fd09::t_ed3154bd5d09dc 125,127,140
+apps/management/src/views/audit/AuditReportView.vue
+  s_539f801b32c2f6::t_95627044da7edc 250-252,274-276,296-298,318-320
+  s_539f801b32c2f6::t_ffbe435940ec0a 62,264,286,308
+  s_539f801b32c2f6::t_e165c1ad9583ca 150-154,164-168,193-199,214-218
+  s_539f801b32c2f6::t_c59d747f8bda6d 133-134,137-138,141,143,149,157,163,169,186,192,200,213
+  s_539f801b32c2f6::t_2a9d78d822ca0f 159-162,188-191
+apps/management/src/views/dashboard/DashboardView.test.ts
+  s_676f3960b3fd09::t_610552894ba099 1-103
+apps/management/src/views/notifications/NotificationCreateDialog.test.ts
+  s_676f3960b3fd09::t_a51c404064307b 1-12,16-32
+  s_676f3960b3fd09::t_934e0798444f61 13-15
+apps/console/src/views/problems/code/CodeView.vue
+  s_837bf0326bf1be::t_8da356652ff64c 184
+  s_837bf0326bf1be::t_014dac565cb98a 332-347
+  s_837bf0326bf1be::t_c3432f6a0011bf 220
+apps/management/src/i18n/locales/en-US/modules/solutions.ts
+  s_676f3960b3fd09::t_9600016da661e0 139-140
+  s_539f801b32c2f6::t_154e21c2bd0a41 67-69
+  s_539f801b32c2f6::t_80049c870933b1 50-51
+apps/console/src/views/contest/components/PastContests.vue
+  s_539f801b32c2f6::t_45d6a0c3565446 99-110,112-113,169-171,208-210
+  s_539f801b32c2f6::t_a82dfab56c09ba 111,145,180
+  s_539f801b32c2f6::t_a8a44f5e23af55 13,35,60,62,97,119,127,149,152,154,159,162,215-216,222,249-250
+  s_539f801b32c2f6::t_a20751f270a531 137
+apps/console/src/views/LandingRedirectView.vue
+  s_681960d7f6984f::t_56b27c90aec7f4 1-11
+apps/console/src/types/contest.ts
+  s_539f801b32c2f6::t_48dadf84335aea 165
+services/app/app-web/src/test/java/com/ulticode/modules/problem/port/DefaultProblemListReadPortTest.java
+  s_84abfc1e1f122f::t_6e69be5d4ddb9d 1-40
+apps/landing/src/views/landing/components/ProductProofSection.vue
+  s_676f3960b3fd09::t_090a937431aa1a 20
+apps/console/src/components/dashboard/ActivityHeatmap.test.ts
+  s_539f801b32c2f6::t_e4d254b73acf05 33-36,42-51,60-65
+  s_539f801b32c2f6::t_48cfb3b9f6a31f 1-32,37-41,52-59,66-73
+apps/management/src/i18n/locales/en-US/modules/account.ts
+  s_539f801b32c2f6::t_afcb3940715f1f 34-39
+apps/console/src/views/forum/ForumFeedbackView.test.ts
+  s_84abfc1e1f122f::t_268efc6aa0f6c7 6-10
+  s_539f801b32c2f6::t_91fd06bc2a27f9 1-5,11-16,43,45-46,61-64
+  s_84abfc1e1f122f::t_ca4fe4766f5b5b 17-40
+  s_84abfc1e1f122f::t_3c8ebe0a4e4b26 41-42,47-54,56-60
+  s_539f801b32c2f6::t_c8188c365ef8dd 44
+  s_539f801b32c2f6::t_c49bdd449a2f3f 55
+apps/console/src/views/forum/ForumThreadView.test.ts
+  s_676f3960b3fd09::t_01e362c11b3abe 53
+  s_539f801b32c2f6::t_9ee106d7dbce22 91,99
+  s_539f801b32c2f6::t_5400c3319a543f 10
+  s_539f801b32c2f6::t_b18ba723b5f0fa 2-7,11-13,22-23,25-35,61-82,86-90,92-98,109-113
+  s_581ed14d6763bb::t_7c6a4502abb929 54-56
+  s_539f801b32c2f6::t_955e0f3446946a 100-101,105-108
+  s_539f801b32c2f6::t_f0388fabb20ba2 16-17,20,39-42
+  s_539f801b32c2f6::t_94055e766398e7 45-51
+  s_539f801b32c2f6::t_1d39c2bfc50551 1,24,36-38,43-44,52,57-60
+  s_539f801b32c2f6::t_ea6883017228d5 14-15,18-19,21
+  s_539f801b32c2f6::t_67130fb6bb5505 8-9
+  s_539f801b32c2f6::t_357d7b0bffa80a 83-85
+  s_676f3960b3fd09::t_6d2ab967dddd17 102-104
+apps/management/src/components/problems/VersionHistoryTimeline.test.ts
+  s_84abfc1e1f122f::t_988fe970e98f31 48,59-62
+  s_84abfc1e1f122f::t_b3df22c5651ff0 1-47,49-58,63-82
+apps/management/src/views/auth/LoginView.vue
+  s_676f3960b3fd09::t_1fb94b2e4c22cf 32
+apps/management/src/components/table/DataTableToolbar.vue
+  s_539f801b32c2f6::t_16e98c2b13ea38 90,95
+  s_539f801b32c2f6::t_9690feff8334c8 91-94
+  s_539f801b32c2f6::t_80049c870933b1 84
+apps/console/src/router/__tests__/router-landing.spec.ts
+  s_539f801b32c2f6::t_9e7aa58096e461 32-72
+  s_681960d7f6984f::t_fc1a2e469320ee 73,77
+  s_539f801b32c2f6::t_ca84c37bc9a16f 31
+  s_539f801b32c2f6::t_ce40031a5c0fbd 14-30
+  s_681960d7f6984f::t_fbd5642b37647c 78-79
+apps/console/src/views/problems/solutions/components/__tests__/SolutionDetail.spec.ts
+  s_581ed14d6763bb::t_6d90fa06e8d7ef 1,3,7,9-19,99-163
+  s_581ed14d6763bb::t_c42bc6fc804025 164
+apps/management/src/i18n/locales/en-US/modules/help.ts
+  s_539f801b32c2f6::t_e0fcec8f033313 33-34
+apps/management/src/views/system/BackupView.vue
+  s_539f801b32c2f6::t_4558f6b6de50c4 39,59,64,249,291-292
+  s_539f801b32c2f6::t_61faeaa6aa8121 211,218
+  s_539f801b32c2f6::t_41b60d5477e8da 259-261,271-273
+  s_539f801b32c2f6::t_b9354f4f7179ba 293-294
+apps/management/src/views/moderation/ReportsView.vue
+  s_539f801b32c2f6::t_1c061bf7a327f1 129
+  s_676f3960b3fd09::t_a53dca654c7ed8 139
+  s_676f3960b3fd09::t_9bba6c48e8f47d 62,65,175
+apps/management/src/components/analytics/topUsersChart.test.ts
+  s_539f801b32c2f6::t_86f5bf1d8096b7 49-58
+apps/console/src/views/forum/ForumFeedbackView.vue
+  s_539f801b32c2f6::t_7ed0e4c6191e5b 69-70
+  s_539f801b32c2f6::t_7dd5c2b9a92419 38,42
+  s_84abfc1e1f122f::t_97d694a18a6ace 124-125
+  s_539f801b32c2f6::t_c49bdd449a2f3f 39-41,82-83
+  s_84abfc1e1f122f::t_f9920179a5b54e 44,50
+apps/console/src/views/personal/NotificationsView.vue
+  s_539f801b32c2f6::t_c5d3d50e6ce900 334-336
+  s_539f801b32c2f6::t_83285b6e2eeb36 203,306,308,328,369-370,382-383
+  s_539f801b32c2f6::t_31a4c0b6f14bbc 410,416
+apps/console/src/components/problem/ProblemSetSidebar.vue
+  s_676f3960b3fd09::t_dda07bbb339928 58-60,73,118-120,125-126,140-142,160
+  s_539f801b32c2f6::t_c651ecf4772388 97,101,124,136,166,175,214
+  s_676f3960b3fd09::t_1ee12e8404a4d5 213
+apps/management/src/views/contests/ContestDetailView.vue
+  s_676f3960b3fd09::t_4cd131fb2969e4 224-226
+  s_539f801b32c2f6::t_2afeeed5c69066 142-143,158,160,164,168,176
+  s_837bf0326bf1be::t_9379085420abbd 263-268
+apps/console/src/features/sider/AppLayout.vue
+  s_539f801b32c2f6::t_dbf73df8eff506 63-66,70,134-139
+  s_539f801b32c2f6::t_a532ac9c592886 122
+apps/management/src/components/layout/NavMain.vue
+  s_539f801b32c2f6::t_0ba8d486ae59b5 97,162,226
+  s_539f801b32c2f6::t_cb38778cd5ee31 70,107,142,172,180,190,210,239,247
+apps/management/src/views/notifications/NotificationsListView.vue
+  s_539f801b32c2f6::t_5af8d2e8e13d0d 307
+  s_676f3960b3fd09::t_354fe371959afe 95-97,346,348-349,370-382
+  s_676f3960b3fd09::t_5773e017ad0f11 295,383
+apps/console/src/views/contest/__tests__/ContestBrowseView.spec.ts
+  s_676f3960b3fd09::t_b2fde0e6d0b1e0 1-8,10-17,22-36,38-45,49-64,66-70,72-78,80-87,89-94,96-110,112-114,116-126,128-134,136-141,143-153,155-170
+  s_676f3960b3fd09::t_7c9eaa098fbc31 18,20-21
+  s_676f3960b3fd09::t_23db760356a41e 9
+  s_676f3960b3fd09::t_ab87c770dc2012 19
+  s_676f3960b3fd09::t_c9773a0fdef956 37
+  s_676f3960b3fd09::t_3a92f753e437bf 46-48
+  s_676f3960b3fd09::t_275a3f0494f33a 65
+  s_676f3960b3fd09::t_77b0663d6be7c8 71
+  s_676f3960b3fd09::t_c7ac080b66478e 79
+  s_676f3960b3fd09::t_a3217d737a17d8 88
+  s_676f3960b3fd09::t_65be51888a1f1e 95
+  s_676f3960b3fd09::t_345e14c94f439d 111
+  s_676f3960b3fd09::t_12a618ca1a3f6b 115
+  s_676f3960b3fd09::t_225576c1014a0b 127
+  s_676f3960b3fd09::t_ae7b2061fdad78 135
+  s_676f3960b3fd09::t_84cb7041802213 142
+  s_676f3960b3fd09::t_1a61850a7e1033 154
+apps/console/src/views/contest/detailed/components/contestProblemRow.ts
+  s_539f801b32c2f6::t_dbd0b76a4becf2 53
+  s_539f801b32c2f6::t_48dadf84335aea 50-51,55
+packages/markdown-utils/src/__tests__/renderMarkdown.test.ts
+  s_84abfc1e1f122f::t_6c5b6207fa0801 11,14-16
+  s_84abfc1e1f122f::t_a33341a8536679 9-10,12-13,17-22
+apps/management/src/views/problems/components/DescriptionForm.vue
+  s_539f801b32c2f6::t_c8a55dc3cb29b3 321-326,346-351
+apps/console/src/views/personal/AccountGeneralView.vue
+  s_539f801b32c2f6::t_c6e62399113cbf 173
+  s_676f3960b3fd09::t_35b185458b8a86 150
+apps/console/src/components/problem/composables/__tests__/useProblemExplorer.spec.ts
+  s_539f801b32c2f6::t_efc077e425cc11 522-523,545-577,598-606,610-612
+  s_84abfc1e1f122f::t_a3bb6568fb3152 578-597
+  s_84abfc1e1f122f::t_964d6970ce63df 113
+  s_539f801b32c2f6::t_e018daa1020967 161,395,524-544,607-609,644-646
+apps/console/src/views/problems/solutions/components/SolutionDetail.vue
+  s_581ed14d6763bb::t_b6d0cf201fba2a 36-40,130-139,141,406-427,432,434-436,442,454-455,485,625,633
+  s_581ed14d6763bb::t_774275f9b397f1 319,326,330-332,336,362,364-366,404,491
+apps/console/src/views/post-editor/solutions/SolutionsEditView.vue
+  s_676f3960b3fd09::t_b35495c934b42c 14,20
+  s_539f801b32c2f6::t_59b2920c7e7a1e 35,48,58-59,68-72,74,99,105,118-119,143-144,146,151,155,174
+  s_539f801b32c2f6::t_6447f7c42482cb 2-4,6-8,60-67,130-132,147-150,179-183
+apps/management/src/views/problems/ProblemsListView.vue
+  s_539f801b32c2f6::t_3c2095474029db 9,96-100,350
+  s_539f801b32c2f6::t_71b218d08c566d 247
+  s_676f3960b3fd09::t_523d50ca027e28 151-153,283,297,299-300,386-399
+  s_539f801b32c2f6::t_5a241d31e99d10 347-348
+  s_539f801b32c2f6::t_80049c870933b1 94-95,101,325-328,331,337-339
+  s_676f3960b3fd09::t_025b04c81a17d1 231
+  s_539f801b32c2f6::t_a77a0b7483b5fe 332-336
+apps/management/src/views/dashboard/DashboardView.vue
+  s_539f801b32c2f6::t_90e482b9e40428 168
+  s_676f3960b3fd09::t_1c2ab16bb8f426 4,30,142,149,151-155,157,205-210,219-232,234-246,248-257,259-262,264
+apps/management/src/views/contests/components/ContestProblemPicker.vue
+  s_676f3960b3fd09::t_9f45cae6c7e477 69,119-124,129-131,136-141
+  s_539f801b32c2f6::t_9bc8b15583046e 117,127,134,146
+  s_676f3960b3fd09::t_151901d7ec7389 43,49-51,87-92,94-103,107
+apps/console/src/i18n/locales/zh-CN/forum.ts
+  s_84abfc1e1f122f::t_c199c849699886 197
+  s_539f801b32c2f6::t_0ab412e3bb7d2b 47
+  s_539f801b32c2f6::t_10749ef6fc23f9 9-10
+apps/management/src/i18n/locales/zh-CN/modules/problems.ts
+  s_539f801b32c2f6::t_3c2095474029db 105-106
+apps/management/src/api/admin/monitoring.ts
+  s_676f3960b3fd09::t_e9244d25f4a302 115-120,148,150,155,159-164
+services/api/app-api/src/main/java/com/ulticode/app/api/dto/ProblemListItemDTO.java
+  s_84abfc1e1f122f::t_d0162d4ff47410 23,29
+apps/management/src/views/contests/wizard/StepSchedule.test.ts
+  s_539f801b32c2f6::t_cd8f20d06647fa 24
+  s_539f801b32c2f6::t_1d07e7b0a00401 10-20
+  s_539f801b32c2f6::t_59edd99110d3e9 1-9,21-23,25-29
+apps/management/src/components/analytics/AnalyticsHeatmap.vue
+  s_539f801b32c2f6::t_1a707afee98bf3 56-57,143,145
+apps/management/src/views/contests/components/ContestProblemsTab.vue
+  s_676f3960b3fd09::t_a6c446f8ca0be7 82-86
+  s_676f3960b3fd09::t_967abe67064b55 80
+apps/console/src/i18n/profile-counts.spec.ts
+  s_676f3960b3fd09::t_26912054c0a982 1-31
+packages/markdown-utils/src/index.ts
+  s_84abfc1e1f122f::t_a33341a8536679 107,515,518,521,523
+  s_84abfc1e1f122f::t_ace651e3ec7841 577
+  s_84abfc1e1f122f::t_45c9ced470e129 513-514,516-517,519-520,522,524
+apps/console/src/features/sider/AppSidebar.vue
+  s_539f801b32c2f6::t_10749ef6fc23f9 12-17,43,87-106,114,154,161-163
+  s_539f801b32c2f6::t_10b20ddc4e3ae9 18,42,44-47
+  s_539f801b32c2f6::t_b65cb5e0f29d91 19-24,49,54-57
+  s_539f801b32c2f6::t_9f3d4454f7d6c1 33,41,48
+  s_539f801b32c2f6::t_f23783853e2d3a 50-53,81-86,107-113,125-137,149-153,155-160
+apps/console/src/composables/useContentNavigation.ts
+  s_539f801b32c2f6::t_f21f19e58fc6b9 95,97,101-102,104,106-107,109-110,162-166,173
+  s_539f801b32c2f6::t_94055e766398e7 55,127,147-149,153-154,156-158,161,167-169,182-188,191-194,196,198
+  s_539f801b32c2f6::t_6e93856d6f819a 68,119
+  s_539f801b32c2f6::t_b90f4894096e72 96,98-100,103,105,108,116
+apps/management/src/views/analytics/composables/useAnalyticsReports.test.ts
+  s_539f801b32c2f6::t_e790d8dfed0e7c 1,3,5-6,19,26-29,49,51-59,112
+  s_84abfc1e1f122f::t_849972041395a9 2,4,7-18,20-25
+  s_84abfc1e1f122f::t_77153ead919672 100-104,107
+  s_539f801b32c2f6::t_ae55171c953b11 30-48,50
+  s_84abfc1e1f122f::t_bf4117a0d0cbcc 60-99,105-106,108-111
+apps/console/src/views/personal/AccountNotificationsView.vue
+  s_539f801b32c2f6::t_48343f22a6c37b 90,101,121,130,149
+  s_539f801b32c2f6::t_faaa3ad8a4f132 157-161
+apps/console/src/views/contest/detailed/ContestDetailView.vue
+  s_539f801b32c2f6::t_3181d8e64f5500 367-371,374-376
+  s_539f801b32c2f6::t_fd5a0d2fd6ff08 103-111,419-425
+  s_539f801b32c2f6::t_c414dc5199e638 269-271,283,289-291,303,310-312,324,330-332,344
+apps/console/src/components/markdown/MarkdownEdit.spec.ts
+  s_676f3960b3fd09::t_247f9a9bbb8a20 35-37,43
+  s_676f3960b3fd09::t_33a13b3d3ae5d4 1-34,38-41,44-50
+  s_676f3960b3fd09::t_ebf01191275c7d 42
+apps/management/src/components/audit/AuditLogViewer.vue
+  s_84abfc1e1f122f::t_c51ef82dc8510c 240,242,254,268,272-282
+  s_84abfc1e1f122f::t_b098a67965476f 269-271
+  s_84abfc1e1f122f::t_853d78d8e3dd5e 283
+  s_84abfc1e1f122f::t_e50d0e2c2a4676 178-180
+apps/management/src/components/shared/BaseDetailDrawer.vue
+  s_837bf0326bf1be::t_0306901d20a0e7 47-51
+  s_539f801b32c2f6::t_9a6a9e767d7776 30,46,52,76
+  s_837bf0326bf1be::t_d4ce2603a6ebac 36
+apps/management/src/views/account/__tests__/AccountView.spec.ts
+  s_676f3960b3fd09::t_1094741588fd65 1-13,20-44
+  s_676f3960b3fd09::t_b8b8864cebe14c 14-19
+apps/management/src/views/problems/ProblemCreateView.vue
+  s_539f801b32c2f6::t_b7dcf9fb2bab89 80
+apps/management/src/views/problems/components/ProblemAuditDrawer.vue
+  s_539f801b32c2f6::t_8440a7940cb2e2 130
+  s_539f801b32c2f6::t_1f3eea5fbb6aad 45
+apps/management/src/views/analytics/composables/useAnalyticsReports.ts
+  s_84abfc1e1f122f::t_6b3f7696ec95be 95
+  s_84abfc1e1f122f::t_ec914c2f8ee91b 132
+  s_84abfc1e1f122f::t_65257c7f24db35 80
+  s_539f801b32c2f6::t_88758cc4ce94fa 56-57
+  s_84abfc1e1f122f::t_c2778015dc3496 23
+apps/management/src/views/system/MonitoringView.vue
+  s_539f801b32c2f6::t_590c74df8071b3 182,231,243,251,253
+  s_676f3960b3fd09::t_993d42782d4e84 48-55,215-219,311-313,315-318,403-404
+  s_676f3960b3fd09::t_ec62e762e67a2d 121
+  s_676f3960b3fd09::t_e9244d25f4a302 41,47,56,122-124,220-221,278,282,286,292,329,337,359,365,369,376,398,400-402,412,429-432
+  s_539f801b32c2f6::t_b2e4c1c6cf02a2 440
+apps/management/src/composables/useLocale.test.ts
+  s_539f801b32c2f6::t_71792b3703a192 1-27
+apps/console/src/views/contest/ContestHomeView.vue
+  s_676f3960b3fd09::t_d13aac39ad01d1 24-25,29-30,42-46,116-117,122-124
+  s_539f801b32c2f6::t_3f4057db61b0ac 77
+  s_676f3960b3fd09::t_f4eaadcfcfb9a5 26-28,68-72,118-121
+  s_539f801b32c2f6::t_5e8d0fd6c97043 112-115,126
+  s_676f3960b3fd09::t_ca6a0ded9ac1e8 23,47
+apps/management/src/components/problems/DescriptionMarkdown.vue
+  s_539f801b32c2f6::t_21e4e91108e8d7 154,178-179
+apps/console/src/views/forum/ForumEditorView.test.ts
+  s_539f801b32c2f6::t_a5e2c2b8e724bc 36-37,44-51
+  s_539f801b32c2f6::t_1b05a1e6ca5c9c 54-56
+  s_539f801b32c2f6::t_c1532fbe5306ad 6-11,17-19,62-68,70-73,83-85,89-91,105-108,110-117
+  s_539f801b32c2f6::t_1fc10dbbfdacbe 1-5,12-16,20-35,38-43,52-53,57-61,69,74-82,86-88,92-104,109,118-122
+apps/management/src/components/table/DataTableToolbar.test.ts
+  s_539f801b32c2f6::t_aa5df5e991fd63 34,46
+  s_539f801b32c2f6::t_86593bb93e1db8 1-5,14-19,29-33,35,43-45,47-50
+  s_539f801b32c2f6::t_9690feff8334c8 6-13,20-28,36-42
+apps/landing/src/views/landing/components/UseCasesSection.vue
+  s_676f3960b3fd09::t_7931baf55f21be 45-48
+apps/console/src/views/problems/solutions/ProblemSolutionsView.vue
+  s_581ed14d6763bb::t_774275f9b397f1 144-147
+apps/console/src/views/contest/detailed/composables/__tests__/useContestRankings.spec.ts
+  s_539f801b32c2f6::t_09dbae5dd925f9 35-37
+  s_539f801b32c2f6::t_7f182d8ec5ffed 38,42
+  s_539f801b32c2f6::t_572f49fd2e02d7 1,3-12,18-19,21,30-33,53-54,60-62,67,71,76-86,92-113
+  s_539f801b32c2f6::t_d7091dc1d783b9 39-41
+  s_539f801b32c2f6::t_66d2c84d9e24df 20,34,43-52
+  s_539f801b32c2f6::t_5e50d55fe10751 2,13-17,68-70
+  s_539f801b32c2f6::t_e1705fe4d3f9ee 22-29,55-59,63-66,72-75,87-91
+apps/management/src/views/system/EmailView.vue
+  s_539f801b32c2f6::t_a4e277a660fd14 256,263,284-296,306,316,326,336,342,361-366,417-422,463-464,467,488,503-504,513,547
+  s_676f3960b3fd09::t_c1175322da6f2f 2-3,41-49,79-91,238,240,242
+apps/management/src/views/auth/SignupView.vue
+  s_676f3960b3fd09::t_1fb94b2e4c22cf 32
+apps/console/src/i18n/utils/problemTagLabel.spec.ts
+  s_84abfc1e1f122f::t_88b079021a9e8d 1-31
+apps/management/src/views/contests/components/ContestOverviewTab.test.ts
+  s_676f3960b3fd09::t_c71d2b176acba3 1-2,4-8,21-28,30-33
+  s_676f3960b3fd09::t_26bd9ad63220f2 3,29
+  s_676f3960b3fd09::t_a6c446f8ca0be7 9-20
+apps/console/src/views/personal/__tests__/ForumPostsView.spec.ts
+  s_676f3960b3fd09::t_abdfd67ceade92 1-5,7,12-24,35-45,71-74
+  s_676f3960b3fd09::t_fee4024a7e4ad3 6,46-52,60-70
+  s_676f3960b3fd09::t_63460dcc27ac97 8-11,25-34
+  s_676f3960b3fd09::t_c4ba5a1f6d4aed 53-59
+apps/console/src/views/personal/__tests__/AccountGeneralView.spec.ts
+  s_676f3960b3fd09::t_1cbfe37c919b55 1-10,14-19,25-31,40-46,50-54
+  s_676f3960b3fd09::t_35b185458b8a86 11-13,20-24,32-39,47-49
+apps/management/src/components/analytics/AnalyticsOverviewPanel.test.ts
+  s_676f3960b3fd09::t_f9f29731fc09b6 31-32
+apps/management/src/components/layout/NavSecondary.vue
+  s_539f801b32c2f6::t_034c94b3a46d0f 44
+apps/management/src/composables/useLocale.ts
+  s_539f801b32c2f6::t_784fd181320c79 6
+apps/management/src/i18n/locales/zh-CN/modules/account.ts
+  s_539f801b32c2f6::t_afcb3940715f1f 34-39
+apps/console/src/views/contest/components/__tests__/MyContests.spec.ts
+  s_539f801b32c2f6::t_76586e2da0c621 1,3-7,13,17,21-88,94,100-101,104-106
+  s_539f801b32c2f6::t_fbc6199eab01d3 95
+  s_539f801b32c2f6::t_6df7e4df36eb61 8-12,14-16,18-20,89-93,96-99,102-103
+  s_676f3960b3fd09::t_d2d7978c8544da 2
+apps/console/src/views/forum/ForumThreadView.vue
+  s_539f801b32c2f6::t_de20c8b07c06b3 62-67,201,266
+  s_539f801b32c2f6::t_357d7b0bffa80a 10-14,245-249,257-265,269,295-296
+  s_539f801b32c2f6::t_8ff3d99e3f7f66 61,68-69,250-256
+  s_676f3960b3fd09::t_0d887b4d9c6f57 336
+  s_539f801b32c2f6::t_ea6883017228d5 273-275
+  s_581ed14d6763bb::t_66eefb5f0a1ff3 58-60,341,355,360
+apps/management/src/i18n/locales/zh-CN/modules/system.ts
+  s_676f3960b3fd09::t_e9244d25f4a302 61
+  s_539f801b32c2f6::t_7af245ee0678ec 120
+apps/management/src/views/settings/components/GeneralSettings.vue
+  s_539f801b32c2f6::t_2fa0805258ebc0 148-150,161-163,186-188
+  s_539f801b32c2f6::t_494863da589461 141,154,179
+apps/landing/src/views/landing/components/LandingHeader.vue
+  s_539f801b32c2f6::t_41c2c48896d154 27,40
+  s_539f801b32c2f6::t_017c80d905d66d 33
+apps/management/src/components/problem/HiddenTestCasesEditor.vue
+  s_676f3960b3fd09::t_f72cada2af3841 69-71,73,82
+  s_676f3960b3fd09::t_f2fb34c88800c2 123
+apps/console/src/views/personal/__tests__/BookmarksView.spec.ts
+  s_676f3960b3fd09::t_c7826f0ada6ba4 1-9,16-28,35-49
+  s_676f3960b3fd09::t_2e3d2db0297387 10-15,29-34
+apps/console/src/composables/__tests__/useContentNavigation.spec.ts
+  s_539f801b32c2f6::t_486468c3c497ff 279-290
+  s_539f801b32c2f6::t_94055e766398e7 4-7,24-27,83-93,108-110,151-158,249-260,313,391-394,422-423
+  s_539f801b32c2f6::t_c8c47fd8b260f9 202,216,230-235,435-436
+  s_539f801b32c2f6::t_0301b4b64219de 210-215
+  s_539f801b32c2f6::t_90838356e46a4d 243-248,261-272
+  s_539f801b32c2f6::t_b3d9da2de46f60 273-278,291-304
+  s_539f801b32c2f6::t_8e8aae03ea78df 236,437-438
+apps/console/src/views/personal/__tests__/ProblemListsReadFailure.spec.ts
+  s_676f3960b3fd09::t_ca65d9c6b09bca 1-6,11,20-31,41-51,55-58
+  s_676f3960b3fd09::t_f663012fe12298 7-9,12-19,32-40,52-54
+  s_676f3960b3fd09::t_5ce5e6666f2465 10
+apps/management/src/views/solutions/components/DescriptionDisplay.test.ts
+  s_539f801b32c2f6::t_cd841512f69b75 10-22,29-37,46-49,53-62
+  s_539f801b32c2f6::t_ab8e34b3e53071 1-9,23-28,38-45,50-52,63-77
+apps/management/src/views/system/EmailView.test.ts
+  s_676f3960b3fd09::t_78df5d0a7c77ff 2-124,139
+  s_676f3960b3fd09::t_86599bf7cf1e18 1,125-138,140
+apps/console/src/components/dashboard/RecentActivity.vue
+  s_539f801b32c2f6::t_fc92c20ee88181 149
+apps/console/src/views/personal/__tests__/ProblemListsView.spec.ts
+  s_539f801b32c2f6::t_3a871e01649bb5 15-26,30,32-52,56-59
+  s_539f801b32c2f6::t_a7928261c1ee60 1,3-14,27-29,53-55,60-80
+  s_539f801b32c2f6::t_6881356754eaa5 2
+  s_676f3960b3fd09::t_f663012fe12298 31
+apps/console/src/components/comments/CommentForm.vue
+  s_581ed14d6763bb::t_774275f9b397f1 2,16,29
+apps/console/src/views/personal/components/__tests__/CreateListDialog.spec.ts
+  s_539f801b32c2f6::t_b88c0b5cf676c6 1-14,23-26,47-51
+  s_539f801b32c2f6::t_6109182e587188 15-22,27-46
+apps/management/src/i18n/locales/zh-CN/modules/dashboard.ts
+  s_676f3960b3fd09::t_1c2ab16bb8f426 5-7
+packages/design-system/src/components/appearance/AppearanceSettings.vue
+  s_539f801b32c2f6::t_0da3ad2c65ca57 66,184,187,190-194,217
+  s_539f801b32c2f6::t_fe820cdc1b048f 185-186,188
+packages/domain-types/src/index.ts
+  s_84abfc1e1f122f::t_513e6195d8119b 285-300
+  s_84abfc1e1f122f::t_9d3de84a66e63c 396
+  s_84abfc1e1f122f::t_2bb1af74627a81 60
+  s_84abfc1e1f122f::t_593aed485e8c8d 136
+  s_84abfc1e1f122f::t_5063c159670513 381
+apps/management/src/views/moderation/appeals-columns.ts
+  s_539f801b32c2f6::t_2d86816273a044 237-242
+apps/console/src/components/comments/CommentThread.vue
+  s_676f3960b3fd09::t_70fa585233fbc6 13,32-38,62-66,88
+  s_581ed14d6763bb::t_774275f9b397f1 80
+  s_581ed14d6763bb::t_66eefb5f0a1ff3 61
+  s_581ed14d6763bb::t_d7e291498d91f8 71
+apps/management/src/views/system/BackupView.spec.ts
+  s_539f801b32c2f6::t_41b60d5477e8da 14-20,36,50,64-67
+  s_539f801b32c2f6::t_6487c8bfba6de0 7
+  s_539f801b32c2f6::t_7564a7d69dab68 1-6,8-13,21-35,37-49,51-63,68-75
+apps/console/src/views/contest/components/__tests__/GlobalRanking.spec.ts
+  s_539f801b32c2f6::t_614f0595e2ceb8 8-9,101-103,118-120,128-134
+  s_676f3960b3fd09::t_d5c39a027f0ab3 29-30,34-45,49-51,55-56
+  s_676f3960b3fd09::t_f4eaadcfcfb9a5 31-33,46-48,52-54
+  s_539f801b32c2f6::t_06215508ab01ea 87-95
+  s_676f3960b3fd09::t_69e0be7fc845fd 57-60,64-72,76,80-86
+  s_676f3960b3fd09::t_d13aac39ad01d1 61-63,73-75,77-79
+apps/management/src/i18n/locales/zh-CN/modules/contests.ts
+  s_676f3960b3fd09::t_151901d7ec7389 330
+  s_837bf0326bf1be::t_3bd30cb105f794 304-305
+  s_676f3960b3fd09::t_a6c446f8ca0be7 297
+apps/console/src/views/personal/__tests__/SolutionsView.spec.ts
+  s_676f3960b3fd09::t_d476c866b6f734 1-31,39-58
+  s_676f3960b3fd09::t_a0eca04baa2e27 32-38
+apps/management/src/views/problems/components/__tests__/DescriptionForm.spec.ts
+  s_539f801b32c2f6::t_ce858273bd0760 407,427,586-604
+  s_539f801b32c2f6::t_c8a55dc3cb29b3 242-243,251,253
+  s_539f801b32c2f6::t_9d654c555fb911 244-247
+  s_539f801b32c2f6::t_d0e399757768c1 605-606
+apps/management/src/components/shared/CodeViewer.test.ts
+  s_539f801b32c2f6::t_e4c134dce7f032 17-23,44-47,57-62
+  s_539f801b32c2f6::t_724e37010f59e3 1-16,24-43,48-56,63-65
+apps/console/src/components/problem/composables/useProblemExplorer.ts
+  s_539f801b32c2f6::t_e018daa1020967 143-150,154-163
+  s_539f801b32c2f6::t_a00aecf627d27c 142,164,325-326
+  s_84abfc1e1f122f::t_4928a288b980b1 151-153
+  s_539f801b32c2f6::t_39ff02f239a22c 327-329
+apps/management/src/i18n/locales/zh-CN/modules/moderation.ts
+  s_676f3960b3fd09::t_b500cfe2dc68f1 141
+  s_676f3960b3fd09::t_9bba6c48e8f47d 218
+  s_676f3960b3fd09::t_28e8258ed18bca 195
+  s_539f801b32c2f6::t_e6d535b7f30501 121-122,199-200,222-223
+  s_676f3960b3fd09::t_a53dca654c7ed8 308-312
+apps/management/src/api/admin/contests.ts
+  s_539f801b32c2f6::t_5021a6a00d34ba 26
+apps/console/src/views/problems/submissions/components/SubmissionPerformancePanel.vue
+  s_539f801b32c2f6::t_e5511f28aad98b 99,101-109,354,362
+apps/management/src/components/problems/ProblemImportDialog.vue
+  s_676f3960b3fd09::t_3121a2061235c1 303,315
+apps/management/src/i18n/locales/en-US/modules/contests.ts
+  s_676f3960b3fd09::t_a6c446f8ca0be7 299
+  s_676f3960b3fd09::t_151901d7ec7389 332
+  s_837bf0326bf1be::t_e74c0c26d1d1fe 306-307
+packages/http-client/src/index.ts
+  s_539f801b32c2f6::t_784fd181320c79 434
+apps/console/src/composables/useSolutionAuthoring.ts
+  s_84abfc1e1f122f::t_d639ac6661834a 141
+  s_84abfc1e1f122f::t_f4562567ad50a7 1
+  s_84abfc1e1f122f::t_2aedb94f7c322a 202,204
+  s_84abfc1e1f122f::t_a0a3a72c794b68 41
+  s_676f3960b3fd09::t_b35495c934b42c 419
+  s_84abfc1e1f122f::t_542cf5bcc8fe70 156
+apps/console/src/features/sider/components/SidebarListSections.vue
+  s_539f801b32c2f6::t_a532ac9c592886 19,67,113-116,176-179,259-262,326-329
+apps/management/src/views/contests/ScoringRulesView.vue
+  s_539f801b32c2f6::t_d4d97637f44132 324
+  s_676f3960b3fd09::t_ba71620599bc09 73-75,392,411,425-426,428
+  s_539f801b32c2f6::t_bd06d9115accaf 368-370
+packages/design-system/src/components/ui/command/Command.vue
+  s_539f801b32c2f6::t_23d5d4e03695bc 61
+  s_539f801b32c2f6::t_086dda668b7ee8 72-74
+apps/management/src/views/account/AccountView.vue
+  s_676f3960b3fd09::t_b8b8864cebe14c 2,49-56,320
+  s_539f801b32c2f6::t_afcb3940715f1f 217,225,234
+apps/management/src/i18n/__tests__/i18n-coverage.spec.ts
+  s_676f3960b3fd09::t_211ed7f792fb9f 10-31
+  s_539f801b32c2f6::t_3f9519a20411b0 2,47-48,54-60
+  s_539f801b32c2f6::t_a4e277a660fd14 49-53
+  s_676f3960b3fd09::t_eda2f6e9964561 32-46
+apps/management/src/views/submissions/SubmissionsView.vue
+  s_539f801b32c2f6::t_fea20411ecbe5b 281,285,287-288,305
+  s_539f801b32c2f6::t_b82413ea7a9e94 224
+  s_676f3960b3fd09::t_c4ea5b9e70a2db 231,238-240,246,252-254,263-273
+  s_676f3960b3fd09::t_f344e012066dbd 279,313,315-316,336-349
+  s_539f801b32c2f6::t_7e11e2c0dcb954 28,110-111,361,375,382,397,402
+  s_676f3960b3fd09::t_e791d1a0725ea3 356-357,371,405
+  s_676f3960b3fd09::t_3bcae68d477b11 274
+apps/console/src/views/personal/__tests__/SubmissionsView.spec.ts
+  s_676f3960b3fd09::t_5c20e3696f5ff4 2,4-5,50-58,62-71,75,79-86
+  s_539f801b32c2f6::t_6109182e587188 34-39,42-44
+  s_676f3960b3fd09::t_aecf542733420e 59-61,72-74,76-78
+  s_539f801b32c2f6::t_d453beef6bef81 1,3,6-33,40-41,45-49,87
+apps/management/src/components/problem/MarkdownEditor.vue
+  s_539f801b32c2f6::t_b7b6da2fb05576 25
+  s_539f801b32c2f6::t_fb8a74876c8c05 24,49,51,54-58,62,258-260,270,285-286,312-314,331-332
+  s_539f801b32c2f6::t_b7dcf9fb2bab89 198,237,294-308
+  s_539f801b32c2f6::t_4b3178436c56f9 309
+apps/management/src/i18n/locales/zh-CN/modules/solutions.ts
+  s_539f801b32c2f6::t_154e21c2bd0a41 67-69
+  s_539f801b32c2f6::t_80049c870933b1 50-51
+  s_676f3960b3fd09::t_9600016da661e0 139-140
+apps/console/src/features/sider/sidebar.data.ts
+  s_539f801b32c2f6::t_10749ef6fc23f9 23,76
+apps/management/src/components/problem/components/TestCaseList.vue
+  s_676f3960b3fd09::t_aa08575b1c3778 51-56
+apps/management/src/api/admin/monitoring.test.ts
+  s_676f3960b3fd09::t_7ab0fb8b84ebba 1-27
+apps/console/src/views/contest/components/ContestCard.vue
+  s_539f801b32c2f6::t_2ebc03e5cf907f 62,78-79,86,98-99,101,108,115-117
+  s_539f801b32c2f6::t_59748ebae32c7c 90-94,110-112,118-123
+apps/management/src/components/dashboard/AreaChart.test.ts
+  s_676f3960b3fd09::t_65209a97c2eefa 164-166,178-181
+  s_676f3960b3fd09::t_48186d3e78661d 4,12-14,26,34-36,194
+  s_676f3960b3fd09::t_010a14aa0e66d5 1-3,135-136,138-158,162-163,167-169,175,177,190-192
+  s_676f3960b3fd09::t_8fdc58961be722 137,159-160,170-171,174,182-185,187-189
+  s_676f3960b3fd09::t_111c8e8f36e458 161,176
+  s_676f3960b3fd09::t_5dae3b05f37e20 15-25,27-33,172-173
+  s_676f3960b3fd09::t_5ed03e2d2262b3 186
+  s_676f3960b3fd09::t_57bf45e3e2b3b2 193
+apps/console/src/components/comments/__tests__/CommentLayout.spec.ts
+  s_581ed14d6763bb::t_23c49d4cfb4411 36
+  s_837bf0326bf1be::t_daade09af51d45 1
+  s_676f3960b3fd09::t_70fa585233fbc6 50-72
+  s_837bf0326bf1be::t_e4707af82687fd 89-124
+  s_581ed14d6763bb::t_b92473dec7b39c 2-35,37-49,73-88,125-155
+apps/management/src/views/users/UserDetailDrawer.test.ts
+  s_539f801b32c2f6::t_fec1dc3d61f573 140-142,146,151-159
+  s_539f801b32c2f6::t_faaa3ad8a4f132 143-145,147-150
+apps/management/src/views/solutions/components/DescriptionDisplay.vue
+  s_539f801b32c2f6::t_154e21c2bd0a41 18-28,42,68,80,109,111,115,119
+apps/console/src/stores/contestRanking.test.ts
+  s_676f3960b3fd09::t_f4eaadcfcfb9a5 8-10,12-13,15-17,23-26,33-35,37,42-47,74-79,83-86,89,93
+  s_676f3960b3fd09::t_a1692b8952f1b3 18-19,87-88
+  s_676f3960b3fd09::t_f35f113c316d5a 54-68
+  s_676f3960b3fd09::t_d5c39a027f0ab3 1-7,11,14,20-22,27-32,36,38-41,48-53,69-73,80-82,90-92,94-98
+apps/console/src/views/problems/submissions/components/__tests__/SubmissionPerformancePanel.spec.ts
+  s_539f801b32c2f6::t_77f5fedf3fad54 173-192
+  s_539f801b32c2f6::t_bcf394240bda2c 5,141,149-161,163-172,379
+  s_539f801b32c2f6::t_a6dd4e413f4415 162
+apps/console/src/views/dashboard/PersonalDashboardView.vue
+  s_539f801b32c2f6::t_2353535e4cbbb4 168,180
+apps/management/src/views/settings/components/FeatureToggleSettings.vue
+  s_539f801b32c2f6::t_2fa0805258ebc0 95-97
+  s_539f801b32c2f6::t_494863da589461 90
+apps/management/src/components/analytics/AnalyticsBarList.test.ts
+  s_676f3960b3fd09::t_7446f0f611dab4 11-17,19-32
+  s_676f3960b3fd09::t_67354124ff4ba3 6-10,18
+apps/management/src/views/contests/wizard/StepSchedule.vue
+  s_539f801b32c2f6::t_cd8f20d06647fa 33,64,68-69,72
+apps/console/src/i18n/locales/en-US/personal.ts
+  s_676f3960b3fd09::t_26912054c0a982 536
+  s_676f3960b3fd09::t_6eacc74372e884 98-99,142,153,248-249
+  s_676f3960b3fd09::t_2e3d2db0297387 324
+  s_539f801b32c2f6::t_fc92c20ee88181 520
+  s_539f801b32c2f6::t_b76f4966ea9b96 509-513
+  s_676f3960b3fd09::t_a0eca04baa2e27 196
+  s_539f801b32c2f6::t_95f0e07d6b5dcc 352
+  s_676f3960b3fd09::t_aecf542733420e 167
+  s_539f801b32c2f6::t_96b9e01af7bccc 212,247
+  s_676f3960b3fd09::t_63460dcc27ac97 300
+apps/console/src/views/contest/__tests__/ContestRankingsView.spec.ts
+  s_676f3960b3fd09::t_f4eaadcfcfb9a5 7,9,16-19,42,86-90
+  s_539f801b32c2f6::t_c357318c290cc3 66,74
+  s_539f801b32c2f6::t_ca84c37bc9a16f 1-2,4-6,12-15,21-41,44-51,55,64-65,67-68,73,75-77,103-105
+  s_676f3960b3fd09::t_046f0d544d98d6 3,11,20,43,82-85,91-98
+  s_539f801b32c2f6::t_884d8393d998cd 8,10,52-54,56-63,69-72,78-81,99-102
+docs/REFERENCE.md
+  s_84abfc1e1f122f::t_c258723f1b553c 174
+apps/management/src/views/users/UsersListView.test.ts
+  s_676f3960b3fd09::t_4c606821e45a69 1-71
+apps/management/src/views/audit/AuditLogDetailDrawer.vue
+  s_539f801b32c2f6::t_eba6bf47072acd 46,54,66-70,85,89,110,117,122
+apps/console/src/views/contest/detailed/components/ContestRegistration.vue
+  s_539f801b32c2f6::t_fe1ddf7981d241 46-47,50,100,133
+  s_539f801b32c2f6::t_eb3458260e5afc 42-45
+apps/console/src/composables/useNotificationFeed.ts
+  s_539f801b32c2f6::t_83285b6e2eeb36 62
+apps/console/src/views/problems/solutions/SolutionListView.vue
+  s_581ed14d6763bb::t_774275f9b397f1 269,271,273,281,293,304
+apps/management/src/components/problems/ProblemImportDialog.test.ts
+  s_676f3960b3fd09::t_f15c396305fbeb 1-6,8-10,14-20,24-30
+  s_676f3960b3fd09::t_2d36f641df06c0 7
+  s_676f3960b3fd09::t_487014a3da84bc 11-13
+  s_676f3960b3fd09::t_3121a2061235c1 21-23
+apps/console/src/views/personal/components/SubmissionHistoryChart.vue
+  s_676f3960b3fd09::t_6eacc74372e884 6,29,246,250-251,286-296
+  s_676f3960b3fd09::t_b505764a08fac0 53,149,156,179,200
+  s_676f3960b3fd09::t_fe75b81023408b 123
+  s_676f3960b3fd09::t_6eacbef1e4796d 4,242-243
+  s_676f3960b3fd09::t_7a3681ad574775 297
+apps/console/src/i18n/locales/en-US/profile.ts
+  s_676f3960b3fd09::t_26912054c0a982 9
+apps/console/src/components/common/data-table/__tests__/DataTableToolbar.spec.ts
+  s_539f801b32c2f6::t_ba6044a6ef6f40 15,25,31
+  s_539f801b32c2f6::t_3fa71a38aaaf7b 14
+apps/console/src/router/index.ts
+  s_681960d7f6984f::t_a6f4611f895306 295
+  s_539f801b32c2f6::t_a3846d7ed41d75 300-312
+  s_539f801b32c2f6::t_40b7a57441e5d0 101-104,108-111
+apps/management/src/views/problems/edit/EditCodeView.vue
+  s_539f801b32c2f6::t_56dcf650b00788 93,95,101
+apps/console/src/views/personal/components/UserStatsPanel.vue
+  s_539f801b32c2f6::t_709ade1f332511 110
+apps/management/src/views/contests/wizard/ContestWizard.test.ts
+  s_676f3960b3fd09::t_0c9f6d77965170 1-18,20-33
+  s_676f3960b3fd09::t_1bded01bb538ea 19
+apps/management/src/components/table/DataTable.vue
+  s_84abfc1e1f122f::t_eb274cbc164c75 191-217,222
+  s_676f3960b3fd09::t_c9bae716b66ad7 342-346
+apps/management/src/views/problems/edit/EditDescriptionView.vue
+  s_539f801b32c2f6::t_56dcf650b00788 131,133,139
+apps/management/src/components/analytics/AnalyticsHeatmap.test.ts
+  s_539f801b32c2f6::t_1a707afee98bf3 1-37
+apps/management/src/views/forum/ForumPostDetailDrawer.vue
+  s_539f801b32c2f6::t_9a6a9e767d7776 47-49,61
+apps/console/src/views/personal/BookmarksView.vue
+  s_676f3960b3fd09::t_2e3d2db0297387 57,84,249-254,256-259,276-285
+  s_539f801b32c2f6::t_f4465607d94877 287
+apps/management/src/views/moderation/reports-columns.ts
+  s_539f801b32c2f6::t_2d86816273a044 301-306
+apps/management/src/api/admin/analytics.ts
+  s_539f801b32c2f6::t_88758cc4ce94fa 101-102,119
+apps/management/src/components/problem/components/TestCaseDetail.vue
+  s_539f801b32c2f6::t_cd8f20d06647fa 30-32
+apps/management/src/stores/admin/submissions.ts
+  s_539f801b32c2f6::t_7e11e2c0dcb954 12,48,51-52
+  s_539f801b32c2f6::t_c3377319d88b18 49-50
+  s_676f3960b3fd09::t_c4ea5b9e70a2db 13,34-38,47,65-67,121-122,143
+packages/http-client/src/__tests__/createHttpClient.test.ts
+  s_539f801b32c2f6::t_71792b3703a192 395-413
+apps/management/src/views/analytics/components/PerformanceReport.vue
+  s_539f801b32c2f6::t_88758cc4ce94fa 13,18-19,41,43-47
+apps/management/src/router/index.ts
+  s_539f801b32c2f6::t_853afd3fd41480 65
+apps/management/src/views/settings/SettingsView.vue
+  s_539f801b32c2f6::t_e7636b2478bce7 122
+  s_539f801b32c2f6::t_834b5256675361 179
+  s_539f801b32c2f6::t_e53d6d5a848ae2 124,128,132,136,140
+apps/management/src/components/layout/SiteHeader.vue
+  s_539f801b32c2f6::t_25b18062bac142 134,136,176
+apps/management/src/views/help/HelpView.vue
+  s_539f801b32c2f6::t_e0fcec8f033313 199,201
+apps/console/src/views/contest/components/GlobalRanking.vue
+  s_539f801b32c2f6::t_3f4057db61b0ac 45,47,50
+  s_539f801b32c2f6::t_a28d37b5543090 56
+  s_676f3960b3fd09::t_f4eaadcfcfb9a5 13-15,17-23,26,289,326-328,330,332-333,335-342
+  s_539f801b32c2f6::t_a71652e8d309ca 8-11,16,24,60-66,271,296,314-315,317,319
+  s_676f3960b3fd09::t_d13aac39ad01d1 12,70-87,89-90,93,95-103,105-112,114-115,117-118,120-128,130,132-140,144,146-147,150,152-165,167-174,176-177,179-180,182-190,192,194-202,206,208-209,212,214-222,224-231,233-234,236-237,239-247,249,251-259,265-268,270,272,274-287,290-291,293-295,297-313,316,318,320-322,329,331,334,343-344
+  s_676f3960b3fd09::t_fc340e9ca8bb59 25
+apps/console/src/views/forum/ForumEditorView.vue
+  s_539f801b32c2f6::t_72c1e38d88b3a7 18-21,312-322,333,354-355
+  s_539f801b32c2f6::t_c1532fbe5306ad 163-165,174-176,201-207,324-326,373-375
+  s_539f801b32c2f6::t_0ab412e3bb7d2b 16,162,166-173,178,195,199,340-341,348,368
+  s_837bf0326bf1be::t_a54aee638b116f 437-441
+  s_539f801b32c2f6::t_96495dc4d8a929 17
+apps/console/src/views/forum/components/ThreadContent.vue
+  s_539f801b32c2f6::t_815a73faa4662c 28,93
+apps/management/src/components/problem/__tests__/HiddenTestCasesEditor.spec.ts
+  s_676f3960b3fd09::t_ec5efa368c3cb5 157-166
+  s_676f3960b3fd09::t_f2fb34c88800c2 138-140
+  s_676f3960b3fd09::t_aa08575b1c3778 5,144-151
+  s_676f3960b3fd09::t_12a8e05ebd126e 8-9,152-156
+  s_676f3960b3fd09::t_87fcf3daae0e4f 133-137,141
+apps/console/src/views/problems/submissions/components/submissionChartOptions.ts
+  s_539f801b32c2f6::t_e5511f28aad98b 89-90,120,139
+apps/management/src/views/analytics/AnalyticsView.test.ts
+  s_676f3960b3fd09::t_f9f29731fc09b6 1-7,14-21,23-25,31-44,50-53,111-112,118-120
+  s_84abfc1e1f122f::t_cbac00331d0ce6 8-13,22,26-30
+  s_84abfc1e1f122f::t_9ba12eb001d4c0 55-110,113-117
+  s_84abfc1e1f122f::t_a438657c6de3d6 54
+  s_676f3960b3fd09::t_29bba574d7a602 45-49
+apps/management/src/views/contests/ScoringRulesView.test.ts
+  s_676f3960b3fd09::t_8a8843c3343df8 1-7,11-42,44-46,48-59,64-67,69-73
+  s_676f3960b3fd09::t_4847e45175a46b 8-10,43,47,60-63,68
+apps/management/src/components/table/selectionColumn.ts
+  s_539f801b32c2f6::t_16e98c2b13ea38 48,55
+apps/management/src/components/audit/AuditLogViewer.test.ts
+  s_84abfc1e1f122f::t_62bf7167d91f70 5
+  s_676f3960b3fd09::t_7c304c0c1b71a5 1,103-110,112-136
+  s_84abfc1e1f122f::t_56f0917e6e1657 55-64
+  s_84abfc1e1f122f::t_32a1eca8a04637 102
+  s_84abfc1e1f122f::t_ab7eb410fa308f 143-152,156-162
+  s_84abfc1e1f122f::t_31a82a26d39671 153-155
+  s_676f3960b3fd09::t_292644d7e0aa28 111
+  s_84abfc1e1f122f::t_9daa7bee229d39 73-75
+apps/management/src/components/dashboard/AreaChart.vue
+  s_539f801b32c2f6::t_b59f841bf29ad4 291
+  s_676f3960b3fd09::t_65209a97c2eefa 216-218,220-222,371-372,374-378,403-404
+  s_539f801b32c2f6::t_90e482b9e40428 300
+  s_676f3960b3fd09::t_111c8e8f36e458 373,382,402
+  s_676f3960b3fd09::t_5dae3b05f37e20 20-27,348,356-361,363-368,399
+  s_539f801b32c2f6::t_5addb73af59d59 387
+  s_676f3960b3fd09::t_bd6dd6c2f3746e 19
+apps/management/src/components/table/DataTable.test.ts
+  s_676f3960b3fd09::t_c9bae716b66ad7 12,37-46,149-165
+  s_84abfc1e1f122f::t_e53a1c7866bd09 106-142
+apps/console/src/i18n/utils/problemTagLabel.ts
+  s_84abfc1e1f122f::t_6f591d1c3b1abb 1-25
+apps/management/src/components/table/__tests__/selectionColumn.spec.ts
+  s_539f801b32c2f6::t_86593bb93e1db8 38-54
+apps/console/src/composables/__tests__/useSolutionAuthoring.spec.ts
+  s_84abfc1e1f122f::t_99efae8e836787 132-151
+  s_84abfc1e1f122f::t_a18abb0e748e9a 306-308
+  s_676f3960b3fd09::t_17b1a2e51c6a5b 345-350
+.devcontainer/devcontainer-lock.json
+  s_88fba86bc29ccb::t_b0135a9890ea39 3
+apps/management/src/i18n/locales/en-US/modules/submissions.ts
+  s_676f3960b3fd09::t_c4ea5b9e70a2db 79
+packages/design-system/src/components/ui/dialog/DialogContent.vue
+  s_539f801b32c2f6::t_cefd2239bbfbdc 47
+apps/landing/src/views/landing/components/FinalStorySection.vue
+  s_539f801b32c2f6::t_7204bd42bdbb2e 13-14
+  s_539f801b32c2f6::t_cd7e55ad9c20ab 12
+  s_539f801b32c2f6::t_493fff5ba6e7ce 19,24-28
+apps/management/src/components/shared/AppearanceSettings.test.ts
+  s_539f801b32c2f6::t_2730ad8d189a6b 1-29,31-81
+  s_539f801b32c2f6::t_cfeb2af9715283 30
+apps/console/src/stores/contestRanking.ts
+  s_676f3960b3fd09::t_f35f113c316d5a 85,88,109
+  s_676f3960b3fd09::t_f4eaadcfcfb9a5 4-8,43-51,59-61,73-79,81-84,86-87,89-108,166-168,177
+apps/console/src/api/topic.ts
+  s_539f801b32c2f6::t_2a908fa2ffdc15 2,5
+apps/management/src/views/audit/AuditReportView.test.ts
+  s_539f801b32c2f6::t_e165c1ad9583ca 104-105
+  s_539f801b32c2f6::t_a1d292be38925a 7-10,25-30,52,75,77,81,98-103,106-125
+  s_539f801b32c2f6::t_57df0d00cdff1d 126,178-199
+  s_539f801b32c2f6::t_9bf2483e052f9d 127
+apps/console/src/views/users/UserProfileView.vue
+  s_676f3960b3fd09::t_5a3172ed47f5aa 8,33-35,59-63
+  s_539f801b32c2f6::t_b76f4966ea9b96 109-111,114,120,124,131,151,201,281,283,291
+  s_539f801b32c2f6::t_e4d254b73acf05 78-80
+  s_676f3960b3fd09::t_0206ec470d91bf 15,47-52,72-74,82-89
+apps/console/src/i18n/locales/en-US/solution.ts
+  s_84abfc1e1f122f::t_2bc56fd66e6597 8
+  s_539f801b32c2f6::t_59b2920c7e7a1e 12
+packages/design-system/src/components/ui/table/Table.vue
+  s_837bf0326bf1be::t_59a7dd9d0a689d 8-15
+  s_837bf0326bf1be::t_2f47559cf12e56 19-22,24
+  s_837bf0326bf1be::t_bb9015a0e05e03 23
+apps/management/src/stores/admin/__tests__/contests-rankings.spec.ts
+  s_837bf0326bf1be::t_b2ff67bbc496b8 1-86
+apps/console/src/components/comments/CommentNode.vue
+  s_837bf0326bf1be::t_62b4681646dc41 321
+  s_581ed14d6763bb::t_73622c043c5d29 121,128,188
+  s_837bf0326bf1be::t_9950d61598d707 178
+  s_581ed14d6763bb::t_774275f9b397f1 2-4,7,11-15,56,58-60,62,107,182-183,185-187,189-204
+  s_837bf0326bf1be::t_eaf157de7e81b8 117
+  s_837bf0326bf1be::t_7aa339171c9ab8 421-427
+services/app/app-web/src/main/java/com/ulticode/modules/problemlist/projection/DefaultProblemListProjection.java
+  s_84abfc1e1f122f::t_c965dc000181e0 212
+apps/console/src/views/forum/ForumFeedView.vue
+  s_539f801b32c2f6::t_85d5532570915a 294-296,298,304
+  s_539f801b32c2f6::t_c352514c3a7355 258-260
+  s_539f801b32c2f6::t_129d999bef1cd0 242-243
+  s_539f801b32c2f6::t_c2dc2ffc1ed7cf 56-58,60-61
+  s_539f801b32c2f6::t_10749ef6fc23f9 42,68,70,80,86,89-91,100,102,109,111,119,121,269,288
+  s_539f801b32c2f6::t_eee37b5dc342fd 254-257,299-303
+  s_539f801b32c2f6::t_80e6f2dfdc72b0 283-287,289-291
+  s_539f801b32c2f6::t_7eb93cbd715b22 297
+  s_539f801b32c2f6::t_c80967cbb15e14 59
+  s_539f801b32c2f6::t_6de24d77de24ae 292
+apps/management/src/views/contests/components/ContestOverviewTab.vue
+  s_539f801b32c2f6::t_5021a6a00d34ba 85
+  s_539f801b32c2f6::t_2afeeed5c69066 23,57
+  s_676f3960b3fd09::t_45be19cadeb57d 59,91,95,106
+apps/management/src/views/problem-lists/components/VisibilitySection.test.ts
+  s_539f801b32c2f6::t_7753b2fcd17975 2,5,19,88,94-95,100-101,105-107,126,130,132
+  s_539f801b32c2f6::t_fee2e0f55d9a06 20,108-125
+services/app/app-web/src/main/java/com/ulticode/modules/problem/mapper/ProblemMapper.java
+  s_84abfc1e1f122f::t_ef0d0097be89e8 39,42,46,51-52,55
+apps/management/src/views/contests/wizard/ContestWizard.vue
+  s_676f3960b3fd09::t_1bded01bb538ea 126
+  s_539f801b32c2f6::t_b05bd3b52838eb 150
+  s_539f801b32c2f6::t_cd8f20d06647fa 172
+  s_676f3960b3fd09::t_da03185c677793 139,207
+  s_539f801b32c2f6::t_e2b7f724364b0d 142-145
+apps/console/src/views/contest/ContestRankingsView.vue
+  s_676f3960b3fd09::t_d13aac39ad01d1 48-50,54-55,216-217,222-225
+  s_539f801b32c2f6::t_40b7a57441e5d0 3,45,57,59-62,180,193
+  s_676f3960b3fd09::t_f4eaadcfcfb9a5 51-53,141-145,218-221
+  s_539f801b32c2f6::t_c357318c290cc3 176,188
+  s_539f801b32c2f6::t_884d8393d998cd 58,63-65
+  s_539f801b32c2f6::t_63dd3e34d6f15b 150,214-215
+apps/management/src/i18n/locales/en-US/modules/system.ts
+  s_539f801b32c2f6::t_7af245ee0678ec 122
+  s_676f3960b3fd09::t_993d42782d4e84 62-63
+apps/management/src/components/layout/SiteHeader.spec.ts
+  s_539f801b32c2f6::t_dcac3a5cb9689b 15-24,33-39,43-48,62-67
+  s_539f801b32c2f6::t_f6e96a8d71fda3 1-14,25-32,40-42,49-61,68-76
+apps/console/src/i18n/locales/zh-CN/contest.ts
+  s_539f801b32c2f6::t_6601f5f44edad0 15-21
+  s_676f3960b3fd09::t_def4068f084638 4,45
+  s_539f801b32c2f6::t_3f4057db61b0ac 232
+apps/management/src/views/moderation/AppealsView.test.ts
+  s_676f3960b3fd09::t_4aa1dc25f74ddf 1-40,42-63
+  s_676f3960b3fd09::t_211ed7f792fb9f 41
+apps/console/src/views/problems/ProblemDetailView.vue
+  s_837bf0326bf1be::t_c01101ac520681 141
+  s_837bf0326bf1be::t_af3bf410cde93e 53
+  s_837bf0326bf1be::t_cf52ae87ddde84 119
+  s_676f3960b3fd09::t_d46941f9504ccc 92,95,100,107
+  s_837bf0326bf1be::t_a752935a39967e 131-140,142-145
+apps/console/src/components/common/data-table/DataTableToolbar.vue
+  s_539f801b32c2f6::t_3fa71a38aaaf7b 47,50
+apps/console/src/views/personal/components/ActivityHeatmap.vue
+  s_676f3960b3fd09::t_ef5a4844017b22 73,134
+services/api/app-api/src/test/java/com/ulticode/app/api/architecture/ProblemApiContractShapeTest.java
+  s_84abfc1e1f122f::t_be5da55d6253d4 155-156
+apps/console/src/views/personal/components/__tests__/SubmissionHistoryChart.spec.ts
+  s_676f3960b3fd09::t_d09caa90562e20 1-45
+services/app/app-web/src/main/java/com/ulticode/modules/problemlist/dto/ProblemListDetailVO.java
+  s_84abfc1e1f122f::t_b03436bb7a7922 81
+apps/management/src/components/problem/MarkdownEditor.test.ts
+  s_539f801b32c2f6::t_7239da3063fd3d 1-11,21-74
+  s_539f801b32c2f6::t_fb8a74876c8c05 12-20
+apps/console/src/components/bookmark/CreateFolderDialog.vue
+  s_539f801b32c2f6::t_36127ac32271cd 17,61,159,164
+  s_539f801b32c2f6::t_fdc5f7acf25ab2 165,184
+apps/management/src/views/contests/wizard/StepBasicInfo.vue
+  s_539f801b32c2f6::t_61ce66697d28a4 46
+packages/design-system/src/components/ui/sidebar/SidebarInset.vue
+  s_539f801b32c2f6::t_c027cd2be47b83 15
+apps/management/src/views/users/UsersListView.vue
+  s_539f801b32c2f6::t_88a11f21e37b48 266
+  s_676f3960b3fd09::t_1c665ed266c120 111,297,345,347-348,368-381
+apps/management/src/views/contests/ContestsListView.vue
+  s_676f3960b3fd09::t_3fd3678a7a31a8 194
+  s_676f3960b3fd09::t_813aa4f6eefe24 88-90,251,287,289-290,310-322
+  s_539f801b32c2f6::t_60001af6163c31 212
+  s_676f3960b3fd09::t_613bf9553e49c9 323
+apps/console/src/components/common/data-table/__tests__/DataTable.spec.ts
+  s_837bf0326bf1be::t_99cb47b55ddacc 49-59,88-92
+  s_539f801b32c2f6::t_759bed4572b626 6-23
+  s_837bf0326bf1be::t_eb6fd3f8d61ec8 60-87
+  s_539f801b32c2f6::t_d303be9373f66f 25-36,43-47
+  s_539f801b32c2f6::t_8d47bfbe1fdd0c 24
+  s_676f3960b3fd09::t_44f16a2f09b794 37-42
+  s_539f801b32c2f6::t_2383b7a21a0435 48
+apps/management/src/i18n/locales/en-US/modules/users.ts
+  s_539f801b32c2f6::t_abd1acfad57a03 180
+apps/management/src/views/notifications/NotificationCreateDialog.vue
+  s_676f3960b3fd09::t_934e0798444f61 150,166,177
+  s_539f801b32c2f6::t_3807e8e7310b1e 10-16,152-153,155-156,162-163,165,320
+  s_676f3960b3fd09::t_06fd4770893133 9
+apps/management/src/views/contests/wizard/StepScoringRule.vue
+  s_539f801b32c2f6::t_61ce66697d28a4 4-6,16
+apps/console/src/views/problems/code/__tests__/CodeView.theme.spec.ts
+  s_10c4f902531ac1::t_ea721f484b7d65 39-50,52
+  s_676f3960b3fd09::t_cddf3acd3671a0 15-19,32-37
+  s_676f3960b3fd09::t_58932c9c571a96 38,51,53-54
+  s_676f3960b3fd09::t_e6332ac719c949 20-24,26-31
+services/app/app-web/src/test/java/com/ulticode/modules/problem/service/ProblemVersionServiceTest.java
+  s_84abfc1e1f122f::t_ce5ef63f0e154d 186
+apps/management/src/views/contests/components/ContestRankingsTab.test.ts
+  s_837bf0326bf1be::t_9e2b50c0841c10 1-65
+apps/console/src/i18n/locales/zh-CN/personal.ts
+  s_676f3960b3fd09::t_6eacc74372e884 135,146
+  s_676f3960b3fd09::t_aecf542733420e 159
+  s_676f3960b3fd09::t_63460dcc27ac97 283
+  s_539f801b32c2f6::t_95f0e07d6b5dcc 331
+  s_676f3960b3fd09::t_a0eca04baa2e27 186
+  s_539f801b32c2f6::t_96b9e01af7bccc 202,236-237
+  s_676f3960b3fd09::t_2e3d2db0297387 305
+  s_539f801b32c2f6::t_fc92c20ee88181 463
+  s_539f801b32c2f6::t_b76f4966ea9b96 452-456
+packages/design-system/typeset.css
+  s_84abfc1e1f122f::t_2e759ac1d39ef4 394-397
+apps/management/src/i18n/locales/zh-CN/modules/help.ts
+  s_539f801b32c2f6::t_e0fcec8f033313 32-33
+apps/management/src/views/solutions/SolutionDetailView.vue
+  s_539f801b32c2f6::t_9a9006a3801440 146,148-150
+  s_539f801b32c2f6::t_154e21c2bd0a41 91-92,96-97,102,109,135,137,139,142,144,147,154
+apps/management/src/views/solutions/SolutionsListView.vue
+  s_539f801b32c2f6::t_80049c870933b1 92,102
+  s_539f801b32c2f6::t_684cecb58573a9 165
+  s_676f3960b3fd09::t_e695fc19020a8b 77-84,198,200-201,221-234
+apps/management/src/views/contests/components/ContestProblemsTab.test.ts
+  s_676f3960b3fd09::t_0b33ceb714d160 1-6,19-21,38-51
+  s_676f3960b3fd09::t_967abe67064b55 31
+  s_676f3960b3fd09::t_a6c446f8ca0be7 7-18,22-30,32-37
+apps/console/src/components/common/data-table/CategoryFilter.vue
+  s_539f801b32c2f6::t_710d69e11aa68b 31
+apps/console/src/views/personal/components/__tests__/ActivityHeatmap.spec.ts
+  s_676f3960b3fd09::t_8dfd424c6be969 1
+  s_676f3960b3fd09::t_8cff716c295124 2-11
+apps/console/src/composables/__tests__/useNotificationFeed.spec.ts
+  s_539f801b32c2f6::t_038d64bd36a3ac 88-102,135
+apps/management/src/i18n/locales/en-US/modules/dashboard.ts
+  s_676f3960b3fd09::t_1c2ab16bb8f426 5-7
+apps/management/src/components/analytics/topUsersChart.ts
+  s_539f801b32c2f6::t_3a09932f7a2322 53
+packages/design-system/src/components/ui/command/CommandDialog.vue
+  s_539f801b32c2f6::t_3c595e22d42566 39,47
+apps/console/src/views/personal/components/__tests__/CategoriesTab.spec.ts
+  s_539f801b32c2f6::t_300167e739b28b 1-10,12-15,26-30
+  s_539f801b32c2f6::t_53c8bd426a8db6 11,24-25
+  s_539f801b32c2f6::t_6109182e587188 16-23
+apps/management/src/components/shared/Command.test.ts
+  s_539f801b32c2f6::t_504310937c1a7b 1-2,4-29,38-57,59-60,62-63,65-77
+  s_539f801b32c2f6::t_fae0eb57310ad3 3,30-37
+  s_539f801b32c2f6::t_1db3a245c6da42 58,61,64
+services/app/app-web/src/main/java/com/ulticode/modules/problem/port/DefaultProblemListReadPort.java
+  s_84abfc1e1f122f::t_d632b00f44f15a 19-20
+  s_84abfc1e1f122f::t_0072eacdd60b00 41-49,60
+services/app/app-web/src/test/java/com/ulticode/modules/problem/service/ProblemSnapshotServiceTest.java
+  s_84abfc1e1f122f::t_915d3e47f914de 152
+apps/management/src/views/settings/components/EmailSettings.vue
+  s_539f801b32c2f6::t_494863da589461 114
+  s_539f801b32c2f6::t_2fa0805258ebc0 121-123
+apps/console/src/components/editor/KeyboardShortcutsModal.vue
+  s_676f3960b3fd09::t_058aad60977ea0 342
+apps/console/src/views/problem-list/ProblemListAnalytics.vue
+  s_539f801b32c2f6::t_dec81fc3ec0585 111,118
+  s_539f801b32c2f6::t_d425c8f133b13b 112-117
+apps/console/src/components/dashboard/SkillRadarChart.test.ts
+  s_84abfc1e1f122f::t_93e4f947dce5ac 5-8,10-19
+  s_676f3960b3fd09::t_bb2255f7b615e5 1-4,9,20-21,26-34,39-40,53-61,64,79-87,89
+  s_84abfc1e1f122f::t_8c41a727809f34 65-78
+  s_676f3960b3fd09::t_2dfefb7339d082 22-25,35-37,48,50-51,88
+  s_84abfc1e1f122f::t_0d349acdead427 62-63
+  s_84abfc1e1f122f::t_90206389fa1be9 38,41-47,49,52
+apps/console/src/components/problem/FeaturedBanners.vue
+  s_84bdeb1261de8a::t_51930da0348569 231
+  s_539f801b32c2f6::t_a532ac9c592886 6-7,107-109,180-188,246-247,304-305
+  s_84bdeb1261de8a::t_f157eb1919311b 364
+apps/management/src/views/notifications/NotificationsListView.test.ts
+  s_676f3960b3fd09::t_354fe371959afe 73-120
+  s_676f3960b3fd09::t_de48cef62da89a 1,3,5-16,19-21,23-56,58-60,68,72,121-122,124-127
+  s_676f3960b3fd09::t_458719bb6a5267 2,4,17-18,22,57,61-67,69-71,123
+packages/design-system/style.css
+  s_539f801b32c2f6::t_a532ac9c592886 192-198
+apps/console/src/i18n/locales/zh-CN/problem.ts
+  s_84abfc1e1f122f::t_6b177f27c1bdff 181-194
+  s_676f3960b3fd09::t_dda07bbb339928 464-465
+apps/console/src/views/forum/ForumFeedView.test.ts
+  s_837bf0326bf1be::t_c525d1eb38d783 22
+  s_539f801b32c2f6::t_b09b690a920696 95-97,101,111-115
+  s_539f801b32c2f6::t_09f662333da241 2,14,50,116-125
+  s_539f801b32c2f6::t_a6623dd24af77a 37,39,70-94
+  s_539f801b32c2f6::t_e7afdd08868dea 49
+  s_539f801b32c2f6::t_3f16e237f5c16e 6-11,15,17-19,23-25,28-29,31-32,53-57,60-66,134-151,154-156
+  s_837bf0326bf1be::t_7fd351a86e2027 16
+  s_539f801b32c2f6::t_f075f69ae64910 1,3-4,12-13,27,30,33-36,38,40-48,51-52,58-59,67-69,126-133,152-153,157-165
+  s_539f801b32c2f6::t_eee37b5dc342fd 98-100,102-110
+  s_837bf0326bf1be::t_2b0abf29d37660 166-185
+  s_837bf0326bf1be::t_4b52c0f30a5843 5
+  s_539f801b32c2f6::t_467aa268b62ab3 20-21,26
+apps/management/src/api/admin/audit.ts
+  s_539f801b32c2f6::t_1f3eea5fbb6aad 143-144
+services/app/app-web/src/test/java/com/ulticode/modules/problemlist/projection/DefaultProblemListProjectionTest.java
+  s_84abfc1e1f122f::t_63d01971072b9f 299
+  s_84abfc1e1f122f::t_11953e61a97d9a 300-319
+  s_84abfc1e1f122f::t_5b926dfcd092ce 13
+  s_84abfc1e1f122f::t_c897ee3eae397d 21
+  s_84abfc1e1f122f::t_c66bbee3dc4df9 8
+  s_84abfc1e1f122f::t_6b11310c9e5367 320
+apps/console/src/views/users/__tests__/UserProfileView.spec.ts
+  s_676f3960b3fd09::t_694798b942df1c 5,56,59-61,101-102,106-124
+  s_676f3960b3fd09::t_0206ec470d91bf 103-105
+  s_676f3960b3fd09::t_5a3172ed47f5aa 64-100
+  s_676f3960b3fd09::t_0a1f16899e9c80 1-4,6-55,57-58,62-63
+apps/console/src/components/problem/__tests__/ProblemSetSidebar.spec.ts
+  s_539f801b32c2f6::t_15a6f1cfd5ed16 52,56-59,63,67-70
+  s_676f3960b3fd09::t_dda07bbb339928 21,60-62,64-66,92,114
+  s_539f801b32c2f6::t_d5e7eca4db4761 53-55
+apps/console/src/features/sider/SidebarNav.vue
+  s_539f801b32c2f6::t_2aff8197d5d7f3 136
+  s_539f801b32c2f6::t_aaa80f97406bfa 70-71
+  s_539f801b32c2f6::t_10749ef6fc23f9 57,150,173,191,205,216
+  s_539f801b32c2f6::t_7ed0e4c6191e5b 83
+  s_539f801b32c2f6::t_ae8173156eb716 65-69,72-75
+  s_539f801b32c2f6::t_320196c3ce5f1c 139
+  s_539f801b32c2f6::t_c352514c3a7355 96-111,113-114,116-135
+apps/management/src/components/problem/components/TestCaseDetail.test.ts
+  s_539f801b32c2f6::t_1d07e7b0a00401 9-19,22-32
+  s_539f801b32c2f6::t_59edd99110d3e9 1-8,20-21,33-41
+apps/management/src/views/problems/components/ProblemForm.vue
+  s_539f801b32c2f6::t_d3daf4d92d5224 367-369
+apps/landing/src/views/landing/__tests__/LandingView.spec.ts
+  s_676f3960b3fd09::t_090a937431aa1a 152
+  s_676f3960b3fd09::t_7931baf55f21be 164-168,173
+apps/management/src/components/dashboard/DashboardTimeline.vue
+  s_676f3960b3fd09::t_8963ee3705d4e8 193
+apps/console/src/views/problems/submissions/SubmissionsDetail.vue
+  s_539f801b32c2f6::t_9d98181111cc6c 127-133,180-187
+  s_539f801b32c2f6::t_effac2df0aa23d 24,124-125,170-171,188,192,194
+apps/console/src/views/achievements/AchievementGalleryView.vue
+  s_539f801b32c2f6::t_29b3715a084834 120,165-167,172,175
+apps/console/src/views/problems/submissions/__tests__/SubmissionsListView.spec.ts
+  s_837bf0326bf1be::t_0156dffb1e0005 1-26
+apps/console/src/components/problem/__tests__/ProblemSetSidebar.locale.spec.ts
+  s_676f3960b3fd09::t_dda07bbb339928 13-16,31-36
+  s_676f3960b3fd09::t_1ee12e8404a4d5 23-26,43-45,58-60
+  s_676f3960b3fd09::t_4459cf7fb94eda 1-12,17-22,27-30,37-42,46-57,61-70
+.devcontainer/devcontainer.json
+  s_88fba86bc29ccb::t_8008ca3154b3d9 13
+apps/console/src/api/problem-list.ts
+  s_84abfc1e1f122f::t_18d85da6f78722 216-222
+apps/console/src/views/contest/components/MyContests.vue
+  s_539f801b32c2f6::t_76586e2da0c621 87,105-120,122,124-126,168,170-172
+  s_539f801b32c2f6::t_758634f7ce2cb0 100-104
+  s_676f3960b3fd09::t_6c2d4a3c0eeeb8 123,169,225
+  s_676f3960b3fd09::t_d7358cbc7d6f4d 4,31,58,64,66-67
+apps/console/src/i18n/locales/en-US/forum.ts
+  s_539f801b32c2f6::t_0ab412e3bb7d2b 47
+  s_539f801b32c2f6::t_10749ef6fc23f9 9-10
+  s_84abfc1e1f122f::t_09c74dbdaaa31b 201
+apps/management/src/views/solutions/components/CodeDisplay.vue
+  s_539f801b32c2f6::t_38114d4a381148 18
+apps/management/src/views/auth/__tests__/AuthViews.spec.ts
+  s_676f3960b3fd09::t_47e17afa07dd01 1-42
+apps/management/src/views/submissions/columns.test.ts
+  s_539f801b32c2f6::t_c3377319d88b18 11-22,29-35,45
+  s_539f801b32c2f6::t_d4365a8c1c41f6 4,43-44,46-48
+  s_539f801b32c2f6::t_8e2639825c5a2b 1-3,5-10,23-28,36-42,49-74
+apps/management/src/views/problems/components/__tests__/CodeForm.spec.ts
+  s_676f3960b3fd09::t_7ba16fe2e80879 22
+  s_676f3960b3fd09::t_67ea49555c7e70 1-21,23-29
+apps/management/src/views/moderation/ReportsView.test.ts
+  s_676f3960b3fd09::t_9bba6c48e8f47d 27-31,43-47,49-51
+  s_676f3960b3fd09::t_211ed7f792fb9f 41
+  s_676f3960b3fd09::t_720f9c549bb564 1-6,19-26,32-37,39-40,42,48,52,54-63
+  s_676f3960b3fd09::t_60b991042ae0ab 7-10,38
+  s_676f3960b3fd09::t_c9170acdb19643 11-14
+  s_676f3960b3fd09::t_d9afdca27d62a7 15-18
+  s_676f3960b3fd09::t_096db0008cfc93 53
+apps/console/src/views/contest/components/__tests__/PastContests.spec.ts
+  s_539f801b32c2f6::t_06215508ab01ea 4-5,60,69,95-96
+  s_539f801b32c2f6::t_902d8d92afc167 25-26,30,48,57-59
+  s_539f801b32c2f6::t_70f1ed9d447300 6-10,27-29,31-47,49-56,61-68,70-94
+apps/console/src/views/personal/ForumPostsView.vue
+  s_676f3960b3fd09::t_c4ba5a1f6d4aed 26
+  s_676f3960b3fd09::t_63460dcc27ac97 42,49,53-54,59,106-112
+  s_676f3960b3fd09::t_477435bb80a0a6 113-114
+apps/console/src/views/problem-set/ProblemSetView.vue
+  s_539f801b32c2f6::t_d5e7eca4db4761 32-34,36
+  s_539f801b32c2f6::t_c651ecf4772388 24,43
+apps/console/src/features/sider/__tests__/AppSidebar.spec.ts
+  s_539f801b32c2f6::t_f075f69ae64910 1,7,27,34,65,68,142-143,187-188,199,216-219,223-235
+  s_539f801b32c2f6::t_dcbad963721462 144-148,162-168,172-176,180-186
+  s_539f801b32c2f6::t_aaa80f97406bfa 77-92,94-105
+  s_539f801b32c2f6::t_66e6624265c333 262-265
+  s_539f801b32c2f6::t_2aff8197d5d7f3 135
+  s_539f801b32c2f6::t_c4514afe9a97dc 189-198,202-212,220-222
+  s_539f801b32c2f6::t_7193a011ac7fe5 3,5,8-9,15-26,32-33,35-39,46-63,67,69,236-253,255-259,274-276
+  s_539f801b32c2f6::t_a764605a04e423 6,10,40-45,64,106-108,110,118,120-124,133-134,139-141
+  s_539f801b32c2f6::t_3572e6e89fdc68 109
+  s_539f801b32c2f6::t_7ed0e4c6191e5b 2
+  s_539f801b32c2f6::t_364662e815cb36 4,254,260-261,266-273
+  s_539f801b32c2f6::t_00d13a0930f053 149-161,169-171,177-179
+  s_539f801b32c2f6::t_d5a163adc50c70 200-201,213-215
+  s_539f801b32c2f6::t_c352514c3a7355 111-117,119,125-132,136-138
+  s_539f801b32c2f6::t_dafaff1b219be3 11-14,66,70-76,93
+  s_539f801b32c2f6::t_467aa268b62ab3 28-31
+apps/management/src/i18n/locales/en-US/modules/moderation.ts
+  s_676f3960b3fd09::t_b500cfe2dc68f1 141
+  s_676f3960b3fd09::t_28e8258ed18bca 195
+  s_676f3960b3fd09::t_a53dca654c7ed8 308-312
+  s_539f801b32c2f6::t_e6d535b7f30501 121-122,199-200,222-223
+  s_676f3960b3fd09::t_9bba6c48e8f47d 218
+apps/management/src/views/users/columns.ts
+  s_676f3960b3fd09::t_470d8b41d465f2 95
+apps/management/src/components/analytics/AnalyticsOverviewPanel.vue
+  s_676f3960b3fd09::t_29bba574d7a602 49
+apps/console/src/views/personal/components/CategoriesTab.vue
+  s_539f801b32c2f6::t_9d98181111cc6c 52-57
+  s_539f801b32c2f6::t_96b9e01af7bccc 46-51,58-59
+apps/management/src/views/contests/columns.ts
+  s_539f801b32c2f6::t_5021a6a00d34ba 181
+apps/management/src/components/analytics/AnalyticsBarList.vue
+  s_676f3960b3fd09::t_67354124ff4ba3 10,81-84,89-96
+apps/management/src/views/analytics/AnalyticsView.vue
+  s_84abfc1e1f122f::t_0f7f7f4bdaa526 49
+  s_539f801b32c2f6::t_88758cc4ce94fa 76-77
+  s_676f3960b3fd09::t_5aa39cb6464b15 211-216
+  s_84abfc1e1f122f::t_77d4784833b47e 409-420
+  s_676f3960b3fd09::t_29bba574d7a602 357-359
+apps/management/src/views/submissions/SubmissionsView.test.ts
+  s_676f3960b3fd09::t_73019beb587529 1-105
+apps/console/src/components/search/GlobalSearch.vue
+  s_539f801b32c2f6::t_ac16fa2a4e42e7 5-11,14,129-133,150,154,160-162,166,243
+  s_539f801b32c2f6::t_bdeda1a5575ae0 134-136,138-140,155-159
+apps/management/src/views/contests/columns.test.ts
+  s_539f801b32c2f6::t_5021a6a00d34ba 15,20-21,26-38,40,54,66-69
+  s_539f801b32c2f6::t_815e66529fc43c 70
+packages/domain-types/src/index.test.ts
+  s_84abfc1e1f122f::t_d423cf276878da 131-139
+  s_84abfc1e1f122f::t_4551f88efec21b 16
+  s_84abfc1e1f122f::t_3ed09df97c48b3 26
+apps/management/src/views/audit/AuditLogsView.vue
+  s_676f3960b3fd09::t_39cf49f56977a4 283-284
+  s_539f801b32c2f6::t_42774b88010ed1 248,366
+  s_539f801b32c2f6::t_b446d9c48b42ee 303-304,310,332,338,371,378
+  s_539f801b32c2f6::t_914c3a9ca2be6c 305-309,327-331,333-337
+apps/console/src/components/dashboard/ActivityHeatmap.vue
+  s_539f801b32c2f6::t_1f8f5afab88708 63
+  s_539f801b32c2f6::t_a5c7f0d3c7899b 88
+  s_539f801b32c2f6::t_f4cce5fb9f7307 94
+  s_539f801b32c2f6::t_b76f4966ea9b96 3,13-22,70-76,79,128,134
+  s_539f801b32c2f6::t_7d30ac560f6208 90
+apps/management/src/views/problems/ProblemDetailView.vue
+  s_539f801b32c2f6::t_d17a52e5cb33c2 99,101,106,135,155-162,168-170,184-185
+  s_539f801b32c2f6::t_8b7fda2f696f37 113
+  s_539f801b32c2f6::t_163f7a28ff5be4 177-181
+apps/console/src/views/personal/SolutionsView.vue
+  s_676f3960b3fd09::t_a0eca04baa2e27 42,52,80-83,91,96-98,139-145
+  s_676f3960b3fd09::t_4e00d2a39b392c 146-147
+apps/management/src/views/contests/ContestsListView.test.ts
+  s_676f3960b3fd09::t_2d36f641df06c0 1,3,5-6,20,29-52,56-66,68-70,78,82,85-86,128-129,131-134
+  s_676f3960b3fd09::t_3fd3678a7a31a8 53-55
+  s_676f3960b3fd09::t_813aa4f6eefe24 21-28,87-127
+  s_676f3960b3fd09::t_136b3290672ea1 13-15,18-19
+  s_676f3960b3fd09::t_a55281429c49fc 2,4,7-12,16-17,67,71-77,79-81,83-84,130
+docs/DEVELOPMENT.md
+  s_539f801b32c2f6::t_c5627056d517f3 274-275
+  s_539f801b32c2f6::t_8427e54e4227bf 312-313
+  s_539f801b32c2f6::t_dd71f0056348ed 241
+  s_676f3960b3fd09::t_f59341a7ca33b7 232
+  s_539f801b32c2f6::t_36e81f6c709f2f 276-277
+  s_539f801b32c2f6::t_2646df46a9b587 292
+  s_676f3960b3fd09::t_b500cfe2dc68f1 250-251
+  s_676f3960b3fd09::t_e9244d25f4a302 306
+  s_539f801b32c2f6::t_908d307bfc7ebc 249
+  s_539f801b32c2f6::t_61ce66697d28a4 236-237
+  s_88fba86bc29ccb::t_4dae48064292ef 22-27
+  s_539f801b32c2f6::t_d9049a8b8061ce 290
+  s_539f801b32c2f6::t_86e102f7d9d1e0 308-309
+  s_539f801b32c2f6::t_b55f1fd7917e6d 260-261
+  s_539f801b32c2f6::t_1e534b1805c82c 238-239
+  s_539f801b32c2f6::t_c4e99c3f4bb0de 300-301
+  s_676f3960b3fd09::t_5aa39cb6464b15 268-269
+  s_676f3960b3fd09::t_d46941f9504ccc 328
+  s_539f801b32c2f6::t_6c908812c6b63d 267
+  s_539f801b32c2f6::t_ac5e6bb9ee307a 319
+  s_539f801b32c2f6::t_3f3fba5ba6fd25 270
+  s_676f3960b3fd09::t_9600016da661e0 247
+  s_539f801b32c2f6::t_00cbf5cb666ee0 266
+  s_539f801b32c2f6::t_7b2477ab8f9486 307
+  s_539f801b32c2f6::t_6e93856d6f819a 291
+  s_676f3960b3fd09::t_1c665ed266c120 258
+  s_676f3960b3fd09::t_b35495c934b42c 298
+  s_539f801b32c2f6::t_a7ae3e8f5c574e 299
+  s_676f3960b3fd09::t_d8bf9542fb1eb3 252-253
+  s_539f801b32c2f6::t_c1910a3a16d0e4 310-311
+  s_539f801b32c2f6::t_8ca3fd8fa3589d 278-279
+  s_676f3960b3fd09::t_090a937431aa1a 172
+  s_539f801b32c2f6::t_49a8d240b9eac0 316-317
+  s_676f3960b3fd09::t_def4068f084638 349-350
+  s_539f801b32c2f6::t_57070d411c65d2 242-243
+  s_676f3960b3fd09::t_33a13b3d3ae5d4 296
+  s_539f801b32c2f6::t_75a5f037c0e22f 297
+  s_676f3960b3fd09::t_536aecf5ff09f8 254-255
+  s_676f3960b3fd09::t_7931baf55f21be 240
+  s_539f801b32c2f6::t_65e1ebd782bf45 304-305
+  s_539f801b32c2f6::t_1d854ea156f113 302-303
+  s_539f801b32c2f6::t_3a72ffa54c27fc 225
+  s_539f801b32c2f6::t_3b2a01d2126def 280-281,283
+  s_676f3960b3fd09::t_39cf49f56977a4 318
+  s_539f801b32c2f6::t_e961e032c33724 282
+  s_539f801b32c2f6::t_7f182d8ec5ffed 272-273
+  s_539f801b32c2f6::t_c2dc2ffc1ed7cf 244
+  s_539f801b32c2f6::t_7ed0e4c6191e5b 293
+  s_676f3960b3fd09::t_470d8b41d465f2 259
+  s_581ed14d6763bb::t_6d90fa06e8d7ef 228-231
+  s_539f801b32c2f6::t_55bd9d8701e6c1 314-315
+  s_676f3960b3fd09::t_3702039f357e28 256
+  s_539f801b32c2f6::t_088a9a10772032 245
+  s_539f801b32c2f6::t_422071339dbde7 284-285
+  s_676f3960b3fd09::t_a53dca654c7ed8 246
+  s_539f801b32c2f6::t_357d7b0bffa80a 286-287
+  s_676f3960b3fd09::t_1fb94b2e4c22cf 351-352
+  s_539f801b32c2f6::t_52c4109bc839e3 233
+  s_676f3960b3fd09::t_1c2ab16bb8f426 345-346
+  s_539f801b32c2f6::t_225ae6a074c84b 262-263
+  s_539f801b32c2f6::t_c5d3d50e6ce900 264-265
+  s_539f801b32c2f6::t_8fe77d19a20e52 271
+  s_539f801b32c2f6::t_db380ffb7d245c 224,227,234
+  s_676f3960b3fd09::t_c4ba5a1f6d4aed 248
+  s_676f3960b3fd09::t_01dea417a07c3b 257
+  s_539f801b32c2f6::t_815a73faa4662c 288-289
+  s_539f801b32c2f6::t_27adcff6e5ff0c 294-295
+  s_539f801b32c2f6::t_784fd181320c79 353-354
+  s_539f801b32c2f6::t_c5f83a544c3a84 226,235
+  s_676f3960b3fd09::t_dafcd0d4e5c0bc 347-348
+apps/management/src/components/shared/CodeViewer.vue
+  s_539f801b32c2f6::t_0ff67d3776854d 51-54
+apps/management/src/views/moderation/AppealsView.vue
+  s_676f3960b3fd09::t_28e8258ed18bca 66,69,216
+  s_539f801b32c2f6::t_d8eb2803db99e5 228
+  s_676f3960b3fd09::t_a53dca654c7ed8 180
+  s_539f801b32c2f6::t_72b7655e320aee 237,252
+  s_539f801b32c2f6::t_509d437aa8237c 229,234,251
+  s_539f801b32c2f6::t_1c061bf7a327f1 170
+apps/console/src/views/contest/detailed/components/ContestRankingTable.vue
+  s_539f801b32c2f6::t_ebd0180db9d2ee 10,26-35,52,60,69-70,95,189,206-207
+  s_539f801b32c2f6::t_f790fe0d385d1d 47-51,53-59,61-68,177-188,190-205
+apps/management/src/views/moderation/ModerationStatsAvailability.test.ts
+  s_676f3960b3fd09::t_b500cfe2dc68f1 8-20,24-32,34-43,51-55,57-63,65-85,89-105
+  s_676f3960b3fd09::t_e20329fbb16e9e 23
+  s_676f3960b3fd09::t_42cb2541bd444f 1-7,21-22,33,44-50,56,64
+  s_676f3960b3fd09::t_8d304e5162b8ea 86-88
+apps/console/src/views/personal/components/CreateListDialog.vue
+  s_539f801b32c2f6::t_fcad45e036b6fd 99
+apps/management/src/components/dashboard/StatCards.vue
+  s_539f801b32c2f6::t_90e482b9e40428 34
+apps/management/src/views/moderation/ModerationQueueView.test.ts
+  s_837bf0326bf1be::t_5be49d1fcf47a9 212-222,224-225
+  s_837bf0326bf1be::t_7f4c37fdb2b1a2 22-29,35-57,60-69
+  s_837bf0326bf1be::t_5d2761e2389c5f 2
+  s_837bf0326bf1be::t_4aa21fbe79c046 84
+  s_676f3960b3fd09::t_f0d7cd4c13a10f 125-164
+  s_837bf0326bf1be::t_27043bf9d3f78a 228-230,235
+  s_676f3960b3fd09::t_351407d39682cc 1,3-21,70-72,80-83,85-97,109-116,119,123-124,165-171,175-180,185-203,207-208
+  s_837bf0326bf1be::t_6081ba35c2d7da 58-59
+  s_676f3960b3fd09::t_211ed7f792fb9f 98-108
+  s_837bf0326bf1be::t_8f2fd4bae14f2b 30-34
+  s_837bf0326bf1be::t_b94982e6e2ac63 209-211,223,226-227,231-234,236-245
+  s_676f3960b3fd09::t_8ac7daa5ebd681 73-79,117-118,120-122,172-174,181-184,204-206
+apps/console/src/views/personal/components/LearningProgressChart.vue
+  s_676f3960b3fd09::t_6eacc74372e884 6,26,196,200-201,236-246
+  s_676f3960b3fd09::t_40c57be04c1acb 138,140,164
+  s_676f3960b3fd09::t_6eacbef1e4796d 4,192-193
+  s_676f3960b3fd09::t_55d1fa4fec964e 117
+  s_676f3960b3fd09::t_fe75b81023408b 91
+  s_676f3960b3fd09::t_1ec2e92baa4ef6 247
+apps/management/src/views/contests/ContestDetailDrawer.vue
+  s_539f801b32c2f6::t_6035a8db1ba2bd 138
+  s_539f801b32c2f6::t_5021a6a00d34ba 85,92,112,172,189,200
+apps/console/src/views/contest/detailed/__tests__/ContestRankingTable.spec.ts
+  s_539f801b32c2f6::t_5e50d55fe10751 1-5,10-12,31-34,46-50,70,76-80,83,85,91,95-96
+  s_539f801b32c2f6::t_3cfcd54591df0c 13-30,35-45,51-69,71-75,81-82,84,86-90,92-94
+  s_539f801b32c2f6::t_734f045a9133e4 6,8-9
+  s_539f801b32c2f6::t_7f182d8ec5ffed 7
+apps/management/src/i18n/locales/zh-CN/modules/testCases.ts
+  s_676f3960b3fd09::t_ec5efa368c3cb5 27,31,33
+apps/console/src/views/contest/detailed/composables/useContestRankings.ts
+  s_539f801b32c2f6::t_69d644fe99c9b9 14-18,21,29-33,36-37,44,46,48-50,58-63,68-69,78,102-105
+  s_539f801b32c2f6::t_628afa22a3e6b7 22-28,40-43
+packages/design-system/src/components/ui/alert-dialog/AlertDialogContent.vue
+  s_539f801b32c2f6::t_32a33e5f6ca7f3 47
+apps/console/src/views/personal/components/SkillRadarChart.vue
+  s_84abfc1e1f122f::t_6d672e68b93dcc 8
+  s_84abfc1e1f122f::t_4fafcb4300de0e 47
+  s_84abfc1e1f122f::t_658bbef4486bfa 67
+  s_676f3960b3fd09::t_6eacbef1e4796d 4,133-134
+  s_84abfc1e1f122f::t_b052901951f46e 155
+  s_84abfc1e1f122f::t_ccb2d6678e6e94 11-16
+  s_676f3960b3fd09::t_ce8da575bbd3c0 62-66,68-70
+  s_539f801b32c2f6::t_67ebbf632ec56a 156-160
+apps/console/src/api/__tests__/topic.spec.ts
+  s_539f801b32c2f6::t_5fd7b36bac4057 1-27
+apps/management/src/views/moderation/ModerationDashboardView.vue
+  s_539f801b32c2f6::t_befa79d68a6648 197-216,218,220-224,316-335,337-338,341-360,362-363
+  s_539f801b32c2f6::t_edd96ed67a4f9d 4,186,191,194-195,225,339,364
+  s_676f3960b3fd09::t_b500cfe2dc68f1 39,175-182,217,219,247-248,282-283
+  s_539f801b32c2f6::t_e2b95ba45130f5 263-264
+  s_539f801b32c2f6::t_de8c7d5a4f0978 163-169
+apps/console/src/components/problem/components/ProblemFilterPanel.vue
+  s_539f801b32c2f6::t_e82aa077f61c3c 14,75-76,83-84,91-92,104-105,112-113,120-121,133-134,141-142
+  s_539f801b32c2f6::t_43d2144a841d2a 78-80,86-88,94-96,107-109,115-117,123-125,136-138,144-146
+apps/console/src/components/dashboard/SkillRadarChart.vue
+  s_539f801b32c2f6::t_b76f4966ea9b96 4,8,177,179
+  s_84abfc1e1f122f::t_bcb1ae57b9256c 90
+  s_676f3960b3fd09::t_2dfefb7339d082 2-3,24
+  s_84abfc1e1f122f::t_8b767e311a65e5 170
+  s_84abfc1e1f122f::t_05e53bc2053505 6
+  s_84abfc1e1f122f::t_de00d0d8407860 16-20
+  s_84abfc1e1f122f::t_5fae506a6579a6 28
+  s_84abfc1e1f122f::t_c348d72f8fc373 26-27,29
+  s_84abfc1e1f122f::t_275dc85c01e58a 7
+apps/management/src/i18n/locales/zh-CN/modules/users.ts
+  s_539f801b32c2f6::t_abd1acfad57a03 179
+apps/management/src/stores/admin/__tests__/submissions.spec.ts
+  s_676f3960b3fd09::t_c4ea5b9e70a2db 24-28,50-57,65-68
+  s_539f801b32c2f6::t_c3377319d88b18 80-82,98-102
+  s_676f3960b3fd09::t_1e4437281118f6 16-23,29-49,58-64,69-77,92-93,106
+  s_539f801b32c2f6::t_8e2639825c5a2b 1-15,78-79,83-91,94-97,103-105,107-108
+apps/console/src/types/problem-list.ts
+  s_84abfc1e1f122f::t_015e6a844630de 83-84,87
+apps/console/src/api/__tests__/problem-list.spec.ts
+  s_84abfc1e1f122f::t_cbf71cf458dd6c 1-47
+apps/management/src/views/problems/ProblemsListView.test.ts
+  s_539f801b32c2f6::t_87fd9eab8b53b7 29-32
+  s_539f801b32c2f6::t_e047d9f497224d 33-36
+  s_539f801b32c2f6::t_aa5df5e991fd63 1-2,4-13,21,37,46-80,83-84,93-97,99-101,103-106,121,128,130-131,135,139,153,163-167
+  s_676f3960b3fd09::t_743ef0a4ef8dfa 81-82
+  s_539f801b32c2f6::t_60ff4e1a561ed9 22-24,27-28
+  s_539f801b32c2f6::t_a77a0b7483b5fe 14-20
+  s_676f3960b3fd09::t_523d50ca027e28 38-45,157-162
+  s_539f801b32c2f6::t_a2d9d20629cf8c 85-92
+  s_539f801b32c2f6::t_3c2095474029db 98
+  s_676f3960b3fd09::t_c95de5cc534f0b 3,25-26,102,107-120,122-127,129,132-134,136-138,140-152,154-156
+apps/console/src/views/personal/ProblemListsView.vue
+  s_539f801b32c2f6::t_97d89a12f80a90 2,64-65,71-72,347,362,369
+  s_676f3960b3fd09::t_f663012fe12298 25,44-45,250-256
+  s_539f801b32c2f6::t_c36ac309bf718c 355
+  s_539f801b32c2f6::t_bfd9c58331b383 199
+  s_539f801b32c2f6::t_aca2d6f011885f 374-375,390,398
+  s_539f801b32c2f6::t_3a871e01649bb5 66-70,356-360
+  s_539f801b32c2f6::t_9d98181111cc6c 262-269,275-278,284-287,290-293,304
+  s_676f3960b3fd09::t_a60a01358b565c 257-258
+apps/console/src/views/personal/composables/useProblemLists.ts
+  s_676f3960b3fd09::t_f663012fe12298 36,89-90,94,224,242
+apps/management/src/i18n/locales/zh-CN/modules/submissions.ts
+  s_676f3960b3fd09::t_c4ea5b9e70a2db 79
+apps/management/src/views/submissions/columns.ts
+  s_539f801b32c2f6::t_7e11e2c0dcb954 10,21,135,148,160
+apps/management/src/components/dashboard/DashboardTimeline.test.ts
+  s_676f3960b3fd09::t_6de22944aaff95 54-62
+apps/management/src/views/problems/components/CodeForm.vue
+  s_676f3960b3fd09::t_c607aca4ebd06d 259
+apps/console/src/i18n/locales/zh-CN/solution.ts
+  s_84abfc1e1f122f::t_16dc4dc8997f06 8
+  s_539f801b32c2f6::t_59b2920c7e7a1e 12
+apps/console/src/views/contest/components/__tests__/ContestCard.spec.ts
+  s_539f801b32c2f6::t_d0a306f9d870e2 1-2,8-50,55-58
+  s_539f801b32c2f6::t_59748ebae32c7c 3-7,51-54
+apps/management/src/views/contests/components/ContestRankingsTab.vue
+  s_837bf0326bf1be::t_938e1ca1e57e5a 18-19,23-24,28-29
+  s_837bf0326bf1be::t_7f9dd3d12449e2 45-47
+  s_837bf0326bf1be::t_19be0ed9e93716 36-37,40-44,48-50,52-120
+  s_837bf0326bf1be::t_ecd2105e86d36d 11
+apps/console/src/components/markdown/MarkdownEdit.vue
+  s_676f3960b3fd09::t_33a13b3d3ae5d4 84
+apps/console/src/views/personal/components/__tests__/chartFailure.spec.ts
+  s_676f3960b3fd09::t_4b70292612cbc5 1-3,8-27
+  s_676f3960b3fd09::t_6eacc74372e884 4-7,28-87
+apps/management/src/views/problems/components/ProblemAuditDrawer.test.ts
+  s_539f801b32c2f6::t_277ef631cbe2a0 1-14,24-72
+  s_539f801b32c2f6::t_6953ae818bff6e 15-23
+apps/console/src/views/forum/components/ForumPostCard.vue
+  s_837bf0326bf1be::t_f6247c27805bb1 318
+  s_539f801b32c2f6::t_781e5c89544a65 239,242,253,260,263,269,274,278
+apps/console/src/views/personal/SubmissionsView.vue
+  s_676f3960b3fd09::t_aecf542733420e 22,60,139-142,149,154-156,208-218,220
+  s_539f801b32c2f6::t_d54c7f6a89053a 300-304,312
+  s_539f801b32c2f6::t_6c96a45ee9ed29 204,284
+  s_539f801b32c2f6::t_9d98181111cc6c 306-309
+apps/console/src/views/problem-list/composables/useProblemListOperations.ts
+  s_84abfc1e1f122f::t_3e8153f75ccaad 80
+  s_84abfc1e1f122f::t_a800860c8c8f2a 107
+  s_84abfc1e1f122f::t_a6e866b318e420 299-300
+  s_84abfc1e1f122f::t_fdb8553d3ea2a8 83
+apps/console/src/i18n/locales/en-US/problem.ts
+  s_837bf0326bf1be::t_299a65daedd1e5 381
+  s_837bf0326bf1be::t_62d6bed351465b 5
+  s_84abfc1e1f122f::t_d02db53eab9841 185-198
+  s_676f3960b3fd09::t_dda07bbb339928 474-476
+apps/console/src/views/personal/components/__tests__/SkillRadarChart.spec.ts
+  s_84abfc1e1f122f::t_a1ff89488c4b00 70-80
+  s_84abfc1e1f122f::t_89bacad32c9b53 33
+  s_84abfc1e1f122f::t_1397e05384b349 52-54
+  s_539f801b32c2f6::t_aaad1d66593abf 1,4,9,20-32,35,49-50,81-82,84-85,87,89-91,93-94,98-106
+  s_84abfc1e1f122f::t_cdab21935e0daf 55-57
+  s_84abfc1e1f122f::t_67b8af573d8f2e 36-48
+  s_539f801b32c2f6::t_67ebbf632ec56a 62,95-97
+  s_84abfc1e1f122f::t_628c970fb6b1cf 65
+  s_84abfc1e1f122f::t_48a5da42a8bbdb 2-3,5-8,10-19
+  s_84abfc1e1f122f::t_154aa83ef9c372 34,88,92
+  s_84abfc1e1f122f::t_a2c4449944909b 66-69
+  s_539f801b32c2f6::t_e7f34c50a4c1bf 83
+  s_539f801b32c2f6::t_71ed04225ce2e0 86
+  s_84abfc1e1f122f::t_26a84ee81dc4ea 51,58-61,63-64
+apps/console/src/views/problems/solutions/__tests__/SolutionListView.spec.ts
+  s_581ed14d6763bb::t_ad500ad56cda33 40-56,61-66
+apps/management/src/views/solutions/SolutionsListView.test.ts
+  s_676f3960b3fd09::t_5a9587c783eae5 1-87
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d2269920e5374da1d681be94d68f75bc5529363d",
+  "prompts": {},
+  "sessions": {
+    "s_10c4f902531ac1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4ceb0b50-df05-4e17-bec8-47841235ddec",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    },
+    "s_539f801b32c2f6": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a139a1-a563-7d21-9d97-43ef4fc785bb",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    },
+    "s_581ed14d6763bb": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8a8a0b4d-189b-469b-8f95-52266350f277",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    },
+    "s_676f3960b3fd09": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2c7331e9-b6ee-4eb6-b372-359841fd5bad",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    },
+    "s_681960d7f6984f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7c032611-41f7-48bb-a375-b86508f507b8",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    },
+    "s_837bf0326bf1be": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "dc54890e-1491-447e-b7ea-20d08a4fdf8c",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    },
+    "s_84abfc1e1f122f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "612844e9-72c9-4d9a-9196-37c65f9e044f",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    },
+    "s_84bdeb1261de8a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7ba33533-ff64-4e5a-8a47-fe16e2276163",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    },
+    "s_88fba86bc29ccb": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "13764d81-b3fd-45ad-a50a-f2409cd1c7c3",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

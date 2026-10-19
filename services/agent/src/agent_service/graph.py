@@ -73,6 +73,8 @@ def build_readonly_graph(model: Model, tools: dict[str, ToolHandler], *, max_rou
         return patch
 
     async def execute_tool(state: LoopState) -> dict[str, object]:
+        if state["rounds"] >= max_rounds:
+            raise ModelLoopExceeded(f"exceeded max_rounds={max_rounds}")
         raw_call = state["decision"].get("tool_call")
         if not isinstance(raw_call, dict):
             raise ValueError("invalid checkpointed tool call")
@@ -94,8 +96,6 @@ def build_readonly_graph(model: Model, tools: dict[str, ToolHandler], *, max_rou
             "failed": isinstance(result, dict) and "error" in result,
         }]
         messages = [*state["messages"], {"role": "tool", "content": _json(result)}]
-        if state["rounds"] >= max_rounds:
-            raise ModelLoopExceeded(f"exceeded max_rounds={max_rounds}")
         return {"trace": trace, "messages": messages}
 
     graph = StateGraph(LoopState)

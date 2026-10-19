@@ -14,7 +14,7 @@ import httpx
 import pytest
 import uvicorn
 
-from deepseek_model import DeepseekModel
+from deepseek_model import DeepseekModel, ModelBudgetExceeded
 from agent_loop import ModelDecision, ToolCall
 from agent_service.app import create_app, parse_model_answer
 from retrieval import SourceDocument
@@ -1690,6 +1690,131 @@ def test_authorization_outage_allows_explicit_save_recovery(tmp_path, monkeypatc
                 assert recovered.status_code == 200
                 assert recovered.json()["data"]["status"] == "saved"
                 assert posts["count"] == 2
+
+    asyncio.run(scenario())
+
+
+@pytest.mark.parametrize("unit", ["ascii", "cjk", "emoji"])
+def test_conversation_prompt_trims_history_using_deepseek_budget(unit):
+    from agent_service.app import _conversation_prompt
+
+    symbols = {"ascii": "x", "cjk": "界", "emoji": "🙂"}
+    history = [
+        {"question": f"old-{index}", "answer": symbols[unit] * 900, "status": "completed"}
+        for index in range(12)
+    ]
+    captured = []
+
+    async def handler(request):
+        captured.append(request)
+        return httpx.Response(200, json={
+            "choices": [{"message": {"content": '{"answer":"ok"}'}}],
+        })
+
+    async def scenario():
+        async with DeepseekModel(
+            "test-key", tool_specs={}, max_prompt_tokens=12_000,
+            transport=httpx.MockTransport(handler),
+        ) as model:
+            prompt = _conversation_prompt(
+                "current question", {"status": "Accepted", "private": "ignored"},
+                history, True, budget_check=model.check_prompt_budget,
+            )
+            model.check_prompt_budget([{"role": "user", "content": prompt}])
+            await model.decide([{"role": "user", "content": prompt}])
+
+    asyncio.run(scenario())
+    assert len(captured) == 1
+    request = json.loads(captured[0].content)
+    sent_prompt = request["messages"][-1]["content"]
+    assert "current question" in sent_prompt
+    assert '"status":"Accepted"' in sent_prompt
+    assert "The user authorized current submission source" in sent_prompt
+    assert "old-11" in sent_prompt
+    assert '"question":"old-0"' not in sent_prompt
+
+
+def test_conversation_prompt_fails_closed_when_current_question_exceeds_real_budget():
+    from agent_service.app import _conversation_prompt
+
+    async def handler(_request):
+        raise AssertionError("oversized prompt must not make a request")
+
+    async def scenario():
+        async with DeepseekModel(
+            "test-key", tool_specs={}, max_prompt_tokens=12_000,
+            transport=httpx.MockTransport(handler),
+        ) as model:
+            with pytest.raises(ModelBudgetExceeded):
+                prompt = _conversation_prompt(
+                    "x" * 30_000, {"status": "Accepted"}, [], False,
+                    budget_check=model.check_prompt_budget,
+                )
+                await model.decide([{"role": "user", "content": prompt}])
+            assert model.calls_made == 0
+
+    asyncio.run(scenario())
+
+
+def test_cancelled_run_lock_blocks_new_turn_across_app_instances(tmp_path):
+    entered = asyncio.Event()
+    release = asyncio.Event()
+
+    class WaitingModel:
+        async def decide(self, _messages):
+            entered.set()
+            await release.wait()
+            return ModelDecision(text=json.dumps({"text": "ok", "citations": []}))
+
+    model = WaitingModel()
+    state_path = tmp_path / "cross-app-conversation.sqlite3"
+    app_a = create_app(
+        state_path=state_path, client_factory=SessionClient,
+        offline_model_factory=lambda: (model, {}),
+    )
+    app_b = create_app(
+        state_path=state_path, client_factory=SessionClient,
+        offline_model_factory=lambda: (model, {}),
+    )
+    conversation_id = str(uuid.uuid4())
+
+    async def scenario():
+        async with app_a.router.lifespan_context(app_a):
+            async with app_b.router.lifespan_context(app_b):
+                async with httpx.AsyncClient(
+                    transport=httpx.ASGITransport(app=app_a), base_url="http://app-a",
+                ) as client_a, httpx.AsyncClient(
+                    transport=httpx.ASGITransport(app=app_b), base_url="http://app-b",
+                ) as client_b:
+                    created = await client_a.post("/agent/conversations", headers=HEADERS, json={
+                        "conversationId": conversation_id,
+                        "sourceSubmissionId": str(uuid.uuid4()),
+                        "clientTurnId": str(uuid.uuid4()), "question": "First question",
+                    })
+                    turn = created.json()["data"]["turn"]
+                    run = asyncio.create_task(client_a.post(
+                        f"/agent/conversations/{conversation_id}/turns/{turn['turnId']}/run",
+                        headers=HEADERS, json={"sourceConsent": False},
+                    ))
+                    await asyncio.wait_for(entered.wait(), timeout=2)
+                    cancelled = await client_b.post(
+                        f"/agent/conversations/{conversation_id}/turns/{turn['turnId']}/cancel",
+                        headers=HEADERS, json={},
+                    )
+                    assert cancelled.json()["data"]["status"] == "cancelled"
+                    rejected = await client_b.post(
+                        f"/agent/conversations/{conversation_id}/turns", headers=HEADERS,
+                        json={"clientTurnId": str(uuid.uuid4()), "question": "Second question"},
+                    )
+                    assert rejected.status_code == 409
+                    assert rejected.json()["data"]["reason"] == "turn_active"
+                    release.set()
+                    assert (await asyncio.wait_for(run, timeout=2)).status_code == 200
+                    accepted = await client_b.post(
+                        f"/agent/conversations/{conversation_id}/turns", headers=HEADERS,
+                        json={"clientTurnId": str(uuid.uuid4()), "question": "Second question"},
+                    )
+                    assert accepted.status_code == 200
 
     asyncio.run(scenario())
 

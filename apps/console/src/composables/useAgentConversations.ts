@@ -28,8 +28,9 @@ export function useAgentConversations() {
   let generation = 0;
   let eventSource: EventSource | null = null;
 
-  const currentTurn = computed(() =>
-    turns.value.find((turn) => turn.turnId === activeTurnId.value) ?? null,
+  const currentTurn = computed(
+    () =>
+      turns.value.find((turn) => turn.turnId === activeTurnId.value) ?? null,
   );
 
   function closeStream() {
@@ -48,12 +49,17 @@ export function useAgentConversations() {
 
   function upsertTurn(turn: AgentConversationTurn) {
     const index = turns.value.findIndex((item) => item.turnId === turn.turnId);
-    if (index < 0) turns.value = [...turns.value, turn].sort((a, b) => a.turnIndex - b.turnIndex);
+    if (index < 0)
+      turns.value = [...turns.value, turn].sort(
+        (a, b) => a.turnIndex - b.turnIndex,
+      );
     else turns.value[index] = turn;
   }
 
   function upsertConversation(value: AgentConversation) {
-    const index = conversations.value.findIndex((item) => item.conversationId === value.conversationId);
+    const index = conversations.value.findIndex(
+      (item) => item.conversationId === value.conversationId,
+    );
     if (index < 0) conversations.value = [value, ...conversations.value];
     else conversations.value[index] = value;
     conversations.value.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
@@ -67,9 +73,15 @@ export function useAgentConversations() {
       const page = await agentApi.listConversations(HISTORY_PAGE_SIZE, offset);
       conversations.value = reset
         ? page.conversations
-        : [...conversations.value, ...page.conversations.filter((item) =>
-          !conversations.value.some((existing) => existing.conversationId === item.conversationId),
-        )];
+        : [
+            ...conversations.value,
+            ...page.conversations.filter(
+              (item) =>
+                !conversations.value.some(
+                  (existing) => existing.conversationId === item.conversationId,
+                ),
+            ),
+          ];
       historyOffset = page.nextOffset ?? offset + page.conversations.length;
       hasMoreConversations.value = page.nextOffset !== null;
     } catch {
@@ -83,8 +95,15 @@ export function useAgentConversations() {
     const current = conversation.value;
     if (!current) return null;
     try {
-      const page = await agentApi.getConversation(current.conversationId, TURN_PAGE_SIZE);
-      if (token !== generation || conversation.value?.conversationId !== current.conversationId) return null;
+      const page = await agentApi.getConversation(
+        current.conversationId,
+        TURN_PAGE_SIZE,
+      );
+      if (
+        token !== generation ||
+        conversation.value?.conversationId !== current.conversationId
+      )
+        return null;
       conversation.value = page.conversation;
       turns.value = page.turns;
       hasMoreTurns.value = page.hasMore;
@@ -99,19 +118,41 @@ export function useAgentConversations() {
   function connectStream(turn: AgentConversationTurn, token: number) {
     closeStream();
     const stream = new EventSource(
-      agentApi.conversationEventStreamUrl(turn.conversationId, turn.turnId, turn.eventSeq),
+      agentApi.conversationEventStreamUrl(
+        turn.conversationId,
+        turn.turnId,
+        turn.eventSeq,
+      ),
       { withCredentials: true },
     );
     eventSource = stream;
-    const isCurrent = () => token === generation && activeTurnId.value === turn.turnId;
+    const isTurnCurrent = () =>
+      token === generation && activeTurnId.value === turn.turnId;
+    const isCurrent = () => isTurnCurrent() && eventSource === stream;
     const close = () => {
       stream.close();
       if (eventSource === stream) eventSource = null;
     };
+    const refreshStatus = async (reconnect = false) => {
+      const page = await refreshConversation(token);
+      if (!isTurnCurrent() || (eventSource && eventSource !== stream)) return;
+      const latest = page?.turns.find((item) => item.turnId === turn.turnId);
+      if (latest && !["queued", "running"].includes(latest.status)) {
+        close();
+        busy.value = false;
+        activeTurnId.value = null;
+      } else if (reconnect) {
+        connectStream(latest ?? turn, token);
+      }
+    };
     const parse = (event: Event) => {
       try {
-        const value = JSON.parse((event as MessageEvent<string>).data) as unknown;
-        return value && typeof value === "object" ? value as Record<string, unknown> : null;
+        const value = JSON.parse(
+          (event as MessageEvent<string>).data,
+        ) as unknown;
+        return value && typeof value === "object"
+          ? (value as Record<string, unknown>)
+          : null;
       } catch {
         error.value = "streamFailed";
         return null;
@@ -121,11 +162,20 @@ export function useAgentConversations() {
     stream.addEventListener("workflow", (event) => {
       if (!isCurrent()) return;
       const payload = parse(event);
-      if (!payload || payload.runId !== turn.runId || typeof payload.seq !== "number"
-          || typeof payload.kind !== "string" || !payload.detail || typeof payload.detail !== "object") return;
+      if (
+        !payload ||
+        payload.runId !== turn.runId ||
+        typeof payload.seq !== "number" ||
+        typeof payload.kind !== "string" ||
+        !payload.detail ||
+        typeof payload.detail !== "object"
+      )
+        return;
       if (!events.value.some((item) => item.seq === payload.seq)) {
-        events.value = [...events.value, payload as unknown as AgentWorkflowEvent]
-          .sort((left, right) => left.seq - right.seq);
+        events.value = [
+          ...events.value,
+          payload as unknown as AgentWorkflowEvent,
+        ].sort((left, right) => left.seq - right.seq);
       }
     });
     stream.addEventListener("terminal", (event) => {
@@ -146,12 +196,13 @@ export function useAgentConversations() {
       close();
       if (payload?.reason === "stream_timeout") error.value = "streamTimedOut";
       if (payload?.reason === "run_replaced") error.value = "runReplaced";
-      void refreshConversation(token);
+      void refreshStatus(true);
     });
     stream.onerror = () => {
       if (!isCurrent()) return;
-      close();
       error.value = "streamFailed";
+      // EventSource reconnects transient failures; only authoritative terminal state closes it.
+      void refreshStatus();
     };
   }
 
@@ -163,24 +214,39 @@ export function useAgentConversations() {
     error.value = "";
     busy.value = true;
     connectStream(turn, token);
+    let preserveObservation = false;
     try {
-      const result = await agentApi.runConversationTurn(turn.conversationId, turn.turnId, sourceConsent);
+      const result = await agentApi.runConversationTurn(
+        turn.conversationId,
+        turn.turnId,
+        sourceConsent,
+      );
       if (token !== generation) return;
       upsertTurn(result);
-      if (conversation.value) upsertConversation({
-        ...conversation.value,
-        turnCount: Math.max(conversation.value.turnCount, result.turnIndex),
-        lastQuestion: result.question,
-        updatedAt: result.updatedAt,
-      });
+      if (conversation.value)
+        upsertConversation({
+          ...conversation.value,
+          turnCount: Math.max(conversation.value.turnCount, result.turnIndex),
+          lastQuestion: result.question,
+          updatedAt: result.updatedAt,
+        });
       await loadConversations(true);
     } catch {
       if (token === generation) {
         error.value = "requestFailed";
-        await refreshConversation(token);
+        const page = await refreshConversation(token);
+        const observedTurn = page?.turns.find(
+          (item) => item.turnId === turn.turnId,
+        );
+        preserveObservation =
+          !observedTurn || ["queued", "running"].includes(observedTurn.status);
       }
     } finally {
-      if (token === generation) {
+      if (
+        token === generation &&
+        activeTurnId.value === turn.turnId &&
+        !preserveObservation
+      ) {
         busy.value = false;
         activeTurnId.value = null;
         closeStream();
@@ -188,7 +254,11 @@ export function useAgentConversations() {
     }
   }
 
-  async function createConversation(submissionId: string, question: string, sourceConsent: boolean) {
+  async function createConversation(
+    submissionId: string,
+    question: string,
+    sourceConsent: boolean,
+  ) {
     if (busy.value) return;
     const token = invalidate();
     sourceSubmissionId.value = submissionId;
@@ -214,7 +284,12 @@ export function useAgentConversations() {
   async function sendTurn(question: string, sourceConsent: boolean) {
     if (busy.value || !question.trim()) return;
     if (!conversation.value) {
-      if (sourceSubmissionId.value) await createConversation(sourceSubmissionId.value, question.trim(), sourceConsent);
+      if (sourceSubmissionId.value)
+        await createConversation(
+          sourceSubmissionId.value,
+          question.trim(),
+          sourceConsent,
+        );
       else error.value = "submissionRequired";
       return;
     }
@@ -243,18 +318,26 @@ export function useAgentConversations() {
     error.value = "";
     loadingConversation.value = true;
     try {
-      const page = await agentApi.getConversation(conversationId, TURN_PAGE_SIZE);
+      const page = await agentApi.getConversation(
+        conversationId,
+        TURN_PAGE_SIZE,
+      );
       if (token !== generation) return;
       conversation.value = page.conversation;
       sourceSubmissionId.value = page.conversation.sourceSubmissionId;
       turns.value = page.turns;
       hasMoreTurns.value = page.hasMore;
       upsertConversation(page.conversation);
-      const active = [...page.turns].reverse().find((turn) => turn.status === "running");
+      const active = [...page.turns]
+        .reverse()
+        .find((turn) => turn.status === "running");
       if (active) {
         activeTurnId.value = active.turnId;
         try {
-          const recovered = await agentApi.recoverConversationTurn(conversationId, active.turnId);
+          const recovered = await agentApi.recoverConversationTurn(
+            conversationId,
+            active.turnId,
+          );
           if (token !== generation) return;
           upsertTurn(recovered);
           if (recovered.status === "running") {
@@ -277,14 +360,22 @@ export function useAgentConversations() {
   async function loadOlderTurns() {
     const current = conversation.value;
     const first = turns.value[0];
-    if (!current || !first || !hasMoreTurns.value || loadingConversation.value) return;
+    if (!current || !first || !hasMoreTurns.value || loadingConversation.value)
+      return;
     loadingConversation.value = true;
     try {
-      const page = await agentApi.getConversation(current.conversationId, TURN_PAGE_SIZE, first.turnIndex);
+      const page = await agentApi.getConversation(
+        current.conversationId,
+        TURN_PAGE_SIZE,
+        first.turnIndex,
+      );
       if (conversation.value?.conversationId !== current.conversationId) return;
-      turns.value = [...page.turns, ...turns.value.filter((turn) =>
-        !page.turns.some((older) => older.turnId === turn.turnId),
-      )].sort((a, b) => a.turnIndex - b.turnIndex);
+      turns.value = [
+        ...page.turns,
+        ...turns.value.filter(
+          (turn) => !page.turns.some((older) => older.turnId === turn.turnId),
+        ),
+      ].sort((a, b) => a.turnIndex - b.turnIndex);
       hasMoreTurns.value = page.hasMore;
     } catch {
       error.value = "requestFailed";
@@ -293,7 +384,10 @@ export function useAgentConversations() {
     }
   }
 
-  async function retryTurn(turn: AgentConversationTurn, sourceConsent: boolean) {
+  async function retryTurn(
+    turn: AgentConversationTurn,
+    sourceConsent: boolean,
+  ) {
     if (busy.value || !["queued", "failed"].includes(turn.status)) return;
     await runTurn(turn, sourceConsent);
   }
@@ -303,7 +397,12 @@ export function useAgentConversations() {
     if (!current || canceling.value) return;
     canceling.value = true;
     try {
-      upsertTurn(await agentApi.cancelConversationTurn(current.conversationId, current.turnId));
+      upsertTurn(
+        await agentApi.cancelConversationTurn(
+          current.conversationId,
+          current.turnId,
+        ),
+      );
     } catch {
       error.value = "requestFailed";
     } finally {
@@ -317,7 +416,9 @@ export function useAgentConversations() {
     deleting.value = true;
     try {
       await agentApi.deleteConversation(current.conversationId);
-      conversations.value = conversations.value.filter((item) => item.conversationId !== current.conversationId);
+      conversations.value = conversations.value.filter(
+        (item) => item.conversationId !== current.conversationId,
+      );
       conversation.value = null;
       turns.value = [];
       events.value = [];
@@ -344,10 +445,27 @@ export function useAgentConversations() {
   onScopeDispose(invalidate);
 
   return {
-    conversations, conversation, turns, events, sourceSubmissionId, error,
-    loadingHistory, loadingConversation, busy, canceling, deleting,
-    hasMoreConversations, hasMoreTurns, currentTurn,
-    loadConversations, openConversation, loadOlderTurns, sendTurn, retryTurn,
-    cancelTurn, deleteCurrentConversation, startNewConversation,
+    conversations,
+    conversation,
+    turns,
+    events,
+    sourceSubmissionId,
+    error,
+    loadingHistory,
+    loadingConversation,
+    busy,
+    canceling,
+    deleting,
+    hasMoreConversations,
+    hasMoreTurns,
+    currentTurn,
+    loadConversations,
+    openConversation,
+    loadOlderTurns,
+    sendTurn,
+    retryTurn,
+    cancelTurn,
+    deleteCurrentConversation,
+    startNewConversation,
   };
 }

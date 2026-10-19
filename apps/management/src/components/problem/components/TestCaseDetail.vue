@@ -27,8 +27,9 @@ const emit = defineEmits<{
             testCase.isSample ? $t('testCases.scope.sample') : $t('testCases.scope.hidden')
           }}</Label>
           <Switch
-            :checked="testCase.isSample"
-            @update:checked="emit('set-scope', testCase, $event ? 'SAMPLE' : 'HIDDEN')"
+            :model-value="testCase.isSample"
+            :aria-label="$t('testCases.scope.sample')"
+            @update:model-value="emit('set-scope', testCase, $event ? 'SAMPLE' : 'HIDDEN')"
           />
         </div>
       </div>

@@ -88,24 +88,25 @@ function back() {
   <div class="min-h-[calc(100vh-4rem)] bg-background flex flex-col">
     <!-- Page header -->
     <header class="sticky top-0 z-10 bg-card/95 backdrop-blur border-b border-border">
-      <div class="flex items-center justify-between h-14 px-4 lg:px-6">
-        <div class="flex items-center gap-4">
+      <div class="flex flex-wrap items-center justify-between gap-3 px-4 py-3 lg:px-6">
+        <div class="flex min-w-0 items-center gap-4">
           <Button
             variant="ghost"
             size="icon"
-            class="w-8 -ml-2 dark:hover:bg-foreground"
+            class="w-8 shrink-0"
+            :aria-label="t('common.back')"
             @click="back"
           >
             <ArrowLeft :size="18" />
           </Button>
-          <h1 v-if="solution" class="text-sm font-semibold text-foreground">
+          <h1 v-if="solution" class="min-w-0 break-words text-sm font-semibold text-foreground">
             {{ solution.title }}
           </h1>
           <Skeleton v-else class="h-5 w-32" />
         </div>
 
         <!-- Actions -->
-        <div v-if="solution" class="flex items-center gap-2">
+        <div v-if="solution" class="flex flex-wrap items-center gap-2">
           <template v-if="canUpdateSolution">
             <Button v-if="solution.isFlagged" variant="outline" size="sm" @click="unflagSolution">
               <Eye :size="14" class="mr-1.5" />
@@ -131,26 +132,26 @@ function back() {
 
       <!-- Status Ticker -->
       <div v-if="solution" class="px-4 lg:px-6 py-2.5 border-t border-border bg-muted">
-        <div class="flex items-center gap-6 text-xs">
+        <div class="flex flex-wrap items-center gap-x-6 gap-y-2 whitespace-nowrap text-xs">
           <div class="flex items-center gap-2">
-            <span class="text-sm font-medium">status:</span>
+            <span class="text-sm font-medium">{{ t('solutions.columns.status') }}:</span>
             <span v-if="solution.isFlagged" class="font-mono text-foreground uppercase">
-              flagged
+              {{ t('solutions.status.flagged') }}
             </span>
             <span v-else-if="solution.isPublished" class="font-mono text-foreground uppercase">
-              published
+              {{ t('solutions.status.published') }}
             </span>
-            <span v-else class="font-mono text-muted-foreground uppercase"> unpublished </span>
+            <span v-else class="font-mono text-muted-foreground uppercase">{{ t('solutions.status.unpublished') }}</span>
           </div>
-          <div class="flex items-center gap-2">
-            <span class="text-sm font-medium">author:</span>
-            <div class="flex items-center gap-1">
-              <User :size="10" class="text-status-info-mark" />
-              <span class="font-mono text-foreground">{{ solution.author.username }}</span>
+          <div class="flex min-w-0 max-w-full items-center gap-2 whitespace-normal">
+            <span class="text-sm font-medium">{{ t('solutions.detail.author') }}:</span>
+            <div class="flex min-w-0 items-center gap-1">
+              <User :size="10" class="shrink-0 text-status-info-mark" />
+              <span class="min-w-0 break-all font-mono text-foreground">{{ solution.author.username }}</span>
             </div>
           </div>
           <div class="flex items-center gap-2">
-            <span class="text-sm font-medium">views:</span>
+            <span class="text-sm font-medium">{{ t('solutions.detail.views') }}:</span>
             <span class="font-mono text-muted-foreground tabular-nums">{{
               solution.views.toLocaleString()
             }}</span>

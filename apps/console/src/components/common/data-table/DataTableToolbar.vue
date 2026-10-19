@@ -44,9 +44,10 @@ const emit = defineEmits<{
 
     <!-- Right: Actions -->
     <div
+      v-if="$slots.filters || $slots.actions || showClear"
       class="flex w-full items-center gap-2 overflow-x-auto pb-1 lg:w-auto lg:pb-0"
     >
-      <DropdownMenu>
+      <DropdownMenu v-if="$slots.filters">
         <DropdownMenuTrigger as-child>
           <Button
             :size="filterIconOnly ? 'icon' : 'default'"

@@ -149,6 +149,7 @@ describe("Landing Page Component Suite", () => {
   it("preserves all four workflows and their disclosure", () => {
     const wrapper = mount(ProductProofSection);
     expect(wrapper.findAll("ol > li")).toHaveLength(4);
+    expect(wrapper.get("#proof-title").classes()).toContain("text-balance");
     for (let step = 1; step <= 4; step++) {
       expect(wrapper.text()).toContain(`landing.workflow.step${step}Title`);
       expect(wrapper.text()).toContain(`landing.workflow.step${step}Bullet2`);
@@ -160,10 +161,16 @@ describe("Landing Page Component Suite", () => {
     const wrapper = mount(UseCasesSection);
     expect(wrapper.findAll('[data-slot="card"]')).toHaveLength(3);
     expect(wrapper.findAll("a")).toHaveLength(3);
+    for (const link of wrapper.findAll("a")) {
+      expect(link.classes()).toEqual(
+        expect.arrayContaining(["h-auto", "max-w-full", "whitespace-normal"]),
+      );
+    }
     for (let index = 1; index <= 3; index++) {
       expect(wrapper.text()).toContain(`landing.useCases.case${index}Title`);
       expect(wrapper.text()).toContain(`landing.useCases.case${index}Metric2`);
     }
+    wrapper.unmount();
   });
 
   it("preserves both human-control commitments", () => {

@@ -9,7 +9,6 @@ import { Loader2, Inbox } from "@lucide/vue";
 import {
   Table,
   TableBody,
-  TableCaption,
   TableCell,
   TableFooter,
   TableHead,
@@ -84,11 +83,6 @@ const showLoginPrompt = computed(
     </template>
     <template v-else>
       <Table>
-        <TableCaption>{{
-          props.submissions.length === 0
-            ? t("problem.submissions.noSubmissionsDesc")
-            : ""
-        }}</TableCaption>
         <TableHeader>
           <TableRow>
             <TableHead class="w-[140px]">

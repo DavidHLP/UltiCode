@@ -1,7 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { computed, defineComponent, h, nextTick, ref } from "vue";
 import { mount } from "@vue/test-utils";
-import { useContentNavigation, type UseContentNavigationReturn } from "../useContentNavigation";
+import {
+  useContentNavigation,
+  type UseContentNavigationReturn,
+} from "../useContentNavigation";
 
 interface MockIntersectionObserverEntry {
   target: Element;
@@ -18,7 +21,10 @@ class MockIntersectionObserver {
   observed: Element[] = [];
   disconnected = false;
 
-  constructor(callback: IntersectionCallback, options?: IntersectionObserverInit) {
+  constructor(
+    callback: IntersectionCallback,
+    options?: IntersectionObserverInit,
+  ) {
     this.callback = callback;
     this.options = options;
     MockIntersectionObserver.instances.push(this);
@@ -74,7 +80,17 @@ class MockResizeObserver {
   trigger(width: number): void {
     const entries = this.observed.map((target) => ({
       target,
-      contentRect: { width, height: 0, top: 0, left: 0, bottom: 0, right: 0, x: 0, y: 0, toJSON() {} },
+      contentRect: {
+        width,
+        height: 0,
+        top: 0,
+        left: 0,
+        bottom: 0,
+        right: 0,
+        x: 0,
+        y: 0,
+        toJSON() {},
+      },
       borderBoxSize: [] as unknown as readonly ResizeObserverSize[],
       contentBoxSize: [] as unknown as readonly ResizeObserverSize[],
       devicePixelContentBoxSize: [] as unknown as readonly ResizeObserverSize[],
@@ -89,7 +105,9 @@ interface Harness {
   nav: UseContentNavigationReturn;
 }
 
-function mountNav(headings: Parameters<typeof useContentNavigation>[0]): Harness {
+function mountNav(
+  headings: Parameters<typeof useContentNavigation>[0],
+): Harness {
   const host = document.createElement("div");
   host.id = "nav-host";
   document.body.appendChild(host);
@@ -130,10 +148,14 @@ describe("useContentNavigation", () => {
   beforeEach(() => {
     MockIntersectionObserver.instances = [];
     MockResizeObserver.instances = [];
-    (globalThis as unknown as { IntersectionObserver: typeof MockIntersectionObserver }).IntersectionObserver =
-      MockIntersectionObserver;
-    (globalThis as unknown as { ResizeObserver: typeof MockResizeObserver }).ResizeObserver =
-      MockResizeObserver;
+    (
+      globalThis as unknown as {
+        IntersectionObserver: typeof MockIntersectionObserver;
+      }
+    ).IntersectionObserver = MockIntersectionObserver;
+    (
+      globalThis as unknown as { ResizeObserver: typeof MockResizeObserver }
+    ).ResizeObserver = MockResizeObserver;
     vi.useFakeTimers();
   });
 
@@ -177,13 +199,20 @@ describe("useContentNavigation", () => {
     cleanupHarness(harness, [el1, el2]);
   });
 
-  it("updates activeHeadingId when an intersection entry fires", async () => {
+  it("uses the same section boundary for scroll and intersection updates", async () => {
     const el1 = document.createElement("h2");
     el1.id = "alpha";
     const el2 = document.createElement("h2");
     el2.id = "beta";
     document.body.appendChild(el1);
     document.body.appendChild(el2);
+
+    const firstRect = vi
+      .spyOn(el1, "getBoundingClientRect")
+      .mockReturnValue({ top: -100 } as DOMRect);
+    const secondRect = vi
+      .spyOn(el2, "getBoundingClientRect")
+      .mockReturnValue({ top: -50 } as DOMRect);
 
     const headings = ref([
       { id: "alpha", text: "Alpha", level: 2 },
@@ -198,10 +227,79 @@ describe("useContentNavigation", () => {
     obs.trigger([{ target: el2, isIntersecting: true }]);
     expect(harness.nav.activeHeadingId.value).toBe("beta");
 
+    firstRect.mockReturnValue({ top: 30 } as DOMRect);
+    secondRect.mockReturnValue({ top: 300 } as DOMRect);
+    window.dispatchEvent(new Event("scroll"));
+    expect(harness.nav.activeHeadingId.value).toBe("alpha");
+    obs.trigger([{ target: el2, isIntersecting: true }]);
+    expect(harness.nav.activeHeadingId.value).toBe("alpha");
+
     obs.trigger([{ target: el1, isIntersecting: true }]);
     expect(harness.nav.activeHeadingId.value).toBe("alpha");
 
     cleanupHarness(harness, [el1, el2]);
+  });
+
+  it("keeps the current section active when a large scroll skips its intersection window", async () => {
+    const first = document.createElement("h2");
+    first.id = "body-end";
+    const comments = document.createElement("h2");
+    comments.id = "comments";
+    document.body.append(first, comments);
+    vi.spyOn(first, "getBoundingClientRect").mockReturnValue({
+      top: -900,
+    } as DOMRect);
+    vi.spyOn(comments, "getBoundingClientRect").mockReturnValue({
+      top: -50,
+    } as DOMRect);
+    const harness = mountNav(
+      ref([
+        { id: "body-end", text: "Body end", level: 2 },
+        { id: "comments", text: "Comments", level: 2 },
+      ]),
+    );
+    try {
+      await nextTick();
+      await vi.runAllTimersAsync();
+      const observer = MockIntersectionObserver.instances[0]!;
+      observer.trigger([{ target: first, isIntersecting: true }]);
+      observer.trigger([{ target: first, isIntersecting: false }]);
+      expect(harness.nav.activeHeadingId.value).toBe("comments");
+    } finally {
+      cleanupHarness(harness, [first, comments]);
+    }
+  });
+
+  it("tracks a first scroll that skips every intersection window and removes its listener on unmount", async () => {
+    const first = document.createElement("h2");
+    first.id = "first-section";
+    const comments = document.createElement("h2");
+    comments.id = "comments-section";
+    document.body.append(first, comments);
+    vi.spyOn(first, "getBoundingClientRect").mockReturnValue({
+      top: -1200,
+    } as DOMRect);
+    const commentsRect = vi
+      .spyOn(comments, "getBoundingClientRect")
+      .mockReturnValue({ top: -15 } as DOMRect);
+    const harness = mountNav(
+      ref([
+        { id: first.id, text: "First", level: 2 },
+        { id: comments.id, text: "Comments", level: 2 },
+      ]),
+    );
+    await nextTick();
+    await vi.runAllTimersAsync();
+    harness.nav.activeHeadingId.value = first.id;
+
+    // No intersection callback fires if all headings stay outside its window.
+    harness.host.dispatchEvent(new Event("scroll"));
+    expect(harness.nav.activeHeadingId.value).toBe(comments.id);
+
+    cleanupHarness(harness, [first, comments]);
+    commentsRect.mockClear();
+    window.dispatchEvent(new Event("scroll"));
+    expect(commentsRect).not.toHaveBeenCalled();
   });
 
   it("rebuilds observers when headings change (does not stack observers)", async () => {
@@ -212,9 +310,7 @@ describe("useContentNavigation", () => {
     document.body.appendChild(el1);
     document.body.appendChild(el2);
 
-    const headings = ref([
-      { id: "first", text: "First", level: 2 },
-    ]);
+    const headings = ref([{ id: "first", text: "First", level: 2 }]);
 
     const harness = mountNav(headings);
     await nextTick();
@@ -292,7 +388,10 @@ describe("useContentNavigation", () => {
     await nextTick();
 
     harness.nav.scrollToHeading("found");
-    expect(scrollSpy).toHaveBeenCalledWith({ behavior: "smooth", block: "start" });
+    expect(scrollSpy).toHaveBeenCalledWith({
+      behavior: "smooth",
+      block: "start",
+    });
     expect(harness.nav.activeHeadingId.value).toBe("found");
 
     cleanupHarness(harness, [el]);
@@ -320,7 +419,8 @@ describe("useContentNavigation", () => {
           resolveFallbackElement: resolver,
         });
         navRef = nav;
-        (nav.wrapperRef as unknown as { value: HTMLElement | null }).value = host;
+        (nav.wrapperRef as unknown as { value: HTMLElement | null }).value =
+          host;
         return () => h("div");
       },
     });
@@ -330,6 +430,10 @@ describe("useContentNavigation", () => {
     navRef.scrollToHeading("lead-in");
     expect(resolver).toHaveBeenCalledWith(headings.value[0]);
     expect(scrollSpy).toHaveBeenCalled();
+    expect(navRef.activeHeadingId.value).toBe("lead-in");
+
+    navRef.activeHeadingId.value = "";
+    window.dispatchEvent(new Event("scroll"));
     expect(navRef.activeHeadingId.value).toBe("lead-in");
 
     wrapper.unmount();

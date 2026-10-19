@@ -146,7 +146,7 @@ function formatTime(dateStr: string): string {
         v-if="activities.length === 0"
         class="py-8 text-center text-sm text-muted-foreground"
       >
-        No recent activity
+        {{ t("personal.dashboard.activity.empty") }}
       </div>
     </div>
   </div>

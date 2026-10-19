@@ -256,6 +256,7 @@ defineExpose({
           <div v-if="expandedLang === lang.language" class="p-4 border-t bg-muted/10">
             <Label class="mb-2 block">{{ t('problems.codeForm.starterCodeTemplate') }}</Label>
             <Textarea
+              class="font-mono"
               :model-value="lang.starterCode"
               @update:model-value="updateStarterCode(index, String($event))"
               rows="12"

@@ -190,7 +190,7 @@ const displayActivities = computed(() => {
                   >{{ t('audit.columns.target') }}:</span
                 >
                 <span
-                  class="font-mono bg-accent dark:bg-border/20 px-1.5 py-0.5 text-foreground dark:text-border text-xs truncate max-w-[170px] border border-border dark:border-border/60 rounded-lg"
+                  class="font-mono bg-accent dark:bg-border/20 px-1.5 py-0.5 text-foreground text-xs truncate max-w-[170px] border border-border dark:border-border/60 rounded-lg"
                 >
                   {{ getTargetLabel(activity.target) }}
                 </span>

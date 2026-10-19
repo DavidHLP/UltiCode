@@ -11,6 +11,8 @@ describe("DataTableToolbar", () => {
     });
 
     expect(wrapper.classes()).toContain("lg:flex-row");
+    expect(wrapper.find("button").exists()).toBe(false);
+    wrapper.unmount();
   });
 
   it("renders the filter action as an accessible icon-only button", () => {
@@ -20,10 +22,12 @@ describe("DataTableToolbar", () => {
         filterLabel: "Filter",
         filterIconOnly: true,
       },
+      slots: { filters: "Available filters" },
     });
 
     const filterButton = wrapper.get('button[aria-label="Filter"]');
     expect(filterButton.attributes("title")).toBe("Filter");
     expect(filterButton.text()).toBe("");
+    wrapper.unmount();
   });
 });

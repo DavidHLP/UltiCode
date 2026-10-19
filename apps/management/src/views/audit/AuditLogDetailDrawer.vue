@@ -43,7 +43,7 @@ const emit = defineEmits<{
       <!-- Header Info - Terminal Style -->
       <div class="flex items-start gap-4 p-4 border border-border dark:border-border bg-muted">
         <div
-          class="flex h-12 w-12 items-center justify-center rounded-full border border-status-info-mark bg-[color-mix(in_oklch,_var(--status-info-mark)_10%,_transparent)]"
+          class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-status-info-mark bg-[color-mix(in_oklch,_var(--status-info-mark)_10%,_transparent)]"
         >
           <component
             :is="getActionIcon(entity.action)"
@@ -51,7 +51,7 @@ const emit = defineEmits<{
             :class="getActionIconColor(entity.action)"
           />
         </div>
-        <div class="flex flex-col gap-1">
+        <div class="min-w-0 flex-1 flex flex-col gap-1 [overflow-wrap:anywhere]">
           <h3 class="text-lg font-mono font-semibold tracking-tight">
             {{ entity.action }}
           </h3>
@@ -63,7 +63,11 @@ const emit = defineEmits<{
           </p>
           <div class="flex flex-wrap gap-2 mt-1">
             <SemanticBadge :color="getAuditActionColor(entity.action)" :label="entity.action" />
-            <SemanticBadge color="info" :label="`ID: ${entity.id.slice(0, 8)}`" />
+            <SemanticBadge
+              color="info"
+              :label="`ID: ${entity.id}`"
+              class="max-w-full whitespace-normal [overflow-wrap:anywhere]"
+            />
           </div>
         </div>
       </div>
@@ -78,11 +82,11 @@ const emit = defineEmits<{
           </span>
           <div class="flex items-center gap-3">
             <div
-              class="flex h-8 w-8 items-center justify-center rounded-full border border-border dark:border-border bg-muted"
+              class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border dark:border-border bg-muted"
             >
               <IconUser class="h-4 w-4 text-muted-foreground" />
             </div>
-            <div class="flex flex-col">
+            <div class="min-w-0 flex flex-col [overflow-wrap:anywhere]">
               <span class="text-sm font-medium font-mono">
                 {{ entity.performer?.username || t('audit.drawer.system') }}
               </span>
@@ -103,19 +107,19 @@ const emit = defineEmits<{
           </span>
           <div class="flex items-center gap-3">
             <div
-              class="flex h-8 w-8 items-center justify-center rounded-full border border-border dark:border-border bg-muted"
+              class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border dark:border-border bg-muted"
             >
               <component
                 :is="getEntityTypeIcon(entity.entityType)"
                 class="h-4 w-4 text-muted-foreground"
               />
             </div>
-            <div class="flex flex-col">
+            <div class="min-w-0 flex flex-col [overflow-wrap:anywhere]">
               <span class="text-sm font-medium">
                 {{ entity.entityType || t('audit.drawer.notAvailable') }}
               </span>
               <span class="text-xs text-muted-foreground font-mono">
-                {{ entity.entityId?.slice(0, 8) || t('audit.drawer.notAvailable') }}
+                {{ entity.entityId || t('audit.drawer.notAvailable') }}
               </span>
             </div>
           </div>

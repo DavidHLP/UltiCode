@@ -2,6 +2,9 @@ export default {
   title: '仪表板',
   welcome: '欢迎回来',
   loading: '加载仪表板中...',
+  loadStatsError: '仪表板统计加载失败。',
+  loadChartError: '用户注册趋势加载失败。',
+  loadActivityError: '最近活动加载失败。',
 
   // 统计卡片
   stats: {

@@ -100,7 +100,15 @@ const {
 } = useContestStatus(contest, isRegistered);
 
 const contestIdRef = computed(() => contestId);
-const { rankings, getCountryFlag } = useContestRankings(contestIdRef, contest);
+const {
+  rankings,
+  page: rankingPage,
+  totalPages: rankingTotalPages,
+  loading: rankingsLoading,
+  error: rankingsError,
+  loadRankings,
+  getCountryFlag,
+} = useContestRankings(contestIdRef, contest);
 
 const problemStatuses = ref<Record<number, "solved" | "attempted" | "todo">>(
   {},
@@ -258,9 +266,9 @@ function getErrorMessage(error: unknown, fallback: string) {
 
       <!-- Contest Info Cards -->
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card class="hover:-translate-y-0.5">
-          <CardContent class="p-6 flex flex-col gap-4">
-            <div class="flex items-center gap-3">
+        <Card class="min-w-0 hover:-translate-y-0.5">
+          <CardContent class="p-4 sm:p-6 flex flex-col gap-4">
+            <div class="flex flex-wrap items-center gap-3">
               <div
                 class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary shadow-sm"
               >
@@ -272,15 +280,15 @@ function getErrorMessage(error: unknown, fallback: string) {
                 {{ t("contest.detail.startTime") }}
               </p>
             </div>
-            <p class="text-base font-bold truncate pl-1">
+            <p class="text-base font-bold break-words pl-1">
               {{ formatDateTime(contest.startTime) }}
             </p>
           </CardContent>
         </Card>
 
-        <Card class="hover:-translate-y-0.5">
-          <CardContent class="p-6 flex flex-col gap-4">
-            <div class="flex items-center gap-3">
+        <Card class="min-w-0 hover:-translate-y-0.5">
+          <CardContent class="p-4 sm:p-6 flex flex-col gap-4">
+            <div class="flex flex-wrap items-center gap-3">
               <div
                 class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-status-warning-mark/10 text-foreground shadow-sm"
               >
@@ -292,16 +300,16 @@ function getErrorMessage(error: unknown, fallback: string) {
                 {{ t("contest.detail.duration") }}
               </p>
             </div>
-            <p class="text-base font-bold truncate pl-1">
+            <p class="text-base font-bold break-words pl-1">
               {{ contest.duration || 0 }}
               {{ t("contest.time.min_short") }}
             </p>
           </CardContent>
         </Card>
 
-        <Card class="hover:-translate-y-0.5">
-          <CardContent class="p-6 flex flex-col gap-4">
-            <div class="flex items-center gap-3">
+        <Card class="min-w-0 hover:-translate-y-0.5">
+          <CardContent class="p-4 sm:p-6 flex flex-col gap-4">
+            <div class="flex flex-wrap items-center gap-3">
               <div
                 class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-status-success-mark/10 text-foreground shadow-sm"
               >
@@ -313,15 +321,15 @@ function getErrorMessage(error: unknown, fallback: string) {
                 {{ t("contest.detail.participants") }}
               </p>
             </div>
-            <p class="text-base font-bold truncate pl-1">
+            <p class="text-base font-bold break-words pl-1">
               {{ contest.participantCount || 0 }}
             </p>
           </CardContent>
         </Card>
 
-        <Card class="hover:-translate-y-0.5">
-          <CardContent class="p-6 flex flex-col gap-4">
-            <div class="flex items-center gap-3">
+        <Card class="min-w-0 hover:-translate-y-0.5">
+          <CardContent class="p-4 sm:p-6 flex flex-col gap-4">
+            <div class="flex flex-wrap items-center gap-3">
               <div
                 class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary shadow-sm"
               >
@@ -333,7 +341,7 @@ function getErrorMessage(error: unknown, fallback: string) {
                 {{ t("contest.types.title") }}
               </p>
             </div>
-            <p class="text-base font-bold truncate pl-1">
+            <p class="text-base font-bold break-words pl-1">
               {{
                 contest.isRated
                   ? t("contest.types.rated")
@@ -356,14 +364,16 @@ function getErrorMessage(error: unknown, fallback: string) {
         :default-open="contest.status !== 'RUNNING' && !virtualSessionActive"
         class="overflow-hidden"
       >
-        <CollapsibleTrigger as-child>
-          <CardHeader class="cursor-pointer pb-3">
-            <CardTitle class="flex items-center justify-between gap-2">
+        <CardHeader class="pb-3">
+          <CardTitle>
+            <CollapsibleTrigger
+              class="flex w-full items-center justify-between gap-2 text-left"
+            >
               <span>{{ t("contest.detail.rules") }}</span>
               <ChevronDown class="h-4 w-4 transition-transform" />
-            </CardTitle>
-          </CardHeader>
-        </CollapsibleTrigger>
+            </CollapsibleTrigger>
+          </CardTitle>
+        </CardHeader>
         <CollapsibleContent>
           <CardContent class="p-6">
             <p
@@ -406,6 +416,13 @@ function getErrorMessage(error: unknown, fallback: string) {
           <ContestRankingTable
             :rankings="rankings"
             :get-country-flag="getCountryFlag"
+            :page="rankingPage"
+            :total-pages="rankingTotalPages"
+            :loading="rankingsLoading"
+            :error="rankingsError"
+            :paginated="contest.status !== 'RUNNING'"
+            @page-change="loadRankings"
+            @retry="loadRankings()"
           />
         </TabsContent>
       </Tabs>

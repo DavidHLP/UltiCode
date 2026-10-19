@@ -19,6 +19,7 @@ import {
 import { RouterLink, useRouter } from "vue-router";
 import { Button } from "@ulticode/design-system/ui/button";
 import { useI18n } from "vue-i18n";
+import RetryButton from "@/components/common/loading/RetryButton.vue";
 import PersonalPageHeader from "./components/PersonalPageHeader.vue";
 import PersonalPageShell from "./components/PersonalPageShell.vue";
 import {
@@ -56,6 +57,7 @@ const router = useRouter();
 const submissions = ref<SubmissionRecord[]>([]);
 const loading = ref(true);
 const hasUser = ref(false);
+const loadError = ref(false);
 const searchQuery = ref("");
 
 const filteredSubmissions = computed(() => {
@@ -134,18 +136,24 @@ const handleRowClick = (submission: SubmissionRecord) => {
   router.push({ name: "submission-detail", params: { id: submission.id } });
 };
 
-onMounted(async () => {
+async function loadSubmissions() {
+  loading.value = true;
+  loadError.value = false;
+  submissions.value = [];
   try {
     const userId = useAuthStore().fetchCurrentUserId();
     if (!userId) return;
     hasUser.value = true;
     submissions.value = (await fetchUserSubmissions()).items;
   } catch (e) {
+    loadError.value = true;
     console.error("Failed to load submissions", e);
   } finally {
     loading.value = false;
   }
-});
+}
+
+onMounted(loadSubmissions);
 </script>
 
 <template>
@@ -193,10 +201,23 @@ onMounted(async () => {
           t('personal.submissions.searchPlaceholder', 'Search submissions...')
         "
         :show-clear="!!searchQuery"
+        :clear-label="t('common.actions.clear')"
         @clear="searchQuery = ''"
       />
 
+      <div
+        v-if="loadError"
+        role="alert"
+        class="space-y-3 rounded-lg border bg-card p-6 text-center [overflow-wrap:anywhere]"
+      >
+        <p class="text-destructive">
+          {{ t("personal.submissions.loadError") }}
+        </p>
+        <RetryButton @retry="loadSubmissions" />
+      </div>
+
       <DataTable
+        v-else
         :data="filteredSubmissions"
         :columns="columns"
         :has-more="false"
@@ -260,6 +281,7 @@ onMounted(async () => {
             variant="ghost"
             size="icon"
             class="w-8 group-hover:opacity-100"
+            :aria-label="t('common.actions.view')"
           >
             <ChevronRight class="h-4 w-4" />
           </Button>
@@ -275,12 +297,19 @@ onMounted(async () => {
               <ListX class="h-8 w-8 text-muted-foreground/50" />
             </div>
             <h3 class="text-xl font-bold">
-              {{ t("personal.submissions.noSubmissions") }}
+              {{
+                searchQuery
+                  ? t("common.search.noResults", { query: searchQuery })
+                  : t("personal.submissions.noSubmissions")
+              }}
             </h3>
-            <p class="mb-8 mt-2 max-w-[300px] text-sm text-muted-foreground">
+            <p
+              v-if="!searchQuery"
+              class="mb-8 mt-2 max-w-[300px] text-sm text-muted-foreground"
+            >
               {{ t("personal.submissions.noSubmissionsDesc") }}
             </p>
-            <Button class="px-8" as-child>
+            <Button v-if="!searchQuery" class="px-8" as-child>
               <RouterLink to="/problemset">{{
                 t("personal.submissions.startSolving")
               }}</RouterLink>

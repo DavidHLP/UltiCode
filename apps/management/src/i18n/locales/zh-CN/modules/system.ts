@@ -58,6 +58,7 @@ export default {
     queryCount: '查询次数',
     slowQueries: '慢查询',
     queues: '消息队列',
+    unavailable: '部分监控数据不可用。请刷新重试；缺失值不代表零。',
     noQueues: '暂无队列',
     waiting: '等待中',
     active: '活动中',
@@ -116,7 +117,7 @@ export default {
       namePlaceholder: '欢迎邮件',
       variables: '变量',
       variablesPlaceholder: 'username, email, link',
-      variablesHelp: '用逗号分隔的变量名，可在模板中使用 {{variable}}',
+      variablesHelp: "用逗号分隔的变量名，可在模板中使用 {'{{variable}}'}",
     },
     status: {
       SENT: '已发送',

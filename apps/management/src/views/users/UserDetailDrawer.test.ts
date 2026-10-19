@@ -137,6 +137,26 @@ describe('UserDetailDrawer avatar upload', () => {
     mocks.toastWarning.mockReset()
   })
 
+  it('opens the native file picker from the avatar button', async () => {
+    const wrapper = mountDrawer()
+    const input = wrapper.get('input[type="file"]')
+    const click = vi
+      .spyOn(input.element as HTMLInputElement, 'click')
+      .mockImplementation(() => {})
+    try {
+      await wrapper
+        .findAll('button')
+        .find((button) => button.text().includes('users.actions.changeAvatar'))!
+        .trigger('click')
+      expect(click).toHaveBeenCalledOnce()
+      expect(input.classes()).toEqual(['sr-only'])
+      expect(mocks.uploadAvatar).not.toHaveBeenCalled()
+    } finally {
+      click.mockRestore()
+      wrapper.unmount()
+    }
+  })
+
   it('ignores completion when the selected user changes during upload', async () => {
     const pending = deferred<string>()
     mocks.uploadAvatar.mockReturnValue(pending.promise)

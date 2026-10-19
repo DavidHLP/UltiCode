@@ -200,7 +200,7 @@ watch(currentPage, () => {
       :description="t('personal.account.sections.notificationsDesc')"
     >
       <template #actions>
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
           <Button variant="ghost" size="sm" @click="prefSheetOpen = true">
             <Settings class="mr-2 h-4 w-4" />
             {{ t("personal.notifications.preferences") }}
@@ -303,9 +303,9 @@ watch(currentPage, () => {
               @click="handleNotificationClick(notification)"
             >
               <div class="flex flex-col gap-1">
-                <div class="flex items-center justify-between gap-2">
+                <div class="flex flex-wrap items-center justify-between gap-2">
                   <span
-                    class="text-sm font-semibold truncate pr-2 text-foreground/90"
+                    class="min-w-0 break-words text-sm font-semibold pr-2 text-foreground/90"
                   >
                     {{ localizedNotification(notification).title }}
                   </span>
@@ -325,13 +325,15 @@ watch(currentPage, () => {
 
             <!-- Actions -->
             <div
-              class="shrink-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity focus-within:opacity-100"
+              class="shrink-0 flex items-center gap-1 sm:opacity-0 group-hover:opacity-100 transition-opacity focus-within:opacity-100"
             >
               <DropdownMenu>
                 <DropdownMenuTrigger as-child>
                   <Button variant="ghost" size="icon" class="w-8">
                     <MoreHorizontal class="h-4 w-4 text-muted-foreground" />
-                    <span class="sr-only">Actions</span>
+                    <span class="sr-only">{{
+                      t("personal.notifications.actions")
+                    }}</span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
@@ -364,7 +366,8 @@ watch(currentPage, () => {
             variant="ghost"
             size="icon"
             class="w-8"
-            :disabled="currentPage === 1 || loading"
+            :aria-label="t('common.pagination.previousPage')"
+            :disabled="currentPage <= 1 || loading"
             @click="currentPage = Math.max(1, currentPage - 1)"
           >
             <ChevronLeft class="h-4 w-4" />
@@ -376,7 +379,8 @@ watch(currentPage, () => {
             variant="ghost"
             size="icon"
             class="w-8"
-            :disabled="currentPage === totalPages || loading"
+            :aria-label="t('common.pagination.nextPage')"
+            :disabled="currentPage >= totalPages || loading"
             @click="currentPage = Math.min(totalPages, currentPage + 1)"
           >
             <ChevronRight class="h-4 w-4" />
@@ -403,13 +407,13 @@ watch(currentPage, () => {
 
   <Sheet v-model:open="prefSheetOpen">
     <SheetContent side="right">
-      <SheetHeader>
+      <SheetHeader class="shrink-0 pr-12">
         <SheetTitle>{{ t("personal.notifications.preferences") }}</SheetTitle>
         <SheetDescription>{{
           t("personal.notifications.preferencesDesc")
         }}</SheetDescription>
       </SheetHeader>
-      <div class="mt-6">
+      <div class="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
         <NotificationPreferencesPanel />
       </div>
     </SheetContent>

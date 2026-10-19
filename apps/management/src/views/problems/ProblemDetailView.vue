@@ -96,21 +96,21 @@ function retryFetch() {
         isReady ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
       ]"
     >
-      <div class="flex items-center justify-between h-14 px-4 lg:px-6">
+      <div class="flex min-h-14 flex-wrap items-center justify-between gap-3 px-4 py-2 lg:px-6">
         <!-- Left: Back & Title -->
-        <div class="flex items-center gap-4 min-w-0">
+        <div class="flex min-w-0 flex-1 items-center gap-3">
           <Button
             variant="outline"
             size="icon"
             class="w-8"
+            :aria-label="t('common.back')"
             @click="router.push({ name: 'problems' })"
           >
             <ArrowLeft :size="18" />
           </Button>
 
           <div v-if="headerData" class="flex items-center gap-3 min-w-0">
-            <div class="flex items-center gap-2"></div>
-            <h1 class="text-sm font-medium text-foreground truncate">
+            <h1 class="min-w-0 break-words text-sm font-medium text-foreground">
               {{ headerData.title }}
             </h1>
             <div class="hidden sm:flex items-center gap-2">
@@ -132,7 +132,7 @@ function retryFetch() {
         </div>
 
         <!-- Center: Tabs (Desktop) -->
-        <div class="absolute left-1/2 -translate-x-1/2 hidden md:block">
+        <div class="order-3 hidden w-full md:block xl:order-none xl:w-auto">
           <Tabs :model-value="currentTab" @update:model-value="handleTabChange">
             <TabsList class="h-9">
               <TabsTrigger value="description" class="h-7 px-3">
@@ -152,27 +152,37 @@ function retryFetch() {
         </div>
 
         <!-- Right: Actions -->
-        <div v-if="headerData" class="flex items-center gap-2">
-          <Button variant="outline" size="sm" @click="versionHistoryOpen = true">
-            <History :size="14" class="mr-1.5" />
+        <div v-if="headerData" class="ml-auto flex shrink-0 flex-wrap items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            :aria-label="t('problems.versionHistory.title')"
+            @click="versionHistoryOpen = true"
+          >
+            <History :size="14" data-icon="inline-start" />
             <span class="hidden sm:inline uppercase tracking-wider">{{
               t('problems.versionHistory.title')
             }}</span>
           </Button>
 
-          <Button variant="outline" size="sm" class="hidden sm:flex" @click="editProblem">
-            <Edit :size="14" class="mr-1.5" />
-            <span class="uppercase tracking-wider">{{ t('common.edit') }}</span>
+          <Button variant="outline" size="sm" :aria-label="t('common.edit')" @click="editProblem">
+            <Edit :size="14" data-icon="inline-start" />
+            <span class="hidden sm:inline uppercase tracking-wider">{{ t('common.edit') }}</span>
           </Button>
 
           <Button
             :variant="headerData.isPublished ? 'outline' : 'default'"
             size="sm"
             :disabled="publishing"
+            :aria-label="
+              headerData.isPublished
+                ? t('problems.actions.unpublish')
+                : t('problems.actions.publish')
+            "
             @click="togglePublish"
           >
-            <Eye v-if="!headerData.isPublished" :size="14" class="mr-1.5" />
-            <EyeOff v-else :size="14" class="mr-1.5" />
+            <Eye v-if="!headerData.isPublished" :size="14" data-icon="inline-start" />
+            <EyeOff v-else :size="14" data-icon="inline-start" />
             <span class="hidden sm:inline uppercase tracking-wider">{{
               headerData.isPublished
                 ? t('problems.actions.unpublish')

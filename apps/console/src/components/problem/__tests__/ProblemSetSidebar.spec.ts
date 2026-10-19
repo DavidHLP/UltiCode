@@ -18,6 +18,7 @@ vi.mock("vue-i18n", async (importOriginal) => ({
   ...(await importOriginal<typeof VueI18n>()),
   useI18n: () => ({
     t: (key: string) => key,
+    locale: { value: "en-US" },
   }),
 }));
 
@@ -48,6 +49,25 @@ describe("ProblemSetSidebar", () => {
     vi.clearAllMocks();
   });
 
+  it("keeps the compact week view expandable when content space is narrow", async () => {
+    vi.mocked(fetchRandomProblem).mockRejectedValueOnce(
+      new Error("No problem"),
+    );
+    const wrapper = mount(ProblemSetSidebar);
+    await flushPromises();
+    const content = wrapper.find('[class*="max-h"]');
+    expect(content.classes()).toContain("max-h-0");
+    await wrapper
+      .find('[aria-label="problem.sidebar.toggleCalendar"]')
+      .trigger("click");
+    expect(content.classes()).toContain("max-h-[180px]");
+    await wrapper
+      .find('[aria-label="problem.sidebar.toggleCalendar"]')
+      .trigger("click");
+    expect(content.classes()).toContain("max-h-0");
+    wrapper.unmount();
+  });
+
   it("fetches random problem dynamically on mount", async () => {
     const mockProblem: Problem = {
       id: 42,
@@ -69,7 +89,7 @@ describe("ProblemSetSidebar", () => {
     await flushPromises();
 
     expect(fetchRandomProblem).toHaveBeenCalledTimes(1);
-    expect(wrapper.text()).toContain("今日：42.");
+    expect(wrapper.text()).toContain("problem.sidebar.todayProblem");
     expect(wrapper.text()).toContain("两数之和");
     const link = wrapper.findComponent(RouterLinkStub);
     expect(link.exists()).toBe(true);
@@ -91,6 +111,6 @@ describe("ProblemSetSidebar", () => {
     await flushPromises();
 
     expect(fetchRandomProblem).toHaveBeenCalledTimes(1);
-    expect(wrapper.text()).not.toContain("今日：");
+    expect(wrapper.text()).not.toContain("problem.sidebar.todayProblem");
   });
 });

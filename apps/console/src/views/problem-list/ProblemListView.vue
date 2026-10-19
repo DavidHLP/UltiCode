@@ -54,6 +54,8 @@ const listId = computed(() => route.params.id as string);
 const {
   currentList,
   problems,
+  loadError,
+  loadProblemList,
   isSaved,
   isSaving,
   isForking,
@@ -103,10 +105,8 @@ function openAddProblemsDialog() {
     class="container mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 max-w-[1400px]"
   >
     <!-- Header Section -->
-    <div
-      class="flex flex-col gap-6 md:flex-row md:items-start md:justify-between border-b pb-8"
-    >
-      <div class="space-y-4 max-w-3xl">
+    <div class="flex flex-wrap items-start justify-between gap-6 border-b pb-8">
+      <div class="min-w-[min(100%,24rem)] flex-1 space-y-4 max-w-3xl">
         <div class="space-y-2">
           <div class="flex items-center gap-3">
             <Badge variant="outline" class="px-2.5 py-0.5">{{
@@ -167,7 +167,7 @@ function openAddProblemsDialog() {
         </div>
       </div>
 
-      <div class="flex items-center gap-2 shrink-0">
+      <div class="flex max-w-full flex-wrap items-center gap-2 shrink-0">
         <Button
           v-if="canSave"
           :variant="isSaved ? 'default' : 'outline'"
@@ -205,7 +205,12 @@ function openAddProblemsDialog() {
         </Button>
         <DropdownMenu v-model:open="dropdownOpen">
           <DropdownMenuTrigger as-child>
-            <Button variant="ghost" size="icon" class="w-9">
+            <Button
+              variant="ghost"
+              size="icon"
+              class="w-9"
+              :aria-label="t('problem.table.actions')"
+            >
               <MoreHorizontal class="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
@@ -306,7 +311,18 @@ function openAddProblemsDialog() {
       @add="handleAddProblem"
     />
 
-    <div v-if="problems.length === 0" class="py-12">
+    <div
+      v-if="loadError"
+      role="alert"
+      class="flex flex-col items-center gap-4 py-12 text-center"
+    >
+      <p class="text-destructive">{{ t("problem.explorer.failedToLoad") }}</p>
+      <Button variant="outline" @click="loadProblemList(listId)">
+        {{ t("common.actions.retry") }}
+      </Button>
+    </div>
+
+    <div v-else-if="problems.length === 0" class="py-12">
       <Empty class="h-80">
         <EmptyContent>
           <EmptyMedia variant="icon" class="p-4 mb-4">

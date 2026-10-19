@@ -11,7 +11,7 @@ import {
   DataTableToolbar,
   TagFilter,
 } from "@/components/common/data-table";
-import { Check as CheckIcon, Shuffle } from "@lucide/vue";
+import { Shuffle } from "@lucide/vue";
 import { useI18n } from "vue-i18n";
 
 const { t } = useI18n();
@@ -72,50 +72,28 @@ const emit = defineEmits<{
         }}</DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuCheckboxItem
-          :checked="selectedStatus.includes('solved')"
-          @click="
-            emit('toggleStatus', 'solved', !selectedStatus.includes('solved'))
-          "
+          :model-value="selectedStatus.includes('solved')"
+          @update:model-value="emit('toggleStatus', 'solved', $event)"
         >
-          <span class="flex items-center w-full">
-            {{ t("problem.status.solved") }}
-            <CheckIcon
-              v-if="selectedStatus.includes('solved')"
-              class="ml-auto h-4 w-4"
-            />
-          </span>
+          <span class="flex items-center w-full">{{
+            t("problem.status.solved")
+          }}</span>
         </DropdownMenuCheckboxItem>
         <DropdownMenuCheckboxItem
-          :checked="selectedStatus.includes('attempted')"
-          @click="
-            emit(
-              'toggleStatus',
-              'attempted',
-              !selectedStatus.includes('attempted'),
-            )
-          "
+          :model-value="selectedStatus.includes('attempted')"
+          @update:model-value="emit('toggleStatus', 'attempted', $event)"
         >
-          <span class="flex items-center w-full">
-            {{ t("problem.status.attempted") }}
-            <CheckIcon
-              v-if="selectedStatus.includes('attempted')"
-              class="ml-auto h-4 w-4"
-            />
-          </span>
+          <span class="flex items-center w-full">{{
+            t("problem.status.attempted")
+          }}</span>
         </DropdownMenuCheckboxItem>
         <DropdownMenuCheckboxItem
-          :checked="selectedStatus.includes('todo')"
-          @click="
-            emit('toggleStatus', 'todo', !selectedStatus.includes('todo'))
-          "
+          :model-value="selectedStatus.includes('todo')"
+          @update:model-value="emit('toggleStatus', 'todo', $event)"
         >
-          <span class="flex items-center w-full">
-            {{ t("problem.status.todo") }}
-            <CheckIcon
-              v-if="selectedStatus.includes('todo')"
-              class="ml-auto h-4 w-4"
-            />
-          </span>
+          <span class="flex items-center w-full">{{
+            t("problem.status.todo")
+          }}</span>
         </DropdownMenuCheckboxItem>
         <DropdownMenuSeparator />
         <DropdownMenuLabel>{{
@@ -123,58 +101,28 @@ const emit = defineEmits<{
         }}</DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuCheckboxItem
-          :checked="selectedDifficulty.includes('Easy')"
-          @click="
-            emit(
-              'toggleDifficulty',
-              'Easy',
-              !selectedDifficulty.includes('Easy'),
-            )
-          "
+          :model-value="selectedDifficulty.includes('Easy')"
+          @update:model-value="emit('toggleDifficulty', 'Easy', $event)"
         >
-          <span class="flex items-center w-full">
-            {{ t("problem.difficulty.easy") }}
-            <CheckIcon
-              v-if="selectedDifficulty.includes('Easy')"
-              class="ml-auto h-4 w-4"
-            />
-          </span>
+          <span class="flex items-center w-full">{{
+            t("problem.difficulty.easy")
+          }}</span>
         </DropdownMenuCheckboxItem>
         <DropdownMenuCheckboxItem
-          :checked="selectedDifficulty.includes('Medium')"
-          @click="
-            emit(
-              'toggleDifficulty',
-              'Medium',
-              !selectedDifficulty.includes('Medium'),
-            )
-          "
+          :model-value="selectedDifficulty.includes('Medium')"
+          @update:model-value="emit('toggleDifficulty', 'Medium', $event)"
         >
-          <span class="flex items-center w-full">
-            {{ t("problem.difficulty.medium") }}
-            <CheckIcon
-              v-if="selectedDifficulty.includes('Medium')"
-              class="ml-auto h-4 w-4"
-            />
-          </span>
+          <span class="flex items-center w-full">{{
+            t("problem.difficulty.medium")
+          }}</span>
         </DropdownMenuCheckboxItem>
         <DropdownMenuCheckboxItem
-          :checked="selectedDifficulty.includes('Hard')"
-          @click="
-            emit(
-              'toggleDifficulty',
-              'Hard',
-              !selectedDifficulty.includes('Hard'),
-            )
-          "
+          :model-value="selectedDifficulty.includes('Hard')"
+          @update:model-value="emit('toggleDifficulty', 'Hard', $event)"
         >
-          <span class="flex items-center w-full">
-            {{ t("problem.difficulty.hard") }}
-            <CheckIcon
-              v-if="selectedDifficulty.includes('Hard')"
-              class="ml-auto h-4 w-4"
-            />
-          </span>
+          <span class="flex items-center w-full">{{
+            t("problem.difficulty.hard")
+          }}</span>
         </DropdownMenuCheckboxItem>
         <DropdownMenuSeparator />
         <DropdownMenuLabel>{{
@@ -182,22 +130,20 @@ const emit = defineEmits<{
         }}</DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuCheckboxItem
-          :checked="showPremium === false"
-          @click="emit('togglePremium', false, !(showPremium === false))"
+          :model-value="showPremium === false"
+          @update:model-value="emit('togglePremium', false, $event)"
         >
-          <span class="flex items-center w-full">
-            {{ t("problem.explorer.free") }}
-            <CheckIcon v-if="showPremium === false" class="ml-auto h-4 w-4" />
-          </span>
+          <span class="flex items-center w-full">{{
+            t("problem.explorer.free")
+          }}</span>
         </DropdownMenuCheckboxItem>
         <DropdownMenuCheckboxItem
-          :checked="showPremium === true"
-          @click="emit('togglePremium', true, !(showPremium === true))"
+          :model-value="showPremium === true"
+          @update:model-value="emit('togglePremium', true, $event)"
         >
-          <span class="flex items-center w-full">
-            {{ t("problem.explorer.premium") }}
-            <CheckIcon v-if="showPremium === true" class="ml-auto h-4 w-4" />
-          </span>
+          <span class="flex items-center w-full">{{
+            t("problem.explorer.premium")
+          }}</span>
         </DropdownMenuCheckboxItem>
       </template>
       <template #actions>

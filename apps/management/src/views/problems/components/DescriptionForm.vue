@@ -318,7 +318,12 @@ function isLanguageSelected(lang: string): boolean {
                               {{ t('problems.descriptionForm.premiumDescription') }}
                             </p>
                           </div>
-                          <Checkbox :checked="value" @update:checked="handleChange" />
+                          <Checkbox
+                            :model-value="value"
+                            :aria-label="t('problems.descriptionForm.premium')"
+                            @update:model-value="handleChange"
+                            @click.stop
+                          />
                         </div>
                         <FormMessage />
                       </FormItem>
@@ -338,7 +343,12 @@ function isLanguageSelected(lang: string): boolean {
                               {{ t('problems.descriptionForm.publishedDescription') }}
                             </p>
                           </div>
-                          <Checkbox :checked="value" @update:checked="handleChange" />
+                          <Checkbox
+                            :model-value="value"
+                            :aria-label="t('problems.descriptionForm.published')"
+                            @update:model-value="handleChange"
+                            @click.stop
+                          />
                         </div>
                         <FormMessage />
                       </FormItem>

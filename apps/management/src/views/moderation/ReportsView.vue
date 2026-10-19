@@ -59,9 +59,10 @@ const {
   initialQuery: {
     filters: { status: 'all', category: 'all', entityType: 'all' },
   },
-  toParams: ({ filters, page, limit }) => ({
+  toParams: ({ search, filters, page, limit }) => ({
     page,
     limit,
+    entityId: search?.trim() || undefined,
     status: filters.status === 'all' ? undefined : filters.status,
     category: filters.category === 'all' ? undefined : filters.category,
     entityType: filters.entityType === 'all' ? undefined : filters.entityType,
@@ -125,7 +126,7 @@ const columns = computed(() => {
 
       <!-- Stats Ticker -->
       <div
-        class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-border dark:border-border bg-muted"
+        class="px-4 lg:px-6 py-2.5 flex flex-wrap items-center gap-x-6 gap-y-2 whitespace-nowrap border-t border-border dark:border-border bg-muted"
       >
         <div class="flex items-center gap-2">
           <span class="text-sm font-medium text-muted-foreground"
@@ -135,7 +136,7 @@ const columns = computed(() => {
         </div>
         <div class="flex items-center gap-2">
           <span class="text-sm font-medium text-muted-foreground"
-            >{{ t('moderation.terminal.pending') }}:</span
+            >{{ t('moderation.terminal.pendingOnPage') }}:</span
           >
           <span class="font-mono text-sm text-foreground tabular-nums">{{ stats.pending }}</span>
         </div>
@@ -171,7 +172,7 @@ const columns = computed(() => {
         <template #toolbar-left>
           <DataTableToolbar
             v-model:search-model-value="searchQuery"
-            :search-placeholder="t('moderation.searchPlaceholder')"
+            :search-placeholder="t('moderation.reports.searchPlaceholder')"
             :filters="filters"
             :loading="loading"
             :on-refresh="loadReports"

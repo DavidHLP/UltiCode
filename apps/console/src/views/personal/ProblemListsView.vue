@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import { useRouter } from "vue-router";
 import { Button } from "@ulticode/design-system/ui/button";
 import { Input } from "@ulticode/design-system/ui/input";
@@ -22,6 +22,7 @@ import {
   List,
 } from "@lucide/vue";
 import { useI18n } from "vue-i18n";
+import RetryButton from "@/components/common/loading/RetryButton.vue";
 import PersonalPageHeader from "./components/PersonalPageHeader.vue";
 import PersonalPageShell from "./components/PersonalPageShell.vue";
 import MyListsTab from "./components/MyListsTab.vue";
@@ -40,6 +41,8 @@ const { t } = useI18n();
 
 const {
   loading,
+  loadError,
+  loadData,
   currentUserId,
   searchQuery,
   data,
@@ -58,6 +61,15 @@ const {
 } = useProblemLists();
 
 const activeTab = ref("my-lists");
+const filteredFeaturedLists = computed(() => {
+  const query = searchQuery.value.trim().toLowerCase();
+  return data.value.featuredLists.filter(
+    (list) =>
+      !query ||
+      list.name.toLowerCase().includes(query) ||
+      list.description?.toLowerCase().includes(query),
+  );
+});
 
 // Dialog state (D-04: stays in parent)
 const isCreateOpen = ref(false);
@@ -184,6 +196,7 @@ function onCategoryUnsave(listId: string) {
         <div class="flex items-center gap-3">
           <Button
             variant="outline"
+            :aria-label="t('personal.problemLists.actions.newCategory')"
             @click="isCreateCategoryOpen = true"
             class="gap-2"
           >
@@ -234,29 +247,50 @@ function onCategoryUnsave(listId: string) {
       </Button>
     </div>
 
+    <div
+      v-else-if="loadError"
+      role="alert"
+      class="space-y-3 rounded-lg border bg-card p-6 text-center [overflow-wrap:anywhere]"
+    >
+      <p class="text-destructive">{{ t("personal.messages.loadFailed") }}</p>
+      <RetryButton @retry="loadData" />
+    </div>
+
     <!-- Main Content -->
     <div v-else class="space-y-6">
       <Tabs v-model="activeTab" class="w-full">
-        <div
-          class="flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-        >
-          <TabsList class="p-1 h-11">
-            <TabsTrigger value="my-lists" class="px-4">
+        <div class="flex flex-wrap items-center justify-between gap-4">
+          <TabsList
+            class="grid w-full grid-cols-2 gap-1 p-1 group-data-horizontal/tabs:h-auto sm:w-auto sm:grid-cols-4"
+          >
+            <TabsTrigger
+              value="my-lists"
+              class="h-auto min-h-8 min-w-0 whitespace-normal px-2 sm:px-4"
+            >
               {{ t("personal.problemLists.tabs.myLists") }}
               <Badge variant="secondary" class="ml-2 h-5 min-w-[20px] px-1">{{
                 data.ownLists.length
               }}</Badge>
             </TabsTrigger>
-            <TabsTrigger value="saved" class="px-4">
+            <TabsTrigger
+              value="saved"
+              class="h-auto min-h-8 min-w-0 whitespace-normal px-2 sm:px-4"
+            >
               {{ t("personal.problemLists.tabs.saved") }}
               <Badge variant="secondary" class="ml-2 h-5 min-w-[20px] px-1">{{
                 totalSavedCount
               }}</Badge>
             </TabsTrigger>
-            <TabsTrigger value="categories" class="px-4">
+            <TabsTrigger
+              value="categories"
+              class="h-auto min-h-8 min-w-0 whitespace-normal px-2 sm:px-4"
+            >
               {{ t("personal.problemLists.tabs.categories") }}
             </TabsTrigger>
-            <TabsTrigger value="featured" class="px-4">
+            <TabsTrigger
+              value="featured"
+              class="h-auto min-h-8 min-w-0 whitespace-normal px-2 sm:px-4"
+            >
               {{ t("personal.problemLists.tabs.featured") }}
             </TabsTrigger>
           </TabsList>
@@ -267,9 +301,7 @@ function onCategoryUnsave(listId: string) {
             />
             <Input
               v-model="searchQuery"
-              :placeholder="
-                t('personal.problemLists.dialogs.listNamePlaceholder')
-              "
+              :placeholder="t('personal.problemLists.searchPlaceholder')"
               class="pl-10"
             />
           </div>
@@ -312,7 +344,7 @@ function onCategoryUnsave(listId: string) {
         <!-- Featured Tab -->
         <TabsContent value="featured" class="mt-0">
           <div
-            v-if="data.featuredLists.length === 0"
+            v-if="filteredFeaturedLists.length === 0"
             class="flex flex-col items-center justify-center py-24 border-2 border-dashed border-muted/50 rounded-lg bg-muted/5 text-center"
           >
             <div
@@ -320,23 +352,27 @@ function onCategoryUnsave(listId: string) {
             >
               <Star class="h-8 w-8" />
             </div>
-            <h4 class="text-xl font-bold">
-              {{ t("personal.problemLists.emptyStates.noFeatured") }}
+            <h4 class="max-w-full text-xl font-bold [overflow-wrap:anywhere]">
+              {{
+                searchQuery.trim()
+                  ? t("common.search.noResults", { query: searchQuery.trim() })
+                  : t("personal.problemLists.emptyStates.noFeatured")
+              }}
             </h4>
-            <p class="text-muted-foreground mt-2">
+            <p v-if="!searchQuery.trim()" class="text-muted-foreground mt-2">
               {{ t("personal.problemLists.emptyStates.noFeaturedDesc") }}
             </p>
           </div>
 
           <div v-else class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             <div
-              v-for="list in data.featuredLists"
+              v-for="list in filteredFeaturedLists"
               :key="list.id"
               class="group hover:shadow-[var(--shadow-float)] transition-all duration-300 border-muted/60 flex flex-col overflow-hidden rounded-lg bg-background text-foreground"
             >
               <div class="pb-3 px-6 pt-6">
-                <div class="flex items-start justify-between">
-                  <div class="space-y-1.5 flex-1 min-w-0">
+                <div class="flex flex-wrap items-start justify-between gap-2">
+                  <div class="min-w-[min(100%,8rem)] flex-1 space-y-1.5">
                     <div class="flex items-center gap-2">
                       <span
                         class="h-5 px-1.5 text-xs font-bold uppercase tracking-widest bg-status-warning-mark/10 text-foreground border border-status-warning-mark/20 rounded-lg inline-flex items-center"
@@ -351,7 +387,7 @@ function onCategoryUnsave(listId: string) {
                       </span>
                     </div>
                     <h3
-                      class="text-lg font-bold group-hover:text-primary transition-colors truncate"
+                      class="text-lg font-bold group-hover:text-primary transition-colors [overflow-wrap:anywhere]"
                     >
                       <router-link
                         :to="`/problemset/list/${list.id}`"
@@ -359,7 +395,7 @@ function onCategoryUnsave(listId: string) {
                       >
                         {{ list.name }}
                         <Star
-                          class="h-4 w-4 text-status-warning-mark fill-status-warning-mark"
+                          class="h-4 w-4 shrink-0 text-status-warning-mark fill-status-warning-mark"
                         />
                       </router-link>
                     </h3>

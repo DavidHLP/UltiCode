@@ -6,7 +6,7 @@ import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import {
   Plus as IconPlus,
-  Trophy as IconTrophy,
+  ArrowDownWideNarrow as IconSort,
   Download as IconDownload,
   Upload as IconUpload,
   Database as IconDatabase,
@@ -91,6 +91,14 @@ const sortBy = computed({
   get: () => query.value.filters.sortBy,
   set: (sortBy: string) => setFilters({ ...query.value.filters, sortBy }),
 })
+const sortOptions = computed(() => [
+  { value: 'default', label: t('problems.sort.default') },
+  { value: 'title', label: t('problems.columns.title') },
+  { value: 'difficulty', label: t('problems.columns.difficulty') },
+  { value: 'createdAt', label: t('problems.columns.createdAt') },
+  { value: 'updatedAt', label: t('problems.columns.updatedAt') },
+  { value: 'submissionCount', label: t('problems.columns.submissions') },
+])
 const sortOrder = computed({
   get: () => query.value.filters.sortOrder,
   set: (sortOrder: 'asc' | 'desc') => setFilters({ ...query.value.filters, sortOrder }),
@@ -140,6 +148,9 @@ const isLoaded = ref(false)
 
 // Stats
 const stats = computed(() => {
+  if (loading.value || error.value) {
+    return { total: '—', published: '—', draft: '—', flagged: '—' }
+  }
   const problems = problemsStore.items
   const total = problemsStore.total
   const published = problems.filter((p) => p.isPublished).length
@@ -217,7 +228,7 @@ onMounted(() => {
         isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
       ]"
     >
-      <div class="px-4 lg:px-6 py-4 flex items-center justify-between">
+      <div class="px-4 lg:px-6 py-4 flex flex-wrap items-center justify-between gap-3">
         <h1 class="text-xl font-medium tracking-tight text-foreground">
           {{ t('problems.title') }}
         </h1>
@@ -233,7 +244,7 @@ onMounted(() => {
       </div>
 
       <div
-        class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-border dark:border-border bg-muted"
+        class="px-4 lg:px-6 py-2.5 flex flex-wrap items-center gap-x-6 gap-y-2 whitespace-nowrap border-t border-border dark:border-border bg-muted"
       >
         <div class="flex items-center gap-2">
           <span class="text-sm font-medium text-muted-foreground"
@@ -269,6 +280,7 @@ onMounted(() => {
     </div>
 
     <ProblemBulkActions
+      v-if="!error"
       :selected-count="selectedRows.length"
       :loading="bulkActionLoading"
       @bulk-publish="handleBulkAction('publish')"
@@ -282,9 +294,10 @@ onMounted(() => {
       <DataTable
         class="w-full text-sm"
         :columns="columns"
-        :data="data"
+        :data="error ? [] : data"
         :pagination="tablePagination"
-        :row-count="total"
+        :row-count="error ? 0 : total"
+        :hide-pagination="!!error"
         :loading="loading"
         :selected-rows="selectedRows"
         @update:pagination="tablePagination = $event"
@@ -309,22 +322,21 @@ onMounted(() => {
           >
             <template #extra-actions>
               <Select v-model="sortBy">
-                <SelectTrigger size="sm" class="w-[150px]">
-                  <SelectValue :placeholder="t('problems.sort.title')" />
+                <SelectTrigger size="sm" class="w-[150px]" :aria-label="t('problems.sort.title')">
+                  <SelectValue :placeholder="t('problems.sort.title')">
+                    {{ sortOptions.find((option) => option.value === sortBy)?.label ?? sortBy }}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectGroup
-                    ><SelectItem value="default">{{ t('problems.sort.default') }}</SelectItem>
-                    <SelectItem value="title">{{ t('problems.sort.titleAsc') }}</SelectItem>
-                    <SelectItem value="difficulty">{{
-                      t('problems.sort.difficultyAsc')
-                    }}</SelectItem>
-                    <SelectItem value="createdAt">{{ t('problems.sort.createdDesc') }}</SelectItem>
-                    <SelectItem value="updatedAt">{{ t('problems.sort.updatedDesc') }}</SelectItem>
-                    <SelectItem value="submissionCount">{{
-                      t('problems.sort.submissionsDesc')
-                    }}</SelectItem></SelectGroup
-                  >
+                  <SelectGroup>
+                    <SelectItem
+                      v-for="option in sortOptions"
+                      :key="option.value"
+                      :value="option.value"
+                    >
+                      {{ option.label }}
+                    </SelectItem>
+                  </SelectGroup>
                 </SelectContent>
               </Select>
               <Button
@@ -332,10 +344,10 @@ onMounted(() => {
                 size="icon"
                 class="w-8"
                 @click="sortOrder = sortOrder === 'asc' ? 'desc' : 'asc'"
-                :title="t('common.sort')"
-                :aria-label="t('common.sort')"
+                :title="t('common.sort') + ': ' + t('problems.sort.' + sortOrder)"
+                :aria-label="t('common.sort') + ': ' + t('problems.sort.' + sortOrder)"
               >
-                <IconTrophy class="h-3.5 w-3.5" :class="{ 'rotate-180': sortOrder === 'asc' }" />
+                <IconSort class="h-3.5 w-3.5" :class="{ 'rotate-180': sortOrder === 'asc' }" />
               </Button>
             </template>
           </DataTableToolbar>
@@ -371,20 +383,21 @@ onMounted(() => {
             </Button>
           </div>
         </template>
+        <template v-if="error" #empty>
+          <div
+            role="alert"
+            class="flex flex-wrap items-center justify-between gap-3 border border-status-error-mark bg-[color-mix(in_oklch,_var(--status-error-mark)_8%,_transparent)] p-4"
+          >
+            <div class="flex min-w-0 flex-1 flex-wrap items-center gap-3 [overflow-wrap:anywhere]">
+              <span class="font-mono text-sm text-foreground">&gt; ERROR:</span>
+              <span class="text-sm text-foreground">{{ error }}</span>
+            </div>
+            <Button variant="outline" size="sm" @click="loadProblems()">
+              {{ t('common.retry') }}
+            </Button>
+          </div>
+        </template>
       </DataTable>
-
-      <div
-        v-if="error"
-        class="mt-4 flex items-center justify-between border border-status-error-mark bg-[color-mix(in_oklch,_var(--status-error-mark)_8%,_transparent)] dark:bg-[color-mix(in_oklch,_var(--status-error-mark)_15%,_transparent)] p-4"
-      >
-        <div class="flex items-center gap-3">
-          <span class="font-mono text-sm text-foreground">&gt; ERROR:</span>
-          <span class="text-sm text-foreground">{{ error }}</span>
-        </div>
-        <Button variant="outline" size="sm" @click="loadProblems()">
-          {{ t('common.retry') }}
-        </Button>
-      </div>
     </div>
   </div>
 

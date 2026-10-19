@@ -42,7 +42,10 @@ const links = ["/problemset", "/contest", "/problemset"];
             <li>{{ t(`landing.useCases.case${index + 1}Metric2`) }}</li>
           </ul></CardContent
         ><CardFooter
-          ><Button variant="outline" as-child
+          ><Button
+            variant="outline"
+            class="h-auto max-w-full whitespace-normal py-2"
+            as-child
             ><a :href="platformUrl(link)">{{
               t(`landing.useCases.case${index + 1}Action`)
             }}</a></Button

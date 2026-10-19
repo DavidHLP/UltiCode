@@ -125,7 +125,6 @@ const { t } = useI18n();
             >
               {{ t("forum.feedback.title") }}
             </router-link>
-            ...
           </p>
         </div>
       </div>

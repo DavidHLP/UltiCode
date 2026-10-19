@@ -7,6 +7,7 @@ import {
 } from "@ulticode/design-system/ui/card";
 import { Badge } from "@ulticode/design-system/ui/badge";
 import { Button } from "@ulticode/design-system/ui/button";
+import { ChevronLeft, ChevronRight } from "@lucide/vue";
 import {
   Table,
   TableBody,
@@ -22,6 +23,16 @@ import type { ContestRankingEntry, LiveRankingEntry } from "@/types/contest";
 defineProps<{
   rankings: (ContestRankingEntry | LiveRankingEntry)[];
   getCountryFlag: (countryCode: string) => string;
+  page: number;
+  totalPages: number;
+  loading: boolean;
+  error: boolean;
+  paginated: boolean;
+}>();
+
+const emit = defineEmits<{
+  (event: "pageChange", page: number): void;
+  (event: "retry"): void;
 }>();
 
 const { t } = useI18n();
@@ -31,15 +42,32 @@ const { t } = useI18n();
   <Card id="contest-ranking" class="overflow-hidden">
     <CardHeader class="flex flex-row items-center justify-between pb-3">
       <CardTitle>{{ t("contest.detail.leaderboard") }}</CardTitle>
-      <Button
-        variant="outline"
-        size="sm"
-        class="px-3 dark:hover:bg-background cursor-pointer"
-        >{{ t("contest.detail.viewAll") }}</Button
-      >
     </CardHeader>
     <CardContent class="p-0">
-      <Table>
+      <div
+        v-if="error"
+        role="alert"
+        class="flex flex-wrap items-center gap-3 p-4 text-sm"
+      >
+        <span>{{ t("contest.error.rankingsLoadFailed") }}</span>
+        <Button
+          variant="outline"
+          size="sm"
+          :disabled="loading"
+          @click="emit('retry')"
+          >{{ t("common.actions.retry") }}</Button
+        >
+      </div>
+      <p
+        v-if="!rankings.length && !error"
+        role="status"
+        class="p-6 text-center text-sm text-muted-foreground"
+      >
+        {{
+          loading ? t("contest.loading.rankings") : t("contest.empty.rankings")
+        }}
+      </p>
+      <Table v-if="rankings.length">
         <TableHeader>
           <TableRow>
             <TableHead class="w-20 pl-6 h-10">{{
@@ -64,7 +92,7 @@ const { t } = useI18n();
         </TableHeader>
         <TableBody>
           <TableRow
-            v-for="entry in rankings.slice(0, 20)"
+            v-for="entry in rankings"
             :key="entry.username"
             class="group last:border-b-0 dark:hover:bg-background/30"
           >
@@ -146,6 +174,37 @@ const { t } = useI18n();
           </TableRow>
         </TableBody>
       </Table>
+      <div
+        v-if="paginated"
+        class="flex flex-wrap items-center justify-between gap-3 border-t p-4"
+      >
+        <span
+          role="status"
+          aria-live="polite"
+          class="text-sm text-muted-foreground"
+          >{{
+            t("common.pagination.page", { current: page, total: totalPages })
+          }}</span
+        >
+        <div class="flex gap-2">
+          <Button
+            variant="outline"
+            size="icon"
+            :aria-label="t('common.pagination.previousPage')"
+            :disabled="loading || page <= 1"
+            @click="emit('pageChange', page - 1)"
+            ><ChevronLeft class="h-4 w-4"
+          /></Button>
+          <Button
+            variant="outline"
+            size="icon"
+            :aria-label="t('common.pagination.nextPage')"
+            :disabled="loading || page >= totalPages"
+            @click="emit('pageChange', page + 1)"
+            ><ChevronRight class="h-4 w-4"
+          /></Button>
+        </div>
+      </div>
     </CardContent>
   </Card>
 </template>

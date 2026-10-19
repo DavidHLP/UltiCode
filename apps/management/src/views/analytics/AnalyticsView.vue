@@ -46,6 +46,7 @@ const {
   contestParticipationReport,
   performanceReport,
   loadReport,
+  loadError,
   refreshSession,
 } = useAnalyticsReports()
 
@@ -72,6 +73,8 @@ const metricGroups = computed(() => {
   const p = problemCompletionReport.value
   const c = contestParticipationReport.value
   const s = performanceReport.value
+  const errorRate = s.errorRate
+  const errorRateAvailable = typeof errorRate === 'number' && Number.isFinite(errorRate)
 
   const getTrendStyle = (trend?: string): Record<string, string> => {
     if (trend === 'up') {
@@ -205,10 +208,12 @@ const metricGroups = computed(() => {
           label: t('analytics.performance.errorRate'),
           value: formatPercent(s.errorRate),
           change:
-            s.errorRate > 1
-              ? t('analytics.status.needsAttention')
-              : t('analytics.status.excellent'),
-          changeStyle: getTrendStyle(s.errorRate > 1 ? 'down' : 'up'),
+            !errorRateAvailable
+              ? undefined
+              : errorRate > 1
+                ? t('analytics.status.needsAttention')
+                : t('analytics.status.excellent'),
+          changeStyle: getTrendStyle(!errorRateAvailable ? 'neutral' : errorRate > 1 ? 'down' : 'up'),
         },
         {
           label: t('analytics.performance.memoryUsage'),
@@ -349,7 +354,9 @@ const endpointBarItems = computed(() => {
 
         <Select v-model="days">
           <SelectTrigger size="sm" class="w-full sm:w-36">
-            <SelectValue />
+            <SelectValue>{{
+              t(`analytics.periods.${days === 365 ? '1year' : `${days}days`}`)
+            }}</SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectGroup
@@ -397,6 +404,18 @@ const endpointBarItems = computed(() => {
             {{ t('analytics.refreshSession') }}
           </Button>
         </div>
+      </div>
+
+      <!-- Report Load Error -->
+      <div
+        v-else-if="loadError"
+        role="alert"
+        class="flex flex-col items-center justify-center gap-4 py-16 text-center"
+      >
+        <p class="text-muted-foreground font-mono">{{ t('analytics.loadError') }}</p>
+        <Button variant="outline" size="sm" @click="loadReport">
+          {{ t('common.retry') }}
+        </Button>
       </div>
 
       <!-- Unified Dashboard Content Grid -->

@@ -124,11 +124,11 @@ const saveStatusText = {
           </span>
         </div>
         <Switch
-          :checked="isPublic"
+          :model-value="isPublic"
+          :aria-label="t('problemLists.form.isPublic')"
           :disabled="disabled"
-          @update:checked="handleIsPublicChange"
+          @update:model-value="handleIsPublicChange"
           @blur="handleBlur"
-          class=""
         />
       </div>
 
@@ -161,11 +161,11 @@ const saveStatusText = {
           </span>
         </div>
         <Switch
-          :checked="isFeatured"
+          :model-value="isFeatured"
+          :aria-label="t('problemLists.form.isFeatured')"
           :disabled="disabled"
-          @update:checked="handleIsFeaturedChange"
+          @update:model-value="handleIsFeaturedChange"
           @blur="handleBlur"
-          class=""
         />
       </div>
     </div>

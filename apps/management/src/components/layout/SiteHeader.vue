@@ -131,9 +131,9 @@ onUnmounted(() => {
 
 <template>
   <header
-    class="flex h-14 shrink-0 items-center border-b border-border dark:border-border/40 bg-card transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-14 select-none z-10"
+    class="flex min-h-14 shrink-0 items-center border-b border-border dark:border-border/40 bg-card transition-[width,height] ease-linear select-none z-10"
   >
-    <div class="flex w-full items-center justify-between px-4 lg:px-6">
+    <div class="flex w-full flex-wrap items-center justify-between gap-y-2 px-4 py-2 lg:px-6">
       <!-- Left Side: Sidebar Trigger, Search & System Status -->
       <div class="flex items-center gap-2">
         <SidebarTrigger :aria-label="t('common.toggleSidebar')" />
@@ -173,7 +173,7 @@ onUnmounted(() => {
       </div>
 
       <!-- Right Side: System Status, Quick Actions, Notifications, Language Switcher -->
-      <div class="flex items-center gap-2">
+      <div class="ml-auto flex items-center gap-2">
         <!-- Quick Actions Menu -->
         <DropdownMenu>
           <DropdownMenuTrigger as-child>

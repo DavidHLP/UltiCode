@@ -59,6 +59,7 @@ watch(entityTypeFilter, () => {
 
 const stats = computed(() => auditStore.stats)
 const statsError = computed(() => auditStore.statsError)
+const statsUnavailable = computed(() => auditStore.statsLoading || Boolean(statsError.value))
 
 async function loadStats() {
   const params = toAuditStatsQueryParams({
@@ -129,29 +130,43 @@ onMounted(async () => {
         <CardContent>
           <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
             <div class="space-y-2">
-              <Label>{{ t('auditReport.startDate') }}</Label>
-              <Input v-model="startDate" type="date" />
+              <Label for="audit-report-start-date">{{ t('auditReport.startDate') }}</Label>
+              <Input id="audit-report-start-date" v-model="startDate" type="date" />
             </div>
             <div class="space-y-2">
-              <Label>{{ t('auditReport.endDate') }}</Label>
-              <Input v-model="endDate" type="date" />
+              <Label for="audit-report-end-date">{{ t('auditReport.endDate') }}</Label>
+              <Input id="audit-report-end-date" v-model="endDate" type="date" />
             </div>
             <div class="space-y-2">
-              <Label>{{ t('auditReport.performer') }}</Label>
+              <Label for="audit-report-performer">{{ t('auditReport.performer') }}</Label>
               <Input
+                id="audit-report-performer"
                 v-model="performerFilter"
                 :placeholder="t('auditReport.performerPlaceholder')"
               />
             </div>
             <div class="space-y-2">
-              <Label>{{ t('auditReport.userId') }}</Label>
-              <Input v-model="userIdFilter" :placeholder="t('auditReport.userIdPlaceholder')" />
+              <Label for="audit-report-user">{{ t('auditReport.userId') }}</Label>
+              <Input
+                id="audit-report-user"
+                v-model="userIdFilter"
+                :placeholder="t('auditReport.userIdPlaceholder')"
+              />
             </div>
             <div class="space-y-2">
-              <Label>{{ t('audit.filters.entityType') }}</Label>
+              <Label for="audit-report-entity">{{ t('audit.filters.entityType') }}</Label>
               <Select v-model="entityTypeFilter">
-                <SelectTrigger>
-                  <SelectValue :placeholder="t('audit.filters.allEntityTypes')" />
+                <SelectTrigger
+                  id="audit-report-entity"
+                  class="min-h-8 w-full whitespace-normal text-left data-[size=default]:h-auto *:data-[slot=select-value]:line-clamp-none *:data-[slot=select-value]:[overflow-wrap:anywhere]"
+                >
+                  <SelectValue>
+                    {{
+                      entityTypeFilter === 'all'
+                        ? t('audit.filters.allEntityTypes')
+                        : t(entityTypeToI18nKey(entityTypeFilter))
+                    }}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup
@@ -168,16 +183,21 @@ onMounted(async () => {
               </Select>
             </div>
             <div class="space-y-2">
-              <Label>{{ t('audit.filters.action') }}</Label>
+              <Label for="audit-report-action">{{ t('audit.filters.action') }}</Label>
               <Select v-model="actionFilter" :disabled="entityTypeFilter === 'all'">
-                <SelectTrigger>
-                  <SelectValue
-                    :placeholder="
-                      entityTypeFilter !== 'all'
-                        ? t('audit.filters.allActions')
-                        : t('auditReport.selectEntityTypeFirst')
-                    "
-                  />
+                <SelectTrigger
+                  id="audit-report-action"
+                  class="min-h-8 w-full whitespace-normal text-left data-[size=default]:h-auto *:data-[slot=select-value]:line-clamp-none *:data-[slot=select-value]:[overflow-wrap:anywhere]"
+                >
+                  <SelectValue>
+                    {{
+                      entityTypeFilter === 'all'
+                        ? t('auditReport.selectEntityTypeFirst')
+                        : actionFilter === 'all'
+                          ? t('audit.filters.allActions')
+                          : t(actionToI18nKey(actionFilter))
+                    }}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup
@@ -190,8 +210,12 @@ onMounted(async () => {
               </Select>
             </div>
             <div class="space-y-2">
-              <Label>{{ t('audit.filters.search') }}</Label>
-              <Input v-model="searchFilter" :placeholder="t('auditReport.searchPlaceholder')" />
+              <Label for="audit-report-search">{{ t('audit.filters.search') }}</Label>
+              <Input
+                id="audit-report-search"
+                v-model="searchFilter"
+                :placeholder="t('auditReport.searchPlaceholder')"
+              />
             </div>
             <div class="flex items-end gap-2">
               <Button @click="loadStats">
@@ -223,7 +247,9 @@ onMounted(async () => {
           <CardTitle>{{ t('auditReport.totalActions') }}</CardTitle>
         </CardHeader>
         <CardContent>
-          <div class="text-4xl font-bold">{{ stats?.totalActions ?? 0 }}</div>
+          <div class="text-4xl font-bold">
+            {{ statsUnavailable ? '—' : (stats?.totalActions ?? 0) }}
+          </div>
         </CardContent>
       </Card>
 
@@ -235,7 +261,7 @@ onMounted(async () => {
             <CardTitle>{{ t('auditReport.actionsByEntity') }}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div v-if="stats?.actionsByEntity?.length" class="space-y-2">
+            <div v-if="!statsUnavailable && stats?.actionsByEntity?.length" class="space-y-2">
               <div
                 v-for="item in stats.actionsByEntity"
                 :key="item.entityType"
@@ -245,7 +271,9 @@ onMounted(async () => {
                 <Badge variant="secondary">{{ item.count }}</Badge>
               </div>
             </div>
-            <div v-else class="text-muted-foreground text-sm">{{ t('auditReport.noData') }}</div>
+            <div v-else class="text-muted-foreground text-sm">
+              {{ statsUnavailable ? '—' : t('auditReport.noData') }}
+            </div>
           </CardContent>
         </Card>
 
@@ -255,7 +283,7 @@ onMounted(async () => {
             <CardTitle>{{ t('auditReport.actionsByType') }}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div v-if="stats?.actionsByType?.length" class="space-y-2">
+            <div v-if="!statsUnavailable && stats?.actionsByType?.length" class="space-y-2">
               <div
                 v-for="item in stats.actionsByType"
                 :key="item.actionType"
@@ -265,7 +293,9 @@ onMounted(async () => {
                 <Badge variant="secondary">{{ item.count }}</Badge>
               </div>
             </div>
-            <div v-else class="text-muted-foreground text-sm">{{ t('auditReport.noData') }}</div>
+            <div v-else class="text-muted-foreground text-sm">
+              {{ statsUnavailable ? '—' : t('auditReport.noData') }}
+            </div>
           </CardContent>
         </Card>
 
@@ -275,7 +305,7 @@ onMounted(async () => {
             <CardTitle>{{ t('auditReport.topPerformers') }}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div v-if="stats?.topPerformers?.length" class="space-y-2">
+            <div v-if="!statsUnavailable && stats?.topPerformers?.length" class="space-y-2">
               <div
                 v-for="item in stats.topPerformers"
                 :key="item.performerId"
@@ -285,7 +315,9 @@ onMounted(async () => {
                 <Badge variant="secondary">{{ item.count }}</Badge>
               </div>
             </div>
-            <div v-else class="text-muted-foreground text-sm">{{ t('auditReport.noData') }}</div>
+            <div v-else class="text-muted-foreground text-sm">
+              {{ statsUnavailable ? '—' : t('auditReport.noData') }}
+            </div>
           </CardContent>
         </Card>
       </div>

@@ -123,7 +123,7 @@ async function handleSubmit(): Promise<void> {
 
 <template>
   <Dialog :open="props.open" @update:open="emit('update:open', $event)">
-    <DialogContent class="max-w-3xl h-[80vh] flex flex-col p-0 gap-0">
+    <DialogContent class="w-[calc(100%-2rem)] sm:max-w-3xl p-0 gap-0">
       <!-- Header - Terminal Style -->
       <DialogHeader class="px-6 py-4">
         <div class="flex items-center gap-3">
@@ -136,15 +136,18 @@ async function handleSubmit(): Promise<void> {
         </DialogDescription>
       </DialogHeader>
 
-      <div class="flex-1 overflow-y-auto px-6 py-4">
+      <div class="px-6 py-4">
         <!-- Stepper Header - Terminal Style -->
         <div class="mb-8">
-          <Stepper v-model="currentStep" class="flex w-full items-start gap-2">
+          <Stepper
+            v-model="currentStep"
+            class="grid w-full grid-cols-2 items-start gap-x-4 gap-y-3 sm:flex sm:gap-2"
+          >
             <StepperItem
               v-for="step in steps"
               :key="step.step"
               :step="step.step"
-              class="relative flex flex-col items-center justify-center gap-2"
+              class="relative flex min-w-0 flex-col items-center justify-center gap-2 sm:flex-1"
             >
               <StepperTrigger
                 :class="[
@@ -166,7 +169,7 @@ async function handleSubmit(): Promise<void> {
               </span>
               <StepperSeparator
                 v-if="step.step !== steps.length"
-                class="absolute left-[calc(50%+20px)] top-4 w-[calc(100%-40px)] h-0.5"
+                class="absolute left-[calc(50%+20px)] top-4 hidden w-[calc(100%-40px)] h-0.5 sm:block"
               />
             </StepperItem>
           </Stepper>
@@ -201,7 +204,7 @@ async function handleSubmit(): Promise<void> {
       </div>
 
       <!-- Footer - Terminal Style -->
-      <DialogFooter class="px-6 py-4">
+      <DialogFooter class="mx-0 mb-0 px-6 py-4">
         <Button
           type="button"
           variant="outline"

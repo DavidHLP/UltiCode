@@ -36,7 +36,7 @@ const forwarded = useForwardPropsEmits(props, emits);
   <Dialog v-slot="slotProps" v-bind="forwarded">
     <DialogContent
       :class="
-        cn('rounded-xl! top-1/3 translate-y-0 overflow-hidden p-0', props.class)
+        cn('flex flex-col overflow-hidden p-0', props.class)
       "
       :show-close-button="showCloseButton"
     >
@@ -44,7 +44,7 @@ const forwarded = useForwardPropsEmits(props, emits);
         <DialogTitle>{{ title }}</DialogTitle>
         <DialogDescription>{{ description }}</DialogDescription>
       </DialogHeader>
-      <Command>
+      <Command class="min-h-0">
         <slot v-bind="slotProps" />
       </Command>
     </DialogContent>

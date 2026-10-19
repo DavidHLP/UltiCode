@@ -42,7 +42,7 @@ watch(
       error.value = null
       try {
         const result = await auditApi.getProblemAuditLogs(pId)
-        logs.value = result.items
+        logs.value = result
       } catch (e) {
         error.value = e instanceof Error ? e.message : 'Failed to load audit logs'
         logs.value = []
@@ -127,7 +127,7 @@ function formatJson(val: unknown): string {
     :open="open"
     @update:open="handleOpenChange"
     :loading="loading"
-    :entity="null"
+    :entity="logs"
     :title="t('audit.problemDrawer.title')"
     :description="t('audit.problemDrawer.problemId', { id: problemId })"
     :not-found-text="t('audit.problemDrawer.noLogs')"

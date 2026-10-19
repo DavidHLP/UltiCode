@@ -43,7 +43,20 @@ const { t } = useI18n();
 </script>
 
 <template>
-  <div class="grid gap-6">
+  <div
+    v-if="categories.length === 0"
+    class="flex flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-muted/50 bg-muted/5 px-6 py-24 text-center"
+    role="status"
+  >
+    <Folder class="h-8 w-8 text-muted-foreground" />
+    <h4 class="text-xl font-bold">
+      {{ t("personal.problemLists.emptyStates.noCategories") }}
+    </h4>
+    <p class="text-sm text-muted-foreground">
+      {{ t("personal.problemLists.emptyStates.noCategoriesDesc") }}
+    </p>
+  </div>
+  <div v-else class="grid gap-6">
     <Card
       v-for="category in categories"
       :key="category.id"

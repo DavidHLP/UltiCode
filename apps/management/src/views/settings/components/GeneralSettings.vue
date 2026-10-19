@@ -138,27 +138,29 @@ function updateField<K extends keyof SystemSettings>(key: K, value: SystemSettin
       </CardHeader>
       <CardContent class="space-y-6">
         <div class="flex items-center justify-between space-x-2">
-          <Label class="flex flex-col space-y-1">
+          <Label class="flex flex-col items-start space-y-1">
             <span>{{ t('settings.userRegistration.enableRegistrations') }}</span>
             <span class="font-normal text-xs text-muted-foreground">{{
               t('settings.userRegistration.enableRegistrationsDescription')
             }}</span>
           </Label>
           <Switch
-            :checked="settings.enable_registrations"
-            @update:checked="updateField('enable_registrations', $event)"
+            :model-value="settings.enable_registrations"
+            :aria-label="t('settings.userRegistration.enableRegistrations')"
+            @update:model-value="updateField('enable_registrations', $event)"
           />
         </div>
         <div class="flex items-center justify-between space-x-2">
-          <Label class="flex flex-col space-y-1">
+          <Label class="flex flex-col items-start space-y-1">
             <span>{{ t('settings.userRegistration.requireEmailVerification') }}</span>
             <span class="font-normal text-xs text-muted-foreground">{{
               t('settings.userRegistration.requireEmailVerificationDescription')
             }}</span>
           </Label>
           <Switch
-            :checked="settings.require_email_verification"
-            @update:checked="updateField('require_email_verification', $event)"
+            :model-value="settings.require_email_verification"
+            :aria-label="t('settings.userRegistration.requireEmailVerification')"
+            @update:model-value="updateField('require_email_verification', $event)"
           />
         </div>
       </CardContent>
@@ -174,15 +176,16 @@ function updateField<K extends keyof SystemSettings>(key: K, value: SystemSettin
       </CardHeader>
       <CardContent class="space-y-6">
         <div class="flex items-center justify-between space-x-2">
-          <Label class="flex flex-col space-y-1">
+          <Label class="flex flex-col items-start space-y-1">
             <span>{{ t('settings.systemStatus.maintenanceMode') }}</span>
             <span class="font-normal text-xs text-muted-foreground">{{
               t('settings.systemStatus.maintenanceModeDescription')
             }}</span>
           </Label>
           <Switch
-            :checked="settings.maintenance_mode"
-            @update:checked="updateField('maintenance_mode', $event)"
+            :model-value="settings.maintenance_mode"
+            :aria-label="t('settings.systemStatus.maintenanceMode')"
+            @update:model-value="updateField('maintenance_mode', $event)"
           />
         </div>
 

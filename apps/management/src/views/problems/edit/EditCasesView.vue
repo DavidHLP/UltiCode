@@ -117,15 +117,15 @@ function handleCancel() {
       </div>
 
       <div
-        class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-border dark:border-border bg-muted"
+        class="px-4 lg:px-6 py-2.5 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-border dark:border-border bg-muted"
       >
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 whitespace-nowrap">
           <span class="text-sm font-medium text-muted-foreground"
             >{{ t('problems.edit.action') }}:</span
           >
           <span class="font-mono text-sm text-primary">{{ t('common.edit').toUpperCase() }}</span>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 whitespace-nowrap">
           <span class="text-sm font-medium text-muted-foreground"
             >{{ t('problems.edit.section') }}:</span
           >

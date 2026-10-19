@@ -39,12 +39,15 @@ const statusColor = computed(() => {
 </script>
 
 <template>
-  <Card class="overflow-hidden relative" :class="statusCardClass">
-    <CardContent class="p-6 md:p-8 relative z-10">
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+  <Card
+    class="@container/registration overflow-hidden relative"
+    :class="statusCardClass"
+  >
+    <CardContent class="p-6 @3xl/registration:p-8 relative z-10">
+      <div class="grid grid-cols-1 @3xl/registration:grid-cols-3 gap-8">
         <!-- Left Column: Status, Countdown & Progress -->
         <div
-          class="md:col-span-2 space-y-5 flex flex-col justify-between pr-0 md:pr-8 md:border-r border-border/40"
+          class="min-w-0 @3xl/registration:col-span-2 space-y-5 flex flex-col justify-between pr-0 @3xl/registration:pr-8 @3xl/registration:border-r border-border/40"
         >
           <div class="space-y-3">
             <p
@@ -94,7 +97,7 @@ const statusColor = computed(() => {
               <!-- Monospace Timer Block -->
               <p
                 v-if="contest.status !== 'FINISHED'"
-                class="font-mono text-3xl font-black tracking-tight md:text-5xl text-primary select-all tabular-nums"
+                class="font-mono text-3xl font-black tracking-tight @3xl/registration:text-5xl text-primary select-all tabular-nums"
               >
                 {{ statusCountdown }}
               </p>
@@ -127,7 +130,7 @@ const statusColor = computed(() => {
         </div>
 
         <!-- Right Column: Meta Information Table & Action CTA Button -->
-        <div class="flex flex-col justify-between space-y-6">
+        <div class="min-w-0 flex flex-col justify-between space-y-6">
           <!-- Structured Details Table -->
           <div class="space-y-3.5">
             <p

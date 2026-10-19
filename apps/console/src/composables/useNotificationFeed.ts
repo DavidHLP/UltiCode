@@ -59,7 +59,7 @@ export function useNotificationFeed() {
         total.value = result.total;
         page.value = result.page;
         limit.value = result.limit;
-        totalPages.value = result.totalPages;
+        totalPages.value = Math.max(1, result.totalPages);
         return result;
       });
     } finally {

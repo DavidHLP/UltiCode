@@ -111,15 +111,16 @@ function updateField<K extends keyof EmailSettings>(key: K, value: EmailSettings
         </div>
       </div>
       <div class="flex items-center justify-between space-x-2 pt-4">
-        <Label class="flex flex-col space-y-1">
+        <Label class="flex flex-col items-start space-y-1">
           <span>{{ t('settings.email.smtpSecure') }}</span>
           <span class="font-normal text-xs text-muted-foreground">{{
             t('settings.email.smtpSecureDescription')
           }}</span>
         </Label>
         <Switch
-          :checked="settings.smtp_secure"
-          @update:checked="updateField('smtp_secure', $event)"
+          :model-value="settings.smtp_secure"
+          :aria-label="t('settings.email.smtpSecure')"
+          @update:model-value="updateField('smtp_secure', $event)"
         />
       </div>
     </CardContent>

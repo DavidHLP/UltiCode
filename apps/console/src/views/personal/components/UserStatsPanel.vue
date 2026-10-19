@@ -107,7 +107,7 @@ const recentActivity = computed(() => {
 <template>
   <div class="grid gap-4 lg:grid-cols-4">
     <!-- Left & Center Columns: Stats & Progress -->
-    <div class="space-y-4 lg:col-span-3">
+    <div class="min-w-0 space-y-4 lg:col-span-3">
       <!-- Key Metrics Row -->
       <div class="grid gap-4 sm:grid-cols-3">
         <Card class="relative overflow-hidden group py-3.5 gap-2">

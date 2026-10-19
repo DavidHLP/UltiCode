@@ -16,7 +16,15 @@ import {
 
 import { ref, computed, watch } from 'vue'
 import type { ChartConfig } from '@ulticode/design-system/ui/chart'
-import { VisAxis, VisLine, VisXYContainer, VisScatter, VisArea, VisCrosshair } from '@unovis/vue'
+import {
+  VisAxis,
+  VisLine,
+  VisXYContainer,
+  VisScatter,
+  VisArea,
+  VisCrosshair,
+  VisTooltip,
+} from '@unovis/vue'
 import {
   Card,
   CardContent,
@@ -205,15 +213,13 @@ const seriesKeys = computed(() => props.seriesKeys || ['mobile', 'desktop'])
 
 type Data = (typeof chartData.value)[number]
 
-const getYValues = (d: Data) => {
-  return seriesKeys.value.map((key) => (d[key] as number) || 0)
-}
+const yAccessors = computed(() =>
+  seriesKeys.value.map((key) => (d: Data) => (d[key] as number) || 0),
+)
 
-const getColors = () => {
-  return seriesKeys.value.map((key) => {
-    const config = chartConfig.value[key as keyof typeof chartConfig.value]
-    return config?.color || 'var(--chart-1)'
-  })
+const getColor = (_: unknown, index: number) => {
+  const key = seriesKeys.value[index]
+  return key ? chartConfig.value[key]?.color || 'var(--chart-1)' : 'var(--chart-1)'
 }
 
 // Calculate dynamic yDomain to prevent line squishing
@@ -282,9 +288,7 @@ function escapeHtml(s: string): string {
 
 <template>
   <Card class="overflow-hidden gap-0 py-0 h-full flex flex-col">
-    <CardHeader
-      class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-5 py-4"
-    >
+    <CardHeader class="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
       <div class="space-y-1">
         <CardTitle>{{ props.title }}</CardTitle>
         <CardDescription>{{ props.description }}</CardDescription>
@@ -293,7 +297,7 @@ function escapeHtml(s: string): string {
       <!-- Time period selector - Segmented Control style -->
       <div
         v-if="props.showPeriodSelector"
-        class="flex items-center gap-0.5 rounded-lg border border-border dark:border-border bg-accent p-0.5"
+        class="flex flex-wrap items-center gap-0.5 rounded-lg border border-border dark:border-border bg-accent p-0.5"
       >
         <Button
           v-for="period in timePeriods"
@@ -341,7 +345,7 @@ function escapeHtml(s: string): string {
         v-else
         :config="chartConfig"
         class="aspect-auto h-[260px] w-full"
-        :cursor="false"
+        :cursor="true"
       >
         <VisXYContainer
           :data="filterRange"
@@ -349,24 +353,38 @@ function escapeHtml(s: string): string {
           :y-domain="yDomain"
         >
           <!-- Semi-transparent area fill -->
-          <VisArea :x="(d: Data) => d.date" :y="getYValues" :color="getColors" :opacity="0.14" />
+          <VisArea
+            :x="(d: Data) => d.date.getTime()"
+            :y="yAccessors"
+            :color="getColor"
+            :opacity="0.14"
+          />
           <!-- Precision thin lines -->
-          <VisLine :x="(d: Data) => d.date" :y="getYValues" :color="getColors" :line-width="2" />
+          <VisLine
+            :x="(d: Data) => d.date.getTime()"
+            :y="yAccessors"
+            :color="getColor"
+            :line-width="2"
+          />
           <!-- Small data points -->
           <VisScatter
-            :x="(d: Data) => d.date"
-            :y="getYValues"
-            :color="getColors"
-            :radius="3"
-            :stroke-width="1.5"
+            v-for="(accessor, index) in yAccessors"
+            :key="seriesKeys[index]"
+            :x="(d: Data) => d.date.getTime()"
+            :y="accessor"
+            :color="getColor(undefined, index)"
+            :size="8"
+            stroke-color="var(--card)"
+            :stroke-width="2"
           />
           <VisAxis
             type="x"
-            :x="(d: Data) => d.date"
+            :x="(d: Data) => d.date.getTime()"
             :tick-line="false"
             :domain-line="false"
             :grid-line="false"
             :num-ticks="6"
+            :tick-text-adaptive-sets="true"
             :tick-format="(d: number, index: number) => formatChartDateTick(d, locale)"
           />
           <VisAxis
@@ -378,11 +396,12 @@ function escapeHtml(s: string): string {
             :grid-line-color="'color-mix(in oklch, var(--border) 45%, transparent)'"
             :tick-format="(d: number) => (Number.isInteger(d) ? d.toString() : d.toFixed(1))"
           />
+          <VisTooltip />
           <!-- Vertical crosshair + tooltip showing the hovered data point -->
           <VisCrosshair
-            :x="(d: Data) => d.date"
-            :y="getYValues"
-            :color="getColors"
+            :x="(d: Data) => d.date.getTime()"
+            :y="yAccessors"
+            :color="getColor"
             :template="crosshairTemplate"
             :hide-when-far-from-pointer="true"
             :hide-when-far-from-pointer-distance="80"

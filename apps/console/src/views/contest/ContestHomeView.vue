@@ -20,7 +20,14 @@ const { t } = useI18n();
 // Use store state
 const { upcomingContests, runningContests, pastContests } =
   storeToRefs(contestStore);
-const { globalRankings, loadingRankings } = storeToRefs(rankingStore);
+const {
+  globalRankings,
+  loadingRankings,
+  loadingMoreRankings,
+  loadMoreRankingsError,
+  hasMoreRankings,
+  error: rankingError,
+} = storeToRefs(rankingStore);
 const {
   page: currentPage,
   totalPages,
@@ -31,6 +38,12 @@ const {
 const initialLoading = ref(true);
 
 const isLoading = computed(() => initialLoading.value || loadingRankings.value);
+
+function retryRankings(): void {
+  void rankingStore.loadGlobalRankings().catch(() => {
+    // The ranking store owns and exposes the request error state.
+  });
+}
 
 function retryPastPage(): void {
   void pastPager.loadPage().catch(() => {
@@ -52,11 +65,16 @@ onMounted(async () => {
     initialLoading.value = false;
   }
 });
+function loadMoreRankings(): void {
+  void rankingStore.loadMoreGlobalRankings().catch(() => {
+    // Preserve loaded rows; the store exposes the pagination error for retry.
+  });
+}
 </script>
 
 <template>
   <div
-    class="max-w-7xl mx-auto w-full space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10"
+    class="@container/contest-home max-w-7xl mx-auto w-full min-w-0 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10"
   >
     <div
       class="flex flex-col md:flex-row md:items-center justify-between gap-4"
@@ -91,11 +109,21 @@ onMounted(async () => {
     <div v-else class="space-y-8">
       <RunningContests :contests="runningContests" />
       <UpcomingContests :contests="upcomingContests" />
-      <div class="grid gap-8 lg:grid-cols-12">
-        <div class="lg:col-span-4">
-          <GlobalRanking :rankings="globalRankings" />
+      <div
+        class="grid min-w-0 gap-8 @7xl/contest-home:grid-cols-[minmax(27rem,1fr)_minmax(0,2fr)]"
+      >
+        <div class="min-w-0">
+          <GlobalRanking
+            :rankings="globalRankings"
+            :has-more="hasMoreRankings"
+            :loading-more="loadingMoreRankings"
+            :load-more-error="Boolean(loadMoreRankingsError)"
+            @load-more="loadMoreRankings"
+            :error="Boolean(rankingError)"
+            @retry="retryRankings"
+          />
         </div>
-        <div class="lg:col-span-8">
+        <div class="min-w-0">
           <PastContests
             :contests="pastContests"
             :loading="pastLoading"

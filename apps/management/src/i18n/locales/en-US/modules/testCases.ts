@@ -24,15 +24,14 @@ export default {
   import: 'Import',
   export: 'Export',
   importTestCases: 'Import Test Cases',
-  importData:
-    'Paste a JSON array or use Input:/Output: (or </>) blocks separated by --- / ===',
+  importData: 'Paste a JSON array or use Input:/Output: (or </>) blocks separated by --- / ===',
   // Placeholder mirrors the focused import-normalization module's supported
   // grammars (JSON array or line-oriented Input:/Output: and </> markers).
   // Each block is treated as a HIDDEN case.
   importPlaceholder:
-    '< {input}\n> {output}\n---\n< {input 2}\n> {output 2}\n\nor JSON:\n[\n  { "inputText": "...", "outputText": "...", "isSample": true, "isHidden": false }\n]',
+    "< {'{'}input{'}'}\n> {'{'}output{'}'}\n---\n< {'{'}input 2{'}'}\n> {'{'}output 2{'}'}\n\nor JSON:\n[\n  {'{'} \"inputText\": \"...\", \"outputText\": \"...\", \"isSample\": true, \"isHidden\": false {'}'}\n]",
   importHelp:
-    'JSON accepts camelCase (inputText/outputText) plus legacy snake_case and loose {input, output} pastes. Line grammar always creates HIDDEN cases.',
+    "JSON accepts camelCase (inputText/outputText) plus legacy snake_case and loose {'{'}input, output{'}'} pastes. Line grammar always creates HIDDEN cases.",
   replaceExisting: 'Replace existing test cases',
   importing: 'Importing',
 

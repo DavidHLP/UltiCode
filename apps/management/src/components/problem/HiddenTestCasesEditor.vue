@@ -66,11 +66,11 @@ onMounted(() => {
 <template>
   <div class="hidden-test-cases-editor">
     <!-- Header -->
-    <div class="flex items-center justify-between mb-4">
-      <div class="flex items-center gap-2">
-        <IconFlask class="h-5 w-5 text-muted-foreground" />
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+      <div class="flex min-w-0 flex-wrap items-center gap-2">
+        <IconFlask class="h-5 w-5 shrink-0 text-muted-foreground" />
         <h3 class="font-semibold">{{ $t('testCases.title') }}</h3>
-        <div class="flex gap-2 ml-2">
+        <div class="flex flex-wrap gap-2 ml-2">
           <Badge v-if="sampleCount > 0" variant="secondary">
             {{ sampleCount }} {{ $t('testCases.sample') }}
           </Badge>
@@ -79,7 +79,7 @@ onMounted(() => {
           </Badge>
         </div>
       </div>
-      <div class="flex items-center gap-2">
+      <div class="flex flex-wrap items-center gap-2">
         <Button size="sm" variant="ghost" @click="openImportDialog">
           <IconUpload class="h-4 w-4 mr-1" />
           {{ $t('testCases.import') }}
@@ -120,7 +120,7 @@ onMounted(() => {
     </div>
 
     <!-- Test cases list with editor -->
-    <div v-else class="grid grid-cols-12 gap-4">
+    <div v-else class="flex flex-col gap-4 md:grid md:grid-cols-12">
       <TestCaseList
         :test-cases="testCases"
         :active-id="activeId"

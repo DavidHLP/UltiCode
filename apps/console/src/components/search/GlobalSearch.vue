@@ -2,10 +2,16 @@
 import { ref, watch, onMounted, onUnmounted, computed } from "vue";
 import { useI18n } from "vue-i18n";
 import { useSearch } from "@/composables/useSearch";
-import { Dialog, DialogContent } from "@ulticode/design-system/ui/dialog";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogTitle,
+} from "@ulticode/design-system/ui/dialog";
+import { Button } from "@ulticode/design-system/ui/button";
 import { Input } from "@ulticode/design-system/ui/input";
 import { Skeleton } from "@ulticode/design-system/ui/skeleton";
-import { Search, Code, User, MessageSquare, FileText } from "@lucide/vue";
+import { Search, Code, User, MessageSquare, FileText, X } from "@lucide/vue";
 import { cn } from "@/lib/utils";
 
 const { t } = useI18n();
@@ -120,9 +126,18 @@ onUnmounted(() => {
 
 <template>
   <Dialog v-model:open="isOpen">
-    <DialogContent class="max-w-2xl overflow-hidden p-0" hide-close>
+    <DialogContent
+      class="flex flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl"
+      :show-close-button="false"
+      :aria-describedby="undefined"
+    >
+      <DialogTitle class="sr-only">{{
+        t("common.actions.search")
+      }}</DialogTitle>
       <!-- Search Input -->
-      <div class="flex items-center border-b border-border bg-card px-4">
+      <div
+        class="flex shrink-0 items-center gap-2 border-b border-border bg-card p-2"
+      >
         <Search class="h-5 w-5 shrink-0 text-muted-foreground" />
         <Input
           ref="inputRef"
@@ -132,14 +147,23 @@ onUnmounted(() => {
           @input="handleInputChange"
         />
         <kbd
-          class="hidden rounded-sm border border-input bg-muted px-2 py-0.5 font-mono text-xs text-muted-foreground sm:inline-block"
+          class="hidden shrink-0 rounded-sm border border-input bg-muted px-2 py-0.5 font-mono text-xs text-muted-foreground sm:inline-block"
         >
           ESC
         </kbd>
+        <DialogClose as-child>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            :aria-label="t('common.actions.close')"
+          >
+            <X />
+          </Button>
+        </DialogClose>
       </div>
 
       <!-- Results -->
-      <div class="max-h-96 overflow-y-auto">
+      <div class="min-h-0 max-h-96 flex-1 overflow-y-auto">
         <!-- Loading state -->
         <div v-if="loading" class="p-4">
           <Skeleton v-for="i in 3" :key="i" class="mb-2 h-14" />
@@ -216,7 +240,7 @@ onUnmounted(() => {
       <!-- Footer -->
       <div
         v-if="results?.length > 0"
-        class="flex items-center justify-between border-t border-border px-4 py-2 text-xs text-muted-foreground"
+        class="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-border px-4 py-2 text-xs text-muted-foreground"
       >
         <span>{{ t("common.search.resultsCount", { total }) }}</span>
         <div class="flex items-center gap-4">

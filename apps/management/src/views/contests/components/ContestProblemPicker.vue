@@ -10,7 +10,6 @@ import {
 } from '@ulticode/design-system/ui/dialog'
 import {
   Command,
-  CommandEmpty,
   CommandGroup,
   CommandInput,
   CommandItem,
@@ -41,13 +40,15 @@ const filteredProblems = computed(() => {
   return problemsStore.problems.filter((p) => !props.excludeIds?.includes(Number(p.id)))
 })
 
-const debouncedSearch = useDebounceFn(async (query: string) => {
+async function loadProblems(query: string) {
   await problemsStore.fetchProblems({
     search: query,
     limit: 20,
     sortBy: 'title',
   })
-}, 300)
+}
+
+const debouncedSearch = useDebounceFn(loadProblems, 300)
 
 function handleInput(e: Event) {
   const value = (e.target as HTMLInputElement).value
@@ -65,7 +66,7 @@ debouncedSearch('')
 
 <template>
   <Dialog :open="open" @update:open="$emit('update:open', $event)">
-    <DialogContent class="p-0 overflow-hidden max-w-2xl">
+    <DialogContent class="w-[calc(100%-2rem)] p-0 sm:max-w-2xl">
       <DialogHeader class="px-6 pt-6 pb-2">
         <DialogTitle>
           {{ t('contests.problemPicker.title') }}
@@ -83,14 +84,27 @@ debouncedSearch('')
             @input="handleInput"
           />
           <CommandList class="max-h-[300px] overflow-y-auto">
-            <CommandEmpty v-if="problemsStore.loading" class="py-6 flex justify-center">
+            <div
+              v-if="problemsStore.loading"
+              role="status"
+              :aria-label="t('common.loading')"
+              class="py-6 flex justify-center"
+            >
               <Loader2 class="h-6 w-6 animate-spin text-muted-foreground" />
-            </CommandEmpty>
-            <CommandEmpty v-else-if="filteredProblems.length === 0" class="py-6 text-center">
+            </div>
+            <div v-else-if="problemsStore.error" role="alert" class="space-y-3 py-6 text-center">
+              <p class="text-sm text-destructive [overflow-wrap:anywhere]">
+                {{ t('contests.problemPicker.loadFailed') }}
+              </p>
+              <Button variant="outline" @click="loadProblems(searchQuery)">
+                {{ t('common.retry') }}
+              </Button>
+            </div>
+            <div v-else-if="filteredProblems.length === 0" role="status" class="py-6 text-center">
               <span class="text-sm text-muted-foreground">{{
                 t('contests.problemPicker.noProblemsFound')
               }}</span>
-            </CommandEmpty>
+            </div>
             <CommandGroup v-else>
               <div class="border-b border-border dark:border-foreground px-3 py-2 bg-muted">
                 <span class="text-sm font-medium">{{ t('contests.problemPicker.problems') }}</span>
@@ -100,24 +114,36 @@ debouncedSearch('')
                 :key="problem.id"
                 :value="problem.title"
                 @select="() => handleSelect(problem)"
-                class="flex items-center justify-between p-3 cursor-pointer"
+                class="flex items-center justify-between gap-3 p-3 cursor-pointer"
               >
-                <div class="flex items-center gap-3">
-                  <span class="font-mono text-xs text-muted-foreground w-6">
+                <div
+                  class="grid min-w-0 flex-1 grid-cols-[1.5rem_minmax(0,1fr)] items-center gap-x-3 gap-y-1 sm:grid-cols-[1.5rem_minmax(0,1fr)_auto]"
+                >
+                  <span
+                    class="row-span-2 font-mono text-xs text-muted-foreground w-6 sm:row-span-1"
+                  >
                     {{ String(index + 1).padStart(2, '0') }}
                   </span>
-                  <div class="flex flex-col gap-0.5">
+                  <div class="flex min-w-0 flex-col gap-0.5">
                     <span class="font-medium text-sm text-foreground">{{ problem.title }}</span>
-                    <span class="font-mono text-xs text-muted-foreground">{{ problem.slug }}</span>
+                    <span class="break-all font-mono text-xs text-muted-foreground">{{
+                      problem.slug
+                    }}</span>
                   </div>
                   <SemanticBadge
+                    class="col-start-2 justify-self-start sm:col-start-3 sm:row-start-1"
                     :color="DIFFICULTY_COLOR_MAP[problem.difficulty] ?? 'neutral'"
-                    :label="problem.difficulty.toUpperCase()"
+                    :label="
+                      t(
+                        `problems.difficulty.${problem.difficulty.toUpperCase()}`,
+                        problem.difficulty,
+                      )
+                    "
                     size="sm"
                     dot
                   />
                 </div>
-                <Button size="sm" variant="outline" class="w-6 p-0">
+                <Button size="sm" variant="outline" class="w-6 shrink-0 p-0">
                   <Plus class="h-3 w-3" />
                 </Button>
               </CommandItem>

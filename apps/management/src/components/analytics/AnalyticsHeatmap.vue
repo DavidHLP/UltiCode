@@ -53,8 +53,8 @@ const maxVal = computed(() => {
 
 const gridData = computed(() => {
   // Determine grid dimensions
-  const maxX = Math.max(...props.data.map((d) => d.x)) + 1
-  const maxY = Math.max(...props.data.map((d) => d.y)) + 1
+  const maxX = Math.max(props.columns?.length ?? 0, ...props.data.map((d) => d.x + 1))
+  const maxY = Math.max(props.rows?.length ?? 0, ...props.data.map((d) => d.y + 1))
 
   // Create 2D grid
   const grid: (HeatmapCell | null)[][] = Array(maxY)
@@ -140,9 +140,9 @@ function handleMouseLeave() {
       <div v-if="data.length === 0" class="text-center py-8 text-muted-foreground text-sm">
         {{ $t('common.noData') }}
       </div>
-      <div v-else class="w-full flex justify-center overflow-x-auto">
+      <div v-else class="w-full flex overflow-x-auto">
         <div
-          class="inline-flex flex-col"
+          class="mx-auto inline-flex shrink-0 flex-col"
           role="grid"
           :aria-label="title || description || 'Analytics heatmap'"
         >

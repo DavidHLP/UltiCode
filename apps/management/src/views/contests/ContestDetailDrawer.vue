@@ -82,14 +82,14 @@ function navigateToDetail() {
       <div class="border border-border dark:border-foreground bg-card">
         <!-- Header Bar -->
         <div class="border-b border-border dark:border-foreground px-4 py-2 bg-muted">
-          <span class="text-sm text-muted-foreground">contest_profile</span>
+          <span class="text-sm text-muted-foreground">{{ t('contests.reviewStep.basicInfo') }}</span>
         </div>
 
         <div class="p-4">
           <div class="flex items-start gap-4">
             <!-- Icon -->
             <div
-              class="h-16 w-16 border flex items-center justify-center bg-accent dark:bg-foreground border-border dark:border-foreground text-primary"
+              class="h-16 w-16 shrink-0 border flex items-center justify-center bg-muted border-border text-primary"
             >
               <IconTrophy class="h-8 w-8" />
             </div>
@@ -109,7 +109,7 @@ function navigateToDetail() {
                 />
                 <SemanticBadge
                   :color="CONTEST_STATUS_COLOR_MAP[entity.status] ?? 'neutral'"
-                  :label="entity.status"
+                  :label="t(`contests.status.${entity.status.toLowerCase()}`, entity.status)"
                   size="sm"
                   :dot="entity.status === 'RUNNING'"
                   :pulse="entity.status === 'RUNNING'"
@@ -135,7 +135,7 @@ function navigateToDetail() {
       <!-- Statistics - Terminal Style -->
       <div class="border border-border dark:border-foreground bg-card">
         <div class="border-b border-border dark:border-foreground px-4 py-2 bg-muted">
-          <span class="text-sm text-muted-foreground">statistics</span>
+          <span class="text-sm text-muted-foreground">{{ t('contests.details.statistics') }}</span>
         </div>
 
         <div class="p-4">
@@ -169,7 +169,7 @@ function navigateToDetail() {
       <!-- Schedule Info - Terminal Style -->
       <div class="border border-border dark:border-foreground bg-card">
         <div class="border-b border-border dark:border-foreground px-4 py-2 bg-muted">
-          <span class="text-sm text-muted-foreground">schedule</span>
+          <span class="text-sm text-muted-foreground">{{ t('contests.reviewStep.schedule') }}</span>
         </div>
 
         <div class="p-4">
@@ -186,7 +186,7 @@ function navigateToDetail() {
               <div class="flex items-center gap-2">
                 <IconClock class="h-4 w-4 text-muted-foreground" />
                 <span class="font-mono text-sm tabular-nums">
-                  {{ entity.duration }} {{ t('common.minutes') }}
+                  {{ entity.durationMinutes }} {{ t('common.minutes') }}
                 </span>
               </div>
             </DetailField>
@@ -197,7 +197,7 @@ function navigateToDetail() {
       <!-- Description - Terminal Style -->
       <div v-if="entity.description" class="border border-border dark:border-foreground bg-card">
         <div class="border-b border-border dark:border-foreground px-4 py-2 bg-muted">
-          <span class="text-sm text-muted-foreground">description</span>
+          <span class="text-sm text-muted-foreground">{{ t('contests.detail.description') }}</span>
         </div>
 
         <div class="p-4">

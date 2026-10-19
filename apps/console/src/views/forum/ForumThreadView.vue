@@ -7,6 +7,11 @@ import { ref, computed } from "vue";
 import { RouterLink } from "vue-router";
 import { ArrowLeft, MessageSquare, Flag, List } from "@lucide/vue";
 import { Button } from "@ulticode/design-system/ui/button";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@ulticode/design-system/ui/popover";
 import { useI18n } from "vue-i18n";
 import {
   AlertDialog,
@@ -50,6 +55,18 @@ const {
 } = useForumThread();
 
 const reportDialogRef = ref<{ open: () => void } | null>(null);
+const commentCount = computed(() =>
+  countThreadComments(thread.value?.comments),
+);
+const tocTriggerRef = ref<{ $el: HTMLElement } | null>(null);
+let isTOCNavigation = false;
+
+const restoreTOCTriggerFocus = (event: Event) => {
+  if (!isTOCNavigation) return;
+  isTOCNavigation = false;
+  event.preventDefault();
+  tocTriggerRef.value?.$el.focus({ preventScroll: true });
+};
 
 const handleReport = () => {
   reportDialogRef.value?.open();
@@ -181,6 +198,7 @@ const {
 });
 
 const handleMobileTOCClick = (id: string) => {
+  isTOCNavigation = true;
   scrollToHeading(id);
   showMobileTOC.value = false;
 };
@@ -224,29 +242,37 @@ const handleMobileTOCClick = (id: string) => {
                 <span>{{ t("forum.feedback.backToDiscussions") }}</span>
               </RouterLink>
               <!-- Mobile Table of Contents button (narrow container only) -->
-              <div v-if="!isWideLayout && headings.length > 1" class="relative">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  class="px-2"
-                  @click="showMobileTOC = !showMobileTOC"
-                >
-                  <List class="mr-1 h-3.5 w-3.5" />
-                  目录
-                </Button>
-
-                <!-- Floating TOC Dropdown Popup -->
-                <div
-                  v-if="showMobileTOC"
-                  class="absolute right-0 top-9 z-50 w-48 bg-card border border-border p-3 shadow-lg flex flex-col gap-2 rounded-lg select-none font-mono"
+              <Popover
+                v-if="!isWideLayout && headings.length > 1"
+                v-model:open="showMobileTOC"
+              >
+                <PopoverTrigger as-child>
+                  <Button
+                    ref="tocTriggerRef"
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    class="px-2"
+                  >
+                    <List class="mr-1 h-3.5 w-3.5" />
+                    {{ t("forum.sidebar.toc") }}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent
+                  align="start"
+                  :collision-padding="16"
+                  :aria-label="t('forum.sidebar.toc')"
+                  class="w-48 max-h-[var(--reka-popover-content-available-height)] p-3 gap-2 select-none font-mono"
+                  @close-auto-focus="restoreTOCTriggerFocus"
                 >
                   <div
-                    class="text-xs font-bold uppercase tracking-wider text-muted-foreground/85 border-b border-border/50 pb-1"
+                    class="shrink-0 text-xs font-bold uppercase tracking-wider text-muted-foreground/85 border-b border-border/50 pb-1"
                   >
                     {{ t("forum.sidebar.toc") }}
                   </div>
-                  <nav class="flex flex-col gap-1 max-h-60 overflow-y-auto">
+                  <nav
+                    class="flex min-h-0 flex-col gap-1 max-h-60 overflow-y-auto"
+                  >
                     <Button
                       variant="outline"
                       v-for="h in headings"
@@ -266,8 +292,8 @@ const handleMobileTOCClick = (id: string) => {
                       {{ h.text }}
                     </Button>
                   </nav>
-                </div>
-              </div>
+                </PopoverContent>
+              </Popover>
 
               <template v-if="isOwner()">
                 <Button variant="outline" size="sm" @click="handleEditThread">
@@ -307,11 +333,12 @@ const handleMobileTOCClick = (id: string) => {
                 @click="handleReport"
               >
                 <Flag class="mr-1 h-3.5 w-3.5" />
-                举报
+                {{ t("forum.actions.report") }}
               </Button>
             </div>
             <ThreadContent
               :thread="thread"
+              :comment-count="commentCount"
               @vote="handleThreadVote"
               @save="handleThreadSave"
             />
@@ -325,11 +352,12 @@ const handleMobileTOCClick = (id: string) => {
                 <MessageSquare class="h-4 w-4" />
                 {{ t("forum.comments.title") }}
                 <span class="text-muted-foreground font-normal">
-                  ({{ countThreadComments(thread.comments) }})
+                  ({{ commentCount }})
                 </span>
               </h2>
             </div>
             <CommentThread
+              class="px-4 sm:px-6"
               :comments="thread.comments"
               :is-locked="thread.isLocked"
               @submit="onSubmitComment"

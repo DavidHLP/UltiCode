@@ -300,7 +300,7 @@ function handleClose() {
 
 <template>
   <Dialog :open="open" @update:open="handleClose">
-    <DialogContent class="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+    <DialogContent class="sm:max-w-2xl">
       <DialogHeader>
         <div class="flex items-center gap-2">
           <IconUpload class="h-5 w-5 text-muted-foreground" />
@@ -312,7 +312,7 @@ function handleClose() {
       </DialogHeader>
 
       <!-- Content -->
-      <div class="flex-1 overflow-y-auto -mx-6 px-6 space-y-6">
+      <div class="space-y-6">
         <!-- File Upload Area -->
         <div
           v-if="!result"

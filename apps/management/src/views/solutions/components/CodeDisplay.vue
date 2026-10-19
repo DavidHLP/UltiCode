@@ -15,7 +15,7 @@ const code = computed(() => props.solution.content || '')
   <div class="border border-border bg-card">
     <div class="border-b border-border px-4 py-2 bg-muted">
       <div class="flex items-center gap-2">
-        <span class="text-sm text-muted-foreground">code</span>
+        <span class="text-sm text-muted-foreground">{{ $t('solutions.tabs.code') }}</span>
         <span class="font-mono text-xs text-muted-foreground">// {{ language }}</span>
       </div>
     </div>

@@ -15,6 +15,17 @@ const props = defineProps<{
 
 const { t } = useI18n()
 
+const tags = computed<string[]>(() => {
+  const raw = props.solution.tags
+  if (!raw?.trim()) return []
+  try {
+    const parsed: unknown = JSON.parse(raw)
+    return Array.isArray(parsed) && parsed.every((tag) => typeof tag === 'string') ? parsed : [raw]
+  } catch {
+    return [raw]
+  }
+})
+
 const solutionContent = computed(() => ({
   content: props.solution.content,
   examples: [],
@@ -28,7 +39,7 @@ const solutionContent = computed(() => ({
     <!-- Main content card -->
     <div class="border border-border bg-card">
       <div class="border-b border-border px-4 py-2 bg-muted">
-        <span class="text-sm text-muted-foreground">description</span>
+        <span class="text-sm text-muted-foreground">{{ t('solutions.tabs.description') }}</span>
       </div>
       <div class="p-6">
         <div class="flex flex-col gap-4 mb-6">
@@ -54,7 +65,7 @@ const solutionContent = computed(() => ({
 
         <div v-if="solution.summary" class="mt-8 p-4 bg-muted border border-border">
           <div class="border-b border-border px-4 py-2">
-            <span class="text-sm text-muted-foreground">// summary</span>
+            <span class="text-sm text-muted-foreground">{{ t('solutions.detail.summary') }}</span>
           </div>
           <div class="p-4">
             <p class="text-sm text-foreground">{{ solution.summary }}</p>
@@ -66,7 +77,7 @@ const solutionContent = computed(() => ({
     <!-- Meta section with DetailField -->
     <div class="border border-border bg-card">
       <div class="border-b border-border px-4 py-2 bg-muted">
-        <span class="text-sm text-muted-foreground">metadata</span>
+        <span class="text-sm text-muted-foreground">{{ t('solutions.detail.metadata') }}</span>
       </div>
       <div class="p-4 grid grid-cols-2 md:grid-cols-3 gap-4">
         <DetailField
@@ -95,17 +106,17 @@ const solutionContent = computed(() => ({
     </div>
 
     <!-- Tags section -->
-    <div v-if="solution.tags?.length" class="border border-border bg-card">
+    <div v-if="tags.length" class="border border-border bg-card">
       <div class="border-b border-border px-4 py-2 bg-muted">
-        <span class="text-sm text-muted-foreground">tags</span>
+        <span class="text-sm text-muted-foreground">{{ t('solutions.detail.tags') }}</span>
       </div>
       <div class="p-4 flex flex-wrap gap-2">
         <StatusBadge
-          v-for="(tag, index) in solution.tags"
+          v-for="(tag, index) in tags"
           :key="index"
           variant="default"
           :label="tag"
-          class="text-xs px-1.5 h-5"
+          class="max-w-full whitespace-normal break-all text-xs px-1.5 min-h-5"
         />
       </div>
     </div>

@@ -141,7 +141,10 @@ const handleSolutionDeleted = (id: string) => {
 
 <template>
   <div v-if="feed?.items?.length" class="space-y-4">
-    <div v-if="selectedSolution || isLoadingDetail" class="space-y-4 px-5 py-4">
+    <div
+      v-if="selectedSolution || isLoadingDetail"
+      class="min-w-0 space-y-4 px-3 sm:px-5 py-4"
+    >
       <Button
         variant="ghost"
         type="button"

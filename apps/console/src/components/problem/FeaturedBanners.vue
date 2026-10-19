@@ -3,7 +3,8 @@ import { Button } from "@ulticode/design-system/ui/button";
 
 import { Card, CardContent } from "@ulticode/design-system/ui/card";
 import type { ProblemList } from "@/types/problem-list";
-import { computed, onMounted, onBeforeUnmount, ref, watch } from "vue";
+import { computed, nextTick, onMounted, onBeforeUnmount, ref, watch } from "vue";
+import { useResizeObserver } from "@vueuse/core";
 import { RouterLink } from "vue-router";
 import {
   ArrowRight,
@@ -103,6 +104,9 @@ const scrollContainer = ref<HTMLElement | null>(null);
 // Current scroll position tracking
 const currentIndex = ref(0);
 const visibleCount = ref(3);
+const bannerStyle = computed(() => ({
+  width: `calc((100% - ${visibleCount.value - 1}rem) / ${visibleCount.value})`,
+}));
 
 const updateScrollState = () => {
   if (!scrollContainer.value) return;
@@ -173,8 +177,15 @@ const displayBanners = computed<DisplayBanner[]>(() =>
   })),
 );
 
-// Check if we need scroll indicators (more than 3 items)
-const needsScroll = computed(() => displayBanners.value.length > 3);
+const needsScroll = computed(
+  () => displayBanners.value.length > visibleCount.value,
+);
+
+useResizeObserver(scrollContainer, async () => {
+  updateVisibleCount();
+  await nextTick();
+  updateScrollState();
+});
 
 onMounted(async () => {
   await problemListsStore.loadOverview();
@@ -184,7 +195,6 @@ onMounted(async () => {
     scrollContainer.value.addEventListener("scroll", updateScrollState, {
       passive: true,
     });
-    window.addEventListener("resize", updateVisibleCount, { passive: true });
     updateVisibleCount();
     updateScrollState();
   }
@@ -210,7 +220,6 @@ onBeforeUnmount(() => {
   if (scrollContainer.value) {
     scrollContainer.value.removeEventListener("scroll", updateScrollState);
   }
-  window.removeEventListener("resize", updateVisibleCount);
 });
 </script>
 
@@ -219,7 +228,7 @@ onBeforeUnmount(() => {
     <!-- Navigation Arrow Left -->
     <Button
       variant="outline"
-      v-show="needsScroll && showLeftArrow"
+      v-show="needsScroll && visibleCount > 1 && showLeftArrow"
       @click="scrollByCard('left')"
       class="absolute left-0 top-1/2 -translate-y-1/2 z-20 w-10 hidden group-hover/carousel:flex group-focus-within/carousel:flex items-center justify-center group-hover/carousel:opacity-100 group-focus-within/carousel:opacity-100 focus-visible:outline-none"
     >
@@ -234,7 +243,8 @@ onBeforeUnmount(() => {
         <Card
           v-for="i in 3"
           :key="i"
-          class="flex-shrink-0 w-[calc(33.333%-1rem)] relative overflow-hidden h-[200px]"
+          class="flex-shrink-0 relative overflow-hidden h-[200px]"
+          :style="bannerStyle"
         >
           <CardContent
             class="p-5 animate-pulse space-y-4 relative z-10 h-full flex flex-col"
@@ -291,7 +301,8 @@ onBeforeUnmount(() => {
           v-for="banner in displayBanners"
           :key="banner.id"
           :to="`/problemset/list/${banner.id}`"
-          class="group block flex-shrink-0 w-[calc(33.333%-1rem)] snap-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          class="group block flex-shrink-0 snap-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          :style="bannerStyle"
         >
           <Card :class="[CARD_BASE, banner.theme.card]">
             <div
@@ -350,7 +361,7 @@ onBeforeUnmount(() => {
     <!-- Navigation Arrow Right -->
     <Button
       variant="outline"
-      v-show="needsScroll && showRightArrow"
+      v-show="needsScroll && visibleCount > 1 && showRightArrow"
       @click="scrollByCard('right')"
       class="absolute right-0 top-1/2 -translate-y-1/2 z-20 w-10 hidden group-hover/carousel:flex group-focus-within/carousel:flex items-center justify-center group-hover/carousel:opacity-100 group-focus-within/carousel:opacity-100 focus-visible:outline-none"
     >

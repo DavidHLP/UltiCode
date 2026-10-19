@@ -95,7 +95,8 @@ export default {
     updatePassword: "Update Password",
     passwordMismatch: "New password and confirmation do not match",
     passwordMinLength: "Password must be at least 6 characters",
-    deleteNotAvailable: "Account deletion is not yet available. Contact an administrator if needed.",
+    deleteNotAvailable:
+      "Account deletion is not yet available. Contact an administrator if needed.",
     notificationTypes: {
       communication: "Communication",
       communicationDesc:
@@ -138,6 +139,7 @@ export default {
     totalSubmissions: "Total Submissions",
     accepted: "Accepted",
     languageDistribution: "Languages",
+    loadError: "Could not load submission history.",
     noHistory: "Start submitting code to see your progress chart!",
   },
 
@@ -148,6 +150,7 @@ export default {
     problemsSolved: "Problems Solved",
     timeSpent: "Time Spent",
     hours: "Hours",
+    loadError: "Could not load learning progress.",
     noProgress: "Start solving problems to see your learning progress!",
   },
 
@@ -161,6 +164,7 @@ export default {
     startSolving: "Start Solving Problems",
     browseProblems: "Browse Problems",
     loadingSubmissions: "Retrieving submission history...",
+    loadError: "Could not load your submissions.",
     loginToView: "Please log in to view your submissions.",
     recentAttempts: "Recent Attempts",
     attempted: "Attempted",
@@ -189,6 +193,7 @@ export default {
     newSolution: "New Solution",
     startCoding: "Start Coding",
     loadingSolutions: "Loading your solutions...",
+    loadError: "Could not load your solutions.",
     loginToView: "Please log in to view your solutions.",
     views: "Views",
     votes: "Votes",
@@ -204,6 +209,7 @@ export default {
   // Problem lists
   problemLists: {
     title: "Problem Lists",
+    searchPlaceholder: "Search problem lists...",
     subtitle: "Curate, organize, and track your practice problem sets.",
     loadingLists: "Loading your collections...",
     loginToManage:
@@ -238,6 +244,9 @@ export default {
       problemsCount: "{count} problems",
     },
     emptyStates: {
+      noCategories: "No categories yet",
+      noCategoriesDesc:
+        "Create a category to organize your saved problem lists.",
       noLists: "No problem lists yet",
       noListsDesc:
         "Create your first problem list to organize your practice and track your progress.",
@@ -288,6 +297,7 @@ export default {
     subtitle:
       "View and manage the discussions you've started in the community.",
     loadingPosts: "Loading your posts...",
+    loadError: "Could not load your forum posts.",
     noPosts: "No posts yet",
     noPostsDesc:
       "You haven't started any discussions. Share your knowledge or ask a question!",
@@ -311,6 +321,7 @@ export default {
 
   // Bookmarks
   bookmarks: {
+    loadError: "Could not load your collections.",
     title: "Collections",
     subtitle: "Organize your saved problems, solutions, and forum discussions.",
     folders: "My Folders",
@@ -338,6 +349,7 @@ export default {
   // Notifications
   notifications: {
     title: "Notifications",
+    actions: "Notification actions",
     noNotifications: "No notifications",
     markAllAsRead: "Mark All as Read",
     markAsRead: "Mark as Read",
@@ -494,12 +506,18 @@ export default {
     },
     heatmap: {
       title: "Activity Heatmap",
+      noActivity: "No activity",
+      levelOne: "1–2 submissions",
+      levelTwo: "3–5 submissions",
+      levelThree: "6–9 submissions",
+      levelFour: "10+ submissions",
     },
     skills: {
       title: "Skill Radar",
     },
     activity: {
       title: "Recent Activity",
+      empty: "No recent activity",
     },
   },
 
@@ -515,7 +533,7 @@ export default {
     problemsSolved: "Problems Solved",
     problemsSolvedSubtitle: "total solved",
     submissions: "Submissions",
-    submissionsSubtitle: "{count} submissions",
+    submissionsSubtitle: "{count} submission | {count} submissions",
     totalSubmissions: "total submissions",
     globalRank: "Global Rank",
     globalRankSubtitle: "by solved count",

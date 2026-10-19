@@ -48,7 +48,10 @@ const availableLanguages = computed(() => props.languages || [])
 watch(
   availableLanguages,
   (langs) => {
-    if (!selectedLanguage.value && langs.length > 0) {
+    if (
+      langs.length > 0 &&
+      !langs.some((lang) => lang.language.toLowerCase() === selectedLanguage.value.toLowerCase())
+    ) {
       selectedLanguage.value = langs[0]?.language || ''
     }
   },

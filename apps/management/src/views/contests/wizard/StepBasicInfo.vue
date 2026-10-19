@@ -43,7 +43,7 @@ function updateContestType(value: ContestType): void {
   <div class="space-y-6">
     <!-- Section Header -->
     <div class="flex items-center gap-2 mb-4">
-      <span class="text-sm text-muted-foreground">basic_info</span>
+      <span class="text-sm text-muted-foreground">{{ t('contests.wizard.basics') }}</span>
     </div>
 
     <!-- Title Field -->

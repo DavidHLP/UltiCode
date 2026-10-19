@@ -30,7 +30,7 @@ function updateIsPublished(value: boolean): void {
   <div class="space-y-6">
     <!-- Section Header -->
     <div class="flex items-center gap-2 mb-4">
-      <span class="text-sm text-muted-foreground">schedule_config</span>
+      <span class="text-sm text-muted-foreground">{{ t('contests.wizard.schedule') }}</span>
     </div>
 
     <!-- Start Time Field -->
@@ -61,15 +61,15 @@ function updateIsPublished(value: boolean): void {
     </div>
 
     <!-- Publish Toggle - Terminal Style -->
-    <div class="border border-border dark:border-foreground p-4 bg-muted">
+    <div class="border border-border p-4 bg-muted">
       <div class="flex items-center gap-4">
         <Switch
           id="is_published"
-          :checked="slice.isPublished"
-          @update:checked="updateIsPublished($event)"
+          :model-value="slice.isPublished"
+          @update:model-value="updateIsPublished($event)"
         />
         <div class="space-y-1">
-          <Label for="isPublished">
+          <Label for="is_published">
             {{ t('contests.scheduleStep.publishImmediately') }}
           </Label>
           <p class="text-sm text-muted-foreground text-xs">

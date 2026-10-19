@@ -181,7 +181,7 @@ watch(
     <main class="flex flex-col gap-1 p-1 flex-1 min-h-0">
       <div
         data-testid="editor-command-bar"
-        class="flex flex-wrap items-center justify-between gap-2 border border-border/60 bg-card/70 p-1"
+        class="editor-command-bar flex flex-wrap items-center justify-between gap-2 border border-border/60 bg-card/70 p-1"
       >
         <div class="flex items-center gap-1.5">
           <DropdownMenu>
@@ -217,7 +217,7 @@ watch(
           </DropdownMenu>
         </div>
 
-        <div class="flex h-full items-center gap-1 text-muted-foreground">
+        <div class="editor-command-actions flex flex-wrap items-center gap-1 text-muted-foreground">
           <!-- Group 1: Code Actions -->
           <div
             class="flex items-center border border-border/60 bg-muted/60 p-0.5"
@@ -329,3 +329,19 @@ watch(
     </main>
   </div>
 </template>
+
+<style scoped>
+@media (max-height: 400px) {
+  .editor-command-bar {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .editor-command-actions {
+    flex: none;
+    flex-wrap: nowrap;
+  }
+}
+</style>

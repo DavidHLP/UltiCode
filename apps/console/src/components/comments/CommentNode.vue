@@ -1,12 +1,18 @@
 <template>
-  <div class="relative flex flex-row">
+  <div
+    class="comment-node @container/comment relative grid min-w-0 grid-cols-[2rem_minmax(0,1fr)] gap-x-2"
+  >
     <!-- Left Side: Avatar & Rail -->
     <div
-      class="flex flex-col items-center mr-2 flex-shrink-0 w-8 relative"
+      class="flex flex-col items-center flex-shrink-0 w-8 relative"
       ref="containerRef"
     >
       <!-- Curve Connector (Child draws this to connect to parent's rail) -->
-      <CommentConnector :depth="depth" :is-active="isParentRailHovered" />
+      <CommentConnector
+        :depth="depth"
+        :is-active="isParentRailHovered"
+        class="hidden @min-[24rem]/comment:block"
+      />
 
       <!-- Parent Rail (I draw this for MY children) -->
       <CommentRail
@@ -47,11 +53,13 @@
     </div>
 
     <!-- Right Side: Content -->
-    <div class="flex-1 min-w-0">
+    <div class="min-w-0">
       <!-- Header -->
-      <div class="flex items-center gap-2 mb-1 text-xs h-8">
+      <div
+        class="flex flex-wrap items-center gap-x-2 gap-y-1 mb-1 text-xs min-h-8"
+      >
         <span
-          class="font-bold hover:underline cursor-pointer"
+          class="break-words [overflow-wrap:anywhere] font-bold hover:underline cursor-pointer"
           :class="{ 'text-primary': comment.isOp }"
           @click="toggleCollapse"
         >
@@ -96,7 +104,7 @@
           </div>
 
           <!-- Actions -->
-          <div class="inline-flex w-fit items-center gap-1 mt-2 select-none">
+          <div class="flex flex-wrap items-center gap-1 mt-2 select-none">
             <VoteControl
               :likes="likes"
               :dislikes="dislikes"
@@ -106,15 +114,18 @@
             />
 
             <ActionItem
+              ref="replyTrigger"
               variant="button"
               :icon="MessageSquare"
               :label="t('common.actions.reply')"
+              :aria-label="t('common.actions.reply')"
               @click="toggleReply"
             />
             <ActionItem
               variant="button"
               :icon="Share2"
               :label="t('common.actions.share')"
+              :aria-label="t('common.actions.share')"
             />
 
             <DropdownMenu v-if="comment.isOwn">
@@ -164,29 +175,33 @@
         <div v-if="isReplying" class="mt-3 mb-2">
           <CommentForm
             :parent-id="comment.id"
-            :on-cancel="() => (isReplying = false)"
+            :on-cancel="cancelReply"
             @submit="handleReplySubmit"
           />
         </div>
+      </div>
+    </div>
 
-        <!-- Children Container -->
-        <div v-if="hasChildren" class="mt-2" ref="childrenContainerRef">
-          <div
-            v-for="(child, index) in comment.children"
-            :key="child.id"
-            :ref="(el) => setLastChildRef(el, index)"
-          >
-            <CommentNode
-              :comment="child"
-              :depth="depth + 1"
-              :is-parent-rail-hovered="isRailHovered"
-              @reply="(id, content) => emit('reply', id, content)"
-              @vote="(id, type) => emit('vote', id, type)"
-              @edit="(id, content) => emit('edit', id, content)"
-              @delete="(id) => emit('delete', id)"
-            />
-          </div>
-        </div>
+    <!-- Children Container -->
+    <div
+      v-if="!isCollapsed && hasChildren"
+      class="col-span-2 min-w-0 mt-2 @min-[12rem]/comment:ps-2 @min-[24rem]/comment:ps-0 @min-[24rem]/comment:col-span-1 @min-[24rem]/comment:col-start-2"
+      ref="childrenContainerRef"
+    >
+      <div
+        v-for="(child, index) in comment.children"
+        :key="child.id"
+        :ref="(el) => setLastChildRef(el, index)"
+      >
+        <CommentNode
+          :comment="child"
+          :depth="depth + 1"
+          :is-parent-rail-hovered="isRailHovered"
+          @reply="(id, content) => emit('reply', id, content)"
+          @vote="(id, type) => emit('vote', id, type)"
+          @edit="(id, content) => emit('edit', id, content)"
+          @delete="(id) => emit('delete', id)"
+        />
       </div>
     </div>
 
@@ -303,6 +318,7 @@ const showDeleteDialog = ref(false);
 const reportDialogRef = ref<{ open: () => void } | null>(null);
 
 const containerRef = ref<HTMLElement | null>(null);
+const replyTrigger = ref<ComponentPublicInstance | null>(null);
 const childrenContainerRef = ref<HTMLElement | null>(null);
 const lastChildEl = ref<HTMLElement | null>(null);
 const railHeight = ref(0);
@@ -400,6 +416,13 @@ const toggleCollapse = () => {
 
 const toggleReply = () => {
   isReplying.value = !isReplying.value;
+};
+
+const cancelReply = async () => {
+  isReplying.value = false;
+  await nextTick();
+  const trigger = replyTrigger.value?.$el;
+  if (trigger instanceof HTMLElement) trigger.focus({ preventScroll: true });
 };
 
 const toggleEdit = () => {

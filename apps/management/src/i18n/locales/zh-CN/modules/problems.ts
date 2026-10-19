@@ -102,6 +102,8 @@ export default {
   // 排序
   sort: {
     title: '排序方式',
+    asc: '升序',
+    desc: '降序',
     default: '默认排序',
     titleAsc: '按标题升序',
     difficultyAsc: '按难度升序',

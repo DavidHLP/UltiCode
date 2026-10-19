@@ -25,7 +25,7 @@ import type { SubmissionListItem, SubmissionDetail } from '@/api/admin/submissio
 import DataTable from '@/components/table/DataTable.vue'
 import DataTableToolbar, { type Filter } from '@/components/table/DataTableToolbar.vue'
 import { useRemoteTable } from '@/composables/useRemoteTable'
-import { createColumns, formatRuntime, formatMemory } from './columns'
+import { createColumns, formatRuntime, formatMemory, getStatusLabel } from './columns'
 
 const { t, te } = useI18n()
 const store = useSubmissionsStore()
@@ -107,8 +107,8 @@ const toolbarFilters = computed<Filter[]>(() => [
       { value: 'all', label: t('submissions.allStatuses') },
       ...store.statuses.map((s) => ({
         value: s.key,
-        label: te(`submissions.statusLabels.${s.key}`)
-          ? t(`submissions.statusLabels.${s.key}`)
+        label: te(`submissions.statusLabels.${s.code}`)
+          ? t(`submissions.statusLabels.${s.code}`)
           : s.label,
       })),
     ],
@@ -221,35 +221,37 @@ const columns = createColumns(t, {
 
       <!-- Stats Ticker -->
       <div
-        class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-border dark:border-border bg-muted"
+        class="px-4 lg:px-6 py-2.5 flex flex-wrap items-center gap-x-6 gap-y-2 whitespace-nowrap border-t border-border dark:border-border bg-muted"
       >
         <div class="flex items-center gap-2">
           <span class="text-sm font-medium text-muted-foreground"
             >{{ t('submissions.stats.total') }}:</span
           >
           <span class="font-mono text-sm text-foreground tabular-nums">{{
-            stats.total.toLocaleString()
+            stats?.total.toLocaleString() ?? '—'
           }}</span>
         </div>
         <div class="flex items-center gap-2">
           <span class="text-sm font-medium text-muted-foreground"
             >{{ t('submissions.stats.pending') }}:</span
           >
-          <span class="font-mono text-sm text-foreground tabular-nums">{{ stats.pending }}</span>
+          <span class="font-mono text-sm text-foreground tabular-nums">{{
+            stats?.pending ?? '—'
+          }}</span>
         </div>
         <div class="flex items-center gap-2">
           <span class="text-sm font-medium text-muted-foreground"
             >{{ t('submissions.stats.topLanguage') }}:</span
           >
-          <span class="font-mono text-sm text-foreground">{{ stats.topLanguage }}</span>
+          <span class="font-mono text-sm text-foreground">{{ stats?.topLanguage ?? '—' }}</span>
         </div>
         <div class="flex items-center gap-2">
           <span class="text-sm font-medium text-muted-foreground"
             >{{ t('submissions.stats.acceptedRate') }}:</span
           >
-          <span class="font-mono text-sm text-foreground tabular-nums"
-            >{{ stats.acceptedRate }}%</span
-          >
+          <span class="font-mono text-sm text-foreground tabular-nums">{{
+            stats ? `${stats.acceptedRate}%` : '—'
+          }}</span>
         </div>
         <div class="ml-auto flex items-center gap-2 text-muted-foreground">
           <IconDatabase class="h-4 w-4" />
@@ -258,20 +260,32 @@ const columns = createColumns(t, {
           }}</span>
         </div>
       </div>
+      <div
+        v-if="store.statsError"
+        role="alert"
+        class="flex flex-wrap items-center justify-between gap-3 border-t border-border p-4"
+      >
+        <p class="min-w-0 text-sm text-destructive [overflow-wrap:anywhere]">
+          {{ t('submissions.loadStatisticsError') }}
+        </p>
+        <Button variant="outline" size="sm" @click="store.fetchStatistics()">
+          {{ t('common.retry') }}
+        </Button>
+      </div>
     </div>
 
     <!-- Bulk Action Bar - Terminal Style -->
     <div
-      v-if="selectedRows.length > 0"
+      v-if="!error && selectedRows.length > 0"
       :class="[
-        'mt-4 flex items-center justify-between border border-status-warning-mark bg-[color-mix(in_oklch,_var(--status-warning-mark)_8%,_transparent)] dark:bg-[color-mix(in_oklch,_var(--status-warning-mark)_15%,_transparent)] p-3',
+        'mt-4 flex flex-wrap items-center justify-between gap-3 border border-status-warning-mark bg-[color-mix(in_oklch,_var(--status-warning-mark)_8%,_transparent)] dark:bg-[color-mix(in_oklch,_var(--status-warning-mark)_15%,_transparent)] p-3',
         'animate-in fade-in slide-in-from-top-2 duration-200',
       ]"
     >
-      <div class="flex items-center gap-4">
+      <div class="flex flex-wrap items-center gap-4">
         <div class="flex items-center gap-2">
-          <span class="font-mono text-sm text-foreground">
-            &gt; SELECTED:{{ selectedRows.length }}
+          <span class="whitespace-nowrap font-mono text-sm text-foreground">
+            {{ t('submissions.table.selected', { count: selectedRows.length }) }}
           </span>
         </div>
         <div class="h-4 w-px bg-border" />
@@ -288,7 +302,7 @@ const columns = createColumns(t, {
         </div>
       </div>
       <Button variant="outline" size="sm" @click="selectedRows = []">
-        [ESC] {{ t('common.clearSelection') }}
+        {{ t('common.clearSelection') }}
       </Button>
     </div>
 
@@ -296,9 +310,10 @@ const columns = createColumns(t, {
     <div class="flex-1 min-h-0">
       <DataTable
         :columns="columns"
-        :data="data"
+        :data="error ? [] : data"
         :pagination="tablePagination"
-        :row-count="total"
+        :row-count="error ? 0 : total"
+        :hide-pagination="!!error"
         :loading="loading"
         v-model:selected-rows="selectedRows"
         @update:pagination="tablePagination = $event"
@@ -318,32 +333,32 @@ const columns = createColumns(t, {
             :on-refresh="loadSubmissions"
           />
         </template>
+        <template v-if="error" #empty>
+          <div
+            role="alert"
+            class="flex flex-wrap items-center justify-between gap-3 border border-status-error-mark bg-[color-mix(in_oklch,_var(--status-error-mark)_8%,_transparent)] p-4"
+          >
+            <div class="flex min-w-0 flex-1 flex-wrap items-center gap-3 [overflow-wrap:anywhere]">
+              <span class="font-mono text-sm text-foreground">&gt; ERROR:</span>
+              <span class="text-sm text-foreground">{{ error }}</span>
+            </div>
+            <Button variant="outline" size="sm" @click="loadSubmissions()">
+              {{ t('common.retry') }}
+            </Button>
+          </div>
+        </template>
       </DataTable>
-
-      <!-- Error state - Terminal Style -->
-      <div
-        v-if="error"
-        class="mt-4 flex items-center justify-between border border-status-error-mark bg-[color-mix(in_oklch,_var(--status-error-mark)_8%,_transparent)] p-4"
-      >
-        <div class="flex items-center gap-3">
-          <span class="font-mono text-sm text-foreground">&gt; ERROR:</span>
-          <span class="text-sm text-foreground">{{ error }}</span>
-        </div>
-        <Button variant="outline" size="sm" @click="loadSubmissions()">
-          {{ t('common.retry') }}
-        </Button>
-      </div>
     </div>
   </div>
 
   <!-- Detail Dialog - Terminal Style -->
   <Dialog v-model:open="detailDialogOpen">
-    <DialogContent class="max-w-4xl max-h-[80vh] overflow-y-auto">
-      <DialogHeader class="pb-4">
+    <DialogContent class="sm:max-w-4xl">
+      <DialogHeader class="pr-6">
         <DialogTitle class="flex items-center gap-2">
           <span class="text-lg font-medium">{{ t('submissions.detail') }}</span>
         </DialogTitle>
-        <DialogDescription v-if="selectedSubmission">
+        <DialogDescription v-if="selectedSubmission" class="break-words">
           {{ selectedSubmission.problemTitle }} - {{ selectedSubmission.username }}
         </DialogDescription>
         <DialogDescription v-else>
@@ -353,22 +368,18 @@ const columns = createColumns(t, {
       <div v-if="detailLoading" class="flex items-center justify-center py-12">
         <IconLoader2 class="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
-      <div v-else-if="selectedSubmission" class="space-y-4 py-4">
+      <div v-else-if="selectedSubmission" class="min-w-0 space-y-4 py-4">
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div>
             <Label>{{ t('submissions.id') }}</Label>
-            <p class="font-mono text-sm text-foreground mt-1">
+            <p class="break-all font-mono text-sm text-foreground mt-1">
               {{ selectedSubmission.id }}
             </p>
           </div>
           <div>
             <Label>{{ t('submissions.status') }}</Label>
             <p class="font-mono text-sm mt-1">
-              {{
-                te(`submissions.statusLabels.${selectedSubmission.status.toUpperCase()}`)
-                  ? t(`submissions.statusLabels.${selectedSubmission.status.toUpperCase()}`)
-                  : selectedSubmission.status
-              }}
+              {{ getStatusLabel(t, selectedSubmission.status) }}
             </p>
           </div>
           <div>
@@ -383,15 +394,15 @@ const columns = createColumns(t, {
         <div>
           <Label>{{ t('submissions.code') }}</Label>
           <pre
-            class="mt-2 p-4 bg-muted border border-border dark:border-border overflow-x-auto text-sm font-mono rounded-md bg-muted p-4 font-mono"
+            class="mt-2 max-w-full overflow-x-auto rounded-md border border-border bg-muted p-4 text-sm font-mono"
           ><code>{{ selectedSubmission.code }}</code></pre>
         </div>
         <div v-if="selectedSubmission.notes">
           <Label>{{ t('submissions.notes') }}</Label>
-          <p class="mt-1 text-sm text-foreground">{{ selectedSubmission.notes }}</p>
+          <p class="mt-1 break-words text-sm text-foreground">{{ selectedSubmission.notes }}</p>
         </div>
       </div>
-      <DialogFooter class="pt-4">
+      <DialogFooter>
         <Button variant="outline" size="sm" @click="detailDialogOpen = false">
           {{ t('common.close') }}
         </Button>
@@ -445,13 +456,3 @@ const columns = createColumns(t, {
     </DialogContent>
   </Dialog>
 </template>
-
-<style scoped>
-.rounded-md bg-muted p-4 font-mono {
-  color: var(--foreground);
-}
-
-.rounded-md bg-muted p-4 font-mono code {
-  color: inherit;
-}
-</style>

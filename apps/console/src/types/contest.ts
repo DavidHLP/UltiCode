@@ -162,6 +162,7 @@ export interface ContestProblemSummary {
   difficulty: string;
   solvedCount: number;
   submissionCount: number;
+  /** Percentage from the problem API, in the range 0..100. */
   acceptanceRate: number;
 }
 

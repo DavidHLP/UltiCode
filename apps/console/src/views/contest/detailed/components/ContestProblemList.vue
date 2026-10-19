@@ -276,12 +276,6 @@ function rowAction(problemId: number): {
                 class="text-xs font-bold text-muted-foreground dark:text-muted-foreground font-mono"
                 :data-testid="`acceptance-rate-${problem.problemId}`"
               >
-                <!--
-                  Backend returns a 0..1 fraction; render as
-                  "73.2%" with 1 decimal per the product spec.
-                  Falls back to "0.0%" if the rate is missing
-                  or non-numeric.
-                -->
                 {{ formatAcceptanceRate(problem.acceptanceRate) }}
               </span>
             </TableCell>

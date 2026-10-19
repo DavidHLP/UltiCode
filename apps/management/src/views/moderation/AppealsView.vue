@@ -63,9 +63,10 @@ const {
 } = useRemoteTable<Appeal, { status: AppealStatus | 'all' }, QueryAppealsParams>({
   store: store.appealsCollection,
   initialQuery: { filters: { status: 'all' } },
-  toParams: ({ filters, page, limit }) => ({
+  toParams: ({ search, filters, page, limit }) => ({
     page,
     limit,
+    queueId: search?.trim() || undefined,
     status: filters.status === 'all' ? undefined : filters.status,
   }),
   debounceMs: 300,
@@ -166,7 +167,7 @@ async function handleReviewSubmit() {
 
       <!-- Stats Ticker -->
       <div
-        class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-border dark:border-border bg-muted"
+        class="px-4 lg:px-6 py-2.5 flex flex-wrap items-center gap-x-6 gap-y-2 whitespace-nowrap border-t border-border dark:border-border bg-muted"
       >
         <div class="flex items-center gap-2">
           <span class="text-sm font-medium text-muted-foreground"
@@ -176,7 +177,7 @@ async function handleReviewSubmit() {
         </div>
         <div class="flex items-center gap-2">
           <span class="text-sm font-medium text-muted-foreground"
-            >{{ t('moderation.terminal.pending') }}:</span
+            >{{ t('moderation.terminal.pendingOnPage') }}:</span
           >
           <span class="font-mono text-sm text-foreground tabular-nums">{{ stats.pending }}</span>
         </div>
@@ -212,7 +213,7 @@ async function handleReviewSubmit() {
         <template #toolbar-left>
           <DataTableToolbar
             v-model:search-model-value="searchQuery"
-            :search-placeholder="t('moderation.searchPlaceholder')"
+            :search-placeholder="t('moderation.appeals.searchPlaceholder')"
             :filters="filters"
             :loading="loading"
             :on-refresh="loadAppeals"
@@ -224,16 +225,16 @@ async function handleReviewSubmit() {
 
     <!-- Review Dialog -->
     <Dialog v-model:open="reviewDialogOpen">
-      <DialogContent>
-        <DialogHeader class="flex items-center gap-2 px-4 py-3 px-4 py-3 -mx-6 -mt-6">
+      <DialogContent class="max-h-[calc(100dvh-2rem)] overflow-y-auto">
+        <DialogHeader>
           <DialogTitle class="flex items-center gap-2">
             <IconScale class="h-4 w-4" />
             &gt; {{ t('moderation.appeals.reviewAppeal') }}
           </DialogTitle>
-          <DialogDescription> Review the appeal and provide your decision. </DialogDescription>
+          <DialogDescription>{{ t('moderation.appeals.reviewDescription') }}</DialogDescription>
         </DialogHeader>
 
-        <div v-if="selectedAppeal" class="space-y-4 pt-4">
+        <div v-if="selectedAppeal" class="min-w-0 space-y-4 pt-4 [overflow-wrap:anywhere]">
           <!-- Appeal Info -->
           <div class="border border-border dark:border-border p-4 bg-muted">
             <p class="text-xs font-mono uppercase tracking-wider text-muted-foreground mb-2">
@@ -247,8 +248,8 @@ async function handleReviewSubmit() {
 
           <!-- Decision -->
           <div>
-            <Label> Decision </Label>
-            <div class="mt-2 flex gap-2">
+            <Label>{{ t('moderation.appeals.decision') }}</Label>
+            <div class="mt-2 flex flex-wrap gap-2">
               <Button
                 :variant="reviewDecision === 'APPROVED' ? 'default' : 'outline'"
                 :class="[

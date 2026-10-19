@@ -27,7 +27,6 @@ const { t } = useI18n();
 const feedbackType = ref<string>("bug");
 const subject = ref("");
 const description = ref("");
-const isSubmitting = ref(false);
 
 const feedbackTypes = computed(() => [
   { value: "bug", label: t("forum.feedback.types.bug") },
@@ -36,27 +35,19 @@ const feedbackTypes = computed(() => [
   { value: "content", label: t("forum.feedback.types.content") },
   { value: "other", label: t("forum.feedback.types.other") },
 ]);
+const selectedFeedbackTypeLabel = computed(
+  () =>
+    feedbackTypes.value.find((type) => type.value === feedbackType.value)
+      ?.label,
+);
 
-async function submitFeedback() {
+function submitFeedback() {
   if (!subject.value.trim() || !description.value.trim()) {
     toast.error(t("forum.feedback.fillRequired"));
     return;
   }
 
-  isSubmitting.value = true;
-
-  try {
-    toast.success(t("forum.feedback.success"));
-
-    // Reset form
-    subject.value = "";
-    description.value = "";
-    feedbackType.value = "bug";
-  } catch {
-    toast.error(t("forum.feedback.error"));
-  } finally {
-    isSubmitting.value = false;
-  }
+  toast.info(t("forum.feedback.unavailable"));
 }
 </script>
 
@@ -75,8 +66,8 @@ async function submitFeedback() {
 
     <Separator />
 
-    <div class="grid gap-8 md:grid-cols-3">
-      <Card class="md:col-span-2">
+    <div class="grid gap-8 lg:grid-cols-3">
+      <Card class="lg:col-span-2">
         <CardHeader>
           <CardTitle>{{ t("forum.feedback.submitTitle") }}</CardTitle>
         </CardHeader>
@@ -88,7 +79,8 @@ async function submitFeedback() {
                 <SelectTrigger id="feedback-type">
                   <SelectValue
                     :placeholder="t('forum.feedback.typePlaceholder')"
-                  />
+                    >{{ selectedFeedbackTypeLabel }}</SelectValue
+                  >
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup
@@ -129,11 +121,8 @@ async function submitFeedback() {
               </p>
             </div>
 
-            <Button type="submit" :disabled="isSubmitting" class="w-full">
-              <span v-if="isSubmitting">{{
-                t("forum.feedback.submitting")
-              }}</span>
-              <span v-else>{{ t("forum.feedback.submitButton") }}</span>
+            <Button type="submit" class="w-full">
+              {{ t("forum.feedback.submitButton") }}
             </Button>
           </form>
         </CardContent>

@@ -74,11 +74,14 @@ const publishedFilter = computed({
 })
 
 // Stats for terminal ticker
-const stats = computed(() => ({
-  total: solutionsStore.totalCount,
-  flagged: solutionsStore.flaggedCount,
-  published: solutionsStore.publishedCount,
-}))
+const stats = computed(() => {
+  if (loading.value || error.value) return { total: '—', flagged: '—', published: '—' }
+  return {
+    total: solutionsStore.totalCount,
+    flagged: solutionsStore.flaggedCount,
+    published: solutionsStore.publishedCount,
+  }
+})
 
 const toolbarFilters = computed<Filter[]>(() => [
   {
@@ -86,7 +89,7 @@ const toolbarFilters = computed<Filter[]>(() => [
     placeholder: t('solutions.filters.flagStatus'),
     width: 'w-[130px]',
     options: [
-      { value: 'all', label: t('solutions.filters.all') },
+      { value: 'all', label: t('solutions.filters.allFlags') },
       { value: 'flagged', label: t('solutions.filters.flagged') },
       { value: 'clean', label: t('solutions.filters.clean') },
     ],
@@ -96,7 +99,7 @@ const toolbarFilters = computed<Filter[]>(() => [
     placeholder: t('solutions.filters.visibility'),
     width: 'w-[130px]',
     options: [
-      { value: 'all', label: t('solutions.filters.all') },
+      { value: 'all', label: t('solutions.filters.allVisibility') },
       { value: 'published', label: t('solutions.filters.published') },
       { value: 'unpublished', label: t('solutions.filters.unpublished') },
     ],
@@ -159,7 +162,7 @@ async function handleFlagSolution(id: string | number, reason?: string) {
 
       <!-- Stats Ticker -->
       <div
-        class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-border dark:border-border bg-muted"
+        class="px-4 lg:px-6 py-2.5 flex flex-wrap items-center gap-x-6 gap-y-2 whitespace-nowrap border-t border-border dark:border-border bg-muted"
       >
         <div class="flex items-center gap-2">
           <span class="text-sm font-medium text-muted-foreground"
@@ -192,9 +195,10 @@ async function handleFlagSolution(id: string | number, reason?: string) {
     <div class="flex-1">
       <DataTable
         :columns="columns"
-        :data="data"
+        :data="error ? [] : data"
         :pagination="tablePagination"
-        :row-count="total"
+        :row-count="error ? 0 : total"
+        :hide-pagination="!!error"
         :loading="loading"
         @update:pagination="tablePagination = $event"
         class="w-full text-sm"
@@ -214,21 +218,21 @@ async function handleFlagSolution(id: string | number, reason?: string) {
             :on-refresh="loadSolutions"
           />
         </template>
+        <template v-if="error" #empty>
+          <div
+            role="alert"
+            class="flex flex-wrap items-center justify-between gap-3 border border-status-error-mark bg-[color-mix(in_oklch,_var(--status-error-mark)_8%,_transparent)] p-4"
+          >
+            <div class="flex min-w-0 flex-1 flex-wrap items-center gap-3 [overflow-wrap:anywhere]">
+              <span class="font-mono text-sm text-foreground">&gt; ERROR:</span>
+              <span class="text-sm text-foreground">{{ error }}</span>
+            </div>
+            <Button variant="outline" size="sm" @click="loadSolutions()">
+              {{ t('common.retry') }}
+            </Button>
+          </div>
+        </template>
       </DataTable>
-
-      <!-- Error state - Terminal Style -->
-      <div
-        v-if="error"
-        class="mt-4 flex items-center justify-between border border-status-error-mark bg-[color-mix(in_oklch,_var(--status-error-mark)_8%,_transparent)] p-4"
-      >
-        <div class="flex items-center gap-3">
-          <span class="font-mono text-sm text-foreground">&gt; ERROR:</span>
-          <span class="text-sm text-foreground">{{ error }}</span>
-        </div>
-        <Button variant="outline" size="sm" @click="loadSolutions()">
-          {{ t('common.retry') }}
-        </Button>
-      </div>
     </div>
   </div>
 

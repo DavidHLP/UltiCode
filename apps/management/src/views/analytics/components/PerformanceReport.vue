@@ -10,11 +10,13 @@ const { t } = useI18n()
 const props = defineProps<{
   report: PerformanceReport
   formatNumber: (n: number) => string
-  formatPercent: (n: number) => string
+  formatPercent: (n: number | null | undefined) => string
 }>()
 
 const metrics = computed<MetricData[]>(() => {
   const r = props.report
+  const errorRate = r.errorRate
+  const errorRateAvailable = typeof errorRate === 'number' && Number.isFinite(errorRate)
   return [
     {
       title: t('analytics.performance.uptime'),
@@ -36,9 +38,13 @@ const metrics = computed<MetricData[]>(() => {
     {
       title: t('analytics.performance.errorRate'),
       value: props.formatPercent(r.errorRate),
-      trend: r.errorRate > 1 ? 'down' : 'up',
+      trend: !errorRateAvailable ? 'neutral' : errorRate > 1 ? 'down' : 'up',
       change:
-        r.errorRate > 1 ? t('analytics.status.needsAttention') : t('analytics.status.excellent'),
+        !errorRateAvailable
+          ? undefined
+          : errorRate > 1
+            ? t('analytics.status.needsAttention')
+            : t('analytics.status.excellent'),
     },
     {
       title: t('analytics.performance.memoryUsage'),

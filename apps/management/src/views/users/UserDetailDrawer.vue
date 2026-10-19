@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { Input } from '@ulticode/design-system/ui/input'
 
 import { ref, watch, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -238,7 +237,7 @@ watch(
             </div>
           </div>
           <div class="mt-3 flex flex-wrap items-center gap-2">
-            <Input
+            <input
               ref="avatarInput"
               type="file"
               accept=".jpg,.jpeg,.png,.gif,.webp"
@@ -423,7 +422,9 @@ watch(
         <div
           class="border-b border-status-error-mark px-4 py-2 bg-[color-mix(in_oklch,_var(--status-error-mark)_12%,_transparent)]"
         >
-          <span class="text-sm text-muted-foreground text-foreground">ban_info</span>
+          <span class="text-sm text-muted-foreground text-foreground">{{
+            $t('users.drawer.sections.banInformation')
+          }}</span>
         </div>
 
         <div class="p-4 space-y-3">

@@ -86,7 +86,8 @@ export function buildDistributionChartOption(
       left: "3%",
       right: "4%",
       bottom: "15%",
-      top: "15%",
+      // Reserve room for the avatar and its caption above the tallest bar.
+      top: 64,
       containLabel: true,
     },
     xAxis: {
@@ -116,6 +117,7 @@ export function buildDistributionChartOption(
     series: [
       {
         type: "bar",
+        label: { show: true },
         data: paired.map((d, i) => ({
           value: Number.isFinite(d.count) ? d.count : 0,
           itemStyle: {
@@ -128,14 +130,13 @@ export function buildDistributionChartOption(
           label:
             i === userIndex
               ? {
-                  show: true,
                   position: "top",
                   formatter: t("problem.layout.userPosition"),
                   color: colors.foreground,
                   fontWeight: "bold",
                   fontSize: 12,
                 }
-              : undefined,
+              : { show: false },
         })),
         barMaxWidth: 40,
       },

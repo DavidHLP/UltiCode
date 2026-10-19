@@ -119,25 +119,25 @@ onMounted(async () => {
       </div>
 
       <Tabs v-else v-model="activeTab" class="space-y-6">
-        <TabsList class="grid grid-cols-5 w-full max-w-2xl">
+        <TabsList class="grid auto-rows-8 w-full max-w-2xl grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 group-data-horizontal/tabs:h-auto">
           <TabsTrigger value="general">
-            <IconSettings class="h-4 w-4 mr-2" />
+            <IconSettings class="h-4 w-4" />
             {{ t('settings.tabs.general') }}
           </TabsTrigger>
           <TabsTrigger value="email">
-            <IconMail class="h-4 w-4 mr-2" />
+            <IconMail class="h-4 w-4" />
             {{ t('settings.tabs.email') }}
           </TabsTrigger>
           <TabsTrigger value="rateLimits">
-            <IconClock class="h-4 w-4 mr-2" />
+            <IconClock class="h-4 w-4" />
             {{ t('settings.tabs.rateLimits') }}
           </TabsTrigger>
           <TabsTrigger value="uploads">
-            <IconUpload class="h-4 w-4 mr-2" />
+            <IconUpload class="h-4 w-4" />
             {{ t('settings.tabs.uploads') }}
           </TabsTrigger>
           <TabsTrigger value="features">
-            <IconToggleLeft class="h-4 w-4 mr-2" />
+            <IconToggleLeft class="h-4 w-4" />
             {{ t('settings.tabs.features') }}
           </TabsTrigger>
         </TabsList>
@@ -176,7 +176,7 @@ onMounted(async () => {
             <CardTitle>{{ t('settings.actions.title') }}</CardTitle>
           </CardHeader>
           <CardContent class="flex items-center justify-between flex-wrap gap-4">
-            <div class="flex gap-2">
+            <div class="flex flex-wrap gap-2">
               <Button variant="outline" @click="onClearCache" :disabled="clearingCache">
                 <IconRefresh class="h-4 w-4 mr-2" :class="{ 'animate-spin': clearingCache }" />
                 {{ t('settings.actions.clearCache') }}

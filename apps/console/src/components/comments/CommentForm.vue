@@ -1,5 +1,5 @@
 <template>
-  <form @submit.prevent="submit" class="w-full">
+  <form @submit.prevent="submit" class="w-full min-w-0">
     <!-- Comment input container -->
     <div
       class="overflow-hidden rounded-md border border-input bg-card shadow-xs transition-colors duration-200 focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/30"
@@ -13,7 +13,7 @@
 
       <!-- Action bar -->
       <div
-        class="flex items-center justify-between border-t border-input bg-muted px-3 py-2"
+        class="flex flex-wrap items-center justify-between gap-2 border-t border-input bg-muted px-3 py-2"
       >
         <!-- Left: Attachment buttons -->
         <div class="flex items-center gap-1">
@@ -26,7 +26,7 @@
         </div>
 
         <!-- Right: Action buttons -->
-        <div class="flex items-center gap-2">
+        <div class="ml-auto flex flex-wrap items-center justify-end gap-2">
           <Button
             v-if="onCancel"
             type="button"

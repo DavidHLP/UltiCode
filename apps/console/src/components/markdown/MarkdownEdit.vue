@@ -81,6 +81,7 @@ const initEditor = async () => {
     readOnly: props.readOnly,
     padding: { top: 16, bottom: 16 },
     wordWrap: "on",
+    wrappingIndent: "none",
   });
   editorInstance = createdEditor;
   stopAppearanceObserver = observeAppEditorAppearance(monacoInstance, () => {

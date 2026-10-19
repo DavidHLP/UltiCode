@@ -63,6 +63,7 @@ const {
   apply,
 } = useAppearance();
 const draft = ref<Appearance>({ ...saved.value });
+let returnFocus: HTMLElement | null = null;
 const text = computed(() =>
   zh.value
     ? {
@@ -180,9 +181,17 @@ const optionLabels = computed<Record<string, string>>(() =>
 );
 const keys = Object.keys(APPEARANCE_OPTIONS) as AppearanceKey[];
 watch(open, (value) => {
-  if (value) draft.value = beginPreview();
-  else if (previewing.value) cancel();
+  if (value) {
+    returnFocus =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    draft.value = beginPreview();
+  } else if (previewing.value) cancel();
 });
+function restoreFocus(event: Event) {
+  if (!returnFocus?.isConnected) return;
+  event.preventDefault();
+  returnFocus.focus({ preventScroll: true });
+}
 watch(account, () => {
   open.value = false;
 });
@@ -205,6 +214,7 @@ function save(value = draft.value) {
     <DialogContent
       class="max-h-[90dvh] overflow-y-auto sm:max-w-3xl"
       data-testid="appearance-dialog"
+      @close-auto-focus="restoreFocus"
     >
       <DialogHeader>
         <DialogTitle>{{ text.title }}</DialogTitle>

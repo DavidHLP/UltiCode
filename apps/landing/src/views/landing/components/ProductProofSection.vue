@@ -17,7 +17,7 @@ const { t } = useI18n();
   >
     <div class="mx-auto flex max-w-7xl flex-col gap-8">
       <header class="flex max-w-3xl flex-col gap-3">
-        <h2 id="proof-title" class="text-3xl font-semibold">
+        <h2 id="proof-title" class="text-balance text-3xl font-semibold">
           {{ t("landing.workflow.title") }}
           {{ t("landing.workflow.titleItalic") }}
         </h2>

@@ -92,7 +92,7 @@ export function createColumns(
             'div',
             {
               class: [
-                'relative',
+                'relative rounded-full',
                 user.isBanned
                   ? 'ring-2 ring-[var(--status-error-mark)] ring-offset-2 ring-offset-background'
                   : user.isActive

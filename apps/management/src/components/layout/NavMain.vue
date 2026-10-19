@@ -67,7 +67,7 @@ function isSubmenuActive(item: NavItem): boolean {
 // shadcn SidebarMenuButton here; only the duplicated class string is unified.
 function itemRowClass(active: boolean): string {
   return active
-    ? 'border-l-4 border-primary bg-primary/8 text-primary pl-2 font-semibold'
+    ? 'border-l-4 border-primary bg-primary/8 text-foreground pl-2 font-semibold'
     : 'border-l-4 border-transparent hover:bg-border/40 hover:text-foreground text-muted-foreground pl-2'
 }
 
@@ -94,6 +94,7 @@ watchEffect(() => {
               <SidebarMenuItem>
                 <SidebarMenuButton
                   :tooltip="String(item.title)"
+                  :aria-label="item.title"
                   class="h-9 w-full"
                   :class="itemRowClass(isSubmenuActive(item))"
                 >
@@ -103,7 +104,7 @@ watchEffect(() => {
                     class="size-4 shrink-0 transition-colors"
                     :class="
                       isSubmenuActive(item)
-                        ? 'text-primary stroke-[2.5]'
+                        ? 'text-inherit stroke-[2.5]'
                         : 'text-muted-foreground stroke-[1.8]'
                     "
                   />
@@ -138,7 +139,7 @@ watchEffect(() => {
                       :is="subItem.icon"
                       v-if="subItem.icon"
                       class="size-3.5 shrink-0"
-                      :class="isActive(subItem.url) ? 'text-primary' : 'text-muted-foreground'"
+                      :class="isActive(subItem.url) ? 'text-inherit' : 'text-muted-foreground'"
                     />
                     <span>{{ subItem.title }}</span>
                   </SharedSidebarMenuSubItem>
@@ -158,6 +159,7 @@ watchEffect(() => {
               <CollapsibleTrigger as-child>
                 <SidebarMenuButton
                   :tooltip="String(item.title)"
+                  :aria-label="item.title"
                   class="h-9 w-full"
                   :class="itemRowClass(isSubmenuActive(item))"
                 >
@@ -167,7 +169,7 @@ watchEffect(() => {
                     class="size-4 shrink-0 transition-colors"
                     :class="
                       isSubmenuActive(item)
-                        ? 'text-primary stroke-[2.5]'
+                        ? 'text-inherit stroke-[2.5]'
                         : 'text-muted-foreground group-hover/collapsible:text-foreground stroke-[1.8]'
                     "
                   />
@@ -175,7 +177,7 @@ watchEffect(() => {
                     class="truncate text-xs font-medium group-data-[collapsible=icon]:hidden"
                     :class="
                       isSubmenuActive(item)
-                        ? 'text-primary font-semibold'
+                        ? 'text-inherit font-semibold'
                         : 'text-muted-foreground group-hover/collapsible:text-foreground'
                     "
                   >
@@ -185,7 +187,7 @@ watchEffect(() => {
                     class="ml-auto size-3.5 shrink-0 transition-transform duration-200 text-muted-foreground group-hover/collapsible:text-foreground group-data-[collapsible=icon]:hidden"
                     :class="[
                       openMenus[item.title] ? 'rotate-90' : '',
-                      isSubmenuActive(item) ? 'text-primary' : '',
+                      isSubmenuActive(item) ? 'text-inherit' : '',
                     ]"
                   />
                 </SidebarMenuButton>
@@ -205,7 +207,7 @@ watchEffect(() => {
                         class="size-3.5 shrink-0 transition-colors"
                         :class="
                           isActive(subItem.url)
-                            ? 'text-primary stroke-[2.5]'
+                            ? 'text-inherit stroke-[2.5]'
                             : 'text-muted-foreground stroke-[1.8]'
                         "
                       />
@@ -221,6 +223,7 @@ watchEffect(() => {
           <SidebarMenuItem v-else>
             <SidebarMenuButton
               :tooltip="String(item.title)"
+              :aria-label="item.title"
               :is-active="isActive(item.url)"
               as-child
               class="h-9"
@@ -233,7 +236,7 @@ watchEffect(() => {
                   class="size-4 shrink-0 transition-colors"
                   :class="
                     isActive(item.url)
-                      ? 'text-primary stroke-[2.5]'
+                      ? 'text-inherit stroke-[2.5]'
                       : 'text-muted-foreground group-hover:text-foreground stroke-[1.8]'
                   "
                 />
@@ -241,7 +244,7 @@ watchEffect(() => {
                   class="truncate text-xs font-medium group-data-[collapsible=icon]:hidden"
                   :class="
                     isActive(item.url)
-                      ? 'text-primary font-semibold'
+                      ? 'text-inherit font-semibold'
                       : 'text-muted-foreground group-hover:text-foreground'
                   "
                 >

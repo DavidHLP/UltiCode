@@ -21,7 +21,8 @@ const { t } = useI18n()
 const editorContent = ref(props.modelValue)
 const isLocalUpdate = ref(false)
 const isFullscreen = ref(false)
-const editorRef = ref<HTMLTextAreaElement>()
+const editorRef = ref<InstanceType<typeof Textarea>>()
+const editorElement = computed(() => editorRef.value?.$el as HTMLTextAreaElement | undefined)
 const previewRef = ref<HTMLDivElement>()
 
 const previewHtml = computed(() => renderMarkdown(editorContent.value))
@@ -45,22 +46,20 @@ watch(editorContent, (val) => {
 
 // Sync scroll between editor and preview
 const syncScroll = (source: 'editor' | 'preview') => {
-  if (!editorRef.value || !previewRef.value) return
+  if (!editorElement.value || !previewRef.value) return
 
-  const editor = editorRef.value
+  const editor = editorElement.value
   const preview = previewRef.value
 
-  if (source === 'editor') {
-    const scrollPercentage = editor.scrollTop / (editor.scrollHeight - editor.clientHeight)
-    preview.scrollTop = scrollPercentage * (preview.scrollHeight - preview.clientHeight)
-  } else {
-    const scrollPercentage = preview.scrollTop / (preview.scrollHeight - preview.clientHeight)
-    editor.scrollTop = scrollPercentage * (editor.scrollHeight - editor.clientHeight)
-  }
+  const origin = source === 'editor' ? editor : preview
+  const target = source === 'editor' ? preview : editor
+  const range = origin.scrollHeight - origin.clientHeight
+  const scrollPercentage = range > 0 ? origin.scrollTop / range : 0
+  target.scrollTop = scrollPercentage * Math.max(target.scrollHeight - target.clientHeight, 0)
 }
 
 const insertMarkdown = (before: string, after: string = '', placeholder: string = '') => {
-  const textarea = editorRef.value
+  const textarea = editorElement.value
   if (!textarea) return
 
   const start = textarea.selectionStart
@@ -196,7 +195,7 @@ onUnmounted(() => {
     <!-- Editor and Preview -->
     <div class="editor-container">
       <!-- Editor -->
-      <div class="editor-pane bg-card border-r border-border">
+      <div class="editor-pane bg-card">
         <Textarea
           ref="editorRef"
           v-model="editorContent"
@@ -235,6 +234,7 @@ onUnmounted(() => {
 
 <style scoped>
 .markdown-editor {
+  container: markdown-editor / inline-size;
   display: flex;
   flex-direction: column;
   border: 1px solid var(--border);
@@ -255,6 +255,9 @@ onUnmounted(() => {
 
 .toolbar {
   display: flex;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+  gap: 0.5rem;
   align-items: center;
   justify-content: space-between;
   padding: 0.375rem 0.5rem;
@@ -264,6 +267,7 @@ onUnmounted(() => {
 
 .toolbar-group {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.25rem;
 }
@@ -278,7 +282,8 @@ onUnmounted(() => {
 
 .fullscreen .editor-container {
   max-height: none;
-  height: calc(100vh - 50px);
+  min-height: 0;
+  flex: 1;
 }
 
 .editor-pane,
@@ -286,9 +291,27 @@ onUnmounted(() => {
   overflow: auto;
 }
 
+.editor-pane {
+  border-inline-end: 1px solid var(--border);
+}
+
+@container markdown-editor (max-width: 36rem) {
+  .editor-container {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .editor-pane {
+    border-inline-end: 0;
+    border-block-end: 1px solid var(--border);
+  }
+}
+
 .editor-textarea {
   flex: 1;
-  min-height: 100%;
+  height: 100%;
+  min-height: 0;
+  field-sizing: fixed;
   padding: 1rem;
   border: none;
   border-radius: var(--radius-md);
@@ -305,6 +328,8 @@ onUnmounted(() => {
 }
 
 .preview-content {
+  height: 100%;
+  overflow: auto;
   padding: 1rem;
 }
 

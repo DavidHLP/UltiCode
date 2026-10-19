@@ -7,7 +7,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@ulticode/design-system/ui/card'
-import { formatCompactNumber } from '@/i18n/utils'
+import { formatCompactNumber, formatNumberByLocale } from '@/i18n/utils'
 
 export interface BarListItem {
   id: string | number
@@ -78,13 +78,22 @@ const displayItems = computed(() => {
           <!-- Label and bar container -->
           <div class="flex-1 min-w-0">
             <!-- Label row -->
-            <div class="flex items-center justify-between gap-2 mb-1">
-              <span class="text-sm font-medium text-foreground truncate">{{ item.label }}</span>
+            <div class="flex flex-wrap items-start justify-between gap-x-2 gap-y-1 mb-1">
+              <span class="min-w-0 flex-1 break-words text-sm font-medium text-foreground">{{
+                item.label
+              }}</span>
               <span
                 v-if="showValue"
                 class="shrink-0 font-mono text-sm tabular-nums text-foreground"
               >
-                {{ formatCompactNumber(item.value) }}
+                {{
+                  showPercentage
+                    ? formatNumberByLocale(item.value / 100, {
+                        style: 'percent',
+                        maximumFractionDigits: 1,
+                      })
+                    : formatCompactNumber(item.value)
+                }}
               </span>
             </div>
 

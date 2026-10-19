@@ -175,7 +175,9 @@ function handleExport(): void {
       </div>
       <Select v-model="actionFilter">
         <SelectTrigger class="w-[180px]">
-          <SelectValue :placeholder="t('audit.filterAction')" />
+          <SelectValue :placeholder="t('audit.filterAction')">{{
+            actionFilter === 'all' ? t('audit.allActions') : formatAction(actionFilter)
+          }}</SelectValue>
         </SelectTrigger>
         <SelectContent>
           <SelectGroup
@@ -235,9 +237,9 @@ function handleExport(): void {
       <Card v-for="log in filteredLogs" :key="log.id">
         <!-- Compact header: action + entity + time + performer in one line -->
         <CardHeader class="py-2 px-3">
-          <div class="flex items-center justify-between gap-2">
+          <div class="flex w-full min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
             <!-- Left: badges -->
-            <div class="flex items-center gap-2 min-w-0 flex-1">
+            <div class="order-1 flex min-w-0 items-center gap-2">
               <SemanticBadge
                 :color="getAuditActionColor(log.action)"
                 :label="formatAction(log.action)"
@@ -246,21 +248,10 @@ function handleExport(): void {
               <Badge v-if="log.entityType" variant="outline" class="px-1.5 py-0">
                 {{ t(`audit.entityTypes.${log.entityType}`, log.entityType) }}
               </Badge>
-              <span class="text-xs text-muted-foreground font-mono tabular-nums truncate">
-                {{ formatDateTimeByLocale(log.createdAt) }}
-              </span>
-              <span class="text-muted-foreground text-xs">·</span>
-              <span
-                v-if="log.performer"
-                class="text-xs text-foreground dark:text-muted-foreground truncate"
-              >
-                {{ log.performer.username }}
-              </span>
-              <span v-else class="text-xs text-muted-foreground">System</span>
             </div>
 
             <!-- Right: expand toggle + change count -->
-            <div class="flex items-center gap-2 flex-shrink-0">
+            <div class="order-2 ml-auto flex flex-shrink-0 items-center gap-2 sm:order-3">
               <span
                 v-if="!expandedLogs.has(log.id) && getChangesSummary(log).count > 0"
                 class="text-xs text-muted-foreground"
@@ -273,6 +264,22 @@ function handleExport(): void {
                   class="h-3 w-3"
                 />
               </Button>
+            </div>
+
+            <div
+              class="order-3 flex w-full min-w-0 items-center gap-1 sm:order-2 sm:w-auto sm:flex-1"
+            >
+              <span class="text-xs text-muted-foreground font-mono tabular-nums shrink-0">
+                {{ formatDateTimeByLocale(log.createdAt) }}
+              </span>
+              <span class="text-muted-foreground text-xs">·</span>
+              <span
+                v-if="log.performer"
+                class="text-xs text-foreground dark:text-muted-foreground min-w-0 truncate"
+              >
+                {{ log.performer.username }}
+              </span>
+              <span v-else class="text-xs text-muted-foreground">System</span>
             </div>
           </div>
 

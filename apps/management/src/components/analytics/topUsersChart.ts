@@ -50,7 +50,7 @@ export function createTopUsersChartOption(
       formatter: (params) => {
         const item = Array.isArray(params) ? params[0] : params
         const value = Number(item?.value ?? 0)
-        return `${item?.name ?? ''}<br/><strong>${formatLogins(value)}</strong>`
+        return `${item?.name ?? ''}\n${formatLogins(value)}`
       },
     },
     xAxis: {

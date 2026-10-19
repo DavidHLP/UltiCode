@@ -33,6 +33,11 @@ import { useI18n } from "vue-i18n";
 import { useErrorHandler } from "@/composables/useErrorHandler";
 import { useContentNavigation } from "@/composables/useContentNavigation";
 import ReportDialog from "@/components/ReportDialog.vue";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@ulticode/design-system/ui/popover";
 
 const props = defineProps<{
   item: SolutionFeedItem;
@@ -122,7 +127,18 @@ const {
   scrollToHeading,
 } = useContentNavigation(headings);
 
+const tocTriggerRef = ref<{ $el: HTMLElement } | null>(null);
+let isTOCNavigation = false;
+
+const restoreTOCTriggerFocus = (event: Event) => {
+  if (!isTOCNavigation) return;
+  isTOCNavigation = false;
+  event.preventDefault();
+  tocTriggerRef.value?.$el.focus({ preventScroll: true });
+};
+
 const handleMobileTOCClick = (id: string) => {
+  isTOCNavigation = true;
   scrollToHeading(id);
   showMobileTOC.value = false;
 };
@@ -300,22 +316,24 @@ watch(
 <template>
   <div
     ref="wrapperRef"
-    class="solution-detail-page-wrapper w-full p-0 py-2 relative min-h-[300px]"
+    class="solution-detail-page-wrapper w-full min-w-0 p-0 py-2 relative min-h-[300px]"
   >
     <div
       class="w-full flex flex-col lg:flex-row gap-6 items-start justify-center max-w-6xl mx-auto px-1 lg:px-4 relative"
     >
       <!-- Left Main Column: Elegant Reading Card -->
       <article
-        class="group w-full bg-card border border-border shadow-sm p-6 md:p-8 relative rounded-lg flex flex-col gap-5"
+        class="group w-full min-w-0 bg-card border border-border shadow-sm p-4 sm:p-6 md:p-8 relative rounded-lg flex flex-col gap-5"
         :class="[isWideLayout ? 'flex-1 min-w-0 max-w-3xl' : 'w-full']"
       >
         <!-- Header: Author & Metadata (visible on all screens, but primary on mobile) -->
-        <header class="flex items-start gap-4 border-b border-border/50 pb-5">
+        <header
+          class="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-3 border-b border-border/50 pb-5"
+        >
           <Button
             variant="outline"
             type="button"
-            class="shrink-0 focus-visible:outline-none"
+            class="size-10 shrink-0 p-0 focus-visible:outline-none"
             :aria-label="
               t('problem.solutions.viewAuthorProfile', {
                 name: props.item.author.name,
@@ -341,9 +359,11 @@ watch(
 
           <div class="flex-1 min-w-0 flex flex-col gap-1">
             <div
-              class="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs leading-none"
+              class="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs leading-normal"
             >
-              <span class="font-bold text-foreground dark:text-foreground">
+              <span
+                class="break-words [overflow-wrap:anywhere] font-bold text-foreground dark:text-foreground"
+              >
                 {{ props.item.author.name }}
               </span>
               <span class="truncate text-muted-foreground max-w-[120px]">
@@ -381,37 +401,45 @@ watch(
           </div>
 
           <!-- Quick Owner/Moderator Actions -->
-          <div class="ml-auto flex items-center gap-1">
+          <div class="col-span-2 flex flex-wrap items-center gap-1">
             <!-- Mobile Table of Contents button (narrow container only) -->
-            <div v-if="!isWideLayout && headings.length > 1" class="relative">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                class="px-2"
-                @click="showMobileTOC = !showMobileTOC"
-              >
-                <List class="mr-1 h-3.5 w-3.5" />
-                目录
-              </Button>
-
-              <!-- Floating TOC Dropdown Popup -->
-              <div
-                v-if="showMobileTOC"
-                class="absolute right-0 top-8 z-50 w-48 bg-card border border-border p-3 shadow-lg flex flex-col gap-2 rounded-lg select-none font-mono"
+            <Popover
+              v-if="!isWideLayout && headings.length > 1"
+              v-model:open="showMobileTOC"
+            >
+              <PopoverTrigger as-child>
+                <Button
+                  ref="tocTriggerRef"
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  class="px-2"
+                >
+                  <List class="mr-1 h-3.5 w-3.5" />
+                  {{ t("forum.sidebar.toc") }}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent
+                align="start"
+                :collision-padding="16"
+                :aria-label="t('forum.sidebar.toc')"
+                class="w-48 max-h-[var(--reka-popover-content-available-height)] p-3 gap-2 select-none font-mono"
+                @close-auto-focus="restoreTOCTriggerFocus"
               >
                 <div
                   class="text-xs font-bold uppercase tracking-wider text-muted-foreground/85 border-b border-border/50 pb-1"
                 >
-                  文章大纲
+                  {{ t("forum.sidebar.toc") }}
                 </div>
-                <nav class="flex flex-col gap-1 max-h-60 overflow-y-auto">
+                <nav
+                  class="flex min-h-0 flex-col gap-1 max-h-60 overflow-y-auto"
+                >
                   <Button
                     variant="outline"
                     v-for="h in headings"
                     :key="h.id"
                     type="button"
-                    class="text-left py-1 px-1.5 cursor-pointer select-none"
+                    class="h-auto min-h-8 whitespace-normal break-words justify-start text-left py-1 px-1.5 cursor-pointer select-none"
                     :class="[
                       activeHeadingId === h.id
                         ? 'border-primary text-primary font-bold bg-primary/5'
@@ -423,8 +451,8 @@ watch(
                     {{ h.text }}
                   </Button>
                 </nav>
-              </div>
-            </div>
+              </PopoverContent>
+            </Popover>
 
             <template v-if="isOwner">
               <Button
@@ -454,13 +482,13 @@ watch(
               @click="handleReport"
             >
               <Flag class="mr-1 h-3.5 w-3.5" />
-              举报
+              {{ t("forum.actions.report") }}
             </Button>
           </div>
         </header>
 
         <!-- Solution Content -->
-        <section class="space-y-4 text-sm leading-relaxed">
+        <section class="min-w-0 space-y-4 text-sm leading-relaxed">
           <!-- Solution Title -->
           <h1
             class="text-xl font-bold tracking-tight text-foreground dark:text-foreground mb-4 leading-tight"
@@ -594,7 +622,7 @@ watch(
           <div
             class="text-xs font-bold uppercase tracking-wider text-muted-foreground/80 mb-2.5 border-b border-border/50 pb-1.5 select-none font-mono"
           >
-            文章大纲
+            {{ t("forum.sidebar.toc") }}
           </div>
           <nav class="flex flex-col gap-1">
             <Button
@@ -602,7 +630,7 @@ watch(
               v-for="h in headings"
               :key="h.id"
               type="button"
-              class="text-left py-1 px-2 select-none cursor-pointer"
+              class="h-auto min-h-8 whitespace-normal break-words justify-start text-left py-1 px-2 select-none cursor-pointer"
               :class="[
                 activeHeadingId === h.id
                   ? 'border-primary text-primary font-bold bg-primary/5'

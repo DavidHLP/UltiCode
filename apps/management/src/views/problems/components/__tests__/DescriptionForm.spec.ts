@@ -239,15 +239,18 @@ const SelectItemStub = {
 }
 
 const CheckboxStub = {
-  props: ['checked'],
-  emits: ['update:checked'],
-  setup(props: { checked?: boolean }, { emit }: { emit: (event: string, value: boolean) => void }) {
+  props: ['modelValue'],
+  emits: ['update:modelValue'],
+  setup(
+    props: { modelValue?: boolean },
+    { emit }: { emit: (event: string, value: boolean) => void },
+  ) {
     return () =>
       h('input', {
         type: 'checkbox',
-        checked: props.checked,
+        checked: props.modelValue,
         'data-testid': 'checkbox-stub',
-        onChange: (e: Event) => emit('update:checked', (e.target as HTMLInputElement).checked),
+        onChange: (e: Event) => emit('update:modelValue', (e.target as HTMLInputElement).checked),
       })
   },
 }
@@ -401,7 +404,7 @@ function createMockProblem(
   }
 }
 
-function mountDescriptionForm(props = {}) {
+function mountDescriptionForm(props = {}, realCheckbox = false) {
   return mount(DescriptionForm, {
     props: {
       isEdit: false,
@@ -421,7 +424,7 @@ function mountDescriptionForm(props = {}) {
         SelectContent: SelectContentStub,
         SelectGroup: SelectContentStub,
         SelectItem: SelectItemStub,
-        Checkbox: CheckboxStub,
+        Checkbox: realCheckbox ? false : CheckboxStub,
         Accordion: AccordionStub,
         AccordionItem: AccordionItemStub,
         AccordionTrigger: AccordionTriggerStub,
@@ -578,6 +581,27 @@ describe('DescriptionForm', () => {
       await flushPromises()
 
       expect((statusSelect.element as HTMLSelectElement).value).toBe(ProblemStatus.ATTEMPTED)
+    })
+
+    it.each([
+      ['isPremium', 0],
+      ['isPublished', 1],
+    ] as const)('keeps the real %s checkbox and form value in sync', async (field, index) => {
+      const wrapper = mountDescriptionForm({ problem: createMockProblem({ [field]: true }) }, true)
+      await flushPromises()
+      const checkbox = wrapper.findAll('[role="checkbox"]')[index]
+      expect(checkbox.attributes('aria-checked')).toBe('true')
+
+      await checkbox.trigger('click')
+      await flushPromises()
+      expect(checkbox.attributes('aria-checked')).toBe('false')
+      expect(wrapper.vm.form.values[field]).toBe(false)
+
+      await wrapper.get(`[data-testid="form-field-${field}"] .cursor-pointer`).trigger('click')
+      await flushPromises()
+      expect(checkbox.attributes('aria-checked')).toBe('true')
+      expect(wrapper.vm.form.values[field]).toBe(true)
+      wrapper.unmount()
     })
 
     it('updates premium checkbox', async () => {

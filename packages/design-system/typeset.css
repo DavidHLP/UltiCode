@@ -391,6 +391,10 @@
       overflow-x: auto;
       margin-block-start: var(--typeset-flow);
     }
+    &:where(.typeset-scroll:focus-visible) {
+      outline: 2px solid var(--ring);
+      outline-offset: 2px;
+    }
     &:where(.typeset-scroll > *) {
       margin-block-start: 0;
     }

@@ -48,7 +48,12 @@ const emit = defineEmits<{
       </span>
       <DropdownMenu>
         <DropdownMenuTrigger as-child>
-          <Button variant="ghost" size="icon" class="w-6">
+          <Button
+            variant="ghost"
+            size="icon"
+            class="w-6"
+            :aria-label="`${$t('testCases.title')} #${index + 1}: ${$t('common.actions.label')}`"
+          >
             <IconDotsVertical class="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>

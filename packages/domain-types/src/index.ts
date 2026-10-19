@@ -57,6 +57,7 @@ export interface ProblemPublic {
   acceptance_rate: number
   acceptanceRate?: number
   tags: string[]
+  categorySlugs?: string[]
   status?: PublicProblemStatus
   isPremium?: boolean
   hasSolution?: boolean
@@ -132,6 +133,7 @@ const problemCommonKeys = [
   'status',
   'tags',
   'tagRelations',
+  'categorySlugs',
   'sortOrder',
   'addedAt',
 ] as const
@@ -280,6 +282,22 @@ function optionalText(
   return record[key] as string
 }
 
+function optionalStringArray(
+  record: ProblemRecord,
+  key: string,
+  audience: string,
+): string[] | undefined {
+  const value = record[key]
+  if (value === null || value === undefined) return undefined
+  if (
+    !Array.isArray(value) ||
+    value.some((item) => typeof item !== 'string' || item.trim() === '')
+  ) {
+    throw invalidProblem(audience, `has an invalid ${key}`)
+  }
+  return value as string[]
+}
+
 function requiredDate(record: ProblemRecord, key: string, audience: string): Date {
   const date = asDate(record[key])
   if (!date) throw invalidProblem(audience, `is missing a valid ${key}`)
@@ -360,6 +378,7 @@ export function normalizePublicProblem(value: unknown): ProblemPublic {
             })()
   const isPremium = optionalBoolean(record, 'isPremium', 'Public')
   const hasSolution = optionalBoolean(record, 'hasSolution', 'Public')
+  const categorySlugs = optionalStringArray(record, 'categorySlugs', 'Public')
   const submissionCount = optionalNumber(record, 'submissionCount', 'Public')
   const solutionCount = optionalNumber(record, 'solutionCount', 'Public')
   const createdAt = optionalText(record, 'createdAt', 'Public')
@@ -374,6 +393,7 @@ export function normalizePublicProblem(value: unknown): ProblemPublic {
     acceptance_rate: acceptanceRate,
     acceptanceRate,
     tags: publicTags(record),
+    ...(categorySlugs === undefined ? {} : { categorySlugs }),
     ...(status === undefined ? {} : { status }),
     ...(isPremium === undefined ? {} : { isPremium }),
     ...(hasSolution === undefined ? {} : { hasSolution }),

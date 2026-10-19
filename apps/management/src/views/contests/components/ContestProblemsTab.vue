@@ -77,9 +77,13 @@ const emit = defineEmits<{
             </TableCell>
           </TableRow>
           <TableRow v-if="!contest.problemIds?.length">
-            <TableCell colspan="4" class="h-24 text-center">
+            <TableCell colspan="4" class="h-24 whitespace-normal break-words text-center">
               <span class="text-sm text-muted-foreground">{{
-                $t('contests.detail.noProblemsAdded')
+                $t(
+                  contest.problemCount > 0
+                    ? 'contests.detail.problemDetailsUnavailable'
+                    : 'contests.detail.noProblemsAdded',
+                )
               }}</span>
             </TableCell>
           </TableRow>

@@ -21,6 +21,7 @@ import { useSubmissionDetail } from "./composables/useSubmissionDetail";
 import { createSubmission, resolveSubmissionProblemId } from "@/api/submission";
 import { toast } from "vue-sonner";
 import { useAuthStore } from "@/stores/auth";
+import { formatDateTime } from "@/utils/datetime";
 const props = defineProps({
   submission: {
     type: Object as () => SubmissionRecord,
@@ -120,10 +121,16 @@ const handleWriteSolution = () => {
     class="mx-auto flex w-full max-w-[700px] flex-col gap-4 px-3 py-2"
   >
     <!-- Header -->
-    <div class="flex w-full items-center justify-between gap-3">
-      <div class="flex flex-1 flex-col items-start gap-0.5 overflow-hidden">
+    <div class="flex w-full flex-wrap items-center justify-between gap-3">
+      <div class="flex min-w-0 flex-1 basis-64 flex-col items-start gap-0.5">
         <div class="flex items-center gap-2 mb-1">
-          <Button variant="ghost" size="icon" class="w-8" @click="emit('back')">
+          <Button
+            variant="ghost"
+            size="icon"
+            class="w-8"
+            :aria-label="t('common.actions.back')"
+            @click="emit('back')"
+          >
             <ArrowLeft class="h-4 w-4" />
           </Button>
           <div
@@ -160,8 +167,8 @@ const handleWriteSolution = () => {
           </span>
         </div>
         <div class="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
-          <div class="flex items-center gap-1">
-            <Avatar class="h-4 w-4">
+          <div class="flex min-w-0 flex-wrap items-center gap-1">
+            <Avatar class="h-4 w-4 shrink-0">
               <AvatarImage
                 :src="
                   props.submission.user?.avatar ||
@@ -170,18 +177,21 @@ const handleWriteSolution = () => {
               />
               <AvatarFallback>U</AvatarFallback>
             </Avatar>
-            <span class="font-mono font-medium text-foreground">{{
-              props.submission.user?.name ||
-              props.submission.user?.username ||
-              "User"
-            }}</span>
-            <span class="text-muted-foreground/60">{{
+            <span
+              class="max-w-full break-all font-mono font-medium text-foreground"
+              >{{
+                props.submission.user?.name ||
+                props.submission.user?.username ||
+                "User"
+              }}</span
+            >
+            <span class="shrink-0 whitespace-nowrap text-muted-foreground/60">{{
               t("problem.submissions.submittedAt")
             }}</span>
             <span class="font-mono tabular-nums">{{
-              new Date(
+              formatDateTime(
                 props.submission.submittedAt ?? props.submission.created_at,
-              ).toLocaleString()
+              )
             }}</span>
           </div>
         </div>

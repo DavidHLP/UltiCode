@@ -23,6 +23,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuGroup,
+  DropdownMenuSeparator,
 } from "@ulticode/design-system/ui/dropdown-menu";
 import {
   MessageSquare,
@@ -38,21 +39,25 @@ import { fetchMyForumPosts, deleteForumPost } from "@/api/forum";
 import type { ForumPost } from "@/types/forum";
 import { toast } from "vue-sonner";
 import { useI18n } from "vue-i18n";
+import RetryButton from "@/components/common/loading/RetryButton.vue";
 import PersonalPageHeader from "./components/PersonalPageHeader.vue";
 import PersonalPageShell from "./components/PersonalPageShell.vue";
 
 const { t, locale } = useI18n();
 const isLoading = ref(true);
 const posts = ref<ForumPost[]>([]);
+const loadError = ref(false);
 
 async function loadPosts() {
   isLoading.value = true;
+  loadError.value = false;
+  posts.value = [];
   try {
     const result = await fetchMyForumPosts();
     posts.value = result.items;
   } catch (error) {
+    loadError.value = true;
     console.error("Failed to load forum posts", error);
-    toast.error(t("personal.messages.loadFailed"));
   } finally {
     isLoading.value = false;
   }
@@ -96,6 +101,15 @@ onMounted(loadPosts);
       <p class="text-sm text-muted-foreground">
         {{ t("personal.forumPosts.loadingPosts") }}
       </p>
+    </div>
+
+    <div
+      v-else-if="loadError"
+      role="alert"
+      class="space-y-3 rounded-lg border bg-card p-6 text-center [overflow-wrap:anywhere]"
+    >
+      <p class="text-destructive">{{ t("personal.forumPosts.loadError") }}</p>
+      <RetryButton @retry="loadPosts" />
     </div>
 
     <div

@@ -28,7 +28,7 @@ const emit = defineEmits<{
       v-for="cat in categories"
       :key="cat.value"
       @click="emit('update:modelValue', cat.value)"
-      class="inline-flex items-center gap-2 px-3 py-2 flex min-w-0 items-center justify-center gap-1.5 px-2 py-1.5 cursor-pointer select-none whitespace-nowrap focus-visible:outline-none md:flex-1 md:px-3"
+      class="inline-flex items-center gap-2 px-3 py-2 flex min-w-0 items-center justify-center gap-1.5 px-2 py-1.5 cursor-pointer select-none whitespace-nowrap focus-visible:outline-none md:flex-[1_0_auto] md:px-3"
       :class="
         modelValue === cat.value
           ? 'bg-accent text-foreground shadow-sm border border-input font-bold'

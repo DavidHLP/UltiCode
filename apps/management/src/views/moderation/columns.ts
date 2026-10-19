@@ -461,6 +461,7 @@ export function createColumns(
             },
           ],
           {
+            srLabel: t('moderation.columns.actions'),
             triggerClass: 'h-8 w-8 p-0 hover:bg-[var(--accent)] dark:hover:bg-[var(--foreground)]',
             triggerIconClass: 'h-4 w-4 text-[var(--muted-foreground)]',
             contentClass: 'border-[var(--border)] dark:border-[var(--foreground)]',

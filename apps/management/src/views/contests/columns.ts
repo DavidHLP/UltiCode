@@ -178,7 +178,7 @@ export function createColumns(
             h(
               'span',
               { class: 'font-mono text-xs tabular-nums' },
-              t('contests.scheduleStep.minutes', { minutes: contest.duration }),
+              t('contests.scheduleStep.minutes', { minutes: contest.durationMinutes }),
             ),
           ]),
         ])

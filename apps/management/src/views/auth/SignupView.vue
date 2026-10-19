@@ -29,7 +29,7 @@ defineOptions({
   <AuthLayout badge="ADMIN" version="v2.0.0">
     <template #form>
       <AuthCard>
-        <RegisterForm :on-submit="blockRegistration" hide-oauth />
+        <RegisterForm :on-submit="blockRegistration" hide-o-auth />
       </AuthCard>
     </template>
     <template #pattern>

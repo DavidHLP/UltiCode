@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
+import { createValueRequest } from '@ulticode/request-state'
 import { useI18n } from 'vue-i18n'
 import { formatDateTimeByLocale } from '@/i18n/utils'
 import { toast } from 'vue-sonner'
@@ -37,7 +38,15 @@ import {
 const { t } = useI18n()
 
 // State
-const loading = ref(true)
+const dataRequest = createValueRequest({
+  errorMessage: 'Failed to load email data',
+  onError(error) {
+    console.error('Failed to load email data:', error)
+    toast.error(t('system.email.toast.loadFailed'))
+  },
+})
+const loading = dataRequest.loading
+const loadError = dataRequest.error
 const activeTab = ref('logs')
 const logs = ref<EmailLog[]>([])
 const templates = ref<EmailTemplate[]>([])
@@ -67,22 +76,19 @@ const templateForm = ref({
 
 // Methods
 async function loadData() {
-  loading.value = true
-  try {
-    const [logsRes, templatesRes, statsRes] = await Promise.all([
-      emailApi.getLogs({ limit: 50 }),
-      emailApi.getTemplates(),
-      emailApi.getStats(),
-    ])
-    logs.value = logsRes.items
-    templates.value = templatesRes
-    stats.value = statsRes
-  } catch (error) {
-    console.error('Failed to load email data:', error)
-    toast.error(t('system.email.toast.loadFailed'))
-  } finally {
-    loading.value = false
-  }
+  logs.value = []
+  templates.value = []
+  stats.value = null
+  await dataRequest.run(
+    () =>
+      Promise.all([emailApi.getLogs({ limit: 50 }), emailApi.getTemplates(), emailApi.getStats()]),
+    undefined,
+    ([logsRes, templatesRes, statsRes]) => {
+      logs.value = logsRes.items
+      templates.value = templatesRes
+      stats.value = statsRes
+    },
+  )
 }
 
 function openSendDialog(template?: EmailTemplate) {
@@ -229,10 +235,11 @@ function getStatusBadgeColor(status: string): SemanticColor {
 }
 
 // Lifecycle
-onMounted(async () => {
-  await loadData()
+onMounted(() => {
   isLoaded.value = true
+  void loadData()
 })
+onUnmounted(() => dataRequest.cancel())
 </script>
 
 <template>
@@ -246,14 +253,14 @@ onMounted(async () => {
       ]"
     >
       <!-- Title Row -->
-      <div class="px-4 lg:px-6 py-4 flex items-center justify-between">
+      <div class="px-4 lg:px-6 py-4 flex flex-wrap items-center justify-between gap-4">
         <div class="space-y-1">
           <h1 class="text-xl font-medium tracking-tight text-foreground">
             {{ t('system.email.title') }}
           </h1>
           <p class="text-xs text-muted-foreground">{{ t('system.email.description') }}</p>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
           <Button variant="outline" size="sm" :disabled="loading" @click="loadData">
             <IconLoader2 v-if="loading" class="h-3.5 w-3.5 mr-1.5 animate-spin" />
             <IconRefresh v-else class="h-3.5 w-3.5 mr-1.5" />
@@ -274,6 +281,19 @@ onMounted(async () => {
         isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2',
       ]"
     >
+      <div
+        v-if="loadError"
+        role="alert"
+        class="flex flex-wrap items-center justify-between gap-3 border border-border bg-card p-4"
+      >
+        <p class="min-w-0 text-sm text-destructive [overflow-wrap:anywhere]">
+          {{ t('system.email.toast.loadFailed') }}
+        </p>
+        <Button variant="outline" size="sm" @click="loadData">
+          {{ t('common.retry') }}
+        </Button>
+      </div>
+
       <!-- Stats Cards -->
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
@@ -283,7 +303,7 @@ onMounted(async () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div class="text-2xl font-bold">{{ stats?.total ?? 0 }}</div>
+            <div class="text-2xl font-bold">{{ stats?.total ?? '—' }}</div>
           </CardContent>
         </Card>
         <Card>
@@ -293,7 +313,7 @@ onMounted(async () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div class="text-2xl font-bold text-foreground">{{ stats?.sent ?? 0 }}</div>
+            <div class="text-2xl font-bold text-foreground">{{ stats?.sent ?? '—' }}</div>
           </CardContent>
         </Card>
         <Card>
@@ -303,7 +323,7 @@ onMounted(async () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div class="text-2xl font-bold text-foreground">{{ stats?.pending ?? 0 }}</div>
+            <div class="text-2xl font-bold text-foreground">{{ stats?.pending ?? '—' }}</div>
           </CardContent>
         </Card>
         <Card>
@@ -313,13 +333,13 @@ onMounted(async () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div class="text-2xl font-bold text-foreground">{{ stats?.failed ?? 0 }}</div>
+            <div class="text-2xl font-bold text-foreground">{{ stats?.failed ?? '—' }}</div>
           </CardContent>
         </Card>
       </div>
 
       <!-- Tabs -->
-      <Tabs v-model="activeTab">
+      <Tabs v-if="!loadError" v-model="activeTab">
         <TabsList>
           <TabsTrigger value="logs">
             <IconMail class="h-4 w-4 mr-1" />
@@ -338,7 +358,12 @@ onMounted(async () => {
               <CardTitle>{{ t('system.email.logs.title') }}</CardTitle>
             </CardHeader>
             <CardContent>
-              <div v-if="loading" class="flex items-center justify-center py-8">
+              <div
+                v-if="loading"
+                role="status"
+                :aria-label="t('common.loading')"
+                class="flex items-center justify-center py-8"
+              >
                 <IconLoader2 class="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
 
@@ -389,7 +414,12 @@ onMounted(async () => {
               </Button>
             </CardHeader>
             <CardContent>
-              <div v-if="loading" class="flex items-center justify-center py-8">
+              <div
+                v-if="loading"
+                role="status"
+                :aria-label="t('common.loading')"
+                class="flex items-center justify-center py-8"
+              >
                 <IconLoader2 class="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
 
@@ -430,11 +460,11 @@ onMounted(async () => {
 
       <!-- Send Email Dialog -->
       <Dialog v-model:open="showSendDialog">
-        <DialogContent class="max-w-2xl">
-          <DialogHeader>
+        <DialogContent class="flex max-h-[calc(100dvh-2rem)] flex-col sm:max-w-2xl">
+          <DialogHeader class="shrink-0">
             <DialogTitle>{{ t('system.email.sendEmail') }}</DialogTitle>
           </DialogHeader>
-          <div class="space-y-4 py-4">
+          <div class="min-h-0 space-y-4 overflow-y-auto px-1 py-4">
             <div>
               <Label>{{ t('system.email.form.to') }}</Label>
               <Input v-model="sendForm.to" type="email" placeholder="user@example.com" />
@@ -455,7 +485,7 @@ onMounted(async () => {
               />
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter class="shrink-0">
             <Button variant="outline" @click="showSendDialog = false">
               {{ t('common.cancel') }}
             </Button>
@@ -470,8 +500,8 @@ onMounted(async () => {
 
       <!-- Template Dialog -->
       <Dialog v-model:open="showTemplateDialog">
-        <DialogContent class="max-w-2xl">
-          <DialogHeader>
+        <DialogContent class="flex max-h-[calc(100dvh-2rem)] flex-col sm:max-w-2xl">
+          <DialogHeader class="shrink-0">
             <DialogTitle>
               {{
                 editingTemplate
@@ -480,7 +510,7 @@ onMounted(async () => {
               }}
             </DialogTitle>
           </DialogHeader>
-          <div class="space-y-4 py-4">
+          <div class="min-h-0 space-y-4 overflow-y-auto px-1 py-4">
             <div>
               <Label>{{ t('system.email.form.name') }}</Label>
               <Input
@@ -514,7 +544,7 @@ onMounted(async () => {
               </p>
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter class="shrink-0">
             <Button variant="outline" @click="showTemplateDialog = false">
               {{ t('common.cancel') }}
             </Button>

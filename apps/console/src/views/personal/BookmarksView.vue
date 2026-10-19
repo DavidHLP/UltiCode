@@ -54,6 +54,7 @@ import {
 } from "@/types/bookmark";
 import { toast } from "vue-sonner";
 import { RouterLink } from "vue-router";
+import RetryButton from "@/components/common/loading/RetryButton.vue";
 import PersonalPageHeader from "./components/PersonalPageHeader.vue";
 import PersonalPageShell from "./components/PersonalPageShell.vue";
 
@@ -80,6 +81,7 @@ const store = useBookmarkStore();
 const { t } = useI18n();
 
 const searchQuery = ref("");
+const folderListError = ref(false);
 
 const showCreateDialog = ref(false);
 const editingFolder = ref<BookmarkFolder | null>(null);
@@ -244,12 +246,17 @@ function getForumMetadata(item: BookmarkItem): ForumMetadata | undefined {
   return item.metadata as unknown as ForumMetadata;
 }
 
-onMounted(() => {
-  void store.loadFolders(true).catch((error) => {
+async function loadFolders() {
+  folderListError.value = false;
+  try {
+    await store.loadFolders(true);
+  } catch (error) {
+    folderListError.value = true;
     console.error("Failed to load bookmark folders:", error);
-    toast.error(t("personal.messages.loadFailed"));
-  });
-});
+  }
+}
+
+onMounted(loadFolders);
 </script>
 
 <template>
@@ -266,9 +273,18 @@ onMounted(() => {
       </template>
     </PersonalPageHeader>
 
-    <div class="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
+    <div
+      v-if="folderListError"
+      role="alert"
+      class="space-y-3 rounded-lg border bg-card p-6 text-center [overflow-wrap:anywhere]"
+    >
+      <p class="text-destructive">{{ t("personal.bookmarks.loadError") }}</p>
+      <RetryButton @retry="loadFolders" />
+    </div>
+
+    <div v-else class="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
       <!-- Sidebar (Folders) -->
-      <Card class="lg:col-span-1 sticky top-24">
+      <Card class="lg:col-span-1 lg:sticky lg:top-24">
         <CardHeader class="pb-3 px-4">
           <CardTitle>{{ t("personal.bookmarks.folders") }}</CardTitle>
         </CardHeader>

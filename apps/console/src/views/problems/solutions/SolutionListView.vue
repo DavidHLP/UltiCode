@@ -266,11 +266,11 @@ onMounted(async () => {
       </div>
 
       <!-- 提交统计和操作栏 -->
-      <div class="mt-1.5 lc-md:mt-1.5">
+      <div class="mt-1.5 w-full min-w-0 lc-md:mt-1.5">
         <div
-          class="bg-muted border border-border/40 flex items-center justify-between gap-3 rounded-lg p-2 lc-md:p-1.5"
+          class="bg-muted border border-border/40 flex flex-wrap items-center justify-between gap-3 rounded-lg p-2 lc-md:p-1.5"
         >
-          <div class="flex items-center gap-2 flex-1 min-w-0 pl-1">
+          <div class="flex items-center gap-2 flex-1 basis-40 min-w-0 pl-1">
             <template v-if="userSolution">
               <div
                 class="rounded-lg p-0.5 bg-status-success-mark flex-shrink-0 flex items-center justify-center h-4 w-4"
@@ -278,7 +278,7 @@ onMounted(async () => {
                 <Check class="h-3 w-3 text-primary-foreground" />
               </div>
               <span
-                class="text-xs font-bold uppercase tracking-wider text-foreground leading-tight truncate"
+                class="text-xs font-bold uppercase tracking-wider text-foreground leading-tight break-words"
               >
                 {{ t("problem.solutions.alreadyShared") }}
               </span>
@@ -290,7 +290,7 @@ onMounted(async () => {
                 <Check class="h-3 w-3 text-primary-foreground" />
               </div>
               <span
-                class="text-xs font-semibold text-foreground leading-tight truncate"
+                class="text-xs font-semibold text-foreground leading-tight break-words"
               >
                 {{
                   t("problem.solutions.runtimeBeats", {
@@ -301,7 +301,7 @@ onMounted(async () => {
             </template>
             <template v-else>
               <span
-                class="text-xs font-semibold text-muted-foreground leading-tight truncate"
+                class="text-xs font-semibold text-muted-foreground leading-tight break-words"
               >
                 {{ t("problem.solutions.solveToWrite") }}
               </span>

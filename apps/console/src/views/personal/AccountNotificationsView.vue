@@ -87,7 +87,7 @@ onMounted(async () => {
                 <Mail class="h-5 w-5 text-primary" />
               </div>
               <div class="space-y-0.5">
-                <Label>
+                <Label for="notification-communication">
                   {{ t("personal.account.notificationTypes.communication") }}
                 </Label>
                 <p class="text-sm text-muted-foreground">
@@ -98,6 +98,7 @@ onMounted(async () => {
               </div>
             </div>
             <Switch
+              id="notification-communication"
               :model-value="preferences?.communication ?? true"
               :disabled="saving || !preferences"
               @update:model-value="
@@ -117,7 +118,7 @@ onMounted(async () => {
                 <Bell class="h-5 w-5 text-status-warning-mark" />
               </div>
               <div class="space-y-0.5">
-                <Label>
+                <Label for="notification-marketing">
                   {{ t("personal.account.notificationTypes.marketing") }}
                 </Label>
                 <p class="text-sm text-muted-foreground">
@@ -126,6 +127,7 @@ onMounted(async () => {
               </div>
             </div>
             <Switch
+              id="notification-marketing"
               :model-value="preferences?.marketing ?? false"
               :disabled="saving || !preferences"
               @update:model-value="
@@ -144,7 +146,7 @@ onMounted(async () => {
                 <ShieldCheck class="h-5 w-5 text-status-success-mark" />
               </div>
               <div class="space-y-0.5">
-                <Label>
+                <Label for="notification-security">
                   {{ t("personal.account.notificationTypes.security") }}
                 </Label>
                 <p class="text-sm text-muted-foreground">
@@ -152,7 +154,11 @@ onMounted(async () => {
                 </p>
               </div>
             </div>
-            <Switch :model-value="preferences?.security ?? true" disabled />
+            <Switch
+              id="notification-security"
+              :model-value="preferences?.security ?? true"
+              disabled
+            />
           </div>
         </div>
       </CardContent>

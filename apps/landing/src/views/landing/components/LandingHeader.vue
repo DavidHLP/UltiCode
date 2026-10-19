@@ -24,20 +24,20 @@ const items = [
 <template>
   <header class="sticky top-0 z-30 border-b bg-background">
     <div
-      class="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6"
+      class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6"
     >
       <a :href="platformUrl('/')" class="flex items-center gap-2 font-semibold"
         ><Code aria-hidden="true" />UltiCode</a
       >
       <nav
-        class="hidden items-center gap-1 md:flex"
+        class="hidden flex-1 items-center justify-center gap-1 md:flex"
         :aria-label="t('landing.navigation')"
       >
         <Button v-for="item in items" :key="item.key" variant="ghost" as-child
           ><a :href="item.href">{{ t(`landing.nav.${item.key}`) }}</a></Button
         >
       </nav>
-      <div class="flex items-center gap-2">
+      <div class="ml-auto flex min-w-0 flex-wrap items-center gap-2">
         <Button
           variant="ghost"
           size="icon"

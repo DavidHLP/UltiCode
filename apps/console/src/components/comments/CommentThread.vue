@@ -10,7 +10,7 @@ import {
   buildCommentTree,
   buildSolutionCommentTree,
 } from "./comment-tree-builder";
-import { ref, computed } from "vue";
+import { ref, computed, nextTick } from "vue";
 import { useI18n } from "vue-i18n";
 
 const props = defineProps<{
@@ -29,6 +29,13 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 const isCommenting = ref(false);
+const commentPrompt = ref<HTMLElement | null>(null);
+
+async function cancelComment() {
+  isCommenting.value = false;
+  await nextTick();
+  commentPrompt.value?.querySelector("button")?.focus({ preventScroll: true });
+}
 
 function handleReply(commentId: string | number, content: string) {
   emit("submit", content, String(commentId));
@@ -51,13 +58,17 @@ const commentTree = computed(() => {
 </script>
 
 <template>
-  <div class="space-y-6 px-4 sm:px-6 pb-8">
-    <div v-if="!isCommenting && !props.isLocked" class="mb-8">
+  <div class="min-w-0 space-y-6 pb-8">
+    <div
+      v-if="!isCommenting && !props.isLocked"
+      ref="commentPrompt"
+      class="mb-8"
+    >
       <Button
         variant="outline"
         type="button"
         :aria-label="t('forum.comments.joinConversation')"
-        class="group flex w-full cursor-text items-center gap-3 px-4 py-3 text-left focus-visible:outline-none"
+        class="group flex h-auto min-h-8 w-full min-w-0 whitespace-normal cursor-text items-center gap-2 px-3 py-3 text-left focus-visible:outline-none"
         @click="isCommenting = true"
       >
         <span
@@ -66,7 +77,7 @@ const commentTree = computed(() => {
           <MessageSquare class="size-4" aria-hidden="true" />
         </span>
         <span
-          class="font-mono text-sm text-muted-foreground transition-colors duration-200 group-hover:text-foreground"
+          class="min-w-0 break-words font-mono text-sm text-muted-foreground transition-colors duration-200 group-hover:text-foreground"
           >{{ t("forum.comments.joinConversation") }}</span
         >
       </Button>
@@ -74,7 +85,7 @@ const commentTree = computed(() => {
 
     <div v-if="isCommenting" class="space-y-3 mb-8">
       <CommentForm
-        :on-cancel="() => (isCommenting = false)"
+        :on-cancel="cancelComment"
         @submit="
           (content) => {
             emit('submit', content);

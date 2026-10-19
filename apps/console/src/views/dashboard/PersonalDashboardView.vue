@@ -165,7 +165,7 @@ onMounted(async () => {
     <!-- Activity Heatmap & Skills Grid -->
     <div class="grid gap-6 lg:grid-cols-2">
       <!-- Heatmap -->
-      <div class="rounded-lg border bg-card p-6">
+      <div class="min-w-0 rounded-lg border bg-card p-6">
         <h2 class="mb-4 text-lg font-semibold">
           {{ t("personal.dashboard.heatmap.title") }}
         </h2>
@@ -177,7 +177,7 @@ onMounted(async () => {
       </div>
 
       <!-- Skills Radar -->
-      <div class="rounded-lg border bg-card p-6">
+      <div class="min-w-0 rounded-lg border bg-card p-6">
         <h2 class="mb-4 text-lg font-semibold">
           {{ t("personal.dashboard.skills.title") }}
         </h2>

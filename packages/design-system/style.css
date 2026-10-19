@@ -189,6 +189,13 @@
   .uc-page-main { display: flex; min-width: 0; flex: 1; flex-direction: column; padding: var(--uc-layout-page-gutter); }
   .uc-page-container { width: 100%; min-width: 0; max-width: var(--page-max-width); margin-inline: auto; }
   .uc-page-stack { display: flex; flex-direction: column; gap: var(--uc-layout-section-gap); }
+  .uc-sidebar-list-section { display: flex; min-width: 0; flex-direction: column; padding: 0.5rem; }
+  .uc-sidebar-section-header { display: flex; align-items: center; gap: 0.25rem; }
+  .uc-sidebar-section-trigger { display: flex; min-width: 0; height: 2rem; width: 100%; align-items: center; gap: 0.5rem; padding-inline: 0.5rem; border-radius: var(--radius-md); color: color-mix(in oklab, var(--sidebar-foreground) 70%, transparent); font-size: 0.75rem; font-weight: 500; text-align: start; }
+  .uc-sidebar-section-trigger:focus-visible { outline: 2px solid var(--sidebar-ring); outline-offset: 2px; }
+  .uc-sidebar-section-chevron { width: 0.75rem; height: 0.75rem; flex-shrink: 0; transition: transform 200ms; }
+  .uc-sidebar-section-icon { width: 1rem; height: 1rem; flex-shrink: 0; }
+  .uc-sidebar-list { display: flex; min-width: 0; flex-direction: column; gap: 0.25rem; }
   .typeset-docs { --typeset-font-body: var(--font-sans); --typeset-font-heading: var(--font-heading); --typeset-font-mono: var(--font-mono); }
 }
 @media (pointer: coarse) {

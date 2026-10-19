@@ -144,11 +144,6 @@ function cancelCreateNew() {
 
 <template>
   <div class="space-y-6">
-    <!-- Section Header -->
-    <div class="flex items-center gap-2 mb-4">
-      <span class="text-sm text-muted-foreground">scoring_rule</span>
-    </div>
-
     <!-- Loading state -->
     <div v-if="loading" class="flex items-center justify-center py-8">
       <IconLoader class="h-6 w-6 animate-spin text-primary" />

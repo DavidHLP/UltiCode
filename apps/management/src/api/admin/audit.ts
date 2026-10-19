@@ -140,8 +140,8 @@ export const auditApi = {
   async getProblemAuditLogs(
     id: string | number,
     params: AuditLogQueryParams = {},
-  ): Promise<PageResult<AuditLog>> {
-    return apiGet<PageResult<AuditLog>>(`/admin/problems/${id}/audit`, {
+  ): Promise<AuditLog[]> {
+    return apiGet<AuditLog[]>(`/admin/problems/${id}/audit`, {
       params: normalizeDateParams(params),
     })
   },

@@ -36,6 +36,7 @@ const { t } = useI18n()
 // State
 const backups = ref<Backup[]>([])
 const loading = ref(true)
+const loadFailed = ref(false)
 const creating = ref(false)
 const selectedBackup = ref<Backup | null>(null)
 const showRestoreDialog = ref(false)
@@ -55,10 +56,12 @@ const pendingBackups = computed(() =>
 // Methods
 async function loadBackups() {
   loading.value = true
+  loadFailed.value = false
   try {
     const response = await backupApi.getBackups({ limit: 100 })
     backups.value = response.items
   } catch (error) {
+    loadFailed.value = true
     console.error('Failed to load backups:', error)
     toast.error(t('system.backup.toast.loadFailed'))
   } finally {
@@ -205,14 +208,14 @@ onMounted(async () => {
       ]"
     >
       <!-- Title Row -->
-      <div class="px-4 lg:px-6 py-4 flex items-center justify-between">
+      <div class="px-4 lg:px-6 py-4 flex flex-wrap items-center justify-between gap-4">
         <div class="space-y-1">
           <h1 class="text-xl font-medium tracking-tight text-foreground">
             {{ t('system.backup.title') }}
           </h1>
           <p class="text-xs text-muted-foreground">{{ t('system.backup.description') }}</p>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
           <Button variant="outline" size="sm" :disabled="loading" @click="loadBackups">
             <IconLoader2 v-if="loading" class="h-3.5 w-3.5 mr-1.5 animate-spin" />
             <IconRefresh v-else class="h-3.5 w-3.5 mr-1.5" />
@@ -243,7 +246,7 @@ onMounted(async () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div class="text-2xl font-bold">{{ backups.length }}</div>
+            <div class="text-2xl font-bold">{{ loading || loadFailed ? '—' : backups.length }}</div>
           </CardContent>
         </Card>
         <Card>
@@ -253,7 +256,9 @@ onMounted(async () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div class="text-2xl font-bold text-foreground">{{ completedBackups.length }}</div>
+            <div class="text-2xl font-bold text-foreground">
+              {{ loading || loadFailed ? '—' : completedBackups.length }}
+            </div>
           </CardContent>
         </Card>
         <Card>
@@ -263,7 +268,9 @@ onMounted(async () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div class="text-2xl font-bold text-foreground">{{ pendingBackups.length }}</div>
+            <div class="text-2xl font-bold text-foreground">
+              {{ loading || loadFailed ? '—' : pendingBackups.length }}
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -279,6 +286,10 @@ onMounted(async () => {
         <CardContent>
           <div v-if="loading" class="flex items-center justify-center py-8">
             <IconLoader2 class="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+
+          <div v-else-if="loadFailed" role="alert" class="text-center py-8 text-destructive">
+            {{ t('system.backup.toast.loadFailed') }}
           </div>
 
           <div v-else-if="backups.length === 0" class="text-center py-8 text-muted-foreground">

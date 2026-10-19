@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 
 import { Button } from '@ulticode/design-system/ui/button'
@@ -25,6 +25,7 @@ import BaseDetailDrawer from '@/components/shared/BaseDetailDrawer.vue'
 import { useModerationStore } from '@/stores/admin/moderation'
 import {
   type ModerationQueueItem,
+  moderationQueueApi,
   ModerationActionType,
   ModerationStatus,
   ReportCategory,
@@ -39,12 +40,14 @@ import BatchActionDialog from './components/BatchActionDialog.vue'
 
 const { t } = useI18n()
 const router = useRouter()
+const route = useRoute()
 const store = useModerationStore()
 
 const isLoaded = ref(false)
 
 // Detail drawer state
 const drawerOpen = ref(false)
+const drawerReturnFocus = ref<HTMLElement | null>(null)
 const selectedQueueItem = ref<ModerationQueueItem | null>(null)
 const drawerAction = ref<ModerationActionType>(ModerationActionType.RESOLVED)
 const drawerNote = ref('')
@@ -96,11 +99,12 @@ const { buildFilters, handleFilterUpdate } = useModerationFilters({ query, setFi
 const filters = buildFilters(t)
 
 // Stats
+const availableStats = computed(() => (store.statsLoading || store.statsError ? null : store.stats))
 const stats = computed(() => ({
-  total: store.queueTotal,
-  pending: store.stats?.pendingCount ?? 0,
-  underReview: store.stats?.underReviewCount ?? 0,
-  resolved: store.stats?.resolvedCount ?? 0,
+  total: loading.value || store.queueError ? '—' : store.queueTotal,
+  pending: availableStats.value?.pendingCount ?? '—',
+  underReview: availableStats.value?.underReviewCount ?? '—',
+  resolved: availableStats.value?.resolvedCount ?? '—',
 }))
 
 // Table columns
@@ -109,18 +113,54 @@ const columns = computed(() => {
     viewEntity: (item) => {
       router.push(entityRoute(item.entityType, item.entityId))
     },
-    openDrawer: (item) => {
-      selectedQueueItem.value = item
-      drawerAction.value = ModerationActionType.RESOLVED
-      drawerNote.value = ''
-      drawerDurationDays.value = undefined
-      drawerOpen.value = true
-    },
+    openDrawer: (item) => openDrawer(item, getActiveMenuTrigger()),
     quickAction: (id, action) => handleQuickAction(id, action),
     claimItem: (id) => handleClaim(id),
   }
   return createColumns(t, actions)
 })
+
+function getActiveMenuTrigger(): HTMLElement | null {
+  const active = document.activeElement
+  if (!(active instanceof HTMLElement) || active.getAttribute('role') !== 'menuitem') return null
+  const triggerId = active.closest('[role="menu"]')?.getAttribute('aria-labelledby')
+  return triggerId ? document.getElementById(triggerId) : null
+}
+
+function openDrawer(item: ModerationQueueItem, returnFocus: HTMLElement | null = null) {
+  drawerReturnFocus.value = returnFocus
+  selectedQueueItem.value = item
+  drawerAction.value = ModerationActionType.RESOLVED
+  drawerNote.value = ''
+  drawerDurationDays.value = undefined
+  drawerOpen.value = true
+}
+
+function restoreDrawerFocus(event: Event) {
+  const target = drawerReturnFocus.value
+  drawerReturnFocus.value = null
+  if (!target?.isConnected) return
+  event.preventDefault()
+  target.focus({ preventScroll: true })
+}
+
+watch(
+  () => route.query.queueId,
+  async (id, _previous, onCleanup) => {
+    drawerOpen.value = false
+    selectedQueueItem.value = null
+    if (typeof id !== 'string' || !id.trim()) return
+    const controller = new AbortController()
+    onCleanup(() => controller.abort())
+    try {
+      const item = await moderationQueueApi.getQueueItem(encodeURIComponent(id), controller.signal)
+      if (!controller.signal.aborted) openDrawer(item)
+    } catch {
+      if (!controller.signal.aborted) toast.error(t('moderation.toast.error'))
+    }
+  },
+  { immediate: true },
+)
 
 async function handleQuickAction(id: string, action: ModerationActionType) {
   try {
@@ -208,30 +248,36 @@ const selectedActionOption = computed(() =>
         <h1 class="text-xl font-medium tracking-tight text-foreground">
           {{ t('nav.moderation') }}
         </h1>
-        <Button variant="outline" size="sm" @click="handleRefresh" :disabled="loading">
+        <Button
+          variant="outline"
+          size="sm"
+          :aria-label="t('common.refresh')"
+          @click="handleRefresh"
+          :disabled="loading || store.statsLoading"
+        >
           <IconRefresh :class="['h-3.5 w-3.5', { 'animate-spin': loading }]" />
           <span class="uppercase tracking-wider hidden sm:inline">{{ t('common.refresh') }}</span>
         </Button>
       </div>
 
       <div
-        class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-border dark:border-border bg-muted"
+        class="px-4 lg:px-6 py-2.5 flex flex-wrap items-center gap-x-6 gap-y-2 whitespace-nowrap border-t border-border dark:border-border bg-muted"
       >
         <div class="flex items-center gap-2">
           <span class="text-sm font-medium text-muted-foreground"
-            >{{ t('moderation.terminal.total') }}:</span
+            >{{ t('moderation.terminal.filteredTotal') }}:</span
           >
           <span class="font-mono text-sm text-foreground tabular-nums">{{ stats.total }}</span>
         </div>
         <div class="flex items-center gap-2">
           <span class="text-sm font-medium text-muted-foreground"
-            >{{ t('moderation.terminal.pending') }}:</span
+            >{{ t('moderation.terminal.globalPending') }}:</span
           >
           <span class="font-mono text-sm text-foreground tabular-nums">{{ stats.pending }}</span>
         </div>
         <div class="flex items-center gap-2">
           <span class="text-sm font-medium text-muted-foreground"
-            >{{ t('moderation.terminal.underReview') }}:</span
+            >{{ t('moderation.terminal.globalUnderReview') }}:</span
           >
           <span class="font-mono text-sm text-foreground tabular-nums">{{
             stats.underReview
@@ -239,7 +285,7 @@ const selectedActionOption = computed(() =>
         </div>
         <div class="flex items-center gap-2">
           <span class="text-sm font-medium text-muted-foreground"
-            >{{ t('moderation.terminal.resolved') }}:</span
+            >{{ t('moderation.terminal.globalResolved') }}:</span
           >
           <span class="font-mono text-sm text-foreground tabular-nums">{{ stats.resolved }}</span>
         </div>
@@ -249,6 +295,14 @@ const selectedActionOption = computed(() =>
         </div>
       </div>
     </div>
+
+    <p
+      v-if="store.statsError"
+      role="alert"
+      class="mt-4 text-sm text-destructive [overflow-wrap:anywhere]"
+    >
+      {{ t('moderation.stats.loadError') }}
+    </p>
 
     <!-- Batch Actions Bar -->
     <div
@@ -317,13 +371,13 @@ const selectedActionOption = computed(() =>
     <!-- Detail Drawer -->
     <BaseDetailDrawer
       v-model:open="drawerOpen"
+      @close-auto-focus="restoreDrawerFocus"
       :entity="selectedQueueItem"
       :loading="saving"
       :title="t('moderation.drawerTitle')"
       :description="t('moderation.queue.description')"
       :loading-text="t('common.saving')"
       :not-found-text="t('moderation.notFound')"
-      width="w-[400px] sm:w-[540px]"
     >
       <template #headerActions>
         <Button variant="outline" size="sm" :disabled="saving" @click="handleDrawerSave">
@@ -344,7 +398,9 @@ const selectedActionOption = computed(() =>
             <div class="space-y-2 text-sm">
               <div class="flex justify-between">
                 <span class="text-muted-foreground">{{ t('moderation.columns.entityType') }}:</span>
-                <span class="font-mono">{{ entity.entityType }}</span>
+                <span class="font-mono">{{
+                  t(`moderation.entityTypes.${entity.entityType}`)
+                }}</span>
               </div>
               <div class="flex justify-between">
                 <span class="text-muted-foreground">{{ t('moderation.columns.entity') }}:</span>

@@ -108,17 +108,14 @@ const donutValueFormatter = (tick: number | Date) =>
         </div>
         <Progress :model-value="progressPercentage" class="h-2 mb-6" />
 
-        <div class="h-[200px] w-full flex items-center justify-center">
-          <DonutChart
-            class="h-full w-full"
-            index="name"
-            :category="'total'"
-            :data="donutData"
-            :value-formatter="donutValueFormatter"
-            :colors="statusColorScale"
-            :show-legend="true"
-          />
-        </div>
+        <DonutChart
+          index="name"
+          :category="'total'"
+          :data="donutData"
+          :value-formatter="donutValueFormatter"
+          :colors="statusColorScale"
+          :show-legend="true"
+        />
       </CardContent>
     </Card>
 

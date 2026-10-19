@@ -5,12 +5,14 @@ import { useI18n } from "vue-i18n";
 import { formatDate } from "@/utils/datetime";
 import {
   fetchUserProfile,
+  fetchProfileByUsername,
   fetchUserStats,
   fetchUserSkills,
   type ProfileData,
 } from "@/api/user";
 import type { UserStats, UserSkills } from "@/types/userStats";
 import StatsCard from "@/components/dashboard/StatsCard.vue";
+import RetryButton from "@/components/common/loading/RetryButton.vue";
 import ActivityHeatmap from "@/components/dashboard/ActivityHeatmap.vue";
 import SkillRadarChart from "@/components/dashboard/SkillRadarChart.vue";
 import { Trophy, Flame, Target, BarChart3, Calendar, Globe } from "@lucide/vue";
@@ -28,16 +30,9 @@ const stats = ref<UserStats | null>(null);
 const skills = ref<UserSkills | null>(null);
 const error = ref<string | null>(null);
 
-const acceptanceRate = computed(() => {
-  if (!stats.value || !profile.value?.submissionCount) return 0;
-  const { stats: problemStats } = stats.value;
-  const total =
-    (problemStats.Easy?.count || 0) +
-    (problemStats.Medium?.count || 0) +
-    (problemStats.Hard?.count || 0);
-  if (profile.value.submissionCount === 0) return 0;
-  return Math.round((total / profile.value.submissionCount) * 100);
-});
+const acceptanceRate = computed(() =>
+  Math.min(100, Math.max(0, Number(profile.value?.acceptanceRate ?? 0))),
+);
 
 const totalSolved = computed(() => {
   if (!stats.value) return 0;
@@ -49,15 +44,23 @@ const totalSolved = computed(() => {
   );
 });
 
-onMounted(async () => {
+async function loadProfile() {
+  loading.value = true;
+  error.value = null;
+  profile.value = null;
+  stats.value = null;
+  skills.value = null;
   try {
-    loading.value = true;
     const [profileData, statsData, skillsData] = await Promise.all([
       fetchUserProfile(userId.value),
       fetchUserStats(userId.value),
       fetchUserSkills(userId.value),
     ]);
-    profile.value = profileData;
+    const canonicalProfile = await fetchProfileByUsername(profileData.username);
+    if (canonicalProfile.id !== profileData.id) {
+      throw new Error(t("personal.social.loadError"));
+    }
+    profile.value = canonicalProfile;
     stats.value = statsData;
     skills.value = skillsData;
   } catch (e) {
@@ -66,14 +69,24 @@ onMounted(async () => {
   } finally {
     loading.value = false;
   }
-});
+}
+
+onMounted(loadProfile);
 </script>
 
 <template>
-  <div class="container mx-auto max-w-6xl space-y-6 py-6">
+  <div
+    class="mx-auto min-w-0 w-full max-w-6xl space-y-6 px-4 py-6 sm:px-6 lg:px-8"
+  >
     <!-- Error State -->
-    <div v-if="error" class="rounded-lg border bg-card p-6 text-center">
-      <p class="text-muted-foreground">{{ error }}</p>
+    <div
+      v-if="error"
+      role="alert"
+      class="space-y-3 rounded-lg border bg-card p-6 text-center [overflow-wrap:anywhere]"
+    >
+      <p class="text-destructive">{{ t("personal.social.loadError") }}</p>
+      <p class="text-sm text-muted-foreground">{{ error }}</p>
+      <RetryButton @retry="loadProfile" />
     </div>
 
     <!-- Loading State -->
@@ -93,29 +106,29 @@ onMounted(async () => {
     <!-- User Profile Content -->
     <template v-else-if="profile">
       <!-- Header -->
-      <div class="flex items-center justify-between">
-        <div>
-          <h1 class="text-2xl font-bold tracking-tight">
+      <div class="flex items-center justify-between gap-4">
+        <div class="min-w-0 flex-1">
+          <h1 class="break-words text-2xl font-bold tracking-tight">
             {{ profile.name || profile.username }}
           </h1>
-          <p class="text-muted-foreground">@{{ profile.username }}</p>
+          <p class="break-all text-muted-foreground">@{{ profile.username }}</p>
         </div>
         <img
           v-if="profile.avatar"
           :src="profile.avatar"
           :alt="profile.username"
-          class="h-24 w-24 rounded-full object-cover"
+          class="h-24 w-24 shrink-0 rounded-full object-cover"
         />
         <div
           v-else
-          class="flex h-24 w-24 items-center justify-center rounded-full bg-status-success-mark text-2xl font-bold text-[var(--color-background)]"
+          class="flex h-24 w-24 shrink-0 items-center justify-center rounded-full bg-status-success-mark text-2xl font-bold text-[var(--color-background)]"
         >
           {{ (profile.name || profile.username).charAt(0).toUpperCase() }}
         </div>
       </div>
 
       <!-- Bio and Meta -->
-      <div class="rounded-lg border bg-card p-6 space-y-4">
+      <div class="rounded-lg border bg-card p-6 space-y-4 break-words">
         <p v-if="profile.bio" class="text-sm">{{ profile.bio }}</p>
         <div class="flex flex-wrap gap-4 text-sm text-muted-foreground">
           <div v-if="profile.joinedAt" class="flex items-center gap-1">
@@ -135,7 +148,7 @@ onMounted(async () => {
               :href="profile.website"
               target="_blank"
               rel="noopener"
-              class="hover:text-primary"
+              class="break-all hover:text-primary"
             >
               {{ profile.website }}
             </a>
@@ -185,7 +198,7 @@ onMounted(async () => {
         </StatsCard>
 
         <StatsCard
-          :title="t('profile.stats.submissions')"
+          :title="t('personal.stats.submissions')"
           :value="profile.submissionCount || 0"
           :subtitle="t('profile.stats.totalSubmissions')"
           color="orange"
@@ -265,9 +278,9 @@ onMounted(async () => {
       </div>
 
       <!-- Activity Heatmap & Skills -->
-      <div v-if="stats || skills" class="grid gap-6 lg:grid-cols-2">
+      <div v-if="stats || skills" class="grid min-w-0 gap-6 lg:grid-cols-2">
         <!-- Heatmap -->
-        <div v-if="stats" class="rounded-lg border bg-card p-6">
+        <div v-if="stats" class="min-w-0 rounded-lg border bg-card p-6">
           <h2 class="mb-4 text-lg font-semibold">
             {{ t("personal.dashboard.heatmap.title") }}
           </h2>
@@ -275,7 +288,7 @@ onMounted(async () => {
         </div>
 
         <!-- Skills Radar -->
-        <div v-if="skills" class="rounded-lg border bg-card p-6">
+        <div v-if="skills" class="min-w-0 rounded-lg border bg-card p-6">
           <h2 class="mb-4 text-lg font-semibold">
             {{ t("personal.dashboard.skills.title") }}
           </h2>

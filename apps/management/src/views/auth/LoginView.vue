@@ -29,7 +29,7 @@ defineOptions({
   <AuthLayout badge="ADMIN" version="v2.0.0">
     <template #form>
       <AuthCard>
-        <LoginForm :on-submit="handleLogin" hide-forgot hide-sign-up hide-oauth />
+        <LoginForm :on-submit="handleLogin" hide-forgot hide-sign-up hide-o-auth />
       </AuthCard>
     </template>
     <template #pattern>

@@ -1,6 +1,7 @@
 export default {
   // Contest list
   list: {
+    loadError: "比赛加载失败，请重试。",
     title: "比赛",
     mainTitle: "UltiCode 竞赛",
     subtitle: "参加每周挑战，实时解决问题，提升你的全球排名。",
@@ -11,6 +12,13 @@ export default {
     past: "往期竞赛",
     pastSubtitle: "参加虚拟竞赛，为排名赛做准备",
     partner: "竞赛伙伴",
+    tableHeaders: {
+      contest: "比赛",
+      date: "日期",
+      duration: "时长",
+      status: "状态",
+      action: "操作",
+    },
     noContests: "暂无比赛",
     noContestsHint: "当前没有正在进行的比赛，请稍后再来查看！",
     noUpcomingHint: "暂无即将开始的比赛，敬请期待！",
@@ -34,6 +42,7 @@ export default {
     title: "我的比赛",
     subtitle: "查看您已报名、已参加和虚拟的比赛",
     loading: "加载比赛中...",
+    loadError: "比赛加载失败，请重试。",
     tabs: {
       registered: "已报名",
       participated: "已参加",
@@ -220,6 +229,7 @@ export default {
   // Ranking
   ranking: {
     title: "排行榜",
+    contests: "场次",
     national: "全国排名",
     attended: "参加了 {n} 场比赛",
     rank: "排名",

@@ -80,9 +80,11 @@ export interface ProblemListItem {
   updatedAt?: string;
 }
 
+export type ProblemListProblem = Problem & { categorySlugs: string[] };
+
 export interface ProblemListDetailResponse {
   list: ProblemList | null;
-  problems: Problem[];
+  problems: ProblemListProblem[];
   stats: ProblemListStats | null;
   isOwner?: boolean;
   viewer?: {

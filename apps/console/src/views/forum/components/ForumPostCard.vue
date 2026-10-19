@@ -236,10 +236,10 @@ function handleCardClick(event: MouseEvent) {
       <div class="min-w-0 flex-1 space-y-3">
         <!-- Header -->
         <header
-          class="flex items-center gap-2 text-xs font-mono text-foreground dark:text-muted-foreground"
+          class="flex flex-wrap items-center gap-2 text-xs font-mono text-foreground dark:text-muted-foreground"
         >
           <Avatar
-            class="h-9 w-9 avatar-trigger cursor-pointer"
+            class="h-9 w-9 shrink-0 avatar-trigger cursor-pointer"
             v-if="post.community?.icon"
           >
             <AvatarImage
@@ -250,32 +250,32 @@ function handleCardClick(event: MouseEvent) {
               post.community.name.charAt(0).toUpperCase()
             }}</AvatarFallback>
           </Avatar>
-          <Avatar class="h-9 w-9 avatar-trigger cursor-pointer" v-else>
+          <Avatar class="h-9 w-9 shrink-0 avatar-trigger cursor-pointer" v-else>
             <AvatarImage
               :src="normalizedAvatar"
               :alt="post.author?.username || 'user'"
             />
             <AvatarFallback>{{ userInitials }}</AvatarFallback>
           </Avatar>
-          <span class="flex items-center gap-1">
+          <span class="flex min-w-0 flex-1 flex-wrap items-center gap-x-1 gap-y-1">
             <span
               v-if="post.community"
-              class="font-bold text-primary hover:underline cursor-pointer"
+              class="max-w-full break-words font-bold text-primary hover:underline cursor-pointer"
             >
               r/{{ post.community.name }}
             </span>
             <span
               v-else
-              class="font-bold text-foreground dark:text-muted-foreground hover:underline cursor-pointer"
+              class="max-w-full break-all font-bold text-foreground dark:text-muted-foreground hover:underline cursor-pointer"
             >
               u/{{ post.author?.username || "?" }}
             </span>
             <span class="text-muted-foreground/60">•</span>
-            <span>{{ createdAgo }}</span>
+            <span class="whitespace-nowrap">{{ createdAgo }}</span>
             <span v-if="post.community" class="text-muted-foreground/60"
               >•</span
             >
-            <span v-if="post.community"
+            <span v-if="post.community" class="max-w-full break-all"
               >{{ t("forum.post.postedBy") }} u/{{
                 post.author?.username || "?"
               }}</span
@@ -315,7 +315,7 @@ function handleCardClick(event: MouseEvent) {
             class="markdown-view"
           >
             <div
-              class="text-sm leading-relaxed text-muted-foreground line-clamp-3 typeset typeset-docs prose-p:my-0 prose-headings:my-0 prose-ul:my-0 prose-ol:my-0 max-w-none"
+              class="text-sm leading-relaxed text-muted-foreground max-h-[3lh] overflow-hidden typeset typeset-docs prose-p:my-0 prose-headings:my-0 prose-ul:my-0 prose-ol:my-0 max-w-none"
               v-html="renderMarkdown(post.excerpt)"
             ></div>
           </div>

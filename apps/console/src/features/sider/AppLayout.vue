@@ -60,11 +60,14 @@ const isActiveNav = (item: NavItem) => {
 </script>
 
 <template>
-  <SidebarProvider class="w-full" :style="{ '--sidebar-width': '220px' }">
+  <SidebarProvider
+    class="w-full"
+    :style="{ '--sidebar-width': '220px', '--uc-app-header-height': 'calc(var(--spacing) * 14)' }"
+  >
     <AppSidebar />
     <SidebarInset>
       <header
-        class="sticky top-0 z-30 grid h-14 shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-[var(--uc-layout-control-gap)] border-b border-border bg-card px-[var(--uc-layout-panel-padding-inline)]"
+        class="sticky top-0 z-30 grid h-[var(--uc-app-header-height)] shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-[var(--uc-layout-control-gap)] border-b border-border bg-card px-[var(--uc-layout-panel-padding-inline)]"
       >
         <Tooltip>
           <TooltipTrigger as-child>
@@ -116,7 +119,7 @@ const isActiveNav = (item: NavItem) => {
             </NavigationMenuItem>
           </NavigationMenuList>
         </NavigationMenu>
-        <div class="flex items-center justify-self-end">
+        <div class="col-start-3 flex items-center justify-self-end">
           <SearchBar />
         </div>
       </header>
@@ -128,3 +131,9 @@ const isActiveNav = (item: NavItem) => {
     </SidebarInset>
   </SidebarProvider>
 </template>
+
+<style scoped>
+.uc-page-main :deep(:where([id], .markdown-view strong, .markdown-view p)) {
+  scroll-margin-block-start: var(--uc-app-header-height);
+}
+</style>

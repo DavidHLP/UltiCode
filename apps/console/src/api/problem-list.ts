@@ -213,7 +213,13 @@ export async function fetchProblemListOverview(
   const listData = mapProblemList(data);
   return {
     list: listData,
-    problems: readPage<unknown>(raw.problems).items.map(mapProblem),
+    problems: readPage<unknown>(raw.problems).items.map((item) => {
+      const problem = mapProblem(item);
+      if (!problem.categorySlugs) {
+        throw new TypeError("Problem list overview item is missing categorySlugs");
+      }
+      return { ...problem, categorySlugs: problem.categorySlugs };
+    }),
     stats:
       raw.stats && typeof raw.stats === "object"
         ? (raw.stats as ProblemListStats)

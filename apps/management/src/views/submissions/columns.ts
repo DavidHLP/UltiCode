@@ -7,7 +7,7 @@ import { Button } from '@ulticode/design-system/ui/button'
 import { Eye as IconEye, RefreshCw as IconRefresh } from '@lucide/vue'
 
 import { h } from 'vue'
-import { formatDistanceToNow } from 'date-fns'
+import { formatRelativeTime } from '@/lib/format/date'
 
 export interface SubmissionActions {
   viewSubmission: (id: string) => void
@@ -18,7 +18,7 @@ export interface SubmissionActions {
  * Get translated status label with fallback to original status
  * Handles cases where i18n key might not exist
  */
-function getStatusLabel(t: (key: string) => string, status: string): string {
+export function getStatusLabel(t: (key: string) => string, status: string): string {
   const normalizedStatus = normalizeStatusKey(status)
   const key = `submissions.statusLabels.${normalizedStatus}`
   const translated = t(key)
@@ -132,7 +132,7 @@ export function createColumns(
         h(
           'span',
           { class: 'text-sm text-[var(--muted-foreground)]' },
-          formatDistanceToNow(new Date(row.original.createdAt), { addSuffix: true }),
+          formatRelativeTime(row.original.createdAt),
         ),
     },
     {
@@ -145,6 +145,7 @@ export function createColumns(
             {
               variant: 'outline',
               size: 'sm',
+              'aria-label': t('submissions.actions.view'),
               class:
                 'h-8 w-8 p-0 border-[var(--border)] hover:border-[var(--status-info-mark)] hover:text-[var(--status-info-mark)]',
               onClick: () => actions.viewSubmission(row.original.id),
@@ -156,6 +157,7 @@ export function createColumns(
             {
               variant: 'outline',
               size: 'sm',
+              'aria-label': t('submissions.actions.rejudge'),
               class:
                 'h-8 w-8 p-0 border-[var(--border)] hover:border-[var(--status-warning-mark)] hover:text-[var(--status-warning-mark)]',
               onClick: () => actions.openRejudgeDialog(row.original.id),

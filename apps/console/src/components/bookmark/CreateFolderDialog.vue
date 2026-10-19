@@ -14,6 +14,7 @@ import { Textarea } from "@ulticode/design-system/ui/textarea";
 import { Label } from "@ulticode/design-system/ui/label";
 import { Loader2 } from "@lucide/vue";
 import { useI18n } from "vue-i18n";
+import colors from "tailwindcss/colors";
 import type {
   BookmarkFolder,
   CreateFolderInput,
@@ -57,7 +58,7 @@ const COLORS = [
   "fuchsia",
   "pink",
   "rose",
-];
+] as const;
 
 const isEdit = computed(() => !!props.folder);
 const title = computed(() =>
@@ -155,11 +156,13 @@ function handleClose() {
               type="button"
               class="w-8 flex items-center justify-center relative group"
               :class="[
-                `bg-${color}-500 border-transparent`,
+                'border-transparent',
                 selectedColor === color
                   ? 'border-primary ring-2 ring-primary/20 scale-110'
                   : 'hover:scale-110',
               ]"
+              :style="{ backgroundColor: colors[color][500] }"
+              :aria-pressed="selectedColor === color"
               @click="selectedColor = color"
               :title="t(`bookmark.colors.${color}`)"
             >
@@ -178,6 +181,7 @@ function handleClose() {
                   : 'border-muted-foreground/30 hover:scale-110',
               ]"
               @click="selectedColor = null"
+              :aria-pressed="!selectedColor"
               :title="t('bookmark.noColor')"
             >
               <div class="h-4 w-0.5 bg-muted-foreground/40 rotate-45"></div>

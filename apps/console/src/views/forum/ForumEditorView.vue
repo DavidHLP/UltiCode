@@ -13,6 +13,12 @@ import type { ForumCommunity, ForumPost, ForumTag } from "@/types/forum";
 import { Input } from "@ulticode/design-system/ui/input";
 import { Button } from "@ulticode/design-system/ui/button";
 import { Badge } from "@ulticode/design-system/ui/badge";
+import { Separator } from "@ulticode/design-system/ui/separator";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@ulticode/design-system/ui/popover";
 import {
   Select,
   SelectContent,
@@ -51,7 +57,6 @@ const communityId = ref("");
 const flairType = ref<string | null>(null);
 const flairLabel = ref("");
 const selectedTags = ref<string[]>([]);
-const showTagPicker = ref(false);
 
 const defaultTemplate = `## Context
 
@@ -154,11 +159,23 @@ async function handleSave() {
   }
 }
 
-function toggleTag(tagName: string) {
-  if (selectedTags.value.includes(tagName)) {
-    selectedTags.value = selectedTags.value.filter((t) => t !== tagName);
+function isTagSelected(tag: ForumTag) {
+  return (
+    selectedTags.value.includes(tag.id) || selectedTags.value.includes(tag.name)
+  );
+}
+
+function getTagName(value: string) {
+  return tags.value.find((tag) => tag.id === value)?.name ?? value;
+}
+
+function toggleTag(tag: ForumTag) {
+  if (isTagSelected(tag)) {
+    selectedTags.value = selectedTags.value.filter(
+      (value) => value !== tag.id && value !== tag.name,
+    );
   } else {
-    selectedTags.value.push(tagName);
+    selectedTags.value.push(tag.name);
   }
 }
 
@@ -175,13 +192,19 @@ onMounted(loadData);
 
 <template>
   <div
-    class="flex h-screen w-full flex-col overflow-hidden bg-background animate-in fade-in duration-500"
+    class="flex min-h-dvh w-full flex-col bg-background animate-in fade-in duration-500 lg:h-dvh lg:overflow-hidden"
   >
     <!-- Header -->
     <header
-      class="flex h-16 flex-shrink-0 items-center border-b border-input bg-card px-6 gap-4 shadow-sm z-10"
+      class="sticky top-0 flex h-16 flex-shrink-0 items-center border-b border-input bg-card px-6 gap-4 shadow-sm z-10"
     >
-      <Button variant="ghost" size="sm" class="gap-2" @click="handleGoBack">
+      <Button
+        variant="ghost"
+        size="sm"
+        class="gap-2"
+        :aria-label="t('forum.actions.back')"
+        @click="handleGoBack"
+      >
         <ArrowLeft class="h-4 w-4" />
         <span class="hidden sm:inline">{{ t("forum.actions.back") }}</span>
       </Button>
@@ -224,7 +247,6 @@ onMounted(loadData);
             <Input
               v-model="title"
               :placeholder="t('forum.post.titlePlaceholder')"
-              class="px-0 placeholder:text-muted-foreground/30"
             />
 
             <div class="flex flex-wrap gap-3 items-center">
@@ -287,49 +309,50 @@ onMounted(loadData);
                 class="w-[150px]"
               />
 
-              <div class="relative">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  class="gap-2 px-4"
-                  @click="showTagPicker = !showTagPicker"
+              <Popover>
+                <PopoverTrigger as-child>
+                  <Button variant="outline" size="sm" class="gap-2 px-4">
+                    <Plus class="h-3.5 w-3.5" />
+                    {{ t("forum.post.tags") }}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent
+                  align="end"
+                  :aria-label="t('forum.post.selectTags')"
+                  class="w-64 max-h-(--reka-popover-content-available-height) gap-0 p-0"
                 >
-                  <Plus class="h-3.5 w-3.5" />
-                  {{ t("forum.post.tags") }}
-                </Button>
-                <div
-                  v-if="showTagPicker"
-                  class="absolute left-0 top-11 z-50 w-64 rounded-lg border border-border bg-popover shadow-[var(--shadow-float)] animate-in zoom-in-95 duration-200"
-                >
-                  <div class="border-b border-border px-4 py-3 bg-muted/30">
+                  <div
+                    class="shrink-0 rounded-t-lg border-b border-border px-4 py-3 bg-muted/30"
+                  >
                     <h4
                       class="text-xs font-black uppercase tracking-widest text-muted-foreground"
                     >
                       {{ t("forum.post.selectTags") }}
                     </h4>
                   </div>
-                  <div class="max-h-64 overflow-y-auto p-2 space-y-1">
+                  <div class="min-h-0 max-h-64 overflow-y-auto p-2 space-y-1">
                     <Button
                       variant="outline"
                       v-for="tag in tags"
                       :key="tag.id"
                       type="button"
                       class="flex w-full items-center justify-between px-3 py-2"
-                      @click="toggleTag(tag.name)"
+                      :aria-pressed="isTagSelected(tag)"
+                      @click="toggleTag(tag)"
                     >
                       <span class="font-medium text-foreground/80">{{
                         tag.name
                       }}</span>
                       <div class="h-5 w-5 flex items-center justify-center">
                         <Check
-                          v-if="selectedTags.includes(tag.name)"
+                          v-if="isTagSelected(tag)"
                           class="h-4 w-4 text-primary font-bold"
                         />
                       </div>
                     </Button>
                   </div>
-                </div>
-              </div>
+                </PopoverContent>
+              </Popover>
             </div>
 
             <div
@@ -342,11 +365,14 @@ onMounted(loadData);
                 variant="secondary"
                 class="flex items-center gap-1.5 h-7 px-3"
               >
-                {{ tag }}
+                {{ getTagName(tag) }}
                 <Button
                   variant="outline"
                   type="button"
                   class="ml-1 focus:outline-none"
+                  :aria-label="
+                    t('forum.post.removeTag', { tag: getTagName(tag) })
+                  "
                   @click="removeTag(tag)"
                 >
                   <X class="h-3 w-3" />
@@ -408,5 +434,9 @@ onMounted(loadData);
 </template>
 
 <style scoped>
-/* Scoped styles can be empty since we rely on Tailwind and the global markdown design system */
+@media (max-height: 400px) {
+  header {
+    position: static;
+  }
+}
 </style>

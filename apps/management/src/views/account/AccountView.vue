@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Button } from '@ulticode/design-system/ui/button'
 import { Input } from '@ulticode/design-system/ui/input'
@@ -46,6 +46,14 @@ const passwordData = ref({
 })
 
 const showPasswordForm = ref(false)
+const passwordTrigger = ref<InstanceType<typeof Button> | null>(null)
+watch(
+  showPasswordForm,
+  (visible) => {
+    if (!visible) passwordTrigger.value?.$el.focus({ preventScroll: true })
+  },
+  { flush: 'post' },
+)
 const isLoaded = ref(false)
 
 const canSave = computed(() => {
@@ -206,7 +214,7 @@ onMounted(async () => {
                 <Input
                   :model-value="formData.company ?? profile.company"
                   @update:model-value="(v: string | number) => updateField('company', String(v))"
-                  :placeholder="profile.company || 'Your company'"
+                  :placeholder="profile.company || t('account.placeholders.company')"
                 />
               </div>
               <div class="space-y-2">
@@ -214,7 +222,7 @@ onMounted(async () => {
                 <Input
                   :model-value="formData.location ?? profile.location"
                   @update:model-value="(v: string | number) => updateField('location', String(v))"
-                  :placeholder="profile.location || 'Your location'"
+                  :placeholder="profile.location || t('account.placeholders.location')"
                 />
               </div>
             </div>
@@ -223,7 +231,7 @@ onMounted(async () => {
               <Textarea
                 :model-value="formData.bio ?? profile.bio"
                 @update:model-value="(v: string | number) => updateField('bio', String(v))"
-                :placeholder="profile.bio || 'Tell us about yourself...'"
+                :placeholder="profile.bio || t('account.placeholders.bio')"
                 rows="3"
               />
             </div>
@@ -309,7 +317,7 @@ onMounted(async () => {
           </CardHeader>
           <CardContent class="space-y-4">
             <div v-if="!showPasswordForm">
-              <Button variant="outline" @click="showPasswordForm = true">
+              <Button ref="passwordTrigger" variant="outline" @click="showPasswordForm = true">
                 <IconKey class="h-4 w-4 mr-2" />
                 {{ t('account.actions.changePassword') }}
               </Button>

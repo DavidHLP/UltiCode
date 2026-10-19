@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
+import { RouterLink } from 'vue-router'
 import {
   RefreshCw as IconRefresh,
   AlertTriangle as IconAlertTriangle,
@@ -25,7 +25,6 @@ import { useModerationStore } from '@/stores/admin/moderation'
 import { ReportCategory } from '@/api/admin/moderation'
 
 const { t } = useI18n()
-const router = useRouter()
 const store = useModerationStore()
 
 const isLoaded = ref(false)
@@ -37,7 +36,7 @@ onMounted(async () => {
   await store.fetchStats(true)
 })
 
-const stats = computed(() => store.stats)
+const stats = computed(() => (store.statsLoading || store.statsError ? null : store.stats))
 
 // Status cards data
 const statusCards = computed(() => [
@@ -146,14 +145,6 @@ const totalItems = computed(() => {
 function handleRefresh() {
   store.fetchStats(true)
 }
-
-function navigateToQueue() {
-  router.push('/moderation')
-}
-
-function navigateToAppeals() {
-  router.push('/moderation/appeals')
-}
 </script>
 
 <template>
@@ -169,49 +160,69 @@ function navigateToAppeals() {
       <h1 class="text-xl font-medium tracking-tight text-foreground">
         {{ t('moderation.stats.title') }}
       </h1>
-      <Button variant="outline" size="sm" @click="handleRefresh" :disabled="store.statsLoading">
+      <Button
+        variant="outline"
+        size="sm"
+        :aria-label="t('common.refresh')"
+        @click="handleRefresh"
+        :disabled="store.statsLoading"
+      >
         <IconRefresh :class="['h-3.5 w-3.5', { 'animate-spin': store.statsLoading }]" />
         <span class="uppercase tracking-wider hidden sm:inline">{{ t('common.refresh') }}</span>
       </Button>
     </div>
 
+    <p
+      v-if="store.statsError"
+      role="alert"
+      class="text-sm text-destructive [overflow-wrap:anywhere]"
+    >
+      {{ t('moderation.stats.loadError') }}
+    </p>
+
     <!-- Status Cards -->
     <div
       :class="[
-        'grid grid-cols-2 md:grid-cols-5 gap-4',
+        'grid grid-cols-[repeat(auto-fit,minmax(min(100%,10rem),1fr))] gap-4',
         'transition-all duration-500 delay-100',
         isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2',
       ]"
     >
-      <Card
+      <RouterLink
         v-for="card in statusCards"
         :key="card.key"
-        :class="[
-          'border cursor-pointer hover:shadow-md transition-shadow',
-          card.borderColor,
-          card.bgColor,
-        ]"
-        @click="navigateToQueue"
+        to="/moderation"
+        class="min-w-0 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
-        <CardHeader class="pb-2">
-          <CardTitle class="flex items-center gap-2">
-            <component :is="card.icon" :class="['h-4 w-4', card.color]" />
-            <span class="text-muted-foreground uppercase tracking-wider text-xs">
-              {{ card.label }}
-            </span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div class="flex items-end justify-between">
-            <span :class="['text-3xl font-mono tabular-nums', card.color]">
-              {{ card.value }}
-            </span>
-            <span v-if="totalItems > 0" class="text-xs text-muted-foreground font-mono">
-              {{ Math.round((card.value / totalItems) * 100) }}%
-            </span>
-          </div>
-        </CardContent>
-      </Card>
+        <Card
+          :class="[
+            'h-full border hover:shadow-md transition-shadow',
+            card.borderColor,
+            card.bgColor,
+          ]"
+        >
+          <CardHeader class="pb-2">
+            <CardTitle class="flex items-center gap-2">
+              <component :is="card.icon" :class="['h-4 w-4 shrink-0', card.color]" />
+              <span
+                class="min-w-0 [overflow-wrap:anywhere] text-muted-foreground uppercase tracking-wider text-xs"
+              >
+                {{ card.label }}
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent class="mt-auto">
+            <div class="flex items-end justify-between">
+              <span :class="['text-3xl font-mono tabular-nums', card.color]">
+                {{ stats ? card.value : '—' }}
+              </span>
+              <span v-if="stats && totalItems > 0" class="text-xs text-muted-foreground font-mono">
+                {{ Math.round((card.value / totalItems) * 100) }}%
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+      </RouterLink>
     </div>
 
     <!-- Charts Row -->
@@ -233,7 +244,8 @@ function navigateToAppeals() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div v-if="categoryData.length === 0" class="py-8 text-center">
+          <div v-if="!stats" class="py-8 text-center text-muted-foreground">—</div>
+          <div v-else-if="categoryData.length === 0" class="py-8 text-center">
             <p class="text-xs font-mono text-muted-foreground">
               {{ t('common.noDataAvailable') }}
             </p>
@@ -248,7 +260,8 @@ function navigateToAppeals() {
               </div>
               <Progress
                 :model-value="item.percentage"
-                :class="['h-2', categoryColors[item.category]]"
+                class="h-2"
+                :indicator-class="categoryColors[item.category]"
               />
             </div>
           </div>
@@ -266,7 +279,8 @@ function navigateToAppeals() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div v-if="entityTypeData.length === 0" class="py-8 text-center">
+          <div v-if="!stats" class="py-8 text-center text-muted-foreground">—</div>
+          <div v-else-if="entityTypeData.length === 0" class="py-8 text-center">
             <p class="text-xs font-mono text-muted-foreground">
               {{ t('common.noDataAvailable') }}
             </p>
@@ -299,45 +313,55 @@ function navigateToAppeals() {
         isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2',
       ]"
     >
-      <Card class="cursor-pointer" @click="navigateToQueue">
-        <CardContent class="py-6">
-          <div class="flex items-center gap-4">
-            <div
-              class="p-3 rounded-full bg-[color-mix(in_oklch,_var(--status-warning-mark)_15%,_transparent)]"
-            >
-              <IconAlertTriangle class="h-6 w-6 text-status-warning-mark" />
+      <RouterLink
+        to="/moderation"
+        class="min-w-0 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <Card class="h-full">
+          <CardContent class="py-6">
+            <div class="flex items-center gap-4">
+              <div
+                class="p-3 rounded-full bg-[color-mix(in_oklch,_var(--status-warning-mark)_15%,_transparent)]"
+              >
+                <IconAlertTriangle class="h-6 w-6 text-status-warning-mark" />
+              </div>
+              <div>
+                <h3 class="font-mono text-sm uppercase tracking-wider text-foreground">
+                  {{ t('moderation.queue.title') }}
+                </h3>
+                <p class="text-xs text-muted-foreground mt-1">
+                  {{ t('moderation.queue.description') }}
+                </p>
+              </div>
             </div>
-            <div>
-              <h3 class="font-mono text-sm uppercase tracking-wider text-foreground">
-                {{ t('moderation.queue.title') }}
-              </h3>
-              <p class="text-xs text-muted-foreground mt-1">
-                {{ t('moderation.queue.description') }}
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </RouterLink>
 
-      <Card class="cursor-pointer" @click="navigateToAppeals">
-        <CardContent class="py-6">
-          <div class="flex items-center gap-4">
-            <div
-              class="p-3 rounded-full bg-[color-mix(in_oklch,_var(--status-special-mark)_15%,_transparent)]"
-            >
-              <IconScale class="h-6 w-6 text-status-special-mark" />
+      <RouterLink
+        to="/moderation/appeals"
+        class="min-w-0 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <Card class="h-full">
+          <CardContent class="py-6">
+            <div class="flex items-center gap-4">
+              <div
+                class="p-3 rounded-full bg-[color-mix(in_oklch,_var(--status-special-mark)_15%,_transparent)]"
+              >
+                <IconScale class="h-6 w-6 text-status-special-mark" />
+              </div>
+              <div>
+                <h3 class="font-mono text-sm uppercase tracking-wider text-foreground">
+                  {{ t('moderation.appeals.title') }}
+                </h3>
+                <p class="text-xs text-muted-foreground mt-1">
+                  {{ t('moderation.appeals.description') }}
+                </p>
+              </div>
             </div>
-            <div>
-              <h3 class="font-mono text-sm uppercase tracking-wider text-foreground">
-                {{ t('moderation.appeals.title') }}
-              </h3>
-              <p class="text-xs text-muted-foreground mt-1">
-                {{ t('moderation.appeals.description') }}
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </RouterLink>
     </div>
 
     <!-- Average Resolution Time -->

@@ -96,7 +96,7 @@ function handleOpenChange(value: boolean) {
               {{ t("personal.problemLists.dialogs.publicListDesc") }}
             </p>
           </div>
-          <Switch id="create-public" v-model:checked="form.isPublic" />
+          <Switch id="create-public" v-model="form.isPublic" />
         </div>
       </div>
       <DialogFooter>

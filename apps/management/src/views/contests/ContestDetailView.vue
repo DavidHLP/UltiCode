@@ -139,8 +139,8 @@ function handleTabChange(value: string | number) {
       ]"
     >
       <div class="px-4 lg:px-6 py-4">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-4">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div class="flex min-w-0 items-center gap-4">
             <Button
               variant="outline"
               size="icon"
@@ -155,17 +155,17 @@ function handleTabChange(value: string | number) {
               <Skeleton class="h-3 w-32" />
             </div>
 
-            <div v-else-if="contest" class="flex items-center gap-3">
+            <div v-else-if="contest" class="flex min-w-0 items-center gap-3">
               <div
-                class="h-10 w-10 border flex items-center justify-center bg-accent dark:bg-foreground border-border dark:border-foreground text-primary"
+                class="h-10 w-10 shrink-0 border flex items-center justify-center bg-muted border-border text-primary"
               >
                 <IconTrophy class="h-5 w-5" />
               </div>
-              <div>
+              <div class="min-w-0">
                 <div class="flex items-center gap-2">
                   <h1 class="font-medium text-sm text-foreground">{{ contest.title }}</h1>
                 </div>
-                <div class="flex items-center gap-2 mt-1">
+                <div class="flex flex-wrap items-center gap-2 mt-1">
                   <SemanticBadge
                     :color="CONTEST_TYPE_COLOR_MAP[contest.contestType] ?? 'neutral'"
                     :label="t(`contests.type.${contest.contestType}`, contest.contestType)"
@@ -173,7 +173,7 @@ function handleTabChange(value: string | number) {
                   />
                   <SemanticBadge
                     :color="CONTEST_STATUS_COLOR_MAP[contest.status] ?? 'neutral'"
-                    :label="contest.status"
+                    :label="t(`contests.status.${contest.status.toLowerCase()}`, contest.status)"
                     size="sm"
                     :dot="contest.status === 'RUNNING'"
                     :pulse="contest.status === 'RUNNING'"
@@ -221,7 +221,9 @@ function handleTabChange(value: string | number) {
 
       <template v-else-if="contest">
         <Tabs :model-value="activeTab" @update:model-value="handleTabChange" class="space-y-6">
-          <TabsList class="p-1">
+          <TabsList
+            class="grid auto-rows-8 w-full grid-cols-2 p-1 group-data-horizontal/tabs:h-auto sm:w-fit sm:grid-cols-4"
+          >
             <TabsTrigger value="overview">
               {{ t('contests.detail.overview') }}
             </TabsTrigger>
@@ -258,7 +260,12 @@ function handleTabChange(value: string | number) {
 
           <!-- Rankings Tab -->
           <TabsContent value="rankings">
-            <ContestRankingsTab :rankings="rankings" />
+            <ContestRankingsTab
+              :rankings="rankings"
+              :is-loading="contestsStore.rankingsLoading"
+              :has-error="contestsStore.rankingsError"
+              @retry="contestsStore.fetchRankings(contestId)"
+            />
           </TabsContent>
         </Tabs>
       </template>

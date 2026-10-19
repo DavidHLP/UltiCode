@@ -196,9 +196,9 @@ function go(to: string) {
           </div>
         </div>
         <a
-          href="/docs/"
+          href="https://github.com/DavidHLP/UltiCode/blob/main/docs/index.md"
           target="_blank"
-          rel="noopener"
+          rel="noopener noreferrer"
           class="inline-flex items-center gap-1.5 px-3 h-8 text-xs font-mono font-bold uppercase tracking-wide border border-border text-foreground bg-transparent hover:border-primary hover:text-primary transition-colors duration-200 rounded-lg"
         >
           <span>{{ t('help.docs.openFolder') }}</span>

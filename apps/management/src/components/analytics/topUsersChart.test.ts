@@ -46,4 +46,14 @@ describe('createTopUsersChartOption', () => {
       textStyle: { color: colors.foreground },
     })
   })
+
+  it('uses a line break rather than HTML markup in the rich text tooltip', () => {
+    const option = createTopUsersChartOption([], colors, (count) => `${count} logins`)
+    const tooltip = option.tooltip as {
+      formatter: (params: { name: string; value: number }[]) => string
+    }
+    expect(tooltip.formatter([{ name: '<img src=x onerror=alert(1)>', value: 12 }])).toBe(
+      '<img src=x onerror=alert(1)>\n12 logins',
+    )
+  })
 })

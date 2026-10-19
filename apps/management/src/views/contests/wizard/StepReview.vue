@@ -53,27 +53,22 @@ function renderTypeBadge(type: string) {
 
 <template>
   <div class="space-y-6">
-    <!-- Section Header -->
-    <div class="flex items-center gap-2 mb-4">
-      <span class="hidden" />
-    </div>
-
     <div class="grid gap-4 md:grid-cols-3">
       <!-- Basic Info Card - Terminal Style -->
-      <div class="border border-border dark:border-foreground bg-card">
-        <div class="border-b border-border dark:border-foreground px-4 py-2 bg-muted">
+      <div class="min-w-0 border border-border bg-card">
+        <div class="border-b border-border px-4 py-2 bg-muted">
           <span class="text-sm text-muted-foreground">{{
             t('contests.reviewStep.basicInfo')
           }}</span>
         </div>
         <div class="p-4 space-y-3">
-          <div class="border-b border-accent dark:border-foreground pb-2">
+          <div class="border-b border-border pb-2">
             <span class="text-sm font-medium">{{ t('contests.basics.title') }}</span>
-            <p class="font-medium text-sm text-foreground">{{ slice.title }}</p>
+            <p class="break-words font-medium text-sm text-foreground">{{ slice.title }}</p>
           </div>
-          <div class="border-b border-accent dark:border-foreground pb-2">
+          <div class="border-b border-border pb-2">
             <span class="text-sm font-medium">{{ t('contests.basics.slug') }}</span>
-            <p class="font-mono text-sm text-foreground">{{ slice.slug }}</p>
+            <p class="break-all font-mono text-sm text-foreground">{{ slice.slug }}</p>
           </div>
           <div>
             <span class="text-sm font-medium">{{ t('contests.basics.type') }}</span>
@@ -85,18 +80,18 @@ function renderTypeBadge(type: string) {
       </div>
 
       <!-- Schedule Card - Terminal Style -->
-      <div class="border border-border dark:border-foreground bg-card">
-        <div class="border-b border-border dark:border-foreground px-4 py-2 bg-muted">
+      <div class="border border-border bg-card">
+        <div class="border-b border-border px-4 py-2 bg-muted">
           <span class="text-sm text-muted-foreground">{{ t('contests.reviewStep.schedule') }}</span>
         </div>
         <div class="p-4 space-y-3">
-          <div class="border-b border-accent dark:border-foreground pb-2">
+          <div class="border-b border-border pb-2">
             <span class="text-sm font-medium">{{ t('contests.reviewStep.startTime') }}</span>
             <p class="font-mono text-sm tabular-nums text-foreground">
               {{ formattedDate }}
             </p>
           </div>
-          <div class="border-b border-accent dark:border-foreground pb-2">
+          <div class="border-b border-border pb-2">
             <span class="text-sm font-medium">{{ t('contests.reviewStep.duration') }}</span>
             <p class="font-mono text-sm tabular-nums text-foreground">
               {{ slice.duration }} {{ t('common.minutes') }}
@@ -118,8 +113,8 @@ function renderTypeBadge(type: string) {
       </div>
 
       <!-- Scoring Rule Card - Terminal Style -->
-      <div class="border border-border dark:border-foreground bg-card">
-        <div class="border-b border-border dark:border-foreground px-4 py-2 bg-muted">
+      <div class="border border-border bg-card">
+        <div class="border-b border-border px-4 py-2 bg-muted">
           <span class="text-sm text-muted-foreground">{{
             t('contests.scoringRule.selectRule')
           }}</span>
@@ -169,8 +164,8 @@ function renderTypeBadge(type: string) {
     </div>
 
     <!-- Problems Card - Terminal Style -->
-    <div class="border border-border dark:border-foreground bg-card">
-      <div class="border-b border-border dark:border-foreground px-4 py-2 bg-muted">
+    <div class="border border-border bg-card">
+      <div class="border-b border-border px-4 py-2 bg-muted">
         <span class="text-sm text-muted-foreground">
           {{
             t('contests.reviewStep.problemsCount', {
@@ -184,7 +179,7 @@ function renderTypeBadge(type: string) {
           <div
             v-for="(problem, index) in slice.problems"
             :key="problem.id"
-            class="flex items-center justify-between border-b border-accent dark:border-foreground py-2 last:border-0"
+            class="flex items-center justify-between border-b border-border py-2 last:border-0"
           >
             <div class="flex items-center gap-3">
               <span class="font-mono text-xs text-primary w-6">

@@ -81,12 +81,18 @@ function updateFilter(index: number, value: string | number) {
     >
       <SelectTrigger
         size="sm"
+        :aria-label="filter.placeholder"
         :class="[
           'h-8 bg-muted border-border dark:border-border focus:border-primary',
           filter.width || 'w-[140px]',
         ]"
       >
-        <SelectValue :placeholder="filter.placeholder" />
+        <SelectValue :placeholder="filter.placeholder">
+          {{
+            filter.options.find((option) => option.value === filter.modelValue)?.label ??
+            filter.modelValue
+          }}
+        </SelectValue>
       </SelectTrigger>
       <SelectContent>
         <SelectGroup

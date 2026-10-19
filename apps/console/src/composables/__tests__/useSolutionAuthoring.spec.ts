@@ -129,6 +129,26 @@ describe("useSolutionAuthoring", () => {
     setRoute("");
   });
 
+  describe("draft status", () => {
+    it("states that drafts are not saved automatically", () => {
+      setRoute("solution-create", { id: "123" });
+      const authoring = useSolutionAuthoring({
+        onPublishSuccess: vi.fn(),
+        onGateFailure: vi.fn(),
+        onCollisionRecovery: vi.fn(),
+      });
+
+      expect(authoring.draftStatus.value).toBe(
+        "solution.editor.draftNotSavedAutomatically",
+      );
+      authoring.title.value = "My solution";
+      authoring.editorContent.value = "Draft body";
+      expect(authoring.draftStatus.value).toBe(
+        "solution.editor.draftNotSavedAutomatically",
+      );
+    });
+  });
+
   describe("Accepted-submission gate (create-from-submission)", () => {
     it("redirects via onGateFailure and toasts when the submission is non-Accepted", async () => {
       setRoute("solution-create-from-submission", {}, { submissionId: "sub-1" });
@@ -283,6 +303,9 @@ describe("useSolutionAuthoring", () => {
 
       await authoring.publish();
 
+      expect(authoring.draftStatus.value).toBe(
+        "solution.editor.draftNotSavedAutomatically",
+      );
       expect(onCollisionRecovery).not.toHaveBeenCalled();
       expect(mockRouter.push).not.toHaveBeenCalled();
       expect(toast.error).toHaveBeenCalledWith("already exists");
@@ -319,6 +342,12 @@ describe("useSolutionAuthoring", () => {
       expect(mockRouter.push).not.toHaveBeenCalled();
       expect(mockRouter.back).not.toHaveBeenCalled();
       expect(toast.error).not.toHaveBeenCalled();
+
+      authoring.title.value = "Stale draft";
+      authoring.editorContent.value = "Stale body";
+      await authoring.publish();
+      expect(createSolution).not.toHaveBeenCalled();
+      expect(authoring.isPublishing.value).toBe(false);
     });
   });
 });

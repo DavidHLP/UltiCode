@@ -5,9 +5,25 @@ import type { GlobalRankingEntry } from "@/types/contest";
 import RatingBadge from "./RatingBadge.vue";
 import { useI18n } from "vue-i18n";
 
-defineProps<{
-  rankings: GlobalRankingEntry[];
-}>();
+withDefaults(
+  defineProps<{
+    rankings: GlobalRankingEntry[];
+    scope?: "global" | "local";
+    error?: boolean;
+    hasMore?: boolean;
+    loadingMore?: boolean;
+    loadMoreError?: boolean;
+  }>(),
+  {
+    scope: "global",
+    error: false,
+    hasMore: false,
+    loadingMore: false,
+    loadMoreError: false,
+  },
+);
+
+const emit = defineEmits<{ retry: []; loadMore: [] }>();
 
 const { t } = useI18n();
 
@@ -26,254 +42,306 @@ const rankingInitials = (ranking: GlobalRankingEntry): string => {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="min-w-0 space-y-6">
     <!-- Podium Section -->
-    <Card>
+    <Card class="min-w-0">
       <div class="p-6 text-center space-y-6">
         <div
-          class="flex items-center justify-between mb-4 border-b border-dashed pb-3"
+          class="flex flex-wrap items-center justify-between gap-3 mb-4 border-b border-dashed pb-3"
         >
           <h2
             class="text-lg font-bold text-foreground font-mono tracking-tight flex items-center gap-2"
           >
             <span class="h-2.5 w-2.5 bg-status-warning-mark"></span>
-            {{ t("contest.ranking.national") }}
+            {{ t("contest.ranking.title") }}
           </h2>
           <span
             class="text-xs font-mono text-muted-foreground border border-border bg-muted/50 px-2 py-0.5 rounded-lg cursor-pointer hover:bg-muted transition-colors"
-            >{{ t("contest.ranking.globalRanking") }}</span
+            >{{
+              t(
+                scope === "local"
+                  ? "contest.rankings.local"
+                  : "contest.rankings.global",
+              )
+            }}</span
           >
         </div>
 
-        <!-- Podium Visual -->
-        <div class="flex items-end justify-center gap-4 h-56 pt-6 pb-2">
-          <!-- 2nd Place -->
-          <div
-            class="flex flex-col items-center gap-1 w-1/3 relative group cursor-pointer"
-            v-if="rankings[1]"
-          >
-            <div
-              class="relative transition-transform duration-300 group-hover:-translate-y-1"
-            >
-              <img
-                v-if="rankings[1].avatar"
-                :src="rankings[1].avatar"
-                :alt="rankings[1].username"
-                class="w-14 h-14 rounded-lg border-2 border-border shadow-[2px_2px_0px_0px_var(--border)]"
-              />
-              <div
-                v-else
-                class="flex w-14 h-14 items-center justify-center rounded-lg border-2 border-border bg-muted text-sm font-black text-foreground shadow-[2px_2px_0px_0px_var(--border)]"
-              >
-                {{ rankingInitials(rankings[1]) }}
-              </div>
-              <div class="absolute -bottom-2 w-full text-center">
-                <span
-                  class="bg-muted text-foreground border border-border text-xs px-1.5 py-0.5 rounded-lg font-bold shadow-[1px_1px_0px_0px_var(--border)] font-mono"
-                  >2ND</span
-                >
-              </div>
-            </div>
-            <p
-              class="text-xs font-bold truncate w-full text-foreground mt-2 text-center"
-            >
-              {{ rankings[1].name || rankings[1].username }}
-            </p>
-            <div class="flex flex-col items-center leading-tight">
-              <RatingBadge :rating="rankings[1].rating" size="sm" />
-              <span class="text-xs font-mono text-muted-foreground"
-                >{{ rankings[1].contestsAttended || 0 }}
-                {{ t("contest.ranking.title", "Contests") }}</span
-              >
-            </div>
-            <div
-              class="h-20 w-full bg-muted/60 rounded-lg shadow-[2px_2px_0px_0px_var(--border)] border border-border border-b-0 relative overflow-hidden mt-1"
-            >
-              <div
-                class="absolute inset-0 bg-background/5 skew-y-12 opacity-50"
-              ></div>
-              <div
-                class="absolute bottom-0 w-full text-center pb-2 opacity-20 font-black text-4xl text-foreground font-mono"
-                data-testid="podium-rank-number"
-              >
-                2
-              </div>
-            </div>
-          </div>
-
-          <!-- 1st Place -->
-          <div
-            class="flex flex-col items-center gap-1 w-1/3 relative z-10 group cursor-pointer"
-            v-if="rankings[0]"
-          >
-            <div
-              class="relative transition-transform duration-300 group-hover:-translate-y-2"
-            >
-              <div
-                class="absolute -top-6 left-1/2 -translate-x-1/2 text-2xl animate-bounce"
-              >
-                👑
-              </div>
-              <img
-                v-if="rankings[0].avatar"
-                :src="rankings[0].avatar"
-                :alt="rankings[0].username"
-                class="w-16 h-16 rounded-lg border-2 border-status-warning-mark shadow-[2px_2px_0px_0px_var(--status-warning-mark)]"
-              />
-              <div
-                v-else
-                class="flex w-16 h-16 items-center justify-center rounded-lg border-2 border-status-warning-mark bg-muted text-base font-black text-foreground shadow-[2px_2px_0px_0px_var(--status-warning-mark)]"
-              >
-                {{ rankingInitials(rankings[0]) }}
-              </div>
-              <div class="absolute -bottom-2.5 w-full text-center">
-                <span
-                  class="bg-accent text-foreground border border-[var(--rank-first)] text-xs px-2 py-0.5 rounded-lg font-black shadow-[1px_1px_0px_0px_var(--border)] font-mono"
-                  >1ST</span
-                >
-              </div>
-            </div>
-            <p
-              class="text-sm font-black truncate w-full text-foreground mt-3 text-center"
-            >
-              {{ rankings[0].name || rankings[0].username }}
-            </p>
-            <div class="flex flex-col items-center leading-tight">
-              <RatingBadge :rating="rankings[0].rating" size="sm" />
-              <span class="text-xs font-mono text-muted-foreground"
-                >{{ rankings[0].contestsAttended || 0 }}
-                {{ t("contest.ranking.title", "Contests") }}</span
-              >
-            </div>
-            <div
-              class="h-28 w-full bg-status-warning-mark/5 rounded-lg shadow-[2px_2px_0px_0px_var(--border)] border border-status-warning-mark/30 border-b-0 relative overflow-hidden mt-1"
-            >
-              <div
-                class="absolute inset-0 bg-background/10 skew-y-12 opacity-50"
-              ></div>
-              <div
-                class="absolute bottom-0 w-full text-center pb-2 opacity-20 font-black text-4xl text-foreground font-mono"
-                data-testid="podium-rank-number"
-              >
-                1
-              </div>
-            </div>
-          </div>
-
-          <!-- 3rd Place -->
-          <div
-            class="flex flex-col items-center gap-1 w-1/3 relative group cursor-pointer"
-            v-if="rankings[2]"
-          >
-            <div
-              class="relative transition-transform duration-300 group-hover:-translate-y-1"
-            >
-              <img
-                v-if="rankings[2].avatar"
-                :src="rankings[2].avatar"
-                :alt="rankings[2].username"
-                class="w-14 h-14 rounded-lg border-2 border-[var(--rank-third)] shadow-[2px_2px_0px_0px_var(--rank-third)]"
-              />
-              <div
-                v-else
-                class="flex w-14 h-14 items-center justify-center rounded-lg border-2 border-[var(--rank-third)] bg-muted text-sm font-black text-foreground shadow-[2px_2px_0px_0px_var(--rank-third)]"
-              >
-                {{ rankingInitials(rankings[2]) }}
-              </div>
-              <div class="absolute -bottom-2 w-full text-center">
-                <span
-                  class="bg-muted text-[var(--rank-third)] border border-[var(--rank-third)] text-xs px-1.5 py-0.5 rounded-lg font-bold shadow-[1px_1px_0px_0px_var(--border)] font-mono"
-                  >3RD</span
-                >
-              </div>
-            </div>
-            <p
-              class="text-xs font-bold truncate w-full text-foreground mt-2 text-center"
-            >
-              {{ rankings[2].name || rankings[2].username }}
-            </p>
-            <div class="flex flex-col items-center leading-tight">
-              <RatingBadge :rating="rankings[2].rating" size="sm" />
-              <span class="text-xs font-mono text-muted-foreground"
-                >{{ rankings[2].contestsAttended || 0 }}
-                {{ t("contest.ranking.title", "Contests") }}</span
-              >
-            </div>
-            <div
-              class="h-12 w-full bg-[var(--rank-third)]/5 rounded-lg shadow-[2px_2px_0px_0px_var(--border)] border border-[var(--rank-third)]/30 border-b-0 relative overflow-hidden mt-1"
-            >
-              <div
-                class="absolute inset-0 bg-background/5 skew-y-12 opacity-50"
-              ></div>
-              <div
-                class="absolute bottom-0 w-full text-center pb-2 opacity-20 font-black text-4xl text-foreground font-mono"
-                data-testid="podium-rank-number"
-              >
-                3
-              </div>
-            </div>
-          </div>
+        <div v-if="error" role="alert" class="space-y-3 py-8">
+          <p class="text-sm text-muted-foreground">
+            {{ t("contest.error.rankingsLoadFailed") }}
+          </p>
+          <Button variant="outline" @click="emit('retry')">{{
+            t("common.actions.retry")
+          }}</Button>
         </div>
-
-        <!-- Table Column Headers -->
-        <div
-          class="flex items-center gap-3 px-2 py-2 text-xs font-mono font-bold uppercase tracking-wider border-b border-border bg-muted/30 text-muted-foreground/80 rounded-lg mt-4"
+        <p
+          v-else-if="rankings.length === 0"
+          class="py-8 text-sm text-muted-foreground"
         >
-          <span class="w-6 text-center">#</span>
-          <span class="flex-1 text-left">{{ t("contest.ranking.user") }}</span>
-          <span class="w-20 text-center">{{
-            t("contest.ranking.title", "Contests")
-          }}</span>
-          <span class="w-20 text-right">{{
-            t("contest.ranking.score", "Rating")
-          }}</span>
-        </div>
-
-        <!-- Rest of List -->
-        <div class="space-y-1 divide-y divide-border/40 mt-1">
-          <div
-            v-for="(user, index) in rankings.slice(3, 10)"
-            :key="user.username"
-            class="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/40 transition-colors cursor-pointer group"
-          >
-            <span
-              class="text-xs font-bold font-mono w-6 text-center text-muted-foreground group-hover:text-foreground transition-colors"
-              >{{ index + 4 }}</span
+          {{ t("contest.ranking.noRankings") }}
+        </p>
+        <template v-else>
+          <!-- Podium Visual -->
+          <div class="flex items-end justify-center gap-4 min-h-56 pt-10 pb-2">
+            <!-- 2nd Place -->
+            <div
+              class="min-w-0 flex flex-1 flex-col items-center gap-1 relative group cursor-pointer"
+              v-if="rankings[1]"
             >
-            <div class="flex-1 flex items-center gap-2 min-w-0 text-left">
               <div
-                class="h-7 w-7 rounded-lg bg-muted border border-border shrink-0 flex items-center justify-center text-xs font-black text-foreground"
+                class="relative transition-transform duration-300 group-hover:-translate-y-1"
               >
                 <img
-                  v-if="user.avatar"
-                  :src="user.avatar"
-                  :alt="user.username"
-                  class="h-full w-full rounded-lg object-cover"
+                  v-if="rankings[1].avatar"
+                  :src="rankings[1].avatar"
+                  :alt="rankings[1].username"
+                  class="w-14 h-14 rounded-lg border-2 border-border shadow-[2px_2px_0px_0px_var(--border)]"
                 />
-                <span v-else>{{ rankingInitials(user) }}</span>
+                <div
+                  v-else
+                  class="flex w-14 h-14 items-center justify-center rounded-lg border-2 border-border bg-muted text-sm font-black text-foreground shadow-[2px_2px_0px_0px_var(--border)]"
+                >
+                  {{ rankingInitials(rankings[1]) }}
+                </div>
+                <div class="absolute -bottom-2 w-full text-center">
+                  <span
+                    class="bg-muted text-foreground border border-border text-xs px-1.5 py-0.5 rounded-lg font-bold shadow-[1px_1px_0px_0px_var(--border)] font-mono"
+                    >2ND</span
+                  >
+                </div>
               </div>
-              <span
-                class="truncate text-sm font-medium group-hover:text-primary transition-colors"
+              <p
+                class="text-xs font-bold break-words w-full text-foreground mt-2 text-center"
               >
-                {{ user.name || user.username }}
-              </span>
+                {{ rankings[1].name || rankings[1].username }}
+              </p>
+              <div
+                class="min-w-0 max-w-full flex flex-col items-center leading-tight"
+              >
+                <RatingBadge :rating="rankings[1].rating" size="sm" />
+                <span class="text-xs font-mono text-muted-foreground">{{
+                  t("contest.ranking.attended", {
+                    n: rankings[1].contestsAttended || 0,
+                  })
+                }}</span>
+              </div>
+              <div
+                class="h-20 w-full bg-muted/60 rounded-lg shadow-[2px_2px_0px_0px_var(--border)] border border-border border-b-0 relative overflow-hidden mt-1"
+              >
+                <div
+                  class="absolute inset-0 bg-background/5 skew-y-12 opacity-50"
+                ></div>
+                <div
+                  class="absolute bottom-0 w-full text-center pb-2 opacity-20 font-black text-4xl text-foreground font-mono"
+                  data-testid="podium-rank-number"
+                >
+                  2
+                </div>
+              </div>
             </div>
-            <span
-              class="w-20 text-center text-xs font-mono text-muted-foreground"
+
+            <!-- 1st Place -->
+            <div
+              class="min-w-0 flex flex-1 flex-col items-center gap-1 relative z-10 group cursor-pointer"
+              v-if="rankings[0]"
             >
-              {{ user.contestsAttended || 0 }}
-            </span>
-            <div class="w-20 text-right shrink-0">
-              <RatingBadge :rating="user.rating" size="sm" />
+              <div
+                class="relative transition-transform duration-300 group-hover:-translate-y-2"
+              >
+                <div
+                  class="absolute -top-6 left-1/2 -translate-x-1/2 text-2xl animate-bounce"
+                >
+                  👑
+                </div>
+                <img
+                  v-if="rankings[0].avatar"
+                  :src="rankings[0].avatar"
+                  :alt="rankings[0].username"
+                  class="w-16 h-16 rounded-lg border-2 border-status-warning-mark shadow-[2px_2px_0px_0px_var(--status-warning-mark)]"
+                />
+                <div
+                  v-else
+                  class="flex w-16 h-16 items-center justify-center rounded-lg border-2 border-status-warning-mark bg-muted text-base font-black text-foreground shadow-[2px_2px_0px_0px_var(--status-warning-mark)]"
+                >
+                  {{ rankingInitials(rankings[0]) }}
+                </div>
+                <div class="absolute -bottom-2.5 w-full text-center">
+                  <span
+                    class="bg-accent text-foreground border border-[var(--rank-first)] text-xs px-2 py-0.5 rounded-lg font-black shadow-[1px_1px_0px_0px_var(--border)] font-mono"
+                    >1ST</span
+                  >
+                </div>
+              </div>
+              <p
+                class="text-sm font-black break-words w-full text-foreground mt-3 text-center"
+              >
+                {{ rankings[0].name || rankings[0].username }}
+              </p>
+              <div
+                class="min-w-0 max-w-full flex flex-col items-center leading-tight"
+              >
+                <RatingBadge :rating="rankings[0].rating" size="sm" />
+                <span class="text-xs font-mono text-muted-foreground">{{
+                  t("contest.ranking.attended", {
+                    n: rankings[0].contestsAttended || 0,
+                  })
+                }}</span>
+              </div>
+              <div
+                class="h-28 w-full bg-status-warning-mark/5 rounded-lg shadow-[2px_2px_0px_0px_var(--border)] border border-status-warning-mark/30 border-b-0 relative overflow-hidden mt-1"
+              >
+                <div
+                  class="absolute inset-0 bg-background/10 skew-y-12 opacity-50"
+                ></div>
+                <div
+                  class="absolute bottom-0 w-full text-center pb-2 opacity-20 font-black text-4xl text-foreground font-mono"
+                  data-testid="podium-rank-number"
+                >
+                  1
+                </div>
+              </div>
+            </div>
+
+            <!-- 3rd Place -->
+            <div
+              class="min-w-0 flex flex-1 flex-col items-center gap-1 relative group cursor-pointer"
+              v-if="rankings[2]"
+            >
+              <div
+                class="relative transition-transform duration-300 group-hover:-translate-y-1"
+              >
+                <img
+                  v-if="rankings[2].avatar"
+                  :src="rankings[2].avatar"
+                  :alt="rankings[2].username"
+                  class="w-14 h-14 rounded-lg border-2 border-[var(--rank-third)] shadow-[2px_2px_0px_0px_var(--rank-third)]"
+                />
+                <div
+                  v-else
+                  class="flex w-14 h-14 items-center justify-center rounded-lg border-2 border-[var(--rank-third)] bg-muted text-sm font-black text-foreground shadow-[2px_2px_0px_0px_var(--rank-third)]"
+                >
+                  {{ rankingInitials(rankings[2]) }}
+                </div>
+                <div class="absolute -bottom-2 w-full text-center">
+                  <span
+                    class="bg-muted text-[var(--rank-third)] border border-[var(--rank-third)] text-xs px-1.5 py-0.5 rounded-lg font-bold shadow-[1px_1px_0px_0px_var(--border)] font-mono"
+                    >3RD</span
+                  >
+                </div>
+              </div>
+              <p
+                class="text-xs font-bold break-words w-full text-foreground mt-2 text-center"
+              >
+                {{ rankings[2].name || rankings[2].username }}
+              </p>
+              <div
+                class="min-w-0 max-w-full flex flex-col items-center leading-tight"
+              >
+                <RatingBadge :rating="rankings[2].rating" size="sm" />
+                <span class="text-xs font-mono text-muted-foreground">{{
+                  t("contest.ranking.attended", {
+                    n: rankings[2].contestsAttended || 0,
+                  })
+                }}</span>
+              </div>
+              <div
+                class="h-12 w-full bg-[var(--rank-third)]/5 rounded-lg shadow-[2px_2px_0px_0px_var(--border)] border border-[var(--rank-third)]/30 border-b-0 relative overflow-hidden mt-1"
+              >
+                <div
+                  class="absolute inset-0 bg-background/5 skew-y-12 opacity-50"
+                ></div>
+                <div
+                  class="absolute bottom-0 w-full text-center pb-2 opacity-20 font-black text-4xl text-foreground font-mono"
+                  data-testid="podium-rank-number"
+                >
+                  3
+                </div>
+              </div>
             </div>
           </div>
-        </div>
 
-        <Button
-          variant="outline"
-          class="w-full active:translate-x-0.5 active:translate-y-0.5 hover:-translate-x-0.5 hover:-translate-y-0.5 mt-4"
-          >{{ t("common.actions.loadMore") }}</Button
-        >
+          <div
+            role="region"
+            :aria-label="t('contest.ranking.title')"
+            tabindex="0"
+            class="overflow-x-auto"
+          >
+            <!-- Table Column Headers -->
+            <div
+              class="min-w-96 flex items-center gap-3 px-2 py-2 text-xs font-mono font-bold uppercase tracking-wider border-b border-border bg-muted/30 text-muted-foreground/80 rounded-lg mt-4"
+            >
+              <span class="w-6 text-center">#</span>
+              <span class="flex-1 text-left">{{
+                t("contest.ranking.user")
+              }}</span>
+              <span class="w-20 text-center">{{
+                t("contest.ranking.contests")
+              }}</span>
+              <span class="w-20 text-right">{{
+                t("contest.rating.title")
+              }}</span>
+            </div>
+
+            <!-- Rest of List -->
+            <div class="min-w-96 space-y-1 divide-y divide-border/40 mt-1">
+              <div
+                v-for="(user, index) in rankings.slice(3)"
+                :key="user.username"
+                class="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/40 transition-colors cursor-pointer group"
+              >
+                <span
+                  class="text-xs font-bold font-mono w-6 text-center text-muted-foreground group-hover:text-foreground transition-colors"
+                  >{{ index + 4 }}</span
+                >
+                <div class="flex-1 flex items-center gap-2 min-w-0 text-left">
+                  <div
+                    class="h-7 w-7 rounded-lg bg-muted border border-border shrink-0 flex items-center justify-center text-xs font-black text-foreground"
+                  >
+                    <img
+                      v-if="user.avatar"
+                      :src="user.avatar"
+                      :alt="user.username"
+                      class="h-full w-full rounded-lg object-cover"
+                    />
+                    <span v-else>{{ rankingInitials(user) }}</span>
+                  </div>
+                  <span
+                    class="min-w-0 break-words text-sm font-medium group-hover:text-primary transition-colors"
+                  >
+                    {{ user.name || user.username }}
+                  </span>
+                </div>
+                <span
+                  class="w-20 text-center text-xs font-mono text-muted-foreground"
+                >
+                  {{ user.contestsAttended || 0 }}
+                </span>
+                <div class="w-20 text-right shrink-0">
+                  <RatingBadge :rating="user.rating" size="sm" />
+                </div>
+              </div>
+            </div>
+          </div>
+          <p v-if="loadMoreError" role="alert" class="text-sm text-destructive">
+            {{ t("contest.error.rankingsLoadFailed") }}
+          </p>
+          <Button
+            v-if="hasMore"
+            variant="outline"
+            :disabled="loadingMore"
+            :aria-busy="loadingMore"
+            class="w-full active:translate-x-0.5 active:translate-y-0.5 hover:-translate-x-0.5 hover:-translate-y-0.5 mt-4"
+            @click="emit('loadMore')"
+            >{{
+              t(
+                loadMoreError
+                  ? "common.actions.retry"
+                  : "common.actions.loadMore",
+              )
+            }}</Button
+          >
+        </template>
       </div>
     </Card>
   </div>

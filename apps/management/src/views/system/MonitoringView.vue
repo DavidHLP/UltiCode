@@ -38,12 +38,22 @@ const refreshInterval = ref<number | null>(null)
 const systemInfo = ref<SystemInfo | null>(null)
 const resourceUsage = ref<ResourceUsage | null>(null)
 const databaseStats = ref<DatabaseStats | null>(null)
-const queueStats = ref<QueueStats[]>([])
+const queueStats = ref<QueueStats[] | null>(null)
 const redisStats = ref<RedisStats | null>(null)
 const healthStatus = ref<SystemHealth | null>(null)
 const isLoaded = ref(false)
 
 // Computed
+const hasUnavailableStats = computed(() =>
+  [
+    systemInfo.value,
+    resourceUsage.value,
+    databaseStats.value,
+    queueStats.value,
+    redisStats.value,
+    healthStatus.value,
+  ].some((value) => value === null),
+)
 const overallStatus = computed(() => healthStatus.value?.status ?? 'unknown')
 
 const statusBgColor = computed(() => {
@@ -108,9 +118,10 @@ function formatBytes(bytes: number): string {
   return `${value.toFixed(1)} ${units[unitIndex]}`
 }
 
-function getMemoryPercent(): number {
-  if (!resourceUsage.value) return 0
-  return (resourceUsage.value.memory.heapUsed / resourceUsage.value.memory.heapMax) * 100
+function getMemoryPercent(): number | null {
+  if (!resourceUsage.value || resourceUsage.value.memory.heapMax <= 0) return null
+  const percent = (resourceUsage.value.memory.heapUsed / resourceUsage.value.memory.heapMax) * 100
+  return Number.isFinite(percent) ? percent : null
 }
 
 function getHealthIcon(status: string) {
@@ -168,7 +179,7 @@ onUnmounted(() => {
       ]"
     >
       <!-- Title Row -->
-      <div class="px-4 lg:px-6 py-4 flex items-center justify-between">
+      <div class="px-4 lg:px-6 py-4 flex flex-wrap items-center justify-between gap-4">
         <div class="space-y-1">
           <h1 class="text-xl font-medium tracking-tight text-foreground">
             {{ t('system.monitoring.title') }}
@@ -201,6 +212,13 @@ onUnmounted(() => {
 
       <!-- Main content -->
       <template v-else>
+        <p
+          v-if="hasUnavailableStats"
+          role="alert"
+          class="text-sm text-destructive [overflow-wrap:anywhere]"
+        >
+          {{ t('system.monitoring.unavailable') }}
+        </p>
         <!-- Overall Health Status -->
         <Card :class="['border-2', statusBgColor]">
           <CardHeader>
@@ -210,7 +228,7 @@ onUnmounted(() => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div class="flex items-center gap-4 mb-4">
+            <div class="flex flex-wrap items-center gap-4 mb-4">
               <SemanticBadge
                 :color="overallStatus === 'healthy' ? 'success' : 'error'"
                 :label="t(`system.monitoring.status.${overallStatus}`, overallStatus)"
@@ -222,7 +240,7 @@ onUnmounted(() => {
               </span>
             </div>
 
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="grid grid-cols-[repeat(auto-fit,minmax(min(100%,12rem),1fr))] gap-4">
               <div
                 v-for="check in healthStatus?.checks"
                 :key="check.service"
@@ -230,9 +248,9 @@ onUnmounted(() => {
               >
                 <component
                   :is="getHealthIcon(check.status)"
-                  :class="['h-5 w-5', getHealthColor(check.status)]"
+                  :class="['h-5 w-5 shrink-0', getHealthColor(check.status)]"
                 />
-                <div>
+                <div class="min-w-0 [overflow-wrap:anywhere]">
                   <p class="font-medium capitalize">{{ check.service }}</p>
                   <p class="text-xs text-muted-foreground">{{ check.message }}</p>
                 </div>
@@ -257,21 +275,21 @@ onUnmounted(() => {
                   <span class="text-muted-foreground">{{
                     t('system.monitoring.javaVersion')
                   }}</span>
-                  <span class="font-mono">{{ systemInfo?.javaVersion }}</span>
+                  <span class="font-mono">{{ systemInfo?.javaVersion ?? '—' }}</span>
                 </div>
                 <div class="flex justify-between">
                   <span class="text-muted-foreground">{{ t('system.monitoring.platform') }}</span>
-                  <span>{{ systemInfo?.platform }}</span>
+                  <span>{{ systemInfo?.platform ?? '—' }}</span>
                 </div>
                 <div class="flex justify-between">
                   <span class="text-muted-foreground">{{ t('system.monitoring.uptime') }}</span>
-                  <span>{{ systemInfo ? formatUptime(systemInfo.uptime) : '-' }}</span>
+                  <span>{{ systemInfo ? formatUptime(systemInfo.uptime) : '—' }}</span>
                 </div>
                 <div class="flex justify-between">
                   <span class="text-muted-foreground">{{
                     t('system.monitoring.environment')
                   }}</span>
-                  <span>{{ systemInfo?.env }}</span>
+                  <span>{{ systemInfo?.env ?? '—' }}</span>
                 </div>
               </div>
             </CardContent>
@@ -290,9 +308,14 @@ onUnmounted(() => {
                 <div>
                   <div class="flex justify-between text-sm mb-1">
                     <span>{{ t('system.monitoring.heapUsed') }}</span>
-                    <span>{{ getMemoryPercent().toFixed(1) }}%</span>
+                    <span>{{
+                      getMemoryPercent() === null ? '—' : `${getMemoryPercent()?.toFixed(1)}%`
+                    }}</span>
                   </div>
-                  <div class="h-2 bg-muted rounded-full overflow-hidden">
+                  <div
+                    v-if="getMemoryPercent() !== null"
+                    class="h-2 bg-muted rounded-full overflow-hidden"
+                  >
                     <div
                       class="h-full bg-primary transition-all"
                       :style="{ width: `${getMemoryPercent()}%` }"
@@ -303,7 +326,7 @@ onUnmounted(() => {
                   <div>
                     <span class="text-muted-foreground">{{ t('system.monitoring.heapMax') }}:</span>
                     <span class="ml-1 font-mono">
-                      {{ resourceUsage ? formatBytes(resourceUsage.memory.heapMax) : '-' }}
+                      {{ resourceUsage ? formatBytes(resourceUsage.memory.heapMax) : '—' }}
                     </span>
                   </div>
                   <div>
@@ -311,7 +334,7 @@ onUnmounted(() => {
                       >{{ t('system.monitoring.nonHeapUsed') }}:</span
                     >
                     <span class="ml-1 font-mono">
-                      {{ resourceUsage ? formatBytes(resourceUsage.memory.nonHeapUsed) : '-' }}
+                      {{ resourceUsage ? formatBytes(resourceUsage.memory.nonHeapUsed) : '—' }}
                     </span>
                   </div>
                 </div>
@@ -333,24 +356,24 @@ onUnmounted(() => {
                   <span class="text-muted-foreground">{{
                     t('system.monitoring.activeConnections')
                   }}</span>
-                  <span>{{ databaseStats?.activeConnections ?? 0 }}</span>
+                  <span>{{ databaseStats?.activeConnections ?? '—' }}</span>
                 </div>
                 <div class="flex justify-between">
                   <span class="text-muted-foreground">{{
                     t('system.monitoring.maxConnections')
                   }}</span>
-                  <span>{{ databaseStats?.maxConnections ?? 0 }}</span>
+                  <span>{{ databaseStats?.maxConnections ?? '—' }}</span>
                 </div>
                 <div class="flex justify-between">
                   <span class="text-muted-foreground">{{ t('system.monitoring.queryCount') }}</span>
-                  <span>{{ databaseStats?.queryCount ?? 0 }}</span>
+                  <span>{{ databaseStats?.queryCount ?? '—' }}</span>
                 </div>
                 <div class="flex justify-between">
                   <span class="text-muted-foreground">{{
                     t('system.monitoring.slowQueries')
                   }}</span>
                   <span :class="{ 'text-foreground': (databaseStats?.slowQueries ?? 0) > 0 }">
-                    {{ databaseStats?.slowQueries ?? 0 }}
+                    {{ databaseStats?.slowQueries ?? '—' }}
                   </span>
                 </div>
               </div>
@@ -372,11 +395,13 @@ onUnmounted(() => {
                     t('system.monitoring.status.status')
                   }}</span>
                   <SemanticBadge
-                    :color="redisStats?.connected ? 'success' : 'error'"
+                    :color="!redisStats ? 'neutral' : redisStats.connected ? 'success' : 'error'"
                     :label="
-                      redisStats?.connected
-                        ? t('system.monitoring.connected')
-                        : t('system.monitoring.disconnected')
+                      !redisStats
+                        ? t('system.monitoring.status.unknown')
+                        : redisStats.connected
+                          ? t('system.monitoring.connected')
+                          : t('system.monitoring.disconnected')
                     "
                   />
                 </div>
@@ -384,7 +409,7 @@ onUnmounted(() => {
                   <span class="text-muted-foreground">{{ t('system.monitoring.version') }}</span>
                   <span>{{ redisStats.version }}</span>
                 </div>
-                <div v-if="redisStats?.usedMemory" class="flex justify-between">
+                <div v-if="redisStats?.usedMemory != null" class="flex justify-between">
                   <span class="text-muted-foreground">{{ t('system.monitoring.usedMemory') }}</span>
                   <span>{{ formatBytes(redisStats.usedMemory) }}</span>
                 </div>
@@ -401,7 +426,10 @@ onUnmounted(() => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div v-if="queueStats.length === 0" class="text-sm text-muted-foreground">
+              <p v-if="queueStats === null" class="text-sm text-muted-foreground">
+                {{ t('system.monitoring.unavailable') }}
+              </p>
+              <div v-else-if="queueStats.length === 0" class="text-sm text-muted-foreground">
                 {{ t('system.monitoring.noQueues') }}
               </div>
               <div v-else class="space-y-4">
@@ -409,7 +437,7 @@ onUnmounted(() => {
                   <div class="flex items-center justify-between">
                     <span class="font-medium">{{ queue.name }}</span>
                   </div>
-                  <div class="grid grid-cols-5 gap-2 text-xs">
+                  <div class="grid grid-cols-[repeat(auto-fit,minmax(6rem,1fr))] gap-2 text-xs">
                     <div class="text-center p-2 bg-muted rounded-lg">
                       <div class="text-lg font-bold text-foreground">{{ queue.waiting }}</div>
                       <div class="text-muted-foreground">{{ t('system.monitoring.waiting') }}</div>

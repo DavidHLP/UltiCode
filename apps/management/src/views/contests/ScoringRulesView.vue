@@ -70,6 +70,9 @@ const canManageRules = computed(
 
 // Stats for terminal ticker
 const stats = computed(() => {
+  if (loading.value || error.value) {
+    return { total: '—', active: '—', defaults: '—', inactive: '—' }
+  }
   const rules = scoringRules.value
   const total = rules.length
   const active = rules.filter((r) => r.isActive).length
@@ -318,7 +321,7 @@ const columns: ColumnDef<ScoringRule>[] = [
 
       <!-- Stats Ticker -->
       <div
-        class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-border dark:border-border bg-muted"
+        class="px-4 lg:px-6 py-2.5 flex flex-wrap items-center gap-x-6 gap-y-2 whitespace-nowrap border-t border-border dark:border-border bg-muted"
       >
         <div class="flex items-center gap-2">
           <span class="text-sm font-medium text-muted-foreground"
@@ -362,8 +365,9 @@ const columns: ColumnDef<ScoringRule>[] = [
         <div class="flex items-center gap-2">
           <div class="flex items-center gap-2 px-3 py-1.5 border rounded-lg">
             <Switch
-              :checked="includeInactive"
-              @update:checked="
+              :model-value="includeInactive"
+              :aria-label="t('scoringRules.showInactive')"
+              @update:model-value="
                 (val: boolean) => {
                   includeInactive = val
                   loadScoringRules()
@@ -385,7 +389,7 @@ const columns: ColumnDef<ScoringRule>[] = [
 
       <!-- Bulk Action Bar -->
       <div
-        v-if="selectedRows.length > 0"
+        v-if="!error && selectedRows.length > 0"
         :class="[
           'mb-4 flex items-center justify-between border border-status-warning-mark bg-[color-mix(in_oklch,_var(--status-warning-mark)_8%,_transparent)] dark:bg-[color-mix(in_oklch,_var(--status-warning-mark)_15%,_transparent)] p-3',
           'animate-in fade-in slide-in-from-top-2 duration-200',
@@ -404,6 +408,7 @@ const columns: ColumnDef<ScoringRule>[] = [
       </div>
 
       <DataTable
+        v-if="!error"
         :columns="columns"
         :data="scoringRules"
         :loading="loading"
@@ -417,9 +422,10 @@ const columns: ColumnDef<ScoringRule>[] = [
       <!-- Error state - Terminal Style -->
       <div
         v-if="error"
-        class="mt-4 flex items-center justify-between border border-status-error-mark bg-[color-mix(in_oklch,_var(--status-error-mark)_8%,_transparent)] p-4"
+        role="alert"
+        class="mt-4 flex flex-wrap gap-3 items-center justify-between border border-status-error-mark bg-[color-mix(in_oklch,_var(--status-error-mark)_8%,_transparent)] p-4"
       >
-        <div class="flex items-center gap-3">
+        <div class="flex min-w-0 flex-1 flex-wrap items-center gap-3 break-words">
           <span class="font-mono text-sm text-foreground">&gt; ERROR:</span>
           <span class="text-sm text-foreground">{{ error }}</span>
         </div>

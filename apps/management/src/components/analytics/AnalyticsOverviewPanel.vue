@@ -46,7 +46,7 @@ defineProps<{
             :key="item.label"
             class="flex min-h-9 items-center justify-between gap-3 py-1.5"
           >
-            <dt class="truncate text-xs font-mono text-muted-foreground">
+            <dt class="min-w-0 break-words text-xs font-mono text-muted-foreground">
               {{ item.label }}
             </dt>
             <dd class="flex shrink-0 items-center gap-1.5 font-mono tabular-nums">

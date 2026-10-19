@@ -16,6 +16,7 @@ import {
   DropdownMenuGroup,
 } from "@ulticode/design-system/ui/dropdown-menu";
 import { Button } from "@ulticode/design-system/ui/button";
+import { sidebarMenuButtonVariants } from "@ulticode/design-system/ui/sidebar";
 import {
   ChevronRight,
   MoreHorizontal,
@@ -63,7 +64,7 @@ const isListActive = (id: string | number) => {
 // All problem-list rows share the same public sidebar-menu contract as the
 // primary problem navigation. The row keeps its action menu as a sibling while
 // `[data-active]` owns the active bar, surface, and text treatment.
-const listRowClass = "uc-sidebar-item group group/item";
+const listRowClass = `${sidebarMenuButtonVariants()} group group/item`;
 const listSectionTriggerClass =
   "uc-sidebar-section-trigger group/trigger flex-1";
 </script>
@@ -109,7 +110,10 @@ const listSectionTriggerClass =
           <li v-for="item in data.ownLists" :key="item.id" class="group/item">
             <div
               :class="listRowClass"
-              :data-active="isListActive(item.id) ? 'true' : 'false'"
+              data-sidebar="menu-button"
+              data-slot="sidebar-menu-button"
+              data-size="default"
+              :data-active="isListActive(item.id) || undefined"
             >
               <RouterLink
                 :to="`/problemset/list/${item.id}`"
@@ -169,7 +173,10 @@ const listSectionTriggerClass =
           <li v-for="item in data.savedLists" :key="item.id" class="group/item">
             <div
               :class="listRowClass"
-              :data-active="isListActive(item.id) ? 'true' : 'false'"
+              data-sidebar="menu-button"
+              data-slot="sidebar-menu-button"
+              data-size="default"
+              :data-active="isListActive(item.id) || undefined"
             >
               <RouterLink
                 :to="`/problemset/list/${item.id}`"
@@ -249,7 +256,10 @@ const listSectionTriggerClass =
           >
             <div
               :class="listRowClass"
-              :data-active="isListActive(item.id) ? 'true' : 'false'"
+              data-sidebar="menu-button"
+              data-slot="sidebar-menu-button"
+              data-size="default"
+              :data-active="isListActive(item.id) || undefined"
             >
               <RouterLink
                 :to="`/problemset/list/${item.id}`"
@@ -313,7 +323,10 @@ const listSectionTriggerClass =
           <li v-for="item in category.lists" :key="item.id" class="group/item">
             <div
               :class="listRowClass"
-              :data-active="isListActive(item.id) ? 'true' : 'false'"
+              data-sidebar="menu-button"
+              data-slot="sidebar-menu-button"
+              data-size="default"
+              :data-active="isListActive(item.id) || undefined"
             >
               <RouterLink
                 :to="`/problemset/list/${item.id}`"

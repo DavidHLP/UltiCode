@@ -70,7 +70,7 @@ const getColorClass = (level: number) => {
     case 4:
       return "bg-[color-mix(in_oklch,var(--status-success-mark)_80%,transparent)] dark:bg-[color-mix(in_oklch,var(--status-success-mark)_100%,transparent)]";
     default:
-      return "bg-[color-mix(in_oklch,var(--card)_60%,var(--muted))] dark:bg-[color-mix(in_oklch,var(--card)_40%,var(--foreground))]";
+      return "bg-[color-mix(in_oklch,var(--card)_85%,var(--foreground))] dark:bg-[color-mix(in_oklch,var(--card)_40%,var(--foreground))]";
   }
 };
 
@@ -131,7 +131,7 @@ const months = computed(() => [
         <span>{{ t("common.labels.less") }}</span>
         <div class="flex gap-[2px]">
           <div
-            class="h-3 w-3 rounded-lg bg-[color-mix(in_oklch,var(--card)_60%,var(--muted))] dark:bg-[color-mix(in_oklch,var(--card)_40%,var(--foreground))]"
+            class="h-3 w-3 rounded-lg bg-[color-mix(in_oklch,var(--card)_85%,var(--foreground))] dark:bg-[color-mix(in_oklch,var(--card)_40%,var(--foreground))]"
           ></div>
           <div
             class="h-3 w-3 rounded-lg bg-[color-mix(in_oklch,var(--status-success-mark)_20%,transparent)] dark:bg-[color-mix(in_oklch,var(--status-success-mark)_30%,transparent)]"

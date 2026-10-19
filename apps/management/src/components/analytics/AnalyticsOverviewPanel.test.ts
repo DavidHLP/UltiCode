@@ -28,5 +28,7 @@ describe('AnalyticsOverviewPanel', () => {
     expect(wrapper.findAll('section')).toHaveLength(2)
     expect(wrapper.text()).toContain('Daily active')
     expect(wrapper.text()).toContain('Attempts')
+    expect(wrapper.get('dt').classes()).not.toContain('truncate')
+    expect(wrapper.get('dt').classes()).toContain('break-words')
   })
 })

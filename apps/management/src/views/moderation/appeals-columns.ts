@@ -234,7 +234,12 @@ export function createAppealsColumns(
                   default: () =>
                     h(
                       Button,
-                      { variant: 'ghost', size: 'icon', class: 'h-8 w-8 p-0' },
+                      {
+                        variant: 'ghost',
+                        size: 'icon',
+                        class: 'h-8 w-8 p-0',
+                        'aria-label': t('common.actions.label'),
+                      },
                       {
                         default: () => [
                           h(IconDotsVertical, { class: 'h-4 w-4 text-[var(--muted-foreground)]' }),

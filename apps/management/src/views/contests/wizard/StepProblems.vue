@@ -49,7 +49,7 @@ function handleScore(problemId: string, value: string | number): void {
     <!-- Section Header -->
     <div class="flex justify-between items-center">
       <div class="flex items-center gap-2">
-        <span class="text-sm text-muted-foreground">problems_config</span>
+        <span class="text-sm text-muted-foreground">{{ t('contests.wizard.problems') }}</span>
         <span class="text-sm font-medium">[{{ slice.problems.length }}]</span>
       </div>
       <Button type="button" size="sm" variant="outline" @click="pickerOpen = true">
@@ -59,7 +59,7 @@ function handleScore(problemId: string, value: string | number): void {
     </div>
 
     <!-- Table - Terminal Style -->
-    <div class="border border-border dark:border-foreground">
+    <div class="border border-border">
       <Table class="w-full">
         <TableHeader>
           <TableRow>

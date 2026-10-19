@@ -6,7 +6,14 @@ import { Button } from '@ulticode/design-system/ui/button'
 import { Input } from '@ulticode/design-system/ui/input'
 import { Textarea } from '@ulticode/design-system/ui/textarea'
 import { RadioGroup, RadioGroupItem } from '@ulticode/design-system/ui/radio-group'
-import { Dialog, DialogContent, DialogFooter } from '@ulticode/design-system/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@ulticode/design-system/ui/dialog'
 import {
   Field,
   FieldGroup,
@@ -140,26 +147,23 @@ async function handleSubmit() {
 
 <template>
   <Dialog :open="open" @update:open="emit('update:open', $event)">
-    <DialogContent class="sm:max-w-[600px] p-0 overflow-hidden">
+    <DialogContent class="gap-0 sm:max-w-[600px] p-0">
       <!-- Page header -->
-      <div
-        class="flex items-center gap-2 px-4 py-3 font-semibold flex items-center justify-between"
-      >
-        <span class="font-mono text-sm uppercase tracking-wider">{{
+      <DialogHeader class="shrink-0 px-4 py-3 pe-12">
+        <DialogTitle class="font-mono text-sm uppercase tracking-wider">{{
           isEditMode ? t('notifications.dialog.editTitle') : t('notifications.dialog.createTitle')
-        }}</span>
-      </div>
-
-      <!-- Content -->
-      <div class="p-4">
-        <p class="text-sm text-muted-foreground mb-4">
+        }}</DialogTitle>
+        <DialogDescription>
           {{
             isEditMode
               ? t('notifications.dialog.editDescription')
               : t('notifications.dialog.createDescription')
           }}
-        </p>
+        </DialogDescription>
+      </DialogHeader>
 
+      <!-- Content -->
+      <div class="p-4">
         <form @submit.prevent="handleSubmit">
           <!-- Error Block - Terminal Style -->
           <div
@@ -170,7 +174,7 @@ async function handleSubmit() {
             <span class="text-foreground">{{ error }}</span>
           </div>
 
-          <FieldGroup class="max-h-[60vh] overflow-y-auto px-1">
+          <FieldGroup class="px-1">
             <FieldSet>
               <FieldLegend>{{ t('notifications.form.messageContent') }}</FieldLegend>
               <FieldDescription>{{
@@ -313,7 +317,7 @@ async function handleSubmit() {
           </FieldGroup>
 
           <!-- Footer Buttons - Terminal Style -->
-          <DialogFooter class="mt-6 flex justify-end gap-2">
+          <DialogFooter class="mt-6 flex shrink-0 justify-end gap-2">
             <Button type="button" variant="outline" size="sm" @click="emit('update:open', false)">
               {{ t('common.cancel') }}
             </Button>

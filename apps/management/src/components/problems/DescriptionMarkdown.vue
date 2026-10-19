@@ -151,7 +151,7 @@ const htmlContent = computed(() => renderMarkdown(markdownContent.value))
 
 .description-markdown :deep(.markdown-content code) {
   font-family: var(--uc-font-code);
-  font-size: var(--uc-text-xl);
+  font-size: var(--uc-text-sm);
   background-color: var(--muted);
   color: var(--foreground);
   padding: 0.125rem 0.375rem;
@@ -175,6 +175,8 @@ const htmlContent = computed(() => renderMarkdown(markdownContent.value))
   border-radius: var(--radius-md);
   color: inherit;
   font-size: var(--uc-text-sm);
+  white-space: pre;
+  word-break: normal;
 }
 
 .description-markdown :deep(.markdown-content blockquote) {

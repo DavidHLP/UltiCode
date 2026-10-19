@@ -55,8 +55,9 @@ const weeklyDays = computed(() => {
     d.setDate(d.getDate() - i);
     const dateStr = getLocalDateString(d);
 
-    const dayNames = ["日", "一", "二", "三", "四", "五", "六"];
-    const dayName = dayNames[d.getDay()];
+    const dayName = new Intl.DateTimeFormat(locale.value, {
+      weekday: "short",
+    }).format(d);
 
     list.push({
       dateStr,
@@ -69,7 +70,7 @@ const weeklyDays = computed(() => {
   return list;
 });
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 onMounted(async () => {
   try {
     dailyProblem.value = await fetchRandomProblem();
@@ -93,11 +94,11 @@ onMounted(async () => {
     <!-- Calendar Widget -->
     <Card>
       <CardHeader
-        class="pb-3 cursor-pointer md:cursor-default select-none md:border-b md:border-border/40"
+        class="pb-3 cursor-pointer @3xl/problemset:cursor-default select-none @3xl/problemset:border-b @3xl/problemset:border-border/40"
         :class="{ 'border-b border-border/40': !isCollapsed }"
         @click="toggleCollapse"
       >
-        <CardTitle class="flex items-center justify-between">
+        <CardTitle class="flex flex-wrap items-center justify-between gap-2">
           <div class="flex items-center gap-2 text-foreground">
             <Trophy class="w-4 h-4 text-status-warning-mark animate-pulse" />
             <span class="font-sans text-sm font-semibold text-foreground">{{
@@ -114,12 +115,15 @@ onMounted(async () => {
                 class="tabular-nums font-black text-foreground text-xs px-0.5"
                 >{{ completedDates.length }}</span
               >
-              <span>{{ t("problem.sidebar.daysUnit") }}</span>
+              <span>{{
+                t("problem.sidebar.daysUnit", completedDates.length)
+              }}</span>
             </Badge>
             <Button
               variant="ghost"
-              class="md:hidden p-1"
-              aria-label="Toggle calendar"
+              class="@3xl/problemset:hidden p-1"
+              :aria-label="t('problem.sidebar.toggleCalendar')"
+              :aria-expanded="!isCollapsed"
             >
               <ChevronDown v-if="isCollapsed" class="w-4 h-4" />
               <ChevronUp v-else class="w-4 h-4" />
@@ -129,11 +133,13 @@ onMounted(async () => {
         <!-- Today's Problem Subtitle on narrow screens -->
         <div
           v-if="dailyProblem"
-          class="md:hidden mt-2 text-xs font-mono text-muted-foreground/90 border-t border-border/20 pt-2 flex items-center gap-1 flex-wrap"
+          class="@3xl/problemset:hidden mt-2 text-xs font-mono text-muted-foreground/90 border-t border-border/20 pt-2 flex items-center gap-1 flex-wrap"
           @click.stop
         >
           <span class="text-foreground font-bold">></span>
-          <span>今日：{{ dailyProblem.id }}.</span>
+          <span>{{
+            t("problem.sidebar.todayProblem", { id: dailyProblem.id })
+          }}</span>
           <RouterLink
             :to="`/problems/${dailyProblem.slug || dailyProblem.id}`"
             class="text-primary hover:underline font-bold"
@@ -151,17 +157,13 @@ onMounted(async () => {
             "
           >
             ({{
-              dailyProblem.difficulty === "EASY"
-                ? "简单"
-                : dailyProblem.difficulty === "MEDIUM"
-                  ? "中等"
-                  : "困难"
+              t(`problem.difficulty.${dailyProblem.difficulty.toLowerCase()}`)
             }})
           </span>
         </div>
       </CardHeader>
       <CardContent
-        class="ease-in-out md:max-h-none md:opacity-100 md:overflow-visible md:p-4 flex flex-col items-center"
+        class="ease-in-out @3xl/problemset:max-h-none @3xl/problemset:opacity-100 @3xl/problemset:overflow-visible @3xl/problemset:p-4 flex flex-col items-center"
         :class="[
           isCollapsed
             ? 'max-h-0 opacity-0 overflow-hidden p-0'
@@ -170,7 +172,7 @@ onMounted(async () => {
       >
         <!-- Mobile Week View (visible only on mobile/narrow viewports) -->
         <div
-          class="md:hidden w-full flex items-center justify-between gap-1.5 py-1"
+          class="@3xl/problemset:hidden w-full flex items-center justify-between gap-1.5 py-1"
         >
           <div
             v-for="day in weeklyDays"
@@ -208,7 +210,8 @@ onMounted(async () => {
         <!-- Desktop Calendar (visible only on desktop/tablets) -->
         <Calendar
           v-model="date"
-          class="hidden md:block w-full p-0 [&_[data-slot=calendar-grid]]:w-full [&_[data-slot=calendar-grid]]:table-fixed [&_[data-slot=calendar-grid-row]]:w-full [&_[data-slot=calendar-head-cell]]:min-w-0 [&_[data-slot=calendar-head-cell]]:flex-1 [&_[data-slot=calendar-cell]]:min-w-0 [&_[data-slot=calendar-cell]]:flex-1 [&_[data-slot=calendar-cell-trigger]]:!h-auto [&_[data-slot=calendar-cell-trigger]]:!w-full [&_[data-slot=calendar-cell-trigger]]:aspect-square"
+          :locale="locale"
+          class="hidden @3xl/problemset:block w-full p-0 [&_[data-slot=calendar-grid]]:w-full [&_[data-slot=calendar-grid]]:table-fixed [&_[data-slot=calendar-grid-row]]:w-full [&_[data-slot=calendar-head-cell]]:min-w-0 [&_[data-slot=calendar-head-cell]]:flex-1 [&_[data-slot=calendar-cell]]:min-w-0 [&_[data-slot=calendar-cell]]:flex-1 [&_[data-slot=calendar-cell-trigger]]:!h-auto [&_[data-slot=calendar-cell-trigger]]:!w-full [&_[data-slot=calendar-cell-trigger]]:aspect-square"
           :completed-dates="completedDates"
         />
       </CardContent>

@@ -47,6 +47,8 @@ export default {
   filters: {
     flagStatus: '标记状态',
     all: '全部',
+    allFlags: '全部标记状态',
+    allVisibility: '全部可见性',
     flagged: '已标记',
     clean: '未标记',
     visibility: '可见性',
@@ -62,6 +64,9 @@ export default {
 
   // ========== 详情 ==========
   detail: {
+    summary: '摘要',
+    metadata: '详细信息',
+    tags: '标签',
     noCodeContent: '无代码内容',
     solutionFor: '{problem} 的题解',
     noDescriptionContent: '无描述内容',
@@ -131,8 +136,8 @@ export default {
   // ========== 终端统计 ==========
   terminal: {
     total: '总计',
-    flagged: '已标记',
-    published: '已发布',
+    flagged: '本页已标记',
+    published: '本页已发布',
     loading: '加载中...',
     solutionManagement: '题解管理',
   },

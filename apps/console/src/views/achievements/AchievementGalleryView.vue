@@ -117,7 +117,7 @@ function handleUnlockClose() {
       </div>
       <div class="rounded-lg border bg-card p-4 text-center">
         <Star class="mx-auto h-8 w-8 text-status-special-mark" />
-        <p class="mt-2 text-2xl font-bold">{{ stats.points }}</p>
+        <p class="mt-2 text-2xl font-bold">{{ stats.points ?? "--" }}</p>
         <p class="text-sm text-muted-foreground">
           {{ t("achievement.points") }}
         </p>
@@ -162,15 +162,17 @@ function handleUnlockClose() {
 
     <!-- Category Tabs -->
     <Tabs v-model="selectedCategory" class="w-full">
-      <TabsList class="w-full justify-start">
+      <TabsList
+        class="grid w-full grid-cols-2 gap-1 group-data-horizontal/tabs:h-auto sm:grid-cols-3 lg:grid-cols-5"
+      >
         <TabsTrigger
           v-for="category in categories"
           :key="category.value"
           :value="category.value"
-          class="gap-2"
+          class="h-auto min-h-8 min-w-0 gap-2 whitespace-normal"
         >
           <component :is="category.icon" class="h-4 w-4" />
-          <span class="hidden sm:inline">{{ category.label }}</span>
+          <span>{{ category.label }}</span>
         </TabsTrigger>
       </TabsList>
 

@@ -96,7 +96,17 @@ async function applyAvatarMarkPoint(
   chart.setOption({
     series: [
       {
+        label: { show: false },
         markPoint: {
+          label: {
+            show: true,
+            position: "top",
+            formatter: t("problem.layout.userPosition"),
+            color: palette.muted,
+            fontFamily: palette.fontFamily,
+            fontWeight: "bold",
+            fontSize: 12,
+          },
           data: [
             {
               coord: [userIndex, paired[userIndex]?.count ?? 0],
@@ -341,7 +351,7 @@ onBeforeUnmount(() => {
     </div>
     <div v-show="showRuntimeDetail" class="rounded-lg border border-border p-3">
       <div
-        class="h-48 w-full"
+        class="h-56 w-full"
         ref="runtimeChartRef"
         data-testid="runtime-chart"
         style="touch-action: none; overflow: hidden; contain: content"
@@ -349,7 +359,7 @@ onBeforeUnmount(() => {
     </div>
     <div v-show="showMemoryDetail" class="rounded-lg border border-border p-3">
       <div
-        class="h-48 w-full"
+        class="h-56 w-full"
         ref="memoryChartRef"
         data-testid="memory-chart"
         style="touch-action: none; overflow: hidden; contain: content"

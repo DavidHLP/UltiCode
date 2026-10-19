@@ -85,6 +85,9 @@ const canDelete = can.contest.delete
 
 // Stats for terminal ticker
 const stats = computed(() => {
+  if (loading.value || error.value) {
+    return { total: '—', running: '—', upcoming: '—', finished: '—' }
+  }
   const contests = contestsStore.items
   const total = contestsStore.total
   const running = contests.filter((c) => c.status === 'RUNNING').length
@@ -188,7 +191,7 @@ async function handleDeleteContest(id: string | number) {
       ]"
     >
       <!-- Title Row -->
-      <div class="px-4 lg:px-6 py-4 flex items-center justify-between">
+      <div class="px-4 lg:px-6 py-4 flex flex-wrap items-center justify-between gap-3">
         <h1 class="text-xl font-medium tracking-tight text-foreground">
           {{ t('contests.title') }}
         </h1>
@@ -206,7 +209,7 @@ async function handleDeleteContest(id: string | number) {
 
       <!-- Stats Ticker -->
       <div
-        class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-border dark:border-border bg-muted"
+        class="px-4 lg:px-6 py-2.5 flex flex-wrap items-center gap-x-6 gap-y-2 whitespace-nowrap border-t border-border dark:border-border bg-muted"
       >
         <div class="flex items-center gap-2">
           <span class="text-sm font-medium text-muted-foreground"
@@ -245,7 +248,7 @@ async function handleDeleteContest(id: string | number) {
 
     <!-- Bulk Action Bar - Terminal Style -->
     <div
-      v-if="selectedRows.length > 0"
+      v-if="!error && selectedRows.length > 0"
       :class="[
         'mt-4 flex items-center justify-between border border-status-warning-mark bg-[color-mix(in_oklch,_var(--status-warning-mark)_8%,_transparent)] dark:bg-[color-mix(in_oklch,_var(--status-warning-mark)_15%,_transparent)] p-3',
         'animate-in fade-in slide-in-from-top-2 duration-200',
@@ -281,9 +284,10 @@ async function handleDeleteContest(id: string | number) {
     <div class="flex-1">
       <DataTable
         :columns="columns"
-        :data="data"
+        :data="error ? [] : data"
         :pagination="tablePagination"
-        :row-count="total"
+        :row-count="error ? 0 : total"
+        :hide-pagination="!!error"
         :loading="loading"
         v-model:selected-rows="selectedRows"
         @update:pagination="tablePagination = $event"
@@ -303,21 +307,21 @@ async function handleDeleteContest(id: string | number) {
             :on-refresh="loadContests"
           />
         </template>
+        <template v-if="error" #empty>
+          <div
+            role="alert"
+            class="flex flex-wrap items-center justify-between gap-3 border border-status-error-mark bg-[color-mix(in_oklch,_var(--status-error-mark)_8%,_transparent)] p-4"
+          >
+            <div class="flex min-w-0 flex-1 flex-wrap items-center gap-3 [overflow-wrap:anywhere]">
+              <span class="font-mono text-sm text-foreground">&gt; ERROR:</span>
+              <span class="text-sm text-foreground">{{ error }}</span>
+            </div>
+            <Button type="button" variant="outline" size="sm" @click="loadContests()">
+              {{ t('common.retry') }}
+            </Button>
+          </div>
+        </template>
       </DataTable>
-
-      <!-- Error state - Terminal Style -->
-      <div
-        v-if="error"
-        class="mt-4 flex items-center justify-between border border-status-error-mark bg-[color-mix(in_oklch,_var(--status-error-mark)_8%,_transparent)] p-4"
-      >
-        <div class="flex items-center gap-3">
-          <span class="font-mono text-sm text-foreground">&gt; ERROR:</span>
-          <span class="text-sm text-foreground">{{ error }}</span>
-        </div>
-        <Button type="button" variant="outline" size="sm" @click="loadContests()">
-          {{ t('common.retry') }}
-        </Button>
-      </div>
     </div>
   </div>
 

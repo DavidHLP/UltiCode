@@ -25,6 +25,7 @@ import { useI18n } from "vue-i18n";
 
 const props = defineProps<{
   thread: ForumThread;
+  commentCount: number;
 }>();
 
 const { t, locale } = useI18n();
@@ -89,9 +90,7 @@ const media = computed(
   () => props.thread.media as unknown as ForumPostMedia | undefined,
 );
 
-const commentsDisplay = computed(() =>
-  localStats.value.comments ? formatCount(localStats.value.comments) : "0",
-);
+const commentsDisplay = computed(() => formatCount(props.commentCount));
 
 const savesDisplay = computed(() =>
   localStats.value.saves ? formatCount(localStats.value.saves) : "0",

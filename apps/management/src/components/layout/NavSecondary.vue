@@ -41,6 +41,7 @@ function isActive(url: string): boolean {
         <SidebarMenuItem v-for="item in items" :key="item.title">
           <SidebarMenuButton
             :tooltip="item.title"
+            :aria-label="item.title"
             :is-active="isActive(item.url)"
             as-child
             :class="[

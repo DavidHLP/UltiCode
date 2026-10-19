@@ -188,14 +188,38 @@ const table = useVueTable({
   },
 })
 
-// Watch for external clearing of selected rows
+function clearSelection() {
+  if (Object.keys(rowSelection.value).length > 0) {
+    table.resetRowSelection()
+  } else if (props.selectedRows?.length) {
+    emit('update:selectedRows', [])
+  }
+}
+
+watch(
+  () => props.loading,
+  (loading) => {
+    if (loading) clearSelection()
+  },
+)
+
+watch(
+  () => props.data.map((row) => row.id),
+  (rowIds, previousRowIds) => {
+    if (
+      rowIds.length !== previousRowIds.length ||
+      rowIds.some((id, index) => id !== previousRowIds[index])
+    ) {
+      clearSelection()
+    }
+  },
+)
+
 watch(
   () => props.selectedRows,
   (newVal) => {
     if (!newVal || newVal.length === 0) {
-      if (Object.keys(rowSelection.value).length > 0) {
-        table.resetRowSelection()
-      }
+      clearSelection()
     }
   },
 )
@@ -315,7 +339,11 @@ watch(
     </div>
 
     <!-- Empty State -->
-    <div v-else class="flex h-96 items-center justify-center rounded-lg bg-card">
+    <div
+      v-else
+      class="rounded-lg bg-card"
+      :class="{ 'flex h-96 items-center justify-center': !$slots.empty }"
+    >
       <slot name="empty">
         <Empty>
           <EmptyMedia variant="icon">

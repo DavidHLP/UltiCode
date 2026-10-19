@@ -245,7 +245,7 @@ const columns: ColumnDef<AuditLog>[] = [
 
       <!-- Stats Ticker -->
       <div
-        class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-border dark:border-border bg-muted"
+        class="px-4 lg:px-6 py-2.5 flex flex-wrap items-center gap-x-6 gap-y-2 whitespace-nowrap border-t border-border dark:border-border bg-muted"
       >
         <div class="flex items-center gap-2">
           <span class="text-sm font-medium text-muted-foreground"
@@ -280,8 +280,8 @@ const columns: ColumnDef<AuditLog>[] = [
         class="w-full text-sm"
       >
         <template #toolbar-left>
-          <div class="flex items-center gap-3 flex-wrap">
-            <div class="relative flex items-center min-w-[200px] w-[260px]">
+          <div class="flex min-w-0 max-w-full items-center gap-3 flex-wrap">
+            <div class="relative flex min-w-0 w-full max-w-[260px] items-center">
               <IconSearch
                 class="absolute left-2.5 h-3.5 w-3.5 text-muted-foreground pointer-events-none"
               />
@@ -300,8 +300,14 @@ const columns: ColumnDef<AuditLog>[] = [
               </Button>
             </div>
             <Select v-model="actionFilter">
-              <SelectTrigger size="sm" class="w-[200px]">
-                <SelectValue :placeholder="t('audit.filters.allActions')" />
+              <SelectTrigger size="sm" class="w-[200px]" :aria-label="t('audit.filters.action')">
+                <SelectValue>
+                  {{
+                    actionFilter === 'all'
+                      ? t('audit.filters.allActions')
+                      : t(actionToI18nKey(actionFilter))
+                  }}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">{{ t('audit.filters.allActions') }}</SelectItem>
@@ -318,8 +324,18 @@ const columns: ColumnDef<AuditLog>[] = [
               </SelectContent>
             </Select>
             <Select v-model="entityTypeFilter">
-              <SelectTrigger size="sm" class="w-[180px]">
-                <SelectValue :placeholder="t('audit.filters.allEntities')" />
+              <SelectTrigger
+                size="sm"
+                class="w-[180px]"
+                :aria-label="t('audit.filters.entityType')"
+              >
+                <SelectValue>
+                  {{
+                    entityTypeFilter === 'all'
+                      ? t('audit.filters.allEntities')
+                      : t(entityTypeToI18nKey(entityTypeFilter))
+                  }}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup
@@ -347,17 +363,19 @@ const columns: ColumnDef<AuditLog>[] = [
           </div>
           <div
             v-if="showAdvancedFilters"
-            class="flex items-center gap-3 mt-2 pt-2 border-t border-border dark:border-border"
+            class="flex flex-wrap items-center gap-3 mt-2 pt-2 border-t border-border dark:border-border"
           >
             <Input
               v-model="startDateFilter"
               type="date"
+              :aria-label="t('audit.filters.startDate')"
               :placeholder="t('audit.filters.startDate')"
               class="w-[140px]"
             />
             <Input
               v-model="endDateFilter"
               type="date"
+              :aria-label="t('audit.filters.endDate')"
               :placeholder="t('audit.filters.endDate')"
               class="w-[140px]"
             />

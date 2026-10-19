@@ -92,6 +92,9 @@ const categoryFilter = computed({
 })
 
 const stats = computed(() => {
+  if (loading.value || error.value) {
+    return { total: '—', system: '—', contest: '—', submission: '—', other: '—' }
+  }
   const announcements = data.value
   return {
     total: total.value,
@@ -289,7 +292,7 @@ const columns: ColumnDef<SystemAnnouncement>[] = [
       ]"
     >
       <!-- Title Row -->
-      <div class="px-4 lg:px-6 py-4 flex items-center justify-between">
+      <div class="px-4 lg:px-6 py-4 flex flex-wrap items-center justify-between gap-3">
         <h1 class="text-xl font-medium tracking-tight text-foreground">
           {{ t('notifications.title') }}
         </h1>
@@ -301,7 +304,7 @@ const columns: ColumnDef<SystemAnnouncement>[] = [
 
       <!-- Stats Ticker -->
       <div
-        class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-border dark:border-border bg-muted"
+        class="px-4 lg:px-6 py-2.5 flex flex-wrap items-center gap-x-6 gap-y-2 whitespace-nowrap border-t border-border dark:border-border bg-muted"
       >
         <div class="flex items-center gap-2">
           <span class="text-sm font-medium text-muted-foreground"
@@ -340,9 +343,10 @@ const columns: ColumnDef<SystemAnnouncement>[] = [
     <div class="flex-1">
       <DataTable
         :columns="columns"
-        :data="data"
+        :data="error ? [] : data"
         :pagination="tablePagination"
-        :row-count="total"
+        :row-count="error ? 0 : total"
+        :hide-pagination="!!error"
         :loading="loading"
         @update:pagination="tablePagination = $event"
         class="w-full text-sm"
@@ -363,21 +367,21 @@ const columns: ColumnDef<SystemAnnouncement>[] = [
             :on-refresh="loadNotifications"
           />
         </template>
+        <template v-if="error" #empty>
+          <div
+            role="alert"
+            class="flex flex-wrap items-center justify-between gap-3 border border-status-error-mark bg-[color-mix(in_oklch,_var(--status-error-mark)_8%,_transparent)] p-4"
+          >
+            <div class="flex min-w-0 flex-1 flex-wrap items-center gap-3 [overflow-wrap:anywhere]">
+              <span class="font-mono text-sm text-foreground">&gt; ERROR:</span>
+              <span class="text-sm text-foreground">{{ error }}</span>
+            </div>
+            <Button variant="outline" size="sm" @click="loadNotifications()">
+              {{ t('common.retry') }}
+            </Button>
+          </div>
+        </template>
       </DataTable>
-
-      <!-- Error state -->
-      <div
-        v-if="error"
-        class="mt-4 flex items-center justify-between border border-status-error-mark bg-[color-mix(in_oklch,_var(--status-error-mark)_8%,_transparent)] p-4"
-      >
-        <div class="flex items-center gap-3">
-          <span class="font-mono text-sm text-foreground">&gt; ERROR:</span>
-          <span class="text-sm text-foreground">{{ error }}</span>
-        </div>
-        <Button variant="outline" size="sm" @click="loadNotifications()">
-          {{ t('common.retry') }}
-        </Button>
-      </div>
     </div>
   </div>
 

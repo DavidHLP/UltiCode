@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { mount, flushPromises } from '@vue/test-utils'
 import VisibilitySection from './VisibilitySection.vue'
 import type { ProblemListDetail } from '@/api/admin/problem-lists'
+import { apiPatch } from '@/utils/request'
 
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({
@@ -15,7 +16,8 @@ vi.mock('vue-i18n', () => ({
   }),
 }))
 
-vi.mock('@vueuse/core', () => ({
+vi.mock('@vueuse/core', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@vueuse/core')>()),
   useDebounceFn: (fn: (...args: unknown[]) => unknown) => {
     const debouncedFn = (...args: unknown[]) => {
       debouncedFn.cancel?.()
@@ -67,12 +69,6 @@ describe('VisibilitySection', () => {
       },
       global: {
         stubs: {
-          Switch: {
-            template:
-              '<button data-testid="switch" :data-checked="checked" :data-disabled="disabled" @click="$emit(\'update:checked\', !checked)" @blur="$emit(\'blur\')"><slot /></button>',
-            props: ['checked', 'disabled'],
-            emits: ['update:checked', 'blur'],
-          },
           TooltipProvider: true,
           Tooltip: true,
           TooltipContent: true,
@@ -89,29 +85,51 @@ describe('VisibilitySection', () => {
   describe('rendering', () => {
     it('renders switches', () => {
       const wrapper = createWrapper()
-      const switches = wrapper.findAll('[data-testid="switch"]')
+      const switches = wrapper.findAll('[role="switch"]')
       expect(switches.length).toBe(2)
     })
 
     it('shows public switch checked when isPublic is true', () => {
       const wrapper = createWrapper()
-      const publicSwitch = wrapper.findAll('[data-testid="switch"]')[0]
-      expect(publicSwitch.attributes('data-checked')).toBe('true')
+      const publicSwitch = wrapper.findAll('[role="switch"]')[0]
+      expect(publicSwitch.attributes('aria-checked')).toBe('true')
     })
 
     it('shows featured switch unchecked when isFeatured is false', () => {
       const wrapper = createWrapper({ modelValue: { ...mockProblemList, isFeatured: false } })
-      const featuredSwitch = wrapper.findAll('[data-testid="switch"]')[1]
-      expect(featuredSwitch.attributes('data-checked')).toBe('false')
+      const featuredSwitch = wrapper.findAll('[role="switch"]')[1]
+      expect(featuredSwitch.attributes('aria-checked')).toBe('false')
     })
   })
+
+  it.each([
+    ['isPublic', 0, false],
+    ['isFeatured', 1, true],
+  ] as const)(
+    'forwards a real %s switch through the existing autosave contract',
+    async (field, index, value) => {
+      vi.mocked(apiPatch).mockResolvedValue({ ...mockProblemList, [field]: value })
+      const wrapper = createWrapper()
+      await wrapper.findAll('[role="switch"]')[index].trigger('click')
+      await flushPromises()
+      expect(wrapper.emitted('update:modelValue')?.[0][0]).toMatchObject({ [field]: value })
+      expect(apiPatch).toHaveBeenCalledWith(
+        `/admin/problem-lists/${mockProblemList.id}/visibility`,
+        {
+          isPublic: field === 'isPublic' ? value : mockProblemList.isPublic,
+          isFeatured: field === 'isFeatured' ? value : mockProblemList.isFeatured,
+        },
+      )
+      wrapper.unmount()
+    },
+  )
 
   describe('disabled state', () => {
     it('passes disabled prop to switches', () => {
       const wrapper = createWrapper({ disabled: true })
-      const switches = wrapper.findAll('[data-testid="switch"]')
+      const switches = wrapper.findAll('[role="switch"]')
       switches.forEach((sw) => {
-        expect(sw.attributes('data-disabled')).toBe('true')
+        expect((sw.element as HTMLButtonElement).disabled).toBe(true)
       })
     })
   })

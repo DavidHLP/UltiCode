@@ -147,7 +147,7 @@ onMounted(async () => {
             :alt="t('personal.profile.avatar')"
             class="h-16 w-16 rounded-full border object-cover"
           />
-          <div class="min-w-0 flex-1 space-y-1">
+          <div class="min-w-0 flex-1 basis-32 space-y-1">
             <p class="text-sm font-medium">
               {{ t("personal.profile.avatar") }}
             </p>
@@ -170,7 +170,7 @@ onMounted(async () => {
               {{ avatarError }}
             </p>
           </div>
-          <Input
+          <input
             ref="avatarInput"
             type="file"
             accept=".jpg,.jpeg,.png,.gif,.webp"

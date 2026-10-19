@@ -44,9 +44,9 @@ const authorInitials = computed(() => {
 </script>
 
 <template>
-  <Drawer :open="open" @update:open="emit('update:open', $event)" direction="right">
-    <DrawerContent class="h-full w-[400px] sm:w-[540px]">
-      <DrawerHeader class="px-6 py-4">
+  <Drawer :open="open" @update:open="emit('update:open', $event)" swipe-direction="right">
+    <DrawerContent class="h-full max-w-full data-[swipe-direction=right]:w-[400px] data-[swipe-direction=right]:sm:w-[540px] data-[swipe-direction=right]:sm:max-w-none">
+      <DrawerHeader class="shrink-0 px-6 py-4">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2">
             <span class="text-muted-foreground font-mono text-sm">//</span>
@@ -58,7 +58,7 @@ const authorInitials = computed(() => {
         </DrawerDescription>
       </DrawerHeader>
 
-      <ScrollArea v-if="post" class="flex-1">
+      <ScrollArea v-if="post" class="min-h-0 flex-1">
         <div class="flex flex-col gap-4 p-4">
           <!-- Post Header -->
           <DetailPanel title="post_info">

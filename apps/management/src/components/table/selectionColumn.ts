@@ -33,9 +33,6 @@ export function createSelectionColumn<T>(
     checkboxClass?: string
   },
 ): ColumnDef<T>[] {
-  const selectAllLabel = opts?.selectAllAriaLabel ?? t('table.selectAll')
-  const selectRowLabel = opts?.selectRowAriaLabel ?? t('common.select')
-
   return [
     {
       id: 'select',
@@ -48,14 +45,14 @@ export function createSelectionColumn<T>(
             (table.getIsSomePageRowsSelected() ? 'indeterminate' : false),
           'onUpdate:modelValue': (value: boolean | 'indeterminate') =>
             table.toggleAllPageRowsSelected(!!value),
-          'aria-label': selectAllLabel,
+          'aria-label': opts?.selectAllAriaLabel ?? t('table.selectAll'),
           class: opts?.checkboxClass,
         }),
       cell: ({ row }) =>
         h(Checkbox, {
           modelValue: row.getIsSelected(),
           'onUpdate:modelValue': (value: boolean | 'indeterminate') => row.toggleSelected(!!value),
-          'aria-label': selectRowLabel,
+          'aria-label': opts?.selectRowAriaLabel ?? t('common.select'),
           class: opts?.checkboxClass,
         }),
     },

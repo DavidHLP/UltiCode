@@ -1,7 +1,6 @@
-import { computed, ref, watch } from "vue";
+import { computed, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
-import { useDebounceFn } from "@vueuse/core";
 import { toast } from "vue-sonner";
 import type { RouteLocationNormalized } from "vue-router";
 import type { Ref, ComputedRef } from "vue";
@@ -39,7 +38,7 @@ import type { SolutionTopic } from "@/types/topic";
  * fetch+gate+error policy, the Accepted-submission invariant as a named guard
  * ({@link requireAcceptedSubmission}), pure template builders deduplicating
  * the default vs submission-code skeletons, topic state with mode-aware
- * auto-select, draft-saved debounce, and {@link publish} centralizing
+ * auto-select, draft persistence note, and {@link publish} centralizing
  * create/update plus the "already exists" collision recovery. The view
  * destructures the returned handles; navigation policy for the happy path, the
  * Accepted gate, and collision recovery is delegated via
@@ -139,8 +138,7 @@ export interface SolutionAuthoringHandle {
   selectedTopics: ComputedRef<SolutionTopic[]>;
   isLoadingTopics: Ref<boolean>;
   topicLoadError: Ref<string | null>;
-  // --- draft indicator ---
-  isDraftSaved: Ref<boolean>;
+  // --- draft status ---
   draftStatus: ComputedRef<string>;
   // --- init actions (own fetch + gate + error policy) ---
   init: () => Promise<void>;
@@ -155,11 +153,10 @@ export interface SolutionAuthoringHandle {
   // --- pure template builders ---
   buildDefaultTemplate: () => string;
   buildTemplateFromSubmission: (code: string, lang: string) => string;
-  // --- topic + draft actions ---
+  // --- topic actions ---
   loadTopics: () => Promise<void>;
   toggleTopic: (topicId: string) => void;
   removeTopic: (topicId: string) => void;
-  markDraftSaved: () => void;
   // --- publish (create/update + collision recovery) ---
   publish: () => Promise<void>;
 }
@@ -202,21 +199,10 @@ export function useSolutionAuthoring(
   const isLoadingTopics = ref(false);
   const topicLoadError = ref<string | null>(null);
 
-  // --- Draft indicator ---
-  const isDraftSaved = ref(true);
+  // --- Draft status ---
   const draftStatus = computed(() =>
-    isDraftSaved.value
-      ? t("solution.editor.draftSaved")
-      : t("solution.editor.editingDraft"),
+    t("solution.editor.draftNotSavedAutomatically"),
   );
-  const markDraftSaved = useDebounceFn(() => {
-    isDraftSaved.value = true;
-  }, 800);
-
-  watch([title, editorContent, selectedTopicIds], () => {
-    isDraftSaved.value = false;
-    markDraftSaved();
-  });
 
   // --- Pure template builders ---
   function buildDefaultTemplate(): string {
@@ -430,7 +416,7 @@ ${code}
     // Re-entry guard: while a previous publish is still in flight, drop the
     // request. The view disables the submit button via isPublishing so this
     // branch is the belt-and-braces backstop.
-    if (isPublishing.value) return;
+    if (isPublishing.value || initError.value) return;
     if (!title.value.trim()) {
       toast.error(t("solution.messages.enterTitle"));
       return;
@@ -441,7 +427,6 @@ ${code}
     }
 
     isPublishing.value = true;
-    isDraftSaved.value = false;
     try {
       if (isEditMode.value) {
         await updateSolution(solutionId.value, {
@@ -461,7 +446,6 @@ ${code}
         toast.success(t("solution.messages.publishSuccess"));
       }
 
-      isDraftSaved.value = true;
       options.onPublishSuccess({
         problemSlug: resolvedProblemSlug.value || null,
       });
@@ -500,7 +484,6 @@ ${code}
         }
       }
       toast.error(message);
-      isDraftSaved.value = true;
     } finally {
       isPublishing.value = false;
     }
@@ -541,7 +524,6 @@ ${code}
     selectedTopics,
     isLoadingTopics,
     topicLoadError,
-    isDraftSaved,
     draftStatus,
     init,
     initEdit,
@@ -553,7 +535,6 @@ ${code}
     loadTopics,
     toggleTopic,
     removeTopic,
-    markDraftSaved,
     publish,
   };
 }

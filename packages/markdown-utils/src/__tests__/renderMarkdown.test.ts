@@ -6,6 +6,20 @@ import {
   slugifyHeading,
 } from '../index'
 
+describe('renderMarkdown tables', () => {
+  it('makes tables horizontally scrollable and keyboard accessible', () => {
+    const html = renderMarkdown(
+      '| Name | Description |\n| --- | --- |\n| Widget | <img src=x onerror=alert(1)> |',
+    )
+
+    expect(html).toMatch(
+      /<div class="typeset-scroll" tabindex="0">\s*<table>[\s\S]*<\/table>\s*<\/div>/,
+    )
+    expect(html).toContain('&lt;img src=x onerror=alert(1)&gt;')
+    expect(html).not.toContain('<img')
+  })
+})
+
 describe('slugifyHeading', () => {
   it('lowercases ASCII text', () => {
     expect(slugifyHeading('Hello World')).toBe('hello-world')

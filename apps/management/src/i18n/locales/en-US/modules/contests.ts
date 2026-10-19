@@ -296,12 +296,15 @@ export default {
     difficulty: 'Difficulty',
     score: 'Score',
     noProblemsAdded: 'No problems added yet',
+    problemDetailsUnavailable: 'Problem details are unavailable. The contest is not empty.',
     user: 'User',
     joinedAt: 'Joined At',
     noParticipantsYet: 'No participants yet',
     rank: 'Rank',
     penalty: 'Penalty',
     noRankingsYet: 'No rankings available yet',
+    rankingsLoading: 'Loading rankings...',
+    rankingsLoadFailed: 'Failed to load rankings. Please try again.',
     contestNotFound: 'Contest not found',
     backToList: 'Back to List',
     hidden: 'Hidden',
@@ -326,6 +329,7 @@ export default {
 
   // Problem picker
   problemPicker: {
+    loadFailed: 'Failed to load problems. Please try again.',
     title: 'Select Problem',
     description: 'Search and select a problem to add to the contest',
     searchPlaceholder: 'Search problems...',

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { Button } from '@ulticode/design-system/ui/button'
 import { useAuthStore } from '@/stores/auth'
 import { useDashboardStore } from '@/stores/admin/dashboard'
 import { useAuditStore } from '@/stores/admin/audit'
@@ -26,6 +27,7 @@ const dashboardStore = useDashboardStore()
 const auditStore = useAuditStore()
 
 const loading = ref(true)
+const readErrors = ref({ stats: false, chart: false, activity: false })
 
 // Current time display
 const currentTime = ref(new Date())
@@ -137,16 +139,22 @@ function formatRelativeTime(date: Date | string): string {
 async function loadData() {
   loading.value = true
   try {
-    await Promise.all([
+    const [statsResult, chartResult, activityResult] = await Promise.allSettled([
       dashboardStore.fetchStats(),
       dashboardStore.fetchChartStats({
         metric: ChartMetric.USERS,
         period: ChartPeriod.DAY,
         days: 90,
       }),
-      auditStore.fetchLogs({ limit: 10 }),
+      auditStore.fetchLogs({ limit: 10 }, { rethrow: true }),
     ])
+    readErrors.value = {
+      stats: statsResult.status === 'rejected',
+      chart: chartResult.status === 'rejected',
+      activity: activityResult.status === 'rejected',
+    }
   } catch (error) {
+    readErrors.value = { stats: true, chart: true, activity: true }
     console.error('Failed to load dashboard data:', error)
   } finally {
     loading.value = false
@@ -157,7 +165,7 @@ onMounted(() => loadData())
 </script>
 
 <template>
-  <div class="flex flex-col gap-6 py-6 px-4 lg:px-8 bg-background">
+  <div class="@container/dashboard flex flex-col gap-6 py-6 px-4 lg:px-8 bg-background">
     <!-- Precision Header -->
     <header
       class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between pb-4 border-b border-border dark:border-border"
@@ -194,7 +202,12 @@ onMounted(() => loadData())
     </header>
 
     <!-- Loading State -->
-    <div v-if="loading" class="flex items-center justify-center py-12">
+    <div
+      v-if="loading"
+      role="status"
+      :aria-label="t('dashboard.loading')"
+      class="flex items-center justify-center py-12"
+    >
       <div class="flex items-center gap-3 text-muted-foreground">
         <div
           class="h-4 w-4 border-2 border-border border-t-foreground rounded-full animate-spin"
@@ -203,28 +216,51 @@ onMounted(() => loadData())
       </div>
     </div>
 
-    <!-- Bento Grid Layout -->
-    <div v-else class="grid grid-cols-1 lg:grid-cols-4 gap-5">
-      <!-- Stat Cards Row - Full width -->
-      <div class="col-span-full">
-        <StatCards :stats="stats" />
+    <template v-else>
+      <div
+        v-if="readErrors.stats || readErrors.chart || readErrors.activity"
+        role="alert"
+        class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-4"
+      >
+        <div class="min-w-0 flex-1 space-y-1 text-sm text-destructive [overflow-wrap:anywhere]">
+          <p v-if="readErrors.stats">{{ t('dashboard.loadStatsError') }}</p>
+          <p v-if="readErrors.chart">{{ t('dashboard.loadChartError') }}</p>
+          <p v-if="readErrors.activity">{{ t('dashboard.loadActivityError') }}</p>
+        </div>
+        <Button variant="outline" size="sm" @click="!loading && loadData()">
+          {{ t('common.retry') }}
+        </Button>
       </div>
+      <!-- Bento Grid Layout -->
+      <div
+        class="grid grid-cols-1 gap-5"
+        :class="
+          !readErrors.chart && !readErrors.activity
+            ? '@3xl/dashboard:grid-cols-[minmax(0,1fr)_16rem]'
+            : ''
+        "
+      >
+        <!-- Stat Cards Row - Full width -->
+        <div v-if="!readErrors.stats" class="col-span-full">
+          <StatCards :stats="stats" />
+        </div>
 
-      <!-- Main Chart - 3 columns (75%) -->
-      <div class="lg:col-span-3">
-        <AreaChart
-          :title="t('dashboard.chart.userRegistrationTrend')"
-          :description="t('dashboard.chart.dailyRegistrations')"
-          :data="chartData"
-          :series-keys="['users']"
-          :config="{ users: { label: t('dashboard.stats.totalUsers'), color: 'var(--chart-1)' } }"
-        />
-      </div>
+        <!-- Main Chart - 3 columns (75%) -->
+        <div v-if="!readErrors.chart" class="min-w-0">
+          <AreaChart
+            :title="t('dashboard.chart.userRegistrationTrend')"
+            :description="t('dashboard.chart.dailyRegistrations')"
+            :data="chartData"
+            :series-keys="['users']"
+            :config="{ users: { label: t('dashboard.stats.totalUsers'), color: 'var(--chart-1)' } }"
+          />
+        </div>
 
-      <!-- Activity Timeline - 1 column (25%) -->
-      <div class="lg:col-span-1">
-        <DashboardTimeline :activities="timelineActivities" />
+        <!-- Activity Timeline - 1 column (25%) -->
+        <div v-if="!readErrors.activity" class="min-w-0">
+          <DashboardTimeline :activities="timelineActivities" />
+        </div>
       </div>
-    </div>
+    </template>
   </div>
 </template>

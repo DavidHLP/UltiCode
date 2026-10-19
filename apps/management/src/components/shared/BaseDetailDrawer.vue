@@ -27,12 +27,13 @@ withDefaults(
     description: 'View comprehensive information.',
     loadingText: 'Loading...',
     notFoundText: 'Not found',
-    width: 'w-[400px] sm:w-[540px]',
+    width: 'data-[swipe-direction=right]:w-[400px] data-[swipe-direction=right]:sm:w-[540px]',
   },
 )
 
 const emit = defineEmits<{
   (e: 'update:open', value: boolean): void
+  (e: 'closeAutoFocus', event: Event): void
 }>()
 
 defineSlots<{
@@ -42,9 +43,13 @@ defineSlots<{
 </script>
 
 <template>
-  <Drawer :open="open" @update:open="emit('update:open', $event)" direction="right">
-    <DrawerContent class="h-full" :class="width">
-      <DrawerHeader class="px-6 py-4">
+  <Drawer :open="open" @update:open="emit('update:open', $event)" swipe-direction="right">
+    <DrawerContent
+      class="h-full max-w-full data-[swipe-direction=right]:sm:max-w-none"
+      :class="width"
+      @close-auto-focus="emit('closeAutoFocus', $event)"
+    >
+      <DrawerHeader class="shrink-0 px-6 py-4">
         <div class="flex items-center justify-between">
           <div>
             <DrawerTitle>{{ title }}</DrawerTitle>
@@ -68,7 +73,7 @@ defineSlots<{
       </div>
 
       <!-- Content -->
-      <ScrollArea v-else class="flex-1">
+      <ScrollArea v-else class="min-h-0 flex-1">
         <div class="flex flex-col gap-6 p-6">
           <slot name="content" :entity="entity" />
         </div>

@@ -76,6 +76,7 @@ export default {
   rejudgeError: 'Rejudge failed: {error}',
 
   // Errors
+  loadStatisticsError: 'Failed to load submission statistics',
   loadDetailError: 'Failed to load submission details',
   loadError: 'Failed to load submissions',
   notFound: 'Submission not found',

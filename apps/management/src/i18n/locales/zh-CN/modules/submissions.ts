@@ -76,6 +76,7 @@ export default {
   rejudgeError: '重判失败: {error}',
 
   // 错误
+  loadStatisticsError: '加载提交统计失败',
   loadDetailError: '加载提交详情失败',
   loadError: '加载提交记录失败',
   notFound: '未找到提交记录',

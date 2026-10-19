@@ -364,7 +364,9 @@ defineExpose({
                 </Button>
               </li>
             </ul>
-            <p v-else class="text-sm text-muted-foreground italic">No constraints added.</p>
+            <p v-else class="text-sm text-muted-foreground italic">
+              {{ t('problems.casesForm.noConstraints') }}
+            </p>
           </div>
 
           <Separator />

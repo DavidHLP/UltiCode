@@ -39,6 +39,7 @@ import {
 import { toast } from "vue-sonner";
 import { RouterLink, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
+import RetryButton from "@/components/common/loading/RetryButton.vue";
 import PersonalPageHeader from "./components/PersonalPageHeader.vue";
 import PersonalPageShell from "./components/PersonalPageShell.vue";
 
@@ -48,6 +49,7 @@ const { t, locale } = useI18n();
 const solutions = ref<SolutionFeedResponse["items"]>([]);
 const loading = ref(true);
 const hasUser = ref(false);
+const loadError = ref(false);
 
 const handleEdit = (solutionId: string) => {
   router.push({ name: "solution-edit", params: { id: solutionId } });
@@ -75,7 +77,10 @@ const handleDelete = async (solutionId: string) => {
   }
 };
 
-onMounted(async () => {
+async function loadSolutions() {
+  loading.value = true;
+  loadError.value = false;
+  solutions.value = [];
   try {
     const userId = useAuthStore().fetchCurrentUserId();
     if (!userId) return;
@@ -83,11 +88,14 @@ onMounted(async () => {
     const response = await fetchUserSolutions(userId);
     solutions.value = response.items;
   } catch (e) {
+    loadError.value = true;
     console.error("Failed to load solutions", e);
   } finally {
     loading.value = false;
   }
-});
+}
+
+onMounted(loadSolutions);
 </script>
 
 <template>
@@ -126,6 +134,15 @@ onMounted(async () => {
       <Button as-child>
         <RouterLink to="/login">{{ t("personal.profile.signIn") }}</RouterLink>
       </Button>
+    </div>
+
+    <div
+      v-else-if="loadError"
+      role="alert"
+      class="space-y-3 rounded-lg border bg-card p-6 text-center [overflow-wrap:anywhere]"
+    >
+      <p class="text-destructive">{{ t("personal.solutions.loadError") }}</p>
+      <RetryButton @retry="loadSolutions" />
     </div>
 
     <div

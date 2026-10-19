@@ -31,7 +31,7 @@ const trendColors = {
 </script>
 
 <template>
-  <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+  <div class="grid gap-4 @xl/dashboard:grid-cols-2 @4xl/dashboard:grid-cols-4">
     <component
       :is="stat.href ? 'a' : 'div'"
       v-for="stat in stats"

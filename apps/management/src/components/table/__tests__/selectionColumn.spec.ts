@@ -35,6 +35,23 @@ function makeCellCtx(row: {
 }
 
 describe('createSelectionColumn', () => {
+  it('resolves default labels again when the language changes', () => {
+    let language = 'zh'
+    const columns = createSelectionColumn((key) => `${language}:${key}`)
+    const table = {
+      getIsAllPageRowsSelected: () => false,
+      getIsSomePageRowsSelected: () => false,
+      toggleAllPageRowsSelected: vi.fn(),
+    }
+    const row = { getIsSelected: () => false, toggleSelected: vi.fn() }
+    const header = columns[0].header as ColumnDef<unknown>['header']
+    const cell = columns[0].cell as ColumnDef<unknown>['cell']
+    expect(header(makeHeaderCtx(table)).props['aria-label']).toBe('zh:table.selectAll')
+    language = 'en'
+    expect(header(makeHeaderCtx(table)).props['aria-label']).toBe('en:table.selectAll')
+    expect(cell(makeCellCtx(row)).props['aria-label']).toBe('en:common.select')
+  })
+
   it('returns a single-column array with id=select and sorting/hiding disabled', () => {
     const cols = createSelectionColumn(mockT)
     expect(cols).toHaveLength(1)

@@ -54,6 +54,7 @@ const emit = defineEmits<{
 
 // State
 const loading = ref(false)
+const loadError = ref(false)
 const versions = ref<ProblemVersion[]>([])
 const pagination = ref({ total: 0, page: 1, limit: 20, totalPages: 0 })
 const selectedVersion = ref<ProblemVersionDetail | null>(null)
@@ -82,6 +83,7 @@ async function loadVersions() {
   if (!props.problemId) return
 
   loading.value = true
+  loadError.value = false
   try {
     const response = await problemsApi.getProblemVersions(props.problemId, {
       page: pagination.value.page,
@@ -91,6 +93,7 @@ async function loadVersions() {
     pagination.value = response.pagination ?? { total: 0, page: 1, limit: 20, totalPages: 0 }
   } catch (error) {
     console.error('Failed to load version history:', error)
+    loadError.value = true
     toast.error(t('problems.versionHistory.loadError'))
   } finally {
     loading.value = false
@@ -270,6 +273,20 @@ watch(
         <!-- Loading State -->
         <div v-if="loading" class="space-y-3">
           <Skeleton v-for="i in 5" :key="i" class="h-16 w-full" />
+        </div>
+
+        <!-- Load Error State -->
+        <div
+          v-else-if="loadError"
+          role="alert"
+          class="flex flex-col items-center justify-center gap-3 py-12 text-center"
+        >
+          <p class="text-sm text-foreground">
+            {{ t('problems.versionHistory.loadError') }}
+          </p>
+          <Button variant="outline" size="sm" @click="loadVersions">
+            {{ t('common.retry') }}
+          </Button>
         </div>
 
         <!-- Empty State -->

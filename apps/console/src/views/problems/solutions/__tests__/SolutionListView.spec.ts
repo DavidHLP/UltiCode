@@ -37,11 +37,33 @@ describe("SolutionListView", () => {
     vi.clearAllMocks();
   });
 
+  it("allows the write prompt and action to wrap without truncating the instruction", () => {
+    fetchCurrentUserId.mockReturnValue(null);
+    const wrapper = shallowMount(SolutionListView, {
+      props: {
+        items: [],
+        followUp: "follow-up",
+        sortOptions: [],
+        problemId: 7,
+      },
+    });
+    const prompt = wrapper
+      .findAll("span")
+      .find((span) => span.text() === "problem.solutions.solveToWrite");
+    expect(prompt?.classes()).not.toContain("truncate");
+    expect(prompt?.element.closest(".flex-wrap")).not.toBeNull();
+  });
+
   it("does not request personal submissions for an anonymous visitor", async () => {
     fetchCurrentUserId.mockReturnValue(null);
 
     shallowMount(SolutionListView, {
-      props: { items: [], followUp: "follow-up", sortOptions: [], problemId: 7 },
+      props: {
+        items: [],
+        followUp: "follow-up",
+        sortOptions: [],
+        problemId: 7,
+      },
     });
     await flushPromises();
 

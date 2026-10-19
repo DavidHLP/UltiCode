@@ -339,7 +339,7 @@ const formatKey = (key: string): string => {
 
 <template>
   <Dialog v-model:open="isOpen">
-    <DialogContent class="max-w-2xl max-h-[80vh] overflow-y-auto">
+    <DialogContent class="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
       <DialogHeader>
         <DialogTitle>{{ t("shortcuts.title") }}</DialogTitle>
         <DialogDescription>

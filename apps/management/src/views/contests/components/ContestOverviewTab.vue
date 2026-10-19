@@ -20,7 +20,7 @@ defineProps<{
       <!-- Details Card - Terminal Style -->
       <div class="border border-border dark:border-foreground bg-card">
         <div class="border-b border-border dark:border-foreground px-4 py-2 bg-muted">
-          <span class="text-sm text-muted-foreground">details</span>
+          <span class="text-sm text-muted-foreground">{{ $t('contests.detail.overview') }}</span>
         </div>
         <div class="p-4 space-y-4">
           <div class="space-y-2">
@@ -54,9 +54,9 @@ defineProps<{
       <!-- Stats & Schedule Card - Terminal Style -->
       <div class="border border-border dark:border-foreground bg-card">
         <div class="border-b border-border dark:border-foreground px-4 py-2 bg-muted">
-          <span class="text-sm text-muted-foreground">stats_and_schedule</span>
+          <span class="text-sm text-muted-foreground">{{ $t('contests.details.statistics') }} / {{ $t('contests.reviewStep.schedule') }}</span>
         </div>
-        <div class="p-4 space-y-4">
+        <div class="@container p-4 space-y-4">
           <!-- Schedule Info -->
           <div class="space-y-3">
             <div
@@ -82,17 +82,17 @@ defineProps<{
                 }}</span>
               </div>
               <span class="font-mono text-sm tabular-nums">
-                {{ contest.duration }} {{ $t('common.minutes') }}
+                {{ contest.durationMinutes }} {{ $t('common.minutes') }}
               </span>
             </div>
           </div>
 
           <!-- Stats Grid -->
-          <div class="grid grid-cols-2 gap-3 pt-2">
+          <div class="grid grid-cols-1 @xs:grid-cols-2 gap-3 pt-2">
             <div
               class="flex items-center gap-3 p-3 border border-border dark:border-foreground bg-muted"
             >
-              <IconTrophy class="h-5 w-5 text-status-warning-mark" />
+              <IconTrophy class="h-5 w-5 shrink-0 text-status-warning-mark" />
               <div>
                 <div class="font-mono text-lg tabular-nums text-foreground">
                   {{ contest.problemCount || 0 }}
@@ -103,7 +103,7 @@ defineProps<{
             <div
               class="flex items-center gap-3 p-3 border border-border dark:border-foreground bg-muted"
             >
-              <IconUsers class="h-5 w-5 text-status-info-mark" />
+              <IconUsers class="h-5 w-5 shrink-0 text-status-info-mark" />
               <div>
                 <div class="font-mono text-lg tabular-nums text-foreground">
                   {{ contest.participantCount || 0 }}

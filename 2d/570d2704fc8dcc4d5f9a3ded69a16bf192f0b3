@@ -1,0 +1,1863 @@
+.devcontainer/devcontainer-lock.json
+  s_30bf6c6bcb80ce::t_763f2a0af80807 3
+.devcontainer/devcontainer.json
+  s_30bf6c6bcb80ce::t_7886988d1b5f54 13
+.github/workflows/_frontend.yml
+  s_30bf6c6bcb80ce::t_91f193c44dbc5f 1,20-23,58,62,102,106,146,150
+.github/workflows/ci.yml
+  s_30bf6c6bcb80ce::t_4770eebfeed314 44,78-84,109,151,156
+apps/console/Dockerfile
+  s_30bf6c6bcb80ce::t_21390542e08728 11,19,29,57
+apps/console/nginx.conf
+  s_30bf6c6bcb80ce::t_1624025fc34625 217-226
+apps/console/public/theme-bootstrap.js
+  s_30bf6c6bcb80ce::t_6a30aa91462447 28-55,124
+apps/console/src/App.vue
+  s_30bf6c6bcb80ce::t_769aeb490f903f 2-6,8-10,30-35,39-44
+apps/console/src/api/__tests__/problem-list.spec.ts
+  s_30bf6c6bcb80ce::t_485e9979a76755 1-47
+apps/console/src/api/__tests__/topic.spec.ts
+  s_30bf6c6bcb80ce::t_c3aab09b39f21e 1-3,5,7,9-15,17-27
+apps/console/src/api/problem-list.ts
+  s_30bf6c6bcb80ce::t_96ca3606bd5dea 216-222
+apps/console/src/api/topic.ts
+  s_30bf6c6bcb80ce::t_eab99a28e32783 2,5
+apps/console/src/assets/charts.css
+  s_30bf6c6bcb80ce::t_4866192554effd 5,9,13,17,21,25,30,34,38,42,46,50,55,59,63,67,71,79,83,87,92,96,100,105,109,113,117,122,129,136-137,159,163,167,172-177,180,186-187,190
+apps/console/src/components/LanguageSwitcher.vue
+  s_30bf6c6bcb80ce::t_8b62cfbd1b9691 8,17,21,25,28-29,36,40
+apps/console/src/components/ReportDialog.vue
+  s_30bf6c6bcb80ce::t_c28641dc19e29e 10,17-21,88,97,100-108,115,124,129-130
+apps/console/src/components/ThemeSwitcher.vue
+  s_30bf6c6bcb80ce::t_7dda6f8272699f 2-3,5-6,9-13
+apps/console/src/components/__tests__/shadcnConsumerContract.spec.ts
+  s_30bf6c6bcb80ce::t_6c750ccc251c3d 1-2,5-16,20-72,76,86-101
+apps/console/src/components/achievement/AchievementBadge.vue
+  s_30bf6c6bcb80ce::t_a1bcf28bb7cc18 66-68,108,119
+apps/console/src/components/achievement/AchievementCard.vue
+  s_30bf6c6bcb80ce::t_e8f89f8ec39d35 27,54,88
+apps/console/src/components/achievement/UnlockToast.vue
+  s_30bf6c6bcb80ce::t_999d59c136ffcf 4,49,67,94,107,114,124
+apps/console/src/components/bookmark/BookmarkFolderList.vue
+  s_30bf6c6bcb80ce::t_c2dae6bc2abe98 3-4,10-11,42,52,69,81,87-96,106
+apps/console/src/components/bookmark/CreateFolderDialog.vue
+  s_30bf6c6bcb80ce::t_df0ab301c4ce33 10-14,17,61,114,116-117,128,138,145,150,152-153,157,159,164-165,173-175,177,184,188,193,199
+apps/console/src/components/charts/DonutChart.vue
+  s_30bf6c6bcb80ce::t_9309a6506621ee 2,5-12,14-22,25-26,29-37,39-44,47-50,54-71,73-77
+apps/console/src/components/comments/CommentForm.vue
+  s_30bf6c6bcb80ce::t_c8e48dba134462 2-3,5,11,16,20,23,29,35,44,57-58
+apps/console/src/components/comments/CommentNode.vue
+  s_30bf6c6bcb80ce::t_dccbd04c1a76ca 2-4,7,11-15,56,58-60,62,68,78,90,107,117,121,128,133-135,138,140-149,153-154,156,160,178,182-183,185-204,212,214,222,225,241-242,258,265-266,276,321,421-427
+apps/console/src/components/comments/CommentThread.vue
+  s_30bf6c6bcb80ce::t_d642ed97ba3925 2-3,13,32-38,61-68,71,75,80,83,88,99,110
+apps/console/src/components/comments/CommentThreadView.vue
+  s_30bf6c6bcb80ce::t_f64c5290445670 41
+apps/console/src/components/comments/__tests__/CommentLayout.spec.ts
+  s_30bf6c6bcb80ce::t_6ac83d75097ac9 1-5,7-13,15-21,23-87,89-97,99-106,108-123,125-155
+apps/console/src/components/common/PWAUpdatePrompt.vue
+  s_30bf6c6bcb80ce::t_c2eee405d7280a 2-3,23,36-38,42-45,50
+apps/console/src/components/common/data-table/CategoryFilter.vue
+  s_30bf6c6bcb80ce::t_d23b4c1040a90c 2-3,24,26-27,31,34-35,40
+apps/console/src/components/common/data-table/DataTable.vue
+  s_30bf6c6bcb80ce::t_48f0a35e3a8e71 10,125-148,150,163,165,169,185-189,238,242,256-258,264
+apps/console/src/components/common/data-table/DataTableToolbar.vue
+  s_30bf6c6bcb80ce::t_85bba3853c8cdd 2-3,5,10,41,47,50,57,68,85
+apps/console/src/components/common/data-table/TagFilter.vue
+  s_30bf6c6bcb80ce::t_7104606e8383ab 2-3,8,41,44-45,52,64,67-68
+apps/console/src/components/common/data-table/__tests__/DataTable.spec.ts
+  s_30bf6c6bcb80ce::t_4ce9a59f67e82d 1-106
+apps/console/src/components/common/data-table/__tests__/DataTableToolbar.spec.ts
+  s_30bf6c6bcb80ce::t_b983985e4d4224 14-15,25,31
+apps/console/src/components/common/loading/ErrorBoundary.vue
+  s_30bf6c6bcb80ce::t_214d9f165b0219 5-10,135,148
+apps/console/src/components/common/loading/LoadingOverlay.vue
+  s_30bf6c6bcb80ce::t_f049788d1ce5a5 5
+apps/console/src/components/common/loading/RetryButton.vue
+  s_30bf6c6bcb80ce::t_dc0206424b6c59 5
+apps/console/src/components/dashboard/ActivityHeatmap.test.ts
+  s_30bf6c6bcb80ce::t_5bb9d9c718755b 1-10,12,14-73
+apps/console/src/components/dashboard/ActivityHeatmap.vue
+  s_30bf6c6bcb80ce::t_dbd1ce7da700eb 3,13-22,61,63,70-76,79,88,90,94,113,126,128,132,134
+apps/console/src/components/dashboard/RecentActivity.vue
+  s_30bf6c6bcb80ce::t_6f5734bd1ea4cf 36-39,42-44,54,65,95,149
+apps/console/src/components/dashboard/SkillRadarChart.test.ts
+  s_30bf6c6bcb80ce::t_a2c089aa2e1ea1 1-89
+apps/console/src/components/dashboard/SkillRadarChart.vue
+  s_30bf6c6bcb80ce::t_7b30bb0742b90c 2-4,6-8,16-20,24,26-29,90,168,170,177,179
+apps/console/src/components/dashboard/StatsCard.vue
+  s_30bf6c6bcb80ce::t_264344147e1536 19-20,22,24,29
+apps/console/src/components/edge-operations/ActionItem.vue
+  s_30bf6c6bcb80ce::t_28bb71b7dd75db 2,30,33-34,46,50
+apps/console/src/components/edge-operations/PostActions.vue
+  s_30bf6c6bcb80ce::t_494ae8deb720bb 67
+apps/console/src/components/edge-operations/ProblemEdgeOperations.vue
+  s_30bf6c6bcb80ce::t_94e4db8134cdd5 134,152
+apps/console/src/components/edge-operations/ProblemSaveButton.vue
+  s_30bf6c6bcb80ce::t_7874ec9758385c 11,20-21,39-41,113-116,267,269,281,285,291-330,332-345,347-350,353,356-357,359-361,363,365-411,413-416,418-419,422-435,437-443
+apps/console/src/components/edge-operations/vote-control/VoteControl.vue
+  s_30bf6c6bcb80ce::t_d385270d39176b 2,42,44,54,60,66,68,78,87,90,95,98,101
+apps/console/src/components/editor/AccessibilitySettings.vue
+  s_30bf6c6bcb80ce::t_fc9231c7ce627d 4-5,10-11,24,42,63
+apps/console/src/components/editor/CodeTemplatesModal.vue
+  s_30bf6c6bcb80ce::t_757d5dbdee1603 2-3,12-14,113,115,119,142-143,146,162,169
+apps/console/src/components/editor/EditorToolbar.vue
+  s_30bf6c6bcb80ce::t_94fa08ed3f8d20 2-3,6,15,20-21,108,157,168,183,190,216,228
+apps/console/src/components/editor/KeyboardShortcutsModal.vue
+  s_30bf6c6bcb80ce::t_3acce069203352 9,342,372
+apps/console/src/components/follow/FollowButton.vue
+  s_30bf6c6bcb80ce::t_ea8f5d1be53f5c 5,48
+apps/console/src/components/markdown/MarkdownEdit.spec.ts
+  s_30bf6c6bcb80ce::t_2778315f5e61be 1-3,5-28,30-50
+apps/console/src/components/markdown/MarkdownEdit.vue
+  s_30bf6c6bcb80ce::t_0b9704640f324c 3,23,25-28,55-56,64,66,73,78-80,84,87-89,132
+apps/console/src/components/markdown/MarkdownView.vue
+  s_30bf6c6bcb80ce::t_c3a8e236012173 2,63
+apps/console/src/components/notification/NotificationPreferencesPanel.vue
+  s_30bf6c6bcb80ce::t_28c6932eb2aafb 5-7,72
+apps/console/src/components/problem/FeaturedBanners.vue
+  s_30bf6c6bcb80ce::t_279ed42304f061 2-4,6-7,42,47,52-54,61-63,68-70,75-77,107-109,180-188,229-231,233,236,246-247,254,256,259-261,264-265,273,276,304-305,342,349,362-364,366,369
+apps/console/src/components/problem/ProblemListDrawer.vue
+  s_30bf6c6bcb80ce::t_0ff4522bdcb3d4 5-6,8-9,80,83,104,107,110,133,148,173,188
+apps/console/src/components/problem/ProblemNotesDrawer.vue
+  s_30bf6c6bcb80ce::t_b20982d824b829 3-4,81,87,93
+apps/console/src/components/problem/ProblemSetSidebar.vue
+  s_30bf6c6bcb80ce::t_2d0c5717195b7f 2-3,5-11,17,58-60,73,95,97,101,103,109,114-119,122-126,130,136,139-142,150,153,155-156,160,166,175,183,185,189,194,203,213-214
+apps/console/src/components/problem/__tests__/ProblemListDrawer.spec.ts
+  s_30bf6c6bcb80ce::t_824e7eb5b95b4b 37,40,43
+apps/console/src/components/problem/__tests__/ProblemSetSidebar.locale.spec.ts
+  s_30bf6c6bcb80ce::t_547db99722c16d 1-70
+apps/console/src/components/problem/__tests__/ProblemSetSidebar.spec.ts
+  s_30bf6c6bcb80ce::t_b61d482b851adf 21,25-26,29,36,52-70,92,100-102,114
+apps/console/src/components/problem/components/ProblemFilterPanel.vue
+  s_30bf6c6bcb80ce::t_29ef685fc0532a 7-8,46-48,50,57,75-76,78-80,83-84,86-88,91-92,94-96,104-105,107-109,112-113,115-117,120-121,123-125,133-134,136-138,141-142,144-146,155,163-165,169
+apps/console/src/components/problem/components/ProblemResultList.vue
+  s_30bf6c6bcb80ce::t_d7c3ab159d2585 2,38-40,58,68,88,118
+apps/console/src/components/problem/composables/__tests__/useProblemExplorer.spec.ts
+  s_30bf6c6bcb80ce::t_04b920ceac20d2 113,161,395,522-612,644-646
+apps/console/src/components/problem/composables/useProblemExplorer.ts
+  s_30bf6c6bcb80ce::t_1760ab27cc788d 142-164,325-329
+apps/console/src/components/search/GlobalSearch.vue
+  s_30bf6c6bcb80ce::t_e71e72c8bfba00 5-14,129-136,139,150,154-162,166,169,182-183,227,232,243,249,253,260
+apps/console/src/components/search/SearchBar.vue
+  s_30bf6c6bcb80ce::t_5c6b88593cfee4 4-5,10,32
+apps/console/src/composables/__tests__/useContentNavigation.spec.ts
+  s_30bf6c6bcb80ce::t_d109ac3125192c 4-7,24-27,83-93,108-110,151-158,202,210-216,230-236,243-304,313,391-394,422-423,435-438
+apps/console/src/composables/__tests__/useEditorThemes.spec.ts
+  s_30bf6c6bcb80ce::t_a11fb2a7e02e84 109,113
+apps/console/src/composables/__tests__/useNotificationFeed.spec.ts
+  s_30bf6c6bcb80ce::t_3b11db07de352a 88-102,135
+apps/console/src/composables/__tests__/useSolutionAuthoring.spec.ts
+  s_30bf6c6bcb80ce::t_b3f64b25b167c7 132-151,306-308,345-350
+apps/console/src/composables/useAgentWorkflow.ts
+  s_30bf6c6bcb80ce::t_4ff506df8ea790 2-6,8-9,50-54,59-60,86-91,101-109,111-114,124,147-151,156-159,168-171,179-182,187-188,244-245,283-287,343-344,372-391
+apps/console/src/composables/useContentNavigation.ts
+  s_30bf6c6bcb80ce::t_c60cf15aa5dead 55,68,95-110,116,119,127,147-149,153-154,156-158,161-169,173,182-188,191-194,196,198
+apps/console/src/composables/useEditorThemes.ts
+  s_30bf6c6bcb80ce::t_be6e5325ff456c 19-20,25-26
+apps/console/src/composables/useNotificationFeed.ts
+  s_30bf6c6bcb80ce::t_b8bf06cbcd1eab 62
+apps/console/src/composables/useSolutionAuthoring.ts
+  s_30bf6c6bcb80ce::t_a8069347506e67 1,41,141,156,202,204,419
+apps/console/src/features/layout/panels/LayoutPanel.vue
+  s_30bf6c6bcb80ce::t_09f58f13e5dea3 207,209-211,234
+apps/console/src/features/layout/panels/LayoutPanelContent.vue
+  s_30bf6c6bcb80ce::t_6abeaa0ccb5a30 41
+apps/console/src/features/layout/panels/LayoutPanelHeader.vue
+  s_30bf6c6bcb80ce::t_4e8ca2b85a1e01 4,149,153
+apps/console/src/features/layout/panels/PanelDropOverlay.vue
+  s_30bf6c6bcb80ce::t_f5759d5dbc9419 73,76,84,87,95,98,106,109,117,120
+apps/console/src/features/layout/tree/LayoutTreeNode.vue
+  s_30bf6c6bcb80ce::t_e310cf4031ce3c 9,69,89
+apps/console/src/features/sider/AppLayout.vue
+  s_30bf6c6bcb80ce::t_a4b46ce460e81b 8,13,18,23,63-66,70,93,99,108,114,122,134-139
+apps/console/src/features/sider/AppSidebar.vue
+  s_30bf6c6bcb80ce::t_93ea20006d7a45 2,12-24,33-34,41-57,81-114,125-137,149-163
+apps/console/src/features/sider/NavUser.vue
+  s_30bf6c6bcb80ce::t_7eeabada544d96 15-16,19-24,33,39,110-112,133,137-138,177-178,180,197,199,201,267,274
+apps/console/src/features/sider/SidebarNav.vue
+  s_30bf6c6bcb80ce::t_c62a4aca5812d2 9,13,15,57,65-75,83-84,96-111,113-114,116-136,139,150,173,191,205,216
+apps/console/src/features/sider/__tests__/AppSidebar.spec.ts
+  s_30bf6c6bcb80ce::t_cdcdd2e195a865 1-276
+apps/console/src/features/sider/components/SidebarListDialogs.vue
+  s_30bf6c6bcb80ce::t_0286e5ad0a82f5 9,19-24
+apps/console/src/features/sider/components/SidebarListSections.vue
+  s_30bf6c6bcb80ce::t_c5b9bd9981a7ea 6,16-19,67,80,83-84,86,91,113-116,123,133,143-147,176-179,186,196,206-227,259-262,269,300,306-315,326-329,336,346,356-367
+apps/console/src/features/sider/sidebar.data.ts
+  s_30bf6c6bcb80ce::t_cef25009cc29c3 23,76
+apps/console/src/i18n/locales/en-US/contest.ts
+  s_30bf6c6bcb80ce::t_81a1d3cbcd56a3 4,16-22,49,246
+apps/console/src/i18n/locales/en-US/forum.ts
+  s_30bf6c6bcb80ce::t_23407cb33f5128 9-10,47,201
+apps/console/src/i18n/locales/en-US/personal.ts
+  s_30bf6c6bcb80ce::t_d76e1859ca7a06 98-99,142,153,167,196,212,247-249,300,324,352,509-513,520,536
+apps/console/src/i18n/locales/en-US/problem.ts
+  s_30bf6c6bcb80ce::t_1f268399149069 5,185-198,381,474-476
+apps/console/src/i18n/locales/en-US/profile.ts
+  s_30bf6c6bcb80ce::t_1da1abac2cc492 9
+apps/console/src/i18n/locales/en-US/solution.ts
+  s_30bf6c6bcb80ce::t_fbc81e361fbcee 8,12
+apps/console/src/i18n/locales/zh-CN/contest.ts
+  s_30bf6c6bcb80ce::t_10669f572cacea 4,15-21,45,232
+apps/console/src/i18n/locales/zh-CN/forum.ts
+  s_30bf6c6bcb80ce::t_46f09c6369cfe5 9-10,47,197
+apps/console/src/i18n/locales/zh-CN/personal.ts
+  s_30bf6c6bcb80ce::t_f2b84546de73ba 135,146,159,186,202,236-237,283,305,331,452-456,463
+apps/console/src/i18n/locales/zh-CN/problem.ts
+  s_30bf6c6bcb80ce::t_fe1cbbe5fee61c 181-194,464-465
+apps/console/src/i18n/locales/zh-CN/solution.ts
+  s_30bf6c6bcb80ce::t_76b75e31ac2496 8,12
+apps/console/src/i18n/profile-counts.spec.ts
+  s_30bf6c6bcb80ce::t_36669923e5d00f 1-31
+apps/console/src/i18n/utils/problemTagLabel.spec.ts
+  s_30bf6c6bcb80ce::t_0fce095734f720 2,4-22,24-30
+apps/console/src/i18n/utils/problemTagLabel.ts
+  s_30bf6c6bcb80ce::t_eda071923bce27 1-25
+apps/console/src/main.ts
+  s_30bf6c6bcb80ce::t_ceae90f06128d5 11-15,32-33,41-42
+apps/console/src/router/__tests__/router-landing.spec.ts
+  s_30bf6c6bcb80ce::t_3412f71bf128a3 14-73,77-79,83-85,90,99
+apps/console/src/router/index.ts
+  s_30bf6c6bcb80ce::t_641b337a03c209 101-104,108-111,295,300-312,319
+apps/console/src/stores/contestRanking.test.ts
+  s_30bf6c6bcb80ce::t_86367eea1422d0 1-98
+apps/console/src/stores/contestRanking.ts
+  s_30bf6c6bcb80ce::t_de812baa846a99 4-8,43-51,59-61,73-79,81-109,166-168,177
+apps/console/src/style.css
+  s_30bf6c6bcb80ce::t_16e5cac55b8ff2 1
+apps/console/src/types/achievement.ts
+  s_30bf6c6bcb80ce::t_ad7408586b28c7 43,53-56
+apps/console/src/types/contest.ts
+  s_30bf6c6bcb80ce::t_3333e2ff9311f1 1,30,64,67,165,365
+apps/console/src/types/problem-list.ts
+  s_30bf6c6bcb80ce::t_9f47d10f281c9b 83-84,87
+apps/console/src/utils/monaco-theme.ts
+  s_30bf6c6bcb80ce::t_a6c46bdc57c7db 1,3,5,8-12,14-23,25-41,44,52-63,66-70,72-76,82-92,94-98,101,105-110,112-118,120-129,131-132,135-237,239-255
+apps/console/src/views/LandingRedirectView.vue
+  s_30bf6c6bcb80ce::t_5f9b20a9f5eddf 2,4-6,10
+apps/console/src/views/achievements/AchievementGalleryView.vue
+  s_30bf6c6bcb80ce::t_501b3c6ce66ecc 7-13,104-105,111-112,118-120,125,148,165-167,172,175,182
+apps/console/src/views/auth/ForgotPasswordView.vue
+  s_30bf6c6bcb80ce::t_34697e981196e6 49-57,77
+apps/console/src/views/auth/LoginView.vue
+  s_30bf6c6bcb80ce::t_77facf65eed204 31
+apps/console/src/views/auth/RegisterView.vue
+  s_30bf6c6bcb80ce::t_da563942025f06 33
+apps/console/src/views/auth/ResetPasswordView.vue
+  s_30bf6c6bcb80ce::t_c6bf31fdf5e2a4 37-39,79-87,121
+apps/console/src/views/contest/ContestBrowseView.vue
+  s_30bf6c6bcb80ce::t_f197833e252893 16-17,21-30,59-66,108,130-131,145-146,160-164,166,170,173,175-178,185,188,192,195,199-211,213,248,261,296,313,315-316,318-320,324,356,369-374,380,405
+apps/console/src/views/contest/ContestHomeView.vue
+  s_30bf6c6bcb80ce::t_2a52eaf7665f78 7,23-30,42-47,68-72,77,84-85,112-124,126
+apps/console/src/views/contest/ContestMyView.vue
+  s_30bf6c6bcb80ce::t_85dbf0ef2062f3 3,19-20
+apps/console/src/views/contest/ContestRankingsView.vue
+  s_30bf6c6bcb80ce::t_3c8cf4490294f0 3,8-9,35-39,45,48-55,57-65,141-145,150,157-158,172,175-176,180,187-188,193,214-225
+apps/console/src/views/contest/__tests__/ContestBrowseView.spec.ts
+  s_30bf6c6bcb80ce::t_d18ea3031fa602 1-170
+apps/console/src/views/contest/__tests__/ContestRankingsView.spec.ts
+  s_30bf6c6bcb80ce::t_7496d4280f1ece 1-5,7-37,39-44,46-63,65-74,76-105
+apps/console/src/views/contest/components/ContestCard.vue
+  s_30bf6c6bcb80ce::t_46a14c5ee998b1 10-11,62,78-79,86,90-94,98-99,101,108,110-112,115-123
+apps/console/src/views/contest/components/ContestStatusBadge.vue
+  s_30bf6c6bcb80ce::t_5ed337b18878dd 3,5,9,13
+apps/console/src/views/contest/components/ContestTimer.vue
+  s_30bf6c6bcb80ce::t_39377f91c40d58 106
+apps/console/src/views/contest/components/GlobalRanking.vue
+  s_30bf6c6bcb80ce::t_913d85135e0b7a 2-3,8-26,45,47,50,55-56,59-66,70-87,89-90,93,95-103,105-112,114-115,117-118,120-128,130,132-140,144,146-147,150,152-165,167-174,176-177,179-180,182-190,192,194-202,206,208-209,212,214-222,224-231,233-234,236-237,239-247,249,251-259,265-268,270-272,274-287,289-291,293-322,326-344
+apps/console/src/views/contest/components/MyContests.vue
+  s_30bf6c6bcb80ce::t_ae717fe56bfd1b 4,7-13,15-20,31,58,64,66-67,87,100-120,122-126,142,168-172,188,214,225,241
+apps/console/src/views/contest/components/PastContests.vue
+  s_30bf6c6bcb80ce::t_fa4e22b346e237 3,13,35,60,62,74,76,83,93,97,99-113,119,127,130,137,145,149,152,154,159,162,169-171,173,180,184,208-210,214-216,222,233,236,248-250
+apps/console/src/views/contest/components/RatingBadge.vue
+  s_30bf6c6bcb80ce::t_90fc07959c40ad 23-25,59
+apps/console/src/views/contest/components/RunningContests.vue
+  s_30bf6c6bcb80ce::t_2035b8d314dba8 3-4,116,119,129,136,147,150,190,193,198,220
+apps/console/src/views/contest/components/UpcomingContests.vue
+  s_30bf6c6bcb80ce::t_302caaf95c264b 3-4,101,119,135,164,175
+apps/console/src/views/contest/components/VirtualContestTimer.vue
+  s_30bf6c6bcb80ce::t_c1ba4781a1859c 4-5,15,153,195-196,234
+apps/console/src/views/contest/components/__tests__/ContestCard.spec.ts
+  s_30bf6c6bcb80ce::t_27b75906bd5ee1 1-8,10-16,18-58
+apps/console/src/views/contest/components/__tests__/GlobalRanking.spec.ts
+  s_30bf6c6bcb80ce::t_6ff119d5c467d5 8-9,29-95,101-103,118-120,128-134
+apps/console/src/views/contest/components/__tests__/MyContests.spec.ts
+  s_30bf6c6bcb80ce::t_dbc17310b3d59e 1-106
+apps/console/src/views/contest/components/__tests__/PastContests.spec.ts
+  s_30bf6c6bcb80ce::t_13d62dc0566115 4-10,25-96,113
+apps/console/src/views/contest/components/__tests__/VirtualContestTimer.spec.ts
+  s_30bf6c6bcb80ce::t_d795f3c2ce5c8f 111-113,146-148,154-155
+apps/console/src/views/contest/detailed/ContestDetailView.vue
+  s_30bf6c6bcb80ce::t_9654dd15ade073 10-23,28,103-111,269-271,273,278,283,289-291,293,298,303,310-312,314,319,324,330-332,334,339,344,364-365,367-370,374-376,380,391-392,395,419-425,433,444
+apps/console/src/views/contest/detailed/__tests__/ContestProblemList.spec.ts
+  s_30bf6c6bcb80ce::t_d92e8dc66e6d68 104,114,175-185,347-350,352,360
+apps/console/src/views/contest/detailed/__tests__/ContestRankingTable.spec.ts
+  s_30bf6c6bcb80ce::t_b85ada7d79b24d 1-31,34-45,48-96
+apps/console/src/views/contest/detailed/components/ContestHeader.vue
+  s_30bf6c6bcb80ce::t_10bcf6a1d6a0ea 2-3,20,30,42,45,47
+apps/console/src/views/contest/detailed/components/ContestProblemList.vue
+  s_30bf6c6bcb80ce::t_0af3eff517565c 3-10,18,81,95-96,98-106,114-118,123-125,133,148,157-174,181,188,195,202,214,223,254,267,276,289,291,293,295-296,301-304
+apps/console/src/views/contest/detailed/components/ContestRankingTable.vue
+  s_30bf6c6bcb80ce::t_740eeb2a779753 2-10,18,26-35,42-44,47-58,60-90,95,97,101,103,105,107-109,124,128,135,139,163,177-207
+apps/console/src/views/contest/detailed/components/ContestRegistration.vue
+  s_30bf6c6bcb80ce::t_a19cfb13d8eaf4 2-3,43,46-47,50,54,60,69,73,93,100,116,121-122,133,137,191,206,224,233,247,262
+apps/console/src/views/contest/detailed/components/contestProblemRow.ts
+  s_30bf6c6bcb80ce::t_eaf26930be7dc3 50-51,53,55
+apps/console/src/views/contest/detailed/composables/__tests__/useContestRankings.spec.ts
+  s_30bf6c6bcb80ce::t_74089a85a869af 1-113
+apps/console/src/views/contest/detailed/composables/useContestRankings.ts
+  s_30bf6c6bcb80ce::t_d2e1cb902712a8 14-18,21-33,36-37,40-44,46,48-50,58-63,68-69,78,102-105
+apps/console/src/views/contest/detailed/composables/useContestStatus.ts
+  s_30bf6c6bcb80ce::t_09a615bb0f4e84 117-119,121
+apps/console/src/views/dashboard/PersonalDashboardView.vue
+  s_30bf6c6bcb80ce::t_3fb1a8319f4718 10-11,48,62,73,84,95,102,108,115,125,132,142,149,159,168,176,180,189,194
+apps/console/src/views/forum/ForumEditorView.test.ts
+  s_30bf6c6bcb80ce::t_3de4087971289e 1-11,13-30,32-57,59-76,78-122
+apps/console/src/views/forum/ForumEditorView.vue
+  s_30bf6c6bcb80ce::t_0632ff18b3ceca 13-21,28-29,162-176,178,195,199,204-205,215,225,244,254,257,262,266-273,280,283,288,292-299,309,312-322,324-326,328,333-335,339-341,348,352,354-355,366,368-370,372-375,379,391,397,410,416,421,437-441
+apps/console/src/views/forum/ForumFeedView.test.ts
+  s_30bf6c6bcb80ce::t_44fa1aecfb0712 1-185
+apps/console/src/views/forum/ForumFeedView.vue
+  s_30bf6c6bcb80ce::t_ef0fdd863da395 21-22,30-31,42,56-61,68,70,80,86,89-91,100,102,109,111,119,121,240,242-243,250,255-256,258-260,263-270,275,283-292,294-304
+apps/console/src/views/forum/ForumFeedbackView.test.ts
+  s_30bf6c6bcb80ce::t_04108658d3cea1 1-4,6-9,11-15,17-19,21-38,41-54,56-59,61-62,64
+apps/console/src/views/forum/ForumFeedbackView.vue
+  s_30bf6c6bcb80ce::t_5bfca1ba449812 3-13,20-21,38-42,44,50,69-70,79,82-83,86-93,117,124-125,132,134,136,162,164,166
+apps/console/src/views/forum/ForumGuidelinesView.vue
+  s_30bf6c6bcb80ce::t_8585c51e1319c3 2-8,31,35,40,44,49,53,58,62,67,71,76,80,85,89,94,98,103,109,115
+apps/console/src/views/forum/ForumThreadView.test.ts
+  s_30bf6c6bcb80ce::t_fa1a40347232e6 1-4,6,8-35,37-60,62-113
+apps/console/src/views/forum/ForumThreadView.vue
+  s_30bf6c6bcb80ce::t_1e89693d80e61f 2,9-14,26,28-32,58-69,152-161,186-191,194,201,220,231-234,239,245-266,269,273-277,281,284,293,295-296,332,336,341,355,360,374,387,390,395,401,406,415,426,437,440,445-446,450,453,460
+apps/console/src/views/forum/components/ForumPostCard.vue
+  s_30bf6c6bcb80ce::t_5f6d63c4120255 4-11,17,58,60,62,64,66,112,232,239,242,249,253,258,260,263,269,274,278,288,303,318,326,336,353,386-387
+apps/console/src/views/forum/components/ForumPostSkeleton.vue
+  s_30bf6c6bcb80ce::t_3007d578e2415c 2,6,9
+apps/console/src/views/forum/components/ForumSidebar.vue
+  s_30bf6c6bcb80ce::t_1233cd8e3e8fc4 21-24,26,39,47,51,57,68,82,85,91,102,105,115,126-130
+apps/console/src/views/forum/components/ThreadContent.vue
+  s_30bf6c6bcb80ce::t_5df9ca69db04c2 8-13,15,19,28,60,62,64,66,68,93,190,196,202,207,240,258-259,262-263,267,269-270,279,286,295,325,340-341,375,392
+apps/console/src/views/personal/AccountGeneralView.vue
+  s_30bf6c6bcb80ce::t_5708f40af0a725 5-9,24-28,30,40-44,83-90,135,137,150-153,163-167,195-197,199,204,209-213,220,227,234,236,243-245,261,263,274,287,292,297,302,307,311,320
+apps/console/src/views/personal/AccountNotificationsView.vue
+  s_30bf6c6bcb80ce::t_5344762bf32920 17-19,69,71,81,90,94-96,101,112,116,118,121,130,140,144,146,149,158,167
+apps/console/src/views/personal/AccountSecurityView.vue
+  s_30bf6c6bcb80ce::t_0207ef25423a77 14-17,67,69,79,91,109,118,124,126,130,136,138,150,159
+apps/console/src/views/personal/AgentConversationWorkspace.vue
+  s_30bf6c6bcb80ce::t_b86f5ec323ece6 2-4,9-22,46-76,79-84,90-94,98-113,115,117-119,121-127,129-139,144-154,217-220,225-231,233-242,244-249,251-256,261-263,266-272,275-288,290-299,302-314,317-319,325-327,329-335,339-344,346-349,355-359,362-369,372-384,390-394,398-403,406-420,422-428,431-443,446-448,452-457,460-464,467-471,474-478,481-485,489-497,500-522,526-533,535-543,547-557,560-595,598-604,606-609,611-613,617-628,630-632,635-651,660-675,677-686,688-702,704,707-719,721-730,735-739
+apps/console/src/views/personal/BookmarksView.vue
+  s_30bf6c6bcb80ce::t_4d656d8fd7a730 17-26,36,42-43,57,84,249-254,256-259,269,276-285,287,289,330,335,352,363,366,386,414,419,452,458-476,508,535,549,552
+apps/console/src/views/personal/ForumPostsView.vue
+  s_30bf6c6bcb80ce::t_46fb6a1d6a6408 4-6,8,19,25-27,42,49,53-54,59,106-114,117,120,128,136,140,144,159,180,188,193-199,201-245,262,274
+apps/console/src/views/personal/NotificationsView.vue
+  s_30bf6c6bcb80ce::t_bb7fd1e9b1aaa3 8-9,34-35,46,203-204,244,272,275-276,306,308,328,332,334-336,340-351,368-370,381-383,394,410,416
+apps/console/src/views/personal/PersonalView.vue
+  s_30bf6c6bcb80ce::t_0f06e617540389 2-3,82,93
+apps/console/src/views/personal/ProblemListsView.vue
+  s_30bf6c6bcb80ce::t_4b9e259dc1fe6f 2,4-12,25,44-45,64-72,199,208,230,233,243,250-258,262-265,268,271-273,277,280-282,286,292,304-305,347-348,351,355-360,362,369,371,374-375,378,384,390,398,404-405,407,412-414,416,421
+apps/console/src/views/personal/SolutionsView.vue
+  s_30bf6c6bcb80ce::t_f4c1a154c94b1e 9-11,37-38,42,52,80-83,91,96-98,129,139-147,152,155,159,175,193,198-209,222,234,267,280,283,293
+apps/console/src/views/personal/SubmissionsView.vue
+  s_30bf6c6bcb80ce::t_23987e1c6cf487 3,20,22,60,116,118-120,122-123,139-142,149,154-156,187,192,204,208-218,220,236,246,264,271,276,283-284,292,295,300-304,306-309,312
+apps/console/src/views/personal/SubscriptionView.vue
+  s_30bf6c6bcb80ce::t_269ba0891cad30 180,211-218
+apps/console/src/views/personal/__tests__/AccountGeneralView.spec.ts
+  s_30bf6c6bcb80ce::t_5a469cdff90b33 1-54
+apps/console/src/views/personal/__tests__/AgentConversationWorkspace.spec.ts
+  s_30bf6c6bcb80ce::t_abb942907b38d3 12-14,88,94-99,118-135,143-148
+apps/console/src/views/personal/__tests__/BookmarksView.spec.ts
+  s_30bf6c6bcb80ce::t_c77521b57623e5 1-5,7-26,28-49
+apps/console/src/views/personal/__tests__/ForumPostsView.spec.ts
+  s_30bf6c6bcb80ce::t_b4269477cf5ab2 1-74
+apps/console/src/views/personal/__tests__/ProblemListsReadFailure.spec.ts
+  s_30bf6c6bcb80ce::t_d425db56b3e273 1-58
+apps/console/src/views/personal/__tests__/ProblemListsView.spec.ts
+  s_30bf6c6bcb80ce::t_a445535a909acb 1-5,7-9,11-19,21-25,27-58,60-80
+apps/console/src/views/personal/__tests__/SolutionsView.spec.ts
+  s_30bf6c6bcb80ce::t_da529cad906376 1-5,7-21,23-27,29-58
+apps/console/src/views/personal/__tests__/SubmissionsView.spec.ts
+  s_30bf6c6bcb80ce::t_0d6b90e81f90f3 1-87
+apps/console/src/views/personal/components/ActivityHeatmap.vue
+  s_30bf6c6bcb80ce::t_1777cf22a74863 9,61,73,114,134,137,140,143-146
+apps/console/src/views/personal/components/CategoriesTab.vue
+  s_30bf6c6bcb80ce::t_163ee32cb38d71 3-5,15-16,46-59,63,69,89,92,101,111,119,132,138-159,161-170
+apps/console/src/views/personal/components/CreateCategoryDialog.vue
+  s_30bf6c6bcb80ce::t_8cda2f642a5e9f 11-14,44,46,55-57,79
+apps/console/src/views/personal/components/CreateListDialog.vue
+  s_30bf6c6bcb80ce::t_344daf443c62f8 11-16,53,55,64-66,76-78,85,89,92,99,103-105,109
+apps/console/src/views/personal/components/DeleteCategoryDialog.vue
+  s_30bf6c6bcb80ce::t_22549cbc241d43 12,30,44,47
+apps/console/src/views/personal/components/DeleteListDialog.vue
+  s_30bf6c6bcb80ce::t_91152a2d172631 12,30,44,47
+apps/console/src/views/personal/components/EditCategoryDialog.vue
+  s_30bf6c6bcb80ce::t_1edf77b6a9029e 10-13,46,48,54-56,75
+apps/console/src/views/personal/components/LearningProgressChart.vue
+  s_30bf6c6bcb80ce::t_ad0e662e1ca2fa 4,6,26,91,117,138,140,164,192-193,196,200-201,236-247
+apps/console/src/views/personal/components/MyListsTab.vue
+  s_30bf6c6bcb80ce::t_da3098b845adae 9-11,18-19,48,51,61,71,80,85,90,99,104-118,135
+apps/console/src/views/personal/components/PersonalPageHeader.vue
+  s_30bf6c6bcb80ce::t_f3fe83d72574b5 2
+apps/console/src/views/personal/components/SavedListsTab.vue
+  s_30bf6c6bcb80ce::t_300b41cdd80c7a 9-12,17,27-28,74,79,82,91,96-118,132,152,159-161,163,169,175-190,199,210,214,222,227-244,250,271,274
+apps/console/src/views/personal/components/SkillRadarChart.vue
+  s_30bf6c6bcb80ce::t_da93d85fbc2e98 4,8,11-16,47,62-70,133-134,155-160
+apps/console/src/views/personal/components/SubmissionHistoryChart.vue
+  s_30bf6c6bcb80ce::t_4875a0939079c5 4,6,29,53,123,149,156,179,200,242-243,246,250-251,286-297
+apps/console/src/views/personal/components/UserProfileCard.vue
+  s_30bf6c6bcb80ce::t_3c670a13d36c81 3-10,12,32,45,47,49,54,78,86
+apps/console/src/views/personal/components/UserStatsPanel.vue
+  s_30bf6c6bcb80ce::t_8927ede67518ae 3,11-12,48-49,54-55,60-61,70-71,76-77,82-83,110,113,115,120-123,130,134,141,143,148-149,155,161,163,168-169,179,183,194-195,197,201,227,232,239,255-257,261-263,272-274,278-280,290-292,296-298,306-308,312-314,325-327,343,346,349-350,367-369,372,375-376,394
+apps/console/src/views/personal/components/__tests__/ActivityHeatmap.spec.ts
+  s_30bf6c6bcb80ce::t_e00795d7b8982c 1-11
+apps/console/src/views/personal/components/__tests__/CategoriesTab.spec.ts
+  s_30bf6c6bcb80ce::t_fbd68b812fe93c 1-3,5-28
+apps/console/src/views/personal/components/__tests__/CreateListDialog.spec.ts
+  s_30bf6c6bcb80ce::t_f853dde08e1e95 1-3,5-8,10-51
+apps/console/src/views/personal/components/__tests__/SkillRadarChart.spec.ts
+  s_30bf6c6bcb80ce::t_37d7432b07f2dc 1-106
+apps/console/src/views/personal/components/__tests__/SubmissionHistoryChart.spec.ts
+  s_30bf6c6bcb80ce::t_ea106c801b5435 1-4,6-27,29-45
+apps/console/src/views/personal/components/__tests__/chartFailure.spec.ts
+  s_30bf6c6bcb80ce::t_aca64c4a8bfad2 1-3,5-9,11-25,27-35,37-46,48,50-85,87
+apps/console/src/views/personal/components/__tests__/chartResize.spec.ts
+  s_30bf6c6bcb80ce::t_06a72239a1c477 1-88
+apps/console/src/views/personal/components/chartOptions.ts
+  s_30bf6c6bcb80ce::t_b6e0e0519b0c79 2,5
+apps/console/src/views/personal/composables/useProblemLists.ts
+  s_30bf6c6bcb80ce::t_d41a6b239ec8e2 36,89-90,94,224,242
+apps/console/src/views/post-editor/solutions/SolutionsEditView.vue
+  s_30bf6c6bcb80ce::t_7a677428c5244b 2-4,6-8,14,20,35,48,51,58-72,74,99,101-102,105,107,115,118-119,124,127-128,130-133,137,143-144,146-151,155,174,177-183
+apps/console/src/views/problem-list/ProblemListAnalytics.vue
+  s_30bf6c6bcb80ce::t_93171bcf5209f0 4-11,23-25,98,100,111-118,123,125,151
+apps/console/src/views/problem-list/ProblemListView.vue
+  s_30bf6c6bcb80ce::t_1296dcb05ff420 5,31-32,39-42,57-58,108-109,112,170,175,189,208-213,218-270,272-284,314-326,328,335
+apps/console/src/views/problem-list/components/AddProblemsDialog.vue
+  s_30bf6c6bcb80ce::t_f50d70e358e543 12-16,112,155,169
+apps/console/src/views/problem-list/components/DeleteListDialog.vue
+  s_30bf6c6bcb80ce::t_5a47702b49e024 10-11
+apps/console/src/views/problem-list/components/EditListDialog.vue
+  s_30bf6c6bcb80ce::t_cb8548dc13c63a 10-15
+apps/console/src/views/problem-list/composables/useProblemListOperations.ts
+  s_30bf6c6bcb80ce::t_17207b9fe3b61c 80,83,107,299-300
+apps/console/src/views/problem-set/ProblemSetView.vue
+  s_30bf6c6bcb80ce::t_9e79ffc6e00395 24,32-34,36,43
+apps/console/src/views/problems/ProblemDetailView.vue
+  s_30bf6c6bcb80ce::t_98f1623056f7d0 53,56,92,95,100,107,119,130-145
+apps/console/src/views/problems/code/CodeView.vue
+  s_30bf6c6bcb80ce::t_743982358e2a9b 9-11,184,189,192,197-214,220,228,238,257,271,301,332-347
+apps/console/src/views/problems/code/__tests__/CodeView.theme.spec.ts
+  s_30bf6c6bcb80ce::t_046c553d16e6c8 15-24,26-54,63-65
+apps/console/src/views/problems/code/components/CodeEditor.vue
+  s_30bf6c6bcb80ce::t_f1d5bac98a4d86 4-8,27,53,78-91,112,159,161-162,176-180,183-185,209-217,241,254,308
+apps/console/src/views/problems/code/components/__tests__/CodeEditor.spec.ts
+  s_30bf6c6bcb80ce::t_d008e5fd06773c 1-87
+apps/console/src/views/problems/components/ContestAnnouncementBell.vue
+  s_30bf6c6bcb80ce::t_b4d5c2402f6961 29-30,176-177,179,186,195,201,204,207,219,225,238,245,250,256,268
+apps/console/src/views/problems/components/ContestProblemDock.vue
+  s_30bf6c6bcb80ce::t_71035a5f25fa13 17,22,299,304,308,318,321,330,358-359,367-368,376,379,390,397-398,403,405-406,414,422,431,443,447,455,459,464,469,472,477,480,493,499,510,519,530
+apps/console/src/views/problems/components/ContestProblemNotInContest.vue
+  s_30bf6c6bcb80ce::t_246ac12871ab26 5,28,38-40,47
+apps/console/src/views/problems/components/ContestProblemShell.vue
+  s_30bf6c6bcb80ce::t_97a1a20d1f1515 2-3,30,54,59-60,257,261,265,269-271,279,284,290,313-318,326-331,339-343,357-359,362-364,369,371-372,380,394,407-410
+apps/console/src/views/problems/components/ContestReviewPanel.vue
+  s_30bf6c6bcb80ce::t_92c02bc914e586 27,55,94-95,101,152,165,170,175,185,187-195,197,199,206-208,211,225,231,245,249-251,261,272,282
+apps/console/src/views/problems/components/MobileProblemLayout.vue
+  s_30bf6c6bcb80ce::t_b27c268f148109 5-10,17-18,106-119,160-162,165-176,189
+apps/console/src/views/problems/components/__tests__/MobileProblemLayout.spec.ts
+  s_30bf6c6bcb80ce::t_f5de3a046be21a 1-30
+apps/console/src/views/problems/composables/useProblemLayout.ts
+  s_30bf6c6bcb80ce::t_4cbb12a653142e 36,45,53,112,256,391
+apps/console/src/views/problems/composables/useProblemSession.ts
+  s_30bf6c6bcb80ce::t_859ad0ffa6ee2e 30,280
+apps/console/src/views/problems/description/DescriptionMarkdown.vue
+  s_30bf6c6bcb80ce::t_5ba383a7139be8 3,97,102-105,124,136,174,184,188,209,243
+apps/console/src/views/problems/description/DescriptionView.vue
+  s_30bf6c6bcb80ce::t_a9d9939164ffad 2-3,14-15,17-18,109-110,112,126,129-130,135,139,142-143,145,159,170,188,207,211,226,228,236,243,246,255,265,282,285,295,309,312,321,334
+apps/console/src/views/problems/headers/LayoutHeaderCenter.vue
+  s_30bf6c6bcb80ce::t_17827ce0d335cd 2,6-10,39,47,137,139,142-144,148-149,154-156,160-161,166-167,170-171,176-177,181,196-197,202-203,205,208-209
+apps/console/src/views/problems/headers/LayoutHeaderControls.vue
+  s_30bf6c6bcb80ce::t_7075188d5f3cc8 3-4,14,16-20,31,34,51,102-103,107-108,119,128-129,134,155,159,164,173,177,180,189,193,196,206,209,213,221,224,227,234,253-261,269,282,286,294-295,301,307,313,321,328-329
+apps/console/src/views/problems/headers/LayoutHeaderLeft.vue
+  s_30bf6c6bcb80ce::t_7a3c2897016606 3-4,6,14,16-20,63-64,125,127,129,132,146,155,158-160,162,168-170,172-173,178-179,181,184-185,187-189,191,200,205-206,210-211,216,218-221,242-243,248-249,251,254-255,257,259-262,280-281,286-287,289,292-293,306-309,312-313,318-319,321,324-325
+apps/console/src/views/problems/headers/__tests__/LayoutHeaderLeft.contestMode.spec.ts
+  s_30bf6c6bcb80ce::t_541b6c2b0dd1bd 45-47,72,115,202-205
+apps/console/src/views/problems/headers/__tests__/LayoutHeaderLeft.problemsetLink.spec.ts
+  s_30bf6c6bcb80ce::t_eebfbefd20a06c 13,16,18,20,22,28,30,33,48,53
+apps/console/src/views/problems/solutions/ProblemSolutionsView.vue
+  s_30bf6c6bcb80ce::t_63d905bf70c171 2-3,83,144-149,151,155
+apps/console/src/views/problems/solutions/SolutionListView.vue
+  s_30bf6c6bcb80ce::t_ecdb109d162cf5 10-11,17-18,20-22,29,181,185,197,204,206,211-224,238,255,269,271,273,276,278,281,288,293,304,311-313,316,324,344
+apps/console/src/views/problems/solutions/__tests__/SolutionListView.spec.ts
+  s_30bf6c6bcb80ce::t_75837954daba47 40-56,61-66
+apps/console/src/views/problems/solutions/components/SolutionCard.vue
+  s_30bf6c6bcb80ce::t_173a181fb4aa0e 9-13,59,66,80,84,89,98,103,110,122,127,149,155,164,167,173,179
+apps/console/src/views/problems/solutions/components/SolutionDetail.vue
+  s_30bf6c6bcb80ce::t_0d1e2d50d2fdf5 6-10,12,29,36-40,130-139,141,319,326,330-334,336,347,358,362,365,379,386,389,396,404,406-427,430,432,434-438,442,445,452,454-455,461,470,481,485,491,494,511,544,546,570,573,586,591,599,604,609,620,623,625,628-629,633,636,643
+apps/console/src/views/problems/solutions/components/__tests__/SolutionDetail.spec.ts
+  s_30bf6c6bcb80ce::t_28cfc587254516 1,3,7,9-19,99-164,168,181
+apps/console/src/views/problems/submissions/SubmissionsDetail.vue
+  s_30bf6c6bcb80ce::t_f136cd300c8119 4-9,24,47-49,124-125,130-131,137,144,157,170-171,178,180-188,191-192,194,221-225,230,238,248,260,262,266,270,300
+apps/console/src/views/problems/submissions/SubmissionsListView.vue
+  s_30bf6c6bcb80ce::t_adf2ba43505a8b 17,25-26,68,109,112,126,134,154,157
+apps/console/src/views/problems/submissions/__tests__/AgentReviewPanel.spec.ts
+  s_30bf6c6bcb80ce::t_a5069e0526763f 24-43,45-47,53-59,63-71,112-116,118-135,138-155,158-167,173-178,186-190,192-205,208-226,233-246,252-256,263-267,272-288,290-310,317-322,324-327,338-342,345-359,366-368,370-373,377-380,387-391,394-404,407-420,428-430,439-443,446-456,459-472,481-483,498-502,505-515,518-531,540-542
+apps/console/src/views/problems/submissions/__tests__/SubmissionsListView.spec.ts
+  s_30bf6c6bcb80ce::t_a9973bbe9fdf42 2-3,5-7,9-18,20-23
+apps/console/src/views/problems/submissions/components/AgentReviewPanel.vue
+  s_30bf6c6bcb80ce::t_054c5ec2a9ef54 2-4,9-13,18-22,24-27,33-37,51-58,60-79,82-88,90-97,100-106,114-118,124-125,128-149,152-155,159-160,167-169,186-191,193-196,198-199,209-212,218-222,229-233,239-259,261-278,281-283,286-291,294-303,310-315,319-320,326-327,339-342,353-364,371-375,379-381,384-391,394-400,405-431,433-440,442-449,451-479,481,484-491,493-506,508-516,522-537,539-565,567-569,572-574,577-581,583-593,600-614,620-635,639-642,645-649,651-657,662-673,677-693,695-724,726-729,731-776,779-782,785-805,808-815
+apps/console/src/views/problems/submissions/components/SubmissionPerformancePanel.vue
+  s_30bf6c6bcb80ce::t_47e74db3a7396c 2-9,87-90,99,101-109,132-135,171-174,269,277,280-281,294,299,315,318-319,332,337,352,354,360,362
+apps/console/src/views/problems/submissions/components/SubmissionTestResults.vue
+  s_30bf6c6bcb80ce::t_a4bdc6e49fb1a4 19,30,41
+apps/console/src/views/problems/submissions/components/__tests__/SubmissionPerformancePanel.spec.ts
+  s_30bf6c6bcb80ce::t_0161e065926aa9 5,141,149-192,379
+apps/console/src/views/problems/submissions/components/submissionChartOptions.ts
+  s_30bf6c6bcb80ce::t_7c1a0910d78199 4,16,36-37,39,65-69,89-90,99,101,112,114,120,137,139,188
+apps/console/src/views/problems/submissions/composables/useSubmissionDetail.ts
+  s_30bf6c6bcb80ce::t_8b27644348efb4 161,163,165,170-171
+apps/console/src/views/problems/test/TestCaseView.vue
+  s_30bf6c6bcb80ce::t_1f4a774cbb5ef7 5-6,190,193,195-209,212,219-220,225,244,248
+apps/console/src/views/problems/test/TestResultsView.vue
+  s_30bf6c6bcb80ce::t_62589e6209ff67 4-5,12,86-88,93-95,122,152,166,213,226,239
+apps/console/src/views/profile/ProfileView.vue
+  s_30bf6c6bcb80ce::t_28cacea94bc76b 14-15,22,98-99,102,109,111,130,136,151,155,160,190-192,246,257,272,283,310-315,348-350,357,365,400-401,403-404,416,432-435
+apps/console/src/views/submissions/SubmissionsDetailView.vue
+  s_30bf6c6bcb80ce::t_2d41f4bc7efe7d 2-3,120-121,123,127,136-137,139,143
+apps/console/src/views/users/UserProfileView.vue
+  s_30bf6c6bcb80ce::t_b6462486bb4deb 8,15,18-20,33-35,47-52,59-63,72-74,78-80,82-89,99,109-111,114,120,124,131,151,170,181,196,201,207,213,221,234,241,254,261,274,281,283,291
+apps/console/src/views/users/__tests__/UserProfileView.spec.ts
+  s_30bf6c6bcb80ce::t_a457e8820799a4 1-124
+apps/console/tsconfig.node.json
+  s_30bf6c6bcb80ce::t_a4fc9bfc393654 16-22
+apps/console/vite.config.ts
+  s_30bf6c6bcb80ce::t_224ed538c00b12 9,29-30,119,128-133
+apps/console/vitest.config.ts
+  s_30bf6c6bcb80ce::t_64371a8a90dc9e 59
+apps/landing/eslint.config.ts
+  s_30bf6c6bcb80ce::t_798985aa7a805e 1-14
+apps/landing/index.html
+  s_30bf6c6bcb80ce::t_c9bdd0b7595a21 1-22
+apps/landing/package.json
+  s_30bf6c6bcb80ce::t_7905cc9a1daa65 1-41
+apps/landing/public/theme-bootstrap.js
+  s_30bf6c6bcb80ce::t_88701bdb21d172 1-129,131-135
+apps/landing/src/App.vue
+  s_30bf6c6bcb80ce::t_02feff3acbd0b7 2-5,9-10
+apps/landing/src/composables/__tests__/useLocale.spec.ts
+  s_30bf6c6bcb80ce::t_ce8bc00357ae07 1-6,8-11,13-30,32-51
+apps/landing/src/composables/useLocale.ts
+  s_30bf6c6bcb80ce::t_88f79bb6415da2 1,3-13,15,17-22
+apps/landing/src/env.d.ts
+  s_30bf6c6bcb80ce::t_4fcf4ac8cb4dd2 1,3-5
+apps/landing/src/i18n.ts
+  s_30bf6c6bcb80ce::t_8785a84f3d865d 1-3,5-6,8-17,20-34,36-37,39-48
+apps/landing/src/i18n/locales/en-US/landing.ts
+  s_30bf6c6bcb80ce::t_656dd813c09f1f 2-6
+apps/landing/src/i18n/locales/zh-CN/landing.ts
+  s_30bf6c6bcb80ce::t_e4194e88ced4e9 2-6,159
+apps/landing/src/main.ts
+  s_30bf6c6bcb80ce::t_82a45eb7275234 1,3-5,7-8
+apps/landing/src/style.css
+  s_30bf6c6bcb80ce::t_b490270632ccfc 1-10
+apps/landing/src/utils/__tests__/platformUrl.spec.ts
+  s_30bf6c6bcb80ce::t_6bfee7937b1b3c 1-2,4,6-9,11-14,16-20
+apps/landing/src/utils/platformUrl.ts
+  s_30bf6c6bcb80ce::t_0185a6877933a6 1-19
+apps/landing/src/views/landing/LandingView.vue
+  s_30bf6c6bcb80ce::t_7c63ed58e96291 2,13,183-188,191
+apps/landing/src/views/landing/__tests__/LandingView.spec.ts
+  s_30bf6c6bcb80ce::t_49a949a6ad6bf4 1,16,25,108,110-115,117-127,131,133,136-145,149,151-157,160,162-173,176,178-180,183,185-191,194,196-199
+apps/landing/src/views/landing/components/FinalStorySection.vue
+  s_30bf6c6bcb80ce::t_b0d1bae3ce6ca3 2-5,8-10,12-34
+apps/landing/src/views/landing/components/HeroSection.vue
+  s_30bf6c6bcb80ce::t_c9c998e4cd4b65 2,4-19,21-26,29-48,50-59,62-115
+apps/landing/src/views/landing/components/HumanControlSection.vue
+  s_30bf6c6bcb80ce::t_06c2a3de0314ee 3-9,15,18-42
+apps/landing/src/views/landing/components/LandingFooter.vue
+  s_30bf6c6bcb80ce::t_c2f0e76c65ea2c 2-13,16-53
+apps/landing/src/views/landing/components/LandingHeader.vue
+  s_30bf6c6bcb80ce::t_5c7901fb05f61c 2-22,25,27,29-34,36-97,100
+apps/landing/src/views/landing/components/ProductProofSection.vue
+  s_30bf6c6bcb80ce::t_2359c9e0953ec5 2-10,13-51
+apps/landing/src/views/landing/components/UseCasesSection.vue
+  s_30bf6c6bcb80ce::t_c8761378e7a078 2-15,18-21,23-56
+apps/landing/tsconfig.json
+  s_30bf6c6bcb80ce::t_ed1855c24ff8aa 1-47
+apps/landing/vite.config.ts
+  s_30bf6c6bcb80ce::t_789da7f8b2883a 1-13,15-18,20
+apps/landing/vitest.config.ts
+  s_30bf6c6bcb80ce::t_c393cb4134a35b 1-3,5-12,14-18
+apps/management/public/theme-bootstrap.js
+  s_30bf6c6bcb80ce::t_4b30dcfef3de22 28-55,124
+apps/management/src/App.vue
+  s_30bf6c6bcb80ce::t_574520422aedb1 2-6,9-12,17
+apps/management/src/api/admin/analytics.ts
+  s_30bf6c6bcb80ce::t_bafa80c0266261 101-102,119
+apps/management/src/api/admin/audit.ts
+  s_30bf6c6bcb80ce::t_9ea94a4ea1ff20 143-144
+apps/management/src/api/admin/contests.ts
+  s_30bf6c6bcb80ce::t_7753ab32ed5f78 26
+apps/management/src/api/admin/monitoring.test.ts
+  s_30bf6c6bcb80ce::t_d142d712f9492e 1-27
+apps/management/src/api/admin/monitoring.ts
+  s_30bf6c6bcb80ce::t_60113ee4f3b62f 115-120,148,150,155,159-164
+apps/management/src/components/LanguageSwitcher.vue
+  s_30bf6c6bcb80ce::t_2813c4c680f7d1 2-3,10-11,20-22,26,28-56
+apps/management/src/components/ThemeSwitcher.vue
+  s_30bf6c6bcb80ce::t_bc487a4f5dac3b 2-3,5-6,9-15
+apps/management/src/components/analytics/AnalyticsBarList.test.ts
+  s_30bf6c6bcb80ce::t_8095f8db27c36b 6-32
+apps/management/src/components/analytics/AnalyticsBarList.vue
+  s_30bf6c6bcb80ce::t_ce82e88f6c675b 3-10,36,54-57,62,69,73,81-84,87,89-96,101,112
+apps/management/src/components/analytics/AnalyticsHeatmap.test.ts
+  s_30bf6c6bcb80ce::t_42242e639df36e 1-3,5-21,23-37
+apps/management/src/components/analytics/AnalyticsHeatmap.vue
+  s_30bf6c6bcb80ce::t_fd295055d893c3 3-9,56-57,77,79,83,132-135,140,143-148,156,178,192,197,199,213,215,220,226,232,249,256-257
+apps/management/src/components/analytics/AnalyticsMetricCard.vue
+  s_30bf6c6bcb80ce::t_d4ddf3bbb5b730 3-7,48,59-60,79,97,107,113,118,126,146
+apps/management/src/components/analytics/AnalyticsNav.vue
+  s_30bf6c6bcb80ce::t_41c7b896aa7184 2-3,5-10,41,43-44,48,51-52,58,63,66-67,78-79,84
+apps/management/src/components/analytics/AnalyticsOverviewPanel.test.ts
+  s_30bf6c6bcb80ce::t_c63a36995c4ffc 31-32
+apps/management/src/components/analytics/AnalyticsOverviewPanel.vue
+  s_30bf6c6bcb80ce::t_7c54c5576f760d 3,24,29,32,34-35,38,43,49,52,56
+apps/management/src/components/analytics/AnalyticsResourceUsage.vue
+  s_30bf6c6bcb80ce::t_8d35fcdc9aa244 3-5,21-31,42-45,52,55,59
+apps/management/src/components/analytics/AnalyticsTagCloud.vue
+  s_30bf6c6bcb80ce::t_287b183fafc0e9 3-9,69-72,77,90,100
+apps/management/src/components/analytics/AnalyticsTopUsersChart.vue
+  s_30bf6c6bcb80ce::t_620860d27f39cb 2-16,24-25,27-33,53,72-73,75-76,80,87,99-119
+apps/management/src/components/analytics/topUsersChart.test.ts
+  s_30bf6c6bcb80ce::t_4064e0dffd36b7 2,6-11,49-58
+apps/management/src/components/analytics/topUsersChart.ts
+  s_30bf6c6bcb80ce::t_adc98aad42680b 9,47-48,53,65-66,84-85,111-112
+apps/management/src/components/audit/AuditLogViewer.test.ts
+  s_30bf6c6bcb80ce::t_6e1cceb3927022 1,5,55-64,73-75,102-136,143-162
+apps/management/src/components/audit/AuditLogViewer.vue
+  s_30bf6c6bcb80ce::t_b32cbda4217821 5-7,14-24,29-30,178-180,183-196,203,218,220-221,237,240,242,248,254,257,261,268-283,288,299,302,310,313-317,323,326-330,339,341
+apps/management/src/components/dashboard/AreaChart.test.ts
+  s_30bf6c6bcb80ce::t_161a9d7c6cf881 1-4,12-36,135-194
+apps/management/src/components/dashboard/AreaChart.vue
+  s_30bf6c6bcb80ce::t_6c48118f496585 2-16,18-36,38-39,48,179,183,216-218,220-222,242,258,290-291,293-294,300,307,310-311,324,328,332,335,348,356-361,363-368,371-378,382,387,399,402-404,411-449,464,478,504
+apps/management/src/components/dashboard/DashboardTimeline.test.ts
+  s_30bf6c6bcb80ce::t_345539f8570a3b 54-62
+apps/management/src/components/dashboard/DashboardTimeline.vue
+  s_30bf6c6bcb80ce::t_ccaa3075451a25 4-10,30,40-42,52-53,58-59,91,93,114-115,118-119,128,143,150,155,168,182,188-189,193
+apps/management/src/components/dashboard/StatCards.test.ts
+  s_30bf6c6bcb80ce::t_813e60aaaad812 2-3,27,35-40
+apps/management/src/components/dashboard/StatCards.vue
+  s_30bf6c6bcb80ce::t_de7cb6f209a022 3-12,24-29,34,37-38,42-61,63-65
+apps/management/src/components/layout/AppSidebar.vue
+  s_30bf6c6bcb80ce::t_4e080b30cd83aa 2-3,21-38,52,206,277-278,280,291
+apps/management/src/components/layout/AppSidebarLayout.vue
+  s_30bf6c6bcb80ce::t_811fcddf295a1a 11
+apps/management/src/components/layout/MainLayout.vue
+  s_30bf6c6bcb80ce::t_ac7ac17d2d9a42 5,13
+apps/management/src/components/layout/NavDocuments.vue
+  s_30bf6c6bcb80ce::t_0ffbccc830b468 4-9,17-18,27,56,66-80,85
+apps/management/src/components/layout/NavMain.vue
+  s_30bf6c6bcb80ce::t_305d60773f8b2a 5,17-22,30-31,70-71,85,97-98,107-108,119-131,133-147,162-163,172-173,180-181,187,190,197,210-211,226,229,239-240,247-248
+apps/management/src/components/layout/NavSecondary.vue
+  s_30bf6c6bcb80ce::t_4e050a2fba69bf 11,44,49
+apps/management/src/components/layout/NavUser.vue
+  s_30bf6c6bcb80ce::t_14e0314466636b 2-7,12,21,27,64-65,67,74,79,84,94,96,98,105,110
+apps/management/src/components/layout/SiteHeader.spec.ts
+  s_30bf6c6bcb80ce::t_67b75dbc7d6262 1-76
+apps/management/src/components/layout/SiteHeader.vue
+  s_30bf6c6bcb80ce::t_add07d4b8761aa 2-15,19-26,36-37,47,50-53,134,136,138-155,157-160,164-165,168,172,176,180-182,184-187,189-206,211,214-215,217,221,224,230,241-245,248-249,268
+apps/management/src/components/problem/HiddenCasesView.vue
+  s_30bf6c6bcb80ce::t_7251836f1dd16f 4-16,77,82,114
+apps/management/src/components/problem/HiddenTestCasesEditor.vue
+  s_30bf6c6bcb80ce::t_9d77caa6e11ba7 3-7,14-22,69-71,73-74,77,82,123,160,164,171
+apps/management/src/components/problem/MarkdownEditor.test.ts
+  s_30bf6c6bcb80ce::t_6bae109d656e4a 1-74
+apps/management/src/components/problem/MarkdownEditor.vue
+  s_30bf6c6bcb80ce::t_5650a0501ac0dc 5-6,24-25,49,51,54-58,62,116,127,138,149,161,172,185,198,223,237,258-260,270,285-286,294-309,312-314,331-332
+apps/management/src/components/problem/TestCasesEditor.vue
+  s_30bf6c6bcb80ce::t_b499dc35b3130c 2-4,6-8,39,136-151,154-155,159-160,162,170,172,174,178,184,186,188,192,198,200,202
+apps/management/src/components/problem/TestCasesView.vue
+  s_30bf6c6bcb80ce::t_25b837f0717060 3,55,68,71-73,78-80
+apps/management/src/components/problem/__tests__/HiddenTestCasesEditor.spec.ts
+  s_30bf6c6bcb80ce::t_3a1207e7f15814 5,8-9,133-141,144-166
+apps/management/src/components/problem/__tests__/TestCasesEditor.spec.ts
+  s_30bf6c6bcb80ce::t_e1c02236307736 1-3,5-9,11-14,16-36
+apps/management/src/components/problem/__tests__/semanticBadge.spec.ts
+  s_30bf6c6bcb80ce::t_1e5cb0cf6a2163 2,4,6-11,13-25,27-29
+apps/management/src/components/problem/components/TestCaseDetail.test.ts
+  s_30bf6c6bcb80ce::t_bfa690ba370a58 2,4-5,7-39
+apps/management/src/components/problem/components/TestCaseDetail.vue
+  s_30bf6c6bcb80ce::t_a46030b8e5981a 2-6,22,26-28,30-32,39-40,43-44,47
+apps/management/src/components/problem/components/TestCaseForm.vue
+  s_30bf6c6bcb80ce::t_cb6bbf00fdb899 3-7,14-18,74,85,96,108,115,120,127,132
+apps/management/src/components/problem/components/TestCaseList.vue
+  s_30bf6c6bcb80ce::t_61d12260fe55e2 2-3,9-12,33,42-47,51-56,61-79
+apps/management/src/components/problems/BulkActionDialog.vue
+  s_30bf6c6bcb80ce::t_3f24118c53b577 5-12,21-22,45,54,72,81,114
+apps/management/src/components/problems/BulkEditDialog.vue
+  s_30bf6c6bcb80ce::t_20cfe1c6b560c3 12-14,21-23,133-143
+apps/management/src/components/problems/DescriptionMarkdown.vue
+  s_30bf6c6bcb80ce::t_d4efce36b88596 154-155,164,178-179,212,265
+apps/management/src/components/problems/FlagInfoDialog.vue
+  s_30bf6c6bcb80ce::t_e64eec076cab99 4-6,42-43,50-51,59,62,69,72,79,82,89,92,99,102,109,112,119,122
+apps/management/src/components/problems/ProblemImportDialog.test.ts
+  s_30bf6c6bcb80ce::t_f5822da19439ce 1-30
+apps/management/src/components/problems/ProblemImportDialog.vue
+  s_30bf6c6bcb80ce::t_aae06877240b9a 2-3,8-18,26,33-34,303,315,326,331,398-408,429,431,440-443,451,462,485,501
+apps/management/src/components/problems/VersionHistoryTimeline.test.ts
+  s_30bf6c6bcb80ce::t_9f8d2bd4a39478 1-82
+apps/management/src/components/problems/VersionHistoryTimeline.vue
+  s_30bf6c6bcb80ce::t_c559fa3f716aa0 5-6,13,23-33,57,86,96,207,213,219,261,264,275-289,323,325,332,336,369,375-376,381,390,422,440,449-450,457-458
+apps/management/src/components/shared/AppearanceSettings.test.ts
+  s_30bf6c6bcb80ce::t_5426c8f02324f5 1-5,7-16,18-21,23-34,36-40,42-47,50-66,68-80
+apps/management/src/components/shared/BaseDetailDrawer.vue
+  s_30bf6c6bcb80ce::t_2620baf6982fab 9-10,30,36,46-52,76
+apps/management/src/components/shared/CodeViewer.test.ts
+  s_30bf6c6bcb80ce::t_bd7f7931df0405 1-4,6-10,12-22,24-65
+apps/management/src/components/shared/CodeViewer.vue
+  s_30bf6c6bcb80ce::t_a363951696c070 4-12,51-54,167,186-187,191,200,219,242,245,276
+apps/management/src/components/shared/Command.test.ts
+  s_30bf6c6bcb80ce::t_20a19b472c34e6 1-77
+apps/management/src/components/shared/EntityActionDialog.vue
+  s_30bf6c6bcb80ce::t_dc5eabfc5bd321 5-11,19-23,186,188,204,207,217
+apps/management/src/components/shared/MetadataCard.vue
+  s_30bf6c6bcb80ce::t_2fe7dcbc68100f 3,24,37
+apps/management/src/components/shared/TagsCard.vue
+  s_30bf6c6bcb80ce::t_9b88a0f60ae015 2-4,25,29,41
+apps/management/src/components/table/DataTable.test.ts
+  s_30bf6c6bcb80ce::t_211f6e3b47db36 12,37-46,106-142,149-165
+apps/management/src/components/table/DataTable.vue
+  s_30bf6c6bcb80ce::t_2c5ad8a66200a4 12-20,32,38-39,46-47,55,62-63,191-217,222,230,233,244,305,342-346,348,365,368,370,379,389,393-400,405,407,415-416,424-425,434-435,444-445
+apps/management/src/components/table/DataTableToolbar.test.ts
+  s_30bf6c6bcb80ce::t_48727c7a836e86 1-4,6-11,15-50
+apps/management/src/components/table/DataTableToolbar.vue
+  s_30bf6c6bcb80ce::t_6a941451c3702f 2-3,10-16,59,64,66-67,70,73,84,86,90-95,98-102,108,110
+apps/management/src/components/table/DraggableRow.vue
+  s_30bf6c6bcb80ce::t_e737ce9a319b6e 5,20
+apps/management/src/components/table/__tests__/selectionColumn.spec.ts
+  s_30bf6c6bcb80ce::t_e6e292475ebd67 38-54,98-102,110-114,124-128,172-176,190-194,196
+apps/management/src/components/table/entityActions.ts
+  s_30bf6c6bcb80ce::t_293f0e6fb839d6 2-4,14,57
+apps/management/src/components/table/selectionColumn.ts
+  s_30bf6c6bcb80ce::t_e4ac199cc8e385 3,48,54-55
+apps/management/src/components/theme-color-contract.test.ts
+  s_30bf6c6bcb80ce::t_c4620dfac55009 23,25-30,35-37,41-47,49-50,52-54,62-64,66
+apps/management/src/composables/useLocale.test.ts
+  s_30bf6c6bcb80ce::t_774d19ec30bd7d 1-27
+apps/management/src/composables/useLocale.ts
+  s_30bf6c6bcb80ce::t_3f783d4d487023 6
+apps/management/src/i18n/__tests__/i18n-coverage.spec.ts
+  s_30bf6c6bcb80ce::t_6d4773fe5b5e60 2,10-60
+apps/management/src/i18n/locales/en-US/modules/account.ts
+  s_30bf6c6bcb80ce::t_3c6bc092d50232 34-39
+apps/management/src/i18n/locales/en-US/modules/common.ts
+  s_30bf6c6bcb80ce::t_05c248cb9171f2 2-10
+apps/management/src/i18n/locales/en-US/modules/contests.ts
+  s_30bf6c6bcb80ce::t_2d0cb7f5f14cb2 299,306-307,332
+apps/management/src/i18n/locales/en-US/modules/dashboard.ts
+  s_30bf6c6bcb80ce::t_1ab937db7ede3c 5-7
+apps/management/src/i18n/locales/en-US/modules/help.ts
+  s_30bf6c6bcb80ce::t_a8c2b9acebfffb 33-34
+apps/management/src/i18n/locales/en-US/modules/moderation.ts
+  s_30bf6c6bcb80ce::t_c7596820fccef7 121-122,141,195,199-200,218,222-223,308-312
+apps/management/src/i18n/locales/en-US/modules/problems.ts
+  s_30bf6c6bcb80ce::t_9e49bd992e1eb0 105-106
+apps/management/src/i18n/locales/en-US/modules/solutions.ts
+  s_30bf6c6bcb80ce::t_2cf87b5776da36 50-51,67-69,139-140
+apps/management/src/i18n/locales/en-US/modules/submissions.ts
+  s_30bf6c6bcb80ce::t_20a1e699220034 79
+apps/management/src/i18n/locales/en-US/modules/system.ts
+  s_30bf6c6bcb80ce::t_cc76c0a7210668 62-63,122
+apps/management/src/i18n/locales/en-US/modules/testCases.ts
+  s_30bf6c6bcb80ce::t_de4035dbea07dc 27,32,34
+apps/management/src/i18n/locales/en-US/modules/users.ts
+  s_30bf6c6bcb80ce::t_a553c0c4cec429 180
+apps/management/src/i18n/locales/zh-CN/modules/account.ts
+  s_30bf6c6bcb80ce::t_e69f196bcb9d2c 34-39
+apps/management/src/i18n/locales/zh-CN/modules/common.ts
+  s_30bf6c6bcb80ce::t_2fc57ba03e3cd4 2-10
+apps/management/src/i18n/locales/zh-CN/modules/contests.ts
+  s_30bf6c6bcb80ce::t_ce4f1a3ff5accd 297,304-305,330
+apps/management/src/i18n/locales/zh-CN/modules/dashboard.ts
+  s_30bf6c6bcb80ce::t_86d8eb292c6b0f 5-7
+apps/management/src/i18n/locales/zh-CN/modules/help.ts
+  s_30bf6c6bcb80ce::t_bd91f0efffed31 32-33
+apps/management/src/i18n/locales/zh-CN/modules/moderation.ts
+  s_30bf6c6bcb80ce::t_470a147740a4ab 121-122,141,195,199-200,218,222-223,308-312
+apps/management/src/i18n/locales/zh-CN/modules/problems.ts
+  s_30bf6c6bcb80ce::t_db2981db870283 105-106
+apps/management/src/i18n/locales/zh-CN/modules/solutions.ts
+  s_30bf6c6bcb80ce::t_3817acbd50c6a1 50-51,67-69,139-140
+apps/management/src/i18n/locales/zh-CN/modules/submissions.ts
+  s_30bf6c6bcb80ce::t_fcb341d58ccfe7 79
+apps/management/src/i18n/locales/zh-CN/modules/system.ts
+  s_30bf6c6bcb80ce::t_ba49116bd321fa 61,120
+apps/management/src/i18n/locales/zh-CN/modules/testCases.ts
+  s_30bf6c6bcb80ce::t_928fb486979396 27,31,33
+apps/management/src/i18n/locales/zh-CN/modules/users.ts
+  s_30bf6c6bcb80ce::t_5ec63904ee8272 179
+apps/management/src/lib/entities/comment.ts
+  s_30bf6c6bcb80ce::t_559ed5b5b75f64 2-9
+apps/management/src/lib/entities/forum.ts
+  s_30bf6c6bcb80ce::t_b01158be4a636d 2-9
+apps/management/src/lib/entities/language.ts
+  s_30bf6c6bcb80ce::t_ff35ac08e3ff34 1
+apps/management/src/lib/entities/problem-list.ts
+  s_30bf6c6bcb80ce::t_b806904571ed85 2-8,21,23
+apps/management/src/lib/entities/problem.ts
+  s_30bf6c6bcb80ce::t_d0bc01768c4e3b 2,4-8,16,18,20,32,34,36
+apps/management/src/lib/entities/solution.ts
+  s_30bf6c6bcb80ce::t_754a70b33d70b1 2-7,26,28
+apps/management/src/lib/entities/user.ts
+  s_30bf6c6bcb80ce::t_1a41e9b43eabf9 3-10,21
+apps/management/src/main.ts
+  s_30bf6c6bcb80ce::t_6123beb139963f 8,24
+apps/management/src/router/index.ts
+  s_30bf6c6bcb80ce::t_14ce20890352b6 65
+apps/management/src/stores/admin/__tests__/contests-rankings.spec.ts
+  s_30bf6c6bcb80ce::t_0ad98164c9a710 1-86
+apps/management/src/stores/admin/__tests__/submissions.spec.ts
+  s_30bf6c6bcb80ce::t_73ca3faaa9e036 1-47,49-55,57-108
+apps/management/src/stores/admin/contests.ts
+  s_30bf6c6bcb80ce::t_571c214e814325 30-32,183-185,188,191,195-196,200-203,230-231
+apps/management/src/stores/admin/submissions.ts
+  s_30bf6c6bcb80ce::t_5494e96779b200 12-13,34-38,47-52,65-67,121-122,143
+apps/management/src/style.css
+  s_30bf6c6bcb80ce::t_4dc2d0c138777e 8-9
+apps/management/src/utils/__tests__/comment-renderer.test.ts
+  s_30bf6c6bcb80ce::t_b8db09a15e4463 52-53
+apps/management/src/utils/comment-renderer.ts
+  s_30bf6c6bcb80ce::t_056d816d744cdc 7,34,47,56,66
+apps/management/src/views/account/AccountView.vue
+  s_30bf6c6bcb80ce::t_7c7aecd65149f8 2,4-11,16-23,49-56,132,135,143,146,217,225,234,320,375,389,397,401
+apps/management/src/views/account/__tests__/AccountView.spec.ts
+  s_30bf6c6bcb80ce::t_365eaf5d54a25b 1-4,6-24,26-43
+apps/management/src/views/analytics/AnalyticsView.test.ts
+  s_30bf6c6bcb80ce::t_d539a0d76c6a7b 1-120
+apps/management/src/views/analytics/AnalyticsView.vue
+  s_30bf6c6bcb80ce::t_a607d2241c6b02 4,11-14,26-31,49,76-77,95-97,211-216,270,331,337,344,348,350-352,356-359,361-367,376,388,390,399-402,409-420,447,546
+apps/management/src/views/analytics/components/PerformanceReport.vue
+  s_30bf6c6bcb80ce::t_8e8ea604a9d5a2 13,18-19,41,43-47,76,79,88-89,93,98,100-101,110,113,117,122,124-125,134-135,139,144,146-147
+apps/management/src/views/analytics/components/ProblemCompletionReport.vue
+  s_30bf6c6bcb80ce::t_de8a80f0e2e7f1 55
+apps/management/src/views/analytics/components/RevenueReport.vue
+  s_30bf6c6bcb80ce::t_9712ac5029d477 70,73,81,83-84,89,91,95-96,102,105
+apps/management/src/views/analytics/components/UserActivityReport.vue
+  s_30bf6c6bcb80ce::t_197e57c509b529 9-16,112,131-132,134-135,139,199,207,215,223,231,245,251,260
+apps/management/src/views/analytics/composables/useAnalyticsReports.test.ts
+  s_30bf6c6bcb80ce::t_c8501aa64750ca 1-112
+apps/management/src/views/analytics/composables/useAnalyticsReports.ts
+  s_30bf6c6bcb80ce::t_ee91b2ca763e8a 23,56-57,80,95,132
+apps/management/src/views/audit/AuditLogDetailDrawer.vue
+  s_30bf6c6bcb80ce::t_ca57b41e741821 4-13,16-17,44,46,54-55,58,60,66-70,80,85,87,89-90,93,105,110,114,117,121-122,132,135,138,141,145,156-157,163,170,173-175,183,186-188
+apps/management/src/views/audit/AuditLogsView.test.ts
+  s_30bf6c6bcb80ce::t_d5f7d8ea3e8146 7-8,70,72,81,84,90,99,125-205
+apps/management/src/views/audit/AuditLogsView.vue
+  s_30bf6c6bcb80ce::t_e278b526668934 6-14,17-18,27,43,115,140,143,152,165,183,196,199,231,234,241,248,251,254,257,260,262,264,280,283-284,286,291,293-294,297,300,303-310,329-330,332-338,341-346,350,352,358,366,371,373,378,380,385,390,400,403-404,406
+apps/management/src/views/audit/AuditReportView.test.ts
+  s_30bf6c6bcb80ce::t_604e1bd077417c 7-10,25-30,52,75,77,81,98-127,178-199
+apps/management/src/views/audit/AuditReportView.vue
+  s_30bf6c6bcb80ce::t_6e0bf9d614138a 4-8,15-16,62,102,105,112,133-134,137-138,141,143,149-154,157,159-169,172-181,186,188-200,203-208,213-218,238,240-241,250-252,264,274-276,286,296-298,308,318-320
+apps/management/src/views/audit/utils.ts
+  s_30bf6c6bcb80ce::t_3a83bef0558f65 3-18,156-162
+apps/management/src/views/auth/LoginView.vue
+  s_30bf6c6bcb80ce::t_78b235d1d922e2 31-32
+apps/management/src/views/auth/SignupView.vue
+  s_30bf6c6bcb80ce::t_d23d3608c86511 31-32
+apps/management/src/views/auth/__tests__/AuthViews.spec.ts
+  s_30bf6c6bcb80ce::t_6a82a425a4663f 1-42
+apps/management/src/views/comments/CommentDetailView.vue
+  s_30bf6c6bcb80ce::t_9a6b8bd81cccdc 6-12,14-16,78,81,91,93,101,112,118,127,131,139,141,158,160,162,165-167,169,172,182-183,186-187,194-195,197,200,203,214,217,221-222,226,231,244,251,253,259,271-272,278,281,284,296-297,302-303,308,311,314,317,322,325,330,335
+apps/management/src/views/comments/CommentsListView.vue
+  s_30bf6c6bcb80ce::t_0a68d017ff266f 4-10,12,19,187,190,197,204,207,210,213,216,219,222,225,228,232,234,245,251,255,258,267,277,292,316,319-320,322,377,379,389,393,400,403,406,416,419-420,427,430,435,440,442,444-445,458,461,468,471
+apps/management/src/views/comments/columns.ts
+  s_30bf6c6bcb80ce::t_88d9467f3eb992 4-11,15,50,59-63,73,90,92-93,108,114,128,141,154,161,171,183,191-192,199-200,208-209,216,221-225,231
+apps/management/src/views/contest/components/ContestCard.vue
+  s_30bf6c6bcb80ce::t_e1e2dbb2959eb8 11-12,14-15,77-78,89,93,102-103,105,107-108,130,136,141,143,147,149,154,158
+apps/management/src/views/contest/components/ContestStatusBadge.vue
+  s_30bf6c6bcb80ce::t_c633a04719de1f 39-41,47,53,59,65,71,75-77,81-83,91,109,120
+apps/management/src/views/contest/components/ContestTimer.vue
+  s_30bf6c6bcb80ce::t_e751f96f1b7a92 10-11,156,165,172,175,177-178
+apps/management/src/views/contest/components/FirstSolveNotification.vue
+  s_30bf6c6bcb80ce::t_e49d876caf3ec5 2-3,12-13,123,134,140,145,147,151,157-159,162-163
+apps/management/src/views/contest/components/RankingTable.vue
+  s_30bf6c6bcb80ce::t_29b63d1d2b35b3 18,63,66,89,91-97,102,113,124-126,137,145,148,155,162,169,179,184,187,190,198
+apps/management/src/views/contest/rankingPresentation.ts
+  s_30bf6c6bcb80ce::t_a755a1dc6a5836 1
+apps/management/src/views/contests/ContestDetailDrawer.vue
+  s_30bf6c6bcb80ce::t_8422018ac5cf31 7,9-19,74,82,84-85,92,101,112,136-138,144,146,148,151,155,157,159,162,170-172,177,179-180,184-185,187-189,192,198-200,204
+apps/management/src/views/contests/ContestDetailView.test.ts
+  s_30bf6c6bcb80ce::t_0b56bf6284495d 1-3,5-23,25-48
+apps/management/src/views/contests/ContestDetailView.vue
+  s_30bf6c6bcb80ce::t_50fe3b67d131d7 8-10,12-18,20-21,133,136,142-143,145,147,158,160,164,166,168,176,190,199,207,218-219,225,227,230,233,236,263-268,275,277-280
+apps/management/src/views/contests/ContestsListView.test.ts
+  s_30bf6c6bcb80ce::t_e0eab4c43c47d6 1-134
+apps/management/src/views/contests/ContestsListView.vue
+  s_30bf6c6bcb80ce::t_0874ad1033e8f5 7,9,68-69,88-90,185,188,194-195,201,212,215,218,221,224,227,230,233,236,240,242,251,253,259,263,268,278,287,289-290,294,310-323
+apps/management/src/views/contests/ScoringRulesView.test.ts
+  s_30bf6c6bcb80ce::t_62821670a34df0 1-4,6-17,19-28,30-73
+apps/management/src/views/contests/ScoringRulesView.vue
+  s_30bf6c6bcb80ce::t_1676018f2f0cbc 9-16,18-19,27-28,73-75,160,303,306,313,316,324,327,330,333,336,339,342,345,348,352,354,366,368-370,392,394,400,405,411,419,425-426,428-430,432
+apps/management/src/views/contests/columns.test.ts
+  s_30bf6c6bcb80ce::t_8258c2dba6f6cd 15,20-21,27-30,40,54,57-58,66-70
+apps/management/src/views/contests/columns.ts
+  s_30bf6c6bcb80ce::t_d55c4054736257 4-14,21,68,77-81,91,103-105,126,139,152,165,172,174,176,180-181,192,196,200,211,222,228-229,236-237,245-246,251-255
+apps/management/src/views/contests/components/ContestOverviewTab.test.ts
+  s_30bf6c6bcb80ce::t_ae8c807e81e438 1-5,7-33
+apps/management/src/views/contests/components/ContestOverviewTab.vue
+  s_30bf6c6bcb80ce::t_ee698f093db1c8 2-8,21-23,27-28,32,35-36,39-41,44,55-57,59,63,66-67,71,76,79-80,84-85,91,93,95,97,100,104,106,108,111
+apps/management/src/views/contests/components/ContestParticipantsTab.vue
+  s_30bf6c6bcb80ce::t_51b3a196102f87 9-11,23-25,29-30,32-34,42-44,50-51
+apps/management/src/views/contests/components/ContestProblemPicker.test.ts
+  s_30bf6c6bcb80ce::t_db160cf7e3d782 1-5,7-18,21-70,72-94
+apps/management/src/views/contests/components/ContestProblemPicker.vue
+  s_30bf6c6bcb80ce::t_79779183d80452 10,17-18,20-21,43,49-51,69-71,74,80,87-104,107,109-110,117,119-124,127-129,134,136-141,146
+apps/management/src/views/contests/components/ContestProblemsTab.test.ts
+  s_30bf6c6bcb80ce::t_20ad618e809660 1-51
+apps/management/src/views/contests/components/ContestProblemsTab.vue
+  s_30bf6c6bcb80ce::t_1e3b4f5514415d 2,10-12,31,33,40-41,43-45,48,51,55-56,60,65,72,80-87
+apps/management/src/views/contests/components/ContestRankingsTab.test.ts
+  s_30bf6c6bcb80ce::t_e761cb449bbb2f 1-65
+apps/management/src/views/contests/components/ContestRankingsTab.vue
+  s_30bf6c6bcb80ce::t_8172822b44374a 9,11,18-19,23-24,28-29,36-37,40-82,84-101,103-120
+apps/management/src/views/contests/components/ScoringRuleForm.test.ts
+  s_30bf6c6bcb80ce::t_171bca84509c9e 1-104
+apps/management/src/views/contests/components/ScoringRuleForm.vue
+  s_30bf6c6bcb80ce::t_621781df2ba51e 7-8,16-27,71-73,75-86,89-100,107,109,119,134,229,231,237
+apps/management/src/views/contests/components/ScoringRuleSelector.vue
+  s_30bf6c6bcb80ce::t_050efa35f617a6 2-3,7-8,15-19,25,149-150,156,161,164-187,191,197-198,200-201,211,216,219,224,227,232,235,240,243,248,251,256,259,271,275-278,280,288,297,302,309-310,313-314,320-321,324-325,331-332,335-336,344
+apps/management/src/views/contests/wizard/ContestWizard.test.ts
+  s_30bf6c6bcb80ce::t_a1cee800cecb79 1-33
+apps/management/src/views/contests/wizard/ContestWizard.vue
+  s_30bf6c6bcb80ce::t_ffab688d686436 11-18,20-25,126,128,130,134,139,142-145,150,154-157,164-165,172,194,207,210,221,232
+apps/management/src/views/contests/wizard/StepBasicInfo.vue
+  s_30bf6c6bcb80ce::t_a2f97431e319d0 2-5,12-13,46,51,57-59,64,70-72,77,82,85-94,98-100,105,111
+apps/management/src/views/contests/wizard/StepProblems.vue
+  s_30bf6c6bcb80ce::t_882343b2ccf04b 4,12-17,52-53,55,62-63,65-67,70,73,76,80-81,86-87,102,112,121
+apps/management/src/views/contests/wizard/StepReview.vue
+  s_30bf6c6bcb80ce::t_41f7a970fd46b2 5-7,58-62,65-67,69-71,74,83-85,88-90,94-96,101,116-120,124,128-129,140,143,148,151,158,167-169,182,185,188,191,196-198
+apps/management/src/views/contests/wizard/StepSchedule.test.ts
+  s_30bf6c6bcb80ce::t_845f7c2c3ce406 2,4,6-19,22-27
+apps/management/src/views/contests/wizard/StepSchedule.vue
+  s_30bf6c6bcb80ce::t_c0b809e11e3d88 2-6,33,38,44,51,58,64,68-69,72,75
+apps/management/src/views/contests/wizard/StepScoringRule.vue
+  s_30bf6c6bcb80ce::t_1fd38e51b6e908 4-6,16
+apps/management/src/views/contests/wizard/useContestAuthoring.test.ts
+  s_30bf6c6bcb80ce::t_3e94ca93ea9154 237,277,329
+apps/management/src/views/dashboard/DashboardView.test.ts
+  s_30bf6c6bcb80ce::t_73463e8ff73072 1-7,9-37,39-57,59-84,86-103
+apps/management/src/views/dashboard/DashboardView.vue
+  s_30bf6c6bcb80ce::t_b1f301d4d64f54 4,14-20,30,142,149,151-155,157,168,171,178,184,198-199,205-211,213,219-232,234-246,248-257,259-262,264
+apps/management/src/views/forum/ForumPostDetailDrawer.vue
+  s_30bf6c6bcb80ce::t_43f58058081173 11-16,18-26,47-49,52-53,56,61,64,67,72,76,82,87,93,98,106,109,111,113,116,119,124,128,130-131,135,139,141-142,146,150,152-153,157,161,163-164,168,175,177,182,188,193,196-197,201-202,210,213-214,218,224-225,227,232,235,237-251,253,259
+apps/management/src/views/forum/ForumPostDetailView.vue
+  s_30bf6c6bcb80ce::t_ce03ce0fbe85fb 8-11,13-22,137,140,150,152,160,170-172,176-177,181-182,194-196,202,207,214,221,225,233,235,244,246-248,251-252,255-256,272,274,276-279,281,284,294-295,298-299,306-307,309-310,313
+apps/management/src/views/forum/ForumPostsListView.vue
+  s_30bf6c6bcb80ce::t_13c8af377bf227 8-14,16,316,319,326,333,336-339,342,345,348,351,354,357,359,361,372,378,382,386,396,406,416,426,441,467,470-471,473
+apps/management/src/views/forum/columns.ts
+  s_30bf6c6bcb80ce::t_5c1b265f38d51c 4-12,16,56,65-69,79,89,91-92,95,107,112-125,133,146,153,163,175,182,189,198-199,206-207,215-216,221-225
+apps/management/src/views/forum/components/AuditTab.vue
+  s_30bf6c6bcb80ce::t_876de92177d9bd 5-6,8-16,100-102,104,106-107,109-110,118,120,122-124,133,135-136,138,148,152,155,160-164,169-170,175,185-186,192,194-195,199,201-202,204
+apps/management/src/views/forum/components/CommentsTab.vue
+  s_30bf6c6bcb80ce::t_c5fd702815a09f 6-15,17,27,111-114,122-126,136,148,152,156,168,175,185,198,220,225,235,244,249-250,258,263-264,269,275,280-281,298-299,302,306,308-309,314,316,325,327,330,333,336,339,342,354,360,363-364,366,374,376-377,379,417
+apps/management/src/views/forum/components/OverviewDisplay.vue
+  s_30bf6c6bcb80ce::t_25f4d8dcec7261 5-8,10-19,37,40,45,47,53-54,60-61,70,74,76,79,82,90-94,104,108,110-113,115,119,121-122,126,130,132-133,137,139,141-142,146,153,155,157-158,162-163,165-166,170,172,177,180,183-184,190-191,200,203,206-207,213,220,223,226-228,231,234-236,239,242-244,247
+apps/management/src/views/help/HelpView.spec.ts
+  s_30bf6c6bcb80ce::t_12635df66ceccf 1-6,8-12,14-37
+apps/management/src/views/help/HelpView.vue
+  s_30bf6c6bcb80ce::t_be2110366d1e63 19-26,29-36,89,91,96,101-104,109,120,132-135,139,141,145,149,153,159-162,171,174,183,188,190,193,199,201-202
+apps/management/src/views/moderation/AppealsView.test.ts
+  s_30bf6c6bcb80ce::t_09a46b274dd2dd 1-63
+apps/management/src/views/moderation/AppealsView.vue
+  s_30bf6c6bcb80ce::t_ad242e53046276 6-8,16-23,66,69,150,153,159,162,170,173,176,179-180,182,184,186,211,216,228-230,234,237,239-240,244,251-252,254,256,258-259,268,270,272-273,286,294,300,304,307,309-310
+apps/management/src/views/moderation/ModerationDashboardView.vue
+  s_30bf6c6bcb80ce::t_6cd7818de00987 4,6-18,20-22,39,48,57,66,75,84,122-126,130-138,160,164,166,175-182,186,191,194-195,197-225,237,239-241,247-249,256-257,263-264,272,274-276,282-284,292,297,301,316-318,320-335,337-339,341-343,345-360,362-364,371,382,385,388,390
+apps/management/src/views/moderation/ModerationQueueView.test.ts
+  s_30bf6c6bcb80ce::t_fe3b65ad33b8fc 1-245
+apps/management/src/views/moderation/ModerationQueueView.vue
+  s_30bf6c6bcb80ce::t_d44af358db63d6 2,4,7-10,12-19,28,43,50,102,104-107,116,123-128,130-163,222-230,239,242,248,252,254,256,264,267-268,270,273-274,276,279-280,282,287-288,290,292,294,299-306,311,317,321,323,327,333,356,374,383,394-395,400-403,406-407,410-411,414-415,421,426,428,431,443,451,456,462,467,470-471,479,481,485
+apps/management/src/views/moderation/ModerationStatsAvailability.test.ts
+  s_30bf6c6bcb80ce::t_9e9c45c2e17917 1-5,7-63,65-87,89-105
+apps/management/src/views/moderation/ReportsView.test.ts
+  s_30bf6c6bcb80ce::t_c6bd1490867b69 1-63
+apps/management/src/views/moderation/ReportsView.vue
+  s_30bf6c6bcb80ce::t_0c7c3b13b188b1 7-8,62,65,109,112,118,121,129,132,135,138-139,141,143,145,170,175
+apps/management/src/views/moderation/appeals-columns.ts
+  s_30bf6c6bcb80ce::t_9178715aef5996 4-11,14,20-22,71,81-85,98,105,121,129,143,162,177,183-187,199,206,217,237-242,245,253,261,266,276,281,284,296,301,304,320
+apps/management/src/views/moderation/columns.ts
+  s_30bf6c6bcb80ce::t_c887e1256366f5 4-18,30-31,142,147,173,183-187,202,219,252,271,290,297,301-311,313,316,331,350,360-361,378,396,404,416,430,436,442,450-451,458-459,464-469,475
+apps/management/src/views/moderation/components/ActionHistoryTimeline.vue
+  s_30bf6c6bcb80ce::t_37dc196b026f89 6-15,17,31,36,41,46,51,56,61,66,71,76,81,90-91,113,115-117,125,135-136,144,153,169,178-179,189,191,197
+apps/management/src/views/moderation/components/BatchActionDialog.vue
+  s_30bf6c6bcb80ce::t_0a533d496948ba 12-22,76-78,82,96,101,103,105-106,115,117,119-120,131,139,144,147
+apps/management/src/views/moderation/components/EntityPreviewCard.vue
+  s_30bf6c6bcb80ce::t_4f39ab49a921cd 6-11,13-14,49-53,66,69,71,73,83-84,89-90,98,106,109,115,118,124
+apps/management/src/views/moderation/components/ModerationActionPanel.vue
+  s_30bf6c6bcb80ce::t_97ea577a6a0b05 4-14,85,87-89,95,99-100,108,113,116,125,132,144,150,158,164,166-167,175
+apps/management/src/views/moderation/components/ModerationDetailDrawer.vue
+  s_30bf6c6bcb80ce::t_33926c278b2fb5 4-12,19-22,51-59,70-73,83,85,87-88,91,95,103,109,115,120,122,142,145,150,155-156,167,169-170,182,188,202-203
+apps/management/src/views/moderation/presentation/moderationPresentation.ts
+  s_30bf6c6bcb80ce::t_349f804f26f094 3-12,175,180,185,190
+apps/management/src/views/moderation/reports-columns.ts
+  s_30bf6c6bcb80ce::t_610afd93491a68 4-10,13,19-21,77-81,122,132-136,149,169,176,188,210,225,231-235,251,266,273,284,301-306,309,317,324,329,338,343,357
+apps/management/src/views/notifications/NotificationCreateDialog.test.ts
+  s_30bf6c6bcb80ce::t_2944c6e090ee5a 1-32
+apps/management/src/views/notifications/NotificationCreateDialog.vue
+  s_30bf6c6bcb80ce::t_f173d9bd91bf21 5-16,25,32-33,150-153,155-156,162-163,165-166,171,173-174,177,179-180,185,199,209,215,218-219,225,229,233-236,243,247,251-258,267,270,277,279,284,289,291,296,304,320-321,324
+apps/management/src/views/notifications/NotificationsListView.test.ts
+  s_30bf6c6bcb80ce::t_d5243dba29dac2 1-6,8-18,20-36,38-60,62-68,70-86,88-127
+apps/management/src/views/notifications/NotificationsListView.vue
+  s_30bf6c6bcb80ce::t_c36a6a04bb4e1f 5-12,15-16,22,35,95-97,175,187,196,201,205,241,248,262,286,289,295-296,299,307,310,313,316,319,322,325,328,331,333,335,346,348-349,352,370-383
+apps/management/src/views/problem-lists/ProblemListDetailView.vue
+  s_30bf6c6bcb80ce::t_52d0bbb0579e17 6-7,62,69,75,77,86,90,105,117-118,125,128,132,135-138
+apps/management/src/views/problem-lists/ProblemListsListView.vue
+  s_30bf6c6bcb80ce::t_db9fe6d684041e 7,9,122,127,130,137,142,153,156,159,162,165,168,171,173,175,192,213,216-217,219
+apps/management/src/views/problem-lists/columns.ts
+  s_30bf6c6bcb80ce::t_0f8c1edc60f257 4-10,16,31,36,39,45,57,66-70,80,89,100,113,126,133,143,148-152,160,167,177,184,194,213-214,219-223
+apps/management/src/views/problem-lists/components/BannerSection.test.ts
+  s_30bf6c6bcb80ce::t_21561a4991bdff 46-48
+apps/management/src/views/problem-lists/components/BannerSection.vue
+  s_30bf6c6bcb80ce::t_4ebb23243b72fe 7-14,21-22,143,145,147,154,157-158,163,166-168,179,182,192,197,201,208,217,221-230,234,241,249,254,258
+apps/management/src/views/problem-lists/components/BasicInfoSection.vue
+  s_30bf6c6bcb80ce::t_b2886698851355 10-19,185,187,189,195,197-198,203,206,216,224,226,231,237,245,247,253,258
+apps/management/src/views/problem-lists/components/ProblemsManager.vue
+  s_30bf6c6bcb80ce::t_0ab3af8fe71dfd 11-15,18-19,107,109,112,117,130,134,145-148,151,154,157,160,167,172,181,184,197,204,210,219,230
+apps/management/src/views/problem-lists/components/VisibilitySection.test.ts
+  s_30bf6c6bcb80ce::t_da6c2c720ed264 2,5,19-20,88,94-95,100-101,105-126,130,132
+apps/management/src/views/problem-lists/components/VisibilitySection.vue
+  s_30bf6c6bcb80ce::t_0a4d5c46f2e09c 2-3,6-12,84,86,88,95,98-99,104,107,113,116,119,121-122,127-128,130,137,141,143,147,151-152,159,164-165,167
+apps/management/src/views/problems/ProblemCreateView.vue
+  s_30bf6c6bcb80ce::t_d4512d8c1d2f54 6-7,9,51,54,63,65,70,72,78,80,83,86,89,92,94,96,107
+apps/management/src/views/problems/ProblemDetailView.vue
+  s_30bf6c6bcb80ce::t_de1b89918eed10 7-9,91,94,99,101,103,105-106,113,119,125,135,137-138,141,144,147,155,157,159,162,168-170,174,177-181,184-185,196,198-199,202,205,208,221,224-225,228,231,241-242,245-246,257,259,261-262,265
+apps/management/src/views/problems/ProblemsListView.test.ts
+  s_30bf6c6bcb80ce::t_a7c387a6a39846 1-4,6-20,22-26,28-67,69-106,108-121,123-167
+apps/management/src/views/problems/ProblemsListView.vue
+  s_30bf6c6bcb80ce::t_59b979983bdf37 7-13,15,22-23,29-30,65-76,94-101,151-153,223,226,231-232,237,247,250,253,256,259,262,265,268,271,273,275,283,295,297,299-300,325-328,331-339,345,347-348,350,360,368-375,378,386-399
+apps/management/src/views/problems/components/CasesDisplay.vue
+  s_30bf6c6bcb80ce::t_d098738faac8a2 4-5,66,80,82,85,88,96,108-109,118-119
+apps/management/src/views/problems/components/CasesForm.vue
+  s_30bf6c6bcb80ce::t_bfb6aa373cd78a 4-7,9-19,166,176,185,188,210,213,215,227,230,251,260,278,290,292-293,295,299,307,310,312,322,349
+apps/management/src/views/problems/components/CodeForm.vue
+  s_30bf6c6bcb80ce::t_0ecb084a25fa32 4-15,163,171,173-174,178,189,198,214,217-253,257,259,272,274,287,305
+apps/management/src/views/problems/components/ConstraintsEditor.vue
+  s_30bf6c6bcb80ce::t_f998b39cb949ee 5-7,38,40,51,55,57,65
+apps/management/src/views/problems/components/DescriptionDisplay.vue
+  s_30bf6c6bcb80ce::t_44bfa61ed9173d 4-6,10,52-57,113,133,136,148,163,167,174,177
+apps/management/src/views/problems/components/DescriptionForm.vue
+  s_30bf6c6bcb80ce::t_2aecf437415c98 6-11,17,24-34,200-202,204,217,232,249,254,258-269,278,283,287-298,310,314,317,322-325,335,339,342,347-350,363-365,367,379,387,396,415-417,419,443-445,447,471-473,475,499-501,503,530-532,534,544,548-549,553,556-557,562,566,577,580-581,596-598,609
+apps/management/src/views/problems/components/ExamplesEditor.spec.ts
+  s_30bf6c6bcb80ce::t_09dfb2d0032de6 15
+apps/management/src/views/problems/components/ExamplesEditor.vue
+  s_30bf6c6bcb80ce::t_4254ee0ff19e50 2-3,7-14,67,69,72,83,85-86,98,100,107,109,116,118,128,130,132,136,143,145,149,156,158,162,175-176
+apps/management/src/views/problems/components/HintsEditor.vue
+  s_30bf6c6bcb80ce::t_390d5a97409e1f 5-12,55,57,69,74,76,85,87,96,98,108
+apps/management/src/views/problems/components/LivePreviewPanel.spec.ts
+  s_30bf6c6bcb80ce::t_80f9540a492698 23,32,131,281
+apps/management/src/views/problems/components/LivePreviewPanel.vue
+  s_30bf6c6bcb80ce::t_c270cbe0e0203a 7-15,17,51,53,58,69,73,82,93,95-96,99,102,120
+apps/management/src/views/problems/components/ProblemAuditDrawer.test.ts
+  s_30bf6c6bcb80ce::t_03523fe8fa3ce7 1-72
+apps/management/src/views/problems/components/ProblemAuditDrawer.vue
+  s_30bf6c6bcb80ce::t_56aa02758c3dcc 6-14,17-18,45,130,139,141-142,150,153,161,168,190,196,204-205,217,226-227,229,236,247,254,258,264-265,270,275-276,287,291-292,295,299-300
+apps/management/src/views/problems/components/ProblemBulkActions.vue
+  s_30bf6c6bcb80ce::t_a243389781b60d 2-9,29,34,37,39,43,47,51,57
+apps/management/src/views/problems/components/ProblemForm.vue
+  s_30bf6c6bcb80ce::t_61afd108091b88 2,4-8,10-27,34-36,151,261-267,272,274,276,284,286,334,354,360,367-369,377,396,405,423-425,430,436-446,452,458-468,476,480,485-489,493,497,502-506,528-529,535,548-549,551,555,566,568,578,588-589,591,595,606,608
+apps/management/src/views/problems/components/TagsSelector.vue
+  s_30bf6c6bcb80ce::t_85cebc67785b0f 2-3,6-9,79,82,96,99-100,102,107,111,129,138,141,151-152,156,162,166,171,174,178
+apps/management/src/views/problems/components/__tests__/CodeForm.spec.ts
+  s_30bf6c6bcb80ce::t_dd642d02759c2f 1-29
+apps/management/src/views/problems/components/__tests__/DescriptionForm.spec.ts
+  s_30bf6c6bcb80ce::t_2355d8b35ed926 35,242-247,251,253,407,425,427,586-606
+apps/management/src/views/problems/components/__tests__/ProblemForm.spec.ts
+  s_30bf6c6bcb80ce::t_1b77d92a8bae18 1-3,5-10,12-42
+apps/management/src/views/problems/composables/useProblemColumns.test.ts
+  s_30bf6c6bcb80ce::t_4d33ae3b995504 76-78,82-87
+apps/management/src/views/problems/composables/useProblemColumns.ts
+  s_30bf6c6bcb80ce::t_9cafc77c86063b 6-22,24-25,66,122,157-161,165-168,180,184,260,267,277,284,293,300
+apps/management/src/views/problems/edit/EditCasesView.vue
+  s_30bf6c6bcb80ce::t_ef39c2994477d7 6-11,14-16,91,99,101,109,111,120,122-123,126,128-129,132,135-136,140,142,152,155,158-159
+apps/management/src/views/problems/edit/EditCodeView.vue
+  s_30bf6c6bcb80ce::t_65b2afb4a906ec 6-11,14-15,64,72,74,82,84,93,95-96,99,101-102,105,108-109,111,113,123,126,129-130
+apps/management/src/views/problems/edit/EditDescriptionView.vue
+  s_30bf6c6bcb80ce::t_52ccde0a61f344 6-11,14-15,102,110,112,120,122,131,133-134,137,139-140,143,148-149,153,155,165,168,171-172
+apps/management/src/views/problems/tabs/OverviewTab.vue
+  s_30bf6c6bcb80ce::t_76accc6fb9945b 2-3,7-8,14-16,67-72,153-154,156,161,164-165,167,172,178,194,206,216,240,246,254,286,293
+apps/management/src/views/problems/view/ViewCasesView.vue
+  s_30bf6c6bcb80ce::t_0f781c3147a0d2 5-6,52,57-58,60-61,63,65,87,90,93-94
+apps/management/src/views/problems/view/ViewCodeView.vue
+  s_30bf6c6bcb80ce::t_b90e0703178202 5-6,51,56-57,59-60,62,64,80,83,86-87
+apps/management/src/views/problems/view/ViewDescriptionView.vue
+  s_30bf6c6bcb80ce::t_2035081bbf11d4 5-6,51,56-57,59-60,62,64,78,81,84-85
+apps/management/src/views/settings/SettingsView.vue
+  s_30bf6c6bcb80ce::t_4b6dbdf455982f 6-8,19,21-29,41-42,91,94,102,105,122,124,128,132,136,140,179
+apps/management/src/views/settings/components/EmailSettings.vue
+  s_30bf6c6bcb80ce::t_75ba5237a872bb 2-3,6-17,85-86,88,93,114,121-123
+apps/management/src/views/settings/components/FeatureToggleSettings.vue
+  s_30bf6c6bcb80ce::t_e44b266b3f24a2 3-13,90,95-97
+apps/management/src/views/settings/components/GeneralSettings.vue
+  s_30bf6c6bcb80ce::t_1cc447223067bb 2-3,6-18,83-84,86,89-90,94,96,98-99,101,104-105,109,111,113-114,116,119-120,126,141,148-150,154,161-163,169,173,179,186-188
+apps/management/src/views/settings/components/RateLimitSettings.vue
+  s_30bf6c6bcb80ce::t_06cf5ad3488c96 3-13
+apps/management/src/views/settings/components/SettingsSwitches.test.ts
+  s_30bf6c6bcb80ce::t_6d6d3add659f17 1-7,9-11,13-28,30-78,80-87,89-100
+apps/management/src/views/settings/components/UploadSettings.vue
+  s_30bf6c6bcb80ce::t_639d7b6c590652 4-5,7-16
+apps/management/src/views/solutions/SolutionDetailView.vue
+  s_30bf6c6bcb80ce::t_a9f36ff1885e00 8-9,89-92,96-97,102,109,111,115,123,134-135,137-139,141-142,144,146-150,154-155,163,165-166,170,172-173,177,179,192,194,196,199-201,203,206,215-216,226,228,230,233,236
+apps/management/src/views/solutions/SolutionsListView.test.ts
+  s_30bf6c6bcb80ce::t_02e54e18261721 1-87
+apps/management/src/views/solutions/SolutionsListView.vue
+  s_30bf6c6bcb80ce::t_983541b0ba5fbf 8,10,60,77-84,92,102,148,151,158,165,168,171,174,177,180,183,185,187,198,200-201,204,221-234
+apps/management/src/views/solutions/columns.ts
+  s_30bf6c6bcb80ce::t_14cc07a765ec3c 4-11,15,50,59-63,73,78-82,90,97,109,115,129,142,149,159,166,176,187,194-195,202-203,211-212,217-221
+apps/management/src/views/solutions/components/CodeDisplay.vue
+  s_30bf6c6bcb80ce::t_3a3dc00ed6d399 15-16,18-19
+apps/management/src/views/solutions/components/DescriptionDisplay.test.ts
+  s_30bf6c6bcb80ce::t_6faa75eddc54f9 1-77
+apps/management/src/views/solutions/components/DescriptionDisplay.vue
+  s_30bf6c6bcb80ce::t_796b43c62528a6 7-10,18-28,40-42,47,50,59,62,66-68,71,77-80,83,88,92-104,109-111,114-115,119
+apps/management/src/views/submissions/SubmissionsView.test.ts
+  s_30bf6c6bcb80ce::t_861a71c99daabb 1-105
+apps/management/src/views/submissions/SubmissionsView.vue
+  s_30bf6c6bcb80ce::t_21ee1e31517a5f 5,13-21,28,110-111,203,206,213,216,224,227,230-231,235,238-239,243,246,249,252-254,256,258,263-274,279,281,285,287-288,291,294,304-305,313,315-316,320,336-349,356-357,361,364,369,371,374-375,380-382,386-387,390-391,395,397,401-402,405-406,415,420,425,428,438,443,448,451
+apps/management/src/views/submissions/columns.test.ts
+  s_30bf6c6bcb80ce::t_b6880c31a87a6f 1-74
+apps/management/src/views/submissions/columns.ts
+  s_30bf6c6bcb80ce::t_e4b6e66b7e8f7d 4,6-8,10,21,64,75,93,114,120,126,134-135,146,148,150,158,160,162
+apps/management/src/views/system/BackupView.spec.ts
+  s_30bf6c6bcb80ce::t_18e2980f43e6ac 1-75
+apps/management/src/views/system/BackupView.vue
+  s_30bf6c6bcb80ce::t_8a95c9da4ec739 8-11,18-20,22-32,39,59,64,171,174,176,178,202,205,211,213,216,218-219,224,244,249,254,259-261,266,271-273,291-294,303,344,368-370,378,381
+apps/management/src/views/system/EmailView.test.ts
+  s_30bf6c6bcb80ce::t_6708c896d11d8b 1-140
+apps/management/src/views/system/EmailView.vue
+  s_30bf6c6bcb80ce::t_c560448d73c07c 2-3,9-15,22-23,25-36,41-49,79-91,216,218,220,222,238,240,242,247,250,256,258,261,263-264,269,284-296,301,306,311,316,321,326,331,336,342,361-366,378,392,417-422,437,450,463-464,467,484,488,503-504,513,533,547
+apps/management/src/views/system/MonitoringView.test.ts
+  s_30bf6c6bcb80ce::t_7a1219045cd5dd 1-4,6-9,11-35,37-60
+apps/management/src/views/system/MonitoringView.vue
+  s_30bf6c6bcb80ce::t_430838547f63ed 14-16,18-28,41,47-56,121-124,141,143,145,173,176,182,184,187-189,192,215-221,231,243,247,251,253,267,278,282,286,292,301,311-313,315-318,329,337,348,359,365,369,375-376,386,398,400-404,412,423,429-432,440-442,445-446,449-450,455-456,459-460
+apps/management/src/views/tags/TagEditDialog.vue
+  s_30bf6c6bcb80ce::t_bbb9704e5573c8 8-9,17-27,137
+apps/management/src/views/tags/TagMergeDialog.vue
+  s_30bf6c6bcb80ce::t_97b1a57baabf64 5-6,14,21-24,99-103
+apps/management/src/views/tags/TagsListView.vue
+  s_30bf6c6bcb80ce::t_18e8e05ef5a84a 9-16,18-19,27,292,295,302,305,313,316-319,322,325,330-333,335,337,348,354,358,362,372,387,407,410-411,413
+apps/management/src/views/users/UserCreateDialog.vue
+  s_30bf6c6bcb80ce::t_ad0a52fcfae748 2-3,6-7,9-11,19,26-27,93-95,97,99,107,109-110,116-118,121,133,144,158,162-164,168-169,173,175,179-188,195,197,199-200,206,214-215,218
+apps/management/src/views/users/UserDetailDrawer.test.ts
+  s_30bf6c6bcb80ce::t_f83b115175f64f 118,140-159,188-194
+apps/management/src/views/users/UserDetailDrawer.vue
+  s_30bf6c6bcb80ce::t_28f2af8db2cfb9 2,9-18,20-22,71,143,155,164,173,180,182-185,195,197,201,203,215,217,264,275,277-280,287,289,291,294,298,300,302,305,309,312,315,318,322,325,328,331,342,345,349-350,359-362,364-367,374,379,386-390,395-396,401-403,406-408,411-412,420,423,425-427,431-432,435-437,444
+apps/management/src/views/users/UserEditDialog.vue
+  s_30bf6c6bcb80ce::t_7f29472534a6fd 2-3,6-7,10-12,20,27-28,45,111-113,115,117,123-124,133,135-136,142-144,148-149,153-154,159-160,166,173,177-179,183,185,189-198,204,206,208-209,211,220-221,224
+apps/management/src/views/users/UserResetPasswordDialog.vue
+  s_30bf6c6bcb80ce::t_732a437daaffcc 2-3,8-16,24,77-79,81,85,99,101,103,106,114,117,124,131,133-134,139,142,148
+apps/management/src/views/users/UsersListView.test.ts
+  s_30bf6c6bcb80ce::t_4f6c04bf2eeb89 1-71
+apps/management/src/views/users/UsersListView.vue
+  s_30bf6c6bcb80ce::t_e8c48b87249c57 7-13,15,23-26,111,245,248,255,258,266,269-272,275,278,281,284,286,288,297,299,305,309,311,316,326,336,345,347-348,352,368-381,429,446
+apps/management/src/views/users/columns.ts
+  s_30bf6c6bcb80ce::t_4c5f46e1cd8351 4-9,11,14,27,35,50,59-63,73,95,113,125,135,148,161,168,178,184-188,192,202,214,226,234-235,242-243,248-252
+apps/management/vite.config.ts
+  s_30bf6c6bcb80ce::t_455f86ebcccf1e 77
+apps/management/vitest.config.ts
+  s_30bf6c6bcb80ce::t_1ce820b19593aa 37
+docs/ARCHITECTURE.md
+  s_30bf6c6bcb80ce::t_07161c94241dd1 68,82-83
+docs/DEVELOPMENT.md
+  s_30bf6c6bcb80ce::t_7facaa941b2875 22-27,134,150,154,159-160,166-359
+docs/OPERATIONS.md
+  s_30bf6c6bcb80ce::t_25b164c69b16d9 15
+docs/PRODUCT.md
+  s_30bf6c6bcb80ce::t_661e50ee1a963a 22-27
+docs/REFERENCE.md
+  s_30bf6c6bcb80ce::t_431a2eed3f752d 176
+ecosystem.config.cjs
+  s_30bf6c6bcb80ce::t_595b98df1dcdcd 264-280
+packages/auth-ui/package.json
+  s_30bf6c6bcb80ce::t_96dac5fca3d6e7 36-38
+packages/auth-ui/src/__tests__/AuthLayout.spec.ts
+  s_30bf6c6bcb80ce::t_12630017d35efe 9-12,18-20,26-28,34-36,41,44,46-47,53-55,60-63,71-73,82-84,90-93,98-101
+packages/auth-ui/src/__tests__/AuthPatternBackground.spec.ts
+  s_30bf6c6bcb80ce::t_81c2f9a17a7663 9-12,15-18,20-23,25,30-34,38-42,46-49,53-56,60-63,68-70,75-77,82-84,86,89-91,95-97,99-100,102,105-109
+packages/auth-ui/src/__tests__/LoginForm.spec.ts
+  s_30bf6c6bcb80ce::t_e9fdb3b81492bc 10-13,17-20,23-29,33-34,37-45,48,51-55,58,61-68,74-75,77-83,85-87,93-94,96-102,104-106,112-113,115-121,123-125,130-138,141-147,149-150,153-155,158-160,163-165,168-170,173-175,178-180,183-191
+packages/auth-ui/src/__tests__/RegisterForm.spec.ts
+  s_30bf6c6bcb80ce::t_5f05cbba568896 11-14,19-23,35-43,45,51-54,57-60,63,65-66,69-71,74-80,85-86,89-90,93-100,103-109,112-124,127,130-135,138-144,149-155,158-164,169-171,174-176,179-182
+packages/auth-ui/src/components/AuthButton.vue
+  s_30bf6c6bcb80ce::t_caf2f078980536 3-5,13,17-19,21,23-25
+packages/auth-ui/src/components/AuthCard.vue
+  s_30bf6c6bcb80ce::t_876bd4c4232fe2 3-9,12-17
+packages/auth-ui/src/components/AuthDivider.vue
+  s_30bf6c6bcb80ce::t_c6fe16de43ed69 2,7
+packages/auth-ui/src/components/AuthGrid.vue
+  s_30bf6c6bcb80ce::t_7472c63c0e577b 2-4,6
+packages/auth-ui/src/components/AuthInput.vue
+  s_30bf6c6bcb80ce::t_d696aff2f9a377 3-9,22,24-25,30-33,35-49
+packages/auth-ui/src/components/AuthThemeToggle.vue
+  s_30bf6c6bcb80ce::t_2835b5d6da0996 2-4,6,9,11-16
+packages/auth-ui/src/components/LoginForm.vue
+  s_30bf6c6bcb80ce::t_67fba65e943e57 15-16,82,110,112-116,120-151,153,157,163,170
+packages/auth-ui/src/components/OAuthButton.vue
+  s_30bf6c6bcb80ce::t_311594a611d774 2-3,21,71-72,77,82,102,105
+packages/auth-ui/src/components/RegisterForm.vue
+  s_30bf6c6bcb80ce::t_33ea8b72111d18 22-23,109,143,145-149,153-217,219,228
+packages/auth-ui/src/layouts/AuthLayout.vue
+  s_30bf6c6bcb80ce::t_eb7491b77f6b9c 4-5,21-27,29-30,32-36
+packages/auth-ui/src/layouts/AuthPatternBackground.vue
+  s_30bf6c6bcb80ce::t_297846dc09c204 14-19,41,43,49,52-57,59,63-69,75-77,79-89,91,93-94
+packages/badge-config/package.json
+  s_30bf6c6bcb80ce::t_83cab1ff90dce9 36-39
+packages/badge-config/src/SemanticBadge.vue
+  s_30bf6c6bcb80ce::t_3e2ec6d0c84b9c 2-4,7-11,13-32,35-40
+packages/badge-config/src/semantic-colors.ts
+  s_30bf6c6bcb80ce::t_20208a890fabe2 1,4-5,8,14-20
+packages/badge-config/src/useSemanticBadge.ts
+  s_30bf6c6bcb80ce::t_e55bd7701960b7 1-4,7-14,17-20,23-30,36,39-40,44,46,48,51,55,58,61,63,67,71-72
+packages/design-system/components.json
+  s_30bf6c6bcb80ce::t_4cc3fcf26abfd5 3-4,8,10,15
+packages/design-system/docs/GARDEN_DESIGN_SPEC.md
+  s_30bf6c6bcb80ce::t_8c40dd2edc2a7d 3-8,19-20,22-28,64-67,69-72,80-81,92-95
+packages/design-system/markdown-code.css
+  s_30bf6c6bcb80ce::t_e1ae82b40fc1a2 1-13
+packages/design-system/package.json
+  s_30bf6c6bcb80ce::t_7941b7255689d2 21-30,37-38,41-42,44-48,51,54-57
+packages/design-system/src/chartPalette.ts
+  s_30bf6c6bcb80ce::t_48e2dc6870dbb9 2,5,22-39,60-67
+packages/design-system/src/components/DetailField.vue
+  s_30bf6c6bcb80ce::t_75889ff3d64262 2-7,9-13,15-16,19-26,28-31
+packages/design-system/src/components/DetailPanel.vue
+  s_30bf6c6bcb80ce::t_681636b83ad7b0 1-21
+packages/design-system/src/components/StatusBadge.vue
+  s_30bf6c6bcb80ce::t_21e40b63e50e02 2-24,27-30,33-34
+packages/design-system/src/components/appearance/AppearanceSettings.vue
+  s_30bf6c6bcb80ce::t_24c1054f7ed9f0 2-125,127-188,190-196,198-209,213-217,219-235,237-261,263-265,267-322,324-342
+packages/design-system/src/components/ui/accordion/Accordion.vue
+  s_30bf6c6bcb80ce::t_3bed157680c704 3-4,6,8-10,13-14,18-24
+packages/design-system/src/components/ui/accordion/AccordionContent.vue
+  s_30bf6c6bcb80ce::t_796768041b0046 6,19,21-28
+packages/design-system/src/components/ui/accordion/AccordionItem.vue
+  s_30bf6c6bcb80ce::t_7abba54664cc16 6,19,22,24
+packages/design-system/src/components/ui/accordion/AccordionTrigger.vue
+  s_30bf6c6bcb80ce::t_21a8dc5485cfdd 3,5,8,24,31-37
+packages/design-system/src/components/ui/alert-dialog/AlertDialog.vue
+  s_30bf6c6bcb80ce::t_e68bc683107531 12-17
+packages/design-system/src/components/ui/alert-dialog/AlertDialogAction.vue
+  s_30bf6c6bcb80ce::t_f331975464efc6 1-35
+packages/design-system/src/components/ui/alert-dialog/AlertDialogCancel.vue
+  s_30bf6c6bcb80ce::t_0f18f37acd7e6f 4,7-8,10-22,24,29,31
+packages/design-system/src/components/ui/alert-dialog/AlertDialogContent.vue
+  s_30bf6c6bcb80ce::t_e2dccde3d8e27c 11,13-27,30,39,43-44,47
+packages/design-system/src/components/ui/alert-dialog/AlertDialogDescription.vue
+  s_30bf6c6bcb80ce::t_2e53b8f47e227d 6,19-24
+packages/design-system/src/components/ui/alert-dialog/AlertDialogFooter.vue
+  s_30bf6c6bcb80ce::t_9853a88f70e393 1-22
+packages/design-system/src/components/ui/alert-dialog/AlertDialogHeader.vue
+  s_30bf6c6bcb80ce::t_f62db27d44eb93 1-22
+packages/design-system/src/components/ui/alert-dialog/AlertDialogMedia.vue
+  s_30bf6c6bcb80ce::t_ad2d7b09280196 1-22
+packages/design-system/src/components/ui/alert-dialog/AlertDialogTitle.vue
+  s_30bf6c6bcb80ce::t_84f27fff70a45b 6,19-24
+packages/design-system/src/components/ui/alert-dialog/index.ts
+  s_30bf6c6bcb80ce::t_30bac6b12564a7 8
+packages/design-system/src/components/ui/alert/Alert.vue
+  s_30bf6c6bcb80ce::t_99ca6d59531fb0 4
+packages/design-system/src/components/ui/alert/AlertAction.vue
+  s_30bf6c6bcb80ce::t_e9668a3002107a 3,12-13
+packages/design-system/src/components/ui/alert/AlertDescription.vue
+  s_30bf6c6bcb80ce::t_f81f60b5936c47 1-22
+packages/design-system/src/components/ui/alert/AlertTitle.vue
+  s_30bf6c6bcb80ce::t_60d9bba7567699 3,15
+packages/design-system/src/components/ui/alert/index.ts
+  s_30bf6c6bcb80ce::t_8ba29f5ec2dd76 5,10,16
+packages/design-system/src/components/ui/aspect-ratio/AspectRatio.vue
+  s_30bf6c6bcb80ce::t_e332fe89e9067c 9-10
+packages/design-system/src/components/ui/avatar/Avatar.vue
+  s_30bf6c6bcb80ce::t_17ec816a3e0ef3 1-22
+packages/design-system/src/components/ui/avatar/AvatarBadge.vue
+  s_30bf6c6bcb80ce::t_261d411b512c14 1-25
+packages/design-system/src/components/ui/avatar/AvatarFallback.vue
+  s_30bf6c6bcb80ce::t_1ad14187e0d4e3 6,21
+packages/design-system/src/components/ui/avatar/AvatarGroup.vue
+  s_30bf6c6bcb80ce::t_70e8b55a7b741c 1-22
+packages/design-system/src/components/ui/avatar/AvatarGroupCount.vue
+  s_30bf6c6bcb80ce::t_a005fc171d6d57 1-22
+packages/design-system/src/components/ui/avatar/AvatarImage.vue
+  s_30bf6c6bcb80ce::t_9e6fe40d9b36fe 12
+packages/design-system/src/components/ui/avatar/index.ts
+  s_30bf6c6bcb80ce::t_ab68be9582b0c6 1-3,5,7-8,10-27
+packages/design-system/src/components/ui/badge/Badge.vue
+  s_30bf6c6bcb80ce::t_831343896d65b6 7,23
+packages/design-system/src/components/ui/badge/index.ts
+  s_30bf6c6bcb80ce::t_c8d58da94f201f 4,6-24,27-28
+packages/design-system/src/components/ui/breadcrumb/Breadcrumb.vue
+  s_30bf6c6bcb80ce::t_edbaa6d34c874c 1-18
+packages/design-system/src/components/ui/breadcrumb/BreadcrumbEllipsis.vue
+  s_30bf6c6bcb80ce::t_47332eb0880177 2-5,8-9,17-19,22
+packages/design-system/src/components/ui/breadcrumb/BreadcrumbItem.vue
+  s_30bf6c6bcb80ce::t_66a66add97d26a 1-17
+packages/design-system/src/components/ui/breadcrumb/BreadcrumbLink.vue
+  s_30bf6c6bcb80ce::t_1299fa557e0513 2-5,7-12
+packages/design-system/src/components/ui/breadcrumb/BreadcrumbList.vue
+  s_30bf6c6bcb80ce::t_b5a3ce0baf282e 1-22
+packages/design-system/src/components/ui/breadcrumb/BreadcrumbPage.vue
+  s_30bf6c6bcb80ce::t_1f8844707c8e1f 2-3,6-7
+packages/design-system/src/components/ui/breadcrumb/BreadcrumbSeparator.vue
+  s_30bf6c6bcb80ce::t_206a320d80eef6 2-5,8-9,20
+packages/design-system/src/components/ui/breadcrumb/index.ts
+  s_30bf6c6bcb80ce::t_31536428c73971 1-7
+packages/design-system/src/components/ui/button/Button.vue
+  s_30bf6c6bcb80ce::t_9a83a3c4f1f389 6,24
+packages/design-system/src/components/ui/button/index.ts
+  s_30bf6c6bcb80ce::t_ebbbfe7a47590e 1-42
+packages/design-system/src/components/ui/calendar/Calendar.vue
+  s_30bf6c6bcb80ce::t_205549f73c1bcf 2-14,29-41,44-81,87-148,150,152-159,161-189,191-200,223
+packages/design-system/src/components/ui/calendar/CalendarCell.vue
+  s_30bf6c6bcb80ce::t_cfa0a6d252192f 6,22
+packages/design-system/src/components/ui/calendar/CalendarCellTrigger.vue
+  s_30bf6c6bcb80ce::t_194fc2dec2b7ec 6-7,27-28,30,34
+packages/design-system/src/components/ui/calendar/CalendarGrid.vue
+  s_30bf6c6bcb80ce::t_f2e3b6a2f63d56 6,20-22
+packages/design-system/src/components/ui/calendar/CalendarGridRow.vue
+  s_30bf6c6bcb80ce::t_cc29d87401eaba 6
+packages/design-system/src/components/ui/calendar/CalendarHeadCell.vue
+  s_30bf6c6bcb80ce::t_3a976eef5af12b 6,22
+packages/design-system/src/components/ui/calendar/CalendarHeader.vue
+  s_30bf6c6bcb80ce::t_6489ebdddc2726 6,21-24
+packages/design-system/src/components/ui/calendar/CalendarHeading.vue
+  s_30bf6c6bcb80ce::t_0aa8c09ccf38a2 6,13
+packages/design-system/src/components/ui/calendar/CalendarNextButton.vue
+  s_30bf6c6bcb80ce::t_45e139ed75dd34 3,5,8-9,26,33
+packages/design-system/src/components/ui/calendar/CalendarPrevButton.vue
+  s_30bf6c6bcb80ce::t_c430923eb9da53 3,5,8-9,26,33
+packages/design-system/src/components/ui/calendar/index.ts
+  s_30bf6c6bcb80ce::t_a515554bceaf3d 13-15
+packages/design-system/src/components/ui/card/Card.vue
+  s_30bf6c6bcb80ce::t_6069bf1dd02525 1-29
+packages/design-system/src/components/ui/card/CardAction.vue
+  s_30bf6c6bcb80ce::t_6fc9242b6d0f8d 3
+packages/design-system/src/components/ui/card/CardContent.vue
+  s_30bf6c6bcb80ce::t_db05d1365f6b6e 1-17
+packages/design-system/src/components/ui/card/CardDescription.vue
+  s_30bf6c6bcb80ce::t_fd565dd29a71b8 3,11,16
+packages/design-system/src/components/ui/card/CardFooter.vue
+  s_30bf6c6bcb80ce::t_27dadf0ca7d16f 1-22
+packages/design-system/src/components/ui/card/CardHeader.vue
+  s_30bf6c6bcb80ce::t_d69c86b791aff3 3,15
+packages/design-system/src/components/ui/card/CardTitle.vue
+  s_30bf6c6bcb80ce::t_56ba957931ddc0 3,12,15
+packages/design-system/src/components/ui/chart/ChartContainer.vue
+  s_30bf6c6bcb80ce::t_04360aa52e55be 2-8,13-17,21-24,26-30,35,44,55
+packages/design-system/src/components/ui/chart/ChartLegendContent.vue
+  s_30bf6c6bcb80ce::t_5c9750e1fbfd3e 2-5,9-11,13,16,18,20,23,27,29,31,33-34,51-55,57,60
+packages/design-system/src/components/ui/chart/ChartStyle.vue
+  s_30bf6c6bcb80ce::t_8ab5cf4a24073d 2-5,8-9,11,14-17,29-32,34,38
+packages/design-system/src/components/ui/chart/ChartTooltipContent.vue
+  s_30bf6c6bcb80ce::t_d64a4077f58ed4 2-5,9-19,24,26,35-36,38,40-41,44-45,47,49,53-54,61,85-94,96-99,119-122
+packages/design-system/src/components/ui/chart/index.ts
+  s_30bf6c6bcb80ce::t_4a80e6545e69f2 1-2,4-7,10,14-15,19-20,23-24,27-28,30-33
+packages/design-system/src/components/ui/chart/utils.ts
+  s_30bf6c6bcb80ce::t_a722e36f32f22a 1-4,7,10-11,14-20,23-28,31,34-38,40-45
+packages/design-system/src/components/ui/checkbox/Checkbox.vue
+  s_30bf6c6bcb80ce::t_5a411add75345b 1-41
+packages/design-system/src/components/ui/checkbox/index.ts
+  s_30bf6c6bcb80ce::t_ed2f6f255d83ec 1
+packages/design-system/src/components/ui/collapsible/Collapsible.vue
+  s_30bf6c6bcb80ce::t_da7a7fc1f865b8 12-17
+packages/design-system/src/components/ui/command/Command.vue
+  s_30bf6c6bcb80ce::t_d4a8c2a8afbc86 2-8,10-16,18,20,22,24-25,27,29,38,42,44,48-49,53-55,61-63,68,72-75,81,90
+packages/design-system/src/components/ui/command/CommandDialog.vue
+  s_30bf6c6bcb80ce::t_53863a32766f3d 2-5,12-13,18-21,25-27,29-30,32,37-42,47
+packages/design-system/src/components/ui/command/CommandEmpty.vue
+  s_30bf6c6bcb80ce::t_d4ed9039fd29fc 1-31
+packages/design-system/src/components/ui/command/CommandGroup.vue
+  s_30bf6c6bcb80ce::t_fa7f840d79c66d 2-8,12-13,15,17,19-20,22-24,26,28-29,31-32,40-45,51
+packages/design-system/src/components/ui/command/CommandInput.vue
+  s_30bf6c6bcb80ce::t_f57e40738c0b50 2-3,6-13,20,27-29,33-35,37-52
+packages/design-system/src/components/ui/command/CommandItem.vue
+  s_30bf6c6bcb80ce::t_2f3cc58eae4cd0 2,4-10,12-15,17,19-23,27,29,33,37,39,41-42,44,47-50,52,55,57,60,62-63,75,81,86-88
+packages/design-system/src/components/ui/command/CommandList.vue
+  s_30bf6c6bcb80ce::t_3060cad53d7f76 1-32
+packages/design-system/src/components/ui/command/CommandSeparator.vue
+  s_30bf6c6bcb80ce::t_4c14e26c7092af 2,5-6,9,16-17,22
+packages/design-system/src/components/ui/command/CommandShortcut.vue
+  s_30bf6c6bcb80ce::t_b0b362a08d16b2 1-22
+packages/design-system/src/components/ui/command/index.ts
+  s_30bf6c6bcb80ce::t_bb4295b43dc888 1-2,4-12,15-16,18-25,28-29
+packages/design-system/src/components/ui/dialog/Dialog.vue
+  s_30bf6c6bcb80ce::t_a44580b4a70da6 12-13
+packages/design-system/src/components/ui/dialog/DialogContent.vue
+  s_30bf6c6bcb80ce::t_a729486be1a10b 3,5,13-14,17-31,34,44,47,54-58
+packages/design-system/src/components/ui/dialog/DialogDescription.vue
+  s_30bf6c6bcb80ce::t_a41fe6f18b441d 6,21-26
+packages/design-system/src/components/ui/dialog/DialogFooter.vue
+  s_30bf6c6bcb80ce::t_53ecc1950aac43 2-5,9-10,13,15,19-20,23,29-32
+packages/design-system/src/components/ui/dialog/DialogHeader.vue
+  s_30bf6c6bcb80ce::t_c1318150a6c2a7 3,13
+packages/design-system/src/components/ui/dialog/DialogOverlay.vue
+  s_30bf6c6bcb80ce::t_0f96277f4a1e16 6,21
+packages/design-system/src/components/ui/dialog/DialogScrollContent.vue
+  s_30bf6c6bcb80ce::t_e54588914f4efc 3,5,14-18,33,38,42,59,61
+packages/design-system/src/components/ui/dialog/DialogTitle.vue
+  s_30bf6c6bcb80ce::t_65ad2d56a48316 6,21-23
+packages/design-system/src/components/ui/drawer/Drawer.vue
+  s_30bf6c6bcb80ce::t_e695b4e80553c5 2-3,5,7,9,13
+packages/design-system/src/components/ui/drawer/DrawerClose.vue
+  s_30bf6c6bcb80ce::t_dd86658270356b 2-3,5
+packages/design-system/src/components/ui/drawer/DrawerContent.vue
+  s_30bf6c6bcb80ce::t_53c1165a54d820 1-54
+packages/design-system/src/components/ui/drawer/DrawerDescription.vue
+  s_30bf6c6bcb80ce::t_19d25faedce030 1-2,5-6,9,16-17,19,22
+packages/design-system/src/components/ui/drawer/DrawerFooter.vue
+  s_30bf6c6bcb80ce::t_c0d8a90cb5985c 1-17
+packages/design-system/src/components/ui/drawer/DrawerHeader.vue
+  s_30bf6c6bcb80ce::t_1dfdf8b77e0ec4 1-22
+packages/design-system/src/components/ui/drawer/DrawerOverlay.vue
+  s_30bf6c6bcb80ce::t_c4cf85fd286fe6 1-26
+packages/design-system/src/components/ui/drawer/DrawerTitle.vue
+  s_30bf6c6bcb80ce::t_5fffd551198419 1-2,5-6,9,16-17,20,24
+packages/design-system/src/components/ui/drawer/DrawerTrigger.vue
+  s_30bf6c6bcb80ce::t_f792e673351286 2-3,5
+packages/design-system/src/components/ui/drawer/index.ts
+  s_30bf6c6bcb80ce::t_db569781aa8e1e 1-9
+packages/design-system/src/components/ui/dropdown-menu/DropdownMenu.vue
+  s_30bf6c6bcb80ce::t_d232bb6421b4c2 12-17
+packages/design-system/src/components/ui/dropdown-menu/DropdownMenuCheckboxItem.vue
+  s_30bf6c6bcb80ce::t_288d72e68a81b1 6,8,15,33,39-40,43-45
+packages/design-system/src/components/ui/dropdown-menu/DropdownMenuContent.vue
+  s_30bf6c6bcb80ce::t_f4b13fec625420 13-17,22,37,40
+packages/design-system/src/components/ui/dropdown-menu/DropdownMenuItem.vue
+  s_30bf6c6bcb80ce::t_766cb4e571359d 6,34
+packages/design-system/src/components/ui/dropdown-menu/DropdownMenuLabel.vue
+  s_30bf6c6bcb80ce::t_d925c4aaeca9fc 6,22-25
+packages/design-system/src/components/ui/dropdown-menu/DropdownMenuRadioItem.vue
+  s_30bf6c6bcb80ce::t_1dfe94523fc37b 6,8,15,34,40-41,44-46
+packages/design-system/src/components/ui/dropdown-menu/DropdownMenuSeparator.vue
+  s_30bf6c6bcb80ce::t_7c451d6bd63360 6
+packages/design-system/src/components/ui/dropdown-menu/DropdownMenuShortcut.vue
+  s_30bf6c6bcb80ce::t_f1a4c917268faf 3,14-17
+packages/design-system/src/components/ui/dropdown-menu/DropdownMenuSub.vue
+  s_30bf6c6bcb80ce::t_7b9295ff494ce9 12-17
+packages/design-system/src/components/ui/dropdown-menu/DropdownMenuSubContent.vue
+  s_30bf6c6bcb80ce::t_22c998b57f79cf 9,27
+packages/design-system/src/components/ui/dropdown-menu/DropdownMenuSubTrigger.vue
+  s_30bf6c6bcb80ce::t_59f66208c8eb3c 3,5,8,24,28,34
+packages/design-system/src/components/ui/empty/Empty.vue
+  s_30bf6c6bcb80ce::t_10fe95bed7f05d 3,15
+packages/design-system/src/components/ui/empty/EmptyContent.vue
+  s_30bf6c6bcb80ce::t_f545a0af13d64d 3,15
+packages/design-system/src/components/ui/empty/EmptyDescription.vue
+  s_30bf6c6bcb80ce::t_8d8e5be315d07e 3,15
+packages/design-system/src/components/ui/empty/EmptyHeader.vue
+  s_30bf6c6bcb80ce::t_6c84615332c55a 1-17
+packages/design-system/src/components/ui/empty/EmptyMedia.vue
+  s_30bf6c6bcb80ce::t_991a4b08ad51f6 4,7-15
+packages/design-system/src/components/ui/empty/EmptyTitle.vue
+  s_30bf6c6bcb80ce::t_52d886d3ba249e 3,12,14
+packages/design-system/src/components/ui/empty/index.ts
+  s_30bf6c6bcb80ce::t_8398f316370a8a 17
+packages/design-system/src/components/ui/field/Field.vue
+  s_30bf6c6bcb80ce::t_5287ab98340bfe 2-5,7-15
+packages/design-system/src/components/ui/field/FieldContent.vue
+  s_30bf6c6bcb80ce::t_3fea31665e0957 3,12,15
+packages/design-system/src/components/ui/field/FieldDescription.vue
+  s_30bf6c6bcb80ce::t_af16283d7e6689 1-24
+packages/design-system/src/components/ui/field/FieldError.vue
+  s_30bf6c6bcb80ce::t_38584b7ed8492d 2-4,7-9,12,17-18,21,24-26,29-32,48-51
+packages/design-system/src/components/ui/field/FieldGroup.vue
+  s_30bf6c6bcb80ce::t_c414709dc292d0 1-22
+packages/design-system/src/components/ui/field/FieldLabel.vue
+  s_30bf6c6bcb80ce::t_adaedf4f10fe9a 2-4,7-8,16-17
+packages/design-system/src/components/ui/field/FieldLegend.vue
+  s_30bf6c6bcb80ce::t_c48c4b2546f46a 2-3,5-13,22
+packages/design-system/src/components/ui/field/FieldSeparator.vue
+  s_30bf6c6bcb80ce::t_dad7cafb6d225e 2-4,7-8,16-19,25
+packages/design-system/src/components/ui/field/FieldSet.vue
+  s_30bf6c6bcb80ce::t_b54def044cbbac 1-22
+packages/design-system/src/components/ui/field/FieldTitle.vue
+  s_30bf6c6bcb80ce::t_6de7906f44bfb2 1-22
+packages/design-system/src/components/ui/field/index.ts
+  s_30bf6c6bcb80ce::t_ba7030c3f5f306 1-33
+packages/design-system/src/components/ui/form/FormControl.vue
+  s_30bf6c6bcb80ce::t_ccfa450bf4f104 2-3,5,12-14
+packages/design-system/src/components/ui/form/FormDescription.vue
+  s_30bf6c6bcb80ce::t_9fdcd7a9b9b0f7 2-4,7-8,10
+packages/design-system/src/components/ui/form/FormItem.vue
+  s_30bf6c6bcb80ce::t_f840a7dac68041 2-6,9-10,12-13
+packages/design-system/src/components/ui/form/FormLabel.vue
+  s_30bf6c6bcb80ce::t_5ce13548442584 2-6,8,10
+packages/design-system/src/components/ui/form/FormMessage.vue
+  s_30bf6c6bcb80ce::t_ad1888af2432ef 2-6,9-10,12
+packages/design-system/src/components/ui/form/index.ts
+  s_30bf6c6bcb80ce::t_139fc230b4c3a0 1-6,8-11
+packages/design-system/src/components/ui/form/injectionKeys.ts
+  s_30bf6c6bcb80ce::t_e6a9028cc921ba 1-5
+packages/design-system/src/components/ui/form/useFormField.ts
+  s_30bf6c6bcb80ce::t_f40a8079456e60 1-3,6-7,9-10,12-13,20,29
+packages/design-system/src/components/ui/hover-card/HoverCard.vue
+  s_30bf6c6bcb80ce::t_8ae3b15cd83bc5 12-13
+packages/design-system/src/components/ui/hover-card/HoverCardContent.vue
+  s_30bf6c6bcb80ce::t_b291ed5d86a5b0 6-10,15,29,32
+packages/design-system/src/components/ui/input-group/InputGroup.vue
+  s_30bf6c6bcb80ce::t_5fe3ce7c129f2b 1-23
+packages/design-system/src/components/ui/input-group/InputGroupAddon.vue
+  s_30bf6c6bcb80ce::t_c18387ba2f3e47 2-5,9-10,13,15,18-21,24
+packages/design-system/src/components/ui/input-group/InputGroupButton.vue
+  s_30bf6c6bcb80ce::t_2b87ef55aa2156 2-5,8-10,15
+packages/design-system/src/components/ui/input-group/InputGroupInput.vue
+  s_30bf6c6bcb80ce::t_a009fa474221a8 1-21
+packages/design-system/src/components/ui/input-group/InputGroupText.vue
+  s_30bf6c6bcb80ce::t_327e1663cd7f69 3,11,14,20
+packages/design-system/src/components/ui/input-group/InputGroupTextarea.vue
+  s_30bf6c6bcb80ce::t_9f37729fb90f31 1-21
+packages/design-system/src/components/ui/input-group/index.ts
+  s_30bf6c6bcb80ce::t_11921fc13e7eba 1-4,6-11,14,18-25,29,32,34,36-49,52,54-56,59-61
+packages/design-system/src/components/ui/input/Input.vue
+  s_30bf6c6bcb80ce::t_51df250d6b8c8e 4-5,32
+packages/design-system/src/components/ui/kbd/Kbd.vue
+  s_30bf6c6bcb80ce::t_4465009111ab79 3,12,15
+packages/design-system/src/components/ui/kbd/KbdGroup.vue
+  s_30bf6c6bcb80ce::t_b2e5872ccad0af 3,13
+packages/design-system/src/components/ui/label/Label.vue
+  s_30bf6c6bcb80ce::t_91122549963b13 6,19
+packages/design-system/src/components/ui/native-select/NativeSelect.vue
+  s_30bf6c6bcb80ce::t_a3b09aa3fcaf1c 2-7,11,14-17,20-21,23,25-26,28,33-38,40,46-47,52
+packages/design-system/src/components/ui/native-select/NativeSelectOptGroup.vue
+  s_30bf6c6bcb80ce::t_cc979d7399a66a 1-15
+packages/design-system/src/components/ui/native-select/NativeSelectOption.vue
+  s_30bf6c6bcb80ce::t_9b901a0d671a20 3,9-11,14
+packages/design-system/src/components/ui/native-select/index.ts
+  s_30bf6c6bcb80ce::t_7bcba11697949f 1-3
+packages/design-system/src/components/ui/navigation-menu/NavigationMenu.vue
+  s_30bf6c6bcb80ce::t_34f212cbcb417b 6,28,39
+packages/design-system/src/components/ui/navigation-menu/NavigationMenuContent.vue
+  s_30bf6c6bcb80ce::t_245fde7ec7b0c6 9,27
+packages/design-system/src/components/ui/navigation-menu/NavigationMenuIndicator.vue
+  s_30bf6c6bcb80ce::t_195a85d367c0b1 6,23,28-30
+packages/design-system/src/components/ui/navigation-menu/NavigationMenuItem.vue
+  s_30bf6c6bcb80ce::t_c8eef8a7b66ef9 6
+packages/design-system/src/components/ui/navigation-menu/NavigationMenuLink.vue
+  s_30bf6c6bcb80ce::t_afd1efb9c444f3 6,23
+packages/design-system/src/components/ui/navigation-menu/NavigationMenuList.vue
+  s_30bf6c6bcb80ce::t_4d4e4220076edb 6,23
+packages/design-system/src/components/ui/navigation-menu/NavigationMenuTrigger.vue
+  s_30bf6c6bcb80ce::t_906727e4799ba4 3,5,8,27-28
+packages/design-system/src/components/ui/navigation-menu/NavigationMenuViewport.vue
+  s_30bf6c6bcb80ce::t_75642f6e8b85e8 6,18,24
+packages/design-system/src/components/ui/navigation-menu/index.ts
+  s_30bf6c6bcb80ce::t_58f00e27b32ede 13
+packages/design-system/src/components/ui/popover/Popover.vue
+  s_30bf6c6bcb80ce::t_f05bfd47147275 12-13
+packages/design-system/src/components/ui/popover/PopoverContent.vue
+  s_30bf6c6bcb80ce::t_7e87307bd018ac 6,30,33
+packages/design-system/src/components/ui/popover/PopoverDescription.vue
+  s_30bf6c6bcb80ce::t_5b2aad3053a13f 3,11-13,16
+packages/design-system/src/components/ui/popover/PopoverHeader.vue
+  s_30bf6c6bcb80ce::t_5700e34b94507b 1-17
+packages/design-system/src/components/ui/popover/PopoverTitle.vue
+  s_30bf6c6bcb80ce::t_d8131f2701d44a 3,12-13
+packages/design-system/src/components/ui/popover/index.ts
+  s_30bf6c6bcb80ce::t_4d733e5dcb084f 4-6
+packages/design-system/src/components/ui/progress/Progress.vue
+  s_30bf6c6bcb80ce::t_e5f18f1c622fb2 2-3,5-6,25,29,35-38
+packages/design-system/src/components/ui/radio-group/RadioGroup.vue
+  s_30bf6c6bcb80ce::t_4c058dd654c19e 1-27
+packages/design-system/src/components/ui/radio-group/RadioGroupItem.vue
+  s_30bf6c6bcb80ce::t_38e206ba3d42f7 2,4-8,10-12,14-16,25,32,36
+packages/design-system/src/components/ui/radio-group/index.ts
+  s_30bf6c6bcb80ce::t_8b3bb391524114 1-2
+packages/design-system/src/components/ui/resizable/ResizableHandle.vue
+  s_30bf6c6bcb80ce::t_ae19829efdb806 9,29,35-36
+packages/design-system/src/components/ui/resizable/ResizablePanel.vue
+  s_30bf6c6bcb80ce::t_8c368c11d3daa5 3,9,13-18
+packages/design-system/src/components/ui/resizable/ResizablePanelGroup.vue
+  s_30bf6c6bcb80ce::t_5b1d645861147e 6,20,27
+packages/design-system/src/components/ui/scroll-area/ScrollArea.vue
+  s_30bf6c6bcb80ce::t_3d98eb5c35721f 6,24
+packages/design-system/src/components/ui/scroll-area/ScrollBar.vue
+  s_30bf6c6bcb80ce::t_8e9a4181d29c6d 6,21,25,32
+packages/design-system/src/components/ui/select/Select.vue
+  s_30bf6c6bcb80ce::t_7b44132f8a0c15 12-13
+packages/design-system/src/components/ui/select/SelectContent.vue
+  s_30bf6c6bcb80ce::t_d90231faee75ec 11,21-22,36-37,40,42,49,52
+packages/design-system/src/components/ui/select/SelectGroup.vue
+  s_30bf6c6bcb80ce::t_9fbf4bec45332f 2,5-6,9,16-17,19,22
+packages/design-system/src/components/ui/select/SelectItem.vue
+  s_30bf6c6bcb80ce::t_15c918a823270d 3,5,13,30,35-37,39-41
+packages/design-system/src/components/ui/select/SelectLabel.vue
+  s_30bf6c6bcb80ce::t_22e0cac1f2ad34 5,15
+packages/design-system/src/components/ui/select/SelectScrollDownButton.vue
+  s_30bf6c6bcb80ce::t_29e8cbdffbd32a 3,5,8,24-27,31
+packages/design-system/src/components/ui/select/SelectScrollUpButton.vue
+  s_30bf6c6bcb80ce::t_33be7c1d1943dd 3,5,8,24-27,31
+packages/design-system/src/components/ui/select/SelectSeparator.vue
+  s_30bf6c6bcb80ce::t_561ecfac2a9b9e 6,19
+packages/design-system/src/components/ui/select/SelectTrigger.vue
+  s_30bf6c6bcb80ce::t_7bd4583e1312e3 3,5,8,31,38-40
+packages/design-system/src/components/ui/separator/Separator.vue
+  s_30bf6c6bcb80ce::t_6040dc498f8f9a 1-30
+packages/design-system/src/components/ui/separator/index.ts
+  s_30bf6c6bcb80ce::t_1c219390bb2b98 1
+packages/design-system/src/components/ui/sheet/Sheet.vue
+  s_30bf6c6bcb80ce::t_56cd34383d2e39 12-13
+packages/design-system/src/components/ui/sheet/SheetContent.vue
+  s_30bf6c6bcb80ce::t_f2eac44e30a1b9 3,5,13-14,20,29,33,43,46,50,54-58
+packages/design-system/src/components/ui/sheet/SheetDescription.vue
+  s_30bf6c6bcb80ce::t_c7e819b551b92a 6
+packages/design-system/src/components/ui/sheet/SheetFooter.vue
+  s_30bf6c6bcb80ce::t_9e0581ea2828c1 3,11
+packages/design-system/src/components/ui/sheet/SheetHeader.vue
+  s_30bf6c6bcb80ce::t_c9999c715bd529 3,11
+packages/design-system/src/components/ui/sheet/SheetOverlay.vue
+  s_30bf6c6bcb80ce::t_13e5855660dd07 6,20
+packages/design-system/src/components/ui/sheet/SheetTitle.vue
+  s_30bf6c6bcb80ce::t_b84f0c52fefd22 6,18-20
+packages/design-system/src/components/ui/sidebar/Sidebar.vue
+  s_30bf6c6bcb80ce::t_735bf0e19a04dd 3-7,29,75,78,88-89,94-95,99,107-108
+packages/design-system/src/components/ui/sidebar/SidebarContent.vue
+  s_30bf6c6bcb80ce::t_ca00305d15f45c 3,16
+packages/design-system/src/components/ui/sidebar/SidebarFooter.vue
+  s_30bf6c6bcb80ce::t_d976a1b51f3e75 3,14
+packages/design-system/src/components/ui/sidebar/SidebarGroup.vue
+  s_30bf6c6bcb80ce::t_4b004e417bd73d 3,14
+packages/design-system/src/components/ui/sidebar/SidebarGroupAction.vue
+  s_30bf6c6bcb80ce::t_e0f4fd49be7408 5,22
+packages/design-system/src/components/ui/sidebar/SidebarGroupContent.vue
+  s_30bf6c6bcb80ce::t_065a00fcae9bd1 3,14
+packages/design-system/src/components/ui/sidebar/SidebarGroupLabel.vue
+  s_30bf6c6bcb80ce::t_5b4885ec07d527 5,22
+packages/design-system/src/components/ui/sidebar/SidebarHeader.vue
+  s_30bf6c6bcb80ce::t_3443d3d89da8b0 3,14
+packages/design-system/src/components/ui/sidebar/SidebarInput.vue
+  s_30bf6c6bcb80ce::t_b35f3302a69268 3-4
+packages/design-system/src/components/ui/sidebar/SidebarInset.vue
+  s_30bf6c6bcb80ce::t_3cab93b67cf889 3,15
+packages/design-system/src/components/ui/sidebar/SidebarMenu.vue
+  s_30bf6c6bcb80ce::t_a24e3655a539ba 3,14
+packages/design-system/src/components/ui/sidebar/SidebarMenuAction.vue
+  s_30bf6c6bcb80ce::t_c0f62800c60730 5,26,28
+packages/design-system/src/components/ui/sidebar/SidebarMenuBadge.vue
+  s_30bf6c6bcb80ce::t_f63eebc18b8023 3,16
+packages/design-system/src/components/ui/sidebar/SidebarMenuButton.vue
+  s_30bf6c6bcb80ce::t_b4e26a743da7db 9
+packages/design-system/src/components/ui/sidebar/SidebarMenuButtonChild.vue
+  s_30bf6c6bcb80ce::t_fb8c23a92694eb 6,28
+packages/design-system/src/components/ui/sidebar/SidebarMenuItem.vue
+  s_30bf6c6bcb80ce::t_38b772114ec21c 3
+packages/design-system/src/components/ui/sidebar/SidebarMenuSkeleton.vue
+  s_30bf6c6bcb80ce::t_8fd2c39d841ed1 4-5,21,25
+packages/design-system/src/components/ui/sidebar/SidebarMenuSub.vue
+  s_30bf6c6bcb80ce::t_eb90c97fe64c92 3,13,16
+packages/design-system/src/components/ui/sidebar/SidebarMenuSubButton.vue
+  s_30bf6c6bcb80ce::t_5f4701647f0c1a 5,29,32
+packages/design-system/src/components/ui/sidebar/SidebarMenuSubItem.vue
+  s_30bf6c6bcb80ce::t_a34e6a4bd3733d 3
+packages/design-system/src/components/ui/sidebar/SidebarProvider.vue
+  s_30bf6c6bcb80ce::t_d82cee4b56a711 11
+packages/design-system/src/components/ui/sidebar/SidebarRail.vue
+  s_30bf6c6bcb80ce::t_095aae5dad278f 3,22-27
+packages/design-system/src/components/ui/sidebar/SidebarSeparator.vue
+  s_30bf6c6bcb80ce::t_1f6408c8d40b48 3-4
+packages/design-system/src/components/ui/sidebar/SidebarTrigger.vue
+  s_30bf6c6bcb80ce::t_53dfc1d45d4f2d 3-6,21-22,25
+packages/design-system/src/components/ui/sidebar/index.ts
+  s_30bf6c6bcb80ce::t_1be9f32a5d67f8 39,45
+packages/design-system/src/components/ui/skeleton/Skeleton.vue
+  s_30bf6c6bcb80ce::t_390078fe8632fb 1-17
+packages/design-system/src/components/ui/skeleton/index.ts
+  s_30bf6c6bcb80ce::t_cf1e035366c445 1
+packages/design-system/src/components/ui/slider/Slider.vue
+  s_30bf6c6bcb80ce::t_c365e2ec160900 12,28,31,39-41,45-47,55-56
+packages/design-system/src/components/ui/sonner/Sonner.vue
+  s_30bf6c6bcb80ce::t_a0a655045e4541 2-3,11-14,16-17,28-32,34-41
+packages/design-system/src/components/ui/sonner/index.ts
+  s_30bf6c6bcb80ce::t_982175d4b30b60 1
+packages/design-system/src/components/ui/spinner/Spinner.vue
+  s_30bf6c6bcb80ce::t_da9a30f50c5704 3-5,13-17
+packages/design-system/src/components/ui/spinner/index.ts
+  s_30bf6c6bcb80ce::t_3740239be41e31 1
+packages/design-system/src/components/ui/stepper/Stepper.vue
+  s_30bf6c6bcb80ce::t_2ac0f7aab47714 1-26
+packages/design-system/src/components/ui/stepper/StepperDescription.vue
+  s_30bf6c6bcb80ce::t_8fd18198a832f2 1-2,5-6,9,18-19,21,23-24
+packages/design-system/src/components/ui/stepper/StepperIndicator.vue
+  s_30bf6c6bcb80ce::t_d8be489af4e51d 2-6,8-10,12,14
+packages/design-system/src/components/ui/stepper/StepperItem.vue
+  s_30bf6c6bcb80ce::t_dede464543646b 1-30
+packages/design-system/src/components/ui/stepper/StepperSeparator.vue
+  s_30bf6c6bcb80ce::t_1b0b437cd682db 2-6,8-10,12,14
+packages/design-system/src/components/ui/stepper/StepperTitle.vue
+  s_30bf6c6bcb80ce::t_4a386af2b9ab75 1-2,5-6,9,18,20,23
+packages/design-system/src/components/ui/stepper/StepperTrigger.vue
+  s_30bf6c6bcb80ce::t_44bc419fbe4787 1-2,5-6,9,18,22,28
+packages/design-system/src/components/ui/stepper/index.ts
+  s_30bf6c6bcb80ce::t_79ab4aa209d590 1-7
+packages/design-system/src/components/ui/switch/Switch.vue
+  s_30bf6c6bcb80ce::t_ca0129b4816fd7 6,8-18,22,29,31,35,42,44
+packages/design-system/src/components/ui/table/Table.vue
+  s_30bf6c6bcb80ce::t_51269f7d67923d 3,8-15,19-24
+packages/design-system/src/components/ui/table/TableBody.vue
+  s_30bf6c6bcb80ce::t_945a75e0ecd465 3
+packages/design-system/src/components/ui/table/TableCaption.vue
+  s_30bf6c6bcb80ce::t_6a9f53c68a2d1c 3
+packages/design-system/src/components/ui/table/TableCell.vue
+  s_30bf6c6bcb80ce::t_5154be92804d63 3,15
+packages/design-system/src/components/ui/table/TableEmpty.vue
+  s_30bf6c6bcb80ce::t_1e8da3f25088af 4
+packages/design-system/src/components/ui/table/TableFooter.vue
+  s_30bf6c6bcb80ce::t_80e05f8492e9ff 3
+packages/design-system/src/components/ui/table/TableHead.vue
+  s_30bf6c6bcb80ce::t_5f5c5afd1e162c 3,15
+packages/design-system/src/components/ui/table/TableHeader.vue
+  s_30bf6c6bcb80ce::t_be1ca7d5d92166 3
+packages/design-system/src/components/ui/table/TableRow.vue
+  s_30bf6c6bcb80ce::t_d0843d050772a2 3,15
+packages/design-system/src/components/ui/tabs/Tabs.vue
+  s_30bf6c6bcb80ce::t_3ef55d87fbfeb9 6,19,21,23,25
+packages/design-system/src/components/ui/tabs/TabsContent.vue
+  s_30bf6c6bcb80ce::t_345fc02505a106 6,18
+packages/design-system/src/components/ui/tabs/TabsList.vue
+  s_30bf6c6bcb80ce::t_5045f8877df11b 1-34
+packages/design-system/src/components/ui/tabs/TabsTrigger.vue
+  s_30bf6c6bcb80ce::t_3dbf383db17649 6,22-25,29
+packages/design-system/src/components/ui/tabs/index.ts
+  s_30bf6c6bcb80ce::t_f540cf99ded3e8 4-7,9-10,14-15,23-24
+packages/design-system/src/components/ui/textarea/Textarea.vue
+  s_30bf6c6bcb80ce::t_e6206f7e981878 4,28
+packages/design-system/src/components/ui/tooltip/Tooltip.vue
+  s_30bf6c6bcb80ce::t_72ee6a9e308499 12-13
+packages/design-system/src/components/ui/tooltip/TooltipContent.vue
+  s_30bf6c6bcb80ce::t_b963dc577ec847 11,20,37,45
+packages/design-system/src/index.ts
+  s_30bf6c6bcb80ce::t_35b61cd0721824 2-4
+packages/design-system/src/palette.ts
+  s_30bf6c6bcb80ce::t_584d1363061e92 1-26,29-33,35-36,38-53
+packages/design-system/src/variants.ts
+  s_30bf6c6bcb80ce::t_6559bf2a0d5ecf 2-5,8,11-14
+packages/design-system/style.css
+  s_30bf6c6bcb80ce::t_c613704701926f 3,5-7,10-15,19-20,22-25,60,62,64,66,70,72-122,125-165,168-202,205
+packages/design-system/test/chart-palette.test.mjs
+  s_30bf6c6bcb80ce::t_a3bac3827ae7fc 6,9-21,24-38
+packages/design-system/test/color-contract.test.mjs
+  s_30bf6c6bcb80ce::t_ddf607ec83629e 1-13,16-17,19,21-27,30-34,36-43,45-52,55-69,71-72
+packages/design-system/test/theme-contract.test.mjs
+  s_30bf6c6bcb80ce::t_0f2c2341984f5b 1-59
+packages/design-system/typeset.css
+  s_30bf6c6bcb80ce::t_304a19d4e50d7a 1-494
+packages/domain-types/src/index.test.ts
+  s_30bf6c6bcb80ce::t_bc903eab1d71e3 16,26,131-139
+packages/domain-types/src/index.ts
+  s_30bf6c6bcb80ce::t_f51291c56a8501 60,136,285-300,381,396
+packages/http-client/src/__tests__/createHttpClient.test.ts
+  s_30bf6c6bcb80ce::t_db606fcd576e7a 395-413
+packages/http-client/src/index.ts
+  s_30bf6c6bcb80ce::t_b63fe26127bc60 434
+packages/markdown-utils/src/__tests__/renderMarkdown.test.ts
+  s_30bf6c6bcb80ce::t_0647be8a57ceff 9-22
+packages/markdown-utils/src/index.ts
+  s_30bf6c6bcb80ce::t_dfa5a590549224 107,513-524,577
+packages/sidebar-menu/package.json
+  s_30bf6c6bcb80ce::t_532faacd3ec008 37-39
+packages/sidebar-menu/src/components/SidebarGroupCollapsible.vue
+  s_30bf6c6bcb80ce::t_c40c16015fecdf 2-6,14-17,23,25,27,29,33,44,47,51
+packages/sidebar-menu/src/components/SidebarIconButton.vue
+  s_30bf6c6bcb80ce::t_6247740e07d3bf 2-4,7,9-11,14-15
+packages/sidebar-menu/src/components/SidebarMenuItem.vue
+  s_30bf6c6bcb80ce::t_b7a2056c562bba 2-6,9-15,17-26,30-37,39-55,58-59,62-64
+packages/sidebar-menu/src/components/SidebarMenuSubItem.vue
+  s_30bf6c6bcb80ce::t_b721a9dc317ea1 2-5,7-11,13-14,17-24,26-37,39
+packages/sidebar-menu/src/components/SidebarNavUser.vue
+  s_30bf6c6bcb80ce::t_e91d9ee019be91 2-9,12-23,26,30-31
+packages/sidebar-menu/src/components/SidebarParentItem.vue
+  s_30bf6c6bcb80ce::t_ad5bc165241a12 2-11,35-36,38,40-43,46,48,61-63,65-80,83-84,86,98-103,108,113-114,116-117,121-125,135-140,144
+packages/sidebar-menu/src/components/__tests__/SidebarGroupCollapsible.spec.ts
+  s_30bf6c6bcb80ce::t_5a066950ba1705 1-3,5,7-11,13-21,23-28,32-39,42-48,50,55-59,61,64-68
+packages/sidebar-menu/src/components/__tests__/SidebarIconButton.spec.ts
+  s_30bf6c6bcb80ce::t_1b2c22f7960dd2 1-3,5-10,12-15,17-21,23-29,31,33-38
+packages/sidebar-menu/src/components/__tests__/SidebarMenuItem.spec.ts
+  s_30bf6c6bcb80ce::t_c2c6dd29816a09 1-3,5-6,8-14,16-21,23,29-35,37-42,44,46-49,51,53-56,58-61,63,65-69,71,73-78
+packages/sidebar-menu/src/components/__tests__/SidebarMenuSubItem.spec.ts
+  s_30bf6c6bcb80ce::t_7eb61f8dde0e58 1-3,5-10,12-15,17,21-27,29-33,35-38,40,42-48
+packages/sidebar-menu/src/components/__tests__/SidebarNavUser.spec.ts
+  s_30bf6c6bcb80ce::t_8ac84d2c68a204 1-3,5-6,8-13,15,17-21,23,25-28,30-36,38-50,52,54-56,58-59,61,63-68
+packages/sidebar-menu/vitest.config.ts
+  s_30bf6c6bcb80ce::t_b7c888ef02b673 20
+packages/theme/__tests__/appearance.spec.ts
+  s_30bf6c6bcb80ce::t_d3267f29de2931 1-10,12-19,21-113
+packages/theme/__tests__/typography.spec.ts
+  s_30bf6c6bcb80ce::t_e674fd5e992351 11,22,25-26,29-30,32-33,35-66,68,70-88,91-118,121-156
+packages/theme/bootstrap.js
+  s_30bf6c6bcb80ce::t_64fbf9f53df15a 28-55,124
+packages/theme/package.json
+  s_30bf6c6bcb80ce::t_8c957c8e8d97a6 31-32
+packages/theme/scripts/sync-theme-bootstrap.mjs
+  s_30bf6c6bcb80ce::t_00c77115edb4c4 24,46
+packages/theme/scripts/verify-theme-sync.mjs
+  s_30bf6c6bcb80ce::t_be6cab3b7c46b9 29
+packages/theme/scripts/verify-typography-tokens.mjs
+  s_30bf6c6bcb80ce::t_9a2b31b67b62f7 12
+packages/theme/src/appearance-model.ts
+  s_30bf6c6bcb80ce::t_3c87556eb17798 1-89
+packages/theme/src/appearance.ts
+  s_30bf6c6bcb80ce::t_cc374700b9b208 1-35,38-39,41-58,61-67,71-78,80-88,92-105,107-143,145-158,160-166,170-201
+packages/theme/src/index.ts
+  s_30bf6c6bcb80ce::t_d21410a9ca674c 13,16,19,35,42-66
+packages/theme/src/storage.ts
+  s_30bf6c6bcb80ce::t_8e711bd2564403 14-17,23,26-27,32,35,40,43,49-50,52,55,58,62,66,68,70-76,82-83,88
+packages/theme/src/typography.css
+  s_30bf6c6bcb80ce::t_b0a99709fa9324 1,4-6,8-9,12-21,25,33,35-48,50,52-60,66,96-97
+packages/theme/src/typography.ts
+  s_30bf6c6bcb80ce::t_64a4eaf2ec6ea9 14,19,21,23,26-32,39-48,50,58-77,79,86-92,100-111,113,123-124,129-131
+packages/theme/src/useTheme.ts
+  s_30bf6c6bcb80ce::t_ef93b3bd59916b 1-2,4-8,10,13-14,17,20-24,26-27,30,32
+packages/theme/tsconfig.json
+  s_30bf6c6bcb80ce::t_148567767e1c92 13-21,24-27
+packages/theme/typography-allowlist.json
+  s_30bf6c6bcb80ce::t_940e96f1c9589c 10-11
+pnpm-lock.yaml
+  s_30bf6c6bcb80ce::t_0bebb216581451 29,45,66,180,214,217,259,262,265,268,271-335,362,485,504,552,555,558,570,595,608-613,626,641,644,650,657-662,677,681-686,690-698,700,702-704,714-716,726-734,738,747,762,781,793,805,839,851,863,867-872,884,888,903,906,928,932-934,946,1081-1085,1498-1503,1607-1619,1721-1726,1880-1889,2582-2584,2855-2859,3086-3088,3137-3140,3155-3162,3172-3183,3215-3218,3226-3229,3244-3248,3296-3299,3303-3305,3333-3344,3371-3374,3379-3381,3385-3396,3401-3410,3434-3436,3446-3465,3472-3479,3487-3490,3503-3505,3510-3516,3714-3729,3767-3773,3778-3781,3787-3796,3800-3806,3827-3829,3854-3860,3865-3868,3918-3920,4011-4018,4023-4026,4031-4040,4095-4098,4138-4149,4154-4156,4165-4168,4176-4178,4191-4194,4199-4202,4217-4220,4242-4245,4250-4254,4297-4300,4305-4308,4322-4325,4337-4340,4347-4350,4370-4373,4391-4398,4451-4454,4463-4466,4476-4479,4503-4506,4510-4512,4521-4524,4549-4552,4596-4598,4640-4642,4674-4677,4868-4877,4898-4901,4925-4928,4933-4936,4949-4952,4957-4964,4969-4971,5013-5022,5047-5055,5072-5074,5078-5088,5097-5100,5112-5115,5124-5127,5145-5148,5156-5159,5171-5173,5217-5220,5241-5256,5265-5268,5301-5304,5311-5314,5331-5334,5347-5361,5379-5382,5421-5424,5440-5443,5464-5467,5496-5498,5518-5521,5526-5529,5542-5548,5585-5591,5608-5611,5623-5626,5639-5642,5646-5649,5654-5661,5682-5693,5708-5715,5735-5738,5769-5775,5784-5787,5810-5813,5839-5841,5863-5866,5917-5920,5949-5952,6029-6036,6216-6219,6274-6276,6394-6400,6440-6452,6653-6654,7175-7185,7308-7325,7453-7456,7616-7637,8044,8049,8077-8082,8479-8483,8489-8509,8518,8525,8530,8533,8536,8539,8552,8560,8567,8583,8620,8630,8681,8692,8864-8867,8943-8947,8960-8963,8980-8987,9020-9023,9036-9037,9046-9047,9106-9119,9122-9126,9157-9175,9207-9208,9213-9214,9219-9221,9223,9225,9227,9229-9245,9253-9254,9264-9273,9278-9281,9290-9294,9311-9318,9324-9331,9554-9561,9595-9598,9601-9602,9612-9623,9628-9635,9658-9659,9680-9683,9689-9690,9792-9793,9896-9899,9902-9905,9908-9948,9999-10009,10051-10060,10068-10069,10075-10076,10091-10092,10099-10100,10114-10115,10133-10134,10160-10168,10174-10177,10222-10223,10226-10227,10240-10247,10261-10264,10269-10272,10286-10290,10305-10308,10363-10364,10377-10381,10388-10389,10405-10406,10409-10410,10420-10421,10445-10446,10482-10483,10533-10534,10561-10562,10710-10718,10743-10748,10786-10787,10790-10791,10801-10802,10807-10812,10817-10820,10855-10865,10891-10898,10914-10919,10922-10933,10952-10962,11015-11018,11027-11028,11048-11049,11054-11055,11065-11066,11104-11105,11126-11138,11149-11158,11181-11185,11190-11194,11205-11209,11218-11233,11248-11254,11326-11327,11343-11347,11406-11415,11447-11448,11461-11476,11479-11487,11510-11556,11601-11608,11625-11629,11639-11640,11649-11650,11653-11654,11660-11670,11717-11732,11741-11757,11777-11784,11811-11816,11821-11822,11842-11843,11866-11870,11885-11890,11954-11955,11975-11977,11983,11985,12002,12010,12031-12034,12043-12048,12055,12058-12059,12061,12063,12065,12075-12076,12078,12083,12089,12095-12097,12103,12114,12118,12129,12133,12136,12147,12207-12233,12249,12253,12255,12266,12282,12286,12288,12339-12340,12539-12545,12565-12574
+scripts/dev/devstack-manifest-test.sh
+  s_30bf6c6bcb80ce::t_9277bd8d3a62da 94,99,124,131,154,156-158,162-163
+scripts/dev/devstack-manifest.sh
+  s_30bf6c6bcb80ce::t_9c876cbaf8b3bb 17,29,49,51,81,101,221,246,266,286,350-351,355-356,430
+scripts/dev/up.sh
+  s_30bf6c6bcb80ce::t_8d6831527a631d 93,236
+scripts/dev/verify-garden-design.sh
+  s_30bf6c6bcb80ce::t_4ef425d9786aec 38-39,50
+services/api/app-api/src/main/java/com/ulticode/app/api/dto/ProblemListItemDTO.java
+  s_30bf6c6bcb80ce::t_8d3c02dd306174 23,29
+services/api/app-api/src/test/java/com/ulticode/app/api/architecture/ProblemApiContractShapeTest.java
+  s_30bf6c6bcb80ce::t_34c7d6ce19b9c7 155-156
+services/app/app-web/src/main/java/com/ulticode/modules/problem/mapper/ProblemMapper.java
+  s_30bf6c6bcb80ce::t_5a811ba451942f 39,42,46,51-52,55
+services/app/app-web/src/main/java/com/ulticode/modules/problem/port/DefaultProblemListReadPort.java
+  s_30bf6c6bcb80ce::t_5d28c174b19e94 19-20,41-49,60
+services/app/app-web/src/main/java/com/ulticode/modules/problemlist/dto/ProblemListDetailVO.java
+  s_30bf6c6bcb80ce::t_745856b84127f9 81
+services/app/app-web/src/main/java/com/ulticode/modules/problemlist/projection/DefaultProblemListProjection.java
+  s_30bf6c6bcb80ce::t_bf151fe4830c48 212
+services/app/app-web/src/test/java/com/ulticode/modules/problem/port/DefaultProblemListReadPortTest.java
+  s_30bf6c6bcb80ce::t_f65511d0c0f81b 1,3-6,8-40
+services/app/app-web/src/test/java/com/ulticode/modules/problem/service/ProblemSnapshotServiceTest.java
+  s_30bf6c6bcb80ce::t_e2132ff7d8cdef 152
+services/app/app-web/src/test/java/com/ulticode/modules/problem/service/ProblemVersionServiceTest.java
+  s_30bf6c6bcb80ce::t_9ab36a3cf1a7fc 186
+services/app/app-web/src/test/java/com/ulticode/modules/problemlist/projection/DefaultProblemListProjectionTest.java
+  s_30bf6c6bcb80ce::t_6709714c8fd76b 8,13,21,299-320
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2d570d2704fc8dcc4d5f9a3ded69a16bf192f0b3",
+  "prompts": {},
+  "sessions": {
+    "s_30bf6c6bcb80ce": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a15415-b21f-7571-9d64-1d5cd72ee9d0",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

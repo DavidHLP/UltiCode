@@ -114,7 +114,7 @@ export default {
     unavailable: "Agent conversations are not enabled in this environment.",
     errors: {
       requestFailed: "The request did not complete. Check the connection and reload this view to see the saved state.",
-      streamFailed: "The live activity stream disconnected. The saved conversation remains available.",
+      streamFailed: "The live activity stream disconnected. Automatic observation is limited; if the result is still pending, reload to check the server state.",
       streamTimedOut: "The live activity stream timed out. The turn may still be running.",
       runReplaced: "A newer run replaced this turn. Reload the conversation to see its current state.",
       submissionRequired: "Open a conversation from one of your eligible submissions.",

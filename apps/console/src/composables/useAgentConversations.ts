@@ -8,6 +8,8 @@ import {
 
 const HISTORY_PAGE_SIZE = 20;
 const TURN_PAGE_SIZE = 30;
+const MAX_STREAM_ERRORS = 5;
+const MAX_STREAM_OBSERVATION_MS = 2 * 60 * 1000;
 
 export function useAgentConversations() {
   const conversations = ref<AgentConversation[]>([]);
@@ -27,6 +29,7 @@ export function useAgentConversations() {
   let historyOffset = 0;
   let generation = 0;
   let eventSource: EventSource | null = null;
+  let observationTimer: ReturnType<typeof setTimeout> | null = null;
 
   const currentTurn = computed(
     () =>
@@ -36,6 +39,8 @@ export function useAgentConversations() {
   function closeStream() {
     eventSource?.close();
     eventSource = null;
+    if (observationTimer !== null) clearTimeout(observationTimer);
+    observationTimer = null;
   }
 
   function invalidate() {
@@ -115,8 +120,21 @@ export function useAgentConversations() {
     }
   }
 
-  function connectStream(turn: AgentConversationTurn, token: number) {
-    closeStream();
+  function connectStream(
+    turn: AgentConversationTurn,
+    token: number,
+    observation = { failures: 0, startedAt: Date.now() },
+  ) {
+    if (
+      observation.failures >= MAX_STREAM_ERRORS ||
+      Date.now() - observation.startedAt >= MAX_STREAM_OBSERVATION_MS
+    ) {
+      closeStream();
+      error.value = "streamFailed";
+      return;
+    }
+    eventSource?.close();
+    eventSource = null;
     const stream = new EventSource(
       agentApi.conversationEventStreamUrl(
         turn.conversationId,
@@ -129,6 +147,21 @@ export function useAgentConversations() {
     const isTurnCurrent = () =>
       token === generation && activeTurnId.value === turn.turnId;
     const isCurrent = () => isTurnCurrent() && eventSource === stream;
+    if (!observationTimer) {
+      observationTimer = setTimeout(
+        () => {
+          if (isTurnCurrent()) {
+            closeStream();
+            error.value = "streamFailed";
+          }
+          observationTimer = null;
+        },
+        Math.max(
+          0,
+          MAX_STREAM_OBSERVATION_MS - (Date.now() - observation.startedAt),
+        ),
+      );
+    }
     const close = () => {
       stream.close();
       if (eventSource === stream) eventSource = null;
@@ -138,11 +171,11 @@ export function useAgentConversations() {
       if (!isTurnCurrent() || (eventSource && eventSource !== stream)) return;
       const latest = page?.turns.find((item) => item.turnId === turn.turnId);
       if (latest && !["queued", "running"].includes(latest.status)) {
-        close();
+        closeStream();
         busy.value = false;
         activeTurnId.value = null;
       } else if (reconnect) {
-        connectStream(latest ?? turn, token);
+        connectStream(latest ?? turn, token, observation);
       }
     };
     const parse = (event: Event) => {
@@ -182,7 +215,7 @@ export function useAgentConversations() {
       if (!isCurrent()) return;
       const payload = parse(event);
       if (payload?.runId !== turn.runId) return;
-      close();
+      closeStream();
       void refreshConversation(token).finally(() => {
         if (token === generation && activeTurnId.value === turn.turnId) {
           busy.value = false;
@@ -201,7 +234,16 @@ export function useAgentConversations() {
     stream.onerror = () => {
       if (!isCurrent()) return;
       error.value = "streamFailed";
-      // EventSource reconnects transient failures; only authoritative terminal state closes it.
+      observation.failures += 1;
+      if (
+        observation.failures >= MAX_STREAM_ERRORS ||
+        Date.now() - observation.startedAt >= MAX_STREAM_OBSERVATION_MS
+      ) {
+        closeStream();
+        void refreshStatus();
+        return;
+      }
+      // EventSource may reconnect transient failures; stop it after bounded errors or time.
       void refreshStatus();
     };
   }
@@ -333,6 +375,7 @@ export function useAgentConversations() {
         .find((turn) => turn.status === "running");
       if (active) {
         activeTurnId.value = active.turnId;
+        busy.value = true;
         try {
           const recovered = await agentApi.recoverConversationTurn(
             conversationId,
@@ -344,6 +387,7 @@ export function useAgentConversations() {
             busy.value = true;
             connectStream(recovered, token);
           } else {
+            busy.value = false;
             activeTurnId.value = null;
           }
         } catch {

@@ -114,7 +114,7 @@ export default {
     unavailable: "当前环境未启用 Agent 对话功能。",
     errors: {
       requestFailed: "请求未能完成。请检查连接并重新载入此页面，确认已保存的状态。",
-      streamFailed: "实时活动流已断开。已保存的对话仍可访问。",
+      streamFailed: "实时活动流已断开，自动观察有次数和时限限制。若结果仍未确认，请重新载入核对服务端状态。",
       streamTimedOut: "实时活动流已超时。本轮可能仍在运行。",
       runReplaced: "本轮已被更新的运行替代。请重新载入对话查看当前状态。",
       submissionRequired: "请从你本人符合条件的提交记录打开对话。",

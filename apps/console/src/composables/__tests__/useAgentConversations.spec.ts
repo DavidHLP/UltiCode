@@ -168,6 +168,190 @@ describe("useAgentConversations", () => {
     scope.stop();
   });
 
+  it("stops observing after the bounded stream error retries and keeps unknown turns busy", async () => {
+    vi.useFakeTimers();
+    api.getConversation.mockResolvedValue({
+      conversation,
+      turns: [{ ...firstTurn, status: "running" }],
+      hasMore: false,
+    });
+    api.recoverConversationTurn.mockResolvedValue({
+      ...firstTurn,
+      status: "running",
+    });
+    const scope = effectScope();
+    const workspace = scope.run(() => useAgentConversations())!;
+    await workspace.openConversation(conversation.conversationId);
+    const stream = TestEventSource.instances[0];
+
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      stream.onerror?.(new Event("error"));
+      await flushPromises();
+    }
+
+    expect(stream.closed).toBe(true);
+    expect(workspace.busy.value).toBe(true);
+    expect(workspace.currentTurn.value?.turnId).toBe(firstTurn.turnId);
+    expect(api.runConversationTurn).not.toHaveBeenCalled();
+    scope.stop();
+    vi.useRealTimers();
+  });
+
+  it("closes a persistently observed stream at the total observation deadline", async () => {
+    vi.useFakeTimers();
+    api.getConversation.mockResolvedValue({
+      conversation,
+      turns: [{ ...firstTurn, status: "running" }],
+      hasMore: false,
+    });
+    api.recoverConversationTurn.mockResolvedValue({
+      ...firstTurn,
+      status: "running",
+    });
+    const scope = effectScope();
+    const workspace = scope.run(() => useAgentConversations())!;
+    await workspace.openConversation(conversation.conversationId);
+    const stream = TestEventSource.instances[0];
+
+    await vi.advanceTimersByTimeAsync(2 * 60 * 1000);
+
+    expect(stream.closed).toBe(true);
+    expect(workspace.busy.value).toBe(true);
+    expect(workspace.currentTurn.value?.turnId).toBe(firstTurn.turnId);
+    expect(api.runConversationTurn).not.toHaveBeenCalled();
+    scope.stop();
+    vi.useRealTimers();
+  });
+
+  it("closes the current reconnected stream at the original observation deadline", async () => {
+    vi.useFakeTimers();
+    api.getConversation.mockResolvedValue({
+      conversation,
+      turns: [{ ...firstTurn, status: "running" }],
+      hasMore: false,
+    });
+    api.recoverConversationTurn.mockResolvedValue({
+      ...firstTurn,
+      status: "running",
+    });
+    const scope = effectScope();
+    const workspace = scope.run(() => useAgentConversations())!;
+    await workspace.openConversation(conversation.conversationId);
+    const initial = TestEventSource.instances[0];
+    initial.listeners.get("stream_closed")?.(
+      new MessageEvent("stream_closed", {
+        data: JSON.stringify({ reason: "stream_timeout" }),
+      }),
+    );
+    await flushPromises();
+    const reconnected = TestEventSource.instances[1];
+
+    await vi.advanceTimersByTimeAsync(2 * 60 * 1000);
+
+    expect(initial.closed).toBe(true);
+    expect(reconnected.closed).toBe(true);
+    expect(workspace.busy.value).toBe(true);
+    expect(workspace.currentTurn.value?.turnId).toBe(firstTurn.turnId);
+    expect(api.runConversationTurn).not.toHaveBeenCalled();
+    scope.stop();
+    vi.useRealTimers();
+  });
+
+  it("does not reopen a stream when delayed status recovery crosses the deadline", async () => {
+    vi.useFakeTimers();
+    let resolveStatus!: (page: {
+      conversation: typeof conversation;
+      turns: Array<Omit<typeof firstTurn, "status"> & { status: string }>;
+      hasMore: boolean;
+    }) => void;
+    api.getConversation
+      .mockResolvedValueOnce({
+        conversation,
+        turns: [{ ...firstTurn, status: "running" }],
+        hasMore: false,
+      })
+      .mockReturnValueOnce(
+        new Promise((resolve) => {
+          resolveStatus = resolve;
+        }),
+      );
+    api.recoverConversationTurn.mockResolvedValue({
+      ...firstTurn,
+      status: "running",
+    });
+    const scope = effectScope();
+    const workspace = scope.run(() => useAgentConversations())!;
+    await workspace.openConversation(conversation.conversationId);
+    const initial = TestEventSource.instances[0];
+    initial.listeners.get("stream_closed")?.(
+      new MessageEvent("stream_closed", {
+        data: JSON.stringify({ reason: "stream_timeout" }),
+      }),
+    );
+    await flushPromises();
+    expect(TestEventSource.instances).toHaveLength(1);
+
+    await vi.advanceTimersByTimeAsync(2 * 60 * 1000);
+    resolveStatus({
+      conversation,
+      turns: [{ ...firstTurn, status: "running" }],
+      hasMore: false,
+    });
+    await flushPromises();
+
+    expect(TestEventSource.instances).toHaveLength(1);
+    expect(workspace.busy.value).toBe(true);
+    expect(workspace.currentTurn.value?.turnId).toBe(firstTurn.turnId);
+    expect(api.runConversationTurn).not.toHaveBeenCalled();
+    scope.stop();
+    vi.useRealTimers();
+  });
+
+  it("keeps an unrecovered running turn busy and allows explicit retry of queued turns", async () => {
+    api.getConversation.mockResolvedValue({
+      conversation,
+      turns: [{ ...firstTurn, status: "running" }],
+      hasMore: false,
+    });
+    api.recoverConversationTurn.mockRejectedValue(new Error("offline"));
+    const scope = effectScope();
+    const workspace = scope.run(() => useAgentConversations())!;
+
+    await workspace.openConversation(conversation.conversationId);
+
+    expect(workspace.error.value).toBe("requestFailed");
+    expect(workspace.busy.value).toBe(true);
+    expect(workspace.currentTurn.value?.turnId).toBe(firstTurn.turnId);
+    expect(workspace.startNewConversation("submission-1")).toBe(false);
+
+    scope.stop();
+  });
+
+  it("allows a queued turn to be explicitly retried after loading", async () => {
+    api.getConversation.mockResolvedValue({
+      conversation,
+      turns: [{ ...firstTurn, status: "queued" }],
+      hasMore: false,
+    });
+    api.runConversationTurn.mockResolvedValue({
+      ...firstTurn,
+      status: "queued",
+    });
+    const scope = effectScope();
+    const workspace = scope.run(() => useAgentConversations())!;
+
+    await workspace.openConversation(conversation.conversationId);
+    expect(workspace.busy.value).toBe(false);
+    await workspace.retryTurn({ ...firstTurn, status: "queued" }, false);
+
+    expect(api.runConversationTurn).toHaveBeenCalledWith(
+      conversation.conversationId,
+      firstTurn.turnId,
+      false,
+    );
+    scope.stop();
+  });
+
   it("reconnects a timed-out stream without resending analysis and ignores disposed streams", async () => {
     api.getConversation.mockResolvedValue({
       conversation,

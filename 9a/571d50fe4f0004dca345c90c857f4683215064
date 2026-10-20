@@ -1,0 +1,23 @@
+packages/design-system/package.json
+  s_e31048aafac494::t_a933ec140bc481 59
+pnpm-lock.yaml
+  s_e31048aafac494::t_efa7155a8d5b8f 9-11,742-744,3285-3286,3312-3314,3320-3321,3367-3368,3838-3839,4063-4064,5026-5027,6017-6018,6021,6542,8977,9099,9134,9142,9144-9148,9206,9291,9667,9970,10818,10869,12017,12019
+pnpm-workspace.yaml
+  s_e31048aafac494::t_11b5f124ad03f6 12-15
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9a571d50fe4f0004dca345c90c857f4683215064",
+  "prompts": {},
+  "sessions": {
+    "s_e31048aafac494": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ceaaf436-77f9-4a8f-ac18-9bddf9cd19ae",
+        "model": "unknown"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

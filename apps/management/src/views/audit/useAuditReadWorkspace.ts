@@ -127,19 +127,16 @@ export function useAuditReadWorkspace() {
   tryOnScopeDispose(() => auditStore.cancelStats())
 
   function setSearch(search: string): void {
-    auditStore.cancelStats()
     statsError.value = null
     table.setSearch(search)
   }
 
   function setFilters(filters: AuditFilters): Promise<void> | void {
-    auditStore.cancelStats()
     statsError.value = null
     return table.setFilters(filters)
   }
 
   function setPagination(pagination: PaginationState): Promise<void> | void {
-    auditStore.cancelStats()
     statsError.value = null
     return table.setPagination(pagination)
   }

@@ -69,7 +69,7 @@ const visiblePages = computed(() => {
       </div>
       <Badge
         variant="outline"
-        class="h-7 gap-1.5 rounded-lg bg-background px-2.5 text-[0.8rem] dark:bg-input/30"
+        class="h-7 gap-1.5 rounded-lg bg-background px-2.5 dark:bg-input/30"
       >
         <Trophy aria-hidden="true" class="size-3 text-status-warning-mark" />
         {{ t("contest.list.partner") }}

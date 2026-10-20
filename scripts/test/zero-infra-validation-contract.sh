@@ -280,8 +280,15 @@ grep -Fq 'Usage:' <<<"$invalid_output" \
   || fail "invalid mode did not print usage text"
 printf 'invalid mode contract: PASS (exit 2 + usage)\n'
 
+# System directories may already contain Node. Expose only the commands needed
+# to load the wrapper and print usage so the missing-toolchain case is portable.
+MISSING_TOOLCHAIN_BIN="$TEST_DIR/missing-toolchain-bin"
+mkdir -p "$MISSING_TOOLCHAIN_BIN"
+for command in bash dirname cat; do
+  ln -s "$(command -v "$command")" "$MISSING_TOOLCHAIN_BIN/$command"
+done
 set +e
-missing_toolchain_output="$(env PATH=/usr/bin:/bin bash "$WRAPPER" static 2>&1)"
+missing_toolchain_output="$(env PATH="$MISSING_TOOLCHAIN_BIN" bash "$WRAPPER" static 2>&1)"
 missing_toolchain_status=$?
 set -e
 [[ "$missing_toolchain_status" -eq 2 ]] \

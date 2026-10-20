@@ -76,7 +76,8 @@ export function useAgentWorkflow() {
       withCredentials: true,
     });
     eventSource = stream;
-    const current = () => isCurrent(token, value.threadId, value.runId);
+    const current = () =>
+      eventSource === stream && isCurrent(token, value.threadId, value.runId);
     const close = () => {
       stream.close();
       if (eventSource === stream) eventSource = null;
@@ -121,7 +122,7 @@ export function useAgentWorkflow() {
         generatedText.value = payload.text;
       }
     });
-    stream.addEventListener("outline", (event) => {
+    stream.addEventListener("terminal", (event) => {
       if (!current()) return;
       const payload = parse(event);
       if (payload?.runId !== value.runId) return;

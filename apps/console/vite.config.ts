@@ -49,6 +49,7 @@ export default defineConfig({
         ],
       },
       workbox: {
+        navigateFallbackDenylist: [/^\/landing(?:\/|$)/],
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         maximumFileSizeToCacheInBytes: 7 * 1024 * 1024, // 7 MB for Monaco Editor
         runtimeCaching: [

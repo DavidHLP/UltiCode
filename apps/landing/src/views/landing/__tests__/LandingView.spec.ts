@@ -1,4 +1,6 @@
 import { ref } from "vue";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { mount, shallowMount } from "@vue/test-utils";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import LandingView from "../LandingView.vue";
@@ -28,6 +30,43 @@ vi.mock("@/composables/useLocale", () => ({
 }));
 
 describe("Landing Page Component Suite", () => {
+  it("serves default social metadata before JavaScript and permits its font origins", () => {
+    const html = readFileSync(resolve(process.cwd(), "index.html"), "utf8");
+    const page = new DOMParser().parseFromString(html, "text/html");
+    const description = page
+      .querySelector('meta[name="description"]')
+      ?.getAttribute("content");
+    expect(description).toContain("UltiCode");
+    expect(
+      page.querySelector('link[rel="canonical"]')?.getAttribute("href"),
+    ).toBe("/landing/");
+    expect(
+      page.querySelector('meta[property="og:title"]')?.getAttribute("content"),
+    ).toBe(page.title);
+    expect(
+      page
+        .querySelector('meta[property="og:description"]')
+        ?.getAttribute("content"),
+    ).toBe(description);
+    const headers = readFileSync(
+      resolve(
+        process.cwd(),
+        "../../infrastructure/nginx/includes/security-headers.conf",
+      ),
+      "utf8",
+    );
+    const stylesheet = page
+      .querySelector('link[rel="stylesheet"]')
+      ?.getAttribute("href");
+    expect(headers.match(/style-src[^;]+/)?.[0]).toContain(
+      new URL(stylesheet!).origin,
+    );
+    expect(headers.match(/font-src[^;]+/)?.[0]).toContain(
+      "https://fonts.gstatic.com",
+    );
+    expect(headers.match(/script-src[^;]+/)?.[0]).not.toContain("google");
+  });
+
   beforeEach(() => {
     mockToggleLocale.mockClear();
     document.title = "";

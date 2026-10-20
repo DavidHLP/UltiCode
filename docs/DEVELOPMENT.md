@@ -107,7 +107,11 @@ Console 的入口是共享提交详情中的可收起复盘面板，用于 `/sub
 
 多轮对话的模型输入仅投影最近已完成历史；使用模型适配器的同一预算预检逐步移除最旧历史，保留当前问题、服务端事实和来源策略。没有可裁历史仍超预算时，在发送请求前拒绝，不提高额度。存档历史不因此删除。
 
+The prompt guard runs before every model decision, including decisions after tool results. Only optional conversation history is trimmed; current questions, verified facts, source policy, and accumulated tool results remain intact. If those required inputs exceed the limit, the request fails before transmission without raising the budget.
+
 对话取消先设置持久取消栅栏；`cancelled` 不保证远端模型已经停止。旧运行仍持有文件锁时，新轮次、旧轮次重试和会话删除均返回 `409`；接纳或启动另一轮前，在同一 SQLite 写事务内检查活动轮次与取消锁。锁释放后才可继续，进程退出释放锁，现有恢复流程仍适用；不增加状态或存储字段。前端遇到运行 POST 响应丢失时保留观察，包括暂时读到 `queued`；只有重新读取确认终态或收到终态事件才清理，不自动重发分析。SSE 瞬时断线保留浏览器重连，服务端流超时后读回状态并重建观察；同一观察累计最多 5 次错误、总时限 2 分钟，耗尽后停止自动观察但不推断成功或失败，保留忙碌栅栏并通过“重新载入”核对原轮次。打开运行中会话时，恢复查询失败同样保留忙碌栅栏；切换会话或卸载时停止旧观察。
+
+Queued turns expose an explicit cancel action, allowing recovery of legacy conversations with multiple queued turns without deleting history. Both database activity checks and execution-lock conflicts return HTTP 409 with `turn_active`. A `conversation_deleted` stream closure clears the selection and stops observation; `stream_timeout` and `run_replaced` still reload canonical state. Both Agent SSE consumers listen for `terminal` events.
 
 只读模型工具循环仍由 `agent_service.graph` 实现，`agent_loop.run_tool_loop(...)` 作为兼容入口；不允许模型选择身份、工作流节点或任意写工具。`max_rounds` 限制模型决策次数，包含最终回答；最后一次决策仍可直接回答，但若继续请求工具则在执行前停止，不增加模型调用额度，也不执行无法交回模型的工具。可选 MCP 只读工具桥通过 `ULTICODE_AGENT_MCP_TOOLS=1` 开启，不改变访问范围，详见 [Agent guide](../services/agent/README.md#optional-mcp-read-only-bridge)。
 
@@ -158,13 +162,15 @@ pnpm --dir packages/auth-core test:coverage
 
 Landing 生产构建使用 `/landing/` 为基础路径，平台链接默认使用同源 Console。若 Landing 与 OJ 平台部署在不同主机，设置 `VITE_PLATFORM_URL` 为 HTTP(S) origin。
 
+The Console service worker excludes `/landing` and `/landing/` from its navigation fallback. Landing serves default description, canonical and Open Graph tags in its initial HTML; the locale watcher updates interactive metadata. Production CSP allows Google Fonts styles from `fonts.googleapis.com` and font files from `fonts.gstatic.com`.
+
 前端只有一个根 `pnpm-lock.yaml`（成员 lock 已删除），所以 `.github/dependabot.yml` 的 npm 只有一个
 `directory: "/"` 的 block。pnpm workspace 只能从根更新：成员目录下 Dependabot 从父目录取回的根 lock 会被
 dependabot-core 当作 support file 丢弃，PR 只改 manifest，必然过不了 CI 的五处
 `pnpm install --frozen-lockfile`，update job 还会按成员 manifest 报 `misconfigured_tooling`。
 这个根 block 同时覆盖 `packages/*` 与根 manifest。
 根 `package.json`、`pnpm-lock.yaml` 或 `pnpm-workspace.yaml` 变化会触发 Console、Management、Landing
-以及 Docker CI 门禁，覆盖独立 Landing 与其镜像安装验证。
+以及 Docker CI 门禁，覆盖独立 Landing 与其镜像安装验证。 Shared `packages/**` and `shared/**` changes also trigger all three frontend applications, including Landing.
 
 ### Web v2 前端升级基线
 

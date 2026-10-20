@@ -85,18 +85,21 @@ describe("RegisterForm", () => {
     });
   });
 
-  it("omits name from the payload when the Name field is empty", async () => {
+  it("allows native submission with both optional fields empty", async () => {
     const onSubmit = vi.fn().mockResolvedValue(undefined);
     const wrapper = mount(RegisterForm, { props: { onSubmit } });
     // fillStandardForm fills Name with default "Alice Doe"; override
     // to empty string to test the empty-name omission path.
-    await fillStandardForm(wrapper, { name: "" });
+    await fillStandardForm(wrapper, { name: "", email: "" });
     const inputs = wrapper.findAll("input");
     await inputs[1].setValue(""); // explicitly clear the Name input
-    await wrapper.find("form").trigger("submit");
+    const form = wrapper.get("form").element;
+    expect(form.checkValidity()).toBe(true);
+    form.requestSubmit();
     await flushPromises();
     const payload = onSubmit.mock.calls[0][0];
     expect(payload).not.toHaveProperty("name");
+    expect(payload).not.toHaveProperty("email");
   });
 
   it("includes name in the payload when the Name field is filled", async () => {

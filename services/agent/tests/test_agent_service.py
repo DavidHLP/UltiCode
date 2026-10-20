@@ -1696,7 +1696,8 @@ def test_authorization_outage_allows_explicit_save_recovery(tmp_path, monkeypatc
 
 @pytest.mark.parametrize("unit", ["ascii", "cjk", "emoji"])
 def test_conversation_prompt_trims_history_using_deepseek_budget(unit):
-    from agent_service.app import _conversation_prompt
+    from agent_service.app import _ConversationModel
+    from agent_service.graph import run_readonly_graph
 
     symbols = {"ascii": "x", "cjk": "界", "emoji": "🙂"}
     history = [
@@ -1706,32 +1707,40 @@ def test_conversation_prompt_trims_history_using_deepseek_budget(unit):
     captured = []
 
     async def handler(request):
-        captured.append(request)
+        captured.append(json.loads(request.content))
+        decision = ({"tool": "search_evidence", "args": {"query": "boundary"}}
+                    if len(captured) < 3 else {"answer": "ok"})
         return httpx.Response(200, json={
-            "choices": [{"message": {"content": '{"answer":"ok"}'}}],
+            "choices": [{"message": {"content": json.dumps(decision)}}],
         })
+
+    async def search(_arguments):
+        return {"hits": [{"text": "e" * 2000}]}
 
     async def scenario():
         async with DeepseekModel(
-            "test-key", tool_specs={}, max_prompt_tokens=12_000,
-            transport=httpx.MockTransport(handler),
+            "test-key", tool_specs={"search_evidence": "Search bounded evidence"},
+            max_prompt_tokens=12_000, transport=httpx.MockTransport(handler),
         ) as model:
-            prompt = _conversation_prompt(
-                "current question", {"status": "Accepted", "private": "ignored"},
-                history, True, budget_check=model.check_prompt_budget,
+            conversation_model = _ConversationModel(
+                model, "current question", {"status": "Accepted", "private": "ignored"}, history, True,
             )
-            model.check_prompt_budget([{"role": "user", "content": prompt}])
-            await model.decide([{"role": "user", "content": prompt}])
+            result = await run_readonly_graph(
+                conversation_model, {"search_evidence": search}, conversation_model.prompt([]),
+            )
+            assert result.answer == "ok"
+            assert result.rounds == 3
 
     asyncio.run(scenario())
-    assert len(captured) == 1
-    request = json.loads(captured[0].content)
-    sent_prompt = request["messages"][-1]["content"]
-    assert "current question" in sent_prompt
-    assert '"status":"Accepted"' in sent_prompt
-    assert "The user authorized current submission source" in sent_prompt
-    assert "old-11" in sent_prompt
-    assert '"question":"old-0"' not in sent_prompt
+    assert len(captured) == 3
+    prompts = [request["messages"][1]["content"] for request in captured]
+    for prompt in prompts:
+        assert "current question" in prompt
+        assert '\"status\":\"Accepted\"' in prompt
+        assert "The user authorized current submission source" in prompt
+        assert "old-11" in prompt
+    assert prompts[-1].count('\"question\":\"old-') < prompts[0].count('\"question\":\"old-')
+    assert captured[-1]["messages"][-1]["content"].startswith("TOOL_RESULT:")
 
 
 def test_conversation_prompt_fails_closed_when_current_question_exceeds_real_budget():
@@ -2099,5 +2108,47 @@ def test_owner_source_is_consent_scoped_and_never_persisted(tmp_path, monkeypatc
                     continue
                 for row in db.execute(f"SELECT * FROM {table}"):
                     assert marker not in repr(tuple(row))
+
+    asyncio.run(with_client(app, scenario))
+
+
+@pytest.mark.parametrize("legacy_status", ["queued", "failed"])
+def test_duplicate_queued_conversation_can_cancel_one_and_run_the_other(tmp_path, legacy_status):
+    class Model:
+        async def decide(self, _messages):
+            return ModelDecision(text=json.dumps({"text": "Review boundary cases", "citations": []}))
+
+    app = create_app(
+        state_path=tmp_path / "legacy-queued.sqlite3", client_factory=SessionClient,
+        offline_model_factory=lambda: (Model(), {}),
+    )
+    conversation_id = str(uuid.uuid4())
+
+    async def scenario(client):
+        created = await client.post("/agent/conversations", headers=HEADERS, json={
+            "conversationId": conversation_id, "sourceSubmissionId": str(uuid.uuid4()),
+            "clientTurnId": str(uuid.uuid4()), "question": "Review boundary cases",
+        })
+        first = created.json()["data"]["turn"]
+        first_url = f"/agent/conversations/{conversation_id}/turns/{first['turnId']}"
+        assert (await client.post(first_url + "/cancel", headers=HEADERS, json={})).status_code == 200
+        second_response = await client.post(f"/agent/conversations/{conversation_id}/turns", headers=HEADERS,
+            json={"clientTurnId": str(uuid.uuid4()), "question": "Explain the result"})
+        second = second_response.json()["data"]
+        # Reproduce a pre-upgrade retry/crash snapshot without weakening admission.
+        with app.state.store._connect() as db:
+            db.execute("UPDATE conversation_turns SET status=?,cancel_requested=0 WHERE turn_id=?",
+                       (legacy_status, first["turnId"]))
+        blocked = await client.post(first_url + "/run", headers=HEADERS, json={"sourceConsent": False})
+        assert blocked.status_code == 409
+        assert blocked.json()["data"]["reason"] == "turn_active"
+        cancelled = await client.post(
+            f"/agent/conversations/{conversation_id}/turns/{second['turnId']}/cancel", headers=HEADERS, json={})
+        assert cancelled.json()["data"]["status"] == "cancelled"
+        resumed = await client.post(first_url + "/run", headers=HEADERS, json={"sourceConsent": False})
+        assert resumed.status_code == 200
+        assert resumed.json()["data"]["status"] == "completed"
+        history = (await client.get(f"/agent/conversations/{conversation_id}", headers=HEADERS)).json()["data"]
+        assert [turn["status"] for turn in history["turns"]] == ["completed", "cancelled"]
 
     asyncio.run(with_client(app, scenario))

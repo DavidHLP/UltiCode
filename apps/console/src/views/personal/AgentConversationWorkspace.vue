@@ -562,6 +562,14 @@ function formatDate(value: string) {
                 class="text-muted-foreground"
               >
                 {{ t("agent.workspace.queued") }}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  :disabled="workspace.canceling.value"
+                  @click="workspace.cancelTurn(turn)"
+                >
+                  {{ t("agent.workspace.cancelTurn") }}
+                </Button>
               </p>
               <p
                 v-else-if="turn.status === 'failed'"

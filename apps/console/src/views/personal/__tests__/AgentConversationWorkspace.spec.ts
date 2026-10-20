@@ -102,7 +102,7 @@ describe("AgentConversationWorkspace", () => {
     wrapper.unmount();
   });
 
-  it("renders stored answers through the shared Markdown sanitizer", async () => {
+  it("renders stored answers safely and exposes cancellation for queued turns", async () => {
     const state = mocks.workspace as ReturnType<typeof createWorkspace>;
     state.openConversation.mockImplementation(async () => {
       state.conversation.value = {
@@ -147,6 +147,13 @@ describe("AgentConversationWorkspace", () => {
       "<script",
     );
     expect(state.openConversation).toHaveBeenCalledWith(conversationId);
+    state.turns.value[0].answer = null;
+    state.turns.value[0].status = "queued";
+    await flushPromises();
+    const cancel = wrapper.findAll("button").find((button) => button.text() === "agent.workspace.cancelTurn");
+    expect(cancel).toBeDefined();
+    await cancel!.trigger("click");
+    expect(state.cancelTurn).toHaveBeenCalledWith(state.turns.value[0]);
     wrapper.unmount();
   });
 

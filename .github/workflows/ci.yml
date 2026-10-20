@@ -80,6 +80,8 @@ jobs:
               - 'pnpm-lock.yaml'
               - 'pnpm-workspace.yaml'
               - 'apps/landing/**'
+              - 'packages/**'
+              - 'shared/**'
               - '.github/workflows/ci.yml'
               - '.github/workflows/_frontend.yml'
             management:

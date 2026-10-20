@@ -228,6 +228,20 @@ export function useAgentConversations() {
       const payload = parse(event);
       close();
       if (payload?.reason === "stream_timeout") error.value = "streamTimedOut";
+      if (payload?.reason === "conversation_deleted") {
+        invalidate();
+        activeTurnId.value = null;
+        conversations.value = conversations.value.filter(
+          (item) => item.conversationId !== turn.conversationId,
+        );
+        conversation.value = null;
+        sourceSubmissionId.value = "";
+        turns.value = [];
+        events.value = [];
+        hasMoreTurns.value = false;
+        error.value = "";
+        return;
+      }
       if (payload?.reason === "run_replaced") error.value = "runReplaced";
       void refreshStatus(true);
     });
@@ -436,21 +450,26 @@ export function useAgentConversations() {
     await runTurn(turn, sourceConsent);
   }
 
-  async function cancelTurn() {
-    const current = currentTurn.value;
-    if (!current || canceling.value) return;
+  async function cancelTurn(current = currentTurn.value) {
+    if (
+      !current ||
+      canceling.value ||
+      current.conversationId !== conversation.value?.conversationId ||
+      !["queued", "running"].includes(current.status)
+    )
+      return;
+    const token = generation;
     canceling.value = true;
     try {
-      upsertTurn(
-        await agentApi.cancelConversationTurn(
-          current.conversationId,
-          current.turnId,
-        ),
+      const cancelled = await agentApi.cancelConversationTurn(
+        current.conversationId,
+        current.turnId,
       );
+      if (token === generation) upsertTurn(cancelled);
     } catch {
-      error.value = "requestFailed";
+      if (token === generation) error.value = "requestFailed";
     } finally {
-      canceling.value = false;
+      if (token === generation) canceling.value = false;
     }
   }
 

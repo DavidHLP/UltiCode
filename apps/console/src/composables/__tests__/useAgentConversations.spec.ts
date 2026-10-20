@@ -65,6 +65,70 @@ class TestEventSource {
 }
 
 describe("useAgentConversations", () => {
+  it("clears a deleted conversation without refreshing or reconnecting its stream", async () => {
+    const running = { ...firstTurn, status: "running" };
+    api.getConversation.mockResolvedValue({
+      conversation,
+      turns: [running],
+      hasMore: false,
+    });
+    api.recoverConversationTurn.mockResolvedValue(running);
+    const scope = effectScope();
+    const workspace = scope.run(() => useAgentConversations())!;
+    await workspace.openConversation(conversation.conversationId);
+    const stream = TestEventSource.instances[0];
+    stream.listeners.get("stream_closed")?.(
+      new MessageEvent("stream_closed", {
+        data: JSON.stringify({ reason: "conversation_deleted" }),
+      }),
+    );
+    stream.onerror?.(new Event("error"));
+    await flushPromises();
+    expect(stream.closed).toBe(true);
+    expect(TestEventSource.instances).toHaveLength(1);
+    expect(api.getConversation).toHaveBeenCalledTimes(1);
+    expect(workspace.conversation.value).toBeNull();
+    expect(workspace.currentTurn.value).toBeNull();
+    expect(workspace.busy.value).toBe(false);
+    expect(workspace.turns.value).toEqual([]);
+    expect(workspace.sourceSubmissionId.value).toBe("");
+    expect(workspace.error.value).toBe("");
+    scope.stop();
+  });
+
+  it("allows cancelling a selected legacy queued turn before retrying another", async () => {
+    const second = { ...firstTurn, turnId: "turn-2", turnIndex: 2 };
+    api.getConversation.mockResolvedValue({
+      conversation,
+      turns: [firstTurn, second],
+      hasMore: false,
+    });
+    api.cancelConversationTurn.mockResolvedValue({
+      ...second,
+      status: "cancelled",
+    });
+    api.runConversationTurn.mockResolvedValue({
+      ...firstTurn,
+      status: "completed",
+    });
+    const scope = effectScope();
+    const workspace = scope.run(() => useAgentConversations())!;
+    await workspace.openConversation(conversation.conversationId);
+    await workspace.cancelTurn(second);
+    expect(api.cancelConversationTurn).toHaveBeenCalledWith(
+      conversation.conversationId,
+      second.turnId,
+    );
+    expect(workspace.turns.value[1].status).toBe("cancelled");
+    await workspace.retryTurn(firstTurn, false);
+    expect(api.runConversationTurn).toHaveBeenCalledWith(
+      conversation.conversationId,
+      firstTurn.turnId,
+      false,
+    );
+    scope.stop();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     TestEventSource.instances = [];

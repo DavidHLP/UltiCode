@@ -176,8 +176,13 @@ describe('useAuditReadWorkspace', () => {
     await vi.advanceTimersByTimeAsync(500)
     expect(store.fetchStats).toHaveBeenCalledTimes(2)
 
-    scope.stop()
+    workspace.setSearch('pending search')
+    await vi.advanceTimersByTimeAsync(100)
     expect(store.cancelStats).toHaveBeenCalledTimes(2)
+    scope.stop()
+    expect(store.cancelStats).toHaveBeenCalledTimes(3)
+    await vi.advanceTimersByTimeAsync(500)
+    expect(store.fetchStats).toHaveBeenCalledTimes(2)
   })
 
   it('refreshes logs and statistics with the current normalized query', async () => {

@@ -1,0 +1,30 @@
+services/agent/tests/test_agent_service.py
+  s_d2243210ef2900::t_6a73bff7dc7be0 1193-1195,1215-1218,1233
+apps/console/src/composables/useAgentConversations.ts
+  s_d2243210ef2900::t_6a73bff7dc7be0 468-478
+apps/management/src/views/users/UserDetailDrawer.vue
+  s_d2243210ef2900::t_6a73bff7dc7be0 351
+services/agent/src/agent_service/app.py
+  s_d2243210ef2900::t_6a73bff7dc7be0 271-282
+apps/console/src/composables/__tests__/useAgentConversations.spec.ts
+  s_d2243210ef2900::t_0cbff6475836c2 283,609,634-636
+  s_d2243210ef2900::t_9d0266d7acb063 132-134,140,145-154
+  s_d2243210ef2900::t_23f4205fc7b92c 135-139,141-144,258-282,285-301
+  s_d2243210ef2900::t_c3cd9b14eb0bd9 284
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "904a0c273a4f110ebf26e8cd36f6a94999abb12c",
+  "prompts": {},
+  "sessions": {
+    "s_d2243210ef2900": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a15826-f753-7950-b0ea-cd98fee94ea7",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

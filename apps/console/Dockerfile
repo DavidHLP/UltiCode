@@ -24,8 +24,9 @@ RUN mkdir -p /app/node_modules/@ulticode && \
 # Build application
 WORKDIR /app/apps/console
 ARG VITE_API_BASE_URL=/api
+ARG VITE_PLATFORM_URL
 ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
-RUN pnpm build && VITE_LANDING_BASE=/landing/ pnpm --dir ../landing build
+RUN pnpm build && VITE_PLATFORM_URL="${VITE_PLATFORM_URL}" VITE_LANDING_BASE=/landing/ pnpm --dir ../landing build
 
 # Production stage - nginx
 FROM nginx:alpine@sha256:db35bfc6b2951e7f8a72db5db120288c127ffaeeb4a6d4b95a26fead017d5913 AS production

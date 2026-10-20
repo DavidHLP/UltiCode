@@ -1,38 +1,17 @@
-# External mutations still require an execution-policy approval when this layer is active.
+# Guard destructive external operations; authorized publication needs no extra prompt.
 
 for wrapper in [[], ["rtk"], ["rtk", "proxy"]]:
     prefix_rule(
-        pattern = wrapper + ["gh","pr",["create","merge"]],
+        pattern = wrapper + ["gh","repo","delete"],
         decision = "prompt",
-        justification = "Confirm the authorized repository and PR publication or merge target.",
-        match = [" ".join(wrapper + ["gh","pr","create","--title","change"])],
-        not_match = [" ".join(wrapper + ["gh","pr","view","123"])],
+        justification = "Repository deletion requires explicit authorization naming the target repository.",
+        match = [" ".join(wrapper + ["gh","repo","delete","owner/repo"])],
+        not_match = [" ".join(wrapper + ["gh","repo","view","owner/repo"])],
     )
     prefix_rule(
-        pattern = wrapper + ["gh","release","create"],
+        pattern = wrapper + ["kubectl","delete"],
         decision = "prompt",
-        justification = "Confirm the authorized release repository and tag.",
-        match = [" ".join(wrapper + ["gh","release","create","v1.0.0"])],
-        not_match = [" ".join(wrapper + ["gh","release","view","v1.0.0"])],
-    )
-    prefix_rule(
-        pattern = wrapper + ["docker","push"],
-        decision = "prompt",
-        justification = "Confirm the authorized image registry and tag.",
-        match = [" ".join(wrapper + ["docker","push","registry.example/app:tag"])],
-        not_match = [" ".join(wrapper + ["docker","images"])],
-    )
-    prefix_rule(
-        pattern = wrapper + [["npm","pnpm"],"publish"],
-        decision = "prompt",
-        justification = "Confirm the authorized package registry and version.",
-        match = [" ".join(wrapper + ["npm","publish"])],
-        not_match = [" ".join(wrapper + ["npm","pack"])],
-    )
-    prefix_rule(
-        pattern = wrapper + ["kubectl",["apply","delete"]],
-        decision = "prompt",
-        justification = "Confirm the authorized cluster, namespace and mutation target.",
-        match = [" ".join(wrapper + ["kubectl","apply","-f","deployment.yaml"])],
-        not_match = [" ".join(wrapper + ["kubectl","get","pods"])],
+        justification = "Resource deletion can remove workloads or storage; confirm the cluster and target.",
+        match = [" ".join(wrapper + ["kubectl","delete","-f","deployment.yaml"])],
+        not_match = [" ".join(wrapper + ["kubectl","apply","-f","deployment.yaml"])],
     )

@@ -6,6 +6,29 @@ import {
   slugifyHeading,
 } from '../index'
 
+describe('renderMarkdown code fences', () => {
+  it('makes standalone and grouped code blocks keyboard accessible and sanitizes content', () => {
+    const html = renderMarkdown(
+      '```text\n<img src=x onerror=alert(1)>\n```',
+    )
+    expect(html).toMatch(/<code\b[^>]*\btabindex="0"/)
+    expect(html).toContain('&lt;img src=x onerror=alert(1)&gt;')
+    expect(html).not.toMatch(/<img[\s>]/i)
+
+    const groupedHtml = renderMarkdown(
+      [
+        '```js {group="solution"}',
+        'const total = 1',
+        '```',
+        '```ts {group="solution"}',
+        'const total: number = 1',
+        '```',
+      ].join('\n'),
+    )
+    expect(groupedHtml.match(/<code\b[^>]*\btabindex="0"/g)).toHaveLength(2)
+  })
+})
+
 describe('renderMarkdown tables', () => {
   it('makes tables horizontally scrollable and keyboard accessible', () => {
     const html = renderMarkdown(

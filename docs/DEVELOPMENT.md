@@ -160,7 +160,7 @@ pnpm --dir packages/auth-core type-check
 pnpm --dir packages/auth-core test:coverage
 ```
 
-Landing 生产构建使用 `/landing/` 为基础路径，平台链接默认使用同源 Console。若 Landing 与 OJ 平台部署在不同主机，设置 `VITE_PLATFORM_URL` 为 HTTP(S) origin。
+Landing 生产构建使用 `/landing/` 为基础路径，平台链接默认使用同源 Console。若 Landing 与 OJ 平台部署在不同主机，容器构建需设置 `VITE_PLATFORM_URL` Docker build arg 为 HTTP(S) origin；镜像发布工作流读取同名仓库变量。
 
 The Console service worker excludes `/landing` and `/landing/` from its navigation fallback. Landing serves default description, canonical and Open Graph tags in its initial HTML; the locale watcher updates interactive metadata. Production CSP allows Google Fonts styles from `fonts.googleapis.com` and font files from `fonts.gstatic.com`.
 
@@ -577,7 +577,7 @@ Claude 使用 `paths`；OMP 扩展使用 `globs`，其 `paths` 字段当前不�
 
 Codex 前缀规则只能识别已列出的参数排列，无法覆盖任意脚本、包装器、绝对路径或选项位置。未命中不代表授权或安全；不要通过改写命令绕过审批。普通本地操作不额外设置 `prompt`，也不添加宽泛的 `allow`。
 
-外部发布、数据删除等保留窄范围 `prompt`。它可能在用户已授权后仍要求工具层批准；agent 不再额外重复询问。项目策略是否加载和生效取决于可信配置层、启动加载及当前执行模式，不能把它当作完整沙箱或秘密扫描器。
+已授权的推送、PR 创建/合并、发布、部署、缓存清理和权限修改不额外设置 `prompt`；丢弃本地改动、删除持久化数据、修改迁移历史、删除仓库或集群资源仍保留窄范围 `prompt`，直接输出 `.env` 仍为 `forbidden`。保留的 `prompt` 可能在用户已授权后仍要求工具层批准；agent 不再额外重复询问。修改 `.codex/rules` 后需重启 Codex 重新加载；项目策略是否生效取决于可信配置层、启动加载及当前执行模式，不能把它当作完整沙箱或秘密扫描器。
 
 ### 维护与检查
 

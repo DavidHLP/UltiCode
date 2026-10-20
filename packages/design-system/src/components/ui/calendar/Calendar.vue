@@ -232,7 +232,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
                 :month="month.value"
                 :class="
                   props.completedDates?.includes(weekDate.toString())
-                    ? 'bg-status-warning-surface text-foreground-strong border border-[var(--status-warning-mark)] font-bold hover:bg-status-warning-surface/80'
+                    ? 'bg-status-warning-surface text-foreground border border-status-warning-mark/45 font-bold hover:bg-status-warning-surface/80'
                     : ''
                 "
               />

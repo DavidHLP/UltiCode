@@ -21,16 +21,16 @@ const problem = {
 };
 
 describe("fetchProblemListOverview", () => {
-  it("rejects detail items without category slugs", async () => {
+  it("defaults missing category slugs on detail items", async () => {
     vi.mocked(apiGet).mockResolvedValueOnce({
       id: "list-1",
       name: "Essentials",
       problems: [problem],
     });
 
-    await expect(fetchProblemListOverview("list-1")).rejects.toThrow(
-      "categorySlugs",
-    );
+    const result = await fetchProblemListOverview("list-1");
+
+    expect(result.problems[0]?.categorySlugs).toEqual([]);
   });
 
   it("preserves category slugs on detail items", async () => {

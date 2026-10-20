@@ -214,7 +214,7 @@ export function useAgentConversations() {
     stream.addEventListener("terminal", (event) => {
       if (!isCurrent()) return;
       const payload = parse(event);
-      if (payload?.runId !== turn.runId) return;
+      if (payload?.runId && payload.runId !== turn.runId) return;
       closeStream();
       void refreshConversation(token).finally(() => {
         if (token === generation && activeTurnId.value === turn.turnId) {

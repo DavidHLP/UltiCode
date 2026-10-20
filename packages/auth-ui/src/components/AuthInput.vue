@@ -41,6 +41,7 @@ const inputId = computed(() => props.id || `auth-input-${autoId}`);
       :placeholder="placeholder"
       :disabled="disabled"
       :autocomplete="autocomplete"
+      class="scroll-mb-2"
       :aria-invalid="!!error"
       :aria-describedby="error ? `${inputId}-error` : undefined"
       @update:model-value="emit('update:modelValue', String($event))"

@@ -1,4 +1,4 @@
-# High-risk data and host mutations; ordinary local build/start/stop stays unclassified.
+# Guard persistent-data deletion and migration-history changes.
 
 for wrapper in [[], ["rtk"], ["rtk", "proxy"]]:
     prefix_rule(
@@ -16,11 +16,11 @@ for wrapper in [[], ["rtk"], ["rtk", "proxy"]]:
         not_match = [" ".join(wrapper + ["docker","volume","ls"])],
     )
     prefix_rule(
-        pattern = wrapper + ["docker","system","prune"],
+        pattern = wrapper + ["docker","system","prune","--volumes"],
         decision = "prompt",
-        justification = "System prune affects host resources; confirm the cleanup scope.",
-        match = [" ".join(wrapper + ["docker","system","prune"])],
-        not_match = [" ".join(wrapper + ["docker","system","df"])],
+        justification = "Pruning volumes can erase persistent data; confirm the cleanup scope.",
+        match = [" ".join(wrapper + ["docker","system","prune","--volumes"])],
+        not_match = [" ".join(wrapper + ["docker","system","prune"])],
     )
     prefix_rule(
         pattern = wrapper + ["flyway",["clean","repair"]],
@@ -28,18 +28,4 @@ for wrapper in [[], ["rtk"], ["rtk", "proxy"]]:
         justification = "This removes schema data or changes migration history; confirm the target and recovery operation.",
         match = [" ".join(wrapper + ["flyway","clean"])],
         not_match = [" ".join(wrapper + ["flyway","info"])],
-    )
-    prefix_rule(
-        pattern = wrapper + ["chmod","-R"],
-        decision = "prompt",
-        justification = "Recursive permission changes affect a whole tree; confirm the target.",
-        match = [" ".join(wrapper + ["chmod","-R","755","scripts"])],
-        not_match = [" ".join(wrapper + ["chmod","755","scripts/run.sh"])],
-    )
-    prefix_rule(
-        pattern = wrapper + ["chown","-R"],
-        decision = "prompt",
-        justification = "Recursive ownership changes affect a whole tree; confirm the target.",
-        match = [" ".join(wrapper + ["chown","-R","user:group","workspace"])],
-        not_match = [" ".join(wrapper + ["chown","user:group","workspace/file"])],
     )

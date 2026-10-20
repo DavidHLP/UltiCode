@@ -59,6 +59,10 @@ class TestEventSource {
     this.listeners.set(type, listener);
   }
 
+  emit(type: string, payload: Record<string, unknown>) {
+    this.listeners.get(type)?.(new MessageEvent(type, { data: JSON.stringify(payload) }));
+  }
+
   close() {
     this.closed = true;
   }
@@ -537,6 +541,28 @@ describe("useAgentConversations", () => {
     expect(TestEventSource.instances[1].closed).toBe(false);
     resolveSecond({ ...second, status: "queued" });
     await secondRequest;
+    scope.stop();
+  });
+
+  it("refreshes and settles a recovered turn on terminal without a run id", async () => {
+    const runningTurn = { ...firstTurn, status: "running" as const };
+    const completedTurn = { ...firstTurn, status: "completed" as const, answer: "Done" };
+    api.getConversation
+      .mockResolvedValueOnce({ conversation, turns: [runningTurn], hasMore: false })
+      .mockResolvedValueOnce({ conversation, turns: [completedTurn], hasMore: false });
+    api.recoverConversationTurn.mockResolvedValue({ ...firstTurn, status: "running" });
+
+    const scope = effectScope();
+    const workspace = scope.run(() => useAgentConversations())!;
+    await workspace.openConversation(conversation.conversationId);
+    const stream = TestEventSource.instances[0];
+    stream.emit("terminal", { status: "completed", seq: 3, reason: "completed", cancelRequested: false });
+
+    await vi.waitFor(() => {
+      expect(workspace.turns.value[0]?.status).toBe("completed");
+      expect(workspace.busy.value).toBe(false);
+    });
+    expect(stream.closed).toBe(true);
     scope.stop();
   });
 

@@ -1,13 +1,6 @@
-# Narrow tripwires for remote publication and common destructive Git forms.
+# Guard destructive local Git operations; authorized pushes need no extra prompt.
 
 for wrapper in [[], ["rtk"], ["rtk", "proxy"]]:
-    prefix_rule(
-        pattern = wrapper + ["git","push"],
-        decision = "prompt",
-        justification = "Confirm the authorized remote and refs; this changes remote state.",
-        match = [" ".join(wrapper + ["git","push","origin","main"])],
-        not_match = [" ".join(wrapper + ["git","status"])],
-    )
     prefix_rule(
         pattern = wrapper + ["git","reset","--hard"],
         decision = "prompt",

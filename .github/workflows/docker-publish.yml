@@ -95,6 +95,7 @@ jobs:
             INSTALL_DOCKER_CLI=${{ matrix.service.install_docker_cli || false }}
             SERVICE_HEALTHCHECK=${{ matrix.service.healthcheck || true }}
             SERVICE_VERSION=${{ steps.svcver.outputs.version }}
+            VITE_PLATFORM_URL=${{ vars.VITE_PLATFORM_URL }}
           sbom: true
           provenance: mode=max,version=v0.2
           cache-from: type=gha,scope=publish-${{ matrix.service.name }}

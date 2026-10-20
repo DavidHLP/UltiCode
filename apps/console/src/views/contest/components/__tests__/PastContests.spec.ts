@@ -1,4 +1,4 @@
-import { mount } from "@vue/test-utils";
+import { mount, RouterLinkStub } from "@vue/test-utils";
 import { describe, expect, it, vi } from "vitest";
 import PastContests from "../PastContests.vue";
 import en from "@/i18n/locales/en-US/contest";
@@ -9,10 +9,6 @@ import {
   type ContestListItem,
 } from "@/types/contest";
 
-vi.mock("vue-router", () => ({
-  useRouter: () => ({ push: vi.fn() }),
-}));
-
 vi.mock("vue-i18n", () => ({
   useI18n: () => ({ t: (key: string) => key }),
 }));
@@ -22,7 +18,24 @@ vi.mock("@/i18n/utils/locale", () => ({
 }));
 
 describe("PastContests", () => {
-  it("retains the complete localized date instead of splitting at a space", () => {
+  it("renders the contest partner marker without interactive affordances", () => {
+    const wrapper = mount(PastContests, {
+      props: {
+        contests: [],
+        loading: false,
+        currentPage: 1,
+        totalPages: 1,
+      },
+    });
+    const partner = wrapper.get('[data-slot="badge"]');
+
+    expect(partner.text()).toBe("contest.list.partner");
+    expect(partner.element.tagName.toLowerCase()).not.toBe("button");
+    expect(partner.attributes("tabindex")).toBeUndefined();
+    expect(partner.classes()).not.toContain("cursor-pointer");
+  });
+
+  it("retains the complete date and provides keyboard-accessible contest links", () => {
     const contest: ContestListItem = {
       id: "past-1",
       slug: "past-1",
@@ -53,8 +66,16 @@ describe("PastContests", () => {
         currentPage: 1,
         totalPages: 1,
       },
+      global: { stubs: { RouterLink: RouterLinkStub } },
     });
     expect(wrapper.text()).toContain("Sep 3, 2026");
+    const card = wrapper.getComponent(RouterLinkStub);
+    expect(card.props("to")).toEqual({
+      name: "contest-detail",
+      params: { slug: "past-1" },
+    });
+    expect(card.attributes("aria-label")).toBe("Past contest");
+    expect(card.get('[data-slot="button"]').element.tagName).toBe("SPAN");
   });
 
   it("localizes the table headers and bounds an empty pager", () => {

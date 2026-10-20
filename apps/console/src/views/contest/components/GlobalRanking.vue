@@ -56,7 +56,7 @@ const rankingInitials = (ranking: GlobalRankingEntry): string => {
             {{ t("contest.ranking.title") }}
           </h2>
           <span
-            class="text-xs font-mono text-muted-foreground border border-border bg-muted/50 px-2 py-0.5 rounded-lg cursor-pointer hover:bg-muted transition-colors"
+            class="text-xs font-mono text-muted-foreground border border-border bg-muted/50 px-2 py-0.5 rounded-lg"
             >{{
               t(
                 scope === "local"

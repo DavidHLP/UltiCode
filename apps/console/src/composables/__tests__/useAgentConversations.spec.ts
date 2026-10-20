@@ -92,7 +92,7 @@ describe("useAgentConversations", () => {
     stream.emit("terminal", { status: "completed", seq: 3, reason: "completed", cancelRequested: false });
 
     await vi.waitFor(() => {
-      expect(workspace.currentTurn.value?.status).toBe("completed");
+      expect(workspace.turns.value[0]?.status).toBe("completed");
       expect(workspace.busy.value).toBe(false);
     });
     expect(stream.closed).toBe(true);

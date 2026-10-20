@@ -1,0 +1,49 @@
+docs/DEVELOPMENT.md
+  s_e7393c558bfadd::t_e7c9a00e811ced 110
+apps/console/src/i18n/locales/zh-CN/agent.ts
+  s_e7393c558bfadd::t_da0a16adf3c423 117
+apps/console/src/composables/useAgentConversations.ts
+  s_e7393c558bfadd::t_184c78e0a39659 178
+  s_e7393c558bfadd::t_9b7bbaaaddece5 218
+  s_e7393c558bfadd::t_150ba183d895ee 128-135
+  s_e7393c558bfadd::t_34be52402adba6 42
+  s_e7393c558bfadd::t_5e56f7cbd05e84 390
+  s_e7393c558bfadd::t_9a5f1a993ac43f 11-12
+  s_e7393c558bfadd::t_524b18337acf77 32
+  s_e7393c558bfadd::t_9c59ed6423e9b5 43
+  s_e7393c558bfadd::t_293869771b3e23 150,164
+  s_e7393c558bfadd::t_f88cf8be92c449 123-127,136-137
+  s_e7393c558bfadd::t_3a058c8ca83cb8 237-242,244-246
+  s_e7393c558bfadd::t_6e053b456d9e2d 174
+  s_e7393c558bfadd::t_e2644962253ea6 243
+  s_e7393c558bfadd::t_92fa41d02de09d 151-163
+  s_e7393c558bfadd::t_10cf551636e128 378
+apps/console/src/composables/__tests__/useAgentConversations.spec.ts
+  s_e7393c558bfadd::t_cf0f71456f531d 330-335,340-354
+  s_e7393c558bfadd::t_92fa41d02de09d 336-339
+  s_e7393c558bfadd::t_8f67bd7146eb78 200-225
+  s_e7393c558bfadd::t_24fd367fd5363f 264
+  s_e7393c558bfadd::t_7111024acf8f76 226-259
+  s_e7393c558bfadd::t_7cb71621a92234 171-199,310-329
+  s_e7393c558bfadd::t_fd3a8025346efa 260-263,265-309
+services/agent/data/repository_corpus_manifest.json
+  s_e7393c558bfadd::t_e5c2cd14762035 32-33
+apps/console/src/i18n/locales/en-US/agent.ts
+  s_e7393c558bfadd::t_da0a16adf3c423 117
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1a9598f3c3e37a13043f47c51517a2c173cc81c6",
+  "prompts": {},
+  "sessions": {
+    "s_e7393c558bfadd": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "3a5408cc-5aa3-410c-9772-40ae5da48df5",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

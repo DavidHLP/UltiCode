@@ -232,7 +232,7 @@ function handlePostSave(postId: string, isSaved: boolean) {
 
 <template>
   <div
-    class="mx-auto flex w-full max-w-7xl items-start gap-6 px-4 py-8 animate-in fade-in slide-in-from-bottom-4 duration-500"
+    class="mx-auto flex w-full max-w-7xl items-start gap-6 px-4 pt-8 pb-0 -mb-2 animate-in fade-in slide-in-from-bottom-4 duration-500"
   >
     <!-- Main Feed -->
     <main class="w-full min-w-0 flex-1 space-y-6">

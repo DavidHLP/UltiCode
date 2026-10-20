@@ -9,7 +9,7 @@ export default {
     loadFailed: "加载帖子失败，请重试。",
     communitiesLoadFailed: "加载社区分类失败。",
     loadMore: "加载更多",
-    searchPlaceholder: "搜索帖子、标签或关键词...",
+    searchPlaceholder: "搜索帖子或标签...",
     sort: "排序",
   },
 

@@ -6,7 +6,6 @@
  * Links to contest detail page.
  */
 import { computed } from "vue";
-import { useRouter } from "vue-router";
 import { Card, CardContent } from "@ulticode/design-system/ui/card";
 import { Button } from "@ulticode/design-system/ui/button";
 import { Calendar, Clock, Users, Trophy } from "@lucide/vue";
@@ -22,7 +21,6 @@ const props = defineProps<{
   variant?: "default" | "featured" | "compact";
 }>();
 
-const router = useRouter();
 const { t } = useI18n();
 
 // Computed properties
@@ -49,14 +47,6 @@ const contestStatus = computed(() => props.contest.status || "UPCOMING");
 // Determine if contest is live
 const isLive = computed(() => contestStatus.value === "RUNNING");
 
-// Navigate to contest detail
-function goToContest() {
-  router.push({
-    name: "contest-detail",
-    params: { slug: props.contest.slug },
-  });
-}
-
 // Card classes based on variant
 const cardClasses = computed(() => {
   const base = "h-full cursor-pointer transition-all";
@@ -74,82 +64,95 @@ const cardClasses = computed(() => {
 </script>
 
 <template>
-  <Card :class="cardClasses" @click="goToContest">
-    <CardContent class="flex flex-1 flex-col p-5">
-      <div class="flex flex-1 flex-col gap-4">
-        <!-- Header: Title and Status -->
-        <div class="flex items-start justify-between gap-3">
-          <div class="space-y-1 min-w-0 flex-1">
-            <p class="text-xs text-muted-foreground uppercase tracking-wide">
-              {{ contestType }}
-            </p>
-            <h3 class="break-words text-lg font-semibold leading-tight">
-              {{ contest.title }}
-            </h3>
+  <RouterLink
+    :to="{
+      name: 'contest-detail',
+      params: { slug: contest.slug },
+    }"
+    :aria-label="contest.title"
+    class="block h-full rounded-xl text-inherit no-underline focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+  >
+    <Card :class="cardClasses">
+      <CardContent class="flex flex-1 flex-col p-5">
+        <div class="flex flex-1 flex-col gap-4">
+          <!-- Header: Title and Status -->
+          <div class="flex items-start justify-between gap-3">
+            <div class="space-y-1 min-w-0 flex-1">
+              <p class="text-xs text-muted-foreground uppercase tracking-wide">
+                {{ contestType }}
+              </p>
+              <h3 class="break-words text-lg font-semibold leading-tight">
+                {{ contest.title }}
+              </h3>
+            </div>
+            <ContestStatusBadge
+              :status="contestStatus"
+              size="sm"
+              class="shrink-0"
+            />
           </div>
-          <ContestStatusBadge
-            :status="contestStatus"
-            size="sm"
-            class="shrink-0"
-          />
-        </div>
 
-        <!-- Info Row -->
-        <div class="mt-auto grid grid-cols-2 gap-3 text-sm text-muted-foreground">
-          <div class="col-span-2 flex min-w-0 items-center gap-2">
-            <Calendar class="h-4 w-4 shrink-0" />
-            <span class="break-words">{{ formatDateTime(startTime) }}</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <Clock class="h-4 w-4 shrink-0" />
-            <span>{{ duration }} {{ t("contest.time.min_short") }}</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <Trophy class="h-4 w-4 shrink-0" />
-            <span>
-              {{
-                isRated ? t("contest.types.rated") : t("contest.types.unrated")
-              }}
-            </span>
-          </div>
-          <div class="col-span-2 flex min-w-0 items-start gap-2">
-            <Users class="h-4 w-4 shrink-0" />
-            <span class="flex min-w-0 flex-wrap gap-x-3">
-              <span>
-                {{ t("contest.detail.registered") }} {{ registeredCount }}
-              </span>
-              <span>
-                {{ t("contest.detail.participants") }} {{ participantCount }}
-              </span>
-            </span>
-          </div>
-        </div>
-
-        <!-- Timer for live/upcoming contests -->
-        <div
-          v-if="isLive || contestStatus === 'UPCOMING'"
-          class="pt-2 border-t"
-        >
-          <ContestTimer
-            :target-time="isLive ? endTime : startTime"
-            :is-countdown-to-start="!isLive"
-            show-icon
-            size="sm"
-          />
-        </div>
-
-        <!-- Action Button -->
-        <div class="pt-2">
-          <Button
-            size="sm"
-            variant="secondary"
-            class="w-full"
-            @click.stop="goToContest"
+          <!-- Info Row -->
+          <div
+            class="mt-auto grid grid-cols-2 gap-3 text-sm text-muted-foreground"
           >
-            {{ t("contest.detail.enterContest") }}
-          </Button>
+            <div class="col-span-2 flex min-w-0 items-center gap-2">
+              <Calendar class="h-4 w-4 shrink-0" />
+              <span class="break-words">{{ formatDateTime(startTime) }}</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <Clock class="h-4 w-4 shrink-0" />
+              <span>{{ duration }} {{ t("contest.time.min_short") }}</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <Trophy class="h-4 w-4 shrink-0" />
+              <span>
+                {{
+                  isRated
+                    ? t("contest.types.rated")
+                    : t("contest.types.unrated")
+                }}
+              </span>
+            </div>
+            <div class="col-span-2 flex min-w-0 items-start gap-2">
+              <Users class="h-4 w-4 shrink-0" />
+              <span class="flex min-w-0 flex-wrap gap-x-3">
+                <span>
+                  {{ t("contest.detail.registered") }} {{ registeredCount }}
+                </span>
+                <span>
+                  {{ t("contest.detail.participants") }} {{ participantCount }}
+                </span>
+              </span>
+            </div>
+          </div>
+
+          <!-- Timer for live/upcoming contests -->
+          <div
+            v-if="isLive || contestStatus === 'UPCOMING'"
+            class="pt-2 border-t"
+          >
+            <ContestTimer
+              :target-time="isLive ? endTime : startTime"
+              :is-countdown-to-start="!isLive"
+              show-icon
+              size="sm"
+            />
+          </div>
+
+          <!-- Action Button -->
+          <div class="pt-2">
+            <Button
+              as="span"
+              size="sm"
+              variant="secondary"
+              class="pointer-events-none w-full"
+            >
+              {{ t("contest.detail.enterContest") }}
+            </Button>
+          </div>
         </div>
-      </div>
-    </CardContent>
-  </Card>
+      </CardContent>
+    </Card>
+  </RouterLink>
 </template>

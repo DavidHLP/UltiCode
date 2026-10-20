@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import { Badge } from "@ulticode/design-system/ui/badge";
 import { Button } from "@ulticode/design-system/ui/button";
 import {
   ChevronLeft,
@@ -8,7 +9,6 @@ import {
   Calendar,
   Clock,
 } from "@lucide/vue";
-import { useRouter } from "vue-router";
 import type { ContestListItem } from "@/types/contest";
 import { formatDate, getDurationMinutes } from "@/utils/datetime";
 import { useI18n } from "vue-i18n";
@@ -26,7 +26,6 @@ const emit = defineEmits<{
   retry: [];
 }>();
 
-const router = useRouter();
 const { t } = useI18n();
 
 // Simple pagination logic
@@ -68,14 +67,13 @@ const visiblePages = computed(() => {
           {{ t("contest.list.pastSubtitle") }}
         </p>
       </div>
-      <Button
+      <Badge
         variant="outline"
-        size="sm"
-        class="active:translate-x-0.5 active:translate-y-0.5 hover:-translate-x-0.5 hover:-translate-y-0.5 flex items-center gap-1.5 cursor-pointer"
+        class="h-7 gap-1.5 rounded-lg bg-background px-2.5 text-[0.8rem] dark:bg-input/30"
       >
-        <Trophy class="h-3.5 w-3.5 text-status-warning-mark" />
+        <Trophy aria-hidden="true" class="size-3 text-status-warning-mark" />
         {{ t("contest.list.partner") }}
-      </Button>
+      </Badge>
     </div>
     <div
       v-if="error"
@@ -113,16 +111,15 @@ const visiblePages = computed(() => {
         </div>
       </div>
 
-      <div
+      <RouterLink
         v-for="contest in contests"
         :key="contest.id"
-        class="group flex flex-col @3xl/past:flex-row @3xl/past:items-center justify-between gap-4 p-4 transition-all hover:bg-muted/30 cursor-pointer border-b last:border-0"
-        @click="
-          router.push({
-            name: 'contest-detail',
-            params: { slug: contest.slug },
-          })
-        "
+        :to="{
+          name: 'contest-detail',
+          params: { slug: contest.slug },
+        }"
+        :aria-label="contest.title"
+        class="group flex flex-col @3xl/past:flex-row @3xl/past:items-center justify-between gap-4 p-4 transition-all hover:bg-muted/30 cursor-pointer border-b last:border-0 text-foreground no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2"
       >
         <div class="flex items-center gap-4 min-w-0 @3xl/past:flex-1">
           <!-- Icon Box -->
@@ -179,21 +176,16 @@ const visiblePages = computed(() => {
           <!-- Action -->
           <div class="w-full @3xl/past:w-40 flex justify-end">
             <Button
+              as="span"
               variant="outline"
               size="sm"
-              class="active:translate-x-0.5 active:translate-y-0.5 hover:-translate-x-0.5 hover:-translate-y-0.5 px-3"
-              @click.stop="
-                router.push({
-                  name: 'contest-detail',
-                  params: { slug: contest.slug },
-                })
-              "
+              class="pointer-events-none px-3"
             >
               {{ t("contest.types.virtual") }}
             </Button>
           </div>
         </div>
-      </div>
+      </RouterLink>
     </div>
 
     <!-- Loading State -->

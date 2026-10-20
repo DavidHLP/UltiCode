@@ -9,7 +9,7 @@ export default {
     loadFailed: "Failed to load posts. Please try again.",
     communitiesLoadFailed: "Failed to load community categories.",
     loadMore: "Load More",
-    searchPlaceholder: "Search posts, tags, or keywords...",
+    searchPlaceholder: "Search posts or tags...",
     sort: "Sort",
   },
 
@@ -171,7 +171,7 @@ export default {
     type: "Feedback Type *",
     typePlaceholder: "Select feedback type",
     subject: "Subject *",
-    subjectPlaceholder: "Brief description of your feedback",
+    subjectPlaceholder: "Brief feedback summary",
     content: "Description *",
     contentPlaceholder: "Please provide as much detail as possible...",
     bugHint: "For bug reports, please include steps to reproduce the issue.",

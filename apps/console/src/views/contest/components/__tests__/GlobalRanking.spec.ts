@@ -87,6 +87,7 @@ describe("GlobalRanking", () => {
   it("labels the ranking scope, contest count and rating explicitly", async () => {
     const wrapper = mount(GlobalRanking, { props: { rankings } });
     expect(wrapper.text()).toContain("contest.rankings.global");
+    expect(wrapper.get("h2 + span").classes()).not.toContain("cursor-pointer");
     expect(wrapper.text()).toContain("contest.ranking.contests");
     expect(wrapper.text()).toContain("contest.rating.title");
     await wrapper.setProps({ scope: "local" });

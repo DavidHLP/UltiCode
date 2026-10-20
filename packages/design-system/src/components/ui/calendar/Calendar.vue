@@ -30,6 +30,7 @@ const props = withDefaults(
   defineProps<
     CalendarRootProps & {
       class?: HTMLAttributes["class"];
+      completedDates?: string[];
       layout?: LayoutTypes;
       yearRange?: DateValue[];
     }
@@ -41,7 +42,13 @@ const props = withDefaults(
 );
 const emits = defineEmits<CalendarRootEmits>();
 
-const delegatedProps = reactiveOmit(props, "class", "layout", "placeholder");
+const delegatedProps = reactiveOmit(
+  props,
+  "class",
+  "layout",
+  "placeholder",
+  "completedDates",
+);
 
 const placeholder = useVModel(props, "placeholder", emits, {
   passive: true,
@@ -220,7 +227,15 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
               :key="weekDate.toString()"
               :date="weekDate"
             >
-              <CalendarCellTrigger :day="weekDate" :month="month.value" />
+              <CalendarCellTrigger
+                :day="weekDate"
+                :month="month.value"
+                :class="
+                  props.completedDates?.includes(weekDate.toString())
+                    ? 'bg-status-warning-surface text-foreground border border-status-warning-mark/45 font-bold hover:bg-status-warning-surface/80'
+                    : ''
+                "
+              />
             </CalendarCell>
           </CalendarGridRow>
         </CalendarGridBody>

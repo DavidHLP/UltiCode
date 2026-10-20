@@ -129,6 +129,29 @@ describe("useAgentConversations", () => {
     scope.stop();
   });
 
+  it("keeps a different running turn active when cancelling a queued sibling", async () => {
+    const running = { ...firstTurn, status: "running" };
+    const queued = { ...firstTurn, turnId: "turn-2", turnIndex: 2 };
+    api.getConversation.mockResolvedValue({
+      conversation,
+      turns: [running, queued],
+      hasMore: false,
+    });
+    api.recoverConversationTurn.mockResolvedValue(running);
+    api.cancelConversationTurn.mockResolvedValue({
+      ...queued,
+      status: "cancelled",
+    });
+    const scope = effectScope();
+    const workspace = scope.run(() => useAgentConversations())!;
+    await workspace.openConversation(conversation.conversationId);
+    await workspace.cancelTurn(queued);
+    expect(workspace.busy.value).toBe(true);
+    expect(workspace.currentTurn.value?.turnId).toBe(running.turnId);
+    expect(TestEventSource.instances[0].closed).toBe(false);
+    scope.stop();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     TestEventSource.instances = [];
@@ -232,34 +255,50 @@ describe("useAgentConversations", () => {
     scope.stop();
   });
 
-  it("stops observing after the bounded stream error retries and keeps unknown turns busy", async () => {
-    vi.useFakeTimers();
-    api.getConversation.mockResolvedValue({
-      conversation,
-      turns: [{ ...firstTurn, status: "running" }],
-      hasMore: false,
-    });
-    api.recoverConversationTurn.mockResolvedValue({
-      ...firstTurn,
-      status: "running",
-    });
-    const scope = effectScope();
-    const workspace = scope.run(() => useAgentConversations())!;
-    await workspace.openConversation(conversation.conversationId);
-    const stream = TestEventSource.instances[0];
+  it.each(["errors", "deadline"])(
+    "releases the active turn after cancellation when observation stopped at %s",
+    async (cutoff) => {
+      vi.useFakeTimers();
+      api.getConversation.mockResolvedValue({
+        conversation,
+        turns: [{ ...firstTurn, status: "running" }],
+        hasMore: false,
+      });
+      api.recoverConversationTurn.mockResolvedValue({
+        ...firstTurn,
+        status: "running",
+      });
+      const scope = effectScope();
+      const workspace = scope.run(() => useAgentConversations())!;
+      await workspace.openConversation(conversation.conversationId);
+      const stream = TestEventSource.instances[0];
 
-    for (let attempt = 0; attempt < 5; attempt += 1) {
-      stream.onerror?.(new Event("error"));
-      await flushPromises();
-    }
+      if (cutoff === "deadline") {
+        await vi.advanceTimersByTimeAsync(2 * 60 * 1000);
+      } else {
+        for (let attempt = 0; attempt < 5; attempt += 1) {
+          stream.onerror?.(new Event("error"));
+          await flushPromises();
+        }
+      }
 
-    expect(stream.closed).toBe(true);
-    expect(workspace.busy.value).toBe(true);
-    expect(workspace.currentTurn.value?.turnId).toBe(firstTurn.turnId);
-    expect(api.runConversationTurn).not.toHaveBeenCalled();
-    scope.stop();
-    vi.useRealTimers();
-  });
+      expect(stream.closed).toBe(true);
+      expect(workspace.busy.value).toBe(true);
+      expect(workspace.currentTurn.value?.turnId).toBe(firstTurn.turnId);
+      expect(api.runConversationTurn).not.toHaveBeenCalled();
+      api.cancelConversationTurn.mockResolvedValue({
+        ...firstTurn,
+        status: "cancelled",
+      });
+      await workspace.cancelTurn();
+      expect(workspace.busy.value).toBe(false);
+      expect(workspace.currentTurn.value).toBeNull();
+      expect(TestEventSource.instances).toHaveLength(1);
+      expect(await workspace.deleteCurrentConversation()).toBe(true);
+      scope.stop();
+      vi.useRealTimers();
+    },
+  );
 
   it("closes a persistently observed stream at the total observation deadline", async () => {
     vi.useFakeTimers();
@@ -567,7 +606,7 @@ describe("useAgentConversations", () => {
     scope.stop();
   });
 
-  it("cancels only active turn and blocks deletion until run settles", async () => {
+  it("releases a cancelled active turn before the run POST settles", async () => {
     api.createConversation.mockResolvedValue({ conversation, turn: firstTurn });
     let resolveRun!: (value: typeof firstTurn) => void;
     api.runConversationTurn.mockReturnValue(
@@ -592,8 +631,9 @@ describe("useAgentConversations", () => {
       "turn-1",
     );
     expect(workspace.turns.value[0].status).toBe("cancelled");
-    expect(await workspace.deleteCurrentConversation()).toBe(false);
-    expect(api.deleteConversation).not.toHaveBeenCalled();
+    expect(workspace.busy.value).toBe(false);
+    expect(workspace.currentTurn.value).toBeNull();
+    expect(TestEventSource.instances[0].closed).toBe(true);
 
     resolveRun({ ...firstTurn, status: "cancelled" });
     await sending;

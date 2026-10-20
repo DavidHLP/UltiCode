@@ -1190,7 +1190,9 @@ def test_model_answer_rejects_lone_surrogate():
 
 
 @pytest.mark.parametrize("mode", ["known", "malformed", "budget", "protocol", "cancel"])
-def test_model_observation_uses_existing_metadata_without_payloads(mode):
+@pytest.mark.parametrize("conversation", [False, True])
+def test_model_observation_uses_existing_metadata_without_payloads(mode, conversation):
+    from agent_service.app import _ConversationModel
     from agent_service.observation import ObservedModel
     from deepseek_model import ModelBudgetExceeded, ModelProtocolError
     events = []
@@ -1210,7 +1212,10 @@ def test_model_observation_uses_existing_metadata_without_payloads(mode):
             self.metering.append({"attempt_id": attempt if mode == "known" else "secret-attempt"})
             return ModelDecision(text="secret-answer")
     async def scenario():
-        observed = ObservedModel(MeteredModel(), lambda kind, detail: events.append((kind, detail)), node="model")
+        model = MeteredModel()
+        if conversation:
+            model = _ConversationModel(model, "secret-question", {}, [], False)
+        observed = ObservedModel(model, lambda kind, detail: events.append((kind, detail)), node="model")
         if mode in {"budget", "protocol", "cancel"}:
             error = {"budget": ModelBudgetExceeded, "protocol": ModelProtocolError,
                      "cancel": asyncio.CancelledError}[mode]
@@ -1225,6 +1230,7 @@ def test_model_observation_uses_existing_metadata_without_payloads(mode):
         assert detail["usageStatus"] == ("known" if mode == "known" else "unavailable")
         assert detail["attemptId"] == (attempt if mode == "known" else None)
         if mode == "known":
+            assert detail["model"] == "deepseek-flash"
             assert detail["usage"] == {"prompt_tokens": 3, "completion_tokens": 2, "total_tokens": 5}
         elif mode == "malformed":
             assert detail["usage"]["prompt_tokens"] is None

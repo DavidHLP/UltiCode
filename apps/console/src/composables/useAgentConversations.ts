@@ -465,7 +465,17 @@ export function useAgentConversations() {
         current.conversationId,
         current.turnId,
       );
-      if (token === generation) upsertTurn(cancelled);
+      if (token === generation) {
+        upsertTurn(cancelled);
+        if (
+          activeTurnId.value === cancelled.turnId &&
+          ["completed", "failed", "cancelled"].includes(cancelled.status)
+        ) {
+          closeStream();
+          busy.value = false;
+          activeTurnId.value = null;
+        }
+      }
     } catch {
       if (token === generation) error.value = "requestFailed";
     } finally {

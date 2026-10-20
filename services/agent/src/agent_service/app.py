@@ -268,6 +268,18 @@ class _ConversationModel:
         self.question, self.facts = question, facts
         self.history, self.source_consent = history, source_consent
 
+    @property
+    def usage(self):
+        return self.model.usage
+
+    @property
+    def response_models(self):
+        return self.model.response_models
+
+    @property
+    def metering(self):
+        return self.model.metering
+
     def prompt(self, following_messages: list[dict[str, object]]) -> str:
         return _conversation_prompt(
             self.question, self.facts, self.history, self.source_consent,

@@ -348,7 +348,7 @@ watch(
             </div>
             <div class="font-mono tabular-nums text-xs">
               <span class="text-foreground">{{ progressFilled }}</span>
-              <span class="ascii-progress-track">{{ progressEmpty }}</span>
+              <span class="text-muted-foreground">{{ progressEmpty }}</span>
             </div>
           </div>
         </div>

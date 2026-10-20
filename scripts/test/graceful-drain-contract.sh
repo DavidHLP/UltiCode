@@ -87,8 +87,8 @@ contains .github/actions/host-deploy/action.yml 'if: ${{ always() && inputs.roll
   || fail 'production non-backup Java service stop grace is not configured for all six services'
 [[ "$(grep -Fc 'kill_timeout: 3660000' "$ROOT_DIR/ecosystem.config.cjs")" == 2 ]] \
   || fail 'Admin and Core PM2 processes do not have the extended backup drain timeout'
-[[ "$(grep -Fc 'kill_timeout:' "$ROOT_DIR/ecosystem.config.cjs")" == 10 ]] \
-  || fail 'PM2 kill_timeout is not configured for all ten local processes'
+[[ "$(grep -Fc 'kill_timeout:' "$ROOT_DIR/ecosystem.config.cjs")" == 11 ]] \
+  || fail 'PM2 kill_timeout is not configured for all eleven local processes'
 printf 'graceful shutdown/lifecycle/worker wiring contract: PASS\n'
 
 (

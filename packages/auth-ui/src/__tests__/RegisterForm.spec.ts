@@ -63,6 +63,8 @@ describe("RegisterForm", () => {
     const wrapper = mount(RegisterForm);
     // 5 inputs: username, name, email, password, confirm
     expect(wrapper.findAll("input").length).toBe(5);
+    expect(wrapper.find('input[autocomplete="name"]').attributes("required")).toBeUndefined();
+    expect(wrapper.find('input[autocomplete="email"]').attributes("required")).toBeUndefined();
   });
 
   it("hides the Name field when showName=false", () => {

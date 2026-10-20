@@ -1,5 +1,5 @@
 import { storeToRefs } from 'pinia'
-import { computed, watch } from 'vue'
+import { computed } from 'vue'
 import { tryOnScopeDispose, watchDebounced } from '@vueuse/core'
 import { normalizeDateParams, type AuditLog, type AuditLogQueryParams } from '@/api/admin/audit'
 import { useRemoteTable, type PaginationState } from '@/composables/useRemoteTable'
@@ -106,15 +106,6 @@ export function useAuditReadWorkspace() {
     await Promise.all([table.refresh(), refreshStats()])
   }
 
-  watch(
-    table.query,
-    () => {
-      auditStore.cancelStats()
-      statsError.value = null
-    },
-    { deep: true, flush: 'sync' },
-  )
-
   watchDebounced(
     table.query,
     (current) => {
@@ -125,18 +116,45 @@ export function useAuditReadWorkspace() {
 
   tryOnScopeDispose(() => auditStore.cancelStats())
 
+  function setSearch(search: string): void {
+    auditStore.cancelStats()
+    statsError.value = null
+    table.setSearch(search)
+  }
+
+  function setFilters(filters: AuditFilters): Promise<void> | void {
+    auditStore.cancelStats()
+    statsError.value = null
+    return table.setFilters(filters)
+  }
+
+  function setPagination(pagination: PaginationState): Promise<void> | void {
+    auditStore.cancelStats()
+    statsError.value = null
+    return table.setPagination(pagination)
+  }
+
+  const searchQuery = computed({
+    get: () => table.searchQuery.value,
+    set: setSearch,
+  })
+  const tablePagination = computed({
+    get: () => table.tablePagination.value,
+    set: setPagination,
+  })
+
   return {
     query: table.query,
-    searchQuery: table.searchQuery,
-    tablePagination: table.tablePagination,
+    searchQuery,
+    tablePagination,
     loading: table.loading,
     statsLoading,
     data: table.data,
     total: table.total,
     error: computed(() => table.error.value ?? statsError.value),
-    setSearch: table.setSearch,
-    setFilters: table.setFilters,
-    setPagination: table.setPagination,
+    setSearch,
+    setFilters,
+    setPagination,
     refresh,
     stats,
     actionTypeStats: computed(() => stats.value?.actionsByType ?? []),

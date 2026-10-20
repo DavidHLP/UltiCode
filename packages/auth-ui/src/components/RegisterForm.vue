@@ -169,7 +169,6 @@ async function handleSubmit(event: Event) {
 
       <!-- Name Field (optional; consumers may hide via :show-name="false") -->
       <AuthInput
-        required
         v-if="props.showName"
         v-model="name"
         :label="t('auth.register.name')"
@@ -182,7 +181,6 @@ async function handleSubmit(event: Event) {
 
       <!-- Email Field -->
       <AuthInput
-        required
         v-model="email"
         :label="t('auth.register.email')"
         type="email"

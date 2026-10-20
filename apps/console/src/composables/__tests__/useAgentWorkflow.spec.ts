@@ -226,6 +226,23 @@ describe("useAgentWorkflow run isolation", () => {
     scope.stop();
   });
 
+  it("refreshes the canonical thread when terminal arrives without a run id", async () => {
+    vi.stubGlobal("EventSource", FakeEventSource);
+    const analyzing = thread("thread-a", "run-a", "analyzing");
+    const saved = thread("thread-a", "run-a", "saved");
+    vi.mocked(agentApi.getThread).mockResolvedValueOnce(analyzing).mockResolvedValueOnce(saved);
+
+    const scope = effectScope();
+    const workflow = scope.run(() => useAgentWorkflow())!;
+    await workflow.loadThread(analyzing.threadId);
+    const stream = FakeEventSource.instances[0];
+    stream.emit("terminal", { status: "completed", seq: 3, reason: "completed", cancelRequested: false });
+
+    await vi.waitFor(() => expect(workflow.thread.value?.status).toBe("saved"));
+    expect(stream.closed).toBe(true);
+    scope.stop();
+  });
+
   it.each(["saved", "failed", "cancelled"] as const)(
     "restores the canonical %s status when a thread is reopened",
     async (status) => {

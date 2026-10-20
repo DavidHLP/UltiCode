@@ -51,6 +51,7 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         maximumFileSizeToCacheInBytes: 7 * 1024 * 1024, // 7 MB for Monaco Editor
+        navigateFallbackDenylist: [/^\/landing(?:\/|$)/],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,

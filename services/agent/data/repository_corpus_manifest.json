@@ -1,36 +1,36 @@
 [
   {
     "doc_id": "repository-product",
-    "version": "sha256-daa7f53281e2a947a4113bdfdcdc72bc8c3404051f3524a6f0d21b870f1a9066",
-    "chunk_id": "repository-product:sha256-daa7f53281e2a947a4113bdfdcdc72bc8c3404051f3524a6f0d21b870f1a9066:1",
+    "version": "sha256-0a227419079871b87f6a75659ea4ea440ced96a593769db6df701f7b109e19ad",
+    "chunk_id": "repository-product:sha256-0a227419079871b87f6a75659ea4ea440ced96a593769db6df701f7b109e19ad:1",
     "source_path": "docs/PRODUCT.md",
     "access_scope": "repository-public",
     "sample_kind": "real",
     "permission": "MIT:LICENSE:sha256:2be36e9d56578c1111740b6fe339ea3619cf1f2000af718f1a59e97d2e5d995c",
     "scope": "Repository documentation; local retrieval and evaluation under the included MIT license",
-    "source_position": "lines 40-40",
+    "source_position": "lines 42-42",
     "model_input_projection": "SourceHit.as_model_dict()",
     "source_trust": "untrusted-data",
-    "content_digest": "sha256:c51b724da7cc4bb0bbb40a5ccfa91589fb29250593a2d16a87c83c5191ce8b2e"
+    "content_digest": "sha256:2922c43f70aa34215ab97f2aea84d09a897b3ffdd70544da8f2e6f4ae09f3aa7"
   },
   {
     "doc_id": "repository-architecture",
-    "version": "sha256-ae7c1a2b113b1260fc90d8ca0b7517bd774cf72c32e278130011786490d79bc6",
-    "chunk_id": "repository-architecture:sha256-ae7c1a2b113b1260fc90d8ca0b7517bd774cf72c32e278130011786490d79bc6:1",
+    "version": "sha256-882d0972b570b9c47db7239b269e857e8fd46ff2eb3a68a6d30281e28ecad2f8",
+    "chunk_id": "repository-architecture:sha256-882d0972b570b9c47db7239b269e857e8fd46ff2eb3a68a6d30281e28ecad2f8:1",
     "source_path": "docs/ARCHITECTURE.md",
     "access_scope": "repository-public",
     "sample_kind": "real",
     "permission": "MIT:LICENSE:sha256:2be36e9d56578c1111740b6fe339ea3619cf1f2000af718f1a59e97d2e5d995c",
     "scope": "Repository documentation; local retrieval and evaluation under the included MIT license",
-    "source_position": "lines 153-153",
+    "source_position": "lines 152-152",
     "model_input_projection": "SourceHit.as_model_dict()",
     "source_trust": "untrusted-data",
-    "content_digest": "sha256:7755ad4aef38f12ba6b28d1e631c0a67a5a0a2c24fce5c16ee515f67deed5857"
+    "content_digest": "sha256:653095d037222dbbcfe505b4a802a2dadcec19b4dba9ed4c623788e8e223f8d8"
   },
   {
     "doc_id": "repository-development",
-    "version": "sha256-34b699477b4f0d090f30d2c519e4335d91a9b729f459df1aa46e6aac6e3b92b3",
-    "chunk_id": "repository-development:sha256-34b699477b4f0d090f30d2c519e4335d91a9b729f459df1aa46e6aac6e3b92b3:1",
+    "version": "sha256-5e2b81cc8e100ed5c2cabc25680077f0a17a7548e3b83c9f1a09e19c70b629d8",
+    "chunk_id": "repository-development:sha256-5e2b81cc8e100ed5c2cabc25680077f0a17a7548e3b83c9f1a09e19c70b629d8:1",
     "source_path": "docs/DEVELOPMENT.md",
     "access_scope": "repository-public",
     "sample_kind": "real",
@@ -43,8 +43,8 @@
   },
   {
     "doc_id": "repository-operations",
-    "version": "sha256-458f69ad4b0126826b2131feec2b177f1b4067391707db08c64bfd72dea80dee",
-    "chunk_id": "repository-operations:sha256-458f69ad4b0126826b2131feec2b177f1b4067391707db08c64bfd72dea80dee:1",
+    "version": "sha256-84f9d5dfd0b8c51ef1f8310a54843b4440d240c8ee4c916c621a45be3900397d",
+    "chunk_id": "repository-operations:sha256-84f9d5dfd0b8c51ef1f8310a54843b4440d240c8ee4c916c621a45be3900397d:1",
     "source_path": "docs/OPERATIONS.md",
     "access_scope": "repository-public",
     "sample_kind": "real",
@@ -57,8 +57,8 @@
   },
   {
     "doc_id": "repository-reference",
-    "version": "sha256-9d4cf14bcbe27603bb4ecf67cf5b8ecad18da49114cfce26b937806f03bafb82",
-    "chunk_id": "repository-reference:sha256-9d4cf14bcbe27603bb4ecf67cf5b8ecad18da49114cfce26b937806f03bafb82:1",
+    "version": "sha256-99a6edd7a7087f0e22465b33c621be11e3de4bc0972e02b36cc089ee8cfdfc1a",
+    "chunk_id": "repository-reference:sha256-99a6edd7a7087f0e22465b33c621be11e3de4bc0972e02b36cc089ee8cfdfc1a:1",
     "source_path": "docs/REFERENCE.md",
     "access_scope": "repository-public",
     "sample_kind": "real",

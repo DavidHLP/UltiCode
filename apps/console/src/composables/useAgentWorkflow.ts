@@ -121,10 +121,8 @@ export function useAgentWorkflow() {
         generatedText.value = payload.text;
       }
     });
-    stream.addEventListener("outline", (event) => {
+    stream.addEventListener("terminal", () => {
       if (!current()) return;
-      const payload = parse(event);
-      if (payload?.runId !== value.runId) return;
       close();
       void refresh(value.threadId, token, value.runId);
     });

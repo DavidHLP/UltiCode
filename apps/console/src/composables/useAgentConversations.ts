@@ -165,10 +165,8 @@ export function useAgentConversations() {
         ].sort((left, right) => left.seq - right.seq);
       }
     });
-    stream.addEventListener("outline", (event) => {
+    stream.addEventListener("terminal", () => {
       if (!isCurrent()) return;
-      const payload = parse(event);
-      if (payload?.runId !== turn.runId) return;
       close();
       void refreshConversation(token).finally(() => {
         if (token === generation && activeTurnId.value === turn.turnId) {

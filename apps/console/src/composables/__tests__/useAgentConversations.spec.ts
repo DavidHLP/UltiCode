@@ -46,17 +46,57 @@ const firstTurn = {
 };
 
 class TestEventSource {
+  static instances: TestEventSource[] = [];
+  private listeners = new Map<string, (event: MessageEvent<string>) => void>();
   onerror: ((event: Event) => void) | null = null;
-  addEventListener() {}
-  close() {}
+  closed = false;
+
+  constructor() {
+    TestEventSource.instances.push(this);
+  }
+
+  addEventListener(type: string, listener: EventListener) {
+    this.listeners.set(type, listener as (event: MessageEvent<string>) => void);
+  }
+
+  emit(type: string, payload: Record<string, unknown>) {
+    this.listeners.get(type)?.(new MessageEvent(type, { data: JSON.stringify(payload) }));
+  }
+
+  close() {
+    this.closed = true;
+  }
 }
 
 describe("useAgentConversations", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.stubGlobal("EventSource", TestEventSource);
+    TestEventSource.instances = [];
     api.listConversations.mockResolvedValue({ conversations: [conversation], nextOffset: null });
     api.deleteConversation.mockResolvedValue({ conversationId: conversation.conversationId, deleted: true });
+  });
+
+  it("refreshes and settles a recovered turn on terminal without a run id", async () => {
+    const runningTurn = { ...firstTurn, status: "running" as const };
+    const completedTurn = { ...firstTurn, status: "completed" as const, answer: "Done" };
+    api.getConversation
+      .mockResolvedValueOnce({ conversation, turns: [runningTurn], hasMore: false })
+      .mockResolvedValueOnce({ conversation, turns: [completedTurn], hasMore: false });
+    api.recoverConversationTurn.mockResolvedValue({ ...firstTurn, status: "running" });
+
+    const scope = effectScope();
+    const workspace = scope.run(() => useAgentConversations())!;
+    await workspace.openConversation(conversation.conversationId);
+    const stream = TestEventSource.instances[0];
+    stream.emit("terminal", { status: "completed", seq: 3, reason: "completed", cancelRequested: false });
+
+    await vi.waitFor(() => {
+      expect(workspace.currentTurn.value?.status).toBe("completed");
+      expect(workspace.busy.value).toBe(false);
+    });
+    expect(stream.closed).toBe(true);
+    scope.stop();
   });
 
   it("creates first and follow-up turns with per-turn consent", async () => {

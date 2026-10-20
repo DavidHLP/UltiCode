@@ -169,7 +169,7 @@ node - "$TMP_DIR/mode-full-doctor.json" <<'EOF'
 const fs = require('fs')
 const report = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'))
 if (report.scope !== 'dev-full') throw new Error(`mode alias scope: ${report.scope}`)
-if (report.apps.length !== 9) throw new Error(`mode alias app count: ${report.apps.length}`)
+if (report.apps.length !== 10) throw new Error(`mode alias app count: ${report.apps.length}`)
 if (!report.infra.some((item) => item.service === 'meilisearch')) throw new Error('mode alias omitted MeiliSearch')
 EOF
 

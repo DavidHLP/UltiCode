@@ -152,7 +152,7 @@ pnpm --dir packages/auth-core type-check
 pnpm --dir packages/auth-core test:coverage
 ```
 
-Landing 生产构建使用 `/landing/` 为基础路径，平台链接默认使用同源 Console。若 Landing 与 OJ 平台部署在不同主机，设置 `VITE_PLATFORM_URL` 为 HTTP(S) origin。
+Landing 生产构建使用 `/landing/` 为基础路径，平台链接默认使用同源 Console。若 Landing 与 OJ 平台部署在不同主机，容器构建需设置 `VITE_PLATFORM_URL` Docker build arg 为 HTTP(S) origin；镜像发布工作流读取同名仓库变量。
 
 前端只有一个根 `pnpm-lock.yaml`（成员 lock 已删除），所以 `.github/dependabot.yml` 的 npm 只有一个
 `directory: "/"` 的 block。pnpm workspace 只能从根更新：成员目录下 Dependabot 从父目录取回的根 lock 会被

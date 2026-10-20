@@ -36,22 +36,23 @@ public interface ProblemMapper extends BaseMapper<Problem> {
     /**
      * DTO for batch-fetching problem tag relations.
      */
-    record ProblemTagDTO(Long problemId, String tagId, String tagName) {}
+    record ProblemTagDTO(Long problemId, String tagId, String tagName, String tagSlug) {}
 
     /**
-     * Batch-fetch all tag names for a list of problem IDs.
+     * Batch-fetch tag labels and slugs for a list of problem IDs.
      * Eliminates N+1 by fetching all tag relations in a single IN query.
      *
      * @param problemIds list of problem IDs
-     * @return list of ProblemTagDTO with problemId, tagId and tagName
+     * @return list of ProblemTagDTO with problemId, tagId, tagName and tagSlug
      */
     @ConstructorArgs({
             @Arg(column = "problem_id", javaType = Long.class),
             @Arg(column = "tag_id", javaType = String.class),
-            @Arg(column = "tag_name", javaType = String.class)
+            @Arg(column = "tag_name", javaType = String.class),
+            @Arg(column = "tag_slug", javaType = String.class)
     })
     @Select("<script>" +
-            "SELECT ptr.problem_id, pt.id as tag_id, pt.label as tag_name " +
+            "SELECT ptr.problem_id, pt.id as tag_id, pt.label as tag_name, pt.slug as tag_slug " +
             "FROM problem_tag_relations ptr " +
             "LEFT JOIN problem_tags pt ON ptr.tag_id = pt.id " +
             "WHERE ptr.problem_id IN " +

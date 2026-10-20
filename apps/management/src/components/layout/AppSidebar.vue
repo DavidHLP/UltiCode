@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { Button } from '@ulticode/design-system/ui/button'
+
 import {
   systemPermissionRules,
   problemPermissionRules,
@@ -16,24 +18,24 @@ import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import { useSearchPalette } from '@/composables/useSearchPalette'
 import {
-  IconCode,
-  IconDashboard,
-  IconFileDescription,
-  IconHelp,
-  IconInnerShadowTop,
-  IconListDetails,
-  IconReport,
-  IconSearch,
-  IconSettings,
-  IconUsers,
-  IconHistory,
-  IconMessageCircle,
-  IconMessages,
-  IconTrophy,
-  IconTags,
-  IconBell,
-  IconChartBar,
-} from '@tabler/icons-vue'
+  Code as IconCode,
+  LayoutDashboard as IconDashboard,
+  FileText as IconFileDescription,
+  CircleHelp as IconHelp,
+  Code2 as IconInnerShadowTop,
+  ListChecks as IconListDetails,
+  Flag as IconReport,
+  Search as IconSearch,
+  Settings as IconSettings,
+  Users as IconUsers,
+  History as IconHistory,
+  MessageCircle as IconMessageCircle,
+  MessagesSquare as IconMessages,
+  Trophy as IconTrophy,
+  Tags as IconTags,
+  Bell as IconBell,
+  ChartBar as IconChartBar,
+} from '@lucide/vue'
 
 import NavMain from './NavMain.vue'
 import NavSecondary from './NavSecondary.vue'
@@ -47,7 +49,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
-} from '@/components/ui/sidebar'
+} from '@ulticode/design-system/ui/sidebar'
 
 const { toggleSidebar } = useSidebar()
 
@@ -201,9 +203,7 @@ const userSecurityItems = computed(() => {
       icon: IconReport,
     })
   }
-  if (
-    commentCan.comment.moderateForum.value || commentCan.comment.moderateSolution.value
-  ) {
+  if (commentCan.comment.moderateForum.value || commentCan.comment.moderateSolution.value) {
     moderationSubItems.push({
       title: t('nav.comments'),
       url: '/comments',
@@ -274,10 +274,10 @@ const navSecondary = computed(() => {
             as-child
             class="data-[slot=sidebar-menu-button]:!p-1.5"
           >
-            <button type="button" @click="toggleSidebar">
-              <IconInnerShadowTop class="size-4 text-[var(--accent-primary)]" />
+            <Button variant="outline" type="button" @click="toggleSidebar">
+              <IconInnerShadowTop class="size-4 text-primary" />
               <span class="text-base font-semibold text-foreground">{{ t('nav.brandName') }}</span>
-            </button>
+            </Button>
           </SidebarMenuButton>
         </SidebarMenuItem>
       </SidebarMenu>
@@ -288,7 +288,7 @@ const navSecondary = computed(() => {
       <NavMain :items="userSecurityItems" :title="t('nav.usersAndSecurity')" />
       <NavSecondary :items="navSecondary" class="mt-auto" />
     </SidebarContent>
-    <SidebarFooter class="border-t border-[var(--border-subtle)] dark:border-[var(--border-subtle)] p-2">
+    <SidebarFooter class="p-2">
       <NavUser :user="user" />
     </SidebarFooter>
   </Sidebar>

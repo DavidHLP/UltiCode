@@ -11,7 +11,12 @@
  * On screens narrower than 1024px the AuthGrid collapses (display:none)
  * and this panel is hidden. Mobile users see only the form side.
  */
-import { useI18n } from "vue-i18n";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@ulticode/design-system/ui/card";
 import AuthGrid from "../components/AuthGrid.vue";
 import type { AuthPatternLine } from "./useAuthLayout";
 
@@ -33,193 +38,60 @@ withDefaults(
     spec?: AuthPatternLine[];
   }>(),
   {
-    prefix: "$",
+    prefix: "",
     subtitle: "",
-    windowTitle: "system_status.sh",
+    windowTitle: "UltiCode",
     spec: () => [],
   },
 );
 
-const { t } = useI18n();
-
 function outputClass(
-  tone: 'normal' | 'success' | 'accent' | 'muted' | undefined,
+  tone: "normal" | "success" | "accent" | "muted" | undefined,
 ): string {
   switch (tone) {
-    case 'success':
-      return 'text-status-success-mark font-bold';
-    case 'accent':
-      return 'text-[var(--accent-primary)] font-bold';
-    case 'muted':
-      return 'text-foreground dark:text-[var(--foreground-muted)]';
+    case "success":
+      return "text-status-success-mark font-bold";
+    case "accent":
+      return "text-primary font-bold";
+    case "muted":
+      return "text-foreground dark:text-muted-foreground";
     default:
-      return 'text-foreground-muted dark:text-[var(--foreground-muted)]';
+      return "text-muted-foreground dark:text-muted-foreground";
   }
 }
 
-function renderOutput(line: string | { text: string; tone?: 'normal' | 'success' | 'accent' | 'muted' }) {
-  return typeof line === 'string' ? { text: line, tone: 'normal' as const } : line;
+function renderOutput(
+  line:
+    string | { text: string; tone?: "normal" | "success" | "accent" | "muted" },
+) {
+  return typeof line === "string"
+    ? { text: line, tone: "normal" as const }
+    : line;
 }
 </script>
 
 <template>
   <AuthGrid>
-    <div class="auth-pattern-text">
-      <div class="auth-pattern-text__prefix">{{ prefix }}</div>
-      <h2 class="auth-pattern-text__title whitespace-pre-line">
-        {{ title }}
+    <div class="flex max-w-lg flex-col gap-6">
+      <h2 class="whitespace-pre-line text-3xl font-semibold tracking-tight">
+        <span v-if="prefix" class="font-mono">{{ prefix }}</span> {{ title }}
       </h2>
-      <p v-if="subtitle" class="auth-pattern-text__subtitle">
-        {{ subtitle }}
-      </p>
-      <div class="auth-pattern-text__cursor"></div>
-
-      <!-- Terminal Status Spec Block -->
-      <div class="auth-pattern-terminal select-none">
-        <div class="auth-pattern-terminal__header">
-          <span
-            class="auth-pattern-terminal__dot bg-[var(--status-error-mark)]"
-          ></span>
-          <span
-            class="auth-pattern-terminal__dot bg-[var(--status-warning-mark)]"
-          ></span>
-          <span
-            class="auth-pattern-terminal__dot bg-[var(--status-success-mark)]"
-          ></span>
-          <span class="auth-pattern-terminal__title">{{ windowTitle }}</span>
-        </div>
-        <div class="auth-pattern-terminal__content font-mono text-xs">
-          <template v-for="(line, idx) in spec" :key="idx">
-            <div
-              v-if="line.prompt"
-              class="text-foreground dark:text-[var(--foreground-muted)]"
-            >
-              $ {{ line.prompt }}
-            </div>
-            <div :class="outputClass(renderOutput(line.output).tone)">
+      <p v-if="subtitle" class="text-muted-foreground">{{ subtitle }}</p>
+      <Card v-if="spec.length">
+        <CardHeader
+          ><CardTitle>{{ windowTitle }}</CardTitle></CardHeader
+        >
+        <CardContent class="flex flex-col gap-3">
+          <template v-for="(line, index) in spec" :key="index">
+            <p v-if="line.prompt" class="text-sm text-muted-foreground">
+              {{ prefix }} {{ line.prompt }}
+            </p>
+            <p :class="outputClass(renderOutput(line.output).tone)">
               {{ renderOutput(line.output).text }}
-            </div>
+            </p>
           </template>
-          <div
-            v-if="!spec.length"
-            class="text-foreground dark:text-[var(--foreground-muted)]"
-          >
-            {{ t("auth.layout.systemOnline") }}
-          </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   </AuthGrid>
 </template>
-
-<style scoped>
-.auth-pattern-text {
-  padding: 2.5rem;
-  text-align: left;
-}
-
-.auth-pattern-text__prefix {
-  font-family: var(--uc-font-code);
-  font-size: var(--uc-text-xl);
-  color: var(--foreground-muted);
-  opacity: 0.8;
-  margin-bottom: 0.5rem;
-}
-
-.auth-pattern-text__title {
-  font-size: var(--uc-text-3xl);
-  font-weight: var(--uc-font-weight-bold);
-  letter-spacing: var(--uc-tracking-normal);
-  line-height: 1.2;
-  margin-bottom: 1rem;
-  color: var(--foreground-strong);
-}
-
-.dark .auth-pattern-text__title {
-  color: var(--foreground-strong);
-}
-
-.auth-pattern-text__subtitle {
-  font-family: var(--uc-font-code);
-  font-size: var(--uc-text-sm);
-  color: var(--foreground);
-  letter-spacing: var(--uc-tracking-normal);
-  line-height: 1.5;
-}
-
-.dark .auth-pattern-text__subtitle {
-  color: var(--foreground);
-}
-
-.auth-pattern-text__cursor {
-  display: inline-block;
-  width: 0.5rem;
-  height: 1.25rem;
-  background: var(--ring);
-  margin-left: 0.25rem;
-  margin-top: 0.5rem;
-  animation: blink 1s step-end infinite;
-  box-shadow: 0 0 8px var(--accent-glow);
-}
-
-.auth-pattern-terminal {
-  margin-top: 2.5rem;
-  border: 1px solid var(--border);
-  background: var(--surface-elevated);
-  width: 100%;
-  max-width: 28rem;
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  box-shadow: var(--shadow-float);
-}
-
-.auth-pattern-terminal__header {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  padding: 0.5rem 0.75rem;
-  background: var(--surface-sunken);
-  border-bottom: 1px solid var(--border);
-}
-
-.dark .auth-pattern-terminal__header {
-  background: var(--surface-sunken);
-}
-
-.auth-pattern-terminal__dot {
-  width: 0.5rem;
-  height: 0.5rem;
-  border-radius: 50%;
-}
-
-.auth-pattern-terminal__title {
-  font-family: var(--uc-font-code);
-  font-size: var(--uc-type-code-size);
-  color: var(--foreground);
-  margin-left: 0.5rem;
-}
-
-.dark .auth-pattern-terminal__title {
-  color: var(--foreground-muted);
-}
-
-.auth-pattern-terminal__content {
-  padding: 1rem;
-  line-height: 1.6;
-  color: var(--foreground);
-}
-
-.dark .auth-pattern-terminal__content {
-  color: var(--foreground-muted);
-}
-
-@keyframes blink {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0;
-  }
-}
-</style>

@@ -1,31 +1,39 @@
 <script setup lang="ts">
-import { ref, watch, nextTick } from 'vue'
+import { ref, watch, nextTick, useId } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Label } from '@/components/ui/label'
+import { Button } from '@ulticode/design-system/ui/button'
+import { Badge } from '@ulticode/design-system/ui/badge'
+import { Input } from '@ulticode/design-system/ui/input'
+import { Textarea } from '@ulticode/design-system/ui/textarea'
+import { Label } from '@ulticode/design-system/ui/label'
 import {
-  IconPlus,
-  IconX,
-  IconFileDescription,
-  IconFlask,
-  IconInfoCircle,
-  IconBrackets,
-  IconBulb,
-  IconCheck,
-} from '@tabler/icons-vue'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Separator } from '@/components/ui/separator'
+  Plus as IconPlus,
+  X as IconX,
+  FileText as IconFileDescription,
+  FlaskConical as IconFlask,
+  Info as IconInfoCircle,
+  Brackets as IconBrackets,
+  Lightbulb as IconBulb,
+  Check as IconCheck,
+} from '@lucide/vue'
+
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@ulticode/design-system/ui/card'
+import { Separator } from '@ulticode/design-system/ui/separator'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
-import { Checkbox } from '@/components/ui/checkbox'
+  SelectGroup,
+} from '@ulticode/design-system/ui/select'
+import { Checkbox } from '@ulticode/design-system/ui/checkbox'
 import MarkdownEditor from '@/components/problem/MarkdownEditor.vue'
 import TestCasesEditor from '@/components/problem/TestCasesEditor.vue'
 import type { TestCaseExample } from '@/components/problem/TestCasesEditor.vue'
@@ -140,6 +148,7 @@ const newLanguage = ref('')
 const newTag = ref('')
 const loading = ref(false)
 const { t } = useI18n()
+const formId = useId()
 
 // Validation errors
 const errors = ref<Record<string, string>>({})
@@ -249,25 +258,32 @@ defineExpose({
         <CardContent class="space-y-6">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="space-y-2">
-              <Label>{{ t('problems.form.title') }}</Label>
-              <Input v-model="formData.title" :placeholder="t('problems.form.titlePlaceholder')" />
+              <Label :for="`${formId}-title`">{{ t('problems.form.title') }}</Label>
+              <Input
+                :id="`${formId}-title`"
+                v-model="formData.title"
+                :aria-invalid="!!errors.title"
+                :placeholder="t('problems.form.titlePlaceholder')"
+              />
               <p v-if="errors.title" class="text-sm text-destructive">{{ errors.title }}</p>
             </div>
 
             <div class="space-y-2">
-              <Label>{{ t('problems.form.slug') }}</Label>
+              <Label :for="`${formId}-slug`">{{ t('problems.form.slug') }}</Label>
               <Input
+                :id="`${formId}-slug`"
                 v-model="formData.slug"
+                :aria-invalid="!!errors.slug"
                 :placeholder="t('problems.form.slugPlaceholder')"
-                class="font-mono"
               />
               <p v-if="errors.slug" class="text-sm text-destructive">{{ errors.slug }}</p>
             </div>
           </div>
 
           <div class="space-y-2">
-            <Label>{{ t('problems.form.summary') }}</Label>
+            <Label :for="`${formId}-summary`">{{ t('problems.form.summary') }}</Label>
             <Textarea
+              :id="`${formId}-summary`"
               v-model="formData.summary"
               rows="2"
               :placeholder="t('problems.form.summaryPlaceholder')"
@@ -315,7 +331,7 @@ defineExpose({
           <!-- Constraints -->
           <div class="space-y-3">
             <div class="flex items-center justify-between">
-              <Label class="text-base flex items-center gap-2">
+              <Label class="flex items-center gap-2">
                 <IconBrackets class="h-4 w-4" /> {{ t('problems.form.constraintsSection.title') }}
               </Label>
             </div>
@@ -325,7 +341,6 @@ defineExpose({
                 v-model="newConstraint"
                 :placeholder="t('problems.form.constraintsSection.placeholder')"
                 @keyup.enter="addConstraint"
-                class="font-mono text-sm"
               />
               <Button type="button" variant="secondary" @click="addConstraint">{{
                 t('problems.form.add')
@@ -336,20 +351,22 @@ defineExpose({
               <li
                 v-for="(constraint, idx) in formData.constraints"
                 :key="idx"
-                class="flex items-center justify-between p-2 rounded-none bg-muted/50 border group text-sm font-mono"
+                class="flex items-center justify-between p-2 rounded-lg bg-muted/50 border group text-sm font-mono"
               >
                 <span>{{ constraint }}</span>
                 <Button
                   variant="ghost"
                   size="icon"
-                  class="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                  class="w-6 group-hover:opacity-100"
                   @click="removeConstraint(idx)"
                 >
                   <IconX class="h-3 w-3" />
                 </Button>
               </li>
             </ul>
-            <p v-else class="text-sm text-muted-foreground italic">No constraints added.</p>
+            <p v-else class="text-sm text-muted-foreground italic">
+              {{ t('problems.casesForm.noConstraints') }}
+            </p>
           </div>
 
           <Separator />
@@ -357,7 +374,7 @@ defineExpose({
           <!-- Hints -->
           <div class="space-y-3">
             <div class="flex items-center justify-between">
-              <Label class="text-base flex items-center gap-2">
+              <Label class="flex items-center gap-2">
                 <IconBulb class="h-4 w-4" /> {{ t('problems.form.hints') }}
               </Label>
             </div>
@@ -376,7 +393,7 @@ defineExpose({
               <li
                 v-for="(hint, idx) in formData.hints"
                 :key="idx"
-                class="flex items-start justify-between p-2 rounded-none bg-muted/50 border group text-sm"
+                class="flex items-start justify-between p-2 rounded-lg bg-muted/50 border group text-sm"
               >
                 <div class="flex gap-2">
                   <span class="text-muted-foreground font-mono text-xs mt-0.5">{{ idx + 1 }}.</span>
@@ -385,7 +402,7 @@ defineExpose({
                 <Button
                   variant="ghost"
                   size="icon"
-                  class="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                  class="w-6 group-hover:opacity-100 flex-shrink-0"
                   @click="removeHint(idx)"
                 >
                   <IconX class="h-3 w-3" />
@@ -403,52 +420,52 @@ defineExpose({
     <!-- Right Column: Sidebar -->
     <div class="lg:col-span-4 space-y-6 lg:sticky lg:top-6 h-fit">
       <!-- Actions Card -->
-      <Card class="border-primary/10 shadow-sm">
-        <CardHeader class="pb-3 border-b bg-muted/20">
-          <CardTitle class="text-base">{{ t('problems.form.publishing') }}</CardTitle>
+      <Card>
+        <CardHeader class="pb-3">
+          <CardTitle>{{ t('problems.form.publishing') }}</CardTitle>
         </CardHeader>
         <CardContent class="pt-6 space-y-6">
           <div class="grid grid-cols-2 gap-4">
             <div class="space-y-2">
-              <Label class="text-xs text-muted-foreground uppercase tracking-wider">{{
-                t('problems.form.status')
-              }}</Label>
+              <Label>{{ t('problems.form.status') }}</Label>
               <Select v-model="formData.status">
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem :value="ProblemStatus.TODO">{{
-                    t('problems.status.TODO')
-                  }}</SelectItem>
-                  <SelectItem :value="ProblemStatus.ATTEMPTED">{{
-                    t('problems.status.ATTEMPTED')
-                  }}</SelectItem>
-                  <SelectItem :value="ProblemStatus.SOLVED">{{
-                    t('problems.status.SOLVED')
-                  }}</SelectItem>
+                  <SelectGroup
+                    ><SelectItem :value="ProblemStatus.TODO">{{
+                      t('problems.status.TODO')
+                    }}</SelectItem>
+                    <SelectItem :value="ProblemStatus.ATTEMPTED">{{
+                      t('problems.status.ATTEMPTED')
+                    }}</SelectItem>
+                    <SelectItem :value="ProblemStatus.SOLVED">{{
+                      t('problems.status.SOLVED')
+                    }}</SelectItem></SelectGroup
+                  >
                 </SelectContent>
               </Select>
             </div>
 
             <div class="space-y-2">
-              <Label class="text-xs text-muted-foreground uppercase tracking-wider">{{
-                t('problems.form.difficulty')
-              }}</Label>
+              <Label>{{ t('problems.form.difficulty') }}</Label>
               <Select v-model="formData.difficulty">
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem :value="Difficulty.EASY">{{
-                    t('problems.difficulty.EASY')
-                  }}</SelectItem>
-                  <SelectItem :value="Difficulty.MEDIUM">{{
-                    t('problems.difficulty.MEDIUM')
-                  }}</SelectItem>
-                  <SelectItem :value="Difficulty.HARD">{{
-                    t('problems.difficulty.HARD')
-                  }}</SelectItem>
+                  <SelectGroup
+                    ><SelectItem :value="Difficulty.EASY">{{
+                      t('problems.difficulty.EASY')
+                    }}</SelectItem>
+                    <SelectItem :value="Difficulty.MEDIUM">{{
+                      t('problems.difficulty.MEDIUM')
+                    }}</SelectItem>
+                    <SelectItem :value="Difficulty.HARD">{{
+                      t('problems.difficulty.HARD')
+                    }}</SelectItem></SelectGroup
+                  >
                 </SelectContent>
               </Select>
             </div>
@@ -456,29 +473,37 @@ defineExpose({
 
           <div class="space-y-4 pt-2">
             <div
-              class="flex items-center justify-between p-3 rounded-none border bg-card hover:bg-muted/50 transition-colors cursor-pointer"
+              class="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors cursor-pointer"
               @click="formData.isPremium = !formData.isPremium"
             >
               <div class="space-y-0.5">
-                <Label class="text-base cursor-pointer">{{ t('problems.form.premium') }}</Label>
+                <Label class="cursor-pointer">{{ t('problems.form.premium') }}</Label>
                 <p class="text-xs text-muted-foreground">
                   {{ t('problems.form.premiumDescription') }}
                 </p>
               </div>
-              <Checkbox v-model="formData.isPremium" />
+              <Checkbox
+                v-model="formData.isPremium"
+                :aria-label="t('problems.form.premium')"
+                @click.stop
+              />
             </div>
 
             <div
-              class="flex items-center justify-between p-3 rounded-none border bg-card hover:bg-muted/50 transition-colors cursor-pointer"
+              class="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors cursor-pointer"
               @click="formData.isPublished = !formData.isPublished"
             >
               <div class="space-y-0.5">
-                <Label class="text-base cursor-pointer">{{ t('problems.form.published') }}</Label>
+                <Label class="cursor-pointer">{{ t('problems.form.published') }}</Label>
                 <p class="text-xs text-muted-foreground">
                   {{ t('problems.form.publishedDescription') }}
                 </p>
               </div>
-              <Checkbox v-model="formData.isPublished" />
+              <Checkbox
+                v-model="formData.isPublished"
+                :aria-label="t('problems.form.published')"
+                @click.stop
+              />
             </div>
           </div>
 
@@ -500,14 +525,14 @@ defineExpose({
 
       <!-- Taxonomy Card -->
       <Card>
-        <CardHeader class="pb-3 border-b bg-muted/20">
-          <CardTitle class="text-base">{{ t('problems.form.taxonomy') }}</CardTitle>
+        <CardHeader class="pb-3">
+          <CardTitle>{{ t('problems.form.taxonomy') }}</CardTitle>
         </CardHeader>
         <CardContent class="pt-6 space-y-6">
           <!-- Languages -->
           <div class="space-y-3">
             <div class="flex items-center justify-between">
-              <Label class="text-sm">{{ t('problems.form.languages') }}</Label>
+              <Label>{{ t('problems.form.languages') }}</Label>
               <span v-if="!formData.languages?.length" class="text-xs text-muted-foreground">{{
                 t('problems.form.all')
               }}</span>
@@ -520,13 +545,14 @@ defineExpose({
                 @keyup.enter="addLanguage"
                 class="pr-8"
               />
-              <button
+              <Button
+                variant="ghost"
                 v-if="newLanguage"
-                class="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary"
+                class="absolute right-2 top-1/2 -translate-y-1/2"
                 @click="addLanguage"
               >
                 <IconPlus class="h-4 w-4" />
-              </button>
+              </Button>
             </div>
 
             <div v-if="formData.languages?.length" class="flex flex-wrap gap-1.5">
@@ -537,12 +563,9 @@ defineExpose({
                 class="gap-1 pr-1.5"
               >
                 {{ lang }}
-                <button
-                  class="hover:text-destructive text-muted-foreground hover:bg-destructive/10 rounded-full p-0.5 transition-colors"
-                  @click="removeLanguage(idx)"
-                >
+                <Button variant="default" class="p-0.5" @click="removeLanguage(idx)">
                   <IconX class="h-3 w-3" />
-                </button>
+                </Button>
               </Badge>
             </div>
           </div>
@@ -552,7 +575,7 @@ defineExpose({
           <!-- Tags -->
           <div class="space-y-3">
             <div class="flex items-center justify-between">
-              <Label class="text-sm">{{ t('problems.form.tags') }}</Label>
+              <Label>{{ t('problems.form.tags') }}</Label>
             </div>
 
             <div class="relative">
@@ -562,13 +585,14 @@ defineExpose({
                 @keyup.enter="addTag"
                 class="pr-8"
               />
-              <button
+              <Button
+                variant="ghost"
                 v-if="newTag"
-                class="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary"
+                class="absolute right-2 top-1/2 -translate-y-1/2"
                 @click="addTag"
               >
                 <IconPlus class="h-4 w-4" />
-              </button>
+              </Button>
             </div>
 
             <div v-if="formData.tags?.length" class="flex flex-wrap gap-1.5">
@@ -579,12 +603,9 @@ defineExpose({
                 class="gap-1 pr-1.5"
               >
                 {{ tag }}
-                <button
-                  class="hover:text-destructive text-muted-foreground hover:bg-destructive/10 rounded-full p-0.5 transition-colors"
-                  @click="removeTag(idx)"
-                >
+                <Button variant="default" class="p-0.5" @click="removeTag(idx)">
                   <IconX class="h-3 w-3" />
-                </button>
+                </Button>
               </Badge>
             </div>
           </div>

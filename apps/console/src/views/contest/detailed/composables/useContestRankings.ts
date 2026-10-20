@@ -11,19 +11,43 @@ export function useContestRankings(
   contest: Ref<ContestDetail | null>,
 ) {
   const rankings = ref<(ContestRankingEntry | LiveRankingEntry)[]>([]);
+  const page = ref(1);
+  const totalPages = ref(1);
+  const loading = ref(false);
+  const error = ref(false);
+  let generation = 0;
   let rankingIntervalId: number | null = null;
 
-  async function loadRankings() {
-    if (!contest.value) return;
+  async function loadRankings(nextPage = page.value) {
+    if (
+      !contest.value ||
+      !Number.isInteger(nextPage) ||
+      nextPage < 1 ||
+      nextPage > totalPages.value
+    )
+      return;
+    const request = ++generation;
+    if (nextPage !== page.value) rankings.value = [];
+    page.value = nextPage;
+    loading.value = true;
+    error.value = false;
     try {
       if (contest.value.status === "RUNNING") {
-        rankings.value = await fetchLiveRanking(contestId.value);
+        const rows = await fetchLiveRanking(contestId.value);
+        if (request === generation) rankings.value = rows;
         return;
       }
-      const rankingRes = await fetchContestRanking(contestId.value);
+      const rankingRes = await fetchContestRanking(contestId.value, {
+        page: nextPage,
+        limit: 20,
+      });
+      if (request !== generation) return;
       rankings.value = rankingRes.items;
+      totalPages.value = Math.max(1, rankingRes.totalPages);
     } catch {
-      // Silently ignore ranking load failures; UI shows empty state
+      if (request === generation) error.value = true;
+    } finally {
+      if (request === generation) loading.value = false;
     }
   }
 
@@ -31,12 +55,18 @@ export function useContestRankings(
   watch(
     contest,
     (value) => {
-      if (!value) return;
-      void loadRankings();
+      generation++;
+      rankings.value = [];
+      page.value = 1;
+      totalPages.value = 1;
+      error.value = false;
+      loading.value = false;
       if (rankingIntervalId !== null) {
         clearInterval(rankingIntervalId);
         rankingIntervalId = null;
       }
+      if (!value) return;
+      void loadRankings();
       if (value.status === "RUNNING") {
         rankingIntervalId = window.setInterval(loadRankings, 30000);
       }
@@ -45,6 +75,7 @@ export function useContestRankings(
   );
 
   onUnmounted(() => {
+    generation++;
     if (rankingIntervalId !== null) {
       clearInterval(rankingIntervalId);
     }
@@ -68,6 +99,10 @@ export function useContestRankings(
 
   return {
     rankings,
+    page,
+    totalPages,
+    loading,
+    error,
     loadRankings,
     getCountryFlag,
   };

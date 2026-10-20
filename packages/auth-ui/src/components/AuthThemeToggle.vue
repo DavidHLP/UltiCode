@@ -1,86 +1,17 @@
 <script setup lang="ts">
-/**
- * AuthThemeToggle - Compact theme toggle button for auth pages
- *
- * Cycles through light → dark → system modes on click. Uses the
- * `@ulticode/theme` singleton (re-exported via auth-ui's relative
- * import path) so other theme pickers (header dropdown, settings card)
- * stay in sync across both frontends.
- *
- * i18n keys: `common.appearance.{light,dark,system}`. Both apps must
- * define these under their `common` locale namespace.
- */
-import { computed } from "vue";
+import { openAppearanceSettings } from "@ulticode/theme";
+import { Button } from "@ulticode/design-system/ui/button";
+import { Paintbrush } from "@lucide/vue";
 import { useI18n } from "vue-i18n";
-import { Sun, Moon, Monitor } from "@lucide/vue";
-import { cycleTheme, useColorTheme } from "../../../theme/src";
-
-defineOptions({
-  name: "AuthThemeToggle",
-});
-
-const { t } = useI18n();
-const { theme: themeRef } = useColorTheme();
-// vue-tsc 3.x does not auto-unwrap `Ref<T>` in template comparisons or
-// function arguments; project convention is to expose reactive values as
-// `ComputedRef` (see `useLocale`). Match that here.
-const theme = computed(() => themeRef.value);
-
-const labelFor = (mode: "light" | "dark" | "system"): string => {
-  // Falls back to the mode key if the translation is missing so the
-  // a11y label is never empty.
-  return t(`common.appearance.${mode}`, mode);
-};
+const { locale } = useI18n();
 </script>
-
 <template>
-  <button
+  <Button
     type="button"
-    class="auth-theme-toggle"
-    :title="labelFor(theme)"
-    :aria-label="labelFor(theme)"
-    @click="cycleTheme"
-  >
-    <Sun v-if="theme === 'light'" class="auth-theme-toggle__icon" />
-    <Moon v-else-if="theme === 'dark'" class="auth-theme-toggle__icon" />
-    <Monitor v-else class="auth-theme-toggle__icon" />
-    <span class="sr-only">{{ labelFor(theme) }}</span>
-  </button>
+    variant="ghost"
+    size="icon"
+    :aria-label="locale === 'zh-CN' ? '外观设置' : 'Appearance'"
+    @click="openAppearanceSettings"
+    ><Paintbrush
+  /></Button>
 </template>
-
-<style scoped>
-.auth-theme-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--surface-elevated);
-  color: var(--foreground-muted);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.auth-theme-toggle:hover {
-  border-color: var(--border-control);
-  color: var(--foreground-strong);
-  box-shadow: var(--shadow-float);
-}
-
-.auth-theme-toggle:active {
-  transform: translate(1px, 1px);
-  box-shadow: none;
-}
-
-.auth-theme-toggle:focus-visible {
-  outline: 2px solid var(--ring);
-  outline-offset: 1px;
-}
-
-.auth-theme-toggle__icon {
-  width: 0.875rem;
-  height: 0.875rem;
-}
-</style>

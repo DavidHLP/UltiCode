@@ -13,14 +13,21 @@
 import { ref, computed, onMounted, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { storeToRefs } from "pinia";
+import { createValueRequest } from "@ulticode/request-state";
+import RetryButton from "@/components/common/loading/RetryButton.vue";
 import { useI18n } from "vue-i18n";
 import { Trophy, Calendar, CheckCircle, PlayCircle } from "@lucide/vue";
 import { useContestBrowseStore } from "@/stores/contestBrowse";
-import { Card, CardContent } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
+import { Card, CardContent } from "@ulticode/design-system/ui/card";
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from "@ulticode/design-system/ui/tabs";
+import { Skeleton } from "@ulticode/design-system/ui/skeleton";
+import { Button } from "@ulticode/design-system/ui/button";
+import { Separator } from "@ulticode/design-system/ui/separator";
 import ContestCard from "./components/ContestCard.vue";
 import { usePastContestsPager } from "@/composables/contest/usePastContestsPager";
 import type { ContestListItem } from "@/types/contest";
@@ -49,8 +56,14 @@ const {
 const activeTab = ref<string>("ongoing");
 const initialLoading = ref(true);
 
-// Computed properties
-const isLoading = computed(() => initialLoading.value || loadingContests.value);
+const listRequest = createValueRequest({
+  errorMessage: "Failed to load contests",
+});
+const listError = listRequest.error;
+
+function loadLists() {
+  return listRequest.run(() => contestStore.loadContests());
+}
 
 // Get contests based on active tab
 const currentContests = computed<ContestListItem[]>(() => {
@@ -92,10 +105,7 @@ async function loadData() {
           : "ongoing";
     activeTab.value = resolvedTab;
 
-    await Promise.all([
-      contestStore.loadContests(),
-      pastPager.loadInitialPage(),
-    ]);
+    await Promise.allSettled([loadLists(), pastPager.loadInitialPage()]);
   } catch {
     // Error handled by UI state
   } finally {
@@ -117,10 +127,8 @@ onMounted(loadData);
     >
       <div class="space-y-1">
         <div class="flex items-center gap-3">
-          <Trophy class="h-8 w-8 text-[var(--status-warning-mark)]" />
-          <h1
-            class="text-3xl font-bold tracking-tight text-foreground-strong"
-          >
+          <Trophy class="h-8 w-8 text-status-warning-mark" />
+          <h1 class="text-3xl font-bold tracking-tight text-foreground">
             {{ t("contest.list.title") }}
           </h1>
         </div>
@@ -134,7 +142,8 @@ onMounted(loadData);
 
     <!-- Loading State -->
     <div
-      v-if="isLoading"
+      v-if="initialLoading"
+      role="status"
       class="flex flex-col items-center justify-center py-20"
     >
       <div
@@ -148,50 +157,60 @@ onMounted(loadData);
     <!-- Main Content -->
     <div v-else class="space-y-6">
       <!-- Tabbed Navigation -->
-      <Tabs v-model="activeTab" class="w-full">
+      <Tabs
+        v-model="activeTab"
+        class="w-full"
+        :aria-busy="loadingContests || pastLoading"
+      >
         <TabsList
-          class="bg-muted/50 p-1 h-12 rounded-none w-full sm:w-auto grid grid-cols-3"
+          class="p-1 group-data-horizontal/tabs:h-auto sm:group-data-horizontal/tabs:h-12 w-full sm:w-auto grid grid-cols-3"
         >
           <TabsTrigger
             value="ongoing"
-            class="rounded-none px-6 font-bold data-[state=active]:bg-background data-[state=active]:shadow-[var(--shadow-float)] gap-2"
+            class="h-auto min-w-0 flex-col gap-1 px-2 py-2 whitespace-normal sm:flex-row sm:gap-2 sm:px-6"
           >
             <PlayCircle class="h-4 w-4" />
-            <span class="hidden sm:inline">{{
-              t("contest.list.running")
-            }}</span>
-            <span class="sm:hidden">{{ t("contest.list.running") }}</span>
+            <span>{{ t("contest.list.running") }}</span>
             <span
-              v-if="runningContests.length > 0"
-              class="ml-1 flex h-5 w-5 items-center justify-center rounded-full border border-status-error-mark bg-status-error-surface text-2xs font-bold text-foreground-strong"
+              v-if="
+                !loadingContests && !listError && runningContests.length > 0
+              "
+              class="ml-1 flex h-5 w-5 items-center justify-center rounded-full border border-status-error-mark bg-status-error-surface text-xs font-bold text-foreground"
             >
               {{ runningContests.length }}
             </span>
           </TabsTrigger>
           <TabsTrigger
             value="upcoming"
-            class="rounded-none px-6 font-bold data-[state=active]:bg-background data-[state=active]:shadow-[var(--shadow-float)] gap-2"
+            class="h-auto min-w-0 flex-col gap-1 px-2 py-2 whitespace-normal sm:flex-row sm:gap-2 sm:px-6"
           >
             <Calendar class="h-4 w-4" />
-            <span class="hidden sm:inline">{{
-              t("contest.list.upcoming")
-            }}</span>
-            <span class="sm:hidden">{{ t("contest.list.upcoming") }}</span>
+            <span>{{ t("contest.list.upcoming") }}</span>
           </TabsTrigger>
           <TabsTrigger
             value="finished"
-            class="rounded-none px-6 font-bold data-[state=active]:bg-background data-[state=active]:shadow-[var(--shadow-float)] gap-2"
+            class="h-auto min-w-0 flex-col gap-1 px-2 py-2 whitespace-normal sm:flex-row sm:gap-2 sm:px-6"
           >
             <CheckCircle class="h-4 w-4" />
-            <span class="hidden sm:inline">{{
-              t("contest.list.finished")
-            }}</span>
-            <span class="sm:hidden">{{ t("contest.list.finished") }}</span>
+            <span>{{ t("contest.list.finished") }}</span>
           </TabsTrigger>
         </TabsList>
 
+        <div
+          v-if="listError && activeTab !== 'finished'"
+          role="alert"
+          class="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-4"
+        >
+          <p
+            class="min-w-0 flex-1 text-sm text-destructive [overflow-wrap:anywhere]"
+          >
+            {{ t("contest.list.loadError") }}
+          </p>
+          <RetryButton @retry="!loadingContests && loadLists()" />
+        </div>
+
         <!-- Ongoing Contests Tab -->
-        <TabsContent value="ongoing" class="mt-6 space-y-6">
+        <TabsContent v-if="!listError" value="ongoing" class="mt-6 space-y-6">
           <!-- Loading Skeletons -->
           <div
             v-if="loadingContests"
@@ -226,7 +245,7 @@ onMounted(loadData);
           <!-- Empty State -->
           <div
             v-else
-            class="flex flex-col items-center justify-center py-16 border-2 border-dashed rounded-none bg-muted/5 text-center px-6"
+            class="flex flex-col items-center justify-center py-16 border-2 border-dashed rounded-lg bg-muted/5 text-center px-6"
           >
             <PlayCircle class="h-12 w-12 text-muted-foreground/30 mb-4" />
             <h3 class="text-lg font-bold">
@@ -239,7 +258,7 @@ onMounted(loadData);
         </TabsContent>
 
         <!-- Upcoming Contests Tab -->
-        <TabsContent value="upcoming" class="mt-6 space-y-6">
+        <TabsContent v-if="!listError" value="upcoming" class="mt-6 space-y-6">
           <!-- Loading Skeletons -->
           <div
             v-if="loadingContests"
@@ -274,7 +293,7 @@ onMounted(loadData);
           <!-- Empty State -->
           <div
             v-else
-            class="flex flex-col items-center justify-center py-16 border-2 border-dashed rounded-none bg-muted/5 text-center px-6"
+            class="flex flex-col items-center justify-center py-16 border-2 border-dashed rounded-lg bg-muted/5 text-center px-6"
           >
             <Calendar class="h-12 w-12 text-muted-foreground/30 mb-4" />
             <h3 class="text-lg font-bold">
@@ -291,21 +310,18 @@ onMounted(loadData);
           <div
             v-if="pastError"
             role="alert"
-            class="mb-6 flex items-center justify-between gap-4 border border-status-error-mark bg-status-error-surface px-4 py-3 text-sm text-foreground-strong"
+            class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-4"
           >
-            <p>{{ pastError }}</p>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              @click="retryPastPage"
+            <p
+              class="min-w-0 flex-1 text-sm text-destructive [overflow-wrap:anywhere]"
             >
-              {{ t("common.actions.retry") }}
-            </Button>
+              {{ t("contest.list.loadError") }}
+            </p>
+            <RetryButton @retry="!pastLoading && retryPastPage()" />
           </div>
           <!-- Loading Skeletons -->
           <div
-            v-if="pastLoading"
+            v-else-if="pastLoading"
             class="grid gap-6 md:grid-cols-2 lg:grid-cols-3"
           >
             <Card v-for="i in 3" :key="i">
@@ -337,7 +353,7 @@ onMounted(loadData);
           <!-- Empty State -->
           <div
             v-else
-            class="flex flex-col items-center justify-center py-16 border-2 border-dashed rounded-none bg-muted/5 text-center px-6"
+            class="flex flex-col items-center justify-center py-16 border-2 border-dashed rounded-lg bg-muted/5 text-center px-6"
           >
             <CheckCircle class="h-12 w-12 text-muted-foreground/30 mb-4" />
             <h3 class="text-lg font-bold">
@@ -350,13 +366,18 @@ onMounted(loadData);
 
           <!-- Pagination for finished contests -->
           <div
-            v-if="hasContests && activeTab === 'finished' && totalPages > 1"
+            v-if="
+              !pastError &&
+              hasContests &&
+              activeTab === 'finished' &&
+              totalPages > 1
+            "
             class="flex items-center justify-center gap-2 pt-4"
           >
             <Button
               variant="outline"
               size="icon"
-              class="h-9 w-9"
+              class="w-9"
               :disabled="currentPage === 1 || pastLoading"
               @click="currentPage--"
             >
@@ -381,7 +402,7 @@ onMounted(loadData);
             <Button
               variant="outline"
               size="icon"
-              class="h-9 w-9"
+              class="w-9"
               :disabled="currentPage === totalPages || pastLoading"
               @click="currentPage++"
             >

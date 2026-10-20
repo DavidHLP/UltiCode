@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { renderMarkdown } from '@ulticode/markdown-utils';
+import { renderMarkdown } from "@ulticode/markdown-utils";
 import { toast } from "vue-sonner";
 import { useI18n } from "vue-i18n";
 
@@ -60,7 +60,7 @@ const handleClick = (e: MouseEvent) => {
 <template>
   <div class="markdown-view" @click="handleClick">
     <div
-      class="prose prose-sm dark:prose-invert max-w-none w-full bg-transparent"
+      class="typeset typeset-docs max-w-none w-full bg-transparent"
       v-html="renderMarkdown(props.content)"
     ></div>
   </div>

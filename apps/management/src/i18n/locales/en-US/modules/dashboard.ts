@@ -2,6 +2,9 @@ export default {
   title: 'Dashboard',
   welcome: 'Welcome back',
   loading: 'Loading dashboard...',
+  loadStatsError: 'Could not load dashboard statistics.',
+  loadChartError: 'Could not load the registration chart.',
+  loadActivityError: 'Could not load recent activity.',
 
   // Stats cards
   stats: {

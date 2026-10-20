@@ -38,7 +38,7 @@ const content = computed(() => {
     />
     <div
       v-else
-      class="border-2 border-dashed border-muted-foreground rounded-none p-8 h-full w-full flex items-center justify-center bg-background"
+      class="border-2 border-dashed border-muted-foreground rounded-lg p-8 h-full w-full flex items-center justify-center bg-background"
     >
       <p class="text-center text-muted-foreground">{{ content }}</p>
     </div>

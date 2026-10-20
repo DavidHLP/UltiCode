@@ -1,12 +1,21 @@
 <script setup lang="ts">
+import { Button } from '@ulticode/design-system/ui/button'
+
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Label } from '@/components/ui/label'
-import { Switch } from '@/components/ui/switch'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { IconSettings, IconUsers, IconServer } from '@tabler/icons-vue'
+import { Input } from '@ulticode/design-system/ui/input'
+import { Textarea } from '@ulticode/design-system/ui/textarea'
+import { Label } from '@ulticode/design-system/ui/label'
+import { Switch } from '@ulticode/design-system/ui/switch'
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@ulticode/design-system/ui/card'
+import { Settings as IconSettings, Users as IconUsers, Server as IconServer } from '@lucide/vue'
+
 import type { SystemSettings } from '@/api/admin/settings'
 import { useColorTheme } from '@ulticode/theme'
 import { Sun, Moon, Laptop } from '@lucide/vue'
@@ -71,47 +80,50 @@ function updateField<K extends keyof SystemSettings>(key: K, value: SystemSettin
       </CardHeader>
       <CardContent class="space-y-4">
         <div class="flex gap-2">
-          <button
+          <Button
+            variant="outline"
             type="button"
-            class="flex-1 flex items-center justify-center gap-2 h-10 border font-mono text-xs uppercase tracking-wider transition-all cursor-pointer rounded-none"
+            class="flex-1 flex items-center justify-center gap-2 cursor-pointer"
             :class="[
               theme === 'light'
-                ? 'border-[var(--accent-primary)] bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] font-bold'
-                : 'border-[var(--border-subtle)] dark:border-[var(--border-subtle)]/50 hover:bg-[var(--surface-highlight)]/50',
+                ? 'border-primary bg-primary/10 text-primary font-bold'
+                : 'border-border dark:border-border/50 hover:bg-accent/50',
             ]"
             @click="setTheme('light')"
           >
-            <Sun class="size-4 text-[var(--status-warning-mark)]" />
+            <Sun class="size-4 text-status-warning-mark" />
             <span>{{ t('settings.appearance.light') }}</span>
-          </button>
+          </Button>
 
-          <button
+          <Button
+            variant="outline"
             type="button"
-            class="flex-1 flex items-center justify-center gap-2 h-10 border font-mono text-xs uppercase tracking-wider transition-all cursor-pointer rounded-none"
+            class="flex-1 flex items-center justify-center gap-2 cursor-pointer"
             :class="[
               theme === 'dark'
-                ? 'border-[var(--accent-primary)] bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] font-bold'
-                : 'border-[var(--border-subtle)] dark:border-[var(--border-subtle)]/50 hover:bg-[var(--surface-highlight)]/50',
+                ? 'border-primary bg-primary/10 text-primary font-bold'
+                : 'border-border dark:border-border/50 hover:bg-accent/50',
             ]"
             @click="setTheme('dark')"
           >
-            <Moon class="size-4 text-[var(--primary)]" />
+            <Moon class="size-4 text-primary" />
             <span>{{ t('settings.appearance.dark') }}</span>
-          </button>
+          </Button>
 
-          <button
+          <Button
+            variant="outline"
             type="button"
-            class="flex-1 flex items-center justify-center gap-2 h-10 border font-mono text-xs uppercase tracking-wider transition-all cursor-pointer rounded-none"
+            class="flex-1 flex items-center justify-center gap-2 cursor-pointer"
             :class="[
               theme === 'system'
-                ? 'border-[var(--accent-primary)] bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] font-bold'
-                : 'border-[var(--border-subtle)] dark:border-[var(--border-subtle)]/50 hover:bg-[var(--surface-highlight)]/50',
+                ? 'border-primary bg-primary/10 text-primary font-bold'
+                : 'border-border dark:border-border/50 hover:bg-accent/50',
             ]"
             @click="setTheme('system')"
           >
             <Laptop class="size-4" />
             <span>{{ t('settings.appearance.system') }}</span>
-          </button>
+          </Button>
         </div>
       </CardContent>
     </Card>
@@ -126,56 +138,54 @@ function updateField<K extends keyof SystemSettings>(key: K, value: SystemSettin
       </CardHeader>
       <CardContent class="space-y-6">
         <div class="flex items-center justify-between space-x-2">
-          <Label class="flex flex-col space-y-1">
+          <Label class="flex flex-col items-start space-y-1">
             <span>{{ t('settings.userRegistration.enableRegistrations') }}</span>
             <span class="font-normal text-xs text-muted-foreground">{{
               t('settings.userRegistration.enableRegistrationsDescription')
             }}</span>
           </Label>
           <Switch
-            :checked="settings.enable_registrations"
-            @update:checked="updateField('enable_registrations', $event)"
+            :model-value="settings.enable_registrations"
+            :aria-label="t('settings.userRegistration.enableRegistrations')"
+            @update:model-value="updateField('enable_registrations', $event)"
           />
         </div>
         <div class="flex items-center justify-between space-x-2">
-          <Label class="flex flex-col space-y-1">
+          <Label class="flex flex-col items-start space-y-1">
             <span>{{ t('settings.userRegistration.requireEmailVerification') }}</span>
             <span class="font-normal text-xs text-muted-foreground">{{
               t('settings.userRegistration.requireEmailVerificationDescription')
             }}</span>
           </Label>
           <Switch
-            :checked="settings.require_email_verification"
-            @update:checked="updateField('require_email_verification', $event)"
+            :model-value="settings.require_email_verification"
+            :aria-label="t('settings.userRegistration.requireEmailVerification')"
+            @update:model-value="updateField('require_email_verification', $event)"
           />
         </div>
       </CardContent>
     </Card>
 
-    <Card
-      class="md:col-span-2 border-status-warning-mark bg-status-warning-surface"
-    >
+    <Card class="md:col-span-2">
       <CardHeader>
         <div class="flex items-center gap-2">
           <IconServer class="h-5 w-5 text-status-warning-mark" />
-          <CardTitle class="text-foreground-strong">{{
-            t('settings.systemStatus.title')
-          }}</CardTitle>
+          <CardTitle>{{ t('settings.systemStatus.title') }}</CardTitle>
         </div>
         <CardDescription>{{ t('settings.systemStatus.description') }}</CardDescription>
       </CardHeader>
       <CardContent class="space-y-6">
         <div class="flex items-center justify-between space-x-2">
-          <Label class="flex flex-col space-y-1">
+          <Label class="flex flex-col items-start space-y-1">
             <span>{{ t('settings.systemStatus.maintenanceMode') }}</span>
             <span class="font-normal text-xs text-muted-foreground">{{
               t('settings.systemStatus.maintenanceModeDescription')
             }}</span>
           </Label>
           <Switch
-            :checked="settings.maintenance_mode"
-            @update:checked="updateField('maintenance_mode', $event)"
-            class="data-[state=checked]:bg-status-warning-mark"
+            :model-value="settings.maintenance_mode"
+            :aria-label="t('settings.systemStatus.maintenanceMode')"
+            @update:model-value="updateField('maintenance_mode', $event)"
           />
         </div>
 

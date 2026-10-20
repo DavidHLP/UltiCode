@@ -25,6 +25,34 @@
   var LOCALE_STORAGE_KEY = 'ulticode-locale'
   var DEFAULT_LOCALE = 'zh-CN'
   var DARK_QUERY = '(prefers-color-scheme: dark)'
+  var OPTIONS = {
+    accent: ['neutral', 'blue', 'violet', 'emerald', 'orange'],
+    base: ['neutral', 'zinc', 'slate', 'stone', 'gray'],
+    chart: ['default', 'contrast'], font: ['system', 'serif', 'mono'],
+    radius: ['none', 'small', 'medium', 'large'],
+    density: ['comfortable', 'compact'], menu: ['subtle', 'solid'],
+    mode: ['light', 'dark', 'system'],
+  }
+  var DEFAULTS = { accent: 'neutral', base: 'neutral', chart: 'default', font: 'system', radius: 'medium', density: 'comfortable', menu: 'subtle', mode: 'system' }
+
+  function applyAppearance() {
+    var payload = null
+    var account = null
+    try {
+      account = localStorage.getItem('ulticode-appearance-account')
+      var scope = account && /^[a-zA-Z0-9_-]{1,200}$/.test(account) ? 'user:' + encodeURIComponent(account) : 'guest'
+      payload = JSON.parse(localStorage.getItem('ulticode-appearance:v1:' + scope) || 'null')
+    } catch { /* safe defaults with blocked or malformed storage */ }
+    var settings = Object.assign({}, DEFAULTS)
+    if (!account) settings.mode = readStored() || 'system'
+    Object.keys(OPTIONS).forEach(function (key) {
+      if (payload && Object.prototype.hasOwnProperty.call(payload, key) && OPTIONS[key].indexOf(payload[key]) !== -1) settings[key] = payload[key]
+      if (key !== 'mode') document.documentElement.setAttribute('data-appearance-' + key, settings[key])
+    })
+    document.documentElement.setAttribute('data-uc-density', settings.density)
+    document.documentElement.setAttribute('data-theme', settings.mode)
+    return settings.mode
+  }
 
   function isDark(mode) {
     if (mode === 'dark') return true
@@ -93,7 +121,7 @@
   }
 
   function apply() {
-    var stored = readStored() || 'system'
+    var stored = applyAppearance()
     var html = document.documentElement
     if (isDark(stored)) {
       html.classList.add('dark')

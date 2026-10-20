@@ -1,204 +1,70 @@
-/* ===========================================================================
- * @ulticode/theme — typography foundation
- *
- * Single source of truth for font families, sizes, line heights, weights,
- * letter spacing, and density-aware semantic roles. Replaces the previously
- * ad-hoc typography declarations in `shared/design-system/style.css` and
- * every app-local override.
- *
- * Layered contract:
- *   1. Foundation tokens  (--uc-font-*, --uc-text-*, --uc-leading-*,
- *                          --uc-font-weight-*, --uc-tracking-*)
- *   2. Tailwind aliases   (--text-xs/sm/... — keep existing utility classes
- *                          working through the migration)
- *   3. Semantic roles     (--uc-type-body-*, --uc-type-control-*, ...)
- *   4. Utility classes    (.uc-type-body, .uc-type-page-title, ...)
- *   5. Locale profiles    (:root[lang="zh-CN"] / :root[lang="en-US"])
- *   6. Density profiles   (:root + [data-uc-density="compact"])
- *
- * Apps may opt into a density profile by setting
- * `document.documentElement.dataset.ucDensity = 'comfortable' | 'compact'`
- * (see shared/theme/src/typography.ts → applyTypographyDensity).
- *
- * See the shared typography token contract for the design rationale and the
- * migration plan that this file enables.
- * =========================================================================== */
-
-/* ---------------------------------------------------------------------------
- * Font loading (jsDelivr CDN, see design notes below)
- *
- * The shared pipeline loads both editorial Latin faces and Simplified Chinese
- * faces. Locale profiles below select the primary family without duplicating
- * font loading or component styles.
- * --------------------------------------------------------------------------- */
-/* Garden typography (extracted from the landing page design):
- *   - Display/headings: Instrument Serif / Newsreader (+ Noto Serif SC for CJK)
- *   - UI/body: Inter (+ Noto Sans SC fallbacks)
- *   - Code/data: JetBrains Mono
- * Loaded once here so both apps share a single font pipeline.
- * See packages/design-system/docs/GARDEN_DESIGN_SPEC.md §4. */
-@import url("https://cdn.jsdelivr.net/npm/@fontsource/inter@5.2.5/index.min.css");
-@import url("https://cdn.jsdelivr.net/npm/@fontsource/instrument-serif@5.2.5/index.min.css");
-@import url("https://cdn.jsdelivr.net/npm/@fontsource/jetbrains-mono@5.2.5/index.min.css");
-@import url("https://cdn.jsdelivr.net/npm/@fontsource/noto-serif-sc@5.2.5/chinese-simplified-400.css");
-@import url("https://cdn.jsdelivr.net/npm/@fontsource/noto-serif-sc@5.2.5/chinese-simplified-600.css");
-@import url("https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-sc@5.2.9/chinese-simplified-400.css");
-@import url("https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-sc@5.2.9/chinese-simplified-500.css");
-@import url("https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-sc@5.2.9/chinese-simplified-700.css");
-
-/* ---------------------------------------------------------------------------
- * 1. Foundation tokens
- * --------------------------------------------------------------------------- */
-
+/* Shared typography roles; fonts use native, available system stacks. */
 :root {
-  /* English is the safe pre-locale baseline; the zh-CN profile below moves
-   * CJK faces to the front of the same shared stacks. */
   --uc-font-ui:
-    "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
-    "Segoe UI", "Noto Sans SC", "PingFang SC", "Hiragino Sans GB",
-    "Microsoft YaHei", "Noto Sans CJK SC", Arial, sans-serif;
-  --uc-font-display:
-    "Instrument Serif", "Newsreader", Georgia, "Noto Serif SC", "Songti SC",
-    "SimSun", serif;
+    ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    "PingFang SC", "Microsoft YaHei", sans-serif;
+  --uc-font-display: var(--uc-font-ui);
   --uc-font-code:
-    "JetBrains Mono", "Fira Code", ui-monospace, "SF Mono", Menlo, Consolas,
-    "Noto Sans SC", "PingFang SC", "Microsoft YaHei", monospace;
+    ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono",
+    "Microsoft YaHei", monospace;
   --uc-font-data: var(--uc-font-code);
   --uc-font-prose: var(--uc-font-ui);
-
-  /* Size scale */
-  --uc-text-2xs: 0.625rem;   /* 10px — dense terminal labels / table metadata only */
-  --uc-text-xxs: 0.6875rem;  /* 11px — badges, header buttons, row numbers */
-  --uc-text-xs:  0.75rem;    /* 12px — captions, helper text, compact cells */
-  --uc-text-sm:  0.875rem;   /* 14px — default app body + controls */
-  --uc-text-md:  1rem;       /* 16px — readable content, mobile inputs, markdown body */
-  --uc-text-lg:  1.125rem;   /* 18px — drawer titles, emphasized card titles */
-  --uc-text-xl:  1.25rem;    /* 20px — page titles, major panel titles */
-  --uc-text-2xl: 1.5rem;     /* 24px — marketing / auth / high-emphasis views */
-  --uc-text-3xl: 1.875rem;   /* 30px — rare landing or hero title */
-
-  /* Line heights */
+  --font-heading: var(--uc-font-display);
+  --uc-text-2xs: 0.75rem;
+  --uc-text-xxs: 0.75rem;
+  --uc-text-xs: 0.75rem;
+  --uc-text-sm: 0.875rem;
+  --uc-text-md: 1rem;
+  --uc-text-lg: 1.125rem;
+  --uc-text-xl: 1.25rem;
+  --uc-text-2xl: 1.5rem;
+  --uc-text-3xl: 1.875rem;
   --uc-leading-none: 1;
   --uc-leading-tight: 1.25;
   --uc-leading-snug: 1.35;
-  --uc-leading-code: 1.4;
+  --uc-leading-code: 1.5;
   --uc-leading-normal: 1.6;
   --uc-leading-relaxed: 1.75;
-
-  /* Weights */
   --uc-font-weight-regular: 400;
   --uc-font-weight-medium: 500;
   --uc-font-weight-semibold: 600;
   --uc-font-weight-bold: 700;
-
-  /* Letter spacing — default is 0; spaced tracking is for short uppercase
-   * terminal labels only. Negative tracking is deprecated. */
   --uc-tracking-normal: 0;
-  --uc-tracking-label: 0.05em;
-  --uc-tracking-terminal: 0.1em;
-  --uc-tracking-terminal-wide: 0.15em;
-
-  /* Numeric features (tabular numbers) */
+  --uc-tracking-label: 0;
   --uc-font-feature-data: "tnum" on, "lnum" on;
+  --uc-locale-heading-tracking: 0;
+  --uc-locale-display-tracking: 0;
+  --uc-locale-control-tracking: 0;
+  --uc-layout-page-gutter: clamp(1rem, 3vw, 2rem);
+  --uc-layout-panel-padding-inline: 1rem;
+  --uc-layout-panel-padding-block: 1rem;
+  --uc-layout-section-gap: 1.5rem;
+  --uc-layout-control-gap: 0.5rem;
+  --uc-layout-control-height: 2.25rem;
+  --uc-layout-control-padding-inline: 0.75rem;
+  --uc-layout-cell-padding-block: 0.75rem;
+  --uc-component-control-radius: var(--radius-md);
 }
-
-/* ---------------------------------------------------------------------------
- * 1a. Locale design profiles
- *
- * `html[lang]` is the single runtime selector. Locale preference owns the
- * attribute; the design system owns the metrics that respond to it. Color
- * semantics and app density remain shared so language changes never turn
- * into a second product theme.
- * --------------------------------------------------------------------------- */
-
-:root {
-  --uc-locale-heading-tracking: var(--uc-tracking-normal);
-  --uc-locale-display-tracking: -0.035em;
-  --uc-locale-control-tracking: var(--uc-tracking-normal);
-}
-
-:root[lang="zh-CN"] {
+:root[data-appearance-font="serif"] {
   --uc-font-ui:
-    "Noto Sans SC", "PingFang SC", "Microsoft YaHei", "Inter", ui-sans-serif,
-    system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    "Noto Sans CJK SC", Arial, sans-serif;
-  --uc-font-display:
-    "Noto Serif SC", "Songti SC", "SimSun", "Instrument Serif", "Newsreader",
-    Georgia, serif;
-  --uc-leading-normal: 1.65;
-  --uc-leading-tight: 1.35;
-  --uc-leading-snug: 1.45;
-  --uc-tracking-label: var(--uc-tracking-normal);
-  --uc-locale-heading-tracking: var(--uc-tracking-normal);
-  --uc-locale-display-tracking: var(--uc-tracking-normal);
-  --uc-locale-control-tracking: var(--uc-tracking-normal);
+    ui-serif, Georgia, "Noto Serif CJK SC", "Songti SC", "SimSun", serif;
 }
-
-:root[lang="en-US"] {
-  --uc-font-ui:
-    "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
-    "Segoe UI", "Noto Sans SC", "PingFang SC", "Hiragino Sans GB",
-    "Microsoft YaHei", "Noto Sans CJK SC", Arial, sans-serif;
-  --uc-font-display:
-    "Instrument Serif", "Newsreader", Georgia, "Noto Serif SC", "Songti SC",
-    "SimSun", serif;
-  --uc-leading-normal: 1.5;
-  --uc-leading-tight: 1.25;
-  --uc-leading-snug: 1.35;
-  --uc-tracking-label: 0.05em;
-  --uc-locale-heading-tracking: -0.01em;
-  --uc-locale-display-tracking: -0.045em;
-  --uc-locale-control-tracking: var(--uc-tracking-normal);
+:root[data-appearance-font="mono"] {
+  --uc-font-ui: var(--uc-font-code);
 }
-
-/* ---------------------------------------------------------------------------
- * 2. Tailwind-compatible aliases
- *
- * These keep existing `text-sm`, `text-xl`, `font-mono`, and `leading-normal`
- * classes working unchanged while apps incrementally adopt the semantic
- * `uc-type-*` classes. Values mirror the previous design-system declarations
- * to avoid a one-shot visual regression.
- * --------------------------------------------------------------------------- */
-
+:root[data-uc-density="compact"] {
+  --uc-layout-control-height: 2rem;
+  --uc-layout-page-gutter: 1rem;
+  --uc-layout-panel-padding-block: 0.75rem;
+  --uc-layout-section-gap: 1rem;
+  --uc-layout-cell-padding-block: 0.5rem;
+}
 @theme inline {
   --font-sans: var(--uc-font-ui);
   --font-display: var(--uc-font-display);
   --font-mono: var(--uc-font-code);
-
-  /* Preserve the historical size scale that production code already depends
-   * on. The `text-base` → `--uc-text-md` mapping is the only intentional
-   * shift: 1rem is 16px on the root font size, matching the old `--text-base`
-   * literal, so callers see no change. */
-  --text-2xs:  var(--uc-text-2xs);  /* 10px */
-  --text-xxs:  var(--uc-text-xxs);  /* 11px */
-  --text-xs:   var(--uc-text-xs);
-  --text-sm:   var(--uc-text-sm);
-  --text-base: var(--uc-text-md);
-  --text-lg:   var(--uc-text-xl);
-  --text-xl:   var(--uc-text-2xl);
-  --text-2xl:  var(--uc-text-3xl);
-
-  --leading-normal: var(--uc-leading-normal);
-  --leading-code:   var(--uc-leading-code);
-
-  /* Negative tracking is deprecated; route the legacy alias to normal. */
-  --tracking-tight: var(--uc-tracking-normal);
-
-  /* The two spaced tracking presets apps can use via the Tailwind class
-   * API. `tracking-label` is the standard 0.05em label/component
-   * spacing; `tracking-wide` is the 0.1em terminal spacing;
-   * `tracking-widest` is the rare 0.15em uppercased label spacing. */
-  --tracking-label:  var(--uc-tracking-label);
-  --tracking-wide:   var(--uc-tracking-terminal);
-  --tracking-widest: var(--uc-tracking-terminal-wide);
+  --leading-code: var(--uc-leading-code);
 }
-
-/* ---------------------------------------------------------------------------
- * 3. Semantic role variables
- *
- * Each role is a named bundle that components can use directly via
- * var(--uc-type-*) or via the .uc-type-* utility classes below.
- * --------------------------------------------------------------------------- */
 
 :root {
   --uc-type-body-family: var(--uc-font-ui);
@@ -227,21 +93,13 @@
   --uc-type-label-line-height: var(--uc-leading-tight);
   --uc-type-label-weight: var(--uc-font-weight-medium);
 
-  --uc-type-table-header-size: var(--uc-text-2xs);
-  --uc-type-table-cell-size: var(--uc-text-xs);
+  --uc-type-table-header-size: var(--uc-text-xs);
+  --uc-type-table-cell-size: var(--uc-text-sm);
 
   --uc-type-data-size: var(--uc-text-xs);
   --uc-type-code-size: 0.85em;
   --uc-type-markdown-size: var(--uc-text-md);
 }
-
-/* ---------------------------------------------------------------------------
- * 4. Utility classes
- *
- * Stable classes for repeated patterns where Tailwind utility strings are
- * too noisy or too easy to drift. Apps SHOULD prefer these over arbitrary
- * `text-[…px]` and `tracking-[…em]` overrides.
- * --------------------------------------------------------------------------- */
 
 .uc-type-body {
   font-family: var(--uc-type-body-family);
@@ -303,49 +161,4 @@
   font-family: var(--uc-font-code);
   font-size: var(--uc-type-code-size);
   line-height: var(--uc-leading-code);
-}
-
-/* ---------------------------------------------------------------------------
- * 6. Density profiles
- *
- * Apps opt in by setting `data-uc-density` on <html>:
- *   - 'comfortable' (default for console): generous reading surface
- *   - 'compact'     (default for management): dense tables, queues
- *
- * The helper in shared/theme/src/typography.ts (applyTypographyDensity)
- * owns the only place that writes this attribute. Apps MUST NOT set it
- * from component code.
- * --------------------------------------------------------------------------- */
-
-:root,
-[data-uc-density="comfortable"] {
-  --uc-type-body-size: var(--uc-text-sm);
-  --uc-type-control-size: var(--uc-text-sm);
-  --uc-type-table-cell-size: var(--uc-text-sm);
-  --uc-type-page-title-size: var(--uc-text-2xl);
-  --uc-type-markdown-size: var(--uc-text-md);
-}
-
-[data-uc-density="compact"] {
-  --uc-type-body-size: var(--uc-text-sm);
-  --uc-type-control-size: var(--uc-text-xs);
-  --uc-type-table-cell-size: var(--uc-text-xs);
-  --uc-type-page-title-size: var(--uc-text-xl);
-  --uc-type-markdown-size: var(--uc-text-sm);
-}
-
-/* ---------------------------------------------------------------------------
- * 6. Shared markdown contract
- *
- * `.markdown-block` is the canonical class for rendered Markdown in both
- * apps. Management's local `.prose` is aliased to the same rules for the
- * duration of the migration and will be removed once the codebase is clean.
- * --------------------------------------------------------------------------- */
-
-.markdown-block,
-.prose {
-  font-family: var(--uc-font-prose);
-  font-size: var(--uc-type-markdown-size);
-  line-height: var(--uc-leading-relaxed);
-  letter-spacing: var(--uc-tracking-normal);
 }

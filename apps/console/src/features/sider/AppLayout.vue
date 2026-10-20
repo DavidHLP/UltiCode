@@ -5,32 +5,25 @@ import {
   NavigationMenuItem,
   NavigationMenuLink,
   NavigationMenuList,
-} from "@/components/ui/navigation-menu";
+} from "@ulticode/design-system/ui/navigation-menu";
 import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
-} from "@/components/ui/sidebar";
+} from "@ulticode/design-system/ui/sidebar";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@/components/ui/tooltip";
+} from "@ulticode/design-system/ui/tooltip";
 import SearchBar from "@/components/search/SearchBar.vue";
 import type { RouteLocationRaw } from "vue-router";
 import { useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
-import { computed, onMounted } from "vue";
-import { cn } from "@/lib/utils";
+import { computed } from "vue";
 
 const route = useRoute();
 const { t } = useI18n();
-const isDevelopment = import.meta.env.DEV;
-
-onMounted(() => {
-  if (isDevelopment) {
-  }
-});
 
 type NavItem = {
   label: string;
@@ -67,11 +60,14 @@ const isActiveNav = (item: NavItem) => {
 </script>
 
 <template>
-  <SidebarProvider class="w-full" :style="{ '--sidebar-width': '220px' }">
+  <SidebarProvider
+    class="w-full"
+    :style="{ '--sidebar-width': '220px', '--uc-app-header-height': 'calc(var(--spacing) * 14)' }"
+  >
     <AppSidebar />
     <SidebarInset>
       <header
-        class="sticky top-0 z-30 grid h-14 shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-[var(--uc-layout-control-gap)] border-b border-border-subtle bg-surface-elevated px-[var(--uc-layout-panel-padding-inline)]"
+        class="sticky top-0 z-30 grid h-[var(--uc-app-header-height)] shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-[var(--uc-layout-control-gap)] border-b border-border bg-card px-[var(--uc-layout-panel-padding-inline)]"
       >
         <Tooltip>
           <TooltipTrigger as-child>
@@ -94,16 +90,13 @@ const isActiveNav = (item: NavItem) => {
                 v-if="item.to"
                 :as-child="true"
                 :active="isActiveNav(item)"
-                :class="cn(
-                  'terminal-tab h-[var(--uc-layout-control-height)] flex-row items-center py-0',
-                  isActiveNav(item) && 'border-b-2 border-primary !font-semibold',
-                )"
+                class="flex-row py-0"
               >
                 <RouterLink :to="item.to">
                   <span>{{ item.label }}</span>
                   <span
                     v-if="item.comingSoon"
-                    class="rounded-full border px-1.5 py-0.5 text-2xs uppercase tracking-wide text-muted-foreground"
+                    class="rounded-full border px-1.5 py-0.5 text-xs uppercase tracking-wide text-muted-foreground"
                   >
                     {{ t("common.labels.soon") }}
                   </span>
@@ -112,16 +105,13 @@ const isActiveNav = (item: NavItem) => {
               <NavigationMenuLink
                 v-else
                 :href="item.href"
-                :class="cn(
-                  'terminal-tab h-[var(--uc-layout-control-height)] flex-row items-center py-0',
-                  isActiveNav(item) && 'border-b-2 border-primary !font-semibold',
-                )"
+                class="flex-row py-0"
                 target="_self"
               >
                 <span>{{ item.label }}</span>
                 <span
                   v-if="item.comingSoon"
-                  class="rounded-full border px-1.5 py-0.5 text-2xs uppercase tracking-wide text-muted-foreground"
+                  class="rounded-full border px-1.5 py-0.5 text-xs uppercase tracking-wide text-muted-foreground"
                 >
                   {{ t("common.labels.soon") }}
                 </span>
@@ -129,7 +119,7 @@ const isActiveNav = (item: NavItem) => {
             </NavigationMenuItem>
           </NavigationMenuList>
         </NavigationMenu>
-        <div class="flex items-center justify-self-end">
+        <div class="col-start-3 flex items-center justify-self-end">
           <SearchBar />
         </div>
       </header>
@@ -141,3 +131,9 @@ const isActiveNav = (item: NavItem) => {
     </SidebarInset>
   </SidebarProvider>
 </template>
+
+<style scoped>
+.uc-page-main :deep(:where([id], .markdown-view strong, .markdown-view p)) {
+  scroll-margin-block-start: var(--uc-app-header-height);
+}
+</style>

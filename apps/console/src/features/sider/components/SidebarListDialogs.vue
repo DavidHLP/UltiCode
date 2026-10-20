@@ -6,7 +6,7 @@ import {
   DialogTitle,
   DialogFooter,
   DialogDescription,
-} from "@/components/ui/dialog";
+} from "@ulticode/design-system/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,12 +16,12 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
+} from "@ulticode/design-system/ui/alert-dialog";
+import { Button } from "@ulticode/design-system/ui/button";
+import { Input } from "@ulticode/design-system/ui/input";
+import { Label } from "@ulticode/design-system/ui/label";
+import { Textarea } from "@ulticode/design-system/ui/textarea";
+import { Switch } from "@ulticode/design-system/ui/switch";
 import { useI18n } from "vue-i18n";
 import type { ProblemList, ProblemListCategory } from "@/types/problem-list";
 
@@ -191,7 +191,6 @@ const emit = defineEmits<{
           t("common.actions.cancel")
         }}</AlertDialogCancel>
         <AlertDialogAction
-          class="bg-status-error-surface text-foreground-strong border border-destructive hover:bg-status-error-surface/80"
           @click="emit('deleteCategory')"
           :disabled="isDeletingCategory"
         >
@@ -228,7 +227,6 @@ const emit = defineEmits<{
           t("common.actions.cancel")
         }}</AlertDialogCancel>
         <AlertDialogAction
-          class="bg-status-error-surface text-foreground-strong border border-destructive hover:bg-status-error-surface/80"
           @click="emit('deleteList')"
           :disabled="isDeletingList"
         >

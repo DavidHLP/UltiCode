@@ -6,16 +6,17 @@ import {
   CardHeader,
   CardTitle,
   CardFooter,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+} from "@ulticode/design-system/ui/card";
+import { Button } from "@ulticode/design-system/ui/button";
+import { Badge } from "@ulticode/design-system/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
+  DropdownMenuGroup,
+} from "@ulticode/design-system/ui/dropdown-menu";
 import {
   MoreHorizontal,
   Pencil,
@@ -44,10 +45,10 @@ const { t } = useI18n();
 <template>
   <div
     v-if="lists.length === 0"
-    class="flex flex-col items-center justify-center py-24 text-center px-6 border-2 border-dashed border-muted/50 rounded-none bg-muted/5"
+    class="flex flex-col items-center justify-center py-24 text-center px-6 border-2 border-dashed border-muted/50 rounded-lg bg-muted/5"
   >
     <div
-      class="p-0 flex items-center justify-center w-16 h-16 rounded-none bg-muted/50 mb-4"
+      class="p-0 flex items-center justify-center w-16 h-16 rounded-lg bg-muted/50 mb-4"
     >
       <LayoutGrid class="h-8 w-8 text-muted-foreground/50" />
     </div>
@@ -57,11 +58,7 @@ const { t } = useI18n();
     <p class="text-sm text-muted-foreground mt-1 max-w-[300px] mb-8">
       {{ t("personal.problemLists.emptyStates.noListsDesc") }}
     </p>
-    <Button
-      size="lg"
-      @click="emit('create')"
-      class="rounded-full gap-2 px-8 h-10 font-bold"
-    >
+    <Button size="lg" @click="emit('create')" class="gap-2 px-8">
       <Plus class="h-4 w-4" />
       {{ t("personal.problemLists.emptyStates.createFirst") }}
     </Button>
@@ -71,7 +68,7 @@ const { t } = useI18n();
     <Card
       v-for="list in lists"
       :key="list.id"
-      class="group hover:shadow-[var(--shadow-float)] transition-all duration-300 border-muted/60 overflow-hidden flex flex-col rounded-none"
+      class="group overflow-hidden flex flex-col"
     >
       <CardHeader class="pb-3">
         <div class="flex items-start justify-between">
@@ -80,23 +77,17 @@ const { t } = useI18n();
               <Badge
                 v-if="list.isPublic"
                 variant="secondary"
-                class="h-5 px-1.5 text-2xs font-semibold uppercase tracking-widest bg-[var(--status-success-mark)]/10 text-foreground-strong border-[var(--status-success-mark)]/20 rounded-none"
+                class="h-5 px-1.5"
               >
                 <Globe class="h-3 w-3 mr-1" />
                 {{ t("personal.problemLists.listCard.public") }}
               </Badge>
-              <Badge
-                v-else
-                variant="outline"
-                class="h-5 px-1.5 text-2xs font-semibold uppercase tracking-widest text-muted-foreground border-muted-foreground/20 rounded-none"
-              >
+              <Badge v-else variant="outline" class="h-5 px-1.5">
                 <Lock class="h-3 w-3 mr-1" />
                 {{ t("personal.problemLists.listCard.private") }}
               </Badge>
             </div>
-            <CardTitle
-              class="text-lg font-semibold group-hover:text-primary transition-colors truncate"
-            >
+            <CardTitle class="group-hover:text-primary truncate">
               <RouterLink :to="`/problemset/list/${list.id}`">{{
                 list.name
               }}</RouterLink>
@@ -105,25 +96,27 @@ const { t } = useI18n();
 
           <DropdownMenu>
             <DropdownMenuTrigger as-child>
-              <Button variant="ghost" size="icon" class="h-8 w-8 rounded-full">
+              <Button variant="ghost" size="icon" class="w-8">
                 <MoreHorizontal class="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" class="w-48">
-              <DropdownMenuItem as-child class="gap-2">
-                <RouterLink :to="`/problemset/list/${list.id}`">
-                  <Pencil class="h-4 w-4" />
-                  {{ t("personal.problemLists.actions.editList") }}
-                </RouterLink>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                class="text-destructive focus:text-destructive gap-2"
-                @click.prevent="emit('delete', list)"
+              <DropdownMenuGroup
+                ><DropdownMenuItem as-child class="gap-2">
+                  <RouterLink :to="`/problemset/list/${list.id}`">
+                    <Pencil class="h-4 w-4" />
+                    {{ t("personal.problemLists.actions.editList") }}
+                  </RouterLink>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  class="gap-2"
+                  @click.prevent="emit('delete', list)"
+                >
+                  <Trash2 class="h-4 w-4" />
+                  {{ t("personal.problemLists.actions.deleteList") }}
+                </DropdownMenuItem></DropdownMenuGroup
               >
-                <Trash2 class="h-4 w-4" />
-                {{ t("personal.problemLists.actions.deleteList") }}
-              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -139,7 +132,7 @@ const { t } = useI18n();
           {{ t("personal.problemLists.listCard.noDescription") }}
         </p>
       </CardContent>
-      <CardFooter class="bg-muted/20 border-t py-3 px-6">
+      <CardFooter class="py-3 px-6">
         <div
           class="flex items-center gap-2 text-xs font-bold text-muted-foreground"
         >

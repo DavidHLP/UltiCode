@@ -24,7 +24,7 @@ import { computed, inject, onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRoute } from "vue-router";
 import { RefreshCw, BookPlus, CheckCircle2, Clock } from "@lucide/vue";
-import { Button } from "@/components/ui/button";
+import { Button } from "@ulticode/design-system/ui/button";
 import { fetchContestProblemSubmissions } from "@/api/contest";
 import { ContestProblemContextKey, ToggleNotesKey } from "../problem-context";
 import type { SubmissionRecord } from "@/types/submission";
@@ -52,7 +52,7 @@ const loading = ref(false);
 
 const slug = computed(() => {
   const s = route.params.slug;
-  return Array.isArray(s) ? s[0] ?? null : s ?? null;
+  return Array.isArray(s) ? (s[0] ?? null) : (s ?? null);
 });
 // Use `contestProblemNav.current.problemId` (already computed by
 // the composable) instead of reaching into a non-existent
@@ -91,15 +91,14 @@ const breakdown = computed<VerdictBreakdown>(() => {
     else if (/wrong[ _-]?answer/i.test(v)) out.wrongAnswer++;
     else if (/time[ _-]?limit/i.test(v) || /^tle$/i.test(v)) out.timeLimit++;
     else if (/runtime[ _-]?error/i.test(v) || /^re$/i.test(v)) out.runtime++;
-    else if (/compile[ _-]?error/i.test(v) || /^ce$/i.test(v)) out.compileError++;
+    else if (/compile[ _-]?error/i.test(v) || /^ce$/i.test(v))
+      out.compileError++;
     else out.other++;
   }
   return out;
 });
 
-const finalScore = computed(
-  () => ctx?.participation.value?.score ?? null,
-);
+const finalScore = computed(() => ctx?.participation.value?.score ?? null);
 
 async function load(): Promise<void> {
   const cid = contestIdForFetch.value;
@@ -150,7 +149,7 @@ onMounted(() => {
 <template>
   <div
     v-if="ctx?.isInContest.value && ctx.contest.value?.status === 'FINISHED'"
-    class="border-b border-border bg-[var(--surface-highlight)]/40 dark:bg-background/40"
+    class="border-b border-border bg-accent/40 dark:bg-background/40"
     data-testid="contest-review-panel"
   >
     <div class="mx-auto max-w-7xl px-4 py-3 font-mono">
@@ -163,21 +162,17 @@ onMounted(() => {
         <div class="flex items-start gap-2">
           <CheckCircle2
             v-if="firstAccepted"
-            class="mt-0.5 h-4 w-4 shrink-0 text-[var(--status-success-mark)]"
+            class="mt-0.5 h-4 w-4 shrink-0 text-status-success-mark"
           />
           <Clock v-else class="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
           <div>
             <p
-              class="text-2xs font-black uppercase tracking-widest text-muted-foreground"
+              class="text-xs font-black uppercase tracking-widest text-muted-foreground"
             >
               {{ t("contest.review.firstACLabel") }}
             </p>
             <p class="text-xs font-bold">
-              {{
-                firstAccepted
-                  ? formatTime(firstAccepted.created_at)
-                  : "—"
-              }}
+              {{ firstAccepted ? formatTime(firstAccepted.created_at) : "—" }}
             </p>
           </div>
         </div>
@@ -187,29 +182,33 @@ onMounted(() => {
           <Clock class="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
           <div>
             <p
-              class="text-2xs font-black uppercase tracking-widest text-muted-foreground"
+              class="text-xs font-black uppercase tracking-widest text-muted-foreground"
             >
-              {{ t("contest.review.verdictBreakdown", {
-                n: breakdown.total,
-                wa: breakdown.wrongAnswer,
-                tle: breakdown.timeLimit,
-                re: breakdown.runtime,
-                ce: breakdown.compileError,
-              }) }}
+              {{
+                t("contest.review.verdictBreakdown", {
+                  n: breakdown.total,
+                  wa: breakdown.wrongAnswer,
+                  tle: breakdown.timeLimit,
+                  re: breakdown.runtime,
+                  ce: breakdown.compileError,
+                })
+              }}
             </p>
-            <p class="text-xs font-bold text-[var(--foreground-strong)]">
+            <p class="text-xs font-bold text-foreground">
               {{ breakdown.accepted }} / {{ breakdown.total }}
-              <span class="text-2xs text-muted-foreground">AC</span>
+              <span class="text-xs text-muted-foreground">AC</span>
             </p>
           </div>
         </div>
 
         <!-- Final score -->
         <div class="flex items-start gap-2">
-          <CheckCircle2 class="mt-0.5 h-4 w-4 shrink-0 text-[var(--status-warning-mark)]" />
+          <CheckCircle2
+            class="mt-0.5 h-4 w-4 shrink-0 text-status-warning-mark"
+          />
           <div>
             <p
-              class="text-2xs font-black uppercase tracking-widest text-muted-foreground"
+              class="text-xs font-black uppercase tracking-widest text-muted-foreground"
             >
               {{ t("contest.review.finalScoreLabel") }}
             </p>
@@ -223,13 +222,13 @@ onMounted(() => {
       <!-- Submission timeline -->
       <ul
         v-if="submissions.length > 0"
-        class="mt-3 max-h-48 overflow-y-auto border border-border/40 bg-surface dark:bg-surface-highlight"
+        class="mt-3 max-h-48 overflow-y-auto border border-border/40 bg-background dark:bg-accent"
         data-testid="contest-review-timeline"
       >
         <li
           v-for="(s, idx) in submissions"
           :key="idx"
-          class="grid grid-cols-12 items-center gap-2 border-b border-border/30 px-3 py-1.5 text-xxs last:border-b-0"
+          class="grid grid-cols-12 items-center gap-2 border-b border-border/30 px-3 py-1.5 text-xs last:border-b-0"
         >
           <span class="col-span-3 font-mono text-muted-foreground">
             {{ formatTime(s.created_at) }}
@@ -243,11 +242,13 @@ onMounted(() => {
           <span class="col-span-2 font-mono text-muted-foreground">
             {{ s.memory ?? 0 }}KB
           </span>
-          <span class="col-span-2 text-right font-black text-[var(--foreground-strong)]">
+          <span class="col-span-2 text-right font-black text-foreground">
             <!-- Score lives on the nested `contest_info` for contest
                  submissions; non-contest submissions don't have a
                  score at all. -->
-            {{ s.contest_info?.score != null ? `+${s.contest_info.score}` : "—" }}
+            {{
+              s.contest_info?.score != null ? `+${s.contest_info.score}` : "—"
+            }}
           </span>
         </li>
       </ul>
@@ -257,7 +258,7 @@ onMounted(() => {
         <Button
           variant="default"
           size="sm"
-          class="h-8 rounded-none border border-[var(--primary)]/40 bg-[var(--primary)]/15 px-3 font-black text-2xs uppercase tracking-widest text-[var(--primary)] hover:bg-[var(--primary)]/25 cursor-pointer"
+          class="px-3 cursor-pointer"
           :disabled="!retakeHref()"
           data-testid="contest-review-retake"
           @click="handleRetake"
@@ -268,7 +269,7 @@ onMounted(() => {
         <Button
           variant="outline"
           size="sm"
-          class="h-8 rounded-none border border-border bg-transparent px-3 font-black text-2xs uppercase tracking-widest text-muted-foreground hover:bg-[var(--surface-highlight)] hover:text-foreground dark:hover:bg-background cursor-pointer"
+          class="px-3 dark:hover:bg-background cursor-pointer"
           data-testid="contest-review-notebook"
           @click="handleNotebook"
         >

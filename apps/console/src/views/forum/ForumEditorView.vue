@@ -10,16 +10,23 @@ import {
   updateForumPost,
 } from "@/api/forum";
 import type { ForumCommunity, ForumPost, ForumTag } from "@/types/forum";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Input } from "@ulticode/design-system/ui/input";
+import { Button } from "@ulticode/design-system/ui/button";
+import { Badge } from "@ulticode/design-system/ui/badge";
+import { Separator } from "@ulticode/design-system/ui/separator";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@ulticode/design-system/ui/popover";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+  SelectGroup,
+} from "@ulticode/design-system/ui/select";
 import { toast } from "vue-sonner";
 import { MarkdownEdit, MarkdownView } from "@/components/markdown";
 import { useI18n } from "vue-i18n";
@@ -50,7 +57,6 @@ const communityId = ref("");
 const flairType = ref<string | null>(null);
 const flairLabel = ref("");
 const selectedTags = ref<string[]>([]);
-const showTagPicker = ref(false);
 
 const defaultTemplate = `## Context
 
@@ -153,11 +159,23 @@ async function handleSave() {
   }
 }
 
-function toggleTag(tagName: string) {
-  if (selectedTags.value.includes(tagName)) {
-    selectedTags.value = selectedTags.value.filter((t) => t !== tagName);
+function isTagSelected(tag: ForumTag) {
+  return (
+    selectedTags.value.includes(tag.id) || selectedTags.value.includes(tag.name)
+  );
+}
+
+function getTagName(value: string) {
+  return tags.value.find((tag) => tag.id === value)?.name ?? value;
+}
+
+function toggleTag(tag: ForumTag) {
+  if (isTagSelected(tag)) {
+    selectedTags.value = selectedTags.value.filter(
+      (value) => value !== tag.id && value !== tag.name,
+    );
   } else {
-    selectedTags.value.push(tagName);
+    selectedTags.value.push(tag.name);
   }
 }
 
@@ -174,16 +192,17 @@ onMounted(loadData);
 
 <template>
   <div
-    class="flex h-screen w-full flex-col overflow-hidden bg-background animate-in fade-in duration-500"
+    class="flex min-h-dvh w-full flex-col bg-background animate-in fade-in duration-500 lg:h-dvh lg:overflow-hidden"
   >
     <!-- Header -->
     <header
-      class="flex h-16 flex-shrink-0 items-center border-b border-border-control bg-card px-6 gap-4 shadow-sm z-10"
+      class="sticky top-0 flex h-16 flex-shrink-0 items-center border-b border-input bg-card px-6 gap-4 shadow-sm z-10"
     >
       <Button
         variant="ghost"
         size="sm"
-        class="gap-2 rounded-none hover:bg-accent/30 font-bold"
+        class="gap-2"
+        :aria-label="t('forum.actions.back')"
         @click="handleGoBack"
       >
         <ArrowLeft class="h-4 w-4" />
@@ -193,9 +212,7 @@ onMounted(loadData);
       <Separator orientation="vertical" class="h-6" />
 
       <div class="flex items-center gap-2 flex-1">
-        <h2
-          class="text-sm font-black uppercase tracking-widest text-[var(--primary)]"
-        >
+        <h2 class="text-sm font-black uppercase tracking-widest text-primary">
           {{
             isEditMode ? t("forum.post.editPost") : t("forum.post.createPost")
           }}
@@ -205,7 +222,7 @@ onMounted(loadData);
       <div class="flex items-center gap-3">
         <Button
           size="sm"
-          class="gap-2 rounded-none px-6 h-9 font-black uppercase tracking-wider bg-primary hover:bg-primary/90 text-primary-foreground"
+          class="gap-2 px-6"
           :disabled="isSaving || isLoading"
           @click="handleSave"
         >
@@ -224,64 +241,63 @@ onMounted(loadData);
       <div class="flex w-full flex-col overflow-hidden">
         <!-- Meta Section -->
         <div
-          class="flex flex-shrink-0 flex-col gap-4 px-6 py-6 bg-muted/10 border-b border-border-control/20"
+          class="flex flex-shrink-0 flex-col gap-4 px-6 py-6 bg-muted/10 border-b border-input/20"
         >
           <div class="max-w-[1600px] mx-auto w-full space-y-4">
             <Input
               v-model="title"
               :placeholder="t('forum.post.titlePlaceholder')"
-              class="rounded-none border-0 border-b border-border-control/30 bg-transparent px-0 text-3xl font-black shadow-none focus-visible:ring-0 focus-visible:border-[var(--primary)] transition-all placeholder:text-muted-foreground/30 h-14"
             />
 
             <div class="flex flex-wrap gap-3 items-center">
               <div
-                class="flex items-center rounded-none border border-border-control bg-card shadow-sm hover:border-[var(--primary)] focus-within:border-[var(--primary)] focus-within:ring-1 focus-within:ring-[var(--primary)] transition-colors h-9 overflow-hidden"
+                class="flex items-center rounded-lg border border-input bg-card shadow-sm hover:border-primary focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-colors h-9 overflow-hidden"
               >
                 <div
-                  class="bg-[color-mix(in_oklch,var(--primary)_15%,transparent)] text-[var(--primary)] px-2.5 h-full flex items-center justify-center border-r border-border-control"
+                  class="bg-[color-mix(in_oklch,var(--primary)_15%,transparent)] text-primary px-2.5 h-full flex items-center justify-center border-r border-input"
                 >
                   <LayoutGrid class="h-3.5 w-3.5" />
                 </div>
                 <Select v-model="communityId">
-                  <SelectTrigger
-                    class="w-[180px] h-full border-0 bg-transparent shadow-none focus:ring-0 text-xs font-bold uppercase tracking-wider px-3"
-                  >
+                  <SelectTrigger class="w-[180px] h-full px-3">
                     <SelectValue :placeholder="t('forum.post.community')" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem
-                      v-for="community in communities"
-                      :key="community.id"
-                      :value="community.id"
+                    <SelectGroup
+                      ><SelectItem
+                        v-for="community in communities"
+                        :key="community.id"
+                        :value="community.id"
+                      >
+                        {{ community.name }}
+                      </SelectItem></SelectGroup
                     >
-                      {{ community.name }}
-                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div
-                class="flex items-center rounded-none border border-border-control bg-card shadow-sm hover:border-[var(--primary)] focus-within:border-[var(--primary)] focus-within:ring-1 focus-within:ring-[var(--primary)] transition-colors h-9 overflow-hidden"
+                class="flex items-center rounded-lg border border-input bg-card shadow-sm hover:border-primary focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-colors h-9 overflow-hidden"
               >
                 <div
-                  class="bg-[color-mix(in_oklch,var(--status-warning-mark)_15%,transparent)] text-foreground-strong px-2.5 h-full flex items-center justify-center border-r border-border-control"
+                  class="bg-[color-mix(in_oklch,var(--status-warning-mark)_15%,transparent)] text-foreground px-2.5 h-full flex items-center justify-center border-r border-input"
                 >
                   <Tag class="h-3.5 w-3.5" />
                 </div>
                 <Select v-model="flairType">
-                  <SelectTrigger
-                    class="w-[140px] h-full border-0 bg-transparent shadow-none focus:ring-0 text-xs font-bold uppercase tracking-wider px-3"
-                  >
+                  <SelectTrigger class="w-[140px] h-full px-3">
                     <SelectValue :placeholder="t('forum.post.flair')" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem
-                      v-for="flair in flairOptions"
-                      :key="flair.value"
-                      :value="flair.value"
+                    <SelectGroup
+                      ><SelectItem
+                        v-for="flair in flairOptions"
+                        :key="flair.value"
+                        :value="flair.value"
+                      >
+                        {{ flair.label }}
+                      </SelectItem></SelectGroup
                     >
-                      {{ flair.label }}
-                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -290,51 +306,53 @@ onMounted(loadData);
                 v-if="flairType"
                 v-model="flairLabel"
                 :placeholder="t('forum.post.customLabel')"
-                class="h-9 w-[150px] text-xs font-bold rounded-none border-border-control focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--accent-glow)] shadow-sm bg-card"
+                class="w-[150px]"
               />
 
-              <div class="relative">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  class="h-9 rounded-none border-border-control gap-2 px-4 shadow-sm hover:border-[var(--primary)] hover:bg-[var(--surface-sunken)] transition-colors"
-                  @click="showTagPicker = !showTagPicker"
+              <Popover>
+                <PopoverTrigger as-child>
+                  <Button variant="outline" size="sm" class="gap-2 px-4">
+                    <Plus class="h-3.5 w-3.5" />
+                    {{ t("forum.post.tags") }}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent
+                  align="end"
+                  :aria-label="t('forum.post.selectTags')"
+                  class="w-64 max-h-(--reka-popover-content-available-height) gap-0 p-0"
                 >
-                  <Plus class="h-3.5 w-3.5" />
-                  {{ t("forum.post.tags") }}
-                </Button>
-                <div
-                  v-if="showTagPicker"
-                  class="absolute left-0 top-11 z-50 w-64 rounded-none border border-border bg-popover shadow-[var(--shadow-float)] animate-in zoom-in-95 duration-200"
-                >
-                  <div class="border-b border-border px-4 py-3 bg-muted/30">
+                  <div
+                    class="shrink-0 rounded-t-lg border-b border-border px-4 py-3 bg-muted/30"
+                  >
                     <h4
-                      class="text-2xs font-black uppercase tracking-widest text-muted-foreground"
+                      class="text-xs font-black uppercase tracking-widest text-muted-foreground"
                     >
                       {{ t("forum.post.selectTags") }}
                     </h4>
                   </div>
-                  <div class="max-h-64 overflow-y-auto p-2 space-y-1">
-                    <button
+                  <div class="min-h-0 max-h-64 overflow-y-auto p-2 space-y-1">
+                    <Button
+                      variant="outline"
                       v-for="tag in tags"
                       :key="tag.id"
                       type="button"
-                      class="flex w-full items-center justify-between rounded-none px-3 py-2 text-sm hover:bg-muted transition-colors"
-                      @click="toggleTag(tag.name)"
+                      class="flex w-full items-center justify-between px-3 py-2"
+                      :aria-pressed="isTagSelected(tag)"
+                      @click="toggleTag(tag)"
                     >
                       <span class="font-medium text-foreground/80">{{
                         tag.name
                       }}</span>
                       <div class="h-5 w-5 flex items-center justify-center">
                         <Check
-                          v-if="selectedTags.includes(tag.name)"
+                          v-if="isTagSelected(tag)"
                           class="h-4 w-4 text-primary font-bold"
                         />
                       </div>
-                    </button>
+                    </Button>
                   </div>
-                </div>
-              </div>
+                </PopoverContent>
+              </Popover>
             </div>
 
             <div
@@ -345,16 +363,20 @@ onMounted(loadData);
                 v-for="tag in selectedTags"
                 :key="tag"
                 variant="secondary"
-                class="flex items-center gap-1.5 h-7 px-3 rounded-none text-2xs font-data font-bold uppercase tracking-wider bg-[color-mix(in_oklch,var(--primary)_10%,transparent)] text-[var(--primary)] border-[color-mix(in_oklch,var(--primary)_20%,transparent)] border shadow-sm"
+                class="flex items-center gap-1.5 h-7 px-3"
               >
-                {{ tag }}
-                <button
+                {{ getTagName(tag) }}
+                <Button
+                  variant="outline"
                   type="button"
-                  class="ml-1 hover:text-destructive transition-colors focus:outline-none"
+                  class="ml-1 focus:outline-none"
+                  :aria-label="
+                    t('forum.post.removeTag', { tag: getTagName(tag) })
+                  "
                   @click="removeTag(tag)"
                 >
                   <X class="h-3 w-3" />
-                </button>
+                </Button>
               </Badge>
             </div>
           </div>
@@ -366,13 +388,13 @@ onMounted(loadData);
             class="max-w-[1600px] mx-auto h-full grid grid-cols-1 lg:grid-cols-2 gap-6"
           >
             <div
-              class="flex flex-col h-full overflow-hidden border border-border-control rounded-none bg-card shadow-sm focus-within:border-[var(--primary)] focus-within:ring-2 focus-within:ring-[var(--accent-glow)] transition-all"
+              class="flex flex-col h-full overflow-hidden border border-input rounded-lg bg-card shadow-sm focus-within:border-primary focus-within:ring-2 focus-within:ring-ring transition-all"
             >
               <div
                 class="flex items-center border-b bg-muted/30 px-4 h-10 shrink-0"
               >
                 <span
-                  class="text-2xs font-black uppercase tracking-widest text-muted-foreground"
+                  class="text-xs font-black uppercase tracking-widest text-muted-foreground"
                   >{{ t("forum.post.editorMarkdown") }}</span
                 >
               </div>
@@ -385,18 +407,18 @@ onMounted(loadData);
             </div>
 
             <div
-              class="hidden lg:flex flex-col rounded-none border border-border-control bg-card overflow-hidden shadow-sm"
+              class="hidden lg:flex flex-col rounded-lg border border-input bg-card overflow-hidden shadow-sm"
             >
               <div
                 class="flex items-center border-b bg-muted/30 px-4 h-10 shrink-0"
               >
                 <span
-                  class="text-2xs font-black uppercase tracking-widest text-muted-foreground"
+                  class="text-xs font-black uppercase tracking-widest text-muted-foreground"
                   >{{ t("forum.post.livePreview") }}</span
                 >
               </div>
               <div class="flex-1 overflow-y-auto p-8">
-                <div class="prose prose-sm dark:prose-invert max-w-none">
+                <div class="typeset typeset-docs max-w-none">
                   <h1 class="text-3xl font-black mb-6">
                     {{ title || t("forum.post.untitled") }}
                   </h1>
@@ -412,5 +434,9 @@ onMounted(loadData);
 </template>
 
 <style scoped>
-/* Scoped styles can be empty since we rely on Tailwind and the global markdown design system */
+@media (max-height: 400px) {
+  header {
+    position: static;
+  }
+}
 </style>

@@ -6,13 +6,13 @@ import {
   SidebarMenuItem,
   SidebarMenuSub,
   useSidebar,
-} from "@/components/ui/sidebar";
+} from "@ulticode/design-system/ui/sidebar";
 import {
   CollapsibleTrigger,
   CollapsibleContent,
-} from "@/components/ui/collapsible";
+} from "@ulticode/design-system/ui/collapsible";
 import { ChevronRight } from "@lucide/vue";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@ulticode/design-system/ui/badge";
 import { useI18n } from "vue-i18n";
 import { computed } from "vue";
 import { useAuthStore } from "@/stores/auth";
@@ -54,6 +54,7 @@ const EXACT_URLS = new Set<string>([
 ]);
 
 const isExactUrl = (url?: string) => !!url && EXACT_URLS.has(url);
+const itemLabel = (item: SidebarItem) => item.label ?? t(item.title);
 
 const isItemActive = (item: SidebarItem): boolean => {
   // A parent with children is "active" if the current path matches it or any descendant.
@@ -61,6 +62,17 @@ const isItemActive = (item: SidebarItem): boolean => {
     return item.children.some((child) => isItemActive(child));
   }
   if (!item.url) return false;
+  if (item.url === "/contest/past" && route.path === "/contest/browse/past") {
+    return true;
+  }
+  if (
+    route.path === "/contest/rankings" &&
+    (item.url === "/contest/global-ranking" ||
+      item.url === "/contest/local-ranking")
+  ) {
+    const scope = route.query.scope === "local" ? "local" : "global";
+    return item.url === `/contest/${scope}-ranking`;
+  }
   if (isExactUrl(item.url)) return route.path === item.url;
   return route.path === item.url || route.path.startsWith(item.url + "/");
 };
@@ -68,8 +80,8 @@ const isItemActive = (item: SidebarItem): boolean => {
 const getItemIconColorClass = (item: SidebarItem) => {
   if (!item.url && !item.children) return "";
   return isItemActive(item)
-    ? "text-[var(--primary)]"
-    : "text-[var(--foreground-muted)] group-hover:text-[var(--foreground)]";
+    ? "text-inherit"
+    : "text-muted-foreground group-hover:text-foreground";
 };
 </script>
 
@@ -81,81 +93,50 @@ const getItemIconColorClass = (item: SidebarItem) => {
       class="uc-sidebar-section"
     >
       <!-- Collapsible Section -->
-      <SidebarGroupCollapsible
-        v-if="section.collapsible"
-        v-slot="{ open: isOpen }"
-        :default-open="true"
-      >
-        <CollapsibleTrigger class="uc-sidebar-section-trigger">
-          <span>{{ t(section.name) }}</span>
-          <ChevronRight
-            :class="[
-              'uc-sidebar-section-chevron ml-auto',
-              isOpen ? 'rotate-90' : '',
-            ]"
-          />
-        </CollapsibleTrigger>
-        <CollapsibleContent>
-          <SidebarMenuSub
-            v-if="state !== 'collapsed'"
-            class="uc-sidebar-sub-list"
-          >
-            <SharedSidebarMenuSubItem
-              v-for="item in section.items"
-              :key="item.title"
-              :is-active="isItemActive(item)"
-              :to="item.url || '#'"
-              class="flex items-center gap-2"
-            >
-              <component
-                :is="item.icon"
-                v-if="item.icon"
-                :class="[
-                  'h-3.5 w-3.5 shrink-0 transition-colors',
-                  getItemIconColorClass(item),
-                ]"
-              />
-              <span class="truncate text-xs">{{ t(item.title) }}</span>
-              <Badge
-                v-if="item.badge"
-                :variant="item.badgeVariant || 'default'"
-                class="uc-sidebar-badge ml-auto"
-              >
-                {{ item.badge }}
-              </Badge>
-            </SharedSidebarMenuSubItem>
-          </SidebarMenuSub>
-          <SidebarMenu v-else>
-            <SidebarMenuItem v-for="item in section.items" :key="item.title">
-              <SidebarMenuButton
-                :tooltip="t(item.title)"
+      <div v-if="section.collapsible" v-show="state !== 'collapsed'">
+        <SidebarGroupCollapsible v-slot="{ open: isOpen }" :default-open="true">
+          <CollapsibleTrigger class="uc-sidebar-section-trigger">
+            <span>{{ t(section.name) }}</span>
+            <ChevronRight
+              :class="[
+                'uc-sidebar-section-chevron ml-auto',
+                isOpen ? 'rotate-90' : '',
+              ]"
+            />
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <SidebarMenuSub class="uc-sidebar-sub-list">
+              <SharedSidebarMenuSubItem
+                v-for="item in section.items"
+                :key="item.title"
                 :is-active="isItemActive(item)"
-                as-child
-                class="uc-sidebar-item group"
+                :to="item.url || '#'"
+                class="flex items-center gap-2"
               >
-                <router-link :to="item.url || '#'">
-                  <component
-                    :is="item.icon"
-                    v-if="item.icon"
-                    :class="['transition-colors', getItemIconColorClass(item)]"
-                  />
-                  <span>{{ t(item.title) }}</span>
-                  <Badge
-                    v-if="item.badge"
-                    :variant="item.badgeVariant || 'default'"
-                    class="uc-sidebar-badge ml-auto"
-                  >
-                    {{ item.badge }}
-                  </Badge>
-                </router-link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </CollapsibleContent>
-      </SidebarGroupCollapsible>
+                <component
+                  :is="item.icon"
+                  v-if="item.icon"
+                  :class="[
+                    'h-3.5 w-3.5 shrink-0 transition-colors',
+                    getItemIconColorClass(item),
+                  ]"
+                />
+                <span class="truncate text-xs">{{ itemLabel(item) }}</span>
+                <Badge
+                  v-if="item.badge"
+                  :variant="item.badgeVariant || 'default'"
+                  class="uc-sidebar-badge ml-auto"
+                >
+                  {{ item.badge }}
+                </Badge>
+              </SharedSidebarMenuSubItem>
+            </SidebarMenuSub>
+          </CollapsibleContent>
+        </SidebarGroupCollapsible>
+      </div>
 
       <!-- Non-collapsible Section -->
-      <template v-else>
+      <template v-if="!section.collapsible || state === 'collapsed'">
         <div v-if="state !== 'collapsed'" class="uc-sidebar-section-items">
           <template v-for="item in section.items" :key="item.title">
             <!-- Item with children: shared SidebarParentItem (link + collapsible children).
@@ -166,7 +147,7 @@ const getItemIconColorClass = (item: SidebarItem) => {
                  (conditional :open forwarding) instead. -->
             <SidebarParentItem
               v-if="item.children && item.children.length > 0"
-              :title="t(item.title)"
+              :title="itemLabel(item)"
               :url="item.url"
               :icon="item.icon"
               :icon-class="getItemIconColorClass(item)"
@@ -189,7 +170,7 @@ const getItemIconColorClass = (item: SidebarItem) => {
                       getItemIconColorClass(child),
                     ]"
                   />
-                  <span class="truncate text-xs">{{ t(child.title) }}</span>
+                  <span class="truncate text-xs">{{ itemLabel(child) }}</span>
                 </SharedSidebarMenuSubItem>
               </div>
             </SidebarParentItem>
@@ -207,7 +188,7 @@ const getItemIconColorClass = (item: SidebarItem) => {
                   getItemIconColorClass(item),
                 ]"
               />
-              <span class="truncate">{{ t(item.title) }}</span>
+              <span class="truncate">{{ itemLabel(item) }}</span>
               <Badge
                 v-if="item.badge"
                 :variant="item.badgeVariant || 'default'"
@@ -221,7 +202,7 @@ const getItemIconColorClass = (item: SidebarItem) => {
         <SidebarMenu v-else class="mt-2">
           <SidebarMenuItem v-for="item in section.items" :key="item.title">
             <SidebarMenuButton
-              :tooltip="t(item.title)"
+              :tooltip="itemLabel(item)"
               :is-active="isItemActive(item)"
               as-child
               class="uc-sidebar-item group"
@@ -232,7 +213,7 @@ const getItemIconColorClass = (item: SidebarItem) => {
                   v-if="item.icon"
                   :class="['transition-colors', getItemIconColorClass(item)]"
                 />
-                <span>{{ t(item.title) }}</span>
+                <span>{{ itemLabel(item) }}</span>
                 <Badge
                   v-if="item.badge"
                   :variant="item.badgeVariant || 'default'"

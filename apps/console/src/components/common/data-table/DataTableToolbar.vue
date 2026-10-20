@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Button } from "@ulticode/design-system/ui/button";
+import { Input } from "@ulticode/design-system/ui/input";
 import { Search, ListFilter, X } from "@lucide/vue";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@ulticode/design-system/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@ulticode/design-system/ui/dropdown-menu";
 
 defineProps<{
   modelValue: string; // Search query
@@ -38,22 +38,23 @@ const emit = defineEmits<{
         :model-value="modelValue"
         @update:model-value="(v) => emit('update:modelValue', v as string)"
         :placeholder="placeholder || 'Search...'"
-        class="data-table-toolbar-search terminal-input h-9 text-xs rounded-md border-border-control bg-surface-sunken text-foreground focus-visible:border-ring focus-visible:ring-ring focus-visible:ring-2"
+        class="data-table-toolbar-search"
       />
     </div>
 
     <!-- Right: Actions -->
     <div
+      v-if="$slots.filters || $slots.actions || showClear"
       class="flex w-full items-center gap-2 overflow-x-auto pb-1 lg:w-auto lg:pb-0"
     >
-      <DropdownMenu>
+      <DropdownMenu v-if="$slots.filters">
         <DropdownMenuTrigger as-child>
           <Button
             :size="filterIconOnly ? 'icon' : 'default'"
             :aria-label="filterIconOnly ? filterLabel || 'Filters' : undefined"
             :title="filterIconOnly ? filterLabel || 'Filters' : undefined"
             variant="outline"
-            class="h-9 gap-1.5 rounded-md border-border-control bg-surface-highlight text-xs text-foreground-strong hover:bg-surface-highlight/80 cursor-pointer"
+            class="gap-1.5 cursor-pointer"
             :class="filterIconOnly ? 'p-0' : undefined"
           >
             <ListFilter
@@ -64,7 +65,7 @@ const emit = defineEmits<{
             <Badge
               v-if="(activeFilterCount || 0) > 0"
               variant="secondary"
-              class="ml-0.5 h-4 rounded-sm border border-border-control bg-surface-elevated px-1.5 text-2xs font-bold text-foreground-strong"
+              class="ml-0.5 h-4 px-1.5"
             >
               {{ activeFilterCount }}
             </Badge>
@@ -81,7 +82,7 @@ const emit = defineEmits<{
         v-if="showClear"
         variant="ghost"
         size="icon"
-        class="h-9 w-9 rounded-md border-border-control text-muted-foreground hover:bg-surface-highlight hover:text-foreground-strong cursor-pointer"
+        class="w-9 cursor-pointer"
         @click="emit('clear')"
         :aria-label="clearLabel || 'Clear filters'"
       >

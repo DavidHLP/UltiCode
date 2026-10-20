@@ -35,8 +35,8 @@ node "$ROOT_DIR/packages/theme/scripts/verify-typography-tokens.mjs"
 step "3/5 Design-system contract tests (palette lock, contrast, scanner)"
 pnpm --dir "$ROOT_DIR/packages/design-system" test
 
-step "4/5 Apps: type-check + unit tests"
-for app in console management; do
+step "4/5 Frontend apps: type-check + unit tests"
+for app in console management landing; do
   printf -- "--- apps/%s type-check ---\n" "$app"
   pnpm --dir "$ROOT_DIR/apps/$app" type-check
   printf -- "--- apps/%s test ---\n" "$app"
@@ -47,6 +47,7 @@ if $WITH_BUILD; then
   step "4b/5 Apps: production builds"
   pnpm --dir "$ROOT_DIR/apps/console" build
   pnpm --dir "$ROOT_DIR/apps/management" build
+  pnpm --dir "$ROOT_DIR/apps/landing" build
 fi
 
 step "5/5 Legacy Solarized literal sweep"

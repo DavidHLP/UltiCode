@@ -13,14 +13,13 @@ import ForumSidebar from "@/views/forum/components/ForumSidebar.vue";
 import { computed, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import {
-  fetchForumCommunities,
   fetchForumCommunity,
   fetchCommunityPosts,
   fetchForumPosts,
   fetchForumQuickFilters,
 } from "@/api/forum";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { Input } from "@ulticode/design-system/ui/input";
+import { Button } from "@ulticode/design-system/ui/button";
 import { Search, Plus } from "@lucide/vue";
 import {
   Select,
@@ -28,18 +27,19 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+  SelectGroup,
+} from "@ulticode/design-system/ui/select";
 import { toast } from "vue-sonner";
 import { vote, VoteTargetType } from "@/api/vote";
 import { useI18n } from "vue-i18n";
 
 const posts = ref<ForumPost[]>([]);
-const communities = ref<ForumCommunity[]>([]);
 const quickFilters = ref<Array<{ label: string; value: string }>>([]);
 const currentCommunity = ref<ForumCommunity | null>(null);
 const communityRules = ref<ForumCommunityRule[]>([]);
 const communityLinks = ref<ForumCommunityLink[]>([]);
 const isLoading = ref(true);
+const loadError = ref(false);
 const currentPage = ref(1);
 const totalPages = ref(1);
 
@@ -53,37 +53,42 @@ const route = useRoute();
 const router = useRouter();
 const searchQuery = ref("");
 const quickFilter = ref(props.filter || "hot");
+const quickFilterLabel = computed(() => {
+  if (quickFilter.value === "explore") return t("sidebar.forum.explore");
+  return quickFilters.value.some((filter) => filter.value === quickFilter.value)
+    ? t(`forum.sort.${quickFilter.value}`)
+    : t("forum.list.sort");
+});
 const selectedCommunity = ref("all");
 const selectedFlair = ref<"all" | ForumFlairType>("all");
 
 // Load all posts and communities on mount
 async function loadAllPosts() {
   isLoading.value = true;
+  loadError.value = false;
   try {
-    const [postResult, communityRows, filters] = await Promise.all([
+    const [postResult, filters] = await Promise.all([
       fetchForumPosts({
         sortBy: quickFilter.value,
         page: currentPage.value,
         pageSize: 20,
       }),
-      fetchForumCommunities(),
       fetchForumQuickFilters(),
     ]);
     posts.value = postResult.items;
     totalPages.value = postResult.totalPages;
-    communities.value = communityRows;
-    quickFilters.value = filters.map((f) => ({
-      ...f,
-      label: t(`forum.sort.${f.value}`),
-    }));
+    quickFilters.value = filters;
     currentCommunity.value = null;
     communityRules.value = [];
     communityLinks.value = [];
   } catch (error) {
     console.error("[ForumFeedView] Failed to load forum data", error);
+    loadError.value = true;
     posts.value = [];
-    communities.value = [];
     quickFilters.value = [];
+    currentCommunity.value = null;
+    communityRules.value = [];
+    communityLinks.value = [];
   } finally {
     isLoading.value = false;
   }
@@ -92,15 +97,18 @@ async function loadAllPosts() {
 // Load posts for a specific community
 async function loadCommunityPosts(slug: string) {
   isLoading.value = true;
+  loadError.value = false;
   try {
-    const [communityData, postResult] = await Promise.all([
+    const [communityData, postResult, filters] = await Promise.all([
       fetchForumCommunity(slug),
       fetchCommunityPosts(slug, {
         sortBy: quickFilter.value,
         page: currentPage.value,
         pageSize: 20,
       }),
+      fetchForumQuickFilters(),
     ]);
+    quickFilters.value = filters;
     currentCommunity.value = communityData.community;
     communityRules.value = communityData.rules ?? [];
     communityLinks.value = communityData.links ?? [];
@@ -108,7 +116,9 @@ async function loadCommunityPosts(slug: string) {
     totalPages.value = postResult.totalPages;
   } catch (error) {
     console.error("[ForumFeedView] Failed to load community data", error);
+    loadError.value = true;
     posts.value = [];
+    quickFilters.value = [];
     currentCommunity.value = null;
     communityRules.value = [];
     communityLinks.value = [];
@@ -227,40 +237,42 @@ function handlePostSave(postId: string, isSaved: boolean) {
     <!-- Main Feed -->
     <main class="w-full min-w-0 flex-1 space-y-6">
       <div
-        class="flex flex-col gap-3 terminal-card bg-card p-4 sm:flex-row sm:items-center sm:justify-between shadow-sm"
+        class="flex flex-col gap-3 rounded-xl border bg-card text-card-foreground bg-card p-4 sm:flex-row sm:items-center sm:justify-between shadow-sm"
       >
-        <div class="flex flex-1 items-center gap-3">
-          <div class="relative flex-1 max-w-md">
+        <div class="flex min-w-0 flex-1 flex-wrap items-center gap-3">
+          <div class="relative min-w-0 flex-1 basis-full max-w-md sm:basis-56">
             <Search
               class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"
             />
             <Input
               v-model="searchQuery"
               :placeholder="t('forum.list.searchPlaceholder')"
-              class="h-10 pl-10 rounded-none bg-[var(--surface-sunken)]/50 font-data border-border-control focus-visible:border-[var(--primary)] focus-visible:ring-[var(--accent-glow)]"
+              class="pl-10"
             />
           </div>
           <Select v-model="quickFilter">
             <SelectTrigger
-              class="h-10 w-40 rounded-none bg-[var(--surface-sunken)]/50 font-data border-border-control focus-visible:border-[var(--primary)] focus-visible:ring-[var(--accent-glow)]"
+              :aria-label="t('forum.list.sort')"
+              class="w-full shrink-0 sm:w-40"
             >
-              <SelectValue :placeholder="t('forum.list.sort')" />
+              <SelectValue :placeholder="t('forum.list.sort')">{{
+                quickFilterLabel
+              }}</SelectValue>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem
-                v-for="filter in quickFilters"
-                :key="filter.value"
-                :value="filter.value"
+              <SelectGroup
+                ><SelectItem
+                  v-for="filter in quickFilters"
+                  :key="filter.value"
+                  :value="filter.value"
+                >
+                  {{ t(`forum.sort.${filter.value}`) }}
+                </SelectItem></SelectGroup
               >
-                {{ filter.label }}
-              </SelectItem>
             </SelectContent>
           </Select>
         </div>
-        <Button
-          class="h-10 rounded-none px-6 gap-2 font-data font-bold uppercase tracking-wide border border-[var(--primary)] bg-[var(--primary)]/10 text-[var(--primary)] hover:bg-[var(--primary)]/20 shadow-none transition-colors duration-200"
-          @click="handleCreatePost"
-        >
+        <Button class="px-6 gap-2" @click="handleCreatePost">
           <Plus class="h-4 w-4" />
           {{ t("forum.list.newPost") }}
         </Button>
@@ -268,7 +280,28 @@ function handlePostSave(postId: string, isSaved: boolean) {
       <div v-if="isLoading" class="space-y-4">
         <ForumPostSkeleton v-for="i in 3" :key="i" />
       </div>
+      <div
+        v-else-if="loadError"
+        role="alert"
+        class="space-y-3 rounded-xl border bg-card p-6 text-center"
+      >
+        <p class="text-muted-foreground">{{ t("forum.list.loadFailed") }}</p>
+        <Button variant="outline" @click="reloadPosts">{{
+          t("common.actions.retry")
+        }}</Button>
+      </div>
       <div v-else class="space-y-4">
+        <p
+          v-if="filteredPosts.length === 0"
+          role="status"
+          class="rounded-xl border bg-card p-6 text-center text-muted-foreground [overflow-wrap:anywhere]"
+        >
+          {{
+            searchQuery.trim()
+              ? t("common.search.noResults", { query: searchQuery.trim() })
+              : t("forum.list.noPosts")
+          }}
+        </p>
         <ForumPostCard
           v-for="post in filteredPosts"
           :key="post.id"

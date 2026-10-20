@@ -9,6 +9,8 @@ import {
   type SubmissionQueryParams,
 } from '@/api/admin/submissions'
 import { createCollectionSlice } from '@/stores/createCollectionSlice'
+import { normalizeStatusKey } from '@ulticode/submission-status'
+import { createValueRequest } from '@ulticode/request-state'
 
 export const useSubmissionsStore = defineStore('admin-submissions', () => {
   // State
@@ -29,7 +31,11 @@ export const useSubmissionsStore = defineStore('admin-submissions', () => {
 
   // Statistics
   const statistics = ref<SubmissionStatistics | null>(null)
-  const statsLoading = ref(false)
+  const statisticsRequest = createValueRequest({
+    errorMessage: 'Failed to load submission statistics',
+  })
+  const statsLoading = statisticsRequest.loading
+  const statsError = statisticsRequest.error
 
   // Filter options
   const statuses = ref<StatusOption[]>([])
@@ -38,8 +44,12 @@ export const useSubmissionsStore = defineStore('admin-submissions', () => {
   // Computed
   const stats = computed(() => {
     const statsData = statistics.value
-    if (!statsData) return { total: 0, pending: 0, topLanguage: '-', acceptedRate: '0' }
-    const acceptedCount = statsData.byStatus.find((s) => s.status === 'ACCEPTED')?.count || 0
+    if (!statsData) return null
+    const acceptedCount = statsData.byStatus.reduce(
+      (count, entry) =>
+        normalizeStatusKey(entry.status) === 'ACCEPTED' ? count + entry.count : count,
+      0,
+    )
     const acceptedRate =
       statsData.total > 0 ? ((acceptedCount / statsData.total) * 100).toFixed(1) : '0'
     return {
@@ -52,14 +62,9 @@ export const useSubmissionsStore = defineStore('admin-submissions', () => {
 
   // Actions
   async function fetchStatistics() {
-    statsLoading.value = true
-    try {
-      statistics.value = await submissionsApi.getStatistics()
-    } catch (err) {
-      console.error('Failed to load statistics:', err)
-    } finally {
-      statsLoading.value = false
-    }
+    statistics.value = null
+    const result = await statisticsRequest.run(() => submissionsApi.getStatistics())
+    if (result) statistics.value = result
   }
 
   async function fetchFilters() {
@@ -113,7 +118,8 @@ export const useSubmissionsStore = defineStore('admin-submissions', () => {
   function reset() {
     collection.reset()
     statistics.value = null
-    statsLoading.value = false
+    statisticsRequest.cancel()
+    statsError.value = null
     operationLoading.value = false
     operationError.value = null
     statuses.value = []
@@ -134,6 +140,7 @@ export const useSubmissionsStore = defineStore('admin-submissions', () => {
     operationError,
     statistics,
     statsLoading,
+    statsError,
     statuses,
     languages,
     // Computed

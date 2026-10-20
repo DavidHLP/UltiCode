@@ -1,6 +1,12 @@
 import { h, type VNode } from 'vue'
-import { badge } from '@/components/ui/terminal'
-import { IconFlag, IconTrash, IconMessage, IconFileText } from '@tabler/icons-vue'
+import { badge } from '@ulticode/badge-config'
+import {
+  Flag as IconFlag,
+  Trash as IconTrash,
+  MessageSquare as IconMessage,
+  FileText as IconFileText,
+} from '@lucide/vue'
+
 import { type CommentType } from '@/api/admin/comments'
 
 /**

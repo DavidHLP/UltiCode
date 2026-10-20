@@ -12,7 +12,7 @@ import subprocess
 import sys
 
 ZERO = "0" * 40
-GATES = ("backend", "console", "management", "contract", "docker", "agent")
+GATES = ("backend", "console", "management", "landing", "contract", "docker", "agent")
 
 
 def valid_sha(value) -> bool:
@@ -79,7 +79,7 @@ def select(paths: set[str] | None) -> dict[str, bool]:
 
     known = (
         ".github/**", "scripts/**", "services/**", "init-db/**", "docker/**", "infrastructure/**",
-        "apps/console/**", "apps/management/**", "packages/**", "shared/**",
+        "apps/console/**", "apps/management/**", "apps/landing/**", "packages/**", "shared/**",
         "package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml", ".dockerignore",
         "pyproject.toml", "uv.lock", "mise.toml", ".mise.toml",
         "docs/**", "assets/**", "README*", "AGENTS.md", "CONTEXT.md", "LICENSE", ".gitleaks.toml",
@@ -97,9 +97,10 @@ def select(paths: set[str] | None) -> dict[str, bool]:
     )
     console = frontend_shared or any_match("apps/console/**", "packages/**", "shared/**")
     management = frontend_shared or any_match("apps/management/**", "packages/**", "shared/**")
+    landing = frontend_shared or any_match("apps/landing/**", "packages/**", "shared/**")
     contract = broad or any_match("services/api/**", "services/pom.xml", "services/docs/CONTRACT_COMPAT_GATE.md")
     docker = frontend_shared or any(
-        matches(path, "services/**", "apps/console/Dockerfile", "apps/management/Dockerfile",
+        matches(path, "services/**", "apps/console/Dockerfile", "apps/management/Dockerfile", "apps/landing/**",
                 "docker/**", "infrastructure/**", ".dockerignore", "apps/console/nginx.conf",
                 "apps/management/nginx.conf", "services/docs/OBSERVABILITY_RUNBOOK.md",
                 "scripts/runbooks/image-reference-policy.sh", "scripts/runbooks/deployment-integrity.sh",
@@ -112,14 +113,14 @@ def select(paths: set[str] | None) -> dict[str, bool]:
         "docs/OPERATIONS.md", "docs/REFERENCE.md",
     )
     release = any(
-        matches(path, "services/**", "apps/console/**", "apps/management/**", "packages/**",
+        matches(path, "services/**", "apps/console/**", "apps/management/**", "apps/landing/**", "packages/**",
                 "shared/**", "package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml",
                 ".dockerignore", "infrastructure/nginx/**", ".github/services-matrix.json",
                 ".github/workflows/docker-publish.yml", "scripts/ci/release-*", "scripts/ci/candidate-*",
                 "scripts/runbooks/promote-release.*", "scripts/runbooks/fetch-buildkit-provenance.py")
         for path in paths if not path.startswith("services/agent/")
     )
-    selected = dict(backend=backend, console=console, management=management,
+    selected = dict(backend=backend, console=console, management=management, landing=landing,
                     contract=contract, docker=docker, agent=agent,
                     release=release, full=False)
     return selected

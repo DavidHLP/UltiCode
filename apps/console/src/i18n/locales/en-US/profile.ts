@@ -6,7 +6,7 @@ export default {
     globalRank: "Global Rank",
     basedOnSolved: "Based on solved problems",
     acceptanceRate: "Acceptance Rate",
-    submissions: "{count} submissions",
+    submissions: "{count} submission | {count} submissions",
     totalSubmissions: "Total submissions",
   },
   progress: {

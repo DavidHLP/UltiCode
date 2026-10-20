@@ -102,6 +102,8 @@ export default {
   // Sort
   sort: {
     title: 'Sort By',
+    asc: 'Ascending',
+    desc: 'Descending',
     default: 'Default',
     titleAsc: 'Title (A-Z)',
     difficultyAsc: 'Difficulty (Low to High)',

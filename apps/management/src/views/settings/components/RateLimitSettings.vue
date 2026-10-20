@@ -1,9 +1,16 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { IconClock } from '@tabler/icons-vue'
+import { Input } from '@ulticode/design-system/ui/input'
+import { Label } from '@ulticode/design-system/ui/label'
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@ulticode/design-system/ui/card'
+import { Clock as IconClock } from '@lucide/vue'
+
 import type { RateLimitSettings } from '@/api/admin/settings'
 
 const { t } = useI18n()

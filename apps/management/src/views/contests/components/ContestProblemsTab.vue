@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Button } from '@/components/ui/button'
+import { Button } from '@ulticode/design-system/ui/button'
 import {
   Table,
   TableBody,
@@ -7,8 +7,9 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table'
-import { IconPlus, IconTrash } from '@tabler/icons-vue'
+} from '@ulticode/design-system/ui/table'
+import { Plus as IconPlus, Trash as IconTrash } from '@lucide/vue'
+
 import type { Contest } from '@/api/admin/contests'
 
 defineProps<{
@@ -27,71 +28,48 @@ const emit = defineEmits<{
     <!-- Header -->
     <div class="flex justify-between items-center">
       <div class="flex items-center gap-2">
-        <span class="terminal-comment text-xs">[{{ contest.problemCount || 0 }}]</span>
+        <span class="text-sm text-muted-foreground text-xs">[{{ contest.problemCount || 0 }}]</span>
       </div>
-      <Button
-        v-if="canUpdate"
-        variant="terminal"
-        size="sm"
-        class="font-data text-xs border-[var(--border-subtle)] hover:border-[var(--status-success-mark)] hover:text-foreground-strong"
-        @click="emit('addProblem')"
-      >
+      <Button v-if="canUpdate" variant="outline" size="sm" @click="emit('addProblem')">
         <IconPlus class="mr-1.5 h-3.5 w-3.5" />
         <span class="uppercase tracking-wider">{{ $t('contests.detail.addProblem') }}</span>
       </Button>
     </div>
 
     <!-- Table - Terminal Style -->
-    <div class="border border-[var(--border-subtle)] dark:border-[var(--foreground-strong)]">
-      <Table class="terminal-table">
+    <div class="border border-border dark:border-foreground">
+      <Table class="w-full">
         <TableHeader>
-          <TableRow
-            class="border-b border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] bg-[var(--surface-sunken)]"
-          >
-            <TableHead
-              class="font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)] w-[60px]"
-            >
-              #
-            </TableHead>
-            <TableHead
-              class="font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]"
-            >
+          <TableRow>
+            <TableHead class="w-[60px]"> # </TableHead>
+            <TableHead>
               {{ $t('contests.detail.problem') }}
             </TableHead>
-            <TableHead
-              class="font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)] w-[80px]"
-            >
+            <TableHead class="w-[80px]">
               {{ $t('contests.detail.score') }}
             </TableHead>
-            <TableHead
-              class="font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)] w-[50px]"
-            >
-            </TableHead>
+            <TableHead class="w-[50px]"> </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          <TableRow
-            v-for="(problemId, index) in contest.problemIds || []"
-            :key="problemId"
-            class="border-b border-[var(--surface-highlight)] dark:border-[var(--foreground-strong)]"
-          >
-            <TableCell class="font-data text-xs text-[var(--primary)]">
+          <TableRow v-for="(problemId, index) in contest.problemIds || []" :key="problemId">
+            <TableCell>
               {{ String(index + 1).padStart(2, '0') }}
             </TableCell>
             <TableCell>
-              <span class="font-medium text-sm text-[var(--foreground)]">
+              <span class="font-medium text-sm text-foreground">
                 {{ $t('contests.detail.problem') }} #{{ problemId }}
               </span>
             </TableCell>
             <TableCell>
-              <span class="font-data text-sm text-[var(--foreground-strong)] tabular-nums">—</span>
+              <span class="font-mono text-sm text-foreground tabular-nums">—</span>
             </TableCell>
             <TableCell>
               <Button
                 v-if="canUpdate"
                 variant="ghost"
                 size="icon"
-                class="h-8 w-8 text-foreground-strong hover:bg-[color-mix(in_oklch,_var(--status-error-mark)_10%,_transparent)]"
+                class="w-8"
                 @click="emit('removeProblem', problemId)"
               >
                 <IconTrash class="h-4 w-4" />
@@ -99,8 +77,14 @@ const emit = defineEmits<{
             </TableCell>
           </TableRow>
           <TableRow v-if="!contest.problemIds?.length">
-            <TableCell colspan="4" class="h-24 text-center">
-              <span class="terminal-comment">{{ $t('contests.detail.noProblemsAdded') }}</span>
+            <TableCell colspan="4" class="h-24 whitespace-normal break-words text-center">
+              <span class="text-sm text-muted-foreground">{{
+                $t(
+                  contest.problemCount > 0
+                    ? 'contests.detail.problemDetailsUnavailable'
+                    : 'contests.detail.noProblemsAdded',
+                )
+              }}</span>
             </TableCell>
           </TableRow>
         </TableBody>

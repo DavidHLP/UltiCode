@@ -26,8 +26,8 @@ import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover";
-import { Button } from "@/components/ui/button";
+} from "@ulticode/design-system/ui/popover";
+import { Button } from "@ulticode/design-system/ui/button";
 import { useContestSocket } from "@/composables/contest/useContestSocket";
 import { getAnnouncements } from "@/api/contest";
 import { useContestProblemShellStore } from "@/stores/contestProblemShell";
@@ -173,16 +173,17 @@ onUnmounted(() => {
 <template>
   <Popover :open="isOpen" @update:open="handleOpenChange">
     <PopoverTrigger as-child>
-      <button
+      <Button
+        variant="ghost"
         type="button"
-        class="relative flex h-7 w-7 items-center justify-center rounded-none border border-border text-muted-foreground transition-colors hover:bg-[var(--surface-highlight)]/50 hover:text-foreground dark:hover:bg-background/50 dark:hover:text-foreground-strong cursor-pointer"
+        class="relative flex w-7 items-center justify-center dark:hover:bg-background/50 dark:hover:text-foreground cursor-pointer"
         :data-testid="'shell-announcement-bell'"
         :title="t('contest.detail.announcements.title')"
       >
         <Bell class="h-3.5 w-3.5" />
         <span
           v-if="shellStore.announceUnreadCount > 0"
-          class="absolute -right-1 -top-1 flex h-3.5 min-w-[14px] items-center justify-center rounded-full border border-status-warning-mark bg-status-warning-surface px-1 text-2xs font-black text-foreground-strong"
+          class="absolute -right-1 -top-1 flex h-3.5 min-w-[14px] items-center justify-center rounded-full border border-status-warning-mark bg-status-warning-surface px-1 text-xs font-black text-foreground"
           :data-testid="'shell-announcement-badge'"
         >
           {{
@@ -191,22 +192,19 @@ onUnmounted(() => {
               : shellStore.announceUnreadCount
           }}
         </span>
-      </button>
+      </Button>
     </PopoverTrigger>
 
     <PopoverContent
       align="end"
       :side-offset="6"
-      class="w-80 max-h-[60vh] overflow-y-auto rounded-none border border-border bg-surface p-0 font-mono shadow-lg dark:bg-surface-highlight"
+      class="w-80 max-h-[60vh] overflow-y-auto p-0"
     >
       <header
-        class="flex items-center justify-between border-b border-border bg-[var(--surface-highlight)]/50 px-3 py-2 text-2xs font-black uppercase tracking-widest text-muted-foreground dark:bg-background/50"
+        class="flex items-center justify-between border-b border-border bg-accent/50 px-3 py-2 text-xs font-black uppercase tracking-widest text-muted-foreground dark:bg-background/50"
       >
         <span>{{ t("contest.detail.announcements.title") }}</span>
-        <span
-          v-if="shellStore.announceUnreadCount > 0"
-          class="text-foreground-strong"
-        >
+        <span v-if="shellStore.announceUnreadCount > 0" class="text-foreground">
           {{
             t("contest.detail.announcements.unread", {
               n: shellStore.announceUnreadCount,
@@ -218,13 +216,13 @@ onUnmounted(() => {
       <div class="p-2">
         <p
           v-if="loading && announcements.length === 0"
-          class="px-2 py-4 text-center text-xxs text-muted-foreground"
+          class="px-2 py-4 text-center text-xs text-muted-foreground"
         >
           ...
         </p>
         <p
           v-else-if="announcements.length === 0"
-          class="px-2 py-4 text-center text-xxs text-muted-foreground"
+          class="px-2 py-4 text-center text-xs text-muted-foreground"
         >
           {{ t("contest.detail.announcements.empty") }}
         </p>
@@ -237,25 +235,25 @@ onUnmounted(() => {
             <div class="flex items-start gap-2">
               <Pin
                 v-if="a.isPinned"
-                class="mt-0.5 h-3 w-3 shrink-0 text-[var(--status-warning-mark)]"
+                class="mt-0.5 h-3 w-3 shrink-0 text-status-warning-mark"
               />
               <div class="min-w-0 flex-1">
                 <div class="flex items-baseline justify-between gap-2">
                   <h4 class="truncate text-xs font-black text-foreground">
                     {{ a.title }}
                   </h4>
-                  <time class="shrink-0 text-2xs text-muted-foreground">
+                  <time class="shrink-0 text-xs text-muted-foreground">
                     {{ formatTime(a.createdAt) }}
                   </time>
                 </div>
                 <p
-                  class="mt-1 line-clamp-3 text-xxs leading-snug text-muted-foreground"
+                  class="mt-1 line-clamp-3 text-xs leading-snug text-muted-foreground"
                 >
                   {{ a.content }}
                 </p>
                 <p
                   v-if="a.author?.username"
-                  class="mt-1 text-2xs text-muted-foreground"
+                  class="mt-1 text-xs text-muted-foreground"
                 >
                   — {{ a.author.username }}
                 </p>
@@ -267,7 +265,7 @@ onUnmounted(() => {
         <Button
           v-if="shellStore.announceUnreadCount > 0 && !isOpen"
           variant="ghost"
-          class="mt-2 h-7 w-full rounded-none text-2xs uppercase tracking-widest"
+          class="mt-2 w-full"
           @click="shellStore.markAnnouncementsRead()"
         >
           {{ t("contest.detail.announcements.markRead") }}

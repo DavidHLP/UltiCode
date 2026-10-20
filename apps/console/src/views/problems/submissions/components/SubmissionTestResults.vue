@@ -16,7 +16,7 @@ const { t } = useI18n();
         {{ t("problem.layout.input") }}
       </div>
       <div
-        class="rounded-none bg-muted px-3 py-2 text-sm font-mono text-foreground"
+        class="rounded-lg bg-muted px-3 py-2 text-sm font-mono text-foreground"
       >
         {{ submission.input }}
       </div>
@@ -27,7 +27,7 @@ const { t } = useI18n();
         {{ t("problem.layout.output") }}
       </div>
       <div
-        class="rounded-none bg-muted px-3 py-2 text-sm font-mono text-foreground"
+        class="rounded-lg bg-muted px-3 py-2 text-sm font-mono text-foreground"
       >
         {{ submission.output }}
       </div>
@@ -38,7 +38,7 @@ const { t } = useI18n();
         {{ t("problem.layout.expected") }}
       </div>
       <div
-        class="rounded-none bg-muted px-3 py-2 text-sm font-mono text-foreground"
+        class="rounded-lg bg-muted px-3 py-2 text-sm font-mono text-foreground"
       >
         {{ submission.expected_output }}
       </div>

@@ -9,6 +9,10 @@ packages:
   - "packages/*"
 overrides:
   dompurify: 3.4.16
+  # Patch transitive CLI/parser dependencies without crossing consumer majors.
+  brace-expansion@5: 5.0.12
+  browserslist: ^4.28.7
+  fast-uri@3: ^3.1.8
   lodash-es: 4.18.1
   protocol-buffers-schema: 3.6.1
   # GHSA-jrc7-96c5-q579: patched MapLibre pulled in by Unovis.

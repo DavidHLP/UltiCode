@@ -98,8 +98,8 @@ export interface RevenueReport {
 
 export interface PerformanceReport {
   systemUptime: number
-  averageResponseTime: number
-  errorRate: number
+  averageResponseTime?: number | null
+  errorRate?: number | null
   throughput: number
   resourceUsage: {
     cpu: number
@@ -116,7 +116,7 @@ export interface PerformanceReport {
     count: number
     percentage: number
   }>
-  cacheHitRate: number
+  cacheHitRate?: number | null
 }
 
 export const analyticsApi = {

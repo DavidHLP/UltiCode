@@ -1,12 +1,13 @@
 import { h, type VNode } from 'vue'
 import {
-  IconUser,
-  IconShield,
-  IconCircleCheckFilled,
-  IconCircleXFilled,
-  IconLoader,
-} from '@tabler/icons-vue'
-import { badge } from '@/components/ui/terminal'
+  User as IconUser,
+  Shield as IconShield,
+  CircleCheck as IconCircleCheckFilled,
+  CircleX as IconCircleXFilled,
+  Loader as IconLoader,
+} from '@lucide/vue'
+
+import { badge } from '@ulticode/badge-config'
 import type { User } from '@/api/admin/users'
 
 /**
@@ -17,7 +18,7 @@ export function getStatusIcon(user: User): VNode {
     return h(IconCircleXFilled, { class: 'h-4 w-4 text-destructive' })
   }
   if (user.isActive) {
-    return h(IconCircleCheckFilled, { class: 'h-4 w-4 text-foreground-strong' })
+    return h(IconCircleCheckFilled, { class: 'h-4 w-4 text-foreground' })
   }
   return h(IconLoader, { class: 'h-4 w-4 animate-spin text-muted-foreground' })
 }

@@ -16,17 +16,17 @@ defineProps<{
 const colorClasses = {
   default: "text-foreground",
   green:
-    "text-foreground-strong decoration-status-success-mark underline decoration-2 underline-offset-4",
-  blue: "text-foreground-strong decoration-link-decoration underline decoration-2 underline-offset-4",
+    "text-foreground decoration-status-success-mark underline decoration-2 underline-offset-4",
+  blue: "text-foreground decoration-primary underline decoration-2 underline-offset-4",
   purple:
-    "text-foreground-strong decoration-status-special-mark underline decoration-2 underline-offset-4",
+    "text-foreground decoration-status-special-mark underline decoration-2 underline-offset-4",
   orange:
-    "text-foreground-strong decoration-status-warning-mark underline decoration-2 underline-offset-4",
+    "text-foreground decoration-status-warning-mark underline decoration-2 underline-offset-4",
 };
 </script>
 
 <template>
-  <div class="rounded-none border bg-card p-4 transition-all hover:shadow-md">
+  <div class="rounded-lg border bg-card p-4 transition-all hover:shadow-md">
     <div class="flex items-start justify-between">
       <div class="space-y-1">
         <p class="text-sm font-medium text-muted-foreground">{{ title }}</p>

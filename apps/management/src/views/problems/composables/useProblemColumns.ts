@@ -3,26 +3,26 @@ import { useI18n } from 'vue-i18n'
 import { formatDateByLocale } from '@/i18n/utils'
 import type { ColumnDef } from '@tanstack/vue-table'
 import {
-  IconAlertTriangle,
-  IconCheck,
-  IconCircleCheckFilled,
-  IconEye,
-  IconEyeOff,
-  IconFile,
-  IconFlag,
-  IconFlagOff,
-  IconFlask,
-  IconBrackets,
-  IconInfoCircle,
-  IconLoader,
-  IconSparkles,
-  IconTrophy,
-  IconTrash,
-  IconX,
-} from '@tabler/icons-vue'
+  AlertTriangle as IconAlertTriangle,
+  Check as IconCheck,
+  CircleCheck as IconCircleCheckFilled,
+  Eye as IconEye,
+  EyeOff as IconEyeOff,
+  File as IconFile,
+  Flag as IconFlag,
+  FlagOff as IconFlagOff,
+  FlaskConical as IconFlask,
+  Brackets as IconBrackets,
+  Info as IconInfoCircle,
+  Loader as IconLoader,
+  Sparkles as IconSparkles,
+  Trophy as IconTrophy,
+  Trash as IconTrash,
+  X as IconX,
+} from '@lucide/vue'
 
-import { Badge } from '@/components/ui/badge'
-import { badge, DIFFICULTY_COLOR_MAP } from '@/components/ui/terminal'
+import { Badge } from '@ulticode/design-system/ui/badge'
+import { badge, DIFFICULTY_COLOR_MAP } from '@ulticode/badge-config'
 import { createSelectionColumn } from '@/components/table/selectionColumn'
 import { createEntityActionsMenu } from '@/components/table/entityActions'
 import { Difficulty, type Problem } from '@/api/admin/problems'
@@ -63,7 +63,7 @@ export function useProblemColumns(
   return [
     ...createSelectionColumn<Problem>(t, {
       checkboxClass:
-        'border-[var(--border-subtle)] data-[state=checked]:bg-[var(--primary)] data-[state=checked]:border-[var(--primary)]',
+        'border-[var(--border)] data-[state=checked]:bg-[var(--primary)] data-[state=checked]:border-[var(--primary)]',
     }),
     {
       accessorKey: 'id',
@@ -119,7 +119,7 @@ export function useProblemColumns(
         )
         return h('div', { class: 'flex items-center gap-2' }, [
           icon
-            ? h(icon, { class: 'h-4 w-4 text-foreground-strong' })
+            ? h(icon, { class: 'h-4 w-4 text-foreground' })
             : h(IconLoader, { class: 'h-4 w-4 animate-spin text-muted-foreground' }),
           h(Badge, { variant }, () => label),
         ])
@@ -154,14 +154,18 @@ export function useProblemColumns(
         const problem = row.original
         const isFlagged = row.getValue('isFlagged') as boolean
         if (!isFlagged) {
-          return h('span', { class: 'font-data text-xs text-[var(--foreground-muted)] italic' }, '\u2014')
+          return h(
+            'span',
+            { class: 'font-mono text-xs text-[var(--muted-foreground)] italic' },
+            '\u2014',
+          )
         }
         const flagStatus = problem.flagStatus || ('PENDING' as const)
         const statusColors: Record<string, string> = {
-          PENDING: 'text-foreground-strong',
-          REVIEWED: 'text-foreground-strong',
-          RESOLVED: 'text-foreground-strong',
-          DISMISSED: 'text-[var(--foreground-muted)]',
+          PENDING: 'text-foreground',
+          REVIEWED: 'text-foreground',
+          RESOLVED: 'text-foreground',
+          DISMISSED: 'text-[var(--muted-foreground)]',
         }
         const colorClass = statusColors[flagStatus] ?? statusColors.PENDING
         const statusKey = `moderation.status${flagStatus.charAt(0).toUpperCase() + flagStatus.slice(1).toLowerCase()}`
@@ -173,15 +177,11 @@ export function useProblemColumns(
           },
           [
             h(IconFlag, {
-              class: [
-                'h-4 w-4',
-                colorClass,
-                flagStatus === 'PENDING' ? 'animate-pulse-subtle' : '',
-              ].join(' '),
+              class: ['h-4 w-4', colorClass, flagStatus === 'PENDING' ? '' : ''].join(' '),
             }),
             h(
               'span',
-              { class: 'font-data text-2xs uppercase text-foreground-strong' },
+              { class: 'font-mono text-xs uppercase text-foreground' },
               t(statusKey).slice(0, 3),
             ),
           ],
@@ -257,14 +257,14 @@ export function useProblemColumns(
                 label: t('problems.actions.viewFlagInfo'),
                 onSelect: () => actions.viewFlagInfo(problem),
                 icon: IconAlertTriangle,
-                iconClass: 'h-4 w-4 text-foreground-strong',
+                iconClass: 'h-4 w-4 text-foreground',
                 hidden: !problem.isFlagged,
               },
               {
                 label: t('audit.problemDrawer.button'),
                 onSelect: () => actions.openAuditDrawer(problem),
                 icon: IconInfoCircle,
-                iconClass: 'h-4 w-4 text-foreground-strong',
+                iconClass: 'h-4 w-4 text-foreground',
               },
             ],
           },
@@ -274,14 +274,14 @@ export function useProblemColumns(
                 label: t('moderation.unflag'),
                 onSelect: () => actions.unflagProblem(problem.id),
                 icon: IconFlagOff,
-                iconClass: 'h-4 w-4 text-foreground-strong',
+                iconClass: 'h-4 w-4 text-foreground',
                 hidden: !can.update.value,
               }
             : {
                 label: t('moderation.flag'),
                 onSelect: () => actions.openFlagDialog(problem),
                 icon: IconFlag,
-                iconClass: 'h-4 w-4 text-foreground-strong',
+                iconClass: 'h-4 w-4 text-foreground',
                 hidden: !can.update.value,
               },
           { kind: 'separator' },
@@ -290,14 +290,14 @@ export function useProblemColumns(
                 label: t('problems.actions.unpublish'),
                 onSelect: () => actions.unpublishProblem(problem.id),
                 icon: IconEyeOff,
-                labelClass: 'text-foreground-strong',
+                labelClass: 'text-foreground',
                 hidden: !can.update.value,
               }
             : {
                 label: t('problems.actions.publish'),
                 onSelect: () => actions.publishProblem(problem.id),
                 icon: IconEye,
-                labelClass: 'text-foreground-strong',
+                labelClass: 'text-foreground',
                 hidden: !can.update.value,
               },
           {

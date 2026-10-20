@@ -6,7 +6,11 @@ import { formatRelativeTime } from "@/utils/datetime";
 import { useI18n } from "vue-i18n";
 import { ThumbsUp, Eye, MessageSquare } from "@lucide/vue";
 import { useAvatar } from "@/composables/useAvatar";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@ulticode/design-system/ui/avatar";
 
 const props = defineProps<{
   item: SolutionFeedItem;
@@ -52,17 +56,16 @@ const voteCounts = computed(() =>
 
 <template>
   <article
-    class="group flex cursor-pointer flex-col gap-2.5 bg-card border border-border/40 p-4 rounded-none hover:border-[var(--primary)]/50 hover:bg-muted hover:shadow-xs transition-all duration-200"
+    class="group flex cursor-pointer flex-col gap-2.5 bg-card border border-border/40 p-4 rounded-lg hover:border-primary/50 hover:bg-muted hover:shadow-xs transition-all duration-200"
     tabindex="0"
     role="button"
     @click="handleSelect"
     @keyup.enter.prevent="handleSelect"
   >
     <header class="flex items-start gap-2.5">
-      <Avatar class="h-8 w-8 border border-border/50">
+      <Avatar class="h-8 w-8">
         <AvatarImage :src="authorAvatarUrl" :alt="props.item.author.name" />
         <AvatarFallback
-          class="text-xxs font-semibold text-foreground-strong"
           :style="{ backgroundColor: props.item.author.avatarColor }"
         >
           {{ authorInitial }}
@@ -74,16 +77,16 @@ const voteCounts = computed(() =>
             {{ props.item.author.name }}
           </span>
           <span
-            class="text-2xs font-bold uppercase tracking-wider text-muted-foreground bg-muted px-1 py-0.2 rounded-none"
+            class="text-xs font-bold uppercase tracking-wider text-muted-foreground bg-muted px-1 py-0.2 rounded-lg"
           >
             {{ props.item.author.role }}
           </span>
-          <span class="text-2xs text-muted-foreground ml-auto">
+          <span class="text-xs text-muted-foreground ml-auto">
             {{ formattedDate }}
           </span>
           <span
             v-if="props.item.flair"
-            class="rounded-none bg-[var(--status-warning-mark)]/15 px-1.5 py-0.2 text-2xs font-bold uppercase tracking-wider text-foreground-strong border border-[var(--status-warning-mark)]/20"
+            class="rounded-lg bg-status-warning-mark/15 px-1.5 py-0.2 text-xs font-bold uppercase tracking-wider text-foreground border border-status-warning-mark/20"
           >
             {{ props.item.flair }}
           </span>
@@ -92,19 +95,19 @@ const voteCounts = computed(() =>
         <!-- Language and Topic badging -->
         <div class="flex flex-wrap items-center gap-1.5 mt-1.5">
           <span
-            class="rounded-none bg-muted px-2 py-0.5 text-2xs font-bold text-[var(--primary)] uppercase tracking-wider"
+            class="rounded-lg bg-muted px-2 py-0.5 text-xs font-bold text-primary uppercase tracking-wider"
           >
             {{ languageLabel }}
           </span>
           <span
-            class="rounded-none bg-muted px-2 py-0.5 text-2xs font-bold text-foreground-strong uppercase tracking-wider"
+            class="rounded-lg bg-muted px-2 py-0.5 text-xs font-bold text-foreground uppercase tracking-wider"
           >
             {{ topicLabel }}
           </span>
           <span
             v-for="badge in props.item.badges"
             :key="badge"
-            class="rounded-none border border-border px-2 py-0.5 text-2xs font-bold text-foreground uppercase tracking-wider"
+            class="rounded-lg border border-border px-2 py-0.5 text-xs font-bold text-foreground uppercase tracking-wider"
           >
             {{ badge }}
           </span>
@@ -116,12 +119,12 @@ const voteCounts = computed(() =>
       <div class="space-y-0.5">
         <p
           v-if="props.item.highlight"
-          class="text-2xs font-bold uppercase tracking-widest text-[var(--primary)]"
+          class="text-xs font-bold uppercase tracking-widest text-primary"
         >
           {{ props.item.highlight }}
         </p>
         <h3
-          class="text-sm font-bold text-foreground group-hover:text-[var(--primary)] transition-colors line-clamp-1"
+          class="text-sm font-bold text-foreground group-hover:text-primary transition-colors line-clamp-1"
         >
           {{ props.item.title }}
         </h3>
@@ -143,13 +146,13 @@ const voteCounts = computed(() =>
         <span
           v-for="tag in props.item.tags.slice(0, 2)"
           :key="tag"
-          class="rounded-none bg-muted/70 px-2 py-0.5 text-2xs text-muted-foreground capitalize border border-transparent hover:border-border transition-colors font-medium"
+          class="rounded-lg bg-muted/70 px-2 py-0.5 text-xs text-muted-foreground capitalize border border-transparent hover:border-border transition-colors font-medium"
         >
           {{ tag }}
         </span>
         <span
           v-if="props.item.tags.length > 2"
-          class="text-2xs font-bold text-muted-foreground bg-muted/40 px-1 py-0.2"
+          class="text-xs font-bold text-muted-foreground bg-muted/40 px-1 py-0.2"
         >
           +{{ props.item.tags.length - 2 }}
         </span>
@@ -158,22 +161,22 @@ const voteCounts = computed(() =>
 
       <!-- Right: Community Interaction Stats -->
       <div
-        class="flex items-center gap-3.5 text-xxs font-data text-muted-foreground"
+        class="flex items-center gap-3.5 text-xs font-mono text-muted-foreground"
       >
         <div
-          class="flex items-center gap-1 hover:text-foreground-strong transition-colors"
+          class="flex items-center gap-1 hover:text-foreground transition-colors"
         >
           <ThumbsUp class="h-3.5 w-3.5 text-muted-foreground/80 text-current" />
           <span class="font-bold">{{ voteCounts.likes }}</span>
         </div>
         <div
-          class="flex items-center gap-1 hover:text-[var(--primary)] transition-colors"
+          class="flex items-center gap-1 hover:text-primary transition-colors"
         >
           <Eye class="h-3.5 w-3.5 text-muted-foreground/80 text-current" />
           <span class="font-bold">{{ props.item.stats?.views ?? 0 }}</span>
         </div>
         <div
-          class="flex items-center gap-1 hover:text-[var(--primary)] transition-colors"
+          class="flex items-center gap-1 hover:text-primary transition-colors"
         >
           <MessageSquare
             class="h-3.5 w-3.5 text-muted-foreground/80 text-current"

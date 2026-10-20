@@ -13,6 +13,7 @@ describe('Problem boundary normalization', () => {
       has_solution: false,
       completed_time: '2026-01-01T00:00:00Z',
       tags: [{ id: '1', label: 'array' }],
+      categorySlugs: ['algorithms'],
     })
 
     expect(problem.id).toBe(7)
@@ -22,6 +23,7 @@ describe('Problem boundary normalization', () => {
     expect(problem.hasSolution).toBe(false)
     expect(problem.completedTime).toBe('2026-01-01T00:00:00Z')
     expect(problem.tags).toEqual(['array'])
+    expect(problem.categorySlugs).toEqual(['algorithms'])
   })
 
   it('does not expose admin or unknown fields through the public shape', () => {
@@ -126,6 +128,15 @@ describe('Problem boundary normalization', () => {
       acceptanceRate: 42,
       tags: 'array',
     })).toThrow('tags array')
+    expect(() => normalizePublicProblem({
+      id: 1,
+      title: 'Two Sum',
+      slug: 'two-sum',
+      difficulty: 'EASY',
+      acceptanceRate: 42,
+      tags: [],
+      categorySlugs: ['algorithms', 1],
+    })).toThrow('categorySlugs')
   })
 
   it('rejects malformed admin payloads instead of casting them', () => {

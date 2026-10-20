@@ -2,7 +2,7 @@
 import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useFollowStatus } from "@/composables/useFollowStatus";
-import { Button } from "@/components/ui/button";
+import { Button } from "@ulticode/design-system/ui/button";
 
 const props = defineProps<{
   targetUserId: string;
@@ -45,7 +45,7 @@ async function handleClick() {
     :variant="buttonVariant"
     size="sm"
     :disabled="loading"
-    class="min-w-[100px] rounded-none transition-all duration-200"
+    class="min-w-[100px]"
     @click="handleClick"
     @mouseenter="isHovered = true"
     @mouseleave="isHovered = false"

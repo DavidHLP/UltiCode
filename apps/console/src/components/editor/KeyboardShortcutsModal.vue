@@ -6,7 +6,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from "@/components/ui/dialog";
+} from "@ulticode/design-system/ui/dialog";
 import { useI18n } from "vue-i18n";
 import { isModalOpen } from "@/composables/useGlobalShortcuts";
 
@@ -339,7 +339,7 @@ const formatKey = (key: string): string => {
 
 <template>
   <Dialog v-model:open="isOpen">
-    <DialogContent class="max-w-2xl max-h-[80vh] overflow-y-auto">
+    <DialogContent class="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
       <DialogHeader>
         <DialogTitle>{{ t("shortcuts.title") }}</DialogTitle>
         <DialogDescription>
@@ -369,7 +369,7 @@ const formatKey = (key: string): string => {
                 <kbd
                   v-for="(key, index) in shortcut.keys"
                   :key="index"
-                  class="rounded-none border border-border-control bg-[var(--surface-sunken)] px-1.5 py-0.5 text-xs text-muted-foreground font-data"
+                  class="rounded-lg border border-input bg-muted px-1.5 py-0.5 text-xs text-muted-foreground font-mono"
                 >
                   {{ formatKey(key) }}
                 </kbd>

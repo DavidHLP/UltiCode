@@ -6,7 +6,7 @@ import vue from '@vitejs/plugin-vue'
 import vueJsx from '@vitejs/plugin-vue-jsx'
 import Icons from 'unplugin-icons/vite'
 import { VitePWA } from 'vite-plugin-pwa'
-import { SOLARIZED_PALETTE } from '@ulticode/design-system/palette'
+import { UI_PALETTE } from '@ulticode/design-system/palette'
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -26,8 +26,8 @@ export default defineConfig({
         name: 'UltiCode',
         short_name: 'UltiCode',
         description: 'Online coding competition platform',
-        theme_color: SOLARIZED_PALETTE.base3,
-        background_color: SOLARIZED_PALETTE.base3,
+        theme_color: UI_PALETTE.background,
+        background_color: UI_PALETTE.background,
         display: 'standalone',
         icons: [
           {
@@ -49,6 +49,7 @@ export default defineConfig({
         ],
       },
       workbox: {
+        navigateFallbackDenylist: [/^\/landing(?:\/|$)/],
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         maximumFileSizeToCacheInBytes: 7 * 1024 * 1024, // 7 MB for Monaco Editor
         runtimeCaching: [
@@ -116,7 +117,7 @@ export default defineConfig({
     // both copies, so components compiled against one runtime render under the
     // other and slot/refs lose their owner context (e.g. vue-sonner's
     // <Toaster> "ref cannot be used on hoisted vnodes").
-    dedupe: ["vue", "@vue/runtime-core"],
+    dedupe: ["vue", "@vue/runtime-core", "reka-ui"],
   },
   server: {
     // 监听所有接口 (0.0.0.0 + IPv6), 使 localhost 与 127.0.0.1 均可访问
@@ -125,6 +126,12 @@ export default defineConfig({
     allowedHosts: ['.trycloudflare.com'],
     port: 9002,
     proxy: {
+      '/landing': {
+        target: 'http://127.0.0.1:9004',
+        changeOrigin: true,
+        rewrite: (requestPath) =>
+          requestPath === '/landing' ? '/landing/' : requestPath,
+      },
       '/api/agent': {
         target: 'http://127.0.0.1:8000',
         rewrite: (requestPath) => requestPath.replace(/^\/api/, ''),

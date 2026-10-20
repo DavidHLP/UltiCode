@@ -9,17 +9,18 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
+} from '@ulticode/design-system/ui/dialog'
+import { Button } from '@ulticode/design-system/ui/button'
+import { Label } from '@ulticode/design-system/ui/label'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
-import { Switch } from '@/components/ui/switch'
+  SelectGroup,
+} from '@ulticode/design-system/ui/select'
+import { Switch } from '@ulticode/design-system/ui/switch'
 import {
   problemsApi,
   Difficulty,
@@ -129,15 +130,17 @@ function handleOpenChange(open: boolean) {
               <SelectValue :placeholder="t('problems.bulkEdit.difficultyPlaceholder')" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem :value="Difficulty.EASY">
-                {{ t('problems.difficulty.easy') }}
-              </SelectItem>
-              <SelectItem :value="Difficulty.MEDIUM">
-                {{ t('problems.difficulty.medium') }}
-              </SelectItem>
-              <SelectItem :value="Difficulty.HARD">
-                {{ t('problems.difficulty.hard') }}
-              </SelectItem>
+              <SelectGroup
+                ><SelectItem :value="Difficulty.EASY">
+                  {{ t('problems.difficulty.easy') }}
+                </SelectItem>
+                <SelectItem :value="Difficulty.MEDIUM">
+                  {{ t('problems.difficulty.medium') }}
+                </SelectItem>
+                <SelectItem :value="Difficulty.HARD">
+                  {{ t('problems.difficulty.hard') }}
+                </SelectItem></SelectGroup
+              >
             </SelectContent>
           </Select>
         </div>

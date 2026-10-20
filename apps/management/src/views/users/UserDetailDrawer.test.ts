@@ -115,7 +115,7 @@ function mountDrawer(userId = 'user-a') {
         AvatarFallback: passthroughStub,
         AvatarImage: passthroughStub,
         Button: buttonStub,
-        DataBlock: passthroughStub,
+        DetailField: passthroughStub,
         SemanticBadge: passthroughStub,
         IconMail: true,
         IconTrophy: true,
@@ -135,6 +135,26 @@ describe('UserDetailDrawer avatar upload', () => {
     mocks.toastSuccess.mockReset()
     mocks.toastError.mockReset()
     mocks.toastWarning.mockReset()
+  })
+
+  it('opens the native file picker from the avatar button', async () => {
+    const wrapper = mountDrawer()
+    const input = wrapper.get('input[type="file"]')
+    const click = vi
+      .spyOn(input.element as HTMLInputElement, 'click')
+      .mockImplementation(() => {})
+    try {
+      await wrapper
+        .findAll('button')
+        .find((button) => button.text().includes('users.actions.changeAvatar'))!
+        .trigger('click')
+      expect(click).toHaveBeenCalledOnce()
+      expect(input.classes()).toEqual(['sr-only'])
+      expect(mocks.uploadAvatar).not.toHaveBeenCalled()
+    } finally {
+      click.mockRestore()
+      wrapper.unmount()
+    }
   })
 
   it('ignores completion when the selected user changes during upload', async () => {
@@ -165,15 +185,13 @@ describe('UserDetailDrawer avatar upload', () => {
   it('does not commit a stale refresh after the drawer switches users', async () => {
     const pending = deferred<DrawerTestUser>()
     mocks.uploadAvatar.mockResolvedValue('/api/users/avatars/user-a/new.png')
-    mocks.store.fetchUser.mockImplementation(
-      async (id: string, commitCurrent = true) => {
-        const user = id === 'user-a' ? await pending.promise : makeUser(id)
-        if (commitCurrent) {
-          mocks.store.currentUser = user
-        }
-        return user
-      },
-    )
+    mocks.store.fetchUser.mockImplementation(async (id: string, commitCurrent = true) => {
+      const user = id === 'user-a' ? await pending.promise : makeUser(id)
+      if (commitCurrent) {
+        mocks.store.currentUser = user
+      }
+      return user
+    })
     const wrapper = mountDrawer()
     const input = wrapper.find('input[type="file"]')
     const file = new File(['avatar'], 'avatar.png', { type: 'image/png' })

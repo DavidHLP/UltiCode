@@ -1,4 +1,13 @@
 export default {
+  dataTable: 'Data table',
+  date: 'Date',
+  count: 'Count',
+
+  system: 'System',
+  navigation: 'Navigation',
+  noResults: 'No results found.',
+  searchDescription: 'Search pages and commands.',
+  toggleSidebar: 'Toggle sidebar',
   // Actions
   save: 'Save',
   cancel: 'Cancel',

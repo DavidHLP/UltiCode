@@ -109,10 +109,25 @@ class SelectionTests(unittest.TestCase):
         self.assertFalse(chosen["management"])
         self.assertTrue(chosen["release"])
 
+    def test_landing_changes_select_frontend_and_image_gates(self):
+        chosen = selection.select({"apps/landing/src/main.ts"})
+        self.assertTrue(chosen["landing"])
+        self.assertTrue(chosen["docker"])
+        self.assertTrue(chosen["release"])
+        self.assertFalse(chosen["console"])
+        self.assertFalse(chosen["management"])
+        self.assertFalse(chosen["backend"])
+        self.assertFalse(chosen["full"])
+
+    def test_shared_packages_select_all_frontends(self):
+        chosen = selection.select({"packages/design-system/src/index.ts"})
+        self.assertTrue(all(chosen[app] for app in ("console", "management", "landing")))
+
     def test_root_js_lockfile_selects_both_frontends_only(self):
         chosen = selection.select({"pnpm-lock.yaml"})
         self.assertTrue(chosen["console"])
         self.assertTrue(chosen["management"])
+        self.assertTrue(chosen["landing"])
         self.assertFalse(chosen["backend"])
         self.assertFalse(chosen["agent"])
         self.assertTrue(chosen["release"])
@@ -147,13 +162,13 @@ class ResultTests(unittest.TestCase):
         errors = results.validate(
             {"changes": "success", "governance": "success", "security": "success", "backend": "skipped",
              "frontend": "skipped", "contract": "skipped", "docker": "skipped", "agent": "skipped"},
-            {"backend": True, "console": False, "management": False,
+            {"backend": True, "console": False, "management": False, "landing": False,
              "contract": False, "docker": False, "agent": False},
         )
         self.assertTrue(any("selected gate backend" in error for error in errors))
 
     def test_unselected_skipped_is_valid_but_cancelled_is_not(self):
-        decisions = {"backend": False, "console": False, "management": False,
+        decisions = {"backend": False, "console": False, "management": False, "landing": False,
                      "contract": False, "docker": False, "agent": False}
         skipped = {"changes": "success", "governance": "success", "security": "success", "backend": "skipped",
                    "frontend": "skipped", "contract": "skipped", "docker": "skipped", "agent": "skipped"}
@@ -164,7 +179,7 @@ class ResultTests(unittest.TestCase):
     def test_github_needs_shape_and_string_outputs(self):
         needs = {name: {"result": "success"} for name in
                  ("changes", "governance", "security", "backend", "frontend", "contract", "docker", "agent")}
-        selected = {"backend": "false", "console": "true", "management": "false",
+        selected = {"backend": "false", "console": "true", "management": "false", "landing": "false",
                     "contract": "false", "docker": "false", "agent": "false"}
         self.assertEqual(results.validate(needs, selected), [])
         needs["frontend"]["result"] = "skipped"
@@ -176,6 +191,15 @@ class ResultTests(unittest.TestCase):
         decisions = dict.fromkeys(selection.GATES, True)
         decisions["management"] = "invalid"
         self.assertTrue(any("selection for management" in error for error in results.validate(needs, decisions)))
+
+    def test_landing_only_requires_frontend_success(self):
+        needs = {name: "success" for name in
+                 ("changes", "governance", "security", "backend", "frontend", "contract", "docker", "agent")}
+        decisions = dict.fromkeys(selection.GATES, False)
+        decisions["landing"] = True
+        self.assertEqual(results.validate(needs, decisions), [])
+        needs["frontend"] = "skipped"
+        self.assertTrue(any("selected gate frontend" in error for error in results.validate(needs, decisions)))
 
     def test_missing_always_on_security_fails(self):
         self.assertTrue(any("security" in error for error in results.validate({"changes": "success"}, {})))

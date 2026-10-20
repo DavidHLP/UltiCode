@@ -118,8 +118,8 @@ export default {
     pageTitle: 'Content Moderation',
     title: 'Moderation Queue',
     description: 'Review and manage reported content',
-    emptyTitle: 'Queue is Empty',
-    emptyDescription: 'No items currently require moderation.',
+    emptyTitle: 'No queue items found',
+    emptyDescription: 'No queue items match the current filters.',
     claimItem: 'Claim Item',
     assignTo: 'Assign To',
     unassign: 'Unassign',
@@ -138,6 +138,7 @@ export default {
 
   // ========== Statistics Dashboard ==========
   stats: {
+    loadError: 'Moderation statistics could not be loaded. Refresh to retry.',
     title: 'Statistics',
     overview: 'Overview',
     totalPending: 'Pending',
@@ -191,11 +192,12 @@ export default {
 
   // ========== Appeals View ==========
   appeals: {
+    searchPlaceholder: 'Search by exact queue ID...',
     pageTitle: 'Appeals',
     title: 'Appeals',
     description: 'Review user appeals against moderation decisions',
-    emptyTitle: 'No Appeals',
-    emptyDescription: 'No appeals are currently pending.',
+    emptyTitle: 'No appeals found',
+    emptyDescription: 'No appeals match the current filters.',
     appellant: 'Appellant',
     reason: 'Appeal Reason',
     evidence: 'Evidence',
@@ -213,11 +215,12 @@ export default {
 
   // ========== Reports View ==========
   reports: {
+    searchPlaceholder: 'Search by exact entity ID...',
     pageTitle: 'Reports',
     title: 'Reports',
     description: 'View all content reports',
-    emptyTitle: 'No Reports',
-    emptyDescription: 'No reports have been submitted.',
+    emptyTitle: 'No reports found',
+    emptyDescription: 'No reports match the current filters.',
     reporter: 'Reporter',
     entity: 'Entity',
     entityType: 'Type',
@@ -302,6 +305,11 @@ export default {
 
   // ========== Terminal Style ==========
   terminal: {
+    filteredTotal: 'Filtered total',
+    globalPending: 'All pending',
+    globalUnderReview: 'All under review',
+    globalResolved: 'All resolved',
+    pendingOnPage: 'Pending on this page',
     loading: 'Loading...',
     selected: 'Selected',
     total: 'Total',

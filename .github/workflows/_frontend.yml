@@ -11,6 +11,10 @@ on:
         description: Management app or shared package changed
         required: true
         type: boolean
+      landing_changed:
+        description: Landing app or shared package changed
+        required: true
+        type: boolean
 
 permissions:
   contents: read
@@ -18,41 +22,52 @@ permissions:
 jobs:
   application:
     name: Verify (${{ matrix.app }})
-    if: ${{ inputs.console_changed || inputs.management_changed }}
+    if: ${{ inputs.console_changed || inputs.management_changed || inputs.landing_changed }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        app: ${{ fromJSON(inputs.console_changed && inputs.management_changed && '["console","management"]' || inputs.console_changed && '["console"]' || '["management"]') }}
+        app: [console, management, landing]
     steps:
+      - name: Check if app changed
+        id: should-run
+        if: ${{ (matrix.app == 'console' && inputs.console_changed) || (matrix.app == 'management' && inputs.management_changed) || (matrix.app == 'landing' && inputs.landing_changed) }}
+        run: echo "run=true" >> "$GITHUB_OUTPUT"
       - name: Checkout repository
+        if: steps.should-run.outputs.run == 'true'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Setup workspace
+        if: steps.should-run.outputs.run == 'true'
         uses: ./.github/actions/setup-frontend
       - name: Read-only lint
+        if: steps.should-run.outputs.run == 'true'
         working-directory: apps/${{ matrix.app }}
         run: pnpm lint:check
       - name: Type check
+        if: steps.should-run.outputs.run == 'true'
         working-directory: apps/${{ matrix.app }}
         run: pnpm type-check
       - name: Unit tests and coverage
+        if: steps.should-run.outputs.run == 'true'
         working-directory: apps/${{ matrix.app }}
         run: pnpm test:coverage
       - name: Audit production dependencies
+        if: steps.should-run.outputs.run == 'true'
         working-directory: apps/${{ matrix.app }}
         run: pnpm audit --prod --audit-level high
       - name: Production build
+        if: steps.should-run.outputs.run == 'true'
         working-directory: apps/${{ matrix.app }}
         run: pnpm build
       - name: Check management translations
-        if: ${{ matrix.app == 'management' }}
+        if: ${{ matrix.app == 'management' && steps.should-run.outputs.run == 'true' }}
         working-directory: apps/management
         run: pnpm check:i18n --json && pnpm vitest run -- src/i18n/__tests__/
       - name: Preserve coverage evidence
-        if: ${{ always() }}
+        if: ${{ always() && steps.should-run.outputs.run == 'true' }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: coverage-${{ matrix.app }}

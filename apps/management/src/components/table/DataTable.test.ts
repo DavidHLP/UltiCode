@@ -9,10 +9,7 @@ interface Row {
   id: string | number
 }
 
-const rows: Row[] = [
-  { id: '1' },
-  { id: '2' },
-]
+const rows: Row[] = [{ id: '1' }, { id: '2' }]
 
 const columns: ColumnDef<Row>[] = [
   {
@@ -37,13 +34,16 @@ const ResizeObserverStub = vi.hoisted(() => {
   return Stub
 })
 
-function mountTable(props: {
-  data?: Row[]
-  loading?: boolean
-  pagination?: PaginationState
-  rowCount?: number
-  selectedRows?: Row[]
-}, slots?: Record<string, string>) {
+function mountTable(
+  props: {
+    data?: Row[]
+    loading?: boolean
+    pagination?: PaginationState
+    rowCount?: number
+    selectedRows?: Row[]
+  },
+  slots?: Record<string, string>,
+) {
   return mount(DataTable, {
     props: {
       columns,
@@ -103,13 +103,66 @@ describe('DataTable public contract', () => {
     expect(wrapper.emitted('update:selectedRows')).toEqual([[rows.slice(0, 1)]])
   })
 
+  it('clears selected rows when loading starts and when row data changes', async () => {
+    const selectionColumns = createSelectionColumn<Row>((key) => key)
+    const wrapper = mount(DataTable, {
+      props: {
+        columns: [...selectionColumns, ...columns],
+        data: rows,
+        loading: false,
+        pagination: { pageIndex: 0, pageSize: 10 },
+        rowCount: rows.length,
+        selectedRows: [],
+      },
+      global: {
+        plugins: [createI18n({ legacy: false, locale: 'en', messages: { en: {} } })],
+      },
+    })
+
+    try {
+      await wrapper.findAll('[role="checkbox"]')[1].trigger('click')
+      expect(wrapper.emitted('update:selectedRows')?.[0]).toEqual([rows.slice(0, 1)])
+
+      await wrapper.setProps({ loading: true })
+      let updates = wrapper.emitted('update:selectedRows') ?? []
+      expect(updates[updates.length - 1]).toEqual([[]])
+
+      await wrapper.setProps({ loading: false })
+      await wrapper.findAll('[role="checkbox"]')[1].trigger('click')
+      await wrapper.setProps({ data: [], rowCount: 0 })
+      updates = wrapper.emitted('update:selectedRows') ?? []
+      expect(updates[updates.length - 1]).toEqual([[]])
+
+      await wrapper.setProps({ data: [{ id: '3' }, { id: '4' }], rowCount: 2 })
+      expect(wrapper.findAll('[role="checkbox"]')[1].attributes('aria-checked')).toBe('false')
+    } finally {
+      wrapper.unmount()
+    }
+  })
+
   it('renders the explicit empty slot when idle with no rows', () => {
     const wrapper = mountTable(
       { data: [], rowCount: 0 },
       { empty: '<div data-test="empty">No rows</div>' },
     )
 
-    expect(wrapper.find('[data-test="empty"]').text()).toBe('No rows')
+    try {
+      expect(wrapper.find('[data-test="empty"]').text()).toBe('No rows')
+      expect(wrapper.get('[data-test="empty"]').element.parentElement?.classList).not.toContain(
+        'h-96',
+      )
+    } finally {
+      wrapper.unmount()
+    }
+  })
+
+  it('retains the default empty presentation height without a custom slot', () => {
+    const wrapper = mountTable({ data: [], rowCount: 0 })
+    try {
+      expect(wrapper.find('.h-96').exists()).toBe(true)
+    } finally {
+      wrapper.unmount()
+    }
   })
 
   it('renders loading skeletons instead of the empty state while loading', () => {

@@ -1,7 +1,12 @@
 import { onScopeDispose, ref } from "vue";
-import { agentApi, type AgentThread, type AgentWorkflowEvent } from "@/api/agent";
+import {
+  agentApi,
+  type AgentThread,
+  type AgentWorkflowEvent,
+} from "@/api/agent";
 
-const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+const wait = (ms: number) =>
+  new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 export function useAgentWorkflow() {
   const thread = ref<AgentThread | null>(null);
@@ -42,14 +47,17 @@ export function useAgentWorkflow() {
   }
 
   function isCurrent(token: number, threadId: string, runId?: string) {
-    return token === runGeneration
-      && thread.value?.threadId === threadId
-      && (!runId || thread.value.runId === runId);
+    return (
+      token === runGeneration &&
+      thread.value?.threadId === threadId &&
+      (!runId || thread.value.runId === runId)
+    );
   }
 
   function applyThread(value: AgentThread, preserveAnswer = false) {
     const changedThread = thread.value?.threadId !== value.threadId;
-    const changedDraft = thread.value?.draft.draftVersion !== value.draft.draftVersion;
+    const changedDraft =
+      thread.value?.draft.draftVersion !== value.draft.draftVersion;
     thread.value = value;
     draftTitle.value = value.draft.title;
     draftContent.value = value.draft.content;
@@ -68,15 +76,20 @@ export function useAgentWorkflow() {
       withCredentials: true,
     });
     eventSource = stream;
-    const current = () => isCurrent(token, value.threadId, value.runId);
+    const current = () =>
+      eventSource === stream && isCurrent(token, value.threadId, value.runId);
     const close = () => {
       stream.close();
       if (eventSource === stream) eventSource = null;
     };
     const parse = (event: Event) => {
       try {
-        const value = JSON.parse((event as MessageEvent<string>).data) as unknown;
-        return value && typeof value === "object" ? value as Record<string, unknown> : null;
+        const value = JSON.parse(
+          (event as MessageEvent<string>).data,
+        ) as unknown;
+        return value && typeof value === "object"
+          ? (value as Record<string, unknown>)
+          : null;
       } catch {
         error.value = "streamFailed";
         return null;
@@ -86,11 +99,20 @@ export function useAgentWorkflow() {
     stream.addEventListener("workflow", (event) => {
       if (!current()) return;
       const payload = parse(event);
-      if (!payload || payload.runId !== value.runId || typeof payload.seq !== "number"
-          || typeof payload.kind !== "string" || !payload.detail || typeof payload.detail !== "object") return;
+      if (
+        !payload ||
+        payload.runId !== value.runId ||
+        typeof payload.seq !== "number" ||
+        typeof payload.kind !== "string" ||
+        !payload.detail ||
+        typeof payload.detail !== "object"
+      )
+        return;
       if (!events.value.some((item) => item.seq === payload.seq)) {
-        events.value = [...events.value, payload as unknown as AgentWorkflowEvent]
-          .sort((left, right) => left.seq - right.seq);
+        events.value = [
+          ...events.value,
+          payload as unknown as AgentWorkflowEvent,
+        ].sort((left, right) => left.seq - right.seq);
       }
     });
     stream.addEventListener("text", (event) => {
@@ -123,12 +145,19 @@ export function useAgentWorkflow() {
     };
   }
 
-  async function refresh(threadId: string, token = runGeneration, runId?: string) {
+  async function refresh(
+    threadId: string,
+    token = runGeneration,
+    runId?: string,
+  ) {
     try {
       const value = await agentApi.getThread(threadId);
       if (isCurrent(token, threadId, runId)) {
         applyThread(value, true);
-        if (value.runId !== runId && (value.status === "analyzing" || value.status === "saving")) {
+        if (
+          value.runId !== runId &&
+          (value.status === "analyzing" || value.status === "saving")
+        ) {
           connectStream(value, token);
         }
       }
@@ -137,7 +166,10 @@ export function useAgentWorkflow() {
     }
   }
 
-  async function loadThread(threadId: string, expectedSourceSubmissionId?: string) {
+  async function loadThread(
+    threadId: string,
+    expectedSourceSubmissionId?: string,
+  ) {
     if (saving.value) return null;
     const token = invalidateRun();
     reset();
@@ -145,12 +177,16 @@ export function useAgentWorkflow() {
     try {
       const value = await agentApi.getThread(threadId);
       if (token !== runGeneration) return null;
-      if (expectedSourceSubmissionId && value.sourceSubmissionId !== expectedSourceSubmissionId) {
+      if (
+        expectedSourceSubmissionId &&
+        value.sourceSubmissionId !== expectedSourceSubmissionId
+      ) {
         error.value = "sourceMismatch";
         return null;
       }
       applyThread(value);
-      if (value.status === "analyzing" || value.status === "saving") connectStream(value, token);
+      if (value.status === "analyzing" || value.status === "saving")
+        connectStream(value, token);
       return value;
     } catch {
       if (token === runGeneration) error.value = "requestFailed";
@@ -206,7 +242,8 @@ export function useAgentWorkflow() {
     if (token !== runGeneration) return;
     if (outcome?.ok) {
       applyThread(outcome.value, true);
-      if (outcome.value.runId !== previousRunId) connectStream(outcome.value, token);
+      if (outcome.value.runId !== previousRunId)
+        connectStream(outcome.value, token);
     } else if (outcome) {
       error.value = "requestFailed";
       await refresh(threadId, token);
@@ -244,7 +281,11 @@ export function useAgentWorkflow() {
     busy.value = true;
     error.value = "";
     try {
-      const value = await agentApi.confirm(current.threadId, current.draft, current.paramsDigest);
+      const value = await agentApi.confirm(
+        current.threadId,
+        current.draft,
+        current.paramsDigest,
+      );
       if (isCurrent(token, current.threadId)) applyThread(value);
     } catch {
       if (token === runGeneration) {
@@ -300,7 +341,8 @@ export function useAgentWorkflow() {
   }
 
   async function cancel() {
-    if (!thread.value || saving.value || thread.value.status === "saving") return;
+    if (!thread.value || saving.value || thread.value.status === "saving")
+      return;
     const token = invalidateRun();
     const current = thread.value;
     canceling.value = true;
@@ -328,8 +370,25 @@ export function useAgentWorkflow() {
   onScopeDispose(invalidateRun);
 
   return {
-    thread, events, generatedText, draftTitle, draftContent, error,
-    busy, loading, analyzing, canceling, saving,
-    loadThread, createThread, analyze, updateDraft, confirmDraft, save, recover, cancel, clear,
+    thread,
+    events,
+    generatedText,
+    draftTitle,
+    draftContent,
+    error,
+    busy,
+    loading,
+    analyzing,
+    canceling,
+    saving,
+    loadThread,
+    createThread,
+    analyze,
+    updateDraft,
+    confirmDraft,
+    save,
+    recover,
+    cancel,
+    clear,
   };
 }

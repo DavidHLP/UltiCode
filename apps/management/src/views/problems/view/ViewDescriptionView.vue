@@ -2,7 +2,8 @@
 import { onMounted, computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { IconFileText } from '@tabler/icons-vue'
+import { FileText as IconFileText } from '@lucide/vue'
+
 import { useProblemsStore } from '@/stores/admin/problems'
 import DescriptionDisplay from '../components/DescriptionDisplay.vue'
 
@@ -47,22 +48,20 @@ onMounted(async () => {
     <!-- Terminal Header (only visible on mobile or when not in parent view) -->
     <div
       :class="[
-        'border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--card)] lg:hidden',
+        'border border-border dark:border-border bg-card lg:hidden',
         'transition-all duration-500',
         isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
       ]"
     >
-      <!-- Info Ticker -->
-      <div class="px-4 lg:px-6 py-2.5 flex items-center gap-6 bg-[var(--surface-sunken)]">
+      <!-- Page context -->
+      <div class="px-4 lg:px-6 py-2.5 flex items-center gap-6 bg-muted">
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--foreground-muted)]">{{ t('viewLabel') }}</span>
-          <span class="font-data text-sm text-[var(--foreground-strong)]">{{
-            t('descriptionView')
-          }}</span>
+          <span class="text-sm font-medium text-muted-foreground">{{ t('viewLabel') }}</span>
+          <span class="font-mono text-sm text-foreground">{{ t('descriptionView') }}</span>
         </div>
-        <div class="ml-auto hidden sm:flex items-center gap-2 text-[var(--foreground-muted)]">
+        <div class="ml-auto hidden sm:flex items-center gap-2 text-muted-foreground">
           <IconFileText class="h-4 w-4" />
-          <span class="text-xs font-data uppercase tracking-wider">{{ t('problemDetails') }}</span>
+          <span class="text-xs font-mono uppercase tracking-wider">{{ t('problemDetails') }}</span>
         </div>
       </div>
     </div>
@@ -76,14 +75,14 @@ onMounted(async () => {
       <!-- Loading State - Terminal Style -->
       <div v-else class="flex flex-col items-center justify-center py-24 text-center">
         <div
-          class="w-12 h-12 rounded-full bg-[var(--surface-sunken)] border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] flex items-center justify-center mb-3"
+          class="w-12 h-12 rounded-full bg-muted border border-border dark:border-border flex items-center justify-center mb-3"
         >
           <div
-            class="h-6 w-6 animate-spin rounded-full border-2 border-[var(--primary)] border-t-transparent"
+            class="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent"
           ></div>
         </div>
-        <h2 class="text-sm font-medium mb-1 font-data">{{ t('problems.view.loading') }}</h2>
-        <p class="text-xs text-[var(--foreground-muted)] font-data">// {{ t('fetchingData') }}</p>
+        <h2 class="text-sm font-medium mb-1 font-mono">{{ t('problems.view.loading') }}</h2>
+        <p class="text-xs text-muted-foreground font-mono">// {{ t('fetchingData') }}</p>
       </div>
     </div>
   </div>

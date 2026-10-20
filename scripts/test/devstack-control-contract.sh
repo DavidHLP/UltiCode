@@ -169,7 +169,12 @@ node - "$TMP_DIR/mode-full-doctor.json" <<'EOF'
 const fs = require('fs')
 const report = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'))
 if (report.scope !== 'dev-full') throw new Error(`mode alias scope: ${report.scope}`)
-if (report.apps.length !== 9) throw new Error(`mode alias app count: ${report.apps.length}`)
+const expectedApps = ['ulticode-auth', 'ulticode-admin', 'ulticode-app',
+  'ulticode-submission', 'ulticode-notification', 'ulticode-judge',
+  'ulticode-search', 'ulticode-9002', 'ulticode-9003', 'ulticode-9004']
+if (JSON.stringify(report.apps.map((app) => app.name)) !== JSON.stringify(expectedApps)) {
+  throw new Error(`mode alias apps differ: ${report.apps.map((app) => app.name)}`)
+}
 if (!report.infra.some((item) => item.service === 'meilisearch')) throw new Error('mode alias omitted MeiliSearch')
 EOF
 

@@ -1,27 +1,21 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Textarea } from '@/components/ui/textarea'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Button } from '@/components/ui/button'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { Textarea } from '@ulticode/design-system/ui/textarea'
+import { Input } from '@ulticode/design-system/ui/input'
+import { Label } from '@ulticode/design-system/ui/label'
+import { Button } from '@ulticode/design-system/ui/button'
+import { RadioGroup, RadioGroupItem } from '@ulticode/design-system/ui/radio-group'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from '@/components/ui/dialog'
-import { IconLoader2 } from '@tabler/icons-vue'
-import {
-  type CreateTestCaseDto,
-  type TestCase,
-} from '@/api/admin/test-cases'
-import {
-  type CaseScope,
-  mapFlagsToCaseScope,
-  mapCaseScopeToFlags,
-} from '../model/testCaseScope'
+} from '@ulticode/design-system/ui/dialog'
+import { Loader2 as IconLoader2 } from '@lucide/vue'
+
+import { type CreateTestCaseDto, type TestCase } from '@/api/admin/test-cases'
+import { type CaseScope, mapFlagsToCaseScope, mapCaseScopeToFlags } from '../model/testCaseScope'
 import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()
@@ -77,7 +71,7 @@ const caseScope = computed<CaseScope>({
           (see backend CreateTestCaseDTO + TestCaseMapper.findActiveCasesForJudging).
         -->
         <div>
-          <Label class="text-sm font-medium mb-2 block">
+          <Label class="mb-2 block">
             {{ t('testCases.scope.sample') }} / {{ t('testCases.scope.hidden') }}
           </Label>
           <RadioGroup
@@ -88,7 +82,7 @@ const caseScope = computed<CaseScope>({
             <div class="flex items-start gap-2">
               <RadioGroupItem id="scope-sample" value="SAMPLE" />
               <div class="grid gap-0.5">
-                <Label for="scope-sample" class="text-sm font-medium">
+                <Label for="scope-sample">
                   {{ t('testCases.scope.sample') }}
                 </Label>
                 <p class="text-xs text-muted-foreground">
@@ -99,7 +93,7 @@ const caseScope = computed<CaseScope>({
             <div class="flex items-start gap-2">
               <RadioGroupItem id="scope-hidden" value="HIDDEN" />
               <div class="grid gap-0.5">
-                <Label for="scope-hidden" class="text-sm font-medium">
+                <Label for="scope-hidden">
                   {{ t('testCases.scope.hidden') }}
                 </Label>
                 <p class="text-xs text-muted-foreground">
@@ -111,35 +105,31 @@ const caseScope = computed<CaseScope>({
         </div>
 
         <div>
-          <Label class="text-sm text-muted-foreground mb-1 block"
-            >{{ t('testCases.input') }} *</Label
-          >
+          <Label class="mb-1 block">{{ t('testCases.input') }} *</Label>
           <Textarea
             :model-value="formData.inputText"
             @update:model-value="
               emit('update:formData', { ...formData, inputText: $event as string })
             "
             :placeholder="t('testCases.inputPlaceholder')"
-            class="font-mono text-sm min-h-[120px]"
+            class="min-h-[120px]"
           />
         </div>
 
         <div>
-          <Label class="text-sm text-muted-foreground mb-1 block"
-            >{{ t('testCases.output') }} *</Label
-          >
+          <Label class="mb-1 block">{{ t('testCases.output') }} *</Label>
           <Textarea
             :model-value="formData.outputText"
             @update:model-value="
               emit('update:formData', { ...formData, outputText: $event as string })
             "
             :placeholder="t('testCases.outputPlaceholder')"
-            class="font-mono text-sm min-h-[120px]"
+            class="min-h-[120px]"
           />
         </div>
 
         <div>
-          <Label class="text-sm text-muted-foreground mb-1 block">
+          <Label class="mb-1 block">
             {{ t('testCases.explanation') }} ({{ t('common.optional') }})
           </Label>
           <Input

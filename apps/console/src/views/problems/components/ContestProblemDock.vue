@@ -14,12 +14,12 @@ import {
   Trophy,
 } from "@lucide/vue";
 import { toast } from "vue-sonner";
-import { Button } from "@/components/ui/button";
+import { Button } from "@ulticode/design-system/ui/button";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover";
+} from "@ulticode/design-system/ui/popover";
 import ContestStatusBadge from "@/views/contest/components/ContestStatusBadge.vue";
 import ContestTimer from "@/views/contest/components/ContestTimer.vue";
 import ContestAnnouncementBell from "./ContestAnnouncementBell.vue";
@@ -296,16 +296,16 @@ function handleNotebook(): void {
     <PopoverTrigger as-child>
       <Button
         type="button"
-        class="h-8 max-w-[210px] rounded-none border border-border bg-transparent px-2.5 font-mono text-xxs font-black uppercase tracking-wider text-muted-foreground shadow-none transition-colors hover:bg-[var(--surface-highlight)]/70 hover:text-foreground data-[state=open]:bg-[var(--surface-highlight)] dark:hover:bg-background/70 dark:hover:text-foreground-strong"
+        class="max-w-[210px] px-2.5 dark:hover:bg-background/70 dark:hover:text-foreground"
         :aria-label="ctx?.contest.value?.title"
         :title="ctx?.contest.value?.title"
         data-testid="contest-problem-dock-trigger"
       >
-        <Trophy class="h-3.5 w-3.5 shrink-0 text-[var(--status-warning-mark)]" />
+        <Trophy class="h-3.5 w-3.5 shrink-0 text-status-warning-mark" />
         <span class="hidden max-w-[120px] truncate xl:inline">
           {{ ctx?.contest.value?.title }}
         </span>
-        <span class="font-black text-[var(--foreground-strong)]">
+        <span class="font-black text-foreground">
           {{ isAuthed ? score : "—" }}
         </span>
         <ChevronDown class="h-3 w-3 shrink-0 opacity-60" />
@@ -315,10 +315,10 @@ function handleNotebook(): void {
     <PopoverContent
       align="end"
       :side-offset="8"
-      class="w-[min(92vw,440px)] rounded-none border border-border bg-surface p-0 font-mono shadow-lg dark:bg-surface-highlight"
+      class="w-[min(92vw,440px)] p-0"
     >
       <header
-        class="border-b border-border bg-[var(--surface-highlight)]/50 px-3 py-2 dark:bg-background/50"
+        class="border-b border-border bg-accent/50 px-3 py-2 dark:bg-background/50"
       >
         <div class="flex min-w-0 items-center justify-between gap-3">
           <div class="min-w-0">
@@ -327,7 +327,7 @@ function handleNotebook(): void {
             </p>
             <div
               v-if="timerTargetIso"
-              class="mt-1 flex items-center gap-1.5 text-2xs font-bold uppercase tracking-widest text-muted-foreground"
+              class="mt-1 flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-muted-foreground"
             >
               <Timer class="h-3 w-3" />
               <span>{{
@@ -355,10 +355,8 @@ function handleNotebook(): void {
       <div class="space-y-3 p-3">
         <div class="grid grid-cols-3 gap-2">
           <div class="border border-border/60 bg-background/30 px-2 py-2">
-            <div
-              class="flex items-center gap-1 text-2xs text-muted-foreground"
-            >
-              <Trophy class="h-3 w-3 text-[var(--status-warning-mark)]" />
+            <div class="flex items-center gap-1 text-xs text-muted-foreground">
+              <Trophy class="h-3 w-3 text-status-warning-mark" />
               {{ t("contest.detail.shell.score") }}
             </div>
             <p class="mt-1 text-sm font-black text-foreground">
@@ -366,10 +364,8 @@ function handleNotebook(): void {
             </p>
           </div>
           <div class="border border-border/60 bg-background/30 px-2 py-2">
-            <div
-              class="flex items-center gap-1 text-2xs text-muted-foreground"
-            >
-              <Target class="h-3 w-3 text-[var(--primary)]" />
+            <div class="flex items-center gap-1 text-xs text-muted-foreground">
+              <Target class="h-3 w-3 text-primary" />
               {{ t("contest.detail.shell.rank") }}
             </div>
             <p class="mt-1 text-sm font-black text-foreground">
@@ -377,10 +373,10 @@ function handleNotebook(): void {
             </p>
           </div>
           <div class="border border-border/60 bg-background/30 px-2 py-2">
-            <div class="text-2xs text-muted-foreground">
+            <div class="text-xs text-muted-foreground">
               {{ t("contest.detail.shell.solved") }}
             </div>
-            <p class="mt-1 text-sm font-black text-[var(--foreground-strong)]">
+            <p class="mt-1 text-sm font-black text-foreground">
               {{ isAuthed ? solvedCount : "—" }}
               <span class="text-xs text-muted-foreground"
                 >/ {{ totalProblems }}</span
@@ -391,22 +387,23 @@ function handleNotebook(): void {
 
         <section v-if="pills.length > 0" class="space-y-2">
           <div
-            class="text-2xs font-black uppercase tracking-widest text-muted-foreground"
+            class="text-xs font-black uppercase tracking-widest text-muted-foreground"
           >
             {{ t("contest.detail.shell.problemNav") }}
           </div>
           <div
             class="grid grid-cols-[repeat(auto-fit,minmax(36px,1fr))] border border-border"
           >
-            <button
+            <Button
+              variant="outline"
               v-for="p in pills"
               :key="p.problemId"
               type="button"
               :class="[
-                'h-8 border-r border-border text-xxs font-black uppercase tracking-wider last:border-r-0 transition-colors',
+                'h-8 border-r border-border text-xs font-black uppercase tracking-wider last:border-r-0 transition-colors',
                 isActivePill(p)
-                  ? 'bg-[var(--primary)]/15 text-[var(--primary)]'
-                  : 'bg-transparent text-muted-foreground hover:bg-[var(--surface-highlight)]/50 dark:hover:bg-background/50',
+                  ? 'bg-primary/15 text-primary'
+                  : 'bg-transparent text-muted-foreground hover:bg-accent/50 dark:hover:bg-background/50',
                 !p.slug ? 'cursor-not-allowed opacity-50' : 'cursor-pointer',
               ]"
               :disabled="!p.slug"
@@ -414,7 +411,7 @@ function handleNotebook(): void {
               @click="goToPill(p)"
             >
               {{ p.problemIndex }}
-            </button>
+            </Button>
           </div>
         </section>
 
@@ -422,7 +419,7 @@ function handleNotebook(): void {
           class="flex items-center justify-between gap-3 border border-border/60 px-2 py-2"
         >
           <span
-            class="text-2xs font-black uppercase tracking-widest text-muted-foreground"
+            class="text-xs font-black uppercase tracking-widest text-muted-foreground"
           >
             {{ t("contest.detail.announcements.title") }}
           </span>
@@ -431,7 +428,7 @@ function handleNotebook(): void {
 
         <div
           v-if="showSolutionsHiddenHint"
-          class="flex items-start gap-1.5 border border-border/60 bg-[var(--surface-highlight)]/40 px-2 py-2 text-2xs leading-snug text-muted-foreground dark:bg-background/40"
+          class="flex items-start gap-1.5 border border-border/60 bg-accent/40 px-2 py-2 text-xs leading-snug text-muted-foreground dark:bg-background/40"
         >
           <Lightbulb class="mt-0.5 h-3 w-3 shrink-0" />
           <span>{{ t("contest.detail.solutionsHiddenHint") }}</span>
@@ -443,14 +440,11 @@ function handleNotebook(): void {
         >
           <div class="flex items-center justify-between gap-3">
             <h3
-              class="text-2xs font-black uppercase tracking-widest text-muted-foreground"
+              class="text-xs font-black uppercase tracking-widest text-muted-foreground"
             >
               {{ t("contest.review.title") }}
             </h3>
-            <span
-              v-if="loadingReview"
-              class="text-2xs text-muted-foreground"
-            >
+            <span v-if="loadingReview" class="text-xs text-muted-foreground">
               ...
             </span>
           </div>
@@ -458,34 +452,32 @@ function handleNotebook(): void {
           <div class="grid grid-cols-3 gap-2">
             <div class="min-w-0">
               <div
-                class="flex items-center gap-1 text-2xs text-muted-foreground"
+                class="flex items-center gap-1 text-xs text-muted-foreground"
               >
                 <CheckCircle2
                   v-if="firstAccepted"
-                  class="h-3 w-3 text-[var(--status-success-mark)]"
+                  class="h-3 w-3 text-status-success-mark"
                 />
                 <Clock v-else class="h-3 w-3" />
                 {{ t("contest.review.firstACLabel") }}
               </div>
-              <p class="mt-1 truncate text-xxs font-bold text-foreground">
+              <p class="mt-1 truncate text-xs font-bold text-foreground">
                 {{ firstAccepted ? formatTime(firstAccepted.created_at) : "—" }}
               </p>
             </div>
             <div class="min-w-0">
-              <p class="text-2xs text-muted-foreground">
+              <p class="text-xs text-muted-foreground">
                 {{ t("contest.review.breakdownLabel") }}
               </p>
-              <p
-                class="mt-1 truncate text-xxs font-bold text-foreground-strong"
-              >
+              <p class="mt-1 truncate text-xs font-bold text-foreground">
                 {{ breakdown.accepted }} / {{ breakdown.total }} AC
               </p>
             </div>
             <div class="min-w-0">
-              <p class="text-2xs text-muted-foreground">
+              <p class="text-xs text-muted-foreground">
                 {{ t("contest.review.finalScoreLabel") }}
               </p>
-              <p class="mt-1 truncate text-xxs font-bold text-foreground">
+              <p class="mt-1 truncate text-xs font-bold text-foreground">
                 {{ finalScore != null ? finalScore : "—" }}
               </p>
             </div>
@@ -498,13 +490,13 @@ function handleNotebook(): void {
             <li
               v-for="s in submissions"
               :key="s.id"
-              class="grid grid-cols-[1fr_auto_auto] items-center gap-2 border-b border-border/30 px-2 py-1.5 text-2xs last:border-b-0"
+              class="grid grid-cols-[1fr_auto_auto] items-center gap-2 border-b border-border/30 px-2 py-1.5 text-xs last:border-b-0"
             >
               <span class="truncate text-muted-foreground">
                 {{ formatTime(s.created_at) }}
               </span>
               <span class="font-black text-foreground">{{ s.status }}</span>
-              <span class="font-black text-[var(--foreground-strong)]">
+              <span class="font-black text-foreground">
                 {{
                   s.contest_info?.score != null
                     ? `+${s.contest_info.score}`
@@ -515,7 +507,7 @@ function handleNotebook(): void {
           </ul>
           <p
             v-else-if="!loadingReview"
-            class="border border-border/50 px-2 py-3 text-center text-xxs text-muted-foreground"
+            class="border border-border/50 px-2 py-3 text-center text-xs text-muted-foreground"
           >
             {{ t("contest.review.empty") }}
           </p>
@@ -524,7 +516,7 @@ function handleNotebook(): void {
             <Button
               variant="default"
               size="sm"
-              class="h-8 rounded-none border border-[var(--primary)]/40 bg-[var(--primary)]/15 px-3 font-black text-2xs uppercase tracking-widest text-[var(--primary)] hover:bg-[var(--primary)]/25 cursor-pointer"
+              class="px-3 cursor-pointer"
               :disabled="!slug"
               data-testid="contest-review-retake"
               @click="handleRetake"
@@ -535,7 +527,7 @@ function handleNotebook(): void {
             <Button
               variant="outline"
               size="sm"
-              class="h-8 rounded-none border border-border bg-transparent px-3 font-black text-2xs uppercase tracking-widest text-muted-foreground hover:bg-[var(--surface-highlight)] hover:text-foreground dark:hover:bg-background cursor-pointer"
+              class="px-3 dark:hover:bg-background cursor-pointer"
               data-testid="contest-review-notebook"
               @click="handleNotebook"
             >

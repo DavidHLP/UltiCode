@@ -19,6 +19,12 @@ UltiCode 是一个可自托管的在线评测平台，提供题目、比赛、�
 
 Auth 负责账号、凭据、会话、OAuth/JWT/JWKS、权限和身份查询；浏览器 Cookie、CSRF、refresh rotation、WebSocket 身份和权限边界见 [`REFERENCE.md`](REFERENCE.md) 与 [`ARCHITECTURE.md`](ARCHITECTURE.md#安全架构与信任边界)。
 
+### 受控外观设置
+
+Console、Management 与独立 Landing 共享 shadcn-vue 组件和语义主题。用户可调整主题色、基础色、图表配色、字体、圆角、密度、菜单样式及明暗模式；组件风格固定为已集成的 Nova，通用图标固定为 Lucide，不提供尚未接入的风格或图标选项。
+
+设置支持实时预览、应用、取消和恢复默认，无需运行 CLI 或重新构建。偏好按访客或登录用户分区保存在当前浏览器；刷新和同源页面、标签页之间保持一致，不承诺跨设备或跨域同步。取消恢复已保存设置；存储失败明确提示，不把临时内存状态当作保存成功。外观设置不开放任意 CSS、HTML、脚本或布局编辑，不改变认证、权限、业务状态与专业编辑器的高对比度模式。
+
 ### 题目、比赛与社区
 
 App 负责用户侧题目、比赛、内容、社区、资料和搜索读取等业务边界。题目与比赛的具体字段、状态和管理入口以 App owner 实现、API contract 和共享类型为准；不要仅根据本页概括扩展 wire contract。

@@ -152,7 +152,8 @@ class ProblemApiContractShapeTest {
     void read_dto_collections_are_non_null_and_wire_shapes_are_records() {
         ProblemListItemDTO item = new ProblemListItemDTO(
                 1L, "two-sum", "Two Sum", "EASY", "PUBLISHED",
-                null, Boolean.FALSE, Boolean.FALSE, null);
+                null, Boolean.FALSE, Boolean.FALSE, null, null);
+        assertThat(item.categorySlugs()).isEmpty();
         assertThat(item.tags()).isEmpty();
 
         ProblemCompletionReportDTO report = new ProblemCompletionReportDTO(

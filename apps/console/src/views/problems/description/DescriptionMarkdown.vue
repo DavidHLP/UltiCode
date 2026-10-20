@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { renderMarkdown } from '@ulticode/markdown-utils';
+import { renderMarkdown } from "@ulticode/markdown-utils";
 import { toast } from "vue-sonner";
 import { useI18n } from "vue-i18n";
 
@@ -94,14 +94,15 @@ ${props.description.followUp}
   return parts.join("");
 });
 
-const htmlContent = computed(() =>
-  renderMarkdown(markdownContent.value),
-);
+const htmlContent = computed(() => renderMarkdown(markdownContent.value));
 </script>
 
 <template>
   <div class="description-markdown" @click="handleCopy">
-    <div class="markdown-content markdown-block" v-html="htmlContent"></div>
+    <div
+      class="markdown-content typeset typeset-docs"
+      v-html="htmlContent"
+    ></div>
   </div>
 </template>
 
@@ -116,12 +117,11 @@ const htmlContent = computed(() =>
   color: var(--foreground);
 }
 
-
 .description-markdown :deep(.markdown-content h1),
 .description-markdown :deep(.markdown-content h2),
 .description-markdown :deep(.markdown-content h3),
 .description-markdown :deep(.markdown-content h4) {
-  color: var(--foreground-strong);
+  color: var(--foreground);
   font-weight: var(--uc-font-weight-bold);
   line-height: var(--uc-leading-snug);
   margin-top: 1rem;
@@ -133,7 +133,7 @@ const htmlContent = computed(() =>
 .dark .description-markdown :deep(.markdown-content h2),
 .dark .description-markdown :deep(.markdown-content h3),
 .dark .description-markdown :deep(.markdown-content h4) {
-  color: var(--foreground-strong);
+  color: var(--foreground);
 }
 
 .description-markdown :deep(.markdown-content h1) {
@@ -153,7 +153,6 @@ const htmlContent = computed(() =>
   margin-bottom: 0.75em;
 }
 
-
 .description-markdown :deep(.markdown-content ul),
 .description-markdown :deep(.markdown-content ol) {
   padding-left: 1.25rem;
@@ -168,12 +167,11 @@ const htmlContent = computed(() =>
   margin-bottom: 0.35rem;
 }
 
-
 .description-markdown :deep(.markdown-content code) {
   font-family: var(--font-mono);
   font-size: 0.92em;
   line-height: var(--uc-leading-code);
-  background-color: var(--surface-highlight);
+  background-color: var(--accent);
   color: var(--foreground);
   padding: 0.1rem 0.3rem;
   border-radius: var(--radius-md);
@@ -183,12 +181,11 @@ const htmlContent = computed(() =>
 }
 
 .dark .description-markdown :deep(.markdown-content code) {
-  color: var(--foreground-strong);
+  color: var(--foreground);
 }
 
-
 .description-markdown :deep(.markdown-content pre) {
-  background-color: var(--surface-highlight);
+  background-color: var(--accent);
   border-radius: var(--radius-md);
   padding: 0.65rem 0.85rem;
   margin: 0.75rem 0;
@@ -207,10 +204,9 @@ const htmlContent = computed(() =>
   font-size: inherit;
 }
 
-
 .description-markdown :deep(.markdown-content blockquote) {
   border-left: 3px solid var(--primary);
-  background-color: var(--surface-highlight);
+  background-color: var(--accent);
   padding: 0.6rem 0.85rem;
   margin: 0.75rem 0 1rem;
   color: var(--foreground);
@@ -238,16 +234,14 @@ const htmlContent = computed(() =>
   color: inherit;
 }
 
-
 .description-markdown :deep(.markdown-content strong) {
   font-weight: var(--uc-font-weight-semibold);
   color: var(--foreground);
 }
 
 .dark .description-markdown :deep(.markdown-content strong) {
-  color: var(--foreground-strong);
+  color: var(--foreground);
 }
-
 
 .description-markdown :deep(.katex) {
   font-size: var(--uc-text-sm);

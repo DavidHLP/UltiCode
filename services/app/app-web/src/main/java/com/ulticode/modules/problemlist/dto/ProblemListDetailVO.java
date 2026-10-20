@@ -78,6 +78,7 @@ public class ProblemListDetailVO {
         private java.math.BigDecimal acceptanceRate;
         private Boolean isPremium;
         private Boolean hasSolution;
+        private List<String> categorySlugs;
         private java.util.List<ProblemTagVO> tags;
 
         /**

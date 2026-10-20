@@ -118,8 +118,8 @@ export default {
     pageTitle: '内容审核',
     title: '审核队列',
     description: '审核和管理被举报的内容',
-    emptyTitle: '队列为空',
-    emptyDescription: '当前没有需要审核的内容。',
+    emptyTitle: '未找到审核记录',
+    emptyDescription: '没有符合当前筛选条件的审核记录。',
     claimItem: '认领项目',
     assignTo: '分配给',
     unassign: '取消分配',
@@ -138,6 +138,7 @@ export default {
 
   // ========== 统计仪表板 ==========
   stats: {
+    loadError: '审核统计加载失败，请刷新重试。',
     title: '统计数据',
     overview: '概览',
     totalPending: '待处理',
@@ -191,11 +192,12 @@ export default {
 
   // ========== 申诉视图 ==========
   appeals: {
+    searchPlaceholder: '按完整队列 ID 搜索...',
     pageTitle: '申诉管理',
     title: '申诉管理',
     description: '审核用户对审核决定的申诉',
-    emptyTitle: '暂无申诉',
-    emptyDescription: '当前没有待处理的申诉。',
+    emptyTitle: '未找到申诉',
+    emptyDescription: '没有符合当前筛选条件的申诉。',
     appellant: '申诉人',
     reason: '申诉原因',
     evidence: '证据',
@@ -213,11 +215,12 @@ export default {
 
   // ========== 举报视图 ==========
   reports: {
+    searchPlaceholder: '按完整实体 ID 搜索...',
     pageTitle: '举报管理',
     title: '举报管理',
     description: '查看所有内容举报',
-    emptyTitle: '暂无举报',
-    emptyDescription: '尚未收到任何举报。',
+    emptyTitle: '未找到举报',
+    emptyDescription: '没有符合当前筛选条件的举报。',
     reporter: '举报者',
     entity: '实体',
     entityType: '类型',
@@ -302,6 +305,11 @@ export default {
 
   // ========== 终端风格 ==========
   terminal: {
+    filteredTotal: '筛选总计',
+    globalPending: '全部待处理',
+    globalUnderReview: '全部审核中',
+    globalResolved: '全部已解决',
+    pendingOnPage: '本页待处理',
     loading: '加载中...',
     selected: '已选择',
     total: '总计',

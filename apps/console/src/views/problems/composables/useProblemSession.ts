@@ -27,7 +27,7 @@ import {
   SheetHeader,
   SheetTitle,
   SheetDescription,
-} from "@/components/ui/sheet";
+} from "@ulticode/design-system/ui/sheet";
 import ProblemListDrawer from "@/components/problem/ProblemListDrawer.vue";
 import ProblemNotesDrawer from "@/components/problem/ProblemNotesDrawer.vue";
 import { problemHooks } from "@/hooks/problem-hooks";

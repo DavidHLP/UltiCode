@@ -69,6 +69,29 @@ function thread(threadId: string, runId: string, status: AgentThread["status"]):
 }
 
 describe("useAgentWorkflow run isolation", () => {
+  it.each(["awaiting_confirmation", "failed", "cancelled"] as const)(
+    "refreshes terminal %s events without reporting a disconnection",
+    async (status) => {
+      vi.stubGlobal("EventSource", FakeEventSource);
+      const analyzing = thread("thread-a", "run-a", "analyzing");
+      vi.mocked(agentApi.getThread)
+        .mockResolvedValueOnce(analyzing)
+        .mockResolvedValueOnce(thread("thread-a", "run-a", status));
+      const scope = effectScope();
+      const workflow = scope.run(() => useAgentWorkflow())!;
+      await workflow.loadThread(analyzing.threadId);
+      const stream = FakeEventSource.instances[0];
+      stream.emit("terminal", { runId: analyzing.runId, status });
+      await vi.waitFor(() =>
+        expect(workflow.thread.value?.status).toBe(status),
+      );
+      stream.fail();
+      expect(stream.closed).toBe(true);
+      expect(workflow.error.value).toBe("");
+      scope.stop();
+    },
+  );
+
   afterEach(() => {
     vi.clearAllMocks();
     vi.unstubAllGlobals();

@@ -16,14 +16,14 @@ export interface ThemeOption {
 export const AVAILABLE_THEMES: ThemeOption[] = [
   {
     value: "vs-dark",
-    label: "Solarized Dark",
-    description: "Solarized dark theme",
+    label: "Dark",
+    description: "Application dark theme",
     icon: "moon",
   },
   {
     value: "vs-light",
-    label: "Solarized Light",
-    description: "Solarized light theme",
+    label: "Light",
+    description: "Application light theme",
     icon: "sun",
   },
   {

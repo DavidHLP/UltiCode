@@ -23,7 +23,7 @@ export interface Contest {
   contestType: ContestType
   startTime: string
   endTime?: string
-  duration: number
+  durationMinutes: number
   status: ContestStatus
   isVisible: boolean
   isPremium: boolean

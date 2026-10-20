@@ -30,7 +30,7 @@ export default {
   docs: {
     title: 'Documentation',
     description:
-      'Browse the in-repo docs/ folder for architecture, operations, and security guides.',
-    openFolder: 'Open docs/',
+      'Browse the repository documentation map for architecture, development, and operations.',
+    openFolder: 'Open documentation',
   },
 }

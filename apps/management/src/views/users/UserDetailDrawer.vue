@@ -1,15 +1,25 @@
 <script setup lang="ts">
+
 import { ref, watch, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import { useUsersStore } from '@/stores/admin/users'
 import { useAvatarUpload } from '@/composables/useAvatarUpload'
 import { extractApiErrorMessage } from '@/utils/error'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Button } from '@/components/ui/button'
-import { IconMail, IconTrophy, IconFlame, IconUpload, IconLoader2 } from '@tabler/icons-vue'
+import { Avatar, AvatarFallback, AvatarImage } from '@ulticode/design-system/ui/avatar'
+import { Button } from '@ulticode/design-system/ui/button'
+import {
+  Mail as IconMail,
+  Trophy as IconTrophy,
+  Flame as IconFlame,
+  Upload as IconUpload,
+  Loader2 as IconLoader2,
+} from '@lucide/vue'
+
 import BaseDetailDrawer from '@/components/shared/BaseDetailDrawer.vue'
-import { DataBlock, SemanticBadge, USER_ROLE_COLOR_MAP } from '@/components/ui/terminal'
+import DetailField from '@ulticode/design-system/DetailField.vue'
+import SemanticBadge from '@ulticode/badge-config/SemanticBadge.vue'
+import { USER_ROLE_COLOR_MAP } from '@ulticode/badge-config'
 import { formatDateByLocale, formatDateTimeByLocale } from '@/i18n/utils'
 const { t } = useI18n()
 
@@ -58,9 +68,7 @@ async function handleAvatarChange(event: Event) {
     }
   } catch (error) {
     if (props.userId !== targetUserId) return
-    toast.error(
-      extractApiErrorMessage(error, t('users.toast.avatarUploadFailed')),
-    )
+    toast.error(extractApiErrorMessage(error, t('users.toast.avatarUploadFailed')))
   }
 }
 
@@ -132,7 +140,7 @@ watch(
           (entity.detailStatus ?? entity.degradationStatus) !== 'OK'
         "
         role="status"
-        class="border border-[var(--status-warning-mark)] bg-[color-mix(in_oklch,_var(--status-warning-mark)_8%,_transparent)] p-3 text-sm"
+        class="border border-status-warning-mark bg-[color-mix(in_oklch,_var(--status-warning-mark)_8%,_transparent)] p-3 text-sm"
       >
         {{
           (entity.detailStatus ?? entity.degradationStatus) === 'PARTIAL'
@@ -144,7 +152,7 @@ watch(
       <div
         v-if="entity.profileStatus && entity.profileStatus !== 'OK'"
         role="status"
-        class="border border-[var(--status-warning-mark)] bg-[color-mix(in_oklch,_var(--status-warning-mark)_8%,_transparent)] p-3 text-sm"
+        class="border border-status-warning-mark bg-[color-mix(in_oklch,_var(--status-warning-mark)_8%,_transparent)] p-3 text-sm"
       >
         <strong>{{ t('users.degradation.profile') }}</strong>
         <span v-if="entity.profileReason"> — {{ entity.profileReason }}</span>
@@ -153,7 +161,7 @@ watch(
       <div
         v-if="entity.statsStatus && entity.statsStatus !== 'OK'"
         role="status"
-        class="border border-[var(--status-warning-mark)] bg-[color-mix(in_oklch,_var(--status-warning-mark)_8%,_transparent)] p-3 text-sm"
+        class="border border-status-warning-mark bg-[color-mix(in_oklch,_var(--status-warning-mark)_8%,_transparent)] p-3 text-sm"
       >
         <strong>{{ t('users.degradation.stats') }}</strong>
         <span v-if="entity.statsReason"> — {{ entity.statsReason }}</span>
@@ -162,21 +170,19 @@ watch(
       <div
         v-if="entity.permissionsStatus && entity.permissionsStatus !== 'OK'"
         role="status"
-        class="border border-[var(--status-warning-mark)] bg-[color-mix(in_oklch,_var(--status-warning-mark)_8%,_transparent)] p-3 text-sm"
+        class="border border-status-warning-mark bg-[color-mix(in_oklch,_var(--status-warning-mark)_8%,_transparent)] p-3 text-sm"
       >
         <strong>{{ t('users.degradation.permissions') }}</strong>
         <span v-if="entity.permissionsReason"> — {{ entity.permissionsReason }}</span>
       </div>
 
       <!-- Profile Header - Terminal Style -->
-      <div
-        class="border border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] bg-[var(--card)]"
-      >
+      <div class="border border-border dark:border-foreground bg-card">
         <!-- Header Bar -->
-        <div
-          class="border-b border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] px-4 py-2 bg-[var(--surface-sunken)]"
-        >
-          <span class="terminal-comment">{{ t('users.drawer.sections.profile') }}</span>
+        <div class="border-b border-border dark:border-foreground px-4 py-2 bg-muted">
+          <span class="text-sm text-muted-foreground">{{
+            t('users.drawer.sections.profile')
+          }}</span>
         </div>
 
         <div class="p-4">
@@ -186,17 +192,15 @@ watch(
               :class="[
                 'relative',
                 entity.isBanned
-                  ? 'ring-2 ring-[var(--status-error-mark)] ring-offset-2 ring-offset-background'
+                  ? 'ring-2 ring-status-error-mark ring-offset-2 ring-offset-background'
                   : entity.isActive
-                    ? 'ring-2 ring-[var(--status-success-mark)] ring-offset-2 ring-offset-background'
+                    ? 'ring-2 ring-status-success-mark ring-offset-2 ring-offset-background'
                     : '',
               ]"
             >
-              <Avatar class="h-16 w-16 rounded-none">
+              <Avatar class="h-16 w-16">
                 <AvatarImage :src="entity.avatar ?? ''" :alt="entity.username" />
-                <AvatarFallback
-                  class="font-data text-lg bg-[var(--surface-highlight)] dark:bg-[var(--foreground-strong)]"
-                >
+                <AvatarFallback>
                   {{ entity.name?.[0] || entity.username[0] }}
                 </AvatarFallback>
               </Avatar>
@@ -208,9 +212,9 @@ watch(
                   entity.name || entity.username
                 }}</span>
               </div>
-              <div class="flex items-center gap-1.5 text-sm text-[var(--foreground-muted)] mb-2">
+              <div class="flex items-center gap-1.5 text-sm text-muted-foreground mb-2">
                 <IconMail class="h-3.5 w-3.5" />
-                <span class="font-data text-xs truncate">{{ entity.email || 'no-email' }}</span>
+                <span class="font-mono text-xs truncate">{{ entity.email || 'no-email' }}</span>
               </div>
               <div class="flex flex-wrap gap-2">
                 <SemanticBadge
@@ -257,7 +261,7 @@ watch(
               v-if="avatarUploading"
               role="status"
               aria-live="polite"
-              class="font-data text-xs text-[var(--foreground-muted)]"
+              class="font-mono text-xs text-muted-foreground"
             >
               {{ t('users.actions.avatarUploading', { progress: avatarProgress }) }}
             </span>
@@ -268,63 +272,63 @@ watch(
       <!-- Performance Stats - Terminal Style -->
       <div
         v-if="entity.stats && (!entity.statsStatus || entity.statsStatus === 'OK')"
-        class="border border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] bg-[var(--card)]"
+        class="border border-border dark:border-foreground bg-card"
       >
-        <div
-          class="border-b border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] px-4 py-2 bg-[var(--surface-sunken)]"
-        >
-          <span class="terminal-comment">{{ t('users.drawer.sections.performance') }}</span>
+        <div class="border-b border-border dark:border-foreground px-4 py-2 bg-muted">
+          <span class="text-sm text-muted-foreground">{{
+            t('users.drawer.sections.performance')
+          }}</span>
         </div>
 
         <div class="p-4 space-y-4">
           <!-- Summary Stats -->
           <div class="grid grid-cols-2 gap-3">
             <div
-              class="flex items-center gap-3 p-3 border border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] bg-[var(--surface-sunken)]"
+              class="flex items-center gap-3 p-3 border border-border dark:border-foreground bg-muted"
             >
-              <IconTrophy class="h-5 w-5 text-[var(--status-warning-mark)]" />
+              <IconTrophy class="h-5 w-5 text-status-warning-mark" />
               <div>
-                <div class="font-data text-lg tabular-nums text-[var(--foreground)]">
+                <div class="font-mono text-lg tabular-nums text-foreground">
                   {{ entity.stats?.totalSolutions ?? 0 }}
                 </div>
-                <div class="terminal-label">{{ $t('users.stats.solutions') }}</div>
+                <div class="text-sm font-medium">{{ $t('users.stats.solutions') }}</div>
               </div>
             </div>
             <div
-              class="flex items-center gap-3 p-3 border border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] bg-[var(--surface-sunken)]"
+              class="flex items-center gap-3 p-3 border border-border dark:border-foreground bg-muted"
             >
-              <IconFlame class="h-5 w-5 text-[var(--status-error-mark)]" />
+              <IconFlame class="h-5 w-5 text-status-error-mark" />
               <div>
-                <div class="font-data text-lg tabular-nums text-[var(--foreground)]">
+                <div class="font-mono text-lg tabular-nums text-foreground">
                   {{ entity.stats?.streak ?? 0 }}
                 </div>
-                <div class="terminal-label">{{ $t('users.stats.streak') }}</div>
+                <div class="text-sm font-medium">{{ $t('users.stats.streak') }}</div>
               </div>
             </div>
             <div
-              class="flex items-center gap-3 p-3 border border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] bg-[var(--surface-sunken)]"
+              class="flex items-center gap-3 p-3 border border-border dark:border-foreground bg-muted"
             >
               <div class="h-5 w-5 flex items-center justify-center">
-                <span class="font-data text-sm text-[var(--foreground-strong)]">∑</span>
+                <span class="font-mono text-sm text-foreground">∑</span>
               </div>
               <div>
-                <div class="font-data text-lg tabular-nums text-[var(--foreground)]">
+                <div class="font-mono text-lg tabular-nums text-foreground">
                   {{ entity.stats?.totalSubmissions ?? 0 }}
                 </div>
-                <div class="terminal-label">{{ $t('users.stats.submissions') }}</div>
+                <div class="text-sm font-medium">{{ $t('users.stats.submissions') }}</div>
               </div>
             </div>
             <div
-              class="flex items-center gap-3 p-3 border border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] bg-[var(--surface-sunken)]"
+              class="flex items-center gap-3 p-3 border border-border dark:border-foreground bg-muted"
             >
               <div class="h-5 w-5 flex items-center justify-center">
-                <span class="font-data text-sm text-[var(--foreground-strong)]">✓</span>
+                <span class="font-mono text-sm text-foreground">✓</span>
               </div>
               <div>
-                <div class="font-data text-lg tabular-nums text-[var(--foreground)]">
+                <div class="font-mono text-lg tabular-nums text-foreground">
                   {{ entity.stats?.acceptedSubmissions ?? 0 }}
                 </div>
-                <div class="terminal-label">{{ $t('users.stats.accepted') }}</div>
+                <div class="text-sm font-medium">{{ $t('users.stats.accepted') }}</div>
               </div>
             </div>
           </div>
@@ -335,16 +339,16 @@ watch(
             v-if="entity.stats && (!entity.statsStatus || entity.statsStatus === 'OK')"
           >
             <div class="flex items-center justify-between">
-              <span class="font-data text-xs text-[var(--foreground-muted)]">{{
+              <span class="font-mono text-xs text-muted-foreground">{{
                 $t('users.stats.acceptanceRate')
               }}</span>
-              <span class="font-data text-xs text-[var(--foreground-muted)] tabular-nums"
+              <span class="font-mono text-xs text-muted-foreground tabular-nums"
                 >{{ acceptanceRate }}%</span
               >
             </div>
-            <div class="ascii-progress text-2xs">
-              <span class="text-[var(--foreground-strong)]">{{ progressFilled }}</span>
-              <span class="ascii-progress-track">{{ progressEmpty }}</span>
+            <div class="font-mono tabular-nums text-xs">
+              <span class="text-foreground">{{ progressFilled }}</span>
+              <span class="text-muted-foreground">{{ progressEmpty }}</span>
             </div>
           </div>
         </div>
@@ -352,62 +356,60 @@ watch(
 
       <!-- Permissions - only a proven snapshot is rendered as permissions. -->
       <div
-        v-if="entity.permissions && (!entity.permissionsStatus || entity.permissionsStatus === 'OK')"
-        class="border border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] bg-[var(--card)]"
+        v-if="
+          entity.permissions && (!entity.permissionsStatus || entity.permissionsStatus === 'OK')
+        "
+        class="border border-border dark:border-foreground bg-card"
       >
-        <div
-          class="border-b border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] px-4 py-2 bg-[var(--surface-sunken)]"
-        >
-          <span class="terminal-comment">{{ t('users.drawer.sections.permissions') }}</span>
+        <div class="border-b border-border dark:border-foreground px-4 py-2 bg-muted">
+          <span class="text-sm text-muted-foreground">{{
+            t('users.drawer.sections.permissions')
+          }}</span>
         </div>
         <div class="p-4">
           <ul v-if="entity.permissions.length" class="space-y-1">
             <li
               v-for="permission in entity.permissions"
               :key="`${permission.action}:${permission.resource}`"
-              class="font-data text-xs text-[var(--foreground)]"
+              class="font-mono text-xs text-foreground"
             >
               {{ permission.action }}:{{ permission.resource }}
             </li>
           </ul>
-          <span v-else class="text-sm text-[var(--foreground-muted)]">
+          <span v-else class="text-sm text-muted-foreground">
             {{ t('users.degradation.noPermissions') }}
           </span>
         </div>
       </div>
 
       <!-- Account Information - Terminal Style -->
-      <div
-        class="border border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] bg-[var(--card)]"
-      >
-        <div
-          class="border-b border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] px-4 py-2 bg-[var(--surface-sunken)]"
-        >
-          <span class="terminal-comment">{{ t('users.drawer.sections.account') }}</span>
+      <div class="border border-border dark:border-foreground bg-card">
+        <div class="border-b border-border dark:border-foreground px-4 py-2 bg-muted">
+          <span class="text-sm text-muted-foreground">{{
+            t('users.drawer.sections.account')
+          }}</span>
         </div>
 
         <div class="p-4">
           <div class="grid grid-cols-2 gap-4">
-            <DataBlock :label="$t('users.columns.username')" :value="entity.username" />
-            <DataBlock :label="$t('users.columns.role')">
+            <DetailField :label="$t('users.columns.username')" :value="entity.username" />
+            <DetailField :label="$t('users.columns.role')">
               <SemanticBadge
                 :color="USER_ROLE_COLOR_MAP[entity.role] ?? 'neutral'"
                 :label="t(`users.filters.role.${entity.role}`, entity.role)"
               />
-            </DataBlock>
-            <DataBlock :label="$t('users.columns.joined')">
-              <span class="font-data text-sm tabular-nums">
+            </DetailField>
+            <DetailField :label="$t('users.columns.joined')">
+              <span class="font-mono text-sm tabular-nums">
                 {{ formatDateByLocale(entity.joinedAt) }}
               </span>
-            </DataBlock>
-            <DataBlock :label="$t('users.columns.lastLogin')">
-              <span v-if="entity.lastLoginAt" class="font-data text-sm tabular-nums">
+            </DetailField>
+            <DetailField :label="$t('users.columns.lastLogin')">
+              <span v-if="entity.lastLoginAt" class="font-mono text-sm tabular-nums">
                 {{ formatDateByLocale(entity.lastLoginAt) }}
               </span>
-              <span v-else class="text-[var(--foreground-muted)] italic">{{
-                $t('users.stats.never')
-              }}</span>
-            </DataBlock>
+              <span v-else class="text-muted-foreground italic">{{ $t('users.stats.never') }}</span>
+            </DetailField>
           </div>
         </div>
       </div>
@@ -415,29 +417,31 @@ watch(
       <!-- Ban Information -->
       <div
         v-if="entity.isBanned"
-        class="border border-[var(--status-error-mark)] bg-[color-mix(in_oklch,_var(--status-error-mark)_8%,_transparent)]"
+        class="border border-status-error-mark bg-[color-mix(in_oklch,_var(--status-error-mark)_8%,_transparent)]"
       >
         <div
-          class="border-b border-[var(--status-error-mark)] px-4 py-2 bg-[color-mix(in_oklch,_var(--status-error-mark)_12%,_transparent)]"
+          class="border-b border-status-error-mark px-4 py-2 bg-[color-mix(in_oklch,_var(--status-error-mark)_12%,_transparent)]"
         >
-          <span class="terminal-comment text-[var(--foreground-strong)]">ban_info</span>
+          <span class="text-sm text-muted-foreground text-foreground">{{
+            $t('users.drawer.sections.banInformation')
+          }}</span>
         </div>
 
         <div class="p-4 space-y-3">
-          <DataBlock :label="$t('users.form.banReason')">
-            <span class="text-sm italic text-[var(--foreground)]">
+          <DetailField :label="$t('users.form.banReason')">
+            <span class="text-sm italic text-foreground">
               {{ entity.banReason || $t('users.form.noReasonProvided') }}
             </span>
-          </DataBlock>
-          <DataBlock :label="$t('users.columns.bannedUntil')">
-            <span class="font-data text-sm tabular-nums text-[var(--foreground-strong)]">
+          </DetailField>
+          <DetailField :label="$t('users.columns.bannedUntil')">
+            <span class="font-mono text-sm tabular-nums text-foreground">
               {{
                 entity.bannedUntil
                   ? formatDateTimeByLocale(entity.bannedUntil)
                   : $t('users.form.unknown')
               }}
             </span>
-          </DataBlock>
+          </DetailField>
         </div>
       </div>
     </template>

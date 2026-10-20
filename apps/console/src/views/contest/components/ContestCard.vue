@@ -7,8 +7,8 @@
  */
 import { computed } from "vue";
 import { useRouter } from "vue-router";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@ulticode/design-system/ui/card";
+import { Button } from "@ulticode/design-system/ui/button";
 import { Calendar, Clock, Users, Trophy } from "@lucide/vue";
 import { useI18n } from "vue-i18n";
 import type { ContestListItem } from "@/types/contest";
@@ -59,7 +59,7 @@ function goToContest() {
 
 // Card classes based on variant
 const cardClasses = computed(() => {
-  const base = "cursor-pointer transition-all";
+  const base = "h-full cursor-pointer transition-all";
 
   if (props.variant === "featured") {
     return `${base} hover:scale-[1.02] hover:shadow-xl border-0`;
@@ -75,42 +75,52 @@ const cardClasses = computed(() => {
 
 <template>
   <Card :class="cardClasses" @click="goToContest">
-    <CardContent class="p-5">
-      <div class="space-y-4">
+    <CardContent class="flex flex-1 flex-col p-5">
+      <div class="flex flex-1 flex-col gap-4">
         <!-- Header: Title and Status -->
         <div class="flex items-start justify-between gap-3">
           <div class="space-y-1 min-w-0 flex-1">
             <p class="text-xs text-muted-foreground uppercase tracking-wide">
               {{ contestType }}
             </p>
-            <h3 class="text-lg font-semibold leading-tight truncate">
+            <h3 class="break-words text-lg font-semibold leading-tight">
               {{ contest.title }}
             </h3>
           </div>
-          <ContestStatusBadge :status="contestStatus" size="sm" />
+          <ContestStatusBadge
+            :status="contestStatus"
+            size="sm"
+            class="shrink-0"
+          />
         </div>
 
         <!-- Info Row -->
-        <div class="grid grid-cols-2 gap-3 text-sm text-muted-foreground">
-          <div class="flex items-center gap-2">
+        <div class="mt-auto grid grid-cols-2 gap-3 text-sm text-muted-foreground">
+          <div class="col-span-2 flex min-w-0 items-center gap-2">
             <Calendar class="h-4 w-4 shrink-0" />
-            <span class="truncate">{{ formatDateTime(startTime) }}</span>
+            <span class="break-words">{{ formatDateTime(startTime) }}</span>
           </div>
           <div class="flex items-center gap-2">
             <Clock class="h-4 w-4 shrink-0" />
             <span>{{ duration }} {{ t("contest.time.min_short") }}</span>
           </div>
           <div class="flex items-center gap-2">
-            <Users class="h-4 w-4 shrink-0" />
-            <span>
-              {{ registeredCount }} / {{ participantCount }}
-              {{ t("contest.detail.participants") }}
-            </span>
-          </div>
-          <div class="flex items-center gap-2">
             <Trophy class="h-4 w-4 shrink-0" />
             <span>
-              {{ isRated ? t("common.labels.yes") : t("common.labels.no") }}
+              {{
+                isRated ? t("contest.types.rated") : t("contest.types.unrated")
+              }}
+            </span>
+          </div>
+          <div class="col-span-2 flex min-w-0 items-start gap-2">
+            <Users class="h-4 w-4 shrink-0" />
+            <span class="flex min-w-0 flex-wrap gap-x-3">
+              <span>
+                {{ t("contest.detail.registered") }} {{ registeredCount }}
+              </span>
+              <span>
+                {{ t("contest.detail.participants") }} {{ participantCount }}
+              </span>
             </span>
           </div>
         </div>

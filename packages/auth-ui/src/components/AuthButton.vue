@@ -1,12 +1,8 @@
 <script setup lang="ts">
-/**
- * AuthButton - Shared design-system action button
- */
 import type { HTMLAttributes } from "vue";
-import { cn } from "./cn";
-import { Loader2 } from "@lucide/vue";
-
-const props = withDefaults(
+import { Button } from "@ulticode/design-system/ui/button";
+import { Spinner } from "@ulticode/design-system/ui/spinner";
+withDefaults(
   defineProps<{
     class?: HTMLAttributes["class"];
     type?: "button" | "submit" | "reset";
@@ -14,128 +10,17 @@ const props = withDefaults(
     loading?: boolean;
     variant?: "primary" | "secondary";
   }>(),
-  {
-    type: "submit",
-    variant: "primary",
-  },
+  { type: "submit", variant: "primary" },
 );
-
-defineOptions({
-  name: "AuthButton",
-});
 </script>
-
 <template>
-  <button
+  <Button
+    :class="$props.class"
+    class="w-full"
     :type="type"
+    :variant="variant === 'primary' ? 'default' : 'outline'"
     :disabled="disabled || loading"
-    :class="
-      cn(
-        'auth-button',
-        `auth-button--${variant}`,
-        { 'auth-button--loading': loading },
-        props.class,
-      )
-    "
-  >
-    <Loader2 v-if="loading" class="auth-button__spinner" />
-    <span class="auth-button__content">
-      <slot />
-    </span>
-  </button>
+    :aria-busy="loading"
+    ><Spinner v-if="loading" /><slot
+  /></Button>
 </template>
-
-<style scoped>
-.auth-button {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 2.375rem;
-  font-family: var(--uc-font-code);
-  font-weight: var(--uc-font-weight-bold);
-  font-size: var(--uc-text-sm);
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  border-radius: var(--radius-md);
-  border: 1px solid transparent;
-  cursor: pointer;
-  overflow: hidden;
-  transition:
-    transform var(--transition-fast),
-    box-shadow var(--transition-fast),
-    background-color var(--transition-fast),
-    border-color var(--transition-fast),
-    color var(--transition-fast);
-}
-
-.auth-button--primary {
-  background: var(--primary);
-  color: var(--primary-foreground);
-  border-color: var(--primary);
-  box-shadow: none;
-}
-
-.auth-button--primary:hover:not(:disabled) {
-  background: var(--primary);
-  color: var(--primary-foreground);
-  border-color: var(--ring);
-  box-shadow: var(--shadow-float);
-}
-
-.auth-button--secondary {
-  background: transparent;
-  color: var(--foreground);
-  border-color: var(--border-control);
-}
-
-.auth-button--secondary:hover:not(:disabled) {
-  background: var(--surface-sunken);
-  border-color: var(--border-control);
-}
-
-.auth-button--primary:focus-visible,
-.auth-button--secondary:focus-visible {
-  outline: 2px solid var(--ring);
-  outline-offset: 1px;
-}
-
-.auth-button:active:not(:disabled) {
-  transform: translateY(0.5px);
-}
-
-.auth-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.auth-button--loading .auth-button__content {
-  opacity: 0;
-}
-
-.auth-button__content {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  transition: opacity var(--transition-fast);
-}
-
-.auth-button__spinner {
-  position: absolute;
-  width: 1.25rem;
-  height: 1.25rem;
-  animation: spin 1s linear infinite;
-  color: currentColor;
-}
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-</style>

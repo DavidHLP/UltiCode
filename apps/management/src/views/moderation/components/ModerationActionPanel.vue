@@ -1,12 +1,17 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { IconAlertCircle, IconAlertTriangle, IconCheck } from '@tabler/icons-vue'
+import { Button } from '@ulticode/design-system/ui/button'
+import { Input } from '@ulticode/design-system/ui/input'
+import { Label } from '@ulticode/design-system/ui/label'
+import { Textarea } from '@ulticode/design-system/ui/textarea'
+import { Card, CardContent, CardHeader, CardTitle } from '@ulticode/design-system/ui/card'
+import {
+  AlertCircle as IconAlertCircle,
+  AlertTriangle as IconAlertTriangle,
+  Check as IconCheck,
+} from '@lucide/vue'
+
 import { ModerationActionType, type ModerationQueueItem } from '@/api/admin/moderation'
 import {
   ACTION_CATALOG,
@@ -19,7 +24,6 @@ import {
  * Map presentation color tokens onto the action panel's CSS variables.
  * Kept here so the presentation module stays focused on catalog data.
  */
-
 
 interface Props {
   item: ModerationQueueItem
@@ -78,23 +82,22 @@ function handleSubmit() {
 </script>
 
 <template>
-  <Card
-    class="border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--surface-sunken)]"
-  >
+  <Card>
     <CardHeader class="pb-3">
-      <CardTitle class="flex items-center gap-2 text-sm font-data uppercase tracking-wider">
-        <IconAlertCircle class="h-4 w-4 text-[var(--status-warning-mark)]" />
-        <span class="text-[var(--foreground-muted)]">{{ t('moderation.actionPanel.title') }}</span>
+      <CardTitle class="flex items-center gap-2">
+        <IconAlertCircle class="h-4 w-4 text-status-warning-mark" />
+        <span class="text-muted-foreground">{{ t('moderation.actionPanel.title') }}</span>
       </CardTitle>
     </CardHeader>
     <CardContent class="space-y-4">
       <!-- Action Selection -->
       <div class="space-y-2">
-        <Label class="text-xs font-data uppercase tracking-wider text-[var(--foreground-muted)]">
+        <Label>
           {{ t('moderation.actionPanel.selectAction') }}
         </Label>
         <div class="grid grid-cols-2 gap-2">
-          <button
+          <Button
+            variant="outline"
             v-for="option in actionOptions"
             :key="option.value"
             :class="[
@@ -102,15 +105,15 @@ function handleSubmit() {
               'hover:border-current hover:bg-current/5',
               selectedAction === option.value
                 ? [option.borderColor, option.bgColor, 'border-2']
-                : 'border-[var(--border-subtle)]',
+                : 'border-border',
             ]"
             @click="selectedAction = option.value"
           >
             <component :is="option.icon" :class="['h-4 w-4 flex-shrink-0', option.color]" />
-            <span :class="['text-xs font-data', option.color]">
+            <span :class="['text-xs font-mono', option.color]">
               {{ option.label }}
             </span>
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -119,17 +122,14 @@ function handleSubmit() {
         v-if="selectedOption"
         :class="['p-3 border', selectedOption.borderColor, selectedOption.bgColor]"
       >
-        <p class="text-xs text-[var(--foreground)]">
+        <p class="text-xs text-foreground">
           {{ selectedOption.description }}
         </p>
       </div>
 
       <!-- Duration (for temporary bans) -->
       <div v-if="selectedOption?.requiresDuration" class="space-y-2">
-        <Label
-          for="duration-days"
-          class="text-xs font-data uppercase tracking-wider text-[var(--foreground-muted)]"
-        >
+        <Label for="duration-days">
           {{ t('moderation.actionPanel.durationLabel') }}
         </Label>
         <div class="flex items-center gap-2">
@@ -140,20 +140,14 @@ function handleSubmit() {
             min="1"
             max="365"
             :placeholder="t('moderation.actionPanel.durationPlaceholder')"
-            class="font-data text-sm border-[var(--border-subtle)] hover:border-[var(--primary)] bg-transparent"
           />
-          <span class="text-xs text-[var(--foreground-muted)]">{{
-            t('moderation.actionPanel.days')
-          }}</span>
+          <span class="text-xs text-muted-foreground">{{ t('moderation.actionPanel.days') }}</span>
         </div>
       </div>
 
       <!-- Note -->
       <div class="space-y-2">
-        <Label
-          for="action-note"
-          class="text-xs font-data uppercase tracking-wider text-[var(--foreground-muted)]"
-        >
+        <Label for="action-note">
           {{ t('moderation.actionPanel.addNote') }}
         </Label>
         <Textarea
@@ -161,16 +155,16 @@ function handleSubmit() {
           v-model="note"
           :placeholder="t('moderation.actionPanel.notePlaceholder')"
           rows="3"
-          class="font-data text-sm border-[var(--border-subtle)] hover:border-[var(--primary)] bg-transparent placeholder:text-[var(--foreground-muted)]"
+          class="placeholder:text-muted-foreground"
         />
       </div>
 
       <!-- Warning -->
       <div
-        class="flex items-start gap-2 p-3 border border-[var(--status-warning-mark)] bg-[color-mix(in_oklch,_var(--status-warning-mark)_8%,_transparent)]"
+        class="flex items-start gap-2 p-3 border border-status-warning-mark bg-[color-mix(in_oklch,_var(--status-warning-mark)_8%,_transparent)]"
       >
-        <IconAlertTriangle class="h-4 w-4 text-[var(--status-warning-mark)] flex-shrink-0 mt-0.5" />
-        <p class="text-xs text-[var(--foreground-strong)]">
+        <IconAlertTriangle class="h-4 w-4 text-status-warning-mark flex-shrink-0 mt-0.5" />
+        <p class="text-xs text-foreground">
           {{ t('moderation.actionPanel.warning') }}
         </p>
       </div>
@@ -178,7 +172,7 @@ function handleSubmit() {
       <!-- Submit Button -->
       <Button
         :class="[
-          'w-full h-10 font-data text-xs uppercase tracking-wider',
+          'w-full h-10 font-mono text-xs uppercase tracking-wider',
           selectedOption?.borderColor,
           selectedOption?.color,
           selectedOption?.bgColor,

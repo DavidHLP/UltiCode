@@ -5,11 +5,14 @@ import App from "./App.vue";
 import router from "./router";
 import i18n from "./i18n";
 import "./style.css";
-import "./assets/markdown.css";
 
 // Import PWA registration (this registers the service worker)
 import "@/pwa-register";
-import { initTheme, applyTypographyDensity } from "@ulticode/theme";
+import {
+  initTheme,
+  applyTypographyDensity,
+  useAppearance,
+} from "@ulticode/theme";
 import { bootstrapApp } from "@ulticode/app-bootstrap";
 import { setOnAuthFailure } from "@ulticode/auth-core";
 
@@ -26,7 +29,8 @@ import { setOnAuthFailure } from "@ulticode/auth-core";
 bootstrapApp({
   density: "comfortable",
   initTheme,
-  applyTypographyDensity,
+  applyTypographyDensity: () =>
+    applyTypographyDensity(useAppearance().settings.value.density),
   rootComponent: App,
   preAuthPlugins: [createPinia(), i18n],
   async preAuthInit() {
@@ -34,9 +38,8 @@ bootstrapApp({
     // handling and the session-expired redirect. Use the imported router
     // instance directly — useRouter() relies on inject() which only works
     // during setup, not in async callbacks.
-    const { initializeAuthContext, onSessionExpired } = await import(
-      "@/contexts/AuthContext"
-    );
+    const { initializeAuthContext, onSessionExpired } =
+      await import("@/contexts/AuthContext");
     initializeAuthContext();
     onSessionExpired(() => {
       const currentRoute = router.currentRoute.value;

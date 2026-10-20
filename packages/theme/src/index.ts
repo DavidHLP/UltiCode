@@ -10,13 +10,13 @@ export {
   isThemeMode,
   parseThemeMode,
   type ThemeMode,
-} from './ThemeMode'
+} from "./ThemeMode";
 
 // Storage abstraction (test-friendly)
-export { getThemeStorage, setThemeStorage, type ThemeStorage } from './storage'
+export { getThemeStorage, setThemeStorage, type ThemeStorage } from "./storage";
 
 // Pure DOM helpers (also used by the FOUC bootstrap script)
-export { applyThemeToDOM, isDarkMode } from './applyThemeToDOM'
+export { applyThemeToDOM, isDarkMode } from "./applyThemeToDOM";
 
 // Typography token metadata + density helper (see typography.css)
 export {
@@ -32,11 +32,35 @@ export {
   type TypographyDensity,
   type TypographySizeToken,
   type TypographyUtilityClass,
-} from './typography'
+} from "./typography";
 
 // Vue composable
 // Note: `__resetForTest` is intentionally NOT re-exported from the public
 // barrel — it is a test-only entry point and consumers should import it
 // via the relative path (`from '@ulticode/theme/src/useTheme'`) only from
 // __tests__/ files. See useTheme.spec.ts for the canonical import.
-export { cycleTheme, initTheme, setTheme, useColorTheme } from './useTheme'
+export { cycleTheme, initTheme, setTheme, useColorTheme } from "./useTheme";
+
+export {
+  APPEARANCE_OPTIONS,
+  APPEARANCE_PRESETS,
+  APPEARANCE_STORAGE_PREFIX,
+  APPEARANCE_ACCOUNT_KEY,
+  DEFAULT_APPEARANCE,
+  parseAppearance,
+  decodeAppearance,
+  appearanceStorageKey,
+  type Appearance,
+  type AppearanceKey,
+} from "./appearance-model";
+export {
+  initAppearance,
+  useAppearance,
+  openAppearanceSettings,
+  setAppearanceAccount,
+  applyAppearanceToDOM,
+  beginAppearancePreview,
+  previewAppearance,
+  cancelAppearancePreview,
+  saveAppearance,
+} from "./appearance";

@@ -2,8 +2,12 @@
 import { ref, onErrorCaptured, type ComponentPublicInstance } from "vue";
 import { useI18n } from "vue-i18n";
 import { AlertTriangle, RefreshCw, Home, Bug } from "@lucide/vue";
-import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@ulticode/design-system/ui/button";
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@ulticode/design-system/ui/alert";
 
 const props = defineProps<{
   /** Fallback component to render on error */
@@ -128,7 +132,7 @@ import { computed } from "vue";
               <Button
                 variant="ghost"
                 size="sm"
-                class="h-auto p-1 text-xs"
+                class="h-auto p-1"
                 @click="toggleDetails"
               >
                 <Bug class="size-3 mr-1" />
@@ -141,8 +145,7 @@ import { computed } from "vue";
               <pre
                 v-if="showExpandedDetails"
                 class="mt-2 p-2 bg-muted rounded text-xs overflow-auto max-h-[200px]"
-                >{{ displayStack }}</pre
-              >
+                >{{ displayStack }}</pre>
             </div>
           </template>
 

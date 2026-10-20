@@ -61,21 +61,40 @@ def test_normal_path_calls_tool_then_answers() -> None:
     asyncio.run(scenario())
 
 
-def test_round_limit_is_raised_and_model_not_called_again() -> None:
+@pytest.mark.parametrize("max_rounds", [1, 2, 4])
+def test_round_limit_stops_before_unusable_tool_call(max_rounds: int) -> None:
+    calls = []
+
+    async def handler(arguments: dict[str, object]) -> object:
+        calls.append(arguments)
+        return {"ok": True}
+
+    async def scenario() -> None:
+        model = ScriptedModel([
+            ModelDecision(tool_call=ToolCall("echo", {})) for _ in range(max_rounds)
+        ])
+        with pytest.raises(ModelLoopExceeded, match=f"max_rounds={max_rounds}"):
+            await run_tool_loop(model, {"echo": handler}, "loop forever", max_rounds=max_rounds)
+        assert len(model.seen) == max_rounds
+        assert len(calls) == max_rounds - 1
+
+    asyncio.run(scenario())
+
+
+@pytest.mark.parametrize("max_rounds", [1, 2, 4])
+def test_final_answer_is_allowed_on_last_round(max_rounds: int) -> None:
     async def handler(arguments: dict[str, object]) -> object:
         return {"ok": True}
 
     async def scenario() -> None:
-        model = ScriptedModel(
-            [
-                ModelDecision(tool_call=ToolCall("echo", {})),
-                ModelDecision(tool_call=ToolCall("echo", {})),
-            ]
-        )
-        with pytest.raises(ModelLoopExceeded, match="max_rounds=2"):
-            await run_tool_loop(model, {"echo": handler}, "loop forever", max_rounds=2)
-        # ScriptedModel raises if a third call happens; assert it saw exactly two.
-        assert len(model.seen) == 2
+        model = ScriptedModel([
+            *[ModelDecision(tool_call=ToolCall("echo", {})) for _ in range(max_rounds - 1)],
+            ModelDecision(text="done"),
+        ])
+        result = await run_tool_loop(model, {"echo": handler}, "finish", max_rounds=max_rounds)
+        assert result.answer == "done"
+        assert result.rounds == max_rounds
+        assert len(result.trace) == max_rounds - 1
 
     asyncio.run(scenario())
 

@@ -177,6 +177,7 @@ export default {
       performance: 'Performance Stats',
       account: 'Account Info',
       permissions: 'Roles & Permissions',
+      banInformation: 'Ban information',
     },
   },
 

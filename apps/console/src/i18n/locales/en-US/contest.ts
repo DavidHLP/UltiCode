@@ -1,6 +1,7 @@
 export default {
   // Contest list
   list: {
+    loadError: "Could not load contests. Try again.",
     title: "Contests",
     mainTitle: "UltiCode Contests",
     subtitle:
@@ -12,6 +13,13 @@ export default {
     past: "Past Contests",
     pastSubtitle: "Join virtual contests to prepare for the ranking contest",
     partner: "Contest Partner",
+    tableHeaders: {
+      contest: "Contest",
+      date: "Date",
+      duration: "Duration",
+      status: "Status",
+      action: "Action",
+    },
     noContests: "No contests available",
     noContestsHint:
       "There are no contests running right now. Check back later!",
@@ -38,6 +46,7 @@ export default {
     title: "My Contests",
     subtitle: "View your registered, participated, and virtual contests",
     loading: "Loading contests...",
+    loadError: "Could not load contests. Try again.",
     tabs: {
       registered: "Registered",
       participated: "Participated",
@@ -234,6 +243,7 @@ export default {
   // Ranking
   ranking: {
     title: "Ranking",
+    contests: "Contests",
     national: "National Ranking",
     attended: "Attended {n} contests",
     rank: "Rank",

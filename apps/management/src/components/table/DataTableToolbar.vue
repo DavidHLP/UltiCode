@@ -1,14 +1,19 @@
 <script setup lang="ts">
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { Button } from '@ulticode/design-system/ui/button'
+import { Input } from '@ulticode/design-system/ui/input'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
-import { IconRefresh, IconCircleXFilled, IconSearch } from '@tabler/icons-vue'
+  SelectGroup,
+} from '@ulticode/design-system/ui/select'
+import {
+  RefreshCw as IconRefresh,
+  CircleX as IconCircleXFilled,
+  Search as IconSearch,
+} from '@lucide/vue'
 
 export interface FilterOption {
   value: string
@@ -51,23 +56,21 @@ function updateFilter(index: number, value: string | number) {
       class="relative flex items-center"
       :class="searchWidth || 'min-w-[150px] w-full lg:w-[250px]'"
     >
-      <IconSearch
-        class="absolute left-2.5 h-3.5 w-3.5 text-[var(--foreground-muted)] pointer-events-none"
-      />
+      <IconSearch class="absolute left-2.5 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
       <Input
-        variant="terminal"
         :model-value="searchModelValue"
         @update:model-value="updateSearch"
         :placeholder="searchPlaceholder"
-        class="h-8 pl-8 pr-8 !text-xs w-full bg-[var(--surface-sunken)] border-[var(--border-subtle)] dark:border-[var(--border-subtle)] focus:border-[var(--primary)]"
+        class="pl-8 pr-8 !text-xs w-full"
       />
-      <button
+      <Button
+        variant="outline"
         v-if="searchModelValue"
         @click="updateSearch('')"
-        class="absolute right-2.5 opacity-70 hover:opacity-100 text-[var(--foreground-muted)] focus:outline-none transition-opacity"
+        class="absolute right-2.5 focus:outline-none"
       >
         <IconCircleXFilled class="h-3.5 w-3.5" />
-      </button>
+      </Button>
     </div>
 
     <Select
@@ -77,27 +80,34 @@ function updateFilter(index: number, value: string | number) {
       @update:model-value="(value) => updateFilter(index, value as string)"
     >
       <SelectTrigger
-        variant="terminal"
         size="sm"
+        :aria-label="filter.placeholder"
         :class="[
-          'h-8 bg-[var(--surface-sunken)] border-[var(--border-subtle)] dark:border-[var(--border-subtle)] focus:border-[var(--primary)]',
+          'h-8 bg-muted border-border dark:border-border focus:border-primary',
           filter.width || 'w-[140px]',
         ]"
       >
-        <SelectValue :placeholder="filter.placeholder" />
+        <SelectValue :placeholder="filter.placeholder">
+          {{
+            filter.options.find((option) => option.value === filter.modelValue)?.label ??
+            filter.modelValue
+          }}
+        </SelectValue>
       </SelectTrigger>
       <SelectContent>
-        <SelectItem v-for="option in filter.options" :key="option.value" :value="option.value">
-          {{ option.label }}
-        </SelectItem>
+        <SelectGroup
+          ><SelectItem v-for="option in filter.options" :key="option.value" :value="option.value">
+            {{ option.label }}
+          </SelectItem></SelectGroup
+        >
       </SelectContent>
     </Select>
 
     <Button
       v-if="onRefresh"
-      variant="terminal"
+      variant="outline"
       size="icon"
-      class="h-8 w-8 border-[var(--border-subtle)]"
+      class="w-8"
       @click="onRefresh"
       :title="$t('common.refresh')"
     >

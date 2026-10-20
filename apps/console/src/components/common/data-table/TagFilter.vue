@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Badge } from "@ulticode/design-system/ui/badge";
+import { Button } from "@ulticode/design-system/ui/button";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+} from "@ulticode/design-system/ui/collapsible";
 import { ChevronDown } from "@lucide/vue";
 
 defineProps<{
@@ -38,22 +38,18 @@ function isTagSelected(tag: string, currentTags: string[]) {
         v-for="tag in popularTags"
         :key="tag"
         variant="outline"
-        class="cursor-pointer rounded-md px-2.5 py-1 text-xxs font-medium transition-all duration-200"
+        class="cursor-pointer px-2.5 py-1"
         :class="
           isTagSelected(tag, modelValue)
-          ? 'border-border-control bg-surface-highlight text-foreground-strong hover:bg-surface-highlight/80'
-          : 'border-border-subtle bg-surface-sunken text-foreground-muted hover:bg-surface-highlight hover:text-foreground-strong'
+            ? 'border-input bg-accent text-foreground hover:bg-accent/80'
+            : 'border-border bg-muted text-muted-foreground hover:bg-accent hover:text-foreground'
         "
         @click="toggleTag(tag, modelValue)"
       >
         {{ tag }}
       </Badge>
       <CollapsibleTrigger as-child>
-        <Button
-          variant="ghost"
-          size="sm"
-          class="gap-1 h-6 rounded-md px-2 text-2xs font-mono text-foreground-muted hover:bg-surface-highlight hover:text-foreground-strong cursor-pointer"
-        >
+        <Button variant="ghost" size="sm" class="gap-1 px-2 cursor-pointer">
           {{ showMoreLabel || "Show more" }}
           <ChevronDown class="h-2.5 w-2.5" />
         </Button>
@@ -65,11 +61,11 @@ function isTagSelected(tag: string, currentTags: string[]) {
           v-for="tag in otherTags"
           :key="tag"
           variant="outline"
-          class="cursor-pointer rounded-md px-2.5 py-1 text-2xs font-medium transition-all duration-200"
+          class="cursor-pointer px-2.5 py-1"
           :class="
             isTagSelected(tag, modelValue)
-            ? 'border-border-control bg-surface-highlight text-foreground-strong hover:bg-surface-highlight/80'
-            : 'border-border-subtle bg-surface-sunken text-foreground-muted hover:bg-surface-highlight hover:text-foreground-strong'
+              ? 'border-input bg-accent text-foreground hover:bg-accent/80'
+              : 'border-border bg-muted text-muted-foreground hover:bg-accent hover:text-foreground'
           "
           @click="toggleTag(tag, modelValue)"
         >

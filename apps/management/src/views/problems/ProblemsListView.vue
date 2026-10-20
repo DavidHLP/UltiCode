@@ -4,22 +4,30 @@ import { usePermissionMap } from '@/composables/usePermissionMap'
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { IconPlus, IconTrophy, IconDownload, IconUpload, IconDatabase } from '@tabler/icons-vue'
+import {
+  Plus as IconPlus,
+  ArrowDownWideNarrow as IconSort,
+  Download as IconDownload,
+  Upload as IconUpload,
+  Database as IconDatabase,
+} from '@lucide/vue'
 
-import { Button } from '@/components/ui/button'
+import { Button } from '@ulticode/design-system/ui/button'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
+  SelectGroup,
+} from '@ulticode/design-system/ui/select'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+  DropdownMenuGroup,
+} from '@ulticode/design-system/ui/dropdown-menu'
 import { useProblemsStore } from '@/stores/admin/problems'
 import { type Problem } from '@/api/admin/problems'
 
@@ -54,20 +62,18 @@ const {
   error,
   refresh: loadProblems,
   setFilters,
-} = useRemoteTable<
-  Problem,
-  ProblemTableFilters,
-  Parameters<typeof problemsStore.fetchProblems>[0]
->({
-  store: problemsStore,
-  initialQuery: problemFilters.initialQuery,
-  route: problemFilters.routeAdapter,
-  toParams: ({ search, filters, page, limit }) => ({
-    search,
-    ...problemFilters.buildFilterParams(filters, page, limit),
-  }),
-  autoLoad: false,
-})
+} = useRemoteTable<Problem, ProblemTableFilters, Parameters<typeof problemsStore.fetchProblems>[0]>(
+  {
+    store: problemsStore,
+    initialQuery: problemFilters.initialQuery,
+    route: problemFilters.routeAdapter,
+    toParams: ({ search, filters, page, limit }) => ({
+      search,
+      ...problemFilters.buildFilterParams(filters, page, limit),
+    }),
+    autoLoad: false,
+  },
+)
 
 const difficultyFilter = computed({
   get: () => query.value.filters.difficulty,
@@ -85,6 +91,14 @@ const sortBy = computed({
   get: () => query.value.filters.sortBy,
   set: (sortBy: string) => setFilters({ ...query.value.filters, sortBy }),
 })
+const sortOptions = computed(() => [
+  { value: 'default', label: t('problems.sort.default') },
+  { value: 'title', label: t('problems.columns.title') },
+  { value: 'difficulty', label: t('problems.columns.difficulty') },
+  { value: 'createdAt', label: t('problems.columns.createdAt') },
+  { value: 'updatedAt', label: t('problems.columns.updatedAt') },
+  { value: 'submissionCount', label: t('problems.columns.submissions') },
+])
 const sortOrder = computed({
   get: () => query.value.filters.sortOrder,
   set: (sortOrder: 'asc' | 'desc') => setFilters({ ...query.value.filters, sortOrder }),
@@ -134,6 +148,9 @@ const isLoaded = ref(false)
 
 // Stats
 const stats = computed(() => {
+  if (loading.value || error.value) {
+    return { total: '—', published: '—', draft: '—', flagged: '—' }
+  }
   const problems = problemsStore.items
   const total = problemsStore.total
   const published = problems.filter((p) => p.isPublished).length
@@ -192,7 +209,6 @@ const columns = useProblemColumns(can.problem, {
   confirmDelete,
 })
 
-
 // Load on mount
 onMounted(() => {
   loadProblems()
@@ -200,28 +216,26 @@ onMounted(() => {
     isLoaded.value = true
   }, 100)
 })
-
 </script>
 
 <template>
   <div class="relative flex flex-col gap-4 w-full min-w-0">
-    <!-- Terminal Header -->
+    <!-- Page header -->
     <div
       :class="[
-        'border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--card)]',
+        'border border-border dark:border-border bg-card',
         'transition-all duration-500',
         isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
       ]"
     >
-      <div class="px-4 lg:px-6 py-4 flex items-center justify-between">
-        <h1 class="text-xl font-medium tracking-tight text-[var(--foreground)]">
+      <div class="px-4 lg:px-6 py-4 flex flex-wrap items-center justify-between gap-3">
+        <h1 class="text-xl font-medium tracking-tight text-foreground">
           {{ t('problems.title') }}
         </h1>
         <Button
           v-if="canCreateProblem"
-          variant="terminal"
+          variant="outline"
           size="sm"
-          class="font-data text-xs border-[var(--border-subtle)] hover:border-[var(--primary)] hover:text-[var(--primary)] transition-colors"
           @click="router.push({ name: 'problem-create' })"
         >
           <IconPlus class="h-4 w-4 mr-1.5" />
@@ -230,43 +244,35 @@ onMounted(() => {
       </div>
 
       <div
-        class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--surface-sunken)]"
+        class="px-4 lg:px-6 py-2.5 flex flex-wrap items-center gap-x-6 gap-y-2 whitespace-nowrap border-t border-border dark:border-border bg-muted"
       >
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--foreground-muted)]"
+          <span class="text-sm font-medium text-muted-foreground"
             >{{ t('problems.stats.total') }}:</span
           >
-          <span class="font-data text-sm text-[var(--foreground-strong)] tabular-nums">{{
-            stats.total
-          }}</span>
+          <span class="font-mono text-sm text-foreground tabular-nums">{{ stats.total }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--foreground-muted)]"
+          <span class="text-sm font-medium text-muted-foreground"
             >{{ t('problems.stats.published') }}:</span
           >
-          <span class="font-data text-sm text-[var(--foreground-strong)] tabular-nums">{{
-            stats.published
-          }}</span>
+          <span class="font-mono text-sm text-foreground tabular-nums">{{ stats.published }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--foreground-muted)]"
+          <span class="text-sm font-medium text-muted-foreground"
             >{{ t('problems.stats.draft') }}:</span
           >
-          <span class="font-data text-sm text-[var(--foreground-strong)] tabular-nums">{{
-            stats.draft
-          }}</span>
+          <span class="font-mono text-sm text-foreground tabular-nums">{{ stats.draft }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--foreground-muted)]"
+          <span class="text-sm font-medium text-muted-foreground"
             >{{ t('problems.stats.flagged') }}:</span
           >
-          <span class="font-data text-sm text-[var(--foreground-strong)] tabular-nums">{{
-            stats.flagged
-          }}</span>
+          <span class="font-mono text-sm text-foreground tabular-nums">{{ stats.flagged }}</span>
         </div>
-        <div class="ml-auto hidden sm:flex items-center gap-2 text-[var(--foreground-muted)]">
+        <div class="ml-auto hidden sm:flex items-center gap-2 text-muted-foreground">
           <IconDatabase class="h-4 w-4" />
-          <span class="text-xs font-data uppercase tracking-wider">{{
+          <span class="text-xs font-mono uppercase tracking-wider">{{
             t('problems.stats.problemManagement')
           }}</span>
         </div>
@@ -274,6 +280,7 @@ onMounted(() => {
     </div>
 
     <ProblemBulkActions
+      v-if="!error"
       :selected-count="selectedRows.length"
       :loading="bulkActionLoading"
       @bulk-publish="handleBulkAction('publish')"
@@ -285,11 +292,12 @@ onMounted(() => {
 
     <div class="flex-1">
       <DataTable
-        class="terminal-table"
+        class="w-full text-sm"
         :columns="columns"
-        :data="data"
+        :data="error ? [] : data"
         :pagination="tablePagination"
-        :row-count="total"
+        :row-count="error ? 0 : total"
+        :hide-pagination="!!error"
         :loading="loading"
         :selected-rows="selectedRows"
         @update:pagination="tablePagination = $event"
@@ -314,33 +322,32 @@ onMounted(() => {
           >
             <template #extra-actions>
               <Select v-model="sortBy">
-                <SelectTrigger
-                  variant="terminal"
-                  size="sm"
-                  class="h-8 w-[150px] bg-[var(--surface-sunken)] border-[var(--border-subtle)] dark:border-[var(--border-subtle)] focus:border-[var(--primary)]"
-                >
-                  <SelectValue :placeholder="t('problems.sort.title')" />
+                <SelectTrigger size="sm" class="w-[150px]" :aria-label="t('problems.sort.title')">
+                  <SelectValue :placeholder="t('problems.sort.title')">
+                    {{ sortOptions.find((option) => option.value === sortBy)?.label ?? sortBy }}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="default">{{ t('problems.sort.default') }}</SelectItem>
-                  <SelectItem value="title">{{ t('problems.sort.titleAsc') }}</SelectItem>
-                  <SelectItem value="difficulty">{{ t('problems.sort.difficultyAsc') }}</SelectItem>
-                  <SelectItem value="createdAt">{{ t('problems.sort.createdDesc') }}</SelectItem>
-                  <SelectItem value="updatedAt">{{ t('problems.sort.updatedDesc') }}</SelectItem>
-                  <SelectItem value="submissionCount">{{
-                    t('problems.sort.submissionsDesc')
-                  }}</SelectItem>
+                  <SelectGroup>
+                    <SelectItem
+                      v-for="option in sortOptions"
+                      :key="option.value"
+                      :value="option.value"
+                    >
+                      {{ option.label }}
+                    </SelectItem>
+                  </SelectGroup>
                 </SelectContent>
               </Select>
               <Button
                 variant="ghost"
                 size="icon"
-                class="h-8 w-8"
+                class="w-8"
                 @click="sortOrder = sortOrder === 'asc' ? 'desc' : 'asc'"
-                :title="t('common.sort')"
-                :aria-label="t('common.sort')"
+                :title="t('common.sort') + ': ' + t('problems.sort.' + sortOrder)"
+                :aria-label="t('common.sort') + ': ' + t('problems.sort.' + sortOrder)"
               >
-                <IconTrophy class="h-3.5 w-3.5" :class="{ 'rotate-180': sortOrder === 'asc' }" />
+                <IconSort class="h-3.5 w-3.5" :class="{ 'rotate-180': sortOrder === 'asc' }" />
               </Button>
             </template>
           </DataTableToolbar>
@@ -350,11 +357,7 @@ onMounted(() => {
           <div class="flex items-center gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger as-child>
-                <Button
-                  variant="terminal"
-                  size="sm"
-                  class="h-8 font-data text-xs border-[var(--border-subtle)]"
-                >
+                <Button variant="outline" size="sm">
                   <IconDownload class="h-4 w-4 mr-1.5" />
                   <span class="hidden sm:inline uppercase tracking-wider">{{
                     t('problems.export.title')
@@ -362,20 +365,17 @@ onMounted(() => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem @click="exportProblems(buildExportParams(query), 'json')">{{
-                  t('problems.export.json')
-                }}</DropdownMenuItem>
-                <DropdownMenuItem @click="exportProblems(buildExportParams(query), 'csv')">{{
-                  t('problems.export.csv')
-                }}</DropdownMenuItem>
+                <DropdownMenuGroup
+                  ><DropdownMenuItem @click="exportProblems(buildExportParams(query), 'json')">{{
+                    t('problems.export.json')
+                  }}</DropdownMenuItem>
+                  <DropdownMenuItem @click="exportProblems(buildExportParams(query), 'csv')">{{
+                    t('problems.export.csv')
+                  }}</DropdownMenuItem></DropdownMenuGroup
+                >
               </DropdownMenuContent>
             </DropdownMenu>
-            <Button
-              variant="terminal"
-              size="sm"
-              class="h-8 font-data text-xs border-[var(--border-subtle)]"
-              @click="importDialogOpen = true"
-            >
+            <Button variant="outline" size="sm" @click="importDialogOpen = true">
               <IconUpload class="h-4 w-4 mr-1.5" />
               <span class="hidden sm:inline uppercase tracking-wider">{{
                 t('problems.import.title')
@@ -383,25 +383,21 @@ onMounted(() => {
             </Button>
           </div>
         </template>
+        <template v-if="error" #empty>
+          <div
+            role="alert"
+            class="flex flex-wrap items-center justify-between gap-3 border border-status-error-mark bg-[color-mix(in_oklch,_var(--status-error-mark)_8%,_transparent)] p-4"
+          >
+            <div class="flex min-w-0 flex-1 flex-wrap items-center gap-3 [overflow-wrap:anywhere]">
+              <span class="font-mono text-sm text-foreground">&gt; ERROR:</span>
+              <span class="text-sm text-foreground">{{ error }}</span>
+            </div>
+            <Button variant="outline" size="sm" @click="loadProblems()">
+              {{ t('common.retry') }}
+            </Button>
+          </div>
+        </template>
       </DataTable>
-
-      <div
-        v-if="error"
-        class="mt-4 flex items-center justify-between border border-[var(--status-error-mark)] bg-[color-mix(in_oklch,_var(--status-error-mark)_8%,_transparent)] dark:bg-[color-mix(in_oklch,_var(--status-error-mark)_15%,_transparent)] p-4"
-      >
-        <div class="flex items-center gap-3">
-          <span class="font-data text-sm text-[var(--foreground-strong)]">&gt; ERROR:</span>
-          <span class="text-sm text-[var(--foreground)]">{{ error }}</span>
-        </div>
-        <Button
-          variant="terminal"
-          size="sm"
-          class="font-data text-xs border-[var(--status-error-mark)] text-foreground-strong hover:bg-[color-mix(in_oklch,_var(--status-error-mark)_15%,_transparent)]"
-          @click="loadProblems()"
-        >
-          {{ t('common.retry') }}
-        </Button>
-      </div>
     </div>
   </div>
 

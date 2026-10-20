@@ -1,7 +1,13 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@ulticode/design-system/ui/card'
 
 export interface TimelineActivity {
   id: string | number
@@ -21,7 +27,7 @@ const formatEnumValue = (value: string): string => value.replaceAll('_', ' ')
 
 const getIconColor = (action: string) => {
   const colorMap: Record<string, string> = {
-    LOGIN: 'var(--accent-primary)',
+    LOGIN: 'var(--primary)',
     CREATE: 'var(--status-success-mark)',
     UPDATE: 'var(--status-warning-mark)',
     DELETE: 'var(--status-error-mark)',
@@ -31,9 +37,9 @@ const getIconColor = (action: string) => {
     UNFLAG: 'var(--status-success-mark)',
     BAN: 'var(--status-error-mark)',
     UNBAN: 'var(--status-success-mark)',
-    MODERATE: 'var(--accent-primary)',
-    PIN: 'var(--accent-primary)',
-    UNPIN: 'var(--foreground-muted)',
+    MODERATE: 'var(--primary)',
+    PIN: 'var(--primary)',
+    UNPIN: 'var(--muted-foreground)',
     LOCK: 'var(--status-warning-mark)',
     UNLOCK: 'var(--status-success-mark)',
     RESET_PASSWORD: 'var(--status-warning-mark)',
@@ -43,14 +49,14 @@ const getIconColor = (action: string) => {
     CREATE_FORUM_POST: 'var(--status-success-mark)',
     UPDATE_FORUM_POST: 'var(--status-warning-mark)',
     DELETE_FORUM_POST: 'var(--status-error-mark)',
-    PIN_POST: 'var(--accent-primary)',
-    UNPIN_POST: 'var(--foreground-muted)',
+    PIN_POST: 'var(--primary)',
+    UNPIN_POST: 'var(--muted-foreground)',
     LOCK_POST: 'var(--status-warning-mark)',
     UNLOCK_POST: 'var(--status-success-mark)',
     FLAG_POST: 'var(--status-error-mark)',
     UNFLAG_POST: 'var(--status-success-mark)',
-    GRANT_PERMISSION: 'var(--accent-primary)',
-    REVOKE_PERMISSION: 'var(--accent-primary)',
+    GRANT_PERMISSION: 'var(--primary)',
+    REVOKE_PERMISSION: 'var(--primary)',
     CREATE_USER: 'var(--status-success-mark)',
     DELETE_USER: 'var(--status-error-mark)',
     CREATE_PROBLEM: 'var(--status-success-mark)',
@@ -82,9 +88,9 @@ const getIconColor = (action: string) => {
     DELETE_NOTIFICATION: 'var(--status-error-mark)',
     REQUEUE_SUBMISSION: 'var(--status-warning-mark)',
     DELETE_SUBMISSION: 'var(--status-error-mark)',
-    MODERATE_CONTENT: 'var(--accent-primary)',
+    MODERATE_CONTENT: 'var(--primary)',
   }
-  return colorMap[action] || 'var(--foreground-muted)'
+  return colorMap[action] || 'var(--muted-foreground)'
 }
 const colorMix = (color: string, percentage: number) =>
   `color-mix(in srgb, ${color} ${percentage}%, transparent)`
@@ -105,19 +111,12 @@ const displayActivities = computed(() => {
 </script>
 
 <template>
-  <Card
-    class="border-2 border-[var(--border-subtle)] dark:border-[var(--border-subtle)] shadow-float h-full rounded-none gap-0 py-0 flex flex-col"
-  >
-    <CardHeader
-      class="pb-3 pt-3 px-5 bg-[var(--surface)] dark:bg-[var(--surface-highlight)]/20 border-b border-[var(--border-subtle)] dark:border-[var(--border-subtle)]"
-    >
+  <Card class="h-full gap-0 py-0 flex flex-col">
+    <CardHeader class="pb-3 pt-3 px-5">
       <div class="flex items-center justify-between">
         <div>
-          <CardTitle
-            class="text-base font-bold font-mono uppercase tracking-wide text-foreground"
-            >{{ t('dashboard.timeline.title') }}</CardTitle
-          >
-          <CardDescription class="text-xs text-[var(--foreground-muted)] mt-1">
+          <CardTitle>{{ t('dashboard.timeline.title') }}</CardTitle>
+          <CardDescription class="mt-1">
             {{ t('dashboard.timeline.description') }}
           </CardDescription>
         </div>
@@ -126,7 +125,7 @@ const displayActivities = computed(() => {
     <CardContent class="pt-4 px-5 pb-5">
       <div
         v-if="displayActivities.length === 0"
-        class="text-center py-8 text-[var(--foreground-muted)] text-sm"
+        class="text-center py-8 text-muted-foreground text-sm"
       >
         {{ t('dashboard.recentActivity.noActivity') }}
       </div>
@@ -141,19 +140,19 @@ const displayActivities = computed(() => {
           >
             <!-- Timeline node with icon (Square design) -->
             <div
-              class="relative z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-none border transition-all duration-200"
+              class="relative z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border transition-all duration-200"
               :style="{
                 borderColor: getIconColor(activity.action),
                 backgroundColor: 'var(--card)',
               }"
             >
               <div
-                class="h-2 w-2 rounded-none transition-all duration-200 group-hover:scale-125"
+                class="h-2 w-2 rounded-lg transition-all duration-200 group-hover:scale-125"
                 :style="{ backgroundColor: getIconColor(activity.action) }"
               ></div>
               <!-- Hover glow effect (Square) -->
               <div
-                class="absolute inset-0 rounded-none opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                class="absolute inset-0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200"
                 :style="{
                   boxShadow: `0 0 8px 1.5px ${colorMix(getIconColor(activity.action), 25)}`,
                 }"
@@ -166,7 +165,7 @@ const displayActivities = computed(() => {
                 <!-- Action Badge & Performer -->
                 <div class="flex items-center gap-2 flex-wrap">
                   <span
-                    class="text-2xs font-mono font-bold px-1.5 py-0.5 rounded-none border"
+                    class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-lg border"
                     :style="{
                       color: getIconColor(activity.action),
                       borderColor: colorMix(getIconColor(activity.action), 31),
@@ -180,18 +179,18 @@ const displayActivities = computed(() => {
                   </span>
                 </div>
                 <!-- Time (Top-Right aligned) -->
-                <span class="text-2xs font-mono text-[var(--foreground-muted)] tabular-nums shrink-0">
+                <span class="text-xs font-mono text-muted-foreground tabular-nums shrink-0">
                   {{ activity.time }}
                 </span>
               </div>
 
               <!-- Target & Context Description -->
-              <div class="text-xs text-[var(--foreground-muted)] flex items-center gap-1.5">
-                <span class="text-[var(--foreground-muted)] text-2xs uppercase font-mono tracking-wide"
+              <div class="text-xs text-muted-foreground flex items-center gap-1.5">
+                <span class="text-muted-foreground text-xs uppercase font-mono tracking-wide"
                   >{{ t('audit.columns.target') }}:</span
                 >
                 <span
-                  class="font-mono bg-[var(--surface-highlight)] dark:bg-[var(--border-subtle)]/20 px-1.5 py-0.5 text-[var(--foreground-strong)] dark:text-[var(--border-subtle)] text-xxs truncate max-w-[170px] border border-[var(--border-subtle)] dark:border-[var(--border-subtle)]/60 rounded-none"
+                  class="font-mono bg-accent dark:bg-border/20 px-1.5 py-0.5 text-foreground text-xs truncate max-w-[170px] border border-border dark:border-border/60 rounded-lg"
                 >
                   {{ getTargetLabel(activity.target) }}
                 </span>

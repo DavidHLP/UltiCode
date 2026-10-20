@@ -392,6 +392,25 @@ describe('Auth failure strategy', () => {
     expect(redirect).not.toHaveBeenCalled()
   })
 
+  it.each(['Forbidden', 'Invalid CSRF token'])(
+    'preserves the session and propagates 403 in clear-and-run mode: %s',
+    async (message) => {
+      const adapter = vi.fn().mockRejectedValue(buildAxiosError(403, message))
+      const onAuthFailure = vi.fn()
+      const client = createTestHttpClient({
+        csrfManager: createCsrfTokenManager(),
+        baseURL: 'http://test.local',
+        getLocale: () => 'en-US',
+        dedupPolicy: 'all-non-auth',
+        onAuthFailure: { kind: 'clear-and-run', onAuthFailure },
+        __testAdapter: adapter,
+      })
+
+      await expect(client.apiGet('/admin/foo')).rejects.toMatchObject({ code: 403, message })
+      expect(onAuthFailure).not.toHaveBeenCalled()
+    },
+  )
+
   it('invokes redirect-login on 401 with the configured path', async () => {
     const adapter = vi.fn().mockRejectedValue(buildAxiosError(401, 'Unauthorized'))
     const redirect = vi.fn()

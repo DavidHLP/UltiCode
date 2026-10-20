@@ -3,9 +3,13 @@ import { useAuthStore } from "@/stores/auth";
 import type { SolutionFeedItem } from "@/types/solution";
 import type { SolutionComment } from "@/types/comment";
 import MarkdownView from "@/components/markdown/MarkdownView.vue";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@ulticode/design-system/ui/avatar";
 import { useAvatar } from "@/composables/useAvatar";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@ulticode/design-system/ui/badge";
 import { computed, ref, watch } from "vue";
 import { CommentThread } from "@/components/comments";
 import {
@@ -22,13 +26,18 @@ import { toast } from "vue-sonner";
 import { resolveUserVote, resolveVoteCounts } from "@/utils/vote";
 import { formatRelativeTime } from "@/utils/datetime";
 import { extractHeadings } from "@ulticode/markdown-utils";
-import { Button } from "@/components/ui/button";
+import { Button } from "@ulticode/design-system/ui/button";
 import { useRouter } from "vue-router";
 import { Pencil, Trash2, Flag, List } from "@lucide/vue";
 import { useI18n } from "vue-i18n";
 import { useErrorHandler } from "@/composables/useErrorHandler";
 import { useContentNavigation } from "@/composables/useContentNavigation";
 import ReportDialog from "@/components/ReportDialog.vue";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@ulticode/design-system/ui/popover";
 
 const props = defineProps<{
   item: SolutionFeedItem;
@@ -118,7 +127,18 @@ const {
   scrollToHeading,
 } = useContentNavigation(headings);
 
+const tocTriggerRef = ref<{ $el: HTMLElement } | null>(null);
+let isTOCNavigation = false;
+
+const restoreTOCTriggerFocus = (event: Event) => {
+  if (!isTOCNavigation) return;
+  isTOCNavigation = false;
+  event.preventDefault();
+  tocTriggerRef.value?.$el.focus({ preventScroll: true });
+};
+
 const handleMobileTOCClick = (id: string) => {
+  isTOCNavigation = true;
   scrollToHeading(id);
   showMobileTOC.value = false;
 };
@@ -296,21 +316,24 @@ watch(
 <template>
   <div
     ref="wrapperRef"
-    class="solution-detail-page-wrapper w-full p-0 py-2 relative min-h-[300px]"
+    class="solution-detail-page-wrapper w-full min-w-0 p-0 py-2 relative min-h-[300px]"
   >
     <div
       class="w-full flex flex-col lg:flex-row gap-6 items-start justify-center max-w-6xl mx-auto px-1 lg:px-4 relative"
     >
       <!-- Left Main Column: Elegant Reading Card -->
       <article
-        class="group w-full bg-[var(--card)] border border-border shadow-sm p-6 md:p-8 relative rounded-none flex flex-col gap-5"
+        class="group w-full min-w-0 bg-card border border-border shadow-sm p-4 sm:p-6 md:p-8 relative rounded-lg flex flex-col gap-5"
         :class="[isWideLayout ? 'flex-1 min-w-0 max-w-3xl' : 'w-full']"
       >
         <!-- Header: Author & Metadata (visible on all screens, but primary on mobile) -->
-        <header class="flex items-start gap-4 border-b border-border/50 pb-5">
-          <button
+        <header
+          class="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-3 border-b border-border/50 pb-5"
+        >
+          <Button
+            variant="outline"
             type="button"
-            class="shrink-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+            class="size-10 shrink-0 p-0 focus-visible:outline-none"
             :aria-label="
               t('problem.solutions.viewAuthorProfile', {
                 name: props.item.author.name,
@@ -321,26 +344,25 @@ watch(
             "
             @click="handleAuthorProfileClick"
           >
-            <Avatar class="h-10 w-10 border border-border/50">
+            <Avatar class="h-10 w-10">
               <AvatarImage
                 :src="authorAvatarUrl"
                 :alt="props.item.author.name"
               />
               <AvatarFallback
-                class="text-xs font-semibold text-foreground-strong"
                 :style="{ backgroundColor: props.item.author.avatarColor }"
               >
                 {{ authorInitial }}
               </AvatarFallback>
             </Avatar>
-          </button>
+          </Button>
 
           <div class="flex-1 min-w-0 flex flex-col gap-1">
             <div
-              class="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs leading-none"
+              class="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs leading-normal"
             >
               <span
-                class="font-bold text-foreground-strong dark:text-foreground"
+                class="break-words [overflow-wrap:anywhere] font-bold text-foreground dark:text-foreground"
               >
                 {{ props.item.author.name }}
               </span>
@@ -354,30 +376,24 @@ watch(
               <Badge
                 v-if="props.item.flair"
                 variant="secondary"
-                class="rounded-none bg-[var(--status-warning-mark)]/20 px-2 py-0.5 text-2xs font-semibold uppercase tracking-wide text-foreground-strong hover:bg-[var(--status-warning-mark)]/20 border border-[var(--status-warning-mark)]/30 select-none"
+                class="px-2 py-0.5 select-none"
               >
                 {{ props.item.flair }}
               </Badge>
             </div>
 
             <div class="flex flex-wrap items-center gap-2 mt-1">
-              <Badge
-                variant="secondary"
-                class="rounded-none border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] px-2 py-0.5 text-2xs capitalize text-[var(--foreground-strong)] bg-[var(--surface-sunken)] select-none font-medium"
-              >
+              <Badge variant="secondary" class="px-2 py-0.5 select-none">
                 {{ languageLabel }}
               </Badge>
-              <Badge
-                variant="secondary"
-                class="rounded-none border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] px-2 py-0.5 text-2xs capitalize text-[var(--foreground-strong)] bg-[var(--surface-sunken)] select-none font-medium"
-              >
+              <Badge variant="secondary" class="px-2 py-0.5 select-none">
                 {{ topicLabel }}
               </Badge>
               <Badge
                 v-for="badge in props.item.badges"
                 :key="badge"
                 variant="outline"
-                class="rounded-none border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] px-2 py-0.5 text-2xs font-medium text-[var(--foreground-muted)] bg-transparent select-none"
+                class="px-2 py-0.5 select-none"
               >
                 {{ badge }}
               </Badge>
@@ -385,55 +401,64 @@ watch(
           </div>
 
           <!-- Quick Owner/Moderator Actions -->
-          <div class="ml-auto flex items-center gap-1">
+          <div class="col-span-2 flex flex-wrap items-center gap-1">
             <!-- Mobile Table of Contents button (narrow container only) -->
-            <div v-if="!isWideLayout && headings.length > 1" class="relative">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                class="h-7 px-2 text-xs font-semibold hover:bg-[var(--surface-sunken)] rounded-none"
-                @click="showMobileTOC = !showMobileTOC"
-              >
-                <List class="mr-1 h-3.5 w-3.5" />
-                目录
-              </Button>
-
-              <!-- Floating TOC Dropdown Popup -->
-              <div
-                v-if="showMobileTOC"
-                class="absolute right-0 top-8 z-50 w-48 bg-[var(--card)] border border-border p-3 shadow-lg flex flex-col gap-2 rounded-none select-none font-mono"
+            <Popover
+              v-if="!isWideLayout && headings.length > 1"
+              v-model:open="showMobileTOC"
+            >
+              <PopoverTrigger as-child>
+                <Button
+                  ref="tocTriggerRef"
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  class="px-2"
+                >
+                  <List class="mr-1 h-3.5 w-3.5" />
+                  {{ t("forum.sidebar.toc") }}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent
+                align="start"
+                :collision-padding="16"
+                :aria-label="t('forum.sidebar.toc')"
+                class="w-48 max-h-[var(--reka-popover-content-available-height)] p-3 gap-2 select-none font-mono"
+                @close-auto-focus="restoreTOCTriggerFocus"
               >
                 <div
-                  class="text-2xs font-bold uppercase tracking-wider text-muted-foreground/85 border-b border-border/50 pb-1"
+                  class="text-xs font-bold uppercase tracking-wider text-muted-foreground/85 border-b border-border/50 pb-1"
                 >
-                  文章大纲
+                  {{ t("forum.sidebar.toc") }}
                 </div>
-                <nav class="flex flex-col gap-1 max-h-60 overflow-y-auto">
-                  <button
+                <nav
+                  class="flex min-h-0 flex-col gap-1 max-h-60 overflow-y-auto"
+                >
+                  <Button
+                    variant="outline"
                     v-for="h in headings"
                     :key="h.id"
                     type="button"
-                    class="text-left text-xs py-1 px-1.5 transition-all duration-150 border-l-2 hover:bg-[var(--surface-sunken)] hover:text-foreground cursor-pointer select-none"
+                    class="h-auto min-h-8 whitespace-normal break-words justify-start text-left py-1 px-1.5 cursor-pointer select-none"
                     :class="[
                       activeHeadingId === h.id
-                        ? 'border-primary text-[var(--primary)] font-bold bg-[var(--primary)]/5'
+                        ? 'border-primary text-primary font-bold bg-primary/5'
                         : 'border-transparent text-muted-foreground font-medium',
                     ]"
                     :style="{ paddingLeft: h.level === 3 ? '1rem' : '0.25rem' }"
                     @click="handleMobileTOCClick(h.id)"
                   >
                     {{ h.text }}
-                  </button>
+                  </Button>
                 </nav>
-              </div>
-            </div>
+              </PopoverContent>
+            </Popover>
 
             <template v-if="isOwner">
               <Button
                 variant="ghost"
                 size="sm"
-                class="h-7 px-2 text-xs font-semibold hover:bg-[var(--surface-sunken)] rounded-none"
+                class="px-2"
                 @click="handleEditSolution"
               >
                 <Pencil class="mr-1 h-3.5 w-3.5" />
@@ -442,7 +467,7 @@ watch(
               <Button
                 variant="ghost"
                 size="sm"
-                class="h-7 px-2 text-xs font-semibold text-destructive hover:text-destructive hover:bg-destructive/10 rounded-none"
+                class="px-2"
                 @click="handleDeleteSolution"
               >
                 <Trash2 class="mr-1 h-3.5 w-3.5" />
@@ -453,20 +478,20 @@ watch(
               v-else
               variant="ghost"
               size="sm"
-              class="h-7 px-2 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-none"
+              class="px-2"
               @click="handleReport"
             >
               <Flag class="mr-1 h-3.5 w-3.5" />
-              举报
+              {{ t("forum.actions.report") }}
             </Button>
           </div>
         </header>
 
         <!-- Solution Content -->
-        <section class="space-y-4 text-sm leading-relaxed">
+        <section class="min-w-0 space-y-4 text-sm leading-relaxed">
           <!-- Solution Title -->
           <h1
-            class="text-xl font-bold tracking-tight text-foreground-strong dark:text-foreground mb-4 leading-tight"
+            class="text-xl font-bold tracking-tight text-foreground dark:text-foreground mb-4 leading-tight"
           >
             {{ props.item.title }}
           </h1>
@@ -483,7 +508,7 @@ watch(
               v-for="tag in props.item.tags"
               :key="tag"
               variant="secondary"
-              class="rounded-none border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] px-2.5 py-0.5 text-2xs text-[var(--foreground-muted)] bg-[var(--surface-sunken)] font-mono select-none"
+              class="px-2.5 py-0.5 select-none"
             >
               # {{ tag }}
             </Badge>
@@ -516,9 +541,9 @@ watch(
         <!-- Comments Thread Area -->
         <div id="comments-section" class="mt-8 border-t border-border/60 pt-6">
           <div class="flex items-center gap-2 mb-4">
-            <div class="h-4 w-1 bg-[var(--primary)]"></div>
+            <div class="h-4 w-1 bg-primary"></div>
             <h3
-              class="text-sm font-bold text-foreground-strong dark:text-foreground uppercase tracking-wide select-none"
+              class="text-sm font-bold text-foreground dark:text-foreground uppercase tracking-wide select-none"
             >
               {{ t("forum.comments.title") }}
             </h3>
@@ -542,16 +567,15 @@ watch(
       >
         <!-- Author Profile Sidebar Widget -->
         <div
-          class="bg-[var(--card)] border border-border p-4 shadow-sm flex flex-col gap-3"
+          class="bg-card border border-border p-4 shadow-sm flex flex-col gap-3"
         >
           <div class="flex items-center gap-2">
-            <Avatar class="h-9 w-9 border border-border/40 shrink-0">
+            <Avatar class="h-9 w-9 shrink-0">
               <AvatarImage
                 :src="authorAvatarUrl"
                 :alt="props.item.author.name"
               />
               <AvatarFallback
-                class="text-xs font-semibold text-foreground-strong"
                 :style="{ backgroundColor: props.item.author.avatarColor }"
               >
                 {{ authorInitial }}
@@ -559,12 +583,12 @@ watch(
             </Avatar>
             <div class="flex flex-col min-w-0">
               <span
-                class="font-bold text-xs text-foreground-strong dark:text-foreground truncate leading-tight"
+                class="font-bold text-xs text-foreground dark:text-foreground truncate leading-tight"
               >
                 {{ props.item.author.name }}
               </span>
               <span
-                class="text-2xs text-muted-foreground truncate leading-none mt-0.5"
+                class="text-xs text-muted-foreground truncate leading-none mt-0.5"
               >
                 {{ props.item.author.role }}
               </span>
@@ -572,17 +596,17 @@ watch(
           </div>
 
           <div
-            class="text-2xs text-muted-foreground/80 flex flex-col gap-1 border-t border-border/50 pt-2 font-mono"
+            class="text-xs text-muted-foreground/80 flex flex-col gap-1 border-t border-border/50 pt-2 font-mono"
           >
             <div>发布：{{ formattedDate }}</div>
             <div class="flex items-center gap-1.5 flex-wrap mt-1">
               <span
-                class="inline-block px-1.5 py-0.5 bg-[var(--surface-sunken)] border border-border text-2xs text-foreground capitalize"
+                class="inline-block px-1.5 py-0.5 bg-muted border border-border text-xs text-foreground capitalize"
               >
                 {{ languageLabel }}
               </span>
               <span
-                class="inline-block px-1.5 py-0.5 bg-[var(--surface-sunken)] border border-border text-2xs text-foreground truncate max-w-[80px]"
+                class="inline-block px-1.5 py-0.5 bg-muted border border-border text-xs text-foreground truncate max-w-[80px]"
               >
                 {{ topicLabel }}
               </span>
@@ -593,29 +617,30 @@ watch(
         <!-- Table of Contents (TOC) Widget -->
         <div
           v-if="headings.length > 1"
-          class="bg-[var(--card)] border border-border shadow-sm p-4"
+          class="bg-card border border-border shadow-sm p-4"
         >
           <div
-            class="text-2xs font-bold uppercase tracking-wider text-muted-foreground/80 mb-2.5 border-b border-border/50 pb-1.5 select-none font-mono"
+            class="text-xs font-bold uppercase tracking-wider text-muted-foreground/80 mb-2.5 border-b border-border/50 pb-1.5 select-none font-mono"
           >
-            文章大纲
+            {{ t("forum.sidebar.toc") }}
           </div>
           <nav class="flex flex-col gap-1">
-            <button
+            <Button
+              variant="outline"
               v-for="h in headings"
               :key="h.id"
               type="button"
-              class="text-left text-xs font-mono py-1 px-2 transition-all duration-150 border-l-2 select-none hover:bg-[var(--surface-sunken)] hover:text-foreground cursor-pointer"
+              class="h-auto min-h-8 whitespace-normal break-words justify-start text-left py-1 px-2 select-none cursor-pointer"
               :class="[
                 activeHeadingId === h.id
-                  ? 'border-primary text-[var(--primary)] font-bold bg-[var(--primary)]/5'
+                  ? 'border-primary text-primary font-bold bg-primary/5'
                   : 'border-transparent text-muted-foreground font-medium',
               ]"
               :style="{ paddingLeft: h.level === 3 ? '1.25rem' : '0.5rem' }"
               @click="scrollToHeading(h.id)"
             >
               {{ h.text }}
-            </button>
+            </Button>
           </nav>
         </div>
       </aside>

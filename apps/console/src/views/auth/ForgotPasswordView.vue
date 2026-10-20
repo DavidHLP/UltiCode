@@ -46,11 +46,15 @@ defineOptions({
 <template>
   <AuthLayout badge="CODE" version="v2.0.0">
     <template #form>
-      <AuthCard :title="t('auth.forgotPassword.terminal')">
-        <form class="forgot-form" @submit="handleSubmit">
-          <div class="forgot-form__header">
-            <h1 class="forgot-form__title">{{ t("auth.forgotPassword.title") }}</h1>
-            <p class="forgot-form__subtitle">{{ t("auth.forgotPassword.subtitle") }}</p>
+      <AuthCard>
+        <form class="flex flex-col gap-4" @submit="handleSubmit">
+          <div class="flex flex-col gap-2">
+            <h1 class="text-2xl font-semibold">
+              {{ t("auth.forgotPassword.title") }}
+            </h1>
+            <p class="text-sm text-muted-foreground">
+              {{ t("auth.forgotPassword.subtitle") }}
+            </p>
           </div>
 
           <AuthInput
@@ -70,7 +74,7 @@ defineOptions({
             }}
           </AuthButton>
 
-          <div class="forgot-form__back">
+          <div class="text-center text-sm text-muted-foreground">
             {{ t("auth.forgotPassword.rememberPassword") }}
             <a href="/login">{{ t("auth.register.login") }}</a>
           </div>
@@ -85,62 +89,3 @@ defineOptions({
     </template>
   </AuthLayout>
 </template>
-
-<style scoped>
-.forgot-form {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.forgot-form__header {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  margin-bottom: 0.25rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid var(--border);
-}
-
-.forgot-form__title {
-  font-size: var(--uc-text-2xl);
-  font-weight: var(--uc-font-weight-bold);
-  letter-spacing: var(--uc-tracking-normal);
-  color: var(--foreground-strong);
-  line-height: 1.1;
-}
-
-.dark .forgot-form__title {
-  color: var(--foreground-strong);
-}
-
-.forgot-form__subtitle {
-  font-size: var(--uc-text-md);
-  color: var(--foreground);
-}
-
-.dark .forgot-form__subtitle {
-  color: var(--foreground-muted);
-}
-
-.forgot-form__back {
-  font-size: var(--uc-text-md);
-  color: var(--foreground);
-  text-align: center;
-  font-family: var(--uc-font-code);
-}
-
-.dark .forgot-form__back {
-  color: var(--foreground-muted);
-}
-
-.forgot-form__back a {
-  color: var(--primary);
-  text-decoration: none;
-  font-weight: var(--uc-font-weight-bold);
-}
-
-.forgot-form__back a:hover {
-  text-decoration: underline;
-}
-</style>

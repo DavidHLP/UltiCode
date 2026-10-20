@@ -463,6 +463,28 @@ class WorkflowStore:
             ).fetchall()
         return [dict(row) for row in rows]
 
+    def _assert_conversation_idle(
+        self, db: sqlite3.Connection, conversation_id: str, *,
+        exclude_turn_id: str | None = None, blocking_statuses: tuple[str, ...] = ("queued", "running"),
+    ) -> None:
+        rows = db.execute(
+            """SELECT turn_id,status FROM conversation_turns
+               WHERE conversation_id=? AND (status IN ('queued','running') OR cancel_requested=1)""",
+            (conversation_id,),
+        ).fetchall()
+        for row in rows:
+            if row["turn_id"] == exclude_turn_id:
+                continue
+            if row["status"] in blocking_statuses:
+                raise Conflict("conversation_turn_active")
+            try:
+                with self.thread_lock(row["turn_id"]):
+                    pass
+            except Conflict as exc:
+                if str(exc) == "run_busy":
+                    raise Conflict("conversation_turn_active") from None
+                raise
+
     def create_conversation_turn(
         self, conversation_id: str, owner_id: str, turn_id: str,
         client_turn_id: str, question: str, *, now: float,
@@ -484,12 +506,7 @@ class WorkflowStore:
                         raise Conflict("idempotency_conflict")
                     db.commit()
                     return self._conversation_turn_decode(existing)
-                active = db.execute(
-                    "SELECT 1 FROM conversation_turns WHERE conversation_id=? AND status IN ('queued','running') LIMIT 1",
-                    (conversation_id,),
-                ).fetchone()
-                if active:
-                    raise Conflict("conversation_turn_active")
+                self._assert_conversation_idle(db, conversation_id)
                 turn_index = int(db.execute(
                     "SELECT COALESCE(MAX(turn_index),0)+1 FROM conversation_turns WHERE conversation_id=?",
                     (conversation_id,),
@@ -558,6 +575,7 @@ class WorkflowStore:
                     raise NotFound("conversation_turn_not_found")
                 if row["status"] != "queued" or row["run_id"] != expected_run or row["cancel_requested"]:
                     raise Conflict("conversation_turn_state_changed")
+                self._assert_conversation_idle(db, conversation_id, exclude_turn_id=turn_id)
                 seq = int(row["event_seq"]) + 1
                 db.execute(
                     "UPDATE conversation_turns SET status='running',event_seq=?,updated_at=? WHERE turn_id=?",
@@ -729,6 +747,7 @@ class WorkflowStore:
                     raise NotFound("conversation_turn_not_found")
                 if row["status"] != "failed":
                     raise Conflict("conversation_turn_state_changed")
+                self._assert_conversation_idle(db, conversation_id, exclude_turn_id=turn_id)
                 run_id = str(uuid.uuid4())
                 seq = int(row["event_seq"]) + 1
                 db.execute(
@@ -768,12 +787,7 @@ class WorkflowStore:
                 ).fetchone()
                 if row is None:
                     raise NotFound("conversation_not_found")
-                active = db.execute(
-                    "SELECT 1 FROM conversation_turns WHERE conversation_id=? AND status='running' LIMIT 1",
-                    (conversation_id,),
-                ).fetchone()
-                if active:
-                    raise Conflict("conversation_turn_active")
+                self._assert_conversation_idle(db, conversation_id, blocking_statuses=("running",))
                 db.execute(
                     "DELETE FROM conversation_events WHERE turn_id IN (SELECT turn_id FROM conversation_turns WHERE conversation_id=?)",
                     (conversation_id,),

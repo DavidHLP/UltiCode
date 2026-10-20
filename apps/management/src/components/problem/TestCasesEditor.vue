@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { FieldLabel } from '@ulticode/design-system/ui/field'
+
+import { ref, computed, watch, useId } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
+import { Button } from '@ulticode/design-system/ui/button'
+import { Input } from '@ulticode/design-system/ui/input'
+import { Textarea } from '@ulticode/design-system/ui/textarea'
 import { X, Plus } from '@lucide/vue'
 
 export interface TestCaseExample {
@@ -34,6 +36,7 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+const editorId = useId()
 
 const activeId = ref('')
 const localCases = ref<TestCaseExample[]>([])
@@ -130,37 +133,33 @@ const updateCase = (field: keyof TestCaseExample, value: string) => {
 <template>
   <div class="test-cases-editor">
     <div class="flex flex-wrap items-center gap-2 mb-4">
-      <Button
-        v-for="testCase in caseTabs"
-        :key="testCase.id"
-        :variant="testCase.id === activeId ? 'secondary' : 'ghost'"
-        size="sm"
-        class="h-8 rounded-none px-3 text-xs font-medium"
-        :class="
-          testCase.id === activeId
-            ? 'text-foreground shadow-none'
-            : 'text-muted-foreground hover:text-foreground'
-        "
-        @click="selectCase(testCase.id)"
-      >
-        <span>{{ testCase.displayLabel }}</span>
-        <button
+      <div v-for="testCase in caseTabs" :key="testCase.id" class="flex items-center gap-1">
+        <Button
+          :variant="testCase.id === activeId ? 'secondary' : 'ghost'"
+          size="sm"
+          class="px-3"
+          :class="
+            testCase.id === activeId
+              ? 'text-foreground shadow-none'
+              : 'text-muted-foreground hover:text-foreground'
+          "
+          @click="selectCase(testCase.id)"
+        >
+          <span>{{ testCase.displayLabel }}</span>
+        </Button>
+        <Button
+          variant="ghost"
           v-if="testCase.id === activeId && canRemoveCases && !readonly"
           type="button"
-          class="ml-1 inline-flex h-4 w-4 items-center justify-center rounded-none text-2xs text-muted-foreground hover:text-foreground"
+          size="icon-sm"
+          :aria-label="t('common.remove')"
           @click.stop="removeCase(testCase.id)"
         >
           <X :size="12" />
-        </button>
-      </Button>
+        </Button>
+      </div>
 
-      <Button
-        v-if="!readonly"
-        variant="ghost"
-        size="sm"
-        class="h-8 rounded-none px-2 text-xs text-muted-foreground hover:text-foreground"
-        @click="addCase"
-      >
+      <Button v-if="!readonly" variant="ghost" size="sm" class="px-2" @click="addCase">
         <Plus :size="14" class="mr-1" />
         {{ t('problems.testCasesEditor.addExample') }}
       </Button>
@@ -168,36 +167,39 @@ const updateCase = (field: keyof TestCaseExample, value: string) => {
 
     <div v-if="activeCase" class="space-y-4">
       <div class="space-y-2">
-        <label class="text-sm font-medium text-muted-foreground">{{
+        <FieldLabel :for="`${editorId}-input`">{{
           t('problems.testCasesEditor.input')
-        }}</label>
+        }}</FieldLabel>
         <Textarea
+          :id="`${editorId}-input`"
           :model-value="activeCase.input"
           :readonly="readonly"
           :placeholder="t('problems.testCasesEditor.inputPlaceholder')"
-          class="font-mono text-sm bg-muted border-none shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 min-h-[80px]"
+          class="min-h-[80px]"
           @update:model-value="(v) => updateCase('input', v as string)"
         />
       </div>
 
       <div class="space-y-2">
-        <label class="text-sm font-medium text-muted-foreground">{{
+        <FieldLabel :for="`${editorId}-output`">{{
           t('problems.testCasesEditor.output')
-        }}</label>
+        }}</FieldLabel>
         <Textarea
+          :id="`${editorId}-output`"
           :model-value="activeCase.output"
           :readonly="readonly"
           :placeholder="t('problems.testCasesEditor.outputPlaceholder')"
-          class="font-mono text-sm bg-muted border-none shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 min-h-[80px]"
+          class="min-h-[80px]"
           @update:model-value="(v) => updateCase('output', v as string)"
         />
       </div>
 
       <div class="space-y-2">
-        <label class="text-sm font-medium text-muted-foreground">{{
+        <FieldLabel :for="`${editorId}-explanation`">{{
           t('problems.testCasesEditor.explanationOptional')
-        }}</label>
+        }}</FieldLabel>
         <Input
+          :id="`${editorId}-explanation`"
           :model-value="activeCase.explanation || ''"
           :readonly="readonly"
           :placeholder="t('problems.testCasesEditor.explanationPlaceholder')"

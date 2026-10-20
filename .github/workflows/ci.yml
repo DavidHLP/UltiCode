@@ -25,6 +25,7 @@ jobs:
       backend: ${{ steps.select.outputs.backend }}
       console: ${{ steps.select.outputs.console }}
       management: ${{ steps.select.outputs.management }}
+      landing: ${{ steps.select.outputs.landing }}
       contract: ${{ steps.select.outputs.contract }}
       docker: ${{ steps.select.outputs.docker }}
       agent: ${{ steps.select.outputs.agent }}
@@ -93,11 +94,12 @@ jobs:
   frontend:
     name: Frontend
     needs: changes
-    if: ${{ !cancelled() && (needs.changes.outputs.console == 'true' || needs.changes.outputs.management == 'true') }}
+    if: ${{ !cancelled() && (needs.changes.outputs.console == 'true' || needs.changes.outputs.management == 'true' || needs.changes.outputs.landing == 'true') }}
     uses: ./.github/workflows/_frontend.yml
     with:
       console_changed: ${{ needs.changes.outputs.console == 'true' }}
       management_changed: ${{ needs.changes.outputs.management == 'true' }}
+      landing_changed: ${{ needs.changes.outputs.landing == 'true' }}
 
   contract:
     name: Contract Compatibility
@@ -133,7 +135,7 @@ jobs:
       - name: Verify every selected gate succeeded
         env:
           RESULTS: ${{ toJSON(needs) }}
-          SELECTED: '{"backend":"${{ needs.changes.outputs.backend }}","console":"${{ needs.changes.outputs.console }}","management":"${{ needs.changes.outputs.management }}","contract":"${{ needs.changes.outputs.contract }}","docker":"${{ needs.changes.outputs.docker }}","agent":"${{ needs.changes.outputs.agent }}"}'
+          SELECTED: '{"backend":"${{ needs.changes.outputs.backend }}","console":"${{ needs.changes.outputs.console }}","management":"${{ needs.changes.outputs.management }}","landing":"${{ needs.changes.outputs.landing }}","contract":"${{ needs.changes.outputs.contract }}","docker":"${{ needs.changes.outputs.docker }}","agent":"${{ needs.changes.outputs.agent }}"}'
         run: python3 scripts/ci/check-results.py
 
   publish:

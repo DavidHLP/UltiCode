@@ -209,6 +209,7 @@ public class DefaultProblemListProjection implements ProblemListProjection {
                         pvo.setAcceptanceRate(dto.acceptanceRate());
                         pvo.setIsPremium(dto.isPremium());
                         pvo.setHasSolution(dto.hasSolution());
+                        pvo.setCategorySlugs(dto.categorySlugs());
                         pvo.setTags(tagMap.getOrDefault(dto.id(), List.of()));
                         return pvo;
                     })

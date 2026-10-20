@@ -4,8 +4,13 @@ import { useI18n } from "vue-i18n";
 import { useAchievementStore } from "@/stores/achievement";
 import AchievementCard from "@/components/achievement/AchievementCard.vue";
 import UnlockToast from "@/components/achievement/UnlockToast.vue";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@ulticode/design-system/ui/tabs";
+import { Skeleton } from "@ulticode/design-system/ui/skeleton";
 import {
   Trophy,
   Star,
@@ -96,28 +101,28 @@ function handleUnlockClose() {
 
     <!-- Stats Cards -->
     <div class="grid grid-cols-2 gap-4 md:grid-cols-4">
-      <div class="rounded-none border bg-card p-4 text-center">
-        <Trophy class="mx-auto h-8 w-8 text-[var(--status-warning-mark)]" />
+      <div class="rounded-lg border bg-card p-4 text-center">
+        <Trophy class="mx-auto h-8 w-8 text-status-warning-mark" />
         <p class="mt-2 text-2xl font-bold">{{ stats.earned }}</p>
         <p class="text-sm text-muted-foreground">
           {{ t("achievement.earned") }}
         </p>
       </div>
-      <div class="rounded-none border bg-card p-4 text-center">
-        <Target class="mx-auto h-8 w-8 text-[var(--primary)]" />
+      <div class="rounded-lg border bg-card p-4 text-center">
+        <Target class="mx-auto h-8 w-8 text-primary" />
         <p class="mt-2 text-2xl font-bold">{{ stats.total }}</p>
         <p class="text-sm text-muted-foreground">
           {{ t("achievement.total") }}
         </p>
       </div>
-      <div class="rounded-none border bg-card p-4 text-center">
-        <Star class="mx-auto h-8 w-8 text-[var(--status-special-mark)]" />
-        <p class="mt-2 text-2xl font-bold">{{ stats.points }}</p>
+      <div class="rounded-lg border bg-card p-4 text-center">
+        <Star class="mx-auto h-8 w-8 text-status-special-mark" />
+        <p class="mt-2 text-2xl font-bold">{{ stats.points ?? "--" }}</p>
         <p class="text-sm text-muted-foreground">
           {{ t("achievement.points") }}
         </p>
       </div>
-      <div class="rounded-none border bg-card p-4 text-center">
+      <div class="rounded-lg border bg-card p-4 text-center">
         <div class="relative mx-auto h-8 w-8">
           <svg class="h-8 w-8 -rotate-90" viewBox="0 0 36 36">
             <circle
@@ -140,7 +145,7 @@ function handleUnlockClose() {
               :stroke-dashoffset="
                 2 * Math.PI * 16 * (1 - stats.percentage / 100)
               "
-              class="text-foreground-strong transition-all duration-500"
+              class="text-foreground transition-all duration-500"
             />
           </svg>
           <span
@@ -157,22 +162,24 @@ function handleUnlockClose() {
 
     <!-- Category Tabs -->
     <Tabs v-model="selectedCategory" class="w-full">
-      <TabsList class="w-full justify-start">
+      <TabsList
+        class="grid w-full grid-cols-2 gap-1 group-data-horizontal/tabs:h-auto sm:grid-cols-3 lg:grid-cols-5"
+      >
         <TabsTrigger
           v-for="category in categories"
           :key="category.value"
           :value="category.value"
-          class="gap-2"
+          class="h-auto min-h-8 min-w-0 gap-2 whitespace-normal"
         >
           <component :is="category.icon" class="h-4 w-4" />
-          <span class="hidden sm:inline">{{ category.label }}</span>
+          <span>{{ category.label }}</span>
         </TabsTrigger>
       </TabsList>
 
       <TabsContent :value="selectedCategory" class="mt-6">
         <!-- Loading state -->
         <div v-if="achievementStore.loading" class="grid gap-4 sm:grid-cols-2">
-          <Skeleton v-for="i in 4" :key="i" class="h-32 rounded-none" />
+          <Skeleton v-for="i in 4" :key="i" class="h-32" />
         </div>
 
         <!-- Achievement grid -->

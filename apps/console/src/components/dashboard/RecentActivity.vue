@@ -33,12 +33,15 @@ const iconMap = {
 // so no status ever resolves to class="undefined" (the previous statusColors
 // map had only 5 entries and no fallback).
 const SEMANTIC_TEXT_CLASS: Record<SemanticColor, string> = {
-  success: "text-foreground decoration-status-success-mark underline decoration-2",
-  warning: "text-foreground decoration-status-warning-mark underline decoration-2",
+  success:
+    "text-foreground decoration-status-success-mark underline decoration-2",
+  warning:
+    "text-foreground decoration-status-warning-mark underline decoration-2",
   error: "text-foreground decoration-status-error-mark underline decoration-2",
   info: "text-foreground decoration-status-info-mark underline decoration-2",
-  purple: "text-foreground decoration-status-special-mark underline decoration-2",
-  electric: "text-foreground decoration-link-decoration underline decoration-2",
+  purple:
+    "text-foreground decoration-status-special-mark underline decoration-2",
+  electric: "text-foreground decoration-primary underline decoration-2",
   neutral: "text-muted-foreground",
 };
 
@@ -48,7 +51,7 @@ const SEMANTIC_ACCENT_CLASS: Record<SemanticColor, string> = {
   error: "text-status-error-mark",
   info: "text-status-info-mark",
   purple: "text-status-special-mark",
-  electric: "text-[var(--accent-primary)]",
+  electric: "text-primary",
   neutral: "text-muted-foreground",
 };
 
@@ -59,7 +62,7 @@ const getStatusAccentClass = (status: string | undefined): string =>
   SEMANTIC_ACCENT_CLASS[getStatusColor(status ?? "")];
 
 const typeColors: Record<string, string> = {
-  submission: "text-[var(--accent-primary)]",
+  submission: "text-primary",
   solution: "text-status-special-mark",
   post: "text-status-success-mark",
   comment: "text-status-warning-mark",
@@ -89,7 +92,7 @@ function formatTime(dateStr: string): string {
       <div
         v-for="activity in activities"
         :key="activity.id"
-        class="flex items-start gap-3 rounded-none border p-3 transition-colors hover:bg-muted/50"
+        class="flex items-start gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/50"
       >
         <!-- Icon -->
         <div
@@ -143,7 +146,7 @@ function formatTime(dateStr: string): string {
         v-if="activities.length === 0"
         class="py-8 text-center text-sm text-muted-foreground"
       >
-        No recent activity
+        {{ t("personal.dashboard.activity.empty") }}
       </div>
     </div>
   </div>

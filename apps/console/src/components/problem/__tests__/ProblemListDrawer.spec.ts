@@ -34,13 +34,13 @@ vi.mock("@lucide/vue", () => ({
 }));
 
 // Stub the shadcn UI primitives so the test does not need to render Tailwind.
-vi.mock("@/components/ui/input", () => ({
+vi.mock("@ulticode/design-system/ui/input", () => ({
   Input: { name: "Input", template: "<input />" },
 }));
-vi.mock("@/components/ui/button", () => ({
+vi.mock("@ulticode/design-system/ui/button", () => ({
   Button: { name: "Button", template: "<button><slot /></button>" },
 }));
-vi.mock("@/components/ui/scroll-area", () => ({
+vi.mock("@ulticode/design-system/ui/scroll-area", () => ({
   ScrollArea: { name: "ScrollArea", template: "<div><slot /></div>" },
 }));
 

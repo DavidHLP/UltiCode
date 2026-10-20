@@ -20,11 +20,13 @@ public record ProblemListItemDTO(
         BigDecimal acceptanceRate,
         Boolean isPremium,
         Boolean hasSolution,
+        List<String> categorySlugs,
         List<Tag> tags) implements Serializable {
     private static final long serialVersionUID = 1L;
 
 
     public ProblemListItemDTO {
+        categorySlugs = categorySlugs == null ? List.of() : List.copyOf(categorySlugs);
         tags = tags == null ? List.of() : List.copyOf(tags);
     }
 

@@ -1,0 +1,69 @@
+apps/console/vite.config.ts
+  s_c130ace718f6ec::t_142fa359e48b03 54
+.github/workflows/_frontend.yml
+  s_c130ace718f6ec::t_142fa359e48b03 248
+apps/management/src/main.ts
+  s_c130ace718f6ec::t_142fa359e48b03 8,24
+apps/console/src/composables/__tests__/useAgentConversations.spec.ts
+  s_c130ace718f6ec::t_d6353e7b250195 81,84
+  s_c130ace718f6ec::t_4e34a1009fcb96 94-97
+  s_c130ace718f6ec::t_2847c80253b058 49-50,52-68,75,80,82-83,85-93,98-99
+  s_c130ace718f6ec::t_10005f909ad73b 100-101
+scripts/test/devstack-control-contract.sh
+  s_c130ace718f6ec::t_142fa359e48b03 172
+docs/DEVELOPMENT.md
+  s_c130ace718f6ec::t_142fa359e48b03 155
+packages/auth-ui/src/__tests__/RegisterForm.spec.ts
+  s_c130ace718f6ec::t_778dee95fae7a5 66-67
+scripts/test/graceful-drain-contract.sh
+  s_c130ace718f6ec::t_142fa359e48b03 90-91
+apps/console/Dockerfile
+  s_c130ace718f6ec::t_142fa359e48b03 28,30
+docker/docker-compose.ci.yml
+  s_c130ace718f6ec::t_142fa359e48b03 55-56
+apps/console/src/composables/useAgentConversations.ts
+  s_c130ace718f6ec::t_2847c80253b058 168
+.github/workflows/docker-publish.yml
+  s_c130ace718f6ec::t_142fa359e48b03 98
+services/agent/tests/test_manual_budget_rebinding.py
+  s_c130ace718f6ec::t_142fa359e48b03 16
+packages/design-system/package.json
+  s_c130ace718f6ec::t_778dee95fae7a5 61
+.github/workflows/ci.yml
+  s_c130ace718f6ec::t_142fa359e48b03 83-84
+apps/console/src/composables/__tests__/useAgentWorkflow.spec.ts
+  s_c130ace718f6ec::t_2847c80253b058 229-245
+apps/console/src/api/problem-list.ts
+  s_c130ace718f6ec::t_142fa359e48b03 218
+services/app/app-web/src/test/java/com/ulticode/app/security/AppRouteAuthorizationContractTest.java
+  s_c130ace718f6ec::t_778dee95fae7a5 48,60,85
+apps/management/src/views/audit/useAuditReadWorkspace.ts
+  s_c130ace718f6ec::t_faf21b87f33905 137-145,148-149
+  s_c130ace718f6ec::t_adaeb913459745 2,119-135,155-157
+  s_c130ace718f6ec::t_4c5095208881c4 136
+apps/console/src/composables/useAgentWorkflow.ts
+  s_c130ace718f6ec::t_2847c80253b058 124
+services/agent/data/repository_corpus_manifest.json
+  s_c130ace718f6ec::t_29c60045018d26 11,14
+  s_c130ace718f6ec::t_3081617fe8f16f 4-5,18-19,25,28,32-33,46-47,60-61
+apps/console/src/api/__tests__/problem-list.spec.ts
+  s_c130ace718f6ec::t_142fa359e48b03 24,31-33
+pnpm-lock.yaml
+  s_c130ace718f6ec::t_dc8fbe4141cc4b 739-741
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c915aaf894a6239f7675e761e46449f5e1783171",
+  "prompts": {},
+  "sessions": {
+    "s_c130ace718f6ec": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1593f-2a47-7d92-a252-60127bd61564",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

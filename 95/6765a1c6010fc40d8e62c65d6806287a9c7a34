@@ -1,0 +1,30 @@
+.codex/rules/external-publish.rules
+  s_c130ace718f6ec::t_20369deddb8b78 1,5,7-9,12,14-16
+.codex/rules/git-safety.rules
+  s_c130ace718f6ec::t_20369deddb8b78 1
+.codex/rules/README.md
+  s_c130ace718f6ec::t_20369deddb8b78 6,8-9,12-13,15-16,33-34,39
+docs/DEVELOPMENT.md
+  s_c130ace718f6ec::t_20369deddb8b78 549
+.codex/rules/infrastructure-safety.rules
+  s_c130ace718f6ec::t_20369deddb8b78 1
+  s_c130ace718f6ec::t_2592c2dac62095 19,21-23
+services/agent/data/repository_corpus_manifest.json
+  s_c130ace718f6ec::t_2592c2dac62095 32-33
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "956765a1c6010fc40d8e62c65d6806287a9c7a34",
+  "prompts": {},
+  "sessions": {
+    "s_c130ace718f6ec": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1593f-2a47-7d92-a252-60127bd61564",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

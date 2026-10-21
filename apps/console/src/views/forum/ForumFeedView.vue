@@ -237,7 +237,7 @@ function handlePostSave(postId: string, isSaved: boolean) {
     <!-- Main Feed -->
     <main class="w-full min-w-0 flex-1 space-y-6">
       <div
-        class="flex flex-col gap-3 rounded-xl border bg-card text-card-foreground bg-card p-4 sm:flex-row sm:items-center sm:justify-between shadow-sm"
+        class="flex flex-col gap-3 rounded-xl border bg-card text-card-foreground bg-card px-2 py-4 sm:p-4 sm:flex-row sm:items-center sm:justify-between shadow-sm"
       >
         <div class="flex min-w-0 flex-1 flex-wrap items-center gap-3">
           <div class="relative min-w-0 flex-1 basis-full max-w-md sm:basis-56">
@@ -247,7 +247,7 @@ function handlePostSave(postId: string, isSaved: boolean) {
             <Input
               v-model="searchQuery"
               :placeholder="t('forum.list.searchPlaceholder')"
-              class="pl-10"
+              class="pl-9"
             />
           </div>
           <Select v-model="quickFilter">

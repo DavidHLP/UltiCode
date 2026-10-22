@@ -1,0 +1,44 @@
+apps/management/src/stores/__tests__/auth.spec.ts
+  s_a1bff620af9581::t_810235d6d26d3e 6-8,34,62-90
+  s_a1bff620af9581::t_f07a697cb9eca7 91,93-125
+  s_a1bff620af9581::t_2203798f63fc77 92
+packages/auth-ui/src/index.ts
+  s_a1bff620af9581::t_5f81de54a94b3e 37
+packages/auth-ui/src/useAvatar.ts
+  s_a1bff620af9581::t_5f81de54a94b3e 1-41
+apps/console/src/stores/auth.ts
+  s_a1bff620af9581::t_4e9e4567190267 40,46,69-77,79-86,113-114
+  s_a1bff620af9581::t_78a06bd3d38206 78
+docs/DEVELOPMENT.md
+  s_a1bff620af9581::t_5dfc876276e40d 236-237
+apps/console/src/stores/__tests__/auth.spec.ts
+  s_a1bff620af9581::t_78a06bd3d38206 42
+  s_a1bff620af9581::t_f07a697cb9eca7 53-70
+  s_a1bff620af9581::t_3964427b3c7889 46-47,71-73
+apps/console/src/composables/useAvatar.ts
+  s_a1bff620af9581::t_5f81de54a94b3e 1
+apps/management/src/components/layout/NavUser.vue
+  s_a1bff620af9581::t_5f81de54a94b3e 9-10,33,39,47-50,73,101
+apps/management/src/stores/auth.ts
+  s_a1bff620af9581::t_810235d6d26d3e 12-23,32-36
+  s_a1bff620af9581::t_78a06bd3d38206 70
+  s_a1bff620af9581::t_4e9e4567190267 71-75
+apps/management/src/components/layout/AppSidebar.vue
+  s_a1bff620af9581::t_5f81de54a94b3e 70,72
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "22daad7ea17fab23e8f42932e7eb82fd963275b4",
+  "prompts": {},
+  "sessions": {
+    "s_a1bff620af9581": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a16582-42aa-7881-b150-8dcf1e3213ac",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

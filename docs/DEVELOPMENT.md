@@ -239,6 +239,8 @@ Both apps enrich the authenticated identity with the App-owned avatar from `GET 
 
 Console and Management use the same sidebar-07 shell: the standard 16rem sidebar, shared account-switcher brand trigger, matching footer avatars, and a sticky header with a 3.5rem minimum height. Shell spacing, borders, search triggers, and tool sizes belong to `packages/design-system/style.css`; both applications retain their own navigation, search results, and actions. Appearance preferences continue to supply the colors, typography, and radii without app-specific shell overrides.
 
+Both applications default to a zinc neutral base with a blue accent, native system sans-serif typography, a medium 10px radius, comfortable density, subtle menus, and system color mode. `packages/theme` owns these defaults for first paint, runtime initialization, the default preset, and reset. Startup respects the saved appearance density. Existing account-scoped preferences remain authoritative and are not overwritten when defaults change.
+
 `packages/design-system` 是 Console 与 Management 通用 UI 的唯一所有者；Landing 保留独立设计。官方组件位于 `src/components/ui/`，消费者使用 `@ulticode/design-system/ui/<group>`；只有确需单文件的适配才使用已声明的 `ui-files` 子路径。应用内不维护另一份 `components/ui` 或 CLI 配置。业务布局在各应用内组合共享组件，侧栏布局沿用官方 Sidebar Block 的 Provider、Inset、Trigger 与 Breadcrumb 组合，不引入官方示例中的虚构业务数据。
 
 共享 Dialog 默认居中并限制在视口高度内，长表单可滚动；需要固定头尾的弹窗自行使用纵向 flex、`min-h-0` 内容区和内部滚动。CommandDialog 沿用相同的定位和高度边界。AlertDialog 在保留尺寸变体的同时保留视口边距，并允许长确认内容纵向滚动。管理端顶栏在窄屏自然换行；Markdown 编辑器按自身容器宽度切换分栏与上下布局，工具栏操作和双向滚动同步使用底层 textarea 元素。

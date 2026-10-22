@@ -20,11 +20,11 @@ afterEach(() => { resetAppearanceForTest(); setThemeStorage(null); vi.unstubAllG
 
 describe('controlled appearance', () => {
   it('rejects unknown, inherited, malformed, and executable settings', () => {
-    for (const value of [null, [], 'bad', { accent: 'url(javascript:alert(1))', radius: '-999px', mode: '<script>' }, Object.create({ accent: 'blue' })]) {
+    for (const value of [null, [], 'bad', { accent: 'url(javascript:alert(1))', radius: '-999px', mode: '<script>' }, Object.create({ accent: 'orange' })]) {
       expect(parseAppearance(value)).toEqual(DEFAULT_APPEARANCE)
     }
     expect(decodeAppearance('{')).toEqual(DEFAULT_APPEARANCE)
-    expect(parseAppearance({ accent: 'blue', css: 'body{display:none}', html: '<img onerror=alert(1)>' })).toEqual({ ...DEFAULT_APPEARANCE, accent: 'blue' })
+    expect(parseAppearance({ accent: 'violet', css: 'body{display:none}', html: '<img onerror=alert(1)>' })).toEqual({ ...DEFAULT_APPEARANCE, accent: 'violet' })
   })
   it('every preset uses only integrated options', () => {
     for (const preset of Object.values(APPEARANCE_PRESETS)) expect(parseAppearance(preset)).toEqual(preset)
@@ -32,8 +32,8 @@ describe('controlled appearance', () => {
   it('preview changes the whole root without saving; cancel restores it', () => {
     setAppearanceAccount(7)
     const draft = beginAppearancePreview()
-    previewAppearance({ ...draft, accent: 'blue', mode: 'dark', density: 'compact' })
-    expect(document.documentElement.dataset.appearanceAccent).toBe('blue')
+    previewAppearance({ ...draft, accent: 'violet', mode: 'dark', density: 'compact' })
+    expect(document.documentElement.dataset.appearanceAccent).toBe('violet')
     expect(document.documentElement.classList.contains('dark')).toBe(true)
     expect(document.documentElement.dataset.ucDensity).toBe('compact')
     expect(values.has(appearanceStorageKey(7))).toBe(false)
@@ -54,23 +54,23 @@ describe('controlled appearance', () => {
   })
   it('isolates users and guests; changing identity cancels the old draft', () => {
     setAppearanceAccount(7)
-    saveAppearance({ ...DEFAULT_APPEARANCE, accent: 'blue' })
+    saveAppearance({ ...DEFAULT_APPEARANCE, accent: 'emerald' })
     beginAppearancePreview()
     previewAppearance({ ...DEFAULT_APPEARANCE, accent: 'orange' })
     setAppearanceAccount(8)
-    expect(useAppearance().settings.value.accent).toBe('neutral')
+    expect(useAppearance().settings.value.accent).toBe(DEFAULT_APPEARANCE.accent)
     expect(useAppearance().previewing.value).toBe(false)
     saveAppearance({ ...DEFAULT_APPEARANCE, accent: 'violet' })
     setAppearanceAccount(null)
-    expect(useAppearance().settings.value.accent).toBe('neutral')
+    expect(useAppearance().settings.value.accent).toBe(DEFAULT_APPEARANCE.accent)
     setAppearanceAccount(7)
-    expect(useAppearance().settings.value.accent).toBe('blue')
+    expect(useAppearance().settings.value.accent).toBe('emerald')
   })
   it('syncs same-user storage changes while preserving an unsaved draft', () => {
     setAppearanceAccount(7)
-    values.set(appearanceStorageKey(7), JSON.stringify({ ...DEFAULT_APPEARANCE, accent: 'blue' }))
+    values.set(appearanceStorageKey(7), JSON.stringify({ ...DEFAULT_APPEARANCE, accent: 'emerald' }))
     window.dispatchEvent(new StorageEvent('storage', { key: appearanceStorageKey(7) }))
-    expect(useAppearance().settings.value.accent).toBe('blue')
+    expect(useAppearance().settings.value.accent).toBe('emerald')
     beginAppearancePreview()
     previewAppearance({ ...DEFAULT_APPEARANCE, accent: 'orange' })
     values.set(appearanceStorageKey(7), JSON.stringify({ ...DEFAULT_APPEARANCE, accent: 'violet' }))
@@ -83,7 +83,7 @@ describe('controlled appearance', () => {
     setAppearanceAccount(7)
     beginAppearancePreview()
     setThemeStorage({ getItem: () => null, setItem: () => {}, removeItem: () => {} })
-    expect(saveAppearance({ ...DEFAULT_APPEARANCE, accent: 'blue' })).toBe(false)
+    expect(saveAppearance({ ...DEFAULT_APPEARANCE, accent: 'violet' })).toBe(false)
     expect(useAppearance().persistenceError.value).toBe(true)
     expect(useAppearance().saved.value).toEqual(DEFAULT_APPEARANCE)
     cancelAppearancePreview()

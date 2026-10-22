@@ -92,9 +92,9 @@ onMounted(async () => {
 <template>
   <div class="space-y-6">
     <!-- Calendar Widget -->
-    <Card>
+    <Card class="gap-0 py-0">
       <CardHeader
-        class="pb-3 cursor-pointer @3xl/problemset:cursor-default select-none @3xl/problemset:border-b @3xl/problemset:border-border/40"
+        class="p-4 pb-3 cursor-pointer @3xl/problemset:cursor-default select-none @3xl/problemset:border-b @3xl/problemset:border-border/40"
         :class="{ 'border-b border-border/40': !isCollapsed }"
         @click="toggleCollapse"
       >

@@ -8,6 +8,7 @@ import { fetchForumCommunities } from "@/api/forum";
 
 const settingsOpen = ref(false);
 const sidebarState = ref("expanded");
+const isMobile = ref(false);
 const route = reactive<{ path: string; query: Record<string, string> }>({
   path: "/problemset",
   query: {},
@@ -34,15 +35,35 @@ vi.mock("vue-router", async (original) => ({
   useRoute: () => route,
   useRouter: () => ({ afterEach }),
 }));
-vi.mock("@ulticode/design-system/ui/sidebar", () => {
+vi.mock("@ulticode/design-system/ui/sidebar", async () => {
+  const { Primitive } = await import("reka-ui");
   const component = { template: "<div><slot /></div>" };
   return {
-    useSidebar: () => ({ setOpenMobile: closeMobile, state: sidebarState }),
+    useSidebar: () => ({
+      setOpenMobile: closeMobile,
+      state: sidebarState,
+      isMobile,
+      setOpen: (value: boolean) => {
+        sidebarState.value = value ? "expanded" : "collapsed";
+      },
+    }),
     SidebarGroup: component,
     SidebarMenu: component,
-    SidebarMenuButton: component,
+    SidebarMenuButton: {
+      components: { Primitive },
+      props: ["isActive", "asChild", "tooltip"],
+      template:
+        '<Primitive as="button" :as-child="asChild" :data-active="isActive || undefined"><slot /></Primitive>',
+    },
     SidebarMenuItem: component,
     SidebarMenuSub: component,
+    SidebarMenuSubItem: component,
+    SidebarMenuSubButton: {
+      components: { Primitive },
+      props: ["isActive", "asChild"],
+      template:
+        '<Primitive as="button" :as-child="asChild" :data-active="isActive || undefined"><slot /></Primitive>',
+    },
     Sidebar: component,
     SidebarContent: component,
     SidebarFooter: component,
@@ -62,6 +83,7 @@ describe("AppSidebar mobile overlays", () => {
   beforeEach(() => {
     settingsOpen.value = false;
     sidebarState.value = "expanded";
+    isMobile.value = false;
     route.path = "/problemset";
     route.query = {};
     vi.clearAllMocks();
@@ -104,7 +126,7 @@ describe("AppSidebar mobile overlays", () => {
     },
   );
 
-  it("keeps collapsed group links available without clipped headings", async () => {
+  it("opens a collapsed branch without replacing its focused trigger", async () => {
     const wrapper = mount(SidebarNav, {
       attachTo: document.body,
       props: {
@@ -119,23 +141,46 @@ describe("AppSidebar mobile overlays", () => {
       global: { stubs: { RouterLink: { template: "<a><slot /></a>" } } },
     });
     try {
-      await wrapper.get(".uc-sidebar-section-trigger").trigger("click");
       sidebarState.value = "collapsed";
       await nextTick();
-      expect(wrapper.get(".uc-sidebar-section-trigger").isVisible()).toBe(
-        false,
-      );
+      const trigger = wrapper.get('button[aria-label="Categories"]');
+      (trigger.element as HTMLButtonElement).focus();
+      expect(wrapper.findAll("a")).toHaveLength(0);
+      await trigger.trigger("click");
+      await nextTick();
+      expect(sidebarState.value).toBe("expanded");
+      expect(wrapper.get("a").text()).toBe("General");
+      expect(document.activeElement).toBe(trigger.element);
+      await trigger.trigger("click");
+      expect(trigger.attributes("aria-expanded")).toBe("false");
+    } finally {
+      wrapper.unmount();
+    }
+  });
+
+  it("keeps branch children usable in the mobile drawer when desktop is collapsed", async () => {
+    sidebarState.value = "collapsed";
+    isMobile.value = true;
+    const wrapper = mount(SidebarNav, {
+      props: {
+        sections: [
+          {
+            name: "Categories",
+            items: [{ title: "General", url: "/forum/c/general" }],
+          },
+        ],
+      },
+      global: { stubs: { RouterLink: { template: "<a><slot /></a>" } } },
+    });
+    try {
+      expect(wrapper.get("a").text()).toBe("General");
+      await wrapper.get('button[aria-label="Categories"]').trigger("click");
       expect(
         wrapper
-          .findAll("a")
-          .some((link) => link.isVisible() && link.text() === "General"),
-      ).toBe(true);
-      sidebarState.value = "expanded";
-      await nextTick();
-      expect(wrapper.get(".uc-sidebar-section-trigger").isVisible()).toBe(true);
-      expect(
-        wrapper.get(".uc-sidebar-section-trigger").attributes("data-state"),
-      ).toBe("closed");
+          .get('button[aria-label="Categories"]')
+          .attributes("aria-expanded"),
+      ).toBe("false");
+      expect(sidebarState.value).toBe("collapsed");
     } finally {
       wrapper.unmount();
     }

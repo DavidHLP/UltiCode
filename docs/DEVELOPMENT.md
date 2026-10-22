@@ -229,6 +229,10 @@ app 测试排除的共享认证/主题测试必须独立运行；其他共享包
 
 ### 共享 shadcn-vue 与外观设置
 
+Console and Management compose the official sidebar-07 hierarchy through `packages/sidebar-menu`'s `SidebarBranch`: parent rows expand indented child navigation, including problem categories, list collections, and administration groups. Icon mode keeps parent buttons accessible and expands the sidebar when a branch is selected; mobile drawers retain their child navigation. List creation and collection management keep their existing handlers and permissions.
+
+Both account footers use `packages/auth-ui`'s `AccountSwitcher` over the Auth account-session endpoints. Adding an account keeps the previous session available, switching reloads app state, and Management filters the menu to administrator accounts. Backend role checks remain authoritative. Shared Web Locks serialize account changes with refresh within one origin; apps sharing credential cookies across different origins require server coordination for atomic concurrent switching.
+
 `packages/design-system` 是 Console 与 Management 通用 UI 的唯一所有者；Landing 保留独立设计。官方组件位于 `src/components/ui/`，消费者使用 `@ulticode/design-system/ui/<group>`；只有确需单文件的适配才使用已声明的 `ui-files` 子路径。应用内不维护另一份 `components/ui` 或 CLI 配置。业务布局在各应用内组合共享组件，侧栏布局沿用官方 Sidebar Block 的 Provider、Inset、Trigger 与 Breadcrumb 组合，不引入官方示例中的虚构业务数据。
 
 共享 Dialog 默认居中并限制在视口高度内，长表单可滚动；需要固定头尾的弹窗自行使用纵向 flex、`min-h-0` 内容区和内部滚动。CommandDialog 沿用相同的定位和高度边界。AlertDialog 在保留尺寸变体的同时保留视口边距，并允许长确认内容纵向滚动。管理端顶栏在窄屏自然换行；Markdown 编辑器按自身容器宽度切换分栏与上下布局，工具栏操作和双向滚动同步使用底层 textarea 元素。

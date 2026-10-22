@@ -46,6 +46,21 @@ class DefaultAuthSessionAdapterTest {
     }
 
     @Test
+    void publicCsrfRecoveryIssuesOnlyASafeCookieWithoutAuthentication() {
+        AuthSession session = adapter.csrfSession(null);
+        assertThat(session.response().getUser()).isNull();
+        assertThat(session.response().getCsrfToken()).matches("[0-9a-f-]{36}");
+        assertThat(session.cookies()).singleElement().satisfies(cookie -> {
+            assertThat(cookie.name()).isEqualTo("csrf_token");
+            assertThat(cookie.httpOnly()).isFalse();
+            assertThat(cookie.secure()).isTrue();
+            assertThat(cookie.maxAgeSeconds()).isEqualTo(604800);
+        });
+        assertThat(adapter.csrfSession(session.response().getCsrfToken()).response().getCsrfToken())
+                .isEqualTo(session.response().getCsrfToken());
+    }
+
+    @Test
     void loginWritesSecureSameSiteCookieHeaders() {
         AuthSession session = completeLogin();
         MockHttpServletResponse response = new MockHttpServletResponse();
@@ -53,7 +68,7 @@ class DefaultAuthSessionAdapterTest {
         cookieAdapter.apply(session, response);
 
         List<String> headers = response.getHeaders(HttpHeaders.SET_COOKIE);
-        assertThat(headers).hasSize(3);
+        assertThat(headers).hasSize(4);
         assertThat(cookie(headers, "access_token"))
                 .contains("access_token=access", "Path=/", "Domain=example.test", "Max-Age=900",
                         "Secure", "HttpOnly", "SameSite=Lax");
@@ -119,7 +134,7 @@ class DefaultAuthSessionAdapterTest {
         cookieAdapter.apply(adapter.clearSession(), response);
 
         List<String> headers = response.getHeaders(HttpHeaders.SET_COOKIE);
-        assertThat(headers).hasSize(3).allSatisfy(header -> assertThat(header)
+        assertThat(headers).hasSize(4).allSatisfy(header -> assertThat(header)
                 .contains("Max-Age=0", "Path=/", "Domain=example.test", "Secure", "SameSite=Lax"));
         assertThat(cookie(headers, "access_token")).contains("HttpOnly");
         assertThat(cookie(headers, "refresh_token")).contains("HttpOnly");
@@ -133,7 +148,7 @@ class DefaultAuthSessionAdapterTest {
         assertThat(session.response().getCsrfToken()).matches("[0-9a-f-]{36}");
         assertThat(session.response().getUser().id()).isEqualTo("user-1");
         assertThat(session.cookies()).extracting(CookieMutation::name)
-                .containsExactly("access_token", "refresh_token", "csrf_token");
+                .containsExactly("access_token", "refresh_token", "csrf_token", "session_account");
         assertThat(session.cookies().get(0))
                 .satisfies(cookie -> {
                     assertThat(cookie.value()).isEqualTo("access");

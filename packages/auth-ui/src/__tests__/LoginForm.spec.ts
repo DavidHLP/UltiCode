@@ -13,6 +13,17 @@ import { router, routerPush } from "./setup";
 import LoginForm from "../components/LoginForm.vue";
 
 describe("LoginForm", () => {
+  it("leaves navigation to the account switcher when redirectOnSuccess is false", async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    const wrapper = mount(LoginForm, {
+      props: { onSubmit, redirectOnSuccess: false },
+    });
+    await wrapper.get("form").trigger("submit");
+    await flushPromises();
+    expect(onSubmit).toHaveBeenCalledOnce();
+    expect(routerPush).not.toHaveBeenCalled();
+    wrapper.unmount();
+  });
   it("renders username and password fields", () => {
     const wrapper = mount(LoginForm);
     const inputs = wrapper.findAll("input");

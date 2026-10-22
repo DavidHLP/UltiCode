@@ -5,6 +5,71 @@ import axios, {
   type InternalAxiosRequestConfig,
 } from 'axios'
 import { createCsrfTokenManager } from '@ulticode/auth-core/src/csrf'
+
+describe('session account isolation', () => {
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('rejects a stale-tab request before sending it under another account', async () => {
+    const dom = { cookie: 'session_account=alice' }
+    const reload = vi.fn()
+    vi.stubGlobal('document', dom)
+    vi.stubGlobal('window', { location: { reload } })
+    const adapter = vi.fn()
+    const client = createTestHttpClient({
+      csrfManager: createCsrfTokenManager(),
+      getLocale: () => 'en-US',
+      __testAdapter: adapter,
+    })
+    dom.cookie = 'session_account=bob'
+    await expect(client.apiGet('/private')).rejects.toMatchObject({ code: -1 })
+    expect(adapter).not.toHaveBeenCalled()
+    expect(reload).toHaveBeenCalledOnce()
+  })
+
+  it('sends the expected identity so the server can reject a cookie race', async () => {
+    vi.stubGlobal('document', { cookie: 'session_account=alice' })
+    const adapter = vi.fn(async (request: InternalAxiosRequestConfig) => ({
+      status: 200,
+      statusText: 'OK',
+      config: request,
+      headers: {},
+      data: { code: 0, data: 'ok' },
+    }))
+    const client = createTestHttpClient({
+      csrfManager: createCsrfTokenManager(),
+      getLocale: () => 'en-US',
+      __testAdapter: adapter,
+    })
+    await expect(client.apiGet('/private')).resolves.toBe('ok')
+    expect(adapter.mock.calls[0][0].headers['X-Session-Account']).toBe('alice')
+  })
+
+  it('drops an old in-flight response after another tab switches accounts', async () => {
+    const dom = { cookie: 'session_account=alice' }
+    const reload = vi.fn()
+    vi.stubGlobal('document', dom)
+    vi.stubGlobal('window', { location: { reload } })
+    const race = createRaceAdapter()
+    const client = createTestHttpClient({
+      csrfManager: createCsrfTokenManager(),
+      getLocale: () => 'en-US',
+      __testAdapter: race.adapter,
+    })
+    const result = client.apiGet('/private').catch((error) => error)
+    await vi.waitFor(() => expect(race.requests).toHaveLength(1))
+    dom.cookie = 'session_account=bob'
+    race.requests[0].resolve({
+      status: 200,
+      statusText: 'OK',
+      config: race.requests[0].request,
+      headers: {},
+      data: { code: 0, data: 'alice-private-data' },
+    })
+    expect(await result).toMatchObject({ name: 'CanceledError' })
+    expect(reload).toHaveBeenCalledOnce()
+  })
+})
+
 import {
   createHttpClient,
   type HttpClient,
@@ -89,10 +154,11 @@ type PendingRequest = {
 
 function createRaceAdapter() {
   const requests: PendingRequest[] = []
-  const adapter = vi.fn().mockImplementation((request: InternalAxiosRequestConfig) =>
-    new Promise<unknown>((resolve, reject) => {
-      requests.push({ request, resolve, reject })
-    }),
+  const adapter = vi.fn().mockImplementation(
+    (request: InternalAxiosRequestConfig) =>
+      new Promise<unknown>((resolve, reject) => {
+        requests.push({ request, resolve, reject })
+      }),
   )
   return { adapter, requests }
 }
@@ -167,7 +233,10 @@ function installDownloadDom(): DownloadDom {
     return anchor
   }
   vi.stubGlobal('window', {
-    URL: { createObjectURL: dom.createObjectURL, revokeObjectURL: dom.revokeObjectURL },
+    URL: {
+      createObjectURL: dom.createObjectURL,
+      revokeObjectURL: dom.revokeObjectURL,
+    },
   })
   vi.stubGlobal('document', {
     cookie: '',
@@ -187,7 +256,10 @@ function installDownloadDom(): DownloadDom {
   return dom
 }
 
-function succeedWithBlob(blob: Blob, capture: { request?: InternalAxiosRequestConfig }) {
+function succeedWithBlob(
+  blob: Blob,
+  capture: { request?: InternalAxiosRequestConfig },
+) {
   return vi.fn().mockImplementation((request: InternalAxiosRequestConfig) => {
     capture.request = request
     return Promise.resolve({
@@ -246,7 +318,12 @@ describe('ApiResponse unwrap', () => {
       statusText: 'OK',
       headers: {},
       config: { headers: {} },
-      data: { code: 0, message: 'success', data: { id: 'u-1' }, traceId: 't-1' },
+      data: {
+        code: 0,
+        message: 'success',
+        data: { id: 'u-1' },
+        traceId: 't-1',
+      },
     })
     const client = createTestHttpClient({
       csrfManager: createCsrfTokenManager(),
@@ -352,7 +429,10 @@ describe('ApiResponse unwrap', () => {
     })
     const legacyInit = { skipResponseUnwrap: true } as unknown as RequestConfig
 
-    const result = await client.apiGet<Record<string, unknown>>('/legacy', legacyInit)
+    const result = await client.apiGet<Record<string, unknown>>(
+      '/legacy',
+      legacyInit,
+    )
     // The unwrapped payload, not an Axios response: the removed flag cannot
     // reopen a raw-return path at runtime either.
     expect(result).toEqual({ direct: true })
@@ -361,7 +441,9 @@ describe('ApiResponse unwrap', () => {
 
 describe('Auth failure strategy', () => {
   it('invokes the clear-and-run callback on 401', async () => {
-    const adapter = vi.fn().mockRejectedValue(buildAxiosError(401, 'Unauthorized'))
+    const adapter = vi
+      .fn()
+      .mockRejectedValue(buildAxiosError(401, 'Unauthorized'))
     const onAuthFailure = vi.fn()
     const client = createTestHttpClient({
       csrfManager: createCsrfTokenManager(),
@@ -406,13 +488,18 @@ describe('Auth failure strategy', () => {
         __testAdapter: adapter,
       })
 
-      await expect(client.apiGet('/admin/foo')).rejects.toMatchObject({ code: 403, message })
+      await expect(client.apiGet('/admin/foo')).rejects.toMatchObject({
+        code: 403,
+        message,
+      })
       expect(onAuthFailure).not.toHaveBeenCalled()
     },
   )
 
   it('invokes redirect-login on 401 with the configured path', async () => {
-    const adapter = vi.fn().mockRejectedValue(buildAxiosError(401, 'Unauthorized'))
+    const adapter = vi
+      .fn()
+      .mockRejectedValue(buildAxiosError(401, 'Unauthorized'))
     const redirect = vi.fn()
     const client = createTestHttpClient({
       csrfManager: createCsrfTokenManager(),
@@ -489,7 +576,9 @@ describe('Dedup policy', () => {
       expect(clientBState.adapter).toHaveBeenCalledTimes(1)
     })
     const secondA = clientA.apiGet('/foo')
-    await vi.waitFor(() => expect(clientAState.adapter).toHaveBeenCalledTimes(2))
+    await vi.waitFor(() =>
+      expect(clientAState.adapter).toHaveBeenCalledTimes(2),
+    )
 
     expect(clientAState.adapter).toHaveBeenCalledTimes(2)
     expect(clientBState.adapter).toHaveBeenCalledTimes(1)
@@ -558,10 +647,12 @@ describe('Dedup policy', () => {
   })
   it('forwards the package-owned AbortSignal option through every helper signature', async () => {
     const seenSignals: unknown[] = []
-    const adapter = vi.fn().mockImplementation((request: InternalAxiosRequestConfig) => {
-      seenSignals.push(request.signal)
-      return Promise.resolve(responseFor(request))
-    })
+    const adapter = vi
+      .fn()
+      .mockImplementation((request: InternalAxiosRequestConfig) => {
+        seenSignals.push(request.signal)
+        return Promise.resolve(responseFor(request))
+      })
     const client = createTestHttpClient({
       csrfManager: createCsrfTokenManager(),
       baseURL: 'http://test.local',
@@ -586,7 +677,9 @@ describe('Dedup policy', () => {
     ): Promise<void> => client.apiDownload(path, filename, downloadInit)
 
     expect(typeof download).toBe('function')
-    expect(seenSignals).toEqual(Array.from({ length: 6 }, () => controller.signal))
+    expect(seenSignals).toEqual(
+      Array.from({ length: 6 }, () => controller.signal),
+    )
   })
 
   it('does not let a stale response clear the replacement request entry', async () => {
@@ -669,7 +762,9 @@ describe('Dedup policy', () => {
     const second = client.apiGet('/abort')
     await vi.waitFor(() => expect(state.adapter).toHaveBeenCalledTimes(2))
     expect(state.requests[1].signal?.aborted).toBe(false)
-    state.pending[1](responseFor(state.requests[1] as InternalAxiosRequestConfig))
+    state.pending[1](
+      responseFor(state.requests[1] as InternalAxiosRequestConfig),
+    )
     await expect(second).resolves.toEqual({ ok: true })
   })
 
@@ -683,7 +778,10 @@ describe('Dedup policy', () => {
       __testAdapter: state.adapter,
     })
     const controller = new AbortController()
-    const removeCallerListener = vi.spyOn(controller.signal, 'removeEventListener')
+    const removeCallerListener = vi.spyOn(
+      controller.signal,
+      'removeEventListener',
+    )
 
     const first = client
       .apiGet('/replacement-cleanup', { signal: controller.signal })
@@ -703,12 +801,13 @@ describe('Dedup policy', () => {
     await expect(first).resolves.toEqual({ ok: true })
     await expect(second).resolves.toEqual({ ok: true })
   })
-
 })
 
 describe('Retry / backoff', () => {
   it('does NOT retry when retry: 0 (verified via adapter call count)', async () => {
-    const adapter = vi.fn().mockRejectedValue(buildAxiosError(500, 'Internal Server Error'))
+    const adapter = vi
+      .fn()
+      .mockRejectedValue(buildAxiosError(500, 'Internal Server Error'))
     const client = createTestHttpClient({
       csrfManager: createCsrfTokenManager(),
       baseURL: 'http://test.local',
@@ -721,9 +820,11 @@ describe('Retry / backoff', () => {
     expect(adapter).toHaveBeenCalledTimes(1)
   })
   it('stops retrying after the configured limit when requests keep failing', async () => {
-    const adapter = vi.fn().mockImplementation((request: InternalAxiosRequestConfig) =>
-      Promise.reject(buildAxiosError(500, 'Internal Server Error', request)),
-    )
+    const adapter = vi
+      .fn()
+      .mockImplementation((request: InternalAxiosRequestConfig) =>
+        Promise.reject(buildAxiosError(500, 'Internal Server Error', request)),
+      )
     const client = createTestHttpClient({
       csrfManager: createCsrfTokenManager(),
       baseURL: 'http://test.local',
@@ -732,7 +833,9 @@ describe('Retry / backoff', () => {
       __testAdapter: adapter,
     })
 
-    await expect(client.apiGet('/foo', { retry: 1, retryDelay: 1 })).rejects.toMatchObject({
+    await expect(
+      client.apiGet('/foo', { retry: 1, retryDelay: 1 }),
+    ).rejects.toMatchObject({
       name: 'ApiError',
       code: 500,
     })
@@ -751,15 +854,17 @@ describe('Retry / backoff', () => {
       const firstFailure = new Promise<unknown>((_, reject) => {
         rejectFirst = reject
       })
-      const adapter = vi.fn().mockImplementation((request: InternalAxiosRequestConfig) => {
-        if (adapter.mock.calls.length === 1) {
-          firstRequest = request
-          return firstFailure
-        }
-        return new Promise<unknown>((resolve) => {
-          pending.push({ request, resolve })
+      const adapter = vi
+        .fn()
+        .mockImplementation((request: InternalAxiosRequestConfig) => {
+          if (adapter.mock.calls.length === 1) {
+            firstRequest = request
+            return firstFailure
+          }
+          return new Promise<unknown>((resolve) => {
+            pending.push({ request, resolve })
+          })
         })
-      })
       const client = createTestHttpClient({
         csrfManager: createCsrfTokenManager(),
         baseURL: 'http://test.local',
@@ -786,8 +891,13 @@ describe('Retry / backoff', () => {
       pending[0].resolve(responseFor(pending[0].request))
 
       await expect(second).resolves.toEqual({ ok: true })
-      await expect(first).resolves.toMatchObject({ name: 'ApiError', code: 500 })
-      expect(debug.mock.calls.filter(([message]) => message === '[API Retry]')).toHaveLength(0)
+      await expect(first).resolves.toMatchObject({
+        name: 'ApiError',
+        code: 500,
+      })
+      expect(
+        debug.mock.calls.filter(([message]) => message === '[API Retry]'),
+      ).toHaveLength(0)
     } finally {
       debug.mockRestore()
       vi.useRealTimers()
@@ -802,13 +912,17 @@ describe('Retry / backoff', () => {
       const firstFailure = new Promise<unknown>((_, reject) => {
         rejectFirst = reject
       })
-      const adapter = vi.fn().mockImplementation((request: InternalAxiosRequestConfig) => {
-        if (adapter.mock.calls.length === 1) {
-          firstRequest = request
-          return firstFailure
-        }
-        return Promise.reject(buildAxiosError(500, 'should never be sent', request))
-      })
+      const adapter = vi
+        .fn()
+        .mockImplementation((request: InternalAxiosRequestConfig) => {
+          if (adapter.mock.calls.length === 1) {
+            firstRequest = request
+            return firstFailure
+          }
+          return Promise.reject(
+            buildAxiosError(500, 'should never be sent', request),
+          )
+        })
       const client = createTestHttpClient({
         csrfManager: createCsrfTokenManager(),
         baseURL: 'http://test.local',
@@ -819,7 +933,11 @@ describe('Retry / backoff', () => {
       const controller = new AbortController()
 
       const first = client
-        .apiGet('/backoff-abort', { retry: 1, retryDelay: 100, signal: controller.signal })
+        .apiGet('/backoff-abort', {
+          retry: 1,
+          retryDelay: 100,
+          signal: controller.signal,
+        })
         .catch((error: unknown) => error)
       await vi.waitFor(() => expect(adapter).toHaveBeenCalledTimes(1))
 
@@ -830,7 +948,10 @@ describe('Retry / backoff', () => {
       controller.abort()
       await vi.advanceTimersByTimeAsync(100)
 
-      await expect(first).resolves.toMatchObject({ name: 'ApiError', code: -1 })
+      await expect(first).resolves.toMatchObject({
+        name: 'ApiError',
+        code: -1,
+      })
       expect(adapter).toHaveBeenCalledTimes(1)
     } finally {
       vi.useRealTimers()
@@ -896,12 +1017,17 @@ describe('apiDownload', () => {
     const client = downloadClient(state.adapter)
     const controller = new AbortController()
 
-    const download = client.apiDownload('/files/4', 'slow.bin', { signal: controller.signal })
+    const download = client.apiDownload('/files/4', 'slow.bin', {
+      signal: controller.signal,
+    })
     await vi.waitFor(() => expect(state.adapter).toHaveBeenCalledTimes(1))
     expect(state.requests[0].signal).toBeDefined()
 
     controller.abort()
-    await expect(download).rejects.toMatchObject({ name: 'ApiError', code: -1 })
+    await expect(download).rejects.toMatchObject({
+      name: 'ApiError',
+      code: -1,
+    })
     expect(state.requests[0].signal?.aborted).toBe(true)
     expect(dom.createObjectURL).not.toHaveBeenCalled()
     expect(dom.revokeObjectURL).not.toHaveBeenCalled()
@@ -909,13 +1035,17 @@ describe('apiDownload', () => {
   })
 
   it('rejects transport failures without any download DOM side effects', async () => {
-    const adapter = vi.fn().mockImplementation((request: InternalAxiosRequestConfig) =>
-      Promise.reject(buildAxiosError(500, 'Internal Server Error', request)),
-    )
+    const adapter = vi
+      .fn()
+      .mockImplementation((request: InternalAxiosRequestConfig) =>
+        Promise.reject(buildAxiosError(500, 'Internal Server Error', request)),
+      )
     const dom = installDownloadDom()
     const client = downloadClient(adapter)
 
-    await expect(client.apiDownload('/files/5', 'boom.bin', { retry: 0 })).rejects.toMatchObject({
+    await expect(
+      client.apiDownload('/files/5', 'boom.bin', { retry: 0 }),
+    ).rejects.toMatchObject({
       name: 'ApiError',
       code: 500,
     })
@@ -931,7 +1061,9 @@ describe('apiDownload', () => {
     dom.failOn.remove = true
     const client = downloadClient(succeedWithBlob(blob, {}))
 
-    await expect(client.apiDownload('/files/6', 'a.bin')).rejects.toThrow('click-boom')
+    await expect(client.apiDownload('/files/6', 'a.bin')).rejects.toThrow(
+      'click-boom',
+    )
     expect(dom.createObjectURL).toHaveBeenCalledTimes(1)
     expect(dom.anchors).toHaveLength(1)
     expect(dom.anchors[0].clicked).toBe(0)
@@ -945,7 +1077,9 @@ describe('apiDownload', () => {
     dom.failOn.remove = true
     const client = downloadClient(succeedWithBlob(blob, {}))
 
-    await expect(client.apiDownload('/files/7', 'b.bin')).rejects.toThrow('remove-boom')
+    await expect(client.apiDownload('/files/7', 'b.bin')).rejects.toThrow(
+      'remove-boom',
+    )
     expect(dom.anchors[0].clicked).toBe(1)
     expect(dom.revokeObjectURL).toHaveBeenCalledWith('blob:download-1')
   })

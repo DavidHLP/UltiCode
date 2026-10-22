@@ -168,7 +168,7 @@ describe("axiosCsrfInterceptor", () => {
       const result = await interceptors.errorInterceptor(error);
       expect(originalConfig.headers["X-CSRF-Token"]).toBe("fresh-csrf-token");
 
-      expect(rawAxios.get).toHaveBeenCalledWith("/auth/me");
+      expect(rawAxios.get).toHaveBeenCalledWith("/auth/csrf");
       expect(rawAxios.request).toHaveBeenCalledTimes(1);
       expect(rawAxios.request).toHaveBeenCalledWith(originalConfig);
       expect(mockCsrfManager.refreshFromResponse).toHaveBeenCalledWith({
@@ -207,7 +207,7 @@ describe("axiosCsrfInterceptor", () => {
 
       await prefixed.errorInterceptor(error);
 
-      expect(rawAxios.get).toHaveBeenCalledWith("/auth/me");
+      expect(rawAxios.get).toHaveBeenCalledWith("/auth/csrf");
     });
 
     it("should NOT retry if already retried", async () => {
@@ -316,7 +316,7 @@ describe("axiosCsrfInterceptor", () => {
 
       const result = await interceptors.errorInterceptor(error);
 
-      expect(rawAxios.get).toHaveBeenCalledWith("/auth/me");
+      expect(rawAxios.get).toHaveBeenCalledWith("/auth/csrf");
       expect(rawAxios.request).toHaveBeenCalledTimes(1);
       expect(mockCsrfManager.refreshFromResponse).toHaveBeenCalled();
       expect(result).toEqual({ data: "retry-response" });

@@ -41,6 +41,8 @@ const props = withDefaults(
      * route's `?redirect=` query string, falling back to `/`.
      */
     redirectAfter?: string;
+    redirectOnSuccess?: boolean;
+    hideHeading?: boolean;
     /** Fallback redirect when neither an explicit nor query redirect is valid. */
     fallbackRedirect?: string;
     /** Hide the "no account / sign up" footer (management uses this) */
@@ -52,6 +54,8 @@ const props = withDefaults(
   }>(),
   {
     redirectAfter: "",
+    redirectOnSuccess: true,
+    hideHeading: false,
     fallbackRedirect: "/",
     hideSignUp: false,
     hideOAuth: false,
@@ -95,7 +99,7 @@ async function handleSubmit(event: Event) {
       resolveInternalRedirect(route.query.redirect) ??
       resolveInternalRedirect(props.fallbackRedirect) ??
       "/";
-    await router.push(target);
+    if (props.redirectOnSuccess) await router.push(target);
   } catch (err: unknown) {
     error.value =
       (err as { response?: { data?: { message?: string } } })?.response?.data
@@ -109,7 +113,7 @@ async function handleSubmit(event: Event) {
 <template>
   <form :class="cn('flex flex-col gap-5', props.class)" @submit="handleSubmit">
     <!-- Header -->
-    <div class="flex flex-col gap-2">
+    <div v-if="!hideHeading" class="flex flex-col gap-2">
       <h1 class="text-2xl font-semibold">{{ t("auth.login.title") }}</h1>
       <p class="text-sm text-muted-foreground">
         {{ t("auth.login.subtitle") }}

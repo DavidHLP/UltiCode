@@ -67,8 +67,9 @@ const commentCan = { comment: usePermissionMap(commentPermissionRules) }
 
 const user = computed(() => ({
   name: authStore.user?.name || 'Admin',
+  username: authStore.user?.username,
   email: authStore.user?.email || 'admin@ulticode.com',
-  avatar: authStore.user?.avatar || '/avatars/default.jpg',
+  avatar: authStore.user?.avatar || '',
   role: authStore.userRole || 'ADMIN',
 }))
 

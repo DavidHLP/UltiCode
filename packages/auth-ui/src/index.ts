@@ -34,3 +34,4 @@ export type { AuthPatternLine } from './layouts/useAuthLayout'
 
 // Utilities
 export { cn } from './components/cn'
+export { resolveAvatar, useAvatar } from './useAvatar'

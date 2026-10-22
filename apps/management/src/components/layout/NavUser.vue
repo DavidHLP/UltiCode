@@ -6,6 +6,8 @@ import {
   UserCircle as IconUserCircle,
 } from '@lucide/vue'
 
+import { computed } from 'vue'
+import { useAvatar } from '@ulticode/auth-ui'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
@@ -28,12 +30,13 @@ import {
 
 interface User {
   name: string
+  username?: string
   email: string
   avatar?: string
   role?: string
 }
 
-defineProps<{
+const props = defineProps<{
   user: User
 }>()
 
@@ -41,6 +44,10 @@ const router = useRouter()
 const { t } = useI18n()
 const { isMobile } = useSidebar()
 const authStore = useAuthStore()
+const { normalizedAvatar } = useAvatar(
+  computed(() => props.user.username || props.user.name),
+  computed(() => props.user.avatar),
+)
 
 function handleAccount() {
   router.push('/account')
@@ -63,7 +70,7 @@ async function handleLogout() {
         <DropdownMenuTrigger as-child>
           <SidebarMenuButton size="lg" :tooltip="t('nav.account')">
             <Avatar class="h-8 w-8 rounded-lg">
-              <AvatarImage v-if="user.avatar" :src="user.avatar" :alt="user.name" />
+              <AvatarImage :src="normalizedAvatar" :alt="user.name" />
               <AvatarFallback>{{ user.name.slice(0, 2).toUpperCase() }}</AvatarFallback>
             </Avatar>
             <div class="grid flex-1 text-left text-sm leading-tight">
@@ -91,7 +98,7 @@ async function handleLogout() {
           <DropdownMenuLabel class="p-0">
             <div class="flex items-center gap-2 px-1.5 py-1.5 text-left text-sm">
               <Avatar class="h-8 w-8 rounded-lg">
-                <AvatarImage v-if="user.avatar" :src="user.avatar" :alt="user.name" />
+                <AvatarImage :src="normalizedAvatar" :alt="user.name" />
                 <AvatarFallback>{{ user.name.slice(0, 2).toUpperCase() }}</AvatarFallback>
               </Avatar>
               <div class="grid flex-1 text-left text-xs leading-tight">

@@ -2,7 +2,7 @@
 import { Checkbox } from "@ulticode/design-system/ui/checkbox";
 import { FieldLabel } from "@ulticode/design-system/ui/field";
 
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { renderMarkdown } from "@ulticode/markdown-utils";
@@ -26,7 +26,7 @@ const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const workspace = useAgentConversations();
-const enabled = import.meta.env.VITE_AGENT_REVIEW_ENABLED === "true";
+const enabled = computed(() => capability.value?.featureEnabled !== false);
 const capability = ref<AgentCapabilities | null>(null);
 const capabilityLoading = ref(false);
 const capabilityError = ref(false);
@@ -45,7 +45,7 @@ const submissionIdQuery = computed(() => {
 });
 const canSend = computed(
   () =>
-    enabled &&
+    enabled.value &&
     capability.value?.analysisAvailable === true &&
     Boolean(workspace.sourceSubmissionId.value) &&
     !workspace.busy.value &&
@@ -96,9 +96,9 @@ function updateRoute(conversationId?: string, submissionId?: string) {
 }
 
 watch(
-  [conversationIdQuery, submissionIdQuery],
+  [conversationIdQuery, submissionIdQuery, enabled],
   ([conversationId, submissionId]) => {
-    if (!enabled) return;
+    if (!enabled.value) return;
     if (validUuid(conversationId)) {
       if (workspace.conversation.value?.conversationId !== conversationId) {
         sourceConsent.value = false;
@@ -138,22 +138,29 @@ watch(
   { deep: true },
 );
 
-onMounted(async () => {
-  if (!enabled) return;
-  capabilityLoading.value = true;
-  const capabilityRequest = agentApi
-    .getCapabilities()
-    .then((value) => {
-      capability.value = value;
-    })
-    .catch(() => {
-      capabilityError.value = true;
-    })
-    .finally(() => {
-      capabilityLoading.value = false;
-    });
-  await Promise.all([capabilityRequest, workspace.loadConversations(true)]);
-});
+watch(
+  enabled,
+  async (active) => {
+    if (!active) return;
+    capabilityLoading.value = true;
+    const capabilityRequest = agentApi
+      .getCapabilities()
+      .then((value) => {
+        capability.value = value;
+      })
+      .catch(() => {
+        capabilityError.value = true;
+      })
+      .finally(() => {
+        capabilityLoading.value = false;
+      });
+    await capabilityRequest;
+    if (!capabilityError.value && capability.value?.featureEnabled !== false) {
+      await workspace.loadConversations(true);
+    }
+  },
+  { immediate: true },
+);
 
 async function send() {
   const question = draft.value.trim();

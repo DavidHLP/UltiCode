@@ -31,6 +31,7 @@ export interface AgentWorkflowEvent {
 }
 
 export interface AgentCapabilities {
+  featureEnabled?: boolean;
   analysisAvailable: boolean;
   persistenceAvailable: boolean;
   conversationHistoryAvailable: boolean;

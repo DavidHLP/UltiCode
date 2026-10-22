@@ -17,11 +17,65 @@ import uvicorn
 from deepseek_model import DeepseekModel, ModelBudgetExceeded
 from agent_loop import ModelDecision, ToolCall
 from agent_service.app import create_app, parse_model_answer
+from agent_service.app import _read_agent_feature as read_admin_feature, AgentError
 from retrieval import SourceDocument
 from citation_integrity import check_citations
 from ulticode_client import UlticodeServiceError
 
 HEADERS = {"cookie": "access_token=access; csrf_token=csrf", "x-csrf-token": "csrf"}
+
+
+@pytest.mark.parametrize("payload,expected", [
+    ({"code": 0, "data": {"enabled": True}}, True),
+    ({"code": 0, "data": {"enabled": False}}, False),
+    ({"code": 0, "data": {"enabled": "true"}}, None),
+    ({"code": 50000, "data": {"enabled": True}}, None),
+    ({}, None),
+])
+def test_admin_feature_response_is_validated(monkeypatch, payload, expected):
+    original_client = httpx.AsyncClient
+    transport = httpx.MockTransport(lambda request: httpx.Response(200, json=payload))
+    monkeypatch.setattr(httpx, "AsyncClient", lambda **kwargs: original_client(transport=transport, **kwargs))
+    if expected is None:
+        with pytest.raises(AgentError, match="agent_settings_unavailable"):
+            asyncio.run(read_admin_feature())
+    else:
+        assert asyncio.run(read_admin_feature()) is expected
+
+
+@pytest.fixture(autouse=True)
+def enabled_admin_feature(monkeypatch):
+    async def enabled():
+        return True
+    monkeypatch.setattr("agent_service.app._read_agent_feature", enabled)
+
+
+def test_admin_disabled_agent_rejects_direct_requests(tmp_path):
+    app = create_app(state_path=tmp_path / "admin-disabled.sqlite3", client_factory=SessionClient)
+    async def disabled():
+        return False
+    app.state.agent_feature_enabled = disabled
+    async def scenario(client):
+        capability = await client.get("/agent/capabilities", headers=HEADERS)
+        assert capability.status_code == 200
+        assert capability.json()["data"]["featureEnabled"] is False
+        response = await client.get("/agent/conversations", headers=HEADERS)
+        assert response.status_code == 403
+        assert response.json()["message"] == "agent_disabled"
+    asyncio.run(with_client(app, scenario))
+
+
+def test_admin_settings_failure_prevents_agent_operations(tmp_path):
+    from agent_service.app import AgentError
+    app = create_app(state_path=tmp_path / "admin-unavailable.sqlite3", client_factory=SessionClient)
+    async def unavailable():
+        raise AgentError(503, "agent_settings_unavailable", 50300)
+    app.state.agent_feature_enabled = unavailable
+    async def scenario(client):
+        response = await client.get("/agent/conversations", headers=HEADERS)
+        assert response.status_code == 503
+        assert response.json()["message"] == "agent_settings_unavailable"
+    asyncio.run(with_client(app, scenario))
 
 
 async def with_client(app, callback):
@@ -1542,6 +1596,9 @@ async def main():
     model = ScriptedModel()
     app = create_app(state_path=sys.argv[1], client_factory=OwnerClient,
                      offline_model_factory=lambda: (model, {}))
+    async def feature_enabled():
+        return True
+    app.state.agent_feature_enabled = feature_enabled
     async with app.router.lifespan_context(app):
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
             if sys.argv[2] == "prepare":

@@ -73,6 +73,7 @@ const cases: {
       feature_notifications: true,
       feature_bookmarks: true,
       feature_problem_lists: true,
+      feature_agent: true,
     },
   },
 ]

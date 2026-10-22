@@ -130,6 +130,7 @@ function defaultAllSettings(): AllSettings {
     feature_notifications: true,
     feature_bookmarks: true,
     feature_problem_lists: true,
+    feature_agent: true,
   }
 }
 
@@ -183,6 +184,7 @@ function sliceFeatures(s: AllSettings): FeatureToggles {
     feature_notifications: s.feature_notifications,
     feature_bookmarks: s.feature_bookmarks,
     feature_problem_lists: s.feature_problem_lists,
+    feature_agent: s.feature_agent,
   }
 }
 
@@ -368,7 +370,10 @@ export const useSystemSettingsStore = defineStore('adminSystemSettings', () => {
       all.value = { ...all.value, ...result }
       saveState.value.rateLimits = 'success'
     } catch (err) {
-      categoryErrors.value.rateLimits = extractApiErrorMessage(err, 'Failed to save rate limit settings')
+      categoryErrors.value.rateLimits = extractApiErrorMessage(
+        err,
+        'Failed to save rate limit settings',
+      )
       saveState.value.rateLimits = 'error'
       throw err
     }

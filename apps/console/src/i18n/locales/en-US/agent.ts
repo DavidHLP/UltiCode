@@ -111,7 +111,7 @@ export default {
     cancelling: "Cancelling…",
     send: "Send",
     disclaimer: "Agent responses may be incomplete. Check cited locations before relying on a conclusion.",
-    unavailable: "Agent conversations are not enabled in this environment.",
+    unavailable: "Agent has been disabled by an administrator. Please contact your administrator.",
     errors: {
       requestFailed: "The request did not complete. Check the connection and reload this view to see the saved state.",
       streamFailed: "The live activity stream disconnected. Automatic observation is limited; if the result is still pending, reload to check the server state.",

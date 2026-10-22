@@ -90,6 +90,9 @@ export default {
 
   // Feature toggles
   features: {
+    agent: 'Agent assistant',
+    agentDescription:
+      'Enabled by default. Controls Agent conversations and submission reviews for all users. Disabling preserves data and running analyses.',
     title: 'Feature Toggles',
     description: 'Enable or disable platform features',
     contest: 'Contests',

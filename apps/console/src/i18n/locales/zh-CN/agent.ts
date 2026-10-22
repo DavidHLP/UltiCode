@@ -111,7 +111,7 @@ export default {
     cancelling: "正在取消…",
     send: "发送",
     disclaimer: "Agent 的回答可能不完整。请核对引用位置后再采纳结论。",
-    unavailable: "当前环境未启用 Agent 对话功能。",
+    unavailable: "管理员已关闭 Agent 功能，请联系管理员。",
     errors: {
       requestFailed: "请求未能完成。请检查连接并重新载入此页面，确认已保存的状态。",
       streamFailed: "实时活动流已断开，自动观察有次数和时限限制。若结果仍未确认，请重新载入核对服务端状态。",

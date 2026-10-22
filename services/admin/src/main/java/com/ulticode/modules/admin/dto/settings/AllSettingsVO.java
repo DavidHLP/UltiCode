@@ -50,4 +50,5 @@ public class AllSettingsVO {
     private boolean featureNotifications;
     private boolean featureBookmarks;
     private boolean featureProblemLists;
+    private boolean featureAgent = true;
 }

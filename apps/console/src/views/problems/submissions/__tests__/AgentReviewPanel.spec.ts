@@ -84,12 +84,11 @@ describe("AgentReviewPanel", () => {
   });
   afterEach(() => vi.unstubAllEnvs());
 
-  it("does not mount or request capabilities when the feature flag is off", async () => {
-    vi.stubEnv("VITE_AGENT_REVIEW_ENABLED", "false");
+  it("shows the workspace entry by default without a build flag", async () => {
     const Panel = await loadPanel();
     const wrapper = mount(Panel, { props: { submission: row } });
     await flushPromises();
-    expect(wrapper.find("section").exists()).toBe(false);
+    expect(wrapper.find("[data-agent-workspace-entry]").exists()).toBe(true);
     expect(mocks.getCapabilities).not.toHaveBeenCalled();
   });
 

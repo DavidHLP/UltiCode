@@ -40,6 +40,11 @@ const featureToggles: { key: keyof FeatureToggles; labelKey: string; descKey: st
     descKey: 'settings.features.solutionsDescription',
   },
   {
+    key: 'feature_agent',
+    labelKey: 'settings.features.agent',
+    descKey: 'settings.features.agentDescription',
+  },
+  {
     key: 'feature_subscriptions',
     labelKey: 'settings.features.subscriptions',
     descKey: 'settings.features.subscriptionsDescription',

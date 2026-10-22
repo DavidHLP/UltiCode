@@ -95,6 +95,8 @@ Origin 必须与浏览器地址完全一致。默认不调用外部模型，不�
 
 ### Agent 工作流与业务入口
 
+The `/agent` workspace offers eligible entries from the latest three submissions after checking their detail responses against the existing review policy. Selecting an entry binds the submission without starting analysis. The empty state hides the composer; the bound state shares one content column across its header, transcript, and composer. Source notices appear in the content area, while retention information stays in the conversation navigation.
+
 Console 的入口是共享提交详情中的可收起复盘面板，用于 `/submissions/:id` 和题目页选中的提交。“我的提交”直接进入对应结果；旧 `/personal/agent?threadId=...` 只负责验证线程归属并跳转，无线程时返回个人提交列表。
 
 Agent 对话默认开启，不再读取 `VITE_AGENT_REVIEW_ENABLED`。管理员通过 Management“系统设置 → 功能开关 → Agent 智能体”统一控制，沿用该页的保存流程和管理权限。设置持久化在 Admin 的既有 features 配置中，旧配置缺少字段时默认开启。用户端不提供开关。Agent 每次请求从 Admin 的 `/api/v1/public/features/agent` 读取可用状态；关闭后拒绝新的对话、分析及保存操作，保留已有数据和正在执行的分析。配置读取失败返回 503，不继续调用模型。独立部署可通过 `ULTICODE_ADMIN_BASE` 配置 Admin 地址，默认 `http://127.0.0.1:9102`。此设置不替代模型及持久化授权。仅本人、已知终态、明确 `contestSubmission: false` 的普通练习提交可用；旧 Java provider 缺少字段时不开放。Agent 服务再次核对来源资格。

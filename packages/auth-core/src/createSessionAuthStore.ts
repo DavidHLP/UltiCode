@@ -1,4 +1,5 @@
 import { ref, type Ref } from 'vue'
+import { withBrowserSessionLock } from './browserSessionLock'
 
 /**
  * Session lifecycle status for the status-machine auth flow.
@@ -71,7 +72,9 @@ export interface SessionAuthStore<U> {
  *
  * @param transport per-app backend transport
  */
-export function createSessionAuthStore<U>(transport: SessionAuthTransport<U>): SessionAuthStore<U> {
+export function createSessionAuthStore<U>(
+  transport: SessionAuthTransport<U>,
+): SessionAuthStore<U> {
   const user = ref<U | null>(null) as Ref<U | null>
   const status = ref<SessionStatus>('idle')
   const error = ref<Error | null>(null)
@@ -154,7 +157,8 @@ export function createSessionAuthStore<U>(transport: SessionAuthTransport<U>): S
     status.value = 'loading'
     error.value = null
     try {
-      const { user: fetchedUser, csrfToken } = await step()
+      const { user: fetchedUser, csrfToken } =
+        await withBrowserSessionLock(step)
       if (!fetchedUser) {
         throw new Error(invalidResponseLabel)
       }
@@ -171,7 +175,10 @@ export function createSessionAuthStore<U>(transport: SessionAuthTransport<U>): S
   }
 
   async function login(credentials: unknown): Promise<void> {
-    await runAuthFlow(() => transport.login(credentials), 'Invalid login response')
+    await runAuthFlow(
+      () => transport.login(credentials),
+      'Invalid login response',
+    )
   }
 
   async function register(data: unknown): Promise<void> {
@@ -179,7 +186,9 @@ export function createSessionAuthStore<U>(transport: SessionAuthTransport<U>): S
       () =>
         transport.register
           ? transport.register(data)
-          : Promise.reject(new Error('Registration is not supported by this adapter')),
+          : Promise.reject(
+              new Error('Registration is not supported by this adapter'),
+            ),
       'Invalid register response',
     )
   }
@@ -187,7 +196,7 @@ export function createSessionAuthStore<U>(transport: SessionAuthTransport<U>): S
   async function logout(): Promise<void> {
     status.value = 'loading'
     try {
-      await transport.logout()
+      await withBrowserSessionLock(() => transport.logout())
     } catch (err) {
       console.error('[Auth] Logout error:', err)
     } finally {

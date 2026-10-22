@@ -63,6 +63,34 @@ class RefreshTokenServiceTest {
     }
 
     @Test
+    void catalogValidationChecksDatabaseRevocationExpiryAndUserWithoutRotating() {
+        RefreshToken stored = new RefreshToken();
+        stored.setUserId("user-1");
+        stored.setIsRevoked(false);
+        stored.setExpiresAt(LocalDateTime.parse("2026-01-02T00:00:00"));
+        when(jwtTokenProvider.getUserIdFromRefreshToken("saved-token")).thenReturn("user-1");
+        when(refreshTokenMapper.selectOne(any(Wrapper.class))).thenReturn(stored);
+        assertThat(refreshTokenService.findValidUserId("saved-token")).isEqualTo("user-1");
+        stored.setIsRevoked(true);
+        assertThat(refreshTokenService.findValidUserId("saved-token")).isNull();
+        stored.setIsRevoked(false);
+        stored.setExpiresAt(LocalDateTime.parse("2025-12-31T00:00:00"));
+        assertThat(refreshTokenService.findValidUserId("saved-token")).isNull();
+        stored.setExpiresAt(LocalDateTime.parse("2026-01-02T00:00:00"));
+        stored.setUserId("someone-else");
+        assertThat(refreshTokenService.findValidUserId("saved-token")).isNull();
+        verify(refreshTokenMapper, org.mockito.Mockito.never()).revokeIfActive(any());
+        verify(jwtTokenProvider, org.mockito.Mockito.never()).generateRefreshToken(any());
+    }
+
+    @Test
+    void catalogValidationRejectsAccessTokens() {
+        when(jwtTokenProvider.getUserIdFromRefreshToken("access")).thenReturn(null);
+        assertThat(refreshTokenService.findValidUserId("access")).isNull();
+        org.mockito.Mockito.verifyNoInteractions(refreshTokenMapper);
+    }
+
+    @Test
     @DisplayName("createToken stores only the SHA-256 hash, never the raw token")
     void createTokenStoresOnlyHash() {
         when(jwtTokenProvider.generateRefreshToken("user-1")).thenReturn("refresh-jwt");

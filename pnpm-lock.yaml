@@ -596,6 +596,9 @@ importers:
       '@ulticode/design-system':
         specifier: workspace:*
         version: link:../design-system
+      '@ulticode/auth-core':
+        specifier: workspace:*
+        version: link:../auth-core
       '@ulticode/theme':
         specifier: workspace:*
         version: link:../theme

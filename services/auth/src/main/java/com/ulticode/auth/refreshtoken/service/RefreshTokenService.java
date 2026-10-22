@@ -96,7 +96,7 @@ public class RefreshTokenService {
      * @throws AuthBusinessException if the token is invalid, expired,
      *         or has already been used.
      */
-    @Transactional
+    @Transactional(noRollbackFor = AuthBusinessException.class)
     public RotationResult validateAndRotate(String token) {
         String userId = jwtTokenProvider.getUserIdFromRefreshToken(token);
         if (userId == null) {
@@ -159,6 +159,28 @@ public class RefreshTokenService {
 
         log.info("Rotating refresh token for user: {} (family: {})", storedToken.getUserId(), familyId);
         return new RotationResult(storedToken.getUserId(), newToken);
+    }
+
+    /** Read-only validation for the browser's saved account catalog. Never rotates or accepts access JWTs. */
+    public String findValidUserId(String token) {
+        if (token == null || token.isBlank()) return null;
+        String userId = verifiedUserId(token);
+        if (userId == null) return null;
+        RefreshToken stored = refreshTokenMapper.selectOne(new LambdaQueryWrapper<RefreshToken>()
+                .eq(RefreshToken::getTokenHash, DigestUtil.sha256Hex(token)));
+        return stored != null && userId.equals(stored.getUserId())
+                && !Boolean.TRUE.equals(stored.getIsRevoked())
+                && stored.getExpiresAt() != null
+                && stored.getExpiresAt().isAfter(LocalDateTime.now(clock)) ? userId : null;
+    }
+
+    public String verifiedUserId(String token) {
+        if (token == null || token.isBlank()) return null;
+        try {
+            return jwtTokenProvider.getUserIdFromRefreshToken(token);
+        } catch (io.jsonwebtoken.ExpiredJwtException e) {
+            return null;
+        }
     }
 
     public void revokePresentedToken(String token) {

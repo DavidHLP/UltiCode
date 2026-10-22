@@ -23,6 +23,17 @@ describe("csrf token cookie fallback", () => {
     expect(manager.getToken()).toBe("response-token");
   });
 
+  it("picks up another tab's rotated or cleared cookie without keeping a stale cached token", () => {
+    const dom = { cookie: "csrf_token=old" };
+    vi.stubGlobal("document", dom);
+    const manager = createCsrfTokenManager();
+    manager.setToken("old");
+    dom.cookie = "csrf_token=rotated";
+    expect(manager.getToken()).toBe("rotated");
+    dom.cookie = "";
+    expect(manager.getToken()).toBeNull();
+  });
+
   it("returns null when no exact csrf cookie exists", () => {
     vi.stubGlobal("document", { cookie: "csrf_token_shadow=wrong" });
 

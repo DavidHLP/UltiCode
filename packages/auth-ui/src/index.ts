@@ -24,6 +24,7 @@ export { default as OAuthButton } from './components/OAuthButton.vue'
 
 // Components — form (require consumer to inject submit handler / store)
 export { default as LoginForm } from './components/LoginForm.vue'
+export { default as AccountSwitcher } from './components/AccountSwitcher.vue'
 export { default as RegisterForm } from './components/RegisterForm.vue'
 
 // Layouts — view shells (badge text + form content + right-side pattern are slots/props)

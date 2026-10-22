@@ -46,9 +46,15 @@ export function createCsrfTokenManager(
   readToken: () => string | null = readCsrfCookie,
 ): CsrfTokenManager {
   let token: string | null = null;
+  let lastCookie = readToken();
 
   return {
     getToken(): string | null {
+      const cookie = readToken();
+      if (cookie !== lastCookie) {
+        token = cookie;
+        lastCookie = cookie;
+      }
       return token ?? readToken();
     },
 
@@ -58,10 +64,12 @@ export function createCsrfTokenManager(
         return;
       }
       token = newToken;
+      lastCookie = readToken();
     },
 
     clearToken(): void {
       token = null;
+      lastCookie = readToken();
     },
 
     /**
@@ -73,9 +81,16 @@ export function createCsrfTokenManager(
      *
      * @param response - An object that may contain a `csrfToken` string field.
      */
-    refreshFromResponse(response: { csrfToken?: string } | null | undefined): void {
-      if (response && typeof response.csrfToken === 'string' && response.csrfToken.length > 0) {
+    refreshFromResponse(
+      response: { csrfToken?: string } | null | undefined,
+    ): void {
+      if (
+        response &&
+        typeof response.csrfToken === 'string' &&
+        response.csrfToken.length > 0
+      ) {
         token = response.csrfToken;
+        lastCookie = readToken();
       }
     },
   };
@@ -99,5 +114,7 @@ export interface CsrfTokenManager {
    * Updates the stored token from an API response's `csrfToken` field.
    * Silently ignores responses that don't contain the field.
    */
-  refreshFromResponse(response: { csrfToken?: string } | null | undefined): void;
+  refreshFromResponse(
+    response: { csrfToken?: string } | null | undefined,
+  ): void;
 }

@@ -1,4 +1,14 @@
 export default {
+  accounts: {
+    title: "已登录账号",
+    add: "添加账号",
+    current: "当前账号",
+    loading: "正在加载账号…",
+    failed: "无法加载或切换账号。",
+    retry: "重试",
+    limit: "最多同时登录五个账号。",
+    description: "登录另一个账号，当前账号会保持登录。",
+  },
   // Layout
   layout: {
     systemOnline: "系统在线",

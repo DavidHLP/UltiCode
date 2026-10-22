@@ -39,7 +39,8 @@ public class DefaultAuthSessionAdapter implements AuthSessionPort {
                 List.of(
                         accessCookie(accessToken, accessConfig().getMaxAge()),
                         refreshCookie(refreshToken, refreshConfig().getMaxAge()),
-                        csrfCookie(csrfToken, csrfLifetimeSeconds())
+                        csrfCookie(csrfToken, csrfLifetimeSeconds()),
+                        accountCookie(account.id(), csrfLifetimeSeconds())
                 )
         );
     }
@@ -54,7 +55,8 @@ public class DefaultAuthSessionAdapter implements AuthSessionPort {
                 List.of(
                         accessCookie(accessToken, accessConfig().getMaxAge()),
                         refreshCookie(rotatedRefreshToken, refreshConfig().getMaxAge()),
-                        csrfCookie(csrfToken, csrfLifetimeSeconds())
+                        csrfCookie(csrfToken, csrfLifetimeSeconds()),
+                        accountCookie(account.id(), csrfLifetimeSeconds())
                 )
         );
     }
@@ -66,9 +68,23 @@ public class DefaultAuthSessionAdapter implements AuthSessionPort {
                 List.of(
                         accessCookie("", 0),
                         refreshCookie("", 0),
-                        csrfCookie("", 0)
+                        csrfCookie("", 0),
+                        accountCookie("", 0)
                 )
         );
+    }
+
+    @Override
+    public AuthSession csrfSession(String existingToken) {
+        String token = existingToken != null && existingToken.matches("[0-9a-f-]{36}") ? existingToken : newCsrfToken();
+        return new AuthSession(LoginResponse.builder().csrfToken(token).build(),
+                List.of(csrfCookie(token, csrfLifetimeSeconds())));
+    }
+
+    private CookieMutation accountCookie(String accountId, int maxAge) {
+        var config = accessConfig();
+        return new CookieMutation("session_account", accountId, maxAge, false,
+                config.isSecure(), config.getSameSite(), config.getPath(), config.getDomain());
     }
 
     private static String newCsrfToken() {

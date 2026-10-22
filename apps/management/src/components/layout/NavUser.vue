@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import {
-  EllipsisVertical as IconDotsVertical,
+  ChevronsUpDown as IconDotsVertical,
   LogOut as IconLogout,
   BellRing as IconNotification,
   UserCircle as IconUserCircle,
@@ -9,22 +9,16 @@ import {
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
+import { AccountSwitcher } from '@ulticode/auth-ui'
+import { accountSessions } from '@/api/accountSessions'
 import { Avatar, AvatarFallback, AvatarImage } from '@ulticode/design-system/ui/avatar'
 import {
-  DropdownMenu,
-  DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuTrigger,
 } from '@ulticode/design-system/ui/dropdown-menu'
-import {
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  useSidebar,
-} from '@ulticode/design-system/ui/sidebar'
+import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@ulticode/design-system/ui/sidebar'
 
 interface User {
   name: string
@@ -37,7 +31,6 @@ defineProps<{
   user: User
 }>()
 
-const { isMobile } = useSidebar()
 const router = useRouter()
 const { t } = useI18n()
 const authStore = useAuthStore()
@@ -59,24 +52,21 @@ async function handleLogout() {
 <template>
   <SidebarMenu>
     <SidebarMenuItem>
-      <DropdownMenu>
-        <DropdownMenuTrigger as-child>
-          <SidebarMenuButton size="lg" tooltip="User Menu" class="h-11">
-            <Avatar class="h-8 w-8" shape="square">
+      <AccountSwitcher :client="accountSessions" admin-only>
+        <template #trigger>
+          <SidebarMenuButton size="lg" :tooltip="t('auth.accounts.title')">
+            <Avatar class="h-8 w-8 rounded-lg">
               <AvatarImage v-if="user.avatar" :src="user.avatar" :alt="user.name" />
-              <AvatarFallback> CN </AvatarFallback>
+              <AvatarFallback>{{ user.name.slice(0, 2).toUpperCase() }}</AvatarFallback>
             </Avatar>
-            <div class="grid flex-1 text-left text-xs leading-tight">
+            <div class="grid flex-1 text-left text-sm leading-tight">
               <div class="flex items-center gap-1.5 min-w-0">
-                <span class="truncate font-bold text-sm text-foreground">{{ user.name }}</span>
-                <span
-                  v-if="user.role"
-                  class="inline-flex items-center px-1.5 py-0.2 text-xs font-mono font-bold uppercase border border-border bg-accent text-muted-foreground tracking-wide shrink-0"
-                >
+                <span class="truncate font-medium">{{ user.name }}</span>
+                <span v-if="user.role" class="shrink-0 rounded px-1 text-xs text-muted-foreground">
                   {{ user.role }}
                 </span>
               </div>
-              <span class="text-muted-foreground truncate mt-0.5 font-mono text-xs">
+              <span class="truncate text-xs text-muted-foreground">
                 {{ user.email }}
               </span>
             </div>
@@ -84,18 +74,13 @@ async function handleLogout() {
               class="ml-auto size-4 text-muted-foreground group-hover:text-foreground"
             />
           </SidebarMenuButton>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent
-          class="w-(--reka-dropdown-menu-trigger-width) min-w-56"
-          :side="isMobile ? 'bottom' : 'right'"
-          :side-offset="4"
-          align="end"
-        >
-          <DropdownMenuLabel class="p-0">
+        </template>
+        <template #summary
+          ><DropdownMenuLabel class="p-0">
             <div class="flex items-center gap-2 px-1.5 py-1.5 text-left text-sm">
-              <Avatar class="h-8 w-8" shape="square">
+              <Avatar class="h-8 w-8 rounded-lg">
                 <AvatarImage v-if="user.avatar" :src="user.avatar" :alt="user.name" />
-                <AvatarFallback> CN </AvatarFallback>
+                <AvatarFallback>{{ user.name.slice(0, 2).toUpperCase() }}</AvatarFallback>
               </Avatar>
               <div class="grid flex-1 text-left text-xs leading-tight">
                 <div class="flex items-center gap-1.5">
@@ -112,25 +97,24 @@ async function handleLogout() {
                 </span>
               </div>
             </div>
-          </DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuGroup>
-            <DropdownMenuItem @click="handleAccount">
-              <IconUserCircle />
-              {{ t('nav.account') }}
-            </DropdownMenuItem>
-            <DropdownMenuItem @click="handleNotifications">
-              <IconNotification />
-              {{ t('nav.notifications') }}
-            </DropdownMenuItem>
-          </DropdownMenuGroup>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem @click="handleLogout">
-            <IconLogout />
-            {{ t('nav.logout') }}
+          </DropdownMenuLabel></template
+        >
+        <DropdownMenuGroup>
+          <DropdownMenuItem @click="handleAccount">
+            <IconUserCircle />
+            {{ t('nav.account') }}
           </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+          <DropdownMenuItem @click="handleNotifications">
+            <IconNotification />
+            {{ t('nav.notifications') }}
+          </DropdownMenuItem>
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem @click="handleLogout">
+          <IconLogout />
+          {{ t('nav.logout') }}
+        </DropdownMenuItem>
+      </AccountSwitcher>
     </SidebarMenuItem>
   </SidebarMenu>
 </template>

@@ -163,7 +163,7 @@ const currentSidebarData = computed(() => {
       </div>
 
       <template v-if="isProblemContext">
-        <div class="group-data-[collapsible=icon]:hidden">
+        <div class="contents">
           <SidebarSeparator class="uc-sidebar-separator" />
           <!-- Problem Lists (Only for Problem Context) -->
           <Calendars />

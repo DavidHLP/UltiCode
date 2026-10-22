@@ -356,6 +356,8 @@ Access/refresh token 保持 HttpOnly；Cookie 的 Secure、SameSite、Path、Dom
 
 所有 Cookie-authenticated unsafe methods（包括 refresh/logout）经过无服务端状态的 double-submit CSRF：header 与 `csrf_token` cookie 使用恒定时间比较。Bearer-only service-to-service 请求与 safe methods 不进入浏览器 CSRF filter。
 
+Browser account switching retains refresh credentials only in HttpOnly account-bound cookies, using the existing hash-only refresh store and rotation/reuse checks. The readable `session_account` cookie is an identity-change sentinel, never an authentication credential. The shared HTTP client rejects stale-tab requests/responses and sends `X-Session-Account`; owner filters reject a mismatch with the authenticated principal, including reads. Switching reloads the application to discard the previous account's cached state. Public CSRF recovery remains available without an active access token.
+
 ### JWT、JWKS 与委托身份
 
 生产 access token 使用 Auth 签发的 RS256/JWKS；资源服务只持 X509 公钥，不共享 Auth 私钥或签名 secret。接收方校验 `iss`、`aud`、`typ`、`kid`、`iat`、`nbf`、`exp`、签名和 authority。短期 access token 本地验证，Auth 不可用时普通请求仍可用未过期、未撤销的 token；登录、refresh、fresh authorization 和缺少可信状态的 WebSocket CONNECT fail closed。

@@ -43,6 +43,8 @@ public class AuthSecurityConfig {
                                 "/auth/register",
                                 "/auth/refresh",
                                 "/auth/logout",
+                                "/auth/accounts",
+                                "/auth/accounts/switch",
                                 "/auth/oauth/**",
                                 "/auth/forgot-password",
                                 "/auth/reset-password",

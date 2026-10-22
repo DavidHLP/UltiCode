@@ -210,6 +210,19 @@ Provider 校验 audience、签名、deadline、jti/replay、actor 和输入边�
 3. 浏览器调用其他 mutation、`POST /auth/refresh` 或 logout 时，按[安全架构](ARCHITECTURE.md#安全架构与信任边界)提交 Cookie 与 CSRF header。
 4. refresh 只使用 refresh cookie；Auth 条件 revoke 旧 session 并插入新 session。
 
+### Multiple signed-in accounts
+
+The sidebar account menu supports up to five signed-in accounts through these Auth endpoints:
+
+| Endpoint | Contract |
+| --- | --- |
+| `GET /auth/accounts` | Returns `{ id, name, email, role, current }[]` for valid active/saved sessions; credentials are never returned. |
+| `POST /auth/accounts` | Accepts login credentials and optional `adminOnly`; authenticates the added account while retaining the previous account. |
+| `POST /auth/accounts/switch` | Accepts `accountId` and optional `adminOnly`; validates and rotates that account's saved refresh session. |
+| `GET /auth/csrf` | Issues/reuses a double-submit token without an active access token, including after logging out while other accounts remain saved. |
+
+Adding/switching returns the existing login response and applies session cookies. Saved refresh credentials use account-bound HttpOnly `saved_account_*` cookies; the active account continues to use the existing access/refresh pair. Logging out revokes the active refresh credential and preserves other signed-in accounts. Unsafe requests require double-submit CSRF even when only saved credentials remain. A failed switch does not replace the active cookies. Password reset, revocation, expiry, inactivity, and bans remain enforced by Auth. Management's `adminOnly` option rejects non-administrator selections and does not grant permissions.
+
 ### 服务入口
 
 - Auth HTTP owner：`/auth/**`。

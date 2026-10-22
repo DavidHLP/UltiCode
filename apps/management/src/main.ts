@@ -5,7 +5,12 @@ import './style.css'
 import App from './App.vue'
 import router from './router'
 import i18n, { setLocale, getActiveLocale } from './i18n'
-import { initTheme, applyTypographyDensity } from '@ulticode/theme'
+import {
+  initTheme,
+  applyTypographyDensity,
+  DEFAULT_APPEARANCE,
+  useAppearance,
+} from '@ulticode/theme'
 import { bootstrapApp } from '@ulticode/app-bootstrap'
 import { setOnAuthFailure } from '@ulticode/auth-core'
 
@@ -15,13 +20,13 @@ import { setOnAuthFailure } from '@ulticode/auth-core'
  * The startup ordering invariant (theme → Pinia/i18n → auth-failure handler →
  * auth init → router → mount) is owned by the shared `bootstrapApp` module so
  * Console and Management cannot diverge; this entry file is the Management
- * adapter and supplies only Management-specific policy: the compact density,
+ * adapter uses shared appearance preferences and supplies Management policy:
  * the locale-detection pre-auth step, and the single auth-failure owner.
  */
 bootstrapApp({
-  density: 'compact',
+  density: DEFAULT_APPEARANCE.density,
   initTheme,
-  applyTypographyDensity: (density) => applyTypographyDensity(density),
+  applyTypographyDensity: () => applyTypographyDensity(useAppearance().settings.value.density),
   rootComponent: App,
   preAuthPlugins: [createPinia(), i18n],
   async preAuthInit() {

@@ -10,6 +10,7 @@ import "./style.css";
 import "@/pwa-register";
 import {
   initTheme,
+  DEFAULT_APPEARANCE,
   applyTypographyDensity,
   useAppearance,
 } from "@ulticode/theme";
@@ -22,12 +23,12 @@ import { setOnAuthFailure } from "@ulticode/auth-core";
  * The startup ordering invariant (theme → Pinia/i18n → auth-failure handler →
  * auth init → router → mount) is owned by the shared `bootstrapApp` module so
  * Console and Management cannot diverge; this entry file is the Console
- * adapter and supplies only Console-specific policy: the comfortable density,
+ * adapter uses shared appearance preferences and supplies Console policy:
  * the AuthContext pre-auth wiring, the single auth-failure owner, and the
  * document-language pre-mount hook.
  */
 bootstrapApp({
-  density: "comfortable",
+  density: DEFAULT_APPEARANCE.density,
   initTheme,
   applyTypographyDensity: () =>
     applyTypographyDensity(useAppearance().settings.value.density),

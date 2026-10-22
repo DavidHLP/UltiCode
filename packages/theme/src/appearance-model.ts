@@ -20,8 +20,8 @@ export type AppearanceKey = keyof Appearance;
 export const APPEARANCE_STORAGE_PREFIX = "ulticode-appearance:v1:";
 export const APPEARANCE_ACCOUNT_KEY = "ulticode-appearance-account";
 export const DEFAULT_APPEARANCE: Readonly<Appearance> = Object.freeze({
-  accent: "neutral",
-  base: "neutral",
+  accent: "blue",
+  base: "zinc",
   chart: "default",
   font: "system",
   radius: "medium",

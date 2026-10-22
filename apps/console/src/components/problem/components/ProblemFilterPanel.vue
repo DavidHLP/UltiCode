@@ -17,6 +17,7 @@ import { useI18n } from "vue-i18n";
 const { t } = useI18n();
 
 defineProps<{
+  showCategoryFilter: boolean;
   selectedCategory: string;
   searchQuery: string;
   activeFilterCount: number;
@@ -43,18 +44,9 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <div
-    class="rounded-xl border bg-card text-card-foreground flex flex-col gap-4 rounded-xl border bg-card p-4"
-  >
-    <CategoryFilter
-      class="flex flex-wrap gap-2"
-      :categories="categoryOptions"
-      :model-value="selectedCategory"
-      @update:model-value="emit('update:selectedCategory', $event)"
-    />
-
+  <div class="flex min-w-0 flex-col gap-3">
     <DataTableToolbar
-      class="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]"
+      class="min-w-0"
       :model-value="searchQuery"
       :placeholder="t('problem.list.searchPlaceholder')"
       :filter-label="t('problem.explorer.filters')"
@@ -66,6 +58,14 @@ const emit = defineEmits<{
       @update:model-value="emit('update:searchQuery', $event)"
       @clear="emit('clear')"
     >
+      <template #before-filters>
+        <CategoryFilter
+          v-if="showCategoryFilter"
+          :categories="categoryOptions"
+          :model-value="selectedCategory"
+          @update:model-value="emit('update:selectedCategory', $event)"
+        />
+      </template>
       <template #filters>
         <DropdownMenuLabel>{{
           t("problem.explorer.status")
@@ -148,7 +148,7 @@ const emit = defineEmits<{
       </template>
       <template #actions>
         <Button
-          variant="outline"
+          variant="ghost"
           size="icon"
           :aria-label="t('problem.explorer.pickOne')"
           :title="t('problem.explorer.pickOne')"
@@ -160,9 +160,11 @@ const emit = defineEmits<{
       </template>
     </DataTableToolbar>
 
-    <div class="grid gap-3 border-t pt-4 sm:grid-cols-[max-content_1fr]">
-      <div class="flex items-center gap-2 text-sm font-medium">
-        <span class="size-1.5 rounded-full bg-primary" aria-hidden="true" />
+    <div
+      v-if="popularTags.length || otherTags.length"
+      class="grid grid-cols-[max-content_minmax(0,1fr)] gap-x-3 gap-y-1"
+    >
+      <div class="flex h-8 items-center text-xs text-muted-foreground">
         <span>{{ t("problem.detail.tags") }}</span>
       </div>
       <TagFilter

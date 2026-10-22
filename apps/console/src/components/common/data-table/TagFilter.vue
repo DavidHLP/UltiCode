@@ -37,19 +37,26 @@ function isTagSelected(tag: string, currentTags: string[]) {
       <Badge
         v-for="tag in popularTags"
         :key="tag"
+        as="button"
+        type="button"
+        :aria-pressed="isTagSelected(tag, modelValue)"
         variant="outline"
-        class="cursor-pointer px-2.5 py-1"
+        class="min-h-7 cursor-pointer px-2.5 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         :class="
           isTagSelected(tag, modelValue)
-            ? 'border-input bg-accent text-foreground hover:bg-accent/80'
-            : 'border-border bg-muted text-muted-foreground hover:bg-accent hover:text-foreground'
+            ? 'border-border bg-accent text-foreground hover:bg-accent/80'
+            : 'border-transparent bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground'
         "
         @click="toggleTag(tag, modelValue)"
       >
         {{ tag }}
       </Badge>
-      <CollapsibleTrigger as-child>
-        <Button variant="ghost" size="sm" class="gap-1 px-2 cursor-pointer">
+      <CollapsibleTrigger v-if="otherTags.length" as-child>
+        <Button
+          variant="ghost"
+          size="sm"
+          class="gap-1 px-2 text-xs text-muted-foreground cursor-pointer"
+        >
           {{ showMoreLabel || "Show more" }}
           <ChevronDown class="h-2.5 w-2.5" />
         </Button>
@@ -60,12 +67,15 @@ function isTagSelected(tag: string, currentTags: string[]) {
         <Badge
           v-for="tag in otherTags"
           :key="tag"
+          as="button"
+          type="button"
+          :aria-pressed="isTagSelected(tag, modelValue)"
           variant="outline"
-          class="cursor-pointer px-2.5 py-1"
+          class="min-h-7 cursor-pointer px-2.5 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           :class="
             isTagSelected(tag, modelValue)
-              ? 'border-input bg-accent text-foreground hover:bg-accent/80'
-              : 'border-border bg-muted text-muted-foreground hover:bg-accent hover:text-foreground'
+              ? 'border-border bg-accent text-foreground hover:bg-accent/80'
+              : 'border-transparent bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground'
           "
           @click="toggleTag(tag, modelValue)"
         >

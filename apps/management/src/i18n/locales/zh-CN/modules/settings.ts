@@ -89,6 +89,9 @@ export default {
 
   // 功能开关
   features: {
+    agent: 'Agent 智能体',
+    agentDescription:
+      '默认开启。控制所有用户的智能体对话与提交复盘；关闭不删除已有数据，也不中断正在执行的分析。',
     title: '功能开关',
     description: '启用或禁用平台功能',
     contest: '比赛',

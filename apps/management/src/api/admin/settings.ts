@@ -2,6 +2,7 @@ import { apiGet, apiPatch, apiPost } from '@/utils/request'
 
 // All settings interface
 export interface AllSettings {
+  feature_agent: boolean
   // General
   maintenance_mode: boolean
   maintenance_message: string
@@ -76,6 +77,7 @@ export interface UploadSettings {
 }
 
 export interface FeatureToggles {
+  feature_agent: boolean
   feature_contest: boolean
   feature_forum: boolean
   feature_solutions: boolean
@@ -144,6 +146,7 @@ interface UploadWire {
 }
 
 interface FeatureWire {
+  featureAgent: boolean
   featureContest: boolean
   featureForum: boolean
   featureSolutions: boolean
@@ -207,6 +210,7 @@ const UPLOAD_MAPPING = {
 } as const satisfies FieldMapping<keyof UploadWire & string, keyof UploadSettings & string>
 
 const FEATURE_MAPPING = {
+  featureAgent: 'feature_agent',
   featureContest: 'feature_contest',
   featureForum: 'feature_forum',
   featureSolutions: 'feature_solutions',

@@ -41,6 +41,8 @@ public interface SystemSettingsService {
 
     FeatureTogglesVO getFeatureToggles();
 
+    boolean isAgentEnabled();
+
     FeatureTogglesVO updateFeatureToggles(FeatureTogglesVO vo);
 
     AllSettingsVO getAllSettings();

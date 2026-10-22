@@ -188,9 +188,7 @@ export const personalSidebarData: SidebarSection[] = [
         url: "/personal/submissions",
         icon: History,
       },
-      ...(import.meta.env.VITE_AGENT_REVIEW_ENABLED === "true"
-        ? [{ title: "sidebar.personal.agent", url: "/agent", icon: MessageSquare }]
-        : []),
+      { title: "sidebar.personal.agent", url: "/agent", icon: MessageSquare },
       {
         title: "sidebar.personal.solutions",
         url: "/personal/solutions",

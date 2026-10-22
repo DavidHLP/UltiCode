@@ -12,6 +12,9 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@/api/agent", () => ({
   agentApi: { getCapabilities: mocks.getCapabilities },
 }));
+vi.mock("@/stores/auth", () => ({
+  useAuthStore: () => ({ user: { id: "owner" } }),
+}));
 vi.mock("@/composables/useAgentConversations", () => ({
   useAgentConversations: () => mocks.workspace,
 }));
@@ -62,7 +65,6 @@ function createWorkspace() {
 describe("AgentConversationWorkspace", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.stubEnv("VITE_AGENT_REVIEW_ENABLED", "true");
     mocks.route.query = { submissionId };
     mocks.workspace = createWorkspace();
     mocks.getCapabilities.mockResolvedValue({
@@ -150,20 +152,28 @@ describe("AgentConversationWorkspace", () => {
     state.turns.value[0].answer = null;
     state.turns.value[0].status = "queued";
     await flushPromises();
-    const cancel = wrapper.findAll("button").find((button) => button.text() === "agent.workspace.cancelTurn");
+    const cancel = wrapper
+      .findAll("button")
+      .find((button) => button.text() === "agent.workspace.cancelTurn");
     expect(cancel).toBeDefined();
     await cancel!.trigger("click");
     expect(state.cancelTurn).toHaveBeenCalledWith(state.turns.value[0]);
     wrapper.unmount();
   });
 
-  it("does not request Agent capabilities while the feature flag is off", async () => {
-    vi.stubEnv("VITE_AGENT_REVIEW_ENABLED", "false");
+  it("shows the administrator-disabled state from capabilities", async () => {
+    mocks.getCapabilities.mockResolvedValue({
+      featureEnabled: false,
+      analysisAvailable: false,
+      persistenceAvailable: false,
+      conversationHistoryAvailable: false,
+      sourceMode: "metadata",
+    });
     const wrapper = mount(AgentConversationWorkspace, {
       global: { stubs: { RouterLink: { template: "<a><slot /></a>" } } },
     });
     await flushPromises();
-    expect(mocks.getCapabilities).not.toHaveBeenCalled();
+    expect(mocks.getCapabilities).toHaveBeenCalledOnce();
     expect(wrapper.text()).toContain("agent.workspace.unavailable");
     wrapper.unmount();
   });

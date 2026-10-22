@@ -97,7 +97,7 @@ Origin 必须与浏览器地址完全一致。默认不调用外部模型，不�
 
 Console 的入口是共享提交详情中的可收起复盘面板，用于 `/submissions/:id` 和题目页选中的提交。“我的提交”直接进入对应结果；旧 `/personal/agent?threadId=...` 只负责验证线程归属并跳转，无线程时返回个人提交列表。
 
-在前端构建或开发服务器启动时设置 `VITE_AGENT_REVIEW_ENABLED=true` 才显示入口，其他值均关闭。前端开关不启动 Python、不授权费用、不开放 Java 保存。仅本人、已知终态、明确 `contestSubmission: false` 的普通练习提交可用；旧 Java provider 缺少字段时不开放。Agent 服务再次核对来源资格。
+Agent 对话默认开启，不再读取 `VITE_AGENT_REVIEW_ENABLED`。管理员通过 Management“系统设置 → 功能开关 → Agent 智能体”统一控制，沿用该页的保存流程和管理权限。设置持久化在 Admin 的既有 features 配置中，旧配置缺少字段时默认开启。用户端不提供开关。Agent 每次请求从 Admin 的 `/api/v1/public/features/agent` 读取可用状态；关闭后拒绝新的对话、分析及保存操作，保留已有数据和正在执行的分析。配置读取失败返回 503，不继续调用模型。独立部署可通过 `ULTICODE_ADMIN_BASE` 配置 Admin 地址，默认 `http://127.0.0.1:9102`。此设置不替代模型及持久化授权。仅本人、已知终态、明确 `contestSubmission: false` 的普通练习提交可用；旧 Java provider 缺少字段时不开放。Agent 服务再次核对来源资格。
 
 打开面板后，认证的 `GET /agent/capabilities` 返回分析、持久化和来源模式。查询失败不影响原提交查看；打开、收起和恢复线程均不自动分析。`metadata` 模式使用提交元数据与授权参考资料；`owner_source` 模式要求用户明确同意源码外发，只读取当前线程绑定的本人源码，限制为 12,000 字符，不持久化源码正文或引用摘录。
 
@@ -198,7 +198,7 @@ dependabot-core 当作 support file 丢弃，PR 只改 manifest，会被 CI 的
 - 中文/英文文案同步，保留键盘操作、焦点管理和窄屏可用性。UI 行为变化需要对应回归测试，
   关键用户旅程需要单独的浏览器验证，不能用构建成功代替。
 - 保留 Agent 工作区、提交复盘与学习计划的既有资格、授权及降级行为；
-  `VITE_AGENT_REVIEW_ENABLED` 默认关闭，前端开关不代表分析或保存授权。
+  Agent 对话默认开启，仅管理员通过系统设置中的功能开关关闭；它不代表分析或保存授权。
 
 复现前端基线时运行只读门禁，避免 `lint --fix` 或全树格式化改变对照源码：
 

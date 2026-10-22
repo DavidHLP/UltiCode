@@ -61,7 +61,7 @@ const handleRowClick = (problem: EnrichedProblem) => {
 </script>
 
 <template>
-  <section class="flex flex-col gap-6">
+  <section class="flex min-w-0 flex-col gap-4">
     <slot name="header" />
 
     <ProblemFilterPanel

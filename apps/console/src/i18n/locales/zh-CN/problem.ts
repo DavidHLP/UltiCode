@@ -266,6 +266,9 @@ export default {
 
   // Banners
   banners: {
+    collections: "精选题单",
+    previousCollections: "上一组题单",
+    nextCollections: "下一组题单",
     unableToLoad: "无法加载精选列表",
     noBanners: "暂无精选列表",
     tryAgain: "请稍后重试。",

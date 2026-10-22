@@ -271,6 +271,9 @@ export default {
 
   // Banners
   banners: {
+    collections: "Collections",
+    previousCollections: "Previous collections",
+    nextCollections: "Next collections",
     unableToLoad: "Unable to load featured lists",
     noBanners: "No featured lists yet",
     tryAgain: "Please try again in a moment.",

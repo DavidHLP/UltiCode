@@ -179,7 +179,7 @@ dependabot-core 当作 support file 丢弃，PR 只改 manifest，会被 CI 的
 该提交是改动前的对照与回退来源，不随分支后续推进改变；基线定义不表示 Web v2 已发布，
 也不将前端 package version 改为 `2.0.0`。
 
-升级范围包括 `apps/console/`、`apps/management/`、独立 `apps/landing/` 及其消费的 `packages/`。Landing 页面、样式、双语文案与素材只由 Landing 应用持有；流程区标题使用浏览器平衡换行，避免窄屏中文末行仅剩单字，不缩小标题字号；生产由现有 Console Nginx 在 `/landing/` 提供；应用入口和路由保持独立，主题 bootstrap 与通用 UI 复用共享包。
+共享 UI 升级范围包括 `apps/console/`、`apps/management/` 及其消费的 `packages/`。独立 `apps/landing/` 保留原有页面布局、字体、配色、插画、动效和响应式设计；页面、样式、双语文案与素材只由 Landing 应用持有，不接入共享设计系统、主题 bootstrap 或外观设置。未经用户明确要求，不得以平台 UI 统一或主题升级为由修改 Landing 设计。生产仍由现有 Console Nginx 在 `/landing/` 提供，应用入口和路由保持独立。
 沿用 Vue 3、TypeScript、Vite、Pinia、Vue Router、Tailwind CSS；通用组件统一使用 shadcn-vue；
 依赖的精确版本由根 `pnpm-lock.yaml` 固定，不另建 v2 应用、第二份 lock 或平行共享层。
 安装使用根目录 `pnpm install --frozen-lockfile`，Node.js 满足 `>=22.12.0`；
@@ -229,7 +229,7 @@ app 测试排除的共享认证/主题测试必须独立运行；其他共享包
 
 ### 共享 shadcn-vue 与外观设置
 
-`packages/design-system` 是三端通用 UI 的唯一所有者。官方组件位于 `src/components/ui/`，消费者使用 `@ulticode/design-system/ui/<group>`；只有确需单文件的适配才使用已声明的 `ui-files` 子路径。应用内不维护另一份 `components/ui` 或 CLI 配置。业务布局在各应用内组合共享组件，侧栏布局沿用官方 Sidebar Block 的 Provider、Inset、Trigger 与 Breadcrumb 组合，不引入官方示例中的虚构业务数据。
+`packages/design-system` 是 Console 与 Management 通用 UI 的唯一所有者；Landing 保留独立设计。官方组件位于 `src/components/ui/`，消费者使用 `@ulticode/design-system/ui/<group>`；只有确需单文件的适配才使用已声明的 `ui-files` 子路径。应用内不维护另一份 `components/ui` 或 CLI 配置。业务布局在各应用内组合共享组件，侧栏布局沿用官方 Sidebar Block 的 Provider、Inset、Trigger 与 Breadcrumb 组合，不引入官方示例中的虚构业务数据。
 
 共享 Dialog 默认居中并限制在视口高度内，长表单可滚动；需要固定头尾的弹窗自行使用纵向 flex、`min-h-0` 内容区和内部滚动。CommandDialog 沿用相同的定位和高度边界。AlertDialog 在保留尺寸变体的同时保留视口边距，并允许长确认内容纵向滚动。管理端顶栏在窄屏自然换行；Markdown 编辑器按自身容器宽度切换分栏与上下布局，工具栏操作和双向滚动同步使用底层 textarea 元素。
 
@@ -339,9 +339,9 @@ CLI 的版本与 `shadcn-vue/tailwind.css` 运行样式保持一致。该官方�
 
 外观状态、白名单解析、持久化与 DOM 应用归属 `packages/theme`，设置弹窗归属 `packages/design-system/AppearanceSettings.vue`。最终用户通过界面调整主题色、基础色、图表配色、原生字体栈、圆角、密度、菜单样式及明暗模式，无需 CLI 或构建。预览更新当前界面及 Portal；应用成功才保存，取消或关闭恢复已保存外观，恢复默认直接保存默认值。存储不可用时显示失败，不把内存回退当作持久化成功。状态语义色独立于主题色，设置不能输入任意 CSS、HTML、脚本或布局。
 
-偏好保存在当前浏览器、当前 origin 的 `ulticode-appearance:v1:` 命名空间中，并按经过认证的用户 ID 分区；访客使用独立分区。账号切换关闭预览并加载对应分区。`ulticode-appearance-account` 只用于首屏外观提示，不是认证凭证或授权来源。同源标签页通过 `storage` 事件同步；预览期间不覆盖草稿，取消时恢复最新已保存值。Console 的同源 `/landing/` 入口可共享偏好；独立开发端口或跨域部署不能共享 localStorage。当前没有服务端偏好接口，不提供跨设备账户同步。
+偏好保存在当前浏览器、当前 origin 的 `ulticode-appearance:v1:` 命名空间中，并按经过认证的用户 ID 分区；访客使用独立分区。账号切换关闭预览并加载对应分区。`ulticode-appearance-account` 只用于首屏外观提示，不是认证凭证或授权来源。同源标签页通过 `storage` 事件同步；预览期间不覆盖草稿，取消时恢复最新已保存值。Landing 不读取或应用平台外观偏好，即使通过 Console 的同源 `/landing/` 入口访问，也保持独立设计；独立开发端口或跨域部署不能共享 localStorage。当前没有服务端偏好接口，不提供跨设备账户同步。
 
-修改主题 bootstrap 后同步三端 `public/theme-bootstrap.js`，并运行门禁：
+修改主题 bootstrap 后仅同步 Console 与 Management 的 `public/theme-bootstrap.js`，不为 Landing 生成副本，并运行门禁：
 
 ```bash
 pnpm --dir packages/theme sync:theme-bootstrap

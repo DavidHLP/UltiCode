@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onUnmounted, watchEffect } from "vue";
+import { ref, onMounted, onUnmounted, watch, watchEffect, nextTick } from "vue";
 import { useI18n } from "vue-i18n";
 import LandingHeader from "./components/LandingHeader.vue";
 import HeroSection from "./components/HeroSection.vue";
@@ -10,7 +10,8 @@ import FinalStorySection from "./components/FinalStorySection.vue";
 import LandingFooter from "./components/LandingFooter.vue";
 import algorithmicGardenUrl from "@/assets/landing/algorithmic-garden.webp";
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
+const isLoaded = ref(false);
 
 let originalTitle = "";
 let originalDescription: string | null = null;
@@ -35,6 +36,7 @@ let ogImageEl: HTMLMetaElement | null = null;
 let ogImageCreated = false;
 
 let initialized = false;
+let scrollObserver: IntersectionObserver | null = null;
 
 function initSeoTags() {
   if (typeof document === "undefined" || initialized) return;
@@ -122,7 +124,64 @@ watchEffect(() => {
   }
 });
 
+function setupScrollAnimations() {
+  if (typeof window !== "undefined") {
+    const prefersReducedMotion =
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (prefersReducedMotion) {
+      document.querySelectorAll(".reveal-on-scroll").forEach((el) => {
+        el.classList.add("is-visible");
+      });
+      return;
+    }
+
+    if ("IntersectionObserver" in window) {
+      scrollObserver = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add("is-visible");
+              scrollObserver?.unobserve(entry.target);
+            }
+          });
+        },
+        { threshold: 0.08, rootMargin: "0px 0px -20px 0px" },
+      );
+
+      document.querySelectorAll(".reveal-on-scroll").forEach((el) => {
+        scrollObserver?.observe(el);
+      });
+    } else {
+      document.querySelectorAll(".reveal-on-scroll").forEach((el) => {
+        el.classList.add("is-visible");
+      });
+    }
+  }
+}
+
+watch(
+  () => locale.value,
+  async () => {
+    scrollObserver?.disconnect();
+    scrollObserver = null;
+    await nextTick();
+    setupScrollAnimations();
+  },
+);
+
+onMounted(async () => {
+  isLoaded.value = true;
+  await nextTick();
+  setupScrollAnimations();
+});
+
 onUnmounted(() => {
+  if (scrollObserver) {
+    scrollObserver.disconnect();
+    scrollObserver = null;
+  }
   if (typeof document !== "undefined") {
     document.title = originalTitle;
 
@@ -180,16 +239,220 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="ulticode-landing-root min-h-svh bg-background text-foreground">
-    <a
-      href="#main-content"
-      class="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:bg-background focus:p-4"
-      >{{ t("landing.skipContent") }}</a
-    >
+  <div
+    :key="locale"
+    class="ulticode-landing-root"
+    :class="{ 'is-ready': isLoaded }"
+  >
+    <!-- 侧边算法工程与架构图纸装饰 (OJ Architectural Blueprint Grid) -->
+    <div class="blueprint-frame blueprint-left" aria-hidden="true">
+      <svg viewBox="0 0 160 600" fill="none" class="blueprint-svg">
+        <path
+          d="M20,0 L20,600 M60,0 L60,600 M100,0 L100,600"
+          stroke="#545C45"
+          stroke-width="0.75"
+          stroke-dasharray="3 6"
+          opacity="0.2"
+        />
+        <!-- 树结构与节点 -->
+        <circle cx="60" cy="80" r="4" fill="#545C45" opacity="0.3" />
+        <path
+          d="M60,84 L40,120 M60,84 L80,120"
+          stroke="#545C45"
+          stroke-width="1"
+          opacity="0.25"
+        />
+        <circle cx="40" cy="120" r="3" fill="#838F81" opacity="0.3" />
+        <circle cx="80" cy="120" r="3" fill="#838F81" opacity="0.3" />
+        <!-- 坐标与状态网格 -->
+        <rect
+          x="20"
+          y="240"
+          width="80"
+          height="60"
+          stroke="#545C45"
+          stroke-width="0.75"
+          stroke-dasharray="2 2"
+          opacity="0.2"
+        />
+        <text
+          x="30"
+          y="260"
+          font-family="monospace"
+          font-size="8"
+          fill="#545C45"
+          opacity="0.35"
+        >
+          DAG #01
+        </text>
+        <text
+          x="30"
+          y="280"
+          font-family="monospace"
+          font-size="7"
+          fill="#838F81"
+          opacity="0.3"
+        >
+          SECTOR: 0x4F
+        </text>
+        <!-- 下部标尺 -->
+        <path
+          d="M20,440 L100,440 M20,435 L20,445 M60,437 L60,443 M100,435 L100,445"
+          stroke="#545C45"
+          stroke-width="1"
+          opacity="0.25"
+        />
+      </svg>
+    </div>
+
+    <div class="blueprint-frame blueprint-right" aria-hidden="true">
+      <svg viewBox="0 0 160 600" fill="none" class="blueprint-svg">
+        <path
+          d="M60,0 L60,600 M100,0 L100,600 M140,0 L140,600"
+          stroke="#545C45"
+          stroke-width="0.75"
+          stroke-dasharray="3 6"
+          opacity="0.2"
+        />
+        <!-- 执行时序刻度 -->
+        <rect
+          x="60"
+          y="100"
+          width="70"
+          height="45"
+          stroke="#545C45"
+          stroke-width="0.75"
+          stroke-dasharray="2 2"
+          opacity="0.2"
+        />
+        <text
+          x="70"
+          y="120"
+          font-family="monospace"
+          font-size="8"
+          fill="#545C45"
+          opacity="0.35"
+        >
+          TIMELINE
+        </text>
+        <text
+          x="70"
+          y="135"
+          font-family="monospace"
+          font-size="7"
+          fill="#838F81"
+          opacity="0.3"
+        >
+          TRACE: AUTO
+        </text>
+        <!-- 节点连线 -->
+        <circle cx="100" cy="280" r="4" fill="#545C45" opacity="0.3" />
+        <path
+          d="M100,284 L80,320 M100,284 L120,320"
+          stroke="#545C45"
+          stroke-width="1"
+          opacity="0.25"
+        />
+        <circle cx="80" cy="320" r="3" fill="#838F81" opacity="0.3" />
+        <circle cx="120" cy="320" r="3" fill="#838F81" opacity="0.3" />
+      </svg>
+    </div>
+
+    <!-- 页面核心架构 -->
     <LandingHeader />
     <main id="main-content">
-      <HeroSection /><ProductProofSection /><UseCasesSection /><HumanControlSection /><FinalStorySection />
+      <HeroSection />
+      <ProductProofSection />
+      <UseCasesSection />
+      <HumanControlSection />
+      <FinalStorySection />
     </main>
     <LandingFooter />
   </div>
 </template>
+
+<style scoped>
+.ulticode-landing-root {
+  --bg-parchment: var(--landing-bg-parchment);
+  --bg-card: var(--landing-bg-card);
+  --bg-sky: var(--landing-bg-sky);
+  --text-primary: var(--landing-text-primary);
+  --text-muted: var(--landing-text-muted);
+  --text-dim: var(--landing-text-dim);
+  --brand-olive: var(--landing-brand-olive);
+  --brand-olive-hover: var(--landing-brand-olive-hover);
+  --brand-sage: var(--landing-brand-sage);
+  --border-delicate: var(--landing-border-delicate);
+  --font-serif: var(--landing-font-serif);
+  --font-sans: var(--landing-font-sans);
+  --font-mono: var(--landing-font-mono);
+  --shadow-subtle: var(--landing-shadow-subtle);
+  --shadow-elevated: var(--landing-shadow-elevated);
+  --radius-small: var(--landing-radius-small);
+  --radius-control: var(--landing-radius-control);
+  --radius-card: var(--landing-radius-card);
+  --radius-panel: var(--landing-radius-panel);
+
+  position: relative;
+  background-color: var(--bg-parchment);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  min-height: 100vh;
+  overflow-x: clip;
+  line-height: var(--landing-leading-normal);
+}
+
+.blueprint-frame {
+  position: absolute;
+  top: 100px;
+  width: 140px;
+  height: 600px;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.blueprint-left {
+  left: 0;
+}
+.blueprint-right {
+  right: 0;
+}
+.blueprint-svg {
+  width: 100%;
+  height: 100%;
+}
+
+:deep(.reveal-on-scroll) {
+  opacity: 0;
+  transform: translateY(12px);
+  filter: blur(6px);
+  transition:
+    opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+    filter 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: var(--reveal-delay, 0ms);
+  will-change: opacity, transform, filter;
+}
+
+:deep(.reveal-on-scroll.is-visible) {
+  opacity: 1;
+  transform: translateY(0);
+  filter: blur(0);
+  will-change: auto;
+}
+
+@media (max-width: 1100px) {
+  .blueprint-frame {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :deep(.reveal-on-scroll) {
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+    transition: none !important;
+  }
+}
+</style>

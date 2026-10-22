@@ -1,0 +1,34 @@
+apps/console/src/components/common/data-table/CategoryFilter.vue
+  s_4c3d2ec90adbe7::t_0ad3d884e1628d 3-11,19,27-30,34-73
+apps/console/src/components/common/data-table/TagFilter.vue
+  s_4c3d2ec90adbe7::t_0ad3d884e1628d 40-42,44,47-48,54-59,70-72,74,77-78
+apps/console/src/components/problem/ProblemExplorer.vue
+  s_4c3d2ec90adbe7::t_0ad3d884e1628d 11-12,17-24,68
+apps/console/src/components/problem/composables/useProblemExplorer.ts
+  s_4c3d2ec90adbe7::t_0ad3d884e1628d 299-305
+apps/console/src/components/problem/composables/__tests__/useProblemExplorer.spec.ts
+  s_4c3d2ec90adbe7::t_103380fccbb71e 17-18,23,33,45-48,147-148,310-316,595-599,614,684-735
+  s_4c3d2ec90adbe7::t_4058eb4e9cb4cc 736
+apps/console/src/components/common/data-table/DataTableToolbar.vue
+  s_4c3d2ec90adbe7::t_0ad3d884e1628d 33,41,48-54,56
+apps/console/src/components/problem/components/ProblemFilterPanel.vue
+  s_4c3d2ec90adbe7::t_0ad3d884e1628d 20,47,49,61-68,151,163-167
+docs/DEVELOPMENT.md
+  s_4c3d2ec90adbe7::t_61e8413cd9b7b7 232-233
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "fc893f96c3aa03cbc82e84e4fa55eed08254fea7",
+  "prompts": {},
+  "sessions": {
+    "s_4c3d2ec90adbe7": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1645d-3670-7ab3-929a-a17e79605dca",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

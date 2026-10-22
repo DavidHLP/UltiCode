@@ -31,11 +31,11 @@ describe('SidebarParentItem', () => {
     expect(wrapper.find('button[aria-label="collapse section"]').exists()).toBe(true)
   })
 
-  it('reflects active via data-active="true"', () => {
+  it('keeps a group-only trigger neutral even when a descendant is active', () => {
     const wrapper = mount(SidebarParentItem, {
       props: { title: 'P', active: true },
     })
-    expect(wrapper.find('[data-active="true"]').exists()).toBe(true)
+    expect(wrapper.find('[data-active="true"]').exists()).toBe(false)
   })
 
   it('mounts a CollapsibleRoot', () => {

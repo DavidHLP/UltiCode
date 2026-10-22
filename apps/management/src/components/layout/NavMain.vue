@@ -41,7 +41,7 @@ watchEffect(() => {
     <SidebarBranch
       :title="title || items[0]!.title"
       :icon="items[0]?.icon"
-      :active="items.some((item) => isActive(item.url) || isSubmenuActive(item))"
+      :contains-active="items.some((item) => isActive(item.url) || isSubmenuActive(item))"
     >
       <template v-for="item in items" :key="item.title">
         <Collapsible
@@ -53,7 +53,7 @@ watchEffect(() => {
         >
           <SidebarMenuSubItem>
             <CollapsibleTrigger as-child>
-              <SidebarMenuSubButton as="button" type="button" :is-active="isSubmenuActive(item)">
+              <SidebarMenuSubButton as="button" type="button">
                 <component :is="item.icon" v-if="item.icon" />
                 <span>{{ item.title }}</span>
                 <ChevronRight

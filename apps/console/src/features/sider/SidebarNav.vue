@@ -47,10 +47,6 @@ const isExactUrl = (url?: string) => !!url && EXACT_URLS.has(url);
 const itemLabel = (item: SidebarItem) => item.label ?? t(item.title);
 
 const isItemActive = (item: SidebarItem): boolean => {
-  // A parent with children is "active" if the current path matches it or any descendant.
-  if (item.children && item.children.length > 0) {
-    return item.children.some((child) => isItemActive(child));
-  }
   if (!item.url) return false;
   if (item.url === "/contest/past" && route.path === "/contest/browse/past") {
     return true;
@@ -63,9 +59,12 @@ const isItemActive = (item: SidebarItem): boolean => {
     const scope = route.query.scope === "local" ? "local" : "global";
     return item.url === `/contest/${scope}-ranking`;
   }
-  if (isExactUrl(item.url)) return route.path === item.url;
+  if (item.children?.length || isExactUrl(item.url)) return route.path === item.url;
   return route.path === item.url || route.path.startsWith(item.url + "/");
 };
+
+const containsActiveItem = (item: SidebarItem): boolean =>
+  isItemActive(item) || Boolean(item.children?.some(containsActiveItem));
 
 const getItemIconColorClass = (item: SidebarItem) => {
   if (!item.url && !item.children) return "";
@@ -81,7 +80,7 @@ const getItemIconColorClass = (item: SidebarItem) => {
       <SidebarBranch
         :title="t(section.name)"
         :icon="section.items[0]?.icon"
-        :active="section.items.some(isItemActive)"
+        :contains-active="section.items.some(containsActiveItem)"
       >
         <SidebarMenuSubItem v-for="item in section.items" :key="item.title">
           <SidebarParentItem
@@ -90,7 +89,7 @@ const getItemIconColorClass = (item: SidebarItem) => {
             :url="item.url"
             :icon="item.icon"
             :active="isItemActive(item)"
-            :default-open="isItemActive(item)"
+            :default-open="containsActiveItem(item)"
           >
             <SharedSidebarMenuSubItem
               v-for="child in item.children"

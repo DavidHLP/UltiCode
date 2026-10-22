@@ -19,10 +19,10 @@ const props = withDefaults(
   defineProps<{
     title: string;
     icon?: Component;
-    active?: boolean;
+    containsActive?: boolean;
     defaultOpen?: boolean;
   }>(),
-  { active: false, defaultOpen: true },
+  { containsActive: false, defaultOpen: true },
 );
 const open = ref(props.defaultOpen);
 const { state, isMobile, setOpen } = useSidebar();
@@ -30,9 +30,9 @@ const collapsed = computed(
   () => state.value === "collapsed" && !isMobile.value,
 );
 watch(
-  () => props.active,
-  (active) => {
-    if (active) open.value = true;
+  () => props.containsActive,
+  (containsActive) => {
+    if (containsActive) open.value = true;
   },
 );
 function updateOpen(value: boolean) {
@@ -54,11 +54,10 @@ function updateOpen(value: boolean) {
           <SidebarMenuButton
             :tooltip="title"
             :aria-label="title"
-            :is-active="active"
           >
             <component
               :is="icon || Folder"
-              :class="active ? 'text-inherit' : 'text-muted-foreground'"
+              class="text-muted-foreground"
             />
             <span>{{ title }}</span>
             <ChevronRight

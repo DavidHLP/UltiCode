@@ -1,0 +1,40 @@
+services/agent/data/repository_corpus_manifest.json
+  s_f183aa7801ef6b::t_0e90791816f1a1 18-19,60-61
+  s_f183aa7801ef6b::t_dbe01dc0c96f95 32-33
+docs/DEVELOPMENT.md
+  s_f183aa7801ef6b::t_19648592978692 232
+apps/console/src/components/common/data-table/DataTableToolbar.vue
+  s_f183aa7801ef6b::t_3cbafcf882610d 29,31,52
+apps/console/src/components/common/data-table/__tests__/DataTableToolbar.spec.ts
+  s_f183aa7801ef6b::t_df65de14fe1c33 6,13-15
+apps/console/src/components/problem/FeaturedBanners.vue
+  s_f183aa7801ef6b::t_47a8e044dc27d9 6-13,49-50,52,54,157,159,234-270,274-277,283,287,291,295-296,299,309,312,314,316,324,340,354,356,359-360,364-366,369-375,377,384,395,397-406
+apps/console/src/components/problem/ProblemExplorer.vue
+  s_f183aa7801ef6b::t_07b7df361c7dd5 64
+apps/console/src/components/problem/ProblemSetSidebar.vue
+  s_f183aa7801ef6b::t_8e5c603c92425b 95,97
+apps/console/src/components/problem/components/ProblemResultList.vue
+  s_f183aa7801ef6b::t_dcab514d79fa47 5,40,52-69,85,94,101
+apps/console/src/i18n/locales/en-US/problem.ts
+  s_f183aa7801ef6b::t_3aa873311f4a32 274-276
+apps/console/src/i18n/locales/zh-CN/problem.ts
+  s_f183aa7801ef6b::t_d0008c4d9bdcc9 269-271
+apps/console/src/views/problem-set/ProblemSetView.vue
+  s_f183aa7801ef6b::t_5f13d065bd5d99 24,27,30,36
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "315c9689337013cf72d7b0e8b195d4928a6b31f2",
+  "prompts": {},
+  "sessions": {
+    "s_f183aa7801ef6b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a16486-c97b-74e3-af8f-248a9bd7675c",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

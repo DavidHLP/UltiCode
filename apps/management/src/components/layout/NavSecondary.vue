@@ -26,7 +26,7 @@ const isActive = (url: string) => route.path === url
     <SidebarBranch
       :title="t('nav.system')"
       :icon="Settings"
-      :active="items.some((item) => isActive(item.url))"
+      :contains-active="items.some((item) => isActive(item.url))"
     >
       <SidebarMenuSubItem v-for="item in items" :key="item.title">
         <SidebarMenuSubButton :is-active="isActive(item.url)" as-child>

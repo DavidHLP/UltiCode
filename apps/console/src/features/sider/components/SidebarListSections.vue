@@ -124,7 +124,7 @@ const isListActive = (id: string | number) => route.path === listUrl(id);
     <SidebarBranch
       :title="section.title"
       :icon="section.icon"
-      :active="section.lists.some((item) => isListActive(item.id))"
+      :contains-active="section.lists.some((item) => isListActive(item.id))"
     >
       <template v-if="section.category" #actions>
         <DropdownMenu>

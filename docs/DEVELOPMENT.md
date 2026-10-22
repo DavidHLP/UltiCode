@@ -229,7 +229,7 @@ app 测试排除的共享认证/主题测试必须独立运行；其他共享包
 
 ### 共享 shadcn-vue 与外观设置
 
-Console and Management compose the official sidebar-07 hierarchy through `packages/sidebar-menu`'s `SidebarBranch`: parent rows expand indented child navigation, including problem categories, list collections, and administration groups. Icon mode keeps parent buttons accessible and expands the sidebar when a branch is selected; mobile drawers retain their child navigation. List creation and collection management keep their existing handlers and permissions.
+Console and Management compose the official sidebar-07 hierarchy through `packages/sidebar-menu`'s `SidebarBranch`: parent rows expand indented child navigation, including problem categories, list collections, and administration groups. Only navigation destinations receive active styling; expansion-only directories stay neutral even when they contain the current destination. A parent that also links to a page is active only on its own page. Icon mode keeps parent buttons accessible and expands the sidebar when a branch is selected; mobile drawers retain their child navigation. List creation and collection management keep their existing handlers and permissions.
 
 Both account footers use `packages/auth-ui`'s `AccountSwitcher` over the Auth account-session endpoints. Adding an account keeps the previous session available, switching reloads app state, and Management filters the menu to administrator accounts. Backend role checks remain authoritative. Shared Web Locks serialize account changes with refresh within one origin; apps sharing credential cookies across different origins require server coordination for atomic concurrent switching.
 

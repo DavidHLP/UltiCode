@@ -118,8 +118,46 @@ describe("AppSidebar mobile overlays", () => {
       });
       try {
         expect(
-          wrapper.findAll('a[data-active="true"]').map((node) => node.text()),
+          wrapper.findAll('[data-active="true"]').map((node) => node.text()),
         ).toEqual([expected]);
+      } finally {
+        wrapper.unmount();
+      }
+    },
+  );
+
+  it.each([
+    ["/forum/c", "/forum/c", "Community"],
+    ["/forum/c", "/forum/c/general", "General"],
+    [undefined, "/forum/c/general", "General"],
+  ])(
+    "selects only the destination and keeps its directory neutral (%s, %s)",
+    (url, path, expected) => {
+      route.path = path;
+      const wrapper = mount(SidebarNav, {
+        props: {
+          sections: [
+            {
+              name: "Categories",
+              items: [
+                {
+                  title: "Community",
+                  url,
+                  children: [{ title: "General", url: "/forum/c/general" }],
+                },
+              ],
+            },
+          ],
+        },
+        global: { stubs: { RouterLink: { template: "<a><slot /></a>" } } },
+      });
+      try {
+        expect(
+          wrapper.findAll('[data-active="true"]').map((node) => node.text()),
+        ).toEqual([expected]);
+        expect(
+          wrapper.get('button[aria-label="Categories"]').attributes("data-active"),
+        ).toBeUndefined();
       } finally {
         wrapper.unmount();
       }
@@ -187,7 +225,7 @@ describe("AppSidebar mobile overlays", () => {
   });
 
   it.each([false, true])(
-    "inherits the active row foreground for icons (collapsible: %s)",
+    "highlights the destination icon without highlighting its directory (collapsible: %s)",
     async (collapsible) => {
       const wrapper = mount(SidebarNav, {
         props: {
@@ -212,10 +250,17 @@ describe("AppSidebar mobile overlays", () => {
           sidebarState.value = state;
           await nextTick();
           const icon = wrapper
-            .findAll('[data-test="nav-icon"]')
+            .findAll(
+              state === "expanded"
+                ? 'a [data-test="nav-icon"]'
+                : 'button[aria-label="Navigation"] [data-test="nav-icon"]',
+            )
             .find((node) => node.isVisible());
-          expect(icon?.classes()).toContain("text-inherit");
+          expect(icon?.classes()).toContain(
+            state === "expanded" ? "text-inherit" : "text-muted-foreground",
+          );
           expect(icon?.classes()).not.toContain("text-primary");
+          expect(wrapper.findAll('button[data-active="true"]')).toHaveLength(0);
         }
         route.path = "/forum";
         await nextTick();

@@ -71,9 +71,9 @@ const voteCounts = computed(() =>
           {{ authorInitial }}
         </AvatarFallback>
       </Avatar>
-      <div class="flex flex-1 flex-col gap-0.5 text-xs leading-none">
+      <div class="flex min-w-0 flex-1 flex-col gap-0.5 text-xs leading-none">
         <div class="flex flex-wrap items-center gap-1.5">
-          <span class="font-bold text-foreground">
+          <span class="max-w-full shrink-0 break-words [overflow-wrap:anywhere] font-bold text-foreground">
             {{ props.item.author.name }}
           </span>
           <span

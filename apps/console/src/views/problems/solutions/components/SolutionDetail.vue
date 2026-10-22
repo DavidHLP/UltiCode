@@ -362,7 +362,7 @@ watch(
               class="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs leading-normal"
             >
               <span
-                class="break-words [overflow-wrap:anywhere] font-bold text-foreground dark:text-foreground"
+                class="max-w-full shrink-0 break-words [overflow-wrap:anywhere] font-bold text-foreground dark:text-foreground"
               >
                 {{ props.item.author.name }}
               </span>

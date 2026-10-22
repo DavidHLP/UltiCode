@@ -196,16 +196,16 @@ function retryFetch() {
       <div class="md:hidden border-t border-border dark:border-border bg-muted">
         <Tabs :model-value="currentTab" @update:model-value="handleTabChange" class="w-full">
           <TabsList class="w-full h-9">
-            <TabsTrigger value="description" class="flex-1 h-7">
+            <TabsTrigger value="description" class="min-w-0 flex-1 h-7 px-0.5 text-xs">
               {{ t('problems.tabs.description') }}
             </TabsTrigger>
-            <TabsTrigger value="code" class="flex-1 h-7">
+            <TabsTrigger value="code" class="min-w-0 flex-1 h-7 px-0.5 text-xs">
               {{ t('problems.tabs.code') }}
             </TabsTrigger>
-            <TabsTrigger value="cases" class="flex-1 h-7">
+            <TabsTrigger value="cases" class="min-w-0 flex-1 h-7 px-0.5 text-xs">
               {{ t('problems.tabs.testCases') }}
             </TabsTrigger>
-            <TabsTrigger value="audit" class="flex-1 h-7">
+            <TabsTrigger value="audit" class="min-w-0 flex-1 h-7 px-0.5 text-xs">
               {{ t('problems.tabs.audit') }}
             </TabsTrigger>
           </TabsList>

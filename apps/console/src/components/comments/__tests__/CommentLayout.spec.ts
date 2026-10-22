@@ -56,6 +56,8 @@ describe("comment layout", () => {
       });
       try {
         await wrapper.get("button").trigger("click");
+        await flushPromises();
+        expect(document.activeElement).toBe(wrapper.get("textarea").element);
         const cancel = wrapper
           .findAll("button")
           .find((button) => button.text() === "common.actions.cancel")!;
@@ -109,6 +111,8 @@ describe("comment layout", () => {
     try {
       const reply = wrapper.get('button[aria-label="common.actions.reply"]');
       await reply.trigger("click");
+      await flushPromises();
+      expect(document.activeElement).toBe(wrapper.get("textarea").element);
       const cancel = wrapper
         .findAll("button")
         .find((button) => button.text() === "common.actions.cancel")!;

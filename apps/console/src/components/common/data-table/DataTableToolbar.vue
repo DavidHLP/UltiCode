@@ -71,7 +71,11 @@ const emit = defineEmits<{
             </Badge>
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent class="w-56" align="end">
+        <DropdownMenuContent
+          class="w-56"
+          align="end"
+          :collision-padding="{ top: 56 }"
+        >
           <slot name="filters" />
         </DropdownMenuContent>
       </DropdownMenu>

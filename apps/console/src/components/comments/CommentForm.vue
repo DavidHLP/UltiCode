@@ -1,5 +1,5 @@
 <template>
-  <form @submit.prevent="submit" class="w-full min-w-0">
+  <form ref="formElement" @submit.prevent="submit" class="w-full min-w-0">
     <!-- Comment input container -->
     <div
       class="overflow-hidden rounded-md border border-input bg-card shadow-xs transition-colors duration-200 focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/30"
@@ -53,7 +53,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { onMounted, ref } from "vue";
 import { Textarea } from "@ulticode/design-system/ui/textarea";
 import { Button } from "@ulticode/design-system/ui/button";
 import { Image as ImageIcon, Type } from "@lucide/vue";
@@ -76,6 +76,11 @@ const emit = defineEmits<{
 const { t } = useI18n();
 
 const content = ref(props.initialContent || "");
+const formElement = ref<HTMLFormElement | null>(null);
+
+onMounted(() => {
+  formElement.value?.querySelector("textarea")?.focus();
+});
 
 const submit = () => {
   if (!content.value.trim()) return;

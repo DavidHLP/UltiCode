@@ -26,6 +26,12 @@ vi.mock("@/stores/auth", () => ({
   useAuthStore: () => ({ isAuthenticated: false, user: null }),
 }));
 vi.mock("@/api/forum", () => ({ fetchForumCommunities: vi.fn() }));
+vi.mock("@/api/accountSessions", () => ({ accountSessions: {} }));
+vi.mock("@ulticode/auth-ui", () => ({
+  AccountSwitcher: {
+    template: '<div data-test="account-switcher"><slot name="trigger" /></div>',
+  },
+}));
 vi.mock("vue-i18n", async (original) => ({
   ...(await original<typeof import("vue-i18n")>()),
   useI18n: () => ({ t: (key: string) => key }),
@@ -66,8 +72,8 @@ vi.mock("@ulticode/design-system/ui/sidebar", async () => {
     },
     Sidebar: component,
     SidebarContent: component,
-    SidebarFooter: component,
-    SidebarHeader: component,
+    SidebarFooter: { template: "<footer><slot /></footer>" },
+    SidebarHeader: { template: "<header><slot /></header>" },
     SidebarRail: component,
     SidebarSeparator: component,
   };
@@ -156,7 +162,9 @@ describe("AppSidebar mobile overlays", () => {
           wrapper.findAll('[data-active="true"]').map((node) => node.text()),
         ).toEqual([expected]);
         expect(
-          wrapper.get('button[aria-label="Categories"]').attributes("data-active"),
+          wrapper
+            .get('button[aria-label="Categories"]')
+            .attributes("data-active"),
         ).toBeUndefined();
       } finally {
         wrapper.unmount();
@@ -305,6 +313,26 @@ describe("AppSidebar mobile overlays", () => {
     }
   });
 
+  it("places account switching in the header and personal actions in the footer", () => {
+    const wrapper = mountSidebar();
+    try {
+      expect(
+        wrapper.get("header").find('[data-test="account-switcher"]').exists(),
+      ).toBe(true);
+      expect(
+        wrapper.get("header").findComponent({ name: "NavUser" }).exists(),
+      ).toBe(false);
+      expect(
+        wrapper.get("footer").findComponent({ name: "NavUser" }).exists(),
+      ).toBe(true);
+      expect(
+        wrapper.get("footer").find('[data-test="account-switcher"]').exists(),
+      ).toBe(false);
+    } finally {
+      wrapper.unmount();
+    }
+  });
+
   it("shows a retry when forum categories fail to load", async () => {
     route.path = "/forum";
     vi.mocked(fetchForumCommunities).mockRejectedValueOnce(
@@ -315,7 +343,7 @@ describe("AppSidebar mobile overlays", () => {
     try {
       await flushPromises();
       expect(wrapper.text()).toContain("forum.list.communitiesLoadFailed");
-      await wrapper.get("button").trigger("click");
+      await wrapper.get('[role="status"] button').trigger("click");
       await flushPromises();
       expect(fetchForumCommunities).toHaveBeenCalledTimes(2);
       expect(wrapper.text()).not.toContain("forum.list.communitiesLoadFailed");

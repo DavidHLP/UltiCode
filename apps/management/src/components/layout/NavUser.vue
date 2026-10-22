@@ -9,16 +9,22 @@ import {
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
-import { AccountSwitcher } from '@ulticode/auth-ui'
-import { accountSessions } from '@/api/accountSessions'
 import { Avatar, AvatarFallback, AvatarImage } from '@ulticode/design-system/ui/avatar'
 import {
+  DropdownMenu,
+  DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from '@ulticode/design-system/ui/dropdown-menu'
-import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@ulticode/design-system/ui/sidebar'
+import {
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  useSidebar,
+} from '@ulticode/design-system/ui/sidebar'
 
 interface User {
   name: string
@@ -33,6 +39,7 @@ defineProps<{
 
 const router = useRouter()
 const { t } = useI18n()
+const { isMobile } = useSidebar()
 const authStore = useAuthStore()
 
 function handleAccount() {
@@ -52,9 +59,9 @@ async function handleLogout() {
 <template>
   <SidebarMenu>
     <SidebarMenuItem>
-      <AccountSwitcher :client="accountSessions" admin-only>
-        <template #trigger>
-          <SidebarMenuButton size="lg" :tooltip="t('auth.accounts.title')">
+      <DropdownMenu>
+        <DropdownMenuTrigger as-child>
+          <SidebarMenuButton size="lg" :tooltip="t('nav.account')">
             <Avatar class="h-8 w-8 rounded-lg">
               <AvatarImage v-if="user.avatar" :src="user.avatar" :alt="user.name" />
               <AvatarFallback>{{ user.name.slice(0, 2).toUpperCase() }}</AvatarFallback>
@@ -74,9 +81,14 @@ async function handleLogout() {
               class="ml-auto size-4 text-muted-foreground group-hover:text-foreground"
             />
           </SidebarMenuButton>
-        </template>
-        <template #summary
-          ><DropdownMenuLabel class="p-0">
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          class="w-(--reka-dropdown-menu-trigger-width) min-w-56 rounded-lg"
+          :side="isMobile ? 'bottom' : 'right'"
+          align="end"
+          :side-offset="4"
+        >
+          <DropdownMenuLabel class="p-0">
             <div class="flex items-center gap-2 px-1.5 py-1.5 text-left text-sm">
               <Avatar class="h-8 w-8 rounded-lg">
                 <AvatarImage v-if="user.avatar" :src="user.avatar" :alt="user.name" />
@@ -97,24 +109,25 @@ async function handleLogout() {
                 </span>
               </div>
             </div>
-          </DropdownMenuLabel></template
-        >
-        <DropdownMenuGroup>
-          <DropdownMenuItem @click="handleAccount">
-            <IconUserCircle />
-            {{ t('nav.account') }}
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuGroup>
+            <DropdownMenuItem @click="handleAccount">
+              <IconUserCircle />
+              {{ t('nav.account') }}
+            </DropdownMenuItem>
+            <DropdownMenuItem @click="handleNotifications">
+              <IconNotification />
+              {{ t('nav.notifications') }}
+            </DropdownMenuItem>
+          </DropdownMenuGroup>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem @click="handleLogout">
+            <IconLogout />
+            {{ t('nav.logout') }}
           </DropdownMenuItem>
-          <DropdownMenuItem @click="handleNotifications">
-            <IconNotification />
-            {{ t('nav.notifications') }}
-          </DropdownMenuItem>
-        </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem @click="handleLogout">
-          <IconLogout />
-          {{ t('nav.logout') }}
-        </DropdownMenuItem>
-      </AccountSwitcher>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </SidebarMenuItem>
   </SidebarMenu>
 </template>

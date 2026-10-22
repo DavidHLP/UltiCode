@@ -75,6 +75,24 @@ describe("AccountSwitcher", () => {
     }
   });
 
+  it("keeps account addition available when no saved accounts exist", async () => {
+    const api = client();
+    api.list.mockResolvedValueOnce([]);
+    const { wrapper, page } = render(api);
+    try {
+      await open(wrapper);
+      const add = page
+        .findAll('[role="menuitem"]')
+        .find((item) => item.text().includes("auth.accounts.add"));
+      expect(add?.attributes("data-disabled")).toBeUndefined();
+      await add!.trigger("click");
+      await flushPromises();
+      expect(page.find('[role="dialog"]').exists()).toBe(true);
+    } finally {
+      wrapper.unmount();
+    }
+  });
+
   it("shows a recoverable error rather than pretending a failed request is an empty catalog", async () => {
     const api = client();
     api.list.mockRejectedValueOnce(new Error("offline"));

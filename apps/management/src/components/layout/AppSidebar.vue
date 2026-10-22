@@ -23,8 +23,6 @@ import {
   LayoutDashboard as IconDashboard,
   FileText as IconFileDescription,
   CircleHelp as IconHelp,
-  Code2 as IconInnerShadowTop,
-  ChevronsUpDown,
   ListChecks as IconListDetails,
   Flag as IconReport,
   Search as IconSearch,
@@ -48,8 +46,8 @@ import {
   SidebarFooter,
   SidebarHeader,
   SidebarMenu,
-  SidebarMenuButton,
   SidebarMenuItem,
+  SidebarRail,
 } from '@ulticode/design-system/ui/sidebar'
 
 const { t } = useI18n()
@@ -265,35 +263,15 @@ const navSecondary = computed(() => {
 </script>
 
 <template>
-  <Sidebar collapsible="icon">
-    <SidebarHeader>
+  <Sidebar collapsible="icon" class="uc-sidebar-shell">
+    <SidebarHeader class="uc-sidebar-header">
       <SidebarMenu>
         <SidebarMenuItem>
-          <AccountSwitcher :client="accountSessions" admin-only>
-            <template #trigger>
-              <SidebarMenuButton
-                size="lg"
-                :tooltip="t('auth.accounts.title')"
-                :aria-label="t('auth.accounts.title')"
-                class="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-              >
-                <div
-                  class="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground"
-                >
-                  <IconInnerShadowTop class="size-4" />
-                </div>
-                <div class="grid flex-1 text-left text-sm leading-tight">
-                  <span class="truncate font-medium">{{ t('nav.brandName') }}</span>
-                  <span class="truncate text-xs">{{ user.name }}</span>
-                </div>
-                <ChevronsUpDown class="ml-auto size-4" />
-              </SidebarMenuButton>
-            </template>
-          </AccountSwitcher>
+          <AccountSwitcher :client="accountSessions" :account-name="user.name" admin-only />
         </SidebarMenuItem>
       </SidebarMenu>
     </SidebarHeader>
-    <SidebarContent class="gap-0">
+    <SidebarContent class="uc-sidebar-content">
       <NavMain :items="overviewItems" :title="t('nav.overview')" />
       <NavMain :items="contentItems" :title="t('nav.content')" />
       <NavMain :items="userSecurityItems" :title="t('nav.usersAndSecurity')" />
@@ -302,5 +280,6 @@ const navSecondary = computed(() => {
     <SidebarFooter class="p-2">
       <NavUser :user="user" />
     </SidebarFooter>
+    <SidebarRail />
   </Sidebar>
 </template>

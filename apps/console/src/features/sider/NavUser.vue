@@ -108,12 +108,12 @@ async function handleLogout() {
         <DropdownMenu>
           <DropdownMenuTrigger as-child>
             <SidebarMenuButton size="lg" class="uc-sidebar-user-trigger">
-              <Avatar class="uc-sidebar-avatar h-8 w-8">
-                <AvatarFallback class="uc-sidebar-avatar-fallback">
+              <Avatar class="uc-sidebar-avatar size-8 rounded-lg">
+                <AvatarFallback class="uc-sidebar-avatar-fallback rounded-lg">
                   <User class="size-4" />
                 </AvatarFallback>
               </Avatar>
-              <div class="grid flex-1 text-left text-sm leading-tight">
+              <div class="grid min-w-0 flex-1 text-left text-sm leading-tight">
                 <span class="truncate font-medium">{{
                   t("auth.guest.name")
                 }}</span>
@@ -121,7 +121,7 @@ async function handleLogout() {
                   {{ t("auth.guest.loginToContinue") }}
                 </span>
               </div>
-              <IconDotsVertical class="ml-auto size-4" />
+              <IconDotsVertical class="ml-auto size-4 text-muted-foreground" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
@@ -134,12 +134,12 @@ async function handleLogout() {
               <div
                 class="flex items-center gap-2 px-1 py-1.5 text-left text-sm"
               >
-                <Avatar class="uc-sidebar-avatar h-8 w-8">
-                  <AvatarFallback class="uc-sidebar-avatar-fallback">
+                <Avatar class="uc-sidebar-avatar size-8 rounded-lg">
+                  <AvatarFallback class="uc-sidebar-avatar-fallback rounded-lg">
                     <User class="size-4" />
                   </AvatarFallback>
                 </Avatar>
-                <div class="grid flex-1 text-left text-sm leading-tight">
+                <div class="grid min-w-0 flex-1 text-left text-sm leading-tight">
                   <span class="truncate font-medium">{{
                     t("auth.guest.name")
                   }}</span>
@@ -175,17 +175,19 @@ async function handleLogout() {
       <DropdownMenu v-else>
         <DropdownMenuTrigger as-child>
           <SidebarMenuButton size="lg" class="uc-sidebar-user-trigger">
-            <Avatar class="uc-sidebar-avatar h-8 w-8">
+            <Avatar class="uc-sidebar-avatar size-8 rounded-lg">
               <AvatarImage :src="normalizedAvatar" :alt="user.name" />
-              <AvatarFallback class="uc-sidebar-avatar-fallback">
+              <AvatarFallback class="uc-sidebar-avatar-fallback rounded-lg">
                 {{ user.name.substring(0, 2).toUpperCase() }}
               </AvatarFallback>
             </Avatar>
-            <div class="grid flex-1 text-left text-sm leading-tight">
+            <div class="grid min-w-0 flex-1 text-left text-sm leading-tight">
               <span class="truncate font-medium">{{ user.name }}</span>
-              <span class="truncate text-xs">{{ user.email }}</span>
+              <span class="truncate text-xs text-muted-foreground">{{
+                user.email
+              }}</span>
             </div>
-            <IconDotsVertical class="ml-auto size-4" />
+            <IconDotsVertical class="ml-auto size-4 text-muted-foreground" />
           </SidebarMenuButton>
         </DropdownMenuTrigger>
         <DropdownMenuContent
@@ -196,15 +198,17 @@ async function handleLogout() {
         >
           <DropdownMenuLabel class="p-0">
             <div class="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-              <Avatar class="uc-sidebar-avatar h-8 w-8">
+              <Avatar class="uc-sidebar-avatar size-8 rounded-lg">
                 <AvatarImage :src="normalizedAvatar" :alt="user.name" />
-                <AvatarFallback class="uc-sidebar-avatar-fallback">
+                <AvatarFallback class="uc-sidebar-avatar-fallback rounded-lg">
                   {{ user.name.substring(0, 2).toUpperCase() }}
                 </AvatarFallback>
               </Avatar>
-              <div class="grid flex-1 text-left text-sm leading-tight">
+              <div class="grid min-w-0 flex-1 text-left text-sm leading-tight">
                 <span class="truncate font-medium">{{ user.name }}</span>
-                <span class="truncate text-xs">{{ user.email }}</span>
+                <span class="truncate text-xs text-muted-foreground">{{
+                  user.email
+                }}</span>
               </div>
             </div>
           </DropdownMenuLabel>

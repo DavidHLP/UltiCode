@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {
   SidebarGroup,
+  SidebarMenuSub,
   SidebarMenuSubItem,
   SidebarMenuSubButton,
 } from "@ulticode/design-system/ui/sidebar";
@@ -10,11 +11,7 @@ import { computed } from "vue";
 import { useAuthStore } from "@/stores/auth";
 import type { SidebarItem, SidebarSection } from "./sidebar.data";
 import { useRoute } from "vue-router";
-import {
-  SidebarBranch,
-  SidebarParentItem,
-  SidebarMenuSubItem as SharedSidebarMenuSubItem,
-} from "@ulticode/sidebar-menu";
+import { SidebarBranch, SidebarParentItem } from "@ulticode/sidebar-menu";
 
 const { t } = useI18n();
 const authStore = useAuthStore();
@@ -91,19 +88,23 @@ const getItemIconColorClass = (item: SidebarItem) => {
             :active="isItemActive(item)"
             :default-open="containsActiveItem(item)"
           >
-            <SharedSidebarMenuSubItem
-              v-for="child in item.children"
-              :key="child.title"
-              :is-active="isItemActive(child)"
-              :to="child.url || '#'"
-            >
-              <component
-                :is="child.icon"
-                v-if="child.icon"
-                class="size-4 shrink-0"
-              />
-              <span>{{ itemLabel(child) }}</span>
-            </SharedSidebarMenuSubItem>
+            <SidebarMenuSub>
+              <SidebarMenuSubItem
+                v-for="child in item.children"
+                :key="child.title"
+              >
+                <SidebarMenuSubButton :is-active="isItemActive(child)" as-child>
+                  <router-link :to="child.url || '#'">
+                    <component
+                      :is="child.icon"
+                      v-if="child.icon"
+                      class="size-4 shrink-0"
+                    />
+                    <span>{{ itemLabel(child) }}</span>
+                  </router-link>
+                </SidebarMenuSubButton>
+              </SidebarMenuSubItem>
+            </SidebarMenuSub>
           </SidebarParentItem>
           <SidebarMenuSubButton v-else :is-active="isItemActive(item)" as-child>
             <router-link :to="item.url || '#'">

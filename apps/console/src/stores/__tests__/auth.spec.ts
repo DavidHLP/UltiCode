@@ -39,15 +39,38 @@ describe("useAuthStore", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
     vi.clearAllMocks();
+    vi.mocked(apiGet).mockReset();
     // Default: no csrf_token cookie in the browser (anonymous visitor).
     // Tests that need "session present" must explicitly set
     // `document.cookie = "csrf_token=..."` before calling store.initialize().
-    document.cookie = "csrf_token=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
+    document.cookie =
+      "csrf_token=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
     const store = useAuthStore();
     store.reset();
   });
 
   describe("login", () => {
+    it.each(["login", "register"] as const)(
+      "commits the %s session before loading its optional profile avatar",
+      async (operation) => {
+        const store = useAuthStore();
+        const observedStates: string[] = [];
+        vi.mocked(apiPost).mockResolvedValue({
+          user: mockUser,
+          csrfToken: "csrf-new",
+        });
+        vi.mocked(apiGet).mockImplementation(async () => {
+          observedStates.push(store.status);
+          return { avatar: "/uploaded.webp" };
+        });
+
+        await store[operation]({ username: "testuser", password: "secret" });
+
+        expect(observedStates).toEqual(["ready"]);
+        expect(store.user?.avatar).toBe("/uploaded.webp");
+      },
+    );
+
     it("transitions idle -> loading -> ready on success", async () => {
       const store = useAuthStore();
       expect(store.status).toBe("idle");

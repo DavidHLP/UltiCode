@@ -37,24 +37,16 @@ export const useAuthStore = defineStore("auth", () => {
       return response;
     },
     login: async (credentials) => {
-      const response = await apiPost<{ user: User; csrfToken?: string }>(
+      return apiPost<{ user: User; csrfToken?: string }>(
         "/auth/login",
         credentials,
       );
-      if (response?.user) {
-        response.user = await withProfileAvatar(response.user);
-      }
-      return response;
     },
     register: async (data) => {
-      const response = await apiPost<{ user: User; csrfToken?: string }>(
+      return apiPost<{ user: User; csrfToken?: string }>(
         "/auth/register",
         data,
       );
-      if (response?.user) {
-        response.user = await withProfileAvatar(response.user);
-      }
-      return response;
     },
     logout: () => apiPost<void>("/auth/logout"),
     loadPermissions: () =>
@@ -74,6 +66,24 @@ export const useAuthStore = defineStore("auth", () => {
   const userRole = computed(() => session.user.value?.role || "");
   const initializationPromise = computed(() => session.whenInitialized());
 
+  async function refreshProfileAvatar(): Promise<void> {
+    const user = session.user.value;
+    if (!user) return;
+    const enriched = await withProfileAvatar(user);
+    if (session.user.value === user) session.user.value = enriched;
+  }
+
+  async function login(credentials: unknown): Promise<void> {
+    await session.login(credentials);
+    // Optional profile 401s may refresh the session after the login lock is released.
+    await refreshProfileAvatar();
+  }
+
+  async function register(data: unknown): Promise<void> {
+    await session.register(data);
+    await refreshProfileAvatar();
+  }
+
   function fetchCurrentUserId(): string | null {
     return session.user.value?.id || null;
   }
@@ -84,7 +94,6 @@ export const useAuthStore = defineStore("auth", () => {
       session.user.value = { ...user, avatar };
     }
   }
-
 
   return {
     user: session.user,
@@ -101,8 +110,8 @@ export const useAuthStore = defineStore("auth", () => {
     initialize: session.initialize,
     ensureUser: session.ensureUser,
     fetchUser: session.fetchUser,
-    login: session.login,
-    register: session.register,
+    login,
+    register,
     logout: session.logout,
     clearUser: session.clearUser,
     reset: session.reset,

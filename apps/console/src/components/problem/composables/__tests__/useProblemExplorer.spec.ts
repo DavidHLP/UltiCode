@@ -14,12 +14,13 @@
  * `@/api/problem` boundary is mocked — no real backend is touched.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { defineComponent, h, type PropType } from "vue";
-import { mount, type VueWrapper } from "@vue/test-utils";
+import { defineComponent, h, ref, type PropType } from "vue";
+import { mount, shallowMount, type VueWrapper } from "@vue/test-utils";
 import { CheckCircle2, FileEdit } from "@lucide/vue";
 import type { Problem } from "@/types/problem";
 import type { ProblemExplorerProps } from "../../type";
 import { useProblemExplorer } from "../useProblemExplorer";
+import ProblemExplorer from "../../ProblemExplorer.vue";
 
 // --- Mock handles ---------------------------------------------------------
 // `vi.hoisted` guarantees these exist before any hoisted `vi.mock` factory
@@ -29,6 +30,7 @@ const mocks = vi.hoisted(() => ({
   fetchRandomProblem: vi.fn(),
   routerPush: vi.fn(),
   toastError: vi.fn(),
+  useSidebar: vi.fn(),
 }));
 
 vi.mock("@/api/problem", () => ({
@@ -38,6 +40,10 @@ vi.mock("@/api/problem", () => ({
 
 vi.mock("vue-router", () => ({
   useRouter: () => ({ push: mocks.routerPush }),
+}));
+
+vi.mock("@ulticode/design-system/ui/sidebar", () => ({
+  useSidebar: mocks.useSidebar,
 }));
 
 vi.mock("vue-i18n", () => ({
@@ -138,6 +144,8 @@ beforeEach(() => {
   mocks.fetchRandomProblem.mockReset();
   mocks.routerPush.mockReset();
   mocks.toastError.mockReset();
+  mocks.useSidebar.mockReset();
+  mocks.useSidebar.mockReturnValue(null);
   idCounter = 0;
 });
 
@@ -299,6 +307,13 @@ describe("useProblemExplorer", () => {
       expect(ex.selectedCategory.value).toBe("algorithms");
       expect([...ex.selectedTags.value]).toEqual(["dp", "graph"]);
       expect(ex.searchQuery.value).toBe("sum");
+      expect(mocks.routerPush).toHaveBeenLastCalledWith({
+        name: "problemset-category",
+        params: { category: "algorithms" },
+      });
+
+      ex.setSelectedCategory("all");
+      expect(mocks.routerPush).toHaveBeenLastCalledWith({ name: "problemset" });
     });
 
     it("clearFilters resets every filter and triggers a reload", async () => {
@@ -577,7 +592,11 @@ describe("useProblemExplorer", () => {
 
     it("filters supplied problems by category slug", async () => {
       const problems = [
-        makeProblem({ id: 1, slug: "algorithm", categorySlugs: ["algorithms"] }),
+        makeProblem({
+          id: 1,
+          slug: "algorithm",
+          categorySlugs: ["algorithms"],
+        }),
         makeProblem({ id: 2, slug: "database", categorySlugs: ["database"] }),
         makeProblem({ id: 3, slug: "uncategorized" }),
       ];
@@ -592,6 +611,7 @@ describe("useProblemExplorer", () => {
       ex.setSelectedCategory("all");
       expect(ids()).toEqual([1, 2, 3]);
       expect(mocks.fetchProblems).not.toHaveBeenCalled();
+      expect(mocks.routerPush).not.toHaveBeenCalled();
       wrapper.unmount();
     });
 
@@ -659,5 +679,58 @@ describe("useProblemExplorer", () => {
         "concurrency",
       ]);
     });
+  });
+});
+
+describe("ProblemExplorer category entry", () => {
+  it("uses desktop navigation and restores the menu when collapsed or mobile", async () => {
+    const state = ref<"expanded" | "collapsed">("expanded");
+    const isMobile = ref(false);
+    mocks.useSidebar.mockReturnValue({ state, isMobile });
+    const wrapper = shallowMount(ProblemExplorer);
+    const panel = wrapper.getComponent({ name: "ProblemFilterPanel" });
+
+    expect(panel.props("showCategoryFilter")).toBe(false);
+    state.value = "collapsed";
+    await settle();
+    expect(panel.props("showCategoryFilter")).toBe(true);
+
+    state.value = "expanded";
+    isMobile.value = true;
+    await settle();
+    expect(panel.props("showCategoryFilter")).toBe(true);
+
+    isMobile.value = false;
+    await settle();
+    expect(panel.props("showCategoryFilter")).toBe(false);
+    wrapper.unmount();
+  });
+
+  it("keeps list-local categories available beside expanded navigation", () => {
+    mocks.useSidebar.mockReturnValue({
+      state: ref("expanded"),
+      isMobile: ref(false),
+    });
+    const wrapper = shallowMount(ProblemExplorer, { props: { problems: [] } });
+
+    expect(
+      wrapper
+        .getComponent({ name: "ProblemFilterPanel" })
+        .props("showCategoryFilter"),
+    ).toBe(true);
+    expect(mocks.fetchProblems).not.toHaveBeenCalled();
+    wrapper.unmount();
+  });
+
+  it("keeps category selection available without a sidebar provider", () => {
+    const wrapper = shallowMount(ProblemExplorer);
+
+    expect(mocks.useSidebar).toHaveBeenCalledWith(null);
+    expect(
+      wrapper
+        .getComponent({ name: "ProblemFilterPanel" })
+        .props("showCategoryFilter"),
+    ).toBe(true);
+    wrapper.unmount();
   });
 });

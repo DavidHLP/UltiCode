@@ -296,6 +296,13 @@ export function useProblemExplorer(props: ProblemExplorerProps) {
 
   function setSelectedCategory(value: string) {
     selectedCategory.value = value;
+    if (props.problems === undefined) {
+      void router.push(
+        value === "all"
+          ? { name: "problemset" }
+          : { name: "problemset-category", params: { category: value } },
+      );
+    }
   }
 
   function setSelectedTags(value: string[]) {

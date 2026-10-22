@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { Button } from '@ulticode/design-system/ui/button'
+import { AccountSwitcher } from '@ulticode/auth-ui'
+import { accountSessions } from '@/api/accountSessions'
 
 import {
   systemPermissionRules,
@@ -23,6 +24,7 @@ import {
   FileText as IconFileDescription,
   CircleHelp as IconHelp,
   Code2 as IconInnerShadowTop,
+  ChevronsUpDown,
   ListChecks as IconListDetails,
   Flag as IconReport,
   Search as IconSearch,
@@ -48,10 +50,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  useSidebar,
 } from '@ulticode/design-system/ui/sidebar'
-
-const { toggleSidebar } = useSidebar()
 
 const { t } = useI18n()
 const authStore = useAuthStore()
@@ -269,16 +268,27 @@ const navSecondary = computed(() => {
     <SidebarHeader>
       <SidebarMenu>
         <SidebarMenuItem>
-          <SidebarMenuButton
-            :tooltip="t('nav.brandName')"
-            as-child
-            class="data-[slot=sidebar-menu-button]:!p-1.5"
-          >
-            <Button variant="outline" type="button" @click="toggleSidebar">
-              <IconInnerShadowTop class="size-4 text-primary" />
-              <span class="text-base font-semibold text-foreground">{{ t('nav.brandName') }}</span>
-            </Button>
-          </SidebarMenuButton>
+          <AccountSwitcher :client="accountSessions" admin-only>
+            <template #trigger>
+              <SidebarMenuButton
+                size="lg"
+                :tooltip="t('auth.accounts.title')"
+                :aria-label="t('auth.accounts.title')"
+                class="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+              >
+                <div
+                  class="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground"
+                >
+                  <IconInnerShadowTop class="size-4" />
+                </div>
+                <div class="grid flex-1 text-left text-sm leading-tight">
+                  <span class="truncate font-medium">{{ t('nav.brandName') }}</span>
+                  <span class="truncate text-xs">{{ user.name }}</span>
+                </div>
+                <ChevronsUpDown class="ml-auto size-4" />
+              </SidebarMenuButton>
+            </template>
+          </AccountSwitcher>
         </SidebarMenuItem>
       </SidebarMenu>
     </SidebarHeader>

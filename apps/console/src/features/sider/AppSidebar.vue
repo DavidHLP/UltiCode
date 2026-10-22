@@ -10,7 +10,9 @@ import {
   personalSidebarData,
 } from "@/features/sider/sidebar.data";
 import { computed, onBeforeUnmount, ref, watch } from "vue";
-import { MessageSquare } from "@lucide/vue";
+import { ChevronsUpDown, MessageSquare, SquareTerminal } from "@lucide/vue";
+import { AccountSwitcher } from "@ulticode/auth-ui";
+import { accountSessions } from "@/api/accountSessions";
 import { useI18n } from "vue-i18n";
 import { fetchForumCommunities } from "@/api/forum";
 import type { ForumCommunity } from "@/types/forum";
@@ -28,6 +30,9 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
   SidebarRail,
   SidebarSeparator,
   useSidebar,
@@ -141,7 +146,33 @@ const currentSidebarData = computed(() => {
 <template>
   <Sidebar v-bind="props" class="uc-sidebar-shell">
     <SidebarHeader class="uc-sidebar-header">
-      <NavUser :user="user" :is-authenticated="isAuthenticated" />
+      <SidebarMenu>
+        <SidebarMenuItem>
+          <AccountSwitcher :client="accountSessions">
+            <template #trigger>
+              <SidebarMenuButton
+                size="lg"
+                :tooltip="t('auth.accounts.title')"
+                :aria-label="t('auth.accounts.title')"
+                class="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+              >
+                <div
+                  class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground"
+                >
+                  <SquareTerminal class="size-4" />
+                </div>
+                <div class="grid flex-1 text-left text-sm leading-tight">
+                  <span class="truncate font-medium">UltiCode</span>
+                  <span class="truncate text-xs">{{
+                    user.name || t("auth.guest.name")
+                  }}</span>
+                </div>
+                <ChevronsUpDown class="ml-auto size-4" />
+              </SidebarMenuButton>
+            </template>
+          </AccountSwitcher>
+        </SidebarMenuItem>
+      </SidebarMenu>
     </SidebarHeader>
     <SidebarContent class="uc-sidebar-content">
       <!-- Dynamic Sidebar Navigation -->
@@ -170,7 +201,9 @@ const currentSidebarData = computed(() => {
         </div>
       </template>
     </SidebarContent>
-    <SidebarFooter> </SidebarFooter>
+    <SidebarFooter>
+      <NavUser :user="user" :is-authenticated="isAuthenticated" />
+    </SidebarFooter>
     <SidebarRail />
   </Sidebar>
 </template>

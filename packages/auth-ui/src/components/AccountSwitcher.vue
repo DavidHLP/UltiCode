@@ -88,68 +88,74 @@ function showAdd() {
     <DropdownMenuContent
       class="w-(--reka-dropdown-menu-trigger-width) min-w-56 rounded-lg"
       :side="isMobile ? 'bottom' : 'right'"
-      align="end"
+      align="start"
       :side-offset="4"
     >
-      <slot name="summary" />
-      <DropdownMenuSeparator v-if="$slots.summary" />
-      <template v-if="accounts.length || loading || failed">
-        <DropdownMenuLabel>{{ t("auth.accounts.title") }}</DropdownMenuLabel>
-        <p
-          v-if="loading"
-          class="px-2 py-1.5 text-sm text-muted-foreground"
-          role="status"
-        >
-          {{ t("auth.accounts.loading") }}
-        </p>
-        <DropdownMenuGroup v-else>
-          <DropdownMenuItem
-            v-for="account in visibleAccounts"
-            :key="account.id"
-            :disabled="busy || account.current"
-            @select.prevent="select(account)"
-          >
-            <div class="grid min-w-0 flex-1">
-              <span class="truncate">{{ account.name }}</span
-              ><span class="truncate text-xs text-muted-foreground">{{
-                account.email
-              }}</span>
-            </div>
-            <Check
-              v-if="account.current"
-              class="size-4"
-              :aria-label="t('auth.accounts.current')"
-            />
-          </DropdownMenuItem>
-        </DropdownMenuGroup>
-        <div
-          v-if="failed"
-          class="px-2 py-1.5 text-sm text-destructive"
-          role="alert"
-        >
-          {{ t("auth.accounts.failed") }}
-          <button
-            type="button"
-            class="inline-flex items-center gap-1 underline"
-            @click="load(true)"
-          >
-            <RefreshCw class="size-3" />{{ t("auth.accounts.retry") }}
-          </button>
-        </div>
+      <DropdownMenuLabel class="text-xs text-muted-foreground">{{
+        t("auth.accounts.title")
+      }}</DropdownMenuLabel>
+      <p
+        v-if="loading"
+        class="px-2 py-1.5 text-sm text-muted-foreground"
+        role="status"
+      >
+        {{ t("auth.accounts.loading") }}
+      </p>
+      <DropdownMenuGroup v-else>
         <DropdownMenuItem
-          :disabled="busy || loading || accounts.length >= 5"
-          @select.prevent="showAdd"
-          ><Plus />{{ t("auth.accounts.add") }}</DropdownMenuItem
+          v-for="account in visibleAccounts"
+          :key="account.id"
+          class="gap-2 p-2"
+          :disabled="busy || account.current"
+          @select.prevent="select(account)"
         >
-        <p
-          v-if="accounts.length >= 5"
-          class="px-2 text-xs text-muted-foreground"
+          <div
+            class="flex size-6 shrink-0 items-center justify-center rounded-sm border text-xs"
+          >
+            {{ account.name.slice(0, 2).toUpperCase() }}
+          </div>
+          <div class="grid min-w-0 flex-1">
+            <span class="truncate">{{ account.name }}</span
+            ><span class="truncate text-xs text-muted-foreground">{{
+              account.email
+            }}</span>
+          </div>
+          <Check
+            v-if="account.current"
+            class="size-4"
+            :aria-label="t('auth.accounts.current')"
+          />
+        </DropdownMenuItem>
+      </DropdownMenuGroup>
+      <div
+        v-if="failed"
+        class="px-2 py-1.5 text-sm text-destructive"
+        role="alert"
+      >
+        {{ t("auth.accounts.failed") }}
+        <button
+          type="button"
+          class="inline-flex items-center gap-1 underline"
+          @click="load(true)"
         >
-          {{ t("auth.accounts.limit") }}
-        </p>
-        <DropdownMenuSeparator />
-      </template>
-      <slot />
+          <RefreshCw class="size-3" />{{ t("auth.accounts.retry") }}
+        </button>
+      </div>
+      <DropdownMenuSeparator />
+      <DropdownMenuItem
+        class="gap-2 p-2"
+        :disabled="busy || loading || accounts.length >= 5"
+        @select.prevent="showAdd"
+        ><div
+          class="flex size-6 items-center justify-center rounded-md border bg-transparent"
+        >
+          <Plus class="size-4" />
+        </div>
+        {{ t("auth.accounts.add") }}</DropdownMenuItem
+      >
+      <p v-if="accounts.length >= 5" class="px-2 text-xs text-muted-foreground">
+        {{ t("auth.accounts.limit") }}
+      </p>
     </DropdownMenuContent>
   </DropdownMenu>
   <Dialog v-model:open="addOpen">

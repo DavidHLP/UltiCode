@@ -13,8 +13,6 @@ import {
   CheckCircle2,
 } from "@lucide/vue";
 import { ChevronsUpDown as IconDotsVertical } from "@lucide/vue";
-import { AccountSwitcher } from "@ulticode/auth-ui";
-import { accountSessions } from "@/api/accountSessions";
 
 import { onMounted, computed } from "vue";
 
@@ -25,15 +23,19 @@ import {
 } from "@ulticode/design-system/ui/avatar";
 import { Badge } from "@ulticode/design-system/ui/badge";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from "@ulticode/design-system/ui/dropdown-menu";
 import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@ulticode/design-system/ui/sidebar";
 import LanguageSwitcher from "@/components/LanguageSwitcher.vue";
 import ThemeSwitcher from "@/components/ThemeSwitcher.vue";
@@ -56,6 +58,7 @@ const { user, isAuthenticated } = defineProps<{
 }>();
 
 const { t } = useI18n();
+const { isMobile } = useSidebar();
 const {} = useLocale();
 const router = useRouter();
 const authStore = useAuthStore();
@@ -102,8 +105,8 @@ async function handleLogout() {
     <SidebarMenuItem>
       <!-- Guest: unified dropdown -->
       <template v-if="!isAuthenticated">
-        <AccountSwitcher :client="accountSessions">
-          <template #trigger>
+        <DropdownMenu>
+          <DropdownMenuTrigger as-child>
             <SidebarMenuButton size="lg" class="uc-sidebar-user-trigger">
               <Avatar class="uc-sidebar-avatar h-8 w-8">
                 <AvatarFallback class="uc-sidebar-avatar-fallback">
@@ -120,9 +123,14 @@ async function handleLogout() {
               </div>
               <IconDotsVertical class="ml-auto size-4" />
             </SidebarMenuButton>
-          </template>
-          <template #summary
-            ><DropdownMenuLabel class="p-0">
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            class="w-(--reka-dropdown-menu-trigger-width) min-w-56 rounded-lg"
+            :side="isMobile ? 'bottom' : 'right'"
+            align="end"
+            :side-offset="4"
+          >
+            <DropdownMenuLabel class="p-0">
               <div
                 class="flex items-center gap-2 px-1 py-1.5 text-left text-sm"
               >
@@ -140,31 +148,32 @@ async function handleLogout() {
                   </span>
                 </div>
               </div>
-            </DropdownMenuLabel></template
-          >
-          <DropdownMenuGroup>
-            <RouterLink to="/login">
-              <DropdownMenuItem class="cursor-pointer">
-                <LogIn class="mr-2 h-4 w-4" />
-                {{ t("auth.login.submit") }}
-              </DropdownMenuItem>
-            </RouterLink>
-            <RouterLink to="/register">
-              <DropdownMenuItem class="cursor-pointer">
-                <UserPlus class="mr-2 h-4 w-4" />
-                {{ t("auth.register.submit") }}
-              </DropdownMenuItem>
-            </RouterLink>
-          </DropdownMenuGroup>
-          <DropdownMenuSeparator />
-          <ThemeSwitcher />
-          <LanguageSwitcher />
-        </AccountSwitcher>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup>
+              <RouterLink to="/login">
+                <DropdownMenuItem class="cursor-pointer">
+                  <LogIn class="mr-2 h-4 w-4" />
+                  {{ t("auth.login.submit") }}
+                </DropdownMenuItem>
+              </RouterLink>
+              <RouterLink to="/register">
+                <DropdownMenuItem class="cursor-pointer">
+                  <UserPlus class="mr-2 h-4 w-4" />
+                  {{ t("auth.register.submit") }}
+                </DropdownMenuItem>
+              </RouterLink>
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            <ThemeSwitcher />
+            <LanguageSwitcher />
+          </DropdownMenuContent>
+        </DropdownMenu>
       </template>
 
       <!-- Authenticated: show user dropdown menu -->
-      <AccountSwitcher v-else :client="accountSessions">
-        <template #trigger>
+      <DropdownMenu v-else>
+        <DropdownMenuTrigger as-child>
           <SidebarMenuButton size="lg" class="uc-sidebar-user-trigger">
             <Avatar class="uc-sidebar-avatar h-8 w-8">
               <AvatarImage :src="normalizedAvatar" :alt="user.name" />
@@ -178,9 +187,14 @@ async function handleLogout() {
             </div>
             <IconDotsVertical class="ml-auto size-4" />
           </SidebarMenuButton>
-        </template>
-        <template #summary
-          ><DropdownMenuLabel class="p-0">
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          class="w-(--reka-dropdown-menu-trigger-width) min-w-56 rounded-lg"
+          :side="isMobile ? 'bottom' : 'right'"
+          align="end"
+          :side-offset="4"
+        >
+          <DropdownMenuLabel class="p-0">
             <div class="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
               <Avatar class="uc-sidebar-avatar h-8 w-8">
                 <AvatarImage :src="normalizedAvatar" :alt="user.name" />
@@ -193,78 +207,79 @@ async function handleLogout() {
                 <span class="truncate text-xs">{{ user.email }}</span>
               </div>
             </div>
-          </DropdownMenuLabel></template
-        >
-        <DropdownMenuGroup>
-          <RouterLink to="/personal">
-            <DropdownMenuItem>
-              <User class="mr-2 h-4 w-4" />
-              {{ t("sidebar.personal.profile") }}
-            </DropdownMenuItem>
-          </RouterLink>
-          <RouterLink to="/personal/account">
-            <DropdownMenuItem>
-              <Settings class="mr-2 h-4 w-4" />
-              {{ t("sidebar.personal.accountSettings") }}
-            </DropdownMenuItem>
-          </RouterLink>
-        </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-        <DropdownMenuGroup>
-          <RouterLink to="/personal/submissions">
-            <DropdownMenuItem>
-              <History class="mr-2 h-4 w-4" />
-              {{ t("sidebar.personal.submissions") }}
-            </DropdownMenuItem>
-          </RouterLink>
-          <RouterLink to="/personal/solutions">
-            <DropdownMenuItem>
-              <CheckCircle2 class="mr-2 h-4 w-4" />
-              {{ t("sidebar.personal.solutions") }}
-            </DropdownMenuItem>
-          </RouterLink>
-          <RouterLink to="/personal/problem-lists">
-            <DropdownMenuItem>
-              <List class="mr-2 h-4 w-4" />
-              {{ t("sidebar.personal.problemLists") }}
-            </DropdownMenuItem>
-          </RouterLink>
-          <RouterLink to="/personal/bookmarks">
-            <DropdownMenuItem>
-              <Bookmark class="mr-2 h-4 w-4" />
-              {{ t("sidebar.personal.bookmarks") }}
-            </DropdownMenuItem>
-          </RouterLink>
-          <RouterLink to="/personal/forum-posts">
-            <DropdownMenuItem>
-              <MessageSquare class="mr-2 h-4 w-4" />
-              {{ t("sidebar.personal.forumPosts") }}
-            </DropdownMenuItem>
-          </RouterLink>
-        </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-        <DropdownMenuGroup>
-          <RouterLink to="/personal/notifications">
-            <DropdownMenuItem class="justify-between">
-              <div class="flex items-center">
-                <Bell class="mr-2 h-4 w-4" />
-                {{ t("sidebar.personal.notifications") }}
-              </div>
-              <Badge v-if="unreadCount > 0" class="h-5 px-2">
-                {{ unreadLabel }}
-              </Badge>
-            </DropdownMenuItem>
-          </RouterLink>
-        </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem @click="handleLogout">
-          <LogOut class="mr-2 h-4 w-4" />
-          {{ t("sidebar.personal.logout") }}
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <ThemeSwitcher />
-        <LanguageSwitcher />
-      </AccountSwitcher>
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuGroup>
+            <RouterLink to="/personal">
+              <DropdownMenuItem>
+                <User class="mr-2 h-4 w-4" />
+                {{ t("sidebar.personal.profile") }}
+              </DropdownMenuItem>
+            </RouterLink>
+            <RouterLink to="/personal/account">
+              <DropdownMenuItem>
+                <Settings class="mr-2 h-4 w-4" />
+                {{ t("sidebar.personal.accountSettings") }}
+              </DropdownMenuItem>
+            </RouterLink>
+          </DropdownMenuGroup>
+          <DropdownMenuSeparator />
+          <DropdownMenuGroup>
+            <RouterLink to="/personal/submissions">
+              <DropdownMenuItem>
+                <History class="mr-2 h-4 w-4" />
+                {{ t("sidebar.personal.submissions") }}
+              </DropdownMenuItem>
+            </RouterLink>
+            <RouterLink to="/personal/solutions">
+              <DropdownMenuItem>
+                <CheckCircle2 class="mr-2 h-4 w-4" />
+                {{ t("sidebar.personal.solutions") }}
+              </DropdownMenuItem>
+            </RouterLink>
+            <RouterLink to="/personal/problem-lists">
+              <DropdownMenuItem>
+                <List class="mr-2 h-4 w-4" />
+                {{ t("sidebar.personal.problemLists") }}
+              </DropdownMenuItem>
+            </RouterLink>
+            <RouterLink to="/personal/bookmarks">
+              <DropdownMenuItem>
+                <Bookmark class="mr-2 h-4 w-4" />
+                {{ t("sidebar.personal.bookmarks") }}
+              </DropdownMenuItem>
+            </RouterLink>
+            <RouterLink to="/personal/forum-posts">
+              <DropdownMenuItem>
+                <MessageSquare class="mr-2 h-4 w-4" />
+                {{ t("sidebar.personal.forumPosts") }}
+              </DropdownMenuItem>
+            </RouterLink>
+          </DropdownMenuGroup>
+          <DropdownMenuSeparator />
+          <DropdownMenuGroup>
+            <RouterLink to="/personal/notifications">
+              <DropdownMenuItem class="justify-between">
+                <div class="flex items-center">
+                  <Bell class="mr-2 h-4 w-4" />
+                  {{ t("sidebar.personal.notifications") }}
+                </div>
+                <Badge v-if="unreadCount > 0" class="h-5 px-2">
+                  {{ unreadLabel }}
+                </Badge>
+              </DropdownMenuItem>
+            </RouterLink>
+          </DropdownMenuGroup>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem @click="handleLogout">
+            <LogOut class="mr-2 h-4 w-4" />
+            {{ t("sidebar.personal.logout") }}
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <ThemeSwitcher />
+          <LanguageSwitcher />
+        </DropdownMenuContent>
+      </DropdownMenu>
     </SidebarMenuItem>
   </SidebarMenu>
 </template>

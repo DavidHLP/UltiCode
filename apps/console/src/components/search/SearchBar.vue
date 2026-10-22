@@ -29,7 +29,7 @@ function openSearch() {
         <Button
           variant="outline"
           size="sm"
-          class="p-0 sm:h-[var(--uc-layout-control-height)] sm:w-44 sm:justify-start sm:gap-[var(--uc-layout-control-gap)] sm:px-[var(--uc-layout-control-padding-inline)]"
+          class="uc-header-search"
           :aria-label="t('common.actions.search')"
           @click="openSearch"
         >

@@ -189,6 +189,13 @@
   .uc-page-main { display: flex; min-width: 0; flex: 1; flex-direction: column; padding: var(--uc-layout-page-gutter); }
   .uc-page-container { width: 100%; min-width: 0; max-width: var(--page-max-width); margin-inline: auto; }
   .uc-page-stack { display: flex; flex-direction: column; gap: var(--uc-layout-section-gap); }
+  .uc-app-shell { --uc-app-header-height: 3.5rem; }
+  .uc-app-header { position: sticky; top: 0; z-index: 30; display: flex; min-height: var(--uc-app-header-height); flex-shrink: 0; align-items: center; gap: var(--uc-layout-control-gap); border-bottom: 1px solid var(--border); background: var(--card); padding: 0.5rem var(--uc-layout-panel-padding-inline); }
+  .uc-app-header-context { display: flex; min-width: 0; align-items: center; gap: var(--uc-layout-control-gap); }
+  .uc-app-header-actions { display: flex; margin-inline-start: auto; flex-shrink: 0; align-items: center; gap: var(--uc-layout-control-gap); }
+  @media (max-width: 639px) {
+    .uc-app-header { flex-wrap: wrap; }
+  }
   .uc-sidebar-list-section { display: flex; min-width: 0; flex-direction: column; padding: 0.5rem; }
   .uc-sidebar-section-header { display: flex; align-items: center; gap: 0.25rem; }
   .uc-sidebar-section-trigger { display: flex; min-width: 0; height: 2rem; width: 100%; align-items: center; gap: 0.5rem; padding-inline: 0.5rem; border-radius: var(--radius-md); color: color-mix(in oklab, var(--sidebar-foreground) 70%, transparent); font-size: 0.75rem; font-weight: 500; text-align: start; }
@@ -197,6 +204,10 @@
   .uc-sidebar-section-icon { width: 1rem; height: 1rem; flex-shrink: 0; }
   .uc-sidebar-list { display: flex; min-width: 0; flex-direction: column; gap: 0.25rem; }
   .typeset-docs { --typeset-font-body: var(--font-sans); --typeset-font-heading: var(--font-heading); --typeset-font-mono: var(--font-mono); }
+}
+.uc-app-header .uc-header-icon, .uc-app-header .uc-header-search { width: var(--uc-layout-control-height); height: var(--uc-layout-control-height); flex-shrink: 0; border-radius: var(--radius-md); padding-inline: 0; }
+@media (min-width: 640px) {
+  .uc-app-header .uc-header-search { width: 11rem; justify-content: flex-start; gap: var(--uc-layout-control-gap); padding-inline: var(--uc-layout-control-padding-inline); }
 }
 @media (pointer: coarse) {
   [data-slot="button"], [data-slot="input"], [data-slot="select-trigger"], [data-slot="native-select"], [data-sidebar="menu-button"] { min-height: 2.75rem; }

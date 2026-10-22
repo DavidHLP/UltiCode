@@ -5,6 +5,7 @@ import { computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { SidebarTrigger } from '@ulticode/design-system/ui/sidebar'
 import { Separator } from '@ulticode/design-system/ui/separator'
+import { Kbd } from '@ulticode/design-system/ui/kbd'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -19,7 +20,6 @@ import {
   Search as IconSearch,
   Bell as IconBell,
   Bolt as IconBolt,
-  ChevronDown as IconChevronDown,
   Plus as IconPlus,
   Settings as IconSettings,
 } from '@lucide/vue'
@@ -52,6 +52,7 @@ const titleKey = computed(() =>
   typeof route.meta.titleKey === 'string' ? route.meta.titleKey : 'nav.dashboard',
 )
 const { t } = useI18n()
+const shortcutLabel = /Mac|iPhone|iPad|iPod/.test(navigator.userAgent) ? '⌘ K' : 'Ctrl K'
 
 const { isOpen: isSearchOpen, toggle: toggleSearch } = useSearchPalette()
 
@@ -130,110 +131,85 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <header
-    class="flex min-h-14 shrink-0 items-center border-b border-border dark:border-border/40 bg-card transition-[width,height] ease-linear select-none z-10"
-  >
-    <div class="flex w-full flex-wrap items-center justify-between gap-y-2 px-4 py-2 lg:px-6">
-      <!-- Left Side: Sidebar Trigger, Search & System Status -->
-      <div class="flex items-center gap-2">
-        <SidebarTrigger :aria-label="t('common.toggleSidebar')" />
-        <Separator orientation="vertical" class="h-4" />
-        <Breadcrumb class="hidden xl:block">
-          <BreadcrumbList>
-            <template v-if="titleKey !== 'nav.dashboard'">
-              <BreadcrumbItem
-                ><BreadcrumbLink as-child
-                  ><RouterLink to="/">{{ t('nav.dashboard') }}</RouterLink></BreadcrumbLink
-                ></BreadcrumbItem
-              >
-              <BreadcrumbSeparator />
-            </template>
-            <BreadcrumbItem
-              ><BreadcrumbPage>{{ t(titleKey) }}</BreadcrumbPage></BreadcrumbItem
+  <header class="uc-app-header">
+    <div class="uc-app-header-context">
+      <SidebarTrigger class="uc-header-icon -ml-1" :aria-label="t('common.toggleSidebar')" />
+      <Separator orientation="vertical" class="mr-2 hidden !h-4 md:block" />
+      <Breadcrumb class="hidden min-w-0 md:block">
+        <BreadcrumbList class="flex-nowrap">
+          <template v-if="titleKey !== 'nav.dashboard'">
+            <BreadcrumbItem class="hidden lg:block"
+              ><BreadcrumbLink as-child
+                ><RouterLink to="/">{{ t('nav.dashboard') }}</RouterLink></BreadcrumbLink
+              ></BreadcrumbItem
             >
-          </BreadcrumbList>
-        </Breadcrumb>
-        <!-- Search Trigger Button -->
-        <Button
-          variant="outline"
-          class="size-9 px-2 sm:w-48 sm:justify-between sm:px-3"
-          :aria-label="t('common.search')"
-          @click="triggerSearch"
-        >
-          <div class="flex items-center gap-2">
-            <IconSearch class="size-3.5 text-muted-foreground" />
-            <span class="hidden sm:inline">{{ t('common.search') }}...</span>
-          </div>
-          <kbd
-            class="pointer-events-none hidden md:inline-flex h-4 select-none items-center gap-0.5 border border-border bg-card px-1 font-mono text-xs font-medium text-muted-foreground shrink-0"
+            <BreadcrumbSeparator class="hidden lg:block" />
+          </template>
+          <BreadcrumbItem class="min-w-0"
+            ><BreadcrumbPage class="truncate">{{ t(titleKey) }}</BreadcrumbPage></BreadcrumbItem
           >
-            Ctrl+K
-          </kbd>
-        </Button>
-      </div>
+        </BreadcrumbList>
+      </Breadcrumb>
+    </div>
 
-      <!-- Right Side: System Status, Quick Actions, Notifications, Language Switcher -->
-      <div class="ml-auto flex items-center gap-2">
-        <!-- Quick Actions Menu -->
-        <DropdownMenu>
-          <DropdownMenuTrigger as-child>
-            <Button
-              variant="ghost"
-              class="flex items-center gap-1.5 px-3 cursor-pointer outline-none"
-            >
-              <IconBolt class="size-3.5 text-status-warning-mark fill-status-warning-mark/20" />
-              <span class="hidden md:inline">{{ t('common.actions.label') }}</span>
-              <IconChevronDown class="size-3 text-primary" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" class="w-48">
-            <DropdownMenuGroup
-              ><DropdownMenuLabel>{{ t('dashboard.quickActions.title') }}</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem @click="router.push('/problems')">
-                <IconPlus class="size-3.5 mr-2 text-muted-foreground" />
-                <span>{{ t('dashboard.quickActions.createProblem') }}</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem @click="router.push('/contests')">
-                <IconPlus class="size-3.5 mr-2 text-muted-foreground" />
-                <span>{{ t('dashboard.quickActions.createContest') }}</span>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem @click="router.push('/settings')">
-                <IconSettings class="size-3.5 mr-2 text-muted-foreground" />
-                <span>{{ t('nav.settings') }}</span>
-              </DropdownMenuItem></DropdownMenuGroup
-            >
-          </DropdownMenuContent>
-        </DropdownMenu>
+    <div class="uc-app-header-actions">
+      <Button
+        variant="outline"
+        size="sm"
+        class="uc-header-search"
+        :aria-label="t('common.search')"
+        @click="triggerSearch"
+      >
+        <IconSearch data-icon="inline-start" />
+        <span class="hidden sm:inline">{{ t('common.search') }}</span>
+        <Kbd class="ml-auto hidden lg:inline-flex">{{ shortcutLabel }}</Kbd>
+      </Button>
+      <!-- Quick Actions Menu -->
+      <DropdownMenu>
+        <DropdownMenuTrigger as-child>
+          <Button
+            variant="ghost"
+            class="uc-header-icon"
+            :aria-label="t('common.actions.label')"
+            :title="t('common.actions.label')"
+          >
+            <IconBolt class="size-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" class="w-48">
+          <DropdownMenuGroup
+            ><DropdownMenuLabel>{{ t('dashboard.quickActions.title') }}</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem @click="router.push('/problems')">
+              <IconPlus class="size-3.5 mr-2 text-muted-foreground" />
+              <span>{{ t('dashboard.quickActions.createProblem') }}</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem @click="router.push('/contests')">
+              <IconPlus class="size-3.5 mr-2 text-muted-foreground" />
+              <span>{{ t('dashboard.quickActions.createContest') }}</span>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem @click="router.push('/settings')">
+              <IconSettings class="size-3.5 mr-2 text-muted-foreground" />
+              <span>{{ t('nav.settings') }}</span>
+            </DropdownMenuItem></DropdownMenuGroup
+          >
+        </DropdownMenuContent>
+      </DropdownMenu>
 
-        <!-- Vertical Divider -->
-        <span class="h-4 w-px bg-border/60 dark:bg-border/40"></span>
+      <!-- Notifications Bell -->
+      <Button
+        variant="ghost"
+        @click="router.push('/notifications')"
+        class="uc-header-icon"
+        :aria-label="t('nav.notifications')"
+        :title="t('nav.notifications')"
+      >
+        <IconBell class="size-4" />
+      </Button>
 
-        <!-- Notifications Bell -->
-        <Button
-          variant="ghost"
-          @click="router.push('/notifications')"
-          class="relative w-8 flex items-center justify-center cursor-pointer outline-none"
-          :title="t('nav.notifications')"
-        >
-          <IconBell class="size-4" />
-        </Button>
-
-        <!-- Vertical Divider -->
-        <span class="h-4 w-px bg-border/60 dark:bg-border/40"></span>
-
-        <!-- Theme Switcher -->
-        <ThemeSwitcher />
-
-        <!-- Vertical Divider -->
-        <span class="h-4 w-px bg-border/60 dark:bg-border/40"></span>
-
-        <!-- Language Switcher -->
-        <div>
-          <LanguageSwitcher />
-        </div>
-      </div>
+      <ThemeSwitcher class="uc-header-icon" />
+      <LanguageSwitcher />
     </div>
   </header>
 

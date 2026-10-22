@@ -1,9 +1,15 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
-import { Check, Plus, RefreshCw } from "@lucide/vue";
+import {
+  Check,
+  ChevronsUpDown,
+  Plus,
+  RefreshCw,
+  SquareTerminal,
+} from "@lucide/vue";
 import type { SignedInAccount } from "@ulticode/auth-core";
-import { useSidebar } from "@ulticode/design-system/ui/sidebar";
+import { SidebarMenuButton, useSidebar } from "@ulticode/design-system/ui/sidebar";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -29,6 +35,7 @@ const props = defineProps<{
     switchTo(accountId: string): Promise<void>;
   };
   adminOnly?: boolean;
+  accountName?: string;
 }>();
 const { t } = useI18n();
 const { isMobile } = useSidebar();
@@ -84,7 +91,31 @@ function showAdd() {
 
 <template>
   <DropdownMenu v-model:open="menuOpen" @update:open="load">
-    <DropdownMenuTrigger as-child><slot name="trigger" /></DropdownMenuTrigger>
+    <DropdownMenuTrigger as-child>
+      <slot name="trigger">
+        <SidebarMenuButton
+          size="lg"
+          :tooltip="t('auth.accounts.title')"
+          :aria-label="t('auth.accounts.title')"
+          class="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+        >
+          <div
+            class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground"
+          >
+            <SquareTerminal class="size-4" />
+          </div>
+          <div class="grid min-w-0 flex-1 text-left text-sm leading-tight">
+            <span class="truncate font-medium">UltiCode</span>
+            <span
+              v-if="accountName"
+              class="truncate text-xs text-muted-foreground"
+              >{{ accountName }}</span
+            >
+          </div>
+          <ChevronsUpDown class="ml-auto size-4 text-muted-foreground" />
+        </SidebarMenuButton>
+      </slot>
+    </DropdownMenuTrigger>
     <DropdownMenuContent
       class="w-(--reka-dropdown-menu-trigger-width) min-w-56 rounded-lg"
       :side="isMobile ? 'bottom' : 'right'"
